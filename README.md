@@ -169,7 +169,9 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
     * **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
     * **MinSizeRel**: minimum size; optimized.
 
-    You at least want release libraries (the last 3 count as release), but you can have debug libraries coexist with them. To do this, go through the full installation process twice, once for each configuration. You should install the release configuration *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
+    You at least want release libraries (the last 3 count as release), but you
+    can have debug libraries coexist with them. To do this, go through the full
+    installation process twice, once for each configuration.
 3. Build the project **ALL_BUILD** by right-clicking it and selecting **Build**.
 4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**.
 5. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
@@ -352,7 +354,11 @@ There are two ways to get the source code.
         - **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
         - **MinSizeRel**: minimum size; optimized.
 
-        You at least want release libraries (the last 3 count as release), but you can have debug libraries coexist with them. To do this, go through the full installation process twice, once for each configuration. It is typical to use a different build directory for each build type (e.g., `~/simbody-build-debug` and `~/simbody-build-release`). You should install the release configuration *last* to ensure that you use the release version of the `simbody-visualizer` instead of the slow debug version.
+        You at least want release libraries (the last 3 count as release), but
+        you can have debug libraries coexist with them. To do this, go through
+        the full installation process twice, once for each configuration. It is
+        typical to use a different build directory for each build type (e.g.,
+        `~/simbody-build-debug` and `~/simbody-build-release`).
 
     * There are a few other variables you might want to play with:
         * `BUILD_EXAMPLES` to see what Simbody can do. On by default.

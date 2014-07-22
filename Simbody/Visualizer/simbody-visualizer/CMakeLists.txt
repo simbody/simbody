@@ -42,8 +42,12 @@ ADD_EXECUTABLE(${GUI_NAME}
 	simbody-visualizer.cpp lodepng.cpp lodepng.h
 	${GLUT32_HEADERS}) # only on Windows
 
+# If building as debug, append the debug postfix to the name of the executable.
+# CMAKE_DEBUG_POSTFIX only affects non-executable targets, but we use its value
+# to set the postfix for this executable.
 SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES
-        PROJECT_LABEL "Code - ${GUI_NAME}")
+        PROJECT_LABEL "Code - ${GUI_NAME}"
+        DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 TARGET_LINK_LIBRARIES(${GUI_NAME} 
 	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})

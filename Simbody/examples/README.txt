@@ -21,7 +21,7 @@ CMake 2.8 or later. Then run the CMake GUI, tell it the source directory
 (where it will look for CMakeLists.txt) hit "Configure", tell it what 
 compiler you want to use, then hit "Generate" and exit. You will then 
 have a nice Visual Studio solution (.sln) file you can click on. This 
-should also work for building an XCode project on the Mac although we 
+should also work for building an Xcode project on the Mac although we 
 haven't tested that yet. And CMake also creates ordinary make files like 
 the one supplied here.
 

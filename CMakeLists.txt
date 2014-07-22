@@ -92,6 +92,8 @@ IF(BUILD_USING_NAMESPACE)
     SET(NS "${BUILD_USING_NAMESPACE}_")
 ENDIF(BUILD_USING_NAMESPACE)
 
+# Ensure that debug libraries have "_d" appended to their names.
+SET(CMAKE_DEBUG_POSTFIX "_d")
 
 #
 # These are the names of all the libraries we may generate. These are
@@ -226,7 +228,7 @@ IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 ENDIF()
 
 # C compiler is gcc on Linux, gcc or cc on Mac where command line tools
-# are installed from XCode. May be Clang in Mac 10.8 or later.
+# are installed from Xcode. May be Clang in Mac 10.8 or later.
 
 IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(NOT CMAKE_INSTALL_PREFIX)
@@ -276,10 +278,10 @@ IF("${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local" OR
 ENDIF()
 
 
-IF(UNIX AND NOT CMAKE_BUILD_TYPE)
+IF(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" 
         FORCE)
-ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
+ENDIF()
 
 
 ## Choose the maximum level of x86 instruction set that the compiler is 
@@ -488,12 +490,6 @@ ELSE(NEED_QUOTES)
                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
 ENDIF(NEED_QUOTES)
 
-# Ensure that debug libraries have "_d" appended to their names.
-# CMake gets this right on Windows automatically with this definition.
-# But on Unix or Cygwin we have to add the suffix manually
-IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
-    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
-ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
 # Determine which math libraries to use for this platform.
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
@@ -565,11 +561,11 @@ IF (BUILD_TESTING)
         "Number of CPUs to be used by the RUN_TESTS_PARALLEL target.")
     MARK_AS_ADVANCED(TESTING_PROCESSOR_COUNT)
     SET (cmd ${CMAKE_CTEST_COMMAND} -j${TESTING_PROCESSOR_COUNT})
-    IF (MSVC)
+    IF(MSVC OR XCODE)
         SET (cmd ${cmd} -C ${CMAKE_CFG_INTDIR})
-    ELSE (MSVC)
+    ELSE()
         SET (cmd ${cmd} -C ${CMAKE_BUILD_TYPE})
-    ENDIF (MSVC)
+    ENDIF()
     ADD_CUSTOM_TARGET (RUN_TESTS_PARALLEL
         COMMAND ${cmd}
     )
