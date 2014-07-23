@@ -174,6 +174,12 @@ there, we'll look in platform-specific default locations.  The other
 constructor allows specification of a search path that will be checked before
 attempting to find the installation directory.
 
+If you want to override the name of the visualizer executable for which Simbody
+searches, set the environment variable SIMBODY_VISUALIZER_NAME
+to the desired executable name. For example, if you want to use the
+debug visualizer with release libraries, set SIMBODY_VISUALIZER_NAME
+to simbody-visualizer_d.
+
 The SimTK::Pathname class is used to process the supplied search path, which
 can consist of absolute, working directory-relative, or executable 
 directory-relative path names.
