@@ -47,7 +47,7 @@ potential energy, so adding it to a system will cause potential+kinetic energy
 not to be conserved.
 
 If you want to be able to apply discrete forces to any body or mobilizer 
-specifying which one in advance, see Force::DiscreteForces.
+without specifying which one in advance, see Force::DiscreteForces.
 @see Force::DiscreteForces **/
 class SimTK_SIMBODY_EXPORT Force::MobilityDiscreteForce : public Force {
 public:
