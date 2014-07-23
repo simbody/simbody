@@ -16,6 +16,11 @@
 #   Simbody_STATIC_LIBRARIES - suitable for target_link_libraries(); includes
 #                              both optimized and debug static libraries if
 #                              both are available
+#   Simbody_DOXYGEN_TAGFILE - Path to SimbodyDoxygenTagFile, which
+#                             which can be used to include Simbody
+#                             Doxygen documentation directly in your project.
+#                             Only defined if Doxygen documentation is
+#                             installed.
 if (@PKG_NAME@_CONFIG_INCLUDED)
   return()
 endif()
@@ -39,6 +44,14 @@ list(APPEND @PKG_NAME@_CFLAGS
 
 list(APPEND @PKG_NAME@_LDFLAGS 
             -L"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
+
+if (NOT "@SIMBODY_DOXYGEN_TAGFILE_RELPATH@" STREQUAL "")
+    set(temp_tagfile_path
+        "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DOCDIR@/api/@PROJECT_NAME@/@SIMBODY_DOXYGEN_TAGFILE_RELPATH@")
+    if (EXISTS "${temp_tagfile_path}")
+        set(@PKG_NAME@_DOXYGEN_TAGFILE "${temp_tagfile_path}")
+    endif()
+endif()
 
 # Set extra libraries to link against
 if (WIN32)
