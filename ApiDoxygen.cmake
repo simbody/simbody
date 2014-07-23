@@ -4,6 +4,9 @@ IF(DOXYGEN_EXECUTABLE-NOTFOUND)
 ELSE(DOXYGEN_EXECUTABLE-NOTFOUND)
     SET(DOXY_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
 
+    # This is used in Doxyfile.in and SimbodyConfig.cmake.in.
+    SET(SIMBODY_DOXYGEN_TAGFILE_RELPATH "html/SimbodyDoxygenTagfile")
+
     CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in 
           ${DOXY_CONFIG}
           @ONLY )
