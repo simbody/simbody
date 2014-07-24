@@ -1,4 +1,4 @@
-#---------------------------------------------------
+#-----------------------------------------------------------
 # Simbody/Platform
 #
 # Simbody has dependencies on several low-level packages
@@ -10,7 +10,7 @@
 # on Macs. On Windows we have to supply our own.
 # We provide our own high-performance Lapack library 
 # for Windows; Linux and Macs are expected to have one.
-#----------------------------------------------------
+#-----------------------------------------------------------
 
 SET(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${PLATFORM_NAME})
 
@@ -31,20 +31,17 @@ FOREACH(LIBF ${LIB_FILES})
 	"${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
 ENDFOREACH()
 
-
 ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 SET_TARGET_PROPERTIES(PlatformFiles
     PROPERTIES PROJECT_LABEL "Code - Platform Files")
 
-#
-# During build, we want to copy all the platform binaries
-# into the same binary directory that we are using for all
-# the ones we build. That ensure that our build will always
+# During build, we want to copy all of the platform binaries
+# into the same binary directory that we are using for all of
+# the ones we build. That ensures that our build will always
 # use the current versions of these.
 #
 # At installation, we copy both includes and binaries into
 # the appropriate locations of the SimTK_INSTALL_DIR.
-#
 
 FOREACH(LIBF ${LIB_FILES})
     GET_FILENAME_COMPONENT(LIBF_ROOT ${LIBF} NAME)
@@ -79,7 +76,7 @@ ENDFOREACH()
 SET(PLATFORM_LINK_LIBRARIES "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}"
     PARENT_SCOPE)
 
-# There is just one item in PLATFORM_INCLUDE_DIRECTORIES
+# There is just one item in PLATFORM_INCLUDE_DIRECTORIES.
 SET(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_ROOT}/include")
 # Copy to parent.
 SET(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_INCLUDE_DIRECTORIES}" 
