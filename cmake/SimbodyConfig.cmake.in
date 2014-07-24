@@ -16,11 +16,19 @@
 #   Simbody_STATIC_LIBRARIES - suitable for target_link_libraries(); includes
 #                              both optimized and debug static libraries if
 #                              both are available
-#   Simbody_DOXYGEN_TAGFILE - Path to SimbodyDoxygenTagFile, which
-#                             which can be used to include Simbody
-#                             Doxygen documentation directly in your project.
-#                             Only defined if Doxygen documentation is
-#                             installed.
+#
+# The following variables can be used in your own project so that your
+# project's Doxygen documentation can link with Simbody's. These variables are
+# only defined if Doxygen documentation is installed.
+#   Simbody_DOXYGEN_DIR     - Directory containing Doxygen API documentation.
+#   Simbody_DOXYGEN_TAGFILE - Path to SimbodyDoxygenTagFile.
+#
+# For example, if you're configuring your Doxyfile using CMake's
+# configure_file, your Doxyfile.in file (to be configured) could contain
+# (without the backslashes):
+#
+#   TAGFILES = "\@Simbody_DOXYGEN_TAGFILE\@=\@Simbody_DOXYGEN_DIR\@"
+
 if (@PKG_NAME@_CONFIG_INCLUDED)
   return()
 endif()
@@ -45,12 +53,19 @@ list(APPEND @PKG_NAME@_CFLAGS
 list(APPEND @PKG_NAME@_LDFLAGS 
             -L"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
 
-if (NOT "@SIMBODY_DOXYGEN_TAGFILE_RELPATH@" STREQUAL "")
+if (NOT "@SIMBODY_DOXYGEN_TAGFILE_NAME@" STREQUAL "")
+    # Must check tagfile variable, since the doxygen install dir is created
+    # even if Doxygen documentation is not install.
+    set(temp_doxygen_dir
+        "@CMAKE_INSTALL_PREFIX@/@SIMBODY_INSTALL_DOXYGENDIR@")
     set(temp_tagfile_path
-        "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DOCDIR@/api/@PROJECT_NAME@/@SIMBODY_DOXYGEN_TAGFILE_RELPATH@")
+        "${temp_doxygen_dir}/@SIMBODY_DOXYGEN_TAGFILE_NAME@")
     if (EXISTS "${temp_tagfile_path}")
+        set(@PKG_NAME@_DOXYGEN_DIR "${temp_doxygen_dir}")
         set(@PKG_NAME@_DOXYGEN_TAGFILE "${temp_tagfile_path}")
     endif()
+    unset(temp_doxygen_dir)
+    unset(temp_tagfile_path)
 endif()
 
 # Set extra libraries to link against
