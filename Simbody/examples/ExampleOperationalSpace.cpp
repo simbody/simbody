@@ -21,6 +21,19 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+/**
+ * This example shows how one could write an operational space controller in
+ * Simbody. The model we are controlling is a human upper body model.
+ * Operational space controllers are model-based, and we show how to access the
+ * necessary quantities from the SimbodyMatterSubsystem. We assume the system
+ * has a motor at each of its degrees of freedom.
+ *
+ * The task the controller will achieve has two components:
+ * 1. One arm reaches for a target point
+ * 2. All bodies are subject to gravity compensation (to counteract the effect
+ * of gravity).
+ */
+
 #include <Simbody.h>
 
 using namespace std;
@@ -47,6 +60,11 @@ public:
     const GeneralForceSubsystem& getForceSubsystem() const {return m_forces;}
     GeneralForceSubsystem& updForceSubsystem() {return m_forces;}
 
+    const Force::Gravity& getGravity() const {
+        return static_cast<const Force::Gravity&>(
+                m_forces.getForce(m_gravityIndex));
+    }
+
     /// Realizes the topology and model, and uses the resulting initial state
     /// to perform further internal initialization.
     void initialize(State& state) {
@@ -66,7 +84,7 @@ public:
     /// The names of the rigid bodies that make up the system.
     /// Used for indexing into data structures.
     enum Segment {
-        trunk, head, pelvis,
+        trunk, head,
         upperarm_r, lowerarm_r, hand_r, upperarm_l, lowerarm_l, hand_l,
     };
 
@@ -74,7 +92,6 @@ public:
     /// Used for indexing into data structures.
     enum Coordinate {
         neck_extension, neck_bending, neck_rotation,
-        back_tilt, back_list, back_rotation,
         shoulder_r_flexion, shoulder_r_adduction, shoulder_r_rotation,
         elbow_r_flexion, elbow_r_rotation,
         shoulder_l_flexion, shoulder_l_adduction, shoulder_l_rotation,
@@ -149,6 +166,9 @@ private:
     SimbodyMatterSubsystem       m_matter;
     GeneralForceSubsystem        m_forces;
 
+    // Index of the Gravity Force in m_forces.
+    ForceIndex                   m_gravityIndex;
+
     /// The MobilizedBody's that make up the UpperBody.
     std::map<Segment, MobilizedBody> m_bodies;
 
@@ -188,8 +208,8 @@ UpperBody::UpperBody()
     //                          Gravity
     //--------------------------------------------------------------------------
 
-    // Gravity.
-    Force::Gravity(m_forces, m_matter, -YAxis, 9.8066);
+    Force::Gravity gravity(m_forces, m_matter, -YAxis, 9.8066);
+    m_gravityIndex = gravity.getForceIndex();
 
     //--------------------------------------------------------------------------
     //                          Body information
@@ -235,23 +255,6 @@ UpperBody::UpperBody()
         DecorativeEllipsoid(Vec3(0.2,0.22,0.2)/2.)
             .setColor(White).setOpacity(1));
     headInfo.addDecoration(Vec3(0),originMarker);
-
-    // Pelvis.
-    // -------
-    const Real pelvisMass = 13.924855817213411;
-    const Vec3 pelvisCOM(0.036907589663647, -0.142772863495411, 0);
-    Body pelvisInfo(MassProperties(pelvisMass, pelvisCOM,
-                                   Inertia( 0.172382614643800,
-                                            0.137961114411544,
-                                            0.128551359933154,
-                                           -0.010239461806632,
-                                            0.001027963710884,
-                                           -0.003286514395970)
-                                   .shiftFromMassCenter(-pelvisCOM,pelvisMass)));
-    pelvisInfo.addDecoration(Transform(Ryzx,Vec3(0.02,-0.1,0.0)),
-        DecorativeEllipsoid(ectr.elementwiseMultiply(Vec3(3.3,1.5,2.4)))
-            .setColor(White).setOpacity(1));
-    pelvisInfo.addDecoration(Vec3(0),originMarker);
 
     // Upper arm.
     // ----------
@@ -372,14 +375,6 @@ UpperBody::UpperBody()
     addMobilityLinearStop(m_bodies[head], 1, -60, 50); // bending
     addMobilityLinearStop(m_bodies[head], 2, -80, 80); // rotation
 
-    // Back angles are: q0=tilt (about z), q1=list (x), q2=rotation (y).
-    m_bodies[pelvis] = MobilizedBody::Gimbal(
-        m_bodies[trunk], Transform(Rzxy, Vec3(-0.019360589663647,-0.220484136504589,0)),
-        pelvisInfo, Rzxy);
-    addMobilityLinearStop(m_bodies[pelvis], 0, -5, 10); // tilt
-    addMobilityLinearStop(m_bodies[pelvis], 1, -5, 5); // list
-    addMobilityLinearStop(m_bodies[pelvis], 2, -15, 15); // rotation
-
     // Right arm.
     //-----------
     // Shoulder angles are q0=flexion, q1=adduction, q2=rotation
@@ -436,10 +431,6 @@ void UpperBody::fillInCoordinateMap(const State& s)
     coords[neck_bending] = getQandUIndices(s, m_bodies[head], 1);
     coords[neck_rotation] = getQandUIndices(s, m_bodies[head], 2);
 
-    coords[back_tilt]     = getQandUIndices(s, m_bodies[pelvis], 0);
-    coords[back_list]     = getQandUIndices(s, m_bodies[pelvis], 1);
-    coords[back_rotation] = getQandUIndices(s, m_bodies[pelvis], 2);
-
     // right.
     coords[shoulder_r_flexion]   = getQandUIndices(s, m_bodies[upperarm_r], 0);
     coords[shoulder_r_adduction] = getQandUIndices(s, m_bodies[upperarm_r], 1);
@@ -455,6 +446,46 @@ void UpperBody::fillInCoordinateMap(const State& s)
 
     coords[elbow_l_flexion]  = getQandUIndices(s, m_bodies[lowerarm_l], 0);
     coords[elbow_l_rotation] = getQandUIndices(s, m_bodies[lowerarm_l], 1);
+}
+
+//==============================================================================
+// ReachingAndGravityCompensation
+//==============================================================================
+class ReachingAndGravityCompensation :
+    public SimTK::Force::Custom::Implementation
+{
+public:
+
+    /// The left hand reaches for a target location, and the controller
+    /// compensates for gravity.
+    ReachingAndGravityCompensation(const UpperBody& system) :
+        m_system(system), m_matter(system.getMatterSubsystem()) {}
+
+    void calcForce(const SimTK::State&                state,
+                   SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
+                   SimTK::Vector_<SimTK::Vec3>&       particleForces,
+                   SimTK::Vector&                     mobilityForces) const
+                   OVERRIDE_11;
+
+    Real calcPotentialEnergy(const SimTK::State& state) const OVERRIDE_11
+    { return 0; }
+
+private:
+
+    const UpperBody& m_system;
+    const SimbodyMatterSubsystem& m_matter;
+
+};
+
+void ReachingAndGravityCompensation::calcForce(
+               const SimTK::State&                state,
+               SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
+               SimTK::Vector_<SimTK::Vec3>&       particleForces,
+               SimTK::Vector&                     mobilityForces) const
+{
+    m_matter.multiplyBySystemJacobianTranspose(state,
+            -m_system.getGravity().getBodyForces(state),
+            mobilityForces);
 }
 
 //==============================================================================
@@ -532,13 +563,11 @@ int main(int argc, char **argv)
         help.setIsScreenText(true);
         viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
 
-        /* TODO
         // Add the controller.
-        OperationalSpaceController* controller =
-            new OperationalSpaceController(system);
+        ReachingAndGravityCompensation* controller =
+            new ReachingAndGravityCompensation(system);
         // Force::Custom takes ownership over controller.
         Force::Custom control(system.updForceSubsystem(), controller);
-        */
 
         // Initialize the system and other related classes.
         State s;
