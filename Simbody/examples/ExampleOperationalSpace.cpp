@@ -57,9 +57,9 @@ public:
         fillInCoordinateMap(state);
     }
 
-    /// Populates a map that allow users of UpperBody to access coordinates (Q) and
-    /// speeds (U) with descriptive Enums (e.g., neck_extension) so the user
-    /// (e.g., SIMBICON) needn't know how State indices correspond to
+    /// Populates a map that allow users of UpperBody to access coordinates (Q)
+    /// and speeds (U) with descriptive Enums (e.g., neck_extension) so the
+    /// user (e.g., SIMBICON) needn't know how State indices correspond to
     /// coordinates.
     void fillInCoordinateMap(const State& s);
 
@@ -458,7 +458,7 @@ void UpperBody::fillInCoordinateMap(const State& s)
 }
 
 //==============================================================================
-//                           USER INPUT HANDLER
+// UserInputHandler
 //==============================================================================
 /// This is a periodic event handler that interrupts the simulation on a
 /// regular basis to poll the InputSilo for user input.
@@ -485,10 +485,10 @@ private:
 };
 
 //==============================================================================
-//                           OUTPUT REPORTER
+// OutputReporter
 //==============================================================================
-// This is a periodic event handler that interrupts the simulation on a regular
-// basis so that we can display information.
+/// This is a periodic event handler that interrupts the simulation on a
+/// regular basis so that we can display information.
 class OutputReporter : public PeriodicEventReporter {
 public:
     OutputReporter(const UpperBody& system, Real interval) :
@@ -505,17 +505,27 @@ int main(int argc, char **argv)
 {
     try {
 
+        // Set some options.
+        const double duration = 1.5; // seconds.
+        const double realTimeScale = 1.0; // unitless.
+        const double frameRate = 30.0; // frames per second.
+
         // Create the system.
         UpperBody system;
         system.updMatterSubsystem().setShowDefaultGeometry(false);
 
         // Set up visualizer and event handlers.
         SimTK::Visualizer viz(system);
+        viz.setMode(Visualizer::RealTime);
+        viz.setRealTimeScale(realTimeScale);
+        viz.setShowFrameRate(true);
+        viz.setShowSimTime(true);
         SimTK::Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
         viz.addInputListener(userInput);
         system.addEventHandler(new UserInputHandler(*userInput, 0.1));
         system.addEventReporter(new OutputReporter(system, .01));
-        system.addEventReporter(new Visualizer::Reporter(viz));
+        system.addEventReporter(
+                new Visualizer::Reporter(viz, realTimeScale / frameRate));
 
         // Display message on the screen about how to start simulation.
         DecorativeText help("Any input to start; ESC to quit");
@@ -534,7 +544,7 @@ int main(int argc, char **argv)
         State s;
         system.initialize(s);
         SemiExplicitEuler2Integrator integ(system);
-        // TODO integ.setAccuracy(0.1);
+        integ.setAccuracy(0.001);
         TimeStepper ts(system, integ);
         ts.initialize(s);
         viz.report(ts.getState());
@@ -553,7 +563,7 @@ int main(int argc, char **argv)
         const double startCPU  = cpuTime(), startTime = realTime();
 
         // Simulate.
-        ts.stepTo(1.5);
+        ts.stepTo(duration);
 
         std::cout << "CPU time: " << cpuTime() - startCPU << " seconds. "
                   << "Real time: " << realTime() - startTime << " seconds."
