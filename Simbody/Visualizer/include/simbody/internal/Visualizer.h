@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -383,7 +383,7 @@ Real getGroundHeight() const;
 choices, and the discussion for the Visualizer class for meanings.
 @param[in]  mode    The new Mode to use.
 @return A reference to this Visualizer so that you can chain "set" calls. **/
-void setMode(Mode mode);
+Visualizer& setMode(Mode mode);
 /** Get the current mode being used by the Visualizer. See \ref Visualizer::Mode
 for the choices, and the discussion for the Visualizer class for meanings. **/
 Mode getMode() const;
