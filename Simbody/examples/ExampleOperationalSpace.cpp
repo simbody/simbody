@@ -458,8 +458,19 @@ public:
 
     /// The left hand reaches for a target location, and the controller
     /// compensates for gravity.
-    ReachingAndGravityCompensation(const UpperBody& system) :
-        m_system(system), m_matter(system.getMatterSubsystem()) {}
+    /// 
+    /// @param[in] stationLocationInLefthand The point whose location we want
+    ///                                      to control.
+    /// @param[in] proportionalGain Units of N-m/rad
+    /// @param[in] derivativeGain Units of N-m-s/rad
+    ReachingAndGravityCompensation(const UpperBody& system,
+            Vec3 stationLocationInLeftHand=Vec3(0, 0, 0),
+            double proportionalGain=100, double derivativeGain=100) :
+        m_system(system), m_matter(system.getMatterSubsystem()),
+        m_stationLocationInLeftHand(stationLocationInLeftHand),
+        m_proportionalGain(proportionalGain),
+        m_derivativeGain(derivativeGain),
+        m_desiredPosInGround(Vec3(0.5, 1.8, 0.5)) {}
 
     void calcForce(const SimTK::State&                state,
                    SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
@@ -470,22 +481,214 @@ public:
     Real calcPotentialEnergy(const SimTK::State& state) const OVERRIDE_11
     { return 0; }
 
+    void setDesiredPosition(Vec3 pos) { m_desiredPosInGround = pos; }
+
 private:
+
+    /// Project the mass matrix into the task space.
+    /// J: station jacobian
+    /// M: system (generalized coordinate) mass matrix
+    /// Lambda = (J M^{-1} J^T)^{-1}, size m_numTasks x m_numTasks
+    void calcTaskSpaceMassMatrix(const SimTK::State& state, Matrix& Lambda)
+        const;
+
+    /// A mass-matrix-weighted generalized inverse.
+    /// J: station jacobian
+    /// M: system (generalized coordinate) mass matrix
+    /// Lambda: task space mass matrix
+    /// Jbar = M^{-1} J^T Lambda
+    void calcDynamicallyConsistentJacobianInverse(
+                const SimTK::State& state, const Matrix& Lambda, Matrix& Jbar)
+        const;
+
+    /// Projects mobility forces so as not to interfere with motion associated
+    /// with the station jacobian.
+    /// I: identity matrix
+    /// Jbar: dynamically consistent jacobian inverse
+    /// J: station jacobian
+    /// N = I - Jbar J
+    /// N^T = I - J^T Jbar^T
+    void calcNullspaceProjectionTranspose(
+            const SimTK::State& state, const Matrix& Jbar, Matrix& NT) const;
 
     const UpperBody& m_system;
     const SimbodyMatterSubsystem& m_matter;
+    const Vec3 m_stationLocationInLeftHand;
+    const double m_proportionalGain;
+    const double m_derivativeGain;
+    Vec3 m_desiredPosInGround;
+    static const unsigned int m_numTasks = 3;
 
 };
 
-void ReachingAndGravityCompensation::calcForce(
-               const SimTK::State&                state,
-               SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
-               SimTK::Vector_<SimTK::Vec3>&       particleForces,
-               SimTK::Vector&                     mobilityForces) const
+void ReachingAndGravityCompensation::calcTaskSpaceMassMatrix(
+        const SimTK::State& state, Matrix& Lambda) const
 {
+    // See SimbodyMatterSubsystemRep::calcGMInvGt(), which is a similar
+    // calculation to the one done here. I copied some stuff from there.
+    const int nu = state.getNU();
+    const int m = m_numTasks;
+
+    const MobilizedBody& leftHand = m_system.getBody(UpperBody::hand_l);
+
+    // We compute the inverse of the task space mass matrix, and store it here.
+    Matrix JMInvJt(m, m);
+
+    // Create temporary variables.
+    Vector Jtcol(nu);
+    Vector MInvJtcol(nu);
+
+    // f_GP is used to pluck out one column at a time of Jt. Exactly one
+    // element at a time of f_GP will be 1, the rest are 0.
+    Vec3 f_GP(m, Real(0));
+
+    for (unsigned int j = 0; j < m; ++j)
+    {
+        f_GP[j] = 1;
+        // Using implicit conversion of leftHand to a MobilizedBodyIndex.
+        m_matter.multiplyByStationJacobianTranspose(state,
+                leftHand, m_stationLocationInLeftHand, f_GP, Jtcol);
+        f_GP[j] = 0;
+        m_matter.multiplyByMInv(state, Jtcol, MInvJtcol);
+        Vec3 JMInvJt_j = m_matter.multiplyByStationJacobian(state,
+                leftHand, m_stationLocationInLeftHand, MInvJtcol);
+        JMInvJt(j) = Vector_<Real>(JMInvJt_j);
+    }
+
+    // Invert.
+    FactorLU LambdaInv(JMInvJt);
+    LambdaInv.inverse(Lambda);
+}
+
+void ReachingAndGravityCompensation::calcDynamicallyConsistentJacobianInverse(
+        const SimTK::State& state, const Matrix& Lambda, Matrix& Jbar)
+{
+    const int nu = state.getNU();
+    const int m = m_numTasks;
+
+    const MobilizedBody& leftHand = m_system.getBody(UpperBody::hand_l);
+
+    Jbar.resize(nu, m);
+
+    // Temporary.
+    Vector JtLambdacol(nu);
+
+    for (unsigned int j = 0; j < m; ++j)
+    {
+        m_matter.multiplyByStationJacobianTranspose(state,
+                leftHand, m_stationLocationInLeftHand, Lambda(j), JtLambdacol);
+        m_matter.multiplyByMInv(state, JtLambdacol, Jbar(j));
+    }
+}
+
+void ReachingAndGravityCompensation::calcNullspaceProjectionTranspose(
+        const SimTK::State& state, const Matrix& Jbar, Matrix& NT)
+{
+    const int nu = state.getNU();
+    const int m = m_numTasks;
+
+    const MobilizedBody& leftHand = m_system.getBody(UpperBody::hand_l);
+
+    Matrix JtJbart(nu, nu);
+
+    for (unsigned int j = 0; j < m; ++j)
+    {
+        m_matter.multiplyByStationJacobianTranspose(state,
+                leftHand, m_stationLocationInLeftHand, Jbar(j), JtJbart(j));
+
+    }
+
+    // Create an identity matrix.
+    Matrix identity(nu, nu);
+    identity.setToZero();
+    identity.diag().setTo(1.0);
+
+    NT = I - JtJbart;
+}
+
+void ReachingAndGravityCompensation::calcForce(
+               const State&                state,
+               Vector_<SimTK::SpatialVec>& bodyForces,
+               Vector_<SimTK::Vec3>&       particleForces,
+               Vector&                     mobilityForces) const
+{
+    const int nu = state.getNU();
+    const int m = m_numTasks;
+
+    // Compute control law in task space (F*).
+    // ---------------------------------------
+    // These are approximations, assuming the user is not moving the target too
+    // quickly.
+    Vec3 desiredVelInGround(0);
+    Vec3 desiredAccInGround(0);
+
+    // Get info about the actual location, etc. of the left hand.
+    Vec3 posInGround;
+    Vec3 velInGround;
+    const MobilizedBody& leftHand = m_system.getBody(UpperBody::hand_l);
+    leftHand.findStationLocationAndVelocityInGround(state,
+            m_stationLocationInLeftHand, posInGround, velInGround);
+
+    // Units of acceleration.
+    Vec3 controlLaw = desiredAccInGround +
+        m_derivativeGain * (desiredVelInGround - velInGround) +
+        m_proportionalGain * (m_desiredPosInGround - posInGround);
+
+    // Task space mass matrix (Lambda).
+    // --------------------------------
+    Matrix taskSpaceMassMatrix;
+    calcTaskSpaceMassMatrix(state, taskSpaceMassMatrix);
+
+    // Gravity (g).
+    // ------------
+    // Get the gravity vector, for gravity compensation.
+    Vector systemGravity;
     m_matter.multiplyBySystemJacobianTranspose(state,
             -m_system.getGravity().getBodyForces(state),
-            mobilityForces);
+            systemGravity);
+
+    // Dynamically consistent jacobian inverse (Jbar).
+    // -----------------------------------------------
+    Matrix dynamicallyConsistentJacobianInverse;
+    calcDynamicallyConsistentJacobianInverse(state, taskSpaceMassMatrix,
+            dynamicallyConsistentJacobianInverse);
+    // TODO create operators for JBar.
+
+    // Task space gravity.
+    // -------------------
+    // p = Jbar^T g
+    taskSpaceGravity =
+        dynamicallyConsistentJacobianInverse.transpose() * systemGravity;
+
+    // Task space centripetal and coriolis forces.
+    // -------------------------------------------
+    // b: centripetal and coriolis forces for the whole system (in generalized
+    //      coordinates).
+    // mu = Jbar^T b - Lambda JDot u
+    // TODO
+
+    // Compute task-space force that achieves the task-space control.
+    // F = Lambda F*  + mu + p
+    Vec3 taskSpaceForce =
+        taskSpaceMassMatrix * Vector_<Real>(controlLaw) + taskSpaceGravity;
+    // TODO add in quadratic velocity (mu).
+
+    // Mobility forces that achieve the task.
+    // --------------------------------------
+    Vector taskMobilityForces;
+    m_matter.multiplyByStationJacobianTranspose(state, leftHand,
+            m_stationLocationInLeftHand, taskSpaceForce, taskMobilityForces);
+
+    // Transpose of nullspace projection matrix (N^T).
+    // -----------------------------------------------
+    Matrix nullspaceProjectionTranspose;
+    calcNullspaceProjectionTranspose(state,
+            dynamicallyConsistentJacobianInverse.transpose(),
+            nullspaceProjectionTranspose);
+
+    // Combine the reaching task with the gravity compensation.
+    mobilityForces =
+        taskMobilityForces + nullspaceProjectionTranspose * systemGravity;
 }
 
 //==============================================================================
@@ -543,7 +746,7 @@ int main(int argc, char **argv)
 
         // Create the system.
         UpperBody system;
-        system.updMatterSubsystem().setShowDefaultGeometry(false);
+        system.updMatterSubsystem().setShowDefaultGeometry(true);
 
         // Set up visualizer and event handlers.
         SimTK::Visualizer viz(system);
