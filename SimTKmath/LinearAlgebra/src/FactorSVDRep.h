@@ -129,7 +129,7 @@ class FactorSVDRepBase {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","inverse",
         "inverse(  std::complex<double> ) called with type that is inconsistant with the original matrix  \n");
     }
-    virtual int getRank() const {
+    virtual int getRank() {
        checkIfFactored( "getRank" );
 	   return(0);
     }
@@ -165,11 +165,11 @@ class FactorSVDRep : public FactorSVDRepBase {
 
     typedef typename CNT<T>::TReal RType;
 
-    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
-    void getSingularValues( Vector_<RType>& values );
-    int getRank();
-    void solve( const Vector_<T>& b, Vector_<T>& x );
-    void solve( const Matrix_<T>& b, Matrix_<T>& x );
+    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors ) OVERRIDE_11;
+    void getSingularValues( Vector_<RType>& values ) OVERRIDE_11;
+    int getRank() OVERRIDE_11;
+    void solve( const Vector_<T>& b, Vector_<T>& x ) OVERRIDE_11;
+    void solve( const Matrix_<T>& b, Matrix_<T>& x ) OVERRIDE_11;
 
 
     private:
