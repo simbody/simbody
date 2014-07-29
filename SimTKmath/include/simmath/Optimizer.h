@@ -32,11 +32,13 @@
 namespace SimTK {
 
 enum OptimizerAlgorithm {
-     BestAvailable  = 0, // Simmath will select best Optimizer based on problem type
-     InteriorPoint  = 1, // IPOPT interior point optimizer
-     LBFGS          = 2, // LBFGS optimizer
-     LBFGSB         = 3, // LBFGS optimizer with simple bounds
-     CFSQP          = 4  // CFSQP sequential quadratic programming optimizer (requires external library)
+     BestAvailable = 0, // Simmath will select best Optimizer based on problem type
+     InteriorPoint = 1, // IPOPT interior point optimizer
+     LBFGS         = 2, // LBFGS optimizer
+     LBFGSB        = 3, // LBFGS optimizer with simple bounds
+     CFSQP         = 4, // CFSQP sequential quadratic programming optimizer (requires external library)
+     UnknownOptimizerAlgorithm = 5, // the default
+     UserSuppliedOptimizerAlgorithm = 6
 };
 
 /**
@@ -245,6 +247,8 @@ public:
     Optimizer( const OptimizerSystem& sys, OptimizerAlgorithm algorithm);
     ~Optimizer();
 
+    /// BestAvailable, UnknownAlgorithm, and UserSuppliedAlgorithm
+    /// are treated as never available.
     static bool isAlgorithmAvailable(OptimizerAlgorithm algorithm);
    
     /// Sets the relative accuracy used determine if the problem has converged.

@@ -154,8 +154,7 @@ public:
     }
 
     virtual OptimizerAlgorithm getAlgorithm() const {
-        SimTK_THROW2(Exception::UnimplementedVirtualMethod,
-            "OptimizerRep", "getAlgorithm");
+        return UnknownOptimizerAlgorithm;
     }
 
     static int numericalGradient_static( const OptimizerSystem&, const Vector & parameters,  const bool new_parameters,  Vector &gradient );
