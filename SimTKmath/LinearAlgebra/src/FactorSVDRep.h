@@ -183,11 +183,12 @@ class FactorSVDRep : public FactorSVDRepBase {
     int mn;      // min(m,n)
     int maxmn;   // max(m,n)
     int rank;
+    TypedWorkSpace<RType> singularValues;
+    TypedWorkSpace<T> inputMatrix;
+    MatrixStructure structure;
+
     RType rcond;   // reciprocol condition number
     RType abstol;
-    MatrixStructure structure;
-    TypedWorkSpace<T> inputMatrix;
-    TypedWorkSpace<RType> singularValues;
 
 }; // end class FactorSVDRep
 } // namespace SimTK
