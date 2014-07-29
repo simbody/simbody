@@ -470,7 +470,7 @@ public:
         m_stationLocationInLeftHand(stationLocationInLeftHand),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
-        m_desiredPosInGround(Vec3(0.5, 1.8, 0.5)) {}
+        m_desiredPosInGround(Vec3(0.5, 1.8, -0.1)) {}
 
     void calcForce(const SimTK::State&                state,
                    SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
@@ -485,6 +485,7 @@ public:
 
 private:
 
+    /*
     /// Project the mass matrix into the task space.
     /// J: station jacobian
     /// M: system (generalized coordinate) mass matrix
@@ -510,6 +511,7 @@ private:
     /// N^T = I - J^T Jbar^T
     void calcNullspaceProjectionTranspose(
             const SimTK::State& state, const Matrix& Jbar, Matrix& NT) const;
+    */
 
     const UpperBody& m_system;
     const SimbodyMatterSubsystem& m_matter;
@@ -521,6 +523,7 @@ private:
 
 };
 
+/*
 void ReachingAndGravityCompensation::calcTaskSpaceMassMatrix(
         const SimTK::State& state, Matrix& Lambda) const
 {
@@ -605,7 +608,9 @@ void ReachingAndGravityCompensation::calcNullspaceProjectionTranspose(
 
     NT = I - JtJbart;
 }
+*/
 
+/*
 void ReachingAndGravityCompensation::calcForce(
                const State&                state,
                Vector_<SimTK::SpatialVec>& bodyForces,
@@ -690,6 +695,110 @@ void ReachingAndGravityCompensation::calcForce(
     mobilityForces =
         taskMobilityForces + nullspaceProjectionTranspose * systemGravity;
 }
+*/
+
+void ReachingAndGravityCompensation::calcForce(
+               const State&                state,
+               Vector_<SimTK::SpatialVec>& bodyForces,
+               Vector_<SimTK::Vec3>&       particleForces,
+               Vector&                     mobilityForces) const
+{
+    const int nu = state.getNU();
+    const int m = m_numTasks;
+
+    // Compute control law in task space (F*).
+    // ---------------------------------------
+    // These are approximations, assuming the user is not moving the target too
+    // quickly.
+    Vec3 desiredVelInGround(0);
+    Vec3 desiredAccInGround(0);
+
+    // Get info about the actual location, etc. of the left hand.
+    Vec3 posInGround;
+    Vec3 velInGround;
+    const MobilizedBody& leftHand = m_system.getBody(UpperBody::hand_l);
+    leftHand.findStationLocationAndVelocityInGround(state,
+            m_stationLocationInLeftHand, posInGround, velInGround);
+
+    // Units of acceleration.
+    Vec3 Fstar = desiredAccInGround +
+        m_derivativeGain * (desiredVelInGround - velInGround) +
+        m_proportionalGain * (m_desiredPosInGround - posInGround);
+
+    // Task jacobian.
+    // --------------
+    Matrix J;
+    m_matter.calcStationJacobian(state,
+            leftHand, m_stationLocationInLeftHand, J);
+
+    // Task space mass matrix (Lambda).
+    // --------------------------------
+
+    // M^{-1} J^T
+    Matrix MInvJt(nu, m);
+    for (unsigned int j = 0; j < m; ++j)
+    {
+        m_matter.multiplyByMInv(state, J.transpose().col(j), MInvJt(j));
+    }
+
+    // J M^{-1} J^T
+    Matrix LambdaInv = J * MInvJt;
+
+    // Lambda = (J M^{-1} J^T)^{-1}
+    FactorLU LambdaInvLU(LambdaInv);
+    Matrix Lambda;
+    LambdaInvLU.inverse(Lambda);
+
+    // Gravity (g).
+    // ------------
+    // Get the gravity vector, for gravity compensation.
+    Vector g;
+    m_matter.multiplyBySystemJacobianTranspose(state,
+            m_system.getGravity().getBodyForces(state),
+            g);
+
+    // Dynamically consistent jacobian inverse (Jbar).
+    // -----------------------------------------------
+
+    // J^T Lambda
+    Matrix JtLambda = J.transpose() * Lambda;
+
+    // A^{-1} J^T Lambda
+    Matrix Jbar(nu, m);
+    for (unsigned int j = 0; j < m; ++j)
+    {
+        m_matter.multiplyByMInv(state, JtLambda(j), Jbar(j));
+    }
+
+    // Task space gravity.
+    // -------------------
+    // p = Jbar^T g
+    Vector p = Jbar.transpose() * g;
+
+    // Task space centripetal and coriolis forces.
+    // -------------------------------------------
+    // b: centripetal and coriolis forces for the whole system (in generalized
+    //      coordinates).
+    // mu = Jbar^T b - Lambda JDot u
+    // TODO
+
+    // Compute task-space force that achieves the task-space control.
+    // F = Lambda F*  + mu + p
+    Vector F = Lambda * Vector_<Real>(Fstar) + p;
+    // TODO add in quadratic velocity (mu).
+
+    // Nullspace projection matrix (N).
+    // --------------------------------
+    // N = I - Jbar J
+    Matrix identity(nu, nu);
+    identity.setToZero();
+    identity.diag().setTo(1.0);
+
+    Matrix N = identity - Jbar * J;
+
+    // Combine the reaching task with the gravity compensation.
+    mobilityForces = J.transpose() * F  + N.transpose() * (-g);
+}
 
 //==============================================================================
 // UserInputHandler
@@ -746,7 +855,7 @@ int main(int argc, char **argv)
 
         // Create the system.
         UpperBody system;
-        system.updMatterSubsystem().setShowDefaultGeometry(true);
+        system.updMatterSubsystem().setShowDefaultGeometry(false);
 
         // Set up visualizer and event handlers.
         SimTK::Visualizer viz(system);
