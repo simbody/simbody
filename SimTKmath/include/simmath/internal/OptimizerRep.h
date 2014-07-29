@@ -153,7 +153,10 @@ public:
         return *jacDiff;
     }
 
-    virtual OptimizerAlgorithm getAlgorithm() const = 0;
+    virtual OptimizerAlgorithm getAlgorithm() const {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod,
+            "OptimizerRep", "getAlgorithm");
+    }
 
     static int numericalGradient_static( const OptimizerSystem&, const Vector & parameters,  const bool new_parameters,  Vector &gradient );
     static int numericalJacobian_static(const OptimizerSystem&,
