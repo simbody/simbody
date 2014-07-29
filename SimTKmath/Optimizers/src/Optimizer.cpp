@@ -115,6 +115,13 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     }
 #endif
 
+    SimTK_APIARGCHECK_ALWAYS(
+            algorithm != UnknownOptimizerAlgorithm &&
+            algorithm != UserSuppliedOptimizerAlgorithm,
+            "Optimizer", "constructOptimizerRep",
+            "UnknownOptimizerAlgorithm and UserSuppliedOptimizerAlgorithm "
+            "do not specify specific algorithms.");
+
     if(!newRep) { 
         if( sys.getNumConstraints() > 0)   {
             newRep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
