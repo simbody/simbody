@@ -24,6 +24,10 @@ public:
         Matrix value() const OVERRIDE_11;
         const JacobianTranspose& transpose() const;
         const JacobianTranspose& operator~() { return transpose(); }
+        // TODO Vector_<Vec3> operator*(const Vector& u) const;
+        // TODO Vector operator*(const Vector& u) const;
+        // TODO Matrix_<Vec3> operator*(const Matrix& u) const;
+        // TODO Matrix operator*(const Matrix& u) const;
     };
 
     class JacobianTranspose : public TaskSpaceQuantity<Matrix> {
@@ -34,7 +38,11 @@ public:
         const Jacobian& transpose() const;
         const Jacobian& operator~() { return transpose(); }
         // TODO I want the input to be a Vector.
-        Vector operator*(const Vector_<Vec3>& f_GP);
+        Vector operator*(const Vector_<Vec3>& f_GP) const;
+        Vector operator*(const Vector& f_GP) const;
+        Vector operator*(const Vec3& f_GP) const;
+        // TODO Matrix operator*(const Matrix_<Vec3>& f_GP) const;
+        // TODO Matrix operator*(const Matrix& f_GP) const;
     };
     // TODO class Inertia;
     // TODO // TODO class CoriolisForce;
@@ -54,7 +62,14 @@ public:
 
     void setState(const State& state) { m_state = &state; }
 
-    const State& getState() const { return *m_state; }
+    const State& getState() const {
+        if (!m_state)
+        {
+            // TODO
+            throw Exception::Base("State is null.");
+        }
+        return *m_state;
+    }
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const
     { return m_matter; }
@@ -63,6 +78,11 @@ public:
     { return m_indices; }
 
     const Array_<Vec3>& getStations() const { return m_stations; }
+
+    const Jacobian getJacobian() const { return m_jacobian; }
+
+    const JacobianTranspose getJacobianTranspose() const
+    { return m_jacobianTranspose; }
 
 private:
 
@@ -114,7 +134,7 @@ const TaskSpace::Jacobian& TaskSpace::JacobianTranspose::transpose() const
     return m_tspace.m_jacobian;
 }
 
-Vector TaskSpace::JacobianTranspose::operator*(const Vector_<Vec3>& f_GP)
+Vector TaskSpace::JacobianTranspose::operator*(const Vector_<Vec3>& f_GP) const
 {
     Vector f;
     m_tspace.getMatterSubsystem().multiplyByStationJacobianTranspose(
@@ -124,6 +144,32 @@ Vector TaskSpace::JacobianTranspose::operator*(const Vector_<Vec3>& f_GP)
             f_GP,
             f);
     return f;
+}
+
+Vector TaskSpace::JacobianTranspose::operator*(const Vector& f_GP) const
+{
+    unsigned int nIn = f_GP.size();
+    SimTK_APIARGCHECK1_ALWAYS(nIn % 3 == 0,
+            "TaskSpace::JacobianTranspose", "operator*",
+            "Length of f_GP, which is %i, is not divisible by 3.", nIn);
+
+    unsigned int nOut = nIn / 3;
+
+    // Create the Vector_<Vec3>.
+    // TODO debug, or look for methods that already do this.
+    Vector_<Vec3> my_f_GP(nOut);
+    for (unsigned int i = 0; i < nIn; i += 3)
+    {
+        my_f_GP[i / 3] = Vec3(f_GP[i], f_GP[i + 1], f_GP[i + 2]);
+    }
+
+    // Perform the multiplication.
+    return operator*(my_f_GP);
+}
+
+Vector TaskSpace::JacobianTranspose::operator*(const Vec3& f_GP) const
+{
+   return operator*(Vector_<Vec3>(1, f_GP));
 }
 
 } // end namespace

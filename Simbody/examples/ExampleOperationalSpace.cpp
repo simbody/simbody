@@ -468,10 +468,15 @@ public:
             Vec3 stationLocationInLeftHand=Vec3(0, 0, 0),
             double proportionalGain=100, double derivativeGain=100) :
         m_system(system), m_matter(system.getMatterSubsystem()),
+        m_tspace(m_matter),
         m_stationLocationInLeftHand(stationLocationInLeftHand),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
-        m_desiredPosInGround(Vec3(0.5, 1.8, -0.1)) {}
+        m_desiredPosInGround(Vec3(0.5, 1.8, -0.1))
+    {
+        m_tspace.addTask(m_system.getBody(UpperBody::hand_l),
+                         m_stationLocationInLeftHand);
+    }
 
     void calcForce(const SimTK::State&                state,
                    SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
@@ -516,6 +521,7 @@ private:
 
     const UpperBody& m_system;
     const SimbodyMatterSubsystem& m_matter;
+    TaskSpace m_tspace;
     const Vec3 m_stationLocationInLeftHand;
     const double m_proportionalGain;
     const double m_derivativeGain;
@@ -870,6 +876,9 @@ void ReachingAndGravityCompensation::calcForce(
                Vector_<SimTK::Vec3>&       particleForces,
                Vector&                     mobilityForces) const
 {
+    // TODO
+    const_cast<ReachingAndGravityCompensation*>(this)->m_tspace.setState(state);
+
     const int nu = state.getNU();
     const int m = m_numTasks;
 
@@ -888,15 +897,15 @@ void ReachingAndGravityCompensation::calcForce(
             m_stationLocationInLeftHand, posInGround, velInGround);
 
     // Units of acceleration.
-    Vector_<Real> Fstar(desiredAccInGround +
+    Vec3 Fstar(desiredAccInGround +
         m_derivativeGain * (desiredVelInGround - velInGround) +
         m_proportionalGain * (m_desiredPosInGround - posInGround));
 
+
     // Task jacobian.
     // --------------
-    Matrix J;
-    m_matter.calcStationJacobian(state,
-            leftHand, m_stationLocationInLeftHand, J);
+    TaskSpace::Jacobian J = m_tspace.getJacobian();
+    Matrix Jval = J.value();
 
     // Task space mass matrix (Lambda).
     // --------------------------------
@@ -905,11 +914,11 @@ void ReachingAndGravityCompensation::calcForce(
     Matrix MInvJt(nu, m);
     for (unsigned int j = 0; j < m; ++j)
     {
-        m_matter.multiplyByMInv(state, J.transpose().col(j), MInvJt(j));
+        m_matter.multiplyByMInv(state, Jval.transpose().col(j), MInvJt(j));
     }
 
     // J M^{-1} J^T
-    Matrix LambdaInv = J * MInvJt;
+    Matrix LambdaInv = Jval * MInvJt;
 
     // Lambda = (J M^{-1} J^T)^{-1}
     FactorLU LambdaInvLU(LambdaInv);
@@ -928,7 +937,7 @@ void ReachingAndGravityCompensation::calcForce(
     // -----------------------------------------------
 
     // J^T Lambda
-    Matrix JtLambda = J.transpose() * Lambda;
+    Matrix JtLambda = Jval.transpose() * Lambda;
 
     // A^{-1} J^T Lambda
     Matrix Jbar(nu, m);
@@ -951,7 +960,7 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Compute task-space force that achieves the task-space control.
     // F = Lambda F*  + mu + p
-    Vector F = Lambda * Fstar + p;
+    Vector F = Lambda * Vector_<Real>(Fstar) + p;
     // TODO add in quadratic velocity (mu).
 
     // Nullspace projection matrix (N).
@@ -961,7 +970,7 @@ void ReachingAndGravityCompensation::calcForce(
     identity.setToZero();
     identity.diag().setTo(1.0);
 
-    Matrix N = identity - Jbar * J;
+    Matrix N = identity - Jbar * Jval;
 
     // Combine the reaching task with the gravity compensation.
     mobilityForces = J.transpose() * F  + N.transpose() * (-g);
