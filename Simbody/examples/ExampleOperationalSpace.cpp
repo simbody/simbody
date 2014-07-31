@@ -468,7 +468,7 @@ public:
             Vec3 stationLocationInLeftHand=Vec3(0, 0, 0),
             double proportionalGain=100, double derivativeGain=100) :
         m_system(system), m_matter(system.getMatterSubsystem()),
-        m_tspace(m_matter),
+        m_tspace(m_matter, system.getGravity()),
         m_stationLocationInLeftHand(stationLocationInLeftHand),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
@@ -901,62 +901,16 @@ void ReachingAndGravityCompensation::calcForce(
         m_derivativeGain * (desiredVelInGround - velInGround) +
         m_proportionalGain * (m_desiredPosInGround - posInGround));
 
-
-    // Task jacobian.
-    // --------------
-    TaskSpace::Jacobian J = m_tspace.getJacobian();
-    Matrix Jval = J.value();
-
-    // Task space mass matrix (Lambda).
-    // --------------------------------
-    const TaskSpace::Inertia& Lambda = m_tspace.getInertia();
-    Matrix Lambdaval = Lambda.value();
-
-    // Gravity (g).
-    // ------------
-    // Get the gravity vector, for gravity compensation.
-    Vector g;
-    m_matter.multiplyBySystemJacobianTranspose(state,
-            m_system.getGravity().getBodyForces(state),
-            g);
-
-    // Dynamically consistent jacobian inverse (Jbar).
-    // -----------------------------------------------
-
-    // J^T Lambda
-    Matrix JtLambda = Jval.transpose() * Lambdaval;
-
-    // A^{-1} J^T Lambda
-    Matrix Jbar(m_tspace.getDynamicallyConsistentJacobianInverse().value());
-
-    // Task space gravity.
-    // -------------------
-    // p = Jbar^T g
-    Vector p = Jbar.transpose() * g;
-
-    // Task space centripetal and coriolis forces.
-    // -------------------------------------------
-    // b: centripetal and coriolis forces for the whole system (in generalized
-    //      coordinates).
-    // mu = Jbar^T b - Lambda JDot u
-    // TODO
+    const TaskSpace& ts = m_tspace;
 
     // Compute task-space force that achieves the task-space control.
-    // F = Lambda F*  + mu + p
-    Vector F = Lambda * Fstar + p;
-    // TODO add in quadratic velocity (mu).
-
-    // Nullspace projection matrix (N).
-    // --------------------------------
-    // N = I - Jbar J
-    Matrix identity(nu, nu);
-    identity.setToZero();
-    identity.diag().setTo(1.0);
-
-    Matrix N = identity - Jbar * Jval;
+    // F = Lambda Fstar + p
+    Vector F = ts.Lambda() * Fstar + ts.p();
+    // OR: Vector F = ts.calcInverseDynamics(Fstar);
 
     // Combine the reaching task with the gravity compensation.
-    mobilityForces = J.transpose() * F  + N.transpose() * (-g);
+    // Gamma = JT F - NT g
+    mobilityForces = ts.JT() * F + ts.NT() * (-ts.g());
 }
 
 //==============================================================================

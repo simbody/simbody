@@ -6,6 +6,10 @@ class TaskSpace
 {
 public:
 
+    //==========================================================================
+    // nested classes
+    //==========================================================================
+
     template <typename T>
     class TaskSpaceQuantity
     {
@@ -28,10 +32,12 @@ public:
         // TODO Vector operator*(const Vector& u) const;
         // TODO Matrix_<Vec3> operator*(const Matrix& u) const;
         // TODO Matrix operator*(const Matrix& u) const;
+        // TODO Matrix operator*(const NullspaceProjection& N) const;
     };
 
     // Forward declaration.
     class Inertia;
+    class DynamicallyConsistentJacobianInverseTranspose;
     class JacobianTranspose : public TaskSpaceQuantity<Matrix> {
     public:
         JacobianTranspose(const TaskSpace& tspace) :
@@ -46,6 +52,9 @@ public:
         // TODO Matrix operator*(const Matrix_<Vec3>& f_GP) const;
         Matrix operator*(const Matrix& f_GP) const;
         Matrix operator*(const TaskSpace::Inertia& Lambda) const;
+        Matrix operator*(
+                const TaskSpace::DynamicallyConsistentJacobianInverseTranspose&
+                JBarT) const;
     };
     
     // Forward declaration.
@@ -67,8 +76,6 @@ public:
         const Inertia& inverse() const;
     };
 
-    // Forward declaration.
-    class DynamicallyConsistentJacobianInverseTranspose;
     /// M^{-1} J^T Inertia
     class DynamicallyConsistentJacobianInverse :
         public TaskSpaceQuantity<Matrix> {
@@ -79,6 +86,7 @@ public:
         const DynamicallyConsistentJacobianInverseTranspose& transpose() const;
         const DynamicallyConsistentJacobianInverseTranspose& operator~() const
         { return transpose(); }
+        Matrix operator*(const Matrix& mat) const;
     };
 
     class DynamicallyConsistentJacobianInverseTranspose :
@@ -90,17 +98,57 @@ public:
         const DynamicallyConsistentJacobianInverse& transpose() const;
         const DynamicallyConsistentJacobianInverse& operator~() const
         { return transpose(); }
+        Vector operator*(const Vector& g) const;
     };
 
-    // TODO // TODO class CoriolisForce;
-    // TODO class GravityForce;
-    // TODO class NullspaceProjectionTranspose;
+    class Gravity : public TaskSpaceQuantity<Vector> {
+    public:
+        Gravity(const TaskSpace& tspace, const Force::Gravity& gravity) :
+            TaskSpaceQuantity(tspace), m_gravity(gravity) {}
+        Vector value() const OVERRIDE_11;
+        Vector operator+(const Vector& f) const;
+        Vector systemGravity() const;
+        Vector g() const { return systemGravity(); }
+    private:
+        const Force::Gravity& m_gravity;
+    };
 
-    TaskSpace(const SimbodyMatterSubsystem& matter) :
+    // Forward declaration.
+    class NullspaceProjectionTranspose;
+    class NullspaceProjection : public TaskSpaceQuantity<Matrix> {
+    public:
+        NullspaceProjection(const TaskSpace & tspace) :
+            TaskSpaceQuantity(tspace) {}
+        Matrix value() const OVERRIDE_11;
+        const NullspaceProjectionTranspose& transpose() const;
+        const NullspaceProjectionTranspose& operator~() const
+        { return transpose(); }
+    };
+
+    class NullspaceProjectionTranspose : public TaskSpaceQuantity<Matrix> {
+    public:
+        NullspaceProjectionTranspose(const TaskSpace& tspace) :
+            TaskSpaceQuantity(tspace) {}
+        Matrix value() const OVERRIDE_11;
+        const NullspaceProjection& transpose() const;
+        const NullspaceProjection& operator~() const
+        { return transpose(); }
+        Vector operator*(const Vector& vec) const;
+    };
+
+    /// TODO class CoriolisForce; requires calcuating b. calcResidual minus
+    // gravity.
+
+    //==========================================================================
+    // TaskSpace class
+    //==========================================================================
+
+    TaskSpace(const SimbodyMatterSubsystem& matter,
+              const Force::Gravity&         gravity) :
     m_matter(matter), m_jacobian(*this), m_jacobianTranspose(*this),
     m_inertia(*this), m_inertiaInverse(*this),
-    m_jacobianInverse(*this), m_jacobianInverseTranspose(*this)
-    // TODO m_inertia(*this), m_gravity(*this), m_nullspace(*this)
+    m_jacobianInverse(*this), m_jacobianInverseTranspose(*this),
+    m_gravity(*this, gravity), m_nullspace(*this), m_nullspaceTranspose(*this)
     {}
 
     void addTask(MobilizedBodyIndex body, Vec3 station)
@@ -150,6 +198,32 @@ public:
     const DynamicallyConsistentJacobianInverseTranspose&
         getDynamicallyConsistentJacobianInverseTranspose() const
     { return m_jacobianInverseTranspose; }
+    const Gravity& getGravity() const { return m_gravity; }
+    const NullspaceProjection& getNullspaceProjection() const
+    { return m_nullspace; }
+    const NullspaceProjectionTranspose& getNullspaceProjectionTranspose() const
+    { return m_nullspaceTranspose; }
+
+    // shorthands
+
+    const Jacobian& J() const { return getJacobian(); }
+    const JacobianTranspose& JT() const
+    { return getJacobianTranspose(); }
+    const Inertia& Lambda() const { return getInertia(); }
+    const InertiaInverse& LambdaInv() const { return getInertiaInverse(); }
+    const DynamicallyConsistentJacobianInverse& JBar() const
+    { return getDynamicallyConsistentJacobianInverse(); }
+    const DynamicallyConsistentJacobianInverseTranspose& JBarT() const
+    { return getDynamicallyConsistentJacobianInverseTranspose(); }
+    const Gravity p() const { return getGravity(); }
+    const NullspaceProjection& N() const { return getNullspaceProjection(); }
+    const NullspaceProjectionTranspose NT() const
+    { return getNullspaceProjectionTranspose(); }
+
+    // task-space F = Lambda F* + mu + p
+    // TODO does not use mu yet.
+    Vector calcInverseDynamics(const Vector& taskAccelerations) const;
+    Vector g() const { return getGravity().g(); }
 
 private:
 
@@ -165,8 +239,9 @@ private:
     InertiaInverse m_inertiaInverse;
     DynamicallyConsistentJacobianInverse m_jacobianInverse;
     DynamicallyConsistentJacobianInverseTranspose m_jacobianInverseTranspose;
-    // TODO GravityForce m_gravity;
-    // TODO NullspaceProjectionTranspose m_nullspace;
+    Gravity m_gravity;
+    NullspaceProjection m_nullspace;
+    NullspaceProjectionTranspose m_nullspaceTranspose;
 
 };
 
@@ -262,6 +337,12 @@ Matrix TaskSpace::JacobianTranspose::operator*(
         const TaskSpace::Inertia& Lambda) const
 {
     return operator*(Lambda.value());
+}
+
+Matrix TaskSpace::JacobianTranspose::operator*(
+        const TaskSpace::DynamicallyConsistentJacobianInverseTranspose& JBarT) const
+{
+    return operator*(JBarT.value());
 }
 
 //==============================================================================
@@ -383,6 +464,12 @@ TaskSpace::DynamicallyConsistentJacobianInverse::transpose() const
     return m_tspace.getDynamicallyConsistentJacobianInverseTranspose();
 }
 
+Matrix TaskSpace::DynamicallyConsistentJacobianInverse::operator*(
+        const Matrix& mat) const
+{
+    return value() * mat;
+}
+
 
 //==============================================================================
 // DynamicallyConsistentJacobianInverseTranspose
@@ -396,6 +483,97 @@ const TaskSpace::DynamicallyConsistentJacobianInverse&
 TaskSpace::DynamicallyConsistentJacobianInverseTranspose::transpose() const
 {
     return m_tspace.getDynamicallyConsistentJacobianInverse();
+}
+
+Vector TaskSpace::DynamicallyConsistentJacobianInverseTranspose::operator*(
+        const Vector& g) const
+{
+    // TODO inefficient
+    return value() * g;
+}
+
+
+//==============================================================================
+// Gravity
+//==============================================================================
+Vector TaskSpace::Gravity::value() const
+{
+
+    return m_tspace.JBarT() * systemGravity();
+}
+
+Vector TaskSpace::Gravity::operator+(const Vector& f) const
+{
+    return value() + f;
+}
+
+// TODO global function.
+Vector operator+(const Vector& f, const TaskSpace::Gravity& p)
+{
+    return f + p.value();
+}
+
+Vector TaskSpace::Gravity::systemGravity() const
+{
+    Vector g;
+    m_tspace.getMatterSubsystem().multiplyBySystemJacobianTranspose(
+            m_tspace.getState(),
+            m_gravity.getBodyForces(m_tspace.getState()),
+            g);
+    return g;
+}
+
+
+//==============================================================================
+// Gravity
+//==============================================================================
+// TODO account for applied forces? velocities?
+Vector TaskSpace::calcInverseDynamics(const Vector& taskAccelerations) const
+{
+    return Lambda() * taskAccelerations + p();
+}
+
+
+//==============================================================================
+// NullspaceProjection
+//==============================================================================
+Matrix TaskSpace::NullspaceProjection::value() const
+{
+    return transpose().value().transpose();
+}
+
+const TaskSpace::NullspaceProjectionTranspose&
+TaskSpace::NullspaceProjection::transpose() const
+{
+    return m_tspace.getNullspaceProjectionTranspose();
+}
+
+
+//==============================================================================
+// NullspaceProjectionTranspose
+//==============================================================================
+Matrix TaskSpace::NullspaceProjectionTranspose::value() const
+{
+    // TODO can make ths identity once, or find a more efficient way.
+    unsigned int nu = m_tspace.getState().getNU();
+    Matrix identity(nu, nu);
+    identity.setToZero();
+    identity.diag().setTo(1.0);
+    
+    return -(m_tspace.JT() * m_tspace.JBarT()) + identity;
+}
+
+const TaskSpace::NullspaceProjection&
+TaskSpace::NullspaceProjectionTranspose::transpose() const
+{
+    return m_tspace.getNullspaceProjection();
+}
+
+Vector TaskSpace::NullspaceProjectionTranspose::operator*(const Vector& vec)
+    const
+{
+    // TODO
+    return value() * vec;
 }
 
 } // end namespace
