@@ -877,7 +877,7 @@ void ReachingAndGravityCompensation::calcForce(
                Vector&                     mobilityForces) const
 {
     // TODO
-    const_cast<ReachingAndGravityCompensation*>(this)->m_tspace.setState(state);
+    m_tspace.setState(state);
 
     const int nu = state.getNU();
     const int m = m_numTasks;
@@ -897,7 +897,7 @@ void ReachingAndGravityCompensation::calcForce(
             m_stationLocationInLeftHand, posInGround, velInGround);
 
     // Units of acceleration.
-    Vec3 Fstar(desiredAccInGround +
+    Vector Fstar(desiredAccInGround +
         m_derivativeGain * (desiredVelInGround - velInGround) +
         m_proportionalGain * (m_desiredPosInGround - posInGround));
 
@@ -909,21 +909,8 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Task space mass matrix (Lambda).
     // --------------------------------
-
-    // M^{-1} J^T
-    Matrix MInvJt(nu, m);
-    for (unsigned int j = 0; j < m; ++j)
-    {
-        m_matter.multiplyByMInv(state, Jval.transpose().col(j), MInvJt(j));
-    }
-
-    // J M^{-1} J^T
-    Matrix LambdaInv = Jval * MInvJt;
-
-    // Lambda = (J M^{-1} J^T)^{-1}
-    FactorLU LambdaInvLU(LambdaInv);
-    Matrix Lambda;
-    LambdaInvLU.inverse(Lambda);
+    const TaskSpace::Inertia& Lambda = m_tspace.getInertia();
+    Matrix Lambdaval = Lambda.value();
 
     // Gravity (g).
     // ------------
@@ -937,14 +924,10 @@ void ReachingAndGravityCompensation::calcForce(
     // -----------------------------------------------
 
     // J^T Lambda
-    Matrix JtLambda = Jval.transpose() * Lambda;
+    Matrix JtLambda = Jval.transpose() * Lambdaval;
 
     // A^{-1} J^T Lambda
-    Matrix Jbar(nu, m);
-    for (unsigned int j = 0; j < m; ++j)
-    {
-        m_matter.multiplyByMInv(state, JtLambda(j), Jbar(j));
-    }
+    Matrix Jbar(m_tspace.getDynamicallyConsistentJacobianInverse().value());
 
     // Task space gravity.
     // -------------------
@@ -960,7 +943,7 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Compute task-space force that achieves the task-space control.
     // F = Lambda F*  + mu + p
-    Vector F = Lambda * Vector_<Real>(Fstar) + p;
+    Vector F = Lambda * Fstar + p;
     // TODO add in quadratic velocity (mu).
 
     // Nullspace projection matrix (N).

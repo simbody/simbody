@@ -30,6 +30,8 @@ public:
         // TODO Matrix operator*(const Matrix& u) const;
     };
 
+    // Forward declaration.
+    class Inertia;
     class JacobianTranspose : public TaskSpaceQuantity<Matrix> {
     public:
         JacobianTranspose(const TaskSpace& tspace) :
@@ -42,15 +44,62 @@ public:
         Vector operator*(const Vector& f_GP) const;
         Vector operator*(const Vec3& f_GP) const;
         // TODO Matrix operator*(const Matrix_<Vec3>& f_GP) const;
-        // TODO Matrix operator*(const Matrix& f_GP) const;
+        Matrix operator*(const Matrix& f_GP) const;
+        Matrix operator*(const TaskSpace::Inertia& Lambda) const;
     };
-    // TODO class Inertia;
+    
+    // Forward declaration.
+    class InertiaInverse;
+    class Inertia : public TaskSpaceQuantity<Matrix> {
+    public:
+        Inertia(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
+        Matrix value() const OVERRIDE_11;
+        const InertiaInverse& inverse() const;
+        // TODO input is a sort of acceleration
+        Vector operator*(const Vector& a) const;
+    };
+
+    /// J M^{-1} J^T
+    class InertiaInverse : public TaskSpaceQuantity<Matrix> {
+    public:
+        InertiaInverse(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
+        Matrix value() const OVERRIDE_11;
+        const Inertia& inverse() const;
+    };
+
+    // Forward declaration.
+    class DynamicallyConsistentJacobianInverseTranspose;
+    /// M^{-1} J^T Inertia
+    class DynamicallyConsistentJacobianInverse :
+        public TaskSpaceQuantity<Matrix> {
+    public:
+        DynamicallyConsistentJacobianInverse(const TaskSpace& tspace) :
+            TaskSpaceQuantity(tspace) {}
+        Matrix value() const OVERRIDE_11;
+        const DynamicallyConsistentJacobianInverseTranspose& transpose() const;
+        const DynamicallyConsistentJacobianInverseTranspose& operator~() const
+        { return transpose(); }
+    };
+
+    class DynamicallyConsistentJacobianInverseTranspose :
+        public TaskSpaceQuantity<Matrix> {
+    public:
+        DynamicallyConsistentJacobianInverseTranspose(const TaskSpace& tspace) :
+            TaskSpaceQuantity(tspace) {}
+        Matrix value() const OVERRIDE_11;
+        const DynamicallyConsistentJacobianInverse& transpose() const;
+        const DynamicallyConsistentJacobianInverse& operator~() const
+        { return transpose(); }
+    };
+
     // TODO // TODO class CoriolisForce;
     // TODO class GravityForce;
     // TODO class NullspaceProjectionTranspose;
 
     TaskSpace(const SimbodyMatterSubsystem& matter) :
-    m_matter(matter), m_jacobian(*this), m_jacobianTranspose(*this)
+    m_matter(matter), m_jacobian(*this), m_jacobianTranspose(*this),
+    m_inertia(*this), m_inertiaInverse(*this),
+    m_jacobianInverse(*this), m_jacobianInverseTranspose(*this)
     // TODO m_inertia(*this), m_gravity(*this), m_nullspace(*this)
     {}
 
@@ -60,7 +109,20 @@ public:
         m_stations.push_back(station);
     }
 
-    void setState(const State& state) { m_state = &state; }
+    unsigned int getNumTasks() const
+    {
+        return m_indices.size();
+    }
+
+    unsigned int getNumScalarTasks() const
+    {
+        return 3 * m_indices.size();
+    }
+
+    void setState(const State& state) const
+    {
+        const_cast<TaskSpace*>(this)->m_state = &state;
+    }
 
     const State& getState() const {
         if (!m_state)
@@ -73,16 +135,21 @@ public:
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const
     { return m_matter; }
-
     const Array_<MobilizedBodyIndex>& getMobilizedBodyIndices() const
     { return m_indices; }
-
     const Array_<Vec3>& getStations() const { return m_stations; }
 
-    const Jacobian getJacobian() const { return m_jacobian; }
-
-    const JacobianTranspose getJacobianTranspose() const
+    const Jacobian& getJacobian() const { return m_jacobian; }
+    const JacobianTranspose& getJacobianTranspose() const
     { return m_jacobianTranspose; }
+    const Inertia& getInertia() const { return m_inertia; }
+    const InertiaInverse& getInertiaInverse() const { return m_inertiaInverse; }
+    const DynamicallyConsistentJacobianInverse&
+        getDynamicallyConsistentJacobianInverse() const
+    { return m_jacobianInverse; }
+    const DynamicallyConsistentJacobianInverseTranspose&
+        getDynamicallyConsistentJacobianInverseTranspose() const
+    { return m_jacobianInverseTranspose; }
 
 private:
 
@@ -94,7 +161,10 @@ private:
 
     Jacobian m_jacobian;
     JacobianTranspose m_jacobianTranspose;
-    // TODO Inertia m_inertia;
+    Inertia m_inertia;
+    InertiaInverse m_inertiaInverse;
+    DynamicallyConsistentJacobianInverse m_jacobianInverse;
+    DynamicallyConsistentJacobianInverseTranspose m_jacobianInverseTranspose;
     // TODO GravityForce m_gravity;
     // TODO NullspaceProjectionTranspose m_nullspace;
 
@@ -117,7 +187,7 @@ Matrix TaskSpace::Jacobian::value() const
 
 const TaskSpace::JacobianTranspose& TaskSpace::Jacobian::transpose() const
 {
-    return m_tspace.m_jacobianTranspose;
+    return m_tspace.getJacobianTranspose();
 }
 
 
@@ -131,7 +201,7 @@ Matrix TaskSpace::JacobianTranspose::value() const
 
 const TaskSpace::Jacobian& TaskSpace::JacobianTranspose::transpose() const
 {
-    return m_tspace.m_jacobian;
+    return m_tspace.getJacobian();
 }
 
 Vector TaskSpace::JacobianTranspose::operator*(const Vector_<Vec3>& f_GP) const
@@ -158,9 +228,10 @@ Vector TaskSpace::JacobianTranspose::operator*(const Vector& f_GP) const
     // Create the Vector_<Vec3>.
     // TODO debug, or look for methods that already do this.
     Vector_<Vec3> my_f_GP(nOut);
-    for (unsigned int i = 0; i < nIn; i += 3)
+    for (unsigned int i = 0; i < nOut; ++i)
     {
-        my_f_GP[i / 3] = Vec3(f_GP[i], f_GP[i + 1], f_GP[i + 2]);
+        // getAs is just a recast; doesn't copy.
+        my_f_GP[i] = Vec3::getAs(&f_GP[3 * i]);
     }
 
     // Perform the multiplication.
@@ -170,6 +241,161 @@ Vector TaskSpace::JacobianTranspose::operator*(const Vector& f_GP) const
 Vector TaskSpace::JacobianTranspose::operator*(const Vec3& f_GP) const
 {
    return operator*(Vector_<Vec3>(1, f_GP));
+}
+
+Matrix TaskSpace::JacobianTranspose::operator*(const Matrix& f_GP) const
+{
+    unsigned int nrow = m_tspace.getState().getNU();
+    unsigned int ncol = f_GP.ncol();
+
+    Matrix out(nrow, ncol);
+    for (unsigned int j = 0; j < ncol; ++j)
+    {
+        // TODO is this cast inefficient? Is it copying?
+        out(j) = operator*(Vector(f_GP(j)));
+    }
+
+    return out;
+}
+
+Matrix TaskSpace::JacobianTranspose::operator*(
+        const TaskSpace::Inertia& Lambda) const
+{
+    return operator*(Lambda.value());
+}
+
+//==============================================================================
+// Inertia
+//==============================================================================
+Matrix TaskSpace::Inertia::value() const
+{
+    FactorLU inertiaInverse(m_tspace.getInertiaInverse().value());
+    Matrix inertia;
+    inertiaInverse.inverse(inertia);
+    return inertia;
+}
+
+const TaskSpace::InertiaInverse& TaskSpace::Inertia::inverse() const
+{
+    return m_tspace.getInertiaInverse();
+}
+
+Vector TaskSpace::Inertia::operator*(const Vector& a) const
+{
+    return value() * a;
+}
+
+//==============================================================================
+// InertiaInverse
+//==============================================================================
+Matrix TaskSpace::InertiaInverse::value() const
+{
+    // TODO cache the result.
+    const SimbodyMatterSubsystem& matter = m_tspace.getMatterSubsystem();
+
+    unsigned int nst = m_tspace.getNumScalarTasks();
+    unsigned int nu = m_tspace.getState().getNU();
+
+    Matrix J = m_tspace.getJacobian().value();
+
+    Matrix MInvJt(nu, nst);
+
+    for (unsigned int j = 0; j < nst; ++j)
+    {
+        matter.multiplyByMInv(m_tspace.getState(), J.transpose()(j), MInvJt(j));
+    }
+
+    return J * MInvJt;
+
+    /*
+    unsigned int nt = m_tspace.getNumTasks();
+    unsigned int nst = m_tspace.getNumScalarTasks();
+    unsigned int nu = m_tspace.getState().getNU();
+
+    Matrix inertiaInverse(nst, nst);
+
+    // Create temporary variables.
+    Vector Jtcol(nu);
+    Vector MInvJtcol(nu);
+    Vector_<Vec3> JMInvJt_j(nt);
+
+    // f_GP is used to pluck out one column at a time of Jt. Exactly one
+    // element at a time of f_GP will be 1, the rest are 0.
+    Vector_<Vec3> f_GP(nt, Vec3(0));
+
+    for (unsigned int j = 0; j < nst; ++j)
+    {
+        unsigned int iTask = floor(j / 3);
+        unsigned iDim = j % 3;
+
+        f_GP[iTask][iDim] = 1;
+        matter.multiplyByStationJacobianTranspose( m_tspace.getState(),
+                m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
+                f_GP, Jtcol);
+        f_GP[iTask][iDim] = 0;
+
+        matter.multiplyByMInv(m_tspace.getState(), Jtcol, MInvJtcol);
+
+        matter.multiplyByStationJacobian(m_tspace.getState(),
+                m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
+                MInvJtcol, JMInvJt_j);
+        inertiaInverse(j) = JMInvJt_j;
+    }
+
+    return inertiaInverse;
+    */
+}
+
+const TaskSpace::Inertia& TaskSpace::InertiaInverse::inverse() const
+{
+    return m_tspace.getInertia();
+}
+
+
+//==============================================================================
+// DynamicallyConsistentJacobianInverse
+//==============================================================================
+Matrix TaskSpace::DynamicallyConsistentJacobianInverse::value() const
+{
+    const JacobianTranspose& JT = m_tspace.getJacobianTranspose();
+    const Inertia& Lambda = m_tspace.getInertia();
+
+    // TODO inefficient?
+    Matrix JtLambda = JT * Lambda;
+
+    unsigned int nst = m_tspace.getNumScalarTasks();
+    unsigned int nu = m_tspace.getState().getNU();
+
+    Matrix Jbar(nu, nst);
+
+    for (unsigned int j = 0; j < nst; ++j)
+    {
+        m_tspace.getMatterSubsystem().multiplyByMInv(m_tspace.getState(),
+                JtLambda(j), Jbar(j));
+    }
+
+    return Jbar;
+}
+
+const TaskSpace::DynamicallyConsistentJacobianInverseTranspose&
+TaskSpace::DynamicallyConsistentJacobianInverse::transpose() const
+{
+    return m_tspace.getDynamicallyConsistentJacobianInverseTranspose();
+}
+
+
+//==============================================================================
+// DynamicallyConsistentJacobianInverseTranspose
+//==============================================================================
+Matrix TaskSpace::DynamicallyConsistentJacobianInverseTranspose::value() const
+{
+    return transpose().value().transpose();
+}
+
+const TaskSpace::DynamicallyConsistentJacobianInverse&
+TaskSpace::DynamicallyConsistentJacobianInverseTranspose::transpose() const
+{
+    return m_tspace.getDynamicallyConsistentJacobianInverse();
 }
 
 } // end namespace
