@@ -80,7 +80,7 @@ const bool CompareImpactStrategies     = false;
 
 const bool DebugStepLengthCalculator = false;
 const bool UseNewtonsMethod          = true;
-const bool UseSoftminInNewton        = true;
+const bool UseSoftminInNewton        = false;
 
 const bool RunTestsOnePoint        = false;
 const bool RunTestsTwoPoints       = true;
@@ -96,7 +96,7 @@ const Real TolPositionFuzziness  = 1.0e-4;  //Expected position tolerance.
 const Real TolVelocityFuzziness  = 1.0e-5;  //Expected velocity tolerance.
 const Real TolReliableDirection  = 1.0e-4;  //Whether to trust v_t direction.
 const Real TolMaxDifDirIteration = 0.05;    //Slip direction within 2.9 degrees.
-const Real TolPiDuringNewton     = 1.0e-3;  //Iterate until ||piDiff|| < tol.
+const Real TolPiDuringNewton     = 1.0e-3;  //Iterate until error.norm() < tol.
 const Real MinMeaningfulImpulse  = 1.0e-6;  //Smallest acceptable impulse.
 const Real MaxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
 const Real MaxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
@@ -418,27 +418,41 @@ private:
     //--------------------------------------------------------------------------
     // Private methods: helper functions for Newton's method
     //--------------------------------------------------------------------------
-    // Return either pi[i] or softmin0(pi[i],SqrtEps), as appropriate.
+    // Modified impulse vector, with softmin0 applied to pi_z[k].
     Real piStar(const Vector& piGuess, const int i) const
     {   return (i%3==2) ? softmin0(piGuess[i],SqrtEps) : piGuess[i]; }
 
-    // Return either 0 or dsoftmin0(pi[i],SqrtEps), as appropriate.
+    // Derivative of modified impulse vector piStar.
     Real dpiStar(const Vector& piGuess, const int i) const
     {   return (i%3==2) ? dsoftmin0(piGuess[i],SqrtEps) : 0.0; }
 
-    // Fill rows of Jacobian and corresponding elements of F.
-    void updNewtonForRolling(Matrix& J, Vector& F, const Matrix& A,
-                             const Vector& piGuess, const int row_x,
-                             const Real v_x, const Real v_y) const;
-    void updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
-                             const Vector& piGuess, const int row_x,
-                             const Real mu) const;
-    void updNewtonForCompression(Matrix& J, Vector& F, const Matrix& A,
-                                 const Vector& piGuess, const int row_z,
-                                 const Real v_z) const;
-    void updNewtonForExpansion(Matrix& J, Vector& F, const Matrix& A,
-                               const Vector& piGuess, const int row_z,
-                               const Real pi_ze) const;
+    // Fill rows of Jacobian J.
+    void updJacobianForRolling(Matrix& J, const Matrix& A,
+                               const Vector& piGuess, const int row_x,
+                               const Real v_x, const Real v_y) const;
+    void updJacobianForSliding(Matrix& J, const Matrix& A,
+                               const Vector& piGuess, const int row_x,
+                               const Real mu) const;
+    void updJacobianForCompression(Matrix& J, const Matrix& A,
+                                   const Vector& piGuess, const int row_z,
+                                   const Real v_z) const;
+    void updJacobianForRestitution(Matrix& J, const Matrix& A,
+                                   const Vector& piGuess, const int row_z,
+                                   const Real pi_ze) const;
+
+    // Fill elements of error vector F.
+    void updErrorForRolling(Vector& F, const Matrix& A,
+                            const Vector& piGuess, const int row_x,
+                            const Real v_x, const Real v_y) const;
+    void updErrorForSliding(Vector& F, const Matrix& A,
+                            const Vector& piGuess, const int row_x,
+                            const Real mu) const;
+    void updErrorForCompression(Vector& F, const Matrix& A,
+                                const Vector& piGuess, const int row_z,
+                                const Real v_z) const;
+    void updErrorForRestitution(Vector& F, const Matrix& A,
+                                const Vector& piGuess, const int row_z,
+                                const Real pi_ze) const;
 
     //--------------------------------------------------------------------------
     // Private methods: calculators
@@ -870,11 +884,11 @@ int main() {
                                 .asVec4());
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            //simulateMultibodySystem("Test B1: Two points, no v_tangential",
-            //                        initQ, initU, 1.8, 0.6, 0.5);
+            simulateMultibodySystem("Test B1: Two points, no v_tangential",
+                                    initQ, initU, 1.8, 0.6, 0.5);
             initU[4] = -1.0;
-            //simulateMultibodySystem("Test B2: Two points, small v_tangential",
-            //                        initQ, initU, 1.8, 0.6, 0.5);
+            simulateMultibodySystem("Test B2: Two points, small v_tangential",
+                                    initQ, initU, 1.8, 0.6, 0.5);
             initU[4] = 0.0;
             simulateMultibodySystem("Test B3: Two points, v_tang = muDyn = 0",
                                     initQ, initU, 1.8, 0.0, 0.5);
@@ -2553,8 +2567,12 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
     m_mbs.getMatterSubsystem().calcG(s, GMatrix);
     const int N = MassMatrix.nrow();
     const int M = GMatrix.nrow();
-    Matrix MinvGtranspose = MassMatrix.invert() * GMatrix.transpose();
-    Matrix A = GMatrix * MinvGtranspose;
+    Matrix MinvGtranspose = MassMatrix.invert() * GMatrix.transpose(); //Needed
+    Matrix A = GMatrix * MinvGtranspose;                               //later.
+
+    if (PrintDebugInfoImpact) {
+        cout << "A = " << A << endl;
+    }
 
     // TODO: Should not be solving for impulses that are known. This structure
     //       is used only to maintain symmetry between compression and expansion
@@ -2563,39 +2581,42 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
     // Allocate and initialize.
     Matrix J = Matrix(M, M);                //Jacobian: d(err)/d(pi).
     Vector F = Vector(M, 0.0);              //Vector of error functions.
-    Vector piGuessPrev = Vector(M, 9.9);    //Previous guess for solution.
+    Vector piGuessPrev = Vector(M, 0.0);    //Previous guess for solution.
     Vector piGuessCurr = Vector(M, 0.0);    //Current guess for solution.
-    Real piDifference  = TolPiDuringNewton*2.0;
-    int numIter = 0;                        //Iteration counter.
+    Real   piErrPrev   = SimTK::MostPositiveReal;
+    Real   piErrCurr   = SimTK::MostPositiveReal;
+    int numNewtonIters = 0;                 //Outer iteration counter.
 
-    // TODO: Only the rows of the Jacobian corresponding to sliding points will
-    //       change; the remaining rows should be filled only once.
+    // Initialize piGuessCurr with small normal impulses.
+    for (int i=0; i<piGuessCurr.nrow(); ++i)
+        piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
 
     while(true)
     {
-        // Halt if maximum number of iterations is reached.
-        ++numIter;
-        if (numIter > MaxIterNewtonSolve) {
+        // Halt if maximum number of iterations has been reached.
+        ++numNewtonIters;
+        if (numNewtonIters > MaxIterNewtonSolve) {
             asc.solutionCategory =
                 SolCat_UnableToResolveUnknownSlipDirection;
             asc.fitness          = SimTK::Infinity;
-            asc.worstConstraint  = ProximalPointIndex(0); //Ignore this value.
+            asc.worstConstraint  = ProximalPointIndex(0); //Index is arbitrary.
             break;
         }
 
         if (PrintDebugInfoImpact) {
-            cout << "-> iteration #" << numIter << endl;
-            cout << "   piGuessCurr = " << piGuessCurr << endl;
+            cout << "\n\n-> iteration #" << numNewtonIters
+                 << "\n   piGuessCurr = " << piGuessCurr
+                 << "\n   piErrCurr   = " << piErrCurr << endl;
         }
 
-        // Reset Jacobian and right-hand side.
+        // Reset Jacobian and error vector to ensure they are being set below.
         for (int i=0; i<M; ++i) {
             for (int j=0; j<M; ++j)
-                J[i][j] = 0.0;
-            F[i] = 0.0;
+                J[i][j] = SimTK::NaN;
+            F[i] = SimTK::NaN;
         }
 
-        // Fill Jacobian and right-hand side.
+        // Form error vector F.
         for (ProximalPointIndex idx(0);
              idx<(int)m_proximalPointIndices.size(); ++idx)
         {
@@ -2610,42 +2631,164 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
                 // for this proximal point.
                 const int row_x = getIndexOfFirstMultiplier(s,idx);
                 const int row_y = row_x + 1;
-                const int row_z = row_y + 1;
+                const int row_z = row_x + 2;
 
                 // Tangential directions.
                 if (asc.tangentialStates[idx] == Rolling) {
-                    updNewtonForRolling(J, F, A, piGuessCurr, row_x,
-                                        currVelAtPoint[0], currVelAtPoint[1]);
+                    updErrorForRolling(F, A, piGuessCurr, row_x,
+                                       currVelAtPoint[0], currVelAtPoint[1]);
                 } else if (asc.tangentialStates[idx] == Sliding) {
-                    updNewtonForSliding(J, F, A, piGuessCurr, row_x,
-                                        m_brick.get_muDyn());
+                    updErrorForSliding(F, A, piGuessCurr, row_x,
+                                       m_brick.get_muDyn());
                 }
 
                 // Normal direction.
                 if (impactPhase == Compression) {
-                    updNewtonForCompression(J, F, A, piGuessCurr, row_z,
-                                            currVelAtPoint[2]);
+                    updErrorForCompression(F, A, piGuessCurr, row_z,
+                                           currVelAtPoint[2]);
                 } else if (impactPhase == Restitution) {
-                    updNewtonForExpansion(J, F, A, piGuessCurr, row_z,
-                                          -restitutionImpulses[idx]);
+                    updErrorForRestitution(F, A, piGuessCurr, row_z,
+                                           -restitutionImpulses[idx]);
                 }
 
             } //end if not observing
         } //end for each proximal point
 
-        // Calculate new guess for solution.
-        FactorQTZ qtzA(J);
-        Vector    sol;
-        qtzA.solve(F, sol);
+        // Calculate current error.
+        piErrPrev = piErrCurr;
+        piErrCurr = F.norm();
+        if (PrintDebugInfoImpact) {
+            cout << "=> piErrPrev=" << piErrPrev << ", piErrCurr=" << piErrCurr
+                 << endl;
+        }
 
-        // Calculate improvement.
-        piGuessPrev = piGuessCurr;
-        piGuessCurr = sol;
-        piDifference = (piGuessPrev - piGuessCurr).norm();
-
-        // Exit condition.
-        if (piDifference < TolPiDuringNewton)
+        // Break if error is sufficiently small.
+        if (piErrCurr < TolPiDuringNewton)
             break;
+
+        // Form Jacobian J.
+        for (ProximalPointIndex idx(0);
+             idx<(int)m_proximalPointIndices.size(); ++idx)
+        {
+            if (asc.tangentialStates[idx] > Observing) {
+
+                // Current velocity at this proximal point.
+                const Vec3 currVelAtPoint = m_brick
+                                            .findLowestPointVelocityInGround(
+                                            s, m_proximalPointIndices[idx]);
+
+                // Row indices into Jacobian J corresponding to the constraints
+                // for this proximal point.
+                const int row_x = getIndexOfFirstMultiplier(s,idx);
+                const int row_y = row_x + 1;
+                const int row_z = row_x + 2;
+
+                // Tangential directions.
+                if (asc.tangentialStates[idx] == Rolling) {
+                    updJacobianForRolling(J, A, piGuessCurr, row_x,
+                                          currVelAtPoint[0], currVelAtPoint[1]);
+                } else if (asc.tangentialStates[idx] == Sliding) {
+                    updJacobianForSliding(J, A, piGuessCurr, row_x,
+                                          m_brick.get_muDyn());
+                }
+
+                // Normal direction.
+                if (impactPhase == Compression) {
+                    updJacobianForCompression(J, A, piGuessCurr, row_z,
+                                              currVelAtPoint[2]);
+                } else if (impactPhase == Restitution) {
+                    updJacobianForRestitution(J, A, piGuessCurr, row_z,
+                                              -restitutionImpulses[idx]);
+                }
+
+            } //end if not observing
+        } //end for each proximal point
+
+        // Calculate Newton step (sol is delta_pi).
+        for (int i=0; i<F.nrow(); ++i)
+            F[i] *= -1.0;
+        FactorQTZ qtz(J);
+        Vector    sol;
+        qtz.solve(F, sol);
+
+        // Find the step size that decreases the error, and take the step.
+        Real factor        = 2.0; //Will be halved on entry.
+        int numFactorIters = 0;
+
+        piGuessPrev = piGuessCurr;
+        piErrPrev   = piErrCurr;
+        while (true)
+        {
+            // Halt if maximum number of iterations has been reached.
+            ++numFactorIters;
+            if (numFactorIters > MaxIterNewtonSolve) {
+                asc.solutionCategory =
+                    SolCat_UnableToResolveUnknownSlipDirection;
+                asc.fitness          = SimTK::Infinity;
+                asc.worstConstraint  = ProximalPointIndex(0); //Index arbitrary.
+                break;
+            }
+
+            // Halve factor and take trial step.
+            factor      *= 0.5;
+            piGuessCurr  = piGuessPrev + factor*sol;
+            if (PrintDebugInfoImpact) {
+                cout << "=> factor=" << factor
+                     << ", piGuessCurr=" << piGuessCurr << endl;
+            }
+
+            // Form error vector F.
+            for (ProximalPointIndex idx(0);
+                 idx<(int)m_proximalPointIndices.size(); ++idx)
+            {
+                if (asc.tangentialStates[idx] > Observing) {
+
+                    // Current velocity at this proximal point.
+                    const Vec3 currVelAtPoint = m_brick
+                                                .findLowestPointVelocityInGround(
+                                                s, m_proximalPointIndices[idx]);
+
+                    // Row indices into Jacobian J corresponding to the
+                    // constraints for this proximal point.
+                    const int row_x = getIndexOfFirstMultiplier(s,idx);
+                    const int row_y = row_x + 1;
+                    const int row_z = row_x + 2;
+
+                    // Tangential directions.
+                    if (asc.tangentialStates[idx] == Rolling) {
+                        updErrorForRolling(F, A, piGuessCurr, row_x,
+                                           currVelAtPoint[0], currVelAtPoint[1]);
+                    } else if (asc.tangentialStates[idx] == Sliding) {
+                        updErrorForSliding(F, A, piGuessCurr, row_x,
+                                           m_brick.get_muDyn());
+                    }
+
+                    // Normal direction.
+                    if (impactPhase == Compression) {
+                        updErrorForCompression(F, A, piGuessCurr, row_z,
+                                               currVelAtPoint[2]);
+                    } else if (impactPhase == Restitution) {
+                        updErrorForRestitution(F, A, piGuessCurr, row_z,
+                                               -restitutionImpulses[idx]);
+                    }
+
+                } //end if not observing
+            } //end for each proximal point
+
+            // Exit condition.
+            piErrCurr = F.norm();
+            if (PrintDebugInfoImpact) {
+                cout << "=> piErrPrev=" << piErrPrev
+                     << ", piErrCurr=" << piErrCurr << endl;
+            }
+            if (piErrCurr < piErrPrev)
+                break;
+        }
+
+        if (PrintDebugInfoImpact) {
+            cout << "-> iteration complete, piGuessCurr=" << piGuessCurr << endl;
+        }
+
     }
 
     // Solution found. Calculate system velocity changes.
@@ -2978,45 +3121,77 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
     return steplength;
 }
 
-void Impacter::updNewtonForRolling(Matrix& J, Vector& F, const Matrix& A,
-                                   const Vector& piGuess, const int row_x,
-                                   const Real v_x, const Real v_y) const
+void Impacter::updJacobianForRolling(Matrix& J, const Matrix& A,
+                                     const Vector& piGuess, const int row_x,
+                                     const Real v_x, const Real v_y) const
 {
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updJacobianForRolling (row_x=" << row_x
+    //         << ", v_x=" << v_x << ", v_y=" << v_y << ")" << endl;
+    //}
+
+    if (UseSoftminInNewton) {
+        // err_rolling,x = A_x[k].piStar - v_x[k]
+        // d(err)/d(pi_i) = A_x[k],i.dpiStar_i
+        const int row_y = row_x + 1;
+        for (int i=0; i<A.ncol(); ++i) {
+            J[row_x][i]  = A[row_x][i] * dpiStar(piGuess,i);
+            J[row_y][i]  = A[row_y][i] * dpiStar(piGuess,i);
+        }
+
+    } else {
+        // err_rolling,x = A_x[k].pi - v_x[k]
+        // d(err)/d(pi_i) = A_x[k],i
+        const int row_y = row_x + 1;
+        for (int i=0; i<A.ncol(); ++i) {
+            J[row_x][i]  = A[row_x][i];
+            J[row_y][i]  = A[row_y][i];
+        }
+    }
+}
+
+void Impacter::updErrorForRolling(Vector& F, const Matrix& A,
+                                  const Vector& piGuess, const int row_x,
+                                  const Real v_x, const Real v_y) const
+{
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updErrorForRolling (row_x=" << row_x
+    //         << ", v_x=" << v_x << ", v_y=" << v_y << ")" << endl;
+    //}
+
     if (UseSoftminInNewton) {
         // F_x[k] = err_rolling,x = A_x[k].piStar - v_x[k]
-        // d(err)/d(pi_i) = A_x[k],i.dpiStar_i
         const int row_y = row_x + 1;
         F[row_x] = -v_x;
         F[row_y] = -v_y;
         for (int i=0; i<A.ncol(); ++i) {
-            J[row_x][i]  = A[row_x][i] * dpiStar(piGuess,i);
-            J[row_y][i]  = A[row_y][i] * dpiStar(piGuess,i);
             F[row_x]    += A[row_x][i] * piStar(piGuess,i);
             F[row_y]    += A[row_y][i] * piStar(piGuess,i);
         }
 
     } else {
         // F_x[k] = err_rolling,x = A_x[k].pi - v_x[k]
-        // d(err)/d(pi_i) = A_x[k],i
         const int row_y = row_x + 1;
         F[row_x] = -v_x;
         F[row_y] = -v_y;
         for (int i=0; i<A.ncol(); ++i) {
-            J[row_x][i]  = A[row_x][i];
-            J[row_y][i]  = A[row_y][i];
             F[row_x]    += A[row_x][i] * piGuess[i];
             F[row_y]    += A[row_y][i] * piGuess[i];
         }
     }
 }
 
-void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
-                                   const Vector& piGuess, const int row_x,
-                                   const Real mu) const
+void Impacter::updJacobianForSliding(Matrix& J, const Matrix& A,
+                                     const Vector& piGuess, const int row_x,
+                                     const Real mu) const
 {
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updJacobianForSliding (row_x=" << row_x
+    //         << ", mu=" << mu << ")" << endl;
+    //}
+
     if (UseSoftminInNewton) {
-        // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-        //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
+        // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
         // Note that partial derivatives for err_sliding,x are unique for
         // pi_x[k], pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
         const int row_y = row_x + 1;
@@ -3052,11 +3227,6 @@ void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
                                AypiStar*A[row_y][i]*dpiStar(piGuess,i));
         }
 
-        // F_x[k] = err_sliding,x = dnorm.pi_x[k]
-        //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
-        F[row_x] = dnorm*piGuess[row_x]
-                   - mu*softmin0(piGuess[row_z],SqrtEps)*AxpiStar;
-
         // Fill in row_x of Jacobian.
         for (int i=0; i<A.ncol(); ++i) {
             if (i==row_x) {
@@ -3084,11 +3254,6 @@ void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
                                      * par_dkx_par_pi[i];
             }
         }
-
-        // F_y[k] = err_sliding,y = dnorm.pi_y[k]
-        //                          - mu_[k].softmin0(pi_z[k]).d_[k],y
-        F[row_y] = dnorm*piGuess[row_y]
-                   - mu*softmin0(piGuess[row_z],SqrtEps)*AypiStar;
 
         // Fill in row_y of Jacobian.
         for (int i=0; i<A.ncol(); ++i) {
@@ -3119,7 +3284,7 @@ void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
         }
 
     } else {
-        // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].pi_z[k].d_[k],x
+        // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].pi_z[k].d_[k],x
         // Note that partial derivatives for err_sliding,x are unique for
         // pi_x[k], pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
         const int row_y = row_x + 1;
@@ -3154,9 +3319,6 @@ void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
                 (1.0/dnorm) * (Axpi*A[row_x][i] + Aypi*A[row_y][i]);
         }
 
-        // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].pi_z[k].d_[k],x
-        F[row_x] = dnorm*piGuess[row_x] - mu*piGuess[row_z]*Axpi;
-
         // Fill in row_x of Jacobian.
         for (int i=0; i<A.ncol(); ++i) {
             if (i==row_x) {
@@ -3179,9 +3341,6 @@ void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
                                 - mu * piGuess[row_z] * par_dkx_par_pi[i];
             }
         }
-
-        // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].pi_z[k].d_[k],y
-        F[row_y] = dnorm*piGuess[row_y] - mu*piGuess[row_z]*Aypi;
 
         // Fill in row_y of Jacobian.
         for (int i=0; i<A.ncol(); ++i) {
@@ -3208,48 +3367,150 @@ void Impacter::updNewtonForSliding(Matrix& J, Vector& F, const Matrix& A,
     }
 }
 
-void Impacter::updNewtonForCompression(Matrix& J, Vector& F, const Matrix& A,
-                                       const Vector& piGuess, const int row_z,
-                                       const Real v_z) const
+void Impacter::updErrorForSliding(Vector& F, const Matrix& A,
+                                  const Vector& piGuess, const int row_x,
+                                  const Real mu) const
 {
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updErrorForSliding (row_x=" << row_x
+    //         << ", mu=" << mu << ")" << endl;
+    //}
+
     if (UseSoftminInNewton) {
-        // F_z[k] = err_compression = A_z[k].piStar - v_z[k]
-        // d(err)/d(pi_i) = A_z[k],i.dpiStar_i
-        F[row_z] = -v_z;
+        // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
+        //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
+        const int row_y = row_x + 1;
+        const int row_z = row_x + 2;
+
+        // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
+        //                        = ~[A_x[k].piStar, A_y[k].piStar]
+        Real AxpiStar = 0.0;
+        Real AypiStar = 0.0;
         for (int i=0; i<A.ncol(); ++i) {
-            J[row_z][i]  = A[row_z][i] * dpiStar(piGuess,i);
-            F[row_z]    += A[row_z][i] * piStar(piGuess,i);
+            AxpiStar += A[row_x][i] * piStar(piGuess,i);
+            AypiStar += A[row_y][i] * piStar(piGuess,i);
         }
+        const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
+
+        // F_x[k] = err_sliding,x = dnorm.pi_x[k]
+        //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
+        F[row_x] = dnorm*piGuess[row_x]
+                   - mu*softmin0(piGuess[row_z],SqrtEps)*AxpiStar;
+
+        // F_y[k] = err_sliding,y = dnorm.pi_y[k]
+        //                          - mu_[k].softmin0(pi_z[k]).d_[k],y
+        F[row_y] = dnorm*piGuess[row_y]
+                   - mu*softmin0(piGuess[row_z],SqrtEps)*AypiStar;
 
     } else {
-        // F_z[k] = err_compression = A_z[k].pi - v_z[k]
-        // d(err)/d(pi_i) = A_z[k],i
-        F[row_z] = -v_z;
+        // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].pi_z[k].d_[k],x
+        const int row_y = row_x + 1;
+        const int row_z = row_x + 2;
+
+        // d_[k] = final velocity = ~[A_x[k], A_y[k]].pi
+        //                        = ~[A_x[k].pi, A_y[k].pi]
+        Real Axpi = 0.0;
+        Real Aypi = 0.0;
         for (int i=0; i<A.ncol(); ++i) {
-            J[row_z][i]  = A[row_z][i];
-            F[row_z]    += A[row_z][i] * piGuess[i];
+            Axpi += A[row_x][i] * piGuess[i];
+            Aypi += A[row_y][i] * piGuess[i];
         }
+        const Real dnorm = sqrt( Axpi*Axpi + Aypi*Aypi );
+
+        // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].pi_z[k].d_[k],x
+        F[row_x] = dnorm*piGuess[row_x] - mu*piGuess[row_z]*Axpi;
+
+        // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].pi_z[k].d_[k],y
+        F[row_y] = dnorm*piGuess[row_y] - mu*piGuess[row_z]*Aypi;
     }
 }
 
-void Impacter::updNewtonForExpansion(Matrix& J, Vector& F, const Matrix& A,
-                                     const Vector& piGuess, const int row_z,
-                                     const Real pi_ze) const
+void Impacter::updJacobianForCompression(Matrix& J, const Matrix& A,
+                                         const Vector& piGuess, const int row_z,
+                                         const Real v_z) const
 {
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updJacobianForCompression (row_z=" << row_z
+    //         << ", v_z=" << v_z << ")" << endl;
+    //}
+
     if (UseSoftminInNewton) {
-        // F_z[k] = err_expansion = softmin0(pi_z[k]) - pi_ze
+        // err_compression = A_z[k].piStar - v_z[k]
+        // d(err)/d(pi_i) = A_z[k],i.dpiStar_i
+        for (int i=0; i<A.ncol(); ++i)
+            J[row_z][i]  = A[row_z][i] * dpiStar(piGuess,i);
+
+    } else {
+        // err_compression = A_z[k].pi - v_z[k]
+        // d(err)/d(pi_i) = A_z[k],i
+        for (int i=0; i<A.ncol(); ++i)
+            J[row_z][i]  = A[row_z][i];
+    }
+}
+
+void Impacter::updErrorForCompression(Vector& F, const Matrix& A,
+                                      const Vector& piGuess, const int row_z,
+                                      const Real v_z) const
+{
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updErrorForCompression (row_z=" << row_z
+    //         << ", v_z=" << v_z << ")" << endl;
+    //}
+
+    if (UseSoftminInNewton) {
+        // F_z[k] = err_compression = A_z[k].piStar - v_z[k]
+        F[row_z] = -v_z;
+        for (int i=0; i<A.ncol(); ++i)
+            F[row_z]    += A[row_z][i] * piStar(piGuess,i);
+
+    } else {
+        // F_z[k] = err_compression = A_z[k].pi - v_z[k]
+        F[row_z] = -v_z;
+        for (int i=0; i<A.ncol(); ++i)
+            F[row_z]    += A[row_z][i] * piGuess[i];
+    }
+}
+
+void Impacter::updJacobianForRestitution(Matrix& J, const Matrix& A,
+                                         const Vector& piGuess, const int row_z,
+                                         const Real pi_ze) const
+{
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updJacobianForRestitution (row_z=" << row_z
+    //         << ", pi_ze=" << pi_ze << ")" << endl;
+    //}
+
+    if (UseSoftminInNewton) {
+        // err_expansion = softmin0(pi_z[k]) - pi_ze
         // d(err)/d(pi_z[k]) = dsoftmin0(pi_z[k])
         // d(err)/d(pi_i)    = 0, where i is not z[k]
-        F[row_z] = softmin0(piGuess[row_z],SqrtEps) - pi_ze;
         for (int i=0; i<A.ncol(); ++i)
             J[row_z][i] = (i==row_z) ? dsoftmin0(piGuess[i],SqrtEps) : 0.0;
 
     } else {
-        // F_z[k] = err_expansion = pi_z[k] - pi_ze
+        // err_expansion = pi_z[k] - pi_ze
         // d(err)/d(pi_z[k]) = 1
         // d(err)/d(pi_i)    = 0, where i is not z[k]
-        F[row_z] = piGuess[row_z] - pi_ze;
         for (int i=0; i<A.ncol(); ++i)
             J[row_z][i] = (i==row_z) ? 1.0 : 0.0;
+    }
+}
+
+void Impacter::updErrorForRestitution(Vector& F, const Matrix& A,
+                                      const Vector& piGuess, const int row_z,
+                                      const Real pi_ze) const
+{
+    //if (PrintDebugInfoImpact) {
+    //    cout << "updJacobianForRestitution (row_z=" << row_z
+    //         << ", pi_ze=" << pi_ze << ")" << endl;
+    //}
+
+    if (UseSoftminInNewton) {
+        // F_z[k] = err_expansion = softmin0(pi_z[k]) - pi_ze
+        F[row_z] = softmin0(piGuess[row_z],SqrtEps) - pi_ze;
+
+    } else {
+        // F_z[k] = err_expansion = pi_z[k] - pi_ze
+        F[row_z] = piGuess[row_z] - pi_ze;
     }
 }
