@@ -2806,10 +2806,8 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
     }
 
     // Solution found. Apply min operation to vertical impulses.
-    for (int i=0; i<piGuessCurr.nrow(); ++i) {
-        if (i%3==2)
-            piGuessCurr[i] = std::min(0.0,piGuessCurr[i]);
-    }
+    for (int i=0; i<piGuessCurr.nrow(); ++i)
+        piGuessCurr[i] = piStar(piGuessCurr,i);
 
     // Calculate system velocity changes.
     Vector temp = -(MinvGtranspose * piGuessCurr);
