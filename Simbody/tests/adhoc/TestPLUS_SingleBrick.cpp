@@ -80,7 +80,7 @@ const bool CompareImpactStrategies     = false;
 
 const bool DebugStepLengthCalculator = false;
 const bool UseNewtonsMethod          = true;
-const bool UseSoftminInNewton        = false;
+const bool UseSoftminInNewton        = true;
 
 const bool RunTestsOnePoint        = false;
 const bool RunTestsTwoPoints       = true;
@@ -418,13 +418,27 @@ private:
     //--------------------------------------------------------------------------
     // Private methods: helper functions for Newton's method
     //--------------------------------------------------------------------------
-    // Modified impulse vector, with softmin0 applied to pi_z[k].
+    // Modified impulse vector, with std::min or softmin0 applied to pi_z[k].
     Real piStar(const Vector& piGuess, const int i) const
-    {   return (i%3==2) ? softmin0(piGuess[i],SqrtEps) : piGuess[i]; }
+    {
+        if (i%3 != 2)
+            return piGuess[i];
+        else if (UseSoftminInNewton)
+            return softmin0(piGuess[i],SqrtEps);
+        else
+            return std::min(0.0,piGuess[i]);
+    }
 
-    // Derivative of modified impulse vector piStar.
+    // Non-zero term in derivative of modified impulse vector piStar.
     Real dpiStar(const Vector& piGuess, const int i) const
-    {   return (i%3==2) ? dsoftmin0(piGuess[i],SqrtEps) : 0.0; }
+    {
+        if (i%3 != 2)
+            return 1.0;
+        else if (UseSoftminInNewton)
+            return dsoftmin0(piGuess[i],SqrtEps);
+        else
+            return (piGuess[i]>0.0) ? 0.0 : 1.0;
+    }
 
     // Fill rows of Jacobian J.
     void updJacobianForRolling(Matrix& J, const Matrix& A,
@@ -2791,7 +2805,13 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
 
     }
 
-    // Solution found. Calculate system velocity changes.
+    // Solution found. Apply min operation to vertical impulses.
+    for (int i=0; i<piGuessCurr.nrow(); ++i) {
+        if (i%3==2)
+            piGuessCurr[i] = std::min(0.0,piGuessCurr[i]);
+    }
+
+    // Calculate system velocity changes.
     Vector temp = -(MinvGtranspose * piGuessCurr);
     asc.systemVelocityChange = temp;
     asc.localImpulses        = piGuessCurr;
@@ -3125,28 +3145,12 @@ void Impacter::updJacobianForRolling(Matrix& J, const Matrix& A,
                                      const Vector& piGuess, const int row_x,
                                      const Real v_x, const Real v_y) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updJacobianForRolling (row_x=" << row_x
-    //         << ", v_x=" << v_x << ", v_y=" << v_y << ")" << endl;
-    //}
-
-    if (UseSoftminInNewton) {
-        // err_rolling,x = A_x[k].piStar - v_x[k]
-        // d(err)/d(pi_i) = A_x[k],i.dpiStar_i
-        const int row_y = row_x + 1;
-        for (int i=0; i<A.ncol(); ++i) {
-            J[row_x][i]  = A[row_x][i] * dpiStar(piGuess,i);
-            J[row_y][i]  = A[row_y][i] * dpiStar(piGuess,i);
-        }
-
-    } else {
-        // err_rolling,x = A_x[k].pi - v_x[k]
-        // d(err)/d(pi_i) = A_x[k],i
-        const int row_y = row_x + 1;
-        for (int i=0; i<A.ncol(); ++i) {
-            J[row_x][i]  = A[row_x][i];
-            J[row_y][i]  = A[row_y][i];
-        }
+    // err_rolling,x = A_x[k].piStar - v_x[k]
+    // d(err)/d(pi_i) = A_x[k],i.dpiStar_i
+    const int row_y = row_x + 1;
+    for (int i=0; i<A.ncol(); ++i) {
+        J[row_x][i] = A[row_x][i] * dpiStar(piGuess,i);
+        J[row_y][i] = A[row_y][i] * dpiStar(piGuess,i);
     }
 }
 
@@ -3154,30 +3158,13 @@ void Impacter::updErrorForRolling(Vector& F, const Matrix& A,
                                   const Vector& piGuess, const int row_x,
                                   const Real v_x, const Real v_y) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updErrorForRolling (row_x=" << row_x
-    //         << ", v_x=" << v_x << ", v_y=" << v_y << ")" << endl;
-    //}
-
-    if (UseSoftminInNewton) {
-        // F_x[k] = err_rolling,x = A_x[k].piStar - v_x[k]
-        const int row_y = row_x + 1;
-        F[row_x] = -v_x;
-        F[row_y] = -v_y;
-        for (int i=0; i<A.ncol(); ++i) {
-            F[row_x]    += A[row_x][i] * piStar(piGuess,i);
-            F[row_y]    += A[row_y][i] * piStar(piGuess,i);
-        }
-
-    } else {
-        // F_x[k] = err_rolling,x = A_x[k].pi - v_x[k]
-        const int row_y = row_x + 1;
-        F[row_x] = -v_x;
-        F[row_y] = -v_y;
-        for (int i=0; i<A.ncol(); ++i) {
-            F[row_x]    += A[row_x][i] * piGuess[i];
-            F[row_y]    += A[row_y][i] * piGuess[i];
-        }
+    // F_x[k] = err_rolling,x = A_x[k].piStar - v_x[k]
+    const int row_y = row_x + 1;
+    F[row_x] = -v_x;
+    F[row_y] = -v_y;
+    for (int i=0; i<A.ncol(); ++i) {
+        F[row_x] += A[row_x][i] * piStar(piGuess,i);
+        F[row_y] += A[row_y][i] * piStar(piGuess,i);
     }
 }
 
@@ -3185,184 +3172,76 @@ void Impacter::updJacobianForSliding(Matrix& J, const Matrix& A,
                                      const Vector& piGuess, const int row_x,
                                      const Real mu) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updJacobianForSliding (row_x=" << row_x
-    //         << ", mu=" << mu << ")" << endl;
-    //}
+    // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
+    // Note that partial derivatives for err_sliding,x are unique for pi_x[k],
+    // pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
+    const int row_y = row_x + 1;
+    const int row_z = row_x + 2;
 
-    if (UseSoftminInNewton) {
-        // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
-        // Note that partial derivatives for err_sliding,x are unique for
-        // pi_x[k], pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
-        const int row_y = row_x + 1;
-        const int row_z = row_x + 2;
+    // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
+    //                        = ~[A_x[k].piStar, A_y[k].piStar]
+    Real AxpiStar = 0.0;
+    Real AypiStar = 0.0;
+    for (int i=0; i<A.ncol(); ++i) {
+        AxpiStar += A[row_x][i] * piStar(piGuess,i);
+        AypiStar += A[row_y][i] * piStar(piGuess,i);
+    }
+    const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
 
-        // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
-        //                        = ~[A_x[k].piStar, A_y[k].piStar]
-        Real AxpiStar = 0.0;
-        Real AypiStar = 0.0;
-        for (int i=0; i<A.ncol(); ++i) {
-            AxpiStar += A[row_x][i] * piStar(piGuess,i);
-            AypiStar += A[row_y][i] * piStar(piGuess,i);
-        }
-        const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
+    // d(d_[k])/d(pi)
+    // The same partial for any pi_duck.
+    // par_dkx_par_pi[i] is the partial relative to piGuess[i].
+    Vector par_dkx_par_pi = Vector(A.ncol(), 0.0);
+    Vector par_dky_par_pi = Vector(A.ncol(), 0.0);
+    for (int i=0; i<A.ncol(); ++i) {
+        par_dkx_par_pi[i] = A[row_x][i] * dpiStar(piGuess,i);
+        par_dky_par_pi[i] = A[row_y][i] * dpiStar(piGuess,i);
+    }
 
-        // d(d_[k])/d(pi)
-        // The same partial for any pi_duck.
-        // par_dkx_par_pi[i] is the partial relative to piGuess[i].
-        Vector par_dkx_par_pi = Vector(A.ncol(), 0.0);
-        Vector par_dky_par_pi = Vector(A.ncol(), 0.0);
-        for (int i=0; i<A.ncol(); ++i) {
-            par_dkx_par_pi[i] = A[row_x][i] * dpiStar(piGuess,i);
-            par_dky_par_pi[i] = A[row_y][i] * dpiStar(piGuess,i);
-        }
+    // d(dnorm)/d(pi)
+    // The same partial for any pi_duck.
+    // par_dnorm_par_pi[i] is the partial relative to piGuess[i].
+    Vector par_dnorm_par_pi = Vector(A.ncol(), 0.0);
+    for (int i=0; i<A.ncol(); ++i) {
+        par_dnorm_par_pi[i] = (1.0/dnorm)
+                              * (AxpiStar*A[row_x][i]*dpiStar(piGuess,i) +
+                                 AypiStar*A[row_y][i]*dpiStar(piGuess,i));
+    }
 
-        // d(dnorm)/d(pi)
-        // The same partial for any pi_duck.
-        // par_dnorm_par_pi[i] is the partial relative to piGuess[i].
-        Vector par_dnorm_par_pi = Vector(A.ncol(), 0.0);
-        for (int i=0; i<A.ncol(); ++i) {
-            par_dnorm_par_pi[i] =
-                (1.0/dnorm) * (AxpiStar*A[row_x][i]*dpiStar(piGuess,i) +
-                               AypiStar*A[row_y][i]*dpiStar(piGuess,i));
-        }
-
-        // Fill in row_x of Jacobian.
-        for (int i=0; i<A.ncol(); ++i) {
-            if (i==row_x) {
-                // d(errx)/d(pi_x[k])
-                J[row_x][i] = par_dnorm_par_pi[row_x] * piGuess[row_x]
-                                + dnorm
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dkx_par_pi[row_x];
-            } else if (i==row_y) {
-                // d(errx)/d(pi_y[k])
-                J[row_x][i] = par_dnorm_par_pi[row_y] * piGuess[row_x]
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dkx_par_pi[row_y];
-            } else if (i==row_z) {
-                // d(errx)/d(pi_z[k])
-                J[row_x][i] = par_dnorm_par_pi[row_z] * piGuess[row_x]
-                                - mu * dsoftmin0(piGuess[row_z],SqrtEps)
-                                     * AxpiStar
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dkx_par_pi[row_z];
-            } else {
-                // d(errx)/d(pi_i), where i not in {x[k],y[k],z[k]}.
-                J[row_x][i] = par_dnorm_par_pi[i] * piGuess[row_x]
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dkx_par_pi[i];
-            }
-        }
-
-        // Fill in row_y of Jacobian.
-        for (int i=0; i<A.ncol(); ++i) {
-            if (i==row_x) {
-                // d(erry)/d(pi_x[k])
-                J[row_y][i] = par_dnorm_par_pi[row_x] * piGuess[row_y]
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dky_par_pi[row_x];
-            } else if (i==row_y) {
-                // d(erry)/d(pi_y[k])
-                J[row_y][i] = par_dnorm_par_pi[row_y] * piGuess[row_y]
-                                + dnorm
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dky_par_pi[row_y];
-            } else if (i==row_z) {
-                // d(erry)/d(pi_z[k])
-                J[row_y][i] = par_dnorm_par_pi[row_z] * piGuess[row_y]
-                                - mu * dsoftmin0(piGuess[row_z],SqrtEps)
-                                     * AypiStar
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dky_par_pi[row_z];
-            } else {
-                // d(erry)/d(pi_i), where i not in {x[k],y[k],z[k]}.
-                J[row_y][i] = par_dnorm_par_pi[i] * piGuess[row_y]
-                                - mu * softmin0(piGuess[row_z],SqrtEps)
-                                     * par_dky_par_pi[i];
-            }
-        }
-
-    } else {
-        // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].pi_z[k].d_[k],x
-        // Note that partial derivatives for err_sliding,x are unique for
-        // pi_x[k], pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
-        const int row_y = row_x + 1;
-        const int row_z = row_x + 2;
-
-        // d_[k] = final velocity = ~[A_x[k], A_y[k]].pi
-        //                        = ~[A_x[k].pi, A_y[k].pi]
-        Real Axpi = 0.0;
-        Real Aypi = 0.0;
-        for (int i=0; i<A.ncol(); ++i) {
-            Axpi += A[row_x][i] * piGuess[i];
-            Aypi += A[row_y][i] * piGuess[i];
-        }
-        const Real dnorm = sqrt( Axpi*Axpi + Aypi*Aypi );
-
-        // d(d_[k])/d(pi)
-        // The same partial for any pi_duck.
-        // par_dkx_par_pi[i] is the partial relative to piGuess[i].
-        Vector par_dkx_par_pi = Vector(A.ncol(), 0.0);
-        Vector par_dky_par_pi = Vector(A.ncol(), 0.0);
-        for (int i=0; i<A.ncol(); ++i) {
-            par_dkx_par_pi[i] = A[row_x][i];
-            par_dky_par_pi[i] = A[row_y][i];
-        }
-
-        // d(dnorm)/d(pi)
-        // The same partial for any pi_duck.
-        // par_dnorm_par_pi[i] is the partial relative to piGuess[i].
-        Vector par_dnorm_par_pi = Vector(A.ncol(), 0.0);
-        for (int i=0; i<A.ncol(); ++i) {
-            par_dnorm_par_pi[i] =
-                (1.0/dnorm) * (Axpi*A[row_x][i] + Aypi*A[row_y][i]);
-        }
-
-        // Fill in row_x of Jacobian.
-        for (int i=0; i<A.ncol(); ++i) {
-            if (i==row_x) {
-                // d(errx)/d(pi_x[k])
-                J[row_x][i] = par_dnorm_par_pi[row_x] * piGuess[row_x]
-                                + dnorm
-                                - mu * piGuess[row_z] * par_dkx_par_pi[row_x];
-            } else if (i==row_y) {
-                // d(errx)/d(pi_y[k])
-                J[row_x][i] = par_dnorm_par_pi[row_y] * piGuess[row_x]
-                                - mu * piGuess[row_z] * par_dkx_par_pi[row_y];
-            } else if (i==row_z) {
-                // d(errx)/d(pi_z[k])
-                J[row_x][i] = par_dnorm_par_pi[row_z] * piGuess[row_x]
-                                - mu * Axpi
-                                - mu * piGuess[row_z] * par_dkx_par_pi[row_z];
-            } else {
-                // d(errx)/d(pi_i), where i not in {x[k],y[k],z[k]}.
-                J[row_x][i] = par_dnorm_par_pi[i] * piGuess[row_x]
-                                - mu * piGuess[row_z] * par_dkx_par_pi[i];
-            }
-        }
-
-        // Fill in row_y of Jacobian.
-        for (int i=0; i<A.ncol(); ++i) {
-            if (i==row_x) {
-                // d(erry)/d(pi_x[k])
-                J[row_y][i] = par_dnorm_par_pi[row_x] * piGuess[row_y]
-                                - mu * piGuess[row_z] * par_dky_par_pi[row_x];
-            } else if (i==row_y) {
-                // d(erry)/d(pi_y[k])
-                J[row_y][i] = par_dnorm_par_pi[row_y] * piGuess[row_y]
-                                + dnorm
-                                - mu * piGuess[row_z] * par_dky_par_pi[row_y];
-            } else if (i==row_z) {
-                // d(erry)/d(pi_z[k])
-                J[row_y][i] = par_dnorm_par_pi[row_z] * piGuess[row_y]
-                                - mu * Aypi
-                                - mu * piGuess[row_z] * par_dky_par_pi[row_z];
-            } else {
-                // d(erry)/d(pi_i), where i not in {x[k],y[k],z[k]}.
-                J[row_y][i] = par_dnorm_par_pi[i] * piGuess[row_y]
-                                - mu * piGuess[row_z] * par_dky_par_pi[i];
-            }
+    // Fill in row_x and row_y of Jacobian.
+    for (int i=0; i<A.ncol(); ++i) {
+        if (i==row_x) {
+            // d(errx)/d(pi_x[k])
+            J[row_x][i] = par_dnorm_par_pi[row_x] * piGuess[row_x]
+                          + dnorm
+                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_x];
+            // d(erry)/d(pi_x[k])
+            J[row_y][i] = par_dnorm_par_pi[row_x] * piGuess[row_y]
+                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[row_x];
+        } else if (i==row_y) {
+            // d(errx)/d(pi_y[k])
+            J[row_x][i] = par_dnorm_par_pi[row_y] * piGuess[row_x]
+                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_y];
+            // d(erry)/d(pi_y[k])
+            J[row_y][i] = par_dnorm_par_pi[row_y] * piGuess[row_y]
+                          + dnorm
+                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[row_y];
+        } else if (i==row_z) {
+            // d(errx)/d(pi_z[k])
+            J[row_x][i] = par_dnorm_par_pi[row_z] * piGuess[row_x]
+                          - mu * dpiStar(piGuess,row_z) * AxpiStar
+                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_z];
+            // d(erry)/d(pi_z[k])
+            J[row_y][i] = par_dnorm_par_pi[row_z] * piGuess[row_y]
+                          - mu * dpiStar(piGuess,row_z) * AypiStar
+                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[row_z];
+        } else {
+            // d(errx)/d(pi_i), where i not in {x[k],y[k],z[k]}.
+            J[row_x][i] = par_dnorm_par_pi[i] * piGuess[row_x]
+                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[i];
+            // d(erry)/d(pi_i), where i not in {x[k],y[k],z[k]}.
+            J[row_y][i] = par_dnorm_par_pi[i] * piGuess[row_y]
+                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[i];
         }
     }
 }
@@ -3371,146 +3250,63 @@ void Impacter::updErrorForSliding(Vector& F, const Matrix& A,
                                   const Vector& piGuess, const int row_x,
                                   const Real mu) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updErrorForSliding (row_x=" << row_x
-    //         << ", mu=" << mu << ")" << endl;
-    //}
+    // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
+    //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
+    const int row_y = row_x + 1;
+    const int row_z = row_x + 2;
 
-    if (UseSoftminInNewton) {
-        // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-        //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
-        const int row_y = row_x + 1;
-        const int row_z = row_x + 2;
-
-        // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
-        //                        = ~[A_x[k].piStar, A_y[k].piStar]
-        Real AxpiStar = 0.0;
-        Real AypiStar = 0.0;
-        for (int i=0; i<A.ncol(); ++i) {
-            AxpiStar += A[row_x][i] * piStar(piGuess,i);
-            AypiStar += A[row_y][i] * piStar(piGuess,i);
-        }
-        const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
-
-        // F_x[k] = err_sliding,x = dnorm.pi_x[k]
-        //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
-        F[row_x] = dnorm*piGuess[row_x]
-                   - mu*softmin0(piGuess[row_z],SqrtEps)*AxpiStar;
-
-        // F_y[k] = err_sliding,y = dnorm.pi_y[k]
-        //                          - mu_[k].softmin0(pi_z[k]).d_[k],y
-        F[row_y] = dnorm*piGuess[row_y]
-                   - mu*softmin0(piGuess[row_z],SqrtEps)*AypiStar;
-
-    } else {
-        // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].pi_z[k].d_[k],x
-        const int row_y = row_x + 1;
-        const int row_z = row_x + 2;
-
-        // d_[k] = final velocity = ~[A_x[k], A_y[k]].pi
-        //                        = ~[A_x[k].pi, A_y[k].pi]
-        Real Axpi = 0.0;
-        Real Aypi = 0.0;
-        for (int i=0; i<A.ncol(); ++i) {
-            Axpi += A[row_x][i] * piGuess[i];
-            Aypi += A[row_y][i] * piGuess[i];
-        }
-        const Real dnorm = sqrt( Axpi*Axpi + Aypi*Aypi );
-
-        // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].pi_z[k].d_[k],x
-        F[row_x] = dnorm*piGuess[row_x] - mu*piGuess[row_z]*Axpi;
-
-        // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].pi_z[k].d_[k],y
-        F[row_y] = dnorm*piGuess[row_y] - mu*piGuess[row_z]*Aypi;
+    // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
+    //                        = ~[A_x[k].piStar, A_y[k].piStar]
+    Real AxpiStar = 0.0;
+    Real AypiStar = 0.0;
+    for (int i=0; i<A.ncol(); ++i) {
+        AxpiStar += A[row_x][i] * piStar(piGuess,i);
+        AypiStar += A[row_y][i] * piStar(piGuess,i);
     }
+    const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
+
+    // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
+    F[row_x] = dnorm*piGuess[row_x] - mu*piStar(piGuess,row_z)*AxpiStar;
+
+    // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].softmin0(pi_z[k]).d_[k],y
+    F[row_y] = dnorm*piGuess[row_y] - mu*piStar(piGuess,row_z)*AypiStar;
 }
 
 void Impacter::updJacobianForCompression(Matrix& J, const Matrix& A,
                                          const Vector& piGuess, const int row_z,
                                          const Real v_z) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updJacobianForCompression (row_z=" << row_z
-    //         << ", v_z=" << v_z << ")" << endl;
-    //}
-
-    if (UseSoftminInNewton) {
-        // err_compression = A_z[k].piStar - v_z[k]
-        // d(err)/d(pi_i) = A_z[k],i.dpiStar_i
-        for (int i=0; i<A.ncol(); ++i)
-            J[row_z][i]  = A[row_z][i] * dpiStar(piGuess,i);
-
-    } else {
-        // err_compression = A_z[k].pi - v_z[k]
-        // d(err)/d(pi_i) = A_z[k],i
-        for (int i=0; i<A.ncol(); ++i)
-            J[row_z][i]  = A[row_z][i];
-    }
+    // err_compression = A_z[k].piStar - v_z[k]
+    // d(err)/d(pi_i) = A_z[k],i.dpiStar_i
+    for (int i=0; i<A.ncol(); ++i)
+        J[row_z][i] = A[row_z][i] * dpiStar(piGuess,i);
 }
 
 void Impacter::updErrorForCompression(Vector& F, const Matrix& A,
                                       const Vector& piGuess, const int row_z,
                                       const Real v_z) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updErrorForCompression (row_z=" << row_z
-    //         << ", v_z=" << v_z << ")" << endl;
-    //}
-
-    if (UseSoftminInNewton) {
-        // F_z[k] = err_compression = A_z[k].piStar - v_z[k]
-        F[row_z] = -v_z;
-        for (int i=0; i<A.ncol(); ++i)
-            F[row_z]    += A[row_z][i] * piStar(piGuess,i);
-
-    } else {
-        // F_z[k] = err_compression = A_z[k].pi - v_z[k]
-        F[row_z] = -v_z;
-        for (int i=0; i<A.ncol(); ++i)
-            F[row_z]    += A[row_z][i] * piGuess[i];
-    }
+    // F_z[k] = err_compression = A_z[k].piStar - v_z[k]
+    F[row_z] = -v_z;
+    for (int i=0; i<A.ncol(); ++i)
+        F[row_z] += A[row_z][i] * piStar(piGuess,i);
 }
 
 void Impacter::updJacobianForRestitution(Matrix& J, const Matrix& A,
                                          const Vector& piGuess, const int row_z,
                                          const Real pi_ze) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updJacobianForRestitution (row_z=" << row_z
-    //         << ", pi_ze=" << pi_ze << ")" << endl;
-    //}
-
-    if (UseSoftminInNewton) {
-        // err_expansion = softmin0(pi_z[k]) - pi_ze
-        // d(err)/d(pi_z[k]) = dsoftmin0(pi_z[k])
-        // d(err)/d(pi_i)    = 0, where i is not z[k]
-        for (int i=0; i<A.ncol(); ++i)
-            J[row_z][i] = (i==row_z) ? dsoftmin0(piGuess[i],SqrtEps) : 0.0;
-
-    } else {
-        // err_expansion = pi_z[k] - pi_ze
-        // d(err)/d(pi_z[k]) = 1
-        // d(err)/d(pi_i)    = 0, where i is not z[k]
-        for (int i=0; i<A.ncol(); ++i)
-            J[row_z][i] = (i==row_z) ? 1.0 : 0.0;
-    }
+    // err_expansion = softmin0(pi_z[k]) - pi_ze
+    // d(err)/d(pi_z[k]) = dsoftmin0(pi_z[k])
+    // d(err)/d(pi_i)    = 0, where i is not z[k]
+    for (int i=0; i<A.ncol(); ++i)
+        J[row_z][i] = (i==row_z) ? dpiStar(piGuess,i) : 0.0;
 }
 
 void Impacter::updErrorForRestitution(Vector& F, const Matrix& A,
                                       const Vector& piGuess, const int row_z,
                                       const Real pi_ze) const
 {
-    //if (PrintDebugInfoImpact) {
-    //    cout << "updJacobianForRestitution (row_z=" << row_z
-    //         << ", pi_ze=" << pi_ze << ")" << endl;
-    //}
-
-    if (UseSoftminInNewton) {
-        // F_z[k] = err_expansion = softmin0(pi_z[k]) - pi_ze
-        F[row_z] = softmin0(piGuess[row_z],SqrtEps) - pi_ze;
-
-    } else {
-        // F_z[k] = err_expansion = pi_z[k] - pi_ze
-        F[row_z] = piGuess[row_z] - pi_ze;
-    }
+    // F_z[k] = err_expansion = softmin0(pi_z[k]) - pi_ze
+    F[row_z] = piStar(piGuess,row_z) - pi_ze;
 }
