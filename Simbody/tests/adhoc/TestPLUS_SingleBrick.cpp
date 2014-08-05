@@ -2930,9 +2930,10 @@ Real Impacter::generateAndSolveUsingNewtonWithAlpha(
     Real   xErrCurr   = SimTK::MostPositiveReal;
     int numNewtonIters = 0;                 //Outer iteration counter.
 
-    // Initialize xGuessCurr with small normal impulses.
+    // Initialize xGuessCurr with small normal impulses and step length alpha=1.
     for (int i=0; i<xGuessCurr.nrow(); ++i)
         xGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
+    xGuessCurr[M] = 1.0;
 
     while(true)
     {
@@ -3019,7 +3020,8 @@ Real Impacter::generateAndSolveUsingNewtonWithAlpha(
         xErrCurr = F.norm();
         if (PrintDebugInfoImpact) {
             cout << "=> xErrPrev=" << xErrPrev << ", xErrCurr=" << xErrCurr
-                 << endl;
+                 << "\n   F = " << F << endl;
+            char trash = getchar();
         }
 
         // Break if error is sufficiently small.
@@ -3082,12 +3084,16 @@ Real Impacter::generateAndSolveUsingNewtonWithAlpha(
         Vector    sol;
         qtz.solve(F, sol);
 
+        if (PrintDebugInfoImpact) {
+            cout << "J = " << J << "\nsol = " << sol << endl;
+        }
+
         // Find the step size that decreases the error, and take the step.
         Real factor        = 2.0; //Will be halved on entry.
         int numFactorIters = 0;
-
         xGuessPrev = xGuessCurr;
         xErrPrev   = xErrCurr;
+
         while (true)
         {
             // Halt if maximum number of iterations has been reached.
@@ -3166,8 +3172,8 @@ Real Impacter::generateAndSolveUsingNewtonWithAlpha(
             // Exit condition.
             xErrCurr = F.norm();
             if (PrintDebugInfoImpact) {
-                cout << "=> xErrPrev=" << xErrPrev
-                     << ", xErrCurr=" << xErrCurr << endl;
+                cout << "=> xErrPrev=" << xErrPrev << ", xErrCurr=" << xErrCurr
+                     << "\n   F = " << F << endl;
             }
             if (xErrCurr < xErrPrev)
                 break;
@@ -3824,7 +3830,7 @@ updJacobianForRollingWithAlpha(Matrix& J, const Matrix& A,
                                const Real v_x, const Real v_y) const
 {
     const int row_y = row_x + 1;
-    const int M = A.ncol();
+    const int M     = A.ncol();
 
     updJacobianForRolling(J, A, xGuess, row_x, v_x, v_y);
     J[row_x][M] = 0.0;
@@ -3841,7 +3847,7 @@ updJacobianForSlidingWithAlpha(Matrix& J, const Matrix& A,
     // pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
     const int row_y = row_x + 1;
     const int row_z = row_x + 2;
-    const int  M    = A.ncol();
+    const int M     = A.ncol();
     const Real alphaGuess = xGuess[M];
 
     // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
@@ -3959,10 +3965,12 @@ void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
     const int M     = A.ncol();
     const Real alphaGuess = xGuess[M];
 
+    // Initialize.
+    for (int i=0; i<=M; ++i)
+        J[M][i] = 0.0;
+
     // Case 1.
     if (v0.norm() < MaxStickingTangVel) {
-        for (int i=0; i<A.ncol(); ++i)
-            J[M][i] = 0.0;
         J[M][M] = -1.0;
         return;
     }
@@ -3976,8 +3984,6 @@ void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
 
     // Case 4.
     if (v1.norm() < MaxStickingTangVel) {
-        for (int i=0; i<A.ncol(); ++i)
-            J[M][i] = 0.0;
         J[M][M] = -1.0;
         return;
     }
@@ -3990,8 +3996,6 @@ void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
 
     // Case 3(a).
     if (absDif01 < MaxSlidingDirChange) {
-        for (int i=0; i<A.ncol(); ++i)
-            J[M][i] = 0.0;
         J[M][M] = -1.0;
         return;
     }
@@ -4026,7 +4030,8 @@ void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
                                 + 2*AypiStar*A[row_y][i]*dpiStar(xGuess,i);
         }
 
-        for (int i=0; i<A.ncol(); ++i) {
+        // Note the limits on i.
+        for (int i=row_x; i<=row_z; ++i) {
             J[M][i] = (1.0/denalpha) * par_num_par_pi[i]
                       - (numalpha/(denalpha*denalpha)) * par_den_par_pi[i];
         }
@@ -4054,7 +4059,9 @@ void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
     Vector par_numth_par_pi(M, 0.0);
     Vector par_denth_par_pi(M, 0.0);
     Vector par_r_par_pi(M, 0.0);
-    for (int i=0; i<M; ++i) {
+
+    // Note the limits on i.
+    for (int i=row_x; i<=row_z; ++i) {
         par_numth_par_pi[i] = v0[0]*alphaGuess*A[row_x][i]*dpiStar(xGuess,i)
                               + v0[1]*alphaGuess*A[row_y][i]*dpiStar(xGuess,i);
         par_r_par_pi[i] = 2*v0[0]*alphaGuess*A[row_x][i]*dpiStar(xGuess,i)
@@ -4064,7 +4071,8 @@ void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
         par_denth_par_pi[i] = a * 1.0/(2.0 * std::sqrt(r)) * par_r_par_pi[i];
     }
 
-    for (int i=0; i<A.ncol(); ++i) {
+    // Note the limits on i.
+    for (int i=row_x; i<=row_z; ++i) {
         J[M][i] = (1.0/dentheta) * par_numth_par_pi[i]
                     - (numtheta/(dentheta*dentheta)) * par_denth_par_pi[i];
     }
