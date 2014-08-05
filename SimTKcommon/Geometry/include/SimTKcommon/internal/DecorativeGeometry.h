@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Jack Middleton, Peter Eastman, Ayman Habib                   *
  *                                                                            *
@@ -230,7 +230,7 @@ Real getLineThickness() const;
     
 /** Set whether the geometry acts as a billboard, always rotating to face the 
 camera. The default is typically no except for text. If you want 3D text that
-moves with your model, set this to true. Here 0 means false, 1 means true,
+moves with your model, set this to false. Here 0 means false, 1 means true,
 and -1 means "use default". **/
 DecorativeGeometry& setFaceCamera(int shouldFace);
 /** Get whether the geometry acts as a billboard, always rotating to face the 
@@ -531,6 +531,7 @@ public:
     DecorativeText& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
     DecorativeText& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
     DecorativeText& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
+    DecorativeText& setFaceCamera(int yn)     {DecorativeGeometry::setFaceCamera(yn);   return *this;}
     DecorativeText& setRepresentation(const Representation& r) 
     {   DecorativeGeometry::setRepresentation(r); return *this; }
 

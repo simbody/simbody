@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2011-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2011-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -36,7 +36,7 @@
 
 // Increment this every time you make *any* change to the protocol;
 // we insist on an exact match.
-static const unsigned ProtocolVersion   = 32;
+static const unsigned ProtocolVersion   = 33;
 
 // The visualizer has several predefined cached meshes for common
 // shapes so that we don't have to send them. These are the mesh 
@@ -122,8 +122,9 @@ public:
                            const Vec4& color, int representation);
     void drawLine(const Vec3& end1, const Vec3& end2, const 
                   Vec4& color, Real thickness);
-    void drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
-                  const std::string& string, bool faceCamera, bool isScreenText);
+    void drawText(const Transform& transform, const Vec3& scale, 
+                  const Vec4& color, const std::string& string, 
+                  bool faceCamera, bool isScreenText);
     void drawCoords(const Transform& transform, const Vec3& axisLengths, 
                     const Vec4& color);
     
