@@ -534,24 +534,28 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
 }
 
 void VisualizerProtocol::
-drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
+drawText(const Transform& X_GT, const Vec3& scale, const Vec4& color, 
          const string& string, bool faceCamera, bool isScreenText) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
         "VisualizerProtocol::drawText()",
         "Can't display DecorativeText longer than 256 characters;"
         " received text of length %u.", (unsigned)string.size());
     WRITE(outPipe, &AddText, 1);
-    float buffer[9];
-    buffer[0] = (float) position[0];
-    buffer[1] = (float) position[1];
-    buffer[2] = (float) position[2];
-    buffer[3] = (float) scale[0];
-    buffer[4] = (float) scale[1];
-    buffer[5] = (float) scale[2];
-    buffer[6] = (float) color[0];
-    buffer[7] = (float) color[1];
-    buffer[8] = (float) color[2];
-    WRITE(outPipe, buffer, 9*sizeof(float));
+    float buffer[12];
+    const Vec3 rot = X_GT.R().convertRotationToBodyFixedXYZ();
+    buffer[0] = (float) rot[0];
+    buffer[1] = (float) rot[1];
+    buffer[2] = (float) rot[2];
+    buffer[3] = (float) X_GT.p()[0];
+    buffer[4] = (float) X_GT.p()[1];
+    buffer[5] = (float) X_GT.p()[2];
+    buffer[6] = (float) scale[0];
+    buffer[7] = (float) scale[1];
+    buffer[8] = (float) scale[2];
+    buffer[9] = (float) color[0];
+    buffer[10]= (float) color[1];
+    buffer[11]= (float) color[2];
+    WRITE(outPipe, buffer, 12*sizeof(float));
     short face = (short)faceCamera;
     WRITE(outPipe, &face, sizeof(short));
     short screen = (short)isScreenText;
@@ -565,7 +569,7 @@ void VisualizerProtocol::
 drawCoords(const Transform& X_GF, const Vec3& axisLengths, const Vec4& color) {
     WRITE(outPipe, &AddCoords, 1);
     float buffer[12];
-    Vec3 rot = X_GF.R().convertRotationToBodyFixedXYZ();
+    const Vec3 rot = X_GF.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
     buffer[1] = (float) rot[1];
     buffer[2] = (float) rot[2];
