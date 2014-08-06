@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -55,23 +55,23 @@ typedef Transform_<double>  dTransform;
  * B. A frame is an orthogonal, right-handed set of three axes, and an
  * origin point. A transform X from frame B to F consists of 3 perpendicular
  * unit vectors defining F's axes as viewed from B (that is, as expressed in 
- * the basis formed by B's axes), and a vector from B's origin point OB to F's
- * origin point OF. Note that the meaning of "B" comes from the context in
+ * the basis formed by B's axes), and a vector from B's origin point Bo to F's
+ * origin point Fo. Note that the meaning of "B" comes from the context in
  * which the transform is used. We use the phrase "frame F is in frame B" to
  * describe the above relationship, that is, "in" means both measured from
  * and expressed in. 
  *
- * The axis vectors constitute a Rotation. They are ordered 1-2-3 or x-y-z
+ * The axis vectors constitute a Rotation_. They are ordered 1-2-3 or x-y-z
  * as you prefer, with z = x X y, making a right-handed set. These axes are 
  * arranged as columns of a 3x3 rotation matrix R_BF = [ x y z ] which is a 
  * direction cosine (rotation) matrix useful for conversions between frame 
  * B and F. (The columns of R_BF are F's coordinate axes, expressed in B.) For
  * example, given a vector vF expressed in the F frame, that same vector
  * re-expressed in B is given by vB = R_BF*vF. F's origin point OF is 
- * stored as the translation vector p_BF=(OF-OB) and expressed in B.
+ * stored as the translation vector p_BF=(Fo-Bo) and expressed in B.
  *
  * Transform is designed to behave as much as possible like the computer
- * graphics 4x4 transform X which would be arranged like this:
+ * graphics 4x4 affine transform X which would be arranged like this:
  * <pre>
  *
  *         [       |   ]
@@ -91,7 +91,7 @@ typedef Transform_<double>  dTransform;
  * </pre>
  *
  * This inverse is so simple that we compute it simply by defining another
- * type, InverseTransform, which is identical to Transform in memory but
+ * type, InverseTransform_, which is identical to %Transform_ in memory but
  * behaves as though it contains the inverse. That way we invert just by
  * changing point of view (recasting) rather than computing.
  *
@@ -310,10 +310,10 @@ public:
 
     // default copy, assignment, destructor
 
-    /// Implicit conversion from InverseTransform to Transform.
+    /// Implicit conversion from %InverseTransform_ to Transform_.
     operator Transform_<P>() const  { return Transform_<P>( R(), p() ); }
 
-    // Assignment from Transform. This means that the inverse
+    // Assignment from Transform_. This means that the inverse
     // transform we're assigning to must end up with the same meaning
     // as the inverse transform X has, so we'll need:
     //          p* == X.pInv()
@@ -368,7 +368,7 @@ public:
     Rotation_<P>&        updRInv()     {return R_FB;}
 
     /// Calculate the actual translation vector at a cost of 18 flops.
-    /// It is better if you can just work with the InverseTransform
+    /// It is better if you can just work with the %InverseTransform
     /// directly since then you'll never have to pay this cost.
     Vec<3,P>  p() const  { return -(~R_FB*p_FB); }
 
