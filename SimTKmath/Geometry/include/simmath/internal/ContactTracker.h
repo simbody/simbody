@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -63,8 +63,9 @@ class SimTK_SIMMATH_EXPORT ContactTracker {
 public:
 class HalfSpaceSphere;
 class HalfSpaceEllipsoid;
-class SphereSphere;
+class HalfSpaceBrick;
 class HalfSpaceTriangleMesh;
+class SphereSphere;
 class SphereTriangleMesh;
 class TriangleMeshTriangleMesh;
 class ConvexImplicitPair;
@@ -97,36 +98,6 @@ virtual bool trackContact
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const = 0;
-
-/** The ContactTrackerSubsystem will invoke this method for any tracked pair of
-contact surfaces that is still not in contact after trackContact() looked at
-it, or any untracked pair for which the dynamic broad phase indicated that 
-they might be in contact within the interval of interest. Position, velocity, 
-and acceleration information may be used. Ordering must be correct as 
-discussed for trackContact(). **/
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const = 0;
-
-/** At the beginning of a simulation we will have no past information to
-help disambiguate tricky contact situations. This method may use current
-position and velocity information in heuristics for guessing the contact
-status between the indicated pair of surfaces. Ordering must be correct as 
-discussed for trackContact(). **/
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const = 0;
 
 /** Given two shapes for which implicit functions are known, and a rough-guess
 contact point for each shape (each measured and expressed in its own surface's
@@ -213,35 +184,14 @@ HalfSpaceSphere()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::Sphere::classTypeId()) {}
 
-virtual ~HalfSpaceSphere() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 };
 
 
@@ -258,35 +208,38 @@ HalfSpaceEllipsoid()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::Ellipsoid::classTypeId()) {}
 
-virtual ~HalfSpaceEllipsoid() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
+};
 
-virtual bool predictContact
+
+
+//==============================================================================
+//                     HALFSPACE-BRICK CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
+and a ContactGeometry::Sphere, in that order. **/
+class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceBrick 
+:   public ContactTracker {
+public:
+HalfSpaceBrick() 
+:   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
+                   ContactGeometry::Brick::classTypeId()) {}
+
+bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
+    const Transform& X_GS1, 
     const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
+    const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 };
 
 
@@ -303,35 +256,14 @@ SphereSphere()
 :   ContactTracker(ContactGeometry::Sphere::classTypeId(),
                    ContactGeometry::Sphere::classTypeId()) {}
 
-virtual ~SphereSphere() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 };
 
 
@@ -348,35 +280,14 @@ HalfSpaceTriangleMesh()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::TriangleMesh::classTypeId()) {}
 
-virtual ~HalfSpaceTriangleMesh() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,    // the half space
     const Transform& X_GS2, 
     const ContactGeometry& surface2,    // the mesh
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 
 private:
 void processBox(const ContactGeometry::TriangleMesh&              mesh, 
@@ -401,35 +312,14 @@ SphereTriangleMesh()
 :   ContactTracker(ContactGeometry::Sphere::classTypeId(),
                    ContactGeometry::TriangleMesh::classTypeId()) {}
 
-virtual ~SphereTriangleMesh() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,    // the sphere
     const Transform& X_GS2, 
     const ContactGeometry& surface2,    // the mesh
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 
 private:
 void processBox
@@ -453,35 +343,14 @@ TriangleMeshTriangleMesh()
 :   ContactTracker(ContactGeometry::TriangleMesh::classTypeId(),
                    ContactGeometry::TriangleMesh::classTypeId()) {}
 
-virtual ~TriangleMeshTriangleMesh() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,    // mesh1
     const Transform& X_GS2, 
     const ContactGeometry& surface2,    // mesh2
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 
 private:
 void findIntersectingFaces
@@ -493,11 +362,13 @@ void findIntersectingFaces
     const Transform&                                    X_M1M2, 
     std::set<int>&                                      insideFaces1, 
     std::set<int>&                                      insideFaces2) const; 
+
 void findBuriedFaces
    (const ContactGeometry::TriangleMesh&    mesh,
     const ContactGeometry::TriangleMesh&    otherMesh,
     const Transform&                        X_OM, 
     std::set<int>&                          insideFaces) const;
+
 void tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
               Array_<int>&                           faceType,
               std::set<int>&                         triangles, 
@@ -518,35 +389,14 @@ public:
 ConvexImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2) 
 :   ContactTracker(type1, type2) {}
 
-virtual ~ConvexImplicitPair() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 };
 
 
@@ -566,35 +416,14 @@ public:
 GeneralImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2) 
 :   ContactTracker(type1, type2) {}
 
-virtual ~GeneralImplicitPair() {}
-
-virtual bool trackContact
+bool trackContact
    (const Contact&         priorStatus,
     const Transform& X_GS1, 
     const ContactGeometry& surface1,
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const;
-
-virtual bool predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const;
-
-virtual bool initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const;
+    Contact&               currentStatus) const OVERRIDE_11;
 };
 
 } // namespace SimTK

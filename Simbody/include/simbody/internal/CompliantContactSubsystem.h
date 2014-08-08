@@ -614,9 +614,14 @@ respond to Contacts with the new type, then register it with the
 CompliantContactSubsystem. **/
 class SimTK_SIMBODY_EXPORT ContactForceGenerator {
 public:
+// Reasonably good physically-based compliant contact models.
 class ElasticFoundation;        // for TriangleMeshContact
-class HertzCircular;            // for PointContact
+class HertzCircular;            // for CircularPointContact
 class HertzElliptical;          // for EllipticalPointContact
+
+// Penalty-based models enforcing non-penetration but without attempting
+// to model the contacting materials physically.
+class BrickHalfSpacePenalty;    // for BrickHalfSpaceContact
 
 // These are for response to unknown ContactTypeIds.
 class DoNothing;     // do nothing if called
@@ -695,18 +700,17 @@ public:
 HertzCircular() 
 :   ContactForceGenerator(CircularPointContact::classTypeId()) {}
 
-virtual ~HertzCircular() {}
-virtual void calcContactForce
+void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const;
+    ContactForce&           contactForce) const OVERRIDE_11;
 
-virtual void calcContactPatch
+void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const;
+    ContactPatch&           patch) const OVERRIDE_11;
 };
 
 
@@ -726,18 +730,45 @@ public:
 HertzElliptical() 
 :   ContactForceGenerator(EllipticalPointContact::classTypeId()) {}
 
-virtual ~HertzElliptical() {}
-virtual void calcContactForce
+void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const;
+    ContactForce&           contactForce) const OVERRIDE_11;
 
-virtual void calcContactPatch
+void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const;
+    ContactPatch&           patch) const OVERRIDE_11;
+};
+
+
+
+
+//==============================================================================
+//                         BRICK HALFSPACE GENERATOR
+//==============================================================================
+
+/** This ContactForceGenerator handles contact between a brick and a half-space.
+TODO: generalize to convex mesh/half-space. **/
+class SimTK_SIMBODY_EXPORT ContactForceGenerator::BrickHalfSpacePenalty 
+:   public ContactForceGenerator {
+public:
+BrickHalfSpacePenalty() 
+:   ContactForceGenerator(BrickHalfSpaceContact::classTypeId()) {}
+
+void calcContactForce
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactForce&           contactForce) const OVERRIDE_11;
+
+void calcContactPatch
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const OVERRIDE_11;
 };
 
 
@@ -753,18 +784,18 @@ class SimTK_SIMBODY_EXPORT ContactForceGenerator::ElasticFoundation
 public:
 ElasticFoundation() 
 :   ContactForceGenerator(TriangleMeshContact::classTypeId()) {}
-virtual ~ElasticFoundation() {}
-virtual void calcContactForce
-   (const State&            state,
-    const Contact&          overlapping,
-    const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const;
 
-virtual void calcContactPatch
+void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const;
+    ContactForce&           contactForce) const OVERRIDE_11;
+
+void calcContactPatch
+   (const State&            state,
+    const Contact&          overlapping,
+    const SpatialVec&       V_S1S2,
+    ContactPatch&           patch) const OVERRIDE_11;
 
 private:
 void calcContactForceAndDetails
@@ -813,19 +844,19 @@ class SimTK_SIMBODY_EXPORT ContactForceGenerator::DoNothing
 public:
 explicit DoNothing(ContactTypeId type = ContactTypeId(0)) 
 :   ContactForceGenerator(type) {}
-virtual ~DoNothing() {}
-virtual void calcContactForce
+
+void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const
+    ContactForce&           contactForce) const OVERRIDE_11
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::DoNothing::calcContactForce() not implemented yet."); }
-virtual void calcContactPatch
+void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const
+    ContactPatch&           patch) const OVERRIDE_11
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::DoNothing::calcContactPatch() not implemented yet."); }
 };
@@ -844,19 +875,19 @@ class SimTK_SIMBODY_EXPORT ContactForceGenerator::ThrowError
 public:
 explicit ThrowError(ContactTypeId type = ContactTypeId(0)) 
 :   ContactForceGenerator(type) {}
-virtual ~ThrowError() {}
-virtual void calcContactForce
+
+void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const
+    ContactForce&           contactForce) const OVERRIDE_11
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::ThrowError::calcContactForce() not implemented yet."); }
-virtual void calcContactPatch
+void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const
+    ContactPatch&           patch) const OVERRIDE_11
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::ThrowError::calcContactPatch() not implemented yet."); }
 };

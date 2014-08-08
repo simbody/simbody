@@ -47,7 +47,9 @@ edge lengths to facilitate short-to-long processing. **/
 template <class P>
 class Geo::Box_ {
 typedef P               RealP;
+typedef Vec<2,P>        Vec2P;
 typedef Vec<3,P>        Vec3P;
+typedef UnitVec<P,1>    UnitVec3P;
 typedef Mat<3,3,P>      Mat33P;
 typedef Rotation_<P>    RotationP;
 typedef Transform_<P>   TransformP;
@@ -111,6 +113,41 @@ bool containsPoint(const Vec3P& pt) const {
     return absPt <= h;
 }
 
+/** Given a point location in the box frame, return the closest point of
+the solid box, and a flag saying whether the given point was inside the
+box, using the same definition of "inside" as the containsPoint() method.
+Here we define the closest point to an inside point to be the point itself.
+Cost is about 9 flops. **/
+Vec3P findClosestPointOfSolidBox(const Vec3P& pt, bool& ptWasInside) const {
+    Vec3P c(pt); 
+    ptWasInside = true; // tentatively
+    for (int i=0; i<3; ++i) {
+        if      (c[i] < -h[i]) {c[i]=-h[i]; ptWasInside=false;}
+        else if (c[i] >  h[i]) {c[i]= h[i]; ptWasInside=false;}
+    }
+    return c;
+}
+
+/** Given a point location in the box frame, return the closest point on
+the box surface, and a flag saying whether the given point was inside the
+box, using the same definition of "inside" as the containsPoint() method.
+Cost is about 9 flops for outside points, 18 for inside points. **/
+Vec3P findClosestPointOnSurface(const Vec3P& pt, bool& ptWasInside) const {
+    Vec3P c = findClosestPointOfSolidBox(pt, ptWasInside);
+
+    if (ptWasInside) { // every |c[i]| <= h[i]
+        RealP dToSide = h[0]-std::abs(c[0]); // distance to closest x-face
+        int which=0; RealP minDist=dToSide;
+        dToSide = h[1]-std::abs(c[1]);
+        if (dToSide < minDist) {which=1; minDist=dToSide;}
+        dToSide = h[2]-std::abs(c[2]);
+        if (dToSide < minDist) {which=2; minDist=dToSide;}
+        // Now project the point to the nearest side.
+        c[which] = c[which] < 0 ? -h[which] : h[which];
+    }
+    return c;
+}
+
 /** Return the square of the distance from this box to a given point whose
 location is measured from and expressed in the box frame (at the box center). 
 If the point is on or inside the box the returned distance is zero. Cost is 
@@ -122,6 +159,18 @@ RealP findDistanceSqrToPoint(const Vec3P& pt) const {
     if (absPt[1] > h[1]) d2 += square(absPt[1]-h[1]);
     if (absPt[2] > h[2]) d2 += square(absPt[2]-h[2]);
     return d2;
+}
+
+
+/** Find a supporting point on the surface of the box in the given direction,
+which must be expressed in the box frame. The direction vector does not have
+to be a unit vector. The returned point will always be one of the eight 
+vertices; we treat zeroes here as positive. Consequently if the input vector is
+exactly zero, the vertex in the positive orthant is returned as it would be
+if the input direction were (1,1,1). Cost is about 5 flops. **/
+Vec3P findSupportPoint(const Vec3& d) const {
+    // Basically transferring the sign from d to h, but with 0 treated as 1.
+    return Vec3P(d[0]<0 ? -h[0]:h[0], d[1]<0 ? -h[1]:h[1], d[2]<0 ? -h[2]:h[2]);
 }
 
 /** Return the square of the distance from this box to a given sphere whose
@@ -198,6 +247,182 @@ case (when boxes appear to be intersecting) but can return \c false in as few
 as 16 flops. **/
 SimTK_SIMMATH_EXPORT bool 
 mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const;
+
+
+/** @name                  Box mesh methods
+Methods to use if you want to think of the box as a convex mesh. 
+**/
+static int getNumVertices() {return 8;}
+static int getNumEdges()    {return 12;}
+static int getNumFaces()    {return 6;}
+
+/** Use bits in the vertex number to pick the signs, with 0=negative, 
+1=positive:
+<pre>
+    000  -hx -hy -hz
+    001  -hx -hy  hz
+    ...
+    111   hx  hy  hz
+</pre>
+**/
+Vec3P getVertexPos(int vx) const {
+    SimTK_INDEXCHECK(vx,8,"Geo::Box::getVertexPos()");
+    return Vec3P(vx&0x4 ? h[0]:-h[0], vx&0x2 ? h[1]:-h[1], vx&0x1 ? h[2]:-h[2]);
+}
+
+/** Find the vertex (0-7) that is furthest in the direction d, which is given 
+in the box frame. Zero coordinates in d are treated as though positive. **/
+int findSupportVertex(const Vec3P& d) const {
+    int vx = 0;
+    if (d[0] >= 0) vx += 0x4; // see table in getVertexPos().
+    if (d[1] >= 0) vx += 0x2;
+    if (d[2] >= 0) vx += 0x1;
+    return vx;
+}
+
+/** Vertex normals point diagonally outwards from the box corners. These are
+unit vectors with each coordinate +/- 1/sqrt(3). **/
+UnitVec3P getVertexNormal(int vx) const {
+    SimTK_INDEXCHECK(vx,8,"Geo::Box::getVertexNormal()");
+    const RealP c = 1/(RealP)SimTK_SQRT3, nc = -c;
+    return UnitVec3P(Vec3P(vx&0x4 ? c:nc, vx&0x2 ? c:nc, vx&0x1 ? c:nc),true);
+}
+
+/** Return the center point of the specified edge, in the box frame. **/
+Vec3P getEdgeCenter(int ex) const {
+    SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeCenter()");
+    int faces[2], which[2];
+    getEdgeFaces(ex, faces, which);
+    Vec3P c(0);
+    for (int i=0; i<2; ++i) {
+        const CoordinateDirection fd = getFaceCoordinateDirection(faces[i]);
+        c[fd.getAxis()] = fd.getDirection() * h[fd.getAxis()];
+    }
+    return c;
+}
+
+/** Edge normals point diagonally outwards from the edge. These are unit
+vectors with one coordinate zero and the others +/- 1/sqrt(2). **/
+UnitVec3P getEdgeNormal(int ex) const {
+    SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeNormal()");
+    const RealP oosqrt2 = (RealP)SimTK_OOSQRT2;
+    int faces[2], which[2];
+    getEdgeFaces(ex, faces, which);
+    Vec3P n(0);
+    for (int i=0; i<2; ++i) {
+        const CoordinateDirection fd = getFaceCoordinateDirection(faces[i]);
+        n[fd.getAxis()] = fd.getDirection() * oosqrt2;
+    }
+    return UnitVec3P(n, true);
+}
+
+
+
+/** Return the direction of an edge, going from its first vertex to its second
+vertex, as a CoordinateDirection. **/
+CoordinateDirection getEdgeCoordinateDirection(int ex) const {
+    SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeDirection()");
+    static const int axis[12] = {2,1,2,1,0,2,0,0,1,1,2,0};
+    return CoordinateDirection(CoordinateAxis(axis[ex]), 1); // all in + dir
+}
+
+
+/** Return a unit vector aligned with the selected edge, pointing in the
+direction from the first vertex towards the second vertex, in the box
+frame. For a box, all edges are aligned with the coordinate system axes so
+the returned vector will have only one non-zero component which will be 1 
+or -1. **/
+UnitVec3P getEdgeDirection(int ex) const {
+    SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeUnitVec()");
+    return UnitVec3P(getEdgeCoordinateDirection(ex));
+}
+
+/** Return the outward normal for the given face as a CoordinateDirection. **/
+CoordinateDirection getFaceCoordinateDirection(int fx) const {
+    SimTK_INDEXCHECK(fx,6,"Geo::Box::getFaceDirection()");
+    static const int axis[6] = {0,  1, 2, 0, 1, 2};
+    static const int dir[6]  = {-1,-1,-1, 1, 1, 1};
+    return CoordinateDirection(CoordinateAxis(axis[fx]), dir[fx]);
+}
+
+/** Return the center point position for the given face. This will be a
+vector with one non-zero component of magnitude equal to one of the box
+half-dimensions, with the appropriate sign. **/
+Vec3P getFaceCenter(int fx) const {
+    SimTK_INDEXCHECK(fx,6,"Geo::Box::getFaceCenter()");
+    const CoordinateDirection fd = getFaceCoordinateDirection(fx);
+    Vec3P c(0);
+    c[fd.getAxis()] = fd.getDirection() * h[fd.getAxis()];
+    return c;
+}
+
+/** Return the outward normal for the given face as a unit vector in the box
+frame. This will have only one non-zero component which will be 1 or -1. **/
+UnitVec3P getFaceNormal(int fx) const {
+    SimTK_INDEXCHECK(fx,6,"Geo::Box::getFaceNormal()");
+    return UnitVec3P(getFaceCoordinateDirection(fx));
+}
+
+/** A face has four vertices ordered counterclockwise about the face normal. **/
+void getFaceVertices(int fx, int v[4]) const {
+    SimTK_INDEXCHECK(fx,6,"Geo::Box::getFaceVertices()");
+    static const int verts[6][4] = {{0,1,3,2},{0,4,5,1},{0,2,6,4},
+                                    {7,5,4,6},{7,6,2,3},{7,3,1,5}};
+    for (int i=0; i<4; ++i) v[i] = verts[fx][i];
+}
+
+/** Each vertex has three incident faces. Return the face numbers (0-5) and
+which of the four face vertices is this one (0-3). **/
+void getVertexFaces(int vx, int f[3], int w[3]) const {
+    SimTK_INDEXCHECK(vx,8,"Geo::Box::getVertexFaces()");
+    static const int faces[8][3] = {{0,1,2},{0,1,5},{0,2,4},{0,4,5},
+                                    {1,2,3},{1,3,5},{2,3,4},{3,4,5}};
+    static const int which[8][3] = {{0,0,0},{1,3,2},{3,1,2},{2,3,1},
+                                    {1,3,2},{2,1,3},{2,3,1},{0,0,0}};
+    for (int i=0; i<3; ++i) {f[i]=faces[vx][i]; w[i]=which[vx][i];} 
+}
+
+/** An edge connects two vertices. **/
+void getEdgeVertices(int ex, int v[2]) const {
+    SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeVertices()");
+    static const int verts[12][2] = {{0,1},{1,3},{2,3},{0,2},   // 0-3
+                                     {0,4},{4,5},{1,5},{2,6},   // 4-7
+                                     {4,6},{5,7},{6,7},{3,7}};  // 8-11
+    for (int i=0; i<2; ++i) v[i] = verts[ex][i];
+}
+/** Each vertex has three incident edges. Return the edge numbers (0-11) and
+which of the two edge vertices is this one (0-1). **/
+void getVertexEdges(int vx, int e[3], int w[3]) const {
+    SimTK_INDEXCHECK(vx,8,"Geo::Box::getVertexEdges()");
+    static const int edges[8][3] = {{0,3,4},{0,1,6},{2,3,7},{1,2,11},
+                                    {4,5,8},{5,6,9},{7,8,10},{9,10,11}};
+    static const int which[8][3] = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},
+                                    {1,0,0},{1,1,0},{1,1,0},{1,1,1}};
+    for (int i=0; i<3; ++i) {e[i]=edges[vx][i]; w[i]=which[vx][i];} 
+}
+
+
+/** A face has four edges, ordered by the vertex ordering: v0-v1, v1-v2,
+v2-v3, v3-v1. **/
+void getFaceEdges(int fx, int e[4]) const {
+    SimTK_INDEXCHECK(fx,6,"Geo::Box::getFaceEdges()");
+    static const int edges[6][4] = {{0,1,2, 3},{ 4,5,6, 0},{ 3,7,8,4},
+                                    {9,5,8,10},{10,7,2,11},{11,1,6,9}};
+    for (int i=0; i<4; ++i) e[i] = edges[fx][i];
+}
+/** An edge is between two faces. Return the face numbers (0-5) and which
+one of the four edges on each face is this edge (0-3). **/
+void getEdgeFaces(int ex, int f[2], int w[2]) const {
+    SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeFaces()");
+    static const int faces[12][2] = {{0,1},{0,5},{0,4},{0,2},   // 0-3
+                                     {1,2},{1,3},{1,5},{2,4},   // 4-7
+                                     {2,3},{3,5},{3,4},{4,5}};  // 8-11
+    static const int which[12][2] = {{0,3},{1,1},{2,2},{3,0},   // 0-3
+                                     {0,3},{1,1},{2,2},{1,1},   // 4-7
+                                     {2,2},{0,3},{3,0},{3,0}};  // 8-11
+    for (int i=0; i<2; ++i) {f[i] = faces[ex][i]; w[i] = which[ex][i];}
+}
+
 
 
 private:

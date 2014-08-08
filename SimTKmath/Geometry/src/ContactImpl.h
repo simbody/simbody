@@ -202,6 +202,32 @@ friend class EllipticalPointContact;
 
 
 //==============================================================================
+//                       BRICK HALFSPACE CONTACT IMPL
+//==============================================================================
+/** This is the internal implementation class for BrickHalfSpaceContact. **/
+class BrickHalfSpaceContactImpl : public ContactImpl {
+public:
+    BrickHalfSpaceContactImpl
+       (ContactSurfaceIndex halfSpace, ContactSurfaceIndex brick, 
+        const Transform& X_HB, int lowestVertex, Real depth)
+    :   ContactImpl(halfSpace, brick, X_HB), 
+        lowestVertex(lowestVertex), depth(depth) {}
+
+    ContactTypeId getTypeId() const {return classTypeId();}
+    static ContactTypeId classTypeId() {
+        static const ContactTypeId tid = createNewContactTypeId();
+        return tid;
+    }
+
+private:
+friend class BrickHalfSpaceContact;
+    int     lowestVertex;
+    Real    depth;
+};
+
+
+
+//==============================================================================
 //                            TRIANGLE MESH IMPL
 //==============================================================================
 /** This is the internal implementation class for TriangleMeshContact. **/

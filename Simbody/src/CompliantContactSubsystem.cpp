@@ -524,6 +524,7 @@ CompliantContactSubsystem::CompliantContactSubsystem
     // Register default contact force generators.
     adoptForceGenerator(new ContactForceGenerator::HertzCircular());
     adoptForceGenerator(new ContactForceGenerator::HertzElliptical());
+    adoptForceGenerator(new ContactForceGenerator::BrickHalfSpacePenalty());
     adoptForceGenerator(new ContactForceGenerator::ElasticFoundation());
     adoptDefaultForceGenerator(new ContactForceGenerator::DoNothing());
 }
@@ -1112,6 +1113,297 @@ void ContactForceGenerator::HertzElliptical::calcContactPatch
 {  
     patch_S1.m_elements.clear(); // TODO no details yet
     calcContactForce(state,overlap,V_S1S2,patch_S1.m_resultant);
+}
+
+// Given a set of vertices of surface B penetrating a halfspace H with given
+// surface normal n, generate at each vertex a normal force resisting 
+// its penetration and penetration rate, and a tangential force resisting slip.
+// The model applied at each vertex is just a kx force; that really only makes
+// sense for face-face contact where the contact area doesn't change with
+// the penetration depth. A single-vertex contact displaces a volume 
+// proportional to x^3, a single-edge contact displaces x^2 but we're 
+// igoring that here.
+static void calcPointHalfSpacePenaltyForce
+   (const CompliantContactSubsystem& subsys,
+    const ContactTrackerSubsystem&   tracker, 
+    const State&                     state,
+    const BrickHalfSpaceContact&     contact,
+    const SpatialVec&                V_HB, // relative surface velocity, B in H
+    ContactForce&                    contactForce_H,
+    Array_<ContactDetail>*           details) // pass as null if you don't care
+{
+    contactForce_H.clear(); // no contact; invalidate return result
+    if (details) details->clear();
+
+    const int lowestVertex = contact.getLowestVertex();
+    const Real lowestDepth = contact.getDepth();
+
+    if (lowestDepth <= 0) {
+        return; // not contacting
+    }
+
+    const ContactSurfaceIndex surfHx = contact.getSurface1();
+    const ContactSurfaceIndex surfBx = contact.getSurface2();
+    const Transform&          X_HB   = contact.getTransform();
+
+    // Abbreviations.
+    const Rotation& R_HB = X_HB.R(); // orientation of B in H
+    const Vec3&     p_HB = X_HB.p(); // position of Bo in H
+    const Vec3&     w_HB = V_HB[0];  // ang. vel. of B in H
+    const Vec3&     v_HB = V_HB[1];  // vel. of Bo in H
+
+    const ContactSurface&  surfH  = tracker.getContactSurface(surfHx);
+    const ContactSurface&  surfB  = tracker.getContactSurface(surfBx);
+    const ContactMaterial& matH   = surfH.getMaterial();
+    const ContactMaterial& matB   = surfB.getMaterial();
+
+    const ContactGeometry::HalfSpace& halfSpace =
+        ContactGeometry::HalfSpace::getAs(surfH.getShape());
+    const ContactGeometry::Brick& brick = 
+        ContactGeometry::Brick::getAs(surfB.getShape());
+
+    const UnitVec3 normal_H = halfSpace.getNormal();
+
+    // The Box represents the Brick surface as a convex mesh with known 
+    // connectivity. We know the vertex that is most penetrated. There are
+    // three faces connected to that vertex; we want the one whose normal
+    // is closest to antiparallel to the half-space normal.
+    const Geo::Box& box = brick.getGeoBox();
+    int faces[3], which[3];
+    box.getVertexFaces(lowestVertex, faces, which);
+    // We want the most negative cosine we can get.
+    int bestFace = -1, bestWhich = -1; Real bestCos = Infinity;
+    for (int f=0; f < 3; ++f) {
+        const int face = faces[f];
+        const Real cos = 
+            dot(normal_H, R_HB.getAxisUnitVec(box.getFaceCoordinateDirection(face)));
+        if (cos < bestCos)
+            bestFace=face, bestWhich=which[f], bestCos=cos;
+    }
+
+    SimTK_ASSERT_ALWAYS(bestCos < 0,
+      "calcPointHalfSpacePenaltyForce(): lowest vertex should have had a face "
+      "roughly antiparallel to the half-space. Is something wrong with the box "
+      "mesh connectivity?");
+
+    // Calculate composite material properties.
+    // TODO: this pairwise material calculation (~60 flops) could be cached.
+
+    const Real kH=matH.getStiffness(),   kB=matB.getStiffness();
+    const Real cH=matH.getDissipation(), cB=matB.getDissipation();
+
+    // Adjust the contact location based on the relative stiffness of the 
+    // two materials. sH is the fraction of the "squishing" (deformation) that
+    // is done by surface1 -- if surface2 is very stiff then surface1 does most.
+
+    const Real sH = kB/(kH+kB);     // 0..1
+    const Real sB = 1-sH;           // 1..0
+    const Real k  = kH*sH;          // (==kB*sB) composite stiffness
+    const Real c  = cH*sH + cB*sB;  // composite dissipation
+
+    const Real usH=matH.getStaticFriction(),  usB=matB.getStaticFriction();
+    const Real udH=matH.getDynamicFriction(), udB=matB.getDynamicFriction();
+    const Real uvH=matH.getViscousFriction(), uvB=matB.getViscousFriction();
+    const Real vtrans   = subsys.getTransitionVelocity();
+    const Real ooVtrans = subsys.getOOTransitionVelocity(); // 1/vtrans
+
+    // Calculate effective coefficients of friction, being careful not
+    // to divide 0/0 if both are frictionless.
+    Real us = 2*usH*usB; if (us!=0) us /= (usH+usB);
+    Real ud = 2*udH*udB; if (ud!=0) ud /= (udH+udB);
+    Real uv = 2*uvH*uvB; if (uv!=0) uv /= (uvH+uvB);
+    assert(us >= ud);
+
+    // Accumulate force applied by the half-space to the brick, as though it
+    // were applied at the half-space origin. We'll move it to the center of
+    // pressure later (the moment will change in that case). This is expressed
+    // in H.
+    SpatialVec FB_H(Vec3(0),Vec3(0));
+    Real totalPE = 0;    // accumulate potential energy
+    Real totalPower = 0; // accumulate dissipated power
+    // Accumulate weighted contact points for calculating the
+    // center of pressure; we'll divide by total moment at the end.
+    //       sum_i (r_i * |r_i X Fn_i|) 
+    // r_c = --------------------------
+    //           sum_i |r_i X Fn_i|
+    Vec3 centerOfPressure_H(0);
+    Real totalNormalMoment = 0;
+
+
+    int vertices[4];
+    box.getFaceVertices(bestFace, vertices);
+    int nActiveVertices = 0;
+    for (int i=0; i < 4; ++i) {
+        const int  vx  = vertices[i];
+        const Vec3 v_B = box.getVertexPos(vx);
+        const Vec3 v_H = X_HB * v_B;          // 18 flops
+        const Real x   = -dot(v_H, normal_H); // undeformed pen. depth; 6 flops
+        if (x <= 0) continue; // not penetrated (1 flop)
+
+        // Actual contact point moves closer to stiffer surface. Would be at
+        // v_H if brick were very stiff and half-space very soft.
+        const Vec3 contactPt_H = v_H + (x*sB)*normal_H;
+        const Real fK = k*x; // normal force due to stiffness (>= 0)
+        const Real pe = k*x*x/2;
+
+        // Calculate the relative velocity of the two bodies at the contact 
+        // point. We're considering H fixed, so we just need the velocity in H
+        // of the station of B that is coincident with the contact point.
+        const Vec3 contactPtB_H = contactPt_H - p_HB; // B station, exp. in H
+
+        // All vectors are in H; dropping the "_H" notation now.
+
+        // Velocity of B at contact point is opposite direction of normal
+        // when penetration is increasing.
+        const Vec3 vel = v_HB + w_HB % contactPtB_H;
+        // Want xdot > 0 when x is increasing; normal points the other way
+        const Real xdot = -dot(vel, normal_H); // penetration rate (signed)
+        const Vec3 velNormal  = -xdot*normal_H;
+        const Vec3 velTangent = vel-velNormal;
+    
+        // Calculate the Hunt-Crossley force, which is dissipative, and the 
+        // total normal force including elasticity and dissipation.
+        const Real fHC      = fK*c*xdot; // same sign as xdot
+        const Real powerHC  = fHC*xdot;  // dissipation rate due to H&C, >= 0
+
+        const Real fNormal  = fK + fHC;  // < 0 means "sticking"; see below
+
+        ++nActiveVertices;
+
+        // Normal force can be negative under unusual circumstances ("yanking");
+        // that means no force is generated and no stored PE will be recovered.
+        // This will most often occur in to-be-rejected trial steps but can
+        // occasionally be real. Thanks to Matt Millard for the fix here to
+        // properly track lost power here so that KE+PE-DE=constant.
+        // (DE=dissipated energy).
+        Real powerLoss=0;
+        Vec3 force(0);
+        if (fNormal <= 0) {
+            powerLoss = -fK*xdot; // xdot<0 here
+        } else {
+            const Vec3 forceN  = fNormal * normal_H;    // 3 flops
+            const Vec3 momentN = contactPt_H % forceN;  // about H origin (9 flops)
+            const Real weight  = momentN.norm();        // ~25 flops
+            totalNormalMoment  += weight;               // 1 flop
+            centerOfPressure_H += weight*contactPt_H;   // 6 flops
+
+            // Calculate the friction force.
+            Vec3 forceFriction(0);
+            Real powerFriction = 0;
+            const Real vslipSq = velTangent.normSqr();  //   5 flops
+            if (vslipSq > square(SignificantReal)) {    //   2
+                const Real vslip = std::sqrt(vslipSq);  // ~20
+
+                // Express slip velocity as unitless multiple of transition velocity.
+                const Real v = vslip * ooVtrans;
+                // Must scale viscous coefficient to match unitless velocity.
+                const Real mu=stribeck(us,ud,uv*vtrans,v);
+                const Real fFriction = fNormal * mu;
+                // Force direction on B opposes B's velocity.
+                forceFriction = (-fFriction/vslip)*velTangent; // in H ~14 flops
+                powerFriction = fFriction * vslip; // >= 0 (1 flop)
+            }
+
+            force = forceN + forceFriction;
+            // Accumulate moments about H origin; we'll shift to COP later.
+            FB_H += SpatialVec(contactPt_H % force, force);
+
+            // Don't include dot(fK,velNormal) power due to conservative force here.
+            // This way we don't double-count the energy on the way in as integrated
+            // power and potential energy. Although the books would balance again
+            // when the contact is broken, it makes continuous contact look as
+            // though some energy has been lost. 
+            powerLoss = powerHC + powerFriction;
+        }
+
+        totalPE += pe;
+        totalPower += powerLoss; // negative
+
+        // Fill in contact details if requested (in H frame).
+        if (details) {
+            details->push_back(); // default constructed
+            ContactDetail& detail = details->back();
+            detail.m_contactPt = contactPt_H;
+            detail.m_patchNormal = normal_H;
+            detail.m_slipVelocity = velTangent;
+            detail.m_forceOnSurface2 = force;
+            detail.m_deformation = x;
+            detail.m_deformationRate = xdot;
+            detail.m_patchArea = NaN;
+            detail.m_peakPressure = NaN;
+            detail.m_potentialEnergy = pe;
+            detail.m_powerLoss = powerLoss;
+        }
+    }
+
+    assert(nActiveVertices); // at least the deepest vertex should be active
+
+    if (totalNormalMoment > 0)
+        centerOfPressure_H /= totalNormalMoment;
+
+    // Shift moment from H origin to COP.
+    FB_H[0] -= centerOfPressure_H % FB_H[1];
+
+    // Fill in the contact force.
+    // Report the force & moment (as though applied at center of pressure).
+    contactForce_H.setContactId(contact.getContactId());
+    contactForce_H.setContactPoint(centerOfPressure_H);  
+    contactForce_H.setForceOnSurface2(FB_H);
+    contactForce_H.setPotentialEnergy(totalPE);
+    contactForce_H.setPowerDissipation(totalPower);
+}
+
+//==============================================================================
+//                      BRICK HALFSPACE PENALTY GENERATOR
+//==============================================================================
+// The given Contact object identifies
+//  - the "contacting face" of the brick
+//  - which vertex of that face is the most deeply penetrated.
+// We will generate a response force at that vertex, and at up to three more 
+// vertices of the contacting face.
+// There are three faces containing the vertex; the contacting face is the one
+// that is most parallel to the halfspace surface.
+void ContactForceGenerator::BrickHalfSpacePenalty::calcContactForce
+   (const State&            state,
+    const Contact&          overlap,    // contains X_S1S2
+    const SpatialVec&       V_S1S2,     // relative surface velocity, S2 in S1
+    ContactForce&           contactForce_S1) const
+{
+    SimTK_ASSERT(BrickHalfSpaceContact::isInstance(overlap),
+        "ContactForceGenerator::BrickHalfSpace::calcContactForce(): expected"
+        " BrickHalfSpaceContact.");
+
+    const BrickHalfSpaceContact& contact = 
+        BrickHalfSpaceContact::getAs(overlap);
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = 
+        subsys.getContactTrackerSubsystem();
+
+    calcPointHalfSpacePenaltyForce(subsys, tracker, state, contact,
+                                   V_S1S2, contactForce_S1, 0);
+}
+
+void ContactForceGenerator::BrickHalfSpacePenalty::calcContactPatch
+   (const State&      state,
+    const Contact&    overlap,
+    const SpatialVec& V_HB,
+    ContactPatch&     patch_H) const
+{  
+    SimTK_ASSERT(BrickHalfSpaceContact::isInstance(overlap),
+        "ContactForceGenerator::BrickHalfSpace::calcContactPatch(): expected"
+        " BrickHalfSpaceContact.");
+
+    const BrickHalfSpaceContact& contact = 
+        BrickHalfSpaceContact::getAs(overlap);
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = 
+        subsys.getContactTrackerSubsystem();
+
+    calcPointHalfSpacePenaltyForce(subsys, tracker, state, contact,
+                                   V_HB, patch_H.m_resultant,
+                                        &patch_H.m_elements);
 }
 
 

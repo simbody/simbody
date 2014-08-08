@@ -110,12 +110,13 @@ reference one of the local classes it defines instead for specific shapes. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry {
 public:
 class HalfSpace;
-class Cylinder;
 class Sphere;
 class Ellipsoid;
-class SmoothHeightMap;
-class TriangleMesh;
 class Torus;
+class SmoothHeightMap;
+class Cylinder;
+class Brick;
+class TriangleMesh;
 
 // TODO
 class Cone;
@@ -809,10 +810,19 @@ ContactGeometryImpl* impl; /**< Internal use only. **/
 //                                 HALF SPACE
 //==============================================================================
 /** This ContactGeometry subclass represents an object that occupies the 
-entire half-space x>0. This is useful for representing walls and floors. **/
+entire half-space x>0. This is useful for representing walls and floors. This
+object has infinite extent. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
+/** Create a %HalfSpace for contact, with surface passing through the origin
+and outward normal -XAxis (in its own frame). Thus the half-space is all 
+of x>0. When this is placed on a Body, a Transform is provided that 
+repositions the half-space to the desired location and orientation in the 
+Body's frame. **/
 HalfSpace();
+
+/** Return the %HalfSpace outward normal in its own frame as a unit vector. **/
+UnitVec3 getNormal() const;
 
 /** Return true if the supplied ContactGeometry object is a halfspace. **/
 static bool isInstance(const ContactGeometry& geo)
@@ -1076,6 +1086,44 @@ const Impl& getImpl() const; /**< Internal use only. **/
 Impl& updImpl(); /**< Internal use only. **/
 };
 
+
+//==============================================================================
+//                                  BRICK
+//==============================================================================
+/** This ContactGeometry subclass represents a rectangular solid centered at the
+origin. This object is finite, convex, and non-smooth. **/
+class SimTK_SIMMATH_EXPORT ContactGeometry::Brick : public ContactGeometry {
+public:
+/** Create a brick-shaped contact shape of the given half-dimensions, expressed
+in the brick's local frame. **/
+explicit Brick(const Vec3& halfLengths);
+/** Get the half-dimensions of this %Brick, expressed in its own frame. These
+are also the coordinates of the vertex in the +,+,+ octant, measured from the
+%Brick-frame origin which is its center point. **/
+const Vec3& getHalfLengths() const;
+/** Change the shape or size of this brick by setting its half-dimensions. **/
+void setHalfLengths(const Vec3& halfLengths);
+
+/** Get the Geo::Box object used to represent this %Brick. **/
+const Geo::Box& getGeoBox() const;
+
+/** Return true if the supplied ContactGeometry object is a brick. **/
+static bool isInstance(const ContactGeometry& geo)
+{   return geo.getTypeId()==classTypeId(); }
+/** Cast the supplied ContactGeometry object to a const brick. **/
+static const Brick& getAs(const ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<const Brick&>(geo); }
+/** Cast the supplied ContactGeometry object to a writable brick. **/
+static Brick& updAs(ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<Brick&>(geo); }
+
+/** Obtain the unique id for Brick contact geometry. **/
+static ContactGeometryTypeId classTypeId();
+
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
+};
 
 
 //==============================================================================
