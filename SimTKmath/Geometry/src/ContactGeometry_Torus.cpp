@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-14 Stanford University and the Authors.        *
  * Authors: Ian Stavness                                                      *
  * Contributors: Michael Sherman, Andreas Scholz                              *
  *                                                                            *
@@ -176,7 +176,7 @@ calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
 
 //TODO
 Vec3  ContactGeometry::Torus::Impl::
-calcSupportPoint(UnitVec3 direction) const {
+calcSupportPoint(const UnitVec3& direction) const {
     SimTK_ASSERT_ALWAYS(false, "ContactGeometry::Torus::Impl::calcSupportPoint unimplemented");
     return Vec3(0);
 }

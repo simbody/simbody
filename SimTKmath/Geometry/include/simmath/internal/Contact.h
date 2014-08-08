@@ -61,8 +61,10 @@ class UntrackedContactImpl;
 class BrokenContactImpl;
 class CircularPointContactImpl;
 class EllipticalPointContactImpl;
+class BrickHalfSpaceContactImpl;
 class TriangleMeshContactImpl;
-class PointContactImpl;
+
+class PointContactImpl; // deprecated
 
 
 //==============================================================================
@@ -403,6 +405,63 @@ private:
                     (Contact::getImpl()); }
 };
 
+
+
+//==============================================================================
+//                           BRICK HALFSPACE CONTACT
+//==============================================================================
+/** This subclass of Contact is used when one ContactGeometry object is a
+half plane and the other is a Brick. This is a warmup for general convex
+mesh contact. **/
+class SimTK_SIMMATH_EXPORT BrickHalfSpaceContact : public Contact {
+public:
+    /** Create a BrickHalfSpaceContact object.
+    @param halfSpace    the surface index of the halfspace
+    @param brick        the surface index of the brick
+    @param X_HB         the transform giving the brick's frame measured and 
+                        expressed in the halfspace's frame
+    @param lowestVertex which vertex of the brick is closest to (if separated)
+                        or furthest in (if penetrating) the halfspace
+    @param depth        the penetration depth (if depth>0) or separation
+                        distance between the lowestVertex and halfspace surface
+    **/
+    BrickHalfSpaceContact(ContactSurfaceIndex     halfSpace, 
+                          ContactSurfaceIndex     brick,
+                          const Transform&        X_HB,
+                          int                     lowestVertex,
+                          Real                    depth);
+
+    /** Get the vertex index (0-7) of the brick's vertex that is closest to or
+    most penetrated into the halfspace. **/
+    int getLowestVertex() const;
+
+    /** Get the penetration depth (>0) or separation distance (<0) from the
+    brick's lowest vertex to the halfspace surface. **/
+    Real getDepth() const;
+
+    /** Determine whether a Contact object is a BrickHalfSpaceContact. **/
+    static bool isInstance(const Contact& contact);
+    /** Recast a brick-halfspace contact given as a generic Contact object to a 
+    const reference to a concrete BrickHalfSpaceContact object. **/
+    static const BrickHalfSpaceContact& getAs(const Contact& contact)
+    {   assert(isInstance(contact)); 
+        return static_cast<const BrickHalfSpaceContact&>(contact); }
+    /** Recast a brick-halfspace contact given as a generic Contact object to a 
+    writable reference to a concrete BrickHalfSpaceContact object. **/
+    static BrickHalfSpaceContact& updAs(Contact& contact)
+    {   assert(isInstance(contact)); 
+        return static_cast<BrickHalfSpaceContact&>(contact); }
+
+    /** Obtain the unique small-integer id for the BrickHalfSpaceContact 
+    class. **/
+    static ContactTypeId classTypeId();
+
+private:
+    const BrickHalfSpaceContactImpl& getImpl() const 
+    {   assert(isInstance(*this)); 
+        return reinterpret_cast<const BrickHalfSpaceContactImpl&>
+                    (Contact::getImpl()); }
+};
 
 
 
