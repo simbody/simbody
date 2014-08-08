@@ -441,11 +441,13 @@ public:
 
     /** Determine whether a Contact object is a BrickHalfSpaceContact. **/
     static bool isInstance(const Contact& contact);
+    
     /** Recast a brick-halfspace contact given as a generic Contact object to a 
     const reference to a concrete BrickHalfSpaceContact object. **/
     static const BrickHalfSpaceContact& getAs(const Contact& contact)
     {   assert(isInstance(contact)); 
         return static_cast<const BrickHalfSpaceContact&>(contact); }
+        
     /** Recast a brick-halfspace contact given as a generic Contact object to a 
     writable reference to a concrete BrickHalfSpaceContact object. **/
     static BrickHalfSpaceContact& updAs(Contact& contact)
