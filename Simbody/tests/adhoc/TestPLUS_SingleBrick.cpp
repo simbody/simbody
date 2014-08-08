@@ -79,13 +79,13 @@ const bool CompareProjectionStrategies = false;
 const bool CompareImpactStrategies     = false;
 
 const bool DebugStepLengthCalculator = false;
-const bool UseSoftminInNewton        = true;
+
 enum SolutionStrategy {
     SolStrat_FixedPointIteration=0,
     SolStrat_NewtonsMethod,
     SolStrat_NewtonsMethodWithAlpha
 };
-const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithAlpha;
+const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
 
 const bool RunTestsOnePoint        = false;
 const bool RunTestsTwoPoints       = true;
@@ -424,82 +424,78 @@ private:
     //--------------------------------------------------------------------------
     // Private methods: helper functions for Newton's method
     //--------------------------------------------------------------------------
-    // Modified impulse vector, with std::min or softmin0 applied to pi_z[k].
+    // Modified impulse vector. Use crisp version when computing error function
+    // and soft version otherwise.
+    Real piStarCrisp(const Vector& piGuess, const int i) const
+    {   return (i%3 != 2) ? piGuess[i] : std::min(0.0,piGuess[i]); }
     Real piStar(const Vector& piGuess, const int i) const
-    {
-        if (i%3 != 2)
-            return piGuess[i];
-        else if (UseSoftminInNewton)
-            return softmin0(piGuess[i],SqrtEps);
-        else
-            return std::min(0.0,piGuess[i]);
-    }
+    {   return (i%3 != 2) ? piGuess[i] : softmin0(piGuess[i],SqrtEps); }
 
     // Non-zero term in derivative of modified impulse vector piStar.
-    Real dpiStar(const Vector& piGuess, const int i) const
+    Real dpiStarCrisp(const Vector& piGuess, const int i) const
     {
         if (i%3 != 2)
             return 1.0;
-        else if (UseSoftminInNewton)
-            return dsoftmin0(piGuess[i],SqrtEps);
         else
             return (piGuess[i]>0.0) ? 0.0 : 1.0;
     }
+    Real dpiStar(const Vector& piGuess, const int i) const
+    {   return (i%3 != 2) ? 1.0 : dsoftmin0(piGuess[i],SqrtEps); }
 
     // Calculate error and store in error vector F.
-    void updErrorForRolling(Vector& F, const Matrix& A,
+    void updErrorForRolling(Vector& F, Matrix& A,
                             const Vector& piGuess, const int row_x,
                             const Real v_x, const Real v_y) const;
-    void updErrorForSliding(Vector& F, const Matrix& A,
+    void updErrorForSliding(Vector& F, Matrix& A,
                             const Vector& piGuess, const int row_x,
                             const Real mu) const;
-    void updErrorForSlidingWithAlpha(Vector& F, const Matrix& A,
+    void updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
                                      const Vector& xGuess, const int row_x,
                                      const Real mu, const Vec2& v0) const;
-    void updErrorForCompression(Vector& F, const Matrix& A,
+    void updErrorForCompression(Vector& F, Matrix& A,
                                 const Vector& piGuess, const int row_z,
                                 const Real v_z) const;
-    void updErrorForRestitution(Vector& F, const Matrix& A,
+    void updErrorForRestitution(Vector& F, Matrix& A,
                                 const Vector& piGuess, const int row_z,
                                 const Real pi_ze) const;
 
     // Calculate error corresponding to local step length alpha_i.
-    void calcErrorForLocalAlpha(const Matrix& A, const Vector& xGuess,
+    void calcErrorForLocalAlpha(Matrix& A, const Vector& xGuess,
                                 const int row_x, const Vec2& v0,
                                 const int proxPointIdx, Vector& alphaLocal,
                                 Vector& alphaLocalErr) const;
 
     // Calculate rows of Jacobian and store in J.
-    void updJacobianForRolling(Matrix& J, const Matrix& A,
+    void updJacobianForRolling(Matrix& J, Matrix& A,
                                const Vector& piGuess, const int row_x,
                                const Real v_x, const Real v_y) const;
-    void updJacobianForSliding(Matrix& J, const Matrix& A,
+    void updJacobianForSliding(Matrix& J, Matrix& A,
                                const Vector& piGuess, const int row_x,
                                const Real mu) const;
-    void updJacobianForCompression(Matrix& J, const Matrix& A,
+    void updJacobianForCompression(Matrix& J, Matrix& A,
                                    const Vector& piGuess, const int row_z,
                                    const Real v_z) const;
-    void updJacobianForRestitution(Matrix& J, const Matrix& A,
+    void updJacobianForRestitution(Matrix& J, Matrix& A,
                                    const Vector& piGuess, const int row_z,
                                    const Real pi_ze) const;
 
     // Calculate rows of Jacobian when alpha is involved in the Newton iteration
     // and store in J.
-    void updJacobianForRollingWithAlpha(Matrix& J, const Matrix& A,
+    void updJacobianForRollingWithAlpha(Matrix& J, Matrix& A,
                                         const Vector& xGuess, const int row_x,
                                         const Real v_x, const Real v_y) const;
-    void updJacobianForSlidingWithAlpha(Matrix& J, const Matrix& A,
+    void updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
                                         const Vector& xGuess, const int row_x,
                                         const Real mu, const Vec2& v0) const;
-    void updJacobianForCompressionWithAlpha(Matrix& J, const Matrix& A,
+    void updJacobianForCompressionWithAlpha(Matrix& J, Matrix& A,
                                             const Vector& xGuess,
                                             const int row_z,
                                             const Real v_z) const;
-    void updJacobianForRestitutionWithAlpha(Matrix& J, const Matrix& A,
+    void updJacobianForRestitutionWithAlpha(Matrix& J, Matrix& A,
                                             const Vector& xGuess,
                                             const int row_z,
                                             const Real pi_ze) const;
-    void updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
+    void updJacobianForGlobalAlpha(Matrix& J, Matrix& A,
                                    const Vector& xGuess, const int row_x,
                                    const Vec2& v0) const;
 
@@ -2871,7 +2867,7 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
 
     // Solution found. Apply min operation to vertical impulses.
     for (int i=0; i<piGuessCurr.nrow(); ++i)
-        piGuessCurr[i] = piStar(piGuessCurr,i);
+        piGuessCurr[i] = piStarCrisp(piGuessCurr,i);
 
     // Calculate system velocity changes.
     Vector temp = -(MinvGtranspose * piGuessCurr);
@@ -3193,7 +3189,7 @@ Real Impacter::generateAndSolveUsingNewtonWithAlpha(
 
     // Solution found. Apply min operation to vertical impulses.
     for (int i=0; i<piGuessCurr.nrow(); ++i)
-        piGuessCurr[i] = piStar(piGuessCurr,i);
+        piGuessCurr[i] = piStarCrisp(piGuessCurr,i);
 
     // Calculate system velocity changes.
     Vector temp = -(MinvGtranspose * piGuessCurr);
@@ -3531,7 +3527,7 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
 //------------------------------------------------------------------------------
 // Calculate error and store in error vector F.
 //------------------------------------------------------------------------------
-void Impacter::updErrorForRolling(Vector& F, const Matrix& A,
+void Impacter::updErrorForRolling(Vector& F, Matrix& A,
                                   const Vector& piGuess, const int row_x,
                                   const Real v_x, const Real v_y) const
 {
@@ -3540,17 +3536,17 @@ void Impacter::updErrorForRolling(Vector& F, const Matrix& A,
     F[row_x] = -v_x;
     F[row_y] = -v_y;
     for (int i=0; i<A.ncol(); ++i) {
-        F[row_x] += A[row_x][i] * piStar(piGuess,i);
-        F[row_y] += A[row_y][i] * piStar(piGuess,i);
+        F[row_x] += A[row_x][i] * piStarCrisp(piGuess,i);
+        F[row_y] += A[row_y][i] * piStarCrisp(piGuess,i);
     }
 }
 
-void Impacter::updErrorForSliding(Vector& F, const Matrix& A,
+void Impacter::updErrorForSliding(Vector& F, Matrix& A,
                                   const Vector& piGuess, const int row_x,
                                   const Real mu) const
 {
     // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-    //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
+    //                          - mu_[k].piStar_z[k].d_[k],x
     const int row_y = row_x + 1;
     const int row_z = row_x + 2;
 
@@ -3559,24 +3555,24 @@ void Impacter::updErrorForSliding(Vector& F, const Matrix& A,
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
     for (int i=0; i<A.ncol(); ++i) {
-        AxpiStar += A[row_x][i] * piStar(piGuess,i);
-        AypiStar += A[row_y][i] * piStar(piGuess,i);
+        AxpiStar += A[row_x][i] * piStarCrisp(piGuess,i);
+        AypiStar += A[row_y][i] * piStarCrisp(piGuess,i);
     }
     const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
 
-    // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
-    F[row_x] = dnorm*piGuess[row_x] - mu*piStar(piGuess,row_z)*AxpiStar;
+    // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
+    F[row_x] = dnorm*piGuess[row_x] - mu*piStarCrisp(piGuess,row_z)*AxpiStar;
 
-    // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].softmin0(pi_z[k]).d_[k],y
-    F[row_y] = dnorm*piGuess[row_y] - mu*piStar(piGuess,row_z)*AypiStar;
+    // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].piStar_z[k].d_[k],y
+    F[row_y] = dnorm*piGuess[row_y] - mu*piStarCrisp(piGuess,row_z)*AypiStar;
 }
 
 void Impacter::
-updErrorForSlidingWithAlpha(Vector& F, const Matrix& A, const Vector& xGuess,
+updErrorForSlidingWithAlpha(Vector& F, Matrix& A, const Vector& xGuess,
                             const int row_x, const Real mu, const Vec2& v0) const
 {
     // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-    //                          - mu_[k].softmin0(pi_z[k]).d_[k],x
+    //                          - mu_[k].piStar_z[k].d_[k],x
     const int  row_y = row_x + 1;
     const int  row_z = row_x + 2;
     const int  M     = A.ncol();
@@ -3586,8 +3582,8 @@ updErrorForSlidingWithAlpha(Vector& F, const Matrix& A, const Vector& xGuess,
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
     for (int i=0; i<A.ncol(); ++i) {
-        AxpiStar += A[row_x][i] * piStar(xGuess,i);
-        AypiStar += A[row_y][i] * piStar(xGuess,i);
+        AxpiStar += A[row_x][i] * piStarCrisp(xGuess,i);
+        AypiStar += A[row_y][i] * piStarCrisp(xGuess,i);
     }
     const Real dx    = v0[0] + 0.5*alphaGuess*AxpiStar;
     const Real dy    = v0[1] + 0.5*alphaGuess*AypiStar;
@@ -3595,36 +3591,36 @@ updErrorForSlidingWithAlpha(Vector& F, const Matrix& A, const Vector& xGuess,
         + alphaGuess*(v0[0]*AxpiStar + v0[1]*AypiStar)
         + alphaGuess*alphaGuess*0.25*(AxpiStar*AxpiStar + AypiStar*AypiStar) );
 
-    // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
-    F[row_x] = dnorm*xGuess[row_x] - mu*piStar(xGuess,row_z)*dx;
+    // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
+    F[row_x] = dnorm*xGuess[row_x] - mu*piStarCrisp(xGuess,row_z)*dx;
 
-    // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].softmin0(pi_z[k]).d_[k],y
-    F[row_y] = dnorm*xGuess[row_y] - mu*piStar(xGuess,row_z)*dy;
+    // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].piStar_z[k].d_[k],y
+    F[row_y] = dnorm*xGuess[row_y] - mu*piStarCrisp(xGuess,row_z)*dy;
 }
 
-void Impacter::updErrorForCompression(Vector& F, const Matrix& A,
+void Impacter::updErrorForCompression(Vector& F, Matrix& A,
                                       const Vector& piGuess, const int row_z,
                                       const Real v_z) const
 {
     // F_z[k] = err_compression = A_z[k].piStar - v_z[k]
     F[row_z] = -v_z;
     for (int i=0; i<A.ncol(); ++i)
-        F[row_z] += A[row_z][i] * piStar(piGuess,i);
+        F[row_z] += A[row_z][i] * piStarCrisp(piGuess,i);
 }
 
-void Impacter::updErrorForRestitution(Vector& F, const Matrix& A,
+void Impacter::updErrorForRestitution(Vector& F, Matrix& A,
                                       const Vector& piGuess, const int row_z,
                                       const Real pi_ze) const
 {
-    // F_z[k] = err_expansion = softmin0(pi_z[k]) - pi_ze
-    F[row_z] = piStar(piGuess,row_z) - pi_ze;
+    // F_z[k] = err_expansion = piStar_z[k] - pi_ze
+    F[row_z] = piStarCrisp(piGuess,row_z) - pi_ze;
 }
 
 
 //------------------------------------------------------------------------------
 // Calculate error corresponding to local step length alpha_i.
 //------------------------------------------------------------------------------
-void Impacter::calcErrorForLocalAlpha(const Matrix& A, const Vector& xGuess,
+void Impacter::calcErrorForLocalAlpha(Matrix& A, const Vector& xGuess,
                                       const int row_x, const Vec2& v0,
                                       const int proxPointIdx, Vector& alphaLocal,
                                       Vector& alphaLocalErr) const
@@ -3707,7 +3703,7 @@ void Impacter::calcErrorForLocalAlpha(const Matrix& A, const Vector& xGuess,
 //------------------------------------------------------------------------------
 // Calculate rows of Jacobian and store in J.
 //------------------------------------------------------------------------------
-void Impacter::updJacobianForRolling(Matrix& J, const Matrix& A,
+void Impacter::updJacobianForRolling(Matrix& J, Matrix& A,
                                      const Vector& piGuess, const int row_x,
                                      const Real v_x, const Real v_y) const
 {
@@ -3720,11 +3716,11 @@ void Impacter::updJacobianForRolling(Matrix& J, const Matrix& A,
     }
 }
 
-void Impacter::updJacobianForSliding(Matrix& J, const Matrix& A,
+void Impacter::updJacobianForSliding(Matrix& J, Matrix& A,
                                      const Vector& piGuess, const int row_x,
                                      const Real mu) const
 {
-    // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
+    // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
     // Note that partial derivatives for err_sliding,x are unique for pi_x[k],
     // pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
     const int row_y = row_x + 1;
@@ -3798,7 +3794,7 @@ void Impacter::updJacobianForSliding(Matrix& J, const Matrix& A,
     }
 }
 
-void Impacter::updJacobianForCompression(Matrix& J, const Matrix& A,
+void Impacter::updJacobianForCompression(Matrix& J, Matrix& A,
                                          const Vector& piGuess, const int row_z,
                                          const Real v_z) const
 {
@@ -3808,12 +3804,12 @@ void Impacter::updJacobianForCompression(Matrix& J, const Matrix& A,
         J[row_z][i] = A[row_z][i] * dpiStar(piGuess,i);
 }
 
-void Impacter::updJacobianForRestitution(Matrix& J, const Matrix& A,
+void Impacter::updJacobianForRestitution(Matrix& J, Matrix& A,
                                          const Vector& piGuess, const int row_z,
                                          const Real pi_ze) const
 {
-    // err_expansion = softmin0(pi_z[k]) - pi_ze
-    // d(err)/d(pi_z[k]) = dsoftmin0(pi_z[k])
+    // err_expansion = piStar_z[k] - pi_ze
+    // d(err)/d(pi_z[k]) = dpiStar_z[k]
     // d(err)/d(pi_i)    = 0, where i is not z[k]
     for (int i=0; i<A.ncol(); ++i)
         J[row_z][i] = (i==row_z) ? dpiStar(piGuess,i) : 0.0;
@@ -3825,7 +3821,7 @@ void Impacter::updJacobianForRestitution(Matrix& J, const Matrix& A,
 // store in J.
 //------------------------------------------------------------------------------
 void Impacter::
-updJacobianForRollingWithAlpha(Matrix& J, const Matrix& A,
+updJacobianForRollingWithAlpha(Matrix& J, Matrix& A,
                                const Vector& xGuess, const int row_x,
                                const Real v_x, const Real v_y) const
 {
@@ -3838,11 +3834,11 @@ updJacobianForRollingWithAlpha(Matrix& J, const Matrix& A,
 }
 
 void Impacter::
-updJacobianForSlidingWithAlpha(Matrix& J, const Matrix& A,
+updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
                                const Vector& xGuess, const int row_x,
                                const Real mu, const Vec2& v0) const
 {
-    // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].softmin0(pi_z[k]).d_[k],x
+    // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
     // Note that partial derivatives for err_sliding,x are unique for pi_x[k],
     // pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
     const int row_y = row_x + 1;
@@ -3937,7 +3933,7 @@ updJacobianForSlidingWithAlpha(Matrix& J, const Matrix& A,
 }
 
 void Impacter::
-updJacobianForCompressionWithAlpha(Matrix& J, const Matrix& A,
+updJacobianForCompressionWithAlpha(Matrix& J, Matrix& A,
                                    const Vector& xGuess, const int row_z,
                                    const Real v_z) const
 {
@@ -3947,7 +3943,7 @@ updJacobianForCompressionWithAlpha(Matrix& J, const Matrix& A,
 }
 
 void Impacter::
-updJacobianForRestitutionWithAlpha(Matrix& J, const Matrix& A,
+updJacobianForRestitutionWithAlpha(Matrix& J, Matrix& A,
                                    const Vector& xGuess, const int row_z,
                                    const Real pi_ze) const
 {
@@ -3956,7 +3952,7 @@ updJacobianForRestitutionWithAlpha(Matrix& J, const Matrix& A,
     J[row_z][M] = 0.0;
 }
 
-void Impacter::updJacobianForGlobalAlpha(Matrix& J, const Matrix& A,
+void Impacter::updJacobianForGlobalAlpha(Matrix& J, Matrix& A,
                                          const Vector& xGuess, const int row_x,
                                          const Vec2& v0) const
 {
