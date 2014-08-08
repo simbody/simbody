@@ -446,7 +446,8 @@ direction. The result is equivalent to multiplying R_AB*v_B where v_B is
 method requires at most 3 flops. **/
 const UnitVec<P,1> getAxisUnitVec(CoordinateDirection dir) const {
     const ColType& axDir = getAxisUnitVec(dir.getAxis());
-    return dir.getDirection() > 0 ? axDir : -axDir; // negate cheap for unitvec
+    return dir.getDirection() > 0 ? UnitVec<P,1>( axDir) 
+                                  : UnitVec<P,1>(-axDir); // cheap 
 }
 
 /** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
@@ -1305,7 +1306,8 @@ direction. The result is equivalent to multiplying R_AB*v_B where v_B is
 method requires at most 3 flops. **/
 const UnitVec<P,1> getAxisUnitVec(CoordinateDirection dir) const {
     const ColType& axDir = getAxisUnitVec(dir.getAxis());
-    return dir.getDirection() > 0 ? axDir : -axDir; // negate cheap for unitvec
+    return dir.getDirection() > 0 ? UnitVec<P,1>( axDir) 
+                                  : UnitVec<P,1>(-axDir); // cheap 
 }
 
 /** Conversion from InverseRotation_ to BaseMat. Note: asMat33 is slightly
