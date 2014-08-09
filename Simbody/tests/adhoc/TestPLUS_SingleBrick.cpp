@@ -87,12 +87,12 @@ enum SolutionStrategy {
     SolStrat_NewtonsMethodWithAlpha  // Add step length to Newton iteration.
 };
 //const SolutionStrategy SolStrat = SolStrat_FixedPointIteration;
-//const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
-const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
+const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
+//const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
 
-const bool RunTestsOnePoint        = true;
+const bool RunTestsOnePoint        = false;
 const bool RunTestsTwoPoints       = false;
-const bool RunTestsFourPoints      = false;
+const bool RunTestsFourPoints      = true;
 const bool RunTestsLongSimulations = false;
 
 // Note: SlidingDirStepLength must be sufficiently small such that, if a sliding
@@ -954,26 +954,26 @@ int main() {
                                 .asVec4());
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            //simulateMultibodySystem("Test A1: One point, no v_tangential",
-            //                        initQ, initU, 1.8, 0.6, 0.5);
+            simulateMultibodySystem("Test A1: One point, no v_tangential",
+                                    initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = 0.5;
-            simulateMultibodySystem("Test A2: One point, small v_tangential",
+            simulateMultibodySystem("Test A2a: One point, small v_t, high mu",
                                     initQ, initU, 1.8, 2.0, 0.5);
-            //simulateMultibodySystem("Test A2: One point, small v_tangential",
-            //                        initQ, initU, 1.8, 0.6, 0.5);
+            simulateMultibodySystem("Test A2b: One point, small v_t, low mu",
+                                    initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = -0.5;
-            //simulateMultibodySystem("Test A3: One point, small v_tangential",
-            //                        initQ, initU, 1.8, 0.6, 0.5);
+            simulateMultibodySystem("Test A3: One point, small v_tangential",
+                                    initQ, initU, 1.8, 0.6, 0.5);
             initQ[6] = 1.5;
             initU[3] = 5.0;
             initU[5] = -4.0;
-            //simulateMultibodySystem("Test A4: One point, large v_tang, no mu",
-            //                        initQ, initU, 1.0, 0.0, 1.0);
-            //simulateMultibodySystem("Test A5: One point, large v_tangential",
-            //                        initQ, initU, 1.0, 0.3, 1.0);
+            simulateMultibodySystem("Test A4a: One point, large v_t, no mu",
+                                    initQ, initU, 1.0, 0.0, 1.0);
+            simulateMultibodySystem("Test A4b: One point, large v_t, low mu",
+                                    initQ, initU, 1.0, 0.3, 1.0);
             initU[3] = -5.0;
-            //simulateMultibodySystem("Test A6: One point, large v_tangential",
-            //                        initQ, initU, 1.0, 0.3, 1.0);
+            simulateMultibodySystem("Test A5: One point, large v_tangential",
+                                    initQ, initU, 1.0, 0.3, 1.0);
         }
 
         //---------------------- (b) Two points impacting ----------------------
@@ -998,11 +998,15 @@ int main() {
             Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            simulateMultibodySystem("Test C1: Four points, no v_tangential",
-                                    initQ, initU, 1.8, 0.6, 0.5);
+            //simulateMultibodySystem("Test C1: Four points, no v_tangential",
+            //                        initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = 0.5;
-            simulateMultibodySystem("Test C2: Four points, small v_tangential",
+            simulateMultibodySystem("Test C2a: Four points, small v_tang_x",
                                     initQ, initU, 1.8, 0.6, 0.5);
+            initU[3] = 0.0;
+            initU[4] = 0.5;
+            //simulateMultibodySystem("Test C2b: Four points, small v_tang_y",
+            //                        initQ, initU, 1.8, 0.6, 0.5);
         }
 
         //------------------------ (d) Long simulation -------------------------
@@ -3841,6 +3845,9 @@ void Impacter::updErrorVectorForNewton(const State& s,
 
         } //end if not observing
     } //end for each proximal point
+
+    for (int i=0; i<F.nrow(); ++i)
+        SimTK_ASSERT_ALWAYS(!isNaN(F[i]), "NaN detected in F!");
 }
 
 void Impacter::updErrorVectorForNewtonWithAlpha(const State& s,
@@ -3908,25 +3915,27 @@ void Impacter::updErrorForSliding(Vector& F, Matrix& A,
                                   const Real mu) const
 {
     // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-    //                          - mu_[k].piStar_z[k].d_[k],x
+    //                          + mu_[k].piStar_z[k].d_[k],x
     const int row_y = row_x + 1;
     const int row_z = row_x + 2;
 
-    // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
-    //                        = ~[A_x[k].piStar, A_y[k].piStar]
+    // d_[k] = final velocity = ~[-A_x[k], -A_y[k]].piStar
+    //                        = ~[-A_x[k].piStar, -A_y[k].piStar]
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
     for (int i=0; i<A.ncol(); ++i) {
         AxpiStar += A[row_x][i] * piStarCrisp(piGuess,i);
         AypiStar += A[row_y][i] * piStarCrisp(piGuess,i);
     }
-    const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
+    const Real dx    = -AxpiStar;
+    const Real dy    = -AypiStar;
+    const Real dnorm = sqrt(dx*dx + dy*dy);
 
-    // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
-    F[row_x] = dnorm*piGuess[row_x] - mu*piStarCrisp(piGuess,row_z)*AxpiStar;
+    // F_x[k] = err_sliding,x = dnorm.pi_x[k] + mu_[k].piStar_z[k].d_[k],x
+    F[row_x] = dnorm*piGuess[row_x] + mu*piStarCrisp(piGuess,row_z)*dx;
 
-    // F_y[k] = err_sliding,y = dnorm.pi_y[k] - mu_[k].piStar_z[k].d_[k],y
-    F[row_y] = dnorm*piGuess[row_y] - mu*piStarCrisp(piGuess,row_z)*AypiStar;
+    // F_y[k] = err_sliding,y = dnorm.pi_y[k] + mu_[k].piStar_z[k].d_[k],y
+    F[row_y] = dnorm*piGuess[row_y] + mu*piStarCrisp(piGuess,row_z)*dy;
 }
 
 void Impacter::updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
@@ -4136,6 +4145,10 @@ void Impacter::updJacobianMatrixForNewton(const State& s,
 
         } //end if not observing
     } //end for each proximal point
+
+    for (int r=0; r<J.nrow(); ++r)
+        for (int c=0; c<J.ncol(); ++c)
+            SimTK_ASSERT_ALWAYS(!isNaN(J[r][c]), "NaN detected in J!");
 }
 
 void Impacter::updJacobianMatrixForNewtonWithAlpha(const State& s,
@@ -4202,21 +4215,32 @@ void Impacter::updJacobianForSliding(Matrix& J, Matrix& A,
                                      const Vector& piGuess, const int row_x,
                                      const Real mu) const
 {
-    // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
+    // err_sliding,x = ||d_[k]||.pi_x[k] + mu_[k].piStar_z[k].d_[k],x
     // Note that partial derivatives for err_sliding,x are unique for pi_x[k],
     // pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
     const int row_y = row_x + 1;
     const int row_z = row_x + 2;
 
-    // d_[k] = final velocity = ~[A_x[k], A_y[k]].piStar
-    //                        = ~[A_x[k].piStar, A_y[k].piStar]
+    // d_[k] = final velocity = ~[-A_x[k], -A_y[k]].piStar
+    //                        = ~[-A_x[k].piStar, -A_y[k].piStar]
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
     for (int i=0; i<A.ncol(); ++i) {
         AxpiStar += A[row_x][i] * piStar(piGuess,i);
         AypiStar += A[row_y][i] * piStar(piGuess,i);
     }
-    const Real dnorm = sqrt( AxpiStar*AxpiStar + AypiStar*AypiStar );
+    const Real dx    = -AxpiStar;
+    const Real dy    = -AypiStar;
+    const Real dnorm = sqrt(dx*dx + dy*dy);
+
+    // Set rows of Jacobian to default if dnorm is small.
+    if (dnorm < SimTK::SignificantReal) {
+        for (int i=0; i<A.ncol(); ++i) {
+            J[row_x][i] = (i==row_x) ? 1.0 : 0.0;
+            J[row_y][i] = (i==row_y) ? 1.0 : 0.0;
+        }
+        return;
+    }
 
     // d(d_[k])/d(pi)
     // The same partial for any pi_duck.
@@ -4224,8 +4248,8 @@ void Impacter::updJacobianForSliding(Matrix& J, Matrix& A,
     Vector par_dkx_par_pi = Vector(A.ncol(), 0.0);
     Vector par_dky_par_pi = Vector(A.ncol(), 0.0);
     for (int i=0; i<A.ncol(); ++i) {
-        par_dkx_par_pi[i] = A[row_x][i] * dpiStar(piGuess,i);
-        par_dky_par_pi[i] = A[row_y][i] * dpiStar(piGuess,i);
+        par_dkx_par_pi[i] = -1.0 * A[row_x][i] * dpiStar(piGuess,i);
+        par_dky_par_pi[i] = -1.0 * A[row_y][i] * dpiStar(piGuess,i);
     }
 
     // d(dnorm)/d(pi)
@@ -4233,9 +4257,8 @@ void Impacter::updJacobianForSliding(Matrix& J, Matrix& A,
     // par_dnorm_par_pi[i] is the partial relative to piGuess[i].
     Vector par_dnorm_par_pi = Vector(A.ncol(), 0.0);
     for (int i=0; i<A.ncol(); ++i) {
-        par_dnorm_par_pi[i] = (1.0/dnorm)
-                              * (AxpiStar*A[row_x][i]*dpiStar(piGuess,i) +
-                                 AypiStar*A[row_y][i]*dpiStar(piGuess,i));
+        par_dnorm_par_pi[i] = (1.0/dnorm) * (dx*par_dkx_par_pi[i]
+                                             + dy*par_dky_par_pi[i]);
     }
 
     // Fill in row_x and row_y of Jacobian.
@@ -4244,34 +4267,34 @@ void Impacter::updJacobianForSliding(Matrix& J, Matrix& A,
             // d(errx)/d(pi_x[k])
             J[row_x][i] = par_dnorm_par_pi[row_x] * piGuess[row_x]
                           + dnorm
-                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_x];
+                          + mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_x];
             // d(erry)/d(pi_x[k])
             J[row_y][i] = par_dnorm_par_pi[row_x] * piGuess[row_y]
-                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[row_x];
+                          + mu * piStar(piGuess,row_z) * par_dky_par_pi[row_x];
         } else if (i==row_y) {
             // d(errx)/d(pi_y[k])
             J[row_x][i] = par_dnorm_par_pi[row_y] * piGuess[row_x]
-                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_y];
+                          + mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_y];
             // d(erry)/d(pi_y[k])
             J[row_y][i] = par_dnorm_par_pi[row_y] * piGuess[row_y]
                           + dnorm
-                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[row_y];
+                          + mu * piStar(piGuess,row_z) * par_dky_par_pi[row_y];
         } else if (i==row_z) {
             // d(errx)/d(pi_z[k])
             J[row_x][i] = par_dnorm_par_pi[row_z] * piGuess[row_x]
-                          - mu * dpiStar(piGuess,row_z) * AxpiStar
-                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_z];
+                          + mu * dpiStar(piGuess,row_z) * dx
+                          + mu * piStar(piGuess,row_z) * par_dkx_par_pi[row_z];
             // d(erry)/d(pi_z[k])
             J[row_y][i] = par_dnorm_par_pi[row_z] * piGuess[row_y]
-                          - mu * dpiStar(piGuess,row_z) * AypiStar
-                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[row_z];
+                          + mu * dpiStar(piGuess,row_z) * dy
+                          + mu * piStar(piGuess,row_z) * par_dky_par_pi[row_z];
         } else {
             // d(errx)/d(pi_i), where i not in {x[k],y[k],z[k]}.
             J[row_x][i] = par_dnorm_par_pi[i] * piGuess[row_x]
-                          - mu * piStar(piGuess,row_z) * par_dkx_par_pi[i];
+                          + mu * piStar(piGuess,row_z) * par_dkx_par_pi[i];
             // d(erry)/d(pi_i), where i not in {x[k],y[k],z[k]}.
             J[row_y][i] = par_dnorm_par_pi[i] * piGuess[row_y]
-                          - mu * piStar(piGuess,row_z) * par_dky_par_pi[i];
+                          + mu * piStar(piGuess,row_z) * par_dky_par_pi[i];
         }
     }
 }
