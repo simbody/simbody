@@ -69,7 +69,7 @@ const bool PauseAfterEachActiveSetCandidate = false;
 const bool PrintBasicInfo                = true;
 const bool PrintSystemEnergy             = false;
 const bool PrintDebugInfoProjection      = false;
-const bool PrintDebugInfoImpact          = true;
+const bool PrintDebugInfoImpact          = false;
 const bool PrintDebugInfoActiveSetSearch = false;
 const bool PrintDebugInfoStepLength      = false;
 
@@ -91,9 +91,9 @@ enum SolutionStrategy {
 const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
 
 const bool RunTestsOnePoint        = true;
-const bool RunTestsTwoPoints       = true;
-const bool RunTestsFourPoints      = true;
-const bool RunTestsLongSimulations = true;
+const bool RunTestsTwoPoints       = false;
+const bool RunTestsFourPoints      = false;
+const bool RunTestsLongSimulations = false;
 
 // Note: SlidingDirStepLength must be sufficiently small such that, if a sliding
 //       interval advancing by this amount causes a sliding direction reversal,
@@ -957,6 +957,8 @@ int main() {
             //simulateMultibodySystem("Test A1: One point, no v_tangential",
             //                        initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = 0.5;
+            simulateMultibodySystem("Test A2: One point, small v_tangential",
+                                    initQ, initU, 1.8, 2.0, 0.5);
             //simulateMultibodySystem("Test A2: One point, small v_tangential",
             //                        initQ, initU, 1.8, 0.6, 0.5);
             initU[3] = -0.5;
@@ -965,13 +967,13 @@ int main() {
             initQ[6] = 1.5;
             initU[3] = 5.0;
             initU[5] = -4.0;
-            simulateMultibodySystem("Test A4: One point, large v_tangential",
-                                    initQ, initU, 1.0, 0.0, 1.0);
-            //simulateMultibodySystem("Test A4: One point, large v_tangential",
+            //simulateMultibodySystem("Test A4: One point, large v_tang, no mu",
+            //                        initQ, initU, 1.0, 0.0, 1.0);
+            //simulateMultibodySystem("Test A5: One point, large v_tangential",
             //                        initQ, initU, 1.0, 0.3, 1.0);
             initU[3] = -5.0;
-            simulateMultibodySystem("Test A5: One point, large v_tangential",
-                                    initQ, initU, 1.0, 0.3, 1.0);
+            //simulateMultibodySystem("Test A6: One point, large v_tangential",
+            //                        initQ, initU, 1.0, 0.3, 1.0);
         }
 
         //---------------------- (b) Two points impacting ----------------------
@@ -1845,7 +1847,7 @@ performImpactPruning(State& s,
                 alphaFound = generateAndSolveUsingNewtonWithPMD(s, impactPhase,
                                  restitutionImpulses, proximalVelsInG, asc);
                 cout << "alphaFound = " << alphaFound << endl;
-                char trash = getchar();
+                //char trash = getchar();
             } else {
                 //alphaFound = generateAndSolveUsingNewtonWithAlpha(
                 //                        s,impactPhase,restitutionImpulses,asc);
@@ -2940,7 +2942,6 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
     Real   piErrPrev   = SimTK::MostPositiveReal;
     Real   piErrCurr   = SimTK::MostPositiveReal;
     int numNewtonIters = 0;                 //Outer iteration counter.
-    bool factorIterFailed = false;          //Flag for catching non-convergence.
 
     // Initialize piGuessCurr with small normal impulses.
     for (int i=0; i<piGuessCurr.nrow(); ++i)
@@ -2954,6 +2955,9 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
     while (true)
     {
+        bool factorIterFailed = false;      //Flag for catching non-convergence
+                                            //of Newton step size iteration.
+
         if (PrintDebugInfoImpact)
             cout << "[alpha = " << alphaGuess << "]" << endl;
 
@@ -3014,7 +3018,8 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             Vector    sol;
             qtz.solve(F, sol);
 
-            // Find the step size that decreases the error, and take the step.
+            // Find the Newton step size that decreases the error, and take the
+            // step.
             Real factor        = alphaGuess;
             int numFactorIters = 0;
             factorIterFailed   = false;
@@ -3047,7 +3052,8 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
                 if (PrintDebugInfoImpact)
                     cout << "   F = " << F << endl;
 
-                // Exit condition.
+                // Break once a Newton step size has been found that reduces the
+                // error.
                 piErrCurr = F.norm();
                 if (PrintDebugInfoImpact) {
                     cout << "=> piErrPrev=" << piErrPrev
@@ -3067,17 +3073,18 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
                 // Decrease alphaGuess in preparation for next Newton iteration.
                 alphaGuess *= StepSizeReductionFact;
                 if (PrintDebugInfoImpact) {
-                    cout << "alpha is now " << alphaGuess << endl;
-                    char trash = getchar();
+                    cout << "Convergence failure for Newton step size."
+                         << " Setting alpha to " << alphaGuess << endl;
+                    //char trash = getchar();
                 }
             }
 
         } //end Newton iteration loop for sliding directions
 
-        Real alphaFact = StepSizeReductionFact;
+        Real alphaFactor = StepSizeReductionFact;
 
-        // Only perform this update if did not reach maximum number of
-        // iterations in loop over factor.
+        // Perform this update only if maximum number of iterations was not
+        // reached in loop over factor (finding Newton step size).
         if (!factorIterFailed)
         {
             // Another iteration of Newton has completed. Apply min to vertical
@@ -3092,37 +3099,51 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             asc.localImpulses        = piGuessCurr;
 
             if (PrintDebugInfoImpact) {
-                cout << "     proximal point velocities after full step:" << endl;
+                cout << "     proximal point velocities after full step:"
+                     << endl;
                 State sTemp(s);
                 sTemp.updU() += 1.0*asc.systemVelocityChange;
                 m_mbs.realize(sTemp, Stage::Velocity);
 
-                for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
+                for (ProximalPointIndex i(0);
+                     i<(int)m_proximalPointIndices.size(); ++i)
+                {
                     cout << "     [" << i << "] v="
                          << m_brick.findLowestPointVelocityInGround(sTemp,
                                     m_proximalPointIndices[i]) << endl;
+                }
             }
 
-            // Exit if solution is satisfactory (i.e., sliding velocities that enter
-            // the tolerance circle do not leave, and sliding velocities that remain
-            // outside the tolerance circle do not change direction more than the
-            // permitted amount).
-            alphaFact = calculateIntervalStepLength(s0, proximalVelsInG, asc);
-            if (alphaFact > 1.0-SimTK::SignificantReal)
+            // Exit if solution is satisfactory (i.e., sliding velocities that
+            // enter the tolerance circle do not leave, and sliding velocities
+            // that remain outside the tolerance circle do not change direction
+            // more than the permitted amount).
+            alphaFactor = calculateIntervalStepLength(s0, proximalVelsInG, asc);
+            if (alphaFactor > 1.0-SimTK::SignificantReal)
             {
                 if (PrintDebugInfoImpact) {
-                    cout << "[alpha iteration complete; alpha=" << alphaGuess << "]"
-                         << endl;
+                    cout << "[alpha iteration complete; alpha=" << alphaGuess
+                         << "]" << endl;
                 }
                 break;
+            } else {
+                if (PrintDebugInfoImpact) {
+                    cout << "[alpha being reduced from " << alphaGuess << " to "
+                         << alphaGuess * alphaFactor << "]" << endl;
+                }
             }
         }
 
+        // Break if error is sufficiently small and alphaFactor = 1.
+        if (piErrCurr < TolPiDuringNewton
+            && alphaFactor > 1.0-SimTK::SignificantReal)
+            break;
+
         // Decrease alphaGuess in preparation for next alpha iteration.
-        alphaGuess *= alphaFact;
+        alphaGuess *= alphaFactor;
         if (PrintDebugInfoImpact) {
             cout << "alpha is now " << alphaGuess << endl;
-            char trash = getchar();
+            //char trash = getchar();
         }
 
         // Reinitialize variables in preparation for next alpha iteration.
@@ -3138,7 +3159,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
     if (PrintDebugInfoImpact)
         cout << "[returning " << alphaGuess << "]" << endl;
-    char trash = getchar();
+    //char trash = getchar();
     return alphaGuess;
 }
 
