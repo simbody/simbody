@@ -69,7 +69,7 @@ const bool PauseAfterEachActiveSetCandidate = false;
 const bool PrintBasicInfo                = true;
 const bool PrintSystemEnergy             = false;
 const bool PrintDebugInfoProjection      = false;
-const bool PrintDebugInfoImpact          = false;
+const bool PrintDebugInfoImpact          = true;
 const bool PrintDebugInfoActiveSetSearch = false;
 const bool PrintDebugInfoStepLength      = false;
 
@@ -87,11 +87,12 @@ enum SolutionStrategy {
     SolStrat_NewtonsMethodWithAlpha  // Add step length to Newton iteration.
 };
 //const SolutionStrategy SolStrat = SolStrat_FixedPointIteration;
-const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
-//const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
+//const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
+const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
+//const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithAlpha;
 
-const bool RunTestsOnePoint        = true;
-const bool RunTestsTwoPoints       = false;
+const bool RunTestsOnePoint        = false;
+const bool RunTestsTwoPoints       = true;
 const bool RunTestsFourPoints      = false;
 const bool RunTestsLongSimulations = false;
 
@@ -447,31 +448,28 @@ private:
     Real dpiStar(const Vector& piGuess, const int i) const
     {   return (i%3 != 2) ? 1.0 : dsoftmin0(piGuess[i],SqrtEps); }
 
-    // Calculate error and store in error vector F.
+    //--------------------------------------------------------------------------
+    // Private methods: calculate error and store in error vector F
+    //--------------------------------------------------------------------------
     void updErrorVectorForNewton(const State& s, const ImpactPhase impactPhase,
-                                 const Vector& restitutionImpulses,
-                                 const ActiveSetCandidate& asc, Vector& F,
-                                 Matrix& A, const Vector& piGuess) const;
+        const Vector& restitutionImpulses, const ActiveSetCandidate& asc,
+        Vector& F, Matrix& A, const Vector& piGuess) const;
     void updErrorVectorForNewtonWithAlpha(const State& s,
         const ImpactPhase impactPhase, const Vector& restitutionImpulses,
         const ActiveSetCandidate& asc, Vector& F, Matrix& A,
         const Vector& piGuess, const Real alphaGuess) const;
 
-    void updErrorForRolling(Vector& F, Matrix& A,
-                            const Vector& piGuess, const int row_x,
-                            const Real v_x, const Real v_y) const;
+    void updErrorForRolling(Vector& F, Matrix& A, const Vector& piGuess,
+        const int row_x, const Real v_x, const Real v_y) const;
     void updErrorForSliding(Vector& F, Matrix& A, const Vector& piGuess,
         const int row_x, const Real mu, const Real v_x, const Real v_y) const;
     void updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
-                                     const Vector& piGuess, const int row_x,
-                                     const Real mu, const Vec3& v0,
-                                     const Real alphaGuess) const;
-    void updErrorForCompression(Vector& F, Matrix& A,
-                                const Vector& piGuess, const int row_z,
-                                const Real v_z) const;
-    void updErrorForRestitution(Vector& F, Matrix& A,
-                                const Vector& piGuess, const int row_z,
-                                const Real pi_ze) const;
+        const Vector& piGuess, const int row_x, const Real mu, const Vec3& v0,
+        const Real alphaGuess) const;
+    void updErrorForCompression(Vector& F, Matrix& A, const Vector& piGuess,
+        const int row_z, const Real v_z) const;
+    void updErrorForRestitution(Vector& F, Matrix& A, const Vector& piGuess,
+        const int row_z, const Real pi_ze) const;
 
     // Calculate error corresponding to local step length alpha_i.
     //void calcErrorForLocalAlpha(Matrix& A, const Vector& xGuess,
@@ -479,32 +477,29 @@ private:
     //                            const int proxPointIdx, Vector& alphaLocal,
     //                            Vector& alphaLocalErr) const;
 
-    // Calculate rows of Jacobian and store in J.
+    //--------------------------------------------------------------------------
+    // Private methods: calculate rows of Jacobian and store in J
+    //--------------------------------------------------------------------------
     void updJacobianMatrixForNewton(const State& s,
-                                    const ImpactPhase impactPhase,
-                                    const Vector& restitutionImpulses,
-                                    const ActiveSetCandidate& asc, Matrix& J,
-                                    Matrix& A, const Vector& piGuess) const;
+        const ImpactPhase impactPhase, const Vector& restitutionImpulses,
+        const ActiveSetCandidate& asc, Matrix& J, Matrix& A,
+        const Vector& piGuess) const;
     void updJacobianMatrixForNewtonWithAlpha(const State& s,
         const ImpactPhase impactPhase, const Vector& restitutionImpulses,
         const ActiveSetCandidate& asc, Matrix& J, Matrix& A,
         const Vector& piGuess, const Real alphaGuess) const;
 
-    void updJacobianForRolling(Matrix& J, Matrix& A,
-                               const Vector& piGuess, const int row_x,
-                               const Real v_x, const Real v_y) const;
+    void updJacobianForRolling(Matrix& J, Matrix& A, const Vector& piGuess,
+        const int row_x, const Real v_x, const Real v_y) const;
     void updJacobianForSliding(Matrix& J, Matrix& A, const Vector& piGuess,
         const int row_x, const Real mu, const Real v_x, const Real v_y) const;
     void updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
-                                        const Vector& piGuess, const int row_x,
-                                        const Real mu, const Vec3& v0,
-                                        const Real alphaGuess) const;
-    void updJacobianForCompression(Matrix& J, Matrix& A,
-                                   const Vector& piGuess, const int row_z,
-                                   const Real v_z) const;
-    void updJacobianForRestitution(Matrix& J, Matrix& A,
-                                   const Vector& piGuess, const int row_z,
-                                   const Real pi_ze) const;
+        const Vector& piGuess, const int row_x, const Real mu, const Vec3& v0,
+        const Real alphaGuess) const;
+    void updJacobianForCompression(Matrix& J, Matrix& A, const Vector& piGuess,
+        const int row_z, const Real v_z) const;
+    void updJacobianForRestitution(Matrix& J, Matrix& A, const Vector& piGuess,
+        const int row_z, const Real pi_ze) const;
 
     // Calculate rows of Jacobian when alpha is involved in the Newton iteration
     // and store in J.
@@ -952,10 +947,10 @@ int main() {
                                 .asVec4());
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            simulateMultibodySystem("Test A1a: One point, no v_t, high mu",
-                                    initQ, initU, 1.8, 0.6, 0.5);
-            simulateMultibodySystem("Test A1b: One point, no v_t, no mu",
-                                    initQ, initU, 1.6, 0.0, 0.5);
+            //simulateMultibodySystem("Test A1a: One point, no v_t, high mu",
+            //                        initQ, initU, 1.8, 0.6, 0.5);
+            //simulateMultibodySystem("Test A1b: One point, no v_t, no mu",
+            //                        initQ, initU, 1.6, 0.0, 0.5);
             initU[3] = -0.5;
             simulateMultibodySystem("Test A2a: One point, small v_t, high mu",
                                     initQ, initU, 1.8, 0.6, 0.5);
@@ -983,11 +978,11 @@ int main() {
                                 .asVec4());
             Vector initU = Vector(Vec6(0,0,0, 0,0,6));
 
-            simulateMultibodySystem("Test B1: Two points, no v_tangential",
-                                    initQ, initU, 1.8, 0.6, 0.5);
+            //simulateMultibodySystem("Test B1: Two points, no v_tangential",
+            //                        initQ, initU, 1.8, 0.6, 0.5);
             initU[4] = -1.0;
             simulateMultibodySystem("Test B2: Two points, small v_tangential",
-                                    initQ, initU, 1.8, 0.6, 0.5);
+                                    initQ, initU, 1.4, 0.6, 0.5);
             initU[4] = 0.0;
             simulateMultibodySystem("Test B3: Two points, v_tang = muDyn = 0",
                                     initQ, initU, 1.8, 0.0, 0.5);
@@ -1522,7 +1517,7 @@ performImpactExhaustive(State& s,
                                  restitutionImpulses, proximalVelsInG,
                                  activeSetCandidates[i]);
                 cout << "alphaFound = " << alphaFound << endl;
-                char trash = getchar();
+                //char trash = getchar();
             } else {
                 //alphaFound = generateAndSolveUsingNewtonWithAlpha(
                 //                        s, impactPhase, restitutionImpulses,
@@ -2953,8 +2948,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
     // Initialize piGuessCurr with small normal impulses.
     for (int i=0; i<piGuessCurr.nrow(); ++i)
-        piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.1;
-        //piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
+        piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
 
     // Initialize step length alpha to 1.0; decrease until solution is
     // satisfactory (i.e., sliding velocities that enter the tolerance circle do
@@ -3000,15 +2994,12 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             updErrorVectorForNewtonWithAlpha(s, impactPhase,
                                              restitutionImpulses, asc, F, A,
                                              piGuessCurr, alphaGuess);
-            if (PrintDebugInfoImpact)
-                cout << "   F = " << F << endl;
-
             // Calculate current error.
             piErrPrev = piErrCurr;
             piErrCurr = F.norm();
             if (PrintDebugInfoImpact) {
                 cout << "=> piErrPrev=" << piErrPrev << ", piErrCurr="
-                     << piErrCurr << endl;
+                     << piErrCurr << "\nF = " << F << endl;
             }
 
             // Break if error is sufficiently small.
@@ -3128,7 +3119,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             // that remain outside the tolerance circle do not change direction
             // more than the permitted amount).
             alphaFactor = calculateIntervalStepLength(s0, proximalVelsInG, asc);
-            if (alphaFactor > 1.0-SimTK::SignificantReal)
+            if (alphaFactor <= alphaGuess)
             {
                 if (PrintDebugInfoImpact) {
                     cout << "[alpha iteration complete; alpha=" << alphaGuess
@@ -3138,7 +3129,8 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             } else {
                 if (PrintDebugInfoImpact) {
                     cout << "[alpha being reduced from " << alphaGuess << " to "
-                         << alphaGuess * alphaFactor << "]" << endl;
+                         << alphaGuess*StepSizeReductionFact << "]" << endl;
+                         //<< alphaGuess * alphaFactor << "]" << endl;
                 }
             }
         }
@@ -3149,7 +3141,8 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             break;
 
         // Decrease alphaGuess in preparation for next alpha iteration.
-        alphaGuess *= alphaFactor;
+        alphaGuess = (alphaFactor < alphaGuess) ? alphaFactor
+                     : alphaGuess*StepSizeReductionFact;
         if (PrintDebugInfoImpact) {
             cout << "alpha is now " << alphaGuess << endl;
             //char trash = getchar();
@@ -3902,9 +3895,8 @@ void Impacter::updErrorVectorForNewtonWithAlpha(const State& s,
     } //end for each proximal point
 }
 
-void Impacter::updErrorForRolling(Vector& F, Matrix& A,
-                                  const Vector& piGuess, const int row_x,
-                                  const Real v_x, const Real v_y) const
+void Impacter::updErrorForRolling(Vector& F, Matrix& A, const Vector& piGuess,
+    const int row_x, const Real v_x, const Real v_y) const
 {
     // F_x[k] = err_rolling,x = A_x[k].piStar - v_x[k]
     const int row_y = row_x + 1;
@@ -3919,8 +3911,7 @@ void Impacter::updErrorForRolling(Vector& F, Matrix& A,
 void Impacter::updErrorForSliding(Vector& F, Matrix& A, const Vector& piGuess,
     const int row_x, const Real mu, const Real v_x, const Real v_y) const
 {
-    // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-    //                          - mu_[k].piStar_z[k].d_[k],x
+    // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
     const int  row_y = row_x + 1;
     const int  row_z = row_x + 2;
     const Real vnorm = sqrt(v_x*v_x + v_y*v_y);
@@ -3957,24 +3948,22 @@ void Impacter::updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
     const Vector& piGuess, const int row_x, const Real mu, const Vec3& v0,
     const Real alphaGuess) const
 {
-    // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k]
-    //                          - mu_[k].piStar_z[k].d_[k],x
+    // F_x[k] = err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
     const int  row_y = row_x + 1;
     const int  row_z = row_x + 2;
     const int  M     = A.ncol();
 
-    // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
     for (int i=0; i<A.ncol(); ++i) {
         AxpiStar += A[row_x][i] * piStarCrisp(piGuess,i);
         AypiStar += A[row_y][i] * piStarCrisp(piGuess,i);
     }
-    const Real dx    = v0[0] + 0.5*alphaGuess*AxpiStar;
-    const Real dy    = v0[1] + 0.5*alphaGuess*AypiStar;
-    const Real dnorm = sqrt( v0[0]*v0[0] + v0[1]*v0[1]
-        + alphaGuess*(v0[0]*AxpiStar + v0[1]*AypiStar)
-        + alphaGuess*alphaGuess*0.25*(AxpiStar*AxpiStar + AypiStar*AypiStar) );
+
+    // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
+    const Real dx    = -(v0[0] + 0.5*alphaGuess*AxpiStar);
+    const Real dy    = -(v0[1] + 0.5*alphaGuess*AypiStar);
+    const Real dnorm = sqrt(dx*dx + dy*dy);
 
     // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
     F[row_x] = dnorm*piGuess[row_x] - mu*piStarCrisp(piGuess,row_z)*dx;
@@ -4015,8 +4004,7 @@ void Impacter::updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
 //}
 
 void Impacter::updErrorForCompression(Vector& F, Matrix& A,
-                                      const Vector& piGuess, const int row_z,
-                                      const Real v_z) const
+    const Vector& piGuess, const int row_z, const Real v_z) const
 {
     // F_z[k] = err_compression = A_z[k].piStar - v_z[k]
     F[row_z] = -v_z;
@@ -4025,8 +4013,7 @@ void Impacter::updErrorForCompression(Vector& F, Matrix& A,
 }
 
 void Impacter::updErrorForRestitution(Vector& F, Matrix& A,
-                                      const Vector& piGuess, const int row_z,
-                                      const Real pi_ze) const
+    const Vector& piGuess, const int row_z, const Real pi_ze) const
 {
     // F_z[k] = err_expansion = piStar_z[k] - pi_ze
     F[row_z] = piStarCrisp(piGuess,row_z) - pi_ze;
@@ -4213,9 +4200,8 @@ void Impacter::updJacobianMatrixForNewtonWithAlpha(const State& s,
     } //end for each proximal point
 }
 
-void Impacter::updJacobianForRolling(Matrix& J, Matrix& A,
-                                     const Vector& piGuess, const int row_x,
-                                     const Real v_x, const Real v_y) const
+void Impacter::updJacobianForRolling(Matrix& J, Matrix& A, const Vector& piGuess,
+    const int row_x, const Real v_x, const Real v_y) const
 {
     // err_rolling,x = A_x[k].piStar - v_x[k]
     // d(err)/d(pi_i) = A_x[k],i.dpiStar_i
@@ -4325,18 +4311,17 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
     const int row_y = row_x + 1;
     const int row_z = row_x + 2;
 
-    // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
     for (int i=0; i<A.ncol(); ++i) {
         AxpiStar += A[row_x][i] * piStar(piGuess,i);
         AypiStar += A[row_y][i] * piStar(piGuess,i);
     }
-    const Real dx    = v0[0] + 0.5*alphaGuess*AxpiStar;
-    const Real dy    = v0[1] + 0.5*alphaGuess*AypiStar;
-    const Real dnorm = sqrt( v0[0]*v0[0] + v0[1]*v0[1]
-        + alphaGuess*(v0[0]*AxpiStar + v0[1]*AypiStar)
-        + alphaGuess*alphaGuess*0.25*(AxpiStar*AxpiStar + AypiStar*AypiStar) );
+
+    // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
+    const Real dx    = -(v0[0] + 0.5*alphaGuess*AxpiStar);
+    const Real dy    = -(v0[1] + 0.5*alphaGuess*AypiStar);
+    const Real dnorm = sqrt(dx*dx + dy*dy);
 
     // d(d_[k])/d(pi)
     // The same partial for any pi_duck.
@@ -4344,8 +4329,8 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
     Vector par_dkx_par_pi = Vector(A.ncol(), 0.0);
     Vector par_dky_par_pi = Vector(A.ncol(), 0.0);
     for (int i=0; i<A.ncol(); ++i) {
-        par_dkx_par_pi[i] = 0.5 * alphaGuess * A[row_x][i] * dpiStar(piGuess,i);
-        par_dky_par_pi[i] = 0.5 * alphaGuess * A[row_y][i] * dpiStar(piGuess,i);
+        par_dkx_par_pi[i] = -0.5*alphaGuess * A[row_x][i] * dpiStar(piGuess,i);
+        par_dky_par_pi[i] = -0.5*alphaGuess * A[row_y][i] * dpiStar(piGuess,i);
     }
 
     // d(dnorm)/d(pi)
@@ -4399,8 +4384,7 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
 }
 
 void Impacter::updJacobianForCompression(Matrix& J, Matrix& A,
-                                         const Vector& piGuess, const int row_z,
-                                         const Real v_z) const
+    const Vector& piGuess, const int row_z, const Real v_z) const
 {
     // err_compression = A_z[k].piStar - v_z[k]
     // d(err)/d(pi_i) = A_z[k],i.dpiStar_i
@@ -4409,8 +4393,7 @@ void Impacter::updJacobianForCompression(Matrix& J, Matrix& A,
 }
 
 void Impacter::updJacobianForRestitution(Matrix& J, Matrix& A,
-                                         const Vector& piGuess, const int row_z,
-                                         const Real pi_ze) const
+    const Vector& piGuess, const int row_z, const Real pi_ze) const
 {
     // err_expansion = piStar_z[k] - pi_ze
     // d(err)/d(pi_z[k]) = dpiStar_z[k]
