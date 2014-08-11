@@ -155,7 +155,7 @@ public:
     You can use the "address of" operator\&() instead if you prefer. **/
 	const T* getPtr()  const  { return p; }
 
-    /** Return a writable reference to the contained object. Don't call this
+    /** Return a writable reference to the contained object. Don't call this if
     this container is empty. There is also an implicit conversion to reference
     that allows %ClonePtr\<T> to be used as though it were a T\&. **/
 	T& updRef() { 
