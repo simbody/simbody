@@ -260,9 +260,8 @@ intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
 
     return true; // The boxes intersect.
 }
-    
-    
-    
+
+
     
 // Explicit instantiations for float and double.
 template class Geo::Box_<float>;

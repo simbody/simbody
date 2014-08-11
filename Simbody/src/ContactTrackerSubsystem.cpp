@@ -127,6 +127,7 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::HalfSpaceSphere());
     adoptContactTracker(new ContactTracker::SphereSphere());
     adoptContactTracker(new ContactTracker::HalfSpaceEllipsoid());
+    adoptContactTracker(new ContactTracker::HalfSpaceBrick());
     adoptContactTracker(new ContactTracker::HalfSpaceTriangleMesh());
     adoptContactTracker(new ContactTracker::SphereTriangleMesh());
     adoptContactTracker(new ContactTracker::TriangleMeshTriangleMesh());
