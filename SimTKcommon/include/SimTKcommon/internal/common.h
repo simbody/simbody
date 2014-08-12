@@ -736,9 +736,27 @@ typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 /** In case you don't like the name you get from typeid(), you can specialize
 this class to provide a nicer name. This is typically used for error messages 
 and testing. **/
-template <class T> struct NiceTypeName {
-    static const char* name() {return typeid(T).name();}
-};
+#if defined(__GNUG__)
+// https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
+    #include <cxxabi.h>
+    template <class T> struct NiceTypeName {
+        static const char* name() {
+            int status;
+            const char* niceName = abi::__cxa_demangle(typeid(T).name(), 0, 0,
+                &status);
+            if (status == 0) {
+                return niceName;
+            } else {
+                return typeid(T).name();
+            }
+        }
+    };
+#else
+    template <class T> struct NiceTypeName {
+        static const char* name() {return typeid(T).name();}
+    };
+#endif
+
 
 } // namespace SimTK
 
