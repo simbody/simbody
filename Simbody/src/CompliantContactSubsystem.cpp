@@ -717,8 +717,10 @@ static void calcHertzContactForce
     const SpatialVec&       V_S1S2,     // relative surface velocity, S2 in S1
     Real                    R,          // effective relative radius
     Real                    e,          // elliptical correction factor
-    ContactForce&           contactForce_S1)
+    ContactForce&           contactForce_S1,
+    Array_<ContactDetail>*  details)    // pass as null if you don't care
 {
+    if (details) details->clear();
     if (depth <= 0) {
         contactForce_S1.clear(); // no contact; invalidate return result
         return;
@@ -850,7 +852,24 @@ static void calcHertzContactForce
     // including the conservative power term we will actually lose energy
     // because the deformed material isn't allowed to push back on us so the
     // energy is lost to surface vibrations or some other unmodeled effect.
-    contactForce_S1.setPowerDissipation(powerHC + powerFriction);
+    const Real powerLoss = powerHC + powerFriction;
+    contactForce_S1.setPowerDissipation(powerLoss);
+
+    // Fill in contact details if requested (in S1 frame).
+    if (details) {
+        details->push_back(); // default constructed
+        ContactDetail& detail = details->back();
+        detail.m_contactPt = contactPt_S1;
+        detail.m_patchNormal = normal_S1;
+        detail.m_slipVelocity = velTangent;
+        detail.m_forceOnSurface2 = forceTotal;
+        detail.m_deformation = x;
+        detail.m_deformationRate = xdot;
+        detail.m_patchArea = NaN;
+        detail.m_peakPressure = NaN;
+        detail.m_potentialEnergy = potentialEnergy;
+        detail.m_powerLoss = powerLoss;
+    }
 }
 
 
@@ -883,7 +902,7 @@ void ContactForceGenerator::HertzCircular::calcContactForce
 
     calcHertzContactForce(subsys, tracker, state, overlap,
                           normal_S1, origin_S1, depth,
-                          V_S1S2, R, 1, contactForce_S1);
+                          V_S1S2, R, 1, contactForce_S1, 0);
 }
 
 void ContactForceGenerator::HertzCircular::calcContactPatch
@@ -892,8 +911,28 @@ void ContactForceGenerator::HertzCircular::calcContactPatch
     const SpatialVec& V_S1S2,
     ContactPatch&     patch_S1) const
 {  
-    patch_S1.m_elements.clear(); // TODO no details yet
-    calcContactForce(state,overlap,V_S1S2,patch_S1.m_resultant);
+    SimTK_ASSERT(CircularPointContact::isInstance(overlap),
+        "ContactForceGenerator::HertzCircular::calcContactPatch(): expected"
+        " CircularPointContact.");
+
+    const CircularPointContact& contact = CircularPointContact::getAs(overlap);
+    const Real depth = contact.getDepth();
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
+
+    // normal points away from surf1, expressed in surf1's frame 
+    const UnitVec3& normal_S1 = contact.getNormal();
+    // origin is half way between the two surfaces as though they had
+    // equal stiffness
+    const Vec3& origin_S1 = contact.getOrigin();
+
+    const Real R = contact.getEffectiveRadius();
+
+    calcHertzContactForce(subsys, tracker, state, overlap,
+                          normal_S1, origin_S1, depth,
+                          V_S1S2, R, 1, patch_S1.m_resultant,
+                                       &patch_S1.m_elements);
 }
 
 
@@ -1101,7 +1140,7 @@ void ContactForceGenerator::HertzElliptical::calcContactForce
 
     calcHertzContactForce(subsys, tracker, state, overlap,
                           normal_S1, origin_S1, depth,
-                          V_S1S2, R, e, contactForce_S1);
+                          V_S1S2, R, e, contactForce_S1, 0);
 }
 
 
@@ -1111,8 +1150,33 @@ void ContactForceGenerator::HertzElliptical::calcContactPatch
     const SpatialVec& V_S1S2,
     ContactPatch&     patch_S1) const
 {  
-    patch_S1.m_elements.clear(); // TODO no details yet
-    calcContactForce(state,overlap,V_S1S2,patch_S1.m_resultant);
+    SimTK_ASSERT(EllipticalPointContact::isInstance(overlap),
+        "ContactForceGenerator::HertzElliptical::calcContactPatch(): expected"
+        " EllipticalPointContact.");
+
+    const EllipticalPointContact& contact = 
+        EllipticalPointContact::getAs(overlap);
+    const Real depth = contact.getDepth();
+
+    const CompliantContactSubsystem& subsys = getCompliantContactSubsystem();
+    const ContactTrackerSubsystem&   tracker = subsys.getContactTrackerSubsystem();
+
+    const Transform& X_S1C = contact.getContactFrame();
+    const Vec2&      k     = contact.getCurvatures(); // kmax,kmin
+    const Real       e     = calcHertzForceEccentricityCorrection(k[0],k[1]);
+
+    // normal points away from surf1, expressed in surf1's frame 
+    const UnitVec3& normal_S1 = X_S1C.z();
+    // origin is half way between the two surfaces as though they had
+    // equal stiffness
+    const Vec3& origin_S1 = X_S1C.p();
+
+    const Real R = 2/(k[0]+k[1]); // 1/avg curvature (~20 flops)
+
+    calcHertzContactForce(subsys, tracker, state, overlap,
+                          normal_S1, origin_S1, depth,
+                          V_S1S2, R, e, patch_S1.m_resultant,
+                                       &patch_S1.m_elements);
 }
 
 // Given a set of vertices of surface B penetrating a halfspace H with given
