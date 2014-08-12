@@ -580,7 +580,7 @@ typedef std::complex<Real>      Complex;
 /** An abbreviation for std::complex<float> for consistency with others. **/
 typedef std::complex<float>     fComplex;
 /** An abbreviation for std::complex<double> for consistency with others. **/
-typedef std::complex<float>     dComplex;
+typedef std::complex<double>    dComplex;
 
 
 // Forward declaration giving template defaults must come before any
