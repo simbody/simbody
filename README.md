@@ -219,7 +219,7 @@ Mac and Homebrew
 
 If using a Mac and Homebrew, the dependencies are taken care of for you.
 
-With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also NOT use C++11. If you do try to use C++11, you'll run into mysterious errors. See issue #125.
+With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
 
 #### Install
 
@@ -265,7 +265,7 @@ Ubuntu and apt-get
 
 You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
 
-With this method, Simbody is built without C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also NOT use C++11. If you do try to use C++11, you'll run into mysterious errors. See issue #125.
+With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
 
 #### Install
 
@@ -344,9 +344,9 @@ There are two ways to get the source code.
 
             $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
 
-    * Do you want to use C++11? By default, Simbody assumes no. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` variable:
+    * Do you want to use C++11? By default, Simbody assumes yes. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` variable:
 
-            $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=on
+            $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=off
 
     * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
         - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
