@@ -80,6 +80,7 @@ const bool CompareProjectionStrategies = false;
 const bool CompareImpactStrategies     = false;
 
 const bool DebugStepLengthCalculator = false;
+const bool ExperimentWithFrictionDir = false;  //Unstable when enabled.
 
 enum SolutionStrategy {
     SolStrat_FixedPointIteration=0,  // Fixed-point iteration over directions.
@@ -111,8 +112,9 @@ const Real MaxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
 const Real MaxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
 const Real SlidingDirStepLength  = 1.0e-4;  //Used to determine slip directions.
 const Real StepSizeReductionFact = 0.7;     //Step size reduction for Newton.
-const int  MaxIterSlipDirection  = 20;      //Iteration limit for directions.
-const int  MaxIterNewtonSolve    = 20;      //Iteration limit for Newton solve.
+const Real alphaSearchResolution = 0.001;   //Search resolution for step length.
+const int  MaxIterSlipDirection  = 100;     //Iteration limit for directions.
+const int  MaxIterNewtonSolve    = 100;     //Iteration limit for Newton solve.
 
 const Real IntegAccuracy = 1.0e-8;
 const Real MaxStepSize   = 1.0e-3;
@@ -580,6 +582,22 @@ private:
     Real calculateIntervalStepLength(const State& s0,
                                      const Array_<Vec3>& currVels,
                                      const ActiveSetCandidate& asc) const;
+
+    bool determineViolations(const State& s0, const Array_<Vec3>& currVels,
+                             const ActiveSetCandidate& asc,
+                             const Real alphaGuess) const;
+    /*
+    // Determine the interval step length for the selected active set. Searches
+    // for the maximum step that can be taken while ensuring each sliding point
+    // undergoes a direction change no greater than the maximum permitted in a
+    // single interval. This is a nonlinear search when using the principle of
+    // maximum dissipation to determine the friction impulse direction.
+    Real calculateIntervalStepLengthWithPMD(const State& s0,
+        const ImpactPhase impactPhase, const Vector& restitutionImpulses,
+        const ActiveSetCandidate& asc, Vector& F, Matrix& A,
+        const Vector& piGuess, const Real alphaGuess,
+        Array_<Vec3,ProximalPointIndex>& currVels) const;
+    */
 
     //--------------------------------------------------------------------------
     // Member variables
@@ -2945,6 +2963,406 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
         // Perform Newton solve assuming current value of alphaGuess is correct.
         while(true)
         {
+            // Proceed to next value of alpha if maximum number of iterations
+            // has been reached.
+            ++numNewtonIters;
+            if (numNewtonIters > MaxIterNewtonSolve)
+            {
+                alphaGuess -= alphaSearchResolution;
+                // Reset.
+                for (int i=0; i<piGuessCurr.nrow(); ++i) {
+                    piGuessPrev[i] = 0.0;
+                    piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
+                }
+                piErrPrev = SimTK::MostPositiveReal;
+                piErrCurr = SimTK::MostPositiveReal;
+                numNewtonIters = 0;
+
+                if (alphaGuess < 0) {
+                    asc.solutionCategory =
+                        SolCat_UnableToResolveUnknownSlipDirection;
+                    asc.fitness          = SimTK::Infinity;
+                    asc.worstConstraint  = ProximalPointIndex(0); //Arbitrary index.
+cout << "checkpoint a" << endl;
+                    return -1.0;
+                }
+
+                continue;
+            }
+            if (PrintDebugInfoImpact)
+                cout << "\n\n-> iteration #" << numNewtonIters << endl;
+
+            // Reset Jacobian and error vector to ensure they are being set
+            // below.
+            for (int i=0; i<M; ++i) {
+                for (int j=0; j<M; ++j)
+                    J[i][j] = SimTK::NaN;
+                F[i] = SimTK::NaN;
+            }
+
+            // Form error vector F.
+            updErrorVectorForNewtonWithAlpha(s, impactPhase,
+                restitutionImpulses, asc, F, A, piGuessCurr, alphaGuess);
+            // Calculate current error.
+            piErrPrev = piErrCurr;
+            piErrCurr = F.norm();
+            // Break if error is sufficiently small.
+            if (piErrCurr < TolPiDuringNewton)
+                break;
+
+            // Form Jacobian J.
+            updJacobianMatrixForNewtonWithAlpha(s, impactPhase,
+                restitutionImpulses, asc, J, A, piGuessCurr, alphaGuess);
+
+            // Calculate Newton step (sol is delta_pi).
+            for (int i=0; i<F.nrow(); ++i)
+                F[i] *= -1.0;
+            FactorQTZ qtz(J);
+            Vector    sol;
+            qtz.solve(F, sol);
+
+            // Find the Newton step size that decreases the error, and take the
+            // step.
+            Real factor        = 1.0;
+            int numFactorIters = 0;
+            factorIterFailed   = false;
+
+            piGuessPrev = piGuessCurr;
+            piErrPrev   = piErrCurr;
+            while (true)
+            {
+                // If maximum number of iterations has been reached, break and
+                // reduce alpha.
+                ++numFactorIters;
+                if (numFactorIters > MaxIterNewtonSolve) {
+                    factorIterFailed = true;
+                    break;
+                }
+
+                // Reduce factor and take trial step.
+                if (numFactorIters > 1)
+                    factor *= StepSizeReductionFact;
+                piGuessCurr = piGuessPrev + factor*sol;
+                if (PrintDebugInfoImpact) {
+                    cout << "   factor=" << factor
+                         << ", piGuessCurr=" << piGuessCurr << endl;
+                }
+
+                // Form error vector F.
+                updErrorVectorForNewtonWithAlpha(s, impactPhase,
+                    restitutionImpulses, asc, F, A, piGuessCurr, alphaGuess);
+                if (PrintDebugInfoImpact)
+                    cout << "err = " << F << endl;
+
+                // Break once a Newton step size has been found that reduces the
+                // error.
+                piErrCurr = F.norm();
+                if (piErrCurr < piErrPrev)
+                    break;
+            }
+            if (PrintDebugInfoImpact)
+                cout << "-> iteration complete, piGuessCurr=" << piGuessCurr
+                     << endl;
+
+            // Catch convergence failures for Newton step size.
+            if (factorIterFailed) {
+                // Decrease alphaGuess in preparation for next Newton iteration.
+                alphaGuess -= alphaSearchResolution;
+                if (PrintDebugInfoImpact) {
+                    cout << "Convergence failure for Newton step size."
+                         << " Setting alpha to " << alphaGuess << endl;
+                    //char trash = getchar();
+                }
+            }
+
+        } //end Newton iteration loop for sliding directions
+
+        Real alphaStepLengthCalc = SimTK::NaN;
+
+        // Perform this update only if maximum number of iterations was not
+        // reached in loop over factor (finding Newton step size).
+        if (!factorIterFailed)
+        {
+            // Another iteration of Newton has completed. Apply min to vertical
+            // impulses (it is applied when error is calculated, but must now be
+            // applied directly to piGuessCurr). Scale pi by alphaGuess.
+            for (int i=0; i<piGuessCurr.nrow(); ++i)
+                piGuessCurr[i] = piStarCrisp(piGuessCurr,i);
+
+            // Calculate system velocity changes.
+            Vector temp = -(MinvGtranspose * piGuessCurr);
+            asc.systemVelocityChange = temp;
+            asc.localImpulses        = piGuessCurr;
+
+            if (PrintDebugInfoImpact) {
+                cout << "     proximal point velocities after full step:"
+                     << endl;
+                State sTemp(s);
+                sTemp.updU() += 1.0*asc.systemVelocityChange;
+                m_mbs.realize(sTemp, Stage::Velocity);
+
+                for (ProximalPointIndex i(0);
+                     i<(int)m_proximalPointIndices.size(); ++i)
+                {
+                    cout << "     [" << i << "] v="
+                         << m_brick.findLowestPointVelocityInGround(sTemp,
+                                    m_proximalPointIndices[i]) << endl;
+                }
+            }
+
+            //// Exit if solution is satisfactory (i.e., sliding velocities that
+            //// enter the tolerance circle do not leave, and sliding velocities
+            //// that remain outside the tolerance circle do not change direction
+            //// more than the permitted amount).
+            //alphaStepLengthCalc = calculateIntervalStepLength(s0,
+            //                          proximalVelsInG, asc);
+            //if (alphaStepLengthCalc >= alphaGuess)
+            //{
+            //    if (PrintDebugInfoImpact)
+            //        cout << "[alpha iteration complete; alpha=" << alphaGuess
+            //             << "]" << endl;
+            //    break;
+            //} else {
+            //    if (PrintDebugInfoImpact)
+            //        cout << "[alpha being reduced]" << endl;
+            //}
+
+            // Find largest permissible step length alpha, assuming pi is fixed.
+            //alphaStepLengthCalc = calculateIntervalStepLengthWithPMD(s,
+            //    impactPhase, restitutionImpulses, asc, F, A, piGuessCurr,
+            //    alphaGuess, proximalVelsInG);
+            //alphaStepLengthCalc = calculateIntervalStepLength(s0,
+            //                          proximalVelsInG, asc);
+
+            // Return 0 if violation, 1 if no violation.
+            alphaStepLengthCalc = (determineViolations(s0, proximalVelsInG,
+                                                       asc, alphaGuess))
+                                  ? 0.0 : 1.0;
+        }
+
+        // Break if error and alpha are sufficiently small.
+        if (piErrCurr < TolPiDuringNewton && alphaStepLengthCalc >= alphaGuess)
+            break;
+
+        // Decrease alphaGuess in preparation for next alpha iteration.
+        alphaGuess -= alphaSearchResolution;
+        //if (PrintDebugInfoImpact || PrintDebugInfoImpactMinimal)
+        //    cout << "alpha is now " << alphaGuess << endl;
+
+        // Reinitialize variables in preparation for next alpha iteration.
+        for (int i=0; i<piGuessCurr.nrow(); ++i) {
+            piGuessPrev[i] = 0.0;
+            piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
+        }
+        piErrPrev = SimTK::MostPositiveReal;
+        piErrCurr = SimTK::MostPositiveReal;
+        numNewtonIters = 0;
+
+    } //end alpha loop
+
+    return alphaGuess;
+}
+
+bool Impacter::determineViolations(const State& s0,
+    const Array_<Vec3>& currVels, const ActiveSetCandidate& asc,
+    const Real alphaGuess) const
+{
+    // State at the beginning of the current interval.
+    State s(s0);
+    m_mbs.realize(s, Stage::Velocity);
+
+    // State after taking the proposed step length.
+    State sProp(s);
+    sProp.updU() += alphaGuess*asc.systemVelocityChange;
+    m_mbs.realize(sProp, Stage::Velocity);
+
+    // Loop through each sliding proximal point and check for violations.
+    for (ProximalPointIndex i(0); i<(int)asc.tangentialStates.size(); ++i) {
+        if (asc.tangentialStates[i] == Sliding) {
+
+            if (PrintDebugInfoStepLength)
+                cout << "  ** analyzing proximal point " << i << "..." << endl;
+
+            // Any step length is acceptable for this point if its initial
+            // tangential velocity vector lies within the "capture velocity
+            // circle" defined by MaxStickingTangVel (i.e., the point is in
+            // impending slip).
+            if (currVels[i].getSubVec<2>(0).norm() < MaxStickingTangVel) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (impending slip)" << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Calculate the velocity of this proximal point after taking the
+            // proposed step length.
+            const Vec3 propVel = m_brick.findLowestPointVelocityInGround(sProp,
+                                         m_proximalPointIndices[i]);
+
+            // The current proposed step length is acceptable for this point if
+            // its tangential velocity vector lands within the "capture velocity
+            // circle" (i.e., the sliding point will begin to roll).
+            if (propVel.getSubVec<2>(0).norm() < MaxStickingTangVel) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (rolling imminent)" << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Check whether the direction change is sufficiently small.
+            const Real ang0 = m_brick.findTangentialVelocityAngle(currVels[i]);
+            const Real ang1 = m_brick.findTangentialVelocityAngle(propVel);
+            if (calcAbsDiffBetweenAngles(ang0, ang1) < MaxSlidingDirChange) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (acceptable change)" << endl;
+                continue; //Proceed to next point.
+            } else {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- failure at proximal point " << i
+                         << " (excessive direction change)" << endl;
+                return true;
+            }
+
+            //// Search #1: Determine whether there exists a step length where the
+            ////            tangential velocity vector lies within the "capture
+            ////            velocity circle" (i.e., the sliding point will begin
+            ////            to roll). Since the system is linear, we simply find
+            ////            the point on the line segment connecting currVels[i]
+            ////            and propVel that is closest to the origin.
+            //Vec2 closestPoint;
+            //const Real stepToOrigin = calcSlidingStepLengthToOrigin(
+            //                              currVels[i].getSubVec<2>(0),
+            //                              propVel.getSubVec<2>(0),
+            //                              closestPoint);
+            //if (stepToOrigin < 1.0 && closestPoint.norm() < MaxStickingTangVel)
+            //{
+            //    // Adopt the new step length and calculate the new proposed
+            //    // post-interval velocities.
+            //    steplength *= stepToOrigin;
+            //    sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
+            //    m_mbs.realize(sProp, Stage::Velocity);
+
+            //    if (PrintDebugInfoStepLength)
+            //        cout << "  -- finished with proximal point " << i
+            //             << " (transition to rolling); current steplength is "
+            //             << steplength << endl;
+
+            //    if (DebugStepLengthCalculator) {
+            //        const Vec3 testVel = m_brick.findLowestPointVelocityInGround
+            //                             (sProp, m_proximalPointIndices[i]);
+            //        const Real testMag = testVel.getSubVec<2>(0).norm();
+            //        cout << "     testMag = " << testMag
+            //             << " (steplength = " << steplength << ")" << endl;
+
+            //        SimTK_ASSERT(testMag < MaxStickingTangVel,
+            //            "Incorrectly detected transition to rolling.");
+            //    }
+
+            //    continue; //Proceed to next point.
+            //}
+
+            //// Search #2: We have determined that this point will continue to
+            ////            slide. Search for the step length that results in the
+            ////            maximum allowable sliding direction change.
+            //const Real stepToMaxChange = calcSlidingStepLengthToMaxChange(
+            //                                 currVels[i].getSubVec<2>(0),
+            //                                 propVel.getSubVec<2>(0));
+            //SimTK_ASSERT(stepToMaxChange >= 0 && stepToMaxChange <= 1,
+            //    "Invalid step length calculated to elicit maximum change.");
+
+            //// Adopt the new step length and calculate the new proposed post-
+            //// interval velocities.
+            //steplength *= stepToMaxChange;
+            //sProp.setU(s.getU() + steplength*asc.systemVelocityChange);
+            //m_mbs.realize(sProp, Stage::Velocity);
+
+            //if (PrintDebugInfoStepLength)
+            //    cout << "  -- finished with proximal point " << i
+            //         << " (maximum direction change); current steplength is "
+            //         << steplength << endl;
+
+            //if (DebugStepLengthCalculator) {
+            //    const Vec3 testVel = m_brick.findLowestPointVelocityInGround(
+            //                             sProp, m_proximalPointIndices[i]);
+            //    const Real testAng = m_brick.findTangentialVelocityAngle(
+            //                             testVel);
+            //    const Real testDif = calcAbsDiffBetweenAngles(ang0, testAng);
+            //    cout << "     testDif = " << testDif
+            //         << " (steplength = " << steplength << ")" << endl;
+
+            //    SimTK_ASSERT(std::abs(testDif-MaxSlidingDirChange) < 1.0e-8,
+            //        "Incorrect solution to find maximum direction change.");
+            //}
+
+        } //end if sliding
+    } //end for each proximal point
+
+    //if (PrintDebugInfoStepLength)
+    //    cout << "  ** final steplength is " << steplength << endl;
+
+    //return steplength;
+    return false;
+}
+
+
+/*
+Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
+    const ImpactPhase impactPhase, const Vector& restitutionImpulses,
+    Array_<Vec3,ProximalPointIndex>& proximalVelsInG, ActiveSetCandidate& asc)
+    const
+{
+    // Enable constraints to form the constraint-space Jacobian (G).
+    State s = m_mbs.realizeTopology();
+    s.setQ(s0.getQ());
+    s.setU(s0.getU());
+    for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
+        if (asc.tangentialStates[i] > Observing)
+            m_brick.enableBallConstraint(s, m_proximalPointIndices[i]);
+    m_mbs.realize(s, Stage::Velocity);
+
+    // Generate system matrices.
+    Matrix MassMatrix, GMatrix;
+    m_mbs.getMatterSubsystem().calcM(s, MassMatrix);
+    m_mbs.getMatterSubsystem().calcG(s, GMatrix);
+    const int N = MassMatrix.nrow();
+    const int M = GMatrix.nrow();
+    Matrix MinvGtranspose = MassMatrix.invert() * GMatrix.transpose(); //Needed
+    Matrix A = GMatrix * MinvGtranspose;                               //later.
+
+    // TODO: Should not be solving for impulses that are known. This structure
+    //       is used only to maintain symmetry between compression and expansion
+    //       phases. This implementation has not been optimized for efficiency.
+
+    // Allocate and initialize.
+    Matrix J = Matrix(M, M);                //Jacobian: d(err)/d(pi).
+    Vector F = Vector(M, 0.0);              //Vector of error functions.
+    Vector piGuessPrev = Vector(M, 0.0);    //Previous guess for solution.
+    Vector piGuessCurr = Vector(M, 0.0);    //Current guess for solution.
+    Real   piErrPrev   = SimTK::MostPositiveReal;
+    Real   piErrCurr   = SimTK::MostPositiveReal;
+    int numNewtonIters = 0;                 //Outer iteration counter.
+
+    // Initialize piGuessCurr with small normal impulses.
+    for (int i=0; i<piGuessCurr.nrow(); ++i)
+        piGuessCurr[i] = (i%3==2) ? -1.0e-1 : 0.0;
+
+    // Initialize step length alpha to 1.0; decrease until solution is
+    // satisfactory (i.e., sliding velocities that enter the tolerance circle do
+    // not leave, and sliding velocities that remain outside the tolerance
+    // circle do not change direction more than the permitted amount).
+    Real alphaGuess = 1.0;
+
+    while (true)
+    {
+        bool factorIterFailed = false;      //Flag for catching non-convergence
+                                            //of Newton step size iteration.
+        if (PrintDebugInfoImpact)
+            cout << "[alpha = " << alphaGuess << "]" << endl;
+
+        // Perform Newton solve assuming current value of alphaGuess is correct.
+        while(true)
+        {
             // Halt if maximum number of iterations has been reached.
             ++numNewtonIters;
             if (numNewtonIters > MaxIterNewtonSolve) {
@@ -3075,22 +3493,27 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
                 }
             }
 
-            // Exit if solution is satisfactory (i.e., sliding velocities that
-            // enter the tolerance circle do not leave, and sliding velocities
-            // that remain outside the tolerance circle do not change direction
-            // more than the permitted amount).
-            alphaStepLengthCalc = calculateIntervalStepLength(s0,
-                                      proximalVelsInG, asc);
-            if (alphaStepLengthCalc >= alphaGuess)
-            {
-                if (PrintDebugInfoImpact)
-                    cout << "[alpha iteration complete; alpha=" << alphaGuess
-                         << "]" << endl;
-                break;
-            } else {
-                if (PrintDebugInfoImpact)
-                    cout << "[alpha being reduced]" << endl;
-            }
+            //// Exit if solution is satisfactory (i.e., sliding velocities that
+            //// enter the tolerance circle do not leave, and sliding velocities
+            //// that remain outside the tolerance circle do not change direction
+            //// more than the permitted amount).
+            //alphaStepLengthCalc = calculateIntervalStepLength(s0,
+            //                          proximalVelsInG, asc);
+            //if (alphaStepLengthCalc >= alphaGuess)
+            //{
+            //    if (PrintDebugInfoImpact)
+            //        cout << "[alpha iteration complete; alpha=" << alphaGuess
+            //             << "]" << endl;
+            //    break;
+            //} else {
+            //    if (PrintDebugInfoImpact)
+            //        cout << "[alpha being reduced]" << endl;
+            //}
+
+            // Find largest permissible step length alpha, assuming pi is fixed.
+            alphaStepLengthCalc = calculateIntervalStepLengthWithPMD(s,
+                impactPhase, restitutionImpulses, asc, F, A, piGuessCurr,
+                alphaGuess, proximalVelsInG);
         }
 
         // Break if error and alpha are sufficiently small.
@@ -3117,6 +3540,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
     return alphaGuess;
 }
+*/
 
 /*
 Real Impacter::generateAndSolveUsingNewtonWithPMDInclAlpha(const State& s0,
@@ -3599,6 +4023,145 @@ Real Impacter::calculateIntervalStepLength(const State& s0,
     return steplength;
 }
 
+/*
+Real Impacter::calculateIntervalStepLengthWithPMD(const State& s0,
+    const ImpactPhase impactPhase, const Vector& restitutionImpulses,
+    const ActiveSetCandidate& asc, Vector& F, Matrix& A,
+    const Vector& piGuess, const Real alphaGuess,
+    Array_<Vec3,ProximalPointIndex>& currVels) const
+{
+    // Store the optimal step length for each proximal point. Initialize to 1
+    // and reduce as necessary. Return the minimum.
+    const int numPoints = m_proximalPointIndices.size();
+    Array_<Real> steplength(numPoints);
+    for (int i=0; i<numPoints; ++i)
+        steplength[i] = 1.0;
+
+    // State at the beginning of the current interval.
+    State s(s0);
+    m_mbs.realize(s, Stage::Velocity);
+
+    // Loop through each sliding proximal point to determine the optimal global
+    // step length.
+    for (ProximalPointIndex i(0); i<(int)asc.tangentialStates.size(); ++i) {
+        if (asc.tangentialStates[i] == Sliding) {
+
+            if (PrintDebugInfoStepLength)
+                cout << "  ** analyzing proximal point " << i << "..." << endl;
+
+            // Any step length acceptable if initial tangential velocity within
+            // "capture velocity circle" defined by MaxStickingTangVel.
+            if (currVels[i].getSubVec<2>(0).norm() < MaxStickingTangVel) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (impending slip, alpha=1)." << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Calculate the velocity of this proximal point after taking a step
+            // of 1.
+            State sProp(s);
+            sProp.updU() += 1.0*asc.systemVelocityChange;
+            m_mbs.realize(sProp, Stage::Velocity);
+            const Vec3 propVel = m_brick.findLowestPointVelocityInGround(sProp,
+                                         m_proximalPointIndices[i]);
+
+            // Any step length acceptable if tangential velocity after step of 1
+            // within "capture velocity circle" defined by MaxStickingTangVel.
+            if (propVel.getSubVec<2>(0).norm() < MaxStickingTangVel) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (rolling imminent, alpha=1)." << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Check whether the direction change is sufficiently small.
+            const Real ang0 = m_brick.findTangentialVelocityAngle(currVels[i]);
+            const Real ang1 = m_brick.findTangentialVelocityAngle(propVel);
+            if (calcAbsDiffBetweenAngles(ang0, ang1) < MaxSlidingDirChange) {
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (acceptable direction change, alpha=1)." << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Search #1: Determine whether the tangential velocity vector can
+            //            land within the "capture velocity circle". The system
+            //            is nonlinear; using brute force to find step length
+            //            corresponding to shortest tangential velocity vector.
+            // TODO: Replace with more efficient search!
+            Real alphaCurr = 0.0;
+            Real minAlpha  = SimTK::NaN;
+            Real minLength = SimTK::MostPositiveReal;
+
+            // Storage for test #2 (below).
+            Real angleClosestToMax        = 0.0;
+            Real alphaOfAngleClosestToMax = 0.0;
+            const Real angleOfInitialVelocity = ang0;
+
+            while(alphaCurr <= 1.0)
+            {
+                // Test current step length.
+                State sTest(s);
+                sTest.updU() += alphaCurr*asc.systemVelocityChange;
+                m_mbs.realize(sTest, Stage::Velocity);
+                const Vec3 velTest = m_brick.findLowestPointVelocityInGround(
+                                             sTest, m_proximalPointIndices[i]);
+                const Real velLength = velTest.getSubVec<2>(0).norm();
+                if (velLength < minLength) {
+                    minLength = velLength;
+                    minAlpha  = alphaCurr;
+                }
+
+                // Storage for test #2 (below).
+                // Calculate angle and difference.
+                const Real angTest = m_brick.findTangentialVelocityAngle(
+                                             velTest);
+                const Real testDif = calcAbsDiffBetweenAngles(ang0, angTest);
+                if (testDif > angleClosestToMax &&
+                    testDif <= MaxSlidingDirChange)
+                {
+                    angleClosestToMax        = testDif;
+                    alphaOfAngleClosestToMax = alphaCurr;
+                }
+
+                // Increment alphaCurr.
+                alphaCurr += alphaResolution;
+            }
+            if (minLength < MaxStickingTangVel) {
+                steplength[i] = minAlpha;
+                if (PrintDebugInfoStepLength)
+                    cout << "  -- finished with proximal point " << i
+                         << " (approaches origin, alpha=" << steplength[i]
+                         << ")." << endl;
+                continue; //Proceed to next point.
+            }
+
+            // Search #2: We have determined that this point will continue to
+            //            slide. Search for the step length that results in the
+            //            maximum allowable sliding direction change.
+            steplength[i] = alphaOfAngleClosestToMax;
+            if (PrintDebugInfoStepLength)
+                cout << "  -- finished with proximal point " << i
+                     << " (maximum direction change, alpha=" << steplength[i]
+                     << ")." << endl;
+
+        } //end if sliding
+    } //end for each proximal point
+
+    Real minSteplength = SimTK::MostPositiveReal;
+    for (int i=0; i<numPoints; ++i) {
+        if (steplength[i] < minSteplength)
+            minSteplength = steplength[i];
+    }
+
+    if (PrintDebugInfoStepLength)
+        cout << "  ** final steplength is " << minSteplength << endl;
+
+    return minSteplength;
+}
+*/
+
 
 //------------------------------------------------------------------------------
 // Calculate error and store in error vector F.
@@ -3838,6 +4401,10 @@ void Impacter::updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
     // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
     Real dx = -(v_x + 0.5*alphaGuess*AxpiStar);
     Real dy = -(v_y + 0.5*alphaGuess*AypiStar);
+    if (ExperimentWithFrictionDir) {
+        dx = -(v_x + 1.0*alphaGuess*AxpiStar);
+        dy = -(v_y + 1.0*alphaGuess*AypiStar);
+    }
 
     if (vnorm < TolVelocityFuzziness) {
         // Impending:
@@ -4237,8 +4804,12 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
     }
 
     // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
-    Real dx    = -(v_x + 0.5*alphaGuess*AxpiStar);
-    Real dy    = -(v_y + 0.5*alphaGuess*AypiStar);
+    Real dx = -(v_x + 0.5*alphaGuess*AxpiStar);
+    Real dy = -(v_y + 0.5*alphaGuess*AypiStar);
+    if (ExperimentWithFrictionDir) {
+        dx = -(v_x + 1.0*alphaGuess*AxpiStar);
+        dy = -(v_y + 1.0*alphaGuess*AypiStar);
+    }
     Real dnorm = sqrt(dx*dx + dy*dy);
 
     // d(d_[k])/d(pi)
@@ -4249,6 +4820,11 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
     for (int i=0; i<A.ncol(); ++i) {
         par_dkx_par_pi[i] = -0.5*alphaGuess * A[row_x][i] * dpiStar(piGuess,i);
         par_dky_par_pi[i] = -0.5*alphaGuess * A[row_y][i] * dpiStar(piGuess,i);
+
+        if (ExperimentWithFrictionDir) {
+            par_dkx_par_pi[i] = -1.0*alphaGuess * A[row_x][i] * dpiStar(piGuess,i);
+            par_dky_par_pi[i] = -1.0*alphaGuess * A[row_y][i] * dpiStar(piGuess,i);
+        }
     }
 
     // d(dnorm)/d(pi)
@@ -4261,6 +4837,14 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
         const Real t3 = AxpiStar*A[row_x][i] + AypiStar*A[row_y][i];
         const Real t4 = alphaGuess*alphaGuess * 0.25 * t3 * dpiStar(piGuess,i);
         par_dnorm_par_pi[i] = (1.0/dnorm) * (t2 + t4);
+
+        if (ExperimentWithFrictionDir) {
+            const Real t5 = v_x*alphaGuess*A[row_x][i]*dpiStar(piGuess,i)
+                            + v_y*alphaGuess*A[row_y][i]*dpiStar(piGuess,i);
+            const Real t7 = AxpiStar*A[row_x][i] + AypiStar*A[row_y][i];
+            const Real t6 = alphaGuess*alphaGuess* t7 * dpiStar(piGuess,i);
+            par_dnorm_par_pi[i] = (1.0/dnorm) * (t5 + t6);
+        }
     }
 
     // Fill in row_x and row_y of Jacobian.
