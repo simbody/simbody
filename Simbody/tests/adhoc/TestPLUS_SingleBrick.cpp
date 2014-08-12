@@ -69,7 +69,8 @@ const bool PauseAfterEachActiveSetCandidate = false;
 const bool PrintBasicInfo                = true;
 const bool PrintSystemEnergy             = false;
 const bool PrintDebugInfoProjection      = false;
-const bool PrintDebugInfoImpact          = true;
+const bool PrintDebugInfoImpact          = false;
+const bool PrintDebugInfoImpactMinimal   = true;   //Display only vital info.
 const bool PrintDebugInfoActiveSetSearch = false;
 const bool PrintDebugInfoStepLength      = false;
 
@@ -110,8 +111,8 @@ const Real MaxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
 const Real MaxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
 const Real SlidingDirStepLength  = 1.0e-4;  //Used to determine slip directions.
 const Real StepSizeReductionFact = 0.7;     //Step size reduction for Newton.
-const int  MaxIterSlipDirection  = 10;      //Iteration limit for directions.
-const int  MaxIterNewtonSolve    = 10;      //Iteration limit for Newton solve.
+const int  MaxIterSlipDirection  = 20;      //Iteration limit for directions.
+const int  MaxIterNewtonSolve    = 20;      //Iteration limit for Newton solve.
 
 const Real IntegAccuracy = 1.0e-8;
 const Real MaxStepSize   = 1.0e-3;
@@ -453,7 +454,7 @@ private:
     void updErrorVectorForNewtonWithAlpha(const State& s,
         const ImpactPhase impactPhase, const Vector& restitutionImpulses,
         const ActiveSetCandidate& asc, Vector& F, Matrix& A,
-        const Vector& piGuess, const Real alphaGuess, const Real factor) const;
+        const Vector& piGuess, const Real alphaGuess) const;
 
     void updErrorForRolling(Vector& F, Matrix& A, const Vector& piGuess,
         const int row_x, const Real v_x, const Real v_y) const;
@@ -475,7 +476,7 @@ private:
     void updJacobianMatrixForNewtonWithAlpha(const State& s,
         const ImpactPhase impactPhase, const Vector& restitutionImpulses,
         const ActiveSetCandidate& asc, Matrix& J, Matrix& A,
-        const Vector& piGuess, const Real alphaGuess, const Real factor) const;
+        const Vector& piGuess, const Real alphaGuess) const;
 
     void updJacobianForRolling(Matrix& J, Matrix& A, const Vector& piGuess,
         const int row_x, const Real v_x, const Real v_y) const;
@@ -966,13 +967,13 @@ int main() {
             //simulateMultibodySystem("Test A4b: One point, large v_t, low mu",
             //                        initQ, initU, 1.0, 0.3, 1.0);
             initU[3] = -5.0;
-            //simulateMultibodySystem("Test A5: One point, large v_tangential",
-            //                        initQ, initU, 1.0, 0.3, 1.0);
+            simulateMultibodySystem("Test A5: One point, large v_tangential",
+                                    initQ, initU, 1.0, 0.3, 1.0);
             initU[3] = 1.0;
             initU[4] = 0.0;
             initU[5] = 0.0;
-            simulateMultibodySystem("Test A6: One point, with v_t and mu",
-                                    initQ, initU, 2.0, 0.3, 1.0);
+            //simulateMultibodySystem("Test A6: One point, with v_t and mu",
+            //                        initQ, initU, 2.0, 0.3, 1.0);
         }
 
         //---------------------- (b) Two points impacting ----------------------
@@ -1441,7 +1442,7 @@ Impacter(MultibodySystem& mbs, FreeUnilateralBrick& brick, const State& s0,
         m_brick.set_ballConstraintLocation(s0, m_proximalPointIndices[i],
             allPositionsInG[m_proximalPointIndices[i]]);
 
-    if (PrintDebugInfoImpact) {
+    if (PrintDebugInfoImpact || PrintDebugInfoImpactMinimal) {
         printHorizontalRule(1,0,'*',"starting impact");
         cout << "  -> " << m_proximalPointIndices.size() << " proximal point(s)"
              << endl;
@@ -1969,7 +1970,7 @@ performImpactPruning(State& s,
         for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i)
             proximalVelsInG[i] = m_brick.findLowestPointVelocityInGround(s,
                                      m_proximalPointIndices[i]);
-        if (PrintDebugInfoImpact)
+        if (PrintDebugInfoImpact || PrintDebugInfoImpactMinimal)
             for (ProximalPointIndex i(0);
                  i<(int)m_proximalPointIndices.size(); ++i)
                 cout << "     [" << i << "] v=" << proximalVelsInG[i] << endl;
@@ -2012,7 +2013,6 @@ performImpactPruning(State& s,
                     energyDissipated[i] +=
                         (powerTime0_total_i + powerTime1_total_i) * 0.5;
                 }
-
                 //if (PrintDebugInfoImpact) {
                 //    cout << "\nEnergy calculation for proximal point " << i
                 //         << ":"
@@ -2026,7 +2026,6 @@ performImpactPruning(State& s,
                 //         << powerTime1_norm
                 //         << endl;
                 //}
-
             }
         }
 
@@ -2797,11 +2796,8 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
             asc.worstConstraint  = ProximalPointIndex(0); //Index is arbitrary.
             return;
         }
-        if (PrintDebugInfoImpact) {
-            cout << "\n\n-> iteration #" << numNewtonIters
-                 << "\n   piGuessCurr = " << piGuessCurr
-                 << "\n   piErrCurr   = " << piErrCurr << endl;
-        }
+        if (PrintDebugInfoImpact)
+            cout << "\n\n-> iteration #" << numNewtonIters << endl;
 
         // Reset Jacobian and error vector to ensure they are being set below.
         for (int i=0; i<M; ++i) {
@@ -2813,11 +2809,9 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
         // Form error vector F.
         updErrorVectorForNewton(s, impactPhase, restitutionImpulses, asc, F, A,
                                 piGuessCurr);
-
         // Calculate current error.
         piErrPrev = piErrCurr;
         piErrCurr = F.norm();
-
         // Break if error is sufficiently small.
         if (piErrCurr < TolPiDuringNewton)
             break;
@@ -2863,19 +2857,13 @@ void Impacter::generateAndSolveUsingNewton(const State& s0,
             // Form error vector F.
             updErrorVectorForNewton(s, impactPhase, restitutionImpulses, asc, F,
                                     A, piGuessCurr);
-            if (PrintDebugInfoImpact)
-                cout << "err = " << F << endl;
-
             // Exit condition.
             piErrCurr = F.norm();
             if (piErrCurr < piErrPrev)
                 break;
         }
-
-        if (PrintDebugInfoImpact) {
+        if (PrintDebugInfoImpact)
             cout << "-> iteration complete, piGuessCurr=" << piGuessCurr << endl;
-        }
-
     }
 
     // Solution found. Apply min to vertical impulses (it is applied when error
@@ -2951,7 +2939,6 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
     {
         bool factorIterFailed = false;      //Flag for catching non-convergence
                                             //of Newton step size iteration.
-
         if (PrintDebugInfoImpact)
             cout << "[alpha = " << alphaGuess << "]" << endl;
 
@@ -2967,11 +2954,8 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
                 asc.worstConstraint  = ProximalPointIndex(0); //Arbitrary index.
                 return -1.0;
             }
-            if (PrintDebugInfoImpact) {
-                cout << "\n\n-> iteration #" << numNewtonIters
-                     << "\n   piGuessCurr = " << piGuessCurr
-                     << "\n   piErrCurr   = " << piErrCurr << endl;
-            }
+            if (PrintDebugInfoImpact)
+                cout << "\n\n-> iteration #" << numNewtonIters << endl;
 
             // Reset Jacobian and error vector to ensure they are being set
             // below.
@@ -2983,21 +2967,17 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
             // Form error vector F.
             updErrorVectorForNewtonWithAlpha(s, impactPhase,
-                restitutionImpulses, asc, F, A, piGuessCurr, alphaGuess,
-                alphaGuess);
-
+                restitutionImpulses, asc, F, A, piGuessCurr, alphaGuess);
             // Calculate current error.
             piErrPrev = piErrCurr;
             piErrCurr = F.norm();
-
             // Break if error is sufficiently small.
             if (piErrCurr < TolPiDuringNewton)
                 break;
 
             // Form Jacobian J.
             updJacobianMatrixForNewtonWithAlpha(s, impactPhase,
-                restitutionImpulses, asc, J, A, piGuessCurr, alphaGuess,
-                alphaGuess);
+                restitutionImpulses, asc, J, A, piGuessCurr, alphaGuess);
 
             // Calculate Newton step (sol is delta_pi).
             for (int i=0; i<F.nrow(); ++i)
@@ -3008,7 +2988,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
             // Find the Newton step size that decreases the error, and take the
             // step.
-            Real factor        = alphaGuess;
+            Real factor        = 1.0;
             int numFactorIters = 0;
             factorIterFailed   = false;
 
@@ -3035,8 +3015,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
 
                 // Form error vector F.
                 updErrorVectorForNewtonWithAlpha(s, impactPhase,
-                    restitutionImpulses, asc, F, A, piGuessCurr, alphaGuess,
-                    factor);
+                    restitutionImpulses, asc, F, A, piGuessCurr, alphaGuess);
                 if (PrintDebugInfoImpact)
                     cout << "err = " << F << endl;
 
@@ -3046,11 +3025,9 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
                 if (piErrCurr < piErrPrev)
                     break;
             }
-
-            if (PrintDebugInfoImpact) {
+            if (PrintDebugInfoImpact)
                 cout << "-> iteration complete, piGuessCurr=" << piGuessCurr
                      << endl;
-            }
 
             // Catch convergence failures for Newton step size.
             if (factorIterFailed) {
@@ -3075,7 +3052,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
             // impulses (it is applied when error is calculated, but must now be
             // applied directly to piGuessCurr). Scale pi by alphaGuess.
             for (int i=0; i<piGuessCurr.nrow(); ++i)
-                piGuessCurr[i] = alphaGuess * piStarCrisp(piGuessCurr,i);
+                piGuessCurr[i] = piStarCrisp(piGuessCurr,i);
 
             // Calculate system velocity changes.
             Vector temp = -(MinvGtranspose * piGuessCurr);
@@ -3106,15 +3083,13 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
                                       proximalVelsInG, asc);
             if (alphaStepLengthCalc >= alphaGuess)
             {
-                if (PrintDebugInfoImpact) {
+                if (PrintDebugInfoImpact)
                     cout << "[alpha iteration complete; alpha=" << alphaGuess
                          << "]" << endl;
-                }
                 break;
             } else {
-                if (PrintDebugInfoImpact) {
+                if (PrintDebugInfoImpact)
                     cout << "[alpha being reduced]" << endl;
-                }
             }
         }
 
@@ -3126,10 +3101,8 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
         // Decrease alphaGuess in preparation for next alpha iteration.
         alphaGuess = (alphaStepLengthCalc < alphaGuess) ? alphaStepLengthCalc
                      : alphaGuess*StepSizeReductionFact;
-        if (PrintDebugInfoImpact) {
+        if (PrintDebugInfoImpact)
             cout << "alpha is now " << alphaGuess << endl;
-            //char trash = getchar();
-        }
 
         // Reinitialize variables in preparation for next alpha iteration.
         for (int i=0; i<piGuessCurr.nrow(); ++i) {
@@ -3671,6 +3644,8 @@ void Impacter::updErrorVectorForNewton(const State& s,
         } //end if not observing
     } //end for each proximal point
 
+    if (PrintDebugInfoImpact)
+        cout << "err = " << F << endl;
     for (int i=0; i<F.nrow(); ++i)
         SimTK_ASSERT_ALWAYS(!isNaN(F[i]), "NaN detected in F!");
 }
@@ -3678,7 +3653,7 @@ void Impacter::updErrorVectorForNewton(const State& s,
 void Impacter::updErrorVectorForNewtonWithAlpha(const State& s,
     const ImpactPhase impactPhase, const Vector& restitutionImpulses,
     const ActiveSetCandidate& asc, Vector& F, Matrix& A,
-    const Vector& piGuess, const Real alphaGuess, const Real factor) const
+    const Vector& piGuess, const Real alphaGuess) const
 {
     for (ProximalPointIndex idx(0);
             idx<(int)m_proximalPointIndices.size(); ++idx)
@@ -3688,8 +3663,6 @@ void Impacter::updErrorVectorForNewtonWithAlpha(const State& s,
             // Current velocity at this proximal point.
             Vec3 currVelAtPoint = m_brick.findLowestPointVelocityInGround(s,
                                           m_proximalPointIndices[idx]);
-            for (int i=0; i<3; ++i)
-                currVelAtPoint[i] *= factor;
 
             // Row indices into Jacobian J corresponding to the constraints for
             // this proximal point.
@@ -3850,6 +3823,9 @@ void Impacter::updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
     const int  row_y = row_x + 1;
     const int  row_z = row_x + 2;
     const int  M     = A.ncol();
+    const Real v_x   = v0[0];
+    const Real v_y   = v0[1];
+    const Real vnorm = sqrt(v_x*v_x + v_y*v_y);
 
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
@@ -3858,9 +3834,18 @@ void Impacter::updErrorForSlidingWithAlpha(Vector& F, Matrix& A,
         AypiStar += A[row_y][i] * piStarCrisp(piGuess,i);
     }
 
+    // Sliding:
     // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
-    const Real dx    = -(v0[0] + 0.5*alphaGuess*AxpiStar);
-    const Real dy    = -(v0[1] + 0.5*alphaGuess*AypiStar);
+    Real dx = -(v_x + 0.5*alphaGuess*AxpiStar);
+    Real dy = -(v_y + 0.5*alphaGuess*AypiStar);
+
+    if (vnorm < TolVelocityFuzziness) {
+        // Impending:
+        // d_[k] = final velocity = ~[-A_x[k], -A_y[k]].piStar
+        //                        = ~[-A_x[k].piStar, -A_y[k].piStar]
+        dx = -AxpiStar;
+        dy = -AypiStar;
+    }
     const Real dnorm = sqrt(dx*dx + dy*dy);
 
     // F_x[k] = err_sliding,x = dnorm.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
@@ -4024,7 +4009,7 @@ void Impacter::updJacobianMatrixForNewton(const State& s,
 void Impacter::updJacobianMatrixForNewtonWithAlpha(const State& s,
     const ImpactPhase impactPhase, const Vector& restitutionImpulses,
     const ActiveSetCandidate& asc, Matrix& J, Matrix& A, const Vector& piGuess,
-    const Real alphaGuess, const Real factor) const
+    const Real alphaGuess) const
 {
     for (ProximalPointIndex idx(0);
             idx<(int)m_proximalPointIndices.size(); ++idx)
@@ -4034,8 +4019,6 @@ void Impacter::updJacobianMatrixForNewtonWithAlpha(const State& s,
             // Current velocity at this proximal point.
             Vec3 currVelAtPoint = m_brick.findLowestPointVelocityInGround(s,
                                           m_proximalPointIndices[idx]);
-            for (int i=0; i<3; ++i)
-                currVelAtPoint[i] *= factor;
 
             // Row indices into Jacobian J corresponding to the constraints for
             // this proximal point.
@@ -4233,8 +4216,11 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
     // err_sliding,x = ||d_[k]||.pi_x[k] - mu_[k].piStar_z[k].d_[k],x
     // Note that partial derivatives for err_sliding,x are unique for pi_x[k],
     // pi_y[k], pi_z[k], and pi_i where i not in {x[k],y[k],z[k]}.
-    const int row_y = row_x + 1;
-    const int row_z = row_x + 2;
+    const int  row_y = row_x + 1;
+    const int  row_z = row_x + 2;
+    Real v_x   = v0[0];
+    Real v_y   = v0[1];
+    Real vnorm = sqrt(v_x*v_x + v_y*v_y);
 
     Real AxpiStar = 0.0;
     Real AypiStar = 0.0;
@@ -4243,10 +4229,17 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
         AypiStar += A[row_y][i] * piStar(piGuess,i);
     }
 
+    // If impending, clear fuzzy velocities and proceed with sliding equations.
+    if (vnorm < TolVelocityFuzziness) {
+        v_x   = 0.0;
+        v_y   = 0.0;
+        vnorm = 0.0;
+    }
+
     // d_[k] = intermediate velocity = v0 + 1/2.alpha.(A_xy.piStar)
-    const Real dx    = -(v0[0] + 0.5*alphaGuess*AxpiStar);
-    const Real dy    = -(v0[1] + 0.5*alphaGuess*AypiStar);
-    const Real dnorm = sqrt(dx*dx + dy*dy);
+    Real dx    = -(v_x + 0.5*alphaGuess*AxpiStar);
+    Real dy    = -(v_y + 0.5*alphaGuess*AypiStar);
+    Real dnorm = sqrt(dx*dx + dy*dy);
 
     // d(d_[k])/d(pi)
     // The same partial for any pi_duck.
@@ -4263,7 +4256,7 @@ void Impacter::updJacobianForSlidingWithAlpha(Matrix& J, Matrix& A,
     // par_dnorm_par_pi[i] is the partial relative to piGuess[i].
     Vector par_dnorm_par_pi = Vector(A.ncol(), 0.0);
     for (int i=0; i<A.ncol(); ++i) {
-        const Real t1 = v0[0]*A[row_x][i] + v0[1]*A[row_y][i];
+        const Real t1 = v_x*A[row_x][i] + v_y*A[row_y][i];
         const Real t2 = alphaGuess * 0.5 * t1 * dpiStar(piGuess,i);
         const Real t3 = AxpiStar*A[row_x][i] + AypiStar*A[row_y][i];
         const Real t4 = alphaGuess*alphaGuess * 0.25 * t3 * dpiStar(piGuess,i);
