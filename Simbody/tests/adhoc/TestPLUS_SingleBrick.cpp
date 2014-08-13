@@ -88,8 +88,8 @@ enum SolutionStrategy {
     SolStrat_NewtonsMethodWithPMD,   // Add maximally dissipative directions.
 };
 //const SolutionStrategy SolStrat = SolStrat_FixedPointIteration;
-//const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
-const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
+const SolutionStrategy SolStrat = SolStrat_NewtonsMethod;
+//const SolutionStrategy SolStrat = SolStrat_NewtonsMethodWithPMD;
 
 const bool RunTestsOnePoint        = true;
 const bool RunTestsTwoPoints       = false;
@@ -109,7 +109,7 @@ const Real TolPiDuringNewton     = 1.0e-3;  //Iterate until error.norm() < tol.
 const Real MinMeaningfulAlpha    = 1.0e-2;  //Smallest acceptable step length.
 const Real MinMeaningfulImpulse  = 1.0e-6;  //Smallest acceptable impulse.
 const Real MaxStickingTangVel    = 1.0e-1;  //Cannot stick above this velocity.
-const Real MaxSlidingDirChange   = 0.5;     //Direction can change 28.6 degrees.
+const Real MaxSlidingDirChange   = 0.25;    //Limit on sliding direction change.
 const Real SlidingDirStepLength  = 1.0e-4;  //Used to determine slip directions.
 const Real StepSizeReductionFact = 0.7;     //Step size reduction for Newton.
 const Real alphaSearchResolution = 0.001;   //Search resolution for step length.
@@ -985,8 +985,11 @@ int main() {
             //simulateMultibodySystem("Test A4b: One point, large v_t, low mu",
             //                        initQ, initU, 1.0, 0.3, 1.0);
             initU[3] = -5.0;
+            //simulateMultibodySystem("Test A5: One point, large v_tangential",
+            //                        initQ, initU, 1.0, 0.3, 1.0);
+            initU[5] = -3.96;
             simulateMultibodySystem("Test A5: One point, large v_tangential",
-                                    initQ, initU, 1.0, 0.3, 1.0);
+                                    initQ, initU, 3.0, 0.3, 0.4);
             initU[3] = 1.0;
             initU[4] = 0.0;
             initU[5] = 0.0;
@@ -1803,6 +1806,9 @@ performImpactPruning(State& s,
                      Array_<bool,ProximalPointIndex>& hasRebounded,
                      Real& totalEnergyDissipated) const
 {
+    if (PrintDebugInfoImpactMinimal)
+        printf("Beginning impact at t=%0.6f s\n", s.getTime());
+
     // Calculate coefficients of restitution.
     Array_<Real,ProximalPointIndex> CORs(m_proximalPointIndices.size());
     for (ProximalPointIndex i(0); i<(int)m_proximalPointIndices.size(); ++i) {
@@ -1936,6 +1942,10 @@ performImpactPruning(State& s,
         const Real steplength = (!isNaN(alphaFound)) ? alphaFound :
                                 calculateIntervalStepLength(s, proximalVelsInG,
                                 bestAsc);
+        //Real steplength = (!isNaN(alphaFound)) ? alphaFound :
+        //                        calculateIntervalStepLength(s, proximalVelsInG,
+        //                        bestAsc);
+        //steplength = std::min(steplength, 0.05);
 
         SimTK_ASSERT_ALWAYS(!isNaN(steplength),
             "No suitable interval step length found.");
@@ -1991,7 +2001,15 @@ performImpactPruning(State& s,
         if (PrintDebugInfoImpact || PrintDebugInfoImpactMinimal)
             for (ProximalPointIndex i(0);
                  i<(int)m_proximalPointIndices.size(); ++i)
+            {
                 cout << "     [" << i << "] v=" << proximalVelsInG[i] << endl;
+                //cout << "i=i+1; v(i,:)=[" << proximalVelsInG[i].get(0) << ","
+                //     << proximalVelsInG[i].get(1) << "];" << endl;
+                //cout << "imp(i,:)=["
+                //     << bestAsc.localImpulses[constraintIdx*3]*steplength << ","
+                //     << bestAsc.localImpulses[constraintIdx*3+1]*steplength
+                //     << "];" << endl;
+            }
 
         // Calculate energy dissipated.
         constraintIdx = -1;
