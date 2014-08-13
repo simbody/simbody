@@ -73,7 +73,7 @@ const bool PrintDebugInfoImpact          = false;
 const bool PrintDebugInfoImpactMinimal   = true;   //Display minimal info.
 const bool PrintDebugInfoActiveSetSearch = false;
 const bool PrintDebugInfoStepLength      = false;
-const bool PrintOutputForMatlab          = true;   //Matlab-ready formatting of
+const bool PrintOutputForMatlab          = false;   //Matlab-ready formatting of
                                                    //velocities and impulses.
 const bool ExhaustiveSearchProjection  = false;
 const bool ExhaustiveSearchImpact      = false;
@@ -1490,13 +1490,7 @@ performImpactExhaustive(State& s,
                 alphaFound = generateAndSolveUsingNewtonWithPMD(s, impactPhase,
                                  restitutionImpulses, proximalVelsInG,
                                  activeSetCandidates[i]);
-                cout << "alphaFound = " << alphaFound << endl;
-            } else {
-                //alphaFound = generateAndSolveUsingNewtonWithPMDInclAlpha(s,
-                //                 impactPhase, restitutionImpulses,
-                //                 proximalVelsInG, activeSetCandidates[i]);
                 //cout << "alphaFound = " << alphaFound << endl;
-                //char trash = getchar();
             }
             evaluateLinearSystemSolution(s, impactPhase, restitutionImpulses,
                                          activeSetCandidates[i]);
@@ -1824,13 +1818,6 @@ performImpactPruning(State& s,
             } else if (SolStrat == SolStrat_NewtonsMethodWithPMD) {
                 alphaFound = generateAndSolveUsingNewtonWithPMD(s, impactPhase,
                                  restitutionImpulses, proximalVelsInG, asc);
-                cout << "alphaFound = " << alphaFound << endl;
-            } else {
-                //alphaFound = generateAndSolveUsingNewtonWithPMDInclAlpha(s,
-                //                 impactPhase, restitutionImpulses,
-                //                 proximalVelsInG, asc);
-                //cout << "alphaFound = " << alphaFound << endl;
-                //char trash = getchar();
             }
             evaluateLinearSystemSolution(s,impactPhase,restitutionImpulses,asc);
 
@@ -2051,6 +2038,10 @@ performImpactPruning(State& s,
                 } else {
                     impactPhase = Restitution;
                     intervalCtr = 0;
+
+                    // Pause here if generating long Matlab output.
+                    //cout << "[end of compression phase]" << endl;
+                    //char trash = getchar();
                 }
             }
 
@@ -2923,6 +2914,7 @@ Real Impacter::generateAndSolveUsingNewtonWithPMD(const State& s0,
     // not leave, and sliding velocities that remain outside the tolerance
     // circle do not change direction more than the permitted amount).
     Real alphaGuess = 1.0;
+    //Real alphaGuess = 0.05;  //Maximum permissible alpha for Matlab plot.
 
     while (true)
     {
