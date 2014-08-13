@@ -39,18 +39,36 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
+//#define USE_SHERM_PARAMETERS
+#define USE_TOM_PARAMETERS
+
+
 Array_<State> saveEm;
 
 static const Real TimeScale = 1;
 static const Real FrameRate = 60;
-static const Real ReportInterval = TimeScale/FrameRate;
 static const Real ForceScale = .25;
 static const Real MomentScale = .5;
-
 const Vec3 BrickColor    = Blue;
 const Vec3 SphereColor   = Red;
 
+#ifdef USE_SHERM_PARAMETERS
+    static const Real ReportInterval = TimeScale/FrameRate;
+    static const Real VizReportInterval = .001;
+#endif
+#ifdef USE_TOM_PARAMETERS
+    static const Real ReportInterval = 1.e-4;
+    static const Real VizReportInterval = 1.e-4;
+#endif
 
+
+
+
+//==============================================================================
+//                            FORCE ARROW GENERATOR
+//==============================================================================
+// Draws ephemeral geometry that is displayed for only one frame. Also prints
+// the velocity of the first contact point to the console for analysis.
 class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
@@ -228,11 +246,22 @@ int main() {
     const Real rad = .1;    // Contact sphere radius
     const Real brickMass = 2;
 
-    const Real mu_d =.3; // dynamic friction
-    const Real mu_s =.3; // static friction
-    const Real mu_v = 0;  // viscous friction (1/v)
-    const Real dissipation = .1;
-    const Real fK = 1e6; // stiffness in pascals
+    #ifdef USE_SHERM_PARAMETERS
+        const Real mu_d =.3; // dynamic friction
+        const Real mu_s =.3; // static friction
+        const Real mu_v = 0;  // viscous friction (1/v)
+        const Real dissipation = .1;
+        const Real fK = 1e6; // stiffness in pascals
+        const Real simDuration = 5.;
+    #endif
+    #ifdef USE_TOM_PARAMETERS
+        const Real mu_d =.3; // dynamic friction
+        const Real mu_s =.3; // static friction
+        const Real mu_v = 0;  // viscous friction (1/v)
+        const Real dissipation = .1756;  //Second impact at 0.685 s.
+        const Real fK = 1e6; // stiffness in pascals
+        const Real simDuration = 0.5; //3.0; //0.8;
+    #endif
 
     const ContactMaterial material(fK,dissipation,mu_s,mu_d,mu_v);
 
@@ -289,10 +318,24 @@ int main() {
     State state = system.getDefaultState();
 
     // SET INITIAL CONDITIONS
-    brick.setQToFitTranslation(state, Vec3(0,2,.8));
-    brick.setQToFitRotation(state, Rotation(BodyRotationSequence, 
-                                            Pi/4, XAxis, Pi/6, YAxis));
-    brick.setUToFitLinearVelocity(state, Vec3(-5,0,0));
+    #ifdef USE_SHERM_PARAMETERS
+        brick.setQToFitTranslation(state, Vec3(0,2,.8));
+        brick.setQToFitRotation(state, Rotation(BodyRotationSequence, 
+                                                Pi/4, XAxis, Pi/6, YAxis));
+        brick.setUToFitLinearVelocity(state, Vec3(-5,0,0));
+    #endif
+    #ifdef USE_TOM_PARAMETERS
+        Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
+        initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis) *
+                                       Rotation(SimTK::Pi/6, YAxis))
+                            .asVec4());
+        Vector initU = Vector(Vec6(0,0,0, 0,0,6));
+        initQ[6] = 1.5;
+        initU[5] = -3.96;  //First impact at 0.181 s.
+        initU[3] = -5.0;
+        state.setQ(initQ);
+        state.setU(initU);
+    #endif
 
     saveEm.reserve(10000);
 
@@ -336,12 +379,12 @@ int main() {
     double cpuStart = cpuTime();
     double realStart = realTime();
     Real lastReport = -Infinity;
-    while (integ.getTime() < 5.) {
+    while (integ.getTime() < simDuration) {
         // Advance time by no more than ReportInterval. Might require multiple 
         // internal steps.
         integ.stepBy(ReportInterval);
 
-        if (integ.getTime() >= lastReport + .001) {
+        if (integ.getTime() >= lastReport + VizReportInterval) {
             // The state being used by the integrator.
             const State& s = integ.getState();
             viz.report(s);
