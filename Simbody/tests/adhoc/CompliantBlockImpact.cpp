@@ -47,7 +47,7 @@ static const bool GenerateAnimation = true;
 Array_<State> saveEm;
 
 static const Real TimeScale = 1;
-static const Real FrameRate = GenerateAnimation ? 600 : 60;
+static const Real FrameRate = GenerateAnimation ? 6000 : 60;
 static const Real ForceScale = .25;
 static const Real MomentScale = .5;
 const Vec3 BrickColor    = Blue;
@@ -58,9 +58,9 @@ const Vec3 SphereColor   = Red;
     static const Real VizReportInterval = .001;
 #endif
 #ifdef USE_TOM_PARAMETERS
-    static const Real ReportInterval = GenerateAnimation ? TimeScale/FrameRate
-                                                         : 1.e-4;
-    static const Real VizReportInterval = GenerateAnimation ? 0.001 : 1.e-4;
+    static const Real ReportInterval = GenerateAnimation
+                                       ? TimeScale/FrameRate*10. : 1.e-4;
+    static const Real VizReportInterval = GenerateAnimation ? 0.00005 : 1.e-4;
 #endif
 
 
@@ -75,7 +75,7 @@ public:
                         const CompliantContactSubsystem& complCont,
                         const MobilizedBody& brick) 
     :   m_mbs(system), m_compliant(complCont), m_brick(brick),
-        m_inContact(false) {}
+        m_inContact(false), m_hasCompressionEnded(false) {}
 
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
         const Vec3 frcColors[] = {Red,Orange,Cyan};
@@ -141,8 +141,6 @@ public:
             //geometry.push_back(momLine);
 
 
-
-
             ContactPatch patch;
             const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
             //cout << "patch for id" << id << " found=" << found << endl;
@@ -164,23 +162,32 @@ public:
                 // Make a red line that extends from the contact
                 // point in the direction of the slip velocity.
                 const Vec3 v     = detail.getSlipVelocity();
-                const Real vMag  = std::log10(v.norm()*6.e3);
+                const Real vMag  = std::max(0., std::log10(v.norm()*1.e3));
                 const Vec3 vDraw = v.normalize() * vMag;
-                const Vec3 pt0   = Vec3(pt[0], pt[1], 1.e-2);
+                const Vec3 pt0   = Vec3(pt[0], pt[1], 5.e-3);
                 const Vec3 pt1   = Vec3(pt[0]+2.*vDraw[0], pt[1]+2.*vDraw[1],
-                                        1.e-2);
-                Real colorFactor = m_velLines.size() / 25.; //26 lines total.
+                                        5.e-3);
+                Real colorFactor = m_velLines.size() / 31.; //32 lines total.
                 DecorativeLine slip(pt0, pt1);
                 slip.setLineThickness(3)
-                    .setColor(Vec3(1-colorFactor,0,colorFactor));
+                    .setColor(Vec3(1-colorFactor,0.,colorFactor));
 
-                // Store line for displaying in subsequent frames.
-                m_velLines.push_back(slip);
+                // Store line for displaying in subsequent frames, but only if
+                // in compression.
+                if (m_velLines.size() > 0 && v[ZAxis] > 0 && !m_hasCompressionEnded) {
+                    m_hasCompressionEnded = true;
+                    cout << m_velLines.size() << " lines drawn." << endl;
+                }
+
+                const bool inCompression = (v[ZAxis] <= 0)
+                                           && !m_hasCompressionEnded;
+                if (inCompression && vMag>0)
+                    m_velLines.push_back(slip);
 
                 for (int k=0; k<(int)m_velLines.size(); ++k)
                     geometry.push_back(m_velLines[k]);
 
-                if (i==0 && !GenerateAnimation) // REPORT ONLY FIRST CONTACT
+                if (i==0 && inCompression && !GenerateAnimation) // REPORT ONLY FIRST CONTACT
                     printf("%8.4f %8.4f %8.4f\n", state.getTime(), v[0], v[1]);
             }
         }
@@ -203,6 +210,7 @@ private:
     const MobilizedBody&                m_brick;
     bool                                m_inContact;
     Array_<DecorativeLine>              m_velLines;
+    bool                                m_hasCompressionEnded;
 };
 
 
