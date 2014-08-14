@@ -86,16 +86,23 @@ public:
         m_mbs.realize(state, Stage::Dynamics);
         const Real KE=m_mbs.calcKineticEnergy(state), E=m_mbs.calcEnergy(state);
         const Real diss=m_compliant.getDissipatedEnergy(state);
+        const Real PE=m_mbs.calcPotentialEnergy(state);
         DecorativeText txt; 
         //txt.setIsScreenText(true);
-        txt.setScale(TextScale);
-        txt.setColor(Orange);
+        //txt.setScale(TextScale);
+        //txt.setColor(Orange);
         //txt.setText("KE/Diss/E: " + String(KE, "%.6f") + String(diss, "/%.6f")
         //            + String(E+diss, "/%.6f") );
         //const Vector qBrick = m_brick.getQAsVector(state);
         //geometry.push_back(DecorativeText(txt)
         //                   .setTransform(Vec3(qBrick[4],0,1)));
         //geometry.push_back(DecorativeText(txt).setTransform(Vec3(0,0,1)));
+
+        txt.setColor(Black).setScale(0.8);
+        txt.setText("Ed=" + String(diss, "%0.3f") );
+        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-6.75,-15,6.75)));
+        txt.setText("Et=" + String(E+diss, "%0.3f") );
+        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-6.95,-15,5.75)));
 
         int nContPts = 0;
         const int ncont = m_compliant.getNumContactForces(state);
@@ -195,12 +202,12 @@ public:
         //geometry.push_back(DecorativeText(txt)
         //                   .setTransform(Vec3(state.getQ()[4],0,.75)));
         txt.setText("t=" + String(state.getTime(), "%0.3f") + "s");
-        txt.setColor(Black);
-        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-3.25,-2,2.8)));
+        txt.setColor(Black).setScale(0.8);
+        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-7.5,-15,7.75)));
 
         if (nContPts>0) {
             txt.setText(String("Contacting"));
-            geometry.push_back(DecorativeText(txt).setTransform(Vec3(2.15,-2,2.8)));
+            geometry.push_back(DecorativeText(txt).setTransform(Vec3(9,-15,7.75)));
         }
 
     }
