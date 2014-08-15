@@ -32,16 +32,11 @@ namespace SimTK {
 std::string demangle(const char* name) {
     #if defined(__GNUG__)
         int status;
-        char* demangled = abi::__cxa_demangle(name, NULL, NULL, &status);
-        if (status == 0) {
-            // The demangling succeeded.
-            std::string demangledString(demangled);
-            std::free(demangled);
-            return demangledString;
-        } else {
-            // Return the mangled type name.
-            return name;
-        }
+        char* ret = abi::__cxa_demangle(name, NULL, NULL, &status);
+        const char* const demangled_name = (status == 0) ? ret : name;
+        std::string demangled_string(demangled_name);
+        std::free(ret);
+        return demangled_string;
     #else
         // On other platforms, we hope the typeid name is not mangled.
         return name;
