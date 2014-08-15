@@ -756,6 +756,8 @@ void testNiceTypeName() {
     cout << "packed_size_type<unsigned long long>=" 
         << NiceTypeName<ArrayIndexPackType<unsigned long long>::packed_size_type>::name() << endl;
     cout << NiceTypeName< Array_<String,char> >::name() << endl;
+    // Check demangling on GCC/Clang.
+    cout << NiceTypeName< Array_<String,char> >::namestr() << endl;
 }
 
 // The Array_ class is supposed to make better use of memory than does

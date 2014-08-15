@@ -733,30 +733,19 @@ static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
+/** Attempts to demangle a type name. Platform-dependent. */
+std::string demangle(const char* name);
+
 /** In case you don't like the name you get from typeid(), you can specialize
 this class to provide a nicer name. This is typically used for error messages 
 and testing. **/
-#if defined(__GNUG__)
-// https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
-    #include <cxxabi.h>
-    template <class T> struct NiceTypeName {
-        static const char* name() {
-            int status;
-            const char* niceName = abi::__cxa_demangle(typeid(T).name(), 0, 0,
-                &status);
-            if (status == 0) {
-                return niceName;
-            } else {
-                return typeid(T).name();
-            }
-        }
-    };
-#else
-    template <class T> struct NiceTypeName {
-        static const char* name() {return typeid(T).name();}
-    };
-#endif
-
+template <class T> struct NiceTypeName {
+    /** With GCC and Clang, this gives a mangled type name. */
+    static const char* name() {return typeid(T).name();}
+    /** This attempts to give a demangled type name in a
+     * platform-dependent way. */
+    static std::string namestr() {return demangle(name());}
+};
 
 } // namespace SimTK
 
@@ -769,6 +758,7 @@ be invoked if you already have that namespace open. **/
 #define SimTK_NICETYPENAME_LITERAL(T)               \
 namespace SimTK {                                   \
     template <> struct NiceTypeName< T > {          \
+        static std::string namestr() { return #T; } \
         static const char* name() { return #T; }    \
     };                                              \
 }
