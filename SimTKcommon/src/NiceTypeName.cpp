@@ -24,6 +24,7 @@
 #if defined(__GNUG__)
 // https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
     #include <cxxabi.h>
+    #include <cstdlib>
     #include <string>
 #endif
 
