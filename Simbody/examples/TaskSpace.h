@@ -556,7 +556,7 @@ TaskSpace::NullspaceProjection::transpose() const
 //==============================================================================
 Matrix TaskSpace::NullspaceProjectionTranspose::value() const
 {
-    return -(m_tspace.JT() * m_tspace.JBarT()) + 1;
+    return 1 - (m_tspace.JT() * m_tspace.JBarT());
 }
 
 const TaskSpace::NullspaceProjection&
