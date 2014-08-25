@@ -466,13 +466,13 @@ public:
     /// @param[in] derivativeGain Units of N-m-s/rad
     ReachingAndGravityCompensation(const UpperBody& system,
             Vec3 stationLocationInLeftHand=Vec3(0, 0, 0),
-            double proportionalGain=100, double derivativeGain=100) :
+            double proportionalGain=100, double derivativeGain=20) :
         m_system(system), m_matter(system.getMatterSubsystem()),
         m_tspace(m_matter, system.getGravity()),
         m_stationLocationInLeftHand(stationLocationInLeftHand),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
-        m_desiredPosInGround(Vec3(0.5, 1.5, -0.1))
+        m_desiredPosInGround(Vec3(0.4, 1.5, -0.1))
     {
         m_tspace.addTask(m_system.getBody(UpperBody::hand_l),
                          m_stationLocationInLeftHand);
@@ -1049,10 +1049,6 @@ int main(int argc, char **argv)
            printf("%2d: %d\n", i, int(system.getUIndex(Biped::Coordinate(i))));
            }
            */
-
-        printf("Hit ENTER to simulate ... (ESC to quit)\n");
-        userInput->waitForAnyUserInput();
-        userInput->clear();
 
         const double startCPU  = cpuTime(), startTime = realTime();
 
