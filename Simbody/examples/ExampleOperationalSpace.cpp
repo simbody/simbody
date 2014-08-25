@@ -181,7 +181,7 @@ UpperBody::UpperBody()
     : m_matter(*this), m_forces(*this)
 {
 
-    m_matter.setShowDefaultGeometry(true); // TODO false);
+    m_matter.setShowDefaultGeometry(false);
 
     //--------------------------------------------------------------------------
     //                          Constants, etc.
@@ -544,8 +544,6 @@ private:
     Vec3 m_desiredPosInGround;
     static const unsigned int m_numTasks = 3;
     static const Vec3 m_targetColor;
-    const Random::Uniform m_rand;
-
 };
 
 const Vec3 ReachingAndGravityCompensation::m_targetColor = Vec3(1, 0, 0);
@@ -931,11 +929,6 @@ void ReachingAndGravityCompensation::calcForce(
     // Combine the reaching task with the gravity compensation.
     // Gamma = JT F - NT g
     mobilityForces = ts.JT() * F + ts.NT() * (ts.g() - state.getU());
-
-    if (m_rand.getValue() < 0.01)
-    {
-        std::cout << state.getTime() << " " << (m_desiredPosInGround - posInGround).norm() << " " << Fstar << " " << F << std::endl;
-    }
 }
 
 //==============================================================================
@@ -949,7 +942,7 @@ public:
             ReachingAndGravityCompensation& controller, Real interval)
         :
         PeriodicEventHandler(interval), m_silo(silo), m_controller(controller),
-        m_increment(0.01) {}
+        m_increment(0.05) {}
     void handleEvent(State& state, Real accuracy,
             bool& shouldTerminate) const OVERRIDE_11
     {
@@ -1051,7 +1044,8 @@ int main(int argc, char **argv)
                 new Visualizer::Reporter(viz, realTimeScale / frameRate));
 
         // Display message on the screen about how to start simulation.
-        DecorativeText help("Any input to start; ESC to quit");
+        DecorativeText help("Any input to start; ESC to quit. "
+                "Move target with arrow keys, PageUp and PageDown.");
         help.setIsScreenText(true);
         viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
 
