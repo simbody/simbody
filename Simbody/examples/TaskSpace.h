@@ -520,7 +520,9 @@ Vector TaskSpace::Gravity::systemGravity() const
             m_tspace.getState(),
             m_gravity.getBodyForces(m_tspace.getState()),
             g);
-    return g;
+    // Negate, since we want the 'g' that appears on the same side of the
+    // equations of motion as does the mass matrix. That is, M udot + C + g = F
+    return -g;
 }
 
 
@@ -554,13 +556,7 @@ TaskSpace::NullspaceProjection::transpose() const
 //==============================================================================
 Matrix TaskSpace::NullspaceProjectionTranspose::value() const
 {
-    // TODO can make ths identity once, or find a more efficient way.
-    unsigned int nu = m_tspace.getState().getNU();
-    Matrix identity(nu, nu);
-    identity.setToZero();
-    identity.diag().setTo(1.0);
-    
-    return -(m_tspace.JT() * m_tspace.JBarT()) + identity;
+    return -(m_tspace.JT() * m_tspace.JBarT()) + 1;
 }
 
 const TaskSpace::NullspaceProjection&

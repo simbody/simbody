@@ -181,7 +181,7 @@ UpperBody::UpperBody()
     : m_matter(*this), m_forces(*this)
 {
 
-    m_matter.setShowDefaultGeometry(false);
+    m_matter.setShowDefaultGeometry(true); // TODO false);
 
     //--------------------------------------------------------------------------
     //                          Constants, etc.
@@ -369,7 +369,7 @@ UpperBody::UpperBody()
         trunkInfo,          Vec3(0));
 
     // Neck angles are: q0=extension (about z), q1=bending (x), q2=rotation (y).
-    m_bodies[head] = MobilizedBody::Gimbal(
+    m_bodies[head] = MobilizedBody::Ball(
         m_bodies[trunk], Transform(Rzxy, Vec3(0.010143822053248,0.222711680750785,0)),
         headInfo, Rzxy);
     addMobilityLinearStop(m_bodies[head], 0, -80, 50); // extension
@@ -379,7 +379,7 @@ UpperBody::UpperBody()
     // Right arm.
     //-----------
     // Shoulder angles are q0=flexion, q1=adduction, q2=rotation
-    m_bodies[upperarm_r] = MobilizedBody::Gimbal(
+    m_bodies[upperarm_r] = MobilizedBody::Ball(
         m_bodies[trunk], Transform(Rzxy,
                 Vec3(-0.023921136233947,0.079313926824158,0.164710443657016)),
         upperarm_rInfo, Rzxy);
@@ -401,7 +401,7 @@ UpperBody::UpperBody()
 
     // Left arm.
     //----------
-    m_bodies[upperarm_l] = MobilizedBody::Gimbal(
+    m_bodies[upperarm_l] = MobilizedBody::Ball(
         m_bodies[trunk], Transform(Rzmxmy,
                 Vec3(-0.023921136233947,0.079313926824158,-0.164710443657016)),
         upperarm_lInfo, Rzmxmy);
@@ -465,7 +465,7 @@ public:
     /// @param[in] proportionalGain Units of N-m/rad
     /// @param[in] derivativeGain Units of N-m-s/rad
     ReachingAndGravityCompensation(const UpperBody& system,
-            Vec3 stationLocationInLeftHand=Vec3(0, 0, 0),
+            Vec3 stationLocationInLeftHand=Vec3(0.06, -0.04, 0),
             double proportionalGain=100, double derivativeGain=20) :
         m_system(system), m_matter(system.getMatterSubsystem()),
         m_tspace(m_matter, system.getGravity()),
@@ -493,6 +493,12 @@ public:
         geometry.push_back(DecorativeSphere(0.02)
                 .setTransform(getTarget())
                 .setColor(m_targetColor));
+        const MobilizedBody& leftHand = m_system.getBody(UpperBody::hand_l);
+        Vec3 posInGround = leftHand.findStationLocationInGround(state,
+                m_stationLocationInLeftHand);
+        geometry.push_back(DecorativeSphere(0.02)
+                .setTransform(posInGround)
+                .setColor(Vec3(0, 1, 0)));
     }
 
     const Vec3& getTarget() const { return m_desiredPosInGround; }
@@ -538,6 +544,7 @@ private:
     Vec3 m_desiredPosInGround;
     static const unsigned int m_numTasks = 3;
     static const Vec3 m_targetColor;
+    const Random::Uniform m_rand;
 
 };
 
@@ -923,7 +930,12 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Combine the reaching task with the gravity compensation.
     // Gamma = JT F - NT g
-    mobilityForces = ts.JT() * F + ts.NT() * (-ts.g());
+    mobilityForces = ts.JT() * F + ts.NT() * (ts.g() - state.getU());
+
+    if (m_rand.getValue() < 0.01)
+    {
+        std::cout << state.getTime() << " " << (m_desiredPosInGround - posInGround).norm() << " " << Fstar << " " << F << std::endl;
+    }
 }
 
 //==============================================================================
@@ -970,6 +982,16 @@ public:
                     m_silo.clear();
                     return;
                 }
+                else if (key == Visualizer::InputListener::KeyPageUp) {
+                    m_controller.updTarget()[XAxis] += m_increment;
+                    m_silo.clear();
+                    return;
+                }
+                else if (key == Visualizer::InputListener::KeyPageDown) {
+                    m_controller.updTarget()[XAxis] -= m_increment;
+                    m_silo.clear();
+                    return;
+                }
             }
         }
     }
@@ -1007,7 +1029,6 @@ int main(int argc, char **argv)
 
         // Create the system.
         UpperBody system;
-        system.updMatterSubsystem().setShowDefaultGeometry(false);
 
         // Add the controller.
         ReachingAndGravityCompensation* controller =
@@ -1049,6 +1070,9 @@ int main(int argc, char **argv)
            printf("%2d: %d\n", i, int(system.getUIndex(Biped::Coordinate(i))));
            }
            */
+
+        userInput->waitForAnyUserInput();
+        userInput->clear();
 
         const double startCPU  = cpuTime(), startTime = realTime();
 
