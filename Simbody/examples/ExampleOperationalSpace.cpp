@@ -472,7 +472,7 @@ public:
         m_stationLocationInLeftHand(stationLocationInLeftHand),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
-        m_desiredPosInGround(Vec3(0.5, 1.8, -0.1))
+        m_desiredPosInGround(Vec3(0.5, 1.5, -0.1))
     {
         m_tspace.addTask(m_system.getBody(UpperBody::hand_l),
                          m_stationLocationInLeftHand);
@@ -487,7 +487,17 @@ public:
     Real calcPotentialEnergy(const SimTK::State& state) const OVERRIDE_11
     { return 0; }
 
-    void setDesiredPosition(Vec3 pos) { m_desiredPosInGround = pos; }
+    void calcDecorativeGeometryAndAppend(const State & state, Stage stage,
+            Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
+    {
+        geometry.push_back(DecorativeSphere(0.02)
+                .setTransform(getTarget())
+                .setColor(m_targetColor));
+    }
+
+    const Vec3& getTarget() const { return m_desiredPosInGround; }
+    Vec3& updTarget() { return m_desiredPosInGround; }
+    void setTarget(Vec3 pos) { m_desiredPosInGround = pos; }
 
 private:
 
@@ -527,8 +537,11 @@ private:
     const double m_derivativeGain;
     Vec3 m_desiredPosInGround;
     static const unsigned int m_numTasks = 3;
+    static const Vec3 m_targetColor;
 
 };
+
+const Vec3 ReachingAndGravityCompensation::m_targetColor = Vec3(1, 0, 0);
 
 /*
 void ReachingAndGravityCompensation::calcTaskSpaceMassMatrix(
@@ -920,8 +933,11 @@ void ReachingAndGravityCompensation::calcForce(
 /// regular basis to poll the InputSilo for user input.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, Real interval) :
-        PeriodicEventHandler(interval), m_silo(silo) {}
+    UserInputHandler(Visualizer::InputSilo& silo,
+            ReachingAndGravityCompensation& controller, Real interval)
+        :
+        PeriodicEventHandler(interval), m_silo(silo), m_controller(controller),
+        m_increment(0.01) {}
     void handleEvent(State& state, Real accuracy,
             bool& shouldTerminate) const OVERRIDE_11
     {
@@ -933,11 +949,34 @@ public:
                     m_silo.clear();
                     return;
                 }
+                else if (key == Visualizer::InputListener::KeyRightArrow) {
+                    // z coordinate goes in and out of the screen.
+                    m_controller.updTarget()[ZAxis] -= m_increment;
+                    m_silo.clear();
+                    return;
+                }
+                else if (key == Visualizer::InputListener::KeyLeftArrow) {
+                    m_controller.updTarget()[ZAxis] += m_increment;
+                    m_silo.clear();
+                    return;
+                }
+                else if (key == Visualizer::InputListener::KeyUpArrow) {
+                    m_controller.updTarget()[YAxis] += m_increment;
+                    m_silo.clear();
+                    return;
+                }
+                else if (key == Visualizer::InputListener::KeyDownArrow) {
+                    m_controller.updTarget()[YAxis] -= m_increment;
+                    m_silo.clear();
+                    return;
+                }
             }
         }
     }
 private:
     Visualizer::InputSilo& m_silo;
+    ReachingAndGravityCompensation& m_controller;
+    const Real m_increment;
 };
 
 //==============================================================================
@@ -962,13 +1001,19 @@ int main(int argc, char **argv)
     try {
 
         // Set some options.
-        const double duration = 1.5; // seconds.
+        const double duration = Infinity; // seconds.
         const double realTimeScale = 1.0; // unitless.
         const double frameRate = 30.0; // frames per second.
 
         // Create the system.
         UpperBody system;
         system.updMatterSubsystem().setShowDefaultGeometry(false);
+
+        // Add the controller.
+        ReachingAndGravityCompensation* controller =
+            new ReachingAndGravityCompensation(system);
+        // Force::Custom takes ownership over controller.
+        Force::Custom control(system.updForceSubsystem(), controller);
 
         // Set up visualizer and event handlers.
         SimTK::Visualizer viz(system);
@@ -978,7 +1023,8 @@ int main(int argc, char **argv)
         viz.setShowSimTime(true);
         SimTK::Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
         viz.addInputListener(userInput);
-        system.addEventHandler(new UserInputHandler(*userInput, 0.1));
+        system.addEventHandler(
+                new UserInputHandler(*userInput, *controller, 0.1));
         system.addEventReporter(new OutputReporter(system, .01));
         system.addEventReporter(
                 new Visualizer::Reporter(viz, realTimeScale / frameRate));
@@ -987,12 +1033,6 @@ int main(int argc, char **argv)
         DecorativeText help("Any input to start; ESC to quit");
         help.setIsScreenText(true);
         viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
-
-        // Add the controller.
-        ReachingAndGravityCompensation* controller =
-            new ReachingAndGravityCompensation(system);
-        // Force::Custom takes ownership over controller.
-        Force::Custom control(system.updForceSubsystem(), controller);
 
         // Initialize the system and other related classes.
         State s;
