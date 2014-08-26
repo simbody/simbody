@@ -101,6 +101,13 @@ public:
         Vector operator*(const Vector& g) const;
     };
 
+    class InertialForces : public TaskSpaceQuantity<Vector> {
+    public:
+        InertialForces(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
+        Vector value() const OVERRIDE_11;
+        Vector operator+(const Vector& f) const;
+    };
+
     class Gravity : public TaskSpaceQuantity<Vector> {
     public:
         Gravity(const TaskSpace& tspace, const Force::Gravity& gravity) :
@@ -148,8 +155,22 @@ public:
     m_matter(matter), m_jacobian(*this), m_jacobianTranspose(*this),
     m_inertia(*this), m_inertiaInverse(*this),
     m_jacobianInverse(*this), m_jacobianInverseTranspose(*this),
-    m_gravity(*this, gravity), m_nullspace(*this), m_nullspaceTranspose(*this)
+    m_inertialForces(*this), m_gravity(*this, gravity),
+    m_nullspace(*this), m_nullspaceTranspose(*this)
     {}
+
+    void realizeTopology(State& state) const
+    {
+        // m_jacobian.realizeTopology(state);
+        // m_jacobianTranspose.realizeTopology(state);
+        // m_inertia.realizeTopology(state);
+        // m_inertiaInverse.realizeTopology(state);
+        // m_jacobianInverse.realizeTopology(state);
+        // m_jacobianInverseTranspose.realizeTopology(state);
+        // m_gravity.realizeTopology(state);
+        // m_nullspace.realizeTopology(state);
+        // m_nullspaceTranspose.realizeTopology(state);
+    }
 
     void addTask(MobilizedBodyIndex body, Vec3 station)
     {
@@ -169,6 +190,7 @@ public:
 
     void setState(const State& state) const
     {
+        // TODO is this okay?
         const_cast<TaskSpace*>(this)->m_state = &state;
     }
 
@@ -198,6 +220,7 @@ public:
     const DynamicallyConsistentJacobianInverseTranspose&
         getDynamicallyConsistentJacobianInverseTranspose() const
     { return m_jacobianInverseTranspose; }
+    const InertialForces& getInertialForces() const { return m_inertialForces; }
     const Gravity& getGravity() const { return m_gravity; }
     const NullspaceProjection& getNullspaceProjection() const
     { return m_nullspace; }
@@ -215,6 +238,7 @@ public:
     { return getDynamicallyConsistentJacobianInverse(); }
     const DynamicallyConsistentJacobianInverseTranspose& JBarT() const
     { return getDynamicallyConsistentJacobianInverseTranspose(); }
+    const InertialForces mu() const { return getInertialForces(); }
     const Gravity p() const { return getGravity(); }
     const NullspaceProjection& N() const { return getNullspaceProjection(); }
     const NullspaceProjectionTranspose NT() const
@@ -239,6 +263,7 @@ private:
     InertiaInverse m_inertiaInverse;
     DynamicallyConsistentJacobianInverse m_jacobianInverse;
     DynamicallyConsistentJacobianInverseTranspose m_jacobianInverseTranspose;
+    InertialForces m_inertialForces;
     Gravity m_gravity;
     NullspaceProjection m_nullspace;
     NullspaceProjectionTranspose m_nullspaceTranspose;
@@ -388,7 +413,7 @@ Matrix TaskSpace::InertiaInverse::value() const
 
     return J * MInvJt;
 
-    /*
+    /* TODO this should be more efficient.
     unsigned int nt = m_tspace.getNumTasks();
     unsigned int nst = m_tspace.getNumScalarTasks();
     unsigned int nu = m_tspace.getState().getNU();
@@ -494,11 +519,45 @@ Vector TaskSpace::DynamicallyConsistentJacobianInverseTranspose::operator*(
 
 
 //==============================================================================
+// InertialForces
+//==============================================================================
+Vector TaskSpace::InertialForces::value() const
+{
+    Vector jointSpaceInertialForces;
+    m_tspace.getMatterSubsystem().calcResidualForceIgnoringConstraints(
+            m_tspace.getState(), Vector(0), Vector_<SpatialVec>(0), Vector(0),
+            jointSpaceInertialForces);
+
+    Vector JDotu;
+    m_tspace.getMatterSubsystem().calcBiasForStationJacobian(
+            m_tspace.getState(), 
+            m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
+            JDotu);
+
+    const DynamicallyConsistentJacobianInverseTranspose& JBarT =
+        m_tspace.JBarT();
+    const Vector& b = jointSpaceInertialForces;
+    const Inertia& Lambda = m_tspace.Lambda();
+
+    return  JBarT * b - Lambda * JDotu;
+}
+
+Vector TaskSpace::InertialForces::operator+(const Vector& f) const
+{
+    return value() + f;
+}
+
+Vector operator+(const Vector& f, const TaskSpace::InertialForces& p)
+{
+    return f + p.value();
+}
+
+
+//==============================================================================
 // Gravity
 //==============================================================================
 Vector TaskSpace::Gravity::value() const
 {
-
     return m_tspace.JBarT() * systemGravity();
 }
 
@@ -523,16 +582,6 @@ Vector TaskSpace::Gravity::systemGravity() const
     // Negate, since we want the 'g' that appears on the same side of the
     // equations of motion as does the mass matrix. That is, M udot + C + g = F
     return -g;
-}
-
-
-//==============================================================================
-// Gravity
-//==============================================================================
-// TODO account for applied forces? velocities?
-Vector TaskSpace::calcInverseDynamics(const Vector& taskAccelerations) const
-{
-    return Lambda() * taskAccelerations + p();
 }
 
 
@@ -570,6 +619,16 @@ Vector TaskSpace::NullspaceProjectionTranspose::operator*(const Vector& vec)
 {
     // TODO
     return value() * vec;
+}
+
+
+//==============================================================================
+// TaskSpace
+//==============================================================================
+// TODO account for applied forces? velocities?
+Vector TaskSpace::calcInverseDynamics(const Vector& taskAccelerations) const
+{
+    return Lambda() * taskAccelerations + mu() + p();
 }
 
 } // end namespace

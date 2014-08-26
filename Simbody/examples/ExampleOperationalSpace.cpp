@@ -32,6 +32,13 @@
  * 1. One arm reaches for a target point
  * 2. All bodies are subject to gravity compensation (to counteract the effect
  * of gravity).
+ * 
+ * TODO inertial forces vector, in TaskSpace (1)
+ * TODO cache computations (2)
+ * TODO make computations efficient (3)
+ * TODO document TaskSpace
+ * TODO write missing method in Simbody to return a Vector.
+ * TODO put nullspace subtraction elsewhere.
  */
 
 #include "TaskSpace.h"
@@ -513,6 +520,12 @@ public:
                 .setColor(Vec3(0, 1, 0)));
     }
 
+    void realizeTopology(State& state) const OVERRIDE_11
+    {
+        m_tspace1.realizeTopology(state);
+        m_tspace2.realizeTopology(state);
+    }
+
     const Vec3& getTarget() const { return m_desiredLeftPosInGround; }
     Vec3& updTarget() { return m_desiredLeftPosInGround; }
     void setTarget(Vec3 pos) { m_desiredLeftPosInGround = pos; }
@@ -747,7 +760,7 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Compute task-space force that achieves the task-space control.
     // F = Lambda Fstar + p
-    Vector F1 = p1.Lambda() * Fstar1 + p1.p();
+    Vector F1 = p1.Lambda() * Fstar1 + p1.mu() + p1.p();
     Vector F2 = p2.calcInverseDynamics(Fstar2);
 
     // Combine the reaching task with the gravity compensation and nullspace
