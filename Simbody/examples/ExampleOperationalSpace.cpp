@@ -33,12 +33,13 @@
  * 2. All bodies are subject to gravity compensation (to counteract the effect
  * of gravity).
  * 
- * TODO inertial forces vector, in TaskSpace (1)
+ *      TODO inertial forces vector, in TaskSpace (1)
  * TODO cache computations (2)
  * TODO make computations efficient (3)
  * TODO document TaskSpace
  * TODO write missing method in Simbody to return a Vector.
  * TODO put nullspace subtraction elsewhere.
+ * TODO missing operators.
  */
 
 #include "TaskSpace.h"

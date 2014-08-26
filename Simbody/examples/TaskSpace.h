@@ -10,14 +10,40 @@ public:
     // nested classes
     //==========================================================================
 
-    template <typename T>
+    template <typename T, Stage::Level S=Stage::Position>
     class TaskSpaceQuantity
     {
     public:
         TaskSpaceQuantity(const TaskSpace& tspace) : m_tspace(tspace) {}
         virtual T value() const = 0;
+        void realizeTopology(State& state) const
+        {
+            const_cast<TaskSpaceQuantity*>(this)->m_cacheIndex =
+                m_tspace.getMatterSubsystem().allocateLazyCacheEntry(state,
+                        S, new Value<T>());
+        }
+
     protected:
+        bool isCacheValueRealized() const {
+            return m_tspace.isCacheValueRealized(m_cacheIndex);
+        }
+    
+        void markCacheValueRealized() const {
+            return m_tspace.markCacheValueRealized(m_cacheIndex);
+        }
+    
+        const T& getCacheValue() const {
+            return Value<T>::downcast(m_tspace.getCacheEntry(m_cacheIndex));
+        }
+    
+        T& updCacheValue() const {
+            return Value<T>::updDowncast(m_tspace.updCacheEntry(m_cacheIndex));
+        }
+
         const TaskSpace& m_tspace;
+
+    private:
+        CacheEntryIndex m_cacheIndex;
     };
 
     // Forward declaration.
@@ -101,7 +127,7 @@ public:
         Vector operator*(const Vector& g) const;
     };
 
-    class InertialForces : public TaskSpaceQuantity<Vector> {
+    class InertialForces : public TaskSpaceQuantity<Vector, Stage::Velocity> {
     public:
         InertialForces(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
         Vector value() const OVERRIDE_11;
@@ -161,15 +187,15 @@ public:
 
     void realizeTopology(State& state) const
     {
-        // m_jacobian.realizeTopology(state);
-        // m_jacobianTranspose.realizeTopology(state);
-        // m_inertia.realizeTopology(state);
-        // m_inertiaInverse.realizeTopology(state);
-        // m_jacobianInverse.realizeTopology(state);
-        // m_jacobianInverseTranspose.realizeTopology(state);
-        // m_gravity.realizeTopology(state);
-        // m_nullspace.realizeTopology(state);
-        // m_nullspaceTranspose.realizeTopology(state);
+        m_jacobian.realizeTopology(state);
+        m_jacobianTranspose.realizeTopology(state);
+        m_inertia.realizeTopology(state);
+        m_inertiaInverse.realizeTopology(state);
+        m_jacobianInverse.realizeTopology(state);
+        m_jacobianInverseTranspose.realizeTopology(state);
+        m_gravity.realizeTopology(state);
+        m_nullspace.realizeTopology(state);
+        m_nullspaceTranspose.realizeTopology(state);
     }
 
     void addTask(MobilizedBodyIndex body, Vec3 station)
@@ -250,6 +276,22 @@ public:
     Vector g() const { return getGravity().g(); }
 
 private:
+
+    bool isCacheValueRealized(CacheEntryIndex index) const {
+        return m_matter.isCacheValueRealized(*m_state, index);
+    }
+
+    void markCacheValueRealized(CacheEntryIndex index) const {
+        return m_matter.markCacheValueRealized(*m_state, index);
+    }
+
+    const AbstractValue& getCacheEntry(CacheEntryIndex index) const {
+        return m_matter.getCacheEntry(*m_state, index);
+    }
+
+    AbstractValue& updCacheEntry(CacheEntryIndex index) const {
+        return m_matter.updCacheEntry(*m_state, index);
+    }
 
     const SimbodyMatterSubsystem& m_matter;
     const State* m_state;
@@ -375,10 +417,14 @@ Matrix TaskSpace::JacobianTranspose::operator*(
 //==============================================================================
 Matrix TaskSpace::Inertia::value() const
 {
-    FactorLU inertiaInverse(m_tspace.getInertiaInverse().value());
-    Matrix inertia;
-    inertiaInverse.inverse(inertia);
-    return inertia;
+    if (!isCacheValueRealized()) {
+
+        FactorLU inertiaInverse(m_tspace.getInertiaInverse().value());
+        inertiaInverse.inverse(updCacheValue());
+
+        markCacheValueRealized();
+    }
+    return getCacheValue();
 }
 
 const TaskSpace::InertiaInverse& TaskSpace::Inertia::inverse() const
