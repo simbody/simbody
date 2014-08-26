@@ -1050,9 +1050,8 @@ calcSurfaceCurvatureInDirection(const Vec3& point,
 //  [1] Snyder, John. Deriving the Weingarten Map. Microsoft Research 2011
 //      http://research.microsoft.com/en-us/um/people/johnsny/papers/weingarten.docx
 //  [2] Zhihong, Mao. Curvature computing based on shape operator for 
-//      implicit surfaces. (paper.edu.cn, 2013)
-//      http://www.paper.edu.cn/en_releasepaper/downPaper/201312-671
-//      (look for the English translations)
+//      implicit surfaces. (www.paper.edu.cn, 2013)
+//      http://www.paper.edu.cn/index.php/default/en_releasepaper/content/4574762
 // If the above links are dead, I have pdfs.
 //
 // I used Snyder's idea for forming the Weingarten Map (see eqn. 10) and 
