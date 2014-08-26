@@ -1064,7 +1064,7 @@ calcSurfacePrincipalCurvatures(const Vec3&  point,
 {
     const UnitVec3 nn = calcSurfaceUnitNormal(point);
     const Vec3     g  = calcSurfaceGradient(point);
-	const Mat33    H  = calcSurfaceHessian(point);
+    const Mat33    H  = calcSurfaceHessian(point);
 
     // 1/2 signed length of gradient. The 1/2 here simplifies the rest of
     // the code but makes it not quite match the papers.
