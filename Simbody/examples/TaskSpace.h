@@ -59,8 +59,7 @@ public:
         void realizeCacheEntry() const OVERRIDE_11;
         const JacobianTranspose& transpose() const;
         const JacobianTranspose& operator~() { return transpose(); }
-        // TODO Vector_<Vec3> operator*(const Vector& u) const;
-        // TODO Vector operator*(const Vector& u) const;
+        Vector operator*(const Vector& u) const;
         // TODO Matrix_<Vec3> operator*(const Matrix& u) const;
         // TODO Matrix operator*(const Matrix& u) const;
         // TODO Matrix operator*(const NullspaceProjection& N) const;
@@ -76,7 +75,6 @@ public:
         void realizeCacheEntry() const OVERRIDE_11;
         const Jacobian& transpose() const;
         const Jacobian& operator~() { return transpose(); }
-        // TODO I want the input to be a Vector.
         Vector operator*(const Vector_<Vec3>& f_GP) const;
         Vector operator*(const Vector& f_GP) const;
         Vector operator*(const Vec3& f_GP) const;
@@ -117,6 +115,7 @@ public:
         const DynamicallyConsistentJacobianInverseTranspose& transpose() const;
         const DynamicallyConsistentJacobianInverseTranspose& operator~() const
         { return transpose(); }
+        Vector operator*(const Vector& vec) const;
         Matrix operator*(const Matrix& mat) const;
     };
 
@@ -132,6 +131,7 @@ public:
         Vector operator*(const Vector& g) const;
     };
 
+    // JBar^T b - Lambda JDot u
     class InertialForces : public TaskSpaceQuantity<Vector, Stage::Velocity> {
     public:
         InertialForces(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
@@ -139,6 +139,7 @@ public:
         Vector operator+(const Vector& f) const;
     };
 
+    // JBar^T g
     class Gravity : public TaskSpaceQuantity<Vector> {
     public:
         Gravity(const TaskSpace& tspace, const Force::Gravity& gravity) :
@@ -161,6 +162,7 @@ public:
         const NullspaceProjectionTranspose& transpose() const;
         const NullspaceProjectionTranspose& operator~() const
         { return transpose(); }
+        Vector operator*(const Vector& vec) const;
     };
 
     class NullspaceProjectionTranspose : public TaskSpaceQuantity<Matrix> {
@@ -340,6 +342,18 @@ const TaskSpace::JacobianTranspose& TaskSpace::Jacobian::transpose() const
     return m_tspace.getJacobianTranspose();
 }
 
+Vector TaskSpace::Jacobian::operator*(const Vector& u) const
+{
+    /* TODO
+    Vector_<Vec3> Ju;
+    matter.multiplyByStationJacobian(m_tspace.getState(),
+            m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
+            u, Ju);
+    return Ju;
+    */
+    return value() * u;
+}
+
 
 //==============================================================================
 // JacobianTranspose
@@ -459,8 +473,13 @@ void TaskSpace::InertiaInverse::realizeCacheEntry() const
     if (isCacheValueRealized())
         return;
 
-    // TODO cache the result.
     const SimbodyMatterSubsystem& matter = m_tspace.getMatterSubsystem();
+
+    const JacobianTranspose& JT = m_tspace.JT();
+    // TODO const Matrix& JT = m_tspace.JT().value();
+    const Matrix& J = m_tspace.J().value();
+    /* TODO 
+    // TODO cache the result.
 
     unsigned int nst = m_tspace.getNumScalarTasks();
     unsigned int nu = m_tspace.getState().getNU();
@@ -475,13 +494,14 @@ void TaskSpace::InertiaInverse::realizeCacheEntry() const
     }
 
     updCacheValue() = J * MInvJt;
+    */
 
-    /* TODO this should be more efficient.
     unsigned int nt = m_tspace.getNumTasks();
     unsigned int nst = m_tspace.getNumScalarTasks();
     unsigned int nu = m_tspace.getState().getNU();
 
-    Matrix inertiaInverse(nst, nst);
+    Matrix& inertiaInverse = updCacheValue();
+    inertiaInverse.resize(nst, nst);
 
     // Create temporary variables.
     Vector Jtcol(nu);
@@ -490,29 +510,26 @@ void TaskSpace::InertiaInverse::realizeCacheEntry() const
 
     // f_GP is used to pluck out one column at a time of Jt. Exactly one
     // element at a time of f_GP will be 1, the rest are 0.
-    Vector_<Vec3> f_GP(nt, Vec3(0));
+    Vector f_GP(nst, Real(0));
 
     for (unsigned int j = 0; j < nst; ++j)
     {
-        unsigned int iTask = floor(j / 3);
-        unsigned iDim = j % 3;
-
-        f_GP[iTask][iDim] = 1;
-        matter.multiplyByStationJacobianTranspose( m_tspace.getState(),
-                m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
-                f_GP, Jtcol);
-        f_GP[iTask][iDim] = 0;
+        f_GP[j] = 1;
+        Jtcol = JT * f_GP;
+        f_GP[j] = 0;
 
         matter.multiplyByMInv(m_tspace.getState(), Jtcol, MInvJtcol);
 
+        // TODO replace with operator.
+        inertiaInverse(j) = J * MInvJtcol;
+        /* TODO
         matter.multiplyByStationJacobian(m_tspace.getState(),
                 m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
                 MInvJtcol, JMInvJt_j);
-        inertiaInverse(j) = JMInvJt_j;
-    }
 
-    return inertiaInverse;
-    */
+        inertiaInverse(j) = JMInvJt_j;
+        */
+    }
 
     markCacheValueRealized();
 }
@@ -558,10 +575,33 @@ TaskSpace::DynamicallyConsistentJacobianInverse::transpose() const
     return m_tspace.getDynamicallyConsistentJacobianInverseTranspose();
 }
 
+Vector TaskSpace::DynamicallyConsistentJacobianInverse::operator*(
+        const Vector& vec) const
+{
+    const JacobianTranspose& JT = m_tspace.getJacobianTranspose();
+    const Inertia& Lambda = m_tspace.getInertia();
+
+    // TODO where is this even used? TODO test this.
+
+    Vector JBarvec;
+    m_tspace.getMatterSubsystem().multiplyByMInv(m_tspace.getState(),
+            JT * (Lambda * vec), JBarvec);
+    return  JBarvec;
+}
+
 Matrix TaskSpace::DynamicallyConsistentJacobianInverse::operator*(
         const Matrix& mat) const
 {
-    return value() * mat;
+    unsigned int nrow = m_tspace.getState().getNU();
+    unsigned int ncol = mat.ncol();
+
+    Matrix out(nrow, ncol);
+    for (unsigned int j = 0; j < ncol; ++j)
+    {
+        out(j) = operator*(mat(j).getAsVector());
+    }
+
+    return out;
 }
 
 
@@ -589,7 +629,7 @@ TaskSpace::DynamicallyConsistentJacobianInverseTranspose::transpose() const
 Vector TaskSpace::DynamicallyConsistentJacobianInverseTranspose::operator*(
         const Vector& g) const
 {
-    // TODO inefficient
+    // TODO inefficient. can we have an MInvT operator??
     return value() * g;
 }
 
@@ -600,9 +640,7 @@ Vector TaskSpace::DynamicallyConsistentJacobianInverseTranspose::operator*(
 void TaskSpace::InertialForces::realizeCacheEntry() const
 {
     if (isCacheValueRealized())
-    {
         return;
-    }
 
     Vector jointSpaceInertialForces;
     m_tspace.getMatterSubsystem().calcResidualForceIgnoringConstraints(
@@ -691,6 +729,12 @@ const TaskSpace::NullspaceProjectionTranspose&
 TaskSpace::NullspaceProjection::transpose() const
 {
     return m_tspace.getNullspaceProjectionTranspose();
+}
+
+Vector TaskSpace::NullspaceProjection::operator*(const Vector& vec)
+    const
+{
+    return vec - m_tspace.JBar() * (m_tspace.J() * vec);
 }
 
 
