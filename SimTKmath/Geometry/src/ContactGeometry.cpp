@@ -1082,6 +1082,21 @@ calcSurfacePrincipalCurvatures(const Vec3&  point,
     // Weingarten or Shape operator is a 2x2 sym matrix 2*[a b;b c].
     // Its eigenvalues are the principal curvatures and eigenvectors the
     // principal curvature directions in the t1,t2 basis.
+
+    // If b is zero then the matrix is diagonal and its eigenvalues are
+    // 2a and 2c in directions [1,0] (t1) and [0,1] (t2) resp. Must order 
+    // correctly so x is kmax direction and y kmin direction.
+    if (std::abs(b) < SignificantReal) {
+        if (a >= c) {
+            curvature = 2*Vec2(a,c);
+            R_SP = R_SF; // t1 is vmax, t2 is vmin
+        } else { // c > a so t2 is max direction; flip t1 so right handed
+            curvature = 2*Vec2(c,a);
+            R_SP.setRotationFromUnitVecsTrustMe(t2, -t1, nn);
+        }
+        return;
+    }
+
     const Real d = std::sqrt(square(a-c)+4*b*b);    // discriminant    ~25 flops
     curvature = Vec2(a+c + d, a+c - d);             // kmax, kmin        4
     const Vec2 vmax2(a-c + d, 2*b);                 //                   3
