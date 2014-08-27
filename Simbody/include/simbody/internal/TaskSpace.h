@@ -1,8 +1,33 @@
-#include <Simbody.h>
+/* -------------------------------------------------------------------------- *
+ *                               Simbody(tm)                                  *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK biosimulation toolkit originating from           *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
+ *                                                                            *
+ * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
+ * Authors: Chris Dembia                                                      *
+ * Contributors: Michael Sherman                                              *
+ *                                                                            *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
+ * not use this file except in compliance with the License. You may obtain a  *
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
+ *                                                                            *
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an "AS IS" BASIS,          *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
+ * -------------------------------------------------------------------------- */
+
+#include "simbody/internal/common.h"
+#include "SimTKmath.h"
+#include "SimbodyMatterSubsystem.h"
 
 namespace SimTK {
 
-class TaskSpace
+class SimTK_SIMBODY_EXPORT TaskSpace
 {
 public:
 
@@ -11,12 +36,10 @@ public:
     //==========================================================================
 
     template <typename T, Stage::Level S=Stage::Position>
-    class TaskSpaceQuantity
-    {
+    class TaskSpaceQuantity {
     public:
         TaskSpaceQuantity(const TaskSpace& tspace) : m_tspace(tspace) {}
-        const T& value() const
-        {
+        const T& value() const {
             realizeCacheEntry();
             return getCacheValue();
         }
@@ -95,6 +118,8 @@ public:
         const InertiaInverse& inverse() const;
         // TODO input is a sort of acceleration
         Vector operator*(const Vector& a) const;
+        // TODO convenience.
+        Vector operator*(const Vec3& a) const;
     };
 
     /// J M^{-1} J^T
@@ -176,9 +201,6 @@ public:
         Vector operator*(const Vector& vec) const;
     };
 
-    /// TODO class CoriolisForce; requires calcuating b. calcResidual minus
-    // gravity.
-
     //==========================================================================
     // TaskSpace class
     //==========================================================================
@@ -192,8 +214,7 @@ public:
     m_nullspace(*this), m_nullspaceTranspose(*this)
     {}
 
-    void realizeTopology(State& state) const
-    {
+    void realizeTopology(State& state) const {
         m_jacobian.realizeTopology(state);
         m_jacobianTranspose.realizeTopology(state);
         m_inertia.realizeTopology(state);
@@ -205,24 +226,20 @@ public:
         m_nullspaceTranspose.realizeTopology(state);
     }
 
-    void addTask(MobilizedBodyIndex body, Vec3 station)
-    {
+    void addTask(MobilizedBodyIndex body, Vec3 station) {
         m_indices.push_back(body);
         m_stations.push_back(station);
     }
 
-    unsigned int getNumTasks() const
-    {
+    unsigned int getNumTasks() const {
         return m_indices.size();
     }
 
-    unsigned int getNumScalarTasks() const
-    {
+    unsigned int getNumScalarTasks() const {
         return 3 * m_indices.size();
     }
 
-    void setState(const State& state) const
-    {
+    void setState(const State& state) const {
         // TODO is this okay?
         const_cast<TaskSpace*>(this)->m_state = &state;
     }
@@ -284,6 +301,10 @@ public:
 
 private:
 
+    //==========================================================================
+    // Cache value helpers.
+    //==========================================================================
+
     bool isCacheValueRealized(CacheEntryIndex index) const {
         return m_matter.isCacheValueRealized(*m_state, index);
     }
@@ -299,6 +320,10 @@ private:
     AbstractValue& updCacheEntry(CacheEntryIndex index) const {
         return m_matter.updCacheEntry(*m_state, index);
     }
+
+    //==========================================================================
+    // Member variables.
+    //==========================================================================
 
     const SimbodyMatterSubsystem& m_matter;
     const State* m_state;
@@ -344,14 +369,20 @@ const TaskSpace::JacobianTranspose& TaskSpace::Jacobian::transpose() const
 
 Vector TaskSpace::Jacobian::operator*(const Vector& u) const
 {
-    /* TODO
     Vector_<Vec3> Ju;
-    matter.multiplyByStationJacobian(m_tspace.getState(),
+    m_tspace.getMatterSubsystem().multiplyByStationJacobian(m_tspace.getState(),
             m_tspace.getMobilizedBodyIndices(), m_tspace.getStations(),
             u, Ju);
-    return Ju;
-    */
-    return value() * u;
+
+    // Convert to a Vector.
+    Vector out(3 * Ju.size());
+    for (unsigned int i = 0; i < Ju.size(); ++i) {
+        out[3 * i] = Ju[i][0];
+        out[3 * i + 1] = Ju[i][1];
+        out[3 * i + 2] = Ju[i][2];
+    }
+
+    return out;
 }
 
 
@@ -463,6 +494,11 @@ const TaskSpace::InertiaInverse& TaskSpace::Inertia::inverse() const
 Vector TaskSpace::Inertia::operator*(const Vector& a) const
 {
     return value() * a;
+}
+
+Vector TaskSpace::Inertia::operator*(const Vec3& a) const
+{
+    return operator*(Vector(a));
 }
 
 //==============================================================================
