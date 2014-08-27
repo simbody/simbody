@@ -46,8 +46,8 @@
 
 #include <Simbody.h>
 
-using namespace std;
 using namespace SimTK;
+using namespace std;
 
 #define DEG(rad) convertRadiansToDegrees(rad)
 #define RAD(deg) convertDegreesToRadians(deg)

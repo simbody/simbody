@@ -770,7 +770,7 @@ TaskSpace::NullspaceProjection::transpose() const
 Vector TaskSpace::NullspaceProjection::operator*(const Vector& vec)
     const
 {
-    return vec - m_tspace.JBar() * (m_tspace.J() * vec);
+    return vec - (m_tspace.JBar() * (m_tspace.J() * vec));
 }
 
 
@@ -796,7 +796,7 @@ TaskSpace::NullspaceProjectionTranspose::transpose() const
 Vector TaskSpace::NullspaceProjectionTranspose::operator*(const Vector& vec)
     const
 {
-    return vec - m_tspace.JT() * (m_tspace.JBarT() * vec);
+    return vec - (m_tspace.JT() * (m_tspace.JBarT() * vec));
 }
 
 
