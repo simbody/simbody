@@ -639,7 +639,7 @@ Humanoid::Humanoid()
     //--------------------------------------------------------------------------
     // Trunk.
     // ------
-    m_bodies[trunk] = MobilizedBody::Free(
+    m_bodies[trunk] = MobilizedBody::Weld(
         m_matter.updGround(), Vec3(0, 1.5, 0),
         trunkInfo,          Vec3(0));
 

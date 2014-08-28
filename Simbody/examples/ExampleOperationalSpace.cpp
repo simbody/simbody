@@ -414,8 +414,8 @@ int main(int argc, char **argv)
            }
            */
 
-        // TODO userInput->waitForAnyUserInput();
-        // TODO userInput->clear();
+        userInput->waitForAnyUserInput();
+        userInput->clear();
 
         const double startCPU  = cpuTime(), startTime = realTime();
 
