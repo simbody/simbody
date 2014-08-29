@@ -65,6 +65,7 @@ class HalfSpaceSphere;
 class HalfSpaceEllipsoid;
 class HalfSpaceBrick;
 class HalfSpaceTriangleMesh;
+class HalfSpaceConvexImplicit;
 class SphereSphere;
 class SphereTriangleMesh;
 class TriangleMeshTriangleMesh;
@@ -374,6 +375,34 @@ void tagFaces(const ContactGeometry::TriangleMesh&   mesh,
               std::set<int>&                         triangles, 
               int                                    index,
               int                                    depth) const;
+};
+
+
+//==============================================================================
+//                 HALFSPACE-CONVEX IMPLICIT CONTACT TRACKER
+//==============================================================================
+/** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
+and any ContactGeometry that can be considered a convex, implicit surface, 
+in that order. Don't use this if you know a faster way to deal with a 
+particular kind of ContactGeometry; this is last-ditch support for when
+you don't have a better method. Create one of these trackers for each type
+of convex implicit geometry for which you want to use this method. **/
+class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceConvexImplicit 
+:   public ContactTracker {
+public:
+explicit HalfSpaceConvexImplicit
+   (ContactGeometryTypeId typeOfConvexImplicitSurface) 
+:   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
+                   typeOfConvexImplicitSurface) {}
+
+bool trackContact
+   (const Contact&         priorStatus,
+    const Transform& X_GS1, 
+    const ContactGeometry& surface1, // the half-space
+    const Transform& X_GS2, 
+    const ContactGeometry& surface2, // the convex implicit surface
+    Real                   cutoff,
+    Contact&               currentStatus) const OVERRIDE_11;
 };
 
 
