@@ -113,7 +113,14 @@ public:
     Mat33 calcSurfaceHessian(const Vec3& point) const;
     Real  calcGaussianCurvature(const Vec3& gradient,
                                 const Mat33& Hessian) const;
-	Real  calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
+	Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
+                                          const UnitVec3& direction) const;
+    // Generic method for calculating principal curvatures kmax,kmin and
+    // corresponding unit tangent vector directions R_SP.x() and R_SP.y().
+    // R_SP.z() is the surface unit normal at P, with z=x X y.
+    void calcSurfacePrincipalCurvatures(const Vec3& point,
+                                        Vec2& curvature,
+                                        Rotation& R_SP) const;
 
     Vec3 projectDownhillToNearestPoint(const Vec3& Q) const;
 
