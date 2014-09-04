@@ -27,6 +27,63 @@
 
 namespace SimTK {
 
+/** (Experimental – API will change – use at your own risk) Efficient and
+* convenient computation of quantities necessary for task-space
+* model-based controllers.
+*
+* This class provides convenient access to the quantities used in task-space
+* or operational-space controllers, such as the jacobian and the task-space
+* mass matrix. Each such quantity is encapsulated in its own class, and objects
+* of these types can be used as if they were the quantities (e.g. matrix)
+* themselves. This encapsulation allows us to perform
+* the necessary calculations more efficiently under the covers.
+*
+* Computing quantities such as the jacobian \a explicity is often very
+* inefficient, and is usually unnecessary. The jacobian usually appears in a
+* matrix-vector product, which is more efficient to compute. This class and
+* the classes within use operator overloading to allow a user to write code
+* as if they had the matrices explicitly; internally, we compute matrix-vector
+* products instead. Also, this class caches the quantities once they've
+* been computed.
+*
+* <h3>List of task-space quantities</h3>
+*
+* In this class, we use Khatib's notation for operational-space controllers [1].
+* This notation conflicts with the notation used elsewhere in Simbody.
+*  - nu: number of degrees of freedom.
+*  - nt: number of tasks (e.g., number of stations).
+*  - nst: number of scalar tasks; 3 * nt.
+*  - \f$ A \f$ (nu x nu): joint-space mass matrix (M elsewhere in Simbody).
+*  - \f$ b \f$ (nu x 1): joint-space inertial forces (Coriolis, etc.).
+*  - \f$ g \f$ (nu x 1): joint-space gravity forces.
+*  - \f$ \Lambda \f$ (nst x nst): task-space mass matrix.
+*  - \f$ p \f$ (nst x 1): task-space gravity forces.
+*  - \f$ \mu \f$ (nst x 1): task-space inertial forces.
+*  - \f$ J \f$ (nst x nu): task jacobian.
+*  - \f$ \bar{J} \f$ (nu x nst): dynamically consistent generalized inverse of the jacobian.
+*  - \f$ N \f$ (nu x nu): nullspace projection matrix.
+*
+*  See the individual TaskSpaceQuantity's for more information.
+*
+* <h3>Usage</h3>
+*
+* We expect you to use this class within a Force::Custom::Implementation, but
+* this is not the only option. However, this class can only be used within a
+* class that has a realizeTopology method. Here are the necessary steps for
+* making use of this class:
+*
+*  -# Specify your tasks with the TaskSpace::addTask method. If your tasks
+*     don't change throughout your simulation, you can do this in a constructor.
+*  -# Call TaskSpace::realizeTopology within the owning class' realizeTopology.
+*     This is used to allocate cache entries.
+*  -# TODO setState.
+*  -# Access the quantities (perhaps in a calcForce method).
+*
+* TODO examples.
+*
+*  [1] Khatib, Oussama, et al. "Robotics-based synthesis of human motion."
+* Journal of physiology-Paris 103.3 (2009): 211-219.
+*/
 class SimTK_SIMBODY_EXPORT TaskSpace
 {
 public:
@@ -35,10 +92,24 @@ public:
     // nested classes
     //==========================================================================
 
+    /** An abstract class for common task-space Matrix or Vector quantities.
+    *
+    * All task-space quantities must be capable of providing their explicit
+    * value. After this value is computed, it is cached in the State for
+    * efficiency. These classes may optionally provide operators that allow
+    * for more efficient computations.
+    *
+    * The template parameter T is the type of the task-space quantity
+    * (e.g., Matrix). The parameter S is used when allocating the cache entry;
+    * it is the earliest stage at which the cache entry can be provided.
+    */
     template <typename T, Stage::Level S=Stage::Position>
-    class TaskSpaceQuantity {
+    class SimTK_SIMBODY_EXPORT TaskSpaceQuantity {
     public:
         TaskSpaceQuantity(const TaskSpace& tspace) : m_tspace(tspace) {}
+        /** Obtain this quantity explicitly. If possible, use operators
+        * instead of this method.
+        */
         const T& value() const {
             realizeCacheEntry();
             return getCacheValue();
@@ -74,24 +145,32 @@ public:
         CacheEntryIndex m_cacheIndex;
     };
 
-    // Forward declaration.
+    // Forward declarations.
     class JacobianTranspose;
-    class Jacobian : public TaskSpaceQuantity<Matrix> {
+    class Inertia;
+    class DynamicallyConsistentJacobianInverseTranspose;
+    class InertiaInverse;
+    class NullspaceProjectionTranspose;
+
+    /** Relates task-space velocities to generalized speeds; (nst x nu).
+    */
+    class SimTK_SIMBODY_EXPORT Jacobian : public TaskSpaceQuantity<Matrix> {
     public:
         Jacobian(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
         void realizeCacheEntry() const OVERRIDE_11;
         const JacobianTranspose& transpose() const;
         const JacobianTranspose& operator~() { return transpose(); }
+        /// Using this operator is likely efficient than obtaining this matrix
+        /// explicitly and performing the multiplication on your own.
         Vector operator*(const Vector& u) const;
         // TODO Matrix_<Vec3> operator*(const Matrix& u) const;
         // TODO Matrix operator*(const Matrix& u) const;
         // TODO Matrix operator*(const NullspaceProjection& N) const;
     };
 
-    // Forward declaration.
-    class Inertia;
-    class DynamicallyConsistentJacobianInverseTranspose;
-    class JacobianTranspose : public TaskSpaceQuantity<Matrix> {
+    /** Used to compute task-space forces; (nu x nst).
+    */
+    class SimTK_SIMBODY_EXPORT JacobianTranspose : public TaskSpaceQuantity<Matrix> {
     public:
         JacobianTranspose(const TaskSpace& tspace) :
             TaskSpaceQuantity(tspace) {}
@@ -108,10 +187,11 @@ public:
                 const TaskSpace::DynamicallyConsistentJacobianInverseTranspose&
                 JBarT) const;
     };
-    
-    // Forward declaration.
-    class InertiaInverse;
-    class Inertia : public TaskSpaceQuantity<Matrix> {
+
+    /** Task-space inertia matrix; \f$ \Lambda = (J A^{-1} J^T)^{-1} \f$
+    * (nst x nst).
+    */
+    class SimTK_SIMBODY_EXPORT Inertia : public TaskSpaceQuantity<Matrix> {
     public:
         Inertia(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
         void realizeCacheEntry() const OVERRIDE_11;
@@ -122,16 +202,22 @@ public:
         Vector operator*(const Vec3& a) const;
     };
 
-    /// J M^{-1} J^T
-    class InertiaInverse : public TaskSpaceQuantity<Matrix> {
+    /** Inverse of task-space inertia matrix;
+    * \f$ \Lambda^{-1} = J M^{-1} J^T \f$ (nst x nst).
+    *
+    * This is only needed for computing the Inertia matrix.
+    */
+    class SimTK_SIMBODY_EXPORT InertiaInverse : public TaskSpaceQuantity<Matrix> {
     public:
         InertiaInverse(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
         void realizeCacheEntry() const OVERRIDE_11;
         const Inertia& inverse() const;
     };
 
-    /// M^{-1} J^T Inertia
-    class DynamicallyConsistentJacobianInverse :
+    /** Mass-matrix weighted generalized inverse;
+    * \f$ \bar{J} = A^{-1} J^T \Lambda \f$ (nu x nst).
+    */
+    class SimTK_SIMBODY_EXPORT DynamicallyConsistentJacobianInverse :
         public TaskSpaceQuantity<Matrix> {
     public:
         DynamicallyConsistentJacobianInverse(const TaskSpace& tspace) :
@@ -144,7 +230,9 @@ public:
         Matrix operator*(const Matrix& mat) const;
     };
 
-    class DynamicallyConsistentJacobianInverseTranspose :
+    /** (nst x nu).
+    */
+    class SimTK_SIMBODY_EXPORT DynamicallyConsistentJacobianInverseTranspose :
         public TaskSpaceQuantity<Matrix> {
     public:
         DynamicallyConsistentJacobianInverseTranspose(const TaskSpace& tspace) :
@@ -156,30 +244,38 @@ public:
         Vector operator*(const Vector& g) const;
     };
 
-    // JBar^T b - Lambda JDot u
-    class InertialForces : public TaskSpaceQuantity<Vector, Stage::Velocity> {
+    /** Includes Coriolis forces and the like;
+    * \f$ \mu = \bar{J}^T b - \Lambda \dot{J} u \f$ (nst x 1).
+    */
+    class SimTK_SIMBODY_EXPORT InertialForces : public TaskSpaceQuantity<Vector, Stage::Velocity> {
     public:
         InertialForces(const TaskSpace& tspace) : TaskSpaceQuantity(tspace) {}
         void realizeCacheEntry() const OVERRIDE_11;
         Vector operator+(const Vector& f) const;
     };
 
-    // JBar^T g
-    class Gravity : public TaskSpaceQuantity<Vector> {
+    /** The task-space forces arising from gravity;
+    * \f$ p = \bar{J}^T g \f$ (nst x 1).
+    */
+    class SimTK_SIMBODY_EXPORT Gravity : public TaskSpaceQuantity<Vector> {
     public:
         Gravity(const TaskSpace& tspace, const Force::Gravity& gravity) :
             TaskSpaceQuantity(tspace), m_gravity(gravity) {}
         void realizeCacheEntry() const OVERRIDE_11;
         Vector operator+(const Vector& f) const;
+        /** The joint-space gravity forces (nu x 1).
+        */
         Vector systemGravity() const;
+        /** A shorthand for the joint-space gravity forces (nu x 1).
+        */
         Vector g() const { return systemGravity(); }
     private:
         const Force::Gravity& m_gravity;
     };
 
-    // Forward declaration.
-    class NullspaceProjectionTranspose;
-    class NullspaceProjection : public TaskSpaceQuantity<Matrix> {
+    /** Used to prioritize tasks; \f$ N = I - \bar{J} J \f$ (nu x nu).
+    */
+    class SimTK_SIMBODY_EXPORT NullspaceProjection : public TaskSpaceQuantity<Matrix> {
     public:
         NullspaceProjection(const TaskSpace & tspace) :
             TaskSpaceQuantity(tspace) {}
@@ -187,10 +283,12 @@ public:
         const NullspaceProjectionTranspose& transpose() const;
         const NullspaceProjectionTranspose& operator~() const
         { return transpose(); }
-        Vector operator*(const Vector& vec) const;
+        Vector operator* (const Vector& vec) const;
     };
 
-    class NullspaceProjectionTranspose : public TaskSpaceQuantity<Matrix> {
+    /** (nu x nu).
+    */
+    class SimTK_SIMBODY_EXPORT NullspaceProjectionTranspose : public TaskSpaceQuantity<Matrix> {
     public:
         NullspaceProjectionTranspose(const TaskSpace& tspace) :
             TaskSpaceQuantity(tspace) {}
@@ -205,6 +303,11 @@ public:
     // TaskSpace class
     //==========================================================================
 
+    /**
+    * @param[in] matter The matter subsystem being controlled.
+    * @param[in] gravity The gravity forces, which should be in the same
+    *       System as matter.
+    */
     TaskSpace(const SimbodyMatterSubsystem& matter,
               const Force::Gravity&         gravity) :
     m_matter(matter), m_jacobian(*this), m_jacobianTranspose(*this),
@@ -214,6 +317,9 @@ public:
     m_nullspace(*this), m_nullspaceTranspose(*this)
     {}
 
+    /** This \a must be called within realizeTopology of the class that owns
+    * this object.
+    */
     void realizeTopology(State& state) const {
         m_jacobian.realizeTopology(state);
         m_jacobianTranspose.realizeTopology(state);
@@ -226,24 +332,36 @@ public:
         m_nullspaceTranspose.realizeTopology(state);
     }
 
-    void addTask(MobilizedBodyIndex body, Vec3 station) {
+    /** Add a task for a station (point fixed on a rigid body).
+    * @param[in] body The index of the body on which the point is fixed.
+    * @param[in] station The point of the body, expressed in the body frame.
+    */
+    void addStationTask(MobilizedBodyIndex body, Vec3 station) {
         m_indices.push_back(body);
         m_stations.push_back(station);
     }
 
+    /** The number of calls to add*Task that have been made (nt).
+    */
     unsigned int getNumTasks() const {
         return m_indices.size();
     }
 
+    /** The dimensionality of the task space (nst).
+    */
     unsigned int getNumScalarTasks() const {
         return 3 * m_indices.size();
     }
 
+    /** TODO
+    */
     void setState(const State& state) const {
         // TODO is this okay?
         const_cast<TaskSpace*>(this)->m_state = &state;
     }
 
+    /** TODO
+    */
     const State& getState() const {
         if (!m_state)
         {
@@ -259,6 +377,26 @@ public:
     { return m_indices; }
     const Array_<Vec3>& getStations() const { return m_stations; }
 
+    /// @name Shorthand access to the task space quantities.
+    /// @{
+    const Jacobian& J() const { return getJacobian(); }
+    const JacobianTranspose& JT() const
+    { return getJacobianTranspose(); }
+    const Inertia& Lambda() const { return getInertia(); }
+    const InertiaInverse& LambdaInv() const { return getInertiaInverse(); }
+    const DynamicallyConsistentJacobianInverse& JBar() const
+    { return getDynamicallyConsistentJacobianInverse(); }
+    const DynamicallyConsistentJacobianInverseTranspose& JBarT() const
+    { return getDynamicallyConsistentJacobianInverseTranspose(); }
+    const InertialForces mu() const { return getInertialForces(); }
+    const Gravity p() const { return getGravity(); }
+    const NullspaceProjection& N() const { return getNullspaceProjection(); }
+    const NullspaceProjectionTranspose NT() const
+    { return getNullspaceProjectionTranspose(); }
+    /// @}
+
+    /// @name Access to the task space quantities.
+    /// @{
     const Jacobian& getJacobian() const { return m_jacobian; }
     const JacobianTranspose& getJacobianTranspose() const
     { return m_jacobianTranspose; }
@@ -276,27 +414,22 @@ public:
     { return m_nullspace; }
     const NullspaceProjectionTranspose& getNullspaceProjectionTranspose() const
     { return m_nullspaceTranspose; }
+    /// @}
 
-    // shorthands
 
-    const Jacobian& J() const { return getJacobian(); }
-    const JacobianTranspose& JT() const
-    { return getJacobianTranspose(); }
-    const Inertia& Lambda() const { return getInertia(); }
-    const InertiaInverse& LambdaInv() const { return getInertiaInverse(); }
-    const DynamicallyConsistentJacobianInverse& JBar() const
-    { return getDynamicallyConsistentJacobianInverse(); }
-    const DynamicallyConsistentJacobianInverseTranspose& JBarT() const
-    { return getDynamicallyConsistentJacobianInverseTranspose(); }
-    const InertialForces mu() const { return getInertialForces(); }
-    const Gravity p() const { return getGravity(); }
-    const NullspaceProjection& N() const { return getNullspaceProjection(); }
-    const NullspaceProjectionTranspose NT() const
-    { return getNullspaceProjectionTranspose(); }
-
-    // task-space F = Lambda F* + mu + p
-    // TODO does not use mu yet.
+    /** Given accelerations, computes inverse dynamics in the task-space
+    * \f$ F = \Lambda F^{*} \mu + p \f$ (nst x 1).
+    *
+    * This is used to perform feedforward control: given a control law that
+    * is specified as task-space accelerations, this provides the task-space
+    * forces that achieve those accelerations.
+    *
+    * TODO does not use mu yet.
+    */
     Vector calcInverseDynamics(const Vector& taskAccelerations) const;
+
+    /** The joint-space gravity forces (nu x 1).
+    */
     Vector g() const { return getGravity().g(); }
 
 private:

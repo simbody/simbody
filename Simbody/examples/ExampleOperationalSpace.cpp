@@ -80,9 +80,9 @@ public:
         m_desiredLeftPosInGround(Vec3(0.4, 1.5, -0.1)),
         m_desiredRightPosInGround(Vec3(0.4, 1.8, +0.2))
     {
-        m_tspace1.addTask(m_system.getBody(Humanoid::hand_l),
+        m_tspace1.addStationTask(m_system.getBody(Humanoid::hand_l),
                          m_stationLocationInHand);
-        m_tspace2.addTask(m_system.getBody(Humanoid::hand_r),
+        m_tspace2.addStationTask(m_system.getBody(Humanoid::hand_r),
                          m_stationLocationInHand);
     }
 
@@ -226,7 +226,6 @@ void ReachingAndGravityCompensation::calcForce(
     const Vec3& x1_des = m_desiredLeftPosInGround;
     const Vec3& x2_des = m_desiredRightPosInGround;
 
-    // TODO
     p1.setState(state);
     p2.setState(state);
 
