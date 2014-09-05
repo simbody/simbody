@@ -21,15 +21,18 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+#include "SimTKcommon/internal/common.h"
+#include <string>
+
 #if defined(__GNUG__)
 // https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
     #include <cxxabi.h>
-    #include <string>
+    #include <cstdlib>
 #endif
 
 namespace SimTK {
 
-std::string demangle(const char* name) {
+std::string SimTK_SimTKCOMMON_EXPORT demangle(const char* name) {
     #if defined(__GNUG__)
         int status;
         char* ret = abi::__cxa_demangle(name, NULL, NULL, &status);
