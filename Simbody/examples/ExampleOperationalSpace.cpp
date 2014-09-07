@@ -217,6 +217,7 @@ void ReachingAndGravityCompensation::calcForce(
     // -----------
     const TaskSpace& p1 = m_tspace1;
     const TaskSpace& p2 = m_tspace2;
+    const State& s = state;
 
     const int nu = state.getNU();
     const int m = m_numTasks;
@@ -228,6 +229,9 @@ void ReachingAndGravityCompensation::calcForce(
 
     p1.setState(state);
     p2.setState(state);
+
+    const TaskSpace::Jacobian& J = p1.getJacobian(s);
+    J.value2();
 
     // Compute control law in task space (F*).
     // ---------------------------------------
