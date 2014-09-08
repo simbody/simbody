@@ -231,7 +231,23 @@ void ReachingAndGravityCompensation::calcForce(
     p2.setState(state);
 
     const TaskSpace::Jacobian& J = p1.getJacobian(s);
+    const TaskSpace::JacobianTranspose& JT = p1.getJacobianTranspose(s);
+    const TaskSpace::Inertia& Lambda = p1.getInertia(s);
+    const TaskSpace::InertiaInverse& LambdaInv = p1.getInertiaInverse(s);
+    const TaskSpace::DynamicallyConsistentJacobianInverse& Jbar = p1.getDynamicallyConsistentJacobianInverse(s);
+    const TaskSpace::DynamicallyConsistentJacobianInverseTranspose& JbarT = p1.getDynamicallyConsistentJacobianInverseTranspose(s);
+    const TaskSpace::Gravity& p = p1.getGravity(s);
+    const TaskSpace::NullspaceProjection& N = p1.getNullspaceProjection(s);
+    const TaskSpace::NullspaceProjectionTranspose& NT = p1.getNullspaceProjectionTranspose(s);
     J.value2();
+    JT.value2();
+    Lambda.value2();
+    LambdaInv.value2();
+    Jbar.value2();
+    JbarT.value2();
+    p.value2();
+    N.value2();
+    NT.value2();
 
     // Compute control law in task space (F*).
     // ---------------------------------------
