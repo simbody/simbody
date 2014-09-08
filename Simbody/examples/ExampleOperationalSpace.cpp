@@ -254,7 +254,7 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Compute task-space force that achieves the task-space control.
     // F = Lambda Fstar + p
-    Vector F1 = p1.Lambda() * Fstar1 + /* TODO p1.mu() + */ p1.p();
+    Vector F1 = p1.Lambda() * Fstar1 + p1.mu() + p1.p();
     Vector F2 = p2.calcInverseDynamics(Fstar2);
 
     // Combine the reaching task with the gravity compensation and nullspace

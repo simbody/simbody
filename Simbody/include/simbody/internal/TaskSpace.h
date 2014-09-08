@@ -368,12 +368,46 @@ public:
                 m_matter.allocateLazyCacheEntry(state,
                         Jacobian::getEarliestStage(),
                         new Value<Jacobian>());
+        const_cast<TaskSpace*>(this)->m_jacobianTransposeIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        JacobianTranspose::getEarliestStage(),
+                        new Value<JacobianTranspose>());
+        const_cast<TaskSpace*>(this)->m_inertiaIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        Inertia::getEarliestStage(),
+                        new Value<Inertia>());
+        const_cast<TaskSpace*>(this)->m_inertiaInverseIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        InertiaInverse::getEarliestStage(),
+                        new Value<InertiaInverse>());
+        const_cast<TaskSpace*>(this)->m_jacobianInverseIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        DynamicallyConsistentJacobianInverse::getEarliestStage(),
+                        new Value<DynamicallyConsistentJacobianInverse>());
+        const_cast<TaskSpace*>(this)->m_jacobianInverseTransposeIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        DynamicallyConsistentJacobianInverseTranspose::getEarliestStage(),
+                        new Value<DynamicallyConsistentJacobianInverseTranspose>());
+        const_cast<TaskSpace*>(this)->m_gravityIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        Gravity::getEarliestStage(),
+                        new Value<Gravity>());
+        const_cast<TaskSpace*>(this)->m_nullspaceIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        NullspaceProjection::getEarliestStage(),
+                        new Value<NullspaceProjection>());
+        const_cast<TaskSpace*>(this)->m_nullspaceTransposeIndex =
+                m_matter.allocateLazyCacheEntry(state,
+                        NullspaceProjectionTranspose::getEarliestStage(),
+                        new Value<NullspaceProjectionTranspose>());
+
         m_jacobian.realizeTopology(state);
         m_jacobianTranspose.realizeTopology(state);
         m_inertia.realizeTopology(state);
         m_inertiaInverse.realizeTopology(state);
         m_jacobianInverse.realizeTopology(state);
         m_jacobianInverseTranspose.realizeTopology(state);
+        m_inertialForces.realizeTopology(state);
         m_gravity.realizeTopology(state);
         m_nullspace.realizeTopology(state);
         m_nullspaceTranspose.realizeTopology(state);
@@ -1012,7 +1046,7 @@ Vector TaskSpace::NullspaceProjectionTranspose::operator*(const Vector& vec)
 // TODO account for applied forces? velocities?
 Vector TaskSpace::calcInverseDynamics(const Vector& taskAccelerations) const
 {
-    return Lambda() * taskAccelerations + /* TODO mu() + */ p();
+    return Lambda() * taskAccelerations + mu() + p();
 }
 
 } // end namespace
