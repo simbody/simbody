@@ -734,7 +734,7 @@ typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
 /** Attempts to demangle a type name. Platform-dependent. */
-std::string SimTK_SimTKCOMMON_EXPORT demangle(const char* name);
+SimTK_SimTKCOMMON_EXPORT std::string demangle(const char* name);
 
 /** In case you don't like the name you get from typeid(), you can specialize
 this class to provide a nicer name. This is typically used for error messages 

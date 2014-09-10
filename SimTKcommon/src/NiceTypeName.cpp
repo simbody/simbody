@@ -32,7 +32,7 @@
 
 namespace SimTK {
 
-std::string SimTK_SimTKCOMMON_EXPORT demangle(const char* name) {
+std::string demangle(const char* name) {
     #if defined(__GNUG__)
         int status;
         char* ret = abi::__cxa_demangle(name, NULL, NULL, &status);
