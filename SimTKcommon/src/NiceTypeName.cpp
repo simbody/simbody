@@ -38,7 +38,7 @@ std::string demangle(const char* name) {
         char* ret = abi::__cxa_demangle(name, NULL, NULL, &status);
         const char* const demangled_name = (status == 0) ? ret : name;
         std::string demangled_string(demangled_name);
-        std::free(ret);
+        if (ret) std::free(ret);
         return demangled_string;
     #else
         // On other platforms, we hope the typeid name is not mangled.
