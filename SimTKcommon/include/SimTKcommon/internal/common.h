@@ -733,11 +733,18 @@ static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
+/** Attempts to demangle a type name. Platform-dependent. */
+SimTK_SimTKCOMMON_EXPORT std::string demangle(const char* name);
+
 /** In case you don't like the name you get from typeid(), you can specialize
 this class to provide a nicer name. This is typically used for error messages 
 and testing. **/
 template <class T> struct NiceTypeName {
+    /** With GCC and Clang, this gives a mangled type name. */
     static const char* name() {return typeid(T).name();}
+    /** This attempts to give a demangled type name in a
+     * platform-dependent way. */
+    static std::string namestr() {return demangle(name());}
 };
 
 } // namespace SimTK
@@ -751,6 +758,7 @@ be invoked if you already have that namespace open. **/
 #define SimTK_NICETYPENAME_LITERAL(T)               \
 namespace SimTK {                                   \
     template <> struct NiceTypeName< T > {          \
+        static std::string namestr() { return #T; } \
         static const char* name() { return #T; }    \
     };                                              \
 }
