@@ -114,12 +114,12 @@ public:
         /** Obtain this quantity explicitly. If possible, use operators
         * instead of this method.
         */
-// TODO        const T& value() const {
-// TODO            realizeCacheEntry();
-// TODO            return getCacheValue();
-// TODO        }
-// TODO
         const T& value() const {
+            realizeCacheEntry();
+            return getCacheValue();
+        }
+
+        const T& valnew() const {
             if (m_cacheIsValid) {
                 updateCache();
                 const_cast<TaskSpaceQuantity*>(this)->m_cacheIsValid = true;
@@ -469,42 +469,42 @@ public:
 
     /// @name Shorthand access to the task space quantities.
     /// @{
-// TODO    const Jacobian& J() const { return getJacobian(); }
-// TODO    const JacobianTranspose& JT() const
-// TODO    { return getJacobianTranspose(); }
-// TODO    const Inertia& Lambda() const { return getInertia(); }
-// TODO    const InertiaInverse& LambdaInv() const { return getInertiaInverse(); }
-// TODO    const DynamicallyConsistentJacobianInverse& JBar() const
-// TODO    { return getDynamicallyConsistentJacobianInverse(); }
-// TODO    const DynamicallyConsistentJacobianInverseTranspose& JBarT() const
-// TODO    { return getDynamicallyConsistentJacobianInverseTranspose(); }
-// TODO    const InertialForces mu() const { return getInertialForces(); }
-// TODO    const Gravity p() const { return getGravity(); }
-// TODO    const NullspaceProjection& N() const { return getNullspaceProjection(); }
-// TODO    const NullspaceProjectionTranspose NT() const
-// TODO    { return getNullspaceProjectionTranspose(); }
-// TODO    /// @}
-// TODO
-// TODO    /// @name Access to the task space quantities.
-// TODO    /// @{
-// TODO    const Jacobian& getJacobian() const { return m_jacobian; }
-// TODO    const JacobianTranspose& getJacobianTranspose() const
-// TODO    { return m_jacobianTranspose; }
-// TODO    const Inertia& getInertia() const { return m_inertia; }
-// TODO    const InertiaInverse& getInertiaInverse() const { return m_inertiaInverse; }
-// TODO    const DynamicallyConsistentJacobianInverse&
-// TODO        getDynamicallyConsistentJacobianInverse() const
-// TODO    { return m_jacobianInverse; }
-// TODO    const DynamicallyConsistentJacobianInverseTranspose&
-// TODO        getDynamicallyConsistentJacobianInverseTranspose() const
-// TODO    { return m_jacobianInverseTranspose; }
-// TODO    const InertialForces& getInertialForces() const { return m_inertialForces; }
-// TODO    const Gravity& getGravity() const { return m_gravity; }
-// TODO    const NullspaceProjection& getNullspaceProjection() const
-// TODO    { return m_nullspace; }
-// TODO    const NullspaceProjectionTranspose& getNullspaceProjectionTranspose() const
-// TODO    { return m_nullspaceTranspose; }
-// TODO    /// @}
+    const Jacobian& J() const { return getJacobian(); }
+    const JacobianTranspose& JT() const
+    { return getJacobianTranspose(); }
+    const Inertia& Lambda() const { return getInertia(); }
+    const InertiaInverse& LambdaInv() const { return getInertiaInverse(); }
+    const DynamicallyConsistentJacobianInverse& JBar() const
+    { return getDynamicallyConsistentJacobianInverse(); }
+    const DynamicallyConsistentJacobianInverseTranspose& JBarT() const
+    { return getDynamicallyConsistentJacobianInverseTranspose(); }
+    const InertialForces mu() const { return getInertialForces(); }
+    const Gravity p() const { return getGravity(); }
+    const NullspaceProjection& N() const { return getNullspaceProjection(); }
+    const NullspaceProjectionTranspose NT() const
+    { return getNullspaceProjectionTranspose(); }
+    /// @}
+
+    /// @name Access to the task space quantities.
+    /// @{
+    const Jacobian& getJacobian() const { return m_jacobian; }
+    const JacobianTranspose& getJacobianTranspose() const
+    { return m_jacobianTranspose; }
+    const Inertia& getInertia() const { return m_inertia; }
+    const InertiaInverse& getInertiaInverse() const { return m_inertiaInverse; }
+    const DynamicallyConsistentJacobianInverse&
+        getDynamicallyConsistentJacobianInverse() const
+    { return m_jacobianInverse; }
+    const DynamicallyConsistentJacobianInverseTranspose&
+        getDynamicallyConsistentJacobianInverseTranspose() const
+    { return m_jacobianInverseTranspose; }
+    const InertialForces& getInertialForces() const { return m_inertialForces; }
+    const Gravity& getGravity() const { return m_gravity; }
+    const NullspaceProjection& getNullspaceProjection() const
+    { return m_nullspace; }
+    const NullspaceProjectionTranspose& getNullspaceProjectionTranspose() const
+    { return m_nullspaceTranspose; }
+    /// @}
 
 
     /** Given accelerations, computes inverse dynamics in the task-space
@@ -518,20 +518,29 @@ public:
     */
     Vector calcInverseDynamics(const Vector& taskAccelerations) const;
 
+    // TODO
+    Vector calcInverseDynamics(const State& s, const Vector& taskAccelerations)
+        const;
+
     /** The joint-space gravity forces (nu x 1).
     */
+    Vector g() const { return getGravity().g(); }
+    // TODO
     Vector g(const State& s) const { return getGravity(s).g(); }
 
 private:
 
-#define REALIZE_TASKSPACEQUANTITY(CLASS, MEMVAR, SHORT) \
-public: \
-    const CLASS& get ## CLASS(const State& s) const { \
+#define TASKSPACEQUANTITY_GETTER_HELPER(CLASS, MEMVAR, SHORT) \
         realize ## CLASS(s); \
         return Value<CLASS>::downcast(m_matter.getCacheEntry(s, m_ ## MEMVAR ## Index)); \
+
+#define TASKSPACEQUANTITY_MEMBERS(CLASS, MEMVAR, SHORT) \
+public: \
+    const CLASS& get ## CLASS(const State& s) const { \
+        TASKSPACEQUANTITY_GETTER_HELPER(CLASS, MEMVAR, SHORT); \
     } \
     const CLASS& SHORT(const State& s) const { \
-        return get ## CLASS(const State& s); \
+        TASKSPACEQUANTITY_GETTER_HELPER(CLASS, MEMVAR, SHORT); \
     } \
 private: \
     void realize ## CLASS(const State& s) const { \
@@ -545,17 +554,18 @@ private: \
     CLASS& upd ## CLASS(const State& s) const { \
         return Value<CLASS>::updDowncast(m_matter.updCacheEntry(s, m_ ## MEMVAR ## Index)); \
     } \
+    CacheEntryIndex m_ ## MEMVAR ## Index; \
 
-    REALIZE_TASKSPACEQUANTITY(Jacobian, jacobian, J);
-    REALIZE_TASKSPACEQUANTITY(JacobianTranspose, jacobianTranspose, JT);
-    REALIZE_TASKSPACEQUANTITY(Inertia, inertia, Lambda);
-    REALIZE_TASKSPACEQUANTITY(InertiaInverse, inertiaInverse, LambdaInv);
-    REALIZE_TASKSPACEQUANTITY(DynamicallyConsistentJacobianInverse, jacobianInverse, JBar);
-    REALIZE_TASKSPACEQUANTITY(DynamicallyConsistentJacobianInverseTranspose, jacobianInverseTranspose, JBarT);
-    REALIZE_TASKSPACEQUANTITY(InertialForces, inertialForces, mu);
-    REALIZE_TASKSPACEQUANTITY(Gravity, gravity, p);
-    REALIZE_TASKSPACEQUANTITY(NullspaceProjection, nullspace, N);
-    REALIZE_TASKSPACEQUANTITY(NullspaceProjectionTranspose, nullspaceTranspose, NT);
+    TASKSPACEQUANTITY_MEMBERS(Jacobian, jacobian, J);
+    TASKSPACEQUANTITY_MEMBERS(JacobianTranspose, jacobianTranspose, JT);
+    TASKSPACEQUANTITY_MEMBERS(Inertia, inertia, Lambda);
+    TASKSPACEQUANTITY_MEMBERS(InertiaInverse, inertiaInverse, LambdaInv);
+    TASKSPACEQUANTITY_MEMBERS(DynamicallyConsistentJacobianInverse, jacobianInverse, JBar);
+    TASKSPACEQUANTITY_MEMBERS(DynamicallyConsistentJacobianInverseTranspose, jacobianInverseTranspose, JBarT);
+    TASKSPACEQUANTITY_MEMBERS(InertialForces, inertialForces, mu);
+    TASKSPACEQUANTITY_MEMBERS(Gravity, gravity, p);
+    TASKSPACEQUANTITY_MEMBERS(NullspaceProjection, nullspace, N);
+    TASKSPACEQUANTITY_MEMBERS(NullspaceProjectionTranspose, nullspaceTranspose, NT);
 
     //==========================================================================
     // Cache value helpers.
@@ -597,17 +607,6 @@ private: \
     Gravity m_gravity;
     NullspaceProjection m_nullspace;
     NullspaceProjectionTranspose m_nullspaceTranspose;
-
-    CacheEntryIndex m_jacobianIndex;
-    CacheEntryIndex m_jacobianTransposeIndex;
-    CacheEntryIndex m_inertiaIndex;
-    CacheEntryIndex m_inertiaInverseIndex;
-    CacheEntryIndex m_jacobianInverseIndex;
-    CacheEntryIndex m_jacobianInverseTransposeIndex;
-    CacheEntryIndex m_inertialForcesIndex;
-    CacheEntryIndex m_gravityIndex;
-    CacheEntryIndex m_nullspaceIndex;
-    CacheEntryIndex m_nullspaceTransposeIndex;
 
 };
 
@@ -1216,6 +1215,11 @@ Vector TaskSpace::NullspaceProjectionTranspose::operator*(const Vector& vec)
 // TaskSpace
 //==============================================================================
 // TODO account for applied forces? velocities?
+Vector TaskSpace::calcInverseDynamics(const Vector& taskAccelerations) const
+{
+    return Lambda() * taskAccelerations + mu() + p();
+}
+
 Vector TaskSpace::calcInverseDynamics(const State& s, const Vector& taskAccelerations) const
 {
     return Lambda(s) * taskAccelerations + mu(s) + p(s);

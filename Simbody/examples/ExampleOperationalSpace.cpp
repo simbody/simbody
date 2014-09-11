@@ -239,15 +239,15 @@ void ReachingAndGravityCompensation::calcForce(
     const TaskSpace::Gravity& p = p1.getGravity(s);
     const TaskSpace::NullspaceProjection& N = p1.getNullspaceProjection(s);
     const TaskSpace::NullspaceProjectionTranspose& NT = p1.getNullspaceProjectionTranspose(s);
-    J.value();
-    JT.value();
-    Lambda.value();
-    LambdaInv.value();
-    Jbar.value();
-    JbarT.value();
-    p.value();
-    N.value();
-    NT.value();
+    J.valnew();
+    JT.valnew();
+    Lambda.valnew();
+    LambdaInv.valnew();
+    Jbar.valnew();
+    JbarT.valnew();
+    p.valnew();
+    N.valnew();
+    NT.valnew();
 
     // Compute control law in task space (F*).
     // ---------------------------------------
@@ -270,17 +270,17 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Compute task-space force that achieves the task-space control.
     // F = Lambda Fstar + p
-    Vector F1 = p1.Lambda(s) * Fstar1 + p1.mu(s) + p1.p(s);
-    Vector F2 = p2.calcInverseDynamics(s, Fstar2);
+    Vector F1 = p1.Lambda() * Fstar1 + p1.mu() + p1.p();
+    Vector F2 = p2.calcInverseDynamics(Fstar2);
 
     // Combine the reaching task with the gravity compensation and nullspace
     // damping.
     // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - k u)
     const Vector& u = state.getU();
     const double& k = m_dampingGain;
-    mobilityForces = p1.JT(s) * F1 + p1.NT(s) * (
-                        p2.JT(s) * F2 + p2.NT(s) * (
-                            p1.g(s) - k * u)
+    mobilityForces = p1.JT() * F1 + p1.NT() * (
+                        p2.JT() * F2 + p2.NT() * (
+                            p1.g() - k * u)
                         );
 
 //    TODO what would this look like with states as arguments everywhere?
