@@ -413,7 +413,7 @@ template<class T> inline static
 bool tryConvertStringTo(const String& value, T*& out) {
     SimTK_ERRCHK1_ALWAYS(false, "SimTK::convertStringTo(value,T*)",
         "Can't interpret a string as a pointer (%s*).",
-        NiceTypeName<T>::name());
+        NiceTypeName<T>::namestr().c_str());
     return false; 
 }
 
@@ -433,7 +433,7 @@ String::convertTo(T& out) const {
     if (shorter.size() < this->size()) shorter += " ...";
     SimTK_ERRCHK2_ALWAYS(convertOK, "String::convertTo()",
         "Couldn't interpret string '%s' as type T=%s.",
-        shorter.c_str(), NiceTypeName<T>::name());
+        shorter.c_str(), NiceTypeName<T>::namestr().c_str());
 }
 
 /** This method converts its String argument to type T and returns it into

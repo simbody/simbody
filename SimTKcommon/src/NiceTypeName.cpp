@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2014 Stanford University and the Authors.           *
  * Authors: Chris Dembia, Michael Sherman                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -34,7 +34,7 @@ namespace SimTK {
 
 std::string demangle(const char* name) {
     #if defined(__GNUG__)
-        int status;
+        int status=-100; // just in case it doesn't get set
         char* ret = abi::__cxa_demangle(name, NULL, NULL, &status);
         const char* const demangled_name = (status == 0) ? ret : name;
         std::string demangled_string(demangled_name);

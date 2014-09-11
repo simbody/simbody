@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Chris Dembia                                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -733,17 +733,22 @@ static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
-/** Attempts to demangle a type name. Platform-dependent. */
+/** Attempt to demangle a type name as returned by typeid.name(), with the
+result hopefully suitable for meaningful display to a human. Behavior is 
+compiler-dependent. **/
 SimTK_SimTKCOMMON_EXPORT std::string demangle(const char* name);
 
 /** In case you don't like the name you get from typeid(), you can specialize
-this class to provide a nicer name. This is typically used for error messages 
-and testing. **/
+this class to provide a nicer name. This class is typically used for error 
+messages and testing. **/
 template <class T> struct NiceTypeName {
-    /** With GCC and Clang, this gives a mangled type name. */
+    /** The default implementation of name() here returns the raw result from
+    typeid(T).name() which will be fast but may be a mangled name in some 
+    compilers (gcc and clang included). **/
     static const char* name() {return typeid(T).name();}
-    /** This attempts to give a demangled type name in a
-     * platform-dependent way. */
+    /** The default implementation of namestr() attempts to return a nicely
+    demangled type name on all platforms, using the SimTK::demangle() method
+    defined above. Don't expect this to be fast. **/
     static std::string namestr() {return demangle(name());}
 };
 
