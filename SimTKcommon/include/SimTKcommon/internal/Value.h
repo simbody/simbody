@@ -89,7 +89,7 @@ public:
         if (!isA(v)) SimTK_THROW2(Exception::IncompatibleValues,v.getTypeName(),getTypeName());
         *this = downcast(v);
     }
-    String getTypeName() const { return NiceTypeName<T>::name(); }
+    String getTypeName() const { return NiceTypeName<T>::namestr(); }
     // TODO: should have some general way to serialize these.
     String getValueAsString() const 
     { return "Value<" + getTypeName() + ">"; }
