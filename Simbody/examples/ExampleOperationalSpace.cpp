@@ -23,25 +23,21 @@
 
 /**
  * This example shows how one could write an operational space controller in
- * Simbody. The model we are controlling is a human upper body model.
+ * Simbody. The model we are controlling is a humanoid.
  * Operational space controllers are model-based, and we show how to access the
- * necessary quantities from the SimbodyMatterSubsystem. We assume the system
+ * necessary quantities from TaskSpace objects. We assume the system
  * has a motor at each of its degrees of freedom.
  *
  * The task the controller will achieve has two components:
- * 1. One arm reaches for a target point
- * 2. All bodies are subject to gravity compensation (to counteract the effect
+ * 1. The left arm reaches for a target point that can be moved with arrow keys.
+ * 2. The right arm reaches for a fixed target.
+ * 3. All bodies are subject to gravity compensation (to counteract the effect
  * of gravity).
- * 
- *      TODO inertial forces vector, in TaskSpace (1)
- *      TODO cache computations (2)
- * TODO make computations efficient (3)
- * TODO document TaskSpace
- * TODO write missing method in Simbody to return a Vector.
- * TODO put nullspace subtraction elsewhere.
- * TODO missing (convenience) operators.
- * TODO separate gravity into its own quantity.
- * TODO how to avoid crashing with singularities.
+ *
+ * For more information about operational space control, see:
+ *
+ * Khatib, Oussama, et al. "Robotics-based synthesis of human motion."
+ * Journal of physiology-Paris 103.3 (2009): 211-219.
  */
 
 #include "Humanoid.h"
@@ -50,18 +46,14 @@
 using namespace SimTK;
 using namespace std;
 
-#define DEG(rad) convertRadiansToDegrees(rad)
-#define RAD(deg) convertDegreesToRadians(deg)
-
 //==============================================================================
 // ReachingAndGravityCompensation
 //==============================================================================
-class ReachingAndGravityCompensation :
-    public SimTK::Force::Custom::Implementation
+class ReachingAndGravityCompensation : public Force::Custom::Implementation
 {
 public:
 
-    /// The left hand reaches for a target location, and the controller
+    /// Both hands reach for target locations, and the controller
     /// compensates for gravity.
     /// 
     /// @param[in] stationLocationInHand The point whose location we want
@@ -146,67 +138,6 @@ private:
 const Vec3 ReachingAndGravityCompensation::m_targetColor = Vec3(1, 0, 0);
 const double ReachingAndGravityCompensation::m_dampingGain = 1;
 
-/*
-void ReachingAndGravityCompensation::calcForce(
-               const State&                state,
-               Vector_<SimTK::SpatialVec>& bodyForces,
-               Vector_<SimTK::Vec3>&       particleForces,
-               Vector&                     mobilityForces) const
-{
-    const int nu = state.getNU();
-    const int m = m_numTasks;
-
-    // Compute control law in task space (F*).
-    // ---------------------------------------
-    // These are approximations, assuming the user is not moving the target too
-    // quickly.
-    Vec3 desiredVelInGround(0);
-    Vec3 desiredAccInGround(0);
-
-    // Get info about the actual location, etc. of the left hand.
-    Vec3 posInGround;
-    Vec3 velInGround;
-    const MobilizedBody& leftHand = m_system.getBody(Humanoid::hand_l);
-    leftHand.findStationLocationAndVelocityInGround(state,
-            m_stationLocationInLeftHand, posInGround, velInGround);
-
-    // Units of acceleration.
-    Vector_<Real> Fstar(desiredAccInGround +
-        m_derivativeGain * (desiredVelInGround - velInGround) +
-        m_proportionalGain * (m_desiredPosInGround - posInGround));
-
-    // Task jacobian.
-    // --------------
-    TaskSpace ts(m_matter);
-    ts.addTask(leftHand, m_stationLocationInLeftHand);
-
-    const TaskSpace::Jacobian& J = ts.jacobian();
-    const TaskSpace::Inertia& Lambda = ts.inertia();
-    // TODO const TaskSpace::CoriolisForce& mu = ts.coriolisForce();
-    const TaskSpace::GravityForce& p = ts.gravityForce();
-    const TaskSpace::NullspaceProjection& N = ts.nullspaceProjection();
-    const TaskSpace::JacobianTranspose Jt = J.transpose();
-    const TaskSpace::NullspaceProjectionTranspose = N.transpose();
-
-    // Gravity (g).
-    // ------------
-    // Get the gravity vector, for gravity compensation.
-    Vector g;
-    m_matter.multiplyBySystemJacobianTranspose(state,
-            m_system.getGravity().getBodyForces(state),
-            g);
-
-    // Compute task-space force that achieves the task-space control.
-    // F = Lambda F*  + mu + p
-    Vector F = Lambda * Fstar + mu + p;
-    // Vector F = ts.calcTaskSpaceForceFromTaskSpaceAcceleration(Fstar);
-    // Vector F = ts.calcForwardDynamics(Fstar);
-
-    // Combine the reaching task with the gravity compensation.
-    mobilityForces = J.transpose() * F  + N.transpose() * (-g);
-}
-*/
-
 void ReachingAndGravityCompensation::calcForce(
                const State&                state,
                Vector_<SimTK::SpatialVec>& bodyForces,
@@ -227,27 +158,6 @@ void ReachingAndGravityCompensation::calcForce(
     const Vec3& x1_des = m_desiredLeftPosInGround;
     const Vec3& x2_des = m_desiredRightPosInGround;
 
-    const TaskSpace::Jacobian& J = p1.getJacobian(s);
-    const TaskSpace::JacobianTranspose& JT = p1.getJacobianTranspose(s);
-    const TaskSpace::Inertia& Lambda = p1.getInertia(s);
-    const TaskSpace::InertiaInverse& LambdaInv = p1.getInertiaInverse(s);
-    const TaskSpace::DynamicallyConsistentJacobianInverse& Jbar = p1.getDynamicallyConsistentJacobianInverse(s);
-    const TaskSpace::DynamicallyConsistentJacobianInverseTranspose& JbarT = p1.getDynamicallyConsistentJacobianInverseTranspose(s);
-    const TaskSpace::Gravity& p = p1.getGravity(s);
-    const TaskSpace::NullspaceProjection& N = p1.getNullspaceProjection(s);
-    const TaskSpace::NullspaceProjectionTranspose& NT = p1.getNullspaceProjectionTranspose(s);
-    J.value();
-    JT.value();
-    Lambda.value();
-    LambdaInv.value();
-    Jbar.value();
-    JbarT.value();
-    p.value();
-    N.value();
-    NT.value();
-
-    std::cout << "DEBUG0 " << std::endl;
-
     // Compute control law in task space (F*).
     // ---------------------------------------
     Vec3 xd_des(0);
@@ -255,12 +165,12 @@ void ReachingAndGravityCompensation::calcForce(
 
     // Get info about the actual location, etc. of the left hand.
     Vec3 x1, x1d;
-    const MobilizedBody& leftHand = m_system.getBody(Humanoid::hand_l);
-    leftHand.findStationLocationAndVelocityInGround(state,
+    p1.findStationLocationAndVelocityInGround(s,
+            TaskSpace::StationTaskIndex(0),
             m_stationLocationInHand, x1, x1d);
     Vec3 x2, x2d;
-    const MobilizedBody& rightHand = m_system.getBody(Humanoid::hand_r);
-    rightHand.findStationLocationAndVelocityInGround(state,
+    p2.findStationLocationAndVelocityInGround(s,
+            TaskSpace::StationTaskIndex(0),
             m_stationLocationInHand, x2, x2d);
 
     // Units of acceleration.
@@ -281,21 +191,6 @@ void ReachingAndGravityCompensation::calcForce(
                         p2.JT(s) * F2 + p2.NT(s) * (
                             p1.g(s) - k * u)
                         );
-
-//    TODO what would this look like with states as arguments everywhere?
-//    // Compute task-space force that achieves the task-space control.
-//    // F = Lambda Fstar + p
-//    Vector F1 = p1.Lambda(s) * Fstar1 + /* TODO p1.mu() + */ p1.p(s);
-//    Vector F2 = p2.calcInverseDynamics(Fstar2);
-//
-//    // Combine the reaching task with the gravity compensation and nullspace
-//    // damping.
-//    // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - k u)
-//    const Vector& u = state.getU();
-//    const double& k = m_dampingGain;
-//    mobilityForces = p1.JT(s) * F1 +
-//                     p1.NT(s) * (p2.JT(s) * F2) +
-//                     p1.NT(s) * (p2.NT(s) * (p1.g(s) - k * u));
 }
 
 //==============================================================================
@@ -424,13 +319,6 @@ int main(int argc, char **argv)
         TimeStepper ts(system, integ);
         ts.initialize(s);
         viz.report(ts.getState());
-
-        /* TODO
-           printf("Act: u\n");
-           for (int i=0; i < NumActuators; ++i) {
-           printf("%2d: %d\n", i, int(system.getUIndex(Humanoid::Coordinate(i))));
-           }
-           */
 
         userInput->waitForAnyUserInput();
         userInput->clear();
