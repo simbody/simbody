@@ -78,5 +78,6 @@ will include this one). **/
 #include "simbody/internal/ImpulseSolver.h"
 #include "simbody/internal/PGSImpulseSolver.h"
 #include "simbody/internal/PLUSImpulseSolver.h"
+#include "simbody/internal/TaskSpace.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
