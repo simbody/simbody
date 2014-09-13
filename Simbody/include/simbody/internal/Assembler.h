@@ -1420,7 +1420,7 @@ Marker& updMarker(MarkerIx i) {uninitializeAssembler(); return markers[i];}
 Array_<Marker,MarkerIx>         markers;
 std::map<String,MarkerIx>       markersByName;
 
-// Observation-marker correspondence specification. Any change here 
+// Observation-marker corresondence specification. Any change here 
 // uninitializes the Assembler.
 Array_<MarkerIx,ObservationIx>  observation2marker;
 
