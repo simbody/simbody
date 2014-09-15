@@ -497,6 +497,20 @@ private:
 
 };
 
+// Namespace-scope functions using class operator members to provide
+// reversed operand order for commutative operations.
+
+/** @relates TaskSpace::InertialForces **/
+inline Vector operator+(const Vector& f, const TaskSpace::InertialForces& p)
+{
+    return f + p.value();
+}
+
+/** @relates TaskSpace::Gravity **/
+inline Vector operator+(const Vector& f, const TaskSpace::Gravity& p)
+{
+    return f + p.value();
+}
 
 } // end namespace
 

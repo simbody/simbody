@@ -352,11 +352,6 @@ Vector TaskSpace::InertialForces::operator+(const Vector& f) const
     return value() + f;
 }
 
-Vector operator+(const Vector& f, const TaskSpace::InertialForces& p)
-{
-    return f + p.value();
-}
-
 
 //==============================================================================
 // Gravity
@@ -371,11 +366,6 @@ Vector TaskSpace::Gravity::operator+(const Vector& f) const
     return value() + f;
 }
 
-// TODO global function.
-Vector operator+(const Vector& f, const TaskSpace::Gravity& p)
-{
-    return f + p.value();
-}
 
 Vector TaskSpace::Gravity::systemGravity() const
 {
@@ -439,6 +429,6 @@ Vector TaskSpace::NullspaceProjectionTranspose::operator*(const Vector& vec)
 // TODO account for applied forces? velocities?
 Vector TaskSpace::calcInverseDynamics(const State& s, const Vector& taskAccelerations) const
 {
-    return  mu(s) + (p(s) + Lambda(s) * taskAccelerations);
+    return  Lambda(s) * taskAccelerations + mu(s) + p(s);
 }
 
