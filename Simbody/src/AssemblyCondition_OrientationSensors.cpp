@@ -114,7 +114,7 @@ calcGoalGradient(const State& state, Vector& gradient) const {
                 const Rotation R_GS = R_GB * osensor.orientationInB;
                 const Rotation R_SO = ~R_GS*R_GO; // error, in S
                 const Vec4 aa_SO = R_SO.convertRotationToAngleAxis();
-                const Vec3 trq_S = osensor.weight * aa_SO[0]
+                const Vec3 trq_S = -osensor.weight * aa_SO[0]
                                     * aa_SO.getSubVec<3>(1);
                 const Vec3 trq_G = R_GS * trq_S;
                 mobod.applyBodyTorque(state, trq_G, dEdR);
