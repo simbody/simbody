@@ -55,6 +55,11 @@ int main() {
 
     // An identity Rotation represents an IMU aligned with the body frame.
     const Rotation bodyAxesIMU;
+    const Rotation tiltedIMU(Pi/4, ZAxis);
+
+    const Rotation torsoIMUOri = bodyAxesIMU;
+    const Rotation headIMUOri = tiltedIMU;
+
 
     const Real mass_torso = 20, mass_head = 2;
     const Vec3 hdims_torso(1,4,2), hdims_head(.3,1,.6);
@@ -63,14 +68,14 @@ int main() {
     Body::Rigid torsoBody(MassProperties(mass_torso, Vec3(0), 
                                             UnitInertia::brick(hdims_torso)));
     torsoBody.addDecoration(DecorativeBrick(hdims_torso).setOpacity(.4));
-    torsoBody.addDecoration(bodyAxesIMU, 
+    torsoBody.addDecoration(torsoIMUOri, 
         DecorativeFrame(1).setColor(Green).setLineThickness(5));
 
     Body::Rigid headBody(MassProperties(mass_head, Vec3(0), 
                                         UnitInertia::brick(hdims_head)));
     headBody.addDecoration(DecorativeBrick(hdims_head)
                            .setOpacity(.4).setColor(Cyan));
-    headBody.addDecoration(bodyAxesIMU, 
+    headBody.addDecoration(headIMUOri, 
         DecorativeFrame(1).setColor(Green).setLineThickness(5));
     headBody.addDecoration(marker_head,
         DecorativePoint().setColor(Green));
@@ -97,8 +102,8 @@ int main() {
     ik.adoptAssemblyGoal(markers);
     ik.adoptAssemblyGoal(imus);
 
-    const IMUIx    torsoIMU   = imus->addOSensor(torso, bodyAxesIMU);
-    const IMUIx    headIMU    = imus->addOSensor(head, bodyAxesIMU);
+    const IMUIx    torsoIMU   = imus->addOSensor(torso, torsoIMUOri);
+    const IMUIx    headIMU    = imus->addOSensor(head, headIMUOri);
     const MarkerIx headMarker = markers->addMarker(head, marker_head);
 
     ik.initialize(state);
