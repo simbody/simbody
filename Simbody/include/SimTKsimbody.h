@@ -67,6 +67,7 @@ will include this one). **/
 #include "simbody/internal/AssemblyCondition.h"
 #include "simbody/internal/AssemblyCondition_QValue.h"
 #include "simbody/internal/AssemblyCondition_Markers.h"
+#include "simbody/internal/AssemblyCondition_OrientationSensors.h"
 #include "simbody/internal/LocalEnergyMinimizer.h"
 #include "simbody/internal/ContactTrackerSubsystem.h"
 #include "simbody/internal/CompliantContactSubsystem.h"
