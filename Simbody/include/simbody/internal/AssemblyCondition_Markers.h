@@ -466,13 +466,13 @@ Real findCurrentMarkerErrorSquared(MarkerIx mx) const {
 /** @name              AssemblyCondition virtuals
 These methods are the implementations of the AssemblyCondition virtuals. **/
 /*@{*/
-int calcErrors(const State& state, Vector& err) const;
-int calcErrorJacobian(const State& state, Matrix& jacobian) const;
-int getNumErrors(const State& state) const;
-int calcGoal(const State& state, Real& goal) const;
-int calcGoalGradient(const State& state, Vector& grad) const;
-int initializeCondition() const;
-void uninitializeCondition() const;
+int initializeCondition() const OVERRIDE_11;
+void uninitializeCondition() const OVERRIDE_11;
+int calcErrors(const State& state, Vector& err) const OVERRIDE_11;
+int calcErrorJacobian(const State& state, Matrix& jacobian) const OVERRIDE_11;
+int getNumErrors(const State& state) const OVERRIDE_11;
+int calcGoal(const State& state, Real& goal) const OVERRIDE_11;
+int calcGoalGradient(const State& state, Vector& grad) const OVERRIDE_11;
 /*@}*/
 
 //------------------------------------------------------------------------------

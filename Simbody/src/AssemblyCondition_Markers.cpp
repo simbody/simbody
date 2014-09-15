@@ -24,10 +24,10 @@
 #include "SimTKmath.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/Assembler.h"
 #include "simbody/internal/AssemblyCondition.h"
 #include "simbody/internal/AssemblyCondition_Markers.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include <map>
 #include <iostream>
 using std::cout; using std::endl;
@@ -151,7 +151,7 @@ int Markers::getNumErrors(const State& state) const
 // active marker. For each of those bodies, we collect all its markers so that
 // we can process them all at once. Active markers are those whose weight is
 // greater than zero. Also, if we haven't been given any observation<->marker 
-// correspondence, we're going to assume them map directly, with each 
+// correspondence, we're going to assume they map directly, with each 
 // ObservationIx the same as its MarkerIx.
 int Markers::initializeCondition() const {
     // Fill in missing observation information if needed.
