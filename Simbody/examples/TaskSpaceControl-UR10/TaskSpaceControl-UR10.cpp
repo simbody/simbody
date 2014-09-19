@@ -50,7 +50,15 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 using namespace SimTK;
 using namespace std;
 
+static const int QNoise=1, UNoise=2; // sliders
 
+//==============================================================================
+//                             TASKS MEASURE
+//==============================================================================
+// This Measure is added to the modelRobot and is used to manage the tasks
+// it is supposed to achieve and to return as its value the control torques
+// that should be applied to the realRobot (that is, the simulated one).
+// This should only be instantiated with T=Vector.
 template <class T>
 class TasksMeasure : public Measure_<T> {
 public:
@@ -69,9 +77,15 @@ public:
     void toggleGravityComp() {
         updImpl().m_compensateForGravity = !isGravityCompensationOn();}
     void toggleTask() {updImpl().m_controlTask = !getImpl().m_controlTask;}
+    void toggleEndEffectorSensing() 
+    {   updImpl().m_endEffectorSensing = !getImpl().m_endEffectorSensing;}
 
     bool isGravityCompensationOn() const 
     {   return getImpl().m_compensateForGravity; }
+    bool isEndEffectorSensingOn() const 
+    {   return getImpl().m_endEffectorSensing; }
+    bool isTaskPointFollowingOn() const
+    {   return getImpl().m_controlTask; }
     const Vec3& getTaskPointInEndEffector() const 
     {   return getImpl().m_taskPointInEndEffector; }
 
@@ -84,25 +98,21 @@ class TasksMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
     Implementation(const UR10& modelRobot,
                    Vec3 taskPointInEndEffector=Vec3(0,0,0),
-                   Real proportionalGain=100, double derivativeGain=20) 
+                   Real proportionalGain=400, double derivativeGain=40) 
     :   Measure_<T>::Implementation(T(UR10::NumCoords,NaN), 1),
         m_modelRobot(modelRobot),
         m_tspace1(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
-        m_tspace2(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
         m_taskPointInEndEffector(taskPointInEndEffector),
-        m_taskPointInOther(Vec3(.1,.1,.5)),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
         m_dampingGain(1),
         m_compensateForGravity(true),
         m_controlTask(true),
-        m_desiredTaskPosInGround(Vec3(-0.4, 0.1, 1)), // Z is up
-        m_desiredOtherPosInGround(Vec3(.1,.1,.5)) 
+        m_endEffectorSensing(false),
+        m_desiredTaskPosInGround(Vec3(-0.4, 0.1, 1)) // Z is up
     {       
         m_tspace1.addStationTask(m_modelRobot.getBody(UR10::EndEffector),
                          m_taskPointInEndEffector);
-        m_tspace2.addStationTask(m_modelRobot.getBody(UR10::Forearm),
-                         m_taskPointInOther);
     }
 
 
@@ -120,25 +130,22 @@ public:
 
     void realizeMeasureTopologyVirtual(State& modelState) const OVERRIDE_11 {
         m_tspace1.realizeTopology(modelState);
-        m_tspace2.realizeTopology(modelState);
     }
 private:
 friend class TasksMeasure<T>;
 
     const UR10&     m_modelRobot;
     TaskSpace       m_tspace1;
-    TaskSpace       m_tspace2;
 
     const Vec3      m_taskPointInEndEffector;
-    const Vec3      m_taskPointInOther;
     const Real      m_proportionalGain;
     const Real      m_derivativeGain;
     const Real      m_dampingGain;
 
     bool            m_compensateForGravity;
     bool            m_controlTask;
+    bool            m_endEffectorSensing;
     Vec3            m_desiredTaskPosInGround;
-    Vec3            m_desiredOtherPosInGround;
 };
 
 //------------------------------------------------------------------------------
@@ -158,15 +165,12 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     // Shorthands.
     // -----------
     const TaskSpace& p1 = m_tspace1;
-    const TaskSpace& p2 = m_tspace2;
 
     const int nu = tau.size();
 
     const Real& kd = m_derivativeGain;
     const Real& kp = m_proportionalGain;
     const Vec3& x1_des = m_desiredTaskPosInGround;
-    const Vec3& x2_des = m_desiredOtherPosInGround;
-
 
     // Abbreviate model state for convenience.
     const State& ms = modelState;
@@ -176,34 +180,29 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     Vec3 xd_des(0);
     Vec3 xdd_des(0);
 
-    // Get info about the actual location, etc. of the left hand.
+    // Get info about the actual location, etc. of the model robot.
     Vec3 x1, x1d;
     p1.findStationLocationAndVelocityInGround(ms,
             TaskSpace::StationTaskIndex(0),
             m_taskPointInEndEffector, x1, x1d);
-    Vec3 x2, x2d;
-    p2.findStationLocationAndVelocityInGround(ms,
-            TaskSpace::StationTaskIndex(0),
-            m_taskPointInOther, x2, x2d);
+
+    if (m_endEffectorSensing)
+        x1 = m_modelRobot.getSampledEndEffectorPos(ms);
+
 
     // Units of acceleration.
     Vec3 Fstar1 = xdd_des + kd * (xd_des - x1d) + kp * (x1_des - x1);
-    Vector Fstar2(xdd_des + kd * (xd_des - x2d) + kp * (x2_des - x2));
 
     // Compute task-space force that achieves the task-space control.
     // F = Lambda Fstar + p
     Vector F1 = p1.Lambda(ms) * Fstar1 + p1.mu(ms) + p1.p(ms);
-    Vector F2 = p2.calcInverseDynamics(ms, Fstar2);
-
-    //cout << "F1=" << F1 << endl;
-    //cout << "F2=" << F2 << endl;
-    //cout << "g=" << p1.g(s) << endl;
+    //Vector F2 = p2.calcInverseDynamics(ms, Fstar2);
 
     // Combine the reaching task with the gravity compensation and nullspace
     // damping.
-    // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - k u)
+    // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - c u)
     const Vector& u = ms.getU();
-    const Real c = m_dampingGain/10;
+    const Real c = m_dampingGain/4;
     tau.setToZero();
     //tau +=   p1.JT(s) * F1 
     //              + p1.NT(s) * (  p2.JT(s) * F2 
@@ -216,10 +215,9 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
             tau += p1.NT(ms) * p1.g(ms);
         tau -= p1.NT(ms) * (c*u); // damping
     } else if (m_compensateForGravity) {
-        tau += p1.g(ms);
-        tau -= p1.NT(ms) * (c*u); // damping
+        tau += p1.g(ms) - (c*u);
     } else 
-        tau += -c*u;
+        tau -= c*u;
 
     UR10::clampToLimits(tau);
 }
@@ -247,8 +245,8 @@ public:
     // @param[in] derivativeGain Units of N-m-s/rad
     ReachingAndGravityCompensation(const UR10& realRobot,
             Vec3 taskPointInEndEffector=Vec3(0,0,0),
-            double proportionalGain=100, double derivativeGain=20) :
-        m_modelRobot(),
+            double proportionalGain=100, double derivativeGain=20) 
+    :   m_modelRobot(),
         m_modelTasks(m_modelRobot),
         m_realRobot(realRobot)
     {
@@ -261,6 +259,7 @@ public:
 
     void toggleGravityComp() {m_modelTasks.toggleGravityComp();}
     void toggleTask() {m_modelTasks.toggleTask();}
+    void toggleEndEffectorSensing() {m_modelTasks.toggleEndEffectorSensing();}
 
     bool isGravityCompensationOn() const 
     {   return m_modelTasks.isGravityCompensationOn(); }
@@ -294,11 +293,15 @@ public:
         geometry.push_back(DecorativePoint(taskPosInGround)
                 .setColor(Green).setLineThickness(3));
 
-        geometry.push_back(DecorativeText(String("Gravity compensation ")
-            + (m_modelTasks.isGravityCompensationOn() ? "ON" : "OFF"))
+        geometry.push_back(DecorativeText(String("TOGGLES: [t]Task point ")
+            + (m_modelTasks.isTaskPointFollowingOn() ? "ON" : "OFF")
+            + "...[g]Gravity comp "
+            + (m_modelTasks.isGravityCompensationOn() ? "ON" : "OFF")
+            + "...[e]End effector sensor "
+            + (m_modelTasks.isEndEffectorSensingOn() ? "ON" : "OFF")
+            )
             .setIsScreenText(true));
     }
-
 
 private:
     UR10                 m_modelRobot;   // The controller's internal model.
@@ -325,19 +328,20 @@ void ReachingAndGravityCompensation::calcForce(
 {
     // Sense the real robot and use readings to update model robot.
     // ------------------------------------------------------------
+    const Vector& sensedQ = m_realRobot.getSampledAngles(realState);
+    const Vector& sensedU = m_realRobot.getSampledRates(realState);
     for (int i=0; i < UR10::NumCoords; ++i) {
         const UR10::Coords coord = UR10::Coords(i);
-        const Real sensedQ = m_realRobot.senseJointAngle(realState, coord);
-        const Real sensedU = m_realRobot.senseJointRate(realState, coord);
-        m_modelRobot.setJointAngle(m_modelState, coord, sensedQ);
-        m_modelRobot.setJointRate(m_modelState, coord, sensedU);
+        m_modelRobot.setJointAngle(m_modelState, coord, sensedQ[coord]);
+        m_modelRobot.setJointRate(m_modelState, coord, sensedU[coord]);
     }
 
     // Optional: if real robot end effector location can be sensed, it can
     // be used to improve accuracy. Otherwise, estimate the end effector
     // location using the model robot.
-    const Vec3 sensedEEPos = m_realRobot.senseEndEffectorPosition(realState);
-    //m_modelTasks.setSensedEndEffectorPos(sensedEEPos);
+    const Vec3 sensedEEPos = 
+        m_realRobot.getSampledEndEffectorPos(realState);
+    m_modelRobot.setSampledEndEffectorPos(m_modelState, sensedEEPos);
 
     m_modelRobot.realize(m_modelState, Stage::Velocity);
 
@@ -353,69 +357,82 @@ void ReachingAndGravityCompensation::calcForce(
 /// regular basis to poll the InputSilo for user input.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo,
-            ReachingAndGravityCompensation& controller, Real interval)
-        :
-        PeriodicEventHandler(interval), m_silo(silo), m_controller(controller),
-        m_increment(0.05) {}
+    UserInputHandler(Visualizer::InputSilo&             silo,
+                     UR10&                              realRobot,
+                     ReachingAndGravityCompensation&    controller, 
+                     Real                               interval)
+    :   PeriodicEventHandler(interval), m_silo(silo), m_realRobot(realRobot),
+        m_controller(controller), m_increment(0.05) {}
 
     void handleEvent(State& realState, Real accuracy,
             bool& shouldTerminate) const OVERRIDE_11
     {
         while (m_silo.isAnyUserInput()) {
+
+            int whichSlider; Real sliderValue;
+            while (m_silo.takeSliderMove(whichSlider, sliderValue)) {
+                if (whichSlider == QNoise) {
+                    m_realRobot.setAngleNoise(realState, sliderValue);
+                    continue;
+                }
+                if (whichSlider == UNoise) {
+                    m_realRobot.setRateNoise(realState, sliderValue);
+                    continue;
+                }
+            }
+
             unsigned key, modifiers;
             while (m_silo.takeKeyHit(key, modifiers)) {
                 if (key == Visualizer::InputListener::KeyEsc) {
                     shouldTerminate = true;
                     m_silo.clear();
-                    return;
+                    continue;
                 }
                 if (key == 'g') {
                     m_controller.toggleGravityComp();
-                    return;
+                    continue;
                 }
                 if (key == 't') {
                     m_controller.toggleTask();
-                    return;
+                    continue;
+                }            
+                if (key == 'e') {
+                    m_controller.toggleEndEffectorSensing();
+                    continue;
                 }
                 else if (key == Visualizer::InputListener::KeyRightArrow) {
-                    // z coordinate goes in and out of the screen.
+                    // x coordinate goes in and out of the screen.
                     m_controller.updTarget()[XAxis] -= m_increment;
-                    m_silo.clear();
-                    return;
+                    continue;
                 }
                 else if (key == Visualizer::InputListener::KeyLeftArrow) {
                     m_controller.updTarget()[XAxis] += m_increment;
-                    m_silo.clear();
-                    return;
+                    continue;
                 }
                 else if (key == Visualizer::InputListener::KeyUpArrow) {
                     m_controller.updTarget()[ZAxis] += m_increment;
-                    m_silo.clear();
-                    return;
+                    continue;
                 }
                 else if (key == Visualizer::InputListener::KeyDownArrow) {
                     m_controller.updTarget()[ZAxis] -= m_increment;
-                    m_silo.clear();
-                    return;
+                    continue;
                 }
                 else if (key == Visualizer::InputListener::KeyPageUp) {
                     m_controller.updTarget()[YAxis] -= m_increment;
-                    m_silo.clear();
-                    return;
+                    continue;
                 }
                 else if (key == Visualizer::InputListener::KeyPageDown) {
                     m_controller.updTarget()[YAxis] += m_increment;
-                    m_silo.clear();
-                    return;
+                    continue;
                 }
             }
         }
     }
 private:
-    Visualizer::InputSilo& m_silo;
+    Visualizer::InputSilo&          m_silo;
+    UR10&                           m_realRobot;
     ReachingAndGravityCompensation& m_controller;
-    const Real m_increment;
+    const Real                      m_increment;
 };
 
 //==============================================================================
@@ -455,10 +472,14 @@ int main(int argc, char **argv) {
     Visualizer viz(realRobot);
     viz.setShowFrameRate(true);
     viz.setShowSimTime(true);
+
+    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0); 
+    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0); 
+
     Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
     viz.addInputListener(userInput);
     realRobot.addEventHandler(
-            new UserInputHandler(*userInput, *controller, 0.05));
+            new UserInputHandler(*userInput, realRobot, *controller, 0.05));
     realRobot.addEventReporter(new OutputReporter(realRobot, .01));
     realRobot.addEventReporter(
             new Visualizer::Reporter(viz, 1./30));
@@ -467,9 +488,7 @@ int main(int argc, char **argv) {
     DecorativeText help("Any input to start; ESC to quit.");
     help.setIsScreenText(true);
     viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
-    help.setText("Move target w/Arrows, PageUp/Down");
-    viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
-    help.setText("g=toggle gravity comp; t=toggle task");
+    help.setText("Move target: Arrows, PageUp/Down");
     viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
 
     // Initialize the real robot and other related classes.

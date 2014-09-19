@@ -77,19 +77,40 @@ public:
     };
     static const int NumCoords = Wrist3Coord + 1;
 
-    // Return the currently-sensed angle for a particular UR10 coordinate, in
-    // radians.
-    SimTK::Real senseJointAngle(const SimTK::State& s, Coords which) const 
-    {   return s.getQ()[which]; }
+    void setAngleNoise(SimTK::State& state, SimTK::Real qNoise) const 
+    {   m_qNoise.setValue(state, qNoise); }
 
-    // Return the currently-sensed angular rate for a particular UR10 
-    // coordinate, in radians/s.
-    SimTK::Real senseJointRate(const SimTK::State& s, Coords which) const
-    {   return s.getU()[which]; }
+    void setRateNoise(SimTK::State& state, SimTK::Real uNoise) const 
+    {   m_uNoise.setValue(state, uNoise); }
+
+    void setSampledAngles(SimTK::State& state, const SimTK::Vector& angles) const {
+        assert(angles.size() == NumCoords);
+        m_sampledAngles.setValue(state, angles);
+    }
+
+    void setSampledRates(SimTK::State& state, const SimTK::Vector& rates) const {
+        assert(rates.size() == NumCoords);
+        m_sampledRates.setValue(state, rates);
+    }
+
+    void setSampledEndEffectorPos(SimTK::State& state, 
+                                  const SimTK::Vec3& pos) const 
+    {   m_sampledEndEffectorPos.setValue(state, pos); }
+
+    SimTK::Real getAngleNoise(const SimTK::State& s) const 
+    {   return m_qNoise.getValue(s); }
+    SimTK::Real getRateNoise(const SimTK::State& s) const 
+    {   return m_uNoise.getValue(s); }
+    const SimTK::Vector& getSampledAngles(const SimTK::State& s) const
+    {   return m_sampledAngles.getValue(s); }
+    const SimTK::Vector& getSampledRates(const SimTK::State& s) const
+    {   return m_sampledRates.getValue(s); }
+    const SimTK::Vec3& getSampledEndEffectorPos(const SimTK::State& s) const
+    {   return m_sampledEndEffectorPos.getValue(s); }
 
     // Return the Ground frame location of the body origin point of the 
     // EndEffector link.
-    SimTK::Vec3 senseEndEffectorPosition(const SimTK::State& s) const 
+    SimTK::Vec3 getActualEndEffectorPosition(const SimTK::State& s) const 
     {   return m_bodies[EndEffector].getBodyOriginLocation(s); }
 
     // Set a particular joint angle (in radians) in the given State.
@@ -131,10 +152,15 @@ public:
     }
 
 private:
-    SimTK::SimbodyMatterSubsystem       m_matter;
-    SimTK::GeneralForceSubsystem        m_forces;
-    SimTK::Force::Gravity               m_gravity;
-    SimTK::MobilizedBody                m_bodies[NumLinks];
+    SimTK::SimbodyMatterSubsystem               m_matter;
+    SimTK::GeneralForceSubsystem                m_forces;
+    SimTK::Force::Gravity                       m_gravity;
+    SimTK::MobilizedBody                        m_bodies[NumLinks];
+    SimTK::Measure_<SimTK::Vector>::Variable    m_sampledAngles;
+    SimTK::Measure_<SimTK::Vector>::Variable    m_sampledRates;
+    SimTK::Measure_<SimTK::Vec3>::Variable      m_sampledEndEffectorPos;
+    SimTK::Measure_<SimTK::Real>::Variable      m_qNoise;
+    SimTK::Measure_<SimTK::Real>::Variable      m_uNoise;
 };
 
 

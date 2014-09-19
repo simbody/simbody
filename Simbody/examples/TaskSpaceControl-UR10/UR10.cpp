@@ -24,13 +24,52 @@
 #include "Simbody.h"
 #include "UR10.h"
 
+#include <cstdio>
+#include <iostream>
+
 using namespace SimTK;
 
+class UR10JointSampler : public PeriodicEventHandler {
+public:
+    UR10JointSampler(const UR10& realRobot, 
+                     Real        interval) 
+    :   PeriodicEventHandler(interval), m_realRobot(realRobot) {}
+
+    // This method is called whenever this event occurs.
+    void handleEvent
+       (State& state, Real, bool&) const OVERRIDE_11 
+    {
+        const Vector& q = state.getQ();
+        const Vector& u = state.getU();
+        const Real qNoise = m_realRobot.getAngleNoise(state);
+        const Real uNoise = m_realRobot.getRateNoise(state);
+        Vector qSample(UR10::NumCoords), uSample(UR10::NumCoords);
+        for (int i=0; i<UR10::NumCoords; ++i) {
+            qSample[i] = q[i] + qNoise * m_gaussian.getValue();
+            uSample[i] = u[i] + uNoise * m_gaussian.getValue();
+        }
+        m_realRobot.setSampledAngles(state, qSample);
+        m_realRobot.setSampledRates(state, uSample);
+        m_realRobot.setSampledEndEffectorPos(state, 
+            m_realRobot.getActualEndEffectorPosition(state));
+    }
+
+private:
+    const UR10&                 m_realRobot;
+    Random::Gaussian            m_gaussian; // mean=0, stddev=1
+};
+
 UR10::UR10()
-    : m_matter(*this), m_forces(*this)
+:   m_matter(*this), m_forces(*this), 
+    m_sampledAngles(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
+    m_sampledRates(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
+    m_sampledEndEffectorPos(*this, Stage::Dynamics, Vec3(0)),
+    m_qNoise(*this,Stage::Dynamics,Zero), m_uNoise(*this,Stage::Dynamics,Zero)
 {
     setUpDirection(ZAxis);
     m_matter.setShowDefaultGeometry(false);
+
+    addEventHandler(new UR10JointSampler(*this, 0.001));  
 
     //--------------------------------------------------------------------------
     //                          Constants, etc.
@@ -112,8 +151,7 @@ UR10::UR10()
     baseInfo.addDecoration(DecorativeMesh(baseMesh).setColor(Gray));
     shoulderInfo.addDecoration(DecorativeMesh(shoulderMesh).setColor(Cyan));
     upperArmInfo.addDecoration(DecorativeMesh(upperArmMesh).setColor(Gray));
-    forearmInfo.addDecoration(DecorativeMesh(forearmMesh)
-                              .setColor(Gray).setOpacity(.3));
+    forearmInfo.addDecoration(DecorativeMesh(forearmMesh).setColor(Gray));
     wrist1Info.addDecoration(DecorativeMesh(wrist1Mesh).setColor(Cyan));
     wrist2Info.addDecoration(DecorativeMesh(wrist2Mesh).setColor(Gray));
     wrist3Info.addDecoration(DecorativeMesh(wrist3Mesh).setColor(Cyan));
