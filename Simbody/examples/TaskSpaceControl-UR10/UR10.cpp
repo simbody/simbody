@@ -29,6 +29,9 @@
 
 using namespace SimTK;
 
+namespace {
+// This local event handler is called periodically to sample the robot's 
+// sensors.
 class UR10JointSampler : public PeriodicEventHandler {
 public:
     UR10JointSampler(const UR10& realRobot, 
@@ -36,29 +39,18 @@ public:
     :   PeriodicEventHandler(interval), m_realRobot(realRobot) {}
 
     // This method is called whenever this event occurs.
-    void handleEvent
-       (State& state, Real, bool&) const OVERRIDE_11 
-    {
-        const Vector& q = state.getQ();
-        const Vector& u = state.getU();
-        const Real qNoise = m_realRobot.getAngleNoise(state);
-        const Real uNoise = m_realRobot.getRateNoise(state);
-        Vector qSample(UR10::NumCoords), uSample(UR10::NumCoords);
-        for (int i=0; i<UR10::NumCoords; ++i) {
-            qSample[i] = q[i] + qNoise * m_gaussian.getValue();
-            uSample[i] = u[i] + uNoise * m_gaussian.getValue();
-        }
-        m_realRobot.setSampledAngles(state, qSample);
-        m_realRobot.setSampledRates(state, uSample);
-        m_realRobot.setSampledEndEffectorPos(state, 
-            m_realRobot.getActualEndEffectorPosition(state));
-    }
+    void handleEvent(State& state, Real, bool&) const OVERRIDE_11;
 
 private:
     const UR10&                 m_realRobot;
     Random::Gaussian            m_gaussian; // mean=0, stddev=1
 };
+}
 
+//------------------------------------------------------------------------------
+//                            UR10 CONSTRUCTOR
+//------------------------------------------------------------------------------
+// Build a Simbody System of the Universal Robotics UR10 robot arm.
 UR10::UR10()
 :   m_matter(*this), m_forces(*this), 
     m_sampledAngles(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
@@ -69,23 +61,12 @@ UR10::UR10()
     setUpDirection(ZAxis);
     m_matter.setShowDefaultGeometry(false);
 
-    addEventHandler(new UR10JointSampler(*this, 0.001));  
-
-    //--------------------------------------------------------------------------
-    //                          Constants, etc.
-    //--------------------------------------------------------------------------
-
-
-    // Miscellaneous.
-    // --------------
-
-
+    // Set the sensor sampling rate. TODO: should be settable.
+    addEventHandler(new UR10JointSampler(*this, 0.002));  
 
     //--------------------------------------------------------------------------
     //                          Gravity
     //--------------------------------------------------------------------------
-
-    // Gravity.
     m_gravity = Force::Gravity(m_forces, m_matter, -SimTK::ZAxis, 9.8066);
 
     //--------------------------------------------------------------------------
@@ -163,8 +144,10 @@ UR10::UR10()
     //--------------------------------------------------------------------------
     //                         Mobilized Bodies
     //--------------------------------------------------------------------------
-    const Rotation ZtoY(-Pi/2, XAxis);
+    const Rotation ZtoY(-Pi/2, XAxis); // zero angle will be vertical
+    // Use this orientation when you want the zero position horizontal.
     const Rotation ZtoY90(BodyRotationSequence, -Pi/2, XAxis, -Pi/2, ZAxis);
+
     m_bodies[Ground] = m_matter.updGround();
 
     m_bodies[Base] = MobilizedBody::Weld(
@@ -201,6 +184,29 @@ UR10::UR10()
 
     //TODO: joint stops
 
+}
+
+
+//------------------------------------------------------------------------------
+//                 UR10 JOINT SAMPLER :: HANDLE EVENT
+//------------------------------------------------------------------------------
+// This method is called whenever this event occurs.
+void UR10JointSampler::handleEvent
+    (State& state, Real, bool&) const 
+{
+    const Vector& q = state.getQ();
+    const Vector& u = state.getU();
+    const Real qNoise = m_realRobot.getAngleNoise(state);
+    const Real uNoise = m_realRobot.getRateNoise(state);
+    Vector qSample(UR10::NumCoords), uSample(UR10::NumCoords);
+    for (int i=0; i<UR10::NumCoords; ++i) {
+        qSample[i] = q[i] + qNoise * m_gaussian.getValue();
+        uSample[i] = u[i] + uNoise * m_gaussian.getValue();
+    }
+    m_realRobot.setSampledAngles(state, qSample);
+    m_realRobot.setSampledRates(state, uSample);
+    m_realRobot.setSampledEndEffectorPos(state, 
+        m_realRobot.getActualEndEffectorPosition(state));
 }
 
 

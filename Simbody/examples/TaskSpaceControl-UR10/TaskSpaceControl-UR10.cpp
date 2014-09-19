@@ -26,15 +26,23 @@ a robot arm in Simbody. Task space controllers are model-based, meaning that
 the controller itself contains a model of the system being controlled. Since
 we don't have a real robot handy, that means there will be two versions of
 the UR10 system here: one that we're simulating that is taking the role of the
-"real" robot, and one contained in the task space controller. In real life the
-internal model won't perfectly match the real one; we'll fake that here by
-changing some parameters between the two models.
-We assume the system has a motor at each of its degrees of freedom.
+"real" robot, and one contained in the task space controller that we'll call
+the "model" robot. In real life the internal model won't perfectly match the 
+real one; we'll fake that here by introducing some sensor noise which you can
+control with sliders in the user interface.
+
+We assume the system has a direct-drive motor at each of its degrees of freedom.
 
 The task the controller will achieve has two components:
 1. The arm reaches for a target point that can be moved with arrow keys.
 2. All links are subject to gravity compensation (to counteract the effect
 of gravity).
+
+You can also optionally sense the end effector position on the real robot
+and have that sent to the controller so that it doesn't have to depend 
+entirely on the behavior of the model robot when the real robot's sensors are
+noisy. Try cranking up the noise, which causes poor tracking, and then hit
+"e" to enable the end effector sensing which improves things dramatically.
 
 For more information about operational space control, see:
 
@@ -50,7 +58,7 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 using namespace SimTK;
 using namespace std;
 
-static const int QNoise=1, UNoise=2; // sliders
+static const int QNoise=1, UNoise=2; // sliders in the UI
 
 //==============================================================================
 //                             TASKS MEASURE
@@ -98,7 +106,7 @@ class TasksMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
     Implementation(const UR10& modelRobot,
                    Vec3 taskPointInEndEffector=Vec3(0,0,0),
-                   Real proportionalGain=400, double derivativeGain=40) 
+                   Real proportionalGain=100, double derivativeGain=20) 
     :   Measure_<T>::Implementation(T(UR10::NumCoords,NaN), 1),
         m_modelRobot(modelRobot),
         m_tspace1(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
@@ -125,9 +133,13 @@ public:
     Stage getDependsOnStageVirtual(int order) const OVERRIDE_11
     {   return Stage::Velocity; }
 
-    void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+    // This is the task space controller. It returns joint torques tau as the
+    // value of the enclosing Measure.
+    void calcCachedValueVirtual(const State& s, int derivOrder, T& tau) const
         OVERRIDE_11;
 
+    // TaskSpace objects require some State resources; this call is the time
+    // for doing that so forward on to the TaskSpace.
     void realizeMeasureTopologyVirtual(State& modelState) const OVERRIDE_11 {
         m_tspace1.realizeTopology(modelState);
     }
@@ -148,11 +160,177 @@ friend class TasksMeasure<T>;
     Vec3            m_desiredTaskPosInGround;
 };
 
+
+//==============================================================================
+//                    REACHING AND GRAVITY COMPENSATION
+//==============================================================================
+// This is a task-space controller that tries to move the end effector to 
+// a particular target location, and applies gravity compensation and some
+// joint damping as lower-priority tasks.
+//
+// The controller has its own internal UR10 model which in general does not
+// match the "real" UR10 perfectly. Each time it is asked to
+// generate control torques it reads the sensors on the real UR10, updates
+// its internal model to match. It then generates torques that would be right
+// for the internal model, but returns them to be applied to the real UR10.
+class ReachingAndGravityCompensation : public Force::Custom::Implementation {
+public:
+    // The arm reaches for a target location, and the controller
+    // compensates for gravity.
+    // 
+    // @param[in] taskPointInEndEffector The point whose location we want
+    //                                   to control.
+    // @param[in] proportionalGain Units of N-m/rad
+    // @param[in] derivativeGain Units of N-m-s/rad
+    ReachingAndGravityCompensation(const UR10& realRobot) 
+    :   m_modelRobot(), m_modelTasks(m_modelRobot), m_realRobot(realRobot),
+        m_targetColor(Red)
+    {
+        m_modelRobot.initialize(m_modelState);
+    }
+
+    const Vec3& getTarget() const {return m_modelTasks.getTarget();}
+    Vec3& updTarget() {return m_modelTasks.updTarget();}
+    void setTarget(Vec3 pos) {m_modelTasks.setTarget(pos);}
+
+    void toggleGravityComp() {m_modelTasks.toggleGravityComp();}
+    void toggleTask() {m_modelTasks.toggleTask();}
+    void toggleEndEffectorSensing() {m_modelTasks.toggleEndEffectorSensing();}
+
+    bool isGravityCompensationOn() const 
+    {   return m_modelTasks.isGravityCompensationOn(); }
+
+    // This method calculates the needed control torques and adds them into
+    // the given mobilityForces Vector which will be applied to the real UR10.
+    // The supplied State is from the real UR10 and will be used to read its
+    // sensors.
+    void calcForce(const SimTK::State&                realState,
+                   SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
+                   SimTK::Vector_<SimTK::Vec3>&       particleForces,
+                   SimTK::Vector&                     mobilityForces) const
+                   OVERRIDE_11;
+
+    // This controller does not contribute potential energy to the system.
+    Real calcPotentialEnergy(const SimTK::State& state) const OVERRIDE_11
+    { return 0; }
+
+    // Add some useful text and graphics that changes due to user input.
+    void calcDecorativeGeometryAndAppend(const State & state, Stage stage,
+            Array_<DecorativeGeometry>& geometry) const OVERRIDE_11;
+
+private:
+    UR10                 m_modelRobot;   // The controller's internal model.
+    TasksMeasure<Vector> m_modelTasks;
+    mutable State        m_modelState;   // Temporary: State for the model robot.
+    const UR10&          m_realRobot;    // The "real" robot being controlled.
+    const Vec3           m_targetColor;
+};
+
+
+//==============================================================================
+//                           USER INPUT HANDLER
+//==============================================================================
+/// This is a periodic event handler that interrupts the simulation on a
+/// regular basis to poll the InputSilo for user input.
+class UserInputHandler : public PeriodicEventHandler {
+public:
+    UserInputHandler(Visualizer::InputSilo&             silo,
+                     UR10&                              realRobot,
+                     ReachingAndGravityCompensation&    controller, 
+                     Real                               interval)
+    :   PeriodicEventHandler(interval), m_silo(silo), m_realRobot(realRobot),
+        m_controller(controller), m_increment(0.05) {}
+
+    void handleEvent(State& realState, Real accuracy,
+                     bool& shouldTerminate) const OVERRIDE_11;
+private:
+    Visualizer::InputSilo&          m_silo;
+    UR10&                           m_realRobot;
+    ReachingAndGravityCompensation& m_controller;
+    const Real                      m_increment;
+};
+
+
+//==============================================================================
+//                                  MAIN
+//==============================================================================
+int main(int argc, char **argv) {
+  try {
+    cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
+
+    // Set some options.
+    const double duration = Infinity; // seconds.
+
+    // Create the "real" robot (the one that is being simulated).
+    UR10 realRobot;
+
+    // Add the controller.
+    ReachingAndGravityCompensation* controller =
+        new ReachingAndGravityCompensation(realRobot);
+    // Force::Custom takes ownership over controller.
+    Force::Custom control(realRobot.updForceSubsystem(), controller);
+
+    // Set up visualizer and event handlers.
+    Visualizer viz(realRobot);
+    viz.setShowFrameRate(true);
+    viz.setShowSimTime(true);
+
+    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0); 
+    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0); 
+
+    Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
+    viz.addInputListener(userInput);
+    realRobot.addEventHandler(
+            new UserInputHandler(*userInput, realRobot, *controller, 0.05));
+    realRobot.addEventReporter(
+            new Visualizer::Reporter(viz, 1./30));
+
+    // Display message on the screen about how to start simulation.
+    DecorativeText help("Any input to start; ESC to quit.");
+    help.setIsScreenText(true);
+    viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
+    help.setText("Move target: Arrows, PageUp/Down");
+    viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
+
+    // Initialize the real robot and other related classes.
+    State s;
+    realRobot.initialize(s);
+    s.updQ()[UR10::LiftCoord]  = Pi/4;
+    s.updQ()[UR10::ElbowCoord] = Pi/2;
+    RungeKuttaMersonIntegrator integ(realRobot);
+    //SemiExplicitEuler2Integrator integ(realRobot);
+    integ.setAccuracy(0.001);
+    TimeStepper ts(realRobot, integ);
+    ts.initialize(s);
+    viz.report(ts.getState());
+
+    userInput->waitForAnyUserInput();
+    userInput->clear();
+
+    const double startCPU  = cpuTime(), startTime = realTime();
+
+    // Simulate.
+    ts.stepTo(duration);
+
+    std::cout << "CPU time: " << cpuTime() - startCPU << " seconds. "
+                << "Real time: " << realTime() - startTime << " seconds."
+                << std::endl;
+
+  } catch (const std::exception& e) {
+    std::cout << "ERROR: " << e.what() << std::endl;
+    return 1;
+  }
+  return 0;
+}
+
+
+
 //------------------------------------------------------------------------------
 //                TASKS MEASURE :: CALC CACHED VALUE VIRTUAL
 //------------------------------------------------------------------------------
 // Given a modelState that has been updated from the real robot's sensors, 
-// generate control torques as the TasksMeasure's value.
+// generate control torques as the TasksMeasure's value. This is the only part
+// of the code that is actually doing task space operations.
 
 template <class T>
 void TasksMeasure<T>::Implementation::calcCachedValueVirtual
@@ -202,7 +380,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     // damping.
     // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - c u)
     const Vector& u = ms.getU();
-    const Real c = m_dampingGain/4;
+    const Real c = m_dampingGain/5;
     tau.setToZero();
     //tau +=   p1.JT(s) * F1 
     //              + p1.NT(s) * (  p2.JT(s) * F2 
@@ -222,104 +400,13 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     UR10::clampToLimits(tau);
 }
 
-//==============================================================================
-//                    REACHING AND GRAVITY COMPENSATION
-//==============================================================================
-// This is a task-space controller that tries to move the end effector to 
-// a particular target location, and applies gravity compensation and some
-// joint damping as lower-priority tasks.
-//
-// The controller has its own internal UR10 model which in general does not
-// match the "real" UR10 perfectly. Each time it is asked to
-// generate control torques it reads the sensors on the real UR10, updates
-// its internal model to match. It then generates torques that would be right
-// for the internal model, but returns them to be applied to the real UR10.
-class ReachingAndGravityCompensation : public Force::Custom::Implementation {
-public:
-    // The arm reaches for a target location, and the controller
-    // compensates for gravity.
-    // 
-    // @param[in] taskPointInEndEffector The point whose location we want
-    //                                   to control.
-    // @param[in] proportionalGain Units of N-m/rad
-    // @param[in] derivativeGain Units of N-m-s/rad
-    ReachingAndGravityCompensation(const UR10& realRobot,
-            Vec3 taskPointInEndEffector=Vec3(0,0,0),
-            double proportionalGain=100, double derivativeGain=20) 
-    :   m_modelRobot(),
-        m_modelTasks(m_modelRobot),
-        m_realRobot(realRobot)
-    {
-        m_modelRobot.initialize(m_modelState);
-    }
-
-    const Vec3& getTarget() const {return m_modelTasks.getTarget();}
-    Vec3& updTarget() {return m_modelTasks.updTarget();}
-    void setTarget(Vec3 pos) {m_modelTasks.setTarget(pos);}
-
-    void toggleGravityComp() {m_modelTasks.toggleGravityComp();}
-    void toggleTask() {m_modelTasks.toggleTask();}
-    void toggleEndEffectorSensing() {m_modelTasks.toggleEndEffectorSensing();}
-
-    bool isGravityCompensationOn() const 
-    {   return m_modelTasks.isGravityCompensationOn(); }
-
-    // This method calculates the needed control torques and adds them into
-    // the given mobilityForces Vector which will be applied to the real UR10.
-    // The supplied State is from the real UR10 and will be used to read its
-    // sensors.
-    void calcForce(const SimTK::State&                realState,
-                   SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
-                   SimTK::Vector_<SimTK::Vec3>&       particleForces,
-                   SimTK::Vector&                     mobilityForces) const
-                   OVERRIDE_11;
-
-    // This controller does not contribute potential energy to the system.
-    Real calcPotentialEnergy(const SimTK::State& state) const OVERRIDE_11
-    { return 0; }
-
-    void calcDecorativeGeometryAndAppend(const State & state, Stage stage,
-            Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
-    {
-        if (stage != Stage::Position) return;
-
-        geometry.push_back(DecorativeSphere(0.02)
-                .setTransform(m_modelTasks.getTarget())
-                .setColor(m_targetColor));
-
-        const MobilizedBody& ee = m_realRobot.getBody(UR10::EndEffector);
-        Vec3 taskPosInGround = ee.findStationLocationInGround(state,
-                m_modelTasks.getTaskPointInEndEffector());
-        geometry.push_back(DecorativePoint(taskPosInGround)
-                .setColor(Green).setLineThickness(3));
-
-        geometry.push_back(DecorativeText(String("TOGGLES: [t]Task point ")
-            + (m_modelTasks.isTaskPointFollowingOn() ? "ON" : "OFF")
-            + "...[g]Gravity comp "
-            + (m_modelTasks.isGravityCompensationOn() ? "ON" : "OFF")
-            + "...[e]End effector sensor "
-            + (m_modelTasks.isEndEffectorSensingOn() ? "ON" : "OFF")
-            )
-            .setIsScreenText(true));
-    }
-
-private:
-    UR10                 m_modelRobot;   // The controller's internal model.
-    TasksMeasure<Vector> m_modelTasks;
-
-    mutable State   m_modelState;   // Temporary: State for the model robot.
-
-    const UR10&     m_realRobot;    // The "real" robot being controlled.
-
-    static const Vec3 m_targetColor;
-};
-
-const Vec3 ReachingAndGravityCompensation::m_targetColor = Red;
 
 //------------------------------------------------------------------------------
-//                               CALC FORCE
+//           REACHING AND GRAVITY COMPENSATION :: CALC FORCE
 //------------------------------------------------------------------------------
 // Given sensor readings from the real robot, generate control torques for it.
+// We'll pass on those sensor readings to the task space controller for it to
+// use to update its internal modelRobot.
 void ReachingAndGravityCompensation::calcForce(
                const State&         realState,
                Vector_<SpatialVec>& bodyForces,
@@ -350,174 +437,101 @@ void ReachingAndGravityCompensation::calcForce(
     mobilityForces += tau;
 }
 
-//==============================================================================
-//                           USER INPUT HANDLER
-//==============================================================================
-/// This is a periodic event handler that interrupts the simulation on a
-/// regular basis to poll the InputSilo for user input.
-class UserInputHandler : public PeriodicEventHandler {
-public:
-    UserInputHandler(Visualizer::InputSilo&             silo,
-                     UR10&                              realRobot,
-                     ReachingAndGravityCompensation&    controller, 
-                     Real                               interval)
-    :   PeriodicEventHandler(interval), m_silo(silo), m_realRobot(realRobot),
-        m_controller(controller), m_increment(0.05) {}
 
-    void handleEvent(State& realState, Real accuracy,
-            bool& shouldTerminate) const OVERRIDE_11
-    {
-        while (m_silo.isAnyUserInput()) {
+//------------------------------------------------------------------------------
+//       REACHING AND GRAVITY COMPENSATION :: CALC DECORATIVE GEOMETRY
+//------------------------------------------------------------------------------
+void ReachingAndGravityCompensation::
+calcDecorativeGeometryAndAppend(const State & state, Stage stage,
+                                Array_<DecorativeGeometry>& geometry) const
+{
+    if (stage != Stage::Position) return;
 
-            int whichSlider; Real sliderValue;
-            while (m_silo.takeSliderMove(whichSlider, sliderValue)) {
-                if (whichSlider == QNoise) {
-                    m_realRobot.setAngleNoise(realState, sliderValue);
-                    continue;
-                }
-                if (whichSlider == UNoise) {
-                    m_realRobot.setRateNoise(realState, sliderValue);
-                    continue;
-                }
+    geometry.push_back(DecorativeSphere(0.02)
+            .setTransform(m_modelTasks.getTarget())
+            .setColor(m_targetColor));
+
+    const MobilizedBody& ee = m_realRobot.getBody(UR10::EndEffector);
+    Vec3 taskPosInGround = ee.findStationLocationInGround(state,
+            m_modelTasks.getTaskPointInEndEffector());
+    geometry.push_back(DecorativePoint(taskPosInGround)
+            .setColor(Green).setLineThickness(3));
+
+    geometry.push_back(DecorativeText(String("TOGGLES: [t]Task point ")
+        + (m_modelTasks.isTaskPointFollowingOn() ? "ON" : "OFF")
+        + "...[g]Gravity comp "
+        + (m_modelTasks.isGravityCompensationOn() ? "ON" : "OFF")
+        + "...[e]End effector sensor "
+        + (m_modelTasks.isEndEffectorSensingOn() ? "ON" : "OFF")
+        )
+        .setIsScreenText(true));
+}
+
+
+//------------------------------------------------------------------------------
+//                USER INPUT HANDLER :: HANDLE EVENT
+//------------------------------------------------------------------------------
+void UserInputHandler::handleEvent(State& realState, Real accuracy,
+                                   bool& shouldTerminate) const
+{
+    while (m_silo.isAnyUserInput()) {
+
+        int whichSlider; Real sliderValue;
+        while (m_silo.takeSliderMove(whichSlider, sliderValue)) {
+            if (whichSlider == QNoise) {
+                m_realRobot.setAngleNoise(realState, sliderValue);
+                continue;
             }
+            if (whichSlider == UNoise) {
+                m_realRobot.setRateNoise(realState, sliderValue);
+                continue;
+            }
+        }
 
-            unsigned key, modifiers;
-            while (m_silo.takeKeyHit(key, modifiers)) {
-                if (key == Visualizer::InputListener::KeyEsc) {
-                    shouldTerminate = true;
-                    m_silo.clear();
-                    continue;
-                }
-                if (key == 'g') {
-                    m_controller.toggleGravityComp();
-                    continue;
-                }
-                if (key == 't') {
-                    m_controller.toggleTask();
-                    continue;
-                }            
-                if (key == 'e') {
-                    m_controller.toggleEndEffectorSensing();
-                    continue;
-                }
-                else if (key == Visualizer::InputListener::KeyRightArrow) {
-                    // x coordinate goes in and out of the screen.
-                    m_controller.updTarget()[XAxis] -= m_increment;
-                    continue;
-                }
-                else if (key == Visualizer::InputListener::KeyLeftArrow) {
-                    m_controller.updTarget()[XAxis] += m_increment;
-                    continue;
-                }
-                else if (key == Visualizer::InputListener::KeyUpArrow) {
-                    m_controller.updTarget()[ZAxis] += m_increment;
-                    continue;
-                }
-                else if (key == Visualizer::InputListener::KeyDownArrow) {
-                    m_controller.updTarget()[ZAxis] -= m_increment;
-                    continue;
-                }
-                else if (key == Visualizer::InputListener::KeyPageUp) {
-                    m_controller.updTarget()[YAxis] -= m_increment;
-                    continue;
-                }
-                else if (key == Visualizer::InputListener::KeyPageDown) {
-                    m_controller.updTarget()[YAxis] += m_increment;
-                    continue;
-                }
+        unsigned key, modifiers;
+        while (m_silo.takeKeyHit(key, modifiers)) {
+            if (key == Visualizer::InputListener::KeyEsc) {
+                shouldTerminate = true;
+                m_silo.clear();
+                continue;
+            }
+            if (key == 'g') {
+                m_controller.toggleGravityComp();
+                continue;
+            }
+            if (key == 't') {
+                m_controller.toggleTask();
+                continue;
+            }            
+            if (key == 'e') {
+                m_controller.toggleEndEffectorSensing();
+                continue;
+            }
+            else if (key == Visualizer::InputListener::KeyRightArrow) {
+                // x coordinate goes in and out of the screen.
+                m_controller.updTarget()[XAxis] -= m_increment;
+                continue;
+            }
+            else if (key == Visualizer::InputListener::KeyLeftArrow) {
+                m_controller.updTarget()[XAxis] += m_increment;
+                continue;
+            }
+            else if (key == Visualizer::InputListener::KeyUpArrow) {
+                m_controller.updTarget()[ZAxis] += m_increment;
+                continue;
+            }
+            else if (key == Visualizer::InputListener::KeyDownArrow) {
+                m_controller.updTarget()[ZAxis] -= m_increment;
+                continue;
+            }
+            else if (key == Visualizer::InputListener::KeyPageUp) {
+                m_controller.updTarget()[YAxis] -= m_increment;
+                continue;
+            }
+            else if (key == Visualizer::InputListener::KeyPageDown) {
+                m_controller.updTarget()[YAxis] += m_increment;
+                continue;
             }
         }
     }
-private:
-    Visualizer::InputSilo&          m_silo;
-    UR10&                           m_realRobot;
-    ReachingAndGravityCompensation& m_controller;
-    const Real                      m_increment;
-};
-
-//==============================================================================
-// OutputReporter
-//==============================================================================
-/// This is a periodic event handler that interrupts the simulation on a
-/// regular basis so that we can display information.
-class OutputReporter : public PeriodicEventReporter {
-public:
-    OutputReporter(const UR10& system, Real interval) :
-        PeriodicEventReporter(interval), m_system(system) {}
-    void handleEvent(const State& state) const OVERRIDE_11 {}
-private:
-    const UR10& m_system;
-};
-
-//==============================================================================
-//                                  MAIN
-//==============================================================================
-int main(int argc, char **argv) {
-  try {
-    cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
-
-    // Set some options.
-    const double duration = Infinity; // seconds.
-
-    // Create the "real" robot (the one that is being simulated).
-    UR10 realRobot;
-
-    // Add the controller.
-    ReachingAndGravityCompensation* controller =
-        new ReachingAndGravityCompensation(realRobot);
-    // Force::Custom takes ownership over controller.
-    Force::Custom control(realRobot.updForceSubsystem(), controller);
-
-    // Set up visualizer and event handlers.
-    Visualizer viz(realRobot);
-    viz.setShowFrameRate(true);
-    viz.setShowSimTime(true);
-
-    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0); 
-    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0); 
-
-    Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
-    viz.addInputListener(userInput);
-    realRobot.addEventHandler(
-            new UserInputHandler(*userInput, realRobot, *controller, 0.05));
-    realRobot.addEventReporter(new OutputReporter(realRobot, .01));
-    realRobot.addEventReporter(
-            new Visualizer::Reporter(viz, 1./30));
-
-    // Display message on the screen about how to start simulation.
-    DecorativeText help("Any input to start; ESC to quit.");
-    help.setIsScreenText(true);
-    viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
-    help.setText("Move target: Arrows, PageUp/Down");
-    viz.addDecoration(MobilizedBodyIndex(0), Vec3(0), help);
-
-    // Initialize the real robot and other related classes.
-    State s;
-    realRobot.initialize(s);
-    s.updQ()[UR10::LiftCoord]  = Pi/4;
-    s.updQ()[UR10::ElbowCoord] = Pi/2;
-    RungeKuttaMersonIntegrator integ(realRobot);
-    //SemiExplicitEuler2Integrator integ(realRobot);
-    integ.setAccuracy(0.001);
-    TimeStepper ts(realRobot, integ);
-    ts.initialize(s);
-    viz.report(ts.getState());
-
-    userInput->waitForAnyUserInput();
-    userInput->clear();
-
-    const double startCPU  = cpuTime(), startTime = realTime();
-
-    // Simulate.
-    ts.stepTo(duration);
-
-    std::cout << "CPU time: " << cpuTime() - startCPU << " seconds. "
-                << "Real time: " << realTime() - startTime << " seconds."
-                << std::endl;
-
-  } catch (const std::exception& e) {
-    std::cout << "ERROR: " << e.what() << std::endl;
-    return 1;
-  }
-  return 0;
 }
