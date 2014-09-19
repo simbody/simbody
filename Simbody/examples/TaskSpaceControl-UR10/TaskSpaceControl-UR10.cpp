@@ -106,7 +106,7 @@ class TasksMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
     Implementation(const UR10& modelRobot,
                    Vec3 taskPointInEndEffector=Vec3(0,0,0),
-                   Real proportionalGain=100, double derivativeGain=20) 
+                   Real proportionalGain=225, double derivativeGain=30) 
     :   Measure_<T>::Implementation(T(UR10::NumCoords,NaN), 1),
         m_modelRobot(modelRobot),
         m_tspace1(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
@@ -297,8 +297,8 @@ int main(int argc, char **argv) {
     realRobot.initialize(s);
     s.updQ()[UR10::LiftCoord]  = Pi/4;
     s.updQ()[UR10::ElbowCoord] = Pi/2;
-    RungeKuttaMersonIntegrator integ(realRobot);
-    //SemiExplicitEuler2Integrator integ(realRobot);
+    //RungeKuttaMersonIntegrator integ(realRobot);
+    SemiExplicitEuler2Integrator integ(realRobot);
     integ.setAccuracy(0.001);
     TimeStepper ts(realRobot, integ);
     ts.initialize(s);
