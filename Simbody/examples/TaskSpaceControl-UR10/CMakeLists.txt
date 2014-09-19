@@ -55,8 +55,8 @@ FOREACH(geodir geometry)
     set(relname ${geodir}/${geom_name})
     CONFIGURE_FILE(${geom}
                    ${CMAKE_CURRENT_BINARY_DIR}/${relname} COPYONLY)
-    INSTALL(FILES ${geom} DESTINATION ${EXAMPLES_INSTALL_SRC}/${relname})
-    INSTALL(FILES ${geom} DESTINATION ${EXAMPLES_INSTALL_BIN}/${relname})
+    INSTALL(FILES ${geom} DESTINATION ${EXAMPLES_INSTALL_SRC}/${geodir})
+    INSTALL(FILES ${geom} DESTINATION ${EXAMPLES_INSTALL_BIN}/${geodir})
   ENDFOREACH()
 ENDFOREACH()
 
