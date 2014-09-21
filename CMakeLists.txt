@@ -185,13 +185,7 @@ ENDIF()
 #
 # Create a platform name useful for finding things in the Platform
 # directory.
-IF(WIN32)
-    SET(PLATFORM_NAME Windows)
-ELSEIF(APPLE)
-    SET(PLATFORM_NAME Mac)
-ELSE()
-    SET(PLATFORM_NAME Linux)
-ENDIF()
+SET(PLATFORM_NAME ${CMAKE_HOST_SYSTEM_NAME})
 
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
