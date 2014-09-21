@@ -187,13 +187,10 @@ ENDIF()
 # directory.
 IF(WIN32)
     SET(PLATFORM_NAME Windows)
-    SET(NATIVE_COPY_CMD copy)
 ELSEIF(APPLE)
     SET(PLATFORM_NAME Mac)
-    SET(NATIVE_COPY_CMD cp)
 ELSE()
     SET(PLATFORM_NAME Linux)
-    SET(NATIVE_COPY_CMD cp)
 ENDIF()
 
 # In addition to the platform name we need to know the Application Binary
