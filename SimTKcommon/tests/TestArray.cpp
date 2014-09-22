@@ -776,7 +776,7 @@ void testMemoryFootprint() {
     SimTK_TEST(sizeof(Array_<int,unsigned short>) <  sizeof(std::vector<int>));
 
     // Since an int is smaller than a pointer here we will do better than
-    // any 3-pointer implementation. And we shouldn't be worse then normal
+    // any 3-pointer implementation. And we shouldn't be worse than normal
     // for long longs.
     if (Is64BitPlatform) {
         SimTK_TEST(sizeof(Array_<int,int>)       <  sizeof(std::vector<int>));
