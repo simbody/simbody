@@ -182,11 +182,6 @@ IF(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
         "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
 ENDIF()
 
-#
-# Create a platform name useful for finding things in the Platform
-# directory.
-SET(PLATFORM_NAME ${CMAKE_HOST_SYSTEM_NAME})
-
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
 # 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.
@@ -197,7 +192,7 @@ ELSE()
     SET(PLATFORM_ABI x86)
 ENDIF()
 
-SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
+SET(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE STRING
     "This is the platform and ABI we're building for. Not changeable here; use a different CMake generator instead."
     FORCE)
 

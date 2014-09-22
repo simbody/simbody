@@ -13,7 +13,7 @@
 #-----------------------------------------------------------
 ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 
-if(NOT PLATFORM_NAME MATCHES Windows)
+if(NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
   # only provide for native builds
   return()
 endif ()
