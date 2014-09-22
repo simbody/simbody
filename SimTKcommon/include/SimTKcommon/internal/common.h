@@ -229,6 +229,7 @@ extern "C" {
 
 #include <cstddef>
 #include <cassert>
+#include <cstring>
 #include <cmath>
 #include <cfloat>
 #include <complex>
