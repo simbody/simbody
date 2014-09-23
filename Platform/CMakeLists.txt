@@ -11,7 +11,6 @@
 # We provide our own high-performance Lapack library 
 # for Windows; Linux and Macs are expected to have one.
 #-----------------------------------------------------------
-ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 
 SET(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
 
@@ -38,6 +37,7 @@ FOREACH(LIBF ${LIB_FILES})
 ENDFOREACH()
 
 
+ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 SET_TARGET_PROPERTIES(PlatformFiles
     PROPERTIES PROJECT_LABEL "Code - Platform Files")
 
