@@ -315,10 +315,35 @@ convertThreeAxesRotationToThreeAngles
    (BodyOrSpaceType bodyOrSpace, const CoordinateAxis& axis1, 
     const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const;
 
-/** Converts rotation matrix to a quaternion. **/
+/** Converts rotation matrix to an equivalent quaternion in canonical form
+(meaning its scalar element is nonnegative). This uses a robust,
+singularity-free method due to Richard Spurrier. The cost is about 40 flops.
+
+@par Reference
+Spurrier, R.A., "Comment on 'Singularity-Free Extraction of a Quaternion 
+from a Direction-Cosine Matrix'", J. Spacecraft and Rockets, 15(4):255, 
+1977. 
+
+@see Quaternion_ **/
 SimTK_SimTKCOMMON_EXPORT QuaternionP convertRotationToQuaternion() const;
 
-/** Converts rotation matrix to angle-axis form. **/
+/** Converts rotation matrix to an equivalent angle-axis representation in
+canonicalized form. The result (a,v) is returned packed into a Vec4
+[a vx vy vz], with -Pi < a <= Pi and |v|=1. Cost is about 140 flops. 
+
+If the rotation angle is zero (or very very close to zero) then the returned
+unit vector is arbitrary. 
+
+@par Theory
+Euler's Rotation Theorem (1776) guarantees that any rigid body rotation is 
+equivalent to a rotation by an angle about a fixed axis. This method finds
+such an angle and axis. Numerically, this is a very tricky computation to
+get correct in all cases. We use Spurrier's method to obtain a 
+numerically-robust quaternion equivalent to this rotation matrix, then 
+carefully extract and canonicalize the angle-axis form from the quaternion.
+
+@see convertRotationToQuaternion()
+**/
 Vec4P convertRotationToAngleAxis() const  
 { return convertRotationToQuaternion().convertQuaternionToAngleAxis(); }
 

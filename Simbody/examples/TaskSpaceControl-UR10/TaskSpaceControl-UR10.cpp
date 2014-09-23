@@ -380,7 +380,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     // damping.
     // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - c u)
     const Vector& u = ms.getU();
-    const Real c = m_dampingGain/5;
+    const Real c = m_dampingGain/2;
     tau.setToZero();
     //tau +=   p1.JT(s) * F1 
     //              + p1.NT(s) * (  p2.JT(s) * F2 

@@ -356,43 +356,44 @@ public:
     * this object.
     */
     void realizeTopology(State& state) const {
-        const_cast<TaskSpace*>(this)->m_jacobianIndex =
+        TaskSpace* mThis = const_cast<TaskSpace*>(this);
+        mThis->m_jacobianIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         Jacobian::getEarliestStage(),
                         new Value<Jacobian>());
-        const_cast<TaskSpace*>(this)->m_jacobianTransposeIndex =
+        mThis->m_jacobianTransposeIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         JacobianTranspose::getEarliestStage(),
                         new Value<JacobianTranspose>());
-        const_cast<TaskSpace*>(this)->m_inertiaIndex =
+        mThis->m_inertiaIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         Inertia::getEarliestStage(),
                         new Value<Inertia>());
-        const_cast<TaskSpace*>(this)->m_inertiaInverseIndex =
+        mThis->m_inertiaInverseIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         InertiaInverse::getEarliestStage(),
                         new Value<InertiaInverse>());
-        const_cast<TaskSpace*>(this)->m_jacobianInverseIndex =
+        mThis->m_jacobianInverseIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         DynamicallyConsistentJacobianInverse::getEarliestStage(),
                         new Value<DynamicallyConsistentJacobianInverse>());
-        const_cast<TaskSpace*>(this)->m_jacobianInverseTransposeIndex =
+        mThis->m_jacobianInverseTransposeIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         DynamicallyConsistentJacobianInverseTranspose::getEarliestStage(),
                         new Value<DynamicallyConsistentJacobianInverseTranspose>());
-        const_cast<TaskSpace*>(this)->m_inertialForcesIndex =
+        mThis->m_inertialForcesIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         InertialForces::getEarliestStage(),
                         new Value<InertialForces>());
-        const_cast<TaskSpace*>(this)->m_gravityIndex =
+        mThis->m_gravityIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         Gravity::getEarliestStage(),
                         new Value<Gravity>());
-        const_cast<TaskSpace*>(this)->m_nullspaceIndex =
+        mThis->m_nullspaceIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         NullspaceProjection::getEarliestStage(),
                         new Value<NullspaceProjection>());
-        const_cast<TaskSpace*>(this)->m_nullspaceTransposeIndex =
+        mThis->m_nullspaceTransposeIndex =
                 m_matter.allocateLazyCacheEntry(state,
                         NullspaceProjectionTranspose::getEarliestStage(),
                         new Value<NullspaceProjectionTranspose>());

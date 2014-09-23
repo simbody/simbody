@@ -11,8 +11,14 @@
 # We provide our own high-performance Lapack library 
 # for Windows; Linux and Macs are expected to have one.
 #-----------------------------------------------------------
+ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 
-SET(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${PLATFORM_NAME})
+SET(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
+
+if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
+ # only provided for native builds
+ return()
+endif ()
 
 SET(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
 FILE(GLOB LIB_FILES 
@@ -31,7 +37,7 @@ FOREACH(LIBF ${LIB_FILES})
 	"${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
 ENDFOREACH()
 
-ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
+
 SET_TARGET_PROPERTIES(PlatformFiles
     PROPERTIES PROJECT_LABEL "Code - Platform Files")
 
@@ -51,7 +57,7 @@ FOREACH(LIBF ${LIB_FILES})
     FILE(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
 
     ADD_CUSTOM_COMMAND(OUTPUT "${COPIED_LIBF}"
-	    COMMAND ${NATIVE_COPY_CMD} "${LIBF_SRC}" "${LIBF_DEST}"
+	    COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
 	    DEPENDS "${LIBF}"
 	    COMMENT "Copy ${LIBF_SRC} -> ${LIBF_DEST}"
 	    VERBATIM)
