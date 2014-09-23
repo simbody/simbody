@@ -13,10 +13,7 @@
 #-----------------------------------------------------------
 ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
 
-if(NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
-  # only provide for native builds
-  return()
-endif ()
+SET(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
 
 SET(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
 FILE(GLOB LIB_FILES 
