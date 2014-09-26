@@ -146,7 +146,7 @@ UR10::UR10()
     //--------------------------------------------------------------------------
     const Rotation ZtoY(-Pi/2, XAxis); // zero angle will be vertical
     // Use this orientation when you want the zero position horizontal.
-    const Rotation ZtoY90(BodyRotationSequence, -Pi/2, XAxis, -Pi/2, ZAxis);
+    const Rotation ZtoY90(BodyRotationSequence, -Pi/2, XAxis, Pi/2, ZAxis);
 
     m_bodies[Ground] = m_matter.updGround();
 
