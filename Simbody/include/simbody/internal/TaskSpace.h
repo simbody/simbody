@@ -342,15 +342,14 @@ public:
     // TaskSpace class
     //==========================================================================
 
-    /**
-    * @param[in] matter The matter subsystem being controlled.
-    * @param[in] gravity The gravity forces, which should be in the same
-    *       System as matter.
-    */
+    /** Constructor creates a new container for tasks at the same priority,
+    initially containing no tasks.
+    @param[in] matter       The matter subsystem being controlled.
+    @param[in] gravityForce The gravity forces, which should be in the same
+                            System as matter. **/
     TaskSpace(const SimbodyMatterSubsystem& matter,
-              const Force::Gravity&         gravityForce) :
-    m_matter(matter), m_gravityForce(gravityForce)
-    {}
+              const Force::Gravity&         gravityForce) 
+    :   m_matter(matter), m_gravityForce(gravityForce) {}
 
     /** This \a must be called within realizeTopology of the class that owns
     * this object.
