@@ -107,17 +107,18 @@ public:
     Implementation(const UR10& modelRobot,
                    Vec3 taskPointInEndEffector=Vec3(0,0,0),
                    Real proportionalGain=225, double derivativeGain=30) 
+                   //Real proportionalGain=100, double derivativeGain=20) 
     :   Measure_<T>::Implementation(T(UR10::NumCoords,NaN), 1),
         m_modelRobot(modelRobot),
         m_tspace1(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
         m_taskPointInEndEffector(taskPointInEndEffector),
         m_proportionalGain(proportionalGain),
         m_derivativeGain(derivativeGain),
-        m_dampingGain(1),
+        m_dampingGain(0.5),
         m_compensateForGravity(true),
         m_controlTask(true),
         m_endEffectorSensing(false),
-        m_desiredTaskPosInGround(Vec3(-0.4, 0.1, 1)) // Z is up
+        m_desiredTaskPosInGround(Vec3(0.4, 0.1, 1)) // Z is up
     {       
         m_tspace1.addStationTask(m_modelRobot.getBody(UR10::EndEffector),
                          m_taskPointInEndEffector);
@@ -295,8 +296,9 @@ int main(int argc, char **argv) {
     // Initialize the real robot and other related classes.
     State s;
     realRobot.initialize(s);
-    s.updQ()[UR10::LiftCoord]  = Pi/4;
-    s.updQ()[UR10::ElbowCoord] = Pi/2;
+    s.updQ()[UR10::LiftCoord]  = -Pi/4;
+    s.updQ()[UR10::ElbowCoord] = -Pi/2;
+
     //RungeKuttaMersonIntegrator integ(realRobot);
     SemiExplicitEuler2Integrator integ(realRobot);
     integ.setAccuracy(0.001);
@@ -380,7 +382,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     // damping.
     // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - c u)
     const Vector& u = ms.getU();
-    const Real c = m_dampingGain/2;
+    const Real c = m_dampingGain;
     tau.setToZero();
     //tau +=   p1.JT(s) * F1 
     //              + p1.NT(s) * (  p2.JT(s) * F2 
@@ -447,9 +449,13 @@ calcDecorativeGeometryAndAppend(const State & state, Stage stage,
 {
     if (stage != Stage::Position) return;
 
+    const Vec3 targetPos = m_modelTasks.getTarget();
     geometry.push_back(DecorativeSphere(0.02)
-            .setTransform(m_modelTasks.getTarget())
+            .setTransform(targetPos)
             .setColor(m_targetColor));
+    geometry.push_back(DecorativeText("Target: " +
+        String(targetPos[0])+","+String(targetPos[1])+","+String(targetPos[2]))
+        .setIsScreenText(true));
 
     const MobilizedBody& ee = m_realRobot.getBody(UR10::EndEffector);
     Vec3 taskPosInGround = ee.findStationLocationInGround(state,
