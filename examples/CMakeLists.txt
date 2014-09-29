@@ -32,6 +32,24 @@ ELSE()
 ENDIF()
 SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
 
+
+# Examples can depend on any Simbody includes.
+INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
+	                ${SimTKCOMMON_INCLUDE_DIRECTORIES}
+	                ${SimTKMATH_INCLUDE_DIRECTORIES}
+	                ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
+
+## Build examples against the unversioned libraries if they are being 
+## built; otherwise against the versioned libraries.
+IF(BUILD_UNVERSIONED_LIBRARIES)
+	SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
+	SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
+ELSE()
+	SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN})
+	SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
+ENDIF()
+
+
 # First build examples that have their own subdirectories and CMakeLists
 # files.
 ADD_SUBDIRECTORY(TaskSpaceControl-UR10)
@@ -53,7 +71,7 @@ FOREACH(EX_PROG ${EXAMPLES})
         SET_TARGET_PROPERTIES(${EX_ROOT}
         PROPERTIES
           PROJECT_LABEL "Example - ${EX_ROOT}")
-        TARGET_LINK_LIBRARIES(${EX_ROOT} ${TEST_SHARED_TARGET})
+        TARGET_LINK_LIBRARIES(${EX_ROOT} ${EXAMPLES_SHARED_TARGET})
         INSTALL(TARGETS ${EX_ROOT} DESTINATION ${EXAMPLES_INSTALL_BIN})
     ENDIF()
 
@@ -68,7 +86,7 @@ FOREACH(EX_PROG ${EXAMPLES})
         PROPERTIES
         COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
         PROJECT_LABEL "Example - ${EX_STATIC}")
-        TARGET_LINK_LIBRARIES(${EX_STATIC} ${TEST_STATIC_TARGET})
+        TARGET_LINK_LIBRARIES(${EX_STATIC} ${EXAMPLES_STATIC_TARGET})
         # Don't install static examples
     ENDIF()
 ENDFOREACH()

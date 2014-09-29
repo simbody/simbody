@@ -15,7 +15,7 @@ IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
     SET_TARGET_PROPERTIES(${ex_name}
                           PROPERTIES
                           PROJECT_LABEL "Example - ${ex_name}")
-    TARGET_LINK_LIBRARIES(${ex_name} ${TEST_SHARED_TARGET})
+    TARGET_LINK_LIBRARIES(${ex_name} ${EXAMPLES_SHARED_TARGET})
     INSTALL(TARGETS ${ex_name} DESTINATION ${EXAMPLES_INSTALL_BIN})
 ENDIF()
 
@@ -30,7 +30,7 @@ IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
                           PROPERTIES
                           COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
                           PROJECT_LABEL "Example - ${ex_static}")
-    TARGET_LINK_LIBRARIES(${ex_static} ${TEST_STATIC_TARGET})
+    TARGET_LINK_LIBRARIES(${ex_static} ${EXAMPLES_STATIC_TARGET})
     # Don't install static examples
 ENDIF()
 
