@@ -346,8 +346,8 @@ int main(int argc, const char* argv[]) {
     std::string sdfFileName;
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " Gazebo_filename.sdf\n";
-        std::cout << "Trying Gazebo_ragdoll.sdf by default.\n";
-        sdfFileName = "Gazebo_ragdoll.sdf";
+        std::cout << "Trying models/Gazebo_ragdoll.sdf by default.\n";
+        sdfFileName = "models/Gazebo_ragdoll.sdf";
     } else
         sdfFileName = argv[1];
 

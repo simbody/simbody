@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Moonki Jung                                                  *
  *                                                                            *
@@ -105,16 +105,16 @@ int main()
 							                    OddBodyInertia/2));
 
 	std::ifstream file1, file2;
-	PolygonalMesh Mesh1; file1.open("Bricard_EVEN_PART.obj"); 
+	PolygonalMesh Mesh1; file1.open("geometry/Bricard_EVEN_PART.obj"); 
     if (!file1.good()) {
-        std::cout << "Couldn't open file 'Bricard_EVEN_PART.obj' in current working directory " 
+        std::cout << "Couldn't open file 'geometry/Bricard_EVEN_PART.obj' in current working directory " 
             << currentWorkingDir << std::endl;
         exit(1);
     }
     Mesh1.loadObjFile(file1); file1.close();
-	PolygonalMesh Mesh2; file2.open("Bricard_ODD_PART.obj"); 
+	PolygonalMesh Mesh2; file2.open("geometry/Bricard_ODD_PART.obj"); 
     if (!file2.good()) {
-        std::cout << "Couldn't open file 'Bricard_ODD_PART.obj' in current working directory " 
+        std::cout << "Couldn't open file 'geometry/Bricard_ODD_PART.obj' in current working directory " 
             << currentWorkingDir << std::endl;
         exit(1);
     }    
