@@ -55,6 +55,7 @@ ENDIF()
 ADD_SUBDIRECTORY(BricardMechanism)
 ADD_SUBDIRECTORY(Gazebo2Simbody)
 ADD_SUBDIRECTORY(TaskSpaceControl-UR10)
+ADD_SUBDIRECTORY(TaskSpaceControl-Humanoid)
 
 # Next pick up stragglers that consist solely of a .cpp file in the top
 # level examples directory.
