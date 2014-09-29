@@ -345,9 +345,9 @@ static void runSimulation(const MultibodySystem&          mbs,
 int main(int argc, const char* argv[]) {
     std::string sdfFileName;
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " Gazebo_filename.sdf\n";
-        std::cout << "Trying models/Gazebo_ragdoll.sdf by default.\n";
-        sdfFileName = "models/Gazebo_ragdoll.sdf";
+        std::cout << "Usage: " << argv[0] << " filename.sdf\n";
+        std::cout << "Trying models/ragdoll.sdf by default.\n";
+        sdfFileName = "models/ragdoll.sdf";
     } else
         sdfFileName = argv[1];
 
