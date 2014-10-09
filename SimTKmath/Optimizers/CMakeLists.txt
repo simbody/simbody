@@ -1,5 +1,6 @@
-# visit the IpOpt directory to gather up source
+# visit the IpOpt and c-cma-es directories to gather up source
 add_subdirectory(src/IpOpt)
+add_subdirectory(src/c-cma-es)
 
 # add in local source and headers here
 FILE(GLOB src_files  ./src/*.cpp)

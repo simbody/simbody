@@ -37,8 +37,9 @@ enum OptimizerAlgorithm {
      LBFGS         = 2, // LBFGS optimizer
      LBFGSB        = 3, // LBFGS optimizer with simple bounds
      CFSQP         = 4, // CFSQP sequential quadratic programming optimizer (requires external library)
-     UnknownOptimizerAlgorithm = 5, // the default
-     UserSuppliedOptimizerAlgorithm = 6
+     CMAES         = 5, // CMAES covariance matrix adaptation, evolution strategy
+     UnknownOptimizerAlgorithm = 6, // the default
+     UserSuppliedOptimizerAlgorithm = 7
 };
 
 /**
@@ -222,13 +223,14 @@ private:
 
 /**
  * API for SimTK Simmath's optimizers.
- * An optimizer finds a local minimum to an objective function. The
- * optimizer can be constrained to search for a minimum within a feasible 
- * region. The feasible region can be defined by setting limits on the 
- * parameters of the objective function and/or supplying constraint 
- * functions that must be satisfied. 
- * The optimizer starts searching for a minimum beginning at a user supplied 
- * initial value for the set of parameters.
+ * An optimizer finds a minimum to an objective function. Usually, this minimum
+ * is a local minimum. Some algorithms, like CMAES, are designed to find the
+ * global minumum. The optimizer can be constrained to search for a minimum
+ * within a feasible region. The feasible region can be defined by setting
+ * limits on the parameters of the objective function and/or supplying
+ * constraint functions that must be satisfied. The optimizer starts searching
+ * for a minimum beginning at a user supplied initial value for the set of
+ * parameters.
  *
  * The objective function and constraints are specified by supplying the
  * Optimizer with a concrete implemenation of an OptimizerSystem class.
@@ -238,6 +240,17 @@ private:
  * problem based on the constraints supplied by the OptimizerSystem. 
  * A user can also override the optimization algorithm selected by the
  * Optimizer by specifying the optimization algorithm. 
+ *
+ * Si Simbody's optimizer algorithms are gradient descent algorithms.
+ *   BestAvailable = 0, // Simmath will select best Optimizer based on problem type
+ *   InteriorPoint: interior point optimizer
+ *   (https://projects.coin-or.org/ipopt)
+ *   LBFGS         = 2, // LBFGS optimizer
+ *   LBFGSB        = 3, // LBFGS optimizer with simple bounds
+     CFSQP         = 4, // CFSQP sequential quadratic programming optimizer (requires external library)
+ftp://frcatel.fri.uniza.sk/pub/soft/math/matprog/doc/fsqp.html
+ * Global optimizer
+     CMAES         = 5, // CMAES covariance matrix adaptation, evolution strategy
  *  
  */
 class SimTK_SIMMATH_EXPORT Optimizer {
@@ -259,12 +272,12 @@ public:
 
 
     /// Set the maximum number of iterations allowed of the optimization
-    /// method's outer / stepping loop. Most optimizers also have an inner loop
-    /// ("line search") which is / also iterative but is not affected by this
-    /// setting. Inner loop convergence is / typically prescribed by theory, and
-    /// failure there is often an indication of / an ill-formed problem.
+    /// method's outer stepping loop. Most optimizers also have an inner loop
+    /// ("line search") which is also iterative but is not affected by this
+    /// setting. Inner loop convergence is typically prescribed by theory, and
+    /// failure there is often an indication of an ill-formed problem.
     void setMaxIterations( int iter );
-    /// Set the maximum number of previous hessians used in a limitied memory
+    /// Set the maximum number of previous hessians used in a limited memory
     /// hessian approximation.
     void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.
