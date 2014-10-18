@@ -24,30 +24,30 @@
 
 #include "simmath/internal/common.h"
 #include "simmath/internal/OptimizerRep.h"
+#include "c-cmaes/cmaes_interface.h"
 
 namespace SimTK {
 
 class CMAESOptimizer: public Optimizer::OptimizerRep {
 public:
     CMAESOptimizer(const OptimizerSystem& sys);
-
-    Real optimize(SimTK::Vector& results);
-    OptimizerRep* clone() const;
-
-    OptimizerAlgorithm getAlgorithm() const
-    {   return CMAES; }
+    OptimizerRep* clone() const OVERRIDE_11;
+    Real optimize(SimTK::Vector& results) OVERRIDE_11;
+    OptimizerAlgorithm getAlgorithm() const OVERRIDE_11 { return CMAES; }
 
 private:
+    // Bridges Simbody's interface for options with c-cmaes.
+    void processSettingsBeforeCMAESInit(cmaes_t& evo);
+    void processSettingsAfterCMAESInit(cmaes_t& evo);
 
-    cmaes_t m_evo;
-
-    // Number of samples per iteration.
-    int m_lambda;
-
-    // Initial step size.
-    double m_sigma;
+    // The seed for cmaes, which we provide to cmaes_init.
+    // In cmaes this is an unsigned int. But, Simbody users are able to provide
+    // an int. So, we check to see if the int they provide is nonnegative.
+    // If we made this variable an unsigned int, we might let a user error
+    // silently pass.
+    int m_seed;
 
 };
 
 } // namespace SimTK
-#endif //_SimTK_CMAES_OPTIMIZER_H_
+#endif // _SimTK_CMAES_OPTIMIZER_H_

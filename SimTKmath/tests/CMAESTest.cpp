@@ -43,48 +43,20 @@ using SimTK::Real;
 using SimTK::Optimizer;
 using SimTK::OptimizerSystem;
 
-// Informed by googletest.
-#define SimTK_ASSERT_THROW(EXPECTED_EXCEPTION, STATEMENT)                   \
-    do {                                                                    \
-        bool caughtExpectedException = false;                               \
-        try {                                                               \
-            STATEMENT;                                                      \
-        }                                                                   \
-        catch (EXPECTED_EXCEPTION const&) {                                 \
-            caughtExpectedException = true;                                 \
-        }                                                                   \
-        catch (...) {                                                       \
-            SimTK_THROW2(SimTK::Exception::Assert, "",                      \
-                "Expected exception "                                       \
-                #EXPECTED_EXCEPTION " but caught different exception.");    \
-        }                                                                   \
-        if (!caughtExpectedException) {                                     \
-            SimTK_THROW2(SimTK::Exception::Assert, "",                      \
-                "Expected exception "                                       \
-                #EXPECTED_EXCEPTION " but no exception thrown.");           \
-        }                                                                   \
-    } while(false) 
-
 static bool equalToTol(Real v1, Real v2, Real tol) {
     const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
     return std::abs(v1-v2) < scale*tol;
 } 
 
 void testCMAESAvailable() {
-    std::cout << std::endl << "CMAESAvailable" << std::endl;
-    std::cout << "=============================================" << std::endl;
-    SimTK_ASSERT_ALWAYS(Optimizer::isAlgorithmAvailable(SimTK::CMAES),
-            "Optimizer::isAlgorithmAvailable(SimTK::CMAES) should be true.");
+    SimTK_TEST(Optimizer::isAlgorithmAvailable(SimTK::CMAES));
 }
 
 // If we try to create an OptimizerSystem with only one parameter,
 // we should get an exception.
 void testTwoOrMoreParameters() {
-    std::cout << std::endl << "testTwoOrMoreParameters" << std::endl;
-    std::cout << "=============================================" << std::endl;
-
-    SimTK_ASSERT_THROW(SimTK::Exception::ValueOutOfRange,
-            Optimizer opt(Cigtab(1), SimTK::CMAES);
+    SimTK_TEST_MUST_THROW_EXC(Optimizer opt(Cigtab(1), SimTK::CMAES),
+            SimTK::Exception::ValueOutOfRange
             );
 }
 
@@ -92,8 +64,6 @@ void testTwoOrMoreParameters() {
 // interface. CMAES cannot find the optimum of Cigtab in 500 iterations (or
 // less) given the initial condition we use.
 void testMaxIterations() {
-    std::cout << std::endl << "MaxIterations" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Cigtab sys(22);
     int N = sys.getNumParameters();
@@ -135,8 +105,6 @@ void testMaxIterations() {
 // interface, because Cigtab is not optimized in under the default number of
 // max iterations (1000 at the time of this writing).
 void testCigtabOptimum() {
-    std::cout << std::endl << "CigtabOptimum" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Cigtab sys(22);
     int N = sys.getNumParameters();
@@ -189,8 +157,6 @@ void testParameterLimits() {
 // interface, and that with appropriate step size, we can find the optimum of
 // Ackley's function.
 void testSigmaStepSizeAndAckleyOptimum() {
-    std::cout << std::endl << "SigmaStepSizeAndAckleyOptimum" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Ackley sys(15);
     int N = sys.getNumParameters();
@@ -232,8 +198,10 @@ void testSigmaStepSizeAndAckleyOptimum() {
             inLocalMinimum = false;
         }
     }
-    SimTK_ASSERT_ALWAYS(inLocalMinimum, "SigmaStepSizeAndAckleyOptimum: "
+    if (!inLocalMinimum) {
+        SimTK_TEST_FAILED("SigmaStepSizeAndAckleyOptimum: "
             "Should have ended up in the 24.9997 local minimum.");
+    }
 
     // Can find the optimum with an appropriate step size.
     // ===================================================
@@ -262,8 +230,7 @@ void testSigmaStepSizeAndAckleyOptimum() {
             answerIsCorrect = false;
         }
     }
-    SimTK_ASSERT_ALWAYS(answerIsCorrect,
-            "SigmaStepSizeAndAckleyOptimum: could not find optimum.");
+    SimTK_TEST(answerIsCorrect);
 }
 
 // To find the optimum of this function, we need lots of samples and a lot
@@ -271,8 +238,6 @@ void testSigmaStepSizeAndAckleyOptimum() {
 // to modify both of these settings.
 // TODO setting the seed is not working.
 void testDropWaveOptimumLambdaMaxFunEvals() {
-    std::cout << std::endl << "DropWaveOptimumLambdaMaxFunEvals" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     DropWave sys;
     int N = sys.getNumParameters();
@@ -354,8 +319,6 @@ void testDropWaveOptimumLambdaMaxFunEvals() {
 }
 
 void testSeed() {
-    std::cout << std::endl << "Seed" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Ackley sys(22);
     int N = sys.getNumParameters();
@@ -372,8 +335,9 @@ void testSeed() {
     // A negative seed causes an exception to be thrown upon optimization.
     // ===================================================================
     opt.setAdvancedIntOption("seed", -10);
-    SimTK_ASSERT_THROW(SimTK::Exception::ValueWasNegative,
-            Real f = opt.optimize(results);
+    SimTK_TEST_MUST_THROW_EXC(
+            Real f = opt.optimize(results),
+            SimTK::Exception::ValueWasNegative
     );
 
     // Using the same seed gives identical results, if maxtime is 1.
@@ -488,8 +452,6 @@ void testSeed() {
 }
 
 void testConvergenceTolerance() {
-    std::cout << std::endl << "ConvergenceTolerance" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Ackley sys(15);
     int N = sys.getNumParameters();
@@ -535,8 +497,6 @@ void testConvergenceTolerance() {
 // CMA-ES is able to minimize the Rosenbrock function.
 // https://www.lri.fr/~hansen/cmsa-versus-cma.html
 void testRosenbrock() {
-    std::cout << std::endl << "Rosenbrock" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Rosenbrock sys(80);
     int N = sys.getNumParameters();
@@ -581,8 +541,6 @@ void testRosenbrock() {
 
 // TODO i've been able to get f = -1.990145 so maybe there is a bug here?
 void testSchwefel() {
-    std::cout << std::endl << "Schwefel" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Schwefel sys(2);
     int N = sys.getNumParameters();
@@ -625,8 +583,6 @@ void testSchwefel() {
 }
 
 void testEasom() {
-    std::cout << std::endl << "Easom" << std::endl;
-    std::cout << "=============================================" << std::endl;
 
     Easom sys;
     int N = sys.getNumParameters();
@@ -667,29 +623,24 @@ void testEasom() {
 }
 
 int main() {
-    try {
-        testCMAESAvailable();
-        testTwoOrMoreParameters();
-        testMaxIterations();
-        testCigtabOptimum();
-// TODO        testParameterLimits();
-        testSigmaStepSizeAndAckleyOptimum();
-// TODO        testDropWaveOptimumLambdaMaxFunEvals();
-        testSeed();
-// TODO        testRestart();
-        testConvergenceTolerance();
-// TODO        testRosenbrock();
-// TODO        testSchwefel();
-        testEasom();
-    }
-    catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
-    }
-    catch(...) {
-        cout << "Caught exception. Test failed." << endl;
-        return 1;
-    }
-    cout << "CMAESTest passed!" << endl;
-    return 0;
+    SimTK_START_TEST("CMAES");
+
+        // TODO
+        // Even though most of the tests use seeds, some tests may fail
+        // sporadically.
+        SimTK_SUBTEST(testCMAESAvailable);
+        SimTK_SUBTEST(testTwoOrMoreParameters);
+        SimTK_SUBTEST(testMaxIterations);
+        SimTK_SUBTEST(testCigtabOptimum);
+        // TODO        testParameterLimits();
+        SimTK_SUBTEST(testSigmaStepSizeAndAckleyOptimum);
+        // TODO        testDropWaveOptimumLambdaMaxFunEvals();
+        SimTK_SUBTEST(testSeed);
+        // TODO        testRestart();
+        SimTK_SUBTEST(testConvergenceTolerance);
+        // TODO        testRosenbrock();
+        // TODO        testSchwefel();
+        SimTK_SUBTEST(testEasom);
+
+    SimTK_END_TEST();
 }

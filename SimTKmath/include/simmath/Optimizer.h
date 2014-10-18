@@ -251,6 +251,24 @@ private:
 ftp://frcatel.fri.uniza.sk/pub/soft/math/matprog/doc/fsqp.html
  * Global optimizer
      CMAES         = 5, // CMAES covariance matrix adaptation, evolution strategy
+ *   
+ *   CMAES options: TODO seed lambda sigma convergence conditions. TODO make
+ *   sure your initial point is within the limits. write out resumecmaes.dat,
+ *   give option to rename this file.
+ *
+ *   If you want to generate identical results with repeated optimizations for
+ *   CMAES, you can set the "seed" int option. In addtion, you must set the
+ *   "maxTimeFractionForEigendecomposition" Real option to be greater or equal
+ *   to 1.0.
+ *
+ *   @code
+ *   opt.setAdvancedIntOption("seed", 42);
+ *   opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
+ *   @endcode
+ *
+ *   if diagnosticsLevel is 1, outputs to console, diagnosticslLevel2 outputs
+ *   to 4, outputs to console and outputs files. Also outputs files if you want
+ *   to use restarts (TODO).
  *  
  */
 class SimTK_SIMMATH_EXPORT Optimizer {

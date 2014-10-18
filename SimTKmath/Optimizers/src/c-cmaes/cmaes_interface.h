@@ -19,6 +19,10 @@
 /* ------------------ Interface ---------------------------- */
 /* --------------------------------------------------------- */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* --- initialization, constructors, destructors --- */
 double * cmaes_init(cmaes_t *, int dimension , double *xstart, 
 		double *stddev, long seed, int lambda, 
@@ -54,4 +58,7 @@ double *       cmaes_NewDouble(int n); /* user is responsible to free */
 void           cmaes_FATAL(char const *s1, char const *s2, char const *s3, 
 			   char const *s4);
 
+#ifdef __cplusplus
+} // end extern "C"
+#endif
 
