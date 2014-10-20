@@ -31,14 +31,35 @@
 
 namespace SimTK {
 
+/**
+ * The available Optimizer algorithms.
+ * Gradient descent algorithms seek to find a local minimum, and are not
+ * guaranteed to find the global minimum. See the description of Optimizer for
+ * specific information about how to use the algorithms.
+ */
 enum OptimizerAlgorithm {
-     BestAvailable = 0, // Simmath will select best Optimizer based on problem type
-     InteriorPoint = 1, // IPOPT interior point optimizer
-     LBFGS         = 2, // LBFGS optimizer
-     LBFGSB        = 3, // LBFGS optimizer with simple bounds
-     CFSQP         = 4, // CFSQP sequential quadratic programming optimizer (requires external library)
-     CMAES         = 5, // CMAES covariance matrix adaptation, evolution strategy
-     UnknownOptimizerAlgorithm = 6, // the default
+     /// Simmath will select best Optimizer based on problem type.
+     BestAvailable = 0,
+     /// IpOpt algorithm (https://projects.coin-or.org/ipopt);
+     /// gradient descent.
+     InteriorPoint = 1,
+     /// Limited-memory Broyden-Fletcher-Goldfarb-Shanno algorithm; 
+     /// gradient descent.
+     LBFGS         = 2,
+     /// LBFGS with simple bound constraints;
+     /// gradient descent.
+     LBFGSB        = 3,
+     /// C implementation of sequential quadratic programming
+     /// (requires external library:
+     /// ftp://frcatel.fri.uniza.sk/pub/soft/math/matprog/doc/fsqp.html);
+     /// gradient descent.
+     CFSQP         = 4,
+     /// Covariance matrix adaptation, evolution strategy
+     /// (https://github.com/cma-es/c-cmaes);
+     /// this is a randomized algorithm that attempts to find a global minimum.
+     CMAES         = 5,
+     UnknownOptimizerAlgorithm = 6, // the default impl. of getAlgorithm.
+     /// An algorithm that is implemented outside of Simmath.
      UserSuppliedOptimizerAlgorithm = 7
 };
 
@@ -226,50 +247,92 @@ private:
  * An optimizer finds a minimum to an objective function. Usually, this minimum
  * is a local minimum. Some algorithms, like CMAES, are designed to find the
  * global minumum. The optimizer can be constrained to search for a minimum
- * within a feasible region. The feasible region can be defined by setting
- * limits on the parameters of the objective function and/or supplying
- * constraint functions that must be satisfied. The optimizer starts searching
- * for a minimum beginning at a user supplied initial value for the set of
- * parameters.
+ * within a feasible region. The feasible region is defined in two ways: via
+ * limits on the parameters of the objective function; and, for algorithms
+ * other than CMAES, by supplying constraint functions that must be satisfied.
+ * The optimizer starts searching for a minimum beginning at a user supplied
+ * initial value for the set of parameters.
  *
  * The objective function and constraints are specified by supplying the
  * Optimizer with a concrete implemenation of an OptimizerSystem class.
- * The OptimizerSystem can be passed to the Optimizer either through the 
- * Optimizer constructor or by calling the setOptimizerSystem method.  
- * The Optimizer class will select the best optimization algorithm to solve the
- * problem based on the constraints supplied by the OptimizerSystem. 
+ * The OptimizerSystem can be passed to the Optimizer either through the
+ * Optimizer constructor or by calling the Optimizer::setOptimizerSystem
+ * method.  The Optimizer class will select the best optimization algorithm to
+ * solve the problem based on the constraints supplied by the OptimizerSystem.
  * A user can also override the optimization algorithm selected by the
- * Optimizer by specifying the optimization algorithm. 
+ * Optimizer by specifying the optimization algorithm.
  *
- * Si Simbody's optimizer algorithms are gradient descent algorithms.
- *   BestAvailable = 0, // Simmath will select best Optimizer based on problem type
- *   InteriorPoint: interior point optimizer
- *   (https://projects.coin-or.org/ipopt)
- *   LBFGS         = 2, // LBFGS optimizer
- *   LBFGSB        = 3, // LBFGS optimizer with simple bounds
-     CFSQP         = 4, // CFSQP sequential quadratic programming optimizer (requires external library)
-ftp://frcatel.fri.uniza.sk/pub/soft/math/matprog/doc/fsqp.html
- * Global optimizer
-     CMAES         = 5, // CMAES covariance matrix adaptation, evolution strategy
- *   
- *   CMAES options: TODO seed lambda sigma convergence conditions. TODO make
- *   sure your initial point is within the limits. write out resumecmaes.dat,
- *   give option to rename this file.
+ * <h3> Optimization algorithms and advanced options </h3>
  *
- *   If you want to generate identical results with repeated optimizations for
- *   CMAES, you can set the "seed" int option. In addtion, you must set the
- *   "maxTimeFractionForEigendecomposition" Real option to be greater or equal
- *   to 1.0.
+ * See OptimizerAlgorithm for a brief description of the available algorithms.
+ * Most of these algorithms have options that are specific to the algorithm.
+ * These options are set via methods like Optimizer::setAdvancedStrOption. If
+ * you want to get going quickly, you can just use the default values of these
+ * options and ignore this section. As an example, an int option
+ * <b>lambda</b> would be set via:
  *
- *   @code
- *   opt.setAdvancedIntOption("seed", 42);
- *   opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
- *   @endcode
+ * @code
+ * opt.setAdvancedIntOption("lambda", 5);
+ * @endcode
  *
- *   if diagnosticsLevel is 1, outputs to console, diagnosticslLevel2 outputs
- *   to 4, outputs to console and outputs files. Also outputs files if you want
- *   to use restarts (TODO).
- *  
+ * For now, we only have detailed documentation for the CMAES algorithm.
+ *
+ * <h4> CMAES </h4>
+ *
+ * Some notes:
+ * - This algorithm obeys parameter limits.
+ * - This is a derivative-free optimization algorithm, so methods like the
+ *   following have no effect:
+ *      - Optimizer::useNumericalGradient
+ *      - Optimizer::setDifferentiatorMethod
+ *      - Optimizer::setLimitedMemoryHistory
+ *      - OptimizerSystem::gradientFunc
+ *      - OptimizerSystem::hessian
+ * - This algorithm does not obey constraint functions, so methods like the
+ *   following have no effect:
+ *      - Optimizer::setConstraintTolerance
+ *      - Optimizer::useNumericalJacobian
+ *      - OptimizerSystem::constraintFunc
+ *      - OptimizerSystem::constraintJacobian
+ *      - OptimizerSystem::setNumEqualityConstraints
+ *      - OptimizerSystem::setNumInequalityConstraints
+ *      - OptimizerSystem::setNumLinearEqualityConstraints
+ *      - OptimizerSystem::setNumLinearInequalityConstraints
+ * - TODO The effect of the diagnostics level is as follows:
+ *      - 0: no output to console, some files are written to the current
+ *        directory.
+ *      - 1: output to console.
+ *      - 2: all files are written to the current directory. Necesary for
+ *      restarts (see below).
+ *      - 4: output to console, and all files are written to the current
+ *
+ * Advanced options:
+ *
+ * - <b>lambda</b> (int; default: depends on number of parameters) The
+ *   population size.
+ * - <b>sigma</b> (real; default: 0.3 TODO) Initial step size; same for all
+ *   parameters.
+ * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
+ *   number generator that is used to sample the population from a normal
+ *   distribution.
+ * - <b>maxTimeFractionForEigendecomposition</b> (real; default: 0.2)
+ *   Controls the amount of time spent generating eigensystem
+ *   decompositions.
+ * - <b>stopMaxFunEvals</b> (int; default: TODO) Stop optimization after this
+ *   number of evaluations of the objective function.
+ * - <b>restart/resume</b> TODO
+ * - TODO change name of the resumecmaes.dat file.
+ *
+ * If you want to generate identical results with repeated optimizations for,
+ * you can set the <b>seed</b> option. In addtion, you *must* set the
+ * <b>maxTimeFractionForEigendecomposition</b> option to be greater or
+ * equal to 1.0.
+ *
+ * @code
+ * opt.setAdvancedIntOption("seed", 42);
+ * opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
+ * @endcode
+ *
  */
 class SimTK_SIMMATH_EXPORT Optimizer {
 public:

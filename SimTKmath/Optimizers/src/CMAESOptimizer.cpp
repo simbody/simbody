@@ -41,6 +41,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     cmaes_t evo;
     int n = sys.getNumParameters();
 
+    // TODO make sure initial point is feasible.
+
     // Prepare to call cmaes_init.
     // ===========================
 
@@ -52,7 +54,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
         // TODO unnecessary.
 	}
 	
-    // TODO move to processBefore
+    // TODO move to processBefore, and change to 0.3
 	double stepsize = 0;
     getAdvancedRealOption("sigma", stepsize ); 
 	if (stepsize == 0.0) {
