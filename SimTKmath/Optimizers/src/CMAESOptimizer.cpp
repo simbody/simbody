@@ -176,12 +176,8 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
 
     // lambda
     // ------
-	int numsamples = 0;
-    getAdvancedIntOption("lambda", numsamples );
-	if (numsamples == 0) {
-		numsamples = 4+int(3*std::log((double)n)); 
-        // TODO unnecessary.
-	}
+	int lambda = 0;
+    getAdvancedIntOption("lambda", lambda);
 	
     // sigma
     // -----
@@ -213,7 +209,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             &results[0],       // xstart
             stddev,            // stddev
             seed,              // seed
-            numsamples,        // lambda
+            lambda,            // lambda
             "writeonly"              // input_parameter_filename TODO change depending on advanced parameters.
             // TODO "non"              // input_parameter_filename
             ); 

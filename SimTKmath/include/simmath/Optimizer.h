@@ -311,15 +311,15 @@ private:
  *
  * - <b>lambda</b> (int; default: depends on number of parameters) The
  *   population size.
- * - <b>sigma</b> (real; default: 0.3 TODO) Initial step size; same for all
+ * - <b>sigma</b> (real; default: 0.3) Initial step size; same for all
  *   parameters.
  * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
  *   number generator that is used to sample the population from a normal
- *   distribution.
+ *   distribution. See note below.
  * - <b>maxTimeFractionForEigendecomposition</b> (real; default: 0.2)
  *   Controls the amount of time spent generating eigensystem
  *   decompositions.
- * - <b>stopMaxFunEvals</b> (int; default: TODO) Stop optimization after this
+ * - <b>stopMaxFunEvals</b> (int) Stop optimization after this
  *   number of evaluations of the objective function.
  * - <b>restart/resume</b> TODO
  * - TODO change name of the resumecmaes.dat file.

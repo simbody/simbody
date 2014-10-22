@@ -38,8 +38,7 @@ public:
 private:
 
     void checkInitialPointIsFeasible(const SimTK::Vector& x) const;
-    // Bridges Simbody's interface for options with c-cmaes.
-    
+
     // Wrapper around cmaes_init.
     double* init(cmaes_t& evo, Vector& results) const;
 
