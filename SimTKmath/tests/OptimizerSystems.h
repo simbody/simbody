@@ -39,7 +39,11 @@ class TestOptimizerSystem : public OptimizerSystem {
 public:
     TestOptimizerSystem(unsigned int nParameters)
         : OptimizerSystem(nParameters) {}
-    virtual Real optimalValue() const = 0;
+    virtual Real optimalValue() const {
+        Real f;
+        objectiveFunc(optimalParameters(), true, f);
+        return f;
+    }
     virtual Vector optimalParameters() const = 0;
 };
 
@@ -56,7 +60,6 @@ public:
         }
         return 0;
     }
-    Real optimalValue() const OVERRIDE_11 { return 0; }
     Vector optimalParameters() const OVERRIDE_11 {
         Vector x(getNumParameters());
         x.setToZero();
@@ -84,7 +87,6 @@ public:
         f = -a * exp(-b * x.normRMS()) - exp(sumcos / n) + a + SimTK::E;
         return 0;
     }
-    Real optimalValue() const { return 0; }
     Vector optimalParameters() const {
         Vector x(getNumParameters());
         x.setToZero();
@@ -111,7 +113,6 @@ public:
         f = -(1 + cos(12 * sqrt(dotprod))) / (0.5 * dotprod + 2);
         return 0;
     }
-    Real optimalValue() const { return -1; }
     Vector optimalParameters() const {
         Vector x(getNumParameters());
         x.setToZero();
@@ -131,7 +132,6 @@ public:
         }
         return 0;
     }
-    Real optimalValue() const { return 0; }
     Vector optimalParameters() const {
         Vector x(getNumParameters());
         x.setTo(1);
@@ -157,7 +157,6 @@ public:
         f = 418.9829 * getNumParameters() -sum;
         return 0;
     }
-    Real optimalValue() const { return 0; }
     Vector optimalParameters() const {
         Vector x(getNumParameters());
         x.setTo(420.9687);
@@ -179,7 +178,6 @@ public:
             exp(-pow(x[0] - Pi, 2) - pow(x[1] - Pi, 2));
         return 0;
     }
-    Real optimalValue() const { return -1; }
     Vector optimalParameters() const {
         Vector x(getNumParameters());
         x.setTo(Pi);
