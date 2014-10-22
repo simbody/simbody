@@ -263,5 +263,6 @@ void CMAESOptimizer::process_readpara_settings(cmaes_t& evo) const
 }
 
 #undef SimTK_CMAES_PRINT
+#undef SimTK_CMAES_FILE
 
 } // namespace SimTK
