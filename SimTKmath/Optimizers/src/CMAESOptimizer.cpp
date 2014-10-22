@@ -221,6 +221,7 @@ void CMAESOptimizer::process_readpara_settings(cmaes_t& evo) const
 {
     // Termination criteria
     // ====================
+
     // stopMaxIter
     // -----------
     // maxIterations is a protected member variable of OptimizerRep.
@@ -246,6 +247,27 @@ void CMAESOptimizer::process_readpara_settings(cmaes_t& evo) const
     if (getAdvancedRealOption("stopFitness", stopFitness)) {
         evo.sp.stStopFitness.flg = 1;
         evo.sp.stStopFitness.val = stopFitness;
+    }
+
+    // stopTolFunHist
+    // --------------
+    double stopTolFunHist;
+    if (getAdvancedRealOption("stopTolFunHist", stopTolFunHist)) {
+        evo.sp.stopTolFunHist = stopTolFunHist;
+    }
+
+    // stopTolX
+    // --------
+    double stopTolX;
+    if (getAdvancedRealOption("stopTolX", stopTolX)) {
+        evo.sp.stopTolX = stopTolX;
+    }
+
+    // stopTolXFactor
+    // --------------
+    double stopTolUpXFactor;
+    if (getAdvancedRealOption("stopTolUpXFactor", stopTolUpXFactor)) {
+        evo.sp.stopTolUpXFactor = stopTolUpXFactor;
     }
 
     // maxtime

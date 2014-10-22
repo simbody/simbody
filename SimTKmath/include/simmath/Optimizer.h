@@ -280,6 +280,9 @@ private:
  *
  * <h4> CMAES </h4>
  *
+ * This is the c-cmaes algorithm written by Niko Hansen
+ * (https://github.com/cma-es/c-cmaes).
+ *
  * Some notes:
  * - This algorithm obeys parameter limits.
  * - This is a derivative-free optimization algorithm, so methods like the
@@ -299,10 +302,10 @@ private:
  *      - OptimizerSystem::setNumInequalityConstraints
  *      - OptimizerSystem::setNumLinearEqualityConstraints
  *      - OptimizerSystem::setNumLinearInequalityConstraints
- * - TODO The effect of the diagnostics level is as follows:
- *      - 0: no output to console, some files are written to the current
- *        directory.
- *      - 1: output to console.
+ * - The effect of the diagnostics level is as follows:
+ *      - 0: minimal output to console (warnings, errors), some files are
+ *      written to the current directory (errcmaes.err error log).
+ *      - 1: additional output to console.
  *      - 2: all files are written to the current directory. Necesary for
  *      restarts (see below). TODO resume/restart?
  *      - 3: output to console, and all files are written to the current
@@ -312,7 +315,7 @@ private:
  * - <b>lambda</b> (int; default: depends on number of parameters) The
  *   population size.
  * - <b>sigma</b> (real; default: 0.3) Initial step size; same for all
- *   parameters.
+ *   parameters. A warning is emitted if this is not set.
  * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
  *   number generator that is used to sample the population from a normal
  *   distribution. See note below.
@@ -321,6 +324,12 @@ private:
  *   decompositions.
  * - <b>stopMaxFunEvals</b> (int) Stop optimization after this
  *   number of evaluations of the objective function.
+ * - stopFitness (real) Stop if function value is smaller than stopFitness.
+ * - stopTolFunHist (real) Stop if function value differences of best values
+ *   are smaller than stopTolFunHist.
+ * - stopTolX (real) Stop if step sizes are smaller than stopTolX.
+ * - stopTolUpXFactor (real) Stop if std dev increases by more than
+ *   stopTolUpXFactor.
  * - <b>restart/resume</b> TODO
  * - TODO change name of the resumecmaes.dat file.
  *

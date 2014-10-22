@@ -155,7 +155,7 @@ void testParameterLimits() {
     results.setTo(100);
 
     Optimizer opt(sys, SimTK::CMAES);
-    opt.optimize(results); 
+    opt.optimize(results);
 
     // Exception if our initial guess is out of bounds.
     results.setTo(100.01);
@@ -457,7 +457,7 @@ void testEasom() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    opt.setDiagnosticsLevel(3);
+    // TODO opt.setDiagnosticsLevel(3);
     opt.setAdvancedIntOption("lambda", 500);
     opt.setAdvancedRealOption("sigma", 25);
     opt.setAdvancedIntOption("seed", 42);
