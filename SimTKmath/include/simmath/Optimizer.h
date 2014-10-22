@@ -306,8 +306,7 @@ private:
  *      - 0: minimal output to console (warnings, errors), some files are
  *      written to the current directory (errcmaes.err error log).
  *      - 1: additional output to console.
- *      - 2: all files are written to the current directory. Necesary for
- *      restarts (see below). TODO resume/restart?
+ *      - 2: all files are written to the current directory.
  *      - 3: output to console, and all files are written to the current
  *
  * Advanced options:
@@ -331,7 +330,6 @@ private:
  * - stopTolUpXFactor (real) Stop if std dev increases by more than
  *   stopTolUpXFactor.
  * - <b>restart/resume</b> TODO
- * - TODO change name of the resumecmaes.dat file.
  *
  * If you want to generate identical results with repeated optimizations for,
  * you can set the <b>seed</b> option. In addtion, you *must* set the

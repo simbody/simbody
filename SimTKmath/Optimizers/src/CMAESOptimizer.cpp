@@ -64,20 +64,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // Initialize cmaes.
     // =================
     double* funvals = init(evo, results);
-
-    // Resume a previous simulation?
-    // =============================
-    // TODO clean up.
-    bool isresume = false; 
-    getAdvancedBoolOption("resume", isresume );
-
-    // TODO where does this go?
-    if (isresume) {
-        cmaes_resume_distribution(&evo, (char*)"resumecmaes.dat"); 
-    }
-
     SimTK_CMAES_PRINT(printf("%s\n", cmaes_SayHello(&evo)));
-    // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
     
     // Optimize.
     // =========
@@ -118,9 +105,6 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
         // Update the distribution (mean, covariance, etc.).
         // =================================================
         cmaes_UpdateDistribution(&evo, funvals);
-        
-        // TODO only if users specify a signals files.
-        // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
     }
 
     // Wrap up.
@@ -134,7 +118,6 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     }
     f = cmaes_Get(&evo, "fbestever");
 
-    SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "resume", "resumecmaes.dat"));
     SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "all", "allcmaes.dat"));
 
     // Free memory.
