@@ -304,8 +304,8 @@ private:
  *        directory.
  *      - 1: output to console.
  *      - 2: all files are written to the current directory. Necesary for
- *      restarts (see below).
- *      - 4: output to console, and all files are written to the current
+ *      restarts (see below). TODO resume/restart?
+ *      - 3: output to console, and all files are written to the current
  *
  * Advanced options:
  *

@@ -146,15 +146,28 @@ void testCigtabOptimum() {
 }
 
 void testParameterLimits() {
-    // TODO by trying initial point outside of the parameter limits,
-    // we never optimize. We may end up in an endless loop then.
-    throw std::exception();
+
+    Easom sys;
+    int N = sys.getNumParameters();
+
+    // No exception if initial guess is on the border of the limits.
+    Vector results(N);
+    results.setTo(100);
+
+    Optimizer opt(sys, SimTK::CMAES);
+    opt.optimize(results); 
+
+    // Exception if our initial guess is out of bounds.
+    results.setTo(100.01);
+    SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+            SimTK::Exception::APIArgcheckFailed
+            );
 }
 
 // Make sure that we are able to set sigma (step size) using Simbody's
 // interface, and that with appropriate step size, we can find the optimum of
 // Ackley's function.
-void testSigmaStepSizeAndAckleyOptimum() {
+void testSigmaAndAckleyOptimum() {
 
     Ackley sys(2);
     int N = sys.getNumParameters();
@@ -444,6 +457,7 @@ void testEasom() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    opt.setDiagnosticsLevel(3);
     opt.setAdvancedIntOption("lambda", 500);
     opt.setAdvancedRealOption("sigma", 25);
     opt.setAdvancedIntOption("seed", 42);
@@ -458,14 +472,14 @@ int main() {
 
     // Even though most of the tests use seeds, some tests may fail
     // sporadically. We must run these tests a few times.
-    for (unsigned int i = 0; i < 5000; ++i) {
+    for (unsigned int i = 0; i < 10; ++i) {
 
         SimTK_SUBTEST(testCMAESAvailable);
         SimTK_SUBTEST(testTwoOrMoreParameters);
         SimTK_SUBTEST(testMaxIterations);
         SimTK_SUBTEST(testCigtabOptimum);
-        // TODO        testParameterLimits();
-        SimTK_SUBTEST(testSigmaStepSizeAndAckleyOptimum);
+        SimTK_SUBTEST(testParameterLimits);
+        SimTK_SUBTEST(testSigmaAndAckleyOptimum);
         SimTK_SUBTEST(testDropWaveOptimumLambda);
         SimTK_SUBTEST(testMaxFunEvals);
         SimTK_SUBTEST(testSeed);

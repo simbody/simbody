@@ -21,10 +21,23 @@
 
 #include "CMAESOptimizer.h"
 
+#include <bitset>
+
 namespace SimTK {
 
-CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys),
-    m_seed(0)
+#define SimTK_CMAES_PRINT(cmds) \
+do { \
+if (std::bitset<2>(diagnosticsLevel).test(0)) { cmds; } \
+} \
+while(false)
+
+#define SimTK_CMAES_FILE(cmds) \
+do { \
+if (std::bitset<2>(diagnosticsLevel).test(1)) { cmds; } \
+} \
+while(false)
+
+CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys)
 {
     SimTK_VALUECHECK_ALWAYS(2, sys.getNumParameters(), INT_MAX, "nParameters",
             "CMAESOptimizer");
@@ -36,57 +49,28 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
 { 
-    Real f = HUGE_VAL; 
-    const OptimizerSystem& sys = getOptimizerSystem();
+    // Initialize objective function value and cmaes data structure.
+    // =============================================================
+    Real f; 
     cmaes_t evo;
+
+    const OptimizerSystem& sys = getOptimizerSystem();
     int n = sys.getNumParameters();
 
-    // TODO make sure initial point is feasible.
+    // Check that the initial point is feasible.
+    // =========================================
+    checkInitialPointIsFeasible(results);
+    
+    // Initialize cmaes.
+    // =================
+    double* funvals = init(evo, results);
 
-    // Prepare to call cmaes_init.
-    // ===========================
-
-    // TODO move to processBefore
-	int numsamples = 0;
-    getAdvancedIntOption("lambda", numsamples );
-	if (numsamples == 0) {
-		numsamples = 4+int(3*std::log((double)n)); 
-        // TODO unnecessary.
-	}
 	
-    // TODO move to processBefore, and change to 0.3
-	double stepsize = 0;
-    getAdvancedRealOption("sigma", stepsize ); 
-	if (stepsize == 0.0) {
-		stepsize = 0.1; 
-	}
-	Vector stepsizeArray(n);
-	for (int i = 0; i < n; i++) {
-		stepsizeArray[i] = stepsize;  
-	}
-	
+    // Resume a previous simulation?
+    // =============================
     // TODO clean up.
 	bool isresume = false; 
     getAdvancedBoolOption("resume", isresume );
-
-    processSettingsBeforeCMAESInit(evo);
-
-    // cmaes_init.
-    // ===========
-	 
-	cmaes_init_para(&evo,
-            n,                 // dimension
-            &results[0],       // xstart
-            &stepsizeArray[0], // stddev
-            m_seed,            // seed
-            numsamples,        // lambda
-            "writeonly"              // input_parameter_filename TODO change depending on advanced parameters.
-            // TODO "non"              // input_parameter_filename
-            ); 
-
-    // TODO when to call this?
-    processSettingsAfterCMAESInit(evo);
-    double* funvals = cmaes_init_final(&evo);
 
     // TODO where does this go?
 	if (isresume) {
@@ -94,9 +78,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 	}
 
 
-    if (diagnosticsLevel == 1) {
-        printf("%s\n", cmaes_SayHello(&evo));
-    }
+    SimTK_CMAES_PRINT(printf("%s\n", cmaes_SayHello(&evo)));
 
     // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
 
@@ -116,7 +98,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     		Real *lowerLimits, *upperLimits;
         	sys.getParameterLimits( &lowerLimits, &upperLimits );
 			
-			for (int i = 0; i < cmaes_Get(&evo, "popsize"); i++) {
+			for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
 				bool feasible = false; 
 				while (!feasible) {
 					feasible = true; 
@@ -144,51 +126,116 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 		
         // TODO only if users specify a signals files.
         // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
-
-        // Update best-yet parameters and objective function value.
-        // ========================================================
-        // TODO move to after the loop.
-		const double* optx = cmaes_GetPtr(&evo, "xbestever");
-		for (int i = 0; i < n; i++) {
-			results[i] = optx[i]; 
-		}
-		f = cmaes_Get(&evo, "fbestever");
 	}
 
     // Wrap up.
     // ========
-    printf("Stop:\n%s\n", cmaes_TestForTermination(&evo));
-	cmaes_WriteToFile(&evo, "resume", "resumecmaes.dat");
-    // TODO diagnostics level.
-	// TODO cmaes_WriteToFile(&evo, "all", "allcmaes.dat");
+    SimTK_CMAES_PRINT(printf("Stop:\n%s\n", cmaes_TestForTermination(&evo)));
+
+    // Update best-yet parameters and objective function value.
+    const double* optx = cmaes_GetPtr(&evo, "xbestever");
+    for (int i = 0; i < n; i++) {
+        results[i] = optx[i]; 
+    }
+    f = cmaes_Get(&evo, "fbestever");
+
+	SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "resume", "resumecmaes.dat"));
+	SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "all", "allcmaes.dat"));
+
+    // Free memory.
     cmaes_exit(&evo);
 	
 	return f;  
 }
 
-void CMAESOptimizer::processSettingsBeforeCMAESInit(cmaes_t& evo)
-{
-    // seed
-    // ====
-    // If the user has provided a seed, check it.
-    if (getAdvancedIntOption("seed", m_seed)) {
-        SimTK_VALUECHECK_NONNEG_ALWAYS(m_seed, "seed",
-                "CMAESOptimizer::processSettingsBeforeCMAESInit");
-        // cmaes' seed is not set here. Seed is used in the call to cmaes_init.
+void CMAESOptimizer::checkInitialPointIsFeasible(const Vector& x) const {
+
+    const OptimizerSystem& sys = getOptimizerSystem();
+
+    if( sys.getHasLimits() ) {
+        Real *lowerLimits, *upperLimits;
+        sys.getParameterLimits( &lowerLimits, &upperLimits );
+        for (int i = 0; i < sys.getNumParameters(); i++) {
+            SimTK_APIARGCHECK4_ALWAYS(
+                    lowerLimits[i] <= x[i] && x[i] <= upperLimits[i],
+                    "CMAESOptimizer", "checkInitialPointIsFeasible",
+                    "Initial guess results[%d] = %f "
+                    "is not within limits [%f, %f].",
+                    i, x[i], lowerLimits[i], upperLimits[i]);
+        }
     }
 }
 
-void CMAESOptimizer::processSettingsAfterCMAESInit(cmaes_t& evo)
+double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
+{
+    const OptimizerSystem& sys = getOptimizerSystem();
+    int n = sys.getNumParameters();
+
+    // Prepare to call cmaes_init.
+    // ===========================
+
+    // lambda
+    // ------
+	int numsamples = 0;
+    getAdvancedIntOption("lambda", numsamples );
+	if (numsamples == 0) {
+		numsamples = 4+int(3*std::log((double)n)); 
+        // TODO unnecessary.
+	}
+	
+    // sigma
+    // -----
+    // TODO move to processBefore, and change to 0.3
+	double stepsize = 0;
+    getAdvancedRealOption("sigma", stepsize ); 
+	if (stepsize == 0.0) {
+		stepsize = 0.1; 
+	}
+	Vector stepsizeArray(n);
+	for (int i = 0; i < n; i++) {
+		stepsizeArray[i] = stepsize;  
+	}
+
+    // seed
+    // ----
+    int seed = 0;
+    if (getAdvancedIntOption("seed", seed)) {
+        SimTK_VALUECHECK_NONNEG_ALWAYS(seed, "seed",
+                "CMAESOptimizer::processSettingsBeforeCMAESInit");
+    }
+
+    // Call cmaes_init_para.
+    // =====================
+	// Here, we specify the subset of options that can be passed to
+    // cmaes_init_para.
+	cmaes_init_para(&evo,
+            n,                 // dimension
+            &results[0],       // xstart
+            &stepsizeArray[0], // stddev
+            seed,              // seed
+            numsamples,        // lambda
+            "writeonly"              // input_parameter_filename TODO change depending on advanced parameters.
+            // TODO "non"              // input_parameter_filename
+            ); 
+
+    // Settings that are usually read in from cmaes_initials.par.
+    // ==========================================================
+    processSettingsAfterCMAESInit(evo);
+
+    // Once we've updated settings in readpara_t, finalize the initialization.
+    return cmaes_init_final(&evo);
+}
+
+void CMAESOptimizer::processSettingsAfterCMAESInit(cmaes_t& evo) const
 {
     // stopMaxIter
     // ===========
     // maxIterations is a protected member variable of OptimizerRep.
-    // TODO this should be set earlier, because parameters depend on what
-    // stopMaxIter is.
 	evo.sp.stopMaxIter = maxIterations;
 
     // stopTolFun
     // ==========
+    // convergenceTolerance is a protected member variable of OptimizerRep.
     evo.sp.stopTolFun = convergenceTolerance;
 
     // stopMaxFunEvals
@@ -207,9 +254,8 @@ void CMAESOptimizer::processSettingsAfterCMAESInit(cmaes_t& evo)
     {
         evo.sp.updateCmode.maxtime = maxtime;
     }
-
-    // TODO should call readpara_SupplementDefaults(), as this updates certain
-    // parameters based on the provided values (e.g., damps).
 }
+
+#undef SimTK_CMAES_PRINT
 
 } // namespace SimTK
