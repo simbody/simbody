@@ -43,10 +43,49 @@ using SimTK::Real;
 using SimTK::Optimizer;
 using SimTK::OptimizerSystem;
 
+// Utilities.
+// ==========
 static bool equalToTol(Real v1, Real v2, Real tol) {
     const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
     return std::abs(v1-v2) < scale*tol;
 } 
+
+bool vectorsAreEqual(const Vector& actual, const Vector& expected, double tol,
+        bool printWhenNotEqual = true)
+{
+    unsigned int N = actual.size();
+    bool isEqual = true;
+    for (unsigned int i=0; i < N; ++i) {
+        if(!SimTK::Test::numericallyEqual(actual[i], expected[i], 1, tol)) {
+            if (printWhenNotEqual) {
+                printf("error actual[%d] = %f  expected[%d] = %f \n",
+                        i, actual[i], i, expected[i]);
+            }
+            isEqual = false;
+        }
+        else {
+            if (!printWhenNotEqual) {
+                printf("equal actual[%d] = %f  expected[%d] = %f \n",
+                        i, actual[i], i, expected[i]);
+            }
+        }
+    }
+    return isEqual;
+}
+
+#define SimTK_TEST_OPT(opt, results, tol) \
+do { \
+Real funval = opt.optimize(results); \
+const TestOptimizerSystem& sys = \
+    *static_cast<const TestOptimizerSystem*>(&opt.getOptimizerSystem()); \
+SimTK_TEST_EQ_TOL(funval, sys.optimalValue(), tol); \
+SimTK_TEST(vectorsAreEqual(results, sys.optimalParameters(), tol)); \
+} \
+while(false)
+
+// Subtests.
+// =========
+
 
 void testCMAESAvailable() {
     SimTK_TEST(Optimizer::isAlgorithmAvailable(SimTK::CMAES));
@@ -77,28 +116,9 @@ void testMaxIterations() {
     opt.setConvergenceTolerance(1e-12);
     opt.setAdvancedRealOption("sigma", 0.3);
     opt.setMaxIterations(500);
-    
+
     // Optimize!
-    Real f = opt.optimize(results);
-
-    // Print results of the optimization.
-    printf("MaxIterations: f = %f params = ", f);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check if the result is correct.
-    static const Real TOL = 1e-5;
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            answerIsCorrect = false;
-        }
-    }
-    SimTK_ASSERT_ALWAYS(!answerIsCorrect,
-            "MaxIterations: setting of max iterations does not work.");
+    SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
 // This also tests that setting max iterations works using the Simbody
@@ -123,28 +143,7 @@ void testCigtabOptimum() {
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Optimize!
-    Real f = opt.optimize(results);
-
-    // Print results of the optimization.
-    printf("CigtabOptimum: f = %f params = ", f);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check that the result is correct.
-    static const Real TOL = 1e-5;
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            printf(" CigtabOptimum: error results[%d] = %f  expected=%f \n",
-                    i, results[i], expected[i]);
-            answerIsCorrect = false;
-        }
-    }
-    SimTK_ASSERT_ALWAYS(answerIsCorrect,
-            "CigtabOptimum: could not find optimum.");
+    SimTk_TEST_OPT(opt, results, 1e-5);
 }
 
 void testParameterLimits() {
@@ -175,62 +174,24 @@ void testSigmaStepSizeAndAckleyOptimum() {
 
     // Default sigma (step size) leaves us in a local minimum.
     // =======================================================
-    
+
     // Optimize!
     Real f1 = opt.optimize(results);
 
-    // Print results of the optimization.
-    printf("SigmaStepSizeAndAckleyOptimum: f = %f params = ", f1);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check that the result is correct.
     static const Real TOL = 1e-5;
-    Real expectedLocalMinimum = 24.999749;
-    bool inLocalMinimum = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expectedLocalMinimum, TOL)) {
-            printf(" SigmaStepSizeAndAckleyOptimum: "
-                    "error results[%d] = %f  expected=%f \n",
-                    i, results[i], expectedLocalMinimum);
-            inLocalMinimum = false;
-        }
-    }
-    if (!inLocalMinimum) {
-        SimTK_TEST_FAILED("SigmaStepSizeAndAckleyOptimum: "
-            "Should have ended up in the 24.9997 local minimum.");
-    }
+
+    // Should end up in the 24.9997 local minimum.
+    Vector expectedLocalMinimum(N, 24.999749);
+    SimTK_TEST(vectorsAreEqual(results, expectedLocalMinimum, TOL, false));
 
     // Can find the optimum with an appropriate step size.
     // ===================================================
     // sigma should be 1/4 the range of possible values.
     opt.setAdvancedRealOption("sigma", 0.25 * 64);
 
-    // Optimize!
+    // Optimize!  Can now find the solution.
     results.setTo(25);
-    Real f2 = opt.optimize(results);
-
-    // Print results of the optimization.
-    printf("SigmaStepSizeAndAckleyOptimum: f = %f params = ", f2);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check that the result is correct.
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            printf(" SigmaStepSizeAndAckleyOptimum: "
-                    "error results[%d] = %f  expected=%f \n",
-                    i, results[i], expected[i]);
-            answerIsCorrect = false;
-        }
-    }
-    SimTK_TEST(answerIsCorrect);
+    SimTK_TEST_OPT(opt, results, TOL);
 }
 
 // To find the optimum of this function, we need lots of samples and a lot
@@ -262,60 +223,19 @@ void testDropWaveOptimumLambdaMaxFunEvals() {
     // Optimize!
     Real f1 = opt.optimize(results);
 
-    // Print results of the optimization.
-    printf("DropWaveOptimumLambdaMaxFunEvals: f1 = %f params = ", f1);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
     // Check if the result is correct.
     static const Real TOL = 1e-3;
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect1 = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            answerIsCorrect1 = false;
-        }
-        else {
-            printf(" DropWaveOptimumLambdaMaxFunEvals: "
-                    "equal results[%d] = %f  expected=%f \n",
-                    i, results[i], expected[i]);
-        }
-    }
 
-    SimTK_ASSERT_ALWAYS(!answerIsCorrect1,
-            "DropWaveOptimumLambdaMaxFunEvals: "
-            "With default max function evaluations, "
-            "should not have found optimum.");
+    // With default max function evaluations, should not have found optimum.
+    SimTK_TEST(vectorsAreEqual(results, sys.optimalParameters(), TOL, false));
 
     // With enough function evals, we can find the optimum.
     // ====================================================
     opt.setAdvancedIntOption("stopMaxFunEvals", 100000);
     results.setTo(1);
-    Real f2 = opt.optimize(results);
-    Vector results2 = results;
-
-    // Print results of the optimization.
-    printf("DropWaveOptimumLambdaMaxFunEvals: f2 = %f params2 = ", f2);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results2[i]);
-    }
-    printf("\n");
 
     // Check that the result is correct.
-    bool answerIsCorrect2 = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results2[i], expected[i], TOL)) {
-            printf(" DropWaveOptimumLambdaMaxFunEvals: "
-                    "error results2[%d] = %f  expected=%f \n",
-                    i, results2[i], expected[i]);
-            answerIsCorrect2 = false;
-        }
-    }
-
-    SimTK_ASSERT_ALWAYS(answerIsCorrect2,
-            "DropWaveOptimumLambdaMaxFunEvals: could not find optimum.");
+    SimTK_TEST_OPT(opt, results, TOL);
 }
 
 void testSeed() {
@@ -381,6 +301,7 @@ void testSeed() {
 
     // f1 and f2 don't match.
     // ----------------------
+    /* TODO
     // Check for an identical value of f.
     SimTK_ASSERT_ALWAYS(!equalToTol(f1, f2, 1e-12),
             "Seed: using the same seed without maxtime leads to "
@@ -400,6 +321,7 @@ void testSeed() {
     SimTK_ASSERT_ALWAYS(!answersAreIdentical2,
             "Seed: using the same seed without maxtime leads to "
             "identical results.");
+    */
 
     // f2 and f3 match.
     // ----------------
@@ -479,19 +401,12 @@ void testConvergenceTolerance() {
     results.setTo(25);
     Real f = opt.optimize(results);
 
-    // Print results of the optimization.
-    printf("ConvergenceTolerance: f = %f params = ", f);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
+    // Optimal value should be correct within the loose tolerance.
+    SimTK_TEST_EQ_TOL(f, sys.optimalValue(), looseTolerance);
 
-    SimTK_ASSERT_ALWAYS(equalToTol(f, sys.optimalValue(), looseTolerance),
-        "ConvergenceTolerance: "
-        "optimal value is not correct within the loose tolerance.");
-    SimTK_ASSERT_ALWAYS(!equalToTol(f, sys.optimalValue(), tightTolerance),
-        "ConvergenceTolerance: "
-        "the setting of the convergence tolerance is not functioning.");
+    // If the setting of the convergence tolerance is working, we can't hit the
+    // tight tolerance.
+    SimTK_TEST_NOTEQ_TOL(f, sys.optimalValue(), tightTolerance);
 }
 
 // CMA-ES is able to minimize the Rosenbrock function.
@@ -515,28 +430,7 @@ void testRosenbrock() {
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Optimize!
-    Real f = opt.optimize(results);
-
-    // Print results of the optimization.
-    printf("Rosenbrock: f = %f params = ", f);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check that the result is correct.
-    static const Real TOL = 1e-5;
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            printf(" Rosenbrock: error results[%d] = %f  expected=%f \n",
-                    i, results[i], expected[i]);
-            answerIsCorrect = false;
-        }
-    }
-    SimTK_ASSERT_ALWAYS(answerIsCorrect,
-            "Rosenbrock: could not find optimum.");
+    SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
 // TODO i've been able to get f = -1.990145 so maybe there is a bug here?
@@ -559,27 +453,7 @@ void testSchwefel() {
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Optimize!
-    Real f = opt.optimize(results);
-
-    // Print results of the optimization.
-    printf("Schwefel: f = %f params = ", f);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check that the result is correct.
-    static const Real TOL = 1e-5;
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            printf(" Schwefel: error results[%d] = %f  expected=%f \n",
-                    i, results[i], expected[i]);
-            answerIsCorrect = false;
-        }
-    }
-    SimTK_ASSERT_ALWAYS(answerIsCorrect, "Schwefel: could not find optimum.");
+    SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
 void testEasom() {
@@ -599,27 +473,7 @@ void testEasom() {
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Optimize!
-    Real f = opt.optimize(results);
-
-    // Print results of the optimization.
-    printf("Easom: f = %f params = ", f);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results[i]);
-    }
-    printf("\n");
-
-    // Check that the result is correct.
-    static const Real TOL = 1e-5;
-    Vector expected = sys.optimalParameters();
-    bool answerIsCorrect = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results[i], expected[i], TOL)) {
-            printf(" Easom: error results[%d] = %f  expected=%f \n",
-                    i, results[i], expected[i]);
-            answerIsCorrect = false;
-        }
-    }
-    SimTK_ASSERT_ALWAYS(answerIsCorrect, "Easom: could not find optimum.");
+    SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
 int main() {
@@ -642,6 +496,7 @@ int main() {
         // TODO        testRosenbrock();
         // TODO        testSchwefel();
         SimTK_SUBTEST(testEasom);
+        // TODO SimTK_SUBTEST(testInfeasibleInitialPoint);
     }
 
     SimTK_END_TEST();
