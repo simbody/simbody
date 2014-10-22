@@ -45,11 +45,6 @@ using SimTK::OptimizerSystem;
 
 // Utilities.
 // ==========
-static bool equalToTol(Real v1, Real v2, Real tol) {
-    const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
-    return std::abs(v1-v2) < scale*tol;
-} 
-
 bool vectorsAreEqual(const Vector& actual, const Vector& expected, double tol,
         bool printWhenNotEqual = true)
 {
@@ -83,9 +78,9 @@ SimTK_TEST(vectorsAreEqual(results, sys.optimalParameters(), tol)); \
 } \
 while(false)
 
+
 // Subtests.
 // =========
-
 
 void testCMAESAvailable() {
     SimTK_TEST(Optimizer::isAlgorithmAvailable(SimTK::CMAES));
@@ -118,7 +113,10 @@ void testMaxIterations() {
     opt.setMaxIterations(500);
 
     // Optimize!
-    SimTK_TEST_OPT(opt, results, 1e-5);
+    Real f = opt.optimize(results);
+
+    // Make sure the result is not correct.
+    SimTK_TEST_NOTEQ_TOL(results, sys.optimalParameters(), 1e-5);
 }
 
 // This also tests that setting max iterations works using the Simbody
@@ -143,7 +141,7 @@ void testCigtabOptimum() {
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Optimize!
-    SimTk_TEST_OPT(opt, results, 1e-5);
+    SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
 void testParameterLimits() {
@@ -182,7 +180,7 @@ void testSigmaStepSizeAndAckleyOptimum() {
 
     // Should end up in the 24.9997 local minimum.
     Vector expectedLocalMinimum(N, 24.999749);
-    SimTK_TEST(vectorsAreEqual(results, expectedLocalMinimum, TOL, false));
+    SimTK_TEST(vectorsAreEqual(results, expectedLocalMinimum, TOL));
 
     // Can find the optimum with an appropriate step size.
     // ===================================================
@@ -301,45 +299,16 @@ void testSeed() {
 
     // f1 and f2 don't match.
     // ----------------------
-    /* TODO
-    // Check for an identical value of f.
-    SimTK_ASSERT_ALWAYS(!equalToTol(f1, f2, 1e-12),
-            "Seed: using the same seed without maxtime leads to "
-            "identical results.");
-
-    // Check for identical parameters.
-    bool answersAreIdentical2 = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results1[i], results2[i], 1e-10)) {
-            answersAreIdentical2 = false;
-        }
-        else {
-            printf(" Seed: equal results1[%d] = %f  results2[%d] = %f\n",
-                    i, results1[i], i, results2[i]);
-        }
-    }
-    SimTK_ASSERT_ALWAYS(!answersAreIdentical2,
-            "Seed: using the same seed without maxtime leads to "
-            "identical results.");
-    */
+    // Using the same seed without maxtime leads to identical results. This
+    // helps ensure that we are able to set maxtime.
+    SimTK_TEST_NOTEQ_TOL(f1, f2, 1e-12);
+    SimTK_TEST(!vectorsAreEqual(results1, results2, 1e-10, false));
 
     // f2 and f3 match.
     // ----------------
-    // Check for an identical value of f.
-    SimTK_ASSERT_ALWAYS(equalToTol(f2, f3, 1e-12),
-            "Seed: using the same seed does not lead to identical results.");
-
-    // Check for identical parameters.
-    bool answersAreIdentical3 = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results2[i], results3[i], 1e-10)) {
-            printf(" Seed: error results2[%d] = %f  results3[%d] = %f\n",
-                    i, results2[i], i, results3[i]);
-            answersAreIdentical3 = false;
-        }
-    }
-    SimTK_ASSERT_ALWAYS(answersAreIdentical3,
-        "Seed: using the same seed does not lead to identical results.");
+    // Using the same seed leads to the same results.
+    SimTK_TEST_EQ_TOL(f2, f3, 1e-10);
+    SimTK_TEST(vectorsAreEqual(results2, results3, 1e-10));
 
     // Using a different seed gives different results.
     // ===============================================
@@ -347,30 +316,10 @@ void testSeed() {
     results.setTo(25);
     Real f4 = opt.optimize(results);
     Vector results4 = results;
-    printf("Seed: f4 = %f params4 = ", f4);
-    for (unsigned int i = 0; i < N; ++i) {
-        printf(" %f", results4[i]);
-    }
-    printf("\n");
 
-    // Check for an identical value of f.
-    SimTK_ASSERT_ALWAYS(!equalToTol(f2, f4, 1e-10),
-        "Seed: using different seeds does not lead to different results.");
-
-    // Check for identical parameters.
-    bool answersAreIdentical4 = true;
-    for (unsigned int i=0; i < N; ++i) {
-        if(!equalToTol(results2[i], results4[i], 1e-10)) {
-            answersAreIdentical4 = false;
-        }
-        else {
-            printf(" Seed: equal results2[%d] = %f  results4[%d] = %f\n",
-                    i, results2[i], i, results4[i]);
-        }
-    }
-    SimTK_ASSERT_ALWAYS(!answersAreIdentical4,
-        "Seed: using different seeds does not lead to different results.");
-
+    // Using different seeds leads to different results.
+    SimTK_TEST_NOTEQ_TOL(f2, f4, 1e-4);
+    SimTK_TEST(!vectorsAreEqual(results2, results4, 1e-10, false));
 }
 
 void testConvergenceTolerance() {
@@ -481,7 +430,7 @@ int main() {
 
     // Even though most of the tests use seeds, some tests may fail
     // sporadically. We must run these tests a few times.
-    for (unsigned int i = 0; i < 1; ++i) {
+    for (unsigned int i = 0; i < 10; ++i) {
 
         SimTK_SUBTEST(testCMAESAvailable);
         SimTK_SUBTEST(testTwoOrMoreParameters);
