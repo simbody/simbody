@@ -625,9 +625,10 @@ void testEasom() {
 int main() {
     SimTK_START_TEST("CMAES");
 
-        // TODO
-        // Even though most of the tests use seeds, some tests may fail
-        // sporadically.
+    // Even though most of the tests use seeds, some tests may fail
+    // sporadically. We must run these tests a few times.
+    for (unsigned int i = 0; i < 1; ++i) {
+
         SimTK_SUBTEST(testCMAESAvailable);
         SimTK_SUBTEST(testTwoOrMoreParameters);
         SimTK_SUBTEST(testMaxIterations);
@@ -641,6 +642,7 @@ int main() {
         // TODO        testRosenbrock();
         // TODO        testSchwefel();
         SimTK_SUBTEST(testEasom);
+    }
 
     SimTK_END_TEST();
 }
