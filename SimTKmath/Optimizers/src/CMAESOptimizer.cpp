@@ -49,13 +49,13 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
 { 
+    const OptimizerSystem& sys = getOptimizerSystem();
+    int n = sys.getNumParameters();
+
     // Initialize objective function value and cmaes data structure.
     // =============================================================
     Real f; 
     cmaes_t evo;
-
-    const OptimizerSystem& sys = getOptimizerSystem();
-    int n = sys.getNumParameters();
 
     // Check that the initial point is feasible.
     // =========================================
@@ -65,87 +65,82 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // =================
     double* funvals = init(evo, results);
 
-	
     // Resume a previous simulation?
     // =============================
     // TODO clean up.
-	bool isresume = false; 
+    bool isresume = false; 
     getAdvancedBoolOption("resume", isresume );
 
     // TODO where does this go?
-	if (isresume) {
-		cmaes_resume_distribution(&evo, (char*)"resumecmaes.dat"); 
-	}
-
+    if (isresume) {
+        cmaes_resume_distribution(&evo, (char*)"resumecmaes.dat"); 
+    }
 
     SimTK_CMAES_PRINT(printf("%s\n", cmaes_SayHello(&evo)));
-
     // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
-
-    // TODO let the master also run an objective function evaluation.
-	
+    
     // Optimize.
     // =========
-	while (!cmaes_TestForTermination(&evo)) {
+    while (!cmaes_TestForTermination(&evo)) {
 
         // Sample a population.
         // ====================
-		double*const* pop = cmaes_SamplePopulation(&evo);
+        double*const* pop = cmaes_SamplePopulation(&evo);
 
         // Resample to keep population within limits.
         // ==========================================
-    	if( sys.getHasLimits() ) {
-    		Real *lowerLimits, *upperLimits;
-        	sys.getParameterLimits( &lowerLimits, &upperLimits );
-			
-			for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
-				bool feasible = false; 
-				while (!feasible) {
-					feasible = true; 
-					for (int j = 0; j < n; j++) {
-						if (pop[i][j] < lowerLimits[j] || 
-								pop[i][j] > upperLimits[j]) {
-							feasible = false; 
-							pop = cmaes_ReSampleSingle(&evo, i); 
-							break; 
-						}
-					}
-				}
-			}
-		}
+        if( sys.getHasLimits() ) {
+            Real *lowerLimits, *upperLimits;
+            sys.getParameterLimits( &lowerLimits, &upperLimits );
+            
+            for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
+                bool feasible = false; 
+                while (!feasible) {
+                    feasible = true; 
+                    for (int j = 0; j < n; j++) {
+                        if (pop[i][j] < lowerLimits[j] || 
+                                pop[i][j] > upperLimits[j]) {
+                            feasible = false; 
+                            pop = cmaes_ReSampleSingle(&evo, i); 
+                            break; 
+                        }
+                    }
+                }
+            }
+        }
 
         // Evaluate the objective function on the samples.
         // ===============================================
         for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
             objectiveFuncWrapper(n, pop[i], true, &funvals[i], this);
         }
-		
+        
         // Update the distribution (mean, covariance, etc.).
         // =================================================
-		cmaes_UpdateDistribution(&evo, funvals);
-		
+        cmaes_UpdateDistribution(&evo, funvals);
+        
         // TODO only if users specify a signals files.
         // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
-	}
+    }
 
     // Wrap up.
     // ========
     SimTK_CMAES_PRINT(printf("Stop:\n%s\n", cmaes_TestForTermination(&evo)));
 
-    // Update best-yet parameters and objective function value.
+    // Update best parameters and objective function value.
     const double* optx = cmaes_GetPtr(&evo, "xbestever");
     for (int i = 0; i < n; i++) {
         results[i] = optx[i]; 
     }
     f = cmaes_Get(&evo, "fbestever");
 
-	SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "resume", "resumecmaes.dat"));
-	SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "all", "allcmaes.dat"));
+    SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "resume", "resumecmaes.dat"));
+    SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "all", "allcmaes.dat"));
 
     // Free memory.
     cmaes_exit(&evo);
-	
-	return f;  
+    
+    return f;  
 }
 
 void CMAESOptimizer::checkInitialPointIsFeasible(const Vector& x) const {
@@ -171,17 +166,17 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     const OptimizerSystem& sys = getOptimizerSystem();
     int n = sys.getNumParameters();
 
-    // Prepare to call cmaes_init.
-    // ===========================
+    // Prepare to call cmaes_init_para.
+    // ================================
 
     // lambda
     // ------
-	int lambda = 0;
+    int lambda = 0;
     getAdvancedIntOption("lambda", lambda);
-	
+    
     // sigma
     // -----
-	double sigma = 0;
+    double sigma = 0;
     double* stddev = NULL;
     Vector sigmaArray;
     if (getAdvancedRealOption("sigma", sigma)) {
@@ -202,9 +197,9 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
 
     // Call cmaes_init_para.
     // =====================
-	// Here, we specify the subset of options that can be passed to
+    // Here, we specify the subset of options that can be passed to
     // cmaes_init_para.
-	cmaes_init_para(&evo,
+    cmaes_init_para(&evo,
             n,                 // dimension
             &results[0],       // xstart
             stddev,            // stddev
@@ -214,33 +209,43 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             // TODO "non"              // input_parameter_filename
             ); 
 
-    // Settings that are usually read in from cmaes_initials.par.
-    // ==========================================================
-    processSettingsAfterCMAESInit(evo);
+    // Set settings that are usually read in from cmaes_initials.par.
+    // ==============================================================
+    process_readpara_settings(evo);
 
     // Once we've updated settings in readpara_t, finalize the initialization.
     return cmaes_init_final(&evo);
 }
 
-void CMAESOptimizer::processSettingsAfterCMAESInit(cmaes_t& evo) const
+void CMAESOptimizer::process_readpara_settings(cmaes_t& evo) const
 {
+    // Termination criteria
+    // ====================
     // stopMaxIter
-    // ===========
+    // -----------
     // maxIterations is a protected member variable of OptimizerRep.
-	evo.sp.stopMaxIter = maxIterations;
+    evo.sp.stopMaxIter = maxIterations;
 
     // stopTolFun
-    // ==========
+    // ----------
     // convergenceTolerance is a protected member variable of OptimizerRep.
     evo.sp.stopTolFun = convergenceTolerance;
 
     // stopMaxFunEvals
-    // ===============
+    // ---------------
     int stopMaxFunEvals;
     if (getAdvancedIntOption("stopMaxFunEvals", stopMaxFunEvals)) {
         SimTK_VALUECHECK_NONNEG_ALWAYS(stopMaxFunEvals, "stopMaxFunEvals",
                 "CMAESOptimizer::processSettingsAfterCMAESInit");
         evo.sp.stopMaxFunEvals = stopMaxFunEvals;
+    }
+
+    // stopFitness
+    // -----------
+    double stopFitness;
+    if (getAdvancedRealOption("stopFitness", stopFitness)) {
+        evo.sp.stStopFitness.flg = 1;
+        evo.sp.stStopFitness.val = stopFitness;
     }
 
     // maxtime

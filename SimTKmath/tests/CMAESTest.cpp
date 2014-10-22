@@ -26,6 +26,8 @@
 // 9. allow verbosity; diagnostics level.
 // 12 all the cmaes options.
 // 14 threading.
+//
+// 
 
 #include "SimTKmath.h"
 #include "OptimizerSystems.h"
@@ -465,6 +467,35 @@ void testEasom() {
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
+void testStopFitness() {
+
+    Ackley sys(2);
+    int N = sys.getNumParameters();
+
+    // set initial conditions.
+    Vector results(N);
+    // Far from optimum, but within the parameter limits.
+    results.setTo(25);
+
+    // Create optimizer; set settings.
+    Optimizer opt(sys, SimTK::CMAES);
+    // opt.setDiagnosticsLevel(1);
+    opt.setConvergenceTolerance(1e-12);
+    opt.setMaxIterations(5000);
+    opt.setAdvancedIntOption("lambda", 50);
+    opt.setAdvancedRealOption("sigma", 0.5 * 64);
+    opt.setAdvancedRealOption("seed", 30);
+    opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
+
+    Real stopFitness = 5;
+    opt.setAdvancedRealOption("stopFitness", stopFitness);
+
+    // Optimize!
+    Real f1 = opt.optimize(results);
+
+    SimTK_TEST(f1 > 1);
+}
+
 int main() {
     SimTK_START_TEST("CMAES");
 
@@ -485,6 +516,7 @@ int main() {
         SimTK_SUBTEST(testRosenbrock);
         SimTK_SUBTEST(testSchwefel);
         SimTK_SUBTEST(testEasom);
+        SimTK_SUBTEST(testStopFitness);
         // TODO        testRestart();
     }
 

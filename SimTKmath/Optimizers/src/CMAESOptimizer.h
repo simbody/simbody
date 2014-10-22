@@ -41,8 +41,8 @@ private:
 
     // Wrapper around cmaes_init.
     double* init(cmaes_t& evo, Vector& results) const;
-
-    void processSettingsAfterCMAESInit(cmaes_t& evo) const;
+    // Edit settings in evo.sp (readpara_t).
+    void process_readpara_settings(cmaes_t& evo) const;
 
 };
 
