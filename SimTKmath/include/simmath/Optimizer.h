@@ -93,6 +93,7 @@ public:
     }
 
     /// Objective/cost function which is to be optimized; return 0 when successful.
+    /// The value of f upon entry into the function is undefined.
     /// This method must be supplied by concrete class.
     virtual int objectiveFunc      ( const Vector& parameters, 
                                  bool new_parameters, Real& f ) const {
