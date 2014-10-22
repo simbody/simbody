@@ -72,8 +72,12 @@ do { \
 Real funval = opt.optimize(results); \
 const TestOptimizerSystem& sys = \
     *static_cast<const TestOptimizerSystem*>(&opt.getOptimizerSystem()); \
-SimTK_TEST_EQ_TOL(funval, sys.optimalValue(), tol); \
-SimTK_TEST(vectorsAreEqual(results, sys.optimalParameters(), tol)); \
+bool passed = vectorsAreEqual(results, sys.optimalParameters(), tol); \
+if (!SimTK::Test::numericallyEqual(funval, sys.optimalValue(), 1, tol)) { \
+    passed = false; \
+    printf("error f = %f (expected: %f)", funval, sys.optimalValue()); \
+} \
+if (!passed) {SimTK_TEST_FAILED("Optimization failed.");} \
 } \
 while(false)
 
@@ -384,27 +388,26 @@ void testRosenbrock() {
     SimTK_TEST_OPT(opt, results, 1e-6);
 }
 
-// TODO i've been able to get f = -1.990145 so maybe there is a bug here?
 void testSchwefel() {
 
-    Schwefel sys(2);
+    Schwefel sys(4);
     int N = sys.getNumParameters();
 
     // set initial conditions.
     Vector results(N);
-    results.setTo(418);
+    results.setTo(200);
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    opt.setConvergenceTolerance(1e-12);
-// TODO    opt.setMaxIterations(100000);
-    opt.setAdvancedIntOption("lambda", 4 * N);
-    opt.setAdvancedRealOption("sigma", 1);
+    // Only know the solution to 4 digits.
+    opt.setConvergenceTolerance(1e-4);
+    opt.setAdvancedIntOption("lambda", 200);
+    opt.setAdvancedRealOption("sigma", 300);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Optimize!
-    SimTK_TEST_OPT(opt, results, 1e-5);
+    SimTK_TEST_OPT(opt, results, 1e-4);
 }
 
 void testEasom() {
@@ -442,12 +445,12 @@ int main() {
         SimTK_SUBTEST(testSigmaStepSizeAndAckleyOptimum);
         // TODO        testDropWaveOptimumLambdaMaxFunEvals();
         SimTK_SUBTEST(testSeed);
-        // TODO        testRestart();
         SimTK_SUBTEST(testConvergenceTolerance);
         SimTK_SUBTEST(testRosenbrock);
-        // TODO        testSchwefel();
+        SimTK_SUBTEST(testSchwefel);
         SimTK_SUBTEST(testEasom);
         // TODO SimTK_SUBTEST(testInfeasibleInitialPoint);
+        // TODO        testRestart();
     }
 
     SimTK_END_TEST();

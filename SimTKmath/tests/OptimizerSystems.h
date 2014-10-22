@@ -33,6 +33,7 @@ using SimTK::Real;
 using SimTK::OptimizerSystem;
 using SimTK::Pi;
 using SimTK::square;
+using SimTK::sqrt;
 
 class TestOptimizerSystem : public OptimizerSystem {
 public:
@@ -139,7 +140,6 @@ public:
 };
 
 // http://www.sfu.ca/~ssurjano/schwef.html
-// TODO i've been able to get f = -1.990145 so maybe there is a bug here?
 class Schwefel : public TestOptimizerSystem {
 public:
     Schwefel(unsigned int nParameters) : TestOptimizerSystem(nParameters) {
@@ -150,10 +150,11 @@ public:
         setParameterLimits(-limits, limits);
     }
     int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
-        f = 418.9829 * getNumParameters();
+        Real sum = 0;
         for (unsigned int i = 0; i < getNumParameters(); ++i) {
-            f -= x[i] * sin(sqrt(abs(x[i])));
+            sum += x[i] * sin(sqrt(std::abs(x[i])));
         }
+        f = 418.9829 * getNumParameters() -sum;
         return 0;
     }
     Real optimalValue() const { return 0; }
