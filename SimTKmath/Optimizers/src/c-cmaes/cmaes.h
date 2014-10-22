@@ -63,6 +63,7 @@ typedef struct
  */
 {
   char * filename;  /* keep record of the file that was taken to read parameters */
+  short flgsupplemented; 
   
   /* input parameters */
   int N; /* problem dimension, must stay constant, should be unsigned or long? */
