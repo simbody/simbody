@@ -24,9 +24,7 @@
 // 5. memory leaks.
 // 6. how to disable reading of cmaes_signals.par.
 // 9. allow verbosity; diagnostics level.
-// 10. parameter limits.
 // 12 all the cmaes options.
-// 13 understand how the cmaes options are set.
 // 14 threading.
 
 #include "SimTKmath.h"
@@ -487,7 +485,6 @@ int main() {
         SimTK_SUBTEST(testRosenbrock);
         SimTK_SUBTEST(testSchwefel);
         SimTK_SUBTEST(testEasom);
-        // TODO SimTK_SUBTEST(testInfeasibleInitialPoint);
         // TODO        testRestart();
     }
 

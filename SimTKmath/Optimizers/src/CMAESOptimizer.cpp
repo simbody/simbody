@@ -185,16 +185,16 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
 	
     // sigma
     // -----
-    // TODO move to processBefore, and change to 0.3
-	double stepsize = 0;
-    getAdvancedRealOption("sigma", stepsize ); 
-	if (stepsize == 0.0) {
-		stepsize = 0.1; 
-	}
-	Vector stepsizeArray(n);
-	for (int i = 0; i < n; i++) {
-		stepsizeArray[i] = stepsize;  
-	}
+	double sigma = 0;
+    double* stddev = NULL;
+    Vector sigmaArray;
+    if (getAdvancedRealOption("sigma", sigma)) {
+        sigmaArray.resize(n);
+        for (int i = 0; i < n; i++) {
+            sigmaArray[i] = sigma;
+        }
+        stddev = &sigmaArray[0];
+    }
 
     // seed
     // ----
@@ -211,7 +211,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
 	cmaes_init_para(&evo,
             n,                 // dimension
             &results[0],       // xstart
-            &stepsizeArray[0], // stddev
+            stddev,            // stddev
             seed,              // seed
             numsamples,        // lambda
             "writeonly"              // input_parameter_filename TODO change depending on advanced parameters.
