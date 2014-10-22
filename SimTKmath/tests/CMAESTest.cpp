@@ -479,7 +479,7 @@ void testStopFitness() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    // opt.setDiagnosticsLevel(1);
+    // opt.setDiagnosticsLevel(2);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
     opt.setAdvancedIntOption("lambda", 50);

@@ -178,6 +178,11 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
                 "CMAESOptimizer::processSettingsBeforeCMAESInit");
     }
 
+    // input parameter filename
+    // ------------------------
+    std::string input_parameter_filename = "non";
+    SimTK_CMAES_FILE(input_parameter_filename = "writeonly";);
+
     // Call cmaes_init_para.
     // =====================
     // Here, we specify the subset of options that can be passed to
@@ -188,8 +193,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             stddev,            // stddev
             seed,              // seed
             lambda,            // lambda
-            "writeonly"              // input_parameter_filename TODO change depending on advanced parameters.
-            // TODO "non"              // input_parameter_filename
+            input_parameter_filename.c_str() // input_parameter_filename
             ); 
 
     // Set settings that are usually read in from cmaes_initials.par.
