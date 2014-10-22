@@ -74,24 +74,31 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // cmaes_init.
     // ===========
 	 
-	double* funvals = cmaes_init(&evo,
+	cmaes_init_para(&evo,
             n,                 // dimension
             &results[0],       // xstart
             &stepsizeArray[0], // stddev
             m_seed,            // seed
             numsamples,        // lambda
-            "non"              // input_parameter_filename
+            "writeonly"              // input_parameter_filename TODO change depending on advanced parameters.
+            // TODO "non"              // input_parameter_filename
             ); 
+
+    // TODO when to call this?
+    processSettingsAfterCMAESInit(evo);
+    double* funvals = cmaes_init_final(&evo);
+
+    // TODO where does this go?
 	if (isresume) {
 		cmaes_resume_distribution(&evo, (char*)"resumecmaes.dat"); 
 	}
 
-    // TODO when to call this?
-    processSettingsAfterCMAESInit(evo);
 
     if (diagnosticsLevel == 1) {
         printf("%s\n", cmaes_SayHello(&evo));
     }
+
+    // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
 
     // TODO let the master also run an objective function evaluation.
 	
@@ -135,8 +142,12 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
         // =================================================
 		cmaes_UpdateDistribution(&evo, funvals);
 		
+        // TODO only if users specify a signals files.
+        // TODO cmaes_ReadSignals(&evo, "cmaes_signals.par");
+
         // Update best-yet parameters and objective function value.
         // ========================================================
+        // TODO move to after the loop.
 		const double* optx = cmaes_GetPtr(&evo, "xbestever");
 		for (int i = 0; i < n; i++) {
 			results[i] = optx[i]; 
@@ -148,6 +159,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // ========
     printf("Stop:\n%s\n", cmaes_TestForTermination(&evo));
 	cmaes_WriteToFile(&evo, "resume", "resumecmaes.dat");
+    // TODO diagnostics level.
+	// TODO cmaes_WriteToFile(&evo, "all", "allcmaes.dat");
     cmaes_exit(&evo);
 	
 	return f;  

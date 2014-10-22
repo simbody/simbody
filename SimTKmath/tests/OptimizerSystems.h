@@ -32,6 +32,7 @@ using SimTK::Vector;
 using SimTK::Real;
 using SimTK::OptimizerSystem;
 using SimTK::Pi;
+using SimTK::square;
 
 class TestOptimizerSystem : public OptimizerSystem {
 public:
@@ -123,8 +124,9 @@ class Rosenbrock : public TestOptimizerSystem {
 public:
     Rosenbrock(unsigned int nParameters) : TestOptimizerSystem(nParameters) {}
     int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
+        f = 0;
         for (unsigned int i = 0; i < getNumParameters() - 1; ++i) {
-            f += 100 * pow(x[i+1] - x[i] * x[i], 2) + pow(x[i] - 1, 2);
+            f += 100.0 * square(x[i+1] - square(x[i])) + square(x[i] - 1);
         }
         return 0;
     }
