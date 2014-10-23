@@ -1,5 +1,5 @@
-#ifndef SimTK_LBFGSB_OPTIMIZER_H_
-#define SimTK_LBFGSB_OPTIMIZER_H_
+#ifndef SimTK_SIMMATH_LBFGSB_OPTIMIZER_H_
+#define SimTK_SIMMATH_LBFGSB_OPTIMIZER_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -56,5 +56,6 @@ private:
 };
 
 } // namespace SimTK
-#endif // SimTK_LBFGSB_OPTIMIZER_H_
+
+#endif // SimTK_SIMMATH_LBFGSB_OPTIMIZER_H_
 

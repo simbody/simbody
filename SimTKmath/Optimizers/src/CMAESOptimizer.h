@@ -1,5 +1,5 @@
-#ifndef SimTK_CMAES_OPTIMIZER_H_
-#define SimTK_CMAES_OPTIMIZER_H_
+#ifndef SimTK_SIMMATH_CMAES_OPTIMIZER_H_
+#define SimTK_SIMMATH_CMAES_OPTIMIZER_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -47,4 +47,4 @@ private:
 };
 
 } // namespace SimTK
-#endif // SimTK_CMAES_OPTIMIZER_H_
+#endif // SimTK_SIMMATH_CMAES_OPTIMIZER_H_
