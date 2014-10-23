@@ -46,7 +46,7 @@ FOREACH(extradir models)
     INSTALL(FILES ${xfile} DESTINATION 
             ${EXAMPLES_INSTALL_SRC}/${ex_name}/${extradir})
     # This allows to run this example in the build tree, assuming
-    # no files get overridden.
+    # no files get overwritten.
     IF(UNIX)
       EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E create_symlink
           ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name}
