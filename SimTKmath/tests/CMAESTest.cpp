@@ -495,7 +495,7 @@ void testStopFitness() {
     // Optimize!
     Real f1 = opt.optimize(results);
 
-    SimTK_TEST(f1 > 1);
+    SimTK_TEST(f1 > 0.01);
 }
 
 int main() {
