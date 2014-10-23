@@ -26,6 +26,8 @@
 #include "simmath/internal/OptimizerRep.h"
 #include "c-cmaes/cmaes_interface.h"
 
+#include <memory>
+
 namespace SimTK {
 
 class CMAESOptimizer: public Optimizer::OptimizerRep {
@@ -43,6 +45,26 @@ private:
     double* init(cmaes_t& evo, Vector& results) const;
     // Edit settings in evo.sp (readpara_t).
     void process_readpara_settings(cmaes_t& evo) const;
+
+    void resampleToObeyLimits(cmaes_t& evo, double*const* pop);
+
+    // May use threading or MPI.
+    void evaluateObjectiveFunctionOnPopulation(
+            cmaes_t& evo, double*const* pop, double* funvals,
+            const std::auto_ptr<ParallelExecutor>& executor);
+
+    class Task : public SimTK::ParallelExecutor::Task {
+    public:
+        Task(CMAESOptimizer& rep, int n, double*const* pop, double* funvals)
+            :   rep(rep), n(n), pop(pop), funvals(funvals) {}
+        void execute(int i) OVERRIDE_11
+        { rep.objectiveFuncWrapper(n, pop[i], true, &funvals[i], &rep); }
+    private:
+        CMAESOptimizer& rep;
+        int n;
+        double*const* pop;
+        double* funvals;
+    };
 
 };
 

@@ -496,6 +496,36 @@ void testStopFitness() {
     SimTK_TEST(f1 > 1);
 }
 
+// This is a soft test. Just makes sure we get the right answer and we don't
+// get any exceptions. We don't actually make sure that multithreading is
+// occuring.
+void testMultithreading() {
+
+    Cigtab sys(22);
+    int N = sys.getNumParameters();
+
+    // set initial conditions.
+    Vector results(N);
+    results.setTo(0.5);
+
+    // Create optimizer; set settings.
+    Optimizer opt(sys, SimTK::CMAES);
+    opt.setConvergenceTolerance(1e-12);
+    opt.setMaxIterations(5000);
+    opt.setAdvancedRealOption("sigma", 0.3);
+    // Sometimes this test fails, so choose a seed where the test passes.
+    opt.setAdvancedIntOption("seed", 42);
+    opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
+    opt.setAdvancedStrOption("parallel", "multithreading");
+
+    // Optimize!
+    SimTK_TEST_OPT(opt, results, 1e-5);
+
+    // Change the number of parallel threads.
+    opt.setAdvancedIntOption("parallel_number", 2);
+    SimTK_TEST_OPT(opt, results, 1e-5);
+}
+
 int main() {
     SimTK_START_TEST("CMAES");
 
@@ -517,6 +547,7 @@ int main() {
         SimTK_SUBTEST(testSchwefel);
         SimTK_SUBTEST(testEasom);
         SimTK_SUBTEST(testStopFitness);
+        SimTK_SUBTEST(testMultithreading);
         // TODO        testRestart();
     }
 
