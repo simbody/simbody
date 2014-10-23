@@ -1560,8 +1560,8 @@ template <class P> static inline std::ostream&
 operator<<(std::ostream& o, const MassProperties_<P>& mp) {
     return o << "{ mass=" << mp.getMass() 
              << "\n  com=" << mp.getMassCenter()
-             << "\n  Ixx,yy,zz=" << mp.getUnitInertia().getMoments()
-             << "\n  Ixy,xz,yz=" << mp.getUnitInertia().getProducts()
+             << "\n  Uxx,yy,zz=" << mp.getUnitInertia().getMoments()
+             << "\n  Uxy,xz,yz=" << mp.getUnitInertia().getProducts()
              << "\n}\n";
 }
 
