@@ -184,7 +184,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
 
     // input parameter filename
     // ------------------------
-    std::string input_parameter_filename = "non";
+    std::string input_parameter_filename = "none";
     SimTK_CMAES_FILE(diagnosticsLevel,
             input_parameter_filename = "writeonly";);
 
