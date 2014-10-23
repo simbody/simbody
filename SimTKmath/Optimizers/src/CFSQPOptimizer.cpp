@@ -90,7 +90,7 @@ CFSQPOptimizer::
 }
 
 Optimizer::OptimizerRep* CFSQPOptimizer::clone() const {
-    return( new CFSQPOptimizer(*this) );
+    return new CFSQPOptimizer(*this);
 }
 
 //_____________________________________________________________________________

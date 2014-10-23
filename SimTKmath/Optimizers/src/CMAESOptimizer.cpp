@@ -46,7 +46,7 @@ CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys)
 }
 
 Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
-    return( new CMAESOptimizer(*this) );
+    return new CMAESOptimizer(*this);
 }
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
