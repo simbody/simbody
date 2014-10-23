@@ -184,7 +184,7 @@ void testSigmaAndAckleyOptimum() {
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
     opt.setAdvancedIntOption("lambda", 50);
-    opt.setAdvancedRealOption("seed", 30);
+    opt.setAdvancedIntOption("seed", 30);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
     // Default sigma (step size) leaves us in a local minimum.
@@ -230,7 +230,7 @@ void testDropWaveOptimumLambda() {
     opt.setAdvancedIntOption("lambda", 1000);
     // Sometimes, we need more function evaluations.
     opt.setAdvancedIntOption("stopMaxFunEvals", 100000);
-    opt.setAdvancedRealOption("seed", 10);
+    opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
     SimTK_TEST_OPT(opt, results, 1e-2);
@@ -249,7 +249,7 @@ void testMaxFunEvals() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setAdvancedRealOption("sigma", 0.3);
-    opt.setAdvancedRealOption("seed", 10);
+    opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
     // Will not find optimum to tolerance with small # function evals.
@@ -372,7 +372,7 @@ void testConvergenceTolerance() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    opt.setAdvancedRealOption("seed", 10);
+    opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
     Real looseTolerance = 0.001;
@@ -486,7 +486,7 @@ void testStopFitness() {
     opt.setMaxIterations(5000);
     opt.setAdvancedIntOption("lambda", 50);
     opt.setAdvancedRealOption("sigma", 0.5 * 64);
-    opt.setAdvancedRealOption("seed", 30);
+    opt.setAdvancedIntOption("seed", 30);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
     Real stopFitness = 5;
@@ -500,10 +500,6 @@ void testStopFitness() {
 
 int main() {
     SimTK_START_TEST("CMAES");
-
-    // Even though most of the tests use seeds, some tests may fail
-    // sporadically. We must run these tests a few times.
-    for (unsigned int i = 0; i < 10; ++i) {
 
         SimTK_SUBTEST(testCMAESAvailable);
         SimTK_SUBTEST(testTwoOrMoreParameters);
@@ -520,7 +516,6 @@ int main() {
         SimTK_SUBTEST(testEasom);
         SimTK_SUBTEST(testStopFitness);
         // TODO        testRestart();
-    }
 
     SimTK_END_TEST();
 }
