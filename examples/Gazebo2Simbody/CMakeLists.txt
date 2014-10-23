@@ -34,16 +34,6 @@ IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
     # Don't install static examples
 ENDIF()
 
-IF(NOT WIN32)
-  EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E create_symlink
-                  ${EXAMPLES_INSTALL_BIN}
-                  ${CMAKE_CURRENT_BINARY_DIR}/bin
-  )
-  INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin
-          DESTINATION ${EXAMPLES_SYMLINK_BIN}
-  )
-ENDIF()
-
 # Copy models to the binary directory that will 
 # be the working directory when the example is run from a source build;
 # and install it in the examples installation.
@@ -52,9 +42,17 @@ FOREACH(extradir models)
   FOREACH(xfile ${extradir_file})
     GET_FILENAME_COMPONENT(xfile_name ${xfile} NAME)
     CONFIGURE_FILE(${xfile}
-                   ${CMAKE_CURRENT_BINARY_DIR}/${extradir} COPYONLY)
+        ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
     INSTALL(FILES ${xfile} DESTINATION 
             ${EXAMPLES_INSTALL_SRC}/${ex_name}/${extradir})
+    # This allows to run this example in the build tree, assuming
+    # no files get overwritten.
+    IF(UNIX)
+      EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E create_symlink
+          ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name}
+          ${CMAKE_BINARY_DIR}/${extradir}/${xfile_name}
+          )
+    ENDIF()
   ENDFOREACH()
 ENDFOREACH()
 
