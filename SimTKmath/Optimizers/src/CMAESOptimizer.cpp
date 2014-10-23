@@ -7,6 +7,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
+ * Authors: Chris Dembia                                                      *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -25,15 +27,15 @@
 
 namespace SimTK {
 
-#define SimTK_CMAES_PRINT(cmds) \
+#define SimTK_CMAES_PRINT(diag, cmds) \
 do { \
-if (std::bitset<2>(diagnosticsLevel).test(0)) { cmds; } \
+if (std::bitset<2>(diag).test(0)) { cmds; } \
 } \
 while(false)
 
-#define SimTK_CMAES_FILE(cmds) \
+#define SimTK_CMAES_FILE(diag, cmds) \
 do { \
-if (std::bitset<2>(diagnosticsLevel).test(1)) { cmds; } \
+if (std::bitset<2>(diag).test(1)) { cmds; } \
 } \
 while(false)
 
@@ -44,7 +46,7 @@ CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys)
 }
 
 Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
-    return( new CMAESOptimizer(*this) );
+    return new CMAESOptimizer(*this);
 }
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
@@ -80,7 +82,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // Initialize cmaes.
     // =================
     double* funvals = init(evo, results);
-    SimTK_CMAES_PRINT(printf("%s\n", cmaes_SayHello(&evo)));
+    SimTK_CMAES_PRINT(diagnosticsLevel, printf("%s\n", cmaes_SayHello(&evo)));
     
     // Optimize.
     // =========
@@ -105,7 +107,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 
     // Wrap up.
     // ========
-    SimTK_CMAES_PRINT(printf("Stop:\n%s\n", cmaes_TestForTermination(&evo)));
+    SimTK_CMAES_PRINT(diagnosticsLevel,
+            printf("Stop:\n%s\n", cmaes_TestForTermination(&evo)));
 
     // Update results and objective function value.
     const double* xbestever = cmaes_GetPtr(&evo, "xbestever");
@@ -114,7 +117,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     }
     f = cmaes_Get(&evo, "fbestever");
 
-    SimTK_CMAES_FILE(cmaes_WriteToFile(&evo, "all", "allcmaes.dat"));
+    SimTK_CMAES_FILE(diagnosticsLevel,
+            cmaes_WriteToFile(&evo, "all", "allcmaes.dat"));
 
     // Free memory.
     cmaes_exit(&evo);
@@ -176,8 +180,9 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
 
     // input parameter filename
     // ------------------------
-    std::string input_parameter_filename = "non";
-    SimTK_CMAES_FILE(input_parameter_filename = "writeonly";);
+    std::string input_parameter_filename = "none";
+    SimTK_CMAES_FILE(diagnosticsLevel,
+            input_parameter_filename = "writeonly";);
 
     // Call cmaes_init_para.
     // =====================

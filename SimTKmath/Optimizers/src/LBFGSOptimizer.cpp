@@ -29,7 +29,7 @@ using std::endl;
 namespace SimTK {
 
 Optimizer::OptimizerRep* LBFGSOptimizer::clone() const {
-    return( new LBFGSOptimizer(*this) );
+    return new LBFGSOptimizer(*this);
 }
 
 

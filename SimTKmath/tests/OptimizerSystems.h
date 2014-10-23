@@ -1,5 +1,5 @@
-#ifndef _SimTK_OPTIMIZER_SYSTEMS_H_
-#define _SimTK_OPTIMIZER_SYSTEMS_H_
+#ifndef SimTK_SIMMATH_OPTIMIZER_SYSTEMS_H_
+#define SimTK_SIMMATH_OPTIMIZER_SYSTEMS_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -10,6 +10,8 @@
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
+ * Authors: Chris Dembia                                                      *
+ * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -186,4 +188,4 @@ public:
 };
 
 
-#endif // _SimTK_OPTIMIZER_SYSTEMS_H_
+#endif // SimTK_SIMMATH_OPTIMIZER_SYSTEMS_H_
