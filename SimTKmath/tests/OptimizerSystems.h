@@ -1,5 +1,5 @@
-#ifndef _SimTK_OPTIMIZER_SYSTEMS_H_
-#define _SimTK_OPTIMIZER_SYSTEMS_H_
+#ifndef SimTK_OPTIMIZER_SYSTEMS_H_
+#define SimTK_OPTIMIZER_SYSTEMS_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -186,4 +186,4 @@ public:
 };
 
 
-#endif // _SimTK_OPTIMIZER_SYSTEMS_H_
+#endif // SimTK_OPTIMIZER_SYSTEMS_H_
