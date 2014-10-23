@@ -55,6 +55,7 @@ ENDIF()
 ADD_SUBDIRECTORY(BricardMechanism)
 ADD_SUBDIRECTORY(Gazebo2Simbody)
 ADD_SUBDIRECTORY(TaskSpaceControl-UR10)
+ADD_SUBDIRECTORY(TaskSpaceControl-Atlas)
 ADD_SUBDIRECTORY(TaskSpaceControl-Humanoid)
 
 # Next pick up stragglers that consist solely of a .cpp file in the top
@@ -104,23 +105,13 @@ IF(NOT WIN32)
   )
 ENDIF()
 
-# Copy extra files associated with these examples
-# to the binary directory that will be the working
-# directory when the tests are run; and include them in
-# the examples installation. ".obj" and ".vtp" files contain geometry.
-# ".sdf" are Gazebo input files.
-FILE(GLOB EXTRA_FILES "*.obj" "*.vtp" "*.sdf")
-FOREACH(XTRA ${EXTRA_FILES})
-    GET_FILENAME_COMPONENT(XTRA_ROOT ${XTRA} NAME)
-    CONFIGURE_FILE(${XTRA}
-               ${CMAKE_CURRENT_BINARY_DIR}/${XTRA_ROOT} COPYONLY)
-    INSTALL(FILES ${XTRA} DESTINATION ${EXAMPLES_INSTALL_SRC})
-    INSTALL(FILES ${XTRA} DESTINATION ${EXAMPLES_INSTALL_BIN})
-ENDFOREACH()
-
-# install source for examples
+# install top-level source for examples (shouldn't be any headers though)
 FILE(GLOB SRC_FILES "*.cpp" "*.h")
 INSTALL(FILES ${SRC_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC})
+
+# install shared source and other files
+FILE(GLOB SHARED_FILES "shared/*")
+INSTALL(FILES ${SHARED_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC}/shared)
 
 # install .txt files except CMakeLists.txt
 FILE(GLOB TXT_FILES "*.txt")

@@ -1,10 +1,13 @@
-# Build and install example, from within a
+# Build and install TaskSpaceControl-Atlas example, from within a
 # Simbody source build. This must be invoked as a CMake subdirectory from
 # the main examples CMakeLists.txt file.
 
-set(ex_name BricardMechanism)
-set(header_files)
-set(source_files ExampleBricardMechanism.cpp)
+set(ex_name TaskSpaceControl-Atlas)
+set(header_files Atlas.h URDFReader.h)
+set(source_files TaskSpaceControl-Atlas.cpp Atlas.cpp URDFReader.cpp)
+
+ADD_DEFINITIONS(
+    -DSIMBODY_EXAMPLE_INSTALL_DIR="${EXAMPLES_INSTALL_SRC}/${ex_name}/")
 
 IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
     # Link with shared library
@@ -44,15 +47,15 @@ IF(NOT WIN32)
   )
 ENDIF()
 
-# Copy geometry to the binary directory that will 
+# Copy geometry and models to the binary directory that will 
 # be the working directory when the example is run from a source build;
 # and install it in the examples installation.
-FOREACH(extradir geometry)
+FOREACH(extradir geometry models)
   FILE(GLOB extradir_file  "${extradir}/*")
   FOREACH(xfile ${extradir_file})
     GET_FILENAME_COMPONENT(xfile_name ${xfile} NAME)
     CONFIGURE_FILE(${xfile}
-                   ${CMAKE_CURRENT_BINARY_DIR}/${extradir} COPYONLY)
+       ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
     INSTALL(FILES ${xfile} DESTINATION 
             ${EXAMPLES_INSTALL_SRC}/${ex_name}/${extradir})
   ENDFOREACH()

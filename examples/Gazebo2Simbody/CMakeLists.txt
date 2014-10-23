@@ -51,10 +51,10 @@ FOREACH(extradir models)
   FILE(GLOB extradir_file  "${extradir}/*")
   FOREACH(xfile ${extradir_file})
     GET_FILENAME_COMPONENT(xfile_name ${xfile} NAME)
-    set(relname ${extradir}/${xfile_name})
     CONFIGURE_FILE(${xfile}
-                   ${CMAKE_CURRENT_BINARY_DIR}/${relname} COPYONLY)
-    INSTALL(FILES ${xfile} DESTINATION ${EXAMPLES_INSTALL_SRC}/${geodir})
+                   ${CMAKE_CURRENT_BINARY_DIR}/${extradir} COPYONLY)
+    INSTALL(FILES ${xfile} DESTINATION 
+            ${EXAMPLES_INSTALL_SRC}/${ex_name}/${extradir})
   ENDFOREACH()
 ENDFOREACH()
 

@@ -118,13 +118,18 @@ UR10::UR10()
     PolygonalMesh baseMesh, shoulderMesh, upperArmMesh, forearmMesh,
                   wrist1Mesh, wrist2Mesh, wrist3Mesh;
 
-    baseMesh.loadObjFile("geometry/Base.obj");
-    shoulderMesh.loadObjFile("geometry/Shoulder.obj");
-    upperArmMesh.loadObjFile("geometry/UpperArm.obj");
-    forearmMesh.loadObjFile("geometry/Forearm.obj");
-    wrist1Mesh.loadObjFile("geometry/Wrist1.obj");
-    wrist2Mesh.loadObjFile("geometry/Wrist2.obj");
-    wrist3Mesh.loadObjFile("geometry/Wrist3.obj");
+    String dir;
+    if (!Pathname::fileExists("geometry/Base.obj")) {
+        dir = SIMBODY_EXAMPLE_INSTALL_DIR; // where this example's files go
+    }
+
+    baseMesh.loadObjFile(dir + "geometry/Base.obj");
+    shoulderMesh.loadObjFile(dir + "geometry/Shoulder.obj");
+    upperArmMesh.loadObjFile(dir + "geometry/UpperArm.obj");
+    forearmMesh.loadObjFile(dir + "geometry/Forearm.obj");
+    wrist1Mesh.loadObjFile(dir + "geometry/Wrist1.obj");
+    wrist2Mesh.loadObjFile(dir + "geometry/Wrist2.obj");
+    wrist3Mesh.loadObjFile(dir + "geometry/Wrist3.obj");
 
     m_matter.updGround().addBodyDecoration(Vec3(0), 
                DecorativeFrame(0.5));

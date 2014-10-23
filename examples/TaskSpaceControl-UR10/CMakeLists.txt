@@ -6,6 +6,9 @@ set(ex_name TaskSpaceControl-UR10)
 set(header_files UR10.h)
 set(source_files TaskSpaceControl-UR10.cpp UR10.cpp)
 
+ADD_DEFINITIONS(
+    -DSIMBODY_EXAMPLE_INSTALL_DIR="${EXAMPLES_INSTALL_SRC}/${ex_name}/")
+
 IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
     # Link with shared library
     ADD_EXECUTABLE(${ex_name} ${source_files} ${header_files})
@@ -46,17 +49,15 @@ ENDIF()
 
 # Copy geometry to the binary directory that will 
 # be the working directory when the example is run from a source build;
-# and install it in the examples installation (both for binaries and
-# for source).
-FOREACH(geodir geometry)
-  FILE(GLOB geodir_geom  "${geodir}/*")
-  FOREACH(geom ${geodir_geom})
-    GET_FILENAME_COMPONENT(geom_name ${geom} NAME)
-    set(relname ${geodir}/${geom_name})
-    CONFIGURE_FILE(${geom}
-                   ${CMAKE_CURRENT_BINARY_DIR}/${relname} COPYONLY)
-    INSTALL(FILES ${geom} DESTINATION ${EXAMPLES_INSTALL_SRC}/${geodir})
-    INSTALL(FILES ${geom} DESTINATION ${EXAMPLES_INSTALL_BIN}/${geodir})
+# and install it in the examples installation.
+FOREACH(extradir geometry)
+  FILE(GLOB extradir_file  "${extradir}/*")
+  FOREACH(xfile ${extradir_file})
+    GET_FILENAME_COMPONENT(xfile_name ${xfile} NAME)
+    CONFIGURE_FILE(${xfile}
+       ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
+    INSTALL(FILES ${xfile} DESTINATION 
+            ${EXAMPLES_INSTALL_SRC}/${ex_name}/${extradir})
   ENDFOREACH()
 ENDFOREACH()
 
