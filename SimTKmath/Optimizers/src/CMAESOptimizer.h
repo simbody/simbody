@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMMATH_LBFGSB_OPTIMIZER_H_
-#define SimTK_SIMMATH_LBFGSB_OPTIMIZER_H_
+#ifndef SimTK_SIMMATH_CMAES_OPTIMIZER_H_
+#define SimTK_SIMMATH_CMAES_OPTIMIZER_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
- * Authors: Jack Middleton                                                    *
- * Contributors: Michael Sherman                                              *
+ * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
+ * Authors: Chris Dembia                                                      *
+ * Contributors: Michael Sherman, Nikolaus Hansen                             *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -26,36 +26,28 @@
 
 #include "simmath/internal/common.h"
 #include "simmath/internal/OptimizerRep.h"
+#include "c-cmaes/cmaes_interface.h"
 
 namespace SimTK {
 
-class LBFGSBOptimizer: public Optimizer::OptimizerRep {
+class CMAESOptimizer: public Optimizer::OptimizerRep {
 public:
-    ~LBFGSBOptimizer() {
-        delete [] nbd;
-    }
-
-    LBFGSBOptimizer(const OptimizerSystem& sys); 
-
-    Real optimize(  Vector &results );
-    OptimizerRep* clone() const;
-
-    OptimizerAlgorithm getAlgorithm() const
-    {   return LBFGSB; }
-
-    int setulb_(int *n, int *m, Real *x, Real *l,
-        Real *u, int *nbd, Real *f, Real *g,
-        Real *factr, Real *pgtol, Real *wa, int *iwa,
-        char *task, int *iprint, char *csave, bool *lsave,
-        int *isave, Real *dsave, long task_len, long csave_len);
+    CMAESOptimizer(const OptimizerSystem& sys);
+    OptimizerRep* clone() const OVERRIDE_11;
+    Real optimize(SimTK::Vector& results) OVERRIDE_11;
+    OptimizerAlgorithm getAlgorithm() const OVERRIDE_11 { return CMAES; }
 
 private:
-    Real        factr;
-    int         iprint[3];
-    int         *nbd;
+
+    void checkInitialPointIsFeasible(const SimTK::Vector& x) const;
+
+    // Wrapper around cmaes_init.
+    double* init(cmaes_t& evo, Vector& results) const;
+    // Edit settings in evo.sp (readpara_t).
+    void process_readpara_settings(cmaes_t& evo) const;
+
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SIMMATH_LBFGSB_OPTIMIZER_H_
-
+#endif // SimTK_SIMMATH_CMAES_OPTIMIZER_H_
