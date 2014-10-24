@@ -23,12 +23,6 @@
 
 #include "CMAESOptimizer.h"
 
-#if SimTK_SIMMATH_MPI
-    #include <mpi.h>
-    #define SimTK_COMM_WORLD MPI_COMM_WORLD
-    #define SimTK_CMAES_USE_MPI(use_mpi) (SimTK_SIMMATH_MPI && use_mpi)
-#endif
-
 #include <bitset>
 
 namespace SimTK {
@@ -57,16 +51,13 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
 {
-    // Initialize parallelism, if requested.
-    std::string parallel;
-    bool useMPI = false;
-    if (getAdvancedStrOption("parallel", parallel)) {
-        if (parallel == "mpi") {
-            useMPI = true;
-        }
-    }
  
 //    if (SimTK_CMAES_USE_MPI(use_mpi)) {
+
+            // TODO Exclude the 0-th parameters, we'll evaluate those locally.
+            // Evaluate the objective on the 0-th member of the population.
+            // ------------------------------------------------------------
+            // objectiveFuncWrapper(nParams, pop[0], true, &myfunval, this);
 //    // TODO don't use comM_world.
 //    // TODO use MPI_Scatter.
 //    // TODO test on an actual cluster first.
@@ -76,6 +67,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 //    // TODO libraries need private communicators (COMM_CREATE_GROUP).
 //    // TODO http://stackoverflow.com/questions/13867809/how-are-mpi-scatter-and-mpi-gather-used-from-c
 //    http://mpitutorial.com/mpi-scatter-gather-and-allgather/
+//    // TODO when to finalize?
+//    // TODO SimTK_COMM_WORLD.
 //        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 //        printf("My rank: %d.\n", myRank);
 //        MPI_Finalized(&finalized);
@@ -85,7 +78,15 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 //    }
 
     // If using MPI, figure out whether we're the master or a worker.
+    // Have we compiled with MPI support?
     #if SimTK_SIMMATH_MPI
+
+        // Check the run-time 
+        std::string parallel;
+        bool useMPI = false;
+        if (getAdvancedStrOption("parallel", parallel) && (parallel == "mpi")) {
+            useMPI = true;
+        }
         if (useMPI) {
             
             // Initialize MPI if it hasn't been initialized yet.
@@ -95,23 +96,25 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
                 MPI_Init(NULL, NULL);
             }
 
-            // Are we a worker?
+            // Are we the mater node or a worker?
             int myRank = 0;
             MPI_Comm_rank(SimTK_COMM_WORLD, &myRank);
             if (myRank == 0) {
-                return master(results);
+                return master(results, useMPI);
             }
             else {
                 mpi_worker();
                 return 0;
             }
         }
+
     #endif
     
-    return master(results);
+    // If MPI is not compiled in, or it *is* compiled in, but useMPI is false.
+    return master(results, false);
 }
 
-Real CMAESOptimizer::master(SimTK::Vector& results)
+Real CMAESOptimizer::master(SimTK::Vector& results, const bool& useMPI)
 { 
 
     const OptimizerSystem& sys = getOptimizerSystem();
@@ -122,20 +125,18 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
     Real f; 
     cmaes_t evo;
     
-    // Initialize parallelism, if requested.
+    // Initialize multithreading, if requested.
+    // ========================================
     std::string parallel;
     std::auto_ptr<ParallelExecutor> exec;
-    if (getAdvancedStrOption("parallel", parallel)) {
+    if (getAdvancedStrOption("parallel", parallel) &&
+            parallel == "multithreading") {
 
-        // Number of parallel processes/threads.
-        int number_of_threads = ParallelExecutor::getNumProcessors();
-        getAdvancedIntOption("number_of_threads", number_of_threads);
+        // Number of parallel threads.
+        int nthreads = ParallelExecutor::getNumProcessors();
+        getAdvancedIntOption("nthreads", nthreads);
 
-        // Multithreading.
-        if (parallel == "multithreading") {
-            exec.reset(new ParallelExecutor(number_of_threads));
-        }
-
+        exec.reset(new ParallelExecutor(nthreads));
     }
 
     // Check that the initial point is feasible.
@@ -146,6 +147,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
     // =================
     double* funvals = init(evo, results);
     SimTK_CMAES_PRINT(diagnosticsLevel, printf("%s\n", cmaes_SayHello(&evo)));
+    int lambda = cmaes_Get(&evo, "lambda");
     
     // Optimize.
     // =========
@@ -161,8 +163,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
 
         // Evaluate the objective function on the samples.
         // ===============================================
-        int lambda = cmaes_Get(&evo, "lambda");
-        evaluatePopulation(lambda, pop, funvals, exec.get());
+        evaluatePopulation(lambda, pop, funvals, exec.get(), useMPI);
         
         // Update the distribution (mean, covariance, etc.).
         // =================================================
@@ -252,11 +253,11 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // Here, we specify the subset of options that can be passed to
     // cmaes_init_para.
     cmaes_init_para(&evo,
-            n,                 // dimension
-            &results[0],       // xstart
-            stddev,            // stddev
-            seed,              // seed
-            lambda,            // lambda
+            n,                 // dimension (0 to not set here)
+            &results[0],       // xstart    (NULL to not set here)
+            stddev,            // stddev    (NULL to not set here)
+            seed,              // seed      (0 to not set here)
+            lambda,            // lambda    (0 to not set here)
             input_parameter_filename.c_str() // input_parameter_filename
             ); 
 
@@ -356,13 +357,13 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
 
 void CMAESOptimizer::evaluatePopulation(
         const int& lambda, double*const* pop, double* funvals,
-        ParallelExecutor* executor)
+        ParallelExecutor* executor, const bool& useMPI)
 {
     const OptimizerSystem& sys = getOptimizerSystem();
-    int n = sys.getNumParameters();
+    int nParams = sys.getNumParameters();
 
     // Execute on multiple threads.
-    // ----------------------------
+    // ============================
     if (executor) {
         // See SimTK::CMAESOptimizer::Task; this calls the objective function.
         Task task(*this, nParams, pop, funvals);
@@ -370,47 +371,65 @@ void CMAESOptimizer::evaluatePopulation(
     }
 
     // Execute across multiple processes (nodes).
-    // ------------------------------------------
+    // ==========================================
     #if SimTK_SIMMATH_MPI
         else if (useMPI) {
-            // On all but the master node, pop and funvals enter as null.
-            // TODO this assumes lambda == commsize.
-            // TODO nBatches = int(lambda / size)
-            // TODO slop lambda % size
+            // This only gets called by the master (root) node. Dispatch the
+            // population among the worker processes, then run one evaluation
+            // locally. TODO
+            // Note that lambda can be different from the number of nodes,
+            // which prevents us from using a more elegant scatter/gather
+            // implementation.
+            int nNodes;
+            MPI_Comm_size(SimTK_COMM_WORLD, &nNodes);
+            int nWorkers = nNodes - 1;
+            // To receive the worker's rank and tag.         
+            MPI_Status status;
+            // There's a job for each member of the population.
+            int ijob = 0;
+            int nEvalsToReceive = lambda;
             
-            for (int ibatch = 0; ibatch < nBatches; ++ibatch)
+            // 1. Send one vector of parameters to each worker.
+            // ------------------------------------------------
+            // If more workers than jobs, don't give all workers a job.
+            int nInitialJobs = std::min(nWorkers, lambda);
+            for (ijob = 0; ijob < nInitialJobs; ++ijob)
             {
-                // TODO size of batch may be less...
-                // TODO properly modify the pop and funvals pointers.
-                
-                // The Scatter will populate this.
-                double* myParams[nParams];
-                // Each node evaluates the objective; the result is stored here.
-                double myfunval; 
+                // The worker ranks are 1 through nWorkers.
+                int workerRank = ijob + 1;
+                mpi_master_sendJob(pop, nParams, ijob, workerRank);
+            }
+            
+            // TODO evaluate one obj func myself.
 
-                // Send the population to the various nodes.
-                MPI_Scatter(
-                        pop,      nParams, MPI_DOUBLE, // data being sent.
-                        myParams, nParams, MPI_DOUBLE, // data being received.
-                        0,                             // rank of master.
-                        SimTK_COMM_WORLD);
+            // 2. As workers finish jobs, send off more jobs till all are sent.
+            // ----------------------------------------------------------------
+            // This temporarily stores incoming objective function evaluations.
+            double buffer;
+            while (ijob < lambda) {
 
-                // Evaluate the objective on my member of the population.
-                objectiveFuncWrapper(nParams, myParams, true, &myfunval, this);
+                // Must receive a job before we can send off a new one.
+                mpi_master_receiveEval(buffer, status, funvals);
+                // Send the job to the worker that just finished a job.
+                mpi_master_sendJob(pop, nParams, ijob, status.MPI_SOURCE);
 
-                // Send the objective function values back to the master node.
-                MPI_Gather(
-                        &myfunval, 1, MPI_DOUBLE, // data being sent.
-                        funvals,   1, MPI_DOUBLE, // data being received.
-                        0,                        // rank of master process.
-                        SimTK_COMM_WORLD);
+                // Decrement the count of received jobs.
+                nEvalsToReceive--;
+                // Increment the count of sent jobs.
+                ijob++;
+            }
 
+            // 3. All jobs are sent, collect the remaining jobs as they finish.
+            // ----------------------------------------------------------------
+            while (nEvalsToReceive > 0) {
+                mpi_master_receiveEval(buffer, status, funvals);
+                nEvalsToReceive--;
             }
         }
     #endif
 
     // Execute normally (in serial).
-    // -----------------------------
+    // =============================
     else {
         for (int i = 0; i < lambda; i++) {
             objectiveFuncWrapper(nParams, pop[i], true, &funvals[i], this);
@@ -418,20 +437,65 @@ void CMAESOptimizer::evaluatePopulation(
     }
 }
 
+void CMAESOptimizer::mpi_master_sendJob(double*const* pop, const int& nParams,
+        const int& ijob, const int& workerRank)
+{
+    MPI_Send(
+            pop[nParams * ijob], // data to send.
+            nParams, MPI_DOUBLE, // size and type of data.
+            workerRank,          // rank of destination.
+            ijob,                // tag, the job number.
+            SimTK_COMM_WORLD);
+}
+
+void CMAESOptimizer::mpi_master_receiveEval(double& buffer,
+        MPI_Status& status, double* funvals)
+{
+    MPI_Recv(
+            &buffer,         // objective value to receive.
+            1, MPI_DOUBLE,  // size and type of data.
+            MPI_ANY_SOURCE, // accept any worker.
+            MPI_ANY_TAG,    // accept any job.
+            SimTK_COMM_WORLD, &status);
+
+    // Store the objective function value from this worker.
+    // Jobs may come back in a different order than they were
+    // dispatched. We use the tag (job number) to deal with this.
+    funvals[status.MPI_TAG] = buffer;
+}
+
 void CMAESOptimizer::mpi_worker() {
     #if SimTK_SIMMATH_MPI
+        const OptimizerSystem& sys = getOptimizerSystem();
+        int nParams = sys.getNumParameters();
+
         // To get the die tag.
         MPI_Status status;
 
-        while (true) {
-            evaluateObjectiveFunctionOnPopulation(NaN, NULL, NULL, NULL);
-        }
+        // Stores incoming parameters.
+        double params[nParams];
+
+        // Receive jobs, evaluate the objective function, send back the result.
+//        while (true) {
+//
+//            // Receive a job.
+//            MPI_Recv(&params,
+//                    nParams, MPI_DOUBLE,
+//                    0,
+//                    MPI_ANY_TAG,
+//                    SimTK_COMM_WORLD, &status);
+//
+//            // Is this the kill tag?
+//            // TODO
+//           
+//                
+//            
+//        }
 
     #endif
 }
 
 #undef SimTK_CMAES_PRINT
 #undef SimTK_CMAES_FILE
-#undef SimTK_CMAES_USE_MPI
 
 } // namespace SimTK

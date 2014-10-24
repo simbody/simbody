@@ -330,13 +330,18 @@ private:
  * - stopTolUpXFactor (real) Stop if std dev increases by more than
  *   stopTolUpXFactor.
  * - parallel (str) To run the optimization with multiple threads, set this to
- *   "multithreading". Only use this if your OptimizerSystem is
+ *   "multithreading". Only use multithreading if your OptimizerSystem is
  *   threadsafe: you can't reliably modify any mutable variables in your
- *   OptimizerSystem::objectiveFun().
- * - parallel_number (int) If the <b>parallel</b> option is set, this is the
- *   number of parallel processes/threads to use (by default, this is the
+ *   OptimizerSystem::objectiveFun(). To run the optimization in parallel on a
+ *   cluster, set this to "mpi"; the objective function will be evaluated
+ *   across multiple processes. To use MPI, you must have compiled Simbody with
+ *   the CMake variable SIMBODY_ENABLE_MPI to ON. See notes below.
+ * - nthreads (int) If the <b>parallel</b> option is set to "multithreading",
+ *   this is the number of threads to use (by default, this is the
  *   number of processors/threads on the machine).
  * - <b>restart/resume</b> TODO
+ *
+ * <i> Reproducible output and seeds </i>
  *
  * If you want to generate identical results with repeated optimizations for,
  * you can set the <b>seed</b> option. In addtion, you *must* set the
@@ -347,6 +352,11 @@ private:
  * opt.setAdvancedIntOption("seed", 42);
  * opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
  * @endcode
+ *
+ * <i> MPI </i>
+ *
+ * TODO should use same compiler. TODO see example program.
+ * TODO create CMAES optimizer example.
  *
  */
 class SimTK_SIMMATH_EXPORT Optimizer {

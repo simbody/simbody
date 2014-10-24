@@ -30,11 +30,17 @@
 
 #include <memory>
 
+#if SimTK_SIMMATH_MPI
+    #include <mpi.h>
+    #define SimTK_COMM_WORLD MPI_COMM_WORLD
+#endif
+
 namespace SimTK {
 
 class CMAESOptimizer: public Optimizer::OptimizerRep {
 public:
     CMAESOptimizer(const OptimizerSystem& sys);
+    ~CMAESOptimizer();
     OptimizerRep* clone() const OVERRIDE_11;
     Real optimize(SimTK::Vector& results) OVERRIDE_11;
     OptimizerAlgorithm getAlgorithm() const OVERRIDE_11 { return CMAES; }
@@ -44,7 +50,7 @@ private:
     // If not using MPI, this method performs the optimization. If using MPI,
     // this delegates the evaluation of the objective function to the worker
     // processes.
-    Real master(SimTK::Vector& results);
+    Real master(SimTK::Vector& results, const bool& useMPI);
 
     // If using MPI and we are in a worker process (rank > 0), we just evaluate
     // this method. This method evaluates the objective function in a loop.
@@ -59,10 +65,12 @@ private:
 
     void resampleToObeyLimits(cmaes_t& evo, double*const* pop);
 
+    // TODO reorganize.
+
     // May use threading or MPI.
-    void evaluatePopulation(
-            const int& lambda, double*const* pop, double* funvals,
-            ParallelExecutor* executor);
+    void evaluatePopulation(const int& lambda,
+            double*const* pop, double* funvals,
+            ParallelExecutor* executor, const bool& useMPI);
 
     // Calls the objective function for the i-th member of the population.
     class Task : public SimTK::ParallelExecutor::Task {
@@ -77,6 +85,12 @@ private:
         double*const* pop;
         double* funvals;
     };
+
+    // TODO
+    static void mpi_master_sendJob(double*const* pop, const int& nParams,
+            const int& ijob, const int& workerRank);
+    static void mpi_master_receiveEval(double& buffer, MPI_Status& status,
+            double* funvals);
 
 };
 
