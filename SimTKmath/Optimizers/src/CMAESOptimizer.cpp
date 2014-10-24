@@ -75,6 +75,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 //    // TODO http://www.lam-mpi.org/tutorials/one-step/ezstart.php
 //    // TODO libraries need private communicators (COMM_CREATE_GROUP).
 //    // TODO http://stackoverflow.com/questions/13867809/how-are-mpi-scatter-and-mpi-gather-used-from-c
+//    http://mpitutorial.com/mpi-scatter-gather-and-allgather/
 //        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 //        printf("My rank: %d.\n", myRank);
 //        MPI_Finalized(&finalized);
@@ -84,7 +85,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 //    }
 
     // If using MPI, figure out whether we're the master or a worker.
-    #if SimTK_CMAES_USE_MPI
+    #if SimTK_SIMMATH_MPI
         if (useMPI) {
             
             // Initialize MPI if it hasn't been initialized yet.
@@ -114,7 +115,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
 { 
 
     const OptimizerSystem& sys = getOptimizerSystem();
-    int n = sys.getNumParameters();
+    int nParams = sys.getNumParameters();
 
     // Initialize objective function value and cmaes data structure.
     // =============================================================
@@ -123,8 +124,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
     
     // Initialize parallelism, if requested.
     std::string parallel;
-    std::auto_ptr<ParallelExecutor> executor;
-    bool use_mpi = false;
+    std::auto_ptr<ParallelExecutor> exec;
     if (getAdvancedStrOption("parallel", parallel)) {
 
         // Number of parallel processes/threads.
@@ -133,7 +133,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
 
         // Multithreading.
         if (parallel == "multithreading") {
-            executor.reset(new ParallelExecutor(number_of_threads));
+            exec.reset(new ParallelExecutor(number_of_threads));
         }
 
     }
@@ -161,7 +161,8 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
 
         // Evaluate the objective function on the samples.
         // ===============================================
-        evaluateObjectiveFunctionOnPopulation(evo, pop, funvals, executor);
+        int lambda = cmaes_Get(&evo, "lambda");
+        evaluatePopulation(lambda, pop, funvals, exec.get());
         
         // Update the distribution (mean, covariance, etc.).
         // =================================================
@@ -175,7 +176,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results)
 
     // Update results and objective function value.
     const double* xbestever = cmaes_GetPtr(&evo, "xbestever");
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < nParams; i++) {
         results[i] = xbestever[i]; 
     }
     f = cmaes_Get(&evo, "fbestever");
@@ -237,8 +238,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // ----
     int seed = 0;
     if (getAdvancedIntOption("seed", seed)) {
-        SimTK_VALUECHECK_NONNEG_ALWAYS(seed, "seed",
-                "CMAESOptimizer::init");
+        SimTK_VALUECHECK_NONNEG_ALWAYS(seed, "seed", "CMAESOptimizer::init");
     }
 
     // input parameter filename
@@ -354,33 +354,77 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
     }
 }
 
-void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
-        cmaes_t& evo, double*const* pop, double* funvals,
-        const std::auto_ptr<ParallelExecutor>& executor)
+void CMAESOptimizer::evaluatePopulation(
+        const int& lambda, double*const* pop, double* funvals,
+        ParallelExecutor* executor)
 {
     const OptimizerSystem& sys = getOptimizerSystem();
+    int n = sys.getNumParameters();
 
-    // Execute in parallel.
-    if (executor.get()) {
-        Task task(*this, sys.getNumParameters(), pop, funvals);
-        executor->execute(task, cmaes_Get(&evo, "lambda"));
+    // Execute on multiple threads.
+    // ----------------------------
+    if (executor) {
+        // See SimTK::CMAESOptimizer::Task; this calls the objective function.
+        Task task(*this, nParams, pop, funvals);
+        executor->execute(task, lambda);
     }
-    // Execute normally.
+
+    // Execute across multiple processes (nodes).
+    // ------------------------------------------
+    #if SimTK_SIMMATH_MPI
+        else if (useMPI) {
+            // On all but the master node, pop and funvals enter as null.
+            // TODO this assumes lambda == commsize.
+            // TODO nBatches = int(lambda / size)
+            // TODO slop lambda % size
+            
+            for (int ibatch = 0; ibatch < nBatches; ++ibatch)
+            {
+                // TODO size of batch may be less...
+                // TODO properly modify the pop and funvals pointers.
+                
+                // The Scatter will populate this.
+                double* myParams[nParams];
+                // Each node evaluates the objective; the result is stored here.
+                double myfunval; 
+
+                // Send the population to the various nodes.
+                MPI_Scatter(
+                        pop,      nParams, MPI_DOUBLE, // data being sent.
+                        myParams, nParams, MPI_DOUBLE, // data being received.
+                        0,                             // rank of master.
+                        SimTK_COMM_WORLD);
+
+                // Evaluate the objective on my member of the population.
+                objectiveFuncWrapper(nParams, myParams, true, &myfunval, this);
+
+                // Send the objective function values back to the master node.
+                MPI_Gather(
+                        &myfunval, 1, MPI_DOUBLE, // data being sent.
+                        funvals,   1, MPI_DOUBLE, // data being received.
+                        0,                        // rank of master process.
+                        SimTK_COMM_WORLD);
+
+            }
+        }
+    #endif
+
+    // Execute normally (in serial).
+    // -----------------------------
     else {
-        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
-            objectiveFuncWrapper(sys.getNumParameters(),
-                    pop[i], true, &funvals[i], this);
+        for (int i = 0; i < lambda; i++) {
+            objectiveFuncWrapper(nParams, pop[i], true, &funvals[i], this);
         }
     }
 }
 
-void CMAESOptimizer::slave() {
-    #if SimTK_CMAES_USE_MPI
+void CMAESOptimizer::mpi_worker() {
+    #if SimTK_SIMMATH_MPI
         // To get the die tag.
         MPI_Status status;
 
         while (true) {
-            MPI_Recv
+            evaluateObjectiveFunctionOnPopulation(NaN, NULL, NULL, NULL);
         }
 
     #endif

@@ -46,9 +46,8 @@ private:
     // processes.
     Real master(SimTK::Vector& results);
 
-    // If using MPI, this process runs this method, which will cause it to
-    // wait messages of parameter vectors, evaluate the objective function, and
-    // send back the objective function value.
+    // If using MPI and we are in a worker process (rank > 0), we just evaluate
+    // this method. This method evaluates the objective function in a loop.
     void mpi_worker();
 
     void checkInitialPointIsFeasible(const SimTK::Vector& x) const;
@@ -61,10 +60,11 @@ private:
     void resampleToObeyLimits(cmaes_t& evo, double*const* pop);
 
     // May use threading or MPI.
-    void evaluateObjectiveFunctionOnPopulation(
-            cmaes_t& evo, double*const* pop, double* funvals,
-            const std::auto_ptr<ParallelExecutor>& executor);
+    void evaluatePopulation(
+            const int& lambda, double*const* pop, double* funvals,
+            ParallelExecutor* executor);
 
+    // Calls the objective function for the i-th member of the population.
     class Task : public SimTK::ParallelExecutor::Task {
     public:
         Task(CMAESOptimizer& rep, int n, double*const* pop, double* funvals)
