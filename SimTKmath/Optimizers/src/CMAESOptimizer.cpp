@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
  * Authors: Chris Dembia                                                      *
- * Contributors: Michael Sherman                                              *
+ * Contributors: Michael Sherman, Nikolaus Hansen, Jack Wang                  *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -74,6 +74,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 //    // TODO example that uses MPI.
 //    // TODO http://www.lam-mpi.org/tutorials/one-step/ezstart.php
 //    // TODO libraries need private communicators (COMM_CREATE_GROUP).
+//    // TODO http://stackoverflow.com/questions/13867809/how-are-mpi-scatter-and-mpi-gather-used-from-c
 //        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 //        printf("My rank: %d.\n", myRank);
 //        MPI_Finalized(&finalized);
@@ -82,22 +83,30 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 //        finalized = false;
 //    }
 
-    // Determine if we are using MPI and if this process is a worker process.
+    // If using MPI, figure out whether we're the master or a worker.
     #if SimTK_CMAES_USE_MPI
         if (useMPI) {
-            int initialized, myRank;
+            
+            // Initialize MPI if it hasn't been initialized yet.
+            int initialized;
             MPI_Initialized(&initialized);
-            if (!initialized) MPI_Init(NULL, NULL);
+            if (!initialized) {
+                MPI_Init(NULL, NULL);
+            }
+
+            // Are we a worker?
             int myRank = 0;
             MPI_Comm_rank(SimTK_COMM_WORLD, &myRank);
-            if (myRank > 0) {
+            if (myRank == 0) {
+                return master(results);
+            }
+            else {
                 mpi_worker();
                 return 0;
             }
         }
     #endif
     
-    // If we are not using MPI or if this is the master process.
     return master(results);
 }
 
@@ -363,6 +372,18 @@ void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
                     pop[i], true, &funvals[i], this);
         }
     }
+}
+
+void CMAESOptimizer::slave() {
+    #if SimTK_CMAES_USE_MPI
+        // To get the die tag.
+        MPI_Status status;
+
+        while (true) {
+            MPI_Recv
+        }
+
+    #endif
 }
 
 #undef SimTK_CMAES_PRINT
