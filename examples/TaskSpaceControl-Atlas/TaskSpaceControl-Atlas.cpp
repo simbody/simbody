@@ -299,9 +299,9 @@ int main(int argc, char **argv) {
     State s;
     realRobot.initialize(s);
 
-    RungeKuttaMersonIntegrator integ(realRobot);
-    //SemiExplicitEuler2Integrator integ(realRobot);
-    integ.setAccuracy(0.00001);
+    //RungeKuttaMersonIntegrator integ(realRobot);
+    SemiExplicitEuler2Integrator integ(realRobot);
+    integ.setAccuracy(0.001);
     TimeStepper ts(realRobot, integ);
     ts.initialize(s);
     viz.report(ts.getState());
