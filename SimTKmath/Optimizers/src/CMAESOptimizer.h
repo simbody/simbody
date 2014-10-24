@@ -70,7 +70,7 @@ private:
     // May use threading or MPI.
     void evaluatePopulation(const int& lambda,
             double*const* pop, double* funvals,
-            ParallelExecutor* executor, const bool& useMPI);
+            ParallelExecutor* executor, const int& nNodes);
 
     // Calls the objective function for the i-th member of the population.
     class Task : public SimTK::ParallelExecutor::Task {
