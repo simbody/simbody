@@ -24,7 +24,9 @@
 #include "CMAESOptimizer.h"
 
 #if SimTK_SIMMATH_MPI
-#include <mpi.h>
+    #include <mpi.h>
+    #define SimTK_COMM_WORLD MPI_COMM_WORLD
+    #define SimTK_CMAES_USE_MPI(use_mpi) (SimTK_SIMMATH_MPI && use_mpi)
 #endif
 
 #include <bitset>
@@ -54,20 +56,53 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 }
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
-{ 
-    #if SimTK_SIMMATH_MPI
-    // TODO don't use comM_world.
-    // TODO use MPI_Scatter.
-    // TODO test on an actual cluster first.
-    // TODO test on windows.
-        int initialized, finalized, myRank;
-        MPI_Initialized(&initialized);
-        if (!initialized) MPI_Init(NULL, NULL);
-        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-        printf("My rank: %d.\n", myRank);
-        MPI_Finalized(&finalized);
-        if (!finalized) MPI_Finalize();
+{
+    // Initialize parallelism, if requested.
+    std::string parallel;
+    bool useMPI = false;
+    if (getAdvancedStrOption("parallel", parallel)) {
+        if (parallel == "mpi") {
+            useMPI = true;
+        }
+    }
+ 
+//    if (SimTK_CMAES_USE_MPI(use_mpi)) {
+//    // TODO don't use comM_world.
+//    // TODO use MPI_Scatter.
+//    // TODO test on an actual cluster first.
+//    // TODO test on windows.
+//    // TODO example that uses MPI.
+//    // TODO http://www.lam-mpi.org/tutorials/one-step/ezstart.php
+//    // TODO libraries need private communicators (COMM_CREATE_GROUP).
+//        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+//        printf("My rank: %d.\n", myRank);
+//        MPI_Finalized(&finalized);
+//        if (!finalized) MPI_Finalize();
+//        initialized = false;
+//        finalized = false;
+//    }
+
+    // Determine if we are using MPI and if this process is a worker process.
+    #if SimTK_CMAES_USE_MPI
+        if (useMPI) {
+            int initialized, myRank;
+            MPI_Initialized(&initialized);
+            if (!initialized) MPI_Init(NULL, NULL);
+            int myRank = 0;
+            MPI_Comm_rank(SimTK_COMM_WORLD, &myRank);
+            if (myRank > 0) {
+                mpi_worker();
+                return 0;
+            }
+        }
     #endif
+    
+    // If we are not using MPI or if this is the master process.
+    return master(results);
+}
+
+Real CMAESOptimizer::master(SimTK::Vector& results)
+{ 
 
     const OptimizerSystem& sys = getOptimizerSystem();
     int n = sys.getNumParameters();
@@ -80,15 +115,16 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // Initialize parallelism, if requested.
     std::string parallel;
     std::auto_ptr<ParallelExecutor> executor;
+    bool use_mpi = false;
     if (getAdvancedStrOption("parallel", parallel)) {
 
         // Number of parallel processes/threads.
-        int parallel_number = ParallelExecutor::getNumProcessors();
-        getAdvancedIntOption("parallel_number", parallel_number);
+        int number_of_threads = ParallelExecutor::getNumProcessors();
+        getAdvancedIntOption("number_of_threads", number_of_threads);
 
         // Multithreading.
         if (parallel == "multithreading") {
-            executor.reset(new ParallelExecutor(parallel_number));
+            executor.reset(new ParallelExecutor(number_of_threads));
         }
 
     }
@@ -193,7 +229,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     int seed = 0;
     if (getAdvancedIntOption("seed", seed)) {
         SimTK_VALUECHECK_NONNEG_ALWAYS(seed, "seed",
-                "CMAESOptimizer::processSettingsBeforeCMAESInit");
+                "CMAESOptimizer::init");
     }
 
     // input parameter filename
@@ -243,7 +279,7 @@ void CMAESOptimizer::process_readpara_settings(cmaes_t& evo) const
     int stopMaxFunEvals;
     if (getAdvancedIntOption("stopMaxFunEvals", stopMaxFunEvals)) {
         SimTK_VALUECHECK_NONNEG_ALWAYS(stopMaxFunEvals, "stopMaxFunEvals",
-                "CMAESOptimizer::processSettingsAfterCMAESInit");
+                "CMAESOptimizer::process_readpara_settings");
         evo.sp.stopMaxFunEvals = stopMaxFunEvals;
     }
 
@@ -331,5 +367,6 @@ void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
 
 #undef SimTK_CMAES_PRINT
 #undef SimTK_CMAES_FILE
+#undef SimTK_CMAES_USE_MPI
 
 } // namespace SimTK

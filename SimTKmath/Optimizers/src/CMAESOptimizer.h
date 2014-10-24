@@ -41,6 +41,16 @@ public:
 
 private:
 
+    // If not using MPI, this method performs the optimization. If using MPI,
+    // this delegates the evaluation of the objective function to the worker
+    // processes.
+    Real master(SimTK::Vector& results);
+
+    // If using MPI, this process runs this method, which will cause it to
+    // wait messages of parameter vectors, evaluate the objective function, and
+    // send back the objective function value.
+    void mpi_worker();
+
     void checkInitialPointIsFeasible(const SimTK::Vector& x) const;
 
     // Wrapper around cmaes_init.
