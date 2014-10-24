@@ -103,6 +103,7 @@ Simbody depends on the following:
 * compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
+* parallelism of the CMAES optimizer on a computing cluster (optional): An implementation of the [Message Passing Interface (MPI)](http://www.mcs.anl.gov/research/projects/mpi/).
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.2 or later
 
 
@@ -128,7 +129,9 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 
 1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop* or *Visual C++ 2010 Express*.
 2. Download and install CMake.
-3. If you want to build API documentation, download and install Doxygen as well.
+3. If you want to run Simbody's CMAES Optimizer in parallel on a cluster,
+   download and install [Microsoft MPI](http://msdn.microsoft.com/en-us/library/bb524831(v=vs.85).aspx).
+4. If you want to build API documentation, download and install Doxygen as well.
 
 #### Download the Simbody source code
 
@@ -158,6 +161,8 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
     * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
+    * `SIMBODY_ENABLE_MPI` to enable running the CMAES Optimizer in
+      parallel on a computing cluster, using the Message Passing Interface.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
 #### Build and install
@@ -219,7 +224,10 @@ Mac and Homebrew
 
 If using a Mac and Homebrew, the dependencies are taken care of for you.
 
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
+With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag).
+Thus, any projects you build on top of Simbody must also use C++11. See issue
+#125.  Also, Simbody is NOT built with MPI, so you won't be able to run the
+CMAES Optimizer in parallel on a cluster.
 
 #### Install
 
@@ -263,9 +271,15 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 Ubuntu and apt-get
 ------------------
 
-You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
+You can currently get Simbody via the Open Source Robotics Foundation's Debian
+repositories. We are currently working on getting Simbody directly into the
+Debian repositories. `apt-get` will take care of getting the necessary
+dependencies.
 
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
+With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag).
+Thus, any projects you build on top of Simbody must also use C++11. See issue
+#125. Also, Simbody is NOT built with MPI, so you won't be able to run the
+CMAES Optimizer in parallel on a cluster.
 
 #### Install
 
@@ -299,7 +313,7 @@ UNIX and Makefiles
 
 These instructions are for building Simbody from source on either a Mac or on Ubuntu.
 
-#### Get dependencies
+#### Get the dependencies
 
 On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
 framework. Mac's come with the visualization dependencies.
@@ -308,6 +322,9 @@ On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run th
 
 1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`
 2. If you want to use the CMake GUI, install `cmake-qt-gui`.
+3. If you want to run Simbody's CMAES Optimizer in parallel on a cluster
+   (optional): `$ sudo apt-get install mpich` (`mpich2` for Ubuntu 13.10 or
+           earlier).
 3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`
 4. For API documentation (optional): `$ sudo apt-get install doxygen`
 
@@ -371,6 +388,11 @@ There are two ways to get the source code.
         * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
         * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
         * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
+        * `SIMBODY_ENABLE_MPI` to enable running the CMAES Optimizer in
+          parallel on a computing cluster, using the Message Passing Interface.
+          Note that you should compile Simbody with the same compiler used to
+          compile your MPI library.
+        
 
         You can combine all these options. Here's another example:
 

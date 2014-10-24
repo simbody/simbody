@@ -23,6 +23,10 @@
 
 #include "CMAESOptimizer.h"
 
+#if SimTK_SIMMATH_MPI
+#include <mpi.h>
+#endif
+
 #include <bitset>
 
 namespace SimTK {
@@ -51,6 +55,20 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
 { 
+    #if SimTK_SIMMATH_MPI
+    // TODO don't use comM_world.
+    // TODO use MPI_Scatter.
+    // TODO test on an actual cluster first.
+    // TODO test on windows.
+        int initialized, finalized, myRank;
+        MPI_Initialized(&initialized);
+        if (!initialized) MPI_Init(NULL, NULL);
+        MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+        printf("My rank: %d.\n", myRank);
+        MPI_Finalized(&finalized);
+        if (!finalized) MPI_Finalize();
+    #endif
+
     const OptimizerSystem& sys = getOptimizerSystem();
     int n = sys.getNumParameters();
 

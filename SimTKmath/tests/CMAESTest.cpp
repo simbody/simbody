@@ -531,21 +531,21 @@ void testMultithreading() {
 int main() {
     SimTK_START_TEST("CMAES");
 
-        SimTK_SUBTEST(testCMAESAvailable);
-        SimTK_SUBTEST(testTwoOrMoreParameters);
-        SimTK_SUBTEST(testMaxIterations);
+//        SimTK_SUBTEST(testCMAESAvailable);
+//        SimTK_SUBTEST(testTwoOrMoreParameters);
+//        SimTK_SUBTEST(testMaxIterations);
         SimTK_SUBTEST(testCigtabOptimum);
-        SimTK_SUBTEST(testParameterLimits);
-        SimTK_SUBTEST(testSigmaAndAckleyOptimum);
-        SimTK_SUBTEST(testDropWaveOptimumLambda);
-        SimTK_SUBTEST(testMaxFunEvals);
-        SimTK_SUBTEST(testSeed);
-        SimTK_SUBTEST(testConvergenceTolerance);
-        SimTK_SUBTEST(testRosenbrock);
-        SimTK_SUBTEST(testSchwefel);
-        SimTK_SUBTEST(testEasom);
-        SimTK_SUBTEST(testStopFitness);
-        SimTK_SUBTEST(testMultithreading);
+//        SimTK_SUBTEST(testParameterLimits);
+//        SimTK_SUBTEST(testSigmaAndAckleyOptimum);
+//        SimTK_SUBTEST(testDropWaveOptimumLambda);
+//        SimTK_SUBTEST(testMaxFunEvals);
+//        SimTK_SUBTEST(testSeed);
+//        SimTK_SUBTEST(testConvergenceTolerance);
+//        SimTK_SUBTEST(testRosenbrock);
+//        SimTK_SUBTEST(testSchwefel);
+//        SimTK_SUBTEST(testEasom);
+//        SimTK_SUBTEST(testStopFitness);
+//        SimTK_SUBTEST(testMultithreading);
         // TODO        testRestart();
 
     SimTK_END_TEST();

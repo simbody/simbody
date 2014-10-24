@@ -25,7 +25,12 @@ PROJECT (SimTKmath)
 
 # SimTKmath depends on PlatformFiles and SimTKcommon only.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
-	            ${SimTKCOMMON_INCLUDE_DIRECTORIES})
+                ${SimTKCOMMON_INCLUDE_DIRECTORIES})
+
+# If MPI is being used, specify MPI include dirs.
+IF(MPI_CXX_INCLUDE_PATH)
+    INCLUDE_DIRECTORIES("${MPI_CXX_INCLUDE_PATH}")
+ENDIF()
 
 # code is in "./src" and in each of these subdirectories/src
 SET(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
@@ -63,7 +68,8 @@ SET (SIMMATH_SVN_REVISION ${SIMBODY_SVN_REVISION})
 ADD_DEFINITIONS(-DSimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
                 -DSimTK_SIMMATH_MAJOR_VERSION=${SIMMATH_MAJOR_VERSION}
                 -DSimTK_SIMMATH_MINOR_VERSION=${SIMMATH_MINOR_VERSION}
-		-DSimTK_SIMMATH_PATCH_VERSION=${SIMMATH_PATCH_VERSION})
+                -DSimTK_SIMMATH_PATCH_VERSION=${SIMMATH_PATCH_VERSION}
+                -DSimTK_SIMMATH_MPI=${SimTK_MPI})
 
 IF(NEED_QUOTES)
    ADD_DEFINITIONS(-DSimTK_SIMMATH_SVN_REVISION="${SIMMATH_SVN_REVISION}"
@@ -86,11 +92,11 @@ SET(STATIC_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN}_static)
 ## Test against the unversioned libraries if they are being built;
 ## otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET})
 ELSE(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
 # These are all the places to search for header files which are
@@ -100,13 +106,13 @@ SET(SimTKMATH_INCLUDE_DIRS) # start empty
 FOREACH(subdir . ${SIMMATH_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath/internal)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath/internal)
 
     # Referencing headers must always be done relative to this level.
     SET(SimTKMATH_INCLUDE_DIRS ${SimTKMATH_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 # Include the Simmath API include directories now so that Simmath code 
@@ -125,13 +131,13 @@ SET(API_REL_INCLUDE_FILES)   # start these out empty
 SET(API_ABS_INCLUDE_FILES)
 
 FOREACH(dir ${API_INCLUDE_DIRS})
-    FILE(GLOB fullpaths ${dir}/*.h)	# returns full pathnames
+    FILE(GLOB fullpaths ${dir}/*.h) # returns full pathnames
     SET(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
 
     FOREACH(pathname ${fullpaths})
         GET_FILENAME_COMPONENT(filename ${pathname} NAME)
         SET(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES}
-		${dir}/${filename})
+        ${dir}/${filename})
     ENDFOREACH(pathname)
 ENDFOREACH(dir)
 
