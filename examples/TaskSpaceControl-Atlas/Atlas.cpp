@@ -544,7 +544,6 @@ static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     const std::string::size_type spos = pathname.rfind('/');
                     if (spos != std::string::npos)
                         pathname = pathname.substr(spos+1);
-                    printf("filename=%s\n", pathname.c_str());
                     const Vec3 scale = 
                         meshFile.getOptionalAttributeValueAs<Vec3>
                                                             ("scale", Vec3(1));

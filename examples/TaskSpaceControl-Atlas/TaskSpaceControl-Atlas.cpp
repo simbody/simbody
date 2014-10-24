@@ -298,6 +298,7 @@ int main(int argc, char **argv) {
     // Initialize the real robot and other related classes.
     State s;
     realRobot.initialize(s);
+    printf("ndofs=%d\n", s.getNU());
 
     //RungeKuttaMersonIntegrator integ(realRobot);
     SemiExplicitEuler2Integrator integ(realRobot);
