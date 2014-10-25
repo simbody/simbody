@@ -29,10 +29,14 @@
 // 12 all the cmaes options.
 // 14 threading.
 //
-// 
 
 #include "SimTKmath.h"
 #include "OptimizerSystems.h"
+
+#if SimTK_SIMMATH_MPI
+// TODO don't need this.
+    #include <mpi.h>
+#endif
 
 #include <iostream>
 using std::cout;
@@ -531,7 +535,7 @@ void testMultithreading() {
 void testMPI()
 {
 
-    Cigtab sys(22);
+    Cigtab sys(3); // TODO
     int N = sys.getNumParameters();
 
     // set initial conditions.
@@ -542,15 +546,27 @@ void testMPI()
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setDiagnosticsLevel(1);
-    opt.setMaxIterations(5000);
+    opt.setMaxIterations(5000); // TODO
     opt.setAdvancedRealOption("sigma", 0.3);
     // Sometimes this test fails, so choose a seed where the test passes.
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     opt.setAdvancedStrOption("parallel", "mpi");
 
-    // Optimize!
-    SimTK_TEST_OPT(opt, results, 1e-5);
+    #if SimTK_SIMMATH_MPI
+        // Optimize!
+        SimTK_TEST_OPT(opt, results, 1e-5);
+        int initialized, finalized;
+        MPI_Initialized(&initialized);
+        MPI_Finalized(&finalized);
+        // We get an error if we try to finalize and we've never initialized.
+        // TODO
+        // if (initialized && !finalized) MPI_Finalize();
+    #else
+        SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+                SimTK::Exception::APIArgcheckFailed
+                );
+    #endif
 }
 
 int main() {

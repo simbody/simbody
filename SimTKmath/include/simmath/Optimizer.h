@@ -305,7 +305,7 @@ private:
  * - The effect of the diagnostics level is as follows:
  *      - 0: minimal output to console (warnings, errors), some files are
  *      written to the current directory (errcmaes.err error log).
- *      - 1: additional output to console.
+ *      - 1: maximum output to console (including MPI information).
  *      - 2: all files are written to the current directory.
  *      - 3: output to console, and all files are written to the current
  *

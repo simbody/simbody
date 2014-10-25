@@ -52,10 +52,6 @@ private:
     // processes.
     Real master(SimTK::Vector& results, const bool& useMPI);
 
-    // If using MPI and we are in a worker process (rank > 0), we just evaluate
-    // this method. This method evaluates the objective function in a loop.
-    void mpi_worker();
-
     void checkInitialPointIsFeasible(const SimTK::Vector& x) const;
 
     // Wrapper around cmaes_init.
@@ -86,11 +82,17 @@ private:
         double* funvals;
     };
 
-    // TODO
-    static void mpi_master_sendJob(double*const* pop, const int& nParams,
-            const int& ijob, const int& workerRank);
-    static void mpi_master_receiveEval(double& buffer, MPI_Status& status,
-            double* funvals);
+    #if SimTK_SIMMATH_MPI
+        // If we are in a worker process (rank > 0), we just evaluate this
+        // method. This method evaluates the objective function in a loop.
+        void mpi_worker(const int& myRank);
+        void mpi_master_sendJob(double*const* pop, const int& nParams,
+                const int& ijob, const int& workerRank);
+        // TODO can this be a global method I define in the cpp, so that I
+        // am not polluting a header file?
+        void mpi_master_receiveEval(double& buffer, MPI_Status& status,
+                double* funvals);
+    #endif
 
 };
 
