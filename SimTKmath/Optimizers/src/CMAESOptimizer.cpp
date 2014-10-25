@@ -92,8 +92,6 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
             // Evaluate the objective on the 0-th member of the population.
             // ------------------------------------------------------------
             // objectiveFuncWrapper(nParams, pop[0], true, &myfunval, this);
-//    // TODO don't use comM_world.
-//    // TODO use MPI_Scatter.
 //    // TODO test on an actual cluster first.
 //    // TODO test on windows.
 //    // TODO example that uses MPI.
@@ -436,7 +434,8 @@ void CMAESOptimizer::evaluatePopulation(
             MPI_Status status;
             // There's a job for each member of the population.
             int ijob = 0;
-            int nEvalsToReceive = lambda;
+            // Incremented when sending a job, decremented when receiving.
+            int nEvalsToReceive;
             
             // 1. Send one vector of parameters to each worker.
             // ------------------------------------------------
@@ -449,8 +448,12 @@ void CMAESOptimizer::evaluatePopulation(
                 workerRank = ijob + 1;
                 mpi_master_sendJob(pop, nParams, ijob, workerRank);
             }
+            nEvalsToReceive = nInitialJobs;
             
-            // TODO evaluate one obj func myself.
+            // While waiting to receive, run an evaluation ourselves.
+            objectiveFuncWrapper(nParams, pop[ijob], true, &funvals[ijob],
+                    this);
+            ijob++;
 
             // 2. As workers finish jobs, send off more jobs till all are sent.
             // ----------------------------------------------------------------
@@ -463,10 +466,15 @@ void CMAESOptimizer::evaluatePopulation(
                 // Send the job to the worker that just finished a job.
                 mpi_master_sendJob(pop, nParams, ijob, status.MPI_SOURCE);
 
-                // Decrement the count of received jobs.
-                nEvalsToReceive--;
                 // Increment the count of sent jobs.
                 ijob++;
+            
+                if (ijob < lambda) {
+                    // While waiting to receive, run an evaluation ourselves.
+                    objectiveFuncWrapper(nParams, pop[ijob], true,
+                            &funvals[ijob], this);
+                    ijob++;
+                }
             }
 
             // 3. All jobs are sent, collect the remaining jobs as they finish.
