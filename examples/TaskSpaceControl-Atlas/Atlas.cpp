@@ -310,6 +310,35 @@ static void createMultibodyGraph(URDFRobot&             robot,
     mbgraph.generateGraph();
 }
 
+void Atlas::initialize(SimTK::State& state) {
+    state = realizeTopology();
+    realizeModel(state);
+    const int nq=state.getNQ(), nu=state.getNU();
+    m_sampledAngles.setValue(state, SimTK::Vector(nq, SimTK::Zero));
+    m_sampledRates.setValue(state, SimTK::Vector(nu, SimTK::Zero));
+
+    m_effortLimits.resize(nu); m_effortLimits =  Infinity;
+    m_speedLimits.resize(nu);  m_speedLimits  =  Infinity;
+    m_lowerLimits.resize(nq);  m_lowerLimits  = -Infinity;
+    m_upperLimits.resize(nq);  m_upperLimits  =  Infinity;
+
+    for (int j=0; j < (int)m_urdfRobot.joints.size(); ++j) {
+        const URDFJointInfo& joint = m_urdfRobot.joints.getJoint(j);
+        const MobilizedBody& mobod = joint.mobod;
+        const int nu = mobod.getNumU(state), nq = mobod.getNumQ(state);
+        const int u0 = mobod.getFirstUIndex(state);
+        const int q0 = mobod.getFirstQIndex(state);
+        for (int u=0; u < nu; ++u) {
+            m_effortLimits[u0+u] = joint.effort;
+            m_speedLimits[u0+u] = joint.velocity;
+        }
+        for (int q=0; q < nq; ++q) {
+            m_lowerLimits[q0+q] = joint.lower;
+            m_upperLimits[q0+q] = joint.upper;
+        }
+    }
+}
+
 
 
 //==============================================================================

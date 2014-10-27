@@ -88,6 +88,11 @@ public:
     const SimTK::Vec3& getSampledEndEffectorPos(const SimTK::State& s) const
     {   return m_sampledEndEffectorPos.getValue(s); }
 
+    const SimTK::Vector& getEffortLimits() const {return m_effortLimits;}
+    const SimTK::Vector& getSpeedLimits()  const {return m_speedLimits;}
+    const SimTK::Vector& getLowerLimits()  const {return m_lowerLimits;}
+    const SimTK::Vector& getUpperLimits()  const {return m_upperLimits;}
+
     // Return the Ground frame location of the body origin point of the 
     // EndEffector link.
     SimTK::Vec3 getActualEndEffectorPosition(const SimTK::State& s) const 
@@ -104,17 +109,6 @@ public:
        (SimTK::State& s, SimTK::UIndex which, SimTK::Real rate) const 
     {   s.updU()[which] = rate; }
 
-    // Given a set of proposed actuator torques tau, make sure each is in
-    // range given the specifications for each actuator.
-    static void clampToLimits(SimTK::Vector& tau) {
-        SimTK::clampInPlace(-330, tau[PanCoord],   330);
-        SimTK::clampInPlace(-330, tau[LiftCoord],  330);
-        SimTK::clampInPlace(-150, tau[ElbowCoord], 150);
-        SimTK::clampInPlace( -54, tau[Wrist1Coord], 54);
-        SimTK::clampInPlace( -54, tau[Wrist2Coord], 54);
-        SimTK::clampInPlace( -54, tau[Wrist3Coord], 54);
-    }
-
     const SimTK::SimbodyMatterSubsystem& getMatterSubsystem() const {return m_matter;}
     SimTK::SimbodyMatterSubsystem& updMatterSubsystem() {return m_matter;}
 
@@ -124,13 +118,8 @@ public:
     const SimTK::Force::Gravity& getGravity() const {return m_gravity;}
 
     /// Realizes the topology and model, and uses the resulting initial state
-    /// to perform further internal initialization.
-    void initialize(SimTK::State& state) {
-        state = realizeTopology();
-        realizeModel(state);
-        m_sampledAngles.setValue(state, SimTK::Vector(state.getNQ(), SimTK::Zero));
-        m_sampledRates.setValue(state, SimTK::Vector(state.getNU(), SimTK::Zero));
-    }
+    /// to perform further internal initialization. Sets up joint limit arrays.
+    void initialize(SimTK::State& state);
 
     const SimTK::MobilizedBody& getBody(const std::string& name) const {
         return m_urdfRobot.links.getLink(name).masterMobod;
@@ -140,7 +129,7 @@ public:
         return m_urdfRobot.links.getLink(m_endEffectorLinkName).masterMobod;
     }
 
-    const Vec3& getEndEffectorStation() const {
+    const SimTK::Vec3& getEndEffectorStation() const {
         return m_endEffectorStation;
     }
 
@@ -151,7 +140,6 @@ private:
     SimTK::CompliantContactSubsystem            m_contact;
 
     SimTK::Force::Gravity                       m_gravity;
-    //SimTK::MobilizedBody                        m_bodies[NumLinks];
     SimTK::Measure_<SimTK::Vector>::Variable    m_sampledAngles;
     SimTK::Measure_<SimTK::Vector>::Variable    m_sampledRates;
     SimTK::Measure_<SimTK::Vec3>::Variable      m_sampledEndEffectorPos;
@@ -161,7 +149,15 @@ private:
     SimTK::MultibodyGraphMaker                  m_mbGraph;
     URDFRobot                                   m_urdfRobot;
     std::string                                 m_endEffectorLinkName;
-    Vec3                                        m_endEffectorStation;
+    SimTK::Vec3                                 m_endEffectorStation;
+
+    // Limits on generalized forces and velocities (nu)
+    SimTK::Vector                               m_effortLimits;
+    SimTK::Vector                               m_speedLimits;
+
+    // Limits on generalized coordinates (nq)
+    SimTK::Vector                               m_lowerLimits;
+    SimTK::Vector                               m_upperLimits;
 };
 
 

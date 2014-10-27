@@ -63,25 +63,20 @@ A <visual> or <collision> element has <origin> and <geometry> subelements.
 #include <map>
 #include <iostream>
 
-using SimTK::Transform;
-using SimTK::Vec3; 
-using SimTK::Vec6;
-using SimTK::MassProperties;
-using SimTK::MobilizedBody;
-using SimTK::Constraint;
-using SimTK::Xml;
-
-
 //==============================================================================
 //                                URDF
 //==============================================================================
 // Some utility methods for URDF reading.
 class URDF {
 public:
-    static Transform origin2Transform(const Vec3& xyz, const Vec3& rpy);
-    static Vec6 transform2Pose(const Transform& X_AB);
-    static Transform getOrigin(Xml::Element element);
-    static MassProperties getMassProperties(Xml::Element link);
+    static SimTK::Transform 
+        origin2Transform(const SimTK::Vec3& xyz, const SimTK::Vec3& rpy);
+    static SimTK::Vec6 
+        transform2Pose(const SimTK::Transform& X_AB);
+    static SimTK::Transform 
+        getOrigin(SimTK::Xml::Element element);
+    static SimTK::MassProperties 
+        getMassProperties(SimTK::Xml::Element link);
 };
 
 //==============================================================================
@@ -101,11 +96,11 @@ public:
     // appropriate mass properties to use for each fragment. Per Simbody's
     // convention, COM is measured from, and inertia taken about, the link 
     // origin and both are expressed in the link frame.
-    MassProperties getEffectiveMassProps(int numFragments) const {
+    SimTK::MassProperties getEffectiveMassProps(int numFragments) const {
         assert(numFragments > 0); // must be at least 1 for the master
-        return MassProperties(massProps.getMass()/numFragments,
-                              massProps.getMassCenter(),
-                              massProps.getUnitInertia());
+        return SimTK::MassProperties(massProps.getMass()/numFragments,
+                                     massProps.getMassCenter(),
+                                     massProps.getUnitInertia());
     }
 
     SimTK::Xml::Element element;        // if this was in the Xml file
@@ -119,17 +114,17 @@ public:
     // body frame; inertia taken about body origin *not* body COM. This is the
     // full mass; if there are slaves the master and slaves will split the mass
     // properties evenly.
-    MassProperties                  massProps;
+    SimTK::MassProperties                  massProps;
 
     // Which MobilizedBody corresponds to the master instance of this link.
-    MobilizedBody                   masterMobod;
+    SimTK::MobilizedBody                   masterMobod;
 
     // If this link got split into a master and slaves, these are the 
     // MobilizedBodies used to mobilize the slaves.
-    std::vector<MobilizedBody>      slaveMobods;
+    std::vector<SimTK::MobilizedBody>      slaveMobods;
 
     // And these are the Weld constraints used to attach slaves to master.
-    std::vector<Constraint::Weld>   slaveWelds;
+    std::vector<SimTK::Constraint::Weld>   slaveWelds;
 };
 
 
@@ -145,28 +140,37 @@ public:
 class URDFJointInfo {
 public:
     URDFJointInfo(const std::string& name, const std::string& type) 
-    :   name(name), type(type), mustBreakLoopHere(false), isReversed(false) {}
+    :   name(name), type(type), mustBreakLoopHere(false),
+        effort(SimTK::Infinity), lower(-SimTK::Infinity), 
+        upper(SimTK::Infinity), velocity(SimTK::Infinity),
+        isReversed(false)
+    {}
 
     // These are set when we process the input.
 
-    Xml::Element    element; // if this was in the Xml file
-    std::string     name, type, parent, child;
-    bool            mustBreakLoopHere;
+    SimTK::Xml::Element     element; // if this was in the Xml file
+    std::string             name, type, parent, child;
+    bool                    mustBreakLoopHere;
 
     // Normally A=F, B=M. But if reversed, then B=F, A=M.
-    Transform       X_PA; // parent body frame to mobilizer frame
-    Transform       X_CB; // child body frame to mobilizer frame
-    Transform    defX_AB; // default mobilizer pose
+    SimTK::Transform        X_PA; // parent body frame to mobilizer frame
+    SimTK::Transform        X_CB; // child body frame to mobilizer frame
+    SimTK::Transform     defX_AB; // default mobilizer pose
+
+    // Limits on force, position, velocity
+    SimTK::Real            effort;         // |f| <= effort, effort >= 0
+    SimTK::Real            lower, upper;   // lower <= upper
+    SimTK::Real            velocity;       // |u| <= velocity, velocity >= 0
 
     // Members below here are set when we build the Simbody model.
 
     // How this joint was modeled in the Simbody System. We used either a
     // mobilizer or a constraint, but not both. The type of either one is the
     // same as the joint type above.
-    MobilizedBody   mobod;      // isValid() if we used a mobilizer
-    bool            isReversed; // if mobilizer, did it reverse parent&child?
+    SimTK::MobilizedBody    mobod;      // isValid() if we used a mobilizer
+    bool                    isReversed; // if mobilizer, reverse parent&child?
 
-    Constraint      constraint; // isValid() if we used a constraint
+    SimTK::Constraint       constraint; // isValid() if we used a constraint
 };
 
 
@@ -255,13 +259,13 @@ private:
 class URDFRobot {
 public:
     URDFRobot() : isStatic(false) {}
-    void readRobot(Xml::Element robotElt);
+    void readRobot(SimTK::Xml::Element robotElt);
 
-    std::string     name;
-    Transform       X_WM;     // model frame in the World frame
-    bool            isStatic; // means all bodies are attached to Ground
-    URDFLinks       links;
-    URDFJoints      joints;
+    std::string         name;
+    SimTK::Transform    X_WM;     // model frame in the World frame
+    bool                isStatic; // means all bodies are attached to Ground
+    URDFLinks           links;
+    URDFJoints          joints;
 
     // This is a grouping of contact surfaces that are invisible to one
     // another.

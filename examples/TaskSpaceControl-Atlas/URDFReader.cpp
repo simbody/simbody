@@ -182,6 +182,24 @@ void URDFRobot::readRobot(Xml::Element robotElt) {
         jinfo.X_CB = Transform();          // joint frame on child body
         jinfo.X_PA = URDF::getOrigin(elt); // joint frame on parent body
 
+        Xml::Element limit = elt.getOptionalElement("limit");
+        if (limit.isValid()) {
+            jinfo.effort = 
+                limit.getOptionalAttributeValueAs<Real>("effort", Infinity);
+            jinfo.lower = 
+                limit.getOptionalAttributeValueAs<Real>("lower", -Infinity);
+            jinfo.upper = 
+                limit.getOptionalAttributeValueAs<Real>("upper", Infinity);
+            jinfo.velocity = 
+                limit.getOptionalAttributeValueAs<Real>("velocity", Infinity);
+
+            if (jinfo.lower > jinfo.upper)
+                throw std::runtime_error(
+                    "URDFRobot::readRobot(): Joint name '" + name 
+                    + "' had lower limit " + String(jinfo.lower)
+                    + " > upper limit " + String(jinfo.upper) + ".");
+        }
+
         joints.addJoint(jinfo);
     }
 }

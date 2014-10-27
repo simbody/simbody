@@ -408,7 +408,16 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     } else 
         tau -= k*Mq + c*Mu;
 
-    //Atlas::clampToLimits(tau);
+    // Cut tau back to within effort limits.
+    // TODO: can't use these limits with one-foot support!
+    //const Vector& effortLimits = m_modelRobot.getEffortLimits();
+    //for (int i=0; i < nu; ++i) {
+    //    const Real oldtau = tau[i], effort = effortLimits[i];
+    //    if (std::abs(oldtau) <= effort) continue;
+    //    tau[i] = clamp(-effort, oldtau, effort);
+    //    printf("Limit tau[%d]: was %g now %g\n", i, oldtau, tau[i]);
+    //}
+
 }
 
 
