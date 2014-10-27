@@ -39,6 +39,13 @@ if (std::bitset<2>(diag).test(1)) { cmds; } \
 } \
 while(false)
 
+// TODO when Simbody switches to C++11, only use unique_ptr.
+#define SimTK_CMAES_SMART_PTR std::unique_ptr
+#if (defined(__GNUG__) && __cplusplus<201103L)
+    #undef SimTK_CMAES_SMART_PTR
+    #define SimTK_CMAES_SMART_PTR std::auto_ptr
+#endif
+
 CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys)
 {
     SimTK_VALUECHECK_ALWAYS(2, sys.getNumParameters(), INT_MAX, "nParameters",
@@ -61,7 +68,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     
     // Initialize parallelism, if requested.
     std::string parallel;
-    std::auto_ptr<ParallelExecutor> executor;
+    SimTK_CMAES_SMART_PTR<ParallelExecutor> executor;
     if (getAdvancedStrOption("parallel", parallel)) {
 
         // Number of parallel processes/threads.
@@ -98,7 +105,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 
         // Evaluate the objective function on the samples.
         // ===============================================
-        evaluateObjectiveFunctionOnPopulation(evo, pop, funvals, executor);
+        evaluateObjectiveFunctionOnPopulation(evo, pop, funvals, executor.get());
         
         // Update the distribution (mean, covariance, etc.).
         // =================================================
@@ -293,12 +300,12 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
 
 void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
         cmaes_t& evo, double*const* pop, double* funvals,
-        const std::auto_ptr<ParallelExecutor>& executor)
+        ParallelExecutor* executor)
 {
     const OptimizerSystem& sys = getOptimizerSystem();
 
     // Execute in parallel.
-    if (executor.get()) {
+    if (executor) {
         Task task(*this, sys.getNumParameters(), pop, funvals);
         executor->execute(task, cmaes_Get(&evo, "lambda"));
     }
@@ -313,5 +320,6 @@ void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
 
 #undef SimTK_CMAES_PRINT
 #undef SimTK_CMAES_FILE
+#undef SimTK_CMAES_SMART_PTR
 
 } // namespace SimTK

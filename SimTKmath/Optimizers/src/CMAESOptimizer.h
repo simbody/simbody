@@ -53,7 +53,7 @@ private:
     // May use threading or MPI.
     void evaluateObjectiveFunctionOnPopulation(
             cmaes_t& evo, double*const* pop, double* funvals,
-            const std::auto_ptr<ParallelExecutor>& executor);
+            ParallelExecutor* executor);
 
     class Task : public SimTK::ParallelExecutor::Task {
     public:
