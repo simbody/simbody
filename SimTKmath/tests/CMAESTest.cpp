@@ -22,12 +22,9 @@
  * -------------------------------------------------------------------------- */
 
 // TODO
-// 3. restart.
-// 5. memory leaks.
-// 6. how to disable reading of cmaes_signals.par.
-// 9. allow verbosity; diagnostics level.
-// 12 all the cmaes options.
-// 14 threading.
+// mpi refine: how to make commworld.... initialize and finalize.
+// restarts
+// file reading/writing (signals). 
 //
 
 #include "SimTKmath.h"
@@ -166,8 +163,7 @@ void testParameterLimits() {
     // Exception if our initial guess is out of bounds.
     results.setTo(100.01);
     SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
-            SimTK::Exception::APIArgcheckFailed
-            );
+            SimTK::Exception::ErrorCheck);
 }
 
 // Make sure that we are able to set sigma (step size) using Simbody's
@@ -545,7 +541,7 @@ void testMPI()
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
-    // TODO opt.setDiagnosticsLevel(1);
+    opt.setDiagnosticsLevel(1);
     opt.setMaxIterations(5000);
     opt.setAdvancedRealOption("sigma", 0.3);
     // Sometimes this test fails, so choose a seed where the test passes.
@@ -555,17 +551,23 @@ void testMPI()
 
     #if SimTK_SIMMATH_MPI
         // Optimize!
+
+        // We get an exception if we don't initialize MPI first.
+        SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+                SimTK::Exception::ErrorCheck);
+
+        // Run a successful optimization.
+        MPI_Init(NULL, NULL);
         SimTK_TEST_OPT(opt, results, 1e-5);
-        int initialized, finalized;
-        MPI_Initialized(&initialized);
-        MPI_Finalized(&finalized);
-        // We get an error if we try to finalize and we've never initialized.
-        // TODO
-        // if (initialized && !finalized) MPI_Finalize();
+
+        // We can run multiple optimizations.
+        SimTK_TEST_OPT(opt, results, 1e-5);
+        SimTK_TEST_OPT(opt, results, 1e-5);
+
+        MPI_Finalize();
     #else
         SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
-                SimTK::Exception::APIArgcheckFailed
-                );
+                SimTK::Exception::ErrorCheck);
     #endif
 }
 

@@ -358,6 +358,8 @@ private:
  * TODO should use same compiler. TODO see example program.
  * TODO create CMAES optimizer example.
  * TODO diagnostics level should print out some stuff about MPI.
+ * TODO might want to print file to see what settings were actually used.
+ * (actparcmaes.dat).
  *
  */
 class SimTK_SIMMATH_EXPORT Optimizer {

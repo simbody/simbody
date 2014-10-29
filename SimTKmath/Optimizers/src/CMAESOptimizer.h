@@ -40,7 +40,6 @@ namespace SimTK {
 class CMAESOptimizer: public Optimizer::OptimizerRep {
 public:
     CMAESOptimizer(const OptimizerSystem& sys);
-    ~CMAESOptimizer();
     OptimizerRep* clone() const OVERRIDE_11;
     Real optimize(SimTK::Vector& results) OVERRIDE_11;
     OptimizerAlgorithm getAlgorithm() const OVERRIDE_11 { return CMAES; }
@@ -85,7 +84,7 @@ private:
     #if SimTK_SIMMATH_MPI
         // If we are in a worker process (rank > 0), we just evaluate this
         // method. This method evaluates the objective function in a loop.
-        void mpi_worker(const int& myRank);
+        Real mpi_worker(SimTK::Vector& params, const int& myRank);
         void mpi_master_sendJob(double*const* pop, const int& nParams,
                 const int& ijob, const int& workerRank);
         // TODO can this be a global method I define in the cpp, so that I
