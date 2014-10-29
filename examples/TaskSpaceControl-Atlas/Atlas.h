@@ -34,30 +34,12 @@ The up direction is Z.
 
 class Atlas : public SimTK::MultibodySystem {
 public:
-    Atlas();
+    // Should be just the file name and extension; will search in models/
+    // directory.
+    explicit Atlas(const std::string& urdfFileName);
 
-    enum Link {
-        Ground      = 0,    // These are MobilizedBody indices.
-        Base        = 1,
-        Shoulder    = 2,
-        UpperArm    = 3,
-        Forearm     = 4,
-        Wrist1      = 5,
-        Wrist2      = 6,
-        Wrist3      = 7,
-        EndEffector = 8
-    };
-    static const int NumLinks = EndEffector + 1; // include ground
-
-    enum Coords {
-        PanCoord    = 0,    // These are the q and u coordinate indices
-        LiftCoord   = 1,
-        ElbowCoord  = 2,
-        Wrist1Coord = 3,
-        Wrist2Coord = 4,
-        Wrist3Coord = 5
-    };
-    //static const int NumCoords = Wrist3Coord + 1;
+    // Return the parsed-in version of the URDF specification.
+    const URDFRobot& getURDFRobot() const {return m_urdfRobot;}
 
     void setAngleNoise(SimTK::State& state, SimTK::Real qNoise) const 
     {   m_qNoise.setValue(state, qNoise); }
@@ -73,6 +55,10 @@ public:
         m_sampledRates.setValue(state, rates);
     }
 
+
+    void setSampledPelvisPos(SimTK::State& state, 
+                             const SimTK::Vec3& pos) const 
+    {   m_sampledPelvisPos.setValue(state, pos); }
     void setSampledEndEffectorPos(SimTK::State& state, 
                                   const SimTK::Vec3& pos) const 
     {   m_sampledEndEffectorPos.setValue(state, pos); }
@@ -85,6 +71,8 @@ public:
     {   return m_sampledAngles.getValue(s); }
     const SimTK::Vector& getSampledRates(const SimTK::State& s) const
     {   return m_sampledRates.getValue(s); }
+    const SimTK::Vec3& getSampledPelvisPos(const SimTK::State& s) const
+    {   return m_sampledPelvisPos.getValue(s); }
     const SimTK::Vec3& getSampledEndEffectorPos(const SimTK::State& s) const
     {   return m_sampledEndEffectorPos.getValue(s); }
 
@@ -142,6 +130,7 @@ private:
     SimTK::Force::Gravity                       m_gravity;
     SimTK::Measure_<SimTK::Vector>::Variable    m_sampledAngles;
     SimTK::Measure_<SimTK::Vector>::Variable    m_sampledRates;
+    SimTK::Measure_<SimTK::Vec3>::Variable      m_sampledPelvisPos;
     SimTK::Measure_<SimTK::Vec3>::Variable      m_sampledEndEffectorPos;
     SimTK::Measure_<SimTK::Real>::Variable      m_qNoise;
     SimTK::Measure_<SimTK::Real>::Variable      m_uNoise;

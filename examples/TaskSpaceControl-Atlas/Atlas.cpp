@@ -63,16 +63,17 @@ static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
 //                            ATLAS CONSTRUCTOR
 //------------------------------------------------------------------------------
 // Build a Simbody System of the Boston Dynamics Atlas robot.
-Atlas::Atlas()
+Atlas::Atlas(const std::string& fileNameAndExt)
 :   m_matter(*this), m_forces(*this), m_tracker(*this), 
     m_contact(*this, m_tracker),
     m_sampledAngles(*this, Stage::Dynamics, Vector()),
     m_sampledRates(*this, Stage::Dynamics, Vector()),
+    m_sampledPelvisPos(*this, Stage::Dynamics, Vec3(0)),
     m_sampledEndEffectorPos(*this, Stage::Dynamics, Vec3(0)),
     m_qNoise(*this,Stage::Dynamics,Zero), m_uNoise(*this,Stage::Dynamics,Zero),
     m_endEffectorLinkName("r_hand"), m_endEffectorStation(0,-.1,0)
 {
-    std::string urdfFileName = "models/atlas_v4_grounded.urdf";
+    const std::string urdfPathName = "models/" + fileNameAndExt;
 
     setUpDirection(ZAxis);
     m_matter.setShowDefaultGeometry(false);
@@ -83,8 +84,8 @@ Atlas::Atlas()
     //--------------------------------------------------------------------------
     //                          Read the robot file
     //--------------------------------------------------------------------------
-    std::cout << "Reading file: " << urdfFileName << std::endl;
-    Xml::Document urdf(urdfFileName);
+    std::cout << "Reading file: " << urdfPathName << std::endl;
+    Xml::Document urdf(urdfPathName);
 
     if (urdf.getRootTag() != "robot")
         throw std::runtime_error
@@ -126,124 +127,6 @@ Atlas::Atlas()
     //--------------------------------------------------------------------------
     addRobotToSimbodySystem(m_mbGraph, m_urdfRobot, 
                             *this, m_matter, m_forces, m_contact);
-
-    //--------------------------------------------------------------------------
-    //                          Body information
-    //--------------------------------------------------------------------------
-    // Mass properties.
-    Body baseInfo(MassProperties(4., Vec3(0),
-                                 Inertia(0.0061063308908,
-                                         0.0061063308908,
-                                         0.01125)));
-
-    Body shoulderInfo(MassProperties(7.778, Vec3(0),
-                                     Inertia(0.0314743125769,
-                                             0.0314743125769,
-                                             0.021875625)));
-
-    const Real    upperArmMass = 12.93;
-    const Vec3    upperArmCOM(0,0,.306);
-    const Inertia upperArmCentral(0.421753803798,
-                                  0.421753803798,
-                                  0.036365625);
-    Body upperArmInfo(MassProperties(upperArmMass, upperArmCOM,
-        upperArmCentral.shiftFromMassCenter(-upperArmCOM, upperArmMass)));
-
-    const Real    forearmMass = 3.87;
-    const Vec3    forearmCOM(0,0,0.28615);
-    const Inertia forearmCentral(0.111069694097,
-                                 0.111069694097,
-                                 0.010884375);
-    Body forearmInfo(MassProperties(forearmMass, forearmCOM,
-        forearmCentral.shiftFromMassCenter(-forearmCOM, forearmMass)));
-
-    Body wrist1Info(MassProperties(1.96, Vec3(0),
-                                   Inertia(0.0051082479567,
-                                           0.0051082479567,
-                                           0.0055125)));
-    Body wrist2Info = wrist1Info;
-
-    Body wrist3Info(MassProperties(0.202, Vec3(0),
-                                   Inertia(0.000526462289415,
-                                           0.000526462289415,
-                                           0.000568125)));
-
-    const Vec3 eeHdims(.02,.02,.02); // cube
-    Body endEffectorInfo(MassProperties(.1, Vec3(0),
-                            UnitInertia::brick(eeHdims)));
-
-    // Geometry
-    PolygonalMesh baseMesh, shoulderMesh, upperArmMesh, forearmMesh,
-                  wrist1Mesh, wrist2Mesh, wrist3Mesh;
-
-    String dir;
-    if (!Pathname::fileExists("geometry/head.stl")) {
-        dir = SIMBODY_EXAMPLE_INSTALL_DIR; // where this example's files go
-    }
-
-    //baseMesh.loadObjFile(dir + "geometry/Base.obj");
-    //shoulderMesh.loadObjFile(dir + "geometry/Shoulder.obj");
-    //upperArmMesh.loadObjFile(dir + "geometry/UpperArm.obj");
-    //forearmMesh.loadObjFile(dir + "geometry/Forearm.obj");
-    //wrist1Mesh.loadObjFile(dir + "geometry/Wrist1.obj");
-    //wrist2Mesh.loadObjFile(dir + "geometry/Wrist2.obj");
-    //wrist3Mesh.loadObjFile(dir + "geometry/Wrist3.obj");
-
-    //baseInfo.addDecoration(DecorativeMesh(baseMesh).setColor(Gray));
-    //shoulderInfo.addDecoration(DecorativeMesh(shoulderMesh).setColor(Cyan));
-    //upperArmInfo.addDecoration(DecorativeMesh(upperArmMesh).setColor(Gray));
-    //forearmInfo.addDecoration(DecorativeMesh(forearmMesh).setColor(Gray));
-    //wrist1Info.addDecoration(DecorativeMesh(wrist1Mesh).setColor(Cyan));
-    //wrist2Info.addDecoration(DecorativeMesh(wrist2Mesh).setColor(Gray));
-    //wrist3Info.addDecoration(DecorativeMesh(wrist3Mesh).setColor(Cyan));
-
-    //endEffectorInfo.addDecoration(DecorativeBrick(eeHdims)
-    //                              .setColor(Purple).setOpacity(.5));
-
-
-    //--------------------------------------------------------------------------
-    //                         Mobilized Bodies
-    //--------------------------------------------------------------------------
-    const Rotation ZtoY(-Pi/2, XAxis); // zero angle will be vertical
-    // Use this orientation when you want the zero position horizontal.
-    const Rotation ZtoY90(BodyRotationSequence, -Pi/2, XAxis, Pi/2, ZAxis);
-
-    //m_bodies[Ground] = m_matter.updGround();
-
-    //m_bodies[Base] = MobilizedBody::Weld(
-    //    m_matter.updGround(), Vec3(0),
-    //    baseInfo,             Vec3(0));
-
-    //m_bodies[Shoulder] = MobilizedBody::Pin( // shoulder_pan about Z
-    //    m_bodies[Base], Vec3(0, 0, .1273),
-    //    shoulderInfo,   Vec3(0));
-
-    //m_bodies[UpperArm] = MobilizedBody::Pin( // shoulder_lift about Y
-    //    m_bodies[Shoulder], Transform(ZtoY90, Vec3(0, 0.220941, 0)),
-    //    upperArmInfo,       ZtoY);
-
-    //m_bodies[Forearm] = MobilizedBody::Pin( // elbow about Y
-    //    m_bodies[UpperArm], Transform(ZtoY, Vec3(0, -0.1719, 0.612)),
-    //    forearmInfo,        ZtoY);
-
-    //m_bodies[Wrist1] = MobilizedBody::Pin( // wrist1 about Y
-    //    m_bodies[Forearm], Transform(ZtoY90, Vec3(0, 0, 0.5723)),
-    //    wrist1Info,        ZtoY);
-
-    //m_bodies[Wrist2] = MobilizedBody::Pin( // wrist2 about Z
-    //    m_bodies[Wrist1], Vec3(0, 0.1149, 0),
-    //    wrist2Info,       Vec3(0));
-
-    //m_bodies[Wrist3] = MobilizedBody::Pin( // wrist3 about Y
-    //    m_bodies[Wrist2], Transform(ZtoY, Vec3(0, 0, 0.1157)),
-    //    wrist3Info,       ZtoY);
-
-    //m_bodies[EndEffector] = MobilizedBody::Weld(
-    //    m_bodies[Wrist3],     Vec3(0, 0.1149, 0),
-    //    endEffectorInfo,      Vec3(0));
-
-    //TODO: joint stops
-
 }
 
 
@@ -266,6 +149,8 @@ void AtlasJointSampler::handleEvent
         uSample[i] = u[i] + uNoise * m_gaussian.getValue();
     m_realRobot.setSampledAngles(state, qSample);
     m_realRobot.setSampledRates(state, uSample);
+    m_realRobot.setSampledPelvisPos(state, 
+        m_realRobot.getBody("pelvis").getBodyOriginLocation(state));
     m_realRobot.setSampledEndEffectorPos(state, 
         m_realRobot.getActualEndEffectorPosition(state));
 }

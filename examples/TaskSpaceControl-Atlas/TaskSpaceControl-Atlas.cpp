@@ -185,11 +185,17 @@ public:
     // @param[in] proportionalGain Units of N-m/rad
     // @param[in] derivativeGain Units of N-m-s/rad
     ReachingAndGravityCompensation(const Atlas& realRobot) 
-    :   m_modelRobot(), m_modelTasks(m_modelRobot), m_realRobot(realRobot),
-        m_targetColor(Red)
+    :   m_modelRobot("atlas_v4_upper.urdf"), m_modelTasks(m_modelRobot), 
+        m_realRobot(realRobot), m_targetColor(Red)
     {
         m_modelRobot.initialize(m_modelState);
+        printf("Controller model has %d dofs.\n", m_modelState.getNU());
     }
+
+    // Call this after the real robot has been initialized to set up
+    // a mapping between the joint coordinates in the model robot and
+    // the corresponding ones in the real robot.
+    void mapModelToRealRobot(const State& realState);
 
     const Vec3& getTarget() const {return m_modelTasks.getTarget();}
     Vec3& updTarget() {return m_modelTasks.updTarget();}
@@ -226,6 +232,10 @@ private:
     mutable State        m_modelState;   // Temporary: State for the model robot.
     const Atlas&         m_realRobot;    // The "real" robot being controlled.
     const Vec3           m_targetColor;
+
+    // Map from model robot coordinates to real robot coordinates.
+    Array_<int>          m_model2realQ;
+    Array_<int>          m_model2realU;
 };
 
 
@@ -265,7 +275,7 @@ int main(int argc, char **argv) {
     const double duration = Infinity; // seconds.
 
     // Create the "real" robot (the one that is being simulated).
-    Atlas realRobot;
+    Atlas realRobot("atlas_v4_locked_pelvis.urdf");
 
     // Add the controller.
     ReachingAndGravityCompensation* controller =
@@ -298,7 +308,8 @@ int main(int argc, char **argv) {
     // Initialize the real robot and other related classes.
     State s;
     realRobot.initialize(s);
-    printf("ndofs=%d\n", s.getNU());
+    printf("Real robot has %d dofs.\n", s.getNU());
+    controller->mapModelToRealRobot(s);
 
     //RungeKuttaMersonIntegrator integ(realRobot);
     SemiExplicitEuler2Integrator integ(realRobot);
@@ -345,33 +356,44 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
 
     // Shorthands.
     // -----------
+    const State& ms = modelState;
     const TaskSpace& p1 = m_tspace1;
 
-    const int nq = modelState.getNQ();
-    const int nu = modelState.getNU();
-    tau.resize(nu);
+    const int mnq = ms.getNQ();
+    const int mnu = ms.getNU();
+    tau.resize(mnu);
 
     const Real& kd = m_derivativeGain;
     const Real& kp = m_proportionalGain;
-    const Vec3& x1_des = m_desiredTaskPosInGround;
 
-    // Abbreviate model state for convenience.
-    const State& ms = modelState;
+    // The desired task position is in Ground. We need instead to measure it
+    // from the real robot's pelvis origin so that we can translate it into the 
+    // model's pelvis-centric viewpoint.
+    const Vec3 p_GP   = m_modelRobot.getSampledPelvisPos(ms);
+    const Vec3 x1_des = m_desiredTaskPosInGround - p_GP;
+
 
     // Compute control law in task space (F*).
     // ---------------------------------------
     Vec3 xd_des(0);
     Vec3 xdd_des(0);
 
-    // Get info about the actual location, etc. of the model robot.
+    // Get the model's estimate of the end effector location in Ground, which
+    // is also the pelvis origin.
     Vec3 x1, x1d;
     p1.findStationLocationAndVelocityInGround(ms,
             TaskSpace::StationTaskIndex(0),
             m_modelRobot.getEndEffectorStation(), x1, x1d);
 
-    if (m_endEffectorSensing)
+    if (m_endEffectorSensing) {
+        // Since the controller model has the pelvis origin fixed at (0,0,0),
+        // we need to know the real robot's pelvis location so we can measure
+        // the real robot's end effector from its pelvis location. We don't
+        // have to modify x1d because we want the end effector stationary
+        // in Ground, not in the pelvis.
         x1 = m_modelRobot.getSampledEndEffectorPos(ms);
-
+        x1 -= p_GP; // measure end effector from pelvis origin
+    }
 
     // Units of acceleration.
     Vec3 Fstar1 = xdd_des + kd * (xd_des - x1d) + kp * (x1_des - x1);
@@ -388,7 +410,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     const Vector& u = ms.getU();
     const Real k = m_jointPositionGain;
     const Real c = m_jointDampingGain;
-    Vector Mu(nu), Mq(nu);
+    Vector Mu(mnu), Mq(mnu);
     m_modelRobot.getMatterSubsystem().multiplyByM(ms, u, Mu);
     m_modelRobot.getMatterSubsystem().multiplyByM(ms, q, Mq);
 
@@ -410,14 +432,55 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
 
     // Cut tau back to within effort limits.
     // TODO: can't use these limits with one-foot support!
-    //const Vector& effortLimits = m_modelRobot.getEffortLimits();
-    //for (int i=0; i < nu; ++i) {
-    //    const Real oldtau = tau[i], effort = effortLimits[i];
-    //    if (std::abs(oldtau) <= effort) continue;
-    //    tau[i] = clamp(-effort, oldtau, effort);
-    //    printf("Limit tau[%d]: was %g now %g\n", i, oldtau, tau[i]);
-    //}
+    const Vector& effortLimits = m_modelRobot.getEffortLimits();
+    for (int i=0; i < mnu; ++i) {
+        const Real oldtau = tau[i], effort = effortLimits[i];
+        if (std::abs(oldtau) <= effort) continue;
+        const Real newtau = clamp(-effort, oldtau, effort);
+        //printf("Limit tau[%d]: %g -> %g\n", i, oldtau, newtau);
+        //tau[i] = newtau;
+    }
 
+}
+
+//------------------------------------------------------------------------------
+//     REACHING AND GRAVITY COMPENSATION :: MAP MODEL TO REAL ROBOT
+//------------------------------------------------------------------------------
+// Fill in the q- and u-maps so we can correctly apply sampled joint angles
+// to the model's equivalents. Assumes both model and real robot have been
+// initialized so we can determine how many coordinates there are in each.
+void ReachingAndGravityCompensation::
+mapModelToRealRobot(const State& realState) {
+    const URDFJoints& modelJoints = m_modelRobot.getURDFRobot().joints;
+    const URDFJoints& realJoints  = m_realRobot.getURDFRobot().joints;
+
+    m_model2realU.resize(m_modelState.getNU()); 
+    m_model2realQ.resize(m_modelState.getNQ());
+
+    for (int mj=0; mj < (int)modelJoints.size(); ++mj) {
+        const URDFJointInfo& modelInfo = modelJoints.getJoint(mj);
+        const URDFJointInfo& realInfo = realJoints.getJoint(modelInfo.name);
+        const MobilizedBody& modelMobod = modelInfo.mobod;
+        const MobilizedBody& realMobod = realInfo.mobod;
+        const int mnu = modelMobod.getNumU(m_modelState), 
+                  mnq = modelMobod.getNumQ(m_modelState),
+                  mu0 = modelMobod.getFirstUIndex(m_modelState),
+                  mq0 = modelMobod.getFirstQIndex(m_modelState);
+        const int rnu = realMobod.getNumU(realState), 
+                  rnq = realMobod.getNumQ(realState),
+                  ru0 = realMobod.getFirstUIndex(realState),
+                  rq0 = realMobod.getFirstQIndex(realState);
+        SimTK_ASSERT1_ALWAYS(mnu==rnu && mnq==rnq,
+            "ReachingAndGravityCompensation::mapModelToRealRobot(): "
+            "joint '%s' dof mismatch.", modelInfo.name.c_str());
+        for (int mu=0; mu < mnu; ++mu)
+            m_model2realU[mu0+mu] = ru0+mu;
+        for (int mq=0; mq < mnq; ++mq) 
+            m_model2realQ[mq0+mq] = rq0+mq;
+    }
+
+    std::cout<<"m2rU="<<m_model2realU<<std::endl;
+    std::cout<<"m2rQ="<<m_model2realQ<<std::endl;
 }
 
 
@@ -435,26 +498,35 @@ void ReachingAndGravityCompensation::calcForce(
 {
     // Sense the real robot and use readings to update model robot.
     // ------------------------------------------------------------
-    const int nq = realState.getNQ(), nu = realState.getNU();
+    const int mnq = m_modelState.getNQ(), mnu = m_modelState.getNU();
     const Vector& sensedQ = m_realRobot.getSampledAngles(realState);
     const Vector& sensedU = m_realRobot.getSampledRates(realState);
-    for (int i=0; i < nq; ++i)
-        m_modelRobot.setJointAngle(m_modelState, QIndex(i), sensedQ[i]);
-    for (int i=0; i < nu; ++i)
-        m_modelRobot.setJointRate(m_modelState, UIndex(i), sensedU[i]);
+    for (int i=0; i < mnq; ++i)
+        m_modelRobot.setJointAngle(m_modelState, QIndex(i), 
+                                   sensedQ[m_model2realQ[i]]);
+    for (int i=0; i < mnu; ++i)
+        m_modelRobot.setJointRate(m_modelState, UIndex(i), 
+                                  sensedU[m_model2realU[i]]);
+
+    // We have to know whether the real robot's pelvis is since we're
+    // going to control the end effector relative to the pelvis.
+    const Vec3 sensedPelvisPos = m_realRobot.getSampledPelvisPos(realState);
+    m_modelRobot.setSampledPelvisPos(m_modelState, sensedPelvisPos);
 
     // Optional: if real robot end effector location can be sensed, it can
     // be used to improve accuracy. Otherwise, estimate the end effector
     // location using the model robot.
-    const Vec3 sensedEEPos = 
-        m_realRobot.getSampledEndEffectorPos(realState);
+    const Vec3 sensedEEPos = m_realRobot.getSampledEndEffectorPos(realState);
     m_modelRobot.setSampledEndEffectorPos(m_modelState, sensedEEPos);
 
+    // Calculate model kinematics.
     m_modelRobot.realize(m_modelState, Stage::Velocity);
-
+    // Obtain joint torques from task controller.
     const Vector& tau = m_modelTasks.getValue(m_modelState);
 
-    mobilityForces += tau;
+    // Apply model joint torques to their corresponding real robot dofs.
+    for (int i=0; i < mnu; ++i)
+        mobilityForces[m_model2realU[i]] += tau[i];
 }
 
 
