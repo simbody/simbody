@@ -280,10 +280,9 @@ private:
  *
  * <h4> CMAES </h4>
  *
- * For an example of usage, see the CMAESOptimization.cpp example.
- *
  * This is the c-cmaes algorithm written by Niko Hansen
- * (https://github.com/cma-es/c-cmaes).
+ * (https://github.com/cma-es/c-cmaes).  For an example of usage, see the
+ * CMAESOptimization.cpp example.
  *
  * Some notes:
  * - This algorithm obeys parameter limits.
@@ -308,12 +307,12 @@ private:
  *      - 0: minimal output to console (warnings, errors), some files are
  *        written to the current directory (errcmaes.err error log).
  *      - 1: maximum output to console (including MPI information).
- *      - 2: all files are written to the current directory.
+ *      - 2: more files are written to the current directory.
  *          - actparcmaes.dat contains the CMAES parameters that were actually
  *            used in the optimization.
  *          - allcmaes.dat contains detailed information about the progress of
  *            the optimization.
- *      - 3: output to console, and all files are written to the current
+ *      - 3: both 1 and 2 (output to console and files are written).
  *
  * Advanced options:
  *
@@ -329,22 +328,24 @@ private:
  *   decompositions.
  * - <b>stopMaxFunEvals</b> (int) Stop optimization after this
  *   number of evaluations of the objective function.
- * - stopFitness (real) Stop if function value is smaller than stopFitness.
- * - stopTolFunHist (real) Stop if function value differences of best values
+ * - <b>stopFitness</b> (real) Stop if function value is smaller than
+ *   stopFitness.
+ * - <b>stopTolFunHist</b> (real) Stop if function value differences of best
+ *   values
  *   are smaller than stopTolFunHist.
- * - stopTolX (real) Stop if step sizes are smaller than stopTolX.
- * - stopTolUpXFactor (real) Stop if standard deviation increases by more than
- *   stopTolUpXFactor.
- * - parallel (str) To run the optimization with multiple threads, set this to
- *   "multithreading". Only use multithreading if your OptimizerSystem is
- *   threadsafe: you can't reliably modify any mutable variables in your
+ * - <b>stopTolX</b> (real) Stop if step sizes are smaller than stopTolX.
+ * - <b>stopTolUpXFactor</b> (real) Stop if standard deviation increases by
+ *   more than stopTolUpXFactor.
+ * - <b>parallel</b> (str) To run the optimization with multiple threads, set
+ *   this to "multithreading". Only use multithreading if your OptimizerSystem
+ *   is threadsafe: you can't reliably modify any mutable variables in your
  *   OptimizerSystem::objectiveFun(). To run the optimization in parallel on a
  *   cluster, set this to "mpi"; the objective function will be evaluated
  *   across multiple processes. To use MPI, you must have compiled Simbody with
  *   the CMake variable SIMBODY_ENABLE_MPI set to ON. See notes below.
- * - nthreads (int) If the <b>parallel</b> option is set to "multithreading",
- *   this is the number of threads to use (by default, this is the
- *   number of processors/threads on the machine).
+ * - <b>nthreads</b> (int) If the <b>parallel</b> option is set to
+ *   "multithreading", this is the number of threads to use (by default, this
+ *   is the number of processors/threads on the machine).
  * - <b>restart/resume</b> TODO
  *
  * <i> Reproducible output and seeds </i>
@@ -364,7 +365,8 @@ private:
  * You can use MPI to run an optimization across multiple processors on a
  * computing cluster. You can also use MPI on your local machine, but in this
  * case you should use multithreading instead. With MPI, your entire executable
- * is run in multiple processes.
+ * is spawned on multiple processes. This is significantly different from
+ * multithreading, in which there is only one process.
  *
  * Within optimize(), one of the processes--the master node--manages the
  * overall optimization while the other nodes--the worker nodes--evaluate the
