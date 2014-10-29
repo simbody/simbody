@@ -541,7 +541,7 @@ void testMPI()
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
-    opt.setDiagnosticsLevel(1);
+    //opt.setDiagnosticsLevel(1);
     opt.setMaxIterations(5000);
     opt.setAdvancedRealOption("sigma", 0.3);
     // Sometimes this test fails, so choose a seed where the test passes.
