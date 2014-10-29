@@ -132,8 +132,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 
     #endif
     
-    // Not using MPI (it's not compiled in, or it is but it useMPI is false).
-    // ======================================================================
+    // Not using MPI (it's not compiled in, or it is but useMPI is false).
+    // ===================================================================
     return master(results, false);
 }
 

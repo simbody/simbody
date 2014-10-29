@@ -280,6 +280,8 @@ private:
  *
  * <h4> CMAES </h4>
  *
+ * For an example of usage, see the CMAESOptimization.cpp example.
+ *
  * This is the c-cmaes algorithm written by Niko Hansen
  * (https://github.com/cma-es/c-cmaes).
  *
@@ -327,7 +329,7 @@ private:
  * - stopTolFunHist (real) Stop if function value differences of best values
  *   are smaller than stopTolFunHist.
  * - stopTolX (real) Stop if step sizes are smaller than stopTolX.
- * - stopTolUpXFactor (real) Stop if std dev increases by more than
+ * - stopTolUpXFactor (real) Stop if standard deviation increases by more than
  *   stopTolUpXFactor.
  * - parallel (str) To run the optimization with multiple threads, set this to
  *   "multithreading". Only use multithreading if your OptimizerSystem is
@@ -335,7 +337,7 @@ private:
  *   OptimizerSystem::objectiveFun(). To run the optimization in parallel on a
  *   cluster, set this to "mpi"; the objective function will be evaluated
  *   across multiple processes. To use MPI, you must have compiled Simbody with
- *   the CMake variable SIMBODY_ENABLE_MPI to ON. See notes below.
+ *   the CMake variable SIMBODY_ENABLE_MPI set to ON. See notes below.
  * - nthreads (int) If the <b>parallel</b> option is set to "multithreading",
  *   this is the number of threads to use (by default, this is the
  *   number of processors/threads on the machine).
@@ -357,9 +359,9 @@ private:
  *
  * TODO should use same compiler. TODO see example program.
  * TODO create CMAES optimizer example.
- * TODO diagnostics level should print out some stuff about MPI.
  * TODO might want to print file to see what settings were actually used.
  * (actparcmaes.dat).
+ * TODO document, example, [printing files, restarts]
  *
  */
 class SimTK_SIMMATH_EXPORT Optimizer {

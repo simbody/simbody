@@ -323,8 +323,7 @@ On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run th
 1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`
 2. If you want to use the CMake GUI, install `cmake-qt-gui`.
 3. If you want to run Simbody's CMAES Optimizer in parallel on a cluster
-   (optional): `$ sudo apt-get install mpich` (`mpich2` for Ubuntu 13.10 or
-           earlier).
+   (optional): `mpich`, `mpich2`, or `libopenmpi-dev`.
 3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`
 4. For API documentation (optional): `$ sudo apt-get install doxygen`
 
