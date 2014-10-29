@@ -51,22 +51,6 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
 {
- 
-//    if (SimTK_CMAES_USE_MPI(use_mpi)) {
-
-            // TODO Exclude the 0-th parameters, we'll evaluate those locally.
-            // Evaluate the objective on the 0-th member of the population.
-            // ------------------------------------------------------------
-            // objectiveFuncWrapper(nParams, pop[0], true, &myfunval, this);
-//    // TODO test on an actual cluster first.
-//    // TODO test on windows.
-//    // TODO example that uses MPI.
-//    // TODO http://www.lam-mpi.org/tutorials/one-step/ezstart.php
-//    // TODO libraries need private communicators (COMM_CREATE_GROUP).
-//    // TODO http://stackoverflow.com/questions/13867809/how-are-mpi-scatter-and-mpi-gather-used-from-c
-//    // TODO when to finalize?
-//    // TODO SimTK_COMM_WORLD.
-
     // Use MPI?
     // --------
     std::string parallel;
@@ -175,7 +159,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results, const bool& useMPI)
         exec.reset(new ParallelExecutor(nthreads));
     }
 
-    // MPI. TODO put elsewhere?
+    // MPI.
     // ----
     // If using MPI, find the number of nodes / processors.
     int nNodes = 0;
@@ -415,7 +399,7 @@ void CMAESOptimizer::evaluatePopulation(
         else if (nNodes > 1) {
             // This only gets called by the master (root) node. Dispatch the
             // population among the worker processes, then run one evaluation
-            // locally. TODO
+            // locally.
             // Note that lambda can be different from the number of nodes,
             // which prevents us from using a more elegant scatter/gather
             // implementation.

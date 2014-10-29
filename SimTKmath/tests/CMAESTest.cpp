@@ -22,7 +22,6 @@
  * -------------------------------------------------------------------------- */
 
 // TODO
-// mpi refine: how to make commworld.... initialize and finalize.
 // restarts
 // file reading/writing (signals). 
 //
@@ -31,7 +30,6 @@
 #include "OptimizerSystems.h"
 
 #if SimTK_SIMMATH_MPI
-// TODO don't need this.
     #include <mpi.h>
 #endif
 
@@ -459,7 +457,7 @@ void testEasom() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    // TODO opt.setDiagnosticsLevel(3);
+    // opt.setDiagnosticsLevel(3);
     opt.setAdvancedIntOption("lambda", 500);
     opt.setAdvancedRealOption("sigma", 25);
     opt.setAdvancedIntOption("seed", 42);

@@ -25,8 +25,11 @@
 #include <iostream>
 
 // If you compiled Simbody with CMake variable SIMBODY_ENABLE_MPI set to ON,
-// try changing the value of USE_MPI to 1.
+// try changing the value of USE_MPI to 1. If you don't, then the optimization
+// will run completely separately on each MPI process.
 #define USE_MPI 0
+
+// Run this example with a command like $ mpirun -n 8 ./CMAESOptimization
 
 #if USE_MPI
     #include <mpi.h>
@@ -100,10 +103,9 @@ int main(int argc, char* argv[]) {
     Real f = opt.optimize(results);
 
     #if USE_MPI
-        int nNodes = 0;
         int myRank = 0;
-        MPI_Comm_size(MPI_COMM_WORLD, &nNodes);
         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+        // We only want the master / root node to print the result.
         if (myRank == 0) {
     #endif
     printf("Optimal Solution: f = %f   parameters = %f %f \n",

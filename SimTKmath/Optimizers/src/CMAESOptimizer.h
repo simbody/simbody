@@ -46,6 +46,8 @@ public:
 
 private:
 
+    // Helper methods.
+    // ---------------
     // If not using MPI, this method performs the optimization. If using MPI,
     // this delegates the evaluation of the objective function to the worker
     // processes.
@@ -60,13 +62,13 @@ private:
 
     void resampleToObeyLimits(cmaes_t& evo, double*const* pop);
 
-    // TODO reorganize.
-
     // May use threading or MPI.
     void evaluatePopulation(const int& lambda,
             double*const* pop, double* funvals,
             ParallelExecutor* executor, const int& nNodes);
 
+    // ParallelExecutor Task.
+    // ----------------------
     // Calls the objective function for the i-th member of the population.
     class Task : public SimTK::ParallelExecutor::Task {
     public:
@@ -81,6 +83,8 @@ private:
         double* funvals;
     };
 
+    // MPI helper methods.
+    // -------------------
     #if SimTK_SIMMATH_MPI
         // If we are in a worker process (rank > 0), we just evaluate this
         // method. This method evaluates the objective function in a loop.
