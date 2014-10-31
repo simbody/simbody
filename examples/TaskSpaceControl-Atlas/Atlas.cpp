@@ -68,10 +68,10 @@ Atlas::Atlas(const std::string& fileNameAndExt)
     m_contact(*this, m_tracker),
     m_sampledAngles(*this, Stage::Dynamics, Vector()),
     m_sampledRates(*this, Stage::Dynamics, Vector()),
-    m_sampledPelvisPos(*this, Stage::Dynamics, Vec3(0)),
+    m_sampledPelvisPose(*this, Stage::Dynamics, Transform()),
     m_sampledEndEffectorPos(*this, Stage::Dynamics, Vec3(0)),
     m_qNoise(*this,Stage::Dynamics,Zero), m_uNoise(*this,Stage::Dynamics,Zero),
-    m_endEffectorLinkName("r_hand"), m_endEffectorStation(0,-.1,0)
+    m_endEffectorLinkName("r_hand"), m_endEffectorStation(0,-.15,0)
 {
     const std::string urdfPathName = "models/" + fileNameAndExt;
 
@@ -149,8 +149,8 @@ void AtlasJointSampler::handleEvent
         uSample[i] = u[i] + uNoise * m_gaussian.getValue();
     m_realRobot.setSampledAngles(state, qSample);
     m_realRobot.setSampledRates(state, uSample);
-    m_realRobot.setSampledPelvisPos(state, 
-        m_realRobot.getBody("pelvis").getBodyOriginLocation(state));
+    m_realRobot.setSampledPelvisPose(state, 
+        m_realRobot.getBody("pelvis").getBodyTransform(state));
     m_realRobot.setSampledEndEffectorPos(state, 
         m_realRobot.getActualEndEffectorPosition(state));
 }
@@ -322,8 +322,13 @@ static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
             const MobilizedBody::Direction direction =
                 isReversed ? MobilizedBody::Reverse : MobilizedBody::Forward;
 
+            // Here we are using a Simbody Bushing joint to implement "floating"
+            // so that we'll have Euler angle rotations & derivatives rather
+            // than the quaternions we would get with a Simbody Free joint.
+            // Of course that does mean there will be a singularity somewhere.
+            // This makes it easier to apply prescribed motion. 
             if (type == freeJointName) {
-                MobilizedBody::Free freeJoint(
+                MobilizedBody::Bushing freeJoint(
                     gzInb.masterMobod,  X_IF0,
                     massProps,          X_OM0, 
                     direction);

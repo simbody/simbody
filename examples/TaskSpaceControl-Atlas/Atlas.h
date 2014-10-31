@@ -56,9 +56,9 @@ public:
     }
 
 
-    void setSampledPelvisPos(SimTK::State& state, 
-                             const SimTK::Vec3& pos) const 
-    {   m_sampledPelvisPos.setValue(state, pos); }
+    void setSampledPelvisPose(SimTK::State& state, 
+                              const SimTK::Transform& pose) const 
+    {   m_sampledPelvisPose.setValue(state, pose); }
     void setSampledEndEffectorPos(SimTK::State& state, 
                                   const SimTK::Vec3& pos) const 
     {   m_sampledEndEffectorPos.setValue(state, pos); }
@@ -71,8 +71,8 @@ public:
     {   return m_sampledAngles.getValue(s); }
     const SimTK::Vector& getSampledRates(const SimTK::State& s) const
     {   return m_sampledRates.getValue(s); }
-    const SimTK::Vec3& getSampledPelvisPos(const SimTK::State& s) const
-    {   return m_sampledPelvisPos.getValue(s); }
+    const SimTK::Transform& getSampledPelvisPose(const SimTK::State& s) const
+    {   return m_sampledPelvisPose.getValue(s); }
     const SimTK::Vec3& getSampledEndEffectorPos(const SimTK::State& s) const
     {   return m_sampledEndEffectorPos.getValue(s); }
 
@@ -112,7 +112,9 @@ public:
     const SimTK::MobilizedBody& getBody(const std::string& name) const {
         return m_urdfRobot.links.getLink(name).masterMobod;
     }
-
+    SimTK::MobilizedBody& updBody(const std::string& name) {
+        return m_urdfRobot.links.updLink(name).masterMobod;
+    }
     const SimTK::MobilizedBody& getEndEffectorBody() const {
         return m_urdfRobot.links.getLink(m_endEffectorLinkName).masterMobod;
     }
@@ -130,7 +132,7 @@ private:
     SimTK::Force::Gravity                       m_gravity;
     SimTK::Measure_<SimTK::Vector>::Variable    m_sampledAngles;
     SimTK::Measure_<SimTK::Vector>::Variable    m_sampledRates;
-    SimTK::Measure_<SimTK::Vec3>::Variable      m_sampledPelvisPos;
+    SimTK::Measure_<SimTK::Transform>::Variable m_sampledPelvisPose;
     SimTK::Measure_<SimTK::Vec3>::Variable      m_sampledEndEffectorPos;
     SimTK::Measure_<SimTK::Real>::Variable      m_qNoise;
     SimTK::Measure_<SimTK::Real>::Variable      m_uNoise;

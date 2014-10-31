@@ -85,12 +85,16 @@ public:
 
     void toggleGravityComp() {
         updImpl().m_compensateForGravity = !isGravityCompensationOn();}
+    void togglePoseControl() {
+        updImpl().m_controlPose = !isPoseControlOn();}
     void toggleTask() {updImpl().m_controlTask = !getImpl().m_controlTask;}
     void toggleEndEffectorSensing() 
     {   updImpl().m_endEffectorSensing = !getImpl().m_endEffectorSensing;}
 
     bool isGravityCompensationOn() const 
     {   return getImpl().m_compensateForGravity; }
+    bool isPoseControlOn() const 
+    {   return getImpl().m_controlPose; }
     bool isEndEffectorSensingOn() const 
     {   return getImpl().m_endEffectorSensing; }
     bool isTaskPointFollowingOn() const
@@ -115,10 +119,13 @@ public:
         m_derivativeGain(derivativeGain),
         m_jointPositionGain(100),
         m_jointDampingGain(20),
+        //m_jointPositionGain(225),
+        //m_jointDampingGain(30),
         m_compensateForGravity(true),
+        m_controlPose(true),
         m_controlTask(false),
         m_endEffectorSensing(false),
-        m_desiredTaskPosInGround(Vec3(0.4, 0.1, 1)) // Z is up
+        m_desiredTaskPosInGround(Vec3(0.4, -0.1, 1)) // Z is up
     {       
         //TODO: should have end effector body
         m_tspace1.addStationTask(m_modelRobot.getEndEffectorBody(),
@@ -157,6 +164,7 @@ friend class TasksMeasure<T>;
     const Real      m_jointDampingGain;
 
     bool            m_compensateForGravity;
+    bool            m_controlPose;
     bool            m_controlTask;
     bool            m_endEffectorSensing;
     Vec3            m_desiredTaskPosInGround;
@@ -202,6 +210,7 @@ public:
     void setTarget(Vec3 pos) {m_modelTasks.setTarget(pos);}
 
     void toggleGravityComp() {m_modelTasks.toggleGravityComp();}
+    void togglePoseControl() {m_modelTasks.togglePoseControl();}
     void toggleTask() {m_modelTasks.toggleTask();}
     void toggleEndEffectorSensing() {m_modelTasks.toggleEndEffectorSensing();}
 
@@ -275,7 +284,20 @@ int main(int argc, char **argv) {
     const double duration = Infinity; // seconds.
 
     // Create the "real" robot (the one that is being simulated).
-    Atlas realRobot("atlas_v4_locked_pelvis.urdf");
+    //Atlas realRobot("atlas_v4_locked_pelvis.urdf");
+    Atlas realRobot("atlas_v4_free_pelvis.urdf");
+
+    // Weld the feet to the floor.
+    Constraint::Weld(realRobot.updMatterSubsystem().Ground(),Vec3(-.1,.1,0),
+                     realRobot.updBody("l_foot"), Vec3(0,0,-.1));
+    Constraint::Weld(realRobot.updMatterSubsystem().Ground(),Vec3(.1,-.1,0),
+                     realRobot.updBody("r_foot"), Vec3(0,0,-.1));
+
+    // Add a sinusoidal prescribed motion to the pelvis.
+    MobilizedBody pelvis = realRobot.updBody("pelvis");
+    Motion::Sinusoid(pelvis, Motion::Position,
+                     .1, .5, 0);
+
 
     // Add the controller.
     ReachingAndGravityCompensation* controller =
@@ -310,6 +332,13 @@ int main(int argc, char **argv) {
     realRobot.initialize(s);
     printf("Real robot has %d dofs.\n", s.getNU());
     controller->mapModelToRealRobot(s);
+
+    // Bend knees and hips so assembly will come out reasonable.
+    realRobot.getBody("l_uleg").setOneQ(s,0,-.3);   // hips
+    realRobot.getBody("r_uleg").setOneQ(s,0,-.3);
+    realRobot.getBody("l_lleg").setOneQ(s,0,1);     // knees
+    realRobot.getBody("r_lleg").setOneQ(s,0,1);
+    realRobot.realize(s);
 
     //RungeKuttaMersonIntegrator integ(realRobot);
     SemiExplicitEuler2Integrator integ(realRobot);
@@ -369,8 +398,8 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     // The desired task position is in Ground. We need instead to measure it
     // from the real robot's pelvis origin so that we can translate it into the 
     // model's pelvis-centric viewpoint.
-    const Vec3 p_GP   = m_modelRobot.getSampledPelvisPos(ms);
-    const Vec3 x1_des = m_desiredTaskPosInGround - p_GP;
+    const Transform& X_GP   = m_modelRobot.getSampledPelvisPose(ms);
+    const Vec3 x1_des = ~X_GP*m_desiredTaskPosInGround; // measure in P
 
 
     // Compute control law in task space (F*).
@@ -391,8 +420,8 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
         // the real robot's end effector from its pelvis location. We don't
         // have to modify x1d because we want the end effector stationary
         // in Ground, not in the pelvis.
-        x1 = m_modelRobot.getSampledEndEffectorPos(ms);
-        x1 -= p_GP; // measure end effector from pelvis origin
+        const Vec3& x1_G = m_modelRobot.getSampledEndEffectorPos(ms);
+        x1 = ~X_GP*x1_G; // measure end effector in pelvis frame
     }
 
     // Units of acceleration.
@@ -403,9 +432,8 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     Vector F1 = p1.Lambda(ms) * Fstar1 + p1.mu(ms) + p1.p(ms);
     //Vector F2 = p2.calcInverseDynamics(ms, Fstar2);
 
-    // Combine the reaching task with the gravity compensation and nullspace
-    // damping.
-    // Gamma = J1T F1 + N1T J1T F2 + N1T N2T (g - c u)
+    // Combine the reaching task with the gravity compensation and pose 
+    // control to a neutral q=0 pose with u=0 also.
     const Vector& q = ms.getQ();
     const Vector& u = ms.getU();
     const Real k = m_jointPositionGain;
@@ -415,30 +443,23 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     m_modelRobot.getMatterSubsystem().multiplyByM(ms, q, Mq);
 
     tau.setToZero();
-    //tau +=   p1.JT(s) * F1 
-    //              + p1.NT(s) * (  p2.JT(s) * F2 
-    //                            + p2.NT(s) * (p1.g(s) - c * u));
-
-
+    const Real gFac = m_compensateForGravity?1.:0.;
+    const Real pFac = m_controlPose?1.:0.;
     if (m_controlTask) {
         tau += p1.JT(ms) * F1;
-        if (m_compensateForGravity)
-            tau += p1.NT(ms) * p1.g(ms);
-        tau -= p1.NT(ms) * (k*Mq + c*Mu); // damping
-    } else if (m_compensateForGravity) {
-        tau += p1.g(ms) - (k*Mq + c*Mu);
+        tau += p1.NT(ms) * (gFac*p1.g(ms) - pFac*k*Mq - c*Mu); // damping always
     } else 
-        tau -= k*Mq + c*Mu;
+        tau += gFac*p1.g(ms) - (pFac*k*Mq + c*Mu);
 
     // Cut tau back to within effort limits.
     // TODO: can't use these limits with one-foot support!
     const Vector& effortLimits = m_modelRobot.getEffortLimits();
     for (int i=0; i < mnu; ++i) {
-        const Real oldtau = tau[i], effort = effortLimits[i];
+        const Real oldtau = tau[i], effort = 10*effortLimits[i]; // cheating
         if (std::abs(oldtau) <= effort) continue;
         const Real newtau = clamp(-effort, oldtau, effort);
         //printf("Limit tau[%d]: %g -> %g\n", i, oldtau, newtau);
-        //tau[i] = newtau;
+        tau[i] = newtau;
     }
 
 }
@@ -466,6 +487,9 @@ mapModelToRealRobot(const State& realState) {
                   mnq = modelMobod.getNumQ(m_modelState),
                   mu0 = modelMobod.getFirstUIndex(m_modelState),
                   mq0 = modelMobod.getFirstQIndex(m_modelState);
+        if (mnu==0)
+            continue; // this is fixed in the model; might not be in real robot
+
         const int rnu = realMobod.getNumU(realState), 
                   rnq = realMobod.getNumQ(realState),
                   ru0 = realMobod.getFirstUIndex(realState),
@@ -508,15 +532,21 @@ void ReachingAndGravityCompensation::calcForce(
         m_modelRobot.setJointRate(m_modelState, UIndex(i), 
                                   sensedU[m_model2realU[i]]);
 
-    // We have to know whether the real robot's pelvis is since we're
-    // going to control the end effector relative to the pelvis.
-    const Vec3 sensedPelvisPos = m_realRobot.getSampledPelvisPos(realState);
-    m_modelRobot.setSampledPelvisPos(m_modelState, sensedPelvisPos);
+    // We have to know the pose of the real robot's pelvis so we can figure
+    // out the pelvis-relative location of the end effector, and the effective
+    // gravity direction since the model robot has its pelvis frame welded to
+    // its Ground frame.
+
+    const Transform& X_GP = m_realRobot.getSampledPelvisPose(realState);
+    m_modelRobot.setSampledPelvisPose(m_modelState, X_GP);
+
+    m_modelRobot.getGravity()
+       .setDownDirection(m_modelState, ~X_GP.R()*UnitVec3(-ZAxis));
 
     // Optional: if real robot end effector location can be sensed, it can
     // be used to improve accuracy. Otherwise, estimate the end effector
     // location using the model robot.
-    const Vec3 sensedEEPos = m_realRobot.getSampledEndEffectorPos(realState);
+    const Vec3& sensedEEPos = m_realRobot.getSampledEndEffectorPos(realState);
     m_modelRobot.setSampledEndEffectorPos(m_modelState, sensedEEPos);
 
     // Calculate model kinematics.
@@ -551,12 +581,14 @@ calcDecorativeGeometryAndAppend(const State & state, Stage stage,
     Vec3 taskPosInGround = ee.findStationLocationInGround(state,
                                         m_realRobot.getEndEffectorStation());
     geometry.push_back(DecorativePoint(taskPosInGround)
-            .setColor(Green).setLineThickness(3));
+                       .setColor(Green).setLineThickness(3));
 
     geometry.push_back(DecorativeText(String("TOGGLES: [t]Task point ")
         + (m_modelTasks.isTaskPointFollowingOn() ? "ON" : "OFF")
         + "...[g]Gravity comp "
         + (m_modelTasks.isGravityCompensationOn() ? "ON" : "OFF")
+        + "...[p]Posture control "
+        + (m_modelTasks.isPoseControlOn() ? "ON" : "OFF")
         + "...[e]End effector sensor "
         + (m_modelTasks.isEndEffectorSensingOn() ? "ON" : "OFF")
         )
@@ -593,6 +625,10 @@ void UserInputHandler::handleEvent(State& realState, Real accuracy,
             }
             if (key == 'g') {
                 m_controller.toggleGravityComp();
+                continue;
+            }
+            if (key == 'p') {
+                m_controller.togglePoseControl();
                 continue;
             }
             if (key == 't') {
