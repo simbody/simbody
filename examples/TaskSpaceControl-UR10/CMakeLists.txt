@@ -2,12 +2,10 @@
 # Simbody source build. This must be invoked as a CMake subdirectory from
 # the main examples CMakeLists.txt file.
 
-set(ex_name TaskSpaceControl-UR10)
 set(header_files UR10.h)
 set(source_files TaskSpaceControl-UR10.cpp UR10.cpp)
 
-ADD_DEFINITIONS(
-    -DSIMBODY_EXAMPLE_INSTALL_DIR="${EXAMPLES_INSTALL_SRC}/${ex_name}/")
+ADD_DEFINITIONS("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
 
 IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
     # Link with shared library

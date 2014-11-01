@@ -280,6 +280,9 @@ int main(int argc, char **argv) {
     cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
     Matrix().dump("Ignore this"); // force load for debugging
 
+    cout << "Example name: " << SIMBODY_EXAMPLE_NAME << endl;
+    cout << "Install dir: " << SIMBODY_EXAMPLES_INSTALL_SRC << endl;
+
     // Set some options.
     const double duration = Infinity; // seconds.
 
