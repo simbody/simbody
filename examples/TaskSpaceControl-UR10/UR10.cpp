@@ -120,7 +120,8 @@ UR10::UR10()
 
     String dir;
     if (!Pathname::fileExists("geometry/Base.obj")) {
-        dir = SIMBODY_EXAMPLE_INSTALL_DIR; // where this example's files go
+        dir = SIMBODY_EXAMPLES_INSTALL_SRC;
+        dir += SIMBODY_EXAMPLE_NAME; // where this example's files go
     }
 
     baseMesh.loadObjFile(dir + "geometry/Base.obj");
