@@ -54,7 +54,7 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 #include "Simbody.h"
 #include "Atlas.h"
 
-#include "../shared/SimbodyExampleHelper.h"
+#include "shared/SimbodyExampleHelper.h"
 
 #include <iostream>
 

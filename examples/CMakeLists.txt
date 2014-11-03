@@ -22,6 +22,14 @@
 #    .  (current directory first)
 #    ./examples/${SIMBODY_EXAMPLE_NAME}
 #    ${SIMBODY_EXAMPLES_INSTALL_SRC}${SIMBODY_EXAMPLE_NAME}
+#
+# There is also a "shared" directory that has shared header files for
+# the examples, but also may contain shared auxiliary files like common
+# geometric shapes. In that case it must also be located at run time
+# using the search path:
+#    ../shared   (parallel to current directory first)
+#    ./examples/shared
+#    ${SIMBODY_EXAMPLES_INSTALL_SRC}shared
 # 
 # Installed shared files can always be found in
 #    ${SIMBODY_EXAMPLES_INSTALL_SRC}shared
@@ -63,11 +71,16 @@ SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
 ADD_DEFINITIONS(
     "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_SRC}\"")
 
-# Examples can depend on any Simbody includes.
+# Examples can depend on any Simbody includes, and may depend on headers
+# in the examples/shared directory, in which case they should be
+# included as #include "shared/SharedHeaderFile.h". This also permits use 
+# of headers between examples, via #include "OtherExample/SomeHeader.h",
+# although it is not clear that's a good idea.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
 	                ${SimTKCOMMON_INCLUDE_DIRECTORIES}
 	                ${SimTKMATH_INCLUDE_DIRECTORIES}
 	                ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Build examples against the unversioned libraries if they are being 
 ## built; otherwise against the versioned libraries.

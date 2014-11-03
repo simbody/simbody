@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "Simbody.h"
-#include "../shared/SimbodyExampleHelper.h"
+#include "shared/SimbodyExampleHelper.h"
 
 #include <fstream>
 #include <iostream>

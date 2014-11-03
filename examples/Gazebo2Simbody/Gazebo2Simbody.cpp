@@ -119,7 +119,7 @@ Ball constraint (-3 dofs) is mostly indistinguishable from a Ball mobilizer
 (+3 dofs), we'll substitute a Ball constraint when breaking a loop at a
 ball joint, resulting in a smaller system overall. */
 #include "Simbody.h"
-#include "../shared/SimbodyExampleHelper.h"
+#include "shared/SimbodyExampleHelper.h"
 
 #include <utility>
 #include <string>
