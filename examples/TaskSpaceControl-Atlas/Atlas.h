@@ -34,9 +34,9 @@ The up direction is Z.
 
 class Atlas : public SimTK::MultibodySystem {
 public:
-    // Should be just the file name and extension; will search in models/
-    // directory.
-    explicit Atlas(const std::string& urdfFileName);
+    // Should be just the file name and extension; will search in 
+    // auxDir/models/ directory.
+    Atlas(const std::string& auxDir, const std::string& urdfFileName);
 
     // Return the parsed-in version of the URDF specification.
     const URDFRobot& getURDFRobot() const {return m_urdfRobot;}

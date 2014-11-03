@@ -145,9 +145,18 @@ ENDIF()
 FILE(GLOB SRC_FILES "*.cpp" "*.h")
 INSTALL(FILES ${SRC_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC})
 
-# install shared source and other files
-FILE(GLOB SHARED_FILES "shared/*")
-INSTALL(FILES ${SHARED_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC}/shared)
+# install shared source and other files; also copy to binary directory
+# so we can use them when running from the build
+FILE(GLOB_RECURSE SHARED_FILES 
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/shared"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shared/*")
+FOREACH(one_shared_file ${SHARED_FILES})
+    CONFIGURE_FILE(shared/${one_shared_file}
+       ${CMAKE_CURRENT_BINARY_DIR}/shared/${one_shared_file} COPYONLY)
+ENDFOREACH()
+
+INSTALL(DIRECTORY shared/
+        DESTINATION ${EXAMPLES_INSTALL_SRC}shared) # already has "/"
 
 # install .txt files except CMakeLists.txt
 FILE(GLOB TXT_FILES "*.txt")

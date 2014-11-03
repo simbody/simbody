@@ -51,7 +51,7 @@ private:
 //                            UR10 CONSTRUCTOR
 //------------------------------------------------------------------------------
 // Build a Simbody System of the Universal Robotics UR10 robot arm.
-UR10::UR10()
+UR10::UR10(const std::string& auxDir)
 :   m_matter(*this), m_forces(*this), 
     m_sampledAngles(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
     m_sampledRates(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
@@ -118,19 +118,13 @@ UR10::UR10()
     PolygonalMesh baseMesh, shoulderMesh, upperArmMesh, forearmMesh,
                   wrist1Mesh, wrist2Mesh, wrist3Mesh;
 
-    String dir;
-    if (!Pathname::fileExists("geometry/Base.obj")) {
-        dir = SIMBODY_EXAMPLES_INSTALL_SRC;
-        dir += SIMBODY_EXAMPLE_NAME; // where this example's files go
-    }
-
-    baseMesh.loadObjFile(dir + "geometry/Base.obj");
-    shoulderMesh.loadObjFile(dir + "geometry/Shoulder.obj");
-    upperArmMesh.loadObjFile(dir + "geometry/UpperArm.obj");
-    forearmMesh.loadObjFile(dir + "geometry/Forearm.obj");
-    wrist1Mesh.loadObjFile(dir + "geometry/Wrist1.obj");
-    wrist2Mesh.loadObjFile(dir + "geometry/Wrist2.obj");
-    wrist3Mesh.loadObjFile(dir + "geometry/Wrist3.obj");
+    baseMesh.loadObjFile(auxDir + "geometry/Base.obj");
+    shoulderMesh.loadObjFile(auxDir + "geometry/Shoulder.obj");
+    upperArmMesh.loadObjFile(auxDir + "geometry/UpperArm.obj");
+    forearmMesh.loadObjFile(auxDir + "geometry/Forearm.obj");
+    wrist1Mesh.loadObjFile(auxDir + "geometry/Wrist1.obj");
+    wrist2Mesh.loadObjFile(auxDir + "geometry/Wrist2.obj");
+    wrist3Mesh.loadObjFile(auxDir + "geometry/Wrist3.obj");
 
     m_matter.updGround().addBodyDecoration(Vec3(0), 
                DecorativeFrame(0.5));

@@ -52,7 +52,8 @@ sheet).
 
 class UR10 : public SimTK::MultibodySystem {
 public:
-    UR10();
+    // Pass in the directory to use for getting geometry/xxx mesh files.
+    explicit UR10(const std::string& auxDir);
 
     enum Link {
         Ground      = 0,    // These are MobilizedBody indices.

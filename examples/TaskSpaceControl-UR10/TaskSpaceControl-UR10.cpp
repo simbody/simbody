@@ -53,6 +53,8 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 #include "Simbody.h"
 #include "UR10.h"
 
+#include "../shared/SimbodyExampleHelper.h"
+
 #include <iostream>
 
 using namespace SimTK;
@@ -183,9 +185,10 @@ public:
     //                                   to control.
     // @param[in] proportionalGain Units of N-m/rad
     // @param[in] derivativeGain Units of N-m-s/rad
-    ReachingAndGravityCompensation(const UR10& realRobot) 
-    :   m_modelRobot(), m_modelTasks(m_modelRobot), m_realRobot(realRobot),
-        m_targetColor(Red)
+    ReachingAndGravityCompensation(const std::string& auxDir, 
+                                   const UR10& realRobot) 
+    :   m_modelRobot(auxDir), m_modelTasks(m_modelRobot), 
+        m_realRobot(realRobot), m_targetColor(Red)
     {
         m_modelRobot.initialize(m_modelState);
     }
@@ -257,17 +260,24 @@ private:
 //==============================================================================
 int main(int argc, char **argv) {
   try {
+    cout << "This is Simbody example '" 
+         << SimbodyExampleHelper::getExampleName() << "'\n";
     cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
+
+    const std::string auxDir = 
+        SimbodyExampleHelper::findAuxiliaryDirectoryContaining
+        ("geometry/Base.obj");
+    std::cout << "Getting geometry from '" << auxDir << "'\n";
 
     // Set some options.
     const double duration = Infinity; // seconds.
 
     // Create the "real" robot (the one that is being simulated).
-    UR10 realRobot;
+    UR10 realRobot(auxDir);
 
     // Add the controller.
     ReachingAndGravityCompensation* controller =
-        new ReachingAndGravityCompensation(realRobot);
+        new ReachingAndGravityCompensation(auxDir, realRobot);
     // Force::Custom takes ownership over controller.
     Force::Custom control(realRobot.updForceSubsystem(), controller);
 

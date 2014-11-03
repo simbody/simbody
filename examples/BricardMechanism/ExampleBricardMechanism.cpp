@@ -22,6 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "Simbody.h"
+#include "../shared/SimbodyExampleHelper.h"
 
 #include <fstream>
 #include <iostream>
@@ -64,8 +65,14 @@ private:
 int main()
 {
   try {
-    const String currentWorkingDir = Pathname::getCurrentWorkingDirectory();
-    std::cout << "Current working directory: " << currentWorkingDir << std::endl;
+    cout << "This is Simbody example '" 
+         << SimbodyExampleHelper::getExampleName() << "'\n";
+    cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
+
+    const std::string auxDir = 
+        SimbodyExampleHelper::findAuxiliaryDirectoryContaining
+        ("geometry/Bricard_EVEN_PART.obj");
+    std::cout << "Getting geometry from '" << auxDir << "'\n";
 
 	MultibodySystem system;
 	SimbodyMatterSubsystem matter(system);
@@ -105,17 +112,17 @@ int main()
 							                    OddBodyInertia/2));
 
 	std::ifstream file1, file2;
-	PolygonalMesh Mesh1; file1.open("geometry/Bricard_EVEN_PART.obj"); 
+	PolygonalMesh Mesh1; file1.open(auxDir + "geometry/Bricard_EVEN_PART.obj"); 
     if (!file1.good()) {
         std::cout << "Couldn't open file 'geometry/Bricard_EVEN_PART.obj' in current working directory " 
-            << currentWorkingDir << std::endl;
+            << auxDir << std::endl;
         exit(1);
     }
     Mesh1.loadObjFile(file1); file1.close();
-	PolygonalMesh Mesh2; file2.open("geometry/Bricard_ODD_PART.obj"); 
+	PolygonalMesh Mesh2; file2.open(auxDir + "geometry/Bricard_ODD_PART.obj"); 
     if (!file2.good()) {
         std::cout << "Couldn't open file 'geometry/Bricard_ODD_PART.obj' in current working directory " 
-            << currentWorkingDir << std::endl;
+            << auxDir << std::endl;
         exit(1);
     }    
     Mesh2.loadObjFile(file2); file2.close();

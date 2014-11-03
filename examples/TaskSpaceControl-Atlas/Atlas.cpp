@@ -52,7 +52,8 @@ private:
 static void createMultibodyGraph(URDFRobot&             robot,
                                  MultibodyGraphMaker&   mbgraph);
 
-static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
+static void addRobotToSimbodySystem(const std::string&         auxDir,
+                                    const MultibodyGraphMaker& mbgraph,
                                     URDFRobot&                 robot,
                                     MultibodySystem&           mbs,
                                     SimbodyMatterSubsystem&    matter,
@@ -63,7 +64,7 @@ static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
 //                            ATLAS CONSTRUCTOR
 //------------------------------------------------------------------------------
 // Build a Simbody System of the Boston Dynamics Atlas robot.
-Atlas::Atlas(const std::string& fileNameAndExt)
+Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
 :   m_matter(*this), m_forces(*this), m_tracker(*this), 
     m_contact(*this, m_tracker),
     m_sampledAngles(*this, Stage::Dynamics, Vector()),
@@ -73,7 +74,7 @@ Atlas::Atlas(const std::string& fileNameAndExt)
     m_qNoise(*this,Stage::Dynamics,Zero), m_uNoise(*this,Stage::Dynamics,Zero),
     m_endEffectorLinkName("r_hand"), m_endEffectorStation(0,-.15,0)
 {
-    const std::string urdfPathName = "models/" + fileNameAndExt;
+    const std::string urdfPathName = auxDir + "models/" + fileNameAndExt;
 
     setUpDirection(ZAxis);
     m_matter.setShowDefaultGeometry(false);
@@ -125,7 +126,7 @@ Atlas::Atlas(const std::string& fileNameAndExt)
     //--------------------------------------------------------------------------
     //                          Build Simbody System
     //--------------------------------------------------------------------------
-    addRobotToSimbodySystem(m_mbGraph, m_urdfRobot, 
+    addRobotToSimbodySystem(auxDir, m_mbGraph, m_urdfRobot, 
                             *this, m_matter, m_forces, m_contact);
 }
 
@@ -236,7 +237,8 @@ void Atlas::initialize(SimTK::State& state) {
 // The URDFRobot is updated so that its links and joints have references to
 // their corresponding Simbody elements.
 
-static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
+static void addRobotToSimbodySystem(const std::string&         auxDir,
+                                    const MultibodyGraphMaker& mbgraph,
                                     URDFRobot&                 robot,
                                     MultibodySystem&           mbs,
                                     SimbodyMatterSubsystem&    matter,
@@ -470,7 +472,7 @@ static void addRobotToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     Pathname::deconstructPathname(pathname, isAbsolutePath,
                                                   dir, fn, ext);
                     PolygonalMesh polyMesh;
-                    polyMesh.loadStlFile(dir + "geometry/" + fn + ".stl");
+                    polyMesh.loadStlFile(auxDir + "geometry/" + fn + ".stl");
                     DecorativeMesh decMesh(polyMesh);
                     decMesh.setColor(Cyan).setScaleFactors(scale);
                     mobod.addBodyDecoration(X_LV, decMesh);

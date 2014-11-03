@@ -119,6 +119,7 @@ Ball constraint (-3 dofs) is mostly indistinguishable from a Ball mobilizer
 (+3 dofs), we'll substitute a Ball constraint when breaking a loop at a
 ball joint, resulting in a smaller system overall. */
 #include "Simbody.h"
+#include "../shared/SimbodyExampleHelper.h"
 
 #include <utility>
 #include <string>
@@ -343,11 +344,14 @@ static void runSimulation(const MultibodySystem&          mbs,
                           const std::vector<GazeboModel>& gzModels);
 
 int main(int argc, const char* argv[]) {
+    cout << "This is Simbody example '" 
+         << SimbodyExampleHelper::getExampleName() << "'\n";
+
     std::string sdfFileName;
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " filename.sdf\n";
-        std::cout << "Trying models/ragdoll.sdf by default.\n";
-        sdfFileName = "models/ragdoll.sdf";
+        std::cout << "Trying ragdoll.sdf by default.\n";
+        sdfFileName = "ragdoll.sdf";
     } else
         sdfFileName = argv[1];
 
@@ -355,10 +359,16 @@ int main(int argc, const char* argv[]) {
     //---------------------------- OPEN INPUT FILE -----------------------------
     // Attempt to identify this as a Gazebo input file, find the World
     // to get gravity and locate the Models.
-    std::cout << "Working directory: " 
-              << Pathname::getCurrentWorkingDirectory() << std::endl;
-    std::cout << "Reading file: " << sdfFileName << std::endl;
-    Xml::Document sdf(sdfFileName);
+    cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
+
+    const std::string auxDir = 
+        SimbodyExampleHelper::findAuxiliaryDirectoryContaining
+        ("models/" + sdfFileName);
+    std::cout << "Getting models from '" << auxDir << "'\n";
+
+    const std::string fullSdfPathName = auxDir + "models/" + sdfFileName;
+    std::cout << "Reading file: " << fullSdfPathName << std::endl;
+    Xml::Document sdf(fullSdfPathName);
 
     if (sdf.getRootTag() != "sdf" && sdf.getRootTag() != "gazebo")
         throw std::runtime_error

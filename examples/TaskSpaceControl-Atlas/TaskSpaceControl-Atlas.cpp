@@ -54,6 +54,8 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 #include "Simbody.h"
 #include "Atlas.h"
 
+#include "../shared/SimbodyExampleHelper.h"
+
 #include <iostream>
 
 using namespace SimTK;
@@ -185,15 +187,9 @@ friend class TasksMeasure<T>;
 // for the internal model, but returns them to be applied to the real Atlas.
 class ReachingAndGravityCompensation : public Force::Custom::Implementation {
 public:
-    // The arm reaches for a target location, and the controller
-    // compensates for gravity.
-    // 
-    // @param[in] taskPointInEndEffector The point whose location we want
-    //                                   to control.
-    // @param[in] proportionalGain Units of N-m/rad
-    // @param[in] derivativeGain Units of N-m-s/rad
-    ReachingAndGravityCompensation(const Atlas& realRobot) 
-    :   m_modelRobot("atlas_v4_upper.urdf"), m_modelTasks(m_modelRobot), 
+    ReachingAndGravityCompensation(const std::string& auxDir, 
+                                   const Atlas& realRobot) 
+    :   m_modelRobot(auxDir, "atlas_v4_upper.urdf"), m_modelTasks(m_modelRobot), 
         m_realRobot(realRobot), m_targetColor(Red)
     {
         m_modelRobot.initialize(m_modelState);
@@ -256,7 +252,7 @@ private:
 class UserInputHandler : public PeriodicEventHandler {
 public:
     UserInputHandler(Visualizer::InputSilo&             silo,
-                     Atlas&                              realRobot,
+                     Atlas&                             realRobot,
                      ReachingAndGravityCompensation&    controller, 
                      Real                               interval)
     :   PeriodicEventHandler(interval), m_silo(silo), m_realRobot(realRobot),
@@ -277,18 +273,21 @@ private:
 //==============================================================================
 int main(int argc, char **argv) {
   try {
+    cout << "This is Simbody example '" 
+         << SimbodyExampleHelper::getExampleName() << "'\n";
     cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
-    Matrix().dump("Ignore this"); // force load for debugging
 
-    cout << "Example name: " << SIMBODY_EXAMPLE_NAME << endl;
-    cout << "Install dir: " << SIMBODY_EXAMPLES_INSTALL_SRC << endl;
+    const std::string auxDir = 
+        SimbodyExampleHelper::findAuxiliaryDirectoryContaining
+        ("models/atlas_v4_free_pelvis.urdf");
+    std::cout << "Getting geometry and models from '" << auxDir << "'\n";
 
     // Set some options.
     const double duration = Infinity; // seconds.
 
     // Create the "real" robot (the one that is being simulated).
     //Atlas realRobot("atlas_v4_locked_pelvis.urdf");
-    Atlas realRobot("atlas_v4_free_pelvis.urdf");
+    Atlas realRobot(auxDir, "atlas_v4_free_pelvis.urdf");
 
     // Weld the feet to the floor.
     Constraint::Weld(realRobot.updMatterSubsystem().Ground(),Vec3(-.1,.1,0),
@@ -304,7 +303,7 @@ int main(int argc, char **argv) {
 
     // Add the controller.
     ReachingAndGravityCompensation* controller =
-        new ReachingAndGravityCompensation(realRobot);
+        new ReachingAndGravityCompensation(auxDir, realRobot);
     // Force::Custom takes ownership over controller.
     Force::Custom control(realRobot.updForceSubsystem(), controller);
 

@@ -2,7 +2,7 @@
 # Simbody source build. This must be invoked as a CMake subdirectory from
 # the main examples CMakeLists.txt file.
 
-set(header_files Atlas.h URDFReader.h)
+set(header_files Atlas.h URDFReader.h ../shared/SimbodyExampleHelper.h)
 set(source_files TaskSpaceControl-Atlas.cpp Atlas.cpp URDFReader.cpp)
 
 ADD_DEFINITIONS("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
