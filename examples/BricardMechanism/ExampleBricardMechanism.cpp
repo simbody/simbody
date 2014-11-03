@@ -111,21 +111,9 @@ int main()
 	Body::Rigid ODD_PART_3_HALF2(MassProperties(Mass/2, OddCOM, 
 							                    OddBodyInertia/2));
 
-	std::ifstream file1, file2;
-	PolygonalMesh Mesh1; file1.open(auxDir + "geometry/Bricard_EVEN_PART.obj"); 
-    if (!file1.good()) {
-        std::cout << "Couldn't open file 'geometry/Bricard_EVEN_PART.obj' in current working directory " 
-            << auxDir << std::endl;
-        exit(1);
-    }
-    Mesh1.loadObjFile(file1); file1.close();
-	PolygonalMesh Mesh2; file2.open(auxDir + "geometry/Bricard_ODD_PART.obj"); 
-    if (!file2.good()) {
-        std::cout << "Couldn't open file 'geometry/Bricard_ODD_PART.obj' in current working directory " 
-            << auxDir << std::endl;
-        exit(1);
-    }    
-    Mesh2.loadObjFile(file2); file2.close();
+	PolygonalMesh Mesh1, Mesh2; 
+    Mesh1.loadObjFile(auxDir + "geometry/Bricard_EVEN_PART.obj"); 
+    Mesh2.loadObjFile(auxDir + "geometry/Bricard_ODD_PART.obj"); 
 
 	EVEN_PART_1.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(0.00000000, 1.00000000, 0.00000000)));
 	EVEN_PART_2.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(1.00000000, 0.00000000, 1.00000000)));
