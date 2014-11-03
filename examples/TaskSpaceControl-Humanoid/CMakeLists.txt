@@ -35,16 +35,6 @@ IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
     # Don't install static examples
 ENDIF()
 
-IF(NOT WIN32)
-  EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E create_symlink
-                  ${EXAMPLES_INSTALL_BIN}
-                  ${CMAKE_CURRENT_BINARY_DIR}/bin
-  )
-  INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin
-          DESTINATION ${EXAMPLES_SYMLINK_BIN}
-  )
-ENDIF()
-
 # install source for example
 INSTALL(FILES ${source_files} ${header_files}
         DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME})
