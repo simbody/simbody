@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_TASK_SPACE_H_
-#define SimTK_SIMBODY_TASK_SPACE_H_
+#ifndef SimTK_SIMBODY_EXAMPLE_SHARED_TASK_SPACE_H_
+#define SimTK_SIMBODY_EXAMPLE_SHARED_TASK_SPACE_H_
 
 /* -------------------------------------------------------------------------- *
  *                               Simbody(tm)                                  *
@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2014 Stanford University and the Authors.           *
  * Authors: Chris Dembia                                                      *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -110,12 +110,13 @@ public: \
 *     This is used to allocate cache entries.
 *  -# Access the quantities (perhaps in a calcForce method).
 *
-* Look at the ExampleOperationalSpace.cpp example to see how to use this class.
+* Look at the TaskSpaceControl-{UR10,Atlas} examples to see how to use this 
+* class.
 *
 * [1] Khatib, Oussama, et al. "Robotics-based synthesis of human motion."
 * Journal of physiology-Paris 103.3 (2009): 211-219.
 */
-class SimTK_SIMBODY_EXPORT TaskSpace
+class TaskSpace
 {
 public:
 
@@ -135,7 +136,7 @@ public:
     * it is the earliest stage at which the cache entry can be provided.
     */
     template <typename T, Stage::Level S=Stage::Position>
-    class SimTK_SIMBODY_EXPORT TaskSpaceQuantity {
+    class TaskSpaceQuantity {
     public:
         TaskSpaceQuantity() :
                 m_tspace(NULL), m_state(NULL), m_cacheIsValid(false) {
@@ -191,7 +192,7 @@ public:
 
     /** Relates task-space velocities to generalized speeds; (nst x nu).
     */
-    class SimTK_SIMBODY_EXPORT Jacobian : public TaskSpaceQuantity<Matrix> {
+    class Jacobian : public TaskSpaceQuantity<Matrix> {
     public:
         Jacobian() {}
         const JacobianTranspose& transpose() const;
@@ -208,7 +209,7 @@ public:
 
     /** Used to compute task-space forces; (nu x nst).
     */
-    class SimTK_SIMBODY_EXPORT JacobianTranspose : public TaskSpaceQuantity<Matrix> {
+    class JacobianTranspose : public TaskSpaceQuantity<Matrix> {
     public:
         JacobianTranspose() {}
         const Jacobian& transpose() const;
@@ -229,7 +230,7 @@ public:
     /** Task-space inertia matrix; \f$ \Lambda = (J A^{-1} J^T)^{-1} \f$
     * (nst x nst).
     */
-    class SimTK_SIMBODY_EXPORT Inertia : public TaskSpaceQuantity<Matrix> {
+    class Inertia : public TaskSpaceQuantity<Matrix> {
     public:
         Inertia() {}
         const InertiaInverse& inverse() const;
@@ -244,7 +245,7 @@ public:
     *
     * This is only needed for computing the Inertia matrix.
     */
-    class SimTK_SIMBODY_EXPORT InertiaInverse : public TaskSpaceQuantity<Matrix> {
+    class InertiaInverse : public TaskSpaceQuantity<Matrix> {
     public:
         InertiaInverse() {}
         const Inertia& inverse() const;
@@ -255,7 +256,7 @@ public:
     /** Mass-matrix weighted generalized inverse;
     * \f$ \bar{J} = A^{-1} J^T \Lambda \f$ (nu x nst).
     */
-    class SimTK_SIMBODY_EXPORT DynamicallyConsistentJacobianInverse :
+    class DynamicallyConsistentJacobianInverse :
         public TaskSpaceQuantity<Matrix> {
     public:
         DynamicallyConsistentJacobianInverse() {}
@@ -270,7 +271,7 @@ public:
 
     /** (nst x nu).
     */
-    class SimTK_SIMBODY_EXPORT DynamicallyConsistentJacobianInverseTranspose :
+    class DynamicallyConsistentJacobianInverseTranspose :
         public TaskSpaceQuantity<Matrix> {
     public:
         DynamicallyConsistentJacobianInverseTranspose() {}
@@ -285,7 +286,7 @@ public:
     /** Includes Coriolis forces and the like;
     * \f$ \mu = \bar{J}^T b - \Lambda \dot{J} u \f$ (nst x 1).
     */
-    class SimTK_SIMBODY_EXPORT InertialForces : public TaskSpaceQuantity<Vector, Stage::Velocity> {
+    class InertialForces : public TaskSpaceQuantity<Vector, Stage::Velocity> {
     public:
         InertialForces() {}
         Vector operator+(const Vector& f) const;
@@ -296,7 +297,7 @@ public:
     /** The task-space forces arising from gravity;
     * \f$ p = \bar{J}^T g \f$ (nst x 1).
     */
-    class SimTK_SIMBODY_EXPORT Gravity : public TaskSpaceQuantity<Vector> {
+    class Gravity : public TaskSpaceQuantity<Vector> {
     public:
         Gravity() {}
         Vector operator+(const Vector& f) const;
@@ -312,7 +313,7 @@ public:
 
     /** Used to prioritize tasks; \f$ N = I - \bar{J} J \f$ (nu x nu).
     */
-    class SimTK_SIMBODY_EXPORT NullspaceProjection :
+    class NullspaceProjection :
             public TaskSpaceQuantity<Matrix> {
     public:
         NullspaceProjection() {}
@@ -326,7 +327,7 @@ public:
 
     /** (nu x nu).
     */
-    class SimTK_SIMBODY_EXPORT NullspaceProjectionTranspose :
+    class NullspaceProjectionTranspose :
             public TaskSpaceQuantity<Matrix> {
     public:
         NullspaceProjectionTranspose() {}
@@ -514,5 +515,5 @@ inline Vector operator+(const Vector& f, const TaskSpace::Gravity& p)
 
 } // end namespace
 
-#endif // SimTK_SIMBODY_TASK_SPACE_H_
+#endif // SimTK_SIMBODY_EXAMPLE_SHARED_TASK_SPACE_H_
 

@@ -13,10 +13,11 @@
  *   dynamics for biomedical research, Procedia IUTAM 2:241-261 (2011)        *
  *   http://dx.doi.org/10.1016/j.piutam.2011.04.023.                          *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors: Jack Middleton, Christopher Bruns, Paul Mitiguy, Matthew     *
- *   Millard, Charles Schwieters, Abhinandan Jain, Isaac Newton               *
+ *   Millard, Thomas Uchida, Chris Dembia, Charles Schwieters,                *
+ *   Abhinandan Jain, Isaac Newton                                            *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -82,6 +83,5 @@ will include this one). **/
 #include "simbody/internal/ImpulseSolver.h"
 #include "simbody/internal/PGSImpulseSolver.h"
 #include "simbody/internal/PLUSImpulseSolver.h"
-#include "simbody/internal/TaskSpace.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_

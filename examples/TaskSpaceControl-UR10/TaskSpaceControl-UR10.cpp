@@ -52,6 +52,7 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 
 #include "Simbody.h"
 #include "UR10.h"
+#include "shared/TaskSpace.h"
 
 #include "shared/SimbodyExampleHelper.h"
 

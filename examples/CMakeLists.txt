@@ -57,7 +57,6 @@ set(SUBDIR_EXAMPLES
     Gazebo2Simbody
     TaskSpaceControl-UR10
     TaskSpaceControl-Atlas
-    TaskSpaceControl-Humanoid
 )
 
 IF(WIN32)

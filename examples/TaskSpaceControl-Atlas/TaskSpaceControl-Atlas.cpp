@@ -32,18 +32,36 @@ the "model" robot. In real life the internal model won't perfectly match the
 real one; we'll fake that here by introducing some sensor noise which you can
 control with sliders in the user interface.
 
-We assume the system has a direct-drive motor at each of its degrees of freedom.
+Here we assume the real robot has a balance controller that determines the
+lower body pose up to the "pelvis" link. The model controller consists only
+of the robot's upper body, with the pelvis frame welded to the Ground frame.
+We sample the real robot to determine the current pelvis pose, and use that
+to properly position the model controller. We are ignoring the pelvis velocity
+and acceleration, so this is only good enough if the pelvis moves slowly.
+For the example here, we move the pelvis around sinusoidally with the feet
+welded to the floor as a stand-in for the balance controller.
 
-The task the controller will achieve has two components:
-1. An arm reaches for a target point that can be moved with arrow keys.
-2. All links are subject to gravity compensation (to counteract the effect
-of gravity).
+We assume the system has a direct-drive torque motor at each of its degrees of
+freedom.
+
+The task the controller will achieve has several components:
+1. One of the robot's arms reaches for a target point that can be moved with 
+   arrow keys.
+2. Subject to achieving the reaching task, we try to keep the robot's pose
+   neutral in joint space, that is, with all joint angles and velocities zero.
+3. All links are subject to gravity compensation (to counteract the effect
+   of gravity). This is done in joint space and simply added to the pose control
+   torques.
+
+Each of the above effects may be disabled independently via letter keys in
+the visualizer window.
 
 You can also optionally sense the end effector position on the real robot
 and have that sent to the controller so that it doesn't have to depend 
 entirely on the behavior of the model robot when the real robot's sensors are
 noisy. Try cranking up the noise, which causes poor tracking, and then hit
 "e" to enable the end effector sensing which improves things dramatically.
+This works best with pose control off.
 
 For more information about operational space control, see:
 
@@ -53,6 +71,7 @@ Journal of physiology-Paris 103.3 (2009): 211-219.
 
 #include "Simbody.h"
 #include "Atlas.h"
+#include "shared/TaskSpace.h"
 
 #include "shared/SimbodyExampleHelper.h"
 
