@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2014 Stanford University and the Authors.           *
  * Authors: Chris Dembia, Michael Sherman                                     *
- * Contributors:                                                              *
+ * Contributors: John Hsu                                                     *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
