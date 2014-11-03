@@ -182,8 +182,3 @@ ENDFOREACH()
 # install the installed version of CMakeLists.txt
 INSTALL(FILES InstalledCMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_SRC}
     RENAME CMakeLists.txt)
-
-# install Makefile
-INSTALL(FILES "${PROJECT_SOURCE_DIR}/examples/Makefile"
-    DESTINATION ${EXAMPLES_INSTALL_SRC})
-
