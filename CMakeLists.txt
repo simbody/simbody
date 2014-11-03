@@ -611,10 +611,10 @@ add_custom_target(uninstall
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
 set(PKG_LIBRARIES
-  SimTKsimbody
-  SimTKmath
-  SimTKcommon
-)
+    ${SimTKSIMBODY_LIBRARY_NAME}
+    ${SimTKMATH_LIBRARY_NAME}
+    ${SimTKCOMMON_LIBRARY_NAME}
+    )
 
 if (WIN32)
   set(SIMBODY_CMAKE_DIR cmake)
