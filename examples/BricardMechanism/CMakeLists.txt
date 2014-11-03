@@ -43,7 +43,7 @@ FOREACH(extradir geometry)
   FOREACH(xfile ${extradir_file})
     GET_FILENAME_COMPONENT(xfile_name ${xfile} NAME)
     CONFIGURE_FILE(${xfile}
-                   ${CMAKE_CURRENT_BINARY_DIR}/${extradir} COPYONLY)
+        ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
     INSTALL(FILES ${xfile} DESTINATION 
             ${EXAMPLES_INSTALL_SRC}/${EX_NAME}/${extradir})
   ENDFOREACH()
