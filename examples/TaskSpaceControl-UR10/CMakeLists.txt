@@ -59,3 +59,8 @@ ENDFOREACH()
 # install source for example
 INSTALL(FILES ${source_files} ${header_files}
         DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME})
+
+# install the installed version of CMakeLists.txt
+INSTALL(FILES InstalledCMakeLists.txt 
+        DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME}
+        RENAME CMakeLists.txt)

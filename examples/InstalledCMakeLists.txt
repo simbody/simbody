@@ -1,114 +1,71 @@
-# Generate examples.
+# Build the Simbody examples from the current directory which should have
+# the structure of the installed examples/src directory. These will be 
+# linked against the installed version of Simbody. The full name of the 
+# current directory will be compiled into the examples so that they will
+# know where to look for auxiliary files.
 #
-# This is boilerplate code for generating a set of executables, one per
-# .cpp file in an "examples" subdirectory. These are intended to
-# be installed with the library but we don't handle installation
-# here. Unlike the similar boilerplate code in the "tests"
-# directory (but like the "tests/adhoc" boilerplate), this does
-# not generate CMake ADD_TEST commands so these will never run
-# automatically.
-#
-# For IDEs that can deal with PROJECT_LABEL properties (at least
-# Visual Studio) the projects for building each of these adhoc
-# executables will be labeled "Example - TheExampleName" if a file
-# TheExampleName.cpp is found in this directory.
-#
-# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to determine
-# whether to build dynamically linked, statically linked, or both
-# versions of the executable.
+cmake_minimum_required(VERSION 2.8)
+project(SimbodyExamples)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+# All subdirectory examples must be listed here.  A subdirectory is needed 
+# for any example that consists of more than just one source file and one 
+# header file.
+set(SUBDIR_EXAMPLES
+    BricardMechanism
+    Gazebo2Simbody
+    TaskSpaceControl-UR10
+    TaskSpaceControl-Atlas
+)
 
-PROJECT(SimTKExamples)
+# This depends on SimbodyConfig.cmake being located somewhere predictable
+# on your machine. If you have installed it somewhere that CMake won't be
+# able to guess, you'll need to tell find_package where to look.
+FIND_PACKAGE(Simbody REQUIRED)
 
-SET(BUILD_TESTS_AND_EXAMPLES_SHARED TRUE CACHE BOOL 
-		"Build examples using dynamic SimTK libraries.")
-SET(BUILD_TESTS_AND_EXAMPLES_STATIC FALSE CACHE BOOL
-		"Build examples using static SimTK libraries.")
+INCLUDE_DIRECTORIES(${Simbody_INCLUDE_DIR})
+LINK_DIRECTORIES(${Simbody_LIB_DIR})
 
-SET(SimTK_SHARED_LIBS 
-		optimized SimTKsimbody 
-		optimized SimTKmath
-		optimized SimTKcommon)
-SET(SimTK_SHARED_LIBS_D
-		debug SimTKsimbody_d 
-		debug SimTKmath_d
-		debug SimTKcommon_d)
+# Make all the executables end up together at the top level, even if we 
+# build some of them from subdirectories.
+SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+SET(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
-SET(SimTK_STATIC_LIBS 
-		optimized SimTKsimbody_static 
-		optimized SimTKmath_static
-		optimized SimTKcommon_static)
-SET(SimTK_STATIC_LIBS_D
-		debug SimTKsimbody_static_d 
-		debug SimTKmath_static_d
-		debug SimTKcommon_static_d)
+ADD_DEFINITIONS(
+    "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${CMAKE_CURRENT_SOURCE_DIR}/\"")
 
+# Examples can depend on any Simbody includes, and may depend on headers
+# in the examples/shared directory, in which case they are
+# included as #include "shared/SharedHeaderFile.h". 
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
-# These extra libraries are only available as a shared, optimized.
-IF(WIN32)
-	SET(SimTK_GENERAL_LIBS liblapack libblas pthreadVC2)
-ELSEIF(APPLE)
-ELSE() #Linux
-	SET(SimTK_GENERAL_LIBS dl rt)
-ENDIF()
+# First build examples that have their own subdirectories and CMakeLists
+# files. 
+foreach(EX_NAME ${SUBDIR_EXAMPLES})
+    ADD_SUBDIRECTORY(${EX_NAME})
+endforeach()
 
-SET(SimTK $ENV{SimTK_INSTALL_DIR} CACHE PATH
-		"Directory where SimTK is installed, e.g. /usr/local/SimTK.")
-
-IF(NOT SimTK)
-	MESSAGE(FATAL_ERROR 
-"Expected SimTK_INSTALL_DIR environment var to be set, or set SimTK in CMake")
-ENDIF(NOT SimTK)
-
-INCLUDE_DIRECTORIES(${SimTK}/include)
-LINK_DIRECTORIES(${SimTK}/lib)
-
-# On Mac, build 32 bit binaries.
-IF(APPLE)
-    SET(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "The processor architectures to build for" FORCE)
-ENDIF(APPLE)
+# Next pick up stragglers that consist solely of a .cpp file in the top
+# level examples directory, with a single .h file of the same name.
+# The example name is the source file name with ".cpp" removed, and
+# the generated executable will have that name.
 
 FILE(GLOB EXAMPLES "*.cpp")
 FOREACH(EX_PROG ${EXAMPLES})
-    GET_FILENAME_COMPONENT(EX_ROOT ${EX_PROG} NAME_WE)
+    GET_FILENAME_COMPONENT(EX_SRC  ${EX_PROG} NAME)
+    GET_FILENAME_COMPONENT(EX_NAME ${EX_PROG} NAME_WE)
+    set(EX_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${EX_NAME}.h")
+    if(NOT EXISTS ${EX_HEADER})
+        unset(EX_HEADER)
+    endif()
 
-    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
-        # Link with shared library
-        ADD_EXECUTABLE(${EX_ROOT} ${EX_PROG})
-        SET_TARGET_PROPERTIES(${EX_ROOT}
-		PROPERTIES
-	      PROJECT_LABEL "Example - ${EX_ROOT}")
-        TARGET_LINK_LIBRARIES(${EX_ROOT} 
-				${SimTK_SHARED_LIBS_D}
-				${SimTK_SHARED_LIBS}
-				${SimTK_GENERAL_LIBS})
-    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
-
-    IF (BUILD_TESTS_AND_EXAMPLES_STATIC)
-        # Link with static library
-        SET(EX_STATIC ${EX_ROOT}Static)
-        ADD_EXECUTABLE(${EX_STATIC} ${EX_PROG})
-        SET_TARGET_PROPERTIES(${EX_STATIC}
-		PROPERTIES
-		COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-		PROJECT_LABEL "Example - ${EX_STATIC}")
-        TARGET_LINK_LIBRARIES(${EX_STATIC}
-				${SimTK_STATIC_LIBS_D}
-				${SimTK_STATIC_LIBS}
-				${SimTK_GENERAL_LIBS})
-    ENDIF (BUILD_TESTS_AND_EXAMPLES_STATIC)
-
-ENDFOREACH(EX_PROG ${EXAMPLES})
-
-# If there are any .obj (geometry) or .pdb (protein data bank)
-# files, copy those to the binary directory which will likely be
-# the current working directory for the examples when run.
-# Also copy Gazebo .sdf files.
-FILE(GLOB EXAMPLE_OBJS "*.obj" "*.pdb" "*.sdf")
-FOREACH(EX_OBJ ${EXAMPLE_OBJS})
-    GET_FILENAME_COMPONENT(OBJ_ROOT ${EX_OBJ} NAME)
-    CONFIGURE_FILE(${EX_OBJ} 
-			${CMAKE_CURRENT_BINARY_DIR}/${OBJ_ROOT} COPYONLY)
-ENDFOREACH(EX_OBJ ${EXAMPLE_OBJS})
-
+    # Link with shared library
+    ADD_EXECUTABLE(${EX_NAME} ${EX_PROG} ${EX_HEADER})
+    IF(GUI_NAME)
+        ADD_DEPENDENCIES(${EX_NAME} ${GUI_NAME})
+    ENDIF()
+    SET_TARGET_PROPERTIES(${EX_NAME}
+    PROPERTIES
+      COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
+      PROJECT_LABEL "Example - ${EX_NAME}")
+    TARGET_LINK_LIBRARIES(${EX_NAME} ${Simbody_LIBRARIES})
+ENDFOREACH()

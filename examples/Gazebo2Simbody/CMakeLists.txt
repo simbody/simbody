@@ -3,13 +3,18 @@
 # the main examples CMakeLists.txt file.
 
 set(header_files)
+set(shared_header_files ../shared/SimbodyExampleHelper.h)
 set(source_files Gazebo2Simbody.cpp)
+set(shared_source_files)
+
+set(all_header_files ${header_files} ${shared_header_files})
+set(all_source_files ${source_files} ${shared_source_files})
 
 ADD_DEFINITIONS("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
 
 IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
     # Link with shared library
-    ADD_EXECUTABLE(${EX_NAME} ${source_files} ${header_files})
+    ADD_EXECUTABLE(${EX_NAME} ${all_source_files} ${all_header_files})
     IF(GUI_NAME)
         ADD_DEPENDENCIES(${EX_NAME} ${GUI_NAME})
     ENDIF()
@@ -23,7 +28,7 @@ ENDIF()
 IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
     # Link with static library
     SET(ex_static ${EX_NAME}Static)
-    ADD_EXECUTABLE(${ex_static} ${source_files} ${header_files})
+    ADD_EXECUTABLE(${ex_static} ${all_source_files} ${all_header_files})
     IF(GUI_NAME)
         ADD_DEPENDENCIES(${ex_static} ${GUI_NAME})
     ENDIF()
@@ -54,5 +59,6 @@ INSTALL(FILES ${source_files} ${header_files}
         DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME})
 
 # install the installed version of CMakeLists.txt
-#INSTALL(FILES InstalledCMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_SRC}
-#    RENAME CMakeLists.txt)
+INSTALL(FILES InstalledCMakeLists.txt 
+        DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME}
+        RENAME CMakeLists.txt)
