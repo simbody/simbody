@@ -4,6 +4,11 @@
 # current directory will be compiled into the examples so that they will
 # know where to look for auxiliary files.
 #
+# The executables will end up in the current binary directory or in
+# the subdirectories associated with the "SUBDIR_EXAMPLES" listed below.
+# For multi-configuration generators (e.g. Visual Studio or Xcode), the
+# executables will be in configuration subdirectories like Release/.
+#
 cmake_minimum_required(VERSION 2.8)
 project(SimbodyExamples)
 
@@ -31,11 +36,6 @@ IF(NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build"
         FORCE)
 ENDIF()
-
-# Make all the executables end up together at the top level, even if we 
-# build some of them from subdirectories.
-SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
-SET(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 # CMAKE_CURRENT_SOURCE_DIR is an absolute path.
 ADD_DEFINITIONS(
