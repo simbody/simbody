@@ -25,6 +25,13 @@ FIND_PACKAGE(Simbody REQUIRED)
 INCLUDE_DIRECTORIES(${Simbody_INCLUDE_DIR})
 LINK_DIRECTORIES(${Simbody_LIB_DIR})
 
+# Don't leave the build type blank on single-configuration generators;
+# make sure Release examples get built by default.
+IF(NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build"
+        FORCE)
+ENDIF()
+
 # Make all the executables end up together at the top level, even if we 
 # build some of them from subdirectories.
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
