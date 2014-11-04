@@ -30,11 +30,13 @@
 #    ../shared   (parallel to current directory first)
 #    ./examples/shared
 #    ${SIMBODY_EXAMPLES_INSTALL_SRC}shared
-# 
-# Installed shared files can always be found in
-#    ${SIMBODY_EXAMPLES_INSTALL_SRC}shared
-# TODO: how to access shared files from build?
 #
+# Examples can depend on any Simbody includes, and may depend on headers
+# in the examples/shared directory, in which case they should be
+# included as #include "shared/SharedHeaderFile.h". This also permits use 
+# of headers between examples, via #include "OtherExample/SomeHeader.h",
+# although it is not clear that's a good idea.
+# 
 # Note that unlike code in the "tests" directory (but like the 
 # "tests/adhoc" code), this does not generate CMake ADD_TEST commands so 
 # these will never run automatically.
@@ -67,14 +69,15 @@ ELSE()
 ENDIF()
 SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
 
+# CMAKE_INSTALL_PREFIX may be a relative path name; we want to bake in
+# the absolute path for the examples.
+GET_FILENAME_COMPONENT(ABS_CMAKE_INSTALL_PREFIX 
+                       "${CMAKE_INSTALL_PREFIX}" ABSOLUTE)
 ADD_DEFINITIONS(
-    "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_SRC}\"")
+    "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${ABS_CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_SRC}\"")
 
-# Examples can depend on any Simbody includes, and may depend on headers
-# in the examples/shared directory, in which case they should be
-# included as #include "shared/SharedHeaderFile.h". This also permits use 
-# of headers between examples, via #include "OtherExample/SomeHeader.h",
-# although it is not clear that's a good idea.
+# Provide access to all Simbody headers, and to the examples top-level
+# so that #include "shared/Blah.h" will work.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
 	                ${SimTKCOMMON_INCLUDE_DIRECTORIES}
 	                ${SimTKMATH_INCLUDE_DIRECTORIES}
