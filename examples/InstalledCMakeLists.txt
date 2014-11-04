@@ -32,7 +32,7 @@ LINK_DIRECTORIES(${Simbody_LIB_DIR})
 
 # Don't leave the build type blank on single-configuration generators;
 # make sure Release examples get built by default.
-IF(NOT CMAKE_BUILD_TYPE)
+IF(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build"
         FORCE)
 ENDIF()
