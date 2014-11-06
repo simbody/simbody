@@ -380,11 +380,6 @@ public:
 
     void dump(const char* msg) const;
 
-    // See comment in MatrixBase::matmul for an explanation.
-    template <class SA, class SB>
-    void matmul(const StdNumber& beta,   // applied to 'this'
-                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);
-    
         // Bookkeeping //
 
 
@@ -759,6 +754,12 @@ private:
     const MatrixHelper<S>& getMyHandle() const {assert(m_handle); return *m_handle;}
     void                   clearMyHandle() {m_handle=0;}
 
+    // ============================= Unimplemented =============================
+    // See comment in MatrixBase::matmul for an explanation.
+    template <class SA, class SB>
+    void matmul(const StdNumber& beta,   // applied to 'this'
+                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);
+    
 
 friend class MatrixHelperRep<typename CNT<S>::TNeg>;
 friend class MatrixHelperRep<typename CNT<S>::THerm>;
