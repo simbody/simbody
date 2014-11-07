@@ -131,16 +131,10 @@ but will not necessarily have unit spacing. **/
 typedef UnitRow<P,Mat33P::ColSpacing> RowType;
 
 //------------------------------------------------------------------------------
-/** @name Constructors **/
+/** @name Constructors, Mutators, and Assignment **/
 //@{
 /** Default constructor. **/
 Rotation_() : Mat33P(1) {}    
-/** Construct identity Rotation_. **/
-Rotation_&  setRotationToIdentityMatrix()  
-{ Mat33P::operator=(RealP(1));  return *this; }
-/** Construct Rotation_ filled with NaNs. **/
-Rotation_&  setRotationToNaN()             
-{ Mat33P::setToNaN();    return *this; } 
 
 /** Copy constructor. **/
 Rotation_( const Rotation_& R ) : Mat33P(R)  {}
@@ -148,31 +142,94 @@ Rotation_( const Rotation_& R ) : Mat33P(R)  {}
 conversion from InverseRotation_ to Rotation_. **/
 inline Rotation_( const InverseRotation_<P>& );
 
+/** Assignment operator. **/
+Rotation_&  operator=( const Rotation_& R )  
+{ Mat33P::operator=( R.asMat33() );  return *this; }
+/** Like copy assignment but for inverse rotation. **/
+inline Rotation_& operator=( const InverseRotation_<P>& );
+
+/** Construct Rotation_ filled with NaNs. **/
+Rotation_&  setRotationToNaN()             
+{ Mat33P::setToNaN();    return *this; } 
+
+/** Construct identity Rotation_. **/
+Rotation_&  setRotationToIdentityMatrix()  
+{ Mat33P::operator=(RealP(1));  return *this; }
+
 /** Constructor for right-handed rotation by an angle (in radians) about a 
 coordinate axis. **/
 Rotation_( RealP angle, const CoordinateAxis& axis )             
 { setRotationFromAngleAboutAxis( angle, axis ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle (in 
+radians) about a coordinate axis. **/
+Rotation_& setRotationFromAngleAboutAxis(RealP angle, const CoordinateAxis& axis)  
+{ return axis.isXAxis() ? setRotationFromAngleAboutX(angle) 
+      : (axis.isYAxis() ? setRotationFromAngleAboutY(angle) 
+      : setRotationFromAngleAboutZ(angle) ); }
+
 /** Constructor for right-handed rotation by an angle (in radians) about the 
 X-axis. **/
 Rotation_( RealP angle, const CoordinateAxis::XCoordinateAxis )  
 { setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle (in 
+radians) about the X-axis. **/
+Rotation_&  setRotationFromAngleAboutX( RealP angle )  
+{ return setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle about the
+X-axis, where the cosine and sine of the angle are specified. **/
+Rotation_&  setRotationFromAngleAboutX( RealP cosAngle, RealP sinAngle )  
+{ Mat33P& R = *this;  R[0][0] = 1;   R[0][1] = R[0][2] = R[1][0] = R[2][0] = 0;   
+  R[1][1] = R[2][2] = cosAngle;  R[1][2] = -(R[2][1] = sinAngle);  
+  return *this; }
+
 /** Constructor for right-handed rotation by an angle (in radians) about the 
 Y-axis. **/
 Rotation_( RealP angle, const CoordinateAxis::YCoordinateAxis )  
 { setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle (in 
+radians) about the Y-axis. **/
+Rotation_&  setRotationFromAngleAboutY( RealP angle )  
+{ return setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle about the
+Y-axis, where the cosine and sine of the angle are specified. **/
+Rotation_&  setRotationFromAngleAboutY( RealP cosAngle, RealP sinAngle )  
+{ Mat33P& R = *this;  R[1][1] = 1;   R[0][1] = R[1][0] = R[1][2] = R[2][1] = 0;   
+  R[0][0] = R[2][2] = cosAngle;  R[2][0] = -(R[0][2] = sinAngle);  
+  return *this; }
+
 /** Constructor for right-handed rotation by an angle (in radians) about the 
 Z-axis. **/
 Rotation_( RealP angle, const CoordinateAxis::ZCoordinateAxis )  
 { setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle (in 
+radians) about the Z-axis. **/
+Rotation_&  setRotationFromAngleAboutZ( RealP angle )  
+{ return setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
+/** Set this Rotation_ object to a right-handed rotation by an angle about the
+Z-axis, where the cosine and sine of the angle are specified. **/
+Rotation_&  setRotationFromAngleAboutZ( RealP cosAngle, RealP sinAngle )  
+{ Mat33P& R = *this;  R[2][2] = 1;   R[0][2] = R[1][2] = R[2][0] = R[2][1] = 0;   
+  R[0][0] = R[1][1] = cosAngle;  R[0][1] = -(R[1][0] = sinAngle);  
+  return *this; }
 
 /** Constructor for right-handed rotation by an angle (in radians) about an 
-arbitrary vector. **/
+arbitrary unit vector. **/
 Rotation_( RealP angle, const UnitVec3P& unitVector ) 
 { setRotationFromAngleAboutUnitVector(angle,unitVector); }
+/** Set this Rotation_ object to a right-handed rotation of an angle (in 
+radians) about an arbitrary unit vector. **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromAngleAboutUnitVector(RealP angle, const UnitVec3P& unitVector);
+
 /** Constructor for right-handed rotation by an angle (in radians) about an 
-arbitrary vector. **/
+arbitrary vector of arbitrary length. **/
 Rotation_( RealP angle, const Vec3P& nonUnitVector )  
 { setRotationFromAngleAboutNonUnitVector(angle,nonUnitVector); }
+/** Set this Rotation_ object to a right-handed rotation of an angle (in 
+radians) about an arbitrary vector of arbitrary length. **/
+Rotation_&  
+setRotationFromAngleAboutNonUnitVector(RealP angle, const Vec3P& nonUnitVector)  
+{ return setRotationFromAngleAboutUnitVector( angle, UnitVec3P(nonUnitVector) ); }
 
 /** Constructor for two-angle, two-axes, Body-fixed or Space-fixed rotation 
 sequences (angles are in radians). **/
@@ -180,6 +237,12 @@ Rotation_(BodyOrSpaceType bodyOrSpace,
           RealP angle1, const CoordinateAxis& axis1, 
           RealP angle2, const CoordinateAxis& axis2)
 { setRotationFromTwoAnglesTwoAxes(bodyOrSpace,angle1,axis1,angle2,axis2); }
+/** Set this Rotation_ object to a two-angle, two-axes, Body-fixed or 
+Space-fixed rotation sequences (angles are in radians). **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromTwoAnglesTwoAxes(BodyOrSpaceType bodyOrSpace, 
+                                RealP angle1, const CoordinateAxis& axis1, 
+                                RealP angle2, const CoordinateAxis& axis2); 
 
 /** Constructor for three-angle Body-fixed or Space-fixed rotation sequences 
 (angles are in radians). **/
@@ -189,22 +252,54 @@ Rotation_(BodyOrSpaceType bodyOrSpace,
           RealP angle3, const CoordinateAxis& axis3 )  
 { setRotationFromThreeAnglesThreeAxes
    (bodyOrSpace,angle1,axis1,angle2,axis2,angle3,axis3); }
+/** Set this Rotation_ object to a three-angle Body-fixed or Space-fixed 
+rotation sequences (angles are in radians). **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromThreeAnglesThreeAxes(BodyOrSpaceType bodyOrSpace, 
+                                    RealP angle1, const CoordinateAxis& axis1, 
+                                    RealP angle2, const CoordinateAxis& axis2, 
+                                    RealP angle3, const CoordinateAxis& axis3);
 
 /** Constructor for creating a rotation matrix from a quaternion. **/
 explicit Rotation_( const QuaternionP& q )  { setRotationFromQuaternion(q); }
-
-/** (Advanced) Construct a Rotation_ directly from a Mat33P (we trust that m is 
-a valid Rotation_!) Things will not go well for you if it is not. **/
-Rotation_(const Mat33P& m, bool) : Mat33P(m) {}
+/** Method for creating a rotation matrix from a quaternion. **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromQuaternion( const QuaternionP& q );
 
 /** Constructs an (hopefully nearby) orthogonal rotation matrix from a 
 generic Mat33P. **/
 explicit Rotation_( const Mat33P& m )  { setRotationFromApproximateMat33(m); }
+/** Set this Rotation_ object to an (hopefully nearby) orthogonal rotation 
+matrix from a generic Mat33P. **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromApproximateMat33( const Mat33P& m );
 
-/** Calculate R_AB by knowing one of B's unit vector expressed in A.
+/** (Advanced) Construct a Rotation_ directly from a Mat33P (we trust that m is 
+a valid Rotation_!) Things will not go well for you if it is not. **/
+Rotation_(const Mat33P& m, bool) : Mat33P(m) {}
+/** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
+you are doing! **/
+Rotation_& setRotationFromMat33TrustMe(const Mat33P& m)  
+{ Mat33P& R = *this; R=m;  return *this; }   
+/** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
+you are doing! **/
+Rotation_& setRotationColFromUnitVecTrustMe(int colj, const UnitVec3P& uvecj)  
+{ Mat33P& R = *this; R(colj)=uvecj.asVec3(); return *this; }   
+/** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
+you are doing! **/
+Rotation_& setRotationFromUnitVecsTrustMe
+   (const UnitVec3P& colA, const UnitVec3P& colB, const UnitVec3P& colC)  
+{ Mat33P& R = *this; R(0)=colA.asVec3(); R(1)=colB.asVec3(); R(2)=colC.asVec3();
+  return *this; }  
+
+/** Calculate R_AB by knowing one of B's unit vectors expressed in A.
 Note: The other vectors are perpendicular (but somewhat arbitrarily so). **/
 Rotation_(const UnitVec3P& uvec, CoordinateAxis axis)  
 { setRotationFromOneAxis(uvec,axis); }
+/** Calculate R_AB by knowing one of B's unit vectors expressed in A.
+Note: The other vectors are perpendicular (but somewhat arbitrarily so). **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromOneAxis(const UnitVec3P& uvec, CoordinateAxis axis);
 
 /** Calculate R_AB by knowing one of B's unit vectors u1 (could be Bx, By, or Bz) 
 expressed in A and a vector v (also expressed in A) that is approximately in the 
@@ -215,23 +310,48 @@ as appropriate for a right-handed rotation matrix. **/
 Rotation_(const UnitVec3P& uveci, const CoordinateAxis& axisi, 
           const Vec3P& vecjApprox, const CoordinateAxis& axisjApprox )  
 { setRotationFromTwoAxes(uveci,axisi,vecjApprox,axisjApprox); }
+/** Calculate R_AB by knowing one of B's unit vectors u1 (could be Bx, By, or Bz) 
+expressed in A and a vector v (also expressed in A) that is approximately in the 
+desired direction for a second one of B's unit vectors, u2 (!= u1). If v is not 
+perpendicular to u1, no worries - we'll find a direction for u2 that is 
+perpendicular to u1 and comes closest to v. The third vector u3 is +/- u1 X u2, 
+as appropriate for a right-handed rotation matrix. **/
+SimTK_SimTKCOMMON_EXPORT Rotation_&  
+setRotationFromTwoAxes(const UnitVec3P& uveci, const CoordinateAxis& axisi, 
+                       const Vec3P& vecjApprox, const CoordinateAxis& axisjApprox );
+
+/** Set this Rotation_ to represent a rotation characterized by subsequent 
+rotations of: +v[0] about the body frame's X axis, followed by a rotation of 
++v[1] about the body frame's NEW Y axis. See Kane, Spacecraft Dynamics, pg. 423, 
+body-three: 1-2-3, but the last rotation is zero. **/
+void setRotationToBodyFixedXY( const Vec2P& v)   
+{ setRotationFromTwoAnglesTwoAxes(BodyRotationSequence,
+                                  v[0],XAxis, v[1],YAxis); }
+
+/** Set this Rotation_ to represent a rotation characterized by subsequent 
+rotations of: +v[0] about the body frame's X axis, followed by a rotation of 
++v[1] about the body frame's NEW Y axis, followed by a rotation of +v[2] about 
+the body frame's NEW (twice rotated) Z axis. See Kane, Spacecraft Dynamics, 
+pg. 423, body-three: 1-2-3. **/
+void setRotationToBodyFixedXYZ( const Vec3P& v)  
+{ setRotationFromThreeAnglesThreeAxes(BodyRotationSequence, 
+                                      v[0],XAxis, v[1],YAxis, v[2],ZAxis ); }
+/** Given cosines and sines (in that order) of three angles, set this
+%Rotation matrix to the body-fixed 1-2-3 sequence of those angles.
+Cost is 18 flops. **/
+void setRotationToBodyFixedXYZ(const Vec3P& c, const Vec3P& s) {
+    Mat33P& R = *this;
+    const RealP s0s1=s[0]*s[1], s2c0=s[2]*c[0], c0c2=c[0]*c[2], nc1= -c[1];
+
+    R = Mat33P(     c[1]*c[2]      ,         s[2]*nc1       ,    s[1]  ,
+                s2c0 + s0s1*c[2]   ,     c0c2 - s0s1*s[2]   , s[0]*nc1 ,
+                s[0]*s[2] - s[1]*c0c2 ,  s[0]*c[2] + s[1]*s2c0 , c[0]*c[1] );
+}
 //@}
 
 //------------------------------------------------------------------------------
 /** @name Operators and Arithmetic **/
 //@{
-/** Assignment operator. **/
-Rotation_&  operator=( const Rotation_& R )  
-{ Mat33P::operator=( R.asMat33() );  return *this; }
-
-/** Like copy assignment but for inverse rotation. **/
-inline Rotation_& operator=( const InverseRotation_<P>& );
-
-/** Same as row(i) but nicer to look at. **/
-const RowType&  operator[]( int i ) const  { return row(i); }
-/** Same as col(j) but nicer to look at. **/
-const ColType&  operator()( int j ) const  { return col(j); }
-
 /** Transpose operator. For an orthogonal matrix like this one, 
 transpose is the same thing as inversion. **/
 const InverseRotation_<P>&  operator~() const  { return invert(); }
@@ -239,12 +359,30 @@ const InverseRotation_<P>&  operator~() const  { return invert(); }
 transpose is the same thing as inversion. **/
 InverseRotation_<P>&        operator~()        { return updInvert(); }
 
+/** Transpose. For an orthogonal matrix like this one, 
+transpose is the same thing as inversion. Overrides the base class 
+transpose method. **/
+const InverseRotation_<P>&  transpose() const  { return invert(); }
+/** Transpose. For an orthogonal matrix like this one, 
+transpose is the same thing as inversion. Overrides the base class 
+transpose method. **/
+InverseRotation_<P>&        updTranspose()     { return updInvert(); }
+
+/** Convert from Rotation_ to InverseRotation_ (no cost). Overrides base 
+class invert() method. **/
+const InverseRotation_<P>& invert() const  
+{ return *reinterpret_cast<const InverseRotation_<P>*>(this); }
+/** Convert from Rotation_ to writable InverseRotation_ (no cost). **/
+InverseRotation_<P>& updInvert()     
+{ return *reinterpret_cast<InverseRotation_<P>*>(this); }
+
 /** In-place composition of Rotation matrices. **/
 inline Rotation_&  operator*=( const Rotation_<P>& R );
 /** In-place composition of Rotation matrices. **/
-inline Rotation_&  operator/=( const Rotation_<P>& R );
-/** In-place composition of Rotation matrices. **/
 inline Rotation_&  operator*=( const InverseRotation_<P>& );
+
+/** In-place composition of Rotation matrices. **/
+inline Rotation_&  operator/=( const Rotation_<P>& R );
 /** In-place composition of Rotation matrices. **/
 inline Rotation_&  operator/=( const InverseRotation_<P>& );
 
@@ -322,11 +460,15 @@ static Vec3P multiplyByBodyXYZ_NInvT_P(const Vec2P& cosxy,
 a UnitRow3. **/
 const RowType&  row( int i ) const         
 { return reinterpret_cast<const RowType&>(asMat33()[i]); }
+/** Same as row(i) but nicer to look at. **/
+const RowType&  operator[]( int i ) const  { return row(i); }
 
 /** Return a reference to the jth column of this %Rotation matrix as
 a UnitVec3. **/
 const ColType&  col( int j ) const         
 { return reinterpret_cast<const ColType&>(asMat33()(j)); }
+/** Same as col(j) but nicer to look at. **/
+const ColType&  operator()( int j ) const  { return col(j); }
 
 /** Return col(0) of this %Rotation matrix as a UnitVec3. **/
 const ColType&  x() const                  { return col(0); }
@@ -350,144 +492,6 @@ const UnitVec<P,1> getAxisUnitVec(CoordinateDirection dir) const {
     const ColType& axDir = getAxisUnitVec(dir.getAxis());
     return dir.getDirection() > 0 ? UnitVec<P,1>( axDir) 
                                   : UnitVec<P,1>(-axDir); // cheap 
-}
-//@}
-
-//------------------------------------------------------------------------------
-/** @name Mutators **/
-//@{
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about a coordinate axis. **/
-Rotation_& setRotationFromAngleAboutAxis(RealP angle, const CoordinateAxis& axis)  
-{ return axis.isXAxis() ? setRotationFromAngleAboutX(angle) 
-      : (axis.isYAxis() ? setRotationFromAngleAboutY(angle) 
-      : setRotationFromAngleAboutZ(angle) ); }
-
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about the X-axis. **/
-Rotation_&  setRotationFromAngleAboutX( RealP angle )  
-{ return setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about the X-axis. **/
-Rotation_&  setRotationFromAngleAboutX( RealP cosAngle, RealP sinAngle )  
-{ Mat33P& R = *this;  R[0][0] = 1;   R[0][1] = R[0][2] = R[1][0] = R[2][0] = 0;   
-  R[1][1] = R[2][2] = cosAngle;  R[1][2] = -(R[2][1] = sinAngle);  
-  return *this; }
-
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about the Y-axis. **/
-Rotation_&  setRotationFromAngleAboutY( RealP angle )  
-{ return setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about the Y-axis. **/
-Rotation_&  setRotationFromAngleAboutY( RealP cosAngle, RealP sinAngle )  
-{ Mat33P& R = *this;  R[1][1] = 1;   R[0][1] = R[1][0] = R[1][2] = R[2][1] = 0;   
-  R[0][0] = R[2][2] = cosAngle;  R[2][0] = -(R[0][2] = sinAngle);  
-  return *this; }
-
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about the Z-axis. **/
-Rotation_&  setRotationFromAngleAboutZ( RealP angle )  
-{ return setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
-/** Set this Rotation_ object to a right-handed rotation by an angle (in 
-radians) about the Z-axis. **/
-Rotation_&  setRotationFromAngleAboutZ( RealP cosAngle, RealP sinAngle )  
-{ Mat33P& R = *this;  R[2][2] = 1;   R[0][2] = R[1][2] = R[2][0] = R[2][1] = 0;   
-  R[0][0] = R[1][1] = cosAngle;  R[0][1] = -(R[1][0] = sinAngle);  
-  return *this; }
-
-/** Set this Rotation_ object to a right-handed rotation of an angle (in 
-radians) about an arbitrary vector. **/
-Rotation_&  
-setRotationFromAngleAboutNonUnitVector(RealP angle, const Vec3P& nonUnitVector)  
-{ return setRotationFromAngleAboutUnitVector( angle, UnitVec3P(nonUnitVector) ); }
-
-/** Calculate R_AB by knowing one of B's unit vector expressed in A.
-Note: The other vectors are perpendicular (but somewhat arbitrarily so). **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromOneAxis(const UnitVec3P& uvec, CoordinateAxis axis);
-
-/** Calculate R_AB by knowing one of B's unit vectors u1 (could be Bx, By, or Bz) 
-expressed in A and a vector v (also expressed in A) that is approximately in the 
-desired direction for a second one of B's unit vectors, u2 (!= u1). If v is not 
-perpendicular to u1, no worries - we'll find a direction for u2 that is 
-perpendicular to u1 and comes closest to v. The third vector u3 is +/- u1 X u2, 
-as appropriate for a right-handed rotation matrix. **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromTwoAxes(const UnitVec3P& uveci, const CoordinateAxis& axisi, 
-                       const Vec3P& vecjApprox, const CoordinateAxis& axisjApprox );
-
-/** Set this Rotation_ object to a right-handed rotation of an angle (in 
-radians) about an arbitrary vector. **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromAngleAboutUnitVector(RealP angle, const UnitVec3P& unitVector);
-
-/** Set this Rotation_ object to a two-angle, two-axes, Body-fixed or 
-Space-fixed rotation sequences (angles are in radians). **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromTwoAnglesTwoAxes(BodyOrSpaceType bodyOrSpace, 
-                                RealP angle1, const CoordinateAxis& axis1, 
-                                RealP angle2, const CoordinateAxis& axis2); 
-
-/** Set this Rotation_ object to a three-angle Body-fixed or Space-fixed 
-rotation sequences (angles are in radians). **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromThreeAnglesThreeAxes(BodyOrSpaceType bodyOrSpace, 
-                                    RealP angle1, const CoordinateAxis& axis1, 
-                                    RealP angle2, const CoordinateAxis& axis2, 
-                                    RealP angle3, const CoordinateAxis& axis3);
-
-/** Set this Rotation_ to represent a rotation characterized by subsequent 
-rotations of: +v[0] about the body frame's X axis, followed by a rotation of 
-+v[1] about the body frame's NEW Y axis. See Kane, Spacecraft Dynamics, pg. 423, 
-body-three: 1-2-3, but the last rotation is zero. **/
-void setRotationToBodyFixedXY( const Vec2P& v)   
-{ setRotationFromTwoAnglesTwoAxes(BodyRotationSequence,
-                                  v[0],XAxis, v[1],YAxis); }
-
-/** Set this Rotation_ to represent a rotation characterized by subsequent 
-rotations of: +v[0] about the body frame's X axis, followed by a rotation of 
-+v[1] about the body frame's NEW Y axis, followed by a rotation of +v[2] about 
-the body frame's NEW (twice rotated) Z axis. See Kane, Spacecraft Dynamics, 
-pg. 423, body-three: 1-2-3. **/
-void setRotationToBodyFixedXYZ( const Vec3P& v)  
-{ setRotationFromThreeAnglesThreeAxes(BodyRotationSequence, 
-                                      v[0],XAxis, v[1],YAxis, v[2],ZAxis ); }
-
-/** Method for creating a rotation matrix from a quaternion. **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromQuaternion( const QuaternionP& q );
-
-/** Set this Rotation_ object to an (hopefully nearby) orthogonal rotation 
-matrix from a generic Mat33P. **/
-SimTK_SimTKCOMMON_EXPORT Rotation_&  
-setRotationFromApproximateMat33( const Mat33P& m );
-
-/** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
-you are doing! **/
-Rotation_& setRotationFromMat33TrustMe(const Mat33P& m)  
-{ Mat33P& R = *this; R=m;  return *this; }   
-/** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
-you are doing! **/
-Rotation_& setRotationColFromUnitVecTrustMe(int colj, const UnitVec3P& uvecj)  
-{ Mat33P& R = *this; R(colj)=uvecj.asVec3(); return *this; }   
-/** (Advanced) Set the Rotation_ matrix directly - but you had better know what 
-you are doing! **/
-Rotation_& setRotationFromUnitVecsTrustMe
-   (const UnitVec3P& colA, const UnitVec3P& colB, const UnitVec3P& colC)  
-{ Mat33P& R = *this; R(0)=colA.asVec3(); R(1)=colB.asVec3(); R(2)=colC.asVec3();
-  return *this; }  
-
-/** Given cosines and sines (in that order) of three angles, set this
-%Rotation matrix to the body-fixed 1-2-3 sequence of those angles.
-Cost is 18 flops. **/
-void setRotationToBodyFixedXYZ(const Vec3P& c, const Vec3P& s) {
-    Mat33P& R = *this;
-    const RealP s0s1=s[0]*s[1], s2c0=s[2]*c[0], c0c2=c[0]*c[2], nc1= -c[1];
-
-    R = Mat33P(     c[1]*c[2]      ,         s[2]*nc1       ,    s[1]  ,
-                s2c0 + s0s1*c[2]   ,     c0c2 - s0s1*s[2]   , s[0]*nc1 ,
-                s[0]*s[2] - s[1]*c0c2 ,  s[0]*c[2] + s[1]*s2c0 , c[0]*c[1] );
 }
 //@}
 
@@ -561,53 +565,6 @@ static Mat33P calcNForBodyXYZInParentFrame(const Vec3P& cq, const Vec3P& sq) {
     return Mat33P( 1 , s1*s0oc1 , -s1*c0oc1,
                     0 ,    c0    ,    s0,
                     0 ,  -s0oc1  ,  c0oc1 );
-}
-
-/** Calculate first time derivative qdot of body-fixed XYZ Euler angles q
-given sines and cosines of the Euler angles and the angular velocity 
-w_PB of child B in parent P, expressed in P. Cost is 10 flops.
-
-Theory: calculate qdot=N_P(q)*w_PB using multiplyByBodyXYZ_N_P().
-@see multiplyByBodyXYZ_N_P() **/
-static Vec3P convertAngVelInParentToBodyXYZDot
-    (const Vec2P& cosxy,  ///< cos(qx), cos(qy)
-    const Vec2P& sinxy,  ///< sin(qx), sin(qy)
-    RealP        oocosy, ///< 1/cos(qy)
-    const Vec3P& w_PB)   ///< angular velocity of B in P, exp. in P
-{
-    return multiplyByBodyXYZ_N_P(cosxy,sinxy,oocosy,w_PB);
-}
-
-/** Calculate second time derivative qdotdot of body-fixed XYZ Euler 
-angles q given sines and cosines of the Euler angles, the first 
-derivative qdot and the angular acceleration b_PB of child B in 
-parent P, expressed in P. Cost is 22 flops.
-
-Theory: we have qdot=N_P*w_PB, which we differentiate in P to 
-get qdotdot=N_P*b_PB + NDot_P*w_PB. Note that NDot_P=NDot_P(q,qdot) 
-and w_PB=NInv_P*qdot (because N_P is invertible). We can then rewrite
-qdotdot=N_P*b_PB + NDot_P*(NInv_P*qdot) which can be calculated very 
-efficiently. The second term is just an acceleration remainder term
-quadratic in qdot. **/
-static Vec3P convertAngAccInParentToBodyXYZDotDot
-    (const Vec2P& cosxy,  ///< cos(qx), cos(qy)
-    const Vec2P& sinxy,  ///< sin(qx), sin(qy)
-    RealP        oocosy, ///< 1/cos(qy)
-    const Vec3P& qdot,   ///< previously calculated BodyXYZDot
-    const Vec3P& b_PB)   ///< angular acceleration, a.k.a. wdot_PB
-{
-    const RealP s1 = sinxy[1], c1 = cosxy[1];
-    const RealP q0 = qdot[0], q1 = qdot[1], q2 = qdot[2];
-
-    // 10 flops
-    const Vec3P Nb = multiplyByBodyXYZ_N_P(cosxy,sinxy,oocosy,b_PB);
-
-    const RealP q1oc1 = q1*oocosy;
-    const Vec3P NDotw((q0*s1-q2)*q1oc1,     //   NDot_P*w_PB
-                        q0*q2*c1,            // = NDot_P*(NInv_P*qdot)
-                        (q2*s1-q0)*q1oc1 );   // (9 flops)
-
-    return Nb + NDotw; // 3 flops
 }
 
 /** Given Euler angles forming a body-fixed X-Y-Z (123) sequence q, and 
@@ -794,14 +751,25 @@ static Mat34P calcUnnormalizedNInvForQuaternion(const Vec4P& q) {
 //------------------------------------------------------------------------------
 /** @name Conversions **/
 //@{
-/** Transpose. For an orthogonal matrix like this one, 
-transpose is the same thing as inversion. Overrides the base class 
-transpose method. **/
-const InverseRotation_<P>&  transpose() const  { return invert(); }
-/** Transpose. For an orthogonal matrix like this one, 
-transpose is the same thing as inversion. Overrides the base class 
-transpose method. **/
-InverseRotation_<P>&        updTranspose()     { return updInvert(); }
+/** Conversion from Rotation to its base class Mat33. Note: asMat33 is more 
+efficient than toMat33() (no copy), but you have to know the internal 
+layout. **/
+const Mat33P&  asMat33() const  { return *static_cast<const Mat33P*>(this); }
+/** Conversion from Rotation to its base class Mat33. Note: asMat33 is more 
+efficient than toMat33() (no copy), but you have to know the internal 
+layout. **/
+Mat33P         toMat33() const  { return asMat33(); }
+
+/** Perform an efficient transform of a symmetric matrix that must be 
+re-expressed with a multiply from both left and right, such as an inertia 
+matrix. Details: assuming this Rotation is R_AB, and given a symmetric dyadic 
+matrix S_BB expressed in B, we can reexpress it in A using S_AA=R_AB*S_BB*R_BA. 
+The matrix should be one that is formed as products of vectors expressed in A, 
+such as inertia, gyration or covariance matrices. This can be done efficiently 
+exploiting properties of R (orthogonal) and S (symmetric). 
+Total cost is 57 flops. **/
+SimTK_SimTKCOMMON_EXPORT SymMat33P 
+reexpressSymMat33(const SymMat33P& S_BB) const;
 
 // Converts rotation matrix to one or two or three orientation angles.
 // Note:  The result is most meaningful if the Rotation_ matrix is one that can 
@@ -875,21 +843,6 @@ Vec2P convertRotationToBodyFixedXY() const
 Vec3P convertRotationToBodyFixedXYZ() const  
 { return convertThreeAxesRotationToThreeAngles( BodyRotationSequence, 
                                                 XAxis, YAxis, ZAxis ); }
-
-/** Convert from Rotation_ to InverseRotation_ (no cost). Overrides base 
-class invert() method. **/
-const InverseRotation_<P>& invert() const  
-{ return *reinterpret_cast<const InverseRotation_<P>*>(this); }
-
-/** Convert from Rotation_ to writable InverseRotation_ (no cost). **/
-InverseRotation_<P>& updInvert()     
-{ return *reinterpret_cast<InverseRotation_<P>*>(this); }
-
-/** Conversion from Rotation to its base class Mat33. Note: asMat33 is more 
-efficient than toMat33() (no copy), but you have to know the internal 
-layout. **/
-const Mat33P&  asMat33() const  { return *static_cast<const Mat33P*>(this); }
-Mat33P         toMat33() const  { return asMat33(); }
 
 /** Given Euler angles forming a body-fixed 3-2-1 sequence, and the relative
 angular velocity vector of B in the parent frame, *BUT EXPRESSED IN THE BODY 
@@ -1031,17 +984,6 @@ static Vec3P convertAngVelDotInBodyFrameToBodyXYZDotDot
     return N*wdot_PB_B + NDot*w_PB_B;                              //  33 flops
 }
 
-/** Perform an efficient transform of a symmetric matrix that must be 
-re-expressed with a multiply from both left and right, such as an inertia 
-matrix. Details: assuming this Rotation is R_AB, and given a symmetric dyadic 
-matrix S_BB expressed in B, we can reexpress it in A using S_AA=R_AB*S_BB*R_BA. 
-The matrix should be one that is formed as products of vectors expressed in A, 
-such as inertia, gyration or covariance matrices. This can be done efficiently 
-exploiting properties of R (orthogonal) and S (symmetric). 
-Total cost is 57 flops. **/
-SimTK_SimTKCOMMON_EXPORT SymMat33P 
-reexpressSymMat33(const SymMat33P& S_BB) const;
-
 /** Given a possibly unnormalized quaternion (0th element is the scalar) and the
 relative angular velocity vector of B in its parent, expressed in the *PARENT*, 
 return the quaternion derivatives. This is never singular. Cost is 27 flops. **/
@@ -1053,21 +995,6 @@ static Vec4P convertAngVelToQuaternionDot(const Vec4P& q, const Vec3P& w_PB_P) {
 frame: w_PB_P. Cost is 28 flops. **/
 static Vec3P convertQuaternionDotToAngVel(const Vec4P& q, const Vec4P& qdot) {
     return calcUnnormalizedNInvForQuaternion(q)*qdot;
-}
-
-/** Given a quaternion q representing R_PB, angular velocity of B in P, and
-the time derivative of the angular velocity, return the second time derivative 
-qdotdot of the quaternion. Everything is measured and expressed in the parent.
-Cost is 78 flops. **/
-// TODO: reimplement
-static Vec4P OLDconvertAngVelDotToQuaternionDotDot
-    (const Vec4P& q, const Vec3P& w_PB_P, const Vec3P& wdot_PB_P)
-{
-    const Mat43P N    = calcUnnormalizedNForQuaternion(q);
-    const Vec4P      qdot = N*w_PB_P;   // 20 flops
-    const Mat43P NDot = calcUnnormalizedNDotForQuaternion(qdot);
-
-    return  N*wdot_PB_P + NDot*w_PB_P;  // 44 flops
 }
 
 /** We want to differentiate qdot=N(q)*w to get qdotdot=N*b+NDot*w where b is 
@@ -1083,6 +1010,53 @@ static Vec4P convertAngVelDotToQuaternionDotDot
     const Vec4P  Nb    = N*b_PB;                            // 20 flops
     const Vec4P  NDotw = RealP(-.25)*w_PB.normSqr()*q;      // 10 flops
     return Nb + NDotw;                                      //  4 flops
+}
+
+/** Calculate first time derivative qdot of body-fixed XYZ Euler angles q
+given sines and cosines of the Euler angles and the angular velocity 
+w_PB of child B in parent P, expressed in P. Cost is 10 flops.
+
+Theory: calculate qdot=N_P(q)*w_PB using multiplyByBodyXYZ_N_P().
+@see multiplyByBodyXYZ_N_P() **/
+static Vec3P convertAngVelInParentToBodyXYZDot
+    (const Vec2P& cosxy,  ///< cos(qx), cos(qy)
+    const Vec2P& sinxy,  ///< sin(qx), sin(qy)
+    RealP        oocosy, ///< 1/cos(qy)
+    const Vec3P& w_PB)   ///< angular velocity of B in P, exp. in P
+{
+    return multiplyByBodyXYZ_N_P(cosxy,sinxy,oocosy,w_PB);
+}
+
+/** Calculate second time derivative qdotdot of body-fixed XYZ Euler 
+angles q given sines and cosines of the Euler angles, the first 
+derivative qdot and the angular acceleration b_PB of child B in 
+parent P, expressed in P. Cost is 22 flops.
+
+Theory: we have qdot=N_P*w_PB, which we differentiate in P to 
+get qdotdot=N_P*b_PB + NDot_P*w_PB. Note that NDot_P=NDot_P(q,qdot) 
+and w_PB=NInv_P*qdot (because N_P is invertible). We can then rewrite
+qdotdot=N_P*b_PB + NDot_P*(NInv_P*qdot) which can be calculated very 
+efficiently. The second term is just an acceleration remainder term
+quadratic in qdot. **/
+static Vec3P convertAngAccInParentToBodyXYZDotDot
+    (const Vec2P& cosxy,  ///< cos(qx), cos(qy)
+    const Vec2P& sinxy,  ///< sin(qx), sin(qy)
+    RealP        oocosy, ///< 1/cos(qy)
+    const Vec3P& qdot,   ///< previously calculated BodyXYZDot
+    const Vec3P& b_PB)   ///< angular acceleration, a.k.a. wdot_PB
+{
+    const RealP s1 = sinxy[1], c1 = cosxy[1];
+    const RealP q0 = qdot[0], q1 = qdot[1], q2 = qdot[2];
+
+    // 10 flops
+    const Vec3P Nb = multiplyByBodyXYZ_N_P(cosxy,sinxy,oocosy,b_PB);
+
+    const RealP q1oc1 = q1*oocosy;
+    const Vec3P NDotw((q0*s1-q2)*q1oc1,     //   NDot_P*w_PB
+                        q0*q2*c1,            // = NDot_P*(NInv_P*qdot)
+                        (q2*s1-q0)*q1oc1 );   // (9 flops)
+
+    return Nb + NDotw; // 3 flops
 }
 //@}
 
