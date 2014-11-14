@@ -307,7 +307,7 @@ void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
     // Execute in parallel.
     if (executor) {
         Task task(*this, sys.getNumParameters(), pop, funvals);
-        executor->execute(task, cmaes_Get(&evo, "lambda"));
+        executor->execute(task, (int)cmaes_Get(&evo, "lambda"));
     }
     // Execute normally.
     else {
