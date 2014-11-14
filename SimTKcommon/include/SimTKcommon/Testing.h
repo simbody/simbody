@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2009-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -27,9 +27,9 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/Random.h"
+#include "SimTKcommon/internal/Timing.h"
 
 #include <cmath>     
-#include <ctime>
 #include <algorithm> 
 #include <iostream>
 
@@ -159,14 +159,22 @@ namespace SimTK {
 class Test {
 public:
     class Subtest;
-    Test(const std::string& name) : testName(name)
+    Test(const std::string& name)
+    :   startCpuTime(SimTK::cpuTime()),
+        startRealTime(SimTK::realTime()),
+        testName(name)
     {
         std::clog << "Starting test " << testName << " ...\n";
-        startTime = std::clock(); 
     }
     ~Test() {
-        std::clog << "Done. " << testName << " time: " 
-                  << 1000*(std::clock()-startTime)/CLOCKS_PER_SEC << "ms.\n";
+        const double finalRealTime=SimTK::realTime();
+        const double finalCpuTime=SimTK::cpuTime();
+        std::ostringstream fmt;
+        fmt << std::fixed << std::setprecision(1);
+        fmt << "Done. " << testName << std::endl 
+            << "    real/CPU ms: " << (finalRealTime-startRealTime)*1000
+            << " / "  << (finalCpuTime-startCpuTime)*1000 <<std::endl;
+        std::clog << fmt.str();
     }
 
     template <class T>
@@ -418,27 +426,37 @@ public:
         return Transform(randRotation(), randVec3());
     }
 private:
-    std::clock_t startTime;
+    const double startCpuTime;
+    const double startRealTime;
     std::string  testName;
 };
 
 /// Internal utility class for generating test messages for subtests.
 class Test::Subtest {
 public:
-    Subtest(const std::string& name) : subtestName(name)
+    Subtest(const std::string& name) 
+    :   startCpuTime(SimTK::cpuTime()),
+        startRealTime(SimTK::realTime()),
+        subtestName(name)
     {
         char padded[128];
         sprintf(padded, "%-20s", name.c_str());
         paddedName = std::string(padded);
         std::clog << "  " << paddedName << " ... " << std::flush;
-        startTime = std::clock(); 
     }
     ~Subtest() {
-        std::clog << "done. " << paddedName << " time: " 
-                  << 1000*(std::clock()-startTime)/CLOCKS_PER_SEC << "ms.\n";
+        const double finalRealTime=SimTK::realTime();
+        const double finalCpuTime=SimTK::cpuTime();
+        std::ostringstream fmt;
+        fmt << std::fixed << std::setprecision(1);
+        fmt << "done. " << paddedName << std::endl 
+            << "    real/CPU ms: " << (finalRealTime-startRealTime)*1000
+            << " / "  << (finalCpuTime-startCpuTime)*1000 <<std::endl;
+        std::clog << fmt.str();
     }
 private:
-    std::clock_t startTime;
+    const double startCpuTime;
+    const double startRealTime;
     std::string  subtestName;
     std::string  paddedName; // name plus some blanks
 };
