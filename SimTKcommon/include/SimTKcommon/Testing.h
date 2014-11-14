@@ -171,8 +171,8 @@ public:
         const double finalCpuTime=SimTK::cpuTime();
         std::ostringstream fmt;
         fmt << std::fixed << std::setprecision(1);
-        fmt << "Done. " << testName << std::endl 
-            << "    real/CPU ms: " << (finalRealTime-startRealTime)*1000
+        fmt << "\n" << testName << " done." 
+            << " real/CPU ms: " << (finalRealTime-startRealTime)*1000
             << " / "  << (finalCpuTime-startCpuTime)*1000 <<std::endl;
         std::clog << fmt.str();
     }
@@ -439,18 +439,15 @@ public:
         startRealTime(SimTK::realTime()),
         subtestName(name)
     {
-        char padded[128];
-        sprintf(padded, "%-20s", name.c_str());
-        paddedName = std::string(padded);
-        std::clog << "  " << paddedName << " ... " << std::flush;
+        std::clog << "  " << subtestName << " ... " << std::flush;
     }
     ~Subtest() {
         const double finalRealTime=SimTK::realTime();
         const double finalCpuTime=SimTK::cpuTime();
         std::ostringstream fmt;
         fmt << std::fixed << std::setprecision(1);
-        fmt << "done. " << paddedName << std::endl 
-            << "    real/CPU ms: " << (finalRealTime-startRealTime)*1000
+        fmt << "\n  " << subtestName << " done."
+            << " real/CPU ms: " << (finalRealTime-startRealTime)*1000
             << " / "  << (finalCpuTime-startCpuTime)*1000 <<std::endl;
         std::clog << fmt.str();
     }
@@ -458,7 +455,6 @@ private:
     const double startCpuTime;
     const double startRealTime;
     std::string  subtestName;
-    std::string  paddedName; // name plus some blanks
 };
 
 } // namespace SimTK
