@@ -439,14 +439,14 @@ public:
         startRealTime(SimTK::realTime()),
         subtestName(name)
     {
-        std::clog << "  " << subtestName << " ... " << std::flush;
+        std::clog << "  " << subtestName << " ...\n" << std::flush;
     }
     ~Subtest() {
         const double finalRealTime=SimTK::realTime();
         const double finalCpuTime=SimTK::cpuTime();
         std::ostringstream fmt;
         fmt << std::fixed << std::setprecision(1);
-        fmt << "\n  " << subtestName << " done."
+        fmt << "  " << subtestName << " done."
             << " real/CPU ms: " << (finalRealTime-startRealTime)*1000
             << " / "  << (finalCpuTime-startCpuTime)*1000 <<std::endl;
         std::clog << fmt.str();
