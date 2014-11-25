@@ -166,7 +166,7 @@ public:
                 //frcLine.setColor(Black);
                 //geometry.push_back(frcLine);
 
-                // Make a red line that extends from the contact
+                // Draw a line that extends from the contact
                 // point in the direction of the slip velocity.
                 const Vec3 v     = detail.getSlipVelocity();
                 const Real vMag  = std::max(0., std::log10(v.norm()*1.e3));
@@ -174,7 +174,7 @@ public:
                 const Vec3 pt0   = Vec3(pt[0], pt[1], 5.e-3);
                 const Vec3 pt1   = Vec3(pt[0]+2.*vDraw[0], pt[1]+2.*vDraw[1],
                                         5.e-3);
-                Real colorFactor = m_velLines.size() / 31.; //32 lines total.
+                Real colorFactor = clamp(0.0, m_velLines.size() / 32., 1.0);
                 DecorativeLine slip(pt0, pt1);
                 slip.setLineThickness(3)
                     .setColor(Vec3(1-colorFactor,0.,colorFactor));
