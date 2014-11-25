@@ -329,6 +329,13 @@ private:
  * - stopTolX (real) Stop if step sizes are smaller than stopTolX.
  * - stopTolUpXFactor (real) Stop if std dev increases by more than
  *   stopTolUpXFactor.
+ * - parallel (str) To run the optimization with multiple threads, set this to
+ *   "multithreading". Only use this if your OptimizerSystem is
+ *   threadsafe: you can't reliably modify any mutable variables in your
+ *   OptimizerSystem::objectiveFun().
+ * - parallel_number (int) If the <b>parallel</b> option is set, this is the
+ *   number of parallel processes/threads to use (by default, this is the
+ *   number of processors/threads on the machine).
  * - <b>restart/resume</b> TODO
  *
  * If you want to generate identical results with repeated optimizations for,

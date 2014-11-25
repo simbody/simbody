@@ -39,7 +39,7 @@ using SimTK::sqrt;
 
 class TestOptimizerSystem : public OptimizerSystem {
 public:
-    TestOptimizerSystem(unsigned int nParameters)
+    TestOptimizerSystem(int nParameters)
         : OptimizerSystem(nParameters) {}
     virtual Real optimalValue() const {
         Real f;
@@ -53,11 +53,11 @@ public:
 // (https://github.com/cma-es). I think it is supposed to be cigar-shaped.
 class Cigtab : public TestOptimizerSystem {
 public:
-    Cigtab(unsigned int nParameters) : TestOptimizerSystem(nParameters) {}
+    Cigtab(int nParameters) : TestOptimizerSystem(nParameters) {}
     int objectiveFunc(const Vector& x, bool new_parameters,
             Real& f) const {
         f = 1e4 * x[0] * x[0] + 1e-4 * x[1] * x[1];
-        for (unsigned int i = 0; i < getNumParameters(); ++i) {
+        for (int i = 0; i < getNumParameters(); ++i) {
             f += x[i] * x[i];
         }
         return 0;
@@ -72,7 +72,7 @@ public:
 // A function with many local minima. http://www.sfu.ca/~ssurjano/ackley.html
 class Ackley : public TestOptimizerSystem {
 public:
-    Ackley(unsigned int nParameters) : TestOptimizerSystem(nParameters),
+    Ackley(int nParameters) : TestOptimizerSystem(nParameters),
             a(20), b(0.2), c(2 * Pi) {
         // The website above says this function usually has the following
         // bounds:
@@ -126,10 +126,10 @@ public:
 // https://en.wikipedia.org/wiki/Test_functions_for_optimization
 class Rosenbrock : public TestOptimizerSystem {
 public:
-    Rosenbrock(unsigned int nParameters) : TestOptimizerSystem(nParameters) {}
+    Rosenbrock(int nParameters) : TestOptimizerSystem(nParameters) {}
     int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
         f = 0;
-        for (unsigned int i = 0; i < getNumParameters() - 1; ++i) {
+        for (int i = 0; i < getNumParameters() - 1; ++i) {
             f += 100.0 * square(x[i+1] - square(x[i])) + square(x[i] - 1);
         }
         return 0;
@@ -144,7 +144,7 @@ public:
 // http://www.sfu.ca/~ssurjano/schwef.html
 class Schwefel : public TestOptimizerSystem {
 public:
-    Schwefel(unsigned int nParameters) : TestOptimizerSystem(nParameters) {
+    Schwefel(int nParameters) : TestOptimizerSystem(nParameters) {
         // The website above says this function usually has the following
         // bounds:
         Vector limits(nParameters);
@@ -153,7 +153,7 @@ public:
     }
     int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
         Real sum = 0;
-        for (unsigned int i = 0; i < getNumParameters(); ++i) {
+        for (int i = 0; i < getNumParameters(); ++i) {
             sum += x[i] * sin(sqrt(std::abs(x[i])));
         }
         f = 418.9829 * getNumParameters() -sum;

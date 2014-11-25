@@ -2,6 +2,14 @@
 
 ADD_DEFINITIONS(-DSimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
 
+# Suppress MSVC warnings about sscanf vs sscanf_s, etc.
+# Without the /./, CMake doesn't find the right source file.
+if(MSVC)
+    set_source_files_properties(
+        ${CMAKE_SOURCE_DIR}/SimTKmath/Optimizers/src/c-cmaes/./cmaes.c
+        PROPERTIES COMPILE_DEFINITIONS _CRT_SECURE_NO_WARNINGS)
+endif()
+
 #
 # Set up file groups for better browsing in Visual Studio.
 #

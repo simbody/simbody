@@ -39,6 +39,13 @@ if (std::bitset<2>(diag).test(1)) { cmds; } \
 } \
 while(false)
 
+// TODO when Simbody switches to C++11, only use unique_ptr.
+#define SimTK_CMAES_SMART_PTR std::unique_ptr
+#if (defined(__GNUG__) && __cplusplus<201103L)
+    #undef SimTK_CMAES_SMART_PTR
+    #define SimTK_CMAES_SMART_PTR std::auto_ptr
+#endif
+
 CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys)
 {
     SimTK_VALUECHECK_ALWAYS(2, sys.getNumParameters(), INT_MAX, "nParameters",
@@ -58,6 +65,22 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // =============================================================
     Real f; 
     cmaes_t evo;
+    
+    // Initialize parallelism, if requested.
+    std::string parallel;
+    SimTK_CMAES_SMART_PTR<ParallelExecutor> executor;
+    if (getAdvancedStrOption("parallel", parallel)) {
+
+        // Number of parallel processes/threads.
+        int parallel_number = ParallelExecutor::getNumProcessors();
+        getAdvancedIntOption("parallel_number", parallel_number);
+
+        // Multithreading.
+        if (parallel == "multithreading") {
+            executor.reset(new ParallelExecutor(parallel_number));
+        }
+
+    }
 
     // Check that the initial point is feasible.
     // =========================================
@@ -78,31 +101,11 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 
         // Resample to keep population within limits.
         // ==========================================
-        if( sys.getHasLimits() ) {
-            Real *lowerLimits, *upperLimits;
-            sys.getParameterLimits( &lowerLimits, &upperLimits );
-            
-            for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
-                bool feasible = false; 
-                while (!feasible) {
-                    feasible = true; 
-                    for (int j = 0; j < n; j++) {
-                        if (pop[i][j] < lowerLimits[j] || 
-                                pop[i][j] > upperLimits[j]) {
-                            feasible = false; 
-                            pop = cmaes_ReSampleSingle(&evo, i); 
-                            break; 
-                        }
-                    }
-                }
-            }
-        }
+        resampleToObeyLimits(evo, pop);
 
         // Evaluate the objective function on the samples.
         // ===============================================
-        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
-            objectiveFuncWrapper(n, pop[i], true, &funvals[i], this);
-        }
+        evaluateObjectiveFunctionOnPopulation(evo, pop, funvals, executor.get());
         
         // Update the distribution (mean, covariance, etc.).
         // =================================================
@@ -114,10 +117,10 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     SimTK_CMAES_PRINT(diagnosticsLevel,
             printf("Stop:\n%s\n", cmaes_TestForTermination(&evo)));
 
-    // Update best parameters and objective function value.
-    const double* optx = cmaes_GetPtr(&evo, "xbestever");
+    // Update results and objective function value.
+    const double* xbestever = cmaes_GetPtr(&evo, "xbestever");
     for (int i = 0; i < n; i++) {
-        results[i] = optx[i]; 
+        results[i] = xbestever[i]; 
     }
     f = cmaes_Get(&evo, "fbestever");
 
@@ -135,15 +138,15 @@ void CMAESOptimizer::checkInitialPointIsFeasible(const Vector& x) const {
     const OptimizerSystem& sys = getOptimizerSystem();
 
     if( sys.getHasLimits() ) {
-        Real *lowerLimits, *upperLimits;
-        sys.getParameterLimits( &lowerLimits, &upperLimits );
+        Real *lower, *upper;
+        sys.getParameterLimits( &lower, &upper );
         for (int i = 0; i < sys.getNumParameters(); i++) {
             SimTK_APIARGCHECK4_ALWAYS(
-                    lowerLimits[i] <= x[i] && x[i] <= upperLimits[i],
+                    lower[i] <= x[i] && x[i] <= upper[i],
                     "CMAESOptimizer", "checkInitialPointIsFeasible",
                     "Initial guess results[%d] = %f "
                     "is not within limits [%f, %f].",
-                    i, x[i], lowerLimits[i], upperLimits[i]);
+                    i, x[i], lower[i], upper[i]);
         }
     }
 }
@@ -271,7 +274,52 @@ void CMAESOptimizer::process_readpara_settings(cmaes_t& evo) const
     }
 }
 
+void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
+{
+    const OptimizerSystem& sys = getOptimizerSystem();
+    if( sys.getHasLimits() ) {
+
+        Real *lower, *upper;
+        sys.getParameterLimits( &lower, &upper );
+
+        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
+            bool feasible = false; 
+            while (!feasible) {
+                feasible = true; 
+                for (int j = 0; j < sys.getNumParameters(); j++) {
+                    if (pop[i][j] < lower[j] || pop[i][j] > upper[j]) {
+                        feasible = false; 
+                        pop = cmaes_ReSampleSingle(&evo, i); 
+                        break; 
+                    }
+                }
+            }
+        }
+    }
+}
+
+void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
+        cmaes_t& evo, double*const* pop, double* funvals,
+        ParallelExecutor* executor)
+{
+    const OptimizerSystem& sys = getOptimizerSystem();
+
+    // Execute in parallel.
+    if (executor) {
+        Task task(*this, sys.getNumParameters(), pop, funvals);
+        executor->execute(task, (int)cmaes_Get(&evo, "lambda"));
+    }
+    // Execute normally.
+    else {
+        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
+            objectiveFuncWrapper(sys.getNumParameters(),
+                    pop[i], true, &funvals[i], this);
+        }
+    }
+}
+
 #undef SimTK_CMAES_PRINT
 #undef SimTK_CMAES_FILE
+#undef SimTK_CMAES_SMART_PTR
 
 } // namespace SimTK
