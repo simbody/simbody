@@ -125,7 +125,7 @@
     // Similar checks for floating point values.
 
 #define SimTK_VALUECHECK_ALWAYS(lb,val,ub,valName,where) \
-    do{if(!(lb)<=(val)&&(val)<=(ub)))SimTK_THROW5(SimTK::Exception::ValueOutOfRange,   \
+    do{if(!((lb)<=(val)&&(val)<=(ub)))SimTK_THROW5(SimTK::Exception::ValueOutOfRange,   \
                     (valName),(lb),(val),(ub),(where));}while(false)
 
 

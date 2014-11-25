@@ -1190,6 +1190,78 @@ tagFaces(const ContactGeometry::TriangleMesh&   mesh,
 
 
 
+
+
+//==============================================================================
+//                   HALFSPACE-CONVEX IMPLICIT CONTACT TRACKER
+//==============================================================================
+// The contact point on the convex implicit surface must be the unique point on
+// that surface that has its outward-facing normal in the opposite direction of 
+// the half space normal. We will use the calcSupportPoint() method using the
+// negated half-space normal to find the desired point. You should only be
+// using this tracker for convex surfaces that can provide a high-accuracy
+// support point very fast. If the point is close enough, we'll evaluate the 
+// curvatures at that point using the calcSurfacePrincipalCurvatures() method,
+// in preparation for generating forces with Hertz theory. This will return an 
+// elliptical point contact.
+bool ContactTracker::HalfSpaceConvexImplicit::trackContact
+   (const Contact&         priorStatus,
+    const Transform&       X_GH, 
+    const ContactGeometry& geoHalfSpace,
+    const Transform&       X_GS, 
+    const ContactGeometry& geoImplSurface,
+    Real                   cutoff,
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT
+       (   geoHalfSpace.getTypeId()==ContactGeometry::HalfSpace::classTypeId()
+        && geoImplSurface.isConvex() && geoImplSurface.isSmooth(),
+       "ContactTracker::HalfSpaceConvexImplicit::trackContact()");
+
+    // Our half space occupies the +x half so the normal is -x.
+    const Transform X_HS = ~X_GH*X_GS; // 63 flops
+    // Halfspace normal is -x, so the surface normal we're looking for is
+    // in the half space's +x direction.
+    const UnitVec3& n_S = (~X_HS.R()).x(); // halfspace normal in S
+    const Vec3 Q_S = geoImplSurface.calcSupportPoint(n_S); // cost depends on S
+    const Vec3 Q_H = X_HS*Q_S; // Q measured from half space origin (18 flops)
+    const Real depth = Q_H[0]; // x > 0 is penetrated
+
+    if (depth <= -cutoff) {  // 2 flops
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+
+    // The surfaces are contacting (or close enough to be interesting).
+    // The ellipsoid's principal curvatures k at the contact point are also
+    // the curvatures of the contact paraboloid since the half space doesn't
+    // add anything interesting.
+    Transform X_SQ; Vec2 k;
+    X_SQ.updP() = Q_S;
+    Rotation& R_SQ = X_SQ.updR();
+    geoImplSurface.calcSurfacePrincipalCurvatures(Q_S, k, R_SQ); // cost?
+
+    // We have the contact paraboloid expressed in frame Q but Qz=n_E has the
+    // wrong sign since we have to express it using the half space normal.
+    // We have to end up with a right handed frame, so one of x or y has
+    // to be negated too. (6 flops)
+    R_SQ.setRotationColFromUnitVecTrustMe(ZAxis, -R_SQ.z()); // changing X_SQ
+    R_SQ.setRotationColFromUnitVecTrustMe(XAxis, -R_SQ.x());
+
+    // Now the frame is pointing in the right direction. Measure and express in 
+    // half plane frame, then shift origin to half way between contact point Q 
+    // on the undeformed implicit surface and the corresponding contact point P 
+    // on the undeformed half plane surface. It's easier to do this shift
+    // in H since it is in the -Hx direction.
+    Transform X_HC = X_HS*X_SQ; X_HC.updP()[0] -= depth/2; // 65 flops
+
+    currentStatus = EllipticalPointContact(priorStatus.getSurface1(),
+                                           priorStatus.getSurface2(),
+                                           X_HS, X_HC, k, depth);
+    return true; // success
+}
+
+
 //==============================================================================
 //               CONVEX IMPLICIT SURFACE PAIR CONTACT TRACKER
 //==============================================================================

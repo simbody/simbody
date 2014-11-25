@@ -171,6 +171,13 @@ Real ContactGeometry::calcSurfaceCurvatureInDirection(const Vec3& point, const U
 	return getImpl().calcSurfaceCurvatureInDirection(point, direction);
 }
 
+void ContactGeometry::calcSurfacePrincipalCurvatures(const Vec3& point, 
+                                                     Vec2&       k,
+                                                     Rotation&   R_SP) const
+{
+    getImpl().calcSurfacePrincipalCurvatures(point, k, R_SP);
+}
+
 Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const 
 {   return getImpl().calcSupportPoint(direction); }
 
@@ -1017,21 +1024,86 @@ Real ContactGeometryImpl::
 calcSurfaceCurvatureInDirection(const Vec3& point, 
 								const UnitVec3& direction) const 
 {
-    const UnitVec3 n = calcSurfaceUnitNormal(point);
-    const Vec3     g = calcSurfaceGradient(point);
+    const UnitVec3 nn = calcSurfaceUnitNormal(point);
+    const Vec3     g  = calcSurfaceGradient(point);
 	const Mat33 H = calcSurfaceHessian(point);
 	const Real  knum = ~direction*H*direction; // numerator
     if (std::abs(knum) < TinyReal)
         return 0; // don't want to return 0/0.
         
-    const Real k = knum/(~g*n);
+    const Real k = knum/(~g*nn);
 
 	return k;
 }
 
+//------------------------------------------------------------------------------
+//                    CALC SURFACE PRINCIPAL CURVATURES
+//------------------------------------------------------------------------------
+// The idea here is to calculate the principal curvatures and their directions
+// at a given point on an implicit surface, using only the implicit function and
+// its derivatives without knowning anything about the actual surface.
+//
+// The method is to form the Shape Operator (a.k.a. Weingarten Map), a 2x2
+// matrix whose eigenvalues and eigenvectors are the quantities we want.
+//
+// References (thanks to Ian Stavness for sending these):
+//  [1] Snyder, John. Deriving the Weingarten Map. Microsoft Research 2011
+//      http://research.microsoft.com/en-us/um/people/johnsny/papers/weingarten.docx
+//  [2] Zhihong, Mao. Curvature computing based on shape operator for 
+//      implicit surfaces. (www.paper.edu.cn, 2013)
+//      http://www.paper.edu.cn/index.php/default/en_releasepaper/content/4574762
+// If the above links are dead, I have pdfs.
+//
+// I used Snyder's idea for forming the Weingarten Map (see eqn. 10) and 
+// Zhihong's equations for getting its eigenvalues and eignenvectors. 
+// (sherm 140826)
+void ContactGeometryImpl::
+calcSurfacePrincipalCurvatures(const Vec3&  point,
+                               Vec2&        curvature,
+                               Rotation&    R_SP) const
+{
+    const UnitVec3 nn = calcSurfaceUnitNormal(point);
+    const Vec3     g  = calcSurfaceGradient(point);
+    const Mat33    H  = calcSurfaceHessian(point);
 
+    // 1/2 signed length of gradient. The 1/2 here simplifies the rest of
+    // the code but makes it not quite match the papers.
+    const Real     oow2 = Real(0.5)/(~g*nn); 
 
+    // Create an arbitrary frame with z=nn.
+    const Rotation R_SF(nn, ZAxis); //                 ~60 flops
+    const UnitVec3& t1 = R_SF.x(); const UnitVec3& t2 = R_SF.y();
 
+    const Vec3 Ht1(H*t1), Ht2(H*t2); //                 30 flops
+    const Real a = (~t1 * Ht1)*oow2; // k11             16
+    const Real b = (~t1 * Ht2)*oow2; // k12             16
+    const Real c = (~t2 * Ht2)*oow2; // k22             16
+
+    // Weingarten or Shape operator is a 2x2 sym matrix 2*[a b;b c].
+    // Its eigenvalues are the principal curvatures and eigenvectors the
+    // principal curvature directions in the t1,t2 basis.
+
+    // If b is zero then the matrix is diagonal and its eigenvalues are
+    // 2a and 2c in directions [1,0] (t1) and [0,1] (t2) resp. Must order 
+    // correctly so x is kmax direction and y kmin direction.
+    if (std::abs(b) < SignificantReal) {
+        if (a >= c) {
+            curvature = 2*Vec2(a,c);
+            R_SP = R_SF; // t1 is vmax, t2 is vmin
+        } else { // c > a so t2 is max direction; flip t1 so right handed
+            curvature = 2*Vec2(c,a);
+            R_SP.setRotationFromUnitVecsTrustMe(t2, -t1, nn);
+        }
+        return;
+    }
+
+    const Real d = std::sqrt(square(a-c)+4*b*b);    // discriminant    ~25 flops
+    curvature = Vec2(a+c + d, a+c - d);             // kmax, kmin        4
+    const Vec2 vmax2(a-c + d, 2*b);                 //                   3
+    const UnitVec3 vmax(vmax2[0]*t1 + vmax2[1]*t2); //                 ~40
+    const UnitVec3 vmin(nn % vmax, true); // already a unit vector       9
+    R_SP.setRotationFromUnitVecsTrustMe(vmax, vmin, nn);
+}
 
 // used in numerical differentiation. TODO: what value for single precision?
 static const Real estimatedGeodesicAccuracy = Real(1e-12); 

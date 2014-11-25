@@ -170,7 +170,7 @@ INCLUDE_DIRECTORIES(${SOURCE_INCLUDE_DIRS})
 # Installation
 #
 
-# libraries and examples are installed from their subdirectories; headers here
+# libraries are installed from their subdirectories; headers here
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
@@ -191,10 +191,6 @@ IF(BUILD_STATIC_LIBRARIES)
     ADD_SUBDIRECTORY( staticTarget )
 ENDIF()
 ADD_SUBDIRECTORY( sharedTarget )
-
-IF( BUILD_EXAMPLES )
-  ADD_SUBDIRECTORY( examples )
-ENDIF( BUILD_EXAMPLES )
 
 IF( BUILD_TESTING )
   ADD_SUBDIRECTORY( tests )

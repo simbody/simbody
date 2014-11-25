@@ -13,10 +13,11 @@
  *   dynamics for biomedical research, Procedia IUTAM 2:241-261 (2011)        *
  *   http://dx.doi.org/10.1016/j.piutam.2011.04.023.                          *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors: Jack Middleton, Christopher Bruns, Paul Mitiguy, Matthew     *
- *   Millard, Charles Schwieters, Abhinandan Jain, Isaac Newton               *
+ *   Millard, Thomas Uchida, Chris Dembia, Charles Schwieters,                *
+ *   Abhinandan Jain, Isaac Newton                                            *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -64,6 +65,10 @@ will include this one). **/
 #include "simbody/internal/TextDataEventReporter.h"
 #include "simbody/internal/ObservedPointFitter.h"
 #include "simbody/internal/Assembler.h"
+#include "simbody/internal/AssemblyCondition.h"
+#include "simbody/internal/AssemblyCondition_QValue.h"
+#include "simbody/internal/AssemblyCondition_Markers.h"
+#include "simbody/internal/AssemblyCondition_OrientationSensors.h"
 #include "simbody/internal/LocalEnergyMinimizer.h"
 #include "simbody/internal/ContactTrackerSubsystem.h"
 #include "simbody/internal/CompliantContactSubsystem.h"

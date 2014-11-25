@@ -369,11 +369,22 @@ Real calcGaussianCurvature(const Vec3& point) const {
 point p in a given direction tp. Make sure the point is on the surface and the 
 direction vector lies in the tangent plane and has unit length |tp| = 1. Then
 <pre>
-k = ~tp * H * tp ,
+k = ~tp * H * tp / |g|,
 </pre>
 where H is the Hessian matrix evaluated at p. 
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
+
+/** For an implicit surface at a given point p, return the principal 
+curvatures and principal curvature directions, using only the implicit
+function and its derivatives. The curvatures are returned as a Vec2 (kmax,kmin), 
+and the directions are returned as the x,y axes of a frame whose z axis is the 
+outward unit normal at p, x is the maximum curvature direction, and y is the 
+minimum curvature direction. Point p is given in the surface frame S, and the 
+returned axes are given in S via the Rotation matrix R_SP.
+**/
+void calcSurfacePrincipalCurvatures(const Vec3& point, Vec2& curvature, 
+                                    Rotation& R_SP) const;
 
 /** Returns \c true if this surface is known to be convex. This can be true
 for smooth or polygonal surfaces. **/

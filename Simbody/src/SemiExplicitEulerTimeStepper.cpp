@@ -99,7 +99,7 @@ stepTo(Real time) {
     // velocities in s and realize them, verr0 will also be updated.
     const Vector& verr0 = s.getUErr();
 
-    // m is the total number of proximal constraint equation. This won't 
+    // m is the total number of proximal constraint equations. This won't 
     // change during the step.
     const int m = verr0.size();
 
@@ -654,11 +654,11 @@ classifyUnilateralContactsForSequentialImpact
 }
 
 //------------------------------------------------------------------------------
-//             CLASSIFY UNILATERAL CONTACTS FOR SEQUENTIAL IMPACT
+//            CLASSIFY UNILATERAL CONTACTS FOR SIMULTANEOUS IMPACT
 //------------------------------------------------------------------------------
 // Classify the unilateral contacts into impacters, observers, and expanders.
 // and determine which constraint equations should participate assuming we
-// are in Sequential ("one shot") impact mode. All impacter and observer 
+// are in Simultaneous ("one shot") impact mode. All impacter and observer 
 // constraint equations should participate, as well as the friction constraints
 // (but not the normal constraints) for expanders.
 // If you don't want to process expanders, pass the expansionImpulse as a

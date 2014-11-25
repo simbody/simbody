@@ -182,20 +182,6 @@ IF(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
         "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
 ENDIF()
 
-#
-# Create a platform name useful for finding things in the Platform
-# directory.
-IF(WIN32)
-    SET(PLATFORM_NAME Windows)
-    SET(NATIVE_COPY_CMD copy)
-ELSEIF(APPLE)
-    SET(PLATFORM_NAME Mac)
-    SET(NATIVE_COPY_CMD cp)
-ELSE()
-    SET(PLATFORM_NAME Linux)
-    SET(NATIVE_COPY_CMD cp)
-ENDIF()
-
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
 # 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.
@@ -206,7 +192,7 @@ ELSE()
     SET(PLATFORM_ABI x86)
 ENDIF()
 
-SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
+SET(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE STRING
     "This is the platform and ABI we're building for. Not changeable here; use a different CMake generator instead."
     FORCE)
 
@@ -607,6 +593,10 @@ ADD_SUBDIRECTORY( SimTKmath )
 ADD_SUBDIRECTORY( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 
+IF( BUILD_EXAMPLES )
+  ADD_SUBDIRECTORY( examples )
+ENDIF( BUILD_EXAMPLES )
+
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
@@ -621,10 +611,10 @@ add_custom_target(uninstall
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
 set(PKG_LIBRARIES
-  SimTKsimbody
-  SimTKmath
-  SimTKcommon
-)
+    ${SimTKSIMBODY_LIBRARY_NAME}
+    ${SimTKMATH_LIBRARY_NAME}
+    ${SimTKCOMMON_LIBRARY_NAME}
+    )
 
 if (WIN32)
   set(SIMBODY_CMAKE_DIR cmake)

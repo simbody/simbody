@@ -69,11 +69,11 @@ CablePathIndex adoptCablePath(CablePath& path) {
     return CablePathIndex(cablePaths.size()-1);
 }
 
-// Return the MultibodySystem which owns this ContactTrackerSubsystem.
+// Return the MultibodySystem which owns this CableTrackerSubsystem.
 const MultibodySystem& getMultibodySystem() const 
 {   return MultibodySystem::downcast(getSystem()); }
 
-// Return the SimbodyMatterSubsystem from which this ContactTrackerSubsystem
+// Return the SimbodyMatterSubsystem from which this CableTrackerSubsystem
 // gets the bodies to track.
 const SimbodyMatterSubsystem& getMatterSubsystem() const 
 {   return getMultibodySystem().getMatterSubsystem(); }
