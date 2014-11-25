@@ -39,23 +39,43 @@ using std::cout; using std::endl;
 
 using namespace SimTK;
 
+//#define USE_SHERM_PARAMETERS
+#define USE_TOM_PARAMETERS
+static const bool GenerateAnimation = true;
+
+
 Array_<State> saveEm;
 
 static const Real TimeScale = 1;
-static const Real FrameRate = 60;
-static const Real ReportInterval = TimeScale/FrameRate;
+static const Real FrameRate = GenerateAnimation ? 6000 : 60;
 static const Real ForceScale = .25;
 static const Real MomentScale = .5;
-
 const Vec3 BrickColor    = Blue;
 const Vec3 SphereColor   = Red;
 
+#ifdef USE_SHERM_PARAMETERS
+    static const Real ReportInterval = TimeScale/FrameRate;
+    static const Real VizReportInterval = .001;
+#endif
+#ifdef USE_TOM_PARAMETERS
+    static const Real ReportInterval = GenerateAnimation
+                                       ? TimeScale/FrameRate*10. : 1.e-4;
+    static const Real VizReportInterval = GenerateAnimation ? 0.00005 : 1.e-4;
+#endif
 
+
+//==============================================================================
+//                            FORCE ARROW GENERATOR
+//==============================================================================
+// Draws ephemeral geometry that is displayed for only one frame. Also prints
+// the velocity of the first contact point to the console for analysis.
 class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
-                        const CompliantContactSubsystem& complCont) 
-    :   m_mbs(system), m_compliant(complCont), m_inContact(false) {}
+                        const CompliantContactSubsystem& complCont,
+                        const MobilizedBody& brick) 
+    :   m_mbs(system), m_compliant(complCont), m_brick(brick),
+        m_inContact(false), m_hasCompressionEnded(false) {}
 
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
         const Vec3 frcColors[] = {Red,Orange,Cyan};
@@ -66,14 +86,23 @@ public:
         m_mbs.realize(state, Stage::Dynamics);
         const Real KE=m_mbs.calcKineticEnergy(state), E=m_mbs.calcEnergy(state);
         const Real diss=m_compliant.getDissipatedEnergy(state);
+        const Real PE=m_mbs.calcPotentialEnergy(state);
         DecorativeText txt; 
         //txt.setIsScreenText(true);
-        txt.setScale(TextScale);
-        txt.setColor(Orange);
-        txt.setText("KE/Diss/E: " + String(KE, "%.6f") + String(diss, "/%.6f")
-                    + String(E+diss, "/%.6f") );
-        geometry.push_back(DecorativeText(txt)
-                           .setTransform(Vec3(state.getQ()[4],0,1)));
+        //txt.setScale(TextScale);
+        //txt.setColor(Orange);
+        //txt.setText("KE/Diss/E: " + String(KE, "%.6f") + String(diss, "/%.6f")
+        //            + String(E+diss, "/%.6f") );
+        //const Vector qBrick = m_brick.getQAsVector(state);
+        //geometry.push_back(DecorativeText(txt)
+        //                   .setTransform(Vec3(qBrick[4],0,1)));
+        //geometry.push_back(DecorativeText(txt).setTransform(Vec3(0,0,1)));
+
+        txt.setColor(Black).setScale(0.8);
+        txt.setText("Ed=" + String(diss, "%0.3f") );
+        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-6.75,-15,6.75)));
+        txt.setText("Et=" + String(E+diss, "%0.3f") );
+        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-6.95,-15,5.75)));
 
         int nContPts = 0;
         const int ncont = m_compliant.getNumContactForces(state);
@@ -81,12 +110,13 @@ public:
         if (ncont) {
             if (!m_inContact) {
                 printf("\n\n--------- NEW CONTACT @%g ----------\n", 
-                       state.getTime());
+                    state.getTime());
                 m_inContact = true;
             }
         } else if (m_inContact) {
             printf("-------- END OF CONTACT --------\n\n");
             m_inContact = false;
+            m_velLines.clear();
         }
 
 
@@ -100,22 +130,23 @@ public:
             const UnitVec3 frcDir(frc/frcMag, true);
             const UnitVec3 momDir(mom/momMag, true);
             const Vec3 offs = .1*frcDir; // shift up to clear ground
-            int frcThickness = 2, momThickness = 2;
-            Real frcScale = ForceScale, momScale = ForceScale;
-            while (frcMag > /*10*/1000000)
-                frcThickness++, frcScale /= 10, frcMag /= 10;
-            while (momMag > /*10*/1000000)
-                momThickness++, momScale /= 10, momMag /= 10;
-            geometry.push_back(DecorativePoint(pt)
-                               .setScale(5).setColor(Yellow));
-            DecorativeLine frcLine(pt,      pt + std::log10(frcMag)*frcDir);
-            DecorativeLine momLine(pt+offs, pt+offs + std::log10(momMag)*momDir);
-            frcLine.setColor(Black);
-            momLine.setColor(Purple);
-            frcLine.setLineThickness(frcThickness);
-            momLine.setLineThickness(momThickness);
-            geometry.push_back(frcLine);
-            geometry.push_back(momLine);
+            //int frcThickness = 2, momThickness = 2;
+            //Real frcScale = ForceScale, momScale = ForceScale;
+            //while (frcMag > /*10*/1000000)
+            //    frcThickness++, frcScale /= 10, frcMag /= 10;
+            //while (momMag > /*10*/1000000)
+            //    momThickness++, momScale /= 10, momMag /= 10;
+            //geometry.push_back(DecorativePoint(pt)
+            //                   .setScale(5).setColor(Yellow));
+            //DecorativeLine frcLine(pt,      pt + std::log10(frcMag)*frcDir);
+            //DecorativeLine momLine(pt+offs, pt+offs + std::log10(momMag)*momDir);
+            //frcLine.setColor(Black);
+            //momLine.setColor(Purple);
+            //frcLine.setLineThickness(frcThickness);
+            //momLine.setLineThickness(momThickness);
+            //geometry.push_back(frcLine);
+            //geometry.push_back(momLine);
+
 
             ContactPatch patch;
             const bool found = m_compliant.calcContactPatchDetailsById(state,id,patch);
@@ -126,35 +157,67 @@ public:
                 ++nContPts;
                 const ContactDetail& detail = patch.getContactDetail(i);
                 const Vec3& pt = detail.getContactPoint();
-                geometry.push_back(DecorativePoint(pt).setColor(Purple));
+                //geometry.push_back(DecorativePoint(pt).setColor(Purple));
 
                 const Vec3& force = detail.getForceOnSurface2();
                 const Real forceMag = force.norm();
-                const UnitVec3 forceDir(force/forceMag, true);
-                DecorativeLine frcLine(pt, pt+std::log10(forceMag)*forceDir);
-                frcLine.setColor(Black);
-                geometry.push_back(frcLine);
+                //const UnitVec3 forceDir(force/forceMag, true);
+                //DecorativeLine frcLine(pt, pt+std::log10(forceMag)*forceDir);
+                //frcLine.setColor(Black);
+                //geometry.push_back(frcLine);
 
-                // Make a red line that extends from the contact
-                // point in the direction of the slip velocity, of length 3*slipvel.
-                const Vec3 v = detail.getSlipVelocity();
-                DecorativeLine slip(pt,pt+3.*v);
-                slip.setColor(Red);
-                geometry.push_back(slip);
+                // Draw a line that extends from the contact
+                // point in the direction of the slip velocity.
+                const Vec3 v     = detail.getSlipVelocity();
+                const Real vMag  = std::max(0., std::log10(v.norm()*1.e3));
+                const Vec3 vDraw = v.normalize() * vMag;
+                const Vec3 pt0   = Vec3(pt[0], pt[1], 5.e-3);
+                const Vec3 pt1   = Vec3(pt[0]+2.*vDraw[0], pt[1]+2.*vDraw[1],
+                                        5.e-3);
+                Real colorFactor = clamp(0.0, m_velLines.size() / 32., 1.0);
+                DecorativeLine slip(pt0, pt1);
+                slip.setLineThickness(3)
+                    .setColor(Vec3(1-colorFactor,0.,colorFactor));
 
-                if (i==0) // ONLY REPORT FIRST CONTACT
+                // Store line for displaying in subsequent frames, but only if
+                // in compression.
+                if (m_velLines.size() > 0 && v[ZAxis] > 0 && !m_hasCompressionEnded) {
+                    m_hasCompressionEnded = true;
+                    cout << m_velLines.size() << " lines drawn." << endl;
+                }
+
+                const bool inCompression = (v[ZAxis] <= 0)
+                                           && !m_hasCompressionEnded;
+                if (inCompression && vMag>0)
+                    m_velLines.push_back(slip);
+
+                for (int k=0; k<(int)m_velLines.size(); ++k)
+                    geometry.push_back(m_velLines[k]);
+
+                if (i==0 && inCompression && !GenerateAnimation) // REPORT ONLY FIRST CONTACT
                     printf("%8.4f %8.4f %8.4f\n", state.getTime(), v[0], v[1]);
             }
         }
-        txt.setText(String("Num contact points: ") + String(nContPts));
-        geometry.push_back(DecorativeText(txt)
-                           .setTransform(Vec3(state.getQ()[4],0,.75)));
+        //txt.setText(String("Num contact points: ") + String(nContPts));
+        //geometry.push_back(DecorativeText(txt)
+        //                   .setTransform(Vec3(state.getQ()[4],0,.75)));
+        txt.setText("t=" + String(state.getTime(), "%0.3f") + "s");
+        txt.setColor(Black).setScale(0.8);
+        geometry.push_back(DecorativeText(txt).setTransform(Vec3(-7.5,-15,7.75)));
+
+        if (nContPts>0) {
+            txt.setText(String("Contacting"));
+            geometry.push_back(DecorativeText(txt).setTransform(Vec3(9,-15,7.75)));
+        }
 
     }
 private:
     const MultibodySystem&              m_mbs;
     const CompliantContactSubsystem&    m_compliant;
+    const MobilizedBody&                m_brick;
     bool                                m_inContact;
+    Array_<DecorativeLine>              m_velLines;
+    bool                                m_hasCompressionEnded;
 };
 
 
@@ -200,8 +263,10 @@ public:
                           Array_< DecorativeGeometry >& geometry) OVERRIDE_11
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0,4,2);
-        const Rotation R1(-SimTK::Pi/3, XAxis);
+        //const Vec3 p_GC = Bo + Vec3(0,4,2);
+        //const Rotation R1(-SimTK::Pi/3, XAxis);
+        const Vec3 p_GC = Bo + Vec3(-1.,4.,0.5);
+        const Rotation R1(-1.6, XAxis);
         const Rotation R2(SimTK::Pi, ZAxis);
         viz.setCameraTransform(Transform(R1*R2, p_GC));
     }
@@ -228,11 +293,22 @@ int main() {
     const Real rad = .1;    // Contact sphere radius
     const Real brickMass = 2;
 
-    const Real mu_d =.3; // dynamic friction
-    const Real mu_s =.3; // static friction
-    const Real mu_v = 0;  // viscous friction (1/v)
-    const Real dissipation = .1;
-    const Real fK = 1e6; // stiffness in pascals
+    #ifdef USE_SHERM_PARAMETERS
+        const Real mu_d =.3; // dynamic friction
+        const Real mu_s =.3; // static friction
+        const Real mu_v = 0;  // viscous friction (1/v)
+        const Real dissipation = .1;
+        const Real fK = 1e6; // stiffness in pascals
+        const Real simDuration = 5.;
+    #endif
+    #ifdef USE_TOM_PARAMETERS
+        const Real mu_d =.3; // dynamic friction
+        const Real mu_s =.3; // static friction
+        const Real mu_v = 0;  // viscous friction (1/v)
+        const Real dissipation = .1756;  //Second impact at 0.685 s.
+        const Real fK = 1e6; // stiffness in pascals
+        const Real simDuration = 0.5; //3.0; //0.8;
+    #endif
 
     const ContactMaterial material(fK,dissipation,mu_s,mu_d,mu_v);
 
@@ -261,12 +337,14 @@ int main() {
                               brickBody, Transform());
 
     Visualizer viz(system);
-    viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
-    viz.addFrameController(new BodyWatcher(brick));
-    viz.setShowSimTime(true);
-    viz.setShowFrameNumber(true);
+    viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces,
+                                                       brick));
+    //viz.addFrameController(new BodyWatcher(brick));
+    viz.addFrameController(new BodyWatcher(matter.Ground()));
+    //viz.setShowSimTime(true);
+    //viz.setShowFrameNumber(true);
     viz.setDesiredFrameRate(FrameRate);
-    viz.setShowFrameRate(true);
+    //viz.setShowFrameRate(true);
 
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(silo);
@@ -289,10 +367,24 @@ int main() {
     State state = system.getDefaultState();
 
     // SET INITIAL CONDITIONS
-    brick.setQToFitTranslation(state, Vec3(0,2,.8));
-    brick.setQToFitRotation(state, Rotation(BodyRotationSequence, 
-                                            Pi/4, XAxis, Pi/6, YAxis));
-    brick.setUToFitLinearVelocity(state, Vec3(-5,0,0));
+    #ifdef USE_SHERM_PARAMETERS
+        brick.setQToFitTranslation(state, Vec3(0,2,.8));
+        brick.setQToFitRotation(state, Rotation(BodyRotationSequence, 
+                                                Pi/4, XAxis, Pi/6, YAxis));
+        brick.setUToFitLinearVelocity(state, Vec3(-5,0,0));
+    #endif
+    #ifdef USE_TOM_PARAMETERS
+        Vector initQ = Vector(Vec7(1,0,0,0, 0,1,0.8));
+        initQ(0,4) = Vector(Quaternion(Rotation(SimTK::Pi/4, XAxis) *
+                                       Rotation(SimTK::Pi/6, YAxis))
+                            .asVec4());
+        Vector initU = Vector(Vec6(0,0,0, 0,0,6));
+        initQ[6] = 1.5;
+        initU[5] = -3.96;  //First impact at 0.181 s.
+        initU[3] = -5.0;
+        state.setQ(initQ);
+        state.setU(initU);
+    #endif
 
     saveEm.reserve(10000);
 
@@ -336,12 +428,12 @@ int main() {
     double cpuStart = cpuTime();
     double realStart = realTime();
     Real lastReport = -Infinity;
-    while (integ.getTime() < 5.) {
+    while (integ.getTime() < simDuration) {
         // Advance time by no more than ReportInterval. Might require multiple 
         // internal steps.
         integ.stepBy(ReportInterval);
 
-        if (integ.getTime() >= lastReport + .001) {
+        if (integ.getTime() >= lastReport + VizReportInterval) {
             // The state being used by the integrator.
             const State& s = integ.getState();
             viz.report(s);
@@ -367,7 +459,7 @@ int main() {
     viz.dumpStats(std::cout);
 
     // Add as slider to control playback speed.
-    viz.addSlider("Speed", 1, 0, 4, 1);
+    viz.addSlider("Speed", 1, 0, 2, 1);
     viz.setMode(Visualizer::PassThrough);
 
     silo->clear(); // forget earlier input
