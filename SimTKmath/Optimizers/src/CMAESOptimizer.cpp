@@ -208,7 +208,8 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // ==============================================================
     process_readpara_settings(evo);
 
-    // Once we've updated settings in readpara_t, finalize the initialization.
+    // Once we've updated settings in cmaes_readpara_t,
+    // finalize the initialization.
     return cmaes_init_final(&evo);
 }
 
