@@ -101,6 +101,7 @@
             code, namely after calling cmaes_init_para(). The order of parameters
             of readpara_init() has changed to be the same as for cmaes_init().
   14/11/25  fix warnings from Microsoft C compiler (sherm)
+  14/11/26: renamed exported symbols so they begin with a cmaes_prefix.
   
   Wish List
     o make signals_filename part of cmaes_t using assign_string()
@@ -124,7 +125,7 @@
 
     o writing data depending on timing in a smarter way, e.g. using 10% 
       of all time. First find out whether clock() is useful for measuring
-      disc writing time and then timings_t class can be utilized. 
+      disc writing time and then cmaes_timings_t class can be utilized. 
       For very large dimension the default of 1 seconds waiting might 
       be too small. 
 
@@ -156,26 +157,26 @@
 
 /* see cmaes_interface.h for those, not listed here */
 
-long   random_init(random_t *, long unsigned seed /* 0==clock */);
-void   random_exit(random_t *);
-double random_Gauss(random_t *); /* (0,1)-normally distributed */
-double random_Uniform(random_t *);
-long   random_Start(random_t *, long unsigned seed /* 0==1 */);
+long   cmaes_random_init(cmaes_random_t *, long unsigned seed /* 0==clock */);
+void   cmaes_random_exit(cmaes_random_t *);
+double cmaes_random_Gauss(cmaes_random_t *); /* (0,1)-normally distributed */
+double cmaes_random_Uniform(cmaes_random_t *);
+long   cmaes_random_Start(cmaes_random_t *, long unsigned seed /* 0==1 */);
 
-void   timings_init(timings_t *timing);
-void   timings_start(timings_t *timing); /* fields totaltime and tictoctime */
-double timings_update(timings_t *timing);
-void   timings_tic(timings_t *timing);
-double timings_toc(timings_t *timing);
+void   cmaes_timings_init(cmaes_timings_t *timing);
+void   cmaes_timings_start(cmaes_timings_t *timing); /* fields totaltime and tictoctime */
+double cmaes_timings_update(cmaes_timings_t *timing);
+void   cmaes_timings_tic(cmaes_timings_t *timing);
+double cmaes_timings_toc(cmaes_timings_t *timing);
 
-void readpara_init (readpara_t *, int dim, const double * xstart, 
+void cmaes_readpara_init (cmaes_readpara_t *, int dim, const double * xstart, 
                     const double * sigma, int seed, int lambda,
                     const char * filename);
-void readpara_exit(readpara_t *);
-void readpara_ReadFromFile(readpara_t *, const char *szFileName);
-void readpara_SupplementDefaults(readpara_t *);
-void readpara_SetWeights(readpara_t *, const char * mode);
-void readpara_WriteToFile(readpara_t *, const char *filenamedest);
+void cmaes_readpara_exit(cmaes_readpara_t *);
+void cmaes_readpara_ReadFromFile(cmaes_readpara_t *, const char *szFileName);
+void cmaes_readpara_SupplementDefaults(cmaes_readpara_t *);
+void cmaes_readpara_SetWeights(cmaes_readpara_t *, const char * mode);
+void cmaes_readpara_WriteToFile(cmaes_readpara_t *, const char *filenamedest);
 
 const double * cmaes_Optimize( cmaes_t *, double(*pFun)(double const *, int dim), 
                                 long iterations);
@@ -266,7 +267,7 @@ cmaes_init_para(cmaes_t *t, /* "this" */
                 const char *input_parameter_filename) 
 {
   t->version = c_cmaes_version;
-  readpara_init(&t->sp, dimension, inxstart, inrgstddev, inseed, 
+  cmaes_readpara_init(&t->sp, dimension, inxstart, inrgstddev, inseed, 
                    lambda, input_parameter_filename);
 }
 
@@ -291,12 +292,12 @@ cmaes_init_final(cmaes_t *t /* "this" */)
   /* assign_string(&t->signalsFilename, "cmaes_signals.par"); */
 
   if (!t->sp.flgsupplemented) {
-    readpara_SupplementDefaults(&t->sp);
+    cmaes_readpara_SupplementDefaults(&t->sp);
     if (!isNoneStr(t->sp.filename))
-      readpara_WriteToFile(&t->sp, "actparcmaes.par");
+      cmaes_readpara_WriteToFile(&t->sp, "actparcmaes.par");
   }
      
-  t->sp.seed = random_init( &t->rand, (long unsigned int) t->sp.seed);
+  t->sp.seed = cmaes_random_init( &t->rand, (long unsigned int) t->sp.seed);
 
   N = t->sp.N; /* for convenience */
   
@@ -309,7 +310,7 @@ cmaes_init_final(cmaes_t *t /* "this" */)
   t->flgEigensysIsUptodate = 1;
   t->flgCheckEigen = 0; 
   t->genOfEigensysUpdate = 0;
-  timings_init(&t->eigenTimings);
+  cmaes_timings_init(&t->eigenTimings);
   t->flgIniphase = 0; /* do not use iniphase, hsig does the job now */
   t->flgresumedone = 0;
   t->flgStop = 0;
@@ -383,7 +384,7 @@ cmaes_init_final(cmaes_t *t /* "this" */)
   /* use in case xstart as typicalX */
   if (t->sp.typicalXcase) 
     for (i = 0; i < N; ++i)
-      t->rgxmean[i] += t->sigma * t->rgD[i] * random_Gauss(&t->rand);
+      t->rgxmean[i] += t->sigma * t->rgD[i] * cmaes_random_Gauss(&t->rand);
 
   if (strcmp(t->sp.resumefile, "_no_")  != 0)
     cmaes_resume_distribution(t, t->sp.resumefile);
@@ -411,6 +412,9 @@ cmaes_init(cmaes_t *t, /* "this" */
 
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
 
 void 
 cmaes_resume_distribution(cmaes_t *t, char *filename)
@@ -531,6 +535,7 @@ cmaes_resume_distribution(cmaes_t *t, char *filename)
   cmaes_UpdateEigensystem(t, 1);
   
 } /* cmaes_resume_distribution() */
+#pragma GCC diagnostic pop
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 
@@ -563,8 +568,8 @@ cmaes_exit(cmaes_t *t)
   free( t->publicFitness);
   free( --t->rgFuncValue);
   free( --t->arFuncValueHist);
-  random_exit (&t->rand);
-  readpara_exit (&t->sp); 
+  cmaes_random_exit (&t->rand);
+  cmaes_readpara_exit (&t->sp); 
 } /* cmaes_exit() */
 
 
@@ -614,7 +619,7 @@ cmaes_SamplePopulation(cmaes_t *t)
         t->minEW = douSquare(rgdouMin(t->rgD, N)); 
         t->maxEW = douSquare(rgdouMax(t->rgD, N));
         t->flgEigensysIsUptodate = 1;
-        timings_start(&t->eigenTimings);
+        cmaes_timings_start(&t->eigenTimings);
       }
   }
 
@@ -622,12 +627,12 @@ cmaes_SamplePopulation(cmaes_t *t)
   TestMinStdDevs(t); 
 
   for (iNk = 0; iNk < t->sp.lambda; ++iNk)
-    { /* generate scaled random vector (D * z)    */
+    { /* generate scaled cmaes_random vector (D * z)    */
       for (i = 0; i < N; ++i)
         if (flgdiag)
-          t->rgrgx[iNk][i] = xmean[i] + t->sigma * t->rgD[i] * random_Gauss(&t->rand);
+          t->rgrgx[iNk][i] = xmean[i] + t->sigma * t->rgD[i] * cmaes_random_Gauss(&t->rand);
         else
-          t->rgdTmp[i] = t->rgD[i] * random_Gauss(&t->rand);
+          t->rgdTmp[i] = t->rgD[i] * cmaes_random_Gauss(&t->rand);
       if (!flgdiag)
         /* add mutation (sigma * B * (D*z)) */
         for (i = 0; i < N; ++i) {
@@ -655,7 +660,7 @@ cmaes_ReSampleSingle_old( cmaes_t *t, double *rgx)
     FATAL("cmaes_ReSampleSingle(): Missing input double *x",0,0,0);
 
   for (i = 0; i < N; ++i)
-    t->rgdTmp[i] = t->rgD[i] * random_Gauss(&t->rand);
+    t->rgdTmp[i] = t->rgD[i] * cmaes_random_Gauss(&t->rand);
   /* add mutation (sigma * B * (D*z)) */
   for (i = 0; i < N; ++i) {
     for (j = 0, sum = 0.; j < N; ++j)
@@ -682,7 +687,7 @@ cmaes_ReSampleSingle( cmaes_t *t, int iindex)
   rgx = t->rgrgx[iindex];
 
   for (i = 0; i < N; ++i)
-    t->rgdTmp[i] = t->rgD[i] * random_Gauss(&t->rand);
+    t->rgdTmp[i] = t->rgD[i] * cmaes_random_Gauss(&t->rand);
   /* add mutation (sigma * B * (D*z)) */
   for (i = 0; i < N; ++i) {
     for (j = 0, sum = 0.; j < N; ++j)
@@ -704,7 +709,7 @@ cmaes_SampleSingleInto( cmaes_t *t, double *rgx)
     rgx = new_double(N);
 
   for (i = 0; i < N; ++i)
-    t->rgdTmp[i] = t->rgD[i] * random_Gauss(&t->rand);
+    t->rgdTmp[i] = t->rgD[i] * cmaes_random_Gauss(&t->rand);
   /* add mutation (sigma * B * (D*z)) */
   for (i = 0; i < N; ++i) {
     for (j = 0, sum = 0.; j < N; ++j)
@@ -728,7 +733,7 @@ cmaes_PerturbSolutionInto( cmaes_t *t, double *rgx, double const *xmean, double 
     FATAL("cmaes_PerturbSolutionInto(): xmean was not given",0,0,0);
 
   for (i = 0; i < N; ++i)
-    t->rgdTmp[i] = t->rgD[i] * random_Gauss(&t->rand);
+    t->rgdTmp[i] = t->rgD[i] * cmaes_random_Gauss(&t->rand);
   /* add mutation (sigma * B * (D*z)) */
   for (i = 0; i < N; ++i) {
     for (j = 0, sum = 0.; j < N; ++j)
@@ -1109,7 +1114,7 @@ void cmaes_WriteToFilePtr(cmaes_t *t, const char *key, FILE *fp)
       /* (processor) time (used) since begin of execution */ 
       if (strncmp(key, "clock", 4) == 0)
         {
-          timings_update(&t->eigenTimings);
+          cmaes_timings_update(&t->eigenTimings);
           fprintf(fp, "%.1f %.1f",  t->eigenTimings.totaltotaltime, 
                   t->eigenTimings.tictoctime);
           while (*key != '+' && *key != '\0' && key < keyend)
@@ -1872,7 +1877,7 @@ cmaes_UpdateEigensystem(cmaes_t *t, int flgforce)
 {
   int i, N = t->sp.N;
 
-  timings_update(&t->eigenTimings);
+  cmaes_timings_update(&t->eigenTimings);
 
   if(flgforce == 0) {
     if (t->flgEigensysIsUptodate == 1)
@@ -1890,11 +1895,11 @@ cmaes_UpdateEigensystem(cmaes_t *t, int flgforce)
         && t->eigenTimings.tictoctime > 0.0002)
       return; 
   }
-  timings_tic(&t->eigenTimings);
+  cmaes_timings_tic(&t->eigenTimings);
 
   Eigen( N, t->C, t->rgD, t->B, t->rgdTmp);
       
-  timings_toc(&t->eigenTimings);
+  cmaes_timings_toc(&t->eigenTimings);
 
   /* find largest and smallest eigenvalue, they are supposed to be sorted anyway */
   t->minEW = rgdouMin(t->rgD, N);
@@ -2279,22 +2284,22 @@ WriteMaxErrorInfo(cmaes_t *t)
 #endif
 
 /* --------------------------------------------------------- */
-/* --------------- Functions: timings_t -------------------- */
+/* --------------- Functions: cmaes_timings_t -------------- */
 /* --------------------------------------------------------- */
-/* timings_t measures overall time and times between calls
+/* cmaes_timings_t measures overall time and times between calls
  * of tic and toc. For small time spans (up to 1000 seconds)
  * CPU time via clock() is used. For large time spans the
  * fall-back to elapsed time from time() is used.
- * timings_update() must be called often enough to prevent
+ * cmaes_timings_update() must be called often enough to prevent
  * the fallback. */
 /* --------------------------------------------------------- */
 void 
-timings_init(timings_t *t) {
+cmaes_timings_init(cmaes_timings_t *t) {
   t->totaltotaltime = 0; 
-  timings_start(t);
+  cmaes_timings_start(t);
 }
 void 
-timings_start(timings_t *t) {
+cmaes_timings_start(cmaes_timings_t *t) {
   t->totaltime = 0;
   t->tictoctime = 0;
   t->lasttictoctime = 0;
@@ -2307,8 +2312,8 @@ timings_start(timings_t *t) {
 }
 
 double 
-timings_update(timings_t *t) {
-/* returns time between last call of timings_*() and now, 
+cmaes_timings_update(cmaes_timings_t *t) {
+/* returns time between last call of cmaes_timings_*() and now, 
  *    should better return totaltime or tictoctime? 
  */
   double diffc, difft;
@@ -2316,7 +2321,7 @@ timings_update(timings_t *t) {
   time_t lt = t->lasttime;   /* measure time in s */
 
   if (t->isstarted != 1)
-    FATAL("timings_started() must be called before using timings... functions",0,0,0);
+    FATAL("cmaes_timings_started() must be called before using timings... functions",0,0,0);
 
   t->lastclock = clock(); /* measures at most 2147 seconds, where 1s = 1e6 CLOCKS_PER_SEC */
   t->lasttime = time(NULL);
@@ -2344,22 +2349,22 @@ timings_update(timings_t *t) {
 }
 
 void
-timings_tic(timings_t *t) {
+cmaes_timings_tic(cmaes_timings_t *t) {
   if (t->istic) { /* message not necessary ? */
-    ERRORMESSAGE("Warning: timings_tic called twice without toc",0,0,0);
+    ERRORMESSAGE("Warning: cmaes_timings_tic called twice without toc",0,0,0);
     return; 
   }
-  timings_update(t); 
+  cmaes_timings_update(t); 
   t->istic = 1; 
 }
 
 double
-timings_toc(timings_t *t) {
+cmaes_timings_toc(cmaes_timings_t *t) {
   if (!t->istic) {
-    ERRORMESSAGE("Warning: timings_toc called without tic",0,0,0);
+    ERRORMESSAGE("Warning: cmaes_timings_toc called without tic",0,0,0);
     return -1; 
   }
-  timings_update(t);
+  cmaes_timings_update(t);
   t->lasttictoctime = t->tictoczwischensumme;
   t->tictoczwischensumme = 0;
   t->istic = 0;
@@ -2367,7 +2372,7 @@ timings_toc(timings_t *t) {
 }
 
 /* --------------------------------------------------------- */
-/* ---------------- Functions: random_t -------------------- */
+/* ---------------- Functions: cmaes_random_t -------------- */
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 /* X_1 exakt :          0.79788456)  */
@@ -2382,7 +2387,7 @@ timings_toc(timings_t *t) {
 /* --------------------------------------------------------- */
 
 long 
-random_init( random_t *t, long unsigned inseed)
+cmaes_random_init( cmaes_random_t *t, long unsigned inseed)
 {
   clock_t cloc = clock();
 
@@ -2393,17 +2398,17 @@ random_init( random_t *t, long unsigned inseed)
       ; /* TODO: remove this for time critical applications? */
     inseed = (long unsigned)abs((long)(100*time(NULL)+clock()));
   }
-  return random_Start(t, inseed);
+  return cmaes_random_Start(t, inseed);
 }
 
 void
-random_exit(random_t *t)
+cmaes_random_exit(cmaes_random_t *t)
 {
   free( t->rgrand);
 }
 
 /* --------------------------------------------------------- */
-long random_Start( random_t *t, long unsigned inseed)
+long cmaes_random_Start( cmaes_random_t *t, long unsigned inseed)
 {
   long tmp;
   int i;
@@ -2429,7 +2434,7 @@ long random_Start( random_t *t, long unsigned inseed)
 }
 
 /* --------------------------------------------------------- */
-double random_Gauss(random_t *t)
+double cmaes_random_Gauss(cmaes_random_t *t)
 {
   double x1, x2, rquad, fac;
 
@@ -2440,8 +2445,8 @@ double random_Gauss(random_t *t)
   }
   do 
   {
-    x1 = 2.0 * random_Uniform(t) - 1.0;
-    x2 = 2.0 * random_Uniform(t) - 1.0;
+    x1 = 2.0 * cmaes_random_Uniform(t) - 1.0;
+    x2 = 2.0 * cmaes_random_Uniform(t) - 1.0;
     rquad = x1*x1 + x2*x2;
   } while(rquad >= 1 || rquad <= 0);
   fac = sqrt(-2.0*log(rquad)/rquad);
@@ -2451,7 +2456,7 @@ double random_Gauss(random_t *t)
 }
 
 /* --------------------------------------------------------- */
-double random_Uniform( random_t *t)
+double cmaes_random_Uniform( cmaes_random_t *t)
 {
   long tmp;
 
@@ -2471,10 +2476,10 @@ szCat(const char *sz1, const char*sz2,
       const char *sz3, const char *sz4);
 
 /* --------------------------------------------------------- */
-/* -------------- Functions: readpara_t -------------------- */
+/* -------------- Functions: cmaes_readpara_t -------------- */
 /* --------------------------------------------------------- */
 void
-readpara_init (readpara_t *t,
+cmaes_readpara_init (cmaes_readpara_t *t,
                int dim, 
                const double * inxstart, 
                const double * inrgsigma,
@@ -2483,7 +2488,7 @@ readpara_init (readpara_t *t,
                const char * filename)
 {
   int i, N;
-  /* TODO: make sure readpara_init has not been called already */
+  /* TODO: make sure cmaes_readpara_init has not been called already */
   t->filename = NULL; /* set after successful Read */
   t->rgsformat = (const char **) new_void(55, sizeof(char *));
   t->rgpadr = (void **) new_void(55, sizeof(void *)); 
@@ -2562,16 +2567,16 @@ readpara_init (readpara_t *t,
   t->facupdateCmode = 1;
   strcpy(t->resumefile, "_no_");
 
-  /* filename == NULL invokes default in readpara_Read... */
+  /* filename == NULL invokes default in cmaes_readpara_Read... */
   if (!isNoneStr(filename) && (!filename || strcmp(filename, "writeonly") != 0))
-    readpara_ReadFromFile(t, filename);
+    cmaes_readpara_ReadFromFile(t, filename);
 
   if (t->N <= 0)
     t->N = dim;
 
   N = t->N; 
   if (N == 0)
-    FATAL("readpara_readpara_t(): problem dimension N undefined.\n",
+    FATAL("cmaes_readpara_cmaes_readpara_t(): problem dimension N undefined.\n",
           "  (no default value available).",0,0); 
   if (t->xstart == NULL && inxstart == NULL && t->typicalX == NULL) {
     ERRORMESSAGE("Warning: initialX undefined. typicalX = 0.5...0.5 used.","","","");
@@ -2607,11 +2612,11 @@ readpara_init (readpara_t *t,
 
   t->flgsupplemented = 0;
 
-} /* readpara_init */
+} /* cmaes_readpara_init */
 
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
-void readpara_exit(readpara_t *t)
+void cmaes_readpara_exit(cmaes_readpara_t *t)
 {
   if (t->filename != NULL)
     free( t->filename);
@@ -2636,7 +2641,7 @@ void readpara_exit(readpara_t *t)
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 void 
-readpara_ReadFromFile(readpara_t *t, const char * filename)
+cmaes_readpara_ReadFromFile(cmaes_readpara_t *t, const char * filename)
 {
   char s[1000];
   const char *ss = "cmaes_initials.par";
@@ -2667,7 +2672,7 @@ readpara_ReadFromFile(readpara_t *t, const char * filename)
         }
     } /* for */
   if (t->N <= 0)
-    FATAL("readpara_ReadFromFile(): No valid dimension N",0,0,0); 
+    FATAL("cmaes_readpara_ReadFromFile(): No valid dimension N",0,0,0); 
   for (ipara=0; ipara < t->n2para; ++ipara)
     {
       rewind(fp);
@@ -2682,7 +2687,7 @@ readpara_ReadFromFile(readpara_t *t, const char * filename)
                 if (fscanf(fp, " %lf", &(*t->rgp2adr[ipara])[i]) != 1)
                   break;
               if (i<size && i < t->N) {
-                ERRORMESSAGE("readpara_ReadFromFile ", filename, ": ",0); 
+                ERRORMESSAGE("cmaes_readpara_ReadFromFile ", filename, ": ",0); 
                 FATAL( "'", t->rgskeyar[ipara], 
                        "' not enough values found.\n", 
                        "   Remove all comments between numbers.");
@@ -2696,12 +2701,12 @@ readpara_ReadFromFile(readpara_t *t, const char * filename)
   fclose(fp);
   assign_string(&(t->filename), filename); /* t->filename must be freed */
   return;
-} /* readpara_ReadFromFile() */
+} /* cmaes_readpara_ReadFromFile() */
 
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 void
-readpara_WriteToFile(readpara_t *t, const char *filenamedest)
+cmaes_readpara_WriteToFile(cmaes_readpara_t *t, const char *filenamedest)
 {
   int ipara, i; 
   size_t len;
@@ -2749,12 +2754,12 @@ readpara_WriteToFile(readpara_t *t, const char *filenamedest)
   } /* for */
   fprintf(fp, "\n");
   fclose(fp); 
-} /* readpara_WriteToFile() */
+} /* cmaes_readpara_WriteToFile() */
 
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 void 
-readpara_SupplementDefaults(readpara_t *t)
+cmaes_readpara_SupplementDefaults(cmaes_readpara_t *t)
 /* Called (only) once to finally set parameters. The settings
  * typically depend on the current parameter values itself,
  * where 0 or -1 may indicate to set them to a certain default
@@ -2767,7 +2772,7 @@ readpara_SupplementDefaults(readpara_t *t)
   clock_t cloc = clock();
   
   if (t->flgsupplemented)
-    FATAL("readpara_SupplementDefaults() cannot be called twice.",0,0,0);
+    FATAL("cmaes_readpara_SupplementDefaults() cannot be called twice.",0,0,0);
   if (t->seed < 1) {
     while ((int) (cloc - clock()) == 0)
       ; /* TODO: remove this for time critical applications!? */
@@ -2781,10 +2786,10 @@ readpara_SupplementDefaults(readpara_t *t)
     t->lambda = 4+(int)(3*log((double)N));
   if (t->mu == -1) {
     t->mu = t->lambda/2; 
-    readpara_SetWeights(t, t->weigkey);
+    cmaes_readpara_SetWeights(t, t->weigkey);
   }
   if (t->weights == NULL)
-    readpara_SetWeights(t, t->weigkey);
+    cmaes_readpara_SetWeights(t, t->weigkey);
 
   if (t->cs > 0) /* factor was read */
     t->cs *= (t->mueff + 2.) / (N + t->mueff + 3.);
@@ -2833,13 +2838,13 @@ readpara_SupplementDefaults(readpara_t *t)
     
   t->flgsupplemented = 1;
 
-} /* readpara_SupplementDefaults() */
+} /* cmaes_readpara_SupplementDefaults() */
 
    
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 void 
-readpara_SetWeights(readpara_t *t, const char * mode)
+cmaes_readpara_SetWeights(cmaes_readpara_t *t, const char * mode)
 {
   double s1, s2;
   int i;
@@ -2871,9 +2876,9 @@ readpara_SetWeights(readpara_t *t, const char * mode)
 
   if(t->mu < 1 || t->mu > t->lambda || 
      (t->mu==t->lambda && t->weights[0]==t->weights[t->mu-1]))
-    FATAL("readpara_SetWeights(): invalid setting of mu or lambda",0,0,0);
+    FATAL("cmaes_readpara_SetWeights(): invalid setting of mu or lambda",0,0,0);
 
-} /* readpara_SetWeights() */
+} /* cmaes_readpara_SetWeights() */
 
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
@@ -3073,8 +3078,8 @@ FATAL(char const *s1, char const *s2, char const *s3,
 }
 
 /* ========================================================= */
-void ERRORMESSAGE( char const *s1, char const *s2, 
-                   char const *s3, char const *s4)
+static void ERRORMESSAGE( char const *s1, char const *s2, 
+                          char const *s3, char const *s4)
 {
 #if 1
   /*  static char szBuf[700];  desirable but needs additional input argument 
@@ -3097,8 +3102,8 @@ void ERRORMESSAGE( char const *s1, char const *s2,
 }
 
 /* ========================================================= */
-char *szCat(const char *sz1, const char*sz2, 
-            const char *sz3, const char *sz4)
+static char *szCat(const char *sz1, const char*sz2, 
+                   const char *sz3, const char *sz4)
 {
   static char szBuf[700];
 

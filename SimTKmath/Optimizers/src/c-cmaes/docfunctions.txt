@@ -21,8 +21,8 @@ cmaes_init_final(cmaes_t * evo_ptr);
                  in cmaes_init(evo_ptr, ...) below.
   
     Details:
-      This initializer allows to set values in readpara_t evo_ptr->sp "manually"
-      in the code instead of via the parameter file only. See readpara_t type.
+      This initializer allows to set values in cmaes_readpara_t evo_ptr->sp "manually"
+      in the code instead of via the parameter file only. See cmaes_readpara_t type.
       
     Example:
       cmaes_t evo;
@@ -49,7 +49,7 @@ cmaes_init_para(cmaes_t * evo_ptr, int dimension ,
         dimension                : 0 /* no default available */
         initialX                 : [0.5,...,0.5]+Normal(0,initialStdDev^2), N-dimensional. 
         initialStdDev            : [0.3,...,0.3], N-dimensional vector. 
-        seed                     : random, see file actpar... 
+        seed                     : cmaes_random, see file actpar... 
         lambda                   : 4+(int)(3*log(N))
         input_parameter_filename : "cmaes_initials.par"
 
@@ -79,9 +79,9 @@ cmaes_init_para(cmaes_t * evo_ptr, int dimension ,
             solutions per generation. 
 
         input_parameter_filename, char *: File which should be edited
-            properly. Filename "non" omits reading and writing of any
-            parameters in cmaes_init(), "writeonly" omits reading but
-            still writes used parameters to file "actparcmaes.par".
+            properly. Filename "no", "non" or "none" omits reading and 
+            writing of any parameters in cmaes_init(), "writeonly" omits 
+            reading but still writes used parameters to file "actparcmaes.par".
 
     Return, double *: array of size lambda==popsize that can be
              used to assign fitness values and pass them to
