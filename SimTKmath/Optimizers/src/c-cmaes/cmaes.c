@@ -99,7 +99,8 @@
   14/10/18: splitted cmaes_init() into cmaes_init_para() and cmaes_init_final(),
             such that parameters can be set also comparatively safely within the
             code, namely after calling cmaes_init_para(). The order of parameters
-            of readpara_init() has changed to be the same as for cmaes_init(). 
+            of readpara_init() has changed to be the same as for cmaes_init().
+  14/11/25  fix warnings from Microsoft C compiler (sherm)
   
   Wish List
     o make signals_filename part of cmaes_t using assign_string()
@@ -131,6 +132,14 @@
 
     o re-write input and output procedures 
 */
+
+/* Prevent Microsoft compiler from complaining that common library functions 
+   like strncpy(), ctime(), sprintf(), fopen(), fscanf(), etc. "may be unsafe".
+   This must come before the first #include.
+*/
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <math.h>   /* sqrt() */
 #include <stddef.h> /* size_t */
@@ -739,10 +748,10 @@ cmaes_Optimize( cmaes_t *evo, double(*pFun)(double const *, int dim), long itera
     double *const*pop; /* sampled population */
     const char *stop;
     int i;
-    long startiter = evo->gen; 
+    long startiter = (long)evo->gen; 
     
     while(!(stop=cmaes_TestForTermination(evo)) && 
-        (evo->gen < startiter + iterations || !iterations))
+        ((long)evo->gen < startiter + iterations || !iterations))
     { 
         /* Generate population of new candidate solutions */
         pop = cmaes_SamplePopulation(evo); /* do not change content of pop */
@@ -1674,10 +1683,10 @@ void cmaes_ReadFromFilePtr( cmaes_t *t, FILE *fp)
   static long maxdiffitertowrite; /* to prevent long gaps at the beginning */
   int flgprinted = 0;
   int flgwritten = 0; 
-  double deltaprinttime = time(NULL)-t->printtime; /* using clock instead might not be a good */
-  double deltawritetime = time(NULL)-t->writetime; /* idea as disc time is not CPU time? */
-  double deltaprinttimefirst = t->firstprinttime ? time(NULL)-t->firstprinttime : 0; /* time is in seconds!? */
-  double deltawritetimefirst = t->firstwritetime ? time(NULL)-t->firstwritetime : 0; 
+  double deltaprinttime = (double)(time(NULL)-t->printtime); /* using clock instead might not be a good */
+  double deltawritetime = (double)(time(NULL)-t->writetime); /* idea as disc time is not CPU time? */
+  double deltaprinttimefirst = (double)(t->firstprinttime ? time(NULL)-t->firstprinttime : 0); /* time is in seconds!? */
+  double deltawritetimefirst = (double)(t->firstwritetime ? time(NULL)-t->firstwritetime : 0); 
   if (countiterlastwritten > t->gen) { /* probably restarted */
     maxdiffitertowrite = 0;
     countiterlastwritten = 0;
@@ -1694,8 +1703,8 @@ void cmaes_ReadFromFilePtr( cmaes_t *t, FILE *fp)
 
   if (cmaes_TestForTermination(t)) 
     {
-      deltaprinttime = time(NULL); /* forces printing */
-      deltawritetime = time(NULL);
+      deltaprinttime = (double)time(NULL); /* forces printing */
+      deltawritetime = (double)time(NULL);
     }
   while(fgets(s, sizeof(s), fp) != NULL)
     { 
@@ -2617,9 +2626,9 @@ void readpara_exit(readpara_t *t)
   if (t->weights != NULL)
     free( t->weights);
 
-  free(t->rgsformat);
+  free((void*)t->rgsformat);
   free(t->rgpadr);
-  free(t->rgskeyar);
+  free((void*)t->rgskeyar);
   free(t->rgp2adr);
   free(t->weigkey);
 }
