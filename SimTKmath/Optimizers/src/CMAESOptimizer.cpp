@@ -72,12 +72,12 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     if (getAdvancedStrOption("parallel", parallel)) {
 
         // Number of parallel processes/threads.
-        int parallel_number = ParallelExecutor::getNumProcessors();
-        getAdvancedIntOption("parallel_number", parallel_number);
+        int nthreads = ParallelExecutor::getNumProcessors();
+        getAdvancedIntOption("nthreads", nthreads);
 
         // Multithreading.
         if (parallel == "multithreading") {
-            executor.reset(new ParallelExecutor(parallel_number));
+            executor.reset(new ParallelExecutor(nthreads));
         }
 
     }

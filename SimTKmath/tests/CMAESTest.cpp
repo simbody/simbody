@@ -524,7 +524,7 @@ void testMultithreading() {
     SimTK_TEST_OPT(opt, results, 1e-5);
 
     // Change the number of parallel threads.
-    opt.setAdvancedIntOption("parallel_number", 2);
+    opt.setAdvancedIntOption("nthreads", 2);
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
 

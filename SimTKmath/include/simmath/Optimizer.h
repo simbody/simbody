@@ -333,10 +333,9 @@ private:
  *   "multithreading". Only use this if your OptimizerSystem is
  *   threadsafe: you can't reliably modify any mutable variables in your
  *   OptimizerSystem::objectiveFun().
- * - parallel_number (int) If the <b>parallel</b> option is set, this is the
- *   number of parallel processes/threads to use (by default, this is the
- *   number of processors/threads on the machine).
- * - <b>restart/resume</b> TODO
+ * - nthreads (int) If the <b>parallel</b> option is set to
+ *   "multithreading", this is the number of threads to use (by default, this
+ *   is the number of processors/threads on the machine).
  *
  * If you want to generate identical results with repeated optimizations for,
  * you can set the <b>seed</b> option. In addtion, you *must* set the
