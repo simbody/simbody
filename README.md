@@ -456,8 +456,8 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
 
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
-[appveyor_buildstatus_image]: https://ci.appveyor.com/api/projects/status/ow38r6xviq0qpegt?svg=true
-[appveyor]: https://ci.appveyor.com/project/chrisdembia/simbody-737
+[appveyor_buildstatus_image]: https://ci.appveyor.com/api/projects/status/ow38r6xviq0qpegt/branch/master?svg=true
+[appveyor]: https://ci.appveyor.com/project/chrisdembia/simbody-737/branch/master
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
