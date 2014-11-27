@@ -31,14 +31,36 @@
 
 namespace SimTK {
 
+/**
+ * The available Optimizer algorithms.
+ * Gradient descent algorithms seek to find a local minimum, and are not
+ * guaranteed to find the global minimum. See the description of Optimizer for
+ * specific information about how to use the algorithms.
+ */
 enum OptimizerAlgorithm {
-     BestAvailable = 0, // Simmath will select best Optimizer based on problem type
-     InteriorPoint = 1, // IPOPT interior point optimizer
-     LBFGS         = 2, // LBFGS optimizer
-     LBFGSB        = 3, // LBFGS optimizer with simple bounds
-     CFSQP         = 4, // CFSQP sequential quadratic programming optimizer (requires external library)
-     UnknownOptimizerAlgorithm = 5, // the default
-     UserSuppliedOptimizerAlgorithm = 6
+     /// Simmath will select best Optimizer based on problem type.
+     BestAvailable = 0,
+     /// IpOpt algorithm (https://projects.coin-or.org/ipopt);
+     /// gradient descent.
+     InteriorPoint = 1,
+     /// Limited-memory Broyden-Fletcher-Goldfarb-Shanno algorithm; 
+     /// gradient descent.
+     LBFGS         = 2,
+     /// LBFGS with simple bound constraints;
+     /// gradient descent.
+     LBFGSB        = 3,
+     /// C implementation of sequential quadratic programming
+     /// (requires external library:
+     /// ftp://frcatel.fri.uniza.sk/pub/soft/math/matprog/doc/fsqp.html);
+     /// gradient descent.
+     CFSQP         = 4,
+     /// Covariance matrix adaptation, evolution strategy
+     /// (https://github.com/cma-es/c-cmaes);
+     /// this is a randomized algorithm that attempts to find a global minimum.
+     CMAES         = 5,
+     UnknownOptimizerAlgorithm = 6, // the default impl. of getAlgorithm.
+     /// An algorithm that is implemented outside of Simmath.
+     UserSuppliedOptimizerAlgorithm = 7
 };
 
 /**
@@ -71,6 +93,7 @@ public:
     }
 
     /// Objective/cost function which is to be optimized; return 0 when successful.
+    /// The value of f upon entry into the function is undefined.
     /// This method must be supplied by concrete class.
     virtual int objectiveFunc      ( const Vector& parameters, 
                                  bool new_parameters, Real& f ) const {
@@ -222,23 +245,108 @@ private:
 
 /**
  * API for SimTK Simmath's optimizers.
- * An optimizer finds a local minimum to an objective function. The
- * optimizer can be constrained to search for a minimum within a feasible 
- * region. The feasible region can be defined by setting limits on the 
- * parameters of the objective function and/or supplying constraint 
- * functions that must be satisfied. 
- * The optimizer starts searching for a minimum beginning at a user supplied 
+ * An optimizer finds a minimum to an objective function. Usually, this minimum
+ * is a local minimum. Some algorithms, like CMAES, are designed to find the
+ * global minumum. The optimizer can be constrained to search for a minimum
+ * within a feasible region. The feasible region is defined in two ways: via
+ * limits on the parameters of the objective function; and, for algorithms
+ * other than CMAES, by supplying constraint functions that must be satisfied.
+ * The optimizer starts searching for a minimum beginning at a user supplied
  * initial value for the set of parameters.
  *
  * The objective function and constraints are specified by supplying the
  * Optimizer with a concrete implemenation of an OptimizerSystem class.
- * The OptimizerSystem can be passed to the Optimizer either through the 
- * Optimizer constructor or by calling the setOptimizerSystem method.  
- * The Optimizer class will select the best optimization algorithm to solve the
- * problem based on the constraints supplied by the OptimizerSystem. 
+ * The OptimizerSystem can be passed to the Optimizer either through the
+ * Optimizer constructor or by calling the Optimizer::setOptimizerSystem
+ * method.  The Optimizer class will select the best optimization algorithm to
+ * solve the problem based on the constraints supplied by the OptimizerSystem.
  * A user can also override the optimization algorithm selected by the
- * Optimizer by specifying the optimization algorithm. 
- *  
+ * Optimizer by specifying the optimization algorithm.
+ *
+ * <h3> Optimization algorithms and advanced options </h3>
+ *
+ * See OptimizerAlgorithm for a brief description of the available algorithms.
+ * Most of these algorithms have options that are specific to the algorithm.
+ * These options are set via methods like Optimizer::setAdvancedStrOption. If
+ * you want to get going quickly, you can just use the default values of these
+ * options and ignore this section. As an example, an int option
+ * <b>lambda</b> would be set via:
+ *
+ * @code
+ * opt.setAdvancedIntOption("lambda", 5);
+ * @endcode
+ *
+ * For now, we only have detailed documentation for the CMAES algorithm.
+ *
+ * <h4> CMAES </h4>
+ *
+ * This is the c-cmaes algorithm written by Niko Hansen
+ * (https://github.com/cma-es/c-cmaes).
+ *
+ * Some notes:
+ * - This algorithm obeys parameter limits.
+ * - This is a derivative-free optimization algorithm, so methods like the
+ *   following have no effect:
+ *      - Optimizer::useNumericalGradient
+ *      - Optimizer::setDifferentiatorMethod
+ *      - Optimizer::setLimitedMemoryHistory
+ *      - OptimizerSystem::gradientFunc
+ *      - OptimizerSystem::hessian
+ * - This algorithm does not obey constraint functions, so methods like the
+ *   following have no effect:
+ *      - Optimizer::setConstraintTolerance
+ *      - Optimizer::useNumericalJacobian
+ *      - OptimizerSystem::constraintFunc
+ *      - OptimizerSystem::constraintJacobian
+ *      - OptimizerSystem::setNumEqualityConstraints
+ *      - OptimizerSystem::setNumInequalityConstraints
+ *      - OptimizerSystem::setNumLinearEqualityConstraints
+ *      - OptimizerSystem::setNumLinearInequalityConstraints
+ * - The effect of the diagnostics level is as follows:
+ *      - 0: minimal output to console (warnings, errors), some files are
+ *      written to the current directory (errcmaes.err error log).
+ *      - 1: additional output to console.
+ *      - 2: all files are written to the current directory.
+ *      - 3: output to console, and all files are written to the current
+ *
+ * Advanced options:
+ *
+ * - <b>lambda</b> (int; default: depends on number of parameters) The
+ *   population size.
+ * - <b>sigma</b> (real; default: 0.3) Initial step size; same for all
+ *   parameters. A warning is emitted if this is not set.
+ * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
+ *   number generator that is used to sample the population from a normal
+ *   distribution. See note below.
+ * - <b>maxTimeFractionForEigendecomposition</b> (real; default: 0.2)
+ *   Controls the amount of time spent generating eigensystem
+ *   decompositions.
+ * - <b>stopMaxFunEvals</b> (int) Stop optimization after this
+ *   number of evaluations of the objective function.
+ * - stopFitness (real) Stop if function value is smaller than stopFitness.
+ * - stopTolFunHist (real) Stop if function value differences of best values
+ *   are smaller than stopTolFunHist.
+ * - stopTolX (real) Stop if step sizes are smaller than stopTolX.
+ * - stopTolUpXFactor (real) Stop if std dev increases by more than
+ *   stopTolUpXFactor.
+ * - parallel (str) To run the optimization with multiple threads, set this to
+ *   "multithreading". Only use this if your OptimizerSystem is
+ *   threadsafe: you can't reliably modify any mutable variables in your
+ *   OptimizerSystem::objectiveFun().
+ * - nthreads (int) If the <b>parallel</b> option is set to
+ *   "multithreading", this is the number of threads to use (by default, this
+ *   is the number of processors/threads on the machine).
+ *
+ * If you want to generate identical results with repeated optimizations for,
+ * you can set the <b>seed</b> option. In addtion, you *must* set the
+ * <b>maxTimeFractionForEigendecomposition</b> option to be greater or
+ * equal to 1.0.
+ *
+ * @code
+ * opt.setAdvancedIntOption("seed", 42);
+ * opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
+ * @endcode
+ *
  */
 class SimTK_SIMMATH_EXPORT Optimizer {
 public:
@@ -259,12 +367,12 @@ public:
 
 
     /// Set the maximum number of iterations allowed of the optimization
-    /// method's outer / stepping loop. Most optimizers also have an inner loop
-    /// ("line search") which is / also iterative but is not affected by this
-    /// setting. Inner loop convergence is / typically prescribed by theory, and
-    /// failure there is often an indication of / an ill-formed problem.
+    /// method's outer stepping loop. Most optimizers also have an inner loop
+    /// ("line search") which is also iterative but is not affected by this
+    /// setting. Inner loop convergence is typically prescribed by theory, and
+    /// failure there is often an indication of an ill-formed problem.
     void setMaxIterations( int iter );
-    /// Set the maximum number of previous hessians used in a limitied memory
+    /// Set the maximum number of previous hessians used in a limited memory
     /// hessian approximation.
     void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.

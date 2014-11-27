@@ -1,0 +1,1 @@
+Simbody (Simmath) chooses to use c-cmaes under the Apache License 2.0.

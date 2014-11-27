@@ -1,0 +1,59 @@
+GENERAL PURPOSE: 
+The CMA-ES (Evolution Strategy with Covariance Matrix Adaptation) is a
+robust search/optimization method. The goal is to minimize a given
+objective function, f: R^N -> R.  The CMA-ES should be applied, if
+e.g. BFGS and/or conjugate gradient methods fail due to a rugged
+search landscape (e.g. discontinuities, outliers, noise, local optima,
+etc.). Learning the covariance matrix in the CMA-ES is similar to
+learning the inverse Hessian matrix in a quasi-Newton method. On
+smooth landscapes the CMA-ES is roughly ten times slower than BFGS,
+assuming derivatives are not directly available. For up to N=10
+parameters the simplex direct search method (Nelder & Mead) is
+sometimes faster, but less robust than CMA-ES.  On considerably hard
+problems the search (a single run) is expected to take between 100*N
+and 300*N^2 function evaluations. But you might be lucky...
+
+APPLICATION REMARK: 
+
+The adaptation of the covariance matrix (e.g. by the CMA) is
+equivalent to a general linear transformation of the problem
+variables. Nevertheless, every problem specific knowledge about the
+best problem transformation should be exploited before starting the
+search procedure and an appropriate a priori transformation should be
+applied to the problem. In particular a decision should be taken
+whether variables, which are positive by nature, should be taken in
+the log scale. A hard lower variable bound can also be realized by
+taking the square. All variables should be re-scaled such that they
+"live" in a similar search range width (for example, but not
+necessarily between zero and one), such that the initial standard
+deviation can be chosen the same for all variables.
+
+
+LINKS
+  http://www.lri.fr/~hansen/cmaesintro.html
+  http://www.lri.fr/~hansen/publications.html
+
+TUTORIAL:
+	http://www.lri.fr/~hansen/cmatutorial.pdf
+
+REFERENCES:
+
+Hansen, N, and S. Kern (2004).  Evaluating the CMA Evolution
+  Strategy on Multimodal Test Functions. In: Eighth International
+  Conference on Parallel Problem Solving from Nature PPSN VIII,
+  Proceedings, pp. 282-291, Berlin: Springer
+
+Hansen, N., S.D. Müller and P. Koumoutsakos (2003): Reducing the
+  Time Complexity of the Derandomized Evolution Strategy with
+  Covariance Matrix Adaptation (CMA-ES). Evolutionary Computation,
+  11(1).
+
+Hansen, N. and A. Ostermeier (2001). Completely Derandomized
+  Self-Adaptation in Evolution Strategies. Evolutionary Computation,
+  9(2), pp. 159-195.
+
+Hansen, N. and A. Ostermeier (1996). Adapting arbitrary normal
+  mutation distributions in evolution strategies: The covariance
+  matrix adaptation. In Proceedings of the 1996 IEEE International
+  Conference on Evolutionary Computation, pp. 312-317.
+
