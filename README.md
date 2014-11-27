@@ -1,5 +1,8 @@
-Simbody [![Build Status][buildstatus_image]][travisci]
+Simbody 
 =======
+
+Ubuntu and OS X build status: [![Build Status][buildstatus_image]][travisci]. 
+Windows build status: [![Build status][appveyor_buildstatus_image]][appveyor]
 
 Simbody is a high-performance, open-source toolkit for science- and
 engineering-quality simulation of articulated mechanisms, including
@@ -453,6 +456,8 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
 
 [buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
+[appveyor_buildstatus_image]: https://ci.appveyor.com/api/projects/status/ow38r6xviq0qpegt/branch/master?svg=true
+[appveyor]: https://ci.appveyor.com/project/chrisdembia/simbody-737/branch/master
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
