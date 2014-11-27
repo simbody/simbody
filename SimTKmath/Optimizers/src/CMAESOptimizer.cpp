@@ -72,12 +72,12 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     if (getAdvancedStrOption("parallel", parallel)) {
 
         // Number of parallel processes/threads.
-        int parallel_number = ParallelExecutor::getNumProcessors();
-        getAdvancedIntOption("parallel_number", parallel_number);
+        int nthreads = ParallelExecutor::getNumProcessors();
+        getAdvancedIntOption("nthreads", nthreads);
 
         // Multithreading.
         if (parallel == "multithreading") {
-            executor.reset(new ParallelExecutor(parallel_number));
+            executor.reset(new ParallelExecutor(nthreads));
         }
 
     }
@@ -208,7 +208,8 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // ==============================================================
     process_readpara_settings(evo);
 
-    // Once we've updated settings in readpara_t, finalize the initialization.
+    // Once we've updated settings in cmaes_readpara_t,
+    // finalize the initialization.
     return cmaes_init_final(&evo);
 }
 
