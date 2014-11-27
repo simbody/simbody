@@ -1,0 +1,44 @@
+# Windows testing using Visual Studio.
+
+# Syntax for this file:
+# http://www.appveyor.com/docs/appveyor-yml
+
+# See http://msdn.microsoft.com/en-us/library/ms164311.aspx for
+# command-line options to MSBuild.
+
+# Speeding up a Visual Studio build.
+# http://blogs.msdn.com/b/vcblog/archive/2011/01/05/damn-my-vc-project-is-building-slower-in-vs2010-what-do-i-do-now-a-step-by-step-guide.aspx
+
+shallow_clone: true
+
+init:
+  # Put MSBuild on the path.
+  - SET PATH=C:\Program Files (x86)\MSBuild\12.0\bin\;%PATH%
+
+build_script:
+  # Must create separate build dir, otherwise can't read test files
+  # for some reason.
+  - mkdir build
+  - cd build
+  # Treat all warnings as errors.
+  - cmake .. -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX=C:\simbody
+  # See http://msdn.microsoft.com/en-us/library/ms164311.aspx for
+  # command-line options to MSBuild.
+  - MSBuild Simbody.sln /target:ALL_BUILD /p:Configuration=Release /maxcpucount /verbosity:quiet
+
+test_script:
+  - ctest --parallel 8 --build-config Release --output-on-failure
+    
+after_test:
+  ## On master branch, create NuGet package for Simbody, for use by OpenSim.
+  # Detect if we are on the master branch.
+  - IF %APPVEYOR_REPO_BRANCH% EQU master SET DISTR=TRUE
+  # Install Simbody.
+  - IF DEFINED DISTR cmake --build . --target install --config Release -- /maxcpucount /verbosity:quiet
+  # Create NuGet package.
+  - IF DEFINED DISTR cd %APPVEYOR_BUILD_FOLDER%
+  # Create a nupkg. The install directory is to be packaged.
+  - IF DEFINED DISTR nuget pack .simbody.nuspec -BasePath C:\simbody
+  # The line above creates the file simbody.0.0.0.nupkg.
+  # Push this file to Appveyor's NuGet account feed, to be used by OpenSim.
+  - IF DEFINED DISTR appveyor PushArtifact simbody.0.0.0.nupkg
