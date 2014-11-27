@@ -413,8 +413,11 @@ cmaes_init(cmaes_t *t, /* "this" */
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-result"
+#ifdef __GNUC__
+    // These macros generate warnings in Visual Studio.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-result"
+#endif
 
 void 
 cmaes_resume_distribution(cmaes_t *t, char *filename)
@@ -535,7 +538,9 @@ cmaes_resume_distribution(cmaes_t *t, char *filename)
   cmaes_UpdateEigensystem(t, 1);
   
 } /* cmaes_resume_distribution() */
-#pragma GCC diagnostic pop
+#ifdef __GNUC__
+    #pragma GCC diagnostic pop
+#endif
 /* --------------------------------------------------------- */
 /* --------------------------------------------------------- */
 
