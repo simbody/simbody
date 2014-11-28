@@ -645,31 +645,6 @@ public:
         helper.dump(msg);
     }
 
-
-    // This routine is useful for implementing friendlier Matrix expressions and operators.
-    // It maps closely to the Level-3 BLAS family of pxxmm() routines like sgemm(). The
-    // operation performed assumes that "this" is the result, and that "this" has 
-    // already been sized correctly to receive the result. We'll compute
-    //     this = beta*this + alpha*A*B
-    // If beta is 0 then "this" can be uninitialized. If alpha is 0 we promise not
-    // to look at A or B. The routine can work efficiently even if A and/or B are transposed
-    // by their views, so an expression like
-    //        C += s * ~A * ~B
-    // can be performed with the single equivalent call
-    //        C.matmul(1., s, Tr(A), Tr(B))
-    // where Tr(A) indicates a transposed view of the original A.
-    // The ultimate efficiency of this call depends on the data layout and views which
-    // are used for the three matrices.
-    // NOTE: neither A nor B can be the same matrix as 'this', nor views of the same data
-    // which would expose elements of 'this' that will be modified by this operation.
-    template <class ELT_A, class ELT_B>
-    MatrixBase& matmul(const StdNumber& beta,   // applied to 'this'
-                       const StdNumber& alpha, const MatrixBase<ELT_A>& A, const MatrixBase<ELT_B>& B)
-    {
-        helper.matmul(beta,alpha,A.helper,B.helper);
-        return *this;
-    }
-
     /// Element selection for stored elements. These are the fastest element access
     /// methods but may not be able to access all elements of the logical matrix when
     /// some of its elements are not stored in memory. For example, a Hermitian matrix
@@ -894,6 +869,32 @@ private:
     MatrixHelper<Scalar> helper; // this is just one pointer
 
     template <class EE> friend class MatrixBase;
+
+    // ============================= Unimplemented =============================
+    // This routine is useful for implementing friendlier Matrix expressions and operators.
+    // It maps closely to the Level-3 BLAS family of pxxmm() routines like sgemm(). The
+    // operation performed assumes that "this" is the result, and that "this" has 
+    // already been sized correctly to receive the result. We'll compute
+    //     this = beta*this + alpha*A*B
+    // If beta is 0 then "this" can be uninitialized. If alpha is 0 we promise not
+    // to look at A or B. The routine can work efficiently even if A and/or B are transposed
+    // by their views, so an expression like
+    //        C += s * ~A * ~B
+    // can be performed with the single equivalent call
+    //        C.matmul(1., s, Tr(A), Tr(B))
+    // where Tr(A) indicates a transposed view of the original A.
+    // The ultimate efficiency of this call depends on the data layout and views which
+    // are used for the three matrices.
+    // NOTE: neither A nor B can be the same matrix as 'this', nor views of the same data
+    // which would expose elements of 'this' that will be modified by this operation.
+    template <class ELT_A, class ELT_B>
+    MatrixBase& matmul(const StdNumber& beta,   // applied to 'this'
+                       const StdNumber& alpha, const MatrixBase<ELT_A>& A, const MatrixBase<ELT_B>& B)
+    {
+        helper.matmul(beta,alpha,A.helper,B.helper);
+        return *this;
+    }
+
 };
 
 } //namespace SimTK

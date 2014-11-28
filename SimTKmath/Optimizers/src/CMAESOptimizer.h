@@ -11,7 +11,7 @@
  *                                                                            *
  * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
  * Authors: Chris Dembia                                                      *
- * Contributors: Michael Sherman                                              *
+ * Contributors: Michael Sherman, Nikolaus Hansen                             *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -57,7 +57,7 @@ private:
 
     // Wrapper around cmaes_init.
     double* init(cmaes_t& evo, Vector& results) const;
-    // Edit settings in evo.sp (readpara_t).
+    // Edit settings in evo.sp (cmaes_readpara_t).
     void process_readpara_settings(cmaes_t& evo) const;
 
     void resampleToObeyLimits(cmaes_t& evo, double*const* pop);

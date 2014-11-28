@@ -201,6 +201,7 @@ these are:
   - Whether to watch for transitions to and from zero. [NO]
   - The localization window in units of the System's timescale. [10%]
     (That is then the "unit" window which is reduced by the accuracy setting.)
+    
 The default values are shown in brackets above. **/
 class SimTK_SimTKCOMMON_EXPORT EventTriggerInfo {
 public:

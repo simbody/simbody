@@ -346,7 +346,6 @@ private:
  * - <b>nthreads</b> (int) If the <b>parallel</b> option is set to
  *   "multithreading", this is the number of threads to use (by default, this
  *   is the number of processors/threads on the machine).
- * - <b>restart/resume</b> TODO
  *
  * <i> Reproducible output and seeds </i>
  *
