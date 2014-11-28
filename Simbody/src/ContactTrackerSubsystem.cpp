@@ -136,28 +136,28 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::ConvexImplicitPair
                                 (ContactGeometry::Sphere::classTypeId(),
                                  ContactGeometry::Ellipsoid::classTypeId()));
-	adoptContactTracker(new ContactTracker::ConvexImplicitPair
+    adoptContactTracker(new ContactTracker::ConvexImplicitPair
                                 (ContactGeometry::Ellipsoid::classTypeId(),
                                  ContactGeometry::Ellipsoid::classTypeId()));
 
 
 
-	// SuperEllipsoid Code
-	// -------------------------------------------------------------------------------
+    // SuperEllipsoid Code
+    // -------------------------------------------------------------------------------
 
-	adoptContactTracker(new ContactTracker::ConvexImplicitPair
-		(ContactGeometry::SuperEllipsoid::classTypeId(),
-		ContactGeometry::SuperEllipsoid::classTypeId()));
+    adoptContactTracker(new ContactTracker::ConvexImplicitPair
+        (ContactGeometry::SuperEllipsoid::classTypeId(),
+        ContactGeometry::SuperEllipsoid::classTypeId()));
 
-	adoptContactTracker(new ContactTracker::ConvexImplicitPair
-		(ContactGeometry::Ellipsoid::classTypeId(),
-		ContactGeometry::SuperEllipsoid::classTypeId()));
+    adoptContactTracker(new ContactTracker::ConvexImplicitPair
+        (ContactGeometry::Ellipsoid::classTypeId(),
+        ContactGeometry::SuperEllipsoid::classTypeId()));
 
-	adoptContactTracker(new ContactTracker::ConvexImplicitPair
-		(ContactGeometry::Sphere::classTypeId(),
-		ContactGeometry::SuperEllipsoid::classTypeId()));
-	
-	// -------------------------------------------------------------------------------
+    adoptContactTracker(new ContactTracker::ConvexImplicitPair
+        (ContactGeometry::Sphere::classTypeId(),
+        ContactGeometry::SuperEllipsoid::classTypeId()));
+    
+    // -------------------------------------------------------------------------------
 
 
 }
