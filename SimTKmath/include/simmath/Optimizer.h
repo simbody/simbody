@@ -310,6 +310,9 @@ private:
  *      - 3: output to console, and all files are written to the current
  *
  * Advanced options:
+ * 
+ * The default values for options whose name begins with "stop" are specified
+ * at https://github.com/CMA-ES/c-cmaes/blob/master/cmaes_initials.par
  *
  * - <b>lambda</b> (int; default: depends on number of parameters) The
  *   population size.
