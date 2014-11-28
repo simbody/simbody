@@ -328,8 +328,8 @@ private:
  * - <b>stopTolFunHist</b> (real) Stop if function value differences of best
  *   values are smaller than stopTolFunHist.
  * - <b>stopTolX</b> (real) Stop if step sizes are smaller than stopTolX.
- * - <b>stopTolUpXFactor</b> (real) Stop if std dev increases by more than
- *   stopTolUpXFactor.
+ * - <b>stopTolUpXFactor</b> (real) Stop if standard deviation increases
+ *   by more than stopTolUpXFactor.
  * - <b>parallel</b> (str) To run the optimization with multiple threads, set
  *   this to "multithreading". Only use this if your OptimizerSystem is
  *   threadsafe: you can't reliably modify any mutable variables in your
