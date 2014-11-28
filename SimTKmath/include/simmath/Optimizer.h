@@ -323,17 +323,18 @@ private:
  *   decompositions.
  * - <b>stopMaxFunEvals</b> (int) Stop optimization after this
  *   number of evaluations of the objective function.
- * - stopFitness (real) Stop if function value is smaller than stopFitness.
- * - stopTolFunHist (real) Stop if function value differences of best values
- *   are smaller than stopTolFunHist.
- * - stopTolX (real) Stop if step sizes are smaller than stopTolX.
- * - stopTolUpXFactor (real) Stop if std dev increases by more than
+ * - <b>stopFitness</b> (real) Stop if function value is smaller than
+ *   stopFitness.
+ * - <b>stopTolFunHist</b> (real) Stop if function value differences of best
+ *   values are smaller than stopTolFunHist.
+ * - <b>stopTolX</b> (real) Stop if step sizes are smaller than stopTolX.
+ * - <b>stopTolUpXFactor</b> (real) Stop if std dev increases by more than
  *   stopTolUpXFactor.
- * - parallel (str) To run the optimization with multiple threads, set this to
- *   "multithreading". Only use this if your OptimizerSystem is
+ * - <b>parallel</b> (str) To run the optimization with multiple threads, set
+ *   this to "multithreading". Only use this if your OptimizerSystem is
  *   threadsafe: you can't reliably modify any mutable variables in your
  *   OptimizerSystem::objectiveFun().
- * - nthreads (int) If the <b>parallel</b> option is set to
+ * - <b>nthreads</b> (int) If the <b>parallel</b> option is set to
  *   "multithreading", this is the number of threads to use (by default, this
  *   is the number of processors/threads on the machine).
  *
