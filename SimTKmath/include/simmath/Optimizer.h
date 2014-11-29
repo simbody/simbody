@@ -315,6 +315,9 @@ private:
  *      - 3: both 1 and 2 (output to console and files are written).
  *
  * Advanced options:
+ * 
+ * The default values for options whose name begins with "stop" are specified
+ * at https://github.com/CMA-ES/c-cmaes/blob/master/cmaes_initials.par
  *
  * - <b>lambda</b> (int; default: depends on number of parameters) The
  *   population size.
@@ -331,8 +334,7 @@ private:
  * - <b>stopFitness</b> (real) Stop if function value is smaller than
  *   stopFitness.
  * - <b>stopTolFunHist</b> (real) Stop if function value differences of best
- *   values
- *   are smaller than stopTolFunHist.
+ *   values are smaller than stopTolFunHist.
  * - <b>stopTolX</b> (real) Stop if step sizes are smaller than stopTolX.
  * - <b>stopTolUpXFactor</b> (real) Stop if standard deviation increases by
  *   more than stopTolUpXFactor.
