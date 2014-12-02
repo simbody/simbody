@@ -5,13 +5,13 @@ Contributing to Simbody
 We encourage everyone to contribute to the Simbody project -- code, of course, but also documentation, bug reports, feature requests, ideas and discussion topics, and forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy! 
 
 Contents:
-[Contributor License Agreement](#contributor-license-agreement)
-[Ways to Contribute](#ways-to-contribute)
-[Submitting Pull Requests](#submitting-pull-requests)
-[Coding Standards](#coding-standards)
-[List of Contributors](#list-of-contributors)
+- [Contributor License Agreement](#contributor-license-agreement)
+- [Ways to Contribute](#ways-to-contribute)
+- [Submitting Pull Requests](#submitting-pull-requests)
+- [Coding Standards](#coding-standards)
+- [List of Contributors](#list-of-contributors)
 
- Let's get the paperwork out of the way first:
+Let's get the paperwork out of the way first:
 
 Contributor License Agreement
 -----------------------------
