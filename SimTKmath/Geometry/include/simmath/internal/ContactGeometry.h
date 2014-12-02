@@ -110,18 +110,18 @@ reference one of the local classes it defines instead for specific shapes. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry {
 public:
 class HalfSpace;
-class Cylinder;
 class Sphere;
 class Ellipsoid;
-class SmoothHeightMap;
-class TriangleMesh;
 class Torus;
+class SmoothHeightMap;
+class Cylinder;
+class Brick;
+class TriangleMesh;
 
 // SuperEllipsoid Code
 // -------------------------------------------------------------------------------
 class SuperEllipsoid;
 // -------------------------------------------------------------------------------
-
 
 // TODO
 class Cone;
@@ -380,17 +380,16 @@ where H is the Hessian matrix evaluated at p.
 **/
 Real calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const;
 
-/** For an implicit surface at a given point p, return the principal
+/** For an implicit surface at a given point p, return the principal 
 curvatures and principal curvature directions, using only the implicit
-function and its derivatives. The curvatures are returned as a Vec2 (kmax,kmin),
-and the directions are returned as the x,y axes of a frame whose z axis is the
-outward unit normal at p, x is the maximum curvature direction, and y is the
-minimum curvature direction. Point p is given in the surface frame S, and the
+function and its derivatives. The curvatures are returned as a Vec2 (kmax,kmin), 
+and the directions are returned as the x,y axes of a frame whose z axis is the 
+outward unit normal at p, x is the maximum curvature direction, and y is the 
+minimum curvature direction. Point p is given in the surface frame S, and the 
 returned axes are given in S via the Rotation matrix R_SP.
 **/
-void calcSurfacePrincipalCurvatures(const Vec3& point, Vec2& curvature,
-	Rotation& R_SP) const;
-
+void calcSurfacePrincipalCurvatures(const Vec3& point, Vec2& curvature, 
+                                    Rotation& R_SP) const;
 
 /** Returns \c true if this surface is known to be convex. This can be true
 for smooth or polygonal surfaces. **/
@@ -827,10 +826,19 @@ ContactGeometryImpl* impl; /**< Internal use only. **/
 //                                 HALF SPACE
 //==============================================================================
 /** This ContactGeometry subclass represents an object that occupies the 
-entire half-space x>0. This is useful for representing walls and floors. **/
+entire half-space x>0. This is useful for representing walls and floors. This
+object has infinite extent. **/
 class SimTK_SIMMATH_EXPORT ContactGeometry::HalfSpace : public ContactGeometry {
 public:
+/** Create a %HalfSpace for contact, with surface passing through the origin
+and outward normal -XAxis (in its own frame). Thus the half-space is all 
+of x>0. When this is placed on a Body, a Transform is provided that 
+repositions the half-space to the desired location and orientation in the 
+Body's frame. **/
 HalfSpace();
+
+/** Return the %HalfSpace outward normal in its own frame as a unit vector. **/
+UnitVec3 getNormal() const;
 
 /** Return true if the supplied ContactGeometry object is a halfspace. **/
 static bool isInstance(const ContactGeometry& geo)
@@ -1076,119 +1084,119 @@ system for the paraboloid.
 **/
 class SimTK_SIMMATH_EXPORT ContactGeometry::SuperEllipsoid : public ContactGeometry{
 public:
-	/** Construct an Ellipsoid given its three principal half-axis dimensions a,b,c
-	(all positive) along the local x,y,z directions respectively. The curvatures
-	(reciprocals of radii) are precalculated here at a cost of about 30 flops. **/
-	explicit SuperEllipsoid(const Vec3& radii, const Vec2& gammas);
-	/** Obtain the three half-axis dimensions a,b,c used to define this
-	ellipsoid. **/
-	const Vec3& getRadii() const;
-	/** Set the three half-axis dimensions a,b,c (all positive) used to define this
-	ellipsoid, overriding the current radii and recalculating the principal
-	curvatures at a cost of about 30 flops.
-	@param[in] radii    The three half-dimensions of the ellipsoid, in the
-	ellipsoid's local x, y, and z directions respectively. **/
-	void setRadii(const Vec3& radii);
+    /** Construct an Ellipsoid given its three principal half-axis dimensions a,b,c
+    (all positive) along the local x,y,z directions respectively. The curvatures
+    (reciprocals of radii) are precalculated here at a cost of about 30 flops. **/
+    explicit SuperEllipsoid(const Vec3& radii, const Vec2& gammas);
+    /** Obtain the three half-axis dimensions a,b,c used to define this
+    ellipsoid. **/
+    const Vec3& getRadii() const;
+    /** Set the three half-axis dimensions a,b,c (all positive) used to define this
+    ellipsoid, overriding the current radii and recalculating the principal
+    curvatures at a cost of about 30 flops.
+    @param[in] radii    The three half-dimensions of the ellipsoid, in the
+    ellipsoid's local x, y, and z directions respectively. **/
+    void setRadii(const Vec3& radii);
 
 
-	const Vec2& getGammas() const;
-	void setGammas(const Vec2& gammas);
+    const Vec2& getGammas() const;
+    void setGammas(const Vec2& gammas);
 
 
-	/** For efficiency we precalculate the principal curvatures whenever the
-	ellipsoid radii are set; this avoids having to repeatedly perform these three
-	expensive divisions at runtime. The curvatures are ka=1/a, kb=1/b, and kc=1/c
-	so that the ellipsoid's implicit equation can be written Ax^2+By^2+Cz^2=1,
-	with A=ka^2, etc. **/
-	const Vec3& getCurvatures() const;
+    /** For efficiency we precalculate the principal curvatures whenever the
+    ellipsoid radii are set; this avoids having to repeatedly perform these three
+    expensive divisions at runtime. The curvatures are ka=1/a, kb=1/b, and kc=1/c
+    so that the ellipsoid's implicit equation can be written Ax^2+By^2+Cz^2=1,
+    with A=ka^2, etc. **/
+    const Vec3& getCurvatures() const;
 
-	/** Given a point \a P =(x,y,z) on the ellipsoid surface, return the unique unit
-	outward normal to the ellipsoid at that point. If \a P is not on the surface,
-	the result is the same as for the point obtained by scaling the vector
-	\a P - O until it just touches the surface. That is, we compute
-	P'=findPointInThisDirection(P) and then return the normal at P'. Cost is about
-	40 flops regardless of whether P was initially on the surface.
-	@param[in] P    A point on the ellipsoid surface, measured and expressed in the
-	ellipsoid's local frame. See text for what happens if \a P is
-	not actually on the ellipsoid surface.
-	@return The outward-facing unit normal at point \a P (or at the surface point
-	pointed to by \a P).
-	@see findPointInSameDirection() **/
-	UnitVec3 findUnitNormalAtPoint(const Vec3& P) const;
+    /** Given a point \a P =(x,y,z) on the ellipsoid surface, return the unique unit
+    outward normal to the ellipsoid at that point. If \a P is not on the surface,
+    the result is the same as for the point obtained by scaling the vector
+    \a P - O until it just touches the surface. That is, we compute
+    P'=findPointInThisDirection(P) and then return the normal at P'. Cost is about
+    40 flops regardless of whether P was initially on the surface.
+    @param[in] P    A point on the ellipsoid surface, measured and expressed in the
+    ellipsoid's local frame. See text for what happens if \a P is
+    not actually on the ellipsoid surface.
+    @return The outward-facing unit normal at point \a P (or at the surface point
+    pointed to by \a P).
+    @see findPointInSameDirection() **/
+    UnitVec3 findUnitNormalAtPoint(const Vec3& P) const;
 
-	/** Given a unit direction \a n, find the unique point P on the ellipsoid
-	surface at which the outward-facing normal is \a n. Cost is about 40 flops.
-	@param[in] n    The unit vector for which we want to find a match on the
-	ellipsoid surface, expressed in the ellipsoid's local frame.
-	@return The point on the ellipsoid's surface at which the outward-facing
-	normal is the same as \a n. The point is measured and expressed in the
-	ellipsoid's local frame. **/
-	Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
+    /** Given a unit direction \a n, find the unique point P on the ellipsoid
+    surface at which the outward-facing normal is \a n. Cost is about 40 flops.
+    @param[in] n    The unit vector for which we want to find a match on the
+    ellipsoid surface, expressed in the ellipsoid's local frame.
+    @return The point on the ellipsoid's surface at which the outward-facing
+    normal is the same as \a n. The point is measured and expressed in the
+    ellipsoid's local frame. **/
+    Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
 
-	/** Given a direction d defined by the vector Q-O for an arbitrary point in
-	space Q=(x,y,z)!=O, find the unique point P on the ellipsoid surface that is
-	in direction d from the ellipsoid origin O. That is, P=s*d for some scalar
-	s > 0 such that f(P)=0. Cost is about 40 flops.
-	@param[in] Q    A point in space measured from the ellipsoid origin but not the
-	origin.
-	@return P, the intersection of the ray in the direction Q-O with the ellipsoid
-	surface **/
-	Vec3 findPointInSameDirection(const Vec3& Q) const;
+    /** Given a direction d defined by the vector Q-O for an arbitrary point in
+    space Q=(x,y,z)!=O, find the unique point P on the ellipsoid surface that is
+    in direction d from the ellipsoid origin O. That is, P=s*d for some scalar
+    s > 0 such that f(P)=0. Cost is about 40 flops.
+    @param[in] Q    A point in space measured from the ellipsoid origin but not the
+    origin.
+    @return P, the intersection of the ray in the direction Q-O with the ellipsoid
+    surface **/
+    Vec3 findPointInSameDirection(const Vec3& Q) const;
 
-	/** Given a point Q on the surface of the ellipsoid, find the approximating
-	paraboloid at Q in a frame P where OP=Q, Pz is the outward-facing unit
-	normal to the ellipsoid at Q, Px is the direction of maximum curvature
-	and Py is the direction of minimum curvature. k=(kmax,kmin) are the returned
-	curvatures with kmax >= kmin > 0. The equation of the resulting paraboloid
-	in the P frame is -2z = kmax*x^2 + kmin*y^2. Cost is about 260 flops; you can
-	save a little time if you already know the normal at Q by using the other
-	overloaded signature for this method.
+    /** Given a point Q on the surface of the ellipsoid, find the approximating
+    paraboloid at Q in a frame P where OP=Q, Pz is the outward-facing unit
+    normal to the ellipsoid at Q, Px is the direction of maximum curvature
+    and Py is the direction of minimum curvature. k=(kmax,kmin) are the returned
+    curvatures with kmax >= kmin > 0. The equation of the resulting paraboloid
+    in the P frame is -2z = kmax*x^2 + kmin*y^2. Cost is about 260 flops; you can
+    save a little time if you already know the normal at Q by using the other
+    overloaded signature for this method.
 
-	@warning It is up to you to make sure that Q is actually on the ellipsoid
-	surface. If it is not you will quietly get a meaningless result.
+    @warning It is up to you to make sure that Q is actually on the ellipsoid
+    surface. If it is not you will quietly get a meaningless result.
 
-	@param[in]  Q       A point on the surface of this ellipsoid, measured and
-	expressed in the ellipsoid's local frame.
-	@param[out] X_EP    The frame of the paraboloid P, measured and expressed in
-	the ellipsoid local frame E. X_EP.p() is \a Q, X_EP.x()
-	is the calculated direction of maximum curvature kmax; y()
-	is the direction of minimum curvature kmin; z is the
-	outward facing normal at \a Q.
-	@param[out] k       The maximum (k[0]) and minimum (k[1]) curvatures of the
-	ellipsoid (and paraboloid P) at point \a Q.
-	@see findParaboloidAtPointWithNormal() **/
-	void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const;
+    @param[in]  Q       A point on the surface of this ellipsoid, measured and
+    expressed in the ellipsoid's local frame.
+    @param[out] X_EP    The frame of the paraboloid P, measured and expressed in
+    the ellipsoid local frame E. X_EP.p() is \a Q, X_EP.x()
+    is the calculated direction of maximum curvature kmax; y()
+    is the direction of minimum curvature kmin; z is the
+    outward facing normal at \a Q.
+    @param[out] k       The maximum (k[0]) and minimum (k[1]) curvatures of the
+    ellipsoid (and paraboloid P) at point \a Q.
+    @see findParaboloidAtPointWithNormal() **/
+    void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const;
 
-	/** If you already have both a point and the unit normal at that point, this
-	will save about 40 flops by trusting that you have provided the correct normal;
-	be careful -- no one is going to check that you got this right. The results are
-	meaningless if the point and normal are not consistent. Cost is about 220 flops.
-	@see findParaboloidAtPoint() for details **/
-	void findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& n,
-		Transform& X_EP, Vec2& k) const;
+    /** If you already have both a point and the unit normal at that point, this
+    will save about 40 flops by trusting that you have provided the correct normal;
+    be careful -- no one is going to check that you got this right. The results are
+    meaningless if the point and normal are not consistent. Cost is about 220 flops.
+    @see findParaboloidAtPoint() for details **/
+    void findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& n,
+        Transform& X_EP, Vec2& k) const;
 
-	/** Return true if the supplied ContactGeometry object is an Ellipsoid. **/
-	static bool isInstance(const ContactGeometry& geo)
-	{
-		return geo.getTypeId() == classTypeId();
-	}
-	/** Cast the supplied ContactGeometry object to a const Ellipsoid. **/
-	static const SuperEllipsoid& getAs(const ContactGeometry& geo)
-	{
-		assert(isInstance(geo)); return static_cast<const SuperEllipsoid&>(geo);
-	}
-	/** Cast the supplied ContactGeometry object to a writable Ellipsoid. **/
-	static SuperEllipsoid& updAs(ContactGeometry& geo)
-	{
-		assert(isInstance(geo)); return static_cast<SuperEllipsoid&>(geo);
-	}
+    /** Return true if the supplied ContactGeometry object is an Ellipsoid. **/
+    static bool isInstance(const ContactGeometry& geo)
+    {
+        return geo.getTypeId() == classTypeId();
+    }
+    /** Cast the supplied ContactGeometry object to a const Ellipsoid. **/
+    static const SuperEllipsoid& getAs(const ContactGeometry& geo)
+    {
+        assert(isInstance(geo)); return static_cast<const SuperEllipsoid&>(geo);
+    }
+    /** Cast the supplied ContactGeometry object to a writable Ellipsoid. **/
+    static SuperEllipsoid& updAs(ContactGeometry& geo)
+    {
+        assert(isInstance(geo)); return static_cast<SuperEllipsoid&>(geo);
+    }
 
-	/** Obtain the unique id for Ellipsoid contact geometry. **/
-	static ContactGeometryTypeId classTypeId();
+    /** Obtain the unique id for Ellipsoid contact geometry. **/
+    static ContactGeometryTypeId classTypeId();
 
-	class Impl; /**< Internal use only. **/
-	const Impl& getImpl() const; /**< Internal use only. **/
-	Impl& updImpl(); /**< Internal use only. **/
+    class Impl; /**< Internal use only. **/
+    const Impl& getImpl() const; /**< Internal use only. **/
+    Impl& updImpl(); /**< Internal use only. **/
 };
 
 // -------------------------------------------------------------------------------
@@ -1240,6 +1248,44 @@ const Impl& getImpl() const; /**< Internal use only. **/
 Impl& updImpl(); /**< Internal use only. **/
 };
 
+
+//==============================================================================
+//                                  BRICK
+//==============================================================================
+/** This ContactGeometry subclass represents a rectangular solid centered at the
+origin. This object is finite, convex, and non-smooth. **/
+class SimTK_SIMMATH_EXPORT ContactGeometry::Brick : public ContactGeometry {
+public:
+/** Create a brick-shaped contact shape of the given half-dimensions, expressed
+in the brick's local frame. **/
+explicit Brick(const Vec3& halfLengths);
+/** Get the half-dimensions of this %Brick, expressed in its own frame. These
+are also the coordinates of the vertex in the +,+,+ octant, measured from the
+%Brick-frame origin which is its center point. **/
+const Vec3& getHalfLengths() const;
+/** Change the shape or size of this brick by setting its half-dimensions. **/
+void setHalfLengths(const Vec3& halfLengths);
+
+/** Get the Geo::Box object used to represent this %Brick. **/
+const Geo::Box& getGeoBox() const;
+
+/** Return true if the supplied ContactGeometry object is a brick. **/
+static bool isInstance(const ContactGeometry& geo)
+{   return geo.getTypeId()==classTypeId(); }
+/** Cast the supplied ContactGeometry object to a const brick. **/
+static const Brick& getAs(const ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<const Brick&>(geo); }
+/** Cast the supplied ContactGeometry object to a writable brick. **/
+static Brick& updAs(ContactGeometry& geo)
+{   assert(isInstance(geo)); return static_cast<Brick&>(geo); }
+
+/** Obtain the unique id for Brick contact geometry. **/
+static ContactGeometryTypeId classTypeId();
+
+class Impl; /**< Internal use only. **/
+const Impl& getImpl() const; /**< Internal use only. **/
+Impl& updImpl(); /**< Internal use only. **/
+};
 
 
 //==============================================================================
