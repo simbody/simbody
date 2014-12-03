@@ -2,29 +2,16 @@ Contributing to Simbody
 =======================
 **(work in progress)**
 
-We encourage everyone to contribute to the Simbody project -- code, of course, but also documentation, bug reports, feature requests, ideas and discussion topics, and forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy! 
+Simbody is a community resource and we encourage you to contribute in whatever way you can -- for example: new code, bug fixes, test cases, and examples; documentation improvements and typo fixes; bug reports, feature requests, ideas and discussion topics; and user forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy! 
+
+**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. We *want* people to use our software and we *do not want* to restrict what they may do with it. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute. 
 
 Contents:
-- [Contributor License Agreement](#contributor-license-agreement)
 - [Ways to Contribute](#ways-to-contribute)
 - [Submitting Pull Requests](#submitting-pull-requests)
 - [Coding Standards](#coding-standards)
 - [List of Contributors](#list-of-contributors)
-
-Let's get the paperwork out of the way first:
-
-Contributor License Agreement
------------------------------
-Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. Simbody users are not forced to acknowledge us, or subscribe to our egalitarian principles, or share their vast profits with us. This is a community effort and we want your contributions, but only under equally flexible terms so that Simbody remains wide open for everyone.
-
-When you make a contribution to the Simbody project, you are agreeing to the following terms:
-
-  1. The code or text you submit is your original work (you own and retain the copyright) or you otherwise have the right to submit the work.
-  2. You grant the Simbody project, developers, and users a nonexclusive, irrevocable license to use in any way your submission and any necessary intellectual property.
-  3. No part of your contribution is covered by a viral license like GPL or LGPL.
-  4. You are capable of granting these rights for the contribution.
-
-We license our software under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0), and suggest that you do also. Most non-viral license such as BSD and MIT are also acceptable; ask if you're not sure.
+- [Contributor License Agreement](#contributor-license-agreement)
 
 Ways to contribute
 ------------------
@@ -72,3 +59,17 @@ Randy Radmer       |              |Molmodel
 Charles Schwieters |              |Provided initial multibody code 
 Abhinandan Jain    |              |Underlying spatial algebra formulation
 Isaac Newton       |              |F=ma, calculus, etc.
+
+
+Contributor License Agreement
+-----------------------------
+Simbody is licensed under the very permissive [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). Simbody users are not *required* to follow our noble egalitarian principles, nor to share their profits with us, nor even to acknowledge us (though people usually do). When you make a contribution in any of the ways described above, you are agreeing to allow your contribution to be used under the same terms, adding no additional restrictions or requirements to the Simbody project. 
+
+Specifically, by contributing you are agreeing to the following terms:
+
+  1. The code or text you submit is your original work (you own and retain the copyright) or you otherwise have the right to submit the work.
+  2. You grant the Simbody project, developers, and users a nonexclusive, irrevocable license to use in any way your submission and any necessary intellectual property.
+  3. No part of your contribution is covered by a viral ("copyleft") license like GPL or LGPL.
+  4. You are capable of granting these rights for the contribution.
+
+If your contribution contains others' open source code licensed under Apache 2.0 or a non-viral license like BSD or MIT, it is probably fine. But be sure to mention that in the Pull Request you submit so we can discuss it. 
