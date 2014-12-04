@@ -59,10 +59,20 @@ This was primarily a release for improving our build and install process to comp
 3.3.1 (21 Jan 2014)
 -------------------
 
-This is the first release built for use in Open Source Robotic Foundation's Gazebo robot simulator and is also the version of Simbody that ships with OpenSim 3.2. It incorporates many fixes and enhancements prompted by the integration effort with OSRF, and a new Debian builder for smooth incorporation into the Gazebo build.
+This is the first release built for use in Open Source Robotic Foundation's Gazebo robot simulator and is also the version of Simbody that ships with OpenSim 3.2. It incorporates many fixes and enhancements prompted by the integration effort with OSRF, and a new Debian package builder for smooth incorporation into the Gazebo build.
 
-
-
+* Improved matrix/vector documentation and reorganized source to break up large files (pr #70 #76 #77 #78 #87)
+* Improved Force::Gravity to make it more flexible and avoid NaNs (pr #33)
+* Fix multiplyByMInv() to be usable in forces and controllers; now only requires state to be realized to position stage. (issue #29, pr #31)
+* Make MobilizedBody::lock() and lockAt() method immediately modify the state (issue #20, pr #23)
+* Added Debian/Ubuntu package building (pr #24 #32 #52 #58 #59 #64)
+* Improved TestMultibodyPerformance timing information (pr #22)
+* Fixed bug in MobilizedBody::isSameMobilizedBody() (issue #15, pr #16)
+* Started using Travis-CI for continuous integration testing (pr #25)
+* Improved DecorativeGeometry classes (issue #34, pr #35 #61)
+* Improved installation, esp. Linux and OSX (issue #38 #65 #101 pr #64 #91 #102 #107)
+* Added uninstall (issue #104, pr #106)
+* Visualizer name changed to "simbody-visualizer" (issue #27, pr #53)
 
 3.1 (15 Aug 2013)
 -----------------

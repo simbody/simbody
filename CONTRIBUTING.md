@@ -40,7 +40,7 @@ Thomas Uchida      |@tkuchida     |Rigid impact theory & code; documentation
 Ian Stavness       |@stavness     |Computational geometry
 Andreas Scholz     |@AndreasScholz|Computational geometry
 José Rivero        |@j-rivero     |Build, especially for Debian
-Steven Peters      |@scpeters     |Build improvements
+Steven Peters      |@scpeters     |Build and VectorIterator improvements
 John Hsu           |@hsu          |Bug fixes; iterative solver & contact theory
 Nate Koenig        |@nkoenig      |Bug fix
 Ayman Habib        |@aymanhab     |Bug fixes; visualization, SWIG improvements
