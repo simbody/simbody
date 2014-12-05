@@ -34,6 +34,15 @@
 
 #include <limits>
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+
+#define PI 3.14159265358979323846    // irracional constant.
+#define EPS 1.0e-6                    // indetermination tolerance (so that phi1 or phi2 are not equal to 0/0).
+
+// -------------------------------------------------------------------------------
+
+
 namespace SimTK {
 
 class SplitGeodesicError;
