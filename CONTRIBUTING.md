@@ -4,7 +4,7 @@ Contributing to Simbody
 
 Simbody is a community resource and we encourage you to contribute in whatever way you can -- for example: new code, bug fixes, test cases, and examples; documentation improvements and typo fixes; bug reports, feature requests, ideas and discussion topics; and user forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy! 
 
-**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. We *want* people to use our software and we *do not want* to restrict what they may do with it. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute. 
+**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. We *want* people to use our software and we *do not want* to restrict how they use it nor to control their behavior. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute. 
 
 Contents:
 - [Ways to Contribute](#ways-to-contribute)
@@ -63,13 +63,13 @@ Isaac Newton       |              |F=ma, calculus, etc.
 
 Contributor License Agreement
 -----------------------------
-Simbody is licensed under the very permissive [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). Simbody users are not *required* to follow our noble egalitarian principles, nor to share their profits with us, nor even to acknowledge us (though people usually do). When you make a contribution in any of the ways described above, you are agreeing to allow your contribution to be used under the same terms, adding no additional restrictions or requirements to the Simbody project. 
+Simbody is licensed under the very permissive [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). Simbody users are not required to follow our noble egalitarian principles, nor to share their profits with us, nor even to acknowledge us (though they often do). When you make a contribution in any of the ways described above, you are agreeing to allow your contribution to be used under the same terms, adding no additional restrictions to the Simbody project nor requirements on Simbody users. 
 
 Specifically, by contributing you are agreeing to the following terms:
 
-  1. The code or text you submit is your original work (you own and retain the copyright) or you otherwise have the right to submit the work.
-  2. You grant the Simbody project, developers, and users a nonexclusive, irrevocable license to use in any way your submission and any necessary intellectual property.
+  1. The code, text, or images you submit are your original work (you own and retain the copyright) or you otherwise have the right to submit the work.
+  2. You grant the Simbody project, developers, and users a nonexclusive, irrevocable license to use your submission and any necessary intellectual property, under terms of the Apache 2.0 license.
   3. No part of your contribution is covered by a viral ("copyleft") license like GPL or LGPL.
   4. You are capable of granting these rights for the contribution.
 
-If your contribution contains others' open source code licensed under Apache 2.0 or a non-viral license like BSD or MIT, it is probably fine. But be sure to mention that in the Pull Request you submit so we can discuss it. 
+If your contribution contains others' open source code licensed under Apache 2.0 or other non-viral license like BSD or MIT, it is probably fine. But be sure to mention that in the Pull Request you submit so we can discuss it. 
