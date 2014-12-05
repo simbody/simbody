@@ -265,7 +265,6 @@ const Vec3& DecorativeEllipsoid::getRadii() const {
     return DecorativeEllipsoidRep::downcast(*rep).getRadii();
 }
 
-
 // SuperEllipsoid Code
 // -------------------------------------------------------------------------------
 ///////////////////////////////
@@ -273,26 +272,25 @@ const Vec3& DecorativeEllipsoid::getRadii() const {
 ///////////////////////////////
 
 DecorativeSuperEllipsoid::DecorativeSuperEllipsoid(const Vec3& radii, const Vec2& gammas) {
-	rep = new DecorativeSuperEllipsoidRep(radii, gammas);
-	rep->setMyHandle(*this);
+    rep = new DecorativeSuperEllipsoidRep(radii, gammas);
+    rep->setMyHandle(*this);
 }
 
 DecorativeSuperEllipsoid& DecorativeSuperEllipsoid::setRadii(const Vec3& r) {
-	DecorativeSuperEllipsoidRep::downcast(*rep).setRadii(r); return *this;
+    DecorativeSuperEllipsoidRep::downcast(*rep).setRadii(r); return *this;
 }
 const Vec3& DecorativeSuperEllipsoid::getRadii() const {
-	return DecorativeSuperEllipsoidRep::downcast(*rep).getRadii();
+    return DecorativeSuperEllipsoidRep::downcast(*rep).getRadii();
 }
 
 
 DecorativeSuperEllipsoid& DecorativeSuperEllipsoid::setGammas(const Vec2& g) {
-	DecorativeSuperEllipsoidRep::downcast(*rep).setGammas(g); return *this;
+    DecorativeSuperEllipsoidRep::downcast(*rep).setGammas(g); return *this;
 }
 const Vec2& DecorativeSuperEllipsoid::getGammas() const {
-	return DecorativeSuperEllipsoidRep::downcast(*rep).getGammas();
+    return DecorativeSuperEllipsoidRep::downcast(*rep).getGammas();
 }
 // -------------------------------------------------------------------------------
-
 
     //////////////////////
     // DECORATIVE BRICK //
