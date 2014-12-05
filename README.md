@@ -1,4 +1,4 @@
-Simbody [![Build Status][buildstatus_image]][travisci]
+Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci]
 =======
 
 Simbody is a high-performance, open-source toolkit for science- and
@@ -472,8 +472,10 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
     * `examples/` source code for the examples.
 
 
-[buildstatus_image]: https://travis-ci.org/simbody/simbody.png?branch=master
+[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
+[buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2?svg=true
+[appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/
