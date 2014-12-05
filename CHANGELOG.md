@@ -1,6 +1,5 @@
 Simbody Changelog and Release Notes
 ===================================
-**(work in progress)**
 
 This is not a comprehensive list of changes but rather
 a hand-curated collection of the more notable ones. For
@@ -70,11 +69,39 @@ This is the first release built for use in Open Source Robotic Foundation's Gaze
 * Fixed bug in MobilizedBody::isSameMobilizedBody() (issue #15, pr #16)
 * Started using Travis-CI for continuous integration testing (pr #25)
 * Improved DecorativeGeometry classes (issue #34, pr #35 #61)
-* Improved installation, esp. Linux and OSX (issue #38 #65 #101 pr #64 #91 #102 #107)
+* Improved installation, esp. Linux and OSX (issue #38 #65 #101, pr #64 #91 #102 #107)
 * Added uninstall (issue #104, pr #106)
 * Visualizer name changed to "simbody-visualizer" (issue #27, pr #53)
+* Added torque-limited motor examples
+* Added ability to lock/unlock mobilizers and disble/enable Motion objects on the fly, for flexible mixed forward/inverse dynamics
+* Re-engineered Force::Gravity for speed and run time flexibility (for Gazebo)
+* Extended Force::Gravity to support gravity compensation controllers
+* Allow runtime changes to MobilityLinear{Spring,Damper} (for Gazebo)
+* Added Theo Jansen Strandbeest example
+* Ported some Gazebo regression tests to Simbody's regression suite.
+* Added dirent.h support on Windows (for directory searching)
+* Many bug fixes, doxygen improvements, and small performance improvements
+* Added Semi-Explicit Euler integrators, with and without error control (for Gazebo)
+* Added O(n) methods for task space Jacobians
 
-3.1 (15 Aug 2013)
+3.1 (22 Apr 2013)
 -----------------
 
-This is the Simbody release that shipped with OpenSim 3.1. The source was managed on Subversion, although its code and history were transferred to GitHub, from which a determined code archeologist could presumably reconstruct the changelog. But why? The source zip is also available on the GitHub release page [here](https://github.com/simbody/simbody/releases/tag/Simbody-3.1), and does include a changelog named `ChangeLog.txt`.
+This is the Simbody release that shipped with OpenSim 3.1 and contains the initial
+work done with Open Source Robotics Foundation for the Gazebo simulator. The source was managed on Subversion, although its code and history were transferred to GitHub. The source zip is available on the GitHub release page [here](https://github.com/simbody/simbody/releases/tag/Simbody-3.1).
+
+* Added MobilityLinearStop for joint stops (for Gazebo)
+* Added Simbody example for reading Gazebo sdf files 
+* Added MultibodyGraphMaker to map bodies and joints to mobilizers and constraints (for Gazebo)
+* Added a variety of prototype implementations of unilateral contact as adhoc tests
+* Added some pre-built mesh types to PolygonalMesh (for Gazebo)
+* Modified Force::Gravity to allow excluded bodies (needed by Gazebo)
+* Added DiscreteForces and MobilityDiscreteForces elements for Gazebo
+* Added Measure::Delay for time-delay of input signal
+* Added scissor-lift example to show behavior on highly constrained mechanisms
+* Added RK2 integrator
+* Modified Gimbal mobilizer to use Euler angle derivatives as generalized speeds
+* Added Bushing (6 dof) mobilizer parameterized like Gimbal
+* Added methods for calculating geodesics over smooth contact geometry
+* Added infrastructure for fast cable wrapping and some prototypes
+* Many small performance improvements and bug fixes
