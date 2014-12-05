@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Jack Middleton, Peter Eastman, Ayman Habib                   *
  *                                                                            *
@@ -230,7 +230,7 @@ Real getLineThickness() const;
     
 /** Set whether the geometry acts as a billboard, always rotating to face the 
 camera. The default is typically no except for text. If you want 3D text that
-moves with your model, set this to true. Here 0 means false, 1 means true,
+moves with your model, set this to false. Here 0 means false, 1 means true,
 and -1 means "use default". **/
 DecorativeGeometry& setFaceCamera(int shouldFace);
 /** Get whether the geometry acts as a billboard, always rotating to face the 
@@ -418,7 +418,6 @@ private:
     const DecorativeEllipsoidRep& getRep() const;
 };
 
-
 // SuperEllipsoid Code
 // -------------------------------------------------------------------------------
 /** This defines a superellipsoidal solid centered at the origin and aligned with
@@ -426,39 +425,38 @@ the local frame axes. The default constructor creates an ellipsoid with radii
 (1/2, 1/3, 1/4) in x,y,z resp. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeSuperEllipsoid : public DecorativeGeometry {
 public:
-	explicit DecorativeSuperEllipsoid(const Vec3& radii =
-		Vec3(Real(0.5), Real(1 / 3.), Real(0.25)), const Vec2& gammas = Vec2(Real(2.0), Real(2.0)));
+    explicit DecorativeSuperEllipsoid(const Vec3& radii =
+        Vec3(Real(0.5), Real(1 / 3.), Real(0.25)), const Vec2& gammas = Vec2(Real(2.0), Real(2.0)));
 
-	DecorativeSuperEllipsoid& setRadii(const Vec3&);
-	const Vec3& getRadii() const;
-
-
-	DecorativeSuperEllipsoid& setGammas(const Vec2&);
-	const Vec2& getGammas() const;
+    DecorativeSuperEllipsoid& setRadii(const Vec3&);
+    const Vec3& getRadii() const;
 
 
-	// Retain the derived type when setting generic geometry options.
-	DecorativeSuperEllipsoid& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
-	DecorativeSuperEllipsoid& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
-	DecorativeSuperEllipsoid& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
-	DecorativeSuperEllipsoid& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
-	DecorativeSuperEllipsoid& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
-	DecorativeSuperEllipsoid& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
-	DecorativeSuperEllipsoid& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
-	DecorativeSuperEllipsoid& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
-	DecorativeSuperEllipsoid& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
-	DecorativeSuperEllipsoid& setRepresentation(const Representation& r)
-	{
-		DecorativeGeometry::setRepresentation(r); return *this;
-	}
+    DecorativeSuperEllipsoid& setGammas(const Vec2&);
+    const Vec2& getGammas() const;
 
-	SimTK_PIMPL_DOWNCAST(DecorativeSuperEllipsoid, DecorativeGeometry);
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeSuperEllipsoid& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeSuperEllipsoid& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeSuperEllipsoid& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeSuperEllipsoid& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeSuperEllipsoid& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeSuperEllipsoid& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeSuperEllipsoid& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeSuperEllipsoid& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeSuperEllipsoid& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeSuperEllipsoid& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeSuperEllipsoid, DecorativeGeometry);
 private:
-	class DecorativeSuperEllipsoidRep& updRep();
-	const DecorativeSuperEllipsoidRep& getRep() const;
+    class DecorativeSuperEllipsoidRep& updRep();
+    const DecorativeSuperEllipsoidRep& getRep() const;
 };
 // -------------------------------------------------------------------------------
-
 
 /** This defines a rectangular solid centered at the origin and aligned with 
 the local frame axes. The default constructor creates a cube of length 1 on 
@@ -573,6 +571,7 @@ public:
     DecorativeText& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
     DecorativeText& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
     DecorativeText& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
+    DecorativeText& setFaceCamera(int yn)     {DecorativeGeometry::setFaceCamera(yn);   return *this;}
     DecorativeText& setRepresentation(const Representation& r) 
     {   DecorativeGeometry::setRepresentation(r); return *this; }
 
@@ -685,35 +684,29 @@ private:
     const DecorationsRep& getRep() const;
 };
 
-
-//---
-
-/** Use this abstract class to connect your implementation of decorative
+/** Use this abstract class to connect your implementation of decorative 
 geometry to the implementation-independent classes above. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeGeometryImplementation {
 public:
-	virtual ~DecorativeGeometryImplementation() { }
-	virtual void implementPointGeometry(const DecorativePoint&) = 0;
-	virtual void implementLineGeometry(const DecorativeLine&) = 0;
-	virtual void implementBrickGeometry(const DecorativeBrick&) = 0;
-	virtual void implementCylinderGeometry(const DecorativeCylinder&) = 0;
-	virtual void implementCircleGeometry(const DecorativeCircle&) = 0;
-	virtual void implementSphereGeometry(const DecorativeSphere&) = 0;
-	virtual void implementEllipsoidGeometry(const DecorativeEllipsoid&) = 0;
+    virtual ~DecorativeGeometryImplementation() { }
+    virtual void implementPointGeometry(    const DecorativePoint&)    = 0;
+    virtual void implementLineGeometry(     const DecorativeLine&)     = 0;
+    virtual void implementBrickGeometry(    const DecorativeBrick&)    = 0;
+    virtual void implementCylinderGeometry( const DecorativeCylinder&) = 0;
+    virtual void implementCircleGeometry(   const DecorativeCircle&)   = 0; 
+    virtual void implementSphereGeometry(   const DecorativeSphere&)   = 0;
+    virtual void implementEllipsoidGeometry(const DecorativeEllipsoid&)= 0;
+    
+    // SuperEllipsoid Code
+    // -------------------------------------------------------------------------------
+    virtual void implementSuperEllipsoidGeometry(const DecorativeSuperEllipsoid&) = 0;
+    // -------------------------------------------------------------------------------
 
-	// SuperEllipsoid Code
-	// -------------------------------------------------------------------------------
-	virtual void implementSuperEllipsoidGeometry(const DecorativeSuperEllipsoid&) = 0;
-	// -------------------------------------------------------------------------------
-
-	virtual void implementFrameGeometry(const DecorativeFrame&) = 0;
-	virtual void implementTextGeometry(const DecorativeText&) = 0;
-	virtual void implementMeshGeometry(const DecorativeMesh&) = 0;
-	virtual void implementMeshFileGeometry(const DecorativeMeshFile&) = 0;
+    virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
+    virtual void implementTextGeometry(     const DecorativeText&)     = 0;
+    virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
+    virtual void implementMeshFileGeometry(     const DecorativeMeshFile&)    =0;
 };
-
-//---
-
 
 } // namespace SimTK
 
