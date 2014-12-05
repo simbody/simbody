@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -127,6 +127,7 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::HalfSpaceSphere());
     adoptContactTracker(new ContactTracker::SphereSphere());
     adoptContactTracker(new ContactTracker::HalfSpaceEllipsoid());
+    adoptContactTracker(new ContactTracker::HalfSpaceBrick());
     adoptContactTracker(new ContactTracker::HalfSpaceTriangleMesh());
     adoptContactTracker(new ContactTracker::SphereTriangleMesh());
     adoptContactTracker(new ContactTracker::TriangleMeshTriangleMesh());
@@ -139,8 +140,6 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     adoptContactTracker(new ContactTracker::ConvexImplicitPair
                                 (ContactGeometry::Ellipsoid::classTypeId(),
                                  ContactGeometry::Ellipsoid::classTypeId()));
-
-
 
     // SuperEllipsoid Code
     // -------------------------------------------------------------------------------
@@ -158,8 +157,6 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
         ContactGeometry::SuperEllipsoid::classTypeId()));
     
     // -------------------------------------------------------------------------------
-
-
 }
 
 ~ContactTrackerSubsystemImpl() {
