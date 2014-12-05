@@ -1693,7 +1693,7 @@ array is invalid if the original std::vector is destructed or resized.
     therefore not have any connection to the source vector and will be an
     ordinary resizable array.
   - This is quite dangerous to use since the connection between the array and
-    the vector is tenuous and subject to the vector remaining untouchged during
+    the vector is tenuous and subject to the vector remaining untouched during
     the lifetime of the array handle. There is no reference counting;
     destructing the vector leaves the array referring to garbage. Be careful!
   - You can break the connection between the array and the vector it was 

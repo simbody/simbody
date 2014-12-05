@@ -25,8 +25,8 @@ PROJECT (SimTKsimbody)
 
 # SimTKsimbody depends on PlatformFiles, SimTKcommon, and SimTKmath only.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
-	            ${SimTKCOMMON_INCLUDE_DIRECTORIES}
-	            ${SimTKMATH_INCLUDE_DIRECTORIES})
+	                ${SimTKCOMMON_INCLUDE_DIRECTORIES}
+	                ${SimTKMATH_INCLUDE_DIRECTORIES})
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
@@ -38,7 +38,7 @@ SET(SIMBODY_SOURCE_SUBDIRS . Visualizer)
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SimTKSIMBODY_LIBRARY_NAME}
                 -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
                 -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
-		-DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
+		        -DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
 
 
 SET(SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
@@ -78,7 +78,7 @@ INCLUDE_DIRECTORIES(${SimTKSIMBODY_INCLUDE_DIRS})
 
 # And pass API include directories up to the parent so subsequent libraries
 # can find the headers too.
-SET(SimTKSIMBODY_INCLUDE_DIRECTORIES ${SimTKMATH_INCLUDE_DIRS}
+SET(SimTKSIMBODY_INCLUDE_DIRECTORIES ${SimTKSIMBODY_INCLUDE_DIRS}
     PARENT_SCOPE)
 
 
@@ -112,7 +112,7 @@ ENDFOREACH(subdir)
 
 #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
 
-# libraries and examples are installed from their subdirectories; headers here
+# libraries are installed from their subdirectories; headers here
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
@@ -146,10 +146,6 @@ IF (BUILD_VISUALIZER)
   SET(GUI_NAME "simbody-visualizer")
   ADD_SUBDIRECTORY(Visualizer/simbody-visualizer)
 ENDIF (BUILD_VISUALIZER)
-
-IF( BUILD_EXAMPLES )
-  ADD_SUBDIRECTORY( examples )
-ENDIF( BUILD_EXAMPLES )
 
 IF( BUILD_TESTING )
   ADD_SUBDIRECTORY( tests )

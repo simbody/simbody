@@ -1,0 +1,400 @@
+DOCUMENTATION (...not comprehensive but hopefully quite useful...)
+
+First of all please spent 2-10 minutes to have a look at the files 
+
+  cmaes_interface.h, and
+  example_short.c, 
+
+not necessarily in this ordering. 
+
+Then, what follows is the more detailed documentation of the 
+functions from cmaes_interface.h.  
+
+double * 
+cmaes_init_final(cmaes_t * evo_ptr);
+
+    Input parameters: 
+        evo_ptr: Pointer to CMA-ES struct cmaes_t that will be initialized 
+                 within cmaes_init_final. evo_ptr->sp must have been
+                 initialized using cmaes_init_para(evo_ptr, ...)
+                 where the eclipses denote the same parameters as described
+                 in cmaes_init(evo_ptr, ...) below.
+  
+    Details:
+      This initializer allows to set values in cmaes_readpara_t evo_ptr->sp "manually"
+      in the code instead of via the parameter file only. See cmaes_readpara_t type.
+      
+    Example:
+      cmaes_t evo;
+      double *arf;
+      
+      if (shortcase)
+        arf = cmaes_init(&evo, ...);
+      else {
+        cmaes_init_para(&evo, ...);
+        evo.sp.stopMaxIter = 1234;
+        arf = cmaes_init_final(&evo);
+      }
+
+double * 
+cmaes_init(cmaes_t * evo_ptr, int dimension , 
+           double *initialX, double *initialStdDev,
+	   long seed, int lambda, const char *input_parameter_filename);
+void
+cmaes_init_para(cmaes_t * evo_ptr, int dimension , 
+           double *initialX, double *initialStdDev,
+	   long seed, int lambda, const char *input_parameter_filename);
+
+    DEFAULTS of input parameters (invoked by 0 or NULL respectively):
+        dimension                : 0 /* no default available */
+        initialX                 : [0.5,...,0.5]+Normal(0,initialStdDev^2), N-dimensional. 
+        initialStdDev            : [0.3,...,0.3], N-dimensional vector. 
+        seed                     : cmaes_random, see file actpar... 
+        lambda                   : 4+(int)(3*log(N))
+        input_parameter_filename : "cmaes_initials.par"
+
+    Input parameters: 
+        evo_ptr: Pointer to CMA-ES struct cmaes_t will be initialized 
+                 within cmaes_init. When using cmaes_init_para, also
+                 cmaes_init_final needs to be called before evo_ptr is
+                 properly initialized. 
+
+    Optional (default values invoked by zero): 
+        dimension, int : Search space dimension N. Must be defined here
+            or in the input parameter file. 
+
+        initialX, double *: Initial point in search space. 
+
+        initialStdDev, double * : double array of size dimension
+            N. Coordinatewise initial standard deviation of the sample
+            distribution (sigma*sqrt(C[i][i])==initialStdDev[i]). The 
+            expected initial distance between initialX and the optimum per
+            coordinate should be roughly initialStdDev. The entries should
+            not differ by several orders of magnitude (see doc.txt).
+
+        seed, int (randomly chosen by default): Random seed, written 
+            to actparcmaes.par. 
+
+        lambda, int : population size, number of sampled candidate 
+            solutions per generation. 
+
+        input_parameter_filename, char *: File which should be edited
+            properly. Filename "no", "non" or "none" omits reading and 
+            writing of any parameters in cmaes_init(), "writeonly" omits 
+            reading but still writes used parameters to file "actparcmaes.par".
+
+    Return, double *: array of size lambda==popsize that can be
+             used to assign fitness values and pass them to
+	     cmaes_UpdateDistribution(). 
+
+    Details: The dimension has to be defined > 0 here or in the
+        input parameter file ("cmaes_initials.par"). 
+
+    CAVEAT: All input values are overwritten by values given in the parameter
+        input file cmaes_initials.par. 
+
+char *         
+cmaes_SayHello(cmaes_t *): well, says hello, returns eg. 
+                   "(5,10)-CMA-ES(mu_eff=3.4), Ver="1.00.00.beta", dimension=9"
+
+void
+cmaes_resume_distribution(cmaes_t *evo_ptr, char *filename):
+    Input parameters: 
+        evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+        filename: A file, that was written presumably by
+            cmaes_WriteToFile(evo_ptr, "resume", filename).
+
+      Details: Allows to restart with saved internal state (distribution) 
+        variables (use cmaes_WriteToFile for saving). Keyword "resume" 
+        followed by a filename in cmaes_initials.par invokes this function during
+        initialization.  Searches in filename for the last occurrence
+        of word "resume", followed by a dimension number, and reads the
+        subsequent values for xmean, evolution paths ps and pc, sigma
+        and covariance matrix.  Note that cmaes_init() needs to be 
+        called before calling cmaes_resume_distribution()
+        explicitely.  In the former all the remaining
+        (strategy-)parameters are set. It can be useful to edit the
+        written parameters, in particular to increase sigma, before
+        resume. 
+
+      Remarks: Not all internal state parameters are recovered. In
+        particular generation number and xbestever are not restored. For
+        covariance matrices with large condition numbers the writing
+        precision of 6 digits is not sufficient and resume will lead
+        to poor result.
+
+void 
+cmaes_exit(cmaes_t *) releases the dynamically allocated memory, 
+		   including that of the return value of cmaes_init(). 
+
+
+double *const*pop 
+cmaes_SamplePopulation(cmaes_t *evo_ptr)
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+    Return, double **: A pointer to a "population" of lambda
+        N-dimensional multivariate normally distributed samples.
+
+
+double * const * x
+cmaes_ReSampleSingle(cmaes_t evo_ptr, int index) 
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+      index, int: index to an element of the returned value 
+         of cmaes_SamplePopulation, double **pop. pop[index] 
+         will be resampled where 0<=index<cmaes_Get("lambda") 
+	 must hold. 
+
+    Return, double *: A pointer to the resampled "population".  
+
+    Details: Can be called after cmaes_SamplePopulation to 
+      resample single solutions of the population as often
+      as desired. Useful to implement a box constraints (boundary) 
+      handling. 
+
+
+double * x
+cmaes_SampleSingleInto(cmaes_t evo_ptr, double *x) 
+
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+      x, double *: Solution vector that gets sampled
+         a new value. If x==NULL new memory is allocated
+         and must be released by the user using free(x). 
+
+    Return, double *: A pointer to the resampled solution
+      vector, equals input x for x!=NULL on input. 
+
+    Details: Can be called after cmaes_SamplePopulation to
+      resample single solutions. In general, the function
+      can be used to sample as many independent
+      mean+sigma*Normal(0,C) distributed vectors as desired.
+
+      Input x can be a pointer to an element of the vector
+      returned by SamplePopulation(), double * const * pop,
+      but this is inconsistent with the const qualifier
+      of the returned value and therefore rather ReSampleSingle()
+      should be used. 
+
+    See also ReSampleSingle()
+
+
+double * const x
+cmaes_ReSampleSingle_old(cmaes_t evo_ptr, double *x) 
+
+    Depreciated: use (redefined) ReSampleSingle() or 
+         SampleSingleInto() 
+
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+      x, double const *: element of the return value of 
+         cmaes_SamplePopulation, double **pop, that is 
+         pop[0..len-1] where len=cmaes_Get("lambda"). 
+         This solution vector of the population gets sampled
+         a new value. 
+
+    Return, double *: A pointer to the resampled "population" 
+        member. 
+
+    Details: Can be called after cmaes_SamplePopulation to 
+      resample single solutions. In general,
+      the function can be used to sample as many independent 
+      mean+sigma*Normal(0,C) distributed vectors as desired. 
+
+double * x
+cmaes_PerturbSolutionInto(cmaes_t evo_ptr, double *x, double *x_in, double eps) 
+
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+      x, double *: Solution vector that gets sampled
+         a new value. If x==NULL new memory is allocated
+         and must be released by the user using free(x). 
+      x_in, double *: mean vector for perturbation
+      eps : scale factor for perturbation: 
+            x \sim x_in + eps*sigma*Normal(0,C)
+
+    Return, double *: A pointer to the perturbed solution
+      vector, equals input x for x!=NULL. 
+
+    Details: Used to reevaluate a slightly disturbed
+       solution for an uncertaintly measurement. In
+       case if x==NULL on input, the memory of the 
+       returned x must be released. 
+
+    See also SampleSingleInto()
+
+double *
+cmaes_UpdateDistribution(cmaes_t *, const double *rgFuncValue);
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+      rgFuncValue, const double *: An array of lambda function
+            values. 
+
+    Return, double *:  Mean value of the new distribution. 
+
+    Details: Core procedure of the CMA-ES algorithm. Sets a new mean
+        value and estimates the new covariance matrix and a new step
+        size for the normal search distribution. 
+
+
+void
+cmaes_ReadSignals(cmaes_t *, char *filename)
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+      filename, const char *: by default "cmaes_signals.par" 
+
+      Details: Reads commands from filename to stop the run
+        or output data to the console or to a file. Uses function 
+        cmaes_WriteToFile(), hence the same key sequences
+        are available. See there and also file cmaes_signals.par for 
+        more details. 
+
+double 
+cmaes_Get(cmaes_t *evo_ptr, const char *szKeyWord) 
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+      szKeyWord, const char *: keyword like "eval" for number of
+         conducted function evaluations. 
+
+    Return, double: the desired value. 
+
+    Details: See implementation in cmaes.c for possible keywords. 
+
+const double * 
+cmaes_GetPtr(cmaes_t * evo_ptr, char const *keyword) 
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+
+      keyword, const char *: keyword like "xbestever"
+         the best ever evaluated solution vector or 
+         "xmean" the current estimate for the optimum. 
+
+    Return, const double *: pointer to the desired value array. 
+
+    Details: Returns a pointer to the desired vector value 
+      Its content might be overwritten during the next call to any
+      of the cmaes_* functions other than cmaes_Get(). 
+      See implementation in cmaes.c for possible keywords. 
+
+double *       
+cmaes_GetNew( cmaes_t * evo_prt, char const *keyword)
+    Input parameters: see cmaes_GetPtr()
+
+    Return, double *: pointer to the desired value array
+         with unlimited reading and writing access to its
+	 elements. 
+
+    Details: The memory of the returned array must be 
+         explicitly released using stdlib function free(). 
+
+double *       
+cmaes_GetInto( cmaes_t * evo_prt, char const *keyword, double *mem)
+    Input parameters: 
+          evo_ptr, keyword: see cmaes_GetPtr()
+
+          mem, double*: memory of size N==dimension, where the 
+               desired values are written into. For mem==NULL
+               new memory is allocated as with calling
+	       cmaes_GetNew() and must be released by the 
+	       user at some point. 
+
+    Return, double *: pointer to input parameter mem, 
+             or the new memory, with the desired values. 
+
+const char *   
+cmaes_TestForTermination(cmaes_t *)
+
+    Return value: NULL, if no stop criterion is satisfied. Otherwise a
+        string with the stop condition description. 
+
+    Details: Some stopping criteria can be set in cmaes_initials.par, 
+        with names starting with stop... Internal stopping criteria 
+        include a maximal condition number of about 10^15 for 
+        the covariance matrix and situations where the numerical 
+        discretisation error in x-space becomes noticeably. 
+
+void
+cmaes_WriteToFile(cmaes_t *evo_ptr, const char *szKeyWord,
+                                 const char *szFileName); 
+    Input parameters: 
+      evo_ptr, cmaes_t *: Pointer to cma-es struct. 
+            For evo_ptr==NULL the file is overwritten and
+            szKeyWord is printed as header line. 
+
+    Optional: 
+           szKeyWord, const char *: There are quite a few keywords
+               available. Most of them can be combined with a "+". See
+               file cmaes_signals.par for examples and, in doubt, confer to
+               the implemtation in cmaes.c. Keywords:
+
+           "all": Writes a fairly complete status of the
+               search. Missing is the actual random number generator
+               status und the new coordinate system (matrix B).  
+          
+           "B": The complete basis B of normalized eigenvectors,
+               sorted by the size of the corresponding eigenvalues.
+
+           "eval": number of function evaluations so far. 
+
+           "few" (default): writes in one row: number of function
+               evaluations; function value of best point in recent 
+               sample population; sigma; maximal standard deviation 
+               in coordinate axis; minimal standard deviation in
+               coordinate axis; axis ratio of mutation ellipsoid;
+               minimum of diagonal of D. 
+
+           "few(diag(D))": 4 to 6 sorted eigenvalue square roots, 
+		 including the smallest and largest. 
+
+           "resume": Writes internal state parameters for reading with
+               cmaes_resume_distribution. For reading back also the
+	       keyword resume in cmaes_initials.par can be used.
+
+            further keywords: "dim", "funval", "N", "xbest",
+                "xmean",...  See also implementation in cmaes.c and
+		 the file cmaes_signals.par print and write keywords.
+
+         szFileName, const char *: File name, default is "tmpcmaes.dat".
+
+       Details: Useful combined keywords can be "eval+funval", "eval+few(diag(D))"
+                "few+few(diag(D))", "all+B". The file cmaes_signals.par provides more
+		examples as it uses the same syntax for writing and printing. 
+
+void 
+cmaes_UpdateEigensystem(cmaes_t *, int flgforce);
+    Input parameters: 
+        evo_ptr, cmaes_t: Pointer to CMA-ES struct cmaes_t will be initialized 
+                 within cmaes_init
+
+	flgforce, int: flag, for flgforce!=0 the eigendecomposion is conducted
+                  even if eigenvector and values seem to be up to date. 
+
+      Details: conducts the eigendecomposition of C into B and D
+               such that C = B*D*D*B^T and B*B^T=I and D diagonal
+               and positive. 
+
+double *
+cmaes_NewDouble(int n);
+
+     Input parameters:
+           n, int: size of double array to be allocated
+
+     Return: allocated double array of size n, on error 
+             the function cmaes_FATAL is called. 
+
+  Details: the array should be released using function free(...); 
+
+void
+cmaes_FATAL(char const *s1, char const *s2, char const *s3, 
+	    char const *s4)
+     Input parameters: error messages, can be NULL. 
+
+     Details: cmaes_FATAL writes error messages and terminates
+             the execution by calling exit(1). This behavoir can 
+             be modified. 

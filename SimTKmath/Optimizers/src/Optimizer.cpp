@@ -27,6 +27,7 @@
 #include "LBFGSBOptimizer.h"
 #include "InteriorPointOptimizer.h"
 #include "CFSQPOptimizer.h"
+#include "CMAESOptimizer.h"
 #include <string>
 
 namespace SimTK {
@@ -43,6 +44,7 @@ bool Optimizer::isAlgorithmAvailable(OptimizerAlgorithm algorithm) {
 #if SimTK_DEFAULT_PRECISION==2 // double only
         case CFSQP:         return CFSQPOptimizer::isAvailable();
 #endif
+        case CMAES:         return CMAESOptimizer::isAvailable();
         default:            return false;
     }
 }
@@ -114,6 +116,9 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
         }
     }
 #endif
+    else if( algorithm == CMAES ) {
+        newRep = (OptimizerRep *) new CMAESOptimizer( sys  );
+    }
 
     SimTK_APIARGCHECK_ALWAYS(
             algorithm != UnknownOptimizerAlgorithm &&

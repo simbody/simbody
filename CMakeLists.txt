@@ -593,6 +593,10 @@ ADD_SUBDIRECTORY( SimTKmath )
 ADD_SUBDIRECTORY( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 
+IF( BUILD_EXAMPLES )
+  ADD_SUBDIRECTORY( examples )
+ENDIF( BUILD_EXAMPLES )
+
 FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
@@ -607,10 +611,10 @@ add_custom_target(uninstall
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
 set(PKG_LIBRARIES
-  SimTKsimbody
-  SimTKmath
-  SimTKcommon
-)
+    ${SimTKSIMBODY_LIBRARY_NAME}
+    ${SimTKMATH_LIBRARY_NAME}
+    ${SimTKCOMMON_LIBRARY_NAME}
+    )
 
 if (WIN32)
   set(SIMBODY_CMAKE_DIR cmake)
