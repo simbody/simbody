@@ -9,7 +9,7 @@ Simbody is a community resource and we encourage you to contribute in whatever w
 Contents:
 - [Ways to Contribute](#ways-to-contribute)
 - [Submitting Pull Requests](#submitting-pull-requests)
-- [Coding Standards](#coding-standards)
+- [Coding Conventions](#coding-conventions)
 - [List of Contributors](#list-of-contributors)
 - [Contributor License Agreement](#contributor-license-agreement)
 
@@ -23,8 +23,8 @@ Submitting pull requests
 ------------------------
 **TBD**
 
-Coding Guidelines
------------------
+Coding Conventions
+------------------
 **(still working on this section)**
 
 Existing Simbody code does not perfectly follow these guidelines and we appreciate issues pointing out problems, and especially PRs that correct our earlier slip-ups.
@@ -34,7 +34,7 @@ Existing Simbody code does not perfectly follow these guidelines and we apprecia
 #### Keep line width to 80 characters
 Line widths should be no longer than **80** characters. The reason for this is that it permits multiple files to be laid out side-by-side during editing, which is *really* useful. At 80 characters you can get three windows on a modest-sized monitor, using a font that is readable even by adults.
 
-It is best to use guidelines while editing so that you can see where the 80 character limit is. If you are using Visual Studio, there is a very nice Editor Guidelines Extension available [here](https://visualstudiogallery.msdn.microsoft.com/da227a0b-0e31-4a11-8f6b-3a149cf2e459). If you don't have built-in guidelines available, note that the last line of the copyright block at the top of every Simbody source file is 80 characters wide.
+It is best to use a “guideline” (a vertical line that marks column 80 while you edit) so that you can see where the limit is. If you are using Visual Studio, there is a very nice Editor Guidelines Extension available [here](https://visualstudiogallery.msdn.microsoft.com/da227a0b-0e31-4a11-8f6b-3a149cf2e459). If you don't have built-in guidelines available, note that the last line of the copyright block at the top of every Simbody source file is 80 characters wide.
 
 Please don't interpret this to mean we like short lines. On the contrary it is nice to see as much code as reasonably possible on the screen at once, so don't stretch out your code vertically unnecessarily; and don't waste horizontal space where it doesn't help readability. Long comment blocks in particular should have lines as wide as possible. Just don't go over 80.
 
@@ -44,7 +44,7 @@ There *must not* be any tabs in your code; our build system will reject them. Pl
 If you use Visual Studio, go to `Tools:Options:Text Editor:C/C++:Tabs`, set `tab size=indent size=4`, and check the `Insert spaces` button. Almost any editor has a similar option, and most can help you clean up a file that already has tabs in it. 
 
 ### Naming conventions
-We do not believe it is helpful to attempt to encode too much information into symbol names; consequently we have fewer conventions than many systems. Much of the need for such conventions has passed with the wide availability of interactive language-sensitive code browsing and debugging, such as that provided by Visual Studio or Eclipse. Thus we do not use code letters to provide information that can easily be obtained while browsing code or debugging. We trust programmers to add appropriate conventions in their own code when those conventions are necessary for clarity or convenience, and to explain them in nearby comments.
+We do not believe it is helpful to attempt to encode type information into symbol names (for example, beginning pointer names with a `p`). Much of the need for such conventions has passed with the wide availability of IDEs offering language-sensitive code browsing and debugging, such as that provided by Visual Studio or Eclipse. Thus we do not use name prefix characters to provide information that can easily be obtained while browsing code or debugging. We trust programmers to add appropriate conventions in their own code when those conventions are necessary for clarity or convenience, and to explain them in nearby comments.
 
 We prefer consistency with existing precedent to our own conventions whenever appropriate. For example, C++ containers like `std::vector` define standard names like `const_iterator` so if you are building a container intended to be compatible with one of those you should follow the existing precedent rather than use the Simbody convention which would have been `ConstIterator`.
 
@@ -164,7 +164,7 @@ PointerToT   tptr1,   tptr2;   // both are type T*
 ReferenceToT tref1=a, tref2=b; // both are type T&
 ```
 
-Therefore you should place the `*` and `&` next to the type, not the variable, because logically they are part of the type. Unfortunately, the C language had a bug in its syntax which has been inherited by C++. A line like `char* a,b;` is treated like `char* a; char b;` rather than `char* a; char* b;`, but if you write `typedef char* CharPtr;` then `CharPtr a,b;` declares both to be pointers. There is no perfect solution because the language is broken. However, there is no problem in argument lists (since each variable has to have its own type). So we recommend that you simply avoid the misleading multiple-declaration form when using pointers or references. Just use separate declarations or a `typedef`. Then always put the `*` and `&` with the type where they belong. So argument lists should look like this:
+Therefore you should place the `*` and `&` next to the type, not the variable, because logically they are part of the type. Unfortunately, the C language had a bug in its syntax which has been inherited by C++. A line like `char* a,b;` is treated like `char* a; char b;` rather than `char* a; char* b;`, but if you write `typedef char* CharPtr;` then `CharPtr a,b;` declares both to be pointers. There is no perfect solution because the language is broken. However, there is no problem in argument lists (since each variable has to have its own type). So we recommend that you simply avoid the misleading multiple-declaration form when using pointers or references. Just use separate declarations or a `typedef`. Then always put the `*` and `&` with the type where they belong. Here are right and wrong examples for argument lists:
 
 ```cpp
 f(int I, string& name, char* something) /* <-- YES*/ 
