@@ -4,7 +4,7 @@ Contributing to Simbody
 
 Simbody is a community resource and we encourage you to contribute in whatever way you can -- for example: new code, bug fixes, test cases, and examples; documentation improvements and typo fixes; bug reports, feature requests, ideas and discussion topics; and user forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy! 
 
-**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. We *want* people to use our software and we *do not want* to restrict how they use it nor to control their behavior. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute. 
+**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. We *want* people to use our software and we *don't want* to restrict how they use it or control their behavior. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute. 
 
 Contents:
 - [Ways to Contribute](#ways-to-contribute)
