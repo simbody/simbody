@@ -39,8 +39,20 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 install:
-  - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
+  - mkdir ~/simbody-build && cd ~/simbody-build
+  - cmake $TRAVIS_BUILD_DIR -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
   - make -j8
 
 script:
+  ## Test Simbody.
   - ctest -j8 --output-on-failure
+  
+  ## Ensure that there are no tabs in source code.
+  - cd $TRAVIS_BUILD_DIR
+  # GREP returns 0 (true) if there are any matches, and
+  # we don't want any matches. If there are matches,
+  # print a helpful message, and make the test fail by using "false".
+  # The GREP command here checks for any tab characters in the the files
+  # that match the specified pattern. GREP does not pick up explicit tabs
+  # (e.g., literally a \t in a source file).
+  - if grep --recursive --include={CMakeLists.txt,*.cpp,*.c,*.h} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; fi
