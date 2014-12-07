@@ -83,7 +83,7 @@ int bandGBTRF(realtype **a, int n, int mu, int ml, int smu, int *p)
     for (c=0; c < n; c++) {
       a_c = a[c];
       for (r=0; r < num_rows; r++) {
-	a_c[r] = ZERO;
+    a_c[r] = ZERO;
       }
     }
   }
@@ -103,8 +103,8 @@ int bandGBTRF(realtype **a, int n, int mu, int ml, int smu, int *p)
     max = ABS(*diag_k);
     for (i=k+1, kptr=sub_diag_k; i <= last_row_k; i++, kptr++) { 
       if (ABS(*kptr) > max) {
-	l=i;
-	max = ABS(*kptr);
+    l=i;
+    max = ABS(*kptr);
       }
     }
     storage_l = ROW(l, k, smu);
@@ -148,18 +148,18 @@ int bandGBTRF(realtype **a, int n, int mu, int ml, int smu, int *p)
       /* Swap the elements a(k,j) and a(k,l) if l!=k. */
       
       if (swap) {
-	col_j[storage_l] = col_j[storage_k];
-	col_j[storage_k] = a_kj;
+    col_j[storage_l] = col_j[storage_k];
+    col_j[storage_k] = a_kj;
       }
 
       /* a(i,j) = a(i,j) - [a(i,k)/a(k,k)]*a(k,j) */
       /* a_kj = a(k,j), *kptr = - a(i,k)/a(k,k), *jptr = a(i,j) */
 
       if (a_kj != ZERO) {
-	for (i=k+1, kptr=sub_diag_k, jptr=col_j+ROW(k+1,j,smu);
-	     i <= last_row_k;
-	     i++, kptr++, jptr++)
-	  (*jptr) += a_kj * (*kptr);
+    for (i=k+1, kptr=sub_diag_k, jptr=col_j+ROW(k+1,j,smu);
+         i <= last_row_k;
+         i++, kptr++, jptr++)
+      (*jptr) += a_kj * (*kptr);
       }
     }    
   }

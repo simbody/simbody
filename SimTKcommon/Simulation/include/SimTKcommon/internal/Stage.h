@@ -46,7 +46,7 @@ Stage::Position, and loops can be written like
 Stage constants (of type Stage::Level) are implicitly converted to type
 Stage when necessary.
 
-Default construction gives Stage::Empty which really means "invalid". **/	
+Default construction gives Stage::Empty which really means "invalid". **/    
 class Stage  {
 public:
     enum Level {
@@ -72,7 +72,7 @@ public:
         NValid = HighestValid-LowestValid+1,
         NRuntime = HighestRuntime-LowestRuntime+1
     };
-	
+    
     /** Default construction gives Stage::Empty. **/
     Stage() : level(Stage::Empty) {}
     /** This is an implicit conversion from Stage::Level to Stage. **/
@@ -283,7 +283,7 @@ public:
 } // namespace Exception
 
 inline std::ostream& operator<<(std::ostream& o, Stage g) 
-{   o << g.getName(); return o; }	
+{   o << g.getName(); return o; }    
 
 
 } // namespace SimTK

@@ -404,10 +404,10 @@ public:
     template <class EE> inline MatrixBase& 
     colScaleInPlace(const VectorBase<EE>&);
 
-	template <class EE> inline void 
+    template <class EE> inline void 
     colScale(const VectorBase<EE>& c, typename EltResult<EE>::Mul& out) const;
 
-	template <class EE> inline typename EltResult<EE>::Mul
+    template <class EE> inline typename EltResult<EE>::Mul
     colScale(const VectorBase<EE>& c) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); colScale(c,out); return out;
     }
@@ -519,30 +519,30 @@ public:
         return out;
     }
 
-	/// M(i,j) *= R(i,j); R must have same dimensions as this.
-	template <class EE> inline MatrixBase& 
+    /// M(i,j) *= R(i,j); R must have same dimensions as this.
+    template <class EE> inline MatrixBase& 
     elementwiseMultiplyInPlace(const MatrixBase<EE>&);
 
-	template <class EE> inline void 
+    template <class EE> inline void 
     elementwiseMultiply(const MatrixBase<EE>&, typename EltResult<EE>::Mul&) const;
 
-	template <class EE> inline typename EltResult<EE>::Mul 
+    template <class EE> inline typename EltResult<EE>::Mul 
     elementwiseMultiply(const MatrixBase<EE>& m) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); 
         elementwiseMultiply<EE>(m,out); 
         return out;
     }
 
-	/// M(i,j) = R(i,j) * M(i,j); R must have same dimensions as this.
-	template <class EE> inline MatrixBase& 
+    /// M(i,j) = R(i,j) * M(i,j); R must have same dimensions as this.
+    template <class EE> inline MatrixBase& 
     elementwiseMultiplyFromLeftInPlace(const MatrixBase<EE>&);
 
-	template <class EE> inline void 
+    template <class EE> inline void 
     elementwiseMultiplyFromLeft(
         const MatrixBase<EE>&, 
         typename MatrixBase<EE>::template EltResult<E>::Mul&) const;
 
-	template <class EE> inline typename MatrixBase<EE>::template EltResult<E>::Mul 
+    template <class EE> inline typename MatrixBase<EE>::template EltResult<E>::Mul 
     elementwiseMultiplyFromLeft(const MatrixBase<EE>& m) const {
         typename EltResult<EE>::Mul out(nrow(), ncol()); 
         elementwiseMultiplyFromLeft<EE>(m,out); 

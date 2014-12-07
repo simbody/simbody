@@ -249,7 +249,7 @@ public:
 
     /// Default construction initializes to NaN when debugging but
     /// is left uninitialized otherwise.
-	SymMat(){ 
+    SymMat(){ 
     #ifndef NDEBUG
         setToNaN();
     #endif

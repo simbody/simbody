@@ -863,7 +863,7 @@ namespace Ipopt
       for (coption = options_to_print.begin();
            coption != options_to_print.end();
            coption++) {
-        //	std::map <std::string, SmartPtr<RegisteredOption> >::iterator option;
+        //    std::map <std::string, SmartPtr<RegisteredOption> >::iterator option;
         SmartPtr<RegisteredOption> option = registered_options_[*coption];
         DBG_ASSERT(IsValid(option));
         option->OutputLatexDescription(jnlst);

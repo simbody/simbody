@@ -162,7 +162,7 @@ try {
     cout << "should be identity: X()=" << X;
     cout << "typename(X)=" << typeid(X).name() << " ~X=" << typeid(~X).name() << endl;
 
-	R = Rotation( u, ZAxis );
+    R = Rotation( u, ZAxis );
 
     cout << "Rotation with u as z axis (norm=" << R.norm() << "): " << R; 
     cout << "~R: " << ~R;
@@ -225,7 +225,7 @@ try {
     cout << "norm invr123eq*r123-identity=" << (invr123eq*r123-Mat33(1)).norm() << endl;
 
     Rotation bodyXY( BodyRotationSequence, 0.03, XAxis, 0.11, YAxis, 0.0, ZAxis );
-	Rotation aboutYthenX( SpaceRotationSequence, 0.11, YAxis, 0.03, XAxis );
+    Rotation aboutYthenX( SpaceRotationSequence, 0.11, YAxis, 0.03, XAxis );
 
     cout << "bodyXY(.03,.11)=" << bodyXY;
     cout << "aboutYthenoldX(.11,.03)=" << aboutYthenX;
@@ -294,7 +294,7 @@ try {
 
     Rotation R_AB( BodyRotationSequence,   0.31, ZAxis, 0.17, YAxis, 0.1, XAxis ); 
     Rotation R_BC( BodyRotationSequence, -123.3, ZAxis, 41.1, YAxis, 14,  XAxis );
-		
+        
     Rotation Rtmp;
     cout << "R_AB*R_BC=" << R_AB*R_BC;
     Rtmp = R_AB;
@@ -365,7 +365,7 @@ static Rotation rotate1(int i, Real a) {
     m(i,i)=1; m(i,j)=m(j,i)=m(i,k)=m(k,i)=0;
     m(j,j)=m(k,k)=c;
     m(k,j)=s; m(j,k)=-s;
-	return Rotation(m,true);
+    return Rotation(m,true);
 }
 
 

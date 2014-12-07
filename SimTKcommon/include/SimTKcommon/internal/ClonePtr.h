@@ -48,7 +48,7 @@ public:
     typedef T& reference;
 
     /** Default constructor creates an empty object. **/
-	ClonePtr() : p(0) { }
+    ClonePtr() : p(0) { }
     /** Given a pointer to a writable heap-allocated object, take over 
     ownership of that object. **/
     explicit ClonePtr(T*  obj) : p(obj) { }
@@ -60,7 +60,7 @@ public:
     object the owner of the copy. Ownership of the original object is not
     affected. If the supplied pointer is null, the resulting %ClonePtr
     object is empty. **/
-	explicit ClonePtr(const T* obj) : p(obj?obj->clone():0) { }
+    explicit ClonePtr(const T* obj) : p(obj?obj->clone():0) { }
     /** Given a read-only reference to an object, create a new heap-allocated 
     copy of that object via its clone() method and make this %ClonePtr
     object the owner of the copy. Ownership of the original object is not
@@ -69,17 +69,17 @@ public:
     /** Copy constructor is deep; the new %ClonePtr object contains a new
     copy of the object in the source, created via the source object's clone()
     method. If the source container is empty this one will be empty also. **/
-	ClonePtr(const ClonePtr& c) : p(c.p?c.p->clone():0) { }
+    ClonePtr(const ClonePtr& c) : p(c.p?c.p->clone():0) { }
     /** Copy assignment replaces the currently-held object by a heap-allocated
     copy of the object held in the source container. The copy is created using 
     the source object's clone() method. The currently-held object is deleted. 
     If the source container is empty this one will be empty after the 
     assignment. **/
-	ClonePtr& operator=(const ClonePtr& c) 
+    ClonePtr& operator=(const ClonePtr& c) 
     {   reset(c.p?c.p->clone():0); return *this; }
     /** This form of assignment replaces the currently-held object by a 
     heap-allocated copy of the source object. The copy is created using the 
-    source object's clone() method. The currently-held object is deleted. **/	
+    source object's clone() method. The currently-held object is deleted. **/    
     ClonePtr& operator=(const T& t)          
     {   reset(&t ? t.clone()  :0); return *this; }
     /** This form of assignment replaces the currently-held object by the given
@@ -150,15 +150,15 @@ public:
 
     /** Return a writable pointer to the contained object if any, or null. 
     You can use the "address of" operator\&() instead if you prefer. **/
-	T* updPtr() { return p; }
+    T* updPtr() { return p; }
     /** Return a const pointer to the contained object if any, or null.  
     You can use the "address of" operator\&() instead if you prefer. **/
-	const T* getPtr()  const  { return p; }
+    const T* getPtr()  const  { return p; }
 
     /** Return a writable reference to the contained object. Don't call this if
     this container is empty. There is also an implicit conversion to reference
     that allows %ClonePtr\<T> to be used as though it were a T\&. **/
-	T& updRef() { 
+    T& updRef() { 
         SimTK_ERRCHK(p!=0, "ClonePtr::updRef()", 
                     "An attempt was made to dereference a null pointer."); 
         return *p; 
@@ -166,14 +166,14 @@ public:
     /** Return a const reference to the contained object. Don't call this if
     this container is empty. There is also an implicit conversion to reference
     that allows %ClonePtr\<T> to be used as though it were a T\&. **/
-	const T& getRef() const { 
+    const T& getRef() const { 
         SimTK_ERRCHK(p!=0, "ClonePtr::getRef()", 
                     "An attempt was made to dereference a null pointer."); 
         return *p; 
-    }	
+    }    
 
     /** Return true if this container is empty. **/
-	bool     empty() const    { return p==0; }
+    bool     empty() const    { return p==0; }
     /** Make this container empty, deleting the currently contained object if
     there is one. **/
     void     clear()          { delete p; p=0; }
@@ -202,13 +202,13 @@ public:
         other.reset(p);
         reset(otherp);
     }
-	 
+     
 private:
     // Warning: ClonePtr must be exactly the same size as type T*. That way
     // one can reinterpret_cast a T* to a ClonePtr<T> when needed.
-    T*	p;  
-};	
-	
+    T*    p;  
+};    
+    
 } // namespace SimTK
 
 namespace std {

@@ -168,13 +168,13 @@ int QRfact(int n, realtype **h, realtype *q, int job)
       /* Multiply column k by the previous k-1 Givens rotations */
 
       for (j=0; j < k-1; j++) {
-	i = 2*j;
-	temp1 = h[j][k];
-	temp2 = h[j+1][k];
-	c = q[i];
-	s = q[i+1];
-	h[j][k] = c*temp1 - s*temp2;
-	h[j+1][k] = s*temp1 + c*temp2;
+    i = 2*j;
+    temp1 = h[j][k];
+    temp2 = h[j+1][k];
+    c = q[i];
+    s = q[i+1];
+    h[j][k] = c*temp1 - s*temp2;
+    h[j+1][k] = s*temp1 + c*temp2;
       }
       
       /* Compute the Givens rotation components c and s */
@@ -183,16 +183,16 @@ int QRfact(int n, realtype **h, realtype *q, int job)
       temp1 = h[k][k];
       temp2 = h[k+1][k];
       if( temp2 == ZERO) {
-	c = ONE;
-	s = ZERO;
+    c = ONE;
+    s = ZERO;
       } else if (ABS(temp2) >= ABS(temp1)) {
-	temp3 = temp1/temp2;
-	s = -ONE/RSqrt(ONE+SQR(temp3));
-	c = -s*temp3;
+    temp3 = temp1/temp2;
+    s = -ONE/RSqrt(ONE+SQR(temp3));
+    c = -s*temp3;
       } else {
-	temp3 = temp2/temp1;
-	c = ONE/RSqrt(ONE+SQR(temp3));
-	s = -c*temp3;
+    temp3 = temp2/temp1;
+    c = ONE/RSqrt(ONE+SQR(temp3));
+    s = -c*temp3;
       }
       q[q_ptr] = c;
       q[q_ptr+1] = s;

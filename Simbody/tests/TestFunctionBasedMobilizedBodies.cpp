@@ -191,7 +191,7 @@ public:
     }
     // This is just a local method providing std::vector compatibility without copying.
     Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-    	return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
+        return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
     }
 
     int getArgumentSize() const{
@@ -234,7 +234,7 @@ public:
     }
     // This is just a local method providing std::vector compatibility without copying.
     Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-    	return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
+        return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
     }
 
     int getArgumentSize() const{
@@ -264,7 +264,7 @@ public:
     }
     // This is just a local method providing std::vector compatibility without copying.
     Real calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const{
-    	return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
+        return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
     }
 
     int getArgumentSize() const{

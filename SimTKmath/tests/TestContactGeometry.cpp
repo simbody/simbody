@@ -467,15 +467,15 @@ int main() {
         testHalfSpace();
         testSphere();
         testEllipsoid();
-	    testCylinder();
-	    testTorus();
+        testCylinder();
+        testTorus();
 
-	    // TODO clean up these tests and use them
-//	    testAnalyticalSphereGeodesic();
-//	    testAnalyticalCylinderGeodesic();
-	    testProjectDownhillToNearestPoint(ContactGeometry::Sphere(r), r);
-	    testProjectDownhillToNearestPoint(ContactGeometry::Ellipsoid(Vec3(1.5, 2.2, 3.1)), r);
-//	    testProjectDownhillToNearestPoint(ContactGeometry::Torus(3*r, r), 3*r);
+        // TODO clean up these tests and use them
+//        testAnalyticalSphereGeodesic();
+//        testAnalyticalCylinderGeodesic();
+        testProjectDownhillToNearestPoint(ContactGeometry::Sphere(r), r);
+        testProjectDownhillToNearestPoint(ContactGeometry::Ellipsoid(Vec3(1.5, 2.2, 3.1)), r);
+//        testProjectDownhillToNearestPoint(ContactGeometry::Torus(3*r, r), 3*r);
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;

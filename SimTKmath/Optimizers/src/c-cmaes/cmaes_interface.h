@@ -25,11 +25,11 @@ extern "C" {
 
 /* --- initialization, constructors, destructors --- */
 double * cmaes_init(cmaes_t *, int dimension , double *xstart, 
-		double *stddev, long seed, int lambda, 
-		const char *input_parameter_filename);
+        double *stddev, long seed, int lambda, 
+        const char *input_parameter_filename);
 void cmaes_init_para(cmaes_t *, int dimension , double *xstart, 
-		double *stddev, long seed, int lambda, 
-		const char *input_parameter_filename);
+        double *stddev, long seed, int lambda, 
+        const char *input_parameter_filename);
 double * cmaes_init_final(cmaes_t *);
 void cmaes_resume_distribution(cmaes_t *evo_ptr, char *filename);
 void cmaes_exit(cmaes_t *);
@@ -37,7 +37,7 @@ void cmaes_exit(cmaes_t *);
 /* --- core functions --- */
 double * const * cmaes_SamplePopulation(cmaes_t *);
 double *         cmaes_UpdateDistribution(cmaes_t *, 
-					  const double *rgFitnessValues);
+                      const double *rgFitnessValues);
 const char *     cmaes_TestForTermination(cmaes_t *);
 
 /* --- additional functions --- */
@@ -60,7 +60,7 @@ char *         cmaes_SayHello(cmaes_t *);
 /* --- misc --- */
 double *       cmaes_NewDouble(int n); /* user is responsible to free */
 void           cmaes_FATAL(char const *s1, char const *s2, char const *s3, 
-			   char const *s4);
+               char const *s4);
 
 #ifdef __cplusplus
 } // end extern "C"

@@ -194,9 +194,9 @@ SptfqmrMem SptfqmrMalloc(int l_max, N_Vector vec_tmpl)
  */
 
 int SptfqmrSolve(SptfqmrMem mem, void *A_data, N_Vector x, N_Vector b,
-		 int pretype, realtype delta, void *P_data, N_Vector sx,
-		 N_Vector sb, ATimesFn atimes, PSolveFn psolve,
-		 realtype *res_norm, int *nli, int *nps)
+         int pretype, realtype delta, void *P_data, N_Vector sx,
+         N_Vector sb, ATimesFn atimes, PSolveFn psolve,
+         realtype *res_norm, int *nli, int *nps)
 {
   realtype alpha, tau, eta, beta, c, sigma, v_bar, omega;
   realtype rho[2];
@@ -334,13 +334,13 @@ int SptfqmrSolve(SptfqmrMem mem, void *A_data, N_Vector x, N_Vector b,
        *       if the inner loop is executed twice
        */
       if (m == 0) {
-	temp_val = RSqrt(N_VDotProd(r_[1], r_[1]));
-	omega = RSqrt(RSqrt(N_VDotProd(r_[0], r_[0]))*temp_val);
-	N_VLinearSum(ONE, u_, SQR(v_bar)*eta/alpha, d_, d_);
+    temp_val = RSqrt(N_VDotProd(r_[1], r_[1]));
+    omega = RSqrt(RSqrt(N_VDotProd(r_[0], r_[0]))*temp_val);
+    N_VLinearSum(ONE, u_, SQR(v_bar)*eta/alpha, d_, d_);
       }
       else {
-	omega = temp_val;
-	N_VLinearSum(ONE, q_, SQR(v_bar)*eta/alpha, d_, d_);
+    omega = temp_val;
+    N_VLinearSum(ONE, q_, SQR(v_bar)*eta/alpha, d_, d_);
       }
 
       /* v_bar = omega/tau */
@@ -363,10 +363,10 @@ int SptfqmrSolve(SptfqmrMem mem, void *A_data, N_Vector x, N_Vector b,
       *res_norm = r_curr_norm = tau*RSqrt((realtype)m+1);
 
       /* Exit inner loop if iteration has converged based upon approximation
-	 to norm of current residual */
+     to norm of current residual */
       if (r_curr_norm <= delta) {
-	converged = TRUE;
-	break;
+    converged = TRUE;
+    break;
       }
 
       /* Decide if actual norm of residual vector should be computed */
@@ -382,48 +382,48 @@ int SptfqmrSolve(SptfqmrMem mem, void *A_data, N_Vector x, N_Vector b,
        *       number of psovles if using left preconditioning
        */
       if ((r_curr_norm > delta) ||
-	  (r_curr_norm >= r_init_norm && m == 1 && n == l_max)) {
+      (r_curr_norm >= r_init_norm && m == 1 && n == l_max)) {
 
-	/* Compute norm of residual ||b-A*x||_2 (preconditioned and scaled) */
-	if (scale_x) N_VDiv(x, sx, vtemp1);
-	else N_VScale(ONE, x, vtemp1);
-	if (preOnRight) {
-	  ier = psolve(P_data, vtemp1, vtemp2, PREC_RIGHT);
-	  (*nps)++;
-	  if (ier != 0) return((ier < 0) ? SPTFQMR_PSOLVE_FAIL_UNREC : SPTFQMR_PSOLVE_FAIL_UNREC);
-	  N_VScale(ONE, vtemp2, vtemp1);
-	}
-	ier = atimes(A_data, vtemp1, vtemp2);
+    /* Compute norm of residual ||b-A*x||_2 (preconditioned and scaled) */
+    if (scale_x) N_VDiv(x, sx, vtemp1);
+    else N_VScale(ONE, x, vtemp1);
+    if (preOnRight) {
+      ier = psolve(P_data, vtemp1, vtemp2, PREC_RIGHT);
+      (*nps)++;
+      if (ier != 0) return((ier < 0) ? SPTFQMR_PSOLVE_FAIL_UNREC : SPTFQMR_PSOLVE_FAIL_UNREC);
+      N_VScale(ONE, vtemp2, vtemp1);
+    }
+    ier = atimes(A_data, vtemp1, vtemp2);
         if (ier != 0)
           return((ier < 0) ? SPTFQMR_ATIMES_FAIL_UNREC : SPTFQMR_ATIMES_FAIL_REC);
-	if (preOnLeft) {
-	  ier = psolve(P_data, vtemp2, vtemp1, PREC_LEFT);
-	  (*nps)++;
-	  if (ier != 0) return((ier < 0) ? SPTFQMR_PSOLVE_FAIL_UNREC : SPTFQMR_PSOLVE_FAIL_REC);
-	}
-	else N_VScale(ONE, vtemp2, vtemp1);
-	if (scale_b) N_VProd(sb, vtemp1, vtemp2);
-	else N_VScale(ONE, vtemp1, vtemp2);
-	/* Only precondition and scale b once (result saved for reuse) */
-	if (!b_ok) {
-	  b_ok = TRUE;
-	  if (preOnLeft) {
-	    ier = psolve(P_data, b, vtemp3, PREC_LEFT);
-	    (*nps)++;
-	    if (ier != 0) return((ier < 0) ? SPTFQMR_PSOLVE_FAIL_UNREC : SPTFQMR_PSOLVE_FAIL_REC);
-	  }
-	  else N_VScale(ONE, b, vtemp3);
-	  if (scale_b) N_VProd(sb, vtemp3, vtemp3);
-	}
-	N_VLinearSum(ONE, vtemp3, -ONE, vtemp2, vtemp1);
-	*res_norm = r_curr_norm = RSqrt(N_VDotProd(vtemp1, vtemp1));
+    if (preOnLeft) {
+      ier = psolve(P_data, vtemp2, vtemp1, PREC_LEFT);
+      (*nps)++;
+      if (ier != 0) return((ier < 0) ? SPTFQMR_PSOLVE_FAIL_UNREC : SPTFQMR_PSOLVE_FAIL_REC);
+    }
+    else N_VScale(ONE, vtemp2, vtemp1);
+    if (scale_b) N_VProd(sb, vtemp1, vtemp2);
+    else N_VScale(ONE, vtemp1, vtemp2);
+    /* Only precondition and scale b once (result saved for reuse) */
+    if (!b_ok) {
+      b_ok = TRUE;
+      if (preOnLeft) {
+        ier = psolve(P_data, b, vtemp3, PREC_LEFT);
+        (*nps)++;
+        if (ier != 0) return((ier < 0) ? SPTFQMR_PSOLVE_FAIL_UNREC : SPTFQMR_PSOLVE_FAIL_REC);
+      }
+      else N_VScale(ONE, b, vtemp3);
+      if (scale_b) N_VProd(sb, vtemp3, vtemp3);
+    }
+    N_VLinearSum(ONE, vtemp3, -ONE, vtemp2, vtemp1);
+    *res_norm = r_curr_norm = RSqrt(N_VDotProd(vtemp1, vtemp1));
 
-	/* Exit inner loop if inequality condition is satisfied 
-	   (meaning exit if we have converged) */
-	if (r_curr_norm <= delta) {
-	  converged = TRUE;
-	  break;
-	}
+    /* Exit inner loop if inequality condition is satisfied 
+       (meaning exit if we have converged) */
+    if (r_curr_norm <= delta) {
+      converged = TRUE;
+      break;
+    }
 
       }
 

@@ -78,8 +78,8 @@ bool String::tryConvertToBool(bool& out) const {
     const String adjusted = cleanUp(*this);
     if (adjusted=="true")  {out=true;  return true;}
     if (adjusted=="false") {out=false; return true;}
-	std::istringstream sstream(adjusted);
-	sstream >> out;
+    std::istringstream sstream(adjusted);
+    sstream >> out;
     return !sstream.fail();
 }
 
@@ -91,8 +91,8 @@ bool String::tryConvertToFloat(float& out) const {
     {   out = NTraits<float>::getInfinity(); return true;}
     if (adjusted=="-inf" || adjusted=="-infinity") 
     {   out = -NTraits<float>::getInfinity(); return true;}
-	std::istringstream sstream(adjusted);
-	sstream >> out;
+    std::istringstream sstream(adjusted);
+    sstream >> out;
     return !sstream.fail();
 }
 
@@ -104,8 +104,8 @@ bool String::tryConvertToDouble(double& out) const {
     {   out = NTraits<double>::getInfinity(); return true;}
     if (adjusted=="-inf" || adjusted=="-infinity") 
     {   out = -NTraits<double>::getInfinity(); return true;}
-	std::istringstream sstream(adjusted);
-	sstream >> out;
+    std::istringstream sstream(adjusted);
+    sstream >> out;
     return !sstream.fail();
 }
 
@@ -117,8 +117,8 @@ bool String::tryConvertToLongDouble(long double& out) const {
     {   out = NTraits<long double>::getInfinity(); return true;}
     if (adjusted=="-inf" || adjusted=="-infinity") 
     {   out = -NTraits<long double>::getInfinity(); return true;}
-	std::istringstream sstream(adjusted);
-	sstream >> out;
+    std::istringstream sstream(adjusted);
+    sstream >> out;
     return !sstream.fail();
 }
 

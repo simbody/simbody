@@ -79,7 +79,7 @@ SET(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
 SET(BUILD_USING_NAMESPACE "" CACHE STRING
-	"All library names will be prefixed with 'xxx_' if this is set to xxx.")
+    "All library names will be prefixed with 'xxx_' if this is set to xxx.")
 
 SET(BUILD_UNVERSIONED_LIBRARIES TRUE CACHE BOOL
  "Build library names, and assume dependency names, with no version numbers?")
@@ -144,14 +144,14 @@ SET(BUILD_TESTING ON CACHE BOOL
     BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
 SET(BUILD_EXAMPLES ON CACHE BOOL
-	"Control building of Simbody example programs.
+    "Control building of Simbody example programs.
     To actually build examples, one
     or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
     BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
 # Set whether to build the Visualizer code.
 SET(BUILD_VISUALIZER ON CACHE BOOL 
-	"Control building of the visualizer component")
+    "Control building of the visualizer component")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
@@ -230,13 +230,13 @@ ELSE() # Windows
     # the right directory for the target. CMAKE_INSTALL_DIR after 2.8.3 gets
     # this right but still isn't what we want.
     IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-	# 64 bit target on Win64
-	set(PROGFILEDIR "$ENV{ProgramW6432}")
+    # 64 bit target on Win64
+    set(PROGFILEDIR "$ENV{ProgramW6432}")
     ELSE() # Target is 32 bit
-	set(PROGFILEDIR "$ENV{ProgramFiles(x86)}") # present if 64bit Windows
-	if (NOT PROGFILEDIR)
-	    set(PROGFILEDIR "$ENV{ProgramFiles}") # on 32bit Windows
-	endif()
+    set(PROGFILEDIR "$ENV{ProgramFiles(x86)}") # present if 64bit Windows
+    if (NOT PROGFILEDIR)
+        set(PROGFILEDIR "$ENV{ProgramFiles}") # on 32bit Windows
+    endif()
     ENDIF()
 
     IF(NOT CMAKE_INSTALL_PREFIX)
@@ -306,7 +306,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # compiling using the c++11 standard.
     OPTION(SIMBODY_STANDARD_11
         "Compile using the C++11 standard, if using GCC or Clang." ON)
-	
+    
     IF(${SIMBODY_STANDARD_11})
         # Using C++11 on OSX requires using libc++ instead of libstd++.
         # libc++ is an implementation of the C++ standard library for OSX.
@@ -410,23 +410,23 @@ IF(MSVC)
 
     ## C++
     SET(BUILD_CXX_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
+    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C
     SET(BUILD_C_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
+    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C++
     SET(CMAKE_CXX_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_CXX_FLAGS_DEBUG}"
@@ -502,9 +502,9 @@ ENDIF(BUILD_USING_OTHER_LAPACK)
 
 IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(APPLE)
-	    SET(REALTIME_LIB)
+        SET(REALTIME_LIB)
     ELSE()
-	    SET(REALTIME_LIB rt)
+        SET(REALTIME_LIB rt)
     ENDIF()
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl m)
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl m)
@@ -649,10 +649,10 @@ INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
 # Make the pkgconfig file: select the proper flags depending on the platform
 IF (WIN32)
     IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    	# win 64 bits
-	SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
+        # win 64 bits
+    SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
     ELSE()
-	SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
+    SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
     ENDIF()
 ELSEIF (APPLE)   
     SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -ldl")

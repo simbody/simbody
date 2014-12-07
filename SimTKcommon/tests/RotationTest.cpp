@@ -160,18 +160,18 @@ bool  doRequiredTasks( ) {
     test = test && testRotationTwoAxes(  BodyRotationSequence, -3.1, ZAxis, 1.2, ZAxis );
     test = test && testRotationTwoAxes( SpaceRotationSequence, -3.1, ZAxis, 1.2, ZAxis );
 
-	// Test the construction of rotations from two given axes.
-	const UnitVec3	vi(0.01, 0.02, .9);
-	const Vec3		vj(-0.5, 0.5, 0.2);
+    // Test the construction of rotations from two given axes.
+    const UnitVec3    vi(0.01, 0.02, .9);
+    const Vec3        vj(-0.5, 0.5, 0.2);
 
-	test = test && testRotationFromTwoGivenAxes(vi, XAxis, vj, YAxis);
-	test = test && testRotationFromTwoGivenAxes(vi, YAxis, vj, XAxis);
+    test = test && testRotationFromTwoGivenAxes(vi, XAxis, vj, YAxis);
+    test = test && testRotationFromTwoGivenAxes(vi, YAxis, vj, XAxis);
 
-	test = test && testRotationFromTwoGivenAxes(vi, YAxis, vj, ZAxis);
-	test = test && testRotationFromTwoGivenAxes(vi, ZAxis, vj, YAxis);
+    test = test && testRotationFromTwoGivenAxes(vi, YAxis, vj, ZAxis);
+    test = test && testRotationFromTwoGivenAxes(vi, ZAxis, vj, YAxis);
 
-	test = test && testRotationFromTwoGivenAxes(vi, ZAxis, vj, XAxis);
-	test = test && testRotationFromTwoGivenAxes(vi, XAxis, vj, ZAxis);
+    test = test && testRotationFromTwoGivenAxes(vi, ZAxis, vj, XAxis);
+    test = test && testRotationFromTwoGivenAxes(vi, XAxis, vj, ZAxis);
 
     // Test rotation with three angles and three axes XXX, XXY, XXZ, XYX, XYY, XYZ, XZX, XZY, XZZ
     test = test && testRotationThreeAxes(  BodyRotationSequence,  0.2, XAxis, 0.3, XAxis, 0.4, XAxis );
@@ -239,7 +239,7 @@ bool  doRequiredTasks( ) {
     test = test && testRotationThreeAxes(  BodyRotationSequence, -3.1, ZAxis, 1.2, ZAxis, 1.3, ZAxis );
     test = test && testRotationThreeAxes( SpaceRotationSequence, -3.1, ZAxis, 1.2, ZAxis, 1.3, ZAxis );
 
-	// This used to fail
+    // This used to fail
     test = test && testRotationThreeAxes(  BodyRotationSequence, -3.2288591161895095, XAxis, -3.1415926535897931, YAxis, -3.1415926535897931, XAxis );
     test = test && testRotationThreeAxes( SpaceRotationSequence, -3.2288591161895095, XAxis, -3.1415926535897931, YAxis, -3.1415926535897931, XAxis );
 
@@ -308,8 +308,8 @@ bool  testRotationOneAxis( const Real angle, const CoordinateAxis& axis ) {
     testRotation.setRotationFromAngleAboutAxis( theta, axis );
     test = test && rotationSpecified.areAllRotationElementsSameToMachinePrecision( testRotation );
 
-	// Conversion should produce  angle = theta   if  angle is in proper range (-pi < angle <= pi)
-	test = test && testInverseRotation1Angle( angle, theta );
+    // Conversion should produce  angle = theta   if  angle is in proper range (-pi < angle <= pi)
+    test = test && testInverseRotation1Angle( angle, theta );
 
     return test;
 }
@@ -338,13 +338,13 @@ bool  testRotationTwoAxes( const BodyOrSpaceType bodyOrSpace, const Real angle1,
     testRotation.setRotationFromTwoAnglesTwoAxes( bodyOrSpace, theta1, axis1, theta2, axis2 );
     test = test && rotationSpecified.areAllRotationElementsSameToMachinePrecision( testRotation );
 
-	// Conversion should produce same angles for for appropriate ranges of angle1 and angle2
+    // Conversion should produce same angles for for appropriate ranges of angle1 and angle2
     if( axis1.isSameAxis(axis2) ) 
        test = test && testInverseRotation1Angle( angle1+angle2, theta1+theta2 );
-	else
+    else
        test = test && testInverseRotation2Angle( angle1,theta1, angle2,theta2 );
 
-	return test;
+    return test;
 }
 
 
@@ -373,29 +373,29 @@ bool  testRotationThreeAxes( const BodyOrSpaceType bodyOrSpace, const Real angle
     testRotation.setRotationFromThreeAnglesThreeAxes( bodyOrSpace, theta1, axis1, theta2, axis2, theta3, axis3 );
     test = test && rotationSpecified.areAllRotationElementsSameToMachinePrecision( testRotation );
 
-	// Conversion should produce same angles for for appropriate ranges of angle1 and angle2
-	if( axis1.areAllSameAxes(axis2,axis3) ) 
+    // Conversion should produce same angles for for appropriate ranges of angle1 and angle2
+    if( axis1.areAllSameAxes(axis2,axis3) ) 
        test = test && testInverseRotation1Angle( angle1+angle2+angle3, theta1+theta2+theta3 );
     else if( axis1.isSameAxis(axis2) ) 
        test = test && testInverseRotation2Angle( angle1+angle2, theta1+theta1, angle3,theta3 );
-	else if( axis2.isSameAxis(axis3) ) 
+    else if( axis2.isSameAxis(axis3) ) 
        test = test && testInverseRotation2Angle( angle1,theta1, angle2+angle3, theta2+theta3 );
-	else if( axis1.isSameAxis(axis3) )
+    else if( axis1.isSameAxis(axis3) )
        test = test && testInverseRotation3AngleTwoAxes( angle1,theta1, angle2,theta2, angle3,theta3 );
-	else 
+    else 
        test = test && testInverseRotation3AngleThreeAxes( angle1,theta1, angle2,theta2, angle3,theta3 );
 
-	return test;
+    return test;
 }
 
 
 //-------------------------------------------------------------------
 bool  testInverseRotation1Angle( Real angle, Real theta ) {
     bool test = true;
-	bool angleInProperRange = ( -SimTK_PI <= angle  &&  angle <= SimTK_PI );
+    bool angleInProperRange = ( -SimTK_PI <= angle  &&  angle <= SimTK_PI );
     if( angleInProperRange )
       test = fabs( angle - theta ) < 10*SignificantReal;
-	return test;
+    return test;
 }
 
 
@@ -415,7 +415,7 @@ bool  testInverseRotation2Angle( Real angle1, Real theta1,  Real angle2, Real th
 //-------------------------------------------------------------------
 bool  testInverseRotation3AngleTwoAxes( Real angle1, Real theta1,  Real angle2, Real theta2,  Real angle3, Real theta3 ) {
     bool test = true;
-	bool angle1InProperRange = (    -SimTK_PI <= angle1  &&  angle1 <= SimTK_PI );
+    bool angle1InProperRange = (    -SimTK_PI <= angle1  &&  angle1 <= SimTK_PI );
     bool angle2InProperRange = (            0 <= angle2  &&  angle2 <= SimTK_PI );
     bool angle3InProperRange = (    -SimTK_PI <= angle3  &&  angle3 <= SimTK_PI );
     if( angle1InProperRange && angle2InProperRange && angle3InProperRange ) {
@@ -423,27 +423,27 @@ bool  testInverseRotation3AngleTwoAxes( Real angle1, Real theta1,  Real angle2, 
        test = test && fabs( angle2 - theta2 ) < 10*SignificantReal;
        test = test && fabs( angle3 - theta3 ) < 10*SignificantReal;
 
-	   // Test needs to be modified if near singularity
-	   const Real singularity = 0.0;
-	   if( test == false && fabs(angle2-singularity) <= SignificantReal ) {
-	      const Real angle1PlusAngle3 = angle1 + angle3;
-	      const Real theta1PlusTheta3 = theta1 + theta3;
-	      bool angleSumInProperRange = ( -SimTK_PI <= angle1PlusAngle3  &&  angle1PlusAngle3 <= SimTK_PI );
-		  if( angleSumInProperRange == false ) test = true;
-		  else {
+       // Test needs to be modified if near singularity
+       const Real singularity = 0.0;
+       if( test == false && fabs(angle2-singularity) <= SignificantReal ) {
+          const Real angle1PlusAngle3 = angle1 + angle3;
+          const Real theta1PlusTheta3 = theta1 + theta3;
+          bool angleSumInProperRange = ( -SimTK_PI <= angle1PlusAngle3  &&  angle1PlusAngle3 <= SimTK_PI );
+          if( angleSumInProperRange == false ) test = true;
+          else {
               test = fabs( angle2 - theta2 ) < 10*SignificantReal;
               test = test && fabs( angle1PlusAngle3 - theta1PlusTheta3 ) < 10*SignificantReal;
-		  }
-	   }
+          }
+       }
     }
-	return test;
+    return test;
 }
 
 
 //-------------------------------------------------------------------
 bool  testInverseRotation3AngleThreeAxes( Real angle1, Real theta1,  Real angle2, Real theta2,  Real angle3, Real theta3 ) {
     bool test = true;
-	bool angle1InProperRange = (    -SimTK_PI <= angle1  &&  angle1 <=     SimTK_PI );
+    bool angle1InProperRange = (    -SimTK_PI <= angle1  &&  angle1 <=     SimTK_PI );
     bool angle2InProperRange = (-0.5*SimTK_PI <= angle2  &&  angle2 <= 0.5*SimTK_PI );
     bool angle3InProperRange = (    -SimTK_PI <= angle3  &&  angle3 <=     SimTK_PI );
     if( angle1InProperRange && angle2InProperRange && angle3InProperRange ) {
@@ -451,20 +451,20 @@ bool  testInverseRotation3AngleThreeAxes( Real angle1, Real theta1,  Real angle2
        test = test && fabs( angle2 - theta2 ) < 10*SignificantReal;
        test = test && fabs( angle3 - theta3 ) < 10*SignificantReal;
 
-	   // Test needs to be modified if near singularity
-	   const Real singularity = 0.5*SimTK_PI;
-	   if( test == false && fabs(angle2-singularity) <= SignificantReal ) {
-	      const Real angle1PlusAngle3 = angle1 + angle3;
-	      const Real theta1PlusTheta3 = theta1 + theta3;
-	      bool angleSumInProperRange = ( -SimTK_PI <= angle1PlusAngle3  &&  angle1PlusAngle3 <= SimTK_PI );
-		  if( angleSumInProperRange == false ) test = true;
-		  else {
+       // Test needs to be modified if near singularity
+       const Real singularity = 0.5*SimTK_PI;
+       if( test == false && fabs(angle2-singularity) <= SignificantReal ) {
+          const Real angle1PlusAngle3 = angle1 + angle3;
+          const Real theta1PlusTheta3 = theta1 + theta3;
+          bool angleSumInProperRange = ( -SimTK_PI <= angle1PlusAngle3  &&  angle1PlusAngle3 <= SimTK_PI );
+          if( angleSumInProperRange == false ) test = true;
+          else {
               test = fabs( angle2 - theta2 ) < 10*SignificantReal;
               test = test && fabs( angle1PlusAngle3 - theta1PlusTheta3 ) < 10*SignificantReal;
-		  }
-	   }
+          }
+       }
     }
-	return test;
+    return test;
 }
 
 
@@ -581,7 +581,7 @@ bool  exhaustiveTestof3AngleRotation( ) {
             for( Real anglek = negativeStartAngle;  anglek < positiveStartAngle;  anglek += incrementAngle ) {
                test = test && testRotationThreeAxes(  BodyRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
                test = test && testRotationThreeAxes( SpaceRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
-			}
+            }
          }
       }
    }
@@ -618,7 +618,7 @@ bool  exhaustiveTestof3AngleTwoAxesRotationNearSingularity() {
             for( Real anglek = negativeStartAngle;  anglek < positiveStartAngle;  anglek += incrementStartAngle ) {
                test = test && testRotationThreeAxes(  BodyRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
                test = test && testRotationThreeAxes( SpaceRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
-			}
+            }
          }
       }
    }
@@ -655,7 +655,7 @@ bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity() {
             for( Real anglek = negativeStartAngle;  anglek < positiveStartAngle;  anglek += incrementStartAngle ) {
                test = test && testRotationThreeAxes(  BodyRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
                test = test && testRotationThreeAxes( SpaceRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
-			}
+            }
          }
       }
    }
@@ -681,17 +681,17 @@ bool  exhaustiveTestofQuaternions() {
 // left it with determinant -1) and that the j'th axis is at least pointing in the
 // direction of the given vj.
 bool testRotationFromTwoGivenAxes( const Vec3& vi, const CoordinateAxis& ai, const Vec3& vj, const CoordinateAxis& aj) {
-	bool test = true;
+    bool test = true;
 
-	// This makes a Rotation with vi as axis i, but axis j will only be in the general direction of vj.
-	const Rotation testRotation(UnitVec3(vi), ai, vj, aj);
+    // This makes a Rotation with vi as axis i, but axis j will only be in the general direction of vj.
+    const Rotation testRotation(UnitVec3(vi), ai, vj, aj);
 
-	test = test && std::fabs(det(testRotation) - 1) <= SignificantReal;
+    test = test && std::fabs(det(testRotation) - 1) <= SignificantReal;
 
-	test = test && dot(testRotation(ai), vi) > 0;
-	test = test && dot(testRotation(aj), vj) > 0;
+    test = test && dot(testRotation(ai), vi) > 0;
+    test = test && dot(testRotation(aj), vj) > 0;
 
-	return test;
+    return test;
 }
 
 //-------------------------------------------------------------------

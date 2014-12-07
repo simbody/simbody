@@ -163,7 +163,7 @@ void ContactGeometry::Torus::Impl::createPolygonalMesh(PolygonalMesh& mesh) cons
       faceIndices.push_back((i+1)%numVertices); // u_i, v_i+1
       faceIndices.push_back((i+1+numSides)%numVertices); // u_i+1, v_i+1
       faceIndices.push_back((i+numSides)%numVertices); // u_i+1, v_i
-      mesh.addFace(faceIndices);	
+      mesh.addFace(faceIndices);    
     }
 
 }

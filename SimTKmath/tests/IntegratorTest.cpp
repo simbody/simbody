@@ -450,11 +450,11 @@ static void printFinalStats(const Integrator& integ)
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);
   printf("nst = %-6d nattempt = %-6d nfe  = %-6d nsetups = %-6d\n",
-	 nst, nattempt, nfe, nsetups);
+     nst, nattempt, nfe, nsetups);
   printf("nfeLS = %-6d nje = %d\n",
-	 nfeLS, nje);
+     nfeLS, nje);
   printf("nni = %-6d ncfn = %-6d netf = %-6d \n",
-	 nni, ncfn, netf);
+     nni, ncfn, netf);
   printf("nproj = %-6d nprojq = %-6d nproju = %-6d\n",
          nproj, nprojq, nproju);
   printf("nprf = %-6d nprqf = %-6d npruf = %-6d\n",

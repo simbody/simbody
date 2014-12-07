@@ -39,8 +39,8 @@ ENDIF()
 if (OPENGL_FOUND AND SIMBODY_HAS_GLUT)
 
 ADD_EXECUTABLE(${GUI_NAME} 
-	simbody-visualizer.cpp lodepng.cpp lodepng.h
-	${GLUT32_HEADERS}) # only on Windows
+    simbody-visualizer.cpp lodepng.cpp lodepng.h
+    ${GLUT32_HEADERS}) # only on Windows
 
 # If building as debug, append the debug postfix to the name of the executable.
 # CMAKE_DEBUG_POSTFIX only affects non-executable targets, but we use its value
@@ -50,7 +50,7 @@ SET_TARGET_PROPERTIES(${GUI_NAME} PROPERTIES
         DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 TARGET_LINK_LIBRARIES(${GUI_NAME} 
-	${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+    ${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
 # SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt
 INSTALL(TARGETS ${GUI_NAME}
@@ -65,10 +65,10 @@ IF(WIN32)
     add_custom_command(
         TARGET ${GUI_NAME}
         COMMAND copy ${gl32src} ${gl32dest}
-	COMMENT "Copying glut32.dll" VERBATIM)
+    COMMENT "Copying glut32.dll" VERBATIM)
 
     INSTALL(FILES ${glut32libdir}/glut32.dll
-	    DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}) #same as GUI
+        DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}) #same as GUI
 ENDIF()
 
 else()

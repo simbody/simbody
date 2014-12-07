@@ -40,17 +40,17 @@ namespace SimTK {
  */
 class AbstractValue {
 public:
-	AbstractValue() { }
-	virtual ~AbstractValue() { }
+    AbstractValue() { }
+    virtual ~AbstractValue() { }
 
     virtual String      getTypeName() const = 0;    
-	virtual String		getValueAsString() const = 0;
+    virtual String        getValueAsString() const = 0;
     virtual bool        isCompatible(const AbstractValue&) const = 0;
     virtual void compatibleAssign(const AbstractValue&) = 0;
         
     AbstractValue& operator=(const AbstractValue& v) { compatibleAssign(v); return *this; }
-	
-	virtual AbstractValue* clone() const = 0;
+    
+    virtual AbstractValue* clone() const = 0;
 };
 
 inline std::ostream& 

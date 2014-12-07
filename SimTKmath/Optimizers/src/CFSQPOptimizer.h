@@ -44,41 +44,41 @@ class CFSQPOptimizer: public Optimizer::OptimizerRep {
 // DATA
 //=============================================================================
 private:
-	// PARAMETETERS
-	/** Mode. */
-	int _mode;
-	/** Variable that contains information about the status of an
-	optimization.*/
-	int _inform;
-	/** Value used for infinity or a very large number. */
-	double _infinity;
-	/** Convergence criterion for nonlinear equality constraints. */
-	double _epseqn;
-	/** I don't know. */
-	double _udelta;
+    // PARAMETETERS
+    /** Mode. */
+    int _mode;
+    /** Variable that contains information about the status of an
+    optimization.*/
+    int _inform;
+    /** Value used for infinity or a very large number. */
+    double _infinity;
+    /** Convergence criterion for nonlinear equality constraints. */
+    double _epseqn;
+    /** I don't know. */
+    double _udelta;
 
-	// SEQUENTIAL INFO
-	int _ncsrl;
-	int _ncsrn;
-	int _nfsr;
-	int *_mesh;
+    // SEQUENTIAL INFO
+    int _ncsrl;
+    int _ncsrn;
+    int _nfsr;
+    int *_mesh;
 
-	// ALLOCATIONS
-	/** Array of performance criteria. */
-	double *_p;
-	/** Array of constraints. */
-	double *_c;
-	/** Lagrange multipliers for constraints. */
-	double *_lambda;
+    // ALLOCATIONS
+    /** Array of performance criteria. */
+    double *_p;
+    /** Array of constraints. */
+    double *_c;
+    /** Lagrange multipliers for constraints. */
+    double *_lambda;
 
 //=============================================================================
 // METHODS
 //=============================================================================
 public:
-	//--------------------------------------------------------------------------
-	// CONSTRUCTION
-	//--------------------------------------------------------------------------
-	virtual ~CFSQPOptimizer();
+    //--------------------------------------------------------------------------
+    // CONSTRUCTION
+    //--------------------------------------------------------------------------
+    virtual ~CFSQPOptimizer();
     CFSQPOptimizer(const OptimizerSystem& sys); 
 
     static bool isAvailable();
@@ -92,39 +92,39 @@ public:
 private:
     static void bindToCFSQPLibrary();
 
-	//--------------------------------------------------------------------------
-	// STATIC FUNCTIONS USED AS INPUT TO cfsqp()
-	//--------------------------------------------------------------------------
-	static void
-		pFunc(int nparam,int j,double *x,double *pj,void *cd);
-	static void
-		cFunc(int nparam,int j,double *x,double *cj,void *cd);
-	static void
-		dpdxFunc(int nparam,int j,double *x,double *dpdx,
-		void (*dummy)(int,int,double *,double *,void *),void *cd);
-	static void
-		dcdxFunc(int nparam,int j,double *x,double *dcdx,
-		void (*dummy)(int,int,double *,double *,void *),void *cd);
+    //--------------------------------------------------------------------------
+    // STATIC FUNCTIONS USED AS INPUT TO cfsqp()
+    //--------------------------------------------------------------------------
+    static void
+        pFunc(int nparam,int j,double *x,double *pj,void *cd);
+    static void
+        cFunc(int nparam,int j,double *x,double *cj,void *cd);
+    static void
+        dpdxFunc(int nparam,int j,double *x,double *dpdx,
+        void (*dummy)(int,int,double *,double *,void *),void *cd);
+    static void
+        dcdxFunc(int nparam,int j,double *x,double *dcdx,
+        void (*dummy)(int,int,double *,double *,void *),void *cd);
 
-	//--------------------------------------------------------------------------
-	// PRINT
-	//--------------------------------------------------------------------------
-	static void
-		PrintInform(int aInform,std::ostream &aOStream);
+    //--------------------------------------------------------------------------
+    // PRINT
+    //--------------------------------------------------------------------------
+    static void
+        PrintInform(int aInform,std::ostream &aOStream);
 
-	//--------------------------------------------------------------------------
-	// CACHING
-	//--------------------------------------------------------------------------
-	mutable SimTK::Vector _cachedConstraintJacobianParameters;
-	mutable SimTK::Matrix _cachedConstraintJacobian;
-	mutable SimTK::Vector _cachedConstraintParameters;
-	mutable SimTK::Vector _cachedConstraint;
+    //--------------------------------------------------------------------------
+    // CACHING
+    //--------------------------------------------------------------------------
+    mutable SimTK::Vector _cachedConstraintJacobianParameters;
+    mutable SimTK::Matrix _cachedConstraintJacobian;
+    mutable SimTK::Vector _cachedConstraintParameters;
+    mutable SimTK::Vector _cachedConstraint;
 
-	// Caching support for FSQP (since it likes to query constraints one at a time)
-	void clearCache();
+    // Caching support for FSQP (since it likes to query constraints one at a time)
+    void clearCache();
 public:
-	int computeConstraint(const SimTK::Vector &x, const bool new_coefficients, double &c, int ic) const;
-	int computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, SimTK::Vector &dcdx, int ic) const;
+    int computeConstraint(const SimTK::Vector &x, const bool new_coefficients, double &c, int ic) const;
+    int computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, SimTK::Vector &dcdx, int ic) const;
 
 //=============================================================================
 };
