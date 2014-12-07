@@ -31,7 +31,7 @@ before_install:
   # The GREP command here checks for any tab characters in the the files
   # that match the specified pattern. GREP does not pick up explicit tabs
   # (e.g., literally a \t in a source file).
-  - if grep --recursive --include={CMakeLists.txt,*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; fi
+  - if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; fi
   
   ## Dependencies for Simbody.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
