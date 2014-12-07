@@ -144,13 +144,13 @@ extern "C" {
  */
 
 typedef int (*CPSpilsPrecSetupExplFn)(realtype t, N_Vector y, N_Vector fy,
-				      booleantype jok, booleantype *jcurPtr,
-				      realtype gamma, void *P_data,
-				      N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                      booleantype jok, booleantype *jcurPtr,
+                      realtype gamma, void *P_data,
+                      N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 typedef int (*CPSpilsPrecSetupImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vector r,
-				      realtype gamma, void *P_data,
-				      N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                      realtype gamma, void *P_data,
+                      N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 /*
  * -----------------------------------------------------------------
@@ -212,14 +212,14 @@ typedef int (*CPSpilsPrecSetupImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vec
  */
 
 typedef int (*CPSpilsPrecSolveExplFn)(realtype t, N_Vector y, N_Vector fy,
-				      N_Vector b, N_Vector x,
-				      realtype gamma, realtype delta,
-				      int lr, void *P_data, N_Vector tmp);
+                      N_Vector b, N_Vector x,
+                      realtype gamma, realtype delta,
+                      int lr, void *P_data, N_Vector tmp);
 
 typedef int (*CPSpilsPrecSolveImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vector r,
-				      N_Vector b, N_Vector x,
-				      realtype gamma, realtype delta, 
-				      void *P_data, N_Vector tmp);
+                      N_Vector b, N_Vector x,
+                      realtype gamma, realtype delta, 
+                      void *P_data, N_Vector tmp);
 
 /*
  * -----------------------------------------------------------------
@@ -263,13 +263,13 @@ typedef int (*CPSpilsPrecSolveImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vec
  */
 
 typedef int (*CPSpilsJacTimesVecExplFn)(realtype t, N_Vector y, N_Vector fy, 
-					N_Vector v, N_Vector Jv, void *jac_data, 
-					N_Vector tmp);
+                    N_Vector v, N_Vector Jv, void *jac_data, 
+                    N_Vector tmp);
 
 typedef int (*CPSpilsJacTimesVecImplFn)(realtype t, realtype gm, 
-					N_Vector y, N_Vector yp, N_Vector r,
-					N_Vector v, N_Vector Jv, void *jac_data,
-					N_Vector tmp1, N_Vector tmp2);
+                    N_Vector y, N_Vector yp, N_Vector r,
+                    N_Vector v, N_Vector Jv, void *jac_data,
+                    N_Vector tmp1, N_Vector tmp2);
 
 /*
  * =================================================================

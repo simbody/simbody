@@ -43,7 +43,7 @@ namespace SimTK {
 
 template <class N> class negator;
 template <class R> class conjugate;
-	
+    
 /** SimTK::String is a plug-compatible std::string replacement (plus some
 additional functionality) intended to be suitable for passing through the 
 SimTK API without introducing binary compatibility problems the way 
@@ -156,13 +156,13 @@ explicit String(std::complex<float> r, const char* fmt="%.7g")
 /** Format a complex\<double> as a printable %String (real,imag) with 
 parentheses and a comma as shown. The format string should be for a single 
 double and will be used twice; the default format is the same as for double. **/
-explicit String(std::complex<double> r, const char* fmt="%.15g")	
+explicit String(std::complex<double> r, const char* fmt="%.15g")    
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
 /** Format a complex\<long double> as a printable %String (real,imag) with 
 parentheses and a comma as shown. The format string should be for a single long
 double and will be used twice; the default format is the same as for long
 double. **/
-explicit String(std::complex<long double> r, const char* fmt="%.20Lg")	
+explicit String(std::complex<long double> r, const char* fmt="%.20Lg")    
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
 
 /** Format a bool as a printable %String "true" or "false"; if you want "1"
@@ -323,7 +323,7 @@ String& replaceAllChar(const std::string& in, char oldChar, char newChar)
 {   return String(in).replaceAllChar(oldChar, newChar); }
 /*@}*/
 
-};	
+};    
 
 // All std::stream activity should be dealt with inline so that we don't have
 // to worry about binary compatibility issues that can arise when passing 
@@ -345,8 +345,8 @@ String::String(const T& t) {
 // specializing this helper function instead.
 template <class T> inline static
 bool tryConvertStringTo(const String& value, T& out) {
-	std::istringstream sstream(value);
-	sstream >> out; if (sstream.fail()) return false;
+    std::istringstream sstream(value);
+    sstream >> out; if (sstream.fail()) return false;
     if (sstream.eof()) return true;
     // Successful conversion but didn't use all the characters. Maybe the
     // rest is just whitespace?

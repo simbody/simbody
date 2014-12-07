@@ -754,7 +754,7 @@ public:
 private:
 friend class CableObstacle::Surface;
 
-    ContactGeometry  	surface;
+    ContactGeometry      surface;
     Vec3                nearPointInS; // Cartesian location of N, in S frame
     Vec3                xPhint, xQhint;
 };

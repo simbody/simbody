@@ -150,10 +150,10 @@ Note that handles always consist of exactly one pointer, and handle classes
 are always concrete (meaning they have no virtual methods). **/
 class SimTK_SimTKCOMMON_EXPORT AbstractMeasure {
 protected:
-	/// An object of this type is used as a dummy argument to make sure the 
+    /// An object of this type is used as a dummy argument to make sure the 
     /// automatically-generated handle constructor's signature doesn't conflict 
     /// with an explicitly-defined one.
-	class SetHandle {};
+    class SetHandle {};
 
 public:
     class Implementation; // local; name is AbstractMeasure::Implementation

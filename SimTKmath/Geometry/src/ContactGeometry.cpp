@@ -168,7 +168,7 @@ Real ContactGeometry::calcGaussianCurvature(const Vec3& gradient,
 }
 
 Real ContactGeometry::calcSurfaceCurvatureInDirection(const Vec3& point, const UnitVec3& direction) const {
-	return getImpl().calcSurfaceCurvatureInDirection(point, direction);
+    return getImpl().calcSurfaceCurvatureInDirection(point, direction);
 }
 
 void ContactGeometry::calcSurfacePrincipalCurvatures(const Vec3& point, 
@@ -1022,18 +1022,18 @@ calcGaussianCurvature(const Vec3&  g, const Mat33& H) const {
 //------------------------------------------------------------------------------
 Real ContactGeometryImpl::
 calcSurfaceCurvatureInDirection(const Vec3& point, 
-								const UnitVec3& direction) const 
+                                const UnitVec3& direction) const 
 {
     const UnitVec3 nn = calcSurfaceUnitNormal(point);
     const Vec3     g  = calcSurfaceGradient(point);
-	const Mat33 H = calcSurfaceHessian(point);
-	const Real  knum = ~direction*H*direction; // numerator
+    const Mat33 H = calcSurfaceHessian(point);
+    const Real  knum = ~direction*H*direction; // numerator
     if (std::abs(knum) < TinyReal)
         return 0; // don't want to return 0/0.
         
     const Real k = knum/(~g*nn);
 
-	return k;
+    return k;
 }
 
 //------------------------------------------------------------------------------

@@ -175,7 +175,7 @@ public:
     TInvert invert() const {return recast(NTraits<N>::invert(v));}
 
     static negator<N> getNaN()      {return recast(NTraits<N>::getNaN());}
-	static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
+    static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
 
     /// Returns true if the negated value is finite (i.e., not NaN or Inf).
     inline bool isFinite() const;

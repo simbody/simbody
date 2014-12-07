@@ -189,13 +189,13 @@ extern "C" {
   
   
 typedef int (*CPDlsDenseJacExplFn)(int N, realtype t,
-				   N_Vector y, N_Vector fy, 
-				   DlsMat Jac, void *jac_data,
-				   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                   N_Vector y, N_Vector fy, 
+                   DlsMat Jac, void *jac_data,
+                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 typedef int (*CPDlsDenseJacImplFn)(int N, realtype t, realtype gm,
-				   N_Vector y, N_Vector yp, N_Vector r, 
-				   DlsMat Jac, void *jac_data,
-				   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                   N_Vector y, N_Vector yp, N_Vector r, 
+                   DlsMat Jac, void *jac_data,
+                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 /*
  * -----------------------------------------------------------------
@@ -327,14 +327,14 @@ typedef int (*CPDlsDenseJacImplFn)(int N, realtype t, realtype gm,
  */
 
 typedef int (*CPDlsBandJacExplFn)(int N, int mupper, int mlower,
-				  realtype t, N_Vector y, N_Vector fy, 
-				  DlsMat Jac, void *jac_data,
-				  N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                  realtype t, N_Vector y, N_Vector fy, 
+                  DlsMat Jac, void *jac_data,
+                  N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 typedef int (*CPDlsBandJacImplFn)(int N, int mupper, int mlower,
-				  realtype t, realtype gm, 
-				  N_Vector y, N_Vector yp, N_Vector r,
-				  DlsMat Jac, void *jac_data,
-				  N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
+                  realtype t, realtype gm, 
+                  N_Vector y, N_Vector yp, N_Vector r,
+                  DlsMat Jac, void *jac_data,
+                  N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 /*
  * -----------------------------------------------------------------
@@ -346,9 +346,9 @@ typedef int (*CPDlsBandJacImplFn)(int N, int mupper, int mlower,
  */
 
 typedef int (*CPDlsDenseProjJacFn)(int Nc, int Ny, 
-				   realtype t, N_Vector y, N_Vector cy,
-				   DlsMat Jac, void *jac_data,
-				   N_Vector tmp1, N_Vector tmp2); 
+                   realtype t, N_Vector y, N_Vector cy,
+                   DlsMat Jac, void *jac_data,
+                   N_Vector tmp1, N_Vector tmp2); 
 
 
 

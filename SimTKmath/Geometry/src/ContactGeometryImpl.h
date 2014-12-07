@@ -113,7 +113,7 @@ public:
     Mat33 calcSurfaceHessian(const Vec3& point) const;
     Real  calcGaussianCurvature(const Vec3& gradient,
                                 const Mat33& Hessian) const;
-	Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
+    Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
                                           const UnitVec3& direction) const;
     // Generic method for calculating principal curvatures kmax,kmin and
     // corresponding unit tangent vector directions R_SP.x() and R_SP.y().

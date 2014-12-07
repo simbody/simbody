@@ -160,7 +160,7 @@ typedef struct
   double genOfEigensysUpdate; 
   cmaes_timings_t eigenTimings;
  
-  double dMaxSignifKond; 				     
+  double dMaxSignifKond;                      
   double dLastMinEWgroesserNull;
 
   short flgresumedone; 
