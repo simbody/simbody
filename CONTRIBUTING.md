@@ -8,7 +8,7 @@ Simbody is a community resource and we encourage you to contribute in whatever w
 
 Contents:
 - [Ways to Contribute](#ways-to-contribute)
-- [Submitting Pull Requests](#submitting-pull-requests)
+- [Submitting Pull Requests](#submitting-pull-requests-prs)
 - [Coding Conventions](#coding-conventions)
 - [List of Contributors](#list-of-contributors)
 - [Contributor License Agreement](#contributor-license-agreement)
