@@ -11,8 +11,9 @@ Contents:
 - [Submitting Pull Requests](#submitting-pull-requests-prs)
 - [Coding Conventions](#coding-conventions)
 - [List of Contributors](#list-of-contributors)
-- [Contributor License Agreement](#contributor-license-agreement)
 - [Acknowledgments](#acknowledgments)
+- [Contributor License Agreement](#contributor-license-agreement)
+
 
 Ways to contribute
 ------------------
