@@ -32,7 +32,7 @@ Below we'll assume your GitHub account is `yourid`.
 
 1. Create your own fork `yourid/simbody` of the `simbody/simbody` repo on GitHub. Use the `Fork` button [here](https://github.com/simbody/simbody).
 2. Clone `yourid/simbody` repo onto your local machine.
-3. Create a branch `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; it is just temporary).
+3. Create a branch `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
 4. Commit the new code or documentation to `something-feature` branch
 5. Push `something-feature` branch up to `yourid/simbody` fork on GitHub
 6. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. 
