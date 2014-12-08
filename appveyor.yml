@@ -34,7 +34,7 @@ test_script:
 after_test:
   ## On master branch, create NuGet package for Simbody, for use by OpenSim.
   # Detect if we are on the master branch.
-  - IF %APPVEYOR_REPO_BRANCH% EQU master SET DISTR=TRUE
+  - IF %APPVEYOR_REPO_BRANCH% EQU master IF NOT DEFINED APPVEYOR_PULL_REQUEST_NUMBER SET DISTR=TRUE
   # Install Simbody.
   - IF DEFINED DISTR cmake --build . --target install --config Release -- /maxcpucount /verbosity:quiet
   # Create NuGet package.
