@@ -200,7 +200,7 @@ You should let the compiler automatically generate the copy constructor and copy
 ```cpp
 MyClass& operator=(const MyClass& source) {
     if (&source != this) {
-       // copy stuff from source to this
+        // copy stuff from source to this
     }
     return *this;
 } 
