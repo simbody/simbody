@@ -16,14 +16,14 @@ Contents:
 Ways to contribute
 ------------------
 - Ask and/or answer questions on the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47).
-- File bug reports, documentation problems, feature requests, and developer discussion topics using the GitHub [issue tracker](https://github.com/simbody/simbody/issues).
+- File bug reports, documentation problems, feature requests, and developer discussion topics using the GitHub [Issue tracker](https://github.com/simbody/simbody/issues).
 - Submit GitHub pull requests providing fixes for code or documentation.
 
 Submitting pull requests (PRs)
 ------------------------------
-Please don't surprise us with big out-of-the-blue PRs. If you want to work on an existing issue, post a comment to that effect in the issue. That way you can engage in discussion with others to coordinate your work with theirs and avoid duplication, to see what people think of the approach you have planned, and so on. If there is not yet a relevant issue in place, a great way to start is by creating one, and then engaging in an issue conversation.
+Please don't surprise us with big out-of-the-blue PRs. If you want to work on an existing Issue, post a comment to that effect in the Issue. That way you can engage in discussion with others to coordinate your work with theirs and avoid duplication, to see what people think of the approach you have planned, and so on. If there is not yet a relevant Issue in place, a great way to start is by creating one, and then engaging in an Issue conversation.
 
-The main (upstream) repository (repo) for Simbody is the `simbody` repo in the `simbody` organization on GitHub; that is, https://github.com/simbody/simbody. The general idea is that you will work in your own copy of that repo on GitHub (called a *fork*) and then submit a PR requesting to merge a branch in your fork into a branch of the upstream repo.
+The main (upstream) repository (repo) for Simbody is the `simbody` repo in the `simbody` organization on GitHub; that is, https://github.com/simbody/simbody. The general idea is that you will work in your own copy of that repo on GitHub (called a *fork*) and then submit a PR requesting to merge a branch in your fork into a branch in the upstream repo.
 
 ### Mechanics of submitting a PR
 This is a very abbreviated description of the process. If you are a git newbie you will need to look at some of the great GitHub tutorials, starting with GitHub Bootcamp [here](https://github.com).
@@ -31,16 +31,17 @@ This is a very abbreviated description of the process. If you are a git newbie y
 Below we'll assume your GitHub account is `yourid`.
 
 1. Create your own fork `yourid/simbody` of the `simbody/simbody` repo on GitHub. Use the `Fork` button [here](https://github.com/simbody/simbody).
-2. Clone `yourid/simbody` repo onto your local machine.
-3. Create a branch `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
-4. Commit the new code or documentation to `something-feature` branch
-5. Push `something-feature` branch up to `yourid/simbody` fork on GitHub
-6. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. 
-7. Provide a description and reference the corresponding issue(s).
-8. Engage in discussion with Simbody maintainers who will review your changes and make comments. 
-9. At the end of the PR Conversation page is a notification that our continuous integration (automatic build) system is trying to build your PR. Check to see whether the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help.
+2. Clone `yourid/simbody` repo onto your local machine. (It is possible to work directly on your GitHub fork using GitHub's browser interface, but this is inadvisable except for small, safe documentation changes.)
+3. Create a branch like `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
+4. Commit the new code or documentation to the `something-feature` branch.
+5. Test and debug your changes locally.
+6. Push now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
+7. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. 
+8. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use at-mentions `@theirid` in your PR description.
+9. Engage in discussion with Simbody maintainers who will review your changes and make comments. 
+10. At the end of the PR Conversation page is a notification that our continuous integration (automatic build) system is trying to build your PR. Check to see whether the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help.
   
-In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch on your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
+In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch in your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
 
 Eventually your PR will be merged (good) or closed unmerged by a Simbody maintainer, but always after an open discussion.   
 
@@ -48,7 +49,7 @@ Coding Conventions
 ------------------
 **(still working on this section)**
 
-Existing Simbody code does not perfectly follow these guidelines and we appreciate issues pointing out problems, and especially PRs that correct our earlier slip-ups.
+Existing Simbody code does not perfectly follow these guidelines and we appreciate Issues pointing out problems, and especially PRs that correct our earlier slip-ups.
 
 ### General code layout
 
@@ -141,7 +142,7 @@ std::
 SimTK::
 ```
 
-### Miscellaneous C++ issues
+### Miscellaneous C++ suggestions
 
 #### Use anonymous namespaces
 If you define classes or external functions in C++ source, even if they appear nowhere else, those names will be exported at link time and may conflict with other names. If that's intentional, make sure the names are in the `SimTK` namespace or begin with `SimTK_`. If not, you should surround the declaration with an anonymous namespace:
@@ -222,7 +223,7 @@ For binary time stamps generated programmatically, please give careful thought t
 
 List of Contributors
 --------------------
-This is an attempt at a complete contributor list; please submit a PR or file an issue if you or someone else is missing.
+This is an attempt at a complete contributor list; please submit a PR or file an Issue if you or someone else is missing.
 
 Real name          | GitHub Id    | Contributions/expertise
 -------------------|--------------|-------------------------
