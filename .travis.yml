@@ -32,7 +32,7 @@ before_install:
   # that match the specified pattern. GREP does not pick up explicit tabs
   # (e.g., literally a \t in a source file).
   # This grep command is invalid on osx.
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; fi; fi
+    - if [ "$TRAVIS_OS_NAME" = "linux" ]; then if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; else echo "Repo passed no-tabs check."; fi; else echo "No-tabs check not performed."; fi
   
   ## Dependencies for Simbody.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
