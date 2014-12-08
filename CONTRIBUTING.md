@@ -19,9 +19,30 @@ Ways to contribute
 - File bug reports, documentation problems, feature requests, and developer discussion topics using the GitHub [issue tracker](https://github.com/simbody/simbody/issues).
 - Submit GitHub pull requests providing fixes for code or documentation.
 
-Submitting pull requests
-------------------------
-**TBD**
+Submitting pull requests (PRs)
+------------------------------
+Please don't surprise us with big out-of-the-blue PRs. If you want to work on an existing issue, post a comment to that effect in the issue. That way you can engage in discussion with others to coordinate your work with theirs and avoid duplication, to see what people think of the approach you have planned, and so on. If there is not yet a relevant issue in place, a great way to start is by creating one, and then engaging in an issue conversation.
+
+The main (upstream) repository (repo) for Simbody is the `simbody` repo in the `simbody` organization on GitHub; that is, https://github.com/simbody/simbody. The general idea is that you will work in your own copy of that repo on GitHub (called a *fork*) and then submit a PR requesting to merge a branch in your fork into a branch of the upstream repo.
+
+### Mechanics of submitting a PR
+This is a very abbreviated description of the process. If you are a git newbie you will need to look at some of the great GitHub tutorials, starting with GitHub Bootcamp [here](https://github.com).
+
+Below we'll assume your GitHub account is `yourid`.
+
+1. Create your own fork `yourid/simbody` of the `simbody/simbody` repo on GitHub. Use the `Fork` button [here](https://github.com/simbody/simbody).
+2. Clone `yourid/simbody` repo onto your local machine.
+3. Create a branch `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; it is just temporary).
+4. Commit the new code or documentation to `something-feature` branch
+5. Push `something-feature` branch up to `yourid/simbody` fork on GitHub
+6. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. 
+7. Provide a description and reference the corresponding issue(s).
+8. Engage in discussion with Simbody maintainers who will review your changes and make comments. 
+9. At the end of the PR Conversation page is a notification that our continuous integration (automatic build) system is trying to build your PR. Check to see whether the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help.
+  
+In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch on your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
+
+Eventually your PR will be merged (good) or closed unmerged by a Simbody maintainer, but always after an open discussion.   
 
 Coding Conventions
 ------------------
@@ -34,14 +55,14 @@ Existing Simbody code does not perfectly follow these guidelines and we apprecia
 #### Keep line width to 80 characters
 Line widths should be no longer than **80** characters. The reason for this is that it permits multiple files to be laid out side-by-side during editing, which is *really* useful. At 80 characters you can get three windows on a modest-sized monitor, using a font that is readable even by adults.
 
-It is best to use a “guideline” (a vertical line that marks column 80 while you edit) so that you can see where the limit is. If you are using Visual Studio, there is a very nice Editor Guidelines Extension available [here](https://visualstudiogallery.msdn.microsoft.com/da227a0b-0e31-4a11-8f6b-3a149cf2e459). If you don't have built-in guidelines available, note that the last line of the copyright block at the top of every Simbody source file is 80 characters wide.
+It is best to use a “guide line” (a vertical line that marks column 80 while you edit) so that you can see where the limit is. If you are using Visual Studio, there is a very nice Editor Guidelines Extension available [here](https://visualstudiogallery.msdn.microsoft.com/da227a0b-0e31-4a11-8f6b-3a149cf2e459). If you don't have built-in guide lines available, note that the last line of the copyright block at the top of every Simbody source file is 80 characters wide.
 
 Please don't interpret this to mean we like short lines. On the contrary it is nice to see as much code as reasonably possible on the screen at once, so don't stretch out your code vertically unnecessarily; and don't waste horizontal space where it doesn't help readability. Long comment blocks in particular should have lines as wide as possible. Just don't go over 80.
 
 #### Indent by 4 spaces; no tabs in files
 There *must not* be any tabs in your code; our build system will reject them. Please be sure that your code editor is set to replace tabs with four spaces. You should never allow tab characters to get into your code. They will look great to you, but in other viewers people will see your code as randomly formatted.
 
-If you use Visual Studio, go to `Tools:Options:Text Editor:C/C++:Tabs`, set `tab size=indent size=4`, and check the `Insert spaces` button. Almost any editor has a similar option, and most can help you clean up a file that already has tabs in it. 
+If you use Visual Studio, go to `Tools:Options:Text Editor:C/C++:Tabs`, set `tab size=indent size=4`, and check the `Insert spaces` button. In `vi` or `vim` use `set tabstop=4` and `set expandtab`. Almost any editor has a similar option, and most can help you clean up a file that already has tabs in it. 
 
 ### Naming conventions
 We do not believe it is helpful to attempt to encode type information into symbol names (for example, beginning pointer names with a `p`). Much of the need for such conventions has passed with the wide availability of IDEs offering language-sensitive code browsing and debugging, such as that provided by Visual Studio or Eclipse. Thus we do not use name prefix characters to provide information that can easily be obtained while browsing code or debugging. We trust programmers to add appropriate conventions in their own code when those conventions are necessary for clarity or convenience, and to explain them in nearby comments.
@@ -177,10 +198,10 @@ You should let the compiler automatically generate the copy constructor and copy
 
 ```cpp
 MyClass& operator=(const MyClass& source) {
- if (&source != this) {
-   // copy stuff from source to this
- }
- return *this;
+    if (&source != this) {
+       // copy stuff from source to this
+    }
+    return *this;
 } 
 ```
 
