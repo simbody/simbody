@@ -12,12 +12,19 @@ Contents:
 - [Coding Conventions](#coding-conventions)
 - [List of Contributors](#list-of-contributors)
 - [Contributor License Agreement](#contributor-license-agreement)
+- [Acknowledgments](#acknowledgments)
 
 Ways to contribute
 ------------------
-- Ask and/or answer questions on the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47).
+There are lots of ways to contribute to the Simbody project, and people with widely varying skill sets can make meaningful contributions. Please don't think your contribution has to be momentous to be appreciated. See a typo? Tell us about it or fix it! Here are some contribution ideas:
+
+- Use Simbody and let us know how you're using it. 
+- Ask and/or answer questions on the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47), or post success stories there.
 - File bug reports, documentation problems, feature requests, and developer discussion topics using the GitHub [Issue tracker](https://github.com/simbody/simbody/issues).
-- Submit GitHub pull requests providing fixes for code or documentation.
+- Submit GitHub pull requests providing new features, examples, or bug fixes to code or documentation (see below).
+- If our hard work has helped you with yours, please considering acknowledging your use of Simbody and encourage others to do so.
+
+We are also interested in collaborative projects; please let us know if you have ideas.
 
 Submitting pull requests (PRs)
 ------------------------------
@@ -253,6 +260,17 @@ Randy Radmer       |              |Molmodel
 Charles Schwieters |              |Provided initial multibody code 
 Abhinandan Jain    |              |Underlying spatial algebra formulation
 Isaac Newton       |              |F=ma, calculus, etc.
+
+
+Acknowledgments
+---------------
+
+Simbody's development has been supported by the following grants:
+
+- NIH U54 GM072970 (Simulation of Biological Structures)
+- NIH U54 EB020405 (Mobilize Center)
+- OSRF subcontract 12-006 to DARPA HR0011-12-C-0111 (Robotics Challenge)
+- NIH R24 HD065690 (Simulation in Rehabilitation Research)
 
 
 Contributor License Agreement
