@@ -78,7 +78,7 @@ HOW TO START
   B1) Compile and run the example program. Compilation e.g. with 
      the GNU c-compiler in the `src` folder:
 
-	gcc -Wall -o evo cmaes.c example_short.c -lm
+        gcc -Wall -o evo cmaes.c example_short.c -lm
      
   and run with `evo` or `./evo`. Take a look at the output. 
 

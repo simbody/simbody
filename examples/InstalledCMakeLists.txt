@@ -46,7 +46,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # compiling using the c++11 standard.
     OPTION(SIMBODY_STANDARD_11
         "Compile using the C++11 standard, if using GCC or Clang." ON)
-	
+    
     IF(${SIMBODY_STANDARD_11})
         # Using C++11 on OSX requires using libc++ instead of libstd++.
         # libc++ is an implementation of the C++ standard library for OSX.
