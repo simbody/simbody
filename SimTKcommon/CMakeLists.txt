@@ -93,11 +93,11 @@ SET(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
 ## Test against the unversioned libraries if they are being build;
 ## otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET})
 ELSE(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
 
@@ -108,12 +108,12 @@ SET(SimTKCOMMON_INCLUDE_DIRS) # start empty
 FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
     SET(SimTKCOMMON_INCLUDE_DIRS ${SimTKCOMMON_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 
@@ -132,7 +132,7 @@ SET(API_REL_INCLUDE_FILES)   # start these out empty
 SET(API_ABS_INCLUDE_FILES)
 
 FOREACH(dir ${API_INCLUDE_DIRS})
-    FILE(GLOB fullpaths ${dir}/*.h)	# returns full pathnames
+    FILE(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
     SET(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
 
     FOREACH(pathname ${fullpaths})
