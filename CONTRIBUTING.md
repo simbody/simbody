@@ -181,7 +181,7 @@ fileName
 nextAvailableSlot
 i,j,k
 ```
-We do not require that you give data members a distinguishing prefix. However, it is often helpful to do so in complicated classes, in which case the prefix should be `m_`, added to names that otherwise follow the above convention. Do not use an initial underscore alone.
+We do not require that you give data members a distinguishing prefix. However, it is often helpful to do so in complicated classes, in which case the prefix should be `m_`, prepended to names that otherwise follow the above convention. Do not use an initial underscore alone.
 ```cpp
 m_fileName
 m_nextAvailableSlot
@@ -237,7 +237,7 @@ In addition to catching many otherwise difficult-to-find or worse, unnoticed, bu
 All Simbody software which is written in C++, or provides a C++ interface, must be const correct. We highly recommend this strategy for all programmers. It works.
 
 #### Public class members come first
-Public ones should come first. Don’t make people look at your dirty laundry in order to use your classes. Start with the basic constructors (and copy assignment in C++). Then put important likely-to-be-used methods first, relegating obscure bookkeeping stuff to the end.
+Don’t make people look at your dirty laundry in order to use your classes. Start with the basic constructors (and copy assignment in C++). Then put important likely-to-be-used methods first, relegating obscure bookkeeping stuff to the end.
 
 Avoid public data members; use inline accessors instead. Even protected data members should be viewed suspiciously, especially if you expect people other than yourself to be deriving classes from yours. Occasionally this seems silly, especially for simple “plain old data” (POD) classes as described in the C++ standard. In that case you should at least put your public data members at the beginning of your class declaration so that they appear as part of the public interface rather than buried with the private stuff at the end.
 
@@ -246,7 +246,7 @@ If you define classes or external functions in C++ source, even if they appear n
 ```cpp
 namespace {
     // declarations that are private to this source file
-};
+}
 ``` 
 That prevents the symbols from being exported and you can use any names for them that you want.
 
@@ -257,7 +257,7 @@ For functions you can achieve the same thing by declaring them `static` (which y
 #### Throw and return are not functions
 In C++ `throw` and `return` are not functions. It is misleading to enclose their arguments in parentheses. That is, you should write `return x;` not `return(x);`. A parenthesized expression is not treated the same as a function argument list. For example `f(a,b)` and `return(a,b)` mean very different things -- the former is a 2-argument function call; the latter is an invocation of the rarely-used “comma operator”.
 
-#### Always use pre-increment and pre-decrement operators when you have a choice
+#### Use *pre*-increment and *pre*-decrement operators when you have a choice
 Operators for both pre-increment (`++i`) and post-increment (`i++`) are available in C++. If you don’t look at the result, they are logically equivalent. For simple types they are physically equivalent too. But for complicated types (like iterators), the pre-increment operators are much cheaper computationally, because they don’t require separate storage for saving the previous result. Therefore you should get in the habit of using pre-increment (or pre-decrement) in all your loops:
 
 ```cpp
