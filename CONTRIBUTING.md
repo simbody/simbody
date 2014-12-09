@@ -9,7 +9,6 @@ Contents:
 - [Submitting Pull Requests](#submitting-pull-requests-prs)
 - [Coding Conventions](#coding-conventions)
 - [List of Contributors](#list-of-contributors)
-- [Acknowledgments](#acknowledgments)
 - [Contributor License Agreement](#contributor-license-agreement)
 
 
@@ -351,18 +350,6 @@ Randy Radmer       |              |Molmodel
 Charles Schwieters |              |Provided initial multibody code 
 Abhinandan Jain    |              |Underlying spatial algebra formulation
 Isaac Newton       |              |F=ma, calculus, etc.
-
-
-Acknowledgments
----------------
-We are grateful for past and continuing support for Simbody's development in Stanford's Bioengineering department through the following grants:
-
-- NIH U54 GM072970 (Simulation of Biological Structures)
-- NIH U54 EB020405 (Mobilize Center)
-- NIH R24 HD065690 (Simulation in Rehabilitation Research)
-- OSRF subcontract 12-006 to DARPA HR0011-12-C-0111 (Robotics Challenge)
-
-Prof. Scott Delp is the Principal Investigator on these grants and Simbody is used extensively in Scott's [Neuromuscular Biomechanics Lab](https://nmbl.stanford.edu) as the basis for the [OpenSim](http://opensim.stanford.edu) biomechanical simulation software application for medical research.
 
 
 Contributor License Agreement
