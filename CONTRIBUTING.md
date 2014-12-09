@@ -16,22 +16,23 @@ Ways to contribute
 ------------------
 There are lots of ways to contribute to the Simbody project, and people with widely varying skill sets can make meaningful contributions. Please don't think your contribution has to be momentous to be appreciated. See a typo? Tell us about it or fix it! Here are some contribution ideas:
 
-- Use Simbody and let us know how you're using it. 
-- Ask and/or answer questions on the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47), or post success stories there.
+- Use Simbody and let us know how you're using it by posting to the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47).  
+- Ask and/or answer questions on the forum.
 - File bug reports, documentation problems, feature requests, and developer discussion topics using the GitHub [Issue tracker](https://github.com/simbody/simbody/issues).
-- Submit GitHub pull requests providing new features, examples, or bug fixes to code or documentation (see below).
-- If our hard work has helped you with yours, please considering acknowledging your use of Simbody and encourage others to do so.
+- Submit GitHub Pull Requests providing new features, examples, or bug fixes to code or documentation (see below).
+- If our hard work has helped you with yours, please considering acknowledging your use of Simbody and encourage others to do so. Please cite this paper:
 
-We are also interested in collaborative projects; please let us know if you have ideas.
+    Michael A. Sherman, Ajay Seth, Scott L. Delp, Simbody: multibody dynamics for biomedical research, *Procedia IUTAM* 2:241-261 (2011) http://dx.doi.org/10.1016/j.piutam.2011.04.023
 
-Submitting pull requests (PRs)
+
+Submitting Pull Requests (PRs)
 ------------------------------
 Please don't surprise us with big out-of-the-blue PRs. If you want to work on an existing Issue, post a comment to that effect in the Issue. That way you can engage in discussion with others to coordinate your work with theirs and avoid duplication, to see what people think of the approach you have planned, and so on. If there is not yet a relevant Issue in place, a great way to start is by creating one, and then engaging in an Issue conversation.
 
 The main (upstream) repository (repo) for Simbody is the `simbody` repo in the `simbody` organization on GitHub; that is, https://github.com/simbody/simbody. The general idea is that you will work in your own copy of that repo on GitHub (called a *fork*) and then submit a PR requesting to merge a branch in your fork into a branch in the upstream repo.
 
 ### Mechanics of submitting a PR
-This is a very abbreviated description of the process. If you are a git newbie you will need to look at some of the great GitHub tutorials, starting with GitHub Bootcamp [here](https://github.com).
+This is a very abbreviated description of the process. If you are new to Git and Github you will need to look at some of the great GitHub tutorials, starting with GitHub Bootcamp [here](https://github.com).
 
 Below we'll assume your GitHub account is `yourid`.
 
@@ -39,7 +40,7 @@ Below we'll assume your GitHub account is `yourid`.
 2. Clone `yourid/simbody` repo onto your local machine. (It is possible to work directly on your GitHub fork using GitHub's browser interface, but this is inadvisable except for small, safe documentation changes.)
 3. Create a branch like `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
 4. Commit the new code or documentation to the `something-feature` branch.
-5. Test and debug your changes locally.
+5. Test and debug your changes locally. Be sure to build at least occasionally in Debug mode -- it will run very slowly but you get much more error checking that way.
 6. Push now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
 7. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. 
 8. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use at-mentions `@theirid` in your PR description.
@@ -52,11 +53,11 @@ Eventually your PR will be merged (good) or closed unmerged by a Simbody maintai
 
 Coding Conventions
 ------------------
-Many differences in programming technique fall into the realm of personal aesthetics (style) where one approach is not inherently better than another. It is our intent to be as accommodating as possible in this regard so that individuals may express themselves comfortably. That said however, we do not think it is a good idea to mix incompatible styles within the same or closely related source modules, because it makes the software increasingly hard to read and understand over time. So we ask that modifications to existing software be made in the original style of that software as much as possible, or be converted to a consistent style. We are more concerned about uniformity in the user-visible API than in internal implementation code.
+Many differences in programming technique fall into the realm of personal aesthetics (style) where one approach is not inherently better than another. It is our intent to be as accommodating as possible in this regard so that you can express yourself comfortably. However, we don't think it's a good idea to mix incompatible styles within the same or closely related source modules. That makes the software increasingly hard to read and understand over time. And it's ugly. So we ask that modifications to existing software be made in the original style of that software as much as possible, or be converted to a consistent style. We are more concerned about uniformity in the user-visible API than in internal implementation code.
 
 **Note:** The coding conventions below are meant to apply to new code. If you are submitting code that includes large pieces of pre-existing open source code, that code will have its own conventions. Please *do not* reformat that code to use our coding conventions because (a) that is just busy work, and (b) the code is then difficult to compare with or update from the original source.
 
-New code for Simbody should be written in C++. In Simbody 4.0 and later this can be C++11; before that it must be limited to C++03. Submissions including pre-existing open source code may be in other languages providing you can get them through our build system cleanly; we already have C and some assembler in Simbody. However, any user-exposed API must be in C++ even if the internals are not.
+New code for Simbody should be written in C++. In Simbody 4.0 and later this can be C++11; before that it must be limited to C++03. Submissions including pre-existing open source code may be in other languages providing you can get them through our build system cleanly; we already have C and some assembly code in Simbody. However, any user-exposed API must be in C++ even if the internals are not.
 
 Existing Simbody code does not perfectly follow these conventions and we appreciate Issues pointing out problems, and especially PRs that correct our earlier slip-ups.
 
@@ -70,9 +71,10 @@ It is best to use a “guide line” (a vertical line that marks column 80 while
 Please don't interpret this to mean we like short lines. On the contrary it is nice to see as much code as reasonably possible on the screen at once, so don't stretch out your code vertically unnecessarily; and don't waste horizontal space where it doesn't help readability. Long comment blocks in particular should have lines as wide as possible. Just don't go over 80.
 
 #### Indent by 4 spaces; no tabs in files
-There *must not* be any tabs in your code; our build system will reject them. Please be sure that your code editor is set to replace tabs with four spaces. You should never allow tab characters to get into your code. They will look great to you, but in other viewers people will see your code as randomly formatted.
+There *must not* be any tabs in your code; our build system will reject them. They will look great to you, but in other viewers people will see your code as randomly formatted.
+Please be sure that your code editor is set to replace tabs with four spaces. You should never allow tab characters to get into your code.
 
-If you use Visual Studio, go to `Tools:Options:Text Editor:C/C++:Tabs`, set `tab size=indent size=4`, and check the `Insert spaces` button. In `vi` or `vim` use `set tabstop=4` and `set expandtab`. Almost any editor has a similar option, and most can help you clean up a file that already has tabs in it. 
+Your preferred editor almost certainly has settings to replace tabs with spaces, and most also can help you clean up a file that already has tabs in it. For example, f you use Visual Studio, go to `Tools:Options:Text Editor:C/C++:Tabs`, set `tab size=4` and `indent size=4`, and check the `Insert spaces` button. In `vi` or `vim` use `set tabstop=4` and `set expandtab`. 
 
 #### Curly braces
 We do not like to see a lot of content-free lines using up vertical space in code and consequently prefer the style sometimes called “the one true brace” over conventions which attempt to align all paired braces. Here are some examples:
@@ -90,60 +92,57 @@ We do not like to see a lot of content-free lines using up vertical space in cod
         // public members
     };
 ```
-When there is only a single statement within a control structure, there is no need for braces and we prefer that they not be used since that saves space. The primary means for conveying the scope of control to human readers is indentation. It matters a lot more that the indentation is right than where the braces are.
+When there is only a single statement within a control structure, there is no need for braces and we prefer that they not be used since that saves space. *Indentation* is the primary means for conveying code structure to human readers, so it matters a lot more that the indentation is right than where the braces are.
 
 For small inline functions whose entire definition can be fit on one line (typical for “accessors”), we are happy to see them defined like this:
 ```cpp
     const Thing& getSomething() const {return m_thing;}
     void setSomething(const Thing& thing) {m_thing=thing;}
 ```
-Many programmers think those are immoral; if that's you feel free to use more lines. But we're happy to get these little methods over with and fully understandable with very little screen real estate.
+Many programmers think those are immoral; if that's you, feel free to use more lines. But we're glad to get these little methods over with and fully understandable with very little screen real estate.
 
 #### Use English and a spell checker
-We have many international users and contributors. However, there is much to be gained by choosing a single language, and English is the obvious choice for us. Any submitted code must be understandable by English speakers, with English comments, error messages, and documentation. As one practical consequence, this means Simbody code can use `char` rather than `wchar_t` (wide characters) and embedded English text to be displayed at run time is acceptable and need not be sequestered into separate files to facilitate translation. Simbody contributors thus do not need to be familiar with techniques for international programming.
+Simbody has users and contributors from around the world. However, there is much to be gained by choosing a single natural language for a project, and English is the obvious choice for us. Any submitted code must be understandable by English speakers, with English comments, error messages, and documentation. As one practical consequence, this means Simbody code can use `char` rather than `wchar_t` (wide characters) and embedded English text to be displayed at run time is acceptable and need not be sequestered into separate files to facilitate translation. Simbody contributors thus do not need to be familiar with techniques for internationalization.
 
 Please use correct spelling and punctuation, *especially* in comments that will become part of the Doxygen API documentation. It is tedious for reviewers to correct your spelling -- a spell checker is your friend and ours here. We know spelling and grammatical errors will creep in, but the fewer the better. If you are not a native English speaker, please just do your best -- we'll help.
 
 ### Commenting
-Some programmers think comments interfere with the pure beauty of their code; we are not among them. We would like to be able to understand your code, especially useful things like some references we can read that explain the theory. As usual though, we are much more concerned about the user-facing API than the internals. We use Doxygen to generate the API documentation from the code. We expect basic class documentation, and at least something for each publicly-visible member, using Doxygen-style comments which you can easily learn just by looking at existing code.
+Some programmers think comments interfere with the pure beauty of their code; we are not among them. We would like to be able to understand your code, and especially appreciate useful things like citations to book sections or papers we can read that explain the theory. As usual though, we are much more concerned about the user-facing API than the internals. We use Doxygen to generate the API documentation from the code. We expect basic class documentation, and at least something for each publicly-visible member, using Doxygen-style comments which you can easily learn just by looking at existing code. Be sure to build the `doxygen` target (or `make doxygen`) if your code has a user-facing API and take a look at the results to make sure they are formatted well and make sense.
 
-You can format your comments in any reasonable style (consistent within a source module, please). However, we would like to suggest that you forgo the old C-style comments where every line begins with ` * ` (space, asterisk, space). Since comments are almost universally colorized now in every viewer, you don't need the asterisks to make the stand out. And that wastes three characters on every line out of the limited budget we allow. Consider formatting like this:
+You can format your comments in any reasonable style (consistent within a source module, please). However, we would like to suggest that you forgo the old C-style comments where every line begins with ` * ` (space, asterisk, space). Since comments are almost universally colorized now in every viewer, you don't need the asterisks to make them stand out. And that wastes three characters on every line out of the limited budget we allow. Consider formatting like this:
 ```cpp
-/** This is the doxygen brief description. This is the
-rest of the documentation and when you get to the final
-line you can just wrap up on the same line. */
+/** This is the doxygen brief description. This is the rest of the documentation 
+and when you get to the final line you can just wrap up on the same line. */
 void theMethodYouAreDocumenting();
 ```
 (The double asterisk is one way to signal a Doxygen comment.) That is compact and just as readable (when colorized) as this:
 ```cpp
 /**
- * This is the doxygen brief description. This is the
- * rest of the documentation and when you get to the final
- * line you will feel obligated to eat up one more line.
+ * This is the doxygen brief description. This is the rest of the documentation 
+ * and when you get to the final line you will feel obligated to eat up one 
+ * more line.
  */ 
 void theMethodYouAreDocumenting();
 ```
-When you have short Doxygen comments to make about dozens of methods in a class, those two extra lines per method significantly reduce the amount of code you can squeeze onto one screen. The generated Doxygen documentation is identical either way.
+When you have short Doxygen comments to make about dozens of methods in a class, those two extra lines per method significantly reduce the amount of code you can squeeze onto one screen. The comments are harder to reformat also. The generated Doxygen documentation is identical either way.
 
 
 ### Naming conventions
-We do not believe it is helpful to attempt to encode type information into symbol names (for example, beginning pointer names with a `p`). Much of the need for such conventions has passed with the wide availability of IDEs offering language-sensitive code browsing and debugging, such as that provided by Visual Studio or Eclipse. Thus we do not use name prefix characters to provide information that can easily be obtained while browsing code or debugging. We trust programmers to add appropriate conventions in their own code when those conventions are necessary for clarity or convenience, and to explain them in nearby comments.
+We do not believe it is helpful to attempt to encode type information into symbol names (for example, beginning pointer names with a `p`). Much of the need for such conventions has passed with the wide availability of IDEs offering language-sensitive code browsing and debugging, such as that provided by Visual Studio or Eclipse. We do not use name prefix characters to provide information that can easily be obtained while browsing code or debugging. We trust programmers to add appropriate conventions in their own code when those conventions are necessary locally for clarity or convenience, and to explain them in nearby comments.
 
-We prefer consistency with existing precedent to our own conventions whenever appropriate. For example, C++ containers like `std::vector` define standard names like `const_iterator` so if you are building a container intended to be compatible with one of those you should follow the existing precedent rather than use the Simbody convention which would have been `ConstIterator`.
+We prefer consistency with existing precedent over our own conventions whenever appropriate. For example, C++ containers like `std::vector` define standard names like `const_iterator` so if you are building a container intended to be compatible with one of those you should follow the existing precedent rather than use the Simbody convention which would have been `ConstIterator`.
 
 #### Types: classes and structs, typedefs, enumeration types
-Names should be nouns with initial cap and cap for each word (camelcase). There should be no underscores.
+Type names should be nouns or noun phrases, using the `UpperCamelCase` naming convention. There should be no underscores in the names. Some examples:
 ```cpp
 System
-StateClient
-Vector
-Real
+SimbodyMatterSubsystem
 ```
 
 #### Constants
 We reserve the ugly `ALL_CAPS_CONVENTION` for preprocessor macros both to discourage their use and to signal the type-unsafe loophole being employed. In particular, we discourage the use of preprocessor macros for constants and use a different, less violent convention for type-safe constants.
 
-For constants defined within the language, using `enum` or `const`, use an initial cap, and a cap for each subsequent word (same convention as for classes).
+For constants defined within the language, using `enum` or `const`, use `UpperCamelCase` (same convention as for classes).
 ```cpp
 enum Color {
     Red,
@@ -153,16 +152,15 @@ enum Color {
 static const Color AttentionColor = Red;
 ```
 
-
 #### Functions and methods
-Names should begin with a verb, start with lower case, then initial cap for each subsequent word.
+Names should begin with a verb and use the `lowerCamelCase` convention.
 
 ```cpp
 getBodyVelocity()
 setDefaultLength()
 ```
 
-We have some conventional starting verbs and you should use the same ones when they apply:
+We have some conventional starting verbs and you should use the same ones when they apply, and avoid them if your methods are doing something different:
 
    verb   | meaning
 ----------|---------
@@ -175,12 +173,14 @@ We have some conventional starting verbs and you should use the same ones when t
 `adopt`   | Take over ownership of a passed-in heap-allocated object.
 
 #### Variables (including local, global, static, members)
-Use generally descriptive noun phrases, start with lower case, caps for each word, no underscores. Spell things out unless there is a compelling reason to abbreviate. Follow conventional exceptions for mathematics and indexing.
+Use generally descriptive noun phrases, expressed in `lowerCamelCase` (same as for methods).
+Spell things out unless there is a good reason to abbreviate, and in that case abbreviate consistently.
 ```cpp
 fileName
 nextAvailableSlot
-i,j,k
 ```
+Follow other appropriate conventions in contexts where they improve readability: for example, you may prefer `x,y,z` for coordinates, `A` for a matrix, and `i,j,k` for indices.
+
 We do not require that you give data members a distinguishing prefix. However, it is often helpful to do so in complicated classes, in which case the prefix should be `m_`, prepended to names that otherwise follow the above convention. Do not use an initial underscore alone.
 ```cpp
 m_fileName
@@ -202,6 +202,7 @@ Short, cryptic, low probability of having the same name as someone else’s name
 std::
 SimTK::
 ```
+In contexts where you can't use C++ namespaces, such as preprocessor macro names and external C functions, use a unique prefix like `SimTK_` or `mymodule_` in place of an actual namespace.
 
 #### Header Guards
 Header guards are preprocessor defines that surround every header file to prevent it from being included multiple times. Simbody header guards should be written like this:
@@ -212,12 +213,14 @@ Header guards are preprocessor defines that surround every header file to preven
    // ... stuff ...
 #endif // SimTK_MODULE_SOME_CLASS_NAME_H_
 ```
-The initial `SimTK_` should always be there; it is serving as a namespace to avoid collisions with other code. If you are using some other namespace, replace `SimTK_` with yours. `MODULE` should be replaced by something defining a major grouping of code within Simbody; it's purpose is to avoid collisions with other Simbody modules. Then `SOME_CLASS_NAME` is replaced by an uglified version of the main class defined by this header file. Some headers aren't associated with a class (like `common.h`); you can use the file name or something else descriptive instead. The final `_H_` are just there to keep us out of trouble.
+The initial `SimTK_` should always be there; it is serving as a namespace to avoid collisions with other code. If you are using some other namespace, replace `SimTK_` with yours. `MODULE` should be replaced by something defining a major grouping of code within Simbody; its purpose is to avoid collisions with other Simbody modules. Then `SOME_CLASS_NAME` is replaced by an uglified version of the main class defined by this header file. Some headers aren't associated with a class (like `common.h`); you can use the file name or something else descriptive instead. The final `_H_` is just there to keep us out of trouble.
 
-**Note:** Embedded and trailing underscores (`_`) are allowed in C++ names, but the C++ standard forbids user symbols that begin with an underscore or contain two adjacent underscores. (Those are reserved for the compiler implementation.) 
+**Note:** Embedded and trailing underscores (`_`) are allowed in C++ names, but the C++ standard forbids user symbols that begin with an underscore or contain two adjacent underscores. (Those are reserved for use by the language system itself, such as for variable names inside the C++ standard header files.) 
 
 ### Thread safety
-Simbody libraries are supposed to be thread safe and new code should not violate that promise. This does not mean you have to write classes that are multithreaded. What it does mean is that if several simultaneously-executing threads each allocate their own, non-shared object of one of your classes, those threads will not interfere with each other. In practice, that means you must (a) avoid using global variables, and (b) think carefully about using static variables. Basically this means whatever you write should be wrapped up in a class, and you should use class data members for communication among the methods of your class rather than global variables.
+Simbody libraries are supposed to be thread safe and new code should not violate that promise. But, that does not mean you have to write parallelized code that uses multiple threads (although you can if you want and you know how). What it does mean is that your code should not prevent *other* Simbody users from writing multithreaded programs that use Simbody. That is, if each of several simultaneously-executing threads allocates its own, non-shared object of one of your classes, those threads will not interfere with each other. 
+
+In practice, that means you must (a) avoid using global variables, and (b) think carefully about using static variables. Basically this means whatever you write should be wrapped up in a class, and you should use class data members for communication among the methods of your class rather than global variables.
 
 If you are worried about thread safety, mention it in the relevant Issue or PR; we'll be happy to discuss it with you.
 
@@ -290,7 +293,7 @@ f(int I, string &name, char *something) /* <-- NO */
 ```
 
 #### Avoid spaces that don't improve readability
-Add spaces where they improve clarity, otherwise leave them out. In particular, parentheses do a fine job of surrounding if and for conditions and do not require further setting off with spaces. On the other hand, operators within those conditions are sometimes hard to spot and worth setting apart. For example, we prefer the more-compact versions below:
+Add spaces where they improve clarity, otherwise leave them out. In particular, parentheses do a fine job of surrounding `if` and `for` conditions and do not require further setting off with spaces. On the other hand, operators within those conditions are sometimes hard to spot and worth setting apart. For example, we prefer the more-compact versions below:
 ```cpp
     if (nextItem <= minItemSoFar)    /* <-- YES*/ 
     if ( nextItem <= minItemSoFar )  /* <-- NO */ 
