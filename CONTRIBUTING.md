@@ -53,7 +53,14 @@ Eventually your PR will be merged (good) or closed unmerged by a Simbody maintai
 
 Coding Conventions
 ------------------
+The coding conventions below are meant to apply to new code. If you are submitting code that includes large pieces of pre-existing open source code, that code will have its own conventions. Please *do not* reformat that code to use our coding conventions because (a) that is just busy work, and (b) the code is then difficult to compare with or update from the original source.
+
+Many differences in programming technique fall into the realm of personal aesthetics (style) where one approach is not inherently better than another. It is our intent to be as accommodating as possible in this regard so that you can express yourself comfortably. However, we don't think it's a good idea to mix incompatible styles within the same or closely related source modules. That makes the software increasingly hard to read and understand over time. And it's ugly. So we ask that modifications to existing software be made in the original style of that software as much as possible, or be converted to a consistent style. We are more concerned about uniformity in the user-visible API than in internal implementation code.
+
+Existing Simbody code does not perfectly follow these conventions and we appreciate Issues pointing out problems, and especially PRs that correct our earlier slip-ups.
+
 - [Basic requirements](#basic-requirements)
+    - [Write new code in C++](#write-new-code-in-c)
     - [Keep line width to 80 characters](#keep-line-width-to-80-characters)
     - [Indent by 4 spaces; no tabs in files](#indent-by-4-spaces-no-tabs-in-files)
     - [Use English and a spell checker](#use-english-and-a-spell-checker)
@@ -79,15 +86,11 @@ Coding Conventions
     - [Avoid spaces that don't improve readability](#avoid-spaces-that-dont-improve-readability)
     - [Make assignment operators safe for self-assignment](#make-assignment-operators-safe-for-self-assignment)
 
-Many differences in programming technique fall into the realm of personal aesthetics (style) where one approach is not inherently better than another. It is our intent to be as accommodating as possible in this regard so that you can express yourself comfortably. However, we don't think it's a good idea to mix incompatible styles within the same or closely related source modules. That makes the software increasingly hard to read and understand over time. And it's ugly. So we ask that modifications to existing software be made in the original style of that software as much as possible, or be converted to a consistent style. We are more concerned about uniformity in the user-visible API than in internal implementation code.
-
-**Note:** The coding conventions below are meant to apply to new code. If you are submitting code that includes large pieces of pre-existing open source code, that code will have its own conventions. Please *do not* reformat that code to use our coding conventions because (a) that is just busy work, and (b) the code is then difficult to compare with or update from the original source.
-
-New code for Simbody should be written in C++. In Simbody 4.0 and later this can be C++11; before that it must be limited to C++03. Submissions including pre-existing open source code may be in other languages providing you can get them through our build system cleanly; we already have C and some assembly code in Simbody. However, any user-exposed API must be in C++ even if the internals are not.
-
-Existing Simbody code does not perfectly follow these conventions and we appreciate Issues pointing out problems, and especially PRs that correct our earlier slip-ups.
 
 ### Basic requirements
+
+#### Write new code in C++
+New code for Simbody should be written in C++. In Simbody 4.0 and later this can be C++11; before that it must be limited to C++03. Submissions including pre-existing open source code may be in other languages providing you can get them through our build system cleanly; we already have C and some assembly code in Simbody. However, any user-exposed API must be in C++ even if the internals are not.
 
 #### Keep line width to 80 characters
 Line widths should be no longer than **80** characters. The reason for this is that it permits multiple files to be laid out side-by-side during editing, which is *really* useful. At 80 characters you can get three windows on a modest-sized monitor, using a font that is readable even by adults.
