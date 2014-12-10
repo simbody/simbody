@@ -36,18 +36,16 @@ This is a very abbreviated description of the process. If you are new to Git and
 
 Below we'll assume your GitHub account is `yourid`.
 
-1. Create your own fork `yourid/simbody` of the `simbody/simbody` repo on GitHub. Use the `Fork` button [here](https://github.com/simbody/simbody).
-2. Clone `yourid/simbody` repo onto your local machine. (It is possible to work directly on your GitHub fork using GitHub's browser interface, but this is inadvisable except for small, safe documentation changes.)
-3. Create a branch like `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
-4. Commit the new code or documentation to the `something-feature` branch.
+1. **Create your own fork** `yourid/simbody` of the `simbody/simbody` repo on GitHub. Use the `Fork` button [here](https://github.com/simbody/simbody).
+2. **Clone your repo** `yourid/simbody` onto your local machine. (It is possible to work directly on your GitHub fork using GitHub's browser interface, but this is inadvisable except for small, safe documentation changes.)
+3. **Create a branch** like `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
+4. **Commit the new code** or documentation to the `something-feature` branch.
 5. Test and debug your changes locally. Be sure to build at least occasionally in Debug mode -- it will run very slowly but you get much more error checking that way.
-6. Push now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
-7. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. 
-8. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use at-mentions `@theirid` in your PR description.
-9. Engage in discussion with Simbody maintainers who will review your changes and make comments. 
-10. At the end of the PR Conversation page is a notification that our continuous integration (automatic build) system is trying to build your PR. Check to see whether the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help.
-  
-In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch in your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
+6. **Push** now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
+7. **Create the PR**. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use at-mentions like `@theirid` in your PR description.
+8. **Check the build status**. Your PR submission will trigger our continuous integration builds on Travis (for Linux and OS-X) and AppVeyor (for Windows). GitHub provides a status message at the bottom of the PR's Conversation page allowing you to track build progress. Make sure the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help. 
+9. **Engage in discussion** with Simbody maintainers who will review your changes and make comments. 
+10. **Make changes**. In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch in your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
 
 Eventually your PR will be merged (good) or closed unmerged by a Simbody maintainer, but always after an open discussion.   
 
