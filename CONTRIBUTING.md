@@ -74,10 +74,10 @@ Coding Conventions
     - [Use anonymous namespaces](#use-anonymous-namespaces)
     - [Don't waste lines on curly braces](#dont-waste-lines-on-curly-braces)
     - [`throw` and `return` are not functions](#throw-and-return-are-not-functions)
-    - [Prefer *pre*-increment and *pre*-decrement operators](#prefer-preincrement-and-predecrement-operators)
+    - [Prefer *pre*-increment and *pre*-decrement operators](#prefer-pre-increment-and-pre-decrement-operators)
     - [Place pointer and reference symbols with the type](#place-pointer-and-reference-symbols-with-the-type)
     - [Avoid spaces that don't improve readability](#avoid-spaces-that-dont-improve-readability)
-    - [Make assignment operators safe for self-assignment](#make-assignment-operators-safe-for-selfassignment)
+    - [Make assignment operators safe for self-assignment](#make-assignment-operators-safe-for-self-assignment)
 
 Many differences in programming technique fall into the realm of personal aesthetics (style) where one approach is not inherently better than another. It is our intent to be as accommodating as possible in this regard so that you can express yourself comfortably. However, we don't think it's a good idea to mix incompatible styles within the same or closely related source modules. That makes the software increasingly hard to read and understand over time. And it's ugly. So we ask that modifications to existing software be made in the original style of that software as much as possible, or be converted to a consistent style. We are more concerned about uniformity in the user-visible API than in internal implementation code.
 
