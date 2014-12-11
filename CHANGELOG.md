@@ -1,15 +1,13 @@
 Simbody Changelog and Release Notes
 ===================================
 
-This is not a comprehensive list of changes but rather
-a hand-curated collection of the more notable ones. For
-a comprehensive history, see the [Simbody GitHub repo]
-(https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were 
-included in a particular release. 
+This is not a comprehensive list of changes but rather a hand-curated collection of the more notable ones. For a comprehensive history, see the [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were included in a particular release. 
 
-3.5 (in progress)
+**Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+
+
+3.5 (XX Dec 2014)
 -----------------
-
 This release focused primarily on infrastructure for and prototyping of rigid contact and impact, and the development of examples showing how to perform task space control using Simbody. These two projects were supported by our DARPA research subcontract with Open Source Robotics Foundation, and were integrated with Gazebo. Further development for rigid contact is required for smooth integration into Simbody; this is planned for Simbody 4.0 and only the bravest among you should attempt to use rigid contact before then. The task space control examples `TaskSpaceControl-UR10` and `TaskSpaceControl-Atlas` can be found in the Simbody examples directory.
 
 Chris Dembia integrated Nikolaus Hansen's [Covariant Matrix Adaptation Evolution Strategy](https://www.lri.fr/~hansen/cmaesintro.html) (CMA-ES) global optimizer into Simbody's existing Optimizer class framework, and implemented a multithreading capability for it. This is ready to use and we would like feedback. 
@@ -43,11 +41,13 @@ There were numerous smaller improvements to Simbody since the previous release, 
 * Moved install instructions to README.md where they can be kept up to date (pr #144 and others)
 * Replaced distance constraint equations to use length rather than length^2 (issue #3). This improves scaling when distance constraint is combined with other constraints.
 * Numerous improvements to build, install, documentation, and performance.
+* Added CONTRIBUTING.md file explaining ways to contribute to the Simbody project.
+
 
 3.4.1 (31 Mar 2014)
 -------------------
 
-This was primarily a release for improving our build and install process to comply with Debian's requirements. Thanks to José Rivero and Steve Peters at Open Source Robotics Foundation, and Chris Dembia at Stanford for the bulk of this effort.
+This is primarily a release for improving our build and install process to comply with Debian's requirements. Thanks to José Rivero and Steve Peters at Open Source Robotics Foundation, and Chris Dembia at Stanford for the bulk of this effort.
 
 * Fixed `SimbodyMatterSubsystem::getTotalCentrifugalForces()` (issue #112, pr #116).
 * Many changes to build and install, mostly affecting Linux and OSX. Should now conform better to standards on those platforms and in general be better and finding its dependencies. (pr #114 #118 #120 #121 #122 #127 #130 #131 #133, issue #48 #68 #92 #113) 
@@ -57,7 +57,6 @@ This was primarily a release for improving our build and install process to comp
 
 3.3.1 (21 Jan 2014)
 -------------------
-
 This is the first release built for use in Open Source Robotic Foundation's Gazebo robot simulator and is also the version of Simbody that ships with OpenSim 3.2. It incorporates many fixes and enhancements prompted by the integration effort with OSRF, and a new Debian package builder for smooth incorporation into the Gazebo build.
 
 * Improved matrix/vector documentation and reorganized source to break up large files (pr #70 #76 #77 #78 #87)
@@ -84,9 +83,9 @@ This is the first release built for use in Open Source Robotic Foundation's Gaze
 * Added Semi-Explicit Euler integrators, with and without error control (for Gazebo)
 * Added O(n) methods for task space Jacobians
 
+
 3.1 (22 Apr 2013)
 -----------------
-
 This is the Simbody release that shipped with OpenSim 3.1 and contains the initial
 work done with Open Source Robotics Foundation for the Gazebo simulator. The source was managed on Subversion, although its code and history were transferred to GitHub. The source zip is available on the GitHub release page [here](https://github.com/simbody/simbody/releases/tag/Simbody-3.1).
 
