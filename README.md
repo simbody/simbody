@@ -211,10 +211,10 @@ How is your Simbody installation organized?
 * `doc/` a few manuals, as well as API docs (`SimbodyAPI.html`).
 * `examples/`
     * `src/` the source code for the examples.
-    * `bin/` the examples, compiled into executables; run them! (Not for Debug builds.)
+    * `bin/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `include/` the header (.h) files; necessary for projects that use Simbody.
 * `lib/` "import" libraries, used during linking.
-* `share/` CMake files that are useful for projects that use Simbody.
+* `cmake/` CMake files that are useful for projects that use Simbody.
 
 
 Mac and Homebrew
@@ -257,7 +257,7 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 * `lib/` shared libraries (.dylib's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them! (Not for Debug builds.)
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `libexec/simbody/` the `simbody-visualizer` executable.
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/` source code for the examples.
@@ -293,7 +293,7 @@ Simbody is installed into the `usr/` directory.
 * `usr/lib/` shared libraries (.so's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them! (Not for Debug builds.)
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `usr/libexec/simbody/` the `simbody-visualizer` executable.
 * `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
 
@@ -449,7 +449,7 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
 * `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them! (Not for Debug builds.)
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `libexec/simbody/` the `simbody-visualizer` executable.
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/` source code for the examples.
