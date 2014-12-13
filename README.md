@@ -180,6 +180,7 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 #### Play around with examples
 
 Within your build in Visual Studio (not the installation):
+
 1. Make sure your configuration is set to a release configuration (e.g., RelWithDebInfo).
 2. Right click on one of the targets whose name begins with `Example -` and select **Select as Startup Project**.
 3. Type **Ctrl-F5** to start the program.
