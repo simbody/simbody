@@ -265,7 +265,8 @@ ENDIF()
 
 
 IF(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" 
+    SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
+        "Debug, RelWithDebInfo (recommended), or Release build" 
         FORCE)
 ENDIF()
 

@@ -100,7 +100,7 @@ Dependencies
 Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.6 or greater
-* compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
+* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.2 or later
@@ -126,7 +126,7 @@ Windows and Visual Studio
 
 We give the linear algebra dependencies to you, and Windows comes with the visualization dependencies.
 
-1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop* or *Visual C++ 2010 Express*.
+1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop*.
 2. Download and install CMake.
 3. If you want to build API documentation, download and install Doxygen as well.
 
@@ -138,7 +138,7 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
-            $ git checkout Simbody-3.4
+            $ git checkout Simbody-3.5
 
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
@@ -148,15 +148,15 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 2. In the field **Where is the source code**, specify `C:/Simbody-source`.
 3. In the field **Where to build the binaries**, specify something like `C:/Simbody-build`, just not inside your source directory. This is *not* where we will install Simbody; see below.
 4. Click the **Configure** button.
-    1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit, select an option that ends with **Win64**.
+    1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit (recommended), select an option that ends with **Win64**.
     2. Click **Finish**.
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
 6. Play around with the other build options:
     * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
-    * `BUILD_TESTING` to ensure your Simbody works correctly. The tests take a long time to build, though. If you need to build Simbody quickly, maybe turn this off. On by default.
-    * `BUILD_VISUALIZER` to be able to watch your system move about! If building on a cluster, you could turn this off. On by default.
-    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
-    * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
+    * `BUILD_TESTING` to ensure your Simbody works correctly. On by default.
+    * `BUILD_VISUALIZER` to be able to watch your system move about! If building remotely, you could turn this off. On by default.
+    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default.
+    * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
@@ -164,19 +164,22 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 
 1. Open `C:/Simbody-build/Simbody.sln` in Visual Studio.
 2. Select your desired *Solution configuration* from the drop-down at the top.
-    * **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
-    * **Release**: no debugger symbols; optimized.
-    * **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
-    * **MinSizeRel**: minimum size; optimized.
+    * **Debug**: debugger symbols; no optimizations (more than 10x slower). Library and visualizer names end with `_d`.
+    * **RelWithDebInfo**: debugger symbols; optimized. This is the configuration we recommend.
+    * **Release**: no debugger symbols; optimized. Generated libraries and executables are smaller but not faster than RelWithDebInfo.
+    * **MinSizeRel**: minimum size; optimized. May be slower than RelWithDebInfo or Release.
 
-    You at least want release libraries (the last 3 count as release), but you
-    can have debug libraries coexist with them. To do this, go through the full
+    You at least want optimized libraries (all configurations but Debug are optimized), but you
+    can have Debug libraries coexist with them. To do this, go through the full
     installation process twice, once for each configuration.
 3. Build the project **ALL_BUILD** by right-clicking it and selecting **Build**.
-4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**.
-5. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
+4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**. Make sure all tests pass. You can use **RUN_TESTS_PARALLEL** for a faster test run if you have multiple cores.
+5. (Optional) Build the project **doxygen** to get API documentation generated from your Simbody source.
+6. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
 
 #### Play around with examples
+
+Within your build in Visual Studio (not the installation):
 
 1. Make sure your configuration is set to a release configuration (e.g., RelWithDebInfo).
 2. Right click on one of the targets whose name begins with `Example -` and select **Select as Startup Project**.
@@ -193,11 +196,13 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
     4. Under **System variables**, click **Path**, then click **Edit**.
     5. Add `C:/Simbody/bin;` to the front of the text field. Don't forget the semicolon!
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. In the same Environment Variables window:
-    6. Under **User variables for...**, click **New...**.
-    7. For **Variable name**, type `SIMBODY_HOME`.
-    8. For **Variable value**, type `C:/Simbody`.
+    1. Under **User variables for...**, click **New...**.
+    2. For **Variable name**, type `SIMBODY_HOME`.
+    3. For **Variable value**, type `C:/Simbody`.
 3. Changes only take effect in newly-opened windows. Close any Windows Explorer or Command Prompt windows.
 4. Test your installation by navigating to `C:/Simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
+
+**Note**: Example binaries are *not* installed for Debug configurations. They are present in the build environment, however, so you can run them from there. They will run *very* slowly!
 
 #### Layout of installation
 
@@ -207,11 +212,10 @@ How is your Simbody installation organized?
 * `doc/` a few manuals, as well as API docs (`SimbodyAPI.html`).
 * `examples/`
     * `src/` the source code for the examples.
-    * `bin/` the examples, compiled into executables; run them!
-    * `simmath/` source code for examples of Simbody's SimTKmath library.
+    * `bin/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `include/` the header (.h) files; necessary for projects that use Simbody.
 * `lib/` "import" libraries, used during linking.
-* `share/` CMake files that are useful for projects that use Simbody.
+* `cmake/` CMake files that are useful for projects that use Simbody.
 
 
 Mac and Homebrew
@@ -238,7 +242,7 @@ With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). 
 
 #### Where is Simbody installed?
 
-Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.4`), or `HEAD` if you specified `--HEAD` above.
+Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.5`), or `HEAD` if you specified `--HEAD` above.
 
 Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
 
@@ -254,7 +258,7 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 * `lib/` shared libraries (.dylib's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them!
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `libexec/simbody/` the `simbody-visualizer` executable.
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/` source code for the examples.
@@ -269,13 +273,11 @@ With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). 
 
 #### Install
 
-1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
-    * 12.04:
-
-            sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu precise main" > /etc/apt/sources.list.d/gazebo-latest.list'
-    * 13.10:
-
-            sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'
+1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
+        
+        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
+        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+        $ sudo apt-get update
 
 2. Install Simbody.
 
@@ -290,6 +292,7 @@ Simbody is installed into the `usr/` directory.
 * `usr/lib/` shared libraries (.so's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `usr/libexec/simbody/` the `simbody-visualizer` executable.
 * `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
 
@@ -323,7 +326,7 @@ There are two ways to get the source code.
     2. Clone the github repository into `~/simbody-source`.
 
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-            $ git checkout Simbody-3.4
+            $ git checkout Simbody-3.5
 
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
@@ -349,10 +352,10 @@ There are two ways to get the source code.
             $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=off
 
     * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
-        - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
-        - **Release**: no debugger symbols; optimized.
-        - **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
-        - **MinSizeRel**: minimum size; optimized.
+        - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library and visualizer names end with `_d`.
+        - **RelWithDebInfo**: debugger symbols; optimized. This is the configuration we recommend.
+        - **Release**: no debugger symbols; optimized. Generated libraries and executables are smaller but not faster than RelWithDebInfo.
+        - **MinSizeRel**: minimum size; optimized. May be slower than RelWithDebInfo or Release.
 
         You at least want release libraries (the last 3 count as release), but
         you can have debug libraries coexist with them. To do this, go through
@@ -445,7 +448,7 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
 * `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them!
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `libexec/simbody/` the `simbody-visualizer` executable.
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
     * `examples/` source code for the examples.
