@@ -100,7 +100,7 @@ Dependencies
 Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.6 or greater
-* compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
+* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.2 or later
@@ -126,7 +126,7 @@ Windows and Visual Studio
 
 We give the linear algebra dependencies to you, and Windows comes with the visualization dependencies.
 
-1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop* or *Visual C++ 2010 Express*.
+1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop*.
 2. Download and install CMake.
 3. If you want to build API documentation, download and install Doxygen as well.
 
