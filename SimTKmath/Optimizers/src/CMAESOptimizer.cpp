@@ -252,17 +252,17 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     int popsize = 0;
     getAdvancedIntOption("popsize", popsize);
     
-    // sigma
-    // -----
-    double sigma = 0;
+    // init_stepsize
+    // --------
+    double init_stepsize = 0;
     double* stddev = NULL;
-    Vector sigmaArray;
-    if (getAdvancedRealOption("sigma", sigma)) {
-        sigmaArray.resize(n);
+    Vector init_stepsizeArray;
+    if (getAdvancedRealOption("init_stepsize", init_stepsize)) {
+        init_stepsizeArray.resize(n);
         for (int i = 0; i < n; i++) {
-            sigmaArray[i] = sigma;
+            init_stepsizeArray[i] = init_stepsize;
         }
-        stddev = &sigmaArray[0];
+        stddev = &init_stepsizeArray[0];
     }
 
     // seed
