@@ -316,8 +316,8 @@ private:
  *
  * - <b>popsize</b> (int; default: depends on number of parameters) The
  *   population size (also known as lambda).
- * - <b>sigma</b> (real; default: 0.3) Initial step size; same for all
- *   parameters. A warning is emitted if this is not set.
+ * - <b>init_stepsize</b> (real; default: 0.3) Initial step size; same for all
+ *   parameters (also known as sigma). A warning is emitted if this is not set.
  * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
  *   number generator that is used to sample the population from a normal
  *   distribution. See note below.
