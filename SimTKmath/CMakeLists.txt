@@ -181,7 +181,7 @@ INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/                   FILES ${CORE_HE
 INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/simmath/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/simmath/internal FILES ${INTERNAL_HEADERS})
 
-FILE(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt)
+FILE(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt doc/*.md)
 INSTALL(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # These are at the end because we want them processed after
