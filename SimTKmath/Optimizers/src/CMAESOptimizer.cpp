@@ -159,10 +159,10 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // Prepare to call cmaes_init_para.
     // ================================
 
-    // lambda
-    // ------
-    int lambda = 0;
-    getAdvancedIntOption("lambda", lambda);
+    // popsize
+    // -------
+    int popsize = 0;
+    getAdvancedIntOption("popsize", popsize);
     
     // sigma
     // -----
@@ -200,7 +200,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             &results[0],       // xstart
             stddev,            // stddev
             seed,              // seed
-            lambda,            // lambda
+            popsize,           // popsize
             input_parameter_filename.c_str() // input_parameter_filename
             ); 
 
@@ -283,7 +283,7 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
         Real *lower, *upper;
         sys.getParameterLimits( &lower, &upper );
 
-        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
+        for (int i = 0; i < cmaes_Get(&evo, "popsize"); i++) {
             bool feasible = false; 
             while (!feasible) {
                 feasible = true; 
@@ -308,11 +308,11 @@ void CMAESOptimizer::evaluateObjectiveFunctionOnPopulation(
     // Execute in parallel.
     if (executor) {
         Task task(*this, sys.getNumParameters(), pop, funvals);
-        executor->execute(task, (int)cmaes_Get(&evo, "lambda"));
+        executor->execute(task, (int)cmaes_Get(&evo, "popsize"));
     }
     // Execute normally.
     else {
-        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
+        for (int i = 0; i < cmaes_Get(&evo, "popsize"); i++) {
             objectiveFuncWrapper(sys.getNumParameters(),
                     pop[i], true, &funvals[i], this);
         }

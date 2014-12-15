@@ -270,10 +270,10 @@ private:
  * These options are set via methods like Optimizer::setAdvancedStrOption. If
  * you want to get going quickly, you can just use the default values of these
  * options and ignore this section. As an example, an int option
- * <b>lambda</b> would be set via:
+ * <b>popsize</b> would be set via:
  *
  * @code
- * opt.setAdvancedIntOption("lambda", 5);
+ * opt.setAdvancedIntOption("popsize", 5);
  * @endcode
  *
  * For now, we only have detailed documentation for the CMAES algorithm.
@@ -314,8 +314,8 @@ private:
  * The default values for options whose name begins with "stop" are specified
  * at https://github.com/CMA-ES/c-cmaes/blob/master/cmaes_initials.par
  *
- * - <b>lambda</b> (int; default: depends on number of parameters) The
- *   population size.
+ * - <b>popsize</b> (int; default: depends on number of parameters) The
+ *   population size (also known as lambda).
  * - <b>sigma</b> (real; default: 0.3) Initial step size; same for all
  *   parameters. A warning is emitted if this is not set.
  * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random

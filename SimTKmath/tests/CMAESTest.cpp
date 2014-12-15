@@ -183,7 +183,7 @@ void testSigmaAndAckleyOptimum() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
-    opt.setAdvancedIntOption("lambda", 50);
+    opt.setAdvancedIntOption("popsize", 50);
     opt.setAdvancedIntOption("seed", 30);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
@@ -225,9 +225,9 @@ void testDropWaveOptimumLambda() {
     opt.setConvergenceTolerance(1e-5);
     opt.setMaxIterations(5000);
     opt.setAdvancedRealOption("sigma", 3.5);
-    // With default lambda, this test fails. So if this test passes, we know we
-    // can set lambda.
-    opt.setAdvancedIntOption("lambda", 1000);
+    // With default popsize, this test fails. So if this test passes, we know we
+    // can set popsize.
+    opt.setAdvancedIntOption("popsize", 1000);
     // Sometimes, we need more function evaluations.
     opt.setAdvancedIntOption("stopMaxFunEvals", 100000);
     opt.setAdvancedIntOption("seed", 10);
@@ -439,7 +439,7 @@ void testSchwefel() {
     Optimizer opt(sys, SimTK::CMAES);
     // Only know the solution to 4 digits.
     opt.setConvergenceTolerance(1e-4);
-    opt.setAdvancedIntOption("lambda", 200);
+    opt.setAdvancedIntOption("popsize", 200);
     opt.setAdvancedRealOption("sigma", 300);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
@@ -460,7 +460,7 @@ void testEasom() {
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     // TODO opt.setDiagnosticsLevel(3);
-    opt.setAdvancedIntOption("lambda", 500);
+    opt.setAdvancedIntOption("popsize", 500);
     opt.setAdvancedRealOption("sigma", 25);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
@@ -484,7 +484,7 @@ void testStopFitness() {
     // opt.setDiagnosticsLevel(2);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
-    opt.setAdvancedIntOption("lambda", 50);
+    opt.setAdvancedIntOption("popsize", 50);
     opt.setAdvancedRealOption("sigma", 0.5 * 64);
     opt.setAdvancedIntOption("seed", 30);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
