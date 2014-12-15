@@ -29,7 +29,9 @@
 // will run completely separately on each MPI process.
 #define USE_MPI 0
 
-// Run this example with a command like $ mpirun -n 8 ./CMAESOptimization
+// Run this example with a command as follows:
+//      $ mpirun -n 8 ./CMAESOptimization (linux)
+//      > mpiexec -n 8 CMAESOptimization.exe (windows)
 
 #if USE_MPI
     #include <mpi.h>
@@ -87,13 +89,15 @@ int main(int argc, char* argv[]) {
 
     // Configure the optimizer.
     opt.setConvergenceTolerance(1e-5);
-    // opt.setDiagnosticsLevel(3);
+    opt.setDiagnosticsLevel(1);
     opt.setMaxIterations(5000);
-    opt.setAdvancedRealOption("sigma", 3.5);
-    opt.setAdvancedIntOption("lambda", 1000);
+    opt.setAdvancedRealOption("init_stepsize", 3.5);
+    opt.setAdvancedIntOption("popsize", 1000);
     opt.setAdvancedIntOption("stopMaxFunEvals", 100000);
     opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
+    // Here's how you'd use multithreading (if uncommenting, 
+    // set USE_MPI to 0):
     // opt.setAdvancedStrOption("parallel", "mulithreading");
 
     #if USE_MPI
