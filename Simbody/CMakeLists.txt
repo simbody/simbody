@@ -125,7 +125,7 @@ INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/simbody/internal FILES ${INTERNAL_
 # Notice that the (deprecated) INSTALL_FILES(dir ...) command works differently than the
 # newer (recommended) INSTALL(dir FILES ...) command
 # when the target directory starts with a slash
-FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt)
+FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt doc/*.md)
 INSTALL(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # SIMBODY_VISUALIZER_INSTALL_DIR defined in root CMakeLists.txt
