@@ -29,7 +29,7 @@ There were numerous smaller improvements to Simbody since the previous release, 
 * Fixed Debug visualizer name to have "_d" (issue #5)
 
 ### Misc. improvements
-* Improved regression test timing framework to make it useful for multithreaded tests
+* Improved regression test timing framework to make it useful for multithreaded tests (pr #265)
 * Much nicer Doxygen for Rotation class (issue #183)
 * Reorganized Simbody example programs (pr #238)
 * Added HalfSpace-ConvexImplicitSurface contact tracker (issue #232, pr #233)
