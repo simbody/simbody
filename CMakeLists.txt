@@ -1,15 +1,15 @@
-#---------------------------------------------------
+#-------------------------------------------------------------------------------
 # Simbody 
 #
 # This is the master CMake file that coordinates 
 # the build of Simbody. There are four steps:
-#    (1) Choose appropriate platform
-#    (2) Build SimTKcommon
-#    (3) Build SimTKmath
-#    (4) Build SimTKsimbody
+#    (1) Get files needed for particular platform
+#    (2) Build SimTKcommon library
+#    (3) Build SimTKmath library
+#    (4) Build SimTKsimbody library
+#    (5) Build examples
 #
-#----------------------------------------------------
-
+#-------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 2.8.6)
 
 if(COMMAND cmake_policy)
@@ -18,6 +18,11 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT(Simbody)
+
+# At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
+# or appropriate ProgramFiles directory on Windows, for example 
+# C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
+# language equivalent.
 
 # Include GNUInstallDirs to get canonical paths
 include(GNUInstallDirs)
@@ -195,56 +200,6 @@ ENDIF()
 SET(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE STRING
     "This is the platform and ABI we're building for. Not changeable here; use a different CMake generator instead."
     FORCE)
-
-# 
-# Make sure "sandbox" input & output directories are set. During
-# SimTK Core build, the build system will set them. Otherwise, we'll
-# set them to sensible local values.
-# If CMAKE_INSTALL_PREFIX is set then
-# it is a sandbox installation area, otherwise we want to install
-# in /usr/local/simbody or %ProgramFiles%\Simbody. 
-#
-
-
-# For backward compatibility, use SimTK_INSTALL_PREFIX if
-# CMAKE_INSTALL_PREFIX hasn't been set.
-IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE PATH
-      "Install path prefix." FORCE)
-ENDIF()
-
-# C compiler is gcc on Linux, gcc or cc on Mac where command line tools
-# are installed from Xcode. May be Clang in Mac 10.8 or later.
-
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    IF(NOT CMAKE_INSTALL_PREFIX)
-        SET(CMAKE_INSTALL_PREFIX "/usr/local/simbody" 
-            CACHE PATH "Install directory")
-    ENDIF(NOT CMAKE_INSTALL_PREFIX)
-
-ELSE() # Windows
-    # On Win64, there are two environment variables, ProgramFiles(x86) for
-    # 32 bit binaries, and ProgramW6432 for 64 bit binaries. The variable
-    # ProgramFiles returns one or the other depending on whether the requesting
-    # executable is 32 or 64 bits. That's CMake in this case, but we want
-    # the right directory for the target. CMAKE_INSTALL_DIR after 2.8.3 gets
-    # this right but still isn't what we want.
-    IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-    # 64 bit target on Win64
-    set(PROGFILEDIR "$ENV{ProgramW6432}")
-    ELSE() # Target is 32 bit
-    set(PROGFILEDIR "$ENV{ProgramFiles(x86)}") # present if 64bit Windows
-    if (NOT PROGFILEDIR)
-        set(PROGFILEDIR "$ENV{ProgramFiles}") # on 32bit Windows
-    endif()
-    ENDIF()
-
-    IF(NOT CMAKE_INSTALL_PREFIX)
-        SET(CMAKE_INSTALL_PREFIX "${PROGFILEDIR}/Simbody" 
-            CACHE PATH "Install directory")
-    ENDIF(NOT CMAKE_INSTALL_PREFIX)
-
-ENDIF()
 
 # If CMAKE_INSTALL_PREFIX is /usr/local, then the LIBDIR should necessarily be
 # lib/. Sometimes (on Linux), LIBDIR is something like x86_64-linux-gnu. The
