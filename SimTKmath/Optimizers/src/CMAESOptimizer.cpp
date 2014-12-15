@@ -247,10 +247,10 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // Prepare to call cmaes_init_para.
     // ================================
 
-    // lambda
-    // ------
-    int lambda = 0;
-    getAdvancedIntOption("lambda", lambda);
+    // popsize
+    // -------
+    int popsize = 0;
+    getAdvancedIntOption("popsize", popsize);
     
     // sigma
     // -----
@@ -287,7 +287,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             &results[0],       // xstart    (NULL to not set here)
             stddev,            // stddev    (NULL to not set here)
             seed,              // seed      (0 to not set here)
-            lambda,            // lambda    (0 to not set here)
+            popsize,           // lambda    (0 to not set here)
             input_parameter_filename.c_str() // input_parameter_filename
             ); 
 
@@ -370,7 +370,7 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
         Real *lower, *upper;
         sys.getParameterLimits( &lower, &upper );
 
-        for (int i = 0; i < cmaes_Get(&evo, "lambda"); i++) {
+        for (int i = 0; i < cmaes_Get(&evo, "popsize"); i++) {
             bool feasible = false; 
             while (!feasible) {
                 feasible = true; 
