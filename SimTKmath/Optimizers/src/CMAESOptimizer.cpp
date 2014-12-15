@@ -200,7 +200,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             &results[0],       // xstart
             stddev,            // stddev
             seed,              // seed
-            popsize,           // popsize
+            popsize,           // lambda
             input_parameter_filename.c_str() // input_parameter_filename
             ); 
 
