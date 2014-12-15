@@ -103,7 +103,7 @@ Simbody depends on the following:
 * compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
-* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.2 or later
+* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.6 or later; we recommend at least 1.8.8.
 
 
 Installing
@@ -174,7 +174,7 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
     installation process twice, once for each configuration.
 3. Build the project **ALL_BUILD** by right-clicking it and selecting **Build**.
 4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**. Make sure all tests pass. You can use **RUN_TESTS_PARALLEL** for a faster test run if you have multiple cores.
-5. (Optional) Build the project **doxygen** to get API documentation generated from your Simbody source.
+5. (Optional) Build the project **doxygen** to get API documentation generated from your Simbody source. You will get some warnings if your doxygen version is earlier than Doxygen 1.8.8; upgrade if you can.
 6. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
 
 #### Play around with examples
@@ -382,7 +382,7 @@ There are two ways to get the source code.
 #### Build and install
 
 1. Build the API documentation. This is optional, and you can only do this if
-   you have Doxygen.
+   you have Doxygen. You will get warnings if your doxygen installation is a version older than Doxygen 1.8.8.
 
         $ make doxygen
 
