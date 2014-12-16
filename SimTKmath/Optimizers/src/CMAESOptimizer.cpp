@@ -161,7 +161,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results, const bool& useMPI)
         getAdvancedIntOption("nthreads", nthreads);
 
         SimTK_CMAES_PRINT(diagnosticsLevel,
-                printf("Executing on %d threads.", nthreads));
+                printf("Executing on %d threads.\n", nthreads));
 
         exec.reset(new ParallelExecutor(nthreads));
     }
