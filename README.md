@@ -76,19 +76,19 @@ Features
 - Forward, inverse, and mixed dynamics. Motion driven by forces or
   prescribed motion.
 - Contact (Hertz, Hunt and Crossley models).
-- Gradient descent and interior point optimizers.
+- Gradient descent, interior point, and global (CMA) optimizers.
 - A variety of numerical integrators with error control.
-- Visualizer, using [OpenGL](http://www.opengl.org/).
+- Visualizer, using OpenGL
 
 
 You want to...
 --------------
 * **[install Simbody](#installing)**.
 * [use Simbody in your own program][user].
-* [view API documentation](https://simtk.org/api_docs/simbody/api_docs33/Simbody/html/index.html).
+* [view API documentation](https://simtk.org/api_docs/simbody/latest/index.html).
 * [learn the theory behind Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf).
 * [extend Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAdvancedProgrammingGuide.pdf).
-* [**get support** at the Simbody forum](https://simtk.org/forums/viewforum.php?f=47).
+* [**get support** at the Simbody Forum](https://simtk.org/forums/viewforum.php?f=47).
 * [report a bug or suggest a feature](https://github.com/simbody/simbody/issues/new).
 
 ---
