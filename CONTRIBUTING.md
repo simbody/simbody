@@ -40,7 +40,7 @@ Below we'll assume your GitHub account is `yourid`.
 2. **Clone your repo** `yourid/simbody` onto your local machine. (It is possible to work directly on your GitHub fork using GitHub's browser interface, but this is inadvisable except for small, safe documentation changes.)
 3. **Create a branch** like `something-feature` for your new feature or `fix-something-issue123` for a bug fix (we're not fussy about branch names; they are just temporary).
 4. **Commit the new code** or documentation to the `something-feature` branch.
-5. Test and debug your changes locally. Be sure to build at least occasionally in Debug mode -- it will run very slowly but you get much more error checking that way.
+5. **Test and debug** your changes locally. Be sure to build at least occasionally in Debug mode -- it will run very slowly but you get much more error checking that way.
 6. **Push** now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
 7. **Create the PR**. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use “at mentions” like `@someone` in your PR description.
 8. **Check the build status**. Your PR submission will trigger our continuous integration builds on Travis (for Linux and OS-X) and AppVeyor (for Windows). GitHub provides a status message at the bottom of the PR's Conversation page allowing you to track build progress. Make sure the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help. 
@@ -88,7 +88,7 @@ Existing Simbody code does not perfectly follow these conventions and we appreci
 ### Basic requirements
 
 #### Write new code in C++
-New code for Simbody should be written in C++. In Simbody 4.0 and later this can be C++11; before that it must be limited to C++03. Submissions including pre-existing open source code may be in other languages providing you can get them through our build system cleanly; we already have C and some assembly code in Simbody. However, any user-exposed API must be in C++ even if the internals are not.
+New code for Simbody should be written in C++. In Simbody 3.6 and later this can be C++11; before that it must be limited to C++03. Submissions including pre-existing open source code may be in other languages providing you can get them through our build system cleanly; we already have C and some assembly code in Simbody. However, any user-exposed API must be in C++ even if the internals are not.
 
 #### Keep line width to 80 characters
 Line widths should be no longer than **80** characters. The reason for this is that it permits multiple files to be laid out side-by-side during editing, which is *really* useful. At 80 characters you can get three windows on a modest-sized monitor, using a font that is readable even by adults.
