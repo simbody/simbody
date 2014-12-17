@@ -273,7 +273,7 @@ With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). 
 
 #### Install
 
-1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
+1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
         
         $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
         $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
@@ -282,17 +282,17 @@ With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). 
 2. Install Simbody.
 
         $ sudo apt-get update
-        $ sudo apt-get install libsimbody-dev
+        $ sudo apt-get install libsimbody-dev simbody-doc
 
 #### Layout of installation
 
-Simbody is installed into the `usr/` directory.
+Simbody is installed into the `usr/` directory.  The directory
+`[x86_64-linux-gnu]` varies by platform. 
 
 * `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `usr/lib/` shared libraries (.so's), used at runtime.
+* `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `usr/libexec/simbody/` the `simbody-visualizer` executable.
 * `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
 
@@ -442,10 +442,10 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
 #### Layout of installation
 
-The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists if you're using a recent version of Ubuntu (e.g., 13.10) and did NOT install to `/usr/local/`. Even in that case, the name of your directory may be different.
+The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists if you did NOT install to `/usr/local/` and varies by platform. Even in that case, the name of your directory may be different.
 
 * `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
+* `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's).
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
     * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
