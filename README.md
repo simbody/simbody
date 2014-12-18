@@ -126,7 +126,7 @@ Windows using Visual Studio
 
 All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies. 
 
-1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The “Community Edition” is free for “non-enterprise” use. The “Express” edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
+1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The "Community Edition" is free for "non-enterprise" use. The "Express" edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
 2. Download and install [CMake](http://www.cmake.org/download), version 2.8.6 or higher.
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 
@@ -140,7 +140,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
             $ git checkout Simbody-3.5
 
-    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version (“bleeding edge”) of Simbody off the master branch, you can omit the `checkout` line.
+    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
 #### Configure and generate project files
 
