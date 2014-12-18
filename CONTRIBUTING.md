@@ -42,7 +42,7 @@ Below we'll assume your GitHub account is `yourid`.
 4. **Commit the new code** or documentation to the `something-feature` branch.
 5. **Test and debug** your changes locally. Be sure to build at least occasionally in Debug mode -- it will run very slowly but you get much more error checking that way.
 6. **Push** now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
-7. **Create the PR**. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use “at mentions” like `@someone` in your PR description.
+7. **Create the PR**. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use "at mentions" like `@someone` in your PR description.
 8. **Check the build status**. Your PR submission will trigger our continuous integration builds on Travis (for Linux and OS-X) and AppVeyor (for Windows). GitHub provides a status message at the bottom of the PR's Conversation page allowing you to track build progress. Make sure the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help. 
 9. **Engage in discussion** with Simbody maintainers who will review your changes and make comments. 
 10. **Make changes**. In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch in your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
@@ -93,7 +93,7 @@ New code for Simbody should be written in C++. In Simbody 3.6 and later this can
 #### Keep line width to 80 characters
 Line widths should be no longer than **80** characters. The reason for this is that it permits multiple files to be laid out side-by-side during editing, which is *really* useful. At 80 characters you can get three windows on a modest-sized monitor, using a font that is readable even by adults.
 
-It is best to use a “guide line” (a vertical line that marks column 80 while you edit) so that you can see where the limit is. If you are using Visual Studio, there is a very nice Editor Guidelines Extension available [here](https://visualstudiogallery.msdn.microsoft.com/da227a0b-0e31-4a11-8f6b-3a149cf2e459). If you don't have built-in guide lines available, note that the last line of the copyright block at the top of every Simbody source file is 80 characters wide.
+It is best to use a "guide line" (a vertical line that marks column 80 while you edit) so that you can see where the limit is. If you are using Visual Studio, there is a very nice Editor Guidelines Extension available [here](https://visualstudiogallery.msdn.microsoft.com/da227a0b-0e31-4a11-8f6b-3a149cf2e459). If you don't have built-in guide lines available, note that the last line of the copyright block at the top of every Simbody source file is 80 characters wide.
 
 Please don't interpret this to mean we like short lines. On the contrary it is nice to see as much code as reasonably possible on the screen at once, so don't stretch out your code vertically unnecessarily; and don't waste horizontal space where it doesn't help readability. Long comment blocks in particular should have lines as wide as possible. Just don't go over 80.
 
@@ -129,7 +129,7 @@ void theMethodYouAreDocumenting();
 When you have short Doxygen comments to make about dozens of methods in a class, those two extra lines per method significantly reduce the amount of code you can squeeze onto one screen. The comments are harder to reformat also. The generated Doxygen documentation is identical either way.
 
 #### Code should be `const` correct
-One of the best features of C++ is the ability to write a method signature so that the compiler can guarantee that an argument or data member will not be modified. This is specified using the `const` keyword. A program which uses `const` wherever it is appropriate, and propagates constness throughout, is called “const correct.” It is messy to take a non-const correct program and make it const correct later; that should be designed in from the start.
+One of the best features of C++ is the ability to write a method signature so that the compiler can guarantee that an argument or data member will not be modified. This is specified using the `const` keyword. A program which uses `const` wherever it is appropriate, and propagates constness throughout, is called "const correct." It is messy to take a non-const correct program and make it const correct later; that should be designed in from the start.
 
 In addition to catching many otherwise difficult-to-find or worse, unnoticed, bugs const correctness can have a direct impact on performance. A large data structure which must not be modified can be passed by reference (i.e., by address) safely to a black-box routine that declares that argument `const`. Conscientious programmers who would otherwise copy the data to ensure its integrity do not need to do so in that case, providing a large savings in memory use and often in run time performance.
 All Simbody software which is written in C++, or provides a C++ interface, must be const correct. We highly recommend this strategy for all programmers. It works.
@@ -243,7 +243,7 @@ This section collects tips for staying out of trouble in C++, and documents some
 #### Public class members come first
 Don’t make people look at your dirty laundry in order to use your classes. Start with the basic constructors (and copy assignment in C++). Then put important likely-to-be-used methods first, relegating obscure bookkeeping stuff to the end.
 
-Avoid public data members; use inline accessors instead. Even protected data members should be viewed suspiciously, especially if you expect people other than yourself to be deriving classes from yours. Occasionally this seems silly, especially for simple “plain old data” (POD) classes as described in the C++ standard. In that case you should at least put your public data members at the beginning of your class declaration so that they appear as part of the public interface rather than buried with the private stuff at the end.
+Avoid public data members; use inline accessors instead. Even protected data members should be viewed suspiciously, especially if you expect people other than yourself to be deriving classes from yours. Occasionally this seems silly, especially for simple "plain old data" (POD) classes as described in the C++ standard. In that case you should at least put your public data members at the beginning of your class declaration so that they appear as part of the public interface rather than buried with the private stuff at the end.
 
 #### Use anonymous namespaces
 If you define classes or external functions in C++ source, even if they appear nowhere else, those names will be exported at link time and may conflict with other names. If that's intentional, make sure the names are in the `SimTK` namespace or begin with `SimTK_`. If not, you should surround the declaration with an anonymous namespace:
@@ -258,7 +258,7 @@ For functions you can achieve the same thing by declaring them `static` (which y
 
 
 #### Don't waste lines on curly braces
-We do not like to see a lot of content-free lines using up vertical space in code and consequently prefer the style sometimes called “the one true brace” over conventions which attempt to align all paired braces. Here are some examples:
+We do not like to see a lot of content-free lines using up vertical space in code and consequently prefer the style sometimes called "the one true brace" over conventions which attempt to align all paired braces. Here are some examples:
 ```cpp
     if (a <= b) {
         // some code
@@ -275,7 +275,7 @@ We do not like to see a lot of content-free lines using up vertical space in cod
 ```
 When there is only a single statement within a control structure, there is no need for braces and we prefer that they not be used since that saves space. *Indentation* is the primary means for conveying code structure to human readers, so it matters a lot more that the indentation is right than where the braces are.
 
-For small inline functions whose entire definition can be fit on one line (typical for “accessors”), we are happy to see them defined like this:
+For small inline functions whose entire definition can be fit on one line (typical for "accessors"), we are happy to see them defined like this:
 ```cpp
     const Thing& getSomething() const {return m_thing;}
     void setSomething(const Thing& thing) {m_thing=thing;}
@@ -283,7 +283,7 @@ For small inline functions whose entire definition can be fit on one line (typic
 Many programmers think those are immoral; if that's you, feel free to use more lines. But we're glad to get these little methods over with and fully understandable with very little screen real estate.
 
 #### Throw and return are not functions
-In C++ `throw` and `return` are not functions. It is misleading to enclose their arguments in parentheses. That is, you should write `return x;` not `return(x);`. A parenthesized expression is not treated the same as a function argument list. For example `f(a,b)` and `return(a,b)` mean very different things -- the former is a 2-argument function call; the latter is an invocation of the rarely-used “comma operator”.
+In C++ `throw` and `return` are not functions. It is misleading to enclose their arguments in parentheses. That is, you should write `return x;` not `return(x);`. A parenthesized expression is not treated the same as a function argument list. For example `f(a,b)` and `return(a,b)` mean very different things -- the former is a 2-argument function call; the latter is an invocation of the rarely-used "comma operator".
 
 #### *Pre*fer *pre*-increment and *pre*-decrement operators
 Operators for both pre-increment (`++i`) and post-increment (`i++`) are available in C++. If you don’t look at the result, they are logically equivalent. For simple types they are physically equivalent too. But for complicated types (like iterators), the pre-increment operators are much cheaper computationally, because they don’t require separate storage for saving the previous result. Therefore you should get in the habit of using pre-increment (or pre-decrement) in all your loops:
@@ -340,9 +340,9 @@ MyClass& operator=(const MyClass& source) {
 } 
 ```
 
-A common mistake is to leave out the `if`. Since the “copy stuff” part often begins by deleting the contents of “this”, a self assignment like a=a will fail without those lines; that is always supposed to work (and does for all the built-in and standard library types). Of course no one intentionally does that kind of assignment, but they occur anyway in general code since you don’t always know where the source comes from.
+A common mistake is to leave out the `if`. Since the "copy stuff" part often begins by deleting the contents of "this", a self assignment like a=a will fail without those lines; that is always supposed to work (and does for all the built-in and standard library types). Of course no one intentionally does that kind of assignment, but they occur anyway in general code since you don’t always know where the source comes from.
 
-If the “copy stuff” part consists only of assignments that work for self assignment, then you can get away without the test, but unless you’ve thought it through carefully you should just get in the habit of putting in the test.
+If the "copy stuff" part consists only of assignments that work for self assignment, then you can get away without the test, but unless you’ve thought it through carefully you should just get in the habit of putting in the test.
 
 
 
