@@ -15,7 +15,7 @@ env:
   # matrix is defined by the environment variables defined on the line, which
   # should be space-delimited. For example,
   # - ABC=ON DEF=OFF GHI=ON
-  - CPP11=OFF BTYPE=Release
+  # Simbody 3.6 and up requires c++11
   - CPP11=ON BTYPE=Release
   
 matrix:
