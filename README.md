@@ -111,24 +111,24 @@ Installing
 
 Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
 
-1. [**Windows**](#windows-and-visual-studio): build from source using Microsoft Visual Studio
-2. [**Mac**](#mac-and-homebrew): install with Homebrew
-3. [**Ubuntu**](#ubuntu-and-apt-get): install with apt-get
-4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's
+1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
+3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
+2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
+4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
 
-Windows and Visual Studio
--------------------------
+Windows using Visual Studio
+---------------------------
 
 #### Get the dependencies
 
-We give the linear algebra dependencies to you, and Windows comes with the visualization dependencies.
+All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies. 
 
-1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop*.
-2. Download and install CMake.
-3. If you want to build API documentation, download and install Doxygen as well.
+1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The “Community Edition” is free for “non-enterprise” use. The “Express” edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
+2. Download and install [CMake](http://www.cmake.org/download), version 2.8.6 or higher.
+3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 
 #### Download the Simbody source code
 
@@ -140,7 +140,7 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
             $ git checkout Simbody-3.5
 
-    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
+    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version (“bleeding edge”) of Simbody off the master branch, you can omit the `checkout` line.
 
 #### Configure and generate project files
 
@@ -218,87 +218,8 @@ How is your Simbody installation organized?
 * `cmake/` CMake files that are useful for projects that use Simbody.
 
 
-Mac and Homebrew
-----------------
-
-If using a Mac and Homebrew, the dependencies are taken care of for you.
-
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
-
-#### Install
-
-1. Install [Homebrew](http://brew.sh/).
-2. Open a terminal.
-3. Add the Open Source Robotics Foundation's list of repositories to Homebrew:
-    ```
-    $ brew tap osrf/simulation
-    ```
-
-2. Install the latest release of Simbody.
-    ```
-    $ brew install simbody
-    ```
-    To install from the master branch instead, append ` --HEAD` to the command above.
-
-#### Where is Simbody installed?
-
-Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.5`), or `HEAD` if you specified `--HEAD` above.
-
-Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
-
-* `include/simbody   -> /usr/local/include/simbody`
-* `lib               -> /usr/local/lib`
-* `share/doc/simbody -> /usr/local/share/doc/simbody`
-
-#### Layout of installation
-
-What's in the `/usr/local/Cellar/simbody/<version>/` directory?
-
-* `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `lib/` shared libraries (.dylib's), used at runtime.
-    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
-    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
-* `libexec/simbody/` the `simbody-visualizer` executable.
-* `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
-    * `examples/` source code for the examples.
-
-
-Ubuntu and apt-get
-------------------
-
-You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
-
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
-
-#### Install
-
-1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
-        
-        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-        $ sudo apt-get update
-
-2. Install Simbody.
-
-        $ sudo apt-get update
-        $ sudo apt-get install libsimbody-dev simbody-doc
-
-#### Layout of installation
-
-Simbody is installed into the `usr/` directory.  The directory
-`[x86_64-linux-gnu]` varies by platform. 
-
-* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).
-    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
-    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-* `usr/libexec/simbody/` the `simbody-visualizer` executable.
-* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
-
-
-UNIX and Makefiles
-------------------
+Linux or Mac using make
+-----------------------
 
 These instructions are for building Simbody from source on either a Mac or on Ubuntu.
 
@@ -451,7 +372,91 @@ The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. Th
     * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `libexec/simbody/` the `simbody-visualizer` executable.
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
-    * `examples/` source code for the examples.
+    * `examples/src` source code for the examples.
+    * `examples/bin` symbolic link to the runnable examples.
+
+
+Mac and Homebrew
+----------------
+
+If using a Mac and Homebrew, the dependencies are taken care of for you.
+
+With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
+
+#### Install
+
+1. Install [Homebrew](http://brew.sh/).
+2. Open a terminal.
+3. Add the Open Source Robotics Foundation's list of repositories to Homebrew:
+    ```
+    $ brew tap osrf/simulation
+    ```
+
+2. Install the latest release of Simbody.
+    ```
+    $ brew install simbody
+    ```
+    To install from the master branch instead, append ` --HEAD` to the command above.
+
+#### Where is Simbody installed?
+
+Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.5`), or `HEAD` if you specified `--HEAD` above.
+
+Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
+
+* `include/simbody   -> /usr/local/include/simbody`
+* `lib               -> /usr/local/lib`
+* `share/doc/simbody -> /usr/local/share/doc/simbody`
+
+#### Layout of installation
+
+What's in the `/usr/local/Cellar/simbody/<version>/` directory?
+
+* `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `lib/` shared libraries (.dylib's), used at runtime.
+    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
+    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
+* `libexec/simbody/` the `simbody-visualizer` executable.
+* `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+    * `examples/src` source code for the examples.
+    * `examples/bin` symbolic link to executable examples.
+
+Ubuntu and apt-get
+------------------
+
+You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
+
+**Caution**: this installation method is still a work in progress. If you try it, please let us know on the [Simbody Forum](https://simtk.org/forums/viewforum.php?f=47) if it worked or if not, what problems you encountered.
+
+With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
+
+#### Install
+
+1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
+        
+        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
+        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+        $ sudo apt-get update
+
+2. Install Simbody.
+
+        $ sudo apt-get update
+        $ sudo apt-get install libsimbody-dev libsimbody-doc
+
+#### Layout of installation
+
+Simbody is installed into the `usr/` directory.  The directory
+`[x86_64-linux-gnu]` varies by platform. 
+
+* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).
+    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
+    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+* `usr/libexec/simbody/` the `simbody-visualizer` executable.
+* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+    * `examples/src` source code for the examples.
+    * `examples/bin` symbolic link to executable examples.
 
 
 Acknowledgments
