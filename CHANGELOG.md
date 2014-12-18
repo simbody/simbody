@@ -6,7 +6,7 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 **Heads up**: Simbody 3.5 will be the last release that will build with C++03 (future patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
 
-3.5 (17 Dec 2014)
+3.5 (18 Dec 2014)
 -----------------
 This release focused primarily on infrastructure for and prototyping of rigid contact and impact, and the development of examples showing how to perform task space control using Simbody. These two projects were supported by our DARPA research subcontract with Open Source Robotics Foundation, and were integrated with Gazebo. Further development for rigid contact is required for smooth integration into Simbody; this is planned for Simbody 4.0 and only the bravest among you should attempt to use rigid contact before then. The task space control examples `TaskSpaceControl-UR10` and `TaskSpaceControl-Atlas` can be found in the Simbody examples directory.
 
