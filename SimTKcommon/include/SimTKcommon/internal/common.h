@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Chris Dembia                                                 *
  *                                                                            *
@@ -247,6 +247,10 @@ cache misses which ultimately reduce performance. */
     #define SimTK_FORCE_INLINE __attribute__((always_inline))
 #endif
 
+/* These macros are deprecated, leftover from before C++11 was available. 
+Don't use them. */
+#define OVERRIDE_11 override
+#define FINAL_11 final
 
 /* In Microsoft VC++ 11 (2012) and earlier these C99-compatible floating 
 point functions are missing. We'll create them here and install them into 
