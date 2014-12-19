@@ -544,7 +544,7 @@ public:
                                 const Vec3& p, const UnitVec3& e)
     :   Differentiator::JacobianFunction(3,3), geom(geom), p(p), e(e) { }
 
-    int f(const Vector& xvec, Vector& f) const OVERRIDE_11 {
+    int f(const Vector& xvec, Vector& f) const override {
         const Vec3& x = Vec3::getAs(&xvec[0]);
         UnitVec3 n; Vec3 closestPointOnLine; // not used
         const Vec3 eps = calcExtremePointError(x, n, closestPointOnLine);

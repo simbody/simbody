@@ -65,7 +65,7 @@ public:
     void setShowStartFrameOnly(bool showStart) {startFrameOnly=showStart;}
 
     void generateDecorations(const State& state,
-        Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) override
     {
         geometry.push_back(DecorativeLine(P,Q));
         geometry.push_back(

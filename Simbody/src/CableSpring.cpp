@@ -65,19 +65,19 @@ friend class CableSpring;
     }
 
     // Implementation of virtual methods from ForceImpl:
-    Impl* clone() const OVERRIDE_11 {return new Impl(*this);}
-    bool dependsOnlyOnPositions() const OVERRIDE_11 {return false;}
+    Impl* clone() const override {return new Impl(*this);}
+    bool dependsOnlyOnPositions() const override {return false;}
 
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11 
+                   override 
     {   
         const ForceCache& forceCache = ensureForceCacheValid(state);
         path.applyBodyForces(state, forceCache.f, bodyForces); 
     }
 
     // We're not bothering to cache P.E. -- just recalculate it when asked.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 
+    Real calcPotentialEnergy(const State& state) const override 
     {
         const InstanceVars& inst = getInstanceVars(state);
         const Real x = calcStretch(state, inst); // x >= 0
@@ -86,7 +86,7 @@ friend class CableSpring;
     }
 
     // Allocate the state variables and cache entry. 
-    void realizeTopology(State& s) const OVERRIDE_11 {
+    void realizeTopology(State& s) const override {
         // Allocate the discrete variable for instance parameters.
         const InstanceVars iv(defK,defL0,defC);
         instanceVarsIx = getForceSubsystem()

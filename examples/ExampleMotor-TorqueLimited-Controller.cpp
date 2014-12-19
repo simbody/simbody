@@ -159,20 +159,20 @@ public:
     void calcForce(const State&         state, 
                    Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>&       particleForces, 
-                   Vector&              mobilityForces) const OVERRIDE_11
+                   Vector&              mobilityForces) const override
     {
         m_mobod.applyOneMobilityForce(state, m_whichU, getTorque(state), 
                                       mobilityForces);
     }
 
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+    Real calcPotentialEnergy(const State& state) const override {
         return 0;
     }
 
     // Allocate state variables: 
     //   Discrete variables for desired speed and torque limit;
     //   a continuous variable for the integral torque (a "z").
-    void realizeTopology(State& state) const OVERRIDE_11 {
+    void realizeTopology(State& state) const override {
         m_desiredUIx = m_matter.allocateDiscreteVariable
            (state, Stage::Acceleration, new Value<Real>(InitialMotorSpeed));
         m_torqueLimitIx = m_matter.allocateDiscreteVariable
@@ -181,7 +181,7 @@ public:
     }
 
     // Calculate the derivative for the integral control state.
-    void realizeAcceleration(const State& state) const OVERRIDE_11 {
+    void realizeAcceleration(const State& state) const override {
         const Real integTrq = m_matter.getZ(state)[m_trqIx];
         const Real trqLimit  = getTorqueLimit(state);
         const Real abstrq=std::abs(integTrq), trqsign = (Real)sign(integTrq);
@@ -450,7 +450,7 @@ public:
     ShowStuff(const MyMechanism& mech) : m_mech(mech) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         DecorativeText msg;
         msg.setIsScreenText(true);

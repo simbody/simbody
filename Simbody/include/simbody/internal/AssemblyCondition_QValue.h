@@ -57,7 +57,7 @@ public:
 
     // For constraint:
     int getNumEquations(const State&) const {return 1;}
-    int calcErrors(const State& state, Vector& error) const OVERRIDE_11 {
+    int calcErrors(const State& state, Vector& error) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
         error.resize(1);
@@ -66,7 +66,7 @@ public:
     }
     // Error jacobian is a zero-row except for a 1 in this q's entry (if
     // this q is free).
-    int calcErrorJacobian(const State& state, Matrix& J) const OVERRIDE_11 {
+    int calcErrorJacobian(const State& state, Matrix& J) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
         J.resize(1, getNumFreeQs());
@@ -85,7 +85,7 @@ public:
     }
 
     // For goal: goal = (q-value)^2 / 2 (the /2 is for gradient beauty)
-    int calcGoal(const State& state, Real& goal) const OVERRIDE_11 {
+    int calcGoal(const State& state, Real& goal) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
         goal = square(mobod.getOneQ(state, qIndex) - value) / 2;
@@ -93,7 +93,7 @@ public:
     }
     // Return a gradient with only this q's entry non-zero (if
     // this q is free).
-    int calcGoalGradient(const State& state, Vector& grad) const OVERRIDE_11 {
+    int calcGoalGradient(const State& state, Vector& grad) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const MobilizedBody& mobod = matter.getMobilizedBody(mobodIndex);
         grad.resize(getNumFreeQs());

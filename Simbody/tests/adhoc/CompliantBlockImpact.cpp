@@ -260,7 +260,7 @@ public:
 
     void generateControls(const Visualizer&             viz,
                           const State&                  state,
-                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+                          Array_< DecorativeGeometry >& geometry) override
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
         //const Vec3 p_GC = Bo + Vec3(0,4,2);

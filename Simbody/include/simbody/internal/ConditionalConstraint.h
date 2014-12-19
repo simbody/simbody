@@ -344,36 +344,36 @@ public:
     HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
              Real defaultUpperLimit, Real minCOR);
 
-    bool disable(State& state) const OVERRIDE_11 
+    bool disable(State& state) const override 
     {   if (m_upper.isDisabled(state)) return false;
         else {m_upper.disable(state); return true;} }
-    bool enable(State& state) const OVERRIDE_11 
+    bool enable(State& state) const override 
     {   if (!m_upper.isDisabled(state)) return false;
         else {m_upper.enable(state); return true;} }
-    bool isEnabled(const State& state) const OVERRIDE_11 
+    bool isEnabled(const State& state) const override 
     {   return !m_upper.isDisabled(state); }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr. Also, we want 
     // negative to mean violated so may need to adjust the sign.
-    Real getPerr(const State& state) const OVERRIDE_11;
-    Real getVerr(const State& state) const OVERRIDE_11;
-    Real getAerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
+    Real getVerr(const State& state) const override;
+    Real getAerr(const State& state) const override;
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
 private:
     MobilizedBody                   m_mobod;
@@ -402,36 +402,36 @@ public:
     HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
                   Real defaultLowerLimit, Real minCOR);
 
-    bool disable(State& state) const OVERRIDE_11 
+    bool disable(State& state) const override 
     {   if (m_lower.isDisabled(state)) return false;
         else {m_lower.disable(state); return true;} }
-    bool enable(State& state) const OVERRIDE_11 
+    bool enable(State& state) const override 
     {   if (!m_lower.isDisabled(state)) return false;
         else {m_lower.enable(state); return true;} }
-    bool isEnabled(const State& state) const OVERRIDE_11 
+    bool isEnabled(const State& state) const override 
     {   return !m_lower.isDisabled(state); }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr. Also, we want 
     // negative to mean violated so may need to adjust the sign.
-    Real getPerr(const State& state) const OVERRIDE_11;
-    Real getVerr(const State& state) const OVERRIDE_11;
-    Real getAerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
+    Real getVerr(const State& state) const override;
+    Real getAerr(const State& state) const override;
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 private:
     MobilizedBody                   m_mobod;
     Real                            m_defaultLowerLimit;
@@ -462,35 +462,35 @@ public:
          MobilizedBody& mobod2, const Vec3& point2,
          Real defaultLengthLimit, Real minCOR);
 
-    bool disable(State& state) const OVERRIDE_11 
+    bool disable(State& state) const override 
     {   if (m_rod.isDisabled(state)) return false;
         else {m_rod.disable(state); return true;} }
-    bool enable(State& state) const OVERRIDE_11 
+    bool enable(State& state) const override 
     {   if (!m_rod.isDisabled(state)) return false;
         else {m_rod.enable(state); return true;} }
-    bool isEnabled(const State& state) const OVERRIDE_11 
+    bool isEnabled(const State& state) const override 
     {   return !m_rod.isDisabled(state); }
 
     // Returns half-way location in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.
-    Real getPerr(const State& state) const OVERRIDE_11;
-    Real getVerr(const State& state) const OVERRIDE_11;
-    Real getAerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
+    Real getVerr(const State& state) const override;
+    Real getAerr(const State& state) const override;
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 private:
     Real                            m_minCOR;
     Constraint::Rod                 m_rod;
@@ -510,48 +510,48 @@ public:
         MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
         MobilizedBody& followerBodyF, const Vec3& point_F, Real minCOR);
 
-    bool disable(State& state) const OVERRIDE_11 {
+    bool disable(State& state) const override {
         if (m_ptInPlane.isDisabled(state)) return false;
         m_ptInPlane.disable(state);
         return true;
     }
 
-    bool enable(State& state) const OVERRIDE_11 {
+    bool enable(State& state) const override {
         if (!m_ptInPlane.isDisabled(state)) return false;
         m_ptInPlane.enable(state);
         return true;
     }
 
-    bool isEnabled(const State& state) const OVERRIDE_11 {
+    bool isEnabled(const State& state) const override {
         return !m_ptInPlane.isDisabled(state);
     }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.
-    Real getPerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
 
     // We won't need to look at these except for proximal constraints which
     // will already have been enabled, so no need to fake.
-    Real getVerr(const State& state) const OVERRIDE_11
+    Real getVerr(const State& state) const override
     {   return m_ptInPlane.getVelocityError(state); }
-    Real getAerr(const State& state) const OVERRIDE_11
+    Real getAerr(const State& state) const override
     {   return m_ptInPlane.getAccelerationError(state); }
 
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
 private:
     MobilizedBody               m_planeBody;    // body P
@@ -582,68 +582,68 @@ public:
         MobilizedBody& followerBodyF, const Vec3& point_F, 
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
-    bool disable(State& state) const OVERRIDE_11 {
+    bool disable(State& state) const override {
         if (m_ptInPlane.isDisabled(state)) return false;
         m_ptInPlane.disable(state);
         return true;
     }
 
-    bool enable(State& state) const OVERRIDE_11 {
+    bool enable(State& state) const override {
         if (!m_ptInPlane.isDisabled(state)) return false;
         m_ptInPlane.enable(state);
         return true;
     }
 
-    bool isEnabled(const State& state) const OVERRIDE_11 {
+    bool isEnabled(const State& state) const override {
         return !m_ptInPlane.isDisabled(state);
     }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.
-    Real getPerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
 
     // We won't need to look at these except for proximal constraints which
     // will already have been enabled, so no need to fake.
-    Real getVerr(const State& state) const OVERRIDE_11
+    Real getVerr(const State& state) const override
     {   return m_ptInPlane.getVelocityErrors(state)[2]; }
-    Real getAerr(const State& state) const OVERRIDE_11
+    Real getAerr(const State& state) const override
     {   return m_ptInPlane.getAccelerationErrors(state)[2]; }
 
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    bool hasFriction(const State& state) const OVERRIDE_11
+    bool hasFriction(const State& state) const override
     {   return true; }
 
-    Vec2 getSlipVelocity(const State& state) const  OVERRIDE_11 {
+    Vec2 getSlipVelocity(const State& state) const  override {
         const Vec3 v = m_ptInPlane.getVelocityErrors(state);
         return Vec2(v[0], v[1]);
     }
 
     Real calcEffectiveCOF(const State& state,
                           Real defaultTransitionSpeed,
-                          Real slipSpeed) const OVERRIDE_11
+                          Real slipSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
     void getFrictionMultiplierIndices(const State&     s, 
                                       MultiplierIndex& ix_x, 
-                                      MultiplierIndex& ix_y) const OVERRIDE_11;
+                                      MultiplierIndex& ix_y) const override;
 
 private:
     MobilizedBody               m_planeBody;    // body P
@@ -674,68 +674,68 @@ public:
         MobilizedBody& followerBodyF, const Vec3& point_F, Real radius,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
-    bool disable(State& state) const OVERRIDE_11 {
+    bool disable(State& state) const override {
         if (m_sphereOnPlane.isDisabled(state)) return false;
         m_sphereOnPlane.disable(state);
         return true;
     }
 
-    bool enable(State& state) const OVERRIDE_11 {
+    bool enable(State& state) const override {
         if (!m_sphereOnPlane.isDisabled(state)) return false;
         m_sphereOnPlane.enable(state);
         return true;
     }
 
-    bool isEnabled(const State& state) const OVERRIDE_11 {
+    bool isEnabled(const State& state) const override {
         return !m_sphereOnPlane.isDisabled(state);
     }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.
-    Real getPerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
 
     // We won't need to look at these except for proximal constraints which
     // will already have been enabled, so no need to fake.
-    Real getVerr(const State& state) const OVERRIDE_11
+    Real getVerr(const State& state) const override
     {   return m_sphereOnPlane.getVelocityErrors(state)[2]; }
-    Real getAerr(const State& state) const OVERRIDE_11
+    Real getAerr(const State& state) const override
     {   return m_sphereOnPlane.getAccelerationErrors(state)[2]; }
 
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    bool hasFriction(const State& state) const OVERRIDE_11
+    bool hasFriction(const State& state) const override
     {   return true; }
 
-    Vec2 getSlipVelocity(const State& state) const  OVERRIDE_11 {
+    Vec2 getSlipVelocity(const State& state) const  override {
         const Vec3 v = m_sphereOnPlane.getVelocityErrors(state);
         return Vec2(v[0], v[1]);
     }
 
     Real calcEffectiveCOF(const State& state,
                           Real defaultTransitionSpeed,
-                          Real slipSpeed) const OVERRIDE_11
+                          Real slipSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
     void getFrictionMultiplierIndices(const State&     s, 
                                       MultiplierIndex& ix_x, 
-                                      MultiplierIndex& ix_y) const OVERRIDE_11;
+                                      MultiplierIndex& ix_y) const override;
 
 private:
     Real                        m_minCOR;
@@ -764,68 +764,68 @@ public:
         Real                defaultRadiusOnB,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
-    bool disable(State& state) const OVERRIDE_11 {
+    bool disable(State& state) const override {
         if (m_sphereOnSphere.isDisabled(state)) return false;
         m_sphereOnSphere.disable(state);
         return true;
     }
 
-    bool enable(State& state) const OVERRIDE_11 {
+    bool enable(State& state) const override {
         if (!m_sphereOnSphere.isDisabled(state)) return false;
         m_sphereOnSphere.enable(state);
         return true;
     }
 
-    bool isEnabled(const State& state) const OVERRIDE_11 {
+    bool isEnabled(const State& state) const override {
         return !m_sphereOnSphere.isDisabled(state);
     }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.
-    Real getPerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
 
     // We won't need to look at these except for proximal constraints which
     // will already have been enabled, so no need to fake.
-    Real getVerr(const State& state) const OVERRIDE_11
+    Real getVerr(const State& state) const override
     {   return m_sphereOnSphere.getVelocityErrors(state)[2]; }
-    Real getAerr(const State& state) const OVERRIDE_11
+    Real getAerr(const State& state) const override
     {   return m_sphereOnSphere.getAccelerationErrors(state)[2]; }
 
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    bool hasFriction(const State& state) const OVERRIDE_11
+    bool hasFriction(const State& state) const override
     {   return true; }
 
-    Vec2 getSlipVelocity(const State& state) const  OVERRIDE_11 {
+    Vec2 getSlipVelocity(const State& state) const  override {
         const Vec3 v = m_sphereOnSphere.getVelocityErrors(state);
         return Vec2(v[0], v[1]);
     }
 
     Real calcEffectiveCOF(const State& state,
                           Real defaultTransitionSpeed,
-                          Real slipSpeed) const OVERRIDE_11
+                          Real slipSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
     void getFrictionMultiplierIndices(const State&     s, 
                                       MultiplierIndex& ix_x, 
-                                      MultiplierIndex& ix_y) const OVERRIDE_11;
+                                      MultiplierIndex& ix_y) const override;
 
 private:
     Real                        m_minCOR;
@@ -860,68 +860,68 @@ public:
         Real                defaultHalfLengthB,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
-    bool disable(State& state) const OVERRIDE_11 {
+    bool disable(State& state) const override {
         if (m_lineOnLine.isDisabled(state)) return false;
         m_lineOnLine.disable(state);
         return true;
     }
 
-    bool enable(State& state) const OVERRIDE_11 {
+    bool enable(State& state) const override {
         if (!m_lineOnLine.isDisabled(state)) return false;
         m_lineOnLine.enable(state);
         return true;
     }
 
-    bool isEnabled(const State& state) const OVERRIDE_11 {
+    bool isEnabled(const State& state) const override {
         return !m_lineOnLine.isDisabled(state);
     }
 
     // Returns the contact point in the Ground frame.
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11;
+    Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
     // disabled in which case it won't calculate perr.
-    Real getPerr(const State& state) const OVERRIDE_11;
+    Real getPerr(const State& state) const override;
 
     // We won't need to look at these except for proximal constraints which
     // will already have been enabled, so no need to fake.
-    Real getVerr(const State& state) const OVERRIDE_11
+    Real getVerr(const State& state) const override
     {   return m_lineOnLine.getVelocityErrors(state)[2]; }
-    Real getAerr(const State& state) const OVERRIDE_11
+    Real getAerr(const State& state) const override
     {   return m_lineOnLine.getAccelerationErrors(state)[2]; }
 
 
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const OVERRIDE_11 
+                          Real impactSpeed) const override 
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
 
-    bool hasFriction(const State& state) const OVERRIDE_11
+    bool hasFriction(const State& state) const override
     {   return true; }
 
-    Vec2 getSlipVelocity(const State& state) const  OVERRIDE_11 {
+    Vec2 getSlipVelocity(const State& state) const  override {
         const Vec3 v = m_lineOnLine.getVelocityErrors(state);
         return Vec2(v[0], v[1]);
     }
 
     Real calcEffectiveCOF(const State& state,
                           Real defaultTransitionSpeed,
-                          Real slipSpeed) const OVERRIDE_11
+                          Real slipSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
-    MultiplierIndex getContactMultiplierIndex(const State& s) const OVERRIDE_11;
+    MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
     void getFrictionMultiplierIndices(const State&     s, 
                                       MultiplierIndex& ix_x, 
-                                      MultiplierIndex& ix_y) const OVERRIDE_11;
+                                      MultiplierIndex& ix_y) const override;
 
 private:
     Real                        m_minCOR;

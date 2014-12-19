@@ -59,7 +59,7 @@ public:
 
     void generateControls(const Visualizer&             viz, 
                           const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+                          Array_< DecorativeGeometry >& geometry) override
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
         const Vec3 p_GC = Bo + Vec3(0, 8, m_distance); // above and back
@@ -94,7 +94,7 @@ public:
     //                       Custom force virtuals
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
@@ -103,11 +103,11 @@ public:
     }
 
     // No potential energy.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
        (const State& state, Stage stage, 
-        Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
         if (stage != Stage::Time) return;
@@ -195,7 +195,7 @@ public:
     :   m_ts(ts) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         const MultibodySystem& mbs = m_ts.getMultibodySystem();
         const Real TextScale = mbs.getDefaultLengthScale()/10; // was .1
@@ -257,12 +257,12 @@ class TimsBox : public AugmentedMultibodySystem {
 public:
     TimsBox();
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    const MobilizedBody& getBodyToWatch() const override
     {   return m_brick; }
 
-    Real getWatchDistance() const OVERRIDE_11 
+    Real getWatchDistance() const override 
     {   return 8; }
 
 private:
@@ -281,11 +281,11 @@ public:
     BouncingBalls();
     ~BouncingBalls() {delete m_contactForces; delete m_tracker;}
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody nobod; return nobod; }
-    Real getWatchDistance() const OVERRIDE_11 {return 20.;}
+    Real getWatchDistance() const override {return 20.;}
 
     const MobilizedBody::Slider& getHBall(int i) const {return m_Hballs[i];}
     const MobilizedBody::Slider& getPBall(int i) const {return m_Pballs[i];}
@@ -311,13 +311,13 @@ public:
     Pencil();
     ~Pencil() {delete m_contactForces; delete m_tracker;}
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody none; return none; }
-    Real getWatchDistance() const OVERRIDE_11 {return 30.;}
-    void addRubberBandLines(Visualizer& viz) const OVERRIDE_11;
-    Real getRuntime() const OVERRIDE_11 {return 75.;}
+    Real getWatchDistance() const override {return 30.;}
+    void addRubberBandLines(Visualizer& viz) const override;
+    Real getRuntime() const override {return 75.;}
 
     const MobilizedBody::Planar& getPencil() const {return m_pencil;}
     const MobilizedBody::Free& getBall() const {return m_ball;}
@@ -347,11 +347,11 @@ public:
     Block();
     ~Block() {}
 
-    void calcInitialState(State& state) const OVERRIDE_11;
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    void calcInitialState(State& state) const override;
+    const MobilizedBody& getBodyToWatch() const override
     {   return m_block; }
 
-    Real getWatchDistance() const OVERRIDE_11 
+    Real getWatchDistance() const override 
     {   return 20; }
 
     const MobilizedBody::Free& getBlock() const {return m_block;}
@@ -375,11 +375,11 @@ public:
     Edges();
     ~Edges() {}
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody mobod; return mobod; }
-    Real getWatchDistance() const OVERRIDE_11 
+    Real getWatchDistance() const override 
     {   return 30; }
 
     const MobilizedBody& getSwingingBlock() const {return m_swinger;}

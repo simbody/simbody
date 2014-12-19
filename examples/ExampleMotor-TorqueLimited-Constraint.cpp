@@ -499,7 +499,7 @@ public:
     ShowStuff(const MyMechanism& mech) : m_mech(mech) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         DecorativeText msg;
         msg.setIsScreenText(true);

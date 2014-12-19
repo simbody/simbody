@@ -115,23 +115,23 @@ public:
     void calcForce(const State&         state, 
                    Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>&       particleForces, 
-                   Vector&              mobilityForces) const OVERRIDE_11
+                   Vector&              mobilityForces) const override
     {
         m_mobod.applyOneMobilityForce(state, m_whichU, getTorque(state), 
                                       mobilityForces);
     }
 
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+    Real calcPotentialEnergy(const State& state) const override {
         return 0;
     }
 
-    void realizeTopology(State& state) const OVERRIDE_11 {
+    void realizeTopology(State& state) const override {
         m_desiredUIx = m_matter.allocateDiscreteVariable
            (state, Stage::Acceleration, new Value<Real>(0));
         m_trqIx = m_matter.allocateZ(state, Vector(1,Real(0)));
     }
 
-    void realizeAcceleration(const State& state) const OVERRIDE_11 {
+    void realizeAcceleration(const State& state) const override {
         const Real integTrq = m_matter.getZ(state)[m_trqIx];
         const Real abstrq=std::abs(integTrq), trqsign = sign(integTrq);
 

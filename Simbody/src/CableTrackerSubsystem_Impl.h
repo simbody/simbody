@@ -52,7 +52,7 @@ Impl() {}
 
 ~Impl() {}
 
-Impl* cloneImpl() const OVERRIDE_11 
+Impl* cloneImpl() const override 
 {   return new Impl(*this); }
 
 int getNumCablePaths() const {return cablePaths.size();}
@@ -82,7 +82,7 @@ const SimbodyMatterSubsystem& getMatterSubsystem() const
 // TODO
 
 void calcEventTriggerInfoImpl
-   (const State& state, Array_<EventTriggerInfo>& info) const OVERRIDE_11
+   (const State& state, Array_<EventTriggerInfo>& info) const override
 {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
@@ -93,7 +93,7 @@ void calcEventTriggerInfoImpl
 void handleEventsImpl
    (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
     const HandleEventsOptions& options, 
-    HandleEventsResults& results) const OVERRIDE_11
+    HandleEventsResults& results) const override
 {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
@@ -103,7 +103,7 @@ void handleEventsImpl
 }
 
 // Allocate state variables.
-int realizeSubsystemTopologyImpl(State& state) const OVERRIDE_11 {
+int realizeSubsystemTopologyImpl(State& state) const override {
     // Briefly allow writing into the Topology cache; after this the
     // Topology cache is const.
     Impl* wThis = const_cast<Impl*>(this);
@@ -116,7 +116,7 @@ int realizeSubsystemTopologyImpl(State& state) const OVERRIDE_11 {
     return 0;
 }
 
-int realizeSubsystemInstanceImpl(const State& state) const OVERRIDE_11 {
+int realizeSubsystemInstanceImpl(const State& state) const override {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
         path.getImpl().realizeInstance(state);
@@ -124,7 +124,7 @@ int realizeSubsystemInstanceImpl(const State& state) const OVERRIDE_11 {
     return 0;
 }
 
-int realizeSubsystemPositionImpl(const State& state) const OVERRIDE_11 {
+int realizeSubsystemPositionImpl(const State& state) const override {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
         path.getImpl().realizePosition(state);
@@ -132,7 +132,7 @@ int realizeSubsystemPositionImpl(const State& state) const OVERRIDE_11 {
     return 0;
 }
 
-int realizeSubsystemVelocityImpl(const State& state) const OVERRIDE_11 {
+int realizeSubsystemVelocityImpl(const State& state) const override {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
         path.getImpl().realizeVelocity(state);
@@ -141,7 +141,7 @@ int realizeSubsystemVelocityImpl(const State& state) const OVERRIDE_11 {
 }
 
 
-int realizeSubsystemAccelerationImpl(const State& state) const OVERRIDE_11 {
+int realizeSubsystemAccelerationImpl(const State& state) const override {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
         const CablePath& path = getCablePath(ix);
         path.getImpl().realizeAcceleration(state);
@@ -152,7 +152,7 @@ int realizeSubsystemAccelerationImpl(const State& state) const OVERRIDE_11 {
 int calcDecorativeGeometryAndAppendImpl
    (const State&                state, 
     Stage                       stage, 
-    Array_<DecorativeGeometry>& decorations) const OVERRIDE_11 
+    Array_<DecorativeGeometry>& decorations) const override 
 {
     if (stage != Stage::Position)
         return 0;

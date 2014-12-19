@@ -341,7 +341,7 @@ public:
     // This is called during realize(Dynamics).
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         const MyHybridContactInfo& info = getContactInfo(state);
         if (info.h >= 0) 
@@ -353,7 +353,7 @@ public:
     }
 
     // The normal force stores energy as 2/5 k h^(5/2) when h<0.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+    Real calcPotentialEnergy(const State& state) const override {
         const MyHybridContactInfo& info = getContactInfo(state);
         if (info.h >= 0) 
             return 0; // no contact
@@ -363,7 +363,7 @@ public:
     }
 
     // Allocate state variable for storing the previous sliding direction.
-    void realizeTopology(State& state) const OVERRIDE_11 {
+    void realizeTopology(State& state) const override {
         // The previous sliding direction is used in an event witness that 
         // is evaluated at Velocity stage.
         m_prevSlipDirIx = m_forces.allocateAutoUpdateDiscreteVariable
@@ -377,7 +377,7 @@ public:
 
     // Calculate everything here and save in contact info cache entry where
     // it can be retrieved for generating forces, reporting, etc.
-    void realizeVelocity(const State& state) const OVERRIDE_11 {
+    void realizeVelocity(const State& state) const override {
         MyHybridContactInfo& info = updContactInfo(state);
 
         // Forces generated only if h<0. Cp always be the projection of the
@@ -443,7 +443,7 @@ public:
     // If we're sliding, set the update value for the previous slip direction
     // if the current slip velocity is usable.
     #ifndef USE_CONTINUOUS_STICTION
-    void realizeAcceleration(const State& state) const OVERRIDE_11 {
+    void realizeAcceleration(const State& state) const override {
         const MyHybridContactInfo& info = getContactInfo(state);
         const Vec2& prevSlipDir = getPrevSlipDir(state);
 
@@ -854,7 +854,7 @@ public:
     :   m_unis(unis) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         for (int i=0; i < m_unis.getNumContactElements(); ++i) {
             const MyHybridVertexContactElementImpl& contact = 
@@ -895,7 +895,7 @@ public:
 
     void generateControls(const Visualizer&             viz, 
                           const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+                          Array_< DecorativeGeometry >& geometry) override
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
         const Vec3 p_GC = Bo + Vec3(0, 1, 5); // above and back
@@ -1057,7 +1057,7 @@ public:
     //                       Custom force virtuals
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
@@ -1069,11 +1069,11 @@ public:
     }
 
     // No potential energy.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
        (const State& state, Stage stage, 
-        Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
         if (stage != Stage::Time) return;

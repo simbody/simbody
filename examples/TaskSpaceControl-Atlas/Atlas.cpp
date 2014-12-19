@@ -40,7 +40,7 @@ public:
     :   PeriodicEventHandler(interval), m_realRobot(realRobot) {}
 
     // This method is called whenever this event occurs.
-    void handleEvent(State& state, Real, bool&) const OVERRIDE_11;
+    void handleEvent(State& state, Real, bool&) const override;
 
 private:
     const Atlas&                m_realRobot;

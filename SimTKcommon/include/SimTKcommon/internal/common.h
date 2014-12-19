@@ -237,25 +237,6 @@ extern "C" {
 #include <typeinfo>
 #include <algorithm>
 
-/* Transition macros for C++11 support. VC10 and VC11 have partial support for
-C++11, early VC's do not. If using gcc or Clang, we check for C++11 support. */
-#ifndef SWIG
-    #if _MSC_VER>=1700 || (defined(__GNUG__) && __cplusplus>=201103L)
-        /* VC11 or higher, OR using gcc or Clang and using C++11 */
-        #define OVERRIDE_11  override
-        #define FINAL_11     final
-    #elif _MSC_VER==1600 /* VC10 */
-        #define OVERRIDE_11  override
-        #define FINAL_11     sealed
-    #else /* gcc or Clang without C++11, or earlier VC */
-        #define OVERRIDE_11
-        #define FINAL_11
-    #endif
-#else /* Swigging */
-    #define OVERRIDE_11
-    #define FINAL_11
-#endif
-
 /* Be very careful with this macro -- don't use it unless you have measured
 a performance improvement. You can end up with serious code bloat if you 
 override the compiler's judgement about when to inline, and that can cause
@@ -266,6 +247,10 @@ cache misses which ultimately reduce performance. */
     #define SimTK_FORCE_INLINE __attribute__((always_inline))
 #endif
 
+/* These macros are deprecated, leftover from before C++11 was available. 
+Don't use them. */
+#define OVERRIDE_11 override
+#define FINAL_11 final
 
 /* In Microsoft VC++ 11 (2012) and earlier these C99-compatible floating 
 point functions are missing. We'll create them here and install them into 
