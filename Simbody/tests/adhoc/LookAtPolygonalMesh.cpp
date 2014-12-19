@@ -42,7 +42,7 @@ public:
     void setMesh(const PolygonalMesh& mesh) {m_mesh=mesh;}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         const Real TextScale = 0.1;
         DecorativeText info; info.setIsScreenText(true);

@@ -121,9 +121,9 @@ public:
         return Value<EventRegistry>::downcast(updCacheEntry(s, eventRegistry)); }
 
     // implementations of Subsystem::Guts virtuals
-    SystemSubsystemGuts* cloneImpl() const OVERRIDE_11
+    SystemSubsystemGuts* cloneImpl() const override
     {   return new SystemSubsystemGuts(*this); }
-    int realizeSubsystemTopologyImpl(State& s) const OVERRIDE_11 {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         eventRegistry = allocateCacheEntry(s, Stage::Instance, 
                                            new Value<EventRegistry>());
         return 0;
@@ -165,31 +165,31 @@ public:
     SystemSubsystem& updSystemSubsystem() {return syssub;}
 
     // implementations of System::Guts virtuals
-    TestSystemGuts* cloneImpl() const OVERRIDE_11
+    TestSystemGuts* cloneImpl() const override
     {   return new TestSystemGuts(*this); }
 
-    bool prescribeQImpl(State& state) const OVERRIDE_11
+    bool prescribeQImpl(State& state) const override
     {
         return false;
     }
-    bool prescribeUImpl(State& state) const OVERRIDE_11
+    bool prescribeUImpl(State& state) const override
     {
         return false;
     }
     void projectQImpl(State& state, Vector& yerrest, const ProjectOptions& opts, 
-                     ProjectResults& result) const OVERRIDE_11
+                     ProjectResults& result) const override
     {   
         result.setExitStatus(ProjectResults::Succeeded);
     }
     void projectUImpl(State& state, Vector& yerrest, const ProjectOptions& opts, 
-                     ProjectResults& result) const OVERRIDE_11
+                     ProjectResults& result) const override
     {
         result.setExitStatus(ProjectResults::Succeeded);
     }
     void handleEventsImpl
        (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const
-        OVERRIDE_11
+        override
     {
         cout << "handleEventsImpl t=" << s.getTime() 
              << " cause=" << Event::getCauseName(cause) << endl;
@@ -225,7 +225,7 @@ public:
     }
 
     int reportEventsImpl(const State& s, Event::Cause cause, 
-                         const Array_<EventId>& eventIds) const OVERRIDE_11
+                         const Array_<EventId>& eventIds) const override
     {
         cout << "reportEventsImpl t=" << s.getTime() << " cause=" 
              << Event::getCauseName(cause) << endl;
@@ -300,25 +300,25 @@ public:
 
     // implementations of Subsystem::Guts virtuals
 
-    TestSubsystemGuts* cloneImpl() const OVERRIDE_11
+    TestSubsystemGuts* cloneImpl() const override
     {   return new TestSubsystemGuts(*this); }
 
 
-    int realizeSubsystemTopologyImpl(State& s) const OVERRIDE_11 {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         myStateVars = allocateCacheEntry(s, Stage::Model, new Value<StateVars>());
         myCacheEntries = allocateCacheEntry(s, Stage::Instance, new Value<CacheEntries>());
         return 0;
     }
 
 
-    int realizeSubsystemModelImpl(State& s) const OVERRIDE_11 {
+    int realizeSubsystemModelImpl(State& s) const override {
         StateVars& vars = updStateVars(s);
         vars.myQs = allocateQ(s, Vector(Vec3(0)));
         vars.myUs = allocateU(s, Vector(Vec3(0)));
         return 0;
     }
 
-    int realizeSubsystemInstanceImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemInstanceImpl(const State& s) const override {
         CacheEntries& cache = updCacheEntries(s);
         cache.qSumCacheIx = allocateCacheEntry(s, Stage::Position, new Value<Real>(0));
         cache.uSumCacheIx = allocateCacheEntry(s, Stage::Velocity, new Value<Real>(0));
@@ -330,19 +330,19 @@ public:
         return 0;
     }
 
-    int realizeSubsystemTimeImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemTimeImpl(const State& s) const override {
         const Real TriggerTime1 = .6789, TriggerTime2 = 1.234;
         updTimeTrigger1(s) = s.getTime() - TriggerTime1;
         updTimeTrigger2(s) = s.getTime() - TriggerTime2;
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemPositionImpl(const State& s) const override {
         updQSum(s) = sum(getQ3(s));
         return 0;
     }
 
-    int realizeSubsystemVelocityImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemVelocityImpl(const State& s) const override {
         const Real TriggerUSum = 5;
         updQDot3(s) = getU3(s);
         const Real usum = updUSum(s) = sum(getU3(s));
@@ -350,7 +350,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemAccelerationImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemAccelerationImpl(const State& s) const override {
         updQDotDot3(s) = updUDot3(s) = Vec3(1,2,3);
         return 0;
     }
@@ -358,7 +358,7 @@ public:
     void handleEventsImpl(State& s, Event::Cause cause, 
                           const Array_<EventId>& eventIds,
                           const HandleEventsOptions& options,
-                          HandleEventsResults& results) const OVERRIDE_11
+                          HandleEventsResults& results) const override
     {
         cout << "**** TestSubsystem::handleEventsImpl t=" << s.getTime() 
              << " acc=" << options.getAccuracy()
@@ -375,7 +375,7 @@ public:
     }
 
     void reportEventsImpl(const State&, Event::Cause, 
-                          const Array_<EventId>& eventIds) const OVERRIDE_11
+                          const Array_<EventId>& eventIds) const override
     {
     }
 
@@ -536,11 +536,11 @@ public:
 template <class T>
 class MyRealMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Implementation* cloneVirtual() const OVERRIDE_11
+    Implementation* cloneVirtual() const override
     {   return new Implementation(*this); }
-    int getNumTimeDerivativesVirtual() const OVERRIDE_11 
+    int getNumTimeDerivativesVirtual() const override 
     {   return 0; }
-    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11 
+    Stage getDependsOnStageVirtual(int order) const override 
     {   return Stage::Time; }
 
 };

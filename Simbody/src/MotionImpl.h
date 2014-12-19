@@ -189,24 +189,24 @@ public:
     {
     }
 
-    SinusoidImpl* clone() const OVERRIDE_11 { 
+    SinusoidImpl* clone() const override { 
         SinusoidImpl* copy = new SinusoidImpl(*this);
         return copy; 
     }
 
-    Motion::Level  getLevelVirtual (const State&) const OVERRIDE_11 
+    Motion::Level  getLevelVirtual (const State&) const override 
     {   return level; }
-    Motion::Method getLevelMethodVirtual(const State&) const OVERRIDE_11 
+    Motion::Method getLevelMethodVirtual(const State&) const override 
     {   return Motion::Prescribed; }
 
     // Allocate variables if needed.
-    void realizeTopologyVirtual(State& state) const OVERRIDE_11 {
+    void realizeTopologyVirtual(State& state) const override {
         // None yet.
     }
 
 
     void calcPrescribedPositionVirtual
-       (const State& state, int nq, Real* q) const OVERRIDE_11 {
+       (const State& state, int nq, Real* q) const override {
         assert(level==Motion::Position); assert(nq==0 || q);
         const Real t = state.getTime();
         const Real out = defAmplitude*std::sin(defRate*t + defPhase);
@@ -215,7 +215,7 @@ public:
     }
 
     void calcPrescribedPositionDotVirtual
-       (const State& state, int nq, Real* qdot) const OVERRIDE_11 {
+       (const State& state, int nq, Real* qdot) const override {
         assert(level==Motion::Position); assert(nq==0 || qdot);
         const Real t = state.getTime();
         const Real outd = defAmplitude*defRate*std::cos(defRate*t + defPhase);
@@ -224,7 +224,7 @@ public:
     }
 
     void calcPrescribedPositionDotDotVirtual
-       (const State& state, int nq, Real* qdotdot) const OVERRIDE_11 {
+       (const State& state, int nq, Real* qdotdot) const override {
         assert(level==Motion::Position); assert(nq==0 || qdotdot);
         const Real t = state.getTime();
         const Real outdd = 
@@ -234,7 +234,7 @@ public:
     }
 
     void calcPrescribedVelocityVirtual
-       (const State& state, int nu, Real* u) const OVERRIDE_11 {
+       (const State& state, int nu, Real* u) const override {
         assert(level==Motion::Velocity);
         assert(nu==0 || u);
         const Real t = state.getTime();
@@ -244,7 +244,7 @@ public:
     }
 
     void calcPrescribedVelocityDotVirtual
-       (const State& state, int nu, Real* udot) const OVERRIDE_11 {
+       (const State& state, int nu, Real* udot) const override {
         assert(level==Motion::Velocity);
         assert(nu==0 || udot);
         const Real t = state.getTime();
@@ -254,7 +254,7 @@ public:
     }
 
     void calcPrescribedAccelerationVirtual
-       (const State& state, int nu, Real* udot) const OVERRIDE_11 {
+       (const State& state, int nu, Real* udot) const override {
         assert(level==Motion::Acceleration); assert(nu==0 || udot);
         const Real t = state.getTime();
         const Real out = defAmplitude*std::sin(defRate*t + defPhase);
@@ -279,7 +279,7 @@ public:
     // no default constructor
     explicit SteadyImpl(const Vec6& u) : defaultU(u) {}
 
-    SteadyImpl* clone() const OVERRIDE_11 { 
+    SteadyImpl* clone() const override { 
         SteadyImpl* copy = new SteadyImpl(*this);
         copy->currentU.invalidate(); // no sharing state variables
         return copy; 
@@ -310,13 +310,13 @@ public:
         return getVar<Vec6>(s, currentU)[ux];
     }
 
-    Motion::Level  getLevelVirtual (const State&) const OVERRIDE_11 
+    Motion::Level  getLevelVirtual (const State&) const override 
     {   return Motion::Velocity; }
-    Motion::Method getLevelMethodVirtual(const State&) const OVERRIDE_11 
+    Motion::Method getLevelMethodVirtual(const State&) const override 
     {   return Motion::Prescribed; }
 
     // Allocate a discrete variable to hold the constant rates.
-    void realizeTopologyVirtual(State& state) const OVERRIDE_11 {
+    void realizeTopologyVirtual(State& state) const override {
         // This is in the Topology-stage "cache" so we can write to it,
         // but only here.
         const_cast<DiscreteVariableIndex&>(currentU) = 
@@ -324,7 +324,7 @@ public:
     }
 
     void calcPrescribedVelocityVirtual
-       (const State& state, int nu, Real* u) const OVERRIDE_11 
+       (const State& state, int nu, Real* u) const override 
     {
         assert(0 <= nu && nu <= 6);
         assert(nu==0 || u);
@@ -334,7 +334,7 @@ public:
     }
 
     void calcPrescribedVelocityDotVirtual
-       (const State& state, int nu, Real* udot) const OVERRIDE_11 
+       (const State& state, int nu, Real* udot) const override 
     {
         assert(0 <= nu && nu <= 6);
         assert(nu==0 || udot);
@@ -364,16 +364,16 @@ public:
             implementation = src.implementation->clone();
     }
 
-    CustomImpl* clone() const OVERRIDE_11 { return new CustomImpl(*this); }
+    CustomImpl* clone() const override { return new CustomImpl(*this); }
 
     ~CustomImpl() {
         delete implementation;
     }
 
-    Motion::Level getLevelVirtual(const State& s) const OVERRIDE_11 {
+    Motion::Level getLevelVirtual(const State& s) const override {
         return getImplementation().getLevel(s);
     }
-    Motion::Method getLevelMethodVirtual(const State& s) const OVERRIDE_11 {
+    Motion::Method getLevelMethodVirtual(const State& s) const override {
         return getImplementation().getLevelMethod(s);
     }
 
@@ -385,51 +385,51 @@ public:
     }
 
     void calcPrescribedPositionVirtual
-       (const State& s, int nq, Real* q) const OVERRIDE_11
+       (const State& s, int nq, Real* q) const override
     {   getImplementation().calcPrescribedPosition(s,nq,q); }
     void calcPrescribedPositionDotVirtual
-       (const State& s, int nq, Real* qdot) const OVERRIDE_11
+       (const State& s, int nq, Real* qdot) const override
     {   getImplementation().calcPrescribedPositionDot(s,nq,qdot); }
     void calcPrescribedPositionDotDotVirtual
-       (const State& s, int nq, Real* qdotdot) const OVERRIDE_11
+       (const State& s, int nq, Real* qdotdot) const override
     {   getImplementation().calcPrescribedPositionDotDot(s,nq,qdotdot); }
 
     void calcPrescribedVelocityVirtual
-       (const State& s, int nu, Real* u) const OVERRIDE_11
+       (const State& s, int nu, Real* u) const override
     {   getImplementation().calcPrescribedVelocity(s,nu,u); }
     void calcPrescribedVelocityDotVirtual
-       (const State& s, int nu, Real* udot) const OVERRIDE_11
+       (const State& s, int nu, Real* udot) const override
     {   getImplementation().calcPrescribedVelocityDot(s,nu,udot); }
 
     void calcPrescribedAccelerationVirtual
-       (const State& s, int nu, Real* udot) const OVERRIDE_11
+       (const State& s, int nu, Real* udot) const override
     {   getImplementation().calcPrescribedAcceleration(s,nu,udot); }
 
-    void realizeTopologyVirtual(State& state) const OVERRIDE_11 {
+    void realizeTopologyVirtual(State& state) const override {
         getImplementation().realizeTopology(state);
     }
-    void realizeModelVirtual(State& state) const OVERRIDE_11 {
+    void realizeModelVirtual(State& state) const override {
         getImplementation().realizeModel(state);
     }
-    void realizeInstanceVirtual(const State& state) const OVERRIDE_11 {
+    void realizeInstanceVirtual(const State& state) const override {
         getImplementation().realizeInstance(state);
     }
-    void realizeTimeVirtual(const State& state) const OVERRIDE_11 {
+    void realizeTimeVirtual(const State& state) const override {
         getImplementation().realizeTime(state);
     }
-    void realizePositionVirtual(const State& state) const OVERRIDE_11 {
+    void realizePositionVirtual(const State& state) const override {
         getImplementation().realizePosition(state);
     }
-    void realizeVelocityVirtual(const State& state) const OVERRIDE_11 {
+    void realizeVelocityVirtual(const State& state) const override {
         getImplementation().realizeVelocity(state);
     }
-    void realizeDynamicsVirtual(const State& state) const OVERRIDE_11 {
+    void realizeDynamicsVirtual(const State& state) const override {
         getImplementation().realizeDynamics(state);
     }
-    void realizeAccelerationVirtual(const State& state) const OVERRIDE_11 {
+    void realizeAccelerationVirtual(const State& state) const override {
         getImplementation().realizeAcceleration(state);
     }
-    void realizeReportVirtual(const State& state) const OVERRIDE_11 {
+    void realizeReportVirtual(const State& state) const override {
         getImplementation().realizeReport(state);
     }
 private:

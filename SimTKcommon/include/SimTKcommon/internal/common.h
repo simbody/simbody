@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Chris Dembia                                                 *
  *                                                                            *
@@ -236,25 +236,6 @@ extern "C" {
 #include <limits>
 #include <typeinfo>
 #include <algorithm>
-
-/* Transition macros for C++11 support. VC10 and VC11 have partial support for
-C++11, early VC's do not. If using gcc or Clang, we check for C++11 support. */
-#ifndef SWIG
-    #if _MSC_VER>=1700 || (defined(__GNUG__) && __cplusplus>=201103L)
-        /* VC11 or higher, OR using gcc or Clang and using C++11 */
-        #define OVERRIDE_11  override
-        #define FINAL_11     final
-    #elif _MSC_VER==1600 /* VC10 */
-        #define OVERRIDE_11  override
-        #define FINAL_11     sealed
-    #else /* gcc or Clang without C++11, or earlier VC */
-        #define OVERRIDE_11
-        #define FINAL_11
-    #endif
-#else /* Swigging */
-    #define OVERRIDE_11
-    #define FINAL_11
-#endif
 
 /* Be very careful with this macro -- don't use it unless you have measured
 a performance improvement. You can end up with serious code bloat if you 

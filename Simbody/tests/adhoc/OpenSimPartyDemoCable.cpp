@@ -50,7 +50,7 @@ public:
     }
 
     /** This is the implementation of the EventReporter virtual. **/ 
-    void handleEvent(const State& state) const OVERRIDE_11 {
+    void handleEvent(const State& state) const override {
         const CablePath& path1 = cable1.getCablePath();
         printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g CPU=%g\n",
             state.getTime(),

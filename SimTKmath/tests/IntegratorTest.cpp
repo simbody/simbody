@@ -74,32 +74,32 @@ public:
         // Implementation of continuous DynamicSystem virtuals //
         /////////////////////////////////////////////////////////
 
-    int realizeTopologyImpl(State&) const OVERRIDE_11;
-    int realizeModelImpl(State&) const OVERRIDE_11;
-    int realizeInstanceImpl(const State&) const OVERRIDE_11;
-    int realizePositionImpl(const State&) const OVERRIDE_11;
-    int realizeVelocityImpl(const State&) const OVERRIDE_11;
-    int realizeDynamicsImpl(const State&) const OVERRIDE_11;
-    int realizeAccelerationImpl(const State&) const OVERRIDE_11;
+    int realizeTopologyImpl(State&) const override;
+    int realizeModelImpl(State&) const override;
+    int realizeInstanceImpl(const State&) const override;
+    int realizePositionImpl(const State&) const override;
+    int realizeVelocityImpl(const State&) const override;
+    int realizeDynamicsImpl(const State&) const override;
+    int realizeAccelerationImpl(const State&) const override;
 
     // qdot==u here so these are just copies
     void multiplyByNImpl(const State& state, const Vector& u, 
-                         Vector& dq) const OVERRIDE_11 {dq=u;}
+                         Vector& dq) const override {dq=u;}
     void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
-                                  Vector& fu) const OVERRIDE_11 {fu=fq;}
+                                  Vector& fu) const override {fu=fq;}
     void multiplyByNPInvImpl(const State& state, const Vector& dq, 
-                             Vector& u) const OVERRIDE_11 {u=dq;}
+                             Vector& u) const override {u=dq;}
     void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
-                                      Vector& fq) const OVERRIDE_11 {fq=fu;}
+                                      Vector& fq) const override {fq=fu;}
 
     // No prescribed motion.
-    bool prescribeQImpl(State&) const OVERRIDE_11 {return false;}
-    bool prescribeUImpl(State&) const OVERRIDE_11 {return false;}
+    bool prescribeQImpl(State&) const override {return false;}
+    bool prescribeUImpl(State&) const override {return false;}
 
     void projectQImpl(State&, Vector& qErrEst, 
-             const ProjectOptions& options, ProjectResults& results) const OVERRIDE_11;
+             const ProjectOptions& options, ProjectResults& results) const override;
     void projectUImpl(State&, Vector& uErrEst, 
-             const ProjectOptions& options, ProjectResults& results) const OVERRIDE_11;
+             const ProjectOptions& options, ProjectResults& results) const override;
 
 
         ////////////////////////////////////////////////
@@ -107,7 +107,7 @@ public:
         ////////////////////////////////////////////////
 
     int calcEventTriggerInfoImpl
-       (const State& s, Array_<EventTriggerInfo>& eti) const OVERRIDE_11 
+       (const State& s, Array_<EventTriggerInfo>& eti) const override 
     {
         eti.clear();
         eti.push_back(EventTriggerInfo(eventId0)
@@ -121,7 +121,7 @@ public:
 
     int calcTimeOfNextScheduledEventImpl
        (const State& s, Real& tNextEvent, 
-        Array_<EventId>& eventIds, bool includeCurrentTime) const OVERRIDE_11
+        Array_<EventId>& eventIds, bool includeCurrentTime) const override
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -143,7 +143,7 @@ public:
     void handleEventsImpl
        (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const 
-        OVERRIDE_11
+        override
     {
         cout << "===> t=" << s.getTime() << ": HANDLING " 
              << Event::getCauseName(cause) << " EVENT!!!" << endl;

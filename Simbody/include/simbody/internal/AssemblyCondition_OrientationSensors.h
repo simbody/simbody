@@ -475,13 +475,13 @@ Real findCurrentOSensorError(OSensorIx mx) const {
 /** @name              AssemblyCondition virtuals
 These methods are the implementations of the AssemblyCondition virtuals. **/
 /*@{*/
-int initializeCondition() const OVERRIDE_11;
-void uninitializeCondition() const OVERRIDE_11;
-int calcErrors(const State& state, Vector& err) const OVERRIDE_11;
-int calcErrorJacobian(const State& state, Matrix& jacobian) const OVERRIDE_11;
-int getNumErrors(const State& state) const OVERRIDE_11;
-int calcGoal(const State& state, Real& goal) const OVERRIDE_11;
-int calcGoalGradient(const State& state, Vector& grad) const OVERRIDE_11;
+int initializeCondition() const override;
+void uninitializeCondition() const override;
+int calcErrors(const State& state, Vector& err) const override;
+int calcErrorJacobian(const State& state, Matrix& jacobian) const override;
+int getNumErrors(const State& state) const override;
+int calcGoal(const State& state, Real& goal) const override;
+int calcGoalGradient(const State& state, Vector& grad) const override;
 /*@}*/
 
 //------------------------------------------------------------------------------

@@ -69,7 +69,7 @@ public:
     ~TextDataEventReporter();
 
     /** This is the implementation of the EventReporter virtual. **/ 
-    void handleEvent(const State& state) const OVERRIDE_11;
+    void handleEvent(const State& state) const override;
 
     class TextDataEventReporterRep;
 protected:

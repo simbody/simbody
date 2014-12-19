@@ -85,16 +85,16 @@ explicit SphereOnSphereContactImpl(bool enforceRolling)
     m_enforceRolling(enforceRolling), 
     m_def_p_FSf(0), m_def_radius_F(NaN), m_def_p_BSb(0), m_def_radius_B(NaN)
 { }
-SphereOnSphereContactImpl* clone() const OVERRIDE_11
+SphereOnSphereContactImpl* clone() const override
 {   return new SphereOnSphereContactImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
     (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
-    OVERRIDE_11;
+    override;
 
 // Allocates the discrete state variable for the parameters, and the cache
 // entries.
-void realizeTopologyVirtual(State& state) const OVERRIDE_11;
+void realizeTopologyVirtual(State& state) const override;
 
 // Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;
@@ -186,7 +186,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const OVERRIDE_11
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
@@ -224,7 +224,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const OVERRIDE_11
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     const PositionCache& pc = ensurePositionCacheRealized(s);
@@ -257,7 +257,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const OVERRIDE_11
+    const override
 {
     assert(allA_AB.size()==2&&constrainedQDotDot.size()==0&&paerr.size()==1);
 
@@ -293,7 +293,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const OVERRIDE_11
+    const override
 {
     assert(multipliers.size()==1&&bodyForcesInA.size()==2&&qForces.size()==0);
     const Real lambda = multipliers[0];
@@ -372,7 +372,7 @@ void calcVelocityErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
-    const OVERRIDE_11
+    const override
 {
     assert(allV_AB.size()==2 && constrainedU.size()==0 && verr.size()==2);
 
@@ -409,7 +409,7 @@ void calcVelocityDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
-    const OVERRIDE_11
+    const override
 {
     assert(allA_AB.size()==2 && constrainedUDot.size()==0 && vaerr.size()==2);
 
@@ -445,7 +445,7 @@ void addInVelocityConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
-    const OVERRIDE_11
+    const override
 {
     assert(multipliers.size()==2 && mobilityForces.size()==0 
            && bodyForcesInA.size()==2);

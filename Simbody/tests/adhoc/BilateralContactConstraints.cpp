@@ -48,7 +48,7 @@ public:
         m_rods(rods) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         const Real TextScale = m_mbs.getDefaultLengthScale()/10; // was .1

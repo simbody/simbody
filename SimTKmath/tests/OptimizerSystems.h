@@ -62,7 +62,7 @@ public:
         }
         return 0;
     }
-    Vector optimalParameters() const OVERRIDE_11 {
+    Vector optimalParameters() const override {
         Vector x(getNumParameters());
         x.setToZero();
         return x;

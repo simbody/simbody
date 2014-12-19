@@ -499,24 +499,24 @@ public:
     {
     }
 
-    Real getPerr(const State& s) const OVERRIDE_11 {
+    Real getPerr(const State& s) const override {
         const Vec3 p = m_follower.findStationLocationInAnotherBody
                                     (s, m_point, m_planeBody);
         return ~p*m_frame.z() - m_height;
     }
-    Real getVerr(const State& s) const OVERRIDE_11 {
+    Real getVerr(const State& s) const override {
         const Vec3 v = m_follower.findStationVelocityInAnotherBody
                                     (s, m_point, m_planeBody);
         return ~v*m_frame.z(); // normal is constant in P
     }
-    Real getAerr(const State& s) const OVERRIDE_11 {
+    Real getAerr(const State& s) const override {
         const Vec3 a = m_follower.findStationAccelerationInAnotherBody
                                     (s, m_point, m_planeBody);
         return ~a*m_frame.z(); // normal is constant in P
     }
 
-    String getContactType() const OVERRIDE_11 {return "Point";}
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+    String getContactType() const override {return "Point";}
+    Vec3 whereToDisplay(const State& state) const override {
         return m_follower.findStationLocationInGround(state,m_point);
     }
 
@@ -539,7 +539,7 @@ public:
 
     void showContactForce(const State& s, 
                           Array_<DecorativeGeometry>& geometry)
-            const OVERRIDE_11
+            const override
     {
         const Real Scale = .1;
         const Real f = getForce(s);
@@ -600,12 +600,12 @@ public:
 
     ~MyPointContactFriction() {}
 
-    void initialize() OVERRIDE_11 {
+    void initialize() override {
         Super::initialize();
         initializeRuntimeFields();
     }
 
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+    Vec3 whereToDisplay(const State& state) const override {
         return m_contact.whereToDisplay(state);
     }
 
@@ -642,33 +642,33 @@ public:
 
     // Implement pure virtuals from MyFrictionElement base class.
 
-    bool isEnabled(const State& s) const OVERRIDE_11
+    bool isEnabled(const State& s) const override
     {   return !m_noslipX.isDisabled(s); } // X,Z always on or off together
 
     // Note that initializeForStiction() must have been called first.
-    void setInstanceParameters(State& s) const OVERRIDE_11
+    void setInstanceParameters(State& s) const override
     {   m_noslipX.setContactPoint(s, m_contactPointInPlane);
         m_noslipY.setContactPoint(s, m_contactPointInPlane); }
 
-    void enable(State& s) const OVERRIDE_11
+    void enable(State& s) const override
     {   m_noslipX.setContactPoint(s, m_contactPointInPlane);
         m_noslipY.setContactPoint(s, m_contactPointInPlane);
         m_noslipX.enable(s); m_noslipY.enable(s); }
 
-    void disable(State& s) const OVERRIDE_11
+    void disable(State& s) const override
     {   m_noslipX.disable(s); m_noslipY.disable(s); }
 
-    bool isMasterProximal(const State& s, Real posTol) const OVERRIDE_11
+    bool isMasterProximal(const State& s, Real posTol) const override
     {   return m_contact.isProximal(s, posTol); }
 
-    bool isMasterActive(const State& s) const OVERRIDE_11
+    bool isMasterActive(const State& s) const override
     {   return !m_contact.isDisabled(s); }
 
 
     // Set the friction application point to be the projection of the contact 
     // point onto the contact plane. This will be used the next time friction
     // is enabled. Requires state realized to Position stage.
-    void initializeFriction(const State& s) OVERRIDE_11 {
+    void initializeFriction(const State& s) override {
         const Vec3 p = m_contact.getContactPointInPlaneBody(s);
         m_contactPointInPlane = p;
     }
@@ -676,7 +676,7 @@ public:
     // Fill in deltaV to eliminate slip velocity using the stiction 
     // constraints.
     void setMyDesiredDeltaV(const State& s,
-                            Vector& desiredDeltaV) const OVERRIDE_11
+                            Vector& desiredDeltaV) const override
     {
         if (!isEnabled(s)) return;
 
@@ -699,7 +699,7 @@ public:
 
 
     std::ostream& writeFrictionInfo(const State& s, const String& indent, 
-                                    std::ostream& o) const OVERRIDE_11 
+                                    std::ostream& o) const override 
     {
         o << indent;
         if (!isMasterActive(s)) o << "OFF";
@@ -715,7 +715,7 @@ public:
 
     void showFrictionForce(const State& s, Array_<DecorativeGeometry>& geometry,
                            const Vec3& color) 
-            const OVERRIDE_11
+            const override
     {
         const Real Scale = 0.1;
         const Vec2 f = getFrictionForce(s);
@@ -760,7 +760,7 @@ public:
 
     void generateControls(const Visualizer&             viz, 
                           const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+                          Array_< DecorativeGeometry >& geometry) override
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
         const Vec3 p_GC = Bo + Vec3(0, 2, m_distance); // above and back
@@ -795,7 +795,7 @@ public:
     //                       Custom force virtuals
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
@@ -804,11 +804,11 @@ public:
     }
 
     // No potential energy.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
        (const State& state, Stage stage, 
-        Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
         if (stage != Stage::Time) return;
@@ -1102,7 +1102,7 @@ public:
     :   m_ts(ts) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         const PGSAugmentedMultibodySystem& ambs = m_ts.m_ambs;
         const MyUnilateralConstraintSet& unis = ambs.getUnis();
@@ -1159,12 +1159,12 @@ class TimsBox : public PGSAugmentedMultibodySystem {
 public:
     TimsBox();
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    const MobilizedBody& getBodyToWatch() const override
     {   return m_brick; }
 
-    Real getWatchDistance() const OVERRIDE_11 
+    Real getWatchDistance() const override 
     {   return 8; }
 
 private:
@@ -1183,11 +1183,11 @@ public:
     BouncingBalls();
     ~BouncingBalls() {delete m_contactForces; delete m_tracker;}
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11
+    const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody nobod; return nobod; }
-    Real getWatchDistance() const OVERRIDE_11 {return 20.;}
+    Real getWatchDistance() const override {return 20.;}
 
     const MobilizedBody::Slider& getHBall(int i) const {return m_Hballs[i];}
     const MobilizedBody::Slider& getPBall(int i) const {return m_Pballs[i];}
@@ -1215,11 +1215,11 @@ public:
     Pencil();
     ~Pencil() {delete m_contactForces; delete m_tracker;}
 
-    void calcInitialState(State& state) const OVERRIDE_11;
+    void calcInitialState(State& state) const override;
 
-    const MobilizedBody& getBodyToWatch() const OVERRIDE_11 {return m_pencil;}
-    Real getWatchDistance() const OVERRIDE_11 {return 20.;}
-    Real getScale() const OVERRIDE_11 {return 5;}
+    const MobilizedBody& getBodyToWatch() const override {return m_pencil;}
+    Real getWatchDistance() const override {return 20.;}
+    Real getScale() const override {return 5;}
 
     const MobilizedBody::Planar& getPencil() const {return m_pencil;}
 

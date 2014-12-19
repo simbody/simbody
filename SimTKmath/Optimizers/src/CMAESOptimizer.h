@@ -35,9 +35,9 @@ namespace SimTK {
 class CMAESOptimizer: public Optimizer::OptimizerRep {
 public:
     CMAESOptimizer(const OptimizerSystem& sys);
-    OptimizerRep* clone() const OVERRIDE_11;
-    Real optimize(SimTK::Vector& results) OVERRIDE_11;
-    OptimizerAlgorithm getAlgorithm() const OVERRIDE_11 { return CMAES; }
+    OptimizerRep* clone() const override;
+    Real optimize(SimTK::Vector& results) override;
+    OptimizerAlgorithm getAlgorithm() const override { return CMAES; }
 
 private:
 
@@ -59,7 +59,7 @@ private:
     public:
         Task(CMAESOptimizer& rep, int n, double*const* pop, double* funvals)
             :   rep(rep), n(n), pop(pop), funvals(funvals) {}
-        void execute(int i) OVERRIDE_11
+        void execute(int i) override
         { rep.objectiveFuncWrapper(n, pop[i], true, &funvals[i], &rep); }
     private:
         CMAESOptimizer& rep;
