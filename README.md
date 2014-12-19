@@ -99,11 +99,19 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.6 or greater
-* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.6 or later
+* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.6 or later; we recommend at least 1.8.8.
+
+
+Using Simbody
+-------------
+
+* **Creating your own Simbody-using project with CMake** To get started with
+  your own Simbody-using project, check out the
+  [cmake/SampleCMakeLists.txt](cmake/SampleCMakeLists.txt) file.
 
 
 Installing
@@ -117,6 +125,14 @@ Simbody works on Windows, Mac, and Linux. For Windows, you must build from sourc
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
+
+#### C++11 and gcc/Clang
+
+Simbody 3.6 and later uses C++11 features (the `-std=c++11` flag). Simbody 3.3
+and earlier use only C++03 features, and Simbody 3.4 and 3.5 can use either
+C++03 or C++11; see the `SIMBODY_STANDARD_11` CMake variable in these versions.
+Note that if you want to use the C++11 flag in your own project, Simbody must
+have been compiled with the C++11 flag as well.
 
 
 Windows using Visual Studio
@@ -221,7 +237,8 @@ How is your Simbody installation organized?
 Linux or Mac using make
 -----------------------
 
-These instructions are for building Simbody from source on either a Mac or on Ubuntu.
+These instructions are for building Simbody from source on either a Mac or on
+Ubuntu.
 
 #### Get dependencies
 
@@ -267,10 +284,6 @@ There are two ways to get the source code.
     * Where do you want to install Simbody? By default, it is installed to `/usr/local/`. That's a great default option, especially if you think you'll only use one version of Simbody at a time. You can change this via the `CMAKE_INSTALL_PREFIX` variable. Let's choose `~/simbody`:
 
             $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
-
-    * Do you want to use C++11? By default, Simbody assumes yes. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` variable:
-
-            $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=off
 
     * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
         - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library and visualizer names end with `_d`.
@@ -381,8 +394,6 @@ Mac and Homebrew
 
 If using a Mac and Homebrew, the dependencies are taken care of for you.
 
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
-
 #### Install
 
 1. Install [Homebrew](http://brew.sh/).
@@ -428,8 +439,6 @@ Ubuntu and apt-get
 You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
 
 **Caution**: this installation method is still a work in progress. If you try it, please let us know on the [Simbody Forum](https://simtk.org/forums/viewforum.php?f=47) if it worked or if not, what problems you encountered.
-
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag). Thus, any projects you build on top of Simbody must also use C++11. See issue #125.
 
 #### Install
 
