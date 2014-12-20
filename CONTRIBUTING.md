@@ -60,7 +60,7 @@ Existing Simbody code does not perfectly follow these conventions and we appreci
 - [Basic requirements](#basic-requirements)
     - [Write new code in C++](#write-new-code-in-c)
     - [Keep line width to 80 characters](#keep-line-width-to-80-characters)
-    - [Indent by 4 spaces; no tabs in files](#indent-by-4-spaces-no-tabs-in-files)
+    - [Do not use tabs to indent; use 4 spaces](#do-not-use-tabs-to-indent-use-4-spaces)
     - [Use English and a spell checker](#use-english-and-a-spell-checker)
     - [Provide Doxygen comments](#provide-doxygen-comments)
     - [Code should be `const` correct](#code-should-be-const-correct)
@@ -97,11 +97,20 @@ It is best to use a "guide line" (a vertical line that marks column 80 while you
 
 Please don't interpret this to mean we like short lines. On the contrary it is nice to see as much code as reasonably possible on the screen at once, so don't stretch out your code vertically unnecessarily; and don't waste horizontal space where it doesn't help readability. Long comment blocks in particular should have lines as wide as possible. Just don't go over 80.
 
-#### Indent by 4 spaces; no tabs in files
+#### Do not use tabs to indent; use 4 spaces
 There *must not* be any tabs in your code; our build system will reject them. They will look great to you, but in other viewers people will see your code as randomly formatted.
 Please be sure that your code editor is set to replace tabs with four spaces. You should never allow tab characters to get into your code.
 
-Your preferred editor almost certainly has settings to replace tabs with spaces, and most also can help you clean up a file that already has tabs in it. For example, if you use Visual Studio, go to `Tools:Options:Text Editor:C/C++:Tabs`, set `tab size=4` and `indent size=4`, and check the `Insert spaces` button. In `vi` or `vim` use `set tabstop=4` and `set expandtab`. 
+Your preferred editor almost certainly has settings to replace tabs with
+spaces. For example, if you use Visual Studio, go to `Tools:Options:Text
+Editor:C/C++:Tabs`, set `tab size=4` and `indent size=4`, and check the `Insert
+spaces` button. In `vi` or `vim` use `set tabstop=4` and `set expandtab`.
+
+Most editors can also help you clean up a file that already has tabs in it. In
+Visual Studio, go to `Edit:Advanced:Untabify` to untabify the current
+file; or `Find & Replace` with regular expressions turned on, using `\t` to
+represent a tab, to untabify your entire project/solution. In `vi` or `vim`,
+use `:retab`. On UNIX in general, see the `expand` shell command.
 
 #### Use English and a spell checker
 Simbody has users and contributors from around the world. However, there is much to be gained by choosing a single natural language for a project, and English is the obvious choice for us. Any submitted code must be understandable by English speakers, with English comments, error messages, and documentation. As one practical consequence, this means Simbody code can use `char` rather than `wchar_t` (wide characters) and embedded English text to be displayed at run time is acceptable and need not be sequestered into separate files to facilitate translation. Simbody contributors thus do not need to be familiar with techniques for internationalization.
