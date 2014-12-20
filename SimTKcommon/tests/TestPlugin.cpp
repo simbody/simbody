@@ -168,7 +168,7 @@ void testPathname() {
     SimTK_TEST(Pathname::getRootDirectory() == "/");
 #endif
 
-	std::string name;
+    std::string name;
     bool isAbsPath;
     std::string directory, fileName, extension;
     const std::string curDrive = 
