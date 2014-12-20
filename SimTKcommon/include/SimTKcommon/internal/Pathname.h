@@ -87,21 +87,21 @@ namespace SimTK {
  */
 class SimTK_SimTKCOMMON_EXPORT Pathname {
 public:
-	/// Given a specified working directory (swd) and path, this function
-	/// evaluates the absolute path of a given path relative to the swd and
-	/// returns the directory, fileName, and extension of the final absolute
-	/// path. In general, some rules followed are as follows
-	/// 1) If a full absolute path is given by path, swd is not used.
-	/// 2) To resolve drive ambiguities, in general, if swd provides a drive,
-	///    it is used. If not, then the path drive is used. If neither provides
-	///    a drive, then the current drive is used.
-	/// 3) If swd is an empty string, then the path is evaluated as normal
-	///    in a shell.
-	static void deconstructPathRelativeToSWD(const std::string& swd,
-											 const std::string& path,
-											 std::string& directory,
-											 std::string& fileName,
-											 std::string& extension);
+    /// Given a specified working directory (swd) and path, this function
+    /// evaluates the absolute path of a given path relative to the swd and
+    /// returns the directory, fileName, and extension of the final absolute
+    /// path. In general, some rules followed are as follows
+    /// 1) If a full absolute path is given by path, swd is not used.
+    /// 2) To resolve drive ambiguities, in general, if swd provides a drive,
+    ///    it is used. If not, then the path drive is used. If neither provides
+    ///    a drive, then the current drive is used.
+    /// 3) If swd is an empty string, then the path is evaluated as normal
+    ///    in a shell.
+    static void deconstructPathRelativeToSWD(const std::string& swd,
+                                             const std::string& path,
+                                             std::string& directory,
+                                             std::string& fileName,
+                                             std::string& extension);
 
     /// Dismantle a supplied pathname into its component
     /// parts. This can take pathnames like <pre>   
