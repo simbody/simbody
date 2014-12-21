@@ -291,8 +291,8 @@ There are two ways to get the source code.
         - **Release**: no debugger symbols; optimized. Generated libraries and executables are smaller but not faster than RelWithDebInfo.
         - **MinSizeRel**: minimum size; optimized. May be slower than RelWithDebInfo or Release.
 
-        You at least want release libraries (the last 3 count as release), but
-        you can have debug libraries coexist with them. To do this, go through
+        You at least want optimized libraries (all configurations but Debug are optimized),
+        but you can have Debug libraries coexist with them. To do this, go through
         the full installation process twice, once for each configuration. It is
         typical to use a different build directory for each build type (e.g.,
         `~/simbody-build-debug` and `~/simbody-build-release`).
