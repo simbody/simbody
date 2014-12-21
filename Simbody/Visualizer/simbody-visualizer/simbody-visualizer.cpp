@@ -45,7 +45,13 @@
 
 // Get gl and glut using the appropriate platform-dependent incantations.
 #if defined(__APPLE__)
-    // OSX comes with a good glut implementation.
+    // OSX comes with a glut implementation. In OSX 10.9 and 10.10, this
+    // glut is deprecated and emits deprecation warnings.
+    #if defined(__clang__)
+        #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    #elif defined(__GNUC__)
+        #pragma gcc diagnostic ignored "-Wdeprecated-declarations"
+    #endif
     #include <GLUT/glut.h>
 #elif defined(_WIN32)
     #include "glut32/glut.h"    // we have our own private headers
