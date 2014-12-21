@@ -319,7 +319,10 @@ There are two ways to get the source code.
         * `SIMBODY_MPI` to enable running the CMAES Optimizer in
           parallel on a computing cluster, using the Message Passing Interface.
           Note that you should compile Simbody with the same compiler used to
-          compile your MPI library.
+          compile your MPI library. If you have multiple MPI libraries
+          installed, you can get CMake to find a specific one by setting
+          `MPI_CXX_COMPILER`, as described in FindMPI.cmake (a file that comes
+                  with your CMake installation).
         
 
         You can combine all these options. Here's another example:
