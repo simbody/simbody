@@ -76,19 +76,19 @@ Features
 - Forward, inverse, and mixed dynamics. Motion driven by forces or
   prescribed motion.
 - Contact (Hertz, Hunt and Crossley models).
-- Gradient descent and interior point optimizers.
+- Gradient descent, interior point, and global (CMA) optimizers.
 - A variety of numerical integrators with error control.
-- Visualizer, using [OpenGL](http://www.opengl.org/).
+- Visualizer, using OpenGL
 
 
 You want to...
 --------------
 * **[install Simbody](#installing)**.
 * [use Simbody in your own program][user].
-* [view API documentation](https://simtk.org/api_docs/simbody/api_docs33/Simbody/html/index.html).
+* [view API documentation](https://simtk.org/api_docs/simbody/latest/index.html).
 * [learn the theory behind Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf).
 * [extend Simbody](https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAdvancedProgrammingGuide.pdf).
-* [**get support** at the Simbody forum](https://simtk.org/forums/viewforum.php?f=47).
+* [**get support** at the Simbody Forum](https://simtk.org/forums/viewforum.php?f=47).
 * [report a bug or suggest a feature](https://github.com/simbody/simbody/issues/new).
 
 ---
@@ -99,12 +99,20 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.6 or greater
-* compiler: [Visual Studio](http://www.visualstudio.com) 2010 or 2013 (Windows only), [gcc](http://gcc.gnu.org/) (typically on Linux), or [Clang](http://clang.llvm.org/) (typically on Mac)
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.6 or later
+* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * parallelism of the CMAES optimizer on a computing cluster (optional): An implementation of the [Message Passing Interface (MPI)](http://www.mcs.anl.gov/research/projects/mpi/).
-* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.2 or later
+* API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.7.6 or later; we recommend at least 1.8.8.
+
+
+Using Simbody
+-------------
+
+* **Creating your own Simbody-using project with CMake** To get started with
+  your own Simbody-using project, check out the
+  [cmake/SampleCMakeLists.txt](cmake/SampleCMakeLists.txt) file.
 
 
 Installing
@@ -112,26 +120,35 @@ Installing
 
 Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
 
-1. [**Windows**](#windows-and-visual-studio): build from source using Microsoft Visual Studio
-2. [**Mac**](#mac-and-homebrew): install with Homebrew
-3. [**Ubuntu**](#ubuntu-and-apt-get): install with apt-get
-4. [**UNIX (Mac, Linux)**](#unix-and-makefiles): build from source using gcc or Clang with Makefile's
+1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
+3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
+2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
+4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
+#### C++11 and gcc/Clang
 
-Windows and Visual Studio
--------------------------
+Simbody 3.6 and later uses C++11 features (the `-std=c++11` flag). Simbody 3.3
+and earlier use only C++03 features, and Simbody 3.4 and 3.5 can use either
+C++03 or C++11; see the `SIMBODY_STANDARD_11` CMake variable in these versions.
+Note that if you want to use the C++11 flag in your own project, Simbody must
+have been compiled with the C++11 flag as well.
+
+
+Windows using Visual Studio
+---------------------------
 
 #### Get the dependencies
 
-We give the linear algebra dependencies to you, and Windows comes with the visualization dependencies.
+All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies. 
 
-1. Download and install Microsoft Visual Studio. If using an Express (free) version, use *Visual Studio Express 2013 for Windows Desktop* or *Visual C++ 2010 Express*.
-2. Download and install CMake.
-3. If you want to run Simbody's CMAES Optimizer in parallel on a cluster,
-   download and install [Microsoft MPI](http://msdn.microsoft.com/en-us/library/bb524831(v=vs.85).aspx).
-4. If you want to build API documentation, download and install Doxygen as well.
+1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The "Community Edition" is free for "non-enterprise" use. The "Express" edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
+2. Download and install [CMake](http://www.cmake.org/download), version 2.8.6 or higher.
+3. (optional) If you want to run Simbody's CMAES Optimizer in parallel on a
+   cluster, download and install [Microsoft
+   MPI](http://msdn.microsoft.com/en-us/library/bb524831(v=vs.85).aspx).
+4. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 
 #### Download the Simbody source code
 
@@ -141,7 +158,7 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
-            $ git checkout Simbody-3.4
+            $ git checkout Simbody-3.5
 
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
@@ -151,15 +168,15 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 2. In the field **Where is the source code**, specify `C:/Simbody-source`.
 3. In the field **Where to build the binaries**, specify something like `C:/Simbody-build`, just not inside your source directory. This is *not* where we will install Simbody; see below.
 4. Click the **Configure** button.
-    1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit, select an option that ends with **Win64**.
+    1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit (recommended), select an option that ends with **Win64**.
     2. Click **Finish**.
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
 6. Play around with the other build options:
     * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
-    * `BUILD_TESTING` to ensure your Simbody works correctly. The tests take a long time to build, though. If you need to build Simbody quickly, maybe turn this off. On by default.
-    * `BUILD_VISUALIZER` to be able to watch your system move about! If building on a cluster, you could turn this off. On by default.
-    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
-    * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
+    * `BUILD_TESTING` to ensure your Simbody works correctly. On by default.
+    * `BUILD_VISUALIZER` to be able to watch your system move about! If building remotely, you could turn this off. On by default.
+    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default.
+    * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
     * `SIMBODY_ENABLE_MPI` to enable running the CMAES Optimizer in
       parallel on a computing cluster, using the Message Passing Interface.
@@ -169,19 +186,22 @@ We give the linear algebra dependencies to you, and Windows comes with the visua
 
 1. Open `C:/Simbody-build/Simbody.sln` in Visual Studio.
 2. Select your desired *Solution configuration* from the drop-down at the top.
-    * **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
-    * **Release**: no debugger symbols; optimized.
-    * **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
-    * **MinSizeRel**: minimum size; optimized.
+    * **Debug**: debugger symbols; no optimizations (more than 10x slower). Library and visualizer names end with `_d`.
+    * **RelWithDebInfo**: debugger symbols; optimized. This is the configuration we recommend.
+    * **Release**: no debugger symbols; optimized. Generated libraries and executables are smaller but not faster than RelWithDebInfo.
+    * **MinSizeRel**: minimum size; optimized. May be slower than RelWithDebInfo or Release.
 
-    You at least want release libraries (the last 3 count as release), but you
-    can have debug libraries coexist with them. To do this, go through the full
+    You at least want optimized libraries (all configurations but Debug are optimized), but you
+    can have Debug libraries coexist with them. To do this, go through the full
     installation process twice, once for each configuration.
 3. Build the project **ALL_BUILD** by right-clicking it and selecting **Build**.
-4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**.
-5. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
+4. Run the tests by right-clicking **RUN_TESTS** and selecting **Build**. Make sure all tests pass. You can use **RUN_TESTS_PARALLEL** for a faster test run if you have multiple cores.
+5. (Optional) Build the project **doxygen** to get API documentation generated from your Simbody source. You will get some warnings if your doxygen version is earlier than Doxygen 1.8.8; upgrade if you can.
+6. Install Simbody by right-clicking **INSTALL** and selecting **Build**.
 
 #### Play around with examples
+
+Within your build in Visual Studio (not the installation):
 
 1. Make sure your configuration is set to a release configuration (e.g., RelWithDebInfo).
 2. Right click on one of the targets whose name begins with `Example -` and select **Select as Startup Project**.
@@ -198,11 +218,13 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
     4. Under **System variables**, click **Path**, then click **Edit**.
     5. Add `C:/Simbody/bin;` to the front of the text field. Don't forget the semicolon!
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. In the same Environment Variables window:
-    6. Under **User variables for...**, click **New...**.
-    7. For **Variable name**, type `SIMBODY_HOME`.
-    8. For **Variable value**, type `C:/Simbody`.
+    1. Under **User variables for...**, click **New...**.
+    2. For **Variable name**, type `SIMBODY_HOME`.
+    3. For **Variable value**, type `C:/Simbody`.
 3. Changes only take effect in newly-opened windows. Close any Windows Explorer or Command Prompt windows.
 4. Test your installation by navigating to `C:/Simbody/examples/bin` and running `SimbodyInstallTest.exe` or `SimbodyInstallTestNoViz.exe`.
+
+**Note**: Example binaries are *not* installed for Debug configurations. They are present in the build environment, however, so you can run them from there. They will run *very* slowly!
 
 #### Layout of installation
 
@@ -212,106 +234,17 @@ How is your Simbody installation organized?
 * `doc/` a few manuals, as well as API docs (`SimbodyAPI.html`).
 * `examples/`
     * `src/` the source code for the examples.
-    * `bin/` the examples, compiled into executables; run them!
-    * `simmath/` source code for examples of Simbody's SimTKmath library.
+    * `bin/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `include/` the header (.h) files; necessary for projects that use Simbody.
 * `lib/` "import" libraries, used during linking.
-* `share/` CMake files that are useful for projects that use Simbody.
+* `cmake/` CMake files that are useful for projects that use Simbody.
 
 
-Mac and Homebrew
-----------------
+Linux or Mac using make
+-----------------------
 
-If using a Mac and Homebrew, the dependencies are taken care of for you.
-
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag).
-Thus, any projects you build on top of Simbody must also use C++11. See issue
-#125.  Also, Simbody is NOT built with MPI, so you won't be able to run the
-CMAES Optimizer in parallel on a cluster.
-
-#### Install
-
-1. Install [Homebrew](http://brew.sh/).
-2. Open a terminal.
-3. Add the Open Source Robotics Foundation's list of repositories to Homebrew:
-    ```
-    $ brew tap osrf/simulation
-    ```
-
-2. Install the latest release of Simbody.
-    ```
-    $ brew install simbody
-    ```
-    To install from the master branch instead, append ` --HEAD` to the command above.
-
-#### Where is Simbody installed?
-
-Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.4`), or `HEAD` if you specified `--HEAD` above.
-
-Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
-
-* `include/simbody   -> /usr/local/include/simbody`
-* `lib               -> /usr/local/lib`
-* `share/doc/simbody -> /usr/local/share/doc/simbody`
-
-#### Layout of installation
-
-What's in the `/usr/local/Cellar/simbody/<version>/` directory?
-
-* `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `lib/` shared libraries (.dylib's), used at runtime.
-    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
-    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them!
-* `libexec/simbody/` the `simbody-visualizer` executable.
-* `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
-    * `examples/` source code for the examples.
-
-
-Ubuntu and apt-get
-------------------
-
-You can currently get Simbody via the Open Source Robotics Foundation's Debian
-repositories. We are currently working on getting Simbody directly into the
-Debian repositories. `apt-get` will take care of getting the necessary
-dependencies.
-
-With this method, Simbody is built with C++11 (the `-std=c++11` compiler flag).
-Thus, any projects you build on top of Simbody must also use C++11. See issue
-#125. Also, Simbody is NOT built with MPI, so you won't be able to run the
-CMAES Optimizer in parallel on a cluster.
-
-#### Install
-
-1. Setup your computer to accept software from packages.osrfoundation.org. This step depends on your version of Ubuntu. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/wiki/3.0/install#Ubuntu_Debians).
-    * 12.04:
-
-            sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu precise main" > /etc/apt/sources.list.d/gazebo-latest.list'
-    * 13.10:
-
-            sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu saucy main" > /etc/apt/sources.list.d/gazebo-latest.list'
-
-2. Install Simbody.
-
-        $ sudo apt-get update
-        $ sudo apt-get install libsimbody-dev
-
-#### Layout of installation
-
-Simbody is installed into the `usr/` directory.
-
-* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `usr/lib/` shared libraries (.so's), used at runtime.
-    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
-    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-* `usr/libexec/simbody/` the `simbody-visualizer` executable.
-* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
-
-
-UNIX and Makefiles
-------------------
-
-These instructions are for building Simbody from source on either a Mac or on Ubuntu.
+These instructions are for building Simbody from source on either a Mac or on
+Ubuntu.
 
 #### Get the dependencies
 
@@ -339,7 +272,7 @@ There are two ways to get the source code.
     2. Clone the github repository into `~/simbody-source`.
 
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-            $ git checkout Simbody-3.4
+            $ git checkout Simbody-3.5
 
     3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
 
@@ -360,15 +293,11 @@ There are two ways to get the source code.
 
             $ cmake ~/simbody-source -DCMAKE_INSTALL_PREFIX=~/simbody
 
-    * Do you want to use C++11? By default, Simbody assumes yes. If you plan to use Simbody in a project that DOES use C++11, then you must build Simbody with C++11 as well. You can change this via the `SIMBODY_STANDARD_11` variable:
-
-            $ cmake ~/simbody-source -DSIMBODY_STANDARD_11=off
-
     * Do you want the libraries to be optimized for speed, or to contain debugger symbols? You can change this via the `CMAKE_BUILD_TYPE` variable. There are 4 options:
-        - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library names end with `_d`.
-        - **Release**: no debugger symbols; optimized.
-        - **RelWithDebInfo**: debugger symbols; optimized. Bigger but not slower than Release; choose this if unsure.
-        - **MinSizeRel**: minimum size; optimized.
+        - **Debug**: debugger symbols; no optimizations (more than 10x slower). Library and visualizer names end with `_d`.
+        - **RelWithDebInfo**: debugger symbols; optimized. This is the configuration we recommend.
+        - **Release**: no debugger symbols; optimized. Generated libraries and executables are smaller but not faster than RelWithDebInfo.
+        - **MinSizeRel**: minimum size; optimized. May be slower than RelWithDebInfo or Release.
 
         You at least want release libraries (the last 3 count as release), but
         you can have debug libraries coexist with them. To do this, go through
@@ -400,7 +329,7 @@ There are two ways to get the source code.
 #### Build and install
 
 1. Build the API documentation. This is optional, and you can only do this if
-   you have Doxygen.
+   you have Doxygen. You will get warnings if your doxygen installation is a version older than Doxygen 1.8.8.
 
         $ make doxygen
 
@@ -460,22 +389,123 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
 #### Layout of installation
 
-The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists if you're using a recent version of Ubuntu (e.g., 13.10) and did NOT install to `/usr/local/`. Even in that case, the name of your directory may be different.
+The installation creates the following directories in `CMAKE_INSTALL_PREFIX`. The directory `[x86_64-linux-gnu]` only exists if you did NOT install to `/usr/local/` and varies by platform. Even in that case, the name of your directory may be different.
 
 * `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
-* `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's), used at runtime.
+* `lib/[x86_64-linux-gnu]/` shared libraries (.dylib's or .so's).
     * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
     * `pkgconfig/` pkg-config files useful for projects that use Simbody.
-    * `simbody/examples/` the examples, compiled into executables; run them!
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
 * `libexec/simbody/` the `simbody-visualizer` executable.
 * `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
-    * `examples/` source code for the examples.
+    * `examples/src` source code for the examples.
+    * `examples/bin` symbolic link to the runnable examples.
+
+
+Mac and Homebrew
+----------------
+
+If using a Mac and Homebrew, the dependencies are taken care of for you.
+
+This Simbody is NOT built with MPI support; if you plan to use Simbody on a
+cluster and use the CMAES Optimizer in parallel (via MPI), you must build from
+source.
+
+#### Install
+
+1. Install [Homebrew](http://brew.sh/).
+2. Open a terminal.
+3. Add the Open Source Robotics Foundation's list of repositories to Homebrew:
+    ```
+    $ brew tap osrf/simulation
+    ```
+
+2. Install the latest release of Simbody.
+    ```
+    $ brew install simbody
+    ```
+    To install from the master branch instead, append ` --HEAD` to the command above.
+
+#### Where is Simbody installed?
+
+Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.5`), or `HEAD` if you specified `--HEAD` above.
+
+Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
+
+* `include/simbody   -> /usr/local/include/simbody`
+* `lib               -> /usr/local/lib`
+* `share/doc/simbody -> /usr/local/share/doc/simbody`
+
+#### Layout of installation
+
+What's in the `/usr/local/Cellar/simbody/<version>/` directory?
+
+* `include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `lib/` shared libraries (.dylib's), used at runtime.
+    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
+    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+    * `simbody/examples/` the examples, compiled into executables; run them! (Not installed for Debug builds.)
+* `libexec/simbody/` the `simbody-visualizer` executable.
+* `share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+    * `examples/src` source code for the examples.
+    * `examples/bin` symbolic link to executable examples.
+
+Ubuntu and apt-get
+------------------
+
+You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
+
+This Simbody is NOT built with MPI support; if you plan to use Simbody on a
+cluster and use the CMAES Optimizer in parallel (via MPI), you must build from
+source.
+
+**Caution**: this installation method is still a work in progress. If you try it, please let us know on the [Simbody Forum](https://simtk.org/forums/viewforum.php?f=47) if it worked or if not, what problems you encountered.
+
+#### Install
+
+1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
+        
+        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
+        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+        $ sudo apt-get update
+
+2. Install Simbody.
+
+        $ sudo apt-get update
+        $ sudo apt-get install libsimbody-dev libsimbody-doc
+
+#### Layout of installation
+
+Simbody is installed into the `usr/` directory.  The directory
+`[x86_64-linux-gnu]` varies by platform. 
+
+* `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
+* `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).
+    * `cmake/simbody/` CMake files that are useful for projects that use Simbody.
+    * `pkgconfig/` pkg-config files useful for projects that use Simbody.
+* `usr/libexec/simbody/` the `simbody-visualizer` executable.
+* `usr/share/doc/simbody/` a few manuals, as well as API docs (`SimbodyAPI.html`).
+    * `examples/src` source code for the examples.
+    * `examples/bin` symbolic link to executable examples.
+
+
+Acknowledgments
+---------------
+We are grateful for past and continuing support for Simbody's development in Stanford's Bioengineering department through the following grants:
+
+- NIH U54 GM072970 (Simulation of Biological Structures)
+- NIH U54 EB020405 (Mobilize Center)
+- NIH R24 HD065690 (Simulation in Rehabilitation Research)
+- OSRF subcontract 12-006 to DARPA HR0011-12-C-0111 (Robotics Challenge)
+
+Prof. Scott Delp is the Principal Investigator on these grants and Simbody is used extensively in Scott's [Neuromuscular Biomechanics Lab](https://nmbl.stanford.edu) as the basis for the [OpenSim](http://opensim.stanford.edu) biomechanical simulation software application for medical research.
+
 
 
 [buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.png?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
-[buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2?svg=true
-[appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody
+[buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2/branch/master?svg=true
+[appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody/branch/master
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/

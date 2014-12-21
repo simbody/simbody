@@ -89,9 +89,9 @@ public:
 
     void writeToString(String& xmlDocument, bool compact) const {
         TiXmlPrinter printer(xmlDocument);
-	    if (compact) printer.SetStreamPrinting();
+        if (compact) printer.SetStreamPrinting();
         else printer.SetIndent(m_tixml.GetIndentChars());
-	    m_tixml.Accept( &printer );
+        m_tixml.Accept( &printer );
     }
 
     // Call this during construction and after a new Xml document has been

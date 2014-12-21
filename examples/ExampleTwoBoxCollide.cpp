@@ -89,54 +89,54 @@ int main() {
 
     ContactTrackerSubsystem  tracker(system);
     CompliantContactSubsystem contactForces(system, tracker);
-	contactForces.setTrackDissipatedEnergy(true);
+    contactForces.setTrackDissipatedEnergy(true);
     contactForces.setTransitionVelocity(1e-3);
 
-	Vec3 halfSize(3,4,5);
-	Vec3 halfSize2(200, 4, 200);
+    Vec3 halfSize(3,4,5);
+    Vec3 halfSize2(200, 4, 200);
     ContactGeometry::TriangleMesh box(PolygonalMesh::createBrickMesh(halfSize));
-	ContactGeometry::TriangleMesh box2(PolygonalMesh::createBrickMesh(halfSize2, 20));
+    ContactGeometry::TriangleMesh box2(PolygonalMesh::createBrickMesh(halfSize2, 20));
     DecorativeMesh showBox(box.createPolygonalMesh());
-	DecorativeMesh showBox2(box2.createPolygonalMesh());
+    DecorativeMesh showBox2(box2.createPolygonalMesh());
 
     const Real boxMass = halfSize[0] * halfSize[1] * halfSize[2] * 8;
-	const Real boxMass2 = halfSize2[0] * halfSize2[1] * halfSize2[2] * 8;
-	Body::Rigid boxBody(MassProperties(boxMass, Vec3(0), 
-										boxMass * UnitInertia::brick(halfSize)));
-	Body::Rigid boxBody2(MassProperties(boxMass2, Vec3(0), 
-						boxMass2 * UnitInertia::brick(halfSize2)));
+    const Real boxMass2 = halfSize2[0] * halfSize2[1] * halfSize2[2] * 8;
+    Body::Rigid boxBody(MassProperties(boxMass, Vec3(0), 
+                                        boxMass * UnitInertia::brick(halfSize)));
+    Body::Rigid boxBody2(MassProperties(boxMass2, Vec3(0), 
+                        boxMass2 * UnitInertia::brick(halfSize2)));
     boxBody.addDecoration(Transform(), 
-							showBox.setColor(Red).setOpacity(1));
+                            showBox.setColor(Red).setOpacity(1));
     boxBody.addDecoration(Transform(), 
-							showBox.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
-	boxBody2.addDecoration(Transform(), 
-							showBox2.setColor(Cyan).setOpacity(.6));
-	boxBody2.addDecoration(Transform(), 
-							showBox2.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
+                            showBox.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
+    boxBody2.addDecoration(Transform(), 
+                            showBox2.setColor(Cyan).setOpacity(.6));
+    boxBody2.addDecoration(Transform(), 
+                            showBox2.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
 //     boxBody.addDecoration(Transform(),
-// 						  DecorativeSphere(1).setColor(Gray).setOpacity(.1).setResolution(10));
+//                           DecorativeSphere(1).setColor(Gray).setOpacity(.1).setResolution(10));
 
-	const Real fFac = 0.3;       // to turn off friction
-	const Real fDis = 0.1;    // to turn off dissipation
-	const Real fVis = 0.01;    // to turn off viscous friction
-	const Real fK = 1e+8; // pascals
+    const Real fFac = 0.3;       // to turn off friction
+    const Real fDis = 0.1;    // to turn off dissipation
+    const Real fVis = 0.01;    // to turn off viscous friction
+    const Real fK = 1e+8; // pascals
 
-	boxBody.addContactSurface(Transform(),
-							   ContactSurface(box,
-											   ContactMaterial(fK, fDis, fFac, fFac, fVis),
-											   .5 /*thickness*/)
-											   );
-	boxBody2.addContactSurface(Transform(),
-								ContactSurface(box2,
-												ContactMaterial(fK, fDis, fFac, fFac, fVis),
-												.5 /*thickness*/)
-												);
-	MobilizedBody::Free boxMBody(matter.Ground(), Transform(Vec3(0)), boxBody, Transform(Vec3(0)));
+    boxBody.addContactSurface(Transform(),
+                               ContactSurface(box,
+                                               ContactMaterial(fK, fDis, fFac, fFac, fVis),
+                                               .5 /*thickness*/)
+                                               );
+    boxBody2.addContactSurface(Transform(),
+                                ContactSurface(box2,
+                                                ContactMaterial(fK, fDis, fFac, fFac, fVis),
+                                                .5 /*thickness*/)
+                                                );
+    MobilizedBody::Free boxMBody(matter.Ground(), Transform(Vec3(0)), boxBody, Transform(Vec3(0)));
 
-	MobilizedBody::Weld boxMBody2(matter.Ground(), Transform(Vec3(0)), boxBody2, Transform(Vec3(0)));
+    MobilizedBody::Weld boxMBody2(matter.Ground(), Transform(Vec3(0)), boxBody2, Transform(Vec3(0)));
 
     Visualizer viz(system);
-	// viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
+    // viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
     viz.setMode(Visualizer::RealTime);
     viz.setDesiredBufferLengthInSec(1);
     viz.setDesiredFrameRate(FrameRate);
@@ -167,8 +167,8 @@ int main() {
     State state = system.getDefaultState();
     //ball.setQToFitTransform(state, Transform(Rotation(Pi/2,XAxis),
     //                                         Vec3(0,-1.8,0)));
-	boxMBody.setQToFitTransform(state, Transform(Vec3(0, 10, 0)));
-	boxMBody2.setQToFitTransform(state, Transform(Vec3(0, 0, 0)));
+    boxMBody.setQToFitTransform(state, Transform(Vec3(0, 10, 0)));
+    boxMBody2.setQToFitTransform(state, Transform(Vec3(0, 0, 0)));
 
     viz.report(state);
 
@@ -189,7 +189,7 @@ int main() {
 
     ts.initialize(state);
 
-	double cpuStart = cpuTime();
+    double cpuStart = cpuTime();
     double realStart = realTime();
 
     ts.stepTo(100.0);

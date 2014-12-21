@@ -256,9 +256,9 @@ static void PrintFinalStats(void *cvode_mem)
 
   printf("\nFinal Statistics:\n");
   printf("nst = %-6ld nfe  = %-6ld nsetups = %-6ld nfeLS = %-6ld nje = %ld\n",
-	 nst, nfe, nsetups, nfeLS, nje);
+     nst, nfe, nsetups, nfeLS, nje);
   printf("nni = %-6ld ncfn = %-6ld netf = %ld\n \n",
-	 nni, ncfn, netf);
+     nni, ncfn, netf);
 
   return;
 }

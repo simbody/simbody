@@ -85,11 +85,11 @@ public:
     // Ask the cable to apply body forces given the tension calculated here.
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {   path.applyBodyForces(state, getTension(state), bodyForces); }
 
     // Return the potential energy currently stored by the stretch of the cable.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+    Real calcPotentialEnergy(const State& state) const override {
         const Real stretch = calcStretch(state);
         if (stretch == 0) return 0;
         return k*square(stretch)/2;
@@ -97,7 +97,7 @@ public:
 
     // Allocate the state variable for tracking dissipated energy, and a
     // cache entry to hold the calculated tension.
-    void realizeTopology(State& state) const OVERRIDE_11 {
+    void realizeTopology(State& state) const override {
         Vector initWork(1, 0.);
         workx = forces.allocateZ(state, initWork);
         tensionx = forces.allocateLazyCacheEntry(state, Stage::Velocity,
@@ -105,7 +105,7 @@ public:
     }
 
     // Report power dissipation as the derivative for the work variable.
-    void realizeAcceleration(const State& state) const OVERRIDE_11 {
+    void realizeAcceleration(const State& state) const override {
         Real& workDot = forces.updZDot(state)[workx];
         workDot = getPowerDissipation(state);
     }
@@ -192,7 +192,7 @@ public:
     }
 
     /** This is the implementation of the EventReporter virtual. **/ 
-    void handleEvent(const State& state) const OVERRIDE_11 {
+    void handleEvent(const State& state) const override {
         const CablePath& path1 = cable1.getCablePath();
         const CablePath& path2 = cable2.getCablePath();
         printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g CPU=%g\n",

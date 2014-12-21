@@ -131,20 +131,20 @@ public:
     // Default copy constructor, destructor, copy assignment are fine.
 
     // Implementations of virtual methods.
-    Implementation* cloneVirtual() const OVERRIDE_11
+    Implementation* cloneVirtual() const override
     {   return new Implementation(*this); }
-    int getNumTimeDerivativesVirtual() const OVERRIDE_11 {return 0;}
-    Stage getDependsOnStageVirtual(int order) const OVERRIDE_11
+    int getNumTimeDerivativesVirtual() const override {return 0;}
+    Stage getDependsOnStageVirtual(int order) const override
     {   return Stage::Velocity; }
 
     // This is the task space controller. It returns joint torques tau as the
     // value of the enclosing Measure.
     void calcCachedValueVirtual(const State& s, int derivOrder, T& tau) const
-        OVERRIDE_11;
+        override;
 
     // TaskSpace objects require some State resources; this call is the time
     // for doing that so forward on to the TaskSpace.
-    void realizeMeasureTopologyVirtual(State& modelState) const OVERRIDE_11 {
+    void realizeMeasureTopologyVirtual(State& modelState) const override {
         m_tspace1.realizeTopology(modelState);
     }
 private:
@@ -213,15 +213,15 @@ public:
                    SimTK::Vector_<SimTK::SpatialVec>& bodyForces,
                    SimTK::Vector_<SimTK::Vec3>&       particleForces,
                    SimTK::Vector&                     mobilityForces) const
-                   OVERRIDE_11;
+                   override;
 
     // This controller does not contribute potential energy to the system.
-    Real calcPotentialEnergy(const SimTK::State& state) const OVERRIDE_11
+    Real calcPotentialEnergy(const SimTK::State& state) const override
     { return 0; }
 
     // Add some useful text and graphics that changes due to user input.
     void calcDecorativeGeometryAndAppend(const State & state, Stage stage,
-            Array_<DecorativeGeometry>& geometry) const OVERRIDE_11;
+            Array_<DecorativeGeometry>& geometry) const override;
 
 private:
     UR10                 m_modelRobot;   // The controller's internal model.
@@ -247,7 +247,7 @@ public:
         m_controller(controller), m_increment(0.05) {}
 
     void handleEvent(State& realState, Real accuracy,
-                     bool& shouldTerminate) const OVERRIDE_11;
+                     bool& shouldTerminate) const override;
 private:
     Visualizer::InputSilo&          m_silo;
     UR10&                           m_realRobot;

@@ -207,7 +207,7 @@ public:
     // have the values given by the parameters.
     int objectiveFunc(const Vector&     parameters, 
                       bool              new_parameters, 
-                      Real&             objectiveValue) const OVERRIDE_11
+                      Real&             objectiveValue) const override
     {   ++nEvalObjective;
 
         if (new_parameters)
@@ -243,7 +243,7 @@ public:
         // This is the function that gets differentiated. We want it to
         // return fy = sum( w[i] * goal[i] ) for each of the goals that needs
         // a numerical gradient. Then we can calculate all of them at once.
-        int f(const Vector& y, Real& fy) const OVERRIDE_11 {
+        int f(const Vector& y, Real& fy) const override {
             assembler.setInternalStateFromFreeQs(y);
             fy = 0;
             for (unsigned i=0; i < numGoals.size(); ++i) {
@@ -266,7 +266,7 @@ public:
 
     int gradientFunc(const Vector&     parameters, 
                      bool              new_parameters, 
-                     Vector&           gradient) const OVERRIDE_11 
+                     Vector&           gradient) const override 
     {   SimTK_ASSERT2_ALWAYS(gradient.size() == getNumFreeQs(),
             "AssemblySystem::gradientFunc(): expected gradient vector of"
             " size %d but got %d; this is likely a problem with the optimizer"
@@ -329,7 +329,7 @@ public:
     // Return the errors in the hard assembly error conditions.
     int constraintFunc(const Vector&    parameters, 
                        bool             new_parameters, 
-                       Vector&          qerrs) const OVERRIDE_11
+                       Vector&          qerrs) const override
     {   ++nEvalConstraints;
 
         if (new_parameters)
@@ -367,7 +367,7 @@ public:
         // return fy = [ err[i] ] for each of the assembly constraint 
         // conditions that needs a numerical gradient. Then we can calculate
         // all their Jacobians at once.
-        int f(const Vector& y, Vector& fy) const OVERRIDE_11 {
+        int f(const Vector& y, Vector& fy) const override {
             assert(y.size() == assembler.getNumFreeQs());
             assert(fy.size() == totalNEqns);
 
@@ -396,7 +396,7 @@ public:
 
     int constraintJacobian(const Vector&    parameters, 
                            bool             new_parameters, 
-                           Matrix&          J) const OVERRIDE_11 
+                           Matrix&          J) const override 
     {   ++nEvalJacobian;
 
         if (new_parameters)

@@ -4,7 +4,7 @@ Upstream-Contact: https://simtk.org/sendmessage.php?touser=106
 Source: https://simtk.org 
 
 Files: *
-Copyright: 2005-13, Stanford University and the Authors. 
+Copyright: 2005-14, Stanford University and the Authors. 
 License: Apache
  See '/usr/share/common-licenses/Apache-2.0'.
 

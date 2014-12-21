@@ -113,7 +113,7 @@ public:
     Mat33 calcSurfaceHessian(const Vec3& point) const;
     Real  calcGaussianCurvature(const Vec3& gradient,
                                 const Mat33& Hessian) const;
-	Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
+    Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
                                           const UnitVec3& direction) const;
     // Generic method for calculating principal curvatures kmax,kmin and
     // corresponding unit tangent vector directions R_SP.x() and R_SP.y().
@@ -448,16 +448,16 @@ public:
     void setOwner(const ContactGeometry::HalfSpace::Impl& owner) {ownerp=&owner;}
 
     // Value is positive for x>0.
-    Real calcValue(const Vector& P) const OVERRIDE_11 {return P[0];}
+    Real calcValue(const Vector& P) const override {return P[0];}
     // First derivative w.r.t. x is 1, all else is zero.
     Real calcDerivative(const Array_<int>& components, 
-                        const Vector& P) const OVERRIDE_11
+                        const Vector& P) const override
     {   if (components.empty()) return calcValue(P);
         if (components.size()==1 && components[0]==0) return 1;
         return 0; }
 
-    int getArgumentSize() const OVERRIDE_11 {return 3;}
-    int getMaxDerivativeOrder() const OVERRIDE_11
+    int getArgumentSize() const override {return 3;}
+    int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::HalfSpace::Impl* ownerp; // just a ref.; don't delete
@@ -468,34 +468,34 @@ class ContactGeometry::HalfSpace::Impl : public ContactGeometryImpl {
 public:
     Impl() : ContactGeometryImpl() {
     }
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl();
     }
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
-    bool isSmooth() const OVERRIDE_11 {return true;}
-    bool isConvex() const OVERRIDE_11 {return false;}
-    bool isFinite() const OVERRIDE_11 {return false;}
+    bool isSmooth() const override {return true;}
+    bool isConvex() const override {return false;}
+    bool isFinite() const override {return false;}
 
     // Curvature is zero everywhere. Since the half plane occupies x>0 in
     // its own frame, the surface normal is -x, and -x,y,-z forms a right 
     // handed set.
     void calcCurvature(const Vec3& point, Vec2& curvature, 
-                       Rotation& orientation) const OVERRIDE_11
+                       Rotation& orientation) const override
     {   curvature = 0;
         orientation.setRotationFromUnitVecsTrustMe
             (UnitVec3(-XAxis), UnitVec3(YAxis), UnitVec3(-ZAxis));
     }
 
-    const Function& getImplicitFunction() const OVERRIDE_11 {return function;}
+    const Function& getImplicitFunction() const override {return function;}
 
     static ContactGeometryTypeId classTypeId() {
         static const ContactGeometryTypeId id = 
@@ -517,11 +517,11 @@ public:
     CylinderImplicitFunction(const ContactGeometry::Cylinder::Impl& owner)
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::Cylinder::Impl& owner) {ownerp=&owner;}
-    Real calcValue(const Vector& x) const OVERRIDE_11;
+    Real calcValue(const Vector& x) const override;
     Real calcDerivative(const Array_<int>& derivComponents,
-                        const Vector& x) const OVERRIDE_11;
-    int getArgumentSize() const OVERRIDE_11 {return 3;}
-    int getMaxDerivativeOrder() const OVERRIDE_11
+                        const Vector& x) const override;
+    int getArgumentSize() const override {return 3;}
+    int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::Cylinder::Impl* ownerp; // just a reference; don't delete
@@ -533,7 +533,7 @@ public:
         function.setOwner(*this);
     }
 
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl(radius);
     }
     Real getRadius() const {
@@ -545,40 +545,40 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside,
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
-    bool isSmooth() const OVERRIDE_11 {return true;} //TODO: only for infinite
-    bool isConvex() const OVERRIDE_11 {return true;}
-    bool isFinite() const OVERRIDE_11 {return false;}
+    bool isSmooth() const override {return true;} //TODO: only for infinite
+    bool isConvex() const override {return true;}
+    bool isFinite() const override {return false;}
 
-    Vec3 calcSupportPoint(const UnitVec3& direction) const OVERRIDE_11 {
+    Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         assert(false);
         return Vec3(NaN);
     }
 
     void calcCurvature(const Vec3& point, Vec2& curvature,
-                       Rotation& orientation) const OVERRIDE_11;
+                       Rotation& orientation) const override;
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
        (const Vec3& xP, const UnitVec3& tP,
         const Real& terminatingLength, const GeodesicOptions& options, 
-        Geodesic& geod) const OVERRIDE_11;
+        Geodesic& geod) const override;
 
     void shootGeodesicInDirectionUntilPlaneHitAnalytical
        (const Vec3& xP, const UnitVec3& tP,
         const Plane& terminatingPlane, const GeodesicOptions& options,
-        Geodesic& geod) const OVERRIDE_11;
+        Geodesic& geod) const override;
 
     void calcGeodesicAnalytical
        (const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint, 
-        Geodesic& geod) const OVERRIDE_11;
+        Geodesic& geod) const override;
 
-    const Function& getImplicitFunction() const OVERRIDE_11 {
+    const Function& getImplicitFunction() const override {
         return function;
     }
 
@@ -603,11 +603,11 @@ public:
     SphereImplicitFunction(const ContactGeometry::Sphere::Impl& owner) 
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::Sphere::Impl& owner) {ownerp=&owner;}
-    Real calcValue(const Vector& x) const OVERRIDE_11;
+    Real calcValue(const Vector& x) const override;
     Real calcDerivative(const Array_<int>& derivComponents, 
-                        const Vector& x) const OVERRIDE_11;
-    int getArgumentSize() const OVERRIDE_11 {return 3;}
-    int getMaxDerivativeOrder() const OVERRIDE_11
+                        const Vector& x) const override;
+    int getArgumentSize() const override {return 3;}
+    int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::Sphere::Impl* ownerp; // just a reference; don't delete
@@ -620,7 +620,7 @@ public:
         createOBBTree(); 
     }
 
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl(radius);
     }
     Real getRadius() const {
@@ -632,36 +632,36 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
-    bool isSmooth() const OVERRIDE_11 {return true;}
-    bool isConvex() const OVERRIDE_11 {return true;}
-    bool isFinite() const OVERRIDE_11 {return true;}
+    bool isSmooth() const override {return true;}
+    bool isConvex() const override {return true;}
+    bool isFinite() const override {return true;}
 
-    Vec3 calcSupportPoint(const UnitVec3& direction) const OVERRIDE_11 {
+    Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         return radius*direction;
     }
     void calcCurvature(const Vec3& point, Vec2& curvature, 
-                       Rotation& orientation) const OVERRIDE_11;
+                       Rotation& orientation) const override;
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
        (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength, 
-        const GeodesicOptions& options, Geodesic& geod) const OVERRIDE_11;
+        const GeodesicOptions& options, Geodesic& geod) const override;
 
     void shootGeodesicInDirectionUntilPlaneHitAnalytical
        (const Vec3& xP, const UnitVec3& tP, const Plane& terminatingPlane, 
-        const GeodesicOptions& options, Geodesic& geod) const OVERRIDE_11;
+        const GeodesicOptions& options, Geodesic& geod) const override;
 
     void calcGeodesicAnalytical
        (const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint, 
-        Geodesic& geod) const OVERRIDE_11;
+        Geodesic& geod) const override;
 
-    const Function& getImplicitFunction() const OVERRIDE_11 {
+    const Function& getImplicitFunction() const override {
         return function;
     }
 
@@ -688,11 +688,11 @@ public:
     EllipsoidImplicitFunction(const ContactGeometry::Ellipsoid::Impl& owner) 
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::Ellipsoid::Impl& owner) {ownerp=&owner;}
-    Real calcValue(const Vector& x) const OVERRIDE_11;
+    Real calcValue(const Vector& x) const override;
     Real calcDerivative(const Array_<int>& derivComponents, 
-                        const Vector& x) const OVERRIDE_11;
-    int getArgumentSize() const OVERRIDE_11 {return 3;}
-    int getMaxDerivativeOrder() const OVERRIDE_11
+                        const Vector& x) const override;
+    int getArgumentSize() const override {return 3;}
+    int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::Ellipsoid::Impl* ownerp;// just a ref.; don't delete
@@ -706,7 +706,7 @@ public:
     {   function.setOwner(*this);
         createOBBTree(); }
 
-    ContactGeometryImpl* clone() const OVERRIDE_11 {return new Impl(radii);}
+    ContactGeometryImpl* clone() const override {return new Impl(radii);}
     const Vec3& getRadii() const {return radii;}
     void setRadii(const Vec3& r) 
     {   radii = r; curvatures = Vec3(1/r[0],1/r[1],1/r[2]); }
@@ -727,25 +727,25 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
-    bool isSmooth() const OVERRIDE_11 {return true;}
-    bool isConvex() const OVERRIDE_11 {return true;}
-    bool isFinite() const OVERRIDE_11 {return true;}
+    bool isSmooth() const override {return true;}
+    bool isConvex() const override {return true;}
+    bool isFinite() const override {return true;}
 
     // The point furthest in this direction is the unique point whose outward
     // normal is this direction.
-    Vec3 calcSupportPoint(const UnitVec3& direction) const OVERRIDE_11 {
+    Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         return findPointWithThisUnitNormal(direction);
     }
     void calcCurvature(const Vec3& point, Vec2& curvature, 
-                       Rotation& orientation) const OVERRIDE_11;
-    const Function& getImplicitFunction() const OVERRIDE_11 {
+                       Rotation& orientation) const override;
+    const Function& getImplicitFunction() const override {
         return function;
     }
 
@@ -833,11 +833,11 @@ public:
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::SmoothHeightMap::Impl& owner) 
     {   ownerp=&owner; }
-    Real calcValue(const Vector& x) const OVERRIDE_11;
+    Real calcValue(const Vector& x) const override;
     Real calcDerivative(const Array_<int>& derivComponents, 
-                        const Vector& x) const OVERRIDE_11;
-    int getArgumentSize() const OVERRIDE_11 {return 3;}
-    int getMaxDerivativeOrder() const OVERRIDE_11
+                        const Vector& x) const override;
+    int getArgumentSize() const override {return 3;}
+    int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     // just a reference; don't delete
@@ -850,7 +850,7 @@ class ContactGeometry::SmoothHeightMap::Impl : public ContactGeometryImpl {
 public:
     explicit Impl(const BicubicSurface& surface);
 
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl(surface);
     }
 
@@ -859,23 +859,23 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
 
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
 
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11 {
+    void getBoundingSphere(Vec3& center, Real& radius) const override {
         center = boundingSphere.getCenter();
         radius = boundingSphere.getRadius();
     }
 
-    bool isSmooth() const OVERRIDE_11 {return true;}
-    bool isConvex() const OVERRIDE_11 {return false;}
-    bool isFinite() const OVERRIDE_11 {return true;}
+    bool isSmooth() const override {return true;}
+    bool isConvex() const override {return false;}
+    bool isFinite() const override {return true;}
 
-    Vec3 calcSupportPoint(const UnitVec3& direction) const OVERRIDE_11 {
+    Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         assert(false);
         return Vec3(NaN);
     }
@@ -883,13 +883,13 @@ public:
     // We ignore the z coordinate here and just return the curvature of
     // the unique point at (x,y).
     void calcCurvature(const Vec3& point, Vec2& curvature, 
-                       Rotation& orientation) const OVERRIDE_11 {
+                       Rotation& orientation) const override {
         Transform X_SP;
         surface.calcParaboloid(Vec2(point[0],point[1]), hint, X_SP, curvature);
         orientation = X_SP.R();
     }
 
-    const Function& getImplicitFunction() const OVERRIDE_11 
+    const Function& getImplicitFunction() const override 
     {   return implicitFunction; }
 
     static ContactGeometryTypeId classTypeId() {
@@ -935,7 +935,7 @@ public:
         createOBBTree(); 
     }
 
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl(getHalfLengths());
     }
     const Vec3& getHalfLengths() const {return m_box.getHalfLengths();}
@@ -948,18 +948,18 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
-    bool isSmooth() const OVERRIDE_11 {return false;}
-    bool isConvex() const OVERRIDE_11 {return true;}
-    bool isFinite() const OVERRIDE_11 {return true;}
+    bool isSmooth() const override {return false;}
+    bool isConvex() const override {return true;}
+    bool isFinite() const override {return true;}
 
-    Vec3 calcSupportPoint(const UnitVec3& direction) const OVERRIDE_11 {
+    Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         return m_box.findSupportPoint(direction);
     }
 
@@ -1012,7 +1012,7 @@ public:
     Impl(const ArrayViewConst_<Vec3>& vertexPositions, 
          const ArrayViewConst_<int>& faceIndices, bool smooth);
     Impl(const PolygonalMesh& mesh, bool smooth);
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl(*this);
     }
 
@@ -1026,18 +1026,18 @@ public:
     Vec3 findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const;
     void createPolygonalMesh(PolygonalMesh& mesh) const;
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
-                          UnitVec3& normal) const OVERRIDE_11;
+                          UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
                        Real& distance, int& face, Vec2& uv) const;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
-    bool isSmooth() const OVERRIDE_11 {return false;}
-    bool isConvex() const OVERRIDE_11 {return false;}
-    bool isFinite() const OVERRIDE_11 {return true;}
+    bool isSmooth() const override {return false;}
+    bool isConvex() const override {return false;}
+    bool isFinite() const override {return true;}
 
 
     static ContactGeometryTypeId classTypeId() {
@@ -1127,11 +1127,11 @@ public:
     TorusImplicitFunction(const ContactGeometry::Torus::Impl& owner)
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::Torus::Impl& owner) {ownerp=&owner;}
-    Real calcValue(const Vector& x) const OVERRIDE_11;
+    Real calcValue(const Vector& x) const override;
     Real calcDerivative(const Array_<int>& derivComponents,
-                        const Vector& x) const OVERRIDE_11;
-    int getArgumentSize() const OVERRIDE_11 {return 3;}
-    int getMaxDerivativeOrder() const OVERRIDE_11
+                        const Vector& x) const override;
+    int getArgumentSize() const override {return 3;}
+    int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     const ContactGeometry::Torus::Impl* ownerp; // just a reference; don't delete
@@ -1144,7 +1144,7 @@ public:
         function.setOwner(*this);
     }
 
-    ContactGeometryImpl* clone() const OVERRIDE_11 {
+    ContactGeometryImpl* clone() const override {
         return new Impl(torusRadius, tubeRadius);
     }
     Real getTorusRadius() const {
@@ -1162,24 +1162,24 @@ public:
 
     ContactGeometryTypeId getTypeId() const {return classTypeId();}
 
-    DecorativeGeometry createDecorativeGeometry() const OVERRIDE_11;
+    DecorativeGeometry createDecorativeGeometry() const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
-                       Real& distance, UnitVec3& normal) const OVERRIDE_11;
-    void getBoundingSphere(Vec3& center, Real& radius) const OVERRIDE_11;
+                       Real& distance, UnitVec3& normal) const override;
+    void getBoundingSphere(Vec3& center, Real& radius) const override;
 
     void createPolygonalMesh(PolygonalMesh& mesh) const;
 
-    bool isSmooth() const OVERRIDE_11 {return true;}
-    bool isConvex() const OVERRIDE_11 {return false;}
-    bool isFinite() const OVERRIDE_11 {return true;}
+    bool isSmooth() const override {return true;}
+    bool isConvex() const override {return false;}
+    bool isFinite() const override {return true;}
 
-    Vec3 calcSupportPoint(const UnitVec3& direction) const OVERRIDE_11;
+    Vec3 calcSupportPoint(const UnitVec3& direction) const override;
 
     void calcCurvature(const Vec3& point, Vec2& curvature,
-                       Rotation& orientation) const OVERRIDE_11;
+                       Rotation& orientation) const override;
 
     Vec3 findNearestPoint(const Vec3& position, bool& inside,
-            UnitVec3& normal) const OVERRIDE_11;
+            UnitVec3& normal) const override;
 
 //    TODO
 //    virtual void shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,
@@ -1192,7 +1192,7 @@ public:
 //    virtual void calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
 //                const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
 
-    const Function& getImplicitFunction() const OVERRIDE_11 {
+    const Function& getImplicitFunction() const override {
         return function;
     }
 

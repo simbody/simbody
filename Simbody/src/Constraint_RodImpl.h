@@ -146,17 +146,17 @@ struct VelocityCache {
 RodImpl() : ConstraintImpl(1, 0, 0), 
             m_def_p_FSf(0), m_def_p_BSb(0), m_def_length(NaN) {}
 
-RodImpl* clone() const OVERRIDE_11
+RodImpl* clone() const override
 {   return new RodImpl(*this); }
 
 // Draw some end points and a rubber band line.
 void calcDecorativeGeometryAndAppendVirtual
     (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
-    OVERRIDE_11;
+    override;
 
 // Allocates the discrete state variable for the parameters, and the cache
 // entries.
-void realizeTopologyVirtual(State& state) const OVERRIDE_11;
+void realizeTopologyVirtual(State& state) const override;
 
 // Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;

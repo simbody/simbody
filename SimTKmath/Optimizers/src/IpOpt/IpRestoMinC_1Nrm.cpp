@@ -152,7 +152,7 @@ namespace Ipopt
 
     // Call the optimization algorithm to solve the restoration phase
     // problem
-    SolverReturn resto_status	= resto_alg_->Optimize();
+    SolverReturn resto_status    = resto_alg_->Optimize();
 
     int retval=-1;
 

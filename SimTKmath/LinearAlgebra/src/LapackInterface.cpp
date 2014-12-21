@@ -669,7 +669,7 @@ template <> void LapackInterface::geev<float>
                 rightVectors[(j+1)*n+i] = std::complex<float>(vr.data[j*n+i], -vr.data[(j+1)*n+i]);
             }
             j++;
-	}
+    }
     } 
 }
 template <> void LapackInterface::geev<std::complex<float> >

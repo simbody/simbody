@@ -530,7 +530,7 @@ public:
             for (int i=0; i < this->nrow(); ++i) {
                 S* dest = p->updElt_(i,0);   // start of a dense row
                 for (int j=0; j < this->ncol(); ++j, dest += this->m_eltSize)
-                	this->copyElt(dest, this->getElt_(i,j));
+                    this->copyElt(dest, this->getElt_(i,j));
             }
             return p;
         } else {
@@ -540,7 +540,7 @@ public:
             for (int j=0; j < this->ncol(); ++j) {
                 S* dest = p->updElt_(0,j);   // start of a dense column
                 for (int i=0; i < this->nrow(); ++i, dest += this->m_eltSize)
-                	this->copyElt(dest, this->getElt_(i,j));
+                    this->copyElt(dest, this->getElt_(i,j));
             }
             return p;
         }

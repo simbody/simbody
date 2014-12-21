@@ -237,11 +237,11 @@ static void PrintFinalStats(CPodes& cpode)
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);
   printf("nst = %-6d nfe  = %-6d nsetups = %-6d\n",
-	 nst, nfe, nsetups);
+     nst, nfe, nsetups);
   printf("nfeLS = %-6d nje = %d\n",
-	 nfeLS, nje);
+     nfeLS, nje);
   printf("nni = %-6d ncfn = %-6d netf = %-6d \n",
-	 nni, ncfn, netf);
+     nni, ncfn, netf);
   printf("nproj = %-6d nce = %-6d nsetupsP = %-6d nprf = %-6d\n",
          nproj, nce, nsetupsP, nprf);
   printf("nge = %d\n", nge);

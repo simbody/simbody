@@ -832,21 +832,21 @@ public:
     {
     }
 
-    Real getPerr(const State& s) const OVERRIDE_11 {
+    Real getPerr(const State& s) const override {
         const Vec3 p = m_body.findStationLocationInGround(s, m_point);
         return p[YAxis];
     }
-    Real getVerr(const State& s) const OVERRIDE_11 {
+    Real getVerr(const State& s) const override {
         const Vec3 v = m_body.findStationVelocityInGround(s, m_point);
         return v[YAxis];
     }
-    Real getAerr(const State& s) const OVERRIDE_11 {
+    Real getAerr(const State& s) const override {
         const Vec3 a = m_body.findStationAccelerationInGround(s, m_point);
         return a[YAxis];
     }
 
-    String getContactType() const OVERRIDE_11 {return "Point";}
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+    String getContactType() const override {return "Point";}
+    Vec3 whereToDisplay(const State& state) const override {
         return m_body.findStationLocationInGround(state,m_point);
     }
 
@@ -950,7 +950,7 @@ public:
 
     ~MyPointContactFriction() {delete m_sliding;}
 
-    void initialize() OVERRIDE_11 {
+    void initialize() override {
         Super::initialize();
         initializeRuntimeFields();
     }
@@ -965,16 +965,16 @@ public:
 
     // Implement pure virtuals from MyFrictionElement base class.
 
-    bool isSticking(const State& s) const OVERRIDE_11
+    bool isSticking(const State& s) const override
     {   return !m_noslipX.isDisabled(s); } // X,Z always on or off together
 
     // Note that initializeForStiction() must have been called first.
-    void enableStiction(State& s) const OVERRIDE_11
+    void enableStiction(State& s) const override
     {   m_noslipX.setContactPoint(s, m_contactPointInPlane);
         m_noslipZ.setContactPoint(s, m_contactPointInPlane);
         m_noslipX.enable(s); m_noslipZ.enable(s); }
 
-    void disableStiction(State& s) const OVERRIDE_11
+    void disableStiction(State& s) const override
     {   m_sliding->setPrevN(s, std::max(m_prevN, Real(0)));
         m_sliding->setPrevSlipDir(s, m_prevSlipDir);
         m_noslipX.disable(s); m_noslipZ.disable(s); }
@@ -984,7 +984,7 @@ public:
     // Also record the master's normal force as the previous normal force
     // unless it is negative; in that case record zero.
     // State must be realized through Acceleration stage.
-    void recordImpendingSlipInfo(const State& s) OVERRIDE_11 {
+    void recordImpendingSlipInfo(const State& s) override {
         const Vec2 f = getStictionForce(s);
         SimTK_DEBUG3("%d: RECORD IMPENDING, f=%g %g\n", 
             getFrictionIndex(), f[0], f[1]);
@@ -997,7 +997,7 @@ public:
     // When sliding, record current slip velocity (normalized) as the previous 
     // slip direction. If there is no slip velocity we leave the slip direction
     // unchanged. State must be realized through Velocity stage.
-    void recordSlipDir(const State& s) OVERRIDE_11 {
+    void recordSlipDir(const State& s) override {
         assert(!isSticking(s));
         Vec2 v = m_contact.getSlipVelocity(s);
         Real vmag = v.norm();
@@ -1006,11 +1006,11 @@ public:
     }
 
     // Transfer the locally-stored previous slip direction to the state variable.
-    void updatePreviousSlipDirFromRecorded(State& s) const OVERRIDE_11 {
+    void updatePreviousSlipDirFromRecorded(State& s) const override {
         m_sliding->setPrevSlipDir(s, m_prevSlipDir);
     }
 
-    Real calcSlipSpeedWitness(const State& s) const OVERRIDE_11 {
+    Real calcSlipSpeedWitness(const State& s) const override {
         if (isSticking(s)) return 0;
         const Vec2 vNow = m_contact.getSlipVelocity(s);
         if (!m_sliding->hasPrevSlipDir(s)) return vNow.norm();
@@ -1018,7 +1018,7 @@ public:
         return dot(vNow, vPrev);
     }
 
-    Real calcStictionForceWitness(const State& s) const OVERRIDE_11 {
+    Real calcStictionForceWitness(const State& s) const override {
         if (!isSticking(s)) return 0;
         const Real mu_s = getStaticFrictionCoef();
         const Real N = getMasterNormalForce(s); // might be negative
@@ -1027,43 +1027,43 @@ public:
         return mu_s*N - fmag;
     }
 
-    Real getActualSlipSpeed(const State& s) const OVERRIDE_11 {
+    Real getActualSlipSpeed(const State& s) const override {
         const Vec2 vNow = m_contact.getSlipVelocity(s); 
         return vNow.norm();
     }
 
-    Real getActualFrictionForce(const State& s) const OVERRIDE_11 {
+    Real getActualFrictionForce(const State& s) const override {
         const Real f = isSticking(s) ? getStictionForce(s).norm() 
                                      : m_sliding->calcSlidingForceMagnitude(s);
         return f;
     }
 
-    Real getMasterNormalForce(const State& s) const OVERRIDE_11 {
+    Real getMasterNormalForce(const State& s) const override {
         const Real N = m_contact.getForce(s); // might be negative
         return N;
     }
 
 
-    bool isMasterProximal(const State& s, Real posTol) const OVERRIDE_11
+    bool isMasterProximal(const State& s, Real posTol) const override
     {   return m_contact.isProximal(s, posTol); }
     bool isMasterCandidate(const State& s, Real posTol, Real velTol) const 
-        OVERRIDE_11
+        override
     {   return m_contact.isCandidate(s, posTol, velTol); }
-    bool isMasterActive(const State& s) const OVERRIDE_11
+    bool isMasterActive(const State& s) const override
     {   return !m_contact.isDisabled(s); }
 
 
     // Set the friction application point to be the projection of the contact 
     // point onto the contact plane. This will be used the next time stiction
     // is enabled. Requires state realized to Position stage.
-    void initializeForStiction(const State& s) OVERRIDE_11 {
+    void initializeForStiction(const State& s) override {
         const Vec3 p = m_contact.getContactPointInPlaneBody(s);
         m_contactPointInPlane = p;
         m_tIc = m_tIe = m_tI = Vec2(0);
     }
 
     void recordImpulse(MyContactElement::ImpulseType type, const State& state,
-                      const Vector& lambda) OVERRIDE_11
+                      const Vector& lambda) override
     {
         if (!isSticking(state)) return;
 
@@ -1080,7 +1080,7 @@ public:
     // Fill in deltaV to eliminate slip velocity using the stiction 
     // constraints.
     void setMyDesiredDeltaV(const State& s,
-                            Vector& desiredDeltaV) const OVERRIDE_11
+                            Vector& desiredDeltaV) const override
     {
         if (!isSticking(s)) return;
 
@@ -1103,7 +1103,7 @@ public:
 
 
     std::ostream& writeFrictionInfo(const State& s, const String& indent, 
-                                    std::ostream& o) const OVERRIDE_11 
+                                    std::ostream& o) const override 
     {
         o << indent;
         if (!isMasterActive(s)) o << "OFF";
@@ -1121,7 +1121,7 @@ public:
 
 
     void showFrictionForce(const State& s, Array_<DecorativeGeometry>& geometry) 
-            const OVERRIDE_11
+            const override
     {
         const Real Scale = 10;
         const Vec2 f = isSticking(s) ? getStictionForce(s)
@@ -1172,7 +1172,7 @@ public:
     :   m_unis(unis) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         for (int i=0; i < m_unis.getNumContactElements(); ++i) {
             const MyContactElement& contact = m_unis.getContactElement(i);
@@ -1215,7 +1215,7 @@ public:
 
     void generateControls(const Visualizer&             viz, 
                           const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
+                          Array_< DecorativeGeometry >& geometry) override
     {
         const Vec3 Bo = m_body.getBodyOriginLocation(state);
         const Vec3 p_GC = Bo + Vec3(0, 1, 5); // above and back
@@ -1351,22 +1351,22 @@ public:
         m_sign(side==Lower?1.:-1.), m_limit(limit)
     {}
 
-    String getContactType() const OVERRIDE_11 {return "Stop";}
+    String getContactType() const override {return "Stop";}
 
-    Real getPerr(const State& state) const OVERRIDE_11 {
+    Real getPerr(const State& state) const override {
         const Real q = m_body.getOneQ(state, m_whichq);
         return m_sign*(q-m_limit);
     }
-    Real getVerr(const State& state) const OVERRIDE_11 {
+    Real getVerr(const State& state) const override {
         const Real u = m_body.getOneU(state, m_whichu);
         return m_sign*u;
     }
-    Real getAerr(const State& state) const OVERRIDE_11 {
+    Real getAerr(const State& state) const override {
         const Real udot = m_body.getOneUDot(state, m_whichu);
         return m_sign*udot;
     }
 
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+    Vec3 whereToDisplay(const State& state) const override {
         const Vec3& p_B = m_body.getOutboardFrame(state).p();
         return m_body.findStationLocationInGround(state,p_B);
     }
@@ -1394,22 +1394,22 @@ public:
         m_body1(body1), m_point1(pt1), m_body2(body2), m_point2(pt2), m_dist(d)
     {}
 
-    String getContactType() const OVERRIDE_11 {return "Rope";}
+    String getContactType() const override {return "Rope";}
 
-    Real getPerr(const State& s) const OVERRIDE_11 {
+    Real getPerr(const State& s) const override {
         const Vec3 p1 = m_body1.findStationLocationInGround(s,m_point1);
         const Vec3 p2 = m_body2.findStationLocationInGround(s,m_point2);
         const Vec3 p = p2-p1;
         return (square(m_dist) - dot(p,p))/2;
     }
-    Real getVerr(const State& s) const OVERRIDE_11 {
+    Real getVerr(const State& s) const override {
         Vec3 p1, v1, p2, v2;
         m_body1.findStationLocationAndVelocityInGround(s,m_point1,p1,v1);
         m_body2.findStationLocationAndVelocityInGround(s,m_point2,p2,v2);
         const Vec3 p = p2 - p1, v = v2 - v1;
         return -dot(v, p);
     }
-    Real getAerr(const State& s) const OVERRIDE_11 {
+    Real getAerr(const State& s) const override {
         Vec3 p1, v1, a1, p2, v2, a2;
         m_body1.findStationLocationVelocityAndAccelerationInGround
            (s,m_point1,p1,v1,a1);
@@ -1419,7 +1419,7 @@ public:
         return -(dot(a, p) + dot(v, v));
     }
 
-    Vec3 whereToDisplay(const State& state) const OVERRIDE_11 {
+    Vec3 whereToDisplay(const State& state) const override {
         return m_body2.findStationLocationInGround(state,m_point2);
     }
 
@@ -1452,7 +1452,7 @@ public:
     //                       Custom force virtuals
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
@@ -1464,11 +1464,11 @@ public:
     }
 
     // No potential energy.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
        (const State& state, Stage stage, 
-        Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 1.;
         if (stage != Stage::Time) return;
@@ -2761,7 +2761,7 @@ public:
     // Apply the sliding friction force if this is enabled.
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         if (!hasSlidingForce(state))
             return; // nothing to do 
@@ -2778,11 +2778,11 @@ public:
     }
 
     // Sliding friction does not store energy.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     // Allocate state variables for storing the previous normal force and
     // sliding direction.
-    void realizeTopology(State& state) const OVERRIDE_11 {
+    void realizeTopology(State& state) const override {
         // The previous normal force N is used as a first estimate for the 
         // mu*N sliding friction force calculated at Dynamics stage. However,
         // the update value N cannot be determined until Acceleration stage.
@@ -2797,7 +2797,7 @@ public:
 
     // If we're sliding, set the update value for the previous slip direction
     // if the current slip velocity is usable.
-    void realizeVelocity(const State& state) const OVERRIDE_11 {
+    void realizeVelocity(const State& state) const override {
         if (!hasSlidingForce(state))
             return; // nothing to do 
         const Vec2 Vslip = m_contact.getSlipVelocity(state);
@@ -2830,7 +2830,7 @@ public:
     // Regardless of whether we're sticking or sliding, as long as the master
     // contact is active use its normal force scalar as the update for our
     // saved normal force.
-    void realizeAcceleration(const State& state) const OVERRIDE_11 {
+    void realizeAcceleration(const State& state) const override {
         if (!m_friction.isMasterActive(state))
             return; // nothing to save
         const Real N = m_contact.getForce(state); // normal force

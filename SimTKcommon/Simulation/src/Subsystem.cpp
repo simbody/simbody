@@ -129,7 +129,7 @@ MeasureIndex Subsystem::Guts::adoptMeasure(AbstractMeasure& m) {
 }
 
 bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
-	return isInSystem() && otherSubsystem.isInSystem()
+    return isInSystem() && otherSubsystem.isInSystem()
         && getSystem().isSameSystem(otherSubsystem.getSystem());
 }
 

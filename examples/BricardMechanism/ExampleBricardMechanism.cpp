@@ -74,10 +74,10 @@ int main()
         ("geometry/Bricard_EVEN_PART.obj");
     std::cout << "Getting geometry from '" << auxDir << "'\n";
 
-	MultibodySystem system;
-	SimbodyMatterSubsystem matter(system);
-	GeneralForceSubsystem forces(system);
-	Force::Gravity gravity(forces, matter, UnitVec3(0, -1, 0), 9.8);
+    MultibodySystem system;
+    SimbodyMatterSubsystem matter(system);
+    GeneralForceSubsystem forces(system);
+    Force::Gravity gravity(forces, matter, UnitVec3(0, -1, 0), 9.8);
 
     const Real Mass = 20;
     const Vec3 EvenCOM(1.00000000, -0.16416667, -0.16416667);
@@ -97,52 +97,52 @@ int main()
     const Inertia OddBodyInertia = 
         OddCentralInertia.shiftFromMassCenter(-OddCOM, Mass);
 
-	Body::Rigid EVEN_PART_1(MassProperties(Mass, EvenCOM, EvenBodyInertia));
-	Body::Rigid EVEN_PART_2(MassProperties(Mass, EvenCOM, EvenBodyInertia));
-	Body::Rigid EVEN_PART_3(MassProperties(Mass, EvenCOM, EvenBodyInertia));
+    Body::Rigid EVEN_PART_1(MassProperties(Mass, EvenCOM, EvenBodyInertia));
+    Body::Rigid EVEN_PART_2(MassProperties(Mass, EvenCOM, EvenBodyInertia));
+    Body::Rigid EVEN_PART_3(MassProperties(Mass, EvenCOM, EvenBodyInertia));
 
 
-	Body::Rigid ODD_PART_1(MassProperties(Mass, OddCOM, OddBodyInertia));
-	Body::Rigid ODD_PART_2(MassProperties(Mass, OddCOM, OddBodyInertia));
+    Body::Rigid ODD_PART_1(MassProperties(Mass, OddCOM, OddBodyInertia));
+    Body::Rigid ODD_PART_2(MassProperties(Mass, OddCOM, OddBodyInertia));
 
     // Split the last body and weld back together to close loop.
-	Body::Rigid ODD_PART_3_HALF1(MassProperties(Mass/2, OddCOM, 
-							                    OddBodyInertia/2));
-	Body::Rigid ODD_PART_3_HALF2(MassProperties(Mass/2, OddCOM, 
-							                    OddBodyInertia/2));
+    Body::Rigid ODD_PART_3_HALF1(MassProperties(Mass/2, OddCOM, 
+                                                OddBodyInertia/2));
+    Body::Rigid ODD_PART_3_HALF2(MassProperties(Mass/2, OddCOM, 
+                                                OddBodyInertia/2));
 
-	PolygonalMesh Mesh1, Mesh2; 
+    PolygonalMesh Mesh1, Mesh2; 
     Mesh1.loadObjFile(auxDir + "geometry/Bricard_EVEN_PART.obj"); 
     Mesh2.loadObjFile(auxDir + "geometry/Bricard_ODD_PART.obj"); 
 
-	EVEN_PART_1.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(0.00000000, 1.00000000, 0.00000000)));
-	EVEN_PART_2.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(1.00000000, 0.00000000, 1.00000000)));
-	EVEN_PART_3.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(1.00000000, 1.00000000, 0.00000000)));
-	ODD_PART_1.addDecoration(Transform(), DecorativeMesh(Mesh2).setColor(Vec3(1.00000000, 0.00000000, 0.00000000)));
-	ODD_PART_2.addDecoration(Transform(), DecorativeMesh(Mesh2).setColor(Vec3(0.00000000, 0.00000000, 1.00000000)));
-	ODD_PART_3_HALF1.addDecoration(Transform(), DecorativeMesh(Mesh2).setColor(Vec3(0.00000000, 1.00000000, 1.00000000)));
-	
-	MobilizedBody::Weld EVEN_PART_1_body(matter.updGround(), Transform(Rotation(Mat33(1,0,0,0,-1,0,0,0,-1)), Vec3(0, 0, 0))
-		,EVEN_PART_1, Transform());
-	MobilizedBody::Pin ODD_PART_1_body(EVEN_PART_1_body, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0, 0, 0))
-		,ODD_PART_1, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0,0,0)));
+    EVEN_PART_1.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(0.00000000, 1.00000000, 0.00000000)));
+    EVEN_PART_2.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(1.00000000, 0.00000000, 1.00000000)));
+    EVEN_PART_3.addDecoration(Transform(), DecorativeMesh(Mesh1).setColor(Vec3(1.00000000, 1.00000000, 0.00000000)));
+    ODD_PART_1.addDecoration(Transform(), DecorativeMesh(Mesh2).setColor(Vec3(1.00000000, 0.00000000, 0.00000000)));
+    ODD_PART_2.addDecoration(Transform(), DecorativeMesh(Mesh2).setColor(Vec3(0.00000000, 0.00000000, 1.00000000)));
+    ODD_PART_3_HALF1.addDecoration(Transform(), DecorativeMesh(Mesh2).setColor(Vec3(0.00000000, 1.00000000, 1.00000000)));
+    
+    MobilizedBody::Weld EVEN_PART_1_body(matter.updGround(), Transform(Rotation(Mat33(1,0,0,0,-1,0,0,0,-1)), Vec3(0, 0, 0))
+        ,EVEN_PART_1, Transform());
+    MobilizedBody::Pin ODD_PART_1_body(EVEN_PART_1_body, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0, 0, 0))
+        ,ODD_PART_1, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0,0,0)));
 
-	MobilizedBody::Pin EVEN_PART_2_body(ODD_PART_1_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
-		,EVEN_PART_2, Transform(Rotation(Mat33(0,-1,0,-1,0,0,0,0,-1)), Vec3(0,0,0)));
+    MobilizedBody::Pin EVEN_PART_2_body(ODD_PART_1_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
+        ,EVEN_PART_2, Transform(Rotation(Mat33(0,-1,0,-1,0,0,0,0,-1)), Vec3(0,0,0)));
 
-	MobilizedBody::Pin ODD_PART_2_body(EVEN_PART_1_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
-		,ODD_PART_2, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0,0,0)));
+    MobilizedBody::Pin ODD_PART_2_body(EVEN_PART_1_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
+        ,ODD_PART_2, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0,0,0)));
 
-	MobilizedBody::Pin EVEN_PART_3_body(ODD_PART_2_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
-		,EVEN_PART_3, Transform(Rotation(Mat33(0,-1,0,0,0,-1,1,0,0)), Vec3(2,0,0)));
+    MobilizedBody::Pin EVEN_PART_3_body(ODD_PART_2_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
+        ,EVEN_PART_3, Transform(Rotation(Mat33(0,-1,0,0,0,-1,1,0,0)), Vec3(2,0,0)));
 
-	MobilizedBody::Pin ODD_PART_3_HALF1_body(EVEN_PART_3_body, Transform(Rotation(Mat33(0,-1,0,-1,0,0,0,0,-1)), Vec3(0, 0, 0))
-		,ODD_PART_3_HALF1, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2,0,0)));
+    MobilizedBody::Pin ODD_PART_3_HALF1_body(EVEN_PART_3_body, Transform(Rotation(Mat33(0,-1,0,-1,0,0,0,0,-1)), Vec3(0, 0, 0))
+        ,ODD_PART_3_HALF1, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2,0,0)));
 
-	MobilizedBody::Pin ODD_PART_3_HALF2_body(EVEN_PART_2_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
-		,ODD_PART_3_HALF2, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0,0,0)));
+    MobilizedBody::Pin ODD_PART_3_HALF2_body(EVEN_PART_2_body, Transform(Rotation(Mat33(0,-1,0,0,0,1,-1,0,0)), Vec3(2, 0, 0))
+        ,ODD_PART_3_HALF2, Transform(Rotation(Mat33(0,-1,0,1,0,0,0,0,1)), Vec3(0,0,0)));
 
-	Constraint::Weld ODD_PART_3_UNION(ODD_PART_3_HALF1_body, Transform(), ODD_PART_3_HALF2_body, Transform());
+    Constraint::Weld ODD_PART_3_UNION(ODD_PART_3_HALF1_body, Transform(), ODD_PART_3_HALF2_body, Transform());
 
     //Constraint::ConstantSpeed motion(EVEN_PART_3_body, -.1);
     //Force::MobilityLinearSpring frc(forces, EVEN_PART_3_body, 
@@ -155,27 +155,27 @@ int main()
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     system.addEventReporter(new EnergyReport(system, .01));
-	system.realizeTopology();
-	State state = system.getDefaultState();
+    system.realizeTopology();
+    State state = system.getDefaultState();
 
-	// Set initial states (Q's and U's)
-	// Position
-	ODD_PART_1_body.setOneQ(state, 0, 180.0*Pi/180.0);
-	EVEN_PART_3_body.setOneQ(state, 0, 180.0*Pi/180.0);
-	ODD_PART_3_HALF2_body.setOneQ(state, 0, 0.0*Pi/180.0);
+    // Set initial states (Q's and U's)
+    // Position
+    ODD_PART_1_body.setOneQ(state, 0, 180.0*Pi/180.0);
+    EVEN_PART_3_body.setOneQ(state, 0, 180.0*Pi/180.0);
+    ODD_PART_3_HALF2_body.setOneQ(state, 0, 0.0*Pi/180.0);
 
-	EVEN_PART_2_body.setOneQ(state, 0, -120.0*Pi/180.0);
-	ODD_PART_2_body.setOneQ(state, 0, -120.0*Pi/180.0);
-	ODD_PART_3_HALF1_body.setOneQ(state, 0, 120.0*Pi/180.0);
+    EVEN_PART_2_body.setOneQ(state, 0, -120.0*Pi/180.0);
+    ODD_PART_2_body.setOneQ(state, 0, -120.0*Pi/180.0);
+    ODD_PART_3_HALF1_body.setOneQ(state, 0, 120.0*Pi/180.0);
 
-	// Velocity
-	ODD_PART_1_body.setOneU(state,0, -11.2);
+    // Velocity
+    ODD_PART_1_body.setOneU(state,0, -11.2);
 
-	//RungeKuttaMersonIntegrator integ(system);
-	RungeKutta3Integrator integ(system);
-	//RungeKuttaFeldbergIntegrator integ(system);
-	//VerletIntegrator integ(system);
-	//CPodesIntegrator integ(system);
+    //RungeKuttaMersonIntegrator integ(system);
+    RungeKutta3Integrator integ(system);
+    //RungeKuttaFeldbergIntegrator integ(system);
+    //VerletIntegrator integ(system);
+    //CPodesIntegrator integ(system);
 
     // Accuracy needs to be fairly tight to avoid lockup that would occur
     // if the constraints were allowed to drift.
@@ -186,9 +186,9 @@ int main()
 
     const double startCPU = cpuTime(), startReal = realTime();
 
-	TimeStepper ts(system, integ);
-	ts.initialize(state);
-	ts.stepTo(20.0);	
+    TimeStepper ts(system, integ);
+    ts.initialize(state);
+    ts.stepTo(20.0);    
 
     cout << "DONE. CPU=" << cpuTime()-startCPU 
          << "s, REAL=" << realTime()-startReal << "s\n";

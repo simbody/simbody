@@ -533,9 +533,9 @@ void SimTK::LBFGSOptimizer::lbfgs_
                  x, f, gradient, &stp, &converged);
 
     }  // end while loop
-	delete [] diag;
-	delete [] gradient;
-	delete [] w;
+    delete [] diag;
+    delete [] gradient;
+    delete [] w;
 
 /*     ------------------------------------------------------------ */
 /*     END OF MAIN ITERATION LOOP.  */

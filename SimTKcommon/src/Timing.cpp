@@ -108,7 +108,7 @@
     // same interval changed to seconds and nanoseconds in a timespec struct.
     static inline void
     hectoNsToTimespec(const long long& hecto, struct timespec& ts) {
-        ts.tv_sec  = (long)  (hecto / HectoNsPerSec);	        // seconds
+        ts.tv_sec  = (long)  (hecto / HectoNsPerSec);            // seconds
         ts.tv_nsec = (long) ((hecto % HectoNsPerSec) * 100LL); // nanoseconds
     }
 
@@ -124,7 +124,7 @@
     static int getnstimeofday(struct timespec *tp) {
         if (!tp) return 0;
         FILETIME ft;
-        GetSystemTimeAsFileTime(&ft);	 // 100-nanoseconds since 1-1-1601
+        GetSystemTimeAsFileTime(&ft);     // 100-nanoseconds since 1-1-1601
         filetimeToTimespec(ft, *tp);     // now in ns since 1-1-1970
         return 0;
     }

@@ -7,7 +7,7 @@
     <owners>Michael Sherman</owners>
     <licenseUrl>https://github.com/simbody/simbody/LICENSE</licenseUrl>
     <projectUrl>https://github.com/simbody/simbody</projectUrl>
-    <iconUrl>https://simtk.org/api_docs/simbody/api_docs33/Simbody/html/isaac.png</iconUrl>
+    <iconUrl>https://simtk.org/api_docs/simbody/latest/isaac.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>High-performance C++ multibody dynamics/physics library for simulating articulated biomechanical and mechanical systems like vehicles, robots, and the human skeleton. This package is for use in Appveyor testing. It is not a proper distribution of Simbody.</description>
     <releaseNotes>https://github.com/simbody/simbody/releases</releaseNotes>

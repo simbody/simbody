@@ -39,11 +39,11 @@ cmaes_init_final(cmaes_t * evo_ptr);
 double * 
 cmaes_init(cmaes_t * evo_ptr, int dimension , 
            double *initialX, double *initialStdDev,
-	   long seed, int lambda, const char *input_parameter_filename);
+           long seed, int lambda, const char *input_parameter_filename);
 void
 cmaes_init_para(cmaes_t * evo_ptr, int dimension , 
            double *initialX, double *initialStdDev,
-	   long seed, int lambda, const char *input_parameter_filename);
+           long seed, int lambda, const char *input_parameter_filename);
 
     DEFAULTS of input parameters (invoked by 0 or NULL respectively):
         dimension                : 0 /* no default available */
@@ -85,7 +85,7 @@ cmaes_init_para(cmaes_t * evo_ptr, int dimension ,
 
     Return, double *: array of size lambda==popsize that can be
              used to assign fitness values and pass them to
-	     cmaes_UpdateDistribution(). 
+             cmaes_UpdateDistribution(). 
 
     Details: The dimension has to be defined > 0 here or in the
         input parameter file ("cmaes_initials.par"). 
@@ -126,7 +126,7 @@ cmaes_resume_distribution(cmaes_t *evo_ptr, char *filename):
 
 void 
 cmaes_exit(cmaes_t *) releases the dynamically allocated memory, 
-		   including that of the return value of cmaes_init(). 
+                   including that of the return value of cmaes_init(). 
 
 
 double *const*pop 
@@ -146,7 +146,7 @@ cmaes_ReSampleSingle(cmaes_t evo_ptr, int index)
       index, int: index to an element of the returned value 
          of cmaes_SamplePopulation, double **pop. pop[index] 
          will be resampled where 0<=index<cmaes_Get("lambda") 
-	 must hold. 
+         must hold. 
 
     Return, double *: A pointer to the resampled "population".  
 
@@ -288,7 +288,7 @@ cmaes_GetNew( cmaes_t * evo_prt, char const *keyword)
 
     Return, double *: pointer to the desired value array
          with unlimited reading and writing access to its
-	 elements. 
+         elements. 
 
     Details: The memory of the returned array must be 
          explicitly released using stdlib function free(). 
@@ -301,8 +301,8 @@ cmaes_GetInto( cmaes_t * evo_prt, char const *keyword, double *mem)
           mem, double*: memory of size N==dimension, where the 
                desired values are written into. For mem==NULL
                new memory is allocated as with calling
-	       cmaes_GetNew() and must be released by the 
-	       user at some point. 
+               cmaes_GetNew() and must be released by the 
+               user at some point. 
 
     Return, double *: pointer to input parameter mem, 
              or the new memory, with the desired values. 
@@ -350,21 +350,21 @@ cmaes_WriteToFile(cmaes_t *evo_ptr, const char *szKeyWord,
                minimum of diagonal of D. 
 
            "few(diag(D))": 4 to 6 sorted eigenvalue square roots, 
-		 including the smallest and largest. 
+                 including the smallest and largest. 
 
            "resume": Writes internal state parameters for reading with
                cmaes_resume_distribution. For reading back also the
-	       keyword resume in cmaes_initials.par can be used.
+               keyword resume in cmaes_initials.par can be used.
 
             further keywords: "dim", "funval", "N", "xbest",
                 "xmean",...  See also implementation in cmaes.c and
-		 the file cmaes_signals.par print and write keywords.
+                 the file cmaes_signals.par print and write keywords.
 
          szFileName, const char *: File name, default is "tmpcmaes.dat".
 
        Details: Useful combined keywords can be "eval+funval", "eval+few(diag(D))"
                 "few+few(diag(D))", "all+B". The file cmaes_signals.par provides more
-		examples as it uses the same syntax for writing and printing. 
+                examples as it uses the same syntax for writing and printing. 
 
 void 
 cmaes_UpdateEigensystem(cmaes_t *, int flgforce);
@@ -372,7 +372,7 @@ cmaes_UpdateEigensystem(cmaes_t *, int flgforce);
         evo_ptr, cmaes_t: Pointer to CMA-ES struct cmaes_t will be initialized 
                  within cmaes_init
 
-	flgforce, int: flag, for flgforce!=0 the eigendecomposion is conducted
+        flgforce, int: flag, for flgforce!=0 the eigendecomposion is conducted
                   even if eigenvector and values seem to be up to date. 
 
       Details: conducts the eigendecomposition of C into B and D
@@ -392,7 +392,7 @@ cmaes_NewDouble(int n);
 
 void
 cmaes_FATAL(char const *s1, char const *s2, char const *s3, 
-	    char const *s4)
+            char const *s4)
      Input parameters: error messages, can be NULL. 
 
      Details: cmaes_FATAL writes error messages and terminates

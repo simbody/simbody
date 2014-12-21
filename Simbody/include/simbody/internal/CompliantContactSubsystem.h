@@ -704,13 +704,13 @@ void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const OVERRIDE_11;
+    ContactForce&           contactForce) const override;
 
 void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const OVERRIDE_11;
+    ContactPatch&           patch) const override;
 };
 
 
@@ -734,13 +734,13 @@ void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const OVERRIDE_11;
+    ContactForce&           contactForce) const override;
 
 void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const OVERRIDE_11;
+    ContactPatch&           patch) const override;
 };
 
 
@@ -762,13 +762,13 @@ void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const OVERRIDE_11;
+    ContactForce&           contactForce) const override;
 
 void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const OVERRIDE_11;
+    ContactPatch&           patch) const override;
 };
 
 
@@ -789,13 +789,13 @@ void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const OVERRIDE_11;
+    ContactForce&           contactForce) const override;
 
 void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const OVERRIDE_11;
+    ContactPatch&           patch) const override;
 
 private:
 void calcContactForceAndDetails
@@ -849,14 +849,14 @@ void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const OVERRIDE_11
+    ContactForce&           contactForce) const override
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::DoNothing::calcContactForce() not implemented yet."); }
 void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const OVERRIDE_11
+    ContactPatch&           patch) const override
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::DoNothing::calcContactPatch() not implemented yet."); }
 };
@@ -880,14 +880,14 @@ void calcContactForce
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactForce&           contactForce) const OVERRIDE_11
+    ContactForce&           contactForce) const override
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::ThrowError::calcContactForce() not implemented yet."); }
 void calcContactPatch
    (const State&            state,
     const Contact&          overlapping,
     const SpatialVec&       V_S1S2,
-    ContactPatch&           patch) const OVERRIDE_11
+    ContactPatch&           patch) const override
 {   SimTK_ASSERT_ALWAYS(!"implemented",
         "ContactForceGenerator::ThrowError::calcContactPatch() not implemented yet."); }
 };

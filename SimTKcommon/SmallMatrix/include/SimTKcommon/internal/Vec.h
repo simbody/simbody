@@ -420,7 +420,7 @@ public:
     /** Default construction initializes %Vec's elements to NaN when debugging 
     but leaves them uninitialized garbage otherwise, so declarations have zero
     cost in Release builds. **/
-	Vec(){ 
+    Vec(){ 
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -591,7 +591,7 @@ public:
     /** Select an element of this %Vec and return a const reference to it.
     This is range-checked in Debug builds but has zero overhead in Release
     builds. **/
-	const E& operator[](int i) const 
+    const E& operator[](int i) const 
     {   assert(0 <= i && i < M); return d[i*STRIDE]; }
     /** Same as const operator[] above. **/
     const E& operator()(int i) const {return (*this)[i];}
@@ -599,9 +599,9 @@ public:
     /** Select an element of this %Vec and return a writable reference 
     to it. This is range-checked in Debug builds but has zero overhead in 
     Release builds. **/
-	E& operator[](int i) {assert(0 <= i && i < M); return d[i*STRIDE];}
+    E& operator[](int i) {assert(0 <= i && i < M); return d[i*STRIDE];}
     /** Same as non-const operator[] above. **/
-	E& operator()(int i) {return (*this)[i];}
+    E& operator()(int i) {return (*this)[i];}
 
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
     typename CNT<ScalarNormSq>::TSqrt 
@@ -984,9 +984,9 @@ public:
     // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
     /** Print Vec into a string and return it.  Please refer to operator<< for details. **/
     std::string toString() const {
-		std::stringstream stream;
-		stream <<  (*this);
-		return stream.str(); 
+        std::stringstream stream;
+        stream <<  (*this);
+        return stream.str(); 
     }
 
     /** Variant of operator[] that's scripting friendly to set ith entry **/
@@ -1000,7 +1000,7 @@ public:
 private:
     // TODO: should be an array of scalars rather than elements to control
     // packing more carefully.
-	ELT d[NActualElements];    // data
+    ELT d[NActualElements];    // data
 };
 
 /////////////////////////////////////////////

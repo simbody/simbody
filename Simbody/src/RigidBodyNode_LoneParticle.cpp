@@ -323,7 +323,7 @@ void multiplyByMInvPass1Inward(
         const Real*                             jointForces,
         SpatialVec*                             allZ,
         SpatialVec*                             allZPlus,
-        Real*                                   allEpsilon) const OVERRIDE_11
+        Real*                                   allEpsilon) const override
 {
     if (isUDotKnown(ic)) // prescribed
         return;
@@ -343,7 +343,7 @@ void multiplyByMInvPass2Outward(
         const SBArticulatedBodyInertiaCache&    abc,
         const Real*                             allEpsilon,
         SpatialVec*                             allA_GB,
-        Real*                                   allUDot) const OVERRIDE_11
+        Real*                                   allUDot) const override
 {
     const bool isPrescribed = isUDotKnown(ic);
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);

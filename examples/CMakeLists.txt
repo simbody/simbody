@@ -61,13 +61,16 @@ set(SUBDIR_EXAMPLES
     TaskSpaceControl-Atlas
 )
 
+# There is a top-level "examples" directory in the Windows install,
+# but examples go under "doc" elsewhere.
 IF(WIN32)
-  SET(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_DOCDIR}/examples/bin/)
+  SET(EXAMPLES_INSTALL_BIN examples/bin/)
+  SET(EXAMPLES_INSTALL_SRC examples/src/)
 ELSE()
   SET(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_FULL_LIBDIR}/simbody/examples/)
+  SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
   SET(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_DOCDIR}/examples/)
 ENDIF()
-SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
 
 # CMAKE_INSTALL_PREFIX may be a relative path name; we want to bake in
 # the absolute path for the examples.
@@ -79,19 +82,19 @@ ADD_DEFINITIONS(
 # Provide access to all Simbody headers, and to the examples top-level
 # so that #include "shared/Blah.h" will work.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
-	                ${SimTKCOMMON_INCLUDE_DIRECTORIES}
-	                ${SimTKMATH_INCLUDE_DIRECTORIES}
-	                ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
+                    ${SimTKCOMMON_INCLUDE_DIRECTORIES}
+                    ${SimTKMATH_INCLUDE_DIRECTORIES}
+                    ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Build examples against the unversioned libraries if they are being 
 ## built; otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)
-	SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
-	SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
+    SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
+    SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
 ELSE()
-	SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN})
-	SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
+    SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN})
+    SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
 ENDIF()
 
 
@@ -126,7 +129,10 @@ FOREACH(EX_PROG ${EXAMPLES})
           COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
           PROJECT_LABEL "Example - ${EX_NAME}")
         TARGET_LINK_LIBRARIES(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
-        INSTALL(TARGETS ${EX_NAME} DESTINATION ${EXAMPLES_INSTALL_BIN})
+        # Don't install Debug examples
+        INSTALL(TARGETS ${EX_NAME} 
+                DESTINATION ${EXAMPLES_INSTALL_BIN}
+                CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
     ENDIF()
 
     IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)

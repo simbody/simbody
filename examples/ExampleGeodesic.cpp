@@ -65,7 +65,7 @@ public:
     void setShowStartFrameOnly(bool showStart) {startFrameOnly=showStart;}
 
     void generateDecorations(const State& state,
-        Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) override
     {
         geometry.push_back(DecorativeLine(P,Q));
         geometry.push_back(
@@ -123,7 +123,7 @@ int main() {
   try {
 
     // Create geometry
-    Real r			=    0.5;
+    Real r            =    0.5;
     //ContactGeometry::Sphere geom(r);
 //    ContactGeometry::Cylinder geom(r);
     ContactGeometry::Torus geom(2*r, r);
@@ -135,20 +135,20 @@ int main() {
     //startLength=5;
 
 
-    Real phiP		=    0.0*Pi;
-	Real thetaP		=    0.0*Pi;
+    Real phiP        =    0.0*Pi;
+    Real thetaP        =    0.0*Pi;
 
-    Real phiQ		=   0.0*Pi;
-    Real thetaQ		=   1.2*Pi;
+    Real phiQ        =   0.0*Pi;
+    Real thetaQ        =   1.2*Pi;
 
-	Real heightP	=   0.5;
-	Real heightQ	=  -0.5;
+    Real heightP    =   0.5;
+    Real heightQ    =  -0.5;
 
 
     Vec3 P(r*sin(thetaP)*cos(phiP), r*sin(thetaP)*sin(phiP), r*cos(thetaP));
     Vec3 Q(r*sin(thetaQ)*cos(phiQ), r*sin(thetaQ)*sin(phiQ), r*cos(thetaQ));
 
-	Vec3 O(-2, 0,  heightP);
+    Vec3 O(-2, 0,  heightP);
     Vec3 I(-2, 0,  heightQ);
 
     // move points off surface for testing

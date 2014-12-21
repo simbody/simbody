@@ -569,11 +569,11 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
                                          : true);
         if (!stepSucceeded)
             statsErrorTestFailures++;
-	    else { // step succeeded
-	        lastStepSize = t1-t0;
-	        if (isNaN(actualInitialStepSizeTaken))
+        else { // step succeeded
+            lastStepSize = t1-t0;
+            if (isNaN(actualInitialStepSizeTaken))
                     actualInitialStepSizeTaken = lastStepSize;
-	    }
+        }
     } while (!stepSucceeded);
     
     // The step succeeded. Check for event triggers. If there aren't any, we're

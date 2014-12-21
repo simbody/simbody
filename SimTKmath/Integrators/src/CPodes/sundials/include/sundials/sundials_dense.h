@@ -131,11 +131,11 @@ SUNDIALS_EXPORT void densePOTRS(realtype **a, int m, realtype *b);
 
 SUNDIALS_EXPORT int DenseGEQRF(DlsMat A, realtype *beta, realtype *wrk);
 SUNDIALS_EXPORT int DenseORMQR(DlsMat A, realtype *beta, realtype *vn, realtype *vm, 
-			       realtype *wrk);
+                   realtype *wrk);
 
 SUNDIALS_EXPORT int denseGEQRF(realtype **a, int m, int n, realtype *beta, realtype *v);
 SUNDIALS_EXPORT int denseORMQR(realtype **a, int m, int n, realtype *beta,
-			       realtype *v, realtype *w, realtype *wrk);
+                   realtype *v, realtype *w, realtype *wrk);
 
 /*
  * -----------------------------------------------------------------

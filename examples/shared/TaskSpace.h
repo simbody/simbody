@@ -204,7 +204,7 @@ public:
         // TODO Matrix operator*(const Matrix& u) const;
         // TODO Matrix operator*(const NullspaceProjection& N) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** Used to compute task-space forces; (nu x nst).
@@ -224,7 +224,7 @@ public:
                 const TaskSpace::DynamicallyConsistentJacobianInverseTranspose&
                 JBarT) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** Task-space inertia matrix; \f$ \Lambda = (J A^{-1} J^T)^{-1} \f$
@@ -237,7 +237,7 @@ public:
         Vector operator*(const Vector& a) const;
         Vector operator*(const Vec3& a) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** Inverse of task-space inertia matrix;
@@ -250,7 +250,7 @@ public:
         InertiaInverse() {}
         const Inertia& inverse() const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** Mass-matrix weighted generalized inverse;
@@ -266,7 +266,7 @@ public:
         Vector operator*(const Vector& vec) const;
         Matrix operator*(const Matrix& mat) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** (nst x nu).
@@ -280,7 +280,7 @@ public:
         { return transpose(); }
         Vector operator*(const Vector& g) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** Includes Coriolis forces and the like;
@@ -291,7 +291,7 @@ public:
         InertialForces() {}
         Vector operator+(const Vector& f) const;
     private:
-        void updateCache(Vector& cache) const OVERRIDE_11;
+        void updateCache(Vector& cache) const override;
     };
 
     /** The task-space forces arising from gravity;
@@ -308,7 +308,7 @@ public:
         */
         Vector g() const { return systemGravity(); }
     private:
-        void updateCache(Vector& cache) const OVERRIDE_11;
+        void updateCache(Vector& cache) const override;
     };
 
     /** Used to prioritize tasks; \f$ N = I - \bar{J} J \f$ (nu x nu).
@@ -322,7 +322,7 @@ public:
         { return transpose(); }
         Vector operator* (const Vector& vec) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     /** (nu x nu).
@@ -336,7 +336,7 @@ public:
         { return transpose(); }
         Vector operator*(const Vector& vec) const;
     private:
-        void updateCache(Matrix& cache) const OVERRIDE_11;
+        void updateCache(Matrix& cache) const override;
     };
 
     //==========================================================================

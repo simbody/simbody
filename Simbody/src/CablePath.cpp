@@ -741,7 +741,7 @@ public:
         state(state),instInfo(instInfo),localPpe(ppe)
     {   setEstimatedAccuracy(accuracy); }
 
-    int f(const Vector& x, Vector& fx) const OVERRIDE_11 {
+    int f(const Vector& x, Vector& fx) const override {
         localPpe.x = x;
         path.calcPathError(state, instInfo, localPpe);
         fx = localPpe.err;

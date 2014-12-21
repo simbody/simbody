@@ -238,10 +238,10 @@ SUNDIALS_EXPORT SpgmrMem SpgmrMalloc(int l_max, N_Vector vec_tmpl);
  */                                                                
      
 SUNDIALS_EXPORT int SpgmrSolve(SpgmrMem mem, void *A_data, N_Vector x, N_Vector b,
-			       int pretype, int gstype, realtype delta, 
-			       int max_restarts, void *P_data, N_Vector s1, 
-			       N_Vector s2, ATimesFn atimes, PSolveFn psolve, 
-			       realtype *res_norm, int *nli, int *nps);
+                   int pretype, int gstype, realtype delta, 
+                   int max_restarts, void *P_data, N_Vector s1, 
+                   N_Vector s2, ATimesFn atimes, PSolveFn psolve, 
+                   realtype *res_norm, int *nli, int *nps);
 
 
 /* Return values for SpgmrSolve */

@@ -56,7 +56,7 @@ public:
     typedef T& reference;
 
     /** Default constructor creates an empty object. **/
-	ReferencePtr() : p(0) { }
+    ReferencePtr() : p(0) { }
     /** Construct from a given pointer stores the pointer. **/
     explicit ReferencePtr(T* tp) : p(tp) { }
     /** Construct from a reference stores the address of the supplied 
@@ -64,13 +64,13 @@ public:
     explicit ReferencePtr(T& t) : p(&t) { }
     /** Copy constructor unconditionally sets the pointer to null; see class
     comments for why. **/
-	ReferencePtr(const ReferencePtr&) : p(0) { }
+    ReferencePtr(const ReferencePtr&) : p(0) { }
     /** Copy assignment sets the pointer to null (except for a self-assign); 
     see class comments for why.  **/
-	ReferencePtr& operator=(const ReferencePtr& r) 
+    ReferencePtr& operator=(const ReferencePtr& r) 
     {   if (&r != this) clear(); return *this; }
     /** This form of assignment replaces the currently-referenced object by a 
-    reference to the source object; no destruction occurs. **/	
+    reference to the source object; no destruction occurs. **/    
     ReferencePtr& operator=(T& t)          
     {  reset(&t); return *this; }
     /** This form of assignment replaces the current pointer with the given
@@ -97,18 +97,18 @@ public:
     operator bool() const { return !empty(); }
 
     /** Return the contained pointer, or null if the container is empty. **/
-	T* get()  const  { return p; }
+    T* get()  const  { return p; }
 
     /** Return a reference to the target object. Fails if the pointer is
     null. **/
-	T& getRef() const { 
+    T& getRef() const { 
         SimTK_ERRCHK(p!=0, "ReferencePtr::getRef()", 
                     "An attempt was made to dereference a null pointer."); 
         return *p; 
     }
 
     /** Return true if this container is empty. **/
-	bool     empty() const    { return p==0; }
+    bool     empty() const    { return p==0; }
     /** Make this container empty; no destruction occurs. **/
     void     clear()          { p=0; }
     /** Extract the pointer from this container, leaving the container empty. 
@@ -124,13 +124,13 @@ public:
         other.reset(p);
         reset(otherp);
     }
-	 
+     
 private:
     // Warning: ReferencePtr must be exactly the same size as type T*. That way
     // one can reinterpret_cast a T* to a ReferencePtr<T> when needed.
-    T*	p;  
-};	
-	
+    T*    p;  
+};    
+    
 } // namespace SimTK
 
 namespace std {

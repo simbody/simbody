@@ -147,67 +147,67 @@ calcCurvature(const Vec3& point, Vec2& curvature, Rotation& orientation) const {
 // Sample geodesic between two points P and Q on a cylinder analytically.
 static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real c, Geodesic& geod)
 {
-   	// Clear current geodesic.
-	geod.clear();
+       // Clear current geodesic.
+    geod.clear();
 
     const Real sqrt1m2 = sqrt(1+m*m);   // Avoid repeated calculation.
     const Real kappa = 1 / (R*(1+m*m)); // Curvature in tangent direction.
     const Real kb = 1 / (R*(1+1/(m*m))); // Curvature in binormal direction
                                          //   (slope is 1/m).
-	const Real tau   = m*kappa;         // Torsion (signed).
+    const Real tau   = m*kappa;         // Torsion (signed).
 
-	// Arc length of the helix. Always
-	const Real L = R * sqrt1m2 * std::abs(angle);
+    // Arc length of the helix. Always
+    const Real L = R * sqrt1m2 * std::abs(angle);
 
-	// Orientation of helix. 
-	const Real orientation = angle < 0 ? Real(-1) : Real(1);
+    // Orientation of helix. 
+    const Real orientation = angle < 0 ? Real(-1) : Real(1);
 
-	// TODO: Make this generic, so long geodesics are sampled more than short ones.
+    // TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
-	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
+    const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
 
     for (int i = 0; i < numGeodesicSamples; ++i)
-	{
-		// Watch out: Angle phi has an offset phiP
+    {
+        // Watch out: Angle phi has an offset phiP
         Real phi = Real(i)*angle/Real(numGeodesicSamples-1) + phiP;
         const Real sphi = sin(phi), cphi = cos(phi);
 
-		// Evaluate helix.
-        Vec3	 p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
+        // Evaluate helix.
+        Vec3     p( R*cphi, R*sphi, R*m*(phi - phiP) + c);
 
         // We'll normalize so UnitVec3 doesn't have to do it.
-		UnitVec3 t((orientation/sqrt1m2)*Vec3(-sphi, cphi, m), true);
-		UnitVec3 n(Vec3(cphi, sphi, 0), true);
+        UnitVec3 t((orientation/sqrt1m2)*Vec3(-sphi, cphi, m), true);
+        UnitVec3 n(Vec3(cphi, sphi, 0), true);
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
         geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
 
-		// Current arc length s.
-		Real s = R * sqrt1m2 * (Real(i)*deltaPhi);
+        // Current arc length s.
+        Real s = R * sqrt1m2 * (Real(i)*deltaPhi);
         geod.addArcLength(s);
-		geod.addCurvature(kappa);		
+        geod.addCurvature(kappa);        
 
-		// Solve the scalar Jacobi equation
-		//
-		//        j''(s) + K(s)*j(s) = 0 ,                                     (1)
-		//
-		// where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
-		// with respect to the arc length s. Then, j is the directional sensitivity and
-		// we obtain the corresponding variational vector field by multiplying b*j. For
-		// a cylinder, K = 0 and the solution of equation (1) becomes
-		//
-		//        j  = s				                                       (2)
-		//		  j' = 1 ,							                           (3)
-		//
-		// so the Jacobi field increases linearly in s.
+        // Solve the scalar Jacobi equation
+        //
+        //        j''(s) + K(s)*j(s) = 0 ,                                     (1)
+        //
+        // where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
+        // with respect to the arc length s. Then, j is the directional sensitivity and
+        // we obtain the corresponding variational vector field by multiplying b*j. For
+        // a cylinder, K = 0 and the solution of equation (1) becomes
+        //
+        //        j  = s                                                       (2)
+        //          j' = 1 ,                                                       (3)
+        //
+        // so the Jacobi field increases linearly in s.
 
-		// Forward directional sensitivity from P to Q
-		Vec2 jPQ(s, 1);
-		geod.addDirectionalSensitivityPtoQ(jPQ);
+        // Forward directional sensitivity from P to Q
+        Vec2 jPQ(s, 1);
+        geod.addDirectionalSensitivityPtoQ(jPQ);
 
-		// Backwards directional sensitivity from Q to P
-		Vec2 jQP(L-s, 1);
-		geod.addDirectionalSensitivityQtoP(jQP);
+        // Backwards directional sensitivity from Q to P
+        Vec2 jQP(L-s, 1);
+        geod.addDirectionalSensitivityQtoP(jQP);
 
 
         // TODO: positional sensitivity
@@ -215,8 +215,8 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
         geod.addPositionalSensitivityQtoP(Vec2(NaN));
     }
 
-	// Only compute torsion and binormal curvature at the end points.
-	geod.setTorsionAtP(tau); geod.setTorsionAtQ(tau);
+    // Only compute torsion and binormal curvature at the end points.
+    geod.setTorsionAtP(tau); geod.setTorsionAtQ(tau);
     geod.setBinormalCurvatureAtP(kb); geod.setBinormalCurvatureAtQ(kb);
 
     geod.setIsConvex(true); // Curve on cylinder is always convex.
@@ -229,9 +229,9 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 // Compute geodesic between two points P and Q on a cylinder analytically. Since a geodesic on a
 // cylinder is a helix it is parameterized by
 //
-//			       [ R * cos(phi)    ]
+//                   [ R * cos(phi)    ]
 //        p(phi) = [ R * sin(phi)    ]
-//				   [ R * m * phi + c ]
+//                   [ R * m * phi + c ]
 //
 // where R is the radius of the cylinder, phi parameterizes the opening angle of the helix, m is  
 // the slope and c is an offset. We define the geodesic from P to Q, hence c = Pz.
@@ -240,49 +240,49 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
                        const Vec3& tPhint, const Vec3& tQhint,
                        Geodesic& geod) const
 {
-	// Compute angle between P and Q. Save both the positive (right handed) and the negative
-	// (left handed) angle.
-	Real phiP = atan2(xP[1], xP[0]);
-	Real phiQ = atan2(xQ[1], xQ[0]);
+    // Compute angle between P and Q. Save both the positive (right handed) and the negative
+    // (left handed) angle.
+    Real phiP = atan2(xP[1], xP[0]);
+    Real phiQ = atan2(xQ[1], xQ[0]);
 
-	Real temp = phiQ - phiP;
-	Real angleRightHanded, angleLeftHanded;
+    Real temp = phiQ - phiP;
+    Real angleRightHanded, angleLeftHanded;
 
-	// Left-handed angle will always be negative, right-handed angle will be positive.
-	if (temp >= 0) {
-		angleRightHanded = temp;
-		angleLeftHanded  = temp - 2*Pi;
-	}
+    // Left-handed angle will always be negative, right-handed angle will be positive.
+    if (temp >= 0) {
+        angleRightHanded = temp;
+        angleLeftHanded  = temp - 2*Pi;
+    }
 
-	else {
-		angleLeftHanded  = temp;
-		angleRightHanded = temp + 2*Pi;
-	}
+    else {
+        angleLeftHanded  = temp;
+        angleRightHanded = temp + 2*Pi;
+    }
 
-	// Compute "moment" of tPhint at P and tQhint at Q around z-Axis.
-	// Make sure tPhint and tQhint are unit vectors, otherwise moments are scaled.
-	Real MP = xP[0]*tPhint[1] - xP[1]*tPhint[0];
-	Real MQ = xQ[0]*tQhint[1] - xQ[1]*tQhint[0];
+    // Compute "moment" of tPhint at P and tQhint at Q around z-Axis.
+    // Make sure tPhint and tQhint are unit vectors, otherwise moments are scaled.
+    Real MP = xP[0]*tPhint[1] - xP[1]*tPhint[0];
+    Real MQ = xQ[0]*tQhint[1] - xQ[1]*tQhint[0];
 
-	// Average moment.
-	Real M = (MP + MQ) / 2;
+    // Average moment.
+    Real M = (MP + MQ) / 2;
 
-	// Decide whether helix is right or left handed. The sign of angle stores the 
-	// information about the orientation (right handed, if positive)
-	Real angle;
-	if (M >= 0)	{
-		angle = angleRightHanded;
-	}
+    // Decide whether helix is right or left handed. The sign of angle stores the 
+    // information about the orientation (right handed, if positive)
+    Real angle;
+    if (M >= 0)    {
+        angle = angleRightHanded;
+    }
 
-	else {
-		angle = angleLeftHanded;
-	}
+    else {
+        angle = angleLeftHanded;
+    }
 
-	// Offset and slope.
-	Real c =  xP[2];
-	Real m = (xQ[2] - xP[2]) / (angle * radius);
+    // Offset and slope.
+    Real c =  xP[2];
+    Real m = (xQ[2] - xP[2]) / (angle * radius);
 
-	setGeodesicToHelicalArc(radius, phiP, angle, m, c, geod);
+    setGeodesicToHelicalArc(radius, phiP, angle, m, c, geod);
 }
 
 void ContactGeometry::Cylinder::Impl::shootGeodesicInDirectionUntilLengthReachedAnalytical(const Vec3& xP, const UnitVec3& tP,

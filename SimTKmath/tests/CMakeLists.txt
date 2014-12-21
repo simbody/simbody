@@ -21,31 +21,36 @@ ADD_SUBDIRECTORY(adhoc)
 # whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
+# Some tests here share headers. We don't know the actual dependencies
+# so we'll just make each test depend on all the headers which is
+# at least conservative.
+FILE(GLOB ALL_HEADERS "*.h")
+
 FILE(GLOB REGR_TESTS "*.cpp")
 FOREACH(TEST_PROG ${REGR_TESTS})
     GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
 
     IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
-        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG})
+        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG} ${ALL_HEADERS})
         SET_TARGET_PROPERTIES(${TEST_ROOT}
-		PROPERTIES
-	      PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
+        PROPERTIES
+          PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
         TARGET_LINK_LIBRARIES(${TEST_ROOT} 
-					${TEST_SHARED_TARGET})
+                    ${TEST_SHARED_TARGET})
         ADD_TEST(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
     ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
 
     IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
         SET(TEST_STATIC ${TEST_ROOT}Static)
-        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG})
+        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG} ${ALL_HEADERS})
         SET_TARGET_PROPERTIES(${TEST_STATIC}
-		PROPERTIES
-		COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
-		PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
+        PROPERTIES
+        COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
+        PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
         TARGET_LINK_LIBRARIES(${TEST_STATIC}
-					${TEST_STATIC_TARGET})
+                    ${TEST_STATIC_TARGET})
         ADD_TEST(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
     ENDIF()
 

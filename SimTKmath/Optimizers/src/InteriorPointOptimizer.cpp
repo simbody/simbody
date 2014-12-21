@@ -52,7 +52,7 @@ static std::string applicationReturnStatusToString(int status) {
     }
 }
 Optimizer::OptimizerRep* InteriorPointOptimizer::clone() const {
-	return new InteriorPointOptimizer(*this);
+    return new InteriorPointOptimizer(*this);
 }
 
 // Assume by the time this constructor is called, the number of parameters and constraints has been finalized

@@ -192,7 +192,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 
@@ -216,7 +216,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 
@@ -240,7 +240,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 
@@ -264,7 +264,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 
@@ -288,7 +288,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,    // the mesh
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 
 private:
 void processBox(const ContactGeometry::TriangleMesh&              mesh, 
@@ -320,7 +320,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,    // the mesh
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 
 private:
 void processBox
@@ -351,7 +351,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,    // mesh2
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 
 private:
 void findIntersectingFaces
@@ -402,7 +402,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2, // the convex implicit surface
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 
@@ -425,7 +425,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 
@@ -452,7 +452,7 @@ bool trackContact
     const Transform& X_GS2, 
     const ContactGeometry& surface2,
     Real                   cutoff,
-    Contact&               currentStatus) const OVERRIDE_11;
+    Contact&               currentStatus) const override;
 };
 
 } // namespace SimTK

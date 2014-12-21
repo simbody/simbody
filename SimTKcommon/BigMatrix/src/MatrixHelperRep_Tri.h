@@ -195,14 +195,14 @@ public:
     // Compute the missing elements.
     void getAnyElt_(int i, int j, S* value) const { 
         if (i==j || this->eltIsStored_(i,j)) {
-        	this->copyElt(value, this->getElt_(i,j));
+            this->copyElt(value, this->getElt_(i,j));
             return; 
         }
         // Missing elements are all zero for triangular matrices, or if
         // either dimension is outside the square part of any triangular-storage
         // matrix (i.e., the matrix is trapezoidal).
         if (m_triangular || i >= m_minmn || j >= m_minmn) {
-        	this->fillElt(value, StdNumber(0));
+            this->fillElt(value, StdNumber(0));
             return;
         }
 

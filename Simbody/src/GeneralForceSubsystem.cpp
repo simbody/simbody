@@ -111,10 +111,10 @@ public:
     // These override default implementations of virtual methods in the 
     // Subsystem::Guts class.
 
-    GeneralForceSubsystemRep* cloneImpl() const OVERRIDE_11
+    GeneralForceSubsystemRep* cloneImpl() const override
     {   return new GeneralForceSubsystemRep(*this); }
 
-    int realizeSubsystemTopologyImpl(State& s) const  OVERRIDE_11 {
+    int realizeSubsystemTopologyImpl(State& s) const  override {
         forceEnabledIndex.invalidate();
         cachedForcesAreValidCacheIndex.invalidate();
         rigidBodyForceCacheIndex.invalidate();
@@ -157,7 +157,7 @@ public:
     }
 
     // Forces must realizeModel() even if they are currently disabled.
-    int realizeSubsystemModelImpl(State& s) const OVERRIDE_11 {
+    int realizeSubsystemModelImpl(State& s) const override {
         for (int i = 0; i < (int) forces.size(); ++i)
             forces[i]->getImpl().realizeModel(s);
         return 0;
@@ -165,7 +165,7 @@ public:
 
     // No need to realize Instance stage or later for force elements that are
     // currently disabled.
-    int realizeSubsystemInstanceImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemInstanceImpl(const State& s) const override {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
@@ -173,7 +173,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemTimeImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemTimeImpl(const State& s) const override {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
@@ -181,7 +181,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemPositionImpl(const State& s) const override {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         // If we're caching position-dependent forces, make sure they are
@@ -195,7 +195,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemVelocityImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemVelocityImpl(const State& s) const override {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
@@ -203,7 +203,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemDynamicsImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemDynamicsImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -301,7 +301,7 @@ public:
         return 0;
     }
     
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+    Real calcPotentialEnergy(const State& state) const override {
         const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast
            (getDiscreteVariable(state, forceEnabledIndex)).get();
         Real energy = 0;
@@ -314,7 +314,7 @@ public:
         return energy;
     }
 
-    int realizeSubsystemAccelerationImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemAccelerationImpl(const State& s) const override {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
@@ -322,7 +322,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemReportImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemReportImpl(const State& s) const override {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
@@ -332,7 +332,7 @@ public:
 
     int calcDecorativeGeometryAndAppendImpl
        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
-       OVERRIDE_11
+       override
     {
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));

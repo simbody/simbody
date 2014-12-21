@@ -110,8 +110,8 @@ public:
 
 class FactorQTZDefault : public FactorQTZRepBase {
    public:
-	   FactorQTZDefault();
-	   FactorQTZRepBase* clone() const;
+       FactorQTZDefault();
+       FactorQTZRepBase* clone() const;
 };
 
 template <typename T>

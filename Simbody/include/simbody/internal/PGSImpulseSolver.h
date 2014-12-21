@@ -79,7 +79,7 @@ public:
         Array_<BoundedRT>&                  bounded,
         Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
         Array_<StateLtdFrictionRT>&         stateLtdFriction
-        ) const OVERRIDE_11;
+        ) const override;
 
     /** Solve with only unconditional constraints. In the underdetermined
     case we return one of the possible solutions but it will not in general
@@ -92,7 +92,7 @@ public:
         const Vector&                       D,     // m, diag>=0 added to A
         const Vector&                       rhs,   // m, RHS
         Vector&                             pi     // m, unknown result
-        ) const OVERRIDE_11;
+        ) const override;
 
 private:
     Real m_SOR; 

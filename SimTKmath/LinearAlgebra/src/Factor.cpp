@@ -154,7 +154,7 @@ FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat )
         pivots(mat.ncol()),             
         lu( mat.nrow()*mat.ncol() )
 { 
-	FactorLURep<T>::factor( mat );
+    FactorLURep<T>::factor( mat );
 }
 template <typename T >
 FactorLURep<T>::FactorLURep() 

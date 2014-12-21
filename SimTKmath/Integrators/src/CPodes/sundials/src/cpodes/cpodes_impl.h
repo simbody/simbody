@@ -267,11 +267,11 @@ typedef struct CPodeMemRec {
   /* Linear Solver functions to be called */
   int (*cp_linit)(struct CPodeMemRec *cp_mem);
   int (*cp_lsetup)(struct CPodeMemRec *cp_mem, int convfail,
-		   N_Vector yP, N_Vector ypP, N_Vector fctP,
-		   booleantype *jcurPtr,
-		   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3); 
+                   N_Vector yP, N_Vector ypP, N_Vector fctP,
+                   booleantype *jcurPtr,
+                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3); 
   int (*cp_lsolve)(struct CPodeMemRec *cp_mem, N_Vector b, N_Vector weight,
-		   N_Vector yC, N_Vector ypC, N_Vector fctC);
+                   N_Vector yC, N_Vector ypC, N_Vector fctC);
   void (*cp_lfree)(struct CPodeMemRec *cp_mem);
 
   /* Linear Solver specific memory */
@@ -287,11 +287,11 @@ typedef struct CPodeMemRec {
   /* Linear Solver functions to be called */
   int (*cp_linitP)(struct CPodeMemRec *cp_mem);
   int (*cp_lsetupP)(struct CPodeMemRec *cp_mem, 
-		    N_Vector y, N_Vector cy,
-		    N_Vector c_tmp1, N_Vector c_tmp2, N_Vector s_tmp1); 
+                    N_Vector y, N_Vector cy,
+                    N_Vector c_tmp1, N_Vector c_tmp2, N_Vector s_tmp1); 
   int (*cp_lsolveP)(struct CPodeMemRec *cp_mem, N_Vector b, N_Vector x,
-		    N_Vector y, N_Vector cy,
-		    N_Vector c_tmp1, N_Vector s_tmp1);
+                    N_Vector y, N_Vector cy,
+                    N_Vector c_tmp1, N_Vector s_tmp1);
   void (*cp_lmultP)(struct CPodeMemRec *cp_mem, N_Vector x, N_Vector Gx);
   void (*cp_lfreeP)(struct CPodeMemRec *cp_mem);
 

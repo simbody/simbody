@@ -189,9 +189,9 @@ public:
     /** toString() returns a string representation of the %Vector_. Please refer 
     to operator<< for details. **/
     std::string toString() const {
-		std::stringstream stream;
-	    stream << (*this) ;
-		return stream.str(); 
+        std::stringstream stream;
+        stream << (*this) ;
+        return stream.str(); 
     }
     /** Variant of operator[] that's scripting friendly to get ith element. **/
     const ELT& get(int i) const { return (*this)[i]; }

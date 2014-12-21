@@ -56,7 +56,7 @@ public:
                      const Motion::Steady&  motor, 
                      Real                   interval); 
     void handleEvent(State& state, Real accuracy,
-                     bool& shouldTerminate) const OVERRIDE_11;
+                     bool& shouldTerminate) const override;
 private:
     Visualizer::InputSilo& m_silo;
     Motion::Steady         m_motor;

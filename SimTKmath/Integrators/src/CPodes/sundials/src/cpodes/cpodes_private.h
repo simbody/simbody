@@ -196,8 +196,8 @@ int cpEwtSet(N_Vector ycur, N_Vector weight, void *edata);
 
 /* Error return handler */
 void cpProcessError(CPodeMem cp_mem, 
-		    int error_code, const char *module, const char *fname, 
-		    const char *msgfmt, ...);
+                    int error_code, const char *module, const char *fname, 
+                    const char *msgfmt, ...);
 
 /* Functions acting on the Nordsieck history array */ 
 void cpRestore(CPodeMem cp_mem, realtype saved_t);
