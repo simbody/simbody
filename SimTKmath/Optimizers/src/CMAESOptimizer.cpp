@@ -147,7 +147,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results, const bool& useMPI)
     // =================
     double* funvals = init(evo, results);
     SimTK_CMAES_PRINT(diagnosticsLevel, printf("%s\n", cmaes_SayHello(&evo)));
-    int lambda = cmaes_Get(&evo, "lambda");
+    int popsize = cmaes_Get(&evo, "popsize");
     
     // Initialize multithreading, if requested.
     // ========================================
@@ -193,7 +193,7 @@ Real CMAESOptimizer::master(SimTK::Vector& results, const bool& useMPI)
 
         // Evaluate the objective function on the samples.
         // ===============================================
-        evaluatePopulation(lambda, pop, funvals, exec.get(), nNodes);
+        evaluatePopulation(popsize, pop, funvals, exec.get(), nNodes);
         
         // Update the distribution (mean, covariance, etc.).
         // =================================================
@@ -387,7 +387,7 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
 }
 
 void CMAESOptimizer::evaluatePopulation(
-        const int& lambda, double*const* pop, double* funvals,
+        const int& popsize, double*const* pop, double* funvals,
         ParallelExecutor* executor, const int& nNodes)
 {
     const OptimizerSystem& sys = getOptimizerSystem();
@@ -398,7 +398,7 @@ void CMAESOptimizer::evaluatePopulation(
     if (executor) {
         // See SimTK::CMAESOptimizer::Task; this calls the objective function.
         Task task(*this, nParams, pop, funvals);
-        executor->execute(task, lambda);
+        executor->execute(task, popsize);
     }
 
     // Execute across multiple processes (nodes).
@@ -408,7 +408,7 @@ void CMAESOptimizer::evaluatePopulation(
             // This only gets called by the master (root) node. Dispatch the
             // population among the worker processes, then run one evaluation
             // locally.
-            // Note that lambda can be different from the number of nodes,
+            // Note that popsize can be different from the number of nodes,
             // which prevents us from using a more elegant scatter/gather
             // implementation.
             int nWorkers = nNodes - 1;
@@ -422,7 +422,7 @@ void CMAESOptimizer::evaluatePopulation(
             // 1. Send one vector of parameters to each worker.
             // ------------------------------------------------
             // If more workers than jobs, don't give all workers a job.
-            int nInitialJobs = std::min(nWorkers, lambda);
+            int nInitialJobs = std::min(nWorkers, popsize);
             int workerRank;
             for (ijob = 0; ijob < nInitialJobs; ++ijob)
             {
@@ -441,7 +441,7 @@ void CMAESOptimizer::evaluatePopulation(
             // ----------------------------------------------------------------
             // This temporarily stores incoming objective function evaluations.
             double buffer;
-            while (ijob < lambda) {
+            while (ijob < popsize) {
 
                 // Must receive a job before we can send off a new one.
                 mpi_master_receiveEval(buffer, status, funvals);
@@ -451,7 +451,7 @@ void CMAESOptimizer::evaluatePopulation(
                 // Increment the count of sent jobs.
                 ijob++;
             
-                if (ijob < lambda) {
+                if (ijob < popsize) {
                     // While waiting to receive, run an evaluation ourselves.
                     objectiveFuncWrapper(nParams, pop[ijob], true,
                             &funvals[ijob], this);
@@ -471,7 +471,7 @@ void CMAESOptimizer::evaluatePopulation(
     // Execute normally (in serial).
     // =============================
     else {
-        for (int i = 0; i < lambda; i++) {
+        for (int i = 0; i < popsize; i++) {
             objectiveFuncWrapper(nParams, pop[i], true, &funvals[i], this);
         }
     }

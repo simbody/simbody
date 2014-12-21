@@ -63,7 +63,7 @@ private:
     void resampleToObeyLimits(cmaes_t& evo, double*const* pop);
 
     // May use threading or MPI.
-    void evaluatePopulation(const int& lambda,
+    void evaluatePopulation(const int& popsize,
             double*const* pop, double* funvals,
             ParallelExecutor* executor, const int& nNodes);
 
