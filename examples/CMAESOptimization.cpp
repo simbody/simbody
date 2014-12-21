@@ -24,7 +24,7 @@
 #include "SimTKmath.h"
 #include <iostream>
 
-// If you compiled Simbody with CMake variable SIMBODY_ENABLE_MPI set to ON,
+// If you compiled Simbody with CMake variable SIMBODY_MPI set to ON,
 // try changing the value of USE_MPI to 1. If you don't, then the optimization
 // will run completely separately on each MPI process.
 #define USE_MPI 0

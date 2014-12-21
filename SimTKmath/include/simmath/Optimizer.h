@@ -344,7 +344,7 @@ private:
  *   OptimizerSystem::objectiveFun(). To run the optimization in parallel on a
  *   cluster, set this to "mpi"; the objective function will be evaluated
  *   across multiple processes. To use MPI, you must have compiled Simbody with
- *   the CMake variable SIMBODY_ENABLE_MPI set to ON. See notes below.
+ *   the CMake variable SIMBODY_MPI set to ON. See notes below.
  * - <b>nthreads</b> (int) If the <b>parallel</b> option is set to
  *   "multithreading", this is the number of threads to use (by default, this
  *   is the number of processors/threads on the machine).

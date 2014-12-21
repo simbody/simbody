@@ -190,11 +190,11 @@ ENDIF()
 
 # MPI
 # ---
-SET(SIMBODY_ENABLE_MPI_MSG
+SET(SIMBODY_MPI_MSG
 "Allow use of the Message Passing Interface in the CMAES Optimizer.
 Requires you to install an implementation of MPI (Open-MPI, MPICH, etc.).")
-OPTION(SIMBODY_ENABLE_MPI "${SIMBODY_ENABLE_MPI_MSG}" OFF)
-IF(SIMBODY_ENABLE_MPI)
+OPTION(SIMBODY_MPI "${SIMBODY_MPI_MSG}" OFF)
+IF(SIMBODY_MPI)
     FIND_PACKAGE(MPI REQUIRED)
     SET(SimTK_MPI 1)
 ELSE()

@@ -178,7 +178,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
     * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
-    * `SIMBODY_ENABLE_MPI` to enable running the CMAES Optimizer in
+    * `SIMBODY_MPI` to enable running the CMAES Optimizer in
       parallel on a computing cluster, using the Message Passing Interface.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
 
@@ -316,7 +316,7 @@ There are two ways to get the source code.
         * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
         * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
         * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
-        * `SIMBODY_ENABLE_MPI` to enable running the CMAES Optimizer in
+        * `SIMBODY_MPI` to enable running the CMAES Optimizer in
           parallel on a computing cluster, using the Message Passing Interface.
           Note that you should compile Simbody with the same compiler used to
           compile your MPI library.
