@@ -541,7 +541,7 @@ void testMPI()
     opt.setConvergenceTolerance(1e-12);
     opt.setDiagnosticsLevel(1);
     opt.setMaxIterations(5000);
-    opt.setAdvancedRealOption("sigma", 0.3);
+    opt.setAdvancedRealOption("init_stepsize", 0.3);
     // Sometimes this test fails, so choose a seed where the test passes.
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);

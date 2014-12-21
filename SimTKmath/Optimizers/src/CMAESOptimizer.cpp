@@ -253,7 +253,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     getAdvancedIntOption("popsize", popsize);
     
     // init_stepsize
-    // --------
+    // -------------
     double init_stepsize = 0;
     double* stddev = NULL;
     Vector init_stepsizeArray;
