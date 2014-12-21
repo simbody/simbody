@@ -300,8 +300,7 @@ There are two ways to get the source code.
     * There are a few other variables you might want to play with:
         * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
         * `BUILD_TESTING` to ensure your Simbody works
-          correctly. The tests take a long time to build, though. If you need to
-          build Simbody quickly, maybe turn this off. On by default.
+          correctly. On by default.
         * `BUILD_VISUALIZER` to be able to watch your system
           move about! If building on a cluster, you could turn this off. On by
           default.
