@@ -110,7 +110,7 @@ Most editors can also help you clean up a file that already has tabs in it. In
 Visual Studio, go to `Edit:Advanced:Untabify` to untabify the current
 file; or `Find & Replace` with regular expressions turned on, using `\t` to
 represent a tab, to untabify your entire project/solution. In `vi` or `vim`,
-use `:retab`. On UNIX in general, see the `expand` shell command.
+use `:1,$s/\t/\=repeat(" ", 4)/g`. On UNIX in general, see the `expand` shell command.
 
 #### Use English and a spell checker
 Simbody has users and contributors from around the world. However, there is much to be gained by choosing a single natural language for a project, and English is the obvious choice for us. Any submitted code must be understandable by English speakers, with English comments, error messages, and documentation. As one practical consequence, this means Simbody code can use `char` rather than `wchar_t` (wide characters) and embedded English text to be displayed at run time is acceptable and need not be sequestered into separate files to facilitate translation. Simbody contributors thus do not need to be familiar with techniques for internationalization.
