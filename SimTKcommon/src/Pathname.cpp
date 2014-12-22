@@ -110,30 +110,29 @@ static void removeDriveInPlace(string& inout, string& drive) {
     }
 }
 
-void Pathname::deconstructPathRelativeToSWD(const std::string& swd,
+void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string& swd,
                                             const std::string& path,
                                             std::string& directory,
                                             std::string& fileName,
                                             std::string& extension)
 {
     directory.erase(); fileName.erase(); extension.erase();
+    string pathdrive, swddrive, finaldrive;
 
     // Remove all the white space and make all the slashes be forward ones.
     // (For Windows they'll be changed to backslashes later.)
     String pathcleaned = String::trimWhiteSpace(path).replaceAllChar('\\', '/');
     if (pathcleaned.empty())
         return; // path consisted only of white space
-
-    // Remove all the white space and make all the slashes be forward ones.
-    // (For Windows they'll be changed to backslashes later.)
-    // Then add a path seprator if needed.
-    String swdcleaned = String::trimWhiteSpace(swd).replaceAllChar('\\', '/');
-    if (!swdcleaned.empty() && swdcleaned[swdcleaned.size() - 1] != getPathSeparatorChar())
-        swdcleaned += "/";
-
-    string pathdrive, swddrive, finaldrive;
     removeDriveInPlace(pathcleaned, pathdrive);
+
+    // Check for a drive, then map swd to an absolute path name if no drive given
+    String swdcleaned = String::trimWhiteSpace(swd).replaceAllChar('\\', '/');
+    if (!swdcleaned.empty() && swdcleaned[swdcleaned.size() - 1] != '/')
+        swdcleaned += '/';
     removeDriveInPlace(swdcleaned, swddrive);
+    if (swddrive.empty())
+        swdcleaned = getAbsoluteDirectoryPathname(swd);
 
 
     // If the pathname in its entirety is just one of these, append 
@@ -147,20 +146,8 @@ void Pathname::deconstructPathRelativeToSWD(const std::string& swd,
     
     // If swd is empty, then process path as usual.
     if (swd.empty()) {
-        
-        if (pathcleaned.substr(0, 1) == "/") {
-            pathcleaned.erase(0, 1);
-            if (pathdrive.empty()) pathdrive = getCurrentDriveLetter();
-        }
-        else if (pathcleaned.substr(0, 2) == "./") {
-            pathcleaned.replace(0, 2, getCurrentWorkingDirectory(pathdrive));
-            removeDriveInPlace(pathcleaned, pathdrive);
-        }
-        // Otherwise, the path was "X:*" or "*", so find the working directory.
-        else {
-            pathcleaned.insert(0, getCurrentWorkingDirectory(pathdrive));
-            removeDriveInPlace(pathcleaned, pathdrive);
-        }
+        pathcleaned = getAbsolutePathname(path);
+        removeDriveInPlace(pathcleaned, pathdrive);
         finaldrive = pathdrive;
     }
 

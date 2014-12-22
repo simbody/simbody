@@ -89,15 +89,19 @@ class SimTK_SimTKCOMMON_EXPORT Pathname {
 public:
     /// Given a specified working directory (swd) and path, this function
     /// evaluates the absolute path of a given path relative to the swd and
-    /// returns the directory, fileName, and extension of the final absolute
-    /// path. In general, some rules followed are as follows
-    /// 1) If a full absolute path is given by path, swd is not used.
-    /// 2) To resolve drive ambiguities, in general, if swd provides a drive,
-    ///    it is used. If not, then the path drive is used. If neither provides
+    /// returns the directory, fileName, and extension of the canonicalized absolute
+    /// path. This means that instead of evaluating "." as the current working
+    /// directory (cwd), the swd is used. In general, some rules followed are as follows
+    /// 1) If an absolute path is given by path, swd is not used. An absolute path
+    ///    is defined as a a root-relative path name and on Windows it will begin 
+    ///    with an explicit drive letter (e.g. /usr/* or c:/documents/*, respectively).
+    /// 2) If a relative path without a drive letter is given by path (e.g. "./*" or "*"), 
+    ///    then the absolute path of the swd is prepended to path.
+    /// 3) To resolve drive ambiguities, if swd provides a drive, it is used. 
+    ///    If not, then the path drive is used (e.g. path = "X:*"). If neither provides 
     ///    a drive, then the current drive is used.
-    /// 3) If swd is an empty string, then the path is evaluated as normal
-    ///    in a shell.
-    static void deconstructPathRelativeToSWD(const std::string& swd,
+    /// 4) If swd is an empty string, then swd = cwd.
+    static void findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string& swd,
                                              const std::string& path,
                                              std::string& directory,
                                              std::string& fileName,
