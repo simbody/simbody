@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -128,28 +128,24 @@ protected:
     Stage getStage(const State& s) const {return getSubsystem().getStage(s);}
 
     // VIRTUALS //
-    // Ordinals must retain the same meaning from release to release
-    // to preserve binary compatibility.
 
-    /* 0*/virtual ~Implementation() {}
-    /* 1*/virtual Implementation* cloneVirtual() const = 0;
+    virtual ~Implementation() {}
+    virtual Implementation* cloneVirtual() const = 0;
 
-    /* 2*/virtual void realizeTopology(State&)const = 0;
+    virtual void realizeTopology(State&)const = 0;
 
-    /* 3*/virtual void realizeMeasureModelVirtual(State&) const {}
-    /* 4*/virtual void realizeMeasureInstanceVirtual(const State&) const {}
-    /* 5*/virtual void realizeMeasureTimeVirtual(const State&) const {}
-    /* 6*/virtual void realizeMeasurePositionVirtual(const State&) const {}
-    /* 7*/virtual void realizeMeasureVelocityVirtual(const State&) const {}
-    /* 8*/virtual void realizeMeasureDynamicsVirtual(const State&) const {}
-    /* 9*/virtual void realizeMeasureAccelerationVirtual(const State&) const {}
-    /*10*/virtual void realizeMeasureReportVirtual(const State&) const {}
+    virtual void realizeMeasureModelVirtual(State&) const {}
+    virtual void realizeMeasureInstanceVirtual(const State&) const {}
+    virtual void realizeMeasureTimeVirtual(const State&) const {}
+    virtual void realizeMeasurePositionVirtual(const State&) const {}
+    virtual void realizeMeasureVelocityVirtual(const State&) const {}
+    virtual void realizeMeasureDynamicsVirtual(const State&) const {}
+    virtual void realizeMeasureAccelerationVirtual(const State&) const {}
+    virtual void realizeMeasureReportVirtual(const State&) const {}
 
-    /*11*/virtual void initializeVirtual(State&) const {}
-    /*12*/virtual int  
-          getNumTimeDerivativesVirtual() const {return 0;}
-    /*13*/virtual Stage 
-          getDependsOnStageVirtual(int order) const = 0;
+    virtual void  initializeVirtual(State&) const {}
+    virtual int   getNumTimeDerivativesVirtual() const {return 0;}
+    virtual Stage getDependsOnStageVirtual(int order) const = 0;
 
 private:
     int             copyNumber; // bumped each time we do a deep copy
@@ -525,17 +521,14 @@ protected:
     }
 
     // VIRTUALS //
-    // Ordinals must retain the same meaning from release to release
-    // to preserve binary compatibility.
 
     /** Concrete measures can override this to allocate Topology-stage
     resources. **/
-    /* 0*/virtual void realizeMeasureTopologyVirtual(State&) const
-    {}
+    virtual void realizeMeasureTopologyVirtual(State&) const {}
 
     /** Concrete measures must override this if the state cache is used for
     precalculated values or derivatives. **/
-    /* 1*/virtual void 
+    virtual void 
     calcCachedValueVirtual(const State&, int derivOrder, T& value) const
     {   SimTK_ERRCHK1_ALWAYS(!"implemented", 
         "Measure_<T>::Implementation::calcCachedValueVirtual()",
@@ -548,7 +541,7 @@ protected:
     %Measure says it can deliver. You don't need to override this if that
     condition can't occur. This is commonly used for functions whose derivatives
     above a certain order are zero. **/
-    /* 2*/virtual const T& 
+    virtual const T& 
     getUncachedValueVirtual(const State&, int derivOrder) const
     {   SimTK_ERRCHK1_ALWAYS(!"implemented", 
             "Measure_<T>::Implementation::getUncachedValueVirtual()",
@@ -566,7 +559,7 @@ private:
     // Satisfy the realizeTopology() pure virtual here now that we know the 
     // data type T. Allocate lazy- or auto-validated- cache entries depending 
     // on the setting of presumeValidAtDependsOnStage.
-    void realizeTopology(State& s) const final {
+    void realizeTopology(State& s) const override final {
         // Allocate cache entries. Initialize the value cache entry to
         // the given defaultValue; all the derivative cache entries should be
         // initialized to a NaN of the same size.
