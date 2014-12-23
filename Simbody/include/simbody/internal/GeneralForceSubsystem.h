@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Nabeel Allana, Chris Dembia                                  *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -85,6 +85,13 @@ public:
     be explicitly enabled. **/
     void setForceIsDisabled
        (State& state, ForceIndex index, bool shouldBeDisabled) const;
+
+    /** Some of the dynamics calculations performed by the forces are
+    parallelized. Use this method to control the number of threads used when
+    calculating forces. The parallelism only affects forces that choose to
+    be executed in parallel. By default, the number of threads is the number
+    of cores on the machine. **/
+    void setNumberOfThreads(unsigned int numThreads);
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects
     to be owned by a MultibodySystem. This method returns a const reference
