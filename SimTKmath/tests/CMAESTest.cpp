@@ -21,10 +21,12 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+// See main() at the bottom for comments about this test.
+
 // TODO
 // restarts
 // file reading/writing (signals). 
-//
+// still works with MPI even if there's only one process.
 
 #include "SimTKmath.h"
 #include "OptimizerSystems.h"
@@ -43,6 +45,7 @@ using SimTK::OptimizerSystem;
 
 // Utilities.
 // ==========
+
 // Every subtest takes as an argument an OptimizerConfig that can be used to
 // set options on the optimizer.
 typedef void (*OptimizerConfig)(Optimizer&);
@@ -51,6 +54,9 @@ typedef void (*OptimizerConfig)(Optimizer&);
 void configureDefault(Optimizer& opt) {}
 void configureMultithreading(Optimizer& opt) {
     opt.setAdvancedStrOption("parallel", "multithreading");
+}
+void configureMPI(Optimizer& opt) {
+    opt.setAdvancedStrOption("parallel", "mpi");
 }
 
 bool vectorsAreEqual(const Vector& actual, const Vector& expected, double tol,
@@ -478,7 +484,7 @@ void testEasom(OptimizerConfig configureOptimizer) {
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     configureOptimizer(opt);
-    // TODO opt.setDiagnosticsLevel(3);
+    // opt.setDiagnosticsLevel(3);
     opt.setAdvancedIntOption("popsize", 500);
     opt.setAdvancedRealOption("init_stepsize", 25);
     opt.setAdvancedIntOption("seed", 42);
@@ -545,9 +551,9 @@ void testMultithreadingNThreads() {
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
-void testMPI()
+// If you compiled with MPI but do not call MPI_Init, you get an exception.
+void testMPIMustCallInit()
 {
-
     Cigtab sys(3);
     int N = sys.getNumParameters();
 
@@ -557,66 +563,125 @@ void testMPI()
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    opt.setConvergenceTolerance(1e-12);
-    opt.setDiagnosticsLevel(1);
-    opt.setMaxIterations(5000);
     opt.setAdvancedRealOption("init_stepsize", 0.3);
     // Sometimes this test fails, so choose a seed where the test passes.
-    opt.setAdvancedIntOption("seed", 42);
-    opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     opt.setAdvancedStrOption("parallel", "mpi");
 
-    #if SimTK_SIMMATH_MPI
-        // Optimize!
-
-        // We get an exception if we don't initialize MPI first.
-        SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
-                SimTK::Exception::ErrorCheck);
-
-        // Run a successful optimization.
-        MPI_Init(NULL, NULL);
-        SimTK_TEST_OPT(opt, results, 1e-5);
-
-        // We can run multiple optimizations.
-        SimTK_TEST_OPT(opt, results, 1e-5);
-        SimTK_TEST_OPT(opt, results, 1e-5);
-
-        MPI_Finalize();
-    #else
-        SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
-                SimTK::Exception::ErrorCheck);
-    #endif
+    // We get an exception if we don't initialize MPI first.
+    SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+            SimTK::Exception::ErrorCheck);
 }
 
-int main() {
+// If you try to set "parallel" to "mpi" but you did not compile with MPI, then
+// you get an exception.
+void testMPINotCompiledIn()
+{
+    Cigtab sys(3);
+    int N = sys.getNumParameters();
+
+    // set initial conditions.
+    Vector results(N);
+    results.setTo(0.5);
+
+    // Create optimizer; set settings.
+    Optimizer opt(sys, SimTK::CMAES);
+    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    opt.setAdvancedStrOption("parallel", "mpi");
+
+    SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+            SimTK::Exception::ErrorCheck);
+}
+
+/* Permitting the use of MPI creates a number of ways that one might use CMAES.
+ * This test attempts to cover the following use cases:
+ *
+ * 1. If Simbody is NOT compiled with MPI:
+ *      a. "parallel" option not set.
+ *      b. "parallel" option set to "multithreading".
+ *      c. "parallel" option set to "mpi", which throws an exception.
+ * 2. If Simbody IS compiled with MPI:
+ *      a. without mpiexec:
+ *          i. "parallel" option not set.
+ *          ii. "parallel" option set to "multithreading".
+ *              Just because someone compiled with MPI doens't mean they want
+ *              to use it. Imagine if the simbody in the ubuntu repos were
+ *              compiled with MPI.
+ *          iii. "parallel" option set to "mpi".
+ *              TODO is this the same as `with mpiexec, one process, "parallel"
+ *              option set to "mpi"`?
+ *      b. with mpiexec:
+ *          i. "parallel" option not set.
+ *              Not a sensical use case, but we can't prevent it, so the tests
+ *              better pass (see note below).
+ *          ii. "parallel" option set to "multithreading".
+ *              Not a sensical use case, but we can't prevent it, so the tests
+ *              better pass (see note below).
+ *          iii. "parallel" option set to "mpi".
+ *
+ * "without mpiexec" means that this CMAESTest executable is run as
+ * "./CMAESTest".
+ * "with mpiexec" means it is run as something like "mpiexec -np 2"; see the
+ * CMAESMPITest CMake test.
+ *
+ * 1  is achieved when SIMBODY_MPI is off, by CMake test CMAESTest.
+ * 2a is achieved when SIMBODY_MPI is on,  by CMake test CMAESTest.
+ * 2b is achieved when SIMBODY_MPI is on,  by CMake test CMAESMPITest.
+ *
+ * Ideally, we would throw an exception in the `with mpiexec, "parallel" set to
+ * "multithreading"` case and a warning in the `with mpiexec, "parallel" option
+ * not set` case, but there is no cross-platform way to detect if
+ * running with mpiexec.
+ *
+ * On Travis CI (continuous integration), in order to test (1) and (2) above,
+ * we run tests with the CMake variable SIMBODY_MPI set to both OFF (1) and ON
+ * (2).
+ */
+int main(int argc, char* argv[]) {
 
     SimTK_START_TEST("CMAES");
 
-        // For these tests, it doesn't make sense to run in multiple
-        // configurations.
+        // Run subtests not affected by config., or are for specific config.
+        // -----------------------------------------------------------------
         SimTK_SUBTEST(testCMAESAvailable);
         SimTK_SUBTEST(testTwoOrMoreParameters);
         SimTK_SUBTEST(testMultithreadingNThreads);
-        SimTK_SUBTEST(testMPI);
+        #if SimTK_SIMMATH_MPI
+            // This subtest must occur before we call MPI_Init(), since it
+            // checks for an exc. that is thrown if MPI_Init() is not called.
+            SimTK_SUBTEST(testMPIMustCallInit); // 2a-iii, 2b-iii.
+        #else
+            SimTK_SUBTEST(testMPINotCompiledIn); // 1c
+        #endif
 
-        // Now, run some tests in multiple configurations.
+        // Set up configurations.
+        // ----------------------
+        // See top of file for the definition of these functions.
         std::map<std::string, OptimizerConfig> configs = {
-            {"default",        configureDefault},
-            {"multithreading", configureMultithreading}
+            {"default", configureDefault}, // 1a, 2a-i, 2b-i.
+            {"multithreading", configureMultithreading}, // 1b, 2a-ii, 2b-ii.
         };
 
+        #if SimTK_SIMMATH_MPI // 2
+            configs["mpi"] = configureMPI; // 2a-iii, 2b-iii.
+            MPI_Init(&argc, &argv);
+        #endif
+
+        // Run remaining subtests for the selected configurations.
+        // -------------------------------------------------------
+
+        // Now, run some tests in multiple configurations.
         for (auto& kv : configs) {
 
-            std::clog << "Using '" << kv.first << "' optimizer options." <<
-                std::endl;
+            std::clog << "Using '" << kv.first <<
+                "' optimizer configuration." << std::endl;
 
             SimTK_SUBTEST1(testMaxIterations, kv.second);
             SimTK_SUBTEST1(testCigtabOptimum, kv.second);
-            SimTK_SUBTEST1(testParameterLimits, kv.second);
+            SimTK_SUBTEST1(testParameterLimits, kv.second); // TODO fails
             SimTK_SUBTEST1(testSigmaAndAckleyOptimum, kv.second);
             SimTK_SUBTEST1(testDropWaveOptimumLambda, kv.second);
             SimTK_SUBTEST1(testMaxFunEvals, kv.second);
-            SimTK_SUBTEST1(testSeed, kv.second);
+            SimTK_SUBTEST1(testSeed, kv.second); // TODO fails
             SimTK_SUBTEST1(testConvergenceTolerance, kv.second);
             SimTK_SUBTEST1(testRosenbrock, kv.second);
             SimTK_SUBTEST1(testSchwefel, kv.second);
@@ -625,6 +690,10 @@ int main() {
         }
 
         // TODO        testRestart();
+
+    #if SimTK_SIMMATH_MPI
+        MPI_Finalize();
+    #endif
 
     SimTK_END_TEST();
 }

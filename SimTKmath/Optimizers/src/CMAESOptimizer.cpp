@@ -105,11 +105,11 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
                 for (int workerRank = 1; workerRank < nNodes; ++workerRank) {
 
                     // Send the parameters.
-                    MPI_Send(&results, results.size(), MPI_DOUBLE,
-                             workerRank, 0, SimTK_COMM_WORLD);
+                    MPI_Send(&results[0], results.size(), MPI_DOUBLE,
+                             workerRank, /* tag: */ 0, SimTK_COMM_WORLD);
                     // Send the objective function value.
                     MPI_Send(&f, 1, MPI_DOUBLE,
-                             workerRank, 0, SimTK_COMM_WORLD);
+                             workerRank, /* tag: */ 0, SimTK_COMM_WORLD);
                 }
                 return f;
             }
@@ -545,6 +545,7 @@ Real CMAESOptimizer::mpi_worker(SimTK::Vector& params,
             // Receive the objective function value.
             MPI_Recv(&f, 1, MPI_DOUBLE,
                      0, 0, SimTK_COMM_WORLD, MPI_STATUS_IGNORE);
+
             return f;
         }
 
