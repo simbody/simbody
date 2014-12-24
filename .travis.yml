@@ -50,9 +50,11 @@ install:
   - mkdir ~/simbody-build && cd ~/simbody-build
   # Configure.
   - cmake $TRAVIS_BUILD_DIR -DSIMBODY_MPI=$MPI -DCMAKE_CXX_FLAGS=-Werror
-  # Build.
-  - make -j8
+  # Build. If MPI, then only build CMAESTest.
+  - if $MPI; then make --jobs=8 CMAESTest; fi
+  - if ! $MPI; then make --jobs=8; fi
 
 script:
-  ## Test Simbody.
-  - ctest -j8 --output-on-failure
+  ## Test Simbody. If MPI, only test CMAESTest and CMAESMPITest.
+  - if $MPI; then ctest --parallel 8 --output-on-failure -R CMAES; fi
+  - if ! $MPI; then ctest --parallel 8 --output-on-failure; fi
