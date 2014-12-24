@@ -21,18 +21,19 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+// See main() at the bottom for comments about this test.
+
 // TODO
-// 3. restart.
-// 5. memory leaks.
-// 6. how to disable reading of cmaes_signals.par.
-// 9. allow verbosity; diagnostics level.
-// 12 all the cmaes options.
-// 14 threading.
-//
-// 
+// restarts
+// file reading/writing (signals). 
+// still works with MPI even if there's only one process.
 
 #include "SimTKmath.h"
 #include "OptimizerSystems.h"
+
+#if SimTK_SIMMATH_MPI
+    #include <mpi.h>
+#endif
 
 #include <iostream>
 using std::cout;
@@ -44,6 +45,20 @@ using SimTK::OptimizerSystem;
 
 // Utilities.
 // ==========
+
+// Every subtest takes as an argument an OptimizerConfig that can be used to
+// set options on the optimizer.
+typedef void (*OptimizerConfig)(Optimizer&);
+// This method can also be used temporarily to set options across all
+// subtests.
+void configureDefault(Optimizer& opt) {}
+void configureMultithreading(Optimizer& opt) {
+    opt.setAdvancedStrOption("parallel", "multithreading");
+}
+void configureMPI(Optimizer& opt) {
+    opt.setAdvancedStrOption("parallel", "mpi");
+}
+
 bool vectorsAreEqual(const Vector& actual, const Vector& expected, double tol,
         bool printWhenNotEqual = true)
 {
@@ -100,7 +115,7 @@ void testTwoOrMoreParameters() {
 // This tests that setting max iterations works using the Simbody
 // interface. CMAES cannot find the optimum of Cigtab in 500 iterations (or
 // less) given the initial condition we use.
-void testMaxIterations() {
+void testMaxIterations(OptimizerConfig configureOptimizer) {
 
     Cigtab sys(22);
     int N = sys.getNumParameters();
@@ -111,6 +126,7 @@ void testMaxIterations() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-12);
     opt.setAdvancedRealOption("init_stepsize", 0.3);
     opt.setMaxIterations(500);
@@ -125,7 +141,7 @@ void testMaxIterations() {
 // This also tests that setting max iterations works using the Simbody
 // interface, because Cigtab is not optimized in under the default number of
 // max iterations (1000 at the time of this writing).
-void testCigtabOptimum() {
+void testCigtabOptimum(OptimizerConfig configureOptimizer) {
 
     Cigtab sys(22);
     int N = sys.getNumParameters();
@@ -136,6 +152,7 @@ void testCigtabOptimum() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
     opt.setAdvancedRealOption("init_stepsize", 0.3);
@@ -147,7 +164,7 @@ void testCigtabOptimum() {
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
-void testParameterLimits() {
+void testParameterLimits(OptimizerConfig configureOptimizer) {
 
     Easom sys;
     int N = sys.getNumParameters();
@@ -157,19 +174,19 @@ void testParameterLimits() {
     results.setTo(100);
 
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.optimize(results);
 
     // Exception if our initial guess is out of bounds.
     results.setTo(100.01);
     SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
-            SimTK::Exception::APIArgcheckFailed
-            );
+            SimTK::Exception::ErrorCheck);
 }
 
 // Make sure that we are able to set init_stepsize (sigma) using Simbody's
 // interface, and that with appropriate step size, we can find the optimum of
 // Ackley's function.
-void testSigmaAndAckleyOptimum() {
+void testSigmaAndAckleyOptimum(OptimizerConfig configureOptimizer) {
 
     Ackley sys(2);
     int N = sys.getNumParameters();
@@ -181,6 +198,7 @@ void testSigmaAndAckleyOptimum() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
     opt.setAdvancedIntOption("popsize", 50);
@@ -211,7 +229,7 @@ void testSigmaAndAckleyOptimum() {
 
 // To find the optimum of this function, we need lots of samples. Thus, this
 // test makes sure that we are able to modify this setting.
-void testDropWaveOptimumLambda() {
+void testDropWaveOptimumLambda(OptimizerConfig configureOptimizer) {
 
     DropWave sys;
     int N = sys.getNumParameters();
@@ -222,6 +240,7 @@ void testDropWaveOptimumLambda() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-5);
     opt.setMaxIterations(5000);
     opt.setAdvancedRealOption("init_stepsize", 3.5);
@@ -236,7 +255,7 @@ void testDropWaveOptimumLambda() {
     SimTK_TEST_OPT(opt, results, 1e-2);
 }
 
-void testMaxFunEvals() {
+void testMaxFunEvals(OptimizerConfig configureOptimizer) {
 
     Cigtab sys(22);
     int N = sys.getNumParameters();
@@ -247,6 +266,7 @@ void testMaxFunEvals() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-12);
     opt.setAdvancedRealOption("init_stepsize", 0.3);
     opt.setAdvancedIntOption("seed", 10);
@@ -270,7 +290,7 @@ void testMaxFunEvals() {
     SimTK_TEST_OPT(opt, results, 1e-4);
 }
 
-void testSeed() {
+void testSeed(OptimizerConfig configureOptimizer) {
 
     Ackley sys(22);
     int N = sys.getNumParameters();
@@ -281,6 +301,7 @@ void testSeed() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-12);
     opt.setAdvancedRealOption("init_stepsize", 1);
     
@@ -360,7 +381,7 @@ void testSeed() {
     SimTK_TEST(!vectorsAreEqual(results2, results4, 1e-10, false));
 }
 
-void testConvergenceTolerance() {
+void testConvergenceTolerance(OptimizerConfig configureOptimizer) {
 
     Cigtab sys(2);
     int N = sys.getNumParameters();
@@ -372,6 +393,7 @@ void testConvergenceTolerance() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
@@ -405,7 +427,7 @@ void testConvergenceTolerance() {
 
 // CMA-ES is able to minimize the Rosenbrock function.
 // https://www.lri.fr/~hansen/cmsa-versus-cma.html
-void testRosenbrock() {
+void testRosenbrock(OptimizerConfig configureOptimizer) {
 
     Rosenbrock sys(22);
     int N = sys.getNumParameters();
@@ -416,6 +438,7 @@ void testRosenbrock() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(100000);
     opt.setAdvancedRealOption("init_stepsize", 0.3);
@@ -426,7 +449,7 @@ void testRosenbrock() {
     SimTK_TEST_OPT(opt, results, 1e-6);
 }
 
-void testSchwefel() {
+void testSchwefel(OptimizerConfig configureOptimizer) {
 
     Schwefel sys(4);
     int N = sys.getNumParameters();
@@ -437,6 +460,7 @@ void testSchwefel() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     // Only know the solution to 4 digits.
     opt.setConvergenceTolerance(1e-4);
     opt.setAdvancedIntOption("popsize", 200);
@@ -448,7 +472,7 @@ void testSchwefel() {
     SimTK_TEST_OPT(opt, results, 1e-4);
 }
 
-void testEasom() {
+void testEasom(OptimizerConfig configureOptimizer) {
 
     Easom sys;
     int N = sys.getNumParameters();
@@ -459,7 +483,8 @@ void testEasom() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
-    // TODO opt.setDiagnosticsLevel(3);
+    configureOptimizer(opt);
+    // opt.setDiagnosticsLevel(3);
     opt.setAdvancedIntOption("popsize", 500);
     opt.setAdvancedRealOption("init_stepsize", 25);
     opt.setAdvancedIntOption("seed", 42);
@@ -469,7 +494,7 @@ void testEasom() {
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
-void testStopFitness() {
+void testStopFitness(OptimizerConfig configureOptimizer) {
 
     Ackley sys(2);
     int N = sys.getNumParameters();
@@ -481,6 +506,7 @@ void testStopFitness() {
 
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
+    configureOptimizer(opt);
     // opt.setDiagnosticsLevel(2);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
@@ -498,10 +524,11 @@ void testStopFitness() {
     SimTK_TEST(f1 > 0.01);
 }
 
-// This is a soft test. Just makes sure we get the right answer and we don't
-// get any exceptions. We don't actually make sure that multithreading is
-// occuring.
-void testMultithreading() {
+// This is a soft test for changing the number of threads. Just makes sure we
+// get the right answer and we don't get any exceptions. We don't actually make
+// sure that multithreading is occuring or that we are using the specified
+// number of threads.
+void testMultithreadingNThreads() {
 
     Cigtab sys(22);
     int N = sys.getNumParameters();
@@ -519,34 +546,154 @@ void testMultithreading() {
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     opt.setAdvancedStrOption("parallel", "multithreading");
-
-    // Optimize!
-    SimTK_TEST_OPT(opt, results, 1e-5);
-
-    // Change the number of parallel threads.
     opt.setAdvancedIntOption("nthreads", 2);
+
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
 
-int main() {
+// If you compiled with MPI but do not call MPI_Init, you get an exception.
+void testMPIMustCallInit()
+{
+    Cigtab sys(3);
+    int N = sys.getNumParameters();
+
+    // set initial conditions.
+    Vector results(N);
+    results.setTo(0.5);
+
+    // Create optimizer; set settings.
+    Optimizer opt(sys, SimTK::CMAES);
+    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    // Sometimes this test fails, so choose a seed where the test passes.
+    opt.setAdvancedStrOption("parallel", "mpi");
+
+    // We get an exception if we don't initialize MPI first.
+    SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+            SimTK::Exception::ErrorCheck);
+}
+
+// If you try to set "parallel" to "mpi" but you did not compile with MPI, then
+// you get an exception.
+void testMPINotCompiledIn()
+{
+    Cigtab sys(3);
+    int N = sys.getNumParameters();
+
+    // set initial conditions.
+    Vector results(N);
+    results.setTo(0.5);
+
+    // Create optimizer; set settings.
+    Optimizer opt(sys, SimTK::CMAES);
+    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    opt.setAdvancedStrOption("parallel", "mpi");
+
+    SimTK_TEST_MUST_THROW_EXC(opt.optimize(results),
+            SimTK::Exception::ErrorCheck);
+}
+
+/* Permitting the use of MPI creates a number of ways that one might use CMAES.
+ * This test attempts to cover the following use cases:
+ *
+ * 1. If Simbody is NOT compiled with MPI:
+ *      a. "parallel" option not set.
+ *      b. "parallel" option set to "multithreading".
+ *      c. "parallel" option set to "mpi", which throws an exception.
+ * 2. If Simbody IS compiled with MPI:
+ *      a. without mpiexec:
+ *          i. "parallel" option not set.
+ *          ii. "parallel" option set to "multithreading".
+ *              Just because someone compiled with MPI doens't mean they want
+ *              to use it. Imagine if the simbody in the ubuntu repos were
+ *              compiled with MPI.
+ *          iii. "parallel" option set to "mpi".
+ *              TODO is this the same as `with mpiexec, one process, "parallel"
+ *              option set to "mpi"`?
+ *      b. with mpiexec:
+ *          i. "parallel" option not set.
+ *              Not a sensical use case, but we can't prevent it, so the tests
+ *              better pass (see note below).
+ *          ii. "parallel" option set to "multithreading".
+ *              Not a sensical use case, but we can't prevent it, so the tests
+ *              better pass (see note below).
+ *          iii. "parallel" option set to "mpi".
+ *
+ * "without mpiexec" means that this CMAESTest executable is run as
+ * "./CMAESTest".
+ * "with mpiexec" means it is run as something like "mpiexec -np 2"; see the
+ * CMAESMPITest CMake test.
+ *
+ * 1  is achieved when SIMBODY_MPI is off, by CMake test CMAESTest.
+ * 2a is achieved when SIMBODY_MPI is on,  by CMake test CMAESTest.
+ * 2b is achieved when SIMBODY_MPI is on,  by CMake test CMAESMPITest.
+ *
+ * Ideally, we would throw an exception in the `with mpiexec, "parallel" set to
+ * "multithreading"` case and a warning in the `with mpiexec, "parallel" option
+ * not set` case, but there is no cross-platform way to detect if
+ * running with mpiexec.
+ *
+ * On Travis CI (continuous integration), in order to test (1) and (2) above,
+ * we run tests with the CMake variable SIMBODY_MPI set to both OFF (1) and ON
+ * (2).
+ */
+int main(int argc, char* argv[]) {
+
     SimTK_START_TEST("CMAES");
 
+        // Run subtests not affected by config., or are for specific config.
+        // -----------------------------------------------------------------
         SimTK_SUBTEST(testCMAESAvailable);
         SimTK_SUBTEST(testTwoOrMoreParameters);
-        SimTK_SUBTEST(testMaxIterations);
-        SimTK_SUBTEST(testCigtabOptimum);
-        SimTK_SUBTEST(testParameterLimits);
-        SimTK_SUBTEST(testSigmaAndAckleyOptimum);
-        SimTK_SUBTEST(testDropWaveOptimumLambda);
-        SimTK_SUBTEST(testMaxFunEvals);
-        SimTK_SUBTEST(testSeed);
-        SimTK_SUBTEST(testConvergenceTolerance);
-        SimTK_SUBTEST(testRosenbrock);
-        SimTK_SUBTEST(testSchwefel);
-        SimTK_SUBTEST(testEasom);
-        SimTK_SUBTEST(testStopFitness);
-        SimTK_SUBTEST(testMultithreading);
+        SimTK_SUBTEST(testMultithreadingNThreads);
+        #if SimTK_SIMMATH_MPI
+            // This subtest must occur before we call MPI_Init(), since it
+            // checks for an exc. that is thrown if MPI_Init() is not called.
+            SimTK_SUBTEST(testMPIMustCallInit); // 2a-iii, 2b-iii.
+        #else
+            SimTK_SUBTEST(testMPINotCompiledIn); // 1c
+        #endif
+
+        // Set up configurations.
+        // ----------------------
+        // See top of file for the definition of these functions.
+        std::map<std::string, OptimizerConfig> configs = {
+            {"default", configureDefault}, // 1a, 2a-i, 2b-i.
+            {"multithreading", configureMultithreading}, // 1b, 2a-ii, 2b-ii.
+        };
+
+        #if SimTK_SIMMATH_MPI // 2
+            configs["mpi"] = configureMPI; // 2a-iii, 2b-iii.
+            MPI_Init(&argc, &argv);
+        #endif
+
+        // Run remaining subtests for the selected configurations.
+        // -------------------------------------------------------
+
+        // Now, run some tests in multiple configurations.
+        for (auto& kv : configs) {
+
+            std::clog << "Using '" << kv.first <<
+                "' optimizer configuration." << std::endl;
+
+            SimTK_SUBTEST1(testMaxIterations, kv.second);
+            SimTK_SUBTEST1(testCigtabOptimum, kv.second);
+            SimTK_SUBTEST1(testParameterLimits, kv.second); // TODO fails
+            SimTK_SUBTEST1(testSigmaAndAckleyOptimum, kv.second);
+            SimTK_SUBTEST1(testDropWaveOptimumLambda, kv.second);
+            SimTK_SUBTEST1(testMaxFunEvals, kv.second);
+            SimTK_SUBTEST1(testSeed, kv.second); // TODO fails
+            SimTK_SUBTEST1(testConvergenceTolerance, kv.second);
+            SimTK_SUBTEST1(testRosenbrock, kv.second);
+            SimTK_SUBTEST1(testSchwefel, kv.second);
+            SimTK_SUBTEST1(testEasom, kv.second);
+            SimTK_SUBTEST1(testStopFitness, kv.second);
+        }
+
         // TODO        testRestart();
+
+    #if SimTK_SIMMATH_MPI
+        MPI_Finalize();
+    #endif
 
     SimTK_END_TEST();
 }

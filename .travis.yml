@@ -2,26 +2,22 @@
 # framework to run Simbody's tests with every GitHub push or pull-request.
 language: cpp
 
-os:
-  - linux
-  - osx
-
-compiler:
-  - gcc
-  - clang
-
-env:
-  # Each line is a separate build in the build matrix. A build in the build
-  # matrix is defined by the environment variables defined on the line, which
-  # should be space-delimited. For example,
-  # - ABC=ON DEF=OFF GHI=ON
-  # Simbody 3.6 and up requires c++11
-  - BTYPE=Release
   
+# These are the different builds we want to run.   
 matrix:
-  exclude:
-    - os: osx
+  include:
+    - os: linux
       compiler: gcc
+      env: MPI=false # causes this environment variable to be defined.
+    - os: linux
+      compiler: clang
+      env: MPI=false
+    - os: linux
+      compiler: clang
+      env: MPI=true
+    - os: osx
+      compiler: clang
+      env: MPI=false
 
 before_install:
   ## Ensure that there are no tabs in source code.
@@ -38,6 +34,7 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install liblapack-dev; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install freeglut3-dev libxi-dev libxmu-dev; fi
+  - if $MPI; then sudo apt-get install mpich2; fi
 
   # C++11 on Ubuntu. Update to gcc 4.8, which provides full C++11 support.  We
   # use this script because if building Simbody with C++11, we need gcc-4.8,
@@ -52,10 +49,12 @@ before_install:
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
-  # Build.
-  - make -j8
+  - cmake $TRAVIS_BUILD_DIR -DSIMBODY_MPI=$MPI -DCMAKE_CXX_FLAGS=-Werror
+  # Build. If MPI, then only build CMAESTest.
+  - if $MPI; then make --jobs=8 CMAESTest; fi
+  - if ! $MPI; then make --jobs=8; fi
 
 script:
-  ## Test Simbody.
-  - ctest -j8 --output-on-failure
+  ## Test Simbody. If MPI, only test CMAESTest and CMAESMPITest.
+  - if $MPI; then ctest --output-on-failure -R CMAES; fi
+  - if ! $MPI; then ctest --parallel 8 --output-on-failure; fi

@@ -281,7 +281,8 @@ private:
  * <h4> CMAES </h4>
  *
  * This is the c-cmaes algorithm written by Niko Hansen
- * (https://github.com/cma-es/c-cmaes).
+ * (https://github.com/cma-es/c-cmaes).  For an example of usage, see the
+ * CMAESOptimization.cpp example.
  *
  * Some notes:
  * - This algorithm obeys parameter limits.
@@ -304,10 +305,14 @@ private:
  *      - OptimizerSystem::setNumLinearInequalityConstraints
  * - The effect of the diagnostics level is as follows:
  *      - 0: minimal output to console (warnings, errors), some files are
- *      written to the current directory (errcmaes.err error log).
- *      - 1: additional output to console.
- *      - 2: all files are written to the current directory.
- *      - 3: output to console, and all files are written to the current
+ *        written to the current directory (errcmaes.err error log).
+ *      - 1: maximum output to console (including MPI information).
+ *      - 2: more files are written to the current directory.
+ *          - actparcmaes.dat contains the CMAES parameters that were actually
+ *            used in the optimization.
+ *          - allcmaes.dat contains detailed information about the progress of
+ *            the optimization.
+ *      - 3: both 1 and 2 (output to console and files are written).
  *
  * Advanced options:
  * 
@@ -331,15 +336,20 @@ private:
  * - <b>stopTolFunHist</b> (real) Stop if function value differences of best
  *   values are smaller than stopTolFunHist.
  * - <b>stopTolX</b> (real) Stop if step sizes are smaller than stopTolX.
- * - <b>stopTolUpXFactor</b> (real) Stop if standard deviation increases
- *   by more than stopTolUpXFactor.
+ * - <b>stopTolUpXFactor</b> (real) Stop if standard deviation increases by
+ *   more than stopTolUpXFactor.
  * - <b>parallel</b> (str) To run the optimization with multiple threads, set
- *   this to "multithreading". Only use this if your OptimizerSystem is
- *   threadsafe: you can't reliably modify any mutable variables in your
- *   OptimizerSystem::objectiveFun().
+ *   this to "multithreading". Only use multithreading if your OptimizerSystem
+ *   is threadsafe: you can't reliably modify any mutable variables in your
+ *   OptimizerSystem::objectiveFun(). To run the optimization in parallel on a
+ *   cluster, set this to "mpi"; the objective function will be evaluated
+ *   across multiple processes. To use MPI, you must have compiled Simbody with
+ *   the CMake variable SIMBODY_MPI set to ON. See notes below.
  * - <b>nthreads</b> (int) If the <b>parallel</b> option is set to
  *   "multithreading", this is the number of threads to use (by default, this
  *   is the number of processors/threads on the machine).
+ *
+ * <i> Reproducible output and seeds </i>
  *
  * If you want to generate identical results with repeated optimizations for,
  * you can set the <b>seed</b> option. In addtion, you *must* set the
@@ -350,6 +360,54 @@ private:
  * opt.setAdvancedIntOption("seed", 42);
  * opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
  * @endcode
+ *
+ * <i> MPI: Message Passing Interface </i>
+ *
+ * You can use MPI to run an optimization across multiple processors on a
+ * computing cluster. You can also use MPI on your local machine, but in this
+ * case you should use multithreading instead. With MPI, your entire executable
+ * is spawned on multiple processes. This is significantly different from
+ * multithreading, in which there is only one process.
+ *
+ * Within optimize(), one of the processes--the master node--manages the
+ * overall optimization while the other nodes--the worker nodes--evaluate the
+ * objective function for the master node. In each process, the call to
+ * <tt>optimize()</tt> returns at approximately the same time. Each process
+ * returns the solution (<tt>f</tt>, and <tt>results</tt>).  However, you
+ * probably only want to process this solution on the master node. See the code
+ * snippet below to see how to manage this.
+ *
+ * Using MPI requires some additional effort on your part.
+ * You must initialize MPI before calling <tt>optimize()</tt>, and you must
+ * finalize MPI afterwards. Your code may look something like this:
+ *
+ * @code
+ * #include <mpi.h>
+ * int main(int argc, char* argv[]) {
+ *     MPI_Init(&argc, &argv);
+ *     int myRank = 0;
+ *     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+ *     MyOptimizerSystem sys;
+ *     Optimizer opt(sys, SimTK::CMAES);
+ *     opt.setAdvancedStrOption("parallel", "mpi");
+ *     SimTK::Vector results; results.setToZero();
+ *     Real f = opt.optimize(results);
+ *     if (myRank == 0) std::cout << "Result: " << f << std::endl;
+ *     MPI_Finalize();
+ *     return 0;
+ * };
+ * @endcode
+ *
+ * To run your executable using MPI across multiple processes, you use a
+ * command like:
+ *
+ * @code
+ * mpirun -n 8 myexecutable
+ * @endcode
+ *
+ * See the documentation for your computing cluster for the specifics of using
+ * MPI on your cluster.
+ * See CMAESOptimization.cpp for a working example.
  *
  */
 class SimTK_SIMMATH_EXPORT Optimizer {

@@ -30,6 +30,11 @@
 
 #include <memory>
 
+#if SimTK_SIMMATH_MPI
+    #include <mpi.h>
+    #define SimTK_COMM_WORLD MPI_COMM_WORLD
+#endif
+
 namespace SimTK {
 
 class CMAESOptimizer: public Optimizer::OptimizerRep {
@@ -41,6 +46,13 @@ public:
 
 private:
 
+    // Helper methods.
+    // ---------------
+    // If not using MPI, this method performs the optimization. If using MPI,
+    // this delegates the evaluation of the objective function to the worker
+    // processes.
+    Real master(SimTK::Vector& results, const bool& useMPI);
+
     void checkInitialPointIsFeasible(const SimTK::Vector& x) const;
 
     // Wrapper around cmaes_init.
@@ -51,10 +63,13 @@ private:
     void resampleToObeyLimits(cmaes_t& evo, double*const* pop);
 
     // May use threading or MPI.
-    void evaluateObjectiveFunctionOnPopulation(
-            cmaes_t& evo, double*const* pop, double* funvals,
-            ParallelExecutor* executor);
+    void evaluatePopulation(const int& popsize,
+            double*const* pop, double* funvals,
+            ParallelExecutor* executor, const int& nNodes);
 
+    // ParallelExecutor Task.
+    // ----------------------
+    // Calls the objective function for the i-th member of the population.
     class Task : public SimTK::ParallelExecutor::Task {
     public:
         Task(CMAESOptimizer& rep, int n, double*const* pop, double* funvals)
@@ -67,6 +82,20 @@ private:
         double*const* pop;
         double* funvals;
     };
+
+    // MPI helper methods.
+    // -------------------
+    #if SimTK_SIMMATH_MPI
+        // If we are in a worker process (rank > 0), we just evaluate this
+        // method. This method evaluates the objective function in a loop.
+        Real mpi_worker(SimTK::Vector& params, const int& myRank);
+        void mpi_master_sendJob(double*const* pop, const int& nParams,
+                const int& ijob, const int& workerRank);
+        // TODO can this be a global method I define in the cpp, so that I
+        // am not polluting a header file?
+        void mpi_master_receiveEval(double& buffer, MPI_Status& status,
+                double* funvals);
+    #endif
 
 };
 

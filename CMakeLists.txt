@@ -187,6 +187,21 @@ IF(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
         "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
 ENDIF()
 
+
+# MPI
+# ---
+SET(SIMBODY_MPI_MSG
+"Allow use of the Message Passing Interface in the CMAES Optimizer.
+Requires you to install an implementation of MPI (Open-MPI, MPICH, etc.).")
+OPTION(SIMBODY_MPI "${SIMBODY_MPI_MSG}" OFF)
+IF(SIMBODY_MPI)
+    FIND_PACKAGE(MPI REQUIRED)
+    SET(SimTK_MPI 1)
+ELSE()
+    SET(SimTK_MPI 0)
+ENDIF()
+
+
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
 # 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.

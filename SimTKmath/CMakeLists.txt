@@ -27,6 +27,11 @@ PROJECT (SimTKmath)
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
                 ${SimTKCOMMON_INCLUDE_DIRECTORIES})
 
+# If MPI is being used, specify MPI include dirs.
+IF(MPI_CXX_INCLUDE_PATH)
+    INCLUDE_DIRECTORIES("${MPI_CXX_INCLUDE_PATH}")
+ENDIF()
+
 # code is in "./src" and in each of these subdirectories/src
 SET(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 
@@ -63,7 +68,8 @@ SET (SIMMATH_SVN_REVISION ${SIMBODY_SVN_REVISION})
 ADD_DEFINITIONS(-DSimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
                 -DSimTK_SIMMATH_MAJOR_VERSION=${SIMMATH_MAJOR_VERSION}
                 -DSimTK_SIMMATH_MINOR_VERSION=${SIMMATH_MINOR_VERSION}
-        -DSimTK_SIMMATH_PATCH_VERSION=${SIMMATH_PATCH_VERSION})
+                -DSimTK_SIMMATH_PATCH_VERSION=${SIMMATH_PATCH_VERSION}
+                -DSimTK_SIMMATH_MPI=${SimTK_MPI})
 
 IF(NEED_QUOTES)
    ADD_DEFINITIONS(-DSimTK_SIMMATH_SVN_REVISION="${SIMMATH_SVN_REVISION}"
@@ -125,7 +131,7 @@ SET(API_REL_INCLUDE_FILES)   # start these out empty
 SET(API_ABS_INCLUDE_FILES)
 
 FOREACH(dir ${API_INCLUDE_DIRS})
-    FILE(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
+    FILE(GLOB fullpaths ${dir}/*.h) # returns full pathnames
     SET(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
 
     FOREACH(pathname ${fullpaths})

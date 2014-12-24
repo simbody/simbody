@@ -56,3 +56,13 @@ FOREACH(TEST_PROG ${REGR_TESTS})
 
 ENDFOREACH(TEST_PROG ${REGR_TESTS})
 
+# If compiling with MPI, run the CMAES MPI test.
+# The format for the command below
+# comes from the <cmake-installation>/Modules/FindMPI.cmake file.
+IF(SIMBODY_MPI)
+    # Run the test executable with two processes.
+    ADD_TEST(NAME CMAESMPITest 
+        COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS}
+        ${EXECUTABLE_OUTPUT_PATH}/CMAESTest ${MPIEXEC_POSTFLAGS})
+ENDIF()
+
