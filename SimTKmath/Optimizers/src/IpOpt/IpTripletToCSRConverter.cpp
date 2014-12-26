@@ -57,7 +57,7 @@ namespace Ipopt
     std::list<TripletEntry>::iterator list_iterator = entry_list.begin();
     for (Index i=0; i<nonzeros; i++) {
       list_iterator->Set(airn[i], ajcn[i], i);
-      list_iterator++;
+      ++list_iterator;
     }
     DBG_ASSERT(list_iterator == entry_list.end());
 
@@ -89,7 +89,7 @@ namespace Ipopt
     ja_tmp[0] = 1;
     ipos_first_tmp[0] = list_iterator->PosTriplet();
 
-    list_iterator++;
+    ++list_iterator;
     Index idouble = 0;
     while (list_iterator != entry_list.end()) {
       Index irow = list_iterator->IRow();
@@ -117,7 +117,7 @@ namespace Ipopt
         }
       }
 
-      list_iterator++;
+      ++list_iterator;
     }
     nonzeros_compressed_++;
     ia_[dim_] = nonzeros_compressed_;
