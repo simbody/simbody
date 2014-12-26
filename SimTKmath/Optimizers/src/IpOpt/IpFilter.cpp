@@ -45,7 +45,7 @@ namespace Ipopt
     bool acceptable = true;
     std::list<FilterEntry*>::iterator iter;
     for (iter = filter_list_.begin(); iter != filter_list_.end();
-         iter++) {
+         ++iter) {
       if (!(*iter)->Acceptable(vals)) {
         acceptable = false;
         break;
@@ -63,13 +63,13 @@ namespace Ipopt
     while (iter != filter_list_.end()) {
       if ((*iter)->Dominated(vals)) {
         std::list<FilterEntry*>::iterator iter_to_remove = iter;
-        iter++;
+        ++iter;
         FilterEntry* entry_to_remove = *iter_to_remove;
         filter_list_.erase(iter_to_remove);
         delete entry_to_remove;
       }
       else {
-        iter++;
+        ++iter;
       }
     }
     FilterEntry* new_entry = new FilterEntry(vals, iteration);
@@ -97,7 +97,7 @@ namespace Ipopt
     std::list<FilterEntry*>::iterator iter;
     Index count = 0;
     for (iter = filter_list_.begin(); iter != filter_list_.end();
-         iter++) {
+         ++iter) {
       if (count % 10 == 0) {
         jnlst.Printf(J_VECTOR, J_LINE_SEARCH,
                      "                phi                    theta            iter\n");

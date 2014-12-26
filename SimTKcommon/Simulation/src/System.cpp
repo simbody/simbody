@@ -941,7 +941,7 @@ int System::Guts::calcEventTriggerInfoImpl
         Array_<EventTriggerInfo> subinfo;
         sub.calcEventTriggerInfo(s, subinfo);
         for (Array_<EventTriggerInfo>::const_iterator e = subinfo.begin(); 
-             e != subinfo.end(); e++) 
+             e != subinfo.end(); ++e)
         {
             info.push_back(*e);
         }
@@ -1143,14 +1143,14 @@ public:
         info.eventIdCounter = 0;
         for (Array_<ScheduledEventHandler*>::const_iterator 
                  e = scheduledEventHandlers.begin(); 
-                 e != scheduledEventHandlers.end(); e++) {
+                 e != scheduledEventHandlers.end(); ++e) {
             EventId id;
             createScheduledEvent(s, id);
             info.scheduledEventIds.push_back(id);
         }
         for (Array_<TriggeredEventHandler*>::const_iterator 
                  e = triggeredEventHandlers.begin(); 
-                 e != triggeredEventHandlers.end(); e++) {
+                 e != triggeredEventHandlers.end(); ++e) {
             EventId id;
             EventTriggerByStageIndex index;
             createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
@@ -1159,14 +1159,14 @@ public:
         }
         for (Array_<ScheduledEventReporter*>::const_iterator 
                  e = scheduledEventReporters.begin(); 
-                 e != scheduledEventReporters.end(); e++) {
+                 e != scheduledEventReporters.end(); ++e) {
             EventId id;
             createScheduledEvent(s, id);
             info.scheduledReportIds.push_back(id);
         }
         for (Array_<TriggeredEventReporter*>::const_iterator 
                  e = triggeredEventReporters.begin(); 
-                 e != triggeredEventReporters.end(); e++) {
+                 e != triggeredEventReporters.end(); ++e) {
             EventId id;
             EventTriggerByStageIndex index;
             createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
