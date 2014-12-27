@@ -554,7 +554,7 @@ LengthConstraints::enforcePositionConstraints(State& s, const Real& requiredTol,
                         CalcPosZ(s, &pvConstraints[i]));
         }
     }
-    catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
+    catch ( const SimTK::Exception::NewtonRaphsonFailure &cptn ) {
         cout << "LengthConstraints::enforcePositionConstraints: exception: "
              << cptn.getMessage() << '\n';
     } 
@@ -579,7 +579,7 @@ LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol,
                         CalcVelZ(s, &pvConstraints[i]));
         }
     }
-    catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
+    catch ( const SimTK::Exception::NewtonRaphsonFailure &cptn ) {
         cout << "LengthConstraints::enforceVelocityConstraints: exception: "
              << cptn.getMessage() << '\n';
     } 
