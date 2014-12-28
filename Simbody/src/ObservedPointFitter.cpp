@@ -343,7 +343,7 @@ Real ObservedPointFitter::findBestFit
             }
             //body.setQFromVector(tempState, copyMatter.getMobilizedBody(copyBodyIxs[currentBodyIndex]).getQAsVector(copyState));
         }
-        catch (Exception::OptimizerFailed ex) {
+        catch (const Exception::OptimizerFailed& ex) {
             std::cout << "Optimization failure for body "<<i<<": "<<ex.getMessage() << std::endl;
             // Just leave this body's state variables set to 0, and rely on the final optimization to fix them.
         }
