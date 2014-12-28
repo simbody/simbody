@@ -104,7 +104,7 @@ int main() {
        f = opt.optimize( results );
     }
 
-    catch (SimTK::Exception::Base e) {
+    catch (const SimTK::Exception::Base& e) {
         std::cout << "ParameterConstrainedOptimization.cpp Caught exception :" <<  std::endl;
         std::cout << e.what() << std::endl;
     }
