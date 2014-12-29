@@ -227,7 +227,7 @@ bool VerletIntegratorRep::attemptDAEStep
 
     return converged;
   }
-  catch (std::exception ex) {
+  catch (const std::exception&) {
     return false;
   }
 }
