@@ -981,7 +981,7 @@ private:
 //==============================================================================
 class OBBTreeNodeImpl {
 public:
-    OBBTreeNodeImpl() : child1(NULL), child2(NULL) {
+    OBBTreeNodeImpl() : child1(NULL), child2(NULL), numTriangles(0) {
     }
     OBBTreeNodeImpl(const OBBTreeNodeImpl& copy);
     ~OBBTreeNodeImpl();
@@ -1095,6 +1095,7 @@ public:
         vertices[0] = vert1;
         vertices[1] = vert2;
         vertices[2] = vert3;
+        edges[0] = edges[1] = edges[2] = -1; // filled in later
     }
     int         vertices[3];
     int         edges[3];

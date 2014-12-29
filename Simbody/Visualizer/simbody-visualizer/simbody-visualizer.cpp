@@ -890,7 +890,8 @@ public:
     Menu(string title, int id, const vector<pair<string, int> >& items,
          void(*handler)(int))
     :   title(title), menuId(id), items(items), handler(handler),
-        hasCreated(false) {}
+        hasCreated(false) 
+    {   glutId = -1; minx=miny=maxx=maxy= -1; }
 
     // This is called once, the first time we try to draw this menu.
     void createMenu() {
@@ -1046,6 +1047,9 @@ public:
                                       (unsigned char*) title.c_str());
         if (labelWidth > maxLabelWidth)
             maxLabelWidth = labelWidth;
+
+        minx=miny=maxx=maxy=handlex=clickOffset= -1;
+        dragging = false;
     }
 
     int draw(int y) {

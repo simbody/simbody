@@ -282,8 +282,7 @@ static void combineParaboloidsHelper
     const UnitVec3& x2, const Vec2& k2,
     Real& cos2w, Real& sin2w, Real& kdiff1, Real& kdiff2, Vec2& k)
 {
-    const UnitVec3& x1 = R_SP1.x(); // P1 kmax direction
-    const UnitVec3& y1 = R_SP1.y(); // P1 kmin direction
+    const UnitVec3& x1 = R_SP1.x(); // P1 kmax direction (y is kmin direction)
     const UnitVec3& z  = R_SP1.z(); // P1, P, -P2 normal
 
     const Real ksum1  = k1[0]+k1[1], ksum2  = k2[0]+k2[1]; // 4 flops
