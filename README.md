@@ -489,6 +489,6 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 [simbios]: http://simbios.stanford.edu/
 [doublePendulum]: doc/images/doublePendulum.gif
 [thy]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyTheoryManual.pdf
-[flores]: https://simtk.org/forums/memberlist.php?mode=viewprofile&u=482
+[flores]: http://xray.bmc.uu.se/flores/Home.html
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
 [buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
