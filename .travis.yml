@@ -58,3 +58,6 @@ install:
 script:
   ## Test Simbody.
   - ctest -j8 --output-on-failure
+
+  ## Make sure we can install with no issues.
+  - sudo make -j8 install
