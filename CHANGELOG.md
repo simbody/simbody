@@ -12,7 +12,7 @@ This patch release fixed an installation problem but is otherwise identical to 3
 ### Bugs fixed
 * Fixed a Mac installation problem reported [here](https://github.com/osrf/homebrew-simulation/issues/33).
 See [PR #321](https://github.com/simbody/simbody/pull/321). Probably affects Linux too; we think it is due to a change in CMake behavior, noticed with CMake 3.1 but could have happened earlier.
-* Updated Travis-CI script to attempt installation to catch these problems earlier. See [PR #322](https://github.com/simbody/simbody/pull/321).
+* Updated Travis-CI script to attempt installation to catch these problems earlier. See [PR #322](https://github.com/simbody/simbody/pull/322).
 
 
 3.5 (18 Dec 2014)
