@@ -36,7 +36,7 @@ Finds a solution to
     piExpand <= 0 (given)
 
     piUnknown_z <= 0         unilateral contact must push, not pull
-    ||(piUnknown_x,piUnknown+y)|| <= -mu*pi_z   unilateral friction cone
+    ||(piUnknown_x,piUnknown_y)|| <= -mu*pi_z   unilateral friction cone
     where pi=piExpand+piUnknown.
 
     piUnknown_speed <= 0           one-way ratchets
