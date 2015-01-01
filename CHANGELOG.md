@@ -3,7 +3,16 @@ Simbody Changelog and Release Notes
 
 This is not a comprehensive list of changes but rather a hand-curated collection of the more notable ones. For a comprehensive history, see the [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were included in a particular release. 
 
-**Heads up**: Simbody 3.5 will be the last release that will build with C++03 (future patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+**Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+
+
+3.5.1 (31 Dec 2014)
+-------------------
+This patch release fixed an installation problem but is otherwise identical to 3.5.
+### Bugs fixed
+* Fixed a Mac installation problem reported [here](https://github.com/osrf/homebrew-simulation/issues/33).
+See [PR #321](https://github.com/simbody/simbody/pull/321). Probably affects Linux too; we think it is due to a change in CMake behavior, noticed with CMake 3.1 but could have happened earlier.
+* Updated Travis-CI script to attempt installation to catch these problems earlier. See [PR #322](https://github.com/simbody/simbody/pull/321).
 
 
 3.5 (18 Dec 2014)
