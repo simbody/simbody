@@ -214,7 +214,7 @@ void testMisc() {
 
     cout << "AFTER ADVANCE TO MODEL, t=" << s.getTime() << endl;
 
-	// Event triggers are available at Instance stage.
+    // Event triggers are available at Instance stage.
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Instance);
     s.advanceSystemToStage(Stage::Instance);
 

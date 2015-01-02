@@ -170,6 +170,7 @@ int CPSpbcg(void *cpode_mem, int pretype, int maxl)
   if ((pretype != PREC_NONE) && (pretype != PREC_LEFT) &&
       (pretype != PREC_RIGHT) && (pretype != PREC_BOTH)) {
     cpProcessError(cp_mem, CPSPILS_ILL_INPUT, "CPSPBCG", "CPSpbcg", MSGS_BAD_PRETYPE);
+    free(cpspils_mem);
     return(CPSPILS_ILL_INPUT);
   }
 

@@ -101,7 +101,7 @@ void ParallelExecutorImpl::incrementWaitingThreads() {
     pthread_mutex_lock(&runLock);
     getCurrentTask().finish();
     waitingThreadCount++;
-    if (waitingThreadCount == threads.size()) {
+    if (waitingThreadCount == (int)threads.size()) {
         pthread_cond_signal(&waitCondition);
     }
     pthread_mutex_unlock(&runLock);
@@ -141,7 +141,7 @@ void* threadBody(void* args) {
                     index += threadCount;
                 }
             }
-            catch (std::exception ex) {
+            catch (const std::exception& ex) {
                 std::cerr <<"The parallel task threw an unhandled exception:"<< std::endl;
                 std::cerr <<ex.what()<< std::endl;
             }

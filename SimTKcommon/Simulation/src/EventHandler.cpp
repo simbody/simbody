@@ -23,9 +23,6 @@
 
 #include "SimTKcommon/internal/EventHandler.h"
 
-// Workaround for a Microsoft compiler bug
-#pragma optimize("g", off)
-
 namespace SimTK {
 
 EventHandler::~EventHandler() {
@@ -85,8 +82,8 @@ PeriodicEventHandler::~PeriodicEventHandler() {
 
 Real PeriodicEventHandler::getNextEventTime(const State& state, bool includeCurrentTime) const {
     Real currentTime = state.getTime();
-    long count = (long)std::floor(currentTime/impl->eventInterval);
-    volatile Real eventTime = count*impl->eventInterval;
+    long long count = (long long)std::floor(currentTime/impl->eventInterval);
+    Real eventTime = count*impl->eventInterval;
     while (eventTime < currentTime || (eventTime == currentTime && !includeCurrentTime)) {
         count++;
         eventTime = count*impl->eventInterval;

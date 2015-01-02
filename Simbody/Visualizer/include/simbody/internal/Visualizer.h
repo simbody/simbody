@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -163,17 +163,24 @@ background we'll use a plain white background instead. You can override the
 chosen defaults using %Visualizer methods setSystemUpDirection() and 
 setBackgroundType(). 
 
-Simbody is shipped with a separate executable program that provides the 
-graphics display and collects user input. Normally that executable is 
-installed in the "bin" subdirectory of the Simbody installation directory.
-However, first we look in the same directory as the currently-running
-executable and, if found, we will use that visualizer. If no visualizer
-is found with the executable, we check if environment variables SIMBODY_HOME 
-or SimTK_INSTALL_DIR exist, and look in their "bin" subdirectories if so.
-Otherwise we'll look in defaultInstallDir/SimTK/bin where defaultInstallDir
-is the ProgramFiles registry entry on Windows, or /usr/local on other platforms.
-The other constructor allows specification of a search path that will be 
-checked before attempting to find the installation directory.
+Simbody is shipped with a separate executable program simbody-visualizer
+(simbody-visualizer_d if building as Debug) that provides the graphics display
+and collects user input. Normally that executable is installed in the "bin"
+subdirectory of the Simbody installation directory.  However, first we look in
+the same directory as the currently-running executable and, if found, we will
+use that visualizer. If no visualizer is found with the executable, we check if
+environment variables SIMBODY_HOME or SimTK_INSTALL_DIR exist, and look in
+their "bin" subdirectories if so. Then, it checks the installed location of the
+visualizer, as specified when Simbody is compiled. If the visualizer is not
+there, we'll look in platform-specific default locations.  The other
+constructor allows specification of a search path that will be checked before
+attempting to find the installation directory.
+
+If you want to override the name of the visualizer executable for which Simbody
+searches, set the environment variable SIMBODY_VISUALIZER_NAME
+to the desired executable name. For example, if you want to use the
+debug visualizer with release libraries, set SIMBODY_VISUALIZER_NAME
+to simbody-visualizer_d.
 
 The SimTK::Pathname class is used to process the supplied search path, which
 can consist of absolute, working directory-relative, or executable 
@@ -378,7 +385,7 @@ Real getGroundHeight() const;
 choices, and the discussion for the Visualizer class for meanings.
 @param[in]  mode    The new Mode to use.
 @return A reference to this Visualizer so that you can chain "set" calls. **/
-void setMode(Mode mode);
+Visualizer& setMode(Mode mode);
 /** Get the current mode being used by the Visualizer. See \ref Visualizer::Mode
 for the choices, and the discussion for the Visualizer class for meanings. **/
 Mode getMode() const;

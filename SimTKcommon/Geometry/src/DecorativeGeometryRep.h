@@ -34,11 +34,10 @@ namespace SimTK {
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-    :   myHandle(0), body(0), indexOnBody(-1), userRef(0), 
-        placement(), resolution(-1), 
-        scaleFactors(-1,-1,-1), colorRGB(-1,-1,-1), opacity(-1), 
-        lineThickness(-1), faceCamera(-1), 
-        representation(DecorativeGeometry::DrawDefault)
+    :   body(0), indexOnBody(-1), userRef(0), 
+        placement(), scaleFactors(-1,-1,-1), resolution(-1),
+        colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), faceCamera(-1),
+        representation(DecorativeGeometry::DrawDefault), myHandle(0)
     {}
 
     virtual ~DecorativeGeometryRep() {

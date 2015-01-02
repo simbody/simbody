@@ -353,21 +353,19 @@ Row<N, ELEM> mean(const SymMat<N, ELEM>& v) {
 
 template <class ELEM>
 VectorBase<ELEM> sort(const VectorBase<ELEM>& v) {
-    const int size = v.size();
     VectorBase<ELEM> temp(v);
     std::sort(temp.begin(), temp.end());
     return temp;
 }
 template <class ELEM>
 RowVectorBase<ELEM> sort(const RowVectorBase<ELEM>& v) {
-    const int size = v.size();
     RowVectorBase<ELEM> temp(v);
     std::sort(temp.begin(), temp.end());
     return temp;
 }
 template <class ELEM>
 MatrixBase<ELEM> sort(const MatrixBase<ELEM>& v) {
-    const int rows = v.nrow(), cols = v.ncol();
+    const int cols = v.ncol();
     MatrixBase<ELEM> temp(v);
     for (int i = 0; i < cols; ++i)
         temp.updCol(i) = sort(temp.col(i));

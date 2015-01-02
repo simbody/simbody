@@ -111,6 +111,13 @@ subsystem.
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstraintIndex);
 
+// TODO: experimental
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(UnilateralContactIndex);
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(UnilateralSpeedConstraintIndex);
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(BoundedSpeedConstraintIndex);
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstraintLimitedFrictionIndex);
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(StateLimitedFrictionIndex);
+
 // TODO: This is for arrays indexed by MatterSubsystem-global ParticleIndex, 
 // as yet to be defined.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticleIndex);

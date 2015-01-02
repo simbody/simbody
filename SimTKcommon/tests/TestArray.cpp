@@ -110,6 +110,7 @@ private:
 namespace SimTK {
 template <> struct NiceTypeName<SmallIx> {
     static const char* name() {return "SmallIx";}
+    static std::string namestr() {return "SmallIx";}
 };
 }
 
@@ -183,8 +184,10 @@ template <class T> Counter Count<T>::copyAssign;
 template <class T> Counter Count<T>::dtor;
 
 // Instantiate the whole class to check for compilation problems.
+namespace SimTK {
 template class Array_<int>;
 template class Array_<std::string, unsigned char>;
+};
 
 #ifdef _MSC_VER // gcc 4.1.2 had trouble with this
 // Instantiate templatized methods
@@ -753,7 +756,11 @@ void testNiceTypeName() {
         << NiceTypeName<ArrayIndexPackType<long>::packed_size_type>::name() << endl;
     cout << "packed_size_type<unsigned long long>=" 
         << NiceTypeName<ArrayIndexPackType<unsigned long long>::packed_size_type>::name() << endl;
-    cout << NiceTypeName< Array_<String,char> >::name() << endl;
+    cout << "Array_<String,char> using name(): " 
+         << NiceTypeName< Array_<String,char> >::name() << endl;
+    // Check demangling on GCC/Clang.
+    cout << "Array_<String,char> using namestr(): " 
+         << NiceTypeName< Array_<String,char> >::namestr() << endl;
 }
 
 // The Array_ class is supposed to make better use of memory than does
@@ -769,7 +776,7 @@ void testMemoryFootprint() {
     SimTK_TEST(sizeof(Array_<int,unsigned short>) <  sizeof(std::vector<int>));
 
     // Since an int is smaller than a pointer here we will do better than
-    // any 3-pointer implementation. And we shouldn't be worse then normal
+    // any 3-pointer implementation. And we shouldn't be worse than normal
     // for long longs.
     if (Is64BitPlatform) {
         SimTK_TEST(sizeof(Array_<int,int>)       <  sizeof(std::vector<int>));

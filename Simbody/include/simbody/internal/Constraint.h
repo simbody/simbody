@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -118,9 +118,9 @@ use isInSubsystem() first to check.
 SimbodyMatterSubsystem& updMatterSubsystem();
 
 /** Get the ConstraintIndex that was assigned to this %Constraint when it was
-added to the matter subsystem. This will throw an exception if the %Constraint has not yet been
-added to any subsystem; if you aren't sure use isInSubsystem() first to
-check. There is also an implicit conversion from %Constraint to
+added to the matter subsystem. This will throw an exception if the %Constraint 
+has not yet been added to any subsystem; if you aren't sure use isInSubsystem() 
+first to check. There is also an implicit conversion from %Constraint to
 ConstraintIndex, so you don't normally need to call this directly.
 @see getMatterSubsystem(), isInSubsystem() **/
 ConstraintIndex getConstraintIndex() const;
@@ -439,26 +439,48 @@ Real calcPower(const State& state) const;
 // constraints.
 Matrix calcAccelerationConstraintMatrixA(const State&) const;  // ma X nu
 Matrix calcAccelerationConstraintMatrixAt(const State&) const; // nu X ma
-                  
 
-// These are the built-in Constraint types. Types on the same line are
-// synonymous.
-class Rod;  typedef Rod  ConstantDistance;
-class Ball; typedef Ball CoincidentPoints; typedef Ball Spherical;
-class Weld; typedef Weld CoincidentFrames;
+/** (Advanced) Mark this constraint as one that is only conditionally active.
+The conditions under which it is active must be evaluated elsewhere. This should
+be set immediately after construction of the Constraint and invalidates
+Stage::Topology. **/
+void setIsConditional(bool isConditional);
+/** (Advanced) Get the value of the isConditional flag. **/
+bool isConditional() const;
+                  
+//------------------------------------------------------------------------------
+// These are the built-in Constraint types, and some synonyms. Each built in 
+// Constraint type is declared in its own header file using naming convention 
+// Constraint_Rod.h, for example. All the built-in headers are collected in 
+// Constraint_BuiltIns.h; you should include new ones there also.
+class Rod;  
+typedef Rod  ConstantDistance;  ///< Synonym for Rod constraint.
+
+class Ball; 
+typedef Ball CoincidentPoints;  ///< Synonym for Ball constraint.
+typedef Ball Spherical;         ///< Synonym for Ball constraint.
+
+class Weld; 
+typedef Weld CoincidentFrames;
+
 class PointInPlane;  // translations perpendicular to plane normal only
 class PointOnLine;   // translations along a line only
 class ConstantAngle; // prevent rotation about common normal of two vectors
 class ConstantOrientation; // allows any translation but no rotation
 class NoSlip1D; // same velocity at a point along a direction
-class BallRollingOnPlane; // ball in contact and rolling w/o slip against plane
+class ConstantCoordinate; // prescribe generalized coordinate value
 class ConstantSpeed; // prescribe generalized speed value
 class ConstantAcceleration; // prescribe generalized acceleration value
 class Custom;
 class CoordinateCoupler;
 class SpeedCoupler;
 class PrescribedMotion;
+class PointOnPlaneContact; 
+class SphereOnPlaneContact; // ball in contact with plane (sliding or rolling)
+class SphereOnSphereContact; // ball in contact with ball (sliding or rolling)
+class LineOnLineContact;    // edge/edge contact
 
+// Internal use only.
 class RodImpl;
 class BallImpl;
 class WeldImpl;
@@ -467,139 +489,18 @@ class PointOnLineImpl;
 class ConstantAngleImpl;
 class ConstantOrientationImpl;
 class NoSlip1DImpl;
-class BallRollingOnPlaneImpl;
+class ConstantCoordinateImpl;
 class ConstantSpeedImpl;
 class ConstantAccelerationImpl;
 class CustomImpl;
 class CoordinateCouplerImpl;
 class SpeedCouplerImpl;
 class PrescribedMotionImpl;
-};
+class PointOnPlaneContactImpl; 
+class SphereOnPlaneContactImpl;
+class SphereOnSphereContactImpl;
+class LineOnLineContactImpl;
 
-    ////////////////////////////////////////
-    // ROD (CONSTANT DISTANCE) CONSTRAINT //
-    ////////////////////////////////////////
-
-/**
- * This constraint consists of one constraint equation that enforces a constant 
- * distance between a point on one body and a point on another body. This is 
- * like connecting them by a rigid, massless rod with ball joints at either end. 
- * The constraint is enforced by a force acting along the rod with opposite 
- * signs at either end. When positive, this represents tension in the rod 
- * pulling the points together; when negative it represents compression keeping 
- * the points separated.
- * 
- * @warning
- * You can't use this to enforce a distance of zero between two points.
- * That takes three constraints because there is no restriction on the force 
- * direction. For a distance of zero (i.e., you want the points to be 
- * coincident) use a Ball constraint, a.k.a. CoincidentPoints constraint.
- */
-class SimTK_SIMBODY_EXPORT Constraint::Rod : public Constraint {
-public:
-    // no default constructor
-    Rod(MobilizedBody& body1, MobilizedBody& body2,
-        Real defaultLength=1);
-    Rod(MobilizedBody& body1, const Vec3& defaultPoint1,
-        MobilizedBody& body2, const Vec3& defaultPoint2,
-        Real defaultLength=1);
-    
-    /** Default constructor creates an empty handle. **/
-    Rod() {}
-
-    // Defaults for Instance variables.
-    Rod& setDefaultPointOnBody1(const Vec3&);
-    Rod& setDefaultPointOnBody2(const Vec3&);
-    Rod& setDefaultRodLength(Real);
-
-    // Stage::Topology
-    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
-    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
-    const Vec3& getDefaultPointOnBody1() const;
-    const Vec3& getDefaultPointOnBody2() const;
-    Real getDefaultRodLength() const;
-
-    // Stage::Instance
-    const Vec3& getPointOnBody1(const State&) const;
-    const Vec3& getPointOnBody2(const State&) const;
-    Real        getRodLength   (const State&) const;
-
-    // Stage::Position, Velocity, Acceleration
-    Real getPositionError(const State&) const;
-    Real getVelocityError(const State&) const;
-
-    // Stage::Acceleration
-    Real getAccelerationError(const State&) const;
-    Real getMultiplier(const State&) const;
-    Real getRodTension(const State&) const; // negative means compression
-    
-    /** @cond **/ // hide from Doxygen
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Rod, RodImpl, Constraint);
-    /** @endcond **/
-};
-
-    ///////////////////////////////
-    // POINT IN PLANE CONSTRAINT //
-    ///////////////////////////////
-
-/**
- * One constraint equation. This constraint enforces that a point fixed to
- * one body (the "follower body") must travel in a plane fixed on another body
- * (the "plane body"). The constraint is enforced by an internal (non-working)
- * scalar force acting at the spatial location of the follower point, directed 
- * along the plane normal, and equal and opposite on the two bodies.
- * 
- * The assembly condition is the same as the run-time constraint: the point
- * has to be moved into the plane.
- */
-class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public Constraint  {
-public:
-    // no default constructor
-    PointInPlane(MobilizedBody& planeBody_B, const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
-                 MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
-    
-    /** Default constructor creates an empty handle. **/
-    PointInPlane() {}
-
-    // These affect only generated decorative geometry for visualization;
-    // the plane is really infinite in extent with zero depth and the
-    // point is really of zero radius.
-    PointInPlane& setPlaneDisplayHalfWidth(Real);
-    PointInPlane& setPointDisplayRadius(Real);
-    Real getPlaneDisplayHalfWidth() const;
-    Real getPointDisplayRadius() const;
-
-    // Defaults for Instance variables.
-    PointInPlane& setDefaultPlaneNormal(const UnitVec3&);
-    PointInPlane& setDefaultPlaneHeight(Real);
-    PointInPlane& setDefaultFollowerPoint(const Vec3&);
-
-    // Stage::Topology
-    MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
-    MobilizedBodyIndex getFollowerMobilizedBodyIndex() const;
-
-    const UnitVec3& getDefaultPlaneNormal() const;
-    Real            getDefaultPlaneHeight() const;
-    const Vec3&     getDefaultFollowerPoint() const;
-
-    // Stage::Instance
-    const UnitVec3& getPlaneNormal(const State&) const;
-    Real            getPlaneHeight(const State&) const;
-    const Vec3&     getFollowerPoint(const State&) const;
-
-    // Stage::Position, Velocity
-    Real getPositionError(const State&) const;
-    Real getVelocityError(const State&) const;
-
-    // Stage::Acceleration
-    Real getAccelerationError(const State&) const;
-    Real getMultiplier(const State&) const;
-    Real getForceOnFollowerPoint(const State&) const; // in normal direction
-
-    /** @cond **/ // hide from Doxygen
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
-       (PointInPlane, PointInPlaneImpl, Constraint);
-    /** @endcond **/
 };
 
     //////////////////////////////
@@ -746,145 +647,6 @@ public:
     /** @endcond **/
 };
 
-    /////////////////////////////////////////
-    // BALL (COINCIDENT POINTS) CONSTRAINT //
-    /////////////////////////////////////////
-
-/** Enforce that a fixed station on one body remains coincident with a fixed
-station on a second body, as though there were a ball joint connecting them at
-those points. Uses three position-level (holonomic) constraint equations to 
-prevent relative translation in three orthogonal directions.
-
-At construction you specify the two bodies to be connected by the %Constraint,
-and give default values for a station on each body. The State is initialized
-with those default stations, but you can change them later.
-
-The constraint is enforced by an internal (non-working) force applied at the
-spatial location of the point on body 2, on material points of each body that
-are coincident with that spatial location. Note that this is somewhat asymmetric
-when the ball is not properly assembled -- it acts as though the contact occurs
-at the point on body 2, \e not at the point on body 1. That is critical to
-ensure that Newton's 3rd law is satisified -- the action and reaction must 
-occur at the same point.
-
-The assembly condition is the same as the runtime constraint -- the two points
-can be brought together by driving the perr to zero. **/
-class SimTK_SIMBODY_EXPORT Constraint::Ball : public Constraint {
-public:
-    /** Connect the origin of \a body1 to the origin of \a body2. That is,
-    the default stations will both be (0,0,0). You can change those later
-    in the State using setPointOnBody1() and setPointOnBody2(). **/
-    Ball(MobilizedBody& body1, MobilizedBody& body2);
-    /** Connect \a body1 and \a body2 at given station points, given in the 
-    body frame of the corresponding body. You can change 
-    those later in the State using setPointOnBody1() and setPointOnBody2(). **/
-    Ball(MobilizedBody& body1, const Vec3& defaultPoint1,
-         MobilizedBody& body2, const Vec3& defaultPoint2);
-
-    /** Default constructor creates an empty handle. **/
-    Ball() {}
-
-    /** Change the station point on body 1 at which this %Constraint acts.
-    Provide the station location in the body 1 local frame.
-    This overrides the default point that was supplied on construction. This
-    is an Instance-stage change. **/
-    void setPointOnBody1(State& state, const Vec3& point_B1) const;
-    /** Change the station point on body 2 at which this %Constraint acts.
-    Provide the station location in the body 2 local frame.
-    This overrides the default point that was supplied on construction. This
-    is an Instance-stage change. **/
-    void setPointOnBody2(State& state, const Vec3& point_B2) const;
-
-    /** Return from the given \a state the constrained station on body 1, in 
-    the body 1 frame. **/
-    const Vec3& getPointOnBody1(const State& state) const;
-    /** Return from the given \a state the constrained station on body 2, in 
-    the body 2 frame. **/
-    const Vec3& getPointOnBody2(const State& state) const;
-
-    /** Change the default station location on body 1. This is a topological
-    change meaning you'll have to call realizeTopology() again after changing
-    the default point. If you want to change the constrained station during
-    a simulation, use setPointOnBody1() instead to override it in a State. **/
-    Ball& setDefaultPointOnBody1(const Vec3& defaultPoint_B1);
-    /** Change the default station location on body 2. This is a topological
-    change meaning you'll have to call realizeTopology() again after changing
-    the default point. If you want to change the constrained station during
-    a simulation, use setPointOnBody2() instead to override it in a State. **/
-    Ball& setDefaultPointOnBody2(const Vec3& defaultPoint_B2);
-
-    /** Return the default location for the station point on body 1, as a
-    vector in the body 1 frame. Note that
-    this is not necessarily the station point being used for any given State;
-    use getPointOnBody1() for that. **/
-    const Vec3& getDefaultPointOnBody1() const;
-    /** Return the default location for the station point on body 2, as a 
-    vector in the body 2 frame. Note that
-    this is not necessarily the station point being used for any given State;
-    use getPointOnBody2() for that. **/
-    const Vec3& getDefaultPointOnBody2() const;
-
-
-    /** For visualization only, you can override the default radius used by
-    this %Constraint to draw itself. **/
-    Ball& setDefaultRadius(Real r);
-    /** Retreive the radius being used for visualization of 
-    this %Constraint. **/
-    Real getDefaultRadius() const;
-
-    /** Return the MobilizedBodyIndex corresponding to body 1. **/
-    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
-    /** Return the MobilizedBodyIndex corresponding to body 2. **/
-    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
-
-
-    /** Return the current position-level constraint error for this %Constraint.
-    This is the vector between the constrained stations on body 1 and body 2,
-    which would be zero if this constraint were perfectly satisfied. The 
-    returned vector is measured in the Ancestor body frame. The given
-    \a state must be realized through Position stage. **/
-    Vec3 getPositionErrors(const State& state) const;
-
-    /** Return the current velocity-level constraint error for this %Constraint.
-    This is the relative velocity between the material points of body 1 and
-    body 2 that are coincident with the constrained station point on body 2;
-    note that this is subtly different from the time derivative of the 
-    position error vector. The returned vector is measured in the Ancestor 
-    body frame. The given \a state must be realized through Velocity stage. **/
-    Vec3 getVelocityErrors(const State& state) const;
-
-    /** Return the current acceleration-level constraint error for this 
-    %Constraint. This is the relative acceleration between the material points
-    of body 1 and body 2 that are coincident with the constrained station point
-    on body 2; this is precisely the time derivative of the 
-    velocity error vector (but not exactly the second time derivative of the
-    position error). The returned vector is measured in the Ancestor 
-    body frame. The given \a state must be realized through Acceleration
-    stage. **/
-    Vec3 getAccelerationErrors(const State&) const;
-
-    /** Return the force currently being applied by this %Constraint to the
-    point of body 1 that is coincident in space with the constrained point on
-    body 2. The force vector is expressed in body 1's local frame. **/
-    Vec3 getBallReactionForceOnBody1(const State&) const;
-    /** Return the force currently being applied by this %Constraint to body 2,
-    at its constrained station point. The force vector is expressed in body 2's 
-    local frame. **/
-    Vec3 getBallReactionForceOnBody2(const State&) const;
-
-    /** Return the three Lagrange multipliers associated with the three
-    accleration-level constraint equations generated by this %Constraint.
-    Although these are related to reaction forces, if that's what you're 
-    interested in you should use getBallReactionForcesOnBody1() or 
-    getBallReactionForceOnBody2() instead; the definition of the multipliers
-    is somewhat arbitrary and will not always be easy to interpret as forces. 
-    The given \a state must be realized through Acceleration stage. **/
-    Vec3 getMultipliers(const State& state) const;
-
-    /** @cond **/ // hide from Doxygen
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Ball, BallImpl, Constraint);
-    /** @endcond **/
-};
 
     /////////////////////////////////////
     // CONSTANT ORIENTATION CONSTRAINT //
@@ -945,112 +707,6 @@ public:
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
        (ConstantOrientation, ConstantOrientationImpl, Constraint);
-    /** @endcond **/
-};
-
-    /////////////////////////////////////////
-    // WELD (COINCIDENT FRAMES) CONSTRAINT //
-    /////////////////////////////////////////
-
-/**
- *  Six constraint equations. This constraint enforces coincidence between
- *  a frame on one body and a frame on another body. This is a combination
- *  of a ConstantOrientation constraint and a Ball constraint. The first three
- *  equations correspond to the perpendicularity constraints associated with
- *  the orientation constraint, the last three equations are the 
- *  coincident point conditions.
- * 
- *  The constraint is enforced by an internal (non-working) force applied at the
- *  spatial location of the frame origin on body 2, on material points of each body that
- *  are coincident with that spatial location. Note that this is somewhat asymmetric
- *  when the Weld is not properly assembled -- it acts as though the contact occurs
- *  at the origin of the frame on body 2, *not* at the origin of the frame on body 1.
- *  The orientation constraints on the other hand are symmetric, they are three
- *  "constant angle" constraints enforcing perpendicularity between body2's
- *  x,y,z axes with body1's y,z,x axes respectively, via an internal (non-working)
- *  torque vector applied equal and opposite on each body.
- * 
- *  TODO: Although the frame origins can be brought together by the Ball constraint, the
- *  perpendicularity conditions can be satisfied with antiparallel axes in addition
- *  to the parallel ones we want. Therefore the assembly conditions must include
- *  additional (redundant) constraints requiring parallel axes.
- */
-class SimTK_SIMBODY_EXPORT Constraint::Weld : public Constraint {
-public:
-        // no default constructor
-
-    /// Make the body frame of one body coincident with the body frame
-    /// of the other body.
-    Weld(MobilizedBody& body1, MobilizedBody& body2);
-
-    /// Make a particular frame attached to one body coincident with
-    /// a particular frame attached to the other body. The frames are
-    /// specified by giving the transform X_BF which expresses the
-    /// position and orientation of frame F relative to the body frame B.
-    Weld(MobilizedBody& body1, const Transform& frame1,
-         MobilizedBody& body2, const Transform& frame2);
-    
-    /** Default constructor creates an empty handle. **/
-    Weld() {}
-
-        // Control over generated decorative geometry.
-
-    /// This is used only for visualization. Set r <= 0 to disable
-    /// default frame drawing. Default axis length is r=1. This is a
-    /// topology-stage variable, not changeable later.
-    Weld& setAxisDisplayLength(Real r);
-
-    /// Report the length being used for display of the frames being
-    /// connected by this Weld. If this returns 0 then no geometry is
-    /// being generated for the frames.
-    Real getAxisDisplayLength() const;
-
-        // Defaults for Instance variables.
-
-    /// Explicitly set the default value for the frame on body1 which
-    /// is to be made coincident with a frame on body2. Note that this is
-    /// topology-stage value so requires non-const access to the Constraint.
-    Weld& setDefaultFrameOnBody1(const Transform&);
-
-    /// Retrieve the default transform for the frame on body 1.
-    const Transform& getDefaultFrameOnBody1() const;
-
-    /// Explicitly set the default value for the frame on body2 which
-    /// is to be made coincident with a frame on body1. Note that this is
-    /// topology-stage value so requires non-const access to the Constraint.
-    Weld& setDefaultFrameOnBody2(const Transform&);
-
-    /// Retrieve the default transform for the frame on body 2.
-    const Transform& getDefaultFrameOnBody2() const;
-
-
-        // Stage::Topology
-
-    /// Report the MobilizedBodyIndex of body 1 for this Weld constraint.
-    MobilizedBodyIndex getBody1MobilizedBodyIndex() const;
-
-    /// Report the MobilizedBodyIndex of body 2 for this Weld constraint.
-    MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
-
-
-        // Stage::Instance
-    const Transform& getFrameOnBody1(const State&) const;
-    const Transform& getFrameOnBody2(const State&) const;
-
-        // Stage::Position, Velocity, Acceleration
-    Vec6 getPositionErrors(const State&) const;
-    Vec6 getVelocityErrors(const State&) const;
-
-        // Stage::Acceleration
-    Vec6 getAccelerationErrors(const State&) const;
-    Vec6 getMultipliers(const State&) const;
-
-        // Forces are reported expressed in the body frame of the indicated body.
-    const SpatialVec& getWeldReactionOnBody1(const State&) const;
-    const SpatialVec& getWeldReactionOnBody2(const State&) const;
-
-    /** @cond **/ // hide from Doxygen
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Weld, WeldImpl, Constraint);
     /** @endcond **/
 };
 
@@ -1181,106 +837,108 @@ public:
     /** @endcond **/
 };
 
-    //////////////////////////////////////
-    // BALL ROLLING ON PLANE CONSTRAINT //
-    //////////////////////////////////////
+    /////////////////////////
+    // CONSTANT COORDINATE //
+    /////////////////////////
 
-/** This constraint enforces continuous contact and non-slip rolling between a 
-spherical surface fixed on one body and a half space (flat surface) fixed on 
-another. This requires one holonomic (position) constraint equation enforcing
-contact, and two nonholonomic (velocity) contraint equations enforcing the
-non-slip condition in the plane. Note that this is a bilateral
-constraint and will push or pull as necessary to keep the sphere in contact
-with the plane, and that rolling is enforced regardless of the amount of
-normal force begin generated. If you want to make this unilateral, you must
-handle switching it on and off separately; when this constraint is enabled it
-always enforces the contact and no-slip conditions.
+/** Constrain a single mobilizer coordinate q to have a particular value.
 
-We define the contact point on the ball to be the unique point CB on the sphere
-surface at which the radius vector is antiparallel to the plane's normal 
-vector, that is, the point of the sphere directly below the sphere center if 
-the plane's normal is considered the "up" direction. Then the contact point CP
-on the plane is defined to be the point on the plane that is directly below the
-center; that is, the intersection of the antiparallel radius vector and the 
-halfspace surface. Note that in general CB != CP; the sphere contact point 
-and plane contact point will be separated along the plane normal by a small 
-distance, limited to the constraint tolerance after assembly. Now we 
-define \e the contact point C=(CB+CP)/2, the point in space that is half way 
-between the sphere's contact point and the plane's contact point. Equal and 
-opposite forces are applied to the ball body B and the plane body P, at the 
-station on each body that is coincident with C.
+Generates one position-level (holonomic) constraint equation. Some generalized 
+coordinate q is required to remain at a particular position value p. This may
+be an angle, a length, or some other unit depending on how the mobilizer is
+defined.
 
-The holonomic constraint we enforce is that point C should be touching the
-plane. We enforce this with the condition that
-~C_P*n_P = h, that is, given the contact point C measured and 
-expressed in the plane body's frame, the height of that point in the direction
-of the plane normal should be the height of the plane.
-
-The assembly condition is the same as the run-time constraint: the point of
-the sphere where the inward normal is the same as the halfspace normal must
-be brought into contact with the halfspace surface. **/
-class SimTK_SIMBODY_EXPORT Constraint::BallRollingOnPlane : public Constraint {
+Consider using the lock() or lockAt() feature of mobilizers (see MobilizedBody 
+description) instead of this constraint; if applicable, locking is more 
+efficient since it does not require adding a constraint equation to the system.
+ 
+The assembly condition is the same as the run-time constraint: q must be set
+to position p. 
+@see MobilizedBody::lock(), MobilizedBody::lockAt() **/
+class SimTK_SIMBODY_EXPORT Constraint::ConstantCoordinate : public Constraint {
 public:
-    // no default constructor
-    /** Create a BallOnPlane constraint and define the default plane and 
-    ball geometry. **/
-    BallRollingOnPlane(MobilizedBody&  planeBody_P, 
-                const UnitVec3& defaultPlaneNormal_P, 
-                Real            defaultPlaneHeight,
-                MobilizedBody&  ballBody_B, 
-                const Vec3&     defaultBallCenter_B,
-                Real            defaultBallRadius);
+    /** Construct a constant coordinate constraint on a particular generalized
+    coordinate q of the given mobilizer. Provide a default position value to 
+    which the q should be locked; you can change it later via setPosition(). **/
+    ConstantCoordinate(MobilizedBody& mobilizer, MobilizerQIndex whichQ, 
+                       Real defaultPosition);
+
+    /** Construct a constant coordinate constraint on the generalized
+    coordinate q of the given mobilizer, assuming there is only one 
+    coordinate. (Constrains the first coordinate if there are several.) Provide 
+    a default position value to which the q should be locked; you can change it 
+    later via setPosition(). **/
+    ConstantCoordinate(MobilizedBody& mobilizer, Real defaultPosition); 
     
-    /** Default constructor creates an empty handle. **/
-    BallRollingOnPlane() {}
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantCoordinate Constraint. **/
+    ConstantCoordinate() {}
 
-    // These affect only generated decorative geometry for visualization;
-    // the plane is really infinite in extent with zero depth.
-    BallRollingOnPlane& setPlaneDisplayHalfWidth(Real);
-    Real getPlaneDisplayHalfWidth() const;
+    /** Return the index of the mobilized body to which this constant coordinate
+    constraint is being applied (to \e one of its coordinates). This is set on
+    construction of the %ConstantCoordinate constraint. **/
+    MobilizedBodyIndex getMobilizedBodyIndex() const;
 
-    // Defaults for Instance variables.
-    BallRollingOnPlane& setDefaultPlaneNormal(const UnitVec3&);
-    BallRollingOnPlane& setDefaultPlaneHeight(Real);
-    BallRollingOnPlane& setDefaultBallCenter(const Vec3&);
-    BallRollingOnPlane& setDefaultBallRadius(Real);
+    /** Return the particular coordinate whose position is controlled by
+    this %ConstantCoordinate constraint. This is set on construction. **/
+    MobilizerQIndex    getWhichQ() const;
 
-    // Stage::Topology
-    MobilizedBodyIndex getPlaneMobilizedBodyIndex() const;
-    MobilizedBodyIndex getBallMobilizedBodyIndex() const;
+    /** Return the default value for the position to be enforced. This is set on
+    construction or via setDefaultPosition(). This is used to initialize the 
+    position when a default State is created, but it can be overriden by 
+    changing the value in the State using setPosition(). **/
+    Real getDefaultPosition() const;
 
-    const UnitVec3& getDefaultPlaneNormal() const;
-    Real            getDefaultPlaneHeight() const;
-    const Vec3&     getDefaultBallCenter() const;
-    Real            getDefaultBallRadius() const;
+    /** Change the default value for the position to be enforced by this 
+    constraint. This is a topological change, meaning you'll have to call
+    realizeTopology() on the containing System and obtain a new State before
+    you can use it. If you just want to make a runtime change in the State,
+    see setPosition(). **/
+    ConstantCoordinate& setDefaultPosition(Real position);
 
-    // Stage::Instance
-    const UnitVec3& getPlaneNormal(const State&) const;
-    Real            getPlaneHeight(const State&) const;
-    const Vec3&     getBallCenter(const State&) const;
-    Real            getBallRadius(const State&) const;
+    /** Override the default position with this one whose value is stored in the
+    given State. This invalidates the Position stage in the state. Don't 
+    confuse this with setDefaultPosition() -- the value set here overrides that
+    one. **/
+    void setPosition(State& state, Real position) const;
 
-    // Stage::Position, Velocity
-    Real getPositionError(const State&) const;
-    Vec3 getVelocityError(const State&) const;
+    /** Get the current value of the position set point from the indicated 
+    State. This is the value currently in effect, either from the default or 
+    from a previous call to setPosition(). **/
+    Real getPosition(const State& state) const;
 
-    // Stage::Acceleration
-    Vec3 getAccelerationError(const State&) const;
-    Vec3 getMultipliers(const State&) const;
+    /** Return the amount by which the given State fails to satisfy this
+    %ConstantCoordinate constraint. This is a signed value, q-p where p is
+    the currently effective desired position as returned by getPosition()
+    on this same \a state. The \a state must already be realized 
+    through Stage::Position. **/
+    Real getPositionError(const State& state) const;
 
-    /** Return the signed magnitude of the normal force applied by the plane
-    to the ball at the contact point, in the direction of the plane normal; 
-    negative indicates sticking. **/
-    Real getNormalForce(const State&) const;
-    /** Return the friction force vector being applied by the plane to the
-    ball at the contact point, expressed in the plane frame. **/
-    Vec2 getFrictionForceOnBallInPlaneFrame(const State&) const;
+    /** Return the amount by which the given State fails to satisfy the time
+    derivative of this %ConstantCoordinate constraint, which should be zero. 
+    This is a signed value equal to the current value of qdot (=d/dt q). The 
+    \a state must already be realized through Stage::Velocity. **/
+    Real getVelocityError(const State& state) const;
 
-    /** @cond **/ // Don't let doxygen see this
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(BallRollingOnPlane, BallRollingOnPlaneImpl, Constraint);
+    /** Return the amount by which the accelerations in the given State fail
+    to satify the second time derivative of this constraint, which should be 
+    zero. This is a signed value equal to the current value of qdotdot
+    (=d^2/dt^2 q). The \a state must already be realized through 
+    Stage::Acceleration. **/
+    Real getAccelerationError(const State& state) const;
+
+    /** Get the value of the Lagrange multiplier generated to satisfy this
+    constraint. For a %ConstantCoordinate constraint, the multiplier has the
+    same magnitude as the generalized force although by convention constraint 
+    multipliers have the opposite sign from applied forces. The \a state must 
+    already be realized through Stage::Acceleration.**/
+    Real getMultiplier(const State& state) const;
+
+    /** @cond **/ // hide from Doxygen
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
+       (ConstantCoordinate, ConstantCoordinateImpl, Constraint);
     /** @endcond **/
 };
-
 
     ////////////////////
     // CONSTANT SPEED //
@@ -1290,12 +948,16 @@ public:
 
 One non-holonomic constraint equation. Some mobility u is required to be at a
 particular value s.
+
+Consider using the lock() or lockAt() feature of mobilizers (see MobilizedBody 
+description) instead of this constraint; if applicable, locking is more 
+efficient since it does not require adding a constraint equation to the system.
  
 The assembly condition is the same as the run-time constraint: u must be set
-to s. **/
+to s. 
+@see MobilizedBody::lock(), MobilizedBody::lockAt() **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantSpeed : public Constraint {
 public:
-    // no default constructor
     /** Construct a constant speed constraint on a particular mobility
     of the given mobilizer. **/
     ConstantSpeed(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
@@ -1304,21 +966,25 @@ public:
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantSpeed(MobilizedBody& mobilizer, Real defaultSpeed); 
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantSpeed Constraint. **/
     ConstantSpeed() {}
 
     /** Return the index of the mobilized body to which this constant speed
     constraint is being applied (to \e one of its mobilities). This is set on
     construction of the %ConstantSpeed constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+
     /** Return the particular mobility whose generalized speed is controlled by
     this %ConstantSpeed constraint. This is set on construction. **/
     MobilizerUIndex    getWhichU() const;
+
     /** Return the default value for the speed to be enforced. This is set on
     construction or via setDefaultSpeed(). This is used to initialize the speed
     when a default State is created, but it can be overriden by changing the
     value in the State using setSpeed(). **/
     Real               getDefaultSpeed() const;
+
     /** Change the default value for the speed to be enforced by this 
     constraint. This is a topological change, meaning you'll have to call
     realizeTopology() on the containing System and obtain a new State before
@@ -1331,6 +997,7 @@ public:
     confuse this with setDefaultSpeed() -- the value set here overrides that
     one. **/
     void setSpeed(State& state, Real speed) const;
+
     /** Get the current value of the speed set point from the indicated State.
     This is the value currently in effect, either from the default or from a
     previous call to setSpeed(). **/
@@ -1343,17 +1010,17 @@ public:
     Stage::Velocity. **/
     Real getVelocityError(const State& state) const;
 
-    // Stage::Acceleration
     /** Return the amount by which the accelerations in the given State fail
     to satify the time derivative of this constraint (which must be zero). 
     The \a state must already be realized through Stage::Acceleration. **/
     Real getAccelerationError(const State& state) const;
-    /** Get the value of the Lagrange multipler generated to satisfy this
+
+    /** Get the value of the Lagrange multiplier generated to satisfy this
     constraint. For a %ConstantSpeed constraint, that is the same as the
     generalized force although by convention constraint multipliers have the
     opposite sign from applied forces. The \a state must already be realized 
     through Stage::Acceleration.**/
-    Real getMultiplier(const State&) const;
+    Real getMultiplier(const State& state) const;
 
     /** @cond **/ // hide from Doxygen
     SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS
@@ -1370,37 +1037,46 @@ public:
 One acceleration-only constraint equation. Some generalized acceleration
 udot is required to be at a particular value a.
 
+Consider using the lock() feature of mobilizers (see MobilizedBody description)
+instead of this constraint; if applicable, locking is more efficient since it 
+does not require adding a constraint equation to the system.
+
 There is no assembly condition because this does not involve state
-variables q or u, just u's time derivative udot. **/
+variables q or u, just u's time derivative udot. 
+@see MobilizedBody::lock() **/
 class SimTK_SIMBODY_EXPORT Constraint::ConstantAcceleration : public Constraint
 {
 public:
-    // no default constructor
     /** Construct a constant acceleration constraint on a particular mobility
     of the given mobilizer. **/
     ConstantAcceleration(MobilizedBody& mobilizer, MobilizerUIndex whichU, 
                          Real defaultAcceleration);
+
     /** Construct a constant acceleration constraint on the mobility
     of the given mobilizer, assuming there is only one mobility. **/
     ConstantAcceleration(MobilizedBody& mobilizer, 
                          Real defaultAcceleration);
     
-    /** Default constructor creates an empty handle. **/
+    /** Default constructor creates an empty handle you can use to reference
+    any existing %ConstantAcceleration Constraint. **/
     ConstantAcceleration() {}
 
     /** Return the index of the mobilized body to which this constant 
     acceleration constraint is being applied (to \e one of its mobilities). 
     This is set on construction of the %ConstantAcceleration constraint. **/
     MobilizedBodyIndex getMobilizedBodyIndex() const;
+
     /** Return the particular mobility whose generalized acceleration is 
     controlled by this %ConstantAcceleration constraint. This is set on 
     construction. **/
     MobilizerUIndex    getWhichU() const;
+
     /** Return the default value for the acceleration to be enforced. This is 
     set on construction or via setDefaultAcceleration(). This is used to 
     initialize the acceleration when a default State is created, but it can be 
     overriden by changing the value in the State using setAcceleration(). **/
     Real               getDefaultAcceleration() const;
+
     /** Change the default value for the acceleration to be enforced by this 
     constraint. This is a topological change, meaning you'll have to call
     realizeTopology() on the containing System and obtain a new State before
@@ -1413,6 +1089,7 @@ public:
     Don't confuse this with setDefaultAcceleration() -- the value set here 
     overrides that one. **/
     void setAcceleration(State& state, Real accel) const;
+
     /** Get the current value of the acceleration set point from the indicated 
     State. This is the value currently in effect, either from the default or 
     from a previous call to setAcceleration(). **/
@@ -1420,11 +1097,11 @@ public:
 
     // no position or velocity error
 
-    // Stage::Acceleration
     /** Return the amount by which the accelerations in the given State fail
     to satify this constraint. The \a state must already be realized through 
     Stage::Acceleration. **/
     Real getAccelerationError(const State&) const;
+
     /** Get the value of the Lagrange multipler generated to satisfy this
     constraint. For a %ConstantAcceleration constraint, that is the same as the
     generalized force although by convention constraint multipliers have the

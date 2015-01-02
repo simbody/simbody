@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -934,7 +934,8 @@ Visualizer& Visualizer::setGroundHeight(Real height) {
 Real Visualizer::getGroundHeight() const
 {   return getImpl().m_groundHeight; }
 
-void Visualizer::setMode(Visualizer::Mode mode) {updImpl().setMode(mode);}
+Visualizer& Visualizer::setMode(Visualizer::Mode mode) 
+{   updImpl().setMode(mode); return *this; }
 Visualizer::Mode Visualizer::getMode() const {return getImpl().m_mode;}
 
 Visualizer& Visualizer::setDesiredFrameRate(Real fps) 

@@ -1,0 +1,22 @@
+# Build TaskSpaceControl-Atlas example, from an installed Simbody.
+# This must be invoked as a CMake subdirectory from
+# the main examples CMakeLists.txt file.
+
+set(header_files Atlas.h URDFReader.h) 
+set(shared_header_files
+    ../shared/TaskSpace.h ../shared/SimbodyExampleHelper.h)
+
+set(source_files TaskSpaceControl-Atlas.cpp Atlas.cpp URDFReader.cpp)
+set(shared_source_files ../shared/TaskSpace.cpp)
+
+set(all_header_files ${header_files} ${shared_header_files})
+set(all_source_files ${source_files} ${shared_source_files})
+
+ADD_DEFINITIONS("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
+
+# Link with shared library
+ADD_EXECUTABLE(${EX_NAME} ${all_source_files} ${all_header_files})
+SET_TARGET_PROPERTIES(${EX_NAME}
+                      PROPERTIES
+                      PROJECT_LABEL "Example - ${EX_NAME}")
+TARGET_LINK_LIBRARIES(${EX_NAME} ${Simbody_LIBRARIES})

@@ -112,7 +112,7 @@ namespace Ipopt
     else if (type_ ==OT_String) {
       std::vector<string_entry>::const_iterator i;
       jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "Valid Settings:\n");
-      for (i = valid_strings_.begin(); i != valid_strings_.end(); i++) {
+      for (i = valid_strings_.begin(); i != valid_strings_.end(); ++i) {
         jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "\t%s (%s)\n",
                      (*i).value_.c_str(), (*i).description_.c_str());
       }
@@ -220,7 +220,7 @@ namespace Ipopt
       jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "\\begin{itemize}\n");
       for (std::vector<string_entry>::const_iterator
            i = valid_strings_.begin();
-           i != valid_strings_.end(); i++) {
+           i != valid_strings_.end(); ++i) {
         std::string latex_value;
         MakeValidLatexString((*i).value_, latex_value);
         jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "   \\item %s: ",
@@ -240,7 +240,7 @@ namespace Ipopt
   void RegisteredOption::MakeValidLatexString(std::string source, std::string& dest) const
   {
     std::string::iterator c;
-    for (c=source.begin(); c!=source.end(); c++) {
+    for (c=source.begin(); c!=source.end(); ++c) {
       if (*c == '_') {
         dest.append("\\_");
       }
@@ -262,7 +262,7 @@ namespace Ipopt
 
     std::string::iterator c;
     bool found_e = false;
-    for (c=source.begin(); c!=source.end(); c++) {
+    for (c=source.begin(); c!=source.end(); ++c) {
       if (*c == 'e') {
         found_e = true;
         dest.append(" \\cdot 10^{");
@@ -348,7 +348,7 @@ namespace Ipopt
       jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "\n   Possible values:\n");
       for (std::vector<string_entry>::const_iterator
            i = valid_strings_.begin();
-           i != valid_strings_.end(); i++) {
+           i != valid_strings_.end(); ++i) {
         jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "    - %-23s [",
                      (*i).value_.c_str());
 
@@ -368,7 +368,7 @@ namespace Ipopt
     DBG_ASSERT(type_ == OT_String);
 
     std::vector<string_entry>::const_iterator i;
-    for (i = valid_strings_.begin(); i != valid_strings_.end(); i++) {
+    for (i = valid_strings_.begin(); i != valid_strings_.end(); ++i) {
       if (i->value_ == "*" || string_equal_insensitive(i->value_, value)) {
         return true;
       }
@@ -384,7 +384,7 @@ namespace Ipopt
     std::string matched_setting = "";
 
     std::vector<string_entry>::const_iterator i;
-    for (i = valid_strings_.begin(); i != valid_strings_.end(); i++) {
+    for (i = valid_strings_.begin(); i != valid_strings_.end(); ++i) {
       if (i->value_ == "*") {
         matched_setting = value;
       }
@@ -404,7 +404,7 @@ namespace Ipopt
 
     Index cnt = 0;
     std::vector<string_entry>::const_iterator i;
-    for (i = valid_strings_.begin(); i != valid_strings_.end(); i++) {
+    for (i = valid_strings_.begin(); i != valid_strings_.end(); ++i) {
       ASSERT_EXCEPTION(i->value_ != "*", IpoptException,
                        "Cannot map a wildcard setting to an enumeration");
       if (string_equal_insensitive(i->value_, value)) {
@@ -435,8 +435,8 @@ namespace Ipopt
     while(i1!=s1.end()) {
       if (toupper(*i1)!=toupper(*i2))
         return false;
-      i1++;
-      i2++;
+      ++i1;
+      ++i2;
     }
     return true;
   }
@@ -833,20 +833,20 @@ namespace Ipopt
 
     std::list
     <std::string>::iterator i;
-    for (i = categories.begin(); i != categories.end(); i++) {
+    for (i = categories.begin(); i != categories.end(); ++i) {
       jnlst.Printf(J_SUMMARY, J_DOCUMENTATION,
                    "\n### %s ###\n\n", (*i).c_str());
       std::map<Index, SmartPtr<RegisteredOption> > class_options;
       std::map <std::string, SmartPtr<RegisteredOption> >::iterator option;
       for (option = registered_options_.begin();
-           option != registered_options_.end(); option++) {
+           option != registered_options_.end(); ++option) {
         if (option->second->RegisteringCategory() == (*i)) {
 
           class_options[option->second->Counter()] = option->second;
         }
       }
       std::map<Index, SmartPtr<RegisteredOption> >::const_iterator co;
-      for (co = class_options.begin(); co != class_options.end(); co++) {
+      for (co = class_options.begin(); co != class_options.end(); ++co) {
         co->second->OutputShortDescription(jnlst);
       }
       jnlst.Printf(J_SUMMARY, J_DOCUMENTATION, "\n");
@@ -862,8 +862,8 @@ namespace Ipopt
       std::list<std::string>::iterator coption;
       for (coption = options_to_print.begin();
            coption != options_to_print.end();
-           coption++) {
-        //	std::map <std::string, SmartPtr<RegisteredOption> >::iterator option;
+           ++coption) {
+        //    std::map <std::string, SmartPtr<RegisteredOption> >::iterator option;
         SmartPtr<RegisteredOption> option = registered_options_[*coption];
         DBG_ASSERT(IsValid(option));
         option->OutputLatexDescription(jnlst);
@@ -873,7 +873,7 @@ namespace Ipopt
       std::map <std::string, SmartPtr<RegisteredOption> >::iterator option;
       for (option = registered_options_.begin();
            option != registered_options_.end();
-           option++) {
+           ++option) {
         option->second->OutputLatexDescription(jnlst);
       }
     }

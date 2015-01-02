@@ -61,7 +61,7 @@ public:
     }
 
     // Copy constructor must preserve slot numbers.
-    StableArray(const StableArray& s) : stuff(s.size(),0), nOccupiedSlots(0) {
+    StableArray(const StableArray& s) : nOccupiedSlots(0), stuff(s.size(),0) {
         for (size_t i=0; i<s.size(); ++i) 
             if (!s.empty(i)) initializeEmptyElement(i, s[i]);
         assert(nItems() == s.nItems());

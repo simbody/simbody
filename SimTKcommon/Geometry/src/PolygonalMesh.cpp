@@ -23,12 +23,15 @@
 
 #include "PolygonalMeshImpl.h"
 #include "SimTKcommon/internal/Xml.h"
+#include "SimTKcommon/internal/String.h"
+#include "SimTKcommon/internal/Pathname.h"
 
 #include <cassert>
 #include <sstream>
 #include <string>
 #include <set>
 #include <map>
+#include <fstream>
 
 using namespace SimTK;
 
@@ -112,6 +115,39 @@ PolygonalMesh& PolygonalMesh::transformMesh(const Transform& X_AM) {
     return *this;
 }
 
+//------------------------------------------------------------------------------
+//                                 LOAD FILE
+//------------------------------------------------------------------------------
+void PolygonalMesh::loadFile(const String& pathname) {
+    std::string dir,fn,ext;
+    bool isAbsolutePath;
+    Pathname::deconstructPathname(pathname,isAbsolutePath,dir,fn,ext);
+    String lext = String::toLower(ext);
+
+    if (lext==".obj") loadObjFile(pathname);
+    else if (lext==".vtp") loadVtpFile(pathname);
+    else if (lext==".stl"||lext==".stla") loadStlFile(pathname);
+    else {
+        SimTK_ERRCHK1_ALWAYS(!"unrecognized extension",
+            "PolygonalMesh::loadFile()",
+            "Unrecognized file extension on mesh file '%s':\n"
+            "  expected .obj, .stl, .stla, or .vtp.", pathname.c_str());
+    }
+}
+
+//------------------------------------------------------------------------------
+//                              LOAD OBJ FILE
+//------------------------------------------------------------------------------
+
+// For the pathname signature just open and punt to the istream signature.
+void PolygonalMesh::loadObjFile(const String& pathname) {
+    std::ifstream ifs(pathname);
+    SimTK_ERRCHK1_ALWAYS(ifs.good(), "PolygonalMesh::loadObjFile()",
+        "Failed to open file '%s'", pathname.c_str());
+    loadObjFile(ifs);
+    ifs.close();
+}
+
 void PolygonalMesh::loadObjFile(std::istream& file) {
     const char* methodName = "PolygonalMesh::loadObjFile()";
     SimTK_ERRCHK_ALWAYS(file.good(), methodName,
@@ -164,6 +200,11 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
     }
 }
 
+
+//------------------------------------------------------------------------------
+//                              LOAD VTP FILE
+//------------------------------------------------------------------------------
+
 /* Use our XML reader to parse VTK's PolyData file format and add the polygons
 found there to whatever is currently in this PolygonalMesh object. OpenSim uses
 this format for its geometric objects. 
@@ -174,7 +215,7 @@ from vtk.org:
 All the metadata is case sensitive.
 
 PolyData -- Each PolyData piece specifies a set of points and cells 
-independently from the other pieces. [SimTK Note: we will read in only the
+independently from the other pieces. [Simbody Note: we will read in only the
 first Piece element.] The points are described explicitly by the
 Points element. The cells are described explicitly by the Verts, Lines, Strips,
 and Polys elements.
@@ -205,11 +246,11 @@ VTK allows an arbitrary number of data arrays to be associated with the points
 and cells of a dataset. Each data array is described by a DataArray element 
 which, among other things, gives each array a name. The following attributes 
 of PointData and CellData are used to specify the active arrays by name:
-    Scalars � The name of the active scalars array, if any.
-    Vectors � The name of the active vectors array, if any.
-    Normals � The name of the active normals array, if any.
-    Tensors � The name of the active tensors array, if any.
-    TCoords � The name of the active texture coordinates array, if any.
+    Scalars - The name of the active scalars array, if any.
+    Vectors - The name of the active vectors array, if any.
+    Normals - The name of the active normals array, if any.
+    Tensors - The name of the active tensors array, if any.
+    TCoords - The name of the active texture coordinates array, if any.
 That is, for each attribute of the form Sometype="Somename" there must be a 
 DataArray element with attribute Name="Somename" whose text contains 
 NumberOfPoints values each of type Sometype.
@@ -225,7 +266,7 @@ Verts, Lines, Strips, and Polys -- The Verts, Lines, Strips, and Polys elements
 define cells explicitly by specifying point connectivity. Cell types are 
 implicitly known by the type of element in which they are specified. Each 
 element contains two DataArray elements. The first array specifies the point 
-connectivity. All the cells� point lists are concatenated together. The second
+connectivity. All the cells' point lists are concatenated together. The second
 array specifies the offset into the connectivity array for the end of each
 cell.
     <Polys>
@@ -238,7 +279,7 @@ DataArray -- All of the data and geometry specifications use DataArray elements
 to describe their actual content as follows:
 
 The DataArray element stores a sequence of values of one type. There may be 
-one or more components per value. [SimTK Note: there are also "binary" and
+one or more components per value. [Simbody Note: there are also "binary" and
 "appended" formats which we do not support -- be sure to check that the
 format attribute for every DataArray is "ascii".]
     <DataArray type="Int32" Name="offsets" format="ascii">
@@ -253,7 +294,7 @@ The attributes of the DataArray elements are described as follows:
         DataArray Name attribute to figure out what's being provided.]
     NumberOfComponents -- The number of components per value in the array.
     format -- The means by which the data values themselves are stored in the
-        file. This is "ascii", "binary", or "appended". [SimTK only supports
+        file. This is "ascii", "binary", or "appended". [Simbody only supports
         "ascii".]
     format="ascii" -- The data are listed in ASCII directly inside the 
         DataArray element. Whitespace is used for separation.
@@ -286,7 +327,8 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // Remember this because we'll have to use it to adjust the indices we use 
     // when referencing the vertices we're about to read in. This number is
     // the index that our first vertex will be assigned.
-    const int firstVertex = getNumVertices();
+    // EDIT: We actually don't use this variable. Leaving for reference.
+    // TODO const int firstVertex = getNumVertices();
 
     // The lone DataArray element in the Points element contains the points'
     // coordinates. Read it in as a Vector of Vec3s.
@@ -371,6 +413,330 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 }
 
 //------------------------------------------------------------------------------
+//                              VERTEX MAP
+//------------------------------------------------------------------------------
+// This is a local utility class for use in weeding out duplicate vertices.
+// Set an appropriate tolerance in the constructor, then vertices all of
+// whose coordinates are within tol can be considered the same vertex.
+// This uses a map to make the complexity n log n.
+namespace {
+struct VertKey {
+    VertKey(const Vec3& v, Real tol=SignificantReal) : v(v), tol(tol) {}
+    bool operator<(const VertKey& other) const {
+        const Vec3 diff = v - other.v;
+        if (diff[0] < -tol) return true;
+        if (diff[0] >  tol) return false;
+        if (diff[1] < -tol) return true;
+        if (diff[1] >  tol) return false;
+        if (diff[2] < -tol) return true;
+        if (diff[2] >  tol) return false;
+        return false; // they are numerically equal
+    }
+    Vec3 v;
+    Real tol;
+};
+typedef std::map<VertKey,int> VertMap;
+}
+
+//------------------------------------------------------------------------------
+//                              LOAD STL FILE
+//------------------------------------------------------------------------------
+namespace {
+
+class STLFile {
+public:
+    STLFile(const String& pathname, const PolygonalMesh& mesh) 
+    :   m_pathname(pathname), m_pathcstr(pathname.c_str()),
+        m_vertexTol(NTraits<float>::getSignificant()),
+        m_lineNo(0), m_sigLineNo(0) 
+    {   preLoadVertMap(mesh); }
+
+    // Examine file contents to determine whether this is an ascii-format 
+    // STL; otherwise it is binary.
+    bool isStlAsciiFormat();
+
+    void loadStlAsciiFile(PolygonalMesh& mesh);
+    void loadStlBinaryFile(PolygonalMesh& mesh);
+
+private:
+    bool getSignificantLine(bool eofOK);
+
+    // If we're appending to an existing mesh we'll need to preload the
+    // vertex map with the existing vertices.
+    void preLoadVertMap(const PolygonalMesh& mesh) {
+        for (int i=0; i < mesh.getNumVertices(); ++i) {
+            const Vec3& v = mesh.getVertexPosition(i);
+            m_vertMap.insert(std::make_pair(VertKey(v,m_vertexTol), i));
+        }
+    }
+
+    // Look for a vertex close enough to this one and return its index if found,
+    // otherwise add to the mesh.
+    int getVertex(const Vec3& v, PolygonalMesh& mesh) {
+        const VertKey key(v, m_vertexTol);
+        VertMap::const_iterator p = m_vertMap.find(key);
+        int ix;
+        if (p != m_vertMap.end()) 
+            ix = p->second;
+        else {
+            ix = mesh.addVertex(v);
+            m_vertMap.insert(std::make_pair(key,ix));
+        }
+        return ix;
+    }
+
+    // The ascii/binary determination reads some lines; counts must restart.
+    void resetLineCounts() {m_lineNo=m_sigLineNo=0;}
+
+    const String&     m_pathname;
+    const char* const m_pathcstr;
+    const Real        m_vertexTol;
+    VertMap           m_vertMap;
+
+    std::ifstream     m_ifs;
+    int               m_lineNo;         // current line in file
+    int               m_sigLineNo;      // line # not counting blanks, comments
+    String            m_keyword;        // first non-blank token on line
+    std::stringstream m_restOfLine;     // full line except first token
+};
+
+}
+
+void PolygonalMesh::loadStlFile(const String& pathname) {
+    bool isAbsolutePath;
+    std::string directory, fileName, extension;
+    Pathname::deconstructPathname(pathname, isAbsolutePath,
+                                  directory, fileName, extension);
+    const bool hasAsciiExt = String::toLower(extension) == ".stla";
+
+    STLFile stlfile(pathname, *this);
+
+    if (hasAsciiExt || stlfile.isStlAsciiFormat()) {
+        stlfile.loadStlAsciiFile(*this);
+    } else {
+        stlfile.loadStlBinaryFile(*this);
+    }
+}
+
+// The standard format for an ASCII STL file is:
+//
+//   solid name
+//   facet normal ni nj nk
+//       outer loop
+//           vertex v1x v1y v1z
+//           vertex v2x v2y v2z
+//           vertex v3x v3y v3z
+//       endloop
+//   endfacet
+//   ...
+//   endsolid name
+//
+// The "..." indicates that the facet/endfacet block repeats for each face. We
+// will ignore the normal on the facet line and don't care if it is present.
+// The 'name' is optional and we ignore it. Extra whitespace and case are
+// ignored. We'll recognize "facetnormal" and "outerloop" if the spaces are
+// missing; apparently that was once allowed.
+//
+// Extensions (mostly for compatibility with Gazebo's STL reader):
+// - Allow comment lines that begin with #, !, or $; they are skipped.
+// - Allow lines beginning with 'color'; they are ignored.
+// - Allow negative numbers in vertices (stl standard says only +ve).
+// - Allow more than three vertices per face.
+// - Allow 'outer loop'/'endloop' to be left out.
+// 
+// If there are multiple solids in the STL file we'll just read the first one.
+
+// We have to decide if this is really an ascii format stl; it might be
+// binary. Unfortunately, some binary stl files also start with 'solid' so
+// that isn't enough. We will simply try to parse the file as ascii and then
+// if that leads to an inconsistency will try binary instead.
+bool STLFile::isStlAsciiFormat() {
+    m_ifs.open(m_pathname);
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good(), "PolygonalMesh::loadStlFile()",
+        "Can't open file '%s'", m_pathcstr);
+
+    bool isAscii = false;
+    if (getSignificantLine(true) && m_keyword == "solid") {
+        // Still might be binary. Look for a "facet" or "endsolid" line.
+        while (getSignificantLine(true)) {
+            if (m_keyword=="color") continue; // ignore
+            isAscii = (   m_keyword=="facet" 
+                       || m_keyword=="facetnormal"
+                       || m_keyword=="endsolid");
+            break;
+        }
+    }
+
+    m_ifs.close();
+    resetLineCounts();
+    return isAscii;
+}
+
+
+void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
+    m_ifs.open(m_pathname);
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good(), "PolygonalMesh::loadStlFile()",
+        "Can't open file '%s'", m_pathcstr);
+
+    Array_<int> vertices;
+
+    // Don't allow EOF until we've seen two significant lines.
+    while (getSignificantLine(m_sigLineNo >= 2)) {
+        if (m_sigLineNo==1 && m_keyword == "solid") continue;
+        if (m_sigLineNo>1 && m_keyword == "endsolid")
+            break;
+        if (m_keyword == "color") continue;
+
+        if (m_keyword == "facet" || m_keyword == "facetnormal") {
+            // We're ignoring the normal on the facet line.
+            getSignificantLine(false);
+
+            bool outerLoopSeen=false;
+            if (m_keyword=="outer" || m_keyword=="outerloop") {
+                outerLoopSeen = true;
+                getSignificantLine(false);
+            }
+
+            // Now process vertices.
+            vertices.clear();
+            while (m_keyword == "vertex") {
+                Vec3 vertex;
+                m_restOfLine >> vertex;
+                SimTK_ERRCHK2_ALWAYS(m_restOfLine.eof(), 
+                    "PolygonalMesh::loadStlFile()",
+                    "Error at line %d in ASCII STL file '%s':\n"
+                    "  badly formed vertex.", m_lineNo, m_pathcstr);
+                vertices.push_back(getVertex(vertex, mesh));
+                getSignificantLine(false);
+            }
+
+            // Next keyword is not "vertex".
+            SimTK_ERRCHK3_ALWAYS(vertices.size() >= 3, 
+                "PolygonalMesh::loadStlFile()",
+                "Error at line %d in ASCII STL file '%s':\n"
+                "  a facet had %d vertices; at least 3 required.", 
+                m_lineNo, m_pathcstr, vertices.size());
+
+            mesh.addFace(vertices);
+
+            // Vertices must end with 'endloop' if started with 'outer loop'.
+            if (outerLoopSeen) {
+                SimTK_ERRCHK3_ALWAYS(m_keyword=="endloop", 
+                    "PolygonalMesh::loadStlFile()",
+                    "Error at line %d in ASCII STL file '%s':\n"
+                    "  expected 'endloop' but got '%s'.",
+                    m_lineNo, m_pathcstr, m_keyword.c_str());
+                getSignificantLine(false);
+            }
+
+            // Now we expect 'endfacet'.
+            SimTK_ERRCHK3_ALWAYS(m_keyword=="endfacet", 
+                "PolygonalMesh::loadStlFile()",
+                "Error at line %d in ASCII STL file '%s':\n"
+                "  expected 'endfacet' but got '%s'.",
+                m_lineNo, m_pathcstr, m_keyword.c_str());
+        }
+    }
+
+    // We don't care if there is extra stuff in the file.
+    m_ifs.close();
+}
+
+// This is the binary STL format:
+//   uint8[80] - Header (ignored)
+//   uint32    - Number of triangles
+//   for each triangle
+//      float[3]    - normal vector (we ignore this)
+//      float[3]    - vertex 1  (counterclockwise order about the normal)
+//      float[3]    - vertex 2
+//      float[3]    - vertex 3
+//      uint16      - "attribute byte count" (ignored)
+//   end
+//
+// TODO: the STL binary format is always little-endian, like an Intel chip.
+// The code here won't work properly on a big endian machine!
+void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
+    // This should never fail since the above succeeded, but we'll check.
+    m_ifs.open(m_pathname, std::ios_base::binary);
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good(), "PolygonalMesh::loadStlFile()",
+        "Can't open file '%s'", m_pathcstr);
+
+    unsigned char header[80];
+    m_ifs.read((char*)header, 80);
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good() && m_ifs.gcount()==80, 
+        "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
+        "  couldn't read header.", m_pathcstr);
+
+    unsigned nFaces;
+    m_ifs.read((char*)&nFaces, sizeof(unsigned));
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(unsigned), 
+        "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
+        "  couldn't read triangle count.", m_pathcstr);
+
+    Array_<int> vertices(3);
+    float vbuf[3]; unsigned short sbuf;
+    const unsigned vz = 3*sizeof(float);
+    for (unsigned fx=0; fx < nFaces; ++fx) {
+        m_ifs.read((char*)vbuf, vz); // normal ignored
+        for (int vx=0; vx < 3; ++vx) {
+            m_ifs.read((char*)vbuf, vz);
+            SimTK_ERRCHK3_ALWAYS(m_ifs.good() && m_ifs.gcount()==vz, 
+                "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
+                "  couldn't read vertex %d for face %d.", m_pathcstr, vx, fx);
+            const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
+            vertices[vx] = getVertex(vertex, mesh);
+        }
+        mesh.addFace(vertices);
+        // Now read and toss the "attribute byte count".
+        m_ifs.read((char*)&sbuf,sizeof(short));
+        SimTK_ERRCHK2_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(short), 
+            "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
+            "  couldn't read attribute for face %d.", m_pathcstr, fx);
+    }
+
+    // We don't care if there is extra stuff in the file.
+    m_ifs.close();
+}
+
+// Return the next line from the formatted input stream, ignoring blank
+// lines and comment lines, and downshifting the returned keyword. Sets
+// m_keyword and m_restOfLine and increments line counts. If eofOK==false,
+// issues an error message if we hit EOF, otherwise it will quitely return
+// false at EOF.
+bool STLFile::getSignificantLine(bool eofOK) {
+    std::string line;
+    std::getline(m_ifs, line);
+    while (m_ifs.good()) {
+        ++m_lineNo;
+        m_keyword = String::trimWhiteSpace(line); // using keyword as a temp
+        if (   m_keyword.empty() 
+            || m_keyword[0]=='#' || m_keyword[0]=='!' || m_keyword[0]=='$') 
+        {
+            std::getline(m_ifs, line);
+            continue; // blank or comment
+        }
+        // Found a significant line.
+        ++m_sigLineNo;
+        m_keyword.toLower();
+        m_restOfLine.clear();
+        m_restOfLine.str(m_keyword);
+        m_restOfLine >> m_keyword; // now it's the keyword at beginning of line
+        return true;
+    }
+
+    SimTK_ERRCHK2_ALWAYS(!(m_ifs.fail()||m_ifs.bad()),
+        "PolygonalMesh::loadStlFile()",
+        "Error at line %d in ASCII STL file '%s':\n"
+        "  error while reading file.", m_lineNo, m_pathcstr);
+
+    // Must be EOF.
+    SimTK_ERRCHK2_ALWAYS(eofOK, "PolygonalMesh::loadStlFile()",
+        "Error at line %d in ASCII STL file '%s':\n"
+        "  unexpected end of file.", m_lineNo, m_pathcstr);
+    return false;
+}
+
+//------------------------------------------------------------------------------
 //                            CREATE SPHERE MESH
 //------------------------------------------------------------------------------
 
@@ -378,22 +744,6 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
 // this file, as well as a few helper functions.
 namespace {
 
-    struct VertKey {
-        VertKey(const Vec3& v) : v(v) {}
-        Vec3 v;
-        bool operator<(const VertKey& other) const {
-            const Real tol = SignificantReal;
-            const Vec3 diff = v - other.v;
-            if (diff[0] < -tol) return true;
-            if (diff[0] >  tol) return false;
-            if (diff[1] < -tol) return true;
-            if (diff[1] >  tol) return false;
-            if (diff[2] < -tol) return true;
-            if (diff[2] >  tol) return false;
-            return false; // they are numerically equal
-        }
-    };
-    typedef std::map<VertKey,int> VertMap;
 
     /* Search a list of vertices for one close enough to this one and
     return its index if found, otherwise add to the end. */

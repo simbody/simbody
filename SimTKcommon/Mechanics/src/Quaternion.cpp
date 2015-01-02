@@ -71,7 +71,7 @@ Quaternion_<P>::convertQuaternionToAngleAxis() const {
     // Normalize the axis part of the return value
     const Vec3P axis = sa2v / sa2;
 
-	// Return (angle/axis)
+    // Return (angle/axis)
     return Vec4P( angle, axis[0], axis[1], axis[2] );
 }
 

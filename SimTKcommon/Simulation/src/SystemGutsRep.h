@@ -38,8 +38,6 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
-#include "SubsystemGutsRep.h"
-
 namespace SimTK {
 
 class System::Guts::GutsRep {

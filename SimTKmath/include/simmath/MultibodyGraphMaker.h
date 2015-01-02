@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2013 Stanford University and the Authors.           *
+ * Portions copyright (c) 2013-4 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors: Kevin He                                                     *
  *                                                                            *
@@ -81,10 +81,15 @@ original bodies and joints; they are not stored here.
 joint constraints as indicated.
 
 <h3>Inputs</h3>
-  - ground body: name (so we can recognize it in joints)
   - bodies: name, mass, mustBeBaseBody flag
   - joints: name, type, parent body, child body, mustBeLoopJoint flag
   - joint type: name, # dofs, haveGoodLoopJoint flag
+  - names for the Ground body and important joint types weld and free
+
+The first body you add is assumed to be Ground and its name is used for 
+recognizing Ground connections later in joints. The default names for weld
+and free joints are, not surprisingly, "weld" and "free" but you can change
+them.
 
 <h3>Loop joints</h3>
 Normally every joint produces a corresponding mobilizer. A joint that would
@@ -108,10 +113,11 @@ can specify in the input that certain joints must be loop joints.
 Massless bodies can be very useful in defining compound joints, by composing
 pin and slider joints, for example. This is fine in an internal coordinate code
 as long as no massless (or inertialess) body is a terminal (most outboard) body
-in the spanning tree. Bodies can have a mass provided; if that mass is zero
-the algorithm will try to avoid ending any branch of the spanning tree there. 
-If it fails, the resulting spanning tree is no good and an exception will be
-thrown. If no mass is provided we assume it is 1.
+in the spanning tree. (Terminal massless bodies are OK if their inboard joint
+has no dofs, i.e. is a weld mobilizer.) Bodies can have a mass provided; if a
+movable body has zero mass the algorithm will try to avoid ending any branch of 
+the spanning tree there. If it fails, the resulting spanning tree is no good and
+an exception will be thrown. If no mass is provided we assume it is 1.
 
 <h3>Base bodies</h3>
 A body in the spanning tree that is directly connected to Ground is called a
@@ -170,11 +176,11 @@ public:
     /** Add a new body (link) to the set of input bodies. 
     @param[in]      name     
         A unique string identifying this body. There are no other restrictions
-        on the contents of \a name. Note that the Ground body is predefined and
-        its name is reserved.
+        on the contents of \a name. The first body you add is considered to be
+        Ground, and its name is remembered and recognized when used in joints.
     @param[in]      mass     
         The mass here is used as a graph-building hint. If the body is massless,
-        be sure to set mass=0 so that the algorithm will avoid making this a 
+        be sure to set mass=0 so that the algorithm can avoid making this a 
         terminal body. The algorithm might also use \a mass to preferentially
         choose heavier bodies as terminal to improve conditioning.
     @param[in]      mustBeBaseBody
@@ -197,8 +203,7 @@ public:
     reference this body will be deleted too.
     @param[in]      name     
         A unique string identifying this body. There are no other restrictions
-        on the contents of \a name. Note that the Ground body is predefined and
-        its name is reserved.
+        on the contents of \a name. Don't delete the Ground body.
     @returns \c true if the body is succesfully deleted, \c false if it
         didn't exist. **/
     bool deleteBody(const std::string&  name);
@@ -255,6 +260,7 @@ public:
     /** Generate a new multibody graph from the input data. Throws an std::exception
     if it fails, with a message in the what() string. **/
     void generateGraph();
+    /** Throw away the multibody graph produced by generateGraph(). **/
     void clearGraph();
 
     /** Output a text representation of the multibody graph for debugging. **/
@@ -348,7 +354,7 @@ public:
     and free loop constraint type. **/
     const std::string& getFreeJointTypeName() const {return freeTypeName;}
 
-    /** Return the name we recognize as that Ground (or World) body. This is
+    /** Return the name we recognize as the Ground (or World) body. This is
     the name that was provided in the first addBody() call. **/
     const std::string& getGroundBodyName() const;
 private:
@@ -404,7 +410,7 @@ public:
     void forgetGraph(MultibodyGraphMaker& graph);
     int getNumFragments() const {return 1 + getNumSlaves();}
     int getNumSlaves() const {return (int)slaves.size();}
-	int getNumJoints() const 
+    int getNumJoints() const 
     {   return int(jointsAsChild.size() + jointsAsParent.size()); }
     bool isSlave() const {return master >= 0;}
     bool isMaster() const {return getNumSlaves()>0;}

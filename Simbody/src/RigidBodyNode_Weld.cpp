@@ -240,7 +240,7 @@ public:
         const Real*                f,
         SpatialVec*                allZ,
         SpatialVec*                allZPlus,
-        Real*                      allEpsilon) const OVERRIDE_11
+        Real*                      allEpsilon) const override
     {
     } 
 
@@ -252,7 +252,7 @@ public:
         const SBArticulatedBodyInertiaCache&,
         const Real*                 epsilonTmp,
         SpatialVec*                 allA_GB,
-        Real*                       allUDot) const OVERRIDE_11
+        Real*                       allUDot) const override
     {
         allA_GB[0] = 0;
     }
@@ -532,7 +532,7 @@ public:
         const Real*                 f,
         SpatialVec*                 allZ,
         SpatialVec*                 allZPlus,
-        Real*                       allEpsilon) const OVERRIDE_11
+        Real*                       allEpsilon) const override
     {
         SpatialVec& z       = allZ[nodeNum];
         SpatialVec& zPlus   = allZPlus[nodeNum];
@@ -555,7 +555,7 @@ public:
         const SBArticulatedBodyInertiaCache&,
         const Real*                 allEpsilon,
         SpatialVec*                 allA_GB,
-        Real*                       allUDot) const OVERRIDE_11
+        Real*                       allUDot) const override
     {
         SpatialVec&      A_GB = allA_GB[nodeNum];
         const PhiMatrix& phi  = getPhi(pc);

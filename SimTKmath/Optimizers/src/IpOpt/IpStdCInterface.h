@@ -138,7 +138,7 @@ extern "C"
     , Index nele_hess     /** Number of non-zero elements in Hessian of
                               Lagrangian. */
     , Index index_style   /** indexing style for iRow & jCol,
-				 0 for C style, 1 for Fortran style */
+                 0 for C style, 1 for Fortran style */
     , Eval_F_CB eval_f    /** Callback function for evaluating
                               objective function */
     , Eval_G_CB eval_g    /** Callback function for evaluating

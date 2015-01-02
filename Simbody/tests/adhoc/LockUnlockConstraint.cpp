@@ -48,7 +48,7 @@ public:
     {
     }
     void generateDecorations(const State& state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         if (!m_lock.isDisabled(state)) {
             const Transform& X_BM = m_mobod.getDefaultOutboardFrame();

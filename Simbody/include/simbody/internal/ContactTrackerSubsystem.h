@@ -111,7 +111,7 @@ bodies into that clique to avoid having to build excessively precise geometry
 around joints.
 
 Each concrete type of ContactGeometry object (whether provided as part of 
-SimTK or as an extension by the user) has a unique integer 
+Simbody or as an extension by the user) has a unique integer 
 ContactGeometryTypeId. Ordered pairs of these Ids are used as a key to select 
 a ContactTracker that is able to identify and manage contacts or 
 potential contacts between those two kinds of geometric objects.

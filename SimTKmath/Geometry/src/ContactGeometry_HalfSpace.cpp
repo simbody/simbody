@@ -47,6 +47,11 @@ using std::cout; using std::endl;
 ContactGeometry::HalfSpace::HalfSpace()
 :   ContactGeometry(new HalfSpace::Impl()) {}
 
+// TODO: currently the only possible normal is -XAxis.
+UnitVec3 ContactGeometry::HalfSpace::getNormal() const {
+    return UnitVec3(-XAxis);
+}
+
 /*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId() 
 {   return ContactGeometry::HalfSpace::Impl::classTypeId(); }
 

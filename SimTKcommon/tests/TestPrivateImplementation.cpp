@@ -300,8 +300,11 @@ public:
     string s;
     friend class Concrete;
 };
+
+namespace SimTK {
 template class PIMPLHandle<Concrete,Concrete_Impl>;
 template class PIMPLImplementation<Concrete,Concrete_Impl>;
+}
 
     // CONCRETE REF IMPL //
 class ConcreteRef_Impl : public PIMPLImplementation<ConcreteRef,ConcreteRef_Impl> {
@@ -310,8 +313,11 @@ public:
     string s;
     friend class ConcreteRef;
 };
+
+namespace SimTK {
 template class PIMPLHandle<ConcreteRef,ConcreteRef_Impl,true>;
 template class PIMPLImplementation<ConcreteRef,ConcreteRef_Impl>;
+}
 
     // CONCRETE & CONCRETE REF HANDLE IMPLEMENTATIONS //
 Concrete::Concrete()       : HandleBase(new Concrete_Impl()) { }
@@ -335,8 +341,11 @@ private:
     string name;
     friend class MyHandle;
 };
+
+namespace SimTK {
 template class PIMPLHandle<MyHandle,MyHandle_Impl>;
 template class PIMPLImplementation<MyHandle,MyHandle_Impl>;
+}
 
 class DerivedHandle_Impl : public MyHandle_Impl {
 public:

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -45,7 +45,9 @@
 
 // Get gl and glut using the appropriate platform-dependent incantations.
 #if defined(__APPLE__)
-    // OSX comes with a good glut implementation.
+    // OSX comes with a glut implementation. In OSX 10.9 and 10.10, this
+    // glut is deprecated and emits deprecation warnings.
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     #include <GLUT/glut.h>
 #elif defined(_WIN32)
     #include "glut32/glut.h"    // we have our own private headers
@@ -277,9 +279,9 @@ private:
 
 class RenderedText {
 public:
-    RenderedText(const fVec3& position, const fVec3& scale, const fVec3& color, 
+    RenderedText(const fTransform& X_GT, const fVec3& scale, const fVec3& color, 
                  const string& text, bool faceCamera = true) 
-    :   position(position), scale(scale/119), text(text),
+    :   X_GT(X_GT), scale(scale/119), text(text),
         faceCamera(faceCamera) {
         this->color[0] = color[0];
         this->color[1] = color[1];
@@ -287,10 +289,10 @@ public:
     }
     void draw() {
         glPushMatrix();
-        glTranslated(position[0], position[1], position[2]);
-        fVec4 rot = X_GC.R().convertRotationToAngleAxis();
-        if (faceCamera)
-            glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
+        glTranslated(X_GT.p()[0], X_GT.p()[1], X_GT.p()[2]);
+        const fVec4 rot = faceCamera ? X_GC.R().convertRotationToAngleAxis()
+                                     : X_GT.R().convertRotationToAngleAxis();
+        glRotated(rot[0]*SimTK_RADIAN_TO_DEGREE, rot[1], rot[2], rot[3]);
         glScaled(scale[0], scale[1], scale[2]);
         glColor3fv(color);
         for (int i = 0; i < (int) text.size(); i++)
@@ -298,12 +300,12 @@ public:
         glPopMatrix();
     }
     void computeBoundingSphere(float& radius, fVec3& center) const {
-        center = position;
+        center = X_GT.p();
         radius = glutStrokeLength(GLUT_STROKE_ROMAN, 
                                   (unsigned char*)text.c_str())*scale[0];
     }
 private:
-    fVec3 position;
+    fTransform X_GT;
     fVec3 scale;
     GLfloat color[3];
     string text;
@@ -888,7 +890,8 @@ public:
     Menu(string title, int id, const vector<pair<string, int> >& items,
          void(*handler)(int))
     :   title(title), menuId(id), items(items), handler(handler),
-        hasCreated(false) {}
+        hasCreated(false) 
+    {   glutId = -1; minx=miny=maxx=maxy= -1; }
 
     // This is called once, the first time we try to draw this menu.
     void createMenu() {
@@ -1044,6 +1047,9 @@ public:
                                       (unsigned char*) title.c_str());
         if (labelWidth > maxLabelWidth)
             maxLabelWidth = labelWidth;
+
+        minx=miny=maxx=maxy=handlex=clickOffset= -1;
+        dragging = false;
     }
 
     int draw(int y) {
@@ -2076,11 +2082,13 @@ static Scene* readNewScene() {
         }
 
         case AddText: {
-            readData(buffer, 9*sizeof(float)+3*sizeof(short));
-            fVec3 position = fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-            fVec3 scale = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-            fVec3 color = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
-            unsigned short* shortp = &shortBuffer[9*sizeof(float)/sizeof(short)];
+            readData(buffer, 12*sizeof(float)+3*sizeof(short));
+            fTransform X_GT;
+            X_GT.updR().setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], floatBuffer[1], floatBuffer[2]));
+            X_GT.updP() = fVec3(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
+            fVec3 scale = fVec3(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
+            fVec3 color = fVec3(floatBuffer[9], floatBuffer[10], floatBuffer[11]);
+            unsigned short* shortp = &shortBuffer[12*sizeof(float)/sizeof(short)];
             bool faceCamera = (shortp[0] != 0);
             bool isScreenText = (shortp[1] != 0);
             short length = shortp[2];
@@ -2091,7 +2099,7 @@ static Scene* readNewScene() {
                     ScreenText(string((char*)buffer, length)));
             else
                 newScene->sceneText.push_back(
-                    RenderedText(position, scale, color, string((char*)buffer, length), faceCamera));
+                    RenderedText(X_GT, scale, color, string((char*)buffer, length), faceCamera));
             break;
         }
 
@@ -2433,7 +2441,8 @@ void* listenForInput(void* args) {
 
         default:
             SimTK_ERRCHK1_ALWAYS(!"unrecognized command", "listenForInput()",
-                "Unexpected command %u received from simbody-visualizer. Can't continue.",
+                "simbody-visualizer received unexpected command %u "
+                "from simulator. Can't continue.",
                 (unsigned)buffer[0]);
         }
 

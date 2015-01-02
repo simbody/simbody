@@ -1776,8 +1776,7 @@ int main(int argc, char** argv) {
     mbs.addEventReporter(new Nada(ReportInterval));
 #endif
 
-    viz.addFrameController(
-            new Visualizer::BodyFollower(brick, Vec3(0), Vec3(0, 1, 5)));
+    viz.addFrameController(new BodyWatcher(brick));
 
     Vec3 cameraPos(0, 1, 2);
     UnitVec3 cameraZ(0,0,1);

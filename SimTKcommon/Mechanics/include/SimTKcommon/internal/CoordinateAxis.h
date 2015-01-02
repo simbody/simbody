@@ -54,7 +54,8 @@ class CoordinateAxis {
 public:
     /** Explicit construction of a CoordinateAxis from a calculated integer
     that must be 0, 1, or 2 representing XAxis, YAxis, or ZAxis. **/
-    explicit CoordinateAxis( int i ) : m_myAxisId(i) {assertIndexIsInRange(i);}
+    explicit CoordinateAxis( int i ) : m_myAxisId(i) 
+    {   assert(isIndexInRange(i)); }
 
     /** Implicit conversion of a CoordinateAxis to int 0, 1, or 2. **/
     operator int() const {return m_myAxisId;}
@@ -170,9 +171,6 @@ public:
     meaning it is one of 0, 1, or 2 designating XAxis, YAxis, or ZAxis, 
     respectively. **/
     static bool  isIndexInRange( int i )        { return 0<=i && i<=2; }
-    /** When in Debug mode, throw an assertion if the given integer is not
-    suited as a coordinate axis, as defined by isIndexInRange(). **/
-    static void  assertIndexIsInRange( int i )  { assert( isIndexInRange(i) ); } 
 
     // Forward declarations for subsequent helper classes
     class XCoordinateAxis; class YCoordinateAxis; class ZCoordinateAxis;
@@ -214,7 +212,7 @@ the integer 2 when used in a context requiring an integer. **/
 extern SimTK_SimTKCOMMON_EXPORT const CoordinateAxis::ZCoordinateAxis  ZAxis;
 
 inline const CoordinateAxis& CoordinateAxis::getCoordinateAxis(int i) {
-    assertIndexIsInRange(i);
+    assert(isIndexInRange(i));
     return (i==0 ? static_cast<const CoordinateAxis&>(XAxis) 
          : (i==1 ? static_cast<const CoordinateAxis&>(YAxis) 
                  : static_cast<const CoordinateAxis&>(ZAxis)));

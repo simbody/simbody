@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -59,7 +59,7 @@ public:
 ConstraintImpl()
     : myMatterSubsystemRep(0), 
     defaultMp(0), defaultMv(0), defaultMa(0), defaultDisabled(false),
-    myAncestorBodyIsNotGround(false)
+    constraintIsConditional(false), myAncestorBodyIsNotGround(false)
 {
 }
 virtual ~ConstraintImpl() { }
@@ -68,7 +68,7 @@ virtual ConstraintImpl* clone() const = 0;
 ConstraintImpl(int mp, int mv, int ma)
     : myMatterSubsystemRep(0), 
     defaultMp(mp), defaultMv(mv), defaultMa(ma), defaultDisabled(false),
-    myAncestorBodyIsNotGround(false)
+    constraintIsConditional(false), myAncestorBodyIsNotGround(false)
 {
 }
 
@@ -97,6 +97,13 @@ bool isDisabledByDefault() const {
 
 void setDisabled(State& s, bool shouldBeDisabled) const ;
 bool isDisabled(const State& s) const;
+
+void setIsConditional(bool isConditional) {
+    invalidateTopologyCache();
+    constraintIsConditional = isConditional;
+}
+
+bool isConditional() const {return constraintIsConditional;}
 
 typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>       
     MobilizedBody2ConstrainedBodyMap;
@@ -549,77 +556,181 @@ const Vec3& getBodyOriginAcceleration
 {   return allA_AB[B][1]; }
 
 
-// Given a station on body B, find its location measured and expressed in the
+// Given a station S on body B, specified by the vector p_BS from Bo to S
+// expressed in B, find its location p_AS measured from Ao and expressed in the
 // Ancestor's frame A. 18 flops.
 Vec3 findStationLocationFromState
-   (const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-    return getBodyTransformFromState(s,B) * p_B; // re-measure and re-express
+   (const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
+    return getBodyTransformFromState(s,B) * p_BS; // re-measure and re-express
 }
 
-// Same, but we're given the constrained body poses as an operand.
+// Same, but we're given the constrained body poses as an operand (18 flops).
 Vec3 findStationLocation
    (const Array_<Transform, ConstrainedBodyIndex>& allX_AB, 
-    ConstrainedBodyIndex B, const Vec3& p_B) const {
+    ConstrainedBodyIndex B, const Vec3& p_BS) const {
     const Transform& X_AB = allX_AB[B];
-    return X_AB * p_B; // re-measure and re-express
+    return X_AB * p_BS; // re-measure and re-express (18 flops)
 }
 
-// Given a station on body B, find its velocity measured and expressed in the
+// Given a station S on body B, find its velocity measured and expressed in the
 // Ancestor's frame A. 27 flops.
 Vec3 findStationVelocityFromState
-   (const State& s, ConstrainedBodyIndex B, const Vec3& p_B) const {
-    // p_B rexpressed in A but not shifted to Ao
-    const Vec3        p_A  = getBodyRotationFromState(s,B) * p_B; 
-    const SpatialVec& V_AB = getBodyVelocityFromState(s,B);
-    return V_AB[1] + (V_AB[0] % p_A);
+   (const State& s, ConstrainedBodyIndex B, const Vec3& p_BS) const {
+    // p_BS rexpressed in A but not shifted to Ao
+    const Vec3        p_BS_A = getBodyRotationFromState(s,B) * p_BS; // 15 flops
+    const SpatialVec& V_AB   = getBodyVelocityFromState(s,B);
+    return V_AB[1] + (V_AB[0] % p_BS_A);                             // 12 flops
 }
 
 // Same, but only configuration comes from state; velocities are an operand.
 Vec3 findStationVelocity
    (const State& s,
     const Array_<SpatialVec, ConstrainedBodyIndex>& allV_AB, 
-    ConstrainedBodyIndex B, const Vec3& p_B) const 
+    ConstrainedBodyIndex B, const Vec3& p_BS) const 
 {
-    // p_B rexpressed in A but not shifted to Ao
-    const Vec3        p_A  = getBodyRotationFromState(s,B) * p_B; 
+    // p_BS rexpressed in A but not shifted to Ao
+    const Vec3        p_BS_A  = getBodyRotationFromState(s,B) * p_BS; 
     const SpatialVec& V_AB = allV_AB[B];
-    return V_AB[1] + (V_AB[0] % p_A);
+    return V_AB[1] + (V_AB[0] % p_BS_A);
+}
+
+// Combo method is cheaper. Location comes from state, velocities from operand.
+// NOTE: you must provide the p_BS vector expressed (but not measured) in A.
+// 15 flops.
+void findStationInALocationVelocity
+   (const Transform&    X_AB,
+    const SpatialVec&   V_AB,
+    const Vec3&         p_BS_A,
+    Vec3& p_AS, Vec3& v_AS) const 
+{
+    const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
+    const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
+
+    p_AS = X_AB.p() + p_BS_A;               //  3 flops
+    v_AS = v_AB + pdot_BS_A;                //  3 flops
+}
+
+// Given a station P on body F, and a station Q on body B, report the
+// relative position p_PQ_A and relative velocity v_PQ_A=v_FQ_A. Note that
+// the velocity is measured in the F frame, but expressed in the common A
+// frame. 78 flops
+void findRelativePositionVelocity
+   (const Transform&    X_AF,
+    const SpatialVec&   V_AF,
+    const Vec3&         p_FP,
+    const Transform&    X_AB,
+    const SpatialVec&   V_AB,
+    const Vec3&         p_BQ,
+    Vec3& p_PQ_A, Vec3& v_FQ_A) const 
+{
+    const Vec3& w_AF = V_AF[0];
+
+    // Express the point vectors in the A frame, but still measuring from the
+    // body origins.
+    const Vec3 p_FP_A = X_AF.R() * p_FP; // 15 flops
+    const Vec3 p_BQ_A = X_AB.R() * p_BQ; // 15 flops
+    
+    Vec3 p_AP, v_AP;
+    findStationInALocationVelocity(X_AF, V_AF, p_FP_A, p_AP, v_AP);//15 flops
+
+    Vec3 p_AQ, v_AQ;
+    findStationInALocationVelocity(X_AB, V_AB, p_BQ_A, p_AQ, v_AQ);//15 flops
+
+    p_PQ_A = p_AQ - p_AP;                // 3 flops
+    const Vec3 p_PQ_A_dot = v_AQ - v_AP; // derivative in A (3 flops)
+    v_FQ_A = p_PQ_A_dot - w_AF % p_PQ_A; // derivative in F (12 flops)
 }
 
 // There is no findStationAccelerationFromState().
 
-// Same, but only configuration and velocity come from state; accelerations
-// are an operand.
-Vec3 findStationAcceleration
-   (const State&                                    state, 
+// Only configuration and velocity come from state; accelerations are an 
+// operand (15 flops).
+// p_BS_A      is p_BS rexpressed in A but not shifted to Ao.
+// wXwX_p_BS_A is w_AB x (w_AB x p_BS_A)  (Coriolis acceleration)
+Vec3 findStationInAAcceleration
+   (const State&                                    s, 
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
-    ConstrainedBodyIndex                            bodyB, 
-    const Vec3&                                     p_BS) const 
-{   // p_BS_A is p_BS rexpressed in A but not shifted to Ao
-    const Rotation&   R_AB   = getBodyRotationFromState(state,bodyB);
-    const Vec3        p_BS_A = R_AB * p_BS; 
-    const Vec3&       w_AB   = getBodyAngularVelocityFromState(state,bodyB);
-    const SpatialVec& A_AB   = allA_AB[bodyB];
+    ConstrainedBodyIndex                            B, 
+    const Vec3&                                     p_BS_A,
+    const Vec3&                                     wXwX_p_BS_A) const 
+{   
+    const SpatialVec& A_AB   = allA_AB[B];
+    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
 
     // Result is a + b X r + w X (w X r).
-    // ("b" is angular acceleration; w is angular velocity).
-    const Vec3 a_AS = A_AB[1] + (A_AB[0] % p_BS_A) 
-                              + w_AB % (w_AB % p_BS_A); // % is not associative
+    // ("b" is angular acceleration; w is angular velocity) 15 flops.
+    const Vec3 a_AS = a_AB + (b_AB % p_BS_A) + wXwX_p_BS_A;
     return a_AS;
 }
 
-// Apply an Ancestor-frame force to a B-frame station, adding it to the 
+// Same as above but we only know the station in B. (48 flops)
+Vec3 findStationAcceleration
+   (const State&                                    s, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    ConstrainedBodyIndex                            B, 
+    const Vec3&                                     p_BS) const 
+{   // p_BS_A is p_BS rexpressed in A but not shifted to Ao
+    const Rotation& R_AB   = getBodyRotationFromState(s,B);
+    const Vec3&     w_AB   = getBodyAngularVelocityFromState(s,B);
+    const Vec3 p_BS_A = R_AB * p_BS;                 // 15 flops
+    const Vec3 wXwX_p_BS_A = w_AB % (w_AB % p_BS_A); // 18 flops
+    return findStationInAAcceleration(s,allA_AB,B,p_BS_A,wXwX_p_BS_A);
+}
+
+
+// Combo method is cheaper. Location and velocity come from state, accelerations
+// from operand. NOTE: you must provide the p_BS vector expressed (but not 
+// measured) in A. 39 flops.
+void findStationInALocationVelocityAcceleration
+   (const Transform&                                X_AB,
+    const SpatialVec&                               V_AB,
+    const SpatialVec&                               A_AB,
+    const Vec3&                                     p_BS_A,
+    Vec3& p_AS, Vec3& v_AS, Vec3& a_AS) const 
+{
+    const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
+    const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
+
+    const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
+
+    p_AS = X_AB.p() + p_BS_A;               //  3 flops
+    v_AS = v_AB + pdot_BS_A;                //  3 flops
+
+    // Result is a + b X r + w X (w X r).
+    // ("b" is angular acceleration; w is angular velocity) 24 flops.
+    a_AS = a_AB + (b_AB % p_BS_A) + (w_AB % pdot_BS_A);
+}
+
+// Apply an Ancestor-frame force to a B-frame station S, adding it to the 
 // appropriate bodyForcesInA entry, where bodyForcesInA is *already* size 
 // numConstrainedBodies for this Constraint. 30 flops.
 void addInStationForce(const State& s, 
-                       ConstrainedBodyIndex B, const Vec3& p_B, 
+                       ConstrainedBodyIndex B, const Vec3& p_BS, 
                        const Vec3& forceInA, 
                        Array_<SpatialVec, ConstrainedBodyIndex>& bodyForcesInA) 
                        const 
 {
     assert(bodyForcesInA.size() == getNumConstrainedBodies());
     const Rotation& R_AB = getBodyRotationFromState(s,B);
-    bodyForcesInA[B] += SpatialVec((R_AB*p_B) % forceInA, forceInA); // rXf, f
+    const Vec3      p_BS_A = R_AB * p_BS;         // 15 flops
+    bodyForcesInA[B] += SpatialVec(p_BS_A % forceInA, forceInA); // rXf, f
+}
+
+// If you already have the p_BS station vector re-expressed in A, use this
+// faster method (15 flops).
+void addInStationInAForce(const Vec3& p_BS_A, const Vec3& forceInA, 
+                          SpatialVec& bodyForceOnBInA) 
+                          const 
+{
+    bodyForceOnBInA += SpatialVec(p_BS_A % forceInA, forceInA); // rXf, f
+}
+
+// Same thing but subtract the force; this is just to save having to negate it.
+void subInStationInAForce(const Vec3& p_BS_A, const Vec3& negForceInA, 
+                          SpatialVec& bodyForceOnBInA) 
+                          const 
+{
+    bodyForceOnBInA -= SpatialVec(p_BS_A % negForceInA, negForceInA); //-rXf,-f
 }
 
 // Apply an Ancestor-frame torque to body B, updating the appropriate 
@@ -1107,6 +1218,13 @@ int defaultMp, defaultMv, defaultMa;
 // be initially on or off. Most constraints are enabled by default.
 bool defaultDisabled;
 
+// ConditionalConstraints set this flag when they add a constraint to the
+// system. It can be referenced by a time stepper to determine whether to
+// treat a constraint as unconditional (in which case someone else has to 
+// figure out whether it is active). This flag doesn't affect the operation of
+// the Constraint object itself; it is just stored and reported.
+bool constraintIsConditional;
+
     // TOPOLOGY "CACHE"
 
 // When topology is realized we study the constrained bodies to identify the
@@ -1131,143 +1249,6 @@ mutable bool myAncestorBodyIsNotGround;
 // entry. When Ancestor is Ground we don't allocate this array.
 mutable Array_<AncestorConstrainedBodyPoolIndex> myPoolIndex; 
                                             // index with ConstrainedBodyIndex
-};
-
-
-
-//==============================================================================
-//                                  ROD IMPL
-//==============================================================================
-// TODO: should use distance rather than distance^2 to improve scaling.
-class Constraint::RodImpl : public ConstraintImpl {
-public:
-RodImpl() 
-    : ConstraintImpl(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1),
-    pointRadius(-1) // this means "use default point radius"
-{ 
-    // Rod constructor sets all the data members here directly
-}
-RodImpl* clone() const { return new RodImpl(*this); }
-
-// Draw some end points and a rubber band line.
-void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
-
-void setPointDisplayRadius(Real r) {
-    // r == 0 means don't display point, r < 0 means use default which is some fraction of rod length
-    invalidateTopologyCache();
-    pointRadius= r > 0 ? r : 0;
-}
-Real getPointDisplayRadius() const {return pointRadius;}
-
-// Implementation of virtuals required for holonomic constraints.
-
-// TODO: this is badly scaled; consider using length instead of length^2
-// perr = (p^2 - d^2)/2
-void calcPositionErrorsVirtual      
-   (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
-    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
-    Array_<Real>&                                   perr)   // mp of these
-    const
-{
-    assert(X_AB.size()==2 && constrainedQ.size()==0 && perr.size()==1);
-    const Vec3 p1 = findStationLocation(X_AB, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocation(X_AB, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
-    //TODO: save p in state
-
-    perr[0] = (dot(p, p) - square(defaultRodLength)) / 2;
-}
-
-// pverr = d/dt perr = pdot*p = v*p, where v=v2-v1 is relative velocity
-void calcPositionDotErrorsVirtual      
-   (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
-    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
-    Array_<Real>&                                   pverr)  // mp of these
-    const 
-{
-    assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==1);
-    //TODO: should be able to get p from State
-    const Vec3 p1 = findStationLocationFromState(s, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocationFromState(s, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
-
-    const Vec3 v1 = findStationVelocity(s, V_AB, B1, defaultPoint1); // meas & expr in ancestor
-    const Vec3 v2 = findStationVelocity(s, V_AB, B2, defaultPoint2);
-    const Vec3 v = v2 - v1;
-    pverr[0] = dot(v, p);
-}
-
-// paerr = d/dt verr = vdot*p + v*pdot =a*p+v*v, where a=a2-a1 is relative 
-// acceleration
-void calcPositionDotDotErrorsVirtual      
-   (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
-    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
-    Array_<Real>&                                   paerr)  // mp of these
-    const
-{
-    assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
-    //TODO: should be able to get p and v from State
-    const Vec3 p1 = findStationLocationFromState(s, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocationFromState(s, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
-    const Vec3 v1 = findStationVelocityFromState(s, B1, defaultPoint1); // meas & expr in ancestor
-    const Vec3 v2 = findStationVelocityFromState(s, B2, defaultPoint2);
-    const Vec3 v = v2 - v1;
-
-    const Vec3 a1 = findStationAcceleration(s, A_AB, B1, defaultPoint1); // meas & expr in ancestor
-    const Vec3 a2 = findStationAcceleration(s, A_AB, B2, defaultPoint2);
-    const Vec3 a = a2 - a1;
-
-    paerr[0] = dot(a, p) + dot(v, v);
-}
-
-// Write this routine by inspection of the pdot routine, looking for terms 
-// involving velocity. On point2 we see v2*p, on point1 we see -v1*p, so forces
-// are m*p and -m*p, respectively.
-void addInPositionConstraintForcesVirtual
-   (const State&                                    s,      // Stage::Position
-    const Array_<Real>&                             multipliers, // mp of these
-    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
-{
-    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
-           && qForces.size()==0);
-    const Real lambda = multipliers[0];
-    //TODO: should be able to get p from State
-    const Vec3 p1 = findStationLocationFromState(s, B1, defaultPoint1); // meas from & expr in ancestor
-    const Vec3 p2 = findStationLocationFromState(s, B2, defaultPoint2);
-    const Vec3 p = p2 - p1;
-
-    const Vec3 f2 = lambda * p;
-
-    // The forces on either point have the same line of action because they are
-    // aligned with the vector between the points. Applying the forces to any 
-    // point along the line would have the same effect (e.g., same point in 
-    // space on both bodies) so this is the same as an equal and opposite force
-    // applied to the same point and this constraint will do no work even if 
-    // the position or velocity constraints are not satisfied.
-    addInStationForce(s, B2, defaultPoint2,  f2, bodyForcesInA);
-    addInStationForce(s, B1, defaultPoint1, -f2, bodyForcesInA);
-}
-
-SimTK_DOWNCAST(RodImpl, ConstraintImpl);
-//------------------------------------------------------------------------------
-                                    private:
-friend class Constraint::Rod;
-
-ConstrainedBodyIndex    B1; // must be 0 and 1
-ConstrainedBodyIndex    B2;
-Vec3                    defaultPoint1; // on body 1, exp. in B1 frame
-Vec3                    defaultPoint2; // on body 2, exp. in B2 frame
-Real                    defaultRodLength;
-
-// This is just for visualization
-Real                    pointRadius;
 };
 
 
@@ -1420,7 +1401,7 @@ void calcPositionDotDotErrorsVirtual
                                                     defaultFollowerPoint);;
     const Vec3       a_AC = findStationAcceleration(s, A_AB, planeBody, p_BC);
 
-    paerr[0] = dot( (a_AS-a_AC) - 2*w_AB % (v_AS-v_AC), n_A );
+    paerr[0] = dot( (a_AS-a_AC) - 2.*w_AB % (v_AS-v_AC), n_A );
 }
 
 // apply f=lambda*n to the follower point S of body F,
@@ -1473,7 +1454,8 @@ Real                    pointRadius;
 class Constraint::PointOnLineImpl : public ConstraintImpl {
 public:
 PointOnLineImpl()
-    : ConstraintImpl(2,0,0), defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
+:   ConstraintImpl(2,0,0), 
+    defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
     lineHalfLength(1), pointRadius(Real(0.05)) 
 { }
 PointOnLineImpl* clone() const { return new PointOnLineImpl(*this); }
@@ -2619,70 +2601,109 @@ mutable DiscreteVariableIndex   contactInfoIx;
 };
 
 
-
 //==============================================================================
-//                        BALL ROLLING ON PLANE IMPL
+//                        CONSTANT COORDINATE IMPL
 //==============================================================================
-/// TODO!!
-class Constraint::BallRollingOnPlaneImpl : public ConstraintImpl {
+class Constraint::ConstantCoordinateImpl : public ConstraintImpl {
 public:
-BallRollingOnPlaneImpl()
-:   ConstraintImpl(1,2,0), defaultPlaneNormal(), defaultPlaneHeight(0), 
-    defaultBallCenter(0), defaultBallRadius(NaN),
-    planeHalfWidth(1)
-{ }
-BallRollingOnPlaneImpl* clone() const { return new BallRollingOnPlaneImpl(*this); }
+ConstantCoordinateImpl()
+:   ConstraintImpl(1,0,0), theMobilizer(), whichCoordinate(), 
+    defaultPosition(NaN){}
 
-void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+ConstantCoordinateImpl* clone() const 
+{   return new ConstantCoordinateImpl(*this); }
 
-void setPlaneDisplayHalfWidth(Real h) {
-    // h <= 0 means don't display plane
-    invalidateTopologyCache();
-    planeHalfWidth = h > 0 ? h : 0;
-}
-Real getPlaneDisplayHalfWidth() const {return planeHalfWidth;}
-
+// Allocate a state variable to hold the desired position.
+void realizeTopologyVirtual(State& state) const;
+// Obtain the currently-set desired position from the state.
+Real getPosition(const State& state) const;
+// Get a reference to the desired position in the state; this 
+// invalidates Position stage in the supplied state.
+Real& updPosition(State& state) const;
 
 // Implementation of virtuals required for holonomic constraints.
 
-// TODO
-// We have a plane attached to base body B, and a sphere of radius r attached 
-// to follower body F, with the sphere center at O. The plane normal is n, the 
-// plane height over B's origin is h. We would like the bottom point S of the 
-// sphere to be in contact with the plane, that is, the height of S should be 
-// h, or equivalently the center height should be h+r. Now S=O-r*n, so we have
-//    perr = S*n - h = (p_BO - r*n_B)*n_B - h
-// or perr = O*n - (h+r) = p_BO*n_B - (h+r)
-// If we work entirely in body B, we have
-//    verr = d/dt_B perr = v_BO * n_B
-//    aerr = d/dt_B verr = a_BO * n_B
-//
-// Then we apply equal and opposite forces lambda*n to stations of B and F
-// that are coincident with the contact point C.
-// TODO: C should be half way between S and the point on the plane nearest S.
-//       Can I apply it there? Or do the constraint errors have to reflect
-//       that to keep the force transmission matrix the transpose of G?
-//
-// TODO: need utility methods like in MobilizedBody for getting p_BO, v_BO
-// and a_BO rather than just A frame values.
+// One holonomic constraint equation.
+//    perr = q - p
+//    verr = qdot
+//    aerr = qdotdot
+// 
+void calcPositionErrorsVirtual      
+   (const State&                                    s, // Stage::Time
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
+    Array_<Real>&                                   perr)  // mp of these
+    const override
+{
+    // All the q's for a given constrained mobilizer are considered 
+    // constrainedQ's, but we're just going to grab one of them.
+    assert(X_AB.size()==0 && constrainedQ.size()>=1 && perr.size()==1);
+    const Real q = getOneQ(s, constrainedQ, theMobilizer, whichCoordinate);
+    perr[0] = q - getPosition(s);
+}
 
-SimTK_DOWNCAST(BallRollingOnPlaneImpl, ConstraintImpl);
+void calcPositionDotErrorsVirtual      
+   (const State&                                    s, // Stage::Position
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
+    Array_<Real>&                                   pverr) // mp of these
+    const override
+{
+    // All the q's for a given constrained mobilizer are considered 
+    // constrainedQDots's, but we're just going to grab one of them.
+    assert(V_AB.size()==0 && constrainedQDot.size()>=1 && pverr.size()==1);
+    const Real qdot = getOneQDot(s, constrainedQDot, 
+                                 theMobilizer, whichCoordinate);
+    pverr[0] = qdot;
+}
+
+// Pull t, X_AB, q, V_AB, qdot from state.
+void calcPositionDotDotErrorsVirtual      
+   (const State&                                    s, // Stage::Velocity
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
+    Array_<Real>&                                   paerr) // mp of these
+    const override
+{
+    // All the q's for a given constrained mobilizer are considered 
+    // constrainedQDotDots's, but we're just going to grab one of them.
+    assert(A_AB.size()==0 && constrainedQDotDot.size()>=1 && paerr.size()==1);
+    const Real qdotdot = getOneQDotDot(s, constrainedQDotDot, 
+                                       theMobilizer, whichCoordinate);
+    paerr[0] = qdotdot;
+}
+
+// apply generalized force lambda to the mobility
+void addInPositionConstraintForcesVirtual
+   (const State&                                    s, // Stage::Position
+    const Array_<Real>&                             multipliers, // mp of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
+    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    const override
+{
+   // All the coordinates for a given constrained mobilizer have slots in
+   // qForces, but we're just going to update one of them.
+   assert(multipliers.size()==1 && bodyForcesInA.size()==0 
+          && qForces.size()>=1);
+
+    const Real lambda = multipliers[0];
+    addInOneQForce(s, theMobilizer, whichCoordinate, lambda, qForces); 
+}
+
+SimTK_DOWNCAST(ConstantCoordinateImpl, ConstraintImpl);
 //------------------------------------------------------------------------------
                                     private:
-friend class Constraint::BallRollingOnPlane;
+friend class Constraint::ConstantCoordinate;
 
-ConstrainedBodyIndex    planeBody; // B1
-ConstrainedBodyIndex    ballBody;  // B2
+// TOPOLOGY STATE
+ConstrainedMobilizerIndex   theMobilizer;
+MobilizerQIndex             whichCoordinate;
+Real                        defaultPosition;
 
-UnitVec3                defaultPlaneNormal;   // on body 1, exp. in B1 frame
-Real                    defaultPlaneHeight;
-Vec3                    defaultBallCenter;    // on body 2, exp. in B2 frame
-Real                    defaultBallRadius;
-
-// This is just for visualization
-Real                    planeHalfWidth;
+// TOPOLOGY CACHE
+DiscreteVariableIndex       positionIx;
 };
+
 
 
 
@@ -2717,7 +2738,7 @@ void calcVelocityErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
-    const
+    const override
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedU's, but we're just going to grab one of them.
@@ -2731,7 +2752,7 @@ void calcVelocityDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
-    const
+    const override
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedUDots's, but we're just going to grab one of them.
@@ -2743,10 +2764,10 @@ void calcVelocityDotErrorsVirtual
 
 // apply generalized force lambda to the mobility
 void addInVelocityConstraintForcesVirtual
-   (const State&                                    s,      // Stage::Velocity
-    const Array_<Real>&                             multipliers, // mv of these
-    Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const
+   (const State&                              s,      // Stage::Velocity
+    const Array_<Real>&                       multipliers, // mv of these
+    Array_<SpatialVec,ConstrainedBodyIndex>&  bodyForcesInA,
+    Array_<Real,      ConstrainedUIndex>&     mobilityForces) const override
 {
    // All the mobilities for a given constrained mobilizer have slots in
    // mobilizedForces, but we're just going to update one of them.

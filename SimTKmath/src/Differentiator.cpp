@@ -593,7 +593,7 @@ Differentiator::getMethodOrder(Differentiator::Method m) {
     case ForwardDifference: return 1;
     case CentralDifference: return 2;
     default:
-    	assert(!"Shouldn't be any other cases");
+        assert(!"Shouldn't be any other cases");
     }
     assert(!"Shouldn't have gotten here since method was already checked");
     return -1;

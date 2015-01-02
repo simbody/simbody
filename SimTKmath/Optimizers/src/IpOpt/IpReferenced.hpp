@@ -226,7 +226,7 @@ namespace Ipopt
 
     bool found = false;
     std::list<const Referencer*>::iterator iter;
-    for (iter = referencers_.begin(); iter != referencers_.end(); iter++) {
+    for (iter = referencers_.begin(); iter != referencers_.end(); ++iter) {
       if ((*iter) == referencer) {
         found = true;
         break;

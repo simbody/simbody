@@ -365,10 +365,10 @@ namespace Ipopt
         {
           ip_data.set_trial(iterates);
           printf("grad_x = %e grad_s = %e y_c = %e y_d = %e\n",
-        	 ip_cq.trial_grad_lag_x()->Amax(),
-        	 ip_cq.trial_grad_lag_s()->Amax(),
-        	 y_c->Amax(),
-        	 y_d->Amax());
+             ip_cq.trial_grad_lag_x()->Amax(),
+             ip_cq.trial_grad_lag_s()->Amax(),
+             y_c->Amax(),
+             y_d->Amax());
           iterates = ip_data.trial()->MakeNewContainer();
         }
         */

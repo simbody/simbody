@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -57,13 +57,37 @@ using namespace std;
 
 static int inPipe;
 
-// Create a pipe, using the right call for this platform.
-static int createPipe(int pipeHandles[2]) {
+// Create the pipe going *from* simulator *to* visualizer, so only the
+// read end should be inherited by the visualizer.
+static int createPipeSim2Viz(int sim2viz[2]) {
     const int status =
 #ifdef _WIN32
-        _pipe(pipeHandles, 16384, _O_BINARY);
+        _pipe(sim2viz, 16384, _O_BINARY|_O_NOINHERIT);
+        if (status==0) {
+            const int readfd = _dup(sim2viz[0]); // copy is inheritable
+            _close(sim2viz[0]); // close the non-inheritable version
+            sim2viz[0] = readfd; // replace with inheritable copy
+        }
 #else
-        pipe(pipeHandles);
+        pipe(sim2viz);
+#endif
+    return status;
+}
+
+
+// Create the pipe going *to* simulator *from* visualizer, so only the
+// write end should be inherited by the visualizer.
+static int createPipeViz2Sim(int viz2sim[2]) {
+    const int status =
+#ifdef _WIN32
+        _pipe(viz2sim, 16384, _O_BINARY|_O_NOINHERIT);
+        if (status==0) {
+            const int writefd = _dup(viz2sim[1]); // copy is inheritable
+            _close(viz2sim[1]); // close the non-inheritable version
+            viz2sim[1] = writefd; // replace with inheritable copy
+        }
+#else
+        pipe(viz2sim);
 #endif
     return status;
 }
@@ -72,13 +96,15 @@ static int createPipe(int pipeHandles[2]) {
 // this platform. We take two executables to try in order,
 // and return after the first one succeeds. If neither works, we throw
 // an error that is hopefully helful.
-static void spawnViz(const Array_<String>& searchPath,
-                     const String& appName, int toSimPipe, int fromSimPipe)
+static void spawnViz(const Array_<String>& searchPath, const String& appName, 
+                     int sim2vizPipe[2], int viz2simPipe[2])
 {
     int status;
-    char vizPipeToSim[32], vizPipeFromSim[32];
-    sprintf(vizPipeToSim, "%d", toSimPipe);
-    sprintf(vizPipeFromSim, "%d", fromSimPipe);
+
+    // Pass pipe numbers as command line arguments to the visualizer.
+    char vizReadFromSim[32], vizWriteToSim[32];
+    sprintf(vizReadFromSim, "%d", sim2vizPipe[0]);
+    sprintf(vizWriteToSim, "%d", viz2simPipe[1]);
 
     String exePath; // search path + appName
 
@@ -87,25 +113,35 @@ static void spawnViz(const Array_<String>& searchPath,
     for (unsigned i=0; i < searchPath.size(); ++i) {
         exePath = searchPath[i] + appName;
         handle = _spawnl(P_NOWAIT, exePath.c_str(), appName.c_str(), 
-                         vizPipeToSim, vizPipeFromSim, (const char*)0);
-        if (handle != -1)
+                         vizReadFromSim, vizWriteToSim, (const char*)0);
+        if (handle != -1) {
+            // success: visualizer is running
+            _close(sim2vizPipe[0]); // read end (belongs to visualizer)
+            _close(viz2simPipe[1]); // write end (belongs to visualizer)
             break; // success!
+        }
     }
     status = (handle==-1) ? -1 : 0;
 #else
     const pid_t pid = fork();
     if (pid == 0) {
-        // child process
+        // child process (the visualizer)
+        close(sim2vizPipe[1]); // write end (belongs to simulator)
+        close(viz2simPipe[0]); // read end(belongs to simulator)
         for (unsigned i=0; i < searchPath.size(); ++i) {
             exePath = searchPath[i] + appName;
             status = execl(exePath.c_str(), appName.c_str(), 
-                           vizPipeToSim, vizPipeFromSim, (const char*)0); 
+                           vizReadFromSim, vizWriteToSim, (const char*)0); 
             // if we get here the execl() failed
         }
         // fall through -- we failed on every try
     } else {
-        // parent process
+        // parent process (the simulator)
         status = (pid==-1) ? -1 : 0;
+        if (status == 0) {
+            close(sim2vizPipe[0]); // read end (belongs to visualizer)
+            close(viz2simPipe[1]); // write end (belongs to visualizer)
+        }
     }
 #endif
 
@@ -192,11 +228,20 @@ static void* listenForVisualizerEvents(void* arg) {
 VisualizerProtocol::VisualizerProtocol
    (Visualizer& visualizer, const Array_<String>& userSearchPath) 
 {
-    // Launch the GUI application. We'll first look for one in the same directory
-    // as the running executable; then if that doesn't work we'll look in the
-    // bin subdirectory of the SimTK installation.
+    // Launch the GUI application. We'll first look for one in the same
+    // directory as the running executable; then if that doesn't work we'll
+    // look in the bin subdirectory of the SimTK installation.
 
-    const char* GuiAppName = "simbody-visualizer";
+    String vizExecutableName;
+    if (Pathname::environmentVariableExists("SIMBODY_VISUALIZER_NAME")) {
+        vizExecutableName =
+            Pathname::getEnvironmentVariable("SIMBODY_VISUALIZER_NAME");
+    } else {
+        vizExecutableName = "simbody-visualizer";
+        #ifndef NDEBUG
+            vizExecutableName += "_d";
+        #endif
+    }
 
     Array_<String> actualSearchPath;
     // Always start with the current executable's directory.
@@ -217,38 +262,38 @@ VisualizerProtocol::VisualizerProtocol
         const std::string e = Pathname::getAbsoluteDirectoryPathname(
             Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR"));
         actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
-    } else {
-        // No environment variables set. Try the build-time install location:
-        actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
-
-        // Our last desperate attempts will
-        // be  <platformDefaultInstallDir>/Simbody/bin
-        // and <platformDefaultInstallDir>/SimTK/bin
-        const std::string def = Pathname::getDefaultInstallDir();
-
-        actualSearchPath.push_back(
-            Pathname::addDirectoryOffset(def,
-                Pathname::addDirectoryOffset("Simbody", "bin")));
-        actualSearchPath.push_back(
-            Pathname::addDirectoryOffset(def,
-                Pathname::addDirectoryOffset("SimTK", "bin")));
     }
 
+    // Try the build-time install location:
+    actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
+
+    // Our last desperate attempts will
+    // be  <platformDefaultInstallDir>/Simbody/bin
+    // and <platformDefaultInstallDir>/SimTK/bin
+    const std::string def = Pathname::getDefaultInstallDir();
+
+    actualSearchPath.push_back(
+        Pathname::addDirectoryOffset(def,
+            Pathname::addDirectoryOffset("Simbody", "bin")));
+    actualSearchPath.push_back(
+        Pathname::addDirectoryOffset(def,
+            Pathname::addDirectoryOffset("SimTK", "bin")));
+
+    // Pipe[0] is the read end, Pipe[1] is the write end.
     int sim2vizPipe[2], viz2simPipe[2], status;
 
     // Create pipe pair for communication from simulator to visualizer.
-    status = createPipe(sim2vizPipe);
+    status = createPipeSim2Viz(sim2vizPipe);
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizerProtocol: Failed to open pipe");
-    outPipe = sim2vizPipe[1];
+    outPipe = sim2vizPipe[1]; // write here to talk to visualizer
 
     // Create pipe pair for communication from visualizer to simulator.
-    status = createPipe(viz2simPipe);
+    status = createPipeViz2Sim(viz2simPipe);
     SimTK_ASSERT_ALWAYS(status != -1, "VisualizerProtocol: Failed to open pipe");
-    inPipe = viz2simPipe[0];
+    inPipe = viz2simPipe[0]; // read from here to receive from visualizer
 
     // Spawn the visualizer gui, trying local first then installed version.
-    spawnViz(actualSearchPath,
-             GuiAppName, sim2vizPipe[0], viz2simPipe[1]);
+    spawnViz(actualSearchPath, vizExecutableName, sim2vizPipe, viz2simPipe);
 
     // Before we do anything else, attempt to exchange handshake messages with
     // the visualizer. This will throw an exception if anything goes wrong.
@@ -407,6 +452,10 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
                 faces.push_back((unsigned short) mesh.getFaceVertex(i, j+1));
                 faces.push_back((unsigned short) newIndex);
             }
+            // Close the face (thanks, Alexandra Zobova).
+            faces.push_back((unsigned short) mesh.getFaceVertex(i, numVert-1));
+            faces.push_back((unsigned short) mesh.getFaceVertex(i, 0));
+            faces.push_back((unsigned short) newIndex);
         }
     }
     SimTK_ERRCHK1_ALWAYS(vertices.size() <= 65535*3, 
@@ -485,24 +534,28 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
 }
 
 void VisualizerProtocol::
-drawText(const Vec3& position, const Vec3& scale, const Vec4& color, 
+drawText(const Transform& X_GT, const Vec3& scale, const Vec4& color, 
          const string& string, bool faceCamera, bool isScreenText) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
         "VisualizerProtocol::drawText()",
         "Can't display DecorativeText longer than 256 characters;"
         " received text of length %u.", (unsigned)string.size());
     WRITE(outPipe, &AddText, 1);
-    float buffer[9];
-    buffer[0] = (float) position[0];
-    buffer[1] = (float) position[1];
-    buffer[2] = (float) position[2];
-    buffer[3] = (float) scale[0];
-    buffer[4] = (float) scale[1];
-    buffer[5] = (float) scale[2];
-    buffer[6] = (float) color[0];
-    buffer[7] = (float) color[1];
-    buffer[8] = (float) color[2];
-    WRITE(outPipe, buffer, 9*sizeof(float));
+    float buffer[12];
+    const Vec3 rot = X_GT.R().convertRotationToBodyFixedXYZ();
+    buffer[0] = (float) rot[0];
+    buffer[1] = (float) rot[1];
+    buffer[2] = (float) rot[2];
+    buffer[3] = (float) X_GT.p()[0];
+    buffer[4] = (float) X_GT.p()[1];
+    buffer[5] = (float) X_GT.p()[2];
+    buffer[6] = (float) scale[0];
+    buffer[7] = (float) scale[1];
+    buffer[8] = (float) scale[2];
+    buffer[9] = (float) color[0];
+    buffer[10]= (float) color[1];
+    buffer[11]= (float) color[2];
+    WRITE(outPipe, buffer, 12*sizeof(float));
     short face = (short)faceCamera;
     WRITE(outPipe, &face, sizeof(short));
     short screen = (short)isScreenText;
@@ -516,7 +569,7 @@ void VisualizerProtocol::
 drawCoords(const Transform& X_GF, const Vec3& axisLengths, const Vec4& color) {
     WRITE(outPipe, &AddCoords, 1);
     float buffer[12];
-    Vec3 rot = X_GF.R().convertRotationToBodyFixedXYZ();
+    const Vec3 rot = X_GF.R().convertRotationToBodyFixedXYZ();
     buffer[0] = (float) rot[0];
     buffer[1] = (float) rot[1];
     buffer[2] = (float) rot[2];

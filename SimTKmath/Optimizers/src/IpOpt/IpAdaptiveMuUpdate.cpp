@@ -432,7 +432,7 @@ namespace Ipopt
           Number curr_error = quality_function_pd_system();
           std::list<Number>::iterator iter;
           for (iter = refs_vals_.begin(); iter != refs_vals_.end();
-               iter++) {
+               ++iter) {
             if ( curr_error <= refs_red_fact_*(*iter) ) {
               retval = true;
             }
@@ -482,7 +482,7 @@ namespace Ipopt
           Index num_refs = 0;
           std::list<Number>::iterator iter;
           for (iter = refs_vals_.begin(); iter != refs_vals_.end();
-               iter++) {
+               ++iter) {
             num_refs++;
             Jnlst().Printf(J_MOREDETAILED, J_BARRIER_UPDATE,
                            "pd system reference[%2d] = %.6e\n", num_refs, *iter);
@@ -532,10 +532,10 @@ namespace Ipopt
     DBG_ASSERT(refs_vals_.size()>0);
     std::list<Number>::iterator iter = refs_vals_.begin();
     min_ref = *iter;
-    iter++;
+    ++iter;
     while (iter != refs_vals_.end()) {
       min_ref = Min(min_ref, *iter);
-      iter++;
+      ++iter;
     }
     return min_ref;
   }
@@ -548,10 +548,10 @@ namespace Ipopt
     DBG_ASSERT(refs_vals_.size()>0);
     std::list<Number>::iterator iter = refs_vals_.begin();
     max_ref = *iter;
-    iter++;
+    ++iter;
     while (iter != refs_vals_.end()) {
       max_ref = Max(max_ref, *iter);
-      iter++;
+      ++iter;
     }
     return max_ref;
   }
@@ -685,6 +685,7 @@ namespace Ipopt
         break;
         case 2:
         centrality = complty/xi;
+        break;
         case 3:
         centrality = complty/pow(xi,3);
         break;

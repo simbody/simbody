@@ -227,7 +227,7 @@ frame F, with the result returned in A.
 
 Given the spatial acceleration A_FA of frame A in a reference frame F, and
 the spatial acceleration A_FB of frame B in F, and corresonding pose and
-velcoity information, calculate the relative acceleration A_AB of frame B in 
+velocity information, calculate the relative acceleration A_AB of frame B in 
 frame A, measured and expressed in A. Typical usage:
 @code
     Transform  X_GA, X_GB;      // assume these are known from somewhere
@@ -288,7 +288,7 @@ Example:
     SpatialVec A_GA, A_GB;
 
     const Vec3 p_AB_G = X_GB.p() - X_GA.p();
-    SpatialVec V_AB_G = findRelativeAccelerationInF(p_AB_G, V_GA, A_GA,
+    SpatialVec A_AB_G = findRelativeAccelerationInF(p_AB_G, V_GA, A_GA,
                                                             V_GB, A_GB);
 @endcode
 Cost is 72 flops. @see findRelativeAcceleration() **/

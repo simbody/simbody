@@ -163,7 +163,7 @@ public:
                     this->copyElt(this->updElt_(j), source.getElt(0,j));
             else // a column vector
                 for (int i=0; i<this->nrow(); ++i)
-                	this->copyElt(this->updElt_(i), source.getElt(i,0));
+                    this->copyElt(this->updElt_(i), source.getElt(i,0));
         }
     }
 };
@@ -485,7 +485,7 @@ public:
             new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
                                           this->length(), this->m_row);
         for (int i=0; i < this->length(); ++i)
-        	this->copyElt(p->updData() + i*this->m_eltSize, this->getData() + i*m_spacing);
+            this->copyElt(p->updData() + i*this->m_eltSize, this->getData() + i*m_spacing);
         return p;
     }
 
@@ -687,7 +687,7 @@ public:
             new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
                                           this->length(), this->m_row);
         for (int i=0; i<this->length(); ++i)
-        	this->copyElt(p->updElt_(i), getElt_(i));
+            this->copyElt(p->updElt_(i), getElt_(i));
         return p;
     }
 

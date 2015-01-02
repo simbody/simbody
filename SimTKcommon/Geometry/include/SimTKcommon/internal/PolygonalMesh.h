@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -46,16 +46,15 @@ the following lines load a mesh from a Wavefront OBJ file, then create a
 DecorativeMesh from it.
 @code
     PolygonalMesh mesh;
-    std::ifstream file;
-    file.open("teapot.obj");
-    mesh.loadObjFile(file);
-    file.close();
+    mesh.loadObjFile("teapot.obj");
     DecorativeMesh decoration(mesh);
 @endcode 
-You can also read a polygon mesh from a VTK PolyData (.vtp) file.
-
-You can also build meshes programmatically, and some static methods are provided
-here for generating some common shapes.
+You can also read a polygon mesh from a VTK PolyData (.vtp) file, or an STL
+file (.stl) that is in ascii or binary format. You can also build meshes 
+programmatically, and some static methods are provided here for generating some
+common shapes. If you don't know what kind of file you have, you can attempt to 
+read it with the loadFile() method which will examine the file extension to 
+determine the expected format.
 
 The mesh has its own local frame and vertex locations are given in that 
 frame. You can scale and transform the vertices relative to that frame 
@@ -214,16 +213,47 @@ public:
     @return A reference to this now-transformed mesh object. **/
     PolygonalMesh&  transformMesh(const Transform& X_AM);
 
-    /** Load a Wavefront OBJ file, adding the vertices and faces it contains
-    to this mesh.
+    /** Attempt to interpret the given file as a mesh file, with the format
+    determined from the file name extension. If we recognize the extension 
+    we'll call one of the specialized methods below; see the descriptions for
+    more information. Ignoring case, we recognize:
+        - <tt>.obj </tt>: Wavefront OBJ file
+        - <tt>.stl </tt>: 3D Systems Stereolithography file (ascii or binary)
+        - <tt>.stla</tt>: ascii-only stl extension
+        - <tt>.vtp </tt>: VTK PolyData file (we can only read the ascii version)
+
+    @param[in]  pathname    The name of a mesh file with a recognized extension.
+    **/
+    void loadFile(const String& pathname);
+
+    /** Load a Wavefront OBJ (.obj) file, adding the vertices and faces it 
+    contains to this mesh, and ignoring anything else in the file. The suffix
+    for these files is typically ".obj" but we don't check here.
+    @param[in]  pathname    The name of a .obj file. **/
+    void loadObjFile(const String& pathname);
+
+    /** Alternate signature for Wavefront OBJ format that takes an already-open
+    istream rather than a pathname. This is useful for testing since it
+    can be supplied by a stringstream rather than a file.
     @param[in,out]  file    An input stream from which to load the file 
                             contents. **/
     void loadObjFile(std::istream& file);
 
     /** Load a VTK PolyData (.vtp) file, adding the vertices and faces it 
-    contains to this mesh.
+    contains to this mesh and ignoring anything else in the file. The suffix 
+    for these files is typically ".vtp" but we don't check here.
     @param[in]  pathname    The name of a .vtp file. **/
     void loadVtpFile(const String& pathname);
+
+    /** Load an STL file, adding the vertices and faces it contains to this 
+    mesh and ignoring anything else in the file. The file may be in ascii or 
+    binary format. If the suffix is ".stla" then it can only be ascii. 
+    Otherwise, including ".stl" or anything else, we'll examine the contents to 
+    determine which format is used. STL files include many repeated vertices;
+    we will collapse any that coincide to within a small tolerance so that there
+    is some hope of getting a connected surface.
+    @param[in]  pathname    The name of a .stl or .stla file. **/
+    void loadStlFile(const String& pathname);
 
 private:
     explicit PolygonalMesh(PolygonalMeshImpl* impl) : HandleBase(impl) {}

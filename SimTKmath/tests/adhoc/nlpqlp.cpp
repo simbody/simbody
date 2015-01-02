@@ -25,17 +25,17 @@ static int pow_ii(int *ap, int *bp) {
     n = *bp;
 
     if(n < 0)
-	    { }
+        { }
     else if(n > 0)
-	    for( ; ; )
-		    {
-		    if(n & 01)
-			    pow *= x;
-		    if(n >>= 1)
-			    x *= x;
-		    else
-			    break;
-		    }
+        for( ; ; )
+            {
+            if(n & 01)
+                pow *= x;
+            if(n >>= 1)
+                x *= x;
+            else
+                break;
+            }
     return(pow);
 }
 
@@ -61,22 +61,22 @@ x = *ap;
 n = *bp;
 
 if(n != 0)
-	{
-	if(n < 0)
-		{
-		n = -n;
-		x = 1/x;
-		}
-	for( ; ; )
-		{
-		if(n & 01)
-			pow *= x;
-		if(n >>= 1)
-			x *= x;
-		else
-			break;
-		}
-	}
+    {
+    if(n < 0)
+        {
+        n = -n;
+        x = 1/x;
+        }
+    for( ; ; )
+        {
+        if(n & 01)
+            pow *= x;
+        if(n >>= 1)
+            x *= x;
+        else
+            break;
+        }
+    }
 return(pow);
 }
 
@@ -345,7 +345,7 @@ int main()
       if( run_test( j ) ) num_passed++;
    }
 
-   printf(" %d PASSED 	out of  %d tests   pass rate = %f %%\n",num_passed, num_tests, 100.0*(float)num_passed/(float)num_tests);
+   printf(" %d PASSED     out of  %d tests   pass rate = %f %%\n",num_passed, num_tests, 100.0*(float)num_passed/(float)num_tests);
    return 0;
 }
 
@@ -465,7 +465,7 @@ bool run_test(int j ) {
 
 /* prob.f -- translated by f2c (version 19991025).
    You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+    -lf2c -lm   (in that order)
 */
 
 L1 l1_;
@@ -555,11 +555,11 @@ static struct {
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -609,11 +609,11 @@ labelL4:
     static Real w1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -668,11 +668,11 @@ labelL4:
     Real d__1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -715,11 +715,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -730,9 +730,9 @@ labelL1:
     l2_1.x[0] = 1.125;
     l2_1.x[1] = .125;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
     }
     l13_1.xl[0] = 1.;
     l13_1.xl[1] = 0.;
@@ -768,11 +768,11 @@ labelL4:
     static Real v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -783,9 +783,9 @@ labelL1:
     l2_1.x[0] = 0.;
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
     }
     l13_1.xl[0] = -1.5;
     l13_1.xl[1] = -3.;
@@ -802,7 +802,7 @@ labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - l2_1.x[1];
     l6_1.fx = std::sin(l2_1.x[0] + l2_1.x[1]) + d__1 * d__1 - l2_1.x[0] * 1.5 + 
-	    l2_1.x[1] * 2.5 + 1.;
+        l2_1.x[1] * 2.5 + 1.;
     return 0;
 labelL3:
     v1 = std::cos(l2_1.x[0] + l2_1.x[1]);
@@ -823,11 +823,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -838,9 +838,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -861,13 +861,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_1.g[0] = (l2_1.x[1] - d__1 * d__1) * 10.;
+    d__1 = l2_1.x[0];
+    l3_1.g[0] = (l2_1.x[1] - d__1 * d__1) * 10.;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_1.gg[0] = l2_1.x[0] * -20.;
+    l5_1.gg[0] = l2_1.x[0] * -20.;
     }
     return 0;
 } /* tp6_ */
@@ -882,11 +882,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -897,9 +897,9 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.fex = -std::sqrt(3.);
@@ -921,17 +921,17 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__2 = l2_1.x[0];
+    d__2 = l2_1.x[0];
 /* Computing 2nd power */
-	d__1 = d__2 * d__2 + 1.;
+    d__1 = d__2 * d__2 + 1.;
 /* Computing 2nd power */
-	d__3 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 + d__3 * d__3 - 4.;
+    d__3 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 + d__3 * d__3 - 4.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
@@ -952,11 +952,11 @@ L7:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL3;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL3;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -969,9 +969,9 @@ labelL1:
     a = std::sqrt((std::sqrt(301.) + 25.) / 2.);
     b = std::sqrt((25. - std::sqrt(301.)) / 2.);
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_2.lex = true;
     l20_2.nex = 4;
@@ -980,10 +980,10 @@ labelL1:
     l20_2.xex[4] = b;
     l20_2.xex[5] = 9. / b;
     for (i__ = 3; i__ <= 7; i__ += 4) {
-	for (j = 1; j <= 2; ++j) {
+    for (j = 1; j <= 2; ++j) {
 /* L30: */
-	    l20_2.xex[i__ + j - 2] = -l20_2.xex[i__ + j - 4];
-	}
+        l20_2.xex[i__ + j - 2] = -l20_2.xex[i__ + j - 4];
+    }
     }
     l20_2.fex = -1.;
     l4_1.gf[0] = 0.;
@@ -994,24 +994,24 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[0] = d__1 * d__1 + d__2 * d__2 - 25.;
+    d__2 = l2_1.x[1];
+    l3_2.g[0] = d__1 * d__1 + d__2 * d__2 - 25.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_1.x[0] * l2_1.x[1] - 9.;
+    l3_2.g[1] = l2_1.x[0] * l2_1.x[1] - 9.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = l2_1.x[0] * 2.;
     l5_2.gg[2] = l2_1.x[1] * 2.;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_2.gg[1] = l2_1.x[1];
     l5_2.gg[3] = l2_1.x[0];
@@ -1028,11 +1028,11 @@ L8:
 
     v = std::atan(1.) * 4.;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1043,9 +1043,9 @@ labelL1:
     l2_1.x[0] = 0.;
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = -1;
@@ -1068,7 +1068,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_1.x[0] * 4. - l2_1.x[1] * 3.;
+    l3_1.g[0] = l2_1.x[0] * 4. - l2_1.x[1] * 3.;
     }
 labelL5:
     return 0;
@@ -1084,11 +1084,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1099,9 +1099,9 @@ labelL1:
     l2_1.x[0] = -10.;
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -1118,16 +1118,16 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * -3. + l2_1.x[0] * 2. * l2_1.x[1] - d__2 * 
-		d__2 + 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * -3. + l2_1.x[0] * 2. * l2_1.x[1] - d__2 * 
+        d__2 + 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_1.gg[0] = l2_1.x[0] * -6. + l2_1.x[1] * 2.;
     l5_1.gg[1] = (l2_1.x[0] - l2_1.x[1]) * 2.;
@@ -1146,11 +1146,11 @@ L7:
     static Real aw, aex, qaw;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1159,9 +1159,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l2_1.x[0] = 4.9;
     l2_1.x[1] = .1;
@@ -1198,13 +1198,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_1.g[0] = -(d__1 * d__1) + l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_1.g[0] = -(d__1 * d__1) + l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_1.gg[0] = l2_1.x[0] * -2.;
+    l5_1.gg[0] = l2_1.x[0] * -2.;
     }
     return 0;
 } /* tp11_ */
@@ -1219,11 +1219,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1234,9 +1234,9 @@ labelL1:
     l2_1.x[0] = 0.;
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -1250,7 +1250,7 @@ labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 * .5 + d__2 * d__2 - l2_1.x[0] * l2_1.x[1] - l2_1.x[
-	    0] * 7. - l2_1.x[1] * 7.;
+        0] * 7. - l2_1.x[1] * 7.;
     return 0;
 labelL3:
     l4_1.gf[0] = l2_1.x[0] - l2_1.x[1] - 7.;
@@ -1259,15 +1259,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = 25. - d__1 * d__1 * 4. - d__2 * d__2;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = 25. - d__1 * d__1 * 4. - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_1.gg[0] = l2_1.x[0] * -8.;
     l5_1.gg[1] = l2_1.x[1] * -2.;
@@ -1285,11 +1285,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1300,10 +1300,10 @@ labelL1:
     l2_1.x[0] = -2.;
     l2_1.x[1] = -2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -1326,15 +1326,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
-	d__1 = 1. - l2_1.x[0];
-	l3_1.g[0] = d__1 * (d__1 * d__1) - l2_1.x[1];
+    d__1 = 1. - l2_1.x[0];
+    l3_1.g[0] = d__1 * (d__1 * d__1) - l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
 /* Computing 2nd power */
-	d__1 = 1. - l2_1.x[0];
-	l5_1.gg[0] = d__1 * d__1 * -3.;
+    d__1 = 1. - l2_1.x[0];
+    l5_1.gg[0] = d__1 * d__1 * -3.;
     }
     return 0;
 } /* tp13_ */
@@ -1350,11 +1350,11 @@ labelL5:
     static Real w7;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1365,9 +1365,9 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -1392,18 +1392,18 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[0] = 1. - d__1 * d__1 * .25 - d__2 * d__2;
+    d__2 = l2_1.x[1];
+    l3_2.g[0] = 1. - d__1 * d__1 * .25 - d__2 * d__2;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_1.x[0] - l2_1.x[1] * 2. + 1.;
+    l3_2.g[1] = l2_1.x[0] - l2_1.x[1] * 2. + 1.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = -l2_1.x[0] * .5;
     l5_2.gg[2] = l2_1.x[1] * -2.;
@@ -1418,11 +1418,11 @@ L7:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1461,23 +1461,23 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 1.;
+    l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 1.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_2.g[1] = d__1 * d__1 + l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_2.g[1] = d__1 * d__1 + l2_1.x[0];
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = l2_1.x[1];
     l5_2.gg[2] = l2_1.x[0];
 L7:
     if (l10_3.index2[1]) {
-	l5_2.gg[3] = l2_1.x[1] * 2.;
+    l5_2.gg[3] = l2_1.x[1] * 2.;
     }
     return 0;
 } /* tp15_ */
@@ -1489,11 +1489,11 @@ L7:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1536,21 +1536,21 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_2.g[0] = d__1 * d__1 + l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_2.g[0] = d__1 * d__1 + l2_1.x[0];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_2.g[1] = d__1 * d__1 + l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_2.g[1] = d__1 * d__1 + l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_2.gg[2] = l2_1.x[1] * 2.;
+    l5_2.gg[2] = l2_1.x[1] * 2.;
     }
     if (l10_3.index2[1]) {
-	l5_2.gg[1] = l2_1.x[0] * 2.;
+    l5_2.gg[1] = l2_1.x[0] * 2.;
     }
     return 0;
 } /* tp16_ */
@@ -1562,11 +1562,11 @@ labelL5:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1609,21 +1609,21 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_2.g[0] = d__1 * d__1 - l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_2.g[0] = d__1 * d__1 - l2_1.x[0];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_2.g[1] = d__1 * d__1 - l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_2.g[1] = d__1 * d__1 - l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_2.gg[2] = l2_1.x[1] * 2.;
+    l5_2.gg[2] = l2_1.x[1] * 2.;
     }
     if (l10_3.index2[1]) {
-	l5_2.gg[1] = l2_1.x[0] * 2.;
+    l5_2.gg[1] = l2_1.x[0] * 2.;
     }
     return 0;
 } /* tp17_ */
@@ -1638,11 +1638,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1653,10 +1653,10 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
 /* labelL6: */
-	l14_1.xu[i__ - 1] = 50.;
+    l14_1.xu[i__ - 1] = 50.;
     }
     l13_1.xl[0] = 2.;
     l13_1.xl[1] = 0.;
@@ -1679,25 +1679,25 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 25.;
+    l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 25.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 25.;
+    d__2 = l2_1.x[1];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 25.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = l2_1.x[1];
     l5_2.gg[2] = l2_1.x[0];
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_2.gg[1] = l2_1.x[0] * 2.;
     l5_2.gg[3] = l2_1.x[1] * 2.;
@@ -1717,11 +1717,11 @@ L8:
     static Real aex;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1732,10 +1732,10 @@ labelL1:
     l2_1.x[0] = 20.1;
     l2_1.x[1] = 5.84;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
 /* labelL6: */
-	l14_1.xu[i__ - 1] = 100.;
+    l14_1.xu[i__ - 1] = 100.;
     }
     l13_1.xl[0] = 13.;
     l13_1.xl[1] = 0.;
@@ -1767,28 +1767,28 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 5.;
+    d__1 = l2_1.x[0] - 5.;
 /* Computing 2nd power */
-	d__2 = l2_1.x[1] - 5.;
-	l3_2.g[0] = d__1 * d__1 + d__2 * d__2 - 100.;
+    d__2 = l2_1.x[1] - 5.;
+    l3_2.g[0] = d__1 * d__1 + d__2 * d__2 - 100.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 6.;
+    d__1 = l2_1.x[0] - 6.;
 /* Computing 2nd power */
-	d__2 = l2_1.x[1] - 5.;
-	l3_2.g[1] = 82.81 - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_1.x[1] - 5.;
+    l3_2.g[1] = 82.81 - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = (l2_1.x[0] - 5.) * 2.;
     l5_2.gg[2] = (l2_1.x[1] - 5.) * 2.;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_2.gg[1] = (l2_1.x[0] - 6.) * -2.;
     l5_2.gg[3] = (l2_1.x[1] - 5.) * -2.;
@@ -1803,11 +1803,11 @@ L8:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1849,31 +1849,31 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_3.g[0] = d__1 * d__1 + l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_3.g[0] = d__1 * d__1 + l2_1.x[0];
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_3.g[1] = d__1 * d__1 + l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_3.g[1] = d__1 * d__1 + l2_1.x[1];
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_1.x[1];
+    l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
 labelL5:
     if (l10_4.index2[0]) {
-	l5_3.gg[3] = l2_1.x[1] * 2.;
+    l5_3.gg[3] = l2_1.x[1] * 2.;
     }
     if (l10_4.index2[1]) {
-	l5_3.gg[1] = l2_1.x[0] * 2.;
+    l5_3.gg[1] = l2_1.x[0] * 2.;
     }
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_3.gg[2] = l2_1.x[0] * 2.;
     l5_3.gg[5] = l2_1.x[1] * 2.;
@@ -1891,11 +1891,11 @@ labelL9:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1906,10 +1906,10 @@ labelL1:
     l2_1.x[0] = -1.;
     l2_1.x[1] = -1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
 /* labelL6: */
-	l14_1.xu[i__ - 1] = 50.;
+    l14_1.xu[i__ - 1] = 50.;
     }
     l13_1.xl[0] = 2.;
     l13_1.xl[1] = -50.;
@@ -1934,7 +1934,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_1.x[0] * 10. - l2_1.x[1] - 10.;
+    l3_1.g[0] = l2_1.x[0] * 10. - l2_1.x[1] - 10.;
     }
 labelL5:
     return 0;
@@ -1950,11 +1950,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -1965,9 +1965,9 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -1991,17 +1991,17 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = 2. - l2_1.x[0] - l2_1.x[1];
+    l3_2.g[0] = 2. - l2_1.x[0] - l2_1.x[1];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_2.g[1] = l2_1.x[1] - d__1 * d__1;
+    d__1 = l2_1.x[0];
+    l3_2.g[1] = l2_1.x[1] - d__1 * d__1;
     }
     return 0;
 labelL5:
     if (l10_3.index2[1]) {
-	l5_2.gg[1] = l2_1.x[0] * -2.;
+    l5_2.gg[1] = l2_1.x[0] * -2.;
     }
     return 0;
 } /* tp22_ */
@@ -2016,11 +2016,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -2031,11 +2031,11 @@ labelL1:
     l2_1.x[0] = 3.;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
-	l13_1.xl[i__ - 1] = -50.;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
+    l13_1.xl[i__ - 1] = -50.;
 /* labelL6: */
-	l14_1.xu[i__ - 1] = 50.;
+    l14_1.xu[i__ - 1] = 50.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -2060,51 +2060,51 @@ labelL3:
     return 0;
 labelL4:
     if (l9_5.index1[0]) {
-	l3_4.g[0] = l2_1.x[0] + l2_1.x[1] - 1.;
+    l3_4.g[0] = l2_1.x[0] + l2_1.x[1] - 1.;
     }
     if (l9_5.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_4.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_1.x[1];
+    l3_4.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     if (l9_5.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_4.g[2] = d__1 * d__1 * 9. + d__2 * d__2 - 9.;
+    d__2 = l2_1.x[1];
+    l3_4.g[2] = d__1 * d__1 * 9. + d__2 * d__2 - 9.;
     }
     if (l9_5.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_4.g[3] = d__1 * d__1 - l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_4.g[3] = d__1 * d__1 - l2_1.x[1];
     }
     if (l9_5.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_4.g[4] = d__1 * d__1 - l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_4.g[4] = d__1 * d__1 - l2_1.x[0];
     }
     return 0;
 labelL5:
     if (! l10_5.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_4.gg[1] = l2_1.x[0] * 2.;
     l5_4.gg[6] = l2_1.x[1] * 2.;
 L8:
     if (! l10_5.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_4.gg[2] = l2_1.x[0] * 18.;
     l5_4.gg[7] = l2_1.x[1] * 2.;
 labelL9:
     if (l10_5.index2[3]) {
-	l5_4.gg[3] = l2_1.x[0] * 2.;
+    l5_4.gg[3] = l2_1.x[0] * 2.;
     }
     if (l10_5.index2[4]) {
-	l5_4.gg[9] = l2_1.x[1] * 2.;
+    l5_4.gg[9] = l2_1.x[1] * 2.;
     }
     return 0;
 } /* tp23_ */
@@ -2121,11 +2121,11 @@ labelL9:
 
     a = std::sqrt(3.);
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -2136,10 +2136,10 @@ labelL1:
     l2_1.x[0] = 1.;
     l2_1.x[1] = .5;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -2172,13 +2172,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_1.x[0] / a - l2_1.x[1];
+    l3_3.g[0] = l2_1.x[0] / a - l2_1.x[1];
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_1.x[0] + l2_1.x[1] * a;
+    l3_3.g[1] = l2_1.x[0] + l2_1.x[1] * a;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = 6. - l2_1.x[1] * a - l2_1.x[0];
+    l3_3.g[2] = 6. - l2_1.x[1] * a - l2_1.x[0];
     }
 labelL5:
     return 0;
@@ -2193,15 +2193,15 @@ labelL5:
     /* Local variables */
     static Real a[99], b[99];
     static int i__, j;
-    static Real s, t, u[99], v1, v2, da[297]	/* was [99][3] */, 
-	    v11, v22;
+    static Real s, t, u[99], v1, v2, da[297]    /* was [99][3] */, 
+        v11, v22;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -2213,9 +2213,9 @@ labelL1:
     l2_2.x[1] = 12.5;
     l2_2.x[2] = 3.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l13_2.xl[0] = .1;
     l13_2.xl[1] = 1e-5;
@@ -2232,24 +2232,24 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 99; ++i__) {
-	v1 = .66666666666666663;
-	d__1 = std::log((Real) i__ * .01) * -50.;
-	u[i__ - 1] = pow_dd(&d__1, &v1) + 25.;
-	v1 = u[i__ - 1] - l2_2.x[1];
-	if (v1 < 0.) {
-	    goto L7;
-	}
-	v11 = -pow_dd(&v1, &l2_2.x[2]) / l2_2.x[0];
-	b[i__ - 1] = std::exp(v11);
+    v1 = .66666666666666663;
+    d__1 = std::log((Real) i__ * .01) * -50.;
+    u[i__ - 1] = pow_dd(&d__1, &v1) + 25.;
+    v1 = u[i__ - 1] - l2_2.x[1];
+    if (v1 < 0.) {
+        goto L7;
+    }
+    v11 = -pow_dd(&v1, &l2_2.x[2]) / l2_2.x[0];
+    b[i__ - 1] = std::exp(v11);
 /* L30: */
-	a[i__ - 1] = b[i__ - 1] - (Real) i__ * .01;
+    a[i__ - 1] = b[i__ - 1] - (Real) i__ * .01;
     }
     t = 0.;
     for (i__ = 1; i__ <= 99; ++i__) {
 /* L31: */
 /* Computing 2nd power */
-	d__1 = a[i__ - 1];
-	t += d__1 * d__1;
+    d__1 = a[i__ - 1];
+    t += d__1 * d__1;
     }
     l6_1.fx = t;
     return 0;
@@ -2258,54 +2258,54 @@ L7:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_2.x[i__ - 1] - 5.;
-	s += d__1 * d__1;
+    d__1 = l2_2.x[i__ - 1] - 5.;
+    s += d__1 * d__1;
     }
     l6_1.fx = s;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 99; ++i__) {
-	v1 = .66666666666666663;
-	d__1 = std::log((Real) i__ * .01) * -50.;
-	u[i__ - 1] = pow_dd(&d__1, &v1) + 25.;
-	v2 = u[i__ - 1] - l2_2.x[1];
-	if (v2 <= 0.) {
-	    goto labelL9;
-	}
-	v22 = -pow_dd(&v2, &l2_2.x[2]) / l2_2.x[0];
-	if (v22 > -150.) {
-	    goto L42;
-	}
-	b[i__ - 1] = 0.;
-	goto L43;
+    v1 = .66666666666666663;
+    d__1 = std::log((Real) i__ * .01) * -50.;
+    u[i__ - 1] = pow_dd(&d__1, &v1) + 25.;
+    v2 = u[i__ - 1] - l2_2.x[1];
+    if (v2 <= 0.) {
+        goto labelL9;
+    }
+    v22 = -pow_dd(&v2, &l2_2.x[2]) / l2_2.x[0];
+    if (v22 > -150.) {
+        goto L42;
+    }
+    b[i__ - 1] = 0.;
+    goto L43;
 L42:
-	b[i__ - 1] = std::exp(v22);
+    b[i__ - 1] = std::exp(v22);
 L43:
-	a[i__ - 1] = b[i__ - 1] - (Real) i__ * .01;
+    a[i__ - 1] = b[i__ - 1] - (Real) i__ * .01;
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
-	da[i__ - 1] = pow_dd(&v2, &l2_2.x[2]) / (d__1 * d__1) * b[i__ - 1];
-	d__1 = l2_2.x[2] - 1.;
-	da[i__ + 98] = l2_2.x[2] * pow_dd(&v2, &d__1) / l2_2.x[0] * b[i__ - 1]
-		;
+    d__1 = l2_2.x[0];
+    da[i__ - 1] = pow_dd(&v2, &l2_2.x[2]) / (d__1 * d__1) * b[i__ - 1];
+    d__1 = l2_2.x[2] - 1.;
+    da[i__ + 98] = l2_2.x[2] * pow_dd(&v2, &d__1) / l2_2.x[0] * b[i__ - 1]
+        ;
 /* L36: */
-	da[i__ + 197] = -pow_dd(&v2, &l2_2.x[2]) / l2_2.x[0] * std::log(v2) * b[
-		i__ - 1];
+    da[i__ + 197] = -pow_dd(&v2, &l2_2.x[2]) / l2_2.x[0] * std::log(v2) * b[
+        i__ - 1];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	t = 0.;
-	for (j = 1; j <= 99; ++j) {
+    t = 0.;
+    for (j = 1; j <= 99; ++j) {
 /* L33: */
-	    t += a[j - 1] * 2. * da[j + i__ * 99 - 100];
-	}
+        t += a[j - 1] * 2. * da[j + i__ * 99 - 100];
+    }
 /* L34: */
-	l4_2.gf[i__ - 1] = t;
+    l4_2.gf[i__ - 1] = t;
     }
     return 0;
 labelL9:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL10: */
-	l4_2.gf[i__ - 1] = (l2_2.x[i__ - 1] - 5.) * 2.;
+    l4_2.gf[i__ - 1] = (l2_2.x[i__ - 1] - 5.) * 2.;
     }
 labelL4:
     return 0;
@@ -2322,11 +2322,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2338,9 +2338,9 @@ labelL1:
     l2_2.x[1] = 2.;
     l2_2.x[2] = 2.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_4.lex = true;
     l20_4.nex = 2;
@@ -2351,7 +2351,7 @@ labelL1:
     d__1 = a - 1.1296296296296295;
     d__2 = a + 1.1296296296296295;
     l20_4.xex[3] = pow_dd(&d__1, &c_b74) - pow_dd(&d__2, &c_b74) - 
-	    .66666666666666663;
+        .66666666666666663;
     l20_4.xex[4] = l20_4.xex[3];
     l20_4.xex[5] = l20_4.xex[3];
     l20_4.fex = 0.;
@@ -2373,15 +2373,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[1];
+    d__1 = l2_2.x[1];
 /* Computing 4th power */
-	d__2 = l2_2.x[2], d__2 *= d__2;
-	l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 3.;
+    d__2 = l2_2.x[2], d__2 *= d__2;
+    l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 3.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[1];
@@ -2404,11 +2404,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2417,10 +2417,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 2.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 2.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -2450,13 +2450,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[2];
-	l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
+    d__1 = l2_2.x[2];
+    l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_5.gg[2] = l2_2.x[2] * 2.;
+    l5_5.gg[2] = l2_2.x[2] * 2.;
     }
     return 0;
 } /* tp27_ */
@@ -2471,11 +2471,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2487,9 +2487,9 @@ labelL1:
     l2_2.x[1] = 1.;
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -2515,7 +2515,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 3. - 1.;
+    l3_1.g[0] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 3. - 1.;
     }
 labelL5:
     return 0;
@@ -2531,11 +2531,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2544,10 +2544,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_5.lex = true;
     l20_5.nex = 4;
@@ -2576,17 +2576,17 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 * 4.;
+    d__3 = l2_2.x[2];
+    l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 * 4.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_5.gg[0] = l2_2.x[0] * -2.;
     l5_5.gg[1] = l2_2.x[1] * -4.;
@@ -2605,11 +2605,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2618,11 +2618,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
 /* labelL6: */
-	l14_2.xu[i__ - 1] = 10.;
+    l14_2.xu[i__ - 1] = 10.;
     }
     l13_2.xl[0] = 1.;
     l13_2.xl[1] = -10.;
@@ -2652,15 +2652,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
-	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_2.x[1];
+    l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_5.gg[0] = l2_2.x[0] * 2.;
     l5_5.gg[1] = l2_2.x[1] * 2.;
@@ -2678,11 +2678,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2691,10 +2691,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = true;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l13_2.xl[0] = -10.;
     l13_2.xl[1] = 1.;
@@ -2726,12 +2726,12 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_2.x[0] * l2_2.x[1] - 1.;
+    l3_1.g[0] = l2_2.x[0] * l2_2.x[1] - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_5.gg[0] = l2_2.x[1];
     l5_5.gg[1] = l2_2.x[0];
@@ -2749,11 +2749,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2765,10 +2765,10 @@ labelL1:
     l2_2.x[1] = .7;
     l2_2.x[2] = .2;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -2797,19 +2797,19 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_2.x[0];
-	l3_2.g[0] = -(d__1 * (d__1 * d__1)) + l2_2.x[1] * 6. + l2_2.x[2] * 4. 
-		- 3.;
+    d__1 = l2_2.x[0];
+    l3_2.g[0] = -(d__1 * (d__1 * d__1)) + l2_2.x[1] * 6. + l2_2.x[2] * 4. 
+        - 3.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = 1. - l2_2.x[0] - l2_2.x[1] - l2_2.x[2];
+    l3_2.g[1] = 1. - l2_2.x[0] - l2_2.x[1] - l2_2.x[2];
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
-	l5_3.gg[0] = d__1 * d__1 * -3.;
+    d__1 = l2_2.x[0];
+    l5_3.gg[0] = d__1 * d__1 * -3.;
     }
     return 0;
 } /* tp32_ */
@@ -2825,11 +2825,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2841,9 +2841,9 @@ labelL1:
     l2_2.x[1] = 0.;
     l2_2.x[2] = 3.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l12_2.lxu[0] = false;
     l12_2.lxu[1] = false;
@@ -2860,7 +2860,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = (l2_2.x[0] - 1.) * (l2_2.x[0] - 2.) * (l2_2.x[0] - 3.) + l2_2.x[
-	    2];
+        2];
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -2870,33 +2870,33 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[2];
+    d__1 = l2_2.x[2];
 /* Computing 2nd power */
-	d__2 = l2_2.x[0];
+    d__2 = l2_2.x[0];
 /* Computing 2nd power */
-	d__3 = l2_2.x[1];
-	l3_2.g[0] = d__1 * d__1 - d__2 * d__2 - d__3 * d__3;
+    d__3 = l2_2.x[1];
+    l3_2.g[0] = d__1 * d__1 - d__2 * d__2 - d__3 * d__3;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 4.;
+    d__3 = l2_2.x[2];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 4.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[0] = l2_2.x[0] * -2.;
     l5_3.gg[2] = l2_2.x[1] * -2.;
     l5_3.gg[4] = l2_2.x[2] * 2.;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_3.gg[1] = l2_2.x[0] * 2.;
     l5_3.gg[3] = l2_2.x[1] * 2.;
@@ -2912,11 +2912,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2928,10 +2928,10 @@ labelL1:
     l2_2.x[1] = 1.05;
     l2_2.x[2] = 2.9;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l14_2.xu[0] = 100.;
     l14_2.xu[1] = 100.;
@@ -2956,18 +2956,18 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_2.x[1] - std::exp(l2_2.x[0]);
+    l3_2.g[0] = l2_2.x[1] - std::exp(l2_2.x[0]);
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_2.x[2] - std::exp(l2_2.x[1]);
+    l3_2.g[1] = l2_2.x[2] - std::exp(l2_2.x[1]);
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_3.gg[0] = -std::exp(l2_2.x[0]);
+    l5_3.gg[0] = -std::exp(l2_2.x[0]);
     }
     if (l10_3.index2[1]) {
-	l5_3.gg[3] = -std::exp(l2_2.x[1]);
+    l5_3.gg[3] = -std::exp(l2_2.x[1]);
     }
     return 0;
 } /* tp34_ */
@@ -2982,11 +2982,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -2995,11 +2995,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = .5;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = .5;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -3019,8 +3019,8 @@ labelL2:
 /* Computing 2nd power */
     d__3 = l2_2.x[2];
     l6_1.fx = 9. - l2_2.x[0] * 8. - l2_2.x[1] * 6. - l2_2.x[2] * 4. + d__1 * 
-	    d__1 * 2. + d__2 * d__2 * 2. + d__3 * d__3 + l2_2.x[0] * 2. * 
-	    l2_2.x[1] + l2_2.x[0] * 2. * l2_2.x[2];
+        d__1 * 2. + d__2 * d__2 * 2. + d__3 * d__3 + l2_2.x[0] * 2. * 
+        l2_2.x[1] + l2_2.x[0] * 2. * l2_2.x[2];
     return 0;
 labelL3:
     l4_2.gf[0] = l2_2.x[0] * 4. - 8. + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
@@ -3029,7 +3029,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = -l2_2.x[0] - l2_2.x[1] - l2_2.x[2] * 2. + 3.;
+    l3_1.g[0] = -l2_2.x[0] - l2_2.x[1] - l2_2.x[2] * 2. + 3.;
     }
 labelL5:
     return 0;
@@ -3041,11 +3041,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -3054,11 +3054,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 10.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
+    l2_2.x[i__ - 1] = 10.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l14_2.xu[0] = 20.;
     l14_2.xu[1] = 11.;
@@ -3083,7 +3083,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
+    l3_1.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
     return 0;
 labelL5:
@@ -3096,11 +3096,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -3109,12 +3109,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 10.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l14_2.xu[i__ - 1] = 42.;
+    l2_2.x[i__ - 1] = 10.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l14_2.xu[i__ - 1] = 42.;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -3139,10 +3139,10 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
+    l3_2.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
+    l3_2.g[1] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
     }
 labelL5:
     return 0;
@@ -3158,11 +3158,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -3175,17 +3175,17 @@ labelL1:
     l2_3.x[2] = -3.;
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l11_3.lxl[i__ - 1] = true;
-	l12_3.lxu[i__ - 1] = true;
-	l13_3.xl[i__ - 1] = -10.;
+    l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = true;
+    l13_3.xl[i__ - 1] = -10.;
 /* labelL6: */
-	l14_3.xu[i__ - 1] = 10.;
+    l14_3.xu[i__ - 1] = 10.;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L30: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     l20_6.fex = 0.;
     return 0;
@@ -3207,26 +3207,26 @@ labelL2:
 /* Computing 2nd power */
     d__8 = l2_3.x[3] - 1.;
     l6_1.fx = (d__1 * d__1 * 100. + d__3 * d__3 + d__4 * d__4 * 90. + d__6 * 
-	    d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[1] - 1.) * 
-	    19.8 * (l2_3.x[3] - 1.)) * 1e-5;
+        d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[1] - 1.) * 
+        19.8 * (l2_3.x[3] - 1.)) * 1e-5;
     return 0;
 labelL3:
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = (l2_3.x[0] * -400. * (l2_3.x[1] - d__1 * d__1) - (1. - 
-	    l2_3.x[0]) * 2.) * 1e-5;
+        l2_3.x[0]) * 2.) * 1e-5;
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[1] = ((l2_3.x[1] - d__1 * d__1) * 200. + (l2_3.x[1] - 1.) * 20.2 
-	    + (l2_3.x[3] - 1.) * 19.8) * 1e-5;
+        + (l2_3.x[3] - 1.) * 19.8) * 1e-5;
 /* Computing 2nd power */
     d__1 = l2_3.x[2];
     l4_3.gf[2] = (l2_3.x[2] * -360. * (l2_3.x[3] - d__1 * d__1) - (1. - 
-	    l2_3.x[2]) * 2.) * 1e-5;
+        l2_3.x[2]) * 2.) * 1e-5;
 /* Computing 2nd power */
     d__1 = l2_3.x[2];
     l4_3.gf[3] = ((l2_3.x[3] - d__1 * d__1) * 180. + (l2_3.x[3] - 1.) * 20.2 
-	    + (l2_3.x[1] - 1.) * 19.8) * 1e-5;
+        + (l2_3.x[1] - 1.) * 19.8) * 1e-5;
 labelL4:
     return 0;
 } /* tp38_ */
@@ -3241,11 +3241,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -3254,10 +3254,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 2.;
-	l11_3.lxl[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 2.;
+    l11_3.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     l20_6.nex = 1;
     l20_6.lex = true;
@@ -3282,22 +3282,22 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[2];
-	l3_2.g[0] = l2_3.x[1] - d__1 * (d__1 * d__1) - d__2 * d__2;
+    d__2 = l2_3.x[2];
+    l3_2.g[0] = l2_3.x[1] - d__1 * (d__1 * d__1) - d__2 * d__2;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[3];
-	l3_2.g[1] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
+    d__2 = l2_3.x[3];
+    l3_2.g[1] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
@@ -3305,7 +3305,7 @@ labelL5:
     l5_6.gg[4] = l2_3.x[2] * -2.;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_6.gg[1] = l2_3.x[0] * 2.;
     l5_6.gg[7] = l2_3.x[3] * -2.;
@@ -3323,11 +3323,11 @@ L8:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -3336,16 +3336,16 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = .8;
-	l11_3.lxl[i__ - 1] = false;
+    l2_3.x[i__ - 1] = .8;
+    l11_3.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 4; ++j) {
+    for (j = 1; j <= 4; ++j) {
 /* L15: */
-	    l5_7.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_7.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_7.gg[7] = -1.;
     l5_7.gg[5] = -1.;
@@ -3373,25 +3373,25 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
-	l3_3.g[0] = d__1 * (d__1 * d__1) + d__2 * d__2 - 1.;
+    d__2 = l2_3.x[1];
+    l3_3.g[0] = d__1 * (d__1 * d__1) + d__2 * d__2 - 1.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
-	l3_3.g[1] = d__1 * d__1 * l2_3.x[3] - l2_3.x[2];
+    d__1 = l2_3.x[0];
+    l3_3.g[1] = d__1 * d__1 * l2_3.x[3] - l2_3.x[2];
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[3];
-	l3_3.g[2] = d__1 * d__1 - l2_3.x[1];
+    d__1 = l2_3.x[3];
+    l3_3.g[2] = d__1 * d__1 - l2_3.x[1];
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
@@ -3399,7 +3399,7 @@ labelL5:
     l5_7.gg[3] = l2_3.x[1] * 2.;
 L7:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_7.gg[1] = l2_3.x[0] * 2. * l2_3.x[3];
 /* Computing 2nd power */
@@ -3407,7 +3407,7 @@ L7:
     l5_7.gg[10] = d__1 * d__1;
 L8:
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_7.gg[11] = l2_3.x[3] * 2.;
 labelL9:
@@ -3420,11 +3420,11 @@ labelL9:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -3433,11 +3433,11 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 2.;
-	l11_3.lxl[i__ - 1] = true;
-	l12_3.lxu[i__ - 1] = true;
+    l2_3.x[i__ - 1] = 2.;
+    l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = true;
 /* labelL6: */
-	l13_3.xl[i__ - 1] = 0.;
+    l13_3.xl[i__ - 1] = 0.;
     }
     l14_3.xu[0] = 1.;
     l14_3.xu[1] = 1.;
@@ -3466,7 +3466,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_3.x[0] + l2_3.x[1] * 2. + l2_3.x[2] * 2. - l2_3.x[3];
+    l3_1.g[0] = l2_3.x[0] + l2_3.x[1] * 2. + l2_3.x[2] * 2. - l2_3.x[3];
     }
 labelL5:
     return 0;
@@ -3482,11 +3482,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -3495,10 +3495,10 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 1.;
-	l12_3.lxu[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 1.;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l5_6.gg[0] = 1.;
     l5_6.gg[2] = 0.;
@@ -3528,24 +3528,24 @@ labelL2:
 labelL3:
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L21: */
-	l4_3.gf[i__ - 1] = (l2_3.x[i__ - 1] - (Real) i__) * 2.;
+    l4_3.gf[i__ - 1] = (l2_3.x[i__ - 1] - (Real) i__) * 2.;
     }
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_3.x[0] - 2.;
+    l3_2.g[0] = l2_3.x[0] - 2.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[2];
+    d__1 = l2_3.x[2];
 /* Computing 2nd power */
-	d__2 = l2_3.x[3];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 2.;
+    d__2 = l2_3.x[3];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 2.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_6.gg[5] = l2_3.x[2] * 2.;
     l5_6.gg[7] = l2_3.x[3] * 2.;
@@ -3563,11 +3563,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -3576,10 +3576,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 0.;
-	l11_3.lxl[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 0.;
+    l11_3.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
@@ -3600,8 +3600,8 @@ labelL2:
 /* Computing 2nd power */
     d__4 = l2_3.x[3];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 * 2. + d__4 * d__4 - 
-	    l2_3.x[0] * 5. - l2_3.x[1] * 5. - l2_3.x[2] * 21. + l2_3.x[3] * 
-	    7.;
+        l2_3.x[0] * 5. - l2_3.x[1] * 5. - l2_3.x[2] * 21. + l2_3.x[3] * 
+        7.;
     return 0;
 labelL3:
     l4_3.gf[0] = l2_3.x[0] * 2. - 5.;
@@ -3612,42 +3612,42 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
+    d__3 = l2_3.x[2];
 /* Computing 2nd power */
-	d__4 = l2_3.x[3];
-	l3_3.g[0] = -(d__1 * d__1) - d__2 * d__2 - d__3 * d__3 - d__4 * d__4 
-		- l2_3.x[0] + l2_3.x[1] - l2_3.x[2] + l2_3.x[3] + 8.;
+    d__4 = l2_3.x[3];
+    l3_3.g[0] = -(d__1 * d__1) - d__2 * d__2 - d__3 * d__3 - d__4 * d__4 
+        - l2_3.x[0] + l2_3.x[1] - l2_3.x[2] + l2_3.x[3] + 8.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
+    d__3 = l2_3.x[2];
 /* Computing 2nd power */
-	d__4 = l2_3.x[3];
-	l3_3.g[1] = -(d__1 * d__1) - d__2 * d__2 * 2. - d__3 * d__3 - d__4 * 
-		d__4 * 2. + l2_3.x[0] + l2_3.x[3] + 10.;
+    d__4 = l2_3.x[3];
+    l3_3.g[1] = -(d__1 * d__1) - d__2 * d__2 * 2. - d__3 * d__3 - d__4 * 
+        d__4 * 2. + l2_3.x[0] + l2_3.x[3] + 10.;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
-	l3_3.g[2] = d__1 * d__1 * -2. - d__2 * d__2 - d__3 * d__3 - l2_3.x[0] 
-		* 2. + l2_3.x[1] + l2_3.x[3] + 5.;
+    d__3 = l2_3.x[2];
+    l3_3.g[2] = d__1 * d__1 * -2. - d__2 * d__2 - d__3 * d__3 - l2_3.x[0] 
+        * 2. + l2_3.x[1] + l2_3.x[3] + 5.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_7.gg[0] = l2_3.x[0] * -2. - 1.;
     l5_7.gg[3] = l2_3.x[1] * -2. + 1.;
@@ -3655,7 +3655,7 @@ labelL5:
     l5_7.gg[9] = l2_3.x[3] * -2. + 1.;
 L7:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_7.gg[1] = l2_3.x[0] * -2. + 1.;
     l5_7.gg[4] = l2_3.x[1] * -4.;
@@ -3663,7 +3663,7 @@ L7:
     l5_7.gg[10] = l2_3.x[3] * -4. + 1.;
 L8:
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_7.gg[2] = l2_3.x[0] * -4. - 2.;
     l5_7.gg[5] = l2_3.x[1] * -2. + 1.;
@@ -3678,11 +3678,11 @@ labelL9:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -3691,17 +3691,17 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 0.;
-	l13_3.xl[i__ - 1] = 0.;
-	l11_3.lxl[i__ - 1] = true;
+    l2_3.x[i__ - 1] = 0.;
+    l13_3.xl[i__ - 1] = 0.;
+    l11_3.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 4; ++j) {
+    for (j = 1; j <= 4; ++j) {
 /* L15: */
-	    l5_8.gg[i__ + j * 6 - 7] = 0.;
-	}
+        l5_8.gg[i__ + j * 6 - 7] = 0.;
+    }
     }
     l5_8.gg[0] = -1.;
     l5_8.gg[6] = -2.;
@@ -3725,8 +3725,8 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_3.x[0] - l2_3.x[1] - l2_3.x[2] - l2_3.x[0] * l2_3.x[2] + 
-	    l2_3.x[0] * l2_3.x[3] + l2_3.x[1] * l2_3.x[2] - l2_3.x[1] * 
-	    l2_3.x[3];
+        l2_3.x[0] * l2_3.x[3] + l2_3.x[1] * l2_3.x[2] - l2_3.x[1] * 
+        l2_3.x[3];
     return 0;
 labelL3:
     l4_3.gf[0] = 1. - l2_3.x[2] + l2_3.x[3];
@@ -3736,22 +3736,22 @@ labelL3:
     return 0;
 labelL4:
     if (l9_6.index1[0]) {
-	l3_5.g[0] = 8. - l2_3.x[0] - l2_3.x[1] * 2.;
+    l3_5.g[0] = 8. - l2_3.x[0] - l2_3.x[1] * 2.;
     }
     if (l9_6.index1[1]) {
-	l3_5.g[1] = 12. - l2_3.x[0] * 4. - l2_3.x[1];
+    l3_5.g[1] = 12. - l2_3.x[0] * 4. - l2_3.x[1];
     }
     if (l9_6.index1[2]) {
-	l3_5.g[2] = 12. - l2_3.x[0] * 3. - l2_3.x[1] * 4.;
+    l3_5.g[2] = 12. - l2_3.x[0] * 3. - l2_3.x[1] * 4.;
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = 8. - l2_3.x[2] * 2. - l2_3.x[3];
+    l3_5.g[3] = 8. - l2_3.x[2] * 2. - l2_3.x[3];
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = 8. - l2_3.x[2] - l2_3.x[3] * 2.;
+    l3_5.g[4] = 8. - l2_3.x[2] - l2_3.x[3] * 2.;
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = 5. - l2_3.x[2] - l2_3.x[3];
+    l3_5.g[5] = 5. - l2_3.x[2] - l2_3.x[3];
     }
 labelL5:
     return 0;
@@ -3763,11 +3763,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 5;
@@ -3776,24 +3776,24 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = true;
-	l12_4.lxu[i__ - 1] = true;
-	l13_4.xl[i__ - 1] = 0.;
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
+    l13_4.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l14_4.xu[i__ - 1] = (Real) i__;
+    l14_4.xu[i__ - 1] = (Real) i__;
     }
     l20_7.lex = true;
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = (Real) i__;
+    l20_7.xex[i__ - 1] = (Real) i__;
     }
     l20_7.fex = 1.;
     return 0;
 labelL2:
     l6_1.fx = 2. - l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4] /
-	     120.;
+         120.;
     return 0;
 labelL3:
     l4_4.gf[0] = -l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4] / 120.;
@@ -3815,11 +3815,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -3833,9 +3833,9 @@ labelL1:
     l2_4.x[3] = 2.;
     l2_4.x[4] = 2.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[2] = 0.;
     l5_4.gg[4] = 0.;
@@ -3846,7 +3846,7 @@ labelL1:
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = 1.;
+    l20_7.xex[i__ - 1] = 1.;
     }
     l20_7.fex = 0.;
     return 0;
@@ -3875,20 +3875,20 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[0];
-	l3_2.g[0] = d__1 * d__1 * l2_4.x[3] + std::sin(l2_4.x[3] - l2_4.x[4]) - 1.;
+    d__1 = l2_4.x[0];
+    l3_2.g[0] = d__1 * d__1 * l2_4.x[3] + std::sin(l2_4.x[3] - l2_4.x[4]) - 1.;
     }
     if (l9_3.index1[1]) {
 /* Computing 4th power */
-	d__1 = l2_4.x[2], d__1 *= d__1;
+    d__1 = l2_4.x[2], d__1 *= d__1;
 /* Computing 2nd power */
-	d__2 = l2_4.x[3];
-	l3_2.g[1] = l2_4.x[1] + d__1 * d__1 * (d__2 * d__2) - 2.;
+    d__2 = l2_4.x[3];
+    l3_2.g[1] = l2_4.x[1] + d__1 * d__1 * (d__2 * d__2) - 2.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_4.gg[0] = l2_4.x[0] * 2. * l2_4.x[3];
     l5_4.gg[8] = -std::cos(l2_4.x[3] - l2_4.x[4]);
@@ -3897,7 +3897,7 @@ labelL5:
     l5_4.gg[6] = d__1 * d__1 - l5_4.gg[8];
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 3rd power */
     d__1 = l2_4.x[2];
@@ -3922,11 +3922,11 @@ L8:
     static Real v1, v2, v3, v4;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -3940,15 +3940,15 @@ labelL1:
     l2_4.x[3] = 2. - l2_4.x[1];
     l2_4.x[4] = .5;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L15: */
-	    l5_9.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_9.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_9.gg[0] = 1.;
     l5_9.gg[4] = 1.;
@@ -3957,7 +3957,7 @@ labelL1:
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = 1.;
+    l20_7.xex[i__ - 1] = 1.;
     }
     l20_7.fex = 0.;
     return 0;
@@ -3990,23 +3990,23 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[1];
+    d__1 = l2_4.x[1];
 /* Computing 3rd power */
-	d__2 = l2_4.x[2];
-	l3_3.g[0] = l2_4.x[0] + d__1 * d__1 + d__2 * (d__2 * d__2) - 3.;
+    d__2 = l2_4.x[2];
+    l3_3.g[0] = l2_4.x[0] + d__1 * d__1 + d__2 * (d__2 * d__2) - 3.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[2];
-	l3_3.g[1] = l2_4.x[1] - d__1 * d__1 + l2_4.x[3] - 1.;
+    d__1 = l2_4.x[2];
+    l3_3.g[1] = l2_4.x[1] - d__1 * d__1 + l2_4.x[3] - 1.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[0] * l2_4.x[4] - 1.;
+    l3_3.g[2] = l2_4.x[0] * l2_4.x[4] - 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_9.gg[3] = l2_4.x[1] * 2.;
 /* Computing 2nd power */
@@ -4014,11 +4014,11 @@ labelL5:
     l5_9.gg[6] = d__1 * d__1 * 3.;
 L7:
     if (l10_4.index2[1]) {
-	l5_9.gg[7] = l2_4.x[2] * -2.;
+    l5_9.gg[7] = l2_4.x[2] * -2.;
     }
 /* L8: */
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_9.gg[2] = l2_4.x[4];
     l5_9.gg[14] = l2_4.x[0];
@@ -4036,11 +4036,11 @@ labelL9:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -4054,15 +4054,15 @@ labelL1:
     l2_4.x[3] = 2.;
     l2_4.x[4] = -2.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[1] = 0.;
     l5_4.gg[3] = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL20: */
-	l5_4.gg[(i__ << 1) - 2] = 1.;
+    l5_4.gg[(i__ << 1) - 2] = 1.;
     }
     l5_4.gg[5] = 1.;
     l5_4.gg[7] = -2.;
@@ -4071,7 +4071,7 @@ labelL1:
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = 1.;
+    l20_7.xex[i__ - 1] = 1.;
     }
     l20_7.fex = 0.;
     return 0;
@@ -4093,11 +4093,11 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_4.x[0] + l2_4.x[1] + l2_4.x[2] + l2_4.x[3] + l2_4.x[4] 
-		- 5.;
+    l3_2.g[0] = l2_4.x[0] + l2_4.x[1] + l2_4.x[2] + l2_4.x[3] + l2_4.x[4] 
+        - 5.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_4.x[2] - (l2_4.x[3] + l2_4.x[4]) * 2. + 3.;
+    l3_2.g[1] = l2_4.x[2] - (l2_4.x[3] + l2_4.x[4]) * 2. + 3.;
     }
 labelL5:
     return 0;
@@ -4113,11 +4113,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -4131,9 +4131,9 @@ labelL1:
     l2_4.x[3] = -3.;
     l2_4.x[4] = .8;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[8] = 0.;
     l5_4.gg[1] = 0.;
@@ -4149,7 +4149,7 @@ labelL1:
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = 1.;
+    l20_7.xex[i__ - 1] = 1.;
     }
     l20_7.fex = 0.;
     return 0;
@@ -4163,7 +4163,7 @@ labelL2:
 /* Computing 6th power */
     d__4 = l2_4.x[4] - 1., d__4 *= d__4;
     l6_1.fx = (d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * (d__4 * d__4))
-	     * .001;
+         * .001;
     return 0;
 labelL3:
     l4_4.gf[0] = (l2_4.x[0] - l2_4.x[1]) * 2. * .001;
@@ -4178,10 +4178,10 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_4.x[0] + l2_4.x[1] + l2_4.x[2] + l2_4.x[3] * 4. - 7.;
+    l3_2.g[0] = l2_4.x[0] + l2_4.x[1] + l2_4.x[2] + l2_4.x[3] * 4. - 7.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_4.x[2] + l2_4.x[4] * 5. - 6.;
+    l3_2.g[1] = l2_4.x[2] + l2_4.x[4] * 5. - 6.;
     }
 labelL5:
     return 0;
@@ -4198,11 +4198,11 @@ labelL5:
     static Real v1, v2, v3, v4;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -4216,15 +4216,15 @@ labelL1:
     l2_4.x[3] = 5.;
     l2_4.x[4] = -5.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L15: */
-	    l5_9.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_9.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_9.gg[0] = 1.;
     l5_9.gg[3] = 2.;
@@ -4239,7 +4239,7 @@ labelL1:
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = 1.;
+    l20_7.xex[i__ - 1] = 1.;
     }
     l20_7.fex = 0.;
     return 0;
@@ -4271,13 +4271,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 2. + l2_4.x[2] * 3. - 6.;
+    l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 2. + l2_4.x[2] * 3. - 6.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[1] + l2_4.x[2] * 2. + l2_4.x[3] * 3. - 6.;
+    l3_3.g[1] = l2_4.x[1] + l2_4.x[2] * 2. + l2_4.x[3] * 3. - 6.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[2] + l2_4.x[3] * 2. + l2_4.x[4] * 3. - 6.;
+    l3_3.g[2] = l2_4.x[2] + l2_4.x[3] * 2. + l2_4.x[4] * 3. - 6.;
     }
 labelL5:
     return 0;
@@ -4293,11 +4293,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -4311,15 +4311,15 @@ labelL1:
     l2_4.x[3] = -1.;
     l2_4.x[4] = .5;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L15: */
-	    l5_9.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_9.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_9.gg[0] = 1.;
     l5_9.gg[3] = 3.;
@@ -4332,7 +4332,7 @@ labelL1:
     l20_7.nex = 1;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l20_7.xex[i__ - 1] = 1.;
+    l20_7.xex[i__ - 1] = 1.;
     }
     l20_7.fex = 0.;
     return 0;
@@ -4356,13 +4356,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3. - 4.;
+    l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3. - 4.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
+    l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
+    l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
 labelL5:
     return 0;
@@ -4378,11 +4378,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -4391,16 +4391,16 @@ labelL1:
     l1_1.neli = 3;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = false;
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L15: */
-	    l5_9.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_9.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_9.gg[0] = 1.;
     l5_9.gg[3] = 3.;
@@ -4438,13 +4438,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
+    l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
+    l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
+    l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
 labelL5:
     return 0;
@@ -4460,11 +4460,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -4473,18 +4473,18 @@ labelL1:
     l1_1.neli = 3;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = true;
-	l12_4.lxu[i__ - 1] = true;
-	l13_4.xl[i__ - 1] = -10.;
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
+    l13_4.xl[i__ - 1] = -10.;
 /* labelL6: */
-	l14_4.xu[i__ - 1] = 10.;
+    l14_4.xu[i__ - 1] = 10.;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L15: */
-	    l5_9.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_9.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_9.gg[0] = 1.;
     l5_9.gg[3] = 3.;
@@ -4522,13 +4522,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
+    l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
+    l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
+    l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
 labelL5:
     return 0;
@@ -4545,11 +4545,11 @@ labelL5:
     static Real q, v1, v2, v3, v4, v5, v6, v7, v8, v9, dq[6];
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 6;
@@ -4564,9 +4564,9 @@ labelL1:
     l2_5.x[4] = .003;
     l2_5.x[5] = 5e7;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l11_5.lxl[i__ - 1] = true;
+    l11_5.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_5.lxu[i__ - 1] = true;
+    l12_5.lxu[i__ - 1] = true;
     }
     l13_5.xl[0] = 0.;
     l13_5.xl[1] = -10.;
@@ -4584,7 +4584,7 @@ labelL1:
     l5_3.gg[1] = 4e3;
     for (i__ = 3; i__ <= 6; ++i__) {
 /* L30: */
-	l5_3.gg[i__ - 1] = (float)0.;
+    l5_3.gg[i__ - 1] = (float)0.;
     }
     l20_4.lex = true;
     l20_4.nex = 1;
@@ -4619,8 +4619,8 @@ labelL2:
 /* Computing 2nd power */
     d__6 = l2_5.x[5] - 1e8;
     q = (d__1 * d__1 * 1.5625e-8 + v1 * 5e-5 * v2 + d__2 * d__2) * v7 + d__3 *
-	     d__3 * v8 + d__4 * d__4 * 4e-4 + d__5 * d__5 * 400. + d__6 * 
-	    d__6 * 4e-18;
+         d__3 * v8 + d__4 * d__4 * 4e-4 + d__5 * d__5 * 400. + d__6 * 
+        d__6 * 4e-18;
 /*      Q = ((X(1)-1.0D6)**2/6.4D+7 + (X(1)-1.0D+4)*(X(2)-1.0D0)/2.0D4 */
 /*     /       + (X(2)-1.0D0)**2)*(X(3)-2.0D6)**2/(0.96*4.9D13) */
 /*     /       + (X(4)-1.0D1)**2/2.5D3 + (X(5)-1.0D-3)**2/2.5D-3 */
@@ -4650,8 +4650,8 @@ labelL3:
 /* Computing 2nd power */
     d__6 = v6;
     q = (d__1 * d__1 * 1.5625e-8 + v1 * 5e-5 * v2 + d__2 * d__2) * v7 + d__3 *
-	     d__3 * v8 + d__4 * d__4 * 4e-4 + d__5 * d__5 * 400. + d__6 * 
-	    d__6 * 4e-18;
+         d__3 * v8 + d__4 * d__4 * 4e-4 + d__5 * d__5 * 400. + d__6 * 
+        d__6 * 4e-18;
     dq[0] = (v1 * 3.125e-8 + v2 * 5e-5) * v7;
     dq[1] = (v1 * 5e-5 + v2 * 2.) * v7;
     dq[2] = v3 * v9;
@@ -4660,12 +4660,12 @@ labelL3:
     dq[5] = v6 * 8e-18;
     for (i__ = 1; i__ <= 6; ++i__) {
 /* L31: */
-	l4_5.gf[i__ - 1] = std::exp(q * -.5) * .5 * dq[i__ - 1];
+    l4_5.gf[i__ - 1] = std::exp(q * -.5) * .5 * dq[i__ - 1];
     }
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_5.x[0] + l2_5.x[1] * 4e3 - 17600.;
+    l3_1.g[0] = l2_5.x[0] + l2_5.x[1] * 4e3 - 17600.;
     }
 labelL5:
     return 0;
@@ -4679,11 +4679,11 @@ labelL5:
     static Real v1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 6;
@@ -4698,20 +4698,20 @@ labelL1:
     l2_5.x[4] = 0.;
     l2_5.x[5] = 2.;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l11_5.lxl[i__ - 1] = true;
-	l12_5.lxu[i__ - 1] = false;
+    l11_5.lxl[i__ - 1] = true;
+    l12_5.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_5.xl[i__ - 1] = 0.;
+    l13_5.xl[i__ - 1] = 0.;
     }
     l12_5.lxu[0] = true;
     l12_5.lxu[3] = true;
     l14_5.xu[0] = 1.;
     l14_5.xu[3] = 1.;
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 6; ++j) {
+    for (j = 1; j <= 6; ++j) {
 /* L15: */
-	    l5_10.gg[i__ + j * 6 - 7] = 0.;
-	}
+        l5_10.gg[i__ + j * 6 - 7] = 0.;
+    }
     }
     l4_5.gf[1] = 2.;
     l4_5.gf[2] = 0.;
@@ -4744,7 +4744,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_5.x[0] + l2_5.x[1] * 2. + l2_5.x[4] * 4. + std::exp(l2_5.x[0] * 
-	    l2_5.x[3]);
+        l2_5.x[3]);
     return 0;
 labelL3:
     v1 = std::exp(l2_5.x[0] * l2_5.x[3]);
@@ -4753,22 +4753,22 @@ labelL3:
     return 0;
 labelL4:
     if (l9_6.index1[0]) {
-	l3_5.g[0] = l2_5.x[0] + l2_5.x[1] * 2. + l2_5.x[4] * 5. - 6.;
+    l3_5.g[0] = l2_5.x[0] + l2_5.x[1] * 2. + l2_5.x[4] * 5. - 6.;
     }
     if (l9_6.index1[1]) {
-	l3_5.g[1] = l2_5.x[0] + l2_5.x[1] + l2_5.x[2] - 3.;
+    l3_5.g[1] = l2_5.x[0] + l2_5.x[1] + l2_5.x[2] - 3.;
     }
     if (l9_6.index1[2]) {
-	l3_5.g[2] = l2_5.x[3] + l2_5.x[4] + l2_5.x[5] - 2.;
+    l3_5.g[2] = l2_5.x[3] + l2_5.x[4] + l2_5.x[5] - 2.;
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = l2_5.x[0] + l2_5.x[3] - 1.;
+    l3_5.g[3] = l2_5.x[0] + l2_5.x[3] - 1.;
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = l2_5.x[1] + l2_5.x[4] - 2.;
+    l3_5.g[4] = l2_5.x[1] + l2_5.x[4] - 2.;
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = l2_5.x[2] + l2_5.x[5] - 2.;
+    l3_5.g[5] = l2_5.x[2] + l2_5.x[5] - 2.;
     }
 labelL5:
     return 0;
@@ -4784,11 +4784,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 7;
@@ -4800,9 +4800,9 @@ labelL1:
     l2_6.x[1] = 1.;
     l2_6.x[2] = 1.;
     for (i__ = 1; i__ <= 7; ++i__) {
-	l11_6.lxl[i__ - 1] = false;
+    l11_6.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_6.lxu[i__ - 1] = false;
+    l12_6.lxu[i__ - 1] = false;
     }
     l2_6.x[3] = std::asin(std::sqrt(.23809523809523808));
     l2_6.x[4] = l2_6.x[3];
@@ -4810,13 +4810,13 @@ labelL1:
     l2_6.x[6] = std::asin(std::sqrt(.69444444444444442));
     for (i__ = 4; i__ <= 7; ++i__) {
 /* L30: */
-	l4_6.gf[i__ - 1] = 0.;
+    l4_6.gf[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-	for (j = 1; j <= 7; ++j) {
+    for (j = 1; j <= 7; ++j) {
 /* L15: */
-	    l5_11.gg[i__ + (j << 2) - 5] = 0.;
-	}
+        l5_11.gg[i__ + (j << 2) - 5] = 0.;
+    }
     }
     l5_11.gg[0] = 1.;
     l5_11.gg[5] = 1.;
@@ -4846,38 +4846,38 @@ labelL3:
 labelL4:
     if (l9_7.index1[0]) {
 /* Computing 2nd power */
-	d__1 = std::sin(l2_6.x[3]);
-	l3_6.g[0] = l2_6.x[0] - d__1 * d__1 * 4.2;
+    d__1 = std::sin(l2_6.x[3]);
+    l3_6.g[0] = l2_6.x[0] - d__1 * d__1 * 4.2;
     }
     if (l9_7.index1[1]) {
 /* Computing 2nd power */
-	d__1 = std::sin(l2_6.x[4]);
-	l3_6.g[1] = l2_6.x[1] - d__1 * d__1 * 4.2;
+    d__1 = std::sin(l2_6.x[4]);
+    l3_6.g[1] = l2_6.x[1] - d__1 * d__1 * 4.2;
     }
     if (l9_7.index1[2]) {
 /* Computing 2nd power */
-	d__1 = std::sin(l2_6.x[5]);
-	l3_6.g[2] = l2_6.x[2] - d__1 * d__1 * 4.2;
+    d__1 = std::sin(l2_6.x[5]);
+    l3_6.g[2] = l2_6.x[2] - d__1 * d__1 * 4.2;
     }
     if (l9_7.index1[3]) {
 /* Computing 2nd power */
-	d__1 = std::sin(l2_6.x[6]);
-	l3_6.g[3] = l2_6.x[0] + l2_6.x[1] * 2. + l2_6.x[2] * 2. - d__1 * d__1 
-		* 7.2;
+    d__1 = std::sin(l2_6.x[6]);
+    l3_6.g[3] = l2_6.x[0] + l2_6.x[1] * 2. + l2_6.x[2] * 2. - d__1 * d__1 
+        * 7.2;
     }
     return 0;
 labelL5:
     if (l10_7.index2[0]) {
-	l5_11.gg[12] = std::sin(l2_6.x[3]) * -8.4 * std::cos(l2_6.x[3]);
+    l5_11.gg[12] = std::sin(l2_6.x[3]) * -8.4 * std::cos(l2_6.x[3]);
     }
     if (l10_7.index2[1]) {
-	l5_11.gg[17] = std::sin(l2_6.x[4]) * -8.4 * std::cos(l2_6.x[4]);
+    l5_11.gg[17] = std::sin(l2_6.x[4]) * -8.4 * std::cos(l2_6.x[4]);
     }
     if (l10_7.index2[2]) {
-	l5_11.gg[22] = std::sin(l2_6.x[5]) * -8.4 * std::cos(l2_6.x[5]);
+    l5_11.gg[22] = std::sin(l2_6.x[5]) * -8.4 * std::cos(l2_6.x[5]);
     }
     if (l10_7.index2[3]) {
-	l5_11.gg[27] = std::sin(l2_6.x[6]) * -14.4 * std::cos(l2_6.x[6]);
+    l5_11.gg[27] = std::sin(l2_6.x[6]) * -14.4 * std::cos(l2_6.x[6]);
     }
     return 0;
 } /* tp56_ */
@@ -4892,12 +4892,12 @@ labelL5:
     /* Local variables */
     static Real a[44], b[44], f[44];
     static int i__, j;
-    static Real s[2], t, v1, df[88]	/* was [44][2] */;
+    static Real s[2], t, v1, df[88]    /* was [44][2] */;
 
     if (*mode - 2 >= 0) {
-	goto L18;
+    goto L18;
     } else {
-	goto labelL1;
+    goto labelL1;
     }
 labelL1:
     l1_1.n = 2;
@@ -4908,9 +4908,9 @@ labelL1:
     l2_1.x[0] = .42;
     l2_1.x[1] = 5.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l13_1.xl[0] = .4;
     l13_1.xl[1] = -4.;
@@ -4921,40 +4921,40 @@ labelL1:
     return 0;
 L18:
     for (i__ = 1; i__ <= 2; ++i__) {
-	a[i__ - 1] = 8.;
-	a[i__ + 15] = 18.;
-	a[i__ + 29] = 28.;
-	a[i__ + 34] = 32.;
-	a[i__ + 37] = 36.;
-	a[i__ + 39] = 38.;
-	b[i__ - 1] = .49;
-	b[i__ + 5] = .46;
-	b[i__ + 10] = .43;
-	b[i__ + 13] = .43;
-	b[i__ + 17] = .42;
-	b[i__ + 20] = .41;
-	b[i__ + 24] = .4;
-	b[i__ + 28] = .41;
-	b[i__ + 35] = .4;
-	b[i__ + 39] = .4;
+    a[i__ - 1] = 8.;
+    a[i__ + 15] = 18.;
+    a[i__ + 29] = 28.;
+    a[i__ + 34] = 32.;
+    a[i__ + 37] = 36.;
+    a[i__ + 39] = 38.;
+    b[i__ - 1] = .49;
+    b[i__ + 5] = .46;
+    b[i__ + 10] = .43;
+    b[i__ + 13] = .43;
+    b[i__ + 17] = .42;
+    b[i__ + 20] = .41;
+    b[i__ + 24] = .4;
+    b[i__ + 28] = .41;
+    b[i__ + 35] = .4;
+    b[i__ + 39] = .4;
 /* labelL20: */
-	b[i__ + 41] = .39;
+    b[i__ + 41] = .39;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
-	a[i__ + 9] = 14.;
-	a[i__ + 12] = 16.;
-	a[i__ + 17] = 20.;
-	a[i__ + 20] = 22.;
-	a[i__ + 23] = 24.;
-	a[i__ + 26] = 26.;
-	a[i__ + 31] = 30.;
+    a[i__ + 9] = 14.;
+    a[i__ + 12] = 16.;
+    a[i__ + 17] = 20.;
+    a[i__ + 20] = 22.;
+    a[i__ + 23] = 24.;
+    a[i__ + 26] = 26.;
+    a[i__ + 31] = 30.;
 /* L21: */
-	b[i__ + 30] = .4;
+    b[i__ + 30] = .4;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-	a[i__ + 1] = 10.;
+    a[i__ + 1] = 10.;
 /* L22: */
-	a[i__ + 5] = 12.;
+    a[i__ + 5] = 12.;
     }
     a[37] = 34.;
     a[42] = 40.;
@@ -4979,30 +4979,30 @@ L18:
     b[38] = .41;
     b[39] = .38;
     if ((i__1 = *mode - 4) < 0) {
-	goto L17;
+    goto L17;
     } else if (i__1 == 0) {
-	goto labelL4;
+    goto labelL4;
     } else {
-	goto labelL5;
+    goto labelL5;
     }
 L17:
     for (i__ = 1; i__ <= 44; ++i__) {
 /* L30: */
-	f[i__ - 1] = b[i__ - 1] - l2_1.x[0] - (.49 - l2_1.x[0]) * std::exp(-l2_1.x[
-		1] * (a[i__ - 1] - 8.));
+    f[i__ - 1] = b[i__ - 1] - l2_1.x[0] - (.49 - l2_1.x[0]) * std::exp(-l2_1.x[
+        1] * (a[i__ - 1] - 8.));
     }
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
     }
 labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
 /* L19: */
 /* Computing 2nd power */
-	d__1 = f[i__ - 1];
-	t += d__1 * d__1;
+    d__1 = f[i__ - 1];
+    t += d__1 * d__1;
     }
     l6_1.fx = t * (float)100.;
     return 0;
@@ -5010,13 +5010,13 @@ labelL3:
     s[0] = 0.;
     s[1] = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
-	v1 = std::exp(-l2_1.x[1] * (a[i__ - 1] - 8.));
-	df[i__ - 1] = v1 - 1.;
-	df[i__ + 43] = (a[i__ - 1] - 8.) * (.49 - l2_1.x[0]) * v1;
-	for (j = 1; j <= 2; ++j) {
+    v1 = std::exp(-l2_1.x[1] * (a[i__ - 1] - 8.));
+    df[i__ - 1] = v1 - 1.;
+    df[i__ + 43] = (a[i__ - 1] - 8.) * (.49 - l2_1.x[0]) * v1;
+    for (j = 1; j <= 2; ++j) {
 /* L32: */
-	    s[j - 1] += f[i__ - 1] * 2. * df[i__ + j * 44 - 45];
-	}
+        s[j - 1] += f[i__ - 1] * 2. * df[i__ + j * 44 - 45];
+    }
 /* L31: */
     }
     l4_1.gf[0] = s[0] * (float)100.;
@@ -5024,12 +5024,12 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = -l2_1.x[0] * l2_1.x[1] + l2_1.x[1] * .49 - .09;
+    l3_1.g[0] = -l2_1.x[0] * l2_1.x[1] + l2_1.x[1] * .49 - .09;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_1.gg[0] = -l2_1.x[1];
     l5_1.gg[1] = -l2_1.x[0] + .49;
@@ -5044,11 +5044,11 @@ L7:
     Real d__1, d__2, d__3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -5089,31 +5089,31 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_3.g[0] = d__1 * d__1 - l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_3.g[0] = d__1 * d__1 - l2_1.x[0];
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_3.g[1] = d__1 * d__1 - l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_3.g[1] = d__1 * d__1 - l2_1.x[1];
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_1.x[1];
+    l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
 labelL5:
     if (l10_4.index2[0]) {
-	l5_3.gg[3] = l2_1.x[1] * 2.;
+    l5_3.gg[3] = l2_1.x[1] * 2.;
     }
     if (l10_4.index2[1]) {
-	l5_3.gg[1] = l2_1.x[0] * 2.;
+    l5_3.gg[1] = l2_1.x[0] * 2.;
     }
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_3.gg[2] = l2_1.x[0] * 2.;
     l5_3.gg[5] = l2_1.x[1] * 2.;
@@ -5130,15 +5130,15 @@ labelL9:
     /* Local variables */
     static int i__;
     static Real x11, x12, x13, x14, x21, x22, x23, x24, xx12, xx21, 
-	    xx31;
+        xx31;
     static Real xx11;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -5149,10 +5149,10 @@ labelL1:
     l2_1.x[0] = 90.;
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = 75.;
     l14_1.xu[1] = 65.;
@@ -5176,12 +5176,12 @@ labelL2:
     x23 = x22 * x21;
     x24 = x23 * x21;
     l6_1.fx = x11 * 3.8112 - 75.196 - x12 * .12694 + x13 * .0020567 - x14 * 
-	    1.0345e-5 + x21 * 6.8306 - x11 * .030234 * x21 + x12 * .00128134 *
-	     x21 - x13 * 3.5256e-5 * x21 + x14 * 2.266e-7 * x21 - x22 * 
-	    .25645 + x23 * .0034604 - x24 * 1.3514e-5 + 28.106 / (x21 + 1.) + 
-	    x12 * 5.2375e-6 * x22 + x13 * 6.3e-8 * x22 - x13 * 7e-10 * x23 - 
-	    x11 * 3.4054e-4 * x22 + x11 * 1.6638e-6 * x23 + std::exp(x11 * 5e-4 * 
-	    x21) * 2.8673;
+        1.0345e-5 + x21 * 6.8306 - x11 * .030234 * x21 + x12 * .00128134 *
+         x21 - x13 * 3.5256e-5 * x21 + x14 * 2.266e-7 * x21 - x22 * 
+        .25645 + x23 * .0034604 - x24 * 1.3514e-5 + 28.106 / (x21 + 1.) + 
+        x12 * 5.2375e-6 * x22 + x13 * 6.3e-8 * x22 - x13 * 7e-10 * x23 - 
+        x11 * 3.4054e-4 * x22 + x11 * 1.6638e-6 * x23 + std::exp(x11 * 5e-4 * 
+        x21) * 2.8673;
     return 0;
 labelL3:
     x11 = l2_1.x[0];
@@ -5196,45 +5196,45 @@ labelL3:
     xx21 = x12 * x21;
     xx31 = x13 * x21;
     l4_1.gf[0] = 3.8112 - x11 * .25388 + x12 * .0061701 - x13 * 4.138e-5 - 
-	    x21 * .030234 + xx11 * .00256268 - xx21 * 1.05768e-4 + xx31 * 
-	    9.064e-7 + xx12 * 1.0475e-5 + x12 * 1.89e-7 * x22 - x12 * 2.1e-9 *
-	     x23 - x22 * 3.4054e-4 + x23 * 1.6638e-6 + x21 * .00143365 * std::exp(
-	    xx11 * 5e-4);
+        x21 * .030234 + xx11 * .00256268 - xx21 * 1.05768e-4 + xx31 * 
+        9.064e-7 + xx12 * 1.0475e-5 + x12 * 1.89e-7 * x22 - x12 * 2.1e-9 *
+         x23 - x22 * 3.4054e-4 + x23 * 1.6638e-6 + x21 * .00143365 * std::exp(
+        xx11 * 5e-4);
 /* Computing 2nd power */
     d__1 = x21 + 1.;
     l4_1.gf[1] = 6.8306 - x11 * .030234 + x12 * .00128134 - x13 * 3.5256e-5 + 
-	    x14 * 2.266e-7 - x21 * .5129 + x22 * .0103812 - x23 * 5.4056e-5 - 
-	    28.106 / (d__1 * d__1) + xx21 * 1.0475e-5 + xx31 * 1.26e-7 - x13 *
-	     2.1e-9 * x22 - xx11 * 6.8108e-4 + xx12 * 4.9914e-6 + x11 * 
-	    .00143365 * std::exp(xx11 * 5e-4);
+        x14 * 2.266e-7 - x21 * .5129 + x22 * .0103812 - x23 * 5.4056e-5 - 
+        28.106 / (d__1 * d__1) + xx21 * 1.0475e-5 + xx31 * 1.26e-7 - x13 *
+         2.1e-9 * x22 - xx11 * 6.8108e-4 + xx12 * 4.9914e-6 + x11 * 
+        .00143365 * std::exp(xx11 * 5e-4);
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
+    l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_3.g[1] = l2_1.x[1] - d__1 * d__1 * .008;
+    d__1 = l2_1.x[0];
+    l3_3.g[1] = l2_1.x[1] - d__1 * d__1 * .008;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1] - 50.;
-	l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
+    d__1 = l2_1.x[1] - 50.;
+    l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[0] = l2_1.x[1];
     l5_3.gg[3] = l2_1.x[0];
 L7:
     if (l10_4.index2[1]) {
-	l5_3.gg[1] = l2_1.x[0] * -.016;
+    l5_3.gg[1] = l2_1.x[0] * -.016;
     }
     if (l10_4.index2[2]) {
-	l5_3.gg[5] = (l2_1.x[1] - 50.) * 2.;
+    l5_3.gg[5] = (l2_1.x[1] - 50.) * 2.;
     }
     return 0;
 } /* tp59_ */
@@ -5250,11 +5250,11 @@ L7:
     static Real v1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -5263,12 +5263,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 2.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = -10.;
+    l2_2.x[i__ - 1] = 2.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = -10.;
 /* labelL6: */
-	l14_2.xu[i__ - 1] = 10.;
+    l14_2.xu[i__ - 1] = 10.;
     }
     l20_3.lex = false;
     l20_3.xex[0] = 1.10485902423;
@@ -5296,15 +5296,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[1];
+    d__1 = l2_2.x[1];
 /* Computing 4th power */
-	d__2 = l2_2.x[2], d__2 *= d__2;
-	l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt( 2.) * 3.;
+    d__2 = l2_2.x[2], d__2 *= d__2;
+    l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt( 2.) * 3.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[1];
@@ -5327,11 +5327,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -5340,10 +5340,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 0.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 0.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = false;
     l20_3.xex[0] = 5.32677015744;
@@ -5359,7 +5359,7 @@ labelL2:
 /* Computing 2nd power */
     d__3 = l2_2.x[2];
     l6_1.fx = d__1 * d__1 * 4. + d__2 * d__2 * 2. + d__3 * d__3 * 2. - l2_2.x[
-	    0] * 33. + l2_2.x[1] * 16. - l2_2.x[2] * 24.;
+        0] * 33. + l2_2.x[1] * 16. - l2_2.x[2] * 24.;
     return 0;
 labelL3:
     l4_2.gf[0] = l2_2.x[0] * 8. - 33.;
@@ -5369,21 +5369,21 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[1];
-	l3_2.g[0] = l2_2.x[0] * 3. - d__1 * d__1 * 2. - 7.;
+    d__1 = l2_2.x[1];
+    l3_2.g[0] = l2_2.x[0] * 3. - d__1 * d__1 * 2. - 7.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[2];
-	l3_2.g[1] = l2_2.x[0] * 4. - d__1 * d__1 - 11.;
+    d__1 = l2_2.x[2];
+    l3_2.g[1] = l2_2.x[0] * 4. - d__1 * d__1 - 11.;
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_3.gg[2] = l2_2.x[1] * -4.;
+    l5_3.gg[2] = l2_2.x[1] * -4.;
     }
     if (l10_3.index2[1]) {
-	l5_3.gg[5] = l2_2.x[2] * -2.;
+    l5_3.gg[5] = l2_2.x[2] * -2.;
     }
     l5_3.gg[0] = 3.;
     l5_3.gg[4] = 0.;
@@ -5402,12 +5402,12 @@ labelL5:
     /* Local variables */
     static int i__;
     static Real s, b1, b2, b3, c1, c2, c3, v1, v2, v3, v4, v5, v6, v7, 
-	    rb1, rb2, rb3, rc1, rc2, rc3;
+        rb1, rb2, rb3, rc1, rc2, rc3;
 
     if (*mode - 2 >= 0) {
-	goto L17;
+    goto L17;
     } else {
-	goto labelL1;
+    goto labelL1;
     }
 labelL1:
     l1_1.n = 3;
@@ -5419,12 +5419,12 @@ labelL1:
     l2_2.x[1] = .2;
     l2_2.x[2] = .1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = 0.;
-	l14_2.xu[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = 0.;
+    l14_2.xu[i__ - 1] = 1.;
 /* labelL6: */
-	l5_5.gg[i__ - 1] = 1.;
+    l5_5.gg[i__ - 1] = 1.;
     }
     l20_3.lex = false;
     l20_3.xex[0] = .61781329821;
@@ -5434,11 +5434,11 @@ labelL1:
     return 0;
 L17:
     if ((i__1 = *mode - 4) < 0) {
-	goto L18;
+    goto L18;
     } else if (i__1 == 0) {
-	goto labelL4;
+    goto labelL4;
     } else {
-	goto labelL5;
+    goto labelL5;
     }
 L18:
     b3 = l2_2.x[2] + .03;
@@ -5448,16 +5448,16 @@ L18:
     b1 = b2 + l2_2.x[0];
     c1 = b2 + l2_2.x[0] * .09;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
     }
 labelL2:
     v5 = b1 / c1;
     v6 = b2 / c2;
     v7 = b3 / c3;
     if (v5 <= 0. || v6 <= 0. || v7 <= 0.) {
-	goto L7;
+    goto L7;
     }
     l6_1.fx = (std::log(v5) * 255. + std::log(v6) * 280. + std::log(v7) * 290.) * -32.174;
     return 0;
@@ -5466,8 +5466,8 @@ L7:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_2.x[i__ - 1] - 5.;
-	s += d__1 * d__1;
+    d__1 = l2_2.x[i__ - 1] - 5.;
+    s += d__1 * d__1;
     }
     l6_1.fx = s + 1e3 - 26700.;
     return 0;
@@ -5488,7 +5488,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] - 1.;
+    l3_1.g[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] - 1.;
     }
 labelL5:
     return 0;
@@ -5504,11 +5504,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -5517,11 +5517,11 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 2.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 2.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l5_3.gg[0] = 8.;
     l5_3.gg[2] = 14.;
@@ -5540,7 +5540,7 @@ labelL2:
 /* Computing 2nd power */
     d__3 = l2_2.x[2];
     l6_1.fx = 1e3 - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 - l2_2.x[0] *
-	     l2_2.x[1] - l2_2.x[0] * l2_2.x[2];
+         l2_2.x[1] - l2_2.x[0] * l2_2.x[2];
     return 0;
 labelL3:
     l4_2.gf[0] = l2_2.x[0] * -2. - l2_2.x[1] - l2_2.x[2];
@@ -5549,21 +5549,21 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_2.x[0] * 8. + l2_2.x[1] * 14. + l2_2.x[2] * 7. - 56.;
+    l3_2.g[0] = l2_2.x[0] * 8. + l2_2.x[1] * 14. + l2_2.x[2] * 7. - 56.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 25.;
+    d__3 = l2_2.x[2];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 25.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_3.gg[1] = l2_2.x[0] * 2.;
     l5_3.gg[3] = l2_2.x[1] * 2.;
@@ -5582,11 +5582,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -5595,11 +5595,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 1e-5;
+    l13_2.xl[i__ - 1] = 1e-5;
     }
     l20_3.lex = false;
     l20_3.xex[0] = 108.734717597;
@@ -5609,7 +5609,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_2.x[0] * 5. + 5e4 / l2_2.x[0] + l2_2.x[1] * 20. + 7.2e4 / 
-	    l2_2.x[1] + l2_2.x[2] * 10. + 1.44e5 / l2_2.x[2];
+        l2_2.x[1] + l2_2.x[2] * 10. + 1.44e5 / l2_2.x[2];
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -5624,12 +5624,12 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 1. - 4. / l2_2.x[0] - 32. / l2_2.x[1] - 120. / l2_2.x[2];
+    l3_1.g[0] = 1. - 4. / l2_2.x[0] - 32. / l2_2.x[1] - 120. / l2_2.x[2];
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
@@ -5655,11 +5655,11 @@ L7:
     static Real v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -5671,9 +5671,9 @@ labelL1:
     l2_2.x[1] = 5.;
     l2_2.x[2] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l13_2.xl[0] = -4.5;
     l13_2.xl[1] = -4.5;
@@ -5706,17 +5706,17 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3;
+    d__3 = l2_2.x[2];
+    l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_5.gg[0] = l2_2.x[0] * -2.;
     l5_5.gg[1] = l2_2.x[1] * -2.;
@@ -5732,11 +5732,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -5748,11 +5748,11 @@ labelL1:
     l2_2.x[1] = 1.05;
     l2_2.x[2] = 2.9;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = 0.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l14_2.xu[i__ - 1] = 100.;
+    l14_2.xu[i__ - 1] = 100.;
     }
     l14_2.xu[2] = 10.;
     l4_2.gf[0] = -.8;
@@ -5774,18 +5774,18 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_2.x[1] - std::exp(l2_2.x[0]);
+    l3_2.g[0] = l2_2.x[1] - std::exp(l2_2.x[0]);
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_2.x[2] - std::exp(l2_2.x[1]);
+    l3_2.g[1] = l2_2.x[2] - std::exp(l2_2.x[1]);
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_3.gg[0] = -std::exp(l2_2.x[0]);
+    l5_3.gg[0] = -std::exp(l2_2.x[0]);
     }
     if (l10_3.index2[1]) {
-	l5_3.gg[3] = -std::exp(l2_2.x[1]);
+    l5_3.gg[3] = -std::exp(l2_2.x[1]);
     }
     return 0;
 } /* tp66_ */
@@ -5799,13 +5799,13 @@ labelL5:
     /* Local variables */
     static Real a[3];
     static int i__, j;
-    static Real y[8], v1, v2, v3, dy[24]	/* was [8][3] */, rx, y2c, 
-	    y4c, dy2c[3], dy4c[3];
+    static Real y[8], v1, v2, v3, dy[24]    /* was [8][3] */, rx, y2c, 
+        y4c, dy2c[3], dy4c[3];
 
     if (*mode - 2 >= 0) {
-	goto L17;
+    goto L17;
     } else {
-	goto labelL1;
+    goto labelL1;
     }
 labelL1:
     l1_1.n = 3;
@@ -5817,10 +5817,10 @@ labelL1:
     l2_2.x[1] = 1.2e4;
     l2_2.x[2] = 110.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 1e-5;
+    l13_2.xl[i__ - 1] = 1e-5;
     }
     l14_2.xu[0] = 2e3;
     l14_2.xu[1] = 1.6e4;
@@ -5855,14 +5855,14 @@ L100:
     dy2c[1] = v1 * dy[13];
     dy2c[2] = v1 * dy[21];
     if ((d__1 = y2c - y[1], std::abs(d__1)) - .001 <= 0.) {
-	goto L102;
+    goto L102;
     } else {
-	goto L101;
+    goto L101;
     }
 L101:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L103: */
-	dy[(i__ << 3) - 7] = dy2c[i__ - 1];
+    dy[(i__ << 3) - 7] = dy2c[i__ - 1];
     }
     y[1] = y2c;
     goto L100;
@@ -5870,7 +5870,7 @@ L102:
     y[3] = 93.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L104: */
-	dy[(i__ << 3) - 5] = 0.;
+    dy[(i__ << 3) - 5] = 0.;
     }
 L105:
 /* Computing 2nd power */
@@ -5879,54 +5879,54 @@ L105:
     y[7] = y[4] * 3. - 133.;
     y[6] = 35.82 - y[7] * .222;
     for (i__ = 1; i__ <= 3; ++i__) {
-	dy[(i__ << 3) - 4] = dy[(i__ << 3) - 3] * 1.098 - y[5] * .076 * dy[(
-		i__ << 3) - 3] + dy[(i__ << 3) - 5] * .325;
-	dy[(i__ << 3) - 1] = dy[(i__ << 3) - 4] * 3.;
+    dy[(i__ << 3) - 4] = dy[(i__ << 3) - 3] * 1.098 - y[5] * .076 * dy[(
+        i__ << 3) - 3] + dy[(i__ << 3) - 5] * .325;
+    dy[(i__ << 3) - 1] = dy[(i__ << 3) - 4] * 3.;
 /* L106: */
-	dy[(i__ << 3) - 2] = dy[(i__ << 3) - 1] * -.222;
+    dy[(i__ << 3) - 2] = dy[(i__ << 3) - 1] * -.222;
     }
     v3 = 1. / (y[1] * y[6] + l2_2.x[2] * 1e3);
     y4c = l2_2.x[2] * 9.8e4 * v3;
     for (i__ = 1; i__ <= 2; ++i__) {
 /* L107: */
 /* Computing 2nd power */
-	d__1 = y[1] * y[6] + l2_2.x[2] * 1e3;
-	dy4c[i__ - 1] = l2_2.x[2] * -9.8e4 * (y[1] * dy[(i__ << 3) - 2] + y[6]
-		 * dy[(i__ << 3) - 7]) / (d__1 * d__1);
+    d__1 = y[1] * y[6] + l2_2.x[2] * 1e3;
+    dy4c[i__ - 1] = l2_2.x[2] * -9.8e4 * (y[1] * dy[(i__ << 3) - 2] + y[6]
+         * dy[(i__ << 3) - 7]) / (d__1 * d__1);
     }
 /* Computing 2nd power */
     d__1 = v3;
     dy4c[2] = (y[1] * y[6] - l2_2.x[2] * (y[1] * dy[22] + y[6] * dy[17])) * 
-	    9.8e4 * (d__1 * d__1);
+        9.8e4 * (d__1 * d__1);
     if ((d__1 = y4c - y[3], std::abs(d__1)) - 1e-4 <= 0.) {
-	goto L109;
+    goto L109;
     } else {
-	goto L108;
+    goto L108;
     }
 L108:
     y[3] = y4c;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L110: */
-	dy[(i__ << 3) - 5] = dy4c[i__ - 1];
+    dy[(i__ << 3) - 5] = dy4c[i__ - 1];
     }
     goto L105;
 L109:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL2:
     l6_1.fx = -(y[1] * .063 * y[4] - l2_2.x[0] * 5.04 - y[2] * 3.36 - l2_2.x[
-	    1] * .035 - l2_2.x[2] * 10.);
+        1] * .035 - l2_2.x[2] * 10.);
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L120: */
-	a[i__ - 1] = (dy[(i__ << 3) - 7] * y[4] + dy[(i__ << 3) - 4] * y[1]) *
-		 -.063 + dy[(i__ << 3) - 6] * 3.36;
+    a[i__ - 1] = (dy[(i__ << 3) - 7] * y[4] + dy[(i__ << 3) - 4] * y[1]) *
+         -.063 + dy[(i__ << 3) - 6] * 3.36;
     }
     l4_2.gf[0] = a[0] + 5.04;
     l4_2.gf[1] = a[1] + .035;
@@ -5934,67 +5934,67 @@ labelL3:
     return 0;
 labelL4:
     if (l9_8.index1[0]) {
-	l3_7.g[0] = y[1];
+    l3_7.g[0] = y[1];
     }
     if (l9_8.index1[1]) {
-	l3_7.g[1] = y[2];
+    l3_7.g[1] = y[2];
     }
     if (l9_8.index1[2]) {
-	l3_7.g[2] = y[3] - 85.;
+    l3_7.g[2] = y[3] - 85.;
     }
     if (l9_8.index1[3]) {
-	l3_7.g[3] = y[4] - 90.;
+    l3_7.g[3] = y[4] - 90.;
     }
     if (l9_8.index1[4]) {
-	l3_7.g[4] = y[5] - 3.;
+    l3_7.g[4] = y[5] - 3.;
     }
     if (l9_8.index1[5]) {
-	l3_7.g[5] = y[6] - .01;
+    l3_7.g[5] = y[6] - .01;
     }
     if (l9_8.index1[6]) {
-	l3_7.g[6] = y[7] - 145.;
+    l3_7.g[6] = y[7] - 145.;
     }
     if (l9_8.index1[7]) {
-	l3_7.g[7] = 5e3 - y[1];
+    l3_7.g[7] = 5e3 - y[1];
     }
     if (l9_8.index1[8]) {
-	l3_7.g[8] = 2e3 - y[2];
+    l3_7.g[8] = 2e3 - y[2];
     }
     if (l9_8.index1[9]) {
-	l3_7.g[9] = 93. - y[3];
+    l3_7.g[9] = 93. - y[3];
     }
     if (l9_8.index1[10]) {
-	l3_7.g[10] = 95. - y[4];
+    l3_7.g[10] = 95. - y[4];
     }
     if (l9_8.index1[11]) {
-	l3_7.g[11] = 12. - y[5];
+    l3_7.g[11] = 12. - y[5];
     }
     if (l9_8.index1[12]) {
-	l3_7.g[12] = 4. - y[6];
+    l3_7.g[12] = 4. - y[6];
     }
     if (l9_8.index1[13]) {
-	l3_7.g[13] = 162. - y[7];
+    l3_7.g[13] = 162. - y[7];
     }
     return 0;
 labelL5:
     for (j = 1; j <= 7; ++j) {
-	if (! l10_8.index2[j - 1]) {
-	    goto L131;
-	}
-	for (i__ = 1; i__ <= 3; ++i__) {
+    if (! l10_8.index2[j - 1]) {
+        goto L131;
+    }
+    for (i__ = 1; i__ <= 3; ++i__) {
 /* L130: */
-	    l5_12.gg[j + i__ * 14 - 15] = dy[j + 1 + (i__ << 3) - 9];
-	}
+        l5_12.gg[j + i__ * 14 - 15] = dy[j + 1 + (i__ << 3) - 9];
+    }
 L131:
-	if (! l10_8.index2[j + 6]) {
-	    goto L133;
-	}
-	for (i__ = 1; i__ <= 3; ++i__) {
+    if (! l10_8.index2[j + 6]) {
+        goto L133;
+    }
+    for (i__ = 1; i__ <= 3; ++i__) {
 /* L132: */
-	    l5_12.gg[j + 7 + i__ * 14 - 15] = -dy[j + 1 + (i__ << 3) - 9];
-	}
+        l5_12.gg[j + 7 + i__ * 14 - 15] = -dy[j + 1 + (i__ << 3) - 9];
+    }
 L133:
-	;
+    ;
     }
     return 0;
 } /* tp67_ */
@@ -6013,8 +6013,8 @@ L133:
     static int kn1;
 
     switch(n__) {
-	case 1: goto L_tp69;
-	}
+    case 1: goto L_tp69;
+    }
 
     kn1 = 1;
     l20_6.xex[0] = .0678587452312;
@@ -6033,11 +6033,11 @@ L_tp69:
     l20_6.fex = -956.712887064;
 labelL9:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -6046,16 +6046,16 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_3.x[i__ - 1] = 1.;
-	l2_3.x[i__ + 1] = 1.;
-	l11_3.lxl[i__ - 1] = true;
-	l11_3.lxl[i__ + 1] = true;
-	l12_3.lxu[i__ - 1] = true;
-	l12_3.lxu[i__ + 1] = true;
-	l13_3.xl[i__ + 1] = 0.;
-	l14_3.xu[i__ - 1] = 100.;
+    l2_3.x[i__ - 1] = 1.;
+    l2_3.x[i__ + 1] = 1.;
+    l11_3.lxl[i__ - 1] = true;
+    l11_3.lxl[i__ + 1] = true;
+    l12_3.lxu[i__ - 1] = true;
+    l12_3.lxu[i__ + 1] = true;
+    l13_3.xl[i__ + 1] = 0.;
+    l14_3.xu[i__ - 1] = 100.;
 /* labelL6: */
-	l14_3.xu[i__ + 1] = 2.;
+    l14_3.xu[i__ + 1] = 2.;
     }
     l13_3.xl[0] = 1e-4;
     l13_3.xl[1] = 0.;
@@ -6079,7 +6079,7 @@ labelL1:
 labelL2:
     v1 = std::exp(l2_3.x[0]) - 1.;
     l6_1.fx = (a[kn1 - 1] * z__[kn1 - 1] - l2_3.x[3] * (b[kn1 - 1] * v1 - 
-	    l2_3.x[2]) / (v1 + l2_3.x[3])) / l2_3.x[0];
+        l2_3.x[2]) / (v1 + l2_3.x[3])) / l2_3.x[0];
     return 0;
 labelL3:
     v1 = std::exp(l2_3.x[0]);
@@ -6088,7 +6088,7 @@ labelL3:
     v4 = 1. / l2_3.x[0];
     v5 = (b[kn1 - 1] * v2 - l2_3.x[2]) * v4;
     l4_3.gf[0] = -((v1 * (l2_3.x[3] * b[kn1 - 1] + l2_3.x[2]) * v3 - v5) * 
-	    l2_3.x[3] * v3 + a[kn1 - 1] * z__[kn1 - 1] * v4) * v4;
+        l2_3.x[3] * v3 + a[kn1 - 1] * z__[kn1 - 1] * v4) * v4;
     l4_3.gf[2] = l2_3.x[3] * v4 * v3;
 /* Computing 2nd power */
     d__1 = v3;
@@ -6096,14 +6096,14 @@ labelL3:
     return 0;
 labelL4:
     if (! l9_3.index1[0]) {
-	goto L30;
+    goto L30;
     }
     d__1 = -l2_3.x[1];
     mdnord_(&d__1, &h1);
     l3_2.g[0] = l2_3.x[2] - h1 * 2.;
 L30:
     if (! l9_3.index1[1]) {
-	return 0;
+    return 0;
     }
     d__1 = -l2_3.x[1] + std::sqrt(z__[kn1 - 1]);
     mdnord_(&d__1, &h1);
@@ -6113,14 +6113,14 @@ L30:
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[1];
     l5_6.gg[2] = std::exp(d__1 * d__1 * -.5) * 2. / std::sqrt(std::atan(1.) * 8.);
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     h1 = -l2_3.x[1] - d__[kn1 - 1] * std::sqrt(z__[kn1 - 1]);
     h2 = -l2_3.x[1] + d__[kn1 - 1] * std::sqrt(z__[kn1 - 1]);
@@ -6155,17 +6155,17 @@ L8:
     static Real b, c__[19], f[19];
     static int i__, j;
     static Real s, t, h1, h2, h3, h4, h5, h6, h7, h8, h9, u1[19], u2[19]
-	    , v3[19], v4[19], z1, z2, v8[19], v9[19], z5, z6, z7, h10, df[76]	
-	    /* was [19][4] */, h30, h40, h11, h12, h13, h14, h15, h16, h17, 
-	    h18, v10, v11, v12, h19, h20, yc[19], h21, h22, h23, yo[19];
+        , v3[19], v4[19], z1, z2, v8[19], v9[19], z5, z6, z7, h10, df[76]    
+        /* was [19][4] */, h30, h40, h11, h12, h13, h14, h15, h16, h17, 
+        h18, v10, v11, v12, h19, h20, yc[19], h21, h22, h23, yo[19];
     static bool log__;
     static Real sum;
 
     log__ = false;
     if (*mode - 2 >= 0) {
-	goto L17;
+    goto L17;
     } else {
-	goto labelL1;
+    goto labelL1;
     }
 labelL1:
     l1_1.n = 4;
@@ -6178,11 +6178,11 @@ labelL1:
     l2_3.x[2] = .04;
     l2_3.x[3] = 2.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = true;
-	l11_3.lxl[i__ - 1] = true;
-	l13_3.xl[i__ - 1] = 1e-5;
+    l12_3.lxu[i__ - 1] = true;
+    l11_3.lxl[i__ - 1] = true;
+    l13_3.xl[i__ - 1] = 1e-5;
 /* labelL6: */
-	l14_3.xu[i__ - 1] = 100.;
+    l14_3.xu[i__ - 1] = 100.;
     }
     l14_3.xu[2] = 1.;
     l5_2.gg[0] = 0.;
@@ -6198,7 +6198,7 @@ L17:
     c__[0] = .1;
     for (i__ = 2; i__ <= 19; ++i__) {
 /* labelL20: */
-	c__[i__ - 1] = (Real) (i__ - 1);
+    c__[i__ - 1] = (Real) (i__ - 1);
     }
     yo[0] = .00189;
     yo[1] = .1038;
@@ -6220,11 +6220,11 @@ L17:
     yo[17] = .01509;
     yo[18] = .00189;
     if ((i__1 = *mode - 4) < 0) {
-	goto L18;
+    goto L18;
     } else if (i__1 == 0) {
-	goto labelL4;
+    goto labelL4;
     } else {
-	goto labelL5;
+    goto labelL5;
     }
 L18:
     b = l2_3.x[2] + (1. - l2_3.x[2]) * l2_3.x[3];
@@ -6241,13 +6241,13 @@ L18:
     v11 = b / l2_3.x[3];
     v12 = l2_3.x[0] / 6.2832;
     if (b < 0. || v10 < 0. || v11 < 0. || v12 < 0.) {
-	log__ = true;
+    log__ = true;
     }
     if (log__ && *mode == 2) {
-	goto L8;
+    goto L8;
     }
     if (log__ && *mode == 3) {
-	goto labelL9;
+    goto labelL9;
     }
     z1 = l2_3.x[2] * pow_dd(&b, &l2_3.x[1]);
     z2 = pow_dd(&v10, &c_b590);
@@ -6255,30 +6255,30 @@ L18:
     z6 = pow_dd(&v11, l2_3.x);
     z7 = pow_dd(&v12, &c_b590);
     for (i__ = 1; i__ <= 19; ++i__) {
-	d__1 = c__[i__ - 1] * h3;
-	v3[i__ - 1] = pow_dd(&d__1, &h2);
-	v4[i__ - 1] = std::exp(l2_3.x[1] * (1. - c__[i__ - 1] * h5));
-	d__1 = c__[i__ - 1] * h3;
-	v8[i__ - 1] = pow_dd(&d__1, &h1);
-	v9[i__ - 1] = std::exp(l2_3.x[0] * (1. - c__[i__ - 1] * h4));
-	u1[i__ - 1] = z1 * z2 * v3[i__ - 1] * v4[i__ - 1] * h7;
-	u2[i__ - 1] = z5 * z6 * z7 * v8[i__ - 1] * v9[i__ - 1] * h6;
-	yc[i__ - 1] = u1[i__ - 1] + u2[i__ - 1];
+    d__1 = c__[i__ - 1] * h3;
+    v3[i__ - 1] = pow_dd(&d__1, &h2);
+    v4[i__ - 1] = std::exp(l2_3.x[1] * (1. - c__[i__ - 1] * h5));
+    d__1 = c__[i__ - 1] * h3;
+    v8[i__ - 1] = pow_dd(&d__1, &h1);
+    v9[i__ - 1] = std::exp(l2_3.x[0] * (1. - c__[i__ - 1] * h4));
+    u1[i__ - 1] = z1 * z2 * v3[i__ - 1] * v4[i__ - 1] * h7;
+    u2[i__ - 1] = z5 * z6 * z7 * v8[i__ - 1] * v9[i__ - 1] * h6;
+    yc[i__ - 1] = u1[i__ - 1] + u2[i__ - 1];
 /* L30: */
-	f[i__ - 1] = yc[i__ - 1] - yo[i__ - 1];
+    f[i__ - 1] = yc[i__ - 1] - yo[i__ - 1];
     }
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
     }
 labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 19; ++i__) {
 /* L31: */
 /* Computing 2nd power */
-	d__1 = f[i__ - 1];
-	t += d__1 * d__1;
+    d__1 = f[i__ - 1];
+    t += d__1 * d__1;
     }
     l6_1.fx = t;
     return 0;
@@ -6304,61 +6304,61 @@ labelL3:
     h20 *= h10;
     h21 = h21 * h10 * l2_3.x[3];
     for (j = 1; j <= 19; ++j) {
-	h14 = h4 * c__[j - 1];
-	h15 = h5 * c__[j - 1];
-	if (h14 > 0.) {
-	    goto labelL10;
-	}
-	l4_3.gf[0] = (l2_3.x[0] - 5.) * 2.;
-	h30 = 1.;
-	goto labelL11;
+    h14 = h4 * c__[j - 1];
+    h15 = h5 * c__[j - 1];
+    if (h14 > 0.) {
+        goto labelL10;
+    }
+    l4_3.gf[0] = (l2_3.x[0] - 5.) * 2.;
+    h30 = 1.;
+    goto labelL11;
 labelL10:
-	df[j - 1] = u2[j - 1] * (h12 - h14 + std::log(h14));
+    df[j - 1] = u2[j - 1] * (h12 - h14 + std::log(h14));
 labelL11:
-	if (h15 > 0.) {
-	    goto labelL12;
-	}
-	l4_3.gf[1] = (l2_3.x[1] - 5.) * 2.;
-	h40 = 1.;
-	goto labelL13;
+    if (h15 > 0.) {
+        goto labelL12;
+    }
+    l4_3.gf[1] = (l2_3.x[1] - 5.) * 2.;
+    h40 = 1.;
+    goto labelL13;
 labelL12:
-	df[j + 18] = u1[j - 1] * (h13 - h15 + std::log(h15));
+    df[j + 18] = u1[j - 1] * (h13 - h15 + std::log(h15));
 labelL13:
-	df[j + 37] = u1[j - 1] * (h18 + c__[j - 1] * h16) + u2[j - 1] * (h19 
-		+ c__[j - 1] * h17);
+    df[j + 37] = u1[j - 1] * (h18 + c__[j - 1] * h16) + u2[j - 1] * (h19 
+        + c__[j - 1] * h17);
 /* L33: */
-	df[j + 56] = u1[j - 1] * (h22 * c__[j - 1] - h20) + u2[j - 1] * (h23 *
-		 c__[j - 1] - h21);
+    df[j + 56] = u1[j - 1] * (h22 * c__[j - 1] - h20) + u2[j - 1] * (h23 *
+         c__[j - 1] - h21);
     }
     if (h30 == 1. || h40 == 1.) {
-	goto labelL14;
+    goto labelL14;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-	s = 0.;
-	for (j = 1; j <= 19; ++j) {
-	    s += f[j - 1] * 2. * df[j + i__ * 19 - 20];
+    s = 0.;
+    for (j = 1; j <= 19; ++j) {
+        s += f[j - 1] * 2. * df[j + i__ * 19 - 20];
 /* L36: */
-	}
-	l4_3.gf[i__ - 1] = s;
+    }
+    l4_3.gf[i__ - 1] = s;
 /* L37: */
     }
     return 0;
 labelL14:
     for (i__ = 1; i__ <= 4; ++i__) {
-	if (i__ == 1 && h30 == 1.) {
-	    goto L38;
-	}
-	if (i__ == 2 && h40 == (float).1) {
-	    goto L38;
-	}
-	s = 0.;
-	for (j = 1; j <= 19; ++j) {
+    if (i__ == 1 && h30 == 1.) {
+        goto L38;
+    }
+    if (i__ == 2 && h40 == (float).1) {
+        goto L38;
+    }
+    s = 0.;
+    for (j = 1; j <= 19; ++j) {
 /* L39: */
-	    s += f[j - 1] * 2. * df[j + i__ * 19 - 20];
-	}
-	l4_3.gf[i__ - 1] = s;
+        s += f[j - 1] * 2. * df[j + i__ * 19 - 20];
+    }
+    l4_3.gf[i__ - 1] = s;
 L38:
-	;
+    ;
     }
     h30 = 0.;
     h40 = 0.;
@@ -6369,8 +6369,8 @@ L8:
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L40: */
 /* Computing 2nd power */
-	d__1 = l2_3.x[i__ - 1] - 5.;
-	sum += d__1 * d__1;
+    d__1 = l2_3.x[i__ - 1] - 5.;
+    sum += d__1 * d__1;
     }
     l6_1.fx = sum + 1e3 + .0075;
     return 0;
@@ -6378,17 +6378,17 @@ labelL9:
     log__ = false;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L41: */
-	l4_3.gf[i__ - 1] = (l2_3.x[i__ - 1] - 5.) * 2.;
+    l4_3.gf[i__ - 1] = (l2_3.x[i__ - 1] - 5.) * 2.;
     }
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_3.x[2] + (1. - l2_3.x[2]) * l2_3.x[3];
+    l3_1.g[0] = l2_3.x[2] + (1. - l2_3.x[2]) * l2_3.x[3];
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[2] = 1. - l2_3.x[3];
     l5_2.gg[3] = -l2_3.x[2] + 1.;
@@ -6406,11 +6406,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -6419,11 +6419,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l11_3.lxl[i__ - 1] = true;
-	l12_3.lxu[i__ - 1] = true;
-	l13_3.xl[i__ - 1] = 1.;
+    l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = true;
+    l13_3.xl[i__ - 1] = 1.;
 /* labelL6: */
-	l14_3.xu[i__ - 1] = 5.;
+    l14_3.xu[i__ - 1] = 5.;
     }
     l2_3.x[0] = 1.;
     l2_3.x[1] = 5.;
@@ -6438,7 +6438,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_3.x[0] * l2_3.x[3] * (l2_3.x[0] + l2_3.x[1] + l2_3.x[2]) + 
-	    l2_3.x[2];
+        l2_3.x[2];
     return 0;
 labelL3:
     l4_3.gf[0] = l2_3.x[3] * (l2_3.x[0] * 2. + l2_3.x[1] + l2_3.x[2]);
@@ -6448,25 +6448,25 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = (l2_3.x[0] * l2_3.x[1] * l2_3.x[2] * l2_3.x[3] - 25.) / 
-		25.;
+    l3_2.g[0] = (l2_3.x[0] * l2_3.x[1] * l2_3.x[2] * l2_3.x[3] - 25.) / 
+        25.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
+    d__3 = l2_3.x[2];
 /* Computing 2nd power */
-	d__4 = l2_3.x[3];
-	l3_2.g[1] = (d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 - 
-		40.) / 40.;
+    d__4 = l2_3.x[3];
+    l3_2.g[1] = (d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 - 
+        40.) / 40.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_6.gg[0] = l2_3.x[1] * l2_3.x[2] * l2_3.x[3] / 25.;
     l5_6.gg[2] = l2_3.x[0] * l2_3.x[2] * l2_3.x[3] / 25.;
@@ -6474,11 +6474,11 @@ labelL5:
     l5_6.gg[6] = l2_3.x[0] * l2_3.x[1] * l2_3.x[2] / 25.;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 /* labelL20: */
-	l5_6.gg[(i__ << 1) - 1] = l2_3.x[i__ - 1] * 2. / 40.;
+    l5_6.gg[(i__ << 1) - 1] = l2_3.x[i__ - 1] * 2. / 40.;
     }
 L8:
     return 0;
@@ -6494,11 +6494,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -6507,16 +6507,16 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 1.;
-	l13_3.xl[i__ - 1] = .001;
-	l14_3.xu[i__ - 1] = (5. - (Real) i__) * 1e5;
-	l11_3.lxl[i__ - 1] = true;
+    l2_3.x[i__ - 1] = 1.;
+    l13_3.xl[i__ - 1] = .001;
+    l14_3.xu[i__ - 1] = (5. - (Real) i__) * 1e5;
+    l11_3.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = true;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L30: */
-	l4_3.gf[i__ - 1] = 1.;
+    l4_3.gf[i__ - 1] = 1.;
     }
     l20_6.lex = false;
     l20_6.xex[0] = 193.407050141;
@@ -6531,17 +6531,17 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = -4. / l2_3.x[0] - 2.25 / l2_3.x[1] - 1. / l2_3.x[2] - .25 
-		/ l2_3.x[3] + .0401;
+    l3_2.g[0] = -4. / l2_3.x[0] - 2.25 / l2_3.x[1] - 1. / l2_3.x[2] - .25 
+        / l2_3.x[3] + .0401;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = -.16 / l2_3.x[0] - .36 / l2_3.x[1] - (1. / l2_3.x[2] + 1. 
-		/ l2_3.x[3]) * .64 + .010085;
+    l3_2.g[1] = -.16 / l2_3.x[0] - .36 / l2_3.x[1] - (1. / l2_3.x[2] + 1. 
+        / l2_3.x[3]) * .64 + .010085;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
@@ -6557,7 +6557,7 @@ labelL5:
     l5_6.gg[6] = .25 / (d__1 * d__1);
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
@@ -6587,11 +6587,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -6600,11 +6600,11 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 1.;
-	l13_3.xl[i__ - 1] = 0.;
-	l11_3.lxl[i__ - 1] = true;
+    l2_3.x[i__ - 1] = 1.;
+    l13_3.xl[i__ - 1] = 0.;
+    l11_3.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     l4_3.gf[0] = 24.55;
     l4_3.gf[1] = 26.75;
@@ -6616,7 +6616,7 @@ labelL1:
     l5_7.gg[9] = 1.3;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L31: */
-	l5_7.gg[i__ * 3 - 1] = 1.;
+    l5_7.gg[i__ * 3 - 1] = 1.;
     }
     l20_6.lex = false;
     l20_6.xex[0] = .635521568605;
@@ -6627,49 +6627,49 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_3.x[0] * 24.55 + l2_3.x[1] * 26.75 + l2_3.x[2] * 39. + 
-	    l2_3.x[3] * 40.5;
+        l2_3.x[3] * 40.5;
 labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_3.x[0] * 2.3 + l2_3.x[1] * 5.6 + l2_3.x[2] * 11.1 + 
-		l2_3.x[3] * 1.3 - 5.;
+    l3_3.g[0] = l2_3.x[0] * 2.3 + l2_3.x[1] * 5.6 + l2_3.x[2] * 11.1 + 
+        l2_3.x[3] * 1.3 - 5.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__2 = l2_3.x[0];
+    d__2 = l2_3.x[0];
 /* Computing 2nd power */
-	d__3 = l2_3.x[1];
+    d__3 = l2_3.x[1];
 /* Computing 2nd power */
-	d__4 = l2_3.x[2];
+    d__4 = l2_3.x[2];
 /* Computing 2nd power */
-	d__5 = l2_3.x[3];
-	d__1 = d__2 * d__2 * .28 + d__3 * d__3 * .19 + d__4 * d__4 * 20.5 + 
-		d__5 * d__5 * .62;
-	l3_3.g[1] = l2_3.x[0] * 12. + l2_3.x[1] * 11.9 + l2_3.x[2] * 41.8 + 
-		l2_3.x[3] * 52.1 - pow_dd(&d__1, &c_b590) * 1.645 - 21.;
+    d__5 = l2_3.x[3];
+    d__1 = d__2 * d__2 * .28 + d__3 * d__3 * .19 + d__4 * d__4 * 20.5 + 
+        d__5 * d__5 * .62;
+    l3_3.g[1] = l2_3.x[0] * 12. + l2_3.x[1] * 11.9 + l2_3.x[2] * 41.8 + 
+        l2_3.x[3] * 52.1 - pow_dd(&d__1, &c_b590) * 1.645 - 21.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
+    l3_3.g[2] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L30: */
 /* Computing 2nd power */
-	d__2 = l2_3.x[0];
+    d__2 = l2_3.x[0];
 /* Computing 2nd power */
-	d__3 = l2_3.x[1];
+    d__3 = l2_3.x[1];
 /* Computing 2nd power */
-	d__4 = l2_3.x[2];
+    d__4 = l2_3.x[2];
 /* Computing 2nd power */
-	d__5 = l2_3.x[3];
-	d__1 = d__2 * d__2 * .28 + d__3 * d__3 * .19 + d__4 * d__4 * 20.5 + 
-		d__5 * d__5 * .62;
-	a[i__ - 1] = l2_3.x[i__ - 1] * 1.645 * pow_dd(&d__1, &c_b308);
+    d__5 = l2_3.x[3];
+    d__1 = d__2 * d__2 * .28 + d__3 * d__3 * .19 + d__4 * d__4 * 20.5 + 
+        d__5 * d__5 * .62;
+    a[i__ - 1] = l2_3.x[i__ - 1] * 1.645 * pow_dd(&d__1, &c_b308);
     }
     l5_7.gg[1] = 12. - a[0] * .28;
     l5_7.gg[4] = 11.9 - a[1] * .19;
@@ -6692,8 +6692,8 @@ L8:
     static int kn1;
 
     switch(n__) {
-	case 1: goto L_tp75;
-	}
+    case 1: goto L_tp75;
+    }
 
     l20_6.xex[0] = 679.945319802;
     l20_6.xex[1] = 1026.06713256;
@@ -6712,11 +6712,11 @@ L_tp75:
     l20_6.fex = 5174.41288686;
 L7:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -6727,10 +6727,10 @@ labelL1:
     a[0] = .55;
     a[1] = .48;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 0.;
-	l11_3.lxl[i__ - 1] = true;
+    l2_3.x[i__ - 1] = 0.;
+    l11_3.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = true;
     }
     l13_3.xl[0] = 0.;
     l13_3.xl[1] = 0.;
@@ -6764,7 +6764,7 @@ labelL2:
 /* Computing 3rd power */
     d__2 = l2_3.x[1];
     l6_1.fx = l2_3.x[0] * 3. + d__1 * (d__1 * d__1) * 1e-6 + l2_3.x[1] * 2. + 
-	    d__2 * (d__2 * d__2) * 6.666666666666666e-7;
+        d__2 * (d__2 * d__2) * 6.666666666666666e-7;
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -6776,40 +6776,40 @@ labelL3:
     return 0;
 labelL4:
     if (l9_5.index1[0]) {
-	l3_4.g[0] = l2_3.x[3] - l2_3.x[2] + a[kn1 - 1];
+    l3_4.g[0] = l2_3.x[3] - l2_3.x[2] + a[kn1 - 1];
     }
     if (l9_5.index1[1]) {
-	l3_4.g[1] = l2_3.x[2] - l2_3.x[3] + a[kn1 - 1];
+    l3_4.g[1] = l2_3.x[2] - l2_3.x[3] + a[kn1 - 1];
     }
     if (l9_5.index1[2]) {
-	l3_4.g[2] = (sin(-l2_3.x[2] - .25) + std::sin(-l2_3.x[3] - .25)) * 1e3 + 
-		894.8 - l2_3.x[0];
+    l3_4.g[2] = (sin(-l2_3.x[2] - .25) + std::sin(-l2_3.x[3] - .25)) * 1e3 + 
+        894.8 - l2_3.x[0];
     }
     if (l9_5.index1[3]) {
-	l3_4.g[3] = (sin(l2_3.x[2] - .25) + std::sin(l2_3.x[2] - l2_3.x[3] - .25)) 
-		* 1e3 + 894.8 - l2_3.x[1];
+    l3_4.g[3] = (sin(l2_3.x[2] - .25) + std::sin(l2_3.x[2] - l2_3.x[3] - .25)) 
+        * 1e3 + 894.8 - l2_3.x[1];
     }
     if (l9_5.index1[4]) {
-	l3_4.g[4] = (sin(l2_3.x[3] - .25) + std::sin(l2_3.x[3] - l2_3.x[2] - .25)) 
-		* 1e3 + 1294.8;
+    l3_4.g[4] = (sin(l2_3.x[3] - .25) + std::sin(l2_3.x[3] - l2_3.x[2] - .25)) 
+        * 1e3 + 1294.8;
     }
     return 0;
 labelL5:
     if (! l10_5.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_13.gg[12] = std::cos(-l2_3.x[2] - .25) * -1e3;
     l5_13.gg[17] = std::cos(-l2_3.x[3] - .25) * -1e3;
 labelL9:
     if (! l10_5.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     v1 = std::cos(l2_3.x[2] - l2_3.x[3] - .25);
     l5_13.gg[13] = (std::cos(l2_3.x[2] - .25) + v1) * 1e3;
     l5_13.gg[18] = v1 * -1e3;
 labelL10:
     if (! l10_5.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     v2 = std::cos(l2_3.x[3] - l2_3.x[2] - .25);
     l5_13.gg[14] = v2 * -1e3;
@@ -6838,11 +6838,11 @@ labelL11:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -6851,11 +6851,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l11_3.lxl[i__ - 1] = true;
-	l12_3.lxu[i__ - 1] = false;
-	l2_3.x[i__ - 1] = .5;
+    l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = false;
+    l2_3.x[i__ - 1] = .5;
 /* labelL6: */
-	l13_3.xl[i__ - 1] = 0.;
+    l13_3.xl[i__ - 1] = 0.;
     }
     l5_7.gg[0] = -1.;
     l5_7.gg[3] = -2.;
@@ -6886,8 +6886,8 @@ labelL2:
 /* Computing 2nd power */
     d__4 = l2_3.x[3];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + (d__3 * d__3 + d__4 * d__4) * .5 - 
-	    l2_3.x[0] * l2_3.x[2] + l2_3.x[2] * l2_3.x[3] - l2_3.x[0] - 
-	    l2_3.x[1] * 3. + l2_3.x[2] - l2_3.x[3];
+        l2_3.x[0] * l2_3.x[2] + l2_3.x[2] * l2_3.x[3] - l2_3.x[0] - 
+        l2_3.x[1] * 3. + l2_3.x[2] - l2_3.x[3];
     return 0;
 labelL3:
     l4_3.gf[0] = l2_3.x[0] * 2. - l2_3.x[2] - 1.;
@@ -6897,14 +6897,14 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = -l2_3.x[0] - l2_3.x[1] * 2. - l2_3.x[2] - l2_3.x[3] + 5.;
+    l3_3.g[0] = -l2_3.x[0] - l2_3.x[1] * 2. - l2_3.x[2] - l2_3.x[3] + 5.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_3.x[0] * -3. - l2_3.x[1] - l2_3.x[2] * 2. + l2_3.x[3] 
-		+ 4.;
+    l3_3.g[1] = l2_3.x[0] * -3. - l2_3.x[1] - l2_3.x[2] * 2. + l2_3.x[3] 
+        + 4.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_3.x[1] + l2_3.x[2] * 4. - 1.5;
+    l3_3.g[2] = l2_3.x[1] + l2_3.x[2] * 4. - 1.5;
     }
 labelL5:
     return 0;
@@ -6921,11 +6921,11 @@ labelL5:
     static Real v1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -6934,10 +6934,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = false;
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l5_4.gg[2] = 0.;
     l5_4.gg[4] = 0.;
@@ -6964,7 +6964,7 @@ labelL2:
 /* Computing 6th power */
     d__5 = l2_4.x[4] - 1., d__5 *= d__5;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * (
-	    d__5 * d__5);
+        d__5 * d__5);
     return 0;
 labelL3:
     l4_4.gf[0] = (l2_4.x[0] * 2. - l2_4.x[1] - 1.) * 2.;
@@ -6980,21 +6980,21 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[0];
-	l3_2.g[0] = d__1 * d__1 * l2_4.x[3] + std::sin(l2_4.x[3] - l2_4.x[4]) - 
-		std::sqrt(2.) * 2.;
+    d__1 = l2_4.x[0];
+    l3_2.g[0] = d__1 * d__1 * l2_4.x[3] + std::sin(l2_4.x[3] - l2_4.x[4]) - 
+        std::sqrt(2.) * 2.;
     }
     if (l9_3.index1[1]) {
 /* Computing 4th power */
-	d__1 = l2_4.x[2], d__1 *= d__1;
+    d__1 = l2_4.x[2], d__1 *= d__1;
 /* Computing 2nd power */
-	d__2 = l2_4.x[3];
-	l3_2.g[1] = l2_4.x[1] + d__1 * d__1 * (d__2 * d__2) - 8. - std::sqrt(2.);
+    d__2 = l2_4.x[3];
+    l3_2.g[1] = l2_4.x[1] + d__1 * d__1 * (d__2 * d__2) - 8. - std::sqrt(2.);
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     v1 = std::cos(l2_4.x[3] - l2_4.x[4]);
     l5_4.gg[0] = l2_4.x[0] * 2. * l2_4.x[3];
@@ -7004,7 +7004,7 @@ labelL5:
     l5_4.gg[8] = -v1;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 3rd power */
     d__1 = l2_4.x[2];
@@ -7028,11 +7028,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -7041,9 +7041,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l2_4.x[0] = -2.;
     l2_4.x[1] = 1.5;
@@ -7075,40 +7075,40 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 2nd power */
-	d__2 = l2_4.x[1];
+    d__2 = l2_4.x[1];
 /* Computing 2nd power */
-	d__3 = l2_4.x[2];
+    d__3 = l2_4.x[2];
 /* Computing 2nd power */
-	d__4 = l2_4.x[3];
+    d__4 = l2_4.x[3];
 /* Computing 2nd power */
-	d__5 = l2_4.x[4];
-	l3_3.g[0] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + 
-		d__5 * d__5 - 10.;
+    d__5 = l2_4.x[4];
+    l3_3.g[0] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + 
+        d__5 * d__5 - 10.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[1] * l2_4.x[2] - l2_4.x[3] * 5. * l2_4.x[4];
+    l3_3.g[1] = l2_4.x[1] * l2_4.x[2] - l2_4.x[3] * 5. * l2_4.x[4];
     }
     if (l9_4.index1[2]) {
 /* Computing 3rd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 3rd power */
-	d__2 = l2_4.x[1];
-	l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
+    d__2 = l2_4.x[1];
+    l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l5_9.gg[i__ * 3 - 3] = l2_4.x[i__ - 1] * 2.;
+    l5_9.gg[i__ * 3 - 3] = l2_4.x[i__ - 1] * 2.;
     }
 L7:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_9.gg[4] = l2_4.x[2];
     l5_9.gg[7] = l2_4.x[1];
@@ -7116,7 +7116,7 @@ L7:
     l5_9.gg[13] = l2_4.x[3] * -5.;
 L8:
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[0];
@@ -7139,11 +7139,11 @@ labelL9:
     static Real v1, v2, v3, v4;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -7152,10 +7152,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = false;
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l5_9.gg[0] = 1.;
     l5_9.gg[9] = 0.;
@@ -7187,7 +7187,7 @@ labelL2:
 /* Computing 4th power */
     d__5 = l2_4.x[3] - l2_4.x[4], d__5 *= d__5;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * 
-	    d__5;
+        d__5;
     return 0;
 labelL3:
     v1 = l2_4.x[0] - l2_4.x[1];
@@ -7211,24 +7211,24 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[1];
+    d__1 = l2_4.x[1];
 /* Computing 3rd power */
-	d__2 = l2_4.x[2];
-	l3_3.g[0] = l2_4.x[0] + d__1 * d__1 + d__2 * (d__2 * d__2) - 2. - 
-		std::sqrt(2.) * 3.;
+    d__2 = l2_4.x[2];
+    l3_3.g[0] = l2_4.x[0] + d__1 * d__1 + d__2 * (d__2 * d__2) - 2. - 
+        std::sqrt(2.) * 3.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[2];
-	l3_3.g[1] = l2_4.x[1] - d__1 * d__1 + l2_4.x[3] + 2. - std::sqrt(2.) * 2.;
+    d__1 = l2_4.x[2];
+    l3_3.g[1] = l2_4.x[1] - d__1 * d__1 + l2_4.x[3] + 2. - std::sqrt(2.) * 2.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[0] * l2_4.x[4] - 2.;
+    l3_3.g[2] = l2_4.x[0] * l2_4.x[4] - 2.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_9.gg[3] = l2_4.x[1] * 2.;
 /* Computing 2nd power */
@@ -7236,10 +7236,10 @@ labelL5:
     l5_9.gg[6] = d__1 * d__1 * 3.;
 L7:
     if (l10_4.index2[1]) {
-	l5_9.gg[7] = l2_4.x[2] * -2.;
+    l5_9.gg[7] = l2_4.x[2] * -2.;
     }
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_9.gg[2] = l2_4.x[4];
     l5_9.gg[14] = l2_4.x[0];
@@ -7258,11 +7258,11 @@ labelL9:
     static Real t, v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -7271,9 +7271,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
     }
     l2_4.x[0] = -2.;
     l2_4.x[1] = 2.;
@@ -7281,14 +7281,14 @@ labelL1:
     l2_4.x[3] = -1.;
     l2_4.x[4] = -1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l13_4.xl[i__ - 1] = -2.3;
+    l13_4.xl[i__ - 1] = -2.3;
 /* labelL20: */
-	l14_4.xu[i__ - 1] = 2.3;
+    l14_4.xu[i__ - 1] = 2.3;
     }
     for (i__ = 3; i__ <= 5; ++i__) {
-	l13_4.xl[i__ - 1] = -3.2;
+    l13_4.xl[i__ - 1] = -3.2;
 /* L21: */
-	l14_4.xu[i__ - 1] = 3.2;
+    l14_4.xu[i__ - 1] = 3.2;
     }
     l5_9.gg[1] = 0.;
     l5_9.gg[8] = 0.;
@@ -7318,40 +7318,40 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 2nd power */
-	d__2 = l2_4.x[1];
+    d__2 = l2_4.x[1];
 /* Computing 2nd power */
-	d__3 = l2_4.x[2];
+    d__3 = l2_4.x[2];
 /* Computing 2nd power */
-	d__4 = l2_4.x[3];
+    d__4 = l2_4.x[3];
 /* Computing 2nd power */
-	d__5 = l2_4.x[4];
-	l3_3.g[0] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + 
-		d__5 * d__5 - 10.;
+    d__5 = l2_4.x[4];
+    l3_3.g[0] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + 
+        d__5 * d__5 - 10.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[1] * l2_4.x[2] - l2_4.x[3] * 5. * l2_4.x[4];
+    l3_3.g[1] = l2_4.x[1] * l2_4.x[2] - l2_4.x[3] * 5. * l2_4.x[4];
     }
     if (l9_4.index1[2]) {
 /* Computing 3rd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 3rd power */
-	d__2 = l2_4.x[1];
-	l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
+    d__2 = l2_4.x[1];
+    l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l5_9.gg[i__ * 3 - 3] = l2_4.x[i__ - 1] * 2.;
+    l5_9.gg[i__ * 3 - 3] = l2_4.x[i__ - 1] * 2.;
     }
 L7:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_9.gg[4] = l2_4.x[2];
     l5_9.gg[7] = l2_4.x[1];
@@ -7359,7 +7359,7 @@ L7:
     l5_9.gg[13] = l2_4.x[3] * -5.;
 L8:
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[0];
@@ -7382,11 +7382,11 @@ labelL9:
     static Real t, v1, v2, v3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -7395,19 +7395,19 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
     }
     for (i__ = 1; i__ <= 2; ++i__) {
-	l13_4.xl[i__ - 1] = -2.3;
+    l13_4.xl[i__ - 1] = -2.3;
 /* labelL10: */
-	l14_4.xu[i__ - 1] = 2.3;
+    l14_4.xu[i__ - 1] = 2.3;
     }
     for (i__ = 3; i__ <= 5; ++i__) {
-	l13_4.xl[i__ - 1] = -3.2;
+    l13_4.xl[i__ - 1] = -3.2;
 /* labelL20: */
-	l14_4.xu[i__ - 1] = 3.2;
+    l14_4.xu[i__ - 1] = 3.2;
     }
     l2_4.x[0] = -2.;
     l2_4.x[1] = 2.;
@@ -7434,7 +7434,7 @@ labelL2:
 /* Computing 2nd power */
     d__1 = d__2 * (d__2 * d__2) + d__3 * (d__3 * d__3) + 1.;
     l6_1.fx = std::exp(l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] * l2_4.x[4]) 
-	    - d__1 * d__1 * .5;
+        - d__1 * d__1 * .5;
     return 0;
 labelL3:
 /* Computing 3rd power */
@@ -7458,40 +7458,40 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 2nd power */
-	d__2 = l2_4.x[1];
+    d__2 = l2_4.x[1];
 /* Computing 2nd power */
-	d__3 = l2_4.x[2];
+    d__3 = l2_4.x[2];
 /* Computing 2nd power */
-	d__4 = l2_4.x[3];
+    d__4 = l2_4.x[3];
 /* Computing 2nd power */
-	d__5 = l2_4.x[4];
-	l3_3.g[0] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + 
-		d__5 * d__5 - 10.;
+    d__5 = l2_4.x[4];
+    l3_3.g[0] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + 
+        d__5 * d__5 - 10.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[1] * l2_4.x[2] - l2_4.x[3] * 5. * l2_4.x[4];
+    l3_3.g[1] = l2_4.x[1] * l2_4.x[2] - l2_4.x[3] * 5. * l2_4.x[4];
     }
     if (l9_4.index1[2]) {
 /* Computing 3rd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 3rd power */
-	d__2 = l2_4.x[1];
-	l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
+    d__2 = l2_4.x[1];
+    l3_3.g[2] = d__1 * (d__1 * d__1) + d__2 * (d__2 * d__2) + 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
-	l5_9.gg[i__ * 3 - 3] = l2_4.x[i__ - 1] * 2.;
+    l5_9.gg[i__ * 3 - 3] = l2_4.x[i__ - 1] * 2.;
     }
 L7:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_9.gg[4] = l2_4.x[2];
     l5_9.gg[7] = l2_4.x[1];
@@ -7499,7 +7499,7 @@ L7:
     l5_9.gg[13] = l2_4.x[3] * -5.;
 L8:
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[0];
@@ -7521,14 +7521,14 @@ labelL9:
     static Real a, b, c__, d__;
     static int i__;
     static Real a1, a2, a3, a4, a5, a6, a7, a8, a9, v1, v2, v3, a10, 
-	    a11, a12;
+        a11, a12;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -7542,18 +7542,18 @@ labelL1:
     l2_4.x[3] = 27.;
     l2_4.x[4] = 27.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
     }
     l13_4.xl[0] = 78.;
     l13_4.xl[1] = 33.;
     l14_4.xu[0] = 102.;
     l14_4.xu[1] = 45.;
     for (i__ = 3; i__ <= 5; ++i__) {
-	l13_4.xl[i__ - 1] = 27.;
+    l13_4.xl[i__ - 1] = 27.;
 /* L31: */
-	l14_4.xu[i__ - 1] = 45.;
+    l14_4.xu[i__ - 1] = 45.;
     }
     a = 5.3578547;
     b = .8356891;
@@ -7589,7 +7589,7 @@ labelL2:
 /* Computing 2nd power */
     d__1 = l2_4.x[2];
     l6_1.fx = a * (d__1 * d__1) + b * l2_4.x[0] * l2_4.x[4] + c__ * l2_4.x[0] 
-	    - d__;
+        - d__;
     return 0;
 labelL3:
     l4_4.gf[0] = b * l2_4.x[4] + c__;
@@ -7598,47 +7598,47 @@ labelL3:
     return 0;
 labelL4:
     if (! (l9_6.index1[0] || l9_6.index1[3])) {
-	goto L41;
+    goto L41;
     }
     v1 = a1 + a2 * l2_4.x[1] * l2_4.x[4] + a3 * l2_4.x[0] * l2_4.x[3] - a4 * 
-	    l2_4.x[2] * l2_4.x[4];
+        l2_4.x[2] * l2_4.x[4];
     if (l9_6.index1[0]) {
-	l3_5.g[0] = v1;
+    l3_5.g[0] = v1;
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = 92. - v1;
+    l3_5.g[3] = 92. - v1;
     }
 L41:
     if (! (l9_6.index1[1] || l9_6.index1[4])) {
-	goto L42;
+    goto L42;
     }
 /* Computing 2nd power */
     d__1 = l2_4.x[2];
     v2 = a5 + a6 * l2_4.x[1] * l2_4.x[4] + a7 * l2_4.x[0] * l2_4.x[1] + a8 * (
-	    d__1 * d__1) - 90.;
+        d__1 * d__1) - 90.;
     if (l9_6.index1[1]) {
-	l3_5.g[1] = v2;
+    l3_5.g[1] = v2;
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = 20. - v2;
+    l3_5.g[4] = 20. - v2;
     }
 L42:
     if (! (l9_6.index1[2] || l9_6.index1[5])) {
-	goto L43;
+    goto L43;
     }
     v3 = a9 + a10 * l2_4.x[2] * l2_4.x[4] + a11 * l2_4.x[0] * l2_4.x[2] + a12 
-	    * l2_4.x[2] * l2_4.x[3] - 20.;
+        * l2_4.x[2] * l2_4.x[3] - 20.;
     if (l9_6.index1[2]) {
-	l3_5.g[2] = v3;
+    l3_5.g[2] = v3;
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = 5. - v3;
+    l3_5.g[5] = 5. - v3;
     }
 L43:
     return 0;
 labelL5:
     if (! l10_6.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_14.gg[0] = a3 * l2_4.x[3];
     l5_14.gg[6] = a2 * l2_4.x[4];
@@ -7647,7 +7647,7 @@ labelL5:
     l5_14.gg[24] = a2 * l2_4.x[1] - a4 * l2_4.x[2];
 L7:
     if (! l10_6.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_14.gg[1] = a7 * l2_4.x[1];
     l5_14.gg[7] = a6 * l2_4.x[4] + a7 * l2_4.x[0];
@@ -7655,7 +7655,7 @@ L7:
     l5_14.gg[25] = a6 * l2_4.x[1];
 L8:
     if (! l10_6.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_14.gg[2] = a11 * l2_4.x[2];
     l5_14.gg[14] = a10 * l2_4.x[4] + a11 * l2_4.x[0] + a12 * l2_4.x[3];
@@ -7663,7 +7663,7 @@ L8:
     l5_14.gg[26] = a10 * l2_4.x[2];
 labelL9:
     if (! l10_6.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_14.gg[3] = -a3 * l2_4.x[3];
     l5_14.gg[9] = -a2 * l2_4.x[4];
@@ -7672,7 +7672,7 @@ labelL9:
     l5_14.gg[27] = -a2 * l2_4.x[1] + a4 * l2_4.x[2];
 labelL10:
     if (! l10_6.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     l5_14.gg[4] = -a7 * l2_4.x[1];
     l5_14.gg[10] = -a6 * l2_4.x[4] - a7 * l2_4.x[0];
@@ -7680,7 +7680,7 @@ labelL10:
     l5_14.gg[28] = -a6 * l2_4.x[1];
 labelL11:
     if (! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     l5_14.gg[5] = -a11 * l2_4.x[2];
     l5_14.gg[17] = -a10 * l2_4.x[4] - a11 * l2_4.x[0] - a12 * l2_4.x[3];
@@ -7722,11 +7722,11 @@ labelL12:
     b[1] = 2.94e5;
     b[2] = 277200.;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -7740,9 +7740,9 @@ labelL1:
     l2_4.x[3] = 9.25;
     l2_4.x[4] = 6.8;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
 /* labelL6: */
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
     }
     l13_4.xl[0] = 0.;
     l13_4.xl[1] = 1.2;
@@ -7764,67 +7764,67 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = -(a[0] + l2_4.x[0] * (a[1] + a[2] * l2_4.x[1] + a[3] * l2_4.x[2]
-	     + a[4] * l2_4.x[3] + a[5] * l2_4.x[4]));
+         + a[4] * l2_4.x[3] + a[5] * l2_4.x[4]));
     l6_1.fx *= 1e-5;
     return 0;
 labelL3:
     l4_4.gf[0] = -(a[1] + a[2] * l2_4.x[1] + a[3] * l2_4.x[2] + a[4] * l2_4.x[
-	    3] + a[5] * l2_4.x[4]) * 1e-5;
+        3] + a[5] * l2_4.x[4]) * 1e-5;
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L30: */
-	l4_4.gf[i__ - 1] = -a[i__] * l2_4.x[0] * 1e-5;
+    l4_4.gf[i__ - 1] = -a[i__] * l2_4.x[0] * 1e-5;
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 3; ++i__) {
-	if (! (l9_6.index1[i__ - 1] || l9_6.index1[i__ + 2])) {
-	    goto L80;
-	}
-	i1 = i__ * 5;
-	v1 = l2_4.x[0] * (a[i1 + 1] + a[i1 + 2] * l2_4.x[1] + a[i1 + 3] * 
-		l2_4.x[2] + a[i1 + 4] * l2_4.x[3] + a[i1 + 5] * l2_4.x[4]);
-	if (l9_6.index1[i__ - 1]) {
-	    l3_5.g[i__ - 1] = v1;
-	}
-	if (l9_6.index1[i__ + 2]) {
-	    l3_5.g[i__ + 2] = b[i__ - 1] - v1;
-	}
+    if (! (l9_6.index1[i__ - 1] || l9_6.index1[i__ + 2])) {
+        goto L80;
+    }
+    i1 = i__ * 5;
+    v1 = l2_4.x[0] * (a[i1 + 1] + a[i1 + 2] * l2_4.x[1] + a[i1 + 3] * 
+        l2_4.x[2] + a[i1 + 4] * l2_4.x[3] + a[i1 + 5] * l2_4.x[4]);
+    if (l9_6.index1[i__ - 1]) {
+        l3_5.g[i__ - 1] = v1;
+    }
+    if (l9_6.index1[i__ + 2]) {
+        l3_5.g[i__ + 2] = b[i__ - 1] - v1;
+    }
 L80:
-	;
+    ;
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 3; ++i__) {
-	if (! (l10_6.index2[i__ - 1] || l10_6.index2[i__ + 2])) {
-	    goto L90;
-	}
-	i1 = i__ * 5 + 1;
-	if (! l10_6.index2[i__ - 1]) {
-	    goto L95;
-	}
-	l5_14.gg[i__ - 1] = a[i1] + a[i1 + 1] * l2_4.x[1] + a[i1 + 2] * 
-		l2_4.x[2] + a[i1 + 3] * l2_4.x[3] + a[i1 + 4] * l2_4.x[4];
-	for (j = 2; j <= 5; ++j) {
+    if (! (l10_6.index2[i__ - 1] || l10_6.index2[i__ + 2])) {
+        goto L90;
+    }
+    i1 = i__ * 5 + 1;
+    if (! l10_6.index2[i__ - 1]) {
+        goto L95;
+    }
+    l5_14.gg[i__ - 1] = a[i1] + a[i1 + 1] * l2_4.x[1] + a[i1 + 2] * 
+        l2_4.x[2] + a[i1 + 3] * l2_4.x[3] + a[i1 + 4] * l2_4.x[4];
+    for (j = 2; j <= 5; ++j) {
 /* L91: */
-	    l5_14.gg[i__ + j * 6 - 7] = a[i1 + j - 1] * l2_4.x[0];
-	}
-	if (! l10_6.index2[i__ + 2]) {
-	    goto L90;
-	}
-	for (j = 1; j <= 5; ++j) {
+        l5_14.gg[i__ + j * 6 - 7] = a[i1 + j - 1] * l2_4.x[0];
+    }
+    if (! l10_6.index2[i__ + 2]) {
+        goto L90;
+    }
+    for (j = 1; j <= 5; ++j) {
 /* L92: */
-	    l5_14.gg[i__ + 3 + j * 6 - 7] = -l5_14.gg[i__ + j * 6 - 7];
-	}
-	goto L90;
+        l5_14.gg[i__ + 3 + j * 6 - 7] = -l5_14.gg[i__ + j * 6 - 7];
+    }
+    goto L90;
 L95:
-	l5_14.gg[i__ + 2] = -(a[i1] + a[i1 + 1] * l2_4.x[1] + a[i1 + 2] * 
-		l2_4.x[2] + a[i1 + 3] * l2_4.x[3] + a[i1 + 4] * l2_4.x[4]);
-	for (j = 2; j <= 5; ++j) {
+    l5_14.gg[i__ + 2] = -(a[i1] + a[i1 + 1] * l2_4.x[1] + a[i1 + 2] * 
+        l2_4.x[2] + a[i1 + 3] * l2_4.x[3] + a[i1 + 4] * l2_4.x[4]);
+    for (j = 2; j <= 5; ++j) {
 /* L96: */
-	    l5_14.gg[i__ + 3 + j * 6 - 7] = -a[i1 + j - 1] * l2_4.x[0];
-	}
+        l5_14.gg[i__ + 3 + j * 6 - 7] = -a[i1 + j - 1] * l2_4.x[0];
+    }
 L90:
-	;
+    ;
     }
     return 0;
 } /* tp84_ */
@@ -7838,13 +7838,13 @@ L90:
     /* Local variables */
     static Real a[17], b[17], c__[17];
     static int i__, j;
-    static Real y[17], v1, v2, v3, v4, v5, v6, v7, dc[85]	/* was [17][5]
-	     */, dy[85]	/* was [17][5] */;
+    static Real y[17], v1, v2, v3, v4, v5, v6, v7, dc[85]    /* was [17][5]
+         */, dy[85]    /* was [17][5] */;
 
     if (*mode - 2 >= 0) {
-	goto L17;
+    goto L17;
     } else {
-	goto labelL1;
+    goto labelL1;
     }
 labelL1:
     l1_1.n = 5;
@@ -7858,9 +7858,9 @@ labelL1:
     l2_4.x[3] = 267.;
     l2_4.x[4] = 27.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
     }
     l13_4.xl[0] = 704.4148;
     l13_4.xl[1] = 68.6;
@@ -7905,12 +7905,12 @@ labelL1:
     b[15] = 1.4e5;
     b[16] = 12146108.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l5_15.gg[i__ * 38 - 38] = 0.;
-	l5_15.gg[i__ * 38 - 37] = 0.;
-	l5_15.gg[i__ * 38 - 36] = 0.;
-	dc[i__ * 17 - 17] = 0.;
-	dc[i__ * 17 - 13] = 0.;
-	dc[i__ * 17 - 8] = 0.;
+    l5_15.gg[i__ * 38 - 38] = 0.;
+    l5_15.gg[i__ * 38 - 37] = 0.;
+    l5_15.gg[i__ * 38 - 36] = 0.;
+    dc[i__ * 17 - 17] = 0.;
+    dc[i__ * 17 - 13] = 0.;
+    dc[i__ * 17 - 8] = 0.;
 /* L61: */
     }
     l5_15.gg[38] = 1.5;
@@ -7945,7 +7945,7 @@ L17:
     y[3] = y[2] * 19.;
     v1 = l2_4.x[0] - y[2];
     c__[3] = (v1 * .1956 / l2_4.x[1] + .04782) * v1 + y[3] * .6376 + y[2] * 
-	    1.594;
+        1.594;
     c__[4] = l2_4.x[1] * 100.;
     c__[5] = v1 - y[3];
     c__[6] = .95 - c__[3] / c__[4];
@@ -7967,7 +7967,7 @@ L17:
     v4 = y[8] + l2_4.x[4];
     y[13] = l2_4.x[1] * 64.4 + 3623. + l2_4.x[2] * 58.4 + 146312. / v4;
     c__[12] = y[9] * .995 + l2_4.x[1] * 60.8 + l2_4.x[3] * 48. - y[13] * 
-	    .1121 - 5095.;
+        .1121 - 5095.;
     y[14] = y[12] / c__[12];
     y[15] = 1.48e5 - y[14] * 3.31e5 + y[12] * 40. - y[14] * 61. * y[12];
     c__[13] = y[9] * 2324. - y[1] * 2.874e7;
@@ -7976,118 +7976,118 @@ L17:
     c__[15] = 1.104 - y[14] * .72;
     c__[16] = v4;
     if (*mode == 3 || *mode == 5) {
-	goto L71;
+    goto L71;
     }
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 L71:
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L30: */
 /* Computing 2nd power */
-	d__1 = c__[0];
-	dy[i__ * 17 - 16] = dc[i__ * 17 - 17] * -12.5 / (d__1 * d__1);
+    d__1 = c__[0];
+    dy[i__ * 17 - 16] = dc[i__ * 17 - 17] * -12.5 / (d__1 * d__1);
     }
     v5 = y[1] + l2_4.x[0] * dy[1];
     dc[1] = l2_4.x[0] * 7.07e-4 + .5311 + v5 * .08705;
     dc[2] = v5 * .002377 + .052;
     for (i__ = 2; i__ <= 5; ++i__) {
-	v6 = l2_4.x[0] * dy[i__ * 17 - 16];
-	dc[i__ * 17 - 16] = v6 * .08705;
+    v6 = l2_4.x[0] * dy[i__ * 17 - 16];
+    dc[i__ * 17 - 16] = v6 * .08705;
 /* L32: */
-	dc[i__ * 17 - 15] = v6 * .002377;
+    dc[i__ * 17 - 15] = v6 * .002377;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
-	d__1 = c__[2];
-	dy[i__ * 17 - 15] = (c__[2] * dc[i__ * 17 - 16] - c__[1] * dc[i__ * 
-		17 - 15]) / (d__1 * d__1);
+    d__1 = c__[2];
+    dy[i__ * 17 - 15] = (c__[2] * dc[i__ * 17 - 16] - c__[1] * dc[i__ * 
+        17 - 15]) / (d__1 * d__1);
 /* L33: */
-	dy[i__ * 17 - 14] = dy[i__ * 17 - 15] * 19.;
+    dy[i__ * 17 - 14] = dy[i__ * 17 - 15] * 19.;
     }
     dc[3] = (v1 * .3912 / l2_4.x[1] + .04782) * (1. - dy[2]) + dy[3] * .6376 
-	    + dy[2] * 1.594;
+        + dy[2] * 1.594;
 /* Computing 2nd power */
     d__1 = l2_4.x[1];
     dc[20] = v1 * -.1956 * (v1 + l2_4.x[1] * 2. * dy[19]) / (d__1 * d__1) + 
-	    dy[19] * 1.54618 + dy[20] * .6376;
+        dy[19] * 1.54618 + dy[20] * .6376;
     for (i__ = 3; i__ <= 5; ++i__) {
 /* L34: */
-	dc[i__ * 17 - 14] = (1.54618 - v1 * .3912 / l2_4.x[1]) * dy[i__ * 17 
-		- 15] + dy[i__ * 17 - 14] * .6376;
+    dc[i__ * 17 - 14] = (1.54618 - v1 * .3912 / l2_4.x[1]) * dy[i__ * 17 
+        - 15] + dy[i__ * 17 - 14] * .6376;
     }
     dc[5] = 1. - dy[2] - dy[3];
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L35: */
-	dc[i__ * 17 - 12] = -dy[i__ * 17 - 15] - dy[i__ * 17 - 14];
+    dc[i__ * 17 - 12] = -dy[i__ * 17 - 15] - dy[i__ * 17 - 14];
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
-	d__1 = c__[4];
-	dc[i__ * 17 - 11] = -(c__[4] * dc[i__ * 17 - 14] - c__[3] * dc[i__ * 
-		17 - 13]) / (d__1 * d__1);
+    d__1 = c__[4];
+    dc[i__ * 17 - 11] = -(c__[4] * dc[i__ * 17 - 14] - c__[3] * dc[i__ * 
+        17 - 13]) / (d__1 * d__1);
 /* L36: */
-	dy[i__ * 17 - 13] = c__[5] * dc[i__ * 17 - 11] + c__[6] * dc[i__ * 17 
-		- 12];
+    dy[i__ * 17 - 13] = c__[5] * dc[i__ * 17 - 11] + c__[6] * dc[i__ * 17 
+        - 12];
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L37: */
-	dy[i__ * 17 - 12] = -dy[i__ * 17 - 13] - dy[i__ * 17 - 14] - dy[i__ * 
-		17 - 15];
+    dy[i__ * 17 - 12] = -dy[i__ * 17 - 13] - dy[i__ * 17 - 14] - dy[i__ * 
+        17 - 15];
     }
     dy[5] += 1.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	dc[i__ * 17 - 10] = (dy[i__ * 17 - 13] + dy[i__ * 17 - 14]) * .995;
+    dc[i__ * 17 - 10] = (dy[i__ * 17 - 13] + dy[i__ * 17 - 14]) * .995;
 /* Computing 2nd power */
-	d__1 = y[0];
-	dy[i__ * 17 - 11] = (y[0] * dc[i__ * 17 - 10] - c__[7] * dy[i__ * 17 
-		- 17]) / (d__1 * d__1);
-	dy[i__ * 17 - 10] = dc[i__ * 17 - 10] / 3798.;
+    d__1 = y[0];
+    dy[i__ * 17 - 11] = (y[0] * dc[i__ * 17 - 10] - c__[7] * dy[i__ * 17 
+        - 17]) / (d__1 * d__1);
+    dy[i__ * 17 - 10] = dc[i__ * 17 - 10] / 3798.;
 /* Computing 2nd power */
-	d__1 = y[7];
-	dc[i__ * 17 - 9] = dy[i__ * 17 - 11] - (y[7] * dy[i__ * 17 - 11] - y[
-		6] * dy[i__ * 17 - 10]) * .0663 / (d__1 * d__1);
+    d__1 = y[7];
+    dc[i__ * 17 - 9] = dy[i__ * 17 - 11] - (y[7] * dy[i__ * 17 - 11] - y[
+        6] * dy[i__ * 17 - 10]) * .0663 / (d__1 * d__1);
 /* Computing 2nd power */
-	d__1 = c__[8];
-	dy[i__ * 17 - 9] = dc[i__ * 17 - 9] * -96.82 / (d__1 * d__1) + dy[i__ 
-		* 17 - 17] * .321;
+    d__1 = c__[8];
+    dy[i__ * 17 - 9] = dc[i__ * 17 - 9] * -96.82 / (d__1 * d__1) + dy[i__ 
+        * 17 - 17] * .321;
 /* L38: */
-	dy[i__ * 17 - 8] = dy[i__ * 17 - 13] * 1.29 + dy[i__ * 17 - 14] * 
-		1.258 + dy[i__ * 17 - 15] * 2.29 + dy[i__ * 17 - 12] * 1.71;
+    dy[i__ * 17 - 8] = dy[i__ * 17 - 13] * 1.29 + dy[i__ * 17 - 14] * 
+        1.258 + dy[i__ * 17 - 15] * 2.29 + dy[i__ * 17 - 12] * 1.71;
     }
     dy[10] = 1.71 - dy[3] * .452 + dy[2] * .58;
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L39: */
-	dy[i__ * 17 - 7] = dy[i__ * 17 - 14] * -.452 + dy[i__ * 17 - 15] * 
-		.58;
+    dy[i__ * 17 - 7] = dy[i__ * 17 - 14] * -.452 + dy[i__ * 17 - 15] * 
+        .58;
     }
     dc[10] = (y[1] + l2_4.x[0] * dy[1]) * 1.74125;
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L40: */
-	dc[i__ * 17 - 7] = l2_4.x[0] * 1.74125 * dy[i__ * 17 - 16];
+    dc[i__ * 17 - 7] = l2_4.x[0] * 1.74125 * dy[i__ * 17 - 16];
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L41: */
-	dc[i__ * 17 - 6] = dy[i__ * 17 - 8] * .995;
+    dc[i__ * 17 - 6] = dy[i__ * 17 - 8] * .995;
     }
 /* Computing 2nd power */
     d__1 = c__[11];
     dy[11] = c__[9] + l2_4.x[0] * dc[9] + (c__[11] * dc[10] - c__[10] * dc[11]
-	    ) / (d__1 * d__1);
+        ) / (d__1 * d__1);
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L42: */
 /* Computing 2nd power */
-	d__1 = c__[11];
-	dy[i__ * 17 - 6] = (c__[11] * dc[i__ * 17 - 7] - c__[10] * dc[i__ * 
-		17 - 6]) / (d__1 * d__1);
+    d__1 = c__[11];
+    dy[i__ * 17 - 6] = (c__[11] * dc[i__ * 17 - 7] - c__[10] * dc[i__ * 
+        17 - 6]) / (d__1 * d__1);
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L43: */
-	dy[i__ * 17 - 5] = dc[i__ * 17 - 6] - dy[i__ * 17 - 16] * 1.75;
+    dy[i__ * 17 - 5] = dc[i__ * 17 - 6] - dy[i__ * 17 - 16] * 1.75;
     }
 /* Computing 2nd power */
     d__1 = v4;
@@ -8099,141 +8099,141 @@ L71:
     dy[81] = v7 * (dy[76] + 1.);
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L44: */
-	dc[i__ * 17 - 5] = dy[i__ * 17 - 8] * .995 - dy[i__ * 17 - 4] * .1121;
+    dc[i__ * 17 - 5] = dy[i__ * 17 - 8] * .995 - dy[i__ * 17 - 4] * .1121;
     }
     dc[29] += 60.8;
     dc[63] += 48.;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
-	d__1 = c__[12];
-	dy[i__ * 17 - 3] = (c__[12] * dy[i__ * 17 - 5] - y[12] * dc[i__ * 17 
-		- 5]) / (d__1 * d__1);
-	dy[i__ * 17 - 2] = dy[i__ * 17 - 3] * -3.31e5 + dy[i__ * 17 - 5] * 
-		40. - (y[14] * dy[i__ * 17 - 5] + y[12] * dy[i__ * 17 - 3]) * 
-		61.;
-	dc[i__ * 17 - 4] = dy[i__ * 17 - 8] * 2324. - dy[i__ * 17 - 16] * 
-		2.874e7;
+    d__1 = c__[12];
+    dy[i__ * 17 - 3] = (c__[12] * dy[i__ * 17 - 5] - y[12] * dc[i__ * 17 
+        - 5]) / (d__1 * d__1);
+    dy[i__ * 17 - 2] = dy[i__ * 17 - 3] * -3.31e5 + dy[i__ * 17 - 5] * 
+        40. - (y[14] * dy[i__ * 17 - 5] + y[12] * dy[i__ * 17 - 3]) * 
+        61.;
+    dc[i__ * 17 - 4] = dy[i__ * 17 - 8] * 2324. - dy[i__ * 17 - 16] * 
+        2.874e7;
 /* Computing 2nd power */
-	d__1 = c__[11];
-	dy[i__ * 17 - 1] = dy[i__ * 17 - 8] * -1328. - dy[i__ * 17 - 7] * 
-		531. + (c__[11] * dc[i__ * 17 - 4] - c__[13] * dc[i__ * 17 - 
-		6]) / (d__1 * d__1);
+    d__1 = c__[11];
+    dy[i__ * 17 - 1] = dy[i__ * 17 - 8] * -1328. - dy[i__ * 17 - 7] * 
+        531. + (c__[11] * dc[i__ * 17 - 4] - c__[13] * dc[i__ * 17 - 
+        6]) / (d__1 * d__1);
 /* Computing 2nd power */
-	d__1 = y[14];
-	dc[i__ * 17 - 3] = (y[14] * dy[i__ * 17 - 5] - y[12] * dy[i__ * 17 - 
-		3]) / (d__1 * d__1) - dy[i__ * 17 - 5] / .52;
+    d__1 = y[14];
+    dc[i__ * 17 - 3] = (y[14] * dy[i__ * 17 - 5] - y[12] * dy[i__ * 17 - 
+        3]) / (d__1 * d__1) - dy[i__ * 17 - 5] / .52;
 /* L45: */
-	dc[i__ * 17 - 2] = dy[i__ * 17 - 3] * -.72;
+    dc[i__ * 17 - 2] = dy[i__ * 17 - 3] * -.72;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L46: */
-	dc[i__ * 17 - 1] = dy[i__ * 17 - 9];
+    dc[i__ * 17 - 1] = dy[i__ * 17 - 9];
     }
     dc[84] = dy[76] + 1.;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL2:
     l6_1.fx = -(y[16] * 5.843e-7 - y[13] * 1.17e-4 - .1365 - y[12] * 2.358e-5 
-	    - y[15] * 1.502e-6 - y[11] * .0321 - y[4] * .004324 - c__[14] * 
-	    1e-4 / c__[15] - y[1] * 37.48 / c__[11]);
+        - y[15] * 1.502e-6 - y[11] * .0321 - y[4] * .004324 - c__[14] * 
+        1e-4 / c__[15] - y[1] * 37.48 / c__[11]);
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
-	d__1 = c__[15];
+    d__1 = c__[15];
 /* Computing 2nd power */
-	d__2 = c__[11];
-	l4_4.gf[i__ - 1] = dy[i__ * 17 - 1] * -5.843e-7 + dy[i__ * 17 - 4] * 
-		1.17e-4 + dy[i__ * 17 - 5] * 2.358e-5 + dy[i__ * 17 - 2] * 
-		1.502e-6 + dy[i__ * 17 - 6] * .0321 + dy[i__ * 17 - 13] * 
-		.004324 + (c__[15] * dc[i__ * 17 - 3] - c__[14] * dc[i__ * 17 
-		- 2]) * 1e-4 / (d__1 * d__1) + (c__[11] * dy[i__ * 17 - 16] - 
-		y[1] * dc[i__ * 17 - 6]) * 37.48 / (d__2 * d__2);
+    d__2 = c__[11];
+    l4_4.gf[i__ - 1] = dy[i__ * 17 - 1] * -5.843e-7 + dy[i__ * 17 - 4] * 
+        1.17e-4 + dy[i__ * 17 - 5] * 2.358e-5 + dy[i__ * 17 - 2] * 
+        1.502e-6 + dy[i__ * 17 - 6] * .0321 + dy[i__ * 17 - 13] * 
+        .004324 + (c__[15] * dc[i__ * 17 - 3] - c__[14] * dc[i__ * 17 
+        - 2]) * 1e-4 / (d__1 * d__1) + (c__[11] * dy[i__ * 17 - 16] - 
+        y[1] * dc[i__ * 17 - 6]) * 37.48 / (d__2 * d__2);
 /* L47: */
     }
     return 0;
 labelL4:
     if (l9_9.index1[0]) {
-	l3_8.g[0] = l2_4.x[1] * 1.5 - l2_4.x[2];
+    l3_8.g[0] = l2_4.x[1] * 1.5 - l2_4.x[2];
     }
     if (l9_9.index1[1]) {
-	l3_8.g[1] = y[0] - 213.1;
+    l3_8.g[1] = y[0] - 213.1;
     }
     if (l9_9.index1[2]) {
-	l3_8.g[2] = 405.23 - y[0];
+    l3_8.g[2] = 405.23 - y[0];
     }
     for (i__ = 1; i__ <= 16; ++i__) {
-	if (l9_9.index1[i__ + 2]) {
-	    l3_8.g[i__ + 2] = y[i__] - a[i__];
-	}
-	if (l9_9.index1[i__ + 18]) {
-	    l3_8.g[i__ + 18] = b[i__] - y[i__];
-	}
+    if (l9_9.index1[i__ + 2]) {
+        l3_8.g[i__ + 2] = y[i__] - a[i__];
+    }
+    if (l9_9.index1[i__ + 18]) {
+        l3_8.g[i__ + 18] = b[i__] - y[i__];
+    }
 /* L50: */
     }
     if (l9_9.index1[35]) {
-	l3_8.g[35] = y[3] - y[4] * .28 / .72;
+    l3_8.g[35] = y[3] - y[4] * .28 / .72;
     }
     if (l9_9.index1[36]) {
-	l3_8.g[36] = 21. - y[1] * 3496. / c__[11];
+    l3_8.g[36] = 21. - y[1] * 3496. / c__[11];
     }
     if (l9_9.index1[37]) {
-	l3_8.g[37] = 62212. / c__[16] - 110.6 - y[0];
+    l3_8.g[37] = 62212. / c__[16] - 110.6 - y[0];
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 16; ++i__) {
-	if (! l10_9.index2[i__ + 2]) {
-	    goto L52;
-	}
-	for (j = 1; j <= 5; ++j) {
+    if (! l10_9.index2[i__ + 2]) {
+        goto L52;
+    }
+    for (j = 1; j <= 5; ++j) {
 /* L51: */
-	    l5_15.gg[i__ + 3 + j * 38 - 39] = dy[i__ + 1 + j * 17 - 18];
-	}
+        l5_15.gg[i__ + 3 + j * 38 - 39] = dy[i__ + 1 + j * 17 - 18];
+    }
 L52:
-	if (! l10_9.index2[i__ + 18]) {
-	    goto L54;
-	}
-	for (j = 1; j <= 5; ++j) {
+    if (! l10_9.index2[i__ + 18]) {
+        goto L54;
+    }
+    for (j = 1; j <= 5; ++j) {
 /* L53: */
-	    l5_15.gg[i__ + 19 + j * 38 - 39] = -dy[i__ + 1 + j * 17 - 18];
-	}
+        l5_15.gg[i__ + 19 + j * 38 - 39] = -dy[i__ + 1 + j * 17 - 18];
+    }
 L54:
-	;
+    ;
     }
     if (! l10_9.index2[35]) {
-	goto L56;
+    goto L56;
     }
     for (j = 1; j <= 5; ++j) {
 /* L55: */
-	l5_15.gg[j * 38 - 3] = dy[j * 17 - 14] - dy[j * 17 - 13] * .28 / .72;
+    l5_15.gg[j * 38 - 3] = dy[j * 17 - 14] - dy[j * 17 - 13] * .28 / .72;
     }
 L56:
     if (! l10_9.index2[36]) {
-	goto L58;
+    goto L58;
     }
     for (j = 1; j <= 5; ++j) {
 /* L57: */
 /* Computing 2nd power */
-	d__1 = c__[11];
-	l5_15.gg[j * 38 - 2] = (c__[11] * dy[j * 17 - 16] - y[1] * dc[j * 17 
-		- 6]) * -3496. / (d__1 * d__1);
+    d__1 = c__[11];
+    l5_15.gg[j * 38 - 2] = (c__[11] * dy[j * 17 - 16] - y[1] * dc[j * 17 
+        - 6]) * -3496. / (d__1 * d__1);
     }
 L58:
     if (! l10_9.index2[37]) {
-	goto L60;
+    goto L60;
     }
     for (j = 1; j <= 5; ++j) {
 /* L59: */
 /* Computing 2nd power */
-	d__1 = c__[16];
-	l5_15.gg[j * 38 - 1] = dc[j * 17 - 1] * -62212. / (d__1 * d__1) - dy[
-		j * 17 - 17];
+    d__1 = c__[16];
+    l5_15.gg[j * 38 - 1] = dc[j * 17 - 1] * -62212. / (d__1 * d__1) - dy[
+        j * 17 - 17];
     }
 L60:
     return 0;
@@ -8246,19 +8246,19 @@ L60:
     Real d__1;
 
     /* Local variables */
-    static Real a[50]	/* was [10][5] */, b[10], c__[25]	/* 
-	    was [5][5] */, d__[5], e[5];
+    static Real a[50]    /* was [10][5] */, b[10], c__[25]    /* 
+        was [5][5] */, d__[5], e[5];
     static int i__, j;
     static Real t;
     static int i1;
     static Real t1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -8268,14 +8268,14 @@ labelL1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L26: */
-	l2_4.x[i__ - 1] = 0.;
+    l2_4.x[i__ - 1] = 0.;
     }
     l2_4.x[4] = 1.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
-	l12_4.lxu[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_4.xl[i__ - 1] = 0.;
+    l13_4.xl[i__ - 1] = 0.;
     }
     e[0] = -15.;
     e[1] = -27.;
@@ -8298,11 +8298,11 @@ labelL1:
     c__[23] = -20.;
     c__[24] = 30.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	i1 = i__ + 1;
-	for (j = i1; j <= 5; ++j) {
+    i1 = i__ + 1;
+    for (j = i1; j <= 5; ++j) {
 /* L27: */
-	    c__[j + i__ * 5 - 6] = c__[i__ + j * 5 - 6];
-	}
+        c__[j + i__ * 5 - 6] = c__[i__ + j * 5 - 6];
+    }
     }
     d__[0] = 4.;
     d__[1] = 8.;
@@ -8345,10 +8345,10 @@ labelL1:
     a[37] = -2.;
     a[47] = -1.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	a[i__ * 10 - 4] = -1.;
-	a[i__ * 10 - 2] = (Real) i__;
+    a[i__ * 10 - 4] = -1.;
+    a[i__ * 10 - 2] = (Real) i__;
 /* L29: */
-	a[i__ * 10 - 1] = 1.;
+    a[i__ * 10 - 1] = 1.;
     }
     b[0] = -40.;
     b[1] = -2.;
@@ -8361,10 +8361,10 @@ labelL1:
     b[8] = 5.;
     b[9] = 1.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L25: */
-	    l5_16.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11];
-	}
+        l5_16.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11];
+    }
     }
     l20_7.lex = false;
     l20_7.xex[0] = .299999999948;
@@ -8377,41 +8377,41 @@ labelL1:
 labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	t1 = 0.;
-	for (j = 1; j <= 5; ++j) {
+    t1 = 0.;
+    for (j = 1; j <= 5; ++j) {
 /* L21: */
-	    t1 += c__[j + i__ * 5 - 6] * l2_4.x[i__ - 1] * l2_4.x[j - 1];
-	}
+        t1 += c__[j + i__ * 5 - 6] * l2_4.x[i__ - 1] * l2_4.x[j - 1];
+    }
 /* labelL20: */
 /* Computing 3rd power */
-	d__1 = l2_4.x[i__ - 1];
-	t = t + e[i__ - 1] * l2_4.x[i__ - 1] + d__[i__ - 1] * (d__1 * (d__1 * 
-		d__1)) + t1;
+    d__1 = l2_4.x[i__ - 1];
+    t = t + e[i__ - 1] * l2_4.x[i__ - 1] + d__[i__ - 1] * (d__1 * (d__1 * 
+        d__1)) + t1;
     }
     l6_1.fx = t;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
-	t = 0.;
-	for (j = 1; j <= 5; ++j) {
+    t = 0.;
+    for (j = 1; j <= 5; ++j) {
 /* L22: */
-	    t += (c__[i__ + j * 5 - 6] + c__[j + i__ * 5 - 6]) * l2_4.x[j - 1]
-		    ;
-	}
+        t += (c__[i__ + j * 5 - 6] + c__[j + i__ * 5 - 6]) * l2_4.x[j - 1]
+            ;
+    }
 /* L23: */
 /* Computing 2nd power */
-	d__1 = l2_4.x[i__ - 1];
-	l4_4.gf[i__ - 1] = e[i__ - 1] + t + d__[i__ - 1] * 3. * (d__1 * d__1);
+    d__1 = l2_4.x[i__ - 1];
+    l4_4.gf[i__ - 1] = e[i__ - 1] + t + d__[i__ - 1] * 3. * (d__1 * d__1);
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L24: */
-	if (l9_10.index1[i__ - 1]) {
-	    l3_9.g[i__ - 1] = a[i__ - 1] * l2_4.x[0] + a[i__ + 9] * l2_4.x[1] 
-		    + a[i__ + 19] * l2_4.x[2] + a[i__ + 29] * l2_4.x[3] + a[
-		    i__ + 39] * l2_4.x[4] - b[i__ - 1];
-	}
+    if (l9_10.index1[i__ - 1]) {
+        l3_9.g[i__ - 1] = a[i__ - 1] * l2_4.x[0] + a[i__ + 9] * l2_4.x[1] 
+            + a[i__ + 19] * l2_4.x[2] + a[i__ + 29] * l2_4.x[3] + a[
+            i__ + 39] * l2_4.x[4] - b[i__ - 1];
+    }
     }
 labelL5:
     return 0;
@@ -8429,11 +8429,11 @@ labelL5:
     static Real f1, f2, v1, v2, v3, v4, v5;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 6;
@@ -8448,9 +8448,9 @@ labelL1:
     l2_5.x[4] = 198.175;
     l2_5.x[5] = .5;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l11_5.lxl[i__ - 1] = true;
+    l11_5.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_5.lxu[i__ - 1] = true;
+    l12_5.lxu[i__ - 1] = true;
     }
     l13_5.xl[0] = 0.;
     l13_5.xl[1] = 0.;
@@ -8471,7 +8471,7 @@ labelL1:
     e = std::sin(1.47588);
     for (i__ = 3; i__ <= 6; ++i__) {
 /* L70: */
-	l4_5.gf[i__ - 1] = 0.;
+    l4_5.gf[i__ - 1] = 0.;
     }
     l5_8.gg[0] = -1.;
     l5_8.gg[4] = 0.;
@@ -8496,9 +8496,9 @@ labelL1:
     return 0;
 labelL2:
     if (l2_5.x[0] - 300. >= 0.) {
-	goto L32;
+    goto L32;
     } else {
-	goto L31;
+    goto L31;
     }
 L31:
     f1 = l2_5.x[0] * 30.;
@@ -8507,18 +8507,18 @@ L32:
     f1 = l2_5.x[0] * 31.;
 L33:
     if (l2_5.x[1] - 100. >= 0.) {
-	goto L35;
+    goto L35;
     } else {
-	goto L34;
+    goto L34;
     }
 L34:
     f2 = l2_5.x[1] * 28.;
     goto L46;
 L35:
     if (l2_5.x[1] - 200. >= 0.) {
-	goto L37;
+    goto L37;
     } else {
-	goto L36;
+    goto L36;
     }
 L36:
     f2 = l2_5.x[1] * 29.;
@@ -8530,9 +8530,9 @@ L46:
     return 0;
 labelL3:
     if (l2_5.x[0] - 300. >= 0.) {
-	goto L39;
+    goto L39;
     } else {
-	goto L38;
+    goto L38;
     }
 L38:
     l4_5.gf[0] = 30.;
@@ -8541,18 +8541,18 @@ L39:
     l4_5.gf[0] = 31.;
 L40:
     if (l2_5.x[1] - 100. >= 0.) {
-	goto L42;
+    goto L42;
     } else {
-	goto L41;
+    goto L41;
     }
 L41:
     l4_5.gf[1] = 28.;
     goto L45;
 L42:
     if (l2_5.x[1] - 200. >= 0.) {
-	goto L44;
+    goto L44;
     } else {
-	goto L43;
+    goto L43;
     }
 L43:
     l4_5.gf[1] = 29.;
@@ -8564,68 +8564,68 @@ L45:
 labelL4:
     if (l9_7.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_5.x[2];
-	l3_6.g[0] = -l2_5.x[0] + 300. - l2_5.x[2] * l2_5.x[3] / a *std::cos(b - 
-		l2_5.x[5]) + c__ * (d__1 * d__1) / a * d__;
+    d__1 = l2_5.x[2];
+    l3_6.g[0] = -l2_5.x[0] + 300. - l2_5.x[2] * l2_5.x[3] / a *std::cos(b - 
+        l2_5.x[5]) + c__ * (d__1 * d__1) / a * d__;
     }
     if (l9_7.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_5.x[3];
-	l3_6.g[1] = -l2_5.x[1] - l2_5.x[2] * l2_5.x[3] / a *std::cos(b + l2_5.x[5]
-		) + c__ * (d__1 * d__1) / a * d__;
+    d__1 = l2_5.x[3];
+    l3_6.g[1] = -l2_5.x[1] - l2_5.x[2] * l2_5.x[3] / a *std::cos(b + l2_5.x[5]
+        ) + c__ * (d__1 * d__1) / a * d__;
     }
     if (l9_7.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_5.x[3];
-	l3_6.g[2] = -l2_5.x[4] - l2_5.x[2] * l2_5.x[3] / a * std::sin(b + l2_5.x[5]
-		) + c__ * (d__1 * d__1) / a * e;
+    d__1 = l2_5.x[3];
+    l3_6.g[2] = -l2_5.x[4] - l2_5.x[2] * l2_5.x[3] / a * std::sin(b + l2_5.x[5]
+        ) + c__ * (d__1 * d__1) / a * e;
     }
     if (l9_7.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_5.x[2];
-	l3_6.g[3] = 200. - l2_5.x[2] * l2_5.x[3] / a * std::sin(b - l2_5.x[5]) + 
-		c__ * (d__1 * d__1) / a * e;
+    d__1 = l2_5.x[2];
+    l3_6.g[3] = 200. - l2_5.x[2] * l2_5.x[3] / a * std::sin(b - l2_5.x[5]) + 
+        c__ * (d__1 * d__1) / a * e;
     }
     return 0;
 labelL5:
     v1 = 1. / a;
     if (! (l10_7.index2[0] || l10_7.index2[3])) {
-	goto L8;
+    goto L8;
     }
     v2 = b - l2_5.x[5];
     v3 =std::cos(v2) * v1;
     v4 = std::sin(v2) * v1;
     v5 = c__ * 2. * l2_5.x[2] * v1;
     if (! l10_7.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_8.gg[8] = -l2_5.x[3] * v3 + v5 * d__;
     l5_8.gg[12] = -l2_5.x[2] * v3;
     l5_8.gg[20] = -l2_5.x[2] * l2_5.x[3] * v4;
 L7:
     if (! l10_7.index2[3]) {
-	goto L8;
+    goto L8;
     }
     l5_8.gg[11] = -l2_5.x[3] * v4 + v5 * e;
     l5_8.gg[15] = -l2_5.x[2] * v4;
     l5_8.gg[23] = l2_5.x[2] * l2_5.x[3] * v3;
 L8:
     if (! (l10_7.index2[1] || l10_7.index2[2])) {
-	goto labelL10;
+    goto labelL10;
     }
     v2 = b + l2_5.x[5];
     v3 =std::cos(v2) * v1;
     v4 = std::sin(v2) * v1;
     v5 = c__ * 2. * l2_5.x[3] * v1;
     if (! l10_7.index2[1]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_8.gg[9] = -l2_5.x[3] * v3;
     l5_8.gg[13] = -l2_5.x[2] * v3 + v5 * d__;
     l5_8.gg[21] = l2_5.x[2] * l2_5.x[3] * v4;
 labelL9:
     if (! l10_7.index2[2]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_8.gg[10] = -l2_5.x[3] * v4;
     l5_8.gg[14] = -l2_5.x[2] * v4 + v5 * e;
@@ -8657,11 +8657,11 @@ labelL10:
     static Real mue[30], rho[30];
 
     switch(n__) {
-	case 1: goto L_tp89;
-	case 2: goto L_tp90;
-	case 3: goto L_tp91;
-	case 4: goto L_tp92;
-	}
+    case 1: goto L_tp89;
+    case 2: goto L_tp90;
+    case 3: goto L_tp91;
+    case 4: goto L_tp92;
+    }
 
     kn1 = 1;
     l20_4.xex[0] = 1.0743187294;
@@ -8707,9 +8707,9 @@ L_tp92:
     l20_4.fex = 1.36265681213;
 L7:
     if (*mode - 2 >= 0) {
-	goto L17;
+    goto L17;
     } else {
-	goto labelL1;
+    goto labelL1;
     }
 labelL1:
     l1_1.n = kn1 + 1;
@@ -8718,37 +8718,37 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_5.x[(i__ << 1) - 2] = .5;
+    l2_5.x[(i__ << 1) - 2] = .5;
 /* labelL11: */
-	l2_5.x[(i__ << 1) - 1] = -.5;
+    l2_5.x[(i__ << 1) - 1] = -.5;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	l11_5.lxl[i__ - 1] = true;
-	l12_5.lxu[i__ - 1] = true;
-	l13_5.xl[i__ - 1] = -10.;
+    l11_5.lxl[i__ - 1] = true;
+    l12_5.lxu[i__ - 1] = true;
+    l13_5.xl[i__ - 1] = -10.;
 /* labelL6: */
-	l14_5.xu[i__ - 1] = 10.;
+    l14_5.xu[i__ - 1] = 10.;
     }
     pi = std::atan(1.) * 4.;
     for (i__ = 1; i__ <= 30; ++i__) {
-	z__ = pi * (Real) (i__ - 1);
-	mue[i__ - 1] = gleich_(&z__);
-	v1 = std::sin(mue[i__ - 1]);
-	v2 =std::cos(mue[i__ - 1]);
+    z__ = pi * (Real) (i__ - 1);
+    mue[i__ - 1] = gleich_(&z__);
+    v1 = std::sin(mue[i__ - 1]);
+    v2 =std::cos(mue[i__ - 1]);
 /* Computing 2nd power */
-	d__1 = mue[i__ - 1];
-	dcosko[i__ - 1] = (v1 / mue[i__ - 1] - v2) / (d__1 * d__1);
+    d__1 = mue[i__ - 1];
+    dcosko[i__ - 1] = (v1 / mue[i__ - 1] - v2) / (d__1 * d__1);
 /* labelL10: */
-	a[i__ - 1] = v1 * 2. / (mue[i__ - 1] + v1 * v2);
+    a[i__ - 1] = v1 * 2. / (mue[i__ - 1] + v1 * v2);
     }
     intko = .13333333333333333;
     l20_4.lex = false;
     return 0;
 L17:
     if (*mode - 4 >= 0) {
-	goto L18;
+    goto L18;
     } else {
-	goto L19;
+    goto L19;
     }
 L18:
     n1 = l1_1.n - 1;
@@ -8759,44 +8759,44 @@ L18:
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_5.x[l1_1.n - i__ - 1];
-	t[l1_1.n - i__ - 1] = t[l1_1.n - i__] + d__1 * d__1;
+    d__1 = l2_5.x[l1_1.n - i__ - 1];
+    t[l1_1.n - i__ - 1] = t[l1_1.n - i__] + d__1 * d__1;
     }
     v1 = 0.;
     for (j = 1; j <= 30; ++j) {
-	v2 = mue[j - 1];
+    v2 = mue[j - 1];
 /* Computing 2nd power */
-	d__1 = v2;
-	v3 = -(d__1 * d__1);
-	rho[j - 1] = (Real) pow_ii(&c_n1, &l1_1.n);
-	i__1 = n1;
-	for (i__ = 1; i__ <= i__1; ++i__) {
-	    ep1 = 0.;
-	    a1 = v3 * t[l1_1.n + 1 - i__ - 1];
-	    if (a1 > -100.) {
-		ep1 = std::exp(a1);
-	    }
+    d__1 = v2;
+    v3 = -(d__1 * d__1);
+    rho[j - 1] = (Real) pow_ii(&c_n1, &l1_1.n);
+    i__1 = n1;
+    for (i__ = 1; i__ <= i__1; ++i__) {
+        ep1 = 0.;
+        a1 = v3 * t[l1_1.n + 1 - i__ - 1];
+        if (a1 > -100.) {
+        ep1 = std::exp(a1);
+        }
 /* labelL14: */
-	    i__2 = l1_1.n - i__;
-	    rho[j - 1] += (Real) pow_ii(&c_n1, &i__2) * 2. * ep1;
-	}
-	ep1 = 0.;
-	a1 = v3 * t[0];
-	if (a1 > -100.) {
-	    ep1 = std::exp(a1);
-	}
-	rho[j - 1] = (rho[j - 1] + ep1) / v3;
+        i__2 = l1_1.n - i__;
+        rho[j - 1] += (Real) pow_ii(&c_n1, &i__2) * 2. * ep1;
+    }
+    ep1 = 0.;
+    a1 = v3 * t[0];
+    if (a1 > -100.) {
+        ep1 = std::exp(a1);
+    }
+    rho[j - 1] = (rho[j - 1] + ep1) / v3;
 /* labelL13: */
-	v1 -= v3 * a[j - 1] * rho[j - 1] * (v2 * std::sin(v2) * rho[j - 1] - 
-		dcosko[j - 1] * 2.);
+    v1 -= v3 * a[j - 1] * rho[j - 1] * (v2 * std::sin(v2) * rho[j - 1] - 
+        dcosko[j - 1] * 2.);
     }
 L19:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL2:
     u = 0.;
@@ -8804,8 +8804,8 @@ labelL2:
     for (i__ = 1; i__ <= i__2; ++i__) {
 /* labelL20: */
 /* Computing 2nd power */
-	d__1 = l2_5.x[i__ - 1];
-	u += d__1 * d__1;
+    d__1 = l2_5.x[i__ - 1];
+    u += d__1 * d__1;
     }
     l6_1.fx = u;
     return 0;
@@ -8813,7 +8813,7 @@ labelL3:
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
 /* L21: */
-	l4_5.gf[i__ - 1] = l2_5.x[i__ - 1] * 2.;
+    l4_5.gf[i__ - 1] = l2_5.x[i__ - 1] * 2.;
     }
     return 0;
 labelL4:
@@ -8823,44 +8823,44 @@ labelL5:
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
 /* L22: */
-	dv[i__ - 1] = 0.;
+    dv[i__ - 1] = 0.;
     }
     for (j = 1; j <= 30; ++j) {
-	w = mue[j - 1];
+    w = mue[j - 1];
 /* Computing 2nd power */
-	d__1 = w;
-	v1 = d__1 * d__1 * a[j - 1] * (w * std::sin(w) * rho[j - 1] - dcosko[j - 1]
-		);
-	ep1 = 0.;
+    d__1 = w;
+    v1 = d__1 * d__1 * a[j - 1] * (w * std::sin(w) * rho[j - 1] - dcosko[j - 1]
+        );
+    ep1 = 0.;
 /* Computing 2nd power */
-	d__1 = mue[j - 1];
-	a1 = -(d__1 * d__1) * t[0];
-	if (a1 > -100.) {
-	    ep1 = std::exp(a1);
-	}
-	dz[0] = ep1;
-	dv[0] += dz[0] * v1;
-	i__2 = l1_1.n;
-	for (i__ = 2; i__ <= i__2; ++i__) {
-	    ep1 = 0.;
+    d__1 = mue[j - 1];
+    a1 = -(d__1 * d__1) * t[0];
+    if (a1 > -100.) {
+        ep1 = std::exp(a1);
+    }
+    dz[0] = ep1;
+    dv[0] += dz[0] * v1;
+    i__2 = l1_1.n;
+    for (i__ = 2; i__ <= i__2; ++i__) {
+        ep1 = 0.;
 /* Computing 2nd power */
-	    d__1 = mue[j - 1];
-	    a1 = -(d__1 * d__1) * t[i__ - 1];
-	    if (a1 > -100.) {
-		ep1 = std::exp(a1);
-	    }
-	    i__1 = i__ + 1;
-	    dz[i__ - 1] = dz[i__ - 2] + (Real) pow_ii(&c_n1, &i__1) * 
-		    2. * ep1;
+        d__1 = mue[j - 1];
+        a1 = -(d__1 * d__1) * t[i__ - 1];
+        if (a1 > -100.) {
+        ep1 = std::exp(a1);
+        }
+        i__1 = i__ + 1;
+        dz[i__ - 1] = dz[i__ - 2] + (Real) pow_ii(&c_n1, &i__1) * 
+            2. * ep1;
 /* L23: */
-	    dv[i__ - 1] += dz[i__ - 1] * v1;
-	}
+        dv[i__ - 1] += dz[i__ - 1] * v1;
+    }
 /* L25: */
     }
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
 /* L24: */
-	l5_3.gg[i__ - 1] = dv[i__ - 1] * -4. * l2_5.x[i__ - 1];
+    l5_3.gg[i__ - 1] = dv[i__ - 1] * -4. * l2_5.x[i__ - 1];
     }
     return 0;
 } /* tp88_ */
@@ -8901,11 +8901,11 @@ labelL5:
     static Real v1, v2, v3, v4, v5, v6, v7, v8, v9;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 6;
@@ -8920,10 +8920,10 @@ labelL1:
     l2_5.x[4] = .702;
     l2_5.x[5] = .852;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l11_5.lxl[i__ - 1] = true;
-	l12_5.lxu[i__ - 1] = false;
+    l11_5.lxl[i__ - 1] = true;
+    l12_5.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_5.xl[i__ - 1] = 0.;
+    l13_5.xl[i__ - 1] = 0.;
     }
     l20_4.lex = false;
     l20_4.xex[0] = 5.33266639884;
@@ -8944,7 +8944,7 @@ labelL2:
 /* Computing 2nd power */
     d__2 = l2_5.x[5];
     l6_1.fx = v3 * .0204 * v1 + v4 * .0187 * v2 + v3 * .0607 * v1 * (d__1 * 
-	    d__1) + v4 * .0437 * v2 * (d__2 * d__2);
+        d__1) + v4 * .0437 * v2 * (d__2 * d__2);
     return 0;
 labelL3:
     v1 = l2_5.x[0] * l2_5.x[3];
@@ -8961,39 +8961,39 @@ labelL3:
     v8 = l2_5.x[2] * (d__1 * d__1);
     v9 = l2_5.x[0] * .0607 * v7;
     l4_5.gf[0] = v1 * .0408 + l2_5.x[3] * .0204 * v3 + v2 * .0187 + v9 * 2. + 
-	    v7 * .0607 * v3 + l2_5.x[1] * .0437 * v8;
+        v7 * .0607 * v3 + l2_5.x[1] * .0437 * v8;
     l4_5.gf[1] = v1 * .0204 + v2 * .058718 + l2_5.x[2] * .0187 * v4 + v9 + 
-	    l2_5.x[1] * .137218 * v8 + v8 * .0437 * v4;
+        l2_5.x[1] * .137218 * v8 + v8 * .0437 * v4;
 /* Computing 2nd power */
     d__1 = l2_5.x[5];
     l4_5.gf[2] = v1 * .0204 + l2_5.x[1] * .0187 * v6 + v9 + l2_5.x[1] * .0437 
-	    * (d__1 * d__1) * v6;
+        * (d__1 * d__1) * v6;
 /* Computing 2nd power */
     d__1 = l2_5.x[4];
     l4_5.gf[3] = l2_5.x[0] * .0204 * v5 + v2 * .0187 + l2_5.x[1] * .0437 * v8 
-	    + l2_5.x[0] * .0607 * (d__1 * d__1) * v5;
+        + l2_5.x[0] * .0607 * (d__1 * d__1) * v5;
     l4_5.gf[4] = v1 * .1214 * l2_5.x[4] * v5;
     l4_5.gf[5] = l2_5.x[5] * .0874 * v2 * v6;
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_5.x[0] * .001 * l2_5.x[1] * l2_5.x[2] * l2_5.x[3] * 
-		l2_5.x[4] * l2_5.x[5] - 2.07;
+    l3_2.g[0] = l2_5.x[0] * .001 * l2_5.x[1] * l2_5.x[2] * l2_5.x[3] * 
+        l2_5.x[4] * l2_5.x[5] - 2.07;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_5.x[4];
+    d__1 = l2_5.x[4];
 /* Computing 2nd power */
-	d__2 = l2_5.x[5];
-	l3_2.g[1] = 1. - l2_5.x[0] * 6.2e-4 * l2_5.x[3] * (d__1 * d__1) * (
-		l2_5.x[0] + l2_5.x[1] + l2_5.x[2]) - l2_5.x[1] * 5.8e-4 * 
-		l2_5.x[2] * (d__2 * d__2) * (l2_5.x[0] + l2_5.x[1] * 1.57 + 
-		l2_5.x[3]);
+    d__2 = l2_5.x[5];
+    l3_2.g[1] = 1. - l2_5.x[0] * 6.2e-4 * l2_5.x[3] * (d__1 * d__1) * (
+        l2_5.x[0] + l2_5.x[1] + l2_5.x[2]) - l2_5.x[1] * 5.8e-4 * 
+        l2_5.x[2] * (d__2 * d__2) * (l2_5.x[0] + l2_5.x[1] * 1.57 + 
+        l2_5.x[3]);
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     v1 = l2_5.x[0] * l2_5.x[1] * l2_5.x[2] * .001;
     v2 = l2_5.x[3] * l2_5.x[4] * l2_5.x[5] * .001;
@@ -9005,7 +9005,7 @@ labelL5:
     l5_7.gg[10] = l2_5.x[3] * l2_5.x[4] * v1;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 2nd power */
     d__1 = l2_5.x[4];
@@ -9040,10 +9040,10 @@ L8:
     static int i__, kn1;
 
     switch(n__) {
-	case 1: goto L_tp96;
-	case 2: goto L_tp97;
-	case 3: goto L_tp98;
-	}
+    case 1: goto L_tp96;
+    case 2: goto L_tp97;
+    case 3: goto L_tp98;
+    }
 
     kn1 = 1;
     l20_4.xex[0] = -4.76149332788e-12;
@@ -9088,11 +9088,11 @@ L_tp98:
     l20_4.fex = 3.13580912299;
 labelL11:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 6;
@@ -9101,11 +9101,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l2_5.x[i__ - 1] = 0.;
-	l11_5.lxl[i__ - 1] = true;
-	l12_5.lxu[i__ - 1] = true;
+    l2_5.x[i__ - 1] = 0.;
+    l11_5.lxl[i__ - 1] = true;
+    l12_5.lxu[i__ - 1] = true;
 /* labelL6: */
-	l13_5.xl[i__ - 1] = 0.;
+    l13_5.xl[i__ - 1] = 0.;
     }
     l14_5.xu[0] = .31;
     l14_5.xu[1] = .046;
@@ -9130,9 +9130,9 @@ labelL1:
     l5_8.gg[15] = 587.;
     l5_8.gg[19] = 391.;
     if (kn1 - 2 <= 0) {
-	goto labelL20;
+    goto labelL20;
     } else {
-	goto L21;
+    goto L21;
     }
 labelL20:
     b[0] = 4.97;
@@ -9143,11 +9143,11 @@ L21:
     b[1] = 25.12;
 L22:
     if ((i__1 = kn1 - 3) < 0) {
-	goto L25;
+    goto L25;
     } else if (i__1 == 0) {
-	goto L24;
+    goto L24;
     } else {
-	goto L23;
+    goto L23;
     }
 L23:
     b[2] = -124.08;
@@ -9159,9 +9159,9 @@ L24:
     goto L27;
 L25:
     if (kn1 - 2 >= 0) {
-	goto L26;
+    goto L26;
     } else {
-	goto L24;
+    goto L24;
     }
 L26:
     b[2] = -69.08;
@@ -9171,49 +9171,49 @@ L27:
     return 0;
 labelL2:
     l6_1.fx = l2_5.x[0] * 4.3 + l2_5.x[1] * 31.8 + l2_5.x[2] * 63.3 + l2_5.x[
-	    3] * 15.8 + l2_5.x[4] * 68.5 + l2_5.x[5] * 4.7;
+        3] * 15.8 + l2_5.x[4] * 68.5 + l2_5.x[5] * 4.7;
 labelL3:
     return 0;
 labelL4:
     if (l9_7.index1[0]) {
-	l3_6.g[0] = l2_5.x[0] * (float)17.1 + l2_5.x[1] * (float)38.2 + 
-		l2_5.x[2] * (float)204.2 + l2_5.x[3] * (float)212.3 + l2_5.x[
-		4] * (float)623.4 + l2_5.x[5] * 1495.5 - l2_5.x[0] * (float)
-		169. * l2_5.x[2] - l2_5.x[2] * 3580. * l2_5.x[4] - l2_5.x[3] *
-		 3810. * l2_5.x[4] - l2_5.x[3] * 18500. * l2_5.x[5] - l2_5.x[
-		4] * 24300. * l2_5.x[5] - b[0];
+    l3_6.g[0] = l2_5.x[0] * (float)17.1 + l2_5.x[1] * (float)38.2 + 
+        l2_5.x[2] * (float)204.2 + l2_5.x[3] * (float)212.3 + l2_5.x[
+        4] * (float)623.4 + l2_5.x[5] * 1495.5 - l2_5.x[0] * (float)
+        169. * l2_5.x[2] - l2_5.x[2] * 3580. * l2_5.x[4] - l2_5.x[3] *
+         3810. * l2_5.x[4] - l2_5.x[3] * 18500. * l2_5.x[5] - l2_5.x[
+        4] * 24300. * l2_5.x[5] - b[0];
     }
     if (l9_7.index1[1]) {
-	l3_6.g[1] = l2_5.x[0] * (float)17.9 + l2_5.x[1] * (float)36.8 + 
-		l2_5.x[2] * (float)113.9 + l2_5.x[3] * (float)169.7 + l2_5.x[
-		4] * (float)337.8 + l2_5.x[5] * 1385.2 - l2_5.x[0] * (float)
-		139. * l2_5.x[2] - l2_5.x[3] * 2450. * l2_5.x[4] - l2_5.x[3] *
-		 16600. * l2_5.x[5] - l2_5.x[4] * 17200. * l2_5.x[5] - b[1];
+    l3_6.g[1] = l2_5.x[0] * (float)17.9 + l2_5.x[1] * (float)36.8 + 
+        l2_5.x[2] * (float)113.9 + l2_5.x[3] * (float)169.7 + l2_5.x[
+        4] * (float)337.8 + l2_5.x[5] * 1385.2 - l2_5.x[0] * (float)
+        139. * l2_5.x[2] - l2_5.x[3] * 2450. * l2_5.x[4] - l2_5.x[3] *
+         16600. * l2_5.x[5] - l2_5.x[4] * 17200. * l2_5.x[5] - b[1];
     }
     if (l9_7.index1[2]) {
-	l3_6.g[2] = l2_5.x[1] * (float)-273. - l2_5.x[3] * (float)70. - 
-		l2_5.x[4] * (float)819. + l2_5.x[3] * 2.6e4 * l2_5.x[4] - b[2]
-		;
+    l3_6.g[2] = l2_5.x[1] * (float)-273. - l2_5.x[3] * (float)70. - 
+        l2_5.x[4] * (float)819. + l2_5.x[3] * 2.6e4 * l2_5.x[4] - b[2]
+        ;
     }
     if (l9_7.index1[3]) {
-	l3_6.g[3] = l2_5.x[0] * 159.9 - l2_5.x[1] * 311. + l2_5.x[3] * 587. + 
-		l2_5.x[4] * (float)391. + l2_5.x[5] * 2198. - l2_5.x[0] * 
-		1.4e4 * l2_5.x[5] - b[3];
+    l3_6.g[3] = l2_5.x[0] * 159.9 - l2_5.x[1] * 311. + l2_5.x[3] * 587. + 
+        l2_5.x[4] * (float)391. + l2_5.x[5] * 2198. - l2_5.x[0] * 
+        1.4e4 * l2_5.x[5] - b[3];
     }
     return 0;
 labelL5:
     if (! l10_7.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_8.gg[0] = (float)17.1 - l2_5.x[2] * (float)169.;
     l5_8.gg[8] = (float)204.2 - l2_5.x[0] * (float)169. - l2_5.x[4] * 3580.;
     l5_8.gg[12] = (float)212.3 - l2_5.x[4] * 3810. - l2_5.x[5] * 18500.;
     l5_8.gg[16] = (float)623.4 - l2_5.x[2] * 3580. - l2_5.x[3] * 3810. - 
-	    l2_5.x[5] * 24300.;
+        l2_5.x[5] * 24300.;
     l5_8.gg[20] = 1495.5 - l2_5.x[3] * 18500. - l2_5.x[4] * 24300.;
 L7:
     if (! l10_7.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_8.gg[1] = (float)17.9 - l2_5.x[2] * (float)139.;
     l5_8.gg[9] = (float)113.9 - l2_5.x[0] * (float)139.;
@@ -9222,13 +9222,13 @@ L7:
     l5_8.gg[21] = 1385.2 - l2_5.x[3] * 16600. - l2_5.x[4] * 17200.;
 L8:
     if (! l10_7.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_8.gg[14] = l2_5.x[4] * 2.6e4 - 70.;
     l5_8.gg[18] = l2_5.x[3] * 2.6e4 - 819.;
 labelL9:
     if (! l10_7.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_8.gg[3] = (float)159.9 - l2_5.x[5] * 1.4e4;
     l5_8.gg[23] = 2198. - l2_5.x[0] * 1.4e4;
@@ -9268,16 +9268,16 @@ labelL10:
     static int i__, j;
     static Real p[8], q[8], r__[8], s[8], t[8];
     static int i1;
-    static Real v1, v2, v3, v4, dp[56]	/* was [8][7] */, dq[56]	
-	    /* was [8][7] */, dr[56]	/* was [8][7] */, ds[56]	/* 
-	    was [8][7] */;
+    static Real v1, v2, v3, v4, dp[56]    /* was [8][7] */, dq[56]    
+        /* was [8][7] */, dr[56]    /* was [8][7] */, ds[56]    /* 
+        was [8][7] */;
 
     if ((i__1 = *mode - 2) < 0) {
-	goto labelL1;
+    goto labelL1;
     } else if (i__1 == 0) {
-	goto L18;
+    goto L18;
     } else {
-	goto L17;
+    goto L17;
     }
 labelL1:
     l1_1.n = 7;
@@ -9286,12 +9286,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 7; ++i__) {
-	l2_6.x[i__ - 1] = .5;
-	l11_6.lxl[i__ - 1] = true;
-	l12_6.lxu[i__ - 1] = true;
-	l13_6.xl[i__ - 1] = 0.;
+    l2_6.x[i__ - 1] = .5;
+    l11_6.lxl[i__ - 1] = true;
+    l12_6.lxu[i__ - 1] = true;
+    l13_6.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l14_6.xu[i__ - 1] = 1.58;
+    l14_6.xu[i__ - 1] = 1.58;
     }
     a[0] = 0.;
     a[1] = 50.;
@@ -9314,14 +9314,14 @@ labelL1:
     r__[0] = 0.;
     s[0] = 0.;
     for (j = 1; j <= 7; ++j) {
-	i__1 = j;
-	for (i__ = 1; i__ <= i__1; ++i__) {
-	    dp[i__ + (j << 3) - 9] = 0.;
-	    dq[i__ + (j << 3) - 9] = 0.;
-	    dr[i__ + (j << 3) - 9] = 0.;
+    i__1 = j;
+    for (i__ = 1; i__ <= i__1; ++i__) {
+        dp[i__ + (j << 3) - 9] = 0.;
+        dq[i__ + (j << 3) - 9] = 0.;
+        dr[i__ + (j << 3) - 9] = 0.;
 /* L31: */
-	    ds[i__ + (j << 3) - 9] = 0.;
-	}
+        ds[i__ + (j << 3) - 9] = 0.;
+    }
     }
     l20_8.lex = false;
     l20_8.xex[0] = .542460319142;
@@ -9335,75 +9335,75 @@ labelL1:
     return 0;
 L17:
     if (*mode - 4 <= 0) {
-	goto L18;
+    goto L18;
     } else {
-	goto L19;
+    goto L19;
     }
 L18:
     for (i__ = 2; i__ <= 8; ++i__) {
-	i1 = i__ - 1;
-	v1 = a[i__ - 1] * std::sin(l2_6.x[i1 - 1]) - 32.;
-	v2 = a[i__ - 1] *std::cos(l2_6.x[i1 - 1]);
-	v3 = t[i__ - 1] - t[i1 - 1];
+    i1 = i__ - 1;
+    v1 = a[i__ - 1] * std::sin(l2_6.x[i1 - 1]) - 32.;
+    v2 = a[i__ - 1] *std::cos(l2_6.x[i1 - 1]);
+    v3 = t[i__ - 1] - t[i1 - 1];
 /* Computing 2nd power */
-	d__1 = v3;
-	v4 = d__1 * d__1 * .5;
-	p[i__ - 1] = v2 * v4 + v3 * r__[i1 - 1] + p[i1 - 1];
-	q[i__ - 1] = v1 * v4 + v3 * s[i1 - 1] + q[i1 - 1];
-	r__[i__ - 1] = v2 * v3 + r__[i1 - 1];
+    d__1 = v3;
+    v4 = d__1 * d__1 * .5;
+    p[i__ - 1] = v2 * v4 + v3 * r__[i1 - 1] + p[i1 - 1];
+    q[i__ - 1] = v1 * v4 + v3 * s[i1 - 1] + q[i1 - 1];
+    r__[i__ - 1] = v2 * v3 + r__[i1 - 1];
 /* L30: */
-	s[i__ - 1] = v1 * v3 + s[i1 - 1];
+    s[i__ - 1] = v1 * v3 + s[i1 - 1];
     }
     if (*mode - 3 != 0) {
-	goto L40;
+    goto L40;
     } else {
-	goto L19;
+    goto L19;
     }
 L19:
     for (i__ = 2; i__ <= 8; ++i__) {
-	for (j = 1; j <= 7; ++j) {
-	    if ((i__1 = j - i__ + 1) < 0) {
-		goto L33;
-	    } else if (i__1 == 0) {
-		goto L32;
-	    } else {
-		goto L34;
-	    }
+    for (j = 1; j <= 7; ++j) {
+        if ((i__1 = j - i__ + 1) < 0) {
+        goto L33;
+        } else if (i__1 == 0) {
+        goto L32;
+        } else {
+        goto L34;
+        }
 L32:
-	    i1 = i__ - 1;
-	    v1 = a[i__ - 1] * std::sin(l2_6.x[i1 - 1]);
-	    v2 = a[i__ - 1] *std::cos(l2_6.x[i1 - 1]);
-	    v3 = t[i__ - 1] - t[i1 - 1];
+        i1 = i__ - 1;
+        v1 = a[i__ - 1] * std::sin(l2_6.x[i1 - 1]);
+        v2 = a[i__ - 1] *std::cos(l2_6.x[i1 - 1]);
+        v3 = t[i__ - 1] - t[i1 - 1];
 /* Computing 2nd power */
-	    d__1 = v3;
-	    v4 = d__1 * d__1 * .5;
-	    dp[i__ + (i1 << 3) - 9] = -v1 * v4 + v3 * dr[i1 + (i1 << 3) - 9] 
-		    + dp[i1 + (i1 << 3) - 9];
-	    dq[i__ + (i1 << 3) - 9] = v2 * v4 + v3 * ds[i1 + (i1 << 3) - 9] + 
-		    dq[i1 + (i1 << 3) - 9];
-	    dr[i__ + (i1 << 3) - 9] = -v1 * v3 + dr[i1 + (i1 << 3) - 9];
-	    ds[i__ + (i1 << 3) - 9] = v2 * v3 + ds[i1 + (i1 << 3) - 9];
-	    goto L34;
+        d__1 = v3;
+        v4 = d__1 * d__1 * .5;
+        dp[i__ + (i1 << 3) - 9] = -v1 * v4 + v3 * dr[i1 + (i1 << 3) - 9] 
+            + dp[i1 + (i1 << 3) - 9];
+        dq[i__ + (i1 << 3) - 9] = v2 * v4 + v3 * ds[i1 + (i1 << 3) - 9] + 
+            dq[i1 + (i1 << 3) - 9];
+        dr[i__ + (i1 << 3) - 9] = -v1 * v3 + dr[i1 + (i1 << 3) - 9];
+        ds[i__ + (i1 << 3) - 9] = v2 * v3 + ds[i1 + (i1 << 3) - 9];
+        goto L34;
 L33:
-	    i1 = i__ - 1;
-	    v1 = t[i__ - 1] - t[i1 - 1];
-	    dp[i__ + (j << 3) - 9] = v1 * dr[i1 + (j << 3) - 9] + dp[i1 + (j 
-		    << 3) - 9];
-	    dq[i__ + (j << 3) - 9] = v1 * ds[i1 + (j << 3) - 9] + dq[i1 + (j 
-		    << 3) - 9];
-	    dr[i__ + (j << 3) - 9] = dr[i1 + (j << 3) - 9];
-	    ds[i__ + (j << 3) - 9] = ds[i1 + (j << 3) - 9];
+        i1 = i__ - 1;
+        v1 = t[i__ - 1] - t[i1 - 1];
+        dp[i__ + (j << 3) - 9] = v1 * dr[i1 + (j << 3) - 9] + dp[i1 + (j 
+            << 3) - 9];
+        dq[i__ + (j << 3) - 9] = v1 * ds[i1 + (j << 3) - 9] + dq[i1 + (j 
+            << 3) - 9];
+        dr[i__ + (j << 3) - 9] = dr[i1 + (j << 3) - 9];
+        ds[i__ + (j << 3) - 9] = ds[i1 + (j << 3) - 9];
 L34:
-	    ;
-	}
+        ;
+    }
     }
 L40:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL2:
 /* Computing 2nd power */
@@ -9413,32 +9413,32 @@ labelL2:
 labelL3:
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L35: */
-	l4_6.gf[i__ - 1] = r__[7] * -2. * dr[(i__ << 3) - 1];
+    l4_6.gf[i__ - 1] = r__[7] * -2. * dr[(i__ << 3) - 1];
     }
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = q[7] - 1e5;
+    l3_2.g[0] = q[7] - 1e5;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = s[7] - 1e3;
+    l3_2.g[1] = s[7] - 1e3;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L36: */
-	l5_17.gg[(i__ << 1) - 2] = dq[(i__ << 3) - 1];
+    l5_17.gg[(i__ << 1) - 2] = dq[(i__ << 3) - 1];
     }
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L37: */
-	l5_17.gg[(i__ << 1) - 1] = ds[(i__ << 3) - 1];
+    l5_17.gg[(i__ << 1) - 1] = ds[(i__ << 3) - 1];
     }
 L8:
     return 0;
@@ -9455,11 +9455,11 @@ L8:
     static Real v1, v2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 7;
@@ -9468,9 +9468,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 7; ++i__) {
-	l11_6.lxl[i__ - 1] = false;
+    l11_6.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_6.lxu[i__ - 1] = false;
+    l12_6.lxu[i__ - 1] = false;
     }
     l2_6.x[0] = 1.;
     l2_6.x[1] = 2.;
@@ -9524,8 +9524,8 @@ labelL2:
 /* Computing 4th power */
     d__7 = l2_6.x[6], d__7 *= d__7;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 * 5. + d__3 * d__3 + d__4 * d__4 * 3. 
-	    + d__5 * (d__5 * d__5) * 10. + d__6 * d__6 * 7. + d__7 * d__7 - 
-	    l2_6.x[5] * 4. * l2_6.x[6] - l2_6.x[5] * 10. - l2_6.x[6] * 8.;
+        + d__5 * (d__5 * d__5) * 10. + d__6 * d__6 * 7. + d__7 * d__7 - 
+        l2_6.x[5] * 4. * l2_6.x[6] - l2_6.x[5] * 10. - l2_6.x[6] * 8.;
     return 0;
 labelL3:
     l4_6.gf[0] = (l2_6.x[0] - 10.) * 2.;
@@ -9551,34 +9551,34 @@ labelL4:
     v2 = d__1 * d__1;
     if (l9_7.index1[0]) {
 /* Computing 2nd power */
-	d__1 = v2;
+    d__1 = v2;
 /* Computing 2nd power */
-	d__2 = l2_6.x[3];
-	l3_6.g[0] = -v1 - d__1 * d__1 * 3. - l2_6.x[2] - d__2 * d__2 * 4. - 
-		l2_6.x[4] * 5. + 127.;
+    d__2 = l2_6.x[3];
+    l3_6.g[0] = -v1 - d__1 * d__1 * 3. - l2_6.x[2] - d__2 * d__2 * 4. - 
+        l2_6.x[4] * 5. + 127.;
     }
     if (l9_7.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[2];
-	l3_6.g[1] = l2_6.x[0] * -7. - l2_6.x[1] * 3. - d__1 * d__1 * 10. - 
-		l2_6.x[3] + l2_6.x[4] + 282.;
+    d__1 = l2_6.x[2];
+    l3_6.g[1] = l2_6.x[0] * -7. - l2_6.x[1] * 3. - d__1 * d__1 * 10. - 
+        l2_6.x[3] + l2_6.x[4] + 282.;
     }
     if (l9_7.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[5];
-	l3_6.g[2] = l2_6.x[0] * -23. - v2 - d__1 * d__1 * 6. + l2_6.x[6] * 8. 
-		+ 196.;
+    d__1 = l2_6.x[5];
+    l3_6.g[2] = l2_6.x[0] * -23. - v2 - d__1 * d__1 * 6. + l2_6.x[6] * 8. 
+        + 196.;
     }
     if (l9_7.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[2];
-	l3_6.g[3] = v1 * -2. - v2 + l2_6.x[0] * 3. * l2_6.x[1] - d__1 * d__1 *
-		 2. - l2_6.x[5] * 5. + l2_6.x[6] * 11.;
+    d__1 = l2_6.x[2];
+    l3_6.g[3] = v1 * -2. - v2 + l2_6.x[0] * 3. * l2_6.x[1] - d__1 * d__1 *
+         2. - l2_6.x[5] * 5. + l2_6.x[6] * 11.;
     }
     return 0;
 labelL5:
     if (! l10_7.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_11.gg[0] = l2_6.x[0] * -4.;
 /* Computing 3rd power */
@@ -9587,16 +9587,16 @@ labelL5:
     l5_11.gg[12] = l2_6.x[3] * -8.;
 L7:
     if (l10_7.index2[1]) {
-	l5_11.gg[9] = l2_6.x[2] * -20.;
+    l5_11.gg[9] = l2_6.x[2] * -20.;
     }
     if (! l10_7.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_11.gg[6] = l2_6.x[1] * -2.;
     l5_11.gg[22] = l2_6.x[5] * -12.;
 labelL9:
     if (! l10_7.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_11.gg[3] = l2_6.x[0] * -8. + l2_6.x[1] * 3.;
     l5_11.gg[7] = l2_6.x[1] * -2. + l2_6.x[0] * 3.;
@@ -9610,22 +9610,22 @@ labelL10:
 {
     /* System generated locals */
     Real d__1, d__2, d__3, d__4, d__5, d__6, d__7, d__8, d__9, d__10, 
-	    d__11, d__12, d__13;
+        d__11, d__12, d__13;
 
     /* Local variables */
     static Real fmin[3], a[3];
     static int i__, k, m;
     static Real v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, 
-	    v14, v15, gv[7], v16, v17, v18, v19, v20, v21, v22, v23, v24, v25,
-	     v26, v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, 
-	    v39, v40, v41, v42, v43, v44, v45;
+        v14, v15, gv[7], v16, v17, v18, v19, v20, v21, v22, v23, v24, v25,
+         v26, v27, v28, v29, v30, v31, v32, v33, v34, v35, v36, v37, v38, 
+        v39, v40, v41, v42, v43, v44, v45;
     static int kn1;
     static Real sum;
 
     switch(n__) {
-	case 1: goto L_tp102;
-	case 2: goto L_tp103;
-	}
+    case 1: goto L_tp102;
+    case 2: goto L_tp103;
+    }
 
     kn1 = 1;
     l20_8.xex[0] = 2.85615855584;
@@ -9662,11 +9662,11 @@ L_tp103:
     l20_8.fex = 543.667958424;
 labelL13:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 7;
@@ -9679,12 +9679,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 7; ++i__) {
-	l2_6.x[i__ - 1] = 6.;
-	l13_6.xl[i__ - 1] = .1;
-	l14_6.xu[i__ - 1] = 10.;
-	l11_6.lxl[i__ - 1] = true;
+    l2_6.x[i__ - 1] = 6.;
+    l13_6.xl[i__ - 1] = .1;
+    l14_6.xu[i__ - 1] = 10.;
+    l11_6.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_6.lxu[i__ - 1] = true;
+    l12_6.lxu[i__ - 1] = true;
     }
     l13_6.xl[6] = .01;
     l5_12.gg[24] = 0.;
@@ -9696,9 +9696,9 @@ labelL1:
 labelL2:
     for (k = 1; k <= 7; ++k) {
 /* L200: */
-	if (l2_6.x[k - 1] < 0.) {
-	    goto labelL14;
-	}
+    if (l2_6.x[k - 1] < 0.) {
+        goto labelL14;
+    }
     }
 /* Computing 2nd power */
     d__1 = l2_6.x[3];
@@ -9717,19 +9717,19 @@ labelL2:
 /* Computing 2nd power */
     d__8 = l2_6.x[5];
     l6_1.fx = l2_6.x[0] * 10. * (d__1 * d__1) * pow_dd(&l2_6.x[6], &a[m - 1]) 
-	    / (l2_6.x[1] * (d__2 * (d__2 * d__2))) + l2_6.x[2] * 15. * l2_6.x[
-	    3] / (l2_6.x[0] * (d__3 * d__3) * l2_6.x[4] * pow_dd(&l2_6.x[6], &
-	    c_b590)) + l2_6.x[1] * 20. * l2_6.x[5] / (d__4 * d__4 * l2_6.x[3] 
-	    * (d__5 * d__5)) + d__6 * d__6 * 25. * (d__7 * d__7) * pow_dd(&
-	    l2_6.x[4], &c_b590) * l2_6.x[6] / (l2_6.x[2] * (d__8 * d__8));
+        / (l2_6.x[1] * (d__2 * (d__2 * d__2))) + l2_6.x[2] * 15. * l2_6.x[
+        3] / (l2_6.x[0] * (d__3 * d__3) * l2_6.x[4] * pow_dd(&l2_6.x[6], &
+        c_b590)) + l2_6.x[1] * 20. * l2_6.x[5] / (d__4 * d__4 * l2_6.x[3] 
+        * (d__5 * d__5)) + d__6 * d__6 * 25. * (d__7 * d__7) * pow_dd(&
+        l2_6.x[4], &c_b590) * l2_6.x[6] / (l2_6.x[2] * (d__8 * d__8));
     return 0;
 labelL14:
     sum = 0.;
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L40: */
 /* Computing 2nd power */
-	d__1 = l2_6.x[i__ - 1] - 5.;
-	sum += d__1 * d__1;
+    d__1 = l2_6.x[i__ - 1] - 5.;
+    sum += d__1 * d__1;
     }
     fmin[0] = 1800.;
     fmin[1] = 910.;
@@ -9739,9 +9739,9 @@ labelL14:
 labelL3:
     for (k = 1; k <= 7; ++k) {
 /* L201: */
-	if (l2_6.x[k - 1] < 0.) {
-	    goto L15;
-	}
+    if (l2_6.x[k - 1] < 0.) {
+        goto L15;
+    }
     }
 /* Computing 2nd power */
     d__1 = l2_6.x[3];
@@ -9761,7 +9761,7 @@ labelL3:
     d__2 = l2_6.x[4];
     v7 = d__1 * d__1 * l2_6.x[3] * (d__2 * d__2);
     v8 = l2_6.x[0] * 25. * l2_6.x[1] * pow_dd(&l2_6.x[4], &c_b590) * l2_6.x[6]
-	    ;
+        ;
 /* Computing 2nd power */
     d__1 = l2_6.x[5];
     v9 = l2_6.x[2] * (d__1 * d__1);
@@ -9772,161 +9772,161 @@ labelL3:
     v10 = d__1 * d__1 * 12.5 * (d__2 * d__2) * l2_6.x[6];
     v11 = pow_dd(&l2_6.x[4], &c_b590);
     l4_6.gf[0] = v1 * v2 / v3 - v4 / (l2_6.x[0] * v5) - v6 * 2. / (l2_6.x[0] *
-	     v7) + l2_6.x[1] * 2. * v8 / v9;
+         v7) + l2_6.x[1] * 2. * v8 / v9;
     l4_6.gf[1] = -v1 * l2_6.x[0] * v2 / (l2_6.x[1] * v3) - v4 * 2. / (l2_6.x[
-	    1] * v5) + l2_6.x[5] * 20. / v7 + l2_6.x[0] * 2. * v8 / v9;
+        1] * v5) + l2_6.x[5] * 20. / v7 + l2_6.x[0] * 2. * v8 / v9;
     l4_6.gf[2] = l2_6.x[3] * 15. / v5 - l2_6.x[0] * l2_6.x[1] * v8 / (l2_6.x[
-	    2] * v9);
+        2] * v9);
     l4_6.gf[3] = l2_6.x[0] * 20. * l2_6.x[3] * v2 / v3 + l2_6.x[2] * 15. / v5 
-	    - v6 / (l2_6.x[3] * v7);
+        - v6 / (l2_6.x[3] * v7);
     l4_6.gf[4] = -v4 / (l2_6.x[4] * v5) - v6 * 2. / (l2_6.x[4] * v7) + v10 / (
-	    v9 * v11);
+        v9 * v11);
     l4_6.gf[5] = v1 * -3. * l2_6.x[0] * v2 / (l2_6.x[5] * v3) + l2_6.x[1] * 
-	    20. / v7 - v10 * 4. * v11 / (l2_6.x[5] * v9);
+        20. / v7 - v10 * 4. * v11 / (l2_6.x[5] * v9);
     d__1 = a[m - 1] - 1.;
     l4_6.gf[6] = a[m - 1] * v1 * l2_6.x[0] * pow_dd(&l2_6.x[6], &d__1) / v3 - 
-	    v4 * .5 / (v5 * l2_6.x[6]) + v8 * l2_6.x[0] * l2_6.x[1] / (l2_6.x[
-	    6] * v9);
+        v4 * .5 / (v5 * l2_6.x[6]) + v8 * l2_6.x[0] * l2_6.x[1] / (l2_6.x[
+        6] * v9);
     return 0;
 L15:
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L50: */
-	l4_6.gf[i__ - 1] = (l2_6.x[i__ - 1] - 5.) * 2.;
+    l4_6.gf[i__ - 1] = (l2_6.x[i__ - 1] - 5.) * 2.;
     }
     return 0;
 labelL4:
     if (l9_6.index1[0]) {
-	d__1 = std::abs(l2_6.x[0]);
+    d__1 = std::abs(l2_6.x[0]);
 /* Computing 2nd power */
-	d__2 = l2_6.x[5];
+    d__2 = l2_6.x[5];
 /* Computing 3rd power */
-	d__3 = l2_6.x[0];
-	d__4 = std::abs(l2_6.x[6]);
+    d__3 = l2_6.x[0];
+    d__4 = std::abs(l2_6.x[6]);
 /* Computing 2nd power */
-	d__5 = l2_6.x[2];
-	d__6 = std::abs(l2_6.x[5]);
-	d__7 = std::abs(l2_6.x[6]);
-	d__8 = std::abs(l2_6.x[3]);
-	l3_5.g[0] = 1. - pow_dd(&d__1, &c_b590) * .5 * l2_6.x[6] / (l2_6.x[2] 
-		* (d__2 * d__2)) - d__3 * (d__3 * d__3) * .7 * l2_6.x[1] * 
-		l2_6.x[5] * pow_dd(&d__4, &c_b590) / (d__5 * d__5) - l2_6.x[2]
-		 * .2 * pow_dd(&d__6, &c_b933) * pow_dd(&d__7, &c_b934) / (
-		l2_6.x[1] * pow_dd(&d__8, &c_b590));
+    d__5 = l2_6.x[2];
+    d__6 = std::abs(l2_6.x[5]);
+    d__7 = std::abs(l2_6.x[6]);
+    d__8 = std::abs(l2_6.x[3]);
+    l3_5.g[0] = 1. - pow_dd(&d__1, &c_b590) * .5 * l2_6.x[6] / (l2_6.x[2] 
+        * (d__2 * d__2)) - d__3 * (d__3 * d__3) * .7 * l2_6.x[1] * 
+        l2_6.x[5] * pow_dd(&d__4, &c_b590) / (d__5 * d__5) - l2_6.x[2]
+         * .2 * pow_dd(&d__6, &c_b933) * pow_dd(&d__7, &c_b934) / (
+        l2_6.x[1] * pow_dd(&d__8, &c_b590));
     }
     if (l9_6.index1[1]) {
-	d__1 = std::abs(l2_6.x[0]);
+    d__1 = std::abs(l2_6.x[0]);
 /* Computing 2nd power */
-	d__2 = l2_6.x[5];
-	d__3 = std::abs(l2_6.x[1]);
-	d__4 = std::abs(l2_6.x[5]);
+    d__2 = l2_6.x[5];
+    d__3 = std::abs(l2_6.x[1]);
+    d__4 = std::abs(l2_6.x[5]);
 /* Computing 2nd power */
-	d__5 = l2_6.x[3];
-	l3_5.g[1] = 1. - l2_6.x[1] * 1.3 * l2_6.x[5] / (pow_dd(&d__1, &c_b590)
-		 * l2_6.x[2] * l2_6.x[4]) - l2_6.x[2] * .8 * (d__2 * d__2) / (
-		l2_6.x[3] * l2_6.x[4]) - pow_dd(&d__3, &c_b590) * 3.1 * 
-		pow_dd(&d__4, &c_b74) / (l2_6.x[0] * (d__5 * d__5) * l2_6.x[4]
-		);
+    d__5 = l2_6.x[3];
+    l3_5.g[1] = 1. - l2_6.x[1] * 1.3 * l2_6.x[5] / (pow_dd(&d__1, &c_b590)
+         * l2_6.x[2] * l2_6.x[4]) - l2_6.x[2] * .8 * (d__2 * d__2) / (
+        l2_6.x[3] * l2_6.x[4]) - pow_dd(&d__3, &c_b590) * 3.1 * 
+        pow_dd(&d__4, &c_b74) / (l2_6.x[0] * (d__5 * d__5) * l2_6.x[4]
+        );
     }
     if (l9_6.index1[2]) {
-	d__2 = std::abs(l2_6.x[6]);
-	d__3 = std::abs(l2_6.x[2]);
-	d__4 = (d__1 = l2_6.x[2] * l2_6.x[6], std::abs(d__1));
-	d__5 = std::abs(l2_6.x[2]);
+    d__2 = std::abs(l2_6.x[6]);
+    d__3 = std::abs(l2_6.x[2]);
+    d__4 = (d__1 = l2_6.x[2] * l2_6.x[6], std::abs(d__1));
+    d__5 = std::abs(l2_6.x[2]);
 /* Computing 2nd power */
-	d__6 = l2_6.x[1];
-	l3_5.g[2] = 1. - l2_6.x[0] * 2. * l2_6.x[4] * pow_dd(&d__2, &c_b74) / 
-		(pow_dd(&d__3, &c_b940) * l2_6.x[5]) - l2_6.x[1] * .1 * 
-		l2_6.x[4] / (pow_dd(&d__4, &c_b590) * l2_6.x[5]) - l2_6.x[1] *
-		 pow_dd(&d__5, &c_b590) * l2_6.x[4] / l2_6.x[0] - l2_6.x[2] * 
-		.65 * l2_6.x[4] * l2_6.x[6] / (d__6 * d__6 * l2_6.x[5]);
+    d__6 = l2_6.x[1];
+    l3_5.g[2] = 1. - l2_6.x[0] * 2. * l2_6.x[4] * pow_dd(&d__2, &c_b74) / 
+        (pow_dd(&d__3, &c_b940) * l2_6.x[5]) - l2_6.x[1] * .1 * 
+        l2_6.x[4] / (pow_dd(&d__4, &c_b590) * l2_6.x[5]) - l2_6.x[1] *
+         pow_dd(&d__5, &c_b590) * l2_6.x[4] / l2_6.x[0] - l2_6.x[2] * 
+        .65 * l2_6.x[4] * l2_6.x[6] / (d__6 * d__6 * l2_6.x[5]);
     }
     if (l9_6.index1[3]) {
-	d__1 = std::abs(l2_6.x[4]);
-	d__2 = std::abs(l2_6.x[6]);
+    d__1 = std::abs(l2_6.x[4]);
+    d__2 = std::abs(l2_6.x[6]);
 /* Computing 2nd power */
-	d__3 = l2_6.x[0];
-	d__4 = std::abs(l2_6.x[0]);
+    d__3 = l2_6.x[0];
+    d__4 = std::abs(l2_6.x[0]);
 /* Computing 2nd power */
-	d__5 = l2_6.x[1];
-	d__6 = std::abs(l2_6.x[3]);
-	d__7 = std::abs(l2_6.x[6]);
-	d__8 = std::abs(l2_6.x[4]);
-	d__9 = std::abs(l2_6.x[6]);
+    d__5 = l2_6.x[1];
+    d__6 = std::abs(l2_6.x[3]);
+    d__7 = std::abs(l2_6.x[6]);
+    d__8 = std::abs(l2_6.x[4]);
+    d__9 = std::abs(l2_6.x[6]);
 /* Computing 3rd power */
-	d__10 = l2_6.x[0];
+    d__10 = l2_6.x[0];
 /* Computing 2nd power */
-	d__11 = l2_6.x[1];
-	d__12 = std::abs(l2_6.x[6]);
+    d__11 = l2_6.x[1];
+    d__12 = std::abs(l2_6.x[6]);
 /* Computing 2nd power */
-	d__13 = l2_6.x[2];
-	l3_5.g[3] = 1. - l2_6.x[1] * .2 * pow_dd(&d__1, &c_b590) * pow_dd(&
-		d__2, &c_b74) / (d__3 * d__3 * l2_6.x[3]) - pow_dd(&d__4, &
-		c_b590) * .3 * (d__5 * d__5) * l2_6.x[2] * pow_dd(&d__6, &
-		c_b74) * pow_dd(&d__7, &c_b934) / pow_dd(&d__8, &c_b933) - 
-		l2_6.x[2] * .4 * l2_6.x[4] * pow_dd(&d__9, &c_b949) / (d__10 *
-		 (d__10 * d__10) * (d__11 * d__11)) - l2_6.x[3] * .5 * pow_dd(
-		&d__12, &c_b590) / (d__13 * d__13);
+    d__13 = l2_6.x[2];
+    l3_5.g[3] = 1. - l2_6.x[1] * .2 * pow_dd(&d__1, &c_b590) * pow_dd(&
+        d__2, &c_b74) / (d__3 * d__3 * l2_6.x[3]) - pow_dd(&d__4, &
+        c_b590) * .3 * (d__5 * d__5) * l2_6.x[2] * pow_dd(&d__6, &
+        c_b74) * pow_dd(&d__7, &c_b934) / pow_dd(&d__8, &c_b933) - 
+        l2_6.x[2] * .4 * l2_6.x[4] * pow_dd(&d__9, &c_b949) / (d__10 *
+         (d__10 * d__10) * (d__11 * d__11)) - l2_6.x[3] * .5 * pow_dd(
+        &d__12, &c_b590) / (d__13 * d__13);
     }
     if (l9_6.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[3];
-	d__2 = std::abs(l2_6.x[6]);
+    d__1 = l2_6.x[3];
+    d__2 = std::abs(l2_6.x[6]);
 /* Computing 3rd power */
-	d__3 = l2_6.x[5];
+    d__3 = l2_6.x[5];
 /* Computing 2nd power */
-	d__4 = l2_6.x[1];
-	d__5 = std::abs(l2_6.x[6]);
+    d__4 = l2_6.x[1];
+    d__5 = std::abs(l2_6.x[6]);
 /* Computing 2nd power */
-	d__6 = l2_6.x[0];
+    d__6 = l2_6.x[0];
 /* Computing 2nd power */
-	d__7 = l2_6.x[4];
+    d__7 = l2_6.x[4];
 /* Computing 2nd power */
-	d__8 = l2_6.x[0];
+    d__8 = l2_6.x[0];
 /* Computing 2nd power */
-	d__9 = l2_6.x[1];
-	d__10 = std::abs(l2_6.x[4]);
+    d__9 = l2_6.x[1];
+    d__10 = std::abs(l2_6.x[4]);
 /* Computing 2nd power */
-	d__11 = l2_6.x[5];
-	l3_5.g[4] = l2_6.x[0] * 10. * (d__1 * d__1) * pow_dd(&d__2, &a[m - 1])
-		 / (l2_6.x[1] * (d__3 * (d__3 * d__3))) + l2_6.x[2] * 15. * 
-		l2_6.x[3] / (l2_6.x[0] * (d__4 * d__4) * l2_6.x[4] * pow_dd(&
-		d__5, &c_b590)) + l2_6.x[1] * 20. * l2_6.x[5] / (d__6 * d__6 *
-		 l2_6.x[3] * (d__7 * d__7)) + d__8 * d__8 * 25. * (d__9 * 
-		d__9) * pow_dd(&d__10, &c_b590) * l2_6.x[6] / (l2_6.x[2] * (
-		d__11 * d__11)) - 100.;
+    d__11 = l2_6.x[5];
+    l3_5.g[4] = l2_6.x[0] * 10. * (d__1 * d__1) * pow_dd(&d__2, &a[m - 1])
+         / (l2_6.x[1] * (d__3 * (d__3 * d__3))) + l2_6.x[2] * 15. * 
+        l2_6.x[3] / (l2_6.x[0] * (d__4 * d__4) * l2_6.x[4] * pow_dd(&
+        d__5, &c_b590)) + l2_6.x[1] * 20. * l2_6.x[5] / (d__6 * d__6 *
+         l2_6.x[3] * (d__7 * d__7)) + d__8 * d__8 * 25. * (d__9 * 
+        d__9) * pow_dd(&d__10, &c_b590) * l2_6.x[6] / (l2_6.x[2] * (
+        d__11 * d__11)) - 100.;
     }
     if (l9_6.index1[5]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[3];
-	d__2 = std::abs(l2_6.x[6]);
+    d__1 = l2_6.x[3];
+    d__2 = std::abs(l2_6.x[6]);
 /* Computing 3rd power */
-	d__3 = l2_6.x[5];
+    d__3 = l2_6.x[5];
 /* Computing 2nd power */
-	d__4 = l2_6.x[1];
-	d__5 = std::abs(l2_6.x[6]);
+    d__4 = l2_6.x[1];
+    d__5 = std::abs(l2_6.x[6]);
 /* Computing 2nd power */
-	d__6 = l2_6.x[0];
+    d__6 = l2_6.x[0];
 /* Computing 2nd power */
-	d__7 = l2_6.x[4];
+    d__7 = l2_6.x[4];
 /* Computing 2nd power */
-	d__8 = l2_6.x[0];
+    d__8 = l2_6.x[0];
 /* Computing 2nd power */
-	d__9 = l2_6.x[1];
-	d__10 = std::abs(l2_6.x[4]);
+    d__9 = l2_6.x[1];
+    d__10 = std::abs(l2_6.x[4]);
 /* Computing 2nd power */
-	d__11 = l2_6.x[5];
-	l3_5.g[5] = -(l2_6.x[0] * 10. * (d__1 * d__1) * pow_dd(&d__2, &a[m - 
-		1]) / (l2_6.x[1] * (d__3 * (d__3 * d__3))) + l2_6.x[2] * 15. *
-		 l2_6.x[3] / (l2_6.x[0] * (d__4 * d__4) * l2_6.x[4] * pow_dd(&
-		d__5, &c_b590)) + l2_6.x[1] * 20. * l2_6.x[5] / (d__6 * d__6 *
-		 l2_6.x[3] * (d__7 * d__7)) + d__8 * d__8 * 25. * (d__9 * 
-		d__9) * pow_dd(&d__10, &c_b590) * l2_6.x[6] / (l2_6.x[2] * (
-		d__11 * d__11))) + 3e3;
+    d__11 = l2_6.x[5];
+    l3_5.g[5] = -(l2_6.x[0] * 10. * (d__1 * d__1) * pow_dd(&d__2, &a[m - 
+        1]) / (l2_6.x[1] * (d__3 * (d__3 * d__3))) + l2_6.x[2] * 15. *
+         l2_6.x[3] / (l2_6.x[0] * (d__4 * d__4) * l2_6.x[4] * pow_dd(&
+        d__5, &c_b590)) + l2_6.x[1] * 20. * l2_6.x[5] / (d__6 * d__6 *
+         l2_6.x[3] * (d__7 * d__7)) + d__8 * d__8 * 25. * (d__9 * 
+        d__9) * pow_dd(&d__10, &c_b590) * l2_6.x[6] / (l2_6.x[2] * (
+        d__11 * d__11))) + 3e3;
     }
     return 0;
 labelL5:
     if (! l10_6.index2[0]) {
-	goto L7;
+    goto L7;
     }
     d__1 = std::abs(l2_6.x[0]);
     v1 = pow_dd(&d__1, &c_b590);
@@ -9953,25 +9953,25 @@ labelL5:
 /* Computing 2nd power */
     d__1 = l2_6.x[0];
     l5_12.gg[0] = l2_6.x[6] * -.25 / (v1 * l2_6.x[2] * v7) - d__1 * d__1 * 
-	    2.1 * l2_6.x[1] * l2_6.x[5] * v9 / v4;
+        2.1 * l2_6.x[1] * l2_6.x[5] * v9 / v4;
 /* Computing 2nd power */
     d__1 = l2_6.x[1];
     l5_12.gg[6] = v2 * -.7 * l2_6.x[5] * v9 / v4 + l2_6.x[2] * .2 * v8 * v10 /
-	     (d__1 * d__1 * v6);
+         (d__1 * d__1 * v6);
     l5_12.gg[12] = v1 * .5 * l2_6.x[6] / (v4 * v7) + v2 * 1.4 * l2_6.x[1] * 
-	    l2_6.x[5] * v9 / (l2_6.x[2] * v4) - v8 * .2 * v10 / (l2_6.x[1] * 
-	    v6);
+        l2_6.x[5] * v9 / (l2_6.x[2] * v4) - v8 * .2 * v10 / (l2_6.x[1] * 
+        v6);
     l5_12.gg[18] = l2_6.x[2] * .1 * v8 * v10 / (l2_6.x[1] * l2_6.x[3] * v6);
     d__1 = std::abs(l2_6.x[5]);
     l5_12.gg[30] = v1 * l2_6.x[6] / (l2_6.x[2] * v7 * l2_6.x[5]) - v2 * .7 * 
-	    l2_6.x[1] * v9 / v4 - l2_6.x[2] * .13333333333333333 * v10 / (
-	    l2_6.x[1] * v6 * pow_dd(&d__1, &c_b74));
+        l2_6.x[1] * v9 / v4 - l2_6.x[2] * .13333333333333333 * v10 / (
+        l2_6.x[1] * v6 * pow_dd(&d__1, &c_b74));
     l5_12.gg[36] = v1 * -.5 / (l2_6.x[2] * v7) - v2 * .35 * l2_6.x[1] * 
-	    l2_6.x[5] / (v4 * v9) - l2_6.x[2] * .05 * v8 / (l2_6.x[1] * v6 * 
-	    v9 * v10);
+        l2_6.x[5] / (v4 * v9) - l2_6.x[2] * .05 * v8 / (l2_6.x[1] * v6 * 
+        v9 * v10);
 L7:
     if (! l10_6.index2[1]) {
-	goto L8;
+    goto L8;
     }
     d__1 = std::abs(l2_6.x[0]);
     v11 = pow_dd(&d__1, &c_b590);
@@ -9991,27 +9991,27 @@ L7:
 /* Computing 2nd power */
     d__1 = l2_6.x[0];
     l5_12.gg[1] = l2_6.x[1] * .65 * l2_6.x[5] / (l2_6.x[0] * v11 * l2_6.x[2] *
-	     l2_6.x[4]) + v12 * 3.1 * v15 / (d__1 * d__1 * v13 * l2_6.x[4]);
+         l2_6.x[4]) + v12 * 3.1 * v15 / (d__1 * d__1 * v13 * l2_6.x[4]);
     l5_12.gg[7] = l2_6.x[5] * -1.3 / (v11 * l2_6.x[2] * l2_6.x[4]) - v15 * 
-	    1.55 / (l2_6.x[0] * v12 * v13 * l2_6.x[4]);
+        1.55 / (l2_6.x[0] * v12 * v13 * l2_6.x[4]);
 /* Computing 2nd power */
     d__1 = l2_6.x[2];
     l5_12.gg[13] = l2_6.x[1] * 1.3 * l2_6.x[5] / (v11 * (d__1 * d__1) * 
-	    l2_6.x[4]) - v16 * .8 / (l2_6.x[3] * l2_6.x[4]);
+        l2_6.x[4]) - v16 * .8 / (l2_6.x[3] * l2_6.x[4]);
     l5_12.gg[19] = l2_6.x[2] * .8 * v16 / (v13 * l2_6.x[4]) + v12 * 6.2 * v15 
-	    / (l2_6.x[0] * v13 * l2_6.x[3] * l2_6.x[4]);
+        / (l2_6.x[0] * v13 * l2_6.x[3] * l2_6.x[4]);
     l5_12.gg[25] = l2_6.x[1] * 1.3 * l2_6.x[5] / (v11 * l2_6.x[2] * v14) + 
-	    l2_6.x[2] * .8 * v16 / (l2_6.x[3] * v14) + v12 * 3.1 * v15 / (
-	    l2_6.x[0] * v13 * v14);
+        l2_6.x[2] * .8 * v16 / (l2_6.x[3] * v14) + v12 * 3.1 * v15 / (
+        l2_6.x[0] * v13 * v14);
 /* Computing 2nd power */
     d__1 = v15;
     l5_12.gg[31] = l2_6.x[1] * -1.3 / (v11 * l2_6.x[2] * l2_6.x[4]) - l2_6.x[
-	    2] * 1.6 * l2_6.x[5] / (l2_6.x[3] * l2_6.x[4]) - v12 * 
-	    1.0333333333333334 / (l2_6.x[0] * v13 * l2_6.x[4] * (d__1 * d__1))
-	    ;
+        2] * 1.6 * l2_6.x[5] / (l2_6.x[3] * l2_6.x[4]) - v12 * 
+        1.0333333333333334 / (l2_6.x[0] * v13 * l2_6.x[4] * (d__1 * d__1))
+        ;
 L8:
     if (! l10_6.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_6.x[1];
@@ -10029,29 +10029,29 @@ L8:
 /* Computing 2nd power */
     d__1 = l2_6.x[0];
     l5_12.gg[2] = l2_6.x[4] * -2. * v21 / (v19 * l2_6.x[5]) + l2_6.x[1] * v18 
-	    * l2_6.x[4] / (d__1 * d__1);
+        * l2_6.x[4] / (d__1 * d__1);
     l5_12.gg[8] = -v18 * l2_6.x[4] / l2_6.x[0] + l2_6.x[2] * 1.3 * l2_6.x[4] *
-	     l2_6.x[6] / (v17 * l2_6.x[1] * l2_6.x[5]) - l2_6.x[4] * .1 / (
-	    v18 * v22 * l2_6.x[5]);
+         l2_6.x[6] / (v17 * l2_6.x[1] * l2_6.x[5]) - l2_6.x[4] * .1 / (
+        v18 * v22 * l2_6.x[5]);
     l5_12.gg[14] = l2_6.x[0] * 3. * l2_6.x[4] * v21 / (l2_6.x[2] * v19 * 
-	    l2_6.x[5]) + l2_6.x[1] * .05 * l2_6.x[4] / (v19 * l2_6.x[5] * v22)
-	     - l2_6.x[1] * .5 * l2_6.x[4] / (l2_6.x[0] * v18) - l2_6.x[4] * 
-	    .65 * l2_6.x[6] / (v17 * l2_6.x[5]);
+        l2_6.x[5]) + l2_6.x[1] * .05 * l2_6.x[4] / (v19 * l2_6.x[5] * v22)
+         - l2_6.x[1] * .5 * l2_6.x[4] / (l2_6.x[0] * v18) - l2_6.x[4] * 
+        .65 * l2_6.x[6] / (v17 * l2_6.x[5]);
     l5_12.gg[26] = l2_6.x[0] * -2. * v21 / (v19 * l2_6.x[5]) - l2_6.x[1] * .1 
-	    / (v18 * l2_6.x[5] * v22) - l2_6.x[1] * v18 / l2_6.x[0] - l2_6.x[
-	    2] * .65 * l2_6.x[6] / (v17 * l2_6.x[5]);
+        / (v18 * l2_6.x[5] * v22) - l2_6.x[1] * v18 / l2_6.x[0] - l2_6.x[
+        2] * .65 * l2_6.x[6] / (v17 * l2_6.x[5]);
     l5_12.gg[32] = l2_6.x[0] * 2. * l2_6.x[4] * v21 / (v19 * v20) + l2_6.x[1] 
-	    * .1 * l2_6.x[4] / (v18 * v20 * v22) + l2_6.x[2] * .65 * l2_6.x[4]
-	     * l2_6.x[6] / (v17 * v20);
+        * .1 * l2_6.x[4] / (v18 * v20 * v22) + l2_6.x[2] * .65 * l2_6.x[4]
+         * l2_6.x[6] / (v17 * v20);
 /* Computing 2nd power */
     d__1 = v21;
     l5_12.gg[38] = l2_6.x[0] * -.66666666666666663 * l2_6.x[4] / (v19 * 
-	    l2_6.x[5] * (d__1 * d__1)) + l2_6.x[1] * .05 * l2_6.x[4] / (v18 * 
-	    l2_6.x[5] * v22 * l2_6.x[6]) - l2_6.x[2] * .65 * l2_6.x[4] / (v17 
-	    * l2_6.x[5]);
+        l2_6.x[5] * (d__1 * d__1)) + l2_6.x[1] * .05 * l2_6.x[4] / (v18 * 
+        l2_6.x[5] * v22 * l2_6.x[6]) - l2_6.x[2] * .65 * l2_6.x[4] / (v17 
+        * l2_6.x[5]);
 labelL9:
     if (! l10_6.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     d__1 = std::abs(l2_6.x[0]);
     v23 = pow_dd(&d__1, &c_b590);
@@ -10082,31 +10082,31 @@ labelL9:
 /* Computing 2nd power */
     d__1 = v24;
     l5_12.gg[3] = l2_6.x[1] * .4 * v30 * v34 / (v25 * l2_6.x[3]) - v26 * .15 *
-	     l2_6.x[2] * v28 * v31 / (v23 * v29) + l2_6.x[2] * 1.2 * l2_6.x[4]
-	     * v33 / (d__1 * d__1 * v26);
+         l2_6.x[2] * v28 * v31 / (v23 * v29) + l2_6.x[2] * 1.2 * l2_6.x[4]
+         * v33 / (d__1 * d__1 * v26);
     l5_12.gg[9] = v30 * -.2 * v34 / (v24 * l2_6.x[3]) - v23 * .6 * l2_6.x[1] *
-	     l2_6.x[2] * v28 * v31 / v29 + l2_6.x[2] * .8 * l2_6.x[4] * v33 / 
-	    (v25 * v26 * l2_6.x[1]);
+         l2_6.x[2] * v28 * v31 / v29 + l2_6.x[2] * .8 * l2_6.x[4] * v33 / 
+        (v25 * v26 * l2_6.x[1]);
     l5_12.gg[15] = v23 * -.3 * v26 * v28 * v31 / v29 - l2_6.x[4] * .4 * v33 / 
-	    (v25 * v26) + l2_6.x[3] * v32 / (v27 * l2_6.x[2]);
+        (v25 * v26) + l2_6.x[3] * v32 / (v27 * l2_6.x[2]);
 /* Computing 2nd power */
     d__1 = l2_6.x[3];
 /* Computing 2nd power */
     d__2 = v28;
     l5_12.gg[21] = l2_6.x[1] * .2 * v30 * v34 / (v24 * (d__1 * d__1)) - v23 * 
-	    .1 * v26 * l2_6.x[2] * v31 / (d__2 * d__2 * v29) - v32 * .5 / v27;
+        .1 * v26 * l2_6.x[2] * v31 / (d__2 * d__2 * v29) - v32 * .5 / v27;
     l5_12.gg[27] = l2_6.x[1] * -.1 * v34 / (v24 * l2_6.x[3] * v30) + v23 * .2 
-	    * v26 * l2_6.x[2] * v28 * v31 / (l2_6.x[4] * v29) - l2_6.x[2] * 
-	    .4 * v33 / (v25 * v26);
+        * v26 * l2_6.x[2] * v28 * v31 / (l2_6.x[4] * v29) - l2_6.x[2] * 
+        .4 * v33 / (v25 * v26);
 /* Computing 2nd power */
     d__1 = v34;
     l5_12.gg[39] = l2_6.x[1] * -.066666666666666666 * v30 / (v24 * l2_6.x[3] *
-	     (d__1 * d__1)) - v23 * .075 * v26 * l2_6.x[2] * v28 / (v29 * v33)
-	     - l2_6.x[2] * .3 * l2_6.x[4] / (v25 * v26 * v31) - l2_6.x[3] * 
-	    .25 / (v27 * v32);
+         (d__1 * d__1)) - v23 * .075 * v26 * l2_6.x[2] * v28 / (v29 * v33)
+         - l2_6.x[2] * .3 * l2_6.x[4] / (v25 * v26 * v31) - l2_6.x[3] * 
+        .25 / (v27 * v32);
 labelL10:
     if (! l10_6.index2[4] && ! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
 /* Computing 2nd power */
     d__1 = l2_6.x[3];
@@ -10140,36 +10140,36 @@ labelL10:
     d__1 = std::abs(l2_6.x[4]);
     v45 = pow_dd(&d__1, &c_b590);
     gv[0] = v35 * v36 / v37 - v38 / (l2_6.x[0] * v39) - v40 * 2. / (l2_6.x[0] 
-	    * v41) + l2_6.x[1] * 2. * v42 / v43;
+        * v41) + l2_6.x[1] * 2. * v42 / v43;
     gv[1] = -v35 * l2_6.x[0] * v36 / (l2_6.x[1] * v37) - v38 * 2. / (l2_6.x[1]
-	     * v39) + l2_6.x[5] * 20. / v41 + l2_6.x[0] * 2. * v42 / v43;
+         * v39) + l2_6.x[5] * 20. / v41 + l2_6.x[0] * 2. * v42 / v43;
     gv[2] = l2_6.x[3] * 15. / v39 - l2_6.x[0] * l2_6.x[1] * v42 / (l2_6.x[2] *
-	     v43);
+         v43);
     gv[3] = l2_6.x[0] * 20. * l2_6.x[3] * v36 / v37 + l2_6.x[2] * 15. / v39 - 
-	    v40 / (l2_6.x[3] * v41);
+        v40 / (l2_6.x[3] * v41);
     gv[4] = -v38 / (l2_6.x[4] * v39) - v40 * 2. / (l2_6.x[4] * v41) + v44 / (
-	    v43 * v45);
+        v43 * v45);
     gv[5] = v35 * -3. * l2_6.x[0] * v36 / (l2_6.x[5] * v37) + l2_6.x[1] * 20. 
-	    / v41 - v44 * 4. * v45 / (l2_6.x[5] * v43);
+        / v41 - v44 * 4. * v45 / (l2_6.x[5] * v43);
     d__1 = std::abs(l2_6.x[6]);
     d__2 = a[m - 1] - 1.;
     gv[6] = a[m - 1] * v35 * l2_6.x[0] * pow_dd(&d__1, &d__2) / v37 - v38 * 
-	    .5 / (v39 * l2_6.x[6]) + v42 * l2_6.x[0] * l2_6.x[1] / (l2_6.x[6] 
-	    * v43);
+        .5 / (v39 * l2_6.x[6]) + v42 * l2_6.x[0] * l2_6.x[1] / (l2_6.x[6] 
+        * v43);
     if (! l10_6.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
 /* labelL20: */
-	l5_12.gg[i__ * 6 - 2] = gv[i__ - 1];
+    l5_12.gg[i__ * 6 - 2] = gv[i__ - 1];
     }
 labelL11:
     if (! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L30: */
-	l5_12.gg[i__ * 6 - 1] = -gv[i__ - 1];
+    l5_12.gg[i__ * 6 - 1] = -gv[i__ - 1];
     }
 labelL12:
     return 0;
@@ -10202,11 +10202,11 @@ labelL12:
     static Real s, v1, v2, bx;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 8;
@@ -10215,10 +10215,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 8; ++i__) {
-	l11_7.lxl[i__ - 1] = true;
-	l12_7.lxu[i__ - 1] = true;
-	l13_7.xl[i__ - 1] = .1;
-	l14_7.xu[i__ - 1] = 10.;
+    l11_7.lxl[i__ - 1] = true;
+    l12_7.lxu[i__ - 1] = true;
+    l13_7.xl[i__ - 1] = .1;
+    l14_7.xu[i__ - 1] = 10.;
 /* L33: */
     }
     a = .0588;
@@ -10235,10 +10235,10 @@ labelL1:
     l4_7.gf[4] = 0.;
     l4_7.gf[5] = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	for (j = 1; j <= 8; ++j) {
+    for (j = 1; j <= 8; ++j) {
 /* L34: */
-	    l5_18.gg[i__ + j * 6 - 7] = 0.;
-	}
+        l5_18.gg[i__ + j * 6 - 7] = 0.;
+    }
     }
     l5_18.gg[0] = -.1;
     l5_18.gg[1] = -.1;
@@ -10256,90 +10256,90 @@ labelL1:
     return 0;
 labelL2:
     if (l2_7.x[0] / l2_7.x[6] < 0. || l2_7.x[1] / l2_7.x[7] < 0.) {
-	goto labelL13;
+    goto labelL13;
     }
     d__1 = l2_7.x[0] / l2_7.x[6];
     d__2 = l2_7.x[1] / l2_7.x[7];
     l6_1.fx = (pow_dd(&d__1, &c_b993) + pow_dd(&d__2, &c_b993)) * .4 + 10. - 
-	    l2_7.x[0] - l2_7.x[1];
+        l2_7.x[0] - l2_7.x[1];
     return 0;
 labelL13:
     s = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
 /* labelL14: */
 /* Computing 2nd power */
-	d__1 = l2_7.x[i__ - 1] - 5.;
-	s += d__1 * d__1;
+    d__1 = l2_7.x[i__ - 1] - 5.;
+    s += d__1 * d__1;
     }
     l6_1.fx = s + 1e3 + 3.9;
     return 0;
 labelL3:
     if (l2_7.x[0] < 0. || l2_7.x[1] < 0. || l2_7.x[6] < 0. || l2_7.x[7] < 0.) 
-	    {
-	goto L15;
+        {
+    goto L15;
     }
     l4_7.gf[0] = pow_dd(l2_7.x, &c_b997) * .268 * pow_dd(&l2_7.x[6], &c_b998) 
-	    - 1.;
+        - 1.;
     l4_7.gf[1] = pow_dd(&l2_7.x[1], &c_b997) * .268 * pow_dd(&l2_7.x[7], &
-	    c_b998) - 1.;
+        c_b998) - 1.;
     l4_7.gf[6] = pow_dd(l2_7.x, &c_b993) * -.268 * pow_dd(&l2_7.x[6], &
-	    c_b1002);
+        c_b1002);
     l4_7.gf[7] = pow_dd(&l2_7.x[1], &c_b993) * -.268 * pow_dd(&l2_7.x[7], &
-	    c_b1002);
+        c_b1002);
     return 0;
 L15:
     for (i__ = 1; i__ <= 2; ++i__) {
-	l4_7.gf[i__ - 1] = (l2_7.x[i__ - 1] - 5.) * 2.;
+    l4_7.gf[i__ - 1] = (l2_7.x[i__ - 1] - 5.) * 2.;
 /* L16: */
-	l4_7.gf[i__ + 5] = (l2_7.x[i__ + 5] - 5.) * 2.;
+    l4_7.gf[i__ + 5] = (l2_7.x[i__ + 5] - 5.) * 2.;
     }
     return 0;
 labelL4:
     d__3 = (d__1 = l2_7.x[0] / l2_7.x[6], std::abs(d__1));
     d__4 = (d__2 = l2_7.x[1] / l2_7.x[7], std::abs(d__2));
     bx = (pow_dd(&d__3, &c_b993) + pow_dd(&d__4, &c_b993)) * .4 + 10. - 
-	    l2_7.x[0] - l2_7.x[1];
+        l2_7.x[0] - l2_7.x[1];
     if (l9_6.index1[0]) {
-	l3_5.g[0] = -a * l2_7.x[4] * l2_7.x[6] - l2_7.x[0] * .1 + 1.;
+    l3_5.g[0] = -a * l2_7.x[4] * l2_7.x[6] - l2_7.x[0] * .1 + 1.;
     }
     if (l9_6.index1[1]) {
-	l3_5.g[1] = -a * l2_7.x[5] * l2_7.x[7] - l2_7.x[0] * .1 - l2_7.x[1] * 
-		.1 + 1.;
+    l3_5.g[1] = -a * l2_7.x[5] * l2_7.x[7] - l2_7.x[0] * .1 - l2_7.x[1] * 
+        .1 + 1.;
     }
     if (l9_6.index1[2]) {
-	d__1 = std::abs(l2_7.x[2]);
-	d__2 = std::abs(l2_7.x[2]);
-	l3_5.g[2] = (l2_7.x[2] * -4. - pow_dd(&d__1, &c_b1008) * 2.) / l2_7.x[
-		4] - a * pow_dd(&d__2, &c_b1009) * l2_7.x[6] + 1.;
+    d__1 = std::abs(l2_7.x[2]);
+    d__2 = std::abs(l2_7.x[2]);
+    l3_5.g[2] = (l2_7.x[2] * -4. - pow_dd(&d__1, &c_b1008) * 2.) / l2_7.x[
+        4] - a * pow_dd(&d__2, &c_b1009) * l2_7.x[6] + 1.;
     }
     if (l9_6.index1[3]) {
-	d__1 = std::abs(l2_7.x[3]);
-	d__2 = std::abs(l2_7.x[3]);
-	l3_5.g[3] = (l2_7.x[3] * -4. - pow_dd(&d__1, &c_b1008) * 2.) / l2_7.x[
-		5] - a * pow_dd(&d__2, &c_b1009) * l2_7.x[7] + 1.;
+    d__1 = std::abs(l2_7.x[3]);
+    d__2 = std::abs(l2_7.x[3]);
+    l3_5.g[3] = (l2_7.x[3] * -4. - pow_dd(&d__1, &c_b1008) * 2.) / l2_7.x[
+        5] - a * pow_dd(&d__2, &c_b1009) * l2_7.x[7] + 1.;
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = bx - 1.;
+    l3_5.g[4] = bx - 1.;
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = 4.2 - bx;
+    l3_5.g[5] = 4.2 - bx;
     }
     return 0;
 labelL5:
     if (! l10_6.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_18.gg[24] = -a * l2_7.x[6];
     l5_18.gg[36] = -a * l2_7.x[4];
 L7:
     if (! l10_6.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_18.gg[31] = -a * l2_7.x[7];
     l5_18.gg[43] = -a * l2_7.x[5];
 L8:
     if (! l10_6.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_7.x[4];
@@ -10347,14 +10347,14 @@ L8:
     d__1 = std::abs(l2_7.x[2]);
     d__2 = std::abs(l2_7.x[2]);
     l5_18.gg[14] = (pow_dd(&d__1, &c_b1015) * 1.42 - 4.) / l2_7.x[4] + a * 
-	    1.3 * pow_dd(&d__2, &c_b1016) * l2_7.x[6];
+        1.3 * pow_dd(&d__2, &c_b1016) * l2_7.x[6];
     d__1 = std::abs(l2_7.x[2]);
     l5_18.gg[26] = (l2_7.x[2] * 4. + pow_dd(&d__1, &c_b1008) * 2.) / v1;
     d__1 = std::abs(l2_7.x[2]);
     l5_18.gg[38] = -a * pow_dd(&d__1, &c_b1009);
 labelL9:
     if (! l10_6.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
 /* Computing 2nd power */
     d__1 = l2_7.x[5];
@@ -10362,14 +10362,14 @@ labelL9:
     d__1 = std::abs(l2_7.x[3]);
     d__2 = std::abs(l2_7.x[3]);
     l5_18.gg[21] = (pow_dd(&d__1, &c_b1015) * 1.42 - 4.) / l2_7.x[5] + a * 
-	    1.3 * pow_dd(&d__2, &c_b1016) * l2_7.x[7];
+        1.3 * pow_dd(&d__2, &c_b1016) * l2_7.x[7];
     d__1 = std::abs(l2_7.x[3]);
     l5_18.gg[33] = (l2_7.x[3] * 4. + pow_dd(&d__1, &c_b1008) * 2.) / v2;
     d__1 = std::abs(l2_7.x[3]);
     l5_18.gg[45] = -a * pow_dd(&d__1, &c_b1009);
 labelL10:
     if (! l10_6.index2[4] && ! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     d__1 = std::abs(l2_7.x[0]);
     d__2 = std::abs(l2_7.x[6]);
@@ -10384,19 +10384,19 @@ labelL10:
     d__2 = std::abs(l2_7.x[7]);
     l4_7.gf[7] = pow_dd(&d__1, &c_b993) * -.268 * pow_dd(&d__2, &c_b1002);
     if (! l10_6.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L31: */
-	l5_18.gg[i__ * 6 - 2] = l4_7.gf[i__ - 1];
+    l5_18.gg[i__ * 6 - 2] = l4_7.gf[i__ - 1];
     }
 labelL11:
     if (! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L32: */
-	l5_18.gg[i__ * 6 - 1] = -l4_7.gf[i__ - 1];
+    l5_18.gg[i__ * 6 - 1] = -l4_7.gf[i__ - 1];
     }
 labelL12:
     return 0;
@@ -10413,14 +10413,14 @@ labelL12:
     static Real a[235], b[235], c__[235];
     static int i__, j;
     static Real s, v, y[235], t1, v0, v1, v2, v3, v4, v5, v6, v7, v8, 
-	    v9, da[1880]	/* was [235][8] */, db[1880]	/* was [235][
-	    8] */, dc[1880]	/* was [235][8] */, v10, v11;
+        v9, da[1880]    /* was [235][8] */, db[1880]    /* was [235][
+        8] */, dc[1880]    /* was [235][8] */, v10, v11;
     static Real sum;
 
     if (*mode - 1 <= 0) {
-	goto labelL1;
+    goto labelL1;
     } else {
-	goto labelL20;
+    goto labelL20;
     }
 labelL1:
     l1_1.n = 8;
@@ -10429,9 +10429,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 8; ++i__) {
-	l11_7.lxl[i__ - 1] = true;
+    l11_7.lxl[i__ - 1] = true;
 /* L59: */
-	l12_7.lxu[i__ - 1] = true;
+    l12_7.lxu[i__ - 1] = true;
     }
     l13_7.xl[0] = .001;
     l13_7.xl[1] = .001;
@@ -10444,9 +10444,9 @@ labelL1:
     l14_7.xu[3] = 210.;
     l14_7.xu[4] = 240.;
     for (i__ = 6; i__ <= 8; ++i__) {
-	l13_7.xl[i__ - 1] = 5.;
+    l13_7.xl[i__ - 1] = 5.;
 /* L62: */
-	l14_7.xu[i__ - 1] = 25.;
+    l14_7.xu[i__ - 1] = 25.;
     }
     l2_7.x[0] = .1;
     l2_7.x[1] = .2;
@@ -10460,101 +10460,101 @@ labelL1:
     y[1] = 105.;
     for (i__ = 3; i__ <= 6; ++i__) {
 /* L30: */
-	y[i__ - 1] = 110.;
+    y[i__ - 1] = 110.;
     }
     for (i__ = 7; i__ <= 10; ++i__) {
 /* L31: */
-	y[i__ - 1] = 115.;
+    y[i__ - 1] = 115.;
     }
     for (i__ = 11; i__ <= 25; ++i__) {
 /* L32: */
-	y[i__ - 1] = 120.;
+    y[i__ - 1] = 120.;
     }
     for (i__ = 26; i__ <= 40; ++i__) {
 /* L33: */
-	y[i__ - 1] = 125.;
+    y[i__ - 1] = 125.;
     }
     for (i__ = 41; i__ <= 55; ++i__) {
 /* L34: */
-	y[i__ - 1] = 130.;
+    y[i__ - 1] = 130.;
     }
     for (i__ = 56; i__ <= 68; ++i__) {
 /* L35: */
-	y[i__ - 1] = 135.;
+    y[i__ - 1] = 135.;
     }
     for (i__ = 69; i__ <= 89; ++i__) {
 /* L36: */
-	y[i__ - 1] = 140.;
+    y[i__ - 1] = 140.;
     }
     for (i__ = 90; i__ <= 101; ++i__) {
 /* L37: */
-	y[i__ - 1] = 145.;
+    y[i__ - 1] = 145.;
     }
     for (i__ = 102; i__ <= 118; ++i__) {
 /* L38: */
-	y[i__ - 1] = 150.;
+    y[i__ - 1] = 150.;
     }
     for (i__ = 119; i__ <= 122; ++i__) {
 /* L39: */
-	y[i__ - 1] = 155.;
+    y[i__ - 1] = 155.;
     }
     for (i__ = 123; i__ <= 142; ++i__) {
 /* L40: */
-	y[i__ - 1] = 160.;
+    y[i__ - 1] = 160.;
     }
     for (i__ = 143; i__ <= 150; ++i__) {
 /* L41: */
-	y[i__ - 1] = 165.;
+    y[i__ - 1] = 165.;
     }
     for (i__ = 151; i__ <= 167; ++i__) {
 /* L42: */
-	y[i__ - 1] = 170.;
+    y[i__ - 1] = 170.;
     }
     for (i__ = 168; i__ <= 175; ++i__) {
 /* L43: */
-	y[i__ - 1] = 175.;
+    y[i__ - 1] = 175.;
     }
     for (i__ = 176; i__ <= 181; ++i__) {
 /* L44: */
-	y[i__ - 1] = 180.;
+    y[i__ - 1] = 180.;
     }
     for (i__ = 182; i__ <= 187; ++i__) {
 /* L45: */
-	y[i__ - 1] = 185.;
+    y[i__ - 1] = 185.;
     }
     for (i__ = 188; i__ <= 194; ++i__) {
 /* L46: */
-	y[i__ - 1] = 190.;
+    y[i__ - 1] = 190.;
     }
     for (i__ = 195; i__ <= 198; ++i__) {
 /* L47: */
-	y[i__ - 1] = 195.;
+    y[i__ - 1] = 195.;
     }
     for (i__ = 199; i__ <= 201; ++i__) {
 /* L48: */
-	y[i__ - 1] = 200.;
+    y[i__ - 1] = 200.;
     }
     for (i__ = 202; i__ <= 204; ++i__) {
 /* L49: */
-	y[i__ - 1] = 205.;
+    y[i__ - 1] = 205.;
     }
     for (i__ = 205; i__ <= 212; ++i__) {
 /* L50: */
-	y[i__ - 1] = 210.;
+    y[i__ - 1] = 210.;
     }
     y[212] = 215.;
     for (i__ = 214; i__ <= 219; ++i__) {
 /* L51: */
-	y[i__ - 1] = 220.;
+    y[i__ - 1] = 220.;
     }
     for (i__ = 220; i__ <= 224; ++i__) {
 /* L52: */
-	y[i__ - 1] = 230.;
+    y[i__ - 1] = 230.;
     }
     y[224] = 235.;
     for (i__ = 226; i__ <= 232; ++i__) {
 /* L53: */
-	y[i__ - 1] = 240.;
+    y[i__ - 1] = 240.;
     }
     y[232] = 245.;
     y[233] = 260.;
@@ -10563,7 +10563,7 @@ labelL1:
     l5_6.gg[1] = -1.;
     for (i__ = 3; i__ <= 8; ++i__) {
 /* L58: */
-	l5_6.gg[i__ - 1] = 0.;
+    l5_6.gg[i__ - 1] = 0.;
     }
     l20_2.lex = false;
     l20_2.xex[0] = .412892753597;
@@ -10578,11 +10578,11 @@ labelL1:
     return 0;
 labelL20:
     if ((i__1 = *mode - 4) < 0) {
-	goto L21;
+    goto L21;
     } else if (i__1 == 0) {
-	goto labelL4;
+    goto labelL4;
     } else {
-	goto labelL5;
+    goto labelL5;
     }
 L21:
     s = 0.;
@@ -10601,108 +10601,108 @@ L21:
     v6 = 1. / (d__1 * d__1 * 2.);
     for (i__ = 1; i__ <= 235; ++i__) {
 /* Computing 2nd power */
-	d__1 = y[i__ - 1] - l2_7.x[2];
-	a[i__ - 1] = v1 * std::exp(-(d__1 * d__1) * v4);
+    d__1 = y[i__ - 1] - l2_7.x[2];
+    a[i__ - 1] = v1 * std::exp(-(d__1 * d__1) * v4);
 /* Computing 2nd power */
-	d__1 = y[i__ - 1] - l2_7.x[3];
-	b[i__ - 1] = v2 * std::exp(-(d__1 * d__1) * v5);
+    d__1 = y[i__ - 1] - l2_7.x[3];
+    b[i__ - 1] = v2 * std::exp(-(d__1 * d__1) * v5);
 /* Computing 2nd power */
-	d__1 = y[i__ - 1] - l2_7.x[4];
-	c__[i__ - 1] = v3 * std::exp(-(d__1 * d__1) * v6);
-	v11 = (a[i__ - 1] + b[i__ - 1] + c__[i__ - 1]) * v;
-	if (v11 <= 0.) {
-	    goto L70;
-	}
+    d__1 = y[i__ - 1] - l2_7.x[4];
+    c__[i__ - 1] = v3 * std::exp(-(d__1 * d__1) * v6);
+    v11 = (a[i__ - 1] + b[i__ - 1] + c__[i__ - 1]) * v;
+    if (v11 <= 0.) {
+        goto L70;
+    }
 /* L54: */
-	s += std::log(v11);
+    s += std::log(v11);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
 /* labelL2: */
     l6_1.fx = -s;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 235; ++i__) {
-	for (j = 1; j <= 8; ++j) {
-	    da[i__ + j * 235 - 236] = 0.;
-	    db[i__ + j * 235 - 236] = 0.;
+    for (j = 1; j <= 8; ++j) {
+        da[i__ + j * 235 - 236] = 0.;
+        db[i__ + j * 235 - 236] = 0.;
 /* L60: */
-	    dc[i__ + j * 235 - 236] = 0.;
-	}
+        dc[i__ + j * 235 - 236] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 235; ++i__) {
 /* Computing 2nd power */
-	d__1 = l2_7.x[5];
-	v0 = d__1 * d__1;
-	v2 = y[i__ - 1] - l2_7.x[2];
+    d__1 = l2_7.x[5];
+    v0 = d__1 * d__1;
+    v2 = y[i__ - 1] - l2_7.x[2];
 /* Computing 2nd power */
-	d__1 = v2;
-	v1 = std::exp(-(d__1 * d__1) / (v0 * 2.));
-	da[i__ - 1] = v1 / l2_7.x[5];
+    d__1 = v2;
+    v1 = std::exp(-(d__1 * d__1) / (v0 * 2.));
+    da[i__ - 1] = v1 / l2_7.x[5];
 /* Computing 3rd power */
-	d__1 = l2_7.x[5];
-	da[i__ + 469] = l2_7.x[0] * v2 / (d__1 * (d__1 * d__1)) * v1;
+    d__1 = l2_7.x[5];
+    da[i__ + 469] = l2_7.x[0] * v2 / (d__1 * (d__1 * d__1)) * v1;
 /* Computing 2nd power */
-	d__1 = v2;
-	da[i__ + 1174] = l2_7.x[0] / v0 * (d__1 * d__1 / v0 - 1.) * v1;
+    d__1 = v2;
+    da[i__ + 1174] = l2_7.x[0] / v0 * (d__1 * d__1 / v0 - 1.) * v1;
 /* Computing 2nd power */
-	d__1 = l2_7.x[6];
-	v3 = d__1 * d__1;
-	v4 = y[i__ - 1] - l2_7.x[3];
+    d__1 = l2_7.x[6];
+    v3 = d__1 * d__1;
+    v4 = y[i__ - 1] - l2_7.x[3];
 /* Computing 2nd power */
-	d__1 = v4;
-	v5 = std::exp(-(d__1 * d__1) / (v3 * 2.));
-	db[i__ + 234] = v5 / l2_7.x[6];
+    d__1 = v4;
+    v5 = std::exp(-(d__1 * d__1) / (v3 * 2.));
+    db[i__ + 234] = v5 / l2_7.x[6];
 /* Computing 3rd power */
-	d__1 = l2_7.x[6];
-	db[i__ + 704] = l2_7.x[1] * v4 / (d__1 * (d__1 * d__1)) * v5;
+    d__1 = l2_7.x[6];
+    db[i__ + 704] = l2_7.x[1] * v4 / (d__1 * (d__1 * d__1)) * v5;
 /* Computing 2nd power */
-	d__1 = v4;
-	db[i__ + 1409] = l2_7.x[1] / v3 * (d__1 * d__1 / v3 - 1.) * v5;
+    d__1 = v4;
+    db[i__ + 1409] = l2_7.x[1] / v3 * (d__1 * d__1 / v3 - 1.) * v5;
 /* Computing 2nd power */
-	d__1 = l2_7.x[7];
-	v7 = d__1 * d__1;
-	v9 = y[i__ - 1] - l2_7.x[4];
+    d__1 = l2_7.x[7];
+    v7 = d__1 * d__1;
+    v9 = y[i__ - 1] - l2_7.x[4];
 /* Computing 2nd power */
-	d__1 = v9;
-	v8 = std::exp(-(d__1 * d__1) / (v7 * 2.));
-	v10 = 1. - l2_7.x[0] - l2_7.x[1];
-	dc[i__ - 1] = -v8 / l2_7.x[7];
-	dc[i__ + 234] = dc[i__ - 1];
+    d__1 = v9;
+    v8 = std::exp(-(d__1 * d__1) / (v7 * 2.));
+    v10 = 1. - l2_7.x[0] - l2_7.x[1];
+    dc[i__ - 1] = -v8 / l2_7.x[7];
+    dc[i__ + 234] = dc[i__ - 1];
 /* Computing 3rd power */
-	d__1 = l2_7.x[7];
-	dc[i__ + 939] = v10 * v9 / (d__1 * (d__1 * d__1)) * v8;
+    d__1 = l2_7.x[7];
+    dc[i__ + 939] = v10 * v9 / (d__1 * (d__1 * d__1)) * v8;
 /* Computing 2nd power */
-	d__1 = v9;
-	dc[i__ + 1644] = v10 / v7 * (d__1 * d__1 / v7 - 1.) * v8;
+    d__1 = v9;
+    dc[i__ + 1644] = v10 / v7 * (d__1 * d__1 / v7 - 1.) * v8;
 /* L55: */
     }
     for (j = 1; j <= 8; ++j) {
-	t1 = 0.;
-	for (i__ = 1; i__ <= 235; ++i__) {
+    t1 = 0.;
+    for (i__ = 1; i__ <= 235; ++i__) {
 /* L56: */
-	    t1 += (da[i__ + j * 235 - 236] + db[i__ + j * 235 - 236] + dc[i__ 
-		    + j * 235 - 236]) / (a[i__ - 1] + b[i__ - 1] + c__[i__ - 
-		    1]);
-	}
-	l4_7.gf[j - 1] = -t1;
+        t1 += (da[i__ + j * 235 - 236] + db[i__ + j * 235 - 236] + dc[i__ 
+            + j * 235 - 236]) / (a[i__ - 1] + b[i__ - 1] + c__[i__ - 
+            1]);
+    }
+    l4_7.gf[j - 1] = -t1;
 /* L57: */
     }
     return 0;
 L70:
     for (i__ = 1; i__ <= 8; ++i__) {
-	sum = (float)0.;
+    sum = (float)0.;
 /* L71: */
 /* Computing 2nd power */
-	d__1 = l2_7.x[i__ - 1] - 5.;
-	sum += d__1 * d__1;
+    d__1 = l2_7.x[i__ - 1] - 5.;
+    sum += d__1 * d__1;
     }
     l6_1.fx = sum + 2090.;
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 1. - l2_7.x[0] - l2_7.x[1];
+    l3_1.g[0] = 1. - l2_7.x[0] - l2_7.x[1];
     }
 labelL5:
     return 0;
@@ -10714,11 +10714,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 8;
@@ -10727,16 +10727,16 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_7.x[i__ - 1] = 5e3;
-	l13_7.xl[i__ - 1] = 1e3;
+    l2_7.x[i__ - 1] = 5e3;
+    l13_7.xl[i__ - 1] = 1e3;
 /* L23: */
-	l14_7.xu[i__ - 1] = 1e4;
+    l14_7.xu[i__ - 1] = 1e4;
     }
     l13_7.xl[0] = 100.;
     for (i__ = 4; i__ <= 8; ++i__) {
-	l13_7.xl[i__ - 1] = 10.;
+    l13_7.xl[i__ - 1] = 10.;
 /* L24: */
-	l14_7.xu[i__ - 1] = 1e3;
+    l14_7.xu[i__ - 1] = 1e3;
     }
     l2_7.x[3] = 200.;
     l2_7.x[4] = 350.;
@@ -10744,22 +10744,22 @@ labelL1:
     l2_7.x[6] = 225.;
     l2_7.x[7] = 425.;
     for (i__ = 1; i__ <= 8; ++i__) {
-	l11_7.lxl[i__ - 1] = true;
+    l11_7.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_7.lxu[i__ - 1] = true;
+    l12_7.lxu[i__ - 1] = true;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 8; ++j) {
+    for (j = 1; j <= 8; ++j) {
 /* L22: */
-	    l5_18.gg[i__ + j * 6 - 7] = 0.;
-	}
+        l5_18.gg[i__ + j * 6 - 7] = 0.;
+    }
     }
     l4_7.gf[0] = 1.;
     l4_7.gf[1] = 1.;
     l4_7.gf[2] = 1.;
     for (i__ = 4; i__ <= 8; ++i__) {
 /* labelL20: */
-	l4_7.gf[i__ - 1] = 0.;
+    l4_7.gf[i__ - 1] = 0.;
     }
     l5_18.gg[18] = -.0025;
     l5_18.gg[30] = -.0025;
@@ -10787,43 +10787,43 @@ labelL3:
     return 0;
 labelL4:
     if (l9_6.index1[0]) {
-	l3_5.g[0] = (l2_7.x[3] + l2_7.x[5]) * -.0025 + 1.;
+    l3_5.g[0] = (l2_7.x[3] + l2_7.x[5]) * -.0025 + 1.;
     }
     if (l9_6.index1[1]) {
-	l3_5.g[1] = (l2_7.x[4] + l2_7.x[6] - l2_7.x[3]) * -.0025 + 1.;
+    l3_5.g[1] = (l2_7.x[4] + l2_7.x[6] - l2_7.x[3]) * -.0025 + 1.;
     }
     if (l9_6.index1[2]) {
-	l3_5.g[2] = (l2_7.x[7] - l2_7.x[4]) * -.01 + 1.;
+    l3_5.g[2] = (l2_7.x[7] - l2_7.x[4]) * -.01 + 1.;
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = (l2_7.x[3] * -833.33252 - l2_7.x[0] * 100. + 83333.333 + 
-		l2_7.x[0] * l2_7.x[5]) * 1e-5;
+    l3_5.g[3] = (l2_7.x[3] * -833.33252 - l2_7.x[0] * 100. + 83333.333 + 
+        l2_7.x[0] * l2_7.x[5]) * 1e-5;
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = (l2_7.x[4] * -1250. - l2_7.x[1] * l2_7.x[3] + l2_7.x[3] * 
-		1250. + l2_7.x[1] * l2_7.x[6]) * 1e-5;
+    l3_5.g[4] = (l2_7.x[4] * -1250. - l2_7.x[1] * l2_7.x[3] + l2_7.x[3] * 
+        1250. + l2_7.x[1] * l2_7.x[6]) * 1e-5;
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = (-1.25e6 - l2_7.x[2] * l2_7.x[4] + l2_7.x[4] * 2500. + 
-		l2_7.x[2] * l2_7.x[7]) * 1e-5;
+    l3_5.g[5] = (-1.25e6 - l2_7.x[2] * l2_7.x[4] + l2_7.x[4] * 2500. + 
+        l2_7.x[2] * l2_7.x[7]) * 1e-5;
     }
     return 0;
 labelL5:
     if (! l10_6.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_18.gg[3] = (l2_7.x[5] - 100.) * 1e-5;
     l5_18.gg[33] = l2_7.x[0] * 1e-5;
 labelL10:
     if (! l10_6.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     l5_18.gg[10] = (-l2_7.x[3] + l2_7.x[6]) * 1e-5;
     l5_18.gg[22] = (-l2_7.x[1] + 1250.) * 1e-5;
     l5_18.gg[40] = l2_7.x[1] * 1e-5;
 labelL11:
     if (! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     l5_18.gg[17] = (-l2_7.x[4] + l2_7.x[7]) * 1e-5;
     l5_18.gg[29] = (-l2_7.x[2] + 2500.) * 1e-5;
@@ -10842,14 +10842,14 @@ labelL12:
     static Real c__, d__;
     static int i__, j;
     static Real v1, v2, v3, v4, v5, v6, v7, v8, v9, y1, y2, y3, y4, y5, 
-	    y6, v10, v11, v12, v13, v14, v15;
+        y6, v10, v11, v12, v13, v14, v15;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 9;
@@ -10870,37 +10870,37 @@ labelL1:
     c__ = v1 * std::sin(.25);
     d__ = v1 *std::cos(.25);
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 9; ++j) {
+    for (j = 1; j <= 9; ++j) {
 /* labelL20: */
-	    l5_19.gg[i__ + j * 6 - 7] = 0.;
-	}
+        l5_19.gg[i__ + j * 6 - 7] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_8.lxl[i__ - 1] = true;
-	l12_8.lxu[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = true;
+    l12_8.lxu[i__ - 1] = false;
 /* L21: */
-	l13_8.xl[i__ - 1] = 0.;
+    l13_8.xl[i__ - 1] = 0.;
     }
     for (i__ = 3; i__ <= 4; ++i__) {
-	l11_8.lxl[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = false;
 /* L22: */
-	l12_8.lxu[i__ - 1] = false;
+    l12_8.lxu[i__ - 1] = false;
     }
     for (i__ = 5; i__ <= 7; ++i__) {
-	l11_8.lxl[i__ - 1] = true;
-	l12_8.lxu[i__ - 1] = true;
-	l13_8.xl[i__ - 1] = .90909;
+    l11_8.lxl[i__ - 1] = true;
+    l12_8.lxu[i__ - 1] = true;
+    l13_8.xl[i__ - 1] = .90909;
 /* L23: */
-	l14_8.xu[i__ - 1] = 1.0909;
+    l14_8.xu[i__ - 1] = 1.0909;
     }
     for (i__ = 8; i__ <= 9; ++i__) {
-	l11_8.lxl[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = false;
 /* L24: */
-	l12_8.lxu[i__ - 1] = false;
+    l12_8.lxu[i__ - 1] = false;
     }
     for (i__ = 3; i__ <= 9; ++i__) {
 /* L25: */
-	l4_8.gf[i__ - 1] = 0.;
+    l4_8.gf[i__ - 1] = 0.;
     }
     l5_19.gg[0] = -1.;
     l5_19.gg[7] = -1.;
@@ -10924,7 +10924,7 @@ labelL2:
 /* Computing 3rd power */
     d__2 = l2_8.x[1];
     l6_1.fx = l2_8.x[0] * 3e3 + d__1 * (d__1 * d__1) * 1e3 + l2_8.x[1] * 2e3 
-	    + d__2 * (d__2 * d__2) * 666.667;
+        + d__2 * (d__2 * d__2) * 666.667;
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -10942,54 +10942,54 @@ labelL4:
     y5 = std::sin(l2_8.x[7] - l2_8.x[8]);
     y6 =std::cos(l2_8.x[7] - l2_8.x[8]);
     if (*mode == 5) {
-	goto labelL5;
+    goto labelL5;
     }
     if (l9_6.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[4];
-	l3_5.g[0] = .4 - l2_8.x[0] + c__ * 2. * (d__1 * d__1) + l2_8.x[4] * 
-		l2_8.x[5] * (-d__ * y1 - c__ * y2) + l2_8.x[4] * l2_8.x[6] * (
-		-d__ * y3 - c__ * y4);
+    d__1 = l2_8.x[4];
+    l3_5.g[0] = .4 - l2_8.x[0] + c__ * 2. * (d__1 * d__1) + l2_8.x[4] * 
+        l2_8.x[5] * (-d__ * y1 - c__ * y2) + l2_8.x[4] * l2_8.x[6] * (
+        -d__ * y3 - c__ * y4);
     }
     if (l9_6.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[5];
-	l3_5.g[1] = .4 - l2_8.x[1] + c__ * 2. * (d__1 * d__1) + l2_8.x[4] * 
-		l2_8.x[5] * (d__ * y1 - c__ * y2) + l2_8.x[5] * l2_8.x[6] * (
-		d__ * y5 - c__ * y6);
+    d__1 = l2_8.x[5];
+    l3_5.g[1] = .4 - l2_8.x[1] + c__ * 2. * (d__1 * d__1) + l2_8.x[4] * 
+        l2_8.x[5] * (d__ * y1 - c__ * y2) + l2_8.x[5] * l2_8.x[6] * (
+        d__ * y5 - c__ * y6);
     }
     if (l9_6.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[6];
-	l3_5.g[2] = c__ * 2. * (d__1 * d__1) + .8 + l2_8.x[4] * l2_8.x[6] * (
-		d__ * y3 - c__ * y4) + l2_8.x[5] * l2_8.x[6] * (-d__ * y5 - 
-		c__ * y6);
+    d__1 = l2_8.x[6];
+    l3_5.g[2] = c__ * 2. * (d__1 * d__1) + .8 + l2_8.x[4] * l2_8.x[6] * (
+        d__ * y3 - c__ * y4) + l2_8.x[5] * l2_8.x[6] * (-d__ * y5 - 
+        c__ * y6);
     }
     if (l9_6.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[4];
-	l3_5.g[3] = .2 - l2_8.x[2] + d__ * 2. * (d__1 * d__1) - l2_8.x[4] * 
-		l2_8.x[5] * (-c__ * y1 + d__ * y2) - l2_8.x[4] * l2_8.x[6] * (
-		-c__ * y3 + d__ * y4);
+    d__1 = l2_8.x[4];
+    l3_5.g[3] = .2 - l2_8.x[2] + d__ * 2. * (d__1 * d__1) - l2_8.x[4] * 
+        l2_8.x[5] * (-c__ * y1 + d__ * y2) - l2_8.x[4] * l2_8.x[6] * (
+        -c__ * y3 + d__ * y4);
     }
     if (l9_6.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[5];
-	l3_5.g[4] = .2 - l2_8.x[3] + d__ * 2. * (d__1 * d__1) - l2_8.x[4] * 
-		l2_8.x[5] * (c__ * y1 + d__ * y2) - l2_8.x[5] * l2_8.x[6] * (
-		c__ * y5 + d__ * y6);
+    d__1 = l2_8.x[5];
+    l3_5.g[4] = .2 - l2_8.x[3] + d__ * 2. * (d__1 * d__1) - l2_8.x[4] * 
+        l2_8.x[5] * (c__ * y1 + d__ * y2) - l2_8.x[5] * l2_8.x[6] * (
+        c__ * y5 + d__ * y6);
     }
     if (l9_6.index1[5]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[6];
-	l3_5.g[5] = d__ * 2. * (d__1 * d__1) - .337 - l2_8.x[4] * l2_8.x[6] * 
-		(c__ * y3 + d__ * y4) - l2_8.x[5] * l2_8.x[6] * (-c__ * y5 + 
-		d__ * y6);
+    d__1 = l2_8.x[6];
+    l3_5.g[5] = d__ * 2. * (d__1 * d__1) - .337 - l2_8.x[4] * l2_8.x[6] * 
+        (c__ * y3 + d__ * y4) - l2_8.x[5] * l2_8.x[6] * (-c__ * y5 + 
+        d__ * y6);
     }
     return 0;
 labelL5:
     if (! l10_6.index2[0]) {
-	goto L7;
+    goto L7;
     }
     v1 = -d__ * y1 - c__ * y2;
     v2 = -d__ * y3 - c__ * y4;
@@ -11000,7 +11000,7 @@ labelL5:
     l5_19.gg[48] = l2_8.x[4] * l2_8.x[6] * (-d__ * y4 + c__ * y3);
 L7:
     if (! l10_6.index2[1]) {
-	goto L8;
+    goto L8;
     }
     v2 = d__ * y1 - c__ * y2;
     v3 = d__ * y6 + c__ * y5;
@@ -11009,11 +11009,11 @@ L7:
     l5_19.gg[31] = c__ * 4. * l2_8.x[5] + l2_8.x[4] * v2 + l2_8.x[6] * v4;
     l5_19.gg[37] = l2_8.x[5] * v4;
     l5_19.gg[43] = l2_8.x[4] * l2_8.x[5] * (d__ * y2 + c__ * y1) + l2_8.x[5] *
-	     l2_8.x[6] * v3;
+         l2_8.x[6] * v3;
     l5_19.gg[49] = -l2_8.x[5] * l2_8.x[6] * v3;
 L8:
     if (! l10_6.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     v5 = d__ * y3 - c__ * y4;
     v6 = -d__ * y5 - c__ * y6;
@@ -11023,10 +11023,10 @@ L8:
     l5_19.gg[38] = c__ * 4. * l2_8.x[6] + l2_8.x[4] * v5 + l2_8.x[5] * v6;
     l5_19.gg[44] = l2_8.x[5] * l2_8.x[6] * v7;
     l5_19.gg[50] = l2_8.x[4] * l2_8.x[6] * (d__ * y4 + c__ * y3) - l2_8.x[5] *
-	     l2_8.x[6] * v7;
+         l2_8.x[6] * v7;
 labelL9:
     if (! l10_6.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     v8 = -c__ * y1 + d__ * y2;
     v9 = -c__ * y3 + d__ * y4;
@@ -11037,7 +11037,7 @@ labelL9:
     l5_19.gg[51] = l2_8.x[4] * l2_8.x[6] * (c__ * y4 + d__ * y3);
 labelL10:
     if (! l10_6.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     v10 = c__ * y1 + d__ * y2;
     v11 = c__ * y5 + d__ * y6;
@@ -11046,11 +11046,11 @@ labelL10:
     l5_19.gg[34] = d__ * 4. * l2_8.x[5] - l2_8.x[4] * v10 - l2_8.x[6] * v11;
     l5_19.gg[40] = -l2_8.x[5] * v11;
     l5_19.gg[46] = -l2_8.x[4] * l2_8.x[5] * (c__ * y2 - d__ * y1) - l2_8.x[6] 
-	    * v12;
+        * v12;
     l5_19.gg[52] = l2_8.x[6] * v12;
 labelL11:
     if (! l10_6.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     v13 = c__ * y3 + d__ * y4;
     v14 = -c__ * y5 + d__ * y6;
@@ -11074,11 +11074,11 @@ labelL12:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 9;
@@ -11088,14 +11088,14 @@ labelL1:
     l1_1.nenl = 0;
     for (j = 1; j <= 9; ++j) {
 /* L21: */
-	l2_8.x[j - 1] = 1.;
+    l2_8.x[j - 1] = 1.;
     }
     for (i__ = 1; i__ <= 9; ++i__) {
 /*      XL(I)=0.0D0 */
-	l11_8.lxl[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = false;
 /*      XU(I)=1.0D0 */
 /* L22: */
-	l12_8.lxu[i__ - 1] = false;
+    l12_8.lxu[i__ - 1] = false;
     }
     l11_8.lxl[8] = true;
     l13_8.xl[8] = 0.;
@@ -11113,8 +11113,8 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = (l2_8.x[0] * l2_8.x[3] - l2_8.x[1] * l2_8.x[2] + l2_8.x[2] * 
-	    l2_8.x[8] - l2_8.x[4] * l2_8.x[8] + l2_8.x[4] * l2_8.x[7] - 
-	    l2_8.x[5] * l2_8.x[6]) * -.5;
+        l2_8.x[8] - l2_8.x[4] * l2_8.x[8] + l2_8.x[4] * l2_8.x[7] - 
+        l2_8.x[5] * l2_8.x[6]) * -.5;
     return 0;
 labelL3:
     l4_8.gf[0] = l2_8.x[3] * -.5;
@@ -11130,111 +11130,111 @@ labelL3:
 labelL4:
     if (l9_11.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[2];
+    d__1 = l2_8.x[2];
 /* Computing 2nd power */
-	d__2 = l2_8.x[3];
-	l3_10.g[0] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[3];
+    l3_10.g[0] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[8];
-	l3_10.g[1] = 1. - d__1 * d__1;
+    d__1 = l2_8.x[8];
+    l3_10.g[1] = 1. - d__1 * d__1;
     }
     if (l9_11.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[4];
+    d__1 = l2_8.x[4];
 /* Computing 2nd power */
-	d__2 = l2_8.x[5];
-	l3_10.g[2] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[5];
+    l3_10.g[2] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[0];
+    d__1 = l2_8.x[0];
 /* Computing 2nd power */
-	d__2 = l2_8.x[1] - l2_8.x[8];
-	l3_10.g[3] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[1] - l2_8.x[8];
+    l3_10.g[3] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[0] - l2_8.x[4];
+    d__1 = l2_8.x[0] - l2_8.x[4];
 /* Computing 2nd power */
-	d__2 = l2_8.x[1] - l2_8.x[5];
-	l3_10.g[4] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[1] - l2_8.x[5];
+    l3_10.g[4] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[5]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[0] - l2_8.x[6];
+    d__1 = l2_8.x[0] - l2_8.x[6];
 /* Computing 2nd power */
-	d__2 = l2_8.x[1] - l2_8.x[7];
-	l3_10.g[5] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[1] - l2_8.x[7];
+    l3_10.g[5] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[6]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[2] - l2_8.x[4];
+    d__1 = l2_8.x[2] - l2_8.x[4];
 /* Computing 2nd power */
-	d__2 = l2_8.x[3] - l2_8.x[5];
-	l3_10.g[6] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[3] - l2_8.x[5];
+    l3_10.g[6] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[7]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[2] - l2_8.x[6];
+    d__1 = l2_8.x[2] - l2_8.x[6];
 /* Computing 2nd power */
-	d__2 = l2_8.x[3] - l2_8.x[7];
-	l3_10.g[7] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[3] - l2_8.x[7];
+    l3_10.g[7] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[8]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[6];
+    d__1 = l2_8.x[6];
 /* Computing 2nd power */
-	d__2 = l2_8.x[7] - l2_8.x[8];
-	l3_10.g[8] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[7] - l2_8.x[8];
+    l3_10.g[8] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_11.index1[9]) {
-	l3_10.g[9] = l2_8.x[0] * l2_8.x[3] - l2_8.x[1] * l2_8.x[2];
+    l3_10.g[9] = l2_8.x[0] * l2_8.x[3] - l2_8.x[1] * l2_8.x[2];
     }
     if (l9_11.index1[10]) {
-	l3_10.g[10] = l2_8.x[2] * l2_8.x[8];
+    l3_10.g[10] = l2_8.x[2] * l2_8.x[8];
     }
     if (l9_11.index1[11]) {
-	l3_10.g[11] = -l2_8.x[4] * l2_8.x[8];
+    l3_10.g[11] = -l2_8.x[4] * l2_8.x[8];
     }
     if (l9_11.index1[12]) {
-	l3_10.g[12] = l2_8.x[4] * l2_8.x[7] - l2_8.x[5] * l2_8.x[6];
+    l3_10.g[12] = l2_8.x[4] * l2_8.x[7] - l2_8.x[5] * l2_8.x[6];
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 13; ++i__) {
-	for (j = 1; j <= 9; ++j) {
+    for (j = 1; j <= 9; ++j) {
 /* L23: */
-	    l5_20.gg[i__ + j * 13 - 14] = 0.;
-	}
+        l5_20.gg[i__ + j * 13 - 14] = 0.;
+    }
     }
     if (! l10_11.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_20.gg[26] = l2_8.x[2] * -2.;
     l5_20.gg[39] = l2_8.x[3] * -2.;
 L7:
     if (! l10_11.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_20.gg[105] = l2_8.x[8] * -2.;
 L8:
     if (! l10_11.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_20.gg[54] = l2_8.x[4] * -2.;
     l5_20.gg[67] = l2_8.x[5] * -2.;
 labelL9:
     if (! l10_11.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_20.gg[3] = l2_8.x[0] * -2.;
     l5_20.gg[16] = (l2_8.x[1] - l2_8.x[8]) * -2.;
     l5_20.gg[107] = -l5_20.gg[16];
 labelL10:
     if (! l10_11.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     l5_20.gg[4] = (l2_8.x[0] - l2_8.x[4]) * -2.;
     l5_20.gg[17] = (l2_8.x[1] - l2_8.x[5]) * -2.;
@@ -11242,7 +11242,7 @@ labelL10:
     l5_20.gg[69] = -l5_20.gg[17];
 labelL11:
     if (! l10_11.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     l5_20.gg[5] = (l2_8.x[0] - l2_8.x[6]) * -2.;
     l5_20.gg[18] = (l2_8.x[1] - l2_8.x[7]) * -2.;
@@ -11250,7 +11250,7 @@ labelL11:
     l5_20.gg[96] = -l5_20.gg[18];
 labelL12:
     if (! l10_11.index2[6]) {
-	goto labelL13;
+    goto labelL13;
     }
     l5_20.gg[32] = (l2_8.x[2] - l2_8.x[4]) * -2.;
     l5_20.gg[45] = (l2_8.x[3] - l2_8.x[5]) * -2.;
@@ -11258,7 +11258,7 @@ labelL12:
     l5_20.gg[71] = -l5_20.gg[45];
 labelL13:
     if (! l10_11.index2[7]) {
-	goto labelL14;
+    goto labelL14;
     }
     l5_20.gg[33] = (l2_8.x[2] - l2_8.x[6]) * -2.;
     l5_20.gg[46] = (l2_8.x[3] - l2_8.x[7]) * -2.;
@@ -11266,14 +11266,14 @@ labelL13:
     l5_20.gg[98] = -l5_20.gg[46];
 labelL14:
     if (! l10_11.index2[8]) {
-	goto L15;
+    goto L15;
     }
     l5_20.gg[86] = l2_8.x[6] * -2.;
     l5_20.gg[99] = (l2_8.x[7] - l2_8.x[8]) * -2.;
     l5_20.gg[112] = -l5_20.gg[99];
 L15:
     if (! l10_11.index2[9]) {
-	goto L16;
+    goto L16;
     }
     l5_20.gg[9] = l2_8.x[3];
     l5_20.gg[22] = -l2_8.x[2];
@@ -11281,19 +11281,19 @@ L15:
     l5_20.gg[48] = l2_8.x[0];
 L16:
     if (! l10_11.index2[10]) {
-	goto L17;
+    goto L17;
     }
     l5_20.gg[36] = l2_8.x[8];
     l5_20.gg[114] = l2_8.x[2];
 L17:
     if (! l10_11.index2[11]) {
-	goto L18;
+    goto L18;
     }
     l5_20.gg[63] = -l2_8.x[8];
     l5_20.gg[115] = -l2_8.x[4];
 L18:
     if (! l10_11.index2[12]) {
-	goto L19;
+    goto L19;
     }
     l5_20.gg[64] = l2_8.x[7];
     l5_20.gg[77] = -l2_8.x[6];
@@ -11313,14 +11313,14 @@ L19:
     static Real a, b, c__;
     static int i__, j;
     static Real v1, v2, v3, v4, v5, v6, v7, v8, v9, ra, v10, v11, v12, 
-	    v13, v14, v15, v16, v17, v18, v19, v20, hv1;
+        v13, v14, v15, v16, v17, v18, v19, v20, hv1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 9;
@@ -11333,34 +11333,34 @@ labelL1:
     b = std::sin(.25);
     c__ =std::cos(.25);
     for (i__ = 1; i__ <= 2; ++i__) {
-	l13_8.xl[i__ - 1] = 0.;
-	l11_8.lxl[i__ - 1] = true;
-	l12_8.lxu[i__ - 1] = false;
-	l13_8.xl[i__ + 1] = -.55;
-	l14_8.xu[i__ + 1] = .55;
-	l13_8.xl[i__ + 6] = -400.;
-	l14_8.xu[i__ + 6] = 800.;
-	l13_8.xl[i__ + 3] = 196.;
-	l14_8.xu[i__ + 3] = 252.;
+    l13_8.xl[i__ - 1] = 0.;
+    l11_8.lxl[i__ - 1] = true;
+    l12_8.lxu[i__ - 1] = false;
+    l13_8.xl[i__ + 1] = -.55;
+    l14_8.xu[i__ + 1] = .55;
+    l13_8.xl[i__ + 6] = -400.;
+    l14_8.xu[i__ + 6] = 800.;
+    l13_8.xl[i__ + 3] = 196.;
+    l14_8.xu[i__ + 3] = 252.;
 /* labelL20: */
     }
     l13_8.xl[6] = 196.;
     l14_8.xu[6] = 252.;
     for (i__ = 3; i__ <= 9; ++i__) {
-	l11_8.lxl[i__ - 1] = true;
-	l12_8.lxu[i__ - 1] = true;
+    l11_8.lxl[i__ - 1] = true;
+    l12_8.lxu[i__ - 1] = true;
 /* L21: */
     }
     for (j = 1; j <= 9; ++j) {
-	l2_8.x[j - 1] = 0.;
-	for (i__ = 1; i__ <= 10; ++i__) {
-	    l5_21.gg[i__ + j * 10 - 11] = 0.;
+    l2_8.x[j - 1] = 0.;
+    for (i__ = 1; i__ <= 10; ++i__) {
+        l5_21.gg[i__ + j * 10 - 11] = 0.;
 /* L22: */
-	}
+    }
     }
     for (i__ = 3; i__ <= 9; ++i__) {
 /* L30: */
-	l4_8.gf[i__ - 1] = 0.;
+    l4_8.gf[i__ - 1] = 0.;
     }
     l5_21.gg[20] = -1.;
     l5_21.gg[30] = 1.;
@@ -11388,7 +11388,7 @@ labelL2:
 /* Computing 3rd power */
     d__2 = l2_8.x[1];
     l6_1.fx = l2_8.x[0] * 3. + d__1 * (d__1 * d__1) * 1e-6 + d__2 * (d__2 * 
-	    d__2) * 5.22074e-7 + l2_8.x[1] * 2.;
+        d__2) * 5.22074e-7 + l2_8.x[1] * 2.;
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -11400,90 +11400,90 @@ labelL3:
     return 0;
 labelL4:
     if (l9_10.index1[0]) {
-	l3_9.g[0] = l2_8.x[3] - l2_8.x[2] + .55;
+    l3_9.g[0] = l2_8.x[3] - l2_8.x[2] + .55;
     }
     if (l9_10.index1[1]) {
-	l3_9.g[1] = l2_8.x[2] - l2_8.x[3] + .55;
+    l3_9.g[1] = l2_8.x[2] - l2_8.x[3] + .55;
     }
     if (l9_10.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[0];
+    d__1 = l2_8.x[0];
 /* Computing 2nd power */
-	d__2 = l2_8.x[7];
-	l3_9.g[2] = 2.25e6 - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[7];
+    l3_9.g[2] = 2.25e6 - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_10.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[1];
+    d__1 = l2_8.x[1];
 /* Computing 2nd power */
-	d__2 = l2_8.x[8];
-	l3_9.g[3] = 2.25e6 - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_8.x[8];
+    l3_9.g[3] = 2.25e6 - d__1 * d__1 - d__2 * d__2;
     }
     if (l9_10.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[4];
-	l3_9.g[4] = (l2_8.x[4] * l2_8.x[5] * std::sin(-l2_8.x[2] - .25) + l2_8.x[4]
-		 * l2_8.x[6] * std::sin(-l2_8.x[3] - .25) + d__1 * d__1 * 2. * b) *
-		 ra + 400. - l2_8.x[0];
+    d__1 = l2_8.x[4];
+    l3_9.g[4] = (l2_8.x[4] * l2_8.x[5] * std::sin(-l2_8.x[2] - .25) + l2_8.x[4]
+         * l2_8.x[6] * std::sin(-l2_8.x[3] - .25) + d__1 * d__1 * 2. * b) *
+         ra + 400. - l2_8.x[0];
     }
     if (l9_10.index1[5]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[5];
-	l3_9.g[5] = (l2_8.x[4] * l2_8.x[5] * std::sin(l2_8.x[2] - .25) + l2_8.x[5] 
-		* l2_8.x[6] * std::sin(l2_8.x[2] - l2_8.x[3] - .25) + d__1 * d__1 *
-		 2. * b) * ra + 400. - l2_8.x[1];
+    d__1 = l2_8.x[5];
+    l3_9.g[5] = (l2_8.x[4] * l2_8.x[5] * std::sin(l2_8.x[2] - .25) + l2_8.x[5] 
+        * l2_8.x[6] * std::sin(l2_8.x[2] - l2_8.x[3] - .25) + d__1 * d__1 *
+         2. * b) * ra + 400. - l2_8.x[1];
     }
     if (l9_10.index1[6]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[6];
-	l3_9.g[6] = (l2_8.x[4] * l2_8.x[6] * std::sin(l2_8.x[3] - .25) + l2_8.x[5] 
-		* l2_8.x[6] * std::sin(l2_8.x[3] - l2_8.x[2] - .25) + d__1 * d__1 *
-		 2. * b) * ra + 881.779;
+    d__1 = l2_8.x[6];
+    l3_9.g[6] = (l2_8.x[4] * l2_8.x[6] * std::sin(l2_8.x[3] - .25) + l2_8.x[5] 
+        * l2_8.x[6] * std::sin(l2_8.x[3] - l2_8.x[2] - .25) + d__1 * d__1 *
+         2. * b) * ra + 881.779;
     }
     if (l9_10.index1[7]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[4];
+    d__1 = l2_8.x[4];
 /* Computing 2nd power */
-	d__2 = l2_8.x[4];
-	l3_9.g[7] = l2_8.x[7] + (l2_8.x[4] * l2_8.x[5] *std::cos(-l2_8.x[2] - .25)
-		 + l2_8.x[4] * l2_8.x[6] *std::cos(-l2_8.x[3] - .25) - d__1 * 
-		d__1 * 2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 200.;
+    d__2 = l2_8.x[4];
+    l3_9.g[7] = l2_8.x[7] + (l2_8.x[4] * l2_8.x[5] *std::cos(-l2_8.x[2] - .25)
+         + l2_8.x[4] * l2_8.x[6] *std::cos(-l2_8.x[3] - .25) - d__1 * 
+        d__1 * 2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 200.;
     }
     if (l9_10.index1[8]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[5];
+    d__1 = l2_8.x[5];
 /* Computing 2nd power */
-	d__2 = l2_8.x[5];
-	l3_9.g[8] = l2_8.x[8] + (l2_8.x[4] * l2_8.x[5] *std::cos(l2_8.x[2] - .25) 
-		+ l2_8.x[6] * l2_8.x[5] *std::cos(l2_8.x[2] - l2_8.x[3] - .25) - 
-		d__1 * d__1 * 2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 200.;
+    d__2 = l2_8.x[5];
+    l3_9.g[8] = l2_8.x[8] + (l2_8.x[4] * l2_8.x[5] *std::cos(l2_8.x[2] - .25) 
+        + l2_8.x[6] * l2_8.x[5] *std::cos(l2_8.x[2] - l2_8.x[3] - .25) - 
+        d__1 * d__1 * 2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 200.;
     }
     if (l9_10.index1[9]) {
 /* Computing 2nd power */
-	d__1 = l2_8.x[6];
+    d__1 = l2_8.x[6];
 /* Computing 2nd power */
-	d__2 = l2_8.x[6];
-	l3_9.g[9] = (l2_8.x[4] * l2_8.x[6] *std::cos(l2_8.x[3] - .25) + l2_8.x[5] 
-		* l2_8.x[6] *std::cos(l2_8.x[3] - l2_8.x[2] - .25) - d__1 * d__1 *
-		 2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 22.938;
+    d__2 = l2_8.x[6];
+    l3_9.g[9] = (l2_8.x[4] * l2_8.x[6] *std::cos(l2_8.x[3] - .25) + l2_8.x[5] 
+        * l2_8.x[6] *std::cos(l2_8.x[3] - l2_8.x[2] - .25) - d__1 * d__1 *
+         2. * c__) * ra + d__2 * d__2 * 7.533e-4 - 22.938;
     }
     return 0;
 labelL5:
 /* L8: */
     if (! l10_10.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_21.gg[2] = l2_8.x[0] * -2.;
     l5_21.gg[72] = l2_8.x[7] * -2.;
 labelL9:
     if (! l10_10.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_21.gg[13] = l2_8.x[1] * -2.;
     l5_21.gg[83] = l2_8.x[8] * -2.;
 labelL10:
     if (! l10_10.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     v1 = std::sin(-l2_8.x[2] - .25);
     v2 = std::sin(-l2_8.x[3] - .25);
@@ -11491,12 +11491,12 @@ labelL10:
     l5_21.gg[24] = -l2_8.x[5] * v3 *std::cos(-l2_8.x[2] - .25);
     l5_21.gg[34] = -l2_8.x[6] * v3 *std::cos(-l2_8.x[3] - .25);
     l5_21.gg[44] = (l2_8.x[5] * v1 + l2_8.x[6] * v2 + l2_8.x[4] * 4. * b) * 
-	    ra;
+        ra;
     l5_21.gg[54] = v3 * v1;
     l5_21.gg[64] = v3 * v2;
 labelL11:
     if (! l10_10.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     hv1 = l2_8.x[2] - l2_8.x[3] - .25;
     v3 =std::cos(hv1);
@@ -11504,14 +11504,14 @@ labelL11:
     v5 = l2_8.x[5] * ra;
     v6 = std::sin(hv1);
     l5_21.gg[25] = l2_8.x[4] * v5 *std::cos(l2_8.x[2] - .25) + l2_8.x[6] * v5 * 
-	    v3;
+        v3;
     l5_21.gg[35] = -l2_8.x[6] * v5 * v3;
     l5_21.gg[45] = v5 * v4;
     l5_21.gg[55] = (l2_8.x[4] * v4 + l2_8.x[6] * v6) * ra + v5 * 4. * b;
     l5_21.gg[65] = v5 * v6;
 labelL12:
     if (! l10_10.index2[6]) {
-	goto labelL13;
+    goto labelL13;
     }
     hv1 = l2_8.x[3] - l2_8.x[2] - .25;
     v7 = l2_8.x[6] * ra;
@@ -11520,13 +11520,13 @@ labelL12:
     v10 = std::sin(hv1);
     l5_21.gg[26] = -l2_8.x[5] * v7 * v8;
     l5_21.gg[36] = l2_8.x[4] * v7 *std::cos(l2_8.x[3] - .25) + l2_8.x[5] * v7 * 
-	    v8;
+        v8;
     l5_21.gg[46] = v7 * v9;
     l5_21.gg[56] = v7 * v10;
     l5_21.gg[66] = (l2_8.x[4] * v9 + l2_8.x[5] * v10) * ra + v7 * 4. * b;
 labelL13:
     if (! l10_10.index2[7]) {
-	goto labelL14;
+    goto labelL14;
     }
     v11 = l2_8.x[4] * ra;
     v12 =std::cos(-l2_8.x[2] - .25) * ra;
@@ -11534,27 +11534,27 @@ labelL13:
     l5_21.gg[27] = l2_8.x[5] * v11 * std::sin(-l2_8.x[2] - .25);
     l5_21.gg[37] = l2_8.x[6] * v11 * std::sin(-l2_8.x[3] - .25);
     l5_21.gg[47] = l2_8.x[5] * v12 + l2_8.x[6] * v13 - v11 * 4. * c__ + 
-	    l2_8.x[4] * .0015066;
+        l2_8.x[4] * .0015066;
     l5_21.gg[57] = l2_8.x[4] * v12;
     l5_21.gg[67] = l2_8.x[4] * v13;
 labelL14:
     if (! l10_10.index2[8]) {
-	goto L15;
+    goto L15;
     }
     hv1 = l2_8.x[2] - l2_8.x[3] - .25;
     v14 = std::sin(hv1) * l2_8.x[5] * ra;
     v15 =std::cos(l2_8.x[2] - .25) * ra;
     v16 =std::cos(hv1) * ra;
     l5_21.gg[28] = -l2_8.x[4] * l2_8.x[5] * std::sin(l2_8.x[2] - .25) * ra - 
-	    l2_8.x[6] * v14;
+        l2_8.x[6] * v14;
     l5_21.gg[38] = l2_8.x[6] * v14;
     l5_21.gg[48] = l2_8.x[5] * v15;
     l5_21.gg[58] = l2_8.x[4] * v15 + l2_8.x[6] * v16 - l2_8.x[5] * 4. * c__ * 
-	    ra + l2_8.x[5] * .0015066;
+        ra + l2_8.x[5] * .0015066;
     l5_21.gg[68] = l2_8.x[5] * v16;
 L15:
     if (! l10_10.index2[9]) {
-	goto L16;
+    goto L16;
     }
     hv1 = l2_8.x[3] - l2_8.x[2] - .25;
     v17 = std::sin(hv1) * l2_8.x[5] * ra;
@@ -11566,7 +11566,7 @@ L15:
     l5_21.gg[49] = l2_8.x[6] * v18;
     l5_21.gg[59] = l2_8.x[6] * v19;
     l5_21.gg[69] = l2_8.x[4] * v18 + l2_8.x[5] * v19 - v20 * 4. * c__ + 
-	    l2_8.x[6] * .0015066;
+        l2_8.x[6] * .0015066;
 L16:
     return 0;
 } /* tp109_ */
@@ -11583,11 +11583,11 @@ L16:
     static Real s, t, u, sum;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 10;
@@ -11596,11 +11596,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l11_9.lxl[i__ - 1] = true;
-	l12_9.lxu[i__ - 1] = true;
-	l13_9.xl[i__ - 1] = 2.001;
-	l14_9.xu[i__ - 1] = 9.999;
-	l2_9.x[i__ - 1] = 9.;
+    l11_9.lxl[i__ - 1] = true;
+    l12_9.lxu[i__ - 1] = true;
+    l13_9.xl[i__ - 1] = 2.001;
+    l14_9.xu[i__ - 1] = 9.999;
+    l2_9.x[i__ - 1] = 9.;
 /* labelL20: */
     }
     l20_10.lex = false;
@@ -11620,25 +11620,25 @@ labelL2:
     t = 1.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
-	t *= l2_9.x[i__ - 1];
+    t *= l2_9.x[i__ - 1];
     }
     d__1 = std::abs(t);
     s = pow_dd(&d__1, &c_b1157);
     s = d_sign(&s, &t);
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     u = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (l2_9.x[i__ - 1] - 2. <= 0. || 10. - l2_9.x[i__ - 1] <= 0.) {
-	    goto L33;
-	}
+    if (l2_9.x[i__ - 1] - 2. <= 0. || 10. - l2_9.x[i__ - 1] <= 0.) {
+        goto L33;
+    }
 /* L31: */
 /* Computing 2nd power */
-	d__1 = std::log(l2_9.x[i__ - 1] - 2.);
+    d__1 = std::log(l2_9.x[i__ - 1] - 2.);
 /* Computing 2nd power */
-	d__2 = std::log(10. - l2_9.x[i__ - 1]);
-	u = u + d__1 * d__1 + d__2 * d__2;
+    d__2 = std::log(10. - l2_9.x[i__ - 1]);
+    u = u + d__1 * d__1 + d__2 * d__2;
     }
     l6_1.fx = u - s;
     return 0;
@@ -11647,24 +11647,24 @@ L33:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L34: */
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1] - 5.;
-	sum += d__1 * d__1;
+    d__1 = l2_9.x[i__ - 1] - 5.;
+    sum += d__1 * d__1;
     }
     l6_1.fx = sum + 1e3 - 45.8;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (l2_9.x[i__ - 1] - 2. <= 0. || 10. - l2_9.x[i__ - 1] <= 0.) {
-	    goto L35;
-	}
-	l4_9.gf[i__ - 1] = (std::log(l2_9.x[i__ - 1] - 2.) / (l2_9.x[i__ - 1] - 2.)
-		 - log(10. - l2_9.x[i__ - 1]) / (10. - l2_9.x[i__ - 1])) * 2. 
-		- s / l2_9.x[i__ - 1] * .2;
-	goto L32;
+    if (l2_9.x[i__ - 1] - 2. <= 0. || 10. - l2_9.x[i__ - 1] <= 0.) {
+        goto L35;
+    }
+    l4_9.gf[i__ - 1] = (std::log(l2_9.x[i__ - 1] - 2.) / (l2_9.x[i__ - 1] - 2.)
+         - log(10. - l2_9.x[i__ - 1]) / (10. - l2_9.x[i__ - 1])) * 2. 
+        - s / l2_9.x[i__ - 1] * .2;
+    goto L32;
 L35:
-	l4_9.gf[i__ - 1] = (l2_9.x[i__ - 1] - 5.) * 2.;
+    l4_9.gf[i__ - 1] = (l2_9.x[i__ - 1] - 5.) * 2.;
 L32:
-	;
+    ;
     }
 labelL4:
     return 0;
@@ -11679,11 +11679,11 @@ labelL4:
     static Real s, t;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -11692,11 +11692,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (j = 1; j <= 10; ++j) {
-	l2_9.x[j - 1] = -2.3;
-	for (i__ = 1; i__ <= 3; ++i__) {
+    l2_9.x[j - 1] = -2.3;
+    for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL20: */
-	    l5_14.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_14.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     c__[0] = -6.089;
     c__[1] = -17.164;
@@ -11709,11 +11709,11 @@ labelL1:
     c__[8] = -26.662;
     c__[9] = -22.179;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l13_9.xl[i__ - 1] = -100.;
-	l14_9.xu[i__ - 1] = 100.;
-	l11_9.lxl[i__ - 1] = true;
+    l13_9.xl[i__ - 1] = -100.;
+    l14_9.xu[i__ - 1] = 100.;
+    l11_9.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_9.lxu[i__ - 1] = true;
+    l12_9.lxu[i__ - 1] = true;
     }
     l20_10.lex = false;
     l20_10.xex[0] = -3.20121253241;
@@ -11732,42 +11732,42 @@ labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
-	t += std::exp(l2_9.x[i__ - 1]);
+    t += std::exp(l2_9.x[i__ - 1]);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     s = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L31: */
-	s += std::exp(l2_9.x[i__ - 1]) * (c__[i__ - 1] + l2_9.x[i__ - 1] - std::log(t));
+    s += std::exp(l2_9.x[i__ - 1]) * (c__[i__ - 1] + l2_9.x[i__ - 1] - std::log(t));
     }
     l6_1.fx = s;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L33: */
-	l4_9.gf[i__ - 1] = std::exp(l2_9.x[i__ - 1]) * (c__[i__ - 1] + l2_9.x[i__ 
-		- 1] - std::log(t));
+    l4_9.gf[i__ - 1] = std::exp(l2_9.x[i__ - 1]) * (c__[i__ - 1] + l2_9.x[i__ 
+        - 1] - std::log(t));
     }
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = std::exp(l2_9.x[0]) + std::exp(l2_9.x[1]) * 2. + std::exp(l2_9.x[2]) * 
-		2. + std::exp(l2_9.x[5]) + std::exp(l2_9.x[9]) - 2.;
+    l3_3.g[0] = std::exp(l2_9.x[0]) + std::exp(l2_9.x[1]) * 2. + std::exp(l2_9.x[2]) * 
+        2. + std::exp(l2_9.x[5]) + std::exp(l2_9.x[9]) - 2.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = std::exp(l2_9.x[3]) + std::exp(l2_9.x[4]) * 2. + std::exp(l2_9.x[5]) + 
-		std::exp(l2_9.x[6]) - 1.;
+    l3_3.g[1] = std::exp(l2_9.x[3]) + std::exp(l2_9.x[4]) * 2. + std::exp(l2_9.x[5]) + 
+        std::exp(l2_9.x[6]) - 1.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = std::exp(l2_9.x[2]) + std::exp(l2_9.x[6]) + std::exp(l2_9.x[7]) + std::exp(
-		l2_9.x[8]) * 2. + std::exp(l2_9.x[9]) - 1.;
+    l3_3.g[2] = std::exp(l2_9.x[2]) + std::exp(l2_9.x[6]) + std::exp(l2_9.x[7]) + std::exp(
+        l2_9.x[8]) * 2. + std::exp(l2_9.x[9]) - 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_14.gg[0] = std::exp(l2_9.x[0]);
     l5_14.gg[3] = std::exp(l2_9.x[1]) * 2.;
@@ -11776,7 +11776,7 @@ labelL5:
     l5_14.gg[27] = std::exp(l2_9.x[9]);
 L7:
     if (! l10_4.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_14.gg[10] = std::exp(l2_9.x[3]);
     l5_14.gg[13] = std::exp(l2_9.x[4]) * 2.;
@@ -11784,7 +11784,7 @@ L7:
     l5_14.gg[19] = std::exp(l2_9.x[6]);
 L8:
     if (! l10_4.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_14.gg[8] = std::exp(l2_9.x[2]);
     l5_14.gg[20] = std::exp(l2_9.x[6]);
@@ -11807,11 +11807,11 @@ labelL9:
     static Real s, t, dlogt;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -11820,10 +11820,10 @@ labelL1:
     l1_1.neli = 3;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l13_9.xl[i__ - 1] = 1e-4;
-	l11_9.lxl[i__ - 1] = true;
+    l13_9.xl[i__ - 1] = 1e-4;
+    l11_9.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_9.lxu[i__ - 1] = false;
+    l12_9.lxu[i__ - 1] = false;
     }
     c__[0] = -6.089;
     c__[1] = -17.164;
@@ -11836,11 +11836,11 @@ labelL1:
     c__[8] = -26.662;
     c__[9] = -22.179;
     for (j = 1; j <= 10; ++j) {
-	l2_9.x[j - 1] = .1;
-	for (i__ = 1; i__ <= 3; ++i__) {
+    l2_9.x[j - 1] = .1;
+    for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL20: */
-	    l5_14.gg[i__ + j * 3 - 4] = 0.;
-	}
+        l5_14.gg[i__ + j * 3 - 4] = 0.;
+    }
     }
     l5_14.gg[0] = 1.;
     l5_14.gg[3] = 2.;
@@ -11873,22 +11873,22 @@ labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
-	t += l2_9.x[i__ - 1];
+    t += l2_9.x[i__ - 1];
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     if (t < 1e-5) {
-	goto L34;
+    goto L34;
     }
     dlogt = std::log(t);
     s = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (l2_9.x[i__ - 1] < 0.) {
-	    goto L34;
-	}
+    if (l2_9.x[i__ - 1] < 0.) {
+        goto L34;
+    }
 /* L31: */
-	s += l2_9.x[i__ - 1] * (c__[i__ - 1] + std::log(l2_9.x[i__ - 1]) - dlogt);
+    s += l2_9.x[i__ - 1] * (c__[i__ - 1] + std::log(l2_9.x[i__ - 1]) - dlogt);
     }
     l6_1.fx = s * (float).01;
     return 0;
@@ -11896,49 +11896,49 @@ L34:
     s = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L35: */
-	if (l2_9.x[i__ - 1] < 0.) {
+    if (l2_9.x[i__ - 1] < 0.) {
 /* Computing 2nd power */
-	    d__1 = l2_9.x[i__ - 1] - 5.;
-	    s += d__1 * d__1;
-	}
+        d__1 = l2_9.x[i__ - 1] - 5.;
+        s += d__1 * d__1;
+    }
     }
     l6_1.fx = (s + 1e3 - 47.8) * (float).01;
     return 0;
 labelL3:
     if (t < 1e-5) {
-	goto L36;
+    goto L36;
     }
     dlogt = std::log(t);
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (l2_9.x[i__ - 1] < 0.) {
-	    goto L36;
-	}
+    if (l2_9.x[i__ - 1] < 0.) {
+        goto L36;
+    }
 /* L33: */
-	l4_9.gf[i__ - 1] = (c__[i__ - 1] + std::log(l2_9.x[i__ - 1]) - dlogt) * (
-		float).01;
+    l4_9.gf[i__ - 1] = (c__[i__ - 1] + std::log(l2_9.x[i__ - 1]) - dlogt) * (
+        float).01;
     }
     return 0;
 L36:
     for (i__ = 1; i__ <= 10; ++i__) {
-	l4_9.gf[i__ - 1] = 0.;
+    l4_9.gf[i__ - 1] = 0.;
 /* L37: */
-	if (l2_9.x[i__ - 1] < 0.) {
-	    l4_9.gf[i__ - 1] = (l2_9.x[i__ - 1] - 5.) * 2. * (float).01;
-	}
+    if (l2_9.x[i__ - 1] < 0.) {
+        l4_9.gf[i__ - 1] = (l2_9.x[i__ - 1] - 5.) * 2. * (float).01;
+    }
     }
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_9.x[0] + l2_9.x[1] * 2. + l2_9.x[2] * 2. + l2_9.x[5] + 
-		l2_9.x[9] - (float)2.;
+    l3_3.g[0] = l2_9.x[0] + l2_9.x[1] * 2. + l2_9.x[2] * 2. + l2_9.x[5] + 
+        l2_9.x[9] - (float)2.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_9.x[3] + l2_9.x[4] * 2. + l2_9.x[5] + l2_9.x[6] - (
-		float)1.;
+    l3_3.g[1] = l2_9.x[3] + l2_9.x[4] * 2. + l2_9.x[5] + l2_9.x[6] - (
+        float)1.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_9.x[2] + l2_9.x[6] + l2_9.x[7] + l2_9.x[8] * 2. + 
-		l2_9.x[9] - (float)1.;
+    l3_3.g[2] = l2_9.x[2] + l2_9.x[6] + l2_9.x[7] + l2_9.x[8] * 2. + 
+        l2_9.x[9] - (float)1.;
     }
 labelL5:
     return 0;
@@ -11954,11 +11954,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -11967,10 +11967,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 8; ++i__) {
-	for (j = 1; j <= 10; ++j) {
+    for (j = 1; j <= 10; ++j) {
 /* labelL20: */
-	    l5_22.gg[i__ + (j << 3) - 9] = 0.;
-	}
+        l5_22.gg[i__ + (j << 3) - 9] = 0.;
+    }
     }
     l2_9.x[0] = 2.;
     l2_9.x[1] = 3.;
@@ -11983,9 +11983,9 @@ labelL1:
     l2_9.x[8] = 6.;
     l2_9.x[9] = 10.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l11_9.lxl[i__ - 1] = false;
+    l11_9.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_9.lxu[i__ - 1] = false;
+    l12_9.lxu[i__ - 1] = false;
     }
     l5_22.gg[0] = -4.;
     l5_22.gg[8] = -5.;
@@ -12043,9 +12043,9 @@ labelL2:
 /* Computing 2nd power */
     d__10 = l2_9.x[9] - 7.;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + l2_9.x[0] * l2_9.x[1] - l2_9.x[0] * 
-	    14. - l2_9.x[1] * 16. + d__3 * d__3 + d__4 * d__4 * 4. + d__5 * 
-	    d__5 + d__6 * d__6 * 2. + d__7 * d__7 * 5. + d__8 * d__8 * 7. + 
-	    d__9 * d__9 * 2. + d__10 * d__10 + 45.;
+        14. - l2_9.x[1] * 16. + d__3 * d__3 + d__4 * d__4 * 4. + d__5 * 
+        d__5 + d__6 * d__6 * 2. + d__7 * d__7 * 5. + d__8 * d__8 * 7. + 
+        d__9 * d__9 * 2. + d__10 * d__10 + 45.;
     return 0;
 labelL3:
     l4_9.gf[0] = l2_9.x[0] * 2. + l2_9.x[1] - 14.;
@@ -12061,89 +12061,89 @@ labelL3:
     return 0;
 labelL4:
     if (l9_12.index1[0]) {
-	l3_11.g[0] = l2_9.x[0] * -4. - l2_9.x[1] * 5. + l2_9.x[6] * 3. - 
-		l2_9.x[7] * 9. + 105.;
+    l3_11.g[0] = l2_9.x[0] * -4. - l2_9.x[1] * 5. + l2_9.x[6] * 3. - 
+        l2_9.x[7] * 9. + 105.;
     }
     if (l9_12.index1[1]) {
-	l3_11.g[1] = l2_9.x[0] * -10. + l2_9.x[1] * 8. + l2_9.x[6] * 17. - 
-		l2_9.x[7] * 2.;
+    l3_11.g[1] = l2_9.x[0] * -10. + l2_9.x[1] * 8. + l2_9.x[6] * 17. - 
+        l2_9.x[7] * 2.;
     }
     if (l9_12.index1[2]) {
-	l3_11.g[2] = l2_9.x[0] * 8. - l2_9.x[1] * 2. - l2_9.x[8] * 5. + 
-		l2_9.x[9] * 2. + 12.;
+    l3_11.g[2] = l2_9.x[0] * 8. - l2_9.x[1] * 2. - l2_9.x[8] * 5. + 
+        l2_9.x[9] * 2. + 12.;
     }
     if (l9_12.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[0] - 2.;
+    d__1 = l2_9.x[0] - 2.;
 /* Computing 2nd power */
-	d__2 = l2_9.x[1] - 3.;
+    d__2 = l2_9.x[1] - 3.;
 /* Computing 2nd power */
-	d__3 = l2_9.x[2];
-	l3_11.g[3] = d__1 * d__1 * -3. - d__2 * d__2 * 4. - d__3 * d__3 * 2. 
-		+ l2_9.x[3] * 7. + 120.;
+    d__3 = l2_9.x[2];
+    l3_11.g[3] = d__1 * d__1 * -3. - d__2 * d__2 * 4. - d__3 * d__3 * 2. 
+        + l2_9.x[3] * 7. + 120.;
     }
     if (l9_12.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[0];
+    d__1 = l2_9.x[0];
 /* Computing 2nd power */
-	d__2 = l2_9.x[2] - 6.;
-	l3_11.g[4] = d__1 * d__1 * -5. - l2_9.x[1] * 8. - d__2 * d__2 + 
-		l2_9.x[3] * 2. + 40.;
+    d__2 = l2_9.x[2] - 6.;
+    l3_11.g[4] = d__1 * d__1 * -5. - l2_9.x[1] * 8. - d__2 * d__2 + 
+        l2_9.x[3] * 2. + 40.;
     }
     if (l9_12.index1[5]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[0] - 8.;
+    d__1 = l2_9.x[0] - 8.;
 /* Computing 2nd power */
-	d__2 = l2_9.x[1] - 4.;
+    d__2 = l2_9.x[1] - 4.;
 /* Computing 2nd power */
-	d__3 = l2_9.x[4];
-	l3_11.g[5] = d__1 * d__1 * -.5 - d__2 * d__2 * 2. - d__3 * d__3 * 3. 
-		+ l2_9.x[5] + 30.;
+    d__3 = l2_9.x[4];
+    l3_11.g[5] = d__1 * d__1 * -.5 - d__2 * d__2 * 2. - d__3 * d__3 * 3. 
+        + l2_9.x[5] + 30.;
     }
     if (l9_12.index1[6]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[0];
+    d__1 = l2_9.x[0];
 /* Computing 2nd power */
-	d__2 = l2_9.x[1] - 2.;
-	l3_11.g[6] = -(d__1 * d__1) - d__2 * d__2 * 2. + l2_9.x[0] * 2. * 
-		l2_9.x[1] - l2_9.x[4] * 14. + l2_9.x[5] * 6.;
+    d__2 = l2_9.x[1] - 2.;
+    l3_11.g[6] = -(d__1 * d__1) - d__2 * d__2 * 2. + l2_9.x[0] * 2. * 
+        l2_9.x[1] - l2_9.x[4] * 14. + l2_9.x[5] * 6.;
     }
     if (l9_12.index1[7]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[8] - 8.;
-	l3_11.g[7] = l2_9.x[0] * 3. - l2_9.x[1] * 6. - d__1 * d__1 * 12. + 
-		l2_9.x[9] * 7.;
+    d__1 = l2_9.x[8] - 8.;
+    l3_11.g[7] = l2_9.x[0] * 3. - l2_9.x[1] * 6. - d__1 * d__1 * 12. + 
+        l2_9.x[9] * 7.;
     }
     return 0;
 labelL5:
     if (! l10_12.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_22.gg[3] = (l2_9.x[0] - 2.) * -6.;
     l5_22.gg[11] = (l2_9.x[1] - 3.) * -8.;
     l5_22.gg[19] = l2_9.x[2] * -4.;
 labelL10:
     if (! l10_12.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
     l5_22.gg[4] = l2_9.x[0] * -10.;
     l5_22.gg[20] = (l2_9.x[2] - 6.) * -2.;
 labelL11:
     if (! l10_12.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     l5_22.gg[5] = 8. - l2_9.x[0];
     l5_22.gg[13] = (l2_9.x[1] - 4.) * -4.;
     l5_22.gg[37] = l2_9.x[4] * -6.;
 labelL12:
     if (! l10_12.index2[6]) {
-	goto labelL13;
+    goto labelL13;
     }
     l5_22.gg[6] = l2_9.x[0] * -2. + l2_9.x[1] * 2.;
     l5_22.gg[14] = (l2_9.x[1] - 2.) * -4. + l2_9.x[0] * 2.;
 labelL13:
     if (l10_12.index2[7]) {
-	l5_22.gg[71] = (l2_9.x[8] - 8.) * -24.;
+    l5_22.gg[71] = (l2_9.x[8] - 8.) * -24.;
     }
     return 0;
 } /* tp113_ */
@@ -12159,11 +12159,11 @@ labelL13:
     static Real v1, v2, v3;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -12183,7 +12183,7 @@ labelL1:
     l2_9.x[9] = 145.;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L25: */
-	l13_9.xl[i__ - 1] = 1e-5;
+    l13_9.xl[i__ - 1] = 1e-5;
     }
     l13_9.xl[5] = 85.;
     l13_9.xl[6] = 90.;
@@ -12201,12 +12201,12 @@ labelL1:
     l14_9.xu[8] = 4.;
     l14_9.xu[9] = 162.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l11_9.lxl[i__ - 1] = true;
-	l12_9.lxu[i__ - 1] = true;
-	for (j = 1; j <= 11; ++j) {
+    l11_9.lxl[i__ - 1] = true;
+    l12_9.lxu[i__ - 1] = true;
+    for (j = 1; j <= 11; ++j) {
 /* labelL6: */
-	    l5_23.gg[j + i__ * 11 - 12] = 0.;
-	}
+        l5_23.gg[j + i__ * 11 - 12] = 0.;
+    }
     }
     l4_9.gf[0] = 5.04e-4;
     l4_9.gf[1] = 3.5000000000000004e-6;
@@ -12250,7 +12250,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_9.x[0] * 5.04 + l2_9.x[1] * .035 + l2_9.x[2] * 10. + l2_9.x[
-	    4] * 3.36 - l2_9.x[3] * .063 * l2_9.x[6];
+        4] * 3.36 - l2_9.x[3] * .063 * l2_9.x[6];
     l6_1.fx *= .01;
 labelL3:
     l4_9.gf[3] = l2_9.x[6] * -.063 * .01;
@@ -12258,80 +12258,80 @@ labelL3:
     return 0;
 labelL4:
     if (l9_13.index1[0]) {
-	l3_12.g[0] = 35.82 - l2_9.x[9] * .222 - l2_9.x[8] * .9;
+    l3_12.g[0] = 35.82 - l2_9.x[9] * .222 - l2_9.x[8] * .9;
     }
     if (l9_13.index1[1]) {
-	l3_12.g[1] = l2_9.x[6] * 3. - 133. - l2_9.x[9] * .99;
+    l3_12.g[1] = l2_9.x[6] * 3. - 133. - l2_9.x[9] * .99;
     }
     if (l9_13.index1[2]) {
-	l3_12.g[2] = l2_9.x[9] * .222 - 35.82 + l2_9.x[8] * 
-		1.1111111111111112;
+    l3_12.g[2] = l2_9.x[9] * .222 - 35.82 + l2_9.x[8] * 
+        1.1111111111111112;
     }
     if (l9_13.index1[3]) {
-	l3_12.g[3] = 133. - l2_9.x[6] * 3. + l2_9.x[9] / .99;
+    l3_12.g[3] = 133. - l2_9.x[6] * 3. + l2_9.x[9] / .99;
     }
     if (l9_13.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[7];
-	l3_12.g[4] = l2_9.x[0] * 1.12 + l2_9.x[0] * .13167 * l2_9.x[7] - 
-		l2_9.x[0] * .00667 * (d__1 * d__1) - l2_9.x[3] * .99;
+    d__1 = l2_9.x[7];
+    l3_12.g[4] = l2_9.x[0] * 1.12 + l2_9.x[0] * .13167 * l2_9.x[7] - 
+        l2_9.x[0] * .00667 * (d__1 * d__1) - l2_9.x[3] * .99;
     }
     if (l9_13.index1[5]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[7];
-	l3_12.g[5] = l2_9.x[7] * 1.098 + 57.425 - d__1 * d__1 * .038 + l2_9.x[
-		5] * .325 - l2_9.x[6] * .99;
+    d__1 = l2_9.x[7];
+    l3_12.g[5] = l2_9.x[7] * 1.098 + 57.425 - d__1 * d__1 * .038 + l2_9.x[
+        5] * .325 - l2_9.x[6] * .99;
     }
     if (l9_13.index1[6]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[7];
-	l3_12.g[6] = l2_9.x[0] * -1.12 - l2_9.x[0] * .13167 * l2_9.x[7] + 
-		l2_9.x[0] * .00667 * (d__1 * d__1) + l2_9.x[3] / .99;
+    d__1 = l2_9.x[7];
+    l3_12.g[6] = l2_9.x[0] * -1.12 - l2_9.x[0] * .13167 * l2_9.x[7] + 
+        l2_9.x[0] * .00667 * (d__1 * d__1) + l2_9.x[3] / .99;
     }
     if (l9_13.index1[7]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[7];
-	l3_12.g[7] = -57.425 - l2_9.x[7] * 1.098 + d__1 * d__1 * .038 - 
-		l2_9.x[5] * .325 + l2_9.x[6] / .99;
+    d__1 = l2_9.x[7];
+    l3_12.g[7] = -57.425 - l2_9.x[7] * 1.098 + d__1 * d__1 * .038 - 
+        l2_9.x[5] * .325 + l2_9.x[6] / .99;
     }
     if (l9_13.index1[8]) {
-	l3_12.g[8] = l2_9.x[3] * 1.22 - l2_9.x[0] - l2_9.x[4];
+    l3_12.g[8] = l2_9.x[3] * 1.22 - l2_9.x[0] - l2_9.x[4];
     }
     if (l9_13.index1[9]) {
-	l3_12.g[9] = l2_9.x[2] * 9.8e4 / (l2_9.x[3] * l2_9.x[8] + l2_9.x[2] * 
-		1e3) - l2_9.x[5];
+    l3_12.g[9] = l2_9.x[2] * 9.8e4 / (l2_9.x[3] * l2_9.x[8] + l2_9.x[2] * 
+        1e3) - l2_9.x[5];
     }
     if (l9_13.index1[10]) {
-	l3_12.g[10] = (l2_9.x[1] + l2_9.x[4]) / l2_9.x[0] - l2_9.x[7];
+    l3_12.g[10] = (l2_9.x[1] + l2_9.x[4]) / l2_9.x[0] - l2_9.x[7];
     }
     return 0;
 labelL5:
     if (! l10_13.index2[4]) {
-	goto labelL11;
+    goto labelL11;
     }
 /* Computing 2nd power */
     d__1 = l2_9.x[7];
     l5_23.gg[4] = l2_9.x[7] * .13167 + 1.12 - d__1 * d__1 * .00667;
     l5_23.gg[81] = l2_9.x[0] * .13167 - l2_9.x[0] * .013339999999999999 * 
-	    l2_9.x[7];
+        l2_9.x[7];
 labelL11:
     if (l10_13.index2[5]) {
-	l5_23.gg[82] = 1.098 - l2_9.x[7] * .076;
+    l5_23.gg[82] = 1.098 - l2_9.x[7] * .076;
     }
     if (! l10_13.index2[6]) {
-	goto labelL13;
+    goto labelL13;
     }
     l5_23.gg[83] = l2_9.x[0] * -.13167 + l2_9.x[0] * .013339999999999999 * 
-	    l2_9.x[7];
+        l2_9.x[7];
 /* Computing 2nd power */
     d__1 = l2_9.x[7];
     l5_23.gg[6] = l2_9.x[7] * -.13167 + d__1 * d__1 * .00667 - 1.12;
 labelL13:
     if (l10_13.index2[7]) {
-	l5_23.gg[84] = l2_9.x[7] * .076 - 1.098;
+    l5_23.gg[84] = l2_9.x[7] * .076 - 1.098;
     }
     if (! l10_13.index2[9]) {
-	goto L16;
+    goto L16;
     }
 /* Computing 2nd power */
     d__1 = l2_9.x[3] * l2_9.x[8] + l2_9.x[2] * 1e3;
@@ -12343,7 +12343,7 @@ labelL13:
     l5_23.gg[97] = l2_9.x[2] * -9.8e4 * l2_9.x[3] / v1;
 L16:
     if (! l10_13.index2[10]) {
-	goto L17;
+    goto L17;
     }
 /* Computing 2nd power */
     d__1 = l2_9.x[0];
@@ -12364,11 +12364,11 @@ L17:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 13;
@@ -12391,7 +12391,7 @@ labelL1:
     l2_10.x[12] = 150.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL6: */
-	l13_10.xl[i__ - 1] = .1;
+    l13_10.xl[i__ - 1] = .1;
     }
     l13_10.xl[3] = 1e-4;
     l13_10.xl[8] = 500.;
@@ -12399,30 +12399,30 @@ labelL1:
     l13_10.xl[11] = 1e-4;
     l13_10.xl[12] = 1e-4;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l14_10.xu[i__ - 1] = 1.;
-	l14_10.xu[i__ + 5] = 1e3;
+    l14_10.xu[i__ - 1] = 1.;
+    l14_10.xu[i__ + 5] = 1e3;
 /* L7: */
-	l14_10.xu[i__ + 9] = 150.;
+    l14_10.xu[i__ + 9] = 150.;
     }
     l14_10.xu[3] = .1;
     l14_10.xu[4] = .9;
     l14_10.xu[5] = .9;
     l14_10.xu[9] = 500.;
     for (i__ = 1; i__ <= 13; ++i__) {
-	l11_10.lxl[i__ - 1] = true;
-	l12_10.lxu[i__ - 1] = true;
-	for (j = 1; j <= 15; ++j) {
+    l11_10.lxl[i__ - 1] = true;
+    l12_10.lxu[i__ - 1] = true;
+    for (j = 1; j <= 15; ++j) {
 /* L32: */
-	    l5_24.gg[j + i__ * 15 - 16] = 0.;
-	}
+        l5_24.gg[j + i__ * 15 - 16] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L30: */
-	l4_10.gf[i__ - 1] = 0.;
+    l4_10.gf[i__ - 1] = 0.;
     }
     for (i__ = 11; i__ <= 13; ++i__) {
 /* L31: */
-	l4_10.gf[i__ - 1] = 1.;
+    l4_10.gf[i__ - 1] = 1.;
     }
     l5_24.gg[15] = -1.;
     l5_24.gg[30] = 1.;
@@ -12461,90 +12461,90 @@ labelL3:
     return 0;
 labelL4:
     if (l9_14.index1[0]) {
-	l3_13.g[0] = l2_10.x[2] - l2_10.x[1];
+    l3_13.g[0] = l2_10.x[2] - l2_10.x[1];
     }
     if (l9_14.index1[1]) {
-	l3_13.g[1] = l2_10.x[1] - l2_10.x[0];
+    l3_13.g[1] = l2_10.x[1] - l2_10.x[0];
     }
     if (l9_14.index1[2]) {
-	l3_13.g[2] = 1. - (l2_10.x[6] - l2_10.x[7]) * .002;
+    l3_13.g[2] = 1. - (l2_10.x[6] - l2_10.x[7]) * .002;
     }
     if (l9_14.index1[3]) {
-	l3_13.g[3] = l2_10.x[10] + l2_10.x[11] + l2_10.x[12] - 50.;
+    l3_13.g[3] = l2_10.x[10] + l2_10.x[11] + l2_10.x[12] - 50.;
     }
     if (l9_14.index1[4]) {
-	l3_13.g[4] = 250. - l2_10.x[10] - l2_10.x[11] - l2_10.x[12];
+    l3_13.g[4] = 250. - l2_10.x[10] - l2_10.x[11] - l2_10.x[12];
     }
     if (l9_14.index1[5]) {
-	l3_13.g[5] = l2_10.x[12] - l2_10.x[9] * 1.262626 + l2_10.x[2] * 
-		1.231059 * l2_10.x[9];
+    l3_13.g[5] = l2_10.x[12] - l2_10.x[9] * 1.262626 + l2_10.x[2] * 
+        1.231059 * l2_10.x[9];
     }
     if (l9_14.index1[6]) {
 /* Computing 2nd power */
-	d__1 = l2_10.x[1];
-	l3_13.g[6] = l2_10.x[4] - l2_10.x[1] * .03475 - l2_10.x[1] * .975 * 
-		l2_10.x[4] + d__1 * d__1 * .00975;
+    d__1 = l2_10.x[1];
+    l3_13.g[6] = l2_10.x[4] - l2_10.x[1] * .03475 - l2_10.x[1] * .975 * 
+        l2_10.x[4] + d__1 * d__1 * .00975;
     }
     if (l9_14.index1[7]) {
 /* Computing 2nd power */
-	d__1 = l2_10.x[2];
-	l3_13.g[7] = l2_10.x[5] - l2_10.x[2] * .03475 - l2_10.x[2] * .975 * 
-		l2_10.x[5] + d__1 * d__1 * .00975;
+    d__1 = l2_10.x[2];
+    l3_13.g[7] = l2_10.x[5] - l2_10.x[2] * .03475 - l2_10.x[2] * .975 * 
+        l2_10.x[5] + d__1 * d__1 * .00975;
     }
     if (l9_14.index1[8]) {
-	l3_13.g[8] = l2_10.x[4] * l2_10.x[6] - l2_10.x[0] * l2_10.x[7] - 
-		l2_10.x[3] * l2_10.x[6] + l2_10.x[3] * l2_10.x[7];
+    l3_13.g[8] = l2_10.x[4] * l2_10.x[6] - l2_10.x[0] * l2_10.x[7] - 
+        l2_10.x[3] * l2_10.x[6] + l2_10.x[3] * l2_10.x[7];
     }
     if (l9_14.index1[9]) {
-	l3_13.g[9] = (l2_10.x[1] * l2_10.x[8] + l2_10.x[4] * l2_10.x[7] - 
-		l2_10.x[0] * l2_10.x[7] - l2_10.x[5] * l2_10.x[8]) * -.002 - 
-		l2_10.x[5] - l2_10.x[4] + 1.;
+    l3_13.g[9] = (l2_10.x[1] * l2_10.x[8] + l2_10.x[4] * l2_10.x[7] - 
+        l2_10.x[0] * l2_10.x[7] - l2_10.x[5] * l2_10.x[8]) * -.002 - 
+        l2_10.x[5] - l2_10.x[4] + 1.;
     }
     if (l9_14.index1[10]) {
-	l3_13.g[10] = l2_10.x[1] * l2_10.x[8] - l2_10.x[2] * l2_10.x[9] - 
-		l2_10.x[5] * l2_10.x[8] - (l2_10.x[1] - l2_10.x[5]) * 500. + 
-		l2_10.x[1] * l2_10.x[9];
+    l3_13.g[10] = l2_10.x[1] * l2_10.x[8] - l2_10.x[2] * l2_10.x[9] - 
+        l2_10.x[5] * l2_10.x[8] - (l2_10.x[1] - l2_10.x[5]) * 500. + 
+        l2_10.x[1] * l2_10.x[9];
     }
     if (l9_14.index1[11]) {
-	l3_13.g[11] = l2_10.x[1] - .9 - (l2_10.x[1] * l2_10.x[9] - l2_10.x[2] 
-		* l2_10.x[9]) * .002;
+    l3_13.g[11] = l2_10.x[1] - .9 - (l2_10.x[1] * l2_10.x[9] - l2_10.x[2] 
+        * l2_10.x[9]) * .002;
     }
     if (l9_14.index1[12]) {
 /* Computing 2nd power */
-	d__1 = l2_10.x[0];
-	l3_13.g[12] = l2_10.x[3] - l2_10.x[0] * .03475 - l2_10.x[0] * .975 * 
-		l2_10.x[3] + d__1 * d__1 * .00975;
+    d__1 = l2_10.x[0];
+    l3_13.g[12] = l2_10.x[3] - l2_10.x[0] * .03475 - l2_10.x[0] * .975 * 
+        l2_10.x[3] + d__1 * d__1 * .00975;
     }
     if (l9_14.index1[13]) {
-	l3_13.g[13] = l2_10.x[10] - l2_10.x[7] * 1.262626 + l2_10.x[0] * 
-		1.231059 * l2_10.x[7];
+    l3_13.g[13] = l2_10.x[10] - l2_10.x[7] * 1.262626 + l2_10.x[0] * 
+        1.231059 * l2_10.x[7];
     }
     if (l9_14.index1[14]) {
-	l3_13.g[14] = l2_10.x[11] - l2_10.x[8] * 1.262626 + l2_10.x[1] * 
-		1.231059 * l2_10.x[8];
+    l3_13.g[14] = l2_10.x[11] - l2_10.x[8] * 1.262626 + l2_10.x[1] * 
+        1.231059 * l2_10.x[8];
     }
     return 0;
 labelL5:
     if (! l10_14.index2[5]) {
-	goto labelL12;
+    goto labelL12;
     }
     l5_24.gg[35] = l2_10.x[9] * 1.231059;
     l5_24.gg[140] = l2_10.x[2] * 1.231059 - 1.262626;
 labelL12:
     if (! l10_14.index2[6]) {
-	goto labelL13;
+    goto labelL13;
     }
     l5_24.gg[21] = -.03475 - l2_10.x[4] * .975 + l2_10.x[1] * .0195;
     l5_24.gg[66] = 1. - l2_10.x[1] * .975;
 labelL13:
     if (! l10_14.index2[7]) {
-	goto labelL14;
+    goto labelL14;
     }
     l5_24.gg[37] = -.03475 - l2_10.x[5] * .975 + l2_10.x[2] * .0195;
     l5_24.gg[82] = 1. - l2_10.x[2] * .975;
 labelL14:
     if (! l10_14.index2[8]) {
-	goto L15;
+    goto L15;
     }
     l5_24.gg[8] = -l2_10.x[7];
     l5_24.gg[53] = -l2_10.x[6] + l2_10.x[7];
@@ -12553,7 +12553,7 @@ labelL14:
     l5_24.gg[113] = -l2_10.x[0] + l2_10.x[3];
 L15:
     if (! l10_14.index2[9]) {
-	goto L16;
+    goto L16;
     }
     l5_24.gg[9] = l2_10.x[7] * .002;
     l5_24.gg[24] = l2_10.x[8] * -.002;
@@ -12563,7 +12563,7 @@ L15:
     l5_24.gg[129] = (l2_10.x[1] - l2_10.x[5]) * -.002;
 L16:
     if (! l10_14.index2[10]) {
-	goto L17;
+    goto L17;
     }
     l5_24.gg[25] = l2_10.x[8] - 500. + l2_10.x[9];
     l5_24.gg[40] = -l2_10.x[9];
@@ -12572,26 +12572,26 @@ L16:
     l5_24.gg[145] = -l2_10.x[2] + l2_10.x[1];
 L17:
     if (! l10_14.index2[11]) {
-	goto L18;
+    goto L18;
     }
     l5_24.gg[26] = 1. - l2_10.x[9] * .002;
     l5_24.gg[41] = l2_10.x[9] * .002;
     l5_24.gg[146] = (l2_10.x[2] - l2_10.x[1]) * .002;
 L18:
     if (! l10_14.index2[12]) {
-	goto L19;
+    goto L19;
     }
     l5_24.gg[12] = -.03475 - l2_10.x[3] * .975 + l2_10.x[0] * .0195;
     l5_24.gg[57] = 1. - l2_10.x[0] * .975;
 L19:
     if (! l10_14.index2[13]) {
-	goto labelL20;
+    goto labelL20;
     }
     l5_24.gg[13] = l2_10.x[7] * 1.231059;
     l5_24.gg[118] = l2_10.x[0] * 1.231059 - 1.262626;
 labelL20:
     if (! l10_14.index2[14]) {
-	goto L21;
+    goto L21;
     }
     l5_24.gg[29] = l2_10.x[8] * 1.231059;
     l5_24.gg[134] = l2_10.x[1] * 1.231059 - 1.262626;
@@ -12606,17 +12606,17 @@ L21:
     Real d__1;
 
     /* Local variables */
-    static Real a[50]	/* was [10][5] */, b[10], c__[25]	/* 
-	    was [5][5] */, d__[5], e[5];
+    static Real a[50]    /* was [10][5] */, b[10], c__[25]    /* 
+        was [5][5] */, d__[5], e[5];
     static int i__, j;
     static Real t1, t2, t3, t4[5], t5[5], t6[5];
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL2;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL2;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -12626,17 +12626,17 @@ labelL1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL20: */
-	l2_11.x[i__ - 1] = .001;
+    l2_11.x[i__ - 1] = .001;
     }
     l2_11.x[6] = 60.;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l13_11.xl[i__ - 1] = 0.;
-	l11_11.lxl[i__ - 1] = true;
-	l12_11.lxu[i__ - 1] = false;
-	for (j = 1; j <= 5; ++j) {
+    l13_11.xl[i__ - 1] = 0.;
+    l11_11.lxl[i__ - 1] = true;
+    l12_11.lxu[i__ - 1] = false;
+    for (j = 1; j <= 5; ++j) {
 /* L22: */
-	    l5_25.gg[j + i__ * 5 - 6] = 0.;
-	}
+        l5_25.gg[j + i__ * 5 - 6] = 0.;
+    }
     }
     e[0] = -15.;
     e[1] = -27.;
@@ -12659,10 +12659,10 @@ labelL1:
     c__[23] = -20.;
     c__[24] = 30.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L70: */
-	    c__[j + i__ * 5 - 6] = c__[i__ + j * 5 - 6];
-	}
+        c__[j + i__ * 5 - 6] = c__[i__ + j * 5 - 6];
+    }
     }
     d__[0] = 4.;
     d__[1] = 8.;
@@ -12670,10 +12670,10 @@ labelL1:
     d__[3] = 6.;
     d__[4] = 2.;
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L72: */
-	    a[i__ + j * 10 - 11] = 0.;
-	}
+        a[i__ + j * 10 - 11] = 0.;
+    }
     }
     a[0] = -16.;
     a[10] = 2.;
@@ -12698,10 +12698,10 @@ labelL1:
     a[37] = -2.;
     a[47] = -1.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	a[i__ * 10 - 4] = -1.;
-	a[i__ * 10 - 2] = (Real) i__;
+    a[i__ * 10 - 4] = -1.;
+    a[i__ * 10 - 2] = (Real) i__;
 /* L73: */
-	a[i__ * 10 - 1] = 1.;
+    a[i__ * 10 - 1] = 1.;
     }
     b[0] = -40.;
     b[1] = -2.;
@@ -12715,26 +12715,26 @@ labelL1:
     b[9] = 1.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L35: */
-	l4_11.gf[i__ - 1] = -b[i__ - 1];
+    l4_11.gf[i__ - 1] = -b[i__ - 1];
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-	for (j = 1; j <= 5; ++j) {
+    for (j = 1; j <= 5; ++j) {
 /* L40: */
-	    l5_25.gg[j + i__ * 5 - 6] = -a[i__ + j * 10 - 11];
-	}
+        l5_25.gg[j + i__ * 5 - 6] = -a[i__ + j * 10 - 11];
+    }
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-	for (j = 1; j <= 5; ++j) {
-	    if (i__ - j != 0) {
-		goto L45;
-	    } else {
-		goto L42;
-	    }
+    for (j = 1; j <= 5; ++j) {
+        if (i__ - j != 0) {
+        goto L45;
+        } else {
+        goto L42;
+        }
 L45:
-	    l5_25.gg[j + (i__ + 10) * 5 - 6] = c__[i__ + j * 5 - 6] * 2.;
+        l5_25.gg[j + (i__ + 10) * 5 - 6] = c__[i__ + j * 5 - 6] * 2.;
 L42:
-	    ;
-	}
+        ;
+    }
 /* L41: */
     }
     l20_12.lex = false;
@@ -12760,72 +12760,72 @@ labelL2:
     t2 = 0.;
     for (j = 1; j <= 5; ++j) {
 /* Computing 3rd power */
-	d__1 = l2_11.x[j + 9];
-	t2 += d__[j - 1] * (d__1 * (d__1 * d__1));
-	for (i__ = 1; i__ <= 5; ++i__) {
-	    t1 += c__[i__ + j * 5 - 6] * l2_11.x[i__ + 9] * l2_11.x[j + 9];
+    d__1 = l2_11.x[j + 9];
+    t2 += d__[j - 1] * (d__1 * (d__1 * d__1));
+    for (i__ = 1; i__ <= 5; ++i__) {
+        t1 += c__[i__ + j * 5 - 6] * l2_11.x[i__ + 9] * l2_11.x[j + 9];
 /* L30: */
-	}
+    }
     }
     t3 = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L31: */
-	t3 += b[i__ - 1] * l2_11.x[i__ - 1];
+    t3 += b[i__ - 1] * l2_11.x[i__ - 1];
     }
     for (j = 1; j <= 5; ++j) {
-	t4[j - 1] = 0.;
-	t5[j - 1] = 0.;
-	for (i__ = 1; i__ <= 5; ++i__) {
+    t4[j - 1] = 0.;
+    t5[j - 1] = 0.;
+    for (i__ = 1; i__ <= 5; ++i__) {
 /* L32: */
-	    t4[j - 1] += c__[i__ + j * 5 - 6] * l2_11.x[i__ + 9];
-	}
-	for (i__ = 1; i__ <= 10; ++i__) {
+        t4[j - 1] += c__[i__ + j * 5 - 6] * l2_11.x[i__ + 9];
+    }
+    for (i__ = 1; i__ <= 10; ++i__) {
 /* L33: */
-	    t5[j - 1] += a[i__ + j * 10 - 11] * l2_11.x[i__ - 1];
-	}
+        t5[j - 1] += a[i__ + j * 10 - 11] * l2_11.x[i__ - 1];
+    }
 /* L34: */
     }
     if (*mode == 4) {
-	goto labelL4;
+    goto labelL4;
     }
     l6_1.fx = -(t3 - t1 - t2 * 2.);
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
-	t6[i__ - 1] = 0.;
-	for (j = 1; j <= 5; ++j) {
+    t6[i__ - 1] = 0.;
+    for (j = 1; j <= 5; ++j) {
 /* L37: */
-	    t6[i__ - 1] += (c__[i__ + j * 5 - 6] + c__[j + i__ * 5 - 6]) * 
-		    l2_11.x[j + 9];
-	}
+        t6[i__ - 1] += (c__[i__ + j * 5 - 6] + c__[j + i__ * 5 - 6]) * 
+            l2_11.x[j + 9];
+    }
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L36: */
 /* Computing 2nd power */
-	d__1 = l2_11.x[i__ + 9];
-	l4_11.gf[i__ + 9] = t6[i__ - 1] + d__[i__ - 1] * 6. * (d__1 * d__1);
+    d__1 = l2_11.x[i__ + 9];
+    l4_11.gf[i__ + 9] = t6[i__ - 1] + d__[i__ - 1] * 6. * (d__1 * d__1);
     }
     return 0;
 labelL4:
     for (j = 1; j <= 5; ++j) {
-	if (l9_5.index1[j - 1]) {
+    if (l9_5.index1[j - 1]) {
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j + 9];
-	    l3_4.g[j - 1] = t4[j - 1] * 2. + d__[j - 1] * 3. * (d__1 * d__1) 
-		    + e[j - 1] - t5[j - 1];
-	}
+        d__1 = l2_11.x[j + 9];
+        l3_4.g[j - 1] = t4[j - 1] * 2. + d__[j - 1] * 3. * (d__1 * d__1) 
+            + e[j - 1] - t5[j - 1];
+    }
 /* L38: */
     }
     return 0;
 labelL5:
     for (j = 1; j <= 5; ++j) {
-	if (! l10_5.index2[j - 1]) {
-	    goto L39;
-	}
-	l5_25.gg[j + (j + 10) * 5 - 6] = c__[j + j * 5 - 6] * 2. + d__[j - 1] 
-		* 6. * l2_11.x[j + 9];
+    if (! l10_5.index2[j - 1]) {
+        goto L39;
+    }
+    l5_25.gg[j + (j + 10) * 5 - 6] = c__[j + j * 5 - 6] * 2. + d__[j - 1] 
+        * 6. * l2_11.x[j + 9];
 L39:
-	;
+    ;
     }
     return 0;
 } /* tp117_ */
@@ -12840,11 +12840,11 @@ L39:
     static Real t;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -12854,7 +12854,7 @@ labelL1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL6: */
-	l2_11.x[i__ - 1] = 20.;
+    l2_11.x[i__ - 1] = 20.;
     }
     l2_11.x[1] = 55.;
     l2_11.x[2] = 15.;
@@ -12869,36 +12869,36 @@ labelL1:
     l14_11.xu[1] = 57.;
     l14_11.xu[2] = 16.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l13_11.xl[i__ * 3] = 0.;
-	l13_11.xl[i__ * 3 + 1] = 0.;
-	l13_11.xl[i__ * 3 + 2] = 0.;
-	l14_11.xu[i__ * 3] = 90.;
-	l14_11.xu[i__ * 3 + 1] = 120.;
-	l14_11.xu[i__ * 3 + 2] = 60.;
+    l13_11.xl[i__ * 3] = 0.;
+    l13_11.xl[i__ * 3 + 1] = 0.;
+    l13_11.xl[i__ * 3 + 2] = 0.;
+    l14_11.xu[i__ * 3] = 90.;
+    l14_11.xu[i__ * 3 + 1] = 120.;
+    l14_11.xu[i__ * 3 + 2] = 60.;
 /* L22: */
     }
     for (i__ = 1; i__ <= 15; ++i__) {
-	l11_11.lxl[i__ - 1] = true;
-	l12_11.lxu[i__ - 1] = true;
-	for (j = 1; j <= 29; ++j) {
+    l11_11.lxl[i__ - 1] = true;
+    l12_11.lxu[i__ - 1] = true;
+    for (j = 1; j <= 29; ++j) {
 /* L25: */
-	    l5_26.gg[j + i__ * 29 - 30] = 0.;
-	}
+        l5_26.gg[j + i__ * 29 - 30] = 0.;
+    }
     }
     for (k = 1; k <= 4; ++k) {
-	for (i__ = 1; i__ <= 3; ++i__) {
-	    l5_26.gg[k + (i__ << 2) - 4 + (k * 3 + i__) * 29 - 30] = 1.;
-	    l5_26.gg[k + (i__ << 2) - 4 + (k * 3 + i__ - 3) * 29 - 30] = -1.;
-	    l5_26.gg[k + 8 + (i__ << 2) + (k * 3 + i__) * 29 - 30] = -1.;
-	    l5_26.gg[k + 8 + (i__ << 2) + (k * 3 + i__ - 3) * 29 - 30] = 1.;
+    for (i__ = 1; i__ <= 3; ++i__) {
+        l5_26.gg[k + (i__ << 2) - 4 + (k * 3 + i__) * 29 - 30] = 1.;
+        l5_26.gg[k + (i__ << 2) - 4 + (k * 3 + i__ - 3) * 29 - 30] = -1.;
+        l5_26.gg[k + 8 + (i__ << 2) + (k * 3 + i__) * 29 - 30] = -1.;
+        l5_26.gg[k + 8 + (i__ << 2) + (k * 3 + i__ - 3) * 29 - 30] = 1.;
 /* labelL20: */
-	}
+    }
     }
     for (k = 1; k <= 5; ++k) {
-	for (i__ = 1; i__ <= 3; ++i__) {
+    for (i__ = 1; i__ <= 3; ++i__) {
 /* L21: */
-	    l5_26.gg[k + 24 + (k * 3 - 3 + i__) * 29 - 30] = 1.;
-	}
+        l5_26.gg[k + 24 + (k * 3 - 3 + i__) * 29 - 30] = 1.;
+    }
     }
     l20_12.lex = false;
     l20_12.xex[0] = 8.;
@@ -12921,68 +12921,68 @@ labelL1:
 labelL2:
     t = 0.;
     for (m = 1; m <= 5; ++m) {
-	i__ = m - 1;
+    i__ = m - 1;
 /* L30: */
 /* Computing 2nd power */
-	d__1 = l2_11.x[i__ * 3];
+    d__1 = l2_11.x[i__ * 3];
 /* Computing 2nd power */
-	d__2 = l2_11.x[i__ * 3 + 1];
+    d__2 = l2_11.x[i__ * 3 + 1];
 /* Computing 2nd power */
-	d__3 = l2_11.x[i__ * 3 + 2];
-	t = t + l2_11.x[i__ * 3] * 2.3 + d__1 * d__1 * 1e-4 + l2_11.x[i__ * 3 
-		+ 1] * 1.7 + d__2 * d__2 * 1e-4 + l2_11.x[i__ * 3 + 2] * 2.2 
-		+ d__3 * d__3 * 1.5e-4;
+    d__3 = l2_11.x[i__ * 3 + 2];
+    t = t + l2_11.x[i__ * 3] * 2.3 + d__1 * d__1 * 1e-4 + l2_11.x[i__ * 3 
+        + 1] * 1.7 + d__2 * d__2 * 1e-4 + l2_11.x[i__ * 3 + 2] * 2.2 
+        + d__3 * d__3 * 1.5e-4;
     }
     l6_1.fx = t;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
-	l4_11.gf[i__ * 3 - 3] = l2_11.x[i__ * 3 - 3] * 2e-4 + 2.3;
-	l4_11.gf[i__ * 3 - 2] = l2_11.x[i__ * 3 - 2] * 2e-4 + 1.7;
+    l4_11.gf[i__ * 3 - 3] = l2_11.x[i__ * 3 - 3] * 2e-4 + 2.3;
+    l4_11.gf[i__ * 3 - 2] = l2_11.x[i__ * 3 - 2] * 2e-4 + 1.7;
 /* L31: */
-	l4_11.gf[i__ * 3 - 1] = l2_11.x[i__ * 3 - 1] * 3e-4 + 2.2;
+    l4_11.gf[i__ * 3 - 1] = l2_11.x[i__ * 3 - 1] * 3e-4 + 2.2;
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 4; ++i__) {
-	if (l9_15.index1[i__ - 1]) {
-	    l3_14.g[i__ - 1] = l2_11.x[i__ * 3] - l2_11.x[i__ * 3 - 3] + 7.;
-	}
-	if (l9_15.index1[i__ + 3]) {
-	    l3_14.g[i__ + 3] = l2_11.x[i__ * 3 + 1] - l2_11.x[i__ * 3 - 2] + 
-		    7.;
-	}
-	if (l9_15.index1[i__ + 7]) {
-	    l3_14.g[i__ + 7] = l2_11.x[i__ * 3 + 2] - l2_11.x[i__ * 3 - 1] + 
-		    7.;
-	}
-	if (l9_15.index1[i__ + 11]) {
-	    l3_14.g[i__ + 11] = l2_11.x[i__ * 3 - 3] - l2_11.x[i__ * 3] + 6.;
-	}
-	if (l9_15.index1[i__ + 15]) {
-	    l3_14.g[i__ + 15] = l2_11.x[i__ * 3 - 2] - l2_11.x[i__ * 3 + 1] + 
-		    7.;
-	}
+    if (l9_15.index1[i__ - 1]) {
+        l3_14.g[i__ - 1] = l2_11.x[i__ * 3] - l2_11.x[i__ * 3 - 3] + 7.;
+    }
+    if (l9_15.index1[i__ + 3]) {
+        l3_14.g[i__ + 3] = l2_11.x[i__ * 3 + 1] - l2_11.x[i__ * 3 - 2] + 
+            7.;
+    }
+    if (l9_15.index1[i__ + 7]) {
+        l3_14.g[i__ + 7] = l2_11.x[i__ * 3 + 2] - l2_11.x[i__ * 3 - 1] + 
+            7.;
+    }
+    if (l9_15.index1[i__ + 11]) {
+        l3_14.g[i__ + 11] = l2_11.x[i__ * 3 - 3] - l2_11.x[i__ * 3] + 6.;
+    }
+    if (l9_15.index1[i__ + 15]) {
+        l3_14.g[i__ + 15] = l2_11.x[i__ * 3 - 2] - l2_11.x[i__ * 3 + 1] + 
+            7.;
+    }
 /* L32: */
-	if (l9_15.index1[i__ + 19]) {
-	    l3_14.g[i__ + 19] = l2_11.x[i__ * 3 - 1] - l2_11.x[i__ * 3 + 2] + 
-		    6.;
-	}
+    if (l9_15.index1[i__ + 19]) {
+        l3_14.g[i__ + 19] = l2_11.x[i__ * 3 - 1] - l2_11.x[i__ * 3 + 2] + 
+            6.;
+    }
     }
     if (l9_15.index1[24]) {
-	l3_14.g[24] = l2_11.x[0] + l2_11.x[1] + l2_11.x[2] - 60.;
+    l3_14.g[24] = l2_11.x[0] + l2_11.x[1] + l2_11.x[2] - 60.;
     }
     if (l9_15.index1[25]) {
-	l3_14.g[25] = l2_11.x[3] + l2_11.x[4] + l2_11.x[5] - 50.;
+    l3_14.g[25] = l2_11.x[3] + l2_11.x[4] + l2_11.x[5] - 50.;
     }
     if (l9_15.index1[26]) {
-	l3_14.g[26] = l2_11.x[6] + l2_11.x[7] + l2_11.x[8] - 70.;
+    l3_14.g[26] = l2_11.x[6] + l2_11.x[7] + l2_11.x[8] - 70.;
     }
     if (l9_15.index1[27]) {
-	l3_14.g[27] = l2_11.x[9] + l2_11.x[10] + l2_11.x[11] - 85.;
+    l3_14.g[27] = l2_11.x[9] + l2_11.x[10] + l2_11.x[11] - 85.;
     }
     if (l9_15.index1[28]) {
-	l3_14.g[28] = l2_11.x[12] + l2_11.x[13] + l2_11.x[14] - 100.;
+    l3_14.g[28] = l2_11.x[12] + l2_11.x[13] + l2_11.x[14] - 100.;
     }
 labelL5:
     return 0;
@@ -12994,17 +12994,17 @@ labelL5:
     Real d__1, d__2;
 
     /* Local variables */
-    static Real a[256]	/* was [16][16] */, b[128]	/* was [8][16]
-	     */, c__[8];
+    static Real a[256]    /* was [16][16] */, b[128]    /* was [8][16]
+         */, c__[8];
     static int i__, j;
     static Real s[16], t;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 16;
@@ -13013,20 +13013,20 @@ labelL1:
     l1_1.neli = 8;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 16; ++i__) {
-	for (j = 1; j <= 16; ++j) {
+    for (j = 1; j <= 16; ++j) {
 /* L21: */
-	    a[i__ + (j << 4) - 17] = 0.;
-	}
-	a[i__ + (i__ << 4) - 17] = 1.;
-	for (j = 1; j <= 8; ++j) {
+        a[i__ + (j << 4) - 17] = 0.;
+    }
+    a[i__ + (i__ << 4) - 17] = 1.;
+    for (j = 1; j <= 8; ++j) {
 /* L81: */
-	    b[j + (i__ << 3) - 9] = 0.;
-	}
+        b[j + (i__ << 3) - 9] = 0.;
+    }
 /* L80: */
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L22: */
-	b[i__ + ((i__ + 8) << 3) - 9] = 1.;
+    b[i__ + ((i__ + 8) << 3) - 9] = 1.;
     }
     a[48] = 1.;
     a[96] = 1.;
@@ -13112,15 +13112,15 @@ labelL1:
     c__[6] = 2.3;
     c__[7] = -1.5;
     for (i__ = 1; i__ <= 16; ++i__) {
-	l11_12.lxl[i__ - 1] = true;
-	l12_12.lxu[i__ - 1] = true;
-	l2_12.x[i__ - 1] = 10.;
-	l13_12.xl[i__ - 1] = 0.;
-	l14_12.xu[i__ - 1] = 5.;
-	for (j = 1; j <= 8; ++j) {
+    l11_12.lxl[i__ - 1] = true;
+    l12_12.lxu[i__ - 1] = true;
+    l2_12.x[i__ - 1] = 10.;
+    l13_12.xl[i__ - 1] = 0.;
+    l14_12.xu[i__ - 1] = 5.;
+    for (j = 1; j <= 8; ++j) {
 /* labelL20: */
-	    l5_27.gg[j + (i__ << 3) - 9] = b[j + (i__ << 3) - 9];
-	}
+        l5_27.gg[j + (i__ << 3) - 9] = b[j + (i__ << 3) - 9];
+    }
     }
     l20_13.lex = false;
     l20_13.xex[0] = .0398473514099;
@@ -13144,46 +13144,46 @@ labelL1:
 labelL2:
     t = 0.;
     for (i__ = 1; i__ <= 16; ++i__) {
-	for (j = 1; j <= 16; ++j) {
+    for (j = 1; j <= 16; ++j) {
 /* L30: */
 /* Computing 2nd power */
-	    d__1 = l2_12.x[i__ - 1];
+        d__1 = l2_12.x[i__ - 1];
 /* Computing 2nd power */
-	    d__2 = l2_12.x[j - 1];
-	    t += a[i__ + (j << 4) - 17] * (d__1 * d__1 + l2_12.x[i__ - 1] + 
-		    1.) * (d__2 * d__2 + l2_12.x[j - 1] + 1.);
-	}
+        d__2 = l2_12.x[j - 1];
+        t += a[i__ + (j << 4) - 17] * (d__1 * d__1 + l2_12.x[i__ - 1] + 
+            1.) * (d__2 * d__2 + l2_12.x[j - 1] + 1.);
+    }
     }
     l6_1.fx = t;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 16; ++i__) {
-	s[i__ - 1] = 0.;
-	for (j = 1; j <= 16; ++j) {
+    s[i__ - 1] = 0.;
+    for (j = 1; j <= 16; ++j) {
 /* L32: */
 /* Computing 2nd power */
-	    d__1 = l2_12.x[j - 1];
-	    s[i__ - 1] += (a[i__ + (j << 4) - 17] + a[j + (i__ << 4) - 17]) * 
-		    (d__1 * d__1 + l2_12.x[j - 1] + 1.) * (l2_12.x[i__ - 1] * 
-		    2. + 1.);
-	}
+        d__1 = l2_12.x[j - 1];
+        s[i__ - 1] += (a[i__ + (j << 4) - 17] + a[j + (i__ << 4) - 17]) * 
+            (d__1 * d__1 + l2_12.x[j - 1] + 1.) * (l2_12.x[i__ - 1] * 
+            2. + 1.);
+    }
 /* L31: */
-	l4_12.gf[i__ - 1] = s[i__ - 1];
+    l4_12.gf[i__ - 1] = s[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 8; ++i__) {
-	if (! l9_12.index1[i__ - 1]) {
-	    goto L33;
-	}
-	s[i__ - 1] = 0.;
-	for (j = 1; j <= 16; ++j) {
+    if (! l9_12.index1[i__ - 1]) {
+        goto L33;
+    }
+    s[i__ - 1] = 0.;
+    for (j = 1; j <= 16; ++j) {
 /* L34: */
-	    s[i__ - 1] += b[i__ + (j << 3) - 9] * l2_12.x[j - 1];
-	}
-	l3_11.g[i__ - 1] = s[i__ - 1] - c__[i__ - 1];
+        s[i__ - 1] += b[i__ + (j << 3) - 9] * l2_12.x[j - 1];
+    }
+    l3_11.g[i__ - 1] = s[i__ - 1] - c__[i__ - 1];
 L33:
-	;
+    ;
     }
 labelL5:
     return 0;
@@ -13199,11 +13199,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13214,9 +13214,9 @@ labelL1:
     l2_1.x[0] = 8.;
     l2_1.x[1] = 9.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13248,11 +13248,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13263,9 +13263,9 @@ labelL1:
     l2_1.x[0] = 15.;
     l2_1.x[1] = -2.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
     }
     l14_1.xu[0] = (float)20.;
     l14_1.xu[1] = (float)5.;
@@ -13286,13 +13286,13 @@ labelL2:
 /* Computing 3rd power */
     d__2 = l2_1.x[1];
     l16_1.f[0] = l2_1.x[0] - 13. - l2_1.x[1] * 2. + d__1 * d__1 * 5. - d__2 * 
-	    (d__2 * d__2);
+        (d__2 * d__2);
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
 /* Computing 3rd power */
     d__2 = l2_1.x[1];
     l16_1.f[1] = l2_1.x[0] - 29. - l2_1.x[1] * 14. + d__1 * d__1 + d__2 * (
-	    d__2 * d__2);
+        d__2 * d__2);
 /* Computing 2nd power */
     d__1 = l16_1.f[0];
 /* Computing 2nd power */
@@ -13305,13 +13305,13 @@ labelL3:
 /* Computing 3rd power */
     d__2 = l2_1.x[1];
     l16_1.f[0] = l2_1.x[0] - 13. - l2_1.x[1] * 2. + d__1 * d__1 * 5. - d__2 * 
-	    (d__2 * d__2);
+        (d__2 * d__2);
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
 /* Computing 3rd power */
     d__2 = l2_1.x[1];
     l16_1.f[1] = l2_1.x[0] - 29. - l2_1.x[1] * 14. + d__1 * d__1 + d__2 * (
-	    d__2 * d__2);
+        d__2 * d__2);
     l17_1.df[0] = 1.;
 /* Computing 2nd power */
     d__1 = l2_1.x[1];
@@ -13322,8 +13322,8 @@ labelL3:
     l17_1.df[3] = l2_1.x[1] * 2. - 14. + d__1 * d__1 * 3.;
     for (i__ = 1; i__ <= 2; ++i__) {
 /* L7: */
-	l4_1.gf[i__ - 1] = l16_1.f[0] * 2. * l17_1.df[(i__ << 1) - 2] + 
-		l16_1.f[1] * 2. * l17_1.df[(i__ << 1) - 1];
+    l4_1.gf[i__ - 1] = l16_1.f[0] * 2. * l17_1.df[(i__ << 1) - 2] + 
+        l16_1.f[1] * 2. * l17_1.df[(i__ << 1) - 1];
     }
 labelL4:
     return 0;
@@ -13346,11 +13346,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13361,9 +13361,9 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = .2;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13375,19 +13375,19 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l16_2.f[i__ - 1] = c__[i__ - 1] - l2_1.x[0] * (1. - pow_di(&l2_1.x[1],
-		 &i__));
+    l16_2.f[i__ - 1] = c__[i__ - 1] - l2_1.x[0] * (1. - pow_di(&l2_1.x[1],
+         &i__));
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_2.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_2.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	l16_2.f[i__ - 1] = c__[i__ - 1] - l2_1.x[0] * (1. - pow_di(&l2_1.x[1],
-		 &i__));
+    l16_2.f[i__ - 1] = c__[i__ - 1] - l2_1.x[0] * (1. - pow_di(&l2_1.x[1],
+         &i__));
     }
     l17_2.df[0] = l2_1.x[1] - 1.;
     l17_2.df[3] = l2_1.x[0];
@@ -13403,9 +13403,9 @@ labelL3:
     l17_2.df[5] = l2_1.x[0] * 3. * (d__1 * d__1);
     for (i__ = 1; i__ <= 2; ++i__) {
 /* labelL9: */
-	l4_1.gf[i__ - 1] = l16_2.f[0] * 2. * l17_2.df[i__ * 3 - 3] + l16_2.f[
-		1] * 2. * l17_2.df[i__ * 3 - 2] + l16_2.f[2] * 2. * l17_2.df[
-		i__ * 3 - 1];
+    l4_1.gf[i__ - 1] = l16_2.f[0] * 2. * l17_2.df[i__ * 3 - 3] + l16_2.f[
+        1] * 2. * l17_2.df[i__ * 3 - 2] + l16_2.f[2] * 2. * l17_2.df[
+        i__ * 3 - 1];
     }
 labelL4:
     return 0;
@@ -13418,8 +13418,8 @@ labelL4:
 
     static Real a[3] = { .13294,-.244378,.325895 };
     static Real d__[3] = { 2.5074,-1.36401,1.02282 };
-    static Real h__[6]	/* was [3][2] */ = { -.564255,-.404979,
-	    -.0735084,.392417,.927589,.535493 };
+    static Real h__[6]    /* was [3][2] */ = { -.564255,-.404979,
+        -.0735084,.392417,.927589,.535493 };
 
     /* System generated locals */
     Real d__1, d__2, d__3;
@@ -13429,11 +13429,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13444,9 +13444,9 @@ labelL1:
     l2_1.x[0] = .1;
     l2_1.x[1] = .1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13457,12 +13457,12 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 3; ++i__) {
-	prod = h__[i__ - 1] * l2_1.x[0] + h__[i__ + 2] * l2_1.x[1];
+    prod = h__[i__ - 1] * l2_1.x[0] + h__[i__ + 2] * l2_1.x[1];
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = prod;
-	l16_2.f[i__ - 1] = a[i__ - 1] + prod + d__1 * d__1 * .5 * d__[i__ - 1]
-		;
+    d__1 = prod;
+    l16_2.f[i__ - 1] = a[i__ - 1] + prod + d__1 * d__1 * .5 * d__[i__ - 1]
+        ;
     }
 /* Computing 2nd power */
     d__1 = l16_2.f[0];
@@ -13474,28 +13474,28 @@ labelL2:
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
-	prod = h__[i__ - 1] * l2_1.x[0] + h__[i__ + 2] * l2_1.x[1];
+    prod = h__[i__ - 1] * l2_1.x[0] + h__[i__ + 2] * l2_1.x[1];
 /* labelL11: */
 /* Computing 2nd power */
-	d__1 = prod;
-	l16_2.f[i__ - 1] = a[i__ - 1] + prod + d__1 * d__1 * .5 * d__[i__ - 1]
-		;
+    d__1 = prod;
+    l16_2.f[i__ - 1] = a[i__ - 1] + prod + d__1 * d__1 * .5 * d__[i__ - 1]
+        ;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L7: */
-	l17_2.df[i__ - 1] = h__[i__ - 1] + (h__[i__ - 1] * l2_1.x[0] + h__[
-		i__ + 2] * l2_1.x[1]) * h__[i__ - 1] * d__[i__ - 1];
+    l17_2.df[i__ - 1] = h__[i__ - 1] + (h__[i__ - 1] * l2_1.x[0] + h__[
+        i__ + 2] * l2_1.x[1]) * h__[i__ - 1] * d__[i__ - 1];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	l17_2.df[i__ + 2] = h__[i__ + 2] + (h__[i__ - 1] * l2_1.x[0] + h__[
-		i__ + 2] * l2_1.x[1]) * h__[i__ + 2] * d__[i__ - 1];
+    l17_2.df[i__ + 2] = h__[i__ + 2] + (h__[i__ - 1] * l2_1.x[0] + h__[
+        i__ + 2] * l2_1.x[1]) * h__[i__ + 2] * d__[i__ - 1];
     }
     for (i__ = 1; i__ <= 2; ++i__) {
 /* labelL9: */
-	l4_1.gf[i__ - 1] = (l16_2.f[0] * l17_2.df[i__ * 3 - 3] + l16_2.f[1] * 
-		l17_2.df[i__ * 3 - 2] + l16_2.f[2] * l17_2.df[i__ * 3 - 1]) * 
-		2.;
+    l4_1.gf[i__ - 1] = (l16_2.f[0] * l17_2.df[i__ * 3 - 3] + l16_2.f[1] * 
+        l17_2.df[i__ * 3 - 2] + l16_2.f[2] * l17_2.df[i__ * 3 - 1]) * 
+        2.;
     }
 labelL4:
     return 0;
@@ -13511,11 +13511,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13526,9 +13526,9 @@ labelL1:
     l2_1.x[0] = 0.;
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13575,9 +13575,9 @@ labelL3:
     l17_2.df[5] = l2_1.x[0] * 3. * (d__1 * d__1);
     for (i__ = 1; i__ <= 2; ++i__) {
 /* L7: */
-	l4_1.gf[i__ - 1] = l16_2.f[0] * 2. * l17_2.df[i__ * 3 - 3] + l16_2.f[
-		1] * 2. * l17_2.df[i__ * 3 - 2] + l16_2.f[2] * 2. * l17_2.df[
-		i__ * 3 - 1];
+    l4_1.gf[i__ - 1] = l16_2.f[0] * 2. * l17_2.df[i__ * 3 - 3] + l16_2.f[
+        1] * 2. * l17_2.df[i__ * 3 - 2] + l16_2.f[2] * 2. * l17_2.df[
+        i__ * 3 - 1];
     }
 labelL4:
     return 0;
@@ -13593,11 +13593,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13608,9 +13608,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13631,7 +13631,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = (l2_1.x[1] - d__1 * d__1) * -2. * 2. * l2_1.x[0] - (1. - 
-	    l2_1.x[0]) * 200.;
+        l2_1.x[0]) * 200.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 2.;
@@ -13653,11 +13653,11 @@ labelL4:
     static int lsum, i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13668,9 +13668,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13692,7 +13692,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
-	    l2_1.x[0]) * 2.;
+        l2_1.x[0]) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1);
@@ -13714,11 +13714,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13729,9 +13729,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13752,7 +13752,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
-	    l2_1.x[0]) * 2.;
+        l2_1.x[0]) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1);
@@ -13773,11 +13773,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13788,9 +13788,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13811,7 +13811,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
-	    l2_1.x[0]) * 2.;
+        l2_1.x[0]) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1);
@@ -13832,11 +13832,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13847,9 +13847,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13870,7 +13870,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = (c__ * -4. * (l2_1.x[1] - d__1 * d__1) * l2_1.x[0] - (1. - 
-	    l2_1.x[0]) * 2.) / c__;
+        l2_1.x[0]) * 2.) / c__;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = c__ * 2. * (l2_1.x[1] - d__1 * d__1) / c__;
@@ -13887,11 +13887,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13902,9 +13902,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13927,7 +13927,7 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
     l4_1.gf[0] = (l2_1.x[1] - d__1 * (d__1 * d__1)) * -200. * 3. * (d__2 * 
-	    d__2) - (1. - l2_1.x[0]) * 2.;
+        d__2) - (1. - l2_1.x[0]) * 2.;
 /* Computing 3rd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * (d__1 * d__1)) * 200.;
@@ -13944,11 +13944,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -13959,9 +13959,9 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -13978,7 +13978,7 @@ labelL2:
     d__4 = l2_1.x[1];
 /* Computing 2nd power */
     d__2 = (l2_1.x[0] + l2_1.x[1]) * 4. + (l2_1.x[0] - l2_1.x[1]) * (d__3 * 
-	    d__3 + d__4 * d__4 - 1.);
+        d__3 + d__4 * d__4 - 1.);
     l6_1.fx = d__1 * d__1 + d__2 * d__2;
     return 0;
 labelL3:
@@ -13991,9 +13991,9 @@ labelL3:
 /* Computing 2nd power */
     d__4 = l2_1.x[1];
     l4_1.gf[0] = (l2_1.x[0] + l2_1.x[1]) * 32. + ((l2_1.x[0] + l2_1.x[1]) * 
-	    4. + (l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 + d__2 * d__2 - 1.)) *
-	     2. * (d__3 * d__3 + d__4 * d__4 - 1. + 4. + (l2_1.x[0] - l2_1.x[
-	    1]) * 2. * (l2_1.x[0] - 2.));
+        4. + (l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 + d__2 * d__2 - 1.)) *
+         2. * (d__3 * d__3 + d__4 * d__4 - 1. + 4. + (l2_1.x[0] - l2_1.x[
+        1]) * 2. * (l2_1.x[0] - 2.));
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 2.;
 /* Computing 2nd power */
@@ -14003,9 +14003,9 @@ labelL3:
 /* Computing 2nd power */
     d__4 = l2_1.x[1];
     l4_1.gf[1] = (l2_1.x[0] + l2_1.x[1]) * 32. + ((l2_1.x[0] + l2_1.x[1]) * 
-	    4. + (l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 + d__2 * d__2 - 1.)) *
-	     2. * (4. - d__3 * d__3 + d__4 * d__4 - 1. + (l2_1.x[0] - l2_1.x[
-	    1]) * 2. * l2_1.x[1]);
+        4. + (l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 + d__2 * d__2 - 1.)) *
+         2. * (4. - d__3 * d__3 + d__4 * d__4 - 1. + (l2_1.x[0] - l2_1.x[
+        1]) * 2. * l2_1.x[1]);
 labelL4:
     return 0;
 } /* tp212_ */
@@ -14020,11 +14020,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -14035,9 +14035,9 @@ labelL1:
     l2_1.x[0] = 3.;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -14062,7 +14062,7 @@ labelL3:
 /* Computing 3rd power */
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l4_1.gf[0] = d__1 * (d__1 * d__1) * 4. * ((l2_1.x[0] - l2_1.x[1]) * 20. + 
-	    (l2_1.x[0] - 1.) * 2.) * 1e-6;
+        (l2_1.x[0] - 1.) * 2.) * 1e-6;
 /* Computing 2nd power */
     d__2 = l2_1.x[0] - l2_1.x[1];
 /* Computing 2nd power */
@@ -14070,7 +14070,7 @@ labelL3:
 /* Computing 3rd power */
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l4_1.gf[1] = d__1 * (d__1 * d__1) * 4. * 20. * (l2_1.x[1] - l2_1.x[0]) * 
-	    1e-6;
+        1e-6;
 labelL4:
     return 0;
 } /* tp213_ */
@@ -14085,11 +14085,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -14100,9 +14100,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -14125,14 +14125,14 @@ labelL3:
     d__3 = l2_1.x[0] - 1.;
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l4_1.gf[0] = .25 / pow_dd(&d__1, &c_b949) * (l2_1.x[0] * 22. - l2_1.x[1] *
-	     20. - 2.) * (float)100.;
+         20. - 2.) * (float)100.;
 /* Computing 2nd power */
     d__2 = l2_1.x[0] - l2_1.x[1];
 /* Computing 2nd power */
     d__3 = l2_1.x[0] - 1.;
     d__1 = d__2 * d__2 * 10. + d__3 * d__3;
     l4_1.gf[1] = .25 / pow_dd(&d__1, &c_b949) * 20. * (l2_1.x[1] - l2_1.x[0]) 
-	    * (float)100.;
+        * (float)100.;
 labelL4:
     return 0;
 } /* tp214_ */
@@ -14144,11 +14144,11 @@ labelL4:
     Real d__1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14180,13 +14180,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_1.g[0] = l2_1.x[1] - d__1 * d__1;
+    d__1 = l2_1.x[0];
+    l3_1.g[0] = l2_1.x[1] - d__1 * d__1;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_1.gg[0] = l2_1.x[0] * -2.;
+    l5_1.gg[0] = l2_1.x[0] * -2.;
     }
     return 0;
 } /* tp215_ */
@@ -14201,11 +14201,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14216,11 +14216,11 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l14_1.xu[i__ - 1] = (float)10.;
-	l12_1.lxu[i__ - 1] = true;
-	l13_1.xl[i__ - 1] = (float)-3.;
+    l14_1.xu[i__ - 1] = (float)10.;
+    l12_1.lxu[i__ - 1] = true;
+    l13_1.xl[i__ - 1] = (float)-3.;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
     }
     l5_1.gg[1] = -2.;
     l20_1.lex = true;
@@ -14242,19 +14242,19 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = (d__1 * d__1 - l2_1.x[1]) * 400. * l2_1.x[0] + (l2_1.x[0] - 
-	    1.) * 2.;
+        1.) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (d__1 * d__1 - l2_1.x[1]) * -200.;
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_1.x[0] * (l2_1.x[0] - 4.) - l2_1.x[1] * 2. + 12.;
+    l3_1.g[0] = l2_1.x[0] * (l2_1.x[0] - 4.) - l2_1.x[1] * 2. + 12.;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_1.gg[0] = l2_1.x[0] * 2. - 4.;
+    l5_1.gg[0] = l2_1.x[0] * 2. - 4.;
     }
     return 0;
 } /* tp216_ */
@@ -14266,11 +14266,11 @@ labelL5:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14302,19 +14302,19 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] + 1. - l2_1.x[1] * 2.;
+    l3_2.g[0] = l2_1.x[0] + 1. - l2_1.x[1] * 2.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_1.x[1];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_2.gg[1] = l2_1.x[0] * 2.;
     l5_2.gg[3] = l2_1.x[1] * 2.;
@@ -14329,11 +14329,11 @@ L8:
     Real d__1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14365,13 +14365,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_1.g[0] = l2_1.x[1] - d__1 * d__1;
+    d__1 = l2_1.x[0];
+    l3_1.g[0] = l2_1.x[1] - d__1 * d__1;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_1.gg[0] = l2_1.x[0] * -2.;
+    l5_1.gg[0] = l2_1.x[0] * -2.;
     }
     return 0;
 } /* tp218_ */
@@ -14386,11 +14386,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -14399,10 +14399,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 10.;
-	l12_3.lxu[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 10.;
+    l12_3.lxu[i__ - 1] = false;
 /* L8: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l5_6.gg[2] = 1.;
     l5_6.gg[6] = 0.;
@@ -14428,22 +14428,22 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[2];
-	l3_2.g[0] = l2_3.x[1] - d__1 * (d__1 * d__1) - d__2 * d__2;
+    d__2 = l2_3.x[2];
+    l3_2.g[0] = l2_3.x[1] - d__1 * (d__1 * d__1) - d__2 * d__2;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[3];
-	l3_2.g[1] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
+    d__2 = l2_3.x[3];
+    l3_2.g[1] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto labelL6;
+    goto labelL6;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
@@ -14451,7 +14451,7 @@ labelL5:
     l5_6.gg[4] = l2_3.x[2] * -2.;
 labelL6:
     if (! l10_3.index2[1]) {
-	goto L7;
+    goto L7;
     }
     l5_6.gg[1] = l2_3.x[0] * 2.;
     l5_6.gg[7] = l2_3.x[3] * -2.;
@@ -14469,11 +14469,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14482,10 +14482,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = (float)2.5e4;
-	l12_1.lxu[i__ - 1] = false;
+    l2_1.x[i__ - 1] = (float)2.5e4;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
     }
     l13_1.xl[0] = (float)1.;
     l13_1.xl[1] = (float)0.;
@@ -14505,13 +14505,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_1.x[0] - (float)1.;
-	l3_1.g[0] = d__1 * (d__1 * d__1) - l2_1.x[1];
+    d__1 = l2_1.x[0] - (float)1.;
+    l3_1.g[0] = d__1 * (d__1 * d__1) - l2_1.x[1];
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - (float)1.;
@@ -14531,11 +14531,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14544,12 +14544,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = .25;
-	l12_1.lxu[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = (float)1.;
-	l11_1.lxl[i__ - 1] = true;
+    l2_1.x[i__ - 1] = .25;
+    l12_1.lxu[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = (float)1.;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = (float)0.;
+    l13_1.xl[i__ - 1] = (float)0.;
     }
     l5_1.gg[1] = (float)-1.;
     l20_1.lex = true;
@@ -14568,15 +14568,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_1.x[0] - 1.;
-	l3_1.g[0] = -(d__1 * (d__1 * d__1)) - l2_1.x[1];
+    d__1 = l2_1.x[0] - 1.;
+    l3_1.g[0] = -(d__1 * (d__1 * d__1)) - l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 1.;
-	l5_1.gg[0] = d__1 * d__1 * -3.;
+    d__1 = l2_1.x[0] - 1.;
+    l5_1.gg[0] = d__1 * d__1 * -3.;
     }
     return 0;
 } /* tp221_ */
@@ -14591,11 +14591,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14606,10 +14606,10 @@ labelL1:
     l2_1.x[0] = 1.3;
     l2_1.x[1] = .2;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l5_1.gg[1] = -1.;
     l20_1.lex = true;
@@ -14628,15 +14628,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_1.x[0] - 1.;
-	l3_1.g[0] = .125 - d__1 * (d__1 * d__1) - l2_1.x[1];
+    d__1 = l2_1.x[0] - 1.;
+    l3_1.g[0] = .125 - d__1 * (d__1 * d__1) - l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 1.;
-	l5_1.gg[0] = d__1 * d__1 * -3.;
+    d__1 = l2_1.x[0] - 1.;
+    l5_1.gg[0] = d__1 * d__1 * -3.;
     }
     return 0;
 } /* tp222_ */
@@ -14647,11 +14647,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14662,11 +14662,11 @@ labelL1:
     l2_1.x[0] = .1;
     l2_1.x[1] = 3.3;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = true;
-	l11_1.lxl[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = 10.;
+    l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = 10.;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = (float)1.;
     l5_2.gg[2] = 0.;
@@ -14686,18 +14686,18 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = std::exp(std::exp(l2_1.x[0]));
+    l3_2.g[0] = std::exp(std::exp(l2_1.x[0]));
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_1.x[1] - std::exp(std::exp(l2_1.x[0]));
+    l3_2.g[1] = l2_1.x[1] - std::exp(std::exp(l2_1.x[0]));
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_2.gg[0] = std::exp(l2_1.x[0]) * std::exp(std::exp(l2_1.x[0]));
+    l5_2.gg[0] = std::exp(l2_1.x[0]) * std::exp(std::exp(l2_1.x[0]));
     }
     if (l10_3.index2[1]) {
-	l5_2.gg[1] = -std::exp(l2_1.x[0]) * std::exp(std::exp(l2_1.x[0]));
+    l5_2.gg[1] = -std::exp(l2_1.x[0]) * std::exp(std::exp(l2_1.x[0]));
     }
     return 0;
 } /* tp223_ */
@@ -14711,11 +14711,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14724,12 +14724,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = .1;
-	l12_1.lxu[i__ - 1] = true;
-	l11_1.lxl[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = 6.;
+    l2_1.x[i__ - 1] = .1;
+    l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = 6.;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l5_6.gg[0] = 1.;
     l5_6.gg[4] = 3.;
@@ -14751,7 +14751,7 @@ labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = d__1 * d__1 * 2. + d__2 * d__2 - l2_1.x[0] * 48. - l2_1.x[1] * 
-	    40.;
+        40.;
     return 0;
 labelL3:
     l4_1.gf[0] = l2_1.x[0] * 4. - 48.;
@@ -14759,16 +14759,16 @@ labelL3:
     return 0;
 labelL4:
     if (l9_7.index1[0]) {
-	l3_6.g[0] = l2_1.x[0] + l2_1.x[1] * 3.;
+    l3_6.g[0] = l2_1.x[0] + l2_1.x[1] * 3.;
     }
     if (l9_7.index1[1]) {
-	l3_6.g[1] = 18. - l2_1.x[0] - l2_1.x[1] * 3.;
+    l3_6.g[1] = 18. - l2_1.x[0] - l2_1.x[1] * 3.;
     }
     if (l9_7.index1[2]) {
-	l3_6.g[2] = l2_1.x[0] + l2_1.x[1];
+    l3_6.g[2] = l2_1.x[0] + l2_1.x[1];
     }
     if (l9_7.index1[3]) {
-	l3_6.g[3] = 8. - l2_1.x[0] - l2_1.x[1];
+    l3_6.g[3] = 8. - l2_1.x[0] - l2_1.x[1];
     }
 labelL5:
     return 0;
@@ -14783,11 +14783,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14798,9 +14798,9 @@ labelL1:
     l2_1.x[0] = 3.;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l5_4.gg[0] = 1.;
     l5_4.gg[5] = 1.;
@@ -14825,47 +14825,47 @@ labelL3:
     return 0;
 labelL4:
     if (l9_5.index1[0]) {
-	l3_4.g[0] = l2_1.x[0] + l2_1.x[1] - 1.;
+    l3_4.g[0] = l2_1.x[0] + l2_1.x[1] - 1.;
     }
     if (l9_5.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_4.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_1.x[1];
+    l3_4.g[1] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     if (l9_5.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_4.g[2] = d__1 * d__1 * 9. + d__2 * d__2 - 9.;
+    d__2 = l2_1.x[1];
+    l3_4.g[2] = d__1 * d__1 * 9. + d__2 * d__2 - 9.;
     }
     if (l9_5.index1[3]) {
-	l3_4.g[3] = pow_dd(l2_1.x, &c_b305) - l2_1.x[1];
+    l3_4.g[3] = pow_dd(l2_1.x, &c_b305) - l2_1.x[1];
     }
     if (l9_5.index1[4]) {
-	l3_4.g[4] = pow_dd(&l2_1.x[1], &c_b305) - l2_1.x[0];
+    l3_4.g[4] = pow_dd(&l2_1.x[1], &c_b305) - l2_1.x[0];
     }
     return 0;
 labelL5:
     if (! l10_5.index2[1]) {
-	goto L7;
+    goto L7;
     }
     l5_4.gg[1] = l2_1.x[0] * 2.;
     l5_4.gg[6] = l2_1.x[1] * 2.;
 L7:
     if (! l10_5.index2[2]) {
-	goto L8;
+    goto L8;
     }
     l5_4.gg[2] = l2_1.x[0] * 18.;
     l5_4.gg[7] = l2_1.x[1] * 2.;
 L8:
     if (l10_5.index2[3]) {
-	l5_4.gg[3] = l2_1.x[0] * 2.;
+    l5_4.gg[3] = l2_1.x[0] * 2.;
     }
     if (l10_5.index2[4]) {
-	l5_4.gg[9] = l2_1.x[1] * 2.;
+    l5_4.gg[9] = l2_1.x[1] * 2.;
     }
     return 0;
 } /* tp225_ */
@@ -14879,11 +14879,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14894,11 +14894,11 @@ labelL1:
     l2_1.x[0] = .8;
     l2_1.x[1] = .05;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = true;
-	l13_1.xl[i__ - 1] = 0.;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = true;
+    l13_1.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l20_1.xex[i__ - 1] = 1. / std::sqrt(2.);
+    l20_1.xex[i__ - 1] = 1. / std::sqrt(2.);
     }
     l20_1.lex = true;
     l20_1.fex = -.5;
@@ -14913,28 +14913,28 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[0] = d__1 * d__1 + d__2 * d__2;
+    d__2 = l2_1.x[1];
+    l3_2.g[0] = d__1 * d__1 + d__2 * d__2;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[1] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_1.x[1];
+    l3_2.g[1] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = l2_1.x[0] * 2.;
     l5_2.gg[2] = l2_1.x[1] * 2.;
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_2.gg[1] = l2_1.x[0] * -2.;
     l5_2.gg[3] = l2_1.x[1] * -2.;
@@ -14951,11 +14951,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -14964,11 +14964,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = .5;
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = .5;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l20_1.xex[i__ - 1] = 1.;
+    l20_1.xex[i__ - 1] = 1.;
     }
     l5_2.gg[2] = 1.;
     l5_2.gg[1] = 1.;
@@ -14990,21 +14990,21 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_2.g[0] = -(d__1 * d__1) + l2_1.x[1];
+    d__1 = l2_1.x[0];
+    l3_2.g[0] = -(d__1 * d__1) + l2_1.x[1];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_2.g[1] = l2_1.x[0] - d__1 * d__1;
+    d__1 = l2_1.x[1];
+    l3_2.g[1] = l2_1.x[0] - d__1 * d__1;
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_2.gg[0] = l2_1.x[0] * -2.;
+    l5_2.gg[0] = l2_1.x[0] * -2.;
     }
     if (l10_3.index2[1]) {
-	l5_2.gg[3] = l2_1.x[1] * -2.;
+    l5_2.gg[3] = l2_1.x[1] * -2.;
     }
     return 0;
 } /* tp227_ */
@@ -15018,11 +15018,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15031,10 +15031,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l12_1.lxu[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.xex[0] = 0.;
     l20_1.xex[1] = -3.;
@@ -15055,19 +15055,19 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = -l2_1.x[0] - l2_1.x[1] + 1.;
+    l3_2.g[0] = -l2_1.x[0] - l2_1.x[1] + 1.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[1] = -(d__1 * d__1 + d__2 * d__2) + 9.;
+    d__2 = l2_1.x[1];
+    l3_2.g[1] = -(d__1 * d__1 + d__2 * d__2) + 9.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[1] = l2_1.x[0] * -2.;
     l5_2.gg[3] = l2_1.x[1] * -2.;
@@ -15084,11 +15084,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -15099,12 +15099,12 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = true;
-	l11_1.lxl[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = 2.;
-	l13_1.xl[i__ - 1] = -2.;
+    l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = 2.;
+    l13_1.xl[i__ - 1] = -2.;
 /* labelL6: */
-	l20_1.xex[i__ - 1] = 1.;
+    l20_1.xex[i__ - 1] = 1.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -15123,7 +15123,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * -400. * (l2_1.x[1] - d__1 * d__1) - (1. - l2_1.x[
-	    0]) * 2.;
+        0]) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
@@ -15140,11 +15140,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15153,10 +15153,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l12_1.lxu[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.xex[0] = .5;
     l20_1.xex[1] = .375;
@@ -15176,29 +15176,29 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 3rd power */
-	d__2 = l2_1.x[0];
-	l3_2.g[0] = d__1 * d__1 * -2. + d__2 * (d__2 * d__2) + l2_1.x[1];
+    d__2 = l2_1.x[0];
+    l3_2.g[0] = d__1 * d__1 * -2. + d__2 * (d__2 * d__2) + l2_1.x[1];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = 1. - l2_1.x[0];
+    d__1 = 1. - l2_1.x[0];
 /* Computing 3rd power */
-	d__2 = 1. - l2_1.x[0];
-	l3_2.g[1] = d__1 * d__1 * -2. + d__2 * (d__2 * d__2) + l2_1.x[1];
+    d__2 = 1. - l2_1.x[0];
+    l3_2.g[1] = d__1 * d__1 * -2. + d__2 * (d__2 * d__2) + l2_1.x[1];
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l5_2.gg[0] = l2_1.x[0] * -4. + d__1 * d__1 * 3.;
+    d__1 = l2_1.x[0];
+    l5_2.gg[0] = l2_1.x[0] * -4. + d__1 * d__1 * 3.;
     }
     if (l10_3.index2[1]) {
 /* Computing 2nd power */
-	d__1 = 1. - l2_1.x[0];
-	l5_2.gg[1] = (1. - l2_1.x[0]) * 4. - d__1 * d__1 * 3.;
+    d__1 = 1. - l2_1.x[0];
+    l5_2.gg[1] = (1. - l2_1.x[0]) * 4. - d__1 * d__1 * 3.;
     }
     return 0;
 } /* tp230_ */
@@ -15212,11 +15212,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15227,10 +15227,10 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l20_1.xex[i__ - 1] = 1.;
-	l12_1.lxu[i__ - 1] = false;
+    l20_1.xex[i__ - 1] = 1.;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l5_2.gg[0] = .33333333333333331;
     l5_2.gg[2] = 1.;
@@ -15253,17 +15253,17 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * -400. * (l2_1.x[1] - d__1 * d__1) - (1. - l2_1.x[
-	    0]) * 2.;
+        0]) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] / 3. + l2_1.x[1] + .1;
+    l3_2.g[0] = l2_1.x[0] / 3. + l2_1.x[1] + .1;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = -l2_1.x[0] / 3. + l2_1.x[1] + .1;
+    l3_2.g[1] = -l2_1.x[0] / 3. + l2_1.x[1] + .1;
     }
 labelL5:
     return 0;
@@ -15280,11 +15280,11 @@ labelL5:
 
     hv = std::sqrt(3.);
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15295,10 +15295,10 @@ labelL1:
     l2_1.x[0] = 2.;
     l2_1.x[1] = .5;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l5_3.gg[0] = 1 / hv;
     l5_3.gg[3] = -1.;
@@ -15320,7 +15320,7 @@ labelL2:
     return 0;
 labelL3:
     l4_1.gf[0] = (l2_1.x[0] - 3.) * 2. * pow_dd(&l2_1.x[1], &c_b1523) / (hv * 
-	    27.);
+        27.);
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 3.;
 /* Computing 2nd power */
@@ -15329,13 +15329,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_1.x[0] / hv - l2_1.x[1];
+    l3_3.g[0] = l2_1.x[0] / hv - l2_1.x[1];
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_1.x[0] + hv * l2_1.x[1];
+    l3_3.g[1] = l2_1.x[0] + hv * l2_1.x[1];
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = 6. - l2_1.x[0] - hv * l2_1.x[1];
+    l3_3.g[2] = 6. - l2_1.x[0] - hv * l2_1.x[1];
     }
 labelL5:
     return 0;
@@ -15350,11 +15350,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15365,10 +15365,10 @@ labelL1:
     l2_1.x[0] = 1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l20_1.xex[i__ - 1] = 1.;
+    l20_1.xex[i__ - 1] = 1.;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -15387,7 +15387,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[0] = l2_1.x[0] * -400. * (l2_1.x[1] - d__1 * d__1) - (1. - l2_1.x[
-	    0]) * 2.;
+        0]) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] - d__1 * d__1) * 200.;
@@ -15395,15 +15395,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - .25;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - .25;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_1.gg[0] = l2_1.x[0] * 2.;
     l5_1.gg[1] = l2_1.x[1] * 2.;
@@ -15421,11 +15421,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15434,13 +15434,13 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 1.;
-	l12_1.lxu[i__ - 1] = true;
-	l11_1.lxl[i__ - 1] = true;
-	l13_1.xl[i__ - 1] = .2;
-	l14_1.xu[i__ - 1] = 2.;
+    l2_1.x[i__ - 1] = 1.;
+    l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
+    l13_1.xl[i__ - 1] = .2;
+    l14_1.xu[i__ - 1] = 2.;
 /* labelL6: */
-	l20_1.xex[i__ - 1] = .2;
+    l20_1.xex[i__ - 1] = .2;
     }
     l20_1.lex = true;
     l20_1.nex = 1;
@@ -15462,15 +15462,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = -(d__1 * d__1) - d__2 * d__2 + 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = -(d__1 * d__1) - d__2 * d__2 + 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_1.gg[0] = l2_1.x[0] * -2.;
     l5_1.gg[1] = l2_1.x[1] * -2.;
@@ -15488,11 +15488,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -15504,9 +15504,9 @@ labelL1:
     l2_2.x[1] = 3.;
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
     }
     l5_5.gg[0] = 1.;
     l5_5.gg[1] = 0.;
@@ -15530,7 +15530,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[0] = l2_2.x[0] * -4. * (l2_2.x[1] - d__1 * d__1) + (l2_2.x[0] - 
-	    1.) * .02;
+        1.) * .02;
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[1] = (l2_2.x[1] - d__1 * d__1) * 2.;
@@ -15540,13 +15540,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[2];
-	l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
+    d__1 = l2_2.x[2];
+    l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_5.gg[2] = l2_2.x[2] * 2.;
+    l5_5.gg[2] = l2_2.x[2] * 2.;
     }
     return 0;
 } /* tp235_ */
@@ -15557,19 +15557,19 @@ labelL5:
     /* Initialized data */
 
     static Real b[20] = { 75.1963666677,-3.8112755343,.1269366345,
-	    -.0020567665,1.0345e-5,-6.8306567613,.0302344793,-.0012813448,
-	    3.52559e-5,-2.266e-7,.2564581253,-.003460403,1.35139e-5,
-	    -28.1064434908,-5.2375e-6,-6.3e-9,7e-10,3.405462e-4,-1.6638e-6,
-	    -2.8673112392 };
+        -.0020567665,1.0345e-5,-6.8306567613,.0302344793,-.0012813448,
+        3.52559e-5,-2.266e-7,.2564581253,-.003460403,1.35139e-5,
+        -28.1064434908,-5.2375e-6,-6.3e-9,7e-10,3.405462e-4,-1.6638e-6,
+        -2.8673112392 };
 
     /* System generated locals */
     Real d__1, d__2, d__3, d__4, d__5, d__6, d__7, d__8, d__9, d__10, 
-	    d__11, d__12, d__13, d__14, d__15, d__16, d__17;
+        d__11, d__12, d__13, d__14, d__15, d__16, d__17;
 
 
     switch ((int)*imode) {
-	case 1:  goto labelL2;
-	case 2:  goto labelL3;
+    case 1:  goto labelL2;
+    case 2:  goto labelL3;
     }
 labelL2:
 /* Computing 2nd power */
@@ -15607,16 +15607,16 @@ labelL2:
 /* Computing 3rd power */
     d__17 = l2_1.x[1];
     l6_1.fx = b[0] + b[1] * l2_1.x[0] + b[2] * (d__1 * d__1) + b[3] * (d__2 * 
-	    (d__2 * d__2)) + b[4] * (d__3 * d__3) + b[5] * l2_1.x[1] + b[6] * 
-	    l2_1.x[0] * l2_1.x[1] + b[7] * (d__4 * d__4) * l2_1.x[1] + b[8] * 
-	    (d__5 * (d__5 * d__5)) * l2_1.x[1] + b[9] * (d__6 * d__6) * 
-	    l2_1.x[1] + b[10] * (d__7 * d__7) + b[11] * (d__8 * (d__8 * d__8))
-	     + b[12] * (d__9 * d__9) + b[13] * (1. / (l2_1.x[1] + 1.)) + b[14]
-	     * (d__10 * d__10) * (d__11 * d__11) + b[15] * (d__12 * (d__12 * 
-	    d__12)) * (d__13 * d__13) + b[16] * (d__14 * (d__14 * d__14)) * (
-	    d__15 * (d__15 * d__15)) + b[17] * l2_1.x[0] * (d__16 * d__16) + 
-	    b[18] * l2_1.x[0] * (d__17 * (d__17 * d__17)) + b[19] * std::exp(
-	    l2_1.x[0] * 5e-4 * l2_1.x[1]);
+        (d__2 * d__2)) + b[4] * (d__3 * d__3) + b[5] * l2_1.x[1] + b[6] * 
+        l2_1.x[0] * l2_1.x[1] + b[7] * (d__4 * d__4) * l2_1.x[1] + b[8] * 
+        (d__5 * (d__5 * d__5)) * l2_1.x[1] + b[9] * (d__6 * d__6) * 
+        l2_1.x[1] + b[10] * (d__7 * d__7) + b[11] * (d__8 * (d__8 * d__8))
+         + b[12] * (d__9 * d__9) + b[13] * (1. / (l2_1.x[1] + 1.)) + b[14]
+         * (d__10 * d__10) * (d__11 * d__11) + b[15] * (d__12 * (d__12 * 
+        d__12)) * (d__13 * d__13) + b[16] * (d__14 * (d__14 * d__14)) * (
+        d__15 * (d__15 * d__15)) + b[17] * l2_1.x[0] * (d__16 * d__16) + 
+        b[18] * l2_1.x[0] * (d__17 * (d__17 * d__17)) + b[19] * std::exp(
+        l2_1.x[0] * 5e-4 * l2_1.x[1]);
     l6_1.fx = -l6_1.fx;
     return 0;
 labelL3:
@@ -15643,13 +15643,13 @@ labelL3:
 /* Computing 3rd power */
     d__11 = l2_1.x[1];
     l4_1.gf[0] = b[1] + b[2] * 2. * l2_1.x[0] + b[3] * 3. * (d__1 * d__1) + b[
-	    4] * 4. * (d__2 * (d__2 * d__2)) + b[6] * l2_1.x[1] + b[7] * 2. * 
-	    l2_1.x[0] * l2_1.x[1] + b[8] * 3. * (d__3 * d__3) * l2_1.x[1] + b[
-	    9] * 4. * (d__4 * (d__4 * d__4)) * l2_1.x[1] + b[14] * 2. * 
-	    l2_1.x[0] * (d__5 * d__5) + b[15] * 3. * (d__6 * d__6) * (d__7 * 
-	    d__7) + b[16] * 3. * (d__8 * d__8) * (d__9 * (d__9 * d__9)) + b[
-	    17] * (d__10 * d__10) + b[18] * (d__11 * (d__11 * d__11)) + b[19] 
-	    * std::exp(l2_1.x[0] * 5e-4 * l2_1.x[1]) * (l2_1.x[1] * 5e-4);
+        4] * 4. * (d__2 * (d__2 * d__2)) + b[6] * l2_1.x[1] + b[7] * 2. * 
+        l2_1.x[0] * l2_1.x[1] + b[8] * 3. * (d__3 * d__3) * l2_1.x[1] + b[
+        9] * 4. * (d__4 * (d__4 * d__4)) * l2_1.x[1] + b[14] * 2. * 
+        l2_1.x[0] * (d__5 * d__5) + b[15] * 3. * (d__6 * d__6) * (d__7 * 
+        d__7) + b[16] * 3. * (d__8 * d__8) * (d__9 * (d__9 * d__9)) + b[
+        17] * (d__10 * d__10) + b[18] * (d__11 * (d__11 * d__11)) + b[19] 
+        * std::exp(l2_1.x[0] * 5e-4 * l2_1.x[1]) * (l2_1.x[1] * 5e-4);
     l4_1.gf[0] = -l4_1.gf[0];
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
@@ -15674,14 +15674,14 @@ labelL3:
 /* Computing 2nd power */
     d__11 = l2_1.x[1];
     l4_1.gf[1] = b[5] + b[6] * l2_1.x[0] + b[7] * (d__1 * d__1) + b[8] * (
-	    d__2 * (d__2 * d__2)) + b[9] * (d__3 * d__3) + b[10] * 2. * 
-	    l2_1.x[1] + b[11] * 3. * (d__4 * d__4) + b[12] * 4. * (d__5 * (
-	    d__5 * d__5)) + b[13] * (-1. / (d__6 * d__6)) + b[14] * (d__7 * 
-	    d__7) * 2 * l2_1.x[1] + b[15] * (d__8 * (d__8 * d__8)) * 2 * 
-	    l2_1.x[1] + b[16] * (d__9 * (d__9 * d__9)) * 3 * (d__10 * d__10) 
-	    + b[17] * l2_1.x[0] * 2. * l2_1.x[1] + b[18] * l2_1.x[0] * 3. * (
-	    d__11 * d__11) + b[19] * std::exp(l2_1.x[0] * 5e-4 * l2_1.x[1]) * (
-	    l2_1.x[0] * 5e-4);
+        d__2 * (d__2 * d__2)) + b[9] * (d__3 * d__3) + b[10] * 2. * 
+        l2_1.x[1] + b[11] * 3. * (d__4 * d__4) + b[12] * 4. * (d__5 * (
+        d__5 * d__5)) + b[13] * (-1. / (d__6 * d__6)) + b[14] * (d__7 * 
+        d__7) * 2 * l2_1.x[1] + b[15] * (d__8 * (d__8 * d__8)) * 2 * 
+        l2_1.x[1] + b[16] * (d__9 * (d__9 * d__9)) * 3 * (d__10 * d__10) 
+        + b[17] * l2_1.x[0] * 2. * l2_1.x[1] + b[18] * l2_1.x[0] * 3. * (
+        d__11 * d__11) + b[19] * std::exp(l2_1.x[0] * 5e-4 * l2_1.x[1]) * (
+        l2_1.x[0] * 5e-4);
     l4_1.gf[1] = -l4_1.gf[1];
     return 0;
 } /* tp236239_ */
@@ -15697,11 +15697,11 @@ labelL3:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15712,10 +15712,10 @@ labelL1:
     l2_1.x[0] = 10.;
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = true;
-	l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = 75.;
     l14_1.xu[1] = 65.;
@@ -15734,23 +15734,23 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
+    l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] / 25.;
-	l3_2.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
+    d__1 = l2_1.x[0] / 25.;
+    l3_2.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = l2_1.x[1];
     l5_2.gg[2] = l2_1.x[0];
 L7:
     if (l10_3.index2[1]) {
-	l5_2.gg[1] = l2_1.x[0] * -.016;
+    l5_2.gg[1] = l2_1.x[0] * -.016;
     }
     return 0;
 } /* tp236_ */
@@ -15765,11 +15765,11 @@ L7:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15802,31 +15802,31 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
+    l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] / 25.;
-	l3_3.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
+    d__1 = l2_1.x[0] / 25.;
+    l3_3.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1] - 50.;
-	l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
+    d__1 = l2_1.x[1] - 50.;
+    l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto labelL6;
+    goto labelL6;
     }
     l5_3.gg[0] = l2_1.x[1];
     l5_3.gg[3] = l2_1.x[0];
 labelL6:
     if (l10_4.index2[1]) {
-	l5_3.gg[1] = l2_1.x[0] * -.016;
+    l5_3.gg[1] = l2_1.x[0] * -.016;
     }
     if (l10_4.index2[2]) {
-	l5_3.gg[5] = l2_1.x[1] * 2. - 100.;
+    l5_3.gg[5] = l2_1.x[1] * 2. - 100.;
     }
     return 0;
 } /* tp237_ */
@@ -15842,11 +15842,11 @@ labelL6:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15857,9 +15857,9 @@ labelL1:
     l2_1.x[0] = 10.;
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l14_1.xu[0] = 75.;
     l14_1.xu[1] = 65.;
@@ -15879,31 +15879,31 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
+    l3_3.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] / 25.;
-	l3_3.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
+    d__1 = l2_1.x[0] / 25.;
+    l3_3.g[1] = l2_1.x[1] - d__1 * d__1 * 5.;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1] - 50.;
-	l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
+    d__1 = l2_1.x[1] - 50.;
+    l3_3.g[2] = d__1 * d__1 - (l2_1.x[0] - 55.) * 5.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[0] = l2_1.x[1];
     l5_3.gg[3] = l2_1.x[0];
 L7:
     if (l10_4.index2[1]) {
-	l5_3.gg[1] = l2_1.x[0] * -.016;
+    l5_3.gg[1] = l2_1.x[0] * -.016;
     }
     if (l10_4.index2[2]) {
-	l5_3.gg[5] = l2_1.x[1] * 2. - 100.;
+    l5_3.gg[5] = l2_1.x[1] * 2. - 100.;
     }
     return 0;
 } /* tp238_ */
@@ -15915,11 +15915,11 @@ L7:
     int tp236239_(int *);
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -15930,10 +15930,10 @@ labelL1:
     l2_1.x[0] = 10.;
     l2_1.x[1] = 10.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = true;
-	l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l14_1.xu[0] = 75.;
     l14_1.xu[1] = 65.;
@@ -15951,12 +15951,12 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
+    l3_1.g[0] = l2_1.x[0] * l2_1.x[1] - 700.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_1.gg[0] = l2_1.x[1];
     l5_1.gg[1] = l2_1.x[0];
@@ -15974,11 +15974,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -15990,10 +15990,10 @@ labelL1:
     l2_2.x[1] = -1.;
     l2_2.x[2] = 2.5;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
-	l12_2.lxu[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l20_3.xex[i__ - 1] = 0.;
+    l20_3.xex[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -16009,14 +16009,14 @@ labelL2:
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3;
 labelL3:
     l4_2.gf[0] = (l2_2.x[0] - l2_2.x[1] + l2_2.x[2]) * 2. - (l2_2.x[1] - 
-	    l2_2.x[0] + l2_2.x[2]) * 2. + (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
-	    * 2.;
+        l2_2.x[0] + l2_2.x[2]) * 2. + (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
+        * 2.;
     l4_2.gf[1] = (l2_2.x[1] - l2_2.x[0] + l2_2.x[2]) * 2. - (l2_2.x[0] - 
-	    l2_2.x[1] + l2_2.x[2]) * 2. + (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
-	    * 2.;
+        l2_2.x[1] + l2_2.x[2]) * 2. + (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
+        * 2.;
     l4_2.gf[2] = (l2_2.x[0] - l2_2.x[1] + l2_2.x[2]) * 2. + (l2_2.x[1] - 
-	    l2_2.x[0] + l2_2.x[2]) * 2. - (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
-	    * 2.;
+        l2_2.x[0] + l2_2.x[2]) * 2. - (l2_2.x[0] + l2_2.x[1] - l2_2.x[2]) 
+        * 2.;
 labelL4:
     return 0;
 } /* tp240_ */
@@ -16030,11 +16030,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16047,9 +16047,9 @@ labelL1:
     l2_2.x[1] = 2.;
     l2_2.x[2] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -16083,7 +16083,7 @@ labelL2:
     d__3 = l2_2.x[2] * 5. - l2_2.x[0] + 1.;
     l16_3.f[4] = d__1 * (d__1 * d__1) + d__2 * d__2 * 3. + d__3 * d__3 - 36.;
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = l16_3.f[0];
@@ -16096,13 +16096,13 @@ labelL2:
 /* Computing 2nd power */
     d__5 = l16_3.f[4];
     l6_1.fx = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * 
-	    d__5;
+        d__5;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
-	l17_3.df[i__ * 5 - 5] = l2_2.x[i__ - 1] * 2.;
+    l17_3.df[i__ * 5 - 5] = l2_2.x[i__ - 1] * 2.;
 /* L7: */
-	l17_3.df[i__ * 5 - 3] = 1.;
+    l17_3.df[i__ * 5 - 3] = 1.;
     }
     l17_3.df[1] = l17_3.df[0];
     l17_3.df[6] = l17_3.df[5];
@@ -16119,10 +16119,10 @@ labelL3:
     l4_2.gf[1] = 0.;
     l4_2.gf[2] = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l4_2.gf[0] += l16_3.f[i__ - 1] * l17_3.df[i__ - 1] * 2.;
-	l4_2.gf[1] += l16_3.f[i__ - 1] * l17_3.df[i__ + 4] * 2.;
+    l4_2.gf[0] += l16_3.f[i__ - 1] * l17_3.df[i__ - 1] * 2.;
+    l4_2.gf[1] += l16_3.f[i__ - 1] * l17_3.df[i__ + 4] * 2.;
 /* L8: */
-	l4_2.gf[2] += l16_3.f[i__ - 1] * l17_3.df[i__ + 9] * 2.;
+    l4_2.gf[2] += l16_3.f[i__ - 1] * l17_3.df[i__ + 9] * 2.;
     }
 labelL4:
     return 0;
@@ -16138,11 +16138,11 @@ labelL4:
     static Real ti;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16154,11 +16154,11 @@ labelL1:
     l2_2.x[1] = 10.;
     l2_2.x[2] = l2_2.x[1];
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = 0.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l14_2.xu[i__ - 1] = 10.;
+    l14_2.xu[i__ - 1] = 10.;
     }
     l15_1.lsum = 10;
     l20_3.lex = true;
@@ -16171,19 +16171,19 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	ti = (Real) i__ * .1;
+    ti = (Real) i__ * .1;
 /* L7: */
-	l16_4.f[i__ - 1] = std::exp(-l2_2.x[0] * ti) - std::exp(-l2_2.x[1] * ti) - 
-		l2_2.x[2] * (std::exp(-ti) - std::exp(ti * -10.));
+    l16_4.f[i__ - 1] = std::exp(-l2_2.x[0] * ti) - std::exp(-l2_2.x[1] * ti) - 
+        l2_2.x[2] * (std::exp(-ti) - std::exp(ti * -10.));
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l16_4.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_4.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
@@ -16191,16 +16191,16 @@ labelL3:
     l4_2.gf[1] = 0.;
     l4_2.gf[2] = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	ti = (Real) i__ * .1;
-	l16_4.f[i__ - 1] = std::exp(-l2_2.x[0] * ti) - std::exp(-l2_2.x[1] * ti) - 
-		l2_2.x[2] * (std::exp(-ti) - std::exp(ti * -10.));
-	l17_4.df[i__ - 1] = -ti * std::exp(-l2_2.x[0] * ti);
-	l17_4.df[i__ + 9] = ti * std::exp(-l2_2.x[1] * ti);
-	l17_4.df[i__ + 19] = std::exp(ti * -10.) - std::exp(-ti);
-	l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
-	l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
+    ti = (Real) i__ * .1;
+    l16_4.f[i__ - 1] = std::exp(-l2_2.x[0] * ti) - std::exp(-l2_2.x[1] * ti) - 
+        l2_2.x[2] * (std::exp(-ti) - std::exp(ti * -10.));
+    l17_4.df[i__ - 1] = -ti * std::exp(-l2_2.x[0] * ti);
+    l17_4.df[i__ + 9] = ti * std::exp(-l2_2.x[1] * ti);
+    l17_4.df[i__ + 19] = std::exp(ti * -10.) - std::exp(-ti);
+    l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
+    l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
 /* labelL9: */
-	l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
+    l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
     }
 labelL4:
     return 0;
@@ -16212,14 +16212,14 @@ labelL4:
 
     static Real a[4] = { .14272,-.184981,-.521869,-.685306 };
     static Real d__[4] = { 1.75168,-1.35195,-.479048,-.3648 };
-    static Real b[9]	/* was [3][3] */ = { 2.95137,4.87407,-2.0506,
-	    4.87407,9.39321,-3.93185,-2.0506,-3.93189,2.64745 };
+    static Real b[9]    /* was [3][3] */ = { 2.95137,4.87407,-2.0506,
+        4.87407,9.39321,-3.93185,-2.0506,-3.93189,2.64745 };
 
     /* System generated locals */
     Real d__1;
 
     /* Local variables */
-    static Real dxbx[3], g[12]	/* was [4][3] */;
+    static Real dxbx[3], g[12]    /* was [4][3] */;
     static int i__;
     static Real xbx;
 
@@ -16236,11 +16236,11 @@ labelL4:
     g[7] = .586387;
     g[11] = .289826;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16250,11 +16250,11 @@ labelL1:
     l1_1.nenl = 0;
     l15_1.lsum = 4;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
-	l12_2.lxu[i__ - 1] = false;
-	l2_2.x[i__ - 1] = .1;
+    l11_2.lxl[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = .1;
 /* labelL6: */
-	l20_3.xex[i__ - 1] = 0.;
+    l20_3.xex[i__ - 1] = 0.;
     }
     l20_3.lex = true;
     l20_3.nex = 1;
@@ -16263,22 +16263,22 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     xbx = (l2_2.x[0] * b[0] + l2_2.x[1] * b[1] + l2_2.x[2] * b[2]) * l2_2.x[0]
-	     + (l2_2.x[0] * b[3] + l2_2.x[1] * b[4] + l2_2.x[2] * b[5]) * 
-	    l2_2.x[1] + (l2_2.x[0] * b[6] + l2_2.x[1] * b[7] + l2_2.x[2] * b[
-	    8]) * l2_2.x[2];
+         + (l2_2.x[0] * b[3] + l2_2.x[1] * b[4] + l2_2.x[2] * b[5]) * 
+        l2_2.x[1] + (l2_2.x[0] * b[6] + l2_2.x[1] * b[7] + l2_2.x[2] * b[
+        8]) * l2_2.x[2];
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l16_5.f[i__ - 1] = a[i__ - 1] + g[i__ - 1] * l2_2.x[0] + g[i__ + 3] * 
-		l2_2.x[1] + g[i__ + 7] * l2_2.x[2] + xbx * .5 * d__[i__ - 1];
+    l16_5.f[i__ - 1] = a[i__ - 1] + g[i__ - 1] * l2_2.x[0] + g[i__ + 3] * 
+        l2_2.x[1] + g[i__ + 7] * l2_2.x[2] + xbx * .5 * d__[i__ - 1];
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = l16_5.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_5.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
@@ -16287,16 +16287,16 @@ labelL3:
     dxbx[2] = (l2_2.x[0] * b[6] + l2_2.x[1] * b[7] + l2_2.x[2] * b[8]) * 2.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL9: */
-	l4_2.gf[i__ - 1] = 0.;
+    l4_2.gf[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-	l17_5.df[i__ - 1] = g[i__ - 1] + dxbx[0] * d__[i__ - 1] * .5;
-	l17_5.df[i__ + 3] = g[i__ + 3] + dxbx[1] * d__[i__ - 1] * .5;
-	l17_5.df[i__ + 7] = g[i__ + 7] + dxbx[2] * d__[i__ - 1] * .5;
-	l4_2.gf[0] += l16_5.f[i__ - 1] * l17_5.df[i__ - 1] * 2.;
-	l4_2.gf[1] += l16_5.f[i__ - 1] * l17_5.df[i__ + 3] * 2.;
+    l17_5.df[i__ - 1] = g[i__ - 1] + dxbx[0] * d__[i__ - 1] * .5;
+    l17_5.df[i__ + 3] = g[i__ + 3] + dxbx[1] * d__[i__ - 1] * .5;
+    l17_5.df[i__ + 7] = g[i__ + 7] + dxbx[2] * d__[i__ - 1] * .5;
+    l4_2.gf[0] += l16_5.f[i__ - 1] * l17_5.df[i__ - 1] * 2.;
+    l4_2.gf[1] += l16_5.f[i__ - 1] * l17_5.df[i__ + 3] * 2.;
 /* L8: */
-	l4_2.gf[2] += l16_5.f[i__ - 1] * l17_5.df[i__ + 7] * 2.;
+    l4_2.gf[2] += l16_5.f[i__ - 1] * l17_5.df[i__ + 7] * 2.;
     }
 labelL4:
     return 0;
@@ -16313,11 +16313,11 @@ labelL4:
     static Real yi, zi;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16331,11 +16331,11 @@ labelL1:
     l2_2.x[1] = 2.;
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l13_2.xl[i__ - 1] = (float)0.;
-	l14_2.xu[i__ - 1] = 1e10;
-	l11_2.lxl[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = (float)0.;
+    l14_2.xu[i__ - 1] = 1e10;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l20_3.lex = true;
     l20_3.fex = 0.;
@@ -16346,37 +16346,37 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	zi = (Real) i__ * .1;
-	yi = std::exp(-zi) - std::exp(zi * -10.) * 5.;
+    zi = (Real) i__ * .1;
+    yi = std::exp(-zi) - std::exp(zi * -10.) * 5.;
 /* L7: */
-	l16_4.f[i__ - 1] = std::exp(-l2_2.x[0] * zi) - l2_2.x[2] * std::exp(-l2_2.x[1] *
-		 zi) - yi;
+    l16_4.f[i__ - 1] = std::exp(-l2_2.x[0] * zi) - l2_2.x[2] * std::exp(-l2_2.x[1] *
+         zi) - yi;
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = l16_4.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_4.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	l4_2.gf[i__ - 1] = 0.;
+    l4_2.gf[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-	zi = (Real) i__ * .1;
-	yi = std::exp(-zi) - std::exp(zi * -10.) * 5.;
-	l17_4.df[i__ - 1] = -zi * std::exp(-l2_2.x[0] * zi);
-	l17_4.df[i__ + 9] = zi * l2_2.x[2] * std::exp(-l2_2.x[1] * zi);
-	l17_4.df[i__ + 19] = -exp(-l2_2.x[1] * zi);
-	l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
-	l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
+    zi = (Real) i__ * .1;
+    yi = std::exp(-zi) - std::exp(zi * -10.) * 5.;
+    l17_4.df[i__ - 1] = -zi * std::exp(-l2_2.x[0] * zi);
+    l17_4.df[i__ + 9] = zi * l2_2.x[2] * std::exp(-l2_2.x[1] * zi);
+    l17_4.df[i__ + 19] = -exp(-l2_2.x[1] * zi);
+    l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
+    l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
 /* labelL9: */
-	l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
+    l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
     }
 labelL4:
     return 0;
@@ -16393,11 +16393,11 @@ labelL4:
     static Real di;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16410,11 +16410,11 @@ labelL1:
     l2_2.x[1] = 10.;
     l2_2.x[2] = 20.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l13_13.xl[i__ - 1] = (float)0.;
-	l11_2.lxl[i__ - 1] = true;
-	l14_13.xu[i__ - 1] = (float)20.;
+    l13_13.xl[i__ - 1] = (float)0.;
+    l11_2.lxl[i__ - 1] = true;
+    l14_13.xu[i__ - 1] = (float)20.;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l14_13.xu[0] = (float)12.;
     l14_13.xu[1] = (float)12.;
@@ -16428,35 +16428,35 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	di = (Real) i__;
+    di = (Real) i__;
 /* L7: */
-	l16_4.f[i__ - 1] = std::exp(-di * l2_2.x[0] / 10.) - std::exp(-di * l2_2.x[1] / 
-		10.) - l2_2.x[2] * (exp(-di / 10.) - std::exp(-di));
+    l16_4.f[i__ - 1] = std::exp(-di * l2_2.x[0] / 10.) - std::exp(-di * l2_2.x[1] / 
+        10.) - l2_2.x[2] * (exp(-di / 10.) - std::exp(-di));
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = l16_4.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_4.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	l4_2.gf[i__ - 1] = 0.;
+    l4_2.gf[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-	di = (Real) i__;
-	l17_4.df[i__ - 1] = -di / 10. * std::exp(-di * l2_2.x[0] / 10.);
-	l17_4.df[i__ + 9] = di / 10. * std::exp(-di * l2_2.x[1] / 10.);
-	l17_4.df[i__ + 19] = std::exp(-di) - std::exp(-di / 10.);
-	l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
-	l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
+    di = (Real) i__;
+    l17_4.df[i__ - 1] = -di / 10. * std::exp(-di * l2_2.x[0] / 10.);
+    l17_4.df[i__ + 9] = di / 10. * std::exp(-di * l2_2.x[1] / 10.);
+    l17_4.df[i__ + 19] = std::exp(-di) - std::exp(-di / 10.);
+    l4_2.gf[0] += l16_4.f[i__ - 1] * l17_4.df[i__ - 1] * 2.;
+    l4_2.gf[1] += l16_4.f[i__ - 1] * l17_4.df[i__ + 9] * 2.;
 /* labelL9: */
-	l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
+    l4_2.gf[2] += l16_4.f[i__ - 1] * l17_4.df[i__ + 19] * 2.;
     }
 labelL4:
     return 0;
@@ -16472,11 +16472,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16488,14 +16488,14 @@ labelL1:
     l2_2.x[1] = 2.;
     l2_2.x[2] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	for (j = 1; j <= 3; ++j) {
+    for (j = 1; j <= 3; ++j) {
 /* L7: */
-	    l17_6.df[i__ + j * 3 - 4] = 0.;
-	}
-	l11_2.lxl[i__ - 1] = false;
-	l12_2.lxu[i__ - 1] = false;
+        l17_6.df[i__ + j * 3 - 4] = 0.;
+    }
+    l11_2.lxl[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l20_3.xex[i__ - 1] = 1.;
+    l20_3.xex[i__ - 1] = 1.;
     }
     l17_6.df[6] = 10.;
     l17_6.df[1] = -1.;
@@ -16512,7 +16512,7 @@ labelL2:
     l16_2.f[1] = 1. - l2_2.x[0];
     l16_2.f[2] = 1. - l2_2.x[1];
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = l16_2.f[0];
@@ -16526,12 +16526,12 @@ labelL3:
     l17_6.df[0] = (l2_2.x[0] + l2_2.x[1]) * -10.;
     l17_6.df[3] = (l2_2.x[0] + l2_2.x[1]) * -10.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l4_2.gf[i__ - 1] = 0.;
-	for (j = 1; j <= 3; ++j) {
+    l4_2.gf[i__ - 1] = 0.;
+    for (j = 1; j <= 3; ++j) {
 /* L8: */
-	    l4_2.gf[i__ - 1] += l16_2.f[j - 1] * 2. * l17_6.df[j + i__ * 3 - 
-		    4];
-	}
+        l4_2.gf[i__ - 1] += l16_2.f[j - 1] * 2. * l17_6.df[j + i__ * 3 - 
+            4];
+    }
     }
 labelL4:
     return 0;
@@ -16548,11 +16548,11 @@ labelL4:
     static Real theta, dtheta[3], xpi;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -16562,9 +16562,9 @@ labelL1:
     l1_1.nenl = 0;
     l20_3.nex = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l11_2.lxl[2] = true;
     l12_2.lxu[2] = true;
@@ -16585,7 +16585,7 @@ labelL2:
     xpi = std::asin(1.) * 2.;
     theta = 1. / (xpi * 2.) * std::atan(l2_2.x[1] / l2_2.x[0]);
     if (l2_2.x[0] < 0.) {
-	theta += .5;
+    theta += .5;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[2] - theta * 10.;
@@ -16612,7 +16612,7 @@ labelL3:
     dtheta[1] = 1. / ((d__1 * d__1 + 1.) * l2_2.x[0]);
     dtheta[2] = 0.;
     if (l2_2.x[0] < 0.) {
-	theta += .5;
+    theta += .5;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
@@ -16623,8 +16623,8 @@ labelL3:
 /* Computing 2nd power */
     d__4 = l2_2.x[1];
     l4_2.gf[0] = ((l2_2.x[2] - theta * 10.) * 20. * dtheta[0] + (sqrt(d__1 * 
-	    d__1 + d__2 * d__2) - 1.) * 2. / std::sqrt(d__3 * d__3 + d__4 * d__4) *
-	     l2_2.x[0]) * 100.;
+        d__1 + d__2 * d__2) - 1.) * 2. / std::sqrt(d__3 * d__3 + d__4 * d__4) *
+         l2_2.x[0]) * 100.;
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
 /* Computing 2nd power */
@@ -16634,8 +16634,8 @@ labelL3:
 /* Computing 2nd power */
     d__4 = l2_2.x[1];
     l4_2.gf[1] = ((l2_2.x[2] - theta * 10.) * 20. * dtheta[1] + (std::sqrt(d__1 * 
-	    d__1 + d__2 * d__2) - 1.) * 2. / std::sqrt(d__3 * d__3 + d__4 * d__4) *
-	     l2_2.x[1]) * 100.;
+        d__1 + d__2 * d__2) - 1.) * 2. / std::sqrt(d__3 * d__3 + d__4 * d__4) *
+         l2_2.x[1]) * 100.;
     l4_2.gf[2] = (l2_2.x[2] - theta * 10.) * 2. * 100. + l2_2.x[2] * 2.;
 labelL4:
     return 0;
@@ -16650,11 +16650,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -16666,9 +16666,9 @@ labelL1:
     l2_2.x[1] = -1.;
     l2_2.x[2] = .1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l5_3.gg[0] = 1.;
     l5_3.gg[2] = -2.;
@@ -16689,25 +16689,25 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = 1. - l2_2.x[1] * 2. + l2_2.x[0];
+    l3_2.g[0] = 1. - l2_2.x[1] * 2. + l2_2.x[0];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 1.;
+    d__3 = l2_2.x[2];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 - 1.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL9: */
-	l5_3.gg[(i__ << 1) - 1] = l2_2.x[i__ - 1] * 2.;
+    l5_3.gg[(i__ << 1) - 1] = l2_2.x[i__ - 1] * 2.;
     }
 L8:
     return 0;
@@ -16722,11 +16722,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -16735,10 +16735,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l11_2.lxl[0] = true;
     l5_5.gg[2] = 0.;
@@ -16762,21 +16762,21 @@ labelL2:
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L7: */
-	l4_2.gf[i__ - 1] = l2_2.x[i__ - 1] * 2.;
+    l4_2.gf[i__ - 1] = l2_2.x[i__ - 1] * 2.;
     }
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
-	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - 1.;
+    d__2 = l2_2.x[1];
+    l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L8;
+    goto L8;
     }
     l5_5.gg[0] = l2_2.x[0] * 2.;
     l5_5.gg[1] = l2_2.x[1] * 2.;
@@ -16789,11 +16789,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -16803,11 +16803,11 @@ labelL1:
     l1_1.nenl = 0;
     l20_3.nex = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = 0.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l2_2.x[i__ - 1] = 10.;
+    l2_2.x[i__ - 1] = 10.;
     }
     l14_2.xu[0] = 20.;
     l14_2.xu[1] = 11.;
@@ -16834,10 +16834,10 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
+    l3_2.g[0] = l2_2.x[0] + l2_2.x[1] * 2. + l2_2.x[2] * 2.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
+    l3_2.g[1] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
 labelL5:
     return 0;
@@ -16848,11 +16848,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -16861,12 +16861,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 10.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = 0.;
+    l2_2.x[i__ - 1] = 10.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l14_2.xu[i__ - 1] = 42.;
+    l14_2.xu[i__ - 1] = 42.;
     }
     l5_5.gg[0] = -1.;
     l5_5.gg[1] = -2.;
@@ -16888,7 +16888,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
+    l3_1.g[0] = 72. - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
 labelL5:
     return 0;
@@ -16903,11 +16903,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -16919,9 +16919,9 @@ labelL1:
     l2_2.x[1] = 2.;
     l2_2.x[2] = 2.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l12_2.lxu[0] = true;
     l14_2.xu[0] = -1.;
@@ -16948,7 +16948,7 @@ labelL3:
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[0] = (l2_2.x[0] - 1.) * .02 - (l2_2.x[1] - d__1 * d__1) * 4. * 
-	    l2_2.x[0];
+        l2_2.x[0];
 /* Computing 2nd power */
     d__1 = l2_2.x[0];
     l4_2.gf[1] = (l2_2.x[1] - d__1 * d__1) * 2.;
@@ -16956,13 +16956,13 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[2];
-	l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
+    d__1 = l2_2.x[2];
+    l3_1.g[0] = l2_2.x[0] + d__1 * d__1 + 1.;
     }
     return 0;
 labelL5:
     if (l10_2.index2[0]) {
-	l5_5.gg[2] = l2_2.x[2] * 2.;
+    l5_5.gg[2] = l2_2.x[2] * 2.;
     }
     return 0;
 } /* tp252_ */
@@ -16972,8 +16972,8 @@ labelL5:
 {
     /* Initialized data */
 
-    static Real a[24]	/* was [3][8] */ = { 0.,0.,0.,10.,0.,0.,10.,
-	    10.,0.,0.,10.,0.,0.,0.,10.,10.,0.,10.,10.,10.,10.,0.,10.,10. };
+    static Real a[24]    /* was [3][8] */ = { 0.,0.,0.,10.,0.,0.,10.,
+        10.,0.,0.,10.,0.,0.,0.,10.,10.,0.,10.,10.,10.,10.,0.,10.,10. };
 
     /* System generated locals */
     Real d__1, d__2, d__3;
@@ -16983,11 +16983,11 @@ labelL5:
 
 /*      DATA ((A(I,J),J=1,8),I=1,3) */
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -16999,10 +16999,10 @@ labelL1:
     l2_2.x[1] = 2.;
     l2_2.x[2] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l12_2.lxu[i__ - 1] = false;
-	l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l5_5.gg[0] = -3.;
     l5_5.gg[1] = 0.;
@@ -17012,7 +17012,7 @@ labelL1:
     l20_3.fex = 69.282032;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L7: */
-	l20_3.xex[i__ - 1] = (float).5;
+    l20_3.xex[i__ - 1] = (float).5;
     }
     return 0;
 labelL2:
@@ -17020,33 +17020,33 @@ labelL2:
     for (j = 1; j <= 8; ++j) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = a[j * 3 - 3] - l2_2.x[0];
+    d__1 = a[j * 3 - 3] - l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = a[j * 3 - 2] - l2_2.x[1];
+    d__2 = a[j * 3 - 2] - l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = a[j * 3 - 1] - l2_2.x[2];
-	l6_1.fx += std::sqrt(d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
+    d__3 = a[j * 3 - 1] - l2_2.x[2];
+    l6_1.fx += std::sqrt(d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
-	l4_2.gf[i__ - 1] = 0.;
-	for (j = 1; j <= 8; ++j) {
+    l4_2.gf[i__ - 1] = 0.;
+    for (j = 1; j <= 8; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = a[j * 3 - 3] - l2_2.x[0];
+        d__1 = a[j * 3 - 3] - l2_2.x[0];
 /* Computing 2nd power */
-	    d__2 = a[j * 3 - 2] - l2_2.x[1];
+        d__2 = a[j * 3 - 2] - l2_2.x[1];
 /* Computing 2nd power */
-	    d__3 = a[j * 3 - 1] - l2_2.x[2];
-	    l4_2.gf[i__ - 1] += (l2_2.x[i__ - 1] - a[i__ + j * 3 - 4]) / std::sqrt(
-		    d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
-	}
+        d__3 = a[j * 3 - 1] - l2_2.x[2];
+        l4_2.gf[i__ - 1] += (l2_2.x[i__ - 1] - a[i__ + j * 3 - 4]) / std::sqrt(
+            d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
+    }
     }
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 30. - l2_2.x[0] * 3. - l2_2.x[2] * 3.;
+    l3_1.g[0] = 30. - l2_2.x[0] * 3. - l2_2.x[2] * 3.;
     }
 labelL5:
     return 0;
@@ -17063,11 +17063,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -17079,9 +17079,9 @@ labelL1:
     l2_2.x[1] = 1.;
     l2_2.x[2] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
     }
     l12_2.lxu[2] = false;
     l11_2.lxl[2] = true;
@@ -17107,26 +17107,26 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[1];
+    d__1 = l2_2.x[1];
 /* Computing 2nd power */
-	d__2 = l2_2.x[2];
-	l3_2.g[0] = d__1 * d__1 + d__2 * d__2 - 4.;
+    d__2 = l2_2.x[2];
+    l3_2.g[0] = d__1 * d__1 + d__2 * d__2 - 4.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
-	l3_2.g[1] = l2_2.x[2] - 1. - d__1 * d__1;
+    d__1 = l2_2.x[0];
+    l3_2.g[1] = l2_2.x[2] - 1. - d__1 * d__1;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[2] = l2_2.x[1] * 2.;
     l5_3.gg[4] = l2_2.x[2] * 2.;
 L7:
     if (l10_3.index2[1]) {
-	l5_3.gg[1] = l2_2.x[0] * -2.;
+    l5_3.gg[1] = l2_2.x[0] * -2.;
     }
     return 0;
 } /* tp254_ */
@@ -17141,11 +17141,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17158,18 +17158,18 @@ labelL1:
     l2_3.x[2] = -3.;
     l2_3.x[3] = 1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l14_3.xu[i__ - 1] = (float)10.;
-	l12_3.lxu[i__ - 1] = true;
-	l13_3.xl[i__ - 1] = (float)-10.;
+    l14_3.xu[i__ - 1] = (float)10.;
+    l12_3.lxu[i__ - 1] = true;
+    l13_3.xl[i__ - 1] = (float)-10.;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = true;
+    l11_3.lxl[i__ - 1] = true;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
     l20_6.fex = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
 labelL2:
@@ -17186,9 +17186,9 @@ labelL2:
 /* Computing 2nd power */
     d__6 = l2_3.x[3] - (float)1.;
     l6_1.fx = (l2_3.x[1] - d__1 * d__1) * (float)100. + d__2 * d__2 + (l2_3.x[
-	    3] - d__3 * d__3) * (float)90. + d__4 * d__4 + (d__5 * d__5 + 
-	    d__6 * d__6) * (float)10.1 + (l2_3.x[1] - (float)1.) * (float)
-	    19.8 * (l2_3.x[3] - (float)1.);
+        3] - d__3 * d__3) * (float)90. + d__4 * d__4 + (d__5 * d__5 + 
+        d__6 * d__6) * (float)10.1 + (l2_3.x[1] - (float)1.) * (float)
+        19.8 * (l2_3.x[3] - (float)1.);
 /* Computing 2nd power */
     d__1 = l6_1.fx;
     l6_1.fx = d__1 * d__1 * (float).5;
@@ -17207,9 +17207,9 @@ labelL3:
 /* Computing 2nd power */
     d__6 = l2_3.x[3] - (float)1.;
     l6_1.fx = (l2_3.x[1] - d__1 * d__1) * (float)100. + d__2 * d__2 + (l2_3.x[
-	    3] - d__3 * d__3) * (float)90. + d__4 * d__4 + (d__5 * d__5 + 
-	    d__6 * d__6) * (float)10.1 + (l2_3.x[1] - (float)1.) * (float)
-	    19.8 * (l2_3.x[3] - (float)1.);
+        3] - d__3 * d__3) * (float)90. + d__4 * d__4 + (d__5 * d__5 + 
+        d__6 * d__6) * (float)10.1 + (l2_3.x[1] - (float)1.) * (float)
+        19.8 * (l2_3.x[3] - (float)1.);
     l4_3.gf[0] = l6_1.fx * (l2_3.x[0] * -198. - 2.);
     l4_3.gf[1] = l6_1.fx * (l2_3.x[1] * 20.2 + l2_3.x[3] * 19.8 + 60.);
     l4_3.gf[2] = l6_1.fx * (l2_3.x[2] * -178. - 2.);
@@ -17228,11 +17228,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17245,16 +17245,16 @@ labelL1:
     l2_3.x[2] = 0.;
     l2_3.x[3] = 1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
     l20_6.fex = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 0.;
+    l20_6.xex[i__ - 1] = 0.;
     }
     return 0;
 labelL2:
@@ -17267,25 +17267,25 @@ labelL2:
 /* Computing 4th power */
     d__4 = l2_3.x[0] - l2_3.x[3], d__4 *= d__4;
     l6_1.fx = (d__1 * d__1 + d__2 * d__2 * 5. + d__3 * d__3 + d__4 * d__4 * 
-	    10.) * 1e-4;
+        10.) * 1e-4;
     return 0;
 labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[0] = ((l2_3.x[0] + l2_3.x[1] * 10.) * 2. + d__1 * (d__1 * d__1) * 
-	    40.) * 1e-4;
+        40.) * 1e-4;
 /* Computing 3rd power */
     d__1 = l2_3.x[1] - l2_3.x[2] * 2.;
     l4_3.gf[1] = ((l2_3.x[0] + l2_3.x[1] * 10.) * 20. + d__1 * (d__1 * d__1) *
-	     4.) * 1e-4;
+         4.) * 1e-4;
 /* Computing 3rd power */
     d__1 = l2_3.x[1] - l2_3.x[2] * 2.;
     l4_3.gf[2] = ((l2_3.x[2] - l2_3.x[3]) * 10. - d__1 * (d__1 * d__1) * 8.) *
-	     1e-4;
+         1e-4;
 /* Computing 3rd power */
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[3] = ((l2_3.x[2] - l2_3.x[3]) * -10. - d__1 * (d__1 * d__1) * 40.)
-	     * 1e-4;
+         * 1e-4;
 labelL4:
     return 0;
 } /* tp256_ */
@@ -17300,11 +17300,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17318,7 +17318,7 @@ labelL1:
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     l11_3.lxl[0] = true;
     l11_3.lxl[1] = false;
@@ -17331,7 +17331,7 @@ labelL1:
     l20_6.fex = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
 labelL2:
@@ -17352,25 +17352,25 @@ labelL2:
 /* Computing 2nd power */
     d__8 = l2_3.x[3] - 1.;
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3 + d__4 * d__4 * 90. + d__6 * 
-	    d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[0] - 1.) * 
-	    19.8 * (l2_3.x[3] - 1.);
+        d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[0] - 1.) * 
+        19.8 * (l2_3.x[3] - 1.);
     return 0;
 labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = (d__1 * (d__1 * d__1) - l2_3.x[0] * l2_3.x[1]) * 400. + 
-	    l2_3.x[0] * 2. + l2_3.x[3] * 19.8 - 21.8;
+        l2_3.x[0] * 2. + l2_3.x[3] * 19.8 - 21.8;
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[1] = d__1 * d__1 * -200. + l2_3.x[1] * 220.2 - 20.2;
 /* Computing 3rd power */
     d__1 = l2_3.x[2];
     l4_3.gf[2] = (d__1 * (d__1 * d__1) - l2_3.x[2] * l2_3.x[3]) * 360. + 
-	    l2_3.x[2] * 2. - 2.;
+        l2_3.x[2] * 2. - 2.;
 /* Computing 2nd power */
     d__1 = l2_3.x[2];
     l4_3.gf[3] = d__1 * d__1 * -180. + l2_3.x[3] * 200.2 + l2_3.x[0] * 19.8 - 
-	    40.;
+        40.;
 labelL4:
     return 0;
 } /* tp257_ */
@@ -17385,11 +17385,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17402,16 +17402,16 @@ labelL1:
     l2_3.x[2] = -3.;
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
     l20_6.fex = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
 labelL2:
@@ -17432,26 +17432,26 @@ labelL2:
 /* Computing 2nd power */
     d__8 = l2_3.x[3] - 1.;
     l6_1.fx = (d__1 * d__1 * 100. + d__3 * d__3 + d__4 * d__4 * 90. + d__6 * 
-	    d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[1] - 1.) * 
-	    19.8 * (l2_3.x[3] - 1.)) * 1e-4;
+        d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (l2_3.x[1] - 1.) * 
+        19.8 * (l2_3.x[3] - 1.)) * 1e-4;
     return 0;
 labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = ((d__1 * (d__1 * d__1) - l2_3.x[0] * l2_3.x[1]) * 400. + 
-	    l2_3.x[0] * 2. - 2.) * 1e-4;
+        l2_3.x[0] * 2. - 2.) * 1e-4;
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[1] = (d__1 * d__1 * -200. + l2_3.x[1] * 220.2 + l2_3.x[3] * 19.8 
-	    - 40.) * 1e-4;
+        - 40.) * 1e-4;
 /* Computing 3rd power */
     d__1 = l2_3.x[2];
     l4_3.gf[2] = ((d__1 * (d__1 * d__1) - l2_3.x[2] * l2_3.x[3]) * 360. + 
-	    l2_3.x[2] * 2. - 2.) * 1e-4;
+        l2_3.x[2] * 2. - 2.) * 1e-4;
 /* Computing 2nd power */
     d__1 = l2_3.x[2];
     l4_3.gf[3] = (d__1 * d__1 * -180. + l2_3.x[3] * 200.2 + l2_3.x[1] * 19.8 
-	    - 40.) * 1e-4;
+        - 40.) * 1e-4;
 labelL4:
     return 0;
 } /* tp258_ */
@@ -17466,11 +17466,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17479,10 +17479,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 0.;
-	l12_3.lxu[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 0.;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l12_3.lxu[3] = true;
     l14_3.xu[3] = 1.;
@@ -17491,7 +17491,7 @@ labelL1:
     l20_6.fex = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
 labelL2:
@@ -17512,28 +17512,28 @@ labelL2:
 /* Computing 2nd power */
     d__8 = l2_3.x[3] - 1.;
     l6_1.fx = d__1 * d__1 * 100. + d__3 * d__3 + d__4 * d__4 * 90. + d__6 * (
-	    d__6 * d__6) + d__7 * d__7 * 10.1 + d__8 * d__8 + (l2_3.x[1] - 1.)
-	     * 19.8 * (l2_3.x[3] - 1.);
+        d__6 * d__6) + d__7 * d__7 * 10.1 + d__8 * d__8 + (l2_3.x[1] - 1.)
+         * 19.8 * (l2_3.x[3] - 1.);
     return 0;
 labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0];
     l4_3.gf[0] = (d__1 * (d__1 * d__1) - l2_3.x[0] * l2_3.x[1]) * 400. + 
-	    l2_3.x[0] * 2. - 2.;
+        l2_3.x[0] * 2. - 2.;
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
     l4_3.gf[1] = d__1 * d__1 * -200. + l2_3.x[1] * 220.2 + l2_3.x[3] * 19.8 - 
-	    40.;
+        40.;
 /* Computing 3rd power */
     d__1 = l2_3.x[2];
 /* Computing 2nd power */
     d__2 = 1. - l2_3.x[2];
     l4_3.gf[2] = (d__1 * (d__1 * d__1) - l2_3.x[2] * l2_3.x[3]) * 360. - d__2 
-	    * d__2 * 3.;
+        * d__2 * 3.;
 /* Computing 2nd power */
     d__1 = l2_3.x[2];
     l4_3.gf[3] = d__1 * d__1 * -180. + l2_3.x[3] * 182. + l2_3.x[1] * 19.8 - 
-	    21.8;
+        21.8;
 labelL4:
     return 0;
 } /* tp259_ */
@@ -17548,11 +17548,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17565,23 +17565,23 @@ labelL1:
     l2_3.x[2] = -3.;
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
     l20_6.fex = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     l15_1.lsum = 7;
     for (i__ = 1; i__ <= 7; ++i__) {
-	for (j = 1; j <= 4; ++j) {
+    for (j = 1; j <= 4; ++j) {
 /* L8: */
-	    l17_7.df[i__ + j * 7 - 8] = 0.;
-	}
+        l17_7.df[i__ + j * 7 - 8] = 0.;
+    }
     }
     l17_7.df[7] = 10.;
     l17_7.df[1] = -1.;
@@ -17605,14 +17605,14 @@ labelL2:
     l16_6.f[5] = std::sqrt(.2) * (l2_3.x[1] - 1.);
     l16_6.f[6] = std::sqrt(.2) * (l2_3.x[3] - 1.);
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 7; ++i__) {
 /* labelL9: */
 /* Computing 2nd power */
-	d__1 = l16_6.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_6.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= 1e-4;
     return 0;
@@ -17620,12 +17620,12 @@ labelL3:
     l17_7.df[0] = l2_3.x[0] * -20. * 1e-4;
     l17_7.df[16] = -std::sqrt(90.) * (float)2. * l2_3.x[2] * 1e-4;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l4_3.gf[i__ - 1] = 0.;
-	for (j = 1; j <= 7; ++j) {
+    l4_3.gf[i__ - 1] = 0.;
+    for (j = 1; j <= 7; ++j) {
 /* labelL10: */
-	    l4_3.gf[i__ - 1] += l16_6.f[j - 1] * 2. * l17_7.df[j + i__ * 7 - 
-		    8];
-	}
+        l4_3.gf[i__ - 1] += l16_6.f[j - 1] * 2. * l17_7.df[j + i__ * 7 - 
+            8];
+    }
     }
 labelL4:
     return 0;
@@ -17642,11 +17642,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -17656,15 +17656,15 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l13_14.xl[i__ - 1] = (float)0.;
-	l11_3.lxl[i__ - 1] = true;
-	l14_14.xu[i__ - 1] = (float)1e5;
-	l12_3.lxu[i__ - 1] = true;
-	l2_3.x[i__ - 1] = 0.;
-	for (j = 1; j <= 5; ++j) {
+    l13_14.xl[i__ - 1] = (float)0.;
+    l11_3.lxl[i__ - 1] = true;
+    l14_14.xu[i__ - 1] = (float)1e5;
+    l12_3.lxu[i__ - 1] = true;
+    l2_3.x[i__ - 1] = 0.;
+    for (j = 1; j <= 5; ++j) {
 /* labelL6: */
-	    l17_8.df[j + i__ * 5 - 6] = 0.;
-	}
+        l17_8.df[j + i__ * 5 - 6] = 0.;
+    }
     }
     l17_8.df[19] = 1.;
     l20_6.lex = true;
@@ -17673,7 +17673,7 @@ labelL1:
     l20_6.xex[0] = 0.;
     for (i__ = 2; i__ <= 4; ++i__) {
 /* L7: */
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
     }
     return 0;
 labelL2:
@@ -17691,14 +17691,14 @@ labelL2:
     l16_3.f[3] = d__1 * d__1;
     l16_3.f[4] = l2_3.x[3] - 1.;
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l16_3.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_3.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
@@ -17723,7 +17723,7 @@ labelL3:
 /* Computing 7th power */
     d__2 = l2_3.x[0], d__3 = d__2, d__2 *= d__2, d__3 *= d__2;
     l4_3.gf[0] = std::exp(l2_3.x[0]) * 4. * (d__1 * (d__1 * d__1)) + d__3 * (d__2 *
-	     d__2) * 8.;
+         d__2) * 8.;
 /* Computing 3rd power */
     d__1 = a;
 /* Computing 5th power */
@@ -17742,17 +17742,17 @@ labelL4:
 {
     /* Initialized data */
 
-    static Real hgg[16]	/* was [4][4] */ = { -1.,-.2,-2.,1.,-1.,-.5,
-	    -1.,1.,-1.,-1.,-.5,1.,-1.,-2.,-.2,-2. };
+    static Real hgg[16]    /* was [4][4] */ = { -1.,-.2,-2.,1.,-1.,-.5,
+        -1.,1.,-1.,-1.,-.5,1.,-1.,-2.,-.2,-2. };
 
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 4;
@@ -17761,19 +17761,19 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 1.;
-	l11_3.lxl[i__ - 1] = true;
-	l12_3.lxu[i__ - 1] = false;
-	l13_3.xl[i__ - 1] = 0.;
-	for (j = 1; j <= 4; ++j) {
-	    l5_28.gg[i__ + (j << 2) - 5] = hgg[i__ + (j << 2) - 5];
+    l2_3.x[i__ - 1] = 1.;
+    l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = false;
+    l13_3.xl[i__ - 1] = 0.;
+    for (j = 1; j <= 4; ++j) {
+        l5_28.gg[i__ + (j << 2) - 5] = hgg[i__ + (j << 2) - 5];
 /* labelL6: */
-	}
+    }
     }
     for (i__ = 1; i__ <= 3; i__ += 2) {
-	l4_3.gf[i__ - 1] = -.5;
+    l4_3.gf[i__ - 1] = -.5;
 /* L7: */
-	l4_3.gf[i__] = -1.;
+    l4_3.gf[i__] = -1.;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
@@ -17789,18 +17789,18 @@ labelL3:
     return 0;
 labelL4:
     if (l9_7.index1[0]) {
-	l3_6.g[0] = 10. - l2_3.x[0] - l2_3.x[1] - l2_3.x[2] - l2_3.x[3];
+    l3_6.g[0] = 10. - l2_3.x[0] - l2_3.x[1] - l2_3.x[2] - l2_3.x[3];
     }
     if (l9_7.index1[1]) {
-	l3_6.g[1] = 10. - l2_3.x[0] * .2 - l2_3.x[1] * .5 - l2_3.x[2] - 
-		l2_3.x[3] * 2.;
+    l3_6.g[1] = 10. - l2_3.x[0] * .2 - l2_3.x[1] * .5 - l2_3.x[2] - 
+        l2_3.x[3] * 2.;
     }
     if (l9_7.index1[2]) {
-	l3_6.g[2] = 10. - l2_3.x[0] * 2. - l2_3.x[1] - l2_3.x[2] * .5 - 
-		l2_3.x[3] * .2;
+    l3_6.g[2] = 10. - l2_3.x[0] * 2. - l2_3.x[1] - l2_3.x[2] * .5 - 
+        l2_3.x[3] * .2;
     }
     if (l9_7.index1[3]) {
-	l3_6.g[3] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] - l2_3.x[3] * 2. - 6.;
+    l3_6.g[3] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] - l2_3.x[3] * 2. - 6.;
     }
     return 0;
 } /* tp262_ */
@@ -17815,11 +17815,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -17828,10 +17828,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 10.;
-	l11_3.lxl[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 10.;
+    l11_3.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     l5_28.gg[4] = 1.;
     l5_28.gg[8] = 0.;
@@ -17842,17 +17842,17 @@ labelL1:
     l5_28.gg[11] = 0.;
     l4_3.gf[0] = -1.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l5_28.gg[i__ + 11] = 0.;
+    l5_28.gg[i__ + 11] = 0.;
 /* L7: */
-	l4_3.gf[i__] = 0.;
+    l4_3.gf[i__] = 0.;
     }
     l20_6.lex = true;
     l20_6.nex = 1;
     l20_6.fex = -1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l20_6.xex[i__ - 1] = 1.;
+    l20_6.xex[i__ - 1] = 1.;
 /* L8: */
-	l20_6.xex[i__ + 1] = 0.;
+    l20_6.xex[i__ + 1] = 0.;
     }
     return 0;
 labelL2:
@@ -17862,40 +17862,40 @@ labelL3:
 labelL4:
     if (l9_7.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_3.x[0];
-	l3_6.g[0] = l2_3.x[1] - d__1 * (d__1 * d__1);
+    d__1 = l2_3.x[0];
+    l3_6.g[0] = l2_3.x[1] - d__1 * (d__1 * d__1);
     }
     if (l9_7.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
-	l3_6.g[1] = d__1 * d__1 - l2_3.x[1];
+    d__1 = l2_3.x[0];
+    l3_6.g[1] = d__1 * d__1 - l2_3.x[1];
     }
     if (l9_7.index1[2]) {
 /* Computing 3rd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[2];
-	l3_6.g[2] = l2_3.x[1] - d__1 * (d__1 * d__1) - d__2 * d__2;
+    d__2 = l2_3.x[2];
+    l3_6.g[2] = l2_3.x[1] - d__1 * (d__1 * d__1) - d__2 * d__2;
     }
     if (l9_7.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[3];
-	l3_6.g[3] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
+    d__2 = l2_3.x[3];
+    l3_6.g[3] = d__1 * d__1 - l2_3.x[1] - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (l10_7.index2[0]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
-	l5_28.gg[0] = d__1 * d__1 * -3.;
+    d__1 = l2_3.x[0];
+    l5_28.gg[0] = d__1 * d__1 * -3.;
     }
     if (l10_7.index2[1]) {
-	l5_28.gg[1] = l2_3.x[0] * 2.;
+    l5_28.gg[1] = l2_3.x[0] * 2.;
     }
     if (! l10_7.index2[2]) {
-	goto labelL9;
+    goto labelL9;
     }
 /* Computing 2nd power */
     d__1 = l2_3.x[0];
@@ -17903,7 +17903,7 @@ labelL5:
     l5_28.gg[10] = l2_3.x[2] * -2.;
 labelL9:
     if (! l10_7.index2[3]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_28.gg[3] = l2_3.x[0] * 2.;
     l5_28.gg[15] = l2_3.x[3] * -2.;
@@ -17921,11 +17921,11 @@ labelL10:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -17934,10 +17934,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 0.;
-	l11_3.lxl[i__ - 1] = false;
+    l2_3.x[i__ - 1] = 0.;
+    l11_3.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
     }
     l5_7.gg[11] = 1.;
     l20_6.lex = true;
@@ -17958,8 +17958,8 @@ labelL2:
 /* Computing 2nd power */
     d__4 = l2_3.x[3];
     l6_1.fx = (d__1 * d__1 + d__2 * d__2 + d__3 * d__3 * 2. + d__4 * d__4 - 
-	    l2_3.x[0] * 5. - l2_3.x[1] * 5. - l2_3.x[2] * 21. + l2_3.x[3] * 
-	    7.) * (float).01;
+        l2_3.x[0] * 5. - l2_3.x[1] * 5. - l2_3.x[2] * 21. + l2_3.x[3] * 
+        7.) * (float).01;
     return 0;
 labelL3:
     l4_3.gf[0] = (l2_3.x[0] * 2. - 5.) * (float).01;
@@ -17970,42 +17970,42 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
+    d__3 = l2_3.x[2];
 /* Computing 2nd power */
-	d__4 = l2_3.x[3];
-	l3_3.g[0] = 8. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3 - d__4 * 
-		d__4 - l2_3.x[0] + l2_3.x[1] - l2_3.x[2] + l2_3.x[3];
+    d__4 = l2_3.x[3];
+    l3_3.g[0] = 8. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3 - d__4 * 
+        d__4 - l2_3.x[0] + l2_3.x[1] - l2_3.x[2] + l2_3.x[3];
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
+    d__3 = l2_3.x[2];
 /* Computing 2nd power */
-	d__4 = l2_3.x[3];
-	l3_3.g[1] = 9. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 - d__4 *
-		 d__4 * 2. + l2_3.x[0] + l2_3.x[3];
+    d__4 = l2_3.x[3];
+    l3_3.g[1] = 9. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 - d__4 *
+         d__4 * 2. + l2_3.x[0] + l2_3.x[3];
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_3.x[0];
+    d__1 = l2_3.x[0];
 /* Computing 2nd power */
-	d__2 = l2_3.x[1];
+    d__2 = l2_3.x[1];
 /* Computing 2nd power */
-	d__3 = l2_3.x[2];
-	l3_3.g[2] = 5. - d__1 * d__1 * 2. - d__2 * d__2 - d__3 * d__3 - 
-		l2_3.x[0] * 2. + l2_3.x[1] + l2_3.x[3];
+    d__3 = l2_3.x[2];
+    l3_3.g[2] = 5. - d__1 * d__1 * 2. - d__2 * d__2 - d__3 * d__3 - 
+        l2_3.x[0] * 2. + l2_3.x[1] + l2_3.x[3];
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto labelL9;
+    goto labelL9;
     }
     l5_7.gg[0] = -1. - l2_3.x[0] * 2.;
     l5_7.gg[3] = 1. - l2_3.x[1] * 2.;
@@ -18013,7 +18013,7 @@ labelL5:
     l5_7.gg[9] = 1. - l2_3.x[3] * 2.;
 labelL9:
     if (! l10_4.index2[1]) {
-	goto labelL10;
+    goto labelL10;
     }
     l5_7.gg[1] = 1. - l2_3.x[0] * 2.;
     l5_7.gg[4] = l2_3.x[1] * -4.;
@@ -18021,7 +18021,7 @@ labelL9:
     l5_7.gg[10] = -1. - l2_3.x[3] * 4.;
 labelL10:
     if (! l10_4.index2[2]) {
-	goto labelL11;
+    goto labelL11;
     }
     l5_7.gg[2] = -2. - l2_3.x[0] * 4.;
     l5_7.gg[5] = 1. - l2_3.x[1] * 2.;
@@ -18035,18 +18035,18 @@ labelL11:
 {
     /* Initialized data */
 
-    static Real hgg[8]	/* was [2][4] */ = { 1.,0.,1.,0.,0.,1.,0.,1. }
-	    ;
+    static Real hgg[8]    /* was [2][4] */ = { 1.,0.,1.,0.,0.,1.,0.,1. }
+        ;
 
     /* Local variables */
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -18055,50 +18055,50 @@ labelL1:
     l1_1.neli = 2;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_3.x[i__ - 1] = 0.;
-	l11_3.lxl[i__ - 1] = true;
-	l13_3.xl[i__ - 1] = 0.;
-	l12_3.lxu[i__ - 1] = false;
-	l14_3.xu[i__ - 1] = 1.;
-	for (j = 1; j <= 2; ++j) {
-	    l5_6.gg[j + (i__ << 1) - 3] = hgg[j + (i__ << 1) - 3];
+    l2_3.x[i__ - 1] = 0.;
+    l11_3.lxl[i__ - 1] = true;
+    l13_3.xl[i__ - 1] = 0.;
+    l12_3.lxu[i__ - 1] = false;
+    l14_3.xu[i__ - 1] = 1.;
+    for (j = 1; j <= 2; ++j) {
+        l5_6.gg[j + (i__ << 1) - 3] = hgg[j + (i__ << 1) - 3];
 /* labelL6: */
-	}
+    }
     }
     l20_2.lex = true;
     l20_2.nex = 2;
     l20_2.fex = .97474658;
     for (i__ = 1; i__ <= 3; i__ += 2) {
-	l20_2.xex[i__ - 1] = 1.;
+    l20_2.xex[i__ - 1] = 1.;
 /* L7: */
-	l20_2.xex[i__] = 0.;
+    l20_2.xex[i__] = 0.;
     }
     for (i__ = 5; i__ <= 8; ++i__) {
 /* L8: */
-	l20_2.xex[i__ - 1] = l20_2.xex[9 - i__ - 1];
+    l20_2.xex[i__ - 1] = l20_2.xex[9 - i__ - 1];
     }
     return 0;
 labelL2:
     l6_1.fx = 2.;
     for (i__ = 1; i__ <= 2; ++i__) {
 /* labelL9: */
-	l6_1.fx -= std::exp(l2_3.x[i__ - 1] * -10. * std::exp(-l2_3.x[i__ + 1]));
+    l6_1.fx -= std::exp(l2_3.x[i__ - 1] * -10. * std::exp(-l2_3.x[i__ + 1]));
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 2; ++i__) {
-	l4_3.gf[i__ - 1] = std::exp(l2_3.x[i__ - 1] * -10. * std::exp(-l2_3.x[i__ + 1]) 
-		- l2_3.x[i__ + 1]) * 10.;
+    l4_3.gf[i__ - 1] = std::exp(l2_3.x[i__ - 1] * -10. * std::exp(-l2_3.x[i__ + 1]) 
+        - l2_3.x[i__ + 1]) * 10.;
 /* labelL10: */
-	l4_3.gf[i__ + 1] = -l2_3.x[i__ - 1] * l4_3.gf[i__ - 1];
+    l4_3.gf[i__ + 1] = -l2_3.x[i__ - 1] * l4_3.gf[i__ - 1];
     }
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_3.x[0] + l2_3.x[1] - 1.;
+    l3_2.g[0] = l2_3.x[0] + l2_3.x[1] - 1.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_3.x[2] + l2_3.x[3] - 1.;
+    l3_2.g[1] = l2_3.x[2] + l2_3.x[3] - 1.;
     }
 labelL5:
     return 0;
@@ -18110,22 +18110,22 @@ labelL5:
     /* Initialized data */
 
     static Real a[10] = { .0426149,.0352053,.0878058,.0330812,.0580924,
-	    .649704,.344144,-.627443,.001828,-.224783 };
+        .649704,.344144,-.627443,.001828,-.224783 };
     static Real d__[10] = { 2.34659,2.84048,1.13888,3.02286,1.72139,
-	    .153917,.290577,-.159378,54.691,-.444873 };
-    static Real c__[50]	/* was [10][5] */ = { -.564255,.535493,
-	    .586387,.608734,.774227,-.435033,.759468,-.152448,-.821772,
-	    .819831,.392417,.658799,.289826,.984915,.325421,-.688583,-.627795,
-	    -.546437,-.53412,-.910632,-.404979,-.0636666,.854402,.375699,
-	    -.151719,.222278,.0403142,.484134,-.798498,-.480344,.927589,
-	    -.681091,.789312,.239547,.448051,-.524653,.724666,.353951,
-	    -.658572,-.871758,-.0735083,-.869487,.949721,.463136,.149926,
-	    .413248,-.0182537,.887866,.662362,-.978666 };
-    static Real b[25]	/* was [5][5] */ = { .354033,-.0230349,
-	    -.211938,-.0554288,.220429,-.0230349,.29135,-.00180333,-.111141,
-	    .0485461,-.211938,-.00180333,-.815808,-.133538,-.38067,-.0554288,
-	    -.111141,-.133538,.389198,-.131586,.220429,.0485461,-.38067,
-	    -.131586,.534706 };
+        .153917,.290577,-.159378,54.691,-.444873 };
+    static Real c__[50]    /* was [10][5] */ = { -.564255,.535493,
+        .586387,.608734,.774227,-.435033,.759468,-.152448,-.821772,
+        .819831,.392417,.658799,.289826,.984915,.325421,-.688583,-.627795,
+        -.546437,-.53412,-.910632,-.404979,-.0636666,.854402,.375699,
+        -.151719,.222278,.0403142,.484134,-.798498,-.480344,.927589,
+        -.681091,.789312,.239547,.448051,-.524653,.724666,.353951,
+        -.658572,-.871758,-.0735083,-.869487,.949721,.463136,.149926,
+        .413248,-.0182537,.887866,.662362,-.978666 };
+    static Real b[25]    /* was [5][5] */ = { .354033,-.0230349,
+        -.211938,-.0554288,.220429,-.0230349,.29135,-.00180333,-.111141,
+        .0485461,-.211938,-.00180333,-.815808,-.133538,-.38067,-.0554288,
+        -.111141,-.133538,.389198,-.131586,.220429,.0485461,-.38067,
+        -.131586,.534706 };
 
     /* System generated locals */
     Real d__1;
@@ -18137,11 +18137,11 @@ labelL5:
     static Real hf;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_2.n = 5;
@@ -18151,11 +18151,11 @@ labelL1:
     l1_2.neli = 0;
     l1_2.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = .1;
-	l11_4.lxl[i__ - 1] = false;
-	l12_4.lxu[i__ - 1] = false;
+    l2_4.x[i__ - 1] = .1;
+    l11_4.lxl[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
 /* labelL6: */
-	l20_7.xex[i__ - 1] = 0.;
+    l20_7.xex[i__ - 1] = 0.;
     }
     l20_7.nex = 1;
     l20_7.lex = true;
@@ -18168,37 +18168,37 @@ labelL1:
 labelL2:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL20: */
-	l16_4.f[i__ - 1] = tp266a_(&a[i__ - 1], b, c__, &d__[i__ - 1], &i__, 
-		l2_4.x);
+    l16_4.f[i__ - 1] = tp266a_(&a[i__ - 1], b, c__, &d__[i__ - 1], &i__, 
+        l2_4.x);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_4.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_4.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= 1e4;
     return 0;
 labelL3:
     for (k = 1; k <= 5; ++k) {
-	l4_4.gf[k - 1] = 0.;
-	for (i__ = 1; i__ <= 10; ++i__) {
-	    hf = 0.;
-	    for (l = 1; l <= 5; ++l) {
+    l4_4.gf[k - 1] = 0.;
+    for (i__ = 1; i__ <= 10; ++i__) {
+        hf = 0.;
+        for (l = 1; l <= 5; ++l) {
 /* labelL10: */
-		hf += (b[k + l * 5 - 6] + b[l + k * 5 - 6]) * l2_4.x[l - 1];
-	    }
-	    l17_9.df[i__ + k * 10 - 11] = c__[i__ + k * 10 - 11] + d__[i__ - 
-		    1] * .5 * hf;
-	    l4_4.gf[k - 1] += l16_4.f[i__ - 1] * 2. * l17_9.df[i__ + k * 10 - 
-		    11];
+        hf += (b[k + l * 5 - 6] + b[l + k * 5 - 6]) * l2_4.x[l - 1];
+        }
+        l17_9.df[i__ + k * 10 - 11] = c__[i__ + k * 10 - 11] + d__[i__ - 
+            1] * .5 * hf;
+        l4_4.gf[k - 1] += l16_4.f[i__ - 1] * 2. * l17_9.df[i__ + k * 10 - 
+            11];
 /* L8: */
-	    l4_4.gf[k - 1] *= 1e4;
-	}
+        l4_4.gf[k - 1] *= 1e4;
+    }
     }
 labelL4:
     return 0;
@@ -18226,12 +18226,12 @@ Real tp266a_(Real *ai, Real *b, Real *c__, Real *di, int *i__, Real *x)
     /* Function Body */
     ret_val = *ai;
     for (k = 1; k <= 5; ++k) {
-	hf = 0.;
-	for (l = 1; l <= 5; ++l) {
+    hf = 0.;
+    for (l = 1; l <= 5; ++l) {
 /* labelL20: */
-	    hf += b[k + l * 5] * x[l];
-	}
-	ret_val += x[k] * (c__[*i__ + k * 10] + *di * .5 * hf);
+        hf += b[k + l * 5] * x[l];
+    }
+    ret_val += x[k] * (c__[*i__ + k * 10] + *di * .5 * hf);
 /* labelL10: */
     }
     return ret_val;
@@ -18248,11 +18248,11 @@ Real tp266a_(Real *ai, Real *b, Real *c__, Real *di, int *i__, Real *x)
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 5;
@@ -18261,11 +18261,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = false;
-	l14_4.xu[i__ - 1] = (float)15.;
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = false;
+    l14_4.xu[i__ - 1] = (float)15.;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
     }
     l11_4.lxl[0] = true;
     l11_4.lxl[1] = true;
@@ -18290,45 +18290,45 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 11; ++i__) {
-	h__ = (Real) i__ * .1;
+    h__ = (Real) i__ * .1;
 /*      HF(1)=X(3)*DEXP(-X(1)*H) */
 /*      HF(2)=X(4)*DEXP(-X(2)*H) */
 /*      HF(3)=3.D+0*DEXP(-X(5)*H) */
 /*      HF(4)=-DEXP(-H)+5.D+0*DEXP(-1.D+1*H)-3.D+0*DEXP(-4.D+0*H) */
 /*      F(I)=HF(1)-HF(2)+HF(3)+HF(4) */
 /* labelL20: */
-	l16_7.f[i__ - 1] = l2_4.x[2] * std::exp(-l2_4.x[0] * h__) - l2_4.x[3] * 
-		exp(-l2_4.x[1] * h__) + std::exp(-l2_4.x[4] * h__) * 3. - (exp(
-		-h__) - std::exp(h__ * -10.) * 5. + std::exp(h__ * -4.) * 3.);
+    l16_7.f[i__ - 1] = l2_4.x[2] * std::exp(-l2_4.x[0] * h__) - l2_4.x[3] * 
+        exp(-l2_4.x[1] * h__) + std::exp(-l2_4.x[4] * h__) * 3. - (exp(
+        -h__) - std::exp(h__ * -10.) * 5. + std::exp(h__ * -4.) * 3.);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 11; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_7.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_7.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (j = 1; j <= 11; ++j) {
-	h__ = (Real) j * .1;
-	l17_10.df[j + 21] = std::exp(-l2_4.x[0] * h__);
-	l17_10.df[j + 32] = -exp(-l2_4.x[1] * h__);
-	l17_10.df[j - 1] = -h__ * l2_4.x[2] * l17_10.df[j + 21];
-	l17_10.df[j + 10] = -h__ * l2_4.x[3] * l17_10.df[j + 32];
+    h__ = (Real) j * .1;
+    l17_10.df[j + 21] = std::exp(-l2_4.x[0] * h__);
+    l17_10.df[j + 32] = -exp(-l2_4.x[1] * h__);
+    l17_10.df[j - 1] = -h__ * l2_4.x[2] * l17_10.df[j + 21];
+    l17_10.df[j + 10] = -h__ * l2_4.x[3] * l17_10.df[j + 32];
 /* L8: */
-	l17_10.df[j + 43] = -h__ * 3. * std::exp(-l2_4.x[4] * h__);
+    l17_10.df[j + 43] = -h__ * 3. * std::exp(-l2_4.x[4] * h__);
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-	l4_4.gf[i__ - 1] = 0.;
-	for (j = 1; j <= 11; ++j) {
+    l4_4.gf[i__ - 1] = 0.;
+    for (j = 1; j <= 11; ++j) {
 /* labelL13: */
-	    l4_4.gf[i__ - 1] += l16_7.f[j - 1] * 2. * l17_10.df[j + i__ * 11 
-		    - 12];
-	}
+        l4_4.gf[i__ - 1] += l16_7.f[j - 1] * 2. * l17_10.df[j + i__ * 11 
+            - 12];
+    }
     }
 labelL4:
     return 0;
@@ -18339,11 +18339,11 @@ labelL4:
 {
     /* Initialized data */
 
-    static int hgg[25]	/* was [5][5] */ = { -1,10,-8,8,-4,-1,10,1,-1,
-	    -2,-1,-3,-2,2,3,-1,5,-5,5,-5,-1,4,3,-3,1 };
-    static int dd[25]	/* was [5][5] */ = { 10197,-12454,-1013,1948,
-	    329,-12454,20909,-1733,-4914,-186,-1013,-1733,1755,1089,-174,1948,
-	    -4914,1089,1515,-22,329,-186,-174,-22,27 };
+    static int hgg[25]    /* was [5][5] */ = { -1,10,-8,8,-4,-1,10,1,-1,
+        -2,-1,-3,-2,2,3,-1,5,-5,5,-5,-1,4,3,-3,1 };
+    static int dd[25]    /* was [5][5] */ = { 10197,-12454,-1013,1948,
+        329,-12454,20909,-1733,-4914,-186,-1013,-1733,1755,1089,-174,1948,
+        -4914,1089,1515,-22,329,-186,-174,-22,27 };
     static int ddvekt[5] = { -9170,17099,-2271,-4336,-43 };
     static int dvdv = 14463;
 
@@ -18366,11 +18366,11 @@ labelL4:
 
 /*     DVEKT=( 51, -61, -56, 69, 10, -12 )' */
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_2.n = 5;
@@ -18379,13 +18379,13 @@ labelL1:
     l1_2.neli = 0;
     l1_2.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 1.;
-	l11_4.lxl[i__ - 1] = false;
-	l12_4.lxu[i__ - 1] = false;
-	for (j = 1; j <= 5; ++j) {
+    l2_4.x[i__ - 1] = 1.;
+    l11_4.lxl[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
+    for (j = 1; j <= 5; ++j) {
 /* labelL6: */
-	    l5_29.gg[i__ + j * 5 - 6] = (Real) hgg[i__ + j * 5 - 6];
-	}
+        l5_29.gg[i__ + j * 5 - 6] = (Real) hgg[i__ + j * 5 - 6];
+    }
     }
     l20_7.lex = true;
     l20_7.nex = 1;
@@ -18399,45 +18399,45 @@ labelL1:
 labelL2:
     l6_1.fx = (Real) dvdv;
     for (i__ = 1; i__ <= 5; ++i__) {
-	hf = 0.;
-	for (j = 1; j <= 5; ++j) {
+    hf = 0.;
+    for (j = 1; j <= 5; ++j) {
 /* L8: */
-	    hf += (Real) dd[i__ + j * 5 - 6] * l2_4.x[j - 1];
-	}
+        hf += (Real) dd[i__ + j * 5 - 6] * l2_4.x[j - 1];
+    }
 /* L7: */
-	l6_1.fx += l2_4.x[i__ - 1] * (hf - (Real) ddvekt[i__ - 1] * 2.);
+    l6_1.fx += l2_4.x[i__ - 1] * (hf - (Real) ddvekt[i__ - 1] * 2.);
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
-	l4_4.gf[i__ - 1] = (Real) ddvekt[i__ - 1] * -2.;
-	for (j = 1; j <= 5; ++j) {
+    l4_4.gf[i__ - 1] = (Real) ddvekt[i__ - 1] * -2.;
+    for (j = 1; j <= 5; ++j) {
 /* labelL9: */
-	    l4_4.gf[i__ - 1] += (Real) (dd[i__ + j * 5 - 6] + dd[j + 
-		    i__ * 5 - 6]) * l2_4.x[j - 1];
-	}
+        l4_4.gf[i__ - 1] += (Real) (dd[i__ + j * 5 - 6] + dd[j + 
+            i__ * 5 - 6]) * l2_4.x[j - 1];
+    }
     }
     return 0;
 labelL4:
     if (l9_5.index1[0]) {
-	l3_4.g[0] = -l2_4.x[0] - l2_4.x[1] - l2_4.x[2] - l2_4.x[3] - l2_4.x[4]
-		 + 5;
+    l3_4.g[0] = -l2_4.x[0] - l2_4.x[1] - l2_4.x[2] - l2_4.x[3] - l2_4.x[4]
+         + 5;
     }
     if (l9_5.index1[1]) {
-	l3_4.g[1] = l2_4.x[0] * 10. + l2_4.x[1] * 10. - l2_4.x[2] * 3. + 
-		l2_4.x[3] * 5. + l2_4.x[4] * 4. - 20.;
+    l3_4.g[1] = l2_4.x[0] * 10. + l2_4.x[1] * 10. - l2_4.x[2] * 3. + 
+        l2_4.x[3] * 5. + l2_4.x[4] * 4. - 20.;
     }
     if (l9_5.index1[2]) {
-	l3_4.g[2] = l2_4.x[0] * -8. + l2_4.x[1] - l2_4.x[2] * 2. - l2_4.x[3] *
-		 5. + l2_4.x[4] * 3. + 40.;
+    l3_4.g[2] = l2_4.x[0] * -8. + l2_4.x[1] - l2_4.x[2] * 2. - l2_4.x[3] *
+         5. + l2_4.x[4] * 3. + 40.;
     }
     if (l9_5.index1[3]) {
-	l3_4.g[3] = l2_4.x[0] * 8. - l2_4.x[1] + l2_4.x[2] * 2. + l2_4.x[3] * 
-		5. - l2_4.x[4] * 3. - 11.;
+    l3_4.g[3] = l2_4.x[0] * 8. - l2_4.x[1] + l2_4.x[2] * 2. + l2_4.x[3] * 
+        5. - l2_4.x[4] * 3. - 11.;
     }
     if (l9_5.index1[4]) {
-	l3_4.g[4] = l2_4.x[0] * -4. - l2_4.x[1] * 2. + l2_4.x[2] * 3. - 
-		l2_4.x[3] * 5. + l2_4.x[4] + 30.;
+    l3_4.g[4] = l2_4.x[0] * -4. - l2_4.x[1] * 2. + l2_4.x[2] * 3. - 
+        l2_4.x[3] * 5. + l2_4.x[4] + 30.;
     }
 labelL5:
     return 0;
@@ -18448,10 +18448,10 @@ labelL5:
 {
     /* Initialized data */
 
-    static Real hgg[15]	/* was [3][5] */ = { 1.,0.,0.,3.,0.,1.,0.,1.,
-	    0.,0.,1.,0.,0.,-2.,-1. };
-    static Real hdf[20]	/* was [4][5] */ = { 1.,0.,0.,0.,-1.,1.,0.,0.,
-	    0.,1.,0.,0.,0.,0.,1.,0.,0.,0.,0.,1. };
+    static Real hgg[15]    /* was [3][5] */ = { 1.,0.,0.,3.,0.,1.,0.,1.,
+        0.,0.,1.,0.,0.,-2.,-1. };
+    static Real hdf[20]    /* was [4][5] */ = { 1.,0.,0.,0.,-1.,1.,0.,0.,
+        0.,1.,0.,0.,0.,0.,1.,0.,0.,0.,0.,1. };
 
     /* System generated locals */
     Real d__1;
@@ -18460,11 +18460,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -18474,16 +18474,16 @@ labelL1:
     l1_1.neli = 3;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_4.x[i__ - 1] = 2.;
-	l11_4.lxl[i__ - 1] = false;
-	l12_4.lxu[i__ - 1] = false;
-	for (j = 1; j <= 3; ++j) {
-	    l5_9.gg[j + i__ * 3 - 4] = hgg[j + i__ * 3 - 4];
+    l2_4.x[i__ - 1] = 2.;
+    l11_4.lxl[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
+    for (j = 1; j <= 3; ++j) {
+        l5_9.gg[j + i__ * 3 - 4] = hgg[j + i__ * 3 - 4];
 /* L7: */
-	    l17_8.df[j + (i__ << 2) - 5] = hdf[j + (i__ << 2) - 5];
-	}
+        l17_8.df[j + (i__ << 2) - 5] = hdf[j + (i__ << 2) - 5];
+    }
 /* labelL6: */
-	l17_8.df[(i__ << 2) - 1] = hdf[(i__ << 2) - 1];
+    l17_8.df[(i__ << 2) - 1] = hdf[(i__ << 2) - 1];
     }
     l20_7.lex = true;
     l20_7.nex = 1;
@@ -18500,14 +18500,14 @@ labelL2:
     l16_3.f[2] = l2_4.x[3] - 1.;
     l16_3.f[3] = l2_4.x[4] - 1.;
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l16_3.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_3.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
@@ -18519,13 +18519,13 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
+    l3_3.g[0] = l2_4.x[0] + l2_4.x[1] * 3.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
+    l3_3.g[1] = l2_4.x[2] + l2_4.x[3] - l2_4.x[4] * 2.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
+    l3_3.g[2] = l2_4.x[1] - l2_4.x[4];
     }
 labelL5:
     return 0;
@@ -18540,11 +18540,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -18553,12 +18553,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l2_4.x[i__ - 1] = (Real) i__ + .1;
-	l20_7.xex[i__ - 1] = (Real) i__;
-	l11_4.lxl[i__ - 1] = true;
-	l12_4.lxu[i__ - 1] = false;
+    l2_4.x[i__ - 1] = (Real) i__ + .1;
+    l20_7.xex[i__ - 1] = (Real) i__;
+    l11_4.lxl[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_4.xl[i__ - 1] = (Real) i__;
+    l13_4.xl[i__ - 1] = (Real) i__;
     }
     l11_4.lxl[4] = false;
     l12_4.lxu[4] = false;
@@ -18576,58 +18576,58 @@ labelL2:
 /* Computing 2nd power */
     d__3 = l2_4.x[4];
     l6_1.fx = l2_4.x[0] * l2_4.x[1] * l2_4.x[2] * l2_4.x[3] - l2_4.x[0] * 3. *
-	     l2_4.x[1] * l2_4.x[3] - l2_4.x[0] * 4. * l2_4.x[1] * l2_4.x[2] + 
-	    l2_4.x[0] * 12. * l2_4.x[1] - l2_4.x[1] * l2_4.x[2] * l2_4.x[3] + 
-	    l2_4.x[1] * 3. * l2_4.x[3] + l2_4.x[1] * 4. * l2_4.x[2] - l2_4.x[
-	    1] * 12. - l2_4.x[0] * 2. * l2_4.x[2] * l2_4.x[3] + l2_4.x[0] * 
-	    6. * l2_4.x[3] + l2_4.x[0] * 8. * l2_4.x[2] - l2_4.x[0] * 24. + 
-	    l2_4.x[2] * 2. * l2_4.x[3] - l2_4.x[3] * 6. - l2_4.x[2] * 8. + 
-	    24. + d__1 * d__1 * 1.5 - d__2 * (d__2 * d__2) * 5.75 + d__3 * 
-	    d__3 * 5.25;
+         l2_4.x[1] * l2_4.x[3] - l2_4.x[0] * 4. * l2_4.x[1] * l2_4.x[2] + 
+        l2_4.x[0] * 12. * l2_4.x[1] - l2_4.x[1] * l2_4.x[2] * l2_4.x[3] + 
+        l2_4.x[1] * 3. * l2_4.x[3] + l2_4.x[1] * 4. * l2_4.x[2] - l2_4.x[
+        1] * 12. - l2_4.x[0] * 2. * l2_4.x[2] * l2_4.x[3] + l2_4.x[0] * 
+        6. * l2_4.x[3] + l2_4.x[0] * 8. * l2_4.x[2] - l2_4.x[0] * 24. + 
+        l2_4.x[2] * 2. * l2_4.x[3] - l2_4.x[3] * 6. - l2_4.x[2] * 8. + 
+        24. + d__1 * d__1 * 1.5 - d__2 * (d__2 * d__2) * 5.75 + d__3 * 
+        d__3 * 5.25;
     return 0;
 labelL3:
     l4_4.gf[0] = l2_4.x[1] * l2_4.x[2] * l2_4.x[3] - l2_4.x[1] * 3. * l2_4.x[
-	    3] - l2_4.x[1] * 4. * l2_4.x[2] + l2_4.x[1] * 12. - l2_4.x[2] * 
-	    2. * l2_4.x[3] + l2_4.x[3] * 6. + l2_4.x[2] * 8. - 24.;
+        3] - l2_4.x[1] * 4. * l2_4.x[2] + l2_4.x[1] * 12. - l2_4.x[2] * 
+        2. * l2_4.x[3] + l2_4.x[3] * 6. + l2_4.x[2] * 8. - 24.;
     l4_4.gf[1] = l2_4.x[0] * l2_4.x[2] * l2_4.x[3] - l2_4.x[0] * 3. * l2_4.x[
-	    3] - l2_4.x[0] * 4. * l2_4.x[2] + l2_4.x[0] * 12. - l2_4.x[2] * 
-	    l2_4.x[3] + l2_4.x[3] * 3. + l2_4.x[2] * 4. - 12.;
+        3] - l2_4.x[0] * 4. * l2_4.x[2] + l2_4.x[0] * 12. - l2_4.x[2] * 
+        l2_4.x[3] + l2_4.x[3] * 3. + l2_4.x[2] * 4. - 12.;
     l4_4.gf[2] = l2_4.x[0] * l2_4.x[1] * l2_4.x[3] - l2_4.x[0] * 4. * l2_4.x[
-	    1] - l2_4.x[1] * l2_4.x[3] + l2_4.x[1] * 4. - l2_4.x[0] * 2. * 
-	    l2_4.x[3] + l2_4.x[0] * 8. + l2_4.x[3] * 2. - 8.;
+        1] - l2_4.x[1] * l2_4.x[3] + l2_4.x[1] * 4. - l2_4.x[0] * 2. * 
+        l2_4.x[3] + l2_4.x[0] * 8. + l2_4.x[3] * 2. - 8.;
     l4_4.gf[3] = l2_4.x[0] * l2_4.x[1] * l2_4.x[2] - l2_4.x[0] * 3. * l2_4.x[
-	    1] - l2_4.x[1] * l2_4.x[2] + l2_4.x[1] * 3. - l2_4.x[0] * 2. * 
-	    l2_4.x[2] + l2_4.x[0] * 6. + l2_4.x[2] * 2. - 6.;
+        1] - l2_4.x[1] * l2_4.x[2] + l2_4.x[1] * 3. - l2_4.x[0] * 2. * 
+        l2_4.x[2] + l2_4.x[0] * 6. + l2_4.x[2] * 2. - 6.;
 /* Computing 2nd power */
     d__1 = l2_4.x[4];
 /* Computing 3rd power */
     d__2 = l2_4.x[4];
     l4_4.gf[4] = l2_4.x[4] * 10.5 - d__1 * d__1 * 17.25 + d__2 * (d__2 * d__2)
-	     * 6.;
+         * 6.;
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_4.x[0];
+    d__1 = l2_4.x[0];
 /* Computing 2nd power */
-	d__2 = l2_4.x[1];
+    d__2 = l2_4.x[1];
 /* Computing 2nd power */
-	d__3 = l2_4.x[2];
+    d__3 = l2_4.x[2];
 /* Computing 2nd power */
-	d__4 = l2_4.x[3];
+    d__4 = l2_4.x[3];
 /* Computing 2nd power */
-	d__5 = l2_4.x[4];
-	l3_1.g[0] = 34. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3 - d__4 * 
-		d__4 - d__5 * d__5;
+    d__5 = l2_4.x[4];
+    l3_1.g[0] = 34. - d__1 * d__1 - d__2 * d__2 - d__3 * d__3 - d__4 * 
+        d__4 - d__5 * d__5;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L8: */
-	l5_30.gg[i__ - 1] = l2_4.x[i__ - 1] * -2.;
+    l5_30.gg[i__ - 1] = l2_4.x[i__ - 1] * -2.;
     }
 L7:
     return 0;
@@ -18642,11 +18642,11 @@ L7:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 6;
@@ -18656,11 +18656,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l11_5.lxl[i__ - 1] = false;
-	l12_5.lxu[i__ - 1] = false;
-	l2_5.x[i__ - 1] = 0.;
+    l11_5.lxl[i__ - 1] = false;
+    l12_5.lxu[i__ - 1] = false;
+    l2_5.x[i__ - 1] = 0.;
 /* labelL6: */
-	l20_4.xex[i__ - 1] = 1.;
+    l20_4.xex[i__ - 1] = 1.;
     }
     l20_4.lex = true;
     l20_4.fex = 0.;
@@ -18668,30 +18668,30 @@ labelL1:
 labelL2:
     for (i__ = 1; i__ <= 6; ++i__) {
 /* labelL10: */
-	l16_8.f[i__ - 1] = std::sqrt((Real) ((16 - i__) * 10)) * (l2_5.x[i__ 
-		- 1] - 1.);
+    l16_8.f[i__ - 1] = std::sqrt((Real) ((16 - i__) * 10)) * (l2_5.x[i__ 
+        - 1] - 1.);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 6; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_8.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_8.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 6; ++i__) {
-	l4_5.gf[i__ - 1] = (Real) ((16 - i__) * 20) * (l2_5.x[i__ - 1] 
-		- 1.);
-	for (j = 1; j <= 6; ++j) {
+    l4_5.gf[i__ - 1] = (Real) ((16 - i__) * 20) * (l2_5.x[i__ - 1] 
+        - 1.);
+    for (j = 1; j <= 6; ++j) {
 /* labelL9: */
-	    l17_11.df[i__ + j * 6 - 7] = 0.;
-	}
+        l17_11.df[i__ + j * 6 - 7] = 0.;
+    }
 /* L8: */
-	l17_11.df[i__ + i__ * 6 - 7] = std::sqrt((Real) ((16 - i__) * 10));
+    l17_11.df[i__ + i__ * 6 - 7] = std::sqrt((Real) ((16 - i__) * 10));
     }
 labelL4:
     return 0;
@@ -18707,11 +18707,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 6;
@@ -18720,11 +18720,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l2_5.x[i__ - 1] = 1.;
-	l13_5.xl[i__ - 1] = (float)0.;
-	l11_5.lxl[i__ - 1] = true;
+    l2_5.x[i__ - 1] = 1.;
+    l13_5.xl[i__ - 1] = (float)0.;
+    l11_5.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_5.lxu[i__ - 1] = false;
+    l12_5.lxu[i__ - 1] = false;
     }
     l2_5.x[1] = 2.;
     l15_1.lsum = 13;
@@ -18740,42 +18740,42 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 13; ++i__) {
-	h__ = (Real) i__ * .1;
+    h__ = (Real) i__ * .1;
 /* labelL20: */
-	l16_9.f[i__ - 1] = l2_5.x[3] * std::exp(-l2_5.x[0] * h__) - l2_5.x[4] * 
-		exp(-l2_5.x[1] * h__) + l2_5.x[5] * std::exp(-l2_5.x[2] * h__) - 
-		exp(-h__) + std::exp(h__ * -10.) * 5. - std::exp(h__ * -4.) * 3.;
+    l16_9.f[i__ - 1] = l2_5.x[3] * std::exp(-l2_5.x[0] * h__) - l2_5.x[4] * 
+        exp(-l2_5.x[1] * h__) + l2_5.x[5] * std::exp(-l2_5.x[2] * h__) - 
+        exp(-h__) + std::exp(h__ * -10.) * 5. - std::exp(h__ * -4.) * 3.;
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_9.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_9.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (j = 1; j <= 13; ++j) {
-	h__ = (Real) j * .1;
-	l17_12.df[j + 38] = std::exp(-l2_5.x[0] * h__);
-	l17_12.df[j + 51] = -exp(-l2_5.x[1] * h__);
-	l17_12.df[j + 64] = std::exp(-l2_5.x[2] * h__);
-	for (i__ = 1; i__ <= 3; ++i__) {
+    h__ = (Real) j * .1;
+    l17_12.df[j + 38] = std::exp(-l2_5.x[0] * h__);
+    l17_12.df[j + 51] = -exp(-l2_5.x[1] * h__);
+    l17_12.df[j + 64] = std::exp(-l2_5.x[2] * h__);
+    for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	    l17_12.df[j + i__ * 13 - 14] = -h__ * l2_5.x[i__ + 2] * l17_12.df[
-		    j + (i__ + 3) * 13 - 14];
-	}
+        l17_12.df[j + i__ * 13 - 14] = -h__ * l2_5.x[i__ + 2] * l17_12.df[
+            j + (i__ + 3) * 13 - 14];
+    }
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	l4_5.gf[i__ - 1] = 0.;
-	for (j = 1; j <= 13; ++j) {
+    l4_5.gf[i__ - 1] = 0.;
+    for (j = 1; j <= 13; ++j) {
 /* labelL13: */
-	    l4_5.gf[i__ - 1] += l17_12.df[j + i__ * 13 - 14] * 2. * l16_9.f[j 
-		    - 1];
-	}
+        l4_5.gf[i__ - 1] += l17_12.df[j + i__ * 13 - 14] * 2. * l16_9.f[j 
+            - 1];
+    }
     }
 labelL4:
     return 0;
@@ -18789,11 +18789,11 @@ labelL4:
     static Real hx;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_2.n = 6;
@@ -18802,11 +18802,11 @@ labelL1:
     l1_2.neli = 0;
     l1_2.nenl = 0;
     for (i__ = 1; i__ <= 6; ++i__) {
-	l2_5.x[i__ - 1] = 0.;
-	l20_4.xex[i__ - 1] = 1.;
-	l11_5.lxl[i__ - 1] = false;
+    l2_5.x[i__ - 1] = 0.;
+    l20_4.xex[i__ - 1] = 1.;
+    l11_5.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_5.lxu[i__ - 1] = false;
+    l12_5.lxu[i__ - 1] = false;
     }
     l20_4.lex = true;
     l20_4.nex = 1;
@@ -18820,8 +18820,8 @@ labelL3:
     hx = tp273a_(l2_5.x);
     for (i__ = 1; i__ <= 6; ++i__) {
 /* L7: */
-	l4_5.gf[i__ - 1] = (16. - (Real) i__) * 20. * (l2_5.x[i__ - 1] 
-		- 1.) * (hx * 2. + 1.);
+    l4_5.gf[i__ - 1] = (16. - (Real) i__) * 20. * (l2_5.x[i__ - 1] 
+        - 1.) * (hx * 2. + 1.);
     }
 labelL4:
     return 0;
@@ -18847,8 +18847,8 @@ Real tp273a_(Real *x)
     for (i__ = 1; i__ <= 6; ++i__) {
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = x[i__] - 1.;
-	ret_val += (16. - (Real) i__) * (d__1 * d__1);
+    d__1 = x[i__] - 1.;
+    ret_val += (16. - (Real) i__) * (d__1 * d__1);
     }
     return ret_val;
 } /* tp273a_ */
@@ -18859,13 +18859,13 @@ Real tp273a_(Real *x)
     int i__1, i__2;
 
     /* Local variables */
-    static Real a[36]	/* was [6][6] */;
+    static Real a[36]    /* was [6][6] */;
     static int i__, j;
 
     switch(n__) {
-	case 1: goto L_tp275;
-	case 2: goto L_tp276;
-	}
+    case 1: goto L_tp275;
+    case 2: goto L_tp276;
+    }
 
     l1_1.n = 2;
     goto labelL10;
@@ -18878,11 +18878,11 @@ L_tp276:
     l1_1.n = 6;
 labelL10:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.nili = 0;
@@ -18891,16 +18891,16 @@ labelL1:
     l1_1.nenl = 0;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_5.x[i__ - 1] = -4. / (Real) i__;
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
+    l2_5.x[i__ - 1] = -4. / (Real) i__;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
 /* labelL11: */
-	    a[i__ + j * 6 - 7] = 1. / (Real) (i__ + j - 1);
-	}
-	l20_4.xex[i__ - 1] = 0.;
-	l11_5.lxl[i__ - 1] = false;
+        a[i__ + j * 6 - 7] = 1. / (Real) (i__ + j - 1);
+    }
+    l20_4.xex[i__ - 1] = 0.;
+    l11_5.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_5.lxu[i__ - 1] = false;
+    l12_5.lxu[i__ - 1] = false;
     }
     l20_4.lex = true;
     l20_4.nex = 1;
@@ -18910,23 +18910,23 @@ labelL2:
     l6_1.fx = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
 /* L7: */
-	    l6_1.fx += a[i__ + j * 6 - 7] * l2_5.x[i__ - 1] * l2_5.x[j - 1];
-	}
+        l6_1.fx += a[i__ + j * 6 - 7] * l2_5.x[i__ - 1] * l2_5.x[j - 1];
+    }
     }
     return 0;
 labelL3:
     i__2 = l1_1.n;
     for (i__ = 1; i__ <= i__2; ++i__) {
-	l4_5.gf[i__ - 1] = 0.;
-	i__1 = l1_1.n;
-	for (j = 1; j <= i__1; ++j) {
+    l4_5.gf[i__ - 1] = 0.;
+    i__1 = l1_1.n;
+    for (j = 1; j <= i__1; ++j) {
 /* L8: */
-	    l4_5.gf[i__ - 1] += l2_5.x[j - 1] * (a[i__ + j * 6 - 7] + a[j + 
-		    i__ * 6 - 7]);
-	}
+        l4_5.gf[i__ - 1] += l2_5.x[j - 1] * (a[i__ + j * 6 - 7] + a[j + 
+            i__ * 6 - 7]);
+    }
     }
 labelL4:
     return 0;
@@ -18957,10 +18957,10 @@ labelL4:
     static int i__, j;
 
     switch(n__) {
-	case 1: goto L_tp278;
-	case 2: goto L_tp279;
-	case 3: goto L_tp280;
-	}
+    case 1: goto L_tp278;
+    case 2: goto L_tp279;
+    case 3: goto L_tp280;
+    }
 
     l1_1.n = 4;
     goto labelL10;
@@ -18977,11 +18977,11 @@ L_tp280:
     l1_1.n = 10;
 labelL10:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.nili = l1_1.n;
@@ -18991,19 +18991,19 @@ labelL1:
     l20_10.fex = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_9.x[i__ - 1] = 0.;
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
-	    l20_10.fex += 1. / (Real) (i__ + j - 1);
+    l2_9.x[i__ - 1] = 0.;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
+        l20_10.fex += 1. / (Real) (i__ + j - 1);
 /* L16: */
-	    l5_31.gg[j + (i__ * l1_1.n) - (l1_1.n+1)] = 1. / (Real) (i__ + j - 1);
+        l5_31.gg[j + (i__ * l1_1.n) - (l1_1.n+1)] = 1. / (Real) (i__ + j - 1);
 //printf("jac[%d] = %f \n",j + (i__ * l1_1.n) - (l1_1.n+1),l5_31.gg[j + (i__ * l1_1.n) - (l1_1.n+1)] );
-	}
-	l11_9.lxl[i__ - 1] = true;
-	l12_9.lxu[i__ - 1] = false;
-	l13_9.xl[i__ - 1] = 0.;
+    }
+    l11_9.lxl[i__ - 1] = true;
+    l12_9.lxu[i__ - 1] = false;
+    l13_9.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l20_10.xex[i__ - 1] = 1.;
+    l20_10.xex[i__ - 1] = 1.;
     }
     l20_10.lex = true;
     l20_10.nex = 1;
@@ -19012,42 +19012,42 @@ labelL2:
     l6_1.fx = 0.;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	h__ = 0.;
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
+    h__ = 0.;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
 /* L17: */
-	    h__ += 1. / (Real) (i__ + j - 1);
-	}
+        h__ += 1. / (Real) (i__ + j - 1);
+    }
 /* L7: */
-	l6_1.fx += h__ * l2_9.x[i__ - 1];
+    l6_1.fx += h__ * l2_9.x[i__ - 1];
     }
     return 0;
 labelL3:
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	h__ = 0.;
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
+    h__ = 0.;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
 /* L18: */
-	    h__ += 1. / (Real) (i__ + j - 1);
-	}
+        h__ += 1. / (Real) (i__ + j - 1);
+    }
 /* L8: */
-	l4_9.gf[i__ - 1] = h__;
+    l4_9.gf[i__ - 1] = h__;
     }
     return 0;
 labelL4:
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	h__ = 0.;
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
+    h__ = 0.;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
 /* L19: */
-	    h__ += (l2_9.x[j - 1] - 1.) / (Real) (i__ + j - 1);
-	}
+        h__ += (l2_9.x[j - 1] - 1.) / (Real) (i__ + j - 1);
+    }
 /* labelL9: */
-	if (l9_10.index1[i__ - 1]) {
-	    l3_9.g[i__ - 1] = h__;
-	}
+    if (l9_10.index1[i__ - 1]) {
+        l3_9.g[i__ - 1] = h__;
+    }
     }
 labelL5:
     return 0;
@@ -19089,11 +19089,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 10;
@@ -19102,11 +19102,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = 0.;
-	l11_9.lxl[i__ - 1] = false;
-	l12_9.lxu[i__ - 1] = false;
+    l2_9.x[i__ - 1] = 0.;
+    l11_9.lxl[i__ - 1] = false;
+    l12_9.lxu[i__ - 1] = false;
 /* labelL6: */
-	l20_10.xex[i__ - 1] = 1.;
+    l20_10.xex[i__ - 1] = 1.;
     }
     l20_10.lex = true;
     l20_10.nex = 1;
@@ -19117,10 +19117,10 @@ labelL2:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L7: */
 /* Computing 3rd power */
-	i__1 = i__;
+    i__1 = i__;
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1] - 1.;
-	l6_1.fx += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
+    d__1 = l2_9.x[i__ - 1] - 1.;
+    l6_1.fx += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
     }
     l6_1.fx = pow_dd(&l6_1.fx, &c_b74);
     return 0;
@@ -19129,18 +19129,18 @@ labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
 /* Computing 3rd power */
-	i__1 = i__;
+    i__1 = i__;
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1] - 1.;
-	h__ += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
+    d__1 = l2_9.x[i__ - 1] - 1.;
+    h__ += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL13: */
 /* Computing 3rd power */
-	i__1 = i__;
-	l4_9.gf[i__ - 1] = (Real) (i__1 * (i__1 * i__1)) * 
-		.66666666666666663 * (l2_9.x[i__ - 1] - 1.) * pow_dd(&h__, &
-		c_b1920);
+    i__1 = i__;
+    l4_9.gf[i__ - 1] = (Real) (i__1 * (i__1 * i__1)) * 
+        .66666666666666663 * (l2_9.x[i__ - 1] - 1.) * pow_dd(&h__, &
+        c_b1920);
    if( !isFinite(l4_9.gf[i__ - 1])) l4_9.gf[i__ - 1] = 0.0; 
     }
 labelL4:
@@ -19158,11 +19158,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 10;
@@ -19171,11 +19171,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = 0.;
-	l11_9.lxl[i__ - 1] = false;
-	l12_9.lxu[i__ - 1] = false;
+    l2_9.x[i__ - 1] = 0.;
+    l11_9.lxl[i__ - 1] = false;
+    l12_9.lxu[i__ - 1] = false;
 /* labelL6: */
-	l20_10.xex[i__ - 1] = 1.;
+    l20_10.xex[i__ - 1] = 1.;
     }
     l2_9.x[0] = -1.2;
     l20_10.lex = true;
@@ -19189,12 +19189,12 @@ labelL2:
     for (i__ = 1; i__ <= 9; ++i__) {
 /* labelL20: */
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1];
-	l16_7.f[i__ - 1] = std::sqrt((10. - (Real) i__) * 10.) * (d__1 * 
-		d__1 - l2_9.x[i__]);
+    d__1 = l2_9.x[i__ - 1];
+    l16_7.f[i__ - 1] = std::sqrt((10. - (Real) i__) * 10.) * (d__1 * 
+        d__1 - l2_9.x[i__]);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = l16_7.f[9];
@@ -19204,32 +19204,32 @@ labelL2:
     for (i__ = 1; i__ <= 9; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_7.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_7.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 11; ++i__) {
-	for (j = 1; j <= 10; ++j) {
+    for (j = 1; j <= 10; ++j) {
 /* L8: */
-	    l17_13.df[i__ + j * 11 - 12] = 0.;
-	}
+        l17_13.df[i__ + j * 11 - 12] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 9; ++i__) {
-	h__ = std::sqrt((10. - (Real) i__) * 10.);
-	l17_13.df[i__ + i__ * 11 - 12] = h__ * 2. * l2_9.x[i__ - 1];
+    h__ = std::sqrt((10. - (Real) i__) * 10.);
+    l17_13.df[i__ + i__ * 11 - 12] = h__ * 2. * l2_9.x[i__ - 1];
 /* labelL13: */
-	l17_13.df[i__ + (i__ + 1) * 11 - 12] = -h__;
+    l17_13.df[i__ + (i__ + 1) * 11 - 12] = -h__;
     }
     l17_13.df[9] = 1.;
     l17_13.df[109] = 1.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l4_9.gf[i__ - 1] = 0.;
-	for (j = 1; j <= 11; ++j) {
+    l4_9.gf[i__ - 1] = 0.;
+    for (j = 1; j <= 11; ++j) {
 /* L18: */
-	    l4_9.gf[i__ - 1] += l17_13.df[j + i__ * 11 - 12] * 2. * l16_7.f[j 
-		    - 1];
-	}
+        l4_9.gf[i__ - 1] += l17_13.df[j + i__ * 11 - 12] * 2. * l16_7.f[j 
+            - 1];
+    }
     }
 labelL4:
     return 0;
@@ -19247,11 +19247,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 10;
@@ -19260,11 +19260,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = 0.;
-	l11_9.lxl[i__ - 1] = false;
-	l12_9.lxu[i__ - 1] = false;
+    l2_9.x[i__ - 1] = 0.;
+    l11_9.lxl[i__ - 1] = false;
+    l12_9.lxu[i__ - 1] = false;
 /* labelL6: */
-	l20_10.xex[i__ - 1] = 1.;
+    l20_10.xex[i__ - 1] = 1.;
     }
     l20_10.lex = true;
     l20_10.nex = 1;
@@ -19275,10 +19275,10 @@ labelL2:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L7: */
 /* Computing 3rd power */
-	i__1 = i__;
+    i__1 = i__;
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1] - 1.;
-	l6_1.fx += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
+    d__1 = l2_9.x[i__ - 1] - 1.;
+    l6_1.fx += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
     }
 /* Computing 3rd power */
     d__1 = l6_1.fx;
@@ -19289,19 +19289,19 @@ labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
 /* Computing 3rd power */
-	i__1 = i__;
+    i__1 = i__;
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1] - 1.;
-	h__ += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
+    d__1 = l2_9.x[i__ - 1] - 1.;
+    h__ += (Real) (i__1 * (i__1 * i__1)) * (d__1 * d__1);
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL13: */
 /* Computing 3rd power */
-	i__1 = i__;
+    i__1 = i__;
 /* Computing 2nd power */
-	d__1 = h__;
-	l4_9.gf[i__ - 1] = (Real) (i__1 * (i__1 * i__1)) * (float)6. * (
-		l2_9.x[i__ - 1] - 1.) * (d__1 * d__1) * 1e-5;
+    d__1 = h__;
+    l4_9.gf[i__ - 1] = (Real) (i__1 * (i__1 * i__1)) * (float)6. * (
+        l2_9.x[i__ - 1] - 1.) * (d__1 * d__1) * 1e-5;
     }
 labelL4:
     return 0;
@@ -19313,16 +19313,16 @@ labelL4:
     /* Initialized data */
 
     static int c__[15] = { 20,40,400,20,80,20,40,140,380,280,80,40,140,40,
-	    120 };
+        120 };
     static int b[10] = { 385,470,560,565,645,430,485,455,390,460 };
-    static int a[150]	/* was [10][15] */ = { 100,90,70,50,50,40,30,
-	    20,10,5,100,100,50,0,10,0,60,30,70,10,10,10,0,0,70,50,30,40,10,
-	    100,5,35,55,65,60,95,90,25,35,5,10,20,25,35,45,50,0,40,25,20,0,5,
-	    100,100,45,35,30,25,65,5,0,0,40,35,0,10,5,15,0,10,25,35,50,60,35,
-	    60,25,10,30,35,0,55,0,0,65,0,0,80,0,95,10,25,30,15,5,45,70,20,0,
-	    70,55,20,60,0,75,15,20,30,25,20,5,0,10,75,100,20,25,30,0,10,45,40,
-	    30,35,75,0,70,5,15,35,20,25,0,30,10,5,15,65,50,10,0,10,40,65,0,5,
-	    15,20,55,30 };
+    static int a[150]    /* was [10][15] */ = { 100,90,70,50,50,40,30,
+        20,10,5,100,100,50,0,10,0,60,30,70,10,10,10,0,0,70,50,30,40,10,
+        100,5,35,55,65,60,95,90,25,35,5,10,20,25,35,45,50,0,40,25,20,0,5,
+        100,100,45,35,30,25,65,5,0,0,40,35,0,10,5,15,0,10,25,35,50,60,35,
+        60,25,10,30,35,0,55,0,0,65,0,0,80,0,95,10,25,30,15,5,45,70,20,0,
+        70,55,20,60,0,75,15,20,30,25,20,5,0,10,75,100,20,25,30,0,10,45,40,
+        30,35,75,0,70,5,15,35,20,25,0,30,10,5,15,65,50,10,0,10,40,65,0,5,
+        15,20,55,30 };
 
     /* System generated locals */
     Real d__1;
@@ -19332,11 +19332,11 @@ labelL4:
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -19346,12 +19346,12 @@ labelL1:
     l1_1.nenl = 0;
     l20_12.fex = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l20_12.xex[i__ - 1] = 1.;
-	l20_12.fex -= (Real) c__[i__ - 1];
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l20_12.xex[i__ - 1] = 1.;
+    l20_12.fex -= (Real) c__[i__ - 1];
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = true;
     l20_12.nex = 1;
@@ -19360,42 +19360,42 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L7: */
-	l6_1.fx -= (Real) c__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= (Real) c__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L8: */
-	l4_11.gf[i__ - 1] = -((Real) c__[i__ - 1]);
+    l4_11.gf[i__ - 1] = -((Real) c__[i__ - 1]);
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
-	sum = 0.;
-	for (j = 1; j <= 15; ++j) {
+    sum = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    sum += (Real) a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
+        d__1 = l2_11.x[j - 1];
+        sum += (Real) a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
 /* labelL10: */
-	if (l9_10.index1[i__ - 1]) {
-	    l3_9.g[i__ - 1] = (Real) b[i__ - 1] - sum;
-	}
+    if (l9_10.index1[i__ - 1]) {
+        l3_9.g[i__ - 1] = (Real) b[i__ - 1] - sum;
+    }
     }
     return 0;
 labelL5:
     for (j = 1; j <= 10; ++j) {
-	for (i__ = 1; i__ <= 15; ++i__) {
-	    if (! l10_10.index2[j - 1]) {
-		goto labelL12;
-	    }
+    for (i__ = 1; i__ <= 15; ++i__) {
+        if (! l10_10.index2[j - 1]) {
+        goto labelL12;
+        }
 /* labelL11: */
-	    l5_32.gg[(i__ - 1) * 10 + j - 1] = (Real) a[j + i__ * 10 - 
-		    11] * -2. * l2_11.x[i__ - 1];
-	}
+        l5_32.gg[(i__ - 1) * 10 + j - 1] = (Real) a[j + i__ * 10 - 
+            11] * -2. * l2_11.x[i__ - 1];
+    }
 labelL12:
-	;
+    ;
     }
     return 0;
 } /* tp284_ */
@@ -19405,16 +19405,16 @@ labelL12:
     /* Initialized data */
 
     static int c__[15] = { 486,640,758,776,477,707,175,619,627,614,475,
-	    377,524,468,529 };
+        377,524,468,529 };
     static int b[10] = { 385,470,560,565,645,430,485,455,390,460 };
-    static int a[150]	/* was [10][15] */ = { 100,90,70,50,50,40,30,
-	    20,10,5,100,100,50,0,10,0,60,30,70,10,10,10,0,0,70,50,30,40,10,
-	    100,5,35,55,65,60,95,90,25,35,5,10,20,25,35,45,50,0,40,25,20,0,5,
-	    100,100,45,35,30,25,65,5,0,0,40,35,0,10,5,15,0,10,25,35,50,60,35,
-	    60,25,10,30,35,0,55,0,0,65,0,0,80,0,95,10,25,30,15,5,45,70,20,0,
-	    70,55,20,60,0,75,15,20,30,25,20,5,0,10,75,100,20,25,30,0,10,45,40,
-	    30,35,75,0,70,5,15,35,20,25,0,30,10,5,15,65,50,10,0,10,40,65,0,5,
-	    15,20,55,30 };
+    static int a[150]    /* was [10][15] */ = { 100,90,70,50,50,40,30,
+        20,10,5,100,100,50,0,10,0,60,30,70,10,10,10,0,0,70,50,30,40,10,
+        100,5,35,55,65,60,95,90,25,35,5,10,20,25,35,45,50,0,40,25,20,0,5,
+        100,100,45,35,30,25,65,5,0,0,40,35,0,10,5,15,0,10,25,35,50,60,35,
+        60,25,10,30,35,0,55,0,0,65,0,0,80,0,95,10,25,30,15,5,45,70,20,0,
+        70,55,20,60,0,75,15,20,30,25,20,5,0,10,75,100,20,25,30,0,10,45,40,
+        30,35,75,0,70,5,15,35,20,25,0,30,10,5,15,65,50,10,0,10,40,65,0,5,
+        15,20,55,30 };
 
     /* System generated locals */
     Real d__1;
@@ -19424,11 +19424,11 @@ labelL12:
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -19438,12 +19438,12 @@ labelL1:
     l1_1.nenl = 0;
     l20_12.fex = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l20_12.xex[i__ - 1] = 1.;
-	l20_12.fex -= (Real) c__[i__ - 1];
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l20_12.xex[i__ - 1] = 1.;
+    l20_12.fex -= (Real) c__[i__ - 1];
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = true;
     l20_12.nex = 1;
@@ -19452,42 +19452,42 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L7: */
-	l6_1.fx -= (Real) c__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= (Real) c__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L8: */
-	l4_11.gf[i__ - 1] = -((Real) c__[i__ - 1]);
+    l4_11.gf[i__ - 1] = -((Real) c__[i__ - 1]);
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
-	sum = 0.;
-	for (j = 1; j <= 15; ++j) {
+    sum = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    sum += (Real) a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
+        d__1 = l2_11.x[j - 1];
+        sum += (Real) a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
 /* labelL10: */
-	if (l9_10.index1[i__ - 1]) {
-	    l3_9.g[i__ - 1] = (Real) b[i__ - 1] - sum;
-	}
+    if (l9_10.index1[i__ - 1]) {
+        l3_9.g[i__ - 1] = (Real) b[i__ - 1] - sum;
+    }
     }
     return 0;
 labelL5:
     for (j = 1; j <= 10; ++j) {
-	for (i__ = 1; i__ <= 15; ++i__) {
-	    if (! l10_10.index2[j - 1]) {
-		goto labelL12;
-	    }
+    for (i__ = 1; i__ <= 15; ++i__) {
+        if (! l10_10.index2[j - 1]) {
+        goto labelL12;
+        }
 /* labelL11: */
-	    l5_32.gg[(i__ - 1) * 10 + j - 1] = (Real) a[j + i__ * 10 - 
-		    11] * -2. * l2_11.x[i__ - 1];
-	}
+        l5_32.gg[(i__ - 1) * 10 + j - 1] = (Real) a[j + i__ * 10 - 
+            11] * -2. * l2_11.x[i__ - 1];
+    }
 labelL12:
-	;
+    ;
     }
     return 0;
 } /* tp285_ */
@@ -19501,11 +19501,11 @@ labelL12:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL3;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL3;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 20;
@@ -19514,15 +19514,15 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 20; ++i__) {
-	l2_13.x[i__ - 1] = -1.2;
-	l20_14.xex[i__ - 1] = 1.;
-	l12_13.lxu[i__ - 1] = false;
+    l2_13.x[i__ - 1] = -1.2;
+    l20_14.xex[i__ - 1] = 1.;
+    l12_13.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_13.lxl[i__ - 1] = false;
+    l11_13.lxl[i__ - 1] = false;
     }
     for (i__ = 11; i__ <= 20; ++i__) {
 /* L7: */
-	l2_13.x[i__ - 1] = 1.;
+    l2_13.x[i__ - 1] = 1.;
     }
     l20_14.lex = true;
     l20_14.nex = 1;
@@ -19534,44 +19534,44 @@ labelL2:
     for (i__ = 1; i__ <= 20; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l16_10.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_10.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
-	l16_10.f[i__ - 1] = l2_13.x[i__ - 1] - 1.;
+    l16_10.f[i__ - 1] = l2_13.x[i__ - 1] - 1.;
 /* labelL12: */
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ - 1];
-	l16_10.f[i__ + 9] = (d__1 * d__1 - l2_13.x[i__ + 9]) * 10.;
+    d__1 = l2_13.x[i__ - 1];
+    l16_10.f[i__ + 9] = (d__1 * d__1 - l2_13.x[i__ + 9]) * 10.;
     }
     if (*mode == 2) {
-	goto labelL2;
+    goto labelL2;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-	for (j = 1; j <= 20; ++j) {
-	    l17_14.df[i__ + j * 198 - 199] = 0.;
-	    if (i__ == j) {
-		l17_14.df[i__ + j * 198 - 199] = 1.;
-	    }
-	    l17_14.df[i__ + 10 + j * 198 - 199] = 0.;
-	    if (i__ == j) {
-		l17_14.df[i__ + 10 + j * 198 - 199] = l2_13.x[i__ - 1] * 20.;
-	    }
+    for (j = 1; j <= 20; ++j) {
+        l17_14.df[i__ + j * 198 - 199] = 0.;
+        if (i__ == j) {
+        l17_14.df[i__ + j * 198 - 199] = 1.;
+        }
+        l17_14.df[i__ + 10 + j * 198 - 199] = 0.;
+        if (i__ == j) {
+        l17_14.df[i__ + 10 + j * 198 - 199] = l2_13.x[i__ - 1] * 20.;
+        }
 /* labelL9: */
-	    if (j == i__ + 10) {
-		l17_14.df[i__ + 10 + j * 198 - 199] = -10.;
-	    }
-	}
+        if (j == i__ + 10) {
+        l17_14.df[i__ + 10 + j * 198 - 199] = -10.;
+        }
+    }
     }
     for (j = 1; j <= 20; ++j) {
-	l4_13.gf[j - 1] = 0.;
-	for (i__ = 1; i__ <= 20; ++i__) {
+    l4_13.gf[j - 1] = 0.;
+    for (i__ = 1; i__ <= 20; ++i__) {
 /* labelL11: */
-	    l4_13.gf[j - 1] += l16_10.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
-		    198 - 199];
-	}
+        l4_13.gf[j - 1] += l16_10.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
+            198 - 199];
+    }
     }
 labelL4:
     return 0;
@@ -19586,11 +19586,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 20;
@@ -19599,17 +19599,17 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_13.x[i__ - 1] = -3.;
-	l2_13.x[i__ + 4] = -1.;
-	l2_13.x[i__ + 9] = -3.;
+    l2_13.x[i__ - 1] = -3.;
+    l2_13.x[i__ + 4] = -1.;
+    l2_13.x[i__ + 9] = -3.;
 /* labelL6: */
-	l2_13.x[i__ + 14] = -1.;
+    l2_13.x[i__ + 14] = -1.;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
-	l12_13.lxu[i__ - 1] = false;
-	l11_13.lxl[i__ - 1] = false;
+    l12_13.lxu[i__ - 1] = false;
+    l11_13.lxl[i__ - 1] = false;
 /* L7: */
-	l20_14.xex[i__ - 1] = 1.;
+    l20_14.xex[i__ - 1] = 1.;
     }
     l20_14.lex = true;
     l20_14.nex = 1;
@@ -19620,52 +19620,52 @@ labelL2:
     for (i__ = 1; i__ <= 5; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__2 = l2_13.x[i__ - 1];
+    d__2 = l2_13.x[i__ - 1];
 /* Computing 2nd power */
-	d__1 = d__2 * d__2 - l2_13.x[i__ + 4];
+    d__1 = d__2 * d__2 - l2_13.x[i__ + 4];
 /* Computing 2nd power */
-	d__3 = l2_13.x[i__ - 1] - 1.;
+    d__3 = l2_13.x[i__ - 1] - 1.;
 /* Computing 2nd power */
-	d__5 = l2_13.x[i__ + 9];
+    d__5 = l2_13.x[i__ + 9];
 /* Computing 2nd power */
-	d__4 = d__5 * d__5 - l2_13.x[i__ + 14];
+    d__4 = d__5 * d__5 - l2_13.x[i__ + 14];
 /* Computing 2nd power */
-	d__6 = l2_13.x[i__ + 9] - 1.;
+    d__6 = l2_13.x[i__ + 9] - 1.;
 /* Computing 2nd power */
-	d__7 = l2_13.x[i__ + 4] - 1.;
+    d__7 = l2_13.x[i__ + 4] - 1.;
 /* Computing 2nd power */
-	d__8 = l2_13.x[i__ + 14] - 1.;
-	l6_1.fx = l6_1.fx + d__1 * d__1 * 100. + d__3 * d__3 + d__4 * d__4 * 
-		90. + d__6 * d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (
-		l2_13.x[i__ + 4] - 1.) * 19.8 * (l2_13.x[i__ + 14] - 1.);
+    d__8 = l2_13.x[i__ + 14] - 1.;
+    l6_1.fx = l6_1.fx + d__1 * d__1 * 100. + d__3 * d__3 + d__4 * d__4 * 
+        90. + d__6 * d__6 + (d__7 * d__7 + d__8 * d__8) * 10.1 + (
+        l2_13.x[i__ + 4] - 1.) * 19.8 * (l2_13.x[i__ + 14] - 1.);
     }
     l6_1.fx *= 1e-5;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ - 1];
-	l4_13.gf[i__ - 1] = (d__1 * d__1 - l2_13.x[i__ + 4]) * 400. * l2_13.x[
-		i__ - 1] + (l2_13.x[i__ - 1] - 1.) * 2.;
-	l4_13.gf[i__ - 1] *= 1e-5;
+    d__1 = l2_13.x[i__ - 1];
+    l4_13.gf[i__ - 1] = (d__1 * d__1 - l2_13.x[i__ + 4]) * 400. * l2_13.x[
+        i__ - 1] + (l2_13.x[i__ - 1] - 1.) * 2.;
+    l4_13.gf[i__ - 1] *= 1e-5;
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ - 1];
-	l4_13.gf[i__ + 4] = (d__1 * d__1 - l2_13.x[i__ + 4]) * -200. + (
-		l2_13.x[i__ + 4] - 1.) * 20.2 + (l2_13.x[i__ + 14] - 1.) * 
-		19.8;
-	l4_13.gf[i__ + 4] *= 1e-5;
+    d__1 = l2_13.x[i__ - 1];
+    l4_13.gf[i__ + 4] = (d__1 * d__1 - l2_13.x[i__ + 4]) * -200. + (
+        l2_13.x[i__ + 4] - 1.) * 20.2 + (l2_13.x[i__ + 14] - 1.) * 
+        19.8;
+    l4_13.gf[i__ + 4] *= 1e-5;
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ + 9];
-	l4_13.gf[i__ + 9] = l2_13.x[i__ + 9] * 360. * (d__1 * d__1 - l2_13.x[
-		i__ + 14]) + (l2_13.x[i__ + 9] - 1.) * 2.;
-	l4_13.gf[i__ + 9] *= 1e-5;
+    d__1 = l2_13.x[i__ + 9];
+    l4_13.gf[i__ + 9] = l2_13.x[i__ + 9] * 360. * (d__1 * d__1 - l2_13.x[
+        i__ + 14]) + (l2_13.x[i__ + 9] - 1.) * 2.;
+    l4_13.gf[i__ + 9] *= 1e-5;
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ + 9];
-	l4_13.gf[i__ + 14] = (d__1 * d__1 - l2_13.x[i__ + 14]) * -180. + (
-		l2_13.x[i__ + 14] - 1.) * 20.2 + (l2_13.x[i__ + 4] - 1.) * 
-		19.8;
+    d__1 = l2_13.x[i__ + 9];
+    l4_13.gf[i__ + 14] = (d__1 * d__1 - l2_13.x[i__ + 14]) * -180. + (
+        l2_13.x[i__ + 14] - 1.) * 20.2 + (l2_13.x[i__ + 4] - 1.) * 
+        19.8;
 /* labelL9: */
-	l4_13.gf[i__ + 14] *= 1e-5;
+    l4_13.gf[i__ + 14] *= 1e-5;
     }
 labelL4:
     return 0;
@@ -19680,11 +19680,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL3;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL3;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 20;
@@ -19693,17 +19693,17 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l2_13.x[i__ - 1] = 3.;
-	l2_13.x[i__ + 4] = -1.;
-	l2_13.x[i__ + 9] = 0.;
+    l2_13.x[i__ - 1] = 3.;
+    l2_13.x[i__ + 4] = -1.;
+    l2_13.x[i__ + 9] = 0.;
 /* labelL6: */
-	l2_13.x[i__ + 14] = 1.;
+    l2_13.x[i__ + 14] = 1.;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
-	l20_14.xex[i__ - 1] = 0.;
-	l11_13.lxl[i__ - 1] = false;
+    l20_14.xex[i__ - 1] = 0.;
+    l11_13.lxl[i__ - 1] = false;
 /* L7: */
-	l12_13.lxu[i__ - 1] = false;
+    l12_13.lxu[i__ - 1] = false;
     }
     l20_14.fex = 0.;
     l20_14.lex = true;
@@ -19715,69 +19715,69 @@ labelL2:
     for (i__ = 1; i__ <= 20; ++i__) {
 /* labelL9: */
 /* Computing 2nd power */
-	d__1 = l16_10.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_10.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 5; ++i__) {
-	l16_10.f[i__ - 1] = l2_13.x[i__ - 1] + l2_13.x[i__ + 4] * 10.;
-	l16_10.f[i__ + 4] = std::sqrt(5.) * (l2_13.x[i__ + 9] - l2_13.x[i__ + 14]);
+    l16_10.f[i__ - 1] = l2_13.x[i__ - 1] + l2_13.x[i__ + 4] * 10.;
+    l16_10.f[i__ + 4] = std::sqrt(5.) * (l2_13.x[i__ + 9] - l2_13.x[i__ + 14]);
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ + 4] - l2_13.x[i__ + 9] * 2.;
-	l16_10.f[i__ + 9] = d__1 * d__1;
+    d__1 = l2_13.x[i__ + 4] - l2_13.x[i__ + 9] * 2.;
+    l16_10.f[i__ + 9] = d__1 * d__1;
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ - 1] - l2_13.x[i__ + 14];
-	l16_10.f[i__ + 14] = std::sqrt(10.) * (d__1 * d__1);
+    d__1 = l2_13.x[i__ - 1] - l2_13.x[i__ + 14];
+    l16_10.f[i__ + 14] = std::sqrt(10.) * (d__1 * d__1);
     }
     if (*mode == 2) {
-	goto labelL2;
+    goto labelL2;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-	for (j = 1; j <= 20; ++j) {
-	    l17_14.df[i__ + j * 198 - 199] = 0.;
-	    if (j == i__) {
-		l17_14.df[i__ + j * 198 - 199] = 1.;
-	    }
-	    if (j == i__ + 5) {
-		l17_14.df[i__ + j * 198 - 199] = 10.;
-	    }
-	    l17_14.df[i__ + 5 + j * 198 - 199] = 0.;
-	    if (j == i__ + 10) {
-		l17_14.df[i__ + 5 + j * 198 - 199] = std::sqrt(5.);
-	    }
-	    if (j == i__ + 15) {
-		l17_14.df[i__ + 5 + j * 198 - 199] = -std::sqrt(5.);
-	    }
-	    l17_14.df[i__ + 10 + j * 198 - 199] = 0.;
-	    if (j == i__ + 5) {
-		l17_14.df[i__ + 10 + j * 198 - 199] = (l2_13.x[i__ + 4] - 
-			l2_13.x[i__ + 9] * 2.) * 2.;
-	    }
-	    if (j == i__ + 10) {
-		l17_14.df[i__ + 10 + j * 198 - 199] = (l2_13.x[i__ + 4] - 
-			l2_13.x[i__ + 9] * 2.) * -4.;
-	    }
-	    l17_14.df[i__ + 15 + j * 198 - 199] = 0.;
-	    if (j == i__) {
-		l17_14.df[i__ + 15 + j * 198 - 199] = std::sqrt(10.) * 2. * (
-			l2_13.x[i__ - 1] - l2_13.x[i__ + 14]);
-	    }
+    for (j = 1; j <= 20; ++j) {
+        l17_14.df[i__ + j * 198 - 199] = 0.;
+        if (j == i__) {
+        l17_14.df[i__ + j * 198 - 199] = 1.;
+        }
+        if (j == i__ + 5) {
+        l17_14.df[i__ + j * 198 - 199] = 10.;
+        }
+        l17_14.df[i__ + 5 + j * 198 - 199] = 0.;
+        if (j == i__ + 10) {
+        l17_14.df[i__ + 5 + j * 198 - 199] = std::sqrt(5.);
+        }
+        if (j == i__ + 15) {
+        l17_14.df[i__ + 5 + j * 198 - 199] = -std::sqrt(5.);
+        }
+        l17_14.df[i__ + 10 + j * 198 - 199] = 0.;
+        if (j == i__ + 5) {
+        l17_14.df[i__ + 10 + j * 198 - 199] = (l2_13.x[i__ + 4] - 
+            l2_13.x[i__ + 9] * 2.) * 2.;
+        }
+        if (j == i__ + 10) {
+        l17_14.df[i__ + 10 + j * 198 - 199] = (l2_13.x[i__ + 4] - 
+            l2_13.x[i__ + 9] * 2.) * -4.;
+        }
+        l17_14.df[i__ + 15 + j * 198 - 199] = 0.;
+        if (j == i__) {
+        l17_14.df[i__ + 15 + j * 198 - 199] = std::sqrt(10.) * 2. * (
+            l2_13.x[i__ - 1] - l2_13.x[i__ + 14]);
+        }
 /* labelL11: */
-	    if (j == i__ + 15) {
-		l17_14.df[i__ + 15 + j * 198 - 199] = -std::sqrt(10.) * 2. * (
-			l2_13.x[i__ - 1] - l2_13.x[i__ + 14]);
-	    }
-	}
+        if (j == i__ + 15) {
+        l17_14.df[i__ + 15 + j * 198 - 199] = -std::sqrt(10.) * 2. * (
+            l2_13.x[i__ - 1] - l2_13.x[i__ + 14]);
+        }
+    }
     }
     for (j = 1; j <= 20; ++j) {
-	l4_13.gf[j - 1] = 0.;
-	for (i__ = 1; i__ <= 20; ++i__) {
+    l4_13.gf[j - 1] = 0.;
+    for (i__ = 1; i__ <= 20; ++i__) {
 /* labelL10: */
-	    l4_13.gf[j - 1] += l16_10.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
-		    198 - 199];
-	}
+        l4_13.gf[j - 1] += l16_10.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
+            198 - 199];
+    }
     }
 labelL4:
     return 0;
@@ -19793,11 +19793,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 30;
@@ -19806,12 +19806,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 30; ++i__) {
-	l2_14.x[i__ - 1] = pow_di(&c_b2003, &i__) * ((Real) i__ / 30. + 
-		1.);
-	l20_15.xex[i__ - 1] = 0.;
-	l12_14.lxu[i__ - 1] = false;
+    l2_14.x[i__ - 1] = pow_di(&c_b2003, &i__) * ((Real) i__ / 30. + 
+        1.);
+    l20_15.xex[i__ - 1] = 0.;
+    l12_14.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_14.lxl[i__ - 1] = false;
+    l11_14.lxl[i__ - 1] = false;
     }
     l20_15.lex = true;
     l20_15.nex = 1;
@@ -19822,16 +19822,16 @@ labelL2:
     for (i__ = 1; i__ <= 30; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l2_14.x[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l2_14.x[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     l6_1.fx = 1. - std::exp(-l6_1.fx / 60.);
     if (*mode == 2) {
-	return 0;
+    return 0;
     }
     for (i__ = 1; i__ <= 30; ++i__) {
 /* L8: */
-	l4_14.gf[i__ - 1] = (l6_1.fx - 1.) * (l2_14.x[i__ - 1] * -2. / 60.);
+    l4_14.gf[i__ - 1] = (l6_1.fx - 1.) * (l2_14.x[i__ - 1] * -2. / 60.);
     }
 labelL4:
     return 0;
@@ -19847,10 +19847,10 @@ labelL4:
     static int i__, j;
 
     switch(n__) {
-	case 1: goto L_tp291;
-	case 2: goto L_tp292;
-	case 3: goto L_tp293;
-	}
+    case 1: goto L_tp291;
+    case 2: goto L_tp292;
+    case 3: goto L_tp293;
+    }
 
     l1_1.n = 2;
     goto labelL10;
@@ -19867,11 +19867,11 @@ L_tp293:
     l1_1.n = 50;
 labelL10:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL3;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL3;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.nili = 0;
@@ -19880,11 +19880,11 @@ labelL1:
     l1_1.nenl = 0;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_15.x[i__ - 1] = 1.;
-	l20_16.xex[i__ - 1] = 0.;
-	l12_15.lxu[i__ - 1] = false;
+    l2_15.x[i__ - 1] = 1.;
+    l20_16.xex[i__ - 1] = 0.;
+    l12_15.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_15.lxl[i__ - 1] = false;
+    l11_15.lxl[i__ - 1] = false;
     }
     l20_16.fex = 0.;
     l20_16.lex = true;
@@ -19902,21 +19902,21 @@ labelL3:
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l2_15.x[i__ - 1];
-	l16_11.f[0] += (Real) i__ * (d__1 * d__1);
+    d__1 = l2_15.x[i__ - 1];
+    l16_11.f[0] += (Real) i__ * (d__1 * d__1);
     }
     if (*mode == 2) {
-	goto labelL2;
+    goto labelL2;
     }
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L8: */
-	l17_9.df[i__ - 1] = (Real) i__ * 2. * l2_15.x[i__ - 1];
+    l17_9.df[i__ - 1] = (Real) i__ * 2. * l2_15.x[i__ - 1];
     }
     i__1 = l1_1.n;
     for (j = 1; j <= i__1; ++j) {
 /* labelL9: */
-	l4_15.gf[j - 1] = l16_11.f[0] * 2. * l17_9.df[j - 1];
+    l4_15.gf[j - 1] = l16_11.f[0] * 2. * l17_9.df[j - 1];
     }
 labelL4:
     return 0;
@@ -19953,12 +19953,12 @@ labelL4:
     static int i__, j, k;
 
     switch(n__) {
-	case 1: goto L_tp295;
-	case 2: goto L_tp296;
-	case 3: goto L_tp297;
-	case 4: goto L_tp298;
-	case 5: goto L_tp299;
-	}
+    case 1: goto L_tp295;
+    case 2: goto L_tp296;
+    case 3: goto L_tp297;
+    case 4: goto L_tp298;
+    case 5: goto L_tp299;
+    }
 
     l1_1.n = 6;
     goto labelL20;
@@ -19984,11 +19984,11 @@ L_tp299:
 labelL20:
     k = l1_1.n - 1;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL3;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL3;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.nili = 0;
@@ -19997,16 +19997,16 @@ labelL1:
     l1_1.nenl = 0;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_16.x[i__ - 1] = -1.2;
-	l20_17.xex[i__ - 1] = 1.;
-	l12_16.lxu[i__ - 1] = false;
+    l2_16.x[i__ - 1] = -1.2;
+    l20_17.xex[i__ - 1] = 1.;
+    l12_16.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_16.lxl[i__ - 1] = false;
+    l11_16.lxl[i__ - 1] = false;
     }
     i__1 = l1_1.n / 2;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L7: */
-	l2_16.x[(i__ << 1) - 1] = 1.;
+    l2_16.x[(i__ << 1) - 1] = 1.;
     }
     l20_17.fex = 0.;
     l20_17.lex = true;
@@ -20019,10 +20019,10 @@ labelL2:
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l16_12.f[i__ - 1];
+    d__1 = l16_12.f[i__ - 1];
 /* Computing 2nd power */
-	d__2 = l16_12.f[i__ + k - 1];
-	l6_1.fx = l6_1.fx + d__1 * d__1 + d__2 * d__2;
+    d__2 = l16_12.f[i__ + k - 1];
+    l6_1.fx = l6_1.fx + d__1 * d__1 + d__2 * d__2;
     }
     l6_1.fx *= 1e-4;
     return 0;
@@ -20030,42 +20030,42 @@ labelL3:
     i__1 = k;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* Computing 2nd power */
-	d__1 = l2_16.x[i__ - 1];
-	l16_12.f[i__ - 1] = (l2_16.x[i__] - d__1 * d__1) * 10.;
+    d__1 = l2_16.x[i__ - 1];
+    l16_12.f[i__ - 1] = (l2_16.x[i__] - d__1 * d__1) * 10.;
 /* labelL12: */
-	l16_12.f[i__ + k - 1] = 1. - l2_16.x[i__ - 1];
+    l16_12.f[i__ + k - 1] = 1. - l2_16.x[i__ - 1];
     }
     if (*mode == 2) {
-	goto labelL2;
+    goto labelL2;
     }
     i__1 = k;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
-	    l17_14.df[i__ + j * 198 - 199] = 0.;
-	    if (j == i__) {
-		l17_14.df[i__ + j * 198 - 199] = l2_16.x[i__ - 1] * -20.;
-	    }
-	    if (j == i__ + 1) {
-		l17_14.df[i__ + j * 198 - 199] = 10.;
-	    }
-	    l17_14.df[i__ + k + j * 198 - 199] = 0.;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
+        l17_14.df[i__ + j * 198 - 199] = 0.;
+        if (j == i__) {
+        l17_14.df[i__ + j * 198 - 199] = l2_16.x[i__ - 1] * -20.;
+        }
+        if (j == i__ + 1) {
+        l17_14.df[i__ + j * 198 - 199] = 10.;
+        }
+        l17_14.df[i__ + k + j * 198 - 199] = 0.;
 /* labelL9: */
-	    if (j == i__) {
-		l17_14.df[i__ + k + j * 198 - 199] = -1.;
-	    }
-	}
+        if (j == i__) {
+        l17_14.df[i__ + k + j * 198 - 199] = -1.;
+        }
+    }
     }
     i__2 = l1_1.n;
     for (j = 1; j <= i__2; ++j) {
-	l4_16.gf[j - 1] = 0.;
-	i__1 = l15_1.lsum;
-	for (i__ = 1; i__ <= i__1; ++i__) {
+    l4_16.gf[j - 1] = 0.;
+    i__1 = l15_1.lsum;
+    for (i__ = 1; i__ <= i__1; ++i__) {
 /* labelL13: */
-	    l4_16.gf[j - 1] += l16_12.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
-		    198 - 199];
-	}
-	l4_16.gf[j - 1] *= 1e-4;
+        l4_16.gf[j - 1] += l16_12.f[i__ - 1] * 2. * l17_14.df[i__ + j * 
+            198 - 199];
+    }
+    l4_16.gf[j - 1] *= 1e-4;
 /* labelL11: */
     }
 labelL4:
@@ -20113,9 +20113,9 @@ labelL4:
     static int i__;
 
     switch(n__) {
-	case 1: goto L_tp301;
-	case 2: goto L_tp302;
-	}
+    case 1: goto L_tp301;
+    case 2: goto L_tp302;
+    }
 
     l1_1.n = 20;
     l20_17.fex = -20.;
@@ -20131,11 +20131,11 @@ L_tp302:
     l20_17.fex = -100.;
 labelL10:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.nili = 0;
@@ -20144,11 +20144,11 @@ labelL1:
     l1_1.nenl = 0;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_16.x[i__ - 1] = 0.;
-	l20_17.xex[i__ - 1] = (Real) (l1_1.n - i__) + 1.;
-	l12_16.lxu[i__ - 1] = false;
+    l2_16.x[i__ - 1] = 0.;
+    l20_17.xex[i__ - 1] = (Real) (l1_1.n - i__) + 1.;
+    l12_16.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_16.lxl[i__ - 1] = false;
+    l11_16.lxl[i__ - 1] = false;
     }
     l20_17.lex = true;
     l20_17.nex = 1;
@@ -20161,9 +20161,9 @@ labelL2:
     for (i__ = 2; i__ <= i__1; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l2_16.x[i__ - 1];
-	l6_1.fx = l6_1.fx + d__1 * d__1 * 2. - l2_16.x[i__ - 2] * 2. * 
-		l2_16.x[i__ - 1];
+    d__1 = l2_16.x[i__ - 1];
+    l6_1.fx = l6_1.fx + d__1 * d__1 * 2. - l2_16.x[i__ - 2] * 2. * 
+        l2_16.x[i__ - 1];
     }
     return 0;
 labelL3:
@@ -20171,11 +20171,11 @@ labelL3:
     i__1 = l1_1.n - 1;
     for (i__ = 2; i__ <= i__1; ++i__) {
 /* L8: */
-	l4_16.gf[i__ - 1] = l2_16.x[i__ - 1] * 4. - (l2_16.x[i__ - 2] + 
-		l2_16.x[i__]) * 2.;
+    l4_16.gf[i__ - 1] = l2_16.x[i__ - 1] * 4. - (l2_16.x[i__ - 2] + 
+        l2_16.x[i__]) * 2.;
     }
     l4_16.gf[l1_1.n - 1] = l2_16.x[l1_1.n - 1] * 4. - l2_16.x[l1_1.n - 2] * 
-	    2.;
+        2.;
 labelL4:
     return 0;
 } /* tp300_ */
@@ -20207,9 +20207,9 @@ labelL4:
     static Real pom;
 
     switch(n__) {
-	case 1: goto L_tp304;
-	case 2: goto L_tp305;
-	}
+    case 1: goto L_tp304;
+    case 2: goto L_tp305;
+    }
 
     l1_1.n = 20;
     goto labelL10;
@@ -20222,11 +20222,11 @@ L_tp305:
     l1_1.n = 100;
 labelL10:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.nili = 0;
@@ -20235,11 +20235,11 @@ labelL1:
     l1_1.nenl = 0;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_16.x[i__ - 1] = .1;
-	l20_17.xex[i__ - 1] = 0.;
-	l12_16.lxu[i__ - 1] = false;
+    l2_16.x[i__ - 1] = .1;
+    l20_17.xex[i__ - 1] = 0.;
+    l12_16.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_16.lxl[i__ - 1] = false;
+    l11_16.lxl[i__ - 1] = false;
     }
     l20_17.lex = true;
     l20_17.nex = 1;
@@ -20250,7 +20250,7 @@ labelL2:
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L7: */
-	pom += (Real) i__ * .5 * l2_16.x[i__ - 1];
+    pom += (Real) i__ * .5 * l2_16.x[i__ - 1];
     }
 /* Computing 2nd power */
     d__1 = pom;
@@ -20261,8 +20261,8 @@ labelL2:
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_16.x[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l2_16.x[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
@@ -20270,9 +20270,9 @@ labelL3:
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* labelL9: */
 /* Computing 3rd power */
-	d__1 = pom;
-	l4_16.gf[i__ - 1] = l2_16.x[i__ - 1] * 2. + pom * (Real) i__ + (
-		Real) i__ * 2. * (d__1 * (d__1 * d__1));
+    d__1 = pom;
+    l4_16.gf[i__ - 1] = l2_16.x[i__ - 1] * 2. + pom * (Real) i__ + (
+        Real) i__ * 2. * (d__1 * (d__1 * d__1));
     }
 labelL4:
     return 0;
@@ -20304,11 +20304,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20317,10 +20317,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 1.;
-	l12_1.lxu[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 1.;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_6.lex = false;
     l20_6.nex = 2;
@@ -20336,7 +20336,7 @@ labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l6_1.fx = -exp(-l2_1.x[0] - l2_1.x[1]) * (d__1 * d__1 * 2. + d__2 * d__2 *
-	     3.);
+         3.);
     return 0;
 labelL3:
     a = std::exp(-l2_1.x[0] - l2_1.x[1]);
@@ -20362,11 +20362,11 @@ labelL4:
     static Real wi, xi1, xi2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20377,12 +20377,12 @@ labelL1:
     l2_1.x[0] = (float).3;
     l2_1.x[1] = (float).4;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l13_1.xl[i__ - 1] = (float)0.;
-	l12_1.lxu[i__ - 1] = true;
-	l14_20.xu[i__ - 1] = (float).26;
+    l11_1.lxl[i__ - 1] = true;
+    l13_1.xl[i__ - 1] = (float)0.;
+    l12_1.lxu[i__ - 1] = true;
+    l14_20.xu[i__ - 1] = (float).26;
 /* labelL6: */
-	l20_1.xex[i__ - 1] = .25783;
+    l20_1.xex[i__ - 1] = .25783;
     }
     l20_1.nex = 1;
     l20_1.lex = false;
@@ -20398,31 +20398,31 @@ labelL3:
     l4_1.gf[1] = (float)0.;
 labelL9:
     for (i__ = 1; i__ <= 10; ++i__) {
-	wi = (Real) i__;
-	xi1 = wi * l2_1.x[0];
-	if (xi1 > 20.) {
-	    xi1 = (float)0.;
-	}
-	xi2 = wi * l2_1.x[1];
-	if (xi2 > 20.) {
-	    xi2 = (float)0.;
-	}
-	l16_4.f[i__ - 1] = wi * (float)2. + (float)2. - std::exp(xi1) - std::exp(xi2);
-	if (*mode == 2) {
-	    goto L8;
-	}
-	l17_8.df[i__ - 1] = -wi * std::exp(xi1);
-	l17_8.df[i__ + 9] = -wi * std::exp(xi2);
-	l4_1.gf[0] += l16_4.f[i__ - 1] * (float)2. * l17_8.df[i__ - 1];
-	l4_1.gf[1] += l16_4.f[i__ - 1] * (float)2. * l17_8.df[i__ + 9];
-	goto L7;
+    wi = (Real) i__;
+    xi1 = wi * l2_1.x[0];
+    if (xi1 > 20.) {
+        xi1 = (float)0.;
+    }
+    xi2 = wi * l2_1.x[1];
+    if (xi2 > 20.) {
+        xi2 = (float)0.;
+    }
+    l16_4.f[i__ - 1] = wi * (float)2. + (float)2. - std::exp(xi1) - std::exp(xi2);
+    if (*mode == 2) {
+        goto L8;
+    }
+    l17_8.df[i__ - 1] = -wi * std::exp(xi1);
+    l17_8.df[i__ + 9] = -wi * std::exp(xi2);
+    l4_1.gf[0] += l16_4.f[i__ - 1] * (float)2. * l17_8.df[i__ - 1];
+    l4_1.gf[1] += l16_4.f[i__ - 1] * (float)2. * l17_8.df[i__ + 9];
+    goto L7;
 L8:
 /* Computing 2nd power */
-	d__1 = l16_4.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
-	l6_1.fx *= (float).001;
+    d__1 = l16_4.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
+    l6_1.fx *= (float).001;
 L7:
-	;
+    ;
     }
     l4_1.gf[0] *= (float).001;
     l4_1.gf[1] *= (float).001;
@@ -20440,11 +20440,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20474,14 +20474,14 @@ labelL2:
     l16_2.f[1] = std::sin(l2_1.x[0]);
     l16_2.f[2] =std::cos(l2_1.x[1]);
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL5: */
 /* Computing 2nd power */
-	d__1 = l16_2.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_2.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
@@ -20494,9 +20494,9 @@ labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l4_1.gf[0] += l16_2.f[i__ - 1] * 2. * l17_2.df[i__ - 1];
+    l4_1.gf[0] += l16_2.f[i__ - 1] * 2. * l17_2.df[i__ - 1];
 /* labelL6: */
-	l4_1.gf[1] += l16_2.f[i__ - 1] * 2. * l17_2.df[i__ + 2];
+    l4_1.gf[1] += l16_2.f[i__ - 1] * 2. * l17_2.df[i__ + 2];
     }
 labelL4:
     return 0;
@@ -20511,11 +20511,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20524,10 +20524,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL5: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -20546,7 +20546,7 @@ labelL2:
 /* Computing 2nd power */
     d__4 = l2_1.x[1] - 3.9;
     l6_1.fx = d__1 * d__1 * 1.41 - d__2 * (d__2 * d__2) * 12.76 + d__3 * d__3 
-	    * 39.91 - l2_1.x[0] * 51.93 + 24.37 + d__4 * d__4;
+        * 39.91 - l2_1.x[0] * 51.93 + 24.37 + d__4 * d__4;
     return 0;
 labelL3:
 /* Computing 3rd power */
@@ -20554,7 +20554,7 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_1.x[0];
     l4_1.gf[0] = d__1 * (d__1 * d__1) * 5.64 - d__2 * d__2 * 38.28 + l2_1.x[0]
-	     * 79.82 - 51.93;
+         * 79.82 - 51.93;
     l4_1.gf[1] = l2_1.x[1] * 2. - 7.8;
     return 0;
 } /* tp309_ */
@@ -20569,11 +20569,11 @@ labelL3:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20584,9 +20584,9 @@ labelL1:
     l2_1.x[0] = -1.2;
     l2_1.x[1] = 1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
 /* L7: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = -1;
@@ -20614,7 +20614,7 @@ labelL3:
 /* Computing 4th power */
     d__1 = b, d__1 *= d__1;
     l4_1.gf[0] = a * 2. * b * c__ * (l2_1.x[1] - 1. - l2_1.x[1] * 5. * (d__1 *
-	     d__1));
+         d__1));
 /* Computing 5th power */
     d__1 = b, d__2 = d__1, d__1 *= d__1;
     l4_1.gf[1] = a * 2. * b * c__ * (l2_1.x[0] - d__2 * (d__1 * d__1));
@@ -20631,11 +20631,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20644,10 +20644,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 1.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 1.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL5: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_6.lex = false;
     l20_6.nex = 2;
@@ -20675,13 +20675,13 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l4_1.gf[0] = l2_1.x[0] * 4. * (d__1 * d__1 + l2_1.x[1] - 11.) + (l2_1.x[0]
-	     + d__2 * d__2 - 7.) * 2.;
+         + d__2 * d__2 - 7.) * 2.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     l4_1.gf[1] = (d__1 * d__1 + l2_1.x[1] - 11.) * 2. + l2_1.x[1] * 4. * (
-	    l2_1.x[0] + d__2 * d__2 - 7.);
+        l2_1.x[0] + d__2 * d__2 - 7.);
     return 0;
 } /* tp311_ */
 
@@ -20695,11 +20695,11 @@ labelL3:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20708,10 +20708,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 1.;
-	l12_1.lxu[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 1.;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -20728,7 +20728,7 @@ labelL2:
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     b = (d__1 * d__1 + d__2 * d__2) * 49. + l2_1.x[0] * 84. + l2_1.x[1] * 
-	    2324. - 681.;
+        2324. - 681.;
 /* Computing 2nd power */
     d__1 = a;
 /* Computing 2nd power */
@@ -20745,9 +20745,9 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_1.x[1];
     b = (d__1 * d__1 + d__2 * d__2) * 49. + l2_1.x[0] * 84. + l2_1.x[1] * 
-	    2324. - 681.;
+        2324. - 681.;
     l4_1.gf[0] = (l2_1.x[0] * 2. * a + b * (l2_1.x[0] * 98. + 84.)) * 2. * 
-	    1e-4;
+        1e-4;
     l4_1.gf[1] = (a * 12. + b * (l2_1.x[1] * 98. + 2324.)) * 2. * 1e-4;
 labelL4:
     return 0;
@@ -20763,11 +20763,11 @@ labelL4:
     static Real xh;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20778,9 +20778,9 @@ labelL1:
     l2_1.x[0] = 0.;
     l2_1.x[1] = -1.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL5: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -20792,7 +20792,7 @@ labelL2:
 /* Computing 2nd power */
     d__1 = l2_1.x[0] - 3.;
     l6_1.fx = d__1 * d__1 * 1e-4 - (l2_1.x[1] - l2_1.x[0]) + std::exp((l2_1.x[1] - 
-	    l2_1.x[0]) * 20.);
+        l2_1.x[0]) * 20.);
     return 0;
 labelL3:
     xh = std::exp((l2_1.x[1] - l2_1.x[0]) * 20.) * 20.;
@@ -20813,11 +20813,11 @@ labelL4:
     static Real g1, h1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -20826,10 +20826,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 2.;
-	l12_1.lxu[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 2.;
+    l12_1.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_1.lxl[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -20864,11 +20864,11 @@ labelL3:
 /* Computing 2nd power */
     d__1 = g1;
     l4_1.gf[0] = (l2_1.x[0] - 2. + l2_1.x[0] * .01 / (d__1 * d__1) + h1 * 5.) 
-	    * 2.;
+        * 2.;
 /* Computing 2nd power */
     d__1 = g1;
     l4_1.gf[1] = (l2_1.x[1] - 1. + l2_1.x[1] * .04 / (d__1 * d__1) - h1 * 10.)
-	     * 2.;
+         * 2.;
 labelL4:
     return 0;
 } /* tp314_ */
@@ -20879,11 +20879,11 @@ labelL4:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -20913,32 +20913,32 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = 1. - l2_1.x[1] * 2. + l2_1.x[0];
+    l3_3.g[0] = 1. - l2_1.x[1] * 2. + l2_1.x[0];
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_3.g[1] = d__1 * d__1 + d__2 * d__2;
+    d__2 = l2_1.x[1];
+    l3_3.g[1] = d__1 * d__1 + d__2 * d__2;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_3.g[2] = 1. - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_1.x[1];
+    l3_3.g[2] = 1. - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[1]) {
-	goto labelL6;
+    goto labelL6;
     }
     l5_3.gg[1] = l2_1.x[0] * 2.;
     l5_3.gg[4] = l2_1.x[1] * 2.;
 labelL6:
     if (! l10_4.index2[2]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[2] = l2_1.x[0] * -2.;
     l5_3.gg[5] = l2_1.x[1] * -2.;
@@ -20955,11 +20955,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -20968,10 +20968,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -20993,15 +20993,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 * .01 - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 * .01 - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * .02;
@@ -21017,11 +21017,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21030,10 +21030,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21055,15 +21055,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 64. - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 64. - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * 2. / 64.;
@@ -21079,11 +21079,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21092,10 +21092,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21117,15 +21117,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 36. - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 36. - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * 2. / 36.;
@@ -21141,11 +21141,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21154,10 +21154,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21179,15 +21179,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 16. - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 16. - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * 2. / 16.;
@@ -21203,11 +21203,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21216,10 +21216,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21241,15 +21241,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 4. - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 / 4. - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * .5;
@@ -21265,11 +21265,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21278,10 +21278,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 0.;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = 0.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21303,15 +21303,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * 2.;
@@ -21328,11 +21328,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21341,10 +21341,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = (float)1e-4;
-	l11_1.lxl[i__ - 1] = false;
+    l2_1.x[i__ - 1] = (float)1e-4;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21366,15 +21366,15 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 * 100. - 1.;
+    d__2 = l2_1.x[1];
+    l3_1.g[0] = d__1 * d__1 * .01 + d__2 * d__2 * 100. - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = l2_1.x[0] * .02;
     l5_1.gg[1] = l2_1.x[1] * 200.;
@@ -21387,11 +21387,11 @@ labelL5:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21429,17 +21429,17 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] - l2_1.x[1] + 2.;
+    l3_2.g[0] = l2_1.x[0] - l2_1.x[1] + 2.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_2.g[1] = d__1 * d__1 * -1. + l2_1.x[1] - 1.;
+    d__1 = l2_1.x[0];
+    l3_2.g[1] = d__1 * d__1 * -1. + l2_1.x[1] - 1.;
     }
     return 0;
 labelL5:
     if (l10_3.index2[1]) {
-	l5_2.gg[1] = l2_1.x[0] * -2.;
+    l5_2.gg[1] = l2_1.x[0] * -2.;
     }
     return 0;
 } /* tp323_ */
@@ -21453,11 +21453,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21466,9 +21466,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 2.;
+    l2_1.x[i__ - 1] = 2.;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l11_1.lxl[0] = true;
     l11_1.lxl[1] = false;
@@ -21492,25 +21492,25 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 25.;
+    l3_2.g[0] = l2_1.x[0] * l2_1.x[1] - 25.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 25.;
+    d__2 = l2_1.x[1];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 - 25.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = l2_1.x[1];
     l5_2.gg[2] = l2_1.x[0];
 L7:
     if (! l10_3.index2[1]) {
-	return 0;
+    return 0;
     }
     l5_2.gg[1] = l2_1.x[0] * 2.;
     l5_2.gg[3] = l2_1.x[1] * 2.;
@@ -21526,11 +21526,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21541,10 +21541,10 @@ labelL1:
     l2_1.x[0] = -3.;
     l2_1.x[1] = 0.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l5_3.gg[i__ * 3 - 3] = -1.;
-	l11_1.lxl[i__ - 1] = false;
+    l5_3.gg[i__ * 3 - 3] = -1.;
+    l11_1.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_1.lxu[i__ - 1] = false;
+    l12_1.lxu[i__ - 1] = false;
     }
     l5_3.gg[1] = -1.;
     l4_1.gf[1] = 1.;
@@ -21564,27 +21564,27 @@ labelL3:
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = -(l2_1.x[0] + l2_1.x[1]) + 1.;
+    l3_3.g[0] = -(l2_1.x[0] + l2_1.x[1]) + 1.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[1];
-	l3_3.g[1] = -(l2_1.x[0] + d__1 * d__1) + 1.;
+    d__1 = l2_1.x[1];
+    l3_3.g[1] = -(l2_1.x[0] + d__1 * d__1) + 1.;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
+    d__1 = l2_1.x[0];
 /* Computing 2nd power */
-	d__2 = l2_1.x[1];
-	l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 9.;
+    d__2 = l2_1.x[1];
+    l3_3.g[2] = d__1 * d__1 + d__2 * d__2 - 9.;
     }
     return 0;
 labelL5:
     if (l10_4.index2[1]) {
-	l5_3.gg[4] = l2_1.x[1] * -2.;
+    l5_3.gg[4] = l2_1.x[1] * -2.;
     }
     if (! l10_4.index2[2]) {
-	return 0;
+    return 0;
     }
     l5_3.gg[2] = l2_1.x[0] * 2.;
     l5_3.gg[5] = l2_1.x[1] * 2.;
@@ -21600,11 +21600,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21615,11 +21615,11 @@ labelL1:
     l2_1.x[0] = 4.;
     l2_1.x[1] = 3.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = (float)10.;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = (float)10.;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l5_2.gg[2] = -4.;
     l20_1.lex = false;
@@ -21642,20 +21642,20 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0];
-	l3_2.g[0] = 11. - d__1 * d__1 + l2_1.x[0] * 6. - l2_1.x[1] * 4.;
+    d__1 = l2_1.x[0];
+    l3_2.g[0] = 11. - d__1 * d__1 + l2_1.x[0] * 6. - l2_1.x[1] * 4.;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = l2_1.x[0] * l2_1.x[1] - l2_1.x[1] * 3. - std::exp(l2_1.x[0] - 
-		3.) + 1.;
+    l3_2.g[1] = l2_1.x[0] * l2_1.x[1] - l2_1.x[1] * 3. - std::exp(l2_1.x[0] - 
+        3.) + 1.;
     }
     return 0;
 labelL5:
     if (l10_3.index2[0]) {
-	l5_2.gg[0] = l2_1.x[0] * -2. + 6.;
+    l5_2.gg[0] = l2_1.x[0] * -2. + 6.;
     }
     if (! l10_3.index2[1]) {
-	return 0;
+    return 0;
     }
     l5_2.gg[1] = l2_1.x[1] - std::exp(l2_1.x[0] - 3.);
     l5_2.gg[3] = l2_1.x[0] - 3.;
@@ -21668,12 +21668,12 @@ labelL5:
     /* Initialized data */
 
     static Real y[44] = { .49,.49,.48,.47,.48,.47,.46,.46,.45,.43,.45,
-	    .43,.43,.44,.43,.43,.46,.45,.42,.42,.43,.41,.41,.4,.42,.4,.4,.41,
-	    .4,.41,.41,.4,.4,.4,.38,.41,.4,.4,.41,.38,.4,.4,.39,.39 };
+        .43,.43,.44,.43,.43,.46,.45,.42,.42,.43,.41,.41,.4,.42,.4,.4,.41,
+        .4,.41,.41,.4,.4,.4,.38,.41,.4,.4,.41,.38,.4,.4,.39,.39 };
     static Real z__[44] = { 8.,8.,10.,10.,10.,10.,12.,12.,12.,12.,14.,
-	    14.,14.,16.,16.,16.,18.,18.,20.,20.,20.,22.,22.,22.,24.,24.,24.,
-	    26.,26.,26.,28.,28.,30.,30.,30.,32.,32.,34.,36.,36.,38.,38.,40.,
-	    42. };
+        14.,14.,16.,16.,16.,18.,18.,20.,20.,20.,22.,22.,22.,24.,24.,24.,
+        26.,26.,26.,28.,28.,30.,30.,30.,32.,32.,34.,36.,36.,38.,38.,40.,
+        42. };
 
     /* System generated locals */
     Real d__1;
@@ -21682,11 +21682,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21697,10 +21697,10 @@ labelL1:
     l2_1.x[0] = .42;
     l2_1.x[1] = 5.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l12_1.lxu[i__ - 1] = false;
-	l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = false;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL12: */
-	l13_1.xl[i__ - 1] = .4;
+    l13_1.xl[i__ - 1] = .4;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21712,40 +21712,40 @@ labelL1:
 labelL2:
     for (i__ = 1; i__ <= 44; ++i__) {
 /* labelL6: */
-	l16_13.f[i__ - 1] = y[i__ - 1] - l2_1.x[0] - (.49 - l2_1.x[0]) * std::exp(
-		-l2_1.x[1] * (z__[i__ - 1] - 8.));
+    l16_13.f[i__ - 1] = y[i__ - 1] - l2_1.x[0] - (.49 - l2_1.x[0]) * std::exp(
+        -l2_1.x[1] * (z__[i__ - 1] - 8.));
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_13.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_13.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     l4_1.gf[0] = 0.;
     l4_1.gf[1] = 0.;
     for (i__ = 1; i__ <= 44; ++i__) {
-	l17_15.df[i__ - 1] = std::exp(-l2_1.x[1] * (z__[i__ - 1] - 8.)) - 1.;
-	l17_15.df[i__ + 43] = (.49 - l2_1.x[0]) * std::exp(-l2_1.x[1] * (z__[i__ - 
-		1] - 8.)) * (z__[i__ - 1] - 8.);
-	l4_1.gf[0] += l17_15.df[i__ - 1] * l16_13.f[i__ - 1] * 2.;
+    l17_15.df[i__ - 1] = std::exp(-l2_1.x[1] * (z__[i__ - 1] - 8.)) - 1.;
+    l17_15.df[i__ + 43] = (.49 - l2_1.x[0]) * std::exp(-l2_1.x[1] * (z__[i__ - 
+        1] - 8.)) * (z__[i__ - 1] - 8.);
+    l4_1.gf[0] += l17_15.df[i__ - 1] * l16_13.f[i__ - 1] * 2.;
 /* L8: */
-	l4_1.gf[1] += l17_15.df[i__ + 43] * l16_13.f[i__ - 1] * 2.;
+    l4_1.gf[1] += l17_15.df[i__ + 43] * l16_13.f[i__ - 1] * 2.;
     }
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = -.09 - l2_1.x[0] * l2_1.x[1] + l2_1.x[1] * .49;
+    l3_1.g[0] = -.09 - l2_1.x[0] * l2_1.x[1] + l2_1.x[1] * .49;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
     l5_1.gg[0] = -l2_1.x[1];
     l5_1.gg[1] = .49 - l2_1.x[0];
@@ -21762,11 +21762,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 2;
@@ -21775,12 +21775,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = .5;
-	l12_1.lxu[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = 3.;
-	l11_1.lxl[i__ - 1] = true;
+    l2_1.x[i__ - 1] = .5;
+    l12_1.lxu[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = 3.;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 1.;
+    l13_1.xl[i__ - 1] = 1.;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21818,7 +21818,7 @@ labelL3:
 /* Computing 4th power */
     d__5 = l2_1.x[1], d__5 *= d__5;
     b = 1. / (d__1 * (d__1 * d__1) * (d__2 * d__2)) + 200. / (d__4 * (d__3 * 
-	    d__3) * (d__5 * d__5));
+        d__3) * (d__5 * d__5));
     l4_1.gf[0] = (l2_1.x[0] - a - b) / 5.;
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
@@ -21829,7 +21829,7 @@ labelL3:
 /* Computing 5th power */
     d__4 = l2_1.x[1], d__5 = d__4, d__4 *= d__4;
     a = 1. / (d__1 * d__1 * (d__2 * (d__2 * d__2))) + 200. / (d__3 * d__3 * (
-	    d__5 * (d__4 * d__4)));
+        d__5 * (d__4 * d__4)));
 /* Computing 2nd power */
     d__1 = l2_1.x[0];
     l4_1.gf[1] = (l2_1.x[1] / (d__1 * d__1) - a) / 5.;
@@ -21843,11 +21843,11 @@ labelL4:
     Real d__1, d__2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21889,41 +21889,41 @@ labelL3:
 labelL4:
     if (l9_4.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 5.;
+    d__1 = l2_1.x[0] - 5.;
 /* Computing 2nd power */
-	d__2 = l2_1.x[1] - 5.;
-	l3_3.g[0] = d__1 * d__1 + d__2 * d__2 - 100.;
+    d__2 = l2_1.x[1] - 5.;
+    l3_3.g[0] = d__1 * d__1 + d__2 * d__2 - 100.;
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 6.;
+    d__1 = l2_1.x[0] - 6.;
 /* Computing 2nd power */
-	d__2 = l2_1.x[1] - 5.;
-	l3_3.g[1] = d__1 * d__1 + d__2 * d__2;
+    d__2 = l2_1.x[1] - 5.;
+    l3_3.g[1] = d__1 * d__1 + d__2 * d__2;
     }
     if (l9_4.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_1.x[0] - 6.;
+    d__1 = l2_1.x[0] - 6.;
 /* Computing 2nd power */
-	d__2 = l2_1.x[1] - 5.;
-	l3_3.g[2] = 82.81 - d__1 * d__1 - d__2 * d__2;
+    d__2 = l2_1.x[1] - 5.;
+    l3_3.g[2] = 82.81 - d__1 * d__1 - d__2 * d__2;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto labelL6;
+    goto labelL6;
     }
     l5_3.gg[0] = l2_1.x[0] * 2. - 10.;
     l5_3.gg[3] = l2_1.x[1] * 2. - 10.;
 labelL6:
     if (! l10_4.index2[1]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[1] = l2_1.x[0] * 2. - 12.;
     l5_3.gg[4] = l2_1.x[1] * 2. - 10.;
 L7:
     if (! l10_4.index2[2]) {
-	return 0;
+    return 0;
     }
     l5_3.gg[2] = l2_1.x[0] * -2. + 12.;
     l5_3.gg[5] = l2_1.x[1] * -2. + 10.;
@@ -21939,11 +21939,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -21952,12 +21952,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = 2.5;
-	l11_1.lxl[i__ - 1] = true;
-	l12_1.lxu[i__ - 1] = true;
-	l13_1.xl[i__ - 1] = 0.;
+    l2_1.x[i__ - 1] = 2.5;
+    l11_1.lxl[i__ - 1] = true;
+    l12_1.lxu[i__ - 1] = true;
+    l13_1.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l14_1.xu[i__ - 1] = 5.;
+    l14_1.xu[i__ - 1] = 5.;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -21973,7 +21973,7 @@ labelL2:
 /* Computing 3rd power */
     d__3 = l2_1.x[1];
     l6_1.fx = d__1 * (d__1 * d__1) * .044 / (d__2 * d__2) + 1. / l2_1.x[0] + 
-	    l2_1.x[0] * .0592 / (d__3 * (d__3 * d__3));
+        l2_1.x[0] * .0592 / (d__3 * (d__3 * d__3));
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -21985,7 +21985,7 @@ labelL3:
 /* Computing 3rd power */
     d__4 = l2_1.x[1];
     l4_1.gf[0] = d__1 * d__1 * .132 / (d__2 * d__2) - d__3 * d__3 + .0592 / (
-	    d__4 * (d__4 * d__4));
+        d__4 * (d__4 * d__4));
 /* Computing 3rd power */
     d__1 = l2_1.x[0];
 /* Computing 3rd power */
@@ -21993,18 +21993,18 @@ labelL3:
 /* Computing 4th power */
     d__3 = l2_1.x[1], d__3 *= d__3;
     l4_1.gf[1] = d__1 * (d__1 * d__1) * -.088 / (d__2 * (d__2 * d__2)) - 
-	    l2_1.x[0] * .1776 / (d__3 * d__3);
+        l2_1.x[0] * .1776 / (d__3 * d__3);
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 3rd power */
-	d__1 = l2_1.x[1];
-	l3_1.g[0] = 1. - d__1 * (d__1 * d__1) * 8.62 / l2_1.x[0];
+    d__1 = l2_1.x[1];
+    l3_1.g[0] = 1. - d__1 * (d__1 * d__1) * 8.62 / l2_1.x[0];
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	return 0;
+    return 0;
     }
 /* Computing 3rd power */
     d__1 = l2_1.x[1];
@@ -22025,11 +22025,11 @@ labelL5:
     static Real a, b, c__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 2;
@@ -22057,7 +22057,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = std::log(std::log(l2_1.x[1]) * (float)2. / std::log(l2_1.x[0] + l2_1.x[1])) / 
-	    l2_1.x[0];
+        l2_1.x[0];
     return 0;
 labelL3:
     a = l2_1.x[0] + l2_1.x[1];
@@ -22068,7 +22068,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_1.g[0] = (float)1. - l2_1.x[0] - l2_1.x[1];
+    l3_1.g[0] = (float)1. - l2_1.x[0] - l2_1.x[1];
     }
 labelL5:
     return 0;
@@ -22090,11 +22090,11 @@ labelL5:
     static Real tr, pangle, pim, xxx, yyy;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 2;
@@ -22103,12 +22103,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l2_1.x[i__ - 1] = .75;
-	l12_1.lxu[i__ - 1] = true;
-	l14_1.xu[i__ - 1] = 1.5;
-	l11_1.lxl[i__ - 1] = true;
+    l2_1.x[i__ - 1] = .75;
+    l12_1.lxu[i__ - 1] = true;
+    l14_1.xu[i__ - 1] = 1.5;
+    l11_1.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_1.xl[i__ - 1] = 0.;
+    l13_1.xl[i__ - 1] = 0.;
     }
     l20_1.lex = false;
     l20_1.nex = 1;
@@ -22121,38 +22121,38 @@ labelL2:
     pim = pi / 3.6;
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 100; ++i__) {
-	tr = pi * (((Real) i__ - 1.) / 180. + .33333333333333331);
-	a = std::log(tr);
-	b = std::sin(tr);
-	c__ =std::cos(tr);
-	xxx = (a + l2_1.x[1]) * b + l2_1.x[0] * c__;
-	yyy = (a + l2_1.x[1]) * c__ - l2_1.x[0] * b;
+    tr = pi * (((Real) i__ - 1.) / 180. + .33333333333333331);
+    a = std::log(tr);
+    b = std::sin(tr);
+    c__ =std::cos(tr);
+    xxx = (a + l2_1.x[1]) * b + l2_1.x[0] * c__;
+    yyy = (a + l2_1.x[1]) * c__ - l2_1.x[0] * b;
 /* L7: */
 /* Computing 2nd power */
-	d__1 = xxx;
+    d__1 = xxx;
 /* Computing 2nd power */
-	d__2 = yyy;
-	l6_1.fx += pim * (d__1 * d__1 + d__2 * d__2);
+    d__2 = yyy;
+    l6_1.fx += pim * (d__1 * d__1 + d__2 * d__2);
     }
     return 0;
 labelL4:
     pbig = -360.;
     pim = 180. / pi;
     for (i__ = 1; i__ <= 100; ++i__) {
-	tr = pi * (((Real) i__ - 1.) / 180. + .33333333333333331);
-	a = 1. / tr - l2_1.x[0];
-	b = std::log(tr) + l2_1.x[1];
-	pangle = pim * std::atan((d__1 = a / b, std::abs(d__1)));
+    tr = pi * (((Real) i__ - 1.) / 180. + .33333333333333331);
+    a = 1. / tr - l2_1.x[0];
+    b = std::log(tr) + l2_1.x[1];
+    pangle = pim * std::atan((d__1 = a / b, std::abs(d__1)));
 /* L8: */
-	if (pangle > pbig) {
-	    pbig = pangle;
-	}
+    if (pangle > pbig) {
+        pbig = pangle;
+    }
     }
     if (l9_3.index1[0]) {
-	l3_2.g[0] = 30. - pbig;
+    l3_2.g[0] = 30. - pbig;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = pbig + 30.;
+    l3_2.g[1] = pbig + 30.;
     }
     return 0;
 } /* tp332_ */
@@ -22172,11 +22172,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -22188,9 +22188,9 @@ labelL1:
     l2_2.x[1] = .04;
     l2_2.x[2] = 3.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
     }
     l11_2.lxl[1] = true;
     l13_2.xl[1] = (float)0.;
@@ -22207,18 +22207,18 @@ labelL1:
 labelL2:
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L7: */
-	l16_14.f[i__ - 1] = (y[i__ - 1] - l2_2.x[0] * std::exp(-l2_2.x[1] * a[i__ 
-		- 1]) - l2_2.x[2]) / y[i__ - 1];
+    l16_14.f[i__ - 1] = (y[i__ - 1] - l2_2.x[0] * std::exp(-l2_2.x[1] * a[i__ 
+        - 1]) - l2_2.x[2]) / y[i__ - 1];
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l16_14.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_14.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= (float)1e3;
     return 0;
@@ -22227,17 +22227,17 @@ labelL3:
     l4_2.gf[1] = 0.;
     l4_2.gf[2] = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
-	l17_16.df[i__ - 1] = -exp(-l2_2.x[1] * a[i__ - 1]) / y[i__ - 1];
-	l17_16.df[i__ + 7] = l2_2.x[0] * a[i__ - 1] * std::exp(-l2_2.x[1] * a[i__ 
-		- 1]) / y[i__ - 1];
-	l17_16.df[i__ + 15] = -1. / y[i__ - 1];
-	l4_2.gf[0] += l17_16.df[i__ - 1] * l16_14.f[i__ - 1] * 2.;
-	l4_2.gf[1] += l17_16.df[i__ + 7] * l16_14.f[i__ - 1] * 2.;
+    l17_16.df[i__ - 1] = -exp(-l2_2.x[1] * a[i__ - 1]) / y[i__ - 1];
+    l17_16.df[i__ + 7] = l2_2.x[0] * a[i__ - 1] * std::exp(-l2_2.x[1] * a[i__ 
+        - 1]) / y[i__ - 1];
+    l17_16.df[i__ + 15] = -1. / y[i__ - 1];
+    l4_2.gf[0] += l17_16.df[i__ - 1] * l16_14.f[i__ - 1] * 2.;
+    l4_2.gf[1] += l17_16.df[i__ + 7] * l16_14.f[i__ - 1] * 2.;
 /* labelL9: */
-	l4_2.gf[2] += l17_16.df[i__ + 15] * l16_14.f[i__ - 1] * 2.;
+    l4_2.gf[2] += l17_16.df[i__ + 15] * l16_14.f[i__ - 1] * 2.;
     }
-    for (i__ = 1; i__ <= 8; ++i__) {
-	l4_2.gf[i__ - 1] *= (float)1e3;
+    for (i__ = 1; i__ <= 3; ++i__) {
+    l4_2.gf[i__ - 1] *= (float)1e3;
     }
 labelL4:
     return 0;
@@ -22249,7 +22249,7 @@ labelL4:
     /* Initialized data */
 
     static Real y[15] = { .14,.18,.22,.25,.29,.32,.35,.39,.37,.58,.73,
-	    .96,1.34,2.1,4.39 };
+        .96,1.34,2.1,4.39 };
 
     /* System generated locals */
     Real d__1;
@@ -22259,11 +22259,11 @@ labelL4:
     static Real ui, vi, wi;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 3;
@@ -22273,10 +22273,10 @@ labelL1:
     l1_1.nenl = 0;
     l15_1.lsum = 15;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -22287,44 +22287,44 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 15; ++i__) {
-	ui = (Real) i__;
-	vi = (Real) (16 - i__);
-	wi = std::min(ui,vi);
+    ui = (Real) i__;
+    vi = (Real) (16 - i__);
+    wi = std::min(ui,vi);
 /* L7: */
-	l16_15.f[i__ - 1] = y[i__ - 1] - (l2_2.x[0] + i__ / (l2_2.x[1] * vi + 
-		l2_2.x[2] * wi));
+    l16_15.f[i__ - 1] = y[i__ - 1] - (l2_2.x[0] + i__ / (l2_2.x[1] * vi + 
+        l2_2.x[2] * wi));
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = l16_15.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_15.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	l4_2.gf[i__ - 1] = 0.;
+    l4_2.gf[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 15; ++i__) {
-	ui = (Real) i__;
-	vi = (Real) (16 - i__);
-	wi = std::min(ui,vi);
-	l17_17.df[i__ - 1] = -1.;
+    ui = (Real) i__;
+    vi = (Real) (16 - i__);
+    wi = std::min(ui,vi);
+    l17_17.df[i__ - 1] = -1.;
 /* Computing 2nd power */
-	d__1 = l2_2.x[1] * vi + l2_2.x[2] * wi;
-	l17_17.df[i__ + 14] = ui * vi / (d__1 * d__1);
+    d__1 = l2_2.x[1] * vi + l2_2.x[2] * wi;
+    l17_17.df[i__ + 14] = ui * vi / (d__1 * d__1);
 /* Computing 2nd power */
-	d__1 = l2_2.x[1] * vi + l2_2.x[2] * wi;
-	l17_17.df[i__ + 29] = ui * wi / (d__1 * d__1);
-	l4_2.gf[0] += l17_17.df[i__ - 1] * l16_15.f[i__ - 1] * 2.;
-	l4_2.gf[1] += l17_17.df[i__ + 14] * l16_15.f[i__ - 1] * 2.;
+    d__1 = l2_2.x[1] * vi + l2_2.x[2] * wi;
+    l17_17.df[i__ + 29] = ui * wi / (d__1 * d__1);
+    l4_2.gf[0] += l17_17.df[i__ - 1] * l16_15.f[i__ - 1] * 2.;
+    l4_2.gf[1] += l17_17.df[i__ + 14] * l16_15.f[i__ - 1] * 2.;
 /* labelL9: */
-	l4_2.gf[2] += l17_17.df[i__ + 29] * l16_15.f[i__ - 1] * 2.;
+    l4_2.gf[2] += l17_17.df[i__ + 29] * l16_15.f[i__ - 1] * 2.;
     }
 labelL4:
     return 0;
@@ -22339,11 +22339,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22352,10 +22352,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 2;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l5_3.gg[4] = -1.;
     l5_3.gg[5] = 1.;
@@ -22377,27 +22377,27 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
-	l3_2.g[0] = d__1 * d__1 * 1e3 + d__2 * d__2 * 100. - l2_2.x[2];
+    d__2 = l2_2.x[1];
+    l3_2.g[0] = d__1 * d__1 * 1e3 + d__2 * d__2 * 100. - l2_2.x[2];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
-	l3_2.g[1] = d__1 * d__1 * 100. + d__2 * d__2 * 400. + l2_2.x[2] - .01;
+    d__2 = l2_2.x[1];
+    l3_2.g[1] = d__1 * d__1 * 100. + d__2 * d__2 * 400. + l2_2.x[2] - .01;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[0] = l2_2.x[0] * 2e3;
     l5_3.gg[2] = l2_2.x[1] * 200.;
     if (! l10_3.index2[1]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[1] = l2_2.x[0] * 200.;
     l5_3.gg[3] = l2_2.x[1] * 800.;
@@ -22414,11 +22414,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22427,10 +22427,10 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 0.;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 0.;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
     }
     l5_3.gg[0] = 5.;
     l5_3.gg[2] = 5.;
@@ -22452,21 +22452,21 @@ labelL3:
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_2.x[0] * 5. + l2_2.x[1] * 5. - l2_2.x[2] * 3. - 6.;
+    l3_2.g[0] = l2_2.x[0] * 5. + l2_2.x[1] * 5. - l2_2.x[2] * 3. - 6.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 * 2. + d__3 * d__3 * 3. - 1.;
+    d__3 = l2_2.x[2];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 * 2. + d__3 * d__3 * 3. - 1.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_3.gg[1] = l2_2.x[0] * 2.;
     l5_3.gg[3] = l2_2.x[1] * 4.;
@@ -22484,11 +22484,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22498,7 +22498,7 @@ labelL1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL6: */
-	l2_2.x[i__ - 1] = 1.;
+    l2_2.x[i__ - 1] = 1.;
     }
     l12_2.lxu[0] = false;
     l11_2.lxl[0] = false;
@@ -22532,12 +22532,12 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_2.x[0] * l2_2.x[1] - 1.;
+    l3_1.g[0] = l2_2.x[0] * l2_2.x[1] - 1.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_5.gg[0] = l2_2.x[1];
     l5_5.gg[1] = l2_2.x[0];
@@ -22554,11 +22554,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22567,10 +22567,10 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 0.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 0.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l5_3.gg[0] = .5;
     l5_3.gg[2] = 1.;
@@ -22594,27 +22594,27 @@ labelL2:
 labelL3:
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L7: */
-	l4_2.gf[i__ - 1] = l2_2.x[i__ - 1] * -2.;
+    l4_2.gf[i__ - 1] = l2_2.x[i__ - 1] * -2.;
     }
     return 0;
 labelL4:
     if (l9_3.index1[0]) {
-	l3_2.g[0] = l2_2.x[0] * .5 + l2_2.x[1] + l2_2.x[2] - 1.;
+    l3_2.g[0] = l2_2.x[0] * .5 + l2_2.x[1] + l2_2.x[2] - 1.;
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_2.g[1] = d__1 * d__1 + d__2 * d__2 * .66666666666666663 + d__3 * 
-		d__3 * .25 - 4.;
+    d__3 = l2_2.x[2];
+    l3_2.g[1] = d__1 * d__1 + d__2 * d__2 * .66666666666666663 + d__3 * 
+        d__3 * .25 - 4.;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
     l5_3.gg[1] = l2_2.x[0] * 2.;
     l5_3.gg[3] = l2_2.x[1] * 1.3333333333333333;
@@ -22632,11 +22632,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22645,11 +22645,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l12_2.lxu[i__ - 1] = false;
-	l11_2.lxl[i__ - 1] = true;
+    l2_2.x[i__ - 1] = 1.;
+    l12_2.lxu[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -22660,7 +22660,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = .2 / (l2_2.x[0] * l2_2.x[1] * l2_2.x[2]) + 4. / l2_2.x[0] + 3. /
-	     l2_2.x[2];
+         l2_2.x[2];
     return 0;
 labelL3:
 /* Computing 2nd power */
@@ -22668,7 +22668,7 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_2.x[0];
     l4_2.gf[0] = -.2 / (l2_2.x[1] * l2_2.x[2] * (d__1 * d__1)) - 4. / (d__2 * 
-	    d__2);
+        d__2);
 /* Computing 2nd power */
     d__1 = l2_2.x[1];
     l4_2.gf[1] = -.2 / (l2_2.x[0] * l2_2.x[2] * (d__1 * d__1));
@@ -22677,16 +22677,16 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_2.x[2];
     l4_2.gf[2] = -.2 / (l2_2.x[0] * l2_2.x[1] * (d__1 * d__1)) - 3. / (d__2 * 
-	    d__2);
+        d__2);
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 10. - l2_2.x[0] * 2. * l2_2.x[2] - l2_2.x[0] * l2_2.x[1];
+    l3_1.g[0] = 10. - l2_2.x[0] * 2. * l2_2.x[2] - l2_2.x[0] * l2_2.x[1];
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L8;
+    goto L8;
     }
     l5_5.gg[0] = l2_2.x[2] * -2. - l2_2.x[1];
     l5_5.gg[1] = -l2_2.x[0];
@@ -22700,11 +22700,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22713,10 +22713,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
     }
     l12_2.lxu[0] = true;
     l14_2.xu[0] = 1.;
@@ -22740,7 +22740,7 @@ labelL3:
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = 1.8 - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
+    l3_1.g[0] = 1.8 - l2_2.x[0] - l2_2.x[1] * 2. - l2_2.x[2] * 2.;
     }
 labelL5:
     return 0;
@@ -22755,11 +22755,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22768,11 +22768,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -22792,18 +22792,18 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_1.g[0] = d__1 * d__1 * -1. - d__2 * d__2 * 2. - d__3 * d__3 * 4. + 
-		48.;
+    d__3 = l2_2.x[2];
+    l3_1.g[0] = d__1 * d__1 * -1. - d__2 * d__2 * 2. - d__3 * d__3 * 4. + 
+        48.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_5.gg[0] = l2_2.x[0] * -2.;
     l5_5.gg[1] = l2_2.x[1] * -4.;
@@ -22821,11 +22821,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22834,11 +22834,11 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 1.;
-	l12_2.lxu[i__ - 1] = false;
-	l11_2.lxl[i__ - 1] = true;
+    l2_2.x[i__ - 1] = 1.;
+    l12_2.lxu[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -22858,17 +22858,17 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[1];
+    d__2 = l2_2.x[1];
 /* Computing 2nd power */
-	d__3 = l2_2.x[2];
-	l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 * 4.;
+    d__3 = l2_2.x[2];
+    l3_1.g[0] = 48. - d__1 * d__1 - d__2 * d__2 * 2. - d__3 * d__3 * 4.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L8;
+    goto L8;
     }
     l5_5.gg[0] = l2_2.x[0] * -2.;
     l5_5.gg[1] = l2_2.x[1] * -4.;
@@ -22886,11 +22886,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -22899,10 +22899,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l12_2.lxu[i__ - 1] = true;
-	l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l2_2.x[0] = 22.3;
     l2_2.x[1] = .5;
@@ -22932,7 +22932,7 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_2.x[2];
     l4_2.gf[0] = d__1 * (d__1 * d__1) * -.0804 * l2_2.x[1] * (d__2 * d__2) * 
-	    1e-7;
+        1e-7;
 /* Computing 4th power */
     d__1 = l2_2.x[0], d__1 *= d__1;
 /* Computing 2nd power */
@@ -22945,20 +22945,20 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
-	l3_2.g[0] = 675. - d__1 * d__1 * l2_2.x[1];
+    d__1 = l2_2.x[0];
+    l3_2.g[0] = 675. - d__1 * d__1 * l2_2.x[1];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[2];
-	l3_2.g[1] = .419 - d__1 * d__1 * (d__2 * d__2) * 1e-7;
+    d__2 = l2_2.x[2];
+    l3_2.g[1] = .419 - d__1 * d__1 * (d__2 * d__2) * 1e-7;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[0] = l2_2.x[0] * -2. * l2_2.x[1];
 /* Computing 2nd power */
@@ -22966,7 +22966,7 @@ labelL5:
     l5_3.gg[2] = -(d__1 * d__1);
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[2];
@@ -22987,11 +22987,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -23000,10 +23000,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 2.;
-	l11_2.lxl[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 2.;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = false;
+    l12_2.lxu[i__ - 1] = false;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -23033,16 +23033,16 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[1];
+    d__1 = l2_2.x[1];
 /* Computing 4th power */
-	d__2 = l2_2.x[2], d__2 *= d__2;
-	l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt(
-		2.) * 3.;
+    d__2 = l2_2.x[2], d__2 *= d__2;
+    l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt(
+        2.) * 3.;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[1];
@@ -23064,11 +23064,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -23077,10 +23077,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l2_2.x[i__ - 1] = 0.;
-	l12_2.lxu[i__ - 1] = false;
+    l2_2.x[i__ - 1] = 0.;
+    l12_2.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -23110,16 +23110,16 @@ labelL3:
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[1];
+    d__1 = l2_2.x[1];
 /* Computing 4th power */
-	d__2 = l2_2.x[2], d__2 *= d__2;
-	l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt(
-		18.);
+    d__2 = l2_2.x[2], d__2 *= d__2;
+    l3_1.g[0] = l2_2.x[0] * (d__1 * d__1 + 1.) + d__2 * d__2 - 4. - std::sqrt(
+        18.);
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[1];
@@ -23141,11 +23141,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -23154,10 +23154,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l12_2.lxu[i__ - 1] = true;
-	l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_2.xl[i__ - 1] = 0.;
+    l13_2.xl[i__ - 1] = 0.;
     }
     l2_2.x[0] = 22.3;
     l2_2.x[1] = .5;
@@ -23187,7 +23187,7 @@ labelL3:
 /* Computing 2nd power */
     d__2 = l2_2.x[2];
     l4_2.gf[0] = d__1 * (d__1 * d__1) * -.0804 * l2_2.x[1] * (d__2 * d__2) * 
-	    1e-7;
+        1e-7;
 /* Computing 4th power */
     d__1 = l2_2.x[0], d__1 *= d__1;
 /* Computing 2nd power */
@@ -23200,20 +23200,20 @@ labelL3:
 labelL4:
     if (l9_3.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
-	l3_2.g[0] = 675. - d__1 * d__1 * l2_2.x[1];
+    d__1 = l2_2.x[0];
+    l3_2.g[0] = 675. - d__1 * d__1 * l2_2.x[1];
     }
     if (l9_3.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_2.x[0];
+    d__1 = l2_2.x[0];
 /* Computing 2nd power */
-	d__2 = l2_2.x[2];
-	l3_2.g[1] = .419 - d__1 * d__1 * (d__2 * d__2) * 1e-7;
+    d__2 = l2_2.x[2];
+    l3_2.g[1] = .419 - d__1 * d__1 * (d__2 * d__2) * 1e-7;
     }
     return 0;
 labelL5:
     if (! l10_3.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_3.gg[0] = l2_2.x[0] * -2. * l2_2.x[1];
 /* Computing 2nd power */
@@ -23221,7 +23221,7 @@ labelL5:
     l5_3.gg[2] = -(d__1 * d__1);
 L7:
     if (! l10_3.index2[1]) {
-	goto L8;
+    goto L8;
     }
 /* Computing 2nd power */
     d__1 = l2_2.x[2];
@@ -23245,11 +23245,11 @@ L8:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_3.n = 3;
@@ -23261,12 +23261,12 @@ labelL1:
     l2_2.x[1] = .2;
     l2_2.x[2] = .1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
-	l12_2.lxu[i__ - 1] = true;
-	l13_2.xl[i__ - 1] = 0.;
-	l14_2.xu[i__ - 1] = 1.;
+    l11_2.lxl[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
+    l13_2.xl[i__ - 1] = 0.;
+    l14_2.xu[i__ - 1] = 1.;
 /* L7: */
-	l5_5.gg[i__ - 1] = 1.;
+    l5_5.gg[i__ - 1] = 1.;
     }
     l20_3.lex = false;
     l20_3.nex = 1;
@@ -23285,21 +23285,21 @@ labelL2:
     h__[6] = l2_2.x[2] + .03;
     h__[7] = l2_2.x[2] * .13 + .03;
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = a[0] * std::log(h__[0] / h__[1]) + a[1] * std::log(h__[3] / h__[4]) + a[2]
-	     * std::log(h__[6] / h__[7]);
+         * std::log(h__[6] / h__[7]);
     return 0;
 labelL3:
     l4_2.gf[0] = a[0] * (h__[1] - h__[0] * .09) / h__[2];
     l4_2.gf[1] = a[0] * (h__[1] - h__[0]) / h__[2] + a[1] * (h__[4] - h__[3] *
-	     .07) / h__[5];
+         .07) / h__[5];
     l4_2.gf[2] = a[0] * (h__[1] - h__[0]) / h__[2] + a[1] * (h__[4] - h__[3]) 
-	    / h__[5] + a[2] * (h__[7] - h__[6] * .13) / (h__[6] * h__[7]);
+        / h__[5] + a[2] * (h__[7] - h__[6] * .13) / (h__[6] * h__[7]);
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] - 1.;
+    l3_1.g[0] = l2_2.x[0] + l2_2.x[1] + l2_2.x[2] - 1.;
     }
 labelL5:
     return 0;
@@ -23330,14 +23330,14 @@ labelL5:
     static Real etaf, delp, etas, xval;
     static int i__;
     static Real q, costf, costm, h1, xmdot, costt, ac, af, gi, at, re, 
-	    ho, hef;
+        ho, hef;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 3;
@@ -23346,9 +23346,9 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_2.lxl[i__ - 1] = false;
+    l11_2.lxl[i__ - 1] = false;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l11_2.lxl[1] = true;
     l13_2.xl[1] = 13.13;
@@ -23369,23 +23369,23 @@ labelL2:
 /* Computing 2nd power */
     d__1 = d__;
     af = l2_2.x[1] / l2_2.x[0] * 2. * (w * h__ - pi * 30. * (d__1 * d__1) / 
-	    4.) / 144.;
+        4.) / 144.;
     at = pi * 30. * d__ * l2_2.x[1] / 144.;
     ac = (h__ * l2_2.x[1] - d__ * 10. * l2_2.x[1] - l2_2.x[1] / l2_2.x[0] * 
-	    .006 * h__) / 144.;
+        .006 * h__) / 144.;
     gi = rho * l2_2.x[2] * (h__ * l2_2.x[1]) / (ac * 144.) * 60.;
     re = gi * 1.083 / (xmu * 12.);
     if (re < 1e-10) {
-	re = 1e-10;
+    re = 1e-10;
     }
     ho = gi * .195 * cp / (pow_dd(&pr, &c_b993) * pow_dd(&re, &c_b2368));
     xmdot = rho * l2_2.x[2] * h__ * l2_2.x[1] / 144. * 60.;
 /* Computing 2nd power */
     d__1 = gi;
     delp = 1.833e-6 / rho * (d__1 * d__1) * 3. * (af / ac * pow_dd(&re, &
-	    c_b308) + at * .1 / ac);
+        c_b308) + at * .1 / ac);
     if (ho < 1e-10) {
-	ho = 1e-10;
+    ho = 1e-10;
     }
     xval = std::sqrt(ho) * .0732;
     etaf = std::tanh(xval) / xval;
@@ -23393,11 +23393,11 @@ labelL2:
     hef = 1. - std::exp(-etas * ho * (af + at) / (xmdot * cp));
     q = hef * (tin - tsurf) * xmdot * cp;
     if (*mode == 4) {
-	goto L7;
+    goto L7;
     }
     h1 = delp / rho * xmdot / 1.98e6;
     if (h1 < 1e-10) {
-	h1 = 1e-10;
+    h1 = 1e-10;
     }
     costm = std::sqrt(h1) / .0718 + 4.;
 /* Computing 2nd power */
@@ -23405,7 +23405,7 @@ labelL2:
 /* Computing 2nd power */
     d__2 = d__ - .036;
     costt = l2_2.x[1] * 30.300000000000001 * pi / 4. * (d__1 * d__1 - d__2 * 
-	    d__2);
+        d__2);
     costf = h__ * .47 * w * .006 * rhoa / 1728. * l2_2.x[1] / l2_2.x[0];
     costt = costt * rhoc / 1728.;
     l6_1.fx = costm + costt + costf;
@@ -23413,7 +23413,7 @@ labelL3:
     return 0;
 labelL4:
     if (! l9_2.index1[0]) {
-	goto labelL5;
+    goto labelL5;
     }
     goto labelL2;
 L7:
@@ -23444,15 +23444,15 @@ labelL5:
     static Real area, heat, argu, wate, cost, vest, temp1, temp2, temp3;
     static int i__;
     static Real v, c0, c1, c2, xlmtd, c3, press, c4, c5, c6, c7, p1, 
-	    a11, a12, a13, a22, a23, a31, a32, a33, ut, xk1, xk2, hea, dia, 
-	    are, phi[9];
+        a11, a12, a13, a22, a23, a31, a32, a33, ut, xk1, xk2, hea, dia, 
+        are, phi[9];
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 3;
@@ -23464,9 +23464,9 @@ labelL1:
     l2_2.x[1] = 200.;
     l2_2.x[2] = 100.;
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_2.lxl[i__ - 1] = true;
+    l11_2.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_2.lxu[i__ - 1] = true;
+    l12_2.lxu[i__ - 1] = true;
     }
     l11_2.lxl[2] = false;
     l12_2.lxu[2] = false;
@@ -23484,9 +23484,9 @@ labelL2:
     p1 = 100.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L35: */
-	if (l2_2.x[i__ - 1] < 1e-6) {
-	    l2_2.x[i__ - 1] = 1e-6;
-	}
+    if (l2_2.x[i__ - 1] < 1e-6) {
+        l2_2.x[i__ - 1] = 1e-6;
+    }
     }
     xk1 = p1 * std::exp(-e1 / (l2_2.x[1] + 460.));
     xk2 = p2 * std::exp(-e2 / (l2_2.x[1] + 460.));
@@ -23496,18 +23496,18 @@ labelL2:
 L39:
     argu = (l2_2.x[1] - l2_2.x[2] - 75.) / (l2_2.x[1] - 100.);
     if (argu == 0.) {
-	goto L48;
+    goto L48;
     }
     xlmtd = (25. - l2_2.x[2]) / std::log((std::abs(argu)));
     heat = l2_2.x[0] * cpp * (100. - l2_2.x[1]) + xk1 * (l2_2.x[0] * c1f - p) 
-	    * v * h1 / (l2_2.x[0] + v * xk1) + p * h2;
+        * v * h1 / (l2_2.x[0] + v * xk1) + p * h2;
     area = heat / (ut * xlmtd);
     are = std::abs(area);
     hea = std::abs(heat);
     d__1 = v / 12.72;
     dia = pow_dd(&d__1, &c_b2380);
     if (l2_2.x[1] < 200.) {
-	goto L40;
+    goto L40;
     }
 /* Computing 3rd power */
     d__1 = l2_2.x[1];
@@ -23526,10 +23526,10 @@ L41:
 /* Computing 2nd power */
     d__3 = dia;
     wate = (d__1 * (d__1 * d__1) * .0909 + d__2 * d__2 * .482) * press + d__3 
-	    * d__3 * 36.6 + dia * 160.5;
+        * d__3 * 36.6 + dia * 160.5;
     c1 = pow_dd(&wate, &c_b2383) * 4.8;
     if (l2_2.x[1] < 200.) {
-	goto L42;
+    goto L42;
     }
 /* Computing 2nd power */
     d__1 = dia;
@@ -23539,12 +23539,12 @@ L42:
     c2 = 0.;
 L43:
     if (press < 150.) {
-	goto L44;
+    goto L44;
     }
 /* Computing 3rd power */
     d__1 = l2_2.x[1];
     c3 = pow_dd(&are, &c_b2387) * 270. * (d__1 * (d__1 * d__1) * 1.68e-7 + 
-	    .962);
+        .962);
     goto L45;
 L44:
     c3 = pow_dd(&are, &c_b2387) * 270.;
@@ -23557,7 +23557,7 @@ L45:
     d__1 = d__2 * (d__2 * d__2) * 4.59e-11 + 6.95e-4 + l2_2.x[0];
     c6 = pow_dd(&d__1, &c_b2391) * 812.;
     if (l2_2.x[1] < 250.) {
-	goto L46;
+    goto L46;
     }
     d__1 = hea * 298. / l2_2.x[2];
     c7 = pow_dd(&d__1, &c_b2391) * 1291.;
@@ -23571,8 +23571,8 @@ L47:
 /* Computing 3rd power */
     d__1 = l2_2.x[1];
     c0 = vest * .18 + 2.2e4 + v * 3.1 + (d__1 * (d__1 * d__1) * 4.59e-11 + 
-	    6.95e-4) * l2_2.x[0] * 61.1 + heat * .00115 + heat * 6.92 + 
-	    l2_2.x[0] * 574. * (c1f - c1) + 114800.;
+        6.95e-4) * l2_2.x[0] * 61.1 + heat * .00115 + heat * 6.92 + 
+        l2_2.x[0] * 574. * (c1f - c1) + 114800.;
     l6_1.fx = (6.88e5 - c0) / (vest * 2.) * -.001;
 labelL3:
     return 0;
@@ -23580,9 +23580,9 @@ labelL4:
     p1 = 100.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L37: */
-	if (l2_2.x[i__ - 1] < 1e-6) {
-	    l2_2.x[i__ - 1] = 1e-6;
-	}
+    if (l2_2.x[i__ - 1] < 1e-6) {
+        l2_2.x[i__ - 1] = 1e-6;
+    }
     }
     xk1 = p1 * std::exp(-e1 / (l2_2.x[1] + 460.));
     xk2 = p2 * std::exp(-e2 / (l2_2.x[1] + 460.));
@@ -23592,16 +23592,16 @@ labelL4:
 L36:
     argu = (l2_2.x[1] - l2_2.x[2] - 75.) / (l2_2.x[1] - 100.);
     if (argu == 0.) {
-	goto L49;
+    goto L49;
     }
     xlmtd = (25. - l2_2.x[2]) / std::log((std::abs(argu)));
     heat = l2_2.x[0] * cpp * (100. - l2_2.x[1]) + xk1 * (l2_2.x[0] * c1f - p) 
-	    * v * h1 / (l2_2.x[0] + v * xk1) + p * h2;
+        * v * h1 / (l2_2.x[0] + v * xk1) + p * h2;
     area = heat / (ut * xlmtd);
     d__1 = v / 12.72;
     dia = pow_dd(&d__1, &c_b2380);
     if (l2_2.x[1] < 200.) {
-	goto L50;
+    goto L50;
     }
 /* Computing 3rd power */
     d__1 = l2_2.x[1];
@@ -23624,7 +23624,7 @@ L51:
 /* Computing 2nd power */
     d__2 = l2_2.x[1] + 460.;
     a13 = (l2_2.x[0] * c1f - press) * xk1 * e1 / ((l2_2.x[0] + v * xk1) * (
-	    d__1 * d__1)) + press * e2 / (v * (d__2 * d__2));
+        d__1 * d__1)) + press * e2 / (v * (d__2 * d__2));
     a22 = xk2 + l2_2.x[0] / v;
 /* Computing 2nd power */
     d__1 = l2_2.x[1] + 460.;
@@ -23636,22 +23636,22 @@ L51:
 /* Computing 2nd power */
     d__2 = l2_2.x[1] + 460.;
     a33 = l2_2.x[0] / v + ut * area / (v * cpp) - (l2_2.x[0] * c1f - press) * 
-	    xk1 * e1 * h1 / ((l2_2.x[0] + v * xk1) * cpp * (d__1 * d__1)) - 
-	    press * e2 * h2 / (v * cpp * (d__2 * d__2));
+        xk1 * e1 * h1 / ((l2_2.x[0] + v * xk1) * cpp * (d__1 * d__1)) - 
+        press * e2 * h2 / (v * cpp * (d__2 * d__2));
     temp1 = a11 + a22 + a33;
     phi[4] = temp1;
     temp2 = a11 * a22 + a22 * a33 + a33 * a11 - a13 * a31 - a23 * a32;
     phi[5] = temp2;
     temp3 = a11 * a22 * a33 + a12 * a23 * a31 - a13 * a31 * a22 - a23 * a32 * 
-	    a11;
+        a11;
     phi[6] = temp3;
     phi[7] = temp1 * temp2 - temp3;
     phi[8] = heat;
     for (i__ = 1; i__ <= 9; ++i__) {
 /* L7: */
-	if (l9_16.index1[i__ - 1]) {
-	    l3_15.g[i__ - 1] = phi[i__ - 1];
-	}
+    if (l9_16.index1[i__ - 1]) {
+        l3_15.g[i__ - 1] = phi[i__ - 1];
+    }
     }
     return 0;
 } /* tp349_ */
@@ -23662,9 +23662,9 @@ L51:
     /* Initialized data */
 
     static Real y[11] = { .1957,.1947,.1735,.16,.0844,.0627,.0456,.0342,
-	    .0323,.0235,.0246 };
+        .0323,.0235,.0246 };
     static Real u[11] = { 4.,2.,1.,.5,.25,.167,.125,.1,.0833,.0714,
-	    .0625 };
+        .0625 };
 
     /* System generated locals */
     Real d__1, d__2;
@@ -23676,15 +23676,15 @@ L51:
     for (i__ = 1; i__ <= 11; ++i__) {
 /* labelL12: */
 /* Computing 2nd power */
-	d__1 = u[i__ - 1];
-	h__[i__ - 1] = d__1 * d__1 + l2_3.x[2] * u[i__ - 1] + l2_3.x[3];
+    d__1 = u[i__ - 1];
+    h__[i__ - 1] = d__1 * d__1 + l2_3.x[2] * u[i__ - 1] + l2_3.x[3];
     }
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -23697,9 +23697,9 @@ labelL1:
     l2_3.x[2] = .415;
     l2_3.x[3] = .39;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l15_1.lsum = 11;
     l20_6.lex = false;
@@ -23714,51 +23714,51 @@ labelL2:
     for (i__ = 1; i__ <= 11; ++i__) {
 /* labelL20: */
 /* Computing 2nd power */
-	d__1 = u[i__ - 1];
-	l16_7.f[i__ - 1] = y[i__ - 1] - l2_3.x[0] / h__[i__ - 1] * (d__1 * 
-		d__1 + l2_3.x[1] * u[i__ - 1]);
+    d__1 = u[i__ - 1];
+    l16_7.f[i__ - 1] = y[i__ - 1] - l2_3.x[0] / h__[i__ - 1] * (d__1 * 
+        d__1 + l2_3.x[1] * u[i__ - 1]);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 11; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_7.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_7.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= 1e4;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 11; ++i__) {
 /* Computing 2nd power */
-	d__1 = u[i__ - 1];
-	l17_18.df[i__ - 1] = (-(d__1 * d__1) - l2_3.x[1] * u[i__ - 1]) / h__[
-		i__ - 1];
-	l17_18.df[i__ + 10] = -l2_3.x[0] * u[i__ - 1] / h__[i__ - 1];
+    d__1 = u[i__ - 1];
+    l17_18.df[i__ - 1] = (-(d__1 * d__1) - l2_3.x[1] * u[i__ - 1]) / h__[
+        i__ - 1];
+    l17_18.df[i__ + 10] = -l2_3.x[0] * u[i__ - 1] / h__[i__ - 1];
 /* Computing 2nd power */
-	d__1 = u[i__ - 1];
+    d__1 = u[i__ - 1];
 /* Computing 2nd power */
-	d__2 = h__[i__ - 1];
-	l17_18.df[i__ + 21] = l2_3.x[0] * u[i__ - 1] * (d__1 * d__1 + l2_3.x[
-		1] * u[i__ - 1]) / (d__2 * d__2);
+    d__2 = h__[i__ - 1];
+    l17_18.df[i__ + 21] = l2_3.x[0] * u[i__ - 1] * (d__1 * d__1 + l2_3.x[
+        1] * u[i__ - 1]) / (d__2 * d__2);
 /* L8: */
 /* Computing 2nd power */
-	d__1 = u[i__ - 1];
+    d__1 = u[i__ - 1];
 /* Computing 2nd power */
-	d__2 = h__[i__ - 1];
-	l17_18.df[i__ + 32] = l2_3.x[0] * (d__1 * d__1 + l2_3.x[1] * u[i__ - 
-		1]) / (d__2 * d__2);
+    d__2 = h__[i__ - 1];
+    l17_18.df[i__ + 32] = l2_3.x[0] * (d__1 * d__1 + l2_3.x[1] * u[i__ - 
+        1]) / (d__2 * d__2);
     }
     for (j = 1; j <= 4; ++j) {
-	l4_3.gf[j - 1] = 0.;
-	for (i__ = 1; i__ <= 11; ++i__) {
+    l4_3.gf[j - 1] = 0.;
+    for (i__ = 1; i__ <= 11; ++i__) {
 /* labelL10: */
-	    l4_3.gf[j - 1] += l16_7.f[i__ - 1] * 2. * l17_18.df[i__ + j * 11 
-		    - 12];
-	}
-	l4_3.gf[j - 1] *= 1e4;
+        l4_3.gf[j - 1] += l16_7.f[i__ - 1] * 2. * l17_18.df[i__ + j * 11 
+            - 12];
+    }
+    l4_3.gf[j - 1] *= 1e4;
 /* labelL9: */
     }
 labelL4:
@@ -23793,11 +23793,11 @@ labelL4:
     d__1 = l2_3.x[3];
     xh4 = d__1 * d__1;
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -23810,9 +23810,9 @@ labelL1:
     l2_3.x[2] = 1500.;
     l2_3.x[3] = 10.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = false;
     l20_6.nex = 1;
@@ -23826,44 +23826,44 @@ labelL1:
 labelL2:
     for (i__ = 1; i__ <= 7; ++i__) {
 /* labelL20: */
-	l16_6.f[i__ - 1] = ((xh1 + a[i__ - 1] * xh2 + a[i__ - 1] * a[i__ - 1] 
-		* xh3) / (a[i__ - 1] * xh4 + 1.) - b[i__ - 1]) / b[i__ - 1] * 
-		100.;
+    l16_6.f[i__ - 1] = ((xh1 + a[i__ - 1] * xh2 + a[i__ - 1] * a[i__ - 1] 
+        * xh3) / (a[i__ - 1] * xh4 + 1.) - b[i__ - 1]) / b[i__ - 1] * 
+        100.;
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 7; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_6.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_6.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (j = 1; j <= 4; ++j) {
 /* L8: */
-	l4_3.gf[j - 1] = 0.;
+    l4_3.gf[j - 1] = 0.;
     }
     for (i__ = 1; i__ <= 7; ++i__) {
-	xh5 = (xh4 * a[i__ - 1] + 1.) * b[i__ - 1];
-	l17_7.df[i__ - 1] = l2_3.x[0] * 200. / xh5;
-	l17_7.df[i__ + 6] = l2_3.x[1] * 200. * a[i__ - 1] / xh5;
+    xh5 = (xh4 * a[i__ - 1] + 1.) * b[i__ - 1];
+    l17_7.df[i__ - 1] = l2_3.x[0] * 200. / xh5;
+    l17_7.df[i__ + 6] = l2_3.x[1] * 200. * a[i__ - 1] / xh5;
 /* Computing 2nd power */
-	d__1 = a[i__ - 1];
-	l17_7.df[i__ + 13] = l2_3.x[2] * 200. * (d__1 * d__1) / xh5;
+    d__1 = a[i__ - 1];
+    l17_7.df[i__ + 13] = l2_3.x[2] * 200. * (d__1 * d__1) / xh5;
 /* Computing 2nd power */
-	d__1 = a[i__ - 1];
+    d__1 = a[i__ - 1];
 /* Computing 2nd power */
-	d__2 = xh5;
-	l17_7.df[i__ + 20] = l2_3.x[3] * -200. * a[i__ - 1] * b[i__ - 1] * (
-		xh1 + xh2 * a[i__ - 1] + xh3 * (d__1 * d__1)) / (d__2 * d__2);
-	for (j = 1; j <= 4; ++j) {
+    d__2 = xh5;
+    l17_7.df[i__ + 20] = l2_3.x[3] * -200. * a[i__ - 1] * b[i__ - 1] * (
+        xh1 + xh2 * a[i__ - 1] + xh3 * (d__1 * d__1)) / (d__2 * d__2);
+    for (j = 1; j <= 4; ++j) {
 /* labelL10: */
-	    l4_3.gf[j - 1] += l16_6.f[i__ - 1] * 2. * l17_7.df[i__ + j * 7 - 
-		    8];
-	}
+        l4_3.gf[j - 1] += l16_6.f[i__ - 1] * 2. * l17_7.df[i__ + j * 7 - 
+            8];
+    }
     }
 labelL4:
     return 0;
@@ -23879,11 +23879,11 @@ labelL4:
     static Real ti;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -23896,9 +23896,9 @@ labelL1:
     l2_3.x[2] = -5.;
     l2_3.x[3] = -1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = false;
     }
     l20_6.lex = false;
     l20_6.nex = 1;
@@ -23911,45 +23911,45 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 20; ++i__) {
-	ti = i__ * .2;
-	l16_16.f[i__ - 1] = l2_3.x[0] + l2_3.x[1] * ti - std::exp(ti);
+    ti = i__ * .2;
+    l16_16.f[i__ - 1] = l2_3.x[0] + l2_3.x[1] * ti - std::exp(ti);
 /* labelL20: */
-	l16_16.f[i__ + 19] = l2_3.x[2] + l2_3.x[3] * std::sin(ti) -std::cos(ti);
+    l16_16.f[i__ + 19] = l2_3.x[2] + l2_3.x[3] * std::sin(ti) -std::cos(ti);
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_16.f[i__ - 1];
+    d__1 = l16_16.f[i__ - 1];
 /* Computing 2nd power */
-	d__2 = l16_16.f[i__ + 19];
-	l6_1.fx = l6_1.fx + d__1 * d__1 + d__2 * d__2;
+    d__2 = l16_16.f[i__ + 19];
+    l6_1.fx = l6_1.fx + d__1 * d__1 + d__2 * d__2;
     }
     return 0;
 labelL3:
     for (j = 1; j <= 4; ++j) {
 /* L8: */
-	l4_3.gf[j - 1] = 0.;
+    l4_3.gf[j - 1] = 0.;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
-	ti = i__ * .2;
-	l17_19.df[i__ - 1] = 1.;
-	l17_19.df[i__ + 19] = 0.;
-	l17_19.df[i__ + 39] = ti;
-	l17_19.df[i__ + 59] = 0.;
-	l17_19.df[i__ + 79] = 0.;
-	l17_19.df[i__ + 99] = 1.;
-	l17_19.df[i__ + 119] = 0.;
-	l17_19.df[i__ + 139] = std::sin(ti);
-	for (j = 1; j <= 4; ++j) {
+    ti = i__ * .2;
+    l17_19.df[i__ - 1] = 1.;
+    l17_19.df[i__ + 19] = 0.;
+    l17_19.df[i__ + 39] = ti;
+    l17_19.df[i__ + 59] = 0.;
+    l17_19.df[i__ + 79] = 0.;
+    l17_19.df[i__ + 99] = 1.;
+    l17_19.df[i__ + 119] = 0.;
+    l17_19.df[i__ + 139] = std::sin(ti);
+    for (j = 1; j <= 4; ++j) {
 /* labelL10: */
-	    l4_3.gf[j - 1] = l4_3.gf[j - 1] + l16_16.f[i__ - 1] * 2. * 
-		    l17_19.df[i__ + j * 40 - 41] + l16_16.f[i__ + 19] * 2. * 
-		    l17_19.df[i__ + 20 + j * 40 - 41];
-	}
+        l4_3.gf[j - 1] = l4_3.gf[j - 1] + l16_16.f[i__ - 1] * 2. * 
+            l17_19.df[i__ + j * 40 - 41] + l16_16.f[i__ + 19] * 2. * 
+            l17_19.df[i__ + 20 + j * 40 - 41];
+    }
     }
 labelL4:
     return 0;
@@ -23965,11 +23965,11 @@ labelL4:
     static Real q;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 4;
@@ -23986,11 +23986,11 @@ labelL1:
     l5_7.gg[6] = 11.1;
     l5_7.gg[9] = 1.3;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l5_7.gg[i__ * 3 - 1] = 1.;
-	l11_3.lxl[i__ - 1] = true;
-	l12_3.lxu[i__ - 1] = false;
+    l5_7.gg[i__ * 3 - 1] = 1.;
+    l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l13_3.xl[i__ - 1] = 0.;
+    l13_3.xl[i__ - 1] = 0.;
     }
     l20_6.lex = false;
     l20_6.nex = 1;
@@ -24002,7 +24002,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_3.x[0] * 24.55 + l2_3.x[1] * 26.75 + l2_3.x[2] * 39. + 
-	    l2_3.x[3] * 40.5;
+        l2_3.x[3] * 40.5;
     l6_1.fx = -l6_1.fx;
     return 0;
 labelL3:
@@ -24022,23 +24022,23 @@ labelL4:
     d__4 = l2_3.x[3] * .79;
     q = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4;
     if (*mode == 5) {
-	goto labelL5;
+    goto labelL5;
     }
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_3.x[0] * 2.3 + l2_3.x[1] * 5.6 + l2_3.x[2] * 11.1 + 
-		l2_3.x[3] * 1.3 - 5.;
+    l3_3.g[0] = l2_3.x[0] * 2.3 + l2_3.x[1] * 5.6 + l2_3.x[2] * 11.1 + 
+        l2_3.x[3] * 1.3 - 5.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_3.x[0] * 12. + l2_3.x[1] * 11.9 + l2_3.x[2] * 41.8 + 
-		l2_3.x[3] * 52.1 - std::sqrt(q) * 1.645 - 12.;
+    l3_3.g[1] = l2_3.x[0] * 12. + l2_3.x[1] * 11.9 + l2_3.x[2] * 41.8 + 
+        l2_3.x[3] * 52.1 - std::sqrt(q) * 1.645 - 12.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
+    l3_3.g[2] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[1]) {
-	goto L7;
+    goto L7;
     }
     l5_7.gg[1] = 12. - l2_3.x[0] * .46208050000000006 / std::sqrt(q);
     l5_7.gg[4] = 11.9 - l2_3.x[1] * .31847199999999998 / std::sqrt(q);
@@ -24057,11 +24057,11 @@ L7:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -24074,11 +24074,11 @@ labelL1:
     l2_3.x[2] = 0.;
     l2_3.x[3] = 1.;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l5_2.gg[i__ - 1] = 1.;
-	l12_3.lxu[i__ - 1] = true;
-	l11_3.lxl[i__ - 1] = false;
+    l5_2.gg[i__ - 1] = 1.;
+    l12_3.lxu[i__ - 1] = true;
+    l11_3.lxl[i__ - 1] = false;
 /* labelL6: */
-	l14_3.xu[i__ - 1] = 20.;
+    l14_3.xu[i__ - 1] = 20.;
     }
     l20_6.lex = false;
     l20_6.nex = 1;
@@ -24098,29 +24098,29 @@ labelL2:
 /* Computing 4th power */
     d__4 = l2_3.x[0] - l2_3.x[3], d__4 *= d__4;
     l6_1.fx = d__1 * d__1 + d__2 * d__2 * 5. + d__3 * d__3 + d__4 * d__4 * 
-	    10.;
+        10.;
     return 0;
 labelL3:
 /* Computing 3rd power */
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[0] = l2_3.x[0] * 2. + l2_3.x[1] * 20. + d__1 * (d__1 * d__1) * 
-	    40.;
+        40.;
 /* Computing 3rd power */
     d__1 = l2_3.x[1] - l2_3.x[2] * 2.;
     l4_3.gf[1] = l2_3.x[0] * 20. + l2_3.x[1] * 200. + d__1 * (d__1 * d__1) * 
-	    4.;
+        4.;
 /* Computing 3rd power */
     d__1 = l2_3.x[1] - l2_3.x[2] * 2.;
     l4_3.gf[2] = l2_3.x[2] * 10. - l2_3.x[3] * 10. - d__1 * (d__1 * d__1) * 
-	    8.;
+        8.;
 /* Computing 3rd power */
     d__1 = l2_3.x[0] - l2_3.x[3];
     l4_3.gf[3] = l2_3.x[2] * -10. + l2_3.x[3] * 10. - d__1 * (d__1 * d__1) * 
-	    40.;
+        40.;
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
-	l3_1.g[0] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
+    l3_1.g[0] = l2_3.x[0] + l2_3.x[1] + l2_3.x[2] + l2_3.x[3] - 1.;
     }
 labelL5:
     return 0;
@@ -24139,11 +24139,11 @@ labelL5:
     h0 = l2_3.x[1] * l2_3.x[3];
     r__[0] = 11. - l2_3.x[0] * l2_3.x[3] - h0 + l2_3.x[2] * l2_3.x[3];
     r__[1] = l2_3.x[0] + l2_3.x[1] * 10. - l2_3.x[2] + l2_3.x[3] + h0 * (
-	    l2_3.x[2] - l2_3.x[0]);
+        l2_3.x[2] - l2_3.x[0]);
     r__[2] = 11. - l2_3.x[0] * 4. * l2_3.x[3] - h0 * 4. + l2_3.x[2] * l2_3.x[
-	    3];
+        3];
     r__[3] = l2_3.x[0] * 2. + l2_3.x[1] * 20. - l2_3.x[2] * .5 + l2_3.x[3] * 
-	    2. + h0 * 2. * (l2_3.x[2] - l2_3.x[0] * 4.);
+        2. + h0 * 2. * (l2_3.x[2] - l2_3.x[0] * 4.);
     h1 = r__[0] * 2.;
     h2 = r__[1] * 2.;
     h3 = r__[2] * 2.;
@@ -24151,11 +24151,11 @@ labelL5:
     h5 = h1 * l2_3.x[3];
     h6 = h2 * (1. - h0);
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 4;
@@ -24164,10 +24164,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
-	l11_3.lxl[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = false;
+    l11_3.lxl[i__ - 1] = true;
 /* labelL6: */
-	l2_3.x[i__ - 1] = 0.;
+    l2_3.x[i__ - 1] = 0.;
     }
     l13_3.xl[0] = .1;
     l13_3.xl[1] = .1;
@@ -24189,34 +24189,34 @@ labelL3:
     l4_3.gf[1] = -h5 + h2 * (l2_3.x[3] * (l2_3.x[2] - l2_3.x[0]) + 10.);
     l4_3.gf[2] = h5 - h6;
     l4_3.gf[3] = h1 * (-l2_3.x[0] - l2_3.x[1] + l2_3.x[2]) + h2 * (l2_3.x[1] *
-	     (l2_3.x[2] - l2_3.x[0]) + 1.);
+         (l2_3.x[2] - l2_3.x[0]) + 1.);
     return 0;
 labelL4:
     if (l9_2.index1[0]) {
 /* Computing 2nd power */
-	d__1 = r__[0];
+    d__1 = r__[0];
 /* Computing 2nd power */
-	d__2 = r__[1];
+    d__2 = r__[1];
 /* Computing 2nd power */
-	d__3 = r__[2];
+    d__3 = r__[2];
 /* Computing 2nd power */
-	d__4 = r__[3];
-	l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - d__3 * d__3 - d__4 * d__4;
+    d__4 = r__[3];
+    l3_1.g[0] = d__1 * d__1 + d__2 * d__2 - d__3 * d__3 - d__4 * d__4;
     }
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto L7;
+    goto L7;
     }
     l5_2.gg[0] = -h5 + h6 - h3 * -4. * l2_3.x[3] - h4 * (2. - h0 * 8.);
     l5_2.gg[1] = -h5 + h2 * (l2_3.x[3] * (l2_3.x[2] - l2_3.x[0]) + 10.) - h3 *
-	     -4. * l2_3.x[3] - h4 * (l2_3.x[3] * 2. * (l2_3.x[2] - l2_3.x[0] *
-	     4.) + 20.);
+         -4. * l2_3.x[3] - h4 * (l2_3.x[3] * 2. * (l2_3.x[2] - l2_3.x[0] *
+         4.) + 20.);
     l5_2.gg[2] = h5 - h6 - h3 * l2_3.x[3] - h4 * (h0 * 2. - .5);
     l5_2.gg[3] = h1 * (-l2_3.x[0] - l2_3.x[1] + l2_3.x[2]) + h2 * (l2_3.x[1] *
-	     (l2_3.x[2] - l2_3.x[0]) + 1.) - h3 * (l2_3.x[0] * -4. - l2_3.x[1]
-	     * 4. + l2_3.x[2]) - h4 * (l2_3.x[1] * 2. * (l2_3.x[2] - l2_3.x[0]
-	     * 4.) + 2.);
+         (l2_3.x[2] - l2_3.x[0]) + 1.) - h3 * (l2_3.x[0] * -4. - l2_3.x[1]
+         * 4. + l2_3.x[2]) - h4 * (l2_3.x[1] * 2. * (l2_3.x[2] - l2_3.x[0]
+         * 4.) + 2.);
 L7:
     return 0;
 } /* tp355_ */
@@ -24231,14 +24231,14 @@ L7:
     static Real eidc, load, cosa, sigd, eitc, e;
     static int i__;
     static Real j, l, m, r__, t, reidc, reitc, t1, t2, fh, ei, gh, gj, 
-	    pc, td, wp, del, phi[5], sig;
+        pc, td, wp, del, phi[5], sig;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 4;
@@ -24251,9 +24251,9 @@ labelL1:
     l2_3.x[2] = 8.;
     l2_3.x[3] = 1.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l12_3.lxu[i__ - 1] = false;
+    l12_3.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_3.lxl[i__ - 1] = true;
+    l11_3.lxl[i__ - 1] = true;
     }
     l11_3.lxl[3] = false;
     l12_3.lxu[3] = false;
@@ -24270,7 +24270,7 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_3.x[0] * 1.10471 * l2_3.x[0] * l2_3.x[1] + l2_3.x[2] * 
-	    .04811 * l2_3.x[3] * (l2_3.x[1] + 14.);
+        .04811 * l2_3.x[3] * (l2_3.x[1] + 14.);
 labelL3:
     return 0;
 labelL4:
@@ -24287,14 +24287,14 @@ labelL4:
 /* Computing 2nd power */
     d__1 = (l2_3.x[2] + l2_3.x[0]) / 2.;
     j = l2_3.x[0] * .707 * l2_3.x[1] * (l2_3.x[1] * l2_3.x[1] / 12. + d__1 * 
-	    d__1) * 2.;
+        d__1) * 2.;
     t2 = m * r__ / j;
     cosa = l2_3.x[1] / (r__ * 2.);
     wp = (d__1 = t1 * t1 + t1 * 2. * t2 * cosa + t2 * t2, std::abs(d__1));
     if (wp > (float)0.) {
-	t = std::sqrt(wp);
+    t = std::sqrt(wp);
     } else {
-	t = (float)0.;
+    t = (float)0.;
     }
     sig = fh * 6. * l / (l2_3.x[3] * l2_3.x[2] * l2_3.x[2]);
     phi[0] = (td - t) / 1e4;
@@ -24307,34 +24307,34 @@ labelL4:
     eitc = ei * gj;
     eidc = ei / gj;
     if (eitc > (float)0.) {
-	reitc = std::sqrt(eitc);
+    reitc = std::sqrt(eitc);
     } else {
-	reitc = (float)0.;
+    reitc = (float)0.;
     }
     if (eidc > (float)0.) {
-	reidc = std::sqrt(eidc);
+    reidc = std::sqrt(eidc);
     } else {
-	reidc = (float)0.;
+    reidc = (float)0.;
     }
     pc = reitc * 4.013 * (1. - l2_3.x[2] / (l * 2.) * reidc) / (l * l);
     phi[3] = (pc - fh) / 1e4;
     del = fh * 4. * l * l * l / (e * l2_3.x[3] * l2_3.x[2] * l2_3.x[2] * 
-	    l2_3.x[2]);
+        l2_3.x[2]);
     phi[4] = .25 - del;
     if (l9_5.index1[0]) {
-	l3_4.g[0] = phi[2];
+    l3_4.g[0] = phi[2];
     }
     if (l9_5.index1[1]) {
-	l3_4.g[1] = phi[0];
+    l3_4.g[1] = phi[0];
     }
     if (l9_5.index1[2]) {
-	l3_4.g[2] = phi[1];
+    l3_4.g[2] = phi[1];
     }
     if (l9_5.index1[3]) {
-	l3_4.g[3] = phi[3];
+    l3_4.g[3] = phi[3];
     }
     if (l9_5.index1[4]) {
-	l3_4.g[4] = phi[4];
+    l3_4.g[4] = phi[4];
     }
     return 0;
 } /* tp356_ */
@@ -24345,12 +24345,12 @@ labelL4:
     /* Initialized data */
 
     static Real xpt[36] = { 113.,110.1,106.2,101.3,95.4,88.8,81.6,74.,
-	    66.1,58.4,51.,44.3,38.7,34.5,32.4,32.9,36.4,42.8,50.9,59.,65.8,
-	    71.5,76.5,81.1,85.6,90.2,94.6,98.9,103.,106.7,109.9,112.5,114.4,
-	    115.5,115.7,114.9 };
+        66.1,58.4,51.,44.3,38.7,34.5,32.4,32.9,36.4,42.8,50.9,59.,65.8,
+        71.5,76.5,81.1,85.6,90.2,94.6,98.9,103.,106.7,109.9,112.5,114.4,
+        115.5,115.7,114.9 };
     static Real ypt[36] = { 40.2,46.8,53.3,59.4,65.,69.9,73.9,76.9,78.9,
-	    79.8,79.7,78.5,76.5,73.6,70.2,66.,60.9,54.3,45.8,36.1,26.5,18.1,
-	    11.4,6.2,2.6,.3,-.7,-.6,.7,3.1,6.4,10.5,15.5,21.,27.1,33.6 };
+        79.8,79.7,78.5,76.5,73.6,70.2,66.,60.9,54.3,45.8,36.1,26.5,18.1,
+        11.4,6.2,2.6,.3,-.7,-.6,.7,3.1,6.4,10.5,15.5,21.,27.1,33.6 };
     static Real p0 = 90.;
     static Real q0 = 0.;
     static Real r0 = 0.;
@@ -24365,14 +24365,14 @@ labelL4:
     static Real j;
     static int k;
     static Real alpha, calcx, calcy, p1, q1, r1, s1, ca, cp, sa, ph, 
-	    dalpha, pi, qi, ri, si, sp, sql, sum, aabb;
+        dalpha, pi, qi, ri, si, sp, sql, sum, aabb;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL3;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL3;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 4;
@@ -24385,9 +24385,9 @@ labelL1:
     l2_3.x[2] = 74.8;
     l2_3.x[3] = 75.7;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l11_3.lxl[i__ - 1] = true;
+    l11_3.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_3.lxu[i__ - 1] = true;
+    l12_3.lxu[i__ - 1] = true;
     }
     l20_6.lex = false;
     l20_6.nex = 1;
@@ -24398,7 +24398,7 @@ labelL1:
     l20_6.xex[3] = 72.187426;
     for (k = 1; k <= 4; ++k) {
 /* L7: */
-	l13_3.xl[k - 1] = 0.;
+    l13_3.xl[k - 1] = 0.;
     }
     l14_3.xu[0] = 150.;
     l14_3.xu[1] = 50.;
@@ -24413,70 +24413,70 @@ labelL2:
     r1 = l2_3.x[2];
     s1 = l2_3.x[3];
     for (i__ = 2; i__ <= 36; ++i__) {
-	alpha = dalpha * (i__ - 1);
-	ca =std::cos(alpha);
-	sa = std::sin(alpha);
-	pi = p1 * ca - q1 * sa + p0 * (1. - ca) + q0 * sa;
-	qi = p1 * sa + q1 * ca + q0 * (1. - ca) - p0 * sa;
-	a = r0 * s1 - s0 * r1 - q1 * r0 + p1 * s0 + pi * q1 - p1 * qi + qi * 
-		r1 - pi * s1;
-	b = -r0 * r1 - s0 * s1 + p1 * r0 + q1 * s0 - p1 * pi - q1 * qi + pi * 
-		r1 + qi * s1;
-	c__ = -r1 * r0 - s1 * s0 + pi * r0 + qi * s0 + p1 * r1 + q1 * s1 - (
-		p1 * p1 + q1 * q1 + pi * pi + qi * qi) / 2.;
-	aabb = a * a + b * b;
-	if (aabb < 1e-30) {
-	    goto L50;
-	}
-	test = c__ / std::sqrt(aabb);
-	if (std::abs(test) > 1.) {
-	    goto L51;
-	}
-	j = 1.;
+    alpha = dalpha * (i__ - 1);
+    ca =std::cos(alpha);
+    sa = std::sin(alpha);
+    pi = p1 * ca - q1 * sa + p0 * (1. - ca) + q0 * sa;
+    qi = p1 * sa + q1 * ca + q0 * (1. - ca) - p0 * sa;
+    a = r0 * s1 - s0 * r1 - q1 * r0 + p1 * s0 + pi * q1 - p1 * qi + qi * 
+        r1 - pi * s1;
+    b = -r0 * r1 - s0 * s1 + p1 * r0 + q1 * s0 - p1 * pi - q1 * qi + pi * 
+        r1 + qi * s1;
+    c__ = -r1 * r0 - s1 * s0 + pi * r0 + qi * s0 + p1 * r1 + q1 * s1 - (
+        p1 * p1 + q1 * q1 + pi * pi + qi * qi) / 2.;
+    aabb = a * a + b * b;
+    if (aabb < 1e-30) {
+        goto L50;
+    }
+    test = c__ / std::sqrt(aabb);
+    if (std::abs(test) > 1.) {
+        goto L51;
+    }
+    j = 1.;
 L52:
-	ph = std::asin(test) - std::atan(b / a);
+    ph = std::asin(test) - std::atan(b / a);
 L55:
-	sp = std::sin(ph);
-	cp =std::cos(ph);
-	ri = r1 * cp - s1 * sp + pi - p1 * cp + q1 * sp;
-	si = r1 * sp + s1 * cp + qi - p1 * sp - q1 * cp;
+    sp = std::sin(ph);
+    cp =std::cos(ph);
+    ri = r1 * cp - s1 * sp + pi - p1 * cp + q1 * sp;
+    si = r1 * sp + s1 * cp + qi - p1 * sp - q1 * cp;
 /* Computing 2nd power */
-	d__1 = r1 - r0;
+    d__1 = r1 - r0;
 /* Computing 2nd power */
-	d__2 = s1 - s0;
-	test1 = d__1 * d__1 + d__2 * d__2;
-	if (test1 < 1e-10) {
-	    test1 = 1e-10;
-	}
+    d__2 = s1 - s0;
+    test1 = d__1 * d__1 + d__2 * d__2;
+    if (test1 < 1e-10) {
+        test1 = 1e-10;
+    }
 /* Computing 2nd power */
-	d__2 = ri - r0;
+    d__2 = ri - r0;
 /* Computing 2nd power */
-	d__3 = si - s0;
-	if ((d__1 = (test1 - d__2 * d__2 - d__3 * d__3) / test1, std::abs(d__1)) < 
-		.001) {
-	    goto L53;
-	}
-	if (j == 2.) {
-	    goto L51;
-	}
-	test = -test;
-	j = 2.;
-	goto L52;
+    d__3 = si - s0;
+    if ((d__1 = (test1 - d__2 * d__2 - d__3 * d__3) / test1, std::abs(d__1)) < 
+        .001) {
+        goto L53;
+    }
+    if (j == 2.) {
+        goto L51;
+    }
+    test = -test;
+    j = 2.;
+    goto L52;
 L50:
-	ph = -std::atan(b / a);
-	goto L55;
+    ph = -std::atan(b / a);
+    goto L55;
 L51:
-	l6_1.fx = 1e20;
-	return 0;
+    l6_1.fx = 1e20;
+    return 0;
 L53:
-	calcx = xpt[0] * cp - ypt[0] * sp + pi - p1 * cp + q1 * sp;
-	calcy = xpt[0] * sp + ypt[0] * cp + qi - p1 * sp - q1 * cp;
+    calcx = xpt[0] * cp - ypt[0] * sp + pi - p1 * cp + q1 * sp;
+    calcy = xpt[0] * sp + ypt[0] * cp + qi - p1 * sp - q1 * cp;
 /* L54: */
 /* Computing 2nd power */
-	d__1 = calcx - xpt[i__ - 1];
+    d__1 = calcx - xpt[i__ - 1];
 /* Computing 2nd power */
-	d__2 = calcy - ypt[i__ - 1];
-	sum = sum + d__1 * d__1 + d__2 * d__2;
+    d__2 = calcy - ypt[i__ - 1];
+    sum = sum + d__1 * d__1 + d__2 * d__2;
     }
 /* Computing 2nd power */
     d__1 = r1 - r0;
@@ -24491,7 +24491,7 @@ L53:
 /* Computing 2nd power */
     d__6 = q1 - q0;
     sql = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 + d__5 * d__5 
-	    + d__6 * d__6;
+        + d__6 * d__6;
     l6_1.fx = sum / 100. + sql / 62500.;
 labelL3:
     return 0;
@@ -24503,8 +24503,8 @@ labelL3:
     /* Initialized data */
 
     static Real y[33] = { .844,.908,.932,.936,.925,.908,.881,.85,.818,
-	    .784,.751,.718,.685,.658,.628,.603,.58,.558,.538,.522,.506,.49,
-	    .478,.467,.457,.448,.438,.431,.424,.42,.414,.411,.406 };
+        .784,.751,.718,.685,.658,.628,.603,.58,.558,.538,.522,.506,.49,
+        .478,.467,.457,.448,.438,.431,.424,.42,.414,.411,.406 };
 
     /* System generated locals */
     Real d__1;
@@ -24514,11 +24514,11 @@ labelL3:
     static Real ti;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 5;
@@ -24532,9 +24532,9 @@ labelL1:
     l2_4.x[3] = .01;
     l2_4.x[4] = .02;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
 /* labelL6: */
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
     }
     l13_4.xl[0] = -.5;
     l14_4.xu[0] = .5;
@@ -24558,39 +24558,39 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 33; ++i__) {
-	ti = (Real) (i__ - 1) * 10.;
+    ti = (Real) (i__ - 1) * 10.;
 /* labelL20: */
-	l16_17.f[i__ - 1] = y[i__ - 1] - (l2_4.x[0] + l2_4.x[1] * std::exp(-l2_4.x[
-		3] * ti) + l2_4.x[2] * std::exp(-l2_4.x[4] * ti));
+    l16_17.f[i__ - 1] = y[i__ - 1] - (l2_4.x[0] + l2_4.x[1] * std::exp(-l2_4.x[
+        3] * ti) + l2_4.x[2] * std::exp(-l2_4.x[4] * ti));
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 33; ++i__) {
 /* L7: */
 /* Computing 2nd power */
-	d__1 = l16_17.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_17.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (j = 1; j <= 5; ++j) {
 /* L8: */
-	l4_4.gf[j - 1] = 0.;
+    l4_4.gf[j - 1] = 0.;
     }
     for (i__ = 1; i__ <= 33; ++i__) {
-	ti = (Real) (i__ - 1) * 10.;
-	l17_20.df[i__ - 1] = -1.;
-	l17_20.df[i__ + 32] = -exp(-l2_4.x[3] * ti);
-	l17_20.df[i__ + 65] = -exp(-l2_4.x[4] * ti);
-	l17_20.df[i__ + 98] = l2_4.x[1] * std::exp(-l2_4.x[3] * ti) * ti;
-	l17_20.df[i__ + 131] = l2_4.x[2] * std::exp(-l2_4.x[4] * ti) * ti;
-	for (j = 1; j <= 5; ++j) {
+    ti = (Real) (i__ - 1) * 10.;
+    l17_20.df[i__ - 1] = -1.;
+    l17_20.df[i__ + 32] = -exp(-l2_4.x[3] * ti);
+    l17_20.df[i__ + 65] = -exp(-l2_4.x[4] * ti);
+    l17_20.df[i__ + 98] = l2_4.x[1] * std::exp(-l2_4.x[3] * ti) * ti;
+    l17_20.df[i__ + 131] = l2_4.x[2] * std::exp(-l2_4.x[4] * ti) * ti;
+    for (j = 1; j <= 5; ++j) {
 /* labelL10: */
-	    l4_4.gf[j - 1] += l16_17.f[i__ - 1] * 2. * l17_20.df[i__ + j * 33 
-		    - 34];
-	}
+        l4_4.gf[j - 1] += l16_17.f[i__ - 1] * 2. * l17_20.df[i__ + j * 33 
+            - 34];
+    }
     }
 labelL4:
     return 0;
@@ -24602,23 +24602,23 @@ labelL4:
     /* Initialized data */
 
     static Real b[5] = { -145421.402,2931.1506,-40.427932,5106.192,
-	    15711.36 };
+        15711.36 };
     static Real c__[5] = { -155011.1084,4360.53352,12.9492344,10236.884,
-	    13176.786 };
+        13176.786 };
     static Real d__[5] = { -326669.5104,7390.68412,-27.8986976,
-	    16643.076,30988.146 };
+        16643.076,30988.146 };
     static Real a[5] = { -8720288.849,150512.5253,-156.6950325,
-	    476470.3222,729482.8271 };
+        476470.3222,729482.8271 };
 
     static Real h__[6];
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -24633,18 +24633,18 @@ labelL1:
     l2_4.x[4] = 17.136;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL10: */
-	l4_4.gf[i__ - 1] = -a[i__ - 1];
+    l4_4.gf[i__ - 1] = -a[i__ - 1];
     }
     for (j = 1; j <= 8; ++j) {
-	for (i__ = 1; i__ <= 5; ++i__) {
+    for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL6: */
-	    l5_33.gg[j + i__ * 14 - 15] = 0.;
-	}
+        l5_33.gg[j + i__ * 14 - 15] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 4; ++i__) {
-	l5_33.gg[(i__ << 1) - 1 + (i__ + 1) * 14 - 15] = -1.;
+    l5_33.gg[(i__ << 1) - 1 + (i__ + 1) * 14 - 15] = -1.;
 /* L7: */
-	l5_33.gg[(i__ << 1) + (i__ + 1) * 14 - 15] = 1.;
+    l5_33.gg[(i__ << 1) + (i__ + 1) * 14 - 15] = 1.;
     }
     l5_33.gg[0] = 2.4;
     l5_33.gg[1] = -1.2;
@@ -24655,15 +24655,15 @@ labelL1:
     l5_33.gg[6] = 7.;
     l5_33.gg[7] = -6.5;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l5_33.gg[i__ * 14 - 6] = b[i__ - 1];
-	l5_33.gg[i__ * 14 - 5] = c__[i__ - 1];
-	l5_33.gg[i__ * 14 - 4] = d__[i__ - 1];
-	l5_33.gg[i__ * 14 - 3] = -b[i__ - 1];
-	l5_33.gg[i__ * 14 - 2] = -c__[i__ - 1];
-	l5_33.gg[i__ * 14 - 1] = -d__[i__ - 1];
-	l12_4.lxu[i__ - 1] = false;
+    l5_33.gg[i__ * 14 - 6] = b[i__ - 1];
+    l5_33.gg[i__ * 14 - 5] = c__[i__ - 1];
+    l5_33.gg[i__ * 14 - 4] = d__[i__ - 1];
+    l5_33.gg[i__ * 14 - 3] = -b[i__ - 1];
+    l5_33.gg[i__ * 14 - 2] = -c__[i__ - 1];
+    l5_33.gg[i__ * 14 - 1] = -d__[i__ - 1];
+    l12_4.lxu[i__ - 1] = false;
 /* L8: */
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
     }
     l20_7.lex = false;
     l20_7.nex = 1;
@@ -24678,57 +24678,57 @@ labelL2:
     l6_1.fx = -24345.;
     for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL9: */
-	l6_1.fx += a[i__ - 1] * l2_4.x[i__ - 1];
+    l6_1.fx += a[i__ - 1] * l2_4.x[i__ - 1];
     }
     l6_1.fx = -l6_1.fx;
 labelL3:
     return 0;
 labelL4:
     if (l9_8.index1[0]) {
-	l3_7.g[0] = l2_4.x[0] * 2.4 - l2_4.x[1];
+    l3_7.g[0] = l2_4.x[0] * 2.4 - l2_4.x[1];
     }
     if (l9_8.index1[1]) {
-	l3_7.g[1] = l2_4.x[0] * -1.2 + l2_4.x[1];
+    l3_7.g[1] = l2_4.x[0] * -1.2 + l2_4.x[1];
     }
     if (l9_8.index1[2]) {
-	l3_7.g[2] = l2_4.x[0] * 60. - l2_4.x[2];
+    l3_7.g[2] = l2_4.x[0] * 60. - l2_4.x[2];
     }
     if (l9_8.index1[3]) {
-	l3_7.g[3] = l2_4.x[0] * -20. + l2_4.x[2];
+    l3_7.g[3] = l2_4.x[0] * -20. + l2_4.x[2];
     }
     if (l9_8.index1[4]) {
-	l3_7.g[4] = l2_4.x[0] * 9.3 - l2_4.x[3];
+    l3_7.g[4] = l2_4.x[0] * 9.3 - l2_4.x[3];
     }
     if (l9_8.index1[5]) {
-	l3_7.g[5] = l2_4.x[0] * -9. + l2_4.x[3];
+    l3_7.g[5] = l2_4.x[0] * -9. + l2_4.x[3];
     }
     if (l9_8.index1[6]) {
-	l3_7.g[6] = l2_4.x[0] * 7. - l2_4.x[4];
+    l3_7.g[6] = l2_4.x[0] * 7. - l2_4.x[4];
     }
     if (l9_8.index1[7]) {
-	l3_7.g[7] = l2_4.x[0] * -6.5 + l2_4.x[4];
+    l3_7.g[7] = l2_4.x[0] * -6.5 + l2_4.x[4];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL11: */
-	h__[i__ - 1] = 0.;
+    h__[i__ - 1] = 0.;
     }
     h__[3] = 2.94e5;
     h__[4] = 2.94e5;
     h__[5] = 277200.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	h__[0] += b[i__ - 1] * l2_4.x[i__ - 1];
-	h__[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
-	h__[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
-	h__[3] -= b[i__ - 1] * l2_4.x[i__ - 1];
-	h__[4] -= c__[i__ - 1] * l2_4.x[i__ - 1];
+    h__[0] += b[i__ - 1] * l2_4.x[i__ - 1];
+    h__[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
+    h__[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
+    h__[3] -= b[i__ - 1] * l2_4.x[i__ - 1];
+    h__[4] -= c__[i__ - 1] * l2_4.x[i__ - 1];
 /* labelL12: */
-	h__[5] -= d__[i__ - 1] * l2_4.x[i__ - 1];
+    h__[5] -= d__[i__ - 1] * l2_4.x[i__ - 1];
     }
     for (i__ = 9; i__ <= 14; ++i__) {
 /* labelL13: */
-	if (l9_8.index1[i__ - 1]) {
-	    l3_7.g[i__ - 1] = h__[i__ - 9];
-	}
+    if (l9_8.index1[i__ - 1]) {
+        l3_7.g[i__ - 1] = h__[i__ - 9];
+    }
     }
 labelL5:
     return 0;
@@ -24740,19 +24740,19 @@ labelL5:
     /* Initialized data */
 
     static Real c__[10] = { -8720288.849,150512.5233,-156.6950325,
-	    476470.3222,729482.8271,-326669.5104,7390.68412,-27.8986976,
-	    16643.076,30988.146 };
+        476470.3222,729482.8271,-326669.5104,7390.68412,-27.8986976,
+        16643.076,30988.146 };
 
     static Real h__;
     static int i__;
     static Real hh[5];
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -24768,9 +24768,9 @@ labelL1:
     l11_4.lxl[0] = true;
     l12_4.lxu[0] = false;
     for (i__ = 2; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_4.lxu[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
     }
     l13_4.xl[0] = 0.;
     l13_4.xl[1] = 1.2;
@@ -24792,47 +24792,47 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = (-c__[0] - c__[1] * l2_4.x[1] - c__[2] * l2_4.x[2] - c__[3] * 
-	    l2_4.x[3] - c__[4] * l2_4.x[4]) * l2_4.x[0] + 24345.;
+        l2_4.x[3] - c__[4] * l2_4.x[4]) * l2_4.x[0] + 24345.;
     return 0;
 labelL3:
     l4_4.gf[0] = -c__[0] - c__[1] * l2_4.x[1] - c__[2] * l2_4.x[2] - c__[3] * 
-	    l2_4.x[3] - c__[4] * l2_4.x[4];
+        l2_4.x[3] - c__[4] * l2_4.x[4];
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L7: */
-	l4_4.gf[i__ - 1] = -c__[i__ - 1] * l2_4.x[0];
+    l4_4.gf[i__ - 1] = -c__[i__ - 1] * l2_4.x[0];
     }
     return 0;
 labelL4:
     h__ = (c__[5] + c__[6] * l2_4.x[1] + c__[7] * l2_4.x[2] + c__[8] * l2_4.x[
-	    3] + c__[9] * l2_4.x[4]) * l2_4.x[0];
+        3] + c__[9] * l2_4.x[4]) * l2_4.x[0];
     if (l9_3.index1[0]) {
-	l3_2.g[0] = h__;
+    l3_2.g[0] = h__;
     }
     if (l9_3.index1[1]) {
-	l3_2.g[1] = 277200. - h__;
+    l3_2.g[1] = 277200. - h__;
     }
     return 0;
 labelL5:
     hh[0] = c__[5] + c__[6] * l2_4.x[1] + c__[7] * l2_4.x[2] + c__[8] * 
-	    l2_4.x[3] + c__[9] * l2_4.x[4];
+        l2_4.x[3] + c__[9] * l2_4.x[4];
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L8: */
-	hh[i__ - 1] = c__[i__ + 4] * l2_4.x[0];
+    hh[i__ - 1] = c__[i__ + 4] * l2_4.x[0];
     }
     if (! l10_3.index2[0]) {
-	goto labelL11;
+    goto labelL11;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL9: */
-	l5_4.gg[(i__ << 1) - 2] = hh[i__ - 1];
+    l5_4.gg[(i__ << 1) - 2] = hh[i__ - 1];
     }
 labelL11:
     if (! l10_3.index2[1]) {
-	goto labelL12;
+    goto labelL12;
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL10: */
-	l5_4.gg[(i__ << 1) - 1] = -hh[i__ - 1];
+    l5_4.gg[(i__ << 1) - 1] = -hh[i__ - 1];
     }
 labelL12:
     return 0;
@@ -24844,24 +24844,24 @@ labelL12:
     /* Initialized data */
 
     static Real a[5] = { -8720288.849,150512.5253,-156.6950325,
-	    476470.3222,729482.8271 };
+        476470.3222,729482.8271 };
     static Real b[5] = { -145421.402,2931.1506,-40.427932,5106.192,
-	    15711.36 };
+        15711.36 };
     static Real c__[5] = { -155011.1084,4360.53352,12.9492344,10236.884,
-	    13176.786 };
+        13176.786 };
     static Real d__[5] = { -326669.5104,7390.68412,-27.8986976,
-	    16643.076,30988.146 };
+        16643.076,30988.146 };
 
     static Real h__[3];
     static int i__, j;
-    static Real hh[15]	/* was [3][5] */;
+    static Real hh[15]    /* was [3][5] */;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -24877,9 +24877,9 @@ labelL1:
     l11_4.lxl[4] = false;
     l12_4.lxu[0] = false;
     for (i__ = 1; i__ <= 4; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
 /* labelL6: */
-	l12_4.lxu[i__] = true;
+    l12_4.lxu[i__] = true;
     }
     l13_4.xl[0] = 0.;
     l13_4.xl[1] = 1.2;
@@ -24902,7 +24902,7 @@ labelL2:
     l6_1.fx = a[0];
     for (i__ = 2; i__ <= 5; ++i__) {
 /* L7: */
-	l6_1.fx += a[i__ - 1] * l2_4.x[i__ - 1];
+    l6_1.fx += a[i__ - 1] * l2_4.x[i__ - 1];
     }
     l6_1.fx = l2_4.x[0] * l6_1.fx - 24345.;
     l6_1.fx = -l6_1.fx;
@@ -24910,13 +24910,13 @@ labelL2:
 labelL3:
     l4_4.gf[0] = a[0];
     for (i__ = 2; i__ <= 5; ++i__) {
-	l4_4.gf[0] += a[i__ - 1] * l2_4.x[i__ - 1];
+    l4_4.gf[0] += a[i__ - 1] * l2_4.x[i__ - 1];
 /* L8: */
-	l4_4.gf[i__ - 1] = a[i__ - 1] * l2_4.x[0];
+    l4_4.gf[i__ - 1] = a[i__ - 1] * l2_4.x[0];
     }
     for (i__ = 1; i__ <= 5; ++i__) {
 /* labelL20: */
-	l4_4.gf[i__ - 1] = -l4_4.gf[i__ - 1];
+    l4_4.gf[i__ - 1] = -l4_4.gf[i__ - 1];
     }
     return 0;
 labelL4:
@@ -24924,29 +24924,29 @@ labelL4:
     h__[1] = c__[0];
     h__[2] = d__[0];
     for (i__ = 2; i__ <= 5; ++i__) {
-	h__[0] += b[i__ - 1] * l2_4.x[i__ - 1];
-	h__[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
+    h__[0] += b[i__ - 1] * l2_4.x[i__ - 1];
+    h__[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
 /* labelL9: */
-	h__[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
+    h__[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL10: */
-	h__[i__ - 1] = l2_4.x[0] * h__[i__ - 1];
+    h__[i__ - 1] = l2_4.x[0] * h__[i__ - 1];
     }
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL11: */
-	if (l9_6.index1[i__ - 1]) {
-	    l3_5.g[i__ - 1] = h__[i__ - 1];
-	}
+    if (l9_6.index1[i__ - 1]) {
+        l3_5.g[i__ - 1] = h__[i__ - 1];
+    }
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = 29400. - h__[0];
+    l3_5.g[3] = 29400. - h__[0];
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = 29400. - h__[1];
+    l3_5.g[4] = 29400. - h__[1];
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = 277200. - h__[2];
+    l3_5.g[5] = 277200. - h__[2];
     }
     return 0;
 labelL5:
@@ -24954,35 +24954,35 @@ labelL5:
     hh[1] = c__[0];
     hh[2] = d__[0];
     for (i__ = 2; i__ <= 5; ++i__) {
-	hh[0] += b[i__ - 1] * l2_4.x[i__ - 1];
-	hh[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
-	hh[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
-	hh[i__ * 3 - 3] = b[i__ - 1] * l2_4.x[0];
-	hh[i__ * 3 - 2] = c__[i__ - 1] * l2_4.x[0];
+    hh[0] += b[i__ - 1] * l2_4.x[i__ - 1];
+    hh[1] += c__[i__ - 1] * l2_4.x[i__ - 1];
+    hh[2] += d__[i__ - 1] * l2_4.x[i__ - 1];
+    hh[i__ * 3 - 3] = b[i__ - 1] * l2_4.x[0];
+    hh[i__ * 3 - 2] = c__[i__ - 1] * l2_4.x[0];
 /* labelL12: */
-	hh[i__ * 3 - 1] = d__[i__ - 1] * l2_4.x[0];
+    hh[i__ * 3 - 1] = d__[i__ - 1] * l2_4.x[0];
     }
     for (j = 1; j <= 3; ++j) {
-	if (! l10_6.index2[j - 1]) {
-	    goto labelL13;
-	}
-	for (i__ = 1; i__ <= 5; ++i__) {
+    if (! l10_6.index2[j - 1]) {
+        goto labelL13;
+    }
+    for (i__ = 1; i__ <= 5; ++i__) {
 /* L130: */
-	    l5_14.gg[j + i__ * 6 - 7] = hh[j + i__ * 3 - 4];
-	}
+        l5_14.gg[j + i__ * 6 - 7] = hh[j + i__ * 3 - 4];
+    }
 labelL13:
-	;
+    ;
     }
     for (j = 4; j <= 6; ++j) {
-	if (! l10_6.index2[j - 1]) {
-	    goto labelL14;
-	}
-	for (i__ = 1; i__ <= 5; ++i__) {
+    if (! l10_6.index2[j - 1]) {
+        goto labelL14;
+    }
+    for (i__ = 1; i__ <= 5; ++i__) {
 /* L140: */
-	    l5_14.gg[j + i__ * 6 - 7] = -hh[j - 3 + i__ * 3 - 4];
-	}
+        l5_14.gg[j + i__ * 6 - 7] = -hh[j - 3 + i__ * 3 - 4];
+    }
 labelL14:
-	;
+    ;
     }
     return 0;
 } /* tp361_ */
@@ -24994,11 +24994,11 @@ labelL14:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -25012,9 +25012,9 @@ labelL1:
     l2_4.x[3] = 4.55;
     l2_4.x[4] = 3.61;
     for (i__ = 2; i__ <= 4; ++i__) {
-	l11_4.lxl[i__ - 1] = false;
+    l11_4.lxl[i__ - 1] = false;
 /* labelL14: */
-	l12_4.lxu[i__ - 1] = false;
+    l12_4.lxu[i__ - 1] = false;
     }
     l11_4.lxl[0] = true;
     l12_4.lxu[0] = true;
@@ -25040,9 +25040,9 @@ labelL3:
 labelL4:
     for (i__ = 1; i__ <= 4; ++i__) {
 /* L41: */
-	if (l9_7.index1[i__ - 1]) {
-	    l3_6.g[i__ - 1] = l2_4.x[i__ - 1] - l2_4.x[i__];
-	}
+    if (l9_7.index1[i__ - 1]) {
+        l3_6.g[i__ - 1] = l2_4.x[i__ - 1] - l2_4.x[i__];
+    }
     }
 labelL5:
     return 0;
@@ -25090,50 +25090,50 @@ L302:
 L301:
     rpm = v * con2 * x[i__];
     if (rpm < rpmin) {
-	goto L300;
+    goto L300;
     }
     if (rpm >= rpmax) {
-	goto L305;
+    goto L305;
     }
     if (rpm >= 600. && rpm < 1900.) {
 /* Computing 3rd power */
-	d__1 = rpm;
+    d__1 = rpm;
 /* Computing 2nd power */
-	d__2 = rpm;
-	torque = d__1 * (d__1 * d__1) * 3.846154e-8 - d__2 * d__2 * 
-		2.108974359e-4 + rpm * .42455128205133 - 187.11538461540295;
+    d__2 = rpm;
+    torque = d__1 * (d__1 * d__1) * 3.846154e-8 - d__2 * d__2 * 
+        2.108974359e-4 + rpm * .42455128205133 - 187.11538461540295;
     }
     if (rpm >= 1900. && rpm < 3e3) {
 /* Computing 3rd power */
-	d__1 = rpm;
+    d__1 = rpm;
 /* Computing 2nd power */
-	d__2 = rpm;
-	torque = d__1 * (d__1 * d__1) * -4.92424e-9 + d__2 * d__2 * 
-		1.867424242e-5 + rpm * .01229545454547 + 64.999999999986;
+    d__2 = rpm;
+    torque = d__1 * (d__1 * d__1) * -4.92424e-9 + d__2 * d__2 * 
+        1.867424242e-5 + rpm * .01229545454547 + 64.999999999986;
     }
     if (rpm >= 3e3 && rpm < 4500.) {
 /* Computing 3rd power */
-	d__1 = rpm;
+    d__1 = rpm;
 /* Computing 2nd power */
-	d__2 = rpm;
-	torque = d__1 * (d__1 * d__1) * -2.6667e-10 + d__2 * d__2 * 3e-6 - 
-		rpm * .01263333333336 + 155.10000000002947;
+    d__2 = rpm;
+    torque = d__1 * (d__1 * d__1) * -2.6667e-10 + d__2 * d__2 * 3e-6 - 
+        rpm * .01263333333336 + 155.10000000002947;
     }
     if (rpm >= 4500. && rpm < 5600.) {
 /* Computing 3rd power */
-	d__1 = rpm;
+    d__1 = rpm;
 /* Computing 2nd power */
-	d__2 = rpm;
-	torque = d__1 * (d__1 * d__1) * -6.64141e-9 + d__2 * d__2 * 
-		8.337626263e-5 - rpm * .34351868688129 + 597.3636363847145;
+    d__2 = rpm;
+    torque = d__1 * (d__1 * d__1) * -6.64141e-9 + d__2 * d__2 * 
+        8.337626263e-5 - rpm * .34351868688129 + 597.3636363847145;
     }
     if (rpm >= 5600. && rpm < 6e3) {
 /* Computing 3rd power */
-	d__1 = rpm;
+    d__1 = rpm;
 /* Computing 2nd power */
-	d__2 = rpm;
-	torque = d__1 * (d__1 * d__1) * -2.539683e-8 + d__2 * d__2 * 
-		3.8158730157e-4 - rpm * 1.9223492062348 + 3380.66666645715304;
+    d__2 = rpm;
+    torque = d__1 * (d__1 * d__1) * -2.539683e-8 + d__2 * d__2 * 
+        3.8158730157e-4 - rpm * 1.9223492062348 + 3380.66666645715304;
     }
     acc0 = acc;
 /* Computing 2nd power */
@@ -25143,10 +25143,10 @@ L301:
     t = dt * it;
     v += (acc0 + acc) / 2. * dt / con1;
     if (t > tmax) {
-	goto L311;
+    goto L311;
     }
     if (v >= vmax) {
-	goto L311;
+    goto L311;
     }
     goto L302;
 L300:
@@ -25155,10 +25155,10 @@ L300:
 L305:
     ++i__;
     if (i__ > 5) {
-	goto L311;
+    goto L311;
     }
     if (t == 0.) {
-	goto L301;
+    goto L301;
     }
     tt = t + tshift;
 L306:
@@ -25169,7 +25169,7 @@ L306:
     t = dt * it;
     v += acc * dt / con1;
     if (t < tt) {
-	goto L307;
+    goto L307;
     }
     goto L302;
 L307:
@@ -25190,11 +25190,11 @@ L311:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 5;
@@ -25208,10 +25208,10 @@ labelL1:
     l2_4.x[3] = 4.;
     l2_4.x[4] = 9.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	l11_4.lxl[i__ - 1] = true;
-	l12_4.lxu[i__ - 1] = true;
+    l11_4.lxl[i__ - 1] = true;
+    l12_4.lxu[i__ - 1] = true;
 /* labelL11: */
-	l14_4.xu[i__ - 1] = 10.;
+    l14_4.xu[i__ - 1] = 10.;
     }
     l13_4.xl[0] = -10.;
     l13_4.xl[1] = -10.;
@@ -25265,7 +25265,7 @@ Real tp363a_(Real *x)
     i__1 = b_1.kkk;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L60: */
-	xc[i__] = xc[i__ - 1] + dr / (Real) b_1.kkk;
+    xc[i__] = xc[i__ - 1] + dr / (Real) b_1.kkk;
     }
     tp363c_(xc, b_1.thick, b_1.dthick, &x[1], &b_1.kkk, &x11, &xi);
     tp363d_(xc, &ret_val);
@@ -25316,7 +25316,7 @@ Real tp363a_(Real *x)
     i__1 = b_1.kkk;
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* L60: */
-	x[i__] = x[i__ - 1] + dr / (Real) b_1.kkk;
+    x[i__] = x[i__ - 1] + dr / (Real) b_1.kkk;
     }
     tp363c_(x, b_1.thick, b_1.dthick, &c__[1], &b_1.kkk, &c__[4], &xi);
 /* labelL5: */
@@ -25335,38 +25335,38 @@ Real tp363a_(Real *x)
     st_1.value2 = 0.;
     i__1 = ii;
     for (nn = 1; nn <= i__1; ++nn) {
-	rst[nn - 1] = y[nn - 1] / (b_1.thick[nn - 1] * x[nn - 1]);
+    rst[nn - 1] = y[nn - 1] / (b_1.thick[nn - 1] * x[nn - 1]);
 /* Computing 2nd power */
-	d__1 = b_1.w2;
+    d__1 = b_1.w2;
 /* Computing 2nd power */
-	d__2 = x[nn - 1];
-	tst[nn - 1] = (y1[nn - 1] + b_1.thick[nn - 1] * b_1.rho * (d__1 * 
-		d__1) * (d__2 * d__2)) / b_1.thick[nn - 1];
+    d__2 = x[nn - 1];
+    tst[nn - 1] = (y1[nn - 1] + b_1.thick[nn - 1] * b_1.rho * (d__1 * 
+        d__1) * (d__2 * d__2)) / b_1.thick[nn - 1];
 /* Computing 2nd power */
-	d__1 = rst[nn - 1] - tst[nn - 1];
+    d__1 = rst[nn - 1] - tst[nn - 1];
 /* Computing 2nd power */
-	d__2 = rst[nn - 1];
+    d__2 = rst[nn - 1];
 /* Computing 2nd power */
-	d__3 = tst[nn - 1];
-	stot[nn - 1] = std::sqrt(d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
-	if (stot[nn - 1] > smax) {
-	    smax = stot[nn - 1];
-	}
+    d__3 = tst[nn - 1];
+    stot[nn - 1] = std::sqrt(d__1 * d__1 + d__2 * d__2 + d__3 * d__3);
+    if (stot[nn - 1] > smax) {
+        smax = stot[nn - 1];
+    }
 /* Computing 2nd power */
-	d__1 = 3e4 - stot[nn - 1];
-	st_1.value2 += d__1 * d__1;
+    d__1 = 3e4 - stot[nn - 1];
+    st_1.value2 += d__1 * d__1;
 /* L300: */
     }
     st_1.value2 = std::sqrt(st_1.value2);
     if (index1[1]) {
-	g[1] = (3e4 - smax) / 1e3;
+    g[1] = (3e4 - smax) / 1e3;
     }
     if (index1[2]) {
-	g[2] = 5. - tfn1_1.tmax;
+    g[2] = 5. - tfn1_1.tmax;
     }
     tp363g_(&c__[4], &c__[1], &v, b_1.thick, &b_1.kkk, x);
     if (index1[3]) {
-	g[3] = (625. - v) / 10.;
+    g[3] = (625. - v) / 10.;
     }
 /* L900: */
     return 0;
@@ -25395,19 +25395,19 @@ Real tp363a_(Real *x)
     tfn1_1.tmax = thick[1];
     i__1 = *kkk;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	thick[i__ + 1] = *c0 + c__[1] * (x[i__ + 1] - *xi);
-	i__2 = nfst;
-	for (lm = 1; lm <= i__2; ++lm) {
-	    jkl = lm + 1;
+    thick[i__ + 1] = *c0 + c__[1] * (x[i__ + 1] - *xi);
+    i__2 = nfst;
+    for (lm = 1; lm <= i__2; ++lm) {
+        jkl = lm + 1;
 /* labelL9: */
-	    thick[i__ + 1] += c__[jkl] * std::sin(((Real) jkl * (float)2. - (
-		    float)3.) * 3.1415926535897932 * (x[i__] - x[1]) / xl);
-	}
-	if (thick[i__ + 1] > tfn1_1.tmax) {
-	    tfn1_1.tmax = thick[i__ + 1];
-	}
+        thick[i__ + 1] += c__[jkl] * std::sin(((Real) jkl * (float)2. - (
+            float)3.) * 3.1415926535897932 * (x[i__] - x[1]) / xl);
+    }
+    if (thick[i__ + 1] > tfn1_1.tmax) {
+        tfn1_1.tmax = thick[i__ + 1];
+    }
 /* labelL10: */
-	dthick[i__] = (thick[i__ + 1] - thick[i__]) / (x[i__ + 1] - x[i__]);
+    dthick[i__] = (thick[i__ + 1] - thick[i__]) / (x[i__ + 1] - x[i__]);
     }
     return 0;
 } /* tp363c_ */
@@ -25434,9 +25434,9 @@ Real tp363a_(Real *x)
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* labelL10: */
 /* Computing 3rd power */
-	d__1 = x[i__];
-	*xke += d__1 * (d__1 * d__1) * b_2.thick[i__ - 1] * (x[i__ + 1] - x[
-		i__]);
+    d__1 = x[i__];
+    *xke += d__1 * (d__1 * d__1) * b_2.thick[i__ - 1] * (x[i__ + 1] - x[
+        i__]);
     }
     *xke *= const__;
     return 0;
@@ -25468,32 +25468,32 @@ Real tp363a_(Real *x)
     kk = *ii - 1;
     i__1 = kk;
     for (j = 1; j <= i__1; ++j) {
-	ll = j;
-	xr = x[j];
-	yr = y[j];
-	y1r = y1[j];
-	m0 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
-	xr = x[j] + h__ / 2.;
-	yr = y[j] + h__ * y1[j] / 2.;
-	y1r = y1[j] + m0 / 2.;
-	m1 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
-	yr += h__ * m0 / 4.;
-	y1r = y1[j] + m1 / 2.;
-	m2 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
-	xr = x[j] + h__;
-	yr = y[j] + h__ * y1[j] + h__ * m1 / 2.;
-	y1r = y1[j] + m2;
-	m3 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
-	y[j + 1] = y[j] + h__ * y1[j] + h__ / 6. * (m0 + m1 + m2);
-	y1[j + 1] = y1[j] + (m0 + m1 * 2. + m2 * 2. + m3) / 6.;
+    ll = j;
+    xr = x[j];
+    yr = y[j];
+    y1r = y1[j];
+    m0 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
+    xr = x[j] + h__ / 2.;
+    yr = y[j] + h__ * y1[j] / 2.;
+    y1r = y1[j] + m0 / 2.;
+    m1 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
+    yr += h__ * m0 / 4.;
+    y1r = y1[j] + m1 / 2.;
+    m2 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
+    xr = x[j] + h__;
+    yr = y[j] + h__ * y1[j] + h__ * m1 / 2.;
+    y1r = y1[j] + m2;
+    m3 = h__ * tp363h_(&xr, &yr, &y1r, &ll);
+    y[j + 1] = y[j] + h__ * y1[j] + h__ / 6. * (m0 + m1 + m2);
+    y1[j + 1] = y1[j] + (m0 + m1 * 2. + m2 * 2. + m3) / 6.;
 /* labelL10: */
-	x[j + 1] = x[j] + h__;
+    x[j + 1] = x[j] + h__;
     }
     return 0;
 } /* tp363e_ */
 
 /* Subroutine */ int tp363f_(Real *xl, Real *xr, Real *fxl, Real *fxr, Real *eps, Real *y, Real *y1, Real *x, Real *xi, Real *xf, Real *yi, 
-	Real *root, int *ii)
+    Real *root, int *ii)
 {
     /* System generated locals */
     Real d__1;
@@ -25515,11 +25515,11 @@ L105:
     tp363e_(&xapp, yi, xi, xf, ii, &y[1], &y1[1], &x[1]);
     fxapp = -y[*ii];
     if ((d__1 = xapp - xsave, std::abs(d__1)) / xapp <= *eps) {
-	goto L250;
+    goto L250;
     }
     value = fxapp * *fxl;
     if (value < 0.) {
-	goto L110;
+    goto L110;
     }
     *xl = xapp;
     xsave = *xl;
@@ -25557,12 +25557,12 @@ L250:
     lmn = *kkk - 1;
     i__1 = lmn;
     for (i__ = 1; i__ <= i__1; i__ += 2) {
-	r1 = (x[i__ + 1] + x[i__]) / 2.;
-	r2 = (x[i__ + 1] + x[i__ + 2]) / 2.;
-	r3 = (r1 + r2) / 2.;
+    r1 = (x[i__ + 1] + x[i__]) / 2.;
+    r2 = (x[i__ + 1] + x[i__ + 2]) / 2.;
+    r3 = (r1 + r2) / 2.;
 /* labelL10: */
-	*v += pi * 2. * deltx / 3. * (thick[i__] * r1 + thick[i__ + 1] * 4. * 
-		r3 + thick[i__ + 2] * r2);
+    *v += pi * 2. * deltx / 3. * (thick[i__] * r1 + thick[i__ + 1] * 4. * 
+        r3 + thick[i__ + 2] * r2);
     }
     return 0;
 } /* tp363g_ */
@@ -25577,9 +25577,9 @@ Real tp363h_(Real *xr, Real *yr, Real *y1r, int *i__)
 /* Computing 2nd power */
     d__2 = b_1.w2;
     ret_val = (1. / b_1.thick[*i__ - 1] * b_1.dthick[*i__ - 1] - 1. / *xr) * *
-	    y1r + (1. / (d__1 * d__1) - b_1.xmu / (*xr * b_1.thick[*i__ - 1]) 
-	    * b_1.dthick[*i__ - 1]) * *yr - (b_1.xmu + 3.) * b_1.rho * (d__2 *
-	     d__2) * b_1.thick[*i__ - 1] * *xr;
+        y1r + (1. / (d__1 * d__1) - b_1.xmu / (*xr * b_1.thick[*i__ - 1]) 
+        * b_1.dthick[*i__ - 1]) * *yr - (b_1.xmu + 3.) * b_1.rho * (d__2 *
+         d__2) * b_1.thick[*i__ - 1] * *xr;
     return ret_val;
 } /* tp363h_ */
 
@@ -25592,11 +25592,11 @@ Real tp363h_(Real *xr, Real *yr, Real *y1r, int *i__)
     static Real xmu1, xmu2;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 6;
@@ -25612,7 +25612,7 @@ labelL1:
     l2_5.x[5] = 3.;
     for (i__ = 1; i__ <= 4; ++i__) {
 /* labelL11: */
-	l11_5.lxl[i__ - 1] = true;
+    l11_5.lxl[i__ - 1] = true;
     }
     l11_5.lxl[4] = false;
     l11_5.lxl[5] = false;
@@ -25646,20 +25646,20 @@ labelL4:
     xmu1 = .7853981633;
     xmu2 = 2.356194491;
     if (l9_7.index1[0]) {
-	l3_6.g[0] = -l2_5.x[0] + l2_5.x[1] + l2_5.x[2] - l2_5.x[3];
+    l3_6.g[0] = -l2_5.x[0] + l2_5.x[1] + l2_5.x[2] - l2_5.x[3];
     }
     if (l9_7.index1[1]) {
-	l3_6.g[1] = -l2_5.x[0] - l2_5.x[1] + l2_5.x[2] + l2_5.x[3];
+    l3_6.g[1] = -l2_5.x[0] - l2_5.x[1] + l2_5.x[2] + l2_5.x[3];
     }
     if (l9_7.index1[2]) {
-	l3_6.g[2] = -l2_5.x[1] * l2_5.x[1] - l2_5.x[2] * l2_5.x[2] + (l2_5.x[
-		3] - l2_5.x[0]) * (l2_5.x[3] - l2_5.x[0]) + l2_5.x[1] * 2. * 
-		l2_5.x[2] *std::cos(xmu1);
+    l3_6.g[2] = -l2_5.x[1] * l2_5.x[1] - l2_5.x[2] * l2_5.x[2] + (l2_5.x[
+        3] - l2_5.x[0]) * (l2_5.x[3] - l2_5.x[0]) + l2_5.x[1] * 2. * 
+        l2_5.x[2] *std::cos(xmu1);
     }
     if (l9_7.index1[3]) {
-	l3_6.g[3] = l2_5.x[1] * l2_5.x[1] + l2_5.x[2] * l2_5.x[2] - (l2_5.x[3]
-		 + l2_5.x[0]) * (l2_5.x[3] + l2_5.x[0]) - l2_5.x[1] * 2. * 
-		l2_5.x[2] *std::cos(xmu2);
+    l3_6.g[3] = l2_5.x[1] * l2_5.x[1] + l2_5.x[2] * l2_5.x[2] - (l2_5.x[3]
+         + l2_5.x[0]) * (l2_5.x[3] + l2_5.x[0]) - l2_5.x[1] * 2. * 
+        l2_5.x[2] *std::cos(xmu2);
     }
 labelL5:
     return 0;
@@ -25684,34 +25684,34 @@ Real tp364a_(Real *x)
     xinc = pi * 2. / 30.;
     for (i__ = 1; i__ <= 31; ++i__) {
 /* labelL1: */
-	phi[i__ - 1] = xinc * (Real) (i__ - 1);
+    phi[i__ - 1] = xinc * (Real) (i__ - 1);
     }
     tp364b_(phi, x1, y1);
     ret_val = 0.;
     for (i__ = 1; i__ <= 31; ++i__) {
-	tp364c_(&x[1], &phi[i__ - 1], &coss);
-	wp = (d__1 = 1. - coss * coss, std::abs(d__1));
-	if (wp > (float)0.) {
-	    sins = std::sqrt(wp);
-	} else {
-	    sins = (float)0.;
-	}
-	cosy = (x[4] + x[3] * coss - x[1] *std::cos(phi[i__ - 1])) / x[2];
-	siny = (x[3] * sins - x[1] * std::sin(phi[i__ - 1])) / x[2];
-	x1a[i__ - 1] = x[1] *std::cos(phi[i__ - 1]) + x[5] * cosy - x[6] * siny;
-	y1a[i__ - 1] = x[1] * std::sin(phi[i__ - 1]) + x[5] * siny + x[6] * cosy;
+    tp364c_(&x[1], &phi[i__ - 1], &coss);
+    wp = (d__1 = 1. - coss * coss, std::abs(d__1));
+    if (wp > (float)0.) {
+        sins = std::sqrt(wp);
+    } else {
+        sins = (float)0.;
+    }
+    cosy = (x[4] + x[3] * coss - x[1] *std::cos(phi[i__ - 1])) / x[2];
+    siny = (x[3] * sins - x[1] * std::sin(phi[i__ - 1])) / x[2];
+    x1a[i__ - 1] = x[1] *std::cos(phi[i__ - 1]) + x[5] * cosy - x[6] * siny;
+    y1a[i__ - 1] = x[1] * std::sin(phi[i__ - 1]) + x[5] * siny + x[6] * cosy;
 /* labelL2: */
 /* Computing 2nd power */
-	d__1 = x1a[i__ - 1] - x1[i__ - 1];
+    d__1 = x1a[i__ - 1] - x1[i__ - 1];
 /* Computing 2nd power */
-	d__2 = y1a[i__ - 1] - y1[i__ - 1];
-	ret_val = ret_val + d__1 * d__1 + d__2 * d__2;
+    d__2 = y1a[i__ - 1] - y1[i__ - 1];
+    ret_val = ret_val + d__1 * d__1 + d__2 * d__2;
     }
     wp = ret_val / 31.;
     if (wp > (float)0.) {
-	ret_val = std::sqrt(wp);
+    ret_val = std::sqrt(wp);
     } else {
-	ret_val = (float)0.;
+    ret_val = (float)0.;
     }
     return ret_val;
 } /* tp364a_ */
@@ -25730,9 +25730,9 @@ Real tp364a_(Real *x)
     /* Function Body */
     pi = 3.141592654;
     for (i__ = 1; i__ <= 31; ++i__) {
-	x1[i__] = std::sin(pi * 2. * ((pi - phi[i__]) / (pi * 2.) - .16)) + .4;
+    x1[i__] = std::sin(pi * 2. * ((pi - phi[i__]) / (pi * 2.) - .16)) + .4;
 /* labelL1: */
-	y1[i__] = std::sin(pi - phi[i__]) * .9 + 2.;
+    y1[i__] = std::sin(pi - phi[i__]) * .9 + 2.;
     }
     return 0;
 } /* tp364b_ */
@@ -25753,13 +25753,13 @@ Real tp364a_(Real *x)
     m = x[1] * 2. * x[3] * std::sin(*phi);
     l = x[3] * 2. * x[4] - x[1] * 2. * x[3] *std::cos(*phi);
     k = x[1] * x[1] - x[2] * x[2] + x[3] * x[3] + x[4] * x[4] - x[4] * 2. * x[
-	    1] *std::cos(*phi);
+        1] *std::cos(*phi);
     a = l * l + m * m;
     b = k * 2. * l;
     c__ = k * k - m * m;
     term = std::sqrt((d__1 = b * b - a * 4. * c__, std::abs(d__1)));
     if (pi - *phi < 0.) {
-	term = -term;
+    term = -term;
     }
     *w = (-b + term) / (a * 2.);
     return 0;
@@ -25776,11 +25776,11 @@ Real tp364a_(Real *x)
     static Real p, q;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 7;
@@ -25796,14 +25796,14 @@ labelL1:
     l2_6.x[5] = 5.;
     l2_6.x[6] = 0.;
     for (i__ = 1; i__ <= 3; ++i__) {
-	l11_6.lxl[(i__ << 1) - 1] = false;
+    l11_6.lxl[(i__ << 1) - 1] = false;
 /* labelL11: */
-	l11_6.lxl[(i__ << 1) - 2] = true;
+    l11_6.lxl[(i__ << 1) - 2] = true;
     }
     l11_6.lxl[6] = true;
     for (i__ = 1; i__ <= 7; ++i__) {
 /* labelL12: */
-	l12_6.lxu[i__ - 1] = false;
+    l12_6.lxu[i__ - 1] = false;
     }
     l13_6.xl[0] = 0.;
     l13_6.xl[2] = 0.;
@@ -25837,24 +25837,24 @@ labelL4:
     q = std::sqrt(d__1 * d__1 + d__2 * d__2);
     if (l9_5.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[3] - l2_6.x[5];
+    d__1 = l2_6.x[3] - l2_6.x[5];
 /* Computing 2nd power */
-	d__2 = l2_6.x[4] - l2_6.x[6];
-	l3_4.g[0] = d__1 * d__1 + d__2 * d__2 - 4.;
+    d__2 = l2_6.x[4] - l2_6.x[6];
+    l3_4.g[0] = d__1 * d__1 + d__2 * d__2 - 4.;
     }
     if (l9_5.index1[1]) {
-	l3_4.g[1] = (l2_6.x[2] * l2_6.x[3] - l2_6.x[1] * l2_6.x[4]) / p - 1.;
+    l3_4.g[1] = (l2_6.x[2] * l2_6.x[3] - l2_6.x[1] * l2_6.x[4]) / p - 1.;
     }
     if (l9_5.index1[2]) {
-	l3_4.g[2] = (l2_6.x[2] * l2_6.x[5] - l2_6.x[1] * l2_6.x[6]) / p - 1.;
+    l3_4.g[2] = (l2_6.x[2] * l2_6.x[5] - l2_6.x[1] * l2_6.x[6]) / p - 1.;
     }
     if (l9_5.index1[3]) {
-	l3_4.g[3] = (l2_6.x[0] * l2_6.x[2] + (l2_6.x[1] - l2_6.x[0]) * l2_6.x[
-		4] - l2_6.x[2] * l2_6.x[3]) / q - 1.;
+    l3_4.g[3] = (l2_6.x[0] * l2_6.x[2] + (l2_6.x[1] - l2_6.x[0]) * l2_6.x[
+        4] - l2_6.x[2] * l2_6.x[3]) / q - 1.;
     }
     if (l9_5.index1[4]) {
-	l3_4.g[4] = (l2_6.x[0] * l2_6.x[2] + (l2_6.x[1] - l2_6.x[0]) * l2_6.x[
-		6] - l2_6.x[2] * l2_6.x[5]) / q - 1.;
+    l3_4.g[4] = (l2_6.x[0] * l2_6.x[2] + (l2_6.x[1] - l2_6.x[0]) * l2_6.x[
+        6] - l2_6.x[2] * l2_6.x[5]) / q - 1.;
     }
 labelL5:
     return 0;
@@ -25866,11 +25866,11 @@ labelL5:
     /* Initialized data */
 
     static Real c__[38] = { 5.9553571e-4,.88392857,-.1175625,1.1088,
-	    .1303533,-.0066033,6.6173269e-4,.017239878,-.0056595559,
-	    -.019120592,56.85075,1.08702,.32175,-.03762,.006198,2462.3121,
-	    -25.125634,161.18996,5e3,-489510.,44.333333,.33,.022556,-.007595,
-	    6.1e-4,-5e-4,.819672,.819672,24500.,-250.,.010204082,1.2244898e-5,
-	    6.25e-5,6.25e-5,-7.625e-5,1.22,1.,-1. };
+        .1303533,-.0066033,6.6173269e-4,.017239878,-.0056595559,
+        -.019120592,56.85075,1.08702,.32175,-.03762,.006198,2462.3121,
+        -25.125634,161.18996,5e3,-489510.,44.333333,.33,.022556,-.007595,
+        6.1e-4,-5e-4,.819672,.819672,24500.,-250.,.010204082,1.2244898e-5,
+        6.25e-5,6.25e-5,-7.625e-5,1.22,1.,-1. };
 
     /* System generated locals */
     Real d__1;
@@ -25879,11 +25879,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 7;
@@ -25899,9 +25899,9 @@ labelL1:
     l2_6.x[5] = 8.;
     l2_6.x[6] = 145.;
     for (i__ = 1; i__ <= 7; ++i__) {
-	l11_6.lxl[i__ - 1] = true;
+    l11_6.lxl[i__ - 1] = true;
 /* labelL11: */
-	l12_6.lxu[i__ - 1] = true;
+    l12_6.lxu[i__ - 1] = true;
     }
     l13_6.xl[0] = 1.;
     l13_6.xl[1] = 1.;
@@ -25930,74 +25930,74 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_6.x[0] * 1.715 + l2_6.x[0] * .035 * l2_6.x[5] + l2_6.x[2] * 
-	    4.0565 + l2_6.x[1] * 10. + 3e3 - l2_6.x[2] * .063 * l2_6.x[4];
+        4.0565 + l2_6.x[1] * 10. + 3e3 - l2_6.x[2] * .063 * l2_6.x[4];
 labelL3:
     return 0;
 labelL4:
     if (l9_8.index1[0]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[5];
-	l3_7.g[0] = 1. - c__[0] * (d__1 * d__1) - c__[1] * l2_6.x[2] / l2_6.x[
-		0] - c__[2] * l2_6.x[5];
+    d__1 = l2_6.x[5];
+    l3_7.g[0] = 1. - c__[0] * (d__1 * d__1) - c__[1] * l2_6.x[2] / l2_6.x[
+        0] - c__[2] * l2_6.x[5];
     }
     if (l9_8.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[5];
-	l3_7.g[1] = 1. - c__[3] * l2_6.x[0] / l2_6.x[2] - c__[4] * l2_6.x[0] /
-		 l2_6.x[2] * l2_6.x[5] - c__[5] * l2_6.x[0] / l2_6.x[2] * (
-		d__1 * d__1);
+    d__1 = l2_6.x[5];
+    l3_7.g[1] = 1. - c__[3] * l2_6.x[0] / l2_6.x[2] - c__[4] * l2_6.x[0] /
+         l2_6.x[2] * l2_6.x[5] - c__[5] * l2_6.x[0] / l2_6.x[2] * (
+        d__1 * d__1);
     }
     if (l9_8.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[5];
-	l3_7.g[2] = 1. - c__[6] * (d__1 * d__1) - c__[7] * l2_6.x[4] - c__[8] 
-		* l2_6.x[3] - c__[9] * l2_6.x[5];
+    d__1 = l2_6.x[5];
+    l3_7.g[2] = 1. - c__[6] * (d__1 * d__1) - c__[7] * l2_6.x[4] - c__[8] 
+        * l2_6.x[3] - c__[9] * l2_6.x[5];
     }
     if (l9_8.index1[3]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[5];
-	l3_7.g[3] = 1. - c__[10] / l2_6.x[4] - c__[11] / l2_6.x[4] * l2_6.x[5]
-		 - c__[12] * l2_6.x[3] / l2_6.x[4] - c__[13] / l2_6.x[4] * (
-		d__1 * d__1);
+    d__1 = l2_6.x[5];
+    l3_7.g[3] = 1. - c__[10] / l2_6.x[4] - c__[11] / l2_6.x[4] * l2_6.x[5]
+         - c__[12] * l2_6.x[3] / l2_6.x[4] - c__[13] / l2_6.x[4] * (
+        d__1 * d__1);
     }
     if (l9_8.index1[4]) {
-	l3_7.g[4] = 1. - c__[14] * l2_6.x[6] - c__[15] * l2_6.x[1] / l2_6.x[2]
-		 / l2_6.x[3] - c__[16] * l2_6.x[1] / l2_6.x[2];
+    l3_7.g[4] = 1. - c__[14] * l2_6.x[6] - c__[15] * l2_6.x[1] / l2_6.x[2]
+         / l2_6.x[3] - c__[16] * l2_6.x[1] / l2_6.x[2];
     }
     if (l9_8.index1[5]) {
-	l3_7.g[5] = 1. - c__[17] / l2_6.x[6] - c__[18] * l2_6.x[1] / l2_6.x[2]
-		 / l2_6.x[6] - c__[19] * l2_6.x[1] / l2_6.x[2] / l2_6.x[3] / 
-		l2_6.x[6];
+    l3_7.g[5] = 1. - c__[17] / l2_6.x[6] - c__[18] * l2_6.x[1] / l2_6.x[2]
+         / l2_6.x[6] - c__[19] * l2_6.x[1] / l2_6.x[2] / l2_6.x[3] / 
+        l2_6.x[6];
     }
     if (l9_8.index1[6]) {
-	l3_7.g[6] = 1. - c__[20] / l2_6.x[4] - c__[21] * l2_6.x[6] / l2_6.x[4]
-		;
+    l3_7.g[6] = 1. - c__[20] / l2_6.x[4] - c__[21] * l2_6.x[6] / l2_6.x[4]
+        ;
     }
     if (l9_8.index1[7]) {
-	l3_7.g[7] = 1. - c__[22] * l2_6.x[4] - c__[23] * l2_6.x[6];
+    l3_7.g[7] = 1. - c__[22] * l2_6.x[4] - c__[23] * l2_6.x[6];
     }
     if (l9_8.index1[8]) {
-	l3_7.g[8] = 1. - c__[24] * l2_6.x[2] - c__[25] * l2_6.x[0];
+    l3_7.g[8] = 1. - c__[24] * l2_6.x[2] - c__[25] * l2_6.x[0];
     }
     if (l9_8.index1[9]) {
-	l3_7.g[9] = 1. - c__[26] * l2_6.x[0] / l2_6.x[2] - c__[27] / l2_6.x[2]
-		;
+    l3_7.g[9] = 1. - c__[26] * l2_6.x[0] / l2_6.x[2] - c__[27] / l2_6.x[2]
+        ;
     }
     if (l9_8.index1[10]) {
-	l3_7.g[10] = 1. - c__[28] * l2_6.x[1] / l2_6.x[2] / l2_6.x[3] - c__[
-		29] * l2_6.x[1] / l2_6.x[2];
+    l3_7.g[10] = 1. - c__[28] * l2_6.x[1] / l2_6.x[2] / l2_6.x[3] - c__[
+        29] * l2_6.x[1] / l2_6.x[2];
     }
     if (l9_8.index1[11]) {
-	l3_7.g[11] = 1. - c__[30] * l2_6.x[3] - c__[31] / l2_6.x[1] * l2_6.x[
-		2] * l2_6.x[3];
+    l3_7.g[11] = 1. - c__[30] * l2_6.x[3] - c__[31] / l2_6.x[1] * l2_6.x[
+        2] * l2_6.x[3];
     }
     if (l9_8.index1[12]) {
-	l3_7.g[12] = 1. - c__[32] * l2_6.x[0] * l2_6.x[5] - c__[33] * l2_6.x[
-		0] - c__[34] * l2_6.x[2];
+    l3_7.g[12] = 1. - c__[32] * l2_6.x[0] * l2_6.x[5] - c__[33] * l2_6.x[
+        0] - c__[34] * l2_6.x[2];
     }
     if (l9_8.index1[13]) {
-	l3_7.g[13] = 1. - c__[35] / l2_6.x[0] * l2_6.x[2] - c__[36] / l2_6.x[
-		0] - c__[37] * l2_6.x[5];
+    l3_7.g[13] = 1. - c__[35] / l2_6.x[0] * l2_6.x[2] - c__[36] / l2_6.x[
+        0] - c__[37] * l2_6.x[5];
     }
 labelL5:
     return 0;
@@ -26013,11 +26013,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 7;
@@ -26026,11 +26026,11 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 7; ++i__) {
-	l2_6.x[i__ - 1] = .1;
-	l11_6.lxl[i__ - 1] = true;
-	l12_6.lxu[i__ - 1] = false;
+    l2_6.x[i__ - 1] = .1;
+    l11_6.lxl[i__ - 1] = true;
+    l12_6.lxu[i__ - 1] = false;
 /* labelL11: */
-	l13_6.xl[i__ - 1] = 0.;
+    l13_6.xl[i__ - 1] = 0.;
     }
     l20_8.lex = false;
     l20_8.nex = 1;
@@ -26044,15 +26044,15 @@ labelL1:
     l20_8.xex[6] = 1.4121216;
     for (i__ = 1; i__ <= 7; ++i__) {
 /* labelL12: */
-	l5_34.gg[i__ * 5 - 5] = -1.;
+    l5_34.gg[i__ * 5 - 5] = -1.;
     }
     for (i__ = 1; i__ <= 4; ++i__) {
 /* labelL13: */
-	l5_34.gg[i__ * 5 - 4] = -1.;
+    l5_34.gg[i__ * 5 - 4] = -1.;
     }
     for (i__ = 5; i__ <= 7; ++i__) {
 /* labelL14: */
-	l5_34.gg[i__ * 5 - 4] = 0.;
+    l5_34.gg[i__ * 5 - 4] = 0.;
     }
     l5_34.gg[2] = -1.;
     l5_34.gg[7] = 0.;
@@ -26074,9 +26074,9 @@ labelL1:
     return 0;
 labelL2:
     l6_1.fx = l2_6.x[0] * -5. - l2_6.x[1] * 5. - l2_6.x[2] * 4. - l2_6.x[0] * 
-	    l2_6.x[2] - l2_6.x[3] * 6. - l2_6.x[4] * 5. / (l2_6.x[4] + 1.) - 
-	    l2_6.x[5] * 8. / (l2_6.x[5] + 1.) - (1. - std::exp(-l2_6.x[6]) * 2. + 
-	    std::exp(l2_6.x[6] * -2.)) * 10.;
+        l2_6.x[2] - l2_6.x[3] * 6. - l2_6.x[4] * 5. / (l2_6.x[4] + 1.) - 
+        l2_6.x[5] * 8. / (l2_6.x[5] + 1.) - (1. - std::exp(-l2_6.x[6]) * 2. + 
+        std::exp(l2_6.x[6] * -2.)) * 10.;
     return 0;
 labelL3:
     l4_6.gf[0] = -5. - l2_6.x[2];
@@ -26091,46 +26091,46 @@ labelL3:
     return 0;
 labelL4:
     if (l9_5.index1[0]) {
-	l3_4.g[0] = 10. - l2_6.x[0] - l2_6.x[1] - l2_6.x[2] - l2_6.x[3] - 
-		l2_6.x[4] - l2_6.x[5] - l2_6.x[6];
+    l3_4.g[0] = 10. - l2_6.x[0] - l2_6.x[1] - l2_6.x[2] - l2_6.x[3] - 
+        l2_6.x[4] - l2_6.x[5] - l2_6.x[6];
     }
     if (l9_5.index1[1]) {
-	l3_4.g[1] = 5. - l2_6.x[0] - l2_6.x[1] - l2_6.x[2] - l2_6.x[3];
+    l3_4.g[1] = 5. - l2_6.x[0] - l2_6.x[1] - l2_6.x[2] - l2_6.x[3];
     }
     if (l9_5.index1[2]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[5];
+    d__1 = l2_6.x[5];
 /* Computing 2nd power */
-	d__2 = l2_6.x[6];
-	l3_4.g[2] = 5. - l2_6.x[0] - l2_6.x[2] - l2_6.x[4] - d__1 * d__1 - 
-		d__2 * d__2;
+    d__2 = l2_6.x[6];
+    l3_4.g[2] = 5. - l2_6.x[0] - l2_6.x[2] - l2_6.x[4] - d__1 * d__1 - 
+        d__2 * d__2;
     }
     if (l9_5.index1[3]) {
-	l3_4.g[3] = l2_6.x[3] * 2. + l2_6.x[4] + l2_6.x[5] * .8 + l2_6.x[6] - 
-		5.;
+    l3_4.g[3] = l2_6.x[3] * 2. + l2_6.x[4] + l2_6.x[5] * .8 + l2_6.x[6] - 
+        5.;
     }
     if (l9_5.index1[4]) {
 /* Computing 2nd power */
-	d__1 = l2_6.x[1];
+    d__1 = l2_6.x[1];
 /* Computing 2nd power */
-	d__2 = l2_6.x[2];
+    d__2 = l2_6.x[2];
 /* Computing 2nd power */
-	d__3 = l2_6.x[4];
+    d__3 = l2_6.x[4];
 /* Computing 2nd power */
-	d__4 = l2_6.x[5];
-	l3_4.g[4] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 - 
-		5.;
+    d__4 = l2_6.x[5];
+    l3_4.g[4] = d__1 * d__1 + d__2 * d__2 + d__3 * d__3 + d__4 * d__4 - 
+        5.;
     }
     return 0;
 labelL5:
     if (! l10_5.index2[2]) {
-	goto L51;
+    goto L51;
     }
     l5_34.gg[27] = l2_6.x[5] * -2.;
     l5_34.gg[32] = l2_6.x[6] * -2.;
 L51:
     if (! l10_5.index2[4]) {
-	goto L52;
+    goto L52;
     }
     l5_34.gg[9] = l2_6.x[1] * 2.;
     l5_34.gg[14] = l2_6.x[2] * 2.;
@@ -26151,11 +26151,11 @@ L52:
     static Real s2, s3, s4;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 8;
@@ -26164,12 +26164,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 8; ++i__) {
-	l2_7.x[i__ - 1] = (float)1. - (float)1. / (Real) i__;
-	l11_7.lxl[i__ - 1] = true;
-	l12_7.lxu[i__ - 1] = true;
-	l13_7.xl[i__ - 1] = 0.;
+    l2_7.x[i__ - 1] = (float)1. - (float)1. / (Real) i__;
+    l11_7.lxl[i__ - 1] = true;
+    l12_7.lxu[i__ - 1] = true;
+    l13_7.xl[i__ - 1] = 0.;
 /* labelL11: */
-	l14_7.xu[i__ - 1] = 1.;
+    l14_7.xu[i__ - 1] = 1.;
     }
     l2_7.x[6] = (float).7;
     l2_7.x[7] = (float).7;
@@ -26202,18 +26202,18 @@ labelL2:
     s4 = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
 /* Computing 2nd power */
-	d__1 = l2_7.x[i__ - 1];
-	s2 += d__1 * d__1;
+    d__1 = l2_7.x[i__ - 1];
+    s2 += d__1 * d__1;
 /* Computing 3rd power */
-	d__1 = l2_7.x[i__ - 1];
-	s3 += d__1 * (d__1 * d__1);
+    d__1 = l2_7.x[i__ - 1];
+    s3 += d__1 * (d__1 * d__1);
 /* labelL10: */
 /* Computing 4th power */
-	d__1 = l2_7.x[i__ - 1], d__1 *= d__1;
-	s4 += d__1 * d__1;
+    d__1 = l2_7.x[i__ - 1], d__1 *= d__1;
+    s4 += d__1 * d__1;
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
 /* Computing 2nd power */
     d__1 = s3;
@@ -26223,11 +26223,11 @@ labelL3:
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L31: */
 /* Computing 3rd power */
-	d__1 = l2_7.x[i__ - 1];
+    d__1 = l2_7.x[i__ - 1];
 /* Computing 2nd power */
-	d__2 = l2_7.x[i__ - 1];
-	l4_7.gf[i__ - 1] = l2_7.x[i__ - 1] * -2. * s4 - d__1 * (d__1 * d__1) *
-		 4. * s2 + d__2 * d__2 * 6. * s3;
+    d__2 = l2_7.x[i__ - 1];
+    l4_7.gf[i__ - 1] = l2_7.x[i__ - 1] * -2. * s4 - d__1 * (d__1 * d__1) *
+         4. * s2 + d__2 * d__2 * 6. * s3;
     }
 labelL4:
     return 0;
@@ -26239,16 +26239,16 @@ labelL4:
     /* Initialized data */
 
     static Real c__[16] = { 833.33252,100.,-83333.333,1250.,1.,-1250.,
-	    1.25e6,1.,-2500.,.0025,.0025,.0025,.0025,-.0025,.01,-.01 };
+        1.25e6,1.,-2500.,.0025,.0025,.0025,.0025,-.0025,.01,-.01 };
 
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 8;
@@ -26265,21 +26265,21 @@ labelL1:
     l2_7.x[6] = 225.;
     l2_7.x[7] = 425.;
     for (i__ = 1; i__ <= 8; ++i__) {
-	l12_7.lxu[i__ - 1] = true;
+    l12_7.lxu[i__ - 1] = true;
 /* labelL11: */
-	l11_7.lxl[i__ - 1] = true;
+    l11_7.lxl[i__ - 1] = true;
     }
     l13_7.xl[0] = 100.;
     l13_7.xl[1] = 1e3;
     l13_7.xl[2] = 1e3;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* labelL12: */
-	l14_7.xu[i__ - 1] = 1e4;
+    l14_7.xu[i__ - 1] = 1e4;
     }
     for (i__ = 4; i__ <= 8; ++i__) {
-	l13_7.xl[i__ - 1] = 10.;
+    l13_7.xl[i__ - 1] = 10.;
 /* labelL13: */
-	l14_7.xu[i__ - 1] = 1e3;
+    l14_7.xu[i__ - 1] = 1e3;
     }
     l20_2.lex = false;
     l20_2.nex = 1;
@@ -26299,28 +26299,28 @@ labelL3:
     return 0;
 labelL4:
     if (l9_6.index1[0]) {
-	l3_5.g[0] = (float)1. - c__[9] * l2_7.x[3] - c__[10] * l2_7.x[5];
+    l3_5.g[0] = (float)1. - c__[9] * l2_7.x[3] - c__[10] * l2_7.x[5];
     }
     if (l9_6.index1[1]) {
-	l3_5.g[1] = (float)1. - c__[11] * l2_7.x[4] - c__[12] * l2_7.x[6] - 
-		c__[13] * l2_7.x[3];
+    l3_5.g[1] = (float)1. - c__[11] * l2_7.x[4] - c__[12] * l2_7.x[6] - 
+        c__[13] * l2_7.x[3];
     }
     if (l9_6.index1[2]) {
-	l3_5.g[2] = (float)1. - c__[14] * l2_7.x[7] - c__[15] * l2_7.x[4];
+    l3_5.g[2] = (float)1. - c__[14] * l2_7.x[7] - c__[15] * l2_7.x[4];
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = (float)1. - c__[0] / l2_7.x[0] * l2_7.x[3] / l2_7.x[5] - 
-		c__[1] / l2_7.x[5] - c__[2] / l2_7.x[0] / l2_7.x[5];
+    l3_5.g[3] = (float)1. - c__[0] / l2_7.x[0] * l2_7.x[3] / l2_7.x[5] - 
+        c__[1] / l2_7.x[5] - c__[2] / l2_7.x[0] / l2_7.x[5];
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = (float)1. - c__[3] / l2_7.x[1] * l2_7.x[4] / l2_7.x[6] - 
-		c__[4] * l2_7.x[3] / l2_7.x[6] - c__[5] / l2_7.x[1] * l2_7.x[
-		3] / l2_7.x[6];
+    l3_5.g[4] = (float)1. - c__[3] / l2_7.x[1] * l2_7.x[4] / l2_7.x[6] - 
+        c__[4] * l2_7.x[3] / l2_7.x[6] - c__[5] / l2_7.x[1] * l2_7.x[
+        3] / l2_7.x[6];
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = (float)1. - c__[6] / l2_7.x[2] / l2_7.x[7] - c__[7] * 
-		l2_7.x[4] / l2_7.x[7] - c__[8] / l2_7.x[2] * l2_7.x[4] / 
-		l2_7.x[7];
+    l3_5.g[5] = (float)1. - c__[6] / l2_7.x[2] / l2_7.x[7] - c__[7] * 
+        l2_7.x[4] / l2_7.x[7] - c__[8] / l2_7.x[2] * l2_7.x[4] / 
+        l2_7.x[7];
     }
 labelL5:
     return 0;
@@ -26342,8 +26342,8 @@ labelL5:
     static Real basis, sum, sum1, sum2[31];
 
     switch(n__) {
-	case 1: goto L_tp371;
-	}
+    case 1: goto L_tp371;
+    }
 
     l1_1.n = 6;
     scale = (float)1.;
@@ -26371,11 +26371,11 @@ L_tp371:
     l20_9.xex[8] = 1.052627;
 labelL10:
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL4;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL4;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.nili = 0;
@@ -26384,10 +26384,10 @@ labelL1:
     l1_1.nenl = 0;
     i__1 = l1_1.n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	l2_8.x[i__ - 1] = 0.;
-	l11_8.lxl[i__ - 1] = false;
+    l2_8.x[i__ - 1] = 0.;
+    l11_8.lxl[i__ - 1] = false;
 /* labelL11: */
-	l12_8.lxu[i__ - 1] = false;
+    l12_8.lxu[i__ - 1] = false;
     }
     l15_1.lsum = 31;
     l20_9.lex = false;
@@ -26399,34 +26399,34 @@ labelL2:
     d__1 = l2_8.x[0];
     l16_18.f[1] = l2_8.x[1] - d__1 * d__1 - 1.;
     for (i__ = 2; i__ <= 30; ++i__) {
-	basis = (Real) (i__ - 1) / 29.;
-	sum1 = 0.;
-	i__1 = l1_1.n;
-	for (j = 2; j <= i__1; ++j) {
+    basis = (Real) (i__ - 1) / 29.;
+    sum1 = 0.;
+    i__1 = l1_1.n;
+    for (j = 2; j <= i__1; ++j) {
 /* L21: */
-	    i__2 = j - 2;
-	    sum1 += l2_8.x[j - 1] * (Real) (j - 1) * pow_di(&basis, &
-		    i__2);
-	}
-	sum = 0.;
-	i__2 = l1_1.n;
-	for (j = 1; j <= i__2; ++j) {
+        i__2 = j - 2;
+        sum1 += l2_8.x[j - 1] * (Real) (j - 1) * pow_di(&basis, &
+            i__2);
+    }
+    sum = 0.;
+    i__2 = l1_1.n;
+    for (j = 1; j <= i__2; ++j) {
 /* L23: */
-	    i__1 = j - 1;
-	    sum += l2_8.x[j - 1] * pow_di(&basis, &i__1);
-	}
-	sum2[i__] = sum;
+        i__1 = j - 1;
+        sum += l2_8.x[j - 1] * pow_di(&basis, &i__1);
+    }
+    sum2[i__] = sum;
 /* labelL20: */
 /* Computing 2nd power */
-	d__1 = sum2[i__];
-	l16_18.f[i__] = sum1 - d__1 * d__1 - 1.;
+    d__1 = sum2[i__];
+    l16_18.f[i__] = sum1 - d__1 * d__1 - 1.;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 31; ++i__) {
 /* L22: */
 /* Computing 2nd power */
-	d__1 = l16_18.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_18.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     l6_1.fx *= scale;
 labelL4:
@@ -26454,11 +26454,11 @@ labelL4:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 9;
@@ -26476,34 +26476,34 @@ labelL1:
     l2_8.x[7] = 460.;
     l2_8.x[8] = 426.;
     for (i__ = 1; i__ <= 12; ++i__) {
-	for (j = 4; j <= 9; ++j) {
+    for (j = 4; j <= 9; ++j) {
 /* labelL12: */
-	    l5_36.gg[i__ + j * 12 - 13] = 0.;
-	}
+        l5_36.gg[i__ + j * 12 - 13] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	l5_36.gg[i__ - 1] = 1.;
+    l5_36.gg[i__ - 1] = 1.;
 /* L18: */
-	l5_36.gg[i__ + (i__ + 3) * 12 - 13] = 1.;
+    l5_36.gg[i__ + (i__ + 3) * 12 - 13] = 1.;
     }
     for (i__ = 7; i__ <= 12; ++i__) {
-	l5_36.gg[i__ - 1] = -1.;
+    l5_36.gg[i__ - 1] = -1.;
 /* labelL13: */
-	l5_36.gg[i__ + (i__ - 3) * 12 - 13] = 1.;
+    l5_36.gg[i__ + (i__ - 3) * 12 - 13] = 1.;
     }
     l4_8.gf[0] = 0.;
     l4_8.gf[1] = 0.;
     l4_8.gf[2] = 0.;
     for (i__ = 4; i__ <= 9; ++i__) {
-	l11_8.lxl[i__ - 1] = true;
-	l12_8.lxu[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = true;
+    l12_8.lxu[i__ - 1] = false;
 /* labelL14: */
-	l13_8.xl[i__ - 1] = 0.;
+    l13_8.xl[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 2; ++i__) {
-	l11_8.lxl[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = false;
 /* L15: */
-	l12_8.lxu[i__ - 1] = false;
+    l12_8.lxu[i__ - 1] = false;
     }
     l13_8.xl[2] = (float)-1.;
     l14_8.xu[2] = (float)0.;
@@ -26526,103 +26526,103 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 4; i__ <= 9; ++i__) {
-	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
+    l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
 /* L21: */
 /* Computing 2nd power */
-	d__1 = l2_8.x[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l2_8.x[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 4; i__ <= 9; ++i__) {
 /* L35: */
-	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
+    l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
     }
     for (i__ = 4; i__ <= 9; ++i__) {
 /* L31: */
-	l4_8.gf[i__ - 1] = l2_8.x[i__ - 1] * 2.;
+    l4_8.gf[i__ - 1] = l2_8.x[i__ - 1] * 2.;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 9; ++j) {
+    for (j = 1; j <= 9; ++j) {
 /* L33: */
-	    l17_22.df[i__ + j * 6 - 7] = 0.;
-	}
+        l17_22.df[i__ + j * 6 - 7] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 6; ++i__) {
 /* L34: */
-	l17_22.df[i__ + (i__ + 3) * 6 - 7] = 1.;
+    l17_22.df[i__ + (i__ + 3) * 6 - 7] = 1.;
     }
     return 0;
 labelL4:
     if (l9_17.index1[0]) {
-	l3_16.g[0] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3] 
-		- 127.;
+    l3_16.g[0] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3] 
+        - 127.;
     }
     if (l9_17.index1[1]) {
-	l3_16.g[1] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -3.) + l2_8.x[4] 
-		- 151.;
+    l3_16.g[1] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -3.) + l2_8.x[4] 
+        - 151.;
     }
     if (l9_17.index1[2]) {
-	l3_16.g[2] = l2_8.x[0] + l2_8.x[1] * std::exp(-l2_8.x[2]) + l2_8.x[5] - 
-		379.;
+    l3_16.g[2] = l2_8.x[0] + l2_8.x[1] * std::exp(-l2_8.x[2]) + l2_8.x[5] - 
+        379.;
     }
     if (l9_17.index1[3]) {
-	l3_16.g[3] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2]) + l2_8.x[6] - 
-		421.;
+    l3_16.g[3] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2]) + l2_8.x[6] - 
+        421.;
     }
     if (l9_17.index1[4]) {
-	l3_16.g[4] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 3.) + l2_8.x[7] 
-		- 460.;
+    l3_16.g[4] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 3.) + l2_8.x[7] 
+        - 460.;
     }
     if (l9_17.index1[5]) {
-	l3_16.g[5] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 5.) + l2_8.x[8] 
-		- 426.;
+    l3_16.g[5] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 5.) + l2_8.x[8] 
+        - 426.;
     }
     if (l9_17.index1[6]) {
-	l3_16.g[6] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3]
-		 + 127.;
+    l3_16.g[6] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3]
+         + 127.;
     }
     if (l9_17.index1[7]) {
-	l3_16.g[7] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * -3.) + l2_8.x[4]
-		 + 151.;
+    l3_16.g[7] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * -3.) + l2_8.x[4]
+         + 151.;
     }
     if (l9_17.index1[8]) {
-	l3_16.g[8] = -l2_8.x[0] - l2_8.x[1] * std::exp(-l2_8.x[2]) + l2_8.x[5] + 
-		379.;
+    l3_16.g[8] = -l2_8.x[0] - l2_8.x[1] * std::exp(-l2_8.x[2]) + l2_8.x[5] + 
+        379.;
     }
     if (l9_17.index1[9]) {
-	l3_16.g[9] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2]) + l2_8.x[6] + 
-		421.;
+    l3_16.g[9] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2]) + l2_8.x[6] + 
+        421.;
     }
     if (l9_17.index1[10]) {
-	l3_16.g[10] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * 3.) + l2_8.x[7]
-		 + 460.;
+    l3_16.g[10] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * 3.) + l2_8.x[7]
+         + 460.;
     }
     if (l9_17.index1[11]) {
-	l3_16.g[11] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * 5.) + l2_8.x[8]
-		 + 426.;
+    l3_16.g[11] = -l2_8.x[0] - l2_8.x[1] * std::exp(l2_8.x[2] * 5.) + l2_8.x[8]
+         + 426.;
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 6; ++i__) {
-	if (! l10_16.index2[i__ + 5]) {
-	    goto L51;
-	}
-	l5_36.gg[i__ + 17] = -exp((Real) ((i__ << 1) - 7) * l2_8.x[2]);
-	l5_36.gg[i__ + 29] = -l2_8.x[1] * (Real) ((i__ << 1) - 7) * 
-		l5_36.gg[i__ + 17];
+    if (! l10_16.index2[i__ + 5]) {
+        goto L51;
+    }
+    l5_36.gg[i__ + 17] = -exp((Real) ((i__ << 1) - 7) * l2_8.x[2]);
+    l5_36.gg[i__ + 29] = -l2_8.x[1] * (Real) ((i__ << 1) - 7) * 
+        l5_36.gg[i__ + 17];
 L51:
-	;
+    ;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	if (! l10_16.index2[i__ - 1]) {
-	    goto L52;
-	}
-	l5_36.gg[i__ + 11] = std::exp((Real) ((i__ << 1) - 7) * l2_8.x[2]);
-	l5_36.gg[i__ + 23] = l2_8.x[1] * (Real) ((i__ << 1) - 7) * 
-		l5_36.gg[i__ + 11];
+    if (! l10_16.index2[i__ - 1]) {
+        goto L52;
+    }
+    l5_36.gg[i__ + 11] = std::exp((Real) ((i__ << 1) - 7) * l2_8.x[2]);
+    l5_36.gg[i__ + 23] = l2_8.x[1] * (Real) ((i__ << 1) - 7) * 
+        l5_36.gg[i__ + 11];
 L52:
-	;
+    ;
     }
     return 0;
 } /* tp372_ */
@@ -26637,11 +26637,11 @@ L52:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.nili = 0;
@@ -26650,9 +26650,9 @@ labelL1:
     l1_1.nenl = 6;
     l1_1.n = 9;
     for (i__ = 1; i__ <= 9; ++i__) {
-	l11_8.lxl[i__ - 1] = false;
+    l11_8.lxl[i__ - 1] = false;
 /* labelL11: */
-	l12_8.lxu[i__ - 1] = false;
+    l12_8.lxu[i__ - 1] = false;
     }
     l11_8.lxl[2] = true;
     l12_8.lxu[2] = true;
@@ -26671,15 +26671,15 @@ labelL1:
     l4_8.gf[1] = 0.;
     l4_8.gf[2] = 0.;
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 4; j <= 9; ++j) {
+    for (j = 4; j <= 9; ++j) {
 /* L17: */
-	    l5_19.gg[i__ + j * 6 - 7] = 0.;
-	}
+        l5_19.gg[i__ + j * 6 - 7] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	l5_19.gg[i__ - 1] = 1.;
+    l5_19.gg[i__ - 1] = 1.;
 /* L18: */
-	l5_19.gg[i__ + (i__ + 3) * 6 - 7] = 1.;
+    l5_19.gg[i__ + (i__ + 3) * 6 - 7] = 1.;
     }
     l20_9.lex = false;
     l20_9.nex = 1;
@@ -26698,68 +26698,68 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 4; i__ <= 9; ++i__) {
-	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
+    l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
 /* L21: */
 /* Computing 2nd power */
-	d__1 = l2_8.x[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l2_8.x[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 4; i__ <= 9; ++i__) {
 /* L35: */
-	l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
+    l16_8.f[i__ - 4] = l2_8.x[i__ - 1];
     }
     for (i__ = 4; i__ <= 9; ++i__) {
 /* L31: */
-	l4_8.gf[i__ - 1] = l2_8.x[i__ - 1] * 2.;
+    l4_8.gf[i__ - 1] = l2_8.x[i__ - 1] * 2.;
     }
     for (i__ = 1; i__ <= 6; ++i__) {
-	for (j = 1; j <= 9; ++j) {
+    for (j = 1; j <= 9; ++j) {
 /* L33: */
-	    l17_22.df[i__ + j * 6 - 7] = 0.;
-	}
+        l17_22.df[i__ + j * 6 - 7] = 0.;
+    }
     }
     for (i__ = 1; i__ <= 6; ++i__) {
 /* L34: */
-	l17_22.df[i__ + (i__ + 3) * 6 - 7] = 1.;
+    l17_22.df[i__ + (i__ + 3) * 6 - 7] = 1.;
     }
     return 0;
 labelL4:
     if (l9_6.index1[0]) {
-	l3_5.g[0] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3] 
-		- 127.;
+    l3_5.g[0] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -5.) + l2_8.x[3] 
+        - 127.;
     }
     if (l9_6.index1[1]) {
-	l3_5.g[1] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -3.) + l2_8.x[4] 
-		- 151.;
+    l3_5.g[1] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * -3.) + l2_8.x[4] 
+        - 151.;
     }
     if (l9_6.index1[2]) {
-	l3_5.g[2] = l2_8.x[0] + l2_8.x[1] * std::exp(-l2_8.x[2]) + l2_8.x[5] - 
-		379.;
+    l3_5.g[2] = l2_8.x[0] + l2_8.x[1] * std::exp(-l2_8.x[2]) + l2_8.x[5] - 
+        379.;
     }
     if (l9_6.index1[3]) {
-	l3_5.g[3] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2]) + l2_8.x[6] - 421.;
+    l3_5.g[3] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2]) + l2_8.x[6] - 421.;
     }
     if (l9_6.index1[4]) {
-	l3_5.g[4] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 3.) + l2_8.x[7] - 
-		460.;
+    l3_5.g[4] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 3.) + l2_8.x[7] - 
+        460.;
     }
     if (l9_6.index1[5]) {
-	l3_5.g[5] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 5.) + l2_8.x[8] - 
-		426.;
+    l3_5.g[5] = l2_8.x[0] + l2_8.x[1] * std::exp(l2_8.x[2] * 5.) + l2_8.x[8] - 
+        426.;
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 6; ++i__) {
-	if (! l10_6.index2[i__ - 1]) {
-	    goto L52;
-	}
-	l5_19.gg[i__ + 5] = std::exp((Real) ((i__ << 1) - 7) * l2_8.x[2]);
-	l5_19.gg[i__ + 11] = l2_8.x[1] * (Real) ((i__ << 1) - 7) * 
-		l5_19.gg[i__ + 5];
+    if (! l10_6.index2[i__ - 1]) {
+        goto L52;
+    }
+    l5_19.gg[i__ + 5] = std::exp((Real) ((i__ << 1) - 7) * l2_8.x[2]);
+    l5_19.gg[i__ + 11] = l2_8.x[1] * (Real) ((i__ << 1) - 7) * 
+        l5_19.gg[i__ + 5];
 L52:
-	;
+    ;
     }
     return 0;
 } /* tp373_ */
@@ -26776,11 +26776,11 @@ L52:
     static Real z__, pi;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -26789,10 +26789,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = .1;
-	l12_9.lxu[i__ - 1] = false;
+    l2_9.x[i__ - 1] = .1;
+    l12_9.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_9.lxl[i__ - 1] = false;
+    l11_9.lxl[i__ - 1] = false;
     }
     l20_14.lex = false;
     l20_14.nex = 2;
@@ -26819,7 +26819,7 @@ labelL1:
     l20_14.xex[19] = .233264;
     for (i__ = 1; i__ <= 9; ++i__) {
 /* L46: */
-	l4_9.gf[i__ - 1] = 0.;
+    l4_9.gf[i__ - 1] = 0.;
     }
     l4_9.gf[9] = 1.;
     return 0;
@@ -26830,76 +26830,76 @@ labelL3:
 labelL4:
     pi = std::atan(1.) * 4.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	z__ = pi / 4. * ((Real) (i__ - 1) * .1);
+    z__ = pi / 4. * ((Real) (i__ - 1) * .1);
 /* L8: */
-	if (l9_18.index1[i__ - 1]) {
+    if (l9_18.index1[i__ - 1]) {
 /* Computing 2nd power */
-	    d__1 = 1. - l2_9.x[9];
-	    l3_17.g[i__ - 1] = tp374g_(&z__, l2_9.x) - d__1 * d__1;
-	}
+        d__1 = 1. - l2_9.x[9];
+        l3_17.g[i__ - 1] = tp374g_(&z__, l2_9.x) - d__1 * d__1;
+    }
     }
     for (i__ = 11; i__ <= 20; ++i__) {
-	z__ = pi / 4. * ((Real) (i__ - 11) * .1);
+    z__ = pi / 4. * ((Real) (i__ - 11) * .1);
 /* labelL9: */
-	if (l9_18.index1[i__ - 1]) {
+    if (l9_18.index1[i__ - 1]) {
 /* Computing 2nd power */
-	    d__1 = l2_9.x[9] + 1.;
-	    l3_17.g[i__ - 1] = d__1 * d__1 - tp374g_(&z__, l2_9.x);
-	}
+        d__1 = l2_9.x[9] + 1.;
+        l3_17.g[i__ - 1] = d__1 * d__1 - tp374g_(&z__, l2_9.x);
+    }
     }
     for (i__ = 21; i__ <= 35; ++i__) {
-	z__ = pi / 4. * ((Real) (i__ - 21) * .2 + 1.2);
+    z__ = pi / 4. * ((Real) (i__ - 21) * .2 + 1.2);
 /* labelL10: */
-	if (l9_18.index1[i__ - 1]) {
+    if (l9_18.index1[i__ - 1]) {
 /* Computing 2nd power */
-	    d__1 = l2_9.x[9];
-	    l3_17.g[i__ - 1] = d__1 * d__1 - tp374g_(&z__, l2_9.x);
-	}
+        d__1 = l2_9.x[9];
+        l3_17.g[i__ - 1] = d__1 * d__1 - tp374g_(&z__, l2_9.x);
+    }
     }
     return 0;
 labelL5:
     pi = std::atan(1.) * 4.;
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_17.index2[i__ - 1]) {
-	    goto L50;
-	}
-	z__ = pi / 4. * ((Real) (i__ - 1) * .1);
-	for (k = 1; k <= 9; ++k) {
-	    l5_37.gg[i__ + k * 35 - 36] = (tp374a_(&z__, l2_9.x) *std::cos(k * 
-		    z__) + tp374b_(&z__, l2_9.x) * std::sin(k * z__)) * 2.;
+    if (! l10_17.index2[i__ - 1]) {
+        goto L50;
+    }
+    z__ = pi / 4. * ((Real) (i__ - 1) * .1);
+    for (k = 1; k <= 9; ++k) {
+        l5_37.gg[i__ + k * 35 - 36] = (tp374a_(&z__, l2_9.x) *std::cos(k * 
+            z__) + tp374b_(&z__, l2_9.x) * std::sin(k * z__)) * 2.;
 /* L51: */
-	    l5_37.gg[i__ + 314] = (1. - l2_9.x[9]) * 2.;
-	}
+        l5_37.gg[i__ + 314] = (1. - l2_9.x[9]) * 2.;
+    }
 L50:
-	;
+    ;
     }
     for (i__ = 11; i__ <= 20; ++i__) {
-	if (! l10_17.index2[i__ - 1]) {
-	    goto L52;
-	}
-	z__ = pi / 4. * ((Real) (i__ - 11) * .1);
-	for (k = 1; k <= 9; ++k) {
-	    l5_37.gg[i__ + k * 35 - 36] = (tp374a_(&z__, l2_9.x) *std::cos(k * 
-		    z__) + tp374b_(&z__, l2_9.x) * std::sin(k * z__)) * -2.;
+    if (! l10_17.index2[i__ - 1]) {
+        goto L52;
+    }
+    z__ = pi / 4. * ((Real) (i__ - 11) * .1);
+    for (k = 1; k <= 9; ++k) {
+        l5_37.gg[i__ + k * 35 - 36] = (tp374a_(&z__, l2_9.x) *std::cos(k * 
+            z__) + tp374b_(&z__, l2_9.x) * std::sin(k * z__)) * -2.;
 /* L53: */
-	    l5_37.gg[i__ + 314] = (l2_9.x[9] + 1.) * 2.;
-	}
+        l5_37.gg[i__ + 314] = (l2_9.x[9] + 1.) * 2.;
+    }
 L52:
-	;
+    ;
     }
     for (i__ = 21; i__ <= 35; ++i__) {
-	if (! l10_17.index2[i__ - 1]) {
-	    goto L54;
-	}
-	z__ = pi / 4. * ((Real) (i__ - 21) * .2 + 1.2);
-	for (k = 1; k <= 9; ++k) {
-	    l5_37.gg[i__ + k * 35 - 36] = (tp374a_(&z__, l2_9.x) *std::cos(k * 
-		    z__) + tp374b_(&z__, l2_9.x) * std::sin(k * z__)) * -2.;
+    if (! l10_17.index2[i__ - 1]) {
+        goto L54;
+    }
+    z__ = pi / 4. * ((Real) (i__ - 21) * .2 + 1.2);
+    for (k = 1; k <= 9; ++k) {
+        l5_37.gg[i__ + k * 35 - 36] = (tp374a_(&z__, l2_9.x) *std::cos(k * 
+            z__) + tp374b_(&z__, l2_9.x) * std::sin(k * z__)) * -2.;
 /* L55: */
-	    l5_37.gg[i__ + 314] = l2_9.x[9] * 2.;
-	}
+        l5_37.gg[i__ + 314] = l2_9.x[9] * 2.;
+    }
 L54:
-	;
+    ;
     }
     return 0;
 } /* tp374_ */
@@ -26940,7 +26940,7 @@ Real tp374a_(Real *a, Real *x)
     ret_val = 0.;
     for (k = 1; k <= 9; ++k) {
 /* labelL10: */
-	ret_val += x[k] *std::cos(k * *a);
+    ret_val += x[k] *std::cos(k * *a);
     }
     return ret_val;
 } /* tp374a_ */
@@ -26960,7 +26960,7 @@ Real tp374b_(Real *a, Real *x)
     ret_val = 0.;
     for (k = 1; k <= 9; ++k) {
 /* labelL10: */
-	ret_val += x[k] * std::sin(k * *a);
+    ret_val += x[k] * std::sin(k * *a);
     }
     return ret_val;
 } /* tp374b_ */
@@ -26976,11 +26976,11 @@ Real tp374b_(Real *a, Real *x)
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -26989,94 +26989,94 @@ labelL1:
     l1_1.neli = 8;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = 1.;
-	l12_9.lxu[i__ - 1] = false;
+    l2_9.x[i__ - 1] = 1.;
+    l12_9.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_9.lxl[i__ - 1] = false;
+    l11_9.lxl[i__ - 1] = false;
     }
     l20_10.lex = false;
     l20_10.nex = 1;
     l20_10.fex = -15.16;
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L60: */
-	l20_10.xex[i__ - 1] = .1064;
+    l20_10.xex[i__ - 1] = .1064;
     }
     l20_10.xex[8] = 2.843;
     l20_10.xex[9] = -2.642;
     for (j = 1; j <= 8; ++j) {
-	for (i__ = 1; i__ <= 10; ++i__) {
+    for (i__ = 1; i__ <= 10; ++i__) {
 /* L7: */
-	    l5_21.gg[j + i__ * 9 - 10] = 1.;
-	}
+        l5_21.gg[j + i__ * 9 - 10] = 1.;
+    }
     }
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L8: */
-	l5_21.gg[i__ + i__ * 9 - 10] = .5;
+    l5_21.gg[i__ + i__ * 9 - 10] = .5;
     }
     l15_1.lsum = 10;
     for (i__ = 1; i__ <= 10; ++i__) {
-	for (j = 1; j <= 10; ++j) {
-	    l17_23.df[i__ + j * 10 - 11] = 0.;
+    for (j = 1; j <= 10; ++j) {
+        l17_23.df[i__ + j * 10 - 11] = 0.;
 /* L17: */
-	    l17_23.df[i__ + i__ * 10 - 11] = -1.;
-	}
+        l17_23.df[i__ + i__ * 10 - 11] = -1.;
+    }
     }
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L16: */
-	l16_4.f[i__ - 1] = -l2_9.x[i__ - 1];
+    l16_4.f[i__ - 1] = -l2_9.x[i__ - 1];
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL9: */
 /* Computing 2nd power */
-	d__1 = l2_9.x[i__ - 1];
-	l6_1.fx -= d__1 * d__1;
+    d__1 = l2_9.x[i__ - 1];
+    l6_1.fx -= d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL10: */
-	l4_9.gf[i__ - 1] = l2_9.x[i__ - 1] * -2.;
+    l4_9.gf[i__ - 1] = l2_9.x[i__ - 1] * -2.;
     }
 labelL4:
     for (j = 1; j <= 8; ++j) {
-	if (! l9_16.index1[j - 1]) {
-	    goto labelL11;
-	}
-	l3_15.g[j - 1] = 0.;
-	for (i__ = 1; i__ <= 10; ++i__) {
+    if (! l9_16.index1[j - 1]) {
+        goto labelL11;
+    }
+    l3_15.g[j - 1] = 0.;
+    for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL12: */
-	    l3_15.g[j - 1] += l2_9.x[i__ - 1] / tp375a_(&i__, &j);
-	}
-	l3_15.g[j - 1] += -1.;
+        l3_15.g[j - 1] += l2_9.x[i__ - 1] / tp375a_(&i__, &j);
+    }
+    l3_15.g[j - 1] += -1.;
 labelL11:
-	;
+    ;
     }
     if (! l9_16.index1[8]) {
-	goto L18;
+    goto L18;
     }
     l3_15.g[8] = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL13: */
-	l3_15.g[8] += pow_dd(&l2_9.x[i__ - 1], &c_b305) / ((Real) (i__ 
-		- 1) / 3. + 1.);
+    l3_15.g[8] += pow_dd(&l2_9.x[i__ - 1], &c_b305) / ((Real) (i__ 
+        - 1) / 3. + 1.);
     }
     l3_15.g[8] += -4.;
 L18:
     return 0;
 labelL5:
     if (! l10_18.index2[8]) {
-	goto L15;
+    goto L15;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL14: */
-	l5_21.gg[i__ * 9 - 1] = l2_9.x[i__ - 1] * 2. / ((Real) (i__ - 1)
-		 / 3. + 1.);
+    l5_21.gg[i__ * 9 - 1] = l2_9.x[i__ - 1] * 2. / ((Real) (i__ - 1)
+         / 3. + 1.);
     }
 L15:
     return 0;
@@ -27089,7 +27089,7 @@ Real tp375a_(int *i__, int *j)
 
     ret_val = 1.;
     if (*i__ == *j) {
-	ret_val = 2.;
+    ret_val = 2.;
     }
     return ret_val;
 } /* tp375a_ */
@@ -27104,11 +27104,11 @@ Real tp375a_(int *i__, int *j)
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -27127,9 +27127,9 @@ labelL1:
     l2_9.x[8] = .15;
     l2_9.x[9] = .105;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l12_9.lxu[i__ - 1] = true;
+    l12_9.lxu[i__ - 1] = true;
 /* labelL6: */
-	l11_9.lxl[i__ - 1] = true;
+    l11_9.lxl[i__ - 1] = true;
     }
     l13_9.xl[0] = 0.;
     l13_9.xl[1] = 0.;
@@ -27137,7 +27137,7 @@ labelL1:
     l13_9.xl[3] = 10.;
     for (i__ = 5; i__ <= 10; ++i__) {
 /* L7: */
-	l13_9.xl[i__ - 1] = 5e-5;
+    l13_9.xl[i__ - 1] = 5e-5;
     }
     l14_9.xu[0] = 10.;
     l14_9.xu[1] = .1;
@@ -27153,14 +27153,14 @@ labelL1:
     l5_32.gg[15] = 0.;
     for (i__ = 5; i__ <= 10; ++i__) {
 /* labelL9: */
-	l5_32.gg[i__ * 15 - 15] = 0.;
+    l5_32.gg[i__ * 15 - 15] = 0.;
     }
     l5_32.gg[1] = 1.;
     l5_32.gg[16] = 0.;
     l5_32.gg[31] = 0.;
     for (i__ = 6; i__ <= 8; ++i__) {
 /* labelL10: */
-	l5_32.gg[i__ * 15 - 14] = 0.;
+    l5_32.gg[i__ * 15 - 14] = 0.;
     }
     l5_32.gg[136] = 0.;
     l5_32.gg[2] = 1.;
@@ -27169,7 +27169,7 @@ labelL1:
     l5_32.gg[62] = 0.;
     for (i__ = 7; i__ <= 9; ++i__) {
 /* labelL11: */
-	l5_32.gg[i__ * 15 - 13] = 0.;
+    l5_32.gg[i__ * 15 - 13] = 0.;
     }
     l5_32.gg[3] = 1.;
     l5_32.gg[18] = 0.;
@@ -27178,14 +27178,14 @@ labelL1:
     l5_32.gg[78] = 0.;
     for (i__ = 8; i__ <= 10; ++i__) {
 /* labelL12: */
-	l5_32.gg[i__ * 15 - 12] = 0.;
+    l5_32.gg[i__ * 15 - 12] = 0.;
     }
     l5_32.gg[4] = 1.;
     l5_32.gg[19] = 0.;
     l5_32.gg[34] = 0.;
     for (i__ = 5; i__ <= 7; ++i__) {
 /* labelL13: */
-	l5_32.gg[i__ * 15 - 11] = 0.;
+    l5_32.gg[i__ * 15 - 11] = 0.;
     }
     l5_32.gg[124] = 0.;
     l5_32.gg[139] = 0.;
@@ -27194,7 +27194,7 @@ labelL1:
     l5_32.gg[35] = 0.;
     for (i__ = 6; i__ <= 8; ++i__) {
 /* labelL14: */
-	l5_32.gg[i__ * 15 - 10] = 0.;
+    l5_32.gg[i__ * 15 - 10] = 0.;
     }
     l5_32.gg[140] = 0.;
     l5_32.gg[6] = 0.;
@@ -27203,7 +27203,7 @@ labelL1:
     l5_32.gg[66] = 0.;
     for (i__ = 7; i__ <= 9; ++i__) {
 /* L15: */
-	l5_32.gg[i__ * 15 - 9] = 0.;
+    l5_32.gg[i__ * 15 - 9] = 0.;
     }
     l5_32.gg[7] = 0.;
     l5_32.gg[22] = 1e4;
@@ -27212,14 +27212,14 @@ labelL1:
     l5_32.gg[82] = 0.;
     for (i__ = 8; i__ <= 10; ++i__) {
 /* L16: */
-	l5_32.gg[i__ * 15 - 8] = 0.;
+    l5_32.gg[i__ * 15 - 8] = 0.;
     }
     l5_32.gg[8] = 0.;
     l5_32.gg[23] = 1e4;
     l5_32.gg[38] = 0.;
     for (i__ = 5; i__ <= 7; ++i__) {
 /* L17: */
-	l5_32.gg[i__ * 15 - 7] = 0.;
+    l5_32.gg[i__ * 15 - 7] = 0.;
     }
     l5_32.gg[128] = 0.;
     l5_32.gg[143] = 0.;
@@ -27227,25 +27227,25 @@ labelL1:
     l5_32.gg[24] = 1e4;
     for (i__ = 5; i__ <= 10; ++i__) {
 /* L18: */
-	l5_32.gg[i__ * 15 - 6] = 0.;
+    l5_32.gg[i__ * 15 - 6] = 0.;
     }
     l5_32.gg[10] = 0.;
     l5_32.gg[25] = 1e4;
     for (i__ = 5; i__ <= 10; ++i__) {
 /* L19: */
-	l5_32.gg[i__ * 15 - 5] = 0.;
+    l5_32.gg[i__ * 15 - 5] = 0.;
     }
     l5_32.gg[11] = 0.;
     l5_32.gg[26] = 1e4;
     for (i__ = 5; i__ <= 10; ++i__) {
 /* labelL20: */
-	l5_32.gg[i__ * 15 - 4] = 0.;
+    l5_32.gg[i__ * 15 - 4] = 0.;
     }
     l5_32.gg[12] = 0.;
     l5_32.gg[27] = 1e4;
     for (i__ = 5; i__ <= 10; ++i__) {
 /* L21: */
-	l5_32.gg[i__ * 15 - 3] = 0.;
+    l5_32.gg[i__ * 15 - 3] = 0.;
     }
     l5_32.gg[13] = 0.;
     l5_32.gg[28] = 0.;
@@ -27254,7 +27254,7 @@ labelL1:
     l5_32.gg[148] = 0.;
     for (i__ = 1; i__ <= 8; ++i__) {
 /* L8: */
-	l5_32.gg[i__ * 15 - 1] = 0.;
+    l5_32.gg[i__ * 15 - 1] = 0.;
     }
     l5_32.gg[134] = 1.;
     l5_32.gg[149] = 1.;
@@ -27273,196 +27273,196 @@ labelL1:
     l20_10.xex[9] = .097592593;
     for (i__ = 3; i__ <= 10; ++i__) {
 /* L45: */
-	l4_9.gf[i__ - 1] = 0.;
+    l4_9.gf[i__ - 1] = 0.;
     }
     return 0;
 labelL2:
     l6_1.fx = (l2_9.x[0] * .15 + l2_9.x[1] * 14. - .06) * 2e4 / (l2_9.x[0] + 
-	    .002 + l2_9.x[1] * 60.);
+        .002 + l2_9.x[1] * 60.);
     l6_1.fx = -l6_1.fx;
     return 0;
 labelL3:
     d__1 = l2_9.x[0] + .002 + l2_9.x[1] * 60.;
     l4_9.gf[0] = ((l2_9.x[0] + .002 + l2_9.x[1] * 60.) * .15 - (l2_9.x[0] * 
-	    .15 + l2_9.x[1] * 14. - .06)) * 2e4 / pow_dd(&d__1, &c_b305);
+        .15 + l2_9.x[1] * 14. - .06)) * 2e4 / pow_dd(&d__1, &c_b305);
     d__1 = l2_9.x[0] + .002 + l2_9.x[1] * 60.;
     l4_9.gf[1] = ((l2_9.x[0] + .002 + l2_9.x[1] * 60.) * 14. - (l2_9.x[0] * 
-	    .15 + l2_9.x[1] * 14. - .06) * 60.) * 2e4 / pow_dd(&d__1, &c_b305)
-	    ;
+        .15 + l2_9.x[1] * 14. - .06) * 60.) * 2e4 / pow_dd(&d__1, &c_b305)
+        ;
     l4_9.gf[0] = -l4_9.gf[0];
     l4_9.gf[1] = -l4_9.gf[1];
     return 0;
 labelL4:
     if (l9_14.index1[0]) {
-	l3_13.g[0] = l2_9.x[0] - .75 / l2_9.x[2] / l2_9.x[3];
+    l3_13.g[0] = l2_9.x[0] - .75 / l2_9.x[2] / l2_9.x[3];
     }
     if (l9_14.index1[1]) {
-	l3_13.g[1] = l2_9.x[0] - l2_9.x[8] / l2_9.x[4] / l2_9.x[3];
+    l3_13.g[1] = l2_9.x[0] - l2_9.x[8] / l2_9.x[4] / l2_9.x[3];
     }
     if (l9_14.index1[2]) {
-	l3_13.g[2] = l2_9.x[0] - l2_9.x[9] / l2_9.x[5] / l2_9.x[3] - 10. / 
-		l2_9.x[3];
+    l3_13.g[2] = l2_9.x[0] - l2_9.x[9] / l2_9.x[5] / l2_9.x[3] - 10. / 
+        l2_9.x[3];
     }
     if (l9_14.index1[3]) {
-	l3_13.g[3] = l2_9.x[0] - .19 / l2_9.x[6] / l2_9.x[3] - 10. / l2_9.x[3]
-		;
+    l3_13.g[3] = l2_9.x[0] - .19 / l2_9.x[6] / l2_9.x[3] - 10. / l2_9.x[3]
+        ;
     }
     if (l9_14.index1[4]) {
-	l3_13.g[4] = l2_9.x[0] - .125 / l2_9.x[7] / l2_9.x[3];
+    l3_13.g[4] = l2_9.x[0] - .125 / l2_9.x[7] / l2_9.x[3];
     }
     if (l9_14.index1[5]) {
-	l3_13.g[5] = l2_9.x[1] * 1e4 - l2_9.x[8] * .00131 * pow_dd(&l2_9.x[4],
-		 &c_b2746) * pow_dd(&l2_9.x[3], &c_b940);
+    l3_13.g[5] = l2_9.x[1] * 1e4 - l2_9.x[8] * .00131 * pow_dd(&l2_9.x[4],
+         &c_b2746) * pow_dd(&l2_9.x[3], &c_b940);
     }
     if (l9_14.index1[6]) {
-	l3_13.g[6] = l2_9.x[1] * 1e4 - l2_9.x[9] * .001038 * pow_dd(&l2_9.x[5]
-		, &c_b2748) * pow_dd(&l2_9.x[3], &c_b1523);
+    l3_13.g[6] = l2_9.x[1] * 1e4 - l2_9.x[9] * .001038 * pow_dd(&l2_9.x[5]
+        , &c_b2748) * pow_dd(&l2_9.x[3], &c_b1523);
     }
     if (l9_14.index1[7]) {
-	l3_13.g[7] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[6], &c_b2746) * 2.23e-4 
-		* pow_dd(&l2_9.x[3], &c_b940);
+    l3_13.g[7] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[6], &c_b2746) * 2.23e-4 
+        * pow_dd(&l2_9.x[3], &c_b940);
     }
     if (l9_14.index1[8]) {
-	l3_13.g[8] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[7], &c_b2752) * 7.6e-5 *
-		 pow_dd(&l2_9.x[3], &c_b2753);
+    l3_13.g[8] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[7], &c_b2752) * 7.6e-5 *
+         pow_dd(&l2_9.x[3], &c_b2753);
     }
     if (l9_14.index1[9]) {
 /* Computing 2nd power */
-	d__1 = l2_9.x[3];
-	l3_13.g[9] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2754) * 6.98e-4 
-		* (d__1 * d__1);
+    d__1 = l2_9.x[3];
+    l3_13.g[9] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2754) * 6.98e-4 
+        * (d__1 * d__1);
     }
     if (l9_14.index1[10]) {
-	l3_13.g[10] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2748) * 5e-5 * 
-		pow_dd(&l2_9.x[3], &c_b1523);
+    l3_13.g[10] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2748) * 5e-5 * 
+        pow_dd(&l2_9.x[3], &c_b1523);
     }
     if (l9_14.index1[11]) {
-	l3_13.g[11] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2757) * 
-		6.54e-6 * pow_dd(&l2_9.x[3], &c_b2758);
+    l3_13.g[11] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2757) * 
+        6.54e-6 * pow_dd(&l2_9.x[3], &c_b2758);
     }
     if (l9_14.index1[12]) {
-	l3_13.g[12] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2746) * 
-		2.57e-4 * pow_dd(&l2_9.x[3], &c_b940);
+    l3_13.g[12] = l2_9.x[1] * 1e4 - pow_dd(&l2_9.x[2], &c_b2746) * 
+        2.57e-4 * pow_dd(&l2_9.x[3], &c_b940);
     }
     if (l9_14.index1[13]) {
-	l3_13.g[13] = 30. - l2_9.x[4] * 2.003 * l2_9.x[3] - l2_9.x[5] * 1.885 
-		* l2_9.x[3] - l2_9.x[7] * .184 * l2_9.x[3] - pow_dd(&l2_9.x[2]
-		, &c_b2761) * 2. * l2_9.x[3];
+    l3_13.g[13] = 30. - l2_9.x[4] * 2.003 * l2_9.x[3] - l2_9.x[5] * 1.885 
+        * l2_9.x[3] - l2_9.x[7] * .184 * l2_9.x[3] - pow_dd(&l2_9.x[2]
+        , &c_b2761) * 2. * l2_9.x[3];
     }
     if (l9_14.index1[14]) {
-	l3_13.g[14] = l2_9.x[8] + l2_9.x[9] - .255;
+    l3_13.g[14] = l2_9.x[8] + l2_9.x[9] - .255;
     }
     return 0;
 labelL5:
     if (! l10_14.index2[0]) {
-	goto L50;
+    goto L50;
     }
     l5_32.gg[30] = .75 / pow_dd(&l2_9.x[2], &c_b305) / l2_9.x[3];
     l5_32.gg[45] = .75 / l2_9.x[2] / pow_dd(&l2_9.x[3], &c_b305);
 L50:
     if (! l10_14.index2[1]) {
-	goto L51;
+    goto L51;
     }
     l5_32.gg[46] = l2_9.x[8] / l2_9.x[4] / pow_dd(&l2_9.x[3], &c_b305);
     l5_32.gg[61] = l2_9.x[8] / pow_dd(&l2_9.x[4], &c_b305) / l2_9.x[3];
     l5_32.gg[121] = -1. / l2_9.x[4] / l2_9.x[3];
 L51:
     if (! l10_14.index2[2]) {
-	goto L52;
+    goto L52;
     }
     l5_32.gg[47] = l2_9.x[9] / l2_9.x[5] / pow_dd(&l2_9.x[3], &c_b305) + 10. /
-	     pow_dd(&l2_9.x[3], &c_b305);
+         pow_dd(&l2_9.x[3], &c_b305);
     l5_32.gg[77] = l2_9.x[9] / pow_dd(&l2_9.x[5], &c_b305) / l2_9.x[3];
     l5_32.gg[137] = -1. / l2_9.x[5] / l2_9.x[3];
 L52:
     if (! l10_14.index2[3]) {
-	goto L53;
+    goto L53;
     }
     l5_32.gg[48] = .19 / l2_9.x[6] / pow_dd(&l2_9.x[3], &c_b305) + 10. / 
-	    pow_dd(&l2_9.x[3], &c_b305);
+        pow_dd(&l2_9.x[3], &c_b305);
     l5_32.gg[93] = .19 / pow_dd(&l2_9.x[6], &c_b305) / l2_9.x[3];
 L53:
     if (! l10_14.index2[4]) {
-	goto L54;
+    goto L54;
     }
     l5_32.gg[49] = .125 / l2_9.x[7] / pow_dd(&l2_9.x[3], &c_b305);
     l5_32.gg[109] = .125 / pow_dd(&l2_9.x[7], &c_b305) / l2_9.x[3];
 L54:
     if (! l10_14.index2[5]) {
-	goto L55;
+    goto L55;
     }
     l5_32.gg[50] = l2_9.x[8] * -.0019649999999999997 * pow_dd(&l2_9.x[4], &
-	    c_b2746) * pow_dd(&l2_9.x[3], &c_b590);
+        c_b2746) * pow_dd(&l2_9.x[3], &c_b590);
     l5_32.gg[65] = l2_9.x[8] * -8.7246000000000003e-4 / pow_dd(&l2_9.x[4], &
-	    c_b2782) * pow_dd(&l2_9.x[3], &c_b940);
+        c_b2782) * pow_dd(&l2_9.x[3], &c_b940);
     l5_32.gg[125] = pow_dd(&l2_9.x[4], &c_b2746) * -.00131 * pow_dd(&l2_9.x[3]
-	    , &c_b940);
+        , &c_b940);
 L55:
     if (! l10_14.index2[6]) {
-	goto L56;
+    goto L56;
     }
     l5_32.gg[51] = l2_9.x[9] * -.0031140000000000004 * pow_dd(&l2_9.x[5], &
-	    c_b2748) * pow_dd(&l2_9.x[3], &c_b305);
+        c_b2748) * pow_dd(&l2_9.x[3], &c_b305);
     l5_32.gg[81] = l2_9.x[9] * -.0016608000000000003 * pow_dd(&l2_9.x[5], &
-	    c_b2789) * pow_dd(&l2_9.x[3], &c_b1523);
+        c_b2789) * pow_dd(&l2_9.x[3], &c_b1523);
     l5_32.gg[141] = pow_dd(&l2_9.x[5], &c_b2748) * -.001038 * pow_dd(&l2_9.x[
-	    3], &c_b1523);
+        3], &c_b1523);
 L56:
     if (! l10_14.index2[7]) {
-	goto L57;
+    goto L57;
     }
     l5_32.gg[52] = pow_dd(&l2_9.x[6], &c_b2746) * -3.345e-4 * pow_dd(&l2_9.x[
-	    3], &c_b590);
+        3], &c_b590);
     l5_32.gg[97] = -1.4851800000000002e-4 / pow_dd(&l2_9.x[6], &c_b2782) * 
-	    pow_dd(&l2_9.x[3], &c_b940);
+        pow_dd(&l2_9.x[3], &c_b940);
 L57:
     if (! l10_14.index2[8]) {
-	goto L58;
+    goto L58;
     }
     l5_32.gg[53] = pow_dd(&l2_9.x[7], &c_b2752) * -4.3016000000000002e-4 * 
-	    pow_dd(&l2_9.x[3], &c_b2800);
+        pow_dd(&l2_9.x[3], &c_b2800);
     l5_32.gg[113] = pow_dd(&l2_9.x[7], &c_b2801) * -2.698e-4 * pow_dd(&l2_9.x[
-	    3], &c_b2753);
+        3], &c_b2753);
 L58:
     if (! l10_14.index2[9]) {
-	goto L59;
+    goto L59;
     }
     l5_32.gg[39] = pow_dd(&l2_9.x[2], &c_b1157) * -8.3760000000000008e-4 * 
-	    pow_dd(&l2_9.x[3], &c_b305);
+        pow_dd(&l2_9.x[3], &c_b305);
     l5_32.gg[54] = pow_dd(&l2_9.x[2], &c_b2754) * -.0013960000000000001 * 
-	    l2_9.x[3];
+        l2_9.x[3];
 L59:
     if (! l10_14.index2[10]) {
-	goto L60;
+    goto L60;
     }
     l5_32.gg[40] = pow_dd(&l2_9.x[2], &c_b2789) * -8.0000000000000007e-5 * 
-	    pow_dd(&l2_9.x[3], &c_b1523);
+        pow_dd(&l2_9.x[3], &c_b1523);
     l5_32.gg[55] = pow_dd(&l2_9.x[2], &c_b2748) * -1.5000000000000001e-4 * 
-	    pow_dd(&l2_9.x[3], &c_b305);
+        pow_dd(&l2_9.x[3], &c_b305);
 L60:
     if (! l10_14.index2[11]) {
-	goto L61;
+    goto L61;
     }
     l5_32.gg[41] = pow_dd(&l2_9.x[2], &c_b2813) * -1.5826799999999999e-5 * 
-	    pow_dd(&l2_9.x[3], &c_b2758);
+        pow_dd(&l2_9.x[3], &c_b2758);
     l5_32.gg[56] = pow_dd(&l2_9.x[2], &c_b2757) * -2.7271799999999999e-5 * 
-	    pow_dd(&l2_9.x[3], &c_b2816);
+        pow_dd(&l2_9.x[3], &c_b2816);
 L61:
     if (! l10_14.index2[12]) {
-	goto L62;
+    goto L62;
     }
     l5_32.gg[42] = -1.7116200000000001e-4 / pow_dd(&l2_9.x[2], &c_b2782) * 
-	    pow_dd(&l2_9.x[3], &c_b940);
+        pow_dd(&l2_9.x[3], &c_b940);
     l5_32.gg[57] = pow_dd(&l2_9.x[2], &c_b2746) * -3.8549999999999999e-4 * 
-	    pow_dd(&l2_9.x[3], &c_b590);
+        pow_dd(&l2_9.x[3], &c_b590);
 L62:
     if (! l10_14.index2[13]) {
-	goto L63;
+    goto L63;
     }
     l5_32.gg[43] = -1.6060000000000001 / pow_dd(&l2_9.x[2], &c_b2823) * 
-	    l2_9.x[3];
+        l2_9.x[3];
     l5_32.gg[58] = l2_9.x[4] * -2.003 - l2_9.x[5] * 1.885 - l2_9.x[7] * .184 
-	    - pow_dd(&l2_9.x[2], &c_b2761) * 2.;
+        - pow_dd(&l2_9.x[2], &c_b2761) * 2.;
     l5_32.gg[73] = l2_9.x[3] * -2.003;
     l5_32.gg[88] = l2_9.x[3] * -1.885;
     l5_32.gg[118] = l2_9.x[3] * -.184;
@@ -27476,18 +27476,18 @@ L63:
     /* Initialized data */
 
     static Real a[10] = { -6.089,-17.164,-34.054,-5.914,-24.721,-14.986,
-	    -24.1,-10.708,-26.662,-22.179 };
+        -24.1,-10.708,-26.662,-22.179 };
 
     /* Local variables */
     static int i__;
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -27496,12 +27496,12 @@ labelL1:
     l1_1.neli = 3;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = .1;
-	l12_9.lxu[i__ - 1] = true;
-	l11_9.lxl[i__ - 1] = true;
-	l13_9.xl[i__ - 1] = 1e-5;
+    l2_9.x[i__ - 1] = .1;
+    l12_9.lxu[i__ - 1] = true;
+    l11_9.lxl[i__ - 1] = true;
+    l13_9.xl[i__ - 1] = 1e-5;
 /* labelL6: */
-	l14_9.xu[i__ - 1] = 10.;
+    l14_9.xu[i__ - 1] = 10.;
     }
     l5_14.gg[0] = 1.;
     l5_14.gg[3] = -2.;
@@ -27511,12 +27511,12 @@ labelL1:
     l5_14.gg[15] = 1.;
     for (i__ = 7; i__ <= 9; ++i__) {
 /* L7: */
-	l5_14.gg[i__ * 3 - 3] = 0.;
+    l5_14.gg[i__ * 3 - 3] = 0.;
     }
     l5_14.gg[27] = 1.;
     for (i__ = 1; i__ <= 3; ++i__) {
 /* L8: */
-	l5_14.gg[i__ * 3 - 2] = 0.;
+    l5_14.gg[i__ * 3 - 2] = 0.;
     }
     l5_14.gg[10] = 1.;
     l5_14.gg[13] = -2.;
@@ -27524,14 +27524,14 @@ labelL1:
     l5_14.gg[19] = 1.;
     for (i__ = 8; i__ <= 10; ++i__) {
 /* labelL9: */
-	l5_14.gg[i__ * 3 - 2] = 0.;
+    l5_14.gg[i__ * 3 - 2] = 0.;
     }
     l5_14.gg[2] = 0.;
     l5_14.gg[5] = 0.;
     l5_14.gg[8] = 1.;
     for (i__ = 4; i__ <= 6; ++i__) {
 /* labelL10: */
-	l5_14.gg[i__ * 3 - 1] = 0.;
+    l5_14.gg[i__ * 3 - 1] = 0.;
     }
     l5_14.gg[20] = 1.;
     l5_14.gg[23] = 1.;
@@ -27556,36 +27556,36 @@ labelL2:
     sum = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL11: */
-	sum += l2_9.x[i__ - 1];
+    sum += l2_9.x[i__ - 1];
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* labelL12: */
-	l6_1.fx += l2_9.x[i__ - 1] * (a[i__ - 1] + std::log(l2_9.x[i__ - 1] / sum))
-		;
+    l6_1.fx += l2_9.x[i__ - 1] * (a[i__ - 1] + std::log(l2_9.x[i__ - 1] / sum))
+        ;
     }
 labelL3:
     return 0;
     sum = 0.;
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L45: */
-	sum += l2_9.x[i__ - 1];
+    sum += l2_9.x[i__ - 1];
     }
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L46: */
-	l4_9.gf[i__ - 1] = a[i__ - 1] + std::log(l2_9.x[i__ - 1] / sum);
+    l4_9.gf[i__ - 1] = a[i__ - 1] + std::log(l2_9.x[i__ - 1] / sum);
     }
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = l2_9.x[0] - l2_9.x[1] * 2. + l2_9.x[2] * 2. + l2_9.x[5] + 
-		l2_9.x[9] - 2.;
+    l3_3.g[0] = l2_9.x[0] - l2_9.x[1] * 2. + l2_9.x[2] * 2. + l2_9.x[5] + 
+        l2_9.x[9] - 2.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = l2_9.x[3] - l2_9.x[4] * 2. + l2_9.x[5] + l2_9.x[6] - 1.;
+    l3_3.g[1] = l2_9.x[3] - l2_9.x[4] * 2. + l2_9.x[5] + l2_9.x[6] - 1.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = l2_9.x[2] + l2_9.x[6] + l2_9.x[7] + l2_9.x[8] * 2. + 
-		l2_9.x[9] - 1.;
+    l3_3.g[2] = l2_9.x[2] + l2_9.x[6] + l2_9.x[7] + l2_9.x[8] * 2. + 
+        l2_9.x[9] - 1.;
     }
 labelL5:
     return 0;
@@ -27597,18 +27597,18 @@ labelL5:
     /* Initialized data */
 
     static Real a[10] = { -6.089,-17.164,-34.054,-5.914,-24.721,-14.986,
-	    -24.1,-10.708,-26.662,-22.179 };
+        -24.1,-10.708,-26.662,-22.179 };
 
     /* Local variables */
     static int i__, j;
     static Real con;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 10;
@@ -27617,12 +27617,12 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 3;
     for (i__ = 1; i__ <= 10; ++i__) {
-	l2_9.x[i__ - 1] = -2.3;
-	l14_9.xu[i__ - 1] = (float)-.1;
-	l12_9.lxu[i__ - 1] = true;
-	l13_9.xl[i__ - 1] = (float)-16.;
+    l2_9.x[i__ - 1] = -2.3;
+    l14_9.xu[i__ - 1] = (float)-.1;
+    l12_9.lxu[i__ - 1] = true;
+    l13_9.xl[i__ - 1] = (float)-16.;
 /* labelL6: */
-	l11_9.lxl[i__ - 1] = true;
+    l11_9.lxl[i__ - 1] = true;
     }
     l20_10.lex = false;
     l20_10.nex = 1;
@@ -27659,45 +27659,45 @@ labelL2:
     con = 0.;
     for (j = 1; j <= 10; ++j) {
 /* L7: */
-	con += std::exp(l2_9.x[j - 1]);
+    con += std::exp(l2_9.x[j - 1]);
     }
     con = std::log(con);
     for (i__ = 1; i__ <= 10; ++i__) {
 /* L8: */
-	l6_1.fx += std::exp(l2_9.x[i__ - 1]) * (a[i__ - 1] + l2_9.x[i__ - 1] - con)
-		;
+    l6_1.fx += std::exp(l2_9.x[i__ - 1]) * (a[i__ - 1] + l2_9.x[i__ - 1] - con)
+        ;
     }
 labelL3:
     return 0;
     con = 0.;
     for (j = 1; j <= 10; ++j) {
 /* L45: */
-	con += std::exp(l2_9.x[j - 1]);
+    con += std::exp(l2_9.x[j - 1]);
     }
     con = std::log(con);
     for (i__ = 1; i__ <= 10; ++i__) {
-	l4_9.gf[i__ - 1] = std::exp(l2_9.x[i__ - 1]) * (a[i__ - 1] + l2_9.x[i__ - 
-		1] - con);
+    l4_9.gf[i__ - 1] = std::exp(l2_9.x[i__ - 1]) * (a[i__ - 1] + l2_9.x[i__ - 
+        1] - con);
 /* L46: */
     }
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = std::exp(l2_9.x[0]) + std::exp(l2_9.x[1]) * 2. + std::exp(l2_9.x[2]) * 
-		2. + std::exp(l2_9.x[5]) + std::exp(l2_9.x[9]) - 2.;
+    l3_3.g[0] = std::exp(l2_9.x[0]) + std::exp(l2_9.x[1]) * 2. + std::exp(l2_9.x[2]) * 
+        2. + std::exp(l2_9.x[5]) + std::exp(l2_9.x[9]) - 2.;
     }
     if (l9_4.index1[1]) {
-	l3_3.g[1] = std::exp(l2_9.x[3]) + std::exp(l2_9.x[4]) * 2. + std::exp(l2_9.x[5]) + 
-		exp(l2_9.x[6]) - 1.;
+    l3_3.g[1] = std::exp(l2_9.x[3]) + std::exp(l2_9.x[4]) * 2. + std::exp(l2_9.x[5]) + 
+        exp(l2_9.x[6]) - 1.;
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = std::exp(l2_9.x[2]) + std::exp(l2_9.x[6]) + std::exp(l2_9.x[7]) + std::exp(
-		l2_9.x[8]) * 2. + std::exp(l2_9.x[9]) - 1.;
+    l3_3.g[2] = std::exp(l2_9.x[2]) + std::exp(l2_9.x[6]) + std::exp(l2_9.x[7]) + std::exp(
+        l2_9.x[8]) * 2. + std::exp(l2_9.x[9]) - 1.;
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L47;
+    goto L47;
     }
     l5_14.gg[0] = std::exp(l2_9.x[0]);
     l5_14.gg[3] = std::exp(l2_9.x[1]) * 2.;
@@ -27706,7 +27706,7 @@ labelL5:
     l5_14.gg[27] = std::exp(l2_9.x[9]);
 L47:
     if (! l10_4.index2[1]) {
-	goto L48;
+    goto L48;
     }
     l5_14.gg[10] = std::exp(l2_9.x[3]);
     l5_14.gg[13] = std::exp(l2_9.x[4]) * 2.;
@@ -27714,7 +27714,7 @@ L47:
     l5_14.gg[19] = std::exp(l2_9.x[6]);
 L48:
     if (! l10_4.index2[2]) {
-	goto L49;
+    goto L49;
     }
     l5_14.gg[8] = std::exp(l2_9.x[2]);
     l5_14.gg[20] = std::exp(l2_9.x[6]);
@@ -27730,11 +27730,11 @@ L49:
     /* Initialized data */
 
     static Real y[65] = { 1.366,1.191,1.112,1.013,.991,.885,.831,.847,
-	    .786,.725,.746,.679,.608,.655,.616,.606,.602,.626,.651,.724,.649,
-	    .649,.694,.644,.624,.661,.612,.558,.533,.495,.5,.423,.395,.375,
-	    .372,.391,.396,.405,.428,.429,.523,.562,.607,.653,.672,.708,.633,
-	    .668,.645,.632,.591,.559,.597,.625,.739,.71,.729,.72,.636,.581,
-	    .428,.292,.162,.098,.054 };
+        .786,.725,.746,.679,.608,.655,.616,.606,.602,.626,.651,.724,.649,
+        .649,.694,.644,.624,.661,.612,.558,.533,.495,.5,.423,.395,.375,
+        .372,.391,.396,.405,.428,.429,.523,.562,.607,.653,.672,.708,.633,
+        .668,.645,.632,.591,.559,.597,.625,.739,.71,.729,.72,.636,.581,
+        .428,.292,.162,.098,.054 };
 
     /* System generated locals */
     Real d__1, d__2, d__3;
@@ -27744,11 +27744,11 @@ L49:
     static Real t;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL2;
-	case 4:  goto labelL4;
-	case 5:  goto labelL4;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL2;
+    case 4:  goto labelL4;
+    case 5:  goto labelL4;
     }
 labelL1:
     l1_1.n = 11;
@@ -27769,10 +27769,10 @@ labelL1:
     l2_17.x[9] = 4.5;
     l2_17.x[10] = 5.5;
     for (i__ = 1; i__ <= 11; ++i__) {
-	l12_17.lxu[i__ - 1] = false;
-	l13_21.xl[i__ - 1] = (float)0.;
+    l12_17.lxu[i__ - 1] = false;
+    l13_21.xl[i__ - 1] = (float)0.;
 /* labelL6: */
-	l11_17.lxl[i__ - 1] = true;
+    l11_17.lxl[i__ - 1] = true;
     }
     l20_18.lex = false;
     l20_18.nex = 1;
@@ -27791,86 +27791,86 @@ labelL1:
     return 0;
 labelL2:
     for (i__ = 1; i__ <= 65; ++i__) {
-	t = (Real) (i__ - 1) * .1;
+    t = (Real) (i__ - 1) * .1;
 /* L7: */
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[8];
+    d__1 = t - l2_17.x[8];
 /* Computing 2nd power */
-	d__2 = t - l2_17.x[9];
+    d__2 = t - l2_17.x[9];
 /* Computing 2nd power */
-	d__3 = t - l2_17.x[10];
-	l16_19.f[i__ - 1] = y[i__ - 1] - (l2_17.x[0] * std::exp(-l2_17.x[4] * t) + 
-		l2_17.x[1] * std::exp(-l2_17.x[5] * (d__1 * d__1)) + l2_17.x[2] * 
-		exp(-l2_17.x[6] * (d__2 * d__2)) + l2_17.x[3] * std::exp(-l2_17.x[
-		7] * (d__3 * d__3)));
+    d__3 = t - l2_17.x[10];
+    l16_19.f[i__ - 1] = y[i__ - 1] - (l2_17.x[0] * std::exp(-l2_17.x[4] * t) + 
+        l2_17.x[1] * std::exp(-l2_17.x[5] * (d__1 * d__1)) + l2_17.x[2] * 
+        exp(-l2_17.x[6] * (d__2 * d__2)) + l2_17.x[3] * std::exp(-l2_17.x[
+        7] * (d__3 * d__3)));
     }
     if (*mode == 3) {
-	goto labelL3;
+    goto labelL3;
     }
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 65; ++i__) {
 /* L70: */
 /* Computing 2nd power */
-	d__1 = l16_19.f[i__ - 1];
-	l6_1.fx += d__1 * d__1;
+    d__1 = l16_19.f[i__ - 1];
+    l6_1.fx += d__1 * d__1;
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 65; ++i__) {
-	t = (Real) (i__ - 1) * .1;
-	l17_24.df[i__ - 1] = -exp(-l2_17.x[4] * t);
+    t = (Real) (i__ - 1) * .1;
+    l17_24.df[i__ - 1] = -exp(-l2_17.x[4] * t);
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[8];
-	l17_24.df[i__ + 64] = -exp(-l2_17.x[5] * (d__1 * d__1));
+    d__1 = t - l2_17.x[8];
+    l17_24.df[i__ + 64] = -exp(-l2_17.x[5] * (d__1 * d__1));
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[9];
-	l17_24.df[i__ + 129] = -exp(-l2_17.x[6] * (d__1 * d__1));
+    d__1 = t - l2_17.x[9];
+    l17_24.df[i__ + 129] = -exp(-l2_17.x[6] * (d__1 * d__1));
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[10];
-	l17_24.df[i__ + 194] = -exp(-l2_17.x[7] * (d__1 * d__1));
-	l17_24.df[i__ + 259] = l2_17.x[0] * t * std::exp(-l2_17.x[4] * t);
+    d__1 = t - l2_17.x[10];
+    l17_24.df[i__ + 194] = -exp(-l2_17.x[7] * (d__1 * d__1));
+    l17_24.df[i__ + 259] = l2_17.x[0] * t * std::exp(-l2_17.x[4] * t);
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[8];
+    d__1 = t - l2_17.x[8];
 /* Computing 2nd power */
-	d__2 = t - l2_17.x[8];
-	l17_24.df[i__ + 324] = l2_17.x[1] * (d__1 * d__1) * std::exp(-l2_17.x[5] * 
-		(d__2 * d__2));
+    d__2 = t - l2_17.x[8];
+    l17_24.df[i__ + 324] = l2_17.x[1] * (d__1 * d__1) * std::exp(-l2_17.x[5] * 
+        (d__2 * d__2));
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[9];
+    d__1 = t - l2_17.x[9];
 /* Computing 2nd power */
-	d__2 = t - l2_17.x[9];
-	l17_24.df[i__ + 389] = l2_17.x[2] * (d__1 * d__1) * std::exp(-l2_17.x[6] * 
-		(d__2 * d__2));
+    d__2 = t - l2_17.x[9];
+    l17_24.df[i__ + 389] = l2_17.x[2] * (d__1 * d__1) * std::exp(-l2_17.x[6] * 
+        (d__2 * d__2));
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[10];
+    d__1 = t - l2_17.x[10];
 /* Computing 2nd power */
-	d__2 = t - l2_17.x[10];
-	l17_24.df[i__ + 454] = l2_17.x[3] * (d__1 * d__1) * std::exp(-l2_17.x[7] * 
-		(d__2 * d__2));
+    d__2 = t - l2_17.x[10];
+    l17_24.df[i__ + 454] = l2_17.x[3] * (d__1 * d__1) * std::exp(-l2_17.x[7] * 
+        (d__2 * d__2));
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[8];
-	l17_24.df[i__ + 519] = -l2_17.x[1] * l2_17.x[5] * 2. * (t - l2_17.x[8]
-		) * std::exp(-l2_17.x[5] * (d__1 * d__1));
+    d__1 = t - l2_17.x[8];
+    l17_24.df[i__ + 519] = -l2_17.x[1] * l2_17.x[5] * 2. * (t - l2_17.x[8]
+        ) * std::exp(-l2_17.x[5] * (d__1 * d__1));
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[9];
-	l17_24.df[i__ + 584] = -l2_17.x[2] * l2_17.x[6] * 2. * (t - l2_17.x[9]
-		) * std::exp(-l2_17.x[6] * (d__1 * d__1));
+    d__1 = t - l2_17.x[9];
+    l17_24.df[i__ + 584] = -l2_17.x[2] * l2_17.x[6] * 2. * (t - l2_17.x[9]
+        ) * std::exp(-l2_17.x[6] * (d__1 * d__1));
 /* L8: */
 /* Computing 2nd power */
-	d__1 = t - l2_17.x[10];
-	l17_24.df[i__ + 649] = -l2_17.x[3] * l2_17.x[7] * 2. * (t - l2_17.x[
-		10]) * std::exp(-l2_17.x[7] * (d__1 * d__1));
+    d__1 = t - l2_17.x[10];
+    l17_24.df[i__ + 649] = -l2_17.x[3] * l2_17.x[7] * 2. * (t - l2_17.x[
+        10]) * std::exp(-l2_17.x[7] * (d__1 * d__1));
     }
     for (i__ = 1; i__ <= 11; ++i__) {
 /* L19: */
-	l4_17.gf[i__ - 1] = 0.;
+    l4_17.gf[i__ - 1] = 0.;
     }
     for (j = 1; j <= 11; ++j) {
-	for (i__ = 1; i__ <= 65; ++i__) {
+    for (i__ = 1; i__ <= 65; ++i__) {
 /* labelL20: */
-	    l4_17.gf[j - 1] += l16_19.f[i__ - 1] * 2. * l17_24.df[i__ + j * 
-		    65 - 66];
-	}
+        l4_17.gf[j - 1] += l16_19.f[i__ - 1] * 2. * l17_24.df[i__ + j * 
+            65 - 66];
+    }
     }
 labelL4:
     return 0;
@@ -27882,11 +27882,11 @@ labelL4:
     /* Initialized data */
 
     static Real a[11] = { -.00133172,-.002270927,-.00248546,-4.67,
-	    -4.671973,-.00814,-.008092,-.005,-9.09e-4,-8.8e-4,-.00119 };
+        -4.671973,-.00814,-.008092,-.005,-9.09e-4,-8.8e-4,-.00119 };
     static Real c__[30] = { .05367373,.021863746,.097733533,.0066940803,
-	    1e-6,1e-5,1e-6,1e-10,1e-8,.01,1e-4,.10898645,1.6108052e-4,1e-23,
-	    1.9304541e-6,.001,1e-6,1e-5,1e-6,1e-9,1e-9,.001,.001,.10898645,
-	    1.6108052e-5,1e-23,1.9304541e-8,1e-5,1.1184059e-4,1e-4 };
+        1e-6,1e-5,1e-6,1e-10,1e-8,.01,1e-4,.10898645,1.6108052e-4,1e-23,
+        1.9304541e-6,.001,1e-6,1e-5,1e-6,1e-9,1e-9,.001,.001,.10898645,
+        1.6108052e-5,1e-23,1.9304541e-8,1e-5,1.1184059e-4,1e-4 };
 
     /* System generated locals */
     Real d__1, d__2, d__3;
@@ -27896,11 +27896,11 @@ labelL4:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 12;
@@ -27909,19 +27909,19 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 12; ++i__) {
-	l2_18.x[i__ - 1] = 4.;
-	l12_18.lxu[i__ - 1] = true;
-	l11_18.lxl[i__ - 1] = true;
-	l13_22.xl[i__ - 1] = .1;
+    l2_18.x[i__ - 1] = 4.;
+    l12_18.lxu[i__ - 1] = true;
+    l11_18.lxl[i__ - 1] = true;
+    l13_22.xl[i__ - 1] = .1;
 /* labelL6: */
-	l14_22.xu[i__ - 1] = 100.;
+    l14_22.xu[i__ - 1] = 100.;
     }
     l5_10.gg[0] = -c__[0];
     l5_10.gg[3] = -c__[1];
     l5_10.gg[6] = -c__[2];
     for (i__ = 6; i__ <= 12; ++i__) {
 /* L7: */
-	l5_10.gg[i__ * 3 - 3] = 0.;
+    l5_10.gg[i__ * 3 - 3] = 0.;
     }
     l5_10.gg[1] = -c__[4];
     l5_10.gg[7] = -c__[6];
@@ -27955,81 +27955,81 @@ labelL1:
 labelL2:
     l6_1.fx = 1e5;
     for (i__ = 1; i__ <= 11; ++i__) {
-	temp = l2_18.x[i__ - 1];
-	if (l2_18.x[i__ - 1] < 1e-15) {
-	    temp = 1e-15;
-	}
+    temp = l2_18.x[i__ - 1];
+    if (l2_18.x[i__ - 1] < 1e-15) {
+        temp = 1e-15;
+    }
 /* labelL20: */
-	l6_1.fx *= pow_dd(&temp, &a[i__ - 1]);
+    l6_1.fx *= pow_dd(&temp, &a[i__ - 1]);
     }
     l6_1.fx *= 1e5;
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 11; ++i__) {
-	temp = l2_18.x[i__ - 1];
-	if (l2_18.x[i__ - 1] < 1e-15) {
-	    temp = 1e-15;
-	}
-	l4_18.gf[i__ - 1] = l6_1.fx * (a[i__ - 1] / temp);
+    temp = l2_18.x[i__ - 1];
+    if (l2_18.x[i__ - 1] < 1e-15) {
+        temp = 1e-15;
+    }
+    l4_18.gf[i__ - 1] = l6_1.fx * (a[i__ - 1] / temp);
 /* labelL10: */
-	l4_18.gf[i__ - 1] *= 1e5;
+    l4_18.gf[i__ - 1] *= 1e5;
     }
     l4_18.gf[11] = 0.;
     return 0;
 labelL4:
     if (l9_4.index1[0]) {
-	l3_3.g[0] = 1. - c__[0] * l2_18.x[0] - c__[1] * l2_18.x[1] - c__[2] * 
-		l2_18.x[2] - c__[3] * l2_18.x[3] * l2_18.x[4];
+    l3_3.g[0] = 1. - c__[0] * l2_18.x[0] - c__[1] * l2_18.x[1] - c__[2] * 
+        l2_18.x[2] - c__[3] * l2_18.x[3] * l2_18.x[4];
     }
     if (l9_4.index1[1]) {
 /* Computing 2nd power */
-	d__1 = l2_18.x[11];
-	l3_3.g[1] = 1. - c__[4] * l2_18.x[0] - c__[5] * l2_18.x[1] - c__[6] * 
-		l2_18.x[2] - c__[7] * l2_18.x[3] * l2_18.x[11] - c__[8] * 
-		l2_18.x[4] / l2_18.x[11] - c__[9] * l2_18.x[5] / l2_18.x[11] 
-		- c__[10] * l2_18.x[6] * l2_18.x[11] - c__[11] * l2_18.x[3] * 
-		l2_18.x[4] - c__[12] * l2_18.x[1] * l2_18.x[4] / l2_18.x[11] 
-		- c__[13] * l2_18.x[1] * l2_18.x[3] * l2_18.x[4] - c__[14] * 
-		l2_18.x[1] / l2_18.x[3] * l2_18.x[4] / (d__1 * d__1) - c__[15]
-		 * l2_18.x[9] / l2_18.x[11];
+    d__1 = l2_18.x[11];
+    l3_3.g[1] = 1. - c__[4] * l2_18.x[0] - c__[5] * l2_18.x[1] - c__[6] * 
+        l2_18.x[2] - c__[7] * l2_18.x[3] * l2_18.x[11] - c__[8] * 
+        l2_18.x[4] / l2_18.x[11] - c__[9] * l2_18.x[5] / l2_18.x[11] 
+        - c__[10] * l2_18.x[6] * l2_18.x[11] - c__[11] * l2_18.x[3] * 
+        l2_18.x[4] - c__[12] * l2_18.x[1] * l2_18.x[4] / l2_18.x[11] 
+        - c__[13] * l2_18.x[1] * l2_18.x[3] * l2_18.x[4] - c__[14] * 
+        l2_18.x[1] / l2_18.x[3] * l2_18.x[4] / (d__1 * d__1) - c__[15]
+         * l2_18.x[9] / l2_18.x[11];
     }
     if (l9_4.index1[2]) {
-	l3_3.g[2] = 1. - c__[16] * l2_18.x[0] - c__[17] * l2_18.x[1] - c__[18]
-		 * l2_18.x[2] - c__[19] * l2_18.x[3] - c__[20] * l2_18.x[4] - 
-		c__[21] * l2_18.x[5] - c__[22] * l2_18.x[7] - c__[23] * 
-		l2_18.x[3] * l2_18.x[4] - c__[24] * l2_18.x[1] * l2_18.x[4] - 
-		c__[25] * l2_18.x[1] * l2_18.x[3] * l2_18.x[4] - c__[26] * 
-		l2_18.x[1] * l2_18.x[4] / l2_18.x[3] - c__[27] * l2_18.x[8] - 
-		c__[28] * l2_18.x[0] * l2_18.x[8] - c__[29] * l2_18.x[10];
+    l3_3.g[2] = 1. - c__[16] * l2_18.x[0] - c__[17] * l2_18.x[1] - c__[18]
+         * l2_18.x[2] - c__[19] * l2_18.x[3] - c__[20] * l2_18.x[4] - 
+        c__[21] * l2_18.x[5] - c__[22] * l2_18.x[7] - c__[23] * 
+        l2_18.x[3] * l2_18.x[4] - c__[24] * l2_18.x[1] * l2_18.x[4] - 
+        c__[25] * l2_18.x[1] * l2_18.x[3] * l2_18.x[4] - c__[26] * 
+        l2_18.x[1] * l2_18.x[4] / l2_18.x[3] - c__[27] * l2_18.x[8] - 
+        c__[28] * l2_18.x[0] * l2_18.x[8] - c__[29] * l2_18.x[10];
     }
     return 0;
 labelL5:
     if (! l10_4.index2[0]) {
-	goto L50;
+    goto L50;
     }
     l5_10.gg[9] = -c__[3] * l2_18.x[4];
     l5_10.gg[12] = -c__[3] * l2_18.x[3];
 L50:
     if (! l10_4.index2[1]) {
-	goto L51;
+    goto L51;
     }
 /* Computing 2nd power */
     d__1 = l2_18.x[11];
     l5_10.gg[4] = -c__[5] - c__[12] * l2_18.x[4] / l2_18.x[11] - c__[13] * 
-	    l2_18.x[3] * l2_18.x[4] - c__[14] / l2_18.x[3] * l2_18.x[4] / (
-	    d__1 * d__1);
+        l2_18.x[3] * l2_18.x[4] - c__[14] / l2_18.x[3] * l2_18.x[4] / (
+        d__1 * d__1);
 /* Computing 2nd power */
     d__1 = l2_18.x[3];
 /* Computing 2nd power */
     d__2 = l2_18.x[11];
     l5_10.gg[10] = -c__[7] * l2_18.x[11] - c__[11] * l2_18.x[4] - c__[13] * 
-	    l2_18.x[1] * l2_18.x[4] + c__[14] * l2_18.x[1] / (d__1 * d__1) * 
-	    l2_18.x[4] / (d__2 * d__2);
+        l2_18.x[1] * l2_18.x[4] + c__[14] * l2_18.x[1] / (d__1 * d__1) * 
+        l2_18.x[4] / (d__2 * d__2);
 /* Computing 2nd power */
     d__1 = l2_18.x[11];
     l5_10.gg[13] = -c__[8] / l2_18.x[11] - c__[11] * l2_18.x[3] - c__[12] * 
-	    l2_18.x[1] / l2_18.x[11] - c__[13] * l2_18.x[1] * l2_18.x[3] - 
-	    c__[14] * l2_18.x[1] / l2_18.x[3] / (d__1 * d__1);
+        l2_18.x[1] / l2_18.x[11] - c__[13] * l2_18.x[1] * l2_18.x[3] - 
+        c__[14] * l2_18.x[1] / l2_18.x[3] / (d__1 * d__1);
     l5_10.gg[16] = -c__[9] / l2_18.x[11];
     l5_10.gg[19] = -c__[10] * l2_18.x[11];
     l5_10.gg[28] = -c__[15] / l2_18.x[11];
@@ -28040,24 +28040,24 @@ L50:
 /* Computing 2nd power */
     d__3 = l2_18.x[11];
     l5_10.gg[34] = -c__[7] * l2_18.x[3] + c__[8] * l2_18.x[4] / (d__1 * d__1) 
-	    + c__[9] * l2_18.x[5] / pow_dd(&l2_18.x[11], &c_b305) - c__[10] * 
-	    l2_18.x[6] + c__[12] * l2_18.x[1] * l2_18.x[4] / (d__2 * d__2) + 
-	    c__[14] * 2 * l2_18.x[1] / l2_18.x[3] * l2_18.x[4] / pow_dd(&
-	    l2_18.x[11], &c_b1523) + c__[15] * l2_18.x[9] / (d__3 * d__3);
+        + c__[9] * l2_18.x[5] / pow_dd(&l2_18.x[11], &c_b305) - c__[10] * 
+        l2_18.x[6] + c__[12] * l2_18.x[1] * l2_18.x[4] / (d__2 * d__2) + 
+        c__[14] * 2 * l2_18.x[1] / l2_18.x[3] * l2_18.x[4] / pow_dd(&
+        l2_18.x[11], &c_b1523) + c__[15] * l2_18.x[9] / (d__3 * d__3);
 L51:
     if (! l10_4.index2[2]) {
-	goto L52;
+    goto L52;
     }
     l5_10.gg[2] = -c__[16] - c__[28] * l2_18.x[8];
     l5_10.gg[5] = -c__[17] - c__[24] * l2_18.x[4] - c__[25] * l2_18.x[3] * 
-	    l2_18.x[4] - c__[26] * l2_18.x[4] / l2_18.x[3];
+        l2_18.x[4] - c__[26] * l2_18.x[4] / l2_18.x[3];
 /* Computing 2nd power */
     d__1 = l2_18.x[3];
     l5_10.gg[11] = -c__[19] - c__[23] * l2_18.x[4] - c__[25] * l2_18.x[1] * 
-	    l2_18.x[4] + c__[26] * l2_18.x[1] * l2_18.x[4] / (d__1 * d__1);
+        l2_18.x[4] + c__[26] * l2_18.x[1] * l2_18.x[4] / (d__1 * d__1);
     l5_10.gg[14] = -c__[20] - c__[23] * l2_18.x[3] - c__[24] * l2_18.x[1] - 
-	    c__[25] * l2_18.x[1] * l2_18.x[3] - c__[26] * l2_18.x[1] / 
-	    l2_18.x[3];
+        c__[25] * l2_18.x[1] * l2_18.x[3] - c__[26] * l2_18.x[1] / 
+        l2_18.x[3];
     l5_10.gg[26] = -c__[27] - c__[28] * l2_18.x[0];
 L52:
     return 0;
@@ -28069,22 +28069,22 @@ L52:
     /* Initialized data */
 
     static Real r__[13] = { .8,1.1,.85,3.45,2.,2.1,3.,.8,.45,.72,1.8,3.,
-	    .6 };
+        .6 };
     static Real s[13] = { 11.6,13.7,9.5,48.5,31.9,51.1,65.5,0.,0.,0.,
-	    21.8,46.9,0. };
+        21.8,46.9,0. };
     static Real u[13] = { .05,.07,0.,.33,0.,1.27,1.27,23.35,35.84,.81,
-	    1.79,7.34,0. };
+        1.79,7.34,0. };
     static Real v[13] = { .35,.37,.1,.62,0.,1.03,1.69,18.21,.01,.08,.31,
-	    1.59,22.45 };
+        1.59,22.45 };
 
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 13;
@@ -28093,21 +28093,21 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 13; ++i__) {
-	l2_10.x[i__ - 1] = .1;
-	l12_10.lxu[i__ - 1] = false;
-	l11_10.lxl[i__ - 1] = true;
+    l2_10.x[i__ - 1] = .1;
+    l12_10.lxu[i__ - 1] = false;
+    l11_10.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_10.xl[i__ - 1] = 0.;
+    l13_10.xl[i__ - 1] = 0.;
     }
     for (i__ = 1; i__ <= 13; ++i__) {
-	l5_38.gg[(i__ << 2) - 4] = s[i__ - 1];
-	l5_38.gg[(i__ << 2) - 3] = u[i__ - 1];
+    l5_38.gg[(i__ << 2) - 4] = s[i__ - 1];
+    l5_38.gg[(i__ << 2) - 3] = u[i__ - 1];
 /* L7: */
-	l5_38.gg[(i__ << 2) - 1] = 1.;
+    l5_38.gg[(i__ << 2) - 1] = 1.;
     }
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L8: */
-	l5_38.gg[(i__ << 2) - 2] = v[i__ - 1];
+    l5_38.gg[(i__ << 2) - 2] = v[i__ - 1];
     }
     l20_11.lex = false;
     l20_11.nex = 1;
@@ -28127,55 +28127,55 @@ labelL1:
     l20_11.xex[12] = .019853;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL11: */
-	l4_10.gf[i__ - 1] = r__[i__ - 1];
+    l4_10.gf[i__ - 1] = r__[i__ - 1];
     }
     return 0;
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL10: */
-	l6_1.fx += r__[i__ - 1] * l2_10.x[i__ - 1];
+    l6_1.fx += r__[i__ - 1] * l2_10.x[i__ - 1];
     }
 labelL3:
     return 0;
 labelL4:
     if (! l9_7.index1[0]) {
-	goto labelL12;
+    goto labelL12;
     }
     l3_6.g[0] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL13: */
-	l3_6.g[0] += s[i__ - 1] * l2_10.x[i__ - 1];
+    l3_6.g[0] += s[i__ - 1] * l2_10.x[i__ - 1];
     }
     l3_6.g[0] += -18.;
 labelL12:
     if (! l9_7.index1[1]) {
-	goto labelL14;
+    goto labelL14;
     }
     l3_6.g[1] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L15: */
-	l3_6.g[1] += u[i__ - 1] * l2_10.x[i__ - 1];
+    l3_6.g[1] += u[i__ - 1] * l2_10.x[i__ - 1];
     }
     l3_6.g[1] += -1.;
 labelL14:
     if (! l9_7.index1[2]) {
-	goto L16;
+    goto L16;
     }
     l3_6.g[2] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L17: */
-	l3_6.g[2] += v[i__ - 1] * l2_10.x[i__ - 1];
+    l3_6.g[2] += v[i__ - 1] * l2_10.x[i__ - 1];
     }
     l3_6.g[2] += -.9;
 L16:
     if (! l9_7.index1[3]) {
-	goto labelL5;
+    goto labelL5;
     }
     l3_6.g[3] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L19: */
-	l3_6.g[3] += l2_10.x[i__ - 1];
+    l3_6.g[3] += l2_10.x[i__ - 1];
     }
     l3_6.g[3] += -1.;
 labelL5:
@@ -28187,19 +28187,19 @@ labelL5:
     /* Initialized data */
 
     static Real r__[13] = { .8,1.1,.85,3.45,2.,2.1,3.,.8,.45,.72,1.8,3.,
-	    .6 };
+        .6 };
     static Real s[13] = { 11.6,13.7,9.5,48.5,31.9,51.1,65.5,0.,0.,0.,
-	    21.8,46.9,0. };
+        21.8,46.9,0. };
     static Real z1[13] = { .4844,.3003,.1444,.0588,4.9863,.0653,21.0222,
-	    0.,0.,0.,.297,9.2933,0. };
+        0.,0.,0.,.297,9.2933,0. };
     static Real u[13] = { .05,.07,0.,.33,0.,1.27,1.27,23.35,35.84,.81,
-	    1.79,7.34,0. };
+        1.79,7.34,0. };
     static Real z2[13] = { 1e-4,0.,0.,0.,0.,.004,.1404,1.3631,.5138,
-	    .0289,.0097,.3893,0. };
+        .0289,.0097,.3893,0. };
     static Real v[13] = { .35,.37,.1,.62,0.,1.03,1.69,18.21,.01,.08,.31,
-	    1.59,22.45 };
+        1.59,22.45 };
     static Real z3[13] = { .001,9e-4,1e-4,5e-4,0.,.0021,.0825,.2073,0.,
-	    4e-4,5e-4,.0107,1.0206 };
+        4e-4,5e-4,.0107,1.0206 };
 
     /* System generated locals */
     Real d__1;
@@ -28209,11 +28209,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 
 labelL1:
@@ -28223,12 +28223,12 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 13; ++i__) {
-	l2_10.x[i__ - 1] = .1;
-	l12_10.lxu[i__ - 1] = false;
-	l11_10.lxl[i__ - 1] = true;
-	l13_10.xl[i__ - 1] = 0.;
+    l2_10.x[i__ - 1] = .1;
+    l12_10.lxu[i__ - 1] = false;
+    l11_10.lxl[i__ - 1] = true;
+    l13_10.xl[i__ - 1] = 0.;
 /* labelL6: */
-	l5_38.gg[(i__ << 2) - 1] = 1.;
+    l5_38.gg[(i__ << 2) - 1] = 1.;
     }
     l20_11.lex = false;
     l20_11.nex = 1;
@@ -28248,126 +28248,126 @@ labelL1:
     l20_11.xex[12] = .025004;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L8: */
-	l4_10.gf[i__ - 1] = r__[i__ - 1];
+    l4_10.gf[i__ - 1] = r__[i__ - 1];
     }
     return 0;
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L7: */
-	l6_1.fx += r__[i__ - 1] * l2_10.x[i__ - 1];
+    l6_1.fx += r__[i__ - 1] * l2_10.x[i__ - 1];
     }
 labelL3:
     return 0;
 labelL4:
     if (! l9_7.index1[0]) {
-	goto labelL9;
+    goto labelL9;
     }
     l3_6.g[0] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL10: */
 /* Computing 2nd power */
-	d__1 = l2_10.x[i__ - 1];
-	l3_6.g[0] += z1[i__ - 1] * (d__1 * d__1);
+    d__1 = l2_10.x[i__ - 1];
+    l3_6.g[0] += z1[i__ - 1] * (d__1 * d__1);
     }
     l3_6.g[0] = -std::sqrt(l3_6.g[0]) * 1.645 - 18.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL11: */
-	l3_6.g[0] += s[i__ - 1] * l2_10.x[i__ - 1];
+    l3_6.g[0] += s[i__ - 1] * l2_10.x[i__ - 1];
     }
 labelL9:
     if (! l9_7.index1[1]) {
-	goto labelL12;
+    goto labelL12;
     }
     l3_6.g[1] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL13: */
 /* Computing 2nd power */
-	d__1 = l2_10.x[i__ - 1];
-	l3_6.g[1] += z2[i__ - 1] * (d__1 * d__1);
+    d__1 = l2_10.x[i__ - 1];
+    l3_6.g[1] += z2[i__ - 1] * (d__1 * d__1);
     }
     l3_6.g[1] = -std::sqrt(l3_6.g[1]) * 1.645 - 1.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* labelL14: */
-	l3_6.g[1] += u[i__ - 1] * l2_10.x[i__ - 1];
+    l3_6.g[1] += u[i__ - 1] * l2_10.x[i__ - 1];
     }
 labelL12:
     if (! l9_7.index1[2]) {
-	goto L15;
+    goto L15;
     }
     l3_6.g[2] = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L16: */
 /* Computing 2nd power */
-	d__1 = l2_10.x[i__ - 1];
-	l3_6.g[2] += z3[i__ - 1] * (d__1 * d__1);
+    d__1 = l2_10.x[i__ - 1];
+    l3_6.g[2] += z3[i__ - 1] * (d__1 * d__1);
     }
     l3_6.g[2] = -std::sqrt(l3_6.g[2]) * 1.645 - .9;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L17: */
-	l3_6.g[2] += v[i__ - 1] * l2_10.x[i__ - 1];
+    l3_6.g[2] += v[i__ - 1] * l2_10.x[i__ - 1];
     }
 L15:
     if (! l9_7.index1[3]) {
-	goto L18;
+    goto L18;
     }
     l3_6.g[3] = -1.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L19: */
-	l3_6.g[3] += l2_10.x[i__ - 1];
+    l3_6.g[3] += l2_10.x[i__ - 1];
     }
 L18:
     return 0;
 labelL5:
     if (! l10_7.index2[0]) {
-	goto L27;
+    goto L27;
     }
     help = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L21: */
 /* Computing 2nd power */
-	d__1 = l2_10.x[i__ - 1];
-	help += z1[i__ - 1] * (d__1 * d__1);
+    d__1 = l2_10.x[i__ - 1];
+    help += z1[i__ - 1] * (d__1 * d__1);
     }
     help = -.82250000000000001 / std::sqrt(help);
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L22: */
-	l5_38.gg[(i__ << 2) - 4] = s[i__ - 1] + help * 2. * z1[i__ - 1] * 
-		l2_10.x[i__ - 1];
+    l5_38.gg[(i__ << 2) - 4] = s[i__ - 1] + help * 2. * z1[i__ - 1] * 
+        l2_10.x[i__ - 1];
     }
 L27:
     if (! l10_7.index2[1]) {
-	goto L28;
+    goto L28;
     }
     help = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L23: */
 /* Computing 2nd power */
-	d__1 = l2_10.x[i__ - 1];
-	help += z2[i__ - 1] * (d__1 * d__1);
+    d__1 = l2_10.x[i__ - 1];
+    help += z2[i__ - 1] * (d__1 * d__1);
     }
     help = -.82250000000000001 / std::sqrt(help);
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L24: */
-	l5_38.gg[(i__ << 2) - 3] = u[i__ - 1] + help * 2. * z2[i__ - 1] * 
-		l2_10.x[i__ - 1];
+    l5_38.gg[(i__ << 2) - 3] = u[i__ - 1] + help * 2. * z2[i__ - 1] * 
+        l2_10.x[i__ - 1];
     }
 L28:
     if (! l10_7.index2[2]) {
-	goto labelL20;
+    goto labelL20;
     }
     help = 0.;
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L25: */
 /* Computing 2nd power */
-	d__1 = l2_10.x[i__ - 1];
-	help += z3[i__ - 1] * (d__1 * d__1);
+    d__1 = l2_10.x[i__ - 1];
+    help += z3[i__ - 1] * (d__1 * d__1);
     }
     help = -.82250000000000001 / std::sqrt(help);
     for (i__ = 1; i__ <= 13; ++i__) {
 /* L26: */
-	l5_38.gg[(i__ << 2) - 2] = v[i__ - 1] + help * 2. * z3[i__ - 1] * 
-		l2_10.x[i__ - 1];
+    l5_38.gg[(i__ << 2) - 2] = v[i__ - 1] + help * 2. * z3[i__ - 1] * 
+        l2_10.x[i__ - 1];
     }
 labelL20:
     return 0;
@@ -28379,12 +28379,12 @@ labelL20:
     /* Initialized data */
 
     static Real a[14] = { 12842.275,634.25,634.25,634.125,1268.,633.875,
-	    633.75,1267.,760.05,633.25,1266.25,632.875,394.46,940.838 };
+        633.75,1267.,760.05,633.25,1266.25,632.875,394.46,940.838 };
     static Real b[14] = { 25.,26.,26.,27.,28.,29.,30.,32.,33.,34.,35.,
-	    37.,38.,36. };
+        37.,38.,36. };
     static Real c__[14] = { 5.47934,.83234,.94749,1.11082,2.64824,
-	    1.55868,1.73215,3.90896,2.74284,2.60541,5.96184,3.29522,1.83517,
-	    2.81372 };
+        1.55868,1.73215,3.90896,2.74284,2.60541,5.96184,3.29522,1.83517,
+        2.81372 };
 
     /* System generated locals */
     Real d__1;
@@ -28393,11 +28393,11 @@ labelL20:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 14;
@@ -28406,13 +28406,13 @@ labelL1:
     l1_1.neli = 1;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 14; ++i__) {
-	l2_19.x[i__ - 1] = .01;
-	l12_19.lxu[i__ - 1] = true;
-	l11_19.lxl[i__ - 1] = true;
-	l13_23.xl[i__ - 1] = 0.;
-	l14_23.xu[i__ - 1] = 1. / b[i__ - 1];
+    l2_19.x[i__ - 1] = .01;
+    l12_19.lxu[i__ - 1] = true;
+    l11_19.lxl[i__ - 1] = true;
+    l13_23.xl[i__ - 1] = 0.;
+    l14_23.xu[i__ - 1] = 1. / b[i__ - 1];
 /* labelL6: */
-	l5_17.gg[i__ - 1] = c__[i__ - 1];
+    l5_17.gg[i__ - 1] = c__[i__ - 1];
     }
     l20_19.lex = false;
     l20_19.nex = 1;
@@ -28436,7 +28436,7 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 14; ++i__) {
 /* L7: */
-	l6_1.fx += a[i__ - 1] / (l2_19.x[i__ - 1] + 1e-16);
+    l6_1.fx += a[i__ - 1] / (l2_19.x[i__ - 1] + 1e-16);
     }
     l6_1.fx *= 1e-5;
     return 0;
@@ -28444,18 +28444,18 @@ labelL3:
     for (i__ = 1; i__ <= 14; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_19.x[i__ - 1];
-	l4_19.gf[i__ - 1] = -a[i__ - 1] / (d__1 * d__1) * 1e-5;
+    d__1 = l2_19.x[i__ - 1];
+    l4_19.gf[i__ - 1] = -a[i__ - 1] / (d__1 * d__1) * 1e-5;
     }
     return 0;
 labelL4:
     if (! l9_2.index1[0]) {
-	goto labelL5;
+    goto labelL5;
     }
     l3_1.g[0] = 0.;
     for (i__ = 1; i__ <= 14; ++i__) {
 /* labelL10: */
-	l3_1.g[0] += c__[i__ - 1] * l2_19.x[i__ - 1];
+    l3_1.g[0] += c__[i__ - 1] * l2_19.x[i__ - 1];
     }
     l3_1.g[0] += -1.;
 labelL5:
@@ -28468,19 +28468,19 @@ labelL5:
     /* Initialized data */
 
     static Real b[10] = { 385.,470.,560.,565.,645.,430.,485.,455.,390.,
-	    860. };
-    static Real a[150]	/* was [10][15] */ = { 100.,90.,70.,50.,50.,
-	    40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
-	    10.,0.,0.,70.,50.,30.,40.,10.,500.,5.,35.,55.,65.,60.,95.,90.,25.,
-	    35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
-	    35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
-	    60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
-	    25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
-	    25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
-	    0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
-	    40.,65.,0.,5.,15.,20.,55.,30. };
+        860. };
+    static Real a[150]    /* was [10][15] */ = { 100.,90.,70.,50.,50.,
+        40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
+        10.,0.,0.,70.,50.,30.,40.,10.,500.,5.,35.,55.,65.,60.,95.,90.,25.,
+        35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
+        35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
+        60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
+        25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
+        25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
+        0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
+        40.,65.,0.,5.,15.,20.,55.,30. };
     static Real d__[15] = { 486.,640.,758.,776.,477.,707.,175.,619.,
-	    627.,614.,475.,377.,524.,468.,529. };
+        627.,614.,475.,377.,524.,468.,529. };
 
     /* System generated locals */
     Real d__1;
@@ -28490,11 +28490,11 @@ labelL5:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -28503,10 +28503,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
     l20_12.nex = 1;
@@ -28531,44 +28531,44 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L15: */
-	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL11: */
-	l4_11.gf[i__ - 1] = -d__[i__ - 1];
+    l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l9_10.index1[i__ - 1]) {
-	    goto L7;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    if (! l9_10.index1[i__ - 1]) {
+        goto L7;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
-	l3_9.g[i__ - 1] = b[i__ - 1] - c__;
+        d__1 = l2_11.x[j - 1];
+        c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
+    l3_9.g[i__ - 1] = b[i__ - 1] - c__;
 L7:
-	;
+    ;
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_10.index2[i__ - 1]) {
-	    goto labelL10;
-	}
-	for (j = 1; j <= 15; ++j) {
+    if (! l10_10.index2[i__ - 1]) {
+        goto labelL10;
+    }
+    for (j = 1; j <= 15; ++j) {
 /* labelL13: */
-	    l5_32.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11] * -2. * 
-		    l2_11.x[j - 1];
-	}
+        l5_32.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11] * -2. * 
+            l2_11.x[j - 1];
+    }
 labelL10:
-	;
+    ;
     }
     return 0;
 } /* tp384_ */
@@ -28578,19 +28578,19 @@ labelL10:
     /* Initialized data */
 
     static Real b[10] = { 385.,470.,560.,565.,645.,430.,485.,455.,890.,
-	    460. };
-    static Real a[150]	/* was [10][15] */ = { 100.,90.,70.,50.,50.,
-	    40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
-	    10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
-	    35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
-	    35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
-	    60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,500.,95.,
-	    10.,25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,
-	    30.,25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,
-	    75.,0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,
-	    10.,40.,65.,0.,5.,15.,20.,55.,30. };
+        460. };
+    static Real a[150]    /* was [10][15] */ = { 100.,90.,70.,50.,50.,
+        40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
+        10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
+        35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
+        35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
+        60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,500.,95.,
+        10.,25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,
+        30.,25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,
+        75.,0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,
+        10.,40.,65.,0.,5.,15.,20.,55.,30. };
     static Real d__[15] = { 486.,640.,758.,776.,477.,707.,175.,619.,
-	    627.,614.,475.,377.,524.,468.,529. };
+        627.,614.,475.,377.,524.,468.,529. };
 
     /* System generated locals */
     Real d__1;
@@ -28600,11 +28600,11 @@ labelL10:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -28613,10 +28613,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
     l20_12.nex = 1;
@@ -28641,44 +28641,44 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* L15: */
-	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL11: */
-	l4_11.gf[i__ - 1] = -d__[i__ - 1];
+    l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l9_10.index1[i__ - 1]) {
-	    goto L7;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    if (! l9_10.index1[i__ - 1]) {
+        goto L7;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
-	l3_9.g[i__ - 1] = b[i__ - 1] - c__;
+        d__1 = l2_11.x[j - 1];
+        c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
+    l3_9.g[i__ - 1] = b[i__ - 1] - c__;
 L7:
-	;
+    ;
     }
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_10.index2[i__ - 1]) {
-	    goto labelL10;
-	}
-	for (j = 1; j <= 15; ++j) {
+    if (! l10_10.index2[i__ - 1]) {
+        goto labelL10;
+    }
+    for (j = 1; j <= 15; ++j) {
 /* labelL13: */
-	    l5_32.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11] * -2. * 
-		    l2_11.x[j - 1];
-	}
+        l5_32.gg[i__ + j * 10 - 11] = a[i__ + j * 10 - 11] * -2. * 
+            l2_11.x[j - 1];
+    }
 labelL10:
-	;
+    ;
     }
     return 0;
 } /* tp385_ */
@@ -28688,19 +28688,19 @@ labelL10:
     /* Initialized data */
 
     static Real b[10] = { 385.,470.,560.,565.,645.,430.,485.,455.,390.,
-	    460. };
-    static Real a[150]	/* was [10][15] */ = { 100.,90.,70.,50.,50.,
-	    40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
-	    10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
-	    35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
-	    35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
-	    60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
-	    25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
-	    25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
-	    0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
-	    40.,65.,0.,5.,15.,20.,55.,30. };
+        460. };
+    static Real a[150]    /* was [10][15] */ = { 100.,90.,70.,50.,50.,
+        40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
+        10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
+        35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
+        35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
+        60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
+        25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
+        25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
+        0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
+        40.,65.,0.,5.,15.,20.,55.,30. };
     static Real d__[15] = { 486.,640.,758.,776.,477.,707.,175.,619.,
-	    627.,614.,475.,377.,524.,468.,529. };
+        627.,614.,475.,377.,524.,468.,529. };
 
     /* System generated locals */
     Real d__1;
@@ -28710,11 +28710,11 @@ labelL10:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -28723,10 +28723,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
     l20_12.nex = 1;
@@ -28751,63 +28751,63 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL20: */
-	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL11: */
-	l4_11.gf[i__ - 1] = -d__[i__ - 1];
+    l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l9_13.index1[i__ - 1]) {
-	    goto L7;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    if (! l9_13.index1[i__ - 1]) {
+        goto L7;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
-	l3_12.g[i__ - 1] = b[i__ - 1] - c__;
+        d__1 = l2_11.x[j - 1];
+        c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
+    l3_12.g[i__ - 1] = b[i__ - 1] - c__;
 L7:
-	;
+    ;
     }
     if (! l9_13.index1[10]) {
-	goto labelL12;
+    goto labelL12;
     }
     c__ = 0.;
     for (j = 1; j <= 15; ++j) {
 /* labelL14: */
 /* Computing 2nd power */
-	d__1 = l2_11.x[j - 1] - 2.;
-	c__ += (Real) j * (d__1 * d__1);
+    d__1 = l2_11.x[j - 1] - 2.;
+    c__ += (Real) j * (d__1 * d__1);
     }
     l3_12.g[10] = c__ / 2. - 70.;
 labelL12:
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_13.index2[i__ - 1]) {
-	    goto labelL10;
-	}
-	for (j = 1; j <= 15; ++j) {
+    if (! l10_13.index2[i__ - 1]) {
+        goto labelL10;
+    }
+    for (j = 1; j <= 15; ++j) {
 /* labelL13: */
-	    l5_39.gg[i__ + j * 11 - 12] = a[i__ + j * 10 - 11] * -2. * 
-		    l2_11.x[j - 1];
-	}
+        l5_39.gg[i__ + j * 11 - 12] = a[i__ + j * 10 - 11] * -2. * 
+            l2_11.x[j - 1];
+    }
 labelL10:
-	;
+    ;
     }
     if (! l10_13.index2[10]) {
-	goto L15;
+    goto L15;
     }
     for (j = 1; j <= 15; ++j) {
 /* L16: */
-	l5_39.gg[j * 11 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
+    l5_39.gg[j * 11 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
     }
 L15:
     return 0;
@@ -28818,19 +28818,19 @@ L15:
     /* Initialized data */
 
     static Real b[10] = { 385.,470.,560.,565.,645.,430.,485.,455.,390.,
-	    460. };
-    static Real a[150]	/* was [10][15] */ = { 100.,90.,70.,50.,50.,
-	    40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
-	    10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
-	    35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
-	    35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
-	    60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
-	    25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
-	    25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
-	    0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
-	    40.,65.,0.,5.,15.,20.,55.,30. };
+        460. };
+    static Real a[150]    /* was [10][15] */ = { 100.,90.,70.,50.,50.,
+        40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
+        10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
+        35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
+        35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
+        60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
+        25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
+        25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
+        0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
+        40.,65.,0.,5.,15.,20.,55.,30. };
     static Real d__[15] = { 486.,640.,758.,776.,477.,707.,175.,619.,
-	    627.,614.,475.,377.,524.,468.,529. };
+        627.,614.,475.,377.,524.,468.,529. };
 
     /* System generated locals */
     Real d__1;
@@ -28840,11 +28840,11 @@ L15:
     static int i__, j;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -28853,10 +28853,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     l20_12.lex = false;
     l20_12.nex = 1;
@@ -28881,63 +28881,63 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL20: */
-	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL11: */
-	l4_11.gf[i__ - 1] = -d__[i__ - 1];
+    l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l9_13.index1[i__ - 1]) {
-	    goto L7;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    if (! l9_13.index1[i__ - 1]) {
+        goto L7;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
-	l3_12.g[i__ - 1] = b[i__ - 1] - c__;
+        d__1 = l2_11.x[j - 1];
+        c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
+    l3_12.g[i__ - 1] = b[i__ - 1] - c__;
 L7:
-	;
+    ;
     }
     if (! l9_13.index1[10]) {
-	goto labelL12;
+    goto labelL12;
     }
     c__ = 0.;
     for (j = 1; j <= 15; ++j) {
 /* labelL14: */
 /* Computing 2nd power */
-	d__1 = l2_11.x[j - 1] - 2.;
-	c__ += (Real) j * (d__1 * d__1);
+    d__1 = l2_11.x[j - 1] - 2.;
+    c__ += (Real) j * (d__1 * d__1);
     }
     l3_12.g[10] = c__ / 2. - 61.;
 labelL12:
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_13.index2[i__ - 1]) {
-	    goto labelL10;
-	}
-	for (j = 1; j <= 15; ++j) {
+    if (! l10_13.index2[i__ - 1]) {
+        goto labelL10;
+    }
+    for (j = 1; j <= 15; ++j) {
 /* labelL13: */
-	    l5_39.gg[i__ + j * 11 - 12] = a[i__ + j * 10 - 11] * -2. * 
-		    l2_11.x[j - 1];
-	}
+        l5_39.gg[i__ + j * 11 - 12] = a[i__ + j * 10 - 11] * -2. * 
+            l2_11.x[j - 1];
+    }
 labelL10:
-	;
+    ;
     }
     if (! l10_13.index2[10]) {
-	goto L15;
+    goto L15;
     }
     for (j = 1; j <= 15; ++j) {
 /* L16: */
-	l5_39.gg[j * 11 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
+    l5_39.gg[j * 11 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
     }
 L15:
     return 0;
@@ -28948,24 +28948,24 @@ L15:
     /* Initialized data */
 
     static Real b[15] = { 385.,470.,560.,565.,645.,430.,485.,455.,390.,
-	    460.,0.,70.,361.,265.,395. };
-    static Real a[150]	/* was [10][15] */ = { 100.,90.,70.,50.,50.,
-	    40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
-	    10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
-	    35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
-	    35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
-	    60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
-	    25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
-	    25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
-	    0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
-	    40.,65.,0.,5.,15.,20.,55.,30. };
-    static Real a1[60]	/* was [4][15] */ = { 1.,45.,53.,12.,2.,25.,
-	    74.,43.,3.,35.,26.,51.,4.,85.,17.,39.,5.,40.,25.,58.,6.,73.,25.,
-	    42.,7.,17.,26.,60.,8.,52.,24.,20.,9.,86.,85.,40.,10.,14.,35.,80.,
-	    15.,30.,14.,75.,16.,50.,23.,85.,17.,40.,37.,95.,18.,70.,56.,23.,
-	    19.,60.,10.,67. };
+        460.,0.,70.,361.,265.,395. };
+    static Real a[150]    /* was [10][15] */ = { 100.,90.,70.,50.,50.,
+        40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
+        10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
+        35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
+        35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
+        60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
+        25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
+        25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
+        0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
+        40.,65.,0.,5.,15.,20.,55.,30. };
+    static Real a1[60]    /* was [4][15] */ = { 1.,45.,53.,12.,2.,25.,
+        74.,43.,3.,35.,26.,51.,4.,85.,17.,39.,5.,40.,25.,58.,6.,73.,25.,
+        42.,7.,17.,26.,60.,8.,52.,24.,20.,9.,86.,85.,40.,10.,14.,35.,80.,
+        15.,30.,14.,75.,16.,50.,23.,85.,17.,40.,37.,95.,18.,70.,56.,23.,
+        19.,60.,10.,67. };
     static Real d__[15] = { 486.,640.,758.,776.,477.,707.,175.,619.,
-	    627.,614.,475.,377.,524.,468.,529. };
+        627.,614.,475.,377.,524.,468.,529. };
 
     /* System generated locals */
     Real d__1;
@@ -28975,11 +28975,11 @@ L15:
     static int i__, j, l;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -28988,16 +28988,16 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     for (i__ = 12; i__ <= 15; ++i__) {
-	for (j = 1; j <= 15; ++j) {
+    for (j = 1; j <= 15; ++j) {
 /* L19: */
-	    l5_40.gg[i__ - 11 + j * 15 - 16] = -a1[i__ - 11 + (j << 2) - 5];
-	}
+        l5_40.gg[i__ - 11 + j * 15 - 16] = -a1[i__ - 11 + (j << 2) - 5];
+    }
     }
     l20_12.lex = false;
     l20_12.nex = 1;
@@ -29022,77 +29022,77 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL20: */
-	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL11: */
-	l4_11.gf[i__ - 1] = -d__[i__ - 1];
+    l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 12; i__ <= 15; ++i__) {
-	l = i__ - 11;
-	if (! l9_14.index1[l - 1]) {
-	    goto L7;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    l = i__ - 11;
+    if (! l9_14.index1[l - 1]) {
+        goto L7;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
-	    c__ += a1[l + (j << 2) - 5] * l2_11.x[j - 1];
-	}
-	l3_13.g[l - 1] = b[i__ - 1] - c__;
+        c__ += a1[l + (j << 2) - 5] * l2_11.x[j - 1];
+    }
+    l3_13.g[l - 1] = b[i__ - 1] - c__;
 L7:
-	;
+    ;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l9_14.index1[i__ + 3]) {
-	    goto labelL14;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    if (! l9_14.index1[i__ + 3]) {
+        goto labelL14;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* L16: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
-	l3_13.g[i__ + 3] = b[i__ - 1] - c__;
+        d__1 = l2_11.x[j - 1];
+        c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
+    l3_13.g[i__ + 3] = b[i__ - 1] - c__;
 labelL14:
-	;
+    ;
     }
     if (! l9_14.index1[14]) {
-	goto L17;
+    goto L17;
     }
     c__ = 0.;
     for (j = 1; j <= 15; ++j) {
 /* L18: */
 /* Computing 2nd power */
-	d__1 = l2_11.x[j - 1] - 2.;
-	c__ += (Real) j * (d__1 * d__1);
+    d__1 = l2_11.x[j - 1] - 2.;
+    c__ += (Real) j * (d__1 * d__1);
     }
     l3_13.g[14] = c__ / 2. - 193.121;
 L17:
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_14.index2[i__ + 3]) {
-	    goto L22;
-	}
-	for (j = 1; j <= 15; ++j) {
+    if (! l10_14.index2[i__ + 3]) {
+        goto L22;
+    }
+    for (j = 1; j <= 15; ++j) {
 /* L24: */
-	    l5_40.gg[i__ + 4 + j * 15 - 16] = a[i__ + j * 10 - 11] * -2. * 
-		    l2_11.x[j - 1];
-	}
+        l5_40.gg[i__ + 4 + j * 15 - 16] = a[i__ + j * 10 - 11] * -2. * 
+            l2_11.x[j - 1];
+    }
 L22:
-	;
+    ;
     }
     if (! l10_14.index2[14]) {
-	goto L25;
+    goto L25;
     }
     for (j = 1; j <= 15; ++j) {
 /* L26: */
-	l5_40.gg[j * 15 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
+    l5_40.gg[j * 15 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
     }
 L25:
     return 0;
@@ -29103,24 +29103,24 @@ L25:
     /* Initialized data */
 
     static Real b[15] = { 385.,470.,560.,565.,645.,430.,485.,455.,390.,
-	    460.,0.,70.,361.,265.,395. };
-    static Real a[150]	/* was [10][15] */ = { 100.,90.,70.,50.,50.,
-	    40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
-	    10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
-	    35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
-	    35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
-	    60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
-	    25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
-	    25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
-	    0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
-	    40.,65.,0.,5.,15.,20.,55.,30. };
-    static Real a1[60]	/* was [4][15] */ = { 1.,45.,53.,12.,2.,25.,
-	    74.,43.,3.,35.,26.,51.,4.,85.,17.,39.,5.,40.,25.,58.,6.,73.,25.,
-	    42.,7.,17.,26.,60.,8.,52.,24.,20.,9.,86.,85.,40.,10.,14.,35.,80.,
-	    15.,30.,14.,75.,16.,50.,23.,85.,17.,40.,37.,95.,18.,70.,56.,23.,
-	    19.,60.,10.,67. };
+        460.,0.,70.,361.,265.,395. };
+    static Real a[150]    /* was [10][15] */ = { 100.,90.,70.,50.,50.,
+        40.,30.,20.,10.,5.,100.,100.,50.,0.,10.,0.,60.,30.,70.,10.,10.,
+        10.,0.,0.,70.,50.,30.,40.,10.,100.,5.,35.,55.,65.,60.,95.,90.,25.,
+        35.,5.,10.,20.,25.,35.,45.,50.,0.,40.,25.,20.,0.,5.,100.,100.,45.,
+        35.,30.,25.,65.,5.,0.,0.,40.,35.,0.,10.,5.,15.,0.,10.,25.,35.,50.,
+        60.,35.,60.,25.,10.,30.,35.,0.,55.,0.,0.,65.,0.,0.,80.,0.,95.,10.,
+        25.,30.,15.,5.,45.,70.,20.,0.,70.,55.,20.,60.,0.,75.,15.,20.,30.,
+        25.,20.,5.,0.,10.,75.,100.,20.,25.,30.,0.,10.,45.,40.,30.,35.,75.,
+        0.,70.,5.,15.,35.,20.,25.,0.,30.,10.,5.,15.,65.,50.,10.,0.,10.,
+        40.,65.,0.,5.,15.,20.,55.,30. };
+    static Real a1[60]    /* was [4][15] */ = { 1.,45.,53.,12.,2.,25.,
+        74.,43.,3.,35.,26.,51.,4.,85.,17.,39.,5.,40.,25.,58.,6.,73.,25.,
+        42.,7.,17.,26.,60.,8.,52.,24.,20.,9.,86.,85.,40.,10.,14.,35.,80.,
+        15.,30.,14.,75.,16.,50.,23.,85.,17.,40.,37.,95.,18.,70.,56.,23.,
+        19.,60.,10.,67. };
     static Real d__[15] = { 486.,640.,758.,776.,477.,707.,175.,619.,
-	    627.,614.,475.,377.,524.,468.,529. };
+        627.,614.,475.,377.,524.,468.,529. };
 
     /* System generated locals */
     Real d__1;
@@ -29130,11 +29130,11 @@ L25:
     static int i__, j, l;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 15;
@@ -29143,16 +29143,16 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 15; ++i__) {
-	l2_11.x[i__ - 1] = 0.;
-	l12_11.lxu[i__ - 1] = false;
+    l2_11.x[i__ - 1] = 0.;
+    l12_11.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_11.lxl[i__ - 1] = false;
+    l11_11.lxl[i__ - 1] = false;
     }
     for (i__ = 12; i__ <= 15; ++i__) {
-	for (j = 1; j <= 15; ++j) {
+    for (j = 1; j <= 15; ++j) {
 /* L19: */
-	    l5_40.gg[i__ - 11 + j * 15 - 16] = -a1[i__ - 11 + (j << 2) - 5];
-	}
+        l5_40.gg[i__ - 11 + j * 15 - 16] = -a1[i__ - 11 + (j << 2) - 5];
+    }
     }
     l20_12.lex = false;
     l20_12.nex = 1;
@@ -29177,77 +29177,77 @@ labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL20: */
-	l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
+    l6_1.fx -= d__[i__ - 1] * l2_11.x[i__ - 1];
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 15; ++i__) {
 /* labelL11: */
-	l4_11.gf[i__ - 1] = -d__[i__ - 1];
+    l4_11.gf[i__ - 1] = -d__[i__ - 1];
     }
     return 0;
 labelL4:
     for (i__ = 12; i__ <= 15; ++i__) {
-	l = i__ - 11;
-	if (! l9_14.index1[l - 1]) {
-	    goto L7;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    l = i__ - 11;
+    if (! l9_14.index1[l - 1]) {
+        goto L7;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* labelL9: */
-	    c__ += a1[l + (j << 2) - 5] * l2_11.x[j - 1];
-	}
-	l3_13.g[l - 1] = b[i__ - 1] - c__;
+        c__ += a1[l + (j << 2) - 5] * l2_11.x[j - 1];
+    }
+    l3_13.g[l - 1] = b[i__ - 1] - c__;
 L7:
-	;
+    ;
     }
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l9_14.index1[i__ + 3]) {
-	    goto labelL14;
-	}
-	c__ = 0.;
-	for (j = 1; j <= 15; ++j) {
+    if (! l9_14.index1[i__ + 3]) {
+        goto labelL14;
+    }
+    c__ = 0.;
+    for (j = 1; j <= 15; ++j) {
 /* L16: */
 /* Computing 2nd power */
-	    d__1 = l2_11.x[j - 1];
-	    c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
-	}
-	l3_13.g[i__ + 3] = b[i__ - 1] - c__;
+        d__1 = l2_11.x[j - 1];
+        c__ += a[i__ + j * 10 - 11] * (d__1 * d__1);
+    }
+    l3_13.g[i__ + 3] = b[i__ - 1] - c__;
 labelL14:
-	;
+    ;
     }
     if (! l9_14.index1[14]) {
-	goto L17;
+    goto L17;
     }
     c__ = 0.;
     for (j = 1; j <= 15; ++j) {
 /* L18: */
 /* Computing 2nd power */
-	d__1 = l2_11.x[j - 1] - 2.;
-	c__ += (Real) j * (d__1 * d__1);
+    d__1 = l2_11.x[j - 1] - 2.;
+    c__ += (Real) j * (d__1 * d__1);
     }
     l3_13.g[14] = c__ / 2. - 200.;
 L17:
     return 0;
 labelL5:
     for (i__ = 1; i__ <= 10; ++i__) {
-	if (! l10_14.index2[i__ + 3]) {
-	    goto L22;
-	}
-	for (j = 1; j <= 15; ++j) {
+    if (! l10_14.index2[i__ + 3]) {
+        goto L22;
+    }
+    for (j = 1; j <= 15; ++j) {
 /* L24: */
-	    l5_40.gg[i__ + 4 + j * 15 - 16] = a[i__ + j * 10 - 11] * -2. * 
-		    l2_11.x[j - 1];
-	}
+        l5_40.gg[i__ + 4 + j * 15 - 16] = a[i__ + j * 10 - 11] * -2. * 
+            l2_11.x[j - 1];
+    }
 L22:
-	;
+    ;
     }
     if (! l10_14.index2[14]) {
-	goto L25;
+    goto L25;
     }
     for (j = 1; j <= 15; ++j) {
 /* L26: */
-	l5_40.gg[j * 15 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
+    l5_40.gg[j * 15 - 1] = (Real) j * (l2_11.x[j - 1] - 2.);
     }
 L25:
     return 0;
@@ -29264,11 +29264,11 @@ L25:
     static Real zi1, zi2, zi3, psi[11];
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 19;
@@ -29296,24 +29296,24 @@ labelL1:
     l2_20.x[17] = 8e3;
     l2_20.x[18] = .001;
     for (i__ = 1; i__ <= 19; ++i__) {
-	l12_20.lxu[i__ - 1] = true;
-	l11_20.lxl[i__ - 1] = true;
-	l14_24.xu[i__ - 1] = 1e5;
+    l12_20.lxu[i__ - 1] = true;
+    l11_20.lxl[i__ - 1] = true;
+    l14_24.xu[i__ - 1] = 1e5;
 /* labelL6: */
-	l13_24.xl[i__ - 1] = 1e-5;
+    l13_24.xl[i__ - 1] = 1e-5;
     }
     for (i__ = 1; i__ <= 2; ++i__) {
-	l14_24.xu[i__ - 1] = 50.;
+    l14_24.xu[i__ - 1] = 50.;
 /* L7: */
-	l14_24.xu[i__ + 14] = 50.;
+    l14_24.xu[i__ + 14] = 50.;
     }
     for (i__ = 3; i__ <= 6; ++i__) {
 /* labelL9: */
-	l14_24.xu[i__ - 1] = 100.;
+    l14_24.xu[i__ - 1] = 100.;
     }
     for (i__ = 12; i__ <= 15; ++i__) {
 /* labelL10: */
-	l14_24.xu[i__ - 1] = 1.;
+    l14_24.xu[i__ - 1] = 1.;
     }
     l20_20.lex = false;
     l20_20.nex = 1;
@@ -29343,25 +29343,25 @@ labelL2:
     zi1 = pow_dd(&d__1, &c_b3046) * 25.;
     zi2 = l2_20.x[16] * 1.75e5 + pow_dd(&l2_20.x[16], &c_b3047) * 36500.;
     zi3 = l2_20.x[17] * 12.6 + pow_dd(&c_b3048, &c_b3049) * 5.35 / pow_dd(&
-	    l2_20.x[17], &c_b3050);
+        l2_20.x[17], &c_b3050);
     l6_1.fx = (zi1 + zi2 + zi3 + 10950. + (l2_20.x[0] * (l2_20.x[12] - 
-	    l2_20.x[13]) + l2_20.x[1] * (l2_20.x[11] + 1.) - (1. - l2_20.x[18]
-	    ) * 3.) * 1150.) * 1.4;
+        l2_20.x[13]) + l2_20.x[1] * (l2_20.x[11] + 1.) - (1. - l2_20.x[18]
+        ) * 3.) * 1150.) * 1.4;
     l6_1.fx /= 1e4;
 labelL3:
     return 0;
 labelL4:
     if (l9_17.index1[0]) {
-	l3_16.g[0] = 1. - l2_20.x[12] - l2_20.x[13];
+    l3_16.g[0] = 1. - l2_20.x[12] - l2_20.x[13];
     }
     tp390a_(l2_20.x, psi);
     for (i__ = 2; i__ <= 12; ++i__) {
-	if (! l9_17.index1[i__ - 1]) {
-	    goto L8;
-	}
-	l3_16.g[i__ - 1] = psi[i__ - 2];
+    if (! l9_17.index1[i__ - 1]) {
+        goto L8;
+    }
+    l3_16.g[i__ - 1] = psi[i__ - 2];
 L8:
-	;
+    ;
     }
     return 0;
 } /* tp390_ */
@@ -29370,7 +29370,7 @@ int tp390a_(Real *x, Real *psi)
 {
     /* Local variables */
     static Real test, ak, ck, zj1, zj2, zj3, zj4, zj5, zk7, zj8, xz4, 
-	    yz4, zj10, qz12;
+        yz4, zj10, qz12;
 
     /* Parameter adjustments */
     --psi;
@@ -29385,7 +29385,7 @@ int tp390a_(Real *x, Real *psi)
     zj2 = -x[13] * x[1] * yz4;
     psi[2] = zj2 + x[1] * x[7] - x[2] * x[9] * x[12];
     zj3 = (1. - x[19]) * -300. + x[6] * 3. * (1. - x[19]) - x[1] * x[14] * 
-	    xz4;
+        xz4;
     psi[3] = zj3 + x[2] * (x[4] - x[6]) + x[1] * x[6] * x[14];
     zj4 = x[11] * 3. * (1. - x[19]) + x[1] * x[14] * (x[11] - yz4);
     psi[4] = zj4 + x[2] * (x[8] - x[11]);
@@ -29398,14 +29398,14 @@ int tp390a_(Real *x, Real *psi)
     zj8 = x[10] * qz12 - zk7 * yz4;
     psi[8] = zj8 - x[2] * x[9] * (1. - x[12]);
     psi[9] = (1. - x[15]) * 6. * (20. - x[6]) + x[11] * (x[2] - (1. - x[15]) *
-	     3. - x[1] * x[14]) + x[19] * 3. * x[11] - x[10] * qz12;
+         3. - x[1] * x[14]) + x[19] * 3. * x[11] - x[10] * qz12;
     ck = .0013285402597402597;
     test = -ck * x[18] / qz12;
     if (test > 99.) {
-	zj10 = std::sqrt((std::abs(x[10]))) * (float)-2.1 * std::exp(99.);
+    zj10 = std::sqrt((std::abs(x[10]))) * (float)-2.1 * std::exp(99.);
     }
     if (test < 99.) {
-	zj10 = std::sqrt((std::abs(x[10]))) * (float)-2.1 * std::exp(-ck * x[18] / qz12);
+    zj10 = std::sqrt((std::abs(x[10]))) * (float)-2.1 * std::exp(-ck * x[18] / qz12);
     }
     psi[10] = zj10 + (20. - x[6]) * 2.;
     psi[11] = (1. - x[13]) * x[1] - x[12] * x[2] - x[19] * 3.;
@@ -29424,11 +29424,11 @@ int tp390a_(Real *x, Real *psi)
     static Real sum;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL3;
-	case 5:  goto labelL3;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL3;
+    case 5:  goto labelL3;
     }
 labelL1:
     l1_1.n = 30;
@@ -29437,27 +29437,27 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 30; ++i__) {
-	sum = 0.;
-	for (j = 1; j <= 30; ++j) {
-	    if (j == i__) {
-		goto L60;
-	    }
-	    wurz = std::sqrt((Real) i__ / (Real) j);
+    sum = 0.;
+    for (j = 1; j <= 30; ++j) {
+        if (j == i__) {
+        goto L60;
+        }
+        wurz = std::sqrt((Real) i__ / (Real) j);
 /* Computing 5th power */
-	    d__1 = std::sin(std::log(wurz)), d__2 = d__1, d__1 *= d__1;
+        d__1 = std::sin(std::log(wurz)), d__2 = d__1, d__1 *= d__1;
 /* Computing 5th power */
-	    d__3 =std::cos(std::log(wurz)), d__4 = d__3, d__3 *= d__3;
-	    sum += wurz * (d__2 * (d__1 * d__1) + d__4 * (d__3 * d__3));
+        d__3 =std::cos(std::log(wurz)), d__4 = d__3, d__3 *= d__3;
+        sum += wurz * (d__2 * (d__1 * d__1) + d__4 * (d__3 * d__3));
 L60:
-	    ;
-	}
+        ;
+    }
 /* Computing 3rd power */
-	i__1 = i__ - 15;
-	l2_14.x[i__ - 1] = ((Real) (i__1 * (i__1 * i__1)) + sum) * 
-		-2.8742711;
-	l12_14.lxu[i__ - 1] = false;
+    i__1 = i__ - 15;
+    l2_14.x[i__ - 1] = ((Real) (i__1 * (i__1 * i__1)) + sum) * 
+        -2.8742711;
+    l12_14.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_14.lxl[i__ - 1] = false;
+    l11_14.lxl[i__ - 1] = false;
     }
     l20_15.lex = false;
     l20_15.nex = 1;
@@ -29496,29 +29496,29 @@ L60:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 30; ++i__) {
-	sum = 0.;
-	for (j = 1; j <= 30; ++j) {
-	    if (j == i__) {
-		goto L70;
-	    }
+    sum = 0.;
+    for (j = 1; j <= 30; ++j) {
+        if (j == i__) {
+        goto L70;
+        }
 /* Computing 2nd power */
-	    d__1 = l2_14.x[j - 1];
-	    wurz = std::sqrt(d__1 * d__1 + (Real) i__ / (Real) j);
+        d__1 = l2_14.x[j - 1];
+        wurz = std::sqrt(d__1 * d__1 + (Real) i__ / (Real) j);
 /* Computing 5th power */
-	    d__1 = std::sin(std::log(wurz)), d__2 = d__1, d__1 *= d__1;
+        d__1 = std::sin(std::log(wurz)), d__2 = d__1, d__1 *= d__1;
 /* Computing 5th power */
-	    d__3 =std::cos(std::log(wurz)), d__4 = d__3, d__3 *= d__3;
-	    sum += wurz * (d__2 * (d__1 * d__1) + d__4 * (d__3 * d__3));
+        d__3 =std::cos(std::log(wurz)), d__4 = d__3, d__3 *= d__3;
+        sum += wurz * (d__2 * (d__1 * d__1) + d__4 * (d__3 * d__3));
 L70:
-	    ;
-	}
+        ;
+    }
 /* L7: */
 /* Computing 3rd power */
-	i__1 = i__ - 15;
+    i__1 = i__ - 15;
 /* Computing 2nd power */
-	d__1 = l2_14.x[i__ - 1] * 420. + (Real) (i__1 * (i__1 * i__1)) 
-		+ sum;
-	l6_1.fx += d__1 * d__1;
+    d__1 = l2_14.x[i__ - 1] * 420. + (Real) (i__1 * (i__1 * i__1)) 
+        + sum;
+    l6_1.fx += d__1 * d__1;
     }
 labelL3:
     return 0;
@@ -29529,28 +29529,28 @@ labelL3:
 {
     /* Initialized data */
 
-    static Real r1[15]	/* was [3][5] */ = { 1e3,520.,910.,1e3,520.,
-	    910.,1e3,520.,1e3,1100.,600.,1e3,1100.,600.,1e3 };
-    static Real r2[15]	/* was [3][5] */ = { .3,.1,.2,.3,.1,.2,.3,.1,
-	    .2,.3,.1,.2,.3,.1,.2 };
-    static Real ka[15]	/* was [3][5] */ = { 120.,65.,105.,150.,65.,
-	    105.,150.,80.,120.,170.,80.,120.,170.,80.,120. };
-    static Real k1[15]	/* was [3][5] */ = { 150.,75.,140.,150.,75.,
-	    140.,150.,75.,140.,170.,90.,150.,170.,90.,150. };
-    static Real kp[15]	/* was [3][5] */ = { 160.,75.,140.,160.,75.,
-	    140.,160.,75.,140.,180.,90.,150.,180.,90.,150. };
-    static Real k3[15]	/* was [3][5] */ = { .02,.01,.015,.2,.1,.15,
-	    .25,.1,.15,.25,.15,.15,.25,.15,.15 };
-    static Real kl1[15]	/* was [3][5] */ = { .005,.005,.005,.05,.05,
-	    .05,.06,.06,.06,.06,.06,.06,.06,.06,.06 };
-    static Real kl2[15]	/* was [3][5] */ = { 80.,45.,75.,80.,45.,75.,
-	    100.,45.,90.,100.,50.,90.,100.,50.,90. };
-    static Real h__[15]	/* was [3][5] */ = { 100.,280.,520.,180.,400.,
-	    400.,220.,450.,500.,150.,450.,630.,100.,400.,600. };
-    static Real t[9]	/* was [3][3] */ = { .6,.3,.36,.4,.1,.08,.1,
-	    .12,.06 };
-    static Real b[15]	/* was [3][5] */ = { 170.,170.,180.,170.,170.,
-	    180.,170.,170.,180.,170.,170.,180.,170.,170.,180. };
+    static Real r1[15]    /* was [3][5] */ = { 1e3,520.,910.,1e3,520.,
+        910.,1e3,520.,1e3,1100.,600.,1e3,1100.,600.,1e3 };
+    static Real r2[15]    /* was [3][5] */ = { .3,.1,.2,.3,.1,.2,.3,.1,
+        .2,.3,.1,.2,.3,.1,.2 };
+    static Real ka[15]    /* was [3][5] */ = { 120.,65.,105.,150.,65.,
+        105.,150.,80.,120.,170.,80.,120.,170.,80.,120. };
+    static Real k1[15]    /* was [3][5] */ = { 150.,75.,140.,150.,75.,
+        140.,150.,75.,140.,170.,90.,150.,170.,90.,150. };
+    static Real kp[15]    /* was [3][5] */ = { 160.,75.,140.,160.,75.,
+        140.,160.,75.,140.,180.,90.,150.,180.,90.,150. };
+    static Real k3[15]    /* was [3][5] */ = { .02,.01,.015,.2,.1,.15,
+        .25,.1,.15,.25,.15,.15,.25,.15,.15 };
+    static Real kl1[15]    /* was [3][5] */ = { .005,.005,.005,.05,.05,
+        .05,.06,.06,.06,.06,.06,.06,.06,.06,.06 };
+    static Real kl2[15]    /* was [3][5] */ = { 80.,45.,75.,80.,45.,75.,
+        100.,45.,90.,100.,50.,90.,100.,50.,90. };
+    static Real h__[15]    /* was [3][5] */ = { 100.,280.,520.,180.,400.,
+        400.,220.,450.,500.,150.,450.,630.,100.,400.,600. };
+    static Real t[9]    /* was [3][3] */ = { .6,.3,.36,.4,.1,.08,.1,
+        .12,.06 };
+    static Real b[15]    /* was [3][5] */ = { 170.,170.,180.,170.,170.,
+        180.,170.,170.,180.,170.,170.,180.,170.,170.,180. };
 
     /* System generated locals */
     int i__1;
@@ -29561,11 +29561,11 @@ labelL3:
     static Real sum, sum1;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 30;
@@ -29604,10 +29604,10 @@ labelL1:
     l2_14.x[28] = 250.;
     l2_14.x[29] = 510.;
     for (i__ = 1; i__ <= 30; ++i__) {
-	l12_14.lxu[i__ - 1] = false;
-	l11_14.lxl[i__ - 1] = true;
+    l12_14.lxu[i__ - 1] = false;
+    l11_14.lxl[i__ - 1] = true;
 /* labelL6: */
-	l13_17.xl[i__ - 1] = 0.;
+    l13_17.xl[i__ - 1] = 0.;
     }
     l20_15.lex = false;
     l20_15.nex = 1;
@@ -29646,74 +29646,74 @@ labelL1:
 labelL2:
     l6_1.fx = 0.;
     for (i__ = 1; i__ <= 5; ++i__) {
-	sum = 0.;
-	for (j = 1; j <= 3; ++j) {
-	    sum1 = 0.;
-	    i__1 = i__;
-	    for (k = 1; k <= i__1; ++k) {
+    sum = 0.;
+    for (j = 1; j <= 3; ++j) {
+        sum1 = 0.;
+        i__1 = i__;
+        for (k = 1; k <= i__1; ++k) {
 /* L72: */
-		sum1 = sum1 + l2_14.x[j + 12 + k * 3 - 1] - l2_14.x[j - 3 + k 
-			* 3 - 1];
-	    }
+        sum1 = sum1 + l2_14.x[j + 12 + k * 3 - 1] - l2_14.x[j - 3 + k 
+            * 3 - 1];
+        }
 /* L71: */
 /* Computing 2nd power */
-	    d__1 = l2_14.x[(i__ - 1) * 3 + j - 1];
+        d__1 = l2_14.x[(i__ - 1) * 3 + j - 1];
 /* Computing 2nd power */
-	    d__2 = l2_14.x[i__ * 3 + 12 + j - 1] - l2_14.x[j + i__ * 3 - 4];
-	    sum = sum + l2_14.x[(i__ - 1) * 3 + j - 1] * (r1[j + i__ * 3 - 4] 
-		    - ka[j + i__ * 3 - 4]) - d__1 * d__1 * r2[j + i__ * 3 - 4]
-		     - l2_14.x[i__ * 3 + 12 + j - 1] * (k1[j + i__ * 3 - 4] + 
-		    kp[j + i__ * 3 - 4]) - d__2 * d__2 * (k3[j + i__ * 3 - 4] 
-		    + kl1[j + i__ * 3 - 4]) - kl2[j + i__ * 3 - 4] * sum1;
-	}
+        d__2 = l2_14.x[i__ * 3 + 12 + j - 1] - l2_14.x[j + i__ * 3 - 4];
+        sum = sum + l2_14.x[(i__ - 1) * 3 + j - 1] * (r1[j + i__ * 3 - 4] 
+            - ka[j + i__ * 3 - 4]) - d__1 * d__1 * r2[j + i__ * 3 - 4]
+             - l2_14.x[i__ * 3 + 12 + j - 1] * (k1[j + i__ * 3 - 4] + 
+            kp[j + i__ * 3 - 4]) - d__2 * d__2 * (k3[j + i__ * 3 - 4] 
+            + kl1[j + i__ * 3 - 4]) - kl2[j + i__ * 3 - 4] * sum1;
+    }
 /* L70: */
-	l6_1.fx -= sum;
+    l6_1.fx -= sum;
     }
     l6_1.fx *= .001;
 labelL3:
     return 0;
 labelL4:
     for (i__ = 1; i__ <= 5; ++i__) {
-	for (j = 1; j <= 3; ++j) {
-	    l = (i__ - 1) * 3 + j;
+    for (j = 1; j <= 3; ++j) {
+        l = (i__ - 1) * 3 + j;
 /* L8: */
-	    if (l9_19.index1[l - 1]) {
-		l3_18.g[l - 1] = h__[j + i__ * 3 - 4] - l2_14.x[l - 1];
-	    }
-	}
+        if (l9_19.index1[l - 1]) {
+        l3_18.g[l - 1] = h__[j + i__ * 3 - 4] - l2_14.x[l - 1];
+        }
+    }
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-	for (j = 1; j <= 3; ++j) {
-	    l = (i__ - 1) * 3 + j + 15;
-	    if (! l9_19.index1[l - 1]) {
-		goto labelL9;
-	    }
-	    l3_18.g[l - 1] = b[j + i__ * 3 - 4];
-	    for (k = 1; k <= 3; ++k) {
+    for (j = 1; j <= 3; ++j) {
+        l = (i__ - 1) * 3 + j + 15;
+        if (! l9_19.index1[l - 1]) {
+        goto labelL9;
+        }
+        l3_18.g[l - 1] = b[j + i__ * 3 - 4];
+        for (k = 1; k <= 3; ++k) {
 /* labelL10: */
-		l3_18.g[l - 1] -= t[j + k * 3 - 4] * l2_14.x[i__ * 3 + 12 + k 
-			- 1];
-	    }
+        l3_18.g[l - 1] -= t[j + k * 3 - 4] * l2_14.x[i__ * 3 + 12 + k 
+            - 1];
+        }
 labelL9:
-	    ;
-	}
+        ;
+    }
     }
     for (i__ = 1; i__ <= 5; ++i__) {
-	for (j = 1; j <= 3; ++j) {
-	    l = (i__ - 1) * 3 + j + 30;
-	    if (! l9_19.index1[l - 1]) {
-		goto labelL11;
-	    }
-	    l3_18.g[l - 1] = 0.;
-	    i__1 = i__;
-	    for (k = 1; k <= i__1; ++k) {
+    for (j = 1; j <= 3; ++j) {
+        l = (i__ - 1) * 3 + j + 30;
+        if (! l9_19.index1[l - 1]) {
+        goto labelL11;
+        }
+        l3_18.g[l - 1] = 0.;
+        i__1 = i__;
+        for (k = 1; k <= i__1; ++k) {
 /* labelL12: */
-		l3_18.g[l - 1] = l3_18.g[l - 1] + l2_14.x[k * 3 + 12 + j - 1] 
-			- l2_14.x[j - 3 + k * 3 - 1];
-	    }
+        l3_18.g[l - 1] = l3_18.g[l - 1] + l2_14.x[k * 3 + 12 + j - 1] 
+            - l2_14.x[j - 3 + k * 3 - 1];
+        }
 labelL11:
-	    ;
-	}
+        ;
+    }
     }
 labelL5:
     return 0;
@@ -29729,11 +29729,11 @@ labelL5:
     static Real phi[1];
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 48;
@@ -29743,29 +29743,29 @@ labelL1:
     l1_1.nenl = 0;
     for (i__ = 1; i__ <= 24; ++i__) {
 /* labelL6: */
-	l2_21.x[i__ - 1] = 1.;
+    l2_21.x[i__ - 1] = 1.;
     }
     for (i__ = 25; i__ <= 30; ++i__) {
 /* L7: */
-	l2_21.x[i__ - 1] = 1.3;
+    l2_21.x[i__ - 1] = 1.3;
     }
     for (i__ = 31; i__ <= 48; ++i__) {
 /* L8: */
-	l2_21.x[i__ - 1] = 1.;
+    l2_21.x[i__ - 1] = 1.;
     }
     for (i__ = 1; i__ <= 48; ++i__) {
-	l11_21.lxl[i__ - 1] = true;
+    l11_21.lxl[i__ - 1] = true;
 /* labelL9: */
-	l13_25.xl[i__ - 1] = .002;
+    l13_25.xl[i__ - 1] = .002;
     }
     for (i__ = 1; i__ <= 24; ++i__) {
-	l12_21.lxu[i__ - 1] = true;
+    l12_21.lxu[i__ - 1] = true;
 /* labelL10: */
-	l14_25.xu[i__ - 1] = 2.;
+    l14_25.xu[i__ - 1] = 2.;
     }
     for (i__ = 25; i__ <= 48; ++i__) {
 /* labelL11: */
-	l12_21.lxu[i__ - 1] = false;
+    l12_21.lxu[i__ - 1] = false;
     }
     l20_21.lex = false;
     l20_21.nex = 1;
@@ -29822,50 +29822,50 @@ labelL1:
 labelL2:
     e = 0.;
     for (i__ = 1; i__ <= 12; ++i__) {
-	c__ = 1. - l2_21.x[i__ - 1];
+    c__ = 1. - l2_21.x[i__ - 1];
 /* L100: */
-	e += c__ * 10. * c__;
+    e += c__ * 10. * c__;
     }
     for (i__ = 25; i__ <= 36; ++i__) {
-	c__ = l2_21.x[i__ - 1] - 1.;
+    c__ = l2_21.x[i__ - 1] - 1.;
 /* L120: */
-	e += (c__ * 2. * (c__ + std::sqrt(c__ * c__ + .1)) + .1) * 1e3 / 4.;
+    e += (c__ * 2. * (c__ + std::sqrt(c__ * c__ + .1)) + .1) * 1e3 / 4.;
     }
     for (i__ = 37; i__ <= 42; ++i__) {
-	c__ = l2_21.x[i__ - 1] - 1.;
+    c__ = l2_21.x[i__ - 1] - 1.;
 /* L140: */
-	e += (c__ * 2. * (c__ + std::sqrt(c__ * c__ + .1)) + .1) * 2e3 / 4.;
+    e += (c__ * 2. * (c__ + std::sqrt(c__ * c__ + .1)) + .1) * 2e3 / 4.;
     }
     for (i__ = 43; i__ <= 48; ++i__) {
 /* L160: */
-	e += l2_21.x[i__ - 1] * 100.;
+    e += l2_21.x[i__ - 1] * 100.;
     }
     l6_1.fx = e / 1e3;
 labelL3:
     return 0;
 labelL4:
     if (! l9_4.index1[0]) {
-	goto labelL12;
+    goto labelL12;
     }
     tp393b_(l2_21.x, phi);
     l3_3.g[0] = phi[0];
 labelL12:
     if (! l9_4.index1[1]) {
-	goto labelL14;
+    goto labelL14;
     }
     l3_3.g[1] = 12.;
     for (i__ = 1; i__ <= 12; ++i__) {
 /* labelL13: */
-	l3_3.g[1] -= l2_21.x[i__ - 1];
+    l3_3.g[1] -= l2_21.x[i__ - 1];
     }
 labelL14:
     if (! l9_4.index1[2]) {
-	goto labelL5;
+    goto labelL5;
     }
     l3_3.g[2] = 12.;
     for (i__ = 1; i__ <= 12; ++i__) {
 /* L15: */
-	l3_3.g[2] -= l2_21.x[i__ + 11];
+    l3_3.g[2] -= l2_21.x[i__ + 11];
     }
 labelL5:
     return 0;
@@ -29877,7 +29877,7 @@ labelL5:
     /* Initialized data */
 
     static Real a[18] = { .9,.8,1.1,1.,.7,1.1,1.,1.,1.1,.9,.8,1.2,.9,
-	    1.2,1.2,1.,1.,.9 };
+        1.2,1.2,1.,1.,.9 };
 
     static int i__;
     static Real r__, u[18];
@@ -29891,39 +29891,39 @@ labelL5:
     /* Function Body */
 /*     1ST TIER OF GASFIERS */
     for (i__ = 1; i__ <= 6; ++i__) {
-	k1 = i__ + 24;
-	k2 = i__ + 42;
-	k3 = i__ + 12;
-	alp = x[k1] * x[k1] * a[i__ - 1] * 2. * x[k2] / (x[k2] + 1.) * x[k3];
+    k1 = i__ + 24;
+    k2 = i__ + 42;
+    k3 = i__ + 12;
+    alp = x[k1] * x[k1] * a[i__ - 1] * 2. * x[k2] / (x[k2] + 1.) * x[k3];
 /* labelL20: */
-	u[i__ - 1] = x[i__] * x[i__] / (x[i__] + alp);
+    u[i__ - 1] = x[i__] * x[i__] / (x[i__] + alp);
     }
 /*     2ND TIER OF GASFIERS */
     for (i__ = 7; i__ <= 12; ++i__) {
-	k1 = i__ + 24;
-	k2 = i__ + 36;
-	k3 = i__ + 12;
-	alp = x[k1] * x[k1] * a[i__ - 1] * 2. * x[k2] / (x[k2] + 1.) * x[k3];
-	sum = x[i__] + u[i__ - 7];
+    k1 = i__ + 24;
+    k2 = i__ + 36;
+    k3 = i__ + 12;
+    alp = x[k1] * x[k1] * a[i__ - 1] * 2. * x[k2] / (x[k2] + 1.) * x[k3];
+    sum = x[i__] + u[i__ - 7];
 /* L40: */
-	u[i__ - 1] = sum * sum / (sum + alp);
+    u[i__ - 1] = sum * sum / (sum + alp);
     }
 /*     1ST TIER OF METHANATORS */
     for (i__ = 13; i__ <= 15; ++i__) {
-	k1 = ((i__ - 10) << 1) + 1;
-	k2 = i__ + 24;
-	alp = x[k2] * x[k2] * a[i__ - 1];
-	sum = u[k1 - 1] + u[k1];
+    k1 = ((i__ - 10) << 1) + 1;
+    k2 = i__ + 24;
+    alp = x[k2] * x[k2] * a[i__ - 1];
+    sum = u[k1 - 1] + u[k1];
 /* L60: */
-	u[i__ - 1] = sum * sum / (sum + alp);
+    u[i__ - 1] = sum * sum / (sum + alp);
     }
 /*     2ND TIER OF METHANATORS */
     for (i__ = 16; i__ <= 18; ++i__) {
-	k1 = i__ + 24;
-	alp = x[k1] * x[k1] * a[i__ - 1];
-	sum = u[i__ - 4];
+    k1 = i__ + 24;
+    alp = x[k1] * x[k1] * a[i__ - 1];
+    sum = u[i__ - 4];
 /* L80: */
-	u[i__ - 1] = sum * sum / (sum + alp);
+    u[i__ - 1] = sum * sum / (sum + alp);
     }
     r__ = u[15] + u[16] + u[17];
     phi[1] = 1.5 - r__;
@@ -29940,11 +29940,11 @@ labelL5:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 20;
@@ -29953,10 +29953,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 20; ++i__) {
-	l2_13.x[i__ - 1] = 2.;
-	l12_13.lxu[i__ - 1] = false;
+    l2_13.x[i__ - 1] = 2.;
+    l12_13.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_13.lxl[i__ - 1] = false;
+    l11_13.lxl[i__ - 1] = false;
     }
     l20_14.lex = false;
     l20_14.nex = 1;
@@ -29987,42 +29987,42 @@ labelL2:
     for (i__ = 1; i__ <= 20; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ - 1];
+    d__1 = l2_13.x[i__ - 1];
 /* Computing 4th power */
-	d__2 = l2_13.x[i__ - 1], d__2 *= d__2;
-	l6_1.fx += (Real) i__ * (d__1 * d__1 + d__2 * d__2);
+    d__2 = l2_13.x[i__ - 1], d__2 *= d__2;
+    l6_1.fx += (Real) i__ * (d__1 * d__1 + d__2 * d__2);
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 20; ++i__) {
 /* labelL9: */
 /* Computing 3rd power */
-	d__1 = l2_13.x[i__ - 1];
-	l4_13.gf[i__ - 1] = (Real) i__ * (l2_13.x[i__ - 1] * 2. + d__1 *
-		 (d__1 * d__1) * 4.);
+    d__1 = l2_13.x[i__ - 1];
+    l4_13.gf[i__ - 1] = (Real) i__ * (l2_13.x[i__ - 1] * 2. + d__1 *
+         (d__1 * d__1) * 4.);
     }
     return 0;
 labelL4:
     if (! l9_2.index1[0]) {
-	goto labelL10;
+    goto labelL10;
     }
     l3_1.g[0] = 0.;
     for (i__ = 1; i__ <= 20; ++i__) {
 /* labelL11: */
 /* Computing 2nd power */
-	d__1 = l2_13.x[i__ - 1];
-	l3_1.g[0] += d__1 * d__1;
+    d__1 = l2_13.x[i__ - 1];
+    l3_1.g[0] += d__1 * d__1;
     }
     l3_1.g[0] += -1.;
 labelL10:
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto labelL12;
+    goto labelL12;
     }
     for (i__ = 1; i__ <= 20; ++i__) {
 /* labelL13: */
-	l5_13.gg[i__ - 1] = l2_13.x[i__ - 1] * 2.;
+    l5_13.gg[i__ - 1] = l2_13.x[i__ - 1] * 2.;
     }
 labelL12:
     return 0;
@@ -30037,11 +30037,11 @@ labelL12:
     static int i__;
 
     switch ((int)*mode) {
-	case 1:  goto labelL1;
-	case 2:  goto labelL2;
-	case 3:  goto labelL3;
-	case 4:  goto labelL4;
-	case 5:  goto labelL5;
+    case 1:  goto labelL1;
+    case 2:  goto labelL2;
+    case 3:  goto labelL3;
+    case 4:  goto labelL4;
+    case 5:  goto labelL5;
     }
 labelL1:
     l1_1.n = 50;
@@ -30050,10 +30050,10 @@ labelL1:
     l1_1.neli = 0;
     l1_1.nenl = 1;
     for (i__ = 1; i__ <= 50; ++i__) {
-	l2_15.x[i__ - 1] = 2.;
-	l12_15.lxu[i__ - 1] = false;
+    l2_15.x[i__ - 1] = 2.;
+    l12_15.lxu[i__ - 1] = false;
 /* labelL6: */
-	l11_15.lxl[i__ - 1] = false;
+    l11_15.lxl[i__ - 1] = false;
     }
     l20_16.lex = false;
     l20_16.nex = 1;
@@ -30114,43 +30114,43 @@ labelL2:
     for (i__ = 1; i__ <= 50; ++i__) {
 /* L8: */
 /* Computing 2nd power */
-	d__1 = l2_15.x[i__ - 1];
+    d__1 = l2_15.x[i__ - 1];
 /* Computing 4th power */
-	d__2 = l2_15.x[i__ - 1], d__2 *= d__2;
-	l6_1.fx += (Real) i__ * (d__1 * d__1 + d__2 * d__2);
+    d__2 = l2_15.x[i__ - 1], d__2 *= d__2;
+    l6_1.fx += (Real) i__ * (d__1 * d__1 + d__2 * d__2);
     }
     return 0;
 labelL3:
     for (i__ = 1; i__ <= 50; ++i__) {
 /* Computing 3rd power */
-	d__1 = l2_15.x[i__ - 1];
-	l4_15.gf[i__ - 1] = (Real) i__ * (l2_15.x[i__ - 1] * 2. + d__1 *
-		 (d__1 * d__1) * 4.);
+    d__1 = l2_15.x[i__ - 1];
+    l4_15.gf[i__ - 1] = (Real) i__ * (l2_15.x[i__ - 1] * 2. + d__1 *
+         (d__1 * d__1) * 4.);
 /* labelL9: */
-	l4_15.gf[i__ - 1] = l4_15.gf[i__ - 1];
+    l4_15.gf[i__ - 1] = l4_15.gf[i__ - 1];
     }
     return 0;
 labelL4:
     if (! l9_2.index1[0]) {
-	goto labelL10;
+    goto labelL10;
     }
     l3_1.g[0] = 0.;
     for (i__ = 1; i__ <= 50; ++i__) {
 /* labelL11: */
 /* Computing 2nd power */
-	d__1 = l2_15.x[i__ - 1];
-	l3_1.g[0] += d__1 * d__1;
+    d__1 = l2_15.x[i__ - 1];
+    l3_1.g[0] += d__1 * d__1;
     }
     l3_1.g[0] += -1.;
 labelL10:
     return 0;
 labelL5:
     if (! l10_2.index2[0]) {
-	goto labelL12;
+    goto labelL12;
     }
     for (i__ = 1; i__ <= 50; ++i__) {
 /* labelL13: */
-	l5_16.gg[i__ - 1] = l2_15.x[i__ - 1] * 2.;
+    l5_16.gg[i__ - 1] = l2_15.x[i__ - 1] * 2.;
     }
 labelL12:
     return 0;
@@ -30171,7 +30171,7 @@ Real gleich_(Real *p)
 labelL2:
     f = y - *p - std::atan(1. / y);
     if (std::abs(f) <= eps) {
-	goto labelL1;
+    goto labelL1;
     }
     a = y * y + 1.;
     a = (a + 1.) / a;
@@ -30182,9 +30182,9 @@ labelL1:
     d__1 = eps;
     eps2 = d__1 * d__1;
     if (y > eps2) {
-	ret_val = y;
+    ret_val = y;
     } else {
-	ret_val = eps2;
+    ret_val = eps2;
     }
     return ret_val;
 } /* gleich_ */
@@ -30204,19 +30204,19 @@ Real norint_(Real *x)
     /* Initialized data */
 
     static Real p1[9] = { 3723.5079815548067,7113.6632469540499,
-	    6758.2169641104859,4032.2670108300497,1631.7602687537147,
-	    456.26145870609263,86.082762211948595,10.064858974909542,
-	    .56418958676181361 };
+        6758.2169641104859,4032.2670108300497,1631.7602687537147,
+        456.26145870609263,86.082762211948595,10.064858974909542,
+        .56418958676181361 };
     static Real q1[10] = { 3723.5079815548065,11315.192081854405,
-	    15802.535999402043,13349.346561284457,7542.4795101934758,
-	    2968.0049014823087,817.62238630454408,153.07771075036222,
-	    17.839498439139557,1. };
+        15802.535999402043,13349.346561284457,7542.4795101934758,
+        2968.0049014823087,817.62238630454408,153.07771075036222,
+        17.839498439139557,1. };
     static Real p2[6] = { 2.9788656263939929,7.4097406059647418,
-	    6.1602098531096305,5.0190497267842675,1.275366644729966,
-	    .56418958354775507 };
+        6.1602098531096305,5.0190497267842675,1.275366644729966,
+        .56418958354775507 };
     static Real q2[7] = { 3.3690752069827528,9.6089653271927879,
-	    17.081440747466004,12.048951927855129,9.3960340162350542,
-	    2.260528520767327,1. };
+        17.081440747466004,12.048951927855129,9.3960340162350542,
+        2.260528520767327,1. };
     static Real sqrt2 = 1.41421356237390505;
     static Real rsqrtpi = .56418958354775629;
 
@@ -30232,55 +30232,55 @@ Real norint_(Real *x)
 
     xabs = std::abs(*x);
     if (xabs > .5) {
-	if (xabs > 8.) {
-	    if (xabs > 100.) {
-		erfc = 0.;
-	    } else {
-		arg = xabs / sqrt2;
+    if (xabs > 8.) {
+        if (xabs > 100.) {
+        erfc = 0.;
+        } else {
+        arg = xabs / sqrt2;
 /* Computing 2nd power */
-		d__1 = arg;
-		erfc = (((((p2[5] * arg + p2[4]) * arg + p2[3]) * arg + p2[2])
-			 * arg + p2[1]) * arg + p2[0]) / ((((((arg + q2[5]) * 
-			arg + q2[4]) * arg + q2[3]) * arg + q2[2]) * arg + q2[
-			1]) * arg + q2[0]) * std::exp(-(d__1 * d__1));
-	    }
-	} else {
-	    arg = xabs / sqrt2;
-/* Computing 2nd power */
-	    d__1 = arg;
-	    erfc = ((((((((p1[8] * arg + p1[7]) * arg + p1[6]) * arg + p1[5]) 
-		    * arg + p1[4]) * arg + p1[3]) * arg + p1[2]) * arg + p1[1]
-		    ) * arg + p1[0]) / (((((((((arg + q1[8]) * arg + q1[7]) * 
-		    arg + q1[6]) * arg + q1[5]) * arg + q1[4]) * arg + q1[3]) 
-		    * arg + q1[2]) * arg + q1[1]) * arg + q1[0]) * std::exp(-(d__1 
-		    * d__1));
-	}
-	if (*x < 0.) {
-	    ret_val = erfc * .5;
-	    return ret_val;
-	} else {
-	    ret_val = (2. - erfc) * .5;
-	    return ret_val;
-	}
+        d__1 = arg;
+        erfc = (((((p2[5] * arg + p2[4]) * arg + p2[3]) * arg + p2[2])
+             * arg + p2[1]) * arg + p2[0]) / ((((((arg + q2[5]) * 
+            arg + q2[4]) * arg + q2[3]) * arg + q2[2]) * arg + q2[
+            1]) * arg + q2[0]) * std::exp(-(d__1 * d__1));
+        }
     } else {
-	arg = xabs / sqrt2;
+        arg = xabs / sqrt2;
 /* Computing 2nd power */
-	d__1 = arg;
-	arg2 = d__1 * d__1;
-	erf = arg * 2. * rsqrtpi * ((((((((((arg2 / 210. - 
-		.052631578947368418) * arg2 / 9. + .058823529411764705) * 
-		arg2 / 8. - .066666666666666666) * arg2 / 7. + 
-		.076923076923076927) * arg2 / 6. - .090909090909090912) * 
-		arg2 / 5. + .1111111111111111) * arg2 / 4. - 
-		.14285714285714285) * arg2 / 3. + .20000000000000001) * arg2 /
-		 2. - .33333333333333331) * arg2 + 1.);
-	if (*x >= 0.) {
-	    ret_val = (erf + 1.) * .5;
-	    return ret_val;
-	} else {
-	    ret_val = (1. - erf) * .5;
-	    return ret_val;
-	}
+        d__1 = arg;
+        erfc = ((((((((p1[8] * arg + p1[7]) * arg + p1[6]) * arg + p1[5]) 
+            * arg + p1[4]) * arg + p1[3]) * arg + p1[2]) * arg + p1[1]
+            ) * arg + p1[0]) / (((((((((arg + q1[8]) * arg + q1[7]) * 
+            arg + q1[6]) * arg + q1[5]) * arg + q1[4]) * arg + q1[3]) 
+            * arg + q1[2]) * arg + q1[1]) * arg + q1[0]) * std::exp(-(d__1 
+            * d__1));
+    }
+    if (*x < 0.) {
+        ret_val = erfc * .5;
+        return ret_val;
+    } else {
+        ret_val = (2. - erfc) * .5;
+        return ret_val;
+    }
+    } else {
+    arg = xabs / sqrt2;
+/* Computing 2nd power */
+    d__1 = arg;
+    arg2 = d__1 * d__1;
+    erf = arg * 2. * rsqrtpi * ((((((((((arg2 / 210. - 
+        .052631578947368418) * arg2 / 9. + .058823529411764705) * 
+        arg2 / 8. - .066666666666666666) * arg2 / 7. + 
+        .076923076923076927) * arg2 / 6. - .090909090909090912) * 
+        arg2 / 5. + .1111111111111111) * arg2 / 4. - 
+        .14285714285714285) * arg2 / 3. + .20000000000000001) * arg2 /
+         2. - .33333333333333331) * arg2 + 1.);
+    if (*x >= 0.) {
+        ret_val = (erf + 1.) * .5;
+        return ret_val;
+    } else {
+        ret_val = (1. - erf) * .5;
+        return ret_val;
+    }
     }
     return ret_val;
 } /* norint_ */

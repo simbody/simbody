@@ -142,7 +142,7 @@ public:
 
     /** Alternate signature provided to implement the generic Function_ 
     interface expects a one-element Vector for the independent variable. **/
-    T calcValue(const Vector& x) const OVERRIDE_11 {
+    T calcValue(const Vector& x) const override {
         assert(x.size() == 1);
         return calcValue(x[0]);
     }
@@ -153,7 +153,7 @@ public:
     derivComponents should be 0; only its length determines the order of the 
     derivative to calculate. **/
     T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
-        OVERRIDE_11
+        override
     {   assert(x.size() == 1);
         return calcDerivative((int)derivComponents.size(), x[0]); }
     /** For the Function_ style interface, this provides compatibility 
@@ -164,9 +164,9 @@ public:
         return calcDerivative((int)derivComponents.size(), x[0]); }
 
     /** Required by the Function_ interface. **/
-    int getArgumentSize() const OVERRIDE_11 {return 1;}
+    int getArgumentSize() const override {return 1;}
     /** Required by the Function_ interface. **/
-    int getMaxDerivativeOrder() const OVERRIDE_11 
+    int getMaxDerivativeOrder() const override 
     {   return std::numeric_limits<int>::max(); }
 
 private:

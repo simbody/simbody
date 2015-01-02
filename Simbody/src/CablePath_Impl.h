@@ -602,20 +602,20 @@ public:
     void getContactPointsOnObstacle(const State& state, 
                                     const PathInstanceInfo& instInfo,
                                     const PathPosEntry& posEntry,
-                                    Vec3& P_S, Vec3& Q_S) const OVERRIDE_11
+                                    Vec3& P_S, Vec3& Q_S) const override
     {
         P_S = Q_S = Vec3(0);
     }
 
     Real getSegmentLength(const State& state,
                           const PathInstanceInfo& instInfo,
-                          const PathPosEntry& posInfo) const OVERRIDE_11
+                          const PathPosEntry& posInfo) const override
     {   return 0; } // via point has no segment
 
     Real getSegmentLengthDot( const State& state,
                               const PathInstanceInfo& instInfo,
                               const PathPosEntry& posInfo,
-                              const PathVelEntry& velInfo) const OVERRIDE_11
+                              const PathVelEntry& velInfo) const override
     {   return 0; } // via point has no segment
 };
 
@@ -642,7 +642,7 @@ public:
     void getContactPointsOnObstacle(const State& state, 
                                     const PathInstanceInfo& instInfo,
                                     const PathPosEntry& ppe,
-                                    Vec3& P_S, Vec3& Q_S) const OVERRIDE_11
+                                    Vec3& P_S, Vec3& Q_S) const override
     {
         const ActiveSurfaceIndex asx   = ppe.mapToActiveSurface[index];
         const int                xSlot = ppe.mapToCoords[index];
@@ -653,7 +653,7 @@ public:
 
     Real getSegmentLength(const State& state,
                           const PathInstanceInfo& instInfo,
-                          const PathPosEntry& ppe) const OVERRIDE_11
+                          const PathPosEntry& ppe) const override
     {   const ActiveSurfaceIndex asx = ppe.mapToActiveSurface[index];
         assert(asx.isValid());
         const Geodesic& geod = ppe.geodesics[asx];
@@ -664,7 +664,7 @@ public:
     Real getSegmentLengthDot( const State& state,
                               const PathInstanceInfo& instInfo,
                               const PathPosEntry& ppe,
-                              const PathVelEntry& pve) const OVERRIDE_11
+                              const PathVelEntry& pve) const override
     {   const ActiveSurfaceIndex asx   = ppe.mapToActiveSurface[index];
         const int                xSlot = ppe.mapToCoords[index];
         assert(asx.isValid() && xSlot >= 0);
@@ -754,7 +754,7 @@ public:
 private:
 friend class CableObstacle::Surface;
 
-    ContactGeometry  	surface;
+    ContactGeometry      surface;
     Vec3                nearPointInS; // Cartesian location of N, in S frame
     Vec3                xPhint, xQhint;
 };

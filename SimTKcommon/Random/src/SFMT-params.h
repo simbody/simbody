@@ -55,10 +55,10 @@
 */
 
 /** These definitions are part of a 128-bit period certification vector.
-#define PARITY1	0x00000001U
-#define PARITY2	0x00000000U
-#define PARITY3	0x00000000U
-#define PARITY4	0xc98e126aU
+#define PARITY1    0x00000001U
+#define PARITY2    0x00000000U
+#define PARITY3    0x00000000U
+#define PARITY4    0xc98e126aU
 */
 
 #if MEXP == 607

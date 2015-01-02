@@ -40,27 +40,27 @@
 namespace SimTK {
 
 namespace Exception {
-	
-// SimTK::Exception::Base	
+    
+// SimTK::Exception::Base    
 class Base : public std::exception {
 public:
-	explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
+    explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
       : fileName(fn), lineNo(ln) { } 
-	virtual ~Base() throw() { }
-	const std::string& getMessage()     const { return msg; }
+    virtual ~Base() throw() { }
+    const std::string& getMessage()     const { return msg; }
     const std::string& getMessageText() const { return text; }
 
     // override virtual function from std::exception
     const char* what() const throw() {return getMessage().c_str();}
 protected:
-	void setMessage(const std::string& msgin) {
+    void setMessage(const std::string& msgin) {
         text = msgin;
         msg = "SimTK Exception thrown at " + where() + ":\n  " + msgin;
     }
 private:
-	std::string	fileName;	// where the exception was thrown
-	int		    lineNo;	
-	std::string	msg;		// a message formatted for display by catcher
+    std::string    fileName;    // where the exception was thrown
+    int            lineNo;    
+    std::string    msg;        // a message formatted for display by catcher
     std::string text;      // the original passed-in text
     
     static std::string shortenFileName(const std::string& fn) 
@@ -68,8 +68,8 @@ private:
         if (pos+1>=fn.size()) pos=0;
         return std::string(fn,(int)(pos+1),(int)(fn.size()-(pos+1)));
     }
-	
-	std::string where() const {
+    
+    std::string where() const {
         char buf[32];
         sprintf(buf,"%d",lineNo);
         return shortenFileName(fileName) + ":" + std::string(buf); 
@@ -236,11 +236,11 @@ class UnimplementedMethod : public Base {
 public:
     UnimplementedMethod(const char* fn, int ln, std::string methodName) 
     :   Base(fn,ln)
-	{ 
-	    setMessage("The method " + methodName
+    { 
+        setMessage("The method " + methodName
             + "is not yet implemented. Please post to the Simbody forum"
               " to find a workaround or request implementation.");
-	}
+    }
     virtual ~UnimplementedMethod() throw() { }
 };
 
@@ -248,12 +248,12 @@ class UnimplementedVirtualMethod : public Base {
 public:
     UnimplementedVirtualMethod(const char* fn, int ln, 
         std::string baseClass, std::string methodName) 
-		: Base(fn,ln)
-	{ 
-		setMessage("The base class " + baseClass + 
+        : Base(fn,ln)
+    { 
+        setMessage("The base class " + baseClass + 
             " dummy implementation of method " + methodName
             + "() was invoked because a derived class did not provide an implementation.");
-	}
+    }
     virtual ~UnimplementedVirtualMethod() throw() { }
 };
 
@@ -296,10 +296,10 @@ public:
 // SimTK::Exception::Cant
 class Cant : public Base {
 public:
-	Cant(const char* fn, int ln, const std::string& s) : Base(fn,ln)
-	{
-		setMessage("Can't perform operation: " + s);
-	}	
+    Cant(const char* fn, int ln, const std::string& s) : Base(fn,ln)
+    {
+        setMessage("Can't perform operation: " + s);
+    }    
     virtual ~Cant() throw() { }
 };
 

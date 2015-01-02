@@ -90,23 +90,14 @@ SET(STATIC_TARGET ${SimTKCOMMON_LIBRARY_NAME}_static)
 SET(SHARED_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN})
 SET(STATIC_TARGET_VN ${SimTKCOMMON_LIBRARY_NAME}${VN}_static)
 
-# But on Unix or Cygwin we have to add the suffix manually
-IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-    SET(SHARED_TARGET ${SHARED_TARGET}_d)
-    SET(STATIC_TARGET ${STATIC_TARGET}_d)
-    SET(SHARED_TARGET_VN ${SHARED_TARGET_VN}_d)
-    SET(STATIC_TARGET_VN ${STATIC_TARGET_VN}_d)
-ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-
-
 ## Test against the unversioned libraries if they are being build;
 ## otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET})
 ELSE(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
 
@@ -117,12 +108,12 @@ SET(SimTKCOMMON_INCLUDE_DIRS) # start empty
 FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
     SET(SimTKCOMMON_INCLUDE_DIRS ${SimTKCOMMON_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 
@@ -141,7 +132,7 @@ SET(API_REL_INCLUDE_FILES)   # start these out empty
 SET(API_ABS_INCLUDE_FILES)
 
 FOREACH(dir ${API_INCLUDE_DIRS})
-    FILE(GLOB fullpaths ${dir}/*.h)	# returns full pathnames
+    FILE(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
     SET(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
 
     FOREACH(pathname ${fullpaths})
@@ -170,11 +161,11 @@ ENDFOREACH(subdir)
 FILE(GLOB CORE_HEADERS     include/*.h                      */include/*.h)
 FILE(GLOB TOP_HEADERS      include/SimTKcommon/*.h          */include/SimTKcommon/*.h)
 FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h */include/SimTKcommon/internal/*.h)
-INSTALL_FILES("/include"                      FILES ${CORE_HEADERS})
-INSTALL_FILES("/include/SimTKcommon"          FILES ${TOP_HEADERS})
-INSTALL_FILES("/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/                     FILES ${CORE_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/SimTKcommon/         FILES ${TOP_HEADERS})
+INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/SimTKcommon/internal FILES ${INTERNAL_HEADERS})
 
-FILE(GLOB SIMTKCOMMON_DOCS doc/*.pdf doc/*.txt)
+FILE(GLOB SIMTKCOMMON_DOCS doc/*.pdf doc/*.txt doc/*.md)
 INSTALL(FILES ${SIMTKCOMMON_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # These are at the end because we want them processed after

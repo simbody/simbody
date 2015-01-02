@@ -856,9 +856,6 @@ static bool isOnPatch(const Vector& aVec, int indxL, Real aVal) {
 int BicubicSurface::Guts::
 calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx,
                     int& howResolved) const {
-    int idxLB = -1;
-    bool idxComputed = false;
-
     assert(aVec.size() >= 2);
 
     // Because we're trying to find the lower index, it can't be the very

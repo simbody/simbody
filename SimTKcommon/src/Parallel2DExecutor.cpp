@@ -38,7 +38,7 @@ Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, int numProcessors) 
         executor = new ParallelExecutor(numProcessors);
     init(numProcessors);
 }
-Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, ParallelExecutor& executor) : gridSize(gridSize), ownExecutor(false), executor(&executor) {
+Parallel2DExecutorImpl::Parallel2DExecutorImpl(int gridSize, ParallelExecutor& executor) : gridSize(gridSize), executor(&executor), ownExecutor(false) {
     init(executor.getNumProcessors());
 }
 void Parallel2DExecutorImpl::init(int numProcessors) {
@@ -201,7 +201,8 @@ void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DE
     // Execute the square blocks in a series of passes.
     
     for (int i = 0; i < (int)squares.size(); ++i) {
-        SquareTask square(*this, task, squares[i], rangeType, false, i == squares.size()-1);
+        SquareTask square(*this, task, squares[i], rangeType, false, 
+                          i == (int)squares.size()-1);
         executor->execute(square, squares[i].size());
     }
 }

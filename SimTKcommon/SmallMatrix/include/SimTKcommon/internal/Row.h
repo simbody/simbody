@@ -304,7 +304,7 @@ public:
 
     // Default construction initializes to NaN when debugging but
     // is left uninitialized otherwise.
-	Row(){ 
+    Row(){ 
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -446,10 +446,10 @@ public:
         return result;
     }
 
-	const E& operator[](int i) const { assert(0 <= i && i < N); return d[i*STRIDE]; }
-	E&       operator[](int i)	     { assert(0 <= i && i < N); return d[i*STRIDE]; }
+    const E& operator[](int i) const { assert(0 <= i && i < N); return d[i*STRIDE]; }
+    E&       operator[](int i)         { assert(0 <= i && i < N); return d[i*STRIDE]; }
     const E& operator()(int i) const { return (*this)[i]; }
-	E&       operator()(int i)	     { return (*this)[i]; }
+    E&       operator()(int i)         { return (*this)[i]; }
 
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
     typename CNT<ScalarNormSq>::TSqrt 
@@ -783,7 +783,7 @@ public:
         return true;
     }
 private:
-	ELT d[NActualElements];    // data
+    ELT d[NActualElements];    // data
 };
 
 /////////////////////////////////////////////

@@ -292,10 +292,10 @@ namespace Ipopt
    if (dbg_jrnl.Verbosity() >= (__verbose_level)) { \
       if (dbg_jrnl.Jnlst()!=NULL) { \
         (__mat).Print(dbg_jrnl.Jnlst(), \
-		      J_ERROR, J_DBG, \
-		      __mat_name, \
-		      dbg_jrnl.IndentationLevel()*2, \
-		      "# "); \
+              J_ERROR, J_DBG, \
+              __mat_name, \
+              dbg_jrnl.IndentationLevel()*2, \
+              "# "); \
       } \
    }
 #endif // IP_DEBUG

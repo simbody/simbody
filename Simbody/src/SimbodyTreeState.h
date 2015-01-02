@@ -37,7 +37,7 @@ State variables and computation results are organized into stages:
    Stage::Time
    Stage::Position  
    Stage::Velocity  
-   Stage::Dynamics      dynamic operators available
+   Stage::Dynamics      calculate forces
    Stage::Acceleration  response to forces in the state
   ---------------------------------------------------------
    Stage::Report        only used when outputting something
@@ -64,6 +64,7 @@ Whatever so that it can calculate results and put them in the cache (which is
 allocated if necessary), and then advance to stage Whatever. */
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/Motion.h"
 
 #include <cassert>
 #include <iostream>
@@ -147,7 +148,15 @@ public:
     int sumSqDOFs;
 
     DiscreteVariableIndex modelingVarsIndex;
-    CacheEntryIndex       modelingCacheIndex;
+    CacheEntryIndex       modelingCacheIndex,instanceCacheIndex, timeCacheIndex, 
+                          treePositionCacheIndex, constrainedPositionCacheIndex,
+                          compositeBodyInertiaCacheIndex, 
+                          articulatedBodyInertiaCacheIndex,
+                          treeVelocityCacheIndex, constrainedVelocityCacheIndex,
+                          dynamicsCacheIndex, 
+                          treeAccelerationCacheIndex, 
+                          constrainedAccelerationCacheIndex;
+
 
     // These are instance variables that exist regardless of modeling
     // settings; they are instance variables corresponding to topological
@@ -254,12 +263,6 @@ public:
     UIndex uIndex;
     DiscreteVariableIndex timeVarsIndex, qVarsIndex, uVarsIndex, 
                           dynamicsVarsIndex, accelerationVarsIndex;
-    CacheEntryIndex       instanceCacheIndex, timeCacheIndex, 
-                          treePositionCacheIndex, constrainedPositionCacheIndex,
-                          compositeBodyInertiaCacheIndex, articulatedBodyInertiaCacheIndex,
-                          treeVelocityCacheIndex, constrainedVelocityCacheIndex,
-                          dynamicsCacheIndex, 
-                          treeAccelerationCacheIndex, constrainedAccelerationCacheIndex;
 
 private:
     // MobilizedBody 0 is Ground.
@@ -823,7 +826,7 @@ public:
 // =============================================================================
 // These articulated body inertias take into account prescribed motion, 
 // meaning that they are produced by a combination of articulated and rigid
-// shift operations depending on each mobilizer's current stats as "regular"
+// shift operations depending on each mobilizer's current status as "free"
 // or "prescribed". That means that the articulated inertias here are suited
 // only for "mixed" dynamics; you can't use them to calculate M^-1*f unless
 // there is no prescribed motion in the system.
@@ -840,18 +843,17 @@ public:
 // Note that although we use some *rigid* body shift operations here, the 
 // results in general are all *articulated* body inertias, because a rigid shift 
 // of an articulated body inertia is still an articulated body inertia. Only if 
-// all mobilizers are prescribed will these be rigid body spatial inertias. For a 
-// discussion of the properties of articulated body inertias, see Section 7.1 
+// all mobilizers are prescribed will these be rigid body spatial inertias. For 
+// a discussion of the properties of articulated body inertias, see Section 7.1 
 // (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics 
 // Algorithms. 
 //
-// Intermediate quantities PPlus, D, DI, and G are calculated here
-// which are separately useful when dealing with "regular" mobilized bodies. 
-// These quantities are not calculated for prescribed mobilizers; they will 
-// remain NaN in that case. In
-// particular, this means that the prescribed-mobilizer mass properties do not 
-// have to be invertible, so you can have terminal massless bodies as long as 
-// their motion is always prescribed.
+// Intermediate quantities PPlus, D, DI, and G are calculated here which are 
+// separately useful when dealing with "free" mobilized bodies. These quantities
+// are not calculated for prescribed mobilizers; they will remain NaN in that 
+// case. In particular, this means that the prescribed-mobilizer mass properties
+// do not have to be invertible, so you can have terminal massless bodies as 
+// long as their motion is always prescribed.
 // TODO: should D still be calculated? It doesn't require inversion.
 //
 // Articulated body inertias depend only on positions but are not usually needed 
@@ -948,10 +950,10 @@ public:
 
         // Ancestor Constrained Body Pool
 
-    // For Constraints whose Ancestor body A is not Ground G, we assign pool entries
-    // for each of their Constrained Bodies (call the total number 'nacb')
-    // to store the above information but measured and expressed in the Ancestor frame
-    // rather than Ground.
+    // For Constraints whose Ancestor body A is not Ground G, we assign pool 
+    // entries for each of their Constrained Bodies (call the total number 
+    // 'nacb') to store the above information but measured and expressed in the
+    // Ancestor frame rather than Ground.
     Array_<SpatialVec> constrainedBodyVelocityInAncestor; // nacb (V_AB)
 
 public:
@@ -961,8 +963,8 @@ public:
     {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
-        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
-        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int nDofs   = tree.nDOFs;  // this is the number of u's (nu)
+        const int maxNQs  = tree.maxNQs; // allocate max # q's we'll ever need
         const int nacb    = tree.nAncestorConstrainedBodies;
 
         mobilizerRelativeVelocity.resize(nBodies);       
@@ -1034,8 +1036,8 @@ public:
 class SBDynamicsCache {
 public:
     // This holds the values from all the Motion prescribed acceleration 
-    // calculations, and those which result from diffentiating prescribed velocities,
-    // or differentiating twice prescribed positions.
+    // calculations, and those which result from diffentiating prescribed 
+    // velocities, or twice-differentiating prescribed positions.
     Array_<Real> presUDotPool;    // Index with PresUDotPoolIndex
 
     // Dynamics

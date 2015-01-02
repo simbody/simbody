@@ -294,6 +294,10 @@ namespace Ipopt
         else if (lower_bound > upper_bound) {
           char string[128];
           sprintf(string, "There are inconsistent bounds on variable %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
+          delete [] x_not_fixed_map;
+          delete [] x_fixed_map_tmp;
+          delete [] x_l_map;
+          delete [] x_u_map;
           THROW_EXCEPTION(INVALID_TNLP, string);
         }
         else {
@@ -384,6 +388,10 @@ namespace Ipopt
         else if (lower_bound > upper_bound) {
           char string[128];
           sprintf(string, "There are inconsistent bounds on constraint %d: lower = %25.16e and upper = %25.16e.", i, lower_bound, upper_bound);
+          delete [] d_map;
+          delete [] c_map;
+          delete [] d_u_map;
+          delete [] d_l_map;
           THROW_EXCEPTION(INVALID_TNLP, string);
         }
         else {
@@ -582,6 +590,8 @@ namespace Ipopt
         if (!retval) {
           jnlst_->Printf(J_ERROR, J_INITIALIZATION,
                          "Option hessian_information is not chosen as limited_memory, but eval_h returns false.\n");
+          delete [] h_iRow;
+          delete [] h_jCol;
           THROW_EXCEPTION(OPTION_INVALID, "eval_h is called but has not been implemented");
         }
 

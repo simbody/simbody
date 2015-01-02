@@ -266,7 +266,7 @@ inline bool exactlyOneBitIsSet(long long v)          {return v && atMostOneBitIs
  * @see sign()
  */
 /*@{*/
-
+// Don't remove these unused formal parameter names 'u'; doxygen barfs.
 inline bool signBit(unsigned char u)      {return false;}
 inline bool signBit(unsigned short u)     {return false;}
 inline bool signBit(unsigned int u)       {return false;}

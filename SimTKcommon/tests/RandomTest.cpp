@@ -177,9 +177,9 @@ void testUniform() {
 
     // Make sure none of the above operations has overwritten the final array element.
     
-    ASSERT(value[2000] == 123.4)
-    ASSERT(value2[2000] = 567.8)
-    ASSERT(value3[2000] = -99)
+    ASSERT(value[2000]  == 123.4)
+    ASSERT(value2[2000] == 567.8)
+    ASSERT(value3[2000] == -99)
 }
 
 void testGaussian() {
@@ -216,8 +216,8 @@ void testGaussian() {
     
     // Make sure none of the above operations has overwritten the final array element.
     
-    ASSERT(value[2000] == 123.4)
-    ASSERT(value2[2000] = 567.8)
+    ASSERT(value[2000]  == 123.4)
+    ASSERT(value2[2000] == 567.8)
 }
 
 int main() {

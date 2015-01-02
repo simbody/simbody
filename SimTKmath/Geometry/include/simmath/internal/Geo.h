@@ -322,7 +322,7 @@ a common frame. We return point x0 on L0 and x1 on L1 such that the distance
 |x1-x0| is the smallest for any points on the two lines. If the lines are 
 parallel or nearly so (all points same distance) we'll pick the point
 on each line closest to midway between the origins as the closest points and 
-return and indication that the returned points weren't unique. 
+return an indication that the returned points weren't unique. 
 
 @param[in]      p0      The origin point of line L0, that is, any point
                             through which line L0 passes.
@@ -330,7 +330,7 @@ return and indication that the returned points weren't unique.
 @param[in]      p1      The origin point of line L1.
 @param[in]      d1      A unit vector giving the direction of L1.
 @param[out]     x0      The point of L0 that is closest to L1.
-@param[out]     x1      The point of L1 that is closest to L2.
+@param[out]     x1      The point of L1 that is closest to L0.
 @param[out]     linesAreParallel 
                         True if the lines were treated as effectively parallel.
 

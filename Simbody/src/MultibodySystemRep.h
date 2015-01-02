@@ -408,69 +408,69 @@ public:
     }
 
     // pure virtual
-    MultibodySystemRep* cloneImpl() const OVERRIDE_11
+    MultibodySystemRep* cloneImpl() const override
     {   return new MultibodySystemRep(*this); }
 
     // Override the SystemRep default implementations for these virtual methods.
-    int realizeTopologyImpl    (State&)       const OVERRIDE_11;
-    int realizeModelImpl       (State&)       const OVERRIDE_11;
-    int realizeInstanceImpl    (const State&) const OVERRIDE_11;
-    int realizeTimeImpl        (const State&) const OVERRIDE_11;
-    int realizePositionImpl    (const State&) const OVERRIDE_11;
-    int realizeVelocityImpl    (const State&) const OVERRIDE_11;
-    int realizeDynamicsImpl    (const State&) const OVERRIDE_11;
-    int realizeAccelerationImpl(const State&) const OVERRIDE_11;
-    int realizeReportImpl      (const State&) const OVERRIDE_11;
+    int realizeTopologyImpl    (State&)       const override;
+    int realizeModelImpl       (State&)       const override;
+    int realizeInstanceImpl    (const State&) const override;
+    int realizeTimeImpl        (const State&) const override;
+    int realizePositionImpl    (const State&) const override;
+    int realizeVelocityImpl    (const State&) const override;
+    int realizeDynamicsImpl    (const State&) const override;
+    int realizeAccelerationImpl(const State&) const override;
+    int realizeReportImpl      (const State&) const override;
 
 
     void multiplyByNImpl(const State& s, const Vector& u, 
-                         Vector& dq) const OVERRIDE_11 {
+                         Vector& dq) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByN(s,false,u,dq);
     }
     void multiplyByNTransposeImpl(const State& s, const Vector& fq, 
-                                  Vector& fu) const OVERRIDE_11 {
+                                  Vector& fu) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByN(s,true,fq,fu);
     }
     void multiplyByNPInvImpl(const State& s, const Vector& dq, 
-                             Vector& u) const OVERRIDE_11 {
+                             Vector& u) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByNInv(s,false,dq,u);
     }
     void multiplyByNPInvTransposeImpl(const State& s, const Vector& fu, 
-                                      Vector& fq) const OVERRIDE_11 {
+                                      Vector& fq) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByNInv(s,true,fu,fq);
     }  
 
     // Currently prescribe() and project() affect only the Matter subsystem.
-    bool prescribeQImpl(State& state) const OVERRIDE_11 {
+    bool prescribeQImpl(State& state) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         return mech.getRep().prescribeQ(state);
     }
-    bool prescribeUImpl(State& state) const OVERRIDE_11 {
+    bool prescribeUImpl(State& state) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         return mech.getRep().prescribeU(state);
     }
 
     void projectQImpl(State& state, Vector& qErrEst, 
                       const ProjectOptions& options, 
-                      ProjectResults& results) const OVERRIDE_11 {
+                      ProjectResults& results) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().projectQ(state, qErrEst, options, results);
         realize(state, Stage::Position);  // realize the whole system now
     }
     void projectUImpl(State& state, Vector& uErrEst, 
                       const ProjectOptions& options, 
-                      ProjectResults& results) const OVERRIDE_11 {
+                      ProjectResults& results) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().projectU(state, uErrEst, options, results);
         realize(state, Stage::Velocity);  // realize the whole system now
     }
 
     void getFreeQIndexImpl
-       (const State& s, Array_<SystemQIndex>& freeQs) const OVERRIDE_11 {
+       (const State& s, Array_<SystemQIndex>& freeQs) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const SystemQIndex qStart = matter.getQStart(s);
         const Array_<QIndex>& matterFreeQs = matter.getFreeQIndex(s);
@@ -479,7 +479,7 @@ public:
             freeQs[i] = SystemQIndex(qStart + matterFreeQs[i]);
     }
     void getFreeUIndexImpl
-       (const State& s, Array_<SystemUIndex>& freeUs) const OVERRIDE_11 {
+       (const State& s, Array_<SystemUIndex>& freeUs) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const SystemUIndex uStart = matter.getUStart(s);
         const Array_<UIndex>& matterFreeUs = matter.getFreeUIndex(s);

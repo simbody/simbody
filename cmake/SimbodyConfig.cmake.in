@@ -7,61 +7,82 @@
 #   Simbody_ROOT_DIR - the installation directory; all the pieces must be
 #                      found together
 #   Simbody_INCLUDE_DIR - location of Simbody.h
-#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} or SimTKsimbody.lib
+#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} 
+#                         or SimTKsimbody.lib
 #   Simbody_BIN_DIR     - location of VisualizerGUI and .dll's on Windows
 #   Simbody_LIBRARIES   - suitable for target_link_libraries(); includes
-#                           both optimized and debug libraries if both are
-#                           available
+#                         both optimized and debug libraries if both are
+#                         available
 #   Simbody_STATIC_LIBRARIES - suitable for target_link_libraries(); includes
 #                              both optimized and debug static libraries if
 #                              both are available
+#
+# The following variables can be used in your own project so that your
+# project's Doxygen documentation can link with Simbody's. These variables are
+# only defined if Doxygen documentation is installed.
+#   Simbody_DOXYGEN_DIR     - Directory containing Doxygen API documentation.
+#   Simbody_DOXYGEN_TAGFILE - Path to SimbodyDoxygenTagFile.
+#
+# For example, if you're configuring your Doxyfile using CMake's
+# configure_file, your Doxyfile.in file (to be configured) could contain
+# (without the backslashes):
+#
+#   TAGFILES = "\@Simbody_DOXYGEN_TAGFILE\@=\@Simbody_DOXYGEN_DIR\@"
+
 if (@PKG_NAME@_CONFIG_INCLUDED)
   return()
 endif()
 set(@PKG_NAME@_CONFIG_INCLUDED TRUE)
 
-list(APPEND @PKG_NAME@_ROOT_DIR @CMAKE_INSTALL_PREFIX@)
+# Watch out for spaces in pathnames -- must quote.
+list(APPEND @PKG_NAME@_ROOT_DIR 
+            "@CMAKE_INSTALL_PREFIX@")
 
-list(APPEND @PKG_NAME@_INCLUDE_DIR @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_INCLUDEDIR@)
+list(APPEND @PKG_NAME@_INCLUDE_DIR 
+            "@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_LIB_DIR @CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@)
+list(APPEND @PKG_NAME@_LIB_DIR 
+            "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
 
-list(APPEND @PKG_NAME@_BIN_DIR @SIMBODY_VISUALIZER_INSTALL_DIR@)
+list(APPEND @PKG_NAME@_BIN_DIR 
+            "@SIMBODY_VISUALIZER_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_CFLAGS -I@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_INCLUDEDIR@)
+list(APPEND @PKG_NAME@_CFLAGS 
+            -I"@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@")
 
-# Set extra libraries to link against
-if (WIN32)
-  set(Simbody_LAPACK_LIBRARY_LIST liblapack;libblas)
-else()
-  set(Simbody_LAPACK_LIBRARY_LIST lapack;blas)
+list(APPEND @PKG_NAME@_LDFLAGS 
+            -L"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
+
+if (NOT "@SIMBODY_DOXYGEN_TAGFILE_NAME@" STREQUAL "")
+    # Must check tagfile variable, since the doxygen install dir is created
+    # even if Doxygen documentation is not install.
+    set(temp_doxygen_dir
+        "@CMAKE_INSTALL_PREFIX@/@SIMBODY_INSTALL_DOXYGENDIR@")
+    set(temp_tagfile_path
+        "${temp_doxygen_dir}/@SIMBODY_DOXYGEN_TAGFILE_NAME@")
+    if (EXISTS "${temp_tagfile_path}")
+        set(@PKG_NAME@_DOXYGEN_DIR "${temp_doxygen_dir}")
+        set(@PKG_NAME@_DOXYGEN_TAGFILE "${temp_tagfile_path}")
+    endif()
+    unset(temp_doxygen_dir)
+    unset(temp_tagfile_path)
 endif()
-if (WIN32)
-  if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2_x64)
-  else()
-    set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2)
-  endif()
-elseif (APPLE)
-  set(Simbody_EXTRA_LIBRARY_LIST pthread;dl)
-else()
-  set(Simbody_EXTRA_LIBRARY_LIST pthread;rt;dl;m)
-endif()
+
 
 # Find out which of the libraries are available.
-find_library(Simbody_LIBRARY NAMES SimTKsimbody
+find_library(Simbody_LIBRARY NAMES @NS@SimTKsimbody
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody library."
     NO_DEFAULT_PATH)
-find_library(Simbody_STATIC_LIBRARY NAMES SimTKsimbody_static
+find_library(Simbody_STATIC_LIBRARY NAMES @NS@SimTKsimbody_static
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody static library."
     NO_DEFAULT_PATH)
-find_library(Simbody_DEBUG_LIBRARY NAMES SimTKsimbody_d
+find_library(Simbody_DEBUG_LIBRARY NAMES @NS@SimTKsimbody@CMAKE_DEBUG_POSTFIX@
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody debug library."
     NO_DEFAULT_PATH)
-find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES SimTKsimbody_static_d
+find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES @NS@SimTKsimbody_static@CMAKE_DEBUG_POSTFIX@
     PATHS ${Simbody_LIB_DIR}
     DOC "This is the main Simbody static debug library."
     NO_DEFAULT_PATH)
@@ -71,50 +92,50 @@ find_library(Simbody_STATIC_DEBUG_LIBRARY NAMES SimTKsimbody_static_d
 set(LIBS)
 if(Simbody_LIBRARY AND Simbody_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(onelib "${lib}-NOTFOUND")
+    # must reset each time around the loop or find_library won't work
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
+    set(onelibd "${lib}@CMAKE_DEBUG_POSTFIX@-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      NO_DEFAULT_PATH)
+    find_library(onelibd ${lib}@CMAKE_DEBUG_POSTFIX@
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH)
+    if((NOT onelib) OR (NOT onelibd))
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelib}_d")
+    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelibd}")
   endforeach()
 elseif(Simbody_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(onelib "${lib}-NOTFOUND")
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
+      NO_DEFAULT_PATH)
     if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
     set(LIBS ${LIBS} "${onelib}")
   endforeach()
 elseif(Simbody_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(lib "${lib}_d")
-    set(onelib "${lib}-NOTFOUND")
-    find_library(onelib ${lib}
+    set(lib "${lib}@CMAKE_DEBUG_POSTFIX@")
+    set(onelibd "${lib}-NOTFOUND" CACHE INTERNAL "nothing")
+    find_library(onelibd ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      NO_DEFAULT_PATH)
+    if(NOT onelibd)
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} "${onelib}")
+    set(LIBS ${LIBS} "${onelibd}")
   endforeach()
 endif()
 
 if (LIBS)
-    foreach(lapack_lib IN LISTS Simbody_LAPACK_LIBRARY_LIST)
-        set(LIBS ${LIBS} "${lapack_lib}")
-    endforeach()
-    foreach(extra_lib IN LISTS Simbody_EXTRA_LIBRARY_LIST)
-        set(LIBS ${LIBS} "${extra_lib}")
-    endforeach()
+    set(LIBS ${LIBS} "@MATH_LIBS_TO_USE@")
     set(Simbody_LIBRARIES ${LIBS} CACHE STRING 
         "Simbody dynamic libraries" FORCE)
 else()
@@ -127,52 +148,53 @@ set(LIBS)
 if(Simbody_STATIC_LIBRARY AND Simbody_STATIC_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_static")
-    set(onelib "${lib}-NOTFOUND")
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
+    set(onelibd "${lib}@CMAKE_DEBUG_POSTFIX@-NOTFOUND" CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
-      NO_DEFAULT_PATH
-      )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      NO_DEFAULT_PATH)
+    find_library(onelibd ${lib}@CMAKE_DEBUG_POSTFIX@
+      PATHS ${Simbody_LIB_DIR}
+      NO_DEFAULT_PATH)
+    if((NOT onelib) OR (NOT onelibd))
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelib}_d")
+    set(LIBS ${LIBS} optimized "${onelib}" debug "${onelibd}")
   endforeach()
 elseif(Simbody_STATIC_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
     set(lib "${lib}_static")
-    set(onelib "${lib}-NOTFOUND")
+    set(onelib  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
     find_library(onelib ${lib}
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH
       )
     if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
     set(LIBS ${LIBS} "${onelib}")
   endforeach()
 elseif(Simbody_STATIC_DEBUG_LIBRARY)
   foreach(lib @PKG_LIBRARIES@)
-    set(lib "${lib}_static_d")
-    set(onelib "${lib}-NOTFOUND")
-    find_library(onelib ${lib}
+    set(lib "${lib}_static@CMAKE_DEBUG_POSTFIX@")
+    set(onelibd  "${lib}-NOTFOUND"   CACHE INTERNAL "nothing")
+    find_library(onelibd ${lib}
       PATHS ${Simbody_LIB_DIR}
       NO_DEFAULT_PATH
       )
-    if(NOT onelib)
-      message(FATAL_ERROR "Library '${lib}' in package Simbody is not installed properly")
+    if(NOT onelibd)
+      message(FATAL_ERROR 
+          "Library '${lib}' in package Simbody is not installed properly")
     endif()
-    set(LIBS ${LIBS} "${onelib}")
+    set(LIBS ${LIBS} "${onelibd}")
   endforeach()
 endif()
 
 if (LIBS)
     # these aren't available in static
-    foreach(lapack_lib IN LISTS Simbody_LAPACK_LIBRARY_LIST)
-        set(LIBS ${LIBS} "${lapack_lib}")
-    endforeach()
-    foreach(extra_lib IN LISTS Simbody_EXTRA_LIBRARY_LIST)
-        set(LIBS ${LIBS} "${extra_lib}")
-    endforeach()
+    set(LIBS ${LIBS} "@MATH_LIBS_TO_USE@")
     set(Simbody_STATIC_LIBRARIES "${LIBS}" CACHE STRING 
         "Simbody static libraries" FORCE)
 else()
@@ -183,14 +205,13 @@ endif()
 # This CMake-supplied script provides standard error handling.
 include(FindPackageHandleStandardArgs OPTIONAL)
 find_package_handle_standard_args(Simbody DEFAULT_MSG 
-	Simbody_INCLUDE_DIR)
+    Simbody_INCLUDE_DIR)
 
 # Not all the variables we produced need be returned.
+unset(onelib CACHE)
+unset(onelibd CACHE)
 unset(Simbody_LIBRARY CACHE)
 unset(Simbody_DEBUG_LIBRARY CACHE)
 unset(Simbody_STATIC_LIBRARY CACHE)
 unset(Simbody_STATIC_DEBUG_LIBRARY CACHE)
 mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
-
-list(APPEND @PKG_NAME@_LDFLAGS -Wl,-rpath,@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@)
-list(APPEND @PKG_NAME@_LDFLAGS -L@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@)

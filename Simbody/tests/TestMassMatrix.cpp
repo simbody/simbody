@@ -524,6 +524,13 @@ void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {
                     pendulumBody,
                         Transform(Rotation(randomAngle2, randomVecs[6]),
                                   randomVecs[5]));
+    MobilizedBody::Slider
+        pendBody2x( pendBody2b,
+                        Transform(Rotation(randomAngle1, randomVecs[6]),
+                                  randomVecs[7]),
+                    pendulumBody,
+                        Transform(Rotation(randomAngle2, randomVecs[8]),
+                                  randomVecs[9]));
 
     MobilizedBody::Planar
         pendBody4a( pendBody4,
@@ -817,6 +824,30 @@ void testUnconstrainedSystem() {
         Vector(), Vector_<SpatialVec>(), Vector(), residualForces2);
 
     SimTK_TEST_EQ_TOL(residualForces2, residualForces1, Slop);
+
+    // We just calculated f_residual = M udot + f_inertial - f_applied, with
+    // both udot and f_applied zero, i.e. f_residual=f_inertial. That should
+    // be the same as what is returned by getTotalCentrifugalForces().
+    Vector_<SpatialVec> F_inertial(nb);
+    Vector f_inertial;
+    for (MobodIndex i(0); i<nb; ++i)
+        F_inertial[i] = matter.getTotalCentrifugalForces(state, i);
+    matter.multiplyBySystemJacobianTranspose(state, F_inertial, f_inertial);
+    SimTK_TEST_EQ_TOL(f_inertial, residualForces1, Slop);
+
+    // This should also match total Mass*Coriolis acceleration + gyro force.
+    Vector_<SpatialVec> F_coriolis(nb), F_gyro(nb), F_total(nb);
+    Vector f_total;
+    for (MobodIndex i(0); i<nb; ++i) {
+        if (i==0) F_coriolis[i] = SpatialVec(Vec3(0),Vec3(0));
+        else
+            F_coriolis[i] = matter.getMobilizedBody(i)
+                           .getBodySpatialInertiaInGround(state) * AC_GB[i];
+        F_gyro[i] = matter.getGyroscopicForce(state, i);
+    }
+
+    F_total = F_coriolis + F_gyro;
+    SimTK_TEST_EQ_TOL(F_inertial, F_total, Slop);
 
     // Same, but leave out combinations of arguments.
     matter.calcResidualForceIgnoringConstraints(state,

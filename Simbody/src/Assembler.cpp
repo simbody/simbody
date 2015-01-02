@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -24,8 +24,9 @@
 #include "SimTKmath.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/Assembler.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/Assembler.h"
+#include "simbody/internal/AssemblyCondition.h"
 #include <map>
 #include <iostream>
 using std::cout; using std::endl;
@@ -206,7 +207,7 @@ public:
     // have the values given by the parameters.
     int objectiveFunc(const Vector&     parameters, 
                       bool              new_parameters, 
-                      Real&             objectiveValue) const 
+                      Real&             objectiveValue) const override
     {   ++nEvalObjective;
 
         if (new_parameters)
@@ -242,7 +243,7 @@ public:
         // This is the function that gets differentiated. We want it to
         // return fy = sum( w[i] * goal[i] ) for each of the goals that needs
         // a numerical gradient. Then we can calculate all of them at once.
-        int f(const Vector& y, Real& fy) const {
+        int f(const Vector& y, Real& fy) const override {
             assembler.setInternalStateFromFreeQs(y);
             fy = 0;
             for (unsigned i=0; i < numGoals.size(); ++i) {
@@ -265,7 +266,7 @@ public:
 
     int gradientFunc(const Vector&     parameters, 
                      bool              new_parameters, 
-                     Vector&           gradient) const 
+                     Vector&           gradient) const override 
     {   SimTK_ASSERT2_ALWAYS(gradient.size() == getNumFreeQs(),
             "AssemblySystem::gradientFunc(): expected gradient vector of"
             " size %d but got %d; this is likely a problem with the optimizer"
@@ -328,7 +329,7 @@ public:
     // Return the errors in the hard assembly error conditions.
     int constraintFunc(const Vector&    parameters, 
                        bool             new_parameters, 
-                       Vector&          qerrs) const 
+                       Vector&          qerrs) const override
     {   ++nEvalConstraints;
 
         if (new_parameters)
@@ -366,7 +367,7 @@ public:
         // return fy = [ err[i] ] for each of the assembly constraint 
         // conditions that needs a numerical gradient. Then we can calculate
         // all their Jacobians at once.
-        int f(const Vector& y, Vector& fy) const {
+        int f(const Vector& y, Vector& fy) const override {
             assert(y.size() == assembler.getNumFreeQs());
             assert(fy.size() == totalNEqns);
 
@@ -395,7 +396,7 @@ public:
 
     int constraintJacobian(const Vector&    parameters, 
                            bool             new_parameters, 
-                           Matrix&          J) const 
+                           Matrix&          J) const override 
     {   ++nEvalJacobian;
 
         if (new_parameters)
@@ -811,8 +812,26 @@ Real Assembler::calcCurrentErrorNorm() const {
 
 Real Assembler::assemble() {
     initialize();
-
     ++nAssemblySteps;
+
+    const Real initialErrorNorm = calcCurrentErrorNorm();
+    const Real initialGoalValue = calcCurrentGoal(); // squared, >=0
+
+    // Short circuit if this is already good enough.
+    if (initialErrorNorm <= getErrorToleranceInUse()) {
+        // Already feasible. Is the goal good enough too? Note that we don't
+        // know much about the goal units, and "accuracy" is a unitless 
+        // fraction. So we're going to use "tolerance" here. We do know that
+        // the goal is squared but error tolerance is not. So this is likely
+        // to be a very strict test if the error tolerance is tight!
+        if (initialGoalValue <= square(getErrorToleranceInUse())) {
+            for (unsigned i=0; i < reporters.size(); ++i)
+                reporters[i]->handleEvent(internalState);
+            return initialGoalValue;
+        }
+        // Not short circuiting.
+    }
+
 
     const int nfreeq = getNumFreeQs();
     const int nqerr = internalState.getNQErr();
@@ -829,29 +848,49 @@ Real Assembler::assemble() {
     system.prescribeQ(internalState);
 
     // Optimize
-    Vector freeQs = getFreeQsFromInternalState();
+
+    // Save the starting solution so we can restore it if the optimizer makes
+    // it worse, which IpOpt has been observed to do.
+    const Vector initialFreeQs = getFreeQsFromInternalState();
+    Vector freeQs = initialFreeQs;
     // Use tolerance if there are any error conditions, else accuracy.
     optimizer->setConvergenceTolerance(getAccuracyInUse());
     optimizer->setConstraintTolerance(getErrorToleranceInUse());
     try
     {   optimizer->optimize(freeQs); }
     catch (const std::exception& e)
-    {   setInternalStateFromFreeQs(freeQs);
-        system.realize(internalState, Stage::Position);       
-        SimTK_THROW3(AssembleFailed, 
-            (String("Optimizer failed with message: ") + e.what()).c_str(), 
-            calcCurrentErrorNorm(), getErrorToleranceInUse());
+    {   setInternalStateFromFreeQs(freeQs); // realizes to Stage::Position
+
+        // Sometimes the optimizer will throw an exception after it has
+        // already achieved a winning solution. One message that comes up
+        // is "Ipopt: Restoration failed (status -2)". We'll ignore that as
+        // long as we have a good result. Otherwise we'll re-throw here.
+        if (calcCurrentErrorNorm() > getErrorToleranceInUse()) {
+            SimTK_THROW3(AssembleFailed, 
+                (String("Optimizer failed with message: ") + e.what()).c_str(), 
+                calcCurrentErrorNorm(), getErrorToleranceInUse());
+        }
     }
 
     // This will ensure that the internalState has its q's set to match the
     // parameters.
     setInternalStateFromFreeQs(freeQs);
-    system.realize(internalState, Stage::Position);
 
     for (unsigned i=0; i < reporters.size(); ++i)
         reporters[i]->handleEvent(internalState);
 
-    const Real tolAchieved = calcCurrentErrorNorm();
+    Real tolAchieved = calcCurrentErrorNorm();
+    Real goalAchieved = calcCurrentGoal();
+
+    // See if we should just revert to the initial solution.
+    if (   initialErrorNorm <= getErrorToleranceInUse() // started feasible
+        && goalAchieved > initialGoalValue)             // objective got worse
+    {
+        setInternalStateFromFreeQs(initialFreeQs);
+        tolAchieved = initialErrorNorm;
+        goalAchieved = initialGoalValue;
+    }
+
     if (tolAchieved > getErrorToleranceInUse())
         SimTK_THROW3(AssembleFailed, 
             "Unabled to achieve required assembly error tolerance.",
@@ -860,13 +899,12 @@ Real Assembler::assemble() {
     //std::cout << "assemble(): final tol/goal is " 
     //          << calcCurrentError() << "/" << calcCurrentGoal() << std::endl;
 
-    return calcCurrentGoal();
+    return goalAchieved;
 }
 
 
 Real Assembler::track(Real frameTime) {
     initialize();
-
     ++nAssemblySteps;
 
     if (frameTime >= 0 && internalState.getTime() != frameTime) {
@@ -874,7 +912,23 @@ Real Assembler::track(Real frameTime) {
         system.realize(internalState, Stage::Time);
         // Satisfy prescribed motion (exactly).
         system.prescribeQ(internalState);
+        system.realize(internalState, Stage::Position); 
     }
+
+    const Real initialErrorNorm = calcCurrentErrorNorm();
+    const Real initialGoalValue = calcCurrentGoal(); // squared!
+
+    // Short circuit if this is already good enough.
+    if (initialErrorNorm <= getErrorToleranceInUse()) {
+        // See comments in assemble() for more info.
+        if (initialGoalValue <= square(getErrorToleranceInUse())) {
+            for (unsigned i=0; i < reporters.size(); ++i)
+                reporters[i]->handleEvent(internalState);
+            return initialGoalValue;
+        }
+        // Not short circuiting.
+    }
+
 
     const int nfreeq = getNumFreeQs();
     const int nqerr = internalState.getNQErr();
@@ -890,11 +944,17 @@ Real Assembler::track(Real frameTime) {
     try
     {   optimizer->optimize(freeQs); }
     catch (const std::exception& e)
-    {   setInternalStateFromFreeQs(freeQs);
-        system.realize(internalState, Stage::Position);       
-        SimTK_THROW3(TrackFailed, 
-            (String("Optimizer failed with message: ") + e.what()).c_str(), 
-            calcCurrentErrorNorm(), getErrorToleranceInUse());
+    {   setInternalStateFromFreeQs(freeQs); // realizes to Stage::Position
+
+        // Sometimes the optimizer will throw an exception after it has
+        // already achieved a winning solution. One message that comes up
+        // is "Ipopt: Restoration failed (status -2)". We'll ignore that as
+        // long as we have a good result. Otherwise we'll re-throw here.
+        if (calcCurrentErrorNorm() > getErrorToleranceInUse()) {
+            SimTK_THROW3(TrackFailed, 
+                (String("Optimizer failed with message: ") + e.what()).c_str(), 
+                calcCurrentErrorNorm(), getErrorToleranceInUse());
+        }
     }
 
     // This will ensure that the internalState has its q's set to match the
@@ -902,7 +962,6 @@ Real Assembler::track(Real frameTime) {
     // This will ensure that the internalState has its q's set to match the
     // parameters.
     setInternalStateFromFreeQs(freeQs);
-    system.realize(internalState, Stage::Position);
 
     for (unsigned i=0; i < reporters.size(); ++i)
         reporters[i]->handleEvent(internalState);
@@ -934,154 +993,4 @@ int Assembler::getNumInitializations() const
 void Assembler::resetStats() const
 {   if (asmSys) asmSys->resetStats(); 
     nAssemblySteps = nInitializations = 0; }
-
-
-
-//------------------------------------------------------------------------------
-//                                  MARKERS
-//------------------------------------------------------------------------------
-
-static const bool Weighted = true;
-static const Real MinimumOffset = 0;
-
-Vec3 Markers::findCurrentMarkerLocation(MarkerIx mx) const {
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    const Marker&                 marker = getMarker(mx);
-    const MobilizedBody&          mobod  = matter.getMobilizedBody(marker.bodyB);
-    const State&                  state  = getAssembler().getInternalState();
-    const Transform&              X_GB   = mobod.getBodyTransform(state);
-    return X_GB * marker.markerInB;
-}
-
-// goal = offset + 1/2 sum( wi * ri^2 ) / sum(wi) for WRMS
-int Markers::calcGoal(const State& state, Real& goal) const {
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-    goal = 0;
-    // Loop over each body that has one or more active markers.
-    Real wtot = 0;
-    PerBodyMarkers::const_iterator bodyp = bodiesWithMarkers.begin();
-    for (; bodyp != bodiesWithMarkers.end(); ++bodyp) {
-        const MobilizedBodyIndex    mobodIx     = bodyp->first;
-        const Array_<MarkerIx>&     bodyMarkers = bodyp->second;
-        const MobilizedBody&        mobod = matter.getMobilizedBody(mobodIx);
-        const Transform&            X_GB  = mobod.getBodyTransform(state);
-        assert(bodyMarkers.size());
-        // Loop over each marker on this body.
-        for (unsigned m=0; m < bodyMarkers.size(); ++m) {
-            const MarkerIx  mx = bodyMarkers[m];
-            const Marker&   marker = markers[mx];
-            assert(marker.bodyB == mobodIx); // better be on this body!
-            const Vec3& location = observations[getObservationIxForMarker(mx)];
-            if (location.isFinite()) { // skip NaNs
-                goal += marker.weight 
-                        * (X_GB*marker.markerInB - location).normSqr();
-                wtot += marker.weight;
-            }
-        }
-    }
-
-    if (Weighted)
-        goal /= wtot;
-
-    goal /= 2;
-    goal += MinimumOffset;
-
-    return 0;
-}
-// dgoal/dq = sum( wi * ri * dri/dq ) / sum(wi)
-// This calculation is modeled after Peter Eastman's gradient implementation
-// in ObservedPointFitter. It treats each marker position error as a potential
-// energy function whose negative spatial gradient would be a spatial force F. 
-// We can then use Simbody's spatial force-to-generalized force method (using 
-// -F instead of F) to obtain the gradient in internal coordinates.
-int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
-    const int np = getNumFreeQs();
-    assert(gradient.size() == np);
-    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-
-    Vector_<SpatialVec> dEdR(matter.getNumBodies());
-    dEdR = SpatialVec(Vec3(0), Vec3(0));
-    // Loop over each body that has one or more active markers.
-    Real wtot = 0;
-    PerBodyMarkers::const_iterator bodyp = bodiesWithMarkers.begin();
-    for (; bodyp != bodiesWithMarkers.end(); ++bodyp) {
-        const MobilizedBodyIndex    mobodIx     = bodyp->first;
-        const Array_<MarkerIx>&     bodyMarkers = bodyp->second;
-        const MobilizedBody& mobod = matter.getMobilizedBody(mobodIx);
-        const Transform& X_GB = mobod.getBodyTransform(state);
-        assert(bodyMarkers.size());
-        // Loop over each marker on this body.
-        for (unsigned m=0; m < bodyMarkers.size(); ++m) {
-            const MarkerIx  mx = bodyMarkers[m];
-            const Marker&   marker = markers[mx];
-            assert(marker.bodyB == mobodIx); // better be on this body!
-            const Vec3& location = observations[getObservationIxForMarker(mx)];
-            if (location.isFinite()) { // skip NaNs
-                const Vec3 nf = marker.weight 
-                                * (X_GB*marker.markerInB - location);
-                mobod.applyForceToBodyPoint(state, marker.markerInB, nf, dEdR);
-                wtot += marker.weight;
-            }
-        }
-    }
-    // Convert spatial forces dEdR to generalized forces dEdU.
-    Vector dEdU;
-    matter.multiplyBySystemJacobianTranspose(state, dEdR, dEdU);
-
-    if (Weighted)
-        dEdU /= wtot;
-
-    const int nq = state.getNQ();
-    if (np == nq) // gradient is full length
-        matter.multiplyByNInv(state, true, dEdU, gradient);
-    else { // calculate full gradient; extract the relevant parts
-        Vector fullGradient(nq);
-        matter.multiplyByNInv(state, true, dEdU, fullGradient);
-        for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
-            gradient[fx] = fullGradient[getQIndexOfFreeQ(fx)];
-    }
-
-
-    return 0;
-}
-
-// TODO: We want the constraint version to minimize the same goal as above. But
-// there can never be more than six independent constraints on the pose of
-// a rigid body; this method should attempt to produce a minimal set so that
-// the optimizer doesn't have to figure it out.
-int Markers::calcErrors(const State& state, Vector& err) const
-{   return AssemblyCondition::calcErrors(state,err); } //TODO
-
-
-int Markers::calcErrorJacobian(const State& state, Matrix& jacobian) const
-{   return AssemblyCondition::calcErrorJacobian(state,jacobian); } //TODO
-int Markers::getNumErrors(const State& state) const
-{   return AssemblyCondition::getNumErrors(state); } //TODO
-
-// Run through all the Markers to find all the bodies that have at least one
-// active marker. For each of those bodies, we collect all its markers so that
-// we can process them all at once. Active markers are those whose weight is
-// greater than zero. Also, if we haven't been given any observation<->marker 
-// correspondence, we're going to assume them map directly, with each 
-// ObservationIx the same as its MarkerIx.
-int Markers::initializeCondition() const {
-    // Fill in missing observation information if needed.
-    if (observation2marker.empty()) {
-        const Array_<MarkerIx> zeroLength; // gcc doesn't like this as a temp
-        const_cast<Markers&>(*this).defineObservationOrder(zeroLength);
-    }
-
-    bodiesWithMarkers.clear();
-    for (MarkerIx mx(0); mx < markers.size(); ++mx) {
-        const Marker& marker = markers[mx];
-        if (hasObservation(mx) && marker.weight > 0)
-            bodiesWithMarkers[marker.bodyB].push_back(mx);
-    }
-    return 0;
-}
-
-// Throw away the bodiesWithMarkers map.
-void Markers::uninitializeCondition() const {
-    bodiesWithMarkers.clear();
-}
 

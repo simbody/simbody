@@ -262,13 +262,13 @@ void testSolveQuadratic() {
         testQuadratic(Vec3(0.0, 1.0, 1.0), Vec<2,Complex>(0.0, 0.0));
         ASSERT(false)
     }
-    catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
+    catch (const PolynomialRootFinder::ZeroLeadingCoefficient&) {
     }
     try {
         testQuadratic(Vec<3,Complex>(0.0, 1.0, 1.0), Vec<2,Complex>(0.0, 0.0));
         ASSERT(false)
     }
-    catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
+    catch (const PolynomialRootFinder::ZeroLeadingCoefficient&) {
     }
 }
 
@@ -322,13 +322,13 @@ void testSolveCubic() {
         testCubic(Vec4(0.0, 0.0, 0.0, 0.0), Vec<3,Complex>(0.0, 0.0, 0.0));
         ASSERT(false)
     }
-    catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
+    catch (const PolynomialRootFinder::ZeroLeadingCoefficient&) {
     }
     try {
         testCubic(Vec<4,Complex>(0.0, 0.0, 0.0, 0.0), Vec<3,Complex>(0.0, 0.0, 0.0));
         ASSERT(false)
     }
-    catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
+    catch (const PolynomialRootFinder::ZeroLeadingCoefficient&) {
     }
 }
 
@@ -374,14 +374,14 @@ void testSolveArbitrary() {
         PolynomialRootFinder::findRoots(realCoeff, roots);
         ASSERT(false)
     }
-    catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
+    catch (const PolynomialRootFinder::ZeroLeadingCoefficient&) {
     }
     try {
         complexCoeff[0] = 0.0;
         PolynomialRootFinder::findRoots(complexCoeff, roots);
         ASSERT(false)
     }
-    catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
+    catch (const PolynomialRootFinder::ZeroLeadingCoefficient&) {
     }
 }
 
