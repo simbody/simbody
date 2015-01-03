@@ -787,7 +787,7 @@ public:
     **/
     BodyFollower(const MobilizedBody& body,
                           const Vec3&          stationPinB = Vec3(0, 0, 0),
-                          const Vec3&          offset = Vec3(1, 1, 1),
+                          const Vec3&          offset = Vec3(NaN),
                           const Vec3&          upDirection = Vec3(NaN));
     
     virtual void generateControls(
@@ -799,7 +799,6 @@ private:
     const MobilizedBody& m_body;
     const Vec3 m_stationPinB;
     const Vec3 m_offset;
-    const UnitVec3 m_offsetDirection;
     const Vec3 m_upDirection;
 };
 
