@@ -749,32 +749,6 @@ private:
 
 
 //==============================================================================
-//                            BODY WATCHER
-//==============================================================================
-// Prior to rendering each frame, point the camera at the given body's
-// origin.
-class BodyWatcher : public Visualizer::FrameController {
-public:
-    BodyWatcher(const MobilizedBody& body, Real distance) 
-    :   m_body(body), m_distance(distance) {}
-
-    void generateControls(const Visualizer&             viz, 
-                          const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) override
-    {
-        const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0, 2, m_distance); // above and back
-        const Rotation R_GC(UnitVec3(0,1,0), YAxis,
-                            p_GC-Bo, ZAxis);
-        viz.setCameraTransform(Transform(R_GC,p_GC));
-        //viz.pointCameraAt(Bo, Vec3(0,1,0));
-    }
-private:
-    const MobilizedBody m_body;
-    const Real m_distance;
-};
-
-//==============================================================================
 //                            MY PUSH FORCE
 //==============================================================================
 // This is a force element that generates a constant force on a body for a
@@ -877,7 +851,7 @@ public:
     virtual const MobilizedBody& getBodyToWatch() const
     {   return m_matter->getGround(); }
 
-    virtual Real getWatchDistance() const {return 1.5;}
+    virtual Vec3 getWatchOffset() const {return Vec3(0, 2, 1.5);}
     virtual Real getScale() const {return 1;}
     virtual void calcInitialState(State& state) const = 0;
 
@@ -1164,8 +1138,8 @@ public:
     const MobilizedBody& getBodyToWatch() const override
     {   return m_brick; }
 
-    Real getWatchDistance() const override 
-    {   return 8; }
+    Vec3 getWatchOffset() const override 
+    {   return Vec3(0, 2, 8); }
 
 private:
     Force::Gravity          m_gravity;
@@ -1187,7 +1161,7 @@ public:
 
     const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody nobod; return nobod; }
-    Real getWatchDistance() const override {return 20.;}
+    Vec3 getWatchOffset() const override {return Vec3(0, 2, 20.);}
 
     const MobilizedBody::Slider& getHBall(int i) const {return m_Hballs[i];}
     const MobilizedBody::Slider& getPBall(int i) const {return m_Pballs[i];}
@@ -1218,7 +1192,7 @@ public:
     void calcInitialState(State& state) const override;
 
     const MobilizedBody& getBodyToWatch() const override {return m_pencil;}
-    Real getWatchDistance() const override {return 20.;}
+    Vec3 getWatchOffset() const override {return Vec3(0, 2, 20.);}
     Real getScale() const override {return 5;}
 
     const MobilizedBody::Planar& getPencil() const {return m_pencil;}
@@ -1268,8 +1242,9 @@ int main(int argc, char** argv) {
     viz.addDecorationGenerator(new ShowContact(pgs));
 
     if (!mbs.getBodyToWatch().isEmptyHandle())
-        viz.addFrameController(new BodyWatcher(mbs.getBodyToWatch(),
-                                               mbs.getWatchDistance()));
+        viz.addFrameController(
+                new Visualizer::BodyFollower(mbs.getBodyToWatch(), Vec3(0),
+                                             mbs.getWatchOffset()));
 
     // Simulate it.
     State s;

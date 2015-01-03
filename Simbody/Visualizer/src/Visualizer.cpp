@@ -1125,11 +1125,11 @@ void Visualizer::BodyFollower::generateControls(
         const State&                  state,
         Array_< DecorativeGeometry >& geometry)
 {
-    Vec3 upDirection;
+    const Vec3* upDirection;
     if (m_upDirection.isNaN()) {
-        upDirection = UnitVec3(viz.getSystemUpDirection()).asVec3();
+        upDirection = &UnitVec3(viz.getSystemUpDirection()).asVec3();
     } else {
-        upDirection = m_upDirection;
+        upDirection = &m_upDirection;
     }
 
     const Vec3 P = m_body.findStationLocationInGround(state, m_stationPinB);
@@ -1140,7 +1140,7 @@ void Visualizer::BodyFollower::generateControls(
     // (which points "back") to be parallel to the offset. We also want the
     // camera's y direction (which points to the top of the screen) to be as
     // closely aligned with the provided up direction as is possible.
-    const Rotation R_GC(m_offsetDirection, ZAxis, upDirection, YAxis);
+    const Rotation R_GC(m_offsetDirection, ZAxis, *upDirection, YAxis);
     viz.setCameraTransform(Transform(R_GC, p_GC));
 }
 

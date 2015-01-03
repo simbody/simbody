@@ -48,32 +48,6 @@ using namespace SimTK;
 
 
 //==============================================================================
-//                            BODY WATCHER
-//==============================================================================
-// Prior to rendering each frame, point the camera at the given body's
-// origin.
-class BodyWatcher : public Visualizer::FrameController {
-public:
-    BodyWatcher(const MobilizedBody& body, Real distance) 
-    :   m_body(body), m_distance(distance) {}
-
-    void generateControls(const Visualizer&             viz, 
-                          const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) override
-    {
-        const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0, 8, m_distance); // above and back
-        const Rotation R_GC(UnitVec3(0,1,0), YAxis,
-                            p_GC-Bo, ZAxis);
-        viz.setCameraTransform(Transform(R_GC,p_GC));
-        //viz.pointCameraAt(Bo, Vec3(0,1,0));
-    }
-private:
-    const MobilizedBody m_body;
-    const Real m_distance;
-};
-
-//==============================================================================
 //                            MY PUSH FORCE
 //==============================================================================
 // This is a force element that generates a constant force on a body for a
@@ -156,7 +130,7 @@ public:
     virtual void addRubberBandLines(Visualizer& viz) const {}
     virtual Real getRuntime() const {return 20.;}
 
-    virtual Real getWatchDistance() const {return 1.5;}
+    virtual Vec3 getWatchOffset() const {return Vec3(0, 8, 1.5);}
     virtual void calcInitialState(State& state) const = 0;
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {return *m_matter;}
@@ -262,8 +236,8 @@ public:
     const MobilizedBody& getBodyToWatch() const override
     {   return m_brick; }
 
-    Real getWatchDistance() const override 
-    {   return 8; }
+    Vec3 getWatchOffset() const override 
+    {   return Vec3(0, 8, 8); }
 
 private:
     Force::Gravity          m_gravity;
@@ -285,7 +259,7 @@ public:
 
     const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody nobod; return nobod; }
-    Real getWatchDistance() const override {return 20.;}
+    Vec3 getWatchOffset() const override {return Vec3(0, 8, 20.);}
 
     const MobilizedBody::Slider& getHBall(int i) const {return m_Hballs[i];}
     const MobilizedBody::Slider& getPBall(int i) const {return m_Pballs[i];}
@@ -315,7 +289,7 @@ public:
 
     const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody none; return none; }
-    Real getWatchDistance() const override {return 30.;}
+    Vec3 getWatchOffset() const override {return Vec3(0, 8, 30.);}
     void addRubberBandLines(Visualizer& viz) const override;
     Real getRuntime() const override {return 75.;}
 
@@ -351,8 +325,8 @@ public:
     const MobilizedBody& getBodyToWatch() const override
     {   return m_block; }
 
-    Real getWatchDistance() const override 
-    {   return 20; }
+    Vec3 getWatchOffset() const override 
+    {   return Vec3(0, 8, 20); }
 
     const MobilizedBody::Free& getBlock() const {return m_block;}
 
@@ -379,8 +353,8 @@ public:
 
     const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody mobod; return mobod; }
-    Real getWatchDistance() const override 
-    {   return 30; }
+    Vec3 getWatchOffset() const override 
+    {   return Vec3(0, 8, 30); }
 
     const MobilizedBody& getSwingingBlock() const {return m_swinger;}
     const MobilizedBody::Free& getGroundBlock() const {return m_grounded;}
@@ -428,8 +402,9 @@ int main(int argc, char** argv) {
     mbs.addRubberBandLines(viz);
 
     if (!mbs.getBodyToWatch().isEmptyHandle())
-        viz.addFrameController(new BodyWatcher(mbs.getBodyToWatch(),
-                                               mbs.getWatchDistance()));
+        viz.addFrameController(
+                new Visualizer::BodyFollower(mbs.getBodyToWatch(), Vec3(0),
+                                             mbs.getWatchOffset()));
 
     // Simulate it.
     State s;
