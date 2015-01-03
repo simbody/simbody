@@ -641,9 +641,11 @@ DecorationGenerator& updDecorationGenerator(int i);
 /**@}**/
 
 /** @name                Frame control methods
-These methods can be called prior to rendering a frame to control how the 
+These methods can be called prior to rendering a frame to control how the
 camera is positioned for that frame. These can be invoked from within a
-FrameController object for runtime camera control and other effects. **/
+FrameController object for runtime camera control and other effects. See the
+Visualizer::BodyFollower class for an example of a FrameController that causes
+the camera to follow a body. **/
 /**@{**/
 
 /** Set the transform defining the position and orientation of the camera.
@@ -763,36 +765,41 @@ public:
 };
 
 /** Causes the camera to point at and follow a point fixed on a body (a
- station). This might be useful if your system translates substantially,
- and would otherwise leave the camera's field of view. This class was mostly
- taken from the BodyWatcher class in the TimsBox.cpp test. **/
+ station). This might be useful if your system translates substantially
+ and would thus leave the field of view of a stationary camera. **/
+// This class is based on the BodyWatcher class that used to be in TimsBox.cpp.
 class SimTK_SIMBODY_EXPORT Visualizer::BodyFollower :
     public Visualizer::FrameController {
 public:
     /**
-     @param[in] bodyB
-        The body to follow.
-     @param[in] stationPinB
-        A station (point) P on the body to follow, expressed in B.
-     @param[in] offset
-        Position of the camera from P, expressed in ground.
-     @param[in] upDirection
-        A direction which should point upward as seen by the camera.
-     **/
-    explicit BodyFollower(const MobilizedBody& body,
+    @param[in] bodyB
+       The body to follow.
+    @param[in] stationPinB
+       The location of the station P on the body to follow, expressed in B.
+    @param[in] offset
+       Position of the camera from P, expressed in ground.
+    @param[in] upDirection
+       Controls the rotation of the camera about the offset vector. The
+       camera's up (+y) direction will be aligned with this vector as best as
+       possible. Expressed in ground. By default, this is the system's up
+       direction (see getSystemUpDirection); it's unlikely that you want
+       something other than the default.
+    **/
+    BodyFollower(const MobilizedBody& body,
                           const Vec3&          stationPinB = Vec3(0, 0, 0),
                           const Vec3&          offset = Vec3(1, 1, 1),
-                          const Vec3&          upDirection = Vec3(0, 1, 0));
+                          const Vec3&          upDirection = Vec3(NaN));
     
     virtual void generateControls(
             const Visualizer&             viz,
             const State&                  state,
-            Array_< DecorativeGeometry >& geometry) OVERRIDE_11;
+            Array_< DecorativeGeometry >& geometry) override;
     
 private:
     const MobilizedBody& m_body;
     const Vec3 m_stationPinB;
     const Vec3 m_offset;
+    const UnitVec3 m_offsetDirection;
     const Vec3 m_upDirection;
 };
 
