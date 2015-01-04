@@ -175,6 +175,7 @@ int CPBand(void *cpode_mem, int N, int mupper, int mlower)
   /* Test ml and mu for legality */
   if ((ml < 0) || (mu < 0) || (ml >= N) || (mu >= N)) {
     cpProcessError(cp_mem, CPDIRECT_ILL_INPUT, "CPBAND", "CPBand", MSGD_BAD_SIZES);
+    free(cpdls_mem);
     return(CPDIRECT_ILL_INPUT);
   }
 

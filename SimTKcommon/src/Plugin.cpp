@@ -232,7 +232,7 @@ void* Plugin::getSymbolAddress(void* handle, const string& name, string& errorMe
     errorMessage.clear();
 
     #ifdef _WIN32
-        address = GetProcAddress((HMODULE)handle, name.c_str());
+        address = (void*)GetProcAddress((HMODULE)handle, name.c_str());
         if (!address)
             errorMessage = getWindowsSystemMessage();
     #else

@@ -3,8 +3,8 @@
 language: cpp
 
 os:
- - linux
- - osx
+  - linux
+  - osx
 
 compiler:
   - gcc
@@ -15,8 +15,8 @@ env:
   # matrix is defined by the environment variables defined on the line, which
   # should be space-delimited. For example,
   # - ABC=ON DEF=OFF GHI=ON
-  - CPP11=OFF BTYPE=Release
-  - CPP11=ON BTYPE=Release
+  # Simbody 3.6 and up requires c++11
+  - BTYPE=Release
   
 matrix:
   exclude:
@@ -24,23 +24,41 @@ matrix:
       compiler: gcc
 
 before_install:
+  ## Ensure that there are no tabs in source code.
+  # GREP returns 0 (true) if there are any matches, and
+  # we don't want any matches. If there are matches,
+  # print a helpful message, and make the test fail by using "false".
+  # The GREP command here checks for any tab characters in the the files
+  # that match the specified pattern. GREP does not pick up explicit tabs
+  # (e.g., literally a \t in a source file).
+  # This grep command is invalid on osx.
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; else echo "Repo passed no-tabs check."; fi; else echo "No-tabs check not performed."; fi
+  
   ## Dependencies for Simbody.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install liblapack-dev; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install freeglut3-dev libxi-dev libxmu-dev; fi
 
-  # C++11 on Ubuntu. Update to gcc 4.8, which provides full C++11 support.  We use this
-  # script because if building Simbody with C++11, we need gcc-4.8, and the
-  # Travis Ubuntu 12.04 machines have an older version of gcc. Even if building
-  # with Clang, we need the newer libstdc++ that we get by updating to gcc-4.8.
-  # See https://github.com/travis-ci/travis-ci/issues/979.
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" ]]; then sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" ]]; then sudo apt-get update -qq; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" ]]; then sudo apt-get install -qq g++-4.8; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CPP11" = "ON" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  # C++11 on Ubuntu. Update to gcc 4.8, which provides full C++11 support.  We
+  # use this script because if building Simbody with C++11, we need gcc-4.8,
+  # and the Travis Ubuntu 12.04 machines have an older version of gcc. Even if
+  # building with Clang, we need the newer libstdc++ that we get by updating to
+  # gcc-4.8.  See https://github.com/travis-ci/travis-ci/issues/979.
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y; fi
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get install -qq g++-4.8; fi
+  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 install:
-  - cmake . -DBUILD_VISUALIZER=OFF -DSIMBODY_STANDARD_11=$CPP11 -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
+  - mkdir ~/simbody-build && cd ~/simbody-build
+  # Configure.
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
+  # Build.
   - make -j8
 
 script:
+  ## Test Simbody.
   - ctest -j8 --output-on-failure
+
+  ## Make sure we can install with no issues.
+  - sudo make -j8 install

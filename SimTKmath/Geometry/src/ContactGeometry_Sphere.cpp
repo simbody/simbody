@@ -151,61 +151,61 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
     // Check if e1 and e2 are orthogonal.
     assert(std::abs(~e1*e2) <= SignificantReal);
 
-	// Clear current geodesic.
-	geod.clear();
+    // Clear current geodesic.
+    geod.clear();
 
-	// TODO: Make this generic, so long geodesics are sampled more than short ones.
+    // TODO: Make this generic, so long geodesics are sampled more than short ones.
     const int numGeodesicSamples = 12;
 
-	// Total arc length and orientation.
-	const Real orientation = Real(sign(angle));
-	const Real L = R*angle*orientation;
+    // Total arc length and orientation.
+    const Real orientation = Real(sign(angle));
+    const Real L = R*angle*orientation;
 
-	// Increment of phi in loop.
-	const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
+    // Increment of phi in loop.
+    const Real deltaPhi = std::abs(angle / Real(numGeodesicSamples-1));
 
     const Real k = 1/R; // curvature
     for (int i = 0; i < numGeodesicSamples; ++i){
         Real phi = Real(i)*angle / Real(numGeodesicSamples-1);
         const Real sphi = sin(phi), cphi = cos(phi);
 
-		// Trust me, this is already normalized by definition of the input.
-		UnitVec3 n(e1*cphi + e2*sphi, true);
+        // Trust me, this is already normalized by definition of the input.
+        UnitVec3 n(e1*cphi + e2*sphi, true);
 
         Vec3 p = R*n;
 
-		// t = dp/dphi, hence pointing into direction of increasing phi. 
+        // t = dp/dphi, hence pointing into direction of increasing phi. 
         Vec3 t = (-e1*sphi + e2*cphi)*orientation;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
         geod.addFrenetFrame(Transform(Rotation(n, ZAxis, t, YAxis), p));
 
-		// Current arc length s.
-		Real s = R*Real(i)*deltaPhi;
+        // Current arc length s.
+        Real s = R*Real(i)*deltaPhi;
         geod.addArcLength(s);
 
-		// Solve the scalar Jacobi equation
-		//
-		//        j''(s) + K(s)*j(s) = 0 ,                                     (1)
-		//
-		// where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
-		// with respect to the arc length s. Then, j is the directional sensitivity and
-		// we obtain the corresponding variational vector field by multiplying b*j. For
-		// a sphere, K = R^(-2) and the solution of equation (1) becomes
-		//
-		//        j  = R * sin(1/R * s)                                        (2)
-		//		  j' =     cos(1/R * s) ,                                      (3)
-		//
-		// where equation (2) is the standard solution of a non-damped oscillator. Its
-		// period is 2*pi*R and its amplitude is R.
+        // Solve the scalar Jacobi equation
+        //
+        //        j''(s) + K(s)*j(s) = 0 ,                                     (1)
+        //
+        // where K is the Gaussian curvature and (.)' := d(.)/ds denotes differentiation
+        // with respect to the arc length s. Then, j is the directional sensitivity and
+        // we obtain the corresponding variational vector field by multiplying b*j. For
+        // a sphere, K = R^(-2) and the solution of equation (1) becomes
+        //
+        //        j  = R * sin(1/R * s)                                        (2)
+        //          j' =     cos(1/R * s) ,                                      (3)
+        //
+        // where equation (2) is the standard solution of a non-damped oscillator. Its
+        // period is 2*pi*R and its amplitude is R.
 
-		// Forward directional sensitivity from P to Q
-		Vec2 jPQ(R*sin(k * s), cos(k * s));
-		geod.addDirectionalSensitivityPtoQ(jPQ);
+        // Forward directional sensitivity from P to Q
+        Vec2 jPQ(R*sin(k * s), cos(k * s));
+        geod.addDirectionalSensitivityPtoQ(jPQ);
 
-		// Backwards directional sensitivity from Q to P
-		Vec2 jQP(R*sin(k * (L-s)), cos(k * (L-s)));
-		geod.addDirectionalSensitivityQtoP(jQP);
+        // Backwards directional sensitivity from Q to P
+        Vec2 jQP(R*sin(k * (L-s)), cos(k * (L-s)));
+        geod.addDirectionalSensitivityQtoP(jQP);
 
 
         // TODO: positional sensitivity
@@ -229,7 +229,7 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
                        const Vec3& tPhint, const Vec3& tQhint,
                        Geodesic& geod) const
 {
-	// Build an orthonormal basis {e1, e2, e3}.
+    // Build an orthonormal basis {e1, e2, e3}.
     const UnitVec3 e1(xP), e_OQ(xQ);
     const Vec3 arcAxis = e1 % e_OQ;
 
@@ -238,43 +238,43 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
 
     UnitVec3 e3(arcAxis/sinAngle, true);
 
-	// Tangent vectors tP and tQ at P and Q corresponding to a positive rotation
-	// of the arc around e3.
+    // Tangent vectors tP and tQ at P and Q corresponding to a positive rotation
+    // of the arc around e3.
     UnitVec3 tP(e3 % e1,   true);
     UnitVec3 tQ(e3 % e_OQ, true);
 
-	// Average moment of of hint vectors applied e3.
-	Real MP = ~(e1   % tPhint)*e3;
-	Real MQ = ~(e_OQ % tQhint)*e3;
-	Real M  =  (MP + MQ) / 2;
+    // Average moment of of hint vectors applied e3.
+    Real MP = ~(e1   % tPhint)*e3;
+    Real MQ = ~(e_OQ % tQhint)*e3;
+    Real M  =  (MP + MQ) / 2;
 
-	// Small angle between e_OP and e_OQ corresponding to a short geodesic.
+    // Small angle between e_OP and e_OQ corresponding to a short geodesic.
     Real temp = atan2(sinAngle, cosAngle);
-	Real angleRightHanded, angleLeftHanded;
+    Real angleRightHanded, angleLeftHanded;
 
-	// Left-handed angle will always be negative, right-handed angle will be positive.
-	if (temp >= 0) {
-		angleRightHanded = temp;
-		angleLeftHanded  = temp - 2*Pi;
-	}
+    // Left-handed angle will always be negative, right-handed angle will be positive.
+    if (temp >= 0) {
+        angleRightHanded = temp;
+        angleLeftHanded  = temp - 2*Pi;
+    }
 
-	else {
-		angleLeftHanded  = temp;
-		angleRightHanded = temp + 2*Pi;
-	}
+    else {
+        angleLeftHanded  = temp;
+        angleRightHanded = temp + 2*Pi;
+    }
 
-	// Orientation of arc. A negative angle means a left-handed rotation around e3. 
-	Real angle;
-	if (M >= 0)	{
-		angle = angleRightHanded;
-	}
+    // Orientation of arc. A negative angle means a left-handed rotation around e3. 
+    Real angle;
+    if (M >= 0)    {
+        angle = angleRightHanded;
+    }
 
-	else {
-		angle = angleLeftHanded;
-	}
+    else {
+        angle = angleLeftHanded;
+    }
 
-	// Create the last unit vector to form the orthonormal basis to describe the arc.
-	UnitVec3 e2(e3 % e1, true);
+    // Create the last unit vector to form the orthonormal basis to describe the arc.
+    UnitVec3 e2(e3 % e1, true);
 
     setGeodesicToArc(e1, e2, radius, angle, geod);
 }

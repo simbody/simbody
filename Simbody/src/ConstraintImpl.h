@@ -2633,7 +2633,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)  // mp of these
-    const OVERRIDE_11
+    const override
 {
     // All the q's for a given constrained mobilizer are considered 
     // constrainedQ's, but we're just going to grab one of them.
@@ -2647,7 +2647,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) // mp of these
-    const OVERRIDE_11
+    const override
 {
     // All the q's for a given constrained mobilizer are considered 
     // constrainedQDots's, but we're just going to grab one of them.
@@ -2663,7 +2663,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) // mp of these
-    const OVERRIDE_11
+    const override
 {
     // All the q's for a given constrained mobilizer are considered 
     // constrainedQDotDots's, but we're just going to grab one of them.
@@ -2679,7 +2679,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const OVERRIDE_11
+    const override
 {
    // All the coordinates for a given constrained mobilizer have slots in
    // qForces, but we're just going to update one of them.
@@ -2738,7 +2738,7 @@ void calcVelocityErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
-    const OVERRIDE_11
+    const override
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedU's, but we're just going to grab one of them.
@@ -2752,7 +2752,7 @@ void calcVelocityDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
-    const OVERRIDE_11
+    const override
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedUDots's, but we're just going to grab one of them.
@@ -2767,7 +2767,7 @@ void addInVelocityConstraintForcesVirtual
    (const State&                              s,      // Stage::Velocity
     const Array_<Real>&                       multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&  bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&     mobilityForces) const OVERRIDE_11
+    Array_<Real,      ConstrainedUIndex>&     mobilityForces) const override
 {
    // All the mobilities for a given constrained mobilizer have slots in
    // mobilizedForces, but we're just going to update one of them.

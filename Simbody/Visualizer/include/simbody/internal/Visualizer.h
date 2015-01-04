@@ -34,6 +34,7 @@ for display and interaction through the visualizer. **/
 
 namespace SimTK {
 
+class MobilizedBody;
 class MultibodySystem;
 class DecorationGenerator;
 
@@ -146,6 +147,7 @@ problems. **/
 class SimTK_SIMBODY_EXPORT Visualizer {
 public:
 class FrameController; // defined below
+class BodyFollower;    // declared below, defined in Visualizer.cpp
 class InputListener;   // defined in Visualizer_InputListener.h
 class InputSilo;       //                 "
 class Reporter;        // defined in Visualizer_Reporter.h
@@ -639,9 +641,11 @@ DecorationGenerator& updDecorationGenerator(int i);
 /**@}**/
 
 /** @name                Frame control methods
-These methods can be called prior to rendering a frame to control how the 
+These methods can be called prior to rendering a frame to control how the
 camera is positioned for that frame. These can be invoked from within a
-FrameController object for runtime camera control and other effects. **/
+FrameController object for runtime camera control and other effects. See the
+Visualizer::BodyFollower class for an example of a FrameController that causes
+the camera to follow a body. **/
 /**@{**/
 
 /** Set the transform defining the position and orientation of the camera.
@@ -758,6 +762,48 @@ public:
     /** Destructor is virtual; be sure to override it if you have something
     to clean up at the end. **/
     virtual ~FrameController() {}
+};
+
+/** Causes the camera to point at and follow a point fixed on a body (a
+ station). This might be useful if your system translates substantially
+ and would thus leave the field of view of a stationary camera. **/
+// This class is based on the BodyWatcher class that used to be in TimsBox.cpp.
+class SimTK_SIMBODY_EXPORT Visualizer::BodyFollower :
+    public Visualizer::FrameController {
+public:
+    /**
+    @param[in] mobodB
+       The MobilizedBody to follow, designated as B.
+    @param[in] stationPinB
+       The location of the station P on the body to follow, expressed in B. By
+       default, P is the origin of the MobilizedBody.
+    @param[in] offset
+       Position of the camera from P, expressed in ground. Cannot be the zero
+       vector. By default, this is (1, 1, 1) + h * u, where h is
+       Visualizer::getGroundHeight() and u is
+       Visualizer::getSystemUpDirection().
+    @param[in] upDirection
+       Controls the rotation of the camera about the offset vector. The
+       camera's up (+y) direction will be aligned with this vector as best as
+       is possible. Expressed in ground. By default, this is
+       Visualizer::getSystemUpDirection(); it's unlikely that you want
+       something other than the default.
+    **/
+    BodyFollower(const MobilizedBody& mobodB,
+                 const Vec3&          stationPinB = Vec3(0, 0, 0),
+                 const Vec3&          offset      = Vec3(NaN),
+                 const UnitVec3&      upDirection = UnitVec3());
+
+    void generateControls(
+            const Visualizer&             viz,
+            const State&                  state,
+            Array_< DecorativeGeometry >& geometry) override;
+
+private:
+    const MobilizedBody& m_mobodB;
+    const Vec3&          m_stationPinB;
+    const Vec3&          m_offset;
+    const UnitVec3&      m_upDirection;
 };
 
 /** OBSOLETE: This provides limited backwards compatibility with the old

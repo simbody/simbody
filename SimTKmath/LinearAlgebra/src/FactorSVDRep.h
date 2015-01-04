@@ -131,7 +131,7 @@ class FactorSVDRepBase {
     }
     virtual int getRank() {
        checkIfFactored( "getRank" );
-	   return(0);
+       return(0);
     }
 
     void checkIfFactored(const char* function_name)  const {

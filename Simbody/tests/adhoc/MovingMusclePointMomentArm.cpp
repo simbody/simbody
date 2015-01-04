@@ -136,7 +136,7 @@ public:
     void calcForce(const State& state,
         Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces,
-        Vector& mobilityForces) const OVERRIDE_11
+        Vector& mobilityForces) const override
     {
         // End points and via point in Ground.
         const Vec3 ptA = m_A.findStationLocationInGround(state, m_ptA);
@@ -161,7 +161,7 @@ public:
         m_V.applyForceToBodyPoint(state, m_ptV, -(fA + fB), bodyForces);
     }
 
-    Real calcPotentialEnergy(const State&) const OVERRIDE_11 { return 0; }
+    Real calcPotentialEnergy(const State&) const override { return 0; }
 private:
     const SimbodyMatterSubsystem&   m_matter;
     const MobilizedBody             m_A, m_V, m_B;
@@ -237,7 +237,7 @@ public:
     void calcForce(const State& state,
         Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>& particleForces,
-        Vector& mobilityForces) const OVERRIDE_11
+        Vector& mobilityForces) const override
     {
         // End points and via point in Ground.
         const Vec3 ptA = m_A.findStationLocationInGround(state, m_ptA);
@@ -266,7 +266,7 @@ public:
         m_B.applyOneMobilityForce(state, MobilizerQIndex(0), f, mobilityForces); 
     }
 
-    Real calcPotentialEnergy(const State&) const OVERRIDE_11 { return 0; }
+    Real calcPotentialEnergy(const State&) const override { return 0; }
 private:
     const SimbodyMatterSubsystem&   m_matter;
     const MobilizedBody             m_A, m_V, m_B;
@@ -282,7 +282,7 @@ public:
     :   m_muscle(muscle) {}
 
     void generateDecorations(const State& state, 
-        Array_<DecorativeGeometry>& geometry) OVERRIDE_11{
+        Array_<DecorativeGeometry>& geometry) override{
         Array_<Vec3> path;
         m_muscle.calcPathPoints(state, path);
         for (unsigned i = 1; i < path.size(); ++i) {

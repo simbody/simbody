@@ -142,7 +142,7 @@ typedef int (*PSolveFn)(void *P_data, N_Vector r, N_Vector z, int lr);
  */                                                                
 
 SUNDIALS_EXPORT int ModifiedGS(N_Vector *v, realtype **h, int k, int p, 
-			       realtype *new_vk_norm);
+                   realtype *new_vk_norm);
 
 /*
  * -----------------------------------------------------------------
@@ -165,7 +165,7 @@ SUNDIALS_EXPORT int ModifiedGS(N_Vector *v, realtype **h, int k, int p,
  */
 
 SUNDIALS_EXPORT int ClassicalGS(N_Vector *v, realtype **h, int k, int p, 
-				realtype *new_vk_norm, N_Vector temp, realtype *s);
+                realtype *new_vk_norm, N_Vector temp, realtype *s);
 
 /*
  * -----------------------------------------------------------------

@@ -288,7 +288,7 @@ namespace Ipopt
 #endif
 
     std::vector<Observer*>::iterator iter;
-    for (iter = observers_.begin(); iter != observers_.end(); iter++) {
+    for (iter = observers_.begin(); iter != observers_.end(); ++iter) {
       (*iter)->ProcessNotification(Observer::NT_BeingDestroyed, this);
     }
   }
@@ -346,7 +346,7 @@ namespace Ipopt
 #endif
 
     std::vector<Observer*>::iterator iter;
-    for (iter = observers_.begin(); iter != observers_.end(); iter++) {
+    for (iter = observers_.begin(); iter != observers_.end(); ++iter) {
       (*iter)->ProcessNotification(notify_type, this);
     }
   }

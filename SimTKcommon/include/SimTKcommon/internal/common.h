@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Chris Dembia                                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -122,23 +122,23 @@ or any other Index type to an argument expecting a certain Index type. **/
     #if defined(__cplusplus)
         #include <cstdio>
         #define SimTK_DEBUG(s) std::printf("DBG: " s)
-        #define SimTK_DEBUG1(s,a1) std::printf("DBG: " s,a1)	
-        #define SimTK_DEBUG2(s,a1,a2) std::printf("DBG: " s,a1,a2)	
-        #define SimTK_DEBUG3(s,a1,a2,a3) std::printf("DBG: " s,a1,a2,a3)	
+        #define SimTK_DEBUG1(s,a1) std::printf("DBG: " s,a1)    
+        #define SimTK_DEBUG2(s,a1,a2) std::printf("DBG: " s,a1,a2)    
+        #define SimTK_DEBUG3(s,a1,a2,a3) std::printf("DBG: " s,a1,a2,a3)    
         #define SimTK_DEBUG4(s,a1,a2,a3,a4) std::printf("DBG: " s,a1,a2,a3,a4)
     #else
         #include <stdio.h>
         #define SimTK_DEBUG(s) printf("DBG: " s)
-        #define SimTK_DEBUG1(s,a1) printf("DBG: " s,a1)	
-        #define SimTK_DEBUG2(s,a1,a2) printf("DBG: " s,a1,a2)	
-        #define SimTK_DEBUG3(s,a1,a2,a3) printf("DBG: " s,a1,a2,a3)	
+        #define SimTK_DEBUG1(s,a1) printf("DBG: " s,a1)    
+        #define SimTK_DEBUG2(s,a1,a2) printf("DBG: " s,a1,a2)    
+        #define SimTK_DEBUG3(s,a1,a2,a3) printf("DBG: " s,a1,a2,a3)    
         #define SimTK_DEBUG4(s,a1,a2,a3,a4) printf("DBG: " s,a1,a2,a3,a4)
     #endif
 #else
     #define SimTK_DEBUG(s)
     #define SimTK_DEBUG1(s,a1)
     #define SimTK_DEBUG2(s,a1,a2)
-    #define SimTK_DEBUG3(s,a1,a2,a3)	
+    #define SimTK_DEBUG3(s,a1,a2,a3)    
     #define SimTK_DEBUG4(s,a1,a2,a3,a4)
 #endif
 
@@ -180,23 +180,23 @@ or any other Index type to an argument expecting a certain Index type. **/
     #else
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport) /*i.e., a client of a shared library*/
     #endif
-	/* VC++ tries to be secure by leaving bounds checking on for STL containers
-	 * even in Release mode. This macro exists to disable that feature and can
-	 * result in a considerable speedup.
-	 * CAUTION: every linked-together compilation unit must have this set the same
-	 * way. Everyone who properly includes this file first is fine; but as of this
-	 * writing Simmath's IpOpt doesn't do so.
+    /* VC++ tries to be secure by leaving bounds checking on for STL containers
+     * even in Release mode. This macro exists to disable that feature and can
+     * result in a considerable speedup.
+     * CAUTION: every linked-together compilation unit must have this set the same
+     * way. Everyone who properly includes this file first is fine; but as of this
+     * writing Simmath's IpOpt doesn't do so.
      * NOTE: Microsoft corrected this problem with VC10 -- the feature is 
      * disabled by default in that compiler and later.
      */
-	/* (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
-	 * tricky on VC++ 9 because all libraries, including 3rd party, must
-	 * be built the same way). Better to use the SimTK::Array_<T> class in
+    /* (sherm 081204 disabling for now: doesn't work on VC++ 8 and is 
+     * tricky on VC++ 9 because all libraries, including 3rd party, must
+     * be built the same way). Better to use the SimTK::Array_<T> class in
      * place of the std::vector<T> class to get better performance.
-	 #ifdef NDEBUG
-	 	#undef _SECURE_SCL
-	 	#define _SECURE_SCL 0
-	 #endif
+     #ifdef NDEBUG
+         #undef _SECURE_SCL
+         #define _SECURE_SCL 0
+     #endif
      */
 #else
     #define SimTK_SimTKCOMMON_EXPORT // Linux, Mac
@@ -229,31 +229,13 @@ extern "C" {
 
 #include <cstddef>
 #include <cassert>
+#include <cstring>
 #include <cmath>
 #include <cfloat>
 #include <complex>
 #include <limits>
 #include <typeinfo>
 #include <algorithm>
-
-/* Transition macros for C++11 support. VC10 and VC11 have partial support for
-C++11, early VC's do not. If using gcc or Clang, we check for C++11 support. */
-#ifndef SWIG
-    #if _MSC_VER>=1700 || (defined(__GNUG__) && __cplusplus>=201103L)
-        /* VC11 or higher, OR using gcc or Clang and using C++11 */
-        #define OVERRIDE_11  override
-        #define FINAL_11     final
-    #elif _MSC_VER==1600 /* VC10 */
-        #define OVERRIDE_11  override
-        #define FINAL_11     sealed
-    #else /* gcc or Clang without C++11, or earlier VC */
-        #define OVERRIDE_11
-        #define FINAL_11
-    #endif
-#else /* Swigging */
-    #define OVERRIDE_11
-    #define FINAL_11
-#endif
 
 /* Be very careful with this macro -- don't use it unless you have measured
 a performance improvement. You can end up with serious code bloat if you 
@@ -265,29 +247,10 @@ cache misses which ultimately reduce performance. */
     #define SimTK_FORCE_INLINE __attribute__((always_inline))
 #endif
 
-
-/* In Microsoft VC++ 11 (2012) and earlier these C99-compatible floating 
-point functions are missing. We'll create them here and install them into 
-namespace std. They were added in VC++ 12 (2013). */
-#if defined(_MSC_VER) && (_MSC_VER <= 1700) // VC++ 12 (2013, _MSC_VER=1800) added these
-namespace std {
-inline bool isfinite(float f) {return _finite(f) != 0;}
-inline bool isfinite(double d) {return _finite(d) != 0;}
-inline bool isfinite(long double l) {return _finite(l) != 0;}
-inline bool isnan(float f) {return _isnan(f) != 0;}
-inline bool isnan(double d) {return _isnan(d) != 0;}
-inline bool isnan(long double l) {return _isnan(l) != 0;}
-inline bool isinf(float f) {return std::abs(f)==std::numeric_limits<float>::infinity();}
-inline bool isinf(double d) {return std::abs(d)==std::numeric_limits<double>::infinity();}
-inline bool isinf(long double l) {return std::abs(l)==std::numeric_limits<double>::infinity();}
-inline bool signbit(float f) {return (*reinterpret_cast<unsigned*>(&f) & 0x80000000U) != 0;}
-inline bool signbit(double d) {return (*reinterpret_cast<unsigned long long*>(&d)
-                                & 0x8000000000000000ULL) != 0;}
-inline bool signbit(long double l) {return (*reinterpret_cast<unsigned long long*>(&l)
-                                    & 0x8000000000000000ULL) != 0;}
-}
-#endif
-
+/* These macros are deprecated, leftover from before C++11 was available. 
+Don't use them. */
+#define OVERRIDE_11 override
+#define FINAL_11 final
 
 namespace SimTK {
 
@@ -540,8 +503,8 @@ type. **/
     static const Derived& downcast(const Parent& p)             \
         { return SimTK_DYNAMIC_CAST_DEBUG<const Derived&>(p); } \
     static Derived& updDowncast(Parent& p)                      \
-        { return SimTK_DYNAMIC_CAST_DEBUG<Derived&>(p); }	    \
-	static Derived& downcast(Parent& p)                         \
+        { return SimTK_DYNAMIC_CAST_DEBUG<Derived&>(p); }        \
+    static Derived& downcast(Parent& p)                         \
         { return SimTK_DYNAMIC_CAST_DEBUG<Derived&>(p); }
 
 /** This is like SimTK_DOWNCAST except it allows for an intermediate "helper" 
@@ -551,9 +514,9 @@ class between Derived and Parent. **/
         { return Helper::isA(p); }                                      \
     static const Derived& downcast(const Parent& p)                     \
         { return static_cast<const Derived&>(Helper::downcast(p)); }    \
-    static Derived& updDowncast(Parent& p)							    \
-        { return static_cast<Derived&>(Helper::downcast(p)); }		    \
-	static Derived& downcast(Parent& p)                                 \
+    static Derived& updDowncast(Parent& p)                                \
+        { return static_cast<Derived&>(Helper::downcast(p)); }            \
+    static Derived& downcast(Parent& p)                                 \
         { return static_cast<Derived&>(Helper::downcast(p)); }
 
 
@@ -580,7 +543,7 @@ typedef std::complex<Real>      Complex;
 /** An abbreviation for std::complex<float> for consistency with others. **/
 typedef std::complex<float>     fComplex;
 /** An abbreviation for std::complex<double> for consistency with others. **/
-typedef std::complex<float>     dComplex;
+typedef std::complex<double>    dComplex;
 
 
 // Forward declaration giving template defaults must come before any
@@ -733,11 +696,23 @@ static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 
+/** Attempt to demangle a type name as returned by typeid.name(), with the
+result hopefully suitable for meaningful display to a human. Behavior is 
+compiler-dependent. **/
+SimTK_SimTKCOMMON_EXPORT std::string demangle(const char* name);
+
 /** In case you don't like the name you get from typeid(), you can specialize
-this class to provide a nicer name. This is typically used for error messages 
-and testing. **/
+this class to provide a nicer name. This class is typically used for error 
+messages and testing. **/
 template <class T> struct NiceTypeName {
+    /** The default implementation of name() here returns the raw result from
+    typeid(T).name() which will be fast but may be a mangled name in some 
+    compilers (gcc and clang included). **/
     static const char* name() {return typeid(T).name();}
+    /** The default implementation of namestr() attempts to return a nicely
+    demangled type name on all platforms, using the SimTK::demangle() method
+    defined above. Don't expect this to be fast. **/
+    static std::string namestr() {return demangle(name());}
 };
 
 } // namespace SimTK
@@ -751,6 +726,7 @@ be invoked if you already have that namespace open. **/
 #define SimTK_NICETYPENAME_LITERAL(T)               \
 namespace SimTK {                                   \
     template <> struct NiceTypeName< T > {          \
+        static std::string namestr() { return #T; } \
         static const char* name() { return #T; }    \
     };                                              \
 }

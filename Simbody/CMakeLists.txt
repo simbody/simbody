@@ -25,8 +25,8 @@ PROJECT (SimTKsimbody)
 
 # SimTKsimbody depends on PlatformFiles, SimTKcommon, and SimTKmath only.
 INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
-	            ${SimTKCOMMON_INCLUDE_DIRECTORIES}
-	            ${SimTKMATH_INCLUDE_DIRECTORIES})
+                    ${SimTKCOMMON_INCLUDE_DIRECTORIES}
+                    ${SimTKMATH_INCLUDE_DIRECTORIES})
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
@@ -38,7 +38,7 @@ SET(SIMBODY_SOURCE_SUBDIRS . Visualizer)
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SimTKSIMBODY_LIBRARY_NAME}
                 -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
                 -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
-		-DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
+                -DSimTK_SIMBODY_PATCH_VERSION=${SIMBODY_PATCH_VERSION})
 
 
 SET(SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
@@ -49,11 +49,11 @@ SET(STATIC_TARGET_VN ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
 ## Test against the unversioned libraries if they are being built;
 ## otherwise against the versioned libraries.
 IF(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET})
 ELSE(BUILD_UNVERSIONED_LIBRARIES)
-	SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-	SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
+    SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
+    SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
 ENDIF(BUILD_UNVERSIONED_LIBRARIES)
 
 # These are all the places to search for header files which are
@@ -63,13 +63,13 @@ SET(SimTKSIMBODY_INCLUDE_DIRS) # start empty
 FOREACH(subdir ${SIMBODY_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody 
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
 
     # Referencing headers must always be done relative to this level.
     SET(SimTKSIMBODY_INCLUDE_DIRS ${SimTKSIMBODY_INCLUDE_DIRS}
-	 ${PROJECT_SOURCE_DIR}/${subdir}/include)
+     ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 # Include the Simbody API include directories now so that Simbody code 
@@ -78,7 +78,7 @@ INCLUDE_DIRECTORIES(${SimTKSIMBODY_INCLUDE_DIRS})
 
 # And pass API include directories up to the parent so subsequent libraries
 # can find the headers too.
-SET(SimTKSIMBODY_INCLUDE_DIRECTORIES ${SimTKMATH_INCLUDE_DIRS}
+SET(SimTKSIMBODY_INCLUDE_DIRECTORIES ${SimTKSIMBODY_INCLUDE_DIRS}
     PARENT_SCOPE)
 
 
@@ -88,7 +88,7 @@ SET(API_REL_INCLUDE_FILES)   # start these out empty
 SET(API_ABS_INCLUDE_FILES)
 
 FOREACH(dir ${API_INCLUDE_DIRS})
-    FILE(GLOB fullpaths ${dir}/*.h)	# returns full pathnames
+    FILE(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
     SET(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
 
     FOREACH(pathname ${fullpaths})
@@ -112,7 +112,7 @@ ENDFOREACH(subdir)
 
 #INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
 
-# libraries and examples are installed from their subdirectories; headers here
+# libraries are installed from their subdirectories; headers here
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
@@ -125,7 +125,7 @@ INSTALL_FILES(/${SIMBODY_INCLUDE_INSTALL_DIR}/simbody/internal FILES ${INTERNAL_
 # Notice that the (deprecated) INSTALL_FILES(dir ...) command works differently than the
 # newer (recommended) INSTALL(dir FILES ...) command
 # when the target directory starts with a slash
-FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt)
+FILE(GLOB SIMBODY_DOCS doc/*.pdf doc/*.txt doc/*.md)
 INSTALL(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # SIMBODY_VISUALIZER_INSTALL_DIR defined in root CMakeLists.txt
@@ -146,10 +146,6 @@ IF (BUILD_VISUALIZER)
   SET(GUI_NAME "simbody-visualizer")
   ADD_SUBDIRECTORY(Visualizer/simbody-visualizer)
 ENDIF (BUILD_VISUALIZER)
-
-IF( BUILD_EXAMPLES )
-  ADD_SUBDIRECTORY( examples )
-ENDIF( BUILD_EXAMPLES )
 
 IF( BUILD_TESTING )
   ADD_SUBDIRECTORY( tests )

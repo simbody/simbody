@@ -141,7 +141,7 @@ friend class Force::Gravity;
         return p.mobodIsImmune[mbx];
     }
 
-    GravityImpl* clone() const OVERRIDE_11 {
+    GravityImpl* clone() const override {
         return new GravityImpl(*this);
     }
 
@@ -151,11 +151,11 @@ friend class Force::Gravity;
 
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11;
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11;
+                   override;
+    Real calcPotentialEnergy(const State& state) const override;
 
     // Allocate the state variables and cache entries.
-    void realizeTopology(State& s) const OVERRIDE_11;
+    void realizeTopology(State& s) const override;
 
     const Parameters& getParameters(const State& s) const
     {   return Value<Parameters>::downcast

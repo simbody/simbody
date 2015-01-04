@@ -41,10 +41,10 @@ public:
 
     LBFGSOptimizer(const OptimizerSystem& sys); 
 
-    Real optimize(  SimTK::Vector &results );
-    OptimizerRep* clone() const;
+    Real optimize(  SimTK::Vector &results ) override;
+    OptimizerRep* clone() const override;
 
-    OptimizerAlgorithm getAlgorithm() const
+    OptimizerAlgorithm getAlgorithm() const override
     {   return LBFGS; }
 
     private:

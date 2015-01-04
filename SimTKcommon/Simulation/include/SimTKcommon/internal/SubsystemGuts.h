@@ -299,21 +299,21 @@ bool isInSameSystem(const Subsystem& otherSubsystem) const;
 
 const System& getSystem() const {
     SimTK_ASSERT(isInSystem(), "Subsystem::getSystem()");
-	return *m_mySystem;
+    return *m_mySystem;
 }
 System& updSystem() {
     SimTK_ASSERT(isInSystem(), "Subsystem::updSystem()");
-	return *m_mySystem;
+    return *m_mySystem;
 }
 void setSystem(System& sys, SubsystemIndex id) {
     SimTK_ASSERT(!isInSystem(), "Subsystem::setSystem()");
     SimTK_ASSERT(id.isValid(), "Subsystem::setSystem()");
-	m_mySystem = &sys;
-	m_mySubsystemIndex = id;
+    m_mySystem = &sys;
+    m_mySubsystemIndex = id;
 }
 SubsystemIndex getMySubsystemIndex() const {
-	SimTK_ASSERT(isInSystem(), "Subsystem::getMySubsystemIndex()");
-	return m_mySubsystemIndex;
+    SimTK_ASSERT(isInSystem(), "Subsystem::getMySubsystemIndex()");
+    return m_mySubsystemIndex;
 }
 
 
@@ -474,7 +474,7 @@ System*         m_mySystem;       // the System to which this Subsystem belongs
 SubsystemIndex  m_mySubsystemIndex;  // Subsystem # within System
 
 friend class Subsystem;
-Subsystem*      m_myHandle;	// the owner handle of this Guts object
+Subsystem*      m_myHandle;    // the owner handle of this Guts object
 
 // This is the list of Measures belonging to this Subsystem.
 Array_<AbstractMeasure::Implementation*> 

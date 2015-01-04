@@ -1,15 +1,15 @@
-#---------------------------------------------------
+#-------------------------------------------------------------------------------
 # Simbody 
 #
 # This is the master CMake file that coordinates 
 # the build of Simbody. There are four steps:
-#    (1) Choose appropriate platform
-#    (2) Build SimTKcommon
-#    (3) Build SimTKmath
-#    (4) Build SimTKsimbody
+#    (1) Get files needed for particular platform
+#    (2) Build SimTKcommon library
+#    (3) Build SimTKmath library
+#    (4) Build SimTKsimbody library
+#    (5) Build examples
 #
-#----------------------------------------------------
-
+#-------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 2.8.6)
 
 if(COMMAND cmake_policy)
@@ -18,6 +18,11 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 PROJECT(Simbody)
+
+# At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
+# or appropriate ProgramFiles directory on Windows, for example 
+# C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
+# language equivalent.
 
 # Include GNUInstallDirs to get canonical paths
 include(GNUInstallDirs)
@@ -31,10 +36,10 @@ ELSE()
 ENDIF()
 
 SET(SIMBODY_MAJOR_VERSION 3)
-SET(SIMBODY_MINOR_VERSION 5)
+SET(SIMBODY_MINOR_VERSION 6)
 SET(SIMBODY_PATCH_VERSION 0)
 
-SET(SIMBODY_COPYRIGHT_YEARS "2005-14")
+SET(SIMBODY_COPYRIGHT_YEARS "2005-15")
 
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
@@ -79,7 +84,7 @@ SET(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
 SET(BUILD_USING_NAMESPACE "" CACHE STRING
-	"All library names will be prefixed with 'xxx_' if this is set to xxx.")
+    "All library names will be prefixed with 'xxx_' if this is set to xxx.")
 
 SET(BUILD_UNVERSIONED_LIBRARIES TRUE CACHE BOOL
  "Build library names, and assume dependency names, with no version numbers?")
@@ -144,14 +149,14 @@ SET(BUILD_TESTING ON CACHE BOOL
     BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
 SET(BUILD_EXAMPLES ON CACHE BOOL
-	"Control building of Simbody example programs.
+    "Control building of Simbody example programs.
     To actually build examples, one
     or both of BUILD_TESTS_AND_EXAMPLES_STATIC and
     BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
 # Set whether to build the Visualizer code.
 SET(BUILD_VISUALIZER ON CACHE BOOL 
-	"Control building of the visualizer component")
+    "Control building of the visualizer component")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
@@ -182,20 +187,6 @@ IF(BUILD_EXAMPLES AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
         "BUILD_TESTS_AND_EXAMPLES_SHARED are both off.")
 ENDIF()
 
-#
-# Create a platform name useful for finding things in the Platform
-# directory.
-IF(WIN32)
-    SET(PLATFORM_NAME Windows)
-    SET(NATIVE_COPY_CMD copy)
-ELSEIF(APPLE)
-    SET(PLATFORM_NAME Mac)
-    SET(NATIVE_COPY_CMD cp)
-ELSE()
-    SET(PLATFORM_NAME Linux)
-    SET(NATIVE_COPY_CMD cp)
-ENDIF()
-
 # In addition to the platform name we need to know the Application Binary
 # Interface (ABI) we're building for. Currently that is either x86, meaning
 # 32 bit Intel instruction set, or x64 for 64 bit Intel instruction set.
@@ -206,59 +197,9 @@ ELSE()
     SET(PLATFORM_ABI x86)
 ENDIF()
 
-SET(BUILD_PLATFORM "${PLATFORM_NAME}:${PLATFORM_ABI}" CACHE STRING
+SET(BUILD_PLATFORM "${CMAKE_HOST_SYSTEM_NAME}:${PLATFORM_ABI}" CACHE STRING
     "This is the platform and ABI we're building for. Not changeable here; use a different CMake generator instead."
     FORCE)
-
-# 
-# Make sure "sandbox" input & output directories are set. During
-# SimTK Core build, the build system will set them. Otherwise, we'll
-# set them to sensible local values.
-# If CMAKE_INSTALL_PREFIX is set then
-# it is a sandbox installation area, otherwise we want to install
-# in /usr/local/simbody or %ProgramFiles%\Simbody. 
-#
-
-
-# For backward compatibility, use SimTK_INSTALL_PREFIX if
-# CMAKE_INSTALL_PREFIX hasn't been set.
-IF(SimTK_INSTALL_PREFIX AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE PATH
-      "Install path prefix." FORCE)
-ENDIF()
-
-# C compiler is gcc on Linux, gcc or cc on Mac where command line tools
-# are installed from Xcode. May be Clang in Mac 10.8 or later.
-
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    IF(NOT CMAKE_INSTALL_PREFIX)
-        SET(CMAKE_INSTALL_PREFIX "/usr/local/simbody" 
-            CACHE PATH "Install directory")
-    ENDIF(NOT CMAKE_INSTALL_PREFIX)
-
-ELSE() # Windows
-    # On Win64, there are two environment variables, ProgramFiles(x86) for
-    # 32 bit binaries, and ProgramW6432 for 64 bit binaries. The variable
-    # ProgramFiles returns one or the other depending on whether the requesting
-    # executable is 32 or 64 bits. That's CMake in this case, but we want
-    # the right directory for the target. CMAKE_INSTALL_DIR after 2.8.3 gets
-    # this right but still isn't what we want.
-    IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-	# 64 bit target on Win64
-	set(PROGFILEDIR "$ENV{ProgramW6432}")
-    ELSE() # Target is 32 bit
-	set(PROGFILEDIR "$ENV{ProgramFiles(x86)}") # present if 64bit Windows
-	if (NOT PROGFILEDIR)
-	    set(PROGFILEDIR "$ENV{ProgramFiles}") # on 32bit Windows
-	endif()
-    ENDIF()
-
-    IF(NOT CMAKE_INSTALL_PREFIX)
-        SET(CMAKE_INSTALL_PREFIX "${PROGFILEDIR}/Simbody" 
-            CACHE PATH "Install directory")
-    ENDIF(NOT CMAKE_INSTALL_PREFIX)
-
-ENDIF()
 
 # If CMAKE_INSTALL_PREFIX is /usr/local, then the LIBDIR should necessarily be
 # lib/. Sometimes (on Linux), LIBDIR is something like x86_64-linux-gnu. The
@@ -279,7 +220,8 @@ ENDIF()
 
 
 IF(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build" 
+    SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
+        "Debug, RelWithDebInfo (recommended), or Release build" 
         FORCE)
 ENDIF()
 
@@ -313,28 +255,23 @@ endif()
 ## are specifying *all* of the Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
-IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR 
+IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 
-    # If using either of these compilers, provide the option of 
-    # compiling using the c++11 standard.
-    OPTION(SIMBODY_STANDARD_11
-        "Compile using the C++11 standard, if using GCC or Clang." ON)
-	
-    IF(${SIMBODY_STANDARD_11})
-        # Using C++11 on OSX requires using libc++ instead of libstd++.
-        # libc++ is an implementation of the C++ standard library for OSX.
-        IF(APPLE)
-            IF(XCODE)
-                SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
-                SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-            ELSE()
-                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-            ENDIF()
-        ELSE() # not APPLE
+    # C++11
+    # -----
+    # Using C++11 on OSX requires using libc++ instead of libstd++.
+    # libc++ is an implementation of the C++ standard library for OSX.
+    IF(APPLE)
+        IF(XCODE)
+            SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
+            SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+        ELSE()
             SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
         ENDIF()
+    ELSE() # not APPLE
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     ENDIF()
 
     if (inst_set_to_use)
@@ -424,23 +361,23 @@ IF(MSVC)
 
     ## C++
     SET(BUILD_CXX_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
+    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_CXX_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C
     SET(BUILD_C_FLAGS_DEBUG        
-	"/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
+    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_RELEASE        
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_RELWITHDEBINFO 
-	"/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
     SET(BUILD_C_FLAGS_MINSIZEREL 
-	"/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
+    "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C++
     SET(CMAKE_CXX_FLAGS_DEBUG "/MP${mxcpu} ${BUILD_CXX_FLAGS_DEBUG}"
@@ -516,9 +453,9 @@ ENDIF(BUILD_USING_OTHER_LAPACK)
 
 IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     IF(APPLE)
-	    SET(REALTIME_LIB)
+        SET(REALTIME_LIB)
     ELSE()
-	    SET(REALTIME_LIB rt)
+        SET(REALTIME_LIB rt)
     ENDIF()
     SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl m)
     SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl m)
@@ -607,7 +544,11 @@ ADD_SUBDIRECTORY( SimTKmath )
 ADD_SUBDIRECTORY( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set (but not used)
 
-FILE(GLOB TOPLEVEL_DOCS doc/*.pdf doc/*.txt)
+IF( BUILD_EXAMPLES )
+  ADD_SUBDIRECTORY( examples )
+ENDIF( BUILD_EXAMPLES )
+
+FILE(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.txt doc/*.md)
 INSTALL(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # Add uninstall target
@@ -621,10 +562,10 @@ add_custom_target(uninstall
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
 set(PKG_LIBRARIES
-  SimTKsimbody
-  SimTKmath
-  SimTKcommon
-)
+    ${SimTKSIMBODY_LIBRARY_NAME}
+    ${SimTKMATH_LIBRARY_NAME}
+    ${SimTKCOMMON_LIBRARY_NAME}
+    )
 
 if (WIN32)
   set(SIMBODY_CMAKE_DIR cmake)
@@ -659,10 +600,10 @@ INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
 # Make the pkgconfig file: select the proper flags depending on the platform
 IF (WIN32)
     IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    	# win 64 bits
-	SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
+        # win 64 bits
+    SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
     ELSE()
-	SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
+    SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
     ENDIF()
 ELSEIF (APPLE)   
     SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -ldl")

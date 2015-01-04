@@ -506,7 +506,7 @@ namespace Ipopt
     list += buffer;
     for(std::map< std::string, OptionValue >::const_iterator p = options_.begin();
         p != options_.end();
-        p++ ) {
+        ++p ) {
       sprintf(buffer, "%40s = %-20s %6d\n", p->first.c_str(),
               p->second.Value().c_str(), p->second.Counter());
       list += buffer;
@@ -521,7 +521,7 @@ namespace Ipopt
     list += buffer;
     for(std::map< std::string, OptionValue >::const_iterator p = options_.begin();
         p != options_.end();
-        p++ ) {
+        ++p ) {
       if (!p->second.DontPrint()) {
         const char yes[] = "yes";
         const char no[] = "no";

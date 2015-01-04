@@ -129,7 +129,7 @@ int main() {
 
 
 
-    printf("LBFGSBTests.cpp: f = %f params = ",f);
+    printf("LBFGSBTest.cpp: f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
@@ -143,7 +143,7 @@ int main() {
                         1.086736, 1.180997, 1.394759, 1.945352, 3.784388 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if(!equalToTol(results[i], expected[i], TOL)) {
-           printf(" LBFGSBTests.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
+           printf(" LBFGSBTest.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
            returnValue = 1;
        }
     }

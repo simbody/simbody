@@ -168,7 +168,7 @@ FactorQTZRep<T>::FactorQTZRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
 { 
     for(int i=0; i<mat.ncol(); ++i) 
         pivots.data[i] = 0;
-	FactorQTZRep<T>::factor( mat );
+    FactorQTZRep<T>::factor( mat );
     isFactored = true;
 }
 

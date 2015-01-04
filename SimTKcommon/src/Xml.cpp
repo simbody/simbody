@@ -89,9 +89,9 @@ public:
 
     void writeToString(String& xmlDocument, bool compact) const {
         TiXmlPrinter printer(xmlDocument);
-	    if (compact) printer.SetStreamPrinting();
+        if (compact) printer.SetStreamPrinting();
         else printer.SetIndent(m_tixml.GetIndentChars());
-	    m_tixml.Accept( &printer );
+        m_tixml.Accept( &printer );
     }
 
     // Call this during construction and after a new Xml document has been
@@ -100,6 +100,7 @@ public:
     // is no top-level text and only one top-level element and that is the 
     // "root" element whose tag name is the document type.
     void canonicalizeDocument() {
+        TiXmlDeclaration* decl = addDeclarationIfNeeded();
         TiXmlElement*     root = addRootElementIfNeeded();
 
         m_rootElement.setTiNodePtr(root);

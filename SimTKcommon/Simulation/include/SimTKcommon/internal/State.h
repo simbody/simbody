@@ -417,7 +417,7 @@ inline UErrIndex    allocateUErr   (SubsystemIndex, int nuerr) const;
 /** Allocate \a nudoterr cache slots to hold the current error for 
 acceleration-level (acceleration-only, nonholonomic first derivative, and 
 holonomic second derivative) constraint equations. This also allocates the
-same number of slot in the constraint multipliers vector. **/
+same number of slots in the constraint multipliers vector. **/
 inline UDotErrIndex allocateUDotErr(SubsystemIndex, int nudoterr) const;
 /**@}**/
 
@@ -452,16 +452,17 @@ DiscreteVariables are private to each Subsystem and allocated immediately. The
 returned index is unique within the Subsystem and there is no corresponding 
 global index. **/
 /**@{**/
-/** The Stage supplied here in the call is the earliest subsystem stage which is invalidated
-by a change made to this discrete variable. You may access the value of the discrete
-variable for reading (via getDiscreteVariable()) or writing (via updDiscreteVariable())
-any time after it has been allocated. Access for writing has the side effect of
-reducing the subsystem and system stages for this State to one stage below the one
-supplied here, that is, the stage supplied here is invalidated. Note that you must
-have write access to the State in order to change the value of any state variable.
+/** The Stage supplied here in the call is the earliest subsystem stage which is
+invalidated by a change made to this discrete variable. You may access the value
+of the discrete variable for reading (via getDiscreteVariable()) or writing (via
+updDiscreteVariable()) any time after it has been allocated. Access for writing 
+has the side effect of reducing the subsystem and system stages for this State 
+to one stage below the one supplied here, that is, the stage supplied here is 
+invalidated. Note that you must have write access to the State in order to 
+change the value of any state variable.
 
-Ownership of the AbstractValue object supplied here is taken over by the State --
-don't delete the object after this call!
+Ownership of the AbstractValue object supplied here is taken over by the 
+State -- don't delete the object after this call!
 @see getDiscreteVariable()
 @see updDiscreteVariable() **/
 inline DiscreteVariableIndex 
@@ -489,11 +490,10 @@ the new cache value is marked invalid.
 the state variable. It is up to the user of this variable to make sure that is
 reasonable, by using the <em>update value</em>, not the <em>variable value</em>
 for computations during realize(). In that way the results are always calculated 
-using the value as it will be \e after an update. That
-means that no results will change when the swap occurs, so no stage needs
-to be invalidated upon updating. If you do use both values, make sure that all
-computed results remain unchanged from the end of one step to the beginning of
-the next. 
+using the value as it will be \e after an update. That means that no results 
+will change when the swap occurs, so no stage needs to be invalidated upon 
+updating. If you do use both values, make sure that all computed results remain
+unchanged from the end of one step to the beginning of the next. 
 
 The above behavior is entirely analogous to the treatment of continuous
 variables like q: the integrator ensures that only updated values of q are
@@ -525,7 +525,8 @@ allocateAutoUpdateDiscreteVariable(SubsystemIndex, Stage invalidates,
 its associated update cache entry, otherwise return an invalid index. **/
 inline CacheEntryIndex 
 getDiscreteVarUpdateIndex(SubsystemIndex, DiscreteVariableIndex) const;
-/** At what stage was this State when this discrete variable was allocated? The answer must be Stage::Empty or Stage::Topology. **/
+/** At what stage was this State when this discrete variable was allocated? The 
+answer must be Stage::Empty or Stage::Topology. **/
 inline Stage 
 getDiscreteVarAllocationStage(SubsystemIndex, DiscreteVariableIndex) const;
 /** What is the earliest stage that is invalidated when this discrete variable
@@ -652,8 +653,8 @@ evaluate it prior to \a latest, be sure to explicitly mark it valid.
 Note that cache entries are mutable so you do not need write
 access to the State in order to access a cache entry for writing.
 
-Ownership of the AbstractValue object supplied here is taken over by the State --
-don't delete the object after this call! 
+Ownership of the AbstractValue object supplied here is taken over by the 
+State -- don't delete the object after this call! 
 @see getCacheEntry(), updCacheEntry()
 @see allocateLazyCacheEntry(), isCacheValueRealized(), markCacheValueRealized() **/
 inline CacheEntryIndex 
@@ -668,9 +669,9 @@ inline CacheEntryIndex
 allocateCacheEntry(SubsystemIndex sx, Stage g, AbstractValue* v) const
 {   return allocateCacheEntry(sx, g, g, v); }
 
-/** This is an abbreviation for allocation of a lazy cache entry. The \a earliest
-stage at which this \e can be evaluated is provided; but there is no stage
-at which the cache entry will automatically be evaluated. Instead you have
+/** This is an abbreviation for allocation of a lazy cache entry. The 
+\a earliest stage at which this \e can be evaluated is provided; but there is no
+stage at which the cache entry will automatically be evaluated. Instead you have
 to evaluate it explicitly when someone asks for it, and then call
 markCacheValueRealized() to indicate that the value is available. The value
 is automatically invalidated when the indicated stage \a earliest is

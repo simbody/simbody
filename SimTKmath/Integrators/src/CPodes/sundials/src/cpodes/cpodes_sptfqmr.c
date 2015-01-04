@@ -31,7 +31,7 @@ static int cpSptfqmrSetup(CPodeMem cp_mem, int convfail,
                           booleantype *jcurPtr,
                           N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int cpSptfqmrSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
-			  N_Vector yC, N_Vector ypC, N_Vector fctC);
+              N_Vector yC, N_Vector ypC, N_Vector fctC);
 static void cpSptfqmrFree(CPodeMem cp_mem);
 
 
@@ -169,6 +169,7 @@ int CPSptfqmr(void *cpode_mem, int pretype, int maxl)
   if ((pretype != PREC_NONE) && (pretype != PREC_LEFT) &&
       (pretype != PREC_RIGHT) && (pretype != PREC_BOTH)) {
     cpProcessError(cp_mem, CPSPILS_ILL_INPUT, "CPSPTFQMR", "CPSptfqmr", MSGS_BAD_PRETYPE);
+    free(cpspils_mem);
     return(CPSPILS_ILL_INPUT);
   }
 
@@ -403,7 +404,7 @@ static int cpSptfqmrSetup(CPodeMem cp_mem, int convfail,
  * -----------------------------------------------------------------
  */
 static int cpSptfqmrSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
-			  N_Vector yC, N_Vector ypC, N_Vector fctC)
+              N_Vector yC, N_Vector ypC, N_Vector fctC)
 {
   realtype bnorm, res_norm;
   CPSpilsMem cpspils_mem;

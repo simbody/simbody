@@ -197,6 +197,31 @@ bool EllipticalPointContact::isInstance(const Contact& contact) {
 {   return EllipticalPointContactImpl::classTypeId(); }
 
 
+//==============================================================================
+//                          BRICK HALFSPACE CONTACT
+//==============================================================================
+BrickHalfSpaceContact::BrickHalfSpaceContact
+   (ContactSurfaceIndex     halfSpace, 
+    ContactSurfaceIndex     brick,
+    const Transform&        X_HB,
+    int                     lowestVertex,
+    Real                    depth)
+:   Contact(new BrickHalfSpaceContactImpl(halfSpace,brick,X_HB,
+                                          lowestVertex,depth)) {}
+
+int BrickHalfSpaceContact::getLowestVertex() const
+{   return getImpl().lowestVertex; }
+Real BrickHalfSpaceContact::getDepth() const
+{   return getImpl().depth; }
+
+bool BrickHalfSpaceContact::isInstance(const Contact& contact) {
+    return (dynamic_cast<const BrickHalfSpaceContactImpl*>
+        (&contact.getImpl()) != 0);
+}
+
+/*static*/ ContactTypeId BrickHalfSpaceContact::classTypeId() 
+{   return BrickHalfSpaceContactImpl::classTypeId(); }
+
 
 //==============================================================================
 //                      TRIANGLE MESH CONTACT & IMPL

@@ -22,6 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/Visualizer.h"
@@ -1105,6 +1106,47 @@ const Array_<Visualizer::InputListener*>& Visualizer::getInputListeners() const
 const Array_<Visualizer::FrameController*>& Visualizer::getFrameControllers() const
 {   return getImpl().m_controllers; }
 const MultibodySystem& Visualizer::getSystem() const {return getImpl().m_system;}
+
+
+//==============================================================================
+//                             BODY FOLLOWER
+//==============================================================================
+Visualizer::BodyFollower::BodyFollower(
+        const MobilizedBody& mobodB,
+        const Vec3&          stationPinB,
+        const Vec3&          offset,
+        const UnitVec3&      upDirection)
+    :   m_mobodB(mobodB), m_stationPinB(stationPinB), m_offset(offset),
+        m_upDirection(upDirection) {}
+    
+void Visualizer::BodyFollower::generateControls(
+        const Visualizer&             viz,
+        const State&                  state,
+        Array_< DecorativeGeometry >& geometry)
+{
+    // Offset.
+    Vec3 offset(m_offset);
+    if (m_offset.isNaN()) {
+        // Default: offset is based on system up direction and ground height.
+        offset = Vec3(1, 1, 1);
+        offset[viz.getSystemUpDirection().getAxis()] += viz.getGroundHeight();
+    }
+
+    // Up direction. Default: use System up direction.
+    const UnitVec3& upDirection = m_upDirection.isNaN() ?
+        UnitVec3(viz.getSystemUpDirection()) : m_upDirection;
+
+    const Vec3 P = m_mobodB.findStationLocationInGround(state, m_stationPinB);
+    // Position of camera (C) from ground origin (G), expressed in ground.
+    const Vec3 p_GC = P + offset;
+    // Rotation of camera frame (C) in ground frame (G).
+    // To get the camera to point at P, we require the camera's z direction
+    // (which points "back") to be parallel to the offset. We also want the
+    // camera's y direction (which points to the top of the screen) to be as
+    // closely aligned with the provided up direction as is possible.
+    const Rotation R_GC(UnitVec3(offset), ZAxis, upDirection, YAxis);
+    viz.setCameraTransform(Transform(R_GC, p_GC));
+}
 
 
 //==============================================================================

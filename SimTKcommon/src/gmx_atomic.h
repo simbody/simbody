@@ -157,7 +157,7 @@ extern "C"
  */
 typedef struct gmx_atomic
 {
-	volatile int	   value;      /*!< Volatile, to avoid compiler aliasing */
+    volatile int       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -340,16 +340,16 @@ gmx_spinlock_init(gmx_spinlock_t *   x)
 static inline void
 gmx_spinlock_lock(gmx_spinlock_t *  x)
 {
-	__asm__ __volatile__("\n1:\t" 
-						 "lock ; decb %0\n\t" 
-						 "jns 3f\n" 
-						 "2:\t" 
-						 "rep;nop\n\t" 
-						 "cmpb $0,%0\n\t" 
-						 "jle 2b\n\t" 
-						 "jmp 1b\n" 
-						 "3:\n\t" 
-						 :"=m" (x->lock) : : "memory"); 
+    __asm__ __volatile__("\n1:\t" 
+                         "lock ; decb %0\n\t" 
+                         "jns 3f\n" 
+                         "2:\t" 
+                         "rep;nop\n\t" 
+                         "cmpb $0,%0\n\t" 
+                         "jle 2b\n\t" 
+                         "jmp 1b\n" 
+                         "3:\n\t" 
+                         :"=m" (x->lock) : : "memory"); 
 }
 
 
@@ -366,11 +366,11 @@ gmx_spinlock_lock(gmx_spinlock_t *  x)
 static inline int
 gmx_spinlock_trylock(gmx_spinlock_t *  x)
 {
-	char old_value;
-	
+    char old_value;
+    
     __asm__ __volatile__("xchgb %b0,%1"
                          :"=q" (old_value), "=m" (x->lock)
-						 :"0" (0) : "memory");
+                         :"0" (0) : "memory");
     return (old_value <= 0);
 }
 
@@ -384,9 +384,9 @@ gmx_spinlock_trylock(gmx_spinlock_t *  x)
 static inline void
 gmx_spinlock_unlock(gmx_spinlock_t *  x)
 {
-	char old_value = 1;
-	
-	__asm__ __volatile__(
+    char old_value = 1;
+    
+    __asm__ __volatile__(
                          "xchgb %b0, %1" 
                          :"=q" (old_value), "=m" (x->lock) 
                          :"0" (old_value) : "memory"
@@ -442,7 +442,7 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 
 typedef struct gmx_atomic
 {
-	volatile int	   value;      /*!< Volatile, to avoid compiler aliasing */
+    volatile int       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -467,14 +467,14 @@ gmx_atomic_add_return(gmx_atomic_t *    a,
 {
     int t;
     
-	__asm__ __volatile__("1:     lwarx   %0,0,%2\n"
+    __asm__ __volatile__("1:     lwarx   %0,0,%2\n"
                          "\tadd     %0,%1,%0\n"
                          "\tstwcx.  %0,0,%2 \n"
                          "\tbne-    1b"
                          "\tisync\n"
                          : "=&r" (t)
-						 : "r" (i), "r" (&a->value)
-						 : "cc" , "memory");
+                         : "r" (i), "r" (&a->value)
+                         : "cc" , "memory");
     return t;
 }
 
@@ -615,7 +615,7 @@ gmx_spinlock_wait(gmx_spinlock_t *x)
 
 typedef struct gmx_atomic
 {
-	volatile int	   value;      /*!< Volatile, to avoid compiler aliasing */
+    volatile int       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -640,13 +640,13 @@ gmx_atomic_add_return(gmx_atomic_t *    a,
 {
     int t;
     
-	__asm__ __volatile__("1:     lwarx   %0,0,%2 \n"
+    __asm__ __volatile__("1:     lwarx   %0,0,%2 \n"
                          "\t add     %0,%1,%0 \n"
                          "\t stwcx.  %0,0,%2 \n"
                          "\t bne-    1b \n"
                          "\t isync \n"
                          : "=&r" (t)
-						 : "r" (i), "r" (&a->value) );
+                         : "r" (i), "r" (&a->value) );
     return t;
 }
 
@@ -778,7 +778,7 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 
 typedef struct gmx_atomic
 {
-	volatile int	   value;      /*!< Volatile, to avoid compiler aliasing */
+    volatile int       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -992,7 +992,7 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 
 typedef struct gmx_atomic
 {
-	volatile int	   value;      /*!< Volatile, to avoid compiler aliasing */
+    volatile int       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -1172,7 +1172,7 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 
 typedef struct gmx_atomic
 {
-	LONG volatile	   value;      /*!< Volatile, to avoid compiler aliasing */
+    LONG volatile       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -1248,7 +1248,7 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 
 typedef struct gmx_atomic
 {
-	volatile int	   value;      /*!< Volatile, to avoid compiler aliasing */
+    volatile int       value;      /*!< Volatile, to avoid compiler aliasing */
 }
 gmx_atomic_t;
 
@@ -1376,7 +1376,7 @@ gmx_atomic_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct gmx_atomic
 {
-	int	   value;
+    int       value;
 }
 gmx_atomic_t;
 
@@ -1497,9 +1497,9 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
  */
 typedef struct gmx_spinlock_barrier
 {
-	gmx_atomic_t            count;     /*!< Number of threads remaining     */
-	int                     threshold; /*!< Total number of threads         */
-	volatile int            cycle;     /*!< Current cycle (alternating 0/1) */
+    gmx_atomic_t            count;     /*!< Number of threads remaining     */
+    int                     threshold; /*!< Total number of threads         */
+    volatile int            cycle;     /*!< Current cycle (alternating 0/1) */
 }
 gmx_spinlock_barrier_t;
  
@@ -1518,9 +1518,9 @@ static inline void
 gmx_spinlock_barrier_init(gmx_spinlock_barrier_t *         barrier,
                           int                              count)
 {
-	barrier->threshold = count;
-	barrier->cycle     = 0;
-	gmx_atomic_set(&(barrier->count),count);
+    barrier->threshold = count;
+    barrier->cycle     = 0;
+    gmx_atomic_set(&(barrier->count),count);
 }
 
 
@@ -1548,39 +1548,39 @@ gmx_spinlock_barrier_wait(gmx_spinlock_barrier_t *   barrier)
   int    status;
   
   /* We don't need to lock or use atomic ops here, since the cycle index 
-	* cannot change until after the last thread has performed the check
-	* further down. Further, they cannot reach this point in the next 
-	* barrier iteration until all of them have been released, and that 
-	* happens after the cycle value has been updated.
-	*
-	* No synchronization == fast synchronization.
-	*/
+    * cannot change until after the last thread has performed the check
+    * further down. Further, they cannot reach this point in the next 
+    * barrier iteration until all of them have been released, and that 
+    * happens after the cycle value has been updated.
+    *
+    * No synchronization == fast synchronization.
+    */
   cycle = barrier->cycle;
   
   /* Decrement the count atomically and check if it is zero.
-	* This will only be true for the last thread calling us.
-	*/
+    * This will only be true for the last thread calling us.
+    */
   if( gmx_atomic_add_return( &(barrier->count), -1 ) == 0)
   { 
-	gmx_atomic_set(&(barrier->count), barrier->threshold);
-	barrier->cycle = !barrier->cycle;
+    gmx_atomic_set(&(barrier->count), barrier->threshold);
+    barrier->cycle = !barrier->cycle;
     
-	status = -1;
+    status = -1;
   }
   else
   {
-	/* Wait until the last thread changes the cycle index.
-	* We are both using a memory barrier, and explicit
-	* volatile pointer cast to make sure the compiler
-	* doesn't try to be smart and cache the contents.
-	*/
-	do
-	{ 
-	  gmx_atomic_memory_barrier();
-	} 
-	while( *(volatile int *)(&(barrier->cycle)) == cycle);
-	
-	status = 0;
+    /* Wait until the last thread changes the cycle index.
+    * We are both using a memory barrier, and explicit
+    * volatile pointer cast to make sure the compiler
+    * doesn't try to be smart and cache the contents.
+    */
+    do
+    { 
+      gmx_atomic_memory_barrier();
+    } 
+    while( *(volatile int *)(&(barrier->cycle)) == cycle);
+    
+    status = 0;
   }
   return status;
 }

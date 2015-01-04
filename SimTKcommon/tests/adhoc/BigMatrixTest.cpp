@@ -354,35 +354,35 @@ int main()
     }
     cout << "after mm(i,j)=(i+1)*(j+1), mm: " << mm << endl;
 
-	Vector mmColScale(4), mmRowScale(3);
-	mmColScale[0]=1; mmColScale[1]=10; mmColScale[2]=100; mmColScale[3]=1000;
-	mmRowScale[0]=-1000; mmRowScale[1]=-100; mmRowScale[2]=-10;
-	Vector_<double> mmRowScaleR(3); for(int i=0;i<3;++i) mmRowScaleR[i]=(float)mmRowScale[i];
+    Vector mmColScale(4), mmRowScale(3);
+    mmColScale[0]=1; mmColScale[1]=10; mmColScale[2]=100; mmColScale[3]=1000;
+    mmRowScale[0]=-1000; mmRowScale[1]=-100; mmRowScale[2]=-10;
+    Vector_<double> mmRowScaleR(3); for(int i=0;i<3;++i) mmRowScaleR[i]=(float)mmRowScale[i];
 
-	cout << "mm=" << mm << " mmColScale=" << mmColScale << endl;
-	mm.colScaleInPlace(mmColScale);
-	cout << "after col scale, mm=" << mm;
+    cout << "mm=" << mm << " mmColScale=" << mmColScale << endl;
+    mm.colScaleInPlace(mmColScale);
+    cout << "after col scale, mm=" << mm;
 
-	mm.colScaleInPlace(mmColScale.elementwiseInvert());
-	cout << "after col UNscale mm=" << mm;
+    mm.colScaleInPlace(mmColScale.elementwiseInvert());
+    cout << "after col UNscale mm=" << mm;
 
-	cout <<  " mmRowScale=" << mmRowScale << endl;
-	mm.rowScaleInPlace(mmRowScale);
-	cout << "after row scale, mm=" << mm;
+    cout <<  " mmRowScale=" << mmRowScale << endl;
+    mm.rowScaleInPlace(mmRowScale);
+    cout << "after row scale, mm=" << mm;
 
-	mm.rowScaleInPlace(mmRowScale.elementwiseInvert());
-	cout << "after row UNscale mm=" << mm;
+    mm.rowScaleInPlace(mmRowScale.elementwiseInvert());
+    cout << "after row UNscale mm=" << mm;
 
-	mm.rowScaleInPlace(mmRowScaleR);
-	cout << "after LONG DOUBLE row scale mm=" << mm;
+    mm.rowScaleInPlace(mmRowScaleR);
+    cout << "after LONG DOUBLE row scale mm=" << mm;
 
-	cout << "mm.rowScale(double)=" << mm.rowScale(mmRowScaleR);
-	cout << "type(mm.rowScale(double))=" << typeid(mm.rowScale(mmRowScaleR)).name() << endl;
+    cout << "mm.rowScale(double)=" << mm.rowScale(mmRowScaleR);
+    cout << "type(mm.rowScale(double))=" << typeid(mm.rowScale(mmRowScaleR)).name() << endl;
 
-	Vector_<Vec2> mmVCol(4); for (int i=0; i<4; ++i) mmVCol[i] = Vec2(4*i, 4*i+1);
-	cout << "mm Vec2 colScale=" << mmVCol << endl;
-	cout << "mm.colScale(Vec2)=" << mm.colScale(mmVCol);
-	cout << "type(mm.colScale(Vec2))=" << typeid(mm.colScale(mmVCol)).name() << endl;
+    Vector_<Vec2> mmVCol(4); for (int i=0; i<4; ++i) mmVCol[i] = Vec2(4*i, 4*i+1);
+    cout << "mm Vec2 colScale=" << mmVCol << endl;
+    cout << "mm.colScale(Vec2)=" << mm.colScale(mmVCol);
+    cout << "type(mm.colScale(Vec2))=" << typeid(mm.colScale(mmVCol)).name() << endl;
     
     mm *= 1000.; dump("mm(3,4) after *=1000", mm);
     mm.dump("*** mm ***");
@@ -778,78 +778,78 @@ template <class DP>
 void lubksb(const int N, const DP* a/*N,N*/, const int* indx/*N*/, 
                 DP* b/*N*/)
 {
-	int i,ii=0,ip,j;
-	DP sum;
+    int i,ii=0,ip,j;
+    DP sum;
 
-	for (i=0;i<N;i++) {
-		ip=indx[i];
-		sum=b[ip];
-		b[ip]=b[i];
-		if (ii != 0)
-			for (j=ii-1;j<i;j++) sum -= a[X(i,j)]*b[j];
-		else if (sum != 0.0)
-			ii=i+1;
-		b[i]=sum;
-	}
-	for (i=N-1;i>=0;i--) {
-		sum=b[i];
-		for (j=i+1;j<N;j++) sum -= a[X(i,j)]*b[j];
-		b[i]=sum/a[X(i,i)];
-	}
+    for (i=0;i<N;i++) {
+        ip=indx[i];
+        sum=b[ip];
+        b[ip]=b[i];
+        if (ii != 0)
+            for (j=ii-1;j<i;j++) sum -= a[X(i,j)]*b[j];
+        else if (sum != 0.0)
+            ii=i+1;
+        b[i]=sum;
+    }
+    for (i=N-1;i>=0;i--) {
+        sum=b[i];
+        for (j=i+1;j<N;j++) sum -= a[X(i,j)]*b[j];
+        b[i]=sum/a[X(i,i)];
+    }
 }
 
 template <class DP>
 void ludcmp(const int N, DP* a/*N,N*/, int* indx/*N*/, DP &d)
 {
-	const DP TINY=DP(1.0e-20);
-	int i,imax,j,k;
-	DP big,dum,sum,temp;
+    const DP TINY=DP(1.0e-20);
+    int i,imax,j,k;
+    DP big,dum,sum,temp;
 
     DP* vv = new DP[N];
-	d=DP(1);
-	for (i=0;i<N;i++) {
-		big=0.0;
-		for (j=0;j<N;j++)
-			if ((temp=fabs(a[X(i,j)])) > big) big=temp;
+    d=DP(1);
+    for (i=0;i<N;i++) {
+        big=0.0;
+        for (j=0;j<N;j++)
+            if ((temp=fabs(a[X(i,j)])) > big) big=temp;
         if (big == 0.0) {
             std::cerr << "Singular matrix in routine ludcmp" << endl;
             assert(false);
             exit(1);
         }
-		vv[i]=DP(1)/big;
-	}
-	for (j=0;j<N;j++) {
-		for (i=0;i<j;i++) {
-			sum=a[X(i,j)];
-			for (k=0;k<i;k++) sum -= a[X(i,k)]*a[X(k,j)];
-			a[X(i,j)]=sum;
-		}
-		big=0.0;
-		for (i=j;i<N;i++) {
-			sum=a[X(i,j)];
-			for (k=0;k<j;k++) sum -= a[X(i,k)]*a[X(k,j)];
-			a[X(i,j)]=sum;
-			if ((dum=vv[i]*fabs(sum)) >= big) {
-				big=dum;
-				imax=i;
-			}
-		}
-		if (j != imax) {
-			for (k=0;k<N;k++) {
-				dum=a[X(imax,k)];
-				a[X(imax,k)]=a[X(j,k)];
-				a[X(j,k)]=dum;
-			}
-			d = -d;
-			vv[imax]=vv[j];
-		}
-		indx[j]=imax;
-		if (a[X(j,j)] == 0.0) a[X(j,j)]=TINY;
-		if (j != N-1) {
-			dum=DP(1)/(a[X(j,j)]);
-			for (i=j+1;i<N;i++) a[X(i,j)] *= dum;
-		}
-	}
+        vv[i]=DP(1)/big;
+    }
+    for (j=0;j<N;j++) {
+        for (i=0;i<j;i++) {
+            sum=a[X(i,j)];
+            for (k=0;k<i;k++) sum -= a[X(i,k)]*a[X(k,j)];
+            a[X(i,j)]=sum;
+        }
+        big=0.0;
+        for (i=j;i<N;i++) {
+            sum=a[X(i,j)];
+            for (k=0;k<j;k++) sum -= a[X(i,k)]*a[X(k,j)];
+            a[X(i,j)]=sum;
+            if ((dum=vv[i]*fabs(sum)) >= big) {
+                big=dum;
+                imax=i;
+            }
+        }
+        if (j != imax) {
+            for (k=0;k<N;k++) {
+                dum=a[X(imax,k)];
+                a[X(imax,k)]=a[X(j,k)];
+                a[X(j,k)]=dum;
+            }
+            d = -d;
+            vv[imax]=vv[j];
+        }
+        indx[j]=imax;
+        if (a[X(j,j)] == 0.0) a[X(j,j)]=TINY;
+        if (j != N-1) {
+            dum=DP(1)/(a[X(j,j)]);
+            for (i=j+1;i<N;i++) a[X(i,j)] *= dum;
+        }
+    }
 
     delete[] vv;
 }

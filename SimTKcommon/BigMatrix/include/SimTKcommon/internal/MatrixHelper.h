@@ -286,11 +286,6 @@ public:
 
     void dump(const char* msg=0) const; // For debugging -- comes out in a way you can feed to Matlab
 
-    // See comment in MatrixBase::matmul for an explanation.
-    template <class SA, class SB>
-    void matmul(const StdNumber& beta,   // applied to 'this'
-                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);    
-    
         // Bookkeeping //
     
     // This is the number of logical *elements* in each column of this matrix; i.e., m.
@@ -356,6 +351,12 @@ private:
     // Suppress copy constructor.
     MatrixHelper(const MatrixHelper&);
 
+    // ============================= Unimplemented =============================
+    // See comment in MatrixBase::matmul for an explanation.
+    template <class SA, class SB>
+    void matmul(const StdNumber& beta,   // applied to 'this'
+                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);    
+    
 friend class MatrixHelper<typename CNT<S>::TNeg>;
 friend class MatrixHelper<typename CNT<S>::THerm>;
 };

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -1555,13 +1555,20 @@ UnitInertiaP unitInertia_OB_B;   // about B origin, expr. in B
 };
 
 /** Output a human-readable representation of a MassProperties object to
-the given output stream. **/
+the given output stream. This is assumed to be the mass properties of some
+body B. We'll show B's mass, center of mass as a vector from B's origin,
+expressed in B, and \e unit inertia, abbreviated Uxx, Uyy, and so on so that 
+you won't accidentally think these are mass-scaled inertias normally designated 
+Ixx, Iyy, etc. Note that I=mass*U in these terms. Also note that the unit 
+inertia is taken about the body frame origin, \e not about the center of 
+mass. And of course the unit inertia is expressed in B. 
+@relates MassProperties_ **/
 template <class P> static inline std::ostream& 
 operator<<(std::ostream& o, const MassProperties_<P>& mp) {
     return o << "{ mass=" << mp.getMass() 
              << "\n  com=" << mp.getMassCenter()
-             << "\n  Ixx,yy,zz=" << mp.getUnitInertia().getMoments()
-             << "\n  Ixy,xz,yz=" << mp.getUnitInertia().getProducts()
+             << "\n  Uxx,yy,zz=" << mp.getUnitInertia().getMoments()
+             << "\n  Uxy,xz,yz=" << mp.getUnitInertia().getProducts()
              << "\n}\n";
 }
 

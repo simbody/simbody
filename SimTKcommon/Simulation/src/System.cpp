@@ -941,7 +941,7 @@ int System::Guts::calcEventTriggerInfoImpl
         Array_<EventTriggerInfo> subinfo;
         sub.calcEventTriggerInfo(s, subinfo);
         for (Array_<EventTriggerInfo>::const_iterator e = subinfo.begin(); 
-             e != subinfo.end(); e++) 
+             e != subinfo.end(); ++e)
         {
             info.push_back(*e);
         }
@@ -1079,7 +1079,7 @@ public:
             delete triggeredEventReporters[i];
     }
     
-    Guts* cloneImpl() const OVERRIDE_11 {
+    Guts* cloneImpl() const override {
         return new Guts(*this);
     }
         
@@ -1129,7 +1129,7 @@ public:
            (updCacheEntry(s, cachedEventInfoIndex)).upd();
     }
 
-    int realizeSubsystemTopologyImpl(State& s) const OVERRIDE_11 {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         cachedEventInfoIndex = s.allocateCacheEntry(getMySubsystemIndex(), 
                                                     Stage::Topology, 
                                                     new Value<CachedEventInfo>());
@@ -1143,14 +1143,14 @@ public:
         info.eventIdCounter = 0;
         for (Array_<ScheduledEventHandler*>::const_iterator 
                  e = scheduledEventHandlers.begin(); 
-                 e != scheduledEventHandlers.end(); e++) {
+                 e != scheduledEventHandlers.end(); ++e) {
             EventId id;
             createScheduledEvent(s, id);
             info.scheduledEventIds.push_back(id);
         }
         for (Array_<TriggeredEventHandler*>::const_iterator 
                  e = triggeredEventHandlers.begin(); 
-                 e != triggeredEventHandlers.end(); e++) {
+                 e != triggeredEventHandlers.end(); ++e) {
             EventId id;
             EventTriggerByStageIndex index;
             createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
@@ -1159,14 +1159,14 @@ public:
         }
         for (Array_<ScheduledEventReporter*>::const_iterator 
                  e = scheduledEventReporters.begin(); 
-                 e != scheduledEventReporters.end(); e++) {
+                 e != scheduledEventReporters.end(); ++e) {
             EventId id;
             createScheduledEvent(s, id);
             info.scheduledReportIds.push_back(id);
         }
         for (Array_<TriggeredEventReporter*>::const_iterator 
                  e = triggeredEventReporters.begin(); 
-                 e != triggeredEventReporters.end(); e++) {
+                 e != triggeredEventReporters.end(); ++e) {
             EventId id;
             EventTriggerByStageIndex index;
             createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
@@ -1176,7 +1176,7 @@ public:
         return 0;
     }
     
-    int realizeSubsystemModelImpl(State& s) const OVERRIDE_11 {
+    int realizeSubsystemModelImpl(State& s) const override {
         return 0;
     }
 
@@ -1196,30 +1196,30 @@ public:
         return 0;
     }
     
-    int realizeSubsystemInstanceImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemInstanceImpl(const State& s) const override {
         return 0;        
     }
-    int realizeSubsystemTimeImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemTimeImpl(const State& s) const override {
         return realizeEventTriggers(s, Stage::Time);
     }
-    int realizeSubsystemPositionImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemPositionImpl(const State& s) const override {
         return realizeEventTriggers(s, Stage::Position);
     }
-    int realizeSubsystemVelocityImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemVelocityImpl(const State& s) const override {
         return realizeEventTriggers(s, Stage::Velocity);
     }
-    int realizeSubsystemDynamicsImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemDynamicsImpl(const State& s) const override {
         return realizeEventTriggers(s, Stage::Dynamics);
     }
-    int realizeSubsystemAccelerationImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemAccelerationImpl(const State& s) const override {
         return realizeEventTriggers(s, Stage::Acceleration);
     }
-    int realizeSubsystemReportImpl(const State& s) const OVERRIDE_11 {
+    int realizeSubsystemReportImpl(const State& s) const override {
         return realizeEventTriggers(s, Stage::Report);
     }
 
     void calcEventTriggerInfoImpl
-       (const State& s, Array_<EventTriggerInfo>& trigInfo) const OVERRIDE_11 
+       (const State& s, Array_<EventTriggerInfo>& trigInfo) const override 
     {
         
         // Loop over all registered TriggeredEventHandlers and 
@@ -1250,7 +1250,7 @@ public:
         }
     }
     void calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-        Array_<EventId>& eventIds, bool includeCurrentTime) const OVERRIDE_11 {      
+        Array_<EventId>& eventIds, bool includeCurrentTime) const override {      
         // Loop over all registered ScheduledEventHandlers, and ask each one 
         // when its next event occurs.
         
@@ -1271,7 +1271,7 @@ public:
         }
     }
     void calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextEvent, 
-        Array_<EventId>& eventIds, bool includeCurrentTime) const OVERRIDE_11 {      
+        Array_<EventId>& eventIds, bool includeCurrentTime) const override {      
         // Loop over all registered ScheduledEventReporters, and ask each one 
         // when its next event occurs.
         
@@ -1294,7 +1294,7 @@ public:
     void handleEventsImpl(State& s, Event::Cause cause, 
                       const Array_<EventId>& eventIds, 
                       const HandleEventsOptions& options, 
-                      HandleEventsResults& results) const OVERRIDE_11 
+                      HandleEventsResults& results) const override 
     {
         const CachedEventInfo& info = getCachedEventInfo(s);
         const Real accuracy = options.getAccuracy();
@@ -1350,7 +1350,7 @@ public:
     }
 
     void reportEventsImpl(const State& s, Event::Cause cause, 
-                      const Array_<EventId>& eventIds) const OVERRIDE_11 {
+                      const Array_<EventId>& eventIds) const override {
         const CachedEventInfo& info = getCachedEventInfo(s);
         
         // Build a set of the ids for quick lookup.

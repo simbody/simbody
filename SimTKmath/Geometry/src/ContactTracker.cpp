@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -568,31 +568,6 @@ bool ContactTracker::HalfSpaceSphere::trackContact
     return true; // success
 }
 
-bool ContactTracker::HalfSpaceSphere::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::HalfSpaceSphere::predictContact() not implemented yet."); 
-    return false; }
-
-bool ContactTracker::HalfSpaceSphere::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::HalfSpaceSphere::initializeContact() not implemented yet."); 
-    return false; }
-
 
 
 //==============================================================================
@@ -664,30 +639,56 @@ bool ContactTracker::HalfSpaceEllipsoid::trackContact
     return true; // success
 }
 
-bool ContactTracker::HalfSpaceEllipsoid::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::HalfSpaceEllipsoid::predictContact() not implemented yet."); 
-    return false; }
 
-bool ContactTracker::HalfSpaceEllipsoid::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
+
+//==============================================================================
+//                     HALFSPACE-BRICK CONTACT TRACKER
+//==============================================================================
+// Cost is XX flops if no contact, YY with contact.
+bool ContactTracker::HalfSpaceBrick::trackContact
+   (const Contact&         priorStatus,
+    const Transform&       X_GH, 
+    const ContactGeometry& geoHalfSpace,
+    const Transform&       X_GB, 
+    const ContactGeometry& geoBrick,
     Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::HalfSpaceEllipsoid::initializeContact() not implemented yet."); 
-    return false; }
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT
+       (   geoHalfSpace.getTypeId()==ContactGeometry::HalfSpace::classTypeId()
+        && geoBrick.getTypeId()==ContactGeometry::Brick::classTypeId(),
+       "ContactTracker::HalfSpaceBrick::trackContact()");
+
+    const ContactGeometry::HalfSpace& halfSpace =
+        ContactGeometry::HalfSpace::getAs(geoHalfSpace);
+    // This is the half-space outward normal in its own frame.
+    const UnitVec3 n_H = halfSpace.getNormal();
+
+    const ContactGeometry::Brick& brick = 
+        ContactGeometry::Brick::getAs(geoBrick);
+    const Geo::Box box = brick.getGeoBox();
+
+    const Transform X_HB = ~X_GH * X_GB; // 63 flops
+
+    // Negative normal direction in box frame locates the bottommost vertex.
+    const UnitVec3 nn_B = ~X_HB.R()*(-n_H);
+    const int lowestVertex = box.findSupportVertex(nn_B);
+    const Vec3 pt_B = box.getVertexPos(lowestVertex);
+
+    const Vec3 pt_H = X_HB * pt_B; // find vertex location in H
+    const Real height = dot(pt_H, n_H); // -ve means penetrated
+
+    if (height >= cutoff) {  // 1 flop
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+
+    currentStatus = BrickHalfSpaceContact(priorStatus.getSurface1(),
+                                          priorStatus.getSurface2(),
+                                          X_HB,
+                                          lowestVertex, -height);
+    return true; // success
+}
 
 
 
@@ -765,32 +766,6 @@ bool ContactTracker::SphereSphere::trackContact
     return true; // success
 }
 
-bool ContactTracker::SphereSphere::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::SphereSphere::predictContact() not implemented yet."); 
-    return false; }
-
-bool ContactTracker::SphereSphere::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::SphereSphere::initializeContact() not implemented yet."); 
-    return false; }
-
-
 
 
 //==============================================================================
@@ -846,32 +821,6 @@ bool ContactTracker::HalfSpaceTriangleMesh::trackContact
                                         std::set<int>(), insideFaces);
     return true; // success
 }
-
-bool ContactTracker::HalfSpaceTriangleMesh::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::HalfSpaceTriangleMesh::predictContact() not implemented yet."); 
-    return false; }
-
-bool ContactTracker::HalfSpaceTriangleMesh::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::HalfSpaceTriangleMesh::initializeContact() not implemented yet."); 
-    return false; }
-
 
 
 // Check a single OBB and its contents (recursively) against the halfspace,
@@ -948,8 +897,6 @@ void ContactTracker::HalfSpaceTriangleMesh::addAllTriangles
         addAllTriangles(node.getSecondChildNode(), insideFaces);
     }
 }
-
-
 
 
 
@@ -1035,34 +982,6 @@ void ContactTracker::SphereTriangleMesh::processBox
             insideFaces.insert(triangles[i]);
     }
 }
-
-bool ContactTracker::SphereTriangleMesh::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::SphereTriangleMesh::predictContact() not implemented yet."); 
-    return false; }
-
-bool ContactTracker::SphereTriangleMesh::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::SphereTriangleMesh::initializeContact() not implemented yet."); 
-    return false; }
-
-
-
 
 
 
@@ -1270,31 +1189,77 @@ tagFaces(const ContactGeometry::TriangleMesh&   mesh,
 }
 
 
-bool ContactTracker::TriangleMeshTriangleMesh::predictContact
+
+
+
+//==============================================================================
+//                   HALFSPACE-CONVEX IMPLICIT CONTACT TRACKER
+//==============================================================================
+// The contact point on the convex implicit surface must be the unique point on
+// that surface that has its outward-facing normal in the opposite direction of 
+// the half space normal. We will use the calcSupportPoint() method using the
+// negated half-space normal to find the desired point. You should only be
+// using this tracker for convex surfaces that can provide a high-accuracy
+// support point very fast. If the point is close enough, we'll evaluate the 
+// curvatures at that point using the calcSurfacePrincipalCurvatures() method,
+// in preparation for generating forces with Hertz theory. This will return an 
+// elliptical point contact.
+bool ContactTracker::HalfSpaceConvexImplicit::trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
+    const Transform&       X_GH, 
+    const ContactGeometry& geoHalfSpace,
+    const Transform&       X_GS, 
+    const ContactGeometry& geoImplSurface,
     Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::TriangleMeshTriangleMesh::predictContact() not implemented yet."); 
-    return false; }
+    Contact&               currentStatus) const
+{
+    SimTK_ASSERT
+       (   geoHalfSpace.getTypeId()==ContactGeometry::HalfSpace::classTypeId()
+        && geoImplSurface.isConvex() && geoImplSurface.isSmooth(),
+       "ContactTracker::HalfSpaceConvexImplicit::trackContact()");
 
-bool ContactTracker::TriangleMeshTriangleMesh::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::TriangleMeshTriangleMesh::initializeContact() not implemented yet."); 
-    return false; }
+    // Our half space occupies the +x half so the normal is -x.
+    const Transform X_HS = ~X_GH*X_GS; // 63 flops
+    // Halfspace normal is -x, so the surface normal we're looking for is
+    // in the half space's +x direction.
+    const UnitVec3& n_S = (~X_HS.R()).x(); // halfspace normal in S
+    const Vec3 Q_S = geoImplSurface.calcSupportPoint(n_S); // cost depends on S
+    const Vec3 Q_H = X_HS*Q_S; // Q measured from half space origin (18 flops)
+    const Real depth = Q_H[0]; // x > 0 is penetrated
 
+    if (depth <= -cutoff) {  // 2 flops
+        currentStatus.clear(); // not touching
+        return true; // successful return
+    }
+
+    // The surfaces are contacting (or close enough to be interesting).
+    // The ellipsoid's principal curvatures k at the contact point are also
+    // the curvatures of the contact paraboloid since the half space doesn't
+    // add anything interesting.
+    Transform X_SQ; Vec2 k;
+    X_SQ.updP() = Q_S;
+    Rotation& R_SQ = X_SQ.updR();
+    geoImplSurface.calcSurfacePrincipalCurvatures(Q_S, k, R_SQ); // cost?
+
+    // We have the contact paraboloid expressed in frame Q but Qz=n_E has the
+    // wrong sign since we have to express it using the half space normal.
+    // We have to end up with a right handed frame, so one of x or y has
+    // to be negated too. (6 flops)
+    R_SQ.setRotationColFromUnitVecTrustMe(ZAxis, -R_SQ.z()); // changing X_SQ
+    R_SQ.setRotationColFromUnitVecTrustMe(XAxis, -R_SQ.x());
+
+    // Now the frame is pointing in the right direction. Measure and express in 
+    // half plane frame, then shift origin to half way between contact point Q 
+    // on the undeformed implicit surface and the corresponding contact point P 
+    // on the undeformed half plane surface. It's easier to do this shift
+    // in H since it is in the -Hx direction.
+    Transform X_HC = X_HS*X_SQ; X_HC.updP()[0] -= depth/2; // 65 flops
+
+    currentStatus = EllipticalPointContact(priorStatus.getSurface1(),
+                                           priorStatus.getSurface2(),
+                                           X_HS, X_HC, k, depth);
+    return true; // success
+}
 
 
 //==============================================================================
@@ -1393,33 +1358,6 @@ bool ContactTracker::ConvexImplicitPair::trackContact
 }
 
 
-bool ContactTracker::ConvexImplicitPair::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::ConvexImplicitPair::predictContact() not implemented yet."); 
-    return false; }
-
-bool ContactTracker::ConvexImplicitPair::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::ConvexImplicitPair::initializeContact() not implemented yet."); 
-    return false; }
-
-
-
 
 //==============================================================================
 //                GENERAL IMPLICIT SURFACE PAIR CONTACT TRACKER
@@ -1445,34 +1383,6 @@ bool ContactTracker::GeneralImplicitPair::trackContact
             .trackContact(priorStatus, X_GA, shapeA, X_GB, shapeB, 
                           cutoff, currentStatus);
 }
-
-
-bool ContactTracker::GeneralImplicitPair::predictContact
-   (const Contact&         priorStatus,
-    const Transform& X_GS1, const SpatialVec& V_GS1, const SpatialVec& A_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2, const SpatialVec& A_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               predictedStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::GeneralImplicitPair::predictContact() not implemented yet."); 
-    return false; }
-
-bool ContactTracker::GeneralImplicitPair::initializeContact
-   (const Transform& X_GS1, const SpatialVec& V_GS1,
-    const ContactGeometry& surface1,
-    const Transform& X_GS2, const SpatialVec& V_GS2,
-    const ContactGeometry& surface2,
-    Real                   cutoff,
-    Real                   intervalOfInterest,
-    Contact&               contactStatus) const
-{   SimTK_ASSERT_ALWAYS(!"implemented",
-    "ContactTracker::GeneralImplicitPair::initializeContact() not implemented yet."); 
-    return false; }
-
-
 
 
 } // namespace SimTK

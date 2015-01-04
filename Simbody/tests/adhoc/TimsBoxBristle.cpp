@@ -330,7 +330,7 @@ public:
     // This is called during realize(Dynamics).
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         const MyBristleContactInfo& info = getContactInfo(state);
         if (info.h >= 0) 
@@ -342,7 +342,7 @@ public:
     }
 
     // The normal force stores energy as 2/5 k h^(5/2) when h<0.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {
+    Real calcPotentialEnergy(const State& state) const override {
         const MyBristleContactInfo& info = getContactInfo(state);
         if (info.h >= 0) 
             return 0; // no contact
@@ -352,7 +352,7 @@ public:
     }
 
     // Allocate state variable for storing the previous sliding direction.
-    void realizeTopology(State& state) const OVERRIDE_11 {
+    void realizeTopology(State& state) const override {
         m_bristleDeformationIx = m_forces.allocateZ(state, Vector(2, Real(0)));
         m_dwellIx = m_forces.allocateZ(state, Vector(1, Real(0))); 
         m_prevSlipDirIx = m_forces.allocateAutoUpdateDiscreteVariable
@@ -366,7 +366,7 @@ public:
 
     // Calculate everything here and save in contact info cache entry where
     // it can be retrieved for generating forces, reporting, etc.
-    void realizeVelocity(const State& state) const OVERRIDE_11 {
+    void realizeVelocity(const State& state) const override {
         MyBristleContactInfo& info = updContactInfo(state);
 
         // Forces generated only if h<0. Cp always be the projection of the
@@ -697,7 +697,7 @@ public:
     :   m_unis(unis) {}
 
     void generateDecorations(const State&                state, 
-                             Array_<DecorativeGeometry>& geometry) OVERRIDE_11
+                             Array_<DecorativeGeometry>& geometry) override
     {
         for (int i=0; i < m_unis.getNumContactElements(); ++i) {
             const MyBristleVertexContactElementImpl& contact = 
@@ -728,31 +728,6 @@ private:
 
 
 //==============================================================================
-//                            BODY WATCHER
-//==============================================================================
-// Prior to rendering each frame, point the camera at the given body's
-// origin.
-class BodyWatcher : public Visualizer::FrameController {
-public:
-    explicit BodyWatcher(const MobilizedBody& body) : m_body(body) {}
-
-    void generateControls(const Visualizer&             viz, 
-                          const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) OVERRIDE_11
-    {
-        const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0, 1, 5); // above and back
-        const Rotation R_GC(UnitVec3(0,1,0), YAxis,
-                            p_GC-Bo, ZAxis);
-        viz.setCameraTransform(Transform(R_GC,p_GC));
-        //viz.pointCameraAt(Bo, Vec3(0,1,0));
-    }
-private:
-    const MobilizedBody m_body;
-};
-
-
-//==============================================================================
 //                            MY PUSH FORCE
 //==============================================================================
 // This is a force element that generates a constant force on a body for a
@@ -773,7 +748,7 @@ public:
     //                       Custom force virtuals
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   OVERRIDE_11
+                   override
     {
         if (!(m_on <= state.getTime() && state.getTime() <= m_off))
             return;
@@ -785,11 +760,11 @@ public:
     }
 
     // No potential energy.
-    Real calcPotentialEnergy(const State& state) const OVERRIDE_11 {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
        (const State& state, Stage stage, 
-        Array_<DecorativeGeometry>& geometry) const OVERRIDE_11
+        Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
         if (stage != Stage::Time) return;
@@ -940,7 +915,8 @@ int main(int argc, char** argv) {
     mbs.addEventReporter(new Nada(ReportInterval));
     #endif
 
-    viz.addFrameController(new BodyWatcher(brick));
+    viz.addFrameController(new Visualizer::BodyFollower(brick, Vec3(0),
+                                                        Vec3(0, 1, 5)));
 
     Vec3 cameraPos(0, 1, 2);
     UnitVec3 cameraZ(0,0,1);

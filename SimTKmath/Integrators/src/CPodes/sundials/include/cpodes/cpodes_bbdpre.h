@@ -171,12 +171,12 @@ extern "C" {
  */
 
 typedef int (*CPBBDLocalRhsFn)(int Nlocal, realtype t, 
-			       N_Vector y,
-			       N_Vector gout, void *f_data);
+                   N_Vector y,
+                   N_Vector gout, void *f_data);
 
 typedef int (*CPBBDLocalResFn)(int Nlocal, realtype t, 
-			       N_Vector y, N_Vector yp, 
-			       N_Vector gout, void *f_data);
+                   N_Vector y, N_Vector yp, 
+                   N_Vector gout, void *f_data);
 
 /*
  * -----------------------------------------------------------------
@@ -209,7 +209,7 @@ typedef int (*CPBBDLocalResFn)(int Nlocal, realtype t,
  */
 
 typedef int (*CPBBDCommFn)(int Nlocal, realtype t, 
-			   N_Vector y, N_Vector yp, void *f_data);
+               N_Vector y, N_Vector yp, void *f_data);
 
 /*
  * -----------------------------------------------------------------
@@ -248,9 +248,9 @@ typedef int (*CPBBDCommFn)(int Nlocal, realtype t,
  */
 
 SUNDIALS_EXPORT void *CPBBDPrecAlloc(void *cpode_mem, int Nlocal, 
-				     int mudq, int mldq, int mukeep, int mlkeep, 
-				     realtype dqrely,
-				     void *gloc, CPBBDCommFn cfn);
+                     int mudq, int mldq, int mukeep, int mlkeep, 
+                     realtype dqrely,
+                     void *gloc, CPBBDCommFn cfn);
 
 /*
  * -----------------------------------------------------------------
@@ -362,7 +362,7 @@ SUNDIALS_EXPORT int CPBBDSpgmr(void *cpode_mem, int pretype, int maxl, void *bbd
  */
 
 SUNDIALS_EXPORT int CPBBDPrecReInit(void *bbd_data, int mudq, int mldq,
-				    realtype dqrely, void *gloc, CPBBDCommFn cfn);
+                    realtype dqrely, void *gloc, CPBBDCommFn cfn);
 
 /*
  * -----------------------------------------------------------------

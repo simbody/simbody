@@ -188,11 +188,11 @@ static void PrintFinalStats(void *cpode_mem, booleantype proj)
   printf("\nFinal Statistics:\n");
   printf("h0u = %g\n",h0u);
   printf("nst = %-6ld nfe  = %-6ld nsetups = %-6ld\n",
-	 nst, nfe, nsetups);
+     nst, nfe, nsetups);
   printf("nfeLS = %-6ld nje = %ld\n",
-	 nfeLS, nje);
+     nfeLS, nje);
   printf("nni = %-6ld ncfn = %-6ld netf = %-6ld \n",
-	 nni, ncfn, netf);
+     nni, ncfn, netf);
 
   if (proj) {
     flag = CPodeGetProjStats(cpode_mem, &nproj, &nce, &nsetupsP, &nprf);

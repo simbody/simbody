@@ -202,8 +202,8 @@ typedef struct _N_VectorContent_Parallel *N_VectorContent_Parallel;
  */
 
 SUNDIALS_EXPORT N_Vector N_VNew_Parallel(MPI_Comm comm, 
-					 long int local_length,
-					 long int global_length);
+                     long int local_length,
+                     long int global_length);
 
 /*
  * -----------------------------------------------------------------
@@ -215,8 +215,8 @@ SUNDIALS_EXPORT N_Vector N_VNew_Parallel(MPI_Comm comm,
  */
 
 SUNDIALS_EXPORT N_Vector N_VNewEmpty_Parallel(MPI_Comm comm, 
-					      long int local_length,
-					      long int global_length);
+                          long int local_length,
+                          long int global_length);
 
 /*
  * -----------------------------------------------------------------
@@ -228,9 +228,9 @@ SUNDIALS_EXPORT N_Vector N_VNewEmpty_Parallel(MPI_Comm comm,
  */
 
 SUNDIALS_EXPORT N_Vector N_VMake_Parallel(MPI_Comm comm, 
-					  long int local_length,
-					  long int global_length,
-					  realtype *v_data);
+                      long int local_length,
+                      long int global_length,
+                      realtype *v_data);
 
 /*
  * -----------------------------------------------------------------
