@@ -778,8 +778,9 @@ public:
        The location of the station P on the body to follow, expressed in B. By
        default, P is the origin of the MobilizedBody.
     @param[in] offset
-       Position of the camera from P, expressed in ground. By default, this is
-       (1, 1, 1) + h * u, where h is Visualizer::getGroundHeight() and u is
+       Position of the camera from P, expressed in ground. Cannot be the zero
+       vector. By default, this is (1, 1, 1) + h * u, where h is
+       Visualizer::getGroundHeight() and u is
        Visualizer::getSystemUpDirection().
     @param[in] upDirection
        Controls the rotation of the camera about the offset vector. The
