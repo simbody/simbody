@@ -1205,30 +1205,6 @@ private:
 
 
 //==============================================================================
-//                            BODY WATCHER
-//==============================================================================
-// Prior to rendering each frame, point the camera at the given body's
-// origin.
-class BodyWatcher : public Visualizer::FrameController {
-public:
-    explicit BodyWatcher(const MobilizedBody& body) : m_body(body) {}
-
-    void generateControls(const Visualizer&             viz, 
-                          const State&                  state, 
-                          Array_< DecorativeGeometry >& geometry) override
-    {
-        const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0, 1, 5); // above and back
-        const Rotation R_GC(UnitVec3(0,1,0), YAxis,
-                            p_GC-Bo, ZAxis);
-        viz.setCameraTransform(Transform(R_GC,p_GC));
-        //viz.pointCameraAt(Bo, Vec3(0,1,0));
-    }
-private:
-    const MobilizedBody m_body;
-};
-
-//==============================================================================
 //                          STICTION ON HANDLER
 //==============================================================================
 // Allocate one of these for each contact constraint that has friction. This 

@@ -573,30 +573,6 @@ public:
 
 
 //==============================================================================
-//                                 BODY WATCHER
-//==============================================================================
-// Prior to rendering each frame, point the camera at the given body's origin.
-// Adapted from TimsBox.cpp.
-class BodyWatcher : public Visualizer::FrameController {
-public:
-    explicit BodyWatcher(const MobilizedBody& body) : m_body(body) {}
-
-    void generateControls(const Visualizer&             viz,
-                          const State&                  state,
-                          Array_< DecorativeGeometry >& geometry) override
-    {
-        const Vec3 Bo = m_body.getBodyOriginLocation(state);
-        const Vec3 p_GC = Bo + Vec3(0,4,2);
-        const Rotation R1(-SimTK::Pi/3, XAxis);
-        const Rotation R2(SimTK::Pi, ZAxis);
-        viz.setCameraTransform(Transform(R1*R2, p_GC));
-    }
-private:
-    const MobilizedBody m_body;
-};
-
-
-//==============================================================================
 //                      Function: CREATE MULTIBODY SYSTEM
 //==============================================================================
 static void createMultibodySystem(MultibodySystem& mbs,
@@ -668,7 +644,9 @@ static void simulateMultibodySystem(const std::string& description,
     viz.setShowSimTime(true).setShowFrameRate(true);
     if (SetVizModeToRealtime)
         viz.setMode(Visualizer::RealTime);
-    viz.addFrameController(new BodyWatcher(brick));
+    viz.addFrameController(new Visualizer::BodyFollower(brick, Vec3(0),
+                                                        Vec3(0, 4, 2),
+                                                        UnitVec3(0, 0, 1)));
     mbs.updMatterSubsystem().setShowDefaultGeometry(false);
 
     // Initialize.
