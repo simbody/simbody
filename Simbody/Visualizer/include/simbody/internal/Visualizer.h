@@ -791,7 +791,7 @@ public:
     BodyFollower(const MobilizedBody& mobodB,
                  const Vec3&          stationPinB = Vec3(0, 0, 0),
                  const Vec3&          offset      = Vec3(NaN),
-                 const Vec3&          upDirection = Vec3(NaN));
+                 const UnitVec3&      upDirection = UnitVec3());
 
     void generateControls(
             const Visualizer&             viz,
@@ -800,9 +800,9 @@ public:
 
 private:
     const MobilizedBody& m_mobodB;
-    const Vec3           m_stationPinB;
-    const Vec3           m_offset;
-    const Vec3           m_upDirection;
+    const Vec3&          m_stationPinB;
+    const Vec3&          m_offset;
+    const UnitVec3&      m_upDirection;
 };
 
 /** OBSOLETE: This provides limited backwards compatibility with the old

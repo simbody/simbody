@@ -1115,7 +1115,7 @@ Visualizer::BodyFollower::BodyFollower(
         const MobilizedBody& mobodB,
         const Vec3&          stationPinB,
         const Vec3&          offset,
-        const Vec3&          upDirection)
+        const UnitVec3&      upDirection)
     :   m_mobodB(mobodB), m_stationPinB(stationPinB), m_offset(offset),
         m_upDirection(upDirection) {}
     
@@ -1133,8 +1133,8 @@ void Visualizer::BodyFollower::generateControls(
     }
 
     // Up direction. Default: use System up direction.
-    const Vec3& upDirection = m_upDirection.isNaN() ?
-        UnitVec3(viz.getSystemUpDirection()).asVec3() : m_upDirection;
+    const UnitVec3& upDirection = m_upDirection.isNaN() ?
+        UnitVec3(viz.getSystemUpDirection()) : m_upDirection;
 
     const Vec3 P = m_mobodB.findStationLocationInGround(state, m_stationPinB);
     // Position of camera (C) from ground origin (G), expressed in ground.

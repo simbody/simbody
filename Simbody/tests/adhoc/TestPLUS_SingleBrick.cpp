@@ -646,7 +646,7 @@ static void simulateMultibodySystem(const std::string& description,
         viz.setMode(Visualizer::RealTime);
     viz.addFrameController(new Visualizer::BodyFollower(brick, Vec3(0),
                                                         Vec3(0, 4, 2),
-                                                        Vec3(0, 0, 1)));
+                                                        UnitVec3(0, 0, 1)));
     mbs.updMatterSubsystem().setShowDefaultGeometry(false);
 
     // Initialize.
