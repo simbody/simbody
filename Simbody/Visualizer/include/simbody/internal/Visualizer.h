@@ -790,7 +790,7 @@ public:
     **/
     BodyFollower(const MobilizedBody& mobodB,
                  const Vec3&          stationPinB = Vec3(0, 0, 0),
-                 const Vec3&          offset = Vec3(NaN),
+                 const Vec3&          offset      = Vec3(NaN),
                  const Vec3&          upDirection = Vec3(NaN));
 
     void generateControls(
