@@ -772,34 +772,37 @@ class SimTK_SIMBODY_EXPORT Visualizer::BodyFollower :
     public Visualizer::FrameController {
 public:
     /**
-    @param[in] bodyB
-       The body to follow.
+    @param[in] mobodB
+       The MobilizedBody to follow, designated as B.
     @param[in] stationPinB
-       The location of the station P on the body to follow, expressed in B.
+       The location of the station P on the body to follow, expressed in B. By
+       default, P is the origin of the MobilizedBody.
     @param[in] offset
-       Position of the camera from P, expressed in ground.
+       Position of the camera from P, expressed in ground. By default, this is
+       (1, 1, 1) + h * u, where h is Visualizer::getGroundHeight() and u is
+       Visualizer::getSystemUpDirection().
     @param[in] upDirection
        Controls the rotation of the camera about the offset vector. The
        camera's up (+y) direction will be aligned with this vector as best as
-       possible. Expressed in ground. By default, this is the system's up
-       direction (see getSystemUpDirection); it's unlikely that you want
+       is possible. Expressed in ground. By default, this is
+       Visualizer::getSystemUpDirection(); it's unlikely that you want
        something other than the default.
     **/
-    BodyFollower(const MobilizedBody& body,
-                          const Vec3&          stationPinB = Vec3(0, 0, 0),
-                          const Vec3&          offset = Vec3(NaN),
-                          const Vec3&          upDirection = Vec3(NaN));
-    
-    virtual void generateControls(
+    BodyFollower(const MobilizedBody& mobodB,
+                 const Vec3&          stationPinB = Vec3(0, 0, 0),
+                 const Vec3&          offset = Vec3(NaN),
+                 const Vec3&          upDirection = Vec3(NaN));
+
+    void generateControls(
             const Visualizer&             viz,
             const State&                  state,
             Array_< DecorativeGeometry >& geometry) override;
-    
+
 private:
-    const MobilizedBody& m_body;
-    const Vec3 m_stationPinB;
-    const Vec3 m_offset;
-    const Vec3 m_upDirection;
+    const MobilizedBody& m_mobodB;
+    const Vec3           m_stationPinB;
+    const Vec3           m_offset;
+    const Vec3           m_upDirection;
 };
 
 /** OBSOLETE: This provides limited backwards compatibility with the old
