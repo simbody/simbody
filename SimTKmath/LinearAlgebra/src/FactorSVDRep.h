@@ -165,11 +165,11 @@ class FactorSVDRep : public FactorSVDRepBase {
 
     typedef typename CNT<T>::TReal RType;
 
-    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors ) OVERRIDE_11;
-    void getSingularValues( Vector_<RType>& values ) OVERRIDE_11;
-    int getRank() OVERRIDE_11;
-    void solve( const Vector_<T>& b, Vector_<T>& x ) OVERRIDE_11;
-    void solve( const Matrix_<T>& b, Matrix_<T>& x ) OVERRIDE_11;
+    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors ) override;
+    void getSingularValues( Vector_<RType>& values ) override;
+    int getRank() override;
+    void solve( const Vector_<T>& b, Vector_<T>& x ) override;
+    void solve( const Matrix_<T>& b, Matrix_<T>& x ) override;
 
 
     private:
