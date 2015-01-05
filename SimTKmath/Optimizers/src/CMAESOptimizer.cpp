@@ -39,13 +39,6 @@ if (std::bitset<2>(diag).test(1)) { cmds; } \
 } \
 while(false)
 
-// TODO when Simbody switches to C++11, only use unique_ptr.
-#define SimTK_CMAES_SMART_PTR std::unique_ptr
-#if (defined(__GNUG__) && __cplusplus<201103L)
-    #undef SimTK_CMAES_SMART_PTR
-    #define SimTK_CMAES_SMART_PTR std::auto_ptr
-#endif
-
 CMAESOptimizer::CMAESOptimizer(const OptimizerSystem& sys) : OptimizerRep(sys)
 {
     SimTK_VALUECHECK_ALWAYS(2, sys.getNumParameters(), INT_MAX, "nParameters",
@@ -68,7 +61,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     
     // Initialize parallelism, if requested.
     std::string parallel;
-    SimTK_CMAES_SMART_PTR<ParallelExecutor> executor;
+    std::unique_ptr<ParallelExecutor> executor;
     if (getAdvancedStrOption("parallel", parallel)) {
 
         // Number of parallel processes/threads.
