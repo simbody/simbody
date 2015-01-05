@@ -134,7 +134,6 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
     if (swddrive.empty())
         swdcleaned = getAbsoluteDirectoryPathname(swd);
 
-
     // If the pathname in its entirety is just one of these, append 
     // a slash to avoid special cases below.
     if (pathcleaned == "." || pathcleaned == "..")
@@ -153,6 +152,7 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
 
     // If swd was not empty, find the correct absolute path to the intended directory.
     else if (!swd.empty()) {
+        
         // Path was of the form "X:/*" or "/*"
         if (pathcleaned.substr(0, 1) == "/") {
             pathcleaned.erase(0, 1);
@@ -170,8 +170,10 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
                     finaldrive = getCurrentDriveLetter();
             }
         }
+        
         // Path was of the form "X:./*" or "./*". 
         else if (pathcleaned.substr(0, 2) == "./") {
+           
             // If swd provided a drive, use it
             if (!swddrive.empty()) {
                 finaldrive = swddrive;
@@ -193,6 +195,7 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
 
         // Path was of the form "X:*" or "*"
         else {
+            
             // If swd provided a drive, use it
             if (!swddrive.empty()) {
                 finaldrive = swddrive;
@@ -203,9 +206,7 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
             // has a path, use the absolute path of the swd.
             else if (swddrive.empty()) {
                 string swdfullpath = getAbsoluteDirectoryPathname(swdcleaned);
-                
                 removeDriveInPlace(swdfullpath, swddrive);
-                
                 if (!pathdrive.empty())
                     finaldrive = pathdrive;
                 else if (pathdrive.empty())

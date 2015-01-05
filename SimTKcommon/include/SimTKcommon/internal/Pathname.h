@@ -91,7 +91,7 @@ public:
     /// evaluates the absolute path of a given path relative to the swd and
     /// returns the directory, fileName, and extension of the canonicalized absolute
     /// path. This means that instead of evaluating "." as the current working
-    /// directory (cwd), the swd is used. In general, some rules followed are as follows
+    /// directory (cwd), the swd is used. In general, some rules are as follows
     /// 1) If an absolute path is given by path, swd is not used. An absolute path
     ///    is defined as a a root-relative path name and on Windows it will begin 
     ///    with an explicit drive letter (e.g. /usr/* or c:/documents/*, respectively).
