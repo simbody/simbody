@@ -43,7 +43,9 @@ set(SIMBODY_MAJOR_VERSION 3)
 set(SIMBODY_MINOR_VERSION 6)
 set(SIMBODY_PATCH_VERSION 0)
 
-set(SIMBODY_COPYRIGHT_YEARS "2005-15")
+SET(SIMBODY_MAJOR_VERSION 4)
+SET(SIMBODY_MINOR_VERSION 0)
+SET(SIMBODY_PATCH_VERSION 0)
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
