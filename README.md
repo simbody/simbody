@@ -1,6 +1,9 @@
 Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci]
 =======
 
+[**WARNING: This is the Simbody 4.0 development branch -- work in progress!**]
+=======
+
 Simbody is a high-performance, open-source toolkit for science- and
 engineering-quality simulation of articulated mechanisms, including
 biomechanical structures such as human and animal skeletons,
