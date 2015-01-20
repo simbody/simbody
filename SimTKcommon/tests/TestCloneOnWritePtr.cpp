@@ -316,6 +316,23 @@ void testAllocate() {
     bptr.upd()->setValue(999);
     SimTK_TEST(Base::getNumAlive()==10 && bptr.unique() && bptr2.unique());
     SimTK_TEST(bptr.get()->getValue()==999 && bptr2.get()->getValue()==666);
+
+    //Test self-assignment and self move.
+    bptr=bptr2; // sharing
+    SimTK_TEST(Base::getNumAlive()==9);
+
+    bptr=bptr; // should do nothing
+    SimTK_TEST(Base::getNumAlive()==9 && bptr.use_count()==2);
+
+    bptr=bptr2; // already sharing; should do nothing
+    SimTK_TEST(Base::getNumAlive()==9 && bptr.use_count()==2);
+
+    bptr=std::move(bptr2); // should reduce use count, empty bptr2
+    SimTK_TEST(Base::getNumAlive()==9 && bptr.unique() && bptr2.empty());
+
+    bptr=std::move(bptr); // self move should do nothing
+    SimTK_TEST(Base::getNumAlive()==9 && bptr.unique());
+
 }
 
 // Call this at the end after all the destructors should have been
