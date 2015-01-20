@@ -24,11 +24,8 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/internal/common.h"
-
 #include <memory>
 #include <iosfwd>
-#include <cassert>
 
 namespace SimTK {
 
@@ -43,10 +40,9 @@ SimTK::ClonePtr when the object is written. Like SimTK::ClonePtr,
 %CloneOnWritePtr supports copy and assigment operations, by insisting that the 
 contained object have a `clone()` method that returns a pointer to a 
 heap-allocated deep copy of the *concrete* object. The API is modeled as closely
-as possible to the C++11 `std::shared_ptr` and `std::unique_ptr`. However,
-it always uses a default deleter. Also, the get() method is modified to return 
-a const pointer to avoid accidental copying, with upd() (update) added to 
-return a writable pointer.
+as possible to the C++11 `std::shared_ptr` and `std::unique_ptr`. The get() 
+method is modified to return a const pointer to avoid accidental copying, with 
+upd() (update) added to return a writable pointer.
 
 This class is entirely inline and has no computational or space overhead
 beyond the cost of dealing with the reference count, except when a copy has
@@ -68,12 +64,12 @@ public:
     /** Default constructor stores a `nullptr` and sets use count to zero. No
     heap allocation is performed. The empty() method will return true when
     called on a default-constructed %CloneOnWritePtr. **/
-    CloneOnWritePtr() NOEXCEPT_11 {init();}
+    CloneOnWritePtr() {init();}
 
     /** Constructor from `nullptr` is the same as the default constructor.
     This is an implicit conversion that allows `nullptr` to be used to
     initialize a %CloneOnWritePtr. **/
-    CloneOnWritePtr(std::nullptr_t) NOEXCEPT_11 : CloneOnWritePtr() {}
+    CloneOnWritePtr(std::nullptr_t) : CloneOnWritePtr() {}
 
     /** Given a pointer to a writable heap-allocated object, take over 
     ownership of that object. The use count will be one unless the pointer
@@ -99,26 +95,26 @@ public:
     source or destination are written to subsequently a deep copy is made and
     the objects become disconnected. If the source container is empty this one
     will be as though default constructed. **/
-    CloneOnWritePtr(const CloneOnWritePtr& src) NOEXCEPT_11 : CloneOnWritePtr() 
+    CloneOnWritePtr(const CloneOnWritePtr& src) : CloneOnWritePtr() 
     {   shareWith(src); }
 
     /** Copy construction from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
-    CloneOnWritePtr(const CloneOnWritePtr<U>& src) NOEXCEPT_11 : CloneOnWritePtr() 
+    CloneOnWritePtr(const CloneOnWritePtr<U>& src) : CloneOnWritePtr() 
     {   shareWith<U>(src); }
 
     /** Move constructor is very fast and leaves the source empty. The use
     count is unchanged. If the source was empty this one will be as though
     default constructed. **/
-    CloneOnWritePtr(CloneOnWritePtr&& src) NOEXCEPT_11 : CloneOnWritePtr() 
-    {   moveFrom(std::move(src)); }
+    CloneOnWritePtr(CloneOnWritePtr&& src) : CloneOnWritePtr() 
+    {   moveFrom(src); }
 
     /** Move construction from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
-    CloneOnWritePtr(CloneOnWritePtr<U>&& src) NOEXCEPT_11 : CloneOnWritePtr()
-    {   moveFrom<U>(std::move(src)); }
+    CloneOnWritePtr(CloneOnWritePtr<U>&& src) : CloneOnWritePtr()
+    {   moveFrom<U>(std::move(src)); } // std::move shouldn't be needed
     /**@}**/
 
     /** @name                   Assignment **/
@@ -130,7 +126,7 @@ public:
     If the source container is empty this one will be empty after the 
     assignment. Nothing happens if the source and destination were already
     managing the same object. **/
-    CloneOnWritePtr& operator=(const CloneOnWritePtr& src) NOEXCEPT_11 { 
+    CloneOnWritePtr& operator=(const CloneOnWritePtr& src) { 
         if (src.p != p) 
         {   reset(); shareWith(src); }
         return *this;
@@ -139,7 +135,7 @@ public:
     /** Copy assignment from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
-    CloneOnWritePtr& operator=(const CloneOnWritePtr<U>& src) NOEXCEPT_11 { 
+    CloneOnWritePtr& operator=(const CloneOnWritePtr<U>& src) { 
         if (static_cast<T*>(src.p) != p) 
         {   reset(); shareWith<U>(src); }
         return *this;
@@ -151,7 +147,8 @@ public:
     happens if the source and destination are the same containers. If they are
     different but are sharing the same object then the use count is reduced
     by one. **/
-    CloneOnWritePtr& operator=(CloneOnWritePtr&& src) NOEXCEPT_11 { 
+    CloneOnWritePtr& operator=(CloneOnWritePtr&& src) { 
+        // The std::move here shouldn't be necessary but VS2013 needed it.
         if (&src != this) 
         {   reset(); moveFrom(std::move(src)); }
         return *this;
@@ -160,8 +157,9 @@ public:
     /** Move assignment from a compatible %CloneOnWritePtr. Type U* must
     be implicitly convertible to type T*. **/
     template <class U>
-    CloneOnWritePtr& operator=(CloneOnWritePtr<U>&& src) NOEXCEPT_11 {
+    CloneOnWritePtr& operator=(CloneOnWritePtr<U>&& src) {
         // Can't be the same container since the type is different.
+        // The std::move here shouldn't be necessary but VS2013 needed it.
         reset(); moveFrom<U>(std::move(src));
         return *this;
     }
@@ -178,7 +176,7 @@ public:
     source object and takes over ownership of the source object. The use count
     of the currently-held object is decremented and the object is deleted if 
     this was the last reference to it. **/ 
-    CloneOnWritePtr& operator=(T* x) NOEXCEPT_11
+    CloneOnWritePtr& operator=(T* x)               
     {   reset(x); return *this; }
     /**@}**/
     
@@ -186,7 +184,7 @@ public:
     /**@{**/    
     /** Destructor decrements the reference count and deletes the object
     if the count goes to zero. @see reset() **/
-    ~CloneOnWritePtr() NOEXCEPT_11 {reset();}
+    ~CloneOnWritePtr() {reset();}
     /**@}**/
 
     /** @name                     Accessors **/
@@ -197,7 +195,7 @@ public:
     `%get()` for the standard smart pointers which return a writable pointer. 
     Use upd() here for that purpose. 
     @see upd(), getRef() **/
-    const T* get() const NOEXCEPT_11 {return p;}
+    const T* get() const {return p;}
 
     /** Clone if necessary to ensure the contained object is not shared, then 
     return a writable pointer to the contained (and now unshared) object if any,
@@ -257,7 +255,7 @@ public:
     object (if any), and deleting it if this was the last use. The container
     is restored to its default-constructed state. 
     @see empty() **/
-    void reset() NOEXCEPT_11 {
+    void reset() {
         if (empty()) return;
         if (decr()==0) {delete p; delete count;} 
         init();
@@ -268,7 +266,7 @@ public:
     first if necessary. Nothing happens if the supplied pointer is the same
     as the one already being managed. Otherwise, on return the use count will be
     one if the supplied pointer was non-null or else zero. **/
-    void reset(T* x) { // could throw when allocating count
+    void reset(T* x) {
         if (x != p) {
             reset();
             if (x) {p=x; count=new long(1);}
@@ -279,7 +277,7 @@ public:
     ownership changing hands but no copying performed. This is very fast;
     no heap activity occurs. Both containers must have been instantiated with 
     the identical type. **/
-    void swap(CloneOnWritePtr& other) NOEXCEPT_11 {
+    void swap(CloneOnWritePtr& other) {
         std::swap(p, other.p);
         std::swap(count, other.count);
     }
@@ -288,21 +286,21 @@ public:
     sharing the referenced object. There is never more than
     one holding an object for writing. If the pointer is null the use 
     count is zero. **/
-    long use_count() const NOEXCEPT_11 {return count ? *count : 0;}
+    long use_count() const {return count ? *count : 0;}
 
     /** Is this the only user of the referenced object? Note that this means
     there is exactly one; if the managed pointer is null `unique()` returns 
     `false`. **/
-    bool unique() const NOEXCEPT_11 {return use_count()==1;}
+    bool unique() const {return use_count()==1;}
    
     /** Return true if this container is empty, which is the state the container
     is in immediately after default construction and various other 
     operations. **/
-    bool empty() const NOEXCEPT_11 {return !p;} // count should be null also
+    bool empty() const {return !p;} // count should be null also
 
     /** This is a conversion to type bool that returns true if
     the container is non-null (that is, not empty). **/
-    explicit operator bool() const NOEXCEPT_11 {return !empty();}
+    explicit operator bool() const {return !empty();}
 
     /** (Advanced) Remove the contained object from management by this 
     container and transfer ownership to the caller. Clone if necessary to 
@@ -311,7 +309,7 @@ public:
     container empty. A writable pointer to the object is returned. No object 
     destruction occurs. 
     @see detach() **/
-    T* release() { // could throw during detach()
+    T* release() {
         detach(); // now use count is 1 or 0
         T* save = p; delete count; init();
         return save;
@@ -326,7 +324,7 @@ public:
     will see the shared use count reduced by one. If this is empty() or 
     unique() already then nothing happens. Note that you have to have write
     access to this container in order to detach it. **/
-    void detach() { // can throw during clone()
+    void detach() {
         if (use_count() > 1) 
         {   decr(); p=p->clone(); count=new long(1); }
     }
@@ -342,182 +340,191 @@ template <class U> friend class CloneOnWritePtr;
 
     // Set an empty pointer to share with the given object. Type U* must be
     // implicitly convertible to type T*.
-    template <class U> void shareWith(const CloneOnWritePtr<U>& src) NOEXCEPT_11 {
+    template <class U> void shareWith(const CloneOnWritePtr<U>& src) {
         assert(!(p||count)); 
         if (!src.empty()) {p=src.p; count=src.count; incr();}
     }
 
     // Steal the object and count from the source to initialize this *empty* 
     // pointer, leaving the source empty.
-    template <class U> void moveFrom(CloneOnWritePtr<U>&& src) NOEXCEPT_11 {
+    template <class U> void moveFrom(CloneOnWritePtr<U>&& src) {
         assert(!(p||count)); 
         p=src.p; count=src.count; src.init();
     }
 
     // Increment/decrement use count and return the result.
-    long incr() const NOEXCEPT_11 {assert(count && *count>=0); return ++(*count);}
-    long decr() const NOEXCEPT_11 {assert(count && *count>=1); return --(*count);}
+    long incr() const {assert(count && *count>=0); return ++(*count);}
+    long decr() const {assert(count && *count>=1); return --(*count);}
 
-    void init() NOEXCEPT_11 {p=nullptr; count=nullptr;}
+    void init() {p=nullptr; count=nullptr;}
 
     // Can't use std::shared_ptr here due to lack of release() method.
     T*      p;          // this may be null
     long*   count;      // if p is null so is count
 };    
+    
+} // namespace SimTK
+
 
 
 //==============================================================================
-//                       SimTK namespace-scope functions
+//                          std:: namespace
 //==============================================================================
-// These namespace-scope functions will be resolved by the compiler using
-// "Koenig lookup" which examines the arguments' namespaces first.
-// See Herb Sutter's discussion here: http://www.gotw.ca/publications/mill08.htm.
-
-/** This is an overload of the STL std::swap() algorithm which uses the
+namespace std {
+/** This is a specialization of the STL std::swap() algorithm which uses the
 cheap built-in swap() member of the CloneOnWritePtr class. (This function
-is defined in the `SimTK` namespace.) 
-@relates CloneOnWritePtr **/
+is defined in the `std` namespace.) 
+@relates SimTK::CloneOnWritePtr **/
 template <class T> inline void
-swap(CloneOnWritePtr<T>& p1, CloneOnWritePtr<T>& p2) {
+swap(SimTK::CloneOnWritePtr<T>& p1, SimTK::CloneOnWritePtr<T>& p2) {
     p1.swap(p2);
 }
+} // namespace std
 
+
+
+//==============================================================================
+//                          global namespace
+//==============================================================================
 /** Output the system-dependent representation of the pointer contained
-in a CloneOnWritePtr object. This is equivalent to `os << p.get();`.
-@relates CloneOnWritePtr **/
+in a SimTK::CloneOnWritePtr object. This is equivalent to `os << p.get();`.
+This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class charT, class traits, class T>
 inline std::basic_ostream<charT,traits>& 
 operator<<(std::basic_ostream<charT,traits>& os, 
-           const CloneOnWritePtr<T>&  p) 
-{   os << p.get(); return os; }
+           const SimTK::CloneOnWritePtr<T>&  p) 
+{   os << p.get(); }
 
 /** Compare for equality the managed pointers contained in two compatible
-CloneOnWritePtr containers. Returns `true` if the pointers refer to
+SimTK::CloneOnWritePtr containers. Returns `true` if the pointers refer to
 the same object or if both are null. It must be possible for one of the
 pointer types `T*` and `U*` to be implicitly converted to the other.
-@relates CloneOnWritePtr **/
+This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T, class U>
-inline bool operator==(const CloneOnWritePtr<T>& lhs,
-                       const CloneOnWritePtr<U>& rhs)
+inline bool operator==(const SimTK::CloneOnWritePtr<T>& lhs,
+                       const SimTK::CloneOnWritePtr<U>& rhs)
 {   return lhs.get() == rhs.get(); }
 
 /** Comparison against `nullptr`; same as `lhs.empty()`. 
-@relates CloneOnWritePtr **/
+This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator==(const CloneOnWritePtr<T>& lhs, std::nullptr_t)
+inline bool operator==(const SimTK::CloneOnWritePtr<T>& lhs, std::nullptr_t)
 {   return lhs.empty(); }
 
 /** Comparison against `nullptr`; same as `rhs.empty()`. 
-@relates CloneOnWritePtr **/
+This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator==(std::nullptr_t, const CloneOnWritePtr<T>& rhs)
+inline bool operator==(std::nullptr_t, const SimTK::CloneOnWritePtr<T>& rhs)
 {   return rhs.empty(); }
 
-/** Less-than operator for two compatible CloneOnWritePtr containers, 
+/** Less-than operator for two compatible SimTK::CloneOnWritePtr containers, 
 comparing the *pointers*, not the *objects* they point to. Returns `true` if the
 lhs pointer tests less than the rhs pointer. A null pointer tests less than any
 non-null pointer. It must be possible for one of the pointer types `T*` and 
-`U*` to be implicitly converted to the other.
-@relates CloneOnWritePtr **/
+`U*` to be implicitly converted to the other. This operator is defined in the 
+global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T, class U>
-inline bool operator<(const CloneOnWritePtr<T>& lhs,
-                      const CloneOnWritePtr<U>& rhs)
+inline bool operator<(const SimTK::CloneOnWritePtr<T>& lhs,
+                      const SimTK::CloneOnWritePtr<U>& rhs)
 {   return lhs.get() < rhs.get(); }
 
 /** Less-than comparison against a `nullptr`. A null pointer tests less than any
 non-null pointer and equal to another null pointer, so this method always 
-returns `false`.
-@relates CloneOnWritePtr **/
+returns `false`. This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator<(const CloneOnWritePtr<T>& lhs, std::nullptr_t)
+inline bool operator<(const SimTK::CloneOnWritePtr<T>& lhs, std::nullptr_t)
 {   return false; }
 
 /** Less-than comparison of a `nullptr` against this container. A null
 pointer tests less than any non-null pointer and equal to another null pointer,
-so this method returns `true` unless the container is empty. 
-@relates CloneOnWritePtr **/
+so this method returns `true` unless the container is empty. This operator is 
+defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator<(std::nullptr_t, const CloneOnWritePtr<T>& rhs)
+inline bool operator<(std::nullptr_t, const SimTK::CloneOnWritePtr<T>& rhs)
 {   return !rhs.empty(); }
 
 
 // These functions are derived from operator== and operator<.
 
-/** Pointer inequality test defined as `!(lhs==rhs)`.
-@relates CloneOnWritePtr **/
+/** Pointer inequality test defined as `!(lhs==rhs)`. This operator is defined 
+in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T, class U>
-inline bool operator!=(const CloneOnWritePtr<T>& lhs,
-                       const CloneOnWritePtr<U>& rhs)
+inline bool operator!=(const SimTK::CloneOnWritePtr<T>& lhs,
+                       const SimTK::CloneOnWritePtr<U>& rhs)
 {   return !(lhs==rhs); }
-/** `nullptr` inequality test defined as `!(lhs==nullptr)`.
-@relates CloneOnWritePtr **/
+/** `nullptr` inequality test defined as `!(lhs==nullptr)`. This operator is 
+defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator!=(const CloneOnWritePtr<T>& lhs, std::nullptr_t)
+inline bool operator!=(const SimTK::CloneOnWritePtr<T>& lhs, std::nullptr_t)
 {   return !(lhs==nullptr); }
-/** `nullptr` inequality test defined as `!(nullptr==rhs)`.
-@relates CloneOnWritePtr **/
+/** `nullptr` inequality test defined as `!(nullptr==rhs)`. This operator is 
+defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator!=(std::nullptr_t, const CloneOnWritePtr<T>& rhs)
+inline bool operator!=(std::nullptr_t, const SimTK::CloneOnWritePtr<T>& rhs)
 {   return !(nullptr==rhs); }
 
-/** Pointer greater-than test defined as `rhs < lhs`.
-@relates CloneOnWritePtr **/
+/** Pointer greater-than test defined as `rhs < lhs`. This operator is defined 
+in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T, class U>
-inline bool operator>(const CloneOnWritePtr<T>& lhs,
-                      const CloneOnWritePtr<U>& rhs)
+inline bool operator>(const SimTK::CloneOnWritePtr<T>& lhs,
+                      const SimTK::CloneOnWritePtr<U>& rhs)
 {   return rhs < lhs; }
-/** `nullptr` greater-than test defined as `nullptr < lhs`.
-@relates CloneOnWritePtr **/
+/** `nullptr` greater-than test defined as `nullptr < lhs`. This operator is 
+defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator>(const CloneOnWritePtr<T>& lhs, std::nullptr_t)
+inline bool operator>(const SimTK::CloneOnWritePtr<T>& lhs, std::nullptr_t)
 {   return nullptr < lhs; }
 
-/** `nullptr` greater-than test defined as `rhs < nullptr`.
-@relates CloneOnWritePtr **/
+/** `nullptr` greater-than test defined as `rhs < nullptr`. This operator is 
+defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator>(std::nullptr_t, const CloneOnWritePtr<T>& rhs)
+inline bool operator>(std::nullptr_t, const SimTK::CloneOnWritePtr<T>& rhs)
 {   return rhs < nullptr; }
 
 
-/** Pointer greater-or-equal test defined as `!(lhs < rhs)`.
-@relates CloneOnWritePtr **/
+/** Pointer greater-or-equal test defined as `!(lhs < rhs)`. This operator is 
+defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T, class U>
-inline bool operator>=(const CloneOnWritePtr<T>& lhs,
-                       const CloneOnWritePtr<U>& rhs)
+inline bool operator>=(const SimTK::CloneOnWritePtr<T>& lhs,
+                       const SimTK::CloneOnWritePtr<U>& rhs)
 {   return !(lhs < rhs); }
-/** `nullptr` greater-or-equal test defined as `!(lhs < nullptr)`.
-@relates CloneOnWritePtr **/
+/** `nullptr` greater-or-equal test defined as `!(lhs < nullptr)`. This operator
+is defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator>=(const CloneOnWritePtr<T>& lhs, std::nullptr_t)
+inline bool operator>=(const SimTK::CloneOnWritePtr<T>& lhs, std::nullptr_t)
 {   return !(lhs < nullptr); }
 
-/** `nullptr` greater-or-equal test defined as `!(nullptr < rhs)`.
-@relates CloneOnWritePtr **/
+/** `nullptr` greater-or-equal test defined as `!(nullptr < rhs)`. This operator
+is defined in the global namespace. @relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator>=(std::nullptr_t, const CloneOnWritePtr<T>& rhs)
+inline bool operator>=(std::nullptr_t, const SimTK::CloneOnWritePtr<T>& rhs)
 {   return !(nullptr < rhs); }
 
 
 /** Pointer less-or-equal test defined as `!(rhs < lhs)` (note reversed
-arguments).
-@relates CloneOnWritePtr **/
+arguments). This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T, class U>
-inline bool operator<=(const CloneOnWritePtr<T>& lhs,
-                       const CloneOnWritePtr<U>& rhs)
+inline bool operator<=(const SimTK::CloneOnWritePtr<T>& lhs,
+                       const SimTK::CloneOnWritePtr<U>& rhs)
 {   return !(rhs < lhs); }
 /** `nullptr` less-or-equal test defined as `!(nullptr < lhs)` (note reversed
-arguments).
-@relates CloneOnWritePtr **/
+arguments). This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator<=(const CloneOnWritePtr<T>& lhs, std::nullptr_t)
+inline bool operator<=(const SimTK::CloneOnWritePtr<T>& lhs, std::nullptr_t)
 {   return !(nullptr < lhs); }
 /** `nullptr` less-or-equal test defined as `!(rhs < nullptr)` (note reversed
-arguments).
-@relates CloneOnWritePtr **/
+arguments). This operator is defined in the global namespace.
+@relates SimTK::CloneOnWritePtr **/
 template <class T>
-inline bool operator<=(std::nullptr_t, const CloneOnWritePtr<T>& rhs)
+inline bool operator<=(std::nullptr_t, const SimTK::CloneOnWritePtr<T>& rhs)
 {   return !(rhs < nullptr); }
 
-} // namespace SimTK
 
 #endif // SimTK_SimTKCOMMON_CLONE_ON_WRITE_PTR_H_
