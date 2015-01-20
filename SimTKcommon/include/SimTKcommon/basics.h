@@ -42,6 +42,7 @@
 #include "SimTKcommon/internal/Exception.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/ClonePtr.h"
+#include "SimTKcommon/internal/CloneOnWritePtr.h"
 #include "SimTKcommon/internal/ReferencePtr.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Serialize.h"
