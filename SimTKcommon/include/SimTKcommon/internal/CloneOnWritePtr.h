@@ -108,13 +108,13 @@ public:
     count is unchanged. If the source was empty this one will be as though
     default constructed. **/
     CloneOnWritePtr(CloneOnWritePtr&& src) : CloneOnWritePtr() 
-    {   moveFrom(src); }
+    {   moveFrom(std::move(src)); }
 
     /** Move construction from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
     CloneOnWritePtr(CloneOnWritePtr<U>&& src) : CloneOnWritePtr()
-    {   moveFrom<U>(std::move(src)); } // std::move shouldn't be needed
+    {   moveFrom<U>(std::move(src)); }
     /**@}**/
 
     /** @name                   Assignment **/
@@ -148,7 +148,6 @@ public:
     different but are sharing the same object then the use count is reduced
     by one. **/
     CloneOnWritePtr& operator=(CloneOnWritePtr&& src) { 
-        // The std::move here shouldn't be necessary but VS2013 needed it.
         if (&src != this) 
         {   reset(); moveFrom(std::move(src)); }
         return *this;
@@ -159,7 +158,6 @@ public:
     template <class U>
     CloneOnWritePtr& operator=(CloneOnWritePtr<U>&& src) {
         // Can't be the same container since the type is different.
-        // The std::move here shouldn't be necessary but VS2013 needed it.
         reset(); moveFrom<U>(std::move(src));
         return *this;
     }
