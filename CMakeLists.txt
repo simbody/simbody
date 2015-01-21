@@ -451,25 +451,26 @@ IF(BUILD_USING_OTHER_LAPACK)
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
 ENDIF(BUILD_USING_OTHER_LAPACK)
 
-IF(${CMAKE_C_COMPILER} MATCHES "cc" OR ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-    IF(APPLE)
-        SET(REALTIME_LIB)
-    ELSE()
+IF(UNIX)
+    IF(NOT APPLE)
         SET(REALTIME_LIB rt)
     ENDIF()
-    SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl m)
-    SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthread ${REALTIME_LIB} dl m)
-ELSE()
+    SET(MATH_LIBRARY m)
+    SET(DL_LIBRARY dl)
+    SET(CMAKE_THREAD_LIBS_INIT pthread)
+ENDIF()
+
+IF(MSVC)
     ## Assume Microsoft Visual Studio
     if (${PLATFORM_ABI} MATCHES "x64")
-        SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2_x64)
-        SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthreadVC2_x64)
+        SET(CMAKE_THREAD_LIBS_INIT pthreadVC2_x64)
     else()
-        SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthreadVC2)
-        SET(MATH_LIBS_TO_USE_VN ${LAPACK_BEING_USED} pthreadVC2)
+        SET(CMAKE_THREAD_LIBS_INIT pthreadVC2)
     endif()
 ENDIF()
 
+SET(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} ${CMAKE_THREAD_LIBS_INIT} ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
+SET(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
 #
 # Allow automated build and dashboard.
 #
