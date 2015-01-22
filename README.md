@@ -119,7 +119,7 @@ Installing
 
 Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
 
-1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
+1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio, or MinGW-w64.
 3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
 2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
