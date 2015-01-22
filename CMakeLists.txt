@@ -537,6 +537,7 @@ ENDIF()
 
 # Each of these returns a list of API include directories for
 # use by the later builds.
+ADD_CUSTOM_TARGET(PlatformFiles ALL)
 ADD_SUBDIRECTORY( Platform )
 # PLATFORM_INCLUDE_DIRECTORIES now set
 ADD_SUBDIRECTORY( SimTKcommon )
