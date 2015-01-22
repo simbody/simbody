@@ -38,7 +38,7 @@ ENDFOREACH()
 
 
 ADD_CUSTOM_TARGET(PlatformFiles_subdir DEPENDS ${COPIED_LIB_FILES})
-ADD_DEPENDENCIES(PlatformFiles PlatformFilesi_subdir)
+ADD_DEPENDENCIES(PlatformFiles PlatformFiles_subdir)
 SET_TARGET_PROPERTIES(PlatformFiles
     PROPERTIES PROJECT_LABEL "Code - Platform Files")
 
