@@ -37,7 +37,8 @@ FOREACH(LIBF ${LIB_FILES})
 ENDFOREACH()
 
 
-ADD_CUSTOM_TARGET(PlatformFiles ALL DEPENDS ${COPIED_LIB_FILES})
+ADD_CUSTOM_TARGET(PlatformFiles_subdir DEPENDS ${COPIED_LIB_FILES})
+add_depencencies(PlatformFiles PlatformFilesi_subdir)
 SET_TARGET_PROPERTIES(PlatformFiles
     PROPERTIES PROJECT_LABEL "Code - Platform Files")
 
