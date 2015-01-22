@@ -34,17 +34,17 @@ namespace SimTK {
 // Some common RGB values; these constants are global external symbols exported
 // by the library, defined as externs in DecorativeGeometry.h.
 
-SimTK_SimTKCOMMON_EXPORT const Vec3 Black   = Vec3( 0, 0, 0);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Gray    = Vec3(.5,.5,.5);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Red     = Vec3( 1, 0, 0);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Green   = Vec3( 0, 1, 0);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Blue    = Vec3( 0, 0, 1);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Yellow  = Vec3( 1, 1, 0);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Orange  = Vec3( 1,.5, 0);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Magenta = Vec3( 1, 0, 1);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Purple  = Vec3(.5, 0,.5);
-SimTK_SimTKCOMMON_EXPORT const Vec3 Cyan    = Vec3( 0, 1, 1);
-SimTK_SimTKCOMMON_EXPORT const Vec3 White   = Vec3( 1, 1, 1);
+const Vec3 Black   = Vec3( 0, 0, 0);
+const Vec3 Gray    = Vec3(.5,.5,.5);
+const Vec3 Red     = Vec3( 1, 0, 0);
+const Vec3 Green   = Vec3( 0, 1, 0);
+const Vec3 Blue    = Vec3( 0, 0, 1);
+const Vec3 Yellow  = Vec3( 1, 1, 0);
+const Vec3 Orange  = Vec3( 1,.5, 0);
+const Vec3 Magenta = Vec3( 1, 0, 1);
+const Vec3 Purple  = Vec3(.5, 0,.5);
+const Vec3 Cyan    = Vec3( 0, 1, 1);
+const Vec3 White   = Vec3( 1, 1, 1);
 
     /////////////////////////
     // DECORATIVE GEOMETRY //
