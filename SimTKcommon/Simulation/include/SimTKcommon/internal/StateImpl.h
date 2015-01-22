@@ -361,7 +361,7 @@ private:
 //==============================================================================
 // This internal utility class is used to capture all the information needed for
 // a single subsystem within the StateImpl.
-class PerSubsystemInfo {
+class SimTK_SimTKCOMMON_EXPORT PerSubsystemInfo {
 public:
     PerSubsystemInfo() : currentStage(Stage::Empty)     {initialize();}
     PerSubsystemInfo(const String& n, const String& v) 
@@ -625,7 +625,7 @@ private:
 //                                 STATE IMPL
 //==============================================================================
 
-class StateImpl {
+class SimTK_SimTKCOMMON_EXPORT StateImpl {
 public:
     StateImpl() 
     :   t(NaN), currentSystemStage(Stage::Empty) {initializeStageVersions();} 
