@@ -461,7 +461,6 @@ IF(UNIX)
 ENDIF()
 
 IF(MSVC)
-    ## Assume Microsoft Visual Studio
     if (${PLATFORM_ABI} MATCHES "x64")
         SET(CMAKE_THREAD_LIBS_INIT pthreadVC2_x64)
     else()
