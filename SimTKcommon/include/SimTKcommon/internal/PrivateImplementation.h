@@ -195,7 +195,7 @@ protected:
     /// should be all the handle classes derived from it. If this handle is the 
     /// owner of its implementation, the destructor will destroy the implementation
     /// object as well. Any other handles referencing the same implementation will
-    /// then be invalid, although there will be automated detection of that. Be very
+    /// then be invalid, although there will be no automated detection of that. Be very
     /// careful to ensure that owner handles always outlive their reference handles.
     ~PIMPLHandle();
 
