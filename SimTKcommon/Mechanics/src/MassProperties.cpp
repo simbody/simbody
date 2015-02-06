@@ -117,7 +117,8 @@ halfCrossDiff(const Vec<3,P>& v, const Mat<3,3,P,CS1,RS1>& F, const Mat<3,3,P,CS
 //      F' = F + sx*M
 //      J' = J + (sx*~F - F'*sx)
 // where the parenthesized quantity is symmetric although its
-// individual terms are not. Cost is 72 flops.
+// individual terms are not. Unfortunately this is a shift by -s rather than s.
+// Cost is 72 flops.
 template <class P> ArticulatedInertia_<P>
 ArticulatedInertia_<P>::shift(const Vec3P& s) const {
     const Mat33P    Fp = F + s % M; // same meaning as sx*M but faster (33 flops)
