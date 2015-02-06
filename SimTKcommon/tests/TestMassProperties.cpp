@@ -290,6 +290,45 @@ void testHalfCross() {
 
 }
 
+void testSpatialInertia() {
+    const Real     mass = 1.125;
+    const Vec3     com(.1, .2, .25);
+    const UnitInertia gyration(1.8, 1.9, 2.1, .01, .03, .02);
+
+    SpatialInertia si(mass,com,gyration);
+
+    const SpatialMat msi = si.toSpatialMat();
+    SimTK_TEST( msi(0,0) == mass*gyration.toMat33() );
+    SimTK_TEST( msi(0,1) == mass*crossMat(com) );
+    SimTK_TEST( msi(1,0) == mass*~crossMat(com) );
+    SimTK_TEST( msi(1,1) == mass*Mat33(1) );
+
+    // Using phi shifts by the negative of the shift vector.
+    const Vec3 shiftVec(1,2,3);
+    const SpatialMat shiftMat(Mat33(1), crossMat(-shiftVec),
+                              Mat33(0),    Mat33(1));
+    const SpatialMat msiShiftedManually = shiftMat*msi*~shiftMat;
+
+    const PhiMatrix phi(-shiftVec);
+    const SpatialMat msiShiftedByPhi = phi*msi*~phi;
+
+    SimTK_TEST_EQ(msiShiftedByPhi, msiShiftedManually);
+
+    // The SpatialInertia shift() method behaves correctly; the Articulated
+    // one currently has the reverse sense, see below.
+    const SpatialInertia shiftSi = si.shift(shiftVec);
+
+    SimTK_TEST_EQ(shiftSi.toSpatialMat(), msiShiftedManually);
+
+    SimTK_TEST_EQ(shiftSi.shift(-shiftVec).toSpatialMat(),
+                  si.toSpatialMat());
+
+    si.shiftInPlace(shiftVec);
+    SimTK_TEST_EQ(si.toSpatialMat(), msiShiftedManually);
+
+    SimTK_TEST_EQ(si.shiftInPlace(-shiftVec).toSpatialMat(), msi);
+}
+
 void testArticulatedInertia() {
     const SymMat33 mass = Test::randSymMat33();
     const Mat33    massMoment = Test::randMat33();
@@ -303,27 +342,31 @@ void testArticulatedInertia() {
     SimTK_TEST( mabi(1,0) == ~massMoment );
     SimTK_TEST( mabi(1,1) == mass );
 
-    const Vec3 shiftVec = Test::randVec3();
-    const SpatialMat shiftMat(Mat33(1), crossMat(shiftVec),
+    // Using phi shifts by the negative of the shift vector.
+    const Vec3 shiftVec(1,2,3);
+    const SpatialMat shiftMat(Mat33(1), crossMat(-shiftVec),
                               Mat33(0),    Mat33(1));
     const SpatialMat mabiShiftedManually = shiftMat*mabi*~shiftMat;
 
-    const PhiMatrix phi(shiftVec);
+    const PhiMatrix phi(-shiftVec);
     const SpatialMat mabiShiftedByPhi = phi*mabi*~phi;
 
     SimTK_TEST_EQ(mabiShiftedByPhi, mabiShiftedManually);
 
-    const ArticulatedInertia shiftAbi = abi.shift(shiftVec);
+    // Unfortunately the abi shift() method is also defined to shift by the
+    // negative of the shift vector; that's an API bug.
+    const Vec3 negShiftVec(-shiftVec);
+    const ArticulatedInertia shiftAbi = abi.shift(negShiftVec);
 
     SimTK_TEST_EQ(shiftAbi.toSpatialMat(), mabiShiftedManually);
 
-    SimTK_TEST_EQ(shiftAbi.shift(-shiftVec).toSpatialMat(),
+    SimTK_TEST_EQ(shiftAbi.shift(-negShiftVec).toSpatialMat(),
                   abi.toSpatialMat());
 
-    abi.shiftInPlace(shiftVec);
+    abi.shiftInPlace(negShiftVec);
     SimTK_TEST_EQ(abi.toSpatialMat(), mabiShiftedManually);
 
-    SimTK_TEST_EQ(abi.shiftInPlace(-shiftVec).toSpatialMat(), mabi);
+    SimTK_TEST_EQ(abi.shiftInPlace(-negShiftVec).toSpatialMat(), mabi);
 }
 
 void testManualABIShift(const ArticulatedInertia& abi, const Array_<Vec3>& shifts, Real& out) {
@@ -367,6 +410,7 @@ int main() {
         SimTK_SUBTEST(testCrossProduct);
         SimTK_SUBTEST(testInertia);
         SimTK_SUBTEST(testHalfCross);
+        SimTK_SUBTEST(testSpatialInertia);
         SimTK_SUBTEST(testArticulatedInertia);
 
         // Speed tests.

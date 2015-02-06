@@ -1112,9 +1112,10 @@ SpatialInertia_ shift(const Vec3P& S) const
 /// operation in the manner of assignment operators. Cost is 37 flops.
 /// @see shift() if you want to leave this object unmolested.
 SpatialInertia_& shiftInPlace(const Vec3P& S) {
-    G.shiftToCentroidInPlace(p);    // change to central inertia
-    G.shiftFromCentroidInPlace(S);  // now inertia is about S
-    p -= S; // was p=com-OF, now want p'=com-(OF+S)=p-S
+    G.shiftToCentroidInPlace(p);      // change to central inertia
+    const Vec3P pNew(p-S);            // vec from new origin to com (3 flops)
+    G.shiftFromCentroidInPlace(pNew); // shift to S (pNew sign doesn't matter)
+    p = pNew;                         // had p=com-OF; want p=com-(OF+S)=p-S
     return *this;
 }
 
@@ -1247,7 +1248,7 @@ class ArticulatedInertia_ {
     typedef Transform_<P>   TransformP;
     typedef Inertia_<P>     InertiaP;
 public:
-/// Default contruction produces uninitialized junk at zero cost; be sure to 
+/// Default construction produces uninitialized junk at zero cost; be sure to 
 /// fill this in before referencing it.
 ArticulatedInertia_() {}
 /// Construct an ArticulatedInertia from the mass, first moment, and inertia matrices it contains.
@@ -1298,15 +1299,18 @@ Mat<2,N,Vec3P> operator*(const Mat<2,N,Vec3P>& m) const {
 }
 
 /// Rigid-shift the origin of this Articulated Body Inertia P by a 
-/// shift vector s to produce a new ABI P'. The calculation is 
+/// shift vector -s to produce a new ABI P'. The calculation is 
 /// <pre>
 /// P' =  [ J'  F' ]  =  [ 1  sx ] [ J  F ] [ 1  0 ]
 ///       [~F'  M  ]     [ 0  1  ] [~F  M ] [-sx 1 ]
 /// </pre>
-/// where sx is the cross product matrix of s. Cost is 72 flops.
+/// where sx is the cross product matrix of s (not -s). Note that for historical
+/// reasons this is defined so that it shifts by -s, which is unfortunate and
+/// is opposite the SpatialInertia::shift() method.
+/// Cost is 72 flops.
 SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_ shift(const Vec3P& s) const;
 
-/// Rigid-shift this ABI in place. 72 flops.
+/// Rigid-shift this ABI in place by -s. 72 flops.
 /// @see shift() for details
 SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_& shiftInPlace(const Vec3P& s);
 
