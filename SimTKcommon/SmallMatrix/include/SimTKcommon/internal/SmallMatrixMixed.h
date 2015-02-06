@@ -692,7 +692,8 @@ Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTra
 
     // CROSS MAT SQ
 
-/// Calculate matrix S(v) such that S(v)*w = -v % (v % w) = (v % w) % v. S is a symmetric,
+/// Calculate matrix S(v) such that S(v)*w = -v % (v % w) = (v % w) % v. 
+/// S is a symmetric,
 /// 3x3 matrix with nonnegative diagonals that obey the triangle inequality. 
 /// If M(v) = crossMat(v), then S(v) = square(M(v)) = ~M(v)*M(v) = -M(v)*M(v) 
 /// since M is skew symmetric.
@@ -708,9 +709,9 @@ Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTra
 ///            -xz       -yz     x^2+y^2
 /// </pre>
 /// where "T" indicates that the element is identical to the symmetric one.
-/// This requires 11 flops to form.
-/// We produce the same S(v) regardless of whether v is a column or row.
-/// Note that there is no 2D equivalent of this operator.
+/// Note that S(-v)=S(v). This requires 11 flops to form.
+/// We produce the same S(v) regardless of whether v is a column or row. 
+/// There is no 2D equivalent of this operator.
 template <class E, int S> inline
 SymMat<3,E>
 crossMatSq(const Vec<3,E,S>& v) {

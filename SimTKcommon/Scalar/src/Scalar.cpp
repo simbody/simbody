@@ -35,49 +35,49 @@ namespace SimTK {
 // These constants are global external symbols exported by the library. See
 // the Scalar.h header file for information.
 
-SimTK_SimTKCOMMON_EXPORT const Real NaN               = NTraits<Real>::getNaN(); 
-SimTK_SimTKCOMMON_EXPORT const Real Infinity          = NTraits<Real>::getInfinity();
-SimTK_SimTKCOMMON_EXPORT const Real Eps               = NTraits<Real>::getEps();
-SimTK_SimTKCOMMON_EXPORT const Real SqrtEps           = NTraits<Real>::getSqrtEps();
-SimTK_SimTKCOMMON_EXPORT const Real TinyReal          = NTraits<Real>::getTiny(); 
-SimTK_SimTKCOMMON_EXPORT const Real SignificantReal   = NTraits<Real>::getSignificant(); 
-SimTK_SimTKCOMMON_EXPORT const Real LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
-SimTK_SimTKCOMMON_EXPORT const Real MostPositiveReal  = NTraits<Real>::getMostPositive();  
-SimTK_SimTKCOMMON_EXPORT const Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
-SimTK_SimTKCOMMON_EXPORT const Real MostNegativeReal  = NTraits<Real>::getMostNegative();
+const Real NaN               = NTraits<Real>::getNaN(); 
+const Real Infinity          = NTraits<Real>::getInfinity();
+const Real Eps               = NTraits<Real>::getEps();
+const Real SqrtEps           = NTraits<Real>::getSqrtEps();
+const Real TinyReal          = NTraits<Real>::getTiny(); 
+const Real SignificantReal   = NTraits<Real>::getSignificant(); 
+const Real LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
+const Real MostPositiveReal  = NTraits<Real>::getMostPositive();  
+const Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
+const Real MostNegativeReal  = NTraits<Real>::getMostNegative();
 
-SimTK_SimTKCOMMON_EXPORT const int NumDigitsReal = NTraits<Real>::getNumDigits(); 
-SimTK_SimTKCOMMON_EXPORT const int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits();
+const int NumDigitsReal = NTraits<Real>::getNumDigits(); 
+const int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits();
 
-SimTK_SimTKCOMMON_EXPORT const Real Zero         = NTraits<Real>::getZero();
-SimTK_SimTKCOMMON_EXPORT const Real One          = NTraits<Real>::getOne(); 
-SimTK_SimTKCOMMON_EXPORT const Real MinusOne     = NTraits<Real>::getMinusOne();
-SimTK_SimTKCOMMON_EXPORT const Real Two          = NTraits<Real>::getTwo(); 
-SimTK_SimTKCOMMON_EXPORT const Real Three        = NTraits<Real>::getThree(); 
+const Real Zero         = NTraits<Real>::getZero();
+const Real One          = NTraits<Real>::getOne(); 
+const Real MinusOne     = NTraits<Real>::getMinusOne();
+const Real Two          = NTraits<Real>::getTwo(); 
+const Real Three        = NTraits<Real>::getThree(); 
 
-SimTK_SimTKCOMMON_EXPORT const Real OneHalf      = NTraits<Real>::getOneHalf();   
-SimTK_SimTKCOMMON_EXPORT const Real OneThird     = NTraits<Real>::getOneThird();  
-SimTK_SimTKCOMMON_EXPORT const Real OneFourth    = NTraits<Real>::getOneFourth(); 
-SimTK_SimTKCOMMON_EXPORT const Real OneFifth     = NTraits<Real>::getOneFifth();  
-SimTK_SimTKCOMMON_EXPORT const Real OneSixth     = NTraits<Real>::getOneSixth();  
-SimTK_SimTKCOMMON_EXPORT const Real OneSeventh   = NTraits<Real>::getOneSeventh();
-SimTK_SimTKCOMMON_EXPORT const Real OneEighth    = NTraits<Real>::getOneEighth(); 
-SimTK_SimTKCOMMON_EXPORT const Real OneNinth     = NTraits<Real>::getOneNinth();  
-SimTK_SimTKCOMMON_EXPORT const Real Pi           = NTraits<Real>::getPi();        
-SimTK_SimTKCOMMON_EXPORT const Real OneOverPi    = NTraits<Real>::getOneOverPi(); 
-SimTK_SimTKCOMMON_EXPORT const Real E            = NTraits<Real>::getE(); 
-SimTK_SimTKCOMMON_EXPORT const Real Log2E        = NTraits<Real>::getLog2E(); 
-SimTK_SimTKCOMMON_EXPORT const Real Log10E       = NTraits<Real>::getLog10E();
-SimTK_SimTKCOMMON_EXPORT const Real Sqrt2        = NTraits<Real>::getSqrt2();
-SimTK_SimTKCOMMON_EXPORT const Real OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2();
-SimTK_SimTKCOMMON_EXPORT const Real Sqrt3        = NTraits<Real>::getSqrt3();
-SimTK_SimTKCOMMON_EXPORT const Real OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3();
-SimTK_SimTKCOMMON_EXPORT const Real CubeRoot2    = NTraits<Real>::getCubeRoot2();
-SimTK_SimTKCOMMON_EXPORT const Real CubeRoot3    = NTraits<Real>::getCubeRoot3();
-SimTK_SimTKCOMMON_EXPORT const Real Ln2          = NTraits<Real>::getLn2();
-SimTK_SimTKCOMMON_EXPORT const Real Ln10         = NTraits<Real>::getLn10();
+const Real OneHalf      = NTraits<Real>::getOneHalf();   
+const Real OneThird     = NTraits<Real>::getOneThird();  
+const Real OneFourth    = NTraits<Real>::getOneFourth(); 
+const Real OneFifth     = NTraits<Real>::getOneFifth();  
+const Real OneSixth     = NTraits<Real>::getOneSixth();  
+const Real OneSeventh   = NTraits<Real>::getOneSeventh();
+const Real OneEighth    = NTraits<Real>::getOneEighth(); 
+const Real OneNinth     = NTraits<Real>::getOneNinth();  
+const Real Pi           = NTraits<Real>::getPi();        
+const Real OneOverPi    = NTraits<Real>::getOneOverPi(); 
+const Real E            = NTraits<Real>::getE(); 
+const Real Log2E        = NTraits<Real>::getLog2E(); 
+const Real Log10E       = NTraits<Real>::getLog10E();
+const Real Sqrt2        = NTraits<Real>::getSqrt2();
+const Real OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2();
+const Real Sqrt3        = NTraits<Real>::getSqrt3();
+const Real OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3();
+const Real CubeRoot2    = NTraits<Real>::getCubeRoot2();
+const Real CubeRoot3    = NTraits<Real>::getCubeRoot3();
+const Real Ln2          = NTraits<Real>::getLn2();
+const Real Ln10         = NTraits<Real>::getLn10();
 
-SimTK_SimTKCOMMON_EXPORT const Complex I = NTraits<Complex>::getI();
+const Complex I = NTraits<Complex>::getI();
 
 // These instantiations are just here to make sure everything is working. We would
 // rather have these fail to compile here than in some poor user's program.

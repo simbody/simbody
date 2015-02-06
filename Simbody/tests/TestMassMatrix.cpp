@@ -986,19 +986,22 @@ void testCompositeInertia() {
     MultibodySystem         mbs;
     SimbodyMatterSubsystem  pend(mbs);
 
-    Body::Rigid pointMass(MassProperties(3, Vec3(0), Inertia(0)));
+    // This will be a point mass but the body origin is not at the COM.
+    // That's important to make sure the rigid body shifts are working right.
+    Body::Rigid pointMass(MassProperties(3, Vec3(3,0,0), UnitInertia(0,9,9)));
 
-    // Point mass at x=1.5 rotating about (0,0,0).
+    // Point mass at x=4.5 with origin at x=1.5 rotating about (0,0,0).
     MobilizedBody::Pin
         body1( pend.Ground(), Transform(), 
-               pointMass, Vec3(1.5,0,0));
+               pointMass, Vec3(-1.5,0,0));
     const MobilizedBodyIndex body1x = body1.getMobilizedBodyIndex();
 
     // A second body 2 units further along x, rotating about the
-    // first point mass origin.
+    // first point mass origin. So this one's origin is at x=3.5 and its
+    // mass is at x=6.5.
     MobilizedBody::Pin
         body2( body1, Transform(), 
-               pointMass, Vec3(2,0,0));
+               pointMass, Vec3(-2,0,0));
     const MobilizedBodyIndex body2x = body2.getMobilizedBodyIndex();
 
     State state = mbs.realizeTopology();
@@ -1008,9 +1011,9 @@ void testCompositeInertia() {
     pend.calcCompositeBodyInertias(state, R);
 
     // Calculate expected inertias about the joint axes.
-    Real expInertia2 = body2.getBodyMassProperties(state).getMass()*square(2);
-    Real expInertia1 = body1.getBodyMassProperties(state).getMass()*square(1.5)
-                           + body2.getBodyMassProperties(state).getMass()*square(3.5);
+    Real expInertia2 = body2.getBodyMassProperties(state).getMass()*square(2+3);
+    Real expInertia1 = body1.getBodyMassProperties(state).getMass()*square(1.5+3)
+                           + body2.getBodyMassProperties(state).getMass()*square(3.5+3);
 
     // Should be able to recover these inertias by projecting the composite
     // body inertias onto the joint axes using H matrices.
