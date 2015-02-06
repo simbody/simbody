@@ -687,7 +687,7 @@ public:
     typedef PhiMatrixTranspose TransposeType;
 
     PhiMatrix() { setToNaN(); }
-    PhiMatrix(const Vec3& l) : l_(l) {}
+    explicit PhiMatrix(const Vec3& l) : l_(l) {}
 
     void setToZero() { l_ = 0; }
     void setToNaN()  { l_.setToNaN(); }
@@ -704,7 +704,7 @@ private:
 
 class PhiMatrixTranspose {
 public:
-    PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
+    explicit PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
 
     SpatialMat toSpatialMat() const {
         return SpatialMat(   Mat33(1)    , Mat33(0),
@@ -743,6 +743,15 @@ operator*(const PhiMatrix&  phi,
                            m(1,0)       ,     m(1,1));
 }
 
+inline SpatialMat
+operator*(const SpatialMat& m,
+          const PhiMatrix&  phi)
+{
+    const Mat33 x = crossMat(phi.l());  // 3 flops
+    return SpatialMat( m(0,0),    m(0,0)*x + m(0,1),   // 54 flops
+                       m(1,0),    m(1,0)*x + m(1,1) ); // 54 flops
+}
+
 inline SpatialVec
 operator*(const PhiMatrixTranspose& phiT,
           const SpatialVec&         v)
@@ -751,6 +760,14 @@ operator*(const PhiMatrixTranspose& phiT,
                       v[1] + v[0] % phiT.l());  // 12 flops
 }
 
+inline SpatialMat
+operator*(const PhiMatrixTranspose& phiT,
+          const SpatialMat&         m)
+{
+    const Mat33 x = crossMat(phiT.l());  // 3 flops
+    return SpatialMat(    m(0,0)     ,     m(0,1),      
+                      m(1,0)-x*m(0,0), m(1,1)-x*m(0,1)); // 108 flops
+}
 
 inline SpatialMat
 operator*(const SpatialMat::THerm&  m,
