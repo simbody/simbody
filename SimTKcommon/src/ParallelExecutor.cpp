@@ -166,13 +166,13 @@ void ParallelExecutor::execute(Task& task, int times) {
 #ifdef __APPLE__
    #include <sys/sysctl.h>
    #include <dlfcn.h>
+#elif _WIN32
+   #include <windows.h>
+#elif __linux__
+   #include <dlfcn.h>
+   #include <unistd.h>
 #else
-   #ifdef __linux
-      #include <dlfcn.h>
-      #include <unistd.h>
-   #else
-      #include <windows.h>
-   #endif
+  #error "Architecture unsupported"
 #endif
 
 int ParallelExecutor::getNumProcessors() {
@@ -187,7 +187,7 @@ int ParallelExecutor::getNumProcessors() {
        return(1);
     }
 #else
-#ifdef __linux
+#ifdef __linux__
     long nProcessorsOnline     = sysconf(_SC_NPROCESSORS_ONLN);
     if( nProcessorsOnline == -1 )  {
         return(1);
