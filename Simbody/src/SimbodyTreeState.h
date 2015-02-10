@@ -543,7 +543,7 @@ public:
     int getTotalNumPresForces() const {return (int)presForce.size();}
     Array_<UIndex> presForce;
 
-    // Quaternion errors go in qErr also, but after all the physical contraint 
+    // Quaternion errors go in qErr also, but after all the physical constraint 
     // errors. That is, they start at index 
     // totalNHolonomicConstraintEquationsInUse.
     int firstQuaternionQErrSlot;
