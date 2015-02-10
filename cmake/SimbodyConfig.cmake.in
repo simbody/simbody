@@ -29,35 +29,37 @@
 #
 #   TAGFILES = "\@Simbody_DOXYGEN_TAGFILE\@=\@Simbody_DOXYGEN_DIR\@"
 
+# To make the Simbody installation relocatable:
+@PACKAGE_INIT@
+
 if (@PKG_NAME@_CONFIG_INCLUDED)
   return()
 endif()
 set(@PKG_NAME@_CONFIG_INCLUDED TRUE)
 
 # Watch out for spaces in pathnames -- must quote.
-list(APPEND @PKG_NAME@_ROOT_DIR 
-            "@CMAKE_INSTALL_PREFIX@")
+set_and_check(@PKG_NAME@_ROOT_DIR
+              "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 
-list(APPEND @PKG_NAME@_INCLUDE_DIR 
-            "@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@")
+set_and_check(@PKG_NAME@_INCLUDE_DIR 
+              "@PACKAGE_SIMBODY_INCLUDE_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_LIB_DIR 
-            "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
+set_and_check(@PKG_NAME@_LIB_DIR 
+              "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
 
 list(APPEND @PKG_NAME@_BIN_DIR 
-            "@SIMBODY_VISUALIZER_INSTALL_DIR@")
+            "@PACKAGE_SIMBODY_VISUALIZER_INSTALL_DIR@")
 
 list(APPEND @PKG_NAME@_CFLAGS 
-            -I"@CMAKE_INSTALL_PREFIX@/@SIMBODY_INCLUDE_INSTALL_DIR@")
+            -I"@PACKAGE_SIMBODY_INCLUDE_INSTALL_DIR@")
 
 list(APPEND @PKG_NAME@_LDFLAGS 
-            -L"@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@")
+            -L"@PACKAGE_CMAKE_INSTALL_LIBDIR@")
 
 if (NOT "@SIMBODY_DOXYGEN_TAGFILE_NAME@" STREQUAL "")
     # Must check tagfile variable, since the doxygen install dir is created
     # even if Doxygen documentation is not install.
-    set(temp_doxygen_dir
-        "@CMAKE_INSTALL_PREFIX@/@SIMBODY_INSTALL_DOXYGENDIR@")
+    set(temp_doxygen_dir "@PACKAGE_SIMBODY_INSTALL_DOXYGENDIR@")
     set(temp_tagfile_path
         "${temp_doxygen_dir}/@SIMBODY_DOXYGEN_TAGFILE_NAME@")
     if (EXISTS "${temp_tagfile_path}")
@@ -215,3 +217,5 @@ unset(Simbody_DEBUG_LIBRARY CACHE)
 unset(Simbody_STATIC_LIBRARY CACHE)
 unset(Simbody_STATIC_DEBUG_LIBRARY CACHE)
 mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
+
+check_required_components(Simbody)

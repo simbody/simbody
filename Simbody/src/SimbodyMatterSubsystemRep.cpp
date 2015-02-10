@@ -4865,7 +4865,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     // them calculate the resulting constraint errors.
     calcTreeForwardDynamicsOperator
        (s, mobilityForces, particleForces, bodyForces,
-        0, 0, tac, udot, qdotdot, udotErr);
+        nullptr, nullptr, tac, udot, qdotdot, udotErr);
 
     // Next, determine how many acceleration-level constraint equations 
     // need to be obeyed.
