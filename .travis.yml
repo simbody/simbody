@@ -48,6 +48,11 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get install -qq g++-4.8; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  
+  # CMake 2.8.11 on Ubuntu.
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:kalakris/cmake -y; fi
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get install cmake; fi
 
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build

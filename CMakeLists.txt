@@ -10,7 +10,7 @@
 #    (5) Build examples
 #
 #-------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 2.8.6)
+cmake_minimum_required(VERSION 2.8.8)
 
 if(COMMAND cmake_policy)
         cmake_policy(SET CMP0003 NEW)
@@ -576,9 +576,21 @@ elseif (UNIX)
   set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
 endif ()
 
-CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake @ONLY)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake 
+# Configure SimbodyConfig.cmake in a way that allows the installation to be
+# relocatable.
+INCLUDE(CMakePackageConfigHelpers)
+CONFIGURE_PACKAGE_CONFIG_FILE(
+    ${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
+    INSTALL_DESTINATION "${SIMBODY_CMAKE_DIR}"
+    PATH_VARS # Variables to edit in the SimbodyConfig.cmake.in.
+        CMAKE_INSTALL_PREFIX
+        SIMBODY_INCLUDE_INSTALL_DIR
+        CMAKE_INSTALL_LIBDIR
+        SIMBODY_VISUALIZER_INSTALL_DIR
+        SIMBODY_INSTALL_DOXYGENDIR
+    )
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
     DESTINATION ${SIMBODY_CMAKE_DIR})
 
 # Create a file that allows clients to Simbody to ensure they have the version
@@ -586,7 +598,6 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
 # Requires CMake 2.8.6.
 # Note: this is actually deprecated in the latest CMake. Eventually,
 # we are to use WRITE_BASIC_PACKAGE_VERSION_FILE instead.
-include(WriteBasicConfigVersionFile)
 # Writes a ConfigVersion file for us.
 WRITE_BASIC_CONFIG_VERSION_FILE(
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
