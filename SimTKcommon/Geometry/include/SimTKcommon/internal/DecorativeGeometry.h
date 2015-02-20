@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Jack Middleton, Peter Eastman, Ayman Habib                   *
  *                                                                            *
@@ -121,7 +121,8 @@ an index that can identify this particular piece of geometry. As an alternative,
 or addition, see setUserRef(). In any case the \a index is simply stored with 
 the object and returned if you ask for it. If you don't set it the value 
 is -1. The \a index is copied if you copy the %DecorativeGeometry object. Be
-sure to change it afterwards if that is not the correct index for the copy. **/
+sure to change it afterwards if that is not the correct index for the copy. 
+Simbody sets this index when %DecorativeGeometry is added to a Body. **/
 DecorativeGeometry& setIndexOnBody(int index);
 
 /** Use this method to store an arbitrary reference pointer with this 
@@ -568,8 +569,8 @@ private:
 };
 
 
-/** This defines a displayable mesh by referencing a file name containing the mesh. If format is not supported
-  by visualizer it will be ignored. . **/
+/** This defines a displayable mesh by referencing a file name containing the 
+mesh. If format is not supported by visualizer it will be ignored. . **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeMeshFile : public DecorativeGeometry {
 public:
     explicit DecorativeMeshFile(const std::string& meshFileName);
@@ -659,7 +660,7 @@ public:
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
     virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
-    virtual void implementMeshFileGeometry(     const DecorativeMeshFile&)    =0;
+    virtual void implementMeshFileGeometry( const DecorativeMeshFile&) = 0;
 };
 
 } // namespace SimTK
