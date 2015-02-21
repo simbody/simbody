@@ -83,10 +83,11 @@ DecorativeGeometry& Body::updDecoration(int i) const
 
 
 int Body::addContactSurface(const Transform&      X_BS, 
-                            const ContactSurface& shape) {
+                            const ContactSurface& surface) {
     BodyRep& rep = updRep();
     const int nxt = (int)rep.surfaces.size();
-    rep.surfaces.push_back(std::make_pair(X_BS,shape));
+    rep.surfaces.push_back(std::make_pair(X_BS, surface));
+    rep.surfaces.back().second.setIndexOnBody(nxt);
     return nxt;
 }
 int Body::getNumContactSurfaces() const 
