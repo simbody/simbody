@@ -87,7 +87,9 @@ This can be used for visualization of the Body's motion. Returns a small
 integer that can be used to identify this decoration in any copy of this
 %Body. The supplied DecorativeGeometry object is copied and transformed by the
 given Transform so that the actual geometry is always stored relative to the
-body's frame. **/
+body's frame. The copy's "index on body" is set to the same value as returned
+by this method.
+@see DecorativeGeometry::setIndexOnBody() **/
 int addDecoration(const Transform& X_BD, const DecorativeGeometry& geometry);
 
 /** Convenience method for when the decorative geometry is to be placed at the
