@@ -312,7 +312,7 @@ Real    m_viscousFriction;  // uv: %normalForce/slipVelocity
 
 
 //==============================================================================
-//                               CONTACT SURFACE
+//                             CONTACT SURFACE
 //==============================================================================
 /** This class combines a piece of ContactGeometry with a ContactMaterial to
 make an object suitable for attaching to a body which can then engage in
@@ -328,16 +328,26 @@ some groups of surfaces can or should never interact; those groups are called
 always constitues a clique. In addition, other cliques may be defined and 
 arbitrary surfaces made members so that they won't interact. This is commonly 
 used for contact surfaces on adjacent bodies when those surfaces are near the 
-joint between two bodies. **/ 
+joint between two bodies. 
+
+When a %ContactSurface is added to a Body it is assigned a small integer index
+number, which is retained in the %ContactSurface object. When the Body is used
+to create a MobilizedBody, the MobilizedBody gets its own unshared copy of the 
+Body and that includes a copy of that Body's %ContactSurface objects, each with
+its index intact. So the pair (MobilizedBody,index) uniquely identifies a 
+particular %ContactSurface. It is also possible to store an arbitary `void*`
+pointer with a %ContactSurface that can be helpful in mapping back from observed
+contacts to the model objects that are contacting. **/ 
 class SimTK_SIMBODY_EXPORT ContactSurface {
 public:
 /** Create an empty ContactSurface. **/
-ContactSurface() {}
+ContactSurface() : m_thickness(0), m_indexOnBody(-1), m_userRef(nullptr) {}
 /** Create a ContactSurface with a given shape and material. **/
 ContactSurface(const ContactGeometry&   shape, 
                const ContactMaterial&   material,
                Real                     thickness=0)
-:   m_shape(shape), m_material(material), m_thickness(thickness) {
+:   m_shape(shape), m_material(material), m_thickness(thickness),
+    m_indexOnBody(-1), m_userRef(nullptr) {
     SimTK_ERRCHK1_ALWAYS(thickness >= 0, "ContactSurface::ctor()",
         "Illegal thickness %g.", thickness);
 }
@@ -446,13 +456,57 @@ static ContactCliqueId createNewContactClique()
 {   static AtomicInteger nextAvailableContactClique = 1;
     return ContactCliqueId(nextAvailableContactClique++); }
 
+/** For selection or other purposes, you may want to use this method to store
+an index that can identify this particular contact surface. The index is
+set automatically when you add a contact surface to a body. As an alternative,
+or addition, see setUserRef(). In any case the \a index is simply stored with 
+the object and returned if you ask for it. If you don't set it the value 
+is -1. The \a index is copied if you copy the %ContactSurface object. Be
+sure to change it afterwards if that is not the correct index for the copy,
+or add it to a Body in which case it will be set automatically. 
+
+A reference to this just-modified %ContactSurface is returned in the manner of 
+an assignment operator. **/
+ContactSurface& setIndexOnBody(int index) {m_indexOnBody=index; return *this;}
+
+/** Use this method to store an arbitrary reference pointer with this 
+%ContactSurface object. This can be useful for mapping a contacting surface back
+to some meaningful object in your model. If you don't set this pointer the value
+will be `nullptr`. This value is stored and returned only; no interpretation is
+done and the pointed-to object will not be deleted when the %ContactSurface 
+object is deleted. 
+
+@warning The value of the \a userRef pointer is copied if you make a copy of the 
+%ContactSurface object. That is likely to be incorrect in many 
+circumstances, depending on how you are using this value. Be sure to clear or 
+change the pointer if necessary after you make a copy. 
+
+A reference to this just-modified %ContactSurface is returned in the manner of 
+an assignment operator. **/
+ContactSurface& setUserRef(void* userRef) {m_userRef=userRef; return *this;}
+
+/** Return the \a index that was supplied to the most recent setIndexOnBody() 
+call for this %ContactSurface object, or -1 if that method has not been
+called. Copy construction and copy assignment copy the \a index. This is set 
+automatically when a %ContactSurface is added to a Body. **/
+int getIndexOnBody() const {return m_indexOnBody;}
+
+/** Return the pointer value that was supplied to the most recent setUserRef()
+call for this %ContactSurface object, or `nullptr` if that method has
+not been called. Copy construction and copy assignment copy the pointer. 
+Interpretation of this value is up to the caller. **/
+void* getUserRef() const {return m_userRef;} 
+
 //----------------------------------------------------------------------
                                  private:
 
 ContactGeometry                 m_shape;
 ContactMaterial                 m_material;
-Real                            m_thickness; // default=Infinity
-Array_<ContactCliqueId,short>   m_cliques;   // sorted
+Real                            m_thickness;    // default=0; meaning not set
+Array_<ContactCliqueId,short>   m_cliques;      // sorted
+
+int                             m_indexOnBody;  // default is -1
+void*                           m_userRef;      // default is nullptr
 };
 
 

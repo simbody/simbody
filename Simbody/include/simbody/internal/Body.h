@@ -114,11 +114,13 @@ writable access to decorations even on a const Body -- these are after all
 just decorations. **/
 DecorativeGeometry& updDecoration(int i) const;
 
-/** Create a new contact surface on a body and place it using the indicated
-Transform. Returns a small integer that can be used to identify this contact 
-surface in any copy of this %Body. Unlike decorations, the transform is kept 
-separately rather than used to transform the copied surface. You can obtain it 
-later with getContactSurfaceTransform(). **/
+/** Create a new ContactSurface on a body and place it using the indicated
+Transform. Unlike decorations, the Transform is kept separately rather than used
+to transform the copied surface in place. You can obtain it later with 
+getContactSurfaceTransform(). A small integer index is returned that can be used
+to identify this ContactSurface in any copy of this %Body. That integer
+saved in the new ContactSurface object, using its setIndexOnBody() method. 
+@see ContactSurface::setIndexOnBody() **/
 int addContactSurface(const Transform&          X_BS,
                       const ContactSurface&     shape); 
 
@@ -141,7 +143,7 @@ is a Topology-stage change that will require a new realizeTopology() call if
 this Body is part of a System. **/
 ContactSurface& updContactSurface(int i);
 /** Get a writable reference to the transform specifying the placement of the 
-i'th contact surface on this Body.  This is a Topology-stage change that will 
+i'th contact surface on this Body. This is a Topology-stage change that will 
 require a new realizeTopology() call if this Body is part of a System. **/
 Transform& updContactSurfaceTransform(int i);
 
