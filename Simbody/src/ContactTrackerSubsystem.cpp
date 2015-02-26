@@ -33,13 +33,14 @@ using std::pair; using std::make_pair;
 using std::cout; using std::endl;
 #include <set>
 
-
-namespace SimTK {
+using namespace SimTK;
 
 // We keep a list of all the ContactSurfaces being tracked by this
 // subsystem, and a separate list of "bubble wrap" spheres that are 
 // used in broad phase determination of which contact surfaces need
 // to be examined more closely by ContactTracker objects.
+
+namespace { // these are local to this file
 
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(BubbleIndex);
 
@@ -96,7 +97,7 @@ typedef std::map< pair<ContactGeometryTypeId,ContactGeometryTypeId>,
 typedef std::map<ContactSurfaceIndex,const Contact*> ContactSurfaceSet;
 typedef std::map<ContactSurfaceIndex,ContactSurfaceSet> PairMap;
 
-static std::ostream& operator<<(std::ostream& o, const ContactSurfaceSet& css) {
+std::ostream& operator<<(std::ostream& o, const ContactSurfaceSet& css) {
     ContactSurfaceSet::const_iterator p = css.begin();
     o << "{";
     for (; p != css.end(); ++p) {
@@ -105,7 +106,8 @@ static std::ostream& operator<<(std::ostream& o, const ContactSurfaceSet& css) {
     }
     return o << "}";
 }
-static std::ostream& operator<<(std::ostream& o, const PairMap& pm) {
+
+std::ostream& operator<<(std::ostream& o, const PairMap& pm) {
     PairMap::const_iterator p = pm.begin();
     for (; p != pm.end(); ++p) {
         if (p != pm.begin()) o << endl;
@@ -114,8 +116,9 @@ static std::ostream& operator<<(std::ostream& o, const PairMap& pm) {
     return o;
 }
 
+} // end of anonymous namespace
 
-
+namespace SimTK {
 //==============================================================================
 //                       CONTACT TRACKER SUBSYSTEM IMPL
 //==============================================================================
@@ -590,7 +593,7 @@ DiscreteVariableIndex                   m_activeContactsIx;
 DiscreteVariableIndex                   m_predictedContactsIx;
 };
 
-
+} // namespace SimTK
 
 //==============================================================================
 //                        CONTACT TRACKER SUBSYSTEM
@@ -706,6 +709,4 @@ realizePredictedContacts(const State& state,
     return true;
 }
 
-
-} // namespace SimTK
 
