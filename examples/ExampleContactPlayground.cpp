@@ -397,6 +397,18 @@ int main() {
     // Initialize the system and state.
     
     system.realizeTopology();
+
+    // Show ContactSurfaceIndex for each contact surface
+    for (MobilizedBodyIndex mbx(0); mbx < matter.getNumBodies(); ++mbx) {
+        const MobilizedBody& mobod = matter.getMobilizedBody(mbx);
+        const int nsurfs = mobod.getBody().getNumContactSurfaces();
+        printf("mobod %d has %d contact surfaces\n", (int)mbx, nsurfs);
+        for (int i=0; i<nsurfs; ++i) {
+            printf("%2d: index %d\n", i, 
+                   (int)tracker.getContactSurfaceIndex(mbx,i)); 
+        }
+    }
+
     State state = system.getDefaultState();
     ball.setQToFitTransform(state, Transform(Rotation(Pi/2,XAxis),
                                              Vec3(0,-1.8,0)));

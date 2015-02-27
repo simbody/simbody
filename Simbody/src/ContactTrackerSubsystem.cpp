@@ -27,7 +27,7 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/ContactTrackerSubsystem.h"
 
-#include <algorithm>
+#include <utility>
 using std::pair; using std::make_pair;
 #include <iostream>
 using std::cout; using std::endl;
@@ -225,18 +225,29 @@ int realizeSubsystemTopologyImpl(State& state) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
 
     const int numBodies = matter.getNumBodies();
+    wThis->m_mobodContactSurfaceIndex.resize(numBodies);
     wThis->m_surfaces.clear();
     wThis->m_bubbles.clear();
 
+    // ContactSurfaceIndex assignments are sequential within a MobilizedBody
+    // so we need only record the first one in order to be able to respond
+    // to getContactSurfaceIndex(mobod,ordinal) requests quickly.
+
     for (MobilizedBodyIndex mbx(0); mbx < numBodies; ++mbx) {
-        const MobilizedBody& mobod = matter.getMobilizedBody(mbx);
-        const Body&          body  = mobod.getBody();
-        for (int i=0; i < body.getNumContactSurfaces(); ++i) {
-            const ContactSurfaceIndex surfx(m_surfaces.size());
+        const MobilizedBody& mobod  = matter.getMobilizedBody(mbx);
+        const Body&          body   = mobod.getBody();
+        const int            nSurfs = body.getNumContactSurfaces();
+        const ContactSurfaceIndex firstIx = 
+            nSurfs ? ContactSurfaceIndex(m_surfaces.size())
+                   : InvalidContactSurfaceIndex;
+        wThis->m_mobodContactSurfaceIndex[mbx] = make_pair(firstIx,nSurfs);
+        for (int i=0; i < nSurfs; ++i) {
+            const ContactSurfaceIndex surfx(firstIx + i);
             wThis->m_surfaces.push_back(); // default construct
             Surface& surf = wThis->m_surfaces.back();
             surf.mobod   = &mobod; 
             surf.surface = &body.getContactSurface(i);
+            assert(surf.surface->getIndexOnBody() == i);
             surf.X_BS    =  body.getContactSurfaceTransform(i);
             const ContactGeometry& geo  = surf.surface->getShape();
             // for each bubble:
@@ -535,6 +546,25 @@ getContactTracker(ContactGeometryTypeId id1, ContactGeometryTypeId id2,
 int getNumSurfaces() const {return m_surfaces.size();}
 int getNumBubbles()  const {return m_bubbles.size();}
 
+ContactSurfaceIndex getContactSurfaceIndex(MobilizedBodyIndex mobod, 
+                                           int contactSurfaceOrdinal) const
+{
+    const int nMobods = (int)m_mobodContactSurfaceIndex.size();
+    SimTK_ERRCHK1_ALWAYS(mobod.isValid() && mobod < nMobods,
+        "ContactTrackerSubsystem::getContactSurfaceIndex()",
+        "Illegal mobilized body index %d.", (int)mobod);
+    const pair<ContactSurfaceIndex,int>& 
+        info = m_mobodContactSurfaceIndex[mobod];
+    const int nSurfaces = info.second;
+    SimTK_ERRCHK3_ALWAYS(
+        0 <= contactSurfaceOrdinal && contactSurfaceOrdinal < nSurfaces,
+        "ContactTrackerSubsystem::getContactSurfaceIndex()",
+        "Illegal ContactSurface ordinal %d; mobilized body %d has %d "
+        "contact surfaces.", contactSurfaceOrdinal, (int)mobod, nSurfaces);
+    assert(info.first.isValid());
+    return ContactSurfaceIndex(info.first + contactSurfaceOrdinal);
+}
+
 SimTK_DOWNCAST(ContactTrackerSubsystemImpl, Subsystem::Guts);
 
 private:
@@ -550,10 +580,14 @@ TrackerMap          m_contactTrackers;
 ContactTracker*     m_defaultTracker;
 
     // TOPOLOGY CACHE
-Array_<Surface,ContactSurfaceIndex> m_surfaces;
-Array_<Bubble,BubbleIndex>          m_bubbles;
-DiscreteVariableIndex               m_activeContactsIx;
-DiscreteVariableIndex               m_predictedContactsIx;
+// The pair is the first assigned index, and the number of contact surfaces
+// for a mobod, at last realizeSubsystemTopology() call.
+Array_<pair<ContactSurfaceIndex,int>, MobilizedBodyIndex>  
+                                        m_mobodContactSurfaceIndex;
+Array_<Surface,ContactSurfaceIndex>     m_surfaces;
+Array_<Bubble,BubbleIndex>              m_bubbles;
+DiscreteVariableIndex                   m_activeContactsIx;
+DiscreteVariableIndex                   m_predictedContactsIx;
 };
 
 
@@ -611,6 +645,11 @@ getContactSurface(ContactSurfaceIndex surfIx) const
 const Transform& ContactTrackerSubsystem::
 getContactSurfaceTransform(ContactSurfaceIndex surfIx) const
 {   return getImpl().m_surfaces[surfIx].X_BS; }
+
+ContactSurfaceIndex ContactTrackerSubsystem::
+getContactSurfaceIndex(MobilizedBodyIndex mobod, 
+                       int contactSurfaceOrdinal) const
+{   return getImpl().getContactSurfaceIndex(mobod,contactSurfaceOrdinal); }
 
 void ContactTrackerSubsystem::
 adoptContactTracker(ContactTracker* tracker)
