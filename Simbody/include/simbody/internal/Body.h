@@ -84,7 +84,7 @@ const MassProperties& getDefaultRigidBodyMassProperties() const;
 
 /** Add a piece of decorative geometry fixed at some pose on this Body. 
 This can be used for visualization of the Body's motion. Returns a small 
-integer that can be used to identify this decoration in any copy of this
+integer ordinal that can be used to identify this decoration in any copy of this
 %Body. The supplied DecorativeGeometry object is copied and transformed by the
 given Transform so that the actual geometry is always stored relative to the
 body's frame. The copy's "index on body" is set to the same value as returned
@@ -93,22 +93,22 @@ by this method.
 int addDecoration(const Transform& X_BD, const DecorativeGeometry& geometry);
 
 /** Convenience method for when the decorative geometry is to be placed at the
-body frame. This is the same as addDecoration(Transform(),geometry). **/
+body frame. This is the same as `addDecoration(Transform(),geometry)`. **/
 int addDecoration(const DecorativeGeometry& geometry)
 {   return addDecoration(Transform(), geometry); }
 
 /** Obtain a count nd of how many pieces of DecorativeGeometry have been
-attached to this Body. The indices i for individual decorations will be numbered
-0 <= i < nd. **/
+attached to this Body. The ordinals i for individual decorations will be 
+numbered 0 <= i < nd. **/
 int getNumDecorations() const;
 
 /** Get a read-only reference to the i'th piece of DecorativeGeometry that 
-was added to this Body, with 0 <= i < getNumDecorations(). The index i is
+was added to this Body, with 0 <= i < getNumDecorations(). The ordinal i is
 the small integer that was returned by addDecoration(). **/
 const DecorativeGeometry& getDecoration(int i) const;
 
 /** Get a writable reference to the i'th piece of DecorativeGeometry that 
-was added to this Body, with 0 <= i < getNumDecorations().  The index i is
+was added to this Body, with 0 <= i < getNumDecorations().  The ordinal i is
 the small integer that was returned by addDecoration(). Note that we allow
 writable access to decorations even on a const Body -- these are after all
 just decorations. **/
@@ -117,32 +117,32 @@ DecorativeGeometry& updDecoration(int i) const;
 /** Create a new ContactSurface on a body and place it using the indicated
 Transform. Unlike decorations, the Transform is kept separately rather than used
 to transform the copied surface in place. You can obtain it later with 
-getContactSurfaceTransform(). A small integer index is returned that can be used
-to identify this ContactSurface in any copy of this %Body. That integer
+getContactSurfaceTransform(). A small integer ordinal is returned that can be 
+used to identify this ContactSurface in any copy of this %Body. That integer
 saved in the new ContactSurface object, using its setIndexOnBody() method. 
 @see ContactSurface::setIndexOnBody() **/
 int addContactSurface(const Transform&          X_BS,
                       const ContactSurface&     shape); 
 
 /** Convenience method for when the contact surface is to be placed at the
-body frame. This is the same as addContactSurface(Transform(),shape). **/
+body frame. This is the same as `addContactSurface(Transform(),shape)`. **/
 int addContactSurface(const ContactSurface& shape)
 {   return addContactSurface(Transform(), shape); }
 
 /** Obtain the number of contact surfaces ns attached to this Body. The valid
-body-local index values i will be 0 <= i < ns. **/
+body-local ordinals i will be 0 <= i < ns. **/
 int getNumContactSurfaces() const;
 /** Get a reference to the i'th contact surface on this body; be sure to get
-the Transform also. **/
+the Transform also. @see getContactSurfaceTransform() **/
 const ContactSurface& getContactSurface(int i) const;
-/** Get the transform specifying the placement of the i'th contact surface
+/** Get the Transform specifying the placement of the i'th contact surface
 on this Body. **/
 const Transform& getContactSurfaceTransform(int i) const;
 /** Get write access to the i'th unique contact surface owned by this Body. This
-is a Topology-stage change that will require a new realizeTopology() call if 
+is a Topology-stage change that will require a new `realizeTopology()` call if 
 this Body is part of a System. **/
 ContactSurface& updContactSurface(int i);
-/** Get a writable reference to the transform specifying the placement of the 
+/** Get a writable reference to the Transform specifying the placement of the 
 i'th contact surface on this Body. This is a Topology-stage change that will 
 require a new realizeTopology() call if this Body is part of a System. **/
 Transform& updContactSurfaceTransform(int i);

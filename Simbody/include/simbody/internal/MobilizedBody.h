@@ -69,7 +69,7 @@ typedef MobilizedBody Mobod;
 //==============================================================================
 /** A %MobilizedBody is Simbody's fundamental body-and-joint object used to
 parameterize a system's motion by constructing a multibody tree containing
-each body and its unique "mobilizer" (internal coordinate joint). A 
+each body and its unique *mobilizer* (internal coordinate joint). A 
 %MobilizedBody connects a new body (the "child", "outboard", or "successor" 
 body) with a mobilizer and a reference frame to an existing %MobilizedBody (the 
 "parent", "inboard", or "predecessor" body) that is already part of a 
@@ -113,7 +113,7 @@ reliably determined at compile time. These have names beginning with "find"
 or a more specific verb, as a reminder that they do not require a great deal 
 of computation. 
 
-<em>High Level Operators</em> combine responses and basic operators with 
+<em>High Level Operators</em> combine state access and basic operators with 
 run-time tests to calculate more complex quantities, with more complicated 
 implementations that can exploit special cases at run time. These begin with 
 "calc" (calculate) as a reminder that they may involve substantial run time 
@@ -143,15 +143,16 @@ rotation of the mobilizer. That motion is parameterized via generalized
 coordinates q and generalized speeds u, the specific meaning of which is a
 unique property of each type of mobilizer.
 
-In the API below, we'll refer to the current ("this") MobilizedBody as "body B". 
-It is the "object" or "main" body with which we are concerned. Often there will 
-be another body mentioned in the argument list as a target for some conversion. 
-That "another" body will be called "body A". The Ground body is abbreviated "G".
+In the API below, we'll refer to the current ("this") %MobilizedBody as 
+"body B". It is the "object" or "main" body with which we are concerned. Often 
+there will be another body mentioned in the argument list as a target for some 
+conversion. That "another" body will be called "body A". The Ground body is 
+abbreviated "G".
 
 We use Fo to mean "the origin of frame F", Bc is "the mass center of body B". 
 R_AF is the rotation matrix giving frame F's orientation in frame A, such that a 
 vector v expressed in F is reexpressed in A by v_A = R_AF*v_F. X_AF is the 
-spatial transform giving frame F's origin location and orientation in frame A, 
+spatial transform giving frame F's orientation and origin location in frame A, 
 such that a point P whose location is measured from F's origin Fo and expressed 
 in F by position vector p_FP (or more explicitly p_FoP) is remeasured from frame
 A's origin Ao and reexpressed in A via p_AP = X_AF*p_FP, where p_AP==p_AoP. 
@@ -1491,27 +1492,29 @@ System's realizeTopology() method must be called again. A reference to this
 operator. **/
 MobilizedBody& setBody(const Body&);
 
-/** Add decorative geometry specified relative to the new (outboard) body's 
-reference frame B. Note that the body itself may already have had some 
-decorative geometry on it when it was first put into this MobilizedBody; this 
-just adds more and the returned index is larger. Use the underlying Body 
-object's accessors to find this decorative geometry again. The given 
-\p geometry object is \e copied here; we do not keep a reference to the 
-supplied object. **/
+/** Convenience method to add DecorativeGeometry specified relative to the 
+new (outboard) body's reference frame B. This is equivalent to
+`this->updBody().addDecoration(X_BD,geometry)`. Note that the Body may already 
+have had some DecorativeGeometry on it when it was first put into this 
+%MobilizedBody; this just adds more and the returned ordinal is larger. The 
+given \p geometry object is *copied* here; we do not keep a reference to the 
+supplied object. Use the underlying Body object's accessors to obtain a
+reference to the DecorativeGeometry copy stored here. 
+@see getBody(), Body::addDecoration() **/
 int addBodyDecoration(const Transform&          X_BD, 
                       const DecorativeGeometry& geometry) {
     return updBody().addDecoration(X_BD, geometry);
 }
 /** Convenience method for use when the \p geometry is supplied in the body 
-frame. This is the same as addBodyDecoration(Transform(),geometry). **/
+frame. This is the same as `addBodyDecoration(Transform(),geometry)`. **/
 int addBodyDecoration(const DecorativeGeometry& geometry) {
     return updBody().addDecoration(geometry);
 }
 
 /** Add decorative geometry specified relative to the outboard mobilizer frame M
-attached to body B. If body B already has decorative geometry on it, this just 
-adds some more, but kept in a separate list from the body decorations and 
-inboard decorations. Returns a unique index that can be used to identify this 
+attached to body B, and associated with the mobilizer rather than the body. This
+DecorativeGeometry is kept in a separate list from the body decorations and 
+inboard decorations. Returns an ordinal that can be used to identify this 
 outboard decoration later (numbered starting from zero for outboard decorations 
 only). **/
 int addOutboardDecoration(const Transform&          X_MD, 
@@ -1524,10 +1527,10 @@ const DecorativeGeometry& getOutboardDecoration(int i) const;
 DecorativeGeometry& updOutboardDecoration(int i);
 
 /** Add decorative geometry specified relative to the inboard mobilizer frame F 
-attached to the parent body P. If body P already has decorative geometry on it, 
-this just adds some more, but kept in a separate list from the body decorations 
-and outboard decorations. Returns a unique index that can be used to identify 
-this inboard decoration later (numbered starting from zero for inboard 
+attached to the parent body P, and associated with the mobilizer rather than
+the body. This DecorativeGeometry is kept in a separate list from the body 
+decorations and outboard decorations. Returns an ordinal that can be used to 
+identify this inboard decoration later (numbered starting from zero for inboard 
 decorations only). **/
 int addInboardDecoration(const Transform&          X_FD, 
                          const DecorativeGeometry& geometry);
@@ -1653,17 +1656,17 @@ implementation objects must be <em>the same object</em> not separate objects
 with identical contents. **/
 bool isSameMobilizedBody(const MobilizedBody& mobod) const;
 
-/** Determine whether this body is Ground, meaning that it is actually 
+/** Determine whether this %MobilizedBody is Ground, meaning that it is actually 
 body 0 of some matter subsytem, not just that its body type is Ground. **/
 bool isGround() const;
 
-/** Return this body's level in the tree of bodies, starting with ground at 0, 
-bodies directly connected to ground at 1, bodies directly connected to those at 
-2, etc. This is callable after realizeTopology(). This is the graph distance of 
-the body from Ground. **/
+/** Return this mobilized body's level in the tree of bodies, starting with 
+Ground at 0, mobilized bodies directly connected to Ground at 1, mobilized 
+bodies directly connected to those at 2, etc. This is callable after 
+realizeTopology(). This is the graph distance of the body from Ground. **/
 int getLevelInMultibodyTree() const;
     
-/** Create a new MobilizedBody which is identical to this one, except that it 
+/** Create a new %MobilizedBody which is identical to this one, except that it 
 has a different parent (and consequently might belong to a different 
 MultibodySystem). **/
 MobilizedBody& cloneForNewParent(MobilizedBody& parent) const;

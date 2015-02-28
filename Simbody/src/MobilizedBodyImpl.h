@@ -204,6 +204,9 @@ public:
         // Combine the placement frame and the transform already in the geometry
         // so we end up with geometry expressed directly in the M frame.
         outboardGeometry.back().setTransform(X_MD*g.getTransform());
+        // Record the assigned ordinal (not in the same ordinal space as
+        // body decorations).
+        outboardGeometry.back().setIndexOnBody(nxt);
         return nxt;
     }
     int addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) {
@@ -212,6 +215,9 @@ public:
         // Combine the placement frame and the transform already in the geometry
         // so we end up with geometry expressed directly in the F frame.
         inboardGeometry.back().setTransform(X_FD*g.getTransform());
+        // Record the assigned ordinal (not in the same ordinal space as
+        // body decorations).
+        inboardGeometry.back().setIndexOnBody(nxt);
         return nxt;
     }
 
