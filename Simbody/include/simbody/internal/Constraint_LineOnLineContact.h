@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2014 Stanford University and the Authors.           *
+ * Portions copyright (c) 2015 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -136,9 +136,8 @@ their material points coincident with contact point Co.
 The assembly condition is the same as the position constraint: the two lines
 must meet at some point. No attempt is made to force the contact point to be
 within the two edges; we only make the lines containing the edges touch
-somewhere. There is no assembly
-condition for the tangential constraints since they do not restrict the
-allowable pose during assembly. **/
+somewhere. There is no assembly condition for the tangential constraints since 
+they do not restrict the allowable pose during assembly. **/
 class SimTK_SIMBODY_EXPORT Constraint::LineOnLineContact
 :   public Constraint  {
 public:
@@ -365,9 +364,9 @@ element, and provide operators you can call to calculate related values. **/
 /*@{*/
 /** The returned position error can be viewed as the signed distance between
 the lines. It is positive when the lines are separated and measures their
-closest approach distance. It is negative when the spheres are interpenetrating
-and measures the penetration depth. The given \a state must have already been 
-realized through Stage::Position. **/
+closest approach distance. It is negative when the lines are interpenetrating
+the associated solids and measures the penetration depth. The given \a state 
+must have already been realized through Stage::Position. **/
 Real getPositionError(const State& state) const;
 
 /** The returned velocity error vector has the time derivative of the quantity
@@ -376,15 +375,15 @@ rolling constraints in its x and y coordinates. If rolling is not being
 enforced then the x and y components are returned zero; they will not contain
 the slip velocity in that case since any slip velocity is acceptable. Note
 that the returned vector is expressed in the instantaneous contact frame C,
-considered as fixed on body F. That is, this is the velocity of the contact
-point on body B's sphere in the F frame, expressed in C. The given \a state must
-have already been realized through Stage::Velocity. **/
+considered as fixed on body F. That is, this is the velocity of the material
+point on body B at the contact point, measured in the F frame, expressed in C. 
+The given \a state must have already been realized through Stage::Velocity. **/
 Vec3 getVelocityErrors(const State& state) const;
 
 /** This vector is the time derivative of the value returned by
-getVelocityError(). Note that this is different than the acceleration of
-the point of sphere B at the contact point because the contact point moves
-with respect to that sphere. The given \a state must have already been realized
+getVelocityError(). Note that this is different than the acceleration of the
+material point of B at the contact point because the contact point moves
+with respect to that body. The given \a state must have already been realized
 through Stage::Acceleration. **/
 Vec3 getAccelerationErrors(const State& state) const;
 
@@ -392,7 +391,7 @@ Vec3 getAccelerationErrors(const State& state) const;
 equations generated here. For this %Constraint it has units of force, but 
 recall that the sign convention for multipliers is the opposite of that for 
 applied forces. Thus the returned value is the negative of the force being
-applied to sphere B at the contact point, expressed in the contact frame C.
+applied to body B at the contact point, expressed in the contact frame C.
 The x,y coordinates are the tangential force used to enforce rolling (or
 zero if rolling is not being enforced), and the z coordinate is the force 
 needed to enforce contact. Since this is an unconditional, bilateral 
@@ -434,7 +433,7 @@ void findClosestPointsInG(const State& state, Vec3& Qf, Vec3& Qb,
 
 /** Calculate the separation distance or penetration depth of the two edges.
 It is positive when the closest point Qb on line Lb lies outside the surface
-containing line Lf, as indicated by the adjacent-face normals provided for Lf.
+containing line Lf, as indicated by the outward normal provided for Lf.
 It is negative when point Qb lies below both of line Lf's adjacent faces in
 which case it measures the penetration depth. This calculates a valid value 
 even if this constraint is currently disabled. The given \a state must be 
