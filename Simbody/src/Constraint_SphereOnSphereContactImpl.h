@@ -175,7 +175,7 @@ unit vector aligned with p_SfSb). The multiplier will consequently act along Cz.
     --------------------------------
     ~60 flops
 
-Note that the give State does not necessarily correspond to the given X_AB
+Note that the given State does not necessarily correspond to the given X_AB
 and constrainedQ so we can't cache the results.
 
 TODO: there ought to be a flag saying whether the X_AB and q are from the 
