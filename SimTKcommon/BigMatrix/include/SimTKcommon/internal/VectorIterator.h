@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -51,40 +51,48 @@ having to specialize them for the various flavors of vector we support.
 template <class ELT, class VECTOR_CLASS>
 class VectorIterator {
 public:
-    typedef ELT value_type;
-    typedef ptrdiff_t difference_type;
-    typedef ELT& reference;
-    typedef ELT* pointer;
+    typedef ELT         value_type;
+    typedef ptrdiff_t   difference_type;
+    typedef ELT&        reference;
+    typedef ELT*        pointer;
     typedef std::random_access_iterator_tag iterator_category;
+
+    /** Create an iterator for the supplied `vector` and set it to refer to the
+    element at `index`. **/
     VectorIterator(VECTOR_CLASS& vector, ptrdiff_t index) 
-    :   vector(vector), index(index) {}
-    VectorIterator(const VectorIterator& iter) 
-    :   vector(iter.vector), index(iter.index) {}
-    VectorIterator& operator=(const VectorIterator& iter) {
-        vector = iter.vector;
-        index = iter.index;
-        return *this;
-    }
+    :   vectorp(&vector), index(index) {}
+
+    /** No default constructor. **/
+    VectorIterator() = delete;
+
+    /** Copy constructor creates a new iterator referring to the same element
+    of the same vector as the source iterator. **/
+    VectorIterator(const VectorIterator& source) = default;
+
+    /** Copy assignment makes this iterator refer to the same element of the
+    same vector as the source iterator. **/
+    VectorIterator& operator=(const VectorIterator& source) = default;
+
     ELT& operator*() {
-        assert (index >= 0 && index < vector.size());
-        return vector[(int)index];
+        assert (index >= 0 && index < vectorp->size());
+        return (*vectorp)[(int)index];
     }
     ELT& operator[](ptrdiff_t i) {
-        assert (i >= 0 && i < vector.size());
-        return vector[(int)i];
+        assert (i >= 0 && i < vectorp->size());
+        return (*vectorp)[(int)i];
     }
-    VectorIterator operator++() {
-        assert (index < vector.size());
+    VectorIterator& operator++() {
+        assert (index < vectorp->size());
         ++index;
         return *this;
     }
     VectorIterator operator++(int) {
-        assert (index < vector.size());
+        assert (index < vectorp->size());
         VectorIterator current = *this;
         ++index;
         return current;
     }
-    VectorIterator operator--() {
+    VectorIterator& operator--() {
         assert (index > 0);
         --index;
         return *this;
@@ -95,46 +103,46 @@ public:
         --index;
         return current;
     }
-    VectorIterator operator+=(ptrdiff_t n) {
-        assert (0 <= index+n && index+n <= vector.size());
+    VectorIterator& operator+=(ptrdiff_t n) {
+        assert (0 <= index+n && index+n <= vectorp->size());
         index += n;
         return *this;
     }
-    VectorIterator operator-=(ptrdiff_t n) {
-        assert (0 <= index-n && index-n <= vector.size());
+    VectorIterator& operator-=(ptrdiff_t n) {
+        assert (0 <= index-n && index-n <= vectorp->size());
         index -= n;
         return *this;
     }
-    bool operator<(VectorIterator iter) const {
+    bool operator<(const VectorIterator& iter) const {
         return (index < iter.index);
     }
-    bool operator>(VectorIterator iter) const {
+    bool operator>(const VectorIterator& iter) const {
         return (index > iter.index);
     }
-    bool operator<=(VectorIterator iter) const {
+    bool operator<=(const VectorIterator& iter) const {
         return (index <= iter.index);
     }
-    bool operator>=(VectorIterator iter) const {
+    bool operator>=(const VectorIterator& iter) const {
         return (index >= iter.index);
     }
-    ptrdiff_t operator-(VectorIterator iter) const {
+    ptrdiff_t operator-(const VectorIterator& iter) const {
         return (index - iter.index);
     }
     VectorIterator operator-(ptrdiff_t n) const {
-        return VectorIterator(vector, index-n);
+        return VectorIterator(*vectorp, index-n);
     }
     VectorIterator operator+(ptrdiff_t n) const {
-        return VectorIterator(vector, index+n);
+        return VectorIterator(*vectorp, index+n);
     }
-    bool operator==(VectorIterator iter) const {
+    bool operator==(const VectorIterator& iter) const {
         return (index == iter.index);
     }
-    bool operator!=(VectorIterator iter) const {
+    bool operator!=(const VectorIterator& iter) const {
         return (index != iter.index);
     }
 private:
-    VECTOR_CLASS& vector;
-    ptrdiff_t index;
+    VECTOR_CLASS*   vectorp;
+    ptrdiff_t       index;
 };
 
 } //namespace SimTK
