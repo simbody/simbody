@@ -715,7 +715,7 @@ void StateImpl::autoUpdateDiscreteVariables() {
 //------------------------------------------------------------------------------
 //                              TO STRING
 //------------------------------------------------------------------------------
-// TODO: this is imcomplete. We really need a full serialization capability
+// TODO: this is incomplete. We really need a full serialization capability
 // for States; this is at most useful for debugging.
 String StateImpl::toString() const {
     String out;

@@ -95,7 +95,7 @@ bool isDisabledByDefault() const {
     return defaultDisabled;
 }
 
-void setDisabled(State& s, bool shouldBeDisabled) const ;
+void setDisabled(State& s, bool shouldBeDisabled) const;
 bool isDisabled(const State& s) const;
 
 void setIsConditional(bool isConditional) {
@@ -198,7 +198,7 @@ void getPositionErrors(const State& s, int mp, Real* perr) const;
 // points to an array of at least mp+mv elements that we can write on.
 void getVelocityErrors(const State& s, int mpv, Real* pverr) const;
 
-// Given a State realized to Acceleration stage, extract the accleration 
+// Given a State realized to Acceleration stage, extract the acceleration 
 // constraint errors corresponding to this Constraint. This includes 
 // acceleration constraints which were produced by twice differentiation of 
 // holonomic (position) constraints, and differentiation of nonholonomic 
