@@ -383,9 +383,9 @@ int main(int argc, char** argv) {
     // Create the augmented multibody model.
     //TimsBox mbs;
     //BouncingBalls mbs;
-    //Pencil mbs;
+    Pencil mbs;
     //Block mbs;
-    Edges mbs;
+    //Edges mbs;
 
     SemiExplicitEulerTimeStepper sxe(mbs);
     sxe.setDefaultImpactCaptureVelocity(mbs.getCaptureVelocity());
