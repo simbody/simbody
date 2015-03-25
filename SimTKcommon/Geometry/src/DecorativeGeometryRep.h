@@ -548,7 +548,7 @@ const DecorativeMesh& getMyMeshHandle() const {
 }
 };
 
-///////////////////////
+///////////////////////////
 // DecorativeMeshFileRep //
 ///////////////////////
 
@@ -581,6 +581,110 @@ std::string meshFile;
 const DecorativeMeshFile& getMyMeshFileHandle() const {
     return *static_cast<const DecorativeMeshFile*>(myHandle);
 }
+};
+
+
+////////////////////////
+// DecorativeTorusRep //
+////////////////////////
+
+class DecorativeTorusRep : public DecorativeGeometryRep {
+public:
+    // no default constructor
+    explicit DecorativeTorusRep(Real inner, Real outer) : innerRadius(inner), outerRadius(outer) {
+    }
+
+    const Real& getInnerRadius() const {
+        return  innerRadius;
+    }
+
+    const Real& getOuterRadius() const {
+        return  outerRadius;
+    }
+
+    void setInnerRadius(Real ir) {
+        innerRadius = ir;
+    }
+
+    void setOuterRadius(Real or) {
+        outerRadius = or;
+    }
+    // virtuals
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+        DecorativeTorusRep* DGRep = new DecorativeTorusRep(*this);
+        return DGRep;
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementTorusGeometry(getMyTorusHandle());
+    }
+
+    SimTK_DOWNCAST(DecorativeTorusRep, DecorativeGeometryRep);
+private:
+    Real innerRadius;
+    Real outerRadius;
+
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+
+    const DecorativeTorus& getMyTorusHandle() const {
+        return *static_cast<const DecorativeTorus*>(myHandle);
+    }
+};
+
+
+///////////////////////
+// DecorativArrowRep //
+///////////////////////
+
+class DecorativeArrowRep : public DecorativeGeometryRep {
+public:
+    // no default constructor
+    explicit DecorativeArrowRep(const Vec3& orig, const Vec3& dir, Real& len) : origin(orig), direction(dir), length(len) {
+    }
+
+    const Vec3& getOrigin() const {
+        return  origin;
+    }
+
+    const Vec3& getDirection() const {
+        return  direction;
+    }
+
+    const Real& getLength() const {
+        return  length;
+    }
+
+    void setOrigin(const Vec3& orig) {
+        origin = orig;
+    }
+    void setDirection(const Vec3& dir) {
+        direction = dir;
+    }
+    void setLength(Real& len) {
+        length = len;
+    }
+
+    // virtuals
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+        DecorativeArrowRep* DGRep = new DecorativeArrowRep(*this);
+        return DGRep;
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementArrowGeometry(getMyArrowHandle());
+    }
+
+    SimTK_DOWNCAST(DecorativeArrowRep, DecorativeGeometryRep);
+private:
+    Vec3 origin;
+    Vec3 direction;
+    Real length;
+
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+
+    const DecorativeArrow& getMyArrowHandle() const {
+        return *static_cast<const DecorativeArrow*>(myHandle);
+    }
 };
 
     ////////////////////

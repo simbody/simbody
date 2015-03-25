@@ -596,6 +596,79 @@ private:
 };
 
 
+/** This defines a displayable torus  . **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeTorus : public DecorativeGeometry {
+public:
+    explicit DecorativeTorus(Real inner=0.1, Real outer=0.5);
+
+    DecorativeTorus& setInnerRadius(Real);
+    DecorativeTorus& setOuterRadius(Real);
+    Real getInnerRadius() const;
+    Real getOuterRadius() const;
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeTorus& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeTorus& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeTorus& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeTorus& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeTorus& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeTorus& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeTorus& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeTorus& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeTorus& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeTorus& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeTorus, DecorativeGeometry);
+private:
+    class DecorativeTorusRep& updRep();
+    const DecorativeTorusRep& getRep() const;
+};
+
+
+/** An arrow with origin point, direction and length. Note that the actual 
+placement can be changed by the parent class transform & scale; here we are 
+just generating the initial arrow in the geometry object's local frame.
+
+There is a default constructor for this object but it is not much
+use unless followed by point, direction and length specifications. By default 
+we produce an arrow going from (0,0,0) in direction (1,1,1) of length 1 just 
+so it will show up if you forget to set it to something meaningful. Having a 
+default constructor allows us to have arrays of these objects. **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeArrow : public DecorativeGeometry {
+public:
+    explicit DecorativeArrow(const Vec3& p1 = Vec3(0), const Vec3& dir=Vec3(1), Real length=1.0); // Arrow 
+    const Vec3& getOrigin() const;
+    const Vec3& getDirection() const;
+    const Real& getLength() const;
+
+    DecorativeArrow& setOrigin(const Vec3& origin);
+    DecorativeArrow& setDirection(const Vec3& direction);
+    DecorativeArrow& setLength(Real& length);
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeArrow& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeArrow& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeArrow& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeArrow& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeArrow& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeArrow& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeArrow& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeArrow& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeArrow& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeArrow& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeArrow, DecorativeGeometry);
+private:
+    class DecorativeArrowRep& updRep();
+    const DecorativeArrowRep& getRep() const;
+};
+
 /** This defines a single DecorativeGeometry object that is composed of a
 collection of other DecorativeGeometry objects. Parameters set for the
 parent object serve as defaults for the contained objects, but those objects
@@ -661,6 +734,8 @@ public:
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
     virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
     virtual void implementMeshFileGeometry( const DecorativeMeshFile&) = 0;
+    virtual void implementTorusGeometry(    const DecorativeTorus&)    = 0;
+    virtual void implementArrowGeometry(    const DecorativeArrow&)    = 0;
 };
 
 } // namespace SimTK

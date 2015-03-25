@@ -371,6 +371,62 @@ const std::string& DecorativeMeshFile::getMeshFile() const {
 }
 
 
+/////////////////////
+// DECORATIVE TORUS //
+/////////////////////
+
+DecorativeTorus::DecorativeTorus(Real inner, Real outer) {
+    rep = new DecorativeTorusRep(inner, outer);
+    rep->setMyHandle(*this);
+}
+
+Real DecorativeTorus::getInnerRadius() const {
+    return DecorativeTorusRep::downcast(*rep).getInnerRadius();
+}
+
+Real DecorativeTorus::getOuterRadius() const {
+    return DecorativeTorusRep::downcast(*rep).getOuterRadius();
+}
+
+DecorativeTorus& DecorativeTorus::setInnerRadius(Real ir) {
+    DecorativeTorusRep::downcast(*rep).setInnerRadius(ir); return *this;
+}
+DecorativeTorus& DecorativeTorus::setOuterRadius(Real or) {
+    DecorativeTorusRep::downcast(*rep).setOuterRadius(or); return *this;
+}
+
+/////////////////////
+// DECORATIVE ARROW //
+/////////////////////
+
+DecorativeArrow::DecorativeArrow(const Vec3& p1, const Vec3& dir, Real length) {
+    rep = new DecorativeArrowRep(p1, dir, length);
+    rep->setMyHandle(*this);
+}
+
+const Vec3& DecorativeArrow::getOrigin() const {
+    return DecorativeArrowRep::downcast(*rep).getOrigin();
+};
+const Vec3& DecorativeArrow::getDirection() const {
+    return DecorativeArrowRep::downcast(*rep).getDirection();
+};
+const Real& DecorativeArrow::getLength() const{
+    return DecorativeArrowRep::downcast(*rep).getLength();
+};
+
+
+DecorativeArrow& DecorativeArrow::setOrigin(const Vec3& origin) {
+    DecorativeArrowRep::downcast(*rep).setOrigin(origin); return *this;
+}
+DecorativeArrow& DecorativeArrow::setDirection(const Vec3& direction) {
+    DecorativeArrowRep::downcast(*rep).setDirection(direction); return *this;
+}
+
+DecorativeArrow& DecorativeArrow::setLength(Real& length) {
+    DecorativeArrowRep::downcast(*rep).setLength(length); return *this;
+}
+
+
     /////////////////
     // DECORATIONS //
     /////////////////
