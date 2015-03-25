@@ -268,7 +268,9 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
             SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
         ELSE()
             SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+            IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+            ENDIF()
         ENDIF()
     ELSE() # not APPLE
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
