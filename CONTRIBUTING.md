@@ -389,6 +389,7 @@ Matthew Millard    |@mjhmilla     |Bicubic spline
 Jack Middleton     |              |Numerical methods
 Christopher Bruns  |@cmbruns-hhmi |Molmodel
 Randy Radmer       |              |Molmodel
+Nabeel Allana      |@nallana      |Parallel force calculations
 Charles Schwieters |              |Provided initial multibody code 
 Abhinandan Jain    |              |Underlying spatial algebra formulation
 Isaac Newton       |              |F=ma, calculus, etc.

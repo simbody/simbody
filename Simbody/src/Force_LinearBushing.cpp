@@ -66,6 +66,9 @@ public:
     bool dependsOnlyOnPositions() const {
         return false;
     }
+    bool shouldBeParallelized() const override {
+        return true;
+    }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;

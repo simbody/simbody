@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
- * Contributors:                                                              *
+ * Contributors: Nabeel Allana                                                *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -47,6 +47,9 @@ public:
     virtual ~ForceImpl() {}
     virtual ForceImpl* clone() const = 0;
     virtual bool dependsOnlyOnPositions() const {
+        return false;
+    }
+    virtual bool shouldBeParallelized() const { 
         return false;
     }
     ForceIndex getForceIndex() const {return index;}
@@ -116,6 +119,9 @@ public:
     bool dependsOnlyOnPositions() const override {
         return true;
     }
+    bool shouldBeParallelized() const override {
+        return true;
+    }
     void calcForce(const State&         state, 
                    Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>&       particleForces, 
@@ -144,6 +150,9 @@ public:
     TwoPointLinearDamperImpl* clone() const {
         return new TwoPointLinearDamperImpl(*this);
     }
+    bool shouldBeParallelized() const override {
+        return true;
+    }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
 private:
@@ -165,6 +174,9 @@ public:
         return new TwoPointConstantForceImpl(*this);
     }
     bool dependsOnlyOnPositions() const {
+        return true;
+    }
+    bool shouldBeParallelized() const override {
         return true;
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
@@ -607,6 +619,9 @@ public:
     }
     bool dependsOnlyOnPositions() const {
         return implementation->dependsOnlyOnPositions();
+    }
+    bool shouldBeParallelized() const {
+        return implementation->shouldBeParallelized();
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) 
