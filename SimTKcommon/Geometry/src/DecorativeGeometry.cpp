@@ -391,8 +391,8 @@ Real DecorativeTorus::getOuterRadius() const {
 DecorativeTorus& DecorativeTorus::setInnerRadius(Real ir) {
     DecorativeTorusRep::downcast(*rep).setInnerRadius(ir); return *this;
 }
-DecorativeTorus& DecorativeTorus::setOuterRadius(Real or) {
-    DecorativeTorusRep::downcast(*rep).setOuterRadius(or); return *this;
+DecorativeTorus& DecorativeTorus::setOuterRadius(Real orad) {
+    DecorativeTorusRep::downcast(*rep).setOuterRadius(orad); return *this;
 }
 
 /////////////////////

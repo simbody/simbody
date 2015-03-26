@@ -606,8 +606,8 @@ public:
         innerRadius = ir;
     }
 
-    void setOuterRadius(Real or) {
-        outerRadius = or;
+    void setOuterRadius(Real orad) {
+        outerRadius = orad;
     }
     // virtuals
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
