@@ -591,23 +591,23 @@ const DecorativeMeshFile& getMyMeshFileHandle() const {
 class DecorativeTorusRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeTorusRep(Real inner, Real outer) : innerRadius(inner), outerRadius(outer) {
+    explicit DecorativeTorusRep(Real torusR, Real tubeR) : torusRadius(torusR), tubeRadius(tubeR) {
     }
 
-    const Real& getInnerRadius() const {
-        return  innerRadius;
+    const Real& getTorusRadius() const {
+        return  torusRadius;
     }
 
-    const Real& getOuterRadius() const {
-        return  outerRadius;
+    const Real& getTubeRadius() const {
+        return  tubeRadius;
     }
 
-    void setInnerRadius(Real ir) {
-        innerRadius = ir;
+    void setTorusRadius(Real torusR) {
+        torusRadius = torusR;
     }
 
-    void setOuterRadius(Real orad) {
-        outerRadius = orad;
+    void setTubeRadius(Real tubeR) {
+        tubeRadius = tubeR;
     }
     // virtuals
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
@@ -621,8 +621,8 @@ public:
 
     SimTK_DOWNCAST(DecorativeTorusRep, DecorativeGeometryRep);
 private:
-    Real innerRadius;
-    Real outerRadius;
+    Real torusRadius;
+    Real tubeRadius;
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 

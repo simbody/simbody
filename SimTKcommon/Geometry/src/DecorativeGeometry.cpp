@@ -375,24 +375,24 @@ const std::string& DecorativeMeshFile::getMeshFile() const {
 // DECORATIVE TORUS //
 /////////////////////
 
-DecorativeTorus::DecorativeTorus(Real inner, Real outer) {
-    rep = new DecorativeTorusRep(inner, outer);
+DecorativeTorus::DecorativeTorus(Real torusR, Real tubeR) {
+    rep = new DecorativeTorusRep(torusR, tubeR);
     rep->setMyHandle(*this);
 }
 
-Real DecorativeTorus::getInnerRadius() const {
-    return DecorativeTorusRep::downcast(*rep).getInnerRadius();
+Real DecorativeTorus::getTorusRadius() const {
+    return DecorativeTorusRep::downcast(*rep).getTorusRadius();
 }
 
-Real DecorativeTorus::getOuterRadius() const {
-    return DecorativeTorusRep::downcast(*rep).getOuterRadius();
+Real DecorativeTorus::getTubeRadius() const {
+    return DecorativeTorusRep::downcast(*rep).getTubeRadius();
 }
 
-DecorativeTorus& DecorativeTorus::setInnerRadius(Real ir) {
-    DecorativeTorusRep::downcast(*rep).setInnerRadius(ir); return *this;
+DecorativeTorus& DecorativeTorus::setTorusRadius(Real torR) {
+    DecorativeTorusRep::downcast(*rep).setTorusRadius(torR); return *this;
 }
-DecorativeTorus& DecorativeTorus::setOuterRadius(Real orad) {
-    DecorativeTorusRep::downcast(*rep).setOuterRadius(orad); return *this;
+DecorativeTorus& DecorativeTorus::setTubeRadius(Real tubeR) {
+    DecorativeTorusRep::downcast(*rep).setTubeRadius(tubeR); return *this;
 }
 
 /////////////////////

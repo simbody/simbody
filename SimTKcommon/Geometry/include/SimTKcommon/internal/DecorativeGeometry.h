@@ -596,15 +596,19 @@ private:
 };
 
 
-/** This defines a displayable torus  . **/
+/** This defines a displayable torus, the torus is centered at the
+origin with the axial direction aligned to the z-axis. It is defined by
+a torusRadius (radius of the circular centerline of the torus, measured
+from the origin), and a tubeRadius (radius of the torus cross-section:
+perpendicular distance from the circular centerline to the surface). **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeTorus : public DecorativeGeometry {
 public:
     explicit DecorativeTorus(Real inner=0.1, Real outer=0.5);
 
-    DecorativeTorus& setInnerRadius(Real);
-    DecorativeTorus& setOuterRadius(Real);
-    Real getInnerRadius() const;
-    Real getOuterRadius() const;
+    DecorativeTorus& setTorusRadius(Real);
+    DecorativeTorus& setTubeRadius(Real);
+    Real getTorusRadius() const;
+    Real getTubeRadius() const;
 
     // Retain the derived type when setting generic geometry options.
     DecorativeTorus& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
