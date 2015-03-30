@@ -646,7 +646,7 @@ public:
         return  origin;
     }
 
-    const Vec3& getDirection() const {
+    const UnitVec3& getDirection() const {
         return  direction;
     }
 
@@ -657,7 +657,7 @@ public:
     void setOrigin(const Vec3& orig) {
         origin = orig;
     }
-    void setDirection(const Vec3& dir) {
+    void setDirection(const UnitVec3& dir) {
         direction = dir;
     }
     void setLength(Real& len) {
@@ -677,7 +677,7 @@ public:
     SimTK_DOWNCAST(DecorativeArrowRep, DecorativeGeometryRep);
 private:
     Vec3 origin;
-    Vec3 direction;
+    UnitVec3 direction;
     Real length;
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.

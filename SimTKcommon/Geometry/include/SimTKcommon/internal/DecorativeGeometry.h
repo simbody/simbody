@@ -603,7 +603,7 @@ from the origin), and a tubeRadius (radius of the torus cross-section:
 perpendicular distance from the circular centerline to the surface). **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeTorus : public DecorativeGeometry {
 public:
-    explicit DecorativeTorus(Real inner=0.1, Real outer=0.5);
+    explicit DecorativeTorus(Real torusR=1, Real tubeR=0.1);
 
     DecorativeTorus& setTorusRadius(Real);
     DecorativeTorus& setTubeRadius(Real);
@@ -638,18 +638,18 @@ just generating the initial arrow in the geometry object's local frame.
 
 There is a default constructor for this object but it is not much
 use unless followed by point, direction and length specifications. By default 
-we produce an arrow going from (0,0,0) in direction (1,1,1) of length 1 just 
+we produce an arrow going from (0,0,0) in direction (0,1,0) of length 1 just 
 so it will show up if you forget to set it to something meaningful. Having a 
 default constructor allows us to have arrays of these objects. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeArrow : public DecorativeGeometry {
 public:
-    explicit DecorativeArrow(const Vec3& p1 = Vec3(0), const Vec3& dir=Vec3(1), Real length=1.0); // Arrow 
+    explicit DecorativeArrow(const Vec3& p1 = Vec3(0), const UnitVec3& dir = UnitVec3(1), Real length = 1.0); // Arrow 
     const Vec3& getOrigin() const;
     const Vec3& getDirection() const;
     const Real& getLength() const;
 
     DecorativeArrow& setOrigin(const Vec3& origin);
-    DecorativeArrow& setDirection(const Vec3& direction);
+    DecorativeArrow& setDirection(const UnitVec3& direction);
     DecorativeArrow& setLength(Real& length);
 
     // Retain the derived type when setting generic geometry options.
