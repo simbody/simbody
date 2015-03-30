@@ -645,7 +645,7 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeArrow : public DecorativeGeometry {
 public:
     explicit DecorativeArrow(const Vec3& p1 = Vec3(0), const UnitVec3& dir = UnitVec3(1), Real length = 1.0); // Arrow 
     const Vec3& getOrigin() const;
-    const Vec3& getDirection() const;
+    const UnitVec3& getDirection() const;
     const Real& getLength() const;
 
     DecorativeArrow& setOrigin(const Vec3& origin);

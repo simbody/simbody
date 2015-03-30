@@ -408,7 +408,7 @@ DecorativeArrow::DecorativeArrow(const Vec3& p1, const UnitVec3& dir, Real lengt
 const Vec3& DecorativeArrow::getOrigin() const {
     return DecorativeArrowRep::downcast(*rep).getOrigin();
 };
-const Vec3& DecorativeArrow::getDirection() const {
+const UnitVec3& DecorativeArrow::getDirection() const {
     return DecorativeArrowRep::downcast(*rep).getDirection();
 };
 const Real& DecorativeArrow::getLength() const{
