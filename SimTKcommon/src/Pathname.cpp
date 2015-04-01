@@ -110,14 +110,16 @@ static void removeDriveInPlace(string& inout, string& drive) {
     }
 }
 
-void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string& swd,
+void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
                                             const std::string& path,
                                             std::string& directory,
                                             std::string& fileName,
-                                            std::string& extension)
+                                            std::string& extension,
+                                            bool& dontApplySearchPath)
 {
     directory.erase(); fileName.erase(); extension.erase();
     string pathdrive, swddrive, finaldrive;
+    dontApplySearchPath = false;
 
     // Remove all the white space and make all the slashes be forward ones.
     // (For Windows they'll be changed to backslashes later.)
@@ -131,102 +133,102 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
     if (!swdcleaned.empty() && swdcleaned[swdcleaned.size() - 1] != '/')
         swdcleaned += '/';
     removeDriveInPlace(swdcleaned, swddrive);
-    if (swddrive.empty())
-        swdcleaned = getAbsoluteDirectoryPathname(swd);
+    //if (swddrive.empty())
+    //    swdcleaned = getAbsoluteDirectoryPathname(swd);
+
+    String processed;
+    if (pathcleaned.substr(0, 1) == "/" || pathcleaned.substr(0, 2) == "@/") {
+        processed = pathcleaned;
+        if (!pathdrive.empty()) swddrive = "";
+    }
+    else if (pathcleaned.substr(0, 2) == "./") {
+        if (!swd.empty()) {
+            pathcleaned.erase(0, 2);
+            processed = swdcleaned + pathcleaned;
+        }
+        else {
+            processed = pathcleaned;
+        }
+    }
+    // Looks like a relative path name.
+    else {
+        processed = swdcleaned + pathcleaned;
+    }
 
     // If the pathname in its entirety is just one of these, append 
     // a slash to avoid special cases below.
-    if (pathcleaned == "." || pathcleaned == "..")
-        pathcleaned += "/";
+    if (processed == "." || processed == ".." || processed == "@")
+        processed += "/";
 
     // If the path begins with "../" we'll make it ./../ to simplify handling.
-    if (pathcleaned.substr(0, 3) == "../")
-        pathcleaned.insert(0, "./");
-    
-    // If swd is empty, then process path as usual.
-    if (swd.empty()) {
-        pathcleaned = getAbsolutePathname(path);
-        removeDriveInPlace(pathcleaned, pathdrive);
-        finaldrive = pathdrive;
+    if (processed.substr(0, 3) == "../")
+        processed.insert(0, "./");
+
+    if (processed.substr(0, 1) == "/") {
+        dontApplySearchPath = true;
+        processed.erase(0, 1);
+        if (!swddrive.empty()) finaldrive = swddrive;
+        else if (!pathdrive.empty()) finaldrive = pathdrive;
+        else finaldrive = getCurrentDriveLetter();
     }
-
-    // If swd was not empty, find the correct absolute path to the intended directory.
-    else if (!swd.empty()) {
-        
-        // Path was of the form "X:/*" or "/*"
-        if (pathcleaned.substr(0, 1) == "/") {
-            pathcleaned.erase(0, 1);
-
-            // Path is of the form "X:/*"
-            if (!pathdrive.empty())
-                finaldrive = pathdrive;
-
-            // If path does not provide a drive, but swd provides a drive, use it.
-            // If neither provides a drive, use the current drive.
-            else if (pathdrive.empty()) {
-                if (!swddrive.empty())
-                    finaldrive = swddrive;
-                else if (swddrive.empty())
-                    finaldrive = getCurrentDriveLetter();
-            }
+    else if (processed.substr(0, 2) == "./") {
+        dontApplySearchPath = true;
+        // If swd was empty, then "./" came from path
+        if (swd.empty()) {
+            processed.replace(0, 2, getCurrentWorkingDirectory(pathdrive));
+            processed.erase(0, 2);
+            //removeDriveInPlace(processed, pathdrive);
         }
-        
-        // Path was of the form "X:./*" or "./*". 
-        else if (pathcleaned.substr(0, 2) == "./") {
-           
-            // If swd provided a drive, use it
-            if (!swddrive.empty()) {
-                finaldrive = swddrive;
-                pathcleaned.replace(0, 2, swdcleaned);
-            }
-
-            // Otherwise, check if path provided a drive and use it. If neither
-            // has a path, use the absolute path of the swd.
-            else if (swddrive.empty()) {
-                string swdfullpath = getAbsoluteDirectoryPathname(swdcleaned);
-                removeDriveInPlace(swdfullpath, swddrive);
-                if (!pathdrive.empty())
-                    finaldrive = pathdrive;
-                else if (pathdrive.empty())
-                    finaldrive = swddrive;
-                pathcleaned.replace(0, 2, swdfullpath);
-            }
-        }
-
-        // Path was of the form "X:*" or "*"
+        // Otherwise, "./" came from swd
         else {
-            
-            // If swd provided a drive, use it
-            if (!swddrive.empty()) {
-                finaldrive = swddrive;
-                pathcleaned.insert(0, swdcleaned);
-            }
-
-            // Otherwise, check if path provided a drive and use it. If neither
-            // has a path, use the absolute path of the swd.
-            else if (swddrive.empty()) {
-                string swdfullpath = getAbsoluteDirectoryPathname(swdcleaned);
-                removeDriveInPlace(swdfullpath, swddrive);
-                if (!pathdrive.empty())
-                    finaldrive = pathdrive;
-                else if (pathdrive.empty())
-                    finaldrive = swddrive;
-                pathcleaned.insert(0, swdfullpath);
-            }
+            processed.replace(0, 2, getCurrentWorkingDirectory(swddrive));
+            processed.erase(0, 2);
+            //removeDriveInPlace(processed, swddrive);
         }
+        if (!swddrive.empty()) finaldrive = swddrive;
+        else if (!pathdrive.empty()) finaldrive = pathdrive;
+        else finaldrive = getCurrentDriveLetter();
+    }
+    else if (processed.substr(0, 2) == "@/") {
+        dontApplySearchPath = true;
+        processed.replace(0, 2, getThisExecutableDirectory());
+        removeDriveInPlace(processed, finaldrive);
+    }
+    // Looks like a relative path name. But if either swd or path had 
+    // an initial drive specification, e.g. X:something.txt, that is 
+    // supposed to be interpreted relative to the current working directory
+    // on drive X, just as though it were X:./something.txt.
+    // Check swd first as its drive takes precedence.
+    else if (!swddrive.empty()) {
+        dontApplySearchPath = true;
+        processed.insert(0, getCurrentWorkingDirectory(swddrive));
+        removeDriveInPlace(processed, finaldrive);
+    }
+    else if (!pathdrive.empty()) {
+        dontApplySearchPath = true;
+        if (!swd.empty()) {
+            processed.insert(0, getCurrentWorkingDirectory(swddrive));
+            removeDriveInPlace(processed, swddrive);
+            finaldrive = pathdrive;
+        }
+        else {
+            processed.insert(0, getCurrentWorkingDirectory(pathdrive));
+            removeDriveInPlace(processed, finaldrive);
+        }
+        
     }
 
     // We may have picked up a new batch of backslashes above.
-    pathcleaned.replaceAllChar('\\', '/');
+    processed.replaceAllChar('\\', '/');
 
     // Process the ".." segments and eliminate meaningless ones
     // as we go through.
     Array_<string> segmentsInReverse;
     bool isFinalSegment = true; // first time around might be the fileName
     int numDotDotsSeen = 0;
-    while (!pathcleaned.empty()) {
+    while (!processed.empty()) {
         string component;
-        removeLastPathComponentInPlace(pathcleaned, component);
+        removeLastPathComponentInPlace(processed, component);
         if (component == "..")
             ++numDotDotsSeen;
         else if (!component.empty() && component != ".") {
@@ -237,10 +239,13 @@ void Pathname::findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string&
         }
         isFinalSegment = false;
     }
+
     // Now we can put together the canonicalized directory.
-    if (!finaldrive.empty())
-        directory = finaldrive + ":";
-    directory += "/";
+    if (dontApplySearchPath) {
+        if (!finaldrive.empty())
+            directory = finaldrive + ":";
+        directory += "/";
+    }
 
     for (int i = (int)segmentsInReverse.size() - 1; i >= 0; --i)
         directory += segmentsInReverse[i] + "/";

@@ -89,23 +89,26 @@ class SimTK_SimTKCOMMON_EXPORT Pathname {
 public:
     /// Given a specified working directory (swd) and path, this function
     /// evaluates the absolute path of a given path relative to the swd and
-    /// returns the directory, fileName, and extension of the canonicalized absolute
-    /// path. This means that instead of evaluating "." as the current working
-    /// directory (cwd), the swd is used. In general, some rules are as follows
+    /// returns the directory, fileName, and extension of the canonicalized path
+    /// with respect to a swd, if needed. This means, for the path, that instead of 
+    /// evaluating "." as the current working directory (cwd), the swd is used. This
+    /// function also returns a boolean (dontApplySearchPath) to indicate if a search
+    /// path should not be applied. The following rules are applied in order:
     /// 1) If an absolute path is given by path, swd is not used. An absolute path
-    ///    is defined as a a root-relative path name and on Windows it will begin 
-    ///    with an explicit drive letter (e.g. /usr/* or c:/documents/*, respectively).
-    /// 2) If a relative path without a drive letter is given by path (e.g. "./*" or "*"), 
-    ///    then the absolute path of the swd is prepended to path.
+    ///    is defined as a a root-relative path name and on Windows it may begin 
+    ///    with a drive letter (e.g. /usr/file.ext or c:/documents/file.ext).
+    /// 2) If a relative path without a drive letter is given by path (e.g. "./dir/file.ext" 
+    ///    or "dir/file.ext"), then the absolute path of the swd is prepended to path.
     /// 3) To resolve drive ambiguities, if swd provides a drive, it is used. 
-    ///    If not, then the path drive is used (e.g. path = "X:*"). If neither provides 
-    ///    a drive, then the current drive is used.
+    ///    If not, then the path drive is used (e.g. path = "X:dir/file.ext"). If neither 
+    ///    provides a drive, then the current drive is used.
     /// 4) If swd is an empty string, then swd = cwd.
-    static void findAbsolutePathUsingSpecifiedWorkingDirectory(const std::string& swd,
+    static void deconstructPathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
                                              const std::string& path,
                                              std::string& directory,
                                              std::string& fileName,
-                                             std::string& extension);
+                                             std::string& extension,
+                                             bool& dontApplySearchPath);
 
     /// Dismantle a supplied pathname into its component
     /// parts. This can take pathnames like <pre>   
@@ -185,6 +188,17 @@ public:
         if (!absPath.empty() && absPath[absPath.size()-1] != getPathSeparatorChar())
             absPath += getPathSeparatorChar();
         return absPath;
+    }
+
+    static std::string getAbsolutePathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
+                                                                         const std::string& path) {
+        std::string directory, fileName, extension;
+        bool dontApplySearchPath;
+        deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
+        if (!dontApplySearchPath) {
+            directory = getCurrentWorkingDirectory() + directory;
+        }
+        return directory + fileName + extension;
     }
 
     /// Return true if the given pathname names a file that exists and is
