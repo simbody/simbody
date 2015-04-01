@@ -173,17 +173,17 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
     }
     else if (processed.substr(0, 2) == "./") {
         dontApplySearchPath = true;
-        // If swd was empty, then "./" came from path
+        String discard;
+        // If swd was empty, then "./" came from path. Make sure not to write
+        // over current pathdrive or swddrive.
         if (swd.empty()) {
             processed.replace(0, 2, getCurrentWorkingDirectory(pathdrive));
-            processed.erase(0, 2);
-            //removeDriveInPlace(processed, pathdrive);
+            removeDriveInPlace(processed, discard);
         }
         // Otherwise, "./" came from swd
         else {
             processed.replace(0, 2, getCurrentWorkingDirectory(swddrive));
-            processed.erase(0, 2);
-            //removeDriveInPlace(processed, swddrive);
+            removeDriveInPlace(processed, discard);
         }
         if (!swddrive.empty()) finaldrive = swddrive;
         else if (!pathdrive.empty()) finaldrive = pathdrive;
