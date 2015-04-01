@@ -392,6 +392,7 @@ void testPathname() {
 #else
     std::string swd, path, dir;
     const std::string cwd = Pathname::getCurrentWorkingDirectory();
+    bool dontApplySearchPath;
 
     swd = ""; path = "X:/topdir/seconddir/myFileName.ext";
     dir = "X:" + sep + "topdir" + sep + "seconddir" + sep;
