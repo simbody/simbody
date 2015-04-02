@@ -581,7 +581,7 @@ endif ()
 INCLUDE(CMakePackageConfigHelpers)
 CONFIGURE_PACKAGE_CONFIG_FILE(
     ${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
     INSTALL_DESTINATION "${SIMBODY_CMAKE_DIR}"
     PATH_VARS # Variables to edit in the SimbodyConfig.cmake.in.
         CMAKE_INSTALL_PREFIX
@@ -590,8 +590,9 @@ CONFIGURE_PACKAGE_CONFIG_FILE(
         SIMBODY_VISUALIZER_INSTALL_DIR
         SIMBODY_INSTALL_DOXYGENDIR
     )
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
-    DESTINATION ${SIMBODY_CMAKE_DIR})
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
+    DESTINATION ${SIMBODY_CMAKE_DIR}
+    RENAME SimbodyConfig.cmake)
 
 # Create a file that allows clients to Simbody to ensure they have the version
 # of Simbody they want.
