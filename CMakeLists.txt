@@ -523,17 +523,19 @@ LINK_DIRECTORIES(${BUILD_BINARY_DIR})
 # Also specify where include files are installed.
 IF(WIN32)
   # Install visualizer to bin, since it needs to be co-located with dll's
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_BINDIR})
+  SET(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
   # Install include files into base include folder since it's a sandbox
   SET(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 ELSE()
   # Visualizer is not intended to be a user executable. Proper place is
   # inside the lib directory
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_LIBEXECDIR}/simbody)
+  SET(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
   # Install include files in simbody subfolder to avoid polluting the
   # global build folder
   SET(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
 ENDIF()
+SET(SIMBODY_VISUALIZER_INSTALL_DIR
+    ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
 
 # Each of these returns a list of API include directories for
 # use by the later builds.
