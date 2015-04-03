@@ -687,6 +687,69 @@ private:
     }
 };
 
+
+
+///////////////////////
+// DecorativeConeRep //
+///////////////////////
+
+class DecorativeConeRep : public DecorativeGeometryRep {
+public:
+    // no default constructor
+    explicit DecorativeConeRep(const Vec3& orig, const Vec3& dir, Real& h, Real& baseR) : origin(orig), direction(dir), height(h), baseRadius(baseR) {
+    }
+
+    const Vec3& getOrigin() const {
+        return  origin;
+    }
+
+    const UnitVec3& getDirection() const {
+        return  direction;
+    }
+
+    const Real& getHeight() const {
+        return  height;
+    }
+
+    const Real& getBaseRadius() const {
+        return baseRadius;
+    }
+    void setOrigin(const Vec3& orig) {
+        origin = orig;
+    }
+    void setDirection(const UnitVec3& dir) {
+        direction = dir;
+    }
+    void setHeight(Real& h) {
+        height = h;
+    }
+    void setBaseRadius(Real& baseR) {
+        baseRadius = baseR;
+    }
+    // virtuals
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+        DecorativeConeRep* DGRep = new DecorativeConeRep(*this);
+        return DGRep;
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementConeGeometry(getMyConeHandle());
+    }
+
+    SimTK_DOWNCAST(DecorativeConeRep, DecorativeGeometryRep);
+private:
+    Vec3 origin;
+    UnitVec3 direction;
+    Real height;
+    Real baseRadius;
+
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+
+    const DecorativeCone& getMyConeHandle() const {
+        return *static_cast<const DecorativeCone*>(myHandle);
+    }
+};
+
     ////////////////////
     // DecorationsRep //
     ////////////////////

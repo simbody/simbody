@@ -429,6 +429,47 @@ DecorativeArrow& DecorativeArrow::setLength(Real& length) {
 }
 
 
+/////////////////////
+// DECORATIVE CONE //
+/////////////////////
+
+DecorativeCone::DecorativeCone(const Vec3& p1, const UnitVec3& dir, Real height, Real baseRadius)
+{
+    rep = new DecorativeConeRep(p1, dir, height, baseRadius);
+    rep->setMyHandle(*this);
+}
+
+const Vec3& DecorativeCone::getOrigin() const {
+    return DecorativeConeRep::downcast(*rep).getOrigin();
+};
+const UnitVec3& DecorativeCone::getDirection() const {
+    return DecorativeConeRep::downcast(*rep).getDirection();
+};
+const Real& DecorativeCone::getHeight() const{
+    return DecorativeConeRep::downcast(*rep).getHeight();
+};
+const Real& DecorativeCone::getBaseRadius() const{
+    return DecorativeConeRep::downcast(*rep).getBaseRadius();
+};
+
+
+DecorativeCone& DecorativeCone::setOrigin(const Vec3& origin) {
+    DecorativeConeRep::downcast(*rep).setOrigin(origin); return *this;
+}
+
+DecorativeCone& DecorativeCone::setDirection(const UnitVec3& direction) {
+    DecorativeConeRep::downcast(*rep).setDirection(direction); return *this;
+}
+
+DecorativeCone& DecorativeCone::setHeight(Real& height) {
+    DecorativeConeRep::downcast(*rep).setHeight(height); return *this;
+}
+
+DecorativeCone& DecorativeCone::setBaseRadius(Real& baseR) {
+    DecorativeConeRep::downcast(*rep).setBaseRadius(baseR); return *this;
+}
+
+
     /////////////////
     // DECORATIONS //
     /////////////////

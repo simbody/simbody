@@ -53,6 +53,7 @@ public:
     void implementMeshFileGeometry(const DecorativeMeshFile& geom) {}; // Not handled yet by this Visualizer
     void implementArrowGeometry(const DecorativeArrow& geom) {}; // Not handled yet by this Visualizer
     void implementTorusGeometry(const DecorativeTorus& geom) {}; // Not handled yet by this Visualizer
+    void implementConeGeometry(const DecorativeCone& geom) {}; // Not handled yet by this Visualizer
     static Vec4 getColor(const DecorativeGeometry& geom,
                          const Vec3& defaultColor = Vec3(-1));
 private:
