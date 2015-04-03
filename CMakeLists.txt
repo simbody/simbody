@@ -573,7 +573,7 @@ set(PKG_LIBRARIES
 if (WIN32)
   set(SIMBODY_CMAKE_DIR cmake)
 elseif (UNIX)
-  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/simbody/)
 endif ()
 
 # Configure SimbodyConfig.cmake in a way that allows the installation to be
@@ -630,4 +630,4 @@ ENDIF()
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc 
-    DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig/)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig/)

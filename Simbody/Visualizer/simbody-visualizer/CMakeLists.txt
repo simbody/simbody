@@ -68,7 +68,7 @@ IF(WIN32)
     COMMENT "Copying glut32.dll" VERBATIM)
 
     INSTALL(FILES ${glut32libdir}/glut32.dll
-        DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}) #same as GUI
+        DESTINATION ${CMAKE_INSTALL_BINDIR}) #same as GUI
 ENDIF()
 
 else()
