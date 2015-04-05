@@ -67,9 +67,17 @@ IF(WIN32)
   SET(EXAMPLES_INSTALL_BIN examples/bin/)
   SET(EXAMPLES_INSTALL_SRC examples/src/)
 ELSE()
-  SET(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_FULL_LIBDIR}/simbody/examples/)
+  SET(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_LIBDIR}/simbody/examples/) # if this changes, change the corresponding
+                                                                      # FULL version in file(RELATIVE_PATH ) command
   SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
-  SET(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_DOCDIR}/examples/)
+  # Use full paths for the following as it will be used to create a symlink
+  # The symlink itself will be a relative path, so the package will be relocatable
+  # Cannot use CMAKE_INSTALL_FULL_DOCDIR as it evaluates to a different value,
+  # as CMAKE_INSTALL_DOCDIR is changed as a "normal" variable, not in CACHE
+  SET(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}/examples)
+  file(RELATIVE_PATH EXAMPLE_INSTALL_BIN_REL_TO_DOC
+      ${EXAMPLES_SYMLINK_BIN}
+      ${CMAKE_INSTALL_FULL_LIBDIR}/simbody/examples/)
 ENDIF()
 
 # CMAKE_INSTALL_PREFIX may be a relative path name; we want to bake in
@@ -152,17 +160,6 @@ FOREACH(EX_PROG ${EXAMPLES})
     ENDIF()
 ENDFOREACH()
 
-IF(NOT WIN32)
-  FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tmp)
-  EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E create_symlink
-                  ${EXAMPLES_INSTALL_BIN}
-                  ${CMAKE_CURRENT_BINARY_DIR}/tmp/bin
-  )
-  INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tmp/
-          DESTINATION ${EXAMPLES_SYMLINK_BIN}
-  )
-ENDIF()
-
 # install top-level source for examples
 FILE(GLOB SRC_FILES "*.cpp" "*.h")
 INSTALL(FILES ${SRC_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC})
@@ -191,3 +188,8 @@ ENDFOREACH()
 # install the installed version of CMakeLists.txt
 INSTALL(FILES InstalledCMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_SRC}
     RENAME CMakeLists.txt)
+
+if(NOT WIN32)
+  install(CODE "EXECUTE_PROCESS(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+          ${EXAMPLE_INSTALL_BIN_REL_TO_DOC} ${EXAMPLES_SYMLINK_BIN}/bin)")
+endif()
