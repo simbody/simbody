@@ -49,7 +49,7 @@ always enforces the contact and no-slip conditions.
 
 There are two mobilized bodies involved. MobiliedBody S, the plane "surface" 
 body, has a plane P fixed to it, with the plane defined by a frame P given 
-relative to body S by the transform X_SP. MobiliedBody B, the "follower" body 
+relative to body S by the transform X_SP. MobilizedBody B, the "follower" body 
 has a station point F (a vertex) fixed to it, given with respect to body B at 
 location p_BF. The coordinate axes of the plane frame P (fixed in S) are used 
 for parameterization of the %Constraint. The z direction Pz of that frame is the 
@@ -208,16 +208,16 @@ Real getPositionError(const State& state) const;
 
 /** The velocity error vector is the velocity of the follower point in
 the contact frame. The contact frame is parallel to the plane frame but
-with its origin shifted to the spatial location as the follower point. 
+with its origin shifted to the spatial location of the follower point. 
 Note that the coordinates are ordered x-y-z so the first two numbers are
 the tangential slip velocity and the third is the velocity in the normal
 direction, with positive indicating separation and negative indicating
-approach. The z value here is the time derivative of the quantity returned
-by getPositionError(). The given \a state must have already been 
+approach. The z value here is the time derivative in the P frame of the quantity
+returned by getPositionError(). The given \a state must have already been 
 realized through Stage::Velocity. **/
 Vec3 getVelocityErrors(const State& state) const;
 
-/** This vector is the time derivative of the value returned by
+/** This vector is the time derivative in the P frame of the value returned by
 getVelocityError(). The given \a state must have already been realized
 through Stage::Acceleration. **/
 Vec3 getAccelerationErrors(const State& state) const;
