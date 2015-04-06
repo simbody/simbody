@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-15 Stanford University and the Authors.        *
  * Authors: Ian Stavness, Michael Sherman                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -110,11 +110,10 @@ private:
 
 class ParticleConSurfaceSystem: public System {
 public:
-    ParticleConSurfaceSystem(const ContactGeometryImpl& geom) : System()
+    ParticleConSurfaceSystem(const ContactGeometryImpl& geom) 
+    :   System(new ParticleConSurfaceSystemGuts(geom))
     { 
-        adoptSystemGuts(new ParticleConSurfaceSystemGuts(geom));
-        DefaultSystemSubsystem defsub(*this);
-        updGuts().subsysIndex = defsub.getMySubsystemIndex();
+        updGuts().subsysIndex = getDefaultSubsystem().getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
     }

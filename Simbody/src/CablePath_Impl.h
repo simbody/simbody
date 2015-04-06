@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Ian Stavness                                     *
  * Contributors: Andreas Scholz                                               *
  *                                                                            *
@@ -401,6 +401,7 @@ public:
             return CableObstacleIndex(obstacles.size()-1);
         }          
         obstacles.insert(obstacles.end()-1, obstacle);
+
         // Update the relocated termination point's obstacle index.
         obstacles.back().updImpl().setCableObstacleIndex(obstacles.size()-1);
         return CableObstacleIndex(obstacles.size()-2); 
@@ -578,8 +579,9 @@ friend class CablePath;
     ZIndex                      integratedLengthDotIx;
     DiscreteVariableIndex       posEntryIx; // these are auto-update
     DiscreteVariableIndex       velEntryIx;
-    EventTriggerByStageIndex    eventIx; // 1st index; one for each surface
-    std::map<EventId, CableObstacleIndex> mapEventIdToObstacle;
+
+    std::map<EventId, CableObstacleIndex>   mapEventIdToObstacle;
+    EventTriggerByStageIndex                eventIx; // 1st index; one/surface
 
     mutable int                 referenceCount;
 };

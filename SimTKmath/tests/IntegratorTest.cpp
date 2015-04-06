@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -167,11 +167,9 @@ public:
 
 class MyPendulum: public System {
 public:
-    MyPendulum() : System()
+    MyPendulum() : System(new MyPendulumGuts())
     { 
-        adoptSystemGuts(new MyPendulumGuts());
-        DefaultSystemSubsystem defsub(*this);
-        updGuts().subsysIndex = defsub.getMySubsystemIndex();
+        updGuts().subsysIndex = getDefaultSubsystem().getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
         (void)realizeTopology();
@@ -529,22 +527,21 @@ int MyPendulumGuts::realizeTopologyImpl(State& s) const {
 
     mgForceIndex = s.allocateCacheEntry(subsysIndex, Stage::Dynamics,
                                              new Value<Real>());
-    System::Guts::realizeTopologyImpl(s);
-    return 0;
-}
-int MyPendulumGuts::realizeModelImpl(State& s) const {
-    System::Guts::realizeModelImpl(s);
-    return 0;
-}
-int MyPendulumGuts::realizeInstanceImpl(const State& s) const {
+
     qerr0 = s.allocateQErr(subsysIndex, 1);
     uerr0 = s.allocateUErr(subsysIndex, 1);
     udoterr0 = s.allocateUDotErr(subsysIndex, 1); // and multiplier
     trigger0 = s.allocateEventTrigger(subsysIndex, Stage::Position, 3);
-    eventId0 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
-    eventId1 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
-    eventId2 = getSystem().getDefaultSubsystem().createEventId(subsysIndex, s);
-    System::Guts::realizeInstanceImpl(s);
+    eventId0 = getSystem().createNewEventId(subsysIndex);
+    eventId1 = getSystem().createNewEventId(subsysIndex);
+    eventId2 = getSystem().createNewEventId(subsysIndex);
+    return 0;
+}
+int MyPendulumGuts::realizeModelImpl(State& s) const {
+    return 0;
+}
+int MyPendulumGuts::realizeInstanceImpl(const State& s) const {
+
     return 0;
 }
 int MyPendulumGuts::realizePositionImpl(const State& s) const {
@@ -562,7 +559,6 @@ int MyPendulumGuts::realizePositionImpl(const State& s) const {
 
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] = 
         s.getTime()-1.495508;
-    System::Guts::realizePositionImpl(s);
     return 0;
 }
 
@@ -576,7 +572,6 @@ int MyPendulumGuts::realizeVelocityImpl(const State& s) const {
 
     // This is the verr() equation.
     s.updUErr(subsysIndex)[0]  = q[0]*u[0] + q[1]*u[1];
-    System::Guts::realizeVelocityImpl(s);
     return 0;
 }
 
@@ -587,7 +582,6 @@ int MyPendulumGuts::realizeDynamicsImpl(const State& s) const {
     Real& mg = Value<Real>::downcast(s.updCacheEntry(subsysIndex, mgForceIndex)).upd();
     // Calculate the force due to gravity.
     mg = m*g;
-    System::Guts::realizeDynamicsImpl(s);
     return 0;
 }
 
@@ -611,7 +605,6 @@ int MyPendulumGuts::realizeAccelerationImpl(const State& s) const {
     qdotdot = udot; // N=identity for this problem
     s.updMultipliers(subsysIndex)[0] = L;
     s.updUDotErr(subsysIndex)[0] = q[0]*udot[0] + q[1]*udot[1] + v2;
-    System::Guts::realizeAccelerationImpl(s);
     return 0;
 }
 

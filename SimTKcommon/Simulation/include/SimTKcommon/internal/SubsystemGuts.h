@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -363,11 +363,6 @@ void realizeSubsystemReport      (const State&) const;
 // The generated geometry will be *appended* to the supplied output vector.
 void calcDecorativeGeometryAndAppend
     (const State&, Stage, Array_<DecorativeGeometry>&) const;
-    
-void createScheduledEvent(const State& state, EventId& eventId) const;
-void createTriggeredEvent(const State& state, EventId& eventId, 
-                            EventTriggerByStageIndex& triggerFunctionIndex,
-                            Stage stage) const;
 
 // These methods are called by the corresponding methods of System.
 // Each subsystem is responsible for defining its own events, and

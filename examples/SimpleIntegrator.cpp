@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -178,11 +178,10 @@ private:
     SomeStuff stuff;
 };
 
-// Define MySystem's constructor so that it creates a MySystemGuts object and
-// a default Subsystem.
-MySystem::MySystem(const SomeStuff& stuff) {
-    adoptSystemGuts(new MySystemGuts(stuff));
-    DefaultSystemSubsystem defsub(*this);
+// Define MySystem's constructor so that it creates a MySystemGuts object for
+// the System handle. There will be one Subsystem automatically created, the
+// DefaultSystemSubsystem.
+MySystem::MySystem(const SomeStuff& stuff) : System(new MySystemGuts(stuff)) {
 }
 //------------------------ END OF OBSCURE BOOKKEEPING --------------------------
 

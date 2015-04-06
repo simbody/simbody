@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from IVM code written by Charles Schwieters          *
  *                                                                            *
@@ -117,27 +117,24 @@ private:
     SimbodyMatterSubtree coupledSubtree; // with the new ancestor
 };
 
-    //////////////////////////////////
-    // SIMBODY MATTER SUBSYSTEM REP //
-    //////////////////////////////////
+//==============================================================================
+//                       SIMBODY MATTER SUBSYSTEM REP
+//==============================================================================
+/* The SimbodyMatterSubsystemRep class owns the tree of MobilizedBodies and 
+their associated computational form inherited from IVM, called RigidBodyNodes. 
+Here we store references to the RigidBodyNodes in a tree structure organized
+in "levels" with level 0 being Ground, level 1 being bodies which are connected 
+to Ground (base bodies), level 2 connected to level 1 and so on. Nodes at the 
+same level are stored together in an array, but the order does not reflect the 
+logical tree structure; that is maintained via parent & children pointers kept 
+in the nodes.
 
-/*
- * The SimbodyMatterSubsystemRep class owns the tree of MobilizedBodies and their
- * associated computational form inherited from IVM, called RigidBodyNodes. 
- * Here we store references to the RigidBodyNodes in a tree structure organized
- * in "levels" with level 0 being Ground, level 1
- * being bodies which are connected to Ground (base bodies), level 2 connected to
- * level 1 and so on. Nodes at the same level are stored together in an array,
- * but the order does not reflect the logical tree structure; that is maintained
- * via parent & children pointers kept in the nodes.
- *
- * Access to mobilized body information is requested via MobilizedBodyIndex's here,
- * which are small integer indices, rather than via MobilizedBody objects. These
- * integers are used both to index MobilizedBodies and their corresponding
- * RigidBodyNodes. You can get the abstract MobilizedBody corresponding to a
- * MobilizedBodyIndex if you want one, but you should prefer MobilizedBodyIndex's when
- * working at the "Rep" level here.
- */
+Access to mobilized body information is requested here via MobilizedBodyIndex,
+a small integer, rather than via MobilizedBody objects. These integers are used 
+both to index MobilizedBodies and their corresponding RigidBodyNodes. You can 
+get the abstract MobilizedBody corresponding to a MobilizedBodyIndex if you want
+one, but you should prefer MobilizedBodyIndex when working at the "Rep" 
+level here. */
 class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
@@ -152,50 +149,42 @@ public:
 
         // IMPLEMENTATIONS OF SUBSYSTEM::GUTS VIRTUAL METHODS
 
-    // Subsystem::Guts destructor is virtual
-    ~SimbodyMatterSubsystemRep() {
+    ~SimbodyMatterSubsystemRep() override {
         invalidateSubsystemTopologyCache();
         clearTopologyCache(); // should do cache before state
         clearTopologyState();
     }
 
-    SimbodyMatterSubsystemRep* cloneImpl() const {
+    SimbodyMatterSubsystemRep* cloneImpl() const override {
         return new SimbodyMatterSubsystemRep(*this);
     }
 
-    int realizeSubsystemTopologyImpl    (State&) const;
-    int realizeSubsystemModelImpl       (State&) const;
-    int realizeSubsystemInstanceImpl    (const State&) const;
-    int realizeSubsystemTimeImpl        (const State&) const;
-    int realizeSubsystemPositionImpl    (const State&) const;
-    int realizeSubsystemVelocityImpl    (const State&) const;
-    int realizeSubsystemDynamicsImpl    (const State&) const;
-    int realizeSubsystemAccelerationImpl(const State&) const;
-    int realizeSubsystemReportImpl      (const State&) const;
+    int realizeSubsystemTopologyImpl    (State&) const override;
+    int realizeSubsystemModelImpl       (State&) const override;
+    int realizeSubsystemInstanceImpl    (const State&) const override;
+    int realizeSubsystemTimeImpl        (const State&) const override;
+    int realizeSubsystemPositionImpl    (const State&) const override;
+    int realizeSubsystemVelocityImpl    (const State&) const override;
+    int realizeSubsystemDynamicsImpl    (const State&) const override;
+    int realizeSubsystemAccelerationImpl(const State&) const override;
+    int realizeSubsystemReportImpl      (const State&) const override;
 
     int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+       (const State&, Stage, Array_<DecorativeGeometry>&) const override;
 
-    // TODO: these are just unit weights and tolerances. They should be calculated
-    // to be something more reasonable.
+    void calcEventTriggerInfoImpl
+       (const State&, Array_<EventTriggerInfo>&) const override {}
 
-    int calcQUnitWeightsImpl(const State& s, Vector& weights) const;
-    int calcUUnitWeightsImpl(const State& s, Vector& weights) const;
-    int calcZUnitWeightsImpl(const State& s, Vector& weights) const {
-        weights.resize(getNZ(s));
-        weights = 1;
-        return 0;
-    }
-    int calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
-        tolerances.resize(getNQErr(s));
-        tolerances = 1;
-        return 0;
-    }
-    int calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
-        tolerances.resize(getNUErr(s));
-        tolerances = 1;
-        return 0;
-    }
+    // One or more of this Subsystem's events has occurred in the given
+    // state. These include initialization, impact, and contact change like
+    // slip-to-stick or normal force sign change. The handler alters the
+    // state (including choosing the contraint active set), so that all
+    // constraint conditions are satisfied.
+    void handleEventsImpl
+       (State&, Event::Cause, const Array_<EventId>& eventIds,
+        const HandleEventsOptions& options, 
+        HandleEventsResults& results) const override;
+
 
         // END OF SUBSYSTEM::GUTS VIRTUALS.
 
@@ -210,9 +199,11 @@ public:
     // The SimbodyMatterSubsystemRep takes over ownership of the child
     // MobilizedBody handle (leaving child as a non-owner reference), and 
     // makes it a child (outboard body) of the indicated parent. The new 
-    // child body's id is returned, and will be greater than the parent's id.
+    // child body's index is returned, and will be greater than the parent's id.
+    MobilizedBodyIndex adoptMobilizedBody(MobilizedBodyIndex parentIndex, 
+                                          MobilizedBody&     child);
 
-    MobilizedBodyIndex adoptMobilizedBody(MobilizedBodyIndex parentIndex, MobilizedBody& child);
+    // Ground counts as a mobilized body.
     int getNumMobilizedBodies() const {return (int)mobilizedBodies.size();}
 
     const MobilizedBody& getMobilizedBody(MobilizedBodyIndex ix) const {
@@ -240,10 +231,12 @@ public:
     void createGroundBody();
 
     const MobilizedBody::Ground& getGround() const {
-        return MobilizedBody::Ground::downcast(getMobilizedBody(MobilizedBodyIndex(0)));
+        return MobilizedBody::Ground::downcast
+                                    (getMobilizedBody(MobilizedBodyIndex(0)));
     }
     MobilizedBody::Ground& updGround() {
-        return MobilizedBody::Ground::updDowncast(updMobilizedBody(MobilizedBodyIndex(0)));
+        return MobilizedBody::Ground::updDowncast
+                                    (updMobilizedBody(MobilizedBodyIndex(0)));
     }
 
 
@@ -410,11 +403,16 @@ public:
     }
 
     // velocity dependent
-    const SpatialVec& getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getTotalCoriolisAcceleration    (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getGyroscopicForce              (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getMobilizerCentrifugalForces   (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getTotalCentrifugalForces       (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getMobilizerCoriolisAcceleration
+       (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getTotalCoriolisAcceleration    
+       (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getGyroscopicForce              
+       (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getMobilizerCentrifugalForces   
+       (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& getTotalCentrifugalForces       
+       (const State&, MobilizedBodyIndex) const;
 
     // PARTICLES TODO
 
@@ -455,9 +453,14 @@ public:
     // This is used by projectQ().
     bool normalizeQuaternions(State& s, Vector& qErrest) const;
 
+    // Project position constraints onto their constraint manifold and remove
+    // corresponding error component from error estimate if supplied.
     int projectQ(State& s, Vector& qErrest, 
                  const ProjectOptions& opts,
                  ProjectResults& results) const;
+
+    // Project velocity constraints onto their constraint manifold and remove
+    // corresponding error component from error estimate if supplied.
     int projectU(State& s, Vector& uErrest, 
                  const ProjectOptions& opts,
                  ProjectResults& results) const;
@@ -932,7 +935,7 @@ public:
     void realizeY(const State&) const;
 
     const RigidBodyNode& getRigidBodyNode(MobilizedBodyIndex nodeNum) const {
-        const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
+        const RigidBodyNodeId& ix = nodeNum2NodeMap[nodeNum];
         return *rbNodeLevels[ix.level][ix.offset];
     }
 
@@ -1245,11 +1248,20 @@ public:
     // a properly-zeroed unpackedFreeU.
     void zeroKnownU(const State& s, Vector& ulike) const;
 
+    // Event handlers for the various types of events we're prepared to
+    // deal with in this Subsystem.
+    void initializationHandler
+       (State&, const HandleEventsOptions&, HandleEventsResults&) const;
+    void impactHandler
+       (State&, const HandleEventsOptions&, HandleEventsResults&) const;
+    void contactHandler
+       (State&, const HandleEventsOptions&, HandleEventsResults&) const;
+
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;
 
-    struct RigidBodyNodeIndex {
-        RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }
+    struct RigidBodyNodeId {
+        RigidBodyNodeId(int l, int o) : level(l), offset(o) { }
         int level, offset;
     };
 
@@ -1263,6 +1275,9 @@ private:
     // The handles in this array are the owners of the MobilizedBodies after they
     // are adopted. The MobilizedBodyIndex (converted to int) is the index of a
     // MobilizedBody in this array.
+
+    // TODO: why are these pointers?
+
     Array_<MobilizedBody*,MobilizedBodyIndex>               mobilizedBodies;
     // Constraints are treated similarly.
     Array_<Constraint*,ConstraintIndex>                     constraints;
@@ -1295,7 +1310,7 @@ private:
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     Array_<RBNodePtrList>      rbNodeLevels;
     // Map nodeNum (a.k.a. MobilizedBodyIndex) to (level,offset).
-    Array_<RigidBodyNodeIndex,MobilizedBodyIndex> nodeNum2NodeMap;
+    Array_<RigidBodyNodeId,MobilizedBodyIndex> nodeNum2NodeMap;
 
         // Constraints
 
@@ -1369,6 +1384,10 @@ private:
     
     // Specifies whether default decorative geometry should be shown.
     bool showDefaultGeometry;
+
+    // These are IDs of events used for conditional constraints.
+    EventId         m_impactEventId;
+    EventId         m_contactEventId;
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012 Stanford University and the Authors.           *
+ * Portions copyright (c) 2012-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Ian Stavness                                     *
  * Contributors: Andreas Scholz                                               *
  *                                                                            *
@@ -263,8 +263,8 @@ realizeTopology(State& state) {
     const int nSurfaces = instInfo.getNumSurfaceObstacles();
     mapEventIdToObstacle.clear(); // this is an std::map, not an array
     for (SurfaceObstacleIndex sox(0); sox < nSurfaces; ++sox) {
-        const EventId id = cables->getSystem().getDefaultSubsystem()
-                           .createEventId(cables->getMySubsystemIndex(), state);
+        const EventId id = cables->getSystem()
+                                .createNewEventId(cables->getMySubsystemIndex());
         mapEventIdToObstacle[id] = instInfo.mapSurfaceToObstacle[sox];
     }
 

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -34,10 +34,9 @@
 
 namespace SimTK {
 
-
-    //////////////////////
-    // MULTIBODY SYSTEM //
-    //////////////////////
+//==============================================================================
+//                            MULTIBODY SYSTEM
+//==============================================================================
 
 /*static*/ bool 
 MultibodySystem::isInstanceOf(const System& s) {
@@ -64,25 +63,20 @@ MultibodySystem::updRep() {
 }
 
 // Create generic multibody system by default.
-MultibodySystem::MultibodySystem() {
-    adoptSystemGuts(new MultibodySystemRep());
-    DefaultSystemSubsystem defsub(*this); // This invokes adoptSubsystem().
+MultibodySystem::MultibodySystem() : System(new MultibodySystemRep()) {
     updRep().setGlobalSubsystem();
 }
 
 MultibodySystem::MultibodySystem(SimbodyMatterSubsystem& m)
+:   System(new MultibodySystemRep())
 {
-    adoptSystemGuts(new MultibodySystemRep());
-    DefaultSystemSubsystem defsub(*this); // This invokes adoptSubsystem().
     updRep().setGlobalSubsystem();
     setMatterSubsystem(m);
 }
 
 // This is a protected constructor for use by derived classes which
 // allocate a more specialized MultibodySystemRep.
-MultibodySystem::MultibodySystem(MultibodySystemRep* rp) {
-    adoptSystemGuts(rp);
-    DefaultSystemSubsystem defsub(*this); // This invokes adoptSubsystem().
+MultibodySystem::MultibodySystem(MultibodySystemRep* rp) : System(rp) {
     updRep().setGlobalSubsystem();
 }
 
@@ -170,11 +164,14 @@ MultibodySystem::updMobilityForces(const State& s, Stage g) const {
     return getRep().updMobilityForces(s,g);
 }
 
+//==============================================================================
+//                          MULTIBODY SYSTEM REP
+//==============================================================================
 
-    //////////////////////////
-    // MULTIBODY SYSTEM REP //
-    //////////////////////////
 
+//------------------------------------------------------------------------------
+//                          REALIZE TOPOLOGY IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeTopologyImpl(State& s) const {
     assert(globalSub.isValid());
     assert(matterSub.isValid());
@@ -192,6 +189,11 @@ int MultibodySystemRep::realizeTopologyImpl(State& s) const {
 
     return 0;
 }
+
+
+//------------------------------------------------------------------------------
+//                            REALIZE MODEL IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeModelImpl(State& s) const {
 
     // Here it is essential to do the Matter subsystem first because the
@@ -207,6 +209,11 @@ int MultibodySystemRep::realizeModelImpl(State& s) const {
 
     return 0;
 }
+
+
+//------------------------------------------------------------------------------
+//                          REALIZE INSTANCE IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemInstance(s);
     getMatterSubsystem().getRep().realizeSubsystemInstance(s);
@@ -218,6 +225,10 @@ int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
 
     return 0;
 }
+
+//------------------------------------------------------------------------------
+//                            REALIZE TIME IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeTimeImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemTime(s);
     getMatterSubsystem().getRep().realizeSubsystemTime(s);
@@ -229,6 +240,10 @@ int MultibodySystemRep::realizeTimeImpl(const State& s) const {
 
     return 0;
 }
+
+//------------------------------------------------------------------------------
+//                          REALIZE POSITION IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizePositionImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemPosition(s);
     getMatterSubsystem().getRep().realizeSubsystemPosition(s);
@@ -240,6 +255,11 @@ int MultibodySystemRep::realizePositionImpl(const State& s) const {
 
     return 0;
 }
+
+
+//------------------------------------------------------------------------------
+//                          REALIZE VELOCITY IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeVelocityImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemVelocity(s);
     getMatterSubsystem().getRep().realizeSubsystemVelocity(s);
@@ -251,6 +271,11 @@ int MultibodySystemRep::realizeVelocityImpl(const State& s) const {
 
     return 0;
 }
+
+
+//------------------------------------------------------------------------------
+//                          REALIZE DYNAMICS IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemDynamics(s);
     if (hasContactSubsystem())
@@ -268,6 +293,11 @@ int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
 
     return 0;
 }
+
+
+//------------------------------------------------------------------------------
+//                        REALIZE ACCELERATION IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemAcceleration(s);
 
@@ -287,6 +317,11 @@ int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
 
     return 0;
 }
+
+
+//------------------------------------------------------------------------------
+//                          REALIZE REPORT IMPL
+//------------------------------------------------------------------------------
 int MultibodySystemRep::realizeReportImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemReport(s);
 
@@ -301,9 +336,9 @@ int MultibodySystemRep::realizeReportImpl(const State& s) const {
 }
 
 
-    ///////////////////////////////////////
-    // MULTIBODY SYSTEM GLOBAL SUBSYSTEM //
-    ///////////////////////////////////////
+//==============================================================================
+//                    MULTIBODY SYSTEM GLOBAL SUBSYSTEM
+//==============================================================================
 
 
 /*static*/ bool 
@@ -323,11 +358,13 @@ MultibodySystemGlobalSubsystem::updDowncast(Subsystem& s) {
 
 const MultibodySystemGlobalSubsystemRep& 
 MultibodySystemGlobalSubsystem::getRep() const {
-    return SimTK_DYNAMIC_CAST_DEBUG<const MultibodySystemGlobalSubsystemRep&>(getSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<const MultibodySystemGlobalSubsystemRep&>
+                                                        (getSubsystemGuts());
 }
 MultibodySystemGlobalSubsystemRep&       
 MultibodySystemGlobalSubsystem::updRep() {
-    return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemGlobalSubsystemRep&>(updSubsystemGuts());
+    return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemGlobalSubsystemRep&>
+                                                        (updSubsystemGuts());
 }
 
 

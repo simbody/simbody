@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2009-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -238,8 +238,7 @@ private:
 
 class TestSystem : public System {
 public:
-    TestSystem() {
-        adoptSystemGuts(new TestSystemGuts());
+    TestSystem() : System(new TestSystemGuts()) {
         adoptSubsystem(updGuts().updSystemSubsystem());
     }
 

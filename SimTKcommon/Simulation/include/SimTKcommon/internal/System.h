@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -155,7 +155,7 @@ this and just take the default.
 For example, a model of a small toy car expressed in MKS units might set this to 
 0.01 (1 cm). The default for this is 1 length unit, meaning 1 meter in MKS and 1 
 nm in MD units. **/
-System& setDefaultLengthScale(Real lc);
+System& setDefaultLengthScale(Real unitLength);
 
 /** This determines whether this System wants to be notified whenever time
 advances irreversibly. If set true, time advancement is treated as an
@@ -215,7 +215,7 @@ realizeTopology() method is called at the end of construction, allocating
 resources, performing computations, and creating a default State, with all
 results stored in a cache that is maintained by the %System itself. The other 
 realize() methods are given a State object to work with and store their results 
-in that State object without making any changes to the %System. **/
+in the cache of that State object without making any changes to the %System. **/
 /**@{**/
 
 /** The following call must be made after any topological change has been 
@@ -591,8 +591,8 @@ void handleEvents(State&                        state,
                   HandleEventsResults&          results) const;
     
 /** This method is similar to handleEvents(), but does not allow the State 
-to be modified.  It is used for scheduled events that were marked as 
-being reports. **/
+to be modified.  It is used for scheduled or triggered events that were marked 
+as being reports. **/
 void reportEvents(const State&                  state, 
                   Event::Cause                  cause, 
                   const Array_<EventId>&        eventIds) const;
@@ -625,6 +625,25 @@ void calcTimeOfNextScheduledReport(const State&     state,
                                    Real&            tNextEvent, 
                                    Array_<EventId>& eventIds, 
                                    bool             includeCurrentTime) const;
+
+/** When called during realizeTopology(), this creates a new EventId that is 
+unique for this %System, and assigns ownership of it to a particular Subsystem. 
+Later if an event occurs that is associated with this EventId, the owning 
+subsystem will be notifed. Typically one EventId is needed for each unique event
+handler in the %System. Many different witness functions or other causes may map
+to the same EventId.
+
+An EventId is a unique positive integer starting from 1 at the start of the
+%System's realizeTopology() call, and increasing from there, with room for at 
+least a billion. Generally there will only be a few of these needed so we don't 
+expect ever to run out -- they do not represent individual event occurrences, 
+but rather the different *types* of events that can occur. **/
+EventId createNewEventId(SubsystemIndex index) const;
+
+/** Given an EventId that was returned by createNewEventId() sometime in the
+past, report which Subsystem owns it. An unrecognized EventId will return
+an invalid SubsystemIndex. The lookup takes constant time. **/
+SubsystemIndex findEventIdOwner(EventId id) const;
 /**@}**/
 
 
@@ -776,8 +795,8 @@ int getNumReportEventCalls() const;
 These methods are mostly for use by concrete Systems and will not typically
 be of interest to users. **/
 /**@{**/
-/** Default constructor creates an empty handle. **/
-System() : guts(0) { }
+// No default constructor; must supply a System::Guts object.
+System() = delete;
 /** Copy constructor (untested). **/
 System(const System&);
 /** Copy assignment (untested). **/
@@ -875,13 +894,7 @@ refers. You should then dynamic_cast the returned reference to a reference to
 your concrete Guts class. **/
 Guts&       updSystemGuts()       {assert(guts); return *guts;}
 
-/** Put new \e unowned Guts into this *empty* handle and take over ownership.
-If this handle is already in use, or if Guts is already owned this
-routine will throw an exception. **/
-void adoptSystemGuts(System::Guts* g);
 
-/** Constructor for internal use only. **/
-explicit System(System::Guts* g) : guts(g) { }
 /** Return true if this %System handle is not empty. **/
 bool hasGuts() const {return guts!=0;}
 
@@ -891,22 +904,40 @@ bool isOwnerHandle() const;
 bool isEmptyHandle() const;
 /**@}**/
 
+protected:
+/** Put new *unowned* System::Guts object into a new System handle which takes
+over ownership. If Guts is already owned by some other System handle this
+routine will throw an exception. Also, Guts must not yet contain any 
+subsystems because we need to put the Default Subsystem in the 0th slot. **/
+explicit System(System::Guts* g) : guts(nullptr) {
+    adoptSystemGuts(g);
+}
+
 private:
+// Put new unowned Guts into this *empty* handle and take over ownership. Add
+// the Default Subsystem as the 0th subsystem entry.
+void adoptSystemGuts(System::Guts* g);
+
 friend class Guts;
 // This is the only data member in this class. Also, any class derived from
 // System must have *NO* data members at all (data goes in the Guts class).
 Guts*   guts;
 };
 
-
+//==============================================================================
+//                         DEFAULT SYSTEM SUBSYSTEM
+//==============================================================================
 /** This is a concrete Subsystem that is part of every System.\ It provides a 
-variety of services for the System, such as maintaining lists of event handlers
-and reporters, and acting as a source of globally unique event IDs. 
+variety of services for the System, such as maintaining lists of event 
+handlers and reporters.  
 
 To obtain the default subsystem for a System, call getDefaultSubsystem() or 
 updDefaultSubsystem() on it. Also, a System can be implicitly converted
 to a Subsystem, in which case it actually returns a reference to
-this Subsystem. **/
+this subsystem. At each Stage, this subsystem is realized *last*, after all
+other subsystems. That way if witness functions defined here to trigger
+events depend on computations done in other subsystems, those computations
+will have been completed by the time they are needed. **/
 class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
     explicit DefaultSystemSubsystem(System& sys);
@@ -914,11 +945,6 @@ public:
     void addEventHandler(TriggeredEventHandler* handler);
     void addEventReporter(ScheduledEventReporter* handler) const;
     void addEventReporter(TriggeredEventReporter* handler) const;
-    EventId createEventId(SubsystemIndex subsys, const State& state) const;
-    void findSubsystemEventIds
-       (SubsystemIndex subsys, const State& state, 
-        const Array_<EventId>& allEvents, 
-        Array_<EventId>& eventsForSubsystem) const;
 
     /** @cond **/  // don't let doxygen see this private class
     class Guts;

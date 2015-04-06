@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2014 Stanford University and the Authors.           *
+ * Portions copyright (c) 2014-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -31,6 +31,8 @@
 #include "simbody/internal/MobilizedBody.h"
 
 namespace SimTK {
+
+class SimbodyMatterSubsystem;
 
 /** TODO: Simbody model element representing a conditionally-enforced 
 constraint.
@@ -219,11 +221,54 @@ public:
     virtual void setInstanceParameter(State& state, const Vec3& pos) const {}
 
 
-    void setMyIndex(UnilateralContactIndex cx) {m_myIx = cx;}
-    UnilateralContactIndex getMyIndex() const {return m_myIx;}
+    void realizeTopology(State& state) const {
+        auto mThis = const_cast<UnilateralContact*>(this);
+        auto& matter = getMatterSubsystem();
+        //mThis->m_posWitness = m_matter->allocateEventTriggersByStage
+        //                                        (state, Stage::Position, 1);
+        //mThis->m_velWitness = m_matter->allocateEventTriggersByStage
+        //                                        (state, Stage::Velocity, 1);
+        //mThis->m_accWitness = m_matter->allocateEventTriggersByStage
+        //                                        (state, Stage::Acceleration, 1);
+        //mThis->m_frcWitness = m_matter->allocateEventTriggersByStage
+        //                                        (state, Stage::Acceleration, 1);
+
+        realizeTopologyVirtual(state); // delegate to derived class
+    }
+
+    virtual void realizeTopologyVirtual     (State&)        const {}
+    virtual void realizeModelVirtual        (State&)        const {}
+    virtual void realizeInstanceVirtual     (const State&)  const {}
+    virtual void realizeTimeVirtual         (const State&)  const {}
+    virtual void realizePositionVirtual     (const State&)  const {}
+    virtual void realizeVelocityVirtual     (const State&)  const {}
+    virtual void realizeDynamicsVirtual     (const State&)  const {}
+    virtual void realizeAccelerationVirtual (const State&)  const {}
+    virtual void realizeReportVirtual       (const State&)  const {}
+
+    void setMyMatterSubsystem(SimbodyMatterSubsystem&   matter,
+                              UnilateralContactIndex    myIndex) 
+    {   m_matter = &matter; m_myIx = myIndex; }
+
+    const SimbodyMatterSubsystem& getMatterSubsystem() const
+    {   assert(m_matter); return *m_matter; }
+    UnilateralContactIndex getMyIndex() const
+    {   assert(m_matter); return m_myIx; }
 private:
-    Real                    m_sign; // 1 or -1
-    UnilateralContactIndex  m_myIx;
+    const Real                  m_sign; // 1 or -1
+
+    ReferencePtr<SimbodyMatterSubsystem>    m_matter;
+    UnilateralContactIndex                  m_myIx;
+
+    // One of these three witnesses is watching when the normal constraint is 
+    // *not* active.
+    EventTriggerByStageIndex    m_posWitness; // + -> -, Impact
+    EventTriggerByStageIndex    m_velWitness; // pos<tol, + -> -, Impact
+    EventTriggerByStageIndex    m_accWitness; // pos,vel<tol, + -> -, Contact
+
+    // The force (multiplier) witness is active whenever the normal constraint
+    // *is* active.
+    EventTriggerByStageIndex    m_frcWitness; // + -> -, break Contact
 };
 
 //==============================================================================

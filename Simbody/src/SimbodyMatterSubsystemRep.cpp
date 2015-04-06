@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from IVM code written by Charles Schwieters          *
  *                                                                            *
@@ -42,8 +42,9 @@
 #include <iostream>
 using std::cout; using std::endl;
 
-SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep& src)
-  : SimTK::Subsystem::Guts("SimbodyMatterSubsystemRep", "X.X.X")
+SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep
+   (const SimbodyMatterSubsystemRep& src)
+:   SimTK::Subsystem::Guts("SimbodyMatterSubsystemRep", "X.X.X")
 {
     assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }
@@ -153,7 +154,7 @@ adoptUnilateralContact(UnilateralContact* child) {
     uniContacts.push_back(child); // grow
 
     // Tell the contact object its index within the matter subsystem.
-    child->setMyIndex(ucx);
+    child->setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), ucx);
     return ucx;
 }
 
@@ -243,6 +244,74 @@ SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBo
   return getRigidBodyNode(body).getTotalCentrifugalForces(getDynamicsCache(s));
 }
 
+//==============================================================================
+//                               HANDLE EVENTS
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+handleEventsImpl(State&                     s, 
+                 Event::Cause               cause, 
+                 const Array_<EventId>&     eventIds,
+                 const HandleEventsOptions& options, 
+                 HandleEventsResults&       results) const 
+{
+    if (cause == Event::Cause::Initialization) {
+        initializationHandler(s, options, results);
+        return;
+    }
+
+    if (cause != Event::Cause::Triggered)
+        return; // ignore other events
+
+    // A triggered event. Impacts take priority over contact changes.
+    for (auto eid : eventIds)
+        if (eid == m_impactEventId) {
+            impactHandler(s, options, results);
+            return;
+        }
+
+    // If no impact event look for a contact event.
+    for (auto eid : eventIds)
+        if (eid == m_contactEventId) {
+            contactHandler(s, options, results);
+            return;
+        }
+
+    // No recognizable events; do nothing.   
+}
+
+//==============================================================================
+//                          INITIALIZATION HANDLER
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+initializationHandler(State&                        s, 
+                      const HandleEventsOptions&    options, 
+                      HandleEventsResults&          results) const
+{
+    printf("INITIALIZATION HANDLER@t=%.15g\n", s.getTime());
+}
+
+//==============================================================================
+//                              IMPACT HANDLER
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+impactHandler(State&                        s, 
+              const HandleEventsOptions&    options, 
+              HandleEventsResults&          results) const
+{
+    printf("IMPACT HANDLER@t=%.15g\n", s.getTime());
+}
+
+//==============================================================================
+//                              CONTACT HANDLER
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+contactHandler(State&                        s, 
+               const HandleEventsOptions&    options, 
+               HandleEventsResults&          results) const
+{
+    printf("CONTACT HANDLER@t=%.15g\n", s.getTime());
+}
+
 
 
 //==============================================================================
@@ -256,6 +325,10 @@ SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBo
 void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     if (subsystemTopologyHasBeenRealized()) 
         return; // already done
+
+    // Reserve some EventIds for interesting events.
+    m_impactEventId  = updSystem().createNewEventId(getMySubsystemIndex());
+    m_contactEventId = updSystem().createNewEventId(getMySubsystemIndex());
 
     // This creates a RigidBodyNode owned by the the Topology cache of each 
     // MobilizedBody. Each RigidBodyNode lists as its parent the RigidBodyNode
@@ -284,7 +357,7 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
             rbNodeLevels.resize(level+1); // make room for the new level
         const int nodeIndexWithinLevel = rbNodeLevels[level].size();
         rbNodeLevels[level].push_back(&n);
-        nodeNum2NodeMap.push_back(RigidBodyNodeIndex(level, nodeIndexWithinLevel));
+        nodeNum2NodeMap.push_back(RigidBodyNodeId(level, nodeIndexWithinLevel));
 
         // Count up multibody tree totals.
         const int ndof = n.getDOF();
@@ -327,6 +400,12 @@ void SimbodyMatterSubsystemRep::endConstruction(State& s) {
         }
         */
     }
+
+    for (UnilateralContactIndex ucx(0); ucx < getNumUnilateralContacts(); ++ucx) {
+        const UnilateralContact& uc = getUnilateralContact(ucx);
+        uc.realizeTopology(s);
+    }
+
 }
 
 int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
@@ -1389,21 +1468,6 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
         assert(getStage(s) >= stage);
     }
 
-    return 0;
-}
-
-// TODO: the weight for u_i should be something like the largest Dv_j/Du_i in 
-// the system Jacobian, where v_j is body j's origin speed, with a lower limit
-// given by length scale (e.g. 1 unit).
-// Then the q_i weight should be obtained via dq = N*du.
-int SimbodyMatterSubsystemRep::calcQUnitWeightsImpl(const State& s, Vector& weights) const {
-    weights.resize(getNQ(s));
-    weights = 1;
-    return 0;
-}
-int SimbodyMatterSubsystemRep::calcUUnitWeightsImpl(const State& s, Vector& weights) const {
-    weights.resize(getNU(s));
-    weights = 1;
     return 0;
 }
 

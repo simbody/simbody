@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -38,44 +38,42 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
+#include <unordered_map>
+
 namespace SimTK {
 
 class System::Guts::GutsRep {
 public:
 
     GutsRep(const String& name, const String& version) 
-      : systemName(name), 
-        systemVersion(version), 
-        myHandle(0), 
+      : myHandle(nullptr), 
+        systemName(name), systemVersion(version),
         defaultTimeScale(Real(0.1)), 
         defaultLengthScale(Real(1)),
         defaultUpDirection(YAxis), 
         useUniformBackground(false),
         hasTimeAdvancedEventsFlag(false),
-        systemTopologyRealized(false), 
-        topologyCacheVersion(1) // not zero
-
+        topologyCacheVersion(1) // zero isn't allowed
     {
+        clearCache();
         resetAllCounters();
     }
 
     // Default constructor invokes the one above.
-    GutsRep() : defaultUpDirection(YAxis)
-    {   new (this) GutsRep("<NONAME>", "2.2.0"); }
+    GutsRep() : GutsRep("<NONAME>", "2.2.0") {}
 
     GutsRep(const GutsRep& src)
-    :   systemName(src.systemName),
-        systemVersion(src.systemVersion),
+    :   myHandle(nullptr),
+        systemName(src.systemName), systemVersion(src.systemVersion),
         subsystems(src.subsystems),
-        myHandle(0),
         defaultTimeScale(src.defaultTimeScale),
         defaultLengthScale(src.defaultLengthScale),
         defaultUpDirection(src.defaultUpDirection), 
         useUniformBackground(src.useUniformBackground),
         hasTimeAdvancedEventsFlag(src.hasTimeAdvancedEventsFlag),
-        systemTopologyRealized(false),
         topologyCacheVersion(src.topologyCacheVersion)
     {
+        clearCache();
         resetAllCounters();
     }
 
@@ -112,7 +110,7 @@ public:
 
     // Take over ownership from the Subsystem handle, allocate a new
     // subsystem slot for it, and return the slot number. This is only 
-    // allowed if the supplied Subsytem already has a rep, but is
+    // allowed if the supplied Subsystem already has a rep, but is
     // NOT part of some other System.
     SubsystemIndex adoptSubsystem(Subsystem& child) {
         assert(child.hasGuts() && !child.isInSystem()); // TODO
@@ -134,8 +132,7 @@ public:
     }
 
     void setMyHandle(System& h) {myHandle = &h;}
-    void clearMyHandle() {myHandle=0;}
-
+    void clearMyHandle() {myHandle=nullptr;}
 
     bool systemTopologyHasBeenRealized() const 
     {   return systemTopologyRealized; }
@@ -144,8 +141,11 @@ public:
     {   return topologyCacheVersion; }
 
     // Use this cautiously if at all!
-    void setSystemTopologyCacheVersion(StageVersion version) const
-    {   assert(version>0); topologyCacheVersion = version; }
+    void setSystemTopologyCacheVersion(StageVersion version) const {
+        assert(version>0); 
+        auto mThis = const_cast<System::Guts::GutsRep*>(this);
+        mThis->topologyCacheVersion = version; 
+    }
 
     // Invalidating the System topology cache requires invalidating all
     // Subsystem topology caches also so that the next realizeTopology()
@@ -153,34 +153,60 @@ public:
     // build up the defaultState.
     void invalidateSystemTopologyCache() const {
         if (systemTopologyRealized) {
-            // Mark system topology invalid *first* so that the invalidate
-            // subsystem calls below don't recurse back here!
-            systemTopologyRealized = false;
-            topologyCacheVersion++;
-            defaultState.clear();
-
-            for (SubsystemIndex i(0); i < (int)subsystems.size(); ++i)
-                subsystems[i].invalidateSubsystemTopologyCache();
+            auto mThis = const_cast<System::Guts::GutsRep*>(this);
+            mThis->invalidateCache();
         }
     }
 
-protected:
-    String systemName;
-    String systemVersion;
-    StableArray<Subsystem> subsystems;
+    // This is a Topology-stage computation to be invoked only from
+    // realizeTopology() calls.
+    EventId createNewEventId(SubsystemIndex ssx) const {
+        auto mThis = const_cast<System::Guts::GutsRep*>(this);
+        mThis->eventOwnerMap[nextAvailableEventId] = ssx;
+        return mThis->nextAvailableEventId++;
+    }
+
+    SubsystemIndex findEventIdOwner(EventId id) const {
+        auto owner = eventOwnerMap.find(id);
+        if (owner == eventOwnerMap.end())
+            return SubsystemIndex(); // invalid
+        return owner->second;
+    }
 
 private:
-    friend class System;
-    friend class System::Guts;
-    System* myHandle;     // the owner handle of these guts
+friend class System;
+friend class System::Guts;
+
+    void invalidateCache() {
+        // Mark system topology invalid *first* so that the invalidate
+        // subsystem calls below don't recurse back here!
+        clearCache();
+        for (SubsystemIndex i(0); i < (int)subsystems.size(); ++i)
+            subsystems[i].invalidateSubsystemTopologyCache();
+    }
+
+    void clearCache() {
+        // Mark system topology invalid *first* so that the invalidate
+        // subsystem calls below don't recurse back here!
+        systemTopologyRealized = false;
+        topologyCacheVersion++;
+        defaultState.clear();
+        nextAvailableEventId = EventId(1);
+        eventOwnerMap.clear();
+    }
+    
+    System*                 myHandle;     // the owner handle of these guts
+
+    String                  systemName, systemVersion;
+    StableArray<Subsystem>  subsystems;
 
         // TOPOLOGY STAGE STATE //
 
-    Real                defaultTimeScale;       // scaling hints
-    Real                defaultLengthScale;
+    Real                    defaultTimeScale;       // scaling hints
+    Real                    defaultLengthScale;
 
-    CoordinateDirection defaultUpDirection;     // visualization hint
-    bool                useUniformBackground;   // visualization hint
+    CoordinateDirection     defaultUpDirection;     // visualization hint
+    bool                    useUniformBackground;   // visualization hint
 
     bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
        
@@ -191,13 +217,23 @@ private:
     // completed realizeTopology(). Anything which invalidates topology for
     // one of the contained subsystem must invalidate topology for the system
     // as a whole also.
-    mutable bool            systemTopologyRealized;
-    mutable StageVersion    topologyCacheVersion;
+    bool                    systemTopologyRealized;
+    StageVersion            topologyCacheVersion;
 
     // This is only meaningful if systemTopologyRealized==true. In that case
     // its Topology stage version will match the above. A State with a different
     // Topology version cannot be used with this Subsystem.
-    mutable State           defaultState;
+    State                   defaultState;
+
+    // A hash function class for EventIds.
+    struct EventIdHash {
+        std::hash<int>::result_type operator()(EventId eid) const 
+        {   return std::hash<int>()((int)eid); }
+    };
+    // This is initialized to EventId(1) whenever Topology is invalidated.
+    EventId                 nextAvailableEventId;
+    std::unordered_map<EventId, SubsystemIndex, EventIdHash>  
+                            eventOwnerMap;
 
         // STATISTICS //
     mutable int nRealizationsOfStage[Stage::NValid];

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -170,7 +170,8 @@ public:
     void calcDecorativeGeometryAndAppend(const State&, Stage, 
                                          Array_<DecorativeGeometry>&) const;
 
-
+    EventId createNewEventId(SubsystemIndex index) const;
+    SubsystemIndex findEventIdOwner(EventId id) const;
 protected:
     Guts(const Guts&);  // copies the base class; for use from derived class copy constructors
     

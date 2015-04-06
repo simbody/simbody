@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -143,53 +143,6 @@ void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
             getSystem().getSystemGuts().invalidateSystemTopologyCache();
     }
 }
-
-
-//------------------------------------------------------------------------------
-//                         CREATE SCHEDULED EVENT
-//------------------------------------------------------------------------------
-/*
- * A Subsystem should invoke this method during Instance stage for each 
- * scheduled event it defines.
- * It allocates a global event ID for the event, and registers that ID as 
- * belonging to this Subsystem.
- * 
- * @param state     the State which is being realized
- * @param eventId   on exit, the newly allocated event ID is stored here
- */
-void Subsystem::Guts::
-createScheduledEvent(const State& state, EventId& eventId) const {
-    eventId = getSystem().getDefaultSubsystem()
-                         .createEventId(getMySubsystemIndex(), state);
-}
-
-//------------------------------------------------------------------------------
-//                         CREATE TRIGGERED EVENT
-//------------------------------------------------------------------------------
-/*
- * A Subsystem should invoke this method during Instance stage for each 
- * triggered event it defines. It allocates a global event ID for the event, 
- * registers that ID as belonging to this Subsystem, and allocates space in the
- * State for the event trigger function.
- * 
- * @param state     the State which is being realized
- * @param eventId   on exit, the newly allocated event ID is stored here
- * @param triggerFunctionIndex  
- *      on exit, the index corresponding to the event's trigger function
- *      is stored here (this is a local, per-Subsystem, per-Stage index)
- * @param stage     the Stage at which the event will be evaluated
- */
-void Subsystem::Guts::
-createTriggeredEvent(const State& state, EventId& eventId, 
-                     EventTriggerByStageIndex& triggerFunctionIndex, 
-                     Stage stage) const 
-{
-    eventId = getSystem().getDefaultSubsystem()
-                         .createEventId(getMySubsystemIndex(), state);
-    triggerFunctionIndex = 
-        state.allocateEventTrigger(getMySubsystemIndex(), stage, 1);
-}
-
 
     // wrappers for Subsystem::Guts virtuals
 
