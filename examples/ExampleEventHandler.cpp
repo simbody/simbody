@@ -31,7 +31,7 @@ using namespace SimTK;
 class BounceHandler : public TriggeredEventHandler {
 public:
     BounceHandler() : TriggeredEventHandler(Stage::Position) {
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
     Real getValue(const State& state) const {
         return state.getQ()[0];

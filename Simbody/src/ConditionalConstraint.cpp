@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2014 Stanford University and the Authors.           *
+ * Portions copyright (c) 2014-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -28,7 +28,27 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 
 
-namespace SimTK {
+using namespace SimTK;
+
+//==============================================================================
+//                             UNILATERAL CONTACT
+//==============================================================================
+void UnilateralContact::realizeTopology(State& state) const {
+    auto mThis = const_cast<UnilateralContact*>(this);
+    auto& matter = getMatterSubsystem();
+    const SubsystemIndex matterIx = matter.getMySubsystemIndex();
+
+    mThis->m_posWitness = state.allocateEventTrigger
+                                        (matterIx, Stage::Position, 1);
+    mThis->m_velWitness = state.allocateEventTrigger
+                                        (matterIx, Stage::Velocity, 1);
+    mThis->m_accWitness = state.allocateEventTrigger
+                                        (matterIx, Stage::Acceleration, 1);
+    mThis->m_frcWitness = state.allocateEventTrigger
+                                        (matterIx, Stage::Acceleration, 1);
+
+    realizeTopologyVirtual(state); // delegate to derived class
+}
 
 //==============================================================================
 //                           HARD STOP UPPER / LOWER
@@ -572,6 +592,4 @@ getFrictionMultiplierIndices(const State&       s,
     ix_y = MultiplierIndex(vx0+1);
 }
 
-
-} // namespace SimTK
 

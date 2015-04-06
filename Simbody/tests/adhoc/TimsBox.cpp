@@ -850,7 +850,7 @@ public:
         m_stage(stage)
     { 
         // Trigger only as height goes from positive to negative.
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function.
@@ -957,7 +957,7 @@ public:
     :   TriggeredEventHandler(Stage::Acceleration), 
         m_mbs(system), m_unis(unis), m_which(which)
     { 
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function.
@@ -1411,7 +1411,7 @@ public:
     :   TriggeredEventHandler(Stage::Velocity), 
         m_mbs(system), m_unis(unis), m_which(which)
     { 
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function.
@@ -1464,7 +1464,7 @@ public:
     :   TriggeredEventHandler(Stage::Acceleration), 
         m_mbs(system), m_unis(unis), m_which(which)
     {
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function. It is positive as long as mu_s*N is greater

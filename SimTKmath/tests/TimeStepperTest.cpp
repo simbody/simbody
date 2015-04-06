@@ -38,7 +38,7 @@ public:
     static int eventCount;
     static Real lastEventTime;
     ZeroVelocityHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
-        getTriggerInfo().setTriggerOnFallingSignTransition(false);
+        updTriggerInfo().setTriggerOnFallingSignTransition(false);
     }
     Real getValue(const State& state) const {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];

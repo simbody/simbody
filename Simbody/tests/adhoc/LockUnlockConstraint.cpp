@@ -275,7 +275,7 @@ public:
         m_system(system), m_mobod(mobod), m_lockangle(lockangle), m_lock(lock), 
         m_low(low), m_high(high)
     { 
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     const Array_<Real>& getOffTimes() const {return m_offTimes;}

@@ -898,7 +898,7 @@ public:
     :   TriggeredEventHandler(Stage::Velocity), 
         m_mbs(system), m_unis(unis), m_which(which)
     { 
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function. It is positive as long as we continue
@@ -962,7 +962,7 @@ public:
     :   TriggeredEventHandler(Stage::Acceleration), 
         m_mbs(system), m_unis(unis), m_which(which)
     {
-        getTriggerInfo().setTriggerOnRisingSignTransition(false);
+        updTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function. It is positive as long as mu_s*N is greater

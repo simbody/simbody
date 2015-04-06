@@ -220,21 +220,8 @@ public:
     this should be the same Vec3 you got from getPositionInfo(). **/
     virtual void setInstanceParameter(State& state, const Vec3& pos) const {}
 
-
-    void realizeTopology(State& state) const {
-        auto mThis = const_cast<UnilateralContact*>(this);
-        auto& matter = getMatterSubsystem();
-        //mThis->m_posWitness = m_matter->allocateEventTriggersByStage
-        //                                        (state, Stage::Position, 1);
-        //mThis->m_velWitness = m_matter->allocateEventTriggersByStage
-        //                                        (state, Stage::Velocity, 1);
-        //mThis->m_accWitness = m_matter->allocateEventTriggersByStage
-        //                                        (state, Stage::Acceleration, 1);
-        //mThis->m_frcWitness = m_matter->allocateEventTriggersByStage
-        //                                        (state, Stage::Acceleration, 1);
-
-        realizeTopologyVirtual(state); // delegate to derived class
-    }
+    /** Eventually invokes realizeTopologyVirtual(). **/
+    void realizeTopology(State& state) const;
 
     virtual void realizeTopologyVirtual     (State&)        const {}
     virtual void realizeModelVirtual        (State&)        const {}
