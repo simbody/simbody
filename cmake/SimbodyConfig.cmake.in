@@ -68,8 +68,11 @@ include("${CMAKE_CURRENT_LIST_DIR}/SimbodyTargets.cmake")
 
 # These are IMPORTED targets created by SimbodyTargets.cmake
 set(Simbody_LIBRARIES @SimTKCOMMON_SHARED_LIBRARY@ @SimTKMATH_SHARED_LIBRARY@ @SimTKSIMBODY_SHARED_LIBRARY@)
-set(Simbody_STATIC_LIBRARIES @SimTKCOMMON_STATIC_LIBRARY@ @SimTKMATH_STATIC_LIBRARY@ @SimTKSIMBODY_STATIC_LIBRARY@)
-
+if(@BUILD_STATIC_LIBRARIES@) # this is ON if static libraries were built
+    set(Simbody_STATIC_LIBRARIES @SimTKCOMMON_STATIC_LIBRARY@ @SimTKMATH_STATIC_LIBRARY@ @SimTKSIMBODY_STATIC_LIBRARY@)
+else()
+    set(Simbody_STATIC_LIBRARIES Simbody_STATIC_LIBRARIES-NOTFOUND)
+endif()
 mark_as_advanced(Simbody_LIBRARIES Simbody_STATIC_LIBRARIES)
 
 check_required_components(Simbody)
