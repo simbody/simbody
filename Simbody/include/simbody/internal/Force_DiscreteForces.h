@@ -145,9 +145,10 @@ public:
                           const Vector_<SpatialVec>& bodyForcesInG) const;
 
     /** Return the value for a generalized force that is stored in the 
-    given \a state. If no calls to setGeneralizedForce() have been made on this
-    \a state then zero will be returned.
-    @see setOneMobilityForce() **/
+    given \a state. If no calls to setOneMobilityForce() or 
+    setAllMobilityForces() have been made on this \a state then zero will be 
+    returned.
+    @see setOneMobilityForce(), setAllMobilityForces() **/
     Real getOneMobilityForce(const State& state, const MobilizedBody& mobod,
                                 MobilizerUIndex whichU) const;
 
@@ -164,6 +165,7 @@ public:
     of generalized speeds u in the given \a state. 
     The returned reference is a reference into the given \a state object. **/
     const Vector& getAllMobilityForces(const State& state) const;
+
     /** Get a reference to the internal Vector of all the body spatial forces 
     currently set to be applied by this force element. This will be length zero
     if no body forces are being applied; otherwise, its length will be the 
