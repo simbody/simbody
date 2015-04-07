@@ -72,9 +72,7 @@ ELSE()
   SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
   # Use full paths for the following as it will be used to create a symlink
   # The symlink itself will be a relative path, so the package will be relocatable
-  # Cannot use CMAKE_INSTALL_FULL_DOCDIR as it evaluates to a different value,
-  # as CMAKE_INSTALL_DOCDIR is changed as a "normal" variable, not in CACHE
-  SET(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}/examples)
+  SET(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_FULL_DOCDIR}/examples)
   file(RELATIVE_PATH EXAMPLE_INSTALL_BIN_REL_TO_DOC
       ${EXAMPLES_SYMLINK_BIN}
       ${CMAKE_INSTALL_FULL_LIBDIR}/simbody/examples/)
