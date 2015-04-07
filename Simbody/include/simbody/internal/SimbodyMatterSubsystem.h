@@ -298,27 +298,44 @@ that may be selected. This includes whether to use quaternions or Euler angles
 to represent rotations, and enabling/disabling constraints. **/
 
 /**@{**/
-/** For all mobilizers offering unrestricted orientation, decide what
-method we should use to model their orientations. Choices are: 
-quaternions (best for dynamics), or rotation angles (1-2-3 Euler 
-sequence, good for optimization). Changing this flag invalidates Model
-stage and above in the supplied \a state, leaving it realized only through
+/** For all mobilizers offering unrestricted orientation, specify what method
+you prefer they use to model their orientations. Choices are: quaternions (best 
+for dynamics because there are no singular configurations), or rotation angles
+(best for optimization). The default is to allow use of quaternions, unless
+the default has been changed with setUseEulerAnglesByDefault(). The exact 
+behavior in response to this flag is up to each mobilizer, but typically they 
+will use either quaternions or an X-Y-Z body-fixed Euler sequence (read the 
+mobilizer documentation to be sure). Changing this flag invalidates Model
+stage and above in the supplied `state`, leaving it realized only through
 Topology stage, so you must call realizeModel() on the containing 
-MultibodySystem prior to using this \a state in further calculations. **/
+MultibodySystem prior to using this `state` in further calculations. 
+@see setUseEulerAnglesByDefault(), getUseEulerAngles() **/
 void setUseEulerAngles(State& state, bool useEulerAngles) const;
 
-/** Return the current setting of the "use Euler angles" model variable as
-set in the supplied \a state. **/
-bool getUseEulerAngles  (const State& state) const;
+/** This determines whether the default state produced by realizeTopology()
+will have the `useEulerAngles` flag already set. If this is not called the
+flag defaults to `false`, meaning quaternions are allowed.
+@see setUseEulerAngles(), getUseEulerAnglesByDefault() **/
+void setUseEulerAnglesByDefault(bool useEulerAngles);
+
+/** Return the current setting of the `useEulerAngles` model variable as
+set in the supplied `state`. 
+@see getUseEulerAnglesByDefault(), setUseEulerAngles() **/
+bool getUseEulerAngles(const State& state) const;
+
+/** Return the current setting of the "use Euler angles by default" flag; this
+will be how the flag is set in the default state. 
+@see getUseEulerAngles(), setUseEulerAnglesByDefault() **/
+bool getUseEulerAnglesByDefault() const;
 
 /** Return the number of quaternions in use by the mobilizers of this system, 
-given the current setting of the "use Euler angles" flag in the supplied
+given the current setting of the `useEulerAngles` flag in the supplied
 \a state, and the types of mobilizers in the multibody tree. 
 @see isUsingQuaternion(), getQuaternionPoolIndex() **/
 int  getNumQuaternionsInUse(const State& state) const;
 
 /** Check whether a given mobilizer is currently using quaternions, based
-on the type of mobilizer and the setting of the "use Euler angles" flag in
+on the type of mobilizer and the setting of the `useEulerAngles` flag in
 the supplied \a state. 
 @see getNumQuaternionsInUse(), getQuaternionPoolIndex() **/
 bool isUsingQuaternion(const State& state, MobilizedBodyIndex mobodIx) const;

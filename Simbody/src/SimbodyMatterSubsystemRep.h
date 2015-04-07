@@ -642,7 +642,9 @@ public:
     SpatialVec calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyIndex mb, int nu, const Real* udot) const;
 
 
-    void setDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const;
+    void setDefaultModelValues(const SBTopologyCache&, 
+                               bool useEulerAnglesByDefault, 
+                               SBModelVars&)        const;
     void setDefaultInstanceValues    (const SBModelVars&,     SBInstanceVars&)     const;
     void setDefaultTimeValues        (const SBModelVars&,     SBTimeVars&)         const;
     void setDefaultPositionValues    (const SBModelVars&,     Vector& q)           const;
@@ -1146,6 +1148,9 @@ public:
     bool getShowDefaultGeometry() const;
     void setShowDefaultGeometry(bool show);
 
+    bool getUseEulerAnglesByDefault() const; 
+    void setUseEulerAnglesByDefault(bool useAngles); 
+
     void calcTreeForwardDynamicsOperator(const State&,
         const Vector&                   mobilityForces,
         const Vector_<Vec3>&            particleForces,
@@ -1382,8 +1387,8 @@ private:
     SBTopologyCache topologyCache;
     CacheEntryIndex topologyCacheIndex; // topologyCache is copied here in the State
     
-    // Specifies whether default decorative geometry should be shown.
-    bool showDefaultGeometry;
+    bool            m_showDefaultGeometry;
+    bool            m_useEulerAnglesByDefault;
 
     // These are IDs of events used for conditional constraints.
     EventId         m_impactEventId;

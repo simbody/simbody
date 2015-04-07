@@ -504,8 +504,7 @@ void testRiboseMobilizer()
 
     system.addEventReporter(new Visualizer::Reporter(viz, 0.10));
 
-    system.realizeTopology();
-    State& state = system.updDefaultState();
+    State state = system.realizeTopology();
     
     // Simulate it.
     VerletIntegrator integ(system);

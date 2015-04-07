@@ -127,30 +127,34 @@ public:
 
     // Instance variables are written to our defaultState.
     void setDefaultMass(Real mass) {
-        const PendulumSystemGuts& guts = getGuts();
-        updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.massIndex) = Value<Real>(mass);
+        PendulumSystemGuts& guts = updGuts();
+        guts.updDefaultState().updDiscreteVariable(guts.subsysIndex, 
+                                                   guts.massIndex) = Value<Real>(mass);
     }
 
     void setDefaultLength(Real length) {
-        const PendulumSystemGuts& guts = getGuts();
-        updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.lengthIndex) = Value<Real>(length);
+        PendulumSystemGuts& guts = updGuts();
+        guts.updDefaultState().updDiscreteVariable(guts.subsysIndex, 
+                                                   guts.lengthIndex) = Value<Real>(length);
     }
 
     void setDefaultGravity(Real gravity) {
-        const PendulumSystemGuts& guts = getGuts();
-        updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.gravityIndex) = Value<Real>(gravity);
+        PendulumSystemGuts& guts = updGuts();
+        guts.updDefaultState().updDiscreteVariable(guts.subsysIndex, 
+                                                   guts.gravityIndex) = Value<Real>(gravity);
     }
 
     void setDefaultTimeAndState(Real t, const Vector& q, const Vector& u) {
-        const PendulumSystemGuts& guts = getGuts();
-        updDefaultState().updU(guts.subsysIndex) = u;
-        updDefaultState().updQ(guts.subsysIndex) = q;
-        updDefaultState().updTime() = t;
+        PendulumSystemGuts& guts = updGuts();
+        guts.updDefaultState().updU(guts.subsysIndex) = u;
+        guts.updDefaultState().updQ(guts.subsysIndex) = q;
+        guts.updDefaultState().updTime() = t;
     }
 
     Real getMass(const State& s) const {
         const PendulumSystemGuts& guts = getGuts();
-        const AbstractValue& m = s.getDiscreteVariable(guts.subsysIndex, guts.massIndex);
+        const AbstractValue& m = s.getDiscreteVariable(guts.subsysIndex, 
+                                                       guts.massIndex);
         return Value<Real>::downcast(m).get();
     }
     Real getDefaultMass() const {return getMass(getDefaultState());}

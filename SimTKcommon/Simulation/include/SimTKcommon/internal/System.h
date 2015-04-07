@@ -249,9 +249,6 @@ to initialize other States to which you have write access. Those
 States are then suitable for further computation with this System. 
 @see realizeTopology() **/
 const State& getDefaultState() const;
-/** Don't use this; make a copy of the default state instead and modify
-your copy. **/
-State&       updDefaultState();
 
 /** Realize the model to be used for subsequent computations with the given
 \a state. This call is required if Model-stage variables are changed from their 

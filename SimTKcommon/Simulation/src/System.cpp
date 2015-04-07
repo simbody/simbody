@@ -139,7 +139,6 @@ int System::getNumHandleEventCalls() const {return getSystemGuts().getRep().nHan
 int System::getNumReportEventCalls() const {return getSystemGuts().getRep().nReportEventsCalls;}
 
 const State& System::getDefaultState() const {return getSystemGuts().getDefaultState();}
-State& System::updDefaultState() {return updSystemGuts().updDefaultState();}
 
 SubsystemIndex System::adoptSubsystem(Subsystem& child) 
 {   return updSystemGuts().adoptSubsystem(child); }

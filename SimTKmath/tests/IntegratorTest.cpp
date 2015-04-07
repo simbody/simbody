@@ -185,25 +185,25 @@ public:
 
     // Instance variables are written to our defaultState.
     void setDefaultMass(Real mass) {
-        const MyPendulumGuts& guts = getGuts();
-        updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.massIndex) = Value<Real>(mass);
+        MyPendulumGuts& guts = updGuts();
+        guts.updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.massIndex) = Value<Real>(mass);
     }
 
     void setDefaultLength(Real length) {
-        const MyPendulumGuts& guts = getGuts();
-        updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.lengthIndex) = Value<Real>(length);
+        MyPendulumGuts& guts = updGuts();
+        guts.updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.lengthIndex) = Value<Real>(length);
     }
 
     void setDefaultGravity(Real gravity) {
-        const MyPendulumGuts& guts = getGuts();
-        updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.gravityIndex) = Value<Real>(gravity);
+        MyPendulumGuts& guts = updGuts();
+        guts.updDefaultState().updDiscreteVariable(guts.subsysIndex, guts.gravityIndex) = Value<Real>(gravity);
     }
 
     void setDefaultTimeAndState(Real t, const Vector& q, const Vector& u) {
-        const MyPendulumGuts& guts = getGuts();
-        updDefaultState().updU(guts.subsysIndex) = u;
-        updDefaultState().updQ(guts.subsysIndex) = q;
-        updDefaultState().updTime() = t;
+        MyPendulumGuts& guts = updGuts();
+        guts.updDefaultState().updU(guts.subsysIndex) = u;
+        guts.updDefaultState().updQ(guts.subsysIndex) = q;
+        guts.updDefaultState().updTime() = t;
     }
 
     Real getMass(const State& s) const {

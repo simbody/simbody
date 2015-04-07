@@ -129,10 +129,10 @@ public:
     }
 
     void setDefaultTimeAndState(Real t, const Vector& q, const Vector& u) {
-        const ParticleConSurfaceSystemGuts& guts = getGuts();
-        updDefaultState().updU(guts.subsysIndex) = u;
-        updDefaultState().updQ(guts.subsysIndex) = q;
-        updDefaultState().updTime() = t;
+        ParticleConSurfaceSystemGuts& guts = updGuts();
+        guts.updDefaultState().updU(guts.subsysIndex) = u;
+        guts.updDefaultState().updQ(guts.subsysIndex) = q;
+        guts.updDefaultState().updTime() = t;
     }
 
 

@@ -106,7 +106,8 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
     rbNodeLevels.clear();
     nodeNum2NodeMap.clear();
 
-    showDefaultGeometry = true;
+    m_showDefaultGeometry = true;
+    m_useEulerAnglesByDefault = false;
 }
 
 MobilizedBodyIndex SimbodyMatterSubsystemRep::adoptMobilizedBody
@@ -438,7 +439,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
 
     SBModelVars mvars;
     mvars.allocate(topologyCache);
-    setDefaultModelValues(topologyCache, mvars);
+    setDefaultModelValues(topologyCache, m_useEulerAnglesByDefault, mvars);
     tc.modelingVarsIndex  = 
         allocateDiscreteVariable(s,Stage::Model, new Value<SBModelVars>(mvars));
 
@@ -1491,11 +1492,13 @@ int SimbodyMatterSubsystemRep::getDOF(MobilizedBodyIndex body) const {
 // We are in the process of realizeTopology() when we need to make this call.
 // We pass in the partially-completed Topology-stage cache, which must have all
 // the dimensions properly filled in at this point.
-void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& topologyCache, 
-                                                      SBModelVars& modelVars) const 
+void SimbodyMatterSubsystemRep::
+setDefaultModelValues(const SBTopologyCache& topologyCache,
+                      bool useEulerAnglesByDefault,
+                      SBModelVars& modelVars) const 
 {
     // Tree-level defaults
-    modelVars.useEulerAngles = false;
+    modelVars.useEulerAngles = useEulerAnglesByDefault;
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -6216,13 +6219,16 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
 
 
 
-bool SimbodyMatterSubsystemRep::getShowDefaultGeometry() const {
-    return showDefaultGeometry;
-}
+bool SimbodyMatterSubsystemRep::getShowDefaultGeometry() const 
+{   return m_showDefaultGeometry; }
+void SimbodyMatterSubsystemRep::setShowDefaultGeometry(bool show) 
+{   m_showDefaultGeometry = show; }
 
-void SimbodyMatterSubsystemRep::setShowDefaultGeometry(bool show) {
-    showDefaultGeometry = show;
-}
+
+bool SimbodyMatterSubsystemRep::getUseEulerAnglesByDefault() const 
+{   return m_useEulerAnglesByDefault; }
+void SimbodyMatterSubsystemRep::setUseEulerAnglesByDefault(bool useAngles) 
+{   m_useEulerAnglesByDefault = useAngles; }
 
 std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree) {
     o << "SimbodyMatterSubsystemRep has " << tree.getNumBodies() << " bodies (incl. G) in "

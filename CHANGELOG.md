@@ -10,9 +10,10 @@ This is a major release with some API changes that will break existing code.
 
 Breaking Changes
 * For API consistency, getEventTriggerInfo() changed to const in TriggeredEventHandler/Reporter. Added updEventTriggerInfo() for non-const access.
+* Removed updDefaultState() from System class. This was always a bad idea. If you don't like the default state you should copy it and modify your copy. Added SimbodyMatterSubsystem::setUseEulerAnglesByDefault() in case you were updating just to set this flag.
 
 Non-breaking changes
-*
+* Added SimbodyMatterSubsystem::get/setUseEulerAnglesByDefault() to control how this flag appears in the default state.
 
 
 

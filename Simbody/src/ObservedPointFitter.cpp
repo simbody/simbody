@@ -130,6 +130,7 @@ createClonedSystem(const MultibodySystem& original, MultibodySystem& copy,
 {
     const SimbodyMatterSubsystem& originalMatter = original.getMatterSubsystem();
     SimbodyMatterSubsystem copyMatter(copy);
+    copyMatter.setUseEulerAnglesByDefault(true);
     Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)));
     body.addDecoration(Transform(), DecorativeSphere(Real(.1)));
     std::map<MobilizedBodyIndex, MobilizedBodyIndex> idMap;
@@ -154,9 +155,6 @@ createClonedSystem(const MultibodySystem& original, MultibodySystem& copy,
         idMap[originalBodyIxs[i]] = copyBody->getMobilizedBodyIndex();
     }
     copy.realizeTopology();
-    State& s = copy.updDefaultState();
-    copyMatter.setUseEulerAngles(s, true);
-    copy.realizeModel(s);
 }
 
 /**
