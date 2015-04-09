@@ -424,7 +424,7 @@ DecorativeArrow& DecorativeArrow::setDirection(const UnitVec3& direction) {
     DecorativeArrowRep::downcast(*rep).setDirection(direction); return *this;
 }
 
-DecorativeArrow& DecorativeArrow::setLength(Real& length) {
+DecorativeArrow& DecorativeArrow::setLength(Real length) {
     DecorativeArrowRep::downcast(*rep).setLength(length); return *this;
 }
 
@@ -461,11 +461,11 @@ DecorativeCone& DecorativeCone::setDirection(const UnitVec3& direction) {
     DecorativeConeRep::downcast(*rep).setDirection(direction); return *this;
 }
 
-DecorativeCone& DecorativeCone::setHeight(Real& height) {
+DecorativeCone& DecorativeCone::setHeight(Real height) {
     DecorativeConeRep::downcast(*rep).setHeight(height); return *this;
 }
 
-DecorativeCone& DecorativeCone::setBaseRadius(Real& baseR) {
+DecorativeCone& DecorativeCone::setBaseRadius(Real baseR) {
     DecorativeConeRep::downcast(*rep).setBaseRadius(baseR); return *this;
 }
 

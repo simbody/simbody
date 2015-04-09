@@ -97,7 +97,8 @@ DecorativeGeometry& operator=(const DecorativeGeometry& source);
 
 /** Drawing modes. **/
 enum Representation {
-    DrawPoints    =  1, ///< Use a cloud of points.
+    Hide = 0, ///< hide geometry for now to display later
+    DrawPoints = 1, ///< Use a cloud of points.
     DrawWireframe =  2, ///< Use a line drawing.
     DrawSurface   =  3, ///< Use a shaded surface.
 
@@ -650,7 +651,7 @@ public:
 
     DecorativeArrow& setOrigin(const Vec3& origin);
     DecorativeArrow& setDirection(const UnitVec3& direction);
-    DecorativeArrow& setLength(Real& length);
+    DecorativeArrow& setLength(Real);
 
     // Retain the derived type when setting generic geometry options.
     DecorativeArrow& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
@@ -743,8 +744,8 @@ public:
 
     DecorativeCone& setOrigin(const Vec3& origin);
     DecorativeCone& setDirection(const UnitVec3& direction);
-    DecorativeCone& setHeight(Real& length);
-    DecorativeCone& setBaseRadius(Real& base);
+    DecorativeCone& setHeight(Real length);
+    DecorativeCone& setBaseRadius(Real base);
 
     // Retain the derived type when setting generic geometry options.
     DecorativeCone& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
