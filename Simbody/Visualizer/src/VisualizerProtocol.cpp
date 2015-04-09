@@ -257,11 +257,13 @@ VisualizerProtocol::VisualizerProtocol
     if (Pathname::environmentVariableExists("SIMBODY_HOME")) {
         const std::string e = Pathname::getAbsoluteDirectoryPathname(
                 Pathname::getEnvironmentVariable("SIMBODY_HOME"));
-        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
+        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,
+                    SIMBODY_VISUALIZER_REL_INSTALL_DIR));
     } else if (Pathname::environmentVariableExists("SimTK_INSTALL_DIR")) {
         const std::string e = Pathname::getAbsoluteDirectoryPathname(
             Pathname::getEnvironmentVariable("SimTK_INSTALL_DIR"));
-        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,"bin"));
+        actualSearchPath.push_back(Pathname::addDirectoryOffset(e,
+                    SIMBODY_VISUALIZER_REL_INSTALL_DIR));
     }
 
     // Try the build-time install location:
@@ -274,10 +276,10 @@ VisualizerProtocol::VisualizerProtocol
 
     actualSearchPath.push_back(
         Pathname::addDirectoryOffset(def,
-            Pathname::addDirectoryOffset("Simbody", "bin")));
+            Pathname::addDirectoryOffset("Simbody", SIMBODY_VISUALIZER_REL_INSTALL_DIR)));
     actualSearchPath.push_back(
         Pathname::addDirectoryOffset(def,
-            Pathname::addDirectoryOffset("SimTK", "bin")));
+            Pathname::addDirectoryOffset("SimTK", SIMBODY_VISUALIZER_REL_INSTALL_DIR)));
 
     // Pipe[0] is the read end, Pipe[1] is the write end.
     int sim2vizPipe[2], viz2simPipe[2], status;
