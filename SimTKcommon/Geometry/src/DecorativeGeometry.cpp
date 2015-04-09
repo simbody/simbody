@@ -399,9 +399,9 @@ DecorativeTorus& DecorativeTorus::setTubeRadius(Real tubeR) {
 // DECORATIVE ARROW //
 /////////////////////
 
-DecorativeArrow::DecorativeArrow(const Vec3& p1, const UnitVec3& dir, Real length)
+DecorativeArrow::DecorativeArrow(const Vec3& p1, const UnitVec3& dir, Real length, Real tipLength)
 {
-    rep = new DecorativeArrowRep(p1, dir, length);
+    rep = new DecorativeArrowRep(p1, dir, length, tipLength);
     rep->setMyHandle(*this);
 }
 
@@ -415,6 +415,9 @@ const Real& DecorativeArrow::getLength() const{
     return DecorativeArrowRep::downcast(*rep).getLength();
 };
 
+const Real& DecorativeArrow::getTipLength() const{
+    return DecorativeArrowRep::downcast(*rep).getTipLength();
+};
 
 DecorativeArrow& DecorativeArrow::setOrigin(const Vec3& origin) {
     DecorativeArrowRep::downcast(*rep).setOrigin(origin); return *this;
@@ -428,6 +431,9 @@ DecorativeArrow& DecorativeArrow::setLength(Real length) {
     DecorativeArrowRep::downcast(*rep).setLength(length); return *this;
 }
 
+DecorativeArrow& DecorativeArrow::setTipLength(Real tipLength) {
+    DecorativeArrowRep::downcast(*rep).setTipLength(tipLength); return *this;
+}
 
 /////////////////////
 // DECORATIVE CONE //

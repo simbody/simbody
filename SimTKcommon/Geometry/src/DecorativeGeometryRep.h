@@ -639,7 +639,8 @@ private:
 class DecorativeArrowRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeArrowRep(const Vec3& orig, const Vec3& dir, Real& len) : origin(orig), direction(dir), length(len) {
+    explicit DecorativeArrowRep(const Vec3& orig, const Vec3& dir, Real& len, Real& tipLen) : 
+        origin(orig), direction(dir), length(len), tip_length(tipLen) {
     }
 
     const Vec3& getOrigin() const {
@@ -654,6 +655,10 @@ public:
         return  length;
     }
 
+    const Real& getTipLength() const {
+        return  tip_length;
+    }
+
     void setOrigin(const Vec3& orig) {
         origin = orig;
     }
@@ -662,6 +667,9 @@ public:
     }
     void setLength(Real& len) {
         length = len;
+    }
+    void setTipLength(Real& tlen) {
+        tip_length = tlen;
     }
 
     // virtuals
@@ -679,6 +687,7 @@ private:
     Vec3 origin;
     UnitVec3 direction;
     Real length;
+    Real tip_length;
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
 

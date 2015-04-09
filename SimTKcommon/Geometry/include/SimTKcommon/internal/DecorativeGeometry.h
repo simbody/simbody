@@ -639,19 +639,22 @@ just generating the initial arrow in the geometry object's local frame.
 
 There is a default constructor for this object but it is not much
 use unless followed by point, direction and length specifications. By default 
-we produce an arrow going from (0,0,0) in direction (0,1,0) of length 1 just 
-so it will show up if you forget to set it to something meaningful. Having a 
-default constructor allows us to have arrays of these objects. **/
+we produce an arrow going from (0,0,0) in direction (0,1,0) of length 1 and tip
+length of .35 just so it will show up if you forget to set it to something 
+meaningful. Having a  default constructor allows us to have arrays of these 
+objects. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeArrow : public DecorativeGeometry {
 public:
-    explicit DecorativeArrow(const Vec3& p1 = Vec3(0), const UnitVec3& dir = UnitVec3(1), Real length = 1.0); // Arrow 
+    explicit DecorativeArrow(const Vec3& p1 = Vec3(0), const UnitVec3& dir = UnitVec3(1), Real length = 1.0, Real tipLength=0.35); // Arrow 
     const Vec3& getOrigin() const;
     const UnitVec3& getDirection() const;
     const Real& getLength() const;
+    const Real& getTipLength() const;
 
     DecorativeArrow& setOrigin(const Vec3& origin);
     DecorativeArrow& setDirection(const UnitVec3& direction);
     DecorativeArrow& setLength(Real);
+    DecorativeArrow& setTipLength(Real);
 
     // Retain the derived type when setting generic geometry options.
     DecorativeArrow& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
