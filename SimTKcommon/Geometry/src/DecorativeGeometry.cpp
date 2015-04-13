@@ -399,36 +399,29 @@ DecorativeTorus& DecorativeTorus::setTubeRadius(Real tubeR) {
 // DECORATIVE ARROW //
 /////////////////////
 
-DecorativeArrow::DecorativeArrow(const Vec3& p1, const UnitVec3& dir, Real length, Real tipLength)
+DecorativeArrow::DecorativeArrow(const Vec3& startPoint, const Vec3& endPoint, Real tipLength)
 {
-    rep = new DecorativeArrowRep(p1, dir, length, tipLength);
+    rep = new DecorativeArrowRep(startPoint, endPoint, tipLength);
     rep->setMyHandle(*this);
 }
 
-const Vec3& DecorativeArrow::getOrigin() const {
-    return DecorativeArrowRep::downcast(*rep).getOrigin();
+const Vec3& DecorativeArrow::getStartPoint() const {
+    return DecorativeArrowRep::downcast(*rep).getStartPoint();
 };
-const UnitVec3& DecorativeArrow::getDirection() const {
-    return DecorativeArrowRep::downcast(*rep).getDirection();
-};
-const Real& DecorativeArrow::getLength() const{
-    return DecorativeArrowRep::downcast(*rep).getLength();
+const Vec3& DecorativeArrow::getEndPoint() const {
+    return DecorativeArrowRep::downcast(*rep).getEndPoint();
 };
 
 const Real& DecorativeArrow::getTipLength() const{
     return DecorativeArrowRep::downcast(*rep).getTipLength();
 };
 
-DecorativeArrow& DecorativeArrow::setOrigin(const Vec3& origin) {
-    DecorativeArrowRep::downcast(*rep).setOrigin(origin); return *this;
+DecorativeArrow& DecorativeArrow::setStartPoint(const Vec3& start) {
+    DecorativeArrowRep::downcast(*rep).setStartPoint(start); return *this;
 }
 
-DecorativeArrow& DecorativeArrow::setDirection(const UnitVec3& direction) {
-    DecorativeArrowRep::downcast(*rep).setDirection(direction); return *this;
-}
-
-DecorativeArrow& DecorativeArrow::setLength(Real length) {
-    DecorativeArrowRep::downcast(*rep).setLength(length); return *this;
+DecorativeArrow& DecorativeArrow::setEndPoint(const Vec3& end) {
+    DecorativeArrowRep::downcast(*rep).setEndPoint(end); return *this;
 }
 
 DecorativeArrow& DecorativeArrow::setTipLength(Real tipLength) {

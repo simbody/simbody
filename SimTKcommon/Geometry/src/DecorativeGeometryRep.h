@@ -639,34 +639,27 @@ private:
 class DecorativeArrowRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeArrowRep(const Vec3& orig, const Vec3& dir, Real& len, Real& tipLen) : 
-        origin(orig), direction(dir), length(len), tip_length(tipLen) {
+    explicit DecorativeArrowRep(const Vec3& start, const Vec3& end, Real& tipLen) : 
+        start_point(start), end_point(end), tip_length(tipLen) {
     }
 
-    const Vec3& getOrigin() const {
-        return  origin;
+    const Vec3& getStartPoint() const {
+        return  start_point;
     }
 
-    const UnitVec3& getDirection() const {
-        return  direction;
-    }
-
-    const Real& getLength() const {
-        return  length;
+    const Vec3& getEndPoint() const {
+        return  end_point;
     }
 
     const Real& getTipLength() const {
         return  tip_length;
     }
 
-    void setOrigin(const Vec3& orig) {
-        origin = orig;
+    void setStartPoint(const Vec3& start) {
+        start_point = start;
     }
-    void setDirection(const UnitVec3& dir) {
-        direction = dir;
-    }
-    void setLength(Real& len) {
-        length = len;
+    void setEndPoint(const Vec3& end) {
+        end_point = end;
     }
     void setTipLength(Real& tlen) {
         tip_length = tlen;
@@ -684,9 +677,8 @@ public:
 
     SimTK_DOWNCAST(DecorativeArrowRep, DecorativeGeometryRep);
 private:
-    Vec3 origin;
-    UnitVec3 direction;
-    Real length;
+    Vec3 start_point;
+    Vec3 end_point;
     Real tip_length;
 
     // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
