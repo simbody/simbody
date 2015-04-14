@@ -689,7 +689,7 @@ Having a default constructor allows us to have arrays of these objects. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeCone : public DecorativeGeometry {
 public:
     explicit DecorativeCone(const Vec3& p1 = Vec3(0), const UnitVec3& dir = UnitVec3(1,1,1),
-        Real height = 1.0, Real base = 0.5); // Cone 
+        Real height = 1.0, Real baseRadius = 0.5); // Cone 
     const Vec3& getOrigin() const;
     const UnitVec3& getDirection() const;
     const Real& getHeight() const;
