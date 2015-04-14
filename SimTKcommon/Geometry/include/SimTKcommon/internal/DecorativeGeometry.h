@@ -97,7 +97,8 @@ DecorativeGeometry& operator=(const DecorativeGeometry& source);
 
 /** Drawing modes. **/
 enum Representation {
-    DrawPoints    =  1, ///< Use a cloud of points.
+    Hide = 0, ///< hide geometry for now to display later
+    DrawPoints = 1, ///< Use a cloud of points.
     DrawWireframe =  2, ///< Use a line drawing.
     DrawSurface   =  3, ///< Use a shaded surface.
 
@@ -596,6 +597,130 @@ private:
 };
 
 
+/** This defines a displayable torus, the torus is centered at the
+origin with the axial direction aligned to the z-axis. It is defined by
+a torusRadius (radius of the circular centerline of the torus, measured
+from the origin), and a tubeRadius (radius of the torus cross-section:
+perpendicular distance from the circular centerline to the surface). **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeTorus : public DecorativeGeometry {
+public:
+    explicit DecorativeTorus(Real torusR=1, Real tubeR=0.1);
+
+    DecorativeTorus& setTorusRadius(Real);
+    DecorativeTorus& setTubeRadius(Real);
+    Real getTorusRadius() const;
+    Real getTubeRadius() const;
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeTorus& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeTorus& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeTorus& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeTorus& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeTorus& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeTorus& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeTorus& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeTorus& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeTorus& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeTorus& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeTorus, DecorativeGeometry);
+private:
+    class DecorativeTorusRep& updRep();
+    const DecorativeTorusRep& getRep() const;
+};
+
+
+/** An arrow with start point, end point and tip-length. Note that 
+the actual placement can be changed by the parent class transform & scale; 
+here we are just generating the initial arrow in the geometry object's local 
+frame.
+
+There is a default constructor for this object but it is not much
+use unless followed by end point(s) specifications. By default 
+we produce an arrow going from (0,0,0) to (1,1,1) and tip
+length of .35 just so it will show up if you forget to set it to something 
+meaningful. Having a  default constructor allows us to have arrays of these 
+objects. **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeArrow : public DecorativeGeometry {
+public:
+    explicit DecorativeArrow(const Vec3& startPoint = Vec3(0), const Vec3& endPoint = Vec3(1), Real tipLength = 0.35); // Arrow 
+    const Vec3& getStartPoint() const;
+    const Vec3& getEndPoint() const;
+    const Real& getTipLength() const;
+
+    DecorativeArrow& setStartPoint(const Vec3& start);
+    DecorativeArrow& setEndPoint(const Vec3& end);
+    DecorativeArrow& setTipLength(Real);
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeArrow& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeArrow& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeArrow& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeArrow& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeArrow& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeArrow& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeArrow& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeArrow& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeArrow& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeArrow& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeArrow, DecorativeGeometry);
+private:
+    class DecorativeArrowRep& updRep();
+    const DecorativeArrowRep& getRep() const;
+};
+
+
+/** A cone with origin point, direction, height and base radius. Note that
+the actual placement can be changed by the parent class transform & scale;
+here we are just generating the initial cone in the geometry object's local frame.
+
+There is a default constructor for this object but it is not much
+use unless followed by point, direction, height and base-radius specifications. By default
+we produce a cone going from (0,0,0) in direction (1,1,1) of height 1 and base
+radius of 0.5 just so it will show up if you forget to set it to something meaningful.
+Having a default constructor allows us to have arrays of these objects. **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeCone : public DecorativeGeometry {
+public:
+    explicit DecorativeCone(const Vec3& p1 = Vec3(0), const UnitVec3& dir = UnitVec3(1,1,1),
+        Real height = 1.0, Real baseRadius = 0.5); // Cone 
+    const Vec3& getOrigin() const;
+    const UnitVec3& getDirection() const;
+    const Real& getHeight() const;
+    const Real& getBaseRadius() const;
+
+    DecorativeCone& setOrigin(const Vec3& origin);
+    DecorativeCone& setDirection(const UnitVec3& direction);
+    DecorativeCone& setHeight(Real length);
+    DecorativeCone& setBaseRadius(Real base);
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeCone& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeCone& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeCone& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeCone& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeCone& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeCone& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeCone& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeCone& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeCone& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeCone& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeCone, DecorativeGeometry);
+private:
+    class DecorativeConeRep& updRep();
+    const DecorativeConeRep& getRep() const;
+};
+
 /** This defines a single DecorativeGeometry object that is composed of a
 collection of other DecorativeGeometry objects. Parameters set for the
 parent object serve as defaults for the contained objects, but those objects
@@ -661,6 +786,9 @@ public:
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
     virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
     virtual void implementMeshFileGeometry( const DecorativeMeshFile&) = 0;
+    virtual void implementTorusGeometry(    const DecorativeTorus&)    = 0;
+    virtual void implementArrowGeometry(    const DecorativeArrow&)    = 0;
+    virtual void implementConeGeometry(     const DecorativeCone&)     = 0;
 };
 
 } // namespace SimTK
