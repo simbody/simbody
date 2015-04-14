@@ -217,7 +217,8 @@ private:
 class DecorativeLineRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    DecorativeLineRep( const Vec3& p1, const Vec3& p2) : point1(p1), point2(p2) {
+    DecorativeLineRep( const Vec3& p1, const Vec3& p2) 
+    :   point1(p1), point2(p2) {
     }
 
     void setPoint1(const Vec3& p) {point1=p; }
@@ -241,7 +242,8 @@ public:
 private:
     Vec3 point1, point2;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeLine& getMyLineHandle() const {
         return *static_cast<const DecorativeLine*>(myHandle);
     }
@@ -278,7 +280,8 @@ public:
 private:
     Real r;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeCircle& getMyCircleHandle() const {
         return *static_cast<const DecorativeCircle*>(myHandle);
     }
@@ -316,7 +319,8 @@ public:
 private:
     Real r;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeSphere& getMySphereHandle() const {
         return *static_cast<const DecorativeSphere*>(myHandle);
     }
@@ -354,7 +358,8 @@ public:
 private:
     Vec3 radii;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeEllipsoid& getMyEllipsoidHandle() const {
         return *static_cast<const DecorativeEllipsoid*>(myHandle);
     }
@@ -368,7 +373,8 @@ private:
 class DecorativeBrickRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeBrickRep( const Vec3& xyzHalfLengths) : halfLengths(xyzHalfLengths) {
+    explicit DecorativeBrickRep( const Vec3& xyzHalfLengths) 
+    :   halfLengths(xyzHalfLengths) {
         assert(halfLengths[0]>0&&halfLengths[1]>0&&halfLengths[2]>0); // TODO
     }
 
@@ -392,7 +398,8 @@ public:
 private:
     Vec3 halfLengths;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeBrick& getMyBrickHandle() const {
         return *static_cast<const DecorativeBrick*>(myHandle);
     }
@@ -433,7 +440,8 @@ public:
 private:
     Real radius, halfHeight;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeCylinder& getMyCylinderHandle() const {
         return *static_cast<const DecorativeCylinder*>(myHandle);
     }
@@ -466,7 +474,8 @@ public:
 private:
     Real axisLength;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
     const DecorativeFrame& getMyFrameHandle() const {
         return *static_cast<const DecorativeFrame*>(myHandle);
     }
@@ -508,7 +517,8 @@ private:
 std::string text;
 bool        isScreenText; // in screen coordinates
 
-// This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+// This is just a static downcast since the DecorativeGeometry handle class 
+// is not virtual.
 const DecorativeText& getMyTextHandle() const {
     return *static_cast<const DecorativeText*>(myHandle);
 }
@@ -542,7 +552,8 @@ SimTK_DOWNCAST(DecorativeMeshRep, DecorativeGeometryRep);
 private:
 PolygonalMesh mesh;
 
-// This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+// This is just a static downcast since the DecorativeGeometry handle class 
+// is not virtual.
 const DecorativeMesh& getMyMeshHandle() const {
     return *static_cast<const DecorativeMesh*>(myHandle);
 }
@@ -555,7 +566,8 @@ const DecorativeMesh& getMyMeshHandle() const {
 class DecorativeMeshFileRep : public DecorativeGeometryRep {
 public:
 // no default constructor
-explicit DecorativeMeshFileRep(const std::string& meshFileName) : meshFile(meshFileName) {
+explicit DecorativeMeshFileRep(const std::string& meshFileName) 
+:   meshFile(meshFileName) {
 }
 
 const std::string& getMeshFile() const {
@@ -576,7 +588,8 @@ SimTK_DOWNCAST(DecorativeMeshFileRep, DecorativeGeometryRep);
 private:
 std::string meshFile;
 
-// This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+// This is just a static downcast since the DecorativeGeometry handle class 
+// is not virtual.
 
 const DecorativeMeshFile& getMyMeshFileHandle() const {
     return *static_cast<const DecorativeMeshFile*>(myHandle);
@@ -591,7 +604,8 @@ const DecorativeMeshFile& getMyMeshFileHandle() const {
 class DecorativeTorusRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeTorusRep(Real torusR, Real tubeR) : torusRadius(torusR), tubeRadius(tubeR) {
+    explicit DecorativeTorusRep(Real torusR, Real tubeR) 
+    :   torusRadius(torusR), tubeRadius(tubeR) {
     }
 
     const Real& getTorusRadius() const {
@@ -624,7 +638,8 @@ private:
     Real torusRadius;
     Real tubeRadius;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
 
     const DecorativeTorus& getMyTorusHandle() const {
         return *static_cast<const DecorativeTorus*>(myHandle);
@@ -632,37 +647,38 @@ private:
 };
 
 
-///////////////////////
-// DecorativArrowRep //
-///////////////////////
+////////////////////////
+// DecorativeArrowRep //
+////////////////////////
 
 class DecorativeArrowRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeArrowRep(const Vec3& start, const Vec3& end, Real& tipLen) : 
-        start_point(start), end_point(end), tip_length(tipLen) {
+    explicit DecorativeArrowRep
+        (const Vec3& start, const Vec3& end, Real& tipLen) 
+    :   startPoint(start), endPoint(end), tipLength(tipLen) {
     }
 
     const Vec3& getStartPoint() const {
-        return  start_point;
+        return  startPoint;
     }
 
     const Vec3& getEndPoint() const {
-        return  end_point;
+        return  endPoint;
     }
 
     const Real& getTipLength() const {
-        return  tip_length;
+        return  tipLength;
     }
 
     void setStartPoint(const Vec3& start) {
-        start_point = start;
+        startPoint = start;
     }
     void setEndPoint(const Vec3& end) {
-        end_point = end;
+        endPoint = end;
     }
     void setTipLength(Real& tlen) {
-        tip_length = tlen;
+        tipLength = tlen;
     }
 
     // virtuals
@@ -677,11 +693,12 @@ public:
 
     SimTK_DOWNCAST(DecorativeArrowRep, DecorativeGeometryRep);
 private:
-    Vec3 start_point;
-    Vec3 end_point;
-    Real tip_length;
+    Vec3 startPoint;
+    Vec3 endPoint;
+    Real tipLength;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle 
+    // class is not virtual.
 
     const DecorativeArrow& getMyArrowHandle() const {
         return *static_cast<const DecorativeArrow*>(myHandle);
@@ -697,7 +714,9 @@ private:
 class DecorativeConeRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeConeRep(const Vec3& orig, const Vec3& dir, Real& h, Real& baseR) : origin(orig), direction(dir), height(h), baseRadius(baseR) {
+    explicit DecorativeConeRep
+        (const Vec3& orig, const Vec3& dir, Real& h, Real& baseR) 
+    :   origin(orig), direction(dir), height(h), baseRadius(baseR) {
     }
 
     const Vec3& getOrigin() const {
@@ -744,7 +763,8 @@ private:
     Real height;
     Real baseRadius;
 
-    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    // This is just a static downcast since the DecorativeGeometry handle class 
+    // is not virtual.
 
     const DecorativeCone& getMyConeHandle() const {
         return *static_cast<const DecorativeCone*>(myHandle);
