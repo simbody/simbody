@@ -101,7 +101,7 @@ void HuntCrossleyForceImpl::setTransitionVelocity(Real v) {
 void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                                       Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const Array_<Contact>& contacts = subsystem.getContacts(state, set);
-    Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
+    Real& pe = Value<Real>::updDowncast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0.0;
     for (int i = 0; i < (int) contacts.size(); i++) {
         if (!PointContact::isInstance(contacts[i]))

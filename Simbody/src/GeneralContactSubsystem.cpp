@@ -129,7 +129,8 @@ public:
     const Array_<Contact>& getContacts(const State& state, ContactSetIndex set) const {
         assert(set >= 0 && set < sets.size());
         SimTK_STAGECHECK_GE_ALWAYS(state.getSubsystemStage(getMySubsystemIndex()), Stage::Dynamics, "GeneralContactSubsystemImpl::getContacts()");
-        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
+        Array_<Array_<Contact> >& contacts = 
+            Value<Array_<Array_<Contact> > >::updDowncast(updCacheEntry(state, contactsCacheIndex)).upd();
         return contacts[set];
     }
     
@@ -150,15 +151,16 @@ public:
     }
 
     int realizeSubsystemPositionImpl(const State& state) const {
-        Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd() = false;
+        Value<bool>::updDowncast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd() = false;
         return 0;
     }
 
     int realizeSubsystemDynamicsImpl(const State& state) const {
-        bool& contactsValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
+        bool& contactsValid = Value<bool>::updDowncast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
         if (contactsValid)
             return 0;
-        Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
+        Array_<Array_<Contact> >& contacts = 
+            Value<Array_<Array_<Contact> > >::updDowncast(updCacheEntry(state, contactsCacheIndex)).upd();
         int numSets = getNumContactSets();
         contacts.resize(numSets);
         

@@ -963,7 +963,7 @@ public:
     }
     SBTopologyCache& updTopologyCache(const State& s) const { //mutable
         assert(subsystemTopologyHasBeenRealized() && topologyCacheIndex >= 0);
-        return Value<SBTopologyCache>::downcast
+        return Value<SBTopologyCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCacheIndex)).upd();
     }
 
@@ -972,7 +972,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.modelingCacheIndex)).get();
     }
     SBModelCache& updModelCache(const State& s) const { //mutable
-        return Value<SBModelCache>::downcast
+        return Value<SBModelCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.modelingCacheIndex)).upd();
     }
 
@@ -981,7 +981,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.instanceCacheIndex)).get();
     }
     SBInstanceCache& updInstanceCache(const State& s) const { //mutable
-        return Value<SBInstanceCache>::downcast
+        return Value<SBInstanceCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.instanceCacheIndex)).upd();
     }
 
@@ -990,7 +990,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.timeCacheIndex)).get();
     }
     SBTimeCache& updTimeCache(const State& s) const { //mutable
-        return Value<SBTimeCache>::downcast
+        return Value<SBTimeCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.timeCacheIndex)).upd();
     }
 
@@ -999,7 +999,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treePositionCacheIndex)).get();
     }
     SBTreePositionCache& updTreePositionCache(const State& s) const { //mutable
-        return Value<SBTreePositionCache>::downcast
+        return Value<SBTreePositionCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treePositionCacheIndex)).upd();
     }
 
@@ -1008,7 +1008,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.constrainedPositionCacheIndex)).get();
     }
     SBConstrainedPositionCache& updConstrainedPositionCache(const State& s) const { //mutable
-        return Value<SBConstrainedPositionCache>::downcast
+        return Value<SBConstrainedPositionCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedPositionCacheIndex)).upd();
     }
 
@@ -1035,7 +1035,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treeVelocityCacheIndex)).get();
     }
     SBTreeVelocityCache& updTreeVelocityCache(const State& s) const { //mutable
-        return Value<SBTreeVelocityCache>::downcast
+        return Value<SBTreeVelocityCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treeVelocityCacheIndex)).upd();
     }
 
@@ -1044,7 +1044,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.constrainedVelocityCacheIndex)).get();
     }
     SBConstrainedVelocityCache& updConstrainedVelocityCache(const State& s) const { //mutable
-        return Value<SBConstrainedVelocityCache>::downcast
+        return Value<SBConstrainedVelocityCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedVelocityCacheIndex)).upd();
     }
 
@@ -1055,7 +1055,7 @@ public:
         return Value<SBDynamicsCache>::downcast(cacheEntry).get();
     }
     SBDynamicsCache& updDynamicsCache(const State& s) const { //mutable
-        return Value<SBDynamicsCache>::downcast
+        return Value<SBDynamicsCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.dynamicsCacheIndex)).upd();
     }
 
@@ -1064,7 +1064,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treeAccelerationCacheIndex)).get();
     }
     SBTreeAccelerationCache& updTreeAccelerationCache(const State& s) const { //mutable
-        return Value<SBTreeAccelerationCache>::downcast
+        return Value<SBTreeAccelerationCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treeAccelerationCacheIndex)).upd();
     }
 
@@ -1073,7 +1073,7 @@ public:
             (s.getCacheEntry(getMySubsystemIndex(),topologyCache.constrainedAccelerationCacheIndex)).get();
     }
     SBConstrainedAccelerationCache& updConstrainedAccelerationCache(const State& s) const { //mutable
-        return Value<SBConstrainedAccelerationCache>::downcast
+        return Value<SBConstrainedAccelerationCache>::updDowncast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedAccelerationCacheIndex)).upd();
     }
 
@@ -1083,7 +1083,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),topologyCache.modelingVarsIndex)).get();
     }
     SBModelVars& updModelVars(State& s) const {
-        return Value<SBModelVars>::downcast
+        return Value<SBModelVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),topologyCache.modelingVarsIndex)).upd();
     }
 
@@ -1092,7 +1092,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),topologyCache.topoInstanceVarsIndex)).get();
     }
     SBInstanceVars& updInstanceVars(State& s) const {
-        return Value<SBInstanceVars>::downcast
+        return Value<SBInstanceVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),topologyCache.topoInstanceVarsIndex)).upd();
     }
 
@@ -1101,7 +1101,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).timeVarsIndex)).get();
     }
     SBTimeVars& updTimeVars(State& s) const {
-        return Value<SBTimeVars>::downcast
+        return Value<SBTimeVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).timeVarsIndex)).upd();
     }
 
@@ -1110,7 +1110,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).qVarsIndex)).get();
     }
     SBPositionVars& updPositionVars(State& s) const {
-        return Value<SBPositionVars>::downcast
+        return Value<SBPositionVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).qVarsIndex)).upd();
     }
 
@@ -1119,7 +1119,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).uVarsIndex)).get();
     }
     SBVelocityVars& updVelocityVars(State& s) const {
-        return Value<SBVelocityVars>::downcast
+        return Value<SBVelocityVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).uVarsIndex)).upd();
     }
 
@@ -1128,7 +1128,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).dynamicsVarsIndex)).get();
     }
     SBDynamicsVars& updDynamicsVars(State& s) const {
-        return Value<SBDynamicsVars>::downcast
+        return Value<SBDynamicsVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).dynamicsVarsIndex)).upd();
     }
 
@@ -1137,7 +1137,7 @@ public:
             (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).accelerationVarsIndex)).get();
     }
     SBAccelerationVars& updAccelerationVars(State& s) const {
-        return Value<SBAccelerationVars>::downcast
+        return Value<SBAccelerationVars>::updDowncast
             (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).accelerationVarsIndex)).upd();
     }
 

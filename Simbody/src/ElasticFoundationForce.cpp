@@ -94,7 +94,7 @@ void ElasticFoundationForceImpl::calcForce
     Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
 {
     const Array_<Contact>& contacts = subsystem.getContacts(state, set);
-    Real& pe = Value<Real>::downcast
+    Real& pe = Value<Real>::updDowncast
                 (subsystem.updCacheEntry(state, energyCacheIndex));
     pe = 0.0;
     for (int i = 0; i < (int) contacts.size(); i++) {

@@ -579,7 +579,7 @@ int MyPendulumGuts::realizeDynamicsImpl(const State& s) const {
     const Real m  = getMyPendulum().getMass(s);
     const Real g  = getMyPendulum().getGravity(s);
 
-    Real& mg = Value<Real>::downcast(s.updCacheEntry(subsysIndex, mgForceIndex)).upd();
+    Real& mg = Value<Real>::updDowncast(s.updCacheEntry(subsysIndex, mgForceIndex)).upd();
     // Calculate the force due to gravity.
     mg = m*g;
     return 0;

@@ -1281,7 +1281,7 @@ public:
         switch (nu) {
             case 1: {
                 // Check that the H  matrices in the cache are valid
-                if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,1,Vec3> h = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1289,7 +1289,7 @@ public:
             }
             case 2: {
                 // Check that the H  matrices in the cache are valid
-                if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
                 
                 Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1297,7 +1297,7 @@ public:
             }
             case 3: {
                 // Check that the H  matrices in the cache are valid
-                if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,3,Vec3> h = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1305,7 +1305,7 @@ public:
             }
             case 4: {
                 // Check that the H  matrices in the cache are valid
-                if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,4,Vec3> h = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1313,7 +1313,7 @@ public:
             }
             case 5: {
                 // Check that the H matrices in the cache are valid
-                if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,5,Vec3> h = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1321,7 +1321,7 @@ public:
             }
             case 6: {
                 // Check that the H  matrices in the cache are valid
-                if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1336,7 +1336,7 @@ public:
         switch (nu) {
             case 1: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,1,Vec3> h = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1345,7 +1345,7 @@ public:
             }
             case 2: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1354,7 +1354,7 @@ public:
             }
             case 3: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,3,Vec3> h = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1363,7 +1363,7 @@ public:
             }
             case 4: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,4,Vec3> h = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1372,7 +1372,7 @@ public:
             }
             case 5: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,5,Vec3> h = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1381,7 +1381,7 @@ public:
             }
             case 6: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
+                if (!(Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
 
                 Mat<2,6,Vec3> h = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
@@ -1397,7 +1397,7 @@ public:
         switch (nu) {
             case 1: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,1,Vec3> hdot = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1405,7 +1405,7 @@ public:
             }
             case 2: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,2,Vec3> hdot = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1413,7 +1413,7 @@ public:
             }
             case 3: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,3,Vec3> hdot = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1421,7 +1421,7 @@ public:
             }
             case 4: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,4,Vec3> hdot = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1429,7 +1429,7 @@ public:
             }
             case 5: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,5,Vec3> hdot = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1437,7 +1437,7 @@ public:
             }
             case 6: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,6,Vec3> hdot = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1452,7 +1452,7 @@ public:
         switch (nu) {
             case 1: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,1,Vec3> hdot = Value<CacheInfo<1> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1461,7 +1461,7 @@ public:
             }
             case 2: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,2,Vec3> hdot = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1470,7 +1470,7 @@ public:
             }
             case 3: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,3,Vec3> hdot = Value<CacheInfo<3> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1479,7 +1479,7 @@ public:
             }
             case 4: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,4,Vec3> hdot = Value<CacheInfo<4> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1488,7 +1488,7 @@ public:
             }
             case 5: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,5,Vec3> hdot = Value<CacheInfo<5> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1497,7 +1497,7 @@ public:
             }
             case 6: {
                 // Check that the H and Hdot matrices in the cache are valid
-                if (!(Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
+                if (!(Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot))
                     updateHdot(s);
 
                 Mat<2,6,Vec3> hdot = Value<CacheInfo<6> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().hdot;
@@ -1535,32 +1535,32 @@ public:
         switch (nu) {
             case 1: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
                 break;
             }
             case 2: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
                 break;
             }
             case 3: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
                 break;
             }
             case 4: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
                 break;
             }
             case 5: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
                 break;
             }
             case 6: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
+                Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH = false;
                 break;
             }
         }
@@ -1570,32 +1570,32 @@ public:
         switch (nu) {
             case 1: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
                 break;
             }
             case 2: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
                 break;
             }
             case 3: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
                 break;
             }
             case 4: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
                 break;
             }
             case 5: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
                 break;
             }
             case 6: {
                 // invalidate H and Hdot matrices
-                Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
+                Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidHdot = false;
                 break;
             }
         }
@@ -1607,42 +1607,42 @@ public:
         Vector u = getU(s);
         switch (nu) {
             case 1: {
-                CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<1>& cache = Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // H matrix is now valid 
                 cache.isValidH = true;
                 break;
             }
             case 2: {
-                CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<2>& cache = Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // H matrix is now valid 
                 cache.isValidH = true;
                 break;
             }
             case 3: {
-                CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<3>& cache = Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // H matrix is now valid  
                 cache.isValidH = true;
                 break;
             }
             case 4: {
-                CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<4>& cache = Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // H matrix is now valid 
                 cache.isValidH = true;
                 break;
             }
             case 5: {
-                CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<5>& cache = Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // H matrix is now valid  
                 cache.isValidH = true;
                 break;
             }
             case 6: {
-                CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<6>& cache = Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // H matrix is now valid 
                 cache.isValidH = true;
@@ -1657,42 +1657,42 @@ public:
         Vector u = getU(s);
         switch (nu) {
             case 1: {
-                CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<1>& cache = Value<CacheInfo<1> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // Hdot matrix is now valid 
                 cache.isValidHdot = true;
                 break;
             }
             case 2: {
-                CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<2>& cache = Value<CacheInfo<2> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // Hdot matrix is now valid 
                 cache.isValidHdot = true;
                 break;
             }
             case 3: {
-                CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<3>& cache = Value<CacheInfo<3> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // Hdot matrix is now valid  
                 cache.isValidHdot = true;
                 break;
             }
             case 4: {
-                CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<4>& cache = Value<CacheInfo<4> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // Hdot matrix is now valid 
                 cache.isValidHdot = true;
                 break;
             }
             case 5: {
-                CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<5>& cache = Value<CacheInfo<5> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // Hdot matrix is now valid 
                 cache.isValidHdot = true;
                 break;
             }
             case 6: {
-                CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
+                CacheInfo<6>& cache = Value<CacheInfo<6> >::updDowncast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
                 // Hdot matrix is now valid 
                 cache.isValidHdot = true;

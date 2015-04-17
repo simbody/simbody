@@ -766,7 +766,7 @@ private:
     }
     T& updVarValue(State& s) const {
         assert(discreteVarIndex.isValid());
-        return Value<T>::downcast(
+        return Value<T>::updDowncast(
             this->getSubsystem().updDiscreteVariable(s, discreteVarIndex));
     }
 

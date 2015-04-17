@@ -11,6 +11,7 @@ This is a major release with some API changes that will break existing code.
 Breaking Changes
 * For API consistency, getEventTriggerInfo() changed to const in TriggeredEventHandler/Reporter. Added updEventTriggerInfo() for non-const access.
 * Removed updDefaultState() from System class. This was always a bad idea. If you don't like the default state you should copy it and modify your copy. Added SimbodyMatterSubsystem::setUseEulerAnglesByDefault() in case you were updating just to set this flag.
+* Removed the Value<T>::downcast() overload that returned a writable reference, so that downcast() now unambiguously returns a const reference. That leaves updDowncast() as the only way to get a writable reference.
 
 Non-breaking changes
 * Added SimbodyMatterSubsystem::get/setUseEulerAnglesByDefault() to control how this flag appears in the default state.

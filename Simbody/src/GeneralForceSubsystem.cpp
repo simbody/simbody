@@ -242,17 +242,17 @@ public:
         // OK, we're doing some caching. This is a little messier. 
 
         // Get access to subsystem force cache entries.
-        bool& cachedForcesAreValid = Value<bool>::downcast
+        bool& cachedForcesAreValid = Value<bool>::updDowncast
                           (updCacheEntry(s, cachedForcesAreValidCacheIndex));
 
         Vector_<SpatialVec>&    
-            rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast
+            rigidBodyForceCache = Value<Vector_<SpatialVec> >::updDowncast
                                  (updCacheEntry(s, rigidBodyForceCacheIndex));
         Vector_<Vec3>&         
-            particleForceCache  = Value<Vector_<Vec3> >::downcast
+            particleForceCache  = Value<Vector_<Vec3> >::updDowncast
                                  (updCacheEntry(s, particleForceCacheIndex));
         Vector&                 
-            mobilityForceCache  = Value<Vector>::downcast
+            mobilityForceCache  = Value<Vector>::updDowncast
                                  (updCacheEntry(s, mobilityForceCacheIndex));
 
 

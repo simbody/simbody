@@ -118,7 +118,7 @@ public:
         return Value<EventRegistry>::downcast(getCacheEntry(s, eventRegistry)); }
     EventRegistry& updEventRegistry(const State& s) const
     {   assert(eventRegistry >= 0);
-        return Value<EventRegistry>::downcast(updCacheEntry(s, eventRegistry)); }
+        return Value<EventRegistry>::updDowncast(updCacheEntry(s, eventRegistry)); }
 
     // implementations of Subsystem::Guts virtuals
     SystemSubsystemGuts* cloneImpl() const override
@@ -383,8 +383,8 @@ private:
     Vec3& updQDot3(const State& s) const {return Vec3::updAs(&updQDot(s)[getStateVars(s).myQs]);}
     Vec3& updUDot3(const State& s) const {return Vec3::updAs(&updUDot(s)[getStateVars(s).myUs]);}
     Vec3& updQDotDot3(const State& s) const {return Vec3::updAs(&updQDotDot(s)[getStateVars(s).myQs]);}
-    Real& updQSum(const State& s) const {return Value<Real>::downcast(updCacheEntry(s,getCacheEntries(s).qSumCacheIx));}
-    Real& updUSum(const State& s) const {return Value<Real>::downcast(updCacheEntry(s,getCacheEntries(s).uSumCacheIx));}
+    Real& updQSum(const State& s) const {return Value<Real>::updDowncast(updCacheEntry(s,getCacheEntries(s).qSumCacheIx));}
+    Real& updUSum(const State& s) const {return Value<Real>::updDowncast(updCacheEntry(s,getCacheEntries(s).uSumCacheIx));}
     Real& updTimeTrigger1(const State& s) const {return updEventTriggersByStage(s, Stage::Time)[getCacheEntries(s).timeTriggerIx];}
     Real& updTimeTrigger2(const State& s) const {return updEventTriggersByStage(s, Stage::Time)[getCacheEntries(s).timeTriggerIx+1];}
     Real& updVelTrigger(const State& s) const {return updEventTriggersByStage(s, Stage::Velocity)[getCacheEntries(s).velTriggerIx];}
@@ -397,10 +397,10 @@ private:
         return Value<CacheEntries>::downcast(getCacheEntry(s,myCacheEntries)); }
     StateVars& updStateVars   (const State& s) const 
     {   assert(myStateVars >= 0);
-        return Value<StateVars>::downcast(updCacheEntry(s,myStateVars)); }
+        return Value<StateVars>::updDowncast(updCacheEntry(s,myStateVars)); }
     CacheEntries& updCacheEntries(const State& s) const
     {   assert(myCacheEntries >= 0);
-        return Value<CacheEntries>::downcast(updCacheEntry(s,myCacheEntries)); }
+        return Value<CacheEntries>::updDowncast(updCacheEntry(s,myCacheEntries)); }
 
     const TestSystem& getTestSystem() const {return TestSystem::getAs(getSystem());}
     TestSystem& updTestSystem() {return TestSystem::updAs(updSystem());}
@@ -508,12 +508,14 @@ public:
     // Default copy constructor, destructor, copy assignment are fine.
 
     // Implementations of virtual methods.
-    Implementation* cloneVirtual() const {return new Implementation(*this);}
-    int getNumTimeDerivativesVirtual() const {return 0;}
-    Stage getDependsOnStageVirtual(int order) const 
+    Implementation* cloneVirtual() const override
+    {   return new Implementation(*this); }
+    int getNumTimeDerivativesVirtual() const override {return 0;}
+    Stage getDependsOnStageVirtual(int order) const override
     {   return Stage::Time; }
 
     void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
+        override
     {
         SimTK_ASSERT1_ALWAYS(derivOrder==0,
             "MySinCos::Implementation::calcCachedValueVirtual():"

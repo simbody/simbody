@@ -198,7 +198,7 @@ private:
     }
     Parameters& updParameters(State& s) const {
         assert(subsystemTopologyHasBeenRealized());
-        return Value<Parameters>::downcast(
+        return Value<Parameters>::updDowncast(
             updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
 
@@ -302,7 +302,7 @@ int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
 
     const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
-    Real& pe = Value<Real>::downcast(s.updCacheEntry(getMySubsystemIndex(), energyCacheIndex)).upd();
+    Real& pe = Value<Real>::updDowncast(s.updCacheEntry(getMySubsystemIndex(), energyCacheIndex)).upd();
     pe = 0;
 
     // Get access to system-global cache entries.

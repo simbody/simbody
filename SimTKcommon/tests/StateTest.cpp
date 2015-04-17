@@ -146,7 +146,7 @@ void testMisc() {
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Model);
         //long dv2 = s.allocateDiscreteVariable(SubsystemIndex(0), Stage::Position, new Value<int>(5));
 
-    Value<int>::downcast(s.updDiscreteVariable(SubsystemIndex(0), dv)) = 71;
+    Value<int>::updDowncast(s.updDiscreteVariable(SubsystemIndex(0), dv)) = 71;
     cout << s.getDiscreteVariable(SubsystemIndex(0), dv) << endl;
 
 
