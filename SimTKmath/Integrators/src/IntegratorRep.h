@@ -258,7 +258,7 @@ public:
     Real getConstraintToleranceInUse() const {return consTol;}
     Real getTimeScaleInUse() const {return timeScaleInUse;}
 
-    // What was the size of the first successful step after the last initialize() call?
+    // Size of the first successful step after the last initialize() call?
     virtual Real getActualInitialStepSizeTaken() const = 0;
 
     // What was the size of the most recent successful step?
@@ -403,7 +403,8 @@ public:
         int nCandidates;
         if (viableCandidates) {
             nCandidates = (int)viableCandidates->size();
-            assert(viableCandidateTransitions && (int)viableCandidateTransitions->size()==nCandidates);
+            assert(   viableCandidateTransitions 
+                   && (int)viableCandidateTransitions->size()==nCandidates);
         } else {
             assert(!viableCandidateTransitions);
             nCandidates = nEvents;
@@ -414,37 +415,44 @@ public:
         transitions.clear();
         earliestTimeEst = narrowestWindow = Infinity;
         for (int i=0; i<nCandidates; ++i) {
-            const SystemEventTriggerIndex e = viableCandidates ? (*viableCandidates)[i] 
-                                                                 : SystemEventTriggerIndex(i);
+            const SystemEventTriggerIndex e = viableCandidates ?
+                            (*viableCandidates)[i] : SystemEventTriggerIndex(i);
             Event::Trigger transitionSeen =
                 Event::maskTransition(
                     Event::classifyTransition(sign(eLow[e]), sign(eHigh[e])),
                     eventTriggerInfo[e].calcTransitionMask());
 
             if (transitionSeen != Event::NoEventTrigger) {
-                // Replace the transition we just saw with the appropriate one for
-                // reporting purposes. For example, if the event trigger only wants
-                // negative-to-positive transitions but we just saw negative-to-zero
-                // we'll report that as negative-to-positive.
-                transitionSeen = eventTriggerInfo[e].calcTransitionToReport(transitionSeen);
+                // Replace the transition we just saw with the appropriate one
+                // for reporting purposes. For example, if the event trigger 
+                // only wants negative-to-positive transitions but we just saw 
+                // negative-to-zero we'll report that as negative-to-positive.
+                transitionSeen = 
+                    eventTriggerInfo[e].calcTransitionToReport(transitionSeen);
                 candidates.push_back(e);
-                narrowestWindow = std::max(
-                    std::min(narrowestWindow, 
-                             accuracyInUse*timeScaleInUse*eventTriggerInfo[e].getRequiredLocalizationTimeWindow()),
-                    minWindow);
+                const Real window = 
+                    eventTriggerInfo[e].getRequiredLocalizationTimeWindow();
+                narrowestWindow = 
+                    std::max(std::min(narrowestWindow, 
+                                      accuracyInUse*timeScaleInUse*window),
+                             minWindow);
 
                 // Set estimated event trigger time for the viable candidates.
-                timeEstimates.push_back(estimateRootTime(tLow, eLow[e], tHigh, eHigh[e],
-                                                         bias, minWindow));
+                timeEstimates.push_back
+                               (estimateRootTime(tLow, eLow[e], tHigh, eHigh[e],
+                                                 bias, minWindow));
                 transitions.push_back(transitionSeen);
-                earliestTimeEst = std::min(earliestTimeEst, timeEstimates.back());
+                earliestTimeEst = std::min(earliestTimeEst, 
+                                           timeEstimates.back());
             }
         }
     }
     
-    /// Given a list of events, specified by their indices in the list of trigger functions,
-    /// convert them to the corresponding event IDs.
-    void findEventIds(const Array_<SystemEventTriggerIndex>& indices, Array_<EventId>& ids) {
+    // Given a list of events, specified by their indices in the list of trigger
+    // functions, convert them to the corresponding event IDs.
+    void findEventIds(const Array_<SystemEventTriggerIndex>&    indices, 
+                      Array_<EventId>&                          ids) 
+    {
         for (int i = 0; i < (int)indices.size(); ++i)
             ids.push_back(eventTriggerInfo[indices[i]].getEventId());
     }
@@ -552,10 +560,12 @@ protected:
 
     // This is information we extract from the System during initialization or
     // reinitialization and save here.
-    bool getDynamicSystemHasTimeAdvancedEvents()      const {return systemHasTimeAdvancedEvents;}
-    Real getDynamicSystemTimescale()                  const {return timeScaleInUse;}
-    const Array_<EventTriggerInfo>&
-        getDynamicSystemEventTriggerInfo()            const {return eventTriggerInfo;}
+    bool getDynamicSystemHasTimeAdvancedEvents() const 
+    {   return systemHasTimeAdvancedEvents; }
+    Real getDynamicSystemTimescale() const 
+    {   return timeScaleInUse; }
+    const Array_<EventTriggerInfo>& getDynamicSystemEventTriggerInfo() const 
+    {   return eventTriggerInfo; }
 
     const State& getInterpolatedState() const {return interpolatedState;}
     State&       updInterpolatedState()       {return interpolatedState;}
@@ -578,7 +588,8 @@ protected:
 
         const int n = eventIds.size();
         assert(n > 0 && estEventTimes.size()==n && transitionsSeen.size()==n);
-        triggeredEvents.resize(n); estimatedEventTimes.resize(n); eventTransitionsSeen.resize(n);
+        triggeredEvents.resize(n); estimatedEventTimes.resize(n); 
+        eventTransitionsSeen.resize(n);
         Array_<int> eventOrder; // will be a permutation of 0:n-1
         calcEventOrder(eventIds, estEventTimes, eventOrder);
         for (int i=0; i<(int)eventOrder.size(); ++i) {
@@ -588,7 +599,8 @@ protected:
             assert(tlo < estEventTimes[ipos] && estEventTimes[ipos] <= thi);
             estimatedEventTimes[i] = estEventTimes[ipos];
 
-            // TODO: assert that the transition is one of the allowed ones for this event
+            // TODO: assert that the transition is one of the allowed ones for
+            // this event.
             eventTransitionsSeen[i] = transitionsSeen[ipos];
         }
     }
@@ -596,23 +608,21 @@ protected:
     Real getEventWindowLow()  const {return tLow;}
     Real getEventWindowHigh() const {return tHigh;}
 
-    const Array_<EventId>&  getTriggeredEvents()  const {return triggeredEvents;}
-    const Array_<Real>& getEstimatedEventTimes()  const {return estimatedEventTimes;}
+    const Array_<EventId>&  getTriggeredEvents() const 
+    {   return triggeredEvents; }
+    const Array_<Real>& getEstimatedEventTimes() const 
+    {   return estimatedEventTimes; }
     const Array_<Event::Trigger>&
-                       getEventTransitionsSeen() const {return eventTransitionsSeen;}
+                       getEventTransitionsSeen() const 
+    {   return eventTransitionsSeen; }
 
     // This determines which state will be returned by getState().
-    void setUseInterpolatedState(bool shouldUse) {
-        useInterpolatedState = shouldUse;
-    }
-
-    void setStepCommunicationStatus(StepCommunicationStatus scs) {
-        stepCommunicationStatus = scs;
-    }
-
-    StepCommunicationStatus getStepCommunicationStatus() const {
-        return stepCommunicationStatus;
-    }
+    void setUseInterpolatedState(bool shouldUse) 
+    {   useInterpolatedState = shouldUse; }
+    void setStepCommunicationStatus(StepCommunicationStatus scs) 
+    {   stepCommunicationStatus = scs; }
+    StepCommunicationStatus getStepCommunicationStatus() const 
+    {   return stepCommunicationStatus; }
 
     const Real&   getPreviousTime()          const {return tPrev;}
 
@@ -702,7 +712,7 @@ protected:
     Real userAccuracy; // also use for constraintTol
     Real userConsTol; // for fussy people
     Real userFinalTime; // never go past this
-    int  userInternalStepLimit; // that is, in a single call to step(); 0=no limit
+    int  userInternalStepLimit; // max in a single call to step(); 0=no limit
 
     // three-state booleans
     int  userUseInfinityNorm;           // -1 (not supplied), 0(false), 1(true)
@@ -729,10 +739,11 @@ protected:
     }
 
     // Required accuracy and constraint tolerance.
-    // These are obtained during initialization from the user requests above, and
-    // given default values if the user was agnostic.
+    // These are obtained during initialization from the user requests above, 
+    // and given default values if the user was agnostic.
 
-    Real consTol;   // fraction of the constraint unit tolerance to be applied to each constraint
+    // Fraction of constraint unit tolerance to be applied to each constraint.
+    Real consTol; 
 
     void setAccuracyAndTolerancesFromUserRequests() {
         accuracyInUse = (userAccuracy != -1 ? userAccuracy : Real(1e-3));
@@ -807,9 +818,8 @@ protected:
     // Velocity stage. This will attempt to project u's and the u part of the 
     // yErrEst (if yErrEst is not length zero). Returns false if we fail which 
     // you can consider a convergence failure for the step. This is intended for
-    // use during integration.
-    // Stats are properly updated. State is realized through Velocity stage
-    // on successful return.
+    // use during integration. Stats are properly updated. State is realized 
+    // through Velocity stage on successful return.
     bool localProjectUAndUErrEstNoThrow(State& s, Vector& yErrEst,
         bool& anyChanges, Real projectionLimit=Infinity) 
     {
