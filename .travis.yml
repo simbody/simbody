@@ -73,8 +73,8 @@ before_install:
   # have a symlink in the ccache symlinks directory, so workaround it
   - if [ "$CC"  == "clang" ]; then ln -s $(which ccache) $HOME/clang && ln -s $(which ccache) $HOME/clang++ && export PATH=$HOME:$PATH; fi
   # Without the following lines, ccache causes clang to not print in color.
-  - if [ "$CC" == "clang" ]; then export CC="clang -fcolor-diagnostics"; fi;
-  - if [ "$CXX" == "clang++" ]; then export CX="clang++ -fcolor-diagnostics"; fi;
+  - if [ "$CC" == "clang" ]; then export CC="clang -fcolor-diagnostics"; fi
+  - if [ "$CXX" == "clang++" ]; then export CX="clang++ -fcolor-diagnostics"; fi
   
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build
@@ -91,8 +91,8 @@ script:
   - make -j8 install
   
   # Maximum size of cache is 100 MB.
-  - ccache -M 100M
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ccache -M 100M; fi
   
 before_cache:
   # Show cache statistics.
-  - ccache -s 
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ccache -s; fi
