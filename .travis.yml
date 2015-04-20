@@ -2,6 +2,8 @@
 # framework to run Simbody's tests with every GitHub push or pull-request.
 language: cpp
 
+sudo: false
+
 os:
   - linux
   - osx
@@ -9,19 +11,45 @@ os:
 compiler:
   - gcc
   - clang
-
-env:
-  # Each line is a separate build in the build matrix. A build in the build
-  # matrix is defined by the environment variables defined on the line, which
-  # should be space-delimited. For example,
-  # - ABC=ON DEF=OFF GHI=ON
-  # Simbody 3.6 and up requires c++11
-  - BTYPE=Release
   
 matrix:
   exclude:
     - os: osx
       compiler: gcc
+
+env:
+  global:
+    - BTYPE=Release
+    # 'ccache' caches compiled objects to speed up the build.
+    - USE_CCACHE=1
+    - CCACHE_COMPRESS=1
+    # for Clang to work with ccache.
+    - CCACHE_CPP2=1
+  
+cache: 
+  - directories: $HOME/.ccache
+  
+addons:
+  # Dependencies on linux.
+  apt:
+    sources:
+      # For gcc >= 4.8
+      - ubuntu-toolchain-r-test
+      # For cmake >= 2.8.8
+      - kubuntu-backports
+    packages:
+      - cmake
+      - liblapack-dev
+      # Next 3 are for the visualizer.
+      - freeglut3-dev
+      - libxi-dev
+      - libxmu-dev
+      # C++11 on Ubuntu. Update to gcc 4.8, which provides full C++11 support.  We
+      # use this script because if building Simbody with C++11, we need gcc-4.8,
+      # and the Travis Ubuntu 12.04 machines have an older version of gcc. Even if
+      # building with Clang, we need the newer libstdc++ that we get by updating to
+      # gcc-4.8.  See https://github.com/travis-ci/travis-ci/issues/979.
+      - g++-4.8
 
 before_install:
   ## Ensure that there are no tabs in source code.
@@ -33,31 +61,25 @@ before_install:
   # (e.g., literally a \t in a source file).
   # This grep command is invalid on osx.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; else echo "Repo passed no-tabs check."; fi; else echo "No-tabs check not performed."; fi
-  
-  ## Dependencies for Simbody.
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install liblapack-dev; fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install freeglut3-dev libxi-dev libxmu-dev; fi
 
-  # C++11 on Ubuntu. Update to gcc 4.8, which provides full C++11 support.  We
-  # use this script because if building Simbody with C++11, we need gcc-4.8,
-  # and the Travis Ubuntu 12.04 machines have an older version of gcc. Even if
-  # building with Clang, we need the newer libstdc++ that we get by updating to
-  # gcc-4.8.  See https://github.com/travis-ci/travis-ci/issues/979.
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get install -qq g++-4.8; fi
+  # Make sure we use the newer gcc.
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
   
-  # CMake 2.8.11 on Ubuntu.
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:kalakris/cmake -y; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get install cmake; fi
-
+  ## Set up ccache.
+  # Lots of this is borrowed from https://github.com/weitjong/Urho3D/blob/master/.travis.yml.
+  # Put /usr/lib/ccache on the path.
+  - export PATH=$(whereis -b ccache |grep -o '\S*lib\S*'):$PATH
+  # For some reason the Travis CI clang compiler toolchain installation does not
+  # have a symlink in the ccache symlinks directory, so workaround it
+  - if [ "$CC"  == "clang" ]; then ln -s $(which ccache) $HOME/clang && ln -s $(which ccache) $HOME/clang++ && export PATH=$HOME:$PATH; fi
+  # Without the following lines, ccache causes clang to not print in color.
+  - if [ "$CC" == "clang" ]; then export CC="clang -fcolor-diagnostics"; fi;
+  - if [ "$CXX" == "clang++" ]; then export CX="clang++ -fcolor-diagnostics"; fi;
+  
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_INSTALL_PREFIX=$HOME/simbody-install
   # Build.
   - make -j8
 
@@ -66,4 +88,11 @@ script:
   - ctest -j8 --output-on-failure
 
   ## Make sure we can install with no issues.
-  - sudo make -j8 install
+  - make -j8 install
+  
+  # Maximum size of cache is 100 MB.
+  - ccache -M 100M
+  
+before_cache:
+  # Show cache statistics.
+  - ccache -s 
