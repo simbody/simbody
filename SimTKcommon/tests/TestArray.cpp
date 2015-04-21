@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,6 +32,7 @@
 #include <sstream>
 #include <iterator>
 #include <iostream>
+#include <utility>
 using std::cout;
 using std::endl;
 using std::cin;
@@ -183,29 +184,37 @@ template <class T> Counter Count<T>::initAssign;
 template <class T> Counter Count<T>::copyAssign;
 template <class T> Counter Count<T>::dtor;
 
+typedef std::set<float>::const_iterator inputIt; // not a random access iterator
+
 // Instantiate the whole class to check for compilation problems.
 namespace SimTK {
 template class Array_<int>;
 template class Array_<std::string, unsigned char>;
-};
 
-#ifdef _MSC_VER // gcc 4.1.2 had trouble with this
 // Instantiate templatized methods
-typedef std::set<float>::const_iterator inputIt; // not a random access iterator
 
 // Constructors.
-template Array_<float,int>::Array_(const Array_<float,int>&);
 template Array_<float,int>::Array_(const float*,const float*);
+
+
+// Gcc 4.8.2 complains that these two instantiations are ambiguous, and 
+// clang 3.4 dies with an internal error. cl has no problem with them. It is
+// hard to determine who is right so I'll just include this for cl for now.
+#ifdef _MSC_VER
+    template Array_<float,int>::Array_(const Array_<float,int>&);
+    template Array_<float,int>&
+    Array_<float,int>::operator=(const Array_<float,int>&);
+#endif
 
 // Assignment.
 template void 
 Array_<float,int>::assign(const float*,const float*);
 template void
 Array_<double,int>::assign(const inputIt&, const inputIt&);
-template Array_<float,int>& 
-Array_<float,int>::operator=(const Array_<float,int>&);
 template Array_<double,int>& 
 Array_<double,int>::operator=(const std::vector<float>&);
+
+
 
 // Insertion
 template float*
@@ -214,10 +223,9 @@ template float*
 Array_<float,short>::insert(float*, const inputIt&, const inputIt&);
 
 // Comparison
-template bool SimTK::operator==(const ArrayViewConst_<float,int>&, 
-                                const ArrayViewConst_<float,unsigned>&);
-#endif
-
+template bool operator==(const ArrayViewConst_<float,int>&, 
+                         const ArrayViewConst_<float,unsigned>&);
+};
 
 void testConstruction() {
     const int data[] = {5,3,-2,27,9};
@@ -685,7 +693,6 @@ void testInputIterator() {
 
     std::istringstream fin8(" 9.1e2,9.2e2,9.2e3,");  fin8 >> fmid;
     SimTK_TEST(!fin8.fail()); // trailing comma OK here because we got our fill
-
 }
 
 // Reduce the loop count by 50X in Debug.
@@ -697,7 +704,8 @@ static const int Outer = 500000
 
 static const int Inner = 1000;
 void testSpeedStdVector() {
-    std::vector<int> v; 
+    std::vector<int> v;
+    using Index = std::vector<int>::size_type;
     v.reserve(Inner);
 
     for (int i=0; i < Outer; ++i) {
@@ -709,7 +717,7 @@ void testSpeedStdVector() {
     int sum;
     for (int i=0; i < Outer; ++i) {
         sum = i;
-        for (unsigned i=0; i < v.size(); ++i)
+        for (Index i=0; i < v.size(); ++i)
             sum += v[i];
     }
     cout << "std::vector sum=" << sum << endl;
@@ -717,6 +725,7 @@ void testSpeedStdVector() {
 
 void testSpeedSimTKArray() {
     Array_<int> v; 
+    using Index = Array_<int>::size_type;
     v.reserve(Inner);
 
     for (int i=0; i < Outer; ++i) {
@@ -728,7 +737,7 @@ void testSpeedSimTKArray() {
     int sum;
     for (int i=0; i < Outer; ++i) {
         sum = i;
-        for (unsigned i=0; i < v.size(); ++i)
+        for (Index i=0; i < v.size(); ++i)
             sum += v[i];
     }
     cout << "Array sum=" << sum << endl;
@@ -852,10 +861,72 @@ void testMemoryFootprint() {
     }
 }
 
+// Create a local array and return it along with the original data location.
+// With move construction the caller should end up with our local data without
+// having to copy it.
+static std::pair<Array_<double,char>, double*> returnByValue(double d) {
+    Array_<double,char> local{1,2,3,4,5.5};
+    local.push_back(d);
+    double* localData = local.data();
+    return {std::move(local),localData};
+}
+
+void testMoveConstructionAndAssignment() {
+    Array_<double> ad1{1,2,3.5,4};
+    const double* p1 = ad1.data();
+    Array_<double> ad2{.01,.02};
+    const double* p2 = ad2.data();
+
+    Array_<double> ad3(ad1); // copy construction
+    const double* p3 = ad3.data();
+    SimTK_TEST(p3 != p2);
+    ad3 = std::move(ad1);    // move assignment
+    SimTK_TEST(ad3.data() == p1 && ad1.data() == p3);
+
+    Array_<double> ad4(std::move(ad2)); // move construction
+    SimTK_TEST(ad4.data()==p2 && ad2.empty());
+
+    auto returned = returnByValue(3.25); // construction
+    SimTK_TEST(returned.first == std::vector<double>({1,2,3,4,5.5,3.25}));
+    SimTK_TEST(returned.first.data() == returned.second);
+
+    returned = returnByValue(-1);       // assignment
+    SimTK_TEST(returned.first == std::vector<double>({1,2,3,4,5.5,-1}));
+    SimTK_TEST(returned.first.data() == returned.second);
+
+}
+
+template <class T>
+static void takeAnArray(const Array_<T>& arr) {
+}
+
+// Array_<T> has a non-explicit constructor that accepts an 
+// std::initializer_list<T> which should provide implicit conversion from an
+// initializer list to an Array_ and allow initializer_list<T2> as long as
+// T(T2) works (the compiler takes care of that while building the initializer
+// list).
+void testInitializerList() {
+    Array_<double> ad1{}; // Should call default constructor
+    SimTK_TEST(ad1.empty());
+    Array_<double> ad2{3}; // Should be 1-element initializer list
+    SimTK_TEST(ad2.size()==1 && ad2.front()==3);
+    Array_<double> ad3(3); // Should be a 3-element uninitialized list
+    SimTK_TEST(ad3.size()==3);
+
+    Array_<double> ad4 = {1,2,2.5,.125}; // initlist construction
+    SimTK_TEST(ad4 == std::vector<double>({1,2,2.5,.125}));
+    ad4 = {2,4,5};                   // implicit conversion, then move
+    SimTK_TEST(ad4 == std::vector<double>({2.,4.,5.}));
+    takeAnArray<int>({2,3,4}); // implicit conversion to Array_<int>
+    takeAnArray<double>({1.2,3,4}); // implicit conversion to Array_<double>
+}
+
 int main() {
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testInitializerList);
+        SimTK_SUBTEST(testMoveConstructionAndAssignment);
         SimTK_SUBTEST(testInsert);
         SimTK_SUBTEST(testArrayViewAssignment);
         SimTK_SUBTEST(testInputIterator);
