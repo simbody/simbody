@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,6 +40,7 @@
 #include <ostream>
 #include <climits>
 #include <typeinfo>
+#include <initializer_list>
 
 namespace SimTK {
 
@@ -629,12 +630,12 @@ the reverse iterator's base() method. **/
 
 /** Return a const pointer to the first element of this array if any, otherwise
 cend(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
+is from the C++11 standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 const T* cbegin() const {return pData;}
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
+be. This method is from the C++11 standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 const T* cend() const {return pData + nUsed;}
 /** The const version of begin() is the same as cbegin(). **/
@@ -659,9 +660,9 @@ const_reverse_iterator rend() const {return crend();}
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
 @note
-    cdata() does not appear to be in the C++0x standard although it would seem
+    cdata() is not in the C++11 standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
+    The C++11 overloaded const data() method is also available. **/
 const T* cdata() const {return pData;}
 /** The const version of the data() method is identical to cdata(). **/
 const T* data() const {return pData;}
@@ -1176,7 +1177,7 @@ reverse iterator's base() method. **/
 
 /** Return a const pointer to the first element of this array if any, otherwise
 end(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
+is from the C++11 standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
@@ -1189,7 +1190,7 @@ SimTK_FORCE_INLINE T* begin() {return const_cast<T*>(this->CBase::cbegin());}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
+be. This method is from the C++11 standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
@@ -1227,16 +1228,16 @@ reverse_iterator rend() {return reverse_iterator(begin());}
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
 @note
-    cdata() does not appear to be in the C++0x standard although it would seem
+    cdata() is not in the C++11 standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
+    The C++11 overloaded const data() method is also available. **/
 SimTK_FORCE_INLINE const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE T* data() {return const_cast<T*>(this->CBase::cdata());}
 /*@}    End of iterators. */
 
@@ -1396,13 +1397,10 @@ const char* indexName() const   {return this->CBase::indexName();}
 };
 
 
-
-
-
 //==============================================================================
 //                               CLASS Array_
 //==============================================================================
-/** The SimTK::Array_<T> container class is a plug-compatible replacement for 
+/** The Array_<T> container class is a plug-compatible replacement for 
 the C++ standard template library (STL) std::vector<T> class, but with some
 important advantages in performance, and functionality, and binary 
 compatibility.
@@ -1421,11 +1419,11 @@ particular, that are addressed here. Microsoft in its wisdom decided that STL
 containers should still do runtime range checks in Release builds for safety, 
 but that makes them too slow for use in some high-performance contexts (and 
 also breaks the promise of generic programming but that's another rant). In 
-practice, VC++9 std::vector runs about half speed for simple operations like 
-indexing and push_back. Attempting to disable these runtime checks with 
-_SECURE_SCL breaks binary compatibility. In contrast the performance of this 
-Array_<T> class on any platform is indistinguishable from what you would get 
-by managing your own heap-allocated arrays.
+practice, VC++12 (2013) std::vector runs about half speed for simple operations 
+like indexing and push_back. Attempting to disable these runtime checks 
+with `_SECURE_SCL` breaks binary compatibility. In contrast the performance of  
+this Array_<T> class on any platform is indistinguishable from what you would 
+get by managing your own heap-allocated arrays.
 
 @par
 Regarding memory footprint, the typical implementation of std::vector uses
@@ -1479,8 +1477,8 @@ there are a few additions and subtractions:
   copied into the array.
 - You can create Array_<T> objects that reference existing data, including
   the contents of std::vectors.
-- Where possible this class implements the new std::vector features proposed
-  for the C++0x standard (see below).
+- This class implements the std::vector features from the C++11 standard (with
+  a few exceptions; see below).
 
 @par Compatibility:
 Included here are binary compatibility issues and compatibility with the C++
@@ -1494,8 +1492,8 @@ standard STL objects.
   to use Array_<T> in the SimTK API where use of std::vector<T> would be 
   desirable but problematic.
 - It supports all standard types, methods, iterators, and operators of the 
-  C++98 standard std::vector and the C++0x proposed improvements other than
-  those requiring rvalue references, so it works smoothly with all STL 
+  C++98 standard std::vector and the C++11 upgrades (currently except for
+  `emplace()` and `emplace_back()`), so it works smoothly with all STL 
   containers and algorithms.
 - It is convertible to and from std::vector, usually without copying the 
   elements. It is easy to provide APIs that accept either Array_<T> or 
@@ -1605,6 +1603,13 @@ Array_(const T2* first, const T2* last1) : Base() {
     copyConstruct(begin(), cend(), first);
 }
 
+/** Construct an Array_<T> from an std::initializer_list whose elements were
+convertible to type T, provided that the number of source elements does not 
+exceed the array's max_size(). Note that this constructor is not `explicit`,
+so a suitable std::initializer_list will implicitly convert to an Array_<T>. **/
+Array_(std::initializer_list<T> ilist)
+:   Array_(ilist.begin(), ilist.end()) {} // invoke above constructor for T*
+
 /** Construct an Array_<T> by copying from an std::vector<T2>, where T2 may
 be the same type as T but doesn't have to be. This will work as long as the 
 size of the vector does not exceed the array's max_size(), and provided there 
@@ -1632,6 +1637,12 @@ Array_(const Array_& src) : Base() {
     setSize(src.size());
     allocateNoConstruct(size());
     copyConstruct(begin(), cend(), src.data());
+}
+
+/** Move constructor swaps in the source and leaves the source default
+constructed. **/
+Array_(Array_&& src) : Base() {
+    swap(src);
 }
 
 /** Construct this Array_<T,X> as a copy of another Array_<T2,X2> where T2!=T
@@ -1911,6 +1922,13 @@ Array_& operator=(const Array_& src) {
     return *this;
 }
 
+/** Move assignment operator swaps the contents of this Array_ with the
+source Array_. **/
+Array_& operator=(Array_&& src) {
+    swap(src);
+    return *this;
+}
+
 /** This is assignment from a source array whose element type T2 and/or index 
 type X2 are different from this array's T and X. This will work as long as 
 this array can accommodate all the elements in the source and T2 is assignment
@@ -2120,7 +2138,7 @@ this method, then all the elements will have been moved to new locations so
 existing iterators and references into the array will become invalid.
 
 @note
-  - This method is from the proposed C++0x standard for std::vector, except for
+  - This method matches the C++11 std::vector method, except for
     the guaranteed behavior for a zero-size container.
   - It is OK to call this on a non-owner array but it has no effect since
     capacity()==size() already in that case.
@@ -2167,7 +2185,7 @@ reverse iterator's base() method. **/
 
 /** Return a const pointer to the first element of this array if any, otherwise
 cend(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
+is from the C++11 standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
@@ -2180,7 +2198,7 @@ SimTK_FORCE_INLINE T* begin() {return this->Base::begin();}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
+be. This method is from the C++11 standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
@@ -2218,16 +2236,16 @@ reverse_iterator rend() {return this->Base::rend();}
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
 @note
-    cdata() does not appear to be in the C++0x standard although it would seem
+    cdata() is not in the C++11 standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
+    The C++11 overloaded const data() method is also available. **/
 SimTK_FORCE_INLINE const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE T* data() {return this->Base::data();}
 /*@}*/
 
@@ -2433,10 +2451,10 @@ elements erased. Capacity is unchanged. If the range is empty nothing happens.
     constructor and destructor once for each element that has to be moved. **/
 T* erase(T* first, const T* last1) {
     SimTK_ERRCHK(begin() <= first && first <= last1 && last1 <= end(),
-    "Array<T>::erase(first,last1)", "Pointers out of range or out of order.");
+    "Array_<T>::erase(first,last1)", "Pointers out of range or out of order.");
 
     const size_type nErased = size_type(last1-first);
-    SimTK_ERRCHK(isOwner() || nErased==0, "Array<T>::erase(first,last1)",
+    SimTK_ERRCHK(isOwner() || nErased==0, "Array_<T>::erase(first,last1)",
         "No elements can be erased from a non-owner array.");
 
     if (nErased) {
@@ -2468,8 +2486,8 @@ in constant time using the non-standard extension eraseFast().
 @see eraseFast() **/
 T* erase(T* p) {
     SimTK_ERRCHK(begin() <= p && p < end(),
-        "Array<T>::erase(p)", "Pointer must point to a valid element.");
-    SimTK_ERRCHK(isOwner(), "Array<T>::erase(p)",
+        "Array_<T>::erase(p)", "Pointer must point to a valid element.");
+    SimTK_ERRCHK(isOwner(), "Array_<T>::erase(p)",
         "No elements can be erased from a non-owner array.");
 
     destruct(p);              // Destruct the element we're erasing.
@@ -2501,8 +2519,8 @@ size is reduced by 1 but the capacity does not change.
 @see erase() **/
 T* eraseFast(T* p) {
     SimTK_ERRCHK(begin() <= p && p < end(),
-        "Array<T>::eraseFast(p)", "Pointer must point to a valid element.");
-    SimTK_ERRCHK(isOwner(), "Array<T>::eraseFast(p)",
+        "Array_<T>::eraseFast(p)", "Pointer must point to a valid element.");
+    SimTK_ERRCHK(isOwner(), "Array_<T>::eraseFast(p)",
         "No elements can be erased from a non-owner array.");
 
     destruct(p);
@@ -2554,7 +2572,7 @@ array, moving all following elements up by \a n positions.
     elements from the given value. 
 **/
 T* insert(T* p, size_type n, const T& value) {
-    T* const gap = insertGapAt(p, n, "Array<T>::insert(p,n,value)");
+    T* const gap = insertGapAt(p, n, "Array_<T>::insert(p,n,value)");
     // Copy construct into the inserted elements and note the size change.
     fillConstruct(gap, gap+n, value);
     setSize(size()+n);
@@ -2566,7 +2584,7 @@ it to a copy of a given value and moving all following elements up one
 position. This is identical to insert(\a p,1,\a value) but slightly faster; see
 that method for full documentation. **/
 T* insert(T* p, const T& value)  {
-    T* const gap = insertGapAt(p, 1, "Array<T>::insert(p,value)");
+    T* const gap = insertGapAt(p, 1, "Array_<T>::insert(p,value)");
     // Copy construct into the inserted element and note the size change.
     copyConstruct(gap, value);
     incrSize();
