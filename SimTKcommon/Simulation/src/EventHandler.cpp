@@ -46,4 +46,3 @@ setEventInterval(Real eventInterval) {
         "The interval was %g but must be greater than zero.", eventInterval);
     m_eventInterval = eventInterval;
 }
-

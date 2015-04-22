@@ -24,7 +24,7 @@
 
 /**@file
  *
- * Implementation of Subsystem, Subsystem::Guts and DefaultSystemSubsystem.
+ * Implementation of Subsystem and Subsystem::Guts.
  */
 
 #include "SimTKcommon/basics.h"

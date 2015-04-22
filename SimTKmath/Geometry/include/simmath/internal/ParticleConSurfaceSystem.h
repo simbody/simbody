@@ -113,7 +113,7 @@ public:
     ParticleConSurfaceSystem(const ContactGeometryImpl& geom) 
     :   System(new ParticleConSurfaceSystemGuts(geom))
     { 
-        updGuts().subsysIndex = getDefaultSubsystem().getMySubsystemIndex();
+        updGuts().subsysIndex = getSystemGlobalSubsystem().getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
     }

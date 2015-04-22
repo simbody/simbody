@@ -43,6 +43,7 @@
 #include "SimTKcommon/internal/SystemGuts.h"
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/SubsystemGuts.h"
+#include "SimTKcommon/internal/SystemGlobalSubsystem.h"
 #include "SimTKcommon/internal/Study.h"
 #include "SimTKcommon/internal/Function.h"
 #include "SimTKcommon/internal/Random.h"

@@ -180,7 +180,7 @@ private:
 
 // Define MySystem's constructor so that it creates a MySystemGuts object for
 // the System handle. There will be one Subsystem automatically created, the
-// DefaultSystemSubsystem.
+// SystemGlobalSubsystem.
 MySystem::MySystem(const SomeStuff& stuff) : System(new MySystemGuts(stuff)) {
 }
 //------------------------ END OF OBSCURE BOOKKEEPING --------------------------

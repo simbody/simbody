@@ -112,7 +112,7 @@ class PendulumSystem: public System {
 public:
     PendulumSystem() : System(new PendulumSystemGuts())
     { 
-        updGuts().subsysIndex = getDefaultSubsystem().getMySubsystemIndex();
+        updGuts().subsysIndex = getSystemGlobalSubsystem().getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
     }

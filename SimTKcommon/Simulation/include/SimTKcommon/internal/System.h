@@ -35,7 +35,7 @@
 namespace SimTK {
 
 class DecorativeGeometry;
-class DefaultSystemSubsystem;
+class SystemGlobalSubsystem;
 class ScheduledEventHandler;
 class ScheduledEventReporter;
 class TriggeredEventHandler;
@@ -56,12 +56,13 @@ the methods provided here are primarily for use by integrators.
 A %System serves as a mediator for a group of interacting Subsystem objects. 
 All will share a single system State, and typically subsystems will need access
 to content in the state which is managed by other subsystems. A %System provides 
-a unique SubsystemIndex (a small positive integer) for each
-of its subsystems, and the subsystems are constructed knowing their indices. 
-The indices are used subsequently by the subsystems to find their own entries 
-in the system state, and by each subsystem to refer to others within the same
-system. Index 0 is reserved for use by the %System itself, e.g. for 
-system-global state variables, which are maintained in subsystem 0. 
+a unique SubsystemIndex (a small positive integer) for each of its subsystems, 
+and the subsystems are constructed knowing their indices. The indices are used 
+subsequently by the subsystems to find their own entries in the system state, 
+and by each subsystem to refer to others within the same system. Index 0 is 
+reserved for use by the %System itself, e.g. for system-global state variables 
+and events, which are maintained in the SystemGlobalSubsystem, which has 
+SubsystemIndex 0. 
 
 Concrete %Systems understand the kinds of subsystems they contain. For example, 
 a MultibodySystem might contain a mechanical subsystem, some force subsystems, 
@@ -185,7 +186,7 @@ bool hasTimeAdvancedEvents() const;
 /**@name              Event handlers and reporters
 
 These methods are used to attach event handlers and reporters to this %System.
-These are actually added to the DefaultSystemSubsystem that is contained in 
+These are actually added to the SystemGlobalSubsystem that is contained in 
 every System. **/
 /**@{**/
 /** Add a ScheduledEventHandler to this %System, which takes over ownership
@@ -817,26 +818,40 @@ int getNumSubsystems() const;
 const Subsystem& getSubsystem(SubsystemIndex)   const;
 /** Obtain writable access to a particular subsystem by its index. **/
 Subsystem& updSubsystem(SubsystemIndex);
+
 /** Get read-only access to the default subsystem which is present in every 
 system. **/
-const DefaultSystemSubsystem& getDefaultSubsystem() const;
+inline const SystemGlobalSubsystem& getSystemGlobalSubsystem() const;
 /** Get writable access to the default subsystem which is present in every 
 system. **/
-DefaultSystemSubsystem& updDefaultSubsystem();
+inline SystemGlobalSubsystem& updSystemGlobalSubsystem();
 
 /** Implicitly convert this System into a const Subsystem reference; this 
-actually returns a reference to the DefaultSystemSubsystem contained in this 
+actually returns a reference to the SystemGlobalSubsystem contained in this 
 System. **/
-inline operator const Subsystem&() const; // implemented below
+inline operator const Subsystem&() const;
 /** Implicitly convert this System into a writable Subsystem reference; this 
-actually returns a reference to the DefaultSystemSubsystem contained in this 
+actually returns a reference to the SystemGlobalSubsystem contained in this 
 System. **/
 inline operator Subsystem&();
 
+
+/** There can be multiple handles referring to the same System::Guts object; 
+they are considered to be the same System. **/
+bool isSameSystem(const System& otherSystem) const;
+
+/**@}**/
+
+//------------------------------------------------------------------------------
+/**@name              Advanced/obscure/debugging/obsolete
+
+You probably don't want to use these methods. **/
+/**@{**/
+
 /** (Advanced) You can check whether realizeTopology() has been called since the
-last topological change to this Syatem. If you don't check and just plunge
-ahead you are likely to encounter an exception since very few things
-will work without topology having been realized. **/
+last topological change to this System. If you don't check and just plunge
+ahead you are likely to encounter an exception since very few things will work 
+without topology having been realized. **/
 bool systemTopologyHasBeenRealized() const;
 
 /** (Advanced) Return the current version number of this system's Topology
@@ -848,19 +863,19 @@ systemTopologyHasBeenRealized().
 @see State::getSystemTopologyStageVersion() **/
 StageVersion getSystemTopologyCacheVersion() const;
 
-/** (Really advanced) Set the current version number of this system's 
+/** (Really advanced) Set the current version number of this System's 
 Topology cache information. Don't use this method unless you really know what
-you're doing! This has no effect on realization status; if topology has not
+you're doing! This has no effect on realization status; if Topology has not
 yet been realized this is the version number it will have after the next 
 realizeTopology() call. **/
 void setSystemTopologyCacheVersion(StageVersion topoVersion) const;
 
 /** (Advanced) Mark the Topology stage of this system and all its subsystems
-"not realized." This is normally handled automatically by whenever you make a 
-Topology-stage change to any subsystem. Occasionally you may want to force 
+"not realized." This is normally handled automatically whenever you make a 
+Topology-stage change to any Subsystem. Occasionally you may want to force 
 recomputation of the Topology-stage cache, for example during testing. After 
 this call the method systemTopologyHasBeenRealized() will return false and you 
-will not be able to call getDefaultState(). A subsequent call to 
+will not be able to call getDefaultState(). A subsequent call to
 realizeTopology() will invoke all the subsystems' realizeTopology() methods.
 The Topology stage version number will have changed, so all previously-created
 State objects will be invalid. **/
@@ -870,27 +885,21 @@ void invalidateSystemTopologyCache() const;
 this is useful for visualizers. This will throw an exception if the state hasn't
 already been realized to the given stage. Note that the list is not inclusive --
 you have to request geometry from each stage to get all of it. This routine 
-asks each subsystem in succession to generate its decorative geometry and
+asks each Subsystem in succession to generate its decorative geometry and
 append it to the end of the array. If the stage is Stage::Topology, 
 realizeTopology() must already have been called but the State is ignored. **/
-void calcDecorativeGeometryAndAppend(const State&, Stage, 
-                                     Array_<DecorativeGeometry>&) const;
+void calcDecorativeGeometryAndAppend(const State& state, Stage stage, 
+                                     Array_<DecorativeGeometry>& geom) const;
 
-
-/** There can be multiple handles referring to the same System::Guts object; 
-they are considered to be the same System. **/
-bool isSameSystem(const System& otherSystem) const;
-
-
-/** Obtain a const reference to the System::Guts object to which this handle
-refers. You should then dynamic_cast the returned reference to a reference to 
-your concrete Guts class. **/
+/** Obtain a const reference to the System::Guts object to which this %System
+handle refers. You should then `dynamic_cast` the returned reference to a 
+reference to your concrete Guts class. **/
 const Guts& getSystemGuts() const {assert(guts); return *guts;}
-/** Obtain a writable reference to the System::Guts object to which this handle
-refers. You should then dynamic_cast the returned reference to a reference to 
-your concrete Guts class. **/
-Guts&       updSystemGuts()       {assert(guts); return *guts;}
 
+/** Obtain a writable reference to the System::Guts object to which this %System
+handle refers. You should then `dynamic_cast` the returned reference to a 
+reference to your concrete Guts class. **/
+Guts& updSystemGuts() {assert(guts); return *guts;}
 
 /** Return true if this %System handle is not empty. **/
 bool hasGuts() const {return guts!=0;}
@@ -899,13 +908,22 @@ bool hasGuts() const {return guts!=0;}
 bool isOwnerHandle() const;
 /** Internal use only. **/
 bool isEmptyHandle() const;
+
+/** (Deprecated) Use getSystemGlobalSubsystem() instead. The name changed
+in Simbody 4.0. **/
+const SystemGlobalSubsystem& getDefaultSubsystem() const
+{   return getSystemGlobalSubsystem(); }
+/** (Deprecated) Use updSystemGlobalSubsystem() instead. The name changed
+in Simbody 4.0. **/
+SystemGlobalSubsystem& updDefaultSubsystem()
+{   return updSystemGlobalSubsystem(); }
 /**@}**/
 
 protected:
-/** Put new *unowned* System::Guts object into a new System handle which takes
-over ownership. If Guts is already owned by some other System handle this
+/** Put new *unowned* System::Guts object into a new %System handle which takes
+over ownership. If Guts is already owned by some other %System handle this
 routine will throw an exception. Also, Guts must not yet contain any 
-subsystems because we need to put the Default Subsystem in the 0th slot. **/
+subsystems because we need to put the SystemGlobalSubsystem in the 0th slot. **/
 explicit System(System::Guts* g) : guts(nullptr) {
     adoptSystemGuts(g);
 }
@@ -920,48 +938,6 @@ friend class Guts;
 // System must have *NO* data members at all (data goes in the Guts class).
 Guts*   guts;
 };
-
-//==============================================================================
-//                         DEFAULT SYSTEM SUBSYSTEM
-//==============================================================================
-/** This is a concrete Subsystem that is part of every System.\ It provides a 
-variety of services for the System, such as maintaining lists of event 
-handlers and reporters.  
-
-To obtain the default subsystem for a System, call getDefaultSubsystem() or 
-updDefaultSubsystem() on it. Also, a System can be implicitly converted
-to a Subsystem, in which case it actually returns a reference to
-this subsystem. At each Stage, this subsystem is realized *last*, after all
-other subsystems. That way if witness functions defined here to trigger
-events depend on computations done in other subsystems, those computations
-will have been completed by the time they are needed. **/
-class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
-public:
-    explicit DefaultSystemSubsystem(System& sys);
-    void addEventHandler(ScheduledEventHandler* handler);
-    void addEventHandler(TriggeredEventHandler* handler);
-    void addEventReporter(ScheduledEventReporter* handler) const;
-    void addEventReporter(TriggeredEventReporter* handler) const;
-
-    /** @cond **/  // don't let doxygen see this private class
-    class Guts;
-    /** @endcond **/
-private:
-    const Guts& getGuts() const;
-    Guts& updGuts();
-};
-
-inline void System::addEventHandler(ScheduledEventHandler* handler)
-{   updDefaultSubsystem().addEventHandler(handler); }
-inline void System::addEventHandler(TriggeredEventHandler* handler)
-{   updDefaultSubsystem().addEventHandler(handler); }
-inline void System::addEventReporter(ScheduledEventReporter* handler) const
-{   getDefaultSubsystem().addEventReporter(handler); }
-inline void System::addEventReporter(TriggeredEventReporter* handler) const
-{   getDefaultSubsystem().addEventReporter(handler); }
-
-inline System::operator const Subsystem&() const {return getDefaultSubsystem();}
-inline System::operator Subsystem&() {return updDefaultSubsystem();}
 
 
 //==============================================================================

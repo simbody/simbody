@@ -169,7 +169,7 @@ class MyPendulum: public System {
 public:
     MyPendulum() : System(new MyPendulumGuts())
     { 
-        updGuts().subsysIndex = getDefaultSubsystem().getMySubsystemIndex();
+        updGuts().subsysIndex = getSystemGlobalSubsystem().getMySubsystemIndex();
 
         setHasTimeAdvancedEvents(false);
         (void)realizeTopology();
