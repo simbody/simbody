@@ -33,6 +33,7 @@
 #include <iterator>
 #include <iostream>
 #include <utility>
+#include <memory>
 using std::cout;
 using std::endl;
 using std::cin;
@@ -894,6 +895,20 @@ void testMoveConstructionAndAssignment() {
     SimTK_TEST(returned.first == std::vector<double>({1,2,3,4,5.5,-1}));
     SimTK_TEST(returned.first.data() == returned.second);
 
+    // std::unique_ptr has only move construction so this won't compile if
+    // Array_ requires copy construction
+    Array_<std::unique_ptr<double>> aud;
+    aud.push_back(std::unique_ptr<double>(new double(5.125)));
+    aud.push_back(std::unique_ptr<double>(new double(3.5)));
+    aud.push_back(std::unique_ptr<double>(new double(-2.25)));
+    SimTK_TEST(aud.size()==3);
+    SimTK_TEST(*aud[0]==5.125 && *aud[1]==3.5 && *aud[2]==-2.25);
+
+    aud.emplace_back(new double(123.));
+    SimTK_TEST(aud.size()==4 && *aud[3]==123.);
+
+    aud.emplace(&aud[2], new double(100));
+    SimTK_TEST(aud.size()==5 && *aud[2]==100. && *aud[3]==-2.25);
 }
 
 template <class T>
