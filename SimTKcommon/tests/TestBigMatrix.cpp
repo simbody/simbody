@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -33,6 +33,14 @@ using std::endl;
 using namespace SimTK;
 using namespace std;
 
+template <class T>
+static bool isNaN(const T& v) { return v.isNaN(); }
+
+template<> static bool isNaN(const double& v) {return SimTK::isNaN(v);}
+template<> static bool isNaN(const float& v) {return SimTK::isNaN(v);}
+template<> static bool isNaN(const negator<double>& v) {return SimTK::isNaN(v);}
+template<> static bool isNaN(const negator<float>& v) {return SimTK::isNaN(v);}
+
 template <class T, int N>
 void testVector(const T& value, const Vec<N>& expected) {
     ASSERT(value.size() == N);
@@ -47,7 +55,7 @@ void testVector(const T& value, const Vec<N>& expected) {
 }
 
 template <class T, int M, int N>
-void testMatrix(const T& value, const Mat<M, N>& expected) {
+void testMatrix(const T& value, const Mat<M, N, typename T::E>& expected) {
     ASSERT(value.nrow() == M);
     ASSERT(value.ncol() == N);
     for (int i = 0; i < M; ++i)
@@ -123,6 +131,17 @@ int main() {
     try {
         // Currently, this only tests a small number of operations that were recently added.
         // It should be expanded into a more comprehensive test of the big matrix classes.
+
+        // Test matrix elementwise initialization.
+        Matrix minit(2,3, 5.25);
+        testMatrix<Matrix,2,3>(minit, Mat23(5.25, 5.25, 5.25,
+                                            5.25, 5.25, 5.25));
+
+        const Vec2 v12(1,2);
+        Matrix_<Vec2> mvinit(3,2, v12);
+        testMatrix<Matrix_<Vec2>,3,2>(mvinit, Mat<3,2,Vec2>(v12,v12,
+                                                            v12,v12,
+                                                            v12,v12));
 
         testMatDivision();
         testTransform();
