@@ -36,10 +36,10 @@ using namespace std;
 template <class T>
 static bool isNaN(const T& v) { return v.isNaN(); }
 
-template<> static bool isNaN(const double& v) {return SimTK::isNaN(v);}
-template<> static bool isNaN(const float& v) {return SimTK::isNaN(v);}
-template<> static bool isNaN(const negator<double>& v) {return SimTK::isNaN(v);}
-template<> static bool isNaN(const negator<float>& v) {return SimTK::isNaN(v);}
+template<> bool isNaN(const double& v) {return SimTK::isNaN(v);}
+template<> bool isNaN(const float& v) {return SimTK::isNaN(v);}
+template<> bool isNaN(const negator<double>& v) {return SimTK::isNaN(v);}
+template<> bool isNaN(const negator<float>& v) {return SimTK::isNaN(v);}
 
 template <class T, int N>
 void testVector(const T& value, const Vec<N>& expected) {
