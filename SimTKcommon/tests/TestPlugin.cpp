@@ -487,7 +487,7 @@ void testPathname() {
     swd = ""; path = "topdir/seconddir/myFileName.ext";
     dir = cwd + "topdir" + sep + "seconddir" + sep;
     directory = fileName = extension = "junk";
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension,);
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
     SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
     pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
