@@ -193,481 +193,471 @@ void testPathname() {
 
 #ifdef _WIN32
     std::string swd, path, dir, pathname;
-    bool dontApplySearchPath;
     const std::string cwd = Pathname::getCurrentWorkingDirectory();
     std::string cwd_nodrive = cwd; cwd_nodrive.erase(0,3);
-    const std::string cwdX = Pathname::getCurrentWorkingDirectory("x");
-    const std::string cwdY = Pathname::getCurrentWorkingDirectory("y");
+    const std::string cwdC = Pathname::getCurrentWorkingDirectory("c");
+    const std::string cwdD = Pathname::getCurrentWorkingDirectory("d");
 
-    swd = ""; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "   "; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = "c:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = ""; path = "/topdir/seconddir/myFileName.ext";
     dir = curDrive + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = ""; path = "X:topdir/seconddir/myFileName.ext";
-    dir = cwdX + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "  "; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwdC + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = ""; path = "./topdir/seconddir/myFileName.ext";
     dir = cwd + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = ""; path = "topdir/seconddir/myFileName.ext";
-    dir = "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
-
-    ///
-
-    swd = "Y:/specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == dir + "myFileName.ext");
-
-    swd = "Y:/specified"; path = "/topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == dir + "myFileName.ext");
-
-    swd = "Y:/specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == dir + "myFileName.ext");
-
-    swd = "Y:/specified"; path = "./topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == dir + "myFileName.ext");
-
-    swd = "Y:/specified"; path = "topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = " "; path = "topdir/seconddir/myFileName.ext";
+    dir = cwd + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     ///
 
-    swd = "/specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:/specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = "c:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "D:/specified"; path = "/topdir/seconddir/myFileName.ext";
+    dir = "d:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "D:/specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = "d:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "D:/specified"; path = "./topdir/seconddir/myFileName.ext";
+    dir = "d:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "D:/specified"; path = "topdir/seconddir/myFileName.ext";
+    dir = "d:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    ///
+
+    swd = "/specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = "c:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "/specified"; path = "/topdir/seconddir/myFileName.ext";
     dir = curDrive + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "/specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "/specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = curDrive + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "/specified"; path = "./topdir/seconddir/myFileName.ext";
     dir = curDrive + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "/specified"; path = "topdir/seconddir/myFileName.ext";
     dir = curDrive + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     ///
 
-    swd = "Y:specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = "c:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "/topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:specified"; path = "/topdir/seconddir/myFileName.ext";
+    dir = "d:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwdD + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "./topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:specified"; path = "./topdir/seconddir/myFileName.ext";
+    dir = cwdD + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "topdir/seconddir/myFileName.ext";
-    dir = "y:" + sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:specified"; path = "topdir/seconddir/myFileName.ext";
+    dir = cwdD + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     ///
 
-    swd = "./specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "./specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = "c:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "/topdir/seconddir/myFileName.ext";
     dir = curDrive + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "./specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + cwd_nodrive + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "./specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "./topdir/seconddir/myFileName.ext";
-    dir = curDrive + sep + cwd_nodrive + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "topdir/seconddir/myFileName.ext";
-    dir = curDrive + sep + cwd_nodrive + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     ///
 
-    swd = "specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = "c:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "specified"; path = "/topdir/seconddir/myFileName.ext";
     dir = curDrive + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "x:" + sep + cwd_nodrive + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwdC + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "specified"; path = "./topdir/seconddir/myFileName.ext";
-    dir = "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "specified"; path = "topdir/seconddir/myFileName.ext";
-    dir = "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
 #else
     std::string swd, path, dir, pathname;
     const std::string cwd = Pathname::getCurrentWorkingDirectory();
-    bool dontApplySearchPath;
 
-    swd = ""; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "X:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    swd = ""; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = cwd + "C:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = ""; path = "/topdir/seconddir/myFileName.ext";
     dir = sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = ""; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "X:topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    swd = ""; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwd + "C:topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = ""; path = "./topdir/seconddir/myFileName.ext";
     dir = cwd + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = ""; path = "topdir/seconddir/myFileName.ext";
-    dir = "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    dir = cwd + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension,);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
     ///
 
-    swd = "/specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = sep + "specified" + sep + "X:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "/specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = sep + "specified" + sep + "C:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "/specified"; path = "/topdir/seconddir/myFileName.ext";
     dir = sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "/specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = sep + "specified" + sep + "X:topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "/specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = sep + "specified" + sep + "C:topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "/specified"; path = "./topdir/seconddir/myFileName.ext";
     dir = sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "/specified"; path = "topdir/seconddir/myFileName.ext";
     dir = sep + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
  
     ///
 
-    swd = "Y:specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = "Y:specified" + sep + "X:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
-
-    swd = "Y:specified"; path = "/topdir/seconddir/myFileName.ext";
-    dir = sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "D:specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = cwd + "D:specified" + sep + "C:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "X:topdir/seconddir/myFileName.ext";
-    dir = "Y:specified" + sep + "X:topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    swd = "D:specified"; path = "/topdir/seconddir/myFileName.ext";
+    dir = sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "./topdir/seconddir/myFileName.ext";
-    dir = "Y:specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    swd = "D:specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwd + "D:specified" + sep + "C:topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
-    swd = "Y:specified"; path = "topdir/seconddir/myFileName.ext";
-    dir = "Y:specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = true;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && !dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
-    SimTK_TEST(pathname == cwd + dir + "myFileName.ext");
+    swd = "D:specified"; path = "./topdir/seconddir/myFileName.ext";
+    dir = cwd + "D:specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "D:specified"; path = "topdir/seconddir/myFileName.ext";
+    dir = cwd + "D:specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
 
     ///
 
-    swd = "./specified"; path = "X:/topdir/seconddir/myFileName.ext";
-    dir = cwd + "specified" + sep + "X:" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    swd = "./specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = cwd + "specified" + sep + "C:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "/topdir/seconddir/myFileName.ext";
     dir = sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "X:topdir/seconddir/myFileName.ext";
     dir = cwd + "specified" + sep + "X:topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "./topdir/seconddir/myFileName.ext";
     dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
     swd = "./specified"; path = "topdir/seconddir/myFileName.ext";
     dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
-    directory = fileName = extension = "junk"; dontApplySearchPath = false;
-    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension, dontApplySearchPath);
-    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext" && dontApplySearchPath);
-    pathname = "junk";
-    pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    ///
+
+    swd = "specified"; path = "C:/topdir/seconddir/myFileName.ext";
+    dir = cwd + sep + "specified" + "C:" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "specified"; path = "/topdir/seconddir/myFileName.ext";
+    dir = sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "specified"; path = "C:topdir/seconddir/myFileName.ext";
+    dir = cwd + sep + "specified" + "C:topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "specified"; path = "./topdir/seconddir/myFileName.ext";
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
+    SimTK_TEST(pathname == dir + "myFileName.ext");
+
+    swd = "specified"; path = "topdir/seconddir/myFileName.ext";
+    dir = cwd + "specified" + sep + "topdir" + sep + "seconddir" + sep;
+    directory = fileName = extension = "junk";
+    Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+    SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
+    pathname = Pathname::findAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
 
 #endif
