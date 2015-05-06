@@ -128,7 +128,7 @@ public:
     /// for the currently running platform (i.e. backslash for
     /// Windows and forward slash everywhere else).
     static void deconstructPathname(    const std::string& name,
-                                        bool&        isAbsolutePath,
+                                        bool&        dontApplySearchPath,
                                         std::string& directory,
                                         std::string& fileName,
                                         std::string& extension);
@@ -139,7 +139,7 @@ public:
     /// the canonicalized path with respect to a swd, if needed. This means, for 
     /// the path, that instead of evaluating "." as the current working directory 
     /// (cwd), the swd is used. Unlike deconstructPathname(), this function will
-    /// always return an absolute path, and no bool isAbsolutePath is returned.
+    /// always return an absolute path, and no bool dontApplySearchPath is returned.
     /// Rules:
     /// - If the swd is empty (after removing whitespace), deconstructPathname()
     ///   is called, and cwd is prepended if needed to make it an absolute path.
@@ -151,8 +151,8 @@ public:
     /// 2) If path is a root-relative path name (and on Windows this includes a drive) 
     ///    (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
     ///    absolute path is returned.
-    /// 3) Otherwise, if a path is given relative to the cwd (e.g. "./dir/file.ext" 
-    ///    or "dir/file.ext"), then the swd is prepended to path.
+    /// 3) Otherwise, if a path is given relative to a directory that is not the root 
+    ///    (e.g. "./dir/file.ext" or "dir/file.ext"), then the swd is prepended to path.
     /// 4) To resolve drive ambiguities, if swd provides a drive, it is used. If not, 
     ///    then the path drive is used. If neither provides a drive, then the current 
     ///    drive is used.

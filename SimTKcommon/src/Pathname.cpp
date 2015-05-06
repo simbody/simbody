@@ -139,12 +139,12 @@ static void removeDriveInPlace(string& inout, string& drive) {
 // If there is something ill-formed about the file name we'll return
 // false.
 void Pathname::deconstructPathname( const string&   name,
-                                    bool&           isAbsolutePath,
+                                    bool&           dontApplySearchPath,
                                     string&         directory,
                                     string&         fileName,
                                     string&         extension)
 {
-    isAbsolutePath = false;
+    dontApplySearchPath = false;
     directory.erase(); fileName.erase(); extension.erase();
 
     // Remove all the white space and make all the slashes be forward ones.
@@ -169,17 +169,17 @@ void Pathname::deconstructPathname( const string&   name,
         processed.insert(0, "./");
 
     if (processed.substr(0, 1) == "/") {
-        isAbsolutePath = true;
+        dontApplySearchPath = true;
         processed.erase(0, 1);
         if (drive.empty()) drive = getCurrentDriveLetter();
     }
     else if (processed.substr(0, 2) == "./") {
-        isAbsolutePath = true;
+        dontApplySearchPath = true;
         processed.replace(0, 2, getCurrentWorkingDirectory(drive));
         removeDriveInPlace(processed, drive);
     }
     else if (processed.substr(0, 2) == "@/") {
-        isAbsolutePath = true;
+        dontApplySearchPath = true;
         processed.replace(0, 2, getThisExecutableDirectory());
         removeDriveInPlace(processed, drive);
     }
@@ -188,7 +188,7 @@ void Pathname::deconstructPathname( const string&   name,
         // drive specification, e.g. X:something.txt, that is supposed
         // to be interpreted relative to the current working directory
         // on drive X, just as though it were X:./something.txt.
-        isAbsolutePath = true;
+        dontApplySearchPath = true;
         processed.insert(0, getCurrentWorkingDirectory(drive));
         removeDriveInPlace(processed, drive);
     }
@@ -220,7 +220,7 @@ void Pathname::deconstructPathname( const string&   name,
     }
 
     // Now we can put together the canonicalized directory.
-    if (isAbsolutePath) {
+    if (dontApplySearchPath) {
         if (!drive.empty())
             directory = drive + ":";
         directory += "/";
@@ -264,9 +264,9 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
 
     // If swd is empty (or only white space) then use deconstructPathname().
     if (swdcleaned.empty() && swddrive.empty()) {
-        bool isAbsolutePath;
-        deconstructPathname(path, isAbsolutePath, directory, fileName, extension);
-        if (!isAbsolutePath)
+        bool dontApplySearchPath;
+        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+        if (!dontApplySearchPath)
             directory = getCurrentWorkingDirectory() + directory;
 
     // swd was not empty. If necessary, preprocess the swd. Then concatenate swd and path.
