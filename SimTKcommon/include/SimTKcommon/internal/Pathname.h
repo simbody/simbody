@@ -141,16 +141,18 @@ public:
     /// (cwd), the swd is used. Unlike deconstructPathname(), this function will
     /// always return an absolute path, and no bool dontApplySearchPath is returned.
     /// Rules:
+    /// - If path is empty, directory, fileName and extension will be returned empty.
+    ///   This case probably should just use getCurrentworkingDirectory().
     /// - If the swd is empty (after removing whitespace), deconstructPathname()
     ///   is called, and cwd is prepended if needed to make it an absolute path.
     /// - Otherwise, we evaluate path relative to the swd. These steps are as follows:
-    /// 1) Preprocess the swd. This means that if the swd is of any form that denotes
+    /// 1) If path is a root-relative path name (and on Windows this includes a drive) 
+    ///    (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
+    ///    absolute path is returned.
+    /// 2) Preprocess the swd. This means that if the swd is of any form that denotes
     ///    an absolute path (i.e. "C:/file.ext", "C:file.ext", "./file.ext", "/file.ext")
     ///    we change the swd to reflect the absolute path (e.g. "./file.ext" may change
     ///    to "/cwd/file.ext" or "C:/cwdOnC/file.ext").
-    /// 2) If path is a root-relative path name (and on Windows this includes a drive) 
-    ///    (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
-    ///    absolute path is returned.
     /// 3) Otherwise, if a path is given relative to a directory that is not the root 
     ///    (e.g. "./dir/file.ext" or "dir/file.ext"), then the swd is prepended to path.
     /// 4) To resolve drive ambiguities, if swd provides a drive, it is used. If not, 

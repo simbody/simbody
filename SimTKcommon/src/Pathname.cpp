@@ -258,140 +258,159 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
     removeDriveInPlace(pathcleaned, pathdrive);
 
     String swdcleaned = String::trimWhiteSpace(swd).replaceAllChar('\\', '/');
-    if (!swdcleaned.empty() && swdcleaned[swdcleaned.size() - 1] != '/')
+    
+    // If swd was empty, then just call deconstructPathname() on the path.
+    if (swdcleaned.empty()) {
+        bool dontApplySearchPath;
+        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+        if (!dontApplySearchPath) 
+            directory = getCurrentWorkingDirectory() + directory;
+        return;
+    }
+
+    // If it wasn't empty, then add a trailing "/" if necessary.
+    if (swdcleaned[swdcleaned.size() - 1] != '/')
         swdcleaned += '/';
     removeDriveInPlace(swdcleaned, swddrive);
 
-    // If swd is empty (or only white space) then use deconstructPathname().
-    if (swdcleaned.empty() && swddrive.empty()) {
+    /* CHECK IF SWD IS NEEDED BY CHECKING IF PATH IS ROOT-RELATIVE */
+    // "@/" is a definitely a root-relative path. Just use deconstructPathname().
+    if (pathcleaned.substr(0, 2) == "@/") {
         bool dontApplySearchPath;
         deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
-        if (!dontApplySearchPath)
+        if (!dontApplySearchPath) 
             directory = getCurrentWorkingDirectory() + directory;
-
-    // swd was not empty. If necessary, preprocess the swd. Then concatenate swd and path.
-    // Finally, resolve drives.
+        return;
     }
-    else {
-        /* PREPROCESSING THE SWD. */
-        // Preprocess the swd if it leads with a "./"
-        if (swdcleaned.substr(0, 2) == "./") {
-            swdcleaned.replace(0, 2, getCurrentWorkingDirectory(swddrive));
-            removeDriveInPlace(swdcleaned, swddrive);
-            swdcleaned.insert(0, "/"); // ensure swd starts with "/" to denote full path
+
+    // Check if pathcleaned is a root-relative path. For Windows, this means
+    // that path gave a drive. For not-Windows, no drives will exist.
+    if (pathcleaned.substr(0, 1) == "/") {
+        if (getCurrentDriveLetter().empty() || !pathdrive.empty()) {
+            bool dontApplySearchPath;
+            deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+            if (!dontApplySearchPath)
+                directory = getCurrentWorkingDirectory() + directory;
+            return;
         }
-        // Also preprocess the swd if it leads with "/". Just grab current drive letter.
-        else if (swdcleaned.substr(0, 1) == "/" && swddrive.empty()) {
+    }
+
+    /* PREPROCESSING THE SWD */
+    // Preprocess the swd if it leads with "/". Just grab current drive letter.
+    if (swdcleaned.substr(0, 1) == "/") {
+        if (swddrive.empty())
             swddrive = getCurrentDriveLetter();
-        }
-        // Also preprocess if swd starts with something of the form "C:folder/". Resolve
-        // by finding the current directory of this drive.
-        else if (!swddrive.empty()) {
-            swdcleaned.insert(0, getCurrentWorkingDirectory(swddrive));
-            removeDriveInPlace(swdcleaned, swddrive);
-            swdcleaned.insert(0, "/"); // ensure swd starts with "/" to denote full path
-        }
+    }
+    // Preprocess the swd if it leads with a "./"
+    else if (swdcleaned.substr(0, 2) == "./") {
+        swdcleaned.replace(0, 2, getCurrentWorkingDirectory(swddrive));
+        removeDriveInPlace(swdcleaned, swddrive);
+    }
+    // Also preprocess if swd starts with something of the form "C:folder/". Resolve
+    // by finding the current directory of this drive.
+    else if (!swddrive.empty()) {
+        swdcleaned.insert(0, getCurrentWorkingDirectory(swddrive));
+        removeDriveInPlace(swdcleaned, swddrive);
+    }
 
-        /* CHECKING IF THE SWD SHOULD BE PREPENDED TO THE PATH. */
-        // If path was an absolute path (on Windows this includes a drive or begins with "@/")
-        // then we should not prepend the swd.
-        if (pathcleaned.substr(0, 1) == "/" || pathcleaned.substr(0, 2) == "@/") {
-            processed = pathcleaned;
-            // Ensure that if there was a pathdrive, ignore the swddrive.
-            if (!pathdrive.empty()) swddrive = "";
-        }
+    /* CHECKING IF THE SWD SHOULD BE PREPENDED TO THE PATH */
+    // If path starts with "/", use path for the whole path (but deal with drive later).
+    if (pathcleaned.substr(0, 1) == "/") {
+        processed = pathcleaned;
+    }
+    // If path starts with "./", we remove the "./" and concatenate with swdcleaned.
+    else if (pathcleaned.substr(0, 2) == "./") {
+        pathcleaned.erase(0, 2);
+        processed = swdcleaned + pathcleaned;
+    }
+    // Looks like a relative path name (i.e. pathcleaned starts immediately with
+    // a directory or file name).
+    else {
+        processed = swdcleaned + pathcleaned;
+    }
 
-        // If path starts with "./", we remove the "./" and concatenate with swdcleaned.
-        else if (pathcleaned.substr(0, 2) == "./") {
-            pathcleaned.erase(0, 2);
-            processed = swdcleaned + pathcleaned;
-        }
-        // Looks like a relative path name (i.e. pathcleaned starts immediately with
-        // a directory or file name).
-        else {
-            processed = swdcleaned + pathcleaned;
-        }
+    /* RESOLVING THE FULL PATH */
+    // We may have picked up some backslashes through getCurrentWorkingDirectory().
+    processed.replaceAllChar('\\', '/');
 
-        // If the pathname in its entirety is just one of these, append 
-        // a slash to avoid special cases below.
-        if (processed == "." || processed == ".." || processed == "@")
-            processed += "/";
+    // If the pathname in its entirety is just one of these, append 
+    // a slash to avoid special cases below.
+    if (processed == "." || processed == ".." || processed == "@")
+        processed += "/";
 
-        // If the path begins with "../" we'll make it ./../ to simplify handling.
-        if (processed.substr(0, 3) == "../")
-            processed.insert(0, "./");
+    // If the path begins with "../" we'll make it ./../ to simplify handling.
+    if (processed.substr(0, 3) == "../")
+        processed.insert(0, "./");
 
-        /* RESOLVING THE FULL PATH */
-        // Full path is determined except for drive letter. Resolve drive letter with
-        // swd, then path, then current drive.
-        if (processed.substr(0, 1) == "/") {
-            processed.erase(0, 1);
-            if (!swddrive.empty()) finaldrive = swddrive;
-            else if (!pathdrive.empty()) finaldrive = pathdrive;
-            else finaldrive = getCurrentDriveLetter();
-        }
+    // Full path is determined except for drive letter. Resolve drive letter with
+    // swd, then path, then current drive.
+    if (processed.substr(0, 1) == "/") {
+        if (!swddrive.empty()) finaldrive = swddrive;
+        else if (!pathdrive.empty()) finaldrive = pathdrive;
+        else finaldrive = getCurrentDriveLetter();
+    }
 
-        else if (processed.substr(0, 2) == "@/") {
-            processed.replace(0, 2, getThisExecutableDirectory());
-            removeDriveInPlace(processed, finaldrive);
-        }
-        // Looks like a relative path name. But if either path had 
-        // an initial drive specification, e.g. X:something.txt, that is 
-        // supposed to be interpreted relative to the current working directory
-        // on drive X, just as though it were X:./something.txt.
-        // Note that we do not need to check swd as it has either been preprocessed
-        // (and thus has been taken care of in the "/" case) or is of the form 
-        // "folder/file.ext".
-        else if (!pathdrive.empty()) {
-            processed.insert(0, getCurrentWorkingDirectory(pathdrive));
-            removeDriveInPlace(processed, finaldrive);
-        }
+    else if (processed.substr(0, 2) == "@/") {
+        processed.replace(0, 2, getThisExecutableDirectory());
+        removeDriveInPlace(processed, finaldrive);
+    }
+    // Looks like a relative path name. But if either path had 
+    // an initial drive specification, e.g. X:something.txt, that is 
+    // supposed to be interpreted relative to the current working directory
+    // on drive X, just as though it were X:./something.txt.
+    // Note that we do not need to check swd as it has either been preprocessed
+    // (and thus has been taken care of in the "/" case) or is of the form 
+    // "folder/file.ext".
+    else if (!pathdrive.empty()) {
+        processed.insert(0, getCurrentWorkingDirectory(pathdrive));
+        removeDriveInPlace(processed, finaldrive);
+    }
         
-        // Must be a relative pathname. Just prepend the current working directory.
-        else {
-            processed.insert(0, getCurrentWorkingDirectory());
-            removeDriveInPlace(processed, finaldrive);
+    // Must be a relative pathname. Just prepend the current working directory.
+    else {
+        processed.insert(0, getCurrentWorkingDirectory());
+        removeDriveInPlace(processed, finaldrive);
+    }
+
+    // We may have picked up a new batch of backslashes above from
+    // getCurrentWorkingDirectory() or getThisExecutableDirectory().
+    processed.replaceAllChar('\\', '/');
+
+    // Process the ".." segments and eliminate meaningless ones
+    // as we go through.
+    Array_<string> segmentsInReverse;
+    bool isFinalSegment = true; // first time around might be the fileName
+    int numDotDotsSeen = 0;
+    while (!processed.empty()) {
+        string component;
+        removeLastPathComponentInPlace(processed, component);
+        if (component == "..")
+            ++numDotDotsSeen;
+        else if (!component.empty() && component != ".") {
+            if (numDotDotsSeen)
+                --numDotDotsSeen;   // skip component
+            else if (isFinalSegment) fileName = component;
+            else segmentsInReverse.push_back(component);
         }
+        isFinalSegment = false;
+    }
 
-        // We may have picked up a new batch of backslashes above.
-        processed.replaceAllChar('\\', '/');
+    // Now we can put together the canonicalized directory.
+    if (!finaldrive.empty())
+        directory = finaldrive + ":";
+    directory += "/";
 
-        // Process the ".." segments and eliminate meaningless ones
-        // as we go through.
-        Array_<string> segmentsInReverse;
-        bool isFinalSegment = true; // first time around might be the fileName
-        int numDotDotsSeen = 0;
-        while (!processed.empty()) {
-            string component;
-            removeLastPathComponentInPlace(processed, component);
-            if (component == "..")
-                ++numDotDotsSeen;
-            else if (!component.empty() && component != ".") {
-                if (numDotDotsSeen)
-                    --numDotDotsSeen;   // skip component
-                else if (isFinalSegment) fileName = component;
-                else segmentsInReverse.push_back(component);
-            }
-            isFinalSegment = false;
-        }
+    for (int i = (int)segmentsInReverse.size() - 1; i >= 0; --i)
+        directory += segmentsInReverse[i] + "/";
 
-        // Now we can put together the canonicalized directory.
-        if (!finaldrive.empty())
-            directory = finaldrive + ":";
-        directory += "/";
+    // Fix the slashes.
+    makeNativeSlashesInPlace(directory);
 
-        for (int i = (int)segmentsInReverse.size() - 1; i >= 0; --i)
-            directory += segmentsInReverse[i] + "/";
-
-        // Fix the slashes.
-        makeNativeSlashesInPlace(directory);
-
-        // If there is a .extension, strip it off.
-        string::size_type lastDot = fileName.rfind('.');
-        if (lastDot != string::npos) {
-            extension = fileName.substr(lastDot);
-            fileName.erase(lastDot);
-        }
+    // If there is a .extension, strip it off.
+    string::size_type lastDot = fileName.rfind('.');
+    if (lastDot != string::npos) {
+        extension = fileName.substr(lastDot);
+        fileName.erase(lastDot);
     }
 }
 
