@@ -86,6 +86,20 @@ static bool beginsWithPathSeparator(const string& in) {
     return !in.empty() && Pathname::isPathSeparator(in[0]);
 }
 
+// Platform-dependent function that returns true if a string
+// can be considered an absolute path. Assumes path has been
+// cleaned of white space and "\" replaced with "/".
+static bool isAbsolutePath(const string& in) {
+    if (IsWindows)
+        return in.size() >= 3 && in.substr(1, 2) == ":/";
+    else
+        return !in.empty() && in[0] == '/';
+}
+
+static bool isExecutableDirectoryPath(const string &in) {
+    return !in.empty() && in.substr(0, 2) == "@/";
+}
+
 // Remove the last segment of a path name and the separator. The 
 // returned component does not include a separator.
 static void removeLastPathComponentInPlace(string& inout, string& component) {
@@ -253,12 +267,19 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
     // Remove all the white space and make all the slashes be forward ones.
     // (For Windows they'll be changed to backslashes later.)
     String pathcleaned = String::trimWhiteSpace(path).replaceAllChar('\\', '/');
+    // If path is an absolute path, then just call deconstructPathname() on the path.
+    if (isAbsolutePath(pathcleaned) || isExecutableDirectoryPath(pathcleaned)) {
+        bool dontApplySearchPath;
+        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+        if (!dontApplySearchPath)
+            directory = getCurrentWorkingDirectory() + directory;
+        return;
+    }
     if (pathcleaned.empty())
         return; // path consisted only of white space
     removeDriveInPlace(pathcleaned, pathdrive);
 
     String swdcleaned = String::trimWhiteSpace(swd).replaceAllChar('\\', '/');
-    
     // If swd was empty, then just call deconstructPathname() on the path.
     if (swdcleaned.empty()) {
         bool dontApplySearchPath;
@@ -272,28 +293,6 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
     if (swdcleaned[swdcleaned.size() - 1] != '/')
         swdcleaned += '/';
     removeDriveInPlace(swdcleaned, swddrive);
-
-    /* CHECK IF SWD IS NEEDED BY CHECKING IF PATH IS ROOT-RELATIVE */
-    // "@/" is a definitely a root-relative path. Just use deconstructPathname().
-    if (pathcleaned.substr(0, 2) == "@/") {
-        bool dontApplySearchPath;
-        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
-        if (!dontApplySearchPath) 
-            directory = getCurrentWorkingDirectory() + directory;
-        return;
-    }
-
-    // Check if pathcleaned is a root-relative path. For Windows, this means
-    // that path gave a drive. For not-Windows, no drives will exist.
-    if (pathcleaned.substr(0, 1) == "/") {
-        if (getCurrentDriveLetter().empty() || !pathdrive.empty()) {
-            bool dontApplySearchPath;
-            deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
-            if (!dontApplySearchPath)
-                directory = getCurrentWorkingDirectory() + directory;
-            return;
-        }
-    }
 
     /* PREPROCESSING THE SWD */
     // Preprocess the swd if it leads with "/". Just grab current drive letter.
@@ -372,46 +371,13 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
         removeDriveInPlace(processed, finaldrive);
     }
 
-    // We may have picked up a new batch of backslashes above from
-    // getCurrentWorkingDirectory() or getThisExecutableDirectory().
-    processed.replaceAllChar('\\', '/');
-
-    // Process the ".." segments and eliminate meaningless ones
-    // as we go through.
-    Array_<string> segmentsInReverse;
-    bool isFinalSegment = true; // first time around might be the fileName
-    int numDotDotsSeen = 0;
-    while (!processed.empty()) {
-        string component;
-        removeLastPathComponentInPlace(processed, component);
-        if (component == "..")
-            ++numDotDotsSeen;
-        else if (!component.empty() && component != ".") {
-            if (numDotDotsSeen)
-                --numDotDotsSeen;   // skip component
-            else if (isFinalSegment) fileName = component;
-            else segmentsInReverse.push_back(component);
-        }
-        isFinalSegment = false;
-    }
-
-    // Now we can put together the canonicalized directory.
+    bool dontApplySearchPath;
+    processed.insert(0, "/");
     if (!finaldrive.empty())
-        directory = finaldrive + ":";
-    directory += "/";
-
-    for (int i = (int)segmentsInReverse.size() - 1; i >= 0; --i)
-        directory += segmentsInReverse[i] + "/";
-
-    // Fix the slashes.
-    makeNativeSlashesInPlace(directory);
-
-    // If there is a .extension, strip it off.
-    string::size_type lastDot = fileName.rfind('.');
-    if (lastDot != string::npos) {
-        extension = fileName.substr(lastDot);
-        fileName.erase(lastDot);
-    }
+        processed.insert(0, finaldrive + ":");
+    deconstructPathname(processed, dontApplySearchPath, directory, fileName, extension);
+    if (!dontApplySearchPath)
+        directory = getCurrentWorkingDirectory() + directory;
 }
 
 bool Pathname::fileExists(const std::string& fileName) {
