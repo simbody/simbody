@@ -6,6 +6,16 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 **Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
 
+3.5.2 (15 May 2015)
+-------------------
+Same as 3.5.1 except on 64 bit Windows which has a patched version of Lapack that
+addresses an error handling problem that caused trouble for some OpenSim users.
+This is a patch to Lapack 3.4.2 (64 bit) to fix the bug discussed in [Issue #177](https://github.com/simbody/simbody/issues/177) and [PR #342](https://github.com/simbody/simbody/pull/342).
+There were two functions where convergence failures incorrectly caused an abort (XERBLA in Lapack-speak). See discussion on Lapack forum:
+http://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=13&t=4586
+This Lapack DLL is binary compatible with the previous one, same functions and ordinals.
+
+
 3.5.1 (31 Dec 2014)
 -------------------
 This patch release fixed an installation problem but is otherwise identical to 3.5.
