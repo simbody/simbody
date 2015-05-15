@@ -247,8 +247,12 @@ public:
     static std::string getDefaultInstallDir();
 
     /// Append a subdirectory offset to an existing pathname (relative or absolute).
-    /// A leading "/" in the offset is ignored, and the result ends in "/".
-    static std::string addDirectoryOffset(const std::string& base, const std::string& offset);
+    /// A single slash will be inserted in between, ignoring any slash at the
+    /// end of `base` or start of `offset`, and the result will end with a 
+    /// slash. All slashes in the result will be the correct ones for the 
+    /// current platform.
+    static std::string addDirectoryOffset(const std::string& base, 
+                                          const std::string& offset);
 
     /// Find the installation directory for something, using the named
     /// installation directory environment variable if it exists, otherwise

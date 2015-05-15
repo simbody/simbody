@@ -77,13 +77,23 @@ static void makeNativeSlashesInPlace(string& inout) {
             inout[i] = MyPathSeparator;
 }
 
-static void addFinalSeparatorInPlace(string& inout) {
-    if (!inout.empty() && !Pathname::isPathSeparator(inout[inout.size()-1]))
-        inout += MyPathSeparator;
-}
-
+// Check for either / or \ at the beginning, regardless of platform.
 static bool beginsWithPathSeparator(const string& in) {
     return !in.empty() && Pathname::isPathSeparator(in[0]);
+}
+
+// Check for either / or \ at the end, regardless of platform.
+static bool endsWithPathSeparator(const string& in) {
+    return !in.empty() && Pathname::isPathSeparator(in[in.size()-1]);
+}
+
+// Make sure this path ends in the right slash for this platform, unless the
+// input is empty in which case we leave it alone.
+static void addFinalSeparatorInPlace(string& inout) {
+    if (inout.empty()) return;
+    if (Pathname::isPathSeparator(inout[inout.size()-1]))
+        inout.erase(inout.size()-1); // might be the wrong one
+    inout += MyPathSeparator;
 }
 
 // Platform-dependent function that returns true if a string
@@ -396,10 +406,12 @@ string Pathname::getDefaultInstallDir() {
 string Pathname::addDirectoryOffset(const string& base, const string& offset) {
     string cleanOffset = beginsWithPathSeparator(offset)
         ? offset.substr(1) : offset; // remove leading path separator
-    addFinalSeparatorInPlace(cleanOffset); // add trailing / if non-empty
-    string result = base;
-    addFinalSeparatorInPlace(result);
-    result += cleanOffset;
+    if (endsWithPathSeparator(cleanOffset))
+        cleanOffset.erase(cleanOffset.size()-1); // remove final separator
+    string result = endsWithPathSeparator(base)
+        ? base.substr(0, base.size()-1) : base;  // remove final separator
+    result += MyPathSeparator + cleanOffset + MyPathSeparator;
+    makeNativeSlashesInPlace(result);
     return result;
 }
 
