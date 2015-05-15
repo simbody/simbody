@@ -86,6 +86,20 @@ static bool beginsWithPathSeparator(const string& in) {
     return !in.empty() && Pathname::isPathSeparator(in[0]);
 }
 
+// Platform-dependent function that returns true if a string
+// can be considered an absolute path. Assumes path has been
+// cleaned of white space and "\" replaced with "/".
+static bool isAbsolutePath(const string& in) {
+    if (IsWindows)
+        return in.size() >= 3 && in.substr(1, 2) == ":/";
+    else
+        return !in.empty() && in[0] == '/';
+}
+
+static bool isExecutableDirectoryPath(const string &in) {
+    return !in.empty() && in.substr(0, 2) == "@/";
+}
+
 // Remove the last segment of a path name and the separator. The 
 // returned component does not include a separator.
 static void removeLastPathComponentInPlace(string& inout, string& component) {
@@ -110,7 +124,6 @@ static void removeDriveInPlace(string& inout, string& drive) {
     }
 }
 
-
 // We assume a path name structure like this:
 //   (1) Everything up to and including the final directory separator
 //       character is the directory; the rest is the file name. On return
@@ -118,7 +131,7 @@ static void removeDriveInPlace(string& inout, string& drive) {
 //       system ('\' for Windows, '/' otherwise).
 //   (2) If the file name contains a ".", characters after the last
 //       "." are the extension and the last "." is removed.
-//   (5) What's left is the fileName.
+//   (3) What's left is the fileName.
 // We accept both "/" and "\" as separator characters. We leave the
 // case as it was supplied.
 // Leading and trailing white space is removed; embedded white space
@@ -140,12 +153,12 @@ static void removeDriveInPlace(string& inout, string& drive) {
 // If there is something ill-formed about the file name we'll return
 // false.
 void Pathname::deconstructPathname( const string&   name,
-                                    bool&           isAbsolutePath,
+                                    bool&           dontApplySearchPath,
                                     string&         directory,
                                     string&         fileName,
                                     string&         extension)
 {
-    isAbsolutePath = false;
+    dontApplySearchPath = false;
     directory.erase(); fileName.erase(); extension.erase();
 
     // Remove all the white space and make all the slashes be forward ones.
@@ -162,31 +175,34 @@ void Pathname::deconstructPathname( const string&   name,
 
     // If the pathname in its entirety is just one of these, append 
     // a slash to avoid special cases below.
-    if (processed=="." || processed==".." || processed=="@")
+    if (processed == "." || processed == ".." || processed == "@")
         processed += "/";
 
     // If the path begins with "../" we'll make it ./../ to simplify handling.
-    if (processed.substr(0,3) == "../")
+    if (processed.substr(0, 3) == "../")
         processed.insert(0, "./");
 
-    if (processed.substr(0,1) == "/") {
-        isAbsolutePath = true;
-        processed.erase(0,1);
+    if (processed.substr(0, 1) == "/") {
+        dontApplySearchPath = true;
+        processed.erase(0, 1);
         if (drive.empty()) drive = getCurrentDriveLetter();
-    } else if (processed.substr(0,2) == "./") {
-        isAbsolutePath = true;
-        processed.replace(0,2,getCurrentWorkingDirectory(drive));
+    }
+    else if (processed.substr(0, 2) == "./") {
+        dontApplySearchPath = true;
+        processed.replace(0, 2, getCurrentWorkingDirectory(drive));
         removeDriveInPlace(processed, drive);
-    } else if (processed.substr(0,2) == "@/") {
-        isAbsolutePath = true;
-        processed.replace(0,2,getThisExecutableDirectory());
+    }
+    else if (processed.substr(0, 2) == "@/") {
+        dontApplySearchPath = true;
+        processed.replace(0, 2, getThisExecutableDirectory());
         removeDriveInPlace(processed, drive);
-    } else if (!drive.empty()) {
+    }
+    else if (!drive.empty()) {
         // Looks like a relative path name. But if it had an initial
         // drive specification, e.g. X:something.txt, that is supposed
         // to be interpreted relative to the current working directory
         // on drive X, just as though it were X:./something.txt.
-        isAbsolutePath = true;
+        dontApplySearchPath = true;
         processed.insert(0, getCurrentWorkingDirectory(drive));
         removeDriveInPlace(processed, drive);
     }
@@ -218,13 +234,13 @@ void Pathname::deconstructPathname( const string&   name,
     }
 
     // Now we can put together the canonicalized directory.
-    if (isAbsolutePath) {
+    if (dontApplySearchPath) {
         if (!drive.empty())
             directory = drive + ":";
         directory += "/";
     }
 
-    for (int i = (int)segmentsInReverse.size()-1; i >= 0; --i)
+    for (int i = (int)segmentsInReverse.size() - 1; i >= 0; --i)
         directory += segmentsInReverse[i] + "/";
 
     // Fix the slashes.
@@ -236,6 +252,124 @@ void Pathname::deconstructPathname( const string&   name,
         extension = fileName.substr(lastDot);
         fileName.erase(lastDot);
     }
+}
+
+void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
+                                                                 const std::string& path,
+                                                                 std::string& directory,
+                                                                 std::string& fileName,
+                                                                 std::string& extension)
+{
+    directory.erase(); fileName.erase(); extension.erase();
+    string pathdrive, swddrive, finaldrive;
+    String processed;
+
+    // Remove all the white space and make all the slashes be forward ones.
+    // (For Windows they'll be changed to backslashes later.)
+    String pathcleaned = String::trimWhiteSpace(path).replaceAllChar('\\', '/');
+    // If path is an absolute path, then just call deconstructPathname() on the path.
+    if (isAbsolutePath(pathcleaned) || isExecutableDirectoryPath(pathcleaned)) {
+        deconstructAbsolutePathname(path, directory, fileName, extension);
+        return;
+    }
+    if (pathcleaned.empty())
+        return; // path consisted only of white space
+    removeDriveInPlace(pathcleaned, pathdrive);
+
+    String swdcleaned = String::trimWhiteSpace(swd).replaceAllChar('\\', '/');
+    // If swd was empty, then just call deconstructPathname() on the path.
+    if (swdcleaned.empty()) {
+        deconstructAbsolutePathname(path, directory, fileName, extension);
+        return;
+    }
+
+    // If it wasn't empty, then add a trailing "/" if necessary.
+    if (swdcleaned[swdcleaned.size() - 1] != '/')
+        swdcleaned += '/';
+    removeDriveInPlace(swdcleaned, swddrive);
+
+    /* PREPROCESSING THE SWD */
+    // Preprocess the swd if it leads with "/". Just grab current drive letter.
+    if (swdcleaned.substr(0, 1) == "/") {
+        if (swddrive.empty())
+            swddrive = getCurrentDriveLetter();
+    }
+    // Preprocess the swd if it leads with a "./"
+    else if (swdcleaned.substr(0, 2) == "./") {
+        swdcleaned.replace(0, 2, getCurrentWorkingDirectory(swddrive));
+        removeDriveInPlace(swdcleaned, swddrive);
+    }
+    // Also preprocess if swd starts with something of the form "C:folder/". Resolve
+    // by finding the current directory of this drive.
+    else if (!swddrive.empty()) {
+        swdcleaned.insert(0, getCurrentWorkingDirectory(swddrive));
+        removeDriveInPlace(swdcleaned, swddrive);
+    }
+
+    /* CHECKING IF THE SWD SHOULD BE PREPENDED TO THE PATH */
+    // If path starts with "/", use path for the whole path (but deal with drive later).
+    if (pathcleaned.substr(0, 1) == "/") {
+        processed = pathcleaned;
+    }
+    // If path starts with "./", we remove the "./" and concatenate with swdcleaned.
+    else if (pathcleaned.substr(0, 2) == "./") {
+        pathcleaned.erase(0, 2);
+        processed = swdcleaned + pathcleaned;
+    }
+    // Looks like a relative path name (i.e. pathcleaned starts immediately with
+    // a directory or file name).
+    else {
+        processed = swdcleaned + pathcleaned;
+    }
+
+    /* RESOLVING THE FULL PATH */
+    // We may have picked up some backslashes through getCurrentWorkingDirectory().
+    processed.replaceAllChar('\\', '/');
+
+    // If the pathname in its entirety is just one of these, append 
+    // a slash to avoid special cases below.
+    if (processed == "." || processed == ".." || processed == "@")
+        processed += "/";
+
+    // If the path begins with "../" we'll make it ./../ to simplify handling.
+    if (processed.substr(0, 3) == "../")
+        processed.insert(0, "./");
+
+    // Full path is determined except for drive letter. Resolve drive letter with
+    // swd, then path, then current drive.
+    if (processed.substr(0, 1) == "/") {
+        if (!swddrive.empty()) finaldrive = swddrive;
+        else if (!pathdrive.empty()) finaldrive = pathdrive;
+        else finaldrive = getCurrentDriveLetter();
+    }
+
+    else if (processed.substr(0, 2) == "@/") {
+        processed.replace(0, 2, getThisExecutableDirectory());
+        removeDriveInPlace(processed, finaldrive);
+    }
+    // Looks like a relative path name. But if either path had 
+    // an initial drive specification, e.g. X:something.txt, that is 
+    // supposed to be interpreted relative to the current working directory
+    // on drive X, just as though it were X:./something.txt.
+    // Note that we do not need to check swd as it has either been preprocessed
+    // (and thus has been taken care of in the "/" case) or is of the form 
+    // "folder/file.ext".
+    else if (!pathdrive.empty()) {
+        processed.insert(0, getCurrentWorkingDirectory(pathdrive));
+        removeDriveInPlace(processed, finaldrive);
+    }
+        
+    // Must be a relative pathname. Just prepend the current working directory.
+    else {
+        processed.insert(0, getCurrentWorkingDirectory());
+        removeDriveInPlace(processed, finaldrive);
+    }
+
+    // Build up the final path name, then use deconstructAbsolutePathname() to
+    // find the final directory, fileName, and extension.
+    if (processed.substr(0, 1) != "/") processed.insert(0, "/");
+    if (!finaldrive.empty()) processed.insert(0, finaldrive + ":");
+    deconstructAbsolutePathname(processed, directory, fileName, extension);
 }
 
 bool Pathname::fileExists(const std::string& fileName) {

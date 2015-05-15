@@ -87,6 +87,8 @@ namespace SimTK {
  */
 class SimTK_SimTKCOMMON_EXPORT Pathname {
 public:
+
+
     /// Dismantle a supplied pathname into its component
     /// parts. This can take pathnames like <pre>   
     ///     /usr/local/libMyDll_d.so
@@ -126,10 +128,54 @@ public:
     /// for the currently running platform (i.e. backslash for
     /// Windows and forward slash everywhere else).
     static void deconstructPathname(    const std::string& name,
-                                        bool&        isAbsolutePath,
+                                        bool&        dontApplySearchPath,
                                         std::string& directory,
                                         std::string& fileName,
                                         std::string& extension);
+
+    /// An extension of deconstructPathname(). Given a specified working directory 
+    /// (swd) and path, this function evaluates the absolute path of a given path
+    /// relative to the swd and returns the directory, fileName, and extension of 
+    /// the canonicalized path with respect to a swd, if needed. This means, for 
+    /// the path, that instead of evaluating "." as the current working directory 
+    /// (cwd), the swd is used. Unlike deconstructPathname(), this function will
+    /// always return an absolute path, and no bool dontApplySearchPath is returned.
+    /// Rules:
+    /// - If path is empty, directory, fileName and extension will be returned empty.
+    ///   This case probably should just use getCurrentworkingDirectory().
+    /// - If the swd is empty (after removing whitespace), deconstructPathname()
+    ///   is called, and cwd is prepended if needed to make it an absolute path.
+    /// - Otherwise, we evaluate path relative to the swd. These steps are as follows:
+    /// 1) If path is a root-relative path name (and on Windows this includes a drive) 
+    ///    (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
+    ///    absolute path is returned.
+    /// 2) Preprocess the swd. This means that if the swd is of any form that denotes
+    ///    an absolute path (i.e. "C:/file.ext", "C:file.ext", "./file.ext", "/file.ext")
+    ///    we change the swd to reflect the absolute path (e.g. "./file.ext" may change
+    ///    to "/cwd/file.ext" or "C:/cwdOnC/file.ext").
+    /// 3) Otherwise, if a path is given relative to a directory that is not the root 
+    ///    (e.g. "./dir/file.ext" or "dir/file.ext"), then the swd is prepended to path.
+    /// 4) To resolve drive ambiguities, if swd provides a drive, it is used. If not, 
+    ///    then the path drive is used. If neither provides a drive, then the current 
+    ///    drive is used.
+    static void deconstructPathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
+                                                                  const std::string& path,
+                                                                  std::string& directory,
+                                                                  std::string& fileName,
+                                                                  std::string& extension);
+    
+    /// Give back the deconstructed canonicalized absolute pathname for a given path.
+    /// If the path is not an absolute path, it will be made into an absolute path first
+    /// following the rules of deconstructPathname() (which it uses).
+    static void deconstructAbsolutePathname(const std::string& path,
+                                            std::string& directory,
+                                            std::string& fileName,
+                                            std::string& extension) {
+        bool dontApplySearchPath;
+        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+        if (!dontApplySearchPath)
+            directory = getCurrentWorkingDirectory() + directory;
+    }
 
     /// Get canonicalized absolute pathname from a given pathname which 
     /// can be relative or absolute. Canonicalizing means
@@ -149,11 +195,8 @@ public:
     /// from deconstructPathname(), plus inserting the current working
     /// directory in front if the path name was relative.
     static std::string getAbsolutePathname(const std::string& pathname) {
-        bool isAbsolutePath;
         std::string directory, fileName, extension;
-        deconstructPathname(pathname, isAbsolutePath, directory, fileName, extension);
-        if (!isAbsolutePath)
-            directory = getCurrentWorkingDirectory() + directory;
+        deconstructAbsolutePathname(pathname, directory, fileName, extension);
         return directory + fileName + extension;
     }
 
@@ -165,6 +208,13 @@ public:
         if (!absPath.empty() && absPath[absPath.size()-1] != getPathSeparatorChar())
             absPath += getPathSeparatorChar();
         return absPath;
+    }
+
+    static std::string findAbsolutePathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
+                                                                          const std::string& path) {
+        std::string directory, fileName, extension;
+        deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+        return directory + fileName + extension;
     }
 
     /// Return true if the given pathname names a file that exists and is
