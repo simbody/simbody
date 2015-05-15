@@ -8,8 +8,10 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.6 (in development)
 --------------------
-* Added C++11 features to the SimTK::Array_ container including std::initializer_list construction, move construction, and move assignment.
+* Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
 * Make doxygen run silently so errors will be easier to see.
+* Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
+of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
 * (There are more that haven't been added yet)
 
 
