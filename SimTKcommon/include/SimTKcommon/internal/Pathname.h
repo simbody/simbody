@@ -163,6 +163,19 @@ public:
                                                                   std::string& directory,
                                                                   std::string& fileName,
                                                                   std::string& extension);
+    
+    /// Give back the deconstructed canonicalized absolute pathname for a given path.
+    /// If the path is not an absolute path, it will be made into an absolute path first
+    /// following the rules of deconstructPathname() (which it uses).
+    static void deconstructAbsolutePathname(const std::string& path,
+                                            std::string& directory,
+                                            std::string& fileName,
+                                            std::string& extension) {
+        bool dontApplySearchPath;
+        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+        if (!dontApplySearchPath)
+            directory = getCurrentWorkingDirectory() + directory;
+    }
 
     /// Get canonicalized absolute pathname from a given pathname which 
     /// can be relative or absolute. Canonicalizing means
@@ -182,11 +195,8 @@ public:
     /// from deconstructPathname(), plus inserting the current working
     /// directory in front if the path name was relative.
     static std::string getAbsolutePathname(const std::string& pathname) {
-        bool isAbsolutePath;
         std::string directory, fileName, extension;
-        deconstructPathname(pathname, isAbsolutePath, directory, fileName, extension);
-        if (!isAbsolutePath)
-            directory = getCurrentWorkingDirectory() + directory;
+        deconstructAbsolutePathname(pathname, directory, fileName, extension);
         return directory + fileName + extension;
     }
 

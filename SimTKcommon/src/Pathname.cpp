@@ -269,10 +269,7 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
     String pathcleaned = String::trimWhiteSpace(path).replaceAllChar('\\', '/');
     // If path is an absolute path, then just call deconstructPathname() on the path.
     if (isAbsolutePath(pathcleaned) || isExecutableDirectoryPath(pathcleaned)) {
-        bool dontApplySearchPath;
-        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
-        if (!dontApplySearchPath)
-            directory = getCurrentWorkingDirectory() + directory;
+        deconstructAbsolutePathname(path, directory, fileName, extension);
         return;
     }
     if (pathcleaned.empty())
@@ -282,10 +279,7 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
     String swdcleaned = String::trimWhiteSpace(swd).replaceAllChar('\\', '/');
     // If swd was empty, then just call deconstructPathname() on the path.
     if (swdcleaned.empty()) {
-        bool dontApplySearchPath;
-        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
-        if (!dontApplySearchPath) 
-            directory = getCurrentWorkingDirectory() + directory;
+        deconstructAbsolutePathname(path, directory, fileName, extension);
         return;
     }
 
@@ -371,13 +365,11 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory(const std::stri
         removeDriveInPlace(processed, finaldrive);
     }
 
-    bool dontApplySearchPath;
-    processed.insert(0, "/");
-    if (!finaldrive.empty())
-        processed.insert(0, finaldrive + ":");
-    deconstructPathname(processed, dontApplySearchPath, directory, fileName, extension);
-    if (!dontApplySearchPath)
-        directory = getCurrentWorkingDirectory() + directory;
+    // Build up the final path name, then use deconstructAbsolutePathname() to
+    // find the final directory, fileName, and extension.
+    if (processed.substr(0, 1) != "/") processed.insert(0, "/");
+    if (!finaldrive.empty()) processed.insert(0, finaldrive + ":");
+    deconstructAbsolutePathname(processed, directory, fileName, extension);
 }
 
 bool Pathname::fileExists(const std::string& fileName) {
