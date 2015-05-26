@@ -9,8 +9,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-12 Stanford University and the Authors.        *
- * Authors: Michael Sherman                                                   *
+ * Portions copyright (c) 2009-15 Stanford University and the Authors.        *
+ * Authors: Michael Sherman, Carmichael Ong                                   *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -41,7 +41,7 @@ namespace SimTK {
  * of three components:
  * <pre> [directory] [filename [extension]] </pre>
  * where the directory may be an absolute location or relative to a
- * current working directory. 
+ * current working directory or specified working directory. 
  *
  * Several special directory names are supported here:
  *  - root (/)
@@ -84,6 +84,9 @@ namespace SimTK {
  * a backslash; on other platforms the canonicalized name will always
  * begin with a forward slash.
  *
+ * @bug Eliminating ".." segments textually can cause them to behave incorrectly
+ *      in the presence of symbolic links. These should probably be left in
+ *      place with evaluation deferred.
  */
 class SimTK_SimTKCOMMON_EXPORT Pathname {
 public:
@@ -127,7 +130,7 @@ public:
     /// in the directory are changed to the appropriate slash
     /// for the currently running platform (i.e. backslash for
     /// Windows and forward slash everywhere else).
-    static void deconstructPathname(    const std::string& name,
+    static void deconstructPathname(    const std::string& pathname,
                                         bool&        dontApplySearchPath,
                                         std::string& directory,
                                         std::string& fileName,
@@ -146,20 +149,20 @@ public:
     /// - If the swd is empty (after removing whitespace), deconstructPathname()
     ///   is called, and cwd is prepended if needed to make it an absolute path.
     /// - Otherwise, we evaluate path relative to the swd. These steps are as follows:
-    /// 1) If path is a root-relative path name (and on Windows this includes a drive) 
-    ///    (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
-    ///    absolute path is returned.
-    /// 2) Preprocess the swd. This means that if the swd is of any form that denotes
-    ///    an absolute path (i.e. "C:/file.ext", "C:file.ext", "./file.ext", "/file.ext")
-    ///    we change the swd to reflect the absolute path (e.g. "./file.ext" may change
-    ///    to "/cwd/file.ext" or "C:/cwdOnC/file.ext").
-    /// 3) Otherwise, if a path is given relative to a directory that is not the root 
-    ///    (e.g. "./dir/file.ext" or "dir/file.ext"), then the swd is prepended to path.
-    /// 4) To resolve drive ambiguities, if swd provides a drive, it is used. If not, 
-    ///    then the path drive is used. If neither provides a drive, then the current 
-    ///    drive is used.
+    ///   1. If path is an absolute path name (and on Windows this includes a drive) 
+    ///      (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
+    ///      absolute path is returned.
+    ///   2. Preprocess the swd. This means that if the swd is of any form that denotes
+    ///      an absolute path (i.e. "C:/file.ext", "C:file.ext", "./file.ext", "/file.ext")
+    ///      we change the swd to reflect the absolute path (e.g. "./file.ext" may change
+    ///      to "/cwd/file.ext" or "C:/cwdOnC/file.ext").
+    ///   3. Otherwise, if a path is given relative to a directory that is not the root 
+    ///      (e.g. "./dir/file.ext" or "dir/file.ext"), then the swd is prepended to path.
+    ///   4. To resolve drive ambiguities, if swd provides a drive, it is used. If not, 
+    ///      then the path drive is used. If neither provides a drive, then the current 
+    ///      drive is used.
     static void deconstructPathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
-                                                                  const std::string& path,
+                                                                  const std::string& pathname,
                                                                   std::string& directory,
                                                                   std::string& fileName,
                                                                   std::string& extension);
@@ -167,12 +170,12 @@ public:
     /// Give back the deconstructed canonicalized absolute pathname for a given path.
     /// If the path is not an absolute path, it will be made into an absolute path first
     /// following the rules of deconstructPathname() (which it uses).
-    static void deconstructAbsolutePathname(const std::string& path,
+    static void deconstructAbsolutePathname(const std::string& pathname,
                                             std::string& directory,
                                             std::string& fileName,
                                             std::string& extension) {
         bool dontApplySearchPath;
-        deconstructPathname(path, dontApplySearchPath, directory, fileName, extension);
+        deconstructPathname(pathname, dontApplySearchPath, directory, fileName, extension);
         if (!dontApplySearchPath)
             directory = getCurrentWorkingDirectory() + directory;
     }
@@ -210,16 +213,33 @@ public:
         return absPath;
     }
 
-    static std::string findAbsolutePathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
-                                                                          const std::string& path) {
+    /// Same as getAbsolutePathname() but using a specified working directory
+    /// rather than the current working directory. See
+    /// deconstructPathnameUsingSpecifiedWorkingDirectory() for subtleties.
+    static std::string getAbsolutePathnameUsingSpecifiedWorkingDirectory
+       (const std::string& swd, const std::string& pathname) {
         std::string directory, fileName, extension;
-        deconstructPathnameUsingSpecifiedWorkingDirectory(swd, path, directory, fileName, extension);
+        deconstructPathnameUsingSpecifiedWorkingDirectory
+           (swd, pathname, directory, fileName, extension);
         return directory + fileName + extension;
+    }
+
+    /// Same as getAbsoluteDirectoryPathname() but using a specified working 
+    /// directory rather than the current working directory. See
+    /// deconstructPathnameUsingSpecifiedWorkingDirectory() for subtleties.
+    static std::string 
+    getAbsoluteDirectoryPathnameUsingSpecifiedWorkingDirectory
+       (const std::string& swd, const std::string& dirPathname) {
+        std::string absPath = 
+            getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, dirPathname);
+        if (!absPath.empty() && absPath[absPath.size()-1] != getPathSeparatorChar())
+            absPath += getPathSeparatorChar();
+        return absPath;
     }
 
     /// Return true if the given pathname names a file that exists and is
     /// readable.
-    static bool fileExists(const std::string& fileName);
+    static bool fileExists(const std::string& pathname);
 
     /// Get the default installation directory for this platform. This will
     /// be /usr/local/ for Linux and Apple, and the value of the \%ProgramFiles\%
@@ -227,8 +247,12 @@ public:
     static std::string getDefaultInstallDir();
 
     /// Append a subdirectory offset to an existing pathname (relative or absolute).
-    /// A leading "/" in the offset is ignored, and the result ends in "/".
-    static std::string addDirectoryOffset(const std::string& base, const std::string& offset);
+    /// A single slash will be inserted in between, ignoring any slash at the
+    /// end of `base` or start of `offset`, and the result will end with a 
+    /// slash. All slashes in the result will be the correct ones for the 
+    /// current platform.
+    static std::string addDirectoryOffset(const std::string& base, 
+                                          const std::string& offset);
 
     /// Find the installation directory for something, using the named
     /// installation directory environment variable if it exists, otherwise
