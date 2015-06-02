@@ -34,7 +34,7 @@ test_script:
 after_test:
   ## On master branch, create NuGet package for Simbody, for use by OpenSim.
   # Detect if we are on the master branch.
-  - IF %APPVEYOR_REPO_BRANCH% EQU master IF NOT DEFINED APPVEYOR_PULL_REQUEST_NUMBER SET DISTR=TRUE
+  - IF %APPVEYOR_REPO_BRANCH% EQU simbody-3.5 IF NOT DEFINED APPVEYOR_PULL_REQUEST_NUMBER SET DISTR=TRUE
   # Install Simbody.
   - IF DEFINED DISTR cmake --build . --target install --config Release -- /maxcpucount /verbosity:quiet
   # Create NuGet package.
@@ -43,4 +43,4 @@ after_test:
   - IF DEFINED DISTR nuget pack .simbody.nuspec -BasePath C:\simbody
   # The line above creates the file simbody.0.0.0.nupkg.
   # Push this file to Appveyor's NuGet account feed, to be used by OpenSim.
-  - IF DEFINED DISTR appveyor PushArtifact simbody.0.0.0.nupkg
+  - IF DEFINED DISTR appveyor PushArtifact simbody.3.5.nupkg
