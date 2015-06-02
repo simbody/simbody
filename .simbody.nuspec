@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>simbody</id>
-    <version>0.0.0</version>
+    <version>3.5</version>
     <authors>Michael Sherman</authors>
     <owners>Michael Sherman</owners>
     <licenseUrl>https://github.com/simbody/simbody/LICENSE</licenseUrl>
