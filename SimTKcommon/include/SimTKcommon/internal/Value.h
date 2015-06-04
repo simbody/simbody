@@ -35,6 +35,8 @@
 #include <utility>
 
 namespace SimTK {
+  // Forward declaration.
+  template<typename T> class Value;
 
 //==============================================================================
 //                             ABSTRACT VALUE
@@ -70,6 +72,20 @@ public:
     if the source object is compatible, or throw an exception otherwise. **/
     AbstractValue& operator=(const AbstractValue& v) 
     {   compatibleAssign(v); return *this; }
+
+    /** Retrieve the original (type-erased)*thing* as read-only. The template
+    argument must be exactly the non-reference type of the stored *thing*. **/
+    template <typename T>
+    const T& getValue() const {
+      return Value<T>::downcast(*this).get();
+    }
+
+    /** Retrieve the original (type-erased)*thing* as read-write. The template
+    argument must be exactly the non-reference type of the stored *thing* **/
+    template <typename T>
+    T& updValue() {
+      return Value<T>::updDowncast(*this).upd();
+    }
 
     virtual ~AbstractValue() {}   
 };
