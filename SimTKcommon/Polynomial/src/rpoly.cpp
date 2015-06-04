@@ -1,7 +1,8 @@
 /*      rpoly.cpp -- Jenkins-Traub real polynomial root finder.
  *
- *      Written by C. Bond, with minor changes by Peter Eastman and Michael 
- *      Sherman. This file is in the public domain.
+ *      Written by C. Bond, with minor changes by Peter Eastman, Michael 
+ *      Sherman, and Chris Dembia (fabs->std::abs).
+ *      This file is in the public domain.
  *
  *      Translation of TOMS493 from FORTRAN to C. This
  *      implementation of Jenkins-Traub partially adapts
@@ -124,7 +125,7 @@ _40:
     max = 0.0;
     min = infin;
     for (i=0;i<=n;i++) {
-        x = fabs(p[i]);
+        x = std::abs(p[i]);
         if (x > max) max = x;
         if (x != 0.0 && x < min) min = x;
     }
@@ -150,7 +151,7 @@ _40:
 _110:
 /*  Compute lower bound on moduli of roots. */
     for (i=0;i<=n;i++) {
-        pt[i] = (fabs(p[i]));
+        pt[i] = (std::abs(p[i]));
     }
     pt[n] = - pt[n];
 /*  Compute upper estimate of bound. */
@@ -173,7 +174,7 @@ _110:
 /*  Do Newton interation until x converges to two 
  *  decimal places. 
  */
-    while (fabs(dx/x) > 0.005) {
+    while (std::abs(dx/x) > 0.005) {
         ff = pt[0];
         df = ff;
         for (i=1;i<n;i++) { 
@@ -205,7 +206,7 @@ _110:
                 k[j] = t*k[j-1]+p[j];
             }
             k[0] = p[0];
-            zerok = (fabs(k[n-1]) <= fabs(bb)*eta*10.0);
+            zerok = (std::abs(k[n-1]) <= std::abs(bb)*eta*10.0);
         }
         else {
 /*  Use unscaled form of recurrence. */
@@ -307,8 +308,8 @@ void RPoly<T>::fxshfr(int l2,int *nz)
         ts = 1.0;
         if (j == 0 || type == 3) goto _70;
 /*  Compute relative measures of convergence of s and v sequences. */
-        if (vv != 0.0) tv = fabs((vv-ovv)/vv);
-        if (ss != 0.0) ts = fabs((ss-oss)/ss);
+        if (vv != 0.0) tv = std::abs((vv-ovv)/vv);
+        if (ss != 0.0) ts = std::abs((ss-oss)/ss);
 /*  If decreasing, multiply two most recent convergence measures. */
         tvv = 1.0;
         if (tv < otv) tvv = tv*otv;
@@ -440,24 +441,24 @@ _10:
 // Original code:
     //if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
 // Fixed version:
-    if ((T)fabs(fabs(szr)-fabs(lzr)) > (T)0.01 * std::max((T)fabs(lzr),(T)0.1)) 
+    if ((T)std::abs(std::abs(szr)-std::abs(lzr)) > (T)0.01 * std::max((T)std::abs(lzr),(T)0.1)) 
         return;
 
 /*  Evaluate polynomial by quadratic synthetic division. */
     quadsd(n,&u,&v,p,qp,&a,&b);
-    mp = fabs(a-szr*b) + fabs(szi*b);
+    mp = std::abs(a-szr*b) + std::abs(szi*b);
 /*  Compute a rigorous bound on the rounding error in
  *  evaluating p.
  */
-    zm = sqrt(fabs(v));
-    ee = (T) 2.0*fabs(qp[0]);
+    zm = sqrt(std::abs(v));
+    ee = (T) 2.0*std::abs(qp[0]);
     t = -szr*b;
     for (i=1;i<n;i++) {
-        ee = ee*zm + fabs(qp[i]);
+        ee = ee*zm + std::abs(qp[i]);
     }
-    ee = ee*zm + fabs(a+t);
+    ee = ee*zm + std::abs(a+t);
     ee *= ((T)5.0 *mre + (T)4.0*are);
-       ee = ee - ((T)5.0*mre+(T)2.0*are)*(fabs(a+t)+fabs(b)*zm)+(T)2.0*are*fabs(t);
+       ee = ee - ((T)5.0*mre+(T)2.0*are)*(std::abs(a+t)+std::abs(b)*zm)+(T)2.0*are*std::abs(t);
 /*  Iteration has converged sufficiently if the
  *  polynomial value is less than 20 times this bound.
  */
@@ -494,7 +495,7 @@ _50:
     newest(type,&ui,&vi);
 /*  If vi is zero the iteration is not converging. */
     if (vi == 0.0) return;
-    relstp = fabs((vi-v)/vi);
+    relstp = std::abs((vi-v)/vi);
     u = ui;
     v = vi;
     goto _10;
@@ -524,12 +525,12 @@ void RPoly<T>::realit(T *sss, int *nz, int *iflag)
             pv = pv*s + p[i];
             qp[i] = pv;
         }
-        mp = fabs(pv);
+        mp = std::abs(pv);
 /*  Compute a rigorous bound on the error in evaluating p. */
-        ms = fabs(s);
-        ee = (mre/(are+mre))*fabs(qp[0]);
+        ms = std::abs(s);
+        ee = (mre/(are+mre))*std::abs(qp[0]);
         for (i=1;i<=n;i++) {
-            ee = ee*ms + fabs(qp[i]);
+            ee = ee*ms + std::abs(qp[i]);
         }
 /*  Iteration has converged sufficiently if the polynomial
  *  value is less than 20 times this bound.
@@ -544,7 +545,7 @@ void RPoly<T>::realit(T *sss, int *nz, int *iflag)
 /*  Stop iteration after 10 steps. */
         if (j > 10) return;
         if (j < 2) goto _50;
-        if (fabs(t) > 0.001*fabs(s-t) || mp < omp) goto _50;
+        if (std::abs(t) > 0.001*std::abs(s-t) || mp < omp) goto _50;
 /*  A cluster of zeros near the real axis has been
  *  encountered. Return with iflag set to initiate a
  *  quadratic iteration.
@@ -562,7 +563,7 @@ _50:
             kv = kv*s + k[i];
             qk[i] = kv;
         }
-        if (fabs(kv) <= fabs(k[n-1])*10.0*eta) {
+        if (std::abs(kv) <= std::abs(k[n-1])*10.0*eta) {
 /*  Use unscaled form. */
             k[0] = 0.0;
             for (i=1;i<n;i++) {
@@ -584,7 +585,7 @@ _50:
             kv = kv*s + k[i];
         }
         t = 0.0;
-        if (fabs(kv) > fabs(k[n-1]*10.0*eta)) t = -pv/kv;
+        if (std::abs(kv) > std::abs(k[n-1]*10.0*eta)) t = -pv/kv;
         s += t;
     }
 }
@@ -600,13 +601,13 @@ void RPoly<T>::calcsc(int *type)
 {
 /*  Synthetic division of k by the quadratic 1,u,v */    
     quadsd(n-1,&u,&v,k,qk,&c,&d);
-    if (fabs(c) > fabs(k[n-1]*100.0*eta)) goto _10;
-    if (fabs(d) > fabs(k[n-2]*100.0*eta)) goto _10;
+    if (std::abs(c) > std::abs(k[n-1]*100.0*eta)) goto _10;
+    if (std::abs(d) > std::abs(k[n-2]*100.0*eta)) goto _10;
     *type = 3;
 /*  Type=3 indicates the quadratic is almost a factor of k. */
     return;
 _10:
-    if (fabs(d) < fabs(c)) {
+    if (std::abs(d) < std::abs(c)) {
         *type = 1;
 /*  Type=1 indicates that all formulas are divided by c. */   
         e = a/c;
@@ -648,7 +649,7 @@ void RPoly<T>::nextk(int *type)
     }
     temp = a;
     if (*type == 1) temp = b;
-    if (fabs(a1) <= fabs(temp)*eta*10.0) {
+    if (std::abs(a1) <= std::abs(temp)*eta*10.0) {
 /*  If a1 is nearly zero then use a special form of the
  *  recurrence.
  */
@@ -760,22 +761,22 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
         }
 /* Compute discriminant avoiding overflow. */
         b = b1/(T) 2.0;
-        if (fabs(b) < fabs(c)) { 
+        if (std::abs(b) < std::abs(c)) { 
             if (c < 0.0) 
                 e = -a;
             else
                 e = a;
-            e = b*(b/fabs(c)) - e;
-            d = sqrt(fabs(e))*sqrt(fabs(c));
+            e = b*(b/std::abs(c)) - e;
+            d = sqrt(std::abs(e))*sqrt(std::abs(c));
         }
         else {
             e = (T) 1.0 - (a/b)*(c/b);
-            d = sqrt(fabs(e))*fabs(b);
+            d = sqrt(std::abs(e))*std::abs(b);
         }
         if (e < 0.0) {      /* complex conjugate zeros */
             *sr = -b/a;
             *lr = *sr;
-            *si = fabs(d/a);
+            *si = std::abs(d/a);
             *li = -(*si);
         }
         else {
