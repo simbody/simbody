@@ -57,12 +57,12 @@ public:
     const typename std::remove_reference<T>::type& getValue() {
 #ifndef NDEBUG
       return dynamic_cast<const 
-			  Value<typename 
-				std::remove_reference<T>::type>&>(*this).thing;
+                          Value<typename
+                                std::remove_reference<T>::type>&>(*this).thing;
 #else
       return static_cast<const 
-			 Value<typename 
-			       std::remove_reference<T>::type>&>(*this).thing;
+                         Value<typename 
+                               std::remove_reference<T>::type>&>(*this).thing;
 #endif
     }
 
@@ -71,10 +71,10 @@ public:
     typename std::remove_reference<T>::type& updValue() {
 #ifndef NDEBUG
       return dynamic_cast<Value<typename 
-				std::remove_reference<T>::type>&>(*this).thing;
+                                std::remove_reference<T>::type>&>(*this).thing;
 #else
       return static_cast<Value<typename 
-			       std::remove_reference<T>::type>&>(*this).thing;
+                               std::remove_reference<T>::type>&>(*this).thing;
 #endif
     }
 
