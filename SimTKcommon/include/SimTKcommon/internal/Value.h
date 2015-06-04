@@ -55,26 +55,22 @@ public:
     /// Retrieve the stored object as const ref -- read-only.
     template<typename T>
     const typename std::remove_reference<T>::type& getValue() {
+      using ErasedType = typename std::remove_reference<T>::type;
 #ifndef NDEBUG
-      return dynamic_cast<const 
-                          Value<typename
-                                std::remove_reference<T>::type>&>(*this).thing;
+      return dynamic_cast<Value<ErasedType>&>(*this).thing;
 #else
-      return static_cast<const 
-                         Value<typename 
-                               std::remove_reference<T>::type>&>(*this).thing;
+      return static_cast<Value<ErasedType>&>(*this).thing;
 #endif
     }
 
     /// Retrieve the stored object as ref -- read-write.
     template<typename T>
     typename std::remove_reference<T>::type& updValue() {
+      using ErasedType = typename std::remove_reference<T>::type;
 #ifndef NDEBUG
-      return dynamic_cast<Value<typename 
-                                std::remove_reference<T>::type>&>(*this).thing;
+      return dynamic_cast<Value<ErasedType>&>(*this).thing;
 #else
-      return static_cast<Value<typename 
-                               std::remove_reference<T>::type>&>(*this).thing;
+      return static_cast<Value<ErasedType>&>(*this).thing;
 #endif
     }
 
