@@ -35,6 +35,10 @@
 
 namespace SimTK {
 
+  // Forward declaration. Used in the AbstractValue class.
+  template<typename T>
+  class Value;
+
 /**
  * Abstract base class representing an arbitrary value of self-describing type.
  */
@@ -47,7 +51,29 @@ public:
     virtual String        getValueAsString() const = 0;
     virtual bool        isCompatible(const AbstractValue&) const = 0;
     virtual void compatibleAssign(const AbstractValue&) = 0;
-        
+
+    /// Retrieve the stored object as const ref -- read-only.
+    template<typename T>
+    const typename std::remove_reference<T>::type& getValue() {
+      using ErasedType = typename std::remove_reference<T>::type;
+#ifndef NDEBUG
+      return dynamic_cast<Value<ErasedType>&>(*this).thing;
+#else
+      return static_cast<Value<ErasedType>&>(*this).thing;
+#endif
+    }
+
+    /// Retrieve the stored object as ref -- read-write.
+    template<typename T>
+    typename std::remove_reference<T>::type& updValue() {
+      using ErasedType = typename std::remove_reference<T>::type;
+#ifndef NDEBUG
+      return dynamic_cast<Value<ErasedType>&>(*this).thing;
+#else
+      return static_cast<Value<ErasedType>&>(*this).thing;
+#endif
+    }
+
     AbstractValue& operator=(const AbstractValue& v) { compatibleAssign(v); return *this; }
     
     virtual AbstractValue* clone() const = 0;
@@ -68,6 +94,7 @@ template <class T> class Value : public AbstractValue {
 public:
     Value() { } // contained value is default-constructed
     explicit Value(const T& t) : thing(t) { }
+    explicit Value(T&& t) : thing{std::move(t)} {}
     // default copy, destructor
 
     // Define assignment explicitly here to avoid implicitly calling AbstractValue's
@@ -86,8 +113,8 @@ public:
 
     bool isCompatible(const AbstractValue& v) const { return isA(v); }        
     void compatibleAssign(const AbstractValue& v) {
-        if (!isA(v)) SimTK_THROW2(Exception::IncompatibleValues,v.getTypeName(),getTypeName());
-        *this = downcast(v);
+      if (!isA(v)) SimTK_THROW2(Exception::IncompatibleValues,v.getTypeName(),getTypeName());
+      *this = downcast(v);
     }
     String getTypeName() const { return NiceTypeName<T>::namestr(); }
     // TODO: should have some general way to serialize these.
