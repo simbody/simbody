@@ -13,8 +13,12 @@
 cmake_minimum_required(VERSION 2.8.8)
 
 if(COMMAND cmake_policy)
-        cmake_policy(SET CMP0003 NEW)
-        cmake_policy(SET CMP0005 NEW)
+    cmake_policy(SET CMP0003 NEW)
+    cmake_policy(SET CMP0005 NEW)
+    if(NOT (${CMAKE_VERSION} VERSION_LESS 3.0))
+        # MACOSX_RPATH enabled by default; policy introduced with cmake 3.0.
+        cmake_policy(SET CMP0042 NEW)
+    endif()
 endif(COMMAND cmake_policy)
 
 PROJECT(Simbody)
