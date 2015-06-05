@@ -2755,7 +2755,7 @@ int main(int argc, char** argv) {
 
     // Initially, disable antialiasing.
     glDisable(GL_MULTISAMPLE);
-    shouldAntialias= false;
+    shouldAntialias = false;
 
     // Set up callback funtions.
     glutDisplayFunc(redrawDisplay);
