@@ -65,7 +65,7 @@ public:
     copy of that object via its clone() method and make this %ClonePtr
     object the owner of the copy. Ownership of the original object is not
     affected. **/
-    explicit ClonePtr(const T& obj) : p(&obj?obj.clone():0) { }
+    explicit ClonePtr(const T& obj) : p(obj.clone()) { }
     /** Copy constructor is deep; the new %ClonePtr object contains a new
     copy of the object in the source, created via the source object's clone()
     method. If the source container is empty this one will be empty also. **/
@@ -81,7 +81,7 @@ public:
     heap-allocated copy of the source object. The copy is created using the 
     source object's clone() method. The currently-held object is deleted. **/    
     ClonePtr& operator=(const T& t)          
-    {   reset(&t ? t.clone()  :0); return *this; }
+    {   reset(t.clone()); return *this; }
     /** This form of assignment replaces the currently-held object by the given
     source object and takes over ownership of the source object. The 
     currently-held object is deleted. **/ 
