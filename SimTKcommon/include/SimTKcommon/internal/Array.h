@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -40,6 +40,8 @@
 #include <ostream>
 #include <climits>
 #include <typeinfo>
+#include <initializer_list>
+#include <utility>
 
 namespace SimTK {
 
@@ -629,12 +631,12 @@ the reverse iterator's base() method. **/
 
 /** Return a const pointer to the first element of this array if any, otherwise
 cend(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
+is from the C++11 standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 const T* cbegin() const {return pData;}
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
+be. This method is from the C++11 standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 const T* cend() const {return pData + nUsed;}
 /** The const version of begin() is the same as cbegin(). **/
@@ -659,9 +661,9 @@ const_reverse_iterator rend() const {return crend();}
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
 @note
-    cdata() does not appear to be in the C++0x standard although it would seem
+    cdata() is not in the C++11 standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
+    The C++11 overloaded const data() method is also available. **/
 const T* cdata() const {return pData;}
 /** The const version of the data() method is identical to cdata(). **/
 const T* data() const {return pData;}
@@ -1176,7 +1178,7 @@ reverse iterator's base() method. **/
 
 /** Return a const pointer to the first element of this array if any, otherwise
 end(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
+is from the C++11 standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
@@ -1189,7 +1191,7 @@ SimTK_FORCE_INLINE T* begin() {return const_cast<T*>(this->CBase::cbegin());}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
+be. This method is from the C++11 standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
@@ -1227,16 +1229,16 @@ reverse_iterator rend() {return reverse_iterator(begin());}
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
 @note
-    cdata() does not appear to be in the C++0x standard although it would seem
+    cdata() is not in the C++11 standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
+    The C++11 overloaded const data() method is also available. **/
 SimTK_FORCE_INLINE const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE T* data() {return const_cast<T*>(this->CBase::cdata());}
 /*@}    End of iterators. */
 
@@ -1396,13 +1398,10 @@ const char* indexName() const   {return this->CBase::indexName();}
 };
 
 
-
-
-
 //==============================================================================
 //                               CLASS Array_
 //==============================================================================
-/** The SimTK::Array_<T> container class is a plug-compatible replacement for 
+/** The Array_<T> container class is a plug-compatible replacement for 
 the C++ standard template library (STL) std::vector<T> class, but with some
 important advantages in performance, and functionality, and binary 
 compatibility.
@@ -1421,19 +1420,26 @@ particular, that are addressed here. Microsoft in its wisdom decided that STL
 containers should still do runtime range checks in Release builds for safety, 
 but that makes them too slow for use in some high-performance contexts (and 
 also breaks the promise of generic programming but that's another rant). In 
-practice, VC++9 std::vector runs about half speed for simple operations like 
-indexing and push_back. Attempting to disable these runtime checks with 
-_SECURE_SCL breaks binary compatibility. In contrast the performance of this 
-Array_<T> class on any platform is indistinguishable from what you would get 
-by managing your own heap-allocated arrays.
+practice, VC++12 (2013) std::vector runs about half speed for simple operations 
+like indexing and push_back (see Simbody's TestArray regression test for an
+executable performance comparison). Attempting to disable these runtime checks 
+with `_SECURE_SCL` breaks binary compatibility with other code built with the
+same compiler but without the flag. In contrast the performance of this 
+Array_<T> class on any platform is indistinguishable from what you would 
+get by managing your own heap-allocated arrays. 64 bit compilers vary on how
+well they handle 32 bit integers though, so in some cases the default index
+type (32 bit unsigned) won't be as fast as if you use a 64 bit unsigned type
+as does std::vector.
 
 @par
 Regarding memory footprint, the typical implementation of std::vector uses
 three pointers: 12 bytes for 32 bit machines; 24 bytes for 64 bit machines.
 Microsoft somehow manages to trump this with 20 to 24 bytes on a 32 bit
-machine -- I don't know what they do on a 64 bit machine but I'm not 
-optimistic! Array_ instead uses one pointer and two lengths for a total size 
-as little as 8 bytes on 32 bits and 16 on 64 bits; see below for details.
+machine (last checked in VC++9); they are at 24 bytes for 64 bit Release builds
+in VC++12, 32 bytes in Debug builds. Array_ instead uses one pointer and two 
+lengths for a total size as little as 8 bytes on 32 bits and 16 on 64 bits; 
+see below for details. The binary representation for Array_ is the same in 
+Release and Debug builds.
 
 @par
 Some nuts and bolts:
@@ -1456,9 +1462,9 @@ Some nuts and bolts:
   footprint to as little as 8 bytes on a 32 bit machine (e.g., a 32 bit 
   pointer and two shorts).
 - The default size_type for an Array_<T> is a 32-bit unsigned integer rather 
-  than a size_t. On a 64-bit machine that keeps the overhead down substantially
-  since the structure is then one 64-bit pointer and two 32-bit integers, 
-  fitting tightly into a cleanly alignable 16 bytes.
+  than a size_t. On a 64-bit machine that keeps the memory footprint down 
+  substantially since the structure is then one 64-bit pointer and two 32-bit 
+  integers, fitting tightly into a cleanly alignable 16 bytes.
 
 
 @par Functionality:
@@ -1479,8 +1485,8 @@ there are a few additions and subtractions:
   copied into the array.
 - You can create Array_<T> objects that reference existing data, including
   the contents of std::vectors.
-- Where possible this class implements the new std::vector features proposed
-  for the C++0x standard (see below).
+- This class implements the std::vector features from the C++11 standard (with
+  a few exceptions; see below).
 
 @par Compatibility:
 Included here are binary compatibility issues and compatibility with the C++
@@ -1494,9 +1500,11 @@ standard STL objects.
   to use Array_<T> in the SimTK API where use of std::vector<T> would be 
   desirable but problematic.
 - It supports all standard types, methods, iterators, and operators of the 
-  C++98 standard std::vector and the C++0x proposed improvements other than
-  those requiring rvalue references, so it works smoothly with all STL 
-  containers and algorithms.
+  C++11 standard std::vector, so it works smoothly with all STL containers and 
+  algorithms. However, it does not provide the same guarantees of behavior 
+  when exceptions occur. In particular, when resizing Array_ will use move
+  construction if available even if the move constructor hasn't been marked
+  "nothrow".
 - It is convertible to and from std::vector, usually without copying the 
   elements. It is easy to provide APIs that accept either Array_<T> or 
   std::vector<T>; the std::vector's data is referenced by an Array_ handle
@@ -1605,6 +1613,13 @@ Array_(const T2* first, const T2* last1) : Base() {
     copyConstruct(begin(), cend(), first);
 }
 
+/** Construct an Array_<T> from an std::initializer_list whose elements were
+convertible to type T, provided that the number of source elements does not 
+exceed the array's max_size(). Note that this constructor is not `explicit`,
+so a suitable std::initializer_list will implicitly convert to an Array_<T>. **/
+Array_(std::initializer_list<T> ilist)
+:   Array_(ilist.begin(), ilist.end()) {} // invoke above constructor for T*
+
 /** Construct an Array_<T> by copying from an std::vector<T2>, where T2 may
 be the same type as T but doesn't have to be. This will work as long as the 
 size of the vector does not exceed the array's max_size(), and provided there 
@@ -1632,6 +1647,12 @@ Array_(const Array_& src) : Base() {
     setSize(src.size());
     allocateNoConstruct(size());
     copyConstruct(begin(), cend(), src.data());
+}
+
+/** Move constructor swaps in the source and leaves the source default
+constructed. **/
+Array_(Array_&& src) : Base() {
+    swap(src);
 }
 
 /** Construct this Array_<T,X> as a copy of another Array_<T2,X2> where T2!=T
@@ -1751,7 +1772,7 @@ use appropriate constructors of type T (most commonly T's copy constructor
 T(T)) to initialize each element to be a copy of the corresponding source 
 element. T's assignment operators are never used in this case.
 
-For fixed arrays, the source must have the same number of elments as are 
+For fixed arrays, the source must have the same number of elements as are 
 currently in the array and the meaning is conventional elementwise assignment;
 that is, an appropriate assignment operator of type T (most commonly T's copy 
 assignment operator T=T) is used to change the value of each existing element. 
@@ -1759,7 +1780,7 @@ assignment operator T=T) is used to change the value of each existing element.
 So there are different requirements on the value type T for owner and non-owner
 assignments to type T2: for owner assignment T must have a constructor T(T2)
 available; for non-owner assignment, T must have an assignment operator T=T2 
-available; .
+available.
 
 @remarks
 - When reallocating the destination array, we may reuse the existing heap 
@@ -1911,6 +1932,13 @@ Array_& operator=(const Array_& src) {
     return *this;
 }
 
+/** Move assignment operator swaps the contents of this Array_ with the
+source Array_. **/
+Array_& operator=(Array_&& src) {
+    swap(src);
+    return *this;
+}
+
 /** This is assignment from a source array whose element type T2 and/or index 
 type X2 are different from this array's T and X. This will work as long as 
 this array can accommodate all the elements in the source and T2 is assignment
@@ -1939,10 +1967,11 @@ Array_& operator=(const std::vector<T2,A>& src) {
 
 /** This is a specialized algorithm providing constant time exchange of data 
 with another array that has identical element and index types. This is \e much 
-faster than using the std::swap() algorithm on the arrays since that would
-involve O(n) copying operations. This method makes no calls to any constructors
-or destructors. This is allowable even for non-owner arrays; the non-owner
-attribute will follow the non-owned data. **/
+faster than using the default std::swap() algorithm on the arrays since that 
+would involve O(n) copying operations; we provide a specialization for 
+std::swap() that uses the method here instead. This method makes no calls to any 
+constructors or destructors. This is allowable even for non-owner arrays; the 
+non-owner attribute will follow the non-owned data. **/
 void swap(Array_& other) {
     T* const pTmp=data(); setData(other.data()); other.setData(pTmp);
     size_type nTmp=size(); setSize(other.size()); other.setSize(nTmp);
@@ -2011,7 +2040,8 @@ Array_& shareData(T* newData, size_type dataSize) {
 /** Same as shareData(data,size) but uses a pointer range [first,last1) to
 identify the data to be referenced. **/
 Array_& shareData(T* first, const T* last1) {
-    SimTK_ERRCHK3(this->isSizeOK(last1-first), "Array_<T>::shareData(first,last1)",
+    SimTK_ERRCHK3(this->isSizeOK(last1-first), 
+        "Array_<T>::shareData(first,last1)",
         "Requested size %llu is too big for this array which is limited"
         " to %llu elements by its index type %s.",
         this->ull(last1-first), ullMaxSize(), indexName());
@@ -2054,8 +2084,9 @@ void resize(size_type n) {
     if (n == size()) return;
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::resize(n)",
-        "Requested size change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", this->ull(n), this->ull(size()));
+        "Requested size change to %llu is not allowed because this is a "
+        "non-owner array of fixed size %llu.", 
+        this->ull(n), this->ull(size()));
 
     if (n < size()) {
         erase(data()+n, cend());
@@ -2099,11 +2130,12 @@ void reserve(size_type n) {
         return;
 
     SimTK_ERRCHK2(isOwner(), "Array_<T>::reserve()",
-        "Requested capacity change to %llu is not allowed because this is a"
-        " non-owner array of fixed size %llu.", this->ull(n), this->ull(size()));
+        "Requested capacity change to %llu is not allowed because this is a "
+        "non-owner array of fixed size %llu.", 
+        this->ull(n), this->ull(size()));
 
     T* newData = allocN(n); // no construction yet
-    copyConstructThenDestructSource(newData, newData+size(), data());
+    moveConstructThenDestructSource(newData, newData+size(), data());
     freeN(data());
     setData(newData);
     setAllocated(n);
@@ -2120,13 +2152,13 @@ this method, then all the elements will have been moved to new locations so
 existing iterators and references into the array will become invalid.
 
 @note
-  - This method is from the proposed C++0x standard for std::vector, except for
+  - This method matches the C++11 std::vector method, except for
     the guaranteed behavior for a zero-size container.
   - It is OK to call this on a non-owner array but it has no effect since
     capacity()==size() already in that case.
 
 @par Complexity:
-    If the capacity is reduced, there will be one call to T's copy constructor 
+    If the capacity is reduced, there will be one call to T's move constructor 
     and destructor (if any) for each element currently in the array. Otherwise
     this is very fast. **/
 void shrink_to_fit() {
@@ -2135,7 +2167,7 @@ void shrink_to_fit() {
     if (capacity() - size()/4 <= size()) // avoid overflow if size() near max
         return;
     T* newData = allocN(size());
-    copyConstructThenDestructSource(newData, newData+size(), data());
+    moveConstructThenDestructSource(newData, newData+size(), data());
     deallocateNoDestruct(); // data()=0, allocated()=0, size() unchanged
     setData(newData);
     setAllocated(size());
@@ -2167,7 +2199,7 @@ reverse iterator's base() method. **/
 
 /** Return a const pointer to the first element of this array if any, otherwise
 cend(), which may be null (0) in that case but does not have to be. This method
-is from the proposed C++0x standard; there is also an overloaded begin() from
+is from the C++11 standard; there is also an overloaded begin() from
 the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cbegin() const {return this->CBase::cbegin();}
 /** The const version of begin() is the same as cbegin(). **/
@@ -2180,7 +2212,7 @@ SimTK_FORCE_INLINE T* begin() {return this->Base::begin();}
 
 /** Return a const pointer to what would be the element just after the last one
 in the array; this may be null (0) if there are no elements but doesn't have to
-be. This method is from the proposed C++0x standard; there is also an 
+be. This method is from the C++11 standard; there is also an 
 overloaded end() from the original standard that returns a const pointer. **/
 SimTK_FORCE_INLINE const T* cend() const {return this->CBase::cend();}
 /** The const version of end() is the same as cend(). **/
@@ -2218,16 +2250,16 @@ reverse_iterator rend() {return this->Base::rend();}
 /** Return a const pointer to the first element of the array, or possibly
 (but not necessarily) null (0) if the array is empty.
 @note
-    cdata() does not appear to be in the C++0x standard although it would seem
+    cdata() is not in the C++11 standard although it would seem
     obvious in view of the cbegin() and cend() methods that had to be added. 
-    The C++0x overloaded const data() method is also available. **/
+    The C++11 overloaded const data() method is also available. **/
 SimTK_FORCE_INLINE const T* cdata() const {return this->CBase::cdata();}
 /** The const version of the data() method is identical to cdata().
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE const T* data() const {return this->CBase::cdata();}
 /** Return a writable pointer to the first allocated element of the array, or
 a null pointer if no space is associated with the array.
-@note This method is from the proposed C++0x std::vector. **/
+@note This method is from the C++11 std::vector. **/
 SimTK_FORCE_INLINE T* data() {return this->Base::data();}
 /*@}*/
 
@@ -2352,29 +2384,60 @@ the back() method after the call to push_back().
 
 @par Complexity:
     Constant time if no reallocation is required; otherwise the current 
-    contents of the array must be copied to new space, costing one call to T's
-    copy constructor and destructor (if any) for each element currently in the
+    contents of the array must be moved to new space, costing one call to T's
+    move constructor and destructor (if any) for each element currently in the
     array. Either way there is also one call to T's copy constructor to 
     construct the new element from the supplied value. **/
 void push_back(const T& value) {
     if (pallocated() == psize())
-        growAtEnd(1,"Array_<T>::push_back(value)");
+        growAtEnd(1,"Array_<T>::push_back(const T& value)");
     copyConstruct(end(), value);
     incrSize();
 }
 
-/** This is a non-standard version of push_back() that increases the size of the
-array by one default-constructed element at the end. This avoids having to 
-default-construct the argument to the standard push_back(value) method which 
-then has to copy-construct it into the array. By carefully avoiding 
-reallocation and using this form of push_back() you can use the Array_<T> class
-to hold objects of type T even if T has no copy constructor, which is 
-prohibited by the standard std::vector<T> definition. 
+/** This is the move form of push_back(), taking an rvalue reference rather 
+than an lvalue reference. See the other signature for information, with
+move-construction instead of copy-construction (reallocation is the same
+in either case). **/
+void push_back(T&& value) {
+    if (pallocated() == psize())
+        growAtEnd(1,"Array_<T>::push_back(T&& value)");
+    moveConstruct(end(), std::move(value));
+    incrSize();
+}
+
+/** This is similar to push_back() but rather than copying, it constructs the 
+element in place at the end of the array. To do that it invokes the constructor 
+of T whose signature matches the supplied argument pack. This has the same 
+effect as `push_back(T(Args...))` would have but avoids the extra copy that 
+would be required. Reallocation is handled the same as for push_back(). 
+
+@note This method should be preferred to the nonstandard raw_push_back() 
+method. **/
+template<class... Args>
+void emplace_back(Args&&... args) { // special syntax; not an rvalue reference
+    if (pallocated() == psize())
+        growAtEnd(1,"Array_<T>::emplace_back(Args...)");
+    new(end()) T(std::forward<Args>(args)...); // invoke constructor for T
+    incrSize();
+}
+
+/** (Deprecated, use emplace_back() instead) This is a non-standard version of
+push_back() that increases the size of the array by one default-constructed 
+element at the end. This avoids having to default-construct the argument to the 
+standard push_back(value) method which then has to copy-construct or 
+move-construct it into the array. By carefully avoiding reallocation and using 
+this form of push_back() you can use the Array_<T> class to hold objects of type
+T even if T has no copy or move constructor, which is prohibited by the standard
+std::vector<T> definition.
+
+@note Since C++11 added emplace_back() you can accomplish the same thing
+by calling emplace_back() with no arguments. 
 
 @par Complexity:
     Same as the standard push_back(value) method except without the final
     call to T's copy constructor.
-@see push_back(value) 
+@see emplace_back(), push_back(value) 
 **/
 void push_back() {
     if (pallocated() == psize())
@@ -2383,20 +2446,25 @@ void push_back() {
     incrSize();
 }
 
-/** This dangerous method increases the Array's size by one element at the end 
-but doesn't perform any construction so the memory is filled with garbage. You 
-must immediately construct into this space, using code like:
+/** (Deprecated, use emplace_back() instead) This dangerous non-standard method
+increases the Array's size by one element at the end but doesn't perform any 
+construction so the memory is filled with garbage. You must immediately 
+construct into this space, using code like:
 @code       
-    new(a.raw_push_back()) MyConstructor(...args...);       
+    new(a.raw_push_back()) MyConstructor(args...);       
 @endcode
 This is a substantial performance improvement when the element type is something
 complicated since the constructor is called once and not copied; it can also be
 used for objects that have neither default nor copy constructors.
 @return 
     An iterator (pointer) pointing at the unconstructed element. 
+
+@note Since C++11 added emplace_back() you can accomplish the same thing safely
+by calling emplace_back(args...) with the constructor arguments.  
+
 @par Complexity:
     Same as ordinary push_back().
-@see push_back(value), push_back() 
+@see emplace_back(), push_back(value) 
 **/
 T* raw_push_back() {
     if (pallocated() == psize())
@@ -2429,19 +2497,19 @@ elements erased. Capacity is unchanged. If the range is empty nothing happens.
     the same memory address as the passed-in \a first argument since there can
     be no reallocation here.
 @par Complexity:
-    Calls T's destructor once for each erased element and calls T's copy 
+    Calls T's destructor once for each erased element and calls T's move 
     constructor and destructor once for each element that has to be moved. **/
 T* erase(T* first, const T* last1) {
     SimTK_ERRCHK(begin() <= first && first <= last1 && last1 <= end(),
-    "Array<T>::erase(first,last1)", "Pointers out of range or out of order.");
+    "Array_<T>::erase(first,last1)", "Pointers out of range or out of order.");
 
     const size_type nErased = size_type(last1-first);
-    SimTK_ERRCHK(isOwner() || nErased==0, "Array<T>::erase(first,last1)",
+    SimTK_ERRCHK(isOwner() || nErased==0, "Array_<T>::erase(first,last1)",
         "No elements can be erased from a non-owner array.");
 
     if (nErased) {
         destruct(first, last1); // Destruct the elements we're erasing.
-        moveElementsDown(first+nErased, nErased); // Compress followers into the gap.
+        moveElementsDown(first+nErased, nErased); //Compress followers into gap.
         setSize(size()-nErased);
     }
     return first;
@@ -2463,13 +2531,13 @@ in constant time using the non-standard extension eraseFast().
     erased element had since there can be no reallocation here.
 @pre begin() <= \a p < end()
 @par Complexity:
-    Calls T's destructor once for the erased element and calls T's copy 
+    Calls T's destructor once for the erased element and calls T's move 
     constructor and destructor once for each element that has to be moved. 
 @see eraseFast() **/
 T* erase(T* p) {
     SimTK_ERRCHK(begin() <= p && p < end(),
-        "Array<T>::erase(p)", "Pointer must point to a valid element.");
-    SimTK_ERRCHK(isOwner(), "Array<T>::erase(p)",
+        "Array_<T>::erase(p)", "Pointer must point to a valid element.");
+    SimTK_ERRCHK(isOwner(), "Array_<T>::erase(p)",
         "No elements can be erased from a non-owner array.");
 
     destruct(p);              // Destruct the element we're erasing.
@@ -2484,7 +2552,7 @@ then moves the last one in its place which changes the element order
 from what it was before (unlike the standard erase() method). This avoids
 having to compress the elements so this runs in constant time:
 the element is destructed; then if it wasn't the last element the
-copy constructor is used to copy the last element into the vacated
+move constructor is used to move the last element into the vacated
 space, and the destructor is called to clear the last element. The
 size is reduced by 1 but the capacity does not change. 
 
@@ -2496,13 +2564,13 @@ size is reduced by 1 but the capacity does not change.
     erased element had since there can be no reallocation here.
 @pre begin() <= \a p < end()
 @par Complexity:
-    Calls T's destructor once for the erased element and calls T's copy 
+    Calls T's destructor once for the erased element and calls T's move 
     constructor and destructor once for each element that has to be moved.
 @see erase() **/
 T* eraseFast(T* p) {
     SimTK_ERRCHK(begin() <= p && p < end(),
-        "Array<T>::eraseFast(p)", "Pointer must point to a valid element.");
-    SimTK_ERRCHK(isOwner(), "Array<T>::eraseFast(p)",
+        "Array_<T>::eraseFast(p)", "Pointer must point to a valid element.");
+    SimTK_ERRCHK(isOwner(), "Array_<T>::eraseFast(p)",
         "No elements can be erased from a non-owner array.");
 
     destruct(p);
@@ -2547,14 +2615,14 @@ array, moving all following elements up by \a n positions.
 @pre begin() <= \a p <= end()
 @par Complexity:
     If size() + \a n > capacity() then the array must be reallocated, resulting
-    in size() copy constructor/destructor call pairs to move the old data to 
+    in size() move constructor/destructor call pairs to move the old data to 
     the new location. Otherwise, the m=(end()-\a p) elements above the insertion 
-    point must be moved up \a n positions resulting in m copy/destruct pairs.
-    Then there are n additional copy constructor calls to construct the new 
-    elements from the given value. 
+    point must be moved up \a n positions resulting in m move/destruct pairs.
+    Then there are n copy constructor calls to construct the new elements from 
+    the given value. 
 **/
 T* insert(T* p, size_type n, const T& value) {
-    T* const gap = insertGapAt(p, n, "Array<T>::insert(p,n,value)");
+    T* const gap = insertGapAt(p, n, "Array_<T>::insert(p,n,value)");
     // Copy construct into the inserted elements and note the size change.
     fillConstruct(gap, gap+n, value);
     setSize(size()+n);
@@ -2566,9 +2634,23 @@ it to a copy of a given value and moving all following elements up one
 position. This is identical to insert(\a p,1,\a value) but slightly faster; see
 that method for full documentation. **/
 T* insert(T* p, const T& value)  {
-    T* const gap = insertGapAt(p, 1, "Array<T>::insert(p,value)");
+    T* const gap = insertGapAt(p, 1, "Array_<T>::insert(p,value)");
     // Copy construct into the inserted element and note the size change.
     copyConstruct(gap, value);
+    incrSize();
+    return gap;
+}
+
+/** Insert a new element at a given location within this array, by invoking
+T's constructor whose signature matches the supplied arguments. All following 
+elements are moved up one position. This is identical in effect to 
+`insert(p,T(Args...))` but avoids the extra copy that would be required in that
+case. **/
+template <class... Args>
+T* emplace(T* p, Args&&... args)  { // special syntax; not an rvalue reference
+    T* const gap = insertGapAt(p, 1, "Array_<T>::emplace(p,Args...)");
+    // Construct into the inserted element and note the size change.
+    new(gap) T(std::forward<Args>(args)...); // invoke the constructor
     incrSize();
     return gap;
 }
@@ -2597,11 +2679,11 @@ T(T2) that works.
 of this array.
 @par Complexity:
     If capacity() < size()+n then the array must be reallocated, resulting in 
-    size() calls to T's copy constructor and destructor (if any)to move the old
+    size() calls to T's move constructor and destructor (if any) to move the old
     data to the new location. Otherwise, the m=(end()-\a p) elements above the 
-    insertion point must be moved up n positions resulting in m copy/destruct 
-    pairs. Then there are n additional copy constructor calls to construct the 
-    new elements from the given value. **/
+    insertion point must be moved up n positions resulting in m move/destruct 
+    pairs. Then there are n T(T2) constructor calls to construct the new 
+    elements from the given value. **/
 template <class T2>
 T* insert(T* p, const T2* first, const T2* last1) {
     const char* methodName = "Array_<T>::insert(T* p, T2* first, T2* last1)";
@@ -2637,7 +2719,7 @@ T* insert(T* p, const Iter& first, const Iter& last1) {
 // existing data. We'll issue an error message if this would violate the  
 // max_size restriction (we can afford to do that even in a Release build since
 // we don't expect to grow very often). Otherwise we'll allocate some more space
-// and copy construct the existing elements into the new space, leaving a gap 
+// and move construct the existing elements into the new space, leaving a gap 
 // where indicated. Note that this method does not change the current size but
 // does change the capacity.
 //
@@ -2664,10 +2746,10 @@ T* growWithGap(T* gapPos, size_type gapSz, const char* methodName) {
     T* newGap    = newData + nBefore;
     T* newGapEnd = newGap  + gapSz; // one past the last element in the gap
 
-    // Copy elements before insertion point; destruct source as we go.
-    copyConstructThenDestructSource(newData,   newGap,        data());
-    // Copy/destruct elements at and after insertion pt; leave gapSz gap.
-    copyConstructThenDestructSource(newGapEnd, newData+size(), gapPos);
+    // Move elements before insertion point; destruct source as we go.
+    moveConstructThenDestructSource(newData,   newGap,        data());
+    // Move/destruct elements at and after insertion pt; leave gapSz gap.
+    moveConstructThenDestructSource(newGapEnd, newData+size(), gapPos);
 
     // Throw away the old data and switch to the new.
     freeN(data()); setData(newData);
@@ -2681,7 +2763,7 @@ void growAtEnd(size_type n, const char* methodName) {
     setAllocated(calcNewCapacityForGrowthBy(n, methodName));
     T* newData   = allocN(allocated());
     // Copy all the elements; destruct source as we go.
-    copyConstructThenDestructSource(newData, newData+size(), data());
+    moveConstructThenDestructSource(newData, newData+size(), data());
     // Throw away the old data and switch to the new.
     freeN(data()); setData(newData);
 }
@@ -2740,11 +2822,11 @@ T* insertGapAt(T* p, size_type n, const char* methodName) {
     } else { // need to grow
         setAllocated(calcNewCapacityForGrowthBy(n, methodName));
         T* newdata = allocN(allocated());
-        // Copy the elements before the insertion point, and destroy source.
-        copyConstructThenDestructSource(newdata, newdata+before, data());
+        // Move the elements before the insertion point, and destroy source.
+        moveConstructThenDestructSource(newdata, newdata+before, data());
         // Copy the elements at and after the insertion point, leaving a gap
         // of n elements.
-        copyConstructThenDestructSource(newdata+before+n,
+        moveConstructThenDestructSource(newdata+before+n,
                                         newdata+before+n+after,
                                         p); // i.e., pData+before
         p = newdata + before; // points into newdata now
@@ -2882,7 +2964,7 @@ T* insertIteratorDispatch(T* p, InputIterator first, InputIterator last1,
     return p-nInserted;
 }
 
-// This is the faster constructor implementation for iterator types for which
+// This is the faster insert implementation for iterator types for which
 // we can calculate the number of elements in advance. This will be optimal
 // for a random access iterator since we can count in constant time, but for
 // forward or bidirectional we'll have to advance n times to count and then
@@ -3004,8 +3086,8 @@ void assignIteratorDispatch(const ForwardIterator& first,
         // repeated assignment using T::operator=() not destruction followed
         // by copy construction.
         SimTK_ERRCHK2(n == size(), methodName,
-            "Source has %llu elements which does not match the size %llu"
-            " of the non-owner array it is being assigned into.",
+            "Source has %llu elements which does not match the size %llu "
+            "of the non-owner array it is being assigned into.",
             this->ull(n), ullSize());
 
         T* p = begin();
@@ -3075,9 +3157,16 @@ static void fillConstruct(T* b, const T* e, const T& v)
 
 // copy construct one element from a given value
 static void copyConstruct(T* p, const T& v) {new(p) T(v);}
+// move construct one element from a given value
+static void moveConstruct(T* p, T&& v) {new(p) T(std::move(v));}
+
 // copy construct range [b,e) from sequence of source values
 static void copyConstruct(T* b, const T* e, T* src)
 {   while(b!=e) new(b++) T(*src++); }
+// move construct range [b,e) from sequence of source values
+static void moveConstruct(T* b, const T* e, T* src)
+{   while(b!=e) new(b++) T(std::move(*src++)); }
+
 // Templatized copy construct will work if the source elements are
 // assignment compatible with the destination elements.
 template <class InputIterator>
@@ -3091,6 +3180,13 @@ static void copyConstruct(T* b, const T* e, InputIterator src)
 static void copyConstructThenDestructSource(T* b, const T* e, T* src)
 {   while(b!=e) {new(b++) T(*src); src++->~T();} }
 
+// Move construct range [b,e] from sequence of source values and
+// destruct the source after it is copied. It's better to alternate
+// moving and destructing than to do this in two passes since we
+// will already have touched the memory.
+static void moveConstructThenDestructSource(T* b, const T* e, T* src)
+{   while(b!=e) {new(b++) T(std::move(*src)); src++->~T();} }
+
 // We have an element at from that we would like to move into the currently-
 // unconstructed slot at to. Both from and to are expected to be pointing to
 // elements within the currently allocated space. From's slot will be left
@@ -3098,7 +3194,7 @@ static void copyConstructThenDestructSource(T* b, const T* e, T* src)
 void moveOneElement(T* to, T* from) {
     assert(data() <= to   && to   < data()+allocated());
     assert(data() <= from && from < data()+allocated());
-    copyConstruct(to, *from); 
+    moveConstruct(to, std::move(*from)); 
     destruct(from);
 }
 
@@ -3136,7 +3232,7 @@ bool isGrowthOK(S n) const
 {   return this->isSizeOK(ullCapacity() + this->ull(n)); }
 
 // The following private methods are protected methods in the ArrayView base 
-// class, so they should not need repeating here. Howevr, we explicitly 
+// class, so they should not need repeating here. However, we explicitly 
 // forward to the Base methods to avoid gcc errors. The gcc complaint
 // is due to their not depending on any template parameters; the "this->"
 // apparently fixes that problem.

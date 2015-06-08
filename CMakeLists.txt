@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
-# Simbody 
+# Simbody
 #
-# This is the master CMake file that coordinates 
+# This is the master CMake file that coordinates
 # the build of Simbody. There are four steps:
 #    (1) Get files needed for particular platform
 #    (2) Build SimTKcommon library
@@ -13,14 +13,18 @@
 cmake_minimum_required(VERSION 2.8.8)
 
 if(COMMAND cmake_policy)
-        cmake_policy(SET CMP0003 NEW)
-        cmake_policy(SET CMP0005 NEW)
+    cmake_policy(SET CMP0003 NEW)
+    cmake_policy(SET CMP0005 NEW)
+    if(NOT (${CMAKE_VERSION} VERSION_LESS 3.0))
+        # MACOSX_RPATH enabled by default; policy introduced with cmake 3.0.
+        cmake_policy(SET CMP0042 NEW)
+    endif()
 endif(COMMAND cmake_policy)
 
 PROJECT(Simbody)
 
 # At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
-# or appropriate ProgramFiles directory on Windows, for example 
+# or appropriate ProgramFiles directory on Windows, for example
 # C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
 # language equivalent.
 
@@ -44,17 +48,17 @@ SET(SIMBODY_COPYRIGHT_YEARS "2005-15")
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-# Report the version number to the CMake UI. Don't include the 
+# Report the version number to the CMake UI. Don't include the
 # build version if it is zero.
 SET(PATCH_VERSION_STRING)
 IF(SIMBODY_PATCH_VERSION)
     SET(PATCH_VERSION_STRING ".${SIMBODY_PATCH_VERSION}")
 ENDIF()
 
-SET(SIMBODY_VERSION 
-    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${PATCH_VERSION_STRING}" 
-    CACHE STRING 
-    "This is the version that will be built (can't be changed in GUI)." 
+SET(SIMBODY_VERSION
+    "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}${PATCH_VERSION_STRING}"
+    CACHE STRING
+    "This is the version that will be built (can't be changed in GUI)."
     FORCE)
 
 SET(SIMBODY_SONAME_VERSION
@@ -68,7 +72,7 @@ SET(SIMBODY_SONAME_VERSION
 SET(VN "_${SIMBODY_VERSION}")
 
 SET(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
-    CACHE PATH 
+    CACHE PATH
     "The Simbody build (not the install) puts all the libraries and executables together here (with /Release, etc. appended on some platforms).")
 
 # Make everything go in the same binary directory. (These are CMake-defined
@@ -76,7 +80,7 @@ SET(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 SET(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 SET(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
-# Static libraries, tests, and examples won't be built unless this 
+# Static libraries, tests, and examples won't be built unless this
 # is set.
 SET(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
 "Build '_static' versions of libraries in addition to dynamic libraries?")
@@ -155,7 +159,7 @@ SET(BUILD_EXAMPLES ON CACHE BOOL
     BUILD_TESTS_AND_EXAMPLES_SHARED must be ON.")
 
 # Set whether to build the Visualizer code.
-SET(BUILD_VISUALIZER ON CACHE BOOL 
+SET(BUILD_VISUALIZER ON CACHE BOOL
     "Control building of the visualizer component")
 
 # Turning this off reduces the build time (and space) substantially,
@@ -220,14 +224,14 @@ ENDIF()
 
 
 IF(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING 
-        "Debug, RelWithDebInfo (recommended), or Release build" 
+    SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+        "Debug, RelWithDebInfo (recommended), or Release build"
         FORCE)
 ENDIF()
 
 
-## Choose the maximum level of x86 instruction set that the compiler is 
-## allowed to use. 
+## Choose the maximum level of x86 instruction set that the compiler is
+## allowed to use.
 ## Was using sse2 but changed to let the compilers choose. Most will
 ## probably use sse2 or later by default.
 ## On 64 bit MSVC 2013, the default is sse2 and the argument
@@ -240,7 +244,7 @@ endif()
 
 ## This can be set to a different value by the person running CMake.
 SET(BUILD_INST_SET ""
-    CACHE STRING 
+    CACHE STRING
     "CPU instruction level compiler is permitted to use (default: let compiler decide).")
 MARK_AS_ADVANCED( BUILD_INST_SET )
 
@@ -250,8 +254,8 @@ else()
     set(inst_set_to_use ${default_build_inst_set})
 endif()
 
-## When building in any of the Release modes, tell gcc/clang to use 
-## not-quite most agressive optimization.  Here we 
+## When building in any of the Release modes, tell gcc/clang to use
+## not-quite most agressive optimization.  Here we
 ## are specifying *all* of the Release flags, overriding CMake's defaults.
 ## Watch out for optimizer bugs in particular gcc versions!
 
@@ -268,7 +272,9 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
             SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
         ELSE()
             SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+            IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+            ENDIF()
         ENDIF()
     ELSE() # not APPLE
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -287,7 +293,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
 
     # Unrolling fixed-count loops was a useful optimization for Simmatrix
     # in earlier gcc versions.
-    # Doesn't have a big effect for current compiler crop and may be 
+    # Doesn't have a big effect for current compiler crop and may be
     # pushing our luck with optimizer bugs. So let the compilers decide
     # how to handle loops instead.
     ##SET(GCC_OPT_ENABLE "-funroll-loops")
@@ -298,24 +304,24 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # We know Gcc 4.4.3 on Ubuntu 10 is buggy.
     IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
       if (GCC_VERSION VERSION_EQUAL 4.4)
-        SET(GCC_OPT_DISABLE 
+        SET(GCC_OPT_DISABLE
         "-fno-strict-aliasing -fno-tree-vrp -fno-guess-branch-probability")
       endif()
     ENDIF()
 
     # C++
     SET(BUILD_CXX_FLAGS_DEBUG          "-g ${GCC_INST_SET}")
-    SET(BUILD_CXX_FLAGS_RELEASE        
+    SET(BUILD_CXX_FLAGS_RELEASE
       "-DNDEBUG -O2 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
-    SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
+    SET(BUILD_CXX_FLAGS_RELWITHDEBINFO
     "-DNDEBUG -O2 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_CXX_FLAGS_MINSIZEREL     "-DNDEBUG -Os ${GCC_INST_SET}")
 
     # C
     SET(BUILD_C_FLAGS_DEBUG            "-g ${GCC_INST_SET}")
-    SET(BUILD_C_FLAGS_RELEASE          
+    SET(BUILD_C_FLAGS_RELEASE
       "-DNDEBUG -O2 ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
-    SET(BUILD_C_FLAGS_RELWITHDEBINFO   
+    SET(BUILD_C_FLAGS_RELWITHDEBINFO
     "-DNDEBUG -O2 -g ${GCC_OPT_ENABLE} ${GCC_OPT_DISABLE} ${GCC_INST_SET}")
     SET(BUILD_C_FLAGS_MINSIZEREL       "-DNDEBUG -Os ${GCC_INST_SET}")
 
@@ -332,7 +338,7 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # C
     SET(CMAKE_C_FLAGS_DEBUG ${BUILD_C_FLAGS_DEBUG}
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
-    SET(CMAKE_C_FLAGS_RELEASE ${BUILD_C_FLAGS_RELEASE}         
+    SET(CMAKE_C_FLAGS_RELEASE ${BUILD_C_FLAGS_RELEASE}
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
     SET(CMAKE_C_FLAGS_RELWITHDEBINFO ${BUILD_C_FLAGS_RELWITHDEBINFO}
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
@@ -341,8 +347,8 @@ IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
 
 ENDIF()
 
-## When building in any of the Release modes, tell VC++ cl compiler to use 
-## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with 
+## When building in any of the Release modes, tell VC++ cl compiler to use
+## intrinsics (i.e. sqrt instruction rather than sqrt subroutine) with
 ## flag /Oi.
 ## Caution: can't use CMAKE_CXX_COMPILER_ID MATCHES MSVC here because
 ## "MSVC" is a predefined CMAKE variable and will get expanded to 1 or 0
@@ -360,23 +366,23 @@ IF(MSVC)
     set(mxcpu ${BUILD_LIMIT_PARALLEL_COMPILES}) # abbreviation
 
     ## C++
-    SET(BUILD_CXX_FLAGS_DEBUG        
+    SET(BUILD_CXX_FLAGS_DEBUG
     "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
-    SET(BUILD_CXX_FLAGS_RELEASE        
+    SET(BUILD_CXX_FLAGS_RELEASE
     "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
-    SET(BUILD_CXX_FLAGS_RELWITHDEBINFO 
+    SET(BUILD_CXX_FLAGS_RELWITHDEBINFO
     "/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
-    SET(BUILD_CXX_FLAGS_MINSIZEREL 
+    SET(BUILD_CXX_FLAGS_MINSIZEREL
     "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C
-    SET(BUILD_C_FLAGS_DEBUG        
+    SET(BUILD_C_FLAGS_DEBUG
     "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
-    SET(BUILD_C_FLAGS_RELEASE        
+    SET(BUILD_C_FLAGS_RELEASE
     "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
-    SET(BUILD_C_FLAGS_RELWITHDEBINFO 
+    SET(BUILD_C_FLAGS_RELWITHDEBINFO
     "/D NDEBUG /MD  /O2 /Ob2 /Oi /Zi /GS- ${CL_INST_SET}")
-    SET(BUILD_C_FLAGS_MINSIZEREL 
+    SET(BUILD_C_FLAGS_MINSIZEREL
     "/D NDEBUG /MD  /O1 /Ob1 /Oi /GS- ${CL_INST_SET}")
 
     ## C++
@@ -496,7 +502,7 @@ IF (BUILD_TESTING)
 
     # Make a RUN_TESTS_PARALLEL target (thanks, Kevin!)
     # Specify number of cores to run for testing
-    SET(TESTING_PROCESSOR_COUNT 4 CACHE STRING 
+    SET(TESTING_PROCESSOR_COUNT 4 CACHE STRING
         "Number of CPUs to be used by the RUN_TESTS_PARALLEL target.")
     MARK_AS_ADVANCED(TESTING_PROCESSOR_COUNT)
     SET (cmd ${CMAKE_CTEST_COMMAND} -j${TESTING_PROCESSOR_COUNT})
@@ -523,17 +529,19 @@ LINK_DIRECTORIES(${BUILD_BINARY_DIR})
 # Also specify where include files are installed.
 IF(WIN32)
   # Install visualizer to bin, since it needs to be co-located with dll's
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_BINDIR})
+  SET(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
   # Install include files into base include folder since it's a sandbox
   SET(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 ELSE()
   # Visualizer is not intended to be a user executable. Proper place is
   # inside the lib directory
-  SET(SIMBODY_VISUALIZER_INSTALL_DIR ${CMAKE_INSTALL_FULL_LIBEXECDIR}/simbody)
+  SET(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
   # Install include files in simbody subfolder to avoid polluting the
   # global build folder
   SET(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
 ENDIF()
+SET(SIMBODY_VISUALIZER_INSTALL_DIR
+    ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
 
 # Each of these returns a list of API include directories for
 # use by the later builds.
@@ -621,7 +629,7 @@ IF (WIN32)
     ELSE()
     SET(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
     ENDIF()
-ELSEIF (APPLE)   
+ELSEIF (APPLE)
     SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -ldl")
 ELSE()
     SET(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -lrt -ldl -lm")
@@ -629,5 +637,5 @@ ENDIF()
 
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc 
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig/)

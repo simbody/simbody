@@ -369,6 +369,7 @@ Michael Sherman    |@sherm1       |Lead developer; multibody dynamics
 Peter Eastman      |@peastman     |Much early Simbody development; visualizer
 Chris Dembia       |@chrisdembia  |Build, task space control, CMA optimizer, bug fixes & documentation
 Thomas Uchida      |@tkuchida     |Rigid impact theory & code; documentation
+Carmichael Ong     |@carmichaelong|Pathname deconstruction with specified working directory
 Ian Stavness       |@stavness     |Computational geometry
 Andreas Scholz     |@AndreasScholz|Computational geometry
 José Rivero        |@j-rivero     |Build, especially for Debian

@@ -3,7 +3,16 @@ Simbody Changelog and Release Notes
 
 This is not a comprehensive list of changes but rather a hand-curated collection of the more notable ones. For a comprehensive history, see the [Simbody GitHub repo](https://github.com/simbody/simbody). You can use the release dates below to find all the PRs and issues that were included in a particular release. 
 
-**Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+
+
+3.6 (in development)
+--------------------
+* Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
+* Make doxygen run silently so errors will be easier to see.
+* Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
+of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
+* (There are more that haven't been added yet)
 
 
 3.5.1 (31 Dec 2014)
