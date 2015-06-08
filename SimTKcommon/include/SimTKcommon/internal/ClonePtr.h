@@ -60,7 +60,7 @@ public:
     object the owner of the copy. Ownership of the original object is not
     affected. If the supplied pointer is null, the resulting %ClonePtr
     object is empty. **/
-    explicit ClonePtr(const T* obj) : p(obj?obj->clone():0) { }
+    explicit ClonePtr(const T* obj) : p(cloneOrNull(obj)) { }
     /** Given a read-only reference to an object, create a new heap-allocated 
     copy of that object via its clone() method and make this %ClonePtr
     object the owner of the copy. Ownership of the original object is not
@@ -69,14 +69,14 @@ public:
     /** Copy constructor is deep; the new %ClonePtr object contains a new
     copy of the object in the source, created via the source object's clone()
     method. If the source container is empty this one will be empty also. **/
-    ClonePtr(const ClonePtr& c) : p(c.p?c.p->clone():0) { }
+    ClonePtr(const ClonePtr& c) : p(cloneOrNull(c.p)) { }
     /** Copy assignment replaces the currently-held object by a heap-allocated
     copy of the object held in the source container. The copy is created using 
     the source object's clone() method. The currently-held object is deleted. 
     If the source container is empty this one will be empty after the 
     assignment. **/
     ClonePtr& operator=(const ClonePtr& c) 
-    {   reset(c.p?c.p->clone():0); return *this; }
+    {   reset(cloneOrNull(c.p)); return *this; }
     /** This form of assignment replaces the currently-held object by a 
     heap-allocated copy of the source object. The copy is created using the 
     source object's clone() method. The currently-held object is deleted. **/    
@@ -207,6 +207,12 @@ private:
     // Warning: ClonePtr must be exactly the same size as type T*. That way
     // one can reinterpret_cast a T* to a ClonePtr<T> when needed.
     T*    p;  
+
+    // If src is non-null, clone it; otherwise return null.
+    static T* cloneOrNull(const T* src) {
+        return src ? src->clone() : nullptr;
+    }
+
 };    
     
 } // namespace SimTK
