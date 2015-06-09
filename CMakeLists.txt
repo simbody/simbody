@@ -28,16 +28,16 @@ PROJECT(Simbody)
 # C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
 # language equivalent.
 
-# Include GNUInstallDirs to get canonical paths
-include(GNUInstallDirs)
-
 IF(WIN32)
-  set (CMAKE_INSTALL_DOCDIR doc)
+  set (CMAKE_INSTALL_DOCDIR doc CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
 ELSE()
   # Redefine DOCDIR to use the project name in lowercase to avoid
   # problems with some platforms: NTFS on Win, XFS or JFS variants
-  set (CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATAROOTDIR}/doc/simbody)
+  set (CMAKE_INSTALL_DOCDIR share/doc/simbody CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
 ENDIF()
+
+# Include GNUInstallDirs to get canonical paths
+include(GNUInstallDirs)
 
 SET(SIMBODY_MAJOR_VERSION 3)
 SET(SIMBODY_MINOR_VERSION 6)
