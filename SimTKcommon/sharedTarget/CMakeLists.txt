@@ -18,7 +18,7 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
 
     # install library; on Windows .dll's go in bin directory
 
-    INSTALL(TARGETS ${SHARED_TARGET}
+    INSTALL(TARGETS ${SHARED_TARGET} EXPORT SimbodyTargets
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
                     GROUP_READ GROUP_WRITE GROUP_EXECUTE 
                     WORLD_READ WORLD_EXECUTE
@@ -42,7 +42,7 @@ IF(BUILD_VERSIONED_LIBRARIES)
 
     # install library; on Windows .dll's go in bin directory
 
-    INSTALL(TARGETS ${SHARED_TARGET_VN}
+    INSTALL(TARGETS ${SHARED_TARGET_VN} EXPORT SimbodyTargets
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
                     GROUP_READ GROUP_WRITE GROUP_EXECUTE 
                     WORLD_READ WORLD_EXECUTE

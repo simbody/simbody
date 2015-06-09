@@ -581,7 +581,7 @@ set(PKG_LIBRARIES
 if (WIN32)
   set(SIMBODY_CMAKE_DIR cmake)
 elseif (UNIX)
-  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/simbody/)
+  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/simbody/)
 endif ()
 
 # Configure SimbodyConfig.cmake in a way that allows the installation to be
@@ -589,7 +589,7 @@ endif ()
 INCLUDE(CMakePackageConfigHelpers)
 CONFIGURE_PACKAGE_CONFIG_FILE(
     ${CMAKE_SOURCE_DIR}/cmake/SimbodyConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
     INSTALL_DESTINATION "${SIMBODY_CMAKE_DIR}"
     PATH_VARS # Variables to edit in the SimbodyConfig.cmake.in.
         CMAKE_INSTALL_PREFIX
@@ -598,22 +598,24 @@ CONFIGURE_PACKAGE_CONFIG_FILE(
         SIMBODY_VISUALIZER_INSTALL_DIR
         SIMBODY_INSTALL_DOXYGENDIR
     )
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfig.cmake
-    DESTINATION ${SIMBODY_CMAKE_DIR})
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
+    DESTINATION ${SIMBODY_CMAKE_DIR}
+    RENAME SimbodyConfig.cmake)
 
 # Create a file that allows clients to Simbody to ensure they have the version
 # of Simbody they want.
-# Requires CMake 2.8.6.
-# Note: this is actually deprecated in the latest CMake. Eventually,
-# we are to use WRITE_BASIC_PACKAGE_VERSION_FILE instead.
-# Writes a ConfigVersion file for us.
-WRITE_BASIC_CONFIG_VERSION_FILE(
+# Requires CMake 2.8.8.
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
     VERSION "${SIMBODY_VERSION}"
     COMPATIBILITY SameMajorVersion)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
-    DESTINATION ${SIMBODY_CMAKE_DIR})
 
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
+        DESTINATION ${SIMBODY_CMAKE_DIR})
+
+install(EXPORT SimbodyTargets DESTINATION
+  "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
 
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
@@ -636,4 +638,4 @@ ENDIF()
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc @ONLY)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/pkgconfig/simbody.pc
-    DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/pkgconfig/)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig/)
