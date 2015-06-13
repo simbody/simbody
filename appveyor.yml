@@ -13,13 +13,9 @@ shallow_clone: true
 
 platform: x64
 
-matrix:
-  - environment:
-      COMPILER: "Visual Studio 12 2013 Win64"
-    os: Windows Server 2012 R2
-  - environment:
-      COMPILER: "Visual Studio 14 2015 Win64"
-    os: Visual Studio 2015 CTP
+os:
+  - Windows Server 2012
+  - Visual Studio 2015 CTP 6
 
 build_script:
   # Must create separate build dir, otherwise can't read test files
@@ -27,9 +23,9 @@ build_script:
   - mkdir build
   - cd build
   # Figure out which compiler to use.
-  - IF %
-  - echo "Using compiler %COMPILER%"
-  - cmake .. -G"%COMPILER%" -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX=C:\simbody
+  # http://stackoverflow.com/questions/11937087/get-operating-system-without-using-wmi
+  - cmd: (get-itemproperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -Name ProductName).ProductName
+  - cmake .. -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX=C:\simbody
   # See http://msdn.microsoft.com/en-us/library/ms164311.aspx for
   # command-line options to MSBuild.
   - cmake --build . --target ALL_BUILD --config Release -- /maxcpucount:4 /verbosity:quiet
