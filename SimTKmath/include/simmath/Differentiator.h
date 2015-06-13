@@ -176,8 +176,8 @@ protected:
 
 private:
     // suppress copy constructor and copy assignment
-    Function(const Function&);
-    Function& operator=(const Function&);
+    Function(const Function&) = delete;
+    Function& operator=(const Function&) = delete;
 
 friend class Differentiator;
 };
