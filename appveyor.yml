@@ -13,20 +13,26 @@ shallow_clone: true
 
 platform: x64
 
-init:
-  # Put MSBuild on the path.
-  - SET PATH=C:\Program Files (x86)\MSBuild\12.0\bin\;%PATH%
+matrix:
+  - environment:
+      COMPILER: "Visual Studio 12 2013 Win64"
+    os: Windows Server 2012 R2
+  - environment:
+      COMPILER: "Visual Studio 14 2015 Win64"
+    os: Visual Studio 2015 CTP
 
 build_script:
   # Must create separate build dir, otherwise can't read test files
   # for some reason.
   - mkdir build
   - cd build
-  # Treat all warnings as errors.
-  - cmake .. -G"Visual Studio 12 Win64" -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX=C:\simbody
+  # Figure out which compiler to use.
+  - IF %
+  - echo "Using compiler %COMPILER%"
+  - cmake .. -G"%COMPILER%" -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX=C:\simbody
   # See http://msdn.microsoft.com/en-us/library/ms164311.aspx for
   # command-line options to MSBuild.
-  - MSBuild Simbody.sln /target:ALL_BUILD /p:Configuration=Release /maxcpucount:4 /verbosity:quiet
+  - cmake --build . --target ALL_BUILD --config Release -- /maxcpucount:4 /verbosity:quiet
 
 test_script:
   - ctest --parallel 4 --build-config Release --output-on-failure
