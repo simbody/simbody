@@ -1062,7 +1062,7 @@ public:
     /// The time stamp will be taken from the supplied State.
     void setValue(State& s, const T& value) const;
 
-    /// Force this Measure to sample its input at the current time.
+    /// %Force this Measure to sample its input at the current time.
     void sample(State& s) const;
 
     const Measure_<T>& getSource() const;
