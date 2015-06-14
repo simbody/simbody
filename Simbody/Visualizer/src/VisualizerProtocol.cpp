@@ -476,8 +476,8 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
     
     meshes[impl] = (unsigned short)index;    // insert new mesh
     WRITE(outPipe, &DefineMesh, 1);
-    unsigned short numVertices = (unsigned short)vertices.size()/3;
-    unsigned short numFaces = (unsigned short)faces.size()/3;
+    unsigned short numVertices = (unsigned short)(vertices.size()/3);
+    unsigned short numFaces = (unsigned short)(faces.size()/3);
     WRITE(outPipe, &numVertices, sizeof(short));
     WRITE(outPipe, &numFaces, sizeof(short));
     WRITE(outPipe, &vertices[0], (unsigned)(vertices.size()*sizeof(float)));
