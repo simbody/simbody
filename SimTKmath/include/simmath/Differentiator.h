@@ -176,8 +176,16 @@ protected:
 
 private:
     // suppress copy constructor and copy assignment
+
+    // This is a workaround for a Visual Studio 2015 bug where
+    // the old-style C++03 deletion method didn't work.
+#if defined(_MSC_VER) && (_MSC_VER >= 1900)
+    Function(const Function&) = delete;
+    Function& operator=(const Function&) = delete;
+#else
     Function(const Function&);
     Function& operator=(const Function&);
+#endif
 
 friend class Differentiator;
 };
