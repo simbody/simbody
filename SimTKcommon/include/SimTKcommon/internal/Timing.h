@@ -58,17 +58,6 @@ librt realtime library (-lrt). **/
 #include <ctime>
 
 #if defined(_MSC_VER)
-    /* On Windows, the timespec struct is not defined. However, note that the 
-    timespec struct is also defined in the pthread.h header on Windows, so the 
-    guard symbols must match here to avoid a duplicate declaration. */
-    #ifndef HAVE_STRUCT_TIMESPEC
-    #define HAVE_STRUCT_TIMESPEC 1
-    struct timespec {
-            long tv_sec;  // TODO: this should be time_t but must fix in pthreads too
-            long tv_nsec;
-    };
-    #endif /* HAVE_STRUCT_TIMESPEC */
-
     /* Posix nanosleep() sleeps the indicated number of nanoseconds and returns
     0, or if it is interrupted early it returns how much time was left in 
     rem and returns EINTR. Ours is not interruptable so will always succeed and
