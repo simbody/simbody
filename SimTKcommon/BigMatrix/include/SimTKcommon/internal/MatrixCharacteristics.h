@@ -505,7 +505,8 @@ public:
 
     /// This is an implicit conversion from the Condition enum to a
     /// MatrixCondition object.
-    MatrixCondition(Condition cond, Diagonal diag=UnknownDiagonal) : condition(cond) {}
+    MatrixCondition(Condition cond, Diagonal diag=UnknownDiagonal) 
+    :   condition(cond), diagonal(diag) {}
 
     /// Restore to default-constructed state of "none".
     MatrixCondition& setToNone() {condition=UnknownCondition; diagonal=UnknownDiagonal; return *this;}
