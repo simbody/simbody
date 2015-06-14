@@ -9,19 +9,20 @@
 # Speeding up a Visual Studio build.
 # http://blogs.msdn.com/b/vcblog/archive/2011/01/05/damn-my-vc-project-is-building-slower-in-vs2010-what-do-i-do-now-a-step-by-step-guide.aspx
 
+version: '{build}'
+
 shallow_clone: true
 
 platform: x64
 
 os:
   - Windows Server 2012
-  - Visual Studio 2015 CTP 6
-
-init:
-  - git clone -q https://github.com/appveyor/ci.git
-  - .\ci\scripts\enable-rdp.ps1
+  - Visual Studio 2015 RC
 
 build_script:
+  - git clone -q https://github.com/appveyor/ci.git
+  - ps: .\ci\scripts\enable-rdp.ps1
+  - echo "HELLO"
   # Must create separate build dir, otherwise can't read test files
   # for some reason.
   - mkdir build
