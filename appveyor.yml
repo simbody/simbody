@@ -16,7 +16,7 @@ shallow_clone: true
 platform: x64
 
 os:
-  - Windows Server 2012
+  #- Windows Server 2012
   - Visual Studio 2015 RC
 
 build_script:
