@@ -476,14 +476,14 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
     
     meshes[impl] = (unsigned short)index;    // insert new mesh
     WRITE(outPipe, &DefineMesh, 1);
-    unsigned short numVertices = (unsigned)vertices.size()/3;
-    unsigned short numFaces = (unsigned)faces.size()/3;
+    unsigned short numVertices = (unsigned short)vertices.size()/3;
+    unsigned short numFaces = (unsigned short)faces.size()/3;
     WRITE(outPipe, &numVertices, sizeof(short));
     WRITE(outPipe, &numFaces, sizeof(short));
     WRITE(outPipe, &vertices[0], (unsigned)(vertices.size()*sizeof(float)));
     WRITE(outPipe, &faces[0], (unsigned)(faces.size()*sizeof(short)));
 
-    drawMesh(X_GM, scale, color, (short) representation, index, 0);
+    drawMesh(X_GM, scale, color, (short) representation, (unsigned short)index, 0);
 }
 
 void VisualizerProtocol::
@@ -591,11 +591,11 @@ void VisualizerProtocol::
 addMenu(const String& title, int id, const Array_<pair<String, int> >& items) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineMenu, 1);
-    short titleLength = title.size();
+    short titleLength = (short)title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     WRITE(outPipe, &id, sizeof(int));
-    short numItems = items.size();
+    short numItems = (short)items.size();
     WRITE(outPipe, &numItems, sizeof(short));
     for (int i = 0; i < numItems; i++) {
         int buffer[] = {items[i].second, items[i].first.size()};
@@ -609,7 +609,7 @@ void VisualizerProtocol::
 addSlider(const String& title, int id, Real minVal, Real maxVal, Real value) {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &DefineSlider, 1);
-    short titleLength = title.size();
+    short titleLength = (short)title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     WRITE(outPipe, &id, sizeof(int));
@@ -644,7 +644,7 @@ void VisualizerProtocol::setSliderRange(int id, Real newMin, Real newMax) const 
 void VisualizerProtocol::setWindowTitle(const String& title) const {
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetWindowTitle, 1);
-    short titleLength = title.size();
+    short titleLength = (short)title.size();
     WRITE(outPipe, &titleLength, sizeof(short));
     WRITE(outPipe, title.c_str(), titleLength);
     pthread_mutex_unlock(&sceneLock);
