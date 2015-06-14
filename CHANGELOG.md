@@ -5,6 +5,11 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 **Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
+3.5.3 (15 June 2015)
+-------------------
+* Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
+* Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
+
 
 3.5.2 (15 May 2015)
 -------------------
