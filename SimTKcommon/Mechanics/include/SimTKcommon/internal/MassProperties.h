@@ -244,7 +244,7 @@ Inertia_(const RealP& xx, const RealP& yy, const RealP& zz,
 
 /// Construct an Inertia from a symmetric 3x3 matrix. The diagonals must
 /// be nonnegative and satisfy the triangle inequality.
-explicit Inertia_(const SymMat33P& I) : I_OF_F(I) 
+explicit Inertia_(const SymMat33P& inertia) : I_OF_F(inertia)
 {   errChk("Inertia::Inertia(SymMat33)"); }
 
 /// Construct an Inertia matrix from a 3x3 symmetric matrix. In Debug mode
@@ -289,15 +289,15 @@ Inertia_& setInertia(const RealP& xx, const RealP& yy, const RealP& zz,
 
 /// Add in another inertia matrix. Frames and reference point must be the same but
 /// we can't check. (6 flops)
-Inertia_& operator+=(const Inertia_& I) 
-{   I_OF_F += I.I_OF_F; 
+Inertia_& operator+=(const Inertia_& inertia) 
+{   I_OF_F += inertia.I_OF_F; 
     errChk("Inertia::operator+=()");
     return *this; }
 
 /// Subtract off another inertia matrix. Frames and reference point must 
 /// be the same but we can't check. (6 flops)
-Inertia_& operator-=(const Inertia_& I) 
-{   I_OF_F -= I.I_OF_F; 
+Inertia_& operator-=(const Inertia_& inertia) 
+{   I_OF_F -= inertia.I_OF_F; 
     errChk("Inertia::operator-=()");
     return *this; }
 
@@ -719,7 +719,7 @@ explicit UnitInertia_(const Mat33P& m) : InertiaP(m) {}
 /// is no way to check whether this is really a unit inertia -- \e any
 /// inertia matrix may be interpreted as a unit inertia for some shape. So
 /// be sure you know what you're doing before you use this constructor!
-explicit UnitInertia_(const Inertia_<P>& I) : InertiaP(I) {}
+explicit UnitInertia_(const Inertia_<P>& inertia) : InertiaP(inertia) {}
 
 /// Set a UnitInertia matrix to have only principal moments (that is, it
 /// will be diagonal). Returns a reference to "this" like an assignment 
@@ -841,8 +841,8 @@ const Inertia_<P>& asUnitInertia() const
 
 /// Set from a unit inertia matrix. Note that we can't check; every Inertia
 /// matrix can be interpreted as a unit inertia for some shape.
-UnitInertia_& setFromUnitInertia(const Inertia_<P>& I)
-{   Inertia_<P>::operator=(I);
+UnitInertia_& setFromUnitInertia(const Inertia_<P>& inertia)
+{   Inertia_<P>::operator=(inertia);
     return *this; }
 
 /// %Test some conditions that must hold for a valid UnitInertia matrix.
