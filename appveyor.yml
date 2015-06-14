@@ -15,6 +15,9 @@ shallow_clone: true
 
 platform: x64
 
+nuget:
+  account_feed: true
+
 os:
   - Windows Server 2012
   - Visual Studio 2015 RC
@@ -25,6 +28,7 @@ init:
   - echo "Will be compiling with VS%VSVER%."
 
 build_script:
+  - nuget sources
   - nuget install simbody-VS2013-x64 -Version 3.5 -ExcludeVersion -OutputDirectory C:\
   - 
   ## To enter the virtual machine using remote desktop:
