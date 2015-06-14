@@ -168,6 +168,21 @@ or any other Index type to an argument expecting a certain Index type. **/
     #pragma warning(disable:4251) /*no DLL interface for type of member of exported class*/
     #pragma warning(disable:4275) /*no DLL interface for base class of exported class*/
     #pragma warning(disable:4345) /*warning about PODs being default-initialized*/
+
+    /* Until VS2015 struct timespec was missing from <ctime> so is faked here 
+    if needed. However, note that it is also defined in the pthread.h header on 
+    Windows, so the guard symbol must match here to avoid a duplicate declaration. 
+    TODO: there is a potential problem here since VS2015's struct timespec 
+    doesn't appear to match pthread's definition. */
+    #ifndef HAVE_STRUCT_TIMESPEC
+    #define HAVE_STRUCT_TIMESPEC 1
+        #if _MSC_VER < 1900
+        struct timespec {
+            long tv_sec;  // TODO: this should be time_t but must fix in pthreads too
+            long tv_nsec;
+        };
+        #endif
+    #endif /* HAVE_STRUCT_TIMESPEC */
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
