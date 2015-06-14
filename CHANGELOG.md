@@ -15,6 +15,22 @@ of the current working directory (thanks to Carmichael Ong). See [Issue #264](ht
 * (There are more that haven't been added yet)
 
 
+3.5.3 (15 June 2015)
+-------------------
+* Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
+* Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
+
+
+3.5.2 (15 May 2015)
+-------------------
+Same as 3.5.1 except on 64 bit Windows which has a patched version of Lapack that
+addresses an error handling problem that caused trouble for some OpenSim users.
+This is a patch to Lapack 3.4.2 (64 bit) to fix the bug discussed in [Issue #177](https://github.com/simbody/simbody/issues/177) and [PR #342](https://github.com/simbody/simbody/pull/342).
+There were two functions where convergence failures incorrectly caused an abort (XERBLA in Lapack-speak). See discussion on Lapack forum:
+http://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=13&t=4586
+This Lapack DLL is binary compatible with the previous one, same functions and ordinals.
+
+
 3.5.1 (31 Dec 2014)
 -------------------
 This patch release fixed an installation problem but is otherwise identical to 3.5.
