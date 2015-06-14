@@ -29,7 +29,7 @@ init:
 
 build_script:
   - nuget sources
-  - nuget install simbody-VS2013-x64 -Version 3.5 -ExcludeVersion -OutputDirectory C:\
+  #- nuget install simbody-VS2013-x64 -Version 3.5 -ExcludeVersion -OutputDirectory C:\
   - 
   ## To enter the virtual machine using remote desktop:
   - git clone -q https://github.com/appveyor/ci.git
