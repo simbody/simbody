@@ -17,6 +17,9 @@ os:
   - Windows Server 2012
   - Visual Studio 2015 CTP 6
 
+init:
+  - git clone -q https://github.com/appveyor.ci.git .\ci\scripts\enable-rdp.ps1
+
 build_script:
   # Must create separate build dir, otherwise can't read test files
   # for some reason.
