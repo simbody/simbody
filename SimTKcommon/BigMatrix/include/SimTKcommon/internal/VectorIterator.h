@@ -62,16 +62,8 @@ public:
     VectorIterator(VECTOR_CLASS& vector, ptrdiff_t index) 
     :   vectorp(&vector), index(index) {}
 
-    /** No default constructor. **/
-    VectorIterator() = delete;
-
-    /** Copy constructor creates a new iterator referring to the same element
-    of the same vector as the source iterator. **/
-    VectorIterator(const VectorIterator& source) = default;
-
-    /** Copy assignment makes this iterator refer to the same element of the
-    same vector as the source iterator. **/
-    VectorIterator& operator=(const VectorIterator& source) = default;
+    // Default copy constructor, copy assignment, destructor.
+    // No default constructor.
 
     ELT& operator*() {
         assert (index >= 0 && index < vectorp->size());
