@@ -25,60 +25,60 @@ set(SUBDIR_EXAMPLES
 # This depends on SimbodyConfig.cmake being located somewhere predictable
 # on your machine. If you have installed it somewhere that CMake won't be
 # able to guess, you'll need to tell find_package where to look.
-FIND_PACKAGE(Simbody REQUIRED)
+find_package(Simbody REQUIRED)
 
-INCLUDE_DIRECTORIES(${Simbody_INCLUDE_DIR})
-LINK_DIRECTORIES(${Simbody_LIB_DIR})
+include_directories(${Simbody_INCLUDE_DIR})
+link_directories(${Simbody_LIB_DIR})
 
 # Don't leave the build type blank on single-configuration generators;
 # make sure Release examples get built by default.
-IF(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
-    SET(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build"
+if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Debug or Release build"
         FORCE)
-ENDIF()
+endif()
 
 # Default to building with the C++11 ABI; user must change this if
 # the installed libraries were build with C++03.
-IF(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 
     # If using either of these compilers, provide the option of
     # compiling using the c++11 standard.
-    OPTION(SIMBODY_STANDARD_11
+    option(SIMBODY_STANDARD_11
         "Compile using the C++11 standard, if using GCC or Clang." ON)
 
-    IF(${SIMBODY_STANDARD_11})
+    if(${SIMBODY_STANDARD_11})
         # Using C++11 on OSX requires using libc++ instead of libstd++.
         # libc++ is an implementation of the C++ standard library for OSX.
-        IF(APPLE)
-            IF(XCODE)
-                SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
-                SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-            ELSE()
-                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-                IF(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-                    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-                ENDIF()
-            ENDIF()
-        ELSE() # not APPLE
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-        ENDIF()
-    ENDIF()
-ENDIF()
+        if(APPLE)
+            if(XCODE)
+                set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
+                set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+            else()
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+                if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+                endif()
+            endif()
+        else() # not APPLE
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+        endif()
+    endif()
+endif()
 
 # CMAKE_CURRENT_SOURCE_DIR is an absolute path.
-ADD_DEFINITIONS(
+add_definitions(
     "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${CMAKE_CURRENT_SOURCE_DIR}/\"")
 
 # Examples can depend on any Simbody includes, and may depend on headers
 # in the examples/shared directory, in which case they are
 # included as #include "shared/SharedHeaderFile.h".
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # First build examples that have their own subdirectories and CMakeLists
 # files.
 foreach(EX_NAME ${SUBDIR_EXAMPLES})
-    ADD_SUBDIRECTORY(${EX_NAME})
+    add_subdirectory(${EX_NAME})
 endforeach()
 
 # Next pick up stragglers that consist solely of a .cpp file in the top
@@ -86,23 +86,23 @@ endforeach()
 # The example name is the source file name with ".cpp" removed, and
 # the generated executable will have that name.
 
-FILE(GLOB EXAMPLES "*.cpp")
-FOREACH(EX_PROG ${EXAMPLES})
-    GET_FILENAME_COMPONENT(EX_SRC  ${EX_PROG} NAME)
-    GET_FILENAME_COMPONENT(EX_NAME ${EX_PROG} NAME_WE)
+file(GLOB EXAMPLES "*.cpp")
+foreach(EX_PROG ${EXAMPLES})
+    get_filename_component(EX_SRC  ${EX_PROG} NAME)
+    get_filename_component(EX_NAME ${EX_PROG} NAME_WE)
     set(EX_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${EX_NAME}.h")
     if(NOT EXISTS ${EX_HEADER})
         unset(EX_HEADER)
     endif()
 
     # Link with shared library
-    ADD_EXECUTABLE(${EX_NAME} ${EX_PROG} ${EX_HEADER})
-    IF(GUI_NAME)
-        ADD_DEPENDENCIES(${EX_NAME} ${GUI_NAME})
-    ENDIF()
-    SET_TARGET_PROPERTIES(${EX_NAME}
+    add_executable(${EX_NAME} ${EX_PROG} ${EX_HEADER})
+    if(GUI_NAME)
+        add_dependencies(${EX_NAME} ${GUI_NAME})
+    endif()
+    set_target_properties(${EX_NAME}
     PROPERTIES
       COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
       PROJECT_LABEL "Example - ${EX_NAME}")
-    TARGET_LINK_LIBRARIES(${EX_NAME} ${Simbody_LIBRARIES})
-ENDFOREACH()
+    target_link_libraries(${EX_NAME} ${Simbody_LIBRARIES})
+endforeach()

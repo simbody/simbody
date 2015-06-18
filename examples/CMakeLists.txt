@@ -63,51 +63,51 @@ set(SUBDIR_EXAMPLES
 
 # There is a top-level "examples" directory in the Windows install,
 # but examples go under "doc" elsewhere.
-IF(WIN32)
-  SET(EXAMPLES_INSTALL_BIN examples/bin/)
-  SET(EXAMPLES_INSTALL_SRC examples/src/)
-ELSE()
-  SET(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_LIBDIR}/simbody/examples/) # if this changes, change the corresponding
+if(WIN32)
+  set(EXAMPLES_INSTALL_BIN examples/bin/)
+  set(EXAMPLES_INSTALL_SRC examples/src/)
+else()
+  set(EXAMPLES_INSTALL_BIN ${CMAKE_INSTALL_LIBDIR}/simbody/examples/) # if this changes, change the corresponding
                                                                       # FULL version in file(RELATIVE_PATH ) command
-  SET(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
+  set(EXAMPLES_INSTALL_SRC ${CMAKE_INSTALL_DOCDIR}/examples/src/)
   # Use full paths for the following as it will be used to create a symlink
   # The symlink itself will be a relative path, so the package will be relocatable
-  SET(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_FULL_DOCDIR}/examples)
+  set(EXAMPLES_SYMLINK_BIN ${CMAKE_INSTALL_FULL_DOCDIR}/examples)
   file(RELATIVE_PATH EXAMPLE_INSTALL_BIN_REL_TO_DOC
       ${EXAMPLES_SYMLINK_BIN}
       ${CMAKE_INSTALL_FULL_LIBDIR}/simbody/examples/)
-ENDIF()
+endif()
 
 # CMAKE_INSTALL_PREFIX may be a relative path name; we want to bake in
 # the absolute path for the examples.
-GET_FILENAME_COMPONENT(ABS_CMAKE_INSTALL_PREFIX 
+get_filename_component(ABS_CMAKE_INSTALL_PREFIX 
                        "${CMAKE_INSTALL_PREFIX}" ABSOLUTE)
-ADD_DEFINITIONS(
+add_definitions(
     "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${ABS_CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_SRC}\"")
 
 # Provide access to all Simbody headers, and to the examples top-level
 # so that #include "shared/Blah.h" will work.
-INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
+include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
                     ${SimTKCOMMON_INCLUDE_DIRECTORIES}
                     ${SimTKMATH_INCLUDE_DIRECTORIES}
                     ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Build examples against the unversioned libraries if they are being 
 ## built; otherwise against the versioned libraries.
-IF(BUILD_UNVERSIONED_LIBRARIES)
-    SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
-    SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
-ELSE()
-    SET(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN})
-    SET(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
-ENDIF()
+if(BUILD_UNVERSIONED_LIBRARIES)
+    set(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
+    set(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}_static)
+else()
+    set(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN})
+    set(EXAMPLES_STATIC_TARGET ${SimTKSIMBODY_LIBRARY_NAME}${VN}_static)
+endif()
 
 
 # First build examples that have their own subdirectories and CMakeLists
 # files. 
 foreach(EX_NAME ${SUBDIR_EXAMPLES})
-    ADD_SUBDIRECTORY(${EX_NAME})
+    add_subdirectory(${EX_NAME})
 endforeach()
 
 # Next pick up stragglers that consist solely of a .cpp file in the top
@@ -115,79 +115,79 @@ endforeach()
 # The example name is the source file name with ".cpp" removed, and
 # the generated executable will have that name.
 
-FILE(GLOB EXAMPLES "*.cpp")
-FOREACH(EX_PROG ${EXAMPLES})
-    GET_FILENAME_COMPONENT(EX_SRC  ${EX_PROG} NAME)
-    GET_FILENAME_COMPONENT(EX_NAME ${EX_PROG} NAME_WE)
+file(GLOB EXAMPLES "*.cpp")
+foreach(EX_PROG ${EXAMPLES})
+    get_filename_component(EX_SRC  ${EX_PROG} NAME)
+    get_filename_component(EX_NAME ${EX_PROG} NAME_WE)
     set(EX_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/${EX_NAME}.h")
     if(NOT EXISTS ${EX_HEADER})
         unset(EX_HEADER)
     endif()
 
-    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
-        ADD_EXECUTABLE(${EX_NAME} ${EX_PROG} ${EX_HEADER})
-        IF(GUI_NAME)
-            ADD_DEPENDENCIES(${EX_NAME} ${GUI_NAME})
-        ENDIF()
-        SET_TARGET_PROPERTIES(${EX_NAME}
+        add_executable(${EX_NAME} ${EX_PROG} ${EX_HEADER})
+        if(GUI_NAME)
+            add_dependencies(${EX_NAME} ${GUI_NAME})
+        endif()
+        set_target_properties(${EX_NAME}
         PROPERTIES
           COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
           PROJECT_LABEL "Example - ${EX_NAME}")
-        TARGET_LINK_LIBRARIES(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
+        target_link_libraries(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
         # Don't install Debug examples
-        INSTALL(TARGETS ${EX_NAME} 
+        install(TARGETS ${EX_NAME} 
                 DESTINATION ${EXAMPLES_INSTALL_BIN}
                 CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
-    ENDIF()
+    endif()
 
-    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
+    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
-        SET(EX_STATIC ${EX_NAME}Static)
-        ADD_EXECUTABLE(${EX_STATIC} ${EX_PROG} ${EX_HEADER})
-        IF(GUI_NAME)
-            ADD_DEPENDENCIES(${EX_STATIC} ${GUI_NAME})
-        ENDIF()
-        SET_TARGET_PROPERTIES(${EX_STATIC}
+        set(EX_STATIC ${EX_NAME}Static)
+        add_executable(${EX_STATIC} ${EX_PROG} ${EX_HEADER})
+        if(GUI_NAME)
+            add_dependencies(${EX_STATIC} ${GUI_NAME})
+        endif()
+        set_target_properties(${EX_STATIC}
         PROPERTIES # note that the name is not EX_STATIC
           COMPILE_FLAGS "-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\""
           COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
           PROJECT_LABEL "Example - ${EX_STATIC}")
-        TARGET_LINK_LIBRARIES(${EX_STATIC} ${EXAMPLES_STATIC_TARGET})
+        target_link_libraries(${EX_STATIC} ${EXAMPLES_STATIC_TARGET})
         # Don't install static examples
-    ENDIF()
-ENDFOREACH()
+    endif()
+endforeach()
 
 # install top-level source for examples
-FILE(GLOB SRC_FILES "*.cpp" "*.h")
-INSTALL(FILES ${SRC_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC})
+file(GLOB SRC_FILES "*.cpp" "*.h")
+install(FILES ${SRC_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC})
 
 # install shared source and other files; also copy to binary directory
 # so we can use them when running from the build
-FILE(GLOB_RECURSE SHARED_FILES 
+file(GLOB_RECURSE SHARED_FILES 
     RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/shared"
     "${CMAKE_CURRENT_SOURCE_DIR}/shared/*")
-FOREACH(one_shared_file ${SHARED_FILES})
-    CONFIGURE_FILE(shared/${one_shared_file}
+foreach(one_shared_file ${SHARED_FILES})
+    configure_file(shared/${one_shared_file}
        ${CMAKE_CURRENT_BINARY_DIR}/shared/${one_shared_file} COPYONLY)
-ENDFOREACH()
+endforeach()
 
-INSTALL(DIRECTORY shared/
+install(DIRECTORY shared/
         DESTINATION ${EXAMPLES_INSTALL_SRC}shared) # already has "/"
 
 # install .txt files except CMakeLists.txt
-FILE(GLOB TXT_FILES "*.txt")
-FOREACH(TXTF ${TXT_FILES})
-    IF(NOT "${TXTF}" MATCHES "CMakeLists.txt")
-    INSTALL(FILES ${TXTF} DESTINATION ${EXAMPLES_INSTALL_SRC})
-    ENDIF()
-ENDFOREACH()
+file(GLOB TXT_FILES "*.txt")
+foreach(TXTF ${TXT_FILES})
+    if(NOT "${TXTF}" MATCHES "CMakeLists.txt")
+    install(FILES ${TXTF} DESTINATION ${EXAMPLES_INSTALL_SRC})
+    endif()
+endforeach()
 
 # install the installed version of CMakeLists.txt
-INSTALL(FILES InstalledCMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_SRC}
+install(FILES InstalledCMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_SRC}
     RENAME CMakeLists.txt)
 
 if(NOT WIN32)
-  install(CODE "EXECUTE_PROCESS(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
+  install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink
           ${EXAMPLE_INSTALL_BIN_REL_TO_DOC} ${EXAMPLES_SYMLINK_BIN}/bin)")
 endif()

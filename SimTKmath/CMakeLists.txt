@@ -21,133 +21,133 @@
 #
 #----------------------------------------------------
 
-PROJECT (SimTKmath)
+project(SimTKmath)
 
 # SimTKmath depends on PlatformFiles and SimTKcommon only.
-INCLUDE_DIRECTORIES(${PLATFORM_INCLUDE_DIRECTORIES}
+include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
                 ${SimTKCOMMON_INCLUDE_DIRECTORIES})
 
 # code is in "./src" and in each of these subdirectories/src
-SET(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
+set(SIMMATH_SOURCE_SUBDIRS LinearAlgebra Integrators Optimizers Geometry)
 
 # Collect up information about the version of the SimTKmath library 
 # we're building and make it available to the code so it can be built 
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
-SET(SIMMATH_MAJOR_VERSION ${SIMBODY_MAJOR_VERSION})
-SET(SIMMATH_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
-SET(SIMMATH_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
+set(SIMMATH_MAJOR_VERSION ${SIMBODY_MAJOR_VERSION})
+set(SIMMATH_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
+set(SIMMATH_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
 
 
 # Report the version number to the CMake UI. Don't include the 
 # patch version if it is zero.
-SET(PATCH_VERSION_STRING)
-IF(SIMMATH_PATCH_VERSION)
-    SET(PATCH_VERSION_STRING ".${SIMMATH_PATCH_VERSION}")
-ENDIF()
+set(PATCH_VERSION_STRING)
+if(SIMMATH_PATCH_VERSION)
+    set(PATCH_VERSION_STRING ".${SIMMATH_PATCH_VERSION}")
+endif()
 
-SET(SIMMATH_VERSION 
+set(SIMMATH_VERSION 
     "${SIMMATH_MAJOR_VERSION}.${SIMMATH_MINOR_VERSION}${PATCH_VERSION_STRING}")
 
 # This is the suffix if we're building and depending on versioned libraries.
-SET(VN "_${SIMMATH_VERSION}")
+set(VN "_${SIMMATH_VERSION}")
 
-SET(SIMMATH_COPYRIGHT_YEARS "2005-10")
+set(SIMMATH_COPYRIGHT_YEARS "2005-10")
 
 # underbar separated list of dotted authors, no spaces or commas
-SET(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
+set(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
 
-SET (SIMMATH_SVN_REVISION ${SIMBODY_SVN_REVISION}) 
+set(SIMMATH_SVN_REVISION ${SIMBODY_SVN_REVISION}) 
 
-ADD_DEFINITIONS(-DSimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
+add_definitions(-DSimTK_SIMMATH_LIBRARY_NAME=${SimTKMATH_LIBRARY_NAME}
                 -DSimTK_SIMMATH_MAJOR_VERSION=${SIMMATH_MAJOR_VERSION}
                 -DSimTK_SIMMATH_MINOR_VERSION=${SIMMATH_MINOR_VERSION}
         -DSimTK_SIMMATH_PATCH_VERSION=${SIMMATH_PATCH_VERSION})
 
-IF(NEED_QUOTES)
-   ADD_DEFINITIONS(-DSimTK_SIMMATH_SVN_REVISION="${SIMMATH_SVN_REVISION}"
+if(NEED_QUOTES)
+   add_definitions(-DSimTK_SIMMATH_SVN_REVISION="${SIMMATH_SVN_REVISION}"
                    -DSimTK_SIMMATH_COPYRIGHT_YEARS="${SIMMATH_COPYRIGHT_YEARS}"
                    -DSimTK_SIMMATH_AUTHORS="${SIMMATH_AUTHORS}")
-ELSE(NEED_QUOTES)
-   ADD_DEFINITIONS(-DSimTK_SIMMATH_SVN_REVISION=${SIMMATH_SVN_REVISION}
+else(NEED_QUOTES)
+   add_definitions(-DSimTK_SIMMATH_SVN_REVISION=${SIMMATH_SVN_REVISION}
                    -DSimTK_SIMMATH_COPYRIGHT_YEARS=${SIMMATH_COPYRIGHT_YEARS}
                    -DSimTK_SIMMATH_AUTHORS=${SIMMATH_AUTHORS})
-ENDIF(NEED_QUOTES)
+endif(NEED_QUOTES)
 
 # -DSimTK_SIMMATH_TYPE has to be defined in the target subdirectories.
 # -Dsimmath_EXPORTS defined automatically when Windows DLL build is being done.
 
-SET(SHARED_TARGET ${SimTKMATH_LIBRARY_NAME})
-SET(STATIC_TARGET ${SimTKMATH_LIBRARY_NAME}_static)
-SET(SHARED_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN})
-SET(STATIC_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN}_static)
+set(SHARED_TARGET ${SimTKMATH_LIBRARY_NAME})
+set(STATIC_TARGET ${SimTKMATH_LIBRARY_NAME}_static)
+set(SHARED_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN})
+set(STATIC_TARGET_VN ${SimTKMATH_LIBRARY_NAME}${VN}_static)
 
 ## Test against the unversioned libraries if they are being built;
 ## otherwise against the versioned libraries.
-IF(BUILD_UNVERSIONED_LIBRARIES)
-    SET(TEST_SHARED_TARGET ${SHARED_TARGET})
-    SET(TEST_STATIC_TARGET ${STATIC_TARGET})
-ELSE(BUILD_UNVERSIONED_LIBRARIES)
-    SET(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
-    SET(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
-ENDIF(BUILD_UNVERSIONED_LIBRARIES)
+if(BUILD_UNVERSIONED_LIBRARIES)
+    set(TEST_SHARED_TARGET ${SHARED_TARGET})
+    set(TEST_STATIC_TARGET ${STATIC_TARGET})
+else(BUILD_UNVERSIONED_LIBRARIES)
+    set(TEST_SHARED_TARGET ${SHARED_TARGET_VN})
+    set(TEST_STATIC_TARGET ${STATIC_TARGET_VN})
+endif(BUILD_UNVERSIONED_LIBRARIES)
 
 # These are all the places to search for header files which are
 # to be part of the API.
-SET(API_INCLUDE_DIRS) # start empty
-SET(SimTKMATH_INCLUDE_DIRS) # start empty
-FOREACH(subdir . ${SIMMATH_SOURCE_SUBDIRS})
+set(API_INCLUDE_DIRS) # start empty
+set(SimTKMATH_INCLUDE_DIRS) # start empty
+foreach(subdir . ${SIMMATH_SOURCE_SUBDIRS})
     # append
-    SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
+    set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
      ${PROJECT_SOURCE_DIR}/${subdir}/include 
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath 
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simmath/internal)
 
     # Referencing headers must always be done relative to this level.
-    SET(SimTKMATH_INCLUDE_DIRS ${SimTKMATH_INCLUDE_DIRS}
+    set(SimTKMATH_INCLUDE_DIRS ${SimTKMATH_INCLUDE_DIRS}
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
-ENDFOREACH(subdir)
+endforeach(subdir)
 
 # Include the Simmath API include directories now so that Simmath code 
 # can use them.
-INCLUDE_DIRECTORIES(${SimTKMATH_INCLUDE_DIRS})
+include_directories(${SimTKMATH_INCLUDE_DIRS})
 
 # And pass API include directories up to the parent so subsequent libraries
 # can find the headers too.
-SET(SimTKMATH_INCLUDE_DIRECTORIES ${SimTKMATH_INCLUDE_DIRS}
+set(SimTKMATH_INCLUDE_DIRECTORIES ${SimTKMATH_INCLUDE_DIRS}
     PARENT_SCOPE)
 
 
 # We'll need both *relative* path names, starting with
 # their API_INCLUDE_DIRS, and absolute pathnames.
-SET(API_REL_INCLUDE_FILES)   # start these out empty
-SET(API_ABS_INCLUDE_FILES)
+set(API_REL_INCLUDE_FILES)   # start these out empty
+set(API_ABS_INCLUDE_FILES)
 
-FOREACH(dir ${API_INCLUDE_DIRS})
-    FILE(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
-    SET(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
+foreach(dir ${API_INCLUDE_DIRS})
+    file(GLOB fullpaths ${dir}/*.h)    # returns full pathnames
+    set(API_ABS_INCLUDE_FILES ${API_ABS_INCLUDE_FILES} ${fullpaths})
 
-    FOREACH(pathname ${fullpaths})
-        GET_FILENAME_COMPONENT(filename ${pathname} NAME)
-        SET(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES}
+    foreach(pathname ${fullpaths})
+        get_filename_component(filename ${pathname} NAME)
+        set(API_REL_INCLUDE_FILES ${API_REL_INCLUDE_FILES}
         ${dir}/${filename})
-    ENDFOREACH(pathname)
-ENDFOREACH(dir)
+    endforeach(pathname)
+endforeach(dir)
 
 # collect up source files
-SET(SOURCE_FILES) # empty
-SET(SOURCE_INCLUDE_FILES) # for dependency tracking only, I believe (sherm)
-SET(SOURCE_INCLUDE_DIRS) # in case some low-level source needs a -I include dir
-SET(SOURCE_GROUPS)
-SET(SOURCE_GROUP_FILES)
+set(SOURCE_FILES) # empty
+set(SOURCE_INCLUDE_FILES) # for dependency tracking only, I believe (sherm)
+set(SOURCE_INCLUDE_DIRS) # in case some low-level source needs a -I include dir
+set(SOURCE_GROUPS)
+set(SOURCE_GROUP_FILES)
 
 # first process all the source subdirectories
-FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
+foreach(subdir ${SIMMATH_SOURCE_SUBDIRS})
     add_subdirectory(${subdir})
-ENDFOREACH(subdir)
+endforeach(subdir)
 
-if (SOURCE_GROUPS)
+if(SOURCE_GROUPS)
     list(LENGTH SOURCE_GROUPS NGROUPS)
     math(EXPR lastgrpnum ${NGROUPS}-1)
     foreach( grpnum RANGE 0 ${lastgrpnum} )
@@ -158,13 +158,13 @@ if (SOURCE_GROUPS)
 endif()
 
 # then process ./src
-FILE(GLOB src_files  ./src/*.cpp)
-FILE(GLOB incl_files ./src/*.h)
-SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
-SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
+file(GLOB src_files  ./src/*.cpp)
+file(GLOB incl_files ./src/*.h)
+set(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
+set(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
 # Add low-level source include directories if any.
-INCLUDE_DIRECTORIES(${SOURCE_INCLUDE_DIRS})
+include_directories(${SOURCE_INCLUDE_DIRS})
 
 #
 # Installation
@@ -173,25 +173,25 @@ INCLUDE_DIRECTORIES(${SOURCE_INCLUDE_DIRS})
 # libraries are installed from their subdirectories; headers here
 
 # install headers
-FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
-FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
-FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
+file(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
+file(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
+file(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
 
-INSTALL(FILES ${CORE_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR})
-INSTALL(FILES ${TOP_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simmath)
-INSTALL(FILES ${INTERNAL_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simmath/internal)
+install(FILES ${CORE_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR})
+install(FILES ${TOP_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simmath)
+install(FILES ${INTERNAL_HEADERS} DESTINATION ${SIMBODY_INCLUDE_INSTALL_DIR}/simmath/internal)
 
-FILE(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt doc/*.md)
-INSTALL(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
+file(GLOB SIMMATH_DOCS doc/*.pdf doc/*.txt doc/*.md)
+install(FILES ${SIMMATH_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.
 
-IF(BUILD_STATIC_LIBRARIES)
-    ADD_SUBDIRECTORY( staticTarget )
-ENDIF()
-ADD_SUBDIRECTORY( sharedTarget )
+if(BUILD_STATIC_LIBRARIES)
+    add_subdirectory( staticTarget )
+endif()
+add_subdirectory( sharedTarget )
 
-IF( BUILD_TESTING )
-  ADD_SUBDIRECTORY( tests )
-ENDIF( BUILD_TESTING )
+if( BUILD_TESTING )
+  add_subdirectory( tests )
+endif( BUILD_TESTING )

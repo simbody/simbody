@@ -1,6 +1,6 @@
 ## This whole directory exists just so I could define this extra preprocessor value.
 
-ADD_DEFINITIONS(-DSimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
+add_definitions(-DSimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
 
 #
 # Set up file groups for better browsing in Visual Studio.
@@ -10,7 +10,7 @@ ADD_DEFINITIONS(-DSimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
 source_group("Header Files\\Api" FILES ${API_ABS_INCLUDE_FILES})
 
 # Now put things in their specified groups.
-if (SOURCE_GROUPS)
+if(SOURCE_GROUPS)
     list(LENGTH SOURCE_GROUPS NGROUPS)
     math(EXPR lastgrpnum ${NGROUPS}-1)
     foreach( grpnum RANGE 0 ${lastgrpnum} )
@@ -24,22 +24,22 @@ endif()
 source_group("Source Files\\Others" FILES ${SOURCE_FILES})
 source_group("Header Files\\Others" FILES ${SOURCE_INCLUDE_FILES})
 
-IF(BUILD_UNVERSIONED_LIBRARIES)
+if(BUILD_UNVERSIONED_LIBRARIES)
 
-    ADD_LIBRARY(${SHARED_TARGET} SHARED 
+    add_library(${SHARED_TARGET} SHARED 
                 ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} 
                 ${API_ABS_INCLUDE_FILES})
     
-    TARGET_LINK_LIBRARIES(${SHARED_TARGET} 
+    target_link_libraries(${SHARED_TARGET} 
                  ${SimTKCOMMON_SHARED_LIBRARY}
                  ${MATH_LIBS_TO_USE})
     
-    SET_TARGET_PROPERTIES(${SHARED_TARGET} PROPERTIES
+    set_target_properties(${SHARED_TARGET} PROPERTIES
         PROJECT_LABEL "Code - ${SHARED_TARGET}"
         SOVERSION ${SIMBODY_SONAME_VERSION})
     
     # install library; on Windows both .lib and .dll go in the lib directory.
-    INSTALL(TARGETS ${SHARED_TARGET} EXPORT SimbodyTargets
+    install(TARGETS ${SHARED_TARGET} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
                      GROUP_READ GROUP_WRITE GROUP_EXECUTE 
                      WORLD_READ WORLD_EXECUTE
@@ -47,25 +47,25 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ENDIF(BUILD_UNVERSIONED_LIBRARIES)
+endif(BUILD_UNVERSIONED_LIBRARIES)
 
 
-IF(BUILD_VERSIONED_LIBRARIES)
+if(BUILD_VERSIONED_LIBRARIES)
 
-    ADD_LIBRARY(${SHARED_TARGET_VN} SHARED 
+    add_library(${SHARED_TARGET_VN} SHARED 
                 ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} 
                 ${API_ABS_INCLUDE_FILES})
     
-    TARGET_LINK_LIBRARIES(${SHARED_TARGET_VN} 
+    target_link_libraries(${SHARED_TARGET_VN} 
                  ${SimTKCOMMON_SHARED_LIBRARY_VN}
                  ${MATH_LIBS_TO_USE_VN})
     
-    SET_TARGET_PROPERTIES(${SHARED_TARGET_VN} PROPERTIES
+    set_target_properties(${SHARED_TARGET_VN} PROPERTIES
         PROJECT_LABEL "Code - ${SHARED_TARGET_VN}" 
         SOVERSION ${SIMBODY_SONAME_VERSION})
     
     # install library; on Windows both .lib and .dll go in the lib directory.
-    INSTALL(TARGETS ${SHARED_TARGET_VN} EXPORT SimbodyTargets
+    install(TARGETS ${SHARED_TARGET_VN} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
                      GROUP_READ GROUP_WRITE GROUP_EXECUTE 
                      WORLD_READ WORLD_EXECUTE
@@ -73,4 +73,4 @@ IF(BUILD_VERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ENDIF(BUILD_VERSIONED_LIBRARIES)
+endif(BUILD_VERSIONED_LIBRARIES)
