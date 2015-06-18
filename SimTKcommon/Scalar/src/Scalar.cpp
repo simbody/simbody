@@ -35,6 +35,15 @@ namespace SimTK {
 // These constants are global external symbols exported by the library. See
 // the Scalar.h header file for information.
 
+
+const float  fNaN            = NTraits<float>::getNaN(); 
+const float  fInfinity       = NTraits<float>::getInfinity();
+const float  fEps            = NTraits<float>::getEps();
+
+const double dNaN            = NTraits<double>::getNaN(); 
+const double dInfinity       = NTraits<double>::getInfinity();
+const double dEps            = NTraits<double>::getEps();
+
 const Real NaN               = NTraits<Real>::getNaN(); 
 const Real Infinity          = NTraits<Real>::getInfinity();
 const Real Eps               = NTraits<Real>::getEps();

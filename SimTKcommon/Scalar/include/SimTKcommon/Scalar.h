@@ -89,15 +89,30 @@ many strange properties such as not comparing equal to itself. You must use
 the SimTK::isNaN() function instead to determine whether something contains
 a NaN value. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real NaN; 
+/** This NaN is explicitly of type float, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const float fNaN; 
+/** This NaN is explicitly of type double, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const double dNaN; 
+
 /** This is the IEEE positive infinity constant for this implementation of
 the default-precision Real type; -Infinity will produce the negative infinity
 constant. Infinity tests larger than any other Real value. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real Infinity;
+/** This infinity is explicitly of type float, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const float fInfinity; 
+/** This infinity is explicitly of type double, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const double dInfinity; 
 
 /** Epsilon is the size of roundoff noise; it is the smallest positive number
 of default-precision type Real such that 1+Eps != 1. If Real is double (the
 normal case) then Eps ~= 1e-16; if Real is float then Eps ~= 1e-7. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real Eps;
+/** This epsilon is explicitly of type float, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const float fEps; 
+/** This epsilon is explicitly of type double, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const double dEps; 
+
+
 /** This is the square root of Eps, ~1e-8 if Real is double, ~3e-4 if Real
 is float. Many numerical algorithms are limited to accuracy of sqrt(Eps)
 so this constant is useful in checking for termination of them. **/
