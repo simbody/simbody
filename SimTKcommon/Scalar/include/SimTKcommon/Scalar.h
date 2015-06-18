@@ -112,6 +112,15 @@ extern SimTK_SimTKCOMMON_EXPORT const float fEps;
 /** This epsilon is explicitly of type double, regardless of Real's type. **/
 extern SimTK_SimTKCOMMON_EXPORT const double dEps; 
 
+/** SignificantReal is the smallest value of type Real that we consider to be 
+clearly distinct from roundoff error when it is the result of a computation;
+it is defined as Eps^(7/8) which is ~1e-14 when Real==double, ~1e-6 when
+Real==float. **/
+extern SimTK_SimTKCOMMON_EXPORT const Real SignificantReal; 
+/** This value is explicitly of type float, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const float fSignificant; 
+/** This value is explicitly of type double, regardless of Real's type. **/
+extern SimTK_SimTKCOMMON_EXPORT const double dSignificant; 
 
 /** This is the square root of Eps, ~1e-8 if Real is double, ~3e-4 if Real
 is float. Many numerical algorithms are limited to accuracy of sqrt(Eps)
@@ -123,11 +132,6 @@ precision; it is defined as Eps^(5/4) which is ~1e-20 for Real==double and
 a denominator (such as a vector length) that might come out zero, just for
 the purpose of avoiding a divide by zero. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real TinyReal; 
-/** SignificantReal is the smallest value that we consider to be clearly 
-distinct from roundoff error when it is the result of a computation;
-it is defined as Eps^(7/8) which is ~1e-14 when Real==double, ~1e-6 when
-Real==float. **/
-extern SimTK_SimTKCOMMON_EXPORT const Real SignificantReal; 
 
 /** This is the smallest positive real number that can be expressed in the
 type Real; it is ~1e-308 when Real==double, ~1e-38 when Real==float. **/

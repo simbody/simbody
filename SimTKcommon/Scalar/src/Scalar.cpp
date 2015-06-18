@@ -36,20 +36,24 @@ namespace SimTK {
 // the Scalar.h header file for information.
 
 
+const Real   NaN             = NTraits<Real>::getNaN(); 
 const float  fNaN            = NTraits<float>::getNaN(); 
-const float  fInfinity       = NTraits<float>::getInfinity();
-const float  fEps            = NTraits<float>::getEps();
-
 const double dNaN            = NTraits<double>::getNaN(); 
+
+const Real   Infinity        = NTraits<Real>::getInfinity();
+const float  fInfinity       = NTraits<float>::getInfinity();
 const double dInfinity       = NTraits<double>::getInfinity();
+
+const Real   Eps             = NTraits<Real>::getEps();
+const float  fEps            = NTraits<float>::getEps();
 const double dEps            = NTraits<double>::getEps();
 
-const Real NaN               = NTraits<Real>::getNaN(); 
-const Real Infinity          = NTraits<Real>::getInfinity();
-const Real Eps               = NTraits<Real>::getEps();
+const Real   SignificantReal = NTraits<Real>::getSignificant(); 
+const float  fSignificant    = NTraits<float>::getSignificant();
+const double dSignificant    = NTraits<double>::getSignificant();
+
 const Real SqrtEps           = NTraits<Real>::getSqrtEps();
 const Real TinyReal          = NTraits<Real>::getTiny(); 
-const Real SignificantReal   = NTraits<Real>::getSignificant(); 
 const Real LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
 const Real MostPositiveReal  = NTraits<Real>::getMostPositive();  
 const Real LeastNegativeReal = NTraits<Real>::getLeastNegative();
