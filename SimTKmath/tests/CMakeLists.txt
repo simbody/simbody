@@ -1,6 +1,6 @@
 # Adhoc tests are those test or demo programs which are not intended,
 # or not ready, to be part of the regression suite.
-ADD_SUBDIRECTORY(adhoc)
+add_subdirectory(adhoc)
 
 # Generate regression tests.
 #
@@ -24,35 +24,35 @@ ADD_SUBDIRECTORY(adhoc)
 # Some tests here share headers. We don't know the actual dependencies
 # so we'll just make each test depend on all the headers which is
 # at least conservative.
-FILE(GLOB ALL_HEADERS "*.h")
+file(GLOB ALL_HEADERS "*.h")
 
-FILE(GLOB REGR_TESTS "*.cpp")
-FOREACH(TEST_PROG ${REGR_TESTS})
-    GET_FILENAME_COMPONENT(TEST_ROOT ${TEST_PROG} NAME_WE)
+file(GLOB REGR_TESTS "*.cpp")
+foreach(TEST_PROG ${REGR_TESTS})
+    get_filename_component(TEST_ROOT ${TEST_PROG} NAME_WE)
 
-    IF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+    if(BUILD_TESTS_AND_EXAMPLES_SHARED)
         # Link with shared library
-        ADD_EXECUTABLE(${TEST_ROOT} ${TEST_PROG} ${ALL_HEADERS})
-        SET_TARGET_PROPERTIES(${TEST_ROOT}
+        add_executable(${TEST_ROOT} ${TEST_PROG} ${ALL_HEADERS})
+        set_target_properties(${TEST_ROOT}
         PROPERTIES
           PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
-        TARGET_LINK_LIBRARIES(${TEST_ROOT} 
+        target_link_libraries(${TEST_ROOT} 
                     ${TEST_SHARED_TARGET})
-        ADD_TEST(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
-    ENDIF (BUILD_TESTS_AND_EXAMPLES_SHARED)
+        add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
+    endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
-    IF (BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
+    if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
         # Link with static library
-        SET(TEST_STATIC ${TEST_ROOT}Static)
-        ADD_EXECUTABLE(${TEST_STATIC} ${TEST_PROG} ${ALL_HEADERS})
-        SET_TARGET_PROPERTIES(${TEST_STATIC}
+        set(TEST_STATIC ${TEST_ROOT}Static)
+        add_executable(${TEST_STATIC} ${TEST_PROG} ${ALL_HEADERS})
+        set_target_properties(${TEST_STATIC}
         PROPERTIES
         COMPILE_FLAGS "-DSimTK_USE_STATIC_LIBRARIES"
         PROJECT_LABEL "Test_Regr - ${TEST_STATIC}")
-        TARGET_LINK_LIBRARIES(${TEST_STATIC}
+        target_link_libraries(${TEST_STATIC}
                     ${TEST_STATIC_TARGET})
-        ADD_TEST(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
-    ENDIF()
+        add_test(${TEST_STATIC} ${EXECUTABLE_OUTPUT_PATH}/${TEST_STATIC})
+    endif()
 
-ENDFOREACH(TEST_PROG ${REGR_TESTS})
+endforeach(TEST_PROG ${REGR_TESTS})
 

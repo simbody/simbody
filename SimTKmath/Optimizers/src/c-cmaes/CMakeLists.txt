@@ -1,6 +1,6 @@
 # add in local source and headers here
-FILE(GLOB src_files  ./*.c)
-FILE(GLOB incl_files ./*.h)
+file(GLOB src_files  ./*.c)
+file(GLOB incl_files ./*.h)
 
 foreach( src ${src_files} )
     list(APPEND SOURCE_GROUPS "Source Files\\c-cmaes")

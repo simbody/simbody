@@ -81,11 +81,11 @@ cmake_minimum_required(VERSION 2.8)
 set(ENV_SIMBODY_HOME_VALUE $ENV{SIMBODY_HOME})
 set(ENV_SimTK_INSTALL_DIR_VALUE $ENV{SimTK_INSTALL_DIR})
 
-if (SimTK_SDK) # a CMake variable, not an environment variable
+if(SimTK_SDK) # a CMake variable, not an environment variable
     # This is the SimTK.org nightly builds location. If set it overrides
     # everything else.
     set(Simbody_SEARCH_PATHS "${SimTK_SDK}")
-elseif (SimTK_INSTALL_DIR) # a CMake variable, not an environment variable
+elseif(SimTK_INSTALL_DIR) # a CMake variable, not an environment variable
     set(Simbody_SEARCH_PATHS "${SimTK_INSTALL_DIR}")
 elseif(ENV_SIMBODY_HOME_VALUE)
     set(Simbody_SEARCH_PATHS "${ENV_SIMBODY_HOME_VALUE}")
@@ -96,23 +96,23 @@ else()
     set(Simbody_SEARCH_PATHS)
 
     # UNIX includes Mac, Linux, and Cygwin
-    if (UNIX)
+    if(UNIX)
         list(APPEND Simbody_SEARCH_PATHS /usr/local)
     endif()
     
-    if (APPLE) # Mac only
+    if(APPLE) # Mac only
         list(APPEND Simbody_SEARCH_PATHS /Developer)
     endif()
     
     # WIN32 includes Windows 32 & 64 bit, and Cygwin
-    if (WIN32)
+    if(WIN32)
         if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 	      # 64 bit target on Win64
 	      set(PROGFILE_DIR "$ENV{ProgramW6432}")
         else() # Target is 32 bit
 	      # present if 64bit Windows
 	      set(PROGFILE_DIR "$ENV{ProgramFiles(x86)}") 
-	      if (NOT PROGFILE_DIR)
+	      if(NOT PROGFILE_DIR)
 	        set(PROGFILE_DIR "$ENV{ProgramFiles}") # on 32bit Windows
 	      endif()
         endif()
@@ -165,20 +165,20 @@ set(Simbody_BIN_DIR ${Simbody_ROOT_DIR}/bin CACHE PATH
 
 set(Simbody_LIBRARY_LIST SimTKsimbody;SimTKmath;SimTKcommon)
 
-if (WIN32)
+if(WIN32)
     set(Simbody_LAPACK_LIBRARY_LIST liblapack;libblas)
 else()
     set(Simbody_LAPACK_LIBRARY_LIST lapack;blas)
 endif()
 
 
-if (WIN32)
+if(WIN32)
     if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
         set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2_x64)
     else()
         set(Simbody_EXTRA_LIBRARY_LIST pthreadVC2)
     endif()
-elseif (APPLE)
+elseif(APPLE)
     set(Simbody_EXTRA_LIBRARY_LIST pthread;dl)
 else()
     set(Simbody_EXTRA_LIBRARY_LIST pthread;rt;dl;m)
@@ -220,7 +220,7 @@ elseif(Simbody_DEBUG_LIBRARY)
     endforeach()
 endif()
 
-if (LIBS)
+if(LIBS)
     foreach(lapack_lib IN LISTS Simbody_LAPACK_LIBRARY_LIST)
         set(LIBS ${LIBS} "${lapack_lib}")
     endforeach()
@@ -251,7 +251,7 @@ elseif(Simbody_STATIC_DEBUG_LIBRARY)
     endforeach()
 endif()
 
-if (LIBS)
+if(LIBS)
     # these aren't available in static
     foreach(lapack_lib IN LISTS Simbody_LAPACK_LIBRARY_LIST)
         set(LIBS ${LIBS} "${lapack_lib}")

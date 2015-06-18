@@ -1,6 +1,6 @@
 # add in local source and headers here
-FILE(GLOB src_files  ./src/*.cpp)
-FILE(GLOB incl_files ./src/*.h)
+file(GLOB src_files  ./src/*.cpp)
+file(GLOB incl_files ./src/*.h)
 
 # append to the local scope copy, and then copy up to parent scope
 list(APPEND SOURCE_FILES ${src_files})

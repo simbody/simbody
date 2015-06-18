@@ -10,11 +10,11 @@ set(shared_source_files)
 set(all_header_files ${header_files} ${shared_header_files})
 set(all_source_files ${source_files} ${shared_source_files})
 
-ADD_DEFINITIONS("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
+add_definitions("-DSIMBODY_EXAMPLE_NAME=\"${EX_NAME}\"")
 
 # Link with shared library
-ADD_EXECUTABLE(${EX_NAME} ${all_source_files} ${all_header_files})
-SET_TARGET_PROPERTIES(${EX_NAME}
+add_executable(${EX_NAME} ${all_source_files} ${all_header_files})
+set_target_properties(${EX_NAME}
                       PROPERTIES
                       PROJECT_LABEL "Example - ${EX_NAME}")
-TARGET_LINK_LIBRARIES(${EX_NAME} ${Simbody_LIBRARIES})
+target_link_libraries(${EX_NAME} ${Simbody_LIBRARIES})

@@ -1,26 +1,26 @@
 ## This whole directory exists just so I could define these extra 
 ## preprocessor values.
 
-ADD_DEFINITIONS(-DSimTK_SIMBODY_BUILDING_STATIC_LIBRARY 
+add_definitions(-DSimTK_SIMBODY_BUILDING_STATIC_LIBRARY 
                 -DSimTK_USE_STATIC_LIBRARIES)
 
-IF(BUILD_UNVERSIONED_LIBRARIES)
+if(BUILD_UNVERSIONED_LIBRARIES)
 
-    ADD_LIBRARY(${STATIC_TARGET} STATIC 
+    add_library(${STATIC_TARGET} STATIC 
                 ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} 
                 ${API_ABS_INCLUDE_FILES})
     
-    TARGET_LINK_LIBRARIES(${STATIC_TARGET} 
+    target_link_libraries(${STATIC_TARGET} 
                  ${SimTKMATH_STATIC_LIBRARY}
                  ${SimTKCOMMON_STATIC_LIBRARY}
                  ${MATH_LIBS_TO_USE})
     
-    SET_TARGET_PROPERTIES(${STATIC_TARGET} PROPERTIES
+    set_target_properties(${STATIC_TARGET} PROPERTIES
         PROJECT_LABEL "Code - ${STATIC_TARGET}")
     
     # install library
     
-    INSTALL(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
+    install(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
                      GROUP_READ GROUP_WRITE 
                      WORLD_READ 
@@ -28,27 +28,27 @@ IF(BUILD_UNVERSIONED_LIBRARIES)
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ENDIF(BUILD_UNVERSIONED_LIBRARIES)
+endif(BUILD_UNVERSIONED_LIBRARIES)
 
 
 
-IF(BUILD_VERSIONED_LIBRARIES)
+if(BUILD_VERSIONED_LIBRARIES)
 
-    ADD_LIBRARY(${STATIC_TARGET_VN} STATIC 
+    add_library(${STATIC_TARGET_VN} STATIC 
                 ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} 
                 ${API_ABS_INCLUDE_FILES})
     
-    TARGET_LINK_LIBRARIES(${STATIC_TARGET_VN} 
+    target_link_libraries(${STATIC_TARGET_VN} 
                  ${SimTKMATH_STATIC_LIBRARY_VN}
                  ${SimTKCOMMON_STATIC_LIBRARY_VN}
                  ${MATH_LIBS_TO_USE_VN})
     
-    SET_TARGET_PROPERTIES(${STATIC_TARGET_VN} PROPERTIES
+    set_target_properties(${STATIC_TARGET_VN} PROPERTIES
         PROJECT_LABEL "Code - ${STATIC_TARGET_VN}")
     
     # install library
     
-    INSTALL(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
+    install(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
                      PERMISSIONS OWNER_READ OWNER_WRITE 
                      GROUP_READ GROUP_WRITE 
                      WORLD_READ 
@@ -56,4 +56,4 @@ IF(BUILD_VERSIONED_LIBRARIES)
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ENDIF(BUILD_VERSIONED_LIBRARIES)
+endif(BUILD_VERSIONED_LIBRARIES)
