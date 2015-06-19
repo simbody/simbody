@@ -936,10 +936,60 @@ void testInitializerList() {
     takeAnArray<double>({1.2,3,4}); // implicit conversion to Array_<double>
 }
 
+namespace {
+void argConversion(const Array_<TestIx>& arg) {
+    // try passing this a convertible type
+}
+void argConversion(const std::vector<TestIx>& arg) {
+    // try passing this a convertible type
+}
+
+// This is implicitly convertible to TextIx.
+class SubTestIx : public TestIx {
+public: explicit SubTestIx(int ix) : TestIx(ix) {}
+};
+}
+
+// Should be able to copy or assign arrays with different element types
+// provided that the source type is implicitly convertible to the 
+// destination type, but should fail even if there is an explicit
+// conversion.
+void testTypeMismatch() {
+    Array_<TestIx> txarray(2, TestIx(3));
+    Array_<SubTestIx> stxarray(2, SubTestIx(4));
+    Array_<SmallIx> sxarray(2, SmallIx(1));
+    TestIx tx; SmallIx sx;
+    // tx = sx;  // should fail to compile
+    tx = TestIx(sx); // allowed
+    txarray = stxarray; // should work
+    SimTK_TEST(txarray == Array_<TestIx>(2, TestIx(4)));
+    // txarray = sxarray; // should fail to compile
+
+    //argConversion(sxarray); // should fail to compile
+    argConversion(stxarray); // should work
+}
+
+// For comparison of Array_ with std::vector. 
+// std::vector is more strict.
+void testTypeMismatchStdVector() {
+    std::vector<TestIx> txarray(2,TestIx(3));
+    std::vector<SubTestIx> stxarray(2,SubTestIx(4));
+    std::vector<SmallIx> sxarray(2,SmallIx(1));
+    TestIx tx; SmallIx sx;
+    // tx = sx;  // should fail to compile
+    tx = TestIx(sx); // allowed
+    //txarray = stxarray; // <-- fails despite implicit conversion
+    // txarray = sxarray; // should fail to compile
+
+    //argConversion(sxarray); // should fail to compile
+    //argConversion(stxarray); //<-- fails despite implicit conversion
+}
+
 int main() {
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testTypeMismatch);
         SimTK_SUBTEST(testInitializerList);
         SimTK_SUBTEST(testMoveConstructionAndAssignment);
         SimTK_SUBTEST(testInsert);
