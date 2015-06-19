@@ -503,18 +503,18 @@ int main() {
     aux1Hand.push_back(MobilizedBodyIndex(hand)); 
     aux1Wrap.push_back(MobilizedBodyIndex(aux1)); 
     aux1Wrap.push_back(MobilizedBodyIndex(wrap)); 
-    Array_<MobilizerUIndex> whichUs(2, MobilizerUIndex(0));
+    Array_<MobilizerQIndex> whichQs(2, MobilizerQIndex(0));
 
     Constraint::CoordinateCoupler 
     aux1toAux2(matter,
         new Function::Linear(Vector(Vec3(ratios1[0],ratios1[1],0))),
-        aux1aux2, whichUs);
+        aux1aux2, whichQs);
     aux1toAux2.setDisabledByDefault(true);
 
     Constraint::CoordinateCoupler 
     aux1toHand(matter,
         new Function::Linear(Vector(Vec3(ratios2[0],ratios2[1],0))),
-        aux1Hand, whichUs);
+        aux1Hand, whichQs);
     aux1toHand.setDisabledByDefault(true);
 
     // Coupling ratio to the wrap surface's body is hardcoded to
@@ -522,7 +522,7 @@ int main() {
     Constraint::CoordinateCoupler
     aux1toWrap(matter,
         new Function::Linear(Vector(Vec3(1, -.4, 0))),
-        aux1Wrap, whichUs);
+        aux1Wrap, whichQs);
 
     // Enable this to make a point of the hand touch a plane fixed on ground.
     // We'll optionally use this constraint instead of one of the couplers

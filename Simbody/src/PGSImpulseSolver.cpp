@@ -71,12 +71,12 @@ Real doRowSum(const Array_<MultiplierIndex>& columns,
 // we switch columns.
 // Vectors must be contiguous, Matrix must be packed and in column order (i.e.
 // columns are contiguous.) So A(r,c) = A[r + c*m].
-void doRowSums(const Array_<MultiplierIndex>& columns,
-               const Array_<MultiplierIndex>& rows,
-               const Matrix&                  A, 
-               const Vector&                  D,
-               const Vector&                  pi,
-               Array_<Real>&                  sums)
+void doRowSums(const Array_<int>& columns, // these are MultiplierIndex ints
+               const Array_<int>& rows,
+               const Matrix&      A, 
+               const Vector&      D,
+               const Vector&      pi,
+               Array_<Real>&      sums)
 {
     assert(pi.hasContiguousData());
     const Real* pip = &pi[0];
@@ -122,7 +122,7 @@ inline Real doUpdate(const MultiplierIndex& row,
 
 // Same but now we're doing multiple row updates and return the sum of the
 // squared errors for those rows.
-Real doUpdates(const Array_<MultiplierIndex>& rows,
+Real doUpdates(const Array_<int>& rows, // These are MultiplierIndex ints
                const Matrix&                  A,
                const Vector&                  D,
                const Vector&                  rhs,
@@ -133,7 +133,7 @@ Real doUpdates(const Array_<MultiplierIndex>& rows,
     const bool hasDiag = (D.size() > 0);
     Real er2 = 0;
     for (unsigned i=0; i<rows.size(); ++i) {
-        const MultiplierIndex row = rows[i];
+        const MultiplierIndex row(rows[i]);
         Real Arr = A(row,row);
         if (hasDiag) Arr += D[row];
         const Real er = rhs[row]-rowSums[i];
@@ -197,8 +197,10 @@ and index set IF identifying the components of the friction vector, ensure
 that ||pi[IF]|| <= mu*||pi[IN]|| by scaling the friction vector if necessary.
 Return true if any change is made. **/
 ImpulseSolver::FricCond 
-boundFriction(Real mu, const Array_<MultiplierIndex>& IN, 
-              const Array_<MultiplierIndex>& IF, Vector& pi) {
+boundFriction(Real mu, 
+              const Array_<int>& IN, // these are MultiplierIndex ints 
+              const Array_<int>& IF, 
+              Vector& pi) {
     assert(mu >= 0);
     Real N2=0, F2=0; // squares of normal and friction force magnitudes
     for (unsigned i=0; i<IN.size(); ++i) N2 += square(pi[IN[i]]);

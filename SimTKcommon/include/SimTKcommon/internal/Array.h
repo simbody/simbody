@@ -40,6 +40,7 @@
 #include <ostream>
 #include <climits>
 #include <typeinfo>
+#include <type_traits>
 #include <initializer_list>
 #include <utility>
 
@@ -1597,10 +1598,13 @@ Array_(const InputIter& first, const InputIter& last1) : Base() {
 /** Construct an Array_<T> from a range [first,last1) of values identified by a 
 pair of ordinary pointers to elements of type T2 (where T2 might be the same as
 T but doesn't have to be). This is templatized so can be used with any source 
-type T2 for which there is a working conversion constructor T(T2), provided
+type T2 which is either T or implicitly convertible to T, provided
 that the number of source elements does not exceed the array's max_size(). **/
 template <class T2>
 Array_(const T2* first, const T2* last1) : Base() {
+    static_assert(std::is_assignable<T&,T2>::value,
+        "Array_<T> construction from T2 requires that "
+        "T2 implicitly converts to T");
     SimTK_ERRCHK((first&&last1)||(first==last1), "Array_<T>(first,last1)", 
         "Pointers must be non-null unless they are both null.");
     SimTK_ERRCHK3(this->isSizeOK(last1-first), "Array_<T>(first,last1)",
