@@ -440,6 +440,13 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     const Real damping = getDamping(state);
     const Real frc = -damping*u;
     mb.applyOneMobilityForce(state, m_whichU, frc, mobilityForces);
+
+    //Worthless loop to make the force calculations more expensive - make sure that
+    //the parallelism is helping out
+    volatile int junkInt = 0;
+    for(int y = 0; y < 10000; y++)
+        for(int x = 0; x < 99999; x++)
+            junkInt = junkInt + .2 + 3 * 4 /2 % 3 + 3 % 2 *2321 -322488238382;
 }
 
 Real Force::MobilityLinearDamperImpl::

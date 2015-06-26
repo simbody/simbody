@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-13 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
- * Contributors:                                                              *
+ * Contributors: Nabeel Allana, Chris Dembia, Thomas Lau                      *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -245,6 +245,12 @@ public:
      * true.  This allows force calculations to be optimized in some cases.
      */
     virtual bool dependsOnlyOnPositions() const {
+        return false;
+    }
+    /**
+     * Called during the 
+     */
+    virtual bool isParallelByDefault() const {
         return false;
     }
     /** The following methods may optionally be overridden to do specialized 

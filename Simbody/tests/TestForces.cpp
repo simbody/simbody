@@ -6,9 +6,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Nabeel Allana, Chris Dembia                                  *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -20,6 +20,8 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
+
+// TODO make sure we can set the number of threads.
 
 #include "SimTKsimbody.h"
 
@@ -90,6 +92,55 @@ public:
         hasRealized[Stage::Report] = true;
     }
 };
+
+/* TODO
+//---------------------- ParallelTwoPointLinearSpring --------------------------
+//------------------------------------------------------------------------------
+class ParallelTwoPointLinearSpringImpl : public Force::Custom::Implementation {
+public:
+    ParallelTwoPointLinearSpringImpl(
+            const MobilizedBody& body1, const Vec3& station1, 
+            const MobilizedBody& body2, const Vec3& station2, 
+            Real k, Real x0) : matter(body1.getMatterSubsystem()),
+        body1(body1.getMobilizedBodyIndex()), station1(station1),
+        body2(body2.getMobilizedBodyIndex()), station2(station2), k(k), x0(x0)
+    {}
+    bool dependsOnlyOnPositions() const override {
+        return true;
+    }
+    bool shouldBeParallelized() const override {
+        return true;
+    }
+    void calcForce(const State&         state, 
+                   Vector_<SpatialVec>& bodyForces, 
+                   Vector_<Vec3>&       particleForces, 
+                   Vector&              mobilityForces) const override {
+        const Transform& X_GB1 = matter.getMobilizedBody(body1).getBodyTransform(state);
+        const Transform& X_GB2 = matter.getMobilizedBody(body2).getBodyTransform(state);
+
+        const Vec3 s1_G = X_GB1.R() * station1;
+        const Vec3 s2_G = X_GB2.R() * station2;
+
+        const Vec3 p1_G = X_GB1.p() + s1_G; // station measured from ground origin
+        const Vec3 p2_G = X_GB2.p() + s2_G;
+
+        const Vec3 r_G       = p2_G - p1_G; // vector from point1 to point2
+        const Real d         = r_G.norm();  // distance between the points
+        const Real stretch   = d - x0;      // + -> tension, - -> compression
+        const Real frcScalar = k*stretch;   // k(x-x0)
+
+        const Vec3 f1_G = (frcScalar/d) * r_G;
+        bodyForces[body1] +=  SpatialVec(s1_G % f1_G, f1_G);
+        bodyForces[body2] -=  SpatialVec(s2_G % f1_G, f1_G);
+    }
+
+private:
+    const SimbodyMatterSubsystem& matter;
+    const MobilizedBodyIndex body1, body2;
+    Vec3 station1, station2;
+    Real k, x0;
+};
+*/
 
 /**
  * Test all of the standard Force subclasses, and make sure they generate correct forces.

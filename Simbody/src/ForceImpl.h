@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-14 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
- * Contributors:                                                              *
+ * Contributors: Thomas Lau                                                   *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -47,6 +47,9 @@ public:
     virtual ~ForceImpl() {}
     virtual ForceImpl* clone() const = 0;
     virtual bool dependsOnlyOnPositions() const {
+        return false;
+    }
+    virtual bool isParallelByDefault() const{
         return false;
     }
     ForceIndex getForceIndex() const {return index;}
@@ -85,7 +88,6 @@ private:
         // CONSTRUCTION
     GeneralForceSubsystem* forces;  // just a reference; no delete on destruction
     ForceIndex             index;
-
         // TOPOLOGY "STATE"
     // Changing anything here invalidates the topology of the containing
     // force Subsystem and thus of the whole System. 
@@ -116,6 +118,7 @@ public:
     bool dependsOnlyOnPositions() const override {
         return true;
     }
+
     void calcForce(const State&         state, 
                    Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>&       particleForces, 
@@ -197,7 +200,9 @@ friend class MobilityLinearSpring;
         return Value< std::pair<Real,Real> >::updDowncast
            (getForceSubsystem().updDiscreteVariable(state, m_paramsIx));
     }
-
+    bool isParallelByDefault() const override {
+        return true;
+    }
     MobilityLinearSpringImpl* clone() const override
     {   return new MobilityLinearSpringImpl(*this); }
     bool dependsOnlyOnPositions() const override {return true;}
@@ -247,7 +252,6 @@ friend class MobilityLinearDamper;
         return Value<Real>::updDowncast
            (getForceSubsystem().updDiscreteVariable(state, m_dampingIx));
     }
-
     MobilityLinearDamperImpl* clone() const override 
     {   return new MobilityLinearDamperImpl(*this); }
 
@@ -607,6 +611,9 @@ public:
     }
     bool dependsOnlyOnPositions() const {
         return implementation->dependsOnlyOnPositions();
+    }
+    bool isParallelByDefault() const {
+        return implementation->isParallelByDefault();
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) 
