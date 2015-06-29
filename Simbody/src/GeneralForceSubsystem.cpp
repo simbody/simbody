@@ -136,11 +136,11 @@ public:
         // TODO Sherm uses "= Vec3(0)" etc. below; is that what I should do
         // here? Also, I'm not resizing; could the size change?
         m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
-        m_rigidBodyForcesLocal.upd().setToZero();
+        m_rigidBodyForcesLocal.upd() = m_rigidBodyForces;
         m_particleForcesLocal.upd().resize(m_particleForces->size());
-        m_particleForcesLocal.upd().setToZero();
+        m_particleForcesLocal.upd() = m_particleForces;
         m_mobilityForcesLocal.upd().resize(m_mobilityForces->size());
-        m_mobilityForcesLocal.upd().setToZero();
+        m_mobilityForcesLocal.upd() = m_mobilityForces;
 
         if (m_mode == CachedAndNonCached) {
             m_rigidBodyForceCacheLocal.upd().resize(m_rigidBodyForceCache->size());
@@ -157,14 +157,14 @@ public:
             if (threadIndex == NONPARALLELFORCESINDEX) {
                 // Process all non-parallel forces
                 for (Force* force : *m_enabledNonParallelForces) {
-                    force->getImpl().calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
+                    force->getImpl().calcForce(*m_s, *m_rigidBodyForcesLocal, *m_particleForces, *m_mobilityForces);
                 }
             } else {
                 // Process a single parallel force. Subtract 1 from index b/c
                 // we use 0 for the non-parallel forces.
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
-                impl.calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
+                impl.calcForce(*m_s, *m_rigidBodyForcesLocal.upd(), *m_particleForcesLocal.upd(), *m_mobilityForcesLocal.upd());
             }
             break;
 
@@ -186,9 +186,9 @@ public:
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                 if (impl.dependsOnlyOnPositions()) {
-                    impl.calcForce(*m_s, *m_rigidBodyForceCache, *m_particleForceCache, *m_mobilityForceCache);
+                    impl.calcForce(*m_s, *m_rigidBodyForceCacheLocal.upd(), *m_particleForceCacheLocal.upd(), *m_mobilityForceCacheLocal.upd());
                 } else { // ordinary velocity dependent force
-                    impl.calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
+                    impl.calcForce(*m_s, *m_rigidBodyForcesLocal.upd(), *m_particleForcesLocal.upd(), *m_mobilityForcesLocal.upd());
                 }
             }
             break;
@@ -212,8 +212,8 @@ public:
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                     if (!impl.dependsOnlyOnPositions()) {
                         impl.calcForce(*m_s,
-                                *m_rigidBodyForces, *m_particleForces,
-                                *m_mobilityForces);
+                                *m_rigidBodyForcesLocal.upd(), *m_particleForcesLocal.upd(),
+                                *m_mobilityForcesLocal.upd());
                     }
             }
             break;
