@@ -154,7 +154,7 @@ public:
                 // we use 0 for the non-parallel forces.
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
-                impl.calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
+                impl.calcForce(*m_s, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
             }
             break;
         
@@ -176,9 +176,9 @@ public:
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                 if (impl.dependsOnlyOnPositions()) {
-                    impl.calcForce(*m_s, *m_rigidBodyForceCache, *m_particleForceCache, *m_mobilityForceCache);
+                    impl.calcForce(*m_s, m_rigidBodyForceCacheLocal.upd(), m_particleForceCacheLocal.upd(), m_mobilityForceCacheLocal.upd());
                 } else { // ordinary velocity dependent force
-                    impl.calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
+                    impl.calcForce(*m_s, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
                 }
             }
             break;
@@ -202,8 +202,8 @@ public:
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                     if (!impl.dependsOnlyOnPositions()) {
                         impl.calcForce(*m_s,
-                                *m_rigidBodyForces, *m_particleForces,
-                                *m_mobilityForces);
+                                m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(),
+                                m_mobilityForcesLocal.upd());
                     }
             }
             break;
