@@ -130,7 +130,7 @@ public:
         tNextEvent = nFives * Real(5.123);
         // Careful ...
         if (   tNextEvent < s.getTime() 
-            || tNextEvent == s.getTime() && !includeCurrentTime)
+            || (tNextEvent == s.getTime() && !includeCurrentTime))
             tNextEvent += Real(5.123);
         eventIds.push_back(eventId1); // event Id for scheduled pulse
 
