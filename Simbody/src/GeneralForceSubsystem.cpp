@@ -35,7 +35,6 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include <iostream>
-#include <math.h>
 
 #include "ForceImpl.h"
 
@@ -63,27 +62,28 @@ namespace SimTK {
                     enabledNonParallelForces, enabledParallelForces,
                     rigidBodyForces, particleForces, mobilityForces);
                     */
-enum Mode {
-    All,
-    CachedAndNonCached,
-    NonCached
-};
+
 /** Calls calcForce() on all enabled forces. For an index of 0, this Task
  calculates the force for all non-parallelized forces. For all other indices,
  this Task executes a single parallelized force. */
 class CalcForcesTask : public ParallelExecutor::Task {
 public:
 
-    CalcForcesTask(){}
+    enum Mode {
+        All,
+        CachedAndNonCached,
+        NonCached
+    };
 
-    void initializeAll(
-            Mode mode,
+    CalcForcesTask(ParallelExecutor& executor): m_executor(executor), m_mode(All) {}
+
+    void calcForceAll(
             const State& s,
             const Array_<Force*>& enabledNonParallelForces,
             const Array_<Force*>& enabledParallelForces,
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
-            Vector& mobilityForces)
+            Vector& mobilityForces) 
     {
         m_s = &s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -91,9 +91,12 @@ public:
         m_rigidBodyForces = &rigidBodyForces;
         m_particleForces = &particleForces;
         m_mobilityForces = &mobilityForces;
+
+        const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
+        m_mode = All;
+        m_executor.execute(*this, numTimes);
     }
-    void initializeCachedAndNonCached(
-            Mode mode,
+    void calcForceCachedAndNonCached(
             const State& s,
             const Array_<Force*>& enabledNonParallelForces,
             const Array_<Force*>& enabledParallelForces,
@@ -113,9 +116,12 @@ public:
         m_rigidBodyForceCache = &rigidBodyForceCache;
         m_particleForceCache = &particleForceCache;
         m_mobilityForceCache = &mobilityForceCache;
+
+        const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
+        m_mode = CachedAndNonCached;
+        m_executor.execute(*this, numTimes);
     }
-    void initializeNonCached(
-            Mode mode,
+    void calcForceNonCached(
             const State& s,
             const Array_<Force*>& enabledNonParallelForces,
             const Array_<Force*>& enabledParallelForces,
@@ -129,45 +135,29 @@ public:
         m_rigidBodyForces = &rigidBodyForces;
         m_particleForces = &particleForces;
         m_mobilityForces = &mobilityForces;
-    }
-    void initialize() {
-        // The ParallelExecutor is being executed (again). Must set these to 0
-        // so that we can properly accumulate forces.
-        // TODO Sherm uses "= Vec3(0)" etc. below; is that what I should do
-        // here? Also, I'm not resizing; could the size change?
-        m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
-        m_rigidBodyForcesLocal.upd() = m_rigidBodyForces;
-        m_particleForcesLocal.upd().resize(m_particleForces->size());
-        m_particleForcesLocal.upd() = m_particleForces;
-        m_mobilityForcesLocal.upd().resize(m_mobilityForces->size());
-        m_mobilityForcesLocal.upd() = m_mobilityForces;
 
-        if (m_mode == CachedAndNonCached) {
-            m_rigidBodyForceCacheLocal.upd().resize(m_rigidBodyForceCache->size());
-            m_rigidBodyForceCacheLocal.upd().setToZero();
-            m_particleForceCacheLocal.upd().resize(m_particleForceCache->size());
-            m_particleForceCacheLocal.upd().setToZero();
-            m_mobilityForceCacheLocal.upd().resize(m_mobilityForceCache->size());
-            m_mobilityForceCacheLocal.upd().setToZero();
-        }
+        const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
+        m_mode = NonCached;
+        m_executor.execute(*this, numTimes);
     }
-    void execute(int threadIndex) {
+
+    void execute(int threadIndex) override {
         switch (m_mode) {
         case All:
             if (threadIndex == NONPARALLELFORCESINDEX) {
                 // Process all non-parallel forces
                 for (Force* force : *m_enabledNonParallelForces) {
-                    force->getImpl().calcForce(*m_s, *m_rigidBodyForcesLocal, *m_particleForces, *m_mobilityForces);
+                    force->getImpl().calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
                 }
             } else {
                 // Process a single parallel force. Subtract 1 from index b/c
                 // we use 0 for the non-parallel forces.
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
-                impl.calcForce(*m_s, *m_rigidBodyForcesLocal.upd(), *m_particleForcesLocal.upd(), *m_mobilityForcesLocal.upd());
+                impl.calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
             }
             break;
-
+        
         // TODO
         case CachedAndNonCached:
             if (threadIndex == NONPARALLELFORCESINDEX) {
@@ -186,9 +176,9 @@ public:
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                 if (impl.dependsOnlyOnPositions()) {
-                    impl.calcForce(*m_s, *m_rigidBodyForceCacheLocal.upd(), *m_particleForceCacheLocal.upd(), *m_mobilityForceCacheLocal.upd());
+                    impl.calcForce(*m_s, *m_rigidBodyForceCache, *m_particleForceCache, *m_mobilityForceCache);
                 } else { // ordinary velocity dependent force
-                    impl.calcForce(*m_s, *m_rigidBodyForcesLocal.upd(), *m_particleForcesLocal.upd(), *m_mobilityForcesLocal.upd());
+                    impl.calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
                 }
             }
             break;
@@ -212,14 +202,35 @@ public:
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                     if (!impl.dependsOnlyOnPositions()) {
                         impl.calcForce(*m_s,
-                                *m_rigidBodyForcesLocal.upd(), *m_particleForcesLocal.upd(),
-                                *m_mobilityForcesLocal.upd());
+                                *m_rigidBodyForces, *m_particleForces,
+                                *m_mobilityForces);
                     }
             }
             break;
         }
     }
-    void finish()  {
+    void initialize() override {
+        // The ParallelExecutor is being executed (again). Must set these to 0
+        // so that we can properly accumulate forces.
+        // TODO Sherm uses "= Vec3(0)" etc. below; is that what I should do
+        // here? Also, I'm not resizing; could the size change?
+        m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
+        m_rigidBodyForcesLocal.upd().setToZero();
+        m_particleForcesLocal.upd().resize(m_particleForces->size());
+        m_particleForcesLocal.upd().setToZero();
+        m_mobilityForcesLocal.upd().resize(m_mobilityForces->size());
+        m_mobilityForcesLocal.upd().setToZero();
+
+        if (m_mode == CachedAndNonCached) {
+            m_rigidBodyForceCacheLocal.upd().resize(m_rigidBodyForceCache->size());
+            m_rigidBodyForceCacheLocal.upd().setToZero();
+            m_particleForceCacheLocal.upd().resize(m_particleForceCache->size());
+            m_particleForceCacheLocal.upd().setToZero();
+            m_mobilityForceCacheLocal.upd().resize(m_mobilityForceCache->size());
+            m_mobilityForceCacheLocal.upd().setToZero();
+        }
+    }
+    void finish() override {
         // Add in this thread's contribution.
         *m_rigidBodyForces += m_rigidBodyForcesLocal.get();
         *m_particleForces += m_particleForcesLocal.get();
@@ -233,6 +244,9 @@ public:
     }
 
 private:
+
+    ParallelExecutor& m_executor;
+
     Mode m_mode;
 
     const State* m_s;
@@ -273,15 +287,17 @@ public:
      : ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
     {
         calcForcesExecutor = new ParallelExecutor;
+        calcForcesTask = new CalcForcesTask(*calcForcesExecutor);
     }
-
+    
     ~GeneralForceSubsystemRep() {
         // Delete in reverse order to be nice to heap system.
         for (int i = (int)forces.size()-1; i >= 0; --i)
-            delete forces[i];
+            delete forces[i]; 
         delete calcForcesExecutor;
+        delete calcForcesTask;
     }
-
+    
     ForceIndex adoptForce(Force& force) {
         invalidateSubsystemTopologyCache();
         const ForceIndex index((int) forces.size());
@@ -290,11 +306,11 @@ public:
         force.disown(f); // transfer ownership to f
         return index;
     }
-
+    
     int getNumForces() const {
         return forces.size();
     }
-
+    
     const Force& getForce(ForceIndex index) const {
         assert(index >= 0 && index < forces.size());
         return *forces[index];
@@ -304,15 +320,15 @@ public:
         assert(index >= 0 && index < forces.size());
         return *forces[index];
     }
-
+    
     bool isForceDisabled(const State& state, ForceIndex index) const {
         const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
             (getDiscreteVariable(state, forceEnabledIndex));
         return !forceEnabled[index];
     }
-
+    
     void setForceIsDisabled
-       (State& s, ForceIndex index, bool shouldDisable) const
+       (State& s, ForceIndex index, bool shouldDisable) const 
     {
         Array_<bool>& forceEnabled = Value< Array_<bool> >::updDowncast
             (updDiscreteVariable(s, forceEnabledIndex));
@@ -332,10 +348,12 @@ public:
 
     void setNumberOfThreads(unsigned int numThreads) {
         delete calcForcesExecutor;
-        calcForcesExecutor = new ParallelExecutor(fmin(numThreads,ParallelExecutor::getNumProcessors()));
+        delete calcForcesTask;
+        calcForcesExecutor = new ParallelExecutor(numThreads);
+        calcForcesTask = new CalcForcesTask(*calcForcesExecutor);
     }
 
-    // These override default implementations of virtual methods in the
+    // These override default implementations of virtual methods in the 
     // Subsystem::Guts class.
 
     GeneralForceSubsystemRep* cloneImpl() const override
@@ -350,17 +368,17 @@ public:
 
         // Some forces are disabled by default; initialize the enabled flags
         // accordingly. Also, see if we're going to need to do any caching
-        // on behalf of any forces that don't depend on velocities.
+        // on behalf of any forces that don't depend on velocities. 
         Array_<bool> forceEnabled(getNumForces());
         bool someForceElementNeedsCaching = false;
         for (int i = 0; i < (int)forces.size(); ++i) {
             forceEnabled[i] = !(forces[i]->isDisabledByDefault());
             if (!someForceElementNeedsCaching)
-                someForceElementNeedsCaching =
+                someForceElementNeedsCaching = 
                     forces[i]->getImpl().dependsOnlyOnPositions();
         }
 
-        forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
+        forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance, 
             new Value<Array_<bool> >(forceEnabled));
 
         //Set the force's parallelization flags accordingly
@@ -373,21 +391,21 @@ public:
                 new Value<Array_<bool> >(parallelEnabled));
             computedParallel = true;
         }
+        
 
+        
 
-
-
-        // Note that we'll allocate these even if all the needs-caching
+        // Note that we'll allocate these even if all the needs-caching 
         // elements are presently disabled. That way they'll be around when
         // the force gets enabled.
         if (someForceElementNeedsCaching) {
-            cachedForcesAreValidCacheIndex =
+            cachedForcesAreValidCacheIndex = 
                 allocateCacheEntry(s, Stage::Position, new Value<bool>());
-            rigidBodyForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics,
+            rigidBodyForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
                 new Value<Vector_<SpatialVec> >());
-            mobilityForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics,
+            mobilityForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
                 new Value<Vector>());
-            particleForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics,
+            particleForceCacheIndex = allocateCacheEntry(s, Stage::Dynamics, 
                 new Value<Vector_<Vec3> >());
         }
 
@@ -456,11 +474,11 @@ public:
                                     (getDiscreteVariable(s, parallelEnabledIndex));
 
         // Get access to System-global force cache arrays.
-        Vector_<SpatialVec>&   rigidBodyForces =
+        Vector_<SpatialVec>&   rigidBodyForces = 
                                     mbs.updRigidBodyForces(s, Stage::Dynamics);
-        Vector_<Vec3>&         particleForces  =
+        Vector_<Vec3>&         particleForces  = 
                                     mbs.updParticleForces (s, Stage::Dynamics);
-        Vector&                mobilityForces  =
+        Vector&                mobilityForces  = 
                                     mbs.updMobilityForces (s, Stage::Dynamics);
 
         // Track the enabled forces and whether they should be parallelized.
@@ -494,23 +512,20 @@ public:
         if (!cachedForcesAreValidCacheIndex.isValid()) {
 
             // Call calcForce() on all Forces, in parallel.
-            const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
-            CalcForcesTask calc;
-            calc.initializeAll(All,
-                    s,enabledNonParallelForces, enabledParallelForces,
+            calcForcesTask->calcForceAll(s,
+                    enabledNonParallelForces, enabledParallelForces,
                     rigidBodyForces, particleForces, mobilityForces);
-            calcForcesExecutor->execute(calc,numTimes);
 
             // Allow forces to do their own realization, but wait until all
             // forces have executed calcForce(). TODO: not sure if that is
             // necessary (sherm 20130716).
             for (int i = 0; i < (int)forces.size(); ++i)
-                if (forceEnabled[i])
+                if (forceEnabled[i]) 
                     forces[i]->getImpl().realizeDynamics(s);
             return 0;
         }
 
-        // OK, we're doing some caching. This is a little messier.
+        // OK, we're doing some caching. This is a little messier. 
 
         // Get access to subsystem force cache entries.
         bool& cachedForcesAreValid = Value<bool>::downcast
@@ -538,39 +553,34 @@ public:
 
             // Run through all the forces, accumulating directly into the
             // force arrays or indirectly into the cache as appropriate.
-            const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
-            CalcForcesTask calcForcesTask;
-            calcForcesTask.initializeCachedAndNonCached(CachedAndNonCached,
-                    s,enabledNonParallelForces, enabledParallelForces,
+            calcForcesTask->calcForceCachedAndNonCached(s,
+                    enabledNonParallelForces, enabledParallelForces,
                     rigidBodyForces, particleForces, mobilityForces,
                     rigidBodyForceCache, particleForceCache,
                     mobilityForceCache);
-            calcForcesExecutor->execute(calcForcesTask,numTimes);
+
             cachedForcesAreValid = true;
         } else {
 
             // Cache already valid; just need to do the non-cached ones (the
             // ones for which dependsOnlyOnPositions is false).
-            const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
-            CalcForcesTask calcForcesTask;
-            calcForcesTask.initializeNonCached(NonCached,
-                    s,enabledNonParallelForces, enabledParallelForces,
+            calcForcesTask->calcForceNonCached(s,
+                    enabledNonParallelForces, enabledParallelForces,
                     rigidBodyForces, particleForces, mobilityForces);
-            calcForcesExecutor->execute(calcForcesTask,numTimes);
         }
 
         // Accumulate the values from the cache into the global arrays.
         rigidBodyForces += rigidBodyForceCache;
         particleForces += particleForceCache;
         mobilityForces += mobilityForceCache;
-
+        
         // Allow forces to do their own Dynamics-stage realization. Note that
         // this *follows* all the calcForce() calls.
         for (int i = 0; i < (int) forces.size(); ++i)
             if (forceEnabled[i]) forces[i]->getImpl().realizeDynamics(s);
         return 0;
     }
-
+    
     Real calcPotentialEnergy(const State& state) const override {
         const Array_<bool>& forceEnabled = Value<Array_<bool> >::downcast
            (getDiscreteVariable(state, forceEnabledIndex)).get();
@@ -607,7 +617,7 @@ public:
         const Array_<bool>& enabled = Value<Array_<bool> >::downcast
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
-            if (enabled[i])
+            if (enabled[i]) 
                 forces[i]->getImpl().calcDecorativeGeometryAndAppend(s,stage,geom);
         return 0;
     }
@@ -642,7 +652,7 @@ private:
     ///////////////////////////
 
 
-/*static*/ bool
+/*static*/ bool 
 GeneralForceSubsystem::isInstanceOf(const ForceSubsystem& s) {
     return GeneralForceSubsystemRep::isA(s.getRep());
 }
@@ -657,11 +667,11 @@ GeneralForceSubsystem::updDowncast(ForceSubsystem& s) {
     return static_cast<GeneralForceSubsystem&>(s);
 }
 
-const GeneralForceSubsystemRep&
+const GeneralForceSubsystemRep& 
 GeneralForceSubsystem::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const GeneralForceSubsystemRep&>(ForceSubsystem::getRep());
 }
-GeneralForceSubsystemRep&
+GeneralForceSubsystemRep&       
 GeneralForceSubsystem::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<GeneralForceSubsystemRep&>(ForceSubsystem::updRep());
 }
@@ -669,32 +679,32 @@ GeneralForceSubsystem::updRep() {
 // Create Subsystem but don't associate it with any System. This isn't much use except
 // for making std::vector's, which require a default constructor to be available.
 GeneralForceSubsystem::GeneralForceSubsystem()
-:   ForceSubsystem()
+:   ForceSubsystem() 
 {   adoptSubsystemGuts(new GeneralForceSubsystemRep()); }
 
 GeneralForceSubsystem::GeneralForceSubsystem(MultibodySystem& mbs)
-:   ForceSubsystem()
+:   ForceSubsystem() 
 {   adoptSubsystemGuts(new GeneralForceSubsystemRep());
     mbs.addForceSubsystem(*this); } // steal ownership
 
-ForceIndex GeneralForceSubsystem::adoptForce(Force& force)
+ForceIndex GeneralForceSubsystem::adoptForce(Force& force) 
 {   return updRep().adoptForce(force); }
 
-int GeneralForceSubsystem::getNumForces() const
+int GeneralForceSubsystem::getNumForces() const 
 {   return getRep().getNumForces(); }
 
-const Force& GeneralForceSubsystem::getForce(ForceIndex index) const
+const Force& GeneralForceSubsystem::getForce(ForceIndex index) const 
 {   return getRep().getForce(index); }
 
-Force& GeneralForceSubsystem::updForce(ForceIndex index)
+Force& GeneralForceSubsystem::updForce(ForceIndex index) 
 {   return updRep().updForce(index); }
 
 bool GeneralForceSubsystem::isForceDisabled
-   (const State& state, ForceIndex index) const
+   (const State& state, ForceIndex index) const 
 {   return getRep().isForceDisabled(state, index); }
 
 void GeneralForceSubsystem::setForceIsDisabled
-   (State& state, ForceIndex index, bool disabled) const
+   (State& state, ForceIndex index, bool disabled) const 
 {   getRep().setForceIsDisabled(state, index, disabled); }
 
 void GeneralForceSubsystem::setNumberOfThreads(unsigned int numThreads)
@@ -704,3 +714,4 @@ const MultibodySystem& GeneralForceSubsystem::getMultibodySystem() const
 {   return MultibodySystem::downcast(getSystem()); }
 
 } // namespace SimTK
+
