@@ -251,7 +251,7 @@ public:
      * Called during the 
      */
     virtual bool isParallelByDefault() const {
-        return false;
+        return true;
     }
     /** The following methods may optionally be overridden to do specialized 
     realization for a Force. **/

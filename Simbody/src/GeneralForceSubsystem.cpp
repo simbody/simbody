@@ -77,6 +77,28 @@ public:
 
     CalcForcesTask(ParallelExecutor& executor): m_executor(executor), m_mode(All) {}
 
+    void initialize() override {
+        // The ParallelExecutor is being executed (again). Must set these to 0
+        // so that we can properly accumulate forces.
+        // TODO Sherm uses "= Vec3(0)" etc. below; is that what I should do
+        // here? Also, I'm not resizing; could the size change?
+        m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
+        m_rigidBodyForcesLocal.upd().setToZero();
+        m_particleForcesLocal.upd().resize(m_particleForces->size());
+        m_particleForcesLocal.upd().setToZero();
+        m_mobilityForcesLocal.upd().resize(m_mobilityForces->size());
+        m_mobilityForcesLocal.upd().setToZero();
+
+        if (m_mode == CachedAndNonCached) {
+            m_rigidBodyForceCacheLocal.upd().resize(m_rigidBodyForceCache->size());
+            m_rigidBodyForceCacheLocal.upd().setToZero();
+            m_particleForceCacheLocal.upd().resize(m_particleForceCache->size());
+            m_particleForceCacheLocal.upd().setToZero();
+            m_mobilityForceCacheLocal.upd().resize(m_mobilityForceCache->size());
+            m_mobilityForceCacheLocal.upd().setToZero();
+        }
+
+    }
     void calcForceAll(
             const State& s,
             const Array_<Force*>& enabledNonParallelForces,
@@ -154,7 +176,7 @@ public:
                 // we use 0 for the non-parallel forces.
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
-                impl.calcForce(*m_s, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
+                impl.calcForce(m_sLocal.get(), m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
             }
             break;
         
@@ -209,27 +231,6 @@ public:
             break;
         }
     }
-    void initialize() override {
-        // The ParallelExecutor is being executed (again). Must set these to 0
-        // so that we can properly accumulate forces.
-        // TODO Sherm uses "= Vec3(0)" etc. below; is that what I should do
-        // here? Also, I'm not resizing; could the size change?
-        m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
-        m_rigidBodyForcesLocal.upd().setToZero();
-        m_particleForcesLocal.upd().resize(m_particleForces->size());
-        m_particleForcesLocal.upd().setToZero();
-        m_mobilityForcesLocal.upd().resize(m_mobilityForces->size());
-        m_mobilityForcesLocal.upd().setToZero();
-
-        if (m_mode == CachedAndNonCached) {
-            m_rigidBodyForceCacheLocal.upd().resize(m_rigidBodyForceCache->size());
-            m_rigidBodyForceCacheLocal.upd().setToZero();
-            m_particleForceCacheLocal.upd().resize(m_particleForceCache->size());
-            m_particleForceCacheLocal.upd().setToZero();
-            m_mobilityForceCacheLocal.upd().resize(m_mobilityForceCache->size());
-            m_mobilityForceCacheLocal.upd().setToZero();
-        }
-    }
     void finish() override {
         // Add in this thread's contribution.
         *m_rigidBodyForces += m_rigidBodyForcesLocal.get();
@@ -266,6 +267,7 @@ private:
 
     // These variables are local to a thread. They are set to their default
     // value when the threads are spawned.
+    ThreadLocal<State> m_sLocal;//
     ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocal;
     ThreadLocal<Vector_<Vec3>> m_particleForcesLocal;
     ThreadLocal<Vector> m_mobilityForcesLocal;

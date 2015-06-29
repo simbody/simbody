@@ -50,7 +50,7 @@ public:
         return false;
     }
     virtual bool isParallelByDefault() const{
-        return false;
+        return true;
     }
     ForceIndex getForceIndex() const {return index;}
     const GeneralForceSubsystem& getForceSubsystem() const 

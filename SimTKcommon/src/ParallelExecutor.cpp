@@ -34,6 +34,7 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
     // Construct all the threading related objects we will need.
     
     SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
+
     threads.resize(numThreads);
     pthread_mutex_init(&runLock, NULL);
     pthread_cond_init(&runCondition, NULL);
@@ -177,15 +178,28 @@ void ParallelExecutor::execute(Task& task, int times) {
 
 int ParallelExecutor::getNumProcessors() {
 #ifdef __APPLE__
-    int ncpu,retval;
-    size_t len = 4;
+    int numCPU = 1; //by default set the number of CPUs to 1
+    int mib[4];
+    size_t len = sizeof(numCPU); 
 
-    retval = sysctlbyname( "hw.physicalcpu", &ncpu, &len, NULL, 0 );
-    if( retval == 0 ) {
-       return (ncpu );
-    } else {
-       return(1);
+    /* set the mib for hw.ncpu */
+    mib[0] = CTL_HW;
+    mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
+
+    /* get the number of CPUs from the system */
+    sysctl(mib, 2, &numCPU, &len, NULL, 0);
+
+    if( numCPU < 1 ) 
+    {
+         mib[1] = HW_NCPU;
+         sysctl( mib, 2, &numCPU, &len, NULL, 0 );
+
+         if( numCPU < 1 )
+         {
+              numCPU = 1;
+         }
     }
+    return numCPU;
 #else
 #ifdef __linux__
     long nProcessorsOnline     = sysconf(_SC_NPROCESSORS_ONLN);
@@ -196,7 +210,6 @@ int ParallelExecutor::getNumProcessors() {
     }
 #else
     // Windows
-
     SYSTEM_INFO siSysInfo;
     int ncpu;
 
