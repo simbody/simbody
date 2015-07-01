@@ -218,10 +218,10 @@ universe), but otherwise every mobilized body has a unique body and mobilizer.
 
 Example: 
   - Here we use a model of a planar pendulum with 1 degree-of-freedom.
-  - The command getNumBodies() will return 2  
+  - The command getNumBodies() will return 2.  
   - Why? Ground counts as a mobilized body, and so does the pendulum. 
   - Note that Ground is at MobilizedBodyIndex(0), and the pendulum is at 
-    the MobilizedBodyIndex(1)**/
+    the MobilizedBodyIndex(1).**/
 int getNumBodies() const;
 
 /** This is the total number of defined constraints, each of which may
