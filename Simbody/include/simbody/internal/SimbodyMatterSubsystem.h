@@ -206,15 +206,22 @@ geometry that can be used to visualize this multibody system. **/
 bool getShowDefaultGeometry() const;
 
 /** The number of bodies includes all mobilized bodies \e including Ground,
-which is the 0th mobilized body. (Note: if special particle handling were
-implmemented, the count here would \e not include particles.) Bodies and their
-inboard mobilizers have the same index since they are grouped together as a 
-MobilizedBody. MobilizedBody numbering (using unique integer type
-MobilizedBodyIndex) starts with Ground at MobilizedBodyIndex(0) with a regular
-labeling such that children have higher indices than their parents. Ground
-does not have a mobilizer (or I suppose you could think of its mobilizer as 
-the Weld joint that attaches it to the universe), but otherwise 
-every mobilized body has a unique body and mobilizer. **/
+which is the 1st mobilized body, at the 0th MobilizedBodyIndex. (Note: if 
+special particle handling were implemented, the count here would \e not 
+include particles.) Bodies and their inboard mobilizers have the same index 
+since they are grouped together as a MobilizedBody. MobilizedBody numbering 
+(using unique integer type MobilizedBodyIndex) starts with Ground at 
+MobilizedBodyIndex(0) with a regular labeling such that children have higher 
+indices than their parents. Ground does not have a mobilizer (or I suppose 
+you could think of its mobilizer as the Weld joint that attaches it to the 
+universe), but otherwise every mobilized body has a unique body and mobilizer. 
+
+Example: 
+  \li Here we use a model of a planar pendulum with 1 degree-of-freedom.
+  \li The command getNumBodies() will return 2.
+  \li Why? Ground counts as a mobilized body, and so does the pendulum.
+  \li But note that Ground is at MobilizedBodyIndex(0), and the pendulum 
+      is at the MobilizedBodyIndex(1)**/
 int getNumBodies() const;
 
 /** This is the total number of defined constraints, each of which may
