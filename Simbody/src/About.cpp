@@ -32,6 +32,10 @@
 #include <cstring>
 #include <cctype>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#endif
+
 #define STR(var) #var
 #define MAKE_VERSION_STRING(maj,min,build)  STR(maj.min.build)
 #define MAKE_COPYRIGHT_STRING(y,a) \

@@ -79,8 +79,12 @@ const static double NEGATIVE_INF = -2e19;
 
 namespace SimTK {
 
-
 namespace Exception {
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4996) // don't warn about sprintf, etc.
+#endif
 
 class OptimizerFailed : public Base {
 public:
@@ -173,6 +177,11 @@ public:
         }
 private:
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 } // namespace Exception
 
 } //  namespace SimTK

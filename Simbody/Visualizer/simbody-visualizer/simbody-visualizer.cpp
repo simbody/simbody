@@ -28,6 +28,7 @@
 #include "lodepng.h"
 
 #include <cstdlib>
+#include <cmath>
 #include <string>
 #include <algorithm>
 #include <set>
@@ -98,16 +99,22 @@ static void shutdown();
 #ifdef _WIN32
     #include <io.h>
     #define READ _read
+    #define WRITEFUNC _write
 #else
     #include <unistd.h>
     #define READ read
+    #define WRITEFUNC write
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strerror, sprintf, etc.
 #endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return
 // status from the write() system call. This avoids those
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
-   {int status=write((pipeno), (buf), (len)); \
+   {int status=WRITEFUNC((pipeno), (buf), (len)); \
     SimTK_ERRCHK4_ALWAYS(status!=-1, "simbody-visualizer",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}
@@ -1261,7 +1268,7 @@ static void drawGroundAndSky(float farClipDistance) {
                 float y = j/(float) width;
                 double line = min(min(min(x, y), 1.0f-x), 1.0f-y);
                 float noise = (rand()%255)/255.0f-0.5f;
-                groundImage[i*width+j] = pow(line,0.1)*(0.35f+noise);
+                groundImage[i*width+j] = float(std::pow(line,.1)*(.35f+noise));
             }
         }
         glTexImage2D(GL_TEXTURE_2D, 0, 1, width, width, 0, GL_RED, GL_FLOAT, groundImage);
@@ -1484,7 +1491,7 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
         const double now = realTime(); // in seconds at high resolution
         const double elapsed = now - fpsBaseTime;
         if (elapsed >= 1) {
-            fps = fpsCounter/elapsed;
+            fps = float(fpsCounter/elapsed);
             fpsBaseTime = now;
             fpsCounter = 0;
         }
@@ -1761,7 +1768,7 @@ static void mouseDragged(int x, int y) {
       || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
     {
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
-        X_GC.updP() += translatePerPixel*X_GC.R()*fVec3(dx, -dy, 0);
+        X_GC.updP() += translatePerPixel*X_GC.R()*fVec3(float(dx),float(-dy),0);
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     }
 
@@ -1770,7 +1777,7 @@ static void mouseDragged(int x, int y) {
            || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
     {
         pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
-        X_GC.updP() += translatePerPixel* X_GC.R()*fVec3(0, 0, dy);
+        X_GC.updP() += translatePerPixel* X_GC.R()*fVec3(0,0,float(dy));
         pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
     }
 

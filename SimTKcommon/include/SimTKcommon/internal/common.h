@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Chris Dembia                                                 *
  *                                                                            *
@@ -262,8 +262,24 @@ cache misses which ultimately reduce performance. */
     #define SimTK_FORCE_INLINE __attribute__((always_inline))
 #endif
 
+/* C++14 introduces a standard way to mark deprecated declarations. Before
+that we can use non-standard compiler hacks. */
+#ifndef SWIG
+    #if __cplusplus >= 201402L
+        /* C++14 */
+        #define DEPRECATED_14(MSG) [[deprecated(MSG)]]
+    #elif _MSC_VER
+        /* VC++ just says warning C4996 so add "DEPRECATED" to the message. */
+        #define DEPRECATED_14(MSG) __declspec(deprecated("DEPRECATED: " MSG))
+    #else /* gcc or clang */
+        #define DEPRECATED_14(MSG) __attribute__((deprecated(MSG)))
+    #endif
+#else /* Swigging */
+    #define DEPRECATED_14(MSG)
+#endif
+
 /* These macros are deprecated, leftover from before C++11 was available. 
-Don't use them. */
+Don't use them. Sorry, can't use the DEPRECATED_14 macro here! */
 #define OVERRIDE_11 override
 #define FINAL_11 final
 
