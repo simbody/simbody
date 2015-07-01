@@ -165,6 +165,11 @@ private:
 
 namespace Exception {
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4996) // don't warn about sprintf, etc.
+#endif
+
 class RealizeTopologyMustBeCalledFirst : public Base {
 public:
     RealizeTopologyMustBeCalledFirst(const char* fn, int ln,
@@ -279,6 +284,9 @@ public:
     virtual ~RealizeCheckFailed() throw() { }
 };
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 } // namespace Exception
 

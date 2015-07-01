@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -148,12 +148,17 @@ public:
     the container is non-null (that is, not empty). **/
     operator bool() const { return !empty(); }
 
-    /** Return a writable pointer to the contained object if any, or null. 
-    You can use the "address of" operator\&() instead if you prefer. **/
-    T* updPtr() { return p; }
-    /** Return a const pointer to the contained object if any, or null.  
-    You can use the "address of" operator\&() instead if you prefer. **/
-    const T* getPtr()  const  { return p; }
+    /** Return a const pointer to the contained object if any, or nullptr. Note 
+    that this is different than `%get()` for the standard smart pointers which 
+    return a writable pointer. Use upd() here for that purpose. 
+    @see upd(), getRef() **/
+    const T* get()  const  { return p; }
+
+    /** Return a writable pointer to the contained object if any, or nullptr. 
+    Note that you need write access to this container in order to get write 
+    access to the object it contains.
+    @see get(), updRef() **/
+    T* upd() { return p; }
 
     /** Return a writable reference to the contained object. Don't call this if
     this container is empty. There is also an implicit conversion to reference
@@ -202,7 +207,15 @@ public:
         other.reset(p);
         reset(otherp);
     }
-     
+
+    /** <b>(Deprecated)</b> Same as `get()`. Use get() instead; it is more like 
+    the API for `std::unique_ptr`. **/
+    DEPRECATED_14("use get() instead")
+    const T* getPtr()  const  { return get(); }
+    /** <b>(Deprecated)</b> Same as `upd()`. Use upd() instead; it is a better 
+    match for `get()` modeled after the API for `std::unique_ptr`. **/
+    DEPRECATED_14("use upd() instead")
+    T* updPtr() { return upd(); }
 private:
     // Warning: ClonePtr must be exactly the same size as type T*. That way
     // one can reinterpret_cast a T* to a ClonePtr<T> when needed.

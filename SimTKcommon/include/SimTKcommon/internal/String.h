@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -24,12 +24,6 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-// Keeps MS VC++ 8 quiet about sprintf, strcpy, etc.
-#ifdef _MSC_VER
-#pragma warning(disable:4996)
-#endif
-
-
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 
@@ -38,6 +32,12 @@
 #include <limits>
 #include <complex>
 #include <sstream>
+
+// Keeps MS VC++ quiet about sprintf, strcpy, etc.
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4996)
+#endif
 
 namespace SimTK {
 
@@ -465,5 +465,10 @@ template <class T> inline static
 T convertStringTo(const String& in)
 {   return in.convertTo<T>(); }
 
-}
+} // namespace SimTK
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #endif // SimTK_SimTKCOMMON_STRING_H_

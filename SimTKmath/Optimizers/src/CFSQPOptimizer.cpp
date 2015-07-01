@@ -24,6 +24,10 @@
 #include "CFSQPOptimizer.h"
 #include <string>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#endif
+
 //TODO only works in double precision without some mods
 #if SimTK_DEFAULT_PRECISION == 2
 

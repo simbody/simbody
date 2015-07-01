@@ -34,6 +34,10 @@
 #include "WorkSpace.h"
 #include <cstring>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#endif
+
 static const double EPS = .000001;
 namespace SimTK {
 
