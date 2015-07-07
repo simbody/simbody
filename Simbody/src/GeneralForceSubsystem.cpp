@@ -35,6 +35,7 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include <iostream>
+#include <exception>
 
 #include "ForceImpl.h"
 
@@ -165,6 +166,7 @@ public:
     }
 
     void execute(int threadIndex) override {
+      try{
         switch (m_mode) {
         case All:
             if (threadIndex == NONPARALLELFORCESINDEX) {
@@ -231,6 +233,9 @@ public:
             }
             break;
         }
+      }catch(Exception e){
+        throw(e);
+      }
     }
     void finish() override {
         // Add in this thread's contribution.

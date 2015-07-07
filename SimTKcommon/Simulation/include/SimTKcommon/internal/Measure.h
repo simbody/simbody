@@ -112,7 +112,7 @@
     static bool isA(const SimTK::AbstractMeasure& m)                        \
     {   return dynamic_cast<const Implementation*>(&m.getImpl()) != 0; }    \
     static const MH& getAs(const SimTK::AbstractMeasure& m)                 \
-    { return assert(isA(m)); static_cast<const MH&>(m); }                 \
+    { assert(isA(m)); return static_cast<const MH&>(m); }                 \
     static MH& updAs(SimTK::AbstractMeasure& m)                             \
     {   assert(isA(m)); return static_cast<MH&>(m); }                       \
     const Implementation& getImpl() const                                   \
