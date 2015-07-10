@@ -112,7 +112,7 @@
     static bool isA(const SimTK::AbstractMeasure& m)                        \
     {   return dynamic_cast<const Implementation*>(&m.getImpl()) != 0; }    \
     static const MH& getAs(const SimTK::AbstractMeasure& m)                 \
-    { assert(isA(m)); return static_cast<const MH&>(m); }                 \
+    { return static_cast<const MH&>(m); }                 \
     static MH& updAs(SimTK::AbstractMeasure& m)                             \
     {   assert(isA(m)); return static_cast<MH&>(m); }                       \
     const Implementation& getImpl() const                                   \
@@ -240,13 +240,13 @@ public:
     const Implementation& getImpl() const {assert(impl); return *impl;}
     Implementation&       updImpl()       {assert(impl); return *impl;}
     bool                  hasImpl() const {return impl!=0;}
-
     int getRefCount() const;
+    Implementation* impl;
+
 private:
     // This is the only data member in this class. Also, any class derived
     // from AbstractMeasure must have *NO* data members at all (data goes
     // in the Implementation class).
-    Implementation* impl;
 
 friend class Implementation;
 };

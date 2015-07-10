@@ -183,7 +183,6 @@ public:
             }
             break;
 
-        // TODO
         case CachedAndNonCached:
             if (threadIndex == NONPARALLELFORCESINDEX) {
                 // Process all non-parallel forces.
@@ -208,7 +207,6 @@ public:
             }
             break;
 
-        // TODO
         case NonCached:
             if (threadIndex == NONPARALLELFORCESINDEX) {
                 // Process all non-parallel forces.
@@ -233,7 +231,7 @@ public:
             }
             break;
         }
-      }catch(Exception e){
+      }catch(std::exception e){
         throw(e);
       }
     }
@@ -389,7 +387,8 @@ public:
         forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
             new Value<Array_<bool> >(forceEnabled));
 
-        //Set the force's parallelization flags accordingly
+        //Set the force's parallelization flags accordingly, do not readd the forces to the vector
+        //since a force is not able to change its parallelism flag mid-computation
         if(!computedParallel){
             Array_<bool> parallelEnabled(getNumForces());
             for (int i = 0; i < (int)forces.size(); ++i){
@@ -399,9 +398,6 @@ public:
                 new Value<Array_<bool> >(parallelEnabled));
             computedParallel = true;
         }
-
-
-
 
         // Note that we'll allocate these even if all the needs-caching
         // elements are presently disabled. That way they'll be around when
@@ -490,28 +486,19 @@ public:
                                     mbs.updMobilityForces (s, Stage::Dynamics);
 
         // Track the enabled forces and whether they should be parallelized.
-        // TODO is this expensive?
         Array_<Force*> enabledNonParallelForces;
         Array_<Force*> enabledParallelForces;
 
         // Avoid repeatedly allocating memory.
         enabledNonParallelForces.reserve(forces.size());
         enabledParallelForces.reserve(forces.size());
-        int parallelCount = 0;
-        int nonParallelCount = 0;
         for (int i = 0; i < (int) forces.size(); ++i) {
             if(forceEnabled[i])
             {
                 if (parallelEnabled[i])
-                    {
-                            enabledParallelForces.push_back(forces[i]);
-                            parallelCount++;
-                    }
+                    enabledParallelForces.push_back(forces[i]);
                 else
-                    {
-                        enabledNonParallelForces.push_back(forces[i]);
-                        nonParallelCount++;
-                    }
+                    enabledNonParallelForces.push_back(forces[i]);
             }
         }
         // Short circuit if we're not doing any caching here. Note that we're
@@ -534,7 +521,6 @@ public:
         }
 
         // OK, we're doing some caching. This is a little messier.
-
         // Get access to subsystem force cache entries.
         bool& cachedForcesAreValid = Value<bool>::downcast
                           (updCacheEntry(s, cachedForcesAreValidCacheIndex));
@@ -634,12 +620,11 @@ private:
     Array_<Force*>                  forces;
 
     // For parallel calculation of forces.
-    // TODO figure out memory management.
     ParallelExecutor*               calcForcesExecutor;
     CalcForcesTask*                 calcForcesTask;
-
     mutable bool computedParallel = false;
-        // TOPOLOGY "CACHE"
+
+    // TOPOLOGY "CACHE"
     // These indices must be filled in during realizeTopology and treated
     // as const thereafter.
 

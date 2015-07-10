@@ -33,7 +33,7 @@
 #include "SimTKcommon/internal/SubsystemGuts.h"
 
 #include <cmath>
-
+#include <exception>
 
 namespace SimTK {
 
