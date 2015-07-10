@@ -292,6 +292,8 @@ public:
     GeneralForceSubsystemRep()
      : ForceSubsystemRep("GeneralForceSubsystem", "0.0.1")
     {
+        //The default number of threads is the physical number of processors
+        //call setNumberOfThreads() if you want to override the thread count
         calcForcesExecutor = new ParallelExecutor;
         calcForcesTask = new CalcForcesTask(*calcForcesExecutor);
     }
@@ -353,6 +355,7 @@ public:
     }
 
     void setNumberOfThreads(unsigned int numThreads) {
+        assert(numThreads > 0);
         delete calcForcesExecutor;
         delete calcForcesTask;
         calcForcesExecutor = new ParallelExecutor(numThreads);
@@ -492,6 +495,7 @@ public:
         // Avoid repeatedly allocating memory.
         enabledNonParallelForces.reserve(forces.size());
         enabledParallelForces.reserve(forces.size());
+
         for (int i = 0; i < (int) forces.size(); ++i) {
             if(forceEnabled[i])
             {

@@ -25,6 +25,8 @@
  * -------------------------------------------------------------------------- */
 
 #include "PrivateImplementation.h"
+#include <thread>
+#include <iostream>
 
 namespace SimTK {
 
@@ -41,17 +43,17 @@ class ParallelExecutorImpl;
  * This class is used for performing multithreaded computations.  To use it, define a subclass of
  * ParallelExecutor::Task that performs some computation.  Then create a ParallelExecutor object
  * and ask it to execute the task:
- * 
+ *
  * <pre>
  * ParallelExecutor executor;
  * executor.execute(myTask, times);
  * </pre>
- * 
+ *
  * The Task's execute() method will be called the specified number of times, with each invocation
  * being given a different index value from 0 to times-1.  The invocations are done in parallel
  * on multiple threads, so you cannot make any assumptions about what order they will occur in
  * or which ones will happen at the same time.
- * 
+ *
  * The threads are created in the ParallelExecutor's constructor and remain active until it is deleted.
  * This means that creating a ParallelExecutor is a somewhat expensive operation, but it may then be
  * used repeatedly for executing various calculations.  By default, the number of threads is chosen
@@ -67,26 +69,32 @@ public:
     class Task;
     /**
      * Construct a ParallelExecutor.
-     * 
+     *
      * @param numThreads the number of threads to create.  By default, this is set equal to the number
-     * of processors.
+     * of physical processors. (Use getNumProcessors if you also want to use hyper-threaded cores)
      */
     explicit ParallelExecutor(int numThreads = getNumProcessors());
     /**
      * Execute a parallel task.
-     * 
+     *
      * @param task    the Task to execute
      * @param times   the number of times the Task should be executed
      */
     void execute(Task& task, int times);
     /**
-     * Get the number of available processor cores.
+     * Get the number of total available processor cores.
      */
     static int getNumProcessors();
+    /**
+     * Get the number of physical processor cores.
+     */
+    static int getNumPhysicalProcessors();
+
     /**
      * Determine whether the thread invoking this method is a worker thread created by ParallelExecutor.
      */
     static bool isWorkerThread();
+private:
 };
 
 /**

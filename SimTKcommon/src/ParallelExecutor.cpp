@@ -24,6 +24,10 @@
 #include "ParallelExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include <pthread.h>
+#include <iostream>
+#include <string>
+
+using namespace std;
 
 namespace SimTK {
 
@@ -32,7 +36,7 @@ static void* threadBody(void* args);
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
     // Construct all the threading related objects we will need.
-    
+
     SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
 
     threads.resize(numThreads);
@@ -45,23 +49,23 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
     }
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
-    
+
     // Notify the threads that they should exit.
-    
+
     pthread_mutex_lock(&runLock);
     finished = true;
     for (int i = 0; i < (int) threads.size(); ++i)
         threadInfo[i]->running = true;
     pthread_cond_broadcast(&runCondition);
     pthread_mutex_unlock(&runLock);
-    
+
     // Wait until all the threads have finished.
-    
+
     for (int i = 0; i < (int) threads.size(); ++i)
         pthread_join(threads[i], NULL);
-    
+
     // Clean up threading related objects.
-    
+
     pthread_mutex_destroy(&runLock);
     pthread_cond_destroy(&runCondition);
     pthread_cond_destroy(&waitCondition);
@@ -73,16 +77,16 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
     if (times == 1 || threads.size() == 1) {
         // Nothing is actually going to get done in parallel, so we might as well
         // just execute the task directly and save the threading overhead.
-        
+
         task.initialize();
         for (int i = 0; i < times; ++i)
             task.execute(i);
         task.finish();
         return;
     }
-    
+
     // Initialize fields to execute the new task.
-    
+
     pthread_mutex_lock(&runLock);
     currentTask = &task;
     currentTaskCount = times;
@@ -91,7 +95,7 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
         threadInfo[i]->running = true;
 
     // Wake up the worker threads and wait until they finish.
-    
+
     pthread_cond_broadcast(&runCondition);
     do {
         pthread_cond_wait(&waitCondition, &runLock);
@@ -120,18 +124,18 @@ void* threadBody(void* args) {
     ParallelExecutorImpl& executor = *info.executor;
     int threadCount = executor.getThreadCount();
     while (!executor.isFinished()) {
-        
+
         // Wait for a Task to come in.
-        
+
         pthread_mutex_lock(executor.getLock());
         while (!info.running) {
             pthread_cond_wait(executor.getCondition(), executor.getLock());
         }
         pthread_mutex_unlock(executor.getLock());
         if (!executor.isFinished()) {
-            
+
             // Execute the task for all the indices belonging to this thread.
-            
+
             int count = executor.getCurrentTaskCount();
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
@@ -176,54 +180,58 @@ void ParallelExecutor::execute(Task& task, int times) {
   #error "Architecture unsupported"
 #endif
 
+
+int ParallelExecutor::getNumPhysicalProcessors(){
+  return std::thread::hardware_concurrency();
+}
 int ParallelExecutor::getNumProcessors() {
-#ifdef __APPLE__
-    int numCPU = 1; //by default set the number of CPUs to 1
-    int mib[4];
-    size_t len = sizeof(numCPU); 
+  #ifdef __APPLE__
+      int numCPU = 1; //by default set the number of CPUs to 1
+      int mib[4];
+      size_t len = sizeof(numCPU);
 
-    /* set the mib for hw.ncpu */
-    mib[0] = CTL_HW;
-    mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
+      /* set the mib for hw.ncpu */
+      mib[0] = CTL_HW;
+      mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
 
-    /* get the number of CPUs from the system */
-    sysctl(mib, 2, &numCPU, &len, NULL, 0);
+      /* get the number of CPUs from the system */
+      sysctl(mib, 2, &numCPU, &len, NULL, 0);
 
-    if( numCPU < 1 ) 
-    {
-         mib[1] = HW_NCPU;
-         sysctl( mib, 2, &numCPU, &len, NULL, 0 );
+      if( numCPU < 1 )
+      {
+           mib[1] = HW_NCPU;
+           sysctl( mib, 2, &numCPU, &len, NULL, 0 );
 
-         if( numCPU < 1 )
-         {
-              numCPU = 1;
-         }
-    }
-    return numCPU;
-#else
-#ifdef __linux__
-    long nProcessorsOnline     = sysconf(_SC_NPROCESSORS_ONLN);
-    if( nProcessorsOnline == -1 )  {
-        return(1);
-    } else {
-        return( (int)nProcessorsOnline );
-    }
-#else
-    // Windows
-    SYSTEM_INFO siSysInfo;
-    int ncpu;
+           if( numCPU < 1 )
+           {
+                numCPU = 1;
+           }
+      }
+      return numCPU;
+  #else
+  #ifdef __linux__
+      long nProcessorsOnline     = sysconf(_SC_NPROCESSORS_ONLN);
+      if( nProcessorsOnline == -1 )  {
+          return(1);
+      } else {
+          return( (int)nProcessorsOnline );
+      }
+  #else
+      // Windows
+      SYSTEM_INFO siSysInfo;
+      int ncpu;
 
-    // Copy the hardware information to the SYSTEM_INFO structure.
+      // Copy the hardware information to the SYSTEM_INFO structure.
 
-    GetSystemInfo(&siSysInfo);
+      GetSystemInfo(&siSysInfo);
 
-    // Display the contents of the SYSTEM_INFO structure.
+      // Display the contents of the SYSTEM_INFO structure.
 
-    ncpu =  siSysInfo.dwNumberOfProcessors;
-    if( ncpu < 1 ) ncpu = 1;
-    return(ncpu);
-#endif
-#endif
+      ncpu =  siSysInfo.dwNumberOfProcessors;
+      if( ncpu < 1 ) ncpu = 1;
+      return(ncpu);
+  #endif
+  #endif
 }
 
 bool ParallelExecutor::isWorkerThread() {

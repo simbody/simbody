@@ -43,9 +43,9 @@ void Force::setDisabledByDefault(bool shouldBeDisabled)
 bool Force::isDisabledByDefault() const
 {   return getImpl().isDisabledByDefault(); }
 
-void Force::disable(State& state) const 
+void Force::disable(State& state) const
 {   getForceSubsystem().setForceIsDisabled(state, getForceIndex(), true); }
-void Force::enable(State& state) const 
+void Force::enable(State& state) const
 {   getForceSubsystem().setForceIsDisabled(state, getForceIndex(), false); }
 bool Force::isDisabled(const State& state) const
 {   return getForceSubsystem().isForceDisabled(state, getForceIndex()); }
@@ -53,7 +53,7 @@ bool Force::isDisabled(const State& state) const
 void Force::calcForceContribution(const State&   state,
                            Vector_<SpatialVec>&  bodyForces,
                            Vector_<Vec3>&        particleForces,
-                           Vector&               mobilityForces) const 
+                           Vector&               mobilityForces) const
 {
     const MultibodySystem& mbs = getForceSubsystem().getMultibodySystem();
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
@@ -78,7 +78,7 @@ Real Force::calcPotentialEnergyContribution(const State& state) const {
     return getImpl().calcPotentialEnergy(state);
 }
 
-const GeneralForceSubsystem& Force::getForceSubsystem() const 
+const GeneralForceSubsystem& Force::getForceSubsystem() const
 {   return getImpl().getForceSubsystem(); }
 ForceIndex Force::getForceIndex() const
 {   return getImpl().getForceIndex(); }
@@ -139,7 +139,7 @@ Real Force::TwoPointLinearSpringImpl::calcPotentialEnergy(const State& state) co
 
 
 void Force::TwoPointLinearSpringImpl::
-calcDecorativeGeometryAndAppend(const State& state, Stage stage, 
+calcDecorativeGeometryAndAppend(const State& state, Stage stage,
                                 Array_<DecorativeGeometry>& geom) const {
     if (stage==Stage::Position && matter.getShowDefaultGeometry()) {
         const Transform& X_GB1 = matter.getMobilizedBody(body1)
@@ -247,20 +247,20 @@ Real Force::TwoPointConstantForceImpl::calcPotentialEnergy(const State& state) c
 //--------------------------- MobilityLinearSpring -----------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring, 
-                                        Force::MobilityLinearSpringImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearSpring,
+                                        Force::MobilityLinearSpringImpl,
                                         Force);
 
 Force::MobilityLinearSpring::
-MobilityLinearSpring(GeneralForceSubsystem&  forces, 
-                     const MobilizedBody&    mobod, 
-                     MobilizerQIndex         whichQ, 
-                     Real                    defaultStiffness, 
-                     Real                    defaultQZero) 
-:   Force(new MobilityLinearSpringImpl(mobod, whichQ, 
-                                       defaultStiffness, defaultQZero)) 
+MobilityLinearSpring(GeneralForceSubsystem&  forces,
+                     const MobilizedBody&    mobod,
+                     MobilizerQIndex         whichQ,
+                     Real                    defaultStiffness,
+                     Real                    defaultQZero)
+:   Force(new MobilityLinearSpringImpl(mobod, whichQ,
+                                       defaultStiffness, defaultQZero))
 {
-    SimTK_ERRCHK1_ALWAYS(defaultStiffness >= 0, 
+    SimTK_ERRCHK1_ALWAYS(defaultStiffness >= 0,
         "Force::MobilityLinearSpring::MobilityLinearSpring()",
         "Stiffness coefficient must be nonnegative "
         "(defaultStiffness=%g).", defaultStiffness);
@@ -270,7 +270,7 @@ MobilityLinearSpring(GeneralForceSubsystem&  forces,
 
 Force::MobilityLinearSpring& Force::MobilityLinearSpring::
 setDefaultStiffness(Real defaultStiffness) {
-    SimTK_ERRCHK1_ALWAYS(defaultStiffness >= 0, 
+    SimTK_ERRCHK1_ALWAYS(defaultStiffness >= 0,
         "Force::MobilityLinearSpring::setDefaultStiffness()",
         "Stiffness coefficient must be nonnegative "
         "(defaultStiffness=%g).", defaultStiffness);
@@ -295,50 +295,50 @@ setDefaultQZero(Real defaultQZero) {
 }
 
 Real Force::MobilityLinearSpring::
-getDefaultStiffness() const 
+getDefaultStiffness() const
 {   return getImpl().m_defaultStiffness; }
 
 Real Force::MobilityLinearSpring::
-getDefaultQZero() const 
+getDefaultQZero() const
 {   return getImpl().m_defaultQZero; }
 
 const Force::MobilityLinearSpring& Force::MobilityLinearSpring::
 setStiffness(State& state, Real stiffness) const {
-    SimTK_ERRCHK1_ALWAYS(stiffness >= 0, 
+    SimTK_ERRCHK1_ALWAYS(stiffness >= 0,
         "Force::MobilityLinearSpring::setStiffness()",
         "Stiffness coefficient must be nonnegative "
         "(stiffness=%g).", stiffness);
 
-    getImpl().updParams(state).first = stiffness; 
-    return *this; 
+    getImpl().updParams(state).first = stiffness;
+    return *this;
 }
 
 const Force::MobilityLinearSpring& Force::MobilityLinearSpring::
-setQZero(State& state, Real qZero) const 
+setQZero(State& state, Real qZero) const
 {   getImpl().updParams(state).second = qZero; return *this; }
 
 Real Force::MobilityLinearSpring::
-getStiffness(const State& state) const 
+getStiffness(const State& state) const
 {   return getImpl().getParams(state).first; }
 
 Real Force::MobilityLinearSpring::
-getQZero(const State& state) const 
+getQZero(const State& state) const
 {   return getImpl().getParams(state).second; }
 
 Force::MobilityLinearSpringImpl::
-MobilityLinearSpringImpl(const MobilizedBody&    mobod, 
+MobilityLinearSpringImpl(const MobilizedBody&    mobod,
                          MobilizerQIndex         whichQ,
-                         Real                    defaultStiffness, 
-                         Real                    defaultQZero) 
-:   m_matter(mobod.getMatterSubsystem()), 
-    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichQ(whichQ), 
+                         Real                    defaultStiffness,
+                         Real                    defaultQZero)
+:   m_matter(mobod.getMatterSubsystem()),
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichQ(whichQ),
     m_defaultStiffness(defaultStiffness), m_defaultQZero(defaultQZero)
 {
 }
 
 void Force::MobilityLinearSpringImpl::
-calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const
 {
     const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
     const Real q = mb.getOneQ(state, m_whichQ);
@@ -346,7 +346,7 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     const Real k = params.first, q0 = params.second;
     const Real frc = -k*(q-q0);
     // bug: this is depending on qdot=u
-    mb.applyOneMobilityForce(state, MobilizerUIndex((int)m_whichQ), 
+    mb.applyOneMobilityForce(state, MobilizerUIndex((int)m_whichQ),
                              frc, mobilityForces);
 }
 
@@ -365,18 +365,18 @@ calcPotentialEnergy(const State& state) const {
 //--------------------------- MobilityLinearDamper -----------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper, 
-                                        Force::MobilityLinearDamperImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearDamper,
+                                        Force::MobilityLinearDamperImpl,
                                         Force);
 
 Force::MobilityLinearDamper::
-MobilityLinearDamper(GeneralForceSubsystem& forces, 
-                     const MobilizedBody&   mobod, 
+MobilityLinearDamper(GeneralForceSubsystem& forces,
+                     const MobilizedBody&   mobod,
                      MobilizerUIndex        whichU,
-                     Real                   defaultDamping) 
-:   Force(new MobilityLinearDamperImpl(mobod, whichU, defaultDamping)) 
+                     Real                   defaultDamping)
+:   Force(new MobilityLinearDamperImpl(mobod, whichU, defaultDamping))
 {
-    SimTK_ERRCHK1_ALWAYS(defaultDamping >= 0, 
+    SimTK_ERRCHK1_ALWAYS(defaultDamping >= 0,
         "Force::MobilityLinearDamper::MobilityLinearDamper()",
         "Damping coefficient must be nonnegative "
         "(defaultDamping=%g).", defaultDamping);
@@ -387,7 +387,7 @@ MobilityLinearDamper(GeneralForceSubsystem& forces,
 
 Force::MobilityLinearDamper& Force::MobilityLinearDamper::
 setDefaultDamping(Real defaultDamping) {
-    SimTK_ERRCHK1_ALWAYS(defaultDamping >= 0, 
+    SimTK_ERRCHK1_ALWAYS(defaultDamping >= 0,
         "Force::MobilityLinearDamper::setDefaultDamping()",
         "Damping coefficient must be nonnegative "
         "(defaultDamping=%g).", defaultDamping);
@@ -401,39 +401,39 @@ setDefaultDamping(Real defaultDamping) {
 }
 
 Real Force::MobilityLinearDamper::
-getDefaultDamping() const 
+getDefaultDamping() const
 {   return getImpl().m_defaultDamping; }
 
 const Force::MobilityLinearDamper& Force::MobilityLinearDamper::
-setDamping(State& state, Real damping) const 
+setDamping(State& state, Real damping) const
 {
-    SimTK_ERRCHK1_ALWAYS(damping >= 0, 
+    SimTK_ERRCHK1_ALWAYS(damping >= 0,
         "Force::MobilityLinearDamper::setDamping()",
         "Damping coefficient must be nonnegative "
         "(damping=%g).", damping);
 
-    getImpl().updDamping(state) = damping; 
-    return *this; 
+    getImpl().updDamping(state) = damping;
+    return *this;
 }
 
 Real Force::MobilityLinearDamper::
-getDamping(const State& state) const 
+getDamping(const State& state) const
 {   return getImpl().getDamping(state); }
 
 
 Force::MobilityLinearDamperImpl::
-MobilityLinearDamperImpl(const MobilizedBody&   mobod, 
+MobilityLinearDamperImpl(const MobilizedBody&   mobod,
                          MobilizerUIndex        whichU,
-                         Real                   defaultDamping) 
-:   m_matter(mobod.getMatterSubsystem()), 
-    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichU(whichU), 
-    m_defaultDamping(defaultDamping) 
+                         Real                   defaultDamping)
+:   m_matter(mobod.getMatterSubsystem()),
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichU(whichU),
+    m_defaultDamping(defaultDamping)
 {
 }
 
 void Force::MobilityLinearDamperImpl::
-calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const
 {
     const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
     const Real u = mb.getOneU(state, m_whichU);
@@ -443,10 +443,10 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
 
     //Worthless loop to make the force calculations more expensive - make sure that
     //the parallelism is helping out
-    volatile int junkInt = 0;
-    for(int y = 0; y < 10000; y++)
-        for(int x = 0; x < 99999; x++)
-            junkInt = junkInt + .2 + 3 * 4 /2 % 3 + 3 % 2 *2321 -322488238382;
+    volatile double junkInt = 0;
+    for(double y = 0; y < 10000; y++)
+        for(double x = 0; x < 99999; x++)
+            junkInt = junkInt + .2 + 3.6 * 4 /2 + 3 % 2 *2321.234 -322488238382.124;
 }
 
 Real Force::MobilityLinearDamperImpl::
@@ -459,15 +459,15 @@ calcPotentialEnergy(const State& state) const {
 //-------------------------- MobilityConstantForce -----------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityConstantForce, 
-                                        Force::MobilityConstantForceImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityConstantForce,
+                                        Force::MobilityConstantForceImpl,
                                         Force);
 
 Force::MobilityConstantForce::MobilityConstantForce
-   (GeneralForceSubsystem&  forces, 
-    const MobilizedBody&    mobod, 
+   (GeneralForceSubsystem&  forces,
+    const MobilizedBody&    mobod,
     MobilizerUIndex         whichU,
-    Real                    defaultForce) 
+    Real                    defaultForce)
 : Force(new MobilityConstantForceImpl(mobod, whichU, defaultForce)) {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
@@ -483,7 +483,7 @@ setDefaultForce(Real defaultForce) {
 }
 
 Real Force::MobilityConstantForce::
-getDefaultForce() const 
+getDefaultForce() const
 {   return getImpl().m_defaultForce; }
 
 void Force::MobilityConstantForce::
@@ -492,22 +492,22 @@ setForce(State& state, Real force) const {
 }
 
 Real Force::MobilityConstantForce::
-getForce(const State& state) const 
+getForce(const State& state) const
 {   return getImpl().getForce(state); }
 
 Force::MobilityConstantForceImpl::MobilityConstantForceImpl
-   (const MobilizedBody&    mobod, 
+   (const MobilizedBody&    mobod,
     MobilizerUIndex         whichU,
-    Real                    defaultForce) 
-:   m_matter(mobod.getMatterSubsystem()), 
-    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichU(whichU), 
-    m_defaultForce(defaultForce) 
+    Real                    defaultForce)
+:   m_matter(mobod.getMatterSubsystem()),
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichU(whichU),
+    m_defaultForce(defaultForce)
 {
 }
 
 void Force::MobilityConstantForceImpl::
-calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const
 {
     const MobilizedBody& mb = m_matter.getMobilizedBody(m_mobodIx);
     mb.applyOneMobilityForce(state, m_whichU, getForce(state), mobilityForces);
@@ -517,14 +517,14 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
 //---------------------------- MobilityLinearStop ------------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearStop, 
-                                        Force::MobilityLinearStopImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityLinearStop,
+                                        Force::MobilityLinearStopImpl,
                                         Force);
 
 Force::MobilityLinearStop::MobilityLinearStop
-   (GeneralForceSubsystem&    forces, 
-    const MobilizedBody&      mobod, 
-    MobilizerQIndex           whichQ, 
+   (GeneralForceSubsystem&    forces,
+    const MobilizedBody&      mobod,
+    MobilizerQIndex           whichQ,
     Real                      defaultStiffness,
     Real                      defaultDissipation,
     Real                      defaultQLow,
@@ -533,12 +533,12 @@ Force::MobilityLinearStop::MobilityLinearStop
                                      defaultStiffness, defaultDissipation,
                                      defaultQLow, defaultQHigh))
 {
-    SimTK_ERRCHK2_ALWAYS(defaultStiffness >= 0 && defaultDissipation >= 0, 
+    SimTK_ERRCHK2_ALWAYS(defaultStiffness >= 0 && defaultDissipation >= 0,
         "Force::MobilityLinearStop::MobilityLinearStop()",
         "Stiffness and dissipation coefficient must be nonnegative "
         "(defaultStiffness=%g, defaultDissipation=%g).",
         defaultStiffness, defaultDissipation);
-    SimTK_ERRCHK2_ALWAYS(defaultQLow <= defaultQHigh, 
+    SimTK_ERRCHK2_ALWAYS(defaultQLow <= defaultQHigh,
         "Force::MobilityLinearStop::MobilityLinearStop()",
         "Lower bound can't be larger than upper bound "
         "(defaultQLow=%g, defaultQHigh=%g).",
@@ -549,7 +549,7 @@ Force::MobilityLinearStop::MobilityLinearStop
 
 Force::MobilityLinearStop& Force::MobilityLinearStop::
 setDefaultBounds(Real defaultQLow, Real defaultQHigh) {
-    SimTK_ERRCHK2_ALWAYS(defaultQLow <= defaultQHigh, 
+    SimTK_ERRCHK2_ALWAYS(defaultQLow <= defaultQHigh,
         "Force::MobilityLinearStop::setDefaultBounds()",
         "Lower bound can't be larger than upper bound "
         "(defaultQLow=%g, defaultQHigh=%g).",
@@ -566,14 +566,14 @@ setDefaultBounds(Real defaultQLow, Real defaultQHigh) {
 
 Force::MobilityLinearStop& Force::MobilityLinearStop::
 setDefaultMaterialProperties(Real defaultStiffness, Real defaultDissipation) {
-    SimTK_ERRCHK2_ALWAYS(defaultStiffness >= 0 && defaultDissipation >= 0, 
+    SimTK_ERRCHK2_ALWAYS(defaultStiffness >= 0 && defaultDissipation >= 0,
         "Force::MobilityLinearStop::setDefaultMaterialProperties()",
         "Stiffness and dissipation coefficient must be nonnegative "
         "(defaultStiffness=%g, defaultDissipation=%g).",
         defaultStiffness, defaultDissipation);
 
     MobilityLinearStopImpl& impl = updImpl();
-    if (   impl.m_defStiffness   != defaultStiffness 
+    if (   impl.m_defStiffness   != defaultStiffness
         || impl.m_defDissipation != defaultDissipation) {
         impl.m_defStiffness = defaultStiffness;
         impl.m_defDissipation = defaultDissipation;
@@ -582,19 +582,19 @@ setDefaultMaterialProperties(Real defaultStiffness, Real defaultDissipation) {
     return *this;
 }
 
-Real Force::MobilityLinearStop::getDefaultLowerBound() const 
+Real Force::MobilityLinearStop::getDefaultLowerBound() const
 {   return getImpl().m_defQLow; }
-Real Force::MobilityLinearStop::getDefaultUpperBound() const 
+Real Force::MobilityLinearStop::getDefaultUpperBound() const
 {   return getImpl().m_defQHigh; }
-Real Force::MobilityLinearStop::getDefaultStiffness() const 
+Real Force::MobilityLinearStop::getDefaultStiffness() const
 {   return getImpl().m_defStiffness; }
-Real Force::MobilityLinearStop::getDefaultDissipation() const 
+Real Force::MobilityLinearStop::getDefaultDissipation() const
 {   return getImpl().m_defDissipation; }
 
 
 void Force::MobilityLinearStop::
 setBounds(State& state, Real qLow, Real qHigh) const {
-    SimTK_ERRCHK2_ALWAYS(qLow <= qHigh, 
+    SimTK_ERRCHK2_ALWAYS(qLow <= qHigh,
         "Force::MobilityLinearStop::setBounds()",
         "Lower bound can't be larger than upper bound (qLow=%g, qHigh=%g).",
         qLow, qHigh);
@@ -605,7 +605,7 @@ setBounds(State& state, Real qLow, Real qHigh) const {
 }
 void Force::MobilityLinearStop::
 setMaterialProperties(State& state, Real stiffness, Real dissipation) const {
-    SimTK_ERRCHK2_ALWAYS(stiffness >= 0 && dissipation >= 0, 
+    SimTK_ERRCHK2_ALWAYS(stiffness >= 0 && dissipation >= 0,
         "Force::MobilityLinearStop::setMaterialProperties()",
         "Stiffness and dissipation coefficient must be nonnegative "
         "(stiffness=%g, dissipation=%g).",
@@ -616,25 +616,25 @@ setMaterialProperties(State& state, Real stiffness, Real dissipation) const {
     params.k = stiffness; params.d = dissipation;
 }
 
-Real Force::MobilityLinearStop::getLowerBound(const State& state) const 
+Real Force::MobilityLinearStop::getLowerBound(const State& state) const
 {   return getImpl().getParameters(state).qLow; }
-Real Force::MobilityLinearStop::getUpperBound(const State& state) const 
+Real Force::MobilityLinearStop::getUpperBound(const State& state) const
 {   return getImpl().getParameters(state).qHigh; }
-Real Force::MobilityLinearStop::getStiffness(const State& state) const 
+Real Force::MobilityLinearStop::getStiffness(const State& state) const
 {   return getImpl().getParameters(state).k; }
-Real Force::MobilityLinearStop::getDissipation(const State& state) const 
+Real Force::MobilityLinearStop::getDissipation(const State& state) const
 {   return getImpl().getParameters(state).d; }
 
 
 Force::MobilityLinearStopImpl::MobilityLinearStopImpl
-   (const MobilizedBody&      mobod, 
-    MobilizerQIndex           whichQ, 
+   (const MobilizedBody&      mobod,
+    MobilizerQIndex           whichQ,
     Real                      defaultStiffness,
     Real                      defaultDissipation,
     Real                      defaultQLow,
-    Real                      defaultQHigh) 
-:   m_matter(mobod.getMatterSubsystem()), 
-    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichQ(whichQ), 
+    Real                      defaultQHigh)
+:   m_matter(mobod.getMatterSubsystem()),
+    m_mobodIx(mobod.getMobilizedBodyIndex()), m_whichQ(whichQ),
     m_defStiffness(defaultStiffness), m_defDissipation(defaultDissipation),
     m_defQLow(defaultQLow), m_defQHigh(defaultQHigh)
 {
@@ -643,7 +643,7 @@ Force::MobilityLinearStopImpl::MobilityLinearStopImpl
 
 void Force::MobilityLinearStopImpl::
 calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
-          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const
 {
     const Parameters& param = getParameters(state);
     if (param.k == 0) return; // no stiffness, no force
@@ -652,19 +652,19 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
     const Real q = mb.getOneQ(state, m_whichQ);
 
     // Don't ask for velocity-dependent qdot if there is no dissipation.
-    const Real qdot = param.d != 0 ? mb.getOneQDot(state, m_whichQ) 
+    const Real qdot = param.d != 0 ? mb.getOneQDot(state, m_whichQ)
                                    : Real(0);
 
     if (q > param.qHigh) {
         const Real x = q-param.qHigh;  // x > 0
         const Real fraw = param.k*x*(1+param.d*qdot); // should be >= 0
-        mb.applyOneMobilityForce(state, 
+        mb.applyOneMobilityForce(state,
             MobilizerUIndex(m_whichQ), // TODO: only works qdot & u match
             std::min(Real(0), -fraw), mobilityForces);
     } else if (q < param.qLow) {
         const Real x = q-param.qLow;    // x < 0
         const Real fraw = param.k*x*(1-param.d*qdot); // should be <= 0
-        mb.applyOneMobilityForce(state, 
+        mb.applyOneMobilityForce(state,
             MobilizerUIndex(m_whichQ), // TODO: only works qdot & u match
             std::max(Real(0), -fraw), mobilityForces);
     }
@@ -688,13 +688,13 @@ calcPotentialEnergy(const State& state) const {
 //-------------------------- MobilityDiscreteForce -----------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityDiscreteForce, 
-                                        Force::MobilityDiscreteForceImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::MobilityDiscreteForce,
+                                        Force::MobilityDiscreteForceImpl,
                                         Force);
 
 Force::MobilityDiscreteForce::MobilityDiscreteForce
-   (GeneralForceSubsystem& forces, const MobilizedBody& mobod, 
-    MobilizerUIndex whichU, Real defaultForce) 
+   (GeneralForceSubsystem& forces, const MobilizedBody& mobod,
+    MobilizerUIndex whichU, Real defaultForce)
 :   Force(new MobilityDiscreteForceImpl(mobod, whichU, defaultForce)) {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
@@ -722,9 +722,9 @@ getMobilityForce(const State& state) const {
 }
 
 Force::MobilityDiscreteForceImpl::MobilityDiscreteForceImpl
-   (const MobilizedBody& mobod, MobilizerUIndex whichU, Real defaultForce) 
-:   m_matter(mobod.getMatterSubsystem()), 
-    m_mobodIx(mobod.getMobilizedBodyIndex()), 
+   (const MobilizedBody& mobod, MobilizerUIndex whichU, Real defaultForce)
+:   m_matter(mobod.getMatterSubsystem()),
+    m_mobodIx(mobod.getMobilizedBodyIndex()),
     m_whichU(whichU), m_defaultVal(defaultForce) {
 }
 
@@ -746,9 +746,9 @@ getMobilityForce(const State& state) const {
 }
 
 void Force::MobilityDiscreteForceImpl::
-calcForce(  const State&         state, 
-            Vector_<SpatialVec>& /*bodyForces*/, 
-            Vector_<Vec3>&       /*particleForces*/, 
+calcForce(  const State&         state,
+            Vector_<SpatialVec>& /*bodyForces*/,
+            Vector_<Vec3>&       /*particleForces*/,
             Vector&              mobilityForces) const
 {
     const GeneralForceSubsystem& forces = getForceSubsystem();
@@ -771,12 +771,12 @@ realizeTopology(State& state) const {
 //------------------------------ DiscreteForces --------------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::DiscreteForces, 
-                                        Force::DiscreteForcesImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::DiscreteForces,
+                                        Force::DiscreteForcesImpl,
                                         Force);
 
 Force::DiscreteForces::DiscreteForces
-   (GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter) 
+   (GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter)
 :   Force(new DiscreteForcesImpl(matter)) {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
@@ -821,7 +821,7 @@ setAllMobilityForces(State& state, const Vector& f) const {
         "Force::DiscreteForces::setAllMobilityForces()",
         "Mobility force vector f had wrong size %d; should have been %d.",
         f.size(), state.getNU());
-     
+
     getImpl().updAllMobilityForces(state) = f;
 }
 
@@ -913,9 +913,9 @@ updAllBodyForces(State& state) const {
 }
 
 void Force::DiscreteForcesImpl::
-calcForce(  const State&         state, 
-            Vector_<SpatialVec>& bodyForces, 
-            Vector_<Vec3>&       /*particleForces*/, 
+calcForce(  const State&         state,
+            Vector_<SpatialVec>& bodyForces,
+            Vector_<Vec3>&       /*particleForces*/,
             Vector&              mobilityForces) const
 {
     const GeneralForceSubsystem& forces = getForceSubsystem();
@@ -1059,7 +1059,7 @@ void Force::UniformGravityImpl::calcForce(const State& state, Vector_<SpatialVec
         const Vec3       com_B_G = X_GB.R()*com_B;
         const Vec3       frc_G   = m*g;
 
-        bodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
+        bodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G);
     }
 }
 
@@ -1096,7 +1096,7 @@ Real Force::UniformGravityImpl::calcPotentialEnergy(const State& state) const {
 
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Custom, Force::CustomImpl, Force);
 
-Force::Custom::Custom(GeneralForceSubsystem& forces, Implementation* implementation) : 
+Force::Custom::Custom(GeneralForceSubsystem& forces, Implementation* implementation) :
         Force(new CustomImpl(implementation)) {
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
 }
@@ -1106,7 +1106,7 @@ const Force::Custom::Implementation& Force::Custom::getImplementation() const {
 }
 
 Force::Custom::Implementation& Force::Custom::updImplementation() {
-    return updImpl().updImplementation();    
+    return updImpl().updImplementation();
 }
 
 
@@ -1122,4 +1122,3 @@ Real Force::CustomImpl::calcPotentialEnergy(const State& state) const {
 }
 
 } // namespace SimTK
-
