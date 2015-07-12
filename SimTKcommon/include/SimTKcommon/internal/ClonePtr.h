@@ -293,11 +293,15 @@ public:
     /** <b>(Deprecated)</b> Same as `get()`. Use get() instead; it is more like 
     the API for `std::unique_ptr`. **/
     DEPRECATED_14("use get() instead")
-    const T* getPtr()  const  { return get(); }
+    const T* getPtr() const NOEXCEPT_11 {return get();}
     /** <b>(Deprecated)</b> Same as `upd()`. Use upd() instead; it is a better 
     match for `get()` modeled after the API for `std::unique_ptr`. **/
     DEPRECATED_14("use upd() instead")
-    T* updPtr() { return upd(); }    
+    T* updPtr() NOEXCEPT_11 {return upd();}  
+    /** <b>(Deprecated)</b> Use reset() instead. **/
+    DEPRECATED_14("use reset() instead")
+    void clear() NOEXCEPT_11 {reset();}
+
     /**@}**/
 
 private:

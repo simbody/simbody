@@ -25,6 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon/internal/common.h"
+#include <cassert>
 
 namespace SimTK {
 
@@ -270,11 +271,13 @@ template <class T, class U>
 inline bool operator!=(const ReferencePtr<T>& lhs,
                        const ReferencePtr<U>& rhs)
 {   return !(lhs==rhs); }
+
 /** `nullptr` inequality test defined as `!(lhs==nullptr)`.
 @relates ReferencePtr **/
 template <class T>
 inline bool operator!=(const ReferencePtr<T>& lhs, std::nullptr_t)
 {   return !(lhs==nullptr); }
+
 /** `nullptr` inequality test defined as `!(nullptr==rhs)`.
 @relates ReferencePtr **/
 template <class T>
@@ -338,6 +341,14 @@ arguments).
 template <class T>
 inline bool operator<=(std::nullptr_t, const ReferencePtr<T>& rhs)
 {   return !(rhs < nullptr); }
+
+
+/** <b>(Deprecated)</b> Use `nullptr` instead of `0`.
+@relates ReferencePtr **/
+template <class T>
+DEPRECATED_14("use refptr != nullptr instead")
+inline bool operator!=(const ReferencePtr<T>& lhs, int mustBeZero)
+{   assert(mustBeZero==0); return !(lhs==nullptr); }
 
 } // namespace SimTK
 
