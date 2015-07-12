@@ -169,6 +169,7 @@ or any other Index type to an argument expecting a certain Index type. **/
     #pragma warning(disable:4275) /*no DLL interface for base class of exported class*/
     #pragma warning(disable:4345) /*warning about PODs being default-initialized*/
 
+
     /* Until VS2015 struct timespec was missing from <ctime> so is faked here 
     if needed. However, note that it is also defined in the pthread.h header on 
     Windows, so the guard symbol must match here to avoid a duplicate declaration. 
@@ -178,7 +179,7 @@ or any other Index type to an argument expecting a certain Index type. **/
     #define HAVE_STRUCT_TIMESPEC 1
         #if _MSC_VER < 1900
         struct timespec {
-            long tv_sec;  // TODO: this should be time_t but must fix in pthreads too
+            long tv_sec; /*TODO: should be time_t but must fix in pthreads too*/
             long tv_nsec;
         };
         #endif
@@ -260,6 +261,13 @@ cache misses which ultimately reduce performance. */
     #define SimTK_FORCE_INLINE __forceinline
 #else
     #define SimTK_FORCE_INLINE __attribute__((always_inline))
+#endif
+
+/* Microsoft added noexcept in VS2015 */
+#if defined(_MSC_VER) && _MSC_VER < 1900
+    #define NOEXCEPT_11 throw()
+#else
+    #define NOEXCEPT_11 noexcept
 #endif
 
 /* C++14 introduces a standard way to mark deprecated declarations. Before

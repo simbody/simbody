@@ -1978,6 +1978,7 @@ PREDEFINED             = SimTK_SIMBODY_EXPORT= \
                          SimTK_SimTKCOMMON_EXPORT= \
                          SimTK_SIMMATH_EXPORT= \
                          SimTK_FORCE_INLINE= \
+                         NOEXCEPT_11=noexcept \
                          OVERRIDE_11=override \
                          FINAL_11=final \
                          __cplusplus
