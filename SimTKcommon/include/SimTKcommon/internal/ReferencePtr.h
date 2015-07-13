@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2012-15 Stanford University and the Authors.         *
+ * Portions copyright (c) 2012-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -26,6 +26,7 @@
 
 #include "SimTKcommon/internal/common.h"
 #include <cassert>
+#include <utility>
 
 namespace SimTK {
 
@@ -77,7 +78,7 @@ public:
 
     /** Construct from a reference stores the address of the supplied 
     object. **/
-    explicit ReferencePtr(T& t) NOEXCEPT_11 : p(&t) {}
+    explicit ReferencePtr(T& t) NOEXCEPT_11 : ReferencePtr(&t) {}
 
     /** Copy constructor unconditionally sets the pointer to null; see class
     comments for why. **/
@@ -85,7 +86,7 @@ public:
 
     /** Move constructor copies the pointer from the source and leaves the
     source empty. **/
-    ReferencePtr(ReferencePtr&& src) NOEXCEPT_11 {p=src.p; src.clear();}
+    ReferencePtr(ReferencePtr&& src) NOEXCEPT_11 : p(src.release()) {}
 
     /** <b>(Deprecated)</b> Use %ReferencePtr(nullptr) or just %ReferencePtr()
     instead. For backwards compatibility, this allows initialization 
@@ -101,13 +102,13 @@ public:
     /** Copy assignment sets the pointer to nullptr (except for a self-assign); 
     see class comments for why.  **/
     ReferencePtr& operator=(const ReferencePtr& src) NOEXCEPT_11
-    {   if (&src != this) clear(); return *this; }
+    {   if (&src != this) reset(); return *this; }
 
     /** Move assignment copies the pointer from the source and leaves the
     source empty. Nothing happens for self-assign. **/
     ReferencePtr& operator=(ReferencePtr&& src) NOEXCEPT_11 {
         if (&src != this) 
-        {   reset(src.p); src.clear(); }
+            p = src.release();
         return *this; 
     }
 
@@ -124,7 +125,7 @@ public:
     /** @name                    Destructor **/
     /**@{**/
     /** Destructor does nothing. **/
-    ~ReferencePtr() NOEXCEPT_11 {clear();} // just being tidy
+    ~ReferencePtr() NOEXCEPT_11 {reset();} // just being tidy
     /**@}**/
 
     /** @name                     Accessors **/
@@ -149,37 +150,45 @@ public:
     This will fail if the container is empty. **/
     T& operator*() const {return getRef();}
 
-    /** This is an implicit conversion from %ReferencePtr\<T> to T*. **/
-    operator T*() const NOEXCEPT_11 {return p;}
     /**@}**/
 
     /** @name                      Utility Methods **/
     /**@{**/
+
+    /** Replace the stored pointer with a different one; no destruction
+    occurs. **/
+    void reset(T* tp=nullptr) NOEXCEPT_11 {p=tp;}
+
+    /** Swap the contents of this %ReferencePtr with another one. This is very
+    fast. **/
+    void swap(ReferencePtr& other) NOEXCEPT_11 {
+        std::swap(p, other.p);
+    }
 
     /** Return true if this container is empty. **/
     bool empty() const NOEXCEPT_11 {return !p;}
 
     /** This is a conversion to type bool that returns true if
     the container is non-null (that is, not empty). **/
-    operator bool() const NOEXCEPT_11 {return !empty();}
-
-    /** Make this container empty; no destruction occurs. **/
-    void clear() NOEXCEPT_11 {p=nullptr;}
+    explicit operator bool() const NOEXCEPT_11 {return !empty();}
 
     /** Extract the pointer from this container, leaving the container empty. 
     The pointer is returned. **/
-    T* release() NOEXCEPT_11 {T* x=p; p=nullptr; return x;}
-
-    /** Replace the stored pointer with a different one; no destruction
-    occurs. **/
-    void reset(T* tp) NOEXCEPT_11 {p=tp;}
-
-    /** Swap the contents of this %ReferencePtr with another one. **/
-    void swap(ReferencePtr& other) NOEXCEPT_11 {
-        T* otherp = other.release();
-        other.reset(p);
-        reset(otherp);
+    T* release() NOEXCEPT_11 {
+        T* x=p; 
+        p=nullptr; 
+        return x;
     }
+
+    /** <b>(Deprecated)</b> Use reset() instead. **/
+    DEPRECATED_14("use reset() instead")
+    void clear() NOEXCEPT_11 {reset();}
+
+    /** <b>(Deprecated)</b> Use get() rather than implicit conversion from 
+    %ReferencePtr\<T> to T*. **/
+    DEPRECATED_14("use get() rather than implicit conversion to T*")
+    operator T*() const NOEXCEPT_11 {return p;}
+
     /**@}**/
 
 private:

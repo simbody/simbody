@@ -29,6 +29,7 @@
 #include <memory>
 #include <iosfwd>
 #include <cassert>
+#include <utility>
 
 namespace SimTK {
 
@@ -63,7 +64,7 @@ public:
     /** Default constructor stores a `nullptr`. No heap allocation is performed.
     The empty() method will return true when called on a default-constructed 
     %ClonePtr. **/
-    ClonePtr() NOEXCEPT_11 {p=nullptr;}
+    ClonePtr() NOEXCEPT_11 : p(nullptr) {}
 
     /** Constructor from `nullptr` is the same as the default constructor.
     This is an implicit conversion that allows `nullptr` to be used to
@@ -108,8 +109,7 @@ public:
     source to the new %ClonePtr. If the source was empty this one will be empty 
     also. No heap activity occurs. **/
     template <class U>
-    ClonePtr(ClonePtr<U>&& src) NOEXCEPT_11 : p(src.release()) {
-    }
+    ClonePtr(ClonePtr<U>&& src) NOEXCEPT_11 : p(src.release()) {}
     /**@}**/
 
     /** @name                   Assignment **/
