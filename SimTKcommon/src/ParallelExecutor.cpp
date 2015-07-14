@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <iostream>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 
@@ -33,25 +34,31 @@ namespace SimTK {
 
 static void* threadBody(void* args);
 
-ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
+ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
 
-    // Construct all the threading related objects we will need.
+    // Set the maximum number of threads that we can use
+    int tempMaxNumThreads = ParallelExecutor::getNumProcessors();
+    SimTK_APIARGCHECK_ALWAYS(tempMaxNumThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads detected is not positive.");
+    numMaxThreads = tempMaxNumThreads;
 
-    SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
-
-    threads.resize(numThreads);
     pthread_mutex_init(&runLock, NULL);
     pthread_cond_init(&runCondition, NULL);
     pthread_cond_init(&waitCondition, NULL);
-    for (int i = 0; i < numThreads; ++i) {
-        threadInfo.push_back(new ThreadInfo(i, this));
-        pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
-    }
+
+}
+ParallelExecutorImpl::ParallelExecutorImpl(int numProcessorsToUse) : finished(false) {
+
+    // Set the maximum number of threads that we can use
+    SimTK_APIARGCHECK_ALWAYS(numProcessorsToUse > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
+    numMaxThreads = numProcessorsToUse;
+
+    pthread_mutex_init(&runLock, NULL);
+    pthread_cond_init(&runCondition, NULL);
+    pthread_cond_init(&waitCondition, NULL);
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
 
     // Notify the threads that they should exit.
-
     pthread_mutex_lock(&runLock);
     finished = true;
     for (int i = 0; i < (int) threads.size(); ++i)
@@ -60,33 +67,40 @@ ParallelExecutorImpl::~ParallelExecutorImpl() {
     pthread_mutex_unlock(&runLock);
 
     // Wait until all the threads have finished.
-
     for (int i = 0; i < (int) threads.size(); ++i)
         pthread_join(threads[i], NULL);
 
     // Clean up threading related objects.
-
     pthread_mutex_destroy(&runLock);
     pthread_cond_destroy(&runCondition);
     pthread_cond_destroy(&waitCondition);
 }
 ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
-    return new ParallelExecutorImpl(threads.size());
+    return new ParallelExecutorImpl(numMaxThreads);
 }
 void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
-    if (times == 1 || threads.size() == 1) {
+    if (min(times, numMaxThreads) == 1) {//(1) NON-PARALLEL CASE:
         // Nothing is actually going to get done in parallel, so we might as well
         // just execute the task directly and save the threading overhead.
-
         task.initialize();
         for (int i = 0; i < times; ++i)
             task.execute(i);
         task.finish();
         return;
+    }else{//(2) PARALLEL CASE:
+      int numThreadsToLaunch = min(times, numMaxThreads);
+      if(threads.size() < numThreadsToLaunch)
+      {
+        int prevThreadSize = threads.size();
+        threads.resize(numThreadsToLaunch);
+        for (int i = prevThreadSize; i < numThreadsToLaunch; ++i) {
+            threadInfo.push_back(new ThreadInfo(i, this));
+            pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
+        }
+      }
     }
 
     // Initialize fields to execute the new task.
-
     pthread_mutex_lock(&runLock);
     currentTask = &task;
     currentTaskCount = times;
@@ -95,7 +109,6 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
         threadInfo[i]->running = true;
 
     // Wake up the worker threads and wait until they finish.
-
     pthread_cond_broadcast(&runCondition);
     do {
         pthread_cond_wait(&waitCondition, &runLock);
@@ -160,7 +173,8 @@ void* threadBody(void* args) {
     delete &info;
     return 0;
 }
-
+ParallelExecutor::ParallelExecutor() : HandleBase(new ParallelExecutorImpl()) {
+}
 ParallelExecutor::ParallelExecutor(int numThreads) : HandleBase(new ParallelExecutorImpl(numThreads)) {
 }
 

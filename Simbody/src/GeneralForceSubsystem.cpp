@@ -46,24 +46,6 @@
 
 namespace SimTK {
 
-// TODO create calcForceExecutor.
-// TODO modify test case.
-// TODO shouldBeParallelized.
-// TODO choosing number of threads.
-// TODO should we allow disabling parallelism?
-        // The "+ 1" is for the non-parallel forces.
-        /*
-        const int numTasks = enabledParallelForces.size() + 1;
-            calcForceTask.calcForceCachedAndNonCached(
-                    enabledNonParallelForces, enabledParallelForces,
-                    rigidBodyForces, particleForces, mobilityForces,
-                    rigidBodyForceCache, particleForceCache,
-                    mobilityForceCache);
-            calcForceTask.calcForceNonCached(
-                    enabledNonParallelForces, enabledParallelForces,
-                    rigidBodyForces, particleForces, mobilityForces);
-                    */
-
 /** Calls calcForce() on all enabled forces. For an index of 0, this Task
  calculates the force for all non-parallelized forces. For all other indices,
  this Task executes a single parallelized force. */

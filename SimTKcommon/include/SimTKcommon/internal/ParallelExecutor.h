@@ -68,12 +68,16 @@ class SimTK_SimTKCOMMON_EXPORT ParallelExecutor : public PIMPLHandle<ParallelExe
 public:
     class Task;
     /**
+     * Construct a ParallelExecutor. By default, constructs a ParallelExecutor with the number of threads equal to the number of total processors
+     * on the computer (including hyperthreads).
+     */
+    explicit ParallelExecutor();
+    /**
      * Construct a ParallelExecutor.
      *
-     * @param numThreads the number of threads to create.  By default, this is set equal to the number
-     * of physical processors. (Use getNumProcessors if you also want to use hyper-threaded cores)
+     * @param numProcessorsToUse the maximum number of threads that the ParallelExecutor is allowed to launch
      */
-    explicit ParallelExecutor(int numThreads = getNumProcessors());
+    explicit ParallelExecutor(int numProcessorsToUse);
     /**
      * Execute a parallel task.
      *
@@ -95,6 +99,14 @@ public:
      */
     static bool isWorkerThread();
 private:
+  /**
+   * Boolean flag if the threads have already been launched
+   */
+    bool threadsLaunched = false;
+  /**
+   * Maximum number of threads the ParallelExecutor is allowed to use
+   */
+    int numMaxThreads;
 };
 
 /**

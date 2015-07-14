@@ -44,7 +44,6 @@ public:
     //the parallelism is helping out
     volatile int junkInt = 0;
     for(int y = 0; y < 10000; y++)
-        for(int x = 0; x < 99999; x++)
             junkInt = junkInt + .2 + 3 * 4 /2 % 3 + 3 % 2 *2321 -322488238382;
         flags[index]++;
         localCount.upd()++;
