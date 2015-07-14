@@ -9,7 +9,7 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 3.6 (in development)
 --------------------
 * Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
-* Prevented copy construction of Array_<T> from Array_<T2> unless T2 is *implicitly*
+* Prevented copy construction of `Array_<T>` from `Array_<T2>` unless T2 is *implicitly*
   convertible to T. Previously this was allowed if there was any conversion possible
   even if it was explicit. Array_ was being too relaxed about this, causing hidden 
   copies to occur. 
@@ -18,7 +18,7 @@ This is not a comprehensive list of changes but rather a hand-curated collection
   terminology. This required deprecating some existing methods and operators, so
   you can expect to get annoying warnings until you switch to the new API. 
 * Possible BREAKING CHANGE: ClonePtr's operator==() previously delegated
-  to the managed object; not it just operates on the managed pointer as is done 
+  to the managed object; now it just operates on the managed pointer as is done 
   in other smart pointers. Consequently now only a clone() method is required for a type
   to be contained in a ClonePtr; previously it had to support comparison also.
 * Make doxygen run silently so errors will be easier to see.
