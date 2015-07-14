@@ -29,6 +29,7 @@ of the current working directory (thanks to Carmichael Ong). See [Issue #264](ht
 
 3.5.3 (15 June 2015)
 -------------------
+This is the release that shipped with OpenSim 3.3.
 * Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
 * Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
 * Fixed a problem with VectorIterator which could unnecessary copying, possibly affecting mesh handling performance. See issue [#349](https://github.com/simbody/simbody/issues/349). 
