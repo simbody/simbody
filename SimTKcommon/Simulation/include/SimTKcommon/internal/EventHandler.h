@@ -119,7 +119,7 @@ public:
      * @param   requiredStage    
      *      The stage at which the trigger function will be evaluated.
      */    
-    TriggeredEventHandler(Stage requiredStage);
+    explicit TriggeredEventHandler(Stage requiredStage);
     
     /**
      * Get the value of the event trigger function for a State.
@@ -156,7 +156,7 @@ public:
      * @param   eventInterval
      *     The time interval at which events should occur.
      */
-    PeriodicEventHandler(Real eventInterval);
+    explicit PeriodicEventHandler(Real eventInterval);
     
     /**
      * Get the time interval at which events occur.
