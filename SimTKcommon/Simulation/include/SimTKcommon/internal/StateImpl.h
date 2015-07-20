@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -38,11 +38,9 @@ namespace SimTK {
 // These local classes
 //      DiscreteVarInfo
 //      CacheVarInfo
-//      EventInfo
 // contain the information needed for each discrete variable and cache entry,
 // including a reference to its current value and everything needed to 
-// understand its dependencies, as well as information for each Event allocated
-// by a Subsystem.
+// understand its dependencies.
 //
 // These are intended as elements in an allocation stack as described above,
 // so it is expected that they will get reaallocated, copied, and destructed 
@@ -203,45 +201,6 @@ private:
              && (value != 0)
              && (versionWhenLastComputed >= 0); }
 };
-
-
-
-//==============================================================================
-//                               TRIGGER INFO
-//==============================================================================
-class TriggerInfo {
-public:
-    TriggerInfo() 
-    :   allocationStage(Stage::Empty), firstIndex(-1), nslots(0) {}
-
-    TriggerInfo(Stage allocation, int index, int n)
-    :   allocationStage(allocation), firstIndex(index), nslots(n)
-    {   assert(isReasonable()); assert(n>0);}
-
-    // Default copy constructor, copy assignment, destructor are fine since 
-    // there is no heap object owned here.
-
-    int getFirstIndex() const {return firstIndex;}
-    int getNumSlots() const {return nslots;}
-
-    // These the the "virtual" methods required by template methods elsewhere.
-    TriggerInfo& deepAssign(const TriggerInfo& src) 
-    {   return operator=(src); }
-    void         deepDestruct() {}
-    const Stage& getAllocationStage() const {return allocationStage;}
-private:
-    // These are fixed at construction.
-    Stage                   allocationStage;
-    int                     firstIndex;
-    int                     nslots;
-
-    bool isReasonable() const {
-        return (    allocationStage==Stage::Topology
-                 || allocationStage==Stage::Model
-                 || allocationStage==Stage::Instance);
-    }
-};
-
 
 
 //==============================================================================
@@ -429,11 +388,6 @@ public:
         // These are all mutable cache entries.
         qerrstart.invalidate();uerrstart.invalidate();udoterrstart.invalidate();
         qerr.clear();uerr.clear();udoterr.clear();multipliers.clear();
-
-        for (int j=0; j<Stage::NValid; ++j) {
-            triggerstart[j].invalidate();
-            triggers[j].clear();
-        }
     }
 
     QIndex getNextQIndex() const {
@@ -473,13 +427,6 @@ public:
     CacheEntryIndex getNextCacheEntryIndex() const {
         return CacheEntryIndex(cacheInfo.size());
     }
-    EventTriggerByStageIndex getNextEventTriggerByStageIndex(Stage g) const {
-        if (triggerInfo[g].empty()) return EventTriggerByStageIndex(0);
-        const TriggerInfo& last = triggerInfo[g].back();
-        return EventTriggerByStageIndex
-            (last.getFirstIndex()+last.getNumSlots());
-    }
-
 
     String name;
     String version;
@@ -487,8 +434,8 @@ public:
         // DEFINITIONS //
 
     // State variables (continuous or discrete) can be defined (allocated) 
-    // during realization of Topology or Model stages. Cache entries,
-    // constraint error slots, and event trigger slots can be defined during 
+    // during realization of Topology or Model stages. Cache entries and
+    // constraint error slots can be defined during 
     // realization of Topology, Model, or Instance stages. No further 
     // allocations are allowed. Then, when one of these stages is invalidated, 
     // all the definitions that occurred during realization of that stage must 
@@ -504,7 +451,6 @@ public:
 
     // Topology, Model, and Instance stage definitions.
     mutable Array_<ConstraintErrInfo>   qerrInfo, uerrInfo, udoterrInfo;
-    mutable Array_<TriggerInfo>         triggerInfo[Stage::NValid];
     mutable Array_<CacheEntryInfo>      cacheInfo;
    
         // GLOBAL RESOURCE ALLOCATIONS //
@@ -532,12 +478,10 @@ public:
     mutable SystemQErrIndex                 qerrstart;
     mutable SystemUErrIndex                 uerrstart;
     mutable SystemUDotErrIndex              udoterrstart;
-    mutable SystemEventTriggerByStageIndex  triggerstart[Stage::NValid];
 
     mutable Vector  qerr, uerr;
 
     mutable Vector  udoterr, multipliers; // same size and partioning
-    mutable Vector  triggers[Stage::NValid];
 
     // The currentStage is the highest stage of this subsystem that is valid,
     // meaning that it has been realized since the last change to any variable
@@ -559,10 +503,8 @@ private:
         clearAllStacks();
         qstart.invalidate();ustart.invalidate();zstart.invalidate();
         qerrstart.invalidate();uerrstart.invalidate();udoterrstart.invalidate();
-        for (int j=0; j<Stage::NValid; ++j) {
-            triggerstart[j].invalidate();
+        for (int j=0; j<Stage::NValid; ++j)
             stageVersions[j] = 1; // never 0
-        }
         currentStage = Stage::Empty;
     }
 
@@ -571,7 +513,6 @@ private:
     void clearContinuousVars();
     void clearConstraintErrs();
     void clearDiscreteVars();
-    void clearEventTriggers(int g);
     void clearCache();
 
     void clearAllStacks();
@@ -580,7 +521,6 @@ private:
     void popDiscreteVarsBackToStage(const Stage& g);
     void popConstraintErrsBackToStage(const Stage& g);
     void popCacheBackToStage(const Stage& g);
-    void popEventTriggersBackToStage(const Stage& g);
 
     void popAllStacksBackToStage(const Stage& g);
 
@@ -599,10 +539,6 @@ private:
 
     void copyCacheThroughStage
        (const Array_<CacheEntryInfo>& src, const Stage& g);
-
-    void copyEventsThroughStage
-       (const Array_<TriggerInfo>& src, const Stage& g,
-        Array_<TriggerInfo>& dest);
 
     void copyAllStacksThroughStage(const PerSubsystemInfo& src, const Stage& g);
 
@@ -802,17 +738,6 @@ public:
            (ConstraintErrInfo(allocStage,nxt,nudoterr,Vector())); 
         return nxt;
     }
-    EventTriggerByStageIndex allocateEventTrigger
-       (SubsystemIndex subsys, Stage g, int nt) const {
-        SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Instance, 
-                                   "StateImpl::allocateEventTrigger()");
-        const Stage allocStage = getSubsystemStage(subsys).next();
-        const PerSubsystemInfo& ss = subsystems[subsys];
-        const EventTriggerByStageIndex 
-            nxt(ss.getNextEventTriggerByStageIndex(g));
-        ss.triggerInfo[g].push_back(TriggerInfo(allocStage,nxt,nt)); 
-        return nxt;
-    }
     
     // Topology- and Model-stage State variables can only be added during 
     // construction; that is, while stage <= Topology. Other entries can be 
@@ -954,27 +879,6 @@ public:
         return udoterr.size();
     }
     
-    int getNEventTriggers() const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::getNEventTriggers()");
-        return allTriggers.size();
-    }
-    
-    SystemEventTriggerIndex getEventTriggerStartByStage(Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::getEventTriggerStartByStage()");
-        int nxt = 0;
-        for (int j=0; j<g; ++j)
-            nxt += triggers[j].size();
-        return SystemEventTriggerIndex(nxt); // g starts where g-1 leaves off
-    }
-    
-    int getNEventTriggersByStage(Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::getNEventTriggersByStage()");
-        return triggers[g].size();
-    }
-    
         // Subsystem dimensions.
     
     SystemQIndex getQStart(SubsystemIndex subsys) const {
@@ -1042,19 +946,6 @@ public:
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
                             "StateImpl::getNUDotErr(subsys)");
         return getSubsystem(subsys).udoterr.size();
-    }
-    
-    SystemEventTriggerByStageIndex getEventTriggerStartByStage
-       (SubsystemIndex subsys, Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::getEventTriggerStartByStage(subsys)");
-        return getSubsystem(subsys).triggerstart[g];
-    }
-    
-    int getNEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::getNEventTriggersByStage(subsys)");
-        return getSubsystem(subsys).triggers[g].size();
     }
     
         // Per-subsystem access to the global shared variables.
@@ -1212,14 +1103,6 @@ public:
         return getSubsystem(subsys).multipliers;
     }
     
-    const Vector& getEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::getEventTriggersByStage(subsys)");
-        SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g, 
-                            "StateImpl::getEventTriggersByStage(subsys)");
-        return getSubsystem(subsys).triggers[g];
-    }
-    
     Vector& updQErr(SubsystemIndex subsys) const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
                             "StateImpl::updQErr(subsys)");
@@ -1254,17 +1137,12 @@ public:
                             "StateImpl::updMultipliers(subsys)");
         return getSubsystem(subsys).multipliers;
     }
-    Vector& updEventTriggersByStage(SubsystemIndex subsys, Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::updEventTriggersByStage(subsys)");
-        return getSubsystem(subsys).triggers[g];
-    }
     
         // Direct access to the global shared state and cache entries.
         // Time is allocated in Stage::Topology, State in Stage::Model, and
         // Cache in Stage::Instance.
     
-    const Real& getTime() const {
+    const double& getTime() const {
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, 
                             "StateImpl::getTime()");
         return t;
@@ -1308,7 +1186,7 @@ public:
        
     // You can call these as long as stage >= allocation stage, but the
     // stage will be backed up if necessary to one stage prior to the invalidated stage.
-    Real& updTime() {  // Back to Stage::Time-1
+    double& updTime() {  // Back to Stage::Time-1
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, 
                             "StateImpl::updTime()");
         invalidateAll(Stage::Time);
@@ -1498,29 +1376,6 @@ public:
                             "StateImpl::updMultipliers()");
         return multipliers;
     }
-    
-    const Vector& getEventTriggers() const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, 
-                            "StateImpl::getEventTriggers()");
-        return allTriggers;
-    }
-    const Vector& getEventTriggersByStage(Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), g, 
-                            "StateImpl::getEventTriggersByStage()");
-        return triggers[g];
-    }
-    
-    // These are mutable; hence 'const'.
-    Vector& updEventTriggers() const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::updEventTriggers()");
-        return allTriggers;
-    }
-    Vector& updEventTriggersByStage(Stage g) const {
-        SimTK_STAGECHECK_GE(getSystemStage(), Stage::Instance, 
-                            "StateImpl::updEventTriggersByStage()");
-        return triggers[g];
-    }
 
     CacheEntryIndex getDiscreteVarUpdateIndex
        (SubsystemIndex subsys, DiscreteVariableIndex index) const {
@@ -1567,7 +1422,8 @@ public:
     
         return dv.getValue();
     }
-    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
+    double getDiscreteVarLastUpdateTime(SubsystemIndex subsys, 
+                                      DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
                          "StateImpl::getDiscreteVarLastUpdateTime()");
@@ -1843,11 +1699,7 @@ private:
 
         // DISCRETE EQUATIONS
 
-    // All the event triggers together, ordered by stage.
-    mutable Vector  allTriggers;
-
-    // These are views into allTriggers.
-    mutable Vector  triggers[Stage::NValid];
+    // These are handled by the System.
     
 
         // Subsystem support //
@@ -1938,12 +1790,6 @@ allocateUDotErr(SubsystemIndex subsys, int nudoterr) const {
     return getImpl().allocateUDotErr(subsys, nudoterr);
 }
 
-// Event witness functions
-inline EventTriggerByStageIndex State::
-allocateEventTrigger(SubsystemIndex subsys, Stage stage, int nevent) const {
-    return getImpl().allocateEventTrigger(subsys, stage, nevent);
-}
-
 // Discrete Variables
 inline DiscreteVariableIndex State::
 allocateDiscreteVariable(SubsystemIndex subsys, Stage stage, AbstractValue* v) {
@@ -1977,7 +1823,7 @@ inline const AbstractValue& State::
 getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
     return getImpl().getDiscreteVariable(subsys, index);
 }
-inline Real State::
+inline double State::
 getDiscreteVarLastUpdateTime
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
     return getImpl().getDiscreteVarLastUpdateTime(subsys, index);
@@ -2091,14 +1937,6 @@ inline int State::getNUDotErr() const {
 inline int State::getNMultipliers() const {
     return getNUDotErr();
 }
-inline int State::getNEventTriggers() const {
-    return getImpl().getNEventTriggers();
-}
-inline int State::getNEventTriggersByStage(Stage stage) const {
-    return getImpl().getNEventTriggersByStage(stage);
-}
-
-
 
 // Per-Subsystem Dimensions
 inline SystemQIndex State::getQStart(SubsystemIndex subsys) const {
@@ -2143,25 +1981,7 @@ inline SystemMultiplierIndex State::getMultipliersStart(SubsystemIndex subsys) c
 inline int State::getNMultipliers(SubsystemIndex subsys) const {
     return getNUDotErr(subsys);
 }
-inline SystemEventTriggerByStageIndex State::
-getEventTriggerStartByStage(SubsystemIndex subsys, Stage stage) const {
-    return getImpl().getEventTriggerStartByStage(subsys, stage);
-}
-inline int State::
-getNEventTriggersByStage(SubsystemIndex subsys, Stage stage) const {
-    return getImpl().getNEventTriggersByStage(subsys, stage);
-}
 
-
-
-inline const Vector& State::
-getEventTriggersByStage(SubsystemIndex subsys, Stage stage) const {
-    return getImpl().getEventTriggersByStage(subsys, stage);
-}
-inline Vector& State::
-updEventTriggersByStage(SubsystemIndex subsys, Stage stage) const {
-    return getImpl().updEventTriggersByStage(subsys, stage);
-}
 inline const Vector& State::getQ(SubsystemIndex subsys) const {
     return getImpl().getQ(subsys);
 }
@@ -2253,26 +2073,7 @@ inline Vector& State::updMultipliers(SubsystemIndex subsys) const {
     return getImpl().updMultipliers(subsys);
 }
 
-inline SystemEventTriggerIndex State::
-getEventTriggerStartByStage(Stage stage) const {
-    return getImpl().getEventTriggerStartByStage(stage);
-}
-
-inline const Vector& State::getEventTriggers() const {
-    return getImpl().getEventTriggers();
-}
-inline const Vector& State::getEventTriggersByStage(Stage stage) const {
-    return getImpl().getEventTriggersByStage(stage);
-}
-
-inline Vector& State::updEventTriggers() const {
-    return getImpl().updEventTriggers();
-}
-inline Vector& State::updEventTriggersByStage(Stage stage) const {
-    return getImpl().updEventTriggersByStage(stage);
-}
-
-inline const Real& State::getTime() const {
+inline const double& State::getTime() const {
     return getImpl().getTime();
 }
 inline const Vector& State::getY() const {
@@ -2293,7 +2094,7 @@ inline const Vector& State::getUWeights() const {
 inline const Vector& State::getZWeights() const {
     return getImpl().getZWeights();
 }
-Real& State::updTime() {
+double& State::updTime() {
     return updImpl().updTime();
 }
 inline Vector& State::updY() {

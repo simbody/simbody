@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -23,11 +23,11 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/State.h"
 
 #include <cassert>
 #include <algorithm>
+#include <utility>
 #include <ostream>
 #include <set>
 
@@ -50,11 +50,18 @@ void State::clear() {
 State::~State() {
     delete impl; impl=0;
 }
+
 // copy constructor
-State::State(const State& state) {
-    impl = new StateImpl(*state.impl);
+State::State(const State& source) {
+    impl = new StateImpl(*source.impl);
 }
-    
+  
+// move constructor
+State::State(State&& source) {
+    impl = source.impl;
+    source.impl = nullptr;
+}
+
 // copy assignment
 State& State::operator=(const State& src) {
     if (&src == this) return *this;
@@ -68,6 +75,11 @@ State& State::operator=(const State& src) {
     // Assignment or redefinition
     if (src.impl) *impl = *src.impl;
     else {delete impl; impl=0;}
+    return *this;
+}
+
+State& State::operator=(State&& source) {
+    std::swap(impl, source.impl); // just swap the pointers
     return *this;
 }
 
@@ -161,16 +173,13 @@ void PerSubsystemInfo::clearConstraintErrs() {
 
 void PerSubsystemInfo::clearDiscreteVars()
 {   clearAllocationStack(discreteInfo); }
-void PerSubsystemInfo::clearEventTriggers(int g)
-{   clearAllocationStack(triggerInfo[g]); }
+
 void PerSubsystemInfo::clearCache()
 {   clearAllocationStack(cacheInfo); }
 
 void PerSubsystemInfo::clearAllStacks() {
     clearContinuousVars(); clearDiscreteVars();
     clearConstraintErrs(); clearCache();
-    for (int i=0; i < Stage::NValid; ++i)
-        clearEventTriggers(i);
 }
 
 void PerSubsystemInfo::popContinuousVarsBackToStage(const Stage& g) { 
@@ -189,17 +198,11 @@ void PerSubsystemInfo::popConstraintErrsBackToStage(const Stage& g) {
 void PerSubsystemInfo::popCacheBackToStage(const Stage& g) 
 {   popAllocationStackBackToStage(cacheInfo,g); }
 
-void PerSubsystemInfo::popEventTriggersBackToStage(const Stage& g) {
-    for (int i=0; i < Stage::NValid; ++i)
-        popAllocationStackBackToStage(triggerInfo[i],g); 
-}
-
 void PerSubsystemInfo::popAllStacksBackToStage(const Stage& g) {
     popContinuousVarsBackToStage(g);
     popDiscreteVarsBackToStage(g);
     popConstraintErrsBackToStage(g);
     popCacheBackToStage(g);
-    popEventTriggersBackToStage(g);
 }
 
 void PerSubsystemInfo::copyContinuousVarInfoThroughStage
@@ -220,11 +223,6 @@ void PerSubsystemInfo::copyCacheThroughStage
    (const Array_<CacheEntryInfo>& src, const Stage& g)
 {   copyAllocationStackThroughStage(cacheInfo, src, g); }
 
-void PerSubsystemInfo::copyEventsThroughStage
-   (const Array_<TriggerInfo>& src, const Stage& g,
-    Array_<TriggerInfo>& dest)
-{   copyAllocationStackThroughStage(dest, src, g); }
-
 void PerSubsystemInfo::copyAllStacksThroughStage
    (const PerSubsystemInfo& src, const Stage& g)
 {
@@ -239,8 +237,6 @@ void PerSubsystemInfo::copyAllStacksThroughStage
     copyConstraintErrInfoThroughStage(src.udoterrInfo, g, udoterrInfo);
 
     copyCacheThroughStage(src.cacheInfo, g);
-    for (int i=0; i < Stage::NValid; ++i)
-        copyEventsThroughStage(src.triggerInfo[i], g, triggerInfo[i]);
 }
 
 void PerSubsystemInfo::restoreToStage(Stage g) {
@@ -413,8 +409,6 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
 
         // Next get rid of the global views of these cache entries.
         qerr.clear(); uerr.clear();             // yerr views
-        for (int j=0; j<Stage::NValid; ++j)
-            triggers[j].clear();                // event trigger views
 
         // Finally nuke the actual cache data.
         yerr.unlockShape();        yerr.clear();
@@ -422,7 +416,6 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
         uerrWeights.unlockShape(); uerrWeights.clear();
         udoterr.unlockShape();     udoterr.clear();
         multipliers.unlockShape(); multipliers.clear();
-        allTriggers.unlockShape(); allTriggers.clear();
     }
     if (currentSystemStage >= Stage::Model && Stage::Model >= stg) {
         // We are "unmodeling" this State. Trash all the global
@@ -573,15 +566,11 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         // We know the shared cache pool sizes now. Allocate them.
 
         // Global sizes.
-        int nqerr=0, nuerr=0, nudoterr=0, nAllTriggers=0;
-        Array_<int> ntriggers(Stage::NValid, 0);
+        int nqerr=0, nuerr=0, nudoterr=0;
 
         // Per-subsystem sizes.
         const unsigned nss = subsystems.size();
         Array_<int> ssnqerr(nss, 0), ssnuerr(nss, 0), ssnudoterr(nss, 0);
-        Array_< Array_<int> > ssntriggers(nss);
-        for (unsigned i=0; i<nss; ++i)
-            ssntriggers[i].resize(Stage::NValid, 0);
 
         // Count up all 
         for (SubsystemIndex i(0); i<nss; ++i) {
@@ -595,17 +584,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
             for (unsigned j=0; j<ss.udoterrInfo.size(); ++j)
                 ssnudoterr[i] += ss.udoterrInfo[j].getNumErrs();
             nudoterr += ssnudoterr[i];
-
-            Array_<int>& ssntrigs = ssntriggers[i];
-            for (int g=0; g<Stage::NValid; ++g)
-                for (unsigned j=0; j<ss.triggerInfo[g].size(); ++j)
-                    ssntrigs[g] += ss.triggerInfo[g][j].getNumSlots();
-
-            for (int g=0; g<Stage::NValid; ++g)
-                ntriggers[g] += ssntrigs[g];
         }
-        for (int g=0; g<Stage::NValid; ++g)
-            nAllTriggers += ntriggers[g];
 
         // We need write access temporarily to set up the state.
         StateImpl* wThis = const_cast<StateImpl*>(this);
@@ -618,34 +597,23 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
 
         udoterr.resize(nudoterr);         udoterr.lockShape();
         multipliers.resize(nudoterr);     multipliers.lockShape(); // same size as udoterr
-        allTriggers.resize(nAllTriggers); allTriggers.lockShape();
 
         // Allocate subviews of the shared state & cache entries.
 
         qerr.viewAssign(yerr(0,     nqerr));
         uerr.viewAssign(yerr(nqerr, nuerr));
 
-        int stageStart=0;
-        for (int j=0; j<Stage::NValid; ++j) {
-            triggers[j].viewAssign(allTriggers(stageStart, ntriggers[j]));
-            stageStart += ntriggers[j];
-        }
-
         // Now partition the global resources among the subsystems and copy
         // in the initial values for the state variables.
         SystemQErrIndex nxtqerr(0);
         SystemUErrIndex nxtuerr(0);
         SystemUDotErrIndex nxtudoterr(0);
-        SystemEventTriggerByStageIndex nxttrigger[Stage::NValid];
-        for (int g=0; g<Stage::NValid; ++g)
-            nxttrigger[g] = SystemEventTriggerByStageIndex(0);
 
         for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
             PerSubsystemInfo& ss = 
                 const_cast<PerSubsystemInfo&>(subsystems[i]);
             const int nqerr=ssnqerr[i], nuerr=ssnuerr[i], 
                         nudoterr=ssnudoterr[i];
-            const Array_<int>& ssntrigs = ssntriggers[i];
 
             // Build the views. Only weights need initialization.
             ss.qerr.viewAssign(qerr(nxtqerr, nqerr));
@@ -675,15 +643,6 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
 
             // Consume the slots.
             nxtqerr += nqerr; nxtuerr += nuerr; nxtudoterr += nudoterr;
-
-            // Same thing for event trigger slots, but by stage.
-            for (int g=0; g<Stage::NValid; ++g) {
-                ss.triggerstart[g] = nxttrigger[g];
-                ss.triggers[g].viewAssign
-                    (triggers[g](nxttrigger[g], ssntrigs[g]));
-                nxttrigger[g] += ssntrigs[g];
-            }
-
         }
     }
 
@@ -803,13 +762,6 @@ String StateImpl::cacheToString() const {
 
         out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
         out += "  <Vector name=multipliers size=" + String(info.multipliers.size()) + ">\n";
-
-    
-        for (int j=0; j<Stage::NValid; ++j) {
-            out += "  <Vector name=triggers[";
-            out += Stage(j).getName();
-            out += "] size=" + String(info.triggers[j].size()) + ">\n";
-        }
     
         out += "</Subsystem>\n";
     }

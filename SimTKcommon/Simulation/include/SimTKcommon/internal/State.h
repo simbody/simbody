@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -32,7 +32,6 @@ done in a separate internal class. **/
 // complete the inline part of the State definition.
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/internal/Event.h"
 
 #include <ostream>
 #include <cassert>
@@ -192,17 +191,18 @@ methods:
 <pre>
      (1)  y' = f(d;t,y)         differential equations
      (2)  c  = c(d;t,y)         algebraic equations (manifold is c=0)
-     (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
+     (3)  e  = e(d;t,y)         event witnesses (watch for zero crossings)
 </pre>
 with initial conditions t0,y0,d0 such that c=0. The discrete variables d are 
 updated upon occurence of specific events. When those events are functions of 
-time or state, they are detected using the set of scalar-valued event trigger 
+time or state, they are detected using the set of scalar-valued event witness 
 functions e (3).
 
 In the more detailed view as seen from the System, we consider y={q,u,z} to 
-be partitioned into position variables q, velocity variables u, and auxiliary 
-variables z. There will be algebraic constraints involving q, u, and u's time 
-derivatives udot. The system is now assumed to look like this:
+be partitioned into twice-differentiable position variables q, and 
+singly-differentiable velocity variables u and auxiliary variables z. There will
+be algebraic constraints involving q, u, and u's time derivatives udot. The 
+system is now assumed to look like this:
 <pre>
      (4) qdot    = N(q) u
      (5) zdot    = zdot(d;t,q,u,z)
@@ -250,7 +250,7 @@ the q's are not adjacent to the u's as they are for the System's view.
 
 The default constructor creates a %State containing no state variables and with 
 its realization cache stage set to Stage::Empty. During subsystem construction,
-variables and cache entries for any stage can be allocated, however \e all 
+variables and cache entries for any stage can be allocated, however *all* 
 Model stage variables must be allocated during this time. At the end of 
 construction, call advanceSubsystemToStage(Topology) which will put the 
 subsystem at Stage::Topology. Then the subsystems realize their Model stages, 
@@ -265,7 +265,7 @@ global Stage advances to "Model" and tossed out if that stage is
 invalidated. Similarly, cache resources are allocated at stage Instance
 and forgotten when Instance is invalidated. Note that subsystems will
 "register" their use of the global variable pools during their own modeling
-stages, but that the actual global resources won't exist until the \e system 
+stages, but that the actual global resources won't exist until the *system* 
 has been advanced to Model or Instance stage. 
 
 <h3>Implementation note</h3>
@@ -279,20 +279,27 @@ public:
 State();
 
 /// The copy constructor has deep copy semantics; that is, this creates a new
-/// \e copy of the source object, \e not a reference to the original object.
+/// *copy* of the source object, *not* a reference to the original object.
 /// This makes the new %State contain a copy of the state information in the
 /// source %State, copying only state variables and not the cache. If the source
 /// state hasn't been realized to at least Stage::Model, then we don't copy its
 /// state variables either, except those associated with the Topology stage.
-State(const State&);
+State(const State& source);
 
-/// Copy assignment has deep copy semantics; that is, \c this %State will 
-/// contain a \e copy of the source, \e not a reference into it. This makes the 
+/// The move constructor is very fast. The source object is left empty.
+State(State&& source);
+
+/// Copy assignment has deep copy semantics; that is, `this` %State will 
+/// contain a *copy* of the source, *not* a reference into it. This makes the 
 /// current %State contain a copy of the state information in the source %State,
 /// copying only state variables and not the cache. If the source state hasn't
 /// been realized to at least Stage::Model, then we don't copy its state
 /// variables either, except those associated with the Topology stage.
 State& operator=(const State&);
+
+/// Move assignment is very fast. The source object is left in a valid but
+/// undefined condition.
+State& operator=(State&& source);
 
 /// Destruct this %State object and free up the heap space it is using.
 ~State();
@@ -421,27 +428,6 @@ same number of slots in the constraint multipliers vector. **/
 inline UDotErrIndex allocateUDotErr(SubsystemIndex, int nudoterr) const;
 /**@}**/
 
-/** @name                   Event witness functions
-Some Events require a slot in the %State cache to hold the current value
-of the event trigger function (a.k.a. event "witness" function).
-The Stage here is the stage at which the trigger function's value
-should be examined by a TimeStepper. The returned index is local to
-the Subsystem and also to the stage. These can be allocated in a %State
-that has not yet been realized to Instance stage, and will be forgotten
-appropriately if the %State is later backed up to an earlier stage.
-When this %State is realized to Instance stage, global event trigger slots
-will be allocated, collecting all same-stage event triggers together
-consecutively for the convenience of the TimeStepper. Within a stage,
-a given subsystem's event trigger slots for that stage are consecutive. **/
-/**@{**/
-/** Allocate room for \a nevent witness function values that will be available
-at the indicated \a stage. The Subsystem- and Stage-local index of the first
-allocated witness is returned; the rest follow consecutively. **/
-inline EventTriggerByStageIndex 
-allocateEventTrigger(SubsystemIndex, Stage stage, int nevent) const;
-/**@}**/
-
-
 /** @name                      Discrete Variables
 
 You can allocate a new DiscreteVariable in any State whose stage has not yet 
@@ -542,7 +528,7 @@ only that the variable has already been allocated and will fail otherwise. **/
 inline const AbstractValue& 
 getDiscreteVariable(SubsystemIndex, DiscreteVariableIndex) const;
 /** Return the time of last update for this discrete variable. **/
-inline Real 
+inline double 
 getDiscreteVarLastUpdateTime(SubsystemIndex, DiscreteVariableIndex) const;
 /** For an auto-updating discrete variable, return the current value of its 
 associated update cache entry; this is the value the discrete variable will have
@@ -802,16 +788,6 @@ inline int getNUDotErr() const;
 /// at Instance stage.
 /// @see getNUDotErr()
 inline int getNMultipliers() const; // =mp+mv+ma, necessarily the same as NUDotErr
-/// Return the total number of event trigger function slots in the cache.
-/// Callable at Instance stage.
-inline int getNEventTriggers() const;
-/// Return the size of the partition of event trigger functions which are 
-/// evaluated at a given Stage. Callable at Instance stage.
-inline int getNEventTriggersByStage(Stage) const;
-/// Return the index within the global event trigger array at which the
-/// first of the event triggers associated with a particular Stage are stored;
-/// the rest follow contiguously. Callable at Instance stage.
-inline SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const;
 
 /// @}
 
@@ -844,20 +820,6 @@ inline SystemUDotErrIndex getUDotErrStart(SubsystemIndex) const;
 inline int getNUDotErr(SubsystemIndex) const;
 inline SystemMultiplierIndex getMultipliersStart(SubsystemIndex) const;
 inline int getNMultipliers(SubsystemIndex) const;
-
-inline SystemEventTriggerByStageIndex 
-    getEventTriggerStartByStage(SubsystemIndex, Stage) const;
-inline int getNEventTriggersByStage(SubsystemIndex, Stage) const;
-
-/// @}
-
-inline const Vector& getEventTriggers() const;
-inline const Vector& getEventTriggersByStage(Stage) const;
-inline const Vector& getEventTriggersByStage(SubsystemIndex, Stage) const;
-
-inline Vector& updEventTriggers() const; // mutable
-inline Vector& updEventTriggersByStage(Stage) const;
-inline Vector& updEventTriggersByStage(SubsystemIndex, Stage) const;
 
 /// Per-subsystem access to the global shared variables.
 inline const Vector& getQ(SubsystemIndex) const;
@@ -902,7 +864,7 @@ inline Vector& updQErrWeights(SubsystemIndex);
 inline Vector& updUErrWeights(SubsystemIndex);
 
 /// You can call these as long as *system* stage >= Model.
-inline const Real&   getTime() const;
+inline const double& getTime() const;
 inline const Vector& getY() const; // {Q,U,Z} packed and in that order
 
 /// These are just views into Y.
@@ -967,11 +929,11 @@ inline Vector& updZWeights();
 
 /// You can call these as long as System stage >= Model, but the
 /// stage will be backed up if necessary to the indicated stage.
-inline Real&   updTime();  // Back up to Stage::Time-1
+inline double& updTime();  // Back up to Stage::Time-1
 inline Vector& updY();     // Back up to Stage::Dynamics-1
 
 /// An alternate syntax equivalent to updTime() and updY().
-inline void setTime(Real t);
+inline void setTime(double t);
 inline void setY(const Vector& y);
 
 /// These are just views into Y.
