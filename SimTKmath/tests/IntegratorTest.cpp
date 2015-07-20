@@ -251,7 +251,7 @@ private:
 
         for (auto tp : triggers) {
             printf("  trigger id=%d desc='%s' type=%s\n",
-                tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
+                (int)tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
                 typeid(*tp).name());
         }
     }
@@ -280,7 +280,7 @@ private:
 
         for (auto tp : triggers) {
             printf("  trigger id=%d desc='%s' type=%s\n",
-                tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
+                (int)tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
                 typeid(*tp).name());
         }
     }
@@ -327,7 +327,7 @@ private:
         printf("TimeAdvancedAction::reportVirtual()\n");
         printf("    TIME ADVANCED TO %g\n", study.getCurrentState().getTime());
         printf("    %d trigger id=%d\n", (int)triggers.size(),
-               triggers[0]->getEventTriggerId());
+               (int)triggers[0]->getEventTriggerId());
     }
 };
 
@@ -358,11 +358,11 @@ private:
 
         for (auto tp : triggers) {
             printf("  trigger id=%d desc='%s' type=%s\n",
-                tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
+                (int)tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
                 typeid(*tp).name());
         }
 
-        printf("Swapping q%d with q%d; zeroing u's\n", m_qix, m_qjx);
+        printf("Swapping q%d with q%d; zeroing u's\n", (int)m_qix, (int)m_qjx);
         std::swap(state.updQ()[m_qix],state.updQ()[m_qjx]); //invalidates Position stage
         state.updU() = 0;
         //result.reportExitStatus(EventChangeResult::Succeeded);
@@ -823,7 +823,7 @@ static void reportState(const char* msg, const Integrator& integ) {
     sys.findActiveEventWitnesses(integ, witnesses);
     printf("%d witness values:\n", witnesses.size());
     for (auto w : witnesses) {
-        printf("  %d: %g\n", w->getEventTriggerId(), 
+        printf("  %d: %g\n", (int)w->getEventTriggerId(), 
                w->calcWitnessValue(sys,s,0));
     }
 
