@@ -294,7 +294,7 @@ private:
 
         for (auto tp : triggers) {
             printf("  trigger id=%d desc='%s' type=%s\n",
-                tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
+                (int)tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
                 typeid(*tp).name());
         }
         cout << "****" << endl;
@@ -783,7 +783,7 @@ void testOne() {
 
     auto& event = subsys.getMyEvent();
 
-    printf("DONE. Time=%.15g, #events=%d\n", ts.getCurrentState().getTime(),
+    printf("DONE. Time=%.15g, #events=%lld\n", ts.getCurrentState().getTime(),
            event.getNumOccurrences());
 
     // With the step size adjustments above we should end almost exactly at 2.
