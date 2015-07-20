@@ -87,7 +87,7 @@ int main() {
     // Visualize a frame every 1/60 s, and include the energy.
     Visualizer viz(system); viz.setDesiredFrameRate(60);
     viz.addDecorationGenerator(new ShowEnergy(system));
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./60));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./60));
     
     // Initialize the system and state. 
     State state = system.realizeTopology();
@@ -100,7 +100,7 @@ int main() {
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-5);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(100.0);
 
