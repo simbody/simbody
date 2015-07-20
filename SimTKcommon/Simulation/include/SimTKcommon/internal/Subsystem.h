@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -65,6 +65,7 @@ Subsystem() : guts(0) {}
 makes this the owner handle of the new clone. This is typically not very 
 useful. **/
 Subsystem(const Subsystem&);
+
 /** Copy assignment deletes the Subsystem::Guts object if there is one and then
 behaves like the copy constructor. Probably not useful in most cases. **/
 Subsystem& operator=(const Subsystem&);
@@ -117,9 +118,6 @@ UErrIndex allocateUErr(const State& s, int nuerr) const
 {   return s.allocateUErr(getMySubsystemIndex(), nuerr); }
 UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const 
 {   return s.allocateUDotErr(getMySubsystemIndex(), nudoterr); }
-EventTriggerByStageIndex 
-allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const 
-{   return s.allocateEventTrigger(getMySubsystemIndex(),g,ntriggers); }
 
 const Vector& getQ(const State& s) const 
 {   return s.getQ(getMySubsystemIndex()); }
@@ -167,8 +165,6 @@ const Vector& getUDotErr(const State& s) const
 {   return s.getUDotErr(getMySubsystemIndex()); }
 const Vector& getMultipliers(const State& s) const 
 {   return s.getMultipliers(getMySubsystemIndex()); }
-const Vector& getEventTriggersByStage(const State& s, Stage g) const
-{   return s.getEventTriggersByStage(getMySubsystemIndex(),g); }
 
 Vector& updQErr(const State& s) const 
 {   return s.updQErr(getMySubsystemIndex()); }
@@ -178,8 +174,6 @@ Vector& updUDotErr(const State& s) const
 {   return s.updUDotErr(getMySubsystemIndex()); }
 Vector& updMultipliers(const State& s) const 
 {   return s.updMultipliers(getMySubsystemIndex()); }
-Vector& updEventTriggersByStage(const State& s, Stage g) const
-{   return s.updEventTriggersByStage(getMySubsystemIndex(),g); }
 
 SystemQIndex getQStart(const State& s) const 
 {   return s.getQStart(getMySubsystemIndex()); }
@@ -215,11 +209,6 @@ SystemMultiplierIndex getMultipliersStart(const State& s) const
 {   return s.getMultipliersStart(getMySubsystemIndex()); }
 int getNMultipliers(const State& s)     const 
 {   return s.getNMultipliers(getMySubsystemIndex()); }
-
-SystemEventTriggerByStageIndex getEventTriggerStartByStage(const State& s, Stage g) const 
-{   return s.getEventTriggerStartByStage(getMySubsystemIndex(),g); }
-int getNEventTriggersByStage   (const State& s, Stage g) const 
-{   return s.getNEventTriggersByStage(getMySubsystemIndex(),g); }
 
 
 // For convenience.

@@ -35,14 +35,44 @@
 #include "SimTKcommon/internal/EventReporter.h"
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/Study.h"
 
 #include "SimTKcommon/internal/MeasureImplementation.h"
 
-#include "SystemGutsRep.h"
-
 #include <cassert>
 
-namespace SimTK {
+using namespace SimTK;
+
+namespace {
+//------------------------ INITIALIZE MEASURES ACTION --------------------------
+// Each Subsystem adds one of these Actions to the System's Initialization
+// Event that occurs at the start of a simulation so that its Measures will get
+// initialized. 
+class InitializeMeasuresAction: public EventAction {
+public:
+    InitializeMeasuresAction(const Subsystem::Guts& subsys) 
+    :   EventAction(Change), m_subsys(subsys) {}
+
+private:
+    InitializeMeasuresAction* cloneVirtual() const override 
+    {   return new InitializeMeasuresAction(*this); }
+
+    void changeVirtual
+       (Study&                  study,
+        const Event&            /*ignored*/,
+        const EventTriggers&    /*ignored*/,
+        EventChangeResult&      result) const override 
+    {
+        m_subsys.initializeMeasures(study.updInternalState());
+        result.reportExitStatus(EventChangeResult::Succeeded);
+    }
+
+private:
+    const Subsystem::Guts& m_subsys;
+};
+
+} // anonymous file-scope namespace
+
 
 //==============================================================================
 //                                 SUBSYSTEM
@@ -53,6 +83,7 @@ Subsystem::Subsystem(const Subsystem& src) : guts(0) {
         guts = src.guts->clone();
         guts->setOwnerSubsystemHandle(*this);
     }
+
 }
 
 Subsystem& Subsystem::operator=(const Subsystem& src) {
@@ -90,8 +121,8 @@ void Subsystem::adoptSubsystemGuts(Subsystem::Guts* g) {
 // This serves as default constructor.
 Subsystem::Guts::Guts(const String& name, const String& version)
 :   m_subsystemName(name), m_subsystemVersion(version),
-    m_mySystem(0), m_mySubsystemIndex(InvalidSubsystemIndex), m_myHandle(0),
-    m_subsystemTopologyRealized(false)
+    m_mySystem(nullptr), m_mySubsystemIndex(InvalidSubsystemIndex), 
+    m_myHandle(nullptr), m_subsystemTopologyRealized(false)
 { 
 }
 
@@ -99,8 +130,8 @@ Subsystem::Guts::Guts(const String& name, const String& version)
 Subsystem::Guts::Guts(const Subsystem::Guts& src) 
 :   m_subsystemName(src.m_subsystemName), 
     m_subsystemVersion(src.m_subsystemVersion),
-    m_mySystem(0), m_mySubsystemIndex(InvalidSubsystemIndex), m_myHandle(0),
-    m_subsystemTopologyRealized(false)
+    m_mySystem(nullptr), m_mySubsystemIndex(InvalidSubsystemIndex), 
+    m_myHandle(nullptr), m_subsystemTopologyRealized(false)
 {
 }
 
@@ -110,6 +141,21 @@ Subsystem::Guts::~Guts() {
         if (m_measures[mx]->decrRefCount()==0) delete m_measures[mx];
     m_myHandle = 0;
     invalidateSubsystemTopologyCache();
+}
+
+// Subsystem is being added to a System. Can now set up any System-level
+// resources, such as Event actions. 
+// TODO: concrete subsystem needs to get a chance to do this too.
+void Subsystem::Guts::setSystem(System& sys, SubsystemIndex index) {
+    SimTK_ASSERT(!isInSystem(), "Subsystem::setSystem()");
+    SimTK_ASSERT(index.isValid(), "Subsystem::setSystem()");
+    m_mySystem = &sys;
+    m_mySubsystemIndex = index;
+
+    // Now that we're part of a System we can help ourselves to some
+    // System goodies.
+    acquireSystemResources();
+
 }
 
 MeasureIndex Subsystem::Guts::adoptMeasure(AbstractMeasure& m) {
@@ -128,6 +174,11 @@ MeasureIndex Subsystem::Guts::adoptMeasure(AbstractMeasure& m) {
     return mx;
 }
 
+void Subsystem::Guts::initializeMeasures(State& state) const {
+    for (MeasureIndex mx(0); mx < m_measures.size(); ++mx)
+        m_measures[mx]->initialize(state);
+}
+
 bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
     return isInSystem() && otherSubsystem.isInSystem()
         && getSystem().isSameSystem(otherSubsystem.getSystem());
@@ -138,9 +189,10 @@ bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
 // Subsystem's topology caches.
 void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
     if (m_subsystemTopologyRealized) {
-        m_subsystemTopologyRealized = false;
+        auto mThis = const_cast<Subsystem::Guts*>(this);
+        mThis->m_subsystemTopologyRealized = false;
         if (isInSystem()) 
-            getSystem().getSystemGuts().invalidateSystemTopologyCache();
+            getSystem().invalidateSystemTopologyCache();
     }
 }
 
@@ -165,7 +217,8 @@ void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     for (MeasureIndex mx(0); mx < m_measures.size(); ++mx)
         m_measures[mx]->realizeTopology(s);
 
-    m_subsystemTopologyRealized = true; // mark subsys itself (mutable)
+    auto mThis = const_cast<Subsystem::Guts*>(this);
+    mThis->m_subsystemTopologyRealized = true; // mark subsys itself (mutable)
     advanceToStage(s, Stage::Topology);  // mark the State as well
 }
 
@@ -318,71 +371,21 @@ void Subsystem::Guts::calcDecorativeGeometryAndAppend
 }
 
 //------------------------------------------------------------------------------
-//                              HANDLE EVENTS
+//                      ACQUIRE SYSTEM RESOURCES
 //------------------------------------------------------------------------------
-void Subsystem::Guts::handleEvents(State& state, Event::Cause cause, 
-    const Array_<EventId>& eventIds,
-    const HandleEventsOptions& options, HandleEventsResults& results) const
+void Subsystem::Guts::acquireSystemResources() 
 {
-    // Invoke Measure handlers where appropriate (TODO: just initialization
-    // so far). Initialize measures first in case the Subsystem initialization
-    // handler references measures.
-    if (cause == Event::Cause::Initialization) {
-        for (MeasureIndex mx(0); mx < m_measures.size(); ++mx)
-            m_measures[mx]->initialize(state);
-    }
+    SimTK_ASSERT_ALWAYS(isInSystem(), 
+        "Subsystem::Guts::acquireSystemResources(): "
+        "This Subsystem has not been put into a System.");
 
-    // assume success
-    results.clear(); results.setExitStatus(HandleEventsResults::Succeeded); 
-    handleEventsImpl(state, cause, eventIds, options, results);
-}
+    // Every Subsystem has as its first Initialization action to call its
+    // Measures' initialize() methods.
+    m_mySystem->updInitializationEvent()
+        .adoptEventAction(new InitializeMeasuresAction(*this));
 
-//------------------------------------------------------------------------------
-//                               REPORT EVENTS
-//------------------------------------------------------------------------------
-void Subsystem::Guts::reportEvents(const State& state, Event::Cause cause, 
-                                   const Array_<EventId>& eventIds) const
-{
-    reportEventsImpl(state, cause, eventIds);
-}
-
-//------------------------------------------------------------------------------
-//                         CALC EVENT TRIGGER INFO
-//------------------------------------------------------------------------------
-void Subsystem::Guts::
-calcEventTriggerInfo(const State& state, Array_<EventTriggerInfo>& info) const {
-    calcEventTriggerInfoImpl(state, info);
-}
-
-//------------------------------------------------------------------------------
-//                     CALC TIME OF NEXT SCHEDULED EVENT
-//------------------------------------------------------------------------------
-void Subsystem::Guts::
-calcTimeOfNextScheduledEvent(const State& state, Real& tNextEvent, 
-                             Array_<EventId>& eventIds, 
-                             bool includeCurrentTime) const 
-{
-    tNextEvent = Infinity;
-    eventIds.clear();
-    calcTimeOfNextScheduledEventImpl(state, tNextEvent, eventIds, 
-                                     includeCurrentTime);
-}
-
-//------------------------------------------------------------------------------
-//                    CALC TIME OF NEXT SCHEDULED REPORT
-//------------------------------------------------------------------------------
-void Subsystem::Guts::
-calcTimeOfNextScheduledReport(const State& state, Real& tNextReport, 
-                              Array_<EventId>& eventIds, 
-                              bool includeCurrentTime) const 
-{
-    tNextReport = Infinity;
-    eventIds.clear();
-    calcTimeOfNextScheduledReportImpl(state, tNextReport, eventIds, 
-                                      includeCurrentTime);
+    acquireSystemResourcesImpl();
 }
 
 
-
-} // namespace SimTK
 

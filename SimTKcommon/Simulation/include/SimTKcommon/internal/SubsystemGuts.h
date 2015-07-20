@@ -27,6 +27,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/Event_Defs.h"
 
 #include <cassert>
 
@@ -39,19 +40,12 @@ class DecorativeGeometry;
 //                           SUBSYSTEM :: GUTS
 //==============================================================================
 /** The abstract parent of all Subsystem implementation classes. You must 
-extend this class if you implement a new concrete %Subsystem class. The 
-Simbody user's API for %Subsystems is defined exclusively in the Subsystem 
-handle class declaration; the API declared here is for use by %Subsystem 
-implementors.
-**/
+extend this class if you implement a new concrete Subsystem class. The 
+Simbody user's API for Subsystems is defined exclusively in the Subsystem 
+handle class declaration; the API declared here is for use by Subsystem 
+implementors. **/
 class SimTK_SimTKCOMMON_EXPORT Subsystem::Guts {
 public:
-
-/** This constructor is for use in the constructors of derived Subsystems. 
-This serves as a default constructor since both arguments have defaults. 
-The name and version strings are not interpreted by Simbody in any way; they
-are simply stored and returned as given. **/
-explicit Guts(const String& name="<NONAME>", const String& version="0.0.0");
 
 /** Destructor is virtual to permit cleanup of derived classes. **/
 virtual ~Guts();
@@ -112,9 +106,6 @@ UErrIndex allocateUErr(const State& s, int nuerr) const
 {   return s.allocateUErr(getMySubsystemIndex(), nuerr); }
 UDotErrIndex allocateUDotErr(const State& s, int nudoterr) const 
 {   return s.allocateUDotErr(getMySubsystemIndex(), nudoterr); }
-EventTriggerByStageIndex 
-allocateEventTriggersByStage(const State& s, Stage g, int ntriggers) const 
-{   return s.allocateEventTrigger(getMySubsystemIndex(),g,ntriggers); }
 
 const Vector& getQ(const State& s) const 
 {   return s.getQ(getMySubsystemIndex()); }
@@ -162,8 +153,6 @@ const Vector& getUDotErr(const State& s) const
 {   return s.getUDotErr(getMySubsystemIndex()); }
 const Vector& getMultipliers(const State& s) const 
 {   return s.getMultipliers(getMySubsystemIndex()); }
-const Vector& getEventTriggersByStage(const State& s, Stage g) const
-{   return s.getEventTriggersByStage(getMySubsystemIndex(),g); }
 
 Vector& updQErr(const State& s) const 
 {   return s.updQErr(getMySubsystemIndex()); }
@@ -173,8 +162,6 @@ Vector& updUDotErr(const State& s) const
 {   return s.updUDotErr(getMySubsystemIndex()); }
 Vector& updMultipliers(const State& s) const 
 {   return s.updMultipliers(getMySubsystemIndex()); }
-Vector& updEventTriggersByStage(const State& s, Stage g) const
-{   return s.updEventTriggersByStage(getMySubsystemIndex(),g); }
 
 SystemQIndex getQStart(const State& s) const 
 {   return s.getQStart(getMySubsystemIndex()); }
@@ -210,11 +197,6 @@ SystemMultiplierIndex getMultipliersStart(const State& s) const
 {   return s.getMultipliersStart(getMySubsystemIndex()); }
 int getNMultipliers(const State& s)     const 
 {   return s.getNMultipliers(getMySubsystemIndex()); }
-
-SystemEventTriggerByStageIndex getEventTriggerStartByStage(const State& s, Stage g) const 
-{   return s.getEventTriggerStartByStage(getMySubsystemIndex(),g); }
-int getNEventTriggersByStage   (const State& s, Stage g) const 
-{   return s.getNEventTriggersByStage(getMySubsystemIndex(),g); }
 
 
 // For convenience.
@@ -291,10 +273,20 @@ index should be as it was returned by adoptMeasure().
 AbstractMeasure getMeasure(MeasureIndex mx) const {
     SimTK_ASSERT(0 <= mx && mx < m_measures.size(), 
                  "Subsystem::Guts::getMeasure()");
+    //TODO: the returned object is writable; that doesn't seem like a good idea.
     return AbstractMeasure(m_measures[mx]);
 }
 
-bool isInSystem() const {return m_mySystem != 0;}
+/** Call the initialize() method of each Measure Implementation object. This
+is normally called at the start of a simulation, as an action taken by the
+Initialization event. **/
+void initializeMeasures(State& state) const;
+
+bool isInSystem() const {
+    return m_mySystem != nullptr;
+    std::cout << m_mySystem;
+}
+
 bool isInSameSystem(const Subsystem& otherSubsystem) const;
 
 const System& getSystem() const {
@@ -305,12 +297,12 @@ System& updSystem() {
     SimTK_ASSERT(isInSystem(), "Subsystem::updSystem()");
     return *m_mySystem;
 }
-void setSystem(System& sys, SubsystemIndex id) {
-    SimTK_ASSERT(!isInSystem(), "Subsystem::setSystem()");
-    SimTK_ASSERT(id.isValid(), "Subsystem::setSystem()");
-    m_mySystem = &sys;
-    m_mySubsystemIndex = id;
-}
+
+/** This Subsystem has just been added to the indicated System. Record the
+System and this Subsystem's index within it, and acquire any needed 
+System-global resources. **/
+void setSystem(System& sys, SubsystemIndex index);
+
 SubsystemIndex getMySubsystemIndex() const {
     SimTK_ASSERT(isInSystem(), "Subsystem::getMySubsystemIndex()");
     return m_mySubsystemIndex;
@@ -364,74 +356,13 @@ void realizeSubsystemReport      (const State&) const;
 void calcDecorativeGeometryAndAppend
     (const State&, Stage, Array_<DecorativeGeometry>&) const;
 
-// These methods are called by the corresponding methods of System.
-// Each subsystem is responsible for defining its own events, and
-// System then combines the information from them, and dispatches events
-// to the appropriate subsystems for handling when they occur.
-void calcEventTriggerInfo
-    (const State&, Array_<EventTriggerInfo>&) const;
-void calcTimeOfNextScheduledEvent
-    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-    bool includeCurrentTime) const;
-void calcTimeOfNextScheduledReport
-    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-    bool includeCurrentTime) const;
-void handleEvents
-    (State&, Event::Cause, const Array_<EventId>& eventIds,
-    const HandleEventsOptions& options, HandleEventsResults& results) const;
-void reportEvents
-    (const State&, Event::Cause, const Array_<EventId>& eventIds) const;
+// At the time a Subsystem is added to a System (see setSystem()) it is given
+// a chance to request System-level resources for its own use. This usually
+// means Events and EventActions. Concrete Subsystems can implement
+// acquireSystemResourcesImpl() to get more System goodies. This will throw
+// an exception if the Subsystem is not already part of a System.
+void acquireSystemResources();
 
-protected:
-// These virtual methods should be overridden in concrete Subsystems as
-// necessary. They should never be called directly; instead call the
-// wrapper routines above, which have the same name but without the "Impl"
-// (implementation) at the end.
-    
-// The "realize..." wrappers will call the "realize...Impl" methods below
-// only when the current stage for the Subsystem is the one just prior
-// to the stage being realized. For example, realizeSubsystemVelocityImpl()
-// is called by realizeSubsystemVelocity() only when the passed-in State
-// shows this subsystem's stage to be exactly Stage::Position.
-//
-// The default implementations provided here do nothing. That means the
-// wrappers will simply check that the current stage is correct and
-// advance it if necessary.
-
-// The destructor is already virtual; see above.
-
-virtual Subsystem::Guts* cloneImpl() const = 0;
-
-virtual int realizeSubsystemTopologyImpl(State& s)       const {return 0;}
-virtual int realizeSubsystemModelImpl   (State& s)       const {return 0;}
-virtual int realizeSubsystemInstanceImpl(const State& s) const {return 0;}
-virtual int realizeSubsystemTimeImpl    (const State& s) const {return 0;}
-virtual int realizeSubsystemPositionImpl(const State& s) const {return 0;}
-virtual int realizeSubsystemVelocityImpl(const State& s) const {return 0;}
-virtual int realizeSubsystemDynamicsImpl(const State& s) const {return 0;}
-virtual int realizeSubsystemAccelerationImpl(const State& s)const{return 0;}
-virtual int realizeSubsystemReportImpl  (const State& s) const {return 0;}
-
-virtual int calcDecorativeGeometryAndAppendImpl
-    (const State&, Stage, Array_<DecorativeGeometry>&) const {return 0;}
-
-virtual void calcEventTriggerInfoImpl
-    (const State&, Array_<EventTriggerInfo>&) const {}
-virtual void calcTimeOfNextScheduledEventImpl
-    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-    bool includeCurrentTime) const {}
-virtual void calcTimeOfNextScheduledReportImpl
-    (const State&, Real& tNextEvent, Array_<EventId>& eventIds, 
-    bool includeCurrentTime) const {}
-virtual void handleEventsImpl
-    (State&, Event::Cause, const Array_<EventId>& eventIds,
-    const HandleEventsOptions& options, 
-    HandleEventsResults& results) const {}
-virtual void reportEventsImpl
-    (const State&, Event::Cause, const Array_<EventId>& eventIds) const {}
-
-
-public:
 /** Return a const reference to the Subsystem handle object that is the unique 
 owner of this Subsystem::Guts object. **/
 const Subsystem& getOwnerSubsystemHandle() const {
@@ -453,30 +384,76 @@ void setOwnerSubsystemHandle(Subsystem& subsys) {m_myHandle=&subsys;}
 
 /** Check whether this Subsystem::Guts object is currently owned by some
 Subsystem handle object. **/
-bool hasOwnerSubsystemHandle() const {return m_myHandle != 0;}
+bool hasOwnerSubsystemHandle() const {return m_myHandle != nullptr;}
 
-private:
-// Suppressed.
-Guts& operator=(const Guts&);
+
+//------------------------------------------------------------------------------
+                                  protected:
+
+/** This constructor is for use in the constructors of derived Subsystems. 
+This serves as a default constructor since both arguments have defaults. 
+The name and version strings are not interpreted by Simbody in any way; they
+are simply stored and returned as given. **/
+explicit Guts(const String& name="<NONAME>", const String& version="0.0.0");
+
+Guts& operator=(const Guts&) = delete;
+
+// These virtual methods should be overridden in concrete Subsystems as
+// necessary. They should never be called directly; instead call the
+// wrapper routines above, which have the same name but without the "Impl"
+// (implementation) at the end.
+    
+// The "realize..." wrappers will call the "realize...Impl" methods below
+// only when the current stage for the Subsystem is the one just prior
+// to the stage being realized. For example, realizeSubsystemVelocityImpl()
+// is called by realizeSubsystemVelocity() only when the passed-in State
+// shows this subsystem's stage to be exactly Stage::Position.
+//
+// The default implementations provided here do nothing. That means the
+// wrappers will simply check that the current stage is correct and
+// advance it if necessary.
+
+// The destructor is already virtual; see above.
+
+virtual Subsystem::Guts* cloneImpl() const = 0;
+
+virtual void acquireSystemResourcesImpl() {}
+
+virtual int realizeSubsystemTopologyImpl(State& s)           const {return 0;}
+virtual int realizeSubsystemModelImpl   (State& s)           const {return 0;}
+virtual int realizeSubsystemInstanceImpl(const State& s)     const {return 0;}
+virtual int realizeSubsystemTimeImpl    (const State& s)     const {return 0;}
+virtual int realizeSubsystemPositionImpl(const State& s)     const {return 0;}
+virtual int realizeSubsystemVelocityImpl(const State& s)     const {return 0;}
+virtual int realizeSubsystemDynamicsImpl(const State& s)     const {return 0;}
+virtual int realizeSubsystemAccelerationImpl(const State& s) const {return 0;}
+virtual int realizeSubsystemReportImpl  (const State& s)     const {return 0;}
+
+virtual int calcDecorativeGeometryAndAppendImpl
+    (const State&, Stage, Array_<DecorativeGeometry>&) const {return 0;}
+
 
 //------------------------------------------------------------------------------
                                     private:
-
-    // TOPOLOGY STATE INFORMATION
-String          m_subsystemName;
-String          m_subsystemVersion;
-System*         m_mySystem;       // the System to which this Subsystem belongs
-SubsystemIndex  m_mySubsystemIndex;  // Subsystem # within System
-
 friend class Subsystem;
-Subsystem*      m_myHandle;    // the owner handle of this Guts object
 
-// This is the list of Measures belonging to this Subsystem.
+    // TOPOLOGY STAGE STATE //
+ReferencePtr<Subsystem>     m_myHandle; // the owner handle of this Guts object
+
+String                      m_subsystemName, m_subsystemVersion;
+
+
+// This is the list of Measures belonging to this Subsystem. 
+// TODO: Oddly, these have shallow copy semantics so can't be ClonePtrs.
 Array_<AbstractMeasure::Implementation*> 
-                m_measures;
+                            m_measures;
 
-    // TOPOLOGY CACHE INFORMATION
-mutable bool    m_subsystemTopologyRealized;
+// These are set when the Subsystem is adopted by a System.
+ReferencePtr<System>        m_mySystem; // System to which this Subsys belongs
+SubsystemIndex              m_mySubsystemIndex; // Subsystem # within System
+
+    // TOPOLOGY STAGE CACHE //
+bool                        m_subsystemTopologyRealized;
 };
 
 
@@ -488,8 +465,10 @@ mutable bool    m_subsystemTopologyRealized;
 inline SubsystemIndex Subsystem::getMySubsystemIndex() const
 {   return getSubsystemGuts().getMySubsystemIndex(); }
 
-inline const String& Subsystem::getName()    const {return getSubsystemGuts().getName();}
-inline const String& Subsystem::getVersion() const {return getSubsystemGuts().getVersion();}
+inline const String& Subsystem::getName()    const 
+{   return getSubsystemGuts().getName(); }
+inline const String& Subsystem::getVersion() const 
+{   return getSubsystemGuts().getVersion(); }
 
 inline bool Subsystem::subsystemTopologyHasBeenRealized() const {
     return getSubsystemGuts().subsystemTopologyHasBeenRealized();

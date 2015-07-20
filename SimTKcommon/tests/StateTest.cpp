@@ -133,11 +133,11 @@ void testMisc() {
     QIndex q1 = s.allocateQ(SubsystemIndex(0), v3);
     QIndex q2 = s.allocateQ(SubsystemIndex(0), v2);
 
-    EventTriggerByStageIndex e1 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Position, 3);
-    EventTriggerByStageIndex e2 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Instance, 2);
+    //EventTriggerByStageIndex e1 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Position, 3);
+    //EventTriggerByStageIndex e2 = s.allocateEventTrigger(SubsystemIndex(0), Stage::Instance, 2);
 
     printf("q1,2=%d,%d\n", (int)q1, (int)q2);
-    printf("e1,2=%d,%d\n", (int)e1, (int)e2);
+    //printf("e1,2=%d,%d\n", (int)e1, (int)e2);
 
     //cout << s;
 
@@ -158,17 +158,17 @@ void testMisc() {
     s.advanceSubsystemToStage(SubsystemIndex(0), Stage::Instance);
     s.advanceSystemToStage(Stage::Instance);
 
-    printf("ntriggers=%d, by stage:\n", s.getNEventTriggers());
-    for (int j=0; j<Stage::NValid; ++j) {
-        Stage g = Stage(j);
-        cout << g.getName() << ": " << s.getNEventTriggersByStage(g) << endl;
-    }
+    //printf("ntriggers=%d, by stage:\n", s.getNEventTriggers());
+    //for (int j=0; j<Stage::NValid; ++j) {
+    //    Stage g = Stage(j);
+    //    cout << g.getName() << ": " << s.getNEventTriggersByStage(g) << endl;
+    //}
 
-    printf("subsys 0 by stage:\n");
-    for (int j=0; j<Stage::NValid; ++j) {
-        Stage g = Stage(j);
-        cout << g.getName() << ": " << s.getNEventTriggersByStage(SubsystemIndex(0),g) << endl;
-    }
+    //printf("subsys 0 by stage:\n");
+    //for (int j=0; j<Stage::NValid; ++j) {
+    //    Stage g = Stage(j);
+    //    cout << g.getName() << ": " << s.getNEventTriggersByStage(SubsystemIndex(0),g) << endl;
+    //}
     //cout << "State s=" << s;
 
     s.clear();

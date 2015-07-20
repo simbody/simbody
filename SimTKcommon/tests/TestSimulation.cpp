@@ -21,15 +21,18 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/*
- * Here we'll build a very simple System containing a simple
- * Subsystem, and integrate with a simple integrator. This avoids all the usual
- * Simmath and Simbody trappings and lets us just check out the underlying
- * simulation architecture.
- */
+/* Here we'll build a very simple System containing a simple
+Subsystem, and integrate with a simple integrator and manual event handling. 
+This avoids all the usual Simmath and Simbody trappings and lets us just check 
+out the underlying simulation architecture. */
 
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/SystemGuts.h"
+
+#include "SimTKcommon/internal/Event.h"
+#include "SimTKcommon/internal/EventTrigger.h"
+#include "SimTKcommon/internal/EventTrigger_Timer.h"
+#include "SimTKcommon/internal/EventTrigger_Witness.h"
 
 #include <iostream>
 using std::cout;
@@ -37,133 +40,11 @@ using std::endl;
 
 using namespace SimTK;
 
-#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed.");}
-#define ASSERT_EQ(v1,v2)    \
-    {SimTK_ASSERT_ALWAYS(numericallyEqual((v1),(v2)),   \
-     "Values should have been numerically equivalent.");}
-
-// Scale by the magnitude of the quantities being compared, so that we don't
-// ask for unreasonable precision. For magnitudes near zero, we'll be satisfied
-// if both are very small without demanding that they must also be relatively
-// close. That is, we use a relative tolerance for big numbers and an absolute
-// tolerance for small ones.
-bool numericallyEqual(float v1, float v2) {
-    const float scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1f);
-    return std::abs(v1-v2) < scale*NTraits<float>::getSignificant();
-}
-bool numericallyEqual(double v1, double v2) {
-    const double scale = std::max(std::max(std::abs(v1), std::abs(v2)), 0.1);
-    return std::abs(v1-v2) < scale*NTraits<double>::getSignificant();
-}
-template <class P>
-bool numericallyEqual(const std::complex<P>& v1, const std::complex<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const conjugate<P>& v1, const conjugate<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const std::complex<P>& v1, const conjugate<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const conjugate<P>& v1, const std::complex<P>& v2) {
-    return numericallyEqual(v1.real(), v2.real())
-            && numericallyEqual(v1.imag(), v2.imag());
-}
-template <class P>
-bool numericallyEqual(const negator<P>& v1, const negator<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // P, P
-}
-template <class P>
-bool numericallyEqual(const P& v1, const negator<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // P, P
-}
-template <class P>
-bool numericallyEqual(const negator<P>& v1, const P& v2) {
-    return numericallyEqual(-v1, -v2);  // P, P
-}
-template <class P>
-bool numericallyEqual(const negator<std::complex<P> >& v1, const conjugate<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // complex, conjugate
-}
-template <class P>
-bool numericallyEqual(const negator<conjugate<P> >& v1, const std::complex<P>& v2) {
-    return numericallyEqual(-v1, -v2);  // conjugate, complex
-}
-template <class P>
-bool numericallyEqual(const std::complex<P>& v1, const negator<conjugate<P> >& v2) {
-    return numericallyEqual(-v1, -v2); // complex, conjugate
-}
-template <class P>
-bool numericallyEqual(const conjugate<P>& v1, const negator<std::complex<P> >& v2) {
-    return numericallyEqual(-v1, -v2); // conjugate, complex
-}
-
-namespace SimTK {
-typedef std::map<EventId, SubsystemIndex> EventRegistry;
-std::ostream& operator<<(std::ostream& o, const EventRegistry&) {return o;}
-}
-
-class SystemSubsystemGuts : public Subsystem::Guts {
-public:
-    SystemSubsystemGuts() {}
-
-    const EventRegistry& getEventRegistry(const State& s) const
-    {   assert(eventRegistry >= 0);
-        return Value<EventRegistry>::downcast(getCacheEntry(s, eventRegistry)); }
-    EventRegistry& updEventRegistry(const State& s) const
-    {   assert(eventRegistry >= 0);
-        return Value<EventRegistry>::updDowncast(updCacheEntry(s, eventRegistry)); }
-
-    // implementations of Subsystem::Guts virtuals
-    SystemSubsystemGuts* cloneImpl() const override
-    {   return new SystemSubsystemGuts(*this); }
-    int realizeSubsystemTopologyImpl(State& s) const override {
-        eventRegistry = allocateCacheEntry(s, Stage::Instance, 
-                                           new Value<EventRegistry>());
-        return 0;
-    }
-
-private:
-    mutable CacheEntryIndex eventRegistry;
-};
-
-
-class SystemSubsystem : public Subsystem {
-public:
-    SystemSubsystem() {
-        adoptSubsystemGuts(new SystemSubsystemGuts());
-    }
-
-    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, 
-                                   EventId start, int nEvents) const
-    {   EventRegistry& er = getGuts().updEventRegistry(s);
-        SubsystemIndex sx = sub.getMySubsystemIndex();
-        for (int i=start; i < start+nEvents; ++i)
-            er[EventId(i)] = sx;
-    }
-
-    const EventRegistry& getEventRegistry(const State& s) const 
-    {   return getGuts().getEventRegistry(s); }
-
-private:
-    const SystemSubsystemGuts& getGuts() const
-    {   return dynamic_cast<const SystemSubsystemGuts&>(getSubsystemGuts());}
-    SystemSubsystemGuts& updGuts()
-    {   return dynamic_cast<SystemSubsystemGuts&>(updSubsystemGuts());}
-};
-
-
+//==============================================================================
+//                             TEST SYSTEM
+//==============================================================================
 class TestSystemGuts : public System::Guts {
 public:
-    const SystemSubsystem& getSystemSubsystem() const {return syssub;}
-    SystemSubsystem& updSystemSubsystem() {return syssub;}
-
     // implementations of System::Guts virtuals
     TestSystemGuts* cloneImpl() const override
     {   return new TestSystemGuts(*this); }
@@ -186,73 +67,11 @@ public:
     {
         result.setExitStatus(ProjectResults::Succeeded);
     }
-    void handleEventsImpl
-       (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-        const HandleEventsOptions& options, HandleEventsResults& results) const
-        override
-    {
-        cout << "handleEventsImpl t=" << s.getTime() 
-             << " cause=" << Event::getCauseName(cause) << endl;
-
-        if (eventIds.empty()) {
-            for (SubsystemIndex sx(0); sx < getNumSubsystems(); ++sx) {
-                const Subsystem& sub = getSubsystem(sx);
-                sub.getSubsystemGuts().handleEvents(s, cause, eventIds, 
-                    options, results);
-                if (results.getExitStatus()==HandleEventsResults::Failed)
-                    break;
-            }
-            return;
-        }
-
-        // If there are EventIds, dole them out to the owning subsystem.
-
-        const EventRegistry& registry = getSystemSubsystem().getEventRegistry(s);
-
-        std::map<SubsystemIndex, Array_<EventId> > eventsPerSub;
-        for (EventId eid(0); eid < eventIds.size(); ++eid)
-            eventsPerSub[ registry.find(eid)->second ].push_back(eid);
-
-        std::map<SubsystemIndex, Array_<EventId> >::const_iterator 
-            i = eventsPerSub.begin();
-        for (; i != eventsPerSub.end(); ++i) {
-            const Subsystem& sub = getSubsystem(i->first);
-            sub.getSubsystemGuts().handleEvents(s, cause, i->second, 
-                options, results);
-            if (results.getExitStatus()==HandleEventsResults::Failed)
-                break;
-        }
-    }
-
-    int reportEventsImpl(const State& s, Event::Cause cause, 
-                         const Array_<EventId>& eventIds) const override
-    {
-        cout << "reportEventsImpl t=" << s.getTime() << " cause=" 
-             << Event::getCauseName(cause) << endl;
-        return 0;
-    }
-
-private:
-    SystemSubsystem syssub;
 };
 
 class TestSystem : public System {
 public:
-    TestSystem() : System(new TestSystemGuts()) {
-        adoptSubsystem(updGuts().updSystemSubsystem());
-    }
-
-    const SystemSubsystem& getSystemSubsystem() const 
-    {   return getGuts().getSystemSubsystem(); }
-    SystemSubsystem& updSystemSubsystem()
-    {   return updGuts().updSystemSubsystem(); }
-
-    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, 
-                                   EventId start, int nEvents) const 
-    {
-        const SystemSubsystem& syssub = getGuts().getSystemSubsystem();
-        syssub.registerEventsToSubsystem(s,sub,start,nEvents);
-    }
+    TestSystem() : System(new TestSystemGuts()) {}
 
     static const TestSystem& getAs(const System& sys)
     {   assert(dynamic_cast<const Guts*>(&sys.getSystemGuts()));
@@ -268,6 +87,10 @@ private:
 };
 
 
+//==============================================================================
+//                             TEST SUBSYSTEM
+//==============================================================================
+
 class TestSubsystemGuts : public Subsystem::Guts {
     struct StateVars {
         QIndex myQs;
@@ -275,28 +98,36 @@ class TestSubsystemGuts : public Subsystem::Guts {
     };
     struct CacheEntries {
         CacheEntryIndex qSumCacheIx, uSumCacheIx;
-        EventTriggerByStageIndex timeTriggerIx, velTriggerIx;
     };
     friend std::ostream& operator<<(std::ostream& o, const CacheEntries&);
     friend std::ostream& operator<<(std::ostream& o, const StateVars&);
 public:
     TestSubsystemGuts() {}
 
-    const Vec3& getQ3(const State& s) const {return Vec3::getAs(&getQ(s)[getStateVars(s).myQs]);}
-    const Vec3& getU3(const State& s) const {return Vec3::getAs(&getU(s)[getStateVars(s).myQs]);}
-    const Vec3& getQDot3(const State& s) const {return Vec3::getAs(&getQDot(s)[getStateVars(s).myQs]);}
-    const Vec3& getUDot3(const State& s) const {return Vec3::getAs(&getUDot(s)[getStateVars(s).myUs]);}
-    const Vec3& getQDotDot3(const State& s) const {return Vec3::getAs(&getQDotDot(s)[getStateVars(s).myQs]);}
-    Real getQSum(const State& s) const {return Value<Real>::downcast(getCacheEntry(s,getCacheEntries(s).qSumCacheIx));}
-    Real getUSum(const State& s) const {return Value<Real>::downcast(getCacheEntry(s,getCacheEntries(s).uSumCacheIx));}
+    const Vec3& getQ3(const State& s) const 
+    {   return Vec3::getAs(&getQ(s)[getStateVars(s).myQs]); }
+    const Vec3& getU3(const State& s) const 
+    {   return Vec3::getAs(&getU(s)[getStateVars(s).myQs]); }
+    const Vec3& getQDot3(const State& s) const 
+    {   return Vec3::getAs(&getQDot(s)[getStateVars(s).myQs]); }
+    const Vec3& getUDot3(const State& s) const 
+    {   return Vec3::getAs(&getUDot(s)[getStateVars(s).myUs]); }
+    const Vec3& getQDotDot3(const State& s) const 
+    {   return Vec3::getAs(&getQDotDot(s)[getStateVars(s).myQs]); }
+    Real getQSum(const State& s) const 
+    {   return Value<Real>::downcast
+                            (getCacheEntry(s,getCacheEntries(s).qSumCacheIx)); }
+    Real getUSum(const State& s) const 
+    {   return Value<Real>::downcast(
+                            getCacheEntry(s,getCacheEntries(s).uSumCacheIx)); }
 
-    Real getTimeTrigger1(const State& s) const {return getEventTriggersByStage(s, Stage::Time)[getCacheEntries(s).timeTriggerIx];}
-    Real getTimeTrigger2(const State& s) const {return getEventTriggersByStage(s, Stage::Time)[getCacheEntries(s).timeTriggerIx+1];}
-    Real getVelTrigger(const State& s) const {return getEventTriggersByStage(s, Stage::Velocity)[getCacheEntries(s).velTriggerIx];}
+    Vec3& updQ3(State& s) const 
+    {return Vec3::updAs(&updQ(s)[getStateVars(s).myQs]);}
+    Vec3& updU3(State& s) const 
+    {return Vec3::updAs(&updU(s)[getStateVars(s).myUs]);}
 
-    Vec3& updQ3(State& s) const {return Vec3::updAs(&updQ(s)[getStateVars(s).myQs]);}
-    Vec3& updU3(State& s) const {return Vec3::updAs(&updU(s)[getStateVars(s).myUs]);}
-
+private:
+friend class TestSubsystem;
     // implementations of Subsystem::Guts virtuals
 
     TestSubsystemGuts* cloneImpl() const override
@@ -304,8 +135,11 @@ public:
 
 
     int realizeSubsystemTopologyImpl(State& s) const override {
-        myStateVars = allocateCacheEntry(s, Stage::Model, new Value<StateVars>());
-        myCacheEntries = allocateCacheEntry(s, Stage::Instance, new Value<CacheEntries>());
+        auto mThis = const_cast<TestSubsystemGuts*>(this);
+        mThis->myStateVars = 
+            allocateCacheEntry(s, Stage::Model, new Value<StateVars>());
+        mThis->myCacheEntries = 
+            allocateCacheEntry(s, Stage::Instance, new Value<CacheEntries>());
         return 0;
     }
 
@@ -319,20 +153,14 @@ public:
 
     int realizeSubsystemInstanceImpl(const State& s) const override {
         CacheEntries& cache = updCacheEntries(s);
-        cache.qSumCacheIx = allocateCacheEntry(s, Stage::Position, new Value<Real>(0));
-        cache.uSumCacheIx = allocateCacheEntry(s, Stage::Velocity, new Value<Real>(0));
-        cache.timeTriggerIx = allocateEventTriggersByStage(s, Stage::Time, 2);
-        cache.velTriggerIx  = allocateEventTriggersByStage(s, Stage::Velocity, 1);
-
-        getTestSystem().registerEventsToSubsystem(s, *this, EventId(cache.timeTriggerIx), 2);
-        getTestSystem().registerEventsToSubsystem(s, *this, EventId(cache.velTriggerIx), 1);
+        cache.qSumCacheIx = allocateCacheEntry(s, Stage::Position, 
+                                               new Value<Real>(0));
+        cache.uSumCacheIx = allocateCacheEntry(s, Stage::Velocity, 
+                                               new Value<Real>(0));
         return 0;
     }
 
     int realizeSubsystemTimeImpl(const State& s) const override {
-        const Real TriggerTime1 = .6789, TriggerTime2 = 1.234;
-        updTimeTrigger1(s) = s.getTime() - TriggerTime1;
-        updTimeTrigger2(s) = s.getTime() - TriggerTime2;
         return 0;
     }
 
@@ -342,10 +170,8 @@ public:
     }
 
     int realizeSubsystemVelocityImpl(const State& s) const override {
-        const Real TriggerUSum = 5;
         updQDot3(s) = getU3(s);
-        const Real usum = updUSum(s) = sum(getU3(s));
-        updVelTrigger(s) = usum - TriggerUSum; 
+        updUSum(s) = sum(getU3(s));
         return 0;
     }
 
@@ -354,65 +180,42 @@ public:
         return 0;
     }
 
-    void handleEventsImpl(State& s, Event::Cause cause, 
-                          const Array_<EventId>& eventIds,
-                          const HandleEventsOptions& options,
-                          HandleEventsResults& results) const override
-    {
-        cout << "**** TestSubsystem::handleEventsImpl t=" << s.getTime() 
-             << " acc=" << options.getAccuracy()
-             << " eventIds=";
-        for (unsigned i=0; i < eventIds.size(); ++i)
-           cout << " " << eventIds[i];
-        cout << " ****" << endl;
 
-        // Pretend we changed a position to test lowestModifiedStage
-        // calculation. Try to hide our duplicity by realizing it again.
-        s.invalidateAllCacheAtOrAbove(Stage::Position); 
-        getSystem().realize(s, Stage::Velocity);
-        results.setExitStatus(HandleEventsResults::Succeeded);
-    }
-
-    void reportEventsImpl(const State&, Event::Cause, 
-                          const Array_<EventId>& eventIds) const override
-    {
-    }
-
-
-private:
-    Vec3& updQDot3(const State& s) const {return Vec3::updAs(&updQDot(s)[getStateVars(s).myQs]);}
-    Vec3& updUDot3(const State& s) const {return Vec3::updAs(&updUDot(s)[getStateVars(s).myUs]);}
-    Vec3& updQDotDot3(const State& s) const {return Vec3::updAs(&updQDotDot(s)[getStateVars(s).myQs]);}
-    Real& updQSum(const State& s) const {return Value<Real>::updDowncast(updCacheEntry(s,getCacheEntries(s).qSumCacheIx));}
-    Real& updUSum(const State& s) const {return Value<Real>::updDowncast(updCacheEntry(s,getCacheEntries(s).uSumCacheIx));}
-    Real& updTimeTrigger1(const State& s) const {return updEventTriggersByStage(s, Stage::Time)[getCacheEntries(s).timeTriggerIx];}
-    Real& updTimeTrigger2(const State& s) const {return updEventTriggersByStage(s, Stage::Time)[getCacheEntries(s).timeTriggerIx+1];}
-    Real& updVelTrigger(const State& s) const {return updEventTriggersByStage(s, Stage::Velocity)[getCacheEntries(s).velTriggerIx];}
-
+    Vec3& updQDot3(const State& s) const 
+    {   return Vec3::updAs(&updQDot(s)[getStateVars(s).myQs]); }
+    Vec3& updUDot3(const State& s) const 
+    {   return Vec3::updAs(&updUDot(s)[getStateVars(s).myUs]); }
+    Vec3& updQDotDot3(const State& s) const 
+    {   return Vec3::updAs(&updQDotDot(s)[getStateVars(s).myQs]); }
+    Real& updQSum(const State& s) const 
+    {   return Value<Real>::updDowncast
+                            (updCacheEntry(s,getCacheEntries(s).qSumCacheIx)); }
+    Real& updUSum(const State& s) const 
+    {   return Value<Real>::updDowncast
+                            (updCacheEntry(s,getCacheEntries(s).uSumCacheIx)); }
+    
     const StateVars& getStateVars(const State& s) const
-    {   assert(myStateVars >= 0);
+    {   assert(myStateVars.isValid());
         return Value<StateVars>::downcast(getCacheEntry(s,myStateVars)); }
     const CacheEntries& getCacheEntries(const State& s) const
-    {   assert(myCacheEntries >= 0);
+    {   assert(myCacheEntries.isValid());
         return Value<CacheEntries>::downcast(getCacheEntry(s,myCacheEntries)); }
     StateVars& updStateVars   (const State& s) const 
-    {   assert(myStateVars >= 0);
+    {   assert(myStateVars.isValid());
         return Value<StateVars>::updDowncast(updCacheEntry(s,myStateVars)); }
     CacheEntries& updCacheEntries(const State& s) const
-    {   assert(myCacheEntries >= 0);
+    {   assert(myCacheEntries.isValid());
         return Value<CacheEntries>::updDowncast(updCacheEntry(s,myCacheEntries)); }
 
     const TestSystem& getTestSystem() const {return TestSystem::getAs(getSystem());}
     TestSystem& updTestSystem() {return TestSystem::updAs(updSystem());}
 
         // TOPOLOGY STATE VARIABLES //
-
-    Array_<EventHandler*>          eventHandlers;
-    mutable Array_<EventReporter*> eventReporters;
+    EventId     m_somethingNeedsToHappenId;
 
         // TOPOLOGY CACHE //
-    mutable CacheEntryIndex myStateVars;
-    mutable CacheEntryIndex myCacheEntries;
+    CacheEntryIndex myStateVars;
+    CacheEntryIndex myCacheEntries;
 
 };
 
@@ -420,13 +223,23 @@ private:
 // variables its Measures require.
 class TestSubsystem : public Subsystem {
 public:
-    TestSubsystem(System& sys) {
-        adoptSubsystemGuts(new TestSubsystemGuts());
-        sys.adoptSubsystem(*this);
-    }
+    class SomethingNeedsToHappen;
+    class HandleEvent;
+    class USumWitness;
+    class TimeReachedWitness;
 
-    Real getQSum(const State& s) {return getGuts().getQSum(s);}
-    Real getUSum(const State& s) {return getGuts().getUSum(s);}
+    TestSubsystem(System& sys);
+
+    const SomethingNeedsToHappen& getMyEvent() const;
+
+    Real getQSum(const State& s) const {return getGuts().getQSum(s);}
+    Real getUSum(const State& s) const {return getGuts().getUSum(s);}
+
+    static const TestSubsystem& downcast(const Subsystem& subsys) {
+        assert(dynamic_cast<const TestSubsystemGuts*>
+                                                (&subsys.getSubsystemGuts()));
+        return static_cast<const TestSubsystem&>(subsys);
+    }
 private:
     const TestSubsystemGuts& getGuts() const
     {   return dynamic_cast<const TestSubsystemGuts&>(getSubsystemGuts());}
@@ -434,62 +247,162 @@ private:
     {   return dynamic_cast<TestSubsystemGuts&>(updSubsystemGuts());}
 };
 
-// Find the event triggers at a particular stage that changed sign since
-// they were last recorded in events0.
-static void findEvents(const State& state, Stage g, const Vector& triggers0,
-                       Array_<EventId>& triggered)
-{
-    const int n     = state.getNEventTriggersByStage(g);
-    const int start = state.getEventTriggerStartByStage(g); // location within triggers0 Vector
 
-    const Vector& stageTriggers = state.getEventTriggersByStage(g);
+// This event belongs to TestSubsystem. It is caused by several different 
+// triggers. 
+class TestSubsystem::SomethingNeedsToHappen : public Event {
+public:
+    SomethingNeedsToHappen() : Event("Something needs to happen") {}
+private:
+    SomethingNeedsToHappen* cloneVirtual() const override
+    {   return new SomethingNeedsToHappen(*this); }
+};
 
-    triggered.clear();
-    for (int i=0; i < n; ++i) {
-        const EventId allStageId = EventId(start + i);
-        if (sign(triggers0[allStageId]) != sign(stageTriggers[i]))
-            triggered.push_back(allStageId);
-    }
+
+auto TestSubsystem::getMyEvent() const -> const SomethingNeedsToHappen& {
+    return dynamic_cast<const SomethingNeedsToHappen&>
+        (getSystem().getEvent(getGuts().m_somethingNeedsToHappenId));
 }
 
-static Real   accuracy = 1e-6;
-static Real   timescale;
+// This is the Action we'll take whenever the SomethingNeedsToHappen event
+// occurs. We just report the arguments we got, and then trash positions.
+class TestSubsystem::HandleEvent : public EventAction {
+public:
+    HandleEvent(SubsystemIndex ix) 
+    :   EventAction(Change), m_subsysIx(ix) {}
 
-static bool handleEvents(const System& sys, State& state, Stage g,
-                         const Array_<EventId>& triggered) 
-{
-    if (triggered.empty())
-        return false;
+private:
+    HandleEvent* cloneVirtual() const override
+    {   return new HandleEvent(*this); }
 
-    cout << "==> Handling " << triggered.size() << " events at Stage " << g << ":";
-    for (unsigned i=0; i < triggered.size(); ++i)
-        cout << " " << triggered[i];
-    cout << endl;
+    void changeVirtual(Study&                  study,
+                       const Event&            event,
+                       const EventTriggers&    triggers,
+                       EventChangeResult&      result) const override
+    {
+        auto& sys = study.getSystem();
+        auto& s = study.updInternalState();
 
-    bool shouldTerminate = false; 
-    HandleEventsOptions options(accuracy);
-    HandleEventsResults results;
+        // Make sure we are owned by a TestSubsystem.
+        auto& testSub = TestSubsystem::downcast(sys.getSubsystem(m_subsysIx));
 
-    Array_<StageVersion> stageVersions;
-    state.getSystemStageVersions(stageVersions);
-    cout << "BEFORE handling stage versions=\n";
-    cout << stageVersions << "\n";
-    sys.handleEvents(state, Event::Cause::Triggered, triggered,
-                     options, results);
-    state.getSystemStageVersions(stageVersions);
-    cout << "AFTER handling stage versions=\n";
-    cout << stageVersions << "\n";
-    cout << "Results lowestStage=" << results.getLowestModifiedStage() <<"\n";
+        cout << "**** TestSubsystem::HandleEvent t=" << s.getTime() 
+             << " acc=" << study.getAccuracyInUse()
+             << " tol=" << study.getConstraintToleranceInUse();
+        cout << " Event id=" << event.getEventId()
+             << " desc='" << event.getEventDescription() << "'\n";
 
-    if (results.getExitStatus()==HandleEventsResults::ShouldTerminate) {
-        cout << "==> Event at Stage " << g 
-             << " requested termination at t=" << state.getTime() << endl;
-        shouldTerminate = true;
+        for (auto tp : triggers) {
+            printf("  trigger id=%d desc='%s' type=%s\n",
+                tp->getEventTriggerId(), tp->getTriggerDescription().c_str(),
+                typeid(*tp).name());
+        }
+        cout << "****" << endl;
+
+        // Pretend we changed a position to test lowestModifiedStage
+        // calculation. Try to hide our duplicity by realizing it again.
+        s.invalidateAllCacheAtOrAbove(Stage::Position); 
+        sys.realize(s, Stage::Velocity);
+        result.reportExitStatus(EventChangeResult::Succeeded);
     }
 
-    return shouldTerminate;
+    const SubsystemIndex m_subsysIx;
+};
+
+//------------------------------ U SUM WITNESS ---------------------------------
+// Trigger when the sum of certain generalized speeds reaches a particular
+// value. (This is treated as a Velocity-stage witness.)
+class TestSubsystem::USumWitness : public EventTrigger::Witness {
+public:
+    USumWitness(SubsystemIndex ix, Real targetSum)
+    :   EventTrigger::Witness("u sum witness"),
+        m_subsysIx(ix), m_targetSum(targetSum) {
+        // default allows triggering both falling and rising transition
+    }
+
+private:
+    USumWitness* cloneVirtual() const override {return new USumWitness(*this);}
+
+    Real calcWitnessValueVirtual(const System& system,
+                                 const State&  state,
+                                 int           derivOrder) const override
+    {
+        assert(derivOrder==0);
+        auto& testsub = TestSubsystem::downcast(system.getSubsystem(m_subsysIx));
+        return testsub.getUSum(state) - m_targetSum;
+    }
+
+    Stage getDependsOnStageVirtual(int derivOrder) const override {
+        assert(derivOrder==0);
+        return Stage::Velocity;
+    }
+
+    int getNumTimeDerivativesVirtual() const override 
+    {   return 0; }
+
+
+private:
+    const SubsystemIndex    m_subsysIx;
+    Real                    m_targetSum;
+};
+
+//--------------------------- TIME CROSSING WITNESS ----------------------------
+// This will trigger when time reaches a set value. In real life this should be
+// done using a Timer rather than a Witness.
+class TestSubsystem::TimeReachedWitness : public EventTrigger::Witness {
+public:
+    explicit TimeReachedWitness(double t)
+    :   EventTrigger::Witness("designated time reached"), m_triggerTime(t) {
+        setTriggerOnFallingSignTransition(false); // rising only
+    }
+
+private:
+    TimeReachedWitness* cloneVirtual() const override
+    {   return new TimeReachedWitness(*this); }
+
+    Real calcWitnessValueVirtual(const System& system,
+                                 const State&  state,
+                                 int           derivOrder) const override {
+        assert(derivOrder==0); // value only
+        return state.getTime() - m_triggerTime;
+    }
+
+    Stage getDependsOnStageVirtual(int derivOrder) const override
+    {   return Stage::Time; }
+
+    const double m_triggerTime;
+};
+
+TestSubsystem::TestSubsystem(System& sys) {
+    const Real TriggerTime1 = .6789, TriggerTime2 = 1.234;
+    const Real TriggerUSum = 5;
+
+    adoptSubsystemGuts(new TestSubsystemGuts());
+    sys.adoptSubsystem(*this);
+
+    // Create event and register with the System.
+    {auto eventp = new SomethingNeedsToHappen();
+        eventp->adoptEventAction(new HandleEvent(this->getMySubsystemIndex()));
+        updGuts().m_somethingNeedsToHappenId = sys.adoptEvent(eventp);}
+
+    // Register three witnesses that cause the above event.
+    {auto time1p = new TimeReachedWitness(TriggerTime1);
+        time1p->addEvent(getGuts().m_somethingNeedsToHappenId);
+        sys.adoptEventTrigger(time1p);}
+
+    {auto time2p = new TimeReachedWitness(TriggerTime2);
+        time2p->addEvent(getGuts().m_somethingNeedsToHappenId);
+        sys.adoptEventTrigger(time2p);}
+
+    {auto sump = new USumWitness(this->getMySubsystemIndex(), TriggerUSum);
+        sump->addEvent(getGuts().m_somethingNeedsToHappenId);
+        sys.adoptEventTrigger(sump);}
 }
 
+//==============================================================================
+//                         MY SIN COS MEASURE
+//==============================================================================
+// Computes sin(t) and cos(t) as a Vec2.
 template <class T>
 class MySinCos : public Measure_<T> {
 public:
@@ -497,7 +410,6 @@ public:
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(MySinCos, Measure_<T>);
 };
-
 
 template <class T>
 class MySinCos<T>::Implementation : public Measure_<T>::Implementation {
@@ -526,34 +438,77 @@ public:
     }
 };
 
-template <class T>
-class MyRealMeasure : public Measure_<T> {
-public:
-    SimTK_MEASURE_HANDLE_PREAMBLE(MyRealMeasure, Measure);
 
-    SimTK_MEASURE_HANDLE_POSTSCRIPT(MyRealMeasure, Measure);
+//==============================================================================
+//                           FIXED TIME STEPPER
+//==============================================================================
+// Our time stepper must derive from Study so that we can satisfy the 
+// signature for performing event actions.
+class FixedTimeStepper : public Study {
+public:
+    explicit FixedTimeStepper(System& system)
+    :   m_system(system), m_consTol(NaN) {}
+
+    // Copy in the given state to this study's internal state and set the
+    // constraint tolerance to be used when projecting.
+    void initialize(const State& initState, Real consTol);
+
+    // Take a fixed-size, explicit midpoint step of length h, advancing the 
+    // internal state. Return true if we should terminate.
+    bool step(double h);
+
+    // Find all the triggering event witnesses that depend only on stage.
+    void findEvents(Stage stage, EventTriggers& triggered) const;
+
+    // Handle all the events that were triggered by witnesses at this stage.
+    // This may modify the internal state. Return true if an event handler
+    // says we should terminate the simulation.
+    bool handleEvents(Stage stage, const EventTriggers& triggered);
+
+    // Calcuate the values of all witnesses currently in m_witnesses. This 
+    // state must already be realized to Stage::Acceleration.
+    void calcWitnessValues(const State& state, Vector& values) {
+        values.resize(m_witnesses.size());
+
+        for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
+            const EventTrigger::Witness& w = *m_witnesses[awx];
+            values[awx] = w.calcWitnessValue(m_system, state);
+        }
+    }
+private:
+    System&     m_system;
+    State       m_state;
+    Real        m_consTol;
+
+    Array_<const EventTrigger::Witness*,
+           ActiveWitnessIndex>           m_witnesses;
+    Vector                               m_witnessValuesPrev; // same length
+
+    // Implement the Study interface.
+    const System& getSystemVirtual() const override
+    {   return m_system; }
+    const State& getCurrentStateVirtual() const override
+    {   return m_state; } 
+    const State& getInternalStateVirtual() const override
+    {   return m_state; }  
+    State& updInternalStateVirtual() override
+    {   return m_state; } 
+    Real getAccuracyInUseVirtual() const override
+    {   return NaN; }
+    Real getConstraintToleranceInUseVirtual() const override
+    {   return m_consTol; }
 };
 
-template <class T>
-class MyRealMeasure<T>::Implementation : public Measure_<T>::Implementation {
-public:
-    Implementation* cloneVirtual() const override
-    {   return new Implementation(*this); }
-    int getNumTimeDerivativesVirtual() const override 
-    {   return 0; }
-    Stage getDependsOnStageVirtual(int order) const override 
-    {   return Stage::Time; }
-
-};
-
-
+//==============================================================================
+//                                TEST ONE
+//==============================================================================
 void testOne() {
     TestSystem sys;
     TestSubsystem subsys(sys);
 
     // Add a Result measure to the system subsystem. This depends on 
     // Position stage and invalidates Dynamics and later stages.
-    Measure_<Vector>::Result vectorResult(sys.updSystemSubsystem(), 
+    Measure_<Vector>::Result vectorResult(sys.updSystemGlobalSubsystem(), 
         Stage::Position, Stage::Dynamics);
 
     MeasureIndex vectorResultIx = vectorResult.getSubsystemMeasureIndex();
@@ -561,11 +516,11 @@ void testOne() {
          << vectorResultIx << endl;
 
     Measure_<Vector>::Result myVecRes =  Measure_<Vector>::Result::getAs(
-        sys.updSystemSubsystem().getMeasure(vectorResultIx));
+        sys.updSystemGlobalSubsystem().getMeasure(vectorResultIx));
 
-    Measure::Result result(sys.updSystemSubsystem(), 
+    Measure::Result result(sys.updSystemGlobalSubsystem(), 
         Stage::Time, Stage::Position);
-    Measure::Result autoResult(sys.updSystemSubsystem(), 
+    Measure::Result autoResult(sys.updSystemGlobalSubsystem(), 
         Stage::Time, Stage::Position);
     autoResult.setIsPresumedValidAtDependsOnStage(true);
 
@@ -618,7 +573,7 @@ void testOne() {
     Measure::Plus vplus2;
     vplus2.deepAssign(vplus);
 
-    Measure m;
+    Measure m; // just a handle for referencing other measures
     m = cos2pit;
 
 
@@ -688,16 +643,13 @@ void testOne() {
     s2 = state; // new copies of variables
     s2 = state; // should do only assignments w/o heap allocation
 
-    // Explicit midpoint steps.
     const Real h = .001;
     const int nSteps = 2000;
     const int outputInterval = 100;
+
     state.setTime(0);
+    SimTK_TEST(state.getTime()==0);
 
-    ASSERT(state.getTime()==0);
-
-
-    //initialize()
     sys.realize(state, Stage::Position);
     cout << "mv+cos2pit=" << vplus.getValue(state) << endl;
     cout << "mv-cos2pit=" << vminus.getValue(state) << endl;
@@ -723,9 +675,6 @@ void testOne() {
     // Shouldn't need to mark this one.
     cout << "autoResult=" << autoResult.getValue(state) << endl;
 
-    // Fill in statics above.
-    timescale = sys.getDefaultTimeScale();
-
     sys.realize(state, Stage::Acceleration);
 
     cout << "Now stage=" << state.getSystemStage() << endl;
@@ -737,21 +686,12 @@ void testOne() {
     cossin.setValue(state, cossinInit.getValue(state));
     vcossin.setValue(state, vcossinInit.getValue(state));
 
-    // Handler is allowed to throw an exception if it fails since we don't
-    // have a way to recover.
-    HandleEventsOptions handleOpts;
-    HandleEventsResults results;
-    sys.handleEvents(state, Event::Cause::Initialization,
-                     Array_<EventId>(), handleOpts, results);
-    SimTK_ERRCHK_ALWAYS(
-        results.getExitStatus()!=HandleEventsResults::ShouldTerminate,
-        "Integrator::initialize()", 
-        "An initialization event handler requested termination.");
-
-    sys.realize(state, Stage::Acceleration);
-    state.autoUpdateDiscreteVariables(); // ??
+    FixedTimeStepper ts(sys);
+    ts.initialize(state, 1e-6); // initial state, constraint tolerance
 
     for (int i=0; i <= nSteps; ++i) {
+        const State& state = ts.getInternalState();
+        const double t = state.getTime();
 
         if (i % outputInterval == 0) {
             sys.realize(state, Stage::Report);
@@ -759,13 +699,33 @@ void testOne() {
                  << " d/dt tMeasure=" << tMeasure.getValue(state,1)
                  << " d3/dt3 tMeasure=" << tMeasure.getValue(state,3)
                  << " 1000*tSubMeas=" << t1000.getValue(state)
-                 << " t=" << state.getTime() << endl;
+                 << " t=" << t << endl;
+
+            SimTK_TEST(tMeasure.getValue(state) == t);
+            SimTK_TEST(tMeasure.getValue(state,1) == 1); // derivs
+            SimTK_TEST(tMeasure.getValue(state,2) == 0);
+            SimTK_TEST(tMeasure.getValue(state,3) == 0);
+
+            SimTK_TEST(tSubMeas.getValue(state) == t);
+            SimTK_TEST_EQ(t1000.getValue(state), 1000*t);
+
             cout << " tDelayed=" << tDelayed.getValue(state) << endl;
+            if (t >= 0.01)
+                SimTK_TEST_EQ(tDelayed.getValue(state), t-.01);
+
             cout << "q=" << state.getQ() << " u=" << state.getU() << endl;
             cout << "qSum=" << subsys.getQSum(state) << " uSum=" << subsys.getUSum(state) << endl;
             cout << "three=" << three.getValue(state) << " v3const=" << v3const.getValue(state) << endl;
+
+            SimTK_TEST(zero.getValue(state)==0);
+            SimTK_TEST(three.getValue(state)==3);
+            SimTK_TEST(v3const.getValue(state)==Vec3(1,2,3));
+
+            // This is calculated exactly.
             cout << "cos2pit=" << cos2pit.getValue(state) 
-                 << " cos(2pi*t)=" << std::cos(2*Pi*state.getTime()) << endl;
+                 << " cos(2pi*t)=" << std::cos(2*Pi*t) << endl;
+            SimTK_TEST_EQ(cos2pit.getValue(state), std::cos(2*Pi*t));
+
             cout << "Min(cos2pit)=" << minCos2pit.getValue(state) 
                  << " @t=" << minCos2pit.getTimeOfExtremeValue(state) << endl;
             cout << "Max(cos2pit)=" << maxCos2pit.getValue(state) 
@@ -774,103 +734,294 @@ void testOne() {
                  << " @t=" << minAbsCos2pit.getTimeOfExtremeValue(state) << endl;
             cout << "MaxAbs(cos2pit)=" << maxAbsCos2pit.getValue(state) 
                  << " @t=" << maxAbsCos2pit.getTimeOfExtremeValue(state) << endl;
+
+            // This is calcuated by numerically integrating cos2pit.
             cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state) 
-                 << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
+                 << " sin(2pi*t)/2pi=" << std::sin(2*Pi*t)/(2*Pi) << endl;
+            SimTK_TEST_EQ_TOL(sin2pitOver2pi.getValue(state),
+                              std::sin(2*Pi*t)/(2*Pi), 1e-3);
+
+            // This should be an exact derivative, that is cos2pit.
             cout << "d/dt sin2pitOver2pi=" 
                  << sin2pitOver2pi.getValue(state,1) << endl;
+            SimTK_TEST_EQ(sin2pitOver2pi.getValue(state,1), std::cos(2*Pi*t));
+
+            // But this one is calculated by numerically differencing the
+            // already-approximate integral (not good at t=0).
             cout << "dInteg=" 
                  << dInteg.getValue(state) << endl;
+            if (i > 0) {
+                SimTK_TEST_EQ_TOL(dInteg.getValue(state),
+                                  std::cos(2*Pi*t), 1e-2);
+            }
+
+            // These should be -cos(t), sin(t), computed by integration.
             cout << "cossin=" << cossin.getValue(state) << "\n";
             cout << "vcossin=" << vcossin.getValue(state) << "\n";
+            SimTK_TEST_EQ_TOL(cossin.getValue(state), 
+                              Vec2(-std::cos(t),std::sin(t)), 1e-3);
+            SimTK_TEST_EQ_TOL(vcossin.getValue(state), 
+                              Vector(Vec2(-std::cos(t),std::sin(t))), 1e-3);
+
+            // Delayed, so should be -cos(t-.1), sin(t-.1).
             cout << "vcossin delay .1=" << vcossin_delaypt1.getValue(state) << "\n";
+            if (t >= 0.1)
+                SimTK_TEST_EQ_TOL(vcossin_delaypt1.getValue(state), 
+                                  Vector(Vec2(-std::cos(t-.1),std::sin(t-.1))), 
+                                  1e-3);
         }
 
         if (i == nSteps)
             break;
 
-        const Real h2 = h/2;
-        const Vector ydot0 = state.getYDot();
-        const Vector triggers0 = state.getEventTriggers();
-        Array_<EventId> triggered;
-
-        // Commit the values for the discrete variable updates calculated
-        // at the end of the previous step. This includes both explicitly
-        // discrete variables and continuous variables which are defined
-        // by algebraic rather than differential equations, such as
-        // prescribed motions. This requires that all calculations have
-        // been performed already using the *updated* values, *not* the
-        // state values; that permits us to perform this update without
-        // invalidating any cache entries.
-        state.autoUpdateDiscreteVariables();
-
-        // First integrator stage: unconstrained continuous system only.
-        state.updY()    += h2*ydot0;
-        state.updTime() += h2;
-        sys.realize(state, Stage::Time);
-        sys.prescribeQ(state);
-        sys.realize(state, Stage::Position);
-        sys.prescribeU(state);
-        sys.realize(state);
-
-        // Second (final) integrator stage.
-        // 1. Unconstrained continuous system.
-        const Vector& ydot = state.getYDot();
-        state.updY() += h2*ydot; // that is, y = y0 + h*(ydot0+ydot)/2
-        state.updTime() += h2;
-        sys.realize(state, Stage::Time);
-        sys.prescribeQ(state);
-
-        // 2. Deal with time-dependent events.
-        findEvents(state, Stage::Time, triggers0, triggered);
-        if (handleEvents(sys, state, Stage::Time, triggered))
+        // Adjust step size to account for roundoff so that 2000 1ms steps
+        // adds up to 2 seconds.
+        const double hActual = (i+1)*h - state.getTime();
+        if (ts.step(hActual))
             break;
+    }
 
-        sys.realize(state, Stage::Position);
-        sys.prescribeU(state);
+    auto& event = subsys.getMyEvent();
 
-        // 3a. Project position-dependent constraints.
-        Vector temp;
-        ProjectOptions opts(accuracy);
-        ProjectResults results;
-        sys.projectQ(state, temp, opts, results);
+    printf("DONE. Time=%.15g, #events=%d\n", ts.getCurrentState().getTime(),
+           event.getNumOccurrences());
 
-        // 3b. Handle position-dependent events.
-        findEvents(state, Stage::Position, triggers0, triggered);
-        if (handleEvents(sys, state, Stage::Position, triggered))
-            break;
+    // With the step size adjustments above we should end almost exactly at 2.
+    SimTK_TEST_EQ(ts.getCurrentState().getTime(), 2);
 
-        // 4a. Project velocity-dependent constraints.
-        sys.realize(state, Stage::Velocity);
-        sys.projectU(state, temp, opts, results);
+    // The SomethingNeedsToHappen event should have occurred once for each of
+    // the two designated-time witnesses, and once for the u-sum witness.
+    SimTK_TEST(event.getNumOccurrences() == 3);
 
-        // 4b. Handle velocity-dependent events.
-        findEvents(state, Stage::Velocity, triggers0, triggered);
-        if (handleEvents(sys, state, Stage::Velocity, triggered))
-            break;
+}
 
-        // 5. Handle dynamics- and acceleration-dependent events.
-        sys.realize(state, Stage::Dynamics);
-        findEvents(state, Stage::Dynamics, triggers0, triggered);
-        if (handleEvents(sys, state, Stage::Dynamics, triggered))
-            break;
-        sys.realize(state, Stage::Acceleration);
-        findEvents(state, Stage::Acceleration, triggers0, triggered);
-        if (handleEvents(sys, state, Stage::Acceleration, triggered))
-            break;
+//==============================================================================
+//                         TEST DESIGNATED TIMER
+//==============================================================================
+void testDesignatedTimer() {
+    EventTrigger::Timer::Designated d("my timer", {.1,.3,4.2,.1999,1e-5});
+    d.insertDesignatedTime(.707);
+    d.insertDesignatedTimes({1,2,.3,3,.01,9,1,.9,2,1,2});
+    d.insertDesignatedTime(.707);
+    d.insertDesignatedTimes({1,2,3,4,5,6});
 
-        // Ensure State is realized through Acceleration Stage.
-        sys.realize(state, Stage::Acceleration);
+    // float times picked for exact representations so we can check them
+    // to double precision below.
+    std::set<float> goodTimes {99.875f,99.125f,25.75f};
+
+    d.insertDesignatedTimes(goodTimes.begin(), goodTimes.end());
+
+    // This is the right answer for the sorted/uniqued times.
+    const double right[]={1e-005,0.01,0.1,0.1999,0.3,0.707,0.9,
+                          1,2,3,4,4.2,5,6,9,25.75,99.125,99.875};
+
+    for (unsigned i=0; i < d.getNumDesignatedTimes(); ++i)
+        SimTK_TEST_EQ(d.getDesignatedTime(i), right[i]); // default tol
+
+    auto e(d); // test copying of designated timer
+    for (unsigned i=0; i < e.getNumDesignatedTimes(); ++i)
+        SimTK_TEST_EQ(e.getDesignatedTime(i), right[i]); // default tol
+
+    TestSystem sys; State s = sys.realizeTopology(); 
+
+    s.setTime(.8);
+    SimTK_TEST_EQ(d.calcTimeOfNextTrigger(sys,s,0), 0.9);
+
+    s.setTime(2);
+    SimTK_TEST(d.calcTimeOfNextTrigger(sys,s,0)==2);
+    SimTK_TEST(d.calcTimeOfNextTrigger(sys,s,2)==3);
+
+    s.setTime(0);
+    SimTK_TEST_EQ(d.calcTimeOfNextTrigger(sys,s,-Infinity), 1e-005);
+
+    s.setTime(100);
+    SimTK_TEST(d.calcTimeOfNextTrigger(sys,s,-Infinity) == Infinity);
+}
+
+
+//==============================================================================
+//                                   MAIN
+//==============================================================================
+int main() {
+    SimTK_START_TEST("TestSimulation");
+        SimTK_SUBTEST(testOne);
+        SimTK_SUBTEST(testDesignatedTimer);
+    SimTK_END_TEST();
+}
+
+void FixedTimeStepper::initialize(const State& initState, Real consTol) {
+    m_state = initState;
+    m_consTol = consTol;
+
+    // Handle the initialization event.
+    EventsAndCauses triggeredEvents;
+    Array_<EventId> ignoredEventIds;
+    getSystem().noteEventOccurrence({&getSystem().getInitializationTrigger()},
+                                    triggeredEvents, ignoredEventIds);
+
+    EventChangeResult result;
+    getSystem().performEventChangeActions(*this, triggeredEvents, result);
+    SimTK_ERRCHK_ALWAYS(
+        result.getExitStatus()==EventChangeResult::Succeeded,
+        "FixedTimeStepper::initialize()", 
+        "An initialization event handler failed or requested termination.");
+
+    // Realize the starting state to Acceleration stage; then take care of
+    // auto-update discrete variables (which leave stage unchanged).
+    m_system.realize(m_state, Stage::Acceleration);
+    m_state.autoUpdateDiscreteVariables();
+
+    // Issue initialization event report actions if any.
+    getSystem().performEventReportActions(*this, triggeredEvents);
+
+    // Remember start-of-step values for witness functions.
+    getSystem().findActiveEventWitnesses(*this, m_witnesses);
+    calcWitnessValues(m_state, m_witnessValuesPrev);
+}
+
+// On entry, m_state will typically already be realized to Acceleration stage. 
+bool FixedTimeStepper::step(double h) {
+    const Real h2 = h/2;
+    auto& sys   = m_system;
+    auto& state = m_state;
+
+    sys.realize(state, Stage::Acceleration); // make sure
+
+    // Commit the values for the discrete variable updates calculated
+    // at the end of the previous step (no change to stage).
+    state.autoUpdateDiscreteVariables();
+
+    // This is an alias for ydot in the state, so will get updated as we go.
+    const Vector& ydot = state.getYDot();
+
+    // Record the witness values at start of step.
+    calcWitnessValues(state, m_witnessValuesPrev);
+
+    // First integrator stage: unconstrained continuous system only.
+    state.updY()    += h2*ydot;
+    state.updTime() += h2;
+    sys.realize(state, Stage::Time);
+    sys.prescribeQ(state);
+    sys.realize(state, Stage::Position);
+    sys.prescribeU(state);
+    sys.realize(state, Stage::Acceleration); // updates ydot
+
+    // Second (final) integrator stage.
+    // 1. Unconstrained continuous system.
+    state.updY() += h2*ydot; // that is, y = y0 + h*(ydot0+ydot)/2
+    state.updTime() += h2;
+    sys.realize(state, Stage::Time);
+    sys.prescribeQ(state);
+
+    EventTriggers   triggered;
+
+    // 2. Deal with time-dependent events.
+    findEvents(Stage::Time, triggered);
+    if (handleEvents(Stage::Time, triggered))
+        return true;
+
+    sys.realize(state, Stage::Position);
+    sys.prescribeU(state);
+
+    // 3a. Project position-dependent constraints.
+    Vector temp;
+    ProjectOptions opts(m_consTol);
+    ProjectResults results;
+    sys.projectQ(state, temp, opts, results);
+
+    // 3b. Handle position-dependent events.
+    findEvents(Stage::Position, triggered);
+    if (handleEvents(Stage::Position, triggered))
+        return true;
+
+    // 4a. Project velocity-dependent constraints.
+    sys.realize(state, Stage::Velocity);
+    sys.projectU(state, temp, opts, results);
+
+    // 4b. Handle velocity-dependent events.
+    findEvents(Stage::Velocity, triggered);
+    if (handleEvents(Stage::Velocity, triggered))
+        return true;
+
+    // 5. Handle dynamics- and acceleration-dependent events.
+    sys.realize(state, Stage::Dynamics);
+    findEvents(Stage::Dynamics, triggered);
+    if (handleEvents(Stage::Dynamics, triggered))
+        return true;
+
+    sys.realize(state, Stage::Acceleration);
+    findEvents(Stage::Acceleration, triggered);
+    if (handleEvents(Stage::Acceleration, triggered))
+        return true;
+
+    // Ensure State is realized through Acceleration Stage.
+    sys.realize(state, Stage::Acceleration);
+    return false;
+}
+
+
+// Find the event triggers at a particular stage that changed sign since
+// they were last recorded in m_witnessValuesPrev.
+void FixedTimeStepper::
+findEvents(Stage stage, EventTriggers& triggered) const {
+    auto& sys   = m_system;
+    auto& state = m_state;
+    triggered.clear();
+
+    for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
+        const EventTrigger::Witness& w = *m_witnesses[awx];
+        if (w.getDependsOnStage() != stage)
+            continue;
+        const Real oldVal = m_witnessValuesPrev[awx];
+        const Real newVal = w.calcWitnessValue(sys, state);
+
+        // This sign() function return -1,0,1. Transitions *to* zero are events;
+        // transitions *from* zero are not. That avoids double-counting.
+        if (sign(oldVal) && (sign(newVal) != sign(oldVal))) {
+            triggered.push_back(&w);
+        }
     }
 }
 
-int main() {
-    try {
-        testOne();
-    } catch(const std::exception& e) {
-        cout << "exception: " << e.what() << endl;
-        return 1;
+bool FixedTimeStepper::
+handleEvents(Stage stage, const EventTriggers& triggered) {
+    auto& sys = m_system;
+    auto& state = m_state;
+
+    if (triggered.empty())
+        return false;
+
+    EventsAndCauses triggeredEvents;
+    Array_<EventId> ignoredEventIds;
+    getSystem().noteEventOccurrence(triggered,
+                                    triggeredEvents, ignoredEventIds);
+
+    cout << "==> Handling " << triggered.size() 
+         << " events at Stage " << stage << ":";
+    for (unsigned i=0; i < triggered.size(); ++i)
+        cout << " " << triggered[i];
+    cout << endl;
+
+    EventChangeResult result;
+
+    Array_<StageVersion> stageVersions;
+    state.getSystemStageVersions(stageVersions);
+    cout << "BEFORE handling stage versions=\n";
+    cout << stageVersions << "\n";
+
+    sys.performEventChangeActions(*this, triggeredEvents, result);
+
+    state.getSystemStageVersions(stageVersions);
+    cout << "AFTER handling stage versions=\n";
+    cout << stageVersions << "\n";
+    cout << "Result lowestStage=" << result.getLowestModifiedStage() <<"\n";
+
+    if (result.getExitStatus()==EventChangeResult::ShouldTerminate) {
+        cout << "==> Event at Stage " << stage 
+             << " requested termination at t=" << state.getTime() << endl;
+        return true;
     }
-    cout << "Done" << endl;
-    return 0;
+
+    return false;
 }
 
