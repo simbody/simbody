@@ -245,74 +245,108 @@ SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBo
   return getRigidBodyNode(body).getTotalCentrifugalForces(getDynamicsCache(s));
 }
 
+
+namespace {
 //==============================================================================
-//                               HANDLE EVENTS
+//                              IMPACT EVENT
 //==============================================================================
-void SimbodyMatterSubsystemRep::
-handleEventsImpl(State&                     s, 
-                 Event::Cause               cause, 
-                 const Array_<EventId>&     eventIds,
-                 const HandleEventsOptions& options, 
-                 HandleEventsResults&       results) const 
-{
-    if (cause == Event::Cause::Initialization) {
-        initializationHandler(s, options, results);
-        return;
+// This is the Event that triggers whenever any currently-inactive, 
+// position-level unilateral constraint is about to be violated. We expect
+// an EventAction to correct that by making a discontinuous velocity change.
+// This should trigger a follow-up ContactChangeEvent.
+class ImpactEvent : public Event {
+public:
+    ImpactEvent() 
+    :   Event("Impact") {}
+
+private:
+    ImpactEvent* cloneVirtual() const override 
+    {   return new ImpactEvent(*this); }
+};
+
+//==============================================================================
+//                              IMPACT ACTION
+//==============================================================================
+// This is the EventAction we will perform when an ImpactEvent triggers.
+class ImpactAction : public EventAction {
+public:
+    explicit ImpactAction(const SimbodyMatterSubsystemRep& matter) 
+    :   EventAction(Change), m_matter(matter) {}
+
+    void changeVirtual(Study&                  study,
+                       const Event&            event,
+                       const EventTriggers&    triggers,
+                       EventChangeResult&      result) const override {
+        //TODO: write this!
     }
 
-    if (cause != Event::Cause::Triggered)
-        return; // ignore other events
+private:
+    ImpactAction* cloneVirtual() const override 
+    {   return new ImpactAction(*this); }
 
-    // A triggered event. Impacts take priority over contact changes.
-    for (auto eid : eventIds)
-        if (eid == m_impactEventId) {
-            impactHandler(s, options, results);
-            return;
-        }
+    const SimbodyMatterSubsystemRep&    m_matter;
+};
 
-    // If no impact event look for a contact event.
-    for (auto eid : eventIds)
-        if (eid == m_contactEventId) {
-            contactHandler(s, options, results);
-            return;
-        }
+//==============================================================================
+//                           CONTACT CHANGE EVENT
+//==============================================================================
+// This is the Event that triggers whenever a change of contact active set is
+// needed. Triggers include liftoff, contact without impact, persistent 
+// contact after an impact, sliding-to-stiction, stiction-to-impending slip.
+// TODO: Come here for Painleve problems also?
+class ContactChangeEvent : public Event {
+public:
+    ContactChangeEvent() 
+    :   Event("Contact Change") {}
 
-    // No recognizable events; do nothing.   
+private:
+    ContactChangeEvent* cloneVirtual() const override 
+    {   return new ContactChangeEvent(*this); }
+};
+
+//==============================================================================
+//                           CONTACT CHANGE ACTION
+//==============================================================================
+// This is the EventAction we will perform when an ContactChangeEvent triggers.
+class ContactChangeAction : public EventAction {
+public:
+    explicit ContactChangeAction(const SimbodyMatterSubsystemRep& matter) 
+    :   EventAction(Change), m_matter(matter) {}
+
+    void changeVirtual(Study&                  study,
+                       const Event&            event,
+                       const EventTriggers&    triggers,
+                       EventChangeResult&      result) const override {
+        //TODO: write this!
+    }
+
+private:
+    ContactChangeAction* cloneVirtual() const override 
+    {   return new ContactChangeAction(*this); }
+
+    const SimbodyMatterSubsystemRep&    m_matter;
+};
+
+} // end of anonymous namespace
+
+
+//==============================================================================
+//                     ACQUIRE SYSTEM RESOURCES IMPL
+//==============================================================================
+// This method is invoked after the matter subsystem has been added to a
+// MultibodySystem. We can now create system-level objects.
+void SimbodyMatterSubsystemRep::acquireSystemResourcesImpl() {
+
+    // Create impact and contact Events and Actions.
+   {ImpactEvent* impact = new ImpactEvent();
+    impact->adoptEventAction(new ImpactAction(*this));
+    m_impactEventId = updSystem().adoptEvent(impact);}
+
+   {ContactChangeEvent* contactChg = new ContactChangeEvent();
+    contactChg->adoptEventAction(new ContactChangeAction(*this));
+    m_contactChangeEventId = updSystem().adoptEvent(contactChg);}
+
 }
-
-//==============================================================================
-//                          INITIALIZATION HANDLER
-//==============================================================================
-void SimbodyMatterSubsystemRep::
-initializationHandler(State&                        s, 
-                      const HandleEventsOptions&    options, 
-                      HandleEventsResults&          results) const
-{
-    printf("INITIALIZATION HANDLER@t=%.15g\n", s.getTime());
-}
-
-//==============================================================================
-//                              IMPACT HANDLER
-//==============================================================================
-void SimbodyMatterSubsystemRep::
-impactHandler(State&                        s, 
-              const HandleEventsOptions&    options, 
-              HandleEventsResults&          results) const
-{
-    printf("IMPACT HANDLER@t=%.15g\n", s.getTime());
-}
-
-//==============================================================================
-//                              CONTACT HANDLER
-//==============================================================================
-void SimbodyMatterSubsystemRep::
-contactHandler(State&                        s, 
-               const HandleEventsOptions&    options, 
-               HandleEventsResults&          results) const
-{
-    printf("CONTACT HANDLER@t=%.15g\n", s.getTime());
-}
-
 
 
 //==============================================================================
@@ -326,10 +360,6 @@ contactHandler(State&                        s,
 void SimbodyMatterSubsystemRep::endConstruction(State& s) {
     if (subsystemTopologyHasBeenRealized()) 
         return; // already done
-
-    // Reserve some EventIds for interesting events.
-    m_impactEventId  = updSystem().createNewEventId(getMySubsystemIndex());
-    m_contactEventId = updSystem().createNewEventId(getMySubsystemIndex());
 
     // This creates a RigidBodyNode owned by the the Topology cache of each 
     // MobilizedBody. Each RigidBodyNode lists as its parent the RigidBodyNode

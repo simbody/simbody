@@ -172,18 +172,7 @@ public:
     int calcDecorativeGeometryAndAppendImpl
        (const State&, Stage, Array_<DecorativeGeometry>&) const override;
 
-    void calcEventTriggerInfoImpl
-       (const State&, Array_<EventTriggerInfo>&) const override {}
-
-    // One or more of this Subsystem's events has occurred in the given
-    // state. These include initialization, impact, and contact change like
-    // slip-to-stick or normal force sign change. The handler alters the
-    // state (including choosing the contraint active set), so that all
-    // constraint conditions are satisfied.
-    void handleEventsImpl
-       (State&, Event::Cause, const Array_<EventId>& eventIds,
-        const HandleEventsOptions& options, 
-        HandleEventsResults& results) const override;
+    void acquireSystemResourcesImpl() override;
 
 
         // END OF SUBSYSTEM::GUTS VIRTUALS.
@@ -192,6 +181,9 @@ public:
     const MultibodySystem& getMultibodySystem() const {
         return MultibodySystem::downcast(getSystem());
     }
+
+    EventId getImpactEventId() const {return m_impactEventId;}
+    EventId getContactChangeEventId() const {return m_contactChangeEventId;}
 
 
         // CONSTRUCTION STAGE //
@@ -1253,15 +1245,6 @@ public:
     // a properly-zeroed unpackedFreeU.
     void zeroKnownU(const State& s, Vector& ulike) const;
 
-    // Event handlers for the various types of events we're prepared to
-    // deal with in this Subsystem.
-    void initializationHandler
-       (State&, const HandleEventsOptions&, HandleEventsResults&) const;
-    void impactHandler
-       (State&, const HandleEventsOptions&, HandleEventsResults&) const;
-    void contactHandler
-       (State&, const HandleEventsOptions&, HandleEventsResults&) const;
-
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;
 
@@ -1281,7 +1264,7 @@ private:
     // are adopted. The MobilizedBodyIndex (converted to int) is the index of a
     // MobilizedBody in this array.
 
-    // TODO: why are these pointers?
+    // TODO: why are these pointers? address stability for the handle?
 
     Array_<MobilizedBody*,MobilizedBodyIndex>               mobilizedBodies;
     // Constraints are treated similarly.
@@ -1303,7 +1286,8 @@ private:
     // it are const.
 
     void clearTopologyCache() const {
-        SimbodyMatterSubsystemRep& mthis = const_cast<SimbodyMatterSubsystemRep&>(*this);
+        SimbodyMatterSubsystemRep& mthis = 
+            const_cast<SimbodyMatterSubsystemRep&>(*this);
         mthis.clearTopologyCache(); // call the non-const version
     }
 
@@ -1392,7 +1376,7 @@ private:
 
     // These are IDs of events used for conditional constraints.
     EventId         m_impactEventId;
-    EventId         m_contactEventId;
+    EventId         m_contactChangeEventId;
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
