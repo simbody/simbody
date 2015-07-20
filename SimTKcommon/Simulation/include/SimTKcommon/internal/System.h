@@ -552,16 +552,16 @@ added to the SystemGlobalSubsystem that is contained in every System. **/
 /**@{**/
 /** Add a ScheduledEventHandler to this %System, which takes over ownership
 of the event handler object. **/
-inline void adoptEventHandler(ScheduledEventHandler* handler);
+void adoptEventHandler(ScheduledEventHandler* handler);
 /** Add a TriggeredEventHandler to this %System, which takes over ownership
 of the event handler object. **/
-inline void adoptEventHandler(TriggeredEventHandler* handler);
+void adoptEventHandler(TriggeredEventHandler* handler);
 /** Add a ScheduledEventReporter to this %System, which takes over ownership
 of the event reporter object. **/
-inline void adoptEventReporter(ScheduledEventReporter* reporter);
+void adoptEventReporter(ScheduledEventReporter* reporter);
 /** Add a TriggeredEventReporter to this %System, which takes over ownership
 of the event reporter object. **/
-inline void adoptEventReporter(TriggeredEventReporter* reporter);
+void adoptEventReporter(TriggeredEventReporter* reporter);
 /**@}**/
 
 
@@ -585,98 +585,97 @@ objects via calls to event handlers.
 @see State::allocateAutoUpdateDiscreteVariable()
 **/
 /**@{**/
-// The inline implementations are in SystemGlobalSubsystem.h.
 
 /** Add a new Event to this %System and obtain a unique, small-integer EventId 
 for it. The %System takes over ownership of the heap-allocated Event object. **/
-inline EventId adoptEvent(Event* eventp);
+EventId adoptEvent(Event* eventp);
 
 /** Return the number n of Event objects contained in this %System. The
 corresponding EventIds are EventId(0) through EventId(n-1). Don't 
 confuse this with the number of event occurrences at runtime. **/
-inline int getNumEvents() const;
+int getNumEvents() const;
 
 /** Return a const reference to an Event specified by EventId. Throws an 
 exception if the EventId is invalid or if there is no Event corresponding to
 it in this %System. **/
-inline const Event& getEvent(EventId id) const;
+const Event& getEvent(EventId id) const;
 
 /** Return a writable reference to an Event specified by EventId. Throws an 
 exception if the EventId is invalid or if there is no Event corresponding to
 it in this %System. **/
-inline Event& updEvent(EventId id);
+Event& updEvent(EventId id);
 
 /** Check whether this %System has an Event with the given EventId. **/
-inline bool hasEvent(EventId id) const;
+bool hasEvent(EventId id) const;
 
 /** Return a const reference to the built-in Initialization Event. This Event
 is triggered once at the start of a simulation. **/
-inline const Event::Initialization& getInitializationEvent() const;
+const Event::Initialization& getInitializationEvent() const;
 /** Return a writable reference to the built-in Initialization Event. This Event
 is triggered once at the start of a simulation. **/
-inline Event::Initialization& updInitializationEvent();
+Event::Initialization& updInitializationEvent();
 
 /** Return a const reference to the built-in TimeAdvanced Event. This Event is
 triggered whenever an integrator successfully completes a step. **/
-inline const Event::TimeAdvanced& getTimeAdvancedEvent() const;
+const Event::TimeAdvanced& getTimeAdvancedEvent() const;
 /** Return a const reference to the built-in TimeAdvanced Event. This Event is
 triggered whenever an integrator successfully completes a step. **/
-inline Event::TimeAdvanced& updTimeAdvancedEvent();
+Event::TimeAdvanced& updTimeAdvancedEvent();
 
 /** Return a const reference to the built-in Termination Event. This Event is
 triggered once at the end of a simulation. **/
-inline const Event::Termination& getTerminationEvent() const;
+const Event::Termination& getTerminationEvent() const;
 /** Return a writable reference to the built-in Termination Event. This Event is
 triggered once at the end of a simulation. **/
-inline Event::Termination& updTerminationEvent();
+Event::Termination& updTerminationEvent();
 
 /** Return a const reference to the built-in ExtremeValueIsolated Event. This
 Event is triggered whenever a watched value reaches and extremum of 
 interest (could be a maximum, minimum, or either). **/
-inline const Event::ExtremeValueIsolated& getExtremeValueIsolatedEvent() const;
+const Event::ExtremeValueIsolated& getExtremeValueIsolatedEvent() const;
 /** Return a writable reference to the built-in ExtremeValueIsolated Event. This
 Event is triggered whenever a watched value reaches and extremum of 
 interest (could be a maximum, minimum, or either). **/
-inline Event::ExtremeValueIsolated& updExtremeValueIsolatedEvent();
+Event::ExtremeValueIsolated& updExtremeValueIsolatedEvent();
 
 /** Add a new EventTrigger to this %System and obtain a unique, small-integer 
 EventTriggerId for it. The %System takes over ownership of the heap-allocated 
 EventTrigger object. **/
-inline EventTriggerId adoptEventTrigger(EventTrigger* triggerp);
+EventTriggerId adoptEventTrigger(EventTrigger* triggerp);
 
 /** Return the number n of EventTrigger objects contained in this %System.
 The corresponding EventTriggerIds are EventTriggerId(0) through 
 EventTriggerId(n-1). **/
-inline int getNumEventTriggers() const;
+int getNumEventTriggers() const;
 
 /** Return a const reference to an EventTrigger specified by EventTriggerId. 
 Throws an exception if the EventTriggerId is invalid or if there is no 
 EventTrigger corresponding to it in this %System. **/
-inline const EventTrigger& getEventTrigger(EventTriggerId id) const;
+const EventTrigger& getEventTrigger(EventTriggerId id) const;
 
 /** Return a writable reference to an EventTrigger specified by EventTriggerId. 
 Throws an exception if the EventTriggerId is invalid or if there is no 
 EventTrigger corresponding to it in this %System. **/
-inline EventTrigger& updEventTrigger(EventTriggerId id);
+EventTrigger& updEventTrigger(EventTriggerId id);
 
 /** Check whether this %System has an EventTrigger with the given 
 EventTriggerId. **/
-inline bool hasEventTrigger(EventTriggerId id) const;
+bool hasEventTrigger(EventTriggerId id) const;
 
 /** Return a reference to the built-in EventTrigger that accompanies
 initialization of a time stepping study (the Initialization event). **/
-inline const InitializationTrigger& getInitializationTrigger() const;
+const InitializationTrigger& getInitializationTrigger() const;
 /** Return a reference to the built-in EventTrigger that accompanies
 the TimeAdvanced event. **/
-inline const TimeAdvancedTrigger& getTimeAdvancedTrigger() const;
+const TimeAdvancedTrigger& getTimeAdvancedTrigger() const;
 /** Return a reference to the built-in EventTrigger that accompanies
 termination of a time stepping study (the Termination event). **/
-inline const TerminationTrigger& getTerminationTrigger() const;
+const TerminationTrigger& getTerminationTrigger() const;
 
 /** Return a list of event witnesses currently present for this %System in the
 given Study's internal state. These are the witnesses that must be 
 watched during the next time step to determine if an event has occurred. **/
-inline void findActiveEventWitnesses
+void findActiveEventWitnesses
    (const Study&                            study, 
     Array_<const EventTrigger::Witness*, 
            ActiveWitnessIndex>&             witnesses) const; 
@@ -704,7 +703,7 @@ void predictNextWitnessTriggerTime
 given study's internal state. These are the timers that must be consulted
 to see whether the upcoming time step should be shortened because of a scheduled
 report or change event. **/
-inline void findActiveEventTimers
+void findActiveEventTimers
    (const Study&                            study, 
     Array_<const EventTrigger::Timer*,
            ActiveTimerIndex>&               timers) const;
@@ -716,7 +715,7 @@ Timer(s) that trigger each of those. We are given the time of last report and
 time of last change and won't return Triggers that are at exactly those times 
 (to avoid duplicates). Note that all the Timers in one of the returned lists had
 simultaneous next trigger times (to within timer noise). **/
-inline void findNextScheduledEventTimes
+void findNextScheduledEventTimes
    (const Study&        study,
     double              timeOfLastReport,
     double              timeOfLastChange,
@@ -754,7 +753,7 @@ Be sure to clear the output arrays before calling this method if you want them
 to start fresh; we're just appending here. Typically these will be very short 
 lists -- most commonly there will be one trigger, one event, and no unrecognized
 events. **/
-inline void noteEventOccurrence
+void noteEventOccurrence
    (const EventTriggers&    triggers,
     EventsAndCauses&        appendTriggeredEvents,
     Array_<EventId>&        appendIgnoredEvents) const;
@@ -766,7 +765,7 @@ and the `triggeredEvents` parameter here should be the output from that method.
 The state being reported is that returned by `study.getCurrentState()` and may 
 be an interpolated state. 
 @see noteEventOccurrence(), performEventChangeActions() **/
-inline void performEventReportActions
+void performEventReportActions
    (const Study&            study,
     const EventsAndCauses&  triggeredEvents) const;
 
@@ -776,7 +775,7 @@ and the `triggeredEvents` parameter here should be the output from that method.
 The state that triggered the Events is obtained from `study.updInternalState()`
 and may be modified here. 
 @see noteEventOccurrence(), performEventReportActions() **/
-inline void performEventChangeActions
+void performEventChangeActions
    (Study&                  study,
     const EventsAndCauses&  triggeredEvents,
     EventChangeResult&      result) const;

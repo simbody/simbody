@@ -239,6 +239,165 @@ void System::projectU(State& s, Vector& uErrEst,
 {   getSystemGuts().projectU(s,uErrEst,options,results); }
 
 
+// These methods can't be defined until SystemGlobalSubsystem has been
+// declared -- they just forward to it.
+// TODO: consider moving event stuff to System.
+
+void System::adoptEventHandler(ScheduledEventHandler* handler)
+{   updSystemGlobalSubsystem().adoptEventHandler(handler); }
+void System::adoptEventHandler(TriggeredEventHandler* handler)
+{   updSystemGlobalSubsystem().adoptEventHandler(handler); }
+void System::adoptEventReporter(ScheduledEventReporter* reporter)
+{   updSystemGlobalSubsystem().adoptEventReporter(reporter); }
+void System::adoptEventReporter(TriggeredEventReporter* reporter)
+{   updSystemGlobalSubsystem().adoptEventReporter(reporter); }
+
+EventId System::adoptEvent(Event* eventp)
+{   return updSystemGlobalSubsystem().adoptEvent(eventp); }
+
+int System::getNumEvents() const
+{   return getSystemGlobalSubsystem().getNumEvents(); }
+
+const Event& System::getEvent(EventId id) const
+{   return getSystemGlobalSubsystem().getEvent(id); }
+
+Event& System::updEvent(EventId id)
+{   return updSystemGlobalSubsystem().updEvent(id); }
+
+bool System::hasEvent(EventId id) const
+{   return getSystemGlobalSubsystem().hasEvent(id); }
+
+const Event::Initialization& System::getInitializationEvent() const {
+    const EventId eid = getSystemGlobalSubsystem().getInitializationEventId(); 
+    return Event::Initialization::downcast(getEvent(eid));
+}
+const Event::TimeAdvanced& System::getTimeAdvancedEvent() const {
+    const EventId eid = getSystemGlobalSubsystem().getTimeAdvancedEventId(); 
+    return Event::TimeAdvanced::downcast(getEvent(eid));
+}
+const Event::Termination& System::getTerminationEvent() const {
+    const EventId eid = getSystemGlobalSubsystem().getTerminationEventId(); 
+    return Event::Termination::downcast(getEvent(eid));
+}
+const Event::ExtremeValueIsolated& System::
+getExtremeValueIsolatedEvent() const {
+    const EventId eid = getSystemGlobalSubsystem()
+                                            .getExtremeValueIsolatedEventId(); 
+    return Event::ExtremeValueIsolated::downcast(getEvent(eid));
+}
+
+Event::Initialization& System::updInitializationEvent() {
+    const EventId eid = getSystemGlobalSubsystem().getInitializationEventId(); 
+    return Event::Initialization::updDowncast(updEvent(eid));
+}
+Event::TimeAdvanced& System::updTimeAdvancedEvent() {
+    const EventId eid = getSystemGlobalSubsystem().getTimeAdvancedEventId(); 
+    return Event::TimeAdvanced::updDowncast(updEvent(eid));
+}
+Event::Termination& System::updTerminationEvent() {
+    const EventId eid = getSystemGlobalSubsystem().getTerminationEventId(); 
+    return Event::Termination::updDowncast(updEvent(eid));
+}
+Event::ExtremeValueIsolated& System::updExtremeValueIsolatedEvent() {
+    const EventId eid = getSystemGlobalSubsystem()
+                                            .getExtremeValueIsolatedEventId(); 
+    return Event::ExtremeValueIsolated::updDowncast(updEvent(eid));
+}
+
+EventTriggerId System::adoptEventTrigger(EventTrigger* triggerp)
+{   return updSystemGlobalSubsystem().adoptEventTrigger(triggerp); }
+
+
+int System::getNumEventTriggers() const
+{   return getSystemGlobalSubsystem().getNumEventTriggers(); }
+
+const EventTrigger& System::getEventTrigger(EventTriggerId id) const
+{   return getSystemGlobalSubsystem().getEventTrigger(id); }
+
+EventTrigger& System::updEventTrigger(EventTriggerId id)
+{   return updSystemGlobalSubsystem().updEventTrigger(id); }
+
+bool System::hasEventTrigger(EventTriggerId id) const
+{   return getSystemGlobalSubsystem().hasEventTrigger(id); }
+
+const InitializationTrigger& System::getInitializationTrigger() const {
+    auto& sgs = getSystemGlobalSubsystem();
+    const EventTriggerId tid = sgs.getInitializationTriggerId(); 
+    return InitializationTrigger::downcast(sgs.getEventTrigger(tid));
+}
+const TimeAdvancedTrigger& System::getTimeAdvancedTrigger() const {
+    auto& sgs = getSystemGlobalSubsystem();
+    const EventTriggerId tid = sgs.getTimeAdvancedTriggerId(); 
+    return TimeAdvancedTrigger::downcast(sgs.getEventTrigger(tid));
+}
+const TerminationTrigger& System::getTerminationTrigger() const {
+    auto& sgs = getSystemGlobalSubsystem();
+    const EventTriggerId tid = sgs.getTerminationTriggerId(); 
+    return TerminationTrigger::downcast(sgs.getEventTrigger(tid));
+}
+
+void System:: 
+findActiveEventWitnesses
+   (const Study&                                              study, 
+    Array_<const EventTrigger::Witness*, ActiveWitnessIndex>& witnesses) const 
+{
+    return getSystemGlobalSubsystem()
+            .findActiveEventWitnesses(study, witnesses); 
+}
+
+void System:: 
+findActiveEventTimers
+   (const Study&                                              study, 
+    Array_<const EventTrigger::Timer*, ActiveTimerIndex>&     witnesses) const 
+{
+    return getSystemGlobalSubsystem()
+            .findActiveEventTimers(study, witnesses); 
+}
+
+void System::findNextScheduledEventTimes
+   (const Study&    study,
+    double          timeOfLastReport,
+    double          timeOfLastChange,
+    double&         timeOfNextReport,
+    EventTriggers&  reportTimers,
+    double&         timeOfNextChange,
+    EventTriggers&  changeTimers) const
+{
+    return getSystemGlobalSubsystem().findNextScheduledEventTimes
+       (study,timeOfLastReport,timeOfLastChange,
+        timeOfNextReport, reportTimers,
+        timeOfNextChange, changeTimers);
+}
+
+void System::noteEventOccurrence
+   (const EventTriggers&    triggers,
+    EventsAndCauses&        appendTriggeredEvents,
+    Array_<EventId>&        appendIgnoredEvents) const {
+    getSystemGlobalSubsystem().noteEventOccurrence
+       (triggers,appendTriggeredEvents,appendIgnoredEvents); 
+}
+
+void System::performEventReportActions
+   (const Study&            study,
+    const EventsAndCauses&  triggeredEvents) const {
+    getSystemGlobalSubsystem().performEventReportActions 
+       (study, triggeredEvents);
+}
+
+void System::performEventChangeActions
+   (Study&                  study,
+    const EventsAndCauses&  triggeredEvents,
+    EventChangeResult&      result) const {
+    getSystemGlobalSubsystem().performEventChangeActions 
+       (study, triggeredEvents, result);
+}
+
+System::operator const Subsystem&() const 
+{   return getSystemGlobalSubsystem(); }
+System::operator Subsystem&() 
+{   return updSystemGlobalSubsystem(); }
+
+
 //==============================================================================
 //                             SYSTEM :: GUTS
 //==============================================================================
