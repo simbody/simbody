@@ -227,10 +227,7 @@ public:
     const T& getValue() const {return Value<T>::downcast(*m_value).get();}
 
     template <class T>
-    T& updValue(State2& state) const {
-        markVariableModified(state, state.getTime());
-        return Value<T>::updDowncast(*m_value).upd();
-    }
+    inline T& updValue(State2& state) const;
 
 private:
     Array_<VariableIndex>   m_childVariables;
@@ -514,6 +511,15 @@ inline void Variable::markVariableModified(State2& state, const double& t) {
         state.updCacheEntry(cx).noteThatPrerequisiteHasChanged(state);
 }
 
+//------------------------------------------------------------------------------
+//                        DISCRETE VAR IMPLEMENTATION
+//------------------------------------------------------------------------------
+
+template <class T>
+inline T& DiscreteVar::updValue(State2& state) const {
+    markVariableModified(state, state.getTime());
+    return Value<T>::updDowncast(*m_value).upd();
+}
 
 //------------------------------------------------------------------------------
 //                          CACHE IMPLEMENTATION
