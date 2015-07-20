@@ -276,7 +276,7 @@ public:
 
     /** At most we are interested in the witness value, first, and second
     derivatives. We can't make use of any more than that. **/
-    static const int MaxDeriv = 2;
+    enum {MaxDeriv = 2};
 
 protected:
     /** Create a %Witness with no associated Event objects. A description

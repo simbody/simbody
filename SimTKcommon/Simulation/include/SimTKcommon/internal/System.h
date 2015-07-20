@@ -954,11 +954,11 @@ SystemGlobalSubsystem& updSystemGlobalSubsystem();
 /** Implicitly convert this System into a const Subsystem reference; this 
 actually returns a reference to the SystemGlobalSubsystem contained in this 
 System. **/
-inline operator const Subsystem&() const;
+operator const Subsystem&() const;
 /** Implicitly convert this System into a writable Subsystem reference; this 
 actually returns a reference to the SystemGlobalSubsystem contained in this 
 System. **/
-inline operator Subsystem&();
+operator Subsystem&();
 
 /** There can be multiple handles referring to the same System::Guts object; 
 they are considered to be the same %System. Two empty handles are not 

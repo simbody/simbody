@@ -288,7 +288,7 @@ realizeSubsystemTopologyImpl(State& s) const {
             wp->m_witnessIndex = witnessIndex;
             mThis->m_witnesses.emplace_back(wp);
             // We'll calculate only up to MaxDeriv derivatives.
-            const int nDerivs = std::min(EventTrigger::Witness::MaxDeriv, 
+            const int nDerivs = std::min((int)EventTrigger::Witness::MaxDeriv, 
                                          wp->getNumTimeDerivatives());
             for (int deriv=0; deriv <= nDerivs; ++deriv) {
                 const Stage g = wp->getDependsOnStage(deriv);
