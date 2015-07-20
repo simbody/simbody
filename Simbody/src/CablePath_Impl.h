@@ -449,7 +449,7 @@ public:
        (const State&, Array_<EventTriggerInfo>&) const;
 
     void handleEvents
-       (State&, Event::Cause, const Array_<EventId>& eventIds,
+       (State&, EventCause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const;
 
     // Update the cable path and its length in the state cache. This is the 
@@ -581,7 +581,7 @@ friend class CablePath;
     DiscreteVariableIndex       velEntryIx;
 
     std::map<EventId, CableObstacleIndex>   mapEventIdToObstacle;
-    EventTriggerByStageIndex                eventIx; // 1st index; one/surface
+// TODO    EventTriggerByStageIndex                eventIx; // 1st index; one/surface
 
     mutable int                 referenceCount;
 };

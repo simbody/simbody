@@ -262,17 +262,19 @@ realizeTopology(State& state) {
     // slots for the witness functions.
     const int nSurfaces = instInfo.getNumSurfaceObstacles();
     mapEventIdToObstacle.clear(); // this is an std::map, not an array
-    for (SurfaceObstacleIndex sox(0); sox < nSurfaces; ++sox) {
-        const EventId id = cables->getSystem()
-                                .createNewEventId(cables->getMySubsystemIndex());
-        mapEventIdToObstacle[id] = instInfo.mapSurfaceToObstacle[sox];
-    }
+
+    //TODO: fix this
+    //for (SurfaceObstacleIndex sox(0); sox < nSurfaces; ++sox) {
+    //    const EventId id = cables->getSystem()
+    //                            .createNewEventId(cables->getMySubsystemIndex());
+    //    mapEventIdToObstacle[id] = instInfo.mapSurfaceToObstacle[sox];
+    //}
 
     // Every surface obstacle gets an event witness function that we can use
     // to watch the cable lift off of or drop down onto the obstacle.
-    eventIx.invalidate();
-    if (nSurfaces) eventIx = cables->allocateEventTriggersByStage
-                                        (state, Stage::Position, nSurfaces);
+    // TODO eventIx.invalidate();
+    //if (nSurfaces) eventIx = cables->allocateEventTriggersByStage
+    //                                    (state, Stage::Position, nSurfaces);
 }
 
 //------------------------------------------------------------------------------
@@ -423,7 +425,7 @@ calcEventTriggerInfo(const State& state, Array_<EventTriggerInfo>& info) const
 //                               HANDLE EVENTS
 //------------------------------------------------------------------------------
 void CablePath::Impl::handleEvents
-    (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
+    (State& state, EventCause cause, const Array_<EventId>& eventIds,
     const HandleEventsOptions& options, HandleEventsResults& results) const
 {
     std::cout << "In CablePath::Impl::handleEvents() cause="
@@ -659,13 +661,13 @@ ensurePositionKinematicsCalculated(const State& state) const {
         //std::cout << "HEIGHT=" << ppe.witnesses[sox] << std::endl;
     }
 
-    Vector& eventTriggers = 
-        cables->updEventTriggersByStage(state,Stage::Position); 
+    //Vector& eventTriggers = 
+    //    cables->updEventTriggersByStage(state,Stage::Position); 
 
-    for (SurfaceObstacleIndex i(0); i < instInfo.getNumSurfaceObstacles(); ++i)
-    {
-        eventTriggers[eventIx+i] = ppe.witnesses[i];
-    }
+    //for (SurfaceObstacleIndex i(0); i < instInfo.getNumSurfaceObstacles(); ++i)
+    //{
+    //    eventTriggers[eventIx+i] = ppe.witnesses[i];
+    //}
 
     cables->markDiscreteVarUpdateValueRealized(state, posEntryIx);
 }

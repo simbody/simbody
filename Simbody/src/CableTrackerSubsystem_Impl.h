@@ -81,26 +81,26 @@ const SimbodyMatterSubsystem& getMatterSubsystem() const
 // Get access to state variables and cache entries.
 // TODO
 
-void calcEventTriggerInfoImpl
-   (const State& state, Array_<EventTriggerInfo>& info) const override
-{
-    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
-        const CablePath& path = getCablePath(ix);
-        path.getImpl().calcEventTriggerInfo(state,info);
-    }
-}
-
-void handleEventsImpl
-   (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
-    const HandleEventsOptions& options, 
-    HandleEventsResults& results) const override
-{
-    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
-        const CablePath& path = getCablePath(ix);
-        path.getImpl().handleEvents(state,cause,eventIds,options,results);
-        getSystem().realize(state, Stage::Position); // TODO
-    }
-}
+//void calcEventTriggerInfoImpl
+//   (const State& state, Array_<EventTriggerInfo>& info) const override
+//{
+//    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
+//        const CablePath& path = getCablePath(ix);
+//        path.getImpl().calcEventTriggerInfo(state,info);
+//    }
+//}
+//
+//void handleEventsImpl
+//   (State& state, EventCause cause, const Array_<EventId>& eventIds,
+//    const HandleEventsOptions& options, 
+//    HandleEventsResults& results) const override
+//{
+//    for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
+//        const CablePath& path = getCablePath(ix);
+//        path.getImpl().handleEvents(state,cause,eventIds,options,results);
+//        getSystem().realize(state, Stage::Position); // TODO
+//    }
+//}
 
 // Allocate state variables.
 int realizeSubsystemTopologyImpl(State& state) const override {
