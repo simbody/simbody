@@ -44,21 +44,11 @@ namespace SimTK {
 template <class N> class negator;
 template <class R> class conjugate;
     
-/** SimTK::String is a plug-compatible std::string replacement (plus some
-additional functionality) intended to be suitable for passing through the 
-SimTK API without introducing binary compatibility problems the way 
-std::string does, especially on Windows. You can work in your own code with 
+/** SimTK::String extends std::string to add some
+additional functionality. You can work in your own code with 
 std::strings which will be quietly converted to and from SimTK::Strings when 
 invoking SimTK API methods. Or, you can use SimTK::Strings and still pass them 
-to standard library or other methods that are expecting std::strings, usually 
-transparently. The SimTK::Array_<T> class is used similarly to avoid binary
-compatibility problems that arise with std::vector<T>.
-
-@todo Currently this is just derived from std::string and inherits all the
-binary compatibility issues. Use it now anyway and you'll pick up the 
-compatibility benefits later, when we get the time ...
-
-@see SimTK::Array_  **/
+to standard library or other methods that are expecting std::strings. **/
 class String : public std::string {
 public:
 

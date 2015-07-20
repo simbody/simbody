@@ -30,8 +30,8 @@
 using namespace SimTK;
 using namespace std;
 
-static double Tol = NTraits<double>::getSignificant();
-static float  fTol = NTraits<float>::getSignificant();
+static double Tol  = dSignificant;
+static float  fTol = fSignificant;
 
 
 template <class P>

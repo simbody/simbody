@@ -38,15 +38,6 @@ void UnilateralContact::realizeTopology(State& state) const {
     auto& matter = getMatterSubsystem();
     const SubsystemIndex matterIx = matter.getMySubsystemIndex();
 
-    mThis->m_posWitness = state.allocateEventTrigger
-                                        (matterIx, Stage::Position, 1);
-    mThis->m_velWitness = state.allocateEventTrigger
-                                        (matterIx, Stage::Velocity, 1);
-    mThis->m_accWitness = state.allocateEventTrigger
-                                        (matterIx, Stage::Acceleration, 1);
-    mThis->m_frcWitness = state.allocateEventTrigger
-                                        (matterIx, Stage::Acceleration, 1);
-
     realizeTopologyVirtual(state); // delegate to derived class
 }
 

@@ -447,7 +447,7 @@ class STLFile {
 public:
     STLFile(const String& pathname, const PolygonalMesh& mesh) 
     :   m_pathname(pathname), m_pathcstr(pathname.c_str()),
-        m_vertexTol(NTraits<float>::getSignificant()),
+        m_vertexTol(Real(fSignificant)),
         m_lineNo(0), m_sigLineNo(0) 
     {   preLoadVertMap(mesh); }
 

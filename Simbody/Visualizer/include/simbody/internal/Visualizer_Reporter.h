@@ -45,7 +45,7 @@ any simulation. Use it like this:
     // Create a Reporter that will make periodic calls to the Visualizer's
     // report() method to render frames. Note that ownership of the Reporter
     // is taken by the System; don't delete it yourself.
-    system.addEventReporter(new Visualizer::Reporter(viz, interval));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, interval));
 @endcode 
 **/
 class SimTK_SIMBODY_EXPORT Visualizer::Reporter : public PeriodicEventReporter {

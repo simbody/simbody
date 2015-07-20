@@ -114,7 +114,7 @@ public:
     GeneralForceSubsystemRep* cloneImpl() const override
     {   return new GeneralForceSubsystemRep(*this); }
 
-    int realizeSubsystemTopologyImpl(State& s) const  override {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         forceEnabledIndex.invalidate();
         cachedForcesAreValidCacheIndex.invalidate();
         rigidBodyForceCacheIndex.invalidate();

@@ -246,16 +246,6 @@ private:
 
     ReferencePtr<SimbodyMatterSubsystem>    m_matter;
     UnilateralContactIndex                  m_myIx;
-
-    // One of these three witnesses is watching when the normal constraint is 
-    // *not* active.
-    EventTriggerByStageIndex    m_posWitness; // + -> -, Impact
-    EventTriggerByStageIndex    m_velWitness; // pos<tol, + -> -, Impact
-    EventTriggerByStageIndex    m_accWitness; // pos,vel<tol, + -> -, Contact
-
-    // The force (multiplier) witness is active whenever the normal constraint
-    // *is* active.
-    EventTriggerByStageIndex    m_frcWitness; // + -> -, break Contact
 };
 
 //==============================================================================

@@ -184,6 +184,7 @@ private:
 
 } // namespace Exception
 
+
 } //  namespace SimTK
 
 #endif // SimTK_SIMMATH_COMMON_H_

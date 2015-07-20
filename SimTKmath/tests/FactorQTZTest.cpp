@@ -125,7 +125,6 @@ int main () {
         qtz.solve(bf,xf);
 
         cout << " Overdetermined Float SOLUTION:  " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
-        const float SignificantFloat = NTraits<float>::getSignificant();
         ASSERT((xf-xf_right).norm() < 0.001);
 
         // Underdetermined case adapted from 

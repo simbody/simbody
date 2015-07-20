@@ -1191,7 +1191,7 @@ single frame task.
     interest are fixed. These may be in any order and the same body may appear
     more than once if there are multiple task frames on it.
 @param[in]      originAoInB
-    An array of nt frame origin points Ao for the task frames interest (one 
+    An array of nt frame origin points Ao for the task frames of interest (one 
     per task), each corresponding to one of the bodies B from \a onBodyB, given
     as vectors from each body B's origin Bo to its task frame origin Ao, 
     expressed in frame B.

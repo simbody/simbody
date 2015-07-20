@@ -1400,7 +1400,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     integ.setReturnEveryInternalStep(true); // save geodesic knot points
 
     // Setup timestepper in order to handle event when geodesic hits the plane
-    TimeStepper ts(*ptOnSurfSys, integ);
+    TimeStepper ts(integ);
     ts.setReportAllSignificantStates(true);
     ts.initialize(sysState);
 

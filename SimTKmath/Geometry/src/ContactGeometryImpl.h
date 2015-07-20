@@ -392,7 +392,7 @@ public:
 
     void addVizReporter(ScheduledEventReporter* reporter) const {
         vizReporter = reporter;
-        ptOnSurfSys->addEventReporter(vizReporter); // takes ownership
+        ptOnSurfSys->adoptEventReporter(vizReporter); // takes ownership
         ptOnSurfSys->realizeTopology();
     }
 
@@ -404,7 +404,7 @@ public:
     void createParticleOnSurfaceSystem() {
         ptOnSurfSys = new ParticleConSurfaceSystem(*this);
         geodHitPlaneEvent = new GeodHitPlaneEvent();
-        ptOnSurfSys->addEventHandler(geodHitPlaneEvent); // takes ownership
+        ptOnSurfSys->adoptEventHandler(geodHitPlaneEvent); // takes ownership
         ptOnSurfSys->realizeTopology();
     }
 

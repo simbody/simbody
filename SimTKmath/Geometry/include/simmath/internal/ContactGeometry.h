@@ -1461,7 +1461,9 @@ public:
     }
 
     // This method is called whenever this event occurs.
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, 
+                     bool& shouldTerminate) const override 
+    {
         if (!enabled) {
             return;
         }
@@ -1492,6 +1494,9 @@ public:
     const bool isEnabled() {
         return enabled;
     }
+private:
+    GeodHitPlaneEvent* cloneVirtual() const override
+    {   return new GeodHitPlaneEvent(*this); }
 
 private:
     mutable Plane plane;

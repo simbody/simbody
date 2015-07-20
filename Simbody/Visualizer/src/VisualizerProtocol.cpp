@@ -49,7 +49,7 @@ using namespace std;
 #endif
 
 #ifdef _MSC_VER
-#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#pragma warning(disable:4996) // don't warn about strerror, sprintf, etc.
 #endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return

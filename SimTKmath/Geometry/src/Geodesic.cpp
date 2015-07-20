@@ -198,7 +198,7 @@ projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
 /*
  * This system is a 3d particle mass constrained to move along a surface
  * with no applied force (other than the constraint reaction force normal
- * to the surface). With no applied for the particle traces a geodesic along
+ * to the surface). With no applied force the particle traces a geodesic along
  * the surface.
  *
  *
@@ -249,7 +249,6 @@ int ParticleConSurfaceSystemGuts::realizeInstanceImpl(const State& s) const {
     qerr0 = s.allocateQErr(subsysIndex, 1);
     uerr0 = s.allocateUErr(subsysIndex, 2);
     udoterr0 = s.allocateUDotErr(subsysIndex, 2); // and multiplier
-//    event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
     return 0;
 }
 int ParticleConSurfaceSystemGuts::realizePositionImpl(const State& s) const {

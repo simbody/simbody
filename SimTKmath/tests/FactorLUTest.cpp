@@ -107,8 +107,7 @@ int main () {
         luf.solve(bf, xf);
 
         cout << " float SOLUTION: " << xf << "  errnorm=" << (xf-xf_right).norm() << endl;
-        const float SignificantFloat = NTraits<float>::getSignificant();
-        ASSERT((xf-xf_right).norm() < 10*SignificantFloat);
+        ASSERT((xf-xf_right).norm() < 10*fSignificant);
 
         luf.factor(a);
         lu.solve( b, x );  // solve for x given a right hand side 

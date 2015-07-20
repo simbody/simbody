@@ -24,6 +24,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
+
 #include "SimTKcommon/internal/common.h"
 
 #include <string>
@@ -36,7 +37,7 @@ namespace SimTK {
 
 namespace Exception {
 
-    // Keeps MS VC++ quiet about sprintf, strcpy, etc.
+// Keeps MS VC++ quiet about sprintf, strcpy, etc.
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4996)
@@ -47,12 +48,12 @@ class Base : public std::exception {
 public:
     explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
       : fileName(fn), lineNo(ln) { } 
-    virtual ~Base() throw() { }
+    ~Base() throw() override { }
     const std::string& getMessage()     const { return msg; }
     const std::string& getMessageText() const { return text; }
 
     // override virtual function from std::exception
-    const char* what() const throw() {return getMessage().c_str();}
+    const char* what() const throw() override {return getMessage().c_str();}
 protected:
     void setMessage(const std::string& msgin) {
         text = msgin;
@@ -333,6 +334,7 @@ public:
     throw exc(__FILE__, __LINE__,a1,a2,a3,a4,a5,a6,a7,a8,a9)
 #define SimTK_THROW10(exc,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10) \
     throw exc(__FILE__, __LINE__,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10)
+
 
 #endif // SimTK_SimTKCOMMON_EXCEPTION_H_
 

@@ -27,12 +27,12 @@
 int main () {
   try {
     PendulumSystem sys;
-    sys.addEventHandler(new ZeroVelocityHandler(sys));
-    sys.addEventHandler(PeriodicHandler::handler = new PeriodicHandler());
-    sys.addEventHandler(new ZeroPositionHandler(sys));
-    sys.addEventReporter(PeriodicReporter::reporter = new PeriodicReporter(sys));
-    sys.addEventReporter(new OnceOnlyEventReporter());
-    sys.addEventReporter(new DiscontinuousReporter());
+    sys.adoptEventHandler(new ZeroVelocityHandler(sys));
+    sys.adoptEventHandler(PeriodicHandler::handler = new PeriodicHandler());
+    sys.adoptEventHandler(new ZeroPositionHandler(sys));
+    sys.adoptEventReporter(PeriodicReporter::reporter = new PeriodicReporter(sys));
+    sys.adoptEventReporter(new OnceOnlyEventReporter());
+    sys.adoptEventReporter(new DiscontinuousReporter());
     sys.realizeTopology();
     PeriodicHandler::handler->setEventInterval(0.01);
     PeriodicReporter::reporter->setEventInterval(0.015);

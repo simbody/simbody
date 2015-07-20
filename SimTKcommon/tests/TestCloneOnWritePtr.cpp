@@ -31,7 +31,7 @@ SimTK::CloneOnWritePtr. */
 #include <cstdio>
 
 using namespace SimTK;
-using std::cout; using std::endl;
+using std::cout; using std::endl; using std::swap;
 
 class Base {
 public:
@@ -152,7 +152,7 @@ void testEmpty() {
     SimTK_TEST_MUST_THROW_DEBUG((*p).getValue());
     p.detach(); // shouldn't do anything
     p.swap(pp);
-    std::swap(p,pp);
+    swap(p,pp);
     SimTK_TEST(p.empty() && pp.empty());
 
     CloneOnWritePtr<Sub1> q(nullptr);
@@ -298,7 +298,7 @@ void testAllocate() {
     bptr2->setValue(101); bptr->setValue(-102);
     SimTK_TEST(Base::getNumAlive()==10
                && bptr2->getValue()==101 && bptr->getValue()==-102);
-    std::swap(bptr, bptr2);
+    swap(bptr, bptr2);
     SimTK_TEST(Base::getNumAlive()==10
                && bptr2->getValue()==-102 && bptr->getValue()==101);
 

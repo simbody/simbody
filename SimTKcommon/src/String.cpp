@@ -26,10 +26,7 @@
  * class.
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/ExceptionMacros.h"
-#include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/NTraits.h"
+#include "SimTKcommon/Scalar.h"
 #include "SimTKcommon/internal/Serialize.h"
 
 #include <string>
@@ -89,12 +86,12 @@ bool String::tryConvertToBool(bool& out) const {
 
 bool String::tryConvertToFloat(float& out) const {
     const String adjusted = cleanUp(*this);
-    if (adjusted=="nan")  {out=NTraits<float>::getNaN();  return true;}
+    if (adjusted=="nan")  {out=fNaN;  return true;}
     if (   adjusted=="inf" || adjusted=="infinity"
         || adjusted=="+inf" || adjusted=="+infinity") 
-    {   out = NTraits<float>::getInfinity(); return true;}
+    {   out = fInfinity; return true;}
     if (adjusted=="-inf" || adjusted=="-infinity") 
-    {   out = -NTraits<float>::getInfinity(); return true;}
+    {   out = -fInfinity; return true;}
     std::istringstream sstream(adjusted);
     sstream >> out;
     return !sstream.fail();
@@ -102,12 +99,12 @@ bool String::tryConvertToFloat(float& out) const {
 
 bool String::tryConvertToDouble(double& out) const {
     const String adjusted = cleanUp(*this);
-    if (adjusted=="nan")  {out=NTraits<double>::getNaN();  return true;}
+    if (adjusted=="nan")  {out=dNaN;  return true;}
     if (   adjusted=="inf" || adjusted=="infinity"
         || adjusted=="+inf" || adjusted=="+infinity") 
-    {   out = NTraits<double>::getInfinity(); return true;}
+    {   out = dInfinity; return true;}
     if (adjusted=="-inf" || adjusted=="-infinity") 
-    {   out = -NTraits<double>::getInfinity(); return true;}
+    {   out = -dInfinity; return true;}
     std::istringstream sstream(adjusted);
     sstream >> out;
     return !sstream.fail();

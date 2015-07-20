@@ -132,7 +132,7 @@ protected:
     virtual ~Implementation() {}
     virtual Implementation* cloneVirtual() const = 0;
 
-    virtual void realizeTopology(State&)const = 0;
+    virtual void realizeTopology(State&) const = 0;
 
     virtual void realizeMeasureModelVirtual(State&) const {}
     virtual void realizeMeasureInstanceVirtual(const State&) const {}
@@ -1818,7 +1818,6 @@ public:
 
         // Reallocate space if advisable.
         if (newSizeRequest != -1) {
-            const double dNaN = NTraits<double>::getNaN();
             m_values.resize(newSizeRequest); 
             if (m_values.capacity() > m_values.size())
                 m_values.resize(m_values.capacity()); // don't waste any     
@@ -1985,7 +1984,6 @@ private:
     // oldest entry will now be entry 0.
     void resize(int newSizeRequest) {
         assert(newSizeRequest >= size());
-        const double dNaN = NTraits<double>::getNaN();
         Array_<T,int> newValues(newSizeRequest); 
         if (newValues.capacity() > newValues.size())
             newValues.resize(newValues.capacity()); // don't waste any     
