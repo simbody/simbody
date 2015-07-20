@@ -2,61 +2,37 @@
 #define SimTK_SIMMATH_PENDULUMSYSTEM_H_
 
 /* -------------------------------------------------------------------------- *
- *                      SimTK Core: SimTK Simmath(tm)                         *
+ *                       Simbody(tm): SimTKmath                               *
  * -------------------------------------------------------------------------- *
- * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
- * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
  * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
- * Permission is hereby granted, free of charge, to any person obtaining a    *
- * copy of this software and associated documentation files (the "Software"), *
- * to deal in the Software without restriction, including without limitation  *
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
- * and/or sell copies of the Software, and to permit persons to whom the      *
- * Software is furnished to do so, subject to the following conditions:       *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
+ * not use this file except in compliance with the License. You may obtain a  *
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.         *
  *                                                                            *
- * The above copyright notice and this permission notice shall be included in *
- * all copies or substantial portions of the Software.                        *
- *                                                                            *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
- * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
- * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * Unless required by applicable law or agreed to in writing, software        *
+ * distributed under the License is distributed on an "AS IS" BASIS,          *
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.   *
+ * See the License for the specific language governing permissions and        *
+ * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/**
- * This is a simple System that is used by various test cases.
- */
+/* This is a simple System that may be used by various test cases. Note that
+it requires only SimTKcommon. **/
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/SystemGuts.h"
 
 using namespace SimTK;
 
 class PendulumSystem;
 class PendulumSystemGuts: public System::Guts {
-    friend class PendulumSystem;
-
-    // TOPOLOGY STATE
-    SubsystemIndex subsysIndex;
-
-    // TOPOLOGY CACHE
-    mutable DiscreteVariableIndex massIndex, lengthIndex, gravityIndex;
-    mutable QIndex q0;
-    mutable UIndex u0;
-    mutable QErrIndex qerr0;
-    mutable UErrIndex uerr0;
-    mutable UDotErrIndex udoterr0;
-    mutable EventTriggerByStageIndex event0;
-    mutable CacheEntryIndex mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 public:
     PendulumSystemGuts() : Guts() {
         // Index types set themselves invalid on construction.
@@ -105,6 +81,24 @@ public:
     void projectUImpl(State&, Vector& uErrEst, 
                       const ProjectOptions& options, 
                       ProjectResults& results) const override;
+
+private:
+friend class PendulumSystem;
+
+    // Called from realizeTopology() with cache temporarily writable.
+    void realizeToTopologyCache(State& state);
+
+    // TOPOLOGY STATE
+    SubsystemIndex subsysIndex;
+
+    // TOPOLOGY CACHE
+    DiscreteVariableIndex massIndex, lengthIndex, gravityIndex;
+    QIndex q0;
+    UIndex u0;
+    QErrIndex qerr0;
+    UErrIndex uerr0;
+    UDotErrIndex udoterr0;
+    CacheEntryIndex mgForceIndex; // a cache entry m*g calculated at Dynamics stage
 
 };
 
@@ -214,7 +208,7 @@ public:
  *     y'' = - y*L/m - g
  *               
  */ 
-int PendulumSystemGuts::realizeTopologyImpl(State& s) const {
+void PendulumSystemGuts::realizeToTopologyCache(State& s) {
     // Instance variables mass, length, gravity
     massIndex = s.allocateDiscreteVariable(subsysIndex, Stage::Instance,
                                                       new Value<Real>(1));
@@ -228,19 +222,21 @@ int PendulumSystemGuts::realizeTopologyImpl(State& s) const {
 
     mgForceIndex = s.allocateCacheEntry(subsysIndex, Stage::Dynamics,
                                              new Value<Real>());
-    System::Guts::realizeTopologyImpl(s);
-    return 0;
-}
-int PendulumSystemGuts::realizeModelImpl(State& s) const {
-    System::Guts::realizeModelImpl(s);
-    return 0;
-}
-int PendulumSystemGuts::realizeInstanceImpl(const State& s) const {
+
     qerr0 = s.allocateQErr(subsysIndex, 1);
     uerr0 = s.allocateUErr(subsysIndex, 1);
     udoterr0 = s.allocateUDotErr(subsysIndex, 1); // and multiplier
-//    event0 = s.allocateEvent(subsysIndex, Stage::Position, 3);
-    System::Guts::realizeInstanceImpl(s);
+}
+
+int PendulumSystemGuts::realizeTopologyImpl(State& s) const {
+    const_cast<PendulumSystemGuts*>(this)->realizeToTopologyCache(s);
+    return 0;
+}
+
+int PendulumSystemGuts::realizeModelImpl(State& s) const {
+    return 0;
+}
+int PendulumSystemGuts::realizeInstanceImpl(const State& s) const {
     return 0;
 }
 int PendulumSystemGuts::realizePositionImpl(const State& s) const {
@@ -248,14 +244,6 @@ int PendulumSystemGuts::realizePositionImpl(const State& s) const {
     const Vector& q = s.getQ(subsysIndex);
     // This is the perr() equation.
     s.updQErr(subsysIndex)[0] = (q[0]*q[0] + q[1]*q[1] - d*d)/2;
-    
-//    s.updEventsByStage(subsysIndex, Stage::Position)[0] = 100*q[0]-q[1];
-//
-//    s.updEventsByStage(subsysIndex, Stage::Position)[1] = 
-//        s.getTime() > 1.49552 && s.getTime() < 12.28937;
-//
-//    s.updEventsByStage(subsysIndex, Stage::Position)[2] = s.getTime()-1.495508;
-    System::Guts::realizePositionImpl(s);
     return 0;
 }
 
@@ -269,7 +257,6 @@ int PendulumSystemGuts::realizeVelocityImpl(const State& s) const {
 
     // This is the verr() equation.
     s.updUErr(subsysIndex)[0]  = q[0]*u[0] + q[1]*u[1];
-    System::Guts::realizeVelocityImpl(s);
     return 0;
 }
 
@@ -280,7 +267,6 @@ int PendulumSystemGuts::realizeDynamicsImpl(const State& s) const {
     Real& mg = Value<Real>::updDowncast(s.updCacheEntry(subsysIndex, mgForceIndex)).upd();
     // Calculate the force due to gravity.
     mg = m*g;
-    System::Guts::realizeDynamicsImpl(s);
     return 0;
 }
 
@@ -303,7 +289,6 @@ int PendulumSystemGuts::realizeAccelerationImpl(const State& s) const {
     s.updQDotDot() = udot;
     s.updMultipliers(subsysIndex)[0] = L;
     s.updUDotErr(subsysIndex)[0] = q[0]*udot[0] + q[1]*udot[1] + v2;
-    System::Guts::realizeAccelerationImpl(s);
     return 0;
 }
 

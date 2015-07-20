@@ -129,10 +129,10 @@ Real PeriodicReporter::lastEventTime = 0.5;
 int main () {
   try {
     PendulumSystem sys;
-    sys.addEventHandler(new ZeroVelocityHandler(sys));
-    sys.addEventHandler(new PeriodicHandler());
-    sys.addEventReporter(new ZeroPositionReporter(sys));
-    sys.addEventReporter(new PeriodicReporter());
+    sys.adoptEventHandler(new ZeroVelocityHandler(sys));
+    sys.adoptEventHandler(new PeriodicHandler());
+    sys.adoptEventReporter(new ZeroPositionReporter(sys));
+    sys.adoptEventReporter(new PeriodicReporter());
     sys.realizeTopology();
 
     RungeKuttaMersonIntegrator integ(sys);
@@ -154,7 +154,7 @@ int main () {
 
     integ.setFinalTime(tFinal);
     
-    TimeStepper ts(sys);
+    TimeStepper ts;
     ts.setIntegrator(integ);
     ts.initialize(sys.getDefaultState());
     ASSERT(ts.getTime() == 0.0);

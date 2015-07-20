@@ -58,9 +58,7 @@ public:
     PeriodicHandler() : PeriodicEventHandler(1.0) {
     }
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
-        
-        // This should be triggered every (interval) time units.
-        
+        // This should be triggered every (interval) time units.       
         ASSERT(state.getTime() == getNextEventTime(state, true));
         eventCount++;
     }
@@ -229,7 +227,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
     integ.setConstraintTolerance(1e-4);
     integ.setFinalTime(tFinal);
     
-    TimeStepper ts(sys);
+    TimeStepper ts;
     ts.setIntegrator(integ);
     ts.initialize(sys.getDefaultState());
     
