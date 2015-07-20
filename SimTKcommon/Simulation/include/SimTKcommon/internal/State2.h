@@ -228,7 +228,7 @@ public:
 
     template <class T>
     T& updValue(State& state) const {
-        modifyVariable(state);
+        markVariableModified(state, state.getTime());
         return Value<T>::updDowncast(*m_value).upd();
     }
 
