@@ -40,6 +40,10 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(AssemblyConditionIndex);
 
 class AssemblyCondition;
 
+
+//==============================================================================
+//                               ASSEMBLER
+//==============================================================================
 /** This Study attempts to find a configuration (set of joint coordinates q) 
 of a Simbody MultibodySystem that satisfies the System's position Constraints
 plus optional additional assembly conditions. If successful, the final set
@@ -620,7 +624,27 @@ Vector getFreeQsFromInternalState() const {
 void reinitializeWithExtraQsLocked
     (const Array_<QIndex>& toBeLocked) const;
 
+// Implement the Study interface.
+const System& getSystemVirtual() const override
+{   return getSystem(); }
+const State& getCurrentStateVirtual() const override
+{   return getInternalState(); } 
+const State& getInternalStateVirtual() const override
+{   return getInternalState(); }  
 
+State& updInternalStateVirtual() override {
+    static State empty;
+    SimTK_ERRCHK_ALWAYS(!"write to internal state", 
+        "Study::updInternalState()", 
+        "The Assembler Study does not provide write access to its "
+        " internal state.");
+    return empty;
+}
+
+Real getAccuracyInUseVirtual() const override
+{   return getAccuracyInUse(); }
+Real getConstraintToleranceInUseVirtual() const override
+{   return getConstraintToleranceInUse(); }
 
 //------------------------------------------------------------------------------
                            private: // data members 
