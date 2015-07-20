@@ -184,8 +184,8 @@ int main() {
 
 
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
-    system.addEventReporter(new MyReporter(system, powMeas, workMeas, 0.01));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.adoptEventReporter(new MyReporter(system, powMeas, workMeas, 0.01));
 
    
     // Initialize the system and state.
@@ -370,7 +370,7 @@ int main() {
     //integ.setMinimumStepSize(1e-1);
     integ.setAccuracy(1e-2);
     //integ.setConstraintTolerance(1e-3);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(10.0);
 

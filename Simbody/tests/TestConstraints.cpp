@@ -381,7 +381,7 @@ void testDisablingConstraints() {
         }
         Constraint& constraint;
     };
-    system.addEventHandler(new DisableHandler(constraint));
+    system.adoptEventHandler(new DisableHandler(constraint));
     createState(system, state);
     const int numQuaternionsInUse = matter.getNumQuaternionsInUse(state);
 
@@ -391,7 +391,7 @@ void testDisablingConstraints() {
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(10*LooserConstraintTol);
     integ.setConstraintTolerance(LooserConstraintTol);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     for (int i = 0; i < 10; i++) {
         ts.stepTo(i+1);

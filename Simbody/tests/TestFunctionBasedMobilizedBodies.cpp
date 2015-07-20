@@ -157,7 +157,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     b2.setUFromVector(state, b1.getUAsVector(state));
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
     
@@ -606,7 +606,7 @@ void testFunctionBasedGimbalUserAxes() {
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
     const State& result = ts.getState();
@@ -683,7 +683,7 @@ void testFunctionBasedTranslation() {
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
     const State& result = ts.getState();
@@ -770,7 +770,7 @@ void testFunctionBasedFree() {
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
     const State &result = ts.getState();
@@ -867,7 +867,7 @@ void testFunctionBasedFreeVsTranslationGimbal() {
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
 
@@ -967,7 +967,7 @@ void testFunctionBasedFreeVs2FunctionBased() {
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
 
@@ -1036,7 +1036,7 @@ void testMultipleArguments() {
     Real energy = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(5.0);
     assertEqual(energy, system.calcEnergy(ts.getState()));

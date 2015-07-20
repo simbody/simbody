@@ -359,7 +359,7 @@ int main() {
     viz.addMenu("Help", HelpMenuId, helpMenuItems);
 
     // Check for a Run->Quit menu pick every 1/4 second.
-    //system.addEventHandler(new UserInputHandler(*silo, .25));
+    //system.adoptEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
     

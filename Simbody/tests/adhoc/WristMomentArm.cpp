@@ -544,7 +544,7 @@ int main() {
     viz.addDecorationGenerator(new DrawPathLines(system,planarMuscle));
     
     MyReporter& myRep = *new MyReporter(system,viz,planarMuscle,ReportInterval);
-    system.addEventReporter(&myRep);
+    system.adoptEventReporter(&myRep);
 
     // Initialize the system and state.
     State state = system.realizeTopology();
@@ -568,7 +568,7 @@ int main() {
     //VerletIntegrator integ(system);
     //integ.setMaximumStepSize(1e-0001);
     integ.setAccuracy(1e-6);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
 
     damper.enable(state);
 

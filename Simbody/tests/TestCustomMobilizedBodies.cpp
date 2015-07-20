@@ -411,7 +411,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     // Simulate the system, and see if the two bodies remain identical.
     
     VerletIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(1.0);
     assertEqual(b1.getQAsVector(integ.getState()), b2.getQAsVector(integ.getState()));

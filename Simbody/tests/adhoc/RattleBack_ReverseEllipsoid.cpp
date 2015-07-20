@@ -160,8 +160,8 @@ int main() {
     
     // Output a visualization frame every 1/30 of a second, and output 
     // energy information every 1/4 second.
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    system.addEventReporter(new EnergyReporter(system, rattle, 1./4));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new EnergyReporter(system, rattle, 1./4));
     
     // We're done building the system. Create it and obtain a copy of the
     // default state.
@@ -175,7 +175,7 @@ int main() {
     // Set up simulation.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-5);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
 
     // Simulate.

@@ -207,16 +207,16 @@ const Real NormalLength = .001;
     viz.setCameraClippingPlanes(.01,100);
 #endif
 
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./1000));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./1000));
     ForceReporter* frcReporter = 
         new ForceReporter(system, contactForces, 1./100000);
-    system.addEventReporter(frcReporter);
+    system.adoptEventReporter(frcReporter);
 
     RungeKuttaMersonIntegrator integ(system);
     //CPodesIntegrator integ(system);
     //integ.setMaximumStepSize(.01);
     integ.setAccuracy(1e-5);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
 
     system.realizeTopology();
     State startState = system.getDefaultState();

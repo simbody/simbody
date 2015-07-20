@@ -254,7 +254,7 @@ int main() {
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
     viz.setShowFrameRate(true);
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     // Initialize the system and acquire default state.
     State state = system.realizeTopology();
@@ -286,7 +286,7 @@ int main() {
     //RungeKutta3Integrator integ(system);
     integ.setAccuracy(1e-8);
     //integ.setConstraintTolerance(1e-3);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     viz.report(ts.getState());
     printf("Initialized. Ready to simulate.\n"); getchar();

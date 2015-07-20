@@ -179,7 +179,7 @@ void testKinematicsAndEnergyConservation() {
 #ifdef VISUALIZE
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
     // Initialize the system and state.
@@ -202,7 +202,7 @@ void testKinematicsAndEnergyConservation() {
     const Real Accuracy = 1e-6;
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(Accuracy);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     State istate = integ.getState();
     system.realize(istate, Stage::Velocity);
@@ -346,7 +346,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
 #ifdef VISUALIZE
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
     // Initialize the system and state.
@@ -369,7 +369,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
     const Real Accuracy = 1e-6;
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(Accuracy);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     State istate = integ.getState();
     system.realize(istate, Stage::Velocity);
@@ -572,7 +572,7 @@ void testForces() {
 #ifdef VISUALIZE
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
    
@@ -701,7 +701,7 @@ void testForcesUsingReverseBushingMobilizer() {
 #ifdef VISUALIZE
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
    

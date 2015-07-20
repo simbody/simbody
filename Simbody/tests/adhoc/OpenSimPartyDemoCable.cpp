@@ -213,8 +213,8 @@ int main() {
 
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    system.addEventReporter(new ShowStuff(system, cable2, 0.02));    
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new ShowStuff(system, cable2, 0.02));    
     // Initialize the system and state.
     
     system.realizeTopology();
@@ -236,7 +236,7 @@ int main() {
     // CPodesIntegrator integ(system);
     // integ.setAllowInterpolation(false);
     integ.setAccuracy(1e-5);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ShowStuff::showHeading(cout);
 

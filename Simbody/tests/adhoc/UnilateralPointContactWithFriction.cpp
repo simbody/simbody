@@ -614,7 +614,8 @@ public:
         printf("%3d: %5g mom=%g,%g E=%g", m_integ.getNumStepsTaken(),
             s.getTime(),
             PG[0].norm(), PG[1].norm(), m_mbs.calcEnergy(s));
-        cout << " Triggers=" << s.getEventTriggers() << endl;
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " Trigger=" << trigger.getTriggerDescription() << endl;
         m_unis.showConstraintStatus(s, "STATE SAVER");
 #endif
 
@@ -796,7 +797,8 @@ public:
         m_mbs.realize(s, Stage::Acceleration);
 
         #ifndef NDEBUG
-        cout << " triggers=" << s.getEventTriggers() << "\n";
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
         #endif
 
         m_unis.selectActiveConstraints(s, accuracy);
@@ -1240,7 +1242,8 @@ public:
 
         #ifndef NDEBUG
         m_unis.showConstraintStatus(s, "ENTER STICTION ON");
-        cout << " triggers=" << s.getEventTriggers() << "\n";
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
         #endif
 
         m_unis.selectActiveConstraints(s, accuracy);
@@ -1293,7 +1296,8 @@ public:
         m_mbs.realize(s, Stage::Acceleration);
 
         #ifndef NDEBUG
-        cout << " triggers=" << s.getEventTriggers() << "\n";
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
         #endif
 
         m_unis.selectActiveConstraints(s, accuracy);
@@ -1585,10 +1589,10 @@ int main(int argc, char** argv) {
     viz.addDecorationGenerator(new ShowContact(unis));
 
     #ifdef ANIMATE
-    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    mbs.adoptEventReporter(new Visualizer::Reporter(viz, ReportInterval));
     #else
     // This does nothing but interrupt the simulation.
-    mbs.addEventReporter(new Nada(ReportInterval));
+    mbs.adoptEventReporter(new Nada(ReportInterval));
     #endif
 
     //ExplicitEulerIntegrator integ(mbs);
@@ -1604,18 +1608,18 @@ int main(int argc, char** argv) {
     integ.setMaximumStepSize(0.1);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
-    mbs.addEventReporter(stateSaver);
+    mbs.adoptEventReporter(stateSaver);
     
     for (int i=0; i < unis.getNumContactElements(); ++i) {
-        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Position));
-        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Velocity));
-        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Acceleration));
-        mbs.addEventHandler(new ContactOff(mbs, unis,i));
+        mbs.adoptEventHandler(new ContactOn(mbs, unis,i, Stage::Position));
+        mbs.adoptEventHandler(new ContactOn(mbs, unis,i, Stage::Velocity));
+        mbs.adoptEventHandler(new ContactOn(mbs, unis,i, Stage::Acceleration));
+        mbs.adoptEventHandler(new ContactOff(mbs, unis,i));
     }
 
     for (int i=0; i < unis.getNumFrictionElements(); ++i) {
-        mbs.addEventHandler(new StictionOn(mbs, unis, i));
-        mbs.addEventHandler(new StictionOff(mbs, unis, i));
+        mbs.adoptEventHandler(new StictionOn(mbs, unis, i));
+        mbs.adoptEventHandler(new StictionOff(mbs, unis, i));
     }
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
@@ -1684,7 +1688,7 @@ int main(int argc, char** argv) {
 
     integ.setReturnEveryInternalStep(true);
    //integ.setAllowInterpolation(false);
-    TimeStepper ts(mbs, integ);
+    TimeStepper ts(integ);
     ts.setReportAllSignificantStates(true);
 
     #ifdef TEST_REPEATABILITY
@@ -1764,8 +1768,8 @@ int main(int argc, char** argv) {
         printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
         printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
         printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
-        printf("# EVENT STEPS/HANDLER CALLS = %d/%d\n", 
-            nStepsWithEvent, mbs.getNumHandleEventCalls());    }
+        printf("# EVENT STEPS = %d\n", nStepsWithEvent);
+    }
 
     for (int i=0; i<tries; ++i)
         cout << "nstates " << i << " " << states[i].size() << endl;
@@ -1811,15 +1815,16 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     SimTK_DEBUG3("\nhandle %d impact@%.17g (%s)\n", m_which, s.getTime(),
          m_stage.getName().c_str());
 
+    #ifndef NDEBUG
+    const EventTrigger& trigger = getEventTrigger();
+    cout << " trigger=" << trigger.getTriggerDescription() << "\n";
+    #endif
+
     if (m_stage == Stage::Acceleration) {
         SimTK_DEBUG("\n---------------CONTACT ON (ACCEL)--------------\n");
         SimTK_DEBUG2("CONTACT triggered by element %d @t=%.15g\n", 
             m_which, s.getTime());
         m_mbs.realize(s, Stage::Acceleration);
-
-        #ifndef NDEBUG
-        cout << " triggers=" << s.getEventTriggers() << "\n";
-        #endif
 
         m_unis.selectActiveConstraints(s, accuracy);
         SimTK_DEBUG("---------------CONTACT ON (ACCEL) done.--------------\n");

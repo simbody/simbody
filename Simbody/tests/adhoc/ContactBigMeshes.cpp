@@ -224,8 +224,8 @@ int main() {
     viz.addDecorationGenerator(new ForceArrowGenerator(system,contactForces));
     MyReporter& myRep = *new MyReporter(system,contactForces,ReportInterval);
 
-    system.addEventReporter(&myRep);
-    system.addEventReporter(&reporter);
+    system.adoptEventReporter(&myRep);
+    system.adoptEventReporter(&reporter);
 
     // Initialize the system and state.
     
@@ -253,7 +253,7 @@ int main() {
     const clock_t start = clock();
 
     RungeKutta3Integrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(2.0);
 

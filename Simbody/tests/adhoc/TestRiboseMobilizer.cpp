@@ -502,14 +502,14 @@ void testRiboseMobilizer()
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor);
 
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.10));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.10));
 
     State state = system.realizeTopology();
     
     // Simulate it.
     VerletIntegrator integ(system);
     //RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(50.0);
 }

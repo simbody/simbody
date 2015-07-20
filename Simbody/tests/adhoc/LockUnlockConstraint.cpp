@@ -97,7 +97,9 @@ public:
             m_system.realize(s, Stage::Acceleration);
             printf(" lambda=%g", m_lock.getMultiplier(s));
         }
-        cout << " Triggers=" << s.getEventTriggers() << endl;
+
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
 
         m_states.push_back(s);
     }
@@ -295,7 +297,9 @@ public:
         m_system.realize(s, Stage::Acceleration);
         printf("\nUNLOCK: disabling at t=%g q=%g lambda=%g",
             s.getTime(), s.getQ()[1], m_lock.getMultiplier(s));
-        cout << " Triggers=" << s.getEventTriggers() << "\n\n";
+
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
 
         m_mobod.setOneQ(s, 0, m_lockangle); // avoid retriggering lock
 
@@ -374,7 +378,7 @@ int main(int argc, char** argv) {
 
     Visualizer viz(mbs);
     viz.addDecorationGenerator(new ShowLocking(calf,lock));
-    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    mbs.adoptEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
@@ -386,15 +390,15 @@ int main(int argc, char** argv) {
     //integ.setAllowInterpolation(false);
 
     StateSaver* stateSaver = new StateSaver(mbs,lock,integ,ReportInterval);
-    mbs.addEventReporter(stateSaver);
+    mbs.adoptEventReporter(stateSaver);
 
     const Real low=-110000*4, high=110000*4;
     const Real lockAngle = 0;
     LockOn* lockOn = new LockOn(mbs,calf,lockAngle,lock,low,high);
-    mbs.addEventHandler(lockOn);
+    mbs.adoptEventHandler(lockOn);
 
     LockOff* lockOff = new LockOff(mbs,calf,lockAngle,lock,low,high);
-    mbs.addEventHandler(lockOff);
+    mbs.adoptEventHandler(lockOff);
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
@@ -434,7 +438,7 @@ int main(int argc, char** argv) {
 
     // TODO: misses some transitions if interpolating
     //integ.setAllowInterpolation(false);
-    TimeStepper ts(mbs, integ);
+    TimeStepper ts(integ);
     ts.initialize(s);
     ts.stepTo(RunTime);
 

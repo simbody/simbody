@@ -114,7 +114,7 @@ void testWeld() {
     // Simulate it and see if both pendulums behave identically.
     
     RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);
@@ -162,7 +162,7 @@ void testGimbal() {
         .setColor(Red).setRepresentation(DecorativeGeometry::DrawWireframe));
 
     //Visualizer viz(system); viz.setBackgroundType(Visualizer::SolidColor);
-    //system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    //system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     State state = system.realizeTopology();
     p1.setQ(state, Vec3(.1,.2,.3));
@@ -184,7 +184,7 @@ void testGimbal() {
     // Simulate it and see if both pendulums behave identically.
     
     RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);
@@ -235,7 +235,7 @@ void testBushing() {
         .setColor(Red).setRepresentation(DecorativeGeometry::DrawWireframe));
 
     //Visualizer viz(system); viz.setBackgroundType(Visualizer::SolidColor);
-    //system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    //system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     State state = system.realizeTopology();
     p1.setQ(state, Vec6(.1,.2,.3,1,2,3));
@@ -259,7 +259,7 @@ void testBushing() {
     // Simulate it and see if both pendulums behave identically.
     
     RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);

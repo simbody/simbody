@@ -134,11 +134,11 @@ void testConservationOfEnergy() {
     Visualizer viz(system);
     Visualizer::Reporter* reporter = new Visualizer::Reporter(viz, 1./30);
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.addEventReporter(reporter);
+    system.adoptEventReporter(reporter);
 
     ThermoReporter* thermoReport = new ThermoReporter
         (system, thermo, bushing1, bushing2, 1./10);
-    system.addEventReporter(thermoReport);
+    system.adoptEventReporter(thermoReport);
    
     // Initialize the system and state.
     
@@ -167,7 +167,7 @@ void testConservationOfEnergy() {
     RungeKuttaMersonIntegrator integ(system);
     //integ.setMinimumStepSize(1e-1);
     integ.setAccuracy(1e-2);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     const State& istate = integ.getState();
 

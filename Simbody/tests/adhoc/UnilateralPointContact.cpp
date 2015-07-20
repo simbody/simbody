@@ -326,7 +326,10 @@ public:
         printf("%3d: %5g mom=%g,%g E=%g", m_integ.getNumStepsTaken(),
             s.getTime(),
             PG[0].norm(), PG[1].norm(), m_system.calcEnergy(s));
-        cout << " Triggers=" << s.getEventTriggers() << endl;
+
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " Trigger=" << trigger.getTriggerDescription() << "\n";
+
         for (unsigned i=0; i < m_unis.size(); ++i) {
             const MyUnilateralConstraint& uni = *m_unis[i];
             const bool isLocked = !uni.isDisabled(s);
@@ -516,7 +519,8 @@ public:
         m_mbs.realize(s, Stage::Acceleration);
 
         #ifndef NDEBUG
-        cout << " triggers=" << s.getEventTriggers() << "\n";
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
         #endif
 
         disablePullingContacts(m_mbs,s,m_unis);
@@ -837,7 +841,7 @@ int main(int argc, char** argv) {
     Visualizer viz(mbs);
     viz.setShowSimTime(true);
     viz.addDecorationGenerator(new ShowContact(unis));
-    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    mbs.adoptEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     //ExplicitEulerIntegrator integ(mbs);
     //CPodesIntegrator integ(mbs,CPodes::BDF,CPodes::Newton);
@@ -851,16 +855,16 @@ int main(int argc, char** argv) {
     integ.setMaximumStepSize(0.1);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
-    mbs.addEventReporter(stateSaver);
+    mbs.adoptEventReporter(stateSaver);
 
     for (unsigned i=0; i < unis.size(); ++i) {
-        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Position));
-        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Velocity));
-        mbs.addEventHandler(new ContactOn(mbs, unis,i, Stage::Acceleration));
+        mbs.adoptEventHandler(new ContactOn(mbs, unis,i, Stage::Position));
+        mbs.adoptEventHandler(new ContactOn(mbs, unis,i, Stage::Velocity));
+        mbs.adoptEventHandler(new ContactOn(mbs, unis,i, Stage::Acceleration));
     }
 
     for (unsigned i=0; i < unis.size(); ++i)
-        mbs.addEventHandler(new ContactOff(mbs, unis,i));
+        mbs.adoptEventHandler(new ContactOff(mbs, unis,i));
   
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
@@ -899,7 +903,7 @@ int main(int argc, char** argv) {
     
     // Simulate it.
 
-    TimeStepper ts(mbs, integ);
+    TimeStepper ts(integ);
     ts.initialize(s);
 
     const double startReal = realTime();

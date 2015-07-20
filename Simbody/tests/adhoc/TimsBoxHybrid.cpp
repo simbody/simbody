@@ -815,7 +815,10 @@ public:
         printf("%3d: %5g mom=%g,%g E=%g", m_integ.getNumStepsTaken(),
             s.getTime(),
             PG[0].norm(), PG[1].norm(), m_mbs.calcEnergy(s));
-        cout << " Triggers=" << s.getEventTriggers() << endl;
+
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " Trigger=" << trigger.getTriggerDescription() << "\n";
+
         m_unis.showConstraintStatus(s, "STATE SAVER");
 #endif
 
@@ -924,14 +927,14 @@ public:
 
         #ifndef NDEBUG
         m_unis.showConstraintStatus(s, "ENTER STICTION ON");
-        cout << " entry triggers=" << s.getEventTriggers() << "\n";
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " trigger=" << trigger.getTriggerDescription() << "\n";
         #endif
 
         m_unis.selectActiveConstraints(s, accuracy);
 
         #ifndef NDEBUG
         m_mbs.realize(s, Stage::Acceleration);
-        cout << " exit triggers=" << s.getEventTriggers() << "\n";
         #endif
 
         SimTK_DEBUG("STICTION ON done.\n");
@@ -988,14 +991,14 @@ public:
 
         #ifndef NDEBUG
         m_unis.showConstraintStatus(s, "ENTER STICTION OFF");
-        cout << " triggers=" << s.getEventTriggers() << "\n";
+        const EventTrigger& trigger = getEventTrigger();
+        cout << " Trigger=" << trigger.getTriggerDescription() << "\n";
         #endif
 
         m_unis.selectActiveConstraints(s, accuracy);
 
         #ifndef NDEBUG
         m_mbs.realize(s, Stage::Acceleration);
-        cout << " exit triggers=" << s.getEventTriggers() << "\n";
         #endif
 
         SimTK_DEBUG("STICTION OFF done.\n");
@@ -1188,8 +1191,8 @@ int main(int argc, char** argv) {
         Force::Custom(forces, vertex); // add force element to system
         unis.addHybridElement(vertex); // assign index, transition velocity
         #ifndef USE_CONTINUOUS_STICTION
-        mbs.addEventHandler(new StictionOn(mbs, unis, vertex->getIndex()));
-        mbs.addEventHandler(new StictionOff(mbs, unis, vertex->getIndex()));
+        mbs.adoptEventHandler(new StictionOn(mbs, unis, vertex->getIndex()));
+        mbs.adoptEventHandler(new StictionOff(mbs, unis, vertex->getIndex()));
         #endif
     }
 
@@ -1201,11 +1204,11 @@ int main(int argc, char** argv) {
     viz.addDecorationGenerator(new ShowContact(unis));
 
     #ifdef ANIMATE
-    mbs.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    mbs.adoptEventReporter(new Visualizer::Reporter(viz, ReportInterval));
     #else
     // This does nothing but interrupt the simulation so that exact step
     // sequence will be maintained with animation off.
-    mbs.addEventReporter(new Nada(ReportInterval));
+    mbs.adoptEventReporter(new Nada(ReportInterval));
     #endif
 
     viz.addFrameController(
@@ -1243,7 +1246,7 @@ int main(int argc, char** argv) {
     //integ.setAllowInterpolation(false);
 
     StateSaver* stateSaver = new StateSaver(mbs,unis,integ,ReportInterval);
-    mbs.addEventReporter(stateSaver);
+    mbs.adoptEventReporter(stateSaver);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     
@@ -1321,7 +1324,7 @@ tZ_u = 0.0 m/s
     // Simulate it.
 
     integ.setReturnEveryInternalStep(true);
-    TimeStepper ts(mbs, integ);
+    TimeStepper ts(integ);
     ts.setReportAllSignificantStates(true);
 
     #ifdef TEST_REPEATABILITY
@@ -1401,8 +1404,7 @@ tZ_u = 0.0 m/s
         printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
         printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
         printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
-        printf("# EVENT STEPS/HANDLER CALLS = %d/%d\n", 
-            nStepsWithEvent, mbs.getNumHandleEventCalls());
+        printf("# EVENT STEPS = %d\n", nStepsWithEvent);
     }
 
     for (int i=0; i<tries; ++i)

@@ -276,7 +276,7 @@ void testEnergyConservation() {
     Real initialEnergy = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-4);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(10.0);
     system.realize(state, Stage::Dynamics);

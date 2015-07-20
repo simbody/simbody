@@ -380,7 +380,7 @@ int main() {
     //Force::MobilityLinearDamper(forces, femur, MobilizerQIndex(0), 1.);
 
     // Report at the framerate (real-time).
-    system.addEventReporter(new Visualizer::Reporter(viz, 1. / 30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1. / 30));
 
     // Initialize the system and state.
     // --------------------------------
@@ -443,7 +443,7 @@ int main() {
     // Simulate.
     // ---------
     RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(5.0);
 

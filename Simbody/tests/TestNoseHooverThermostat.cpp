@@ -123,7 +123,7 @@ public:
 #endif
 
         reporter = new OscillatorReporter(*this, 0.1);
-        system.addEventReporter(reporter);
+        system.adoptEventReporter(reporter);
 
         State state = system.realizeTopology();
         Random::Uniform rand(-1,1);
@@ -135,7 +135,7 @@ public:
         VerletIntegrator integ(system);
         //RungeKuttaMersonIntegrator integ(system);
         //integ.setAccuracy(0.01);
-        TimeStepper ts(system, integ);
+        TimeStepper ts(integ);
         ts.initialize(state);
         ts.stepTo(150.0);
     }
