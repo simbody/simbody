@@ -194,7 +194,7 @@ private:
 
     // Given an unwashed list of times in a temporary variable that we can
     // write on, clean these up and insert them properly into the list.
-    void insertHelper(Array_<double>& times);
+    void insertHelper(Array_<double>&& times);
 
     Designated* cloneVirtual() const override {return new Designated(*this);}
 

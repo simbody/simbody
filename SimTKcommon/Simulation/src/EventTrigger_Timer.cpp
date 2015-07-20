@@ -83,7 +83,7 @@ constructHelper() {
 }
 
 void EventTrigger::Timer::Designated::
-insertHelper(Array_<double>& times) {
+insertHelper(Array_<double>&& times) {
     for (auto t : times) checkTime("insertDesignatedTimes", t);
     std::sort(times.begin(), times.end());
     Array_<double> merged(times.size() + m_triggerTimes.size());
