@@ -12,13 +12,52 @@ Breaking Changes
 * For API consistency, getEventTriggerInfo() changed to const in TriggeredEventHandler/Reporter. Added updEventTriggerInfo() for non-const access.
 * Removed updDefaultState() from System class. This was always a bad idea. If you don't like the default state you should copy it and modify your copy. Added SimbodyMatterSubsystem::setUseEulerAnglesByDefault() in case you were updating just to set this flag.
 * Removed the Value<T>::downcast() overload that returned a writable reference, so that downcast() now unambiguously returns a const reference. That leaves updDowncast() as the only way to get a writable reference.
+* Removed ability to add EventReporter to a const System. It is true that a Reporter doesn't change anything substantial about the System, but it is inconsistent with Simbody's otherwise strict treatment of the System as const and State as writable.
 
 Non-breaking changes
 * Added SimbodyMatterSubsystem::get/setUseEulerAnglesByDefault() to control how this flag appears in the default state.
+* Renamed `addEventHandler/Reporter()` methods to `adoptEventHandler/Reporter()` since that is what they are doing without following the correct naming convention. The old methods are still around for backwards compatibility but they are deprecated.
 
 
+**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
-**Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+
+3.6 (in development)
+--------------------
+* Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
+* Prevented copy construction of Array_<T> from Array_<T2> unless T2 is *implicitly*
+  convertible to T. Previously this was allowed if there was any conversion possible
+  even if it was explicit. Array_ was being too relaxed about this, causing hidden 
+  copies to occur. 
+* Added CloneOnWritePtr smart pointer (acts like ClonePtr but with deferred cloning).
+* Updated ClonePtr and ReferencePtr APIs to follow C++11 standard smart pointer
+  terminology. This required deprecating some existing methods and operators, so
+  you can expect to get annoying warnings until you switch to the new API. 
+* Possible BREAKING CHANGE: ClonePtr's operator==() previously delegated
+  to the managed object; not it just operates on the managed pointer as is done 
+  in other smart pointers. Consequently now only a clone() method is required for a type
+  to be contained in a ClonePtr; previously it had to support comparison also.
+* Make doxygen run silently so errors will be easier to see.
+* Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
+of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
+* (There are more that haven't been added yet)
+
+
+3.5.3 (15 June 2015)
+-------------------
+* Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
+* Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
+* Fixed a problem with VectorIterator which could unnecessary copying, possibly affecting mesh handling performance. See issue [#349](https://github.com/simbody/simbody/issues/349). 
+
+
+3.5.2 (15 May 2015)
+-------------------
+Same as 3.5.1 except on 64 bit Windows which has a patched version of Lapack that
+addresses an error handling problem that caused trouble for some OpenSim users.
+This is a patch to Lapack 3.4.2 (64 bit) to fix the bug discussed in [Issue #177](https://github.com/simbody/simbody/issues/177) and [PR #342](https://github.com/simbody/simbody/pull/342).
+There were two functions where convergence failures incorrectly caused an abort (XERBLA in Lapack-speak). See discussion on Lapack forum:
+http://icl.cs.utk.edu/lapack-forum/viewtopic.php?f=13&t=4586
+This Lapack DLL is binary compatible with the previous one, same functions and ordinals.
 
 
 3.5.1 (31 Dec 2014)
