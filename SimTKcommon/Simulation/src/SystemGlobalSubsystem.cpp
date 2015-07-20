@@ -32,326 +32,543 @@
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/SubsystemGuts.h"
 #include "SimTKcommon/internal/System.h"
+#include "SimTKcommon/internal/Study.h"
 #include "SimTKcommon/internal/SystemGlobalSubsystem.h"
+#include "SimTKcommon/internal/Event.h"
+#include "SimTKcommon/internal/EventAction.h"
+#include "SimTKcommon/internal/EventTrigger.h"
+#include "SimTKcommon/internal/EventTrigger_Timer.h"
+#include "SimTKcommon/internal/EventTrigger_Witness.h"
+
 #include "SimTKcommon/internal/EventHandler.h"
 #include "SimTKcommon/internal/EventReporter.h"
 
 #include <cassert>
 #include <map>
 #include <set>
+#include <algorithm>
+#include <utility>
+#include <typeinfo>
 
-namespace SimTK {
+using namespace SimTK;
+
+//==============================================================================
+//                       EVENT TRIGGER COLLECTION
+//==============================================================================
+// This local class holds a set of EventTrigger objects. It is intended for
+// two purposes: once as a member of the System, for triggers that are always
+// present, and once as the value type of a discrete state variable, for
+// triggers that come and go at run time.
+//
+// The discrete variable is allocated at the start of realizeTopology() and
+// contains no run time triggers at that point. After that triggers can be
+// added and removed.
+//
+// Accessing the discrete variable for update doesn't invalidate any stage.
+// However, adding or removing a trigger invalidates the results cache entry
+// that holds the value for that trigger.
+namespace {
+
+class EventTriggerCollection {
+public:
+    unsigned adoptTimer(EventTrigger::Timer* timer) {
+        return adoptThing(timer, m_timers, m_freeTimers);
+    }
+    void removeTimer(unsigned timerIndex) {
+        removeThing(timerIndex, m_timers, m_freeTimers);
+    }
+    unsigned adoptWitness(EventTrigger::Witness* witness) {
+        return adoptThing(witness, m_witnesses, m_freeWitnesses);
+    }
+    void removeWitness(unsigned witnessIndex) {
+        removeThing(witnessIndex, m_witnesses, m_freeWitnesses);
+    }
+private:
+    template <class T>
+    static unsigned adoptThing(T* thing, 
+                               Array_<std::unique_ptr<T>>& things,
+                               Array_<unsigned>&           freeSlots) {
+        const unsigned thingIndex = findFreeSlot(things,freeSlots);
+        assert(!things[thingIndex]); // slot must be empty!
+        things[thingIndex].reset(thing);
+        return thingIndex;
+    }
+
+    template <class T>
+    static void removeThing(unsigned thingIndex, 
+                            Array_<std::unique_ptr<T>>& things,
+                            Array_<unsigned>&           freeSlots) {
+        assert(things[thingIndex]);
+        if (thingIndex == things.size()-1)
+            things.pop_back();
+        else {
+            things[thingIndex].reset(nullptr);
+            freeSlots.push_back(thingIndex);
+        }
+    }
+
+    template <class T>
+    static unsigned findFreeSlot(Array_<std::unique_ptr<T>>& things,
+                                 Array_<unsigned>&           freeSlots) {
+        if (!freeSlots.empty()) {
+            const unsigned slot = freeSlots.back();
+            freeSlots.pop_back();
+            return slot;
+        }
+        things.emplace_back(nullptr); // make room
+        return things.size()-1;
+    }
+private:
+    Array_<std::unique_ptr<EventTrigger::Timer>>    m_timers;
+    Array_<unsigned>                                m_freeTimers;
+    Array_<std::unique_ptr<EventTrigger::Witness>>  m_witnesses;
+    Array_<unsigned>                                m_freeWitnesses;
+};
+
+}   // anonymous file-scope namespace
 
 
 //==============================================================================
-//                         SYSTEM GLOBAL SUBSYSTEM
+//                     SYSTEM GLOBAL SUBSYSTEM :: GUTS
 //==============================================================================
+// This is the implementation class for SystemGlobalSubsystem.
 
 class SystemGlobalSubsystem::Guts : public Subsystem::Guts {
 public:
 
-    Guts() : Subsystem::Guts("SystemGlobalSubsystem::Guts", "0.0.1") { }
-    
-    ~Guts() {
-        for (unsigned i=0; i < m_scheduledEventHandlers.size(); ++i)
-            delete m_scheduledEventHandlers[i];
-        for (unsigned i=0; i < m_triggeredEventHandlers.size(); ++i)
-            delete m_triggeredEventHandlers[i];
-        for (unsigned i=0; i < m_scheduledEventReporters.size(); ++i)
-            delete m_scheduledEventReporters[i];
-        for (unsigned i=0; i < m_triggeredEventReporters.size(); ++i)
-            delete m_triggeredEventReporters[i];
+    Guts() : Subsystem::Guts("SystemGlobalSubsystem", "0.0.1") {
+
     }
+    
+    ~Guts() = default;
     
     Guts* cloneImpl() const override {
         return new Guts(*this);
     }
         
-    const Array_<ScheduledEventHandler*>& getScheduledEventHandlers() const {
-        return m_scheduledEventHandlers;
-    }
-    
-    Array_<ScheduledEventHandler*>& updScheduledEventHandlers() {
-        invalidateSubsystemTopologyCache();
-        return m_scheduledEventHandlers;
-    }
-    
-    const Array_<TriggeredEventHandler*>& getTriggeredEventHandlers() const {
-        return m_triggeredEventHandlers;
-    }
-    
-    Array_<TriggeredEventHandler*>& updTriggeredEventHandlers() {
-        invalidateSubsystemTopologyCache();
-        return m_triggeredEventHandlers;
-    }
-    
-    const Array_<ScheduledEventReporter*>& getScheduledEventReporters() const {
-        return m_scheduledEventReporters;
-    }
-    
-    Array_<ScheduledEventReporter*>& updScheduledEventReporters() const {
-        invalidateSubsystemTopologyCache();
-        return m_scheduledEventReporters;
-    }
-    
-    const Array_<TriggeredEventReporter*>& getTriggeredEventReporters() const {
-        return m_triggeredEventReporters;
-    }
-    
-    Array_<TriggeredEventReporter*>& updTriggeredEventReporters() const {
-        invalidateSubsystemTopologyCache();
-        return m_triggeredEventReporters;
-    }
-
-    int realizeSubsystemTopologyImpl(State& s) const override {
-        auto mThis = const_cast<SystemGlobalSubsystem::Guts*>(this);
-        mThis->clearCache();
-        const System& sys = getSystem();
-        const SubsystemIndex myIx = getMySubsystemIndex();
-
-        // Allocate EventIds for scheduled events and reports.
-        for (auto seh : m_scheduledEventHandlers)
-            mThis->m_scheduledEventIds.push_back(sys.createNewEventId(myIx));
-        for (auto ser : m_scheduledEventReporters)
-            mThis->m_scheduledReportIds.push_back(sys.createNewEventId(myIx));
-
-        // Allocate EventIds and witness function slots for triggered 
-        // events & reports.
-        for (auto teh : m_triggeredEventHandlers) {
-            mThis->m_triggeredEventIds.push_back(sys.createNewEventId(myIx));
-            const EventTriggerByStageIndex index = 
-                s.allocateEventTrigger(myIx, teh->getRequiredStage(), 1);
-            mThis->m_triggeredEventIndices.push_back(index);
-        }
-        for (auto ter : m_triggeredEventReporters) {
-            mThis->m_triggeredReportIds.push_back(sys.createNewEventId(myIx));
-            const EventTriggerByStageIndex index = 
-                s.allocateEventTrigger(myIx, ter->getRequiredStage(), 1);
-            mThis->m_triggeredReportIndices.push_back(index);
-        }
-        return 0;
-    }
+    int realizeSubsystemTopologyImpl(State& s) const override;
     
     int realizeSubsystemModelImpl(State& s) const override {
         return 0;
     }
 
-    int realizeEventTriggers(const State& s, Stage g) const {
-        Vector& triggers = s.updEventTriggersByStage(getMySubsystemIndex(), g);
-        for (unsigned i=0; i < m_triggeredEventHandlers.size(); ++i) {
-            if (g == m_triggeredEventHandlers[i]->getRequiredStage())
-                triggers[m_triggeredEventIndices[i]] = 
-                    m_triggeredEventHandlers[i]->getValue(s);
-        }
-        for (unsigned i=0; i < m_triggeredEventReporters.size(); ++i) {
-            if (g == m_triggeredEventReporters[i]->getRequiredStage())
-                triggers[m_triggeredReportIndices[i]] = 
-                    m_triggeredEventReporters[i]->getValue(s);
-        }
-        return 0;
-    }
-    
     int realizeSubsystemInstanceImpl(const State& s) const override {
         return 0;        
     }
     int realizeSubsystemTimeImpl(const State& s) const override {
-        return realizeEventTriggers(s, Stage::Time);
+        return realizeEventWitnesses(s, Stage::Time);
     }
     int realizeSubsystemPositionImpl(const State& s) const override {
-        return realizeEventTriggers(s, Stage::Position);
+        return realizeEventWitnesses(s, Stage::Position);
     }
     int realizeSubsystemVelocityImpl(const State& s) const override {
-        return realizeEventTriggers(s, Stage::Velocity);
+        return realizeEventWitnesses(s, Stage::Velocity);
     }
     int realizeSubsystemDynamicsImpl(const State& s) const override {
-        return realizeEventTriggers(s, Stage::Dynamics);
+        return realizeEventWitnesses(s, Stage::Dynamics);
     }
     int realizeSubsystemAccelerationImpl(const State& s) const override {
-        return realizeEventTriggers(s, Stage::Acceleration);
+        return realizeEventWitnesses(s, Stage::Acceleration);
     }
     int realizeSubsystemReportImpl(const State& s) const override {
-        return realizeEventTriggers(s, Stage::Report);
+        return realizeEventWitnesses(s, Stage::Report);
     }
 
-    void calcEventTriggerInfoImpl
-       (const State& s, Array_<EventTriggerInfo>& trigInfo) const override 
-    {       
-        // Loop over all registered TriggeredEventHandlers and 
-        // TriggeredEventReporters, and ask each one for its EventTriggerInfo.
-        trigInfo.resize(  m_triggeredEventHandlers.size()
-                        + m_triggeredEventReporters.size());
-
-        for (unsigned i=0; i < m_triggeredEventHandlers.size(); ++i) {
-            const Stage stage = m_triggeredEventHandlers[i]->getRequiredStage();
-            const SystemEventTriggerIndex index
-               (  m_triggeredEventIndices[i]
-                + s.getEventTriggerStartByStage(stage)
-                + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
-            trigInfo[index] = m_triggeredEventHandlers[i]->getTriggerInfo();
-            trigInfo[index].setEventId(m_triggeredEventIds[i]);
-        }
-
-        for (unsigned i=0; i < m_triggeredEventReporters.size(); ++i) {
-            const Stage stage = m_triggeredEventReporters[i]->getRequiredStage();
-            const SystemEventTriggerIndex index
-               (  m_triggeredReportIndices[i]
-                + s.getEventTriggerStartByStage(stage)
-                + s.getEventTriggerStartByStage(getMySubsystemIndex(), stage));
-            trigInfo[index] = m_triggeredEventReporters[i]->getTriggerInfo();
-            trigInfo[index].setEventId(m_triggeredReportIds[i]);
-        }
-    }
-    void calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-        Array_<EventId>& eventIds, bool includeCurrentTime) const override {      
-        // Loop over all registered ScheduledEventHandlers, and ask each one 
-        // when its next event occurs.
-        tNextEvent = Infinity;
-        for (unsigned i = 0; i < m_scheduledEventHandlers.size(); ++i) {
-            Real time = m_scheduledEventHandlers[i]->getNextEventTime
-                                                        (s, includeCurrentTime);
-            if (time <= tNextEvent 
-                && (time > s.getTime() 
-                    || (includeCurrentTime && time == s.getTime()))) 
-            {
-                if (time < tNextEvent)
-                    eventIds.clear();
-                tNextEvent = time;
-                eventIds.push_back(m_scheduledEventIds[i]);
-            }
-        }
-    }
-    void calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextEvent, 
-        Array_<EventId>& eventIds, bool includeCurrentTime) const override {      
-        // Loop over all registered ScheduledEventReporters, and ask each one 
-        // when its next event occurs.      
-        tNextEvent = Infinity;
-        for (unsigned i = 0; i < m_scheduledEventReporters.size(); ++i) {
-            Real time = m_scheduledEventReporters[i]->getNextEventTime
-                                                        (s, includeCurrentTime);
-            if (time <= tNextEvent 
-                && (time > s.getTime() 
-                    || (includeCurrentTime && time == s.getTime()))) 
-            {
-                if (time < tNextEvent)
-                    eventIds.clear();
-                tNextEvent = time;
-                eventIds.push_back(m_scheduledReportIds[i]);
-            }
-        }
-    }
-    void handleEventsImpl(State& s, Event::Cause cause, 
-                      const Array_<EventId>& eventIds, 
-                      const HandleEventsOptions& options, 
-                      HandleEventsResults& results) const override 
-    {
-        const Real accuracy = options.getAccuracy();
-        bool shouldTerminate = false;
-        
-        // Build a set of the ids for quick lookup.      
-        std::set<EventId> idSet;
-        for (unsigned i=0; i < eventIds.size(); ++i)
-            idSet.insert(eventIds[i]);
-        
-        // Process triggered events and reports.     
-        if (cause == Event::Cause::Triggered) {
-            for (unsigned i = 0; i < m_triggeredEventHandlers.size(); ++i) {
-                if (idSet.find(m_triggeredEventIds[i]) != idSet.end()) {
-                    bool eventShouldTerminate = false;
-                    m_triggeredEventHandlers[i]->handleEvent
-                                            (s, accuracy, eventShouldTerminate);
-                    if (eventShouldTerminate)
-                        shouldTerminate = true;
-                }
-            }
-            for (unsigned i=0; i < m_triggeredEventReporters.size(); ++i) {
-                if (idSet.find(m_triggeredReportIds[i]) != idSet.end())
-                    m_triggeredEventReporters[i]->handleEvent(s);
-            }
-        }
-        
-        // Process scheduled events and reports.       
-        if (cause == Event::Cause::Scheduled) {
-            for (unsigned i=0; i < m_scheduledEventHandlers.size(); ++i) {
-                if (idSet.find(m_scheduledEventIds[i]) != idSet.end()) {
-                    bool eventShouldTerminate = false;
-                    m_scheduledEventHandlers[i]->handleEvent
-                                            (s, accuracy, eventShouldTerminate);
-                    if (eventShouldTerminate)
-                        shouldTerminate = true;
-                }
-            }
-            for (unsigned i=0; i < m_scheduledEventReporters.size(); ++i) {
-                if (idSet.find(m_scheduledReportIds[i]) != idSet.end())
-                    m_scheduledEventReporters[i]->handleEvent(s);
-            }
-        }
-
-        // Assume some change was made.
-        results.setAnyChangeMade(true);
-
-        results.setExitStatus(shouldTerminate 
-            ? HandleEventsResults::ShouldTerminate
-            : HandleEventsResults::Succeeded);
+    const Event::Initialization& getInitializationEvent() const {
+        return Event::Initialization::downcast
+                                        (*m_events[m_initializationEventId]);
     }
 
-    void reportEventsImpl(const State& s, Event::Cause cause, 
-                          const Array_<EventId>& eventIds) const override
-    {
-        // Build a set of the ids for quick lookup.        
-        std::set<EventId> idSet;
-        for (unsigned i=0; i < eventIds.size(); ++i)
-            idSet.insert(eventIds[i]);
-        
-        // Process triggered reports.       
-        if (cause == Event::Cause::Triggered) {
-            for (unsigned i=0; i < m_triggeredEventReporters.size(); ++i) {
-                if (idSet.find(m_triggeredReportIds[i]) != idSet.end())
-                    m_triggeredEventReporters[i]->handleEvent(s);
-            }
-        }
-        
-        // Process scheduled reports.      
-        if (cause == Event::Cause::Scheduled) {
-            for (unsigned i=0; i < m_scheduledEventReporters.size(); ++i) {
-                if (idSet.find(m_scheduledReportIds[i]) != idSet.end())
-                    m_scheduledEventReporters[i]->handleEvent(s);
-            }
-        }
+    const Event::TimeAdvanced& getTimeAdvancedEvent() const {
+        return Event::TimeAdvanced::downcast
+                                        (*m_events[m_timeAdvancedEventId]);
     }
+
+    const Event::Termination& getTerminationEvent() const {
+        return Event::Termination::downcast
+                                        (*m_events[m_terminationEventId]);
+    }
+
+    const InitializationTrigger& getInitializationTrigger() const {
+        return InitializationTrigger::downcast
+                                        (*m_triggers[m_initializationTriggerId]);
+    }
+
+    const TimeAdvancedTrigger& getTimeAdvancedTrigger() const {
+        return TimeAdvancedTrigger::downcast
+                                        (*m_triggers[m_timeAdvancedTriggerId]);
+    }
+
+    const TerminationTrigger& getTerminationTrigger() const {
+        return TerminationTrigger::downcast
+                                        (*m_triggers[m_terminationTriggerId]);
+    }
+
+    static const int MaxDeriv = EventTrigger::Witness::MaxDeriv;
+
+private:
+    // Evaluate all witness values and derivatives for which g is the depends-on
+    // stage. The result goes into the corresponding cache entry.
+    int realizeEventWitnesses(const State& s, Stage g) const;
+
 
 private:
 friend class SystemGlobalSubsystem;
 
     //  TOPOLOGY STATE VARIABLES
-    Array_<ScheduledEventHandler*>          m_scheduledEventHandlers;
-    Array_<TriggeredEventHandler*>          m_triggeredEventHandlers;
+    Array_<ClonePtr<Event>,EventId>                  m_events;
+    Array_<ClonePtr<EventTrigger>,EventTriggerId>    m_triggers;
 
-    // We allow these to be added later since they are harmless.
-    mutable Array_<ScheduledEventReporter*> m_scheduledEventReporters;
-    mutable Array_<TriggeredEventReporter*> m_triggeredEventReporters;
+    // These store their assigned EventIds and EventTriggerIds.
+    Array_<ClonePtr<ScheduledEventHandler>>  m_scheduledEventHandlers;
+    Array_<ClonePtr<TriggeredEventHandler>>  m_triggeredEventHandlers;
+    Array_<ClonePtr<ScheduledEventReporter>> m_scheduledEventReporters;
+    Array_<ClonePtr<TriggeredEventReporter>> m_triggeredEventReporters;
+
+    EventId         m_initializationEventId;    // for predefined Events
+    EventId         m_timeAdvancedEventId;
+    EventId         m_terminationEventId;
+    EventId         m_extremeValueIsolatedEventId;
+
+    EventTriggerId  m_initializationTriggerId;  // for predefined Triggers
+    EventTriggerId  m_timeAdvancedTriggerId;
+    EventTriggerId  m_terminationTriggerId;
 
     // TOPOLOGY CACHE VARIABLES
-    Array_<EventId>                         m_scheduledEventIds;
-    Array_<EventId>                         m_scheduledReportIds;
 
-    Array_<EventId>                         m_triggeredEventIds;
-    Array_<EventTriggerByStageIndex>        m_triggeredEventIndices;
+    // These reference objects that are in m_triggers.
 
-    Array_<EventId>                         m_triggeredReportIds;
-    Array_<EventTriggerByStageIndex>        m_triggeredReportIndices;
+    // Timers are always evaluated at the beginning of a step when the state
+    // has been realized to Stage::Acceleration.
+    Array_<EventTrigger::Timer*,EventTimerIndex>       m_timers;
+
+    // Witness values and derivatives are partitioned by depends-on stage. This
+    // array allows us to access values and derivatives by witness.
+    Array_<EventTrigger::Witness*,EventWitnessIndex>   m_witnesses;
+
+    // These arrays provides access to witness values and derivatives by stage.
+    static const int NWitnessStages = Stage::NValid;
+    Array_<EventWitnessIndex,int>  
+        m_witnessesByStage[NWitnessStages][1+MaxDeriv];
+
+    // Each of these (var,cache) pairs holds an Array of real values of
+    // witness functions or their derivatives (mixed together).
+    using   ValArray = Array_<Real,int>;
+    DiscreteVariableIndex           m_witnessVars[NWitnessStages];
+    CacheEntryIndex                 m_witnessValues[NWitnessStages];
 
     void clearCache() {
-        m_scheduledEventIds.clear();
-        m_scheduledReportIds.clear();       
-        m_triggeredEventIds.clear();
-        m_triggeredEventIndices.clear();       
-        m_triggeredReportIds.clear();
-        m_triggeredReportIndices.clear();
+        m_timers.clear(); m_witnesses.clear();
+        for (int g=0; g <NWitnessStages; ++g) {
+            for (int d=0; d <= MaxDeriv; ++d)
+                m_witnessesByStage[g][d].clear();
+            m_witnessVars[g].invalidate();
+            m_witnessValues[g].invalidate();
+        }
     }
 };
 
+//------------------------------------------------------------------------------
+//                     REALIZE SUBSYSTEM TOPOLOGY IMPL
+//------------------------------------------------------------------------------
+int SystemGlobalSubsystem::Guts::
+realizeSubsystemTopologyImpl(State& s) const {
+    auto mThis = const_cast<SystemGlobalSubsystem::Guts*>(this);
+    mThis->clearCache();
+
+    // Find all the Timers and Witnesses and dynamic_cast them once here.
+    // Partition witness values and derivatives by depends-on stage of their 
+    // functions.
+    for (auto& trigger : mThis->m_triggers) {
+        auto p = trigger.upd();
+
+        // Deal with Timers.
+        if (auto tp = dynamic_cast<EventTrigger::Timer*>(p)) {
+            const EventTimerIndex timerIndex(m_timers.size());
+            tp->m_timerIndex = timerIndex;
+            mThis->m_timers.emplace_back(tp);
+            continue;
+        }
+        
+        // Deal with Witnesses.
+        if (auto wp = dynamic_cast<EventTrigger::Witness*>(p)) {
+            const EventWitnessIndex witnessIndex(m_witnesses.size());
+            wp->m_witnessIndex = witnessIndex;
+            mThis->m_witnesses.emplace_back(wp);
+            // We'll calculate only up to MaxDeriv derivatives.
+            const int nDerivs = std::min(MaxDeriv, wp->getNumTimeDerivatives());
+            for (int deriv=0; deriv <= nDerivs; ++deriv) {
+                const Stage g = wp->getDependsOnStage(deriv);
+                mThis->m_witnessesByStage[g][deriv].push_back(witnessIndex);
+            }
+            continue;
+        }
+
+        // Nothing to do for other types of Triggers.
+    }
+
+    // Allocate auto-update state variables and corresponding cache entries
+    // for witness values (including derivatives). The number of witnesses may
+    // change at run time so we'll allocate variables even if there are 
+    // currently no witness functions at some stages.
+    for (Stage g(Stage::Topology); g <= Stage::Acceleration; ++g) {
+        int nAtThisStage = 0;
+        for (int deriv=0; deriv <= MaxDeriv; ++deriv) {
+            for (auto wx : m_witnessesByStage[g][deriv]) {
+                auto wp = m_witnesses[wx];
+                wp->m_valueIndex[deriv] = nAtThisStage++;
+            }
+        }
+        mThis->m_witnessVars[g] = 
+            allocateAutoUpdateDiscreteVariable(s, Stage::Report,
+                new Value<ValArray>(ValArray(nAtThisStage,NaN)), g);
+        mThis->m_witnessValues[g] =
+            getDiscreteVarUpdateIndex(s, m_witnessVars[g]);
+    }
+
+    // Allocate state variables and cache entries for the witness results.
+    return 0;
+}
+
+//------------------------------------------------------------------------------
+//                        REALIZE EVENT WITNESSES
+//------------------------------------------------------------------------------
+// For a given Stage, realize any witness value or derivative functions that
+// have that stage as their depends-on stage. The results go into the cache
+// entry for that stage, which is marked valid here.
+int SystemGlobalSubsystem::Guts::
+realizeEventWitnesses(const State& state, Stage g) const {
+    //assert(Stage::Topology <= g && g <= Stage::Acceleration);
+    //const System& system = this->getSystem();
+
+    //ValArray& cache = Value<ValArray>::updDowncast
+    //                        (updCacheEntry(state, m_witnessValues[g])).upd();
+    //for (int deriv=0; deriv <= MaxDeriv; ++deriv) {
+    //    const auto& witnesses = m_witnessesByStage[g][deriv];
+
+    //    for (auto wx : witnesses) {
+    //        const EventTrigger::Witness* const wp = m_witnesses[wx];
+    //        const Real value = wp->calcWitnessValue(system, state, deriv);
+    //        const int ix = wp->getValueIndex(deriv);
+    //        cache[ix] = value;
+    //    }
+    //}
+    //markCacheValueRealized(state, m_witnessValues[g]);
+
+    return 0;
+}
+
+//==============================================================================
+//               LOCAL CLASSES FOR EVENTHANDLER/REPORTER SUPPORT
+//==============================================================================
+// The EventHandler/EventReport facility preceded the current Event
+// implementation. These classes are reimplemented here in terms of the new
+// facility, with the aid of these file-local classes.
+namespace {
+//---------------------------- EVENT HANDLER EVENT -----------------------------
+/* This is the System-wide Event that is generated by an EventHandler. */
+class EventHandler_Event : public Event {
+public:
+    explicit EventHandler_Event(const EventHandler& eh) 
+    :   Event(eh.getEventDescription().empty() 
+                ? std::string("EventHandler Event") 
+                : eh.getEventDescription()) {}
+private:
+    EventHandler_Event* cloneVirtual() const override 
+    {   return new EventHandler_Event(*this); }
+};
+
+//--------------------------- EVENT REPORTER EVENT -----------------------------
+/* This is the System-wide Event that is generated by an EventReporter. */
+class EventReporter_Event : public Event {
+public:
+    explicit EventReporter_Event(const EventReporter& er) 
+    :   Event(er.getEventDescription().empty() 
+                ? std::string("EventReporter Event") 
+                : er.getEventDescription()) {}
+private:
+    EventReporter_Event* cloneVirtual() const override 
+    {   return new EventReporter_Event(*this); }
+};
+
+
+//---------------------------- EVENT HANDLER ACTION ----------------------------
+/* This is the EventAction to be taken when an EventHandler-defined event
+occurs. We just need to call the EventHandler's handleEvent() method. */
+class EventHandler_Action : public EventAction {
+public:
+    EventHandler_Action(const EventHandler& handler) 
+    :   EventAction(Change), m_handler(handler) {}
+
+private:
+    EventHandler_Action* cloneVirtual() const override 
+    {   return new EventHandler_Action(*this); }
+
+    void changeVirtual
+       (Study&                  study,
+        const Event&            event,
+        const EventTriggers&    triggers,
+        EventChangeResult&      result) const override
+    {
+        bool shouldTerminate = false;
+        m_handler.handleEvent(study.updInternalState(), 
+                              study.getAccuracyInUse(), shouldTerminate);
+        result.reportExitStatus(shouldTerminate 
+                              ? EventChangeResult::ShouldTerminate
+                              : EventChangeResult::Succeeded);
+    }
+
+    const EventHandler& m_handler;
+};
+
+//--------------------------- EVENT REPORTER ACTION ----------------------------
+/* This is the EventAction to be taken when an EventReporter-defined event
+occurs. We just need to call the EventReporter's handleEvent() method. */
+class EventReporter_Action : public EventAction {
+public:
+    EventReporter_Action(const EventReporter& reporter) 
+    :   EventAction(Report), m_reporter(reporter) {}
+
+private:
+    EventReporter_Action* cloneVirtual() const override 
+    {   return new EventReporter_Action(*this); }
+
+    void reportVirtual
+       (const Study&            study,
+        const Event&            event,
+        const EventTriggers&    triggers) const override
+    {
+        m_reporter.handleEvent(study.getCurrentState());
+    }
+
+    const EventReporter& m_reporter;
+};
+
+//--------------------- SCHEDULED EVENT HANDLER TIMER --------------------------
+/* This is the EventTrigger::Timer generated by a ScheduledEventHandler. */
+class ScheduledEventHandler_Timer : public EventTrigger::Timer {
+    using Super = EventTrigger::Timer;
+public:
+    ScheduledEventHandler_Timer(const ScheduledEventHandler& handler) 
+    :   Super("ScheduledEventHandler timer"), m_handler(handler) {}
+
+private:
+    ScheduledEventHandler_Timer* cloneVirtual() const override 
+    {   return new ScheduledEventHandler_Timer(*this); }
+
+    double calcTimeOfNextTriggerVirtual
+       (const System& system, const State& state, 
+        double timeOfLastTrigger) const override 
+    {
+        return (double)m_handler.getNextEventTime
+                                (state, state.getTime() > timeOfLastTrigger);
+    }
+
+
+    const ScheduledEventHandler& m_handler;
+};
+
+//--------------------- SCHEDULED EVENT REPORTER TIMER -------------------------
+/* This is the EventTrigger::Timer generated by a ScheduledEventReporter. */
+class ScheduledEventReporter_Timer : public EventTrigger::Timer {
+    using Super = EventTrigger::Timer;
+public:
+    ScheduledEventReporter_Timer(const ScheduledEventReporter& reporter) 
+    :   Super("ScheduledEventReporter timer"), m_reporter(reporter) {}
+
+private:
+    ScheduledEventReporter_Timer* cloneVirtual() const override 
+    {   return new ScheduledEventReporter_Timer(*this); }
+
+    double calcTimeOfNextTriggerVirtual
+       (const System& system, const State& state, 
+        double timeOfLastTrigger) const override 
+    {
+        return (double)m_reporter.getNextEventTime
+            (state, state.getTime() > timeOfLastTrigger);
+    }
+
+    const ScheduledEventReporter& m_reporter;
+};
+
+//--------------------- TRIGGERED EVENT HANDLER WITNESS ------------------------
+/* This is the EventTrigger::Witness generated by a TriggeredEventHandler. */
+class TriggeredEventHandler_Witness : public EventTrigger::Witness {
+    using Super = EventTrigger::Witness;
+public:
+    TriggeredEventHandler_Witness(const TriggeredEventHandler& handler) 
+    :   Super("TriggeredEventHandler witness"), m_handler(handler) {}
+
+private:
+    TriggeredEventHandler_Witness* cloneVirtual() const override 
+    {   return new TriggeredEventHandler_Witness(*this); }
+
+    Real calcWitnessValueVirtual(const System& /*system*/,
+                                 const State&  state, 
+                                 int           /*derivOrder*/) const override 
+    {   return m_handler.getValue(state); }
+
+    Stage getDependsOnStageVirtual(int /*derivOrder*/) const override
+    {   return m_handler.getRequiredStage(); }
+
+    int getNumTimeDerivativesVirtual() const override 
+    {   return 0; }
+
+private:
+    const TriggeredEventHandler& m_handler;
+};
+
+//--------------------- TRIGGERED EVENT REPORTER WITNESS -----------------------
+/* This is the EventTrigger::Witness generated by a TriggeredEventReporter. */
+class TriggeredEventReporter_Witness : public EventTrigger::Witness {
+    using Super = EventTrigger::Witness;
+public:
+    TriggeredEventReporter_Witness(const TriggeredEventReporter& reporter) 
+    :   Super("TriggeredEventReporter witness"), m_reporter(reporter) {}
+
+private:
+    TriggeredEventReporter_Witness* cloneVirtual() const override 
+    {   return new TriggeredEventReporter_Witness(*this); }
+
+    Real calcWitnessValueVirtual(const System& /*system*/,
+                                 const State&  state, 
+                                 int           /*derivOrder*/) const override 
+    {   return m_reporter.getValue(state); }
+
+    Stage getDependsOnStageVirtual(int /*derivOrder*/) const override
+    {   return m_reporter.getRequiredStage(); }
+
+    int getNumTimeDerivativesVirtual() const override 
+    {   return 0; }
+
+private:
+    const TriggeredEventReporter& m_reporter;
+};
+
+} // anonymous file-scope namespace
+
+
+//==============================================================================
+//                       SYSTEM GLOBAL SUBSYSTEM
+//==============================================================================
+
 SystemGlobalSubsystem::SystemGlobalSubsystem(System& sys) {
     adoptSubsystemGuts(new SystemGlobalSubsystem::Guts());
+
+    SystemGlobalSubsystem::Guts& guts = updGuts();
+    guts.m_initializationEventId = adoptEvent(new Event::Initialization());
+    guts.m_timeAdvancedEventId   = adoptEvent(new Event::TimeAdvanced());
+    guts.m_terminationEventId    = adoptEvent(new Event::Termination());
+    guts.m_extremeValueIsolatedEventId = 
+                                adoptEvent(new Event::ExtremeValueIsolated());
+
+    guts.m_initializationTriggerId = 
+        adoptEventTrigger(new InitializationTrigger(guts.m_initializationEventId));
+    guts.m_timeAdvancedTriggerId = 
+        adoptEventTrigger(new TimeAdvancedTrigger(guts.m_timeAdvancedEventId));
+    guts.m_terminationTriggerId = 
+        adoptEventTrigger(new TerminationTrigger(guts.m_terminationEventId));
+
     sys.adoptSubsystem(*this);
 }
 
@@ -365,60 +582,394 @@ SystemGlobalSubsystem::Guts& SystemGlobalSubsystem::updGuts() {
                                                         (updSubsystemGuts());
 }
 
-/*
- * Add a ScheduledEventHandler to the System.  This must be called before the 
- * Model stage is realized.
- * 
- * The System assumes ownership of the object passed to this method, and will 
- * delete it when the System is deleted.
- */
-void SystemGlobalSubsystem::addEventHandler(ScheduledEventHandler* handler) {
-    updGuts().updScheduledEventHandlers().push_back(handler);
-}
-
-/*
- * Add a TriggeredEventHandler to the System.  This must be called before the 
- * Model stage is realized.
- * 
- * The System assumes ownership of the object passed to this method, and will 
- * delete it when the System is deleted.
- */
+//------------------------------------------------------------------------------
+//                       ADOPT EVENT HANDLER (SCHEDULED)
+//------------------------------------------------------------------------------
 void SystemGlobalSubsystem::
-addEventHandler(TriggeredEventHandler* handler) {
-    updGuts().updTriggeredEventHandlers().push_back(handler);
+adoptEventHandler(ScheduledEventHandler* handler) {
+    SystemGlobalSubsystem::Guts& guts = updGuts();
+    auto evnt = new EventHandler_Event(*handler);
+    auto action = new EventHandler_Action(*handler);
+    const EventActionIndex eax = evnt->adoptEventAction(action);
+    const EventId eid = adoptEvent(evnt);
+    auto timer = new ScheduledEventHandler_Timer(*handler);
+    timer->addEvent(eid);
+    const EventTriggerId tid = adoptEventTrigger(timer);
+    handler->m_system    = &updSystem(); // This class is a friend.
+    handler->m_eventId   = eid;
+    handler->m_triggerId = tid;
+    guts.m_scheduledEventHandlers.emplace_back(handler);
 }
 
-/*
- * Add a ScheduledEventReporter to the System.  This must be called before the 
- * Model stage is realized.
- * 
- * The System assumes ownership of the object passed to this method, and will 
- * delete it when the System is deleted.
- * 
- * Note that this method is const.  Because an EventReporter cannot affect the
- * behavior of the system being simulated, it is permitted to add one to a 
- * const System.
- */
+//------------------------------------------------------------------------------
+//                       ADOPT EVENT HANDLER (TRIGGERED)
+//------------------------------------------------------------------------------
 void SystemGlobalSubsystem::
-addEventReporter(ScheduledEventReporter* handler) const {
-    getGuts().updScheduledEventReporters().push_back(handler);
+adoptEventHandler(TriggeredEventHandler* handler) {
+    SystemGlobalSubsystem::Guts& guts = updGuts();
+    auto evnt = new EventHandler_Event(*handler);
+    auto action = new EventHandler_Action(*handler);
+    const EventActionIndex eax = evnt->adoptEventAction(action);
+    const EventId eid = adoptEvent(evnt);
+    auto witness = new TriggeredEventHandler_Witness(*handler);
+    witness->addEvent(eid);
+
+    // Apply trigger info from the TriggeredEventHandler interface to the
+    // witness we're creating here.
+    const EventTriggerInfo& etInfo = handler->getTriggerInfo();
+    witness->setTriggerOnRisingSignTransition
+       (etInfo.shouldTriggerOnRisingSignTransition());
+    witness->setTriggerOnFallingSignTransition
+       (etInfo.shouldTriggerOnFallingSignTransition());
+    witness->setAccuracyRelativeTimeLocalizationWindow
+       (etInfo.getRequiredLocalizationTimeWindow());
+
+    const EventTriggerId tid = adoptEventTrigger(witness);
+    handler->m_system    = &updSystem(); // This class is a friend.
+    handler->m_eventId   = eid;
+    handler->m_triggerId = tid;
+    handler->updTriggerInfo().setEventId(eid); //TODO: get rid of this
+    guts.m_triggeredEventHandlers.emplace_back(handler);
 }
 
-/*
- * Add a TriggeredEventReporter to the System.  This must be called before the 
- * Model stage is realized.
- * 
- * The System assumes ownership of the object passed to this method, and will 
- * delete it when the System is deleted.
- * 
- * Note that this method is const.  Because an EventReporter cannot affect the 
- * behavior of the system being simulated, it is permitted to add one to a 
- * const System.
- */
+
+//------------------------------------------------------------------------------
+//                       ADOPT EVENT REPORTER (SCHEDULED)
+//------------------------------------------------------------------------------
 void SystemGlobalSubsystem::
-addEventReporter(TriggeredEventReporter* handler) const {
-    getGuts().updTriggeredEventReporters().push_back(handler);
+adoptEventReporter(ScheduledEventReporter* reporter) {
+    SystemGlobalSubsystem::Guts& guts = updGuts();
+    auto evnt = new EventReporter_Event(*reporter);
+    auto action = new EventReporter_Action(*reporter);
+    const EventActionIndex eax = evnt->adoptEventAction(action);
+    const EventId eid = adoptEvent(evnt);
+    auto timer = new ScheduledEventReporter_Timer(*reporter);
+    timer->addEvent(eid);
+    const EventTriggerId tid = adoptEventTrigger(timer);
+    reporter->m_system    = &updSystem(); // This class is a friend.
+    reporter->m_eventId   = eid;
+    reporter->m_triggerId = tid;
+    guts.m_scheduledEventReporters.emplace_back(reporter);
 }
 
-} // namespace SimTK
+//------------------------------------------------------------------------------
+//                       ADOPT EVENT REPORTER (TRIGGERED)
+//------------------------------------------------------------------------------
+void SystemGlobalSubsystem::
+adoptEventReporter(TriggeredEventReporter* reporter) {
+    SystemGlobalSubsystem::Guts& guts = updGuts();
+    auto evnt = new EventReporter_Event(*reporter);
+    auto action = new EventReporter_Action(*reporter);
+    const EventActionIndex eax = evnt->adoptEventAction(action);
+    const EventId eid = adoptEvent(evnt);
+    auto witness = new TriggeredEventReporter_Witness(*reporter);
+    witness->addEvent(eid);
+
+    // Apply trigger info from the TriggeredEventReporter interface to the
+    // witness we're creating here.
+    const EventTriggerInfo& etInfo = reporter->getTriggerInfo();
+    witness->setTriggerOnRisingSignTransition
+       (etInfo.shouldTriggerOnRisingSignTransition());
+    witness->setTriggerOnFallingSignTransition
+       (etInfo.shouldTriggerOnFallingSignTransition());
+    witness->setAccuracyRelativeTimeLocalizationWindow
+       (etInfo.getRequiredLocalizationTimeWindow());
+
+    const EventTriggerId tid = adoptEventTrigger(witness);
+    reporter->m_system    = &updSystem(); // This class is a friend.
+    reporter->m_eventId   = eid;
+    reporter->m_triggerId = tid;
+    reporter->updTriggerInfo().setEventId(eid); //TODO: get rid of this
+    guts.m_triggeredEventReporters.emplace_back(reporter);
+}
+
+//------------------------------------------------------------------------------
+//                                 ADOPT EVENT
+//------------------------------------------------------------------------------
+EventId SystemGlobalSubsystem::
+adoptEvent(Event* eventp) {
+    SimTK_APIARGCHECK_ALWAYS(eventp != nullptr, "SystemGlobalSubsystem",
+                             "adoptEvent", "Event pointer can't be null.");
+    eventp->m_eventId = EventId(getGuts().m_events.size());
+    updGuts().m_events.emplace_back(eventp);
+    return eventp->m_eventId;
+}
+
+
+//------------------------------------------------------------------------------
+//                             ADOPT EVENT TRIGGER
+//------------------------------------------------------------------------------
+EventTriggerId SystemGlobalSubsystem::
+adoptEventTrigger(EventTrigger* triggerp) {
+    SimTK_APIARGCHECK_ALWAYS(triggerp != nullptr, "SystemGlobalSubsystem",
+        "adoptEventTrigger", "EventTrigger pointer can't be null.");
+    triggerp->m_triggerId = EventTriggerId(getGuts().m_triggers.size());
+    updGuts().m_triggers.emplace_back(triggerp);
+    return triggerp->m_triggerId;
+}
+
+
+int SystemGlobalSubsystem::getNumEvents() const 
+{   return (int)getGuts().m_events.size(); }
+
+const Event& SystemGlobalSubsystem::getEvent(EventId id) const {
+    SimTK_APIARGCHECK(id.isValid(), "SystemGlobalSubsystem",
+                      "getEvent", "Uninitialized (invalid) EventId.");
+    const auto& guts = getGuts();
+    SimTK_INDEXCHECK_ALWAYS((int)id, getNumEvents(),
+                            "SystemGlobalSubsystem::getEvent()");
+    const Event* eventp = guts.m_events[id].get();
+    SimTK_ERRCHK1_ALWAYS(eventp != nullptr, "SystemGlobalSubsystem::getEvent()",
+                  "There is no Event associated with EventId(%d).", (int)id);
+    return *eventp;
+}
+
+Event& SystemGlobalSubsystem::updEvent(EventId id) {
+    SimTK_APIARGCHECK(id.isValid(), "SystemGlobalSubsystem",
+                      "updEvent", "Uninitialized (invalid) EventId.");
+    auto& guts = updGuts();
+    SimTK_INDEXCHECK_ALWAYS((int)id, getNumEvents(),
+                            "SystemGlobalSubsystem::updEvent()");
+    Event* eventp = guts.m_events[id].upd();
+    SimTK_ERRCHK1_ALWAYS(eventp != nullptr, "SystemGlobalSubsystem::updEvent()",
+                  "There is no Event associated with EventId(%d).", (int)id);
+    return *eventp;
+}
+
+bool SystemGlobalSubsystem::hasEvent(EventId id) const {
+    SimTK_APIARGCHECK(id.isValid(), "SystemGlobalSubsystem",
+                      "hasEvent", "Uninitialized (invalid) EventId.");
+    return    SimTK::isIndexInRange((int)id, getNumEvents()) 
+           && getGuts().m_events[id].get() != nullptr;
+}
+
+int SystemGlobalSubsystem::getNumEventTriggers() const 
+{   return (int)getGuts().m_triggers.size(); }
+
+const EventTrigger& SystemGlobalSubsystem::
+getEventTrigger(EventTriggerId id) const {
+    SimTK_APIARGCHECK(id.isValid(), "SystemGlobalSubsystem", "getEventTrigger", 
+                      "Uninitialized (invalid) EventTriggerId.");
+    const auto& guts = getGuts();
+    SimTK_INDEXCHECK_ALWAYS((int)id, getNumEventTriggers(),
+                            "SystemGlobalSubsystem::getEventTrigger()");
+    const EventTrigger* eventp = guts.m_triggers[id].get();
+    SimTK_ERRCHK1_ALWAYS(eventp != nullptr, 
+        "SystemGlobalSubsystem::getEventTrigger()",
+        "There is no EventTrigger associated with EventTriggerId(%d).", 
+        (int)id);
+    return *eventp;
+}
+
+EventTrigger& SystemGlobalSubsystem::
+updEventTrigger(EventTriggerId id) {
+    SimTK_APIARGCHECK(id.isValid(), "SystemGlobalSubsystem",
+                      "updEventTrigger", "Uninitialized (invalid) EventId.");
+    auto& guts = updGuts();
+    SimTK_INDEXCHECK_ALWAYS((int)id, getNumEventTriggers(),
+                            "SystemGlobalSubsystem::updEventTrigger()");
+    EventTrigger* eventp = guts.m_triggers[id].upd();
+    SimTK_ERRCHK1_ALWAYS(eventp != nullptr, 
+        "SystemGlobalSubsystem::updEventTrigger()",
+        "There is no EventTrigger associated with EventTriggerId(%d).", 
+        (int)id);
+    return *eventp;
+}
+
+bool SystemGlobalSubsystem::
+hasEventTrigger(EventTriggerId id) const {
+    SimTK_APIARGCHECK(id.isValid(), "SystemGlobalSubsystem",
+        "hasEventTrigger", "Uninitialized (invalid) EventTriggerId.");
+    return    SimTK::isIndexInRange((int)id, getNumEventTriggers()) 
+           && getGuts().m_triggers[id].get() != nullptr;
+}
+
+EventId SystemGlobalSubsystem::getInitializationEventId() const
+{   return getGuts().m_initializationEventId; }
+EventId SystemGlobalSubsystem::getTimeAdvancedEventId() const
+{   return getGuts().m_timeAdvancedEventId; }
+EventId SystemGlobalSubsystem::getTerminationEventId() const
+{   return getGuts().m_terminationEventId; }
+EventId SystemGlobalSubsystem::getExtremeValueIsolatedEventId() const
+{   return getGuts().m_extremeValueIsolatedEventId; }
+
+EventTriggerId SystemGlobalSubsystem::getInitializationTriggerId() const
+{   return getGuts().m_initializationTriggerId; }
+EventTriggerId SystemGlobalSubsystem::getTimeAdvancedTriggerId() const
+{   return getGuts().m_timeAdvancedTriggerId; }
+EventTriggerId SystemGlobalSubsystem::getTerminationTriggerId() const
+{   return getGuts().m_terminationTriggerId; }
+
+void SystemGlobalSubsystem::
+findActiveEventWitnesses(const Study&                          study, 
+                         Array_<const EventTrigger::Witness*,
+                                ActiveWitnessIndex>&           witnesses) const
+{
+    auto& guts = getGuts();
+
+    //TODO: collect dynamic witnesses from state.
+    witnesses.assign(guts.m_witnesses.begin(), guts.m_witnesses.end());
+}
+
+
+void SystemGlobalSubsystem::
+findActiveEventTimers(const Study&                          study, 
+                      Array_<const EventTrigger::Timer*,
+                             ActiveTimerIndex>&             timers) const {
+    auto& guts = getGuts();
+
+    //TODO: collect dynamic timers from state.
+    timers.assign(guts.m_timers.begin(), guts.m_timers.end());
+}
+
+void SystemGlobalSubsystem::
+findNextScheduledEventTimes
+   (const Study&        study,
+    double              timeOfLastReport,
+    double              timeOfLastChange,
+    double&             timeOfNextReport,
+    EventTriggers&      reportTimers,
+    double&             timeOfNextChange,
+    EventTriggers&      changeTimers) const 
+{
+    auto& system = study.getSystem();
+    auto& guts = getGuts();
+
+    timeOfNextReport = timeOfNextChange = dInfinity;
+    reportTimers.clear(); changeTimers.clear();
+
+    for (auto timerp : guts.m_timers) {
+        bool hasChangeAction = false;
+        for (int i = 0; i < timerp->getNumEvents(); ++i) {
+            const EventId eid = timerp->getEventId(i);
+            const Event& e = system.getEvent(eid);
+            if ((hasChangeAction=e.hasChangeAction()))
+                break;
+        }
+        if (hasChangeAction) {
+            const double t = timerp->calcTimeOfNextTrigger
+                            (system, study.getCurrentState(), timeOfLastChange);
+            if (t > timeOfNextChange)
+                continue; // This one is not interesting.
+
+            if (t < timeOfNextChange) {
+                changeTimers.clear(); // forget previous earliest
+                timeOfNextChange = t;
+            }
+            // Add to list if new winner or same as previous winner.
+            changeTimers.push_back(timerp);
+        } else { // timer triggers only report actions
+            const double t = timerp->calcTimeOfNextTrigger
+                            (system, study.getCurrentState(), timeOfLastReport);
+            if (t > timeOfNextReport)
+                continue; // This one is not interesting.
+
+            if (t < timeOfNextReport) {
+                reportTimers.clear(); // forget previous earliest
+                timeOfNextReport = t;
+            }
+
+            reportTimers.push_back(timerp);
+        }
+    }
+
+}
+
+
+//------------------------------------------------------------------------------
+//                           NOTE EVENT OCCURENCE
+//------------------------------------------------------------------------------
+/* We're given a list of event triggers that a time stepper declares have 
+occurred simultaneously. Each of those contains a list of EventIds that are
+caused by that trigger. We assume that the triggers are unique, but several
+triggers may cause the same event. However, each caused event should occur only
+once, and for each unique event we need to know which triggers caused it. We
+map each EventId to its corresponding Event object, ignoring any EventIds that
+are not recognized.
+
+We're assuming these are *very* short lists (typically one trigger causing
+a single event) so are using the least-overhead algorithms possible. A better 
+algorithm would be required if many events could be triggered at once. But this
+one is good even if many triggers cause the same event. 
+
+Mutable occurrence counters are bumped here, once per trigger and once per 
+unique event caused. */
+void SystemGlobalSubsystem::
+noteEventOccurrence(const EventTriggers&    triggers,
+                    EventsAndCauses&        appendTriggeredEvents,
+                    Array_<EventId>&        appendIgnoredEvents) const {
+    // We expect there to be very few events (typically, 1) so this linear 
+    // search should be fastest, despite its apparent O(n^2) complexity.
+    for (auto trigger : triggers) {
+        trigger->noteOccurrence(); // bump mutable counter
+        for (int i = 0; i < trigger->getNumEvents(); ++i) {
+            const EventId eid = trigger->getEventId(i);
+
+            if (!hasEvent(eid)) { // ignore unrecognized EventId
+                auto p = std::find(appendIgnoredEvents.cbegin(), //linear search
+                                   appendIgnoredEvents.cend(), eid);
+                if (p == appendIgnoredEvents.cend())
+                    appendIgnoredEvents.push_back(eid);
+                continue;
+            }
+
+            // Find or insert output entry e for this event.
+            const Event& evnt = getEvent(eid);
+            auto e = std::find_if // linear search
+               (appendTriggeredEvents.begin(), appendTriggeredEvents.end(),
+                [&evnt](const EventAndCausesPair& et){return et.first==&evnt;});
+            if (e == appendTriggeredEvents.end()) {
+                evnt.noteOccurrence(); // This is a new event; bump counter
+                appendTriggeredEvents.emplace_back
+                                            (&evnt, EventTriggers{trigger});
+            } else {
+                // Just add this trigger as a cause for event at e.
+                e->second.push_back(trigger);
+            }
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+//                        PERFORM EVENT REPORT ACTIONS
+//------------------------------------------------------------------------------
+void SystemGlobalSubsystem::
+performEventReportActions
+   (const Study&            study,
+    const EventsAndCauses&  triggeredEvents) const {
+    assert(!triggeredEvents.empty());
+
+    for (auto&& et : triggeredEvents) {
+        et.first->performReportActions(study, et.second);
+    }
+}
+
+//------------------------------------------------------------------------------
+//                        PERFORM EVENT CHANGE ACTIONS
+//------------------------------------------------------------------------------
+void SystemGlobalSubsystem::
+performEventChangeActions
+   (Study&                  study,
+    const EventsAndCauses&  triggeredEvents,
+    EventChangeResult&      result) const {
+    assert(!triggeredEvents.empty());
+
+    State& state  = study.updInternalState();
+
+    // Save the stage version numbers so we can look for changes.
+    Array_<StageVersion> stageVersions;
+    state.getSystemStageVersions(stageVersions);
+
+    // Results are accumulated by the actions. Start empty.
+    result.clear();
+
+    for (auto&& et : triggeredEvents) {
+        et.first->performChangeActions(study, et.second, result);
+    }
+
+    // Note the lowest stage whose version was changed by the actions.
+    const Stage lowestModified = 
+        state.getLowestSystemStageDifference(stageVersions);
+    result.setLowestModifiedStage(lowestModified);
+}
 

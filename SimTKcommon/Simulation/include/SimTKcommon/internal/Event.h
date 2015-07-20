@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -30,132 +30,148 @@
  */
 
 #include "SimTKcommon/basics.h"
+#include "SimTKcommon/internal/Event_Defs.h"
+#include "SimTKcommon/internal/EventAction.h"
+
+
+#include <memory>
+#include <string>
+#include <utility>
 
 namespace SimTK {
     
-/** @class SimTK::EventId
-This is a class to represent unique IDs for events in a type-safe way. These
-are created and managed by the System, not the State. **/
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId);
+//==============================================================================
+//                                  EVENT
+//==============================================================================
+/** An event is "something that happens" during a Study that is advancing
+through time. Its occurrence interrupts the normal flow of computation, allowing
+an event handler to adjust the System state prior to resuming the Study.
 
-/** @class SimTK::SystemEventTriggerIndex
-This unique integer type is for identifying a triggered event in the full 
-System-level view of the State. More precisely, this is the index of the slot 
-in the global array in the cache allocated to hold the value of that event's
-trigger function.
-@see EventTriggerIndex **/
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemEventTriggerIndex);
+The occurrence of an event is signaled by EventTrigger objects that are 
+constructed to watch time and state for specified conditions. Many triggers may
+cause the same Event, and EventTrigger objects may come and go during the
+simulation. The two most common kinds of triggers are timers and witnesses,
+represented by EventTrigger::Timer and EventTrigger::Witness objects. Timers 
+trigger Events at regular intervals or specific times; witnesses are scalar 
+functions designed to cross zero upon occurrence of an event.
 
-/** @class SimTK::SystemEventTriggerByStageIndex
-This unique integer type is for identifying a triggered event within a 
-particular Stage of the full System-level view of the State. (Event triggers 
-for a particular Stage are stored consecutively within the full collection of 
-event triggers.) That is, the EventTriggerByStageIndex will be 0 for the first 
-event trigger at that stage.
-@see EventTriggerByStageIndex
-**/
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemEventTriggerByStageIndex);
+An Event is associated with a list of actions to be taken when the Event is
+triggered. Actions are represented by EventAction objects. Actions can be 
+reports, which leave the trajectory unchanged, or state changes that do affect 
+the subsequent trajectory.
 
-/** @class SimTK::EventTriggerByStageIndex
-Unique integer type for Subsystem-local, per-stage event indexing.
-@see SystemEventTriggerByStageIndex **/
-SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventTriggerByStageIndex);
-
-/** An Event is "something that happens" during a Study that is advancing
-through time. Its occurence interrupts the normal flow of computation, allowing
-an event Handler to adjust the State prior to resuming the Study.
-
-Events are allocated by Subsystems, but require some System global resources. 
-All Events are given a unique EventId. Some Events require other State 
-resources, such as slots for the values of trigger functions in the case of 
-Triggered events.
-
-Events can be allocated at Topology, Model, and Instance Stages. All Event 
-resources are assigned when the Instance stage is realized. However, if an 
-Event requires state variables, then it must be allocated by Model stage. **/
-class Event {
+Events are System-level resources and each Event is assigned a System-unique
+small integer EventId. Some events are predefined by the System, others
+are added during extended construction of the System, by Subsystems and by 
+elements within Subystems. Actions can be added to existing Events during
+extended construction, and new Trigger objects can be added to trigger existing
+Events at any time. **/
+class SimTK_SimTKCOMMON_EXPORT Event {
 public:
+    class Initialization; // predefined Events
+    class TimeAdvanced;
+    class Termination;
+    class ExtremeValueIsolated;
 
-    /** These are all the possible causes for events.
+    /** Destructor is public and virtual for good cleanup behavior. **/
+    virtual ~Event() = default;
 
-    @par Initialization
-    A Study has performed its own initialization and is about to start.
+    /** Create a new copy of this %Event on the heap, including copies of all
+    the EventAction objects it contains. **/
+    Event* clone() const {
+        Event* p = cloneVirtual();
+        return p;
+    }
 
-    @par Triggered
-    An event trigger function underwent a monitored sign transition.
+    /** Return the description of this event that was supplied during
+    construction or via setEventDescription(). **/
+    const std::string& getEventDescription() const 
+    {   return m_eventDescription; }
 
-    @par Scheduled
-    An integrator reached a previously-scheduled time for the Event to occur.
+    Event& setEventDescription(const std::string& description) {
+        m_eventDescription = description;
+        return *this;
+    }
 
-    @par TimeAdvanced
-    An integrator completed an internal step, meaning that it has reached
-    a point where time has advanced irreversibly.
+    /** The EventId is set when this %Event is adopted by a System and will be
+    invalid before then. **/
+    EventId getEventId() const {return m_eventId;}
 
-    @par Signaled
-    A flag in the State has been explicitly set, meaning that a particular
-    Event has occurred. Anyone with write access to a State can set these,
-    but typically they are set in event handlers associated with one of
-    the other kinds of events.
+    /** Return the number of times this %Event has been triggered since 
+    the count was last reset. Multiple triggers simultaneously causing the
+    same %Event to occur only counts as one occurrence.
+    @see resetStatistics() **/
+    long long getNumOccurrences() const {return m_numOccurrences;}
 
-    @par Termination
-    The Study has finished. If a Termination event handler signals more
-    Events, those signaled events are not processed by the Study; that is,
-    the signals remain set in the final State.
+    /** Increment the number of occurrences by 1. This is for use by time
+    steppers when they determine that %Event has occurred. This 
+    method is const because the counter is mutable. Be sure to call this just
+    once if multiple triggers simultaneously cause the same %Event. **/
+    void noteOccurrence() const {++m_numOccurrences;}
 
-    In case several of these causes are detected in a single step, they are 
-    sequentialized in the order shown, like this:
+    /** Reset to zero any statistics being kept by this %Event. **/
+    void resetStatistics() {
+        m_numOccurrences=0;  // reset base class statistics
+        resetStatisticsVirtual();
+    }
 
-    1. The occurrence of triggered events is reported and the triggering state 
-       and a list of triggered events are passed to the event handler for 
-       processing (meaning the state, but not the time, is modified). Note 
-       that simultaneity *within* the set of triggered events may also require 
-       special handling; we're not talking about that here, just simultaneity 
-       of *causes*.
-    2. Next, using the state resulting from step 1, the time is checked to see 
-       if scheduled events have occurred. If so, a list of those events is 
-       passed to the event handler for processing.
-    3. Next, if this system has requested time-advanced events, the event 
-       handler is called with the state that resulted from step 2 and the "time 
-       advanced" cause noted. No event list is passed in that case. The state 
-       may be modified.
-    4. Last, if the final time has been reached or if any of the event handlers
-       asked for termination, we pass the state to the event handler again 
-       noting that we have reached termination. The state may be modified and 
-       the result will be the final state of the simulation.
-    **/
-    class Cause {
-    public:
-        enum Num {
-            Initialization  = 1,
-            Triggered       = 2,
-            Scheduled       = 3,
-            TimeAdvanced    = 4,
-            Signaled        = 5,
-            Termination     = 6,
-            Invalid         = -1
-        };
+    /** Add an EventAction to be taken when this %Event is triggered. The 
+    %Event takes over ownership of the heap-allocated EventAction and will 
+    destruct it when the %Event is destructed. The order in which actions are 
+    added is maintained and the actions will be invoked in that order, except 
+    that *all* actions that make state changes will be executed before *any* 
+    actions that are just reports. 
+    @returns The index assigned to this EventAction object within 
+    this %Event. **/
+    EventActionIndex adoptEventAction(EventAction* actionp);
 
-        Cause() : value(Invalid) {}
-        Cause(Num n) : value(n) {}           // implicit conversion
-        operator Num() const {return value;} // implicit conversion
-        Cause& operator=(Num n) {value=n; return *this;}
+    /** Return the number of EventAction objects associated with this
+    %Event. **/
+    int getNumActions() const {return (int)m_actions.size();}
 
-        bool isValid() const {return Initialization<=value && value<=Termination;}
+    /** Obtain a const reference to one of this %Event's EventAction objects, 
+    given the index of that EventAction as returned from adoptEventAction(). **/
+    const EventAction& getAction(EventActionIndex index) const
+    {   return *m_actions[index]; }
 
-    private:
-        Num value;
-    };
+    /** Obtain a writable reference to one of this %Event's EventAction objects, 
+    given the index of that EventAction as returned from adoptEventAction(). **/
+    EventAction& updAction(EventActionIndex index)
+    {   return *m_actions[index]; }
 
-    /** This is useful for debugging; it translates an Event::Cause into a 
+    /** Does this Event have any actions that can change the state of a study?
+    If not it has only reporting actions. **/
+    bool hasChangeAction() const {return m_hasChangeAction;}
+
+    /** Does this Event have any reporting actions? If so these actions will
+    be taken after all change actions have been taken. **/
+    bool hasReportAction() const {return m_hasReportAction;}
+
+    /** This method is invoked when this %Event has been triggered but performs
+    only Report EventActions. **/
+    void performReportActions
+       (const Study&            study,
+        const EventTriggers&    triggers) const;
+
+    /** This method is invoked when this %Event has been triggered but performs
+    only Change Actions. **/
+    void performChangeActions
+       (Study&                  study,
+        const EventTriggers&    triggers,
+        EventChangeResult&      result) const;
+
+
+
+    /** This is useful for debugging; it translates an EventCause into a 
     readable string. **/
-    SimTK_SimTKCOMMON_EXPORT static const char* getCauseName(Cause);
+    static const char* getCauseName(EventCause);
 
-
-    /** Triggered Events respond to zero crossings of their associated trigger
-    function. This enum defines constants for use in specifying which kind
-    of zero crossing has been seen, or which kinds are considered interesting.
-    For the latter purpose, these can be or'ed together to make a mask. **/
-    enum Trigger {
+    /** EventTrigger::Witness triggers respond to zero crossings of their 
+    associated witness function. This enum defines constants for use in 
+    specifying which kind of zero crossing has been seen, or which kinds are 
+    considered interesting. For the latter purpose, these can be or'ed 
+    together to make a mask. **/
+    enum TriggerDirection {
         NoEventTrigger          =0x0000,    // must be 0
 
         PositiveToNegative      =0x0001,    // 1
@@ -166,15 +182,16 @@ public:
         AnySignChange           =(PositiveToNegative|NegativeToPositive)    // 3
     };
 
-    /** This is useful for debugging; it translates an Event::Trigger or a mask
-    formed by a union of Event::Triggers, into a readable string. **/
-    SimTK_SimTKCOMMON_EXPORT static std::string eventTriggerString(Trigger);
+    /** This is useful for debugging; it translates an EventTrigger or a mask
+    formed by a union of EventTriggers, into a readable string. **/
+    static std::string 
+    eventTriggerDirectionString(TriggerDirection direction);
 
 
     /** Classify a before/after sign transition. Before and after must both
     be -1,0, or 1 as returned by the SimTK::sign() function applied to
     the trigger function value at the beginning and end of a step. **/
-    static Trigger classifyTransition(int before, int after) {
+    static TriggerDirection classifyTransition(int before, int after) {
         if (before==after)
             return NoEventTrigger;
         if (before==0)
@@ -188,78 +205,295 @@ public:
     /** Given an observed transition, weed out ignorable ones using the supplied
     mask. That is, the return will indicate NoEventTrigger unless the original
     Trigger was present in the mask. **/
-    static Trigger maskTransition(Trigger transition, Trigger mask) {
-        // we're depending on NoEventTrigger==0
-        return Trigger(transition & mask); 
-    }
-
-private:
-};
-
-
-/** This class is used to communicate between the System and an Integrator 
-regarding the properties of a particular event trigger function. Currently 
-these are:
-  - Whether to watch for rising sign transitions, falling, or both. [BOTH]
-  - Whether to watch for transitions to and from zero. [NO]
-  - The localization window in units of the System's timescale. [10%]
-    (That is then the "unit" window which is reduced by the accuracy setting.)
-    
-The default values are shown in brackets above. **/
-class SimTK_SimTKCOMMON_EXPORT EventTriggerInfo {
-public:
-    EventTriggerInfo();
-    explicit EventTriggerInfo(EventId eventId);
-    ~EventTriggerInfo();
-    EventTriggerInfo(const EventTriggerInfo&);
-    EventTriggerInfo& operator=(const EventTriggerInfo&);
-
-    EventId getEventId() const; // returns -1 if not set
-    bool shouldTriggerOnRisingSignTransition()  const; // default=true
-    bool shouldTriggerOnFallingSignTransition() const; // default=true
-    Real getRequiredLocalizationTimeWindow()    const; // default=0.1
-
-    // These return the modified 'this', like assignment operators.
-    EventTriggerInfo& setEventId(EventId);
-    EventTriggerInfo& setTriggerOnRisingSignTransition(bool);
-    EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
-    EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);
-
-    Event::Trigger calcTransitionMask() const {
-        unsigned mask = 0;
-        if (shouldTriggerOnRisingSignTransition()) {
-            mask |= Event::NegativeToPositive;
-        }
-        if (shouldTriggerOnFallingSignTransition()) {
-            mask |= Event::PositiveToNegative;
-        }
-        return Event::Trigger(mask);
-    }
-
-    Event::Trigger calcTransitionToReport
-       (Event::Trigger transitionSeen) const
+    static TriggerDirection maskTransition(TriggerDirection transition, 
+                                           TriggerDirection mask) 
     {
-        // report -1 to 1 or 1 to -1 as appropriate
-        if (transitionSeen & Event::Rising)
-            return Event::NegativeToPositive;
-        if (transitionSeen & Event::Falling)
-            return Event::PositiveToNegative;
-        assert(!"impossible event transition situation");
-        return Event::NoEventTrigger;
+        // we're depending on NoEventTrigger==0
+        return TriggerDirection(transition & mask); 
     }
 
+protected:
+    explicit Event(const std::string& eventDescription);
+    explicit Event(std::string&& eventDescription);
+
+    Event() = delete;
+    Event(const Event&) = default;
+    //Event(const Event&&) = default;
+    Event& operator=(const Event&) = delete;
+    Event& operator=(const Event&&) = delete;
+
+    /** Derived classes must implement this method, like this:
+    @code
+    class MyEvent : public Event {
+        MyEvent* cloneVirtual() const override {
+            return new MyEvent(*this);
+        }
+    };
+    @endcode **/
+    virtual Event* cloneVirtual() const = 0;
+
+    /** If your derived %Event keeps statistics, reset them to zero. **/
+    virtual void resetStatisticsVirtual() {}
 private:
-    class EventTriggerInfoRep;
+friend class SystemGlobalSubsystem;
+    // TOPOLOGY STATE
+    std::string         m_eventDescription;
+    EventId             m_eventId;  // Set when Event is adopted by a System
 
-    // opaque implementation for binary compatibility
-    EventTriggerInfoRep* rep;
+    Array_<ClonePtr<EventAction>,EventActionIndex>  m_actions;
+    bool                m_hasReportAction;
+    bool                m_hasChangeAction;
+    bool                m_allowsInterpolationForReport;
 
-    const EventTriggerInfoRep& getRep() const {assert(rep); return *rep;}
-    EventTriggerInfoRep&       updRep()       {assert(rep); return *rep;}
+    // STATISTICS
+    mutable long long   m_numOccurrences;
+
+    void initialize() {
+        // don't clear the event description here
+        m_eventId.invalidate();
+        m_hasReportAction = m_hasChangeAction = false;
+        m_allowsInterpolationForReport = true;
+        m_numOccurrences = 0;
+    }
+};
+
+using EventAndCausesPair = std::pair<const Event*, EventTriggers>;
+
+class EventsAndCauses : public Array_<EventAndCausesPair> {
+public:
+    using Array_::Array_;
 };
 
 
+//==============================================================================
+//                           EVENT :: INITIALIZATION
+//==============================================================================
+/** This event occurs at the start of any Study to permit one-time initial
+condition actions to be taken. Every System includes one of these events; you
+will not need to create one yourself. **/
+class Event::Initialization : public Event {
+public:
+    /** Don't create one of these; they are built in to every System. **/
+    Initialization() : Event("Initialization") {}
 
+    /** Return true if the concrete type of the given Event is 
+    Event::Initialization. **/
+    static bool isA(const Event& e)
+    {   return dynamic_cast<const Initialization*>(&e) != nullptr; }
+
+    /** Downcast a const reference to an Event to a const reference to this
+    type Event::Initialization. A std::bad_cast exception is thrown if the type
+    is wrong, at least in Debug builds. **/
+    static const Initialization& downcast(const Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<const Initialization&>(e); }
+
+    /** Downcast a writable reference to an Event to a writable reference to 
+    this type Event::Initialization. A std::bad_cast exception is thrown if 
+    the type is wrong, at least in Debug builds. **/
+    static Initialization& updDowncast(Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<Initialization&>(e); }
+private:
+    Initialization* cloneVirtual() const override 
+    {   return new Initialization(*this); }
+};
+
+
+//==============================================================================
+//                           EVENT :: TIME ADVANCED
+//==============================================================================
+/** This event occurs during a time-stepping study whenever time advances
+irreversably. Every System includes one of these events; you will not need to 
+create one yourself. **/
+class Event::TimeAdvanced : public Event {
+public:
+    /** Don't create one of these; they are built in to every System. **/
+    TimeAdvanced() : Event("Time advanced") {}
+
+    /** Return true if the concrete type of the given Event is 
+    Event::TimeAdvanced. **/
+    static bool isA(const Event& e)
+    {   return dynamic_cast<const TimeAdvanced*>(&e) != nullptr; }
+
+    /** Downcast a const reference to an Event to a const reference to this
+    type Event::TimeAdvanced. A std::bad_cast exception is thrown if the type
+    is wrong, at least in Debug builds. **/
+    static const TimeAdvanced& downcast(const Event& e) {
+        return SimTK_DYNAMIC_CAST_DEBUG<const TimeAdvanced&>(e);
+    }
+
+    /** Downcast a writable reference to an Event to a writable reference to 
+    this type Event::TimeAdvanced. A std::bad_cast exception is thrown if 
+    the type is wrong, at least in Debug builds. **/
+    static TimeAdvanced& updDowncast(Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<TimeAdvanced&>(e); }
+private:
+    TimeAdvanced* cloneVirtual() const override 
+    {   return new TimeAdvanced(*this); }
+};
+
+
+//==============================================================================
+//                            EVENT :: TERMINATION
+//==============================================================================
+/** This event occurs at the end of any Study to permit one-time final
+actions to be taken. Every System includes one of these events; you
+will not need to create one yourself. **/
+class Event::Termination : public Event {
+public:
+    /** Don't create one of these; they are built in to every System. **/
+    Termination() : Event("Termination") {}
+
+    /** Return true if the concrete type of the given Event is 
+    Event::Termination. **/
+    static bool isA(const Event& e)
+    {   return dynamic_cast<const Termination*>(&e) != nullptr; }
+
+    /** Downcast a const reference to an Event to a const reference to this
+    type Event::Termination. A std::bad_cast exception is thrown if the type
+    is wrong, at least in Debug builds. **/
+    static const Termination& downcast(const Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<const Termination&>(e); }
+
+    /** Downcast a writable reference to an Event to a writable reference to 
+    this type Event::Termination. A std::bad_cast exception is thrown if 
+    the type is wrong, at least in Debug builds. **/
+    static Termination& updDowncast(Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<Termination&>(e); }
+
+private:
+    Termination* cloneVirtual() const override 
+    {   return new Termination(*this); }
+};
+
+
+//==============================================================================
+//                       EVENT :: EXTREME VALUE ISOLATED
+//==============================================================================
+/** This Event marks the occurrence of a minimum or maximum value of a function
+that is being monitored, typically a Measure. The function's time derivative is
+used as an EventTrigger::Witness; when the derivative changes sign we have seen
+an extreme value. Normally no further action is required when this event occurs
+since it will already have localized the extreme value. However, for debugging
+it can be useful to report these occurrences, and perhaps which trigger(s)
+caused the Event to occur. **/
+class Event::ExtremeValueIsolated : public Event {
+public:
+    /** Don't create one of these; they are built in to every System. **/
+    ExtremeValueIsolated() : Event("Extreme value isolated") {}
+
+    /** Return true if the concrete type of the given Event is 
+    Event::ExtremeValueIsolated. **/
+    static bool isA(const Event& e)
+    {   return dynamic_cast<const ExtremeValueIsolated*>(&e) != nullptr; }
+
+    /** Downcast a const reference to an Event to a const reference to this
+    type Event::Termination. A std::bad_cast exception is thrown if the type
+    is wrong, at least in Debug builds. **/
+    static const ExtremeValueIsolated& downcast(const Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<const ExtremeValueIsolated&>(e); }
+
+    /** Downcast a writable reference to an Event to a writable reference to 
+    this type Event::ExtremeValueIsolated. A std::bad_cast exception is thrown if 
+    the type is wrong, at least in Debug builds. **/
+    static ExtremeValueIsolated& updDowncast(Event& e)
+    {   return SimTK_DYNAMIC_CAST_DEBUG<ExtremeValueIsolated&>(e); }
+
+private:
+    ExtremeValueIsolated* cloneVirtual() const override 
+    {   return new ExtremeValueIsolated(*this); }
+};
+
+//==============================================================================
+//                           EVENT CHANGE RESULT
+//==============================================================================
+/** TODO: This is for accumulating the results from a chain of Event Change
+Actions. For example, if any one of them wants to terminate, that should be
+the final result. This will replace HandleEventsResults.
+**/
+class EventChangeResult {
+public:
+    EventChangeResult() {clear();}
+
+    /** These are ordered; we keep the highest (worst) Status value we encounter
+    in processing a series of event actions. A message is recorded if an action
+    returns ShouldTerminate or Failed status. **/
+    enum Status {
+        /** All attempted event change actions were successful and time stepping
+        may continue. This is the status after construction or a call to 
+        clear(); that is, if we have yet to perform any event actions. **/
+        Succeeded               = 0,
+        /** The event change actions were successful but the event requires 
+        time stepping to terminate. An explanation may have been placed in
+        the message argument; this will be from the first event action that
+        returned ShouldTerminate status. **/
+        ShouldTerminate         = 1,
+        /** An event change action was unable to successfully handle the
+        event. This is likely to be a fatal error. A human-readable 
+        explanation is in the message argument. Execution of event actions is
+        terminated by the first one to return Failed status. **/
+        Failed                  = 2    
+    };
+
+    /** Restore this object to its default-constructed state, with the return
+    status set to Succeeded. **/
+    void clear() {
+        m_exitStatus = Succeeded;
+        m_message.clear();
+        m_lowestModifiedStage = Stage::Infinity;
+    }
+
+    /** Return the status resulting from all the event actions executed so 
+    far; the worst one encountered is the overally status. **/
+    Status getExitStatus() const {return m_exitStatus;}
+
+    /** Return a human-readable name for the given exit status. **/
+    static const char *getExitStatusName(Status status) {
+        switch (status) {
+        case Succeeded: return "Succeeded";
+        case ShouldTerminate: return "ShouldTerminate";
+        case Failed: return "Failed";
+        }
+        return "UNKNOWN EventChangeResult::Status";
+    }
+
+    /** Return the lowest (earliest) Stage state variable modified by any
+    executed event action. **/
+    Stage getLowestModifiedStage() const {return m_lowestModifiedStage;}
+
+    /** Return a human-readable message supplied by whichever event action
+    caused us to set the exit status as it is now. **/
+    const std::string& getMessage() const {return m_message;}
+
+    /** Report the exit status of an event action. If it is "more severe" than
+    the worst exit status we've seen so far, then we'll update the exit status
+    and record the message. Otherwise both will be ignored. **/
+    void reportExitStatus(Status status, const std::string& message) {
+        if (status > m_exitStatus) {
+            m_exitStatus = status;
+            m_message = message;
+        }
+    }
+    /** Alternate signature that does not take a message; use this for 
+    successful returns. **/
+    void reportExitStatus(Status status) {
+        if (status > m_exitStatus) {
+            m_exitStatus = status;
+            m_message.clear();
+        }
+    }
+
+    /** Report the lowest (earliest) Stage modified by any executed event
+    action. Individual event actions need not set this; it will be determined
+    at the end by examing stage version numbers. It can't be determined by
+    looking just at the final realization stage of the modified State because
+    event actions may realize the state themselves after changing it. **/
+    void setLowestModifiedStage(Stage stage) {m_lowestModifiedStage=stage;}
+
+private:
+    Status      m_exitStatus;
+    std::string m_message;
+    Stage       m_lowestModifiedStage;
+};
 
 //==============================================================================
 //              HANDLE EVENTS OPTIONS and HANDLE EVENTS RESULTS
@@ -344,7 +578,7 @@ the handler. The caller can use this to determine how much reinitialization
 is required before time stepping can proceed. **/
 class HandleEventsResults {
 public:
-    HandleEventsResults() : m_lowestModifiedStage(Stage::Infinity) {clear();}
+    HandleEventsResults() {clear();}
 
     enum Status {
         /** This object has not been filled in yet and holds no results. **/

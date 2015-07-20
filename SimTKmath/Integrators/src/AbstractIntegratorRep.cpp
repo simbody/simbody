@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -29,8 +29,10 @@ using namespace SimTK;
 AbstractIntegratorRep::AbstractIntegratorRep
    (Integrator* handle, const System& sys, int minOrder, int maxOrder, 
     const std::string& methodName, bool hasErrorControl) 
-:   IntegratorRep(handle, sys), minOrder(minOrder), maxOrder(maxOrder), 
-    methodName(methodName), hasErrorControl(hasErrorControl) {}
+:   IntegratorRep(handle, sys), m_minOrder(minOrder), m_maxOrder(maxOrder), 
+    m_methodName(methodName), m_hasErrorControl(hasErrorControl),
+    m_initialized(false), m_currentStepSize(NaN), m_lastStepSize(NaN),
+    m_actualInitialStepSizeTaken(NaN), m_lastWorstState(InvalidSystemYIndex) {}
 
 
 
@@ -38,17 +40,17 @@ AbstractIntegratorRep::AbstractIntegratorRep
 //                             METHOD INITIALIZE
 //==============================================================================
 void AbstractIntegratorRep::methodInitialize(const State& state) {
-    initialized = true;
+    m_initialized = true;
     if (userInitStepSize != -1)
-        currentStepSize = userInitStepSize;
+        m_currentStepSize = userInitStepSize;
     else
-        currentStepSize = getDynamicSystemTimescale()/10;
+        m_currentStepSize = getSystemTimescale()/10;
     if (userMinStepSize != -1)
-        currentStepSize = std::max(currentStepSize, userMinStepSize);
+        m_currentStepSize = std::max(m_currentStepSize, userMinStepSize);
     if (userMaxStepSize != -1)
-        currentStepSize = std::min(currentStepSize, userMaxStepSize);
-    lastStepSize = currentStepSize;
-    actualInitialStepSizeTaken = (hasErrorControl ? NaN : currentStepSize);
+        m_currentStepSize = std::min(m_currentStepSize, userMaxStepSize);
+    m_lastStepSize = m_currentStepSize;
+    m_actualInitialStepSizeTaken = (m_hasErrorControl? NaN : m_currentStepSize);
     resetMethodStatistics();
  }
 
@@ -135,7 +137,7 @@ void AbstractIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
 // can use this method and just override attemptODEStep(). Some will have to
 // override this, however.
 bool AbstractIntegratorRep::attemptDAEStep
-    (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
+   (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
 {
     const System& system   = getSystem();
     State&        advanced = updAdvancedState();
@@ -213,226 +215,230 @@ bool AbstractIntegratorRep::attemptDAEStep
 //                                  STEP TO
 //==============================================================================
 Integrator::SuccessfulStepStatus 
-AbstractIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
-    try {
-      assert(initialized);
-      assert(reportTime >= getState().getTime());
-      assert(scheduledEventTime >= getState().getTime());
+AbstractIntegratorRep::stepTo(double reportTime, double scheduledEventTime) {
+  try {
+    assert(m_initialized);
+    assert(reportTime >= getState().getTime());
+    assert(scheduledEventTime >= getState().getTime());
       
-      // If this is the start of a continuous interval, return immediately so
-      // the current state will be seen as part of the trajectory.
-      if (startOfContinuousInterval) {
-          startOfContinuousInterval = false;
-          setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
-          return Integrator::StartOfContinuousInterval;
-      }
-      
-      // tMax is the time beyond which we cannot advance internally.
-      const Real finalTime = (userFinalTime == -1.0 ? Infinity : userFinalTime);
-      Real tMax = std::min(scheduledEventTime, finalTime);
-
-      // tReturn is the next scheduled time to return control to the user.
-      // Events may cause an earlier return.
-      const Real tReturn = std::min(reportTime, tMax);
-
-      if (userAllowInterpolation == 0)
-          tMax = tReturn;
-
-      // Count the number of internal steps taken during this call to stepTo().
-      // Normally this is limited by maxNumInternalSteps, meaning even if
-      // we don't reach reportTime we'll return after that many steps.
-      int internalStepsTaken = 0;
-
-      bool wasLastStep=false;
-      for(;;) { // MAIN STEPPING LOOP
-
-          // At this point the system's advancedState is the one to which
-          // we last advanced successfully. It has been realized through the
-          // Acceleration Stage. Behavior depends on the current state of
-          // the step communication state machine.
-
-          switch (getStepCommunicationStatus()) {
-            case FinalTimeHasBeenReturned:
-              // Copy advanced state to previous just so the error message
-              // in the catch() below will show the right time.
-              saveStateAndDerivsAsPrevious(getAdvancedState()); 
-              SimTK_ERRCHK2_ALWAYS(!"EndOfSimulation already returned",
-                  "Integrator::stepTo()",
-                  "Attempted stepTo(t=%g) but final time %g had already been "
-                  "reached and returned."
-                  "\nCheck for Integrator::EndOfSimulation status, or use the "
-                  "Integrator::initialize() method to restart.",
-                  reportTime, finalTime);
-              break;
-
-            case StepHasBeenReturnedNoEvent:
-              if (getAdvancedTime() >= finalTime) {
-                  setUseInterpolatedState(false);
-                  setStepCommunicationStatus(FinalTimeHasBeenReturned);
-                  terminationReason = Integrator::ReachedFinalTime;
-                  return Integrator::EndOfSimulation;
-              }
-              // need to advance
-              break;
-
-            case CompletedInternalStepWithEvent: {
-              // Time has been advanced, but the step ended by triggering an 
-              // event at tAdvanced (==tHigh). We will return the last-good 
-              // state at tLow<tHigh, but first we need to dispatch any pending
-              // reports that are supposed to occur before tLow in which case 
-              // we interpolate back and return control before moving on.
-              if (reportTime <= getEventWindowLow()) {
-                  // Report time reached: take a brief time-out to make an 
-                  // interpolated report. After that we'll come right back here
-                  // with the user having advanced the reportTime (hopefully).
-                  if (reportTime < getAdvancedTime()) {
-                      createInterpolatedState(reportTime);
-                      setUseInterpolatedState(true);
-                  }
-                  else
-                      setUseInterpolatedState(false);
-                  // No change to step communication status -- this doesn't 
-                  // count as reporting the current step since it is earlier 
-                  // than advancedTime.
-                  return Integrator::ReachedReportTime;
-              }
-
-              // The advanced state is at tHigh, but needs event handling.
-
-              // Report the last "pre-event" state.
-              createInterpolatedState(getEventWindowLow()); 
-              setUseInterpolatedState(true);
-              setStepCommunicationStatus(StepHasBeenReturnedWithEvent);
-              return Integrator::ReachedEventTrigger;
-            }
-
-            case StepHasBeenReturnedWithEvent:
-              setUseInterpolatedState(false);
-              // Fall through to the next case.
-
-            case CompletedInternalStepNoEvent: {
-              // Time has been advanced. If there is a report due before 
-              // tAdvanced, then we interpolate back and return control before
-              // moving on.
-              if (reportTime <= getAdvancedTime()) {
-                  // Report time reached: take a brief time-out to make an 
-                  // interpolated report. After that we'll come right back here
-                  // with the user having advanced the reportTime (hopefully).
-                  if (reportTime < getAdvancedTime()) {
-                      createInterpolatedState(reportTime);
-                      setUseInterpolatedState(true);
-                      // No change to step communication status -- this doesn't 
-                      // count as reporting the current step since it is earlier 
-                      // than advancedTime.
-                  }
-                  else {
-                      // This counts as reporting the current step since we're
-                      // exactly at advancedTime.
-                      setUseInterpolatedState(false);
-                      setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
-                  }
-
-                  return Integrator::ReachedReportTime;
-              }
-
-              // Here we know advancedTime < reportTime. But there may be other
-              // reasons to return.
-
-              Integrator::SuccessfulStepStatus reportReason = 
-                                        Integrator::InvalidSuccessfulStepStatus;
-              setUseInterpolatedState(false);
-
-              if (getAdvancedTime() >= scheduledEventTime) {
-                  reportReason = Integrator::ReachedScheduledEvent;
-              } else if (userReturnEveryInternalStep == 1) {
-                  reportReason = Integrator::TimeHasAdvanced;
-              } else if (getAdvancedTime() >= finalTime) {
-                  reportReason = Integrator::ReachedReportTime;
-              } else if (   userInternalStepLimit > 0 
-                         && internalStepsTaken >= userInternalStepLimit) {
-                  // Last-ditch excuse: too much work.
-                  reportReason = Integrator::ReachedStepLimit; // too much work
-              }
-
-              if (reportReason != Integrator::InvalidSuccessfulStepStatus) {
-                  setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
-                  return reportReason;
-              }
-
-              // no return required; need to advance time
-              break;
-            }
-
-            default:
-              assert(!"unrecognized stepCommunicationStatus");
-          }
-
-          // If a report or event is requested at the current time, return 
-          // immediately.
-          if (getState().getTime() == reportTime)
-              return Integrator::ReachedReportTime;
-          if (getState().getTime() == scheduledEventTime)
-              return Integrator::ReachedScheduledEvent;
-
-          // At this point we know we are going to have to advance the state, 
-          // meaning that the current state will become the previous one. We 
-          // need to 
-          // (1) ensure that all needed computations have been performed
-          // (2) update the auto-update discrete variables, whose update is not
-          //     permitted to change any of the results calculated in (1)
-          // (3) save the continuous pieces of the current state for integrator
-          //     restarts and interpolation.
-          // The continuous state variables will be updated below only when we 
-          // make irreversible progress. Otherwise we'll use the saved ones to 
-          // put things back the way we found them after any failures.
-
-          // Record the current time and state as the previous values.
-          saveTimeAndStateAsPrevious(getAdvancedState());
-          // Ensure that all derivatives and other derived quantities are known,
-          // including discrete state updates.
-          realizeStateDerivatives(getAdvancedState());
-          // Record derivative information and witness function values for step 
-          // restarts.
-          saveStateDerivsAsPrevious(getAdvancedState());
-
-          // Derivatives at start of step have now been saved. We can update
-          // discrete state variables whose update is not permitted to cause a
-          // discontinuous change in the trajectory. These are implemented via
-          // auto-update state variables for which we just swap the cache
-          // entry (used to calculate most recent derivatives) with the
-          // corresponding state variable. Examples: record new min or max 
-          // value; updated memory for delay measures.
-
-          // Swap the discrete state update cache entries with their state 
-          // variables. Other than those cache entries, no other calculations 
-          // are invalidated.
-          updAdvancedState().autoUpdateDiscreteVariables();
-         
-          //---------------- TAKE ONE STEP --------------------
-          // Now take a step and see whether an event occurred.
-          bool eventOccurred = takeOneStep(tMax, reportTime);
-          //---------------------------------------------------
-
-          ++internalStepsTaken;
-          ++statsStepsTaken;
-          setStepCommunicationStatus(eventOccurred 
-                                      ? CompletedInternalStepWithEvent 
-                                      : CompletedInternalStepNoEvent);
-      } // END OF MAIN STEP LOOP
-
-      //NOTREACHED
-      assert(!"can't get here!!");
-    
-    } catch (const std::exception& e) {
-      setAdvancedState(getPreviousTime(),getPreviousY()); // restore
-      SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), e.what());
-    } catch (...) {
-      setAdvancedState(getPreviousTime(),getPreviousY()); // restore
-      SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), "UNKNOWN EXCEPTION");
+    // If this is the start of a continuous interval, return immediately so
+    // the current state will be seen as part of the trajectory.
+    if (isStartOfContinuousInterval()) {
+        // The set of event witnesses might have changed.
+        getSystem().findActiveEventWitnesses(getOwnerHandle(), updWitnesses());
+        setIsStartOfContinuousInterval(false);
+        setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
+        return Integrator::StartOfContinuousInterval;
     }
+      
+    // tMax is the time beyond which we cannot advance internally.
+    const double finalTime = (userFinalTime == -1.0 ? Infinity : userFinalTime);
+    double tMax = std::min(scheduledEventTime, finalTime);
 
-      // can't happen
-      return Integrator::InvalidSuccessfulStepStatus;
+    // tReturn is the next scheduled time to return control to the user.
+    // Events may cause an earlier return.
+    const double tReturn = std::min(reportTime, tMax);
+
+    if (userAllowInterpolation == 0)
+        tMax = tReturn;
+
+    // Count the number of internal steps taken during this call to stepTo().
+    // Normally this is limited by maxNumInternalSteps, meaning even if
+    // we don't reach reportTime we'll return after that many steps.
+    int internalStepsTaken = 0;
+
+    for(;;) { // MAIN STEPPING LOOP
+
+        // At this point the system's advancedState is the one to which
+        // we last advanced successfully. It has been realized through the
+        // Acceleration Stage. Behavior depends on the current state of
+        // the step communication state machine.
+
+        switch (getStepCommunicationStatus()) {
+        case FinalTimeHasBeenReturned:
+            // Copy advanced state to previous just so the error message
+            // in the catch() below will show the right time.
+            saveAdvancedStateAndDerivsAsPrevious(); 
+            SimTK_ERRCHK2_ALWAYS(!"EndOfSimulation already returned",
+                "Integrator::stepTo()",
+                "Attempted stepTo(t=%g) but final time %g had already been "
+                "reached and returned."
+                "\nCheck for Integrator::EndOfSimulation status, or use the "
+                "Integrator::initialize() method to restart.",
+                reportTime, finalTime);
+            break;
+
+        case StepHasBeenReturnedNoEvent:
+            if (getAdvancedTime() >= finalTime) {
+                setUseInterpolatedState(false);
+                setStepCommunicationStatus(FinalTimeHasBeenReturned);
+                terminate(Integrator::ReachedFinalTime);
+                return Integrator::EndOfSimulation;
+            }
+            // need to advance
+            break;
+
+        case CompletedInternalStepWithEvent: {
+            // Time has been advanced, but the step ended by triggering an 
+            // event at tAdvanced (==tHigh). We will return the last-good 
+            // state at tLow<tHigh, but first we need to dispatch any pending
+            // reports that are supposed to occur before tLow in which case 
+            // we interpolate back and return control before moving on.
+            if (reportTime <= getEventWindowLow()) {
+                // Report time reached: take a brief time-out to make an 
+                // interpolated report. After that we'll come right back here
+                // with the caller having advanced the reportTime (hopefully).
+                if (reportTime < getAdvancedTime()) {
+                    createInterpolatedState(reportTime);
+                    setUseInterpolatedState(true);
+                }
+                else
+                    setUseInterpolatedState(false);
+                // No change to step communication status -- this doesn't 
+                // count as reporting the current step since it is earlier 
+                // than advancedTime.
+                return Integrator::ReachedReportTime;
+            }
+
+            // The advanced state is at tHigh, but needs event handling.
+
+            // Report the last "pre-event" state.
+            createInterpolatedState(getEventWindowLow()); 
+            setUseInterpolatedState(true);
+            setStepCommunicationStatus(StepHasBeenReturnedWithEvent);
+            return Integrator::ReachedEventTrigger;
+        }
+
+        case StepHasBeenReturnedWithEvent:
+            setUseInterpolatedState(false);
+            // Fall through to the next case.
+
+        case CompletedInternalStepNoEvent: {
+            // Time has been advanced. If there is a report due before 
+            // tAdvanced, then we interpolate back and return control before
+            // moving on.
+            if (reportTime <= getAdvancedTime()) {
+                // Report time reached: take a brief time-out to make an 
+                // interpolated report. After that we'll come right back here
+                // with the user having advanced the reportTime (hopefully).
+                if (reportTime < getAdvancedTime()) {
+                    createInterpolatedState(reportTime);
+                    setUseInterpolatedState(true);
+                    // No change to step communication status -- this doesn't 
+                    // count as reporting the current step since it is earlier 
+                    // than advancedTime.
+                }
+                else {
+                    // This counts as reporting the current step since we're
+                    // exactly at advancedTime.
+                    setUseInterpolatedState(false);
+                    setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
+                }
+
+                return Integrator::ReachedReportTime;
+            }
+
+            // Here we know advancedTime < reportTime. But there may be other
+            // reasons to return.
+
+            Integrator::SuccessfulStepStatus reportReason = 
+                                    Integrator::InvalidSuccessfulStepStatus;
+            setUseInterpolatedState(false);
+
+            if (getAdvancedTime() >= scheduledEventTime) {
+                reportReason = Integrator::ReachedScheduledEvent;
+            } else if (userReturnEveryInternalStep == 1
+                       || getSystemHasTimeAdvancedEvent()) {
+                reportReason = Integrator::TimeHasAdvanced;
+            } else if (getAdvancedTime() >= finalTime) {
+                reportReason = Integrator::ReachedReportTime;
+            } else if (   userInternalStepLimit > 0 
+                        && internalStepsTaken >= userInternalStepLimit) {
+                // Last-ditch excuse: too much work.
+                reportReason = Integrator::ReachedStepLimit; // too much work
+            }
+
+            if (reportReason != Integrator::InvalidSuccessfulStepStatus) {
+                setStepCommunicationStatus(StepHasBeenReturnedNoEvent);
+                return reportReason;
+            }
+
+            // no return required; need to advance time
+            break;
+        }
+
+        default:
+            assert(!"unrecognized stepCommunicationStatus");
+        }
+
+        // If a report or event is requested at the current time, return 
+        // immediately.
+        if (getState().getTime() == reportTime)
+            return Integrator::ReachedReportTime;
+        if (getState().getTime() == scheduledEventTime)
+            return Integrator::ReachedScheduledEvent;
+
+        // At this point we know we are going to have to advance the state, 
+        // meaning that the current state will become the previous one. We 
+        // need to 
+        // (1) ensure that all needed computations have been performed
+        // (2) update the auto-update discrete variables, whose update is not
+        //     permitted to change any of the results calculated in (1)
+        // (3) save the continuous pieces of the current state for integrator
+        //     restarts and interpolation.
+        // The continuous state variables will be updated below only when we 
+        // make irreversible progress. Otherwise we'll use the saved ones to 
+        // put things back the way we found them after any failures.
+
+        // Record the current time and state as the previous values.
+        saveAdvancedTimeAndStateAsPrevious();
+        // Ensure that all derivatives and other derived quantities are known,
+        // including discrete state updates.
+        realizeStateDerivatives(getAdvancedState());
+        // Record derivative information and witness function values for step 
+        // restarts.
+        saveAdvancedStateDerivsAsPrevious();
+
+        // Derivatives at start of step have now been saved. We can update
+        // discrete state variables whose update is not permitted to cause a
+        // discontinuous change in the trajectory. These are implemented via
+        // auto-update state variables for which we just swap the cache
+        // entry (used to calculate most recent derivatives) with the
+        // corresponding state variable. Examples: record new min or max 
+        // value; updated memory for delay measures.
+
+        // Swap the discrete state update cache entries with their state 
+        // variables. Other than those cache entries, no other calculations 
+        // are invalidated.
+        updAdvancedState().autoUpdateDiscreteVariables();
+         
+        //---------------- TAKE ONE STEP --------------------
+        // Now take a step and see whether an event occurred.
+        bool eventOccurred = takeOneStep(tMax, reportTime);
+        //---------------------------------------------------
+
+        ++internalStepsTaken;
+        ++statsStepsTaken;
+        setStepCommunicationStatus(eventOccurred 
+                                    ? CompletedInternalStepWithEvent 
+                                    : CompletedInternalStepNoEvent);
+    } // END OF MAIN STEP LOOP
+
+    //NOTREACHED
+    assert(!"can't get here!!");
+    
+  } catch (const std::exception& e) {
+    setAdvancedState(getPreviousTime(),getPreviousY()); // restore
+    SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), 
+                 e.what());
+  } catch (...) {
+    setAdvancedState(getPreviousTime(),getPreviousY()); // restore
+    SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), 
+                 "UNKNOWN EXCEPTION");
+  }
+
+    // can't happen
+    return Integrator::InvalidSuccessfulStepStatus;
 }
 
 
@@ -456,11 +462,11 @@ bool AbstractIntegratorRep::adjustStepSize
     // First, make a first guess at the next step size to use based on
     // the supplied error norm. Watch out for NaN!
     if (!isFinite(err)) // e.g., integrand returned NaN
-        newStepSize = MinShrink * currentStepSize; 
+        newStepSize = MinShrink * m_currentStepSize; 
     else if (err==0)    // a "perfect" step; can happen if no dofs for example 
-        newStepSize = MaxGrow * currentStepSize;
+        newStepSize = MaxGrow * m_currentStepSize;
     else // choose best step for skating just below the desired accuracy
-        newStepSize = Safety * currentStepSize
+        newStepSize = Safety * m_currentStepSize
                              * std::pow(getAccuracyInUse()/err, 1/Real(errOrder));
 
     // If the new step is bigger than the old, don't make the change if the
@@ -468,25 +474,26 @@ bool AbstractIntegratorRep::adjustStepSize
     // interval). Also, don't grow the step size if the change would be very
     // small; better to keep the step size stable in that case (maybe just
     // for aesthetic reasons).
-    if (newStepSize > currentStepSize) {
+    if (newStepSize > m_currentStepSize) {
         if (   hWasArtificiallyLimited 
-            || newStepSize < HysteresisHigh*currentStepSize)
-            newStepSize = currentStepSize;
+            || newStepSize < HysteresisHigh*m_currentStepSize)
+            newStepSize = m_currentStepSize;
     }
 
     // If we're supposed to shrink the step size but the one we have actually
     // achieved the desired accuracy last time, we won't change the step now.
     // Otherwise, if we are going to shrink the step, let's not be shy -- we'll 
     // shrink it by at least a factor of HysteresisLow.
-    if (newStepSize < currentStepSize) {
+    if (newStepSize < m_currentStepSize) {
         if (err <= getAccuracyInUse())
-             newStepSize = currentStepSize; // not this time
-        else newStepSize = std::min(newStepSize, HysteresisLow*currentStepSize);
+             newStepSize = m_currentStepSize; // not this time
+        else newStepSize = std::min(newStepSize, 
+                                    HysteresisLow*m_currentStepSize);
     }
 
     // Keep the size change within the allowable bounds.
-    newStepSize = std::min(newStepSize, MaxGrow*currentStepSize);
-    newStepSize = std::max(newStepSize, MinShrink*currentStepSize);
+    newStepSize = std::min(newStepSize, MaxGrow*m_currentStepSize);
+    newStepSize = std::max(newStepSize, MinShrink*m_currentStepSize);
 
     // Apply user-requested limits on min and max step size.
     if (userMinStepSize != -1)
@@ -496,8 +503,8 @@ bool AbstractIntegratorRep::adjustStepSize
 
     //TODO: this is an odd definition of success. It only works because we're
     //refusing the shrink the step size above if accuracy was achieved.
-    bool success = (newStepSize >= currentStepSize);
-    currentStepSize = newStepSize;
+    bool success = (newStepSize >= m_currentStepSize);
+    m_currentStepSize = newStepSize;
     return success;
 }
 
@@ -510,14 +517,13 @@ bool AbstractIntegratorRep::adjustStepSize
 // into the "previous" members so that they can be used for restarts.
 // Advanced has been realized through Acceleration stage.
 // This is a private method.
-bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
-{
-    Real t1;
+bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
+    double t1;
     State& advanced = updAdvancedState();
 
     // These are the pre-recorded starting values. State "advanced" will
     // get mangled during trial steps but these remain unchanged.
-    const Real    t0     = getPreviousTime();
+    const double  t0     = getPreviousTime();
     const Vector& y0     = getPreviousY();
     const Vector& ydot0  = getPreviousYDot();
     const Vector& uScale = getPreviousUScale();
@@ -535,11 +541,11 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         // to take due to a need to stop at tMax, make a note of that so the
         // step size adjuster won't try to grow from the current step.
         bool hWasArtificiallyLimited = false;
-        if (tMax < t0 + 0.95*currentStepSize) {
+        if (tMax < t0 + 0.95*m_currentStepSize) {
             hWasArtificiallyLimited = true;
             t1 = tMax; // tMax much smaller than current step size
-        } else if (tMax > t0 + 1.001*currentStepSize)
-            t1 = t0 + currentStepSize;  // tMax too big to reach in one step
+        } else if (tMax > t0 + 1.001*m_currentStepSize)
+            t1 = t0 + m_currentStepSize;  // tMax too big to reach in one step
         else
             t1 = tMax; // tMax is roughly t0+currentStepSize; try for it
 
@@ -553,8 +559,10 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         //--------------------------------------------------------------------
         Real errNorm=NaN; int worstY=-1;
         if (converged) {
-            errNorm = (hasErrorControl ? calcErrorNorm(advanced,yErrEst,worstY)
-                                       : Real(0));
+            if (m_hasErrorControl) {
+                errNorm = calcErrorNorm(advanced,yErrEst,worstY);
+                m_lastWorstState = SystemYIndex(worstY);
+            } else errNorm = 0;
             statsConvergentIterations += numIterations;
         } else {
             errNorm = Infinity; // step didn't converge so error is *very* bad!
@@ -564,45 +572,44 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 
         // TODO: this isn't right for a non-error controlled integrator that
         // didn't converge, if there is such a thing.
-        stepSucceeded = (hasErrorControl ? adjustStepSize(errNorm, errOrder, 
-                                                    hWasArtificiallyLimited)
-                                         : true);
+        stepSucceeded = (m_hasErrorControl
+                            ? adjustStepSize(errNorm, errOrder, 
+                                             hWasArtificiallyLimited)
+                            : true);
         if (!stepSucceeded)
             statsErrorTestFailures++;
         else { // step succeeded
-            lastStepSize = t1-t0;
-            if (isNaN(actualInitialStepSizeTaken))
-                    actualInitialStepSizeTaken = lastStepSize;
+            m_lastStepSize = t1-t0;
+            if (isNaN(m_actualInitialStepSizeTaken))
+                m_actualInitialStepSizeTaken = m_lastStepSize;
         }
     } while (!stepSucceeded);
     
-    // The step succeeded. Check for event triggers. If there aren't any, we're
-    // done with the step. Otherwise our goal will be to find the "exact" time 
-    // at which the first event occurs within the current interval. Then we 
-    // will advance the system to that time only and forget about the rest of 
-    // the interval.
-    //
-    // Here's how this is done:
-    // First, determine which events trigger across the *whole* interval. At 
-    // least one of those events, and no other events, are eventually going to
-    // be reported as having triggered after localization, and the trigger type
-    // will be the original one. That is, we don't care *what* we see during 
-    // localization (which could be viewed as more accurate); we have already 
-    // decided which events are candidates. Any trigger that came and went 
-    // during the current interval has missed the boat permanently; that's a 
-    // user error (bad design of event trigger or maybe excessively loose 
-    // accuracy). Second, with the list of candidates and their transitions in
-    // hand we want to find the time at which the first one(s) trigger, to 
-    // within a localization window (tlo,thi]; that is, we do not see the 
-    // event triggering at tlo but we do see it triggering at thi, and 
-    // (thi-tlo)<=w for some time window w. We then chop back the advancedState
-    // by interpolation to thi and return to the caller who will deal with 
-    // interpolations needed for reporting, then a final interpolation at tlo.
-    // Note that we should never actually return the state at thi as part of 
-    // the trajectory, since it is invalid until the event handler is called 
-    // to fix it.
+    /* DAE step succeeded; we have advanced the state from t0 to t1 with an 
+    acceptable error estimate and satisfied constraints. Now check for event 
+    witnesses that may have triggered in the interval (t0,t1]. If there 
+    aren't any, we're done with the step. Otherwise our goal will be to 
+    narrow the interval to times (tlo,thi] with t0<=tlo<thi<=t1 such that 
+    (a) no witness triggers for t<=tlo, and (b) there is a non-empty set W of 
+    witnesses that triggered by t=thi, and (c) all localization requirements of
+    witnesses in W are satisfied by the interval (tlo,thi]. Then we forget 
+    about t1 and instead advance only to thi, where we declare that all the
+    events E(W) triggered by W have occurred simultaneously. We declare that 
+    state(tlo) is the final pre-event trajectory state, and that state(thi) is 
+    the event-triggering state, which may require modification before it can be 
+    included in the System trajectory. The caller will do any necessary
+    reporting prior to tlo, and then invoke the Actions of Events E(W), which 
+    may result in changes to state(thi).
 
-    const Vector& e0 = getPreviousEventTriggers();
+    Here's how we find (tlo,thi] and W:
+
+    First, all witness functions at every stage through Stage::Acceleration must
+    be evaluated. Then determine which of those appear to have triggered in the
+    interval (t0,t1]. Narrow the interval using interpolation to get an 
+    estimated (tlo,thi] that satisfies any witnesses that remain. Move 
+    advancedState to thi and return. */
+
+    const Vector& e0 = getPreviousWitnessValues();
     if (e0.size() == 0) {
         // There are no witness functions to worry about in this system.
         return false;
@@ -611,20 +618,24 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     // TODO: this is indiscriminately evaluating expensive accelerations
     // that are only needed if there are acceleration-level witness functions.
     realizeStateDerivatives(getAdvancedState());
-    const Vector& e1 = getAdvancedState().getEventTriggers();
-    assert(e0.size() == e1.size() && 
-           e0.size() == getAdvancedState().getNEventTriggers());
+    calcWitnessValues(getAdvancedState(), updAdvancedWitnessValues());
+ 
+    const Vector& e1 = getAdvancedWitnessValues();
+    assert(e0.size() == e1.size());
 
-    const Real MinWindow = 
-        SignificantReal * std::max(Real(1), getAdvancedTime());
-    Array_<SystemEventTriggerIndex> eventCandidates, newEventCandidates;
-    Array_<Event::Trigger> 
+    // We have a limited number of decimal places for holding time. That sets
+    // a minimum on the possible width w_min of an event localization window 
+    // because we must be able to distinguish tlo from thi=tlo+w_min.  
+    const double MinWindow = dSignificant * std::max(1., getAdvancedTime());
+
+    Array_<ActiveWitnessIndex> eventCandidates, newEventCandidates;
+    Array_<Event::TriggerDirection> 
         eventCandidateTransitions, newEventCandidateTransitions;
-    Array_<Real> eventTimeEstimates, newEventTimeEstimates;
+    Array_<double> eventTimeEstimates, newEventTimeEstimates;
 
     Real earliestTimeEst, narrowestWindow;
 
-    findEventCandidates(e0.size(), 0, 0, t0, e0, t1, e1, 1., MinWindow,
+    findEventCandidates(nullptr, nullptr, t0, e0, t1, e1, Real(1), MinWindow,
                         eventCandidates, eventTimeEstimates, 
                         eventCandidateTransitions,
                         earliestTimeEst, narrowestWindow);
@@ -634,15 +645,13 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         return false;
     }
 
-    Real tLow = t0;
-    Real tHigh = t1;
+    double tLow = t0;
+    double tHigh = t1;
 
     if (    (tHigh-tLow) <= narrowestWindow 
         && !(tLow < tReport && tReport < tHigh)) 
     {
-        Array_<EventId> ids;
-        findEventIds(eventCandidates, ids);
-        setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, 
+        setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, 
                            eventCandidateTransitions);
         // localized already; advanced state is right (tHigh==tAdvanced)
         return true; 
@@ -654,7 +663,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
     // From above we have earliestTimeEst which is the time at which we
     // think the first event is triggering.
 
-    Vector eLow = e0, eHigh = e1;
+    Vector eLow = e0, eHigh = e1, eMid;
     Real bias = 1; // neutral
 
     // There is an event in (tLow,tHigh], with the eariest occurrence
@@ -684,12 +693,12 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         // will throw an exception if it fails.
         realizeStateDerivatives(getInterpolatedState());
 
-        const Vector& eMid = getInterpolatedState().getEventTriggers();
+        calcWitnessValues(getInterpolatedState(), eMid);
 
         // TODO: should search in the wider interval first
 
         // First guess: it is in (tLow,tMid].
-        findEventCandidates(e0.size(), &eventCandidates, 
+        findEventCandidates(&eventCandidates, 
                             &eventCandidateTransitions,
                             tLow, eLow, tMid, eMid, bias, MinWindow,
                             newEventCandidates, newEventTimeEstimates, 
@@ -712,7 +721,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
         }
 
         // Nope. It must be in the upper part of the interval (tMid,tHigh].
-        findEventCandidates(e0.size(), &eventCandidates,  
+        findEventCandidates(&eventCandidates,  
                             &eventCandidateTransitions,
                             tMid, eMid, tHigh, eHigh, bias, MinWindow,
                             newEventCandidates, newEventTimeEstimates, 
@@ -734,9 +743,7 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 
     } while ((tHigh-tLow) > narrowestWindow);
 
-    Array_<EventId> ids;
-    findEventIds(eventCandidates, ids);
-    setTriggeredEvents(tLow, tHigh, ids, eventTimeEstimates, 
+    setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, 
                        eventCandidateTransitions);
 
     // We have to throw away all of the advancedState that occurred after
@@ -761,25 +768,13 @@ bool AbstractIntegratorRep::takeOneStep(Real tMax, Real tReport)
 //                              STATUS & MISC
 //==============================================================================
 
-Real AbstractIntegratorRep::getActualInitialStepSizeTaken() const {
-    return actualInitialStepSizeTaken;
-}
-
-Real AbstractIntegratorRep::getPreviousStepSizeTaken() const {
-    return lastStepSize;
-}
-
-Real AbstractIntegratorRep::getPredictedNextStepSize() const {
-    return currentStepSize;
-}
-
 int AbstractIntegratorRep::getNumStepsAttempted() const {
-    assert(initialized);
+    assert(m_initialized);
     return statsStepsAttempted;
 }
 
 int AbstractIntegratorRep::getNumStepsTaken() const {
-    assert(initialized);
+    assert(m_initialized);
     return statsStepsTaken;
 }
 
@@ -809,17 +804,17 @@ void AbstractIntegratorRep::resetMethodStatistics() {
 }
 
 const char* AbstractIntegratorRep::getMethodName() const {
-    return methodName.c_str();
+    return m_methodName.c_str();
 }
 
 int AbstractIntegratorRep::getMethodMinOrder() const {
-    return minOrder;
+    return m_minOrder;
 }
 
 int AbstractIntegratorRep::getMethodMaxOrder() const {
-    return maxOrder;
+    return m_maxOrder;
 }
 
 bool AbstractIntegratorRep::methodHasErrorControl() const {
-    return hasErrorControl;
+    return m_hasErrorControl;
 }

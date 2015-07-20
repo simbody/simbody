@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -39,60 +39,64 @@
 
 namespace SimTK {
 
-    ////////////////////////////
-    // CLASS TIME STEPPER REP //
-    ////////////////////////////
-
+//==============================================================================
+//                            TIME STEPPER REP
+//==============================================================================
 // This is a concrete class -- there is only one kind of SimTK TimeStepper.
 // The IntegratorRep on the other hand is abstract.
 class TimeStepperRep {
 public:
-    TimeStepperRep(TimeStepper* handle, const System& system);
-    // default destructor, no default constructor, no copy or copy assign
+    explicit TimeStepperRep(TimeStepper* handle)
+    :   m_myHandle(handle), m_integ(nullptr), 
+        m_reportAllSignificantStates(false),
+        m_lastEventTime(-Infinity), m_lastReportTime(-Infinity) {}
 
-    Integrator::SuccessfulStepStatus stepTo(Real time);
+    ~TimeStepperRep() = default;
 
-    const State& getState() const {return integ->getState();}
+    TimeStepperRep() = delete;
+    TimeStepperRep(const TimeStepperRep&) = delete;
+    TimeStepperRep& operator=(const TimeStepperRep&) = delete;
 
-    const System getSystem() const {return system;}
+    Integrator::SuccessfulStepStatus stepTo(double time);
+
+    const State& getState() const {return m_integ->getState();}
+
+    const System& getSystem() const {return m_integ->getSystem();}
+
     void setIntegrator(Integrator& integrator) {
-        integ = &integrator;
+        m_integ = &integrator;
     }
     const Integrator& getIntegrator() const {
-        assert(integ);
-        return *integ;
+        assert(m_integ);
+        return *m_integ;
     }
     Integrator& updIntegrator() {
-        assert(integ);
-        return *integ;
+        assert(m_integ);
+        return *m_integ;
     }
     bool getReportAllSignificantStates() const {
-        return reportAllSignificantStates;
+        return m_reportAllSignificantStates;
     }
     void setReportAllSignificantStates(bool b) {
-        reportAllSignificantStates = b;
+        m_reportAllSignificantStates = b;
     }
 
 private:
-    TimeStepper* myHandle;
-    friend class TimeStepper;
+friend class TimeStepper;
 
-    // This is the System to be advanced through time.
-    const System& system;
+    TimeStepper*    m_myHandle;
 
-    // This is the Integrator used to advance through continuous intervals. The Integrator
-    // maintains the current State for the System.
-    Integrator* integ;
+    // This is a *reference* to the Integrator used to advance through 
+    // continuous intervals. The Integrator maintains the current State for the
+    // System. We don't own it.
+    Integrator*     m_integ;
     
     // Whether to report every significant state.
-    bool reportAllSignificantStates;
+    bool            m_reportAllSignificantStates;
     
     // The last time at events and reports were processed.
-    Real lastEventTime, lastReportTime;
-
-    // suppress
-    TimeStepperRep(const TimeStepperRep&);
-    TimeStepperRep& operator=(const TimeStepperRep&);
+    double          m_lastEventTime, 
+                    m_lastReportTime;
 };
 
 } // namespace SimTK

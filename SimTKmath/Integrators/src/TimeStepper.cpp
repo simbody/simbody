@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman, Peter Eastman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -34,23 +34,23 @@
 #include <exception>
 #include <limits>
 
-namespace SimTK {
+using namespace SimTK;
 
-    ////////////////////////////////////
-    // IMPLEMENTATION OF TIME STEPPER //
-    ////////////////////////////////////
+//==============================================================================
+//                               TIME STEPPER
+//==============================================================================
 
-TimeStepper::TimeStepper(const System& sys) {
-    rep = new TimeStepperRep(this, sys);
+TimeStepper::TimeStepper() {
+    rep = new TimeStepperRep(this);
 }
 
-TimeStepper::TimeStepper(const System& sys, Integrator& integrator) {
-    rep = new TimeStepperRep(this, sys);
+TimeStepper::TimeStepper(Integrator& integrator) {
+    rep = new TimeStepperRep(this);
     setIntegrator(integrator);
 }
 
 TimeStepper::~TimeStepper() {
-    if (rep && rep->myHandle==this)
+    if (rep && rep->m_myHandle==this)
         delete rep;
     rep = 0;
 }
@@ -73,11 +73,11 @@ const State& TimeStepper::getState() const {
 
 void TimeStepper::initialize(const State& initState) {
     updIntegrator().initialize(initState);
-    rep->lastEventTime = -Infinity;
-    rep->lastReportTime = -Infinity;
+    rep->m_lastEventTime = -Infinity;
+    rep->m_lastReportTime = -Infinity;
 }
 
-Integrator::SuccessfulStepStatus TimeStepper::stepTo(Real reportTime) {
+Integrator::SuccessfulStepStatus TimeStepper::stepTo(double reportTime) {
     return( rep->stepTo(reportTime) );
 }
 
@@ -90,123 +90,153 @@ void TimeStepper::setReportAllSignificantStates(bool b) {
 }
 
 
-    ////////////////////////////////////////
-    // IMPLEMENTATION OF TIME STEPPER REP //
-    ////////////////////////////////////////
+//==============================================================================
+//                             TIME STEPPER REP
+//==============================================================================
 
-TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system) 
-:   myHandle(handle), system(system), integ(0), 
-    reportAllSignificantStates(false) {}
+Integrator::SuccessfulStepStatus TimeStepperRep::
+stepTo(double requestedTime) {
+    const System& sys = getSystem();
 
-Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
-    // Handler is allowed to throw an exception if it fails since we don't
-    // have a way to recover.
-    HandleEventsOptions handleOpts(integ->getConstraintToleranceInUse());
+    // These will be re-used for each step. We're allocating them here to
+    // avoid repeated heap allocations.
+    EventTriggers   scheduledReportTimers, scheduledChangeTimers;
+    EventsAndCauses triggeredEvents;
+    Array_<EventId> ignoredEventIds;
 
-    if (integ->isInfinityNormInUse())
-        handleOpts.setOption(HandleEventsOptions::UseInfinityNorm);
+    // The TimeAdvanced trigger list is always the same.
+    const EventTriggers timeAdvancedTrigger{&sys.getTimeAdvancedTrigger()};
 
-    Array_<EventId> scheduledEventIds, scheduledReportIds;
-    while (!integ->isSimulationOver()) {
-        Real nextScheduledEvent  = Infinity;
-        Real nextScheduledReport = Infinity;
-        Real currentTime         = integ->getTime();
-        system.realize(integ->getState(), Stage::Time);
-        system.realize(integ->getAdvancedState(), Stage::Time);
-        system.calcTimeOfNextScheduledEvent 
-           (integ->getState(), nextScheduledEvent,  scheduledEventIds,  
-            lastEventTime != currentTime);  // whether to allow now as an answer
-        system.calcTimeOfNextScheduledReport
-           (integ->getState(), nextScheduledReport, scheduledReportIds, 
-            lastReportTime != currentTime); // whether to allow now as an answer
+    while (!m_integ->isSimulationOver()) {
+        double timeOfNextReport=Infinity, timeOfNextChange=Infinity;
 
-        Real reportTime = std::min(nextScheduledReport, time);
-        Real eventTime  = std::min(nextScheduledEvent,  time);
+        // Clear the lists of triggered events (otherwise they will get
+        // appended to by noteEventOccurrences()).
+        triggeredEvents.clear(); ignoredEventIds.clear();
+
+        sys.realize(m_integ->getState(), Stage::Time);
+        sys.realize(m_integ->getAdvancedState(), Stage::Time);
+
+        /* The same Timer may appear both on the report and change lists since
+        an Event may have both report and change actions. In that case, the
+        integrator will return ReachedReportTime first, at which point 
+        report actions should be performed, then on reentry will immediately
+        return ReachedScheduledEvent at the same time.
+        TimeAdvanced events behave similarly, but witness-triggered events
+        get reported *before* the event, then the state that actually caused
+        the event must not appear as part of the trajectory, so its report
+        actions must be invoked after its change actions have fixed whatever
+        is wrong. */
+
+        //TODO: shouldn't we guarantee realization to Acceleration stage here?
+        sys.findNextScheduledEventTimes
+           (*m_integ, m_lastReportTime, m_lastEventTime,
+            timeOfNextReport, scheduledReportTimers,
+            timeOfNextChange, scheduledChangeTimers);
+
+        const double reportTime = std::min(timeOfNextReport, requestedTime);
+        const double eventTime  = std::min(timeOfNextChange, requestedTime);
 
         //---------------- take continuous step ----------------
         Integrator::SuccessfulStepStatus status = 
-            integ->stepTo(reportTime, eventTime);
+            m_integ->stepTo(reportTime, eventTime);
         //------------------------------------------------------
 
-        Stage lowestModified = Stage::Report;
-        bool shouldTerminate;
+        EventChangeResult result;
         switch (status) {
-            case Integrator::ReachedStepLimit: {
-                if (reportAllSignificantStates)
+            case Integrator::ReachedStepLimit: // not an event
+                if (m_reportAllSignificantStates)
                     return status;
                 continue;
-            }
-            case Integrator::StartOfContinuousInterval: {
-                if (reportAllSignificantStates)
+
+            case Integrator::StartOfContinuousInterval: // not an event
+                if (m_reportAllSignificantStates)
                     return status;
                 continue;
-            }
+
+            case Integrator::EndOfSimulation:
+                continue; // we'll fall out of the loop next
+
             case Integrator::ReachedReportTime: {
-                if (integ->getTime() >= nextScheduledReport) {
-                    system.reportEvents(integ->getState(),
-                        Event::Cause::Scheduled,
-                        scheduledReportIds);
-                    lastReportTime = integ->getTime();
+                if (m_integ->getTime() >= timeOfNextReport) {
+                    m_lastReportTime = m_integ->getTime();
+                    sys.noteEventOccurrence(scheduledReportTimers,
+                                            triggeredEvents, ignoredEventIds);
+                    sys.performEventReportActions(*m_integ, triggeredEvents);
                 }
-                if (integ->getTime() >= time || reportAllSignificantStates)
+                if (   m_integ->getTime() >= requestedTime 
+                    || m_reportAllSignificantStates)
                     return status;
                 continue;
             }
+
+            // The remaining cases may cause state changes.
+
             case Integrator::ReachedScheduledEvent: {
-                HandleEventsResults results;
-                system.handleEvents(integ->updAdvancedState(),
-                                    Event::Cause::Scheduled,
-                                    scheduledEventIds,
-                                    handleOpts, results);
-                lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
-                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
-                lastEventTime = integ->getTime();
+                m_lastEventTime = m_integ->getTime();
+                sys.noteEventOccurrence(scheduledChangeTimers,
+                                        triggeredEvents, ignoredEventIds);
+                sys.performEventChangeActions(*m_integ, triggeredEvents,
+                                              result);
                 break;
             }
             case Integrator::TimeHasAdvanced: {
-                HandleEventsResults results;
-                system.handleEvents(integ->updAdvancedState(),
-                                    Event::Cause::TimeAdvanced,
-                                    Array_<EventId>(),
-                                    handleOpts, results);
-                lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
-                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
+                sys.noteEventOccurrence(timeAdvancedTrigger,
+                                        triggeredEvents, ignoredEventIds);
+                // Report the state we reached, just before performing any
+                // TimeAdvanced state-change actions.
+                sys.performEventReportActions(*m_integ, triggeredEvents);
+                // Now modify the state, with time unchanged.
+                sys.performEventChangeActions(*m_integ, triggeredEvents,
+                                              result);
                 break;
             }
             case Integrator::ReachedEventTrigger: {
-                HandleEventsResults results;
-                system.handleEvents(integ->updAdvancedState(),
-                                    Event::Cause::Triggered,
-                                    integ->getTriggeredEvents(),
-                                    handleOpts, results);
-                lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
-                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
+                sys.noteEventOccurrence(m_integ->getTriggeredWitnesses(),
+                                        triggeredEvents, ignoredEventIds);
+                // First fix the bad state containing an unresolved issue.
+                sys.performEventChangeActions(*m_integ, triggeredEvents,
+                                              result);
+                // Then report the repaired state.
+                sys.performEventReportActions(*m_integ, triggeredEvents);
                 break;
             }
-            case Integrator::EndOfSimulation: {
-                HandleEventsResults results;
-                system.handleEvents(integ->updAdvancedState(),
-                                    Event::Cause::Termination,
-                                    Array_<EventId>(),
-                                    handleOpts, results);
-                lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
-                    results.getExitStatus()==HandleEventsResults::ShouldTerminate;
-                break;
-            }
-            default: assert(!"Unrecognized return from stepTo()");
+
+            default: SimTK_ASSERT1_ALWAYS(!"Unrecognized return from stepTo()",
+            "TimeStepper::stepTo(): integrator returned unknown status %d.\n",
+            (int)status);
         }
-        integ->reinitialize(lowestModified, shouldTerminate);
-        if (reportAllSignificantStates)
+
+        // If we get here we just returned from an event change action with
+        // status returned in "results".
+
+        // If the change action did nothing, just continue with the next step.
+        if (   result.getExitStatus() == EventChangeResult::Succeeded
+            && result.getLowestModifiedStage() == Stage::Infinity)
+            continue;
+
+        // If an Event handler fails, we're dead.
+        if (result.getExitStatus() == EventChangeResult::Failed) {
+            m_integ->terminate(Integrator::AnUnrecoverableErrorOccurred);
+            SimTK_THROW2(TimeStepper::EventChangeActionFailed,
+                         m_integ->getAdvancedTime(),
+                         result.getMessage().c_str());
+        }
+
+        // Reinitialize the integrator as needed due to the state change.
+        const bool shouldTerminate = 
+            result.getExitStatus() == EventChangeResult::ShouldTerminate;
+        const Stage lowestModified = result.getLowestModifiedStage();
+        m_integ->reinitialize(lowestModified, shouldTerminate);
+
+        if (m_reportAllSignificantStates)
             return status;
     }
+
     return Integrator::EndOfSimulation;
 }
 
-} // namespace SimTK
+
 
 
 

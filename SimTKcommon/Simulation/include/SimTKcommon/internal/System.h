@@ -29,6 +29,10 @@
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/SubsystemGuts.h"
+#include "SimTKcommon/internal/Event.h"
+#include "SimTKcommon/internal/EventTrigger.h"
+#include "SimTKcommon/internal/EventTrigger_Timer.h"
+#include "SimTKcommon/internal/EventTrigger_Witness.h"
 
 #include <cassert>
 
@@ -45,13 +49,29 @@ class RealizeResults;
 class ProjectOptions;
 class ProjectResults;
 
+/** @class SimTK::ActiveWitnessIndex
+This unique integer type is for indexing the array of active event witnesses
+returned by System::findActiveEventWitnesses() for a particular State. This 
+numbering is valid only for that state and will change meaning every time 
+witnesses are added or removed. **/
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveWitnessIndex);
+
+/** @class SimTK::ActiveTimerIndex
+This unique integer type is for indexing the array of active event timers
+returned by System::findActiveEventTimers() for a particular State. This 
+numbering is valid only for that state and will change meaning every time timers
+are added or removed. **/
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveTimerIndex);
+
+
 //==============================================================================
 //                                 SYSTEM
 //==============================================================================
 /** This is the base class that serves as the parent of all SimTK %System 
 objects; most commonly Simbody's MultibodySystem class. %System is also the
-object type on which the Simbody numerical integrators operate, and many of
-the methods provided here are primarily for use by integrators.
+object type on which the Simbody numerical integrators and other solvers 
+operate, and many of the methods provided here are primarily for use by 
+those solvers.
 
 A %System serves as a mediator for a group of interacting Subsystem objects. 
 All will share a single system State, and typically subsystems will need access
@@ -61,7 +81,7 @@ and the subsystems are constructed knowing their indices. The indices are used
 subsequently by the subsystems to find their own entries in the system state, 
 and by each subsystem to refer to others within the same system. Index 0 is 
 reserved for use by the %System itself, e.g. for system-global state variables 
-and events, which are maintained in the SystemGlobalSubsystem, which has 
+and events. Those are maintained in the SystemGlobalSubsystem, which has 
 SubsystemIndex 0. 
 
 Concrete %Systems understand the kinds of subsystems they contain. For example, 
@@ -79,20 +99,20 @@ be calculated.
 There are three distinct users of this class:
   - %System Users: people who are making use of a concrete %System (which will
     inherit methods from this class).
-  - Numerical integrators: TimeStepper and Integrator objects requires a 
+  - Numerical solvers: TimeStepper and Integrator objects require a 
     %System object whose State can be advanced through time.
   - %System Developers: people who are writing concrete System classes.
 
 Note that %System Users may include people who are writing studies, reporters, 
 modelers and so on as well as end users who are accessing the %System directly.
 
-Methods intended for %System Users, numerical integrators, and a few bookkeeping 
+Methods intended for %System Users, numerical solvers, and a few bookkeeping 
 methods are in the main %System class, which is a SimTK Handle class. A Handle
 class consists only of a single pointer, which in this case points to a 
 System::Guts object. The System::Guts class is abstract, and virtual methods to
 be implemented by %System Developers in the concrete %System are defined there, 
 along with other utilities of use to the concrete %System Developer but not to 
-the end user or numerical integrator. The System::Guts class is declared 
+the end user or numerical solvers. The System::Guts class is declared 
 in a separate header file, and only people who are writing their own %System
 classes need look there. **/
 class SimTK_SimTKCOMMON_EXPORT System {
@@ -135,9 +155,10 @@ to the "up" direction and located at a height of zero.
 System& setUseUniformBackground(bool useUniformBackground);
 
 /** (Advanced) This is a hint used for some default behaviors, such as 
-determining an initial step size for an integrator, or the default unit error 
-for a constraint error derivative from the original constraint. Most users can
-ignore this and just take the default.
+determining an initial step size for an integrator, the default time window for
+event localization, and the default unit tolerance for a constraint error 
+function derivative from the original constraint's unit tolerance. Most users 
+can ignore this and just take the default.
 
 This should be set to roughly the time scale at which you expect to see 
 interesting things happen, that is the scale at which you might choose to view 
@@ -147,7 +168,7 @@ this to 10 or 100s, for example, while a biomechanical simulation could use
 stabilized, with longer time scales being more demanding since there is more 
 time to drift. By default this is 0.1 time units, so 100ms for systems measuring
 time in seconds and 100fs for systems measuring time in ps. **/
-System& setDefaultTimeScale(Real tc);
+System& setDefaultTimeScale(double timeScale);
 
 /** (Advanced) This is a hint that can be used to get a sense of what a "unit 
 length" looks like for this System in the units it uses. Most users can ignore
@@ -172,7 +193,7 @@ hint. **/
 bool getUseUniformBackground() const;
 /** Get the currently-set value for the default time scale, 0.1 time units
 if it has never been set. **/
-Real getDefaultTimeScale() const;
+double getDefaultTimeScale() const;
 /** Get the currently-set value for the default length scale, 1 length unit
 if it has never been set. **/
 Real getDefaultLengthScale() const;
@@ -182,36 +203,15 @@ bool hasTimeAdvancedEvents() const;
 /**@}**/
 
 
-//------------------------------------------------------------------------------
-/**@name              Event handlers and reporters
-
-These methods are used to attach event handlers and reporters to this %System.
-These are actually added to the SystemGlobalSubsystem that is contained in 
-every System. **/
-/**@{**/
-/** Add a ScheduledEventHandler to this %System, which takes over ownership
-of the event handler object. **/
-inline void addEventHandler(ScheduledEventHandler* handler);
-/** Add a TriggeredEventHandler to this %System, which takes over ownership
-of the event handler object. **/
-inline void addEventHandler(TriggeredEventHandler* handler);
-/** Add a ScheduledEventReporter to this %System, which takes over ownership
-of the event reporter object. **/
-inline void addEventReporter(ScheduledEventReporter* handler) const;
-/** Add a TriggeredEventReporter to this %System, which takes over ownership
-of the event reporter object. **/
-inline void addEventReporter(TriggeredEventReporter* handler) const;
-/**@}**/
-
 
 //------------------------------------------------------------------------------
 /**@name                         Realization
 
-These methods provide the ability to compute the consequences that follow
-from the values of state variables, leaving the results in the
-appropriate cache. Usually this refers to values in a given State object, but
-we also use the same concept for values assigned to a %System during its
-(extended) construction, which we call \e Topological variables. The 
+These methods provide the ability to compute the consequences that follow from 
+the values of state variables, leaving the results in the appropriate cache. 
+Usually this refers to values in a given State object, but we also use the same
+concept for values assigned to %System member variables during the %System's
+(extended) construction, which we call *Topological* variables. The 
 realizeTopology() method is called at the end of construction, allocating
 resources, performing computations, and creating a default State, with all
 results stored in a cache that is maintained by the %System itself. The other 
@@ -219,59 +219,57 @@ realize() methods are given a State object to work with and store their results
 in the cache of that State object without making any changes to the %System. **/
 /**@{**/
 
-/** The following call must be made after any topological change has been 
-made to this %System, before the %System can be used to perform any 
-computations. Perhaps surprisingly, the method is const. That's because 
-the topology cannot be changed by this method. Various mutable "cache" 
-entries will get calculated, including the default State, a reference 
-to which is returned. The returned State has a Topology stage version number
-that matches the %System, and will have already been realized 
-through the Model Stage, using the defaults for the Model-stage 
-variables, meaning that all later stage variables have been allocated 
-and set to their default values as well. You can access this same 
-default State again using getDefaultState(). If the current topology 
-has already been realized, this call does nothing but return a reference 
-to the already-built default State. 
+/** The following call must be made after any topological change has been made 
+to this %System, before the %System can be used to perform any computations. 
+Perhaps surprisingly, the method is const. That's because the topology cannot be
+changed by this method. Various mutable "cache" entries will get calculated, 
+including the default State, a reference to which is returned. The returned 
+State has a Topology stage version number that matches the %System, and will 
+have already been realized through the Model Stage, using the defaults for the 
+Model-stage variables, meaning that all later stage variables have been 
+allocated and set to their default values as well. You can access this same 
+default State again using getDefaultState(). If the current topology has already
+been realized, this call does nothing but return a reference to the 
+already-built default State. 
 @see getDefaultState(), realizeModel(), realize() **/
 const State& realizeTopology() const;
 
-/** This is available after realizeTopology(), and will throw an
-exception if realizeTopology() has not been called since the
-most recent topological change to this %System. This method returns the
-same reference returned by realizeTopology(). The State to which
-a reference is returned was created by the most recent
-realizeTopology() call. It has a Topology version number that matches the one
-currently in this %System, and has already been realized through the
-Model Stage, using default values for all the Model-stage variables.
-All later-stage variables have been allocated and set to their
-default values. You can use this state directly to obtain information
-about the %System in its default state or you can use this state
-to initialize other States to which you have write access. Those
-States are then suitable for further computation with this System. 
+/** This is available after realizeTopology(), and will throw an exception if 
+realizeTopology() has not been called since the most recent topological change
+to this %System. This method returns the same reference returned by 
+realizeTopology(). The State to which a reference is returned was created by the
+most recent realizeTopology() call. It has a Topology version number that 
+matches the one currently in this %System, and has already been realized through
+the Model Stage, using default values for all the Model-stage variables. All 
+later-stage variables have been allocated and set to their default values. You 
+can use this state directly to obtain information about the %System in its 
+default state or you can use this state to initialize other States to which you
+have write access. Those States are then suitable for further computation with 
+this %System. 
 @see realizeTopology() **/
 const State& getDefaultState() const;
 
 /** Realize the model to be used for subsequent computations with the given
-\a state. This call is required if Model-stage variables are changed from their 
+`state`. This call is required if Model-stage variables are changed from their 
 default values. The %System topology must already have been realized (that is, 
 realizeTopology() must have been called since the last topological change made 
-to the %System). Also, the supplied \a state must already have been initialized
+to the %System). Also, the supplied `state` must already have been initialized
 to work with this %System either by copying the default state or some other 
 State of this %System. If it has already been realized to Stage::Model or 
-higher, nothing happens here. Otherwise, all the state variables at 
-Stage::Instance or higher are allocated or reallocated (if necessary), and 
-reinitialized to their default values. 
+higher, nothing happens here. Otherwise, all Model-stage State resources are
+acquired and initialized. This method modifies its `state` argument, but makes 
+no changes at all to the %System itself (not even to the %System's mutable 
+cache) and is hence const.
 
-@note Any state information at Stage::Instance or higher in the passed-in 
-\a state is \e destroyed here. The number, types and memory locations of those
-state variables will change, so any existing references or pointers to them are 
-invalid after this call. Note that this routine modifies its \a state argument, 
-but makes no changes at all to the %System itself (not even to the %System's
-mutable cache) and is hence const. 
+@note Any Model-stage state resources, including both state variables and cache
+entries, are destroyed when a Model-stage state variable is modified. Then, when
+realizeModel() is called they are acquired again. The number, types and memory 
+locations of those resources will change, so any existing references or pointers
+to them will be invalid.  
 @see realizeTopology(), realize() **/
 void realizeModel(State& state) const;
 
-/** Realize the given \a state to the indicated \a stage. The passed-in State 
+/** Realize the given `state` to the indicated `stage`. The passed-in State 
 must have been initialized to work with this %System, and it must already have 
 been realized through Stage::Model, since this realize() method doesn't have 
 write access to the State. If the state has already been realized to the 
@@ -544,6 +542,30 @@ void getFreeUIndex(const State& state, Array_<SystemUIndex>& freeUs) const;
 
 
 //------------------------------------------------------------------------------
+/**@name              Event handlers and reporters
+
+These methods provide a simplified interface to the Simbody event system. Each
+instance creates one Event, one EventTrigger, and one EventAction, combined
+into an EventHandler or EventReporter. The methods below are used to attach 
+EventHandler and EventReporter objects to this %System. These are actually 
+added to the SystemGlobalSubsystem that is contained in every System. **/
+/**@{**/
+/** Add a ScheduledEventHandler to this %System, which takes over ownership
+of the event handler object. **/
+inline void adoptEventHandler(ScheduledEventHandler* handler);
+/** Add a TriggeredEventHandler to this %System, which takes over ownership
+of the event handler object. **/
+inline void adoptEventHandler(TriggeredEventHandler* handler);
+/** Add a ScheduledEventReporter to this %System, which takes over ownership
+of the event reporter object. **/
+inline void adoptEventReporter(ScheduledEventReporter* reporter);
+/** Add a TriggeredEventReporter to this %System, which takes over ownership
+of the event reporter object. **/
+inline void adoptEventReporter(TriggeredEventReporter* reporter);
+/**@}**/
+
+
+//------------------------------------------------------------------------------
 /**@name                    The Discrete System
 
 These methods deal with the discrete (event-driven) aspects of this %System. 
@@ -552,8 +574,8 @@ events and TimeStepper objects that deal with them by calling appropriate
 handlers. In general, events interrupt the continuous evolution of a system,
 dividing a simulation into continuous segments interrupted by discontinuous
 changes of state. There are also discrete variables that can be updated without
-disrupting the continuous flow. These are called "auto update variables" and are
-updated at the beginning of every integration step, right \e after the initial 
+disrupting the continuous flow. These are called "auto-update variables" and are
+updated at the beginning of every integration step, right *after* the initial 
 state derivatives have been recorded. Thus the step proceeds with those 
 derivatives even if the update could cause them to change. These updates are
 initiated by Integrator objects at the start of every continuous step, while
@@ -563,85 +585,202 @@ objects via calls to event handlers.
 @see State::allocateAutoUpdateDiscreteVariable()
 **/
 /**@{**/
+// The inline implementations are in SystemGlobalSubsystem.h.
 
-/** This solver handles a set of events which a TimeStepper has denoted as 
-having occurred at the given time and state. The event handler may make 
-discontinuous changes in the State, in general both to discrete and continuous
-variables, but \e not to time or topological information. If changes are made 
-to continuous variables, the handler is required to make sure the returned 
-state satisfies the constraints to the accuracy level specified in \a options.
+/** Add a new Event to this %System and obtain a unique, small-integer EventId 
+for it. The %System takes over ownership of the heap-allocated Event object. **/
+inline EventId adoptEvent(Event* eventp);
 
-On return, the handleEvents() method will set the output variable \a results
-to indicate what happened. If any invoked handler determines that the 
-occurrence of some event requires that the simulation be terminated, that 
-information is returned in \a results and a well-behaved TimeStepper will stop
-when it sees that.
+/** Return the number n of Event objects contained in this %System. The
+corresponding EventIds are EventId(0) through EventId(n-1). Don't 
+confuse this with the number of event occurrences at runtime. **/
+inline int getNumEvents() const;
 
-Simbody will automatically set a field in \a results that says how much of
-the \a state was changed by the handler so that the calling TimeStepper will
-be able to determine how much reinitialization is required.
+/** Return a const reference to an Event specified by EventId. Throws an 
+exception if the EventId is invalid or if there is no Event corresponding to
+it in this %System. **/
+inline const Event& getEvent(EventId id) const;
 
-@see HandleEventsOptions, HandleEventsResults **/
-void handleEvents(State&                        state, 
-                  Event::Cause                  cause, 
-                  const Array_<EventId>&        eventIds,
-                  const HandleEventsOptions&    options,
-                  HandleEventsResults&          results) const;
+/** Return a writable reference to an Event specified by EventId. Throws an 
+exception if the EventId is invalid or if there is no Event corresponding to
+it in this %System. **/
+inline Event& updEvent(EventId id);
+
+/** Check whether this %System has an Event with the given EventId. **/
+inline bool hasEvent(EventId id) const;
+
+/** Return a const reference to the built-in Initialization Event. This Event
+is triggered once at the start of a simulation. **/
+inline const Event::Initialization& getInitializationEvent() const;
+/** Return a writable reference to the built-in Initialization Event. This Event
+is triggered once at the start of a simulation. **/
+inline Event::Initialization& updInitializationEvent();
+
+/** Return a const reference to the built-in TimeAdvanced Event. This Event is
+triggered whenever an integrator successfully completes a step. **/
+inline const Event::TimeAdvanced& getTimeAdvancedEvent() const;
+/** Return a const reference to the built-in TimeAdvanced Event. This Event is
+triggered whenever an integrator successfully completes a step. **/
+inline Event::TimeAdvanced& updTimeAdvancedEvent();
+
+/** Return a const reference to the built-in Termination Event. This Event is
+triggered once at the end of a simulation. **/
+inline const Event::Termination& getTerminationEvent() const;
+/** Return a writable reference to the built-in Termination Event. This Event is
+triggered once at the end of a simulation. **/
+inline Event::Termination& updTerminationEvent();
+
+/** Return a const reference to the built-in ExtremeValueIsolated Event. This
+Event is triggered whenever a watched value reaches and extremum of 
+interest (could be a maximum, minimum, or either). **/
+inline const Event::ExtremeValueIsolated& getExtremeValueIsolatedEvent() const;
+/** Return a writable reference to the built-in ExtremeValueIsolated Event. This
+Event is triggered whenever a watched value reaches and extremum of 
+interest (could be a maximum, minimum, or either). **/
+inline Event::ExtremeValueIsolated& updExtremeValueIsolatedEvent();
+
+/** Add a new EventTrigger to this %System and obtain a unique, small-integer 
+EventTriggerId for it. The %System takes over ownership of the heap-allocated 
+EventTrigger object. **/
+inline EventTriggerId adoptEventTrigger(EventTrigger* triggerp);
+
+/** Return the number n of EventTrigger objects contained in this %System.
+The corresponding EventTriggerIds are EventTriggerId(0) through 
+EventTriggerId(n-1). **/
+inline int getNumEventTriggers() const;
+
+/** Return a const reference to an EventTrigger specified by EventTriggerId. 
+Throws an exception if the EventTriggerId is invalid or if there is no 
+EventTrigger corresponding to it in this %System. **/
+inline const EventTrigger& getEventTrigger(EventTriggerId id) const;
+
+/** Return a writable reference to an EventTrigger specified by EventTriggerId. 
+Throws an exception if the EventTriggerId is invalid or if there is no 
+EventTrigger corresponding to it in this %System. **/
+inline EventTrigger& updEventTrigger(EventTriggerId id);
+
+/** Check whether this %System has an EventTrigger with the given 
+EventTriggerId. **/
+inline bool hasEventTrigger(EventTriggerId id) const;
+
+/** Return a reference to the built-in EventTrigger that accompanies
+initialization of a time stepping study (the Initialization event). **/
+inline const InitializationTrigger& getInitializationTrigger() const;
+/** Return a reference to the built-in EventTrigger that accompanies
+the TimeAdvanced event. **/
+inline const TimeAdvancedTrigger& getTimeAdvancedTrigger() const;
+/** Return a reference to the built-in EventTrigger that accompanies
+termination of a time stepping study (the Termination event). **/
+inline const TerminationTrigger& getTerminationTrigger() const;
+
+/** Return a list of event witnesses currently present for this %System in the
+given Study's internal state. These are the witnesses that must be 
+watched during the next time step to determine if an event has occurred. **/
+inline void findActiveEventWitnesses
+   (const Study&                            study, 
+    Array_<const EventTrigger::Witness*, 
+           ActiveWitnessIndex>&             witnesses) const; 
+
+/** Determine if we are approaching a significant zero crossing of some
+event witness and if so provide an estimate of when it will occur. We only
+consider the interval between `study`'s internal time and the given
+`timeLimit`; zero crossings outside that interval don't count. We report the 
+earliest zero crossing we anticipate, and the required time localization 
+window within which it must be isolated. If several witnesses have this zero
+crossing, then the window is the narrowest of those. We return a list of the
+witnesses we think will trigger. If there are no anticipated zeroes in the
+interval, the next time and window will be Infinity and the list of witnesses
+will be empty. **/
+void predictNextWitnessTriggerTime
+   (const Study&                            study,
+    double                                  timeLimit,
+    double&                                 timeOfNextZeroCrossing,
+    double&                                 timeWindow,
+    Array_<const EventTrigger::Witness*>&   witnesses) const; 
+
     
-/** This method is similar to handleEvents(), but does not allow the State 
-to be modified.  It is used for scheduled or triggered events that were marked 
-as being reports. **/
-void reportEvents(const State&                  state, 
-                  Event::Cause                  cause, 
-                  const Array_<EventId>&        eventIds) const;
 
-/** This routine provides the Integrator with information it needs about the
-individual event trigger functions, such as which sign transitions are relevant 
-and how tightly we need to localize. This is considered Instance stage 
-information so cannot change during a continuous integration interval (so an 
-Integrator can process it upon restart(Instance)), however it can be updated 
-whenever a discrete update is made to the State. A default implementation is 
-provided which returns default EventTriggerInfo for each event trigger in 
-\a state. The \a state must already be realized to Stage::Instance. **/
-void calcEventTriggerInfo(const State&              state,
-                          Array_<EventTriggerInfo>& triggerInfo) const;
+/** Return a list of event timers currently present for this %System in the
+given study's internal state. These are the timers that must be consulted
+to see whether the upcoming time step should be shortened because of a scheduled
+report or change event. **/
+inline void findActiveEventTimers
+   (const Study&                            study, 
+    Array_<const EventTrigger::Timer*,
+           ActiveTimerIndex>&               timers) const;
 
-/** This routine should be called to determine if and when there is an event
-scheduled to occur at a particular time. This is a \e lot cheaper than
-making the Integrator hunt these down like ordinary state-dependent events.
-The returned time can be passed to the Integrator's stepping function as
-the advance time limit. **/
-void calcTimeOfNextScheduledEvent(const State&      state, 
-                                  Real&             tNextEvent, 
-                                  Array_<EventId>&  eventIds, 
-                                  bool              includeCurrentTime) const;
 
-/** This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
-"reporting events" which do not modify the state. Events returned by this method
-should be handled by invoking reportEvents() instead of handleEvents(). **/
-void calcTimeOfNextScheduledReport(const State&     state, 
-                                   Real&            tNextEvent, 
-                                   Array_<EventId>& eventIds, 
-                                   bool             includeCurrentTime) const;
+/** Consult the Event Timers to find the next time at which a scheduled report 
+Event occurs, and the next time for a scheduled change Event. Return the 
+Timer(s) that trigger each of those. We are given the time of last report and 
+time of last change and won't return Triggers that are at exactly those times 
+(to avoid duplicates). Note that all the Timers in one of the returned lists had
+simultaneous next trigger times (to within timer noise). **/
+inline void findNextScheduledEventTimes
+   (const Study&        study,
+    double              timeOfLastReport,
+    double              timeOfLastChange,
+    double&             timeOfNextReport,
+    EventTriggers&      reportTimers,
+    double&             timeOfNextChange,
+    EventTriggers&      changeTimers) const;
 
-/** When called during realizeTopology(), this creates a new EventId that is 
-unique for this %System, and assigns ownership of it to a particular Subsystem. 
-Later if an event occurs that is associated with this EventId, the owning 
-subsystem will be notifed. Typically one EventId is needed for each unique event
-handler in the %System. Many different witness functions or other causes may map
-to the same EventId.
+/** Given a list of EventTrigger objects that have occurred simultaneously,
+determine the unique set of Event objects whose actions should be performed. As
+a side effect, the mutable occurrence counter for each trigger and each unique 
+event is incremented by one.
 
-An EventId is a unique positive integer starting from 1 at the start of the
-%System's realizeTopology() call, and increasing from there, with room for at 
-least a billion. Generally there will only be a few of these needed so we don't 
-expect ever to run out -- they do not represent individual event occurrences, 
-but rather the different *types* of events that can occur. **/
-EventId createNewEventId(SubsystemIndex index) const;
+@param[in]          triggers    
+    List of triggers that occurred simultaneously.
+@param[in,out]      appendTriggeredEvents
+    List of (event,causes) pairs where "causes" is a subset of `triggers`. The
+    list will be *appended* to; clear it first if you don't want it to grow.
+@param[in,out]      appendIgnoredEvents
+    List of unrecognized EventId values that were in `triggers`. The list will
+    be *appended* to; clear it first if you don't want it to grow.
 
-/** Given an EventId that was returned by createNewEventId() sometime in the
-past, report which Subsystem owns it. An unrecognized EventId will return
-an invalid SubsystemIndex. The lookup takes constant time. **/
-SubsystemIndex findEventIdOwner(EventId id) const;
+Note that when multiple triggers cause the same event, the Event actions still
+must be performed only once. We map the EventId values stored in the triggers
+to Event objects, and append a list pairing each Event with the triggers that
+caused it. If there is no Event corresponding to an EventId, that EventId is
+ignored except to append it (once) to the `appendIgnoredEvents` list, which
+may be useful for issuing diagnostics or for debugging.
+
+The order of the given triggers is maintained in the output arrays; all events
+caused by the first trigger come first, then all events from the second trigger,
+and so on, except that duplicate events will not appear.
+
+Be sure to clear the output arrays before calling this method if you want them
+to start fresh; we're just appending here. Typically these will be very short 
+lists -- most commonly there will be one trigger, one event, and no unrecognized
+events. **/
+inline void noteEventOccurrence
+   (const EventTriggers&    triggers,
+    EventsAndCauses&        appendTriggeredEvents,
+    Array_<EventId>&        appendIgnoredEvents) const;
+    
+
+/** Execute any report() actions associated with Events whose occurrence has
+been triggered. The supplied Study should have invoked noteEventOccurrence()
+and the `triggeredEvents` parameter here should be the output from that method.
+The state being reported is that returned by `study.getCurrentState()` and may 
+be an interpolated state. 
+@see noteEventOccurrence(), performEventChangeActions() **/
+inline void performEventReportActions
+   (const Study&            study,
+    const EventsAndCauses&  triggeredEvents) const;
+
+/** Execute any change() actions associated with Events whose occurrence has
+been triggered. The supplied Study should have invoked noteEventOccurrence()
+and the `triggeredEvents` parameter here should be the output from that method.
+The state that triggered the Events is obtained from `study.updInternalState()`
+and may be modified here. 
+@see noteEventOccurrence(), performEventReportActions() **/
+inline void performEventChangeActions
+   (Study&                  study,
+    const EventsAndCauses&  triggeredEvents,
+    EventChangeResult&      result) const;
+
 /**@}**/
 
 
@@ -770,20 +909,6 @@ int getNumUProjections() const;
 projected an error estimate? **/
 int getNumUErrorEstimateProjections() const;
 
-    // Event handling and reporting
-
-/** handleEvents() reports the lowest Stage it modified and we bump
-the counter for that Stage. We also count reportEvents() calls here
-as having "changed" Stage::Report. **/
-int getNumHandlerCallsThatChangedStage(Stage) const;
-
-/** This is the total number of calls to handleEvents() regardless
-of the outcome. **/
-int getNumHandleEventCalls() const;
-
-/** This is the total number of calls to reportEvents() regardless
-of the outcome. **/
-int getNumReportEventCalls() const;
 /**@}**/
 
 
@@ -791,14 +916,15 @@ int getNumReportEventCalls() const;
 /**@name                Construction and bookkeeping
 
 These methods are mostly for use by concrete Systems and will not typically
-be of interest to users. **/
+be of interest to users. System does not currently support copy construction
+or assignment. **/
 /**@{**/
 // No default constructor; must supply a System::Guts object.
 System() = delete;
-/** Copy constructor (untested). **/
-System(const System&);
-/** Copy assignment (untested). **/
-System& operator=(const System&);
+System(const System&) = delete;
+System(const System&&) = delete;
+System& operator=(const System&) = delete;
+
 /** Destructor here will invoke the virtual destructor in the System::Guts
 class and thus clean up all unneeded detritus owned by this %System. **/
 ~System();
@@ -821,10 +947,10 @@ Subsystem& updSubsystem(SubsystemIndex);
 
 /** Get read-only access to the default subsystem which is present in every 
 system. **/
-inline const SystemGlobalSubsystem& getSystemGlobalSubsystem() const;
+const SystemGlobalSubsystem& getSystemGlobalSubsystem() const;
 /** Get writable access to the default subsystem which is present in every 
 system. **/
-inline SystemGlobalSubsystem& updSystemGlobalSubsystem();
+SystemGlobalSubsystem& updSystemGlobalSubsystem();
 
 /** Implicitly convert this System into a const Subsystem reference; this 
 actually returns a reference to the SystemGlobalSubsystem contained in this 
@@ -835,9 +961,9 @@ actually returns a reference to the SystemGlobalSubsystem contained in this
 System. **/
 inline operator Subsystem&();
 
-
 /** There can be multiple handles referring to the same System::Guts object; 
-they are considered to be the same System. **/
+they are considered to be the same %System. Two empty handles are not 
+considered to be the same %System. **/
 bool isSameSystem(const System& otherSystem) const;
 
 /**@}**/
@@ -894,49 +1020,68 @@ void calcDecorativeGeometryAndAppend(const State& state, Stage stage,
 /** Obtain a const reference to the System::Guts object to which this %System
 handle refers. You should then `dynamic_cast` the returned reference to a 
 reference to your concrete Guts class. **/
-const Guts& getSystemGuts() const {assert(guts); return *guts;}
+const Guts& getSystemGuts() const {assert(m_guts); return *m_guts;}
 
 /** Obtain a writable reference to the System::Guts object to which this %System
 handle refers. You should then `dynamic_cast` the returned reference to a 
 reference to your concrete Guts class. **/
-Guts& updSystemGuts() {assert(guts); return *guts;}
+Guts& updSystemGuts() {assert(m_guts); return *m_guts;}
 
 /** Return true if this %System handle is not empty. **/
-bool hasGuts() const {return guts!=0;}
+bool hasGuts() const {return m_guts != nullptr;}
 
 /** Internal use only. **/
 bool isOwnerHandle() const;
 /** Internal use only. **/
-bool isEmptyHandle() const;
+bool isEmptyHandle() const {return m_guts == nullptr;}
 
-/** (Deprecated) Use getSystemGlobalSubsystem() instead. The name changed
+/** <b>(Deprecated)</b> Use getSystemGlobalSubsystem() instead. The name changed
 in Simbody 4.0. **/
+DEPRECATED_14("use getSystemGlobalSubsystem() instead")
 const SystemGlobalSubsystem& getDefaultSubsystem() const
 {   return getSystemGlobalSubsystem(); }
-/** (Deprecated) Use updSystemGlobalSubsystem() instead. The name changed
+/** <b>(Deprecated)</b> Use updSystemGlobalSubsystem() instead. The name changed
 in Simbody 4.0. **/
+DEPRECATED_14("use updSystemGlobalSubsystem() instead")
 SystemGlobalSubsystem& updDefaultSubsystem()
 {   return updSystemGlobalSubsystem(); }
+
+/** <b>(Deprecated)</b> Use `adoptEventHandler()` instead. The name changed 
+in Simbody 4.0. **/
+DEPRECATED_14("use adoptEventHandler() instead")
+void addEventHandler(ScheduledEventHandler* handler)
+{   adoptEventHandler(handler); }
+/** <b>(Deprecated)</b> Use `adoptEventHandler()` instead. The name changed 
+in Simbody 4.0. **/
+DEPRECATED_14("use adoptEventHandler() instead")
+void addEventHandler(TriggeredEventHandler* handler)
+{   adoptEventHandler(handler); }
+/** <b>(Deprecated)</b> Use `adoptEventReporter()` instead. The name changed 
+in Simbody 4.0. **/
+DEPRECATED_14("use adoptEventReporter() instead")
+void addEventReporter(ScheduledEventReporter* reporter)
+{   adoptEventReporter(reporter); }
+/** <b>(Deprecated)</b> Use `adoptEventReporter()` instead. The name changed 
+in Simbody 4.0. **/
+DEPRECATED_14("use adoptEventReporter() instead")
+void addEventReporter(TriggeredEventReporter* reporter)
+{   adoptEventReporter(reporter); }
 /**@}**/
 
 protected:
 /** Put new *unowned* System::Guts object into a new %System handle which takes
 over ownership. If Guts is already owned by some other %System handle this
 routine will throw an exception. Also, Guts must not yet contain any 
-subsystems because we need to put the SystemGlobalSubsystem in the 0th slot. **/
-explicit System(System::Guts* g) : guts(nullptr) {
-    adoptSystemGuts(g);
-}
+subsystems because we need to put the SystemGlobalSubsystem in the 0th slot. 
+Any resources that are required for services provided by the base %System
+class will be allocated here and will thus be present when you start putting
+together your concrete %System. **/
+explicit System(System::Guts* guts);
 
 private:
-// Put new unowned Guts into this *empty* handle and take over ownership. Add
-// the Default Subsystem as the 0th subsystem entry.
-void adoptSystemGuts(System::Guts* g);
-
-friend class Guts;
 // This is the only data member in this class. Also, any class derived from
 // System must have *NO* data members at all (data goes in the Guts class).
-Guts*   guts;
+Guts*   m_guts;
 };
 
 

@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2007-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2007-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -31,93 +31,144 @@
 namespace SimTK {
 class Integrator;
 
-/**
- * This class uses an Integrator to advance a System through time.  For example:
- * 
- * <pre>
- * TimeStepper stepper(system, integrator);
- * stepper.initialize(initialState);
- * stepper.stepTo(finalTime);
- * </pre>
- * 
- * stepTo() invokes the Integrator to advance time.  It detects events which may occur, calls event handlers as
- * appropriate, then invokes the Integrator again to continue advancing time until the target time is reached.
- */
+/** A %TimeStepper advances the State of a System through time, using an 
+Integrator for continuous parts of the trajectory and handling discrete events
+and reporting. The purpose of a %TimeStepper is to simplify typical usage of
+an Integrator; you can use an Integrator directly if you want more control.
+
+Typical usage:
+@code
+    // Create a suitable Integrator object for your System.
+    RungeKuttaMersonIntegrator integrator(system);
+    TimeStepper stepper(integrator);
+    stepper.initialize(initialState);
+    stepper.stepTo(finalTime);
+@endcode
+
+The stepTo() method invokes the Integrator repeatedly to advance time. It 
+detects events which may occur, calls event handlers and reporters as
+appropriate, then continues advancing time until the target time is reached.
+**/
 class SimTK_SIMMATH_EXPORT TimeStepper {
 public:
-    /**
-     * Create a TimeStepper to advance a System.
-     * 
-     * This constructor leaves the Integrator unspecified.  You therefore must call setIntegrator()
-     * before calling initialize().
-     */
-    explicit TimeStepper(const System& system);
-    /**
-     * Create a TimeStepper to advance a System using an Integrator.
-     */
-    TimeStepper(const System& system, Integrator& integrator);
-    ~TimeStepper();
-    /**
-     * Set the Integrator this TimeStepper will use to advance the System.
-     */
+    class EventChangeActionFailed;
+
+    /** Create a %TimeStepper to advance a System using an Integrator. Ownership
+    of the Integrator object does *not* pass to the %TimeStepper; you must not
+    destruct the Integrator while a TimeStepper is using it. **/
+    explicit TimeStepper(Integrator& integrator);
+
+    /** Create a %TimeStepper leaving the Integrator unspecified. You must call 
+    setIntegrator() before calling initialize(). **/
+    TimeStepper();
+
+    /** Set the Integrator this %TimeStepper will use to advance the System.
+    This is required if you didn't supply an Integrator at construction. 
+    Ownership of the Integrator object does *not* pass to the TimeStepper; you 
+    must not destruct the Integrator while a TimeStepper is using it.  **/
     void setIntegrator(Integrator& integrator);
-    /**
-     * Get the Integrator being used to advance the System.
-     */
-    const Integrator& getIntegrator() const;
-    /**
-     * Get a non-const reference to the Integrator being used to advance the System.
-     */
-    Integrator& updIntegrator();
-    /**
-     * Get whether the TimeStepper should report every significant state returned by the Integrator.
-     * If this is true, stepTo() will return whenever the Integrator reports a significant state,
-     * such as when an event occurs or the start of a new continuous interval.  If this is false,
-     * stepTo() will only return when the specified time has been reached or when the simulation is
-     * terminated.
-     */
-    bool getReportAllSignificantStates() const;
-    /**
-     * Set whether the TimeStepper should report every significant state returned by the Integrator.
-     * If this is true, stepTo() will return whenever the Integrator reports a significant state,
-     * such as when an event occurs or the start of a new continuous interval.  If this is false,
-     * stepTo() will only return when the specified time has been reached or when the simulation is
-     * terminated.
-     */
-    void setReportAllSignificantStates(bool b);
-    /**
-     * Supply the time stepper with a starting state.  This must be called after the Integrator has
-     * been set, and before the first call to stepTo().
-     * 
-     * The specified state is copied into the Integrator's internally maintained "advanced" state;
-     * subsequent changes to the State object passed in here will not affect the simulation.
-     */
+
+    /** Supply the %TimeStepper with a starting state, which is *copied* to 
+    initialize the Integrator. This must be called after the Integrator has
+    been set, and before the first call to stepTo(). The specified state is 
+    *copied* into the Integrator's internally maintained state; subsequent 
+    changes to the State object passed in here will not affect the 
+    simulation. **/
     void initialize(const State&);
-    /**
-     * Get the current State of the System being integrated.  Usually this will correspond to the
-     * time specified in the most recent call to stepTo().  It may be an interpolated state which
-     * is earlier than the Integrator's "advanced" state.
-     */
+
+    /** Use the Integrator to advance the System's State from the current time
+    to the specified time. This method will repeatedly invoke the Integrator as 
+    necessary, handling any events which occur. The %TimeStepper must be
+    initialized by calling initialize() before this method may be called.
+    
+    When this method returns, the System will usually have been advanced all the
+    way to the specified final time, regardless of how many integration steps
+    that requires. There are situations where it may return sooner, however: 
+    if setReportAllSignificantStates() was set to true, and a "significant"
+    state occurred; if {@link Integrator#setFinalTime setFinalTime()} was 
+    invoked on the Integrator, and the final time was reached; or if an event 
+    handler requested that the simulation terminate immediately. **/
+    Integrator::SuccessfulStepStatus stepTo(double time);
+
+    /** Get the current State of the System being integrated. Usually this will 
+    correspond to the time specified in the most recent call to stepTo(). This
+    is the State maintained internally by the Integrator; this call just 
+    forwards to Integrator::getState().
+    @see Integrator::getState() **/
     const State& getState() const;
-    /**
-     * Get the current time of the System being integrated.  This is identical to calling getState().getTime().
-     */
-    Real getTime() const {return getState().getTime();}
-    /**
-     * Use the Integrator to advance the System up to the specified time.  This method will repeatedly
-     * invoke the Integrator as necessary, handling any events which occur.  The TimeStepper must be
-     * initialized by calling initialize() before this method may be called.
-     * 
-     * When this method returns, the System will usually have been advanced all the way to the specified
-     * final time.  There are situations where it may return sooner, however: if setReportAllSignificantStates()
-     * was set to true, and a significant state occurred; if {@link Integrator#setFinalTime setFinalTime()} was invoked on the Integrator,
-     * and the final time was reached; or if an event handler requested that the simulation terminate
-     * immediately.
-     */
-    Integrator::SuccessfulStepStatus stepTo(Real time);
+
+    /** Get the current time of the System being integrated. This is just 
+    shorthand for getState().getTime(). **/
+    double getTime() const {return getState().getTime();}
+
+    /** Get a const reference to the Integrator being used. **/
+    const Integrator& getIntegrator() const;
+
+    /** Get a writable reference to the Integrator being used. **/
+    Integrator& updIntegrator();
+
+    /** Note that the Integrator is not destructed with the %TimeStepper; it is
+    an independent object. **/
+    ~TimeStepper();
+
+    /** @name             Advanced/Debugging/Deprecated 
+    You probably won't need to use these. **/
+    /**@{**/
+    /** (Advanced) Set whether the %TimeStepper's stepTo() method should return 
+    after any "significant" state is returned by the Integrator. Normally 
+    stepTo() will only return when the specified time has been reached or when 
+    the simulation is terminated, with output obtained only through Event 
+    reporters and handlers. However, if this flag is set `true`, stepTo() will 
+    return whenever the Integrator reports that something interesting has 
+    happened, such as when an event occurs or at the start of a new continuous 
+    interval after an event has been handled. This will not return every time
+    a step is taken, unless the Integrator has been told separately to return
+    every step. 
+    @see Integrator::setReturnEveryInternalStep() **/
+    void setReportAllSignificantStates(bool b);
+
+    /** (Advanced) Return the current value of the "report all significant 
+    states" flag.
+    @see setReportAllSignificantState() **/
+    bool getReportAllSignificantStates() const;
+
+    /** <b>(Deprecated)</b> There was no need to supply a System to a 
+    %TimeStepper since there is always a System associated with the Integrator.
+    Use the default constructor `TimeStepper()` instead of this one. For 
+    temporary backwards compatibility we're still allowing this signature 
+    but the given System is ignored. **/
+    DEPRECATED_14("use TimeStepper()")
+    explicit TimeStepper(const System&) : TimeStepper() {}
+    /** <b>(Deprecated)</b> There was no need to supply a System to a 
+    %TimeStepper since there is always a System associated with the Integrator.
+    Use the constructor `TimeStepper(Integrator)` instead of this one.
+    For temporary backwards compatibility we're still allowing this signature 
+    but the given System is ignored. **/
+    DEPRECATED_14("use TimeStepper(Integrator)") 
+    TimeStepper(const System&, Integrator& integ) 
+    :   TimeStepper(integ) {}
+    /**@}**/
+
 private:
+friend class TimeStepperRep;
+
     class TimeStepperRep* rep;
-    friend class TimeStepperRep;
+};
+
+//==============================================================================
+//                         TIME STEPPER EXCEPTIONS
+//==============================================================================
+// A TimeStepper may also return with exceptions thrown by its Integrator.
+
+/** The %TimeStepper invoked an Event handler ("change" action) that failed. **/
+class TimeStepper::EventChangeActionFailed : public Exception::Base {
+public:
+    EventChangeActionFailed(const char* fn, int ln, Real t, const char* msg) 
+    :   Base(fn,ln) {
+        setMessage("TimeStepper halted at time=" + String(t) + 
+                   " because an EventAction failed, with message:\n" +
+                   "  '" + msg + "'.");
+    }
 };
 
 } // namespace SimTK

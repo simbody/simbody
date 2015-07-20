@@ -89,7 +89,8 @@ public:
     // ||eps||_wrms <= epsProj. 'err' passed in as the integrator's current 
     // error estimate for state y; optionally project it to eliminate the 
     // portion normal to the manifold.
-    int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, Vector& err) const {
+    int project(Real t, const Vector& y, 
+                Vector& ycorr, Real epsProj, Vector& err) const {
         integ.setAdvancedState(t,y);
         State& advanced = integ.updAdvancedState();
        
@@ -121,7 +122,7 @@ public:
             integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
-        gout = integ.getAdvancedState().getEventTriggers();
+        integ.calcWitnessValues(integ.getAdvancedState(), gout);
         return CPodes::Success;
     }
 private:
@@ -204,20 +205,20 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     else {
         cpodes->projDefine();
     }
-    cpodes->rootInit(state.getNEventTriggers());
-    if (state.getNEventTriggers() > 0) {
-        Array_<EventTriggerInfo> triggerInfo;
-        getSystem().calcEventTriggerInfo(state, triggerInfo);
-        Array_<int> rootDir(triggerInfo.size());
-        for (int i = 0; i < (int)triggerInfo.size(); ++i) {
-            if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
-                if (triggerInfo[i].shouldTriggerOnRisingSignTransition())
-                    rootDir[i] = 0; // All transitions
-                else
-                    rootDir[i] = -1; // Falling transitions only
-            }
-            else
-                rootDir[i] = 1; // Rising transitions only
+
+    const int nWitnesses = (int)getWitnesses().size();
+    cpodes->rootInit(nWitnesses);
+    if (nWitnesses) {
+        Array_<int> rootDir(nWitnesses);
+        for (ActiveWitnessIndex awx(0); awx < nWitnesses; ++awx) {
+            auto& w = *getWitnesses()[awx];
+            if (w.getTriggerOnFallingSignTransition()) {
+                if (w.getTriggerOnRisingSignTransition())
+                    rootDir[awx] = 0; // All transitions
+                else 
+                    rootDir[awx] = -1; // Falling transitions only
+            } else
+                rootDir[awx] = 1; // Rising transitions only
         }
         cpodes->setRootDirection(rootDir);
     }
@@ -308,12 +309,11 @@ stepTo(Real reportTime, Real scheduledEventTime) {
     
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
-    if (startOfContinuousInterval) {
-        // The set of event triggers might have changed.
-        getSystem().calcEventTriggerInfo(getAdvancedState(), 
-                                         updEventTriggerInfo());
+    if (isStartOfContinuousInterval()) {
+        // The set of event witnesses might have changed.
+        getSystem().findActiveEventWitnesses(getOwnerHandle(), updWitnesses());
         pendingReturnCode = -1; // forget post-event state
-        startOfContinuousInterval = false;
+        setIsStartOfContinuousInterval(false);
         return Integrator::StartOfContinuousInterval;
     }
 
@@ -496,22 +496,20 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             // going to return with an interpolated state at tLo; CPodes has
             // already capped the advanced state at tHi.
             
-            Array_<SystemEventTriggerIndex> eventIndices;
-            Array_<Real> eventTimes;
-            Array_<Event::Trigger> eventTransitions;
-            int nevents = getAdvancedState().getNEventTriggers();
-            int* eventFlags = new int[nevents];
+            ActiveWitnessSubset witnessIndices;
+            Array_<double> eventTimes;
+            Array_<Event::TriggerDirection> eventTransitions;
+            const unsigned nWitnesses = getWitnesses().size();
+            int* eventFlags = new int[nWitnesses];
             cpodes->getRootInfo(eventFlags);
-            for (SystemEventTriggerIndex i(0); i < nevents; ++i)
+            for (ActiveWitnessIndex i(0); i < nWitnesses; ++i)
                 if (eventFlags[i] != 0) {
-                    eventIndices.push_back(i);
+                    witnessIndices.push_back(i);
                     eventTimes.push_back(previousTimeReturned);
                     eventTransitions.push_back(eventFlags[i] == 1 
                         ? Event::Rising : Event::Falling);
                 }
             delete[] eventFlags;
-            Array_<EventId> ids;
-            findEventIds(eventIndices, ids);
 
             // Generate an interpolated state at tLo.      
             setUseInterpolatedState(true);
@@ -519,7 +517,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             realizeStateDerivatives(getInterpolatedState());
 
             setTriggeredEvents(tret, previousTimeReturned, 
-                               ids, eventTimes, eventTransitions);
+                               witnessIndices, eventTimes, eventTransitions);
 
             // For next time, we'll treat the state at tHi as an ordinary
             // trajectory step, but this will only get used if the event
@@ -538,7 +536,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
                 // the same state but with an "end of simulation" status. No
                 // further calls should be made to stepTo().
                 setStepCommunicationStatus(IntegratorRep::FinalTimeHasBeenReturned);
-                terminationReason = Integrator::ReachedFinalTime;
+                setTerminationReason(Integrator::ReachedFinalTime);
                 return Integrator::EndOfSimulation;
             }
             // This is our first encounter with the final time. Report this as

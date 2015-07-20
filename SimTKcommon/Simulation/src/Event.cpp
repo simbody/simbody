@@ -28,29 +28,74 @@
  */
 
 #include "SimTKcommon/basics.h"
+#include "SimTKcommon/internal/Event_Defs.h"
 #include "SimTKcommon/internal/Event.h"
+#include "SimTKcommon/internal/EventAction.h"
+#include "SimTKcommon/internal/EventTrigger.h"
+#include "SimTKcommon/internal/EventTrigger_Timer.h"
+#include "SimTKcommon/internal/EventTrigger_Witness.h"
 
 #include <cassert>
 #include <string>
 
-namespace SimTK {
+using namespace SimTK;
+
+// Not inline because needs a definition for EventAction.
+Event::Event(const std::string& eventDescription) 
+:   m_eventDescription(eventDescription) {initialize();}
+Event::Event(std::string&& eventDescription) 
+:   m_eventDescription(std::move(eventDescription)) {initialize();}
+
+EventActionIndex Event::adoptEventAction(EventAction* actionp) {
+    SimTK_APIARGCHECK_ALWAYS(actionp != nullptr, "Event", "adoptEventAction",
+                             "Action pointer can't be null.");
+    m_actions.emplace_back(actionp);
+    if (actionp->getActionMask() & EventAction::AnyChange)
+        m_hasChangeAction = true;
+    if (actionp->getActionMask() & EventAction::AnyReport)
+        m_hasReportAction = true;
+    return EventActionIndex(m_actions.size()-1);
+}
+
+void Event::performReportActions
+   (const Study&            study,
+    const EventTriggers&    triggers) const {
+    for (auto&& action : m_actions) {
+        if (action->getActionMask() & EventAction::AnyReport)
+            action->report(study, *this, triggers);
+    }
+}
+
+void Event::performChangeActions
+   (Study&                  study,
+    const EventTriggers&    triggers,
+    EventChangeResult&      result) const {
+    // Set up to provide a successful return if there are no change actions
+    // to be performed.
+
+    for (auto& action : m_actions) {
+        if (!(action->getActionMask() & EventAction::AnyChange))
+            continue;
+
+        action->change(study, *this, triggers, result);
+    }
+}
 
 
-const char* Event::getCauseName(Cause cause) {
+const char* Event::getCauseName(EventCause cause) {
     switch(cause) {
-    case Cause::Initialization:    return "Initialization";
-    case Cause::Triggered:         return "Triggered";
-    case Cause::Scheduled:         return "Scheduled";
-    case Cause::TimeAdvanced:      return "TimeAdvanced";
-    case Cause::Signaled:          return "Signaled";
-    case Cause::Termination:       return "Termination";
-    case Cause::Invalid:           return "Invalid";
+    case EventCause::Initialization:    return "Initialization";
+    case EventCause::Triggered:         return "Triggered";
+    case EventCause::Scheduled:         return "Scheduled";
+    case EventCause::TimeAdvanced:      return "TimeAdvanced";
+    case EventCause::Signaled:          return "Signaled";
+    case EventCause::Termination:       return "Termination";
+    case EventCause::Invalid:           return "Invalid";
     }
     return "UNRECOGNIZED EVENT CAUSE";
 }
 
-
-std::string Event::eventTriggerString(Trigger e) {
+std::string Event::eventTriggerDirectionString(TriggerDirection e) {
     // Catch special combos first
     if (e==NoEventTrigger)        return "NoEventTrigger";
     if (e==Falling)               return "Falling";
@@ -58,17 +103,17 @@ std::string Event::eventTriggerString(Trigger e) {
     if (e==AnySignChange)         return "AnySignChange";
 
     // Not a special combo; unmask one at a time.
-    const Trigger triggers[] =
+    const TriggerDirection triggerDirs[] =
      { PositiveToNegative,NegativeToPositive,NoEventTrigger };
-    const char *triggerNames[] =
+    const char *triggerDirNames[] =
      { "PositiveToNegative","NegativeToPositive" };
 
     String s;
-    for (int i=0; triggers[i] != NoEventTrigger; ++i)
-        if (e & triggers[i]) {
+    for (int i=0; triggerDirs[i] != NoEventTrigger; ++i)
+        if (e & triggerDirs[i]) {
             if (s.size()) s += "|";
-            s += triggerNames[i];
-            e = Trigger((unsigned)e & ~((unsigned)triggers[i])); 
+            s += triggerDirNames[i];
+            e = TriggerDirection((unsigned)e & ~((unsigned)triggerDirs[i])); 
         }
 
     // should have accounted for everything by now
@@ -80,101 +125,4 @@ std::string Event::eventTriggerString(Trigger e) {
     return s;
 }
 
-
-
-////////////////////////////
-// EVENT TRIGGER INFO REP //
-////////////////////////////
-
-class EventTriggerInfo::EventTriggerInfoRep {
-public:
-    explicit EventTriggerInfoRep(EventTriggerInfo* h)
-    :   myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), 
-        triggerOnFalling(true), localizationWindow(Real(0.1))
-    {
-        assert(h);
-    }
-
-private:
-    EventTriggerInfo* myHandle;
-    friend class EventTriggerInfo;
-
-    EventId  eventId;
-    bool triggerOnRising;
-    bool triggerOnFalling;
-    Real localizationWindow;
-};
-
-
-
-    ////////////////////////
-    // EVENT TRIGGER INFO //
-    ////////////////////////
-
-EventTriggerInfo::EventTriggerInfo() : rep(0) {
-    rep = new EventTriggerInfoRep(this);
-}
-EventTriggerInfo::~EventTriggerInfo() {
-    if (getRep().myHandle == this)
-        delete rep;
-    rep = 0;
-}
-
-EventTriggerInfo::EventTriggerInfo(EventId eventId) : rep(0) {
-    rep = new EventTriggerInfoRep(this);
-    rep->eventId = eventId;
-}
-
-EventTriggerInfo::EventTriggerInfo(const EventTriggerInfo& src) : rep(0) {
-    rep = new EventTriggerInfoRep(src.getRep());
-    rep->myHandle = this;
-}
-
-EventTriggerInfo& 
-EventTriggerInfo::operator=(const EventTriggerInfo& src) {
-    if (&src != this) {
-        if (getRep().myHandle == this)
-            delete rep;
-        rep = new EventTriggerInfoRep(src.getRep());
-        rep->myHandle = this;
-    }
-    return *this;
-}
-
-EventId EventTriggerInfo::getEventId() const {
-    return getRep().eventId;
-}
-bool EventTriggerInfo::shouldTriggerOnRisingSignTransition() const {
-    return getRep().triggerOnRising;
-}
-bool EventTriggerInfo::shouldTriggerOnFallingSignTransition() const {
-    return getRep().triggerOnFalling;
-}
-Real EventTriggerInfo::getRequiredLocalizationTimeWindow()    const {
-    return getRep().localizationWindow;
-}
-
-EventTriggerInfo& 
-EventTriggerInfo::setEventId(EventId id) {
-    updRep().eventId = id; 
-    return *this;
-}
-EventTriggerInfo& 
-EventTriggerInfo::setTriggerOnRisingSignTransition(bool shouldTrigger) {
-    updRep().triggerOnRising = shouldTrigger; 
-    return *this;
-}
-EventTriggerInfo& 
-EventTriggerInfo::setTriggerOnFallingSignTransition(bool shouldTrigger) {
-    updRep().triggerOnFalling = shouldTrigger; 
-    return *this;
-}
-EventTriggerInfo& 
-EventTriggerInfo::setRequiredLocalizationTimeWindow(Real w) {
-    assert(w > 0);
-    updRep().localizationWindow = w; 
-    return *this;
-}
-
-} // namespace SimTK
 

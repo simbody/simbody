@@ -28,6 +28,11 @@
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/System.h"
+#include "SimTKcommon/internal/Event.h"
+
+#include "SimTKcommon/internal/EventReporter.h"
+
+#include <string>
 
 namespace SimTK {
 
@@ -50,10 +55,23 @@ If you merely want to observe the system upon even occurrence, and not alter
 its behavior in any way, you should use a EventReporter instead.
 
 Once you have created an %EventHandler, you can add it to a System by calling
-System::addEventHandler(). **/
+System::adoptEventHandler(). **/
 class SimTK_SimTKCOMMON_EXPORT EventHandler {
 public:
     virtual ~EventHandler() {}
+
+    /** Create a new, unowned copy of this %EventHandler on the heap. The
+    System-related information will not be copied. **/
+    EventHandler* clone() const {
+        EventHandler* p = cloneVirtual();
+        p->clearCache();
+        return p;
+    }
+
+    /** Return the description given at construction (if any) to be used for the 
+    Event created by this %EventHandler. **/
+    const std::string& getEventDescription() const {return m_eventDescription;}
+
     
     /** This method is invoked to handle the event. It is given a State which 
     describes the system at the time when the event occurs, and it is permitted
@@ -75,18 +93,99 @@ public:
     **/   
     virtual void handleEvent(State& state, Real accuracy, 
                              bool& shouldTerminate) const = 0;
+
+    /** Return `true` if this %EventHandler has been adopted by a System. **/
+    bool isInSystem() const {return !m_system.empty();}
+
+    /** Get a reference to the System that owns this %EventHandler, if any.
+    Otherwise throws an exception; use isInSystem() to check. **/
+    const System& getSystem() const {
+        SimTK_ASSERT_ALWAYS(isInSystem(), 
+            "EventHandler::getSystem(): "
+            "This EventHandler hasn't been adopted by a System.");
+        return *m_system;
+    }
+
+    /** Return the Event created for this %EventHandler after it is adopted by
+    a System. Throws an exception if this %EventHandler is unowned; use
+    isInSystem() to check. **/
+    const Event& getEvent() const 
+    {   return getSystem().getEvent(m_eventId); }
+
+    /** Return the EventTrigger created for this %EventHandler after it is 
+    adopted by a System. This may be a Timer or Witness depending on the
+    concrete type of %EventHandler. **/
+    const EventTrigger& getEventTrigger() const 
+    {   return getSystem().getEventTrigger(m_triggerId);}
+
+protected:
+    /** Constructor for use by concrete derived classes. **/
+    explicit EventHandler(const std::string& eventDescription) 
+    :   m_eventDescription(eventDescription) {}
+
+    /** A concrete %EventHandler should implement this method to create an
+    identical copy of itself on the heap and return the pointer. **/
+    virtual EventHandler* cloneVirtual() const {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod, "EventHandler", 
+                     "cloneVirtual");
+    }
+
+    /** Get a writable reference to the System that owns this %EventHandler, 
+    if any. Otherwise throws an exception; use isInSystem() to check. **/
+    System& updSystem() {
+        SimTK_ASSERT_ALWAYS(isInSystem(), 
+            "EventHandler::updSystem(): "
+            "This EventHandler hasn't been adopted by a System.");
+        return *m_system;
+    }
+
+    /** Return a writable reference to the Event created for this %EventHandler 
+    after it is adopted by a System. Throws an exception if this %EventHandler 
+    is unowned; use isInSystem() to check. **/
+    Event& updEvent() 
+    {   return updSystem().updEvent(m_eventId); }
+
+    /** Return a writable reference to the EventTrigger created for this 
+    %EventHandler after it is adopted by a System. This may be a Timer or 
+    Witness depending on the concrete type of %EventHandler. **/
+    EventTrigger& updEventTrigger() 
+    {   return updSystem().updEventTrigger(m_triggerId);}
+
+private:
+friend class SystemGlobalSubsystem;
+
+    void clearCache() {
+        m_system.reset();
+        m_eventId.invalidate(); 
+        m_triggerId.invalidate();
+    }
+
+    // Set during construction.
+    std::string     m_eventDescription;
+
+    // These are set when the EventHandler is adopted by a System.
+    ReferencePtr<System>    m_system;
+    EventId                 m_eventId;
+    EventTriggerId          m_triggerId;
 };
 
 
 //==============================================================================
 //                         SCHEDULED EVENT HANDLER
 //==============================================================================
-/** %ScheduledEventHandler is a subclass of EventHandler for events that occur
-at a particular time that is known in advance. This includes events that occur 
-multiple times. The only requirement is that it must be able to calculate from 
-the current time and state the next time at which the event should occur. **/
+/** %ScheduledEventHandler is a still-abstract subclass of EventHandler for 
+events that occur at particular times that are known in advance. This includes 
+events that occur just once, at multiple times, or periodically. The only 
+requirement is that it must be able to calculate from the current time and 
+state the next time at which the event should occur. **/
 class SimTK_SimTKCOMMON_EXPORT ScheduledEventHandler : public EventHandler {
+    using Super = EventHandler;
 public:
+    /** Invokes the base class clone() method but makes the return type more
+    specific. **/
+    ScheduledEventHandler* clone() const 
+    {   return static_cast<ScheduledEventHandler*>(Super::clone()); }
+
     /** Determine the next time at which this event is scheduled to occur.    
     @param      state                
         The current time and state of the system.
@@ -97,32 +196,38 @@ public:
     @bug Should be called `calcNextEventTime()`. **/    
     virtual Real getNextEventTime(const State& state, 
                                   bool includeCurrentTime) const = 0;
+
+protected:
+    explicit ScheduledEventHandler
+       (const std::string& eventDescription = "ScheduledEventHandler Event")
+    :   EventHandler(eventDescription) {}
 };
 
 
 //==============================================================================
 //                         TRIGGERED EVENT HANDLER
 //==============================================================================
-/** %TriggeredEventHandler is a subclass of EventHandler for events that occur
-when some condition is satisfied within the system. This is implemented by means
-of an "event witness function". For any State, the handler must be able to 
-calculate the value of the function. When it passes through 0, that indicates 
-the event has occurred. You can also customize when the event is triggered, for
-example to specify that it is only triggered when the function goes from 
-negative to positive, not when it goes from positive to negative. **/
+/** %TriggeredEventHandler is a still-abstract subclass of EventHandler for 
+events that occur when some specific state-dependent condition occurs during
+system time stepping. This is implemented by means of an "event witness 
+function". For any State, the time stepper must be able to calculate the value 
+of the function. When the witness passes through 0, that indicates the event has
+occurred so the corresponding Event is triggered. You can also customize when 
+the event is triggered, for example to specify that it is only triggered when 
+the function goes from negative to positive, but not when it goes from positive
+to negative. **/
 class SimTK_SimTKCOMMON_EXPORT TriggeredEventHandler : public EventHandler {
+    using Super = EventHandler;
 public:
-    /** Construct a new TriggeredEventHandler and provide the Stage at which
-    its witness function can be evaluated.
-    @param  requiredStage    
-          The stage at which the witness function will be evaluated. **/    
-    explicit TriggeredEventHandler(Stage requiredStage) 
-    :   m_requiredStage(requiredStage) {}
-    
+    /** Invokes the base class clone() method but makes the return type more
+    specific. **/
+    TriggeredEventHandler* clone() const 
+    {   return static_cast<TriggeredEventHandler*>(Super::clone()); }
+
     /** Calculate the value of the event witness function using the given
     `state`. This will be called during realization of the Stage that was 
     specified in the constructor, *after* all subsystems have been realized. 
-    @bug Should be called `calcValue()`. **/  
+    @bug Should be called `calcWitnessValue()`. **/  
     virtual Real getValue(const State& state) const = 0;
     
     /** Get a writable EventTriggerInfo object which can be used to customize 
@@ -137,6 +242,19 @@ public:
     provided in the constructor). **/
     Stage getRequiredStage() const {return m_requiredStage;}
 
+protected:
+    /** Construct a new TriggeredEventHandler and provide the Stage at which
+    its witness function can be evaluated.
+    @param  requiredStage    
+        The stage at which the witness function will be evaluated. 
+    @param  eventDescription
+        An optional human-readable description of the Event created for this
+        EventHandler. If you don't provide one, a generic one will be used. **/  
+    explicit TriggeredEventHandler
+       (Stage requiredStage,
+        const std::string& eventDescription = "TriggeredEventHandler::Event") 
+    :   EventHandler(eventDescription), m_requiredStage(requiredStage) {}
+
 private:
     EventTriggerInfo    m_triggerInfo;
     Stage               m_requiredStage;
@@ -146,18 +264,42 @@ private:
 //==============================================================================
 //                         PERIODIC EVENT HANDLER
 //==============================================================================
-/** PeriodicEventHandler is a subclass of ScheduledEventHandler which generates
-a series of uniformly spaced events at regular intervals. This allows you to 
-very easily create event handlers with this behavior. **/
+/** PeriodicEventHandler is a still-abstract subclass of ScheduledEventHandler 
+which generates a series of uniformly spaced events at regular intervals. This
+allows you to very easily create event handlers with this behavior. **/
 class SimTK_SimTKCOMMON_EXPORT PeriodicEventHandler 
 :   public ScheduledEventHandler {
+    using Super = ScheduledEventHandler;
 public:
+    /** Invokes the base class clone() method but makes the return type more
+    specific. **/
+    PeriodicEventHandler* clone() const 
+    {   return static_cast<PeriodicEventHandler*>(Super::clone()); }
+
     /** Create a PeriodicEventHandler and specify the time interval between
-    event occurrences.    
+    event occurrences.  A generic event description will be provided including
+    "PeriodicEventHandler" and the period; see the other constructor if you 
+    want to supply your own.   
     @param      eventInterval
         The time interval at which events should occur. Must be strictly 
-        greater than zero. **/
-    explicit PeriodicEventHandler(Real eventInterval) 
+        greater than zero. **/  
+    explicit PeriodicEventHandler
+       (Real               eventInterval) 
+    :   ScheduledEventHandler("PeriodicEventHandler event, period=" 
+                                                        + String(eventInterval))
+    {   setEventInterval(eventInterval); }
+
+    /** Create a PeriodicEventHandler, specify the time interval between
+    event occurrences, and provide your own description.    
+    @param      eventInterval
+        The time interval at which events should occur. Must be strictly 
+        greater than zero. 
+    @param      eventDescription
+        A human-readable description of the Event to be created for this 
+        EventHandler. **/  
+    PeriodicEventHandler(Real               eventInterval, 
+                         const std::string& eventDescription) 
+    :   ScheduledEventHandler(eventDescription)
     {   setEventInterval(eventInterval); }
 
     /** Determine the next time at which this periodic event will occur.    
