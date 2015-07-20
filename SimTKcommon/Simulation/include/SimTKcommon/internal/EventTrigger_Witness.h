@@ -27,7 +27,6 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
-#include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/EventTrigger.h"
 
 namespace SimTK {
