@@ -263,9 +263,9 @@ int main() {
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(silo);
 
-    system.addEventHandler(
+    system.adoptEventHandler(
         new UserInputHandler(*silo, dude.m_gravity, 0.1)); // 100ms
-    system.addEventReporter(new Visualizer::Reporter(viz, TimeScale/FrameRate));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, TimeScale/FrameRate));
      
     // Initialize the system and state.
 
@@ -284,7 +284,7 @@ int main() {
     //CPodesIntegrator integ(system);
     integ.setAccuracy(.01);
     //integ.setAccuracy(1e-2);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
 
     double cpuStart = cpuTime();

@@ -133,7 +133,7 @@ int main() {
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
     viz.addInputListener(silo);   
     #ifdef ANIMATE
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
     #endif
     DecorativeText help("Any input to start; ESC to quit");
     help.setIsScreenText(true);
@@ -201,7 +201,7 @@ int main() {
 
     // Add speed control.
     Motion::Steady motor(crank, 0); // User controls speed.
-    system.addEventHandler
+    system.adoptEventHandler
        (new UserInputHandler(*silo, motor, Real(0.1))); //check input every 100ms
   
     // Initialize the system and state.    
@@ -223,7 +223,7 @@ int main() {
     integ.setAccuracy(0.1);
     integ.setConstraintTolerance(.001);
     integ.setMaximumStepSize(1./60);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     viz.report(ts.getState());
     printf("Hit ENTER to simulate ... (ESC to quit)\n");

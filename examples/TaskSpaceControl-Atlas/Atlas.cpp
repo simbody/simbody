@@ -80,7 +80,7 @@ Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
     m_matter.setShowDefaultGeometry(false);
 
     // Set the sensor sampling rate. TODO: should be settable.
-    addEventHandler(new AtlasJointSampler(*this, 0.002));  
+    adoptEventHandler(new AtlasJointSampler(*this, 0.002));  
 
     //--------------------------------------------------------------------------
     //                          Read the robot file

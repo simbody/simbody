@@ -165,7 +165,7 @@ int main() {
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and obtain the default state.    
     State state = system.realizeTopology();
@@ -190,7 +190,7 @@ int main() {
     // Simulate for 10 seconds.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-5); // default is 1e-3
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(10);
     state = ts.getState(); // retrieve final state

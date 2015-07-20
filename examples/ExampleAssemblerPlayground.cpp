@@ -105,7 +105,7 @@ int main() {
     //                      finalBody, Vec3(0,-hdims[1],0));
 
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.1));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.1));
 
 
     // Initialize the system and state.
@@ -251,7 +251,7 @@ int main() {
              << pres[i].isDisabled(state) << endl;
 
     RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(10.0);
 

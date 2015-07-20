@@ -232,7 +232,7 @@ int main() {
     // to match the Visualizer's default 30 frames per second rate.
     Visualizer viz(dummySystem);
     viz.setBackgroundType(Visualizer::SolidColor);
-    dummySystem.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    dummySystem.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     // add vizualization callbacks for geodesics, contact points, etc.
     viz.addDecorationGenerator(new GeodesicDecorator(geom.getGeodP(), Red));

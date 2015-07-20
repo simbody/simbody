@@ -128,7 +128,7 @@ int main() {
 
     // Once a second we'll record the pendulum's ground location.
     const Real Interval = 1;
-    system.addEventHandler(new StationSampler(system,
+    system.adoptEventHandler(new StationSampler(system,
                                               pendulum, Vec3(0),
                                               prevPos, Interval));
 
@@ -138,7 +138,7 @@ int main() {
     viz.addDecorationGenerator(new RubberBand(system,
                                               pendulum, Vec3(0),
                                               prevPos));
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and state.
     
@@ -149,7 +149,7 @@ int main() {
     // Simulate it.
 
     RungeKuttaMersonIntegrator integ(system);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(100.0);
 

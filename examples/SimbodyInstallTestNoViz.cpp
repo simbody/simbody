@@ -64,7 +64,7 @@ int main() {
     MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
 
-    system.addEventReporter(new EnergyReporter(system,1.));
+    system.adoptEventReporter(new EnergyReporter(system,1.));
    
     // Initialize the system and state.
     
@@ -77,7 +77,7 @@ int main() {
 
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-6); // ask for *lots* of accuracy here (default is 1e-3)
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(100.0);
 

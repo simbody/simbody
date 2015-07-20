@@ -152,9 +152,9 @@ int main()
     viz.setCameraTransform(Vec3(0.5,0.5,0.5));
     viz.pointCameraAt(Vec3(0), Vec3(0,1,0));
     viz.setBackgroundType(Visualizer::SolidColor);
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
-    system.addEventReporter(new EnergyReport(system, .01));
+    system.adoptEventReporter(new EnergyReport(system, .01));
     system.realizeTopology();
     State state = system.getDefaultState();
 
@@ -186,7 +186,7 @@ int main()
 
     const double startCPU = cpuTime(), startReal = realTime();
 
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(20.0);    
 

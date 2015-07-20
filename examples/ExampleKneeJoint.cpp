@@ -258,9 +258,9 @@ try { // If anything goes wrong, an exception will be thrown.
     //--------------------------------------------------------------------------
     // Vizualizer Animation
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.01));
     // Energy -- reporter defined above.
-    system.addEventReporter(new MyEnergyReporter(system, 0.01));
+    system.adoptEventReporter(new MyEnergyReporter(system, 0.01));
     
     //--------------------------------------------------------------------------
     // Complete the construction of the "const" part of the System and
@@ -300,7 +300,7 @@ try { // If anything goes wrong, an exception will be thrown.
     //--------------------------------------------------------------------------
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(Accuracy);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state); // set IC's
     ts.stepTo(5.0);
 } 

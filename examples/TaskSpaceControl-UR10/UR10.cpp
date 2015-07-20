@@ -62,7 +62,7 @@ UR10::UR10(const std::string& auxDir)
     m_matter.setShowDefaultGeometry(false);
 
     // Set the sensor sampling rate. TODO: should be settable.
-    addEventHandler(new UR10JointSampler(*this, 0.002));  
+    adoptEventHandler(new UR10JointSampler(*this, 0.002));  
 
     //--------------------------------------------------------------------------
     //                          Gravity

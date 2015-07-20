@@ -292,9 +292,9 @@ int main(int argc, char **argv) {
 
     Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
     viz.addInputListener(userInput);
-    realRobot.addEventHandler(
+    realRobot.adoptEventHandler(
             new UserInputHandler(*userInput, realRobot, *controller, 0.05));
-    realRobot.addEventReporter(
+    realRobot.adoptEventReporter(
             new Visualizer::Reporter(viz, 1./30));
 
     // Display message on the screen about how to start simulation.
@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
     //RungeKuttaMersonIntegrator integ(realRobot);
     SemiExplicitEuler2Integrator integ(realRobot);
     integ.setAccuracy(0.001);
-    TimeStepper ts(realRobot, integ);
+    TimeStepper ts(integ);
     ts.initialize(s);
     viz.report(ts.getState());
 

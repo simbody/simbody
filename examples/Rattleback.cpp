@@ -245,11 +245,11 @@ int main() {
     helpMenuItems.push_back(std::make_pair("TBD - Sorry!", 1));
     viz.addMenu("Help", HelpMenuId, helpMenuItems);
 
-    system.addEventReporter(new MyReporter(system,contactForces,ReportInterval));
-    system.addEventReporter(new Visualizer::Reporter(viz, ReportInterval));
+    system.adoptEventReporter(new MyReporter(system,contactForces,ReportInterval));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, ReportInterval));
 
     // Check for a Run->Quit menu pick every 1/4 second.
-    system.addEventHandler(new UserInputHandler(*silo, .25));
+    system.adoptEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
     
@@ -289,7 +289,7 @@ int main() {
     //integ.setMaximumStepSize(1e-0001);
     integ.setAccuracy(1e-4); // minimum for CPodes
     //integ.setAccuracy(.01);
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
 
 
     ts.initialize(state);

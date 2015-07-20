@@ -267,12 +267,12 @@ int main() {
 
     viz.setCameraTransform(Vec3(0,NBodies/4,2*NBodies)); 
 
-    system.addEventHandler
+    system.adoptEventHandler
        (new UserInputHandler(viz,*silo, gravity, Real(0.1))); // check input every 100ms
 
     // Report visualization frames.
     Visualizer::Reporter* vr = new Visualizer::Reporter(viz, TimeScale/FrameRate);
-    system.addEventReporter(vr);
+    system.adoptEventReporter(vr);
     
     // Initialize the system and state.
 
@@ -313,7 +313,7 @@ int main() {
     //RungeKuttaFeldbergIntegrator integ(system);
     //CPodesIntegrator integ(system);
     integ.setAccuracy(Real(1e-2));
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
 
     double cpuStart = cpuTime();

@@ -201,9 +201,9 @@ int main() {
 
     // Ask for a report every 1/30 of a second to match the Visualizer's 
     // default rate of 30 frames per second.
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
     // Output total energy to the console once per second.
-    system.addEventReporter(new TextDataEventReporter
+    system.adoptEventReporter(new TextDataEventReporter
                                    (system, new MyEvaluateEnergy(), 1.0));
     
     // Initialize the system and state.   
@@ -226,7 +226,7 @@ int main() {
 
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-4); // ask for about 4 decimal places (default is 3)
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
     ts.stepTo(10.0);
 

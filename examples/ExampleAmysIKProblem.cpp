@@ -359,7 +359,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
 
     matter.setShowDefaultGeometry(false);
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 0.1));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 0.1));
 
 
     // Initialize the system and state.

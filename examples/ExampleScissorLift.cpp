@@ -185,7 +185,7 @@ int main() {
 
     // Ask for visualization every 1/30 second.
     Visualizer viz(system);
-    system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
+    system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and state.    
     State state = system.realizeTopology();
@@ -240,7 +240,7 @@ int main() {
     // Maintain 1mm tolerance even at very loose integration accuracy.
     integ.setConstraintTolerance(std::min(.001, Accuracy/10));
 
-    TimeStepper ts(system, integ);
+    TimeStepper ts(integ);
     ts.initialize(state);
 
     const double startReal = realTime();
