@@ -634,7 +634,7 @@ static void performEventChangeActions
         printf("----> HANDLER FAILED, message='%s'\n",
                result.getMessage().c_str());
         integ.terminate(Integrator::AnUnrecoverableErrorOccurred);
-        throw std::exception(result.getMessage().c_str());
+        throw std::runtime_error(result.getMessage());
     }
 
     integ.reinitialize(lowestModified, shouldTerminate);

@@ -156,22 +156,22 @@ public:
         return 0;        
     }
     int realizeSubsystemTimeImpl(const State& s) const override {
-        return realizeEventWitnesses(s, Stage::Time);
+        return 0;        
     }
     int realizeSubsystemPositionImpl(const State& s) const override {
-        return realizeEventWitnesses(s, Stage::Position);
+        return 0;        
     }
     int realizeSubsystemVelocityImpl(const State& s) const override {
-        return realizeEventWitnesses(s, Stage::Velocity);
+        return 0;        
     }
     int realizeSubsystemDynamicsImpl(const State& s) const override {
-        return realizeEventWitnesses(s, Stage::Dynamics);
+        return 0;        
     }
     int realizeSubsystemAccelerationImpl(const State& s) const override {
-        return realizeEventWitnesses(s, Stage::Acceleration);
+        return 0;        
     }
     int realizeSubsystemReportImpl(const State& s) const override {
-        return realizeEventWitnesses(s, Stage::Report);
+        return 0;        
     }
 
     const Event::Initialization& getInitializationEvent() const {
@@ -203,14 +203,6 @@ public:
         return TerminationTrigger::downcast
                                         (*m_triggers[m_terminationTriggerId]);
     }
-
-    static const int MaxDeriv = EventTrigger::Witness::MaxDeriv;
-
-private:
-    // Evaluate all witness values and derivatives for which g is the depends-on
-    // stage. The result goes into the corresponding cache entry.
-    int realizeEventWitnesses(const State& s, Stage g) const;
-
 
 private:
 friend class SystemGlobalSubsystem;
@@ -249,7 +241,7 @@ friend class SystemGlobalSubsystem;
     // These arrays provides access to witness values and derivatives by stage.
     static const int NWitnessStages = Stage::NValid;
     Array_<EventWitnessIndex,int>  
-        m_witnessesByStage[NWitnessStages][1+MaxDeriv];
+        m_witnessesByStage[NWitnessStages][1+EventTrigger::Witness::MaxDeriv];
 
     // Each of these (var,cache) pairs holds an Array of real values of
     // witness functions or their derivatives (mixed together).
@@ -260,7 +252,7 @@ friend class SystemGlobalSubsystem;
     void clearCache() {
         m_timers.clear(); m_witnesses.clear();
         for (int g=0; g <NWitnessStages; ++g) {
-            for (int d=0; d <= MaxDeriv; ++d)
+            for (int d=0; d <= EventTrigger::Witness::MaxDeriv; ++d)
                 m_witnessesByStage[g][d].clear();
             m_witnessVars[g].invalidate();
             m_witnessValues[g].invalidate();
@@ -296,7 +288,8 @@ realizeSubsystemTopologyImpl(State& s) const {
             wp->m_witnessIndex = witnessIndex;
             mThis->m_witnesses.emplace_back(wp);
             // We'll calculate only up to MaxDeriv derivatives.
-            const int nDerivs = std::min(MaxDeriv, wp->getNumTimeDerivatives());
+            const int nDerivs = std::min(EventTrigger::Witness::MaxDeriv, 
+                                         wp->getNumTimeDerivatives());
             for (int deriv=0; deriv <= nDerivs; ++deriv) {
                 const Stage g = wp->getDependsOnStage(deriv);
                 mThis->m_witnessesByStage[g][deriv].push_back(witnessIndex);
@@ -313,7 +306,7 @@ realizeSubsystemTopologyImpl(State& s) const {
     // currently no witness functions at some stages.
     for (Stage g(Stage::Topology); g <= Stage::Acceleration; ++g) {
         int nAtThisStage = 0;
-        for (int deriv=0; deriv <= MaxDeriv; ++deriv) {
+        for (int deriv=0; deriv <= EventTrigger::Witness::MaxDeriv; ++deriv) {
             for (auto wx : m_witnessesByStage[g][deriv]) {
                 auto wp = m_witnesses[wx];
                 wp->m_valueIndex[deriv] = nAtThisStage++;
@@ -330,33 +323,6 @@ realizeSubsystemTopologyImpl(State& s) const {
     return 0;
 }
 
-//------------------------------------------------------------------------------
-//                        REALIZE EVENT WITNESSES
-//------------------------------------------------------------------------------
-// For a given Stage, realize any witness value or derivative functions that
-// have that stage as their depends-on stage. The results go into the cache
-// entry for that stage, which is marked valid here.
-int SystemGlobalSubsystem::Guts::
-realizeEventWitnesses(const State& state, Stage g) const {
-    //assert(Stage::Topology <= g && g <= Stage::Acceleration);
-    //const System& system = this->getSystem();
-
-    //ValArray& cache = Value<ValArray>::updDowncast
-    //                        (updCacheEntry(state, m_witnessValues[g])).upd();
-    //for (int deriv=0; deriv <= MaxDeriv; ++deriv) {
-    //    const auto& witnesses = m_witnessesByStage[g][deriv];
-
-    //    for (auto wx : witnesses) {
-    //        const EventTrigger::Witness* const wp = m_witnesses[wx];
-    //        const Real value = wp->calcWitnessValue(system, state, deriv);
-    //        const int ix = wp->getValueIndex(deriv);
-    //        cache[ix] = value;
-    //    }
-    //}
-    //markCacheValueRealized(state, m_witnessValues[g]);
-
-    return 0;
-}
 
 //==============================================================================
 //               LOCAL CLASSES FOR EVENTHANDLER/REPORTER SUPPORT
