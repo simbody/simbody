@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <ostream>
 #include <set>
+#include <mutex>
+#include <thread>
 
 namespace SimTK {
 
@@ -40,21 +42,27 @@ namespace SimTK {
 
 State::State() {
     impl = new StateImpl();
+    stateLock = new std::mutex;
 }
 
 // Restore state to default-constructed condition
 void State::clear() {
     delete impl;
     impl = new StateImpl();
+
+    delete stateLock;
+    stateLock = new std::mutex;
 }
 State::~State() {
     delete impl; impl=0;
+    delete stateLock;
 }
 // copy constructor
 State::State(const State& state) {
     impl = new StateImpl(*state.impl);
+    stateLock = new std::mutex;
 }
-    
+
 // copy assignment
 State& State::operator=(const State& src) {
     if (&src == this) return *this;
@@ -75,14 +83,13 @@ State& State::operator=(const State& src) {
 // See StateImpl.h for inline method implementations.
 
 
-std::ostream& 
+std::ostream&
 operator<<(std::ostream& o, const State& s) {
     o << "STATE:" << std::endl;
     o << s.toString() << std::endl;
     o << "CACHE:" << std::endl;
     return o << s.cacheToString() << std::endl;
 }
-
 
 //==============================================================================
 //                          PER SUBSYSTEM INFO
@@ -100,12 +107,12 @@ operator<<(std::ostream& o, const State& s) {
 // three methods (the template analog to virtual functions):
 //      deepAssign()            a non-shallow assignment, i.e. clone the value
 //      deepDestruct()          destroy any owned heap space
-//      getAllocationStage()    return the stage being worked on when this was 
+//      getAllocationStage()    return the stage being worked on when this was
 //                              allocated
 // The template type must otherwise support shallow copy semantics so that
 // the Array_ can move them around without causing any heap activity.
 
-// Clear the contents of an allocation stack, freeing up all associated heap 
+// Clear the contents of an allocation stack, freeing up all associated heap
 // space.
 template <class T>
 static void clearAllocationStack(Array_<T>& stack) {
@@ -130,14 +137,14 @@ static void popAllocationStackBackToStage(Array_<T>& stack, const Stage& g) {
     unsigned newSize = stack.size();
     while (newSize > 0 && stack[newSize-1].getAllocationStage() > g)
         stack[--newSize].deepDestruct();
-    stack.resize(newSize); 
+    stack.resize(newSize);
 }
 
-// Make this allocation stack the same as the source, copying only through the 
+// Make this allocation stack the same as the source, copying only through the
 // given stage.
 template <class T>
 static void copyAllocationStackThroughStage
-   (Array_<T>& stack, const Array_<T>& src, const Stage& g) 
+   (Array_<T>& stack, const Array_<T>& src, const Stage& g)
 {
     unsigned nVarsToCopy = src.size(); // assume we'll copy all
     while (nVarsToCopy && src[nVarsToCopy-1].getAllocationStage() > g)
@@ -148,9 +155,9 @@ static void copyAllocationStackThroughStage
 }
 
 void PerSubsystemInfo::clearContinuousVars() {
-    clearAllocationStack(qInfo); 
-    clearAllocationStack(uInfo);                                
-    clearAllocationStack(zInfo); 
+    clearAllocationStack(qInfo);
+    clearAllocationStack(uInfo);
+    clearAllocationStack(zInfo);
 }
 
 void PerSubsystemInfo::clearConstraintErrs() {
@@ -173,12 +180,12 @@ void PerSubsystemInfo::clearAllStacks() {
         clearEventTriggers(i);
 }
 
-void PerSubsystemInfo::popContinuousVarsBackToStage(const Stage& g) { 
+void PerSubsystemInfo::popContinuousVarsBackToStage(const Stage& g) {
     popAllocationStackBackToStage(qInfo,g);
     popAllocationStackBackToStage(uInfo,g);
     popAllocationStackBackToStage(zInfo,g);
 }
-void PerSubsystemInfo::popDiscreteVarsBackToStage(const Stage& g) 
+void PerSubsystemInfo::popDiscreteVarsBackToStage(const Stage& g)
 {   popAllocationStackBackToStage(discreteInfo,g); }
 
 void PerSubsystemInfo::popConstraintErrsBackToStage(const Stage& g) {
@@ -186,12 +193,12 @@ void PerSubsystemInfo::popConstraintErrsBackToStage(const Stage& g) {
     popAllocationStackBackToStage(uerrInfo,g);
     popAllocationStackBackToStage(udoterrInfo,g);
 }
-void PerSubsystemInfo::popCacheBackToStage(const Stage& g) 
+void PerSubsystemInfo::popCacheBackToStage(const Stage& g)
 {   popAllocationStackBackToStage(cacheInfo,g); }
 
 void PerSubsystemInfo::popEventTriggersBackToStage(const Stage& g) {
     for (int i=0; i < Stage::NValid; ++i)
-        popAllocationStackBackToStage(triggerInfo[i],g); 
+        popAllocationStackBackToStage(triggerInfo[i],g);
 }
 
 void PerSubsystemInfo::popAllStacksBackToStage(const Stage& g) {
@@ -322,12 +329,12 @@ StateImpl::StateImpl(const StateImpl& src)
     subsystems = src.subsystems;
     if (src.currentSystemStage >= Stage::Topology) {
         advanceSystemToStage(Stage::Topology);
-        systemStageVersions[Stage::Topology] = 
+        systemStageVersions[Stage::Topology] =
             src.systemStageVersions[Stage::Topology];
         t = src.t;
         if (src.currentSystemStage >= Stage::Model) {
             advanceSystemToStage(Stage::Model);
-            systemStageVersions[Stage::Model] = 
+            systemStageVersions[Stage::Model] =
                 src.systemStageVersions[Stage::Model];
             // careful -- don't allow reallocation
             y = src.y;
@@ -336,7 +343,7 @@ StateImpl::StateImpl(const StateImpl& src)
         }
         if (src.currentSystemStage >= Stage::Instance) {
             advanceSystemToStage(Stage::Instance);
-            systemStageVersions[Stage::Instance] = 
+            systemStageVersions[Stage::Instance] =
                 src.systemStageVersions[Stage::Instance];
             // careful -- don't allow reallocation
             qerrWeights = src.qerrWeights;
@@ -363,12 +370,12 @@ StateImpl& StateImpl::operator=(const StateImpl& src) {
     subsystems = src.subsystems;
     if (src.currentSystemStage >= Stage::Topology) {
         advanceSystemToStage(Stage::Topology);
-        systemStageVersions[Stage::Topology] = 
+        systemStageVersions[Stage::Topology] =
             src.systemStageVersions[Stage::Topology];
         t = src.t;
         if (src.currentSystemStage >= Stage::Model) {
             advanceSystemToStage(Stage::Model);
-            systemStageVersions[Stage::Model] = 
+            systemStageVersions[Stage::Model] =
                 src.systemStageVersions[Stage::Model];
             // careful -- don't allow reallocation
             y = src.y;
@@ -377,7 +384,7 @@ StateImpl& StateImpl::operator=(const StateImpl& src) {
         }
         if (src.currentSystemStage >= Stage::Instance) {
             advanceSystemToStage(Stage::Instance);
-            systemStageVersions[Stage::Instance] = 
+            systemStageVersions[Stage::Instance] =
                 src.systemStageVersions[Stage::Instance];
             // careful -- don't allow reallocation
             qerrWeights = src.qerrWeights;
@@ -437,7 +444,7 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
         // and corresponding cache entries.
         q.clear(); u.clear(); z.clear(); // y views
         // Finally nuke the actual y data.
-        y.unlockShape(); y.clear(); 
+        y.unlockShape(); y.clear();
         uWeights.unlockShape(); uWeights.clear();
         zWeights.unlockShape(); zWeights.clear();
 
@@ -471,7 +478,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
     assert(allSubsystemsAtLeastAtStage(stg));
 
     if (stg == Stage::Topology) {
-        // As the final "Topology" step, initialize time to 0 (it's NaN 
+        // As the final "Topology" step, initialize time to 0 (it's NaN
         // before this).
         const_cast<StateImpl*>(this)->t = 0;
     }
@@ -483,7 +490,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         Array_<int> ssnu(subsystems.size(), 0);
         Array_<int> ssnz(subsystems.size(), 0);
 
-        // Count up all 
+        // Count up all
         for (SubsystemIndex i(0); i<subsystems.size(); ++i) {
             const PerSubsystemInfo& ss = subsystems[i];
             for (unsigned j=0; j<ss.qInfo.size(); ++j)
@@ -497,7 +504,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
             nz += ssnz[i];
         }
 
-        // Allocate the actual shared state variables & cache 
+        // Allocate the actual shared state variables & cache
         // entries and make sure no one can accidentally change the size.
         // We need write access temporarily to set up the state.
         StateImpl* wThis = const_cast<StateImpl*>(this);
@@ -524,13 +531,13 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         SystemZIndex nxtz(0);
 
         for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-            PerSubsystemInfo& ss = 
+            PerSubsystemInfo& ss =
                 const_cast<PerSubsystemInfo&>(subsystems[i]);
             const int nq=ssnq[i], nu=ssnu[i], nz=ssnz[i];
 
             // Assign the starting indices.
             ss.qstart=nxtq; ss.ustart=nxtu; ss.zstart=nxtz;
- 
+
             // Build the views.
             ss.q.viewAssign(wThis->q(nxtq, nq));
             int nxt=0;
@@ -540,7 +547,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
                 nxt += nv;
             }
 
-            ss.u.viewAssign(wThis->u(nxtu, nu)); 
+            ss.u.viewAssign(wThis->u(nxtu, nu));
             ss.uWeights.viewAssign(wThis->uWeights(nxtu, nu));
             nxt=0;
             for (unsigned j=0; j<ss.uInfo.size(); ++j) {
@@ -550,7 +557,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
                 nxt += nv;
             }
 
-            ss.z.viewAssign(wThis->z(nxtz, nz)); 
+            ss.z.viewAssign(wThis->z(nxtz, nz));
             ss.zWeights.viewAssign(wThis->zWeights(nxtz, nz));
             nxt=0;
             for (unsigned j=0; j<ss.zInfo.size(); ++j) {
@@ -583,7 +590,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         for (unsigned i=0; i<nss; ++i)
             ssntriggers[i].resize(Stage::NValid, 0);
 
-        // Count up all 
+        // Count up all
         for (SubsystemIndex i(0); i<nss; ++i) {
             const PerSubsystemInfo& ss = subsystems[i];
             for (unsigned j=0; j<ss.qerrInfo.size(); ++j)
@@ -612,7 +619,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         wThis->qerrWeights.resize(nqerr); wThis->qerrWeights.lockShape();
         wThis->uerrWeights.resize(nuerr); wThis->uerrWeights.lockShape();
 
-        // Allocate the actual shared state variables & cache 
+        // Allocate the actual shared state variables & cache
         // entries and make sure no one can accidentally change the size.
         yerr.resize(nqerr+nuerr);         yerr.lockShape();
 
@@ -641,9 +648,9 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
             nxttrigger[g] = SystemEventTriggerByStageIndex(0);
 
         for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i) {
-            PerSubsystemInfo& ss = 
+            PerSubsystemInfo& ss =
                 const_cast<PerSubsystemInfo&>(subsystems[i]);
-            const int nqerr=ssnqerr[i], nuerr=ssnuerr[i], 
+            const int nqerr=ssnqerr[i], nuerr=ssnuerr[i],
                         nudoterr=ssnudoterr[i];
             const Array_<int>& ssntrigs = ssntriggers[i];
 
@@ -670,7 +677,7 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
             ss.multipliers.viewAssign(multipliers(nxtudoterr, nudoterr));
 
             // Assign the starting indices.
-            ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr; 
+            ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr;
             ss.udoterrstart=nxtudoterr;
 
             // Consume the slots.
@@ -704,7 +711,7 @@ void StateImpl::autoUpdateDiscreteVariables() {
             const CacheEntryIndex cx = dinfo.getAutoUpdateEntry();
             if (!cx.isValid()) continue; // not an auto-update variable
             CacheEntryInfo& cinfo = ss.cacheInfo[cx];
-            if (cinfo.isCurrent(getSubsystemStage(subx), 
+            if (cinfo.isCurrent(getSubsystemStage(subx),
                                 getSubsystemStageVersions(subx)))
                 cinfo.swapValue(getTime(), dinfo);
             cinfo.invalidate();
@@ -720,59 +727,59 @@ void StateImpl::autoUpdateDiscreteVariables() {
 String StateImpl::toString() const {
     String out;
     out += "<State>\n";
-    
+
     out += "<Real name=time>" + String(t) + "</Real>\n";
-    
+
     out += "<Vector name=q size=" + String(q.size()) + ">";
     if (q.size()) out += "\n";
     for (int i=0; i<q.size(); ++i)
         out += String(q[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=u size=" + String(u.size()) + ">";
     if (u.size()) out += "\n";
     for (int i=0; i<u.size(); ++i)
         out += String(u[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=z size=" + String(z.size()) + ">";
     if (z.size()) out += "\n";
     for (int i=0; i<z.size(); ++i)
         out += String(z[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=uWeights size=" + String(uWeights.size()) + ">";
     if (uWeights.size()) out += "\n";
     for (int i=0; i<uWeights.size(); ++i)
         out += String(uWeights[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=zWeights size=" + String(zWeights.size()) + ">";
     if (zWeights.size()) out += "\n";
     for (int i=0; i<zWeights.size(); ++i)
         out += String(zWeights[i]) + "\n";
-    out += "</Vector>\n";    
-    
+    out += "</Vector>\n";
+
     for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
         const PerSubsystemInfo& info = subsystems[ss];
-        out += "<Subsystem index=" + String(ss) + " name=" + info.name 
+        out += "<Subsystem index=" + String(ss) + " name=" + info.name
             + " version=" + info.version + ">\n";
-    
+
         out += "  <DISCRETE VARS TODO>\n";
-        
+
         out += "  <Vector name=q size=" + String(info.q.size()) + ">\n";
         out += "  <Vector name=u size=" + String(info.u.size()) + ">\n";
         out += "  <Vector name=z size=" + String(info.z.size()) + ">\n";
 
         out += "  <Vector name=uWeights size=" + String(info.uWeights.size()) + ">\n";
-        out += "  <Vector name=zWeights size=" + String(info.zWeights.size()) + ">\n";    
+        out += "  <Vector name=zWeights size=" + String(info.zWeights.size()) + ">\n";
         out += "</Subsystem>\n";
     }
-    
+
     out += "</State>\n";
     return out;
 }
-    
+
 //------------------------------------------------------------------------------
 //                             CACHE TO STRING
 //------------------------------------------------------------------------------
@@ -782,20 +789,20 @@ String StateImpl::cacheToString() const {
     String out;
     out += "<Cache>\n";
     out += "<Stage>" + getSystemStage().getName() + "</Stage>\n";
-    
+
     for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
         const PerSubsystemInfo& info = subsystems[ss];
-        out += "<Subsystem index=" + String(ss) + " name=" + info.name 
+        out += "<Subsystem index=" + String(ss) + " name=" + info.name
             + " version=" + info.version + ">\n";
         out += "  <Stage>" + info.currentStage.getName() + "</Stage>\n";
-    
+
         out += "  <DISCRETE CACHE TODO>\n";
-    
+
         out += "  <Vector name=qdot size=" + String(info.qdot.size()) + ">\n";
         out += "  <Vector name=udot size=" + String(info.udot.size()) + ">\n";
         out += "  <Vector name=zdot size=" + String(info.zdot.size()) + ">\n";
         out += "  <Vector name=qdotdot size=" + String(info.qdotdot.size()) + ">\n";
-    
+
         out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
         out += "  <Vector name=qerrWeights size=" + String(info.qerrWeights.size()) + ">\n";
         out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
@@ -804,46 +811,46 @@ String StateImpl::cacheToString() const {
         out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
         out += "  <Vector name=multipliers size=" + String(info.multipliers.size()) + ">\n";
 
-    
+
         for (int j=0; j<Stage::NValid; ++j) {
             out += "  <Vector name=triggers[";
             out += Stage(j).getName();
             out += "] size=" + String(info.triggers[j].size()) + ">\n";
         }
-    
+
         out += "</Subsystem>\n";
     }
-    
+
     out += "<Vector name=qdot size=" + String(qdot.size()) + ">";
     if (qdot.size()) out += "\n";
     for (int i=0; i<qdot.size(); ++i)
         out += String(qdot[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=udot size=" + String(udot.size()) + ">";
     if (udot.size()) out += "\n";
     for (int i=0; i<udot.size(); ++i)
         out += String(udot[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=zdot size=" + String(zdot.size()) + ">";
     if (zdot.size()) out += "\n";
     for (int i=0; i<zdot.size(); ++i)
         out += String(zdot[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=qdotdot size=" + String(qdotdot.size()) + ">";
     if (qdotdot.size()) out += "\n";
     for (int i=0; i<qdotdot.size(); ++i)
         out += String(qdotdot[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=qerr size=" + String(qerr.size()) + ">";
     if (qerr.size()) out += "\n";
     for (int i=0; i<qerr.size(); ++i)
         out += String(qerr[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=qerrWeights size=" + String(qerrWeights.size()) + ">";
     if (qerrWeights.size()) out += "\n";
     for (int i=0; i<qerrWeights.size(); ++i)
@@ -855,29 +862,27 @@ String StateImpl::cacheToString() const {
     for (int i=0; i<uerr.size(); ++i)
         out += String(uerr[i]) + "\n";
     out += "</Vector>\n";
-        
+
     out += "<Vector name=uerrWeights size=" + String(uerrWeights.size()) + ">";
     if (uerrWeights.size()) out += "\n";
     for (int i=0; i<uerrWeights.size(); ++i)
         out += String(uerrWeights[i]) + "\n";
     out += "</Vector>\n";
-        
+
     out += "<Vector name=udoterr size=" + String(udoterr.size()) + ">";
     if (udoterr.size()) out += "\n";
     for (int i=0; i<udoterr.size(); ++i)
         out += String(udoterr[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "<Vector name=multipliers size=" + String(multipliers.size()) + ">";
     if (multipliers.size()) out += "\n";
     for (int i=0; i<multipliers.size(); ++i)
         out += String(multipliers[i]) + "\n";
     out += "</Vector>\n";
-    
+
     out += "</Cache>\n";
     return out;
 }
 
-
 } // namespace SimTK
-

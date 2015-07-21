@@ -38,7 +38,7 @@ class SetFlagTask : public ParallelExecutor::Task {
 public:
     SetFlagTask(Array_<int>& flags, int& count) : flags(flags), count(count) {
     }
-    void execute(int index) {
+    void execute(int index) {      
         flags[index]++;
         localCount.upd()++;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
