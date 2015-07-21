@@ -153,19 +153,19 @@ void* threadBody(void* args) {
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
             int index = info.index;
-            try {
+            // try { //TODO: For debugging, is a try catch the best? (Don't we just want it to segfault and print out the error?)
                 while (index < count) {
                     task.execute(index);
                     index += threadCount;
                 }
-            }
-            catch (const std::exception& ex) {
-                std::cerr <<"The parallel task threw an unhandled exception:"<< std::endl;
-                std::cerr <<ex.what()<< std::endl;
-            }
-            catch (...) {
-                std::cerr <<"The parallel task threw an error."<< std::endl;
-            }
+            // }
+            // catch (const std::exception& ex) {
+            //     std::cerr <<"The parallel task threw an unhandled exception:"<< std::endl;
+            //     std::cerr <<ex.what()<< std::endl;
+            // }
+            // catch (...) {
+            //     std::cerr <<"The parallel task threw an error."<< std::endl;
+            // }
             info.running = false;
             executor.incrementWaitingThreads();
         }

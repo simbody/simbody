@@ -36,6 +36,8 @@
 #include "simbody/internal/MultibodySystem.h"
 #include <iostream>
 #include <exception>
+#include <mutex>
+#include <thread>
 
 #include "ForceImpl.h"
 
@@ -89,7 +91,8 @@ public:
             const Array_<Force*>& enabledParallelForces,
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
-            Vector& mobilityForces)
+            Vector& mobilityForces,
+            std::mutex* m)
     {
         m_s = &s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -97,7 +100,7 @@ public:
         m_rigidBodyForces = &rigidBodyForces;
         m_particleForces = &particleForces;
         m_mobilityForces = &mobilityForces;
-
+        m_local = m;
         const int numTimes = enabledParallelForces.size() + NUMNONPARALLELTHREADS;
         m_mode = All;
         m_executor.execute(*this, numTimes);
@@ -148,20 +151,25 @@ public:
     }
 
     void execute(int threadIndex) override {
-      try{
-        switch (m_mode) {
+      using namespace std;
+      switch (m_mode) {
         case All:
             if (threadIndex == NONPARALLELFORCESINDEX) {
+              // std::unique_lock<std::mutex> lock(*m_local);
                 // Process all non-parallel forces
                 for (Force* force : *m_enabledNonParallelForces) {
-                    force->getImpl().calcForce(*m_s, *m_rigidBodyForces, *m_particleForces, *m_mobilityForces);
+                    force->getImpl().calcForce(*m_s, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
                 }
             } else {
+              // std::unique_lock<std::mutex> lock(*m_local);
                 // Process a single parallel force. Subtract 1 from index b/c
                 // we use 0 for the non-parallel forces.
+                // if(threadIndex == 4)
+                //cout <<  threadIndex << endl;
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                 impl.calcForce(*m_s, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
+
             }
             break;
 
@@ -213,11 +221,11 @@ public:
             }
             break;
         }
-      }catch(std::exception e){
-        throw(e);
-      }
     }
     void finish() override {
+      // using namespace std;
+      // cout <<  m_rigidBodyForcesLocal.get() << endl;
+
         // Add in this thread's contribution.
         *m_rigidBodyForces += m_rigidBodyForcesLocal.get();
         *m_particleForces += m_particleForcesLocal.get();
@@ -238,6 +246,8 @@ private:
 
     const State* m_s;
 
+    std::mutex* m_local;
+
     // These are separated since we handle them differently.
     const Array_<Force*>* m_enabledNonParallelForces;
     const Array_<Force*>* m_enabledParallelForces;
@@ -253,7 +263,6 @@ private:
 
     // These variables are local to a thread. They are set to their default
     // value when the threads are spawned.
-    ThreadLocal<State> m_sLocal;//
     ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocal;
     ThreadLocal<Vector_<Vec3>> m_particleForcesLocal;
     ThreadLocal<Vector> m_mobilityForcesLocal;
@@ -276,7 +285,7 @@ public:
     {
         //The default number of threads is the physical number of processors
         //call setNumberOfThreads() if you want to override the thread count
-        calcForcesExecutor = new ParallelExecutor;
+        calcForcesExecutor = new ParallelExecutor();
         calcForcesTask = new CalcForcesTask(*calcForcesExecutor);
     }
 
@@ -454,6 +463,8 @@ public:
     }
 
     int realizeSubsystemDynamicsImpl(const State& s) const override {
+      using namespace std; //debug
+
         const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -489,15 +500,32 @@ public:
                     enabledNonParallelForces.push_back(forces[i]);
             }
         }
+        // cout << "------------------------------------------------" << endl;
+        // cout << "Parallel Forces:" << endl;
+        // cout << enabledParallelForces << endl;
+        // cout << endl;
+        // cout << "NonParallel Forces" << endl;
+        // cout << enabledNonParallelForces << endl;
+        // cout << endl;
+        // cout << "rigidBodyForces" << endl;
+        // cout << rigidBodyForces << endl;
+        // cout << endl;
+        // cout << "particleForces" << endl;
+        // cout << particleForces << endl;
+        // cout << endl;
+        // cout << "mobilityForces" << endl;
+        // cout << mobilityForces << endl;
+        // cout << endl;
+
+        std::mutex* m = new std::mutex();
         // Short circuit if we're not doing any caching here. Note that we're
         // checking whether the *index* is valid (i.e. does the cache entry
         // exist?), not the contents.
         if (!cachedForcesAreValidCacheIndex.isValid()) {
-
             // Call calcForce() on all Forces, in parallel.
             calcForcesTask->calcForceAll(s,
                     enabledNonParallelForces, enabledParallelForces,
-                    rigidBodyForces, particleForces, mobilityForces);
+                    rigidBodyForces, particleForces, mobilityForces,m);
 
             // Allow forces to do their own realization, but wait until all
             // forces have executed calcForce(). TODO: not sure if that is
@@ -525,6 +553,7 @@ public:
 
 
         if (!cachedForcesAreValid) {
+          cout << "calcForceCachedAndNonCached" << endl;
             // We need to calculate the velocity independent forces.
             rigidBodyForceCache.resize(matter.getNumBodies());
             rigidBodyForceCache = SpatialVec(Vec3(0), Vec3(0));
@@ -543,7 +572,7 @@ public:
 
             cachedForcesAreValid = true;
         } else {
-
+          cout << "calcForceNonCached" << endl;
             // Cache already valid; just need to do the non-cached ones (the
             // ones for which dependsOnlyOnPositions is false).
             calcForcesTask->calcForceNonCached(s,
