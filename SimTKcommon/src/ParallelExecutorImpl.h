@@ -52,7 +52,8 @@ public:
 
 class ParallelExecutorImpl : public PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl> {
 public:
-    ParallelExecutorImpl(int numThreads);
+    ParallelExecutorImpl();
+    ParallelExecutorImpl(int numProcessorsToUse);
     ~ParallelExecutorImpl();
     ParallelExecutorImpl* clone() const;
     void execute(ParallelExecutor::Task& task, int times);
@@ -85,6 +86,9 @@ private:
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;
     int waitingThreadCount;
+    bool threadsLaunched;
+    int numMaxThreads;
+
 };
 
 } // namespace SimTK

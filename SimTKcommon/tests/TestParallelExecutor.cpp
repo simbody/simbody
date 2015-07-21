@@ -39,6 +39,12 @@ public:
     SetFlagTask(Array_<int>& flags, int& count) : flags(flags), count(count) {
     }
     void execute(int index) {
+
+        //Worthless loop to make the force calculations more expensive - make sure that
+    //the parallelism is helping out
+    volatile int junkInt = 0;
+    for(int y = 0; y < 10000; y++)
+            junkInt = junkInt + .2 + 3 * 4 /2 % 3 + 3 % 2 *2321 -322488238382;
         flags[index]++;
         localCount.upd()++;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
