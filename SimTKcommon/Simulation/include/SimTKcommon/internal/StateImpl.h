@@ -2046,7 +2046,9 @@ inline void State::
 markCacheValueNotRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
     getImpl().markCacheValueNotRealized(subx, cx);
 }
-
+inline std::mutex* State::getStateLock() const {
+  return stateLock;
+}
 // Global Resource Dimensions
 
 inline int State::getNY() const {

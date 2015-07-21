@@ -42,23 +42,25 @@ namespace SimTK {
 
 State::State() {
     impl = new StateImpl();
-    cacheLock = new std::mutex;
+    stateLock = new std::mutex;
 }
 
 // Restore state to default-constructed condition
 void State::clear() {
     delete impl;
     impl = new StateImpl();
-    delete cacheLock;
-    cacheLock = new std::mutex;
+
+    delete stateLock;
+    stateLock = new std::mutex;
 }
 State::~State() {
-    delete impl; impl=0; delete cacheLock;
+    delete impl; impl=0;
+    delete stateLock;
 }
 // copy constructor
 State::State(const State& state) {
     impl = new StateImpl(*state.impl);
-    cacheLock = new std::mutex;
+    stateLock = new std::mutex;
 }
 
 // copy assignment
