@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the header file that user code should include to pick up the 
+ * This is the header file that user code should include to pick up the
  * SimTK Simmath numerical integration tools.
  */
 
@@ -34,20 +34,20 @@
 
 namespace SimTK {
 
-    
+
 class IntegratorRep;
 
-/** An Integrator is an object that can advance the State of a System 
-through time. This is an abstract class. Subclasses implement a variety of 
-different integration methods, which vary in their speed, accuracy, stability, 
+/** An Integrator is an object that can advance the State of a System
+through time. This is an abstract class. Subclasses implement a variety of
+different integration methods, which vary in their speed, accuracy, stability,
 and various other properties.
 
 <h3>Usage</h3>
 
 An Integrator is most often used in combination with a TimeStepper.  The
-TimeStepper automates much of the work of using an Integrator: invoking it 
-repeatedly to advance time, calling event handlers, reintializing the 
-Integrator as necessary, and so on.  A typical use of an Integrator generally 
+TimeStepper automates much of the work of using an Integrator: invoking it
+repeatedly to advance time, calling event handlers, reintializing the
+Integrator as necessary, and so on.  A typical use of an Integrator generally
 resembles the following:
 
 @code
@@ -65,50 +65,50 @@ resembles the following:
 
 Given a continuous system of differential equations for state variables y, and
 optionally a manifold (set of algebraic equations) on which the solution must
-lie, an Integrator object will advance that system through time. If the full 
-system is continuous, this is sufficient. However, most interesting systems 
-consist of both continuous and discrete equations, in which case the overall 
-time advancement is handled by a TimeStepper object which will use an 
-Integrator as an "inner loop" for advancing the system across continuous 
-intervals between discrete updates. In that case, in addition to continuous 
-state variables y there will be a set of discrete variables d which are held 
+lie, an Integrator object will advance that system through time. If the full
+system is continuous, this is sufficient. However, most interesting systems
+consist of both continuous and discrete equations, in which case the overall
+time advancement is handled by a TimeStepper object which will use an
+Integrator as an "inner loop" for advancing the system across continuous
+intervals between discrete updates. In that case, in addition to continuous
+state variables y there will be a set of discrete variables d which are held
 constant during an integration interval.
 
-The continuous part of the system is an ODE-on-a-manifold system suitable for 
+The continuous part of the system is an ODE-on-a-manifold system suitable for
 solution via coordinate projection[1], structured like this:
         (1)  y' = f(d;t,y)        differential equations
         (2)  0  = c(d;t,y)        algebraic equations (manifold is c=0)
         (3)  e  = e(d;t,y)        event triggers (watch for zero crossings)
-with initial conditions t0,y0 such that c=0. The "d;" is a reminder that the 
-overall system is dependent on discrete variables d as well as y, but d cannot 
+with initial conditions t0,y0 such that c=0. The "d;" is a reminder that the
+overall system is dependent on discrete variables d as well as y, but d cannot
 change during a continuous interval.
 
-By "ODE on a manifold" we mean that the ODE (1) automatically satisfies the 
+By "ODE on a manifold" we mean that the ODE (1) automatically satisfies the
 condition that IF c==0, THEN c'=0, where
     c'=partial(c)/partial(t) + [partial(c)/partial(y)]*y'.
 This is a less stringent condition than an ODE with "first integral" invariant,
 in which c'=0 regardless of whether c=0.
 
-[1] Hairer, Lubich, Wanner, "Geometric Numerical Integration: 
-Structure-Preserving Algorithms for Ordinary Differential Equations", 2nd ed., 
+[1] Hairer, Lubich, Wanner, "Geometric Numerical Integration:
+Structure-Preserving Algorithms for Ordinary Differential Equations", 2nd ed.,
 section IV.4, pg 109ff, Springer, 2006.
 
-The discrete variables d are updated by the time stepper upon occurence of 
+The discrete variables d are updated by the time stepper upon occurence of
 specific events, which terminate a continuous interval. The Integrator detects
-these using a set of scalar-valued event trigger functions shown as equation 
+these using a set of scalar-valued event trigger functions shown as equation
 (3) above. An event trigger function for a particular event must be designed so
-that it has a zero crossing when the event occurs. The integrator can thus 
+that it has a zero crossing when the event occurs. The integrator can thus
 watch for sign changes in event triggers and terminate the current step when a
 zero crossing occurs, notifying the system and giving it a chance to handle the
 event; that is, update its state variables discontinuously.
 
-The zero crossings of continuous event trigger functions will be isolated 
+The zero crossings of continuous event trigger functions will be isolated
 quickly; discontinuous ones have to be "binary chopped" which is more expensive
 but they will still work.
 
 We are given a set of weights W for the y's, and a set of tolerances T for the
 constraint errors. Given an accuracy specification (like 0.1%), the integrators
-here are expected to solve for y(t) such that the local error 
+here are expected to solve for y(t) such that the local error
 |W*yerr|_RMS <= accuracy, and |T*c(t,y)|_RMS <= accuracy at all times.
 
 TODO: isolation tolerances for witnesses; dealing with simultaneity.
@@ -146,7 +146,7 @@ public:
     /// "advanced state", this method must be called to reinitialize the Integrator.
     /// Event handlers can do varying amounts of damage and some events will require no
     /// reinitialization, or minimal reinitialization, depending on details
-    /// of the particular integration method. So after the handler has 
+    /// of the particular integration method. So after the handler has
     /// mangled our State, we tell the Integrator the lowest Stage which was
     /// changed and allow the Integrator to figure out how much reinitialization
     /// to do.
@@ -212,7 +212,7 @@ public:
         ReachedStepLimit     =5,
         /// termination; don't call again
         EndOfSimulation      =6,
-        /// the beginning of a continuous interval: either the start of the 
+        /// the beginning of a continuous interval: either the start of the
         /// simulation, or t_high after an event handler has modified the state.
         StartOfContinuousInterval=7,
         InvalidSuccessfulStepStatus = -1
@@ -285,7 +285,7 @@ public:
     /// the last call to resetAllStatistics().
     int getNumStepsAttempted() const;
     /// Get the total number of steps that have been successfully taken since the last call to resetAllStatistics().
-    int getNumStepsTaken() const; 
+    int getNumStepsTaken() const;
     /// Get the total number of state realizations that have been performed since the last call to resetAllStatistics().
     int getNumRealizations() const;
     /// Get the total number of times a state positions Q have been projected
@@ -294,36 +294,36 @@ public:
     /// Get the total number of times a state velocities U have been projected
     /// since the last call to resetAllStatistics().
     int getNumUProjections() const;
-    /// Get the total number of times a state has been projected (counting 
+    /// Get the total number of times a state has been projected (counting
     /// both Q and U projections) since the last call to resetAllStatistics().
     int getNumProjections() const;
     /// Get the number of attempted steps that have failed due to the error being unacceptably high since
     /// the last call to resetAllStatistics().
     int getNumErrorTestFailures() const;
     /// Get the number of attempted steps that failed due to non-convergence of
-    /// internal step iterations. This is most common with iterative methods 
+    /// internal step iterations. This is most common with iterative methods
     /// but can occur if for some reason a step can't be completed. It is reset
     /// to zero by resetAllStatistics.
     int getNumConvergenceTestFailures() const;
     /// Get the number of attempted steps that have failed due to an error when realizing the state since
     /// the last call to resetAllStatistics().
     int getNumRealizationFailures() const;
-    /// Get the number of attempted steps that have failed due to an error 
-    /// when projecting the state positions (Q) since the last call to 
+    /// Get the number of attempted steps that have failed due to an error
+    /// when projecting the state positions (Q) since the last call to
     /// resetAllStatistics().
     int getNumQProjectionFailures() const;
-    /// Get the number of attempted steps that have failed due to an error 
-    /// when projecting the state velocities (U) since the last call to 
+    /// Get the number of attempted steps that have failed due to an error
+    /// when projecting the state velocities (U) since the last call to
     /// resetAllStatistics().
     int getNumUProjectionFailures() const;
-    /// Get the number of attempted steps that have failed due to an error 
+    /// Get the number of attempted steps that have failed due to an error
     /// when projecting the state (either a Q- or U-projection) since
     /// the last call to resetAllStatistics().
     int getNumProjectionFailures() const;
-    /// For iterative methods, get the number of internal step iterations in steps that led to 
+    /// For iterative methods, get the number of internal step iterations in steps that led to
     /// convergence (not necessarily successful steps). Reset to zero by resetAllStatistics().
     int getNumConvergentIterations() const;
-    /// For iterative methods, get the number of internal step iterations in steps that did not lead 
+    /// For iterative methods, get the number of internal step iterations in steps that did not lead
     /// to convergence. Reset to zero by resetAllStatistics().
     int getNumDivergentIterations() const;
     /// For iterative methods, this is the total number of internal step iterations taken regardless
@@ -343,23 +343,23 @@ public:
     /// Set the maximum step size that should ever be used.  The default depends on the integration method.
     /// Some integrators may not support this option.
     void setMaximumStepSize(Real hmax);
-    
-    /// Set the integrator to use a single fixed step size for all steps. This 
-    /// is exactly equivalent to calling setInitialStepSize(), 
-    /// setMinimumStepSize(), and setMaximumStepSize(), passing the same value 
+
+    /// Set the integrator to use a single fixed step size for all steps. This
+    /// is exactly equivalent to calling setInitialStepSize(),
+    /// setMinimumStepSize(), and setMaximumStepSize(), passing the same value
     /// to each one. This will therefore not work correctly if the integrator
     /// does not support minimum and/or maximum step sizes.
     void setFixedStepSize(Real stepSize);
 
-    /// Set the overall accuracy that should be used for integration.  If the 
-    /// Integrator does not support error control (methodHasErrorControl() 
+    /// Set the overall accuracy that should be used for integration.  If the
+    /// Integrator does not support error control (methodHasErrorControl()
     /// returns false), this may have no effect.
     void setAccuracy(Real accuracy);
     /// Set the tolerance within which constraints must be satisfied.
     void setConstraintTolerance(Real consTol);
-    /// (Advanced) Use infinity norm (maximum absolute value) instead of 
-    /// default RMS norm to evaluate whether accuracy has been achieved for 
-    /// states and for constraint tolerance. The infinity norm is more strict 
+    /// (Advanced) Use infinity norm (maximum absolute value) instead of
+    /// default RMS norm to evaluate whether accuracy has been achieved for
+    /// states and for constraint tolerance. The infinity norm is more strict
     /// but may permit use of a looser accuracy request.
     void setUseInfinityNorm(bool useInfinityNorm);
     /// (Advanced) Are we currently using the infinity norm?
@@ -367,32 +367,32 @@ public:
 
 
     /// Set the maximum number of steps that may be taken within a single call
-    /// to stepTo() or stepBy(). If this many internal steps occur before 
+    /// to stepTo() or stepBy(). If this many internal steps occur before
     /// reaching the report time, it will return control with a ReachedStepLimit
     /// status. If nSteps <= 0, the number of steps will be unlimited.
     void setInternalStepLimit(int nSteps);
 
     /// Set whether the Integrator should return from stepTo() or stepBy() after
-    /// every internal step, even if no event has occurred and the report time 
+    /// every internal step, even if no event has occurred and the report time
     /// has not been reached. The default is false.
     void setReturnEveryInternalStep(bool shouldReturn);
 
-    /// Set whether the system should be projected back to the constraint 
-    /// manifold after every step. If this is false, projection will only be 
+    /// Set whether the system should be projected back to the constraint
+    /// manifold after every step. If this is false, projection will only be
     /// performed when the constraint error exceeds the allowed tolerance.
-    void setProjectEveryStep(bool forceProject);    
-    /// Set whether the Integrator is permitted to return interpolated states 
-    /// for reporting purposes which may be less accurate than the "real" 
-    /// states that form the trajectory. Setting this to false may 
-    /// significantly affect performance, since the Integrator will be forced 
+    void setProjectEveryStep(bool forceProject);
+    /// Set whether the Integrator is permitted to return interpolated states
+    /// for reporting purposes which may be less accurate than the "real"
+    /// states that form the trajectory. Setting this to false may
+    /// significantly affect performance, since the Integrator will be forced
     /// to decrease its step size at every scheduled reporting time.
     ///
-    /// This option is generally only meaningful if interpolated states are 
+    /// This option is generally only meaningful if interpolated states are
     /// less accurate than other states on the trajectory. If an Integrator can
-    /// produce interpolated states that have the same accuracy as the rest of 
+    /// produce interpolated states that have the same accuracy as the rest of
     /// the trajectory, it may ignore this option.
     void setAllowInterpolation(bool shouldInterpolate);
-    /// Set whether interpolated states should be projected back to the 
+    /// Set whether interpolated states should be projected back to the
     /// constraint manifold after interpolation is performed. The default is
     /// "true".
     void setProjectInterpolatedStates(bool shouldProject);

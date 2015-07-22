@@ -25,23 +25,23 @@
 This example shows a manual approach to dealing with unilateral constraints in
 Simbody, which does not currently have built-in support but has sufficiently
 general facilities. In this example we'll implement non-slipping point
-contact, joint limit constraints, and a rope-like one-sided distance 
-constraint. We'll use Simbody bilateral constraints turned on and off with 
+contact, joint limit constraints, and a rope-like one-sided distance
+constraint. We'll use Simbody bilateral constraints turned on and off with
 manual switching conditions that are set by discrete event handlers.
 
-For each designated contact point that is not in contact, we'll track the 
+For each designated contact point that is not in contact, we'll track the
 vertical height over the ground plane and its first and second time derivatives
-and use those to construct switching ("witness") functions to trigger an event 
-that may enable the constraint. For each enabled contact constraint, we'll 
-track the sign of the normal reaction force and use it as a witness to disable 
+and use those to construct switching ("witness") functions to trigger an event
+that may enable the constraint. For each enabled contact constraint, we'll
+track the sign of the normal reaction force and use it as a witness to disable
 the constraint.
 
 Note that there are two separate conditions involving these constraints:
-impact (collision) and contact. Impact occurs during an infinitesimal 
+impact (collision) and contact. Impact occurs during an infinitesimal
 interval and involves impulses and velocities, while contact persists over time
-and involves forces and accelerations. Contact between rigid objects is a 
-simple, physically justifiable process in which contact constraints generate 
-forces if necessary to prevent interpenetration. Impact of rigid objects, on 
+and involves forces and accelerations. Contact between rigid objects is a
+simple, physically justifiable process in which contact constraints generate
+forces if necessary to prevent interpenetration. Impact of rigid objects, on
 the other hand, requires assumptions to be made about the non-modeled details
 of collision behavior that is assumed to occur in an infinitesimal interval.
 Just producing logically-consistent behavior during impact is very difficult;
@@ -51,13 +51,13 @@ How we handle contact
 ---------------------
 In this example each contact consists of a constraint that prevents penetration
 of a point on a moving body normal to the ground plane, and constraints
-that prevent slipping tangent to the plane. We implement non-penetration with 
-Simbody's "PointInPlane" constraint. We enable this 
-constraint when a contact begins, defined so 
+that prevent slipping tangent to the plane. We implement non-penetration with
+Simbody's "PointInPlane" constraint. We enable this
+constraint when a contact begins, defined so
 that its multiplier is the y component of the reaction force, with +y
 being the ground plane normal. We monitor the reaction force y component, and
 declare the contact broken if that component is negative. The no-slip condition
-is enforced with two of Simbody's "NoSlip1D" constraints, one in the x 
+is enforced with two of Simbody's "NoSlip1D" constraints, one in the x
 direction and one in the z direction.
 
 A rope is implemented similarly using Simbody's "Rod" (distance) constraint,
@@ -66,33 +66,33 @@ ConstantSpeed constraint, with the speed set to zero.
 
 How we handle impacts
 ---------------------
-In this example, an impact is signaled by a contact point that reaches the 
+In this example, an impact is signaled by a contact point that reaches the
 ground plane with a negative vertical speed vy, with similar conditions for
 the other constraints. This requires a step change to
 the system velocities to avoid penetration or constraint violation. We achieve
 this step change by applying a constraint-space
-impulse to the system, representing constraint-space contact 
+impulse to the system, representing constraint-space contact
 forces integrated over the assumed-infinitesimal impact interval. The system
 equations of motion are used to ensure that the velocity changes produced by
-the impulses satisfy Newton's laws. This can produce velocity changes anywhere 
-in the system and may result in other impacts or breaking of 
+the impulses satisfy Newton's laws. This can produce velocity changes anywhere
+in the system and may result in other impacts or breaking of
 existing contacts.
 
 When an impact is signaled, we determine the subset of potential contacts that
-may be involved in this event; those are called "proximal" contacts and are 
+may be involved in this event; those are called "proximal" contacts and are
 just those whose contact points are at zero height, within a small tolerance.
 The rest are ignored during handling of the impact.
 
 We use Poisson's interpretation of coefficient of restitution as a ratio of
-impulses, rather than Newton's more commonly known but inconsistent 
-interpretation as a ratio of velocities. To apply Poisson's interpretation, we 
-divide the impact into two distinct phases: compression and expansion. 
-During compression we determine what impulse is required to prevent any 
-penetration at the proximal contacts, by eliminating any negative speeds vy. 
+impulses, rather than Newton's more commonly known but inconsistent
+interpretation as a ratio of velocities. To apply Poisson's interpretation, we
+divide the impact into two distinct phases: compression and expansion.
+During compression we determine what impulse is required to prevent any
+penetration at the proximal contacts, by eliminating any negative speeds vy.
 The task for expansion is to determine an expansion impulse, based
-on the compression impulse, the coefficient of restitution e at each contact, 
-and a "capture velocity" vc that says when a rebound velocity is so small we 
-should consider a new persistent contact to be initiated. 
+on the compression impulse, the coefficient of restitution e at each contact,
+and a "capture velocity" vc that says when a rebound velocity is so small we
+should consider a new persistent contact to be initiated.
 
 0) Initialize: initialize the effective coefficients of restitution e(i) for
 each of the proximal constraints. These can be constants associated with the
@@ -101,28 +101,28 @@ the total applied impulse I=0, determine current velocity V. Activate all
 proximal constraints.
 
 1) Compression phase: Determine the nonnegative least squares constraint-space
-impulse Ic that brings any impacting proximal contacts ("impacters") to a stop, 
-and leaves non-impacting ones ("rebounders") with a positive vertical speed 
-(however small). Note that the set of impacters might not end up being the same 
+impulse Ic that brings any impacting proximal contacts ("impacters") to a stop,
+and leaves non-impacting ones ("rebounders") with a positive vertical speed
+(however small). Note that the set of impacters might not end up being the same
 ones as came in with negative vy; some new ones might be added and some of the
 originals might turn out to be rebounders due to the effects of other impacts.
-At the end we have for the i'th proximal constraint a compression impulse 
-Ic(i)>=0 and a post-compression velocity Vc(i)>=0, with contact constraint i 
-active (impacter) if Ic(i)>0 or Ic(i)==0 && Vc(i)==0 and inactive 
+At the end we have for the i'th proximal constraint a compression impulse
+Ic(i)>=0 and a post-compression velocity Vc(i)>=0, with contact constraint i
+active (impacter) if Ic(i)>0 or Ic(i)==0 && Vc(i)==0 and inactive
 (rebounder) otherwise, with Ic(i)==0 and Vc(i)>0. Although it may take a few
 iterations to figure out what's going on, we consider everything to be
 simultaneous during a compression phase -- there is a single impulse Ic
 generated that modifies the original velocities to produce Vc. Increment the
 total impulse I+=Ic (>=0), set V=Vc (>=0).
 
-2) Expansion phase: Generate an expansion impulse Ie such that 
-Ie(i)=e(i)*Ic(i) for each of the impacters i from the compression phase. 
-If Ie==0 there is no expansion to do; go to step 4. Otherwise,  
-set e(i)=0 for each of the impacters; the material restitution has now been 
-consumed. Increment the total impulse I+=Ie. Apply the impulse Ie to produce a 
+2) Expansion phase: Generate an expansion impulse Ie such that
+Ie(i)=e(i)*Ic(i) for each of the impacters i from the compression phase.
+If Ie==0 there is no expansion to do; go to step 4. Otherwise,
+set e(i)=0 for each of the impacters; the material restitution has now been
+consumed. Increment the total impulse I+=Ie. Apply the impulse Ie to produce a
 velocity change dVe and a new velocity Ve=V+dVe, and update V=Ve. If Ve>=0 for
-all proximal contacts, we are successful. In that case go to step 4 with the 
-total impulse I>=0, and velocity V=Ve>=0; active constraints are those where 
+all proximal contacts, we are successful. In that case go to step 4 with the
+total impulse I>=0, and velocity V=Ve>=0; active constraints are those where
 V(k)=0.
 
 3) Some contacts now have negative
@@ -131,17 +131,17 @@ compression phase). This requires a new compression phase, beginning with
 these velocities and with the original impacters now having zero coefficients
 of restitution. So return to step 1.
 
-4) We have determined and applied the compression+expansion impulse I>=0 and 
-have the resulting velocities V>=0. Check all contacts for which V>0 (the 
+4) We have determined and applied the compression+expansion impulse I>=0 and
+have the resulting velocities V>=0. Check all contacts for which V>0 (the
 rebounders) to see if any is rebounding very slowly (<= vc). Enable those,
-and calculate the impulse dI that just brings those to zero while maintaining 
-other contacts. Apply that impulse to get new velocities V. If that causes 
-any V(k)<0 or new V(k)<=vc, declare that a contact too and recalculate dI; 
+and calculate the impulse dI that just brings those to zero while maintaining
+other contacts. Apply that impulse to get new velocities V. If that causes
+any V(k)<0 or new V(k)<=vc, declare that a contact too and recalculate dI;
 repeat until all inactive (rebounding) V(k)>vc. Then set the final I+=dI.
 
-5) Now calculate accelerations. If any of the active proximal contacts 
+5) Now calculate accelerations. If any of the active proximal contacts
 generate a zero or negative vertical reaction force they should be disabled;
-otherwise we would miss the next break-free event. 
+otherwise we would miss the next break-free event.
 */
 
 #include "Simbody.h"
@@ -165,21 +165,21 @@ const Real RunTime=20;
 // we're dealing with, while giving us enough to work with for deciding what's
 // on and off and generating impulses.
 //
-// There is always a scalar associated with the constraint for making 
+// There is always a scalar associated with the constraint for making
 // decisions, although contact constraints may also have some additional
 // constraint equations for stiction.
 class MyUnilateralConstraint {
 public:
     enum ImpulseType {Compression,Expansion,Capture};
 
-    MyUnilateralConstraint(Constraint uni, Real multSign, Real coefRest) 
-    :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest), 
-        m_restitutionDone(false) 
+    MyUnilateralConstraint(Constraint uni, Real multSign, Real coefRest)
+    :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest),
+        m_restitutionDone(false)
     {   m_uni.setDisabledByDefault(true); }
 
     virtual ~MyUnilateralConstraint() {}
 
-    // These must be constructed so that a negative value means the 
+    // These must be constructed so that a negative value means the
     // unilateral constraint condition is violated.
     virtual Real getPerr(const State& state) const = 0;
     virtual Real getVerr(const State& state) const = 0;
@@ -198,7 +198,7 @@ public:
         return m_multSign*mult[0];
     }
 
-    // Override these if you have auxiliary constraints but be sure to 
+    // Override these if you have auxiliary constraints but be sure to
     // invoke superclass method too.
 
     virtual void enable(State& state) const {m_uni.enable(state);}
@@ -207,7 +207,7 @@ public:
     virtual void setMyDesiredDeltaV(const State&    s,
                                     Vector&         desiredDeltaV) const
     {   Vector myDesiredDV(1); myDesiredDV[0] = m_multSign*getVerr(s);
-        m_uni.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
+        m_uni.setMyPartInConstraintSpaceVector(s, myDesiredDV,
                                                    desiredDeltaV); }
 
     virtual void recordImpulse(ImpulseType type, const State& state,
@@ -223,7 +223,7 @@ public:
     // This is used by some constraints to collect position information that
     // may be used later to set instance variables when enabling the underlying
     // Simbody constraint. All constraints zero impulses here.
-    virtual void initializeForImpact(const State& state) 
+    virtual void initializeForImpact(const State& state)
     {   setRestitutionDone(false); m_Ic = m_Ie = m_I = 0; }
 
     // Impulse is accumulated internally.
@@ -244,7 +244,7 @@ public:
         Vector myImp(1); myImp[0] = I;
         m_uni.setMyPartInConstraintSpaceVector(state, myImp, lambda); }
 
-    bool isDisabled(const State& state) const 
+    bool isDisabled(const State& state) const
     {   return m_uni.isDisabled(state); }
 
     Real getCoefRest() const {return m_coefRest;}
@@ -264,14 +264,14 @@ protected:
 //==============================================================================
 //                            SHOW CONTACT
 //==============================================================================
-// For each visualization frame, generate ephemeral geometry to show just 
+// For each visualization frame, generate ephemeral geometry to show just
 // during this frame, based on the current State.
 class ShowContact : public DecorationGenerator {
 public:
-    ShowContact(const Array_<MyUnilateralConstraint*>& unis) 
+    ShowContact(const Array_<MyUnilateralConstraint*>& unis)
     :   m_unis(unis) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         for (unsigned i=0; i < m_unis.size(); ++i) {
@@ -308,8 +308,8 @@ public:
                const Array_<MyUnilateralConstraint*>&   unis,
                const Integrator&                        integ,
                Real                                     reportInterval)
-    :   PeriodicEventReporter(reportInterval), 
-        m_system(system), m_unis(unis), m_integ(integ) 
+    :   PeriodicEventReporter(reportInterval),
+        m_system(system), m_unis(unis), m_integ(integ)
     {   m_states.reserve(2000); }
 
     ~StateSaver() {}
@@ -330,12 +330,12 @@ public:
         for (unsigned i=0; i < m_unis.size(); ++i) {
             const MyUnilateralConstraint& uni = *m_unis[i];
             const bool isLocked = !uni.isDisabled(s);
-            printf("  Uni constraint %d is %s, h=%g dh=%g\n", i, 
+            printf("  Uni constraint %d is %s, h=%g dh=%g\n", i,
                    isLocked?"LOCKED":"unlocked", uni.getPerr(s),uni.getVerr(s));
             if (isLocked) {
                 m_system.realize(s, Stage::Acceleration);
                 cout << "    force=" << uni.getForce(s) << endl;
-            } 
+            }
         }
 #endif
 
@@ -359,11 +359,11 @@ public:
     ContactOn(const MultibodySystem&                    system,
               const Array_<MyUnilateralConstraint*>&    unis,
               unsigned                                  which,
-              Stage                                     stage) 
-    :   TriggeredEventHandler(stage), 
+              Stage                                     stage)
+    :   TriggeredEventHandler(stage),
         m_mbs(system), m_unis(unis), m_which(which),
         m_stage(stage)
-    { 
+    {
         // Trigger only as height goes from positive to negative.
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
@@ -372,7 +372,7 @@ public:
     Real getValue(const State& state) const {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         const MyUnilateralConstraint& uni = *m_unis[m_which];
-        if (!uni.isDisabled(state)) 
+        if (!uni.isDisabled(state))
             return 0; // already locked
 
         const Real height = uni.getPerr(state);
@@ -397,9 +397,9 @@ public:
         return ddheight;
     }
 
-    // We're using Poisson's definition of the coefficient of 
-    // restitution, relating impulses, rather than Newton's, 
-    // relating velocities, since Newton's can produce non-physical 
+    // We're using Poisson's definition of the coefficient of
+    // restitution, relating impulses, rather than Newton's,
+    // relating velocities, since Newton's can produce non-physical
     // results for a multibody system. For Poisson, calculate the impulse
     // that would bring the velocity to zero, multiply by the coefficient
     // of restitution to calculate the rest of the impulse, then apply
@@ -410,7 +410,7 @@ public:
 
     // Make a list of all the unilateral constraints that could conceivably
     // receive an impulse. Any constraint that is currently enabled, or any
-    // currently disabled constraint that is within posTol of contact is 
+    // currently disabled constraint that is within posTol of contact is
     // included.
     void findProximalConstraints(const State&       state,
                                  Real               posTol,
@@ -419,7 +419,7 @@ public:
 
 
     // Given the set of proximal constraints, prevent penetration by applying
-    // a nonnegative least squares impulse generating a step change in 
+    // a nonnegative least squares impulse generating a step change in
     // velocity. On return, the applied impulse and new velocities are recorded
     // in proximal, and state is updated to the new velocities and realized
     // through Velocity stage. Constraints that were stopped are enabled, those
@@ -468,13 +468,13 @@ public:
     // Given the initial generalized speeds u0, and a constraint-space impulse
     // lambda, calculate the resulting step velocity change du, modify the
     // generalized speeds in state to u0+du, and realize Velocity stage.
-    void updateVelocities(const Vector& u0, 
-                          const Vector& lambda, 
+    void updateVelocities(const Vector& u0,
+                          const Vector& lambda,
                           State&        state) const;
 
 
 private:
-    const MultibodySystem&                  m_mbs; 
+    const MultibodySystem&                  m_mbs;
     const Array_<MyUnilateralConstraint*>&  m_unis;
     const unsigned                          m_which;
     const Stage                             m_stage;
@@ -492,10 +492,10 @@ class ContactOff: public TriggeredEventHandler {
 public:
     ContactOff(const MultibodySystem&               system,
         const Array_<MyUnilateralConstraint*>&      unis,
-        unsigned                                    which) 
-    :   TriggeredEventHandler(Stage::Acceleration), 
+        unsigned                                    which)
+    :   TriggeredEventHandler(Stage::Acceleration),
         m_mbs(system), m_unis(unis), m_which(which)
-    { 
+    {
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
@@ -508,10 +508,10 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const
     {
         SimTK_DEBUG("\n----------------------------------------------------\n");
-        SimTK_DEBUG2("LIFTOFF triggered by constraint %d @t=%.15g\n", 
+        SimTK_DEBUG2("LIFTOFF triggered by constraint %d @t=%.15g\n",
             m_which, s.getTime());
         m_mbs.realize(s, Stage::Acceleration);
 
@@ -527,11 +527,11 @@ public:
 
     // This is also used by ContactOn at the end.
     static void disablePullingContacts
-       (const MultibodySystem& mbs, State& s, 
-        const Array_<MyUnilateralConstraint*>& unis); 
+       (const MultibodySystem& mbs, State& s,
+        const Array_<MyUnilateralConstraint*>& unis);
 
 private:
-    const MultibodySystem&                  m_mbs; 
+    const MultibodySystem&                  m_mbs;
     const Array_<MyUnilateralConstraint*>&  m_unis;
     const unsigned                          m_which; // one of the unis
 };
@@ -556,9 +556,9 @@ public:
              Real(-1), // multiplier sign
              coefRest),
         m_body(body), m_point(point), m_groundPoint(0),
-        m_noslipX(updGround(body), Vec3(0), UnitVec3(XAxis), 
+        m_noslipX(updGround(body), Vec3(0), UnitVec3(XAxis),
                   updGround(body), body),
-        m_noslipZ(updGround(body), Vec3(0), UnitVec3(ZAxis), 
+        m_noslipZ(updGround(body), Vec3(0), UnitVec3(ZAxis),
                   updGround(body), body)
     {
         m_noslipX.setDisabledByDefault(true);
@@ -602,7 +602,7 @@ public:
                             Vector& desiredDeltaV) const override
     {
         Super::setMyDesiredDeltaV(s, desiredDeltaV);
-        const Vec3 dv = 
+        const Vec3 dv =
             m_multSign*m_body.findStationVelocityInGround(s, m_point);
         Vector myDesiredDV(1); // Nuke translational velocity also.
         myDesiredDV[0] = dv[XAxis];
@@ -663,7 +663,7 @@ public:
     MyStop(Side side, MobilizedBody& body, int whichQ,
          Real limit, Real coefRest)
     :   MyUnilateralConstraint
-           (Constraint::ConstantSpeed(body, MobilizerUIndex(whichQ), Real(0)), 
+           (Constraint::ConstantSpeed(body, MobilizerUIndex(whichQ), Real(0)),
             Real(side==Lower?-1:1), coefRest),
         m_body(body), m_whichq(whichQ), m_whichu(whichQ),
         m_sign(side==Lower?1.:-1.), m_limit(limit)
@@ -773,8 +773,8 @@ int main(int argc, char** argv) {
 
     const Vec3 CubeHalfDims(3,2,1);
     const Real CubeMass = 1;
-    Body::Rigid cubeBody = 
-        Body::Rigid(MassProperties(CubeMass, Vec3(0), 
+    Body::Rigid cubeBody =
+        Body::Rigid(MassProperties(CubeMass, Vec3(0),
                     UnitInertia::brick(CubeHalfDims)));
 
     // First body: cube
@@ -791,7 +791,7 @@ int main(int argc, char** argv) {
     }
 
     unis.push_back(new MyRope(Ground, Vec3(-5,10,0),
-                              cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0), 
+                              cube, Vec3(-CubeHalfDims[0],-CubeHalfDims[1],0),
                               5., .5*CoefRest));
     //unis.push_back(new MyStop(MyStop::Upper,loc,1, 2.5,CoefRest));
 
@@ -799,7 +799,7 @@ int main(int argc, char** argv) {
 //#ifdef NOTDEF
     // Second body: weight
     const Vec3 ConnectEdge1(CubeHalfDims[0],0,CubeHalfDims[2]);
-    MobilizedBody::Pin weight(cube, 
+    MobilizedBody::Pin weight(cube,
         Transform(Rotation(Pi/2,XAxis), ConnectEdge1),
         cubeBody, Vec3(WeightEdge));
     weight.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
@@ -819,7 +819,7 @@ int main(int argc, char** argv) {
 //#ifdef NOTDEF
    // Third body: weight2
     const Vec3 ConnectEdge2(CubeHalfDims[0],CubeHalfDims[1],0);
-    MobilizedBody::Pin weight2(cube, 
+    MobilizedBody::Pin weight2(cube,
         Transform(Rotation(), ConnectEdge2),
         cubeBody, Vec3(WeightEdge));
     weight2.addBodyDecoration(Transform(), DecorativeBrick(CubeHalfDims)
@@ -861,7 +861,7 @@ int main(int argc, char** argv) {
 
     for (unsigned i=0; i < unis.size(); ++i)
         mbs.addEventHandler(new ContactOff(mbs, unis,i));
-  
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
     mbs.realize(s, Stage::Instance); // instantiate constraints if any
@@ -896,7 +896,7 @@ int main(int argc, char** argv) {
     viz.report(s);
     cout << "Assembled configuration shown. Ready? ";
     getchar();
-    
+
     // Simulate it.
 
     TimeStepper ts(mbs, integ);
@@ -911,12 +911,12 @@ int main(int argc, char** argv) {
     const double cpuInSec = cpuTime()-startCPU;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "CPUtime " << cpuInSec << endl;
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
@@ -930,7 +930,7 @@ int main(int argc, char** argv) {
         getchar();
     }
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);
@@ -949,14 +949,14 @@ int main(int argc, char** argv) {
 
 //------------------------------ HANDLE EVENT ----------------------------------
 void ContactOn::
-handleEvent(State& s, Real accuracy, bool& shouldTerminate) const 
+handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
 {
     const Real VCapture=1e-2;
 
     Array_<int> proximal;
     findProximalConstraints(s, accuracy, proximal);
 
-    SimTK_DEBUG4("\nIMPACT (%s) for uni constraint %d at t=%.16g; %d proximal\n", 
+    SimTK_DEBUG4("\nIMPACT (%s) for uni constraint %d at t=%.16g; %d proximal\n",
         m_stage.getName().c_str(), m_which, s.getTime(), proximal.size());
 
     bool needMoreCompression = true;
@@ -976,17 +976,17 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
     }
 
     // Some of the rebounders may be moving so slowly that we would like
-    // to be able to say they have stopped. If so, apply additional 
+    // to be able to say they have stopped. If so, apply additional
     // (negative) impulses necessary to stop them; enable their contact
     // constraints.
     captureSlowRebounders(VCapture, proximal, s);
 
-    // Make sure all enabled position and velocity constraints 
+    // Make sure all enabled position and velocity constraints
     // are satisfied.
     m_mbs.project(s, accuracy);
 
-    // Finally, evaluate accelerations and reaction forces and check if 
-    // any of the active contacts are generating negative ("pulling") 
+    // Finally, evaluate accelerations and reaction forces and check if
+    // any of the active contacts are generating negative ("pulling")
     // forces; if so, inactivate them.
     ContactOff::disablePullingContacts(m_mbs, s, m_unis);
 
@@ -996,9 +996,9 @@ handleEvent(State& s, Real accuracy, bool& shouldTerminate) const
         const int which = proximal[i];
         const MyUnilateralConstraint& uni = *m_unis[which];
         printf("  %d %3s: I=%g H=%g V=%g A=%g F=%g\n",
-            which, uni.isDisabled(s) ? "off" : "ON", 
-            uni.getImpulse(), uni.getPerr(s), uni.getVerr(s), 
-            uni.getAerr(s), uni.getForce(s));       
+            which, uni.isDisabled(s) ? "off" : "ON",
+            uni.getImpulse(), uni.getPerr(s), uni.getVerr(s),
+            uni.getAerr(s), uni.getForce(s));
     }
     printf("DONE WITH IMPACT.\n\n");
 #endif
@@ -1017,7 +1017,7 @@ findProximalConstraints(const State&       s,
     proximal.clear();
     for (unsigned i=0; i<m_unis.size(); ++i) {
         MyUnilateralConstraint& uni = *m_unis[i];
-        if (!uni.isDisabled(s) || uni.getPerr(s) <= posTol) 
+        if (!uni.isDisabled(s) || uni.getPerr(s) <= posTol)
         {
             uni.initializeForImpact(s);
             proximal.push_back(i);
@@ -1034,7 +1034,7 @@ findProximalConstraints(const State&       s,
 //     impulse
 // (2) look for negative normal impulses; try disabling those
 // (3) recapture any constraints that would be violated after disabling
-// 
+//
 void ContactOn::
 processCompressionPhase(Array_<int>&    proximal,
                         State&          s) const
@@ -1084,12 +1084,12 @@ processCompressionPhase(Array_<int>&    proximal,
         for (unsigned i=0; i<maybeDisabled.size(); ++i) {
             const int which = maybeDisabled[i];
             const MyUnilateralConstraint& uni = *m_unis[which];
-            const Real newV = uni.getVerr(s);           
+            const Real newV = uni.getVerr(s);
             SimTK_DEBUG2("  candidate uni constraint %d would have v=%g\n",
                    which, newV);
             if (newV <= 0) {
                 recapturing.push_back(which);
-                SimTK_DEBUG2("  RECAPTURING uni constraint %d with v=%g\n", 
+                SimTK_DEBUG2("  RECAPTURING uni constraint %d with v=%g\n",
                     which, newV);
             }
         }
@@ -1124,7 +1124,7 @@ processCompressionPhase(Array_<int>&    proximal,
         if (!uni.isDisabled(s))
             uni.recordImpulse(MyUnilateralConstraint::Compression, s, lambda0);
         SimTK_DEBUG4("  %d %3s: Ic=%g, V=%g\n",
-            which, uni.isDisabled(s) ? "off" : "ON", 
+            which, uni.isDisabled(s) ? "off" : "ON",
             uni.getCompressionImpulse(), uni.getVerr(s));
     }
 
@@ -1188,7 +1188,7 @@ processExpansionPhase(Array_<int>&  proximal,
         const int which = proximal[i];
         const MyUnilateralConstraint& uni = *m_unis[which];
         SimTK_DEBUG4("  %d %3s: Ie=%g, V=%g\n",
-            which, uni.isDisabled(s) ? "off" : "ON", 
+            which, uni.isDisabled(s) ? "off" : "ON",
             uni.getExpansionImpulse(), uni.getVerr(s));
     }
 
@@ -1248,7 +1248,7 @@ captureSlowRebounders(Real          vCapture,
             const int which = proximal[i];
             MyUnilateralConstraint& uni = *m_unis[which];
             if (!uni.isDisabled(s))
-                uni.recordImpulse(MyUnilateralConstraint::Capture, 
+                uni.recordImpulse(MyUnilateralConstraint::Capture,
                                   s, captureImpulse);
         }
     }
@@ -1335,8 +1335,8 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
 // TODO: need to search for a consistent set of active contraints.
 
 /*static*/ void ContactOff::disablePullingContacts
-   (const MultibodySystem& mbs, State& s, 
-    const Array_<MyUnilateralConstraint*>& unis) 
+   (const MultibodySystem& mbs, State& s,
+    const Array_<MyUnilateralConstraint*>& unis)
 {
     SimTK_DEBUG("Entering disablePullingContacts() ...\n");
 
@@ -1349,7 +1349,7 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
         if (uni.isDisabled(s)) continue;
         const Real f = uni.getForce(s);
         if (f<0) {
-            SimTK_DEBUG2("  consider disabling uni %d because force=%g\n", 
+            SimTK_DEBUG2("  consider disabling uni %d because force=%g\n",
                             i, f);
             toBeDisabled.push_back(i);
         }
@@ -1371,7 +1371,7 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
         const Real aerr = uni.getAerr(s);
         if (aerr < 0) {
             violated.push_back(which);
-            SimTK_DEBUG2("  RE-ENABLE constraint %d cuz aerr=%g\n", 
+            SimTK_DEBUG2("  RE-ENABLE constraint %d cuz aerr=%g\n",
                             which, aerr);
         }
     }
@@ -1386,6 +1386,6 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
     // Always leave at acceleration stage.
     mbs.realize(s, Stage::Acceleration);
 
-    SimTK_DEBUG1("... Done; %d contacts broken.\n", 
+    SimTK_DEBUG1("... Done; %d contacts broken.\n",
         toBeDisabled.size()-violated.size());
 }

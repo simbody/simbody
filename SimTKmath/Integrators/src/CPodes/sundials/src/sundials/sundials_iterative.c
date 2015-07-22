@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.1 $
  * $Date: 2006/07/05 15:32:38 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Scott D. Cohen, Alan C. Hindmarsh and
  *                Radu Serban @ LLNL
  * -----------------------------------------------------------------
@@ -35,19 +35,19 @@
  * Milo Dorr.
  * -----------------------------------------------------------------
  */
- 
-int ModifiedGS(N_Vector *v, realtype **h, int k, int p, 
+
+int ModifiedGS(N_Vector *v, realtype **h, int k, int p,
                realtype *new_vk_norm)
 {
   int  i, k_minus_1, i0;
   realtype new_norm_2, new_product, vk_norm, temp;
-  
+
   vk_norm = RSqrt(N_VDotProd(v[k],v[k]));
   k_minus_1 = k - 1;
   i0 = MAX(k-p, 0);
-  
+
   /* Perform modified Gram-Schmidt */
-  
+
   for (i=i0; i < k; i++) {
     h[i][k_minus_1] = N_VDotProd(v[i], v[k]);
     N_VLinearSum(ONE, v[k], -h[i][k_minus_1], v[i], v[k]);
@@ -65,7 +65,7 @@ int ModifiedGS(N_Vector *v, realtype **h, int k, int p,
 
   temp = FACTOR * vk_norm;
   if ((temp + (*new_vk_norm)) != temp) return(0);
-  
+
   new_norm_2 = ZERO;
 
   for (i=i0; i < k; i++) {
@@ -94,14 +94,14 @@ int ModifiedGS(N_Vector *v, realtype **h, int k, int p,
  * -----------------------------------------------------------------
  */
 
-int ClassicalGS(N_Vector *v, realtype **h, int k, int p, 
+int ClassicalGS(N_Vector *v, realtype **h, int k, int p,
                 realtype *new_vk_norm, N_Vector temp, realtype *s)
 {
   int  i, k_minus_1, i0;
   realtype vk_norm;
 
   k_minus_1 = k - 1;
-  
+
   /* Perform Classical Gram-Schmidt */
 
   vk_norm = RSqrt(N_VDotProd(v[k], v[k]));
@@ -164,7 +164,7 @@ int QRfact(int n, realtype **h, realtype *q, int job)
 
     code = 0;
     for (k=0; k < n; k++) {
-      
+
       /* Multiply column k by the previous k-1 Givens rotations */
 
       for (j=0; j < k-1; j++) {
@@ -176,7 +176,7 @@ int QRfact(int n, realtype **h, realtype *q, int job)
     h[j][k] = c*temp1 - s*temp2;
     h[j+1][k] = s*temp1 + c*temp2;
       }
-      
+
       /* Compute the Givens rotation components c and s */
 
       q_ptr = 2*k;
@@ -206,7 +206,7 @@ int QRfact(int n, realtype **h, realtype *q, int job)
 
     n_minus_1 = n - 1;
     code = 0;
-    
+
     /* Multiply the new column by the previous n-1 Givens rotations */
 
     for (k=0; k < n_minus_1; k++) {
@@ -218,9 +218,9 @@ int QRfact(int n, realtype **h, realtype *q, int job)
       h[k][n_minus_1] = c*temp1 - s*temp2;
       h[k+1][n_minus_1] = s*temp1 + c*temp2;
     }
-    
+
     /* Compute new Givens rotation and multiply it times the last two
-       entries in the new column of H.  Note that the second entry of 
+       entries in the new column of H.  Note that the second entry of
        this product will be 0, so it is not necessary to compute it. */
 
     temp1 = h[n_minus_1][n_minus_1];
@@ -243,7 +243,7 @@ int QRfact(int n, realtype **h, realtype *q, int job)
     if ((h[n_minus_1][n_minus_1] = c*temp1 - s*temp2) == ZERO)
       code = n;
   }
-  
+
   return (code);
 }
 
@@ -262,7 +262,7 @@ int QRsol(int n, realtype **h, realtype *q, realtype *b)
   int i, k, q_ptr, code=0;
 
   /* Compute Q*b */
-  
+
   for (k=0; k < n; k++) {
     q_ptr = 2*k;
     c = q[q_ptr];
@@ -283,6 +283,6 @@ int QRsol(int n, realtype **h, realtype *q, realtype *b)
     b[k] /= h[k][k];
     for (i=0; i < k; i++) b[i] -= b[k]*h[i][k];
   }
-  
+
   return (code);
 }

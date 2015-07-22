@@ -1,4 +1,4 @@
-#ifndef SimTK_SIMMATH_EIGEN_REP_H_ 
+#ifndef SimTK_SIMMATH_EIGEN_REP_H_
 #define SimTK_SIMMATH_EIGEN_REP_H_
 
 /* -------------------------------------------------------------------------- *
@@ -256,7 +256,7 @@ class EigenRep : public EigenRepBase {
     enum EigenRange {
         AllValues   = 0,
         IndexRange  = 1,
-        ValueRange  = 2 
+        ValueRange  = 2
     };
 
     ~EigenRep();
@@ -287,9 +287,9 @@ class EigenRep : public EigenRepBase {
     void getFewEigenValues( Vector_<std::complex<RType> >& values, RType rlow, RType ihi );
 
     private:
-  
+
     void computeValues(bool);
-   
+
     template <typename P>  void copyVectors( Matrix_<P>& vectors );
     void copyValues( Vector_<float>& values );
     void copyValues( Vector_<double>& values );
@@ -297,7 +297,7 @@ class EigenRep : public EigenRepBase {
     void copyValues( Vector_<std::complex<double> >& values );
 
     int n;
-    int lowIndex, hiIndex;   // min and max indexes for computing a few eigenvalues 
+    int lowIndex, hiIndex;   // min and max indexes for computing a few eigenvalues
     RType lowValue, hiValue; // min and max values for computing a few eigenvalues
     RType abstol;            // convergence tolerance used by interative eigen routines
     bool needValues;         // true if eigen values  need to be computed

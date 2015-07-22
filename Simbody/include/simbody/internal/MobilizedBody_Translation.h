@@ -31,7 +31,7 @@ Declares the MobilizedBody::Translation class. **/
 
 namespace SimTK {
 
-/** Three translational mobilities describing the Cartesian motion of a point. 
+/** Three translational mobilities describing the Cartesian motion of a point.
 The generalized coordinates q are x,y,z translations of the M (outboard) frame
 origin Mo along the parent (inboard) F frame axes. The generalized speeds u are
 the relative velocity v_FM of M's origin in F, so qdot=u for this mobilizer. **/
@@ -41,17 +41,17 @@ public:
     reference any %MobilizedBody::Translation. **/
     Translation() {}
 
-    /** Create a %Translation mobilizer between an existing parent (inboard) 
-    body P and a new child (outboard) body B created by copying the given 
-    \a bodyInfo into a privately-owned Body within the constructed 
+    /** Create a %Translation mobilizer between an existing parent (inboard)
+    body P and a new child (outboard) body B created by copying the given
+    \a bodyInfo into a privately-owned Body within the constructed
     %MobilizedBody object. Specify the mobilizer frames F fixed to parent P and
-    M fixed to child B. 
+    M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Translation(MobilizedBody& parent, const Transform& X_PF,
-                const Body& bodyInfo,  const Transform& X_BM, 
+                const Body& bodyInfo,  const Transform& X_BM,
                 Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Translation(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
@@ -130,12 +130,12 @@ public:
 
     const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
     const Vec3& getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
 
     /** @cond **/ // hide from Doxygen
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Translation, TranslationImpl, 
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Translation, TranslationImpl,
                                              MobilizedBody);
     /** @endcond **/
 };

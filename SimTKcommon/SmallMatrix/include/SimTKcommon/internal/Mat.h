@@ -32,15 +32,15 @@
 
 namespace SimTK {
 
-/** @brief This class represents a small matrix whose size is known at compile 
-time, containing elements of any Composite Numerical Type (CNT) and engineered 
-to have no runtime overhead whatsoever. 
+/** @brief This class represents a small matrix whose size is known at compile
+time, containing elements of any Composite Numerical Type (CNT) and engineered
+to have no runtime overhead whatsoever.
 
 @ingroup MatVecUtilities
 
 Memory layout defaults to packed, column-ordered storage but can be specified to
-have any regular row and column spacing. A %Mat object is itself a Composite 
-Numerical Type and can thus be the element type for other matrix and vector 
+have any regular row and column spacing. A %Mat object is itself a Composite
+Numerical Type and can thus be the element type for other matrix and vector
 types. Some common use cases are provided below.
 
 @tparam M   The number of rows in this matrix (no default).
@@ -134,8 +134,8 @@ public:
         ImagOffset          = NTraits<ENumber>::ImagOffset,
         RealStrideFactor    = 1, // composite types don't change size when
                                  // cast from complex to real or imaginary
-        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH 
-                                ? CNT<E>::ArgDepth + 1 
+        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH
+                                ? CNT<E>::ArgDepth + 1
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
         IsULessScalar       = 0,
@@ -157,7 +157,7 @@ public:
     typedef Mat<N,M,EHerm,RS,CS>            THerm;
     typedef Mat<N,M,E,RS,CS>                TPosTrans;
     typedef E                               TElement;
-    typedef Row<N,E,CS>                     TRow;    
+    typedef Row<N,E,CS>                     TRow;
     typedef Vec<M,E,RS>                     TCol;
     typedef Vec<MinDim,E,RS+CS>             TDiag;
 
@@ -200,12 +200,12 @@ public:
     for the template paramter \a N. **/
     static int ncol() { return N; }
 
-    /** Scalar norm square is the sum of squares of all the scalars that 
+    /** Scalar norm square is the sum of squares of all the scalars that
     comprise the value of this Mat. For Mat objects with composite element
-    types, this is defined recursively as the sum of the scalar norm squares 
+    types, this is defined recursively as the sum of the scalar norm squares
     of all the elements, where the scalar norm square of a scalar is just that
     scalar squared. **/
-    ScalarNormSq scalarNormSqr() const { 
+    ScalarNormSq scalarNormSqr() const {
         ScalarNormSq sum(0);
         for(int j=0;j<N;++j) sum += CNT<TCol>::scalarNormSqr((*this)(j));
         return sum;
@@ -214,7 +214,7 @@ public:
     /** Elementwise square root; that is, the return value has the same
     dimensions as this Mat but with each element replaced by whatever it thinks
     its square root is. **/
-    TSqrt sqrt() const { 
+    TSqrt sqrt() const {
         TSqrt msqrt;
         for(int j=0;j<N;++j) msqrt(j) = (*this)(j).sqrt();
         return msqrt;
@@ -223,7 +223,7 @@ public:
     /** Elementwise absolute value; that is, the return value has the same
     dimensions as this Mat but with each element replaced by whatever it thinks
     its absolute value is. **/
-    TAbs abs() const { 
+    TAbs abs() const {
         TAbs mabs;
         for(int j=0;j<N;++j) mabs(j) = (*this)(j).abs();
         return mabs;
@@ -239,7 +239,7 @@ public:
     // It is an MxN vector with default column and row spacing, and element types which
     // are the regular composite result of E op P. Typically P is a scalar type but
     // it doesn't have to be.
-    template <class P> struct EltResult { 
+    template <class P> struct EltResult {
         typedef Mat<M,N, typename CNT<E>::template Result<P>::Mul, M, 1> Mul;
         typedef Mat<M,N, typename CNT<E>::template Result<P>::Dvd, M, 1> Dvd;
         typedef Mat<M,N, typename CNT<E>::template Result<P>::Add, M, 1> Add;
@@ -248,7 +248,7 @@ public:
 
     // This is the composite result for m op P where P is some kind of appropriately shaped
     // non-scalar type.
-    template <class P> struct Result { 
+    template <class P> struct Result {
         typedef MulCNTs<M,N,ArgDepth,Mat,ColSpacing,RowSpacing,
             CNT<P>::NRows, CNT<P>::NCols, CNT<P>::ArgDepth,
             P, CNT<P>::ColSpacing, CNT<P>::RowSpacing> MulOp;
@@ -280,9 +280,9 @@ public:
         typedef Mat<M,N,P> Type;
     };
 
-    /** Default construction initializes to NaN when debugging but is left 
+    /** Default construction initializes to NaN when debugging but is left
     uninitialized otherwise to ensure that there is no overhead. **/
-    Mat(){ 
+    Mat(){
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -299,17 +299,17 @@ public:
             (*this)(j) = src(j);
     }
     /** Copy assignment copies only the elements that are present and does
-    not touch any unused memory space between them if they are not packed. 
+    not touch any unused memory space between them if they are not packed.
     Works correctly even if source and destination are the same object. **/
-    Mat& operator=(const Mat& src) {    
+    Mat& operator=(const Mat& src) {
         for (int j=0; j<N; ++j)
            (*this)(j) = src(j); // no harm if src and 'this' are the same
         return *this;
     }
 
-    /** Explicit construction of a Mat from a SymMat (symmetric/Hermitian 
-    matrix). Note that a SymMat is a Hermitian matrix when the elements are 
-    complex, so in that case the resulting Mat's upper triangle values are 
+    /** Explicit construction of a Mat from a SymMat (symmetric/Hermitian
+    matrix). Note that a SymMat is a Hermitian matrix when the elements are
+    complex, so in that case the resulting Mat's upper triangle values are
     complex conjugates of the lower triangle ones. **/
     explicit Mat(const SymMat<M, ELT>& src) {
         updDiag() = src.diag();
@@ -320,47 +320,47 @@ public:
             }
     }
 
-    /** This provides an \e implicit conversion from a Mat of the same 
-    dimensions and element type but with different element spacing. 
+    /** This provides an \e implicit conversion from a Mat of the same
+    dimensions and element type but with different element spacing.
     @tparam CSS Column spacing of the source Mat.
     @tparam RSS %Row spacing of the source Mat. **/
-    template <int CSS, int RSS> 
+    template <int CSS, int RSS>
     Mat(const Mat<M,N,E,CSS,RSS>& src) {
         for (int j=0; j<N; ++j)
             (*this)(j) = src(j);
     }
 
-    /** This provides an \e implicit conversion from a Mat of the same 
-    dimensions and \e negated element type, possibly with different element 
+    /** This provides an \e implicit conversion from a Mat of the same
+    dimensions and \e negated element type, possibly with different element
     spacing.
     @tparam CSS Column spacing of the source Mat.
     @tparam RSS %Row spacing of the source Mat. **/
-    template <int CSS, int RSS> 
+    template <int CSS, int RSS>
     Mat(const Mat<M,N,ENeg,CSS,RSS>& src) {
         for (int j=0; j<N; ++j)
             (*this)(j) = src(j);
     }
 
-    /** Explicit construction of a Mat from a source Mat of the same 
-    dimensions and an assignment-compatible element type, with any element 
+    /** Explicit construction of a Mat from a source Mat of the same
+    dimensions and an assignment-compatible element type, with any element
     spacing allowed.
-    @tparam EE  The element type of the source Mat; must be assignment 
+    @tparam EE  The element type of the source Mat; must be assignment
                 compatible with element type E of this Mat.
     @tparam CSS Column spacing of the source Mat.
     @tparam RSS %Row spacing of the source Mat. **/
-    template <class EE, int CSS, int RSS> 
+    template <class EE, int CSS, int RSS>
     explicit Mat(const Mat<M,N,EE,CSS,RSS>& mm)
       { for (int j=0;j<N;++j) (*this)(j) = mm(j);}
 
     /** Explicit construction from a single element \a e of this Mat's element
-    type E sets all the main diagonal elements to \a e but sets the rest of 
+    type E sets all the main diagonal elements to \a e but sets the rest of
     the elements to zero. **/
     explicit Mat(const E& e)
       { for (int j=0;j<N;++j) (*this)(j) = E(0); diag()=e; }
 
     /** Explicit construction from a single element \a e whose type is
     negator<E> (abbreviated ENeg here) where E is this Mat's element
-    type sets all the main diagonal elements to \a e but sets the rest of 
+    type sets all the main diagonal elements to \a e but sets the rest of
     the elements to zero. **/
     explicit Mat(const ENeg& e)
       { for (int j=0;j<N;++j) (*this)(j) = E(0); diag()=e; }
@@ -369,9 +369,9 @@ public:
     an object of this Mat's element type E, and then apply the single-element
     constructor above which sets the Mat to zero except for its main diagonal
     elements which will all be set to the given value. To convert an int to
-    an element, we first turn it into the appropriate-precision floating point 
+    an element, we first turn it into the appropriate-precision floating point
     number, and then call E's constructor that takes a single scalar. **/
-    explicit Mat(int i) 
+    explicit Mat(int i)
       { new (this) Mat(E(Precision(i))); }
 
     // A bevy of constructors from individual exact-match elements IN ROW ORDER.
@@ -434,7 +434,7 @@ public:
        d[rIx(11)]=e11;d[rIx(12)]=e12;d[rIx(13)]=e13;d[rIx(14)]=e14;}
     Mat(const E& e0,const E& e1,const E& e2,const E& e3,const E& e4,
         const E& e5,const E& e6,const E& e7,const E& e8,const E& e9,
-        const E& e10, const E& e11, const E& e12, const E& e13, const E& e14, 
+        const E& e10, const E& e11, const E& e12, const E& e13, const E& e14,
         const E& e15)
       {assert(M*N==16);d[rIx(0)]=e0;d[rIx(1)]=e1;d[rIx(2)]=e2;d[rIx(3)]=e3;d[rIx(4)]=e4;
        d[rIx(5)]=e5;d[rIx(6)]=e6;d[rIx(7)]=e7;d[rIx(8)]=e8;d[rIx(9)]=e9;d[rIx(10)]=e10;
@@ -464,19 +464,19 @@ public:
       { assert(M==1); (*this)[0]=r0; }
     template <class EE, int SS> Mat(const Row<N,EE,SS>& r0,const Row<N,EE,SS>& r1)
       { assert(M==2);(*this)[0]=r0;(*this)[1]=r1; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Row<N,EE,SS>& r0,const Row<N,EE,SS>& r1,const Row<N,EE,SS>& r2)
       { assert(M==3);(*this)[0]=r0;(*this)[1]=r1;(*this)[2]=r2; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Row<N,EE,SS>& r0,const Row<N,EE,SS>& r1,const Row<N,EE,SS>& r2,
         const Row<N,EE,SS>& r3)
       { assert(M==4);(*this)[0]=r0;(*this)[1]=r1;(*this)[2]=r2;(*this)[3]=r3; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Row<N,EE,SS>& r0,const Row<N,EE,SS>& r1,const Row<N,EE,SS>& r2,
         const Row<N,EE,SS>& r3,const Row<N,EE,SS>& r4)
       { assert(M==5);(*this)[0]=r0;(*this)[1]=r1;(*this)[2]=r2;
         (*this)[3]=r3;(*this)[4]=r4; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Row<N,EE,SS>& r0,const Row<N,EE,SS>& r1,const Row<N,EE,SS>& r2,
         const Row<N,EE,SS>& r3,const Row<N,EE,SS>& r4,const Row<N,EE,SS>& r5)
       { assert(M==6);(*this)[0]=r0;(*this)[1]=r1;(*this)[2]=r2;
@@ -507,19 +507,19 @@ public:
       { assert(N==1); (*this)(0)=r0; }
     template <class EE, int SS> Mat(const Vec<M,EE,SS>& r0,const Vec<M,EE,SS>& r1)
       { assert(N==2);(*this)(0)=r0;(*this)(1)=r1; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Vec<M,EE,SS>& r0,const Vec<M,EE,SS>& r1,const Vec<M,EE,SS>& r2)
       { assert(N==3);(*this)(0)=r0;(*this)(1)=r1;(*this)(2)=r2; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Vec<M,EE,SS>& r0,const Vec<M,EE,SS>& r1,const Vec<M,EE,SS>& r2,
         const Vec<M,EE,SS>& r3)
       { assert(N==4);(*this)(0)=r0;(*this)(1)=r1;(*this)(2)=r2;(*this)(3)=r3; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Vec<M,EE,SS>& r0,const Vec<M,EE,SS>& r1,const Vec<M,EE,SS>& r2,
         const Vec<M,EE,SS>& r3,const Vec<M,EE,SS>& r4)
       { assert(N==5);(*this)(0)=r0;(*this)(1)=r1;(*this)(2)=r2;
         (*this)(3)=r3;(*this)(4)=r4; }
-    template <class EE, int SS> 
+    template <class EE, int SS>
     Mat(const Vec<M,EE,SS>& r0,const Vec<M,EE,SS>& r1,const Vec<M,EE,SS>& r2,
         const Vec<M,EE,SS>& r3,const Vec<M,EE,SS>& r4,const Vec<M,EE,SS>& r5)
       { assert(N==6);(*this)(0)=r0;(*this)(1)=r1;(*this)(2)=r2;
@@ -531,7 +531,7 @@ public:
       { assert(p); for(int i=0;i<M;++i) (*this)[i]=&p[i*N]; }
 
     // Assignment works similarly to copy -- if the lengths match,
-    // go element-by-element. Otherwise, zero and then copy to each 
+    // go element-by-element. Otherwise, zero and then copy to each
     // diagonal element.
     template <class EE, int CSS, int RSS> Mat& operator=(const Mat<M,N,EE,CSS,RSS>& mm) {
         for (int j=0; j<N; ++j) (*this)(j) = mm(j);
@@ -544,7 +544,7 @@ public:
     }
 
     // Assignment ops
-    template <class EE, int CSS, int RSS> Mat& 
+    template <class EE, int CSS, int RSS> Mat&
     operator+=(const Mat<M,N,EE,CSS,RSS>& mm) {
         for (int j=0; j<N; ++j) (*this)(j) += mm(j);
         return *this;
@@ -581,7 +581,7 @@ public:
     // Cases: m=m+-m, m=m+-sy, m=m*m, m=m*sy, v=m*v
 
     // m= this + m
-    template <class E2, int CS2, int RS2> 
+    template <class E2, int CS2, int RS2>
     typename Result<Mat<M,N,E2,CS2,RS2> >::Add
     conformingAdd(const Mat<M,N,E2,CS2,RS2>& r) const {
         typename Result<Mat<M,N,E2,CS2,RS2> >::Add result;
@@ -589,7 +589,7 @@ public:
         return result;
     }
     // m= this - m
-    template <class E2, int CS2, int RS2> 
+    template <class E2, int CS2, int RS2>
     typename Result<Mat<M,N,E2,CS2,RS2> >::Sub
     conformingSubtract(const Mat<M,N,E2,CS2,RS2>& r) const {
         typename Result<Mat<M,N,E2,CS2,RS2> >::Sub result;
@@ -597,49 +597,49 @@ public:
         return result;
     }
     // m= m - this
-    template <class E2, int CS2, int RS2> 
+    template <class E2, int CS2, int RS2>
     typename Mat<M,N,E2,CS2,RS2>::template Result<Mat>::Sub
     conformingSubtractFromLeft(const Mat<M,N,E2,CS2,RS2>& l) const {
         return l.conformingSubtract(*this);
     }
 
     // m= this .* m
-    template <class E2, int CS2, int RS2> 
+    template <class E2, int CS2, int RS2>
     typename EltResult<E2>::Mul
     elementwiseMultiply(const Mat<M,N,E2,CS2,RS2>& r) const {
         typename EltResult<E2>::Mul result;
-        for (int j=0;j<N;++j) 
+        for (int j=0;j<N;++j)
             result(j) = (*this)(j).elementwiseMultiply(r(j));
         return result;
     }
 
     // m= this ./ m
-    template <class E2, int CS2, int RS2> 
+    template <class E2, int CS2, int RS2>
     typename EltResult<E2>::Dvd
     elementwiseDivide(const Mat<M,N,E2,CS2,RS2>& r) const {
         typename EltResult<E2>::Dvd result;
-        for (int j=0;j<N;++j) 
+        for (int j=0;j<N;++j)
             result(j) = (*this)(j).elementwiseDivide(r(j));
         return result;
     }
 
     // We always punt to the SymMat since it knows better what to do.
     // m = this + sym
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename Result<SymMat<M,E2,RS2> >::Add
     conformingAdd(const SymMat<M,E2,RS2>& sy) const {
         assert(M==N);
         return sy.conformingAdd(*this);
     }
     // m= this - sym
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename Result<SymMat<M,E2,RS2> >::Sub
     conformingSubtract(const SymMat<M,E2,RS2>& sy) const {
         assert(M==N);
         return sy.conformingSubtractFromLeft(*this);
     }
     // m= sym - this
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename SymMat<M,E2,RS2>::template Result<Mat>::Sub
     conformingSubtractFromLeft(const SymMat<M,E2,RS2>& sy) const {
         assert(M==N);
@@ -664,29 +664,29 @@ public:
     }
 
     // m= this / m = this * m.invert()
-    template <int M2, class E2, int CS2, int RS2> 
+    template <int M2, class E2, int CS2, int RS2>
     typename Result<Mat<M2,N,E2,CS2,RS2> >::Dvd
     conformingDivide(const Mat<M2,N,E2,CS2,RS2>& m) const {
         return conformingMultiply(m.invert());
     }
     // m= m / this = m * this.invert()
-    template <int M2, class E2, int CS2, int RS2> 
+    template <int M2, class E2, int CS2, int RS2>
     typename Mat<M2,N,E2,CS2,RS2>::template Result<Mat>::Dvd
     conformingDivideFromLeft(const Mat<M2,N,E2,CS2,RS2>& m) const {
         return m.conformingMultiply((*this).invert());
     }
-    
+
     const TRow& operator[](int i) const { return row(i); }
-    TRow&       operator[](int i)       { return row(i); }    
+    TRow&       operator[](int i)       { return row(i); }
     const TCol& operator()(int j) const { return col(j); }
     TCol&       operator()(int j)       { return col(j); }
-    
+
     const E& operator()(int i,int j) const { return elt(i,j); }
     E&       operator()(int i,int j)       { return elt(i,j); }
 
     // This is the scalar Frobenius norm.
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
-    typename CNT<ScalarNormSq>::TSqrt 
+    typename CNT<ScalarNormSq>::TSqrt
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     // There is no conventional meaning for normalize() applied to a matrix. We
@@ -708,7 +708,7 @@ public:
         } else {
             TNormalize elementwiseNormalized;
             // punt to the column Vec to deal with the elements
-            for (int j=0; j<N; ++j) 
+            for (int j=0; j<N; ++j)
                 elementwiseNormalized(j) = (*this)(j).normalize();
             return elementwiseNormalized;
         }
@@ -749,12 +749,12 @@ public:
     // TODO: should blow up or return a reference to a zero matrix if called
     // on a real object.
     // Had to contort these routines to get them through VC++ 7.net
-    const TImag& imag()    const { 
+    const TImag& imag()    const {
         const int offs = ImagOffset;
         const Precision* p = reinterpret_cast<const Precision*>(this);
         return *reinterpret_cast<const TImag*>(p+offs);
     }
-    TImag& imag() { 
+    TImag& imag() {
         const int offs = ImagOffset;
         Precision* p = reinterpret_cast<Precision*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
@@ -763,41 +763,41 @@ public:
     const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
-    const TRow& row(int i) const { 
+    const TRow& row(int i) const {
         SimTK_INDEXCHECK(i,M, "Mat::row[i]");
-        return *reinterpret_cast<const TRow*>(&d[i*RS]); 
+        return *reinterpret_cast<const TRow*>(&d[i*RS]);
     }
-    TRow& row(int i) { 
+    TRow& row(int i) {
         SimTK_INDEXCHECK(i,M, "Mat::row[i]");
-        return *reinterpret_cast<TRow*>(&d[i*RS]); 
+        return *reinterpret_cast<TRow*>(&d[i*RS]);
     }
 
-    const TCol& col(int j) const { 
+    const TCol& col(int j) const {
         SimTK_INDEXCHECK(j,N, "Mat::col(j)");
-        return *reinterpret_cast<const TCol*>(&d[j*CS]); 
+        return *reinterpret_cast<const TCol*>(&d[j*CS]);
     }
-    TCol& col(int j) { 
+    TCol& col(int j) {
         SimTK_INDEXCHECK(j,N, "Mat::col(j)");
-        return *reinterpret_cast<TCol*>(&d[j*CS]); 
-    }    
-    
+        return *reinterpret_cast<TCol*>(&d[j*CS]);
+    }
+
     const E& elt(int i, int j) const {
         SimTK_INDEXCHECK(i,M, "Mat::elt(i,j)");
         SimTK_INDEXCHECK(j,N, "Mat::elt(i,j)");
-        return d[i*RS+j*CS]; 
+        return d[i*RS+j*CS];
     }
-    E& elt(int i, int j) { 
+    E& elt(int i, int j) {
         SimTK_INDEXCHECK(i,M, "Mat::elt(i,j)");
         SimTK_INDEXCHECK(j,N, "Mat::elt(i,j)");
-        return d[i*RS+j*CS]; 
+        return d[i*RS+j*CS];
     }
 
     /// Select main diagonal (of largest leading square if rectangular) and
-    /// return it as a read-only view (as a Vec) of the diagonal elements 
+    /// return it as a read-only view (as a Vec) of the diagonal elements
     /// of this Mat.
     const TDiag& diag() const { return *reinterpret_cast<const TDiag*>(d); }
     /// Select main diagonal (of largest leading square if rectangular) and
-    /// return it as a writable view (as a Vec) of the diagonal elements 
+    /// return it as a writable view (as a Vec) of the diagonal elements
     /// of this Mat.
     TDiag&       updDiag()    { return *reinterpret_cast<TDiag*>(d); }
     /// This non-const version of diag() is an alternate name for updDiag()
@@ -876,8 +876,8 @@ public:
     // Generalized scalar assignment & computed assignment methods. These will work
     // for any assignment-compatible element, not just scalars.
     template <class EE> Mat& scalarEq(const EE& ee)
-      { for(int j=0; j<N; ++j) (*this)(j).scalarEq(EE(0)); 
-        diag().scalarEq(ee); 
+      { for(int j=0; j<N; ++j) (*this)(j).scalarEq(EE(0));
+        diag().scalarEq(ee);
         return *this; }
 
     template <class EE> Mat& scalarPlusEq(const EE& ee)
@@ -892,12 +892,12 @@ public:
     template <class EE> Mat& scalarTimesEq(const EE& ee)
       { for(int j=0; j<N; ++j) (*this)(j).scalarTimesEq(ee); return *this; }
     template <class EE> Mat& scalarTimesEqFromLeft(const EE& ee)
-      { for(int j=0; j<N; ++j) (*this)(j).scalarTimesEqFromLeft(ee); return *this; } 
+      { for(int j=0; j<N; ++j) (*this)(j).scalarTimesEqFromLeft(ee); return *this; }
 
     template <class EE> Mat& scalarDivideEq(const EE& ee)
       { for(int j=0; j<N; ++j) (*this)(j).scalarDivideEq(ee); return *this; }
     template <class EE> Mat& scalarDivideEqFromLeft(const EE& ee)
-      { for(int j=0; j<N; ++j) (*this)(j).scalarDivideEqFromLeft(ee); return *this; } 
+      { for(int j=0; j<N; ++j) (*this)(j).scalarDivideEqFromLeft(ee); return *this; }
 
     void setToNaN() {
         for (int j=0; j<N; ++j)
@@ -959,14 +959,14 @@ public:
         return out;
     }
 
-    /// Return a matrix one row and one column smaller than this one by 
-    /// dropping row i and column j. The result is packed but has same 
+    /// Return a matrix one row and one column smaller than this one by
+    /// dropping row i and column j. The result is packed but has same
     /// element type as this one.
     TDropRowCol dropRowCol(int i, int j) const {
         assert(0 <= i && i < M);
         assert(0 <= j && j < N);
         TDropRowCol out;
-        for (int c=0, nxtc=0; c<N-1; ++c, ++nxtc) { 
+        for (int c=0, nxtc=0; c<N-1; ++c, ++nxtc) {
             if (nxtc==j) ++nxtc;
             for (int r=0, nxtr=0; r<M-1; ++r, ++nxtr) {
                 if (nxtr==i) ++nxtr;
@@ -979,7 +979,7 @@ public:
     /// Return a matrix one row larger than this one by adding a row
     /// to the end. The result is packed but has same element type as
     /// this one. Works for any assignment compatible row.
-    template <class EE, int SS> 
+    template <class EE, int SS>
     TAppendRow appendRow(const Row<N,EE,SS>& row) const {
         TAppendRow out;
         out.template updSubMat<M,N>(0,0) = (*this);
@@ -990,7 +990,7 @@ public:
     /// Return a matrix one column larger than this one by adding a column
     /// to the end. The result is packed but has same element type as
     /// this one. Works for any assignment compatible column.
-    template <class EE, int SS> 
+    template <class EE, int SS>
     TAppendCol appendCol(const Vec<M,EE,SS>& col) const {
         TAppendCol out;
         out.template updSubMat<M,N>(0,0) = (*this);
@@ -998,19 +998,19 @@ public:
         return out;
     }
 
-    /// Return a matrix one row and one column larger than this one by 
+    /// Return a matrix one row and one column larger than this one by
     /// adding a row to the bottom and a column to the right. The final
-    /// element of the row is ignored; that value is taken from the 
+    /// element of the row is ignored; that value is taken from the
     /// final element of the column instead. The result is packed
-    /// but has same element type as this one. Works for any assignment 
+    /// but has same element type as this one. Works for any assignment
     /// compatible row and column.
-    template <class ER, int SR, class EC, int SC> 
+    template <class ER, int SR, class EC, int SC>
     TAppendRowCol appendRowCol(const Row<N+1,ER,SR>& row,
-                               const Vec<M+1,EC,SC>& col) const 
+                               const Vec<M+1,EC,SC>& col) const
     {
         TAppendRowCol out;
         out.template updSubMat<M,N>(0,0) = (*this);
-        out[M].template updSubRow<N>(0) = 
+        out[M].template updSubRow<N>(0) =
             row.template getSubRow<N>(0); // ignore last element
         out(N) = col;
         return out;
@@ -1021,7 +1021,7 @@ public:
     /// this one. Works for any assignment compatible row. The index
     /// can be one greater than normally allowed in which case the row
     /// is appended.
-    template <class EE, int SS> 
+    template <class EE, int SS>
     TAppendRow insertRow(int i, const Row<N,EE,SS>& row) const {
         assert(0 <= i && i <= M);
         if (i==M) return appendRow(row);
@@ -1038,7 +1038,7 @@ public:
     /// this one. Works for any assignment compatible column. The index
     /// can be one greater than normally allowed in which case the column
     /// is appended.
-    template <class EE, int SS> 
+    template <class EE, int SS>
     TAppendCol insertCol(int j, const Vec<M,EE,SS>& col) const {
         assert(0 <= j && j <= N);
         if (j==N) return appendCol(col);
@@ -1050,12 +1050,12 @@ public:
         return out;
     }
 
-    /// Return a matrix one row and one column larger than this one by 
-    /// inserting a row *before* row i and a column *before* column j. 
+    /// Return a matrix one row and one column larger than this one by
+    /// inserting a row *before* row i and a column *before* column j.
     /// The intersecting element of the row is ignored; that element is
-    /// taken from the column. The result is packed but has same element 
-    /// type as this one. Works for any assignment compatible row and 
-    /// column. The indices can be one greater than normally allowed 
+    /// taken from the column. The result is packed but has same element
+    /// type as this one. Works for any assignment compatible row and
+    /// column. The indices can be one greater than normally allowed
     /// in which case the row or column is appended.
     template <class ER, int SR, class EC, int SC>
     TAppendRowCol insertRowCol(int i, int j, const Row<N+1,ER,SR>& row,
@@ -1063,7 +1063,7 @@ public:
         assert(0 <= i && i <= M);
         assert(0 <= j && j <= N);
         TAppendRowCol out;
-        for (int c=0, nxtc=0; c<N; ++c, ++nxtc) { 
+        for (int c=0, nxtc=0; c<N; ++c, ++nxtc) {
             if (nxtc==j) ++nxtc;   // leave room
             for (int r=0, nxtr=0; r<M; ++r, ++nxtr) {
                 if (nxtr==i) ++nxtr;
@@ -1080,7 +1080,7 @@ public:
     static Mat&       updAs(ELT* p)        {return *reinterpret_cast<Mat*>(p);}
 
     // Note packed spacing
-    static Mat<M,N,ELT,M,1> getNaN() { 
+    static Mat<M,N,ELT,M,1> getNaN() {
         Mat<M,N,ELT,M,1> m;
         m.setToNaN();
         return m;
@@ -1100,9 +1100,9 @@ public:
         bool seenInf = false;
         for (int j=0; j<N; ++j) {
             if (!this->col(j).isFinite()) {
-                if (!this->col(j).isInf()) 
+                if (!this->col(j).isInf())
                     return false; // something bad was found
-                seenInf = true; 
+                seenInf = true;
             }
         }
         return seenInf;
@@ -1139,14 +1139,14 @@ public:
         return isNumericallyEqual(m, tol);
     }
 
-    /// %Test whether this is numerically a "scalar" matrix, meaning that it is 
-    /// a diagonal matrix in which each diagonal element is numerically equal to 
-    /// the same scalar, using either a specified tolerance or the matrix's 
+    /// %Test whether this is numerically a "scalar" matrix, meaning that it is
+    /// a diagonal matrix in which each diagonal element is numerically equal to
+    /// the same scalar, using either a specified tolerance or the matrix's
     /// default tolerance (which is always the same or looser than the default
     /// tolerance for one of its elements).
     bool isNumericallyEqual
        (const ELT& e,
-        double     tol = getDefaultTolerance()) const 
+        double     tol = getDefaultTolerance()) const
     {
         for (int i=0; i<M; ++i)
             for (int j=0; j<N; ++j) {
@@ -1162,10 +1162,10 @@ public:
         return true;
     }
 
-    /// A Matrix is symmetric (actually Hermitian) if it is square and each 
+    /// A Matrix is symmetric (actually Hermitian) if it is square and each
     /// element (i,j) is the Hermitian transpose of element (j,i). Here we
     /// are testing for numerical symmetry, meaning that the symmetry condition
-    /// is satisified to within a tolerance (supplied or default). This is 
+    /// is satisified to within a tolerance (supplied or default). This is
     /// a relatively expensive test since all elements must be examined but
     /// can be very useful in Debug mode to check assumptions.
     /// @see isExactlySymmetric() for a rarely-used exact equality test
@@ -1178,9 +1178,9 @@ public:
         return true;
     }
 
-    /// A Matrix is symmetric (actually Hermitian) if it is square and each 
+    /// A Matrix is symmetric (actually Hermitian) if it is square and each
     /// element (i,j) is the Hermitian (conjugate) transpose of element (j,i). This
-    /// method tests for exact (bitwise) equality and is too stringent for most 
+    /// method tests for exact (bitwise) equality and is too stringent for most
     /// purposes; don't use it unless you know that the corresponding elements
     /// should be bitwise conjugates, typically because you put them there directly.
     /// @see isNumericallySymmetric() for a more useful method
@@ -1192,7 +1192,7 @@ public:
                     return false;
         return true;
     }
-    
+
     /// Returns a row vector (Row) containing the column sums of this matrix.
     TRow colSum() const {
         TRow temp;
@@ -1217,7 +1217,7 @@ public:
     std::string toString() const {
         std::stringstream stream;
         stream <<  (*this) ;
-        return stream.str(); 
+        return stream.str();
     }
     /** Variant of indexing operator that's scripting friendly to get entry (i, j) **/
     const ELT& get(int i,int j) const { return elt(i,j); }
@@ -1243,16 +1243,16 @@ private:
 //   m+m, m-m, m*m, m==m, m!=m              //
 //////////////////////////////////////////////
 
-template <int M, int N, class EL, int CSL, int RSL, class ER, int CSR, int RSR> inline 
+template <int M, int N, class EL, int CSL, int RSL, class ER, int CSR, int RSR> inline
 typename Mat<M,N,EL,CSL,RSL>::template Result<Mat<M,N,ER,CSR,RSR> >::Add
-operator+(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) { 
+operator+(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) {
     return Mat<M,N,EL,CSL,RSL>::template Result<Mat<M,N,ER,CSR,RSR> >
         ::AddOp::perform(l,r);
 }
 
 template <int M, int N, class EL, int CSL, int RSL, class ER, int CSR, int RSR> inline
 typename Mat<M,N,EL,CSL,RSL>::template Result<Mat<M,N,ER,CSR,RSR> >::Sub
-operator-(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) { 
+operator-(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) {
     return Mat<M,N,EL,CSL,RSL>::template Result<Mat<M,N,ER,CSR,RSR> >
         ::SubOp::perform(l,r);
 }
@@ -1260,7 +1260,7 @@ operator-(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) {
 // Matrix multiply of an MxN by NxP to produce a packed MxP.
 template <int M, int N, class EL, int CSL, int RSL, int P, class ER, int CSR, int RSR> inline
 typename Mat<M,N,EL,CSL,RSL>::template Result<Mat<N,P,ER,CSR,RSR> >::Mul
-operator*(const Mat<M,N,EL,CSL,RSL>& l, const Mat<N,P,ER,CSR,RSR>& r) { 
+operator*(const Mat<M,N,EL,CSL,RSL>& l, const Mat<N,P,ER,CSR,RSR>& r) {
     return Mat<M,N,EL,CSL,RSL>::template Result<Mat<N,P,ER,CSR,RSR> >
         ::MulOp::perform(l,r);
 }
@@ -1269,19 +1269,19 @@ operator*(const Mat<M,N,EL,CSL,RSL>& l, const Mat<N,P,ER,CSR,RSR>& r) {
 // has scalar elements and the other has composite elements.
 template <int M, int N, class EL, int CSL, int RSL, int MM, int NN, class ER, int CSR, int RSR> inline
 typename Mat<M,N,EL,CSL,RSL>::template Result<Mat<MM,NN,ER,CSR,RSR> >::MulNon
-operator*(const Mat<M,N,EL,CSL,RSL>& l, const Mat<MM,NN,ER,CSR,RSR>& r) { 
+operator*(const Mat<M,N,EL,CSL,RSL>& l, const Mat<MM,NN,ER,CSR,RSR>& r) {
     return Mat<M,N,EL,CSL,RSL>::template Result<Mat<MM,NN,ER,CSR,RSR> >
                 ::MulOpNonConforming::perform(l,r);
 }
 
 template <int M, int N, class EL, int CSL, int RSL, class ER, int CSR, int RSR> inline
-bool operator==(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) { 
+bool operator==(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) {
     for (int j=0; j<N; ++j)
         if (l(j) != r(j)) return false;
     return true;
 }
 template <int M, int N, class EL, int CSL, int RSL, class ER, int CSR, int RSR> inline
-bool operator!=(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) { 
+bool operator!=(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) {
     return !(l==r);
 }
 
@@ -1292,7 +1292,7 @@ bool operator!=(const Mat<M,N,EL,CSL,RSL>& l, const Mat<M,N,ER,CSR,RSR>& r) {
 
 // SCALAR MULTIPLY
 
-// m = m*real, real*m 
+// m = m*real, real*m
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<float>::Mul
 operator*(const Mat<M,N,E,CS,RS>& l, const float& r)
@@ -1354,12 +1354,12 @@ operator*(const negator<R>& l, const Mat<M,N,E,CS,RS>& r) {return r * (typename 
 
 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
-// but when it is on the left it means scalar * pseudoInverse(mat), 
+// but when it is on the left it means scalar * pseudoInverse(mat),
 // which is a matrix whose type is like the matrix's Hermitian transpose.
 // TODO: for now it is just going to call mat.invert() which will fail on
 // singular matrices.
 
-// m = m/real, real/m 
+// m = m/real, real/m
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<float>::Dvd
 operator/(const Mat<M,N,E,CS,RS>& l, const float& r)
@@ -1393,12 +1393,12 @@ operator/(const long double& l, const Mat<M,N,E,CS,RS>& r)
 // m = m/int, int/m -- just convert int to m's precision float
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<typename CNT<E>::Precision>::Dvd
-operator/(const Mat<M,N,E,CS,RS>& l, int r) 
+operator/(const Mat<M,N,E,CS,RS>& l, int r)
 {   return l / (typename CNT<E>::Precision)r; }
 
 template <int M, int N, class E, int CS, int RS> inline
 typename CNT<typename CNT<E>::Precision>::template Result<Mat<M,N,E,CS,RS> >::Dvd
-operator/(int l, const Mat<M,N,E,CS,RS>& r) 
+operator/(int l, const Mat<M,N,E,CS,RS>& r)
 {   return (typename CNT<E>::Precision)l / r; }
 
 
@@ -1437,7 +1437,7 @@ operator/(const negator<R>& l, const Mat<M,N,E,CS,RS>& r) {return (typename nega
 
 // SCALAR ADD
 
-// m = m+real, real+m 
+// m = m+real, real+m
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<float>::Add
 operator+(const Mat<M,N,E,CS,RS>& l, const float& r)
@@ -1499,7 +1499,7 @@ operator+(const negator<R>& l, const Mat<M,N,E,CS,RS>& r) {return r + (typename 
 
 // SCALAR SUBTRACT -- careful, not commutative.
 
-// m = m-real, real-m 
+// m = m-real, real-m
 template <int M, int N, class E, int CS, int RS> inline
 typename Mat<M,N,E,CS,RS>::template Result<float>::Sub
 operator-(const Mat<M,N,E,CS,RS>& l, const float& r)
@@ -1571,12 +1571,12 @@ std::basic_ostream<CHAR,TRAITS>&
 operator<<(std::basic_ostream<CHAR,TRAITS>& o, const Mat<M,N,E,CS,RS>& m) {
     for (int i=0;i<M;++i) {
         o << std::endl << "[";
-        for (int j=0;j<N;++j)         
+        for (int j=0;j<N;++j)
             o << (j>0?",":"") << m(i,j);
         o << "]";
     }
     if (M) o << std::endl;
-    return o; 
+    return o;
 }
 
 template <int M, int N, class E, int CS, int RS, class CHAR, class TRAITS> inline

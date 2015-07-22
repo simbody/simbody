@@ -42,12 +42,12 @@ const Real RunTime=20;
 
 class ShowLocking : public DecorationGenerator {
 public:
-    ShowLocking(const MobilizedBody& mobod, 
+    ShowLocking(const MobilizedBody& mobod,
         const Constraint::ConstantSpeed& lock)
         : m_mobod(mobod), m_lock(lock)
     {
     }
-    void generateDecorations(const State& state, 
+    void generateDecorations(const State& state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         if (!m_lock.isDisabled(state)) {
@@ -72,8 +72,8 @@ public:
                const Constraint::ConstantSpeed& lock,
                const Integrator&                integ,
                Real reportInterval)
-    :   PeriodicEventReporter(reportInterval), 
-        m_system(system), m_lock(lock), m_integ(integ) 
+    :   PeriodicEventReporter(reportInterval),
+        m_system(system), m_lock(lock), m_integ(integ)
     {   m_states.reserve(2000); }
 
     ~StateSaver() {}
@@ -113,25 +113,25 @@ public:
     LockOn(const MultibodySystem& system,
         const MobilizedBody& mobod, Real lockangle, // must be 1dof
         const Constraint::ConstantSpeed& lock,
-        Real low, Real high) 
-    :   TriggeredEventHandler(Stage::Position), 
+        Real low, Real high)
+    :   TriggeredEventHandler(Stage::Position),
         m_mbs(system), m_mobod(mobod), m_lockangle(lockangle),
         m_lock(lock), m_low(low), m_high(high)
-    { 
+    {
         //getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     const Array_<Real>& getOnTimes() const {return m_onTimes;}
 
     Real getValue(const State& state) const {
-        if (!m_lock.isDisabled(state)) 
+        if (!m_lock.isDisabled(state))
             return 0; // already locked
         const Real qdist = m_mobod.getOneQ(state, 0) - m_lockangle;
         return qdist;
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         assert(m_lock.isDisabled(s));
@@ -158,9 +158,9 @@ public:
         m_lock.enable(s);
         m_mbs.realize(s, Stage::Dynamics);
 
-        // We're using Poisson's definition of the coefficient of 
-        // restitution, relating impulses, rather than Newton's, 
-        // relating velocities, since Newton's can produce non-physical 
+        // We're using Poisson's definition of the coefficient of
+        // restitution, relating impulses, rather than Newton's,
+        // relating velocities, since Newton's can produce non-physical
         // results for a multibody system. For Poisson, calculate the impulse
         // that would bring the velocity to zero, multiply by the coefficient
         // of restitution to calculate the rest of the impulse, then apply
@@ -190,7 +190,7 @@ public:
         // drive it to exactly zero instead (using lambda0 instead of lambda).
         Real achievedU = uin[ux]+deltaU[ux];
         if (CoefRest > 0 && std::abs(achievedU) < MinVel) {
-            cout << "  rebound " << achievedU 
+            cout << "  rebound " << achievedU
                  << " too slow; drive to zero instead\n";
             cout << "  deltaU was=" << deltaU << endl;
             lambda = lambda0; f /= 1+CoefRest; deltaU /= 1+CoefRest;
@@ -201,7 +201,7 @@ public:
         s.updU() = uin + deltaU;
         cout << "lambda=" << lambda << endl;
         cout << "f=" << f << endl;
-        cout << "du=" << deltaU << endl;       
+        cout << "du=" << deltaU << endl;
 
         cout << "AFTER u=" << s.getU() << endl;
 
@@ -210,16 +210,16 @@ public:
             printf("REBOUND vel=%g -- not locking.\n", s.getU()[1]);
             m_lock.disable(s);
             // Move q a small distance in the direction of u so that the
-            // witness function will be non-zero and we'll consider an 
+            // witness function will be non-zero and we'll consider an
             // immediate reverse as a new event (transitions away from zero
             // are not events).
-            m_mobod.setOneQ(s,0,m_lockangle+sign(s.getU()[ux])*SignificantReal); 
+            m_mobod.setOneQ(s,0,m_lockangle+sign(s.getU()[ux])*SignificantReal);
 
             m_mbs.realize(s, Stage::Acceleration);
             PG = matter.calcSystemMomentumAboutGroundOrigin(s);
             PC = matter.calcSystemCentralMomentum(s);
             printf("  %5g G mom=%g,%g C mom=%g,%g E=%g\n", s.getTime(),
-                PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(), 
+                PG[0].norm(), PG[1].norm(), PC[0].norm(), PC[1].norm(),
                 m_mbs.calcEnergy(s));
             cout << "  uerr=" << s.getUErr() << endl;
             return;
@@ -237,7 +237,7 @@ public:
         if (lockForce < m_low || lockForce > m_high) {
             m_lock.disable(s); // oops can't lock
             s.updU() = uin;
-            m_mobod.setOneQ(s,0, saveQ); 
+            m_mobod.setOneQ(s,0, saveQ);
             printf("CAN'T LOCK: force would have been %g\n", lockForce);
             return;
         }
@@ -256,7 +256,7 @@ public:
     }
 
 private:
-    const MultibodySystem&                  m_mbs; 
+    const MultibodySystem&                  m_mbs;
     const MobilizedBody&                    m_mobod;
     const Real                              m_lockangle;
     const Constraint::ConstantSpeed&        m_lock;
@@ -268,13 +268,13 @@ private:
 class LockOff: public TriggeredEventHandler {
 public:
     LockOff(const MultibodySystem& system,
-        MobilizedBody& mobod, Real lockangle, 
+        MobilizedBody& mobod, Real lockangle,
         Constraint::ConstantSpeed& lock,
-        Real low, Real high) 
-    :   TriggeredEventHandler(Stage::Acceleration), 
-        m_system(system), m_mobod(mobod), m_lockangle(lockangle), m_lock(lock), 
+        Real low, Real high)
+    :   TriggeredEventHandler(Stage::Acceleration),
+        m_system(system), m_mobod(mobod), m_lockangle(lockangle), m_lock(lock),
         m_low(low), m_high(high)
-    { 
+    {
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
@@ -288,7 +288,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const
     {
         assert(!m_lock.isDisabled(s));
 
@@ -305,7 +305,7 @@ public:
     }
 
 private:
-    const MultibodySystem&                  m_system; 
+    const MultibodySystem&                  m_system;
     const MobilizedBody&                    m_mobod;
     const Real                              m_lockangle;
     const Constraint::ConstantSpeed&        m_lock;
@@ -337,24 +337,24 @@ int main(int argc, char** argv) {
     Force::Gravity              gravity(forces, matter, Vec3(0, -g, 0));
 
         // ADD BODIES AND THEIR MOBILIZERS
-    const Vec3 thighHDim(.5,2,.25); 
+    const Vec3 thighHDim(.5,2,.25);
     const Real thighVol=8*thighHDim[0]*thighHDim[1]*thighHDim[2];
-    const Vec3 calfHDim(.25,2,.125); 
+    const Vec3 calfHDim(.25,2,.125);
     const Real calfVol=8*calfHDim[0]*calfHDim[1]*calfHDim[2];
     const Real density = 1000; // water
     const Real thighMass = density*thighVol, calfMass = density*calfVol;
-    Body::Rigid thighBody = 
-        Body::Rigid(MassProperties(10*thighMass, Vec3(0), 
+    Body::Rigid thighBody =
+        Body::Rigid(MassProperties(10*thighMass, Vec3(0),
                         10*thighMass*UnitInertia::brick(thighHDim)));
     thighBody.addDecoration(Transform(), DecorativeBrick(thighHDim)
                                              .setColor(Red).setOpacity(.3));
-    Body::Rigid calfBody = 
-        Body::Rigid(MassProperties(calfMass, Vec3(0), 
+    Body::Rigid calfBody =
+        Body::Rigid(MassProperties(calfMass, Vec3(0),
                         calfMass*UnitInertia::brick(calfHDim)));
     calfBody.addDecoration(Transform(), DecorativeBrick(calfHDim)
                                             .setColor(Blue).setOpacity(.3));
-    Body::Rigid footBody = 
-        Body::Rigid(MassProperties(10*calfMass, Vec3(0), 
+    Body::Rigid footBody =
+        Body::Rigid(MassProperties(10*calfMass, Vec3(0),
                         10*calfMass*UnitInertia::brick(calfHDim)));
     footBody.addDecoration(Transform(), DecorativeBrick(calfHDim)
                                             .setColor(Black).setOpacity(.3));
@@ -364,9 +364,9 @@ int main(int argc, char** argv) {
                              calfBody, Vec3(0,calfHDim[1],0));
     MobilizedBody::Pin foot(calf, Vec3(0,-calfHDim[1],0),
                              footBody, Vec3(0,calfHDim[1],0));
-    //Constraint::PrescribedMotion pres(matter, 
+    //Constraint::PrescribedMotion pres(matter,
     //    new Function::Constant(Pi/4,1), foot, MobilizerQIndex(0));
-    Constraint::PrescribedMotion pres(matter, 
+    Constraint::PrescribedMotion pres(matter,
        new Function::Sinusoid(Pi/4,2*Pi,-Pi/4), foot, MobilizerQIndex(0));
 
     Constraint::ConstantSpeed lock(calf,0);
@@ -395,7 +395,7 @@ int main(int argc, char** argv) {
 
     LockOff* lockOff = new LockOff(mbs,calf,lockAngle,lock,low,high);
     mbs.addEventHandler(lockOff);
-  
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
     mbs.realize(s, Stage::Instance); // instantiate constraints if any
@@ -428,7 +428,7 @@ int main(int argc, char** argv) {
     viz.report(s);
     cout << "Assembled configuration shown. Ready? ";
     getchar();
-    
+
     // Simulate it.
     const double start = realTime();
 
@@ -441,13 +441,13 @@ int main(int argc, char** argv) {
     const double timeInSec = realTime()-start;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "On times: " << lockOn->getOnTimes() << endl;
     cout << "Off times: " << lockOff->getOffTimes() << endl;
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
@@ -460,7 +460,7 @@ int main(int argc, char** argv) {
         getchar();
     }
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

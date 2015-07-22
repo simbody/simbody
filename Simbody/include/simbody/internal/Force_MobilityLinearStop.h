@@ -28,21 +28,21 @@
 #include "simbody/internal/Force.h"
 
 /** @file
-This contains the user-visible API ("handle" class) for the SimTK::Force 
+This contains the user-visible API ("handle" class) for the SimTK::Force
 subclass Force::MobilityLinearStop and is logically part of Force.h. The file
 assumes that Force.h will have included all necessary declarations. **/
 
 namespace SimTK {
 
 /** Model a compliant stop element that acts to keep a mobilizer coordinate q
-within specified bounds. This force element generates no force when the 
+within specified bounds. This force element generates no force when the
 coordinate is in bounds, but when either the lower or upper bound is exceeded
 it generates a generalized force opposing further violation of the bound. The
 generated force is composed of a stiffness force (or torque, or generalized
-force) that is linear in the violation of the bound, and dissipation that is 
+force) that is linear in the violation of the bound, and dissipation that is
 linear in the rate qdot.
 
-@bug MobilityLinearStop currently works only for coordinates q whose time 
+@bug MobilityLinearStop currently works only for coordinates q whose time
 derivatives qdot are just the corresponding generalized speed u. That is the
 case for translational mobilities, pin, universal, and gimbal mobilizers but
 not free or ball mobilizers.
@@ -64,9 +64,9 @@ when you first touch the stop.
 **/
 class SimTK_SIMBODY_EXPORT Force::MobilityLinearStop : public Force {
 public:
-    /** Create a %MobilityLinearStop force element on a particular generalized 
+    /** Create a %MobilityLinearStop force element on a particular generalized
     coordinate.
-    
+
     @param forces   subsystem to which this force element should be added
     @param mobod    mobilizer to which the force should be applied
     @param whichQ   to which of the mobilizer's generalized coordinates q
@@ -77,8 +77,8 @@ public:
     @param defaultQHigh         default upper bound (+Infinity)
 
     Note that if you have an integer value for the generalized coordinate (q)
-    index, you have to cast it to a MobilizerQIndex here. The generalized 
-    coordinates are numbered starting with 0 for each mobilizer. Here is an 
+    index, you have to cast it to a MobilizerQIndex here. The generalized
+    coordinates are numbered starting with 0 for each mobilizer. Here is an
     example: @code
         GeneralForceSubsystem forces;
         MobilizedBody::Pin pinJoint(...);
@@ -86,133 +86,133 @@ public:
                                   k, d, -Pi/4, Pi/4);
     @endcode
     **/
-    MobilityLinearStop(GeneralForceSubsystem&    forces, 
-                       const MobilizedBody&      mobod, 
-                       MobilizerQIndex           whichQ, 
+    MobilityLinearStop(GeneralForceSubsystem&    forces,
+                       const MobilizedBody&      mobod,
+                       MobilizerQIndex           whichQ,
                        Real                      defaultStiffness,
                        Real                      defaultDissipation,
                        Real                      defaultQLow =-Infinity,
                        Real                      defaultQHigh= Infinity);
-    
+
     /** Default constructor creates an empty handle that can be assigned to
     refer to any %MobilityLinearStop object. **/
     MobilityLinearStop() {}
 
-    /** Provide new values for the default lower and upper bounds of this stop. 
-    This is a topological change because it affects the value that the 
-    containing System's default state will have when realizeTopology() is 
-    called. This is for use during construction, not for during a simulation 
-    where you should be using setBounds() to set the bounds in a State rather 
+    /** Provide new values for the default lower and upper bounds of this stop.
+    This is a topological change because it affects the value that the
+    containing System's default state will have when realizeTopology() is
+    called. This is for use during construction, not for during a simulation
+    where you should be using setBounds() to set the bounds in a State rather
     than in the System.
 
-    @param      defaultQLow      
+    @param      defaultQLow
         Default lower bound (generalized coordinate value); <= defaultQHigh.
-        Set to <code>-Infinity</code> to disable the lower bound by default.          
-    @param      defaultQHigh     
+        Set to <code>-Infinity</code> to disable the lower bound by default.
+    @param      defaultQHigh
         Default upper bound (generalized coordinate value); >= defaultQLow.
-        Set to <code>Infinity</code> to disable the upper bound by default.          
+        Set to <code>Infinity</code> to disable the upper bound by default.
 
     @returns a writable reference to this modified force element
     @see setBounds(), getDefaultLowerBound(), getDefaultUpperBound() **/
     MobilityLinearStop& setDefaultBounds(Real defaultQLow, Real defaultQHigh);
 
 
-    /** Provide new values for the default material properties of this stop, 
+    /** Provide new values for the default material properties of this stop,
     which are assumed to be the same for the upper and lower stops. This is
-    a topological change because it affects the value that the containing 
-    System's default state will have when realizeTopology() is called. This is 
-    for use during construction, not for during a simulation where you should 
-    be using setMaterialProperties() to set the material properties in a State 
+    a topological change because it affects the value that the containing
+    System's default state will have when realizeTopology() is called. This is
+    for use during construction, not for during a simulation where you should
+    be using setMaterialProperties() to set the material properties in a State
     rather than in the System.
 
     @param defaultStiffness     default stop stiffness (>= 0)
     @param defaultDissipation   default stop dissipation coefficient (>= 0)
-         
+
     @returns a writable reference to this modified force element
-    @see setMaterialProperties(), getDefaultStiffness(), 
+    @see setMaterialProperties(), getDefaultStiffness(),
          getDefaultDissipation() **/
     MobilityLinearStop& setDefaultMaterialProperties
                             (Real defaultStiffness, Real defaultDissipation);
 
     /** Return the default value for the stop's lower bound (a generalized
-    coordinate value). This is normally set at construction. 
+    coordinate value). This is normally set at construction.
     @see getDefaultUpperBound(), getLowerBound() **/
     Real getDefaultLowerBound() const;
 
     /** Return the default value for the stop's upper bound (a generalized
-    coordinate value). This is normally set at construction. 
+    coordinate value). This is normally set at construction.
     @see getDefaultLowerBound(), getUpperBound() **/
     Real getDefaultUpperBound() const;
 
-    /** Return the default value for the stop material's stiffness k. This is 
-    normally set at construction. 
+    /** Return the default value for the stop material's stiffness k. This is
+    normally set at construction.
     @see getDefaultDissipation(), getStiffness() **/
     Real getDefaultStiffness() const;
 
-    /** Return the default value for the stop's material's dissipation 
-    coefficient d. This is normally set at construction. 
+    /** Return the default value for the stop's material's dissipation
+    coefficient d. This is normally set at construction.
     @see getDefaultStiffness(), getDissipation() **/
     Real getDefaultDissipation() const;
 
     /** Change the values of the lower and upper bounds in the given \a state;
     these may differ from the default values supplied at construction.
 
-    @param      state    
+    @param      state
         The State in which the bounds are changed.
-    @param      qLow     
+    @param      qLow
         Lower bound (generalized coordinate value); <= qHigh. Set to
-        \c -Infinity to disable the lower bound.             
-    @param      qHigh    
+        \c -Infinity to disable the lower bound.
+    @param      qHigh
         Upper bound (generalized coordinate value); >= qLow. Set to
         \c Infinity to disable the upper bound.
 
     Changing these bounds invalidates Stage::Dynamics and above in the \a state
-    since it can affect force generation. 
+    since it can affect force generation.
     @see setDefaultBounds(), getLowerBound(), getUpperBound() **/
     void setBounds(State& state, Real qLow, Real qHigh) const;
 
-    /** Change the values of this stop's material properties in the given 
+    /** Change the values of this stop's material properties in the given
     \a state; these may differ from the default values supplied at construction.
 
-    @param      state    
+    @param      state
         The State in which the material properties are changed.
-    @param      stiffness     
+    @param      stiffness
         The stop material stiffness k (>= 0).
-    @param      dissipation   
+    @param      dissipation
         The stop material dissipation coefficient d (>= 0).
 
-    Changing these properties invalidates Stage::Dynamics and above in the 
-    \a state since it can affect force generation. 
+    Changing these properties invalidates Stage::Dynamics and above in the
+    \a state since it can affect force generation.
     @see setDefaultMaterialProperties(), getStiffness(), getDissipation() **/
     void setMaterialProperties
                         (State& state, Real stiffness, Real dissipation) const;
 
-    /** Return the value for the lower bound that is stored in the 
+    /** Return the value for the lower bound that is stored in the
     given \a state. Note that this is not the same thing as the default lower
-    bound that was supplied on construction. 
+    bound that was supplied on construction.
     @see getUpperBound(), setBounds(), getDefaultLowerBound() **/
     Real getLowerBound(const State& state) const;
 
-    /** Return the value for the upper bound that is stored in the 
+    /** Return the value for the upper bound that is stored in the
     given \a state. Note that this is not the same thing as the default upper
-    bound that was supplied on construction. 
+    bound that was supplied on construction.
     @see getLowerBound(), setBounds(), getDefaultUpperBound() **/
     Real getUpperBound(const State& state) const;
 
-    /** Return the value for the stop material's stiffness k that is stored in 
-    the given \a state. Note that this is not the same thing as the default 
-    stiffness that was supplied on construction. 
+    /** Return the value for the stop material's stiffness k that is stored in
+    the given \a state. Note that this is not the same thing as the default
+    stiffness that was supplied on construction.
     @see getDissipation(), setMaterialProperties(), getDefaultStiffness() **/
     Real getStiffness(const State& state) const;
 
     /** Return the value for the stop material's dissipation coefficient d that
     is stored in the given \a state. Note that this is not the same thing as the
-    default dissipation coefficient that was supplied on construction. 
+    default dissipation coefficient that was supplied on construction.
     @see getStiffness(), setMaterialProperties(), getDefaultDissipation() **/
     Real getDissipation(const State& state) const;
 
     /** @cond **/
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearStop, 
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(MobilityLinearStop,
                                              MobilityLinearStopImpl, Force);
     /** @endcond **/
 };

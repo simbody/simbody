@@ -49,7 +49,7 @@ void testForces() {
 
     // Create a triangle mesh in the shape of a pyramid, with the
     // square base having area 1 (split into two triangles).
-    
+
     vector<Vec3> vertices;
     vertices.push_back(Vec3(0, 0, 0));
     vertices.push_back(Vec3(1, 0, 0));
@@ -57,14 +57,14 @@ void testForces() {
     vertices.push_back(Vec3(0, 0, 1));
     vertices.push_back(Vec3(0.5, 1, 0.5));
     vector<int> faceIndices;
-    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, 
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4},
                        {2, 1, 4}, {3, 2, 4}, {0, 3, 4}};
     for (int i = 0; i < 6; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
 
     // Create the mobilized bodies and configure the contact model.
-    
+
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     ContactSetIndex setIndex = contacts.createContactSet();
     MobilizedBody::Translation mesh(matter.updGround(), Transform(), body, Transform());
@@ -76,10 +76,10 @@ void testForces() {
     ef.setTransitionVelocity(vt);
     ASSERT(ef.getTransitionVelocity() == vt);
     State state = system.realizeTopology();
-    
-    // Position the pyramid at a variety of positions and check the normal 
+
+    // Position the pyramid at a variety of positions and check the normal
     // force.
-    
+
     for (Real depth = -0.1; depth < 0.1; depth += 0.01) {
         mesh.setQToFitTranslation(state, Vec3(0, -depth, 0));
         system.realize(state, Stage::Dynamics);
@@ -89,7 +89,7 @@ void testForces() {
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)[mesh.getMobilizedBodyIndex()][1], Vec3(0, f, 0));
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)[matter.getGround().getMobilizedBodyIndex()][1], Vec3(0, -f, 0));
     }
-    
+
     // Now do it with a vertical velocity and see if the dissipation force is correct.
 
     for (Real depth = -0.105; depth < 0.1; depth += 0.01) {
@@ -103,7 +103,7 @@ void testForces() {
             assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)[mesh.getMobilizedBodyIndex()][1], Vec3(0, f, 0));
         }
     }
-    
+
     // Do it with a horizontal velocity and see if the friction force is correct.
 
     Vector_<SpatialVec> expectedForce(matter.getNumBodies());

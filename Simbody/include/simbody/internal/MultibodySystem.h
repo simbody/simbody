@@ -37,8 +37,8 @@ class DecorationSubsystem;
 class GeneralContactSubsystem;
 
 
-/** The job of the MultibodySystem class is to coordinate the activities of 
-various subsystems which can be part of a multibody system. We insist on 
+/** The job of the MultibodySystem class is to coordinate the activities of
+various subsystems which can be part of a multibody system. We insist on
 having exactly one SimbodyMatterSubsystem, and we would like also to have:
     - one or more ForceSubsystems
     - a DecorationSubsystem for visualization
@@ -81,14 +81,14 @@ public:
         return calcPotentialEnergy(s)+calcKineticEnergy(s);
     }
 
-    // These methods are for use by our constituent subsystems to communicate 
+    // These methods are for use by our constituent subsystems to communicate
     // with each other and with the MultibodySystem as a whole.
 
     // These cache entries belong to the global subsystem, which zeroes them at
-    // the start of the corresponding stage. They are filled in by the force 
-    // subsystems when they are realized to each stage. Forces are cumulative 
+    // the start of the corresponding stage. They are filled in by the force
+    // subsystems when they are realized to each stage. Forces are cumulative
     // from stage to stage, so the Dynamics stage includes everything. That may
-    // then be accessed by the matter subsystem in Acceleration stage to 
+    // then be accessed by the matter subsystem in Acceleration stage to
     // generate the accelerations.
     const Vector_<SpatialVec>& getRigidBodyForces(const State&, Stage) const;
     const Vector_<Vec3>&       getParticleForces (const State&, Stage) const;

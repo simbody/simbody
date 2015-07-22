@@ -44,7 +44,7 @@ SemiExplicitEulerIntegrator::SemiExplicitEulerIntegrator
 //==============================================================================
 SemiExplicitEulerIntegratorRep::SemiExplicitEulerIntegratorRep
    (Integrator* handle, const System& sys)
-:   AbstractIntegratorRep(handle, sys, 1, 1, "SemiExplicitEuler",  false) 
+:   AbstractIntegratorRep(handle, sys, 1, 1, "SemiExplicitEuler",  false)
 {
 }
 
@@ -105,7 +105,7 @@ backUpAdvancedStateByInterpolation(Real t) {
 
     // Ignore any user request not to project interpolated states here -- this
     // is the actual advanced state which will be propagated through the
-    // rest of the trajectory so we can't allow it not to satisfy the 
+    // rest of the trajectory so we can't allow it not to satisfy the
     // constraints!
     // But it is OK if it just *barely* satisfies the constraints so we
     // won't get carried away if the user isn't being finicky about it.
@@ -121,8 +121,8 @@ backUpAdvancedStateByInterpolation(Real t) {
 //==============================================================================
 //                            ATTEMPT DAE STEP
 //==============================================================================
-// Note that SemiExplicitEuler overrides the entire DAE step because it can't 
-// use the default ODE-then-DAE structure. Instead the constraint projections 
+// Note that SemiExplicitEuler overrides the entire DAE step because it can't
+// use the default ODE-then-DAE structure. Instead the constraint projections
 // are interwoven here.
 bool SemiExplicitEulerIntegratorRep::attemptDAEStep
    (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
@@ -130,7 +130,7 @@ bool SemiExplicitEulerIntegratorRep::attemptDAEStep
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
     Vector dummyErrEst; // for when we don't want the error estimate projected
-    
+
     statsStepsAttempted++;
 
     const Real    t0        = getPreviousTime();       // nicer names

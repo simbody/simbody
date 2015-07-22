@@ -73,7 +73,7 @@ Real doRowSum(const Array_<MultiplierIndex>& columns,
 // columns are contiguous.) So A(r,c) = A[r + c*m].
 void doRowSums(const Array_<int>& columns, // these are MultiplierIndex ints
                const Array_<int>& rows,
-               const Matrix&      A, 
+               const Matrix&      A,
                const Vector&      D,
                const Vector&      pi,
                Array_<Real>&      sums)
@@ -145,11 +145,11 @@ Real doUpdates(const Array_<int>& rows, // These are MultiplierIndex ints
 }
 
 // Multiply the active entries of a row of the full matrix A (mXm) by a sparse,
-// full-length (m) column containing only the indicated non-zero entries. 
+// full-length (m) column containing only the indicated non-zero entries.
 // Useful for A[r]*piExpand.
-static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row, 
+static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row,
            const Array_<MultiplierIndex>& nonZero,
-           const Vector& sparseCol) 
+           const Vector& sparseCol)
 {
     const RowVectorView Ar = A[row];
     Real result = 0;
@@ -179,13 +179,13 @@ inline ImpulseSolver::BndCond boundScalar(Real lb, Real& pi, Real ub) {
 
 /** Given an index set IV, ensure that ||pi[IV]|| <= maxLen by scaling the
 vector to that length if necessary. Return true if any change is made. **/
-ImpulseSolver::FricCond 
+ImpulseSolver::FricCond
 boundVector(Real maxLen, const Array_<MultiplierIndex>& IV, Vector& pi) {
     assert(maxLen >= 0);
     const Real maxLen2 = square(maxLen);
     Real piNorm2 = 0;
     for (unsigned i=0; i<IV.size(); ++i) piNorm2 += square(pi[IV[i]]);
-    if (piNorm2 <= maxLen2) 
+    if (piNorm2 <= maxLen2)
         return ImpulseSolver::Rolling;
     const Real scale = std::sqrt(maxLen2/piNorm2); // 0 <= scale < 1
     for (unsigned i=0; i<IV.size(); ++i) pi[IV[i]] *= scale;
@@ -196,17 +196,17 @@ boundVector(Real maxLen, const Array_<MultiplierIndex>& IV, Vector& pi) {
 and index set IF identifying the components of the friction vector, ensure
 that ||pi[IF]|| <= mu*||pi[IN]|| by scaling the friction vector if necessary.
 Return true if any change is made. **/
-ImpulseSolver::FricCond 
-boundFriction(Real mu, 
-              const Array_<int>& IN, // these are MultiplierIndex ints 
-              const Array_<int>& IF, 
+ImpulseSolver::FricCond
+boundFriction(Real mu,
+              const Array_<int>& IN, // these are MultiplierIndex ints
+              const Array_<int>& IF,
               Vector& pi) {
     assert(mu >= 0);
     Real N2=0, F2=0; // squares of normal and friction force magnitudes
     for (unsigned i=0; i<IN.size(); ++i) N2 += square(pi[IN[i]]);
     for (unsigned i=0; i<IF.size(); ++i) F2 += square(pi[IF[i]]);
     const Real mu2N2 = mu*mu*N2;
-    if (F2 <= mu2N2) 
+    if (F2 <= mu2N2)
         return ImpulseSolver::Rolling;
     const Real scale = std::sqrt(mu2N2/F2); // 0 <= scale < 1
     for (unsigned i=0; i<IF.size(); ++i) pi[IF[i]] *= scale;
@@ -221,9 +221,9 @@ namespace SimTK {
 //==============================================================================
 //                   PROJECTED GAUSS SEIDEL IMPULSE SOLVER
 //==============================================================================
-/* 
-We are given 
-    - A, square matrix of dimension m 
+/*
+We are given
+    - A, square matrix of dimension m
     - v, constraint velocity vector (length m)
     - pi, solution vector with initial value pi=pi0 (length m)
 representing m scalar constraint equations A[i]*pi=rhs[i].
@@ -253,21 +253,21 @@ Each unilateral speed constraint k provides
     - a single constraint index
 
 Each bounded scalar constraint k provides
-    - a single constraint index iB_k from IB, and 
+    - a single constraint index iB_k from IB, and
     - effective lower and upper bounds lb_k, ub_k.
 
-Each state-limited friction constraint k specifies 
+Each state-limited friction constraint k specifies
     - a unique index set of 1-3 distinct constraints IS_k from IS,
     - a nonnegative scalar N_k specifing the limiting normal force, as
       determined from the state and passed in to this method
     - the effective coefficient of friction mu.
 
-Each constraint-limited friction constraint k specifies 
-    - a unique index set of 1-3 distinct friction constraints IF_k from IF, 
+Each constraint-limited friction constraint k specifies
+    - a unique index set of 1-3 distinct friction constraints IF_k from IF,
     - an index set of 1-3 distinct normal constraints IN_k from IU,
     - the effective coefficient of friction mu.
 
-Given those inputs, we attempt to solve: 
+Given those inputs, we attempt to solve:
     A[I,I] w[I] = b[I]
     subject to lb_k <= w[iB_k] <= ub_k       for bounded constraints k in IB
     and        ||w[IV_k]|| <= L_k            for vector constraints k in IV
@@ -285,7 +285,7 @@ Implicitly, complementarity conditions must hold:
 //------------------------------------------------------------------------------
 bool PGSImpulseSolver::
 solve(int                                 phase,
-      const Array_<MultiplierIndex>&      participating, // p<=m of these 
+      const Array_<MultiplierIndex>&      participating, // p<=m of these
       const Matrix&                       A,     // m X m, symmetric
       const Vector&                       D,     // m, diag >= 0 added to A
       const Array_<MultiplierIndex>&      expanding,
@@ -299,7 +299,7 @@ solve(int                                 phase,
       Array_<BoundedRT>&                  bounded,
       Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
       Array_<StateLtdFrictionRT>&         stateLtdFriction
-      ) const 
+      ) const
 {
     SimTK_DEBUG("\n-----------------\n");
     SimTK_DEBUG(  "START PGS SOLVER:\n");
@@ -307,7 +307,7 @@ solve(int                                 phase,
 
 #ifndef NDEBUG
    {FactorQTZ fac(A);
-    cout << "A=" << A; cout << "D=" << D; 
+    cout << "A=" << A; cout << "D=" << D;
     cout << "verrStart=" << verrStart << endl;
     cout << "verrApplied=" << verrApplied << endl;
     cout << "expanding mx=" << expanding << endl;
@@ -315,31 +315,31 @@ solve(int                                 phase,
     Vector verrDbg, x;
     verrDbg = verrStart;
     if (verrApplied.size()) verrDbg += verrApplied;
-    fac.solve(verrDbg, x); 
+    fac.solve(verrDbg, x);
     cout << "x=" << x << endl;
     cout << "resid=" << A*x-verrDbg << endl;}
 #endif
 
     const int m=A.nrow();
     assert(A.ncol()==m); assert(D.size()==m);
-    assert(verrStart.size()==m); 
+    assert(verrStart.size()==m);
     assert(verrApplied.size()==0 || verrApplied.size()==m);
-    assert(piExpand.size()==m); 
+    assert(piExpand.size()==m);
 
     const int p = (int)participating.size();
     const int nx = (int)expanding.size();
     assert(p<=m); assert(nx<=m);
-    
+
     pi.resize(m);
     pi.setToZero(); // Use this for piUnknown
 
     // If there are applied forces, add them to the rhs.
-    if (verrApplied.size()) 
+    if (verrApplied.size())
         verrStart += verrApplied;
 
     // Move expansion impulse to RHS. We will always apply the full expansion
     // impulse in one interval in this solver.
-    if (nx) 
+    if (nx)
         for (MultiplierIndex mx(0); mx < m; ++mx) {
             verrStart[mx] -= multRowTimesSparseCol(A,mx,expanding,piExpand)
                              + D[mx]*piExpand[mx];
@@ -452,7 +452,7 @@ solve(int                                 phase,
                 sum2enf += er2;
         }
 
-        // STATE LIMITED FRICTION: a set of constraint equations forming a 
+        // STATE LIMITED FRICTION: a set of constraint equations forming a
         // vector whose maximum length is limited.
         for (int k=0; k < mStateLtd; ++k) {
             StateLtdFrictionRT& rt = stateLtdFriction[k];
@@ -465,8 +465,8 @@ solve(int                                 phase,
                 sum2enf += localEr2;
         }
 
-        // CONSTRAINT LIMITED FRICTION: a set of constraint equations forming 
-        // a vector whose maximum length is limited by the norm of other 
+        // CONSTRAINT LIMITED FRICTION: a set of constraint equations forming
+        // a vector whose maximum length is limited by the norm of other
         // multipliers pi.
         for (int k=0; k < mConsLtd; ++k) {
             ConstraintLtdFrictionRT& rt = consLtdFriction[k];
@@ -488,22 +488,22 @@ solve(int                                 phase,
             SimTK_DEBUG3("GOT WORSE@%d: sor=%g rate=%g\n", its, sor, rate);
             if (sor > .1)
                 sor = std::max(.8*sor, .1);
-        } 
+        }
 
         #ifndef NDEBUG
         printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,
-                     normRMSall, normRMSenf, 
+                     normRMSall, normRMSenf,
                      normRMSenf/prevNormRMSenf);
         #endif
         //#ifdef NDEBUG // i.e., NOT debugging (TODO)
         //if (its > 90)
         //    printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,
-        //             normRMSall, normRMSenf, 
+        //             normRMSall, normRMSenf,
         //             normRMSenf/prevNormRMSenf);
         //#endif
         if (normRMSenf < m_convergenceTol) //TODO: add failure-to-improve check
         {
-            SimTK_DEBUG3("PGS %d converged to %g in %d iters\n", 
+            SimTK_DEBUG3("PGS %d converged to %g in %d iters\n",
                          phase, normRMSenf, its);
             converged = true;
             break;
@@ -534,7 +534,7 @@ solve(int                                 phase,
 //------------------------------------------------------------------------------
 bool PGSImpulseSolver::
 solveBilateral
-   (const Array_<MultiplierIndex>&  participating, // p<=m of these 
+   (const Array_<MultiplierIndex>&  participating, // p<=m of these
     const Matrix&                   A,     // m X m, symmetric
     const Vector&                   D,     // m, diag>=0 added to A
     const Vector&                   rhs,   // m, RHS
@@ -545,14 +545,14 @@ solveBilateral
     SimTK_DEBUG(  "PGS BILATERAL SOLVER:\n");
     ++m_nBilateralSolves;
 
-    const int m=A.nrow(); 
+    const int m=A.nrow();
     const int p = (int)participating.size();
 
-    assert(A.ncol()==m); 
+    assert(A.ncol()==m);
     assert(D.size()==0 || D.size()==m);
     assert(rhs.size()==m);
     assert(p<=m);
- 
+
     pi.resize(m);
     pi.setToZero(); // That takes care of all non-participators.
 
@@ -591,7 +591,7 @@ solveBilateral
             SimTK_DEBUG3("GOT WORSE@%d: sor=%g rate=%g\n", its, sor, rate);
             if (sor > .1)
                 sor = std::max(.8*sor, .1);
-        } 
+        }
 
         #ifndef NDEBUG
         printf("iter %d: EST rmsEnf=%g rate=%g\n", its,
@@ -600,7 +600,7 @@ solveBilateral
 
         if (normRMSenf < m_convergenceTol) //TODO: add failure-to-improve check
         {
-            SimTK_DEBUG2("BILATERAL PGS converged to %g in %d iters\n", 
+            SimTK_DEBUG2("BILATERAL PGS converged to %g in %d iters\n",
                          normRMSenf, its);
             converged = true;
             break;

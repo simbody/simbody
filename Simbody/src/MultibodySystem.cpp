@@ -39,7 +39,7 @@ namespace SimTK {
     // MULTIBODY SYSTEM //
     //////////////////////
 
-/*static*/ bool 
+/*static*/ bool
 MultibodySystem::isInstanceOf(const System& s) {
     return MultibodySystemRep::isA(s.getSystemGuts());
 }
@@ -54,11 +54,11 @@ MultibodySystem::updDowncast(System& s) {
     return static_cast<MultibodySystem&>(s);
 }
 
-const MultibodySystemRep& 
+const MultibodySystemRep&
 MultibodySystem::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const MultibodySystemRep&>(getSystemGuts());
 }
-MultibodySystemRep&       
+MultibodySystemRep&
 MultibodySystem::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemRep&>(updSystemGuts());
 }
@@ -99,11 +99,11 @@ int MultibodySystem::setContactSubsystem(GeneralContactSubsystem& m) {
     return updRep().setContactSubsystem(m);
 }
 
-const SimbodyMatterSubsystem&       
+const SimbodyMatterSubsystem&
 MultibodySystem::getMatterSubsystem() const {
     return getRep().getMatterSubsystem();
 }
-SimbodyMatterSubsystem&       
+SimbodyMatterSubsystem&
 MultibodySystem::updMatterSubsystem() {
     return updRep().updMatterSubsystem();
 }
@@ -111,11 +111,11 @@ bool MultibodySystem::hasMatterSubsystem() const {
     return getRep().hasMatterSubsystem();
 }
 
-const DecorationSubsystem&       
+const DecorationSubsystem&
 MultibodySystem::getDecorationSubsystem() const {
     return getRep().getDecorationSubsystem();
 }
-DecorationSubsystem&       
+DecorationSubsystem&
 MultibodySystem::updDecorationSubsystem() {
     return updRep().updDecorationSubsystem();
 }
@@ -123,11 +123,11 @@ bool MultibodySystem::hasDecorationSubsystem() const {
     return getRep().hasDecorationSubsystem();
 }
 
-const GeneralContactSubsystem&       
+const GeneralContactSubsystem&
 MultibodySystem::getContactSubsystem() const {
     return getRep().getContactSubsystem();
 }
-GeneralContactSubsystem&       
+GeneralContactSubsystem&
 MultibodySystem::updContactSubsystem() {
     return updRep().updContactSubsystem();
 }
@@ -144,28 +144,28 @@ MultibodySystem::calcKineticEnergy(const State& s) const {
     return getMatterSubsystem().getRep().calcKineticEnergy(s);
 }
 
-const Vector_<SpatialVec>& 
+const Vector_<SpatialVec>&
 MultibodySystem::getRigidBodyForces(const State& s, Stage g) const {
     return getRep().getRigidBodyForces(s,g);
 }
-const Vector_<Vec3>&       
+const Vector_<Vec3>&
 MultibodySystem::getParticleForces(const State& s, Stage g) const {
     return getRep().getParticleForces(s,g);
 }
-const Vector&              
+const Vector&
 MultibodySystem::getMobilityForces(const State& s, Stage g) const {
     return getRep().getMobilityForces(s,g);
 }
 
-Vector_<SpatialVec>& 
+Vector_<SpatialVec>&
 MultibodySystem::updRigidBodyForces(const State& s, Stage g) const {
     return getRep().updRigidBodyForces(s,g);
 }
-Vector_<Vec3>&       
+Vector_<Vec3>&
 MultibodySystem::updParticleForces(const State& s, Stage g) const {
     return getRep().updParticleForces(s,g);
 }
-Vector&              
+Vector&
 MultibodySystem::updMobilityForces(const State& s, Stage g) const {
     return getRep().updMobilityForces(s,g);
 }
@@ -275,7 +275,7 @@ int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
     // can depend only on force calculations at Dynamics stage.
     getMatterSubsystem().getRep().realizeSubsystemAcceleration(s);
 
-    // Force elements' realizeAcceleration() methods might depend on 
+    // Force elements' realizeAcceleration() methods might depend on
     // accelerations or multipliers we just calculated. For example, a friction
     // force might record normal forces to use as an initial guess in the
     // next time step.
@@ -306,7 +306,7 @@ int MultibodySystemRep::realizeReportImpl(const State& s) const {
     ///////////////////////////////////////
 
 
-/*static*/ bool 
+/*static*/ bool
 MultibodySystemGlobalSubsystem::isInstanceOf(const Subsystem& s) {
     return MultibodySystemGlobalSubsystemRep::isA(s.getSubsystemGuts());
 }
@@ -321,11 +321,11 @@ MultibodySystemGlobalSubsystem::updDowncast(Subsystem& s) {
     return static_cast<MultibodySystemGlobalSubsystem&>(s);
 }
 
-const MultibodySystemGlobalSubsystemRep& 
+const MultibodySystemGlobalSubsystemRep&
 MultibodySystemGlobalSubsystem::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const MultibodySystemGlobalSubsystemRep&>(getSubsystemGuts());
 }
-MultibodySystemGlobalSubsystemRep&       
+MultibodySystemGlobalSubsystemRep&
 MultibodySystemGlobalSubsystem::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemGlobalSubsystemRep&>(updSubsystemGuts());
 }

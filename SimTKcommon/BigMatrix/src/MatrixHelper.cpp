@@ -46,7 +46,7 @@ namespace SimTK {
 // with a different one.
 //------------------------------------------------------------------------------
 
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::deleteRepIfOwner() {
     if (rep && &rep->getMyHandle() == this)
         delete rep;
@@ -55,7 +55,7 @@ MatrixHelper<S>::deleteRepIfOwner() {
 
 // Rep replacement. Delete the existing rep if we're the owner of it.
 // We are going to be the owner of the new rep regardless.
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::replaceRep(MatrixHelperRep<S>* hrep) {
     deleteRepIfOwner();
     rep=hrep;
@@ -64,15 +64,15 @@ MatrixHelper<S>::replaceRep(MatrixHelperRep<S>* hrep) {
 
 // Space-stealing constructor. We're going to take over ownership
 // of this rep.
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper(MatrixHelperRep<S>* hrep) : rep(hrep)
 {   if (rep) rep->setMyHandle(*this); }
 
-template <class S> const MatrixCommitment& 
+template <class S> const MatrixCommitment&
 MatrixHelper<S>::getCharacterCommitment() const
 {   return getRep().getCharacterCommitment(); }
 
-template <class S> const MatrixCharacter& 
+template <class S> const MatrixCharacter&
 MatrixHelper<S>::getMatrixCharacter() const
 {   return getRep().getMatrixCharacter(); }
 
@@ -81,10 +81,10 @@ MatrixHelper<S>::getMatrixCharacter() const
 // This is the constructor for a Matrix in which only the handle commitment has been
 // supplied. The allocated matrix will have the smallest size that satisfies the
 // commitment, typically 0x0 or 0x1.
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, const MatrixCommitment& mc) : rep(0) {
     // Determine the best actual matrix to allocate to satisfy this commitment.
-    const MatrixCharacter actual = mc.calcDefaultCharacter(0,0); 
+    const MatrixCharacter actual = mc.calcDefaultCharacter(0,0);
 
     rep = MatrixHelperRep<S>::createOwnerMatrixHelperRep(esz, cppEsz, actual);
     assert(rep);
@@ -96,7 +96,7 @@ MatrixHelper<S>::MatrixHelper(int esz, int cppEsz, const MatrixCommitment& mc) :
 // This is effectively the default constructor. It creates a writable, fully resizable 0x0
 // matrix, with the handle committed only to the given element size.
 // Just calls the above constructor with a default commitment.
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper(int esz, int cppEsz) : rep(0) {
     new (this) MatrixHelper(esz, cppEsz, MatrixCommitment());
 }
@@ -104,12 +104,12 @@ MatrixHelper<S>::MatrixHelper(int esz, int cppEsz) : rep(0) {
 // This is the constructor for a Matrix in which the handle commitment has been
 // supplied, along with an initial allocation size. Provided the size satisfies the
 // commitment, the resulting matrix will have that size.
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper
-   (int esz, int cppEsz, const MatrixCommitment& commitment, 
-    int m, int n) : rep(0) 
+   (int esz, int cppEsz, const MatrixCommitment& commitment,
+    int m, int n) : rep(0)
 {
-    SimTK_ERRCHK2(commitment.isSizeOK(m,n),  "MatrixHelper::ctor()", 
+    SimTK_ERRCHK2(commitment.isSizeOK(m,n),  "MatrixHelper::ctor()",
         "The initial size allocation %s x %s didn't satisfy the supplied commitment.",
         m, n);
 
@@ -124,17 +124,17 @@ MatrixHelper<S>::MatrixHelper
 }
 
 // Create a read-only view into existing data.
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper
    (int esz, int cppEsz, const MatrixCommitment& commitment,
-    const MatrixCharacter& actual, int spacing, const S* data) : rep(0) 
+    const MatrixCharacter& actual, int spacing, const S* data) : rep(0)
 {
     SimTK_ERRCHK(commitment.isSatisfiedBy(actual), "MatrixHelper::ctor(external data)",
     "The supplied actual matrix character for the external data did not "
     "satisfy the specified handle character commitment.");
 
     rep = MatrixHelperRep<S>::createExternalMatrixHelperRep
-                (esz, cppEsz, actual, spacing, const_cast<S*>(data), false); 
+                (esz, cppEsz, actual, spacing, const_cast<S*>(data), false);
     assert(rep);
     rep->setMyHandle(*this);
 
@@ -142,17 +142,17 @@ MatrixHelper<S>::MatrixHelper
 }
 
 // Create a writable view into existing data.
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper
-   (int esz, int cppEsz, const MatrixCommitment& commitment, 
-    const MatrixCharacter& actual, int spacing, S* data) : rep(0) 
+   (int esz, int cppEsz, const MatrixCommitment& commitment,
+    const MatrixCharacter& actual, int spacing, S* data) : rep(0)
 {
     SimTK_ERRCHK(commitment.isSatisfiedBy(actual), "MatrixHelper::ctor(external data)",
         "The supplied actual matrix character for the external data did not "
         "satisfy the specified handle character commitment.");
 
     rep = MatrixHelperRep<S>::createExternalMatrixHelperRep
-                (esz, cppEsz, actual, spacing, data, true); 
+                (esz, cppEsz, actual, spacing, data, true);
     assert(rep);
     rep->setMyHandle(*this);
 
@@ -166,11 +166,11 @@ MatrixHelper<S>::MatrixHelper
 template <class S> void
 MatrixHelper<S>::clear() {
     // Determine the best actual matrix to allocate to satisfy this commitment.
-    const MatrixCharacter actual = getCharacterCommitment().calcDefaultCharacter(0,0); 
+    const MatrixCharacter actual = getCharacterCommitment().calcDefaultCharacter(0,0);
     const int             esz    = getRep().getEltSize();
     const int             cppEsz = getRep().getCppEltSize();
 
-    MatrixHelperRep<S>* newRep = 
+    MatrixHelperRep<S>* newRep =
         MatrixHelperRep<S>::createOwnerMatrixHelperRep(esz, cppEsz, actual);
     assert(newRep);
 
@@ -210,7 +210,7 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
     rep->m_commitment = mc;
 }
 
-// Create a (possibly) writable view of existing data. 
+// Create a (possibly) writable view of existing data.
 template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, const ShallowCopy&) : rep(0) {
     SimTK_ERRCHK(mc.isSatisfiedBy(h.getMatrixCharacter()), "MatrixHelper::ctor(writable,shallow)",
@@ -232,7 +232,7 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
     rep->m_commitment = mc;
 }
 
-// Negated deep copy. We'll get a brand new, filterless, writable, packed copy with 
+// Negated deep copy. We'll get a brand new, filterless, writable, packed copy with
 // the same values as the original (duh, that's what "copy" means) -- BUT, the
 // physical floating point representations will all have been negated since we're
 // copying a Matrix whose elements are of type negator<S> while ours are type S (or
@@ -248,13 +248,13 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper<typ
 }
 
 // construct read-only block view
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, int i, int j, int m, int n) : rep(0) {
     if (n==1)
         rep = h.rep->createColumnView(j,i,m,false); // column j, from i to i+m-1
     else if (m==1)
         rep = h.rep->createRowView(i,j,n,false); // row i, from j to j+n-1
-    else 
+    else
         rep = h.rep->createBlockView(EltBlock(i,j,m,n), false);
 
     SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(const,block)",
@@ -266,13 +266,13 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
 }
 
 // construct (possibly) writable block view
-template <class S> 
+template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, int i, int j, int m, int n) : rep(0) {
     if (n==1)
         rep = h.rep->createColumnView(j,i,m,true); // column j, from i to i+m-1
     else if (m==1)
         rep = h.rep->createRowView(i,j,n,true); // row i, from j to j+n-1
-    else 
+    else
         rep = h.rep->createBlockView(EltBlock(i,j,m,n),true);
 
     SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), "MatrixHelper::ctor(writable,block)",
@@ -331,7 +331,7 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
                               const DiagonalView&) : rep(0) {
     rep = h.rep->createDiagonalView(true);
 
-    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), 
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()),
         "MatrixHelper::ctor(writable,diagonal)",
         "The actual matrix character of the diagonal of the source did not "
         "satisfy the specified handle character commitment.");
@@ -344,12 +344,12 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
 template <class S>
 MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
                               int n, const int* ix) : rep(0) {
-    const VectorHelper<S>& vh = 
+    const VectorHelper<S>& vh =
         SimTK_DYNAMIC_CAST_DEBUG<const VectorHelper<S>&>(*h.rep);
     rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.getElt_(0) : 0, false);
 
-    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), 
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()),
         "MatrixHelper::ctor(const,indexed)",
         "The actual matrix character of the indexed source did not "
         "satisfy the specified handle character commitment.");
@@ -360,13 +360,13 @@ MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
 
 // Construct a writable indexed view of a Vector.
 template <class S>
-MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, 
+MatrixHelper<S>::MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
                               int n, const int* ix) : rep(0) {
     VectorHelper<S>& vh = SimTK_DYNAMIC_CAST_DEBUG<VectorHelper<S>&>(*h.rep);
     rep = new IndexedVectorHelper<S>(vh.getEltSize(), vh.getCppEltSize(), n,
                                      vh.preferRowOrder_(), ix, n ? vh.updElt_(0) : 0, true);
 
-    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()), 
+    SimTK_ERRCHK(mc.isSatisfiedBy(rep->getMatrixCharacter()),
         "MatrixHelper::ctor(writable,indexed)",
         "The actual matrix character of the indexed source did not "
         "satisfy the specified handle character commitment.");
@@ -419,7 +419,7 @@ MatrixHelper<S>::readOnlyViewAssign(const MatrixHelper& h) {
     replaceRep(newRep);
     return *this;
 }
-// Create a (possibly) writable view of existing data. 
+// Create a (possibly) writable view of existing data.
 template <class S> MatrixHelper<S>&
 MatrixHelper<S>::writableViewAssign(MatrixHelper& h) {
     SimTK_ERRCHK(getCharacterCommitment().isSatisfiedBy(h.getMatrixCharacter()),
@@ -444,7 +444,7 @@ MatrixHelper<S>::addIn(const MatrixHelper& h) {
 template <class S> void
 MatrixHelper<S>::addIn(const MatrixHelper<typename CNT<S>::TNeg>& h) {
     subIn(reinterpret_cast<const MatrixHelper<S>&>(h));
-}   
+}
 template <class S> void
 MatrixHelper<S>::subIn(const MatrixHelper& h) {
     rep->subIn(h);
@@ -457,7 +457,7 @@ template <class S> void
 MatrixHelper<S>::fillWith(const S* eltp) {
     rep->fillWith(eltp);
 }
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::copyInByRowsFromCpp(const S* elts) {
     rep->copyInByRowsFromCpp(elts);
 }
@@ -472,51 +472,51 @@ MatrixHelper<S>::dump(const char* msg) const {
     rep->dump(msg);
 }
 
-template <class S> const S* 
+template <class S> const S*
 MatrixHelper<S>::getElt(int i, int j) const {return rep->getElt(i,j);}
-template <class S> S* 
+template <class S> S*
 MatrixHelper<S>::updElt(int i, int j)       {return rep->updElt(i,j);}
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::getAnyElt(int i, int j, S* value) const
 {   return rep->getAnyElt(i,j,value); }
 
-template <class S> const S* 
+template <class S> const S*
 MatrixHelper<S>::getElt(int i) const {return rep->getElt(i);}
-template <class S> S* 
+template <class S> S*
 MatrixHelper<S>::updElt(int i)       {return rep->updElt(i);}
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::getAnyElt(int i, S* value) const
 {   return rep->getAnyElt(i,value); }
 
-template <class S> int 
+template <class S> int
 MatrixHelper<S>::nrow() const {
     return rep->nrow();
 }
-template <class S> int 
+template <class S> int
 MatrixHelper<S>::ncol() const {
     return rep->ncol();
-} 
-template <class S> ptrdiff_t 
-MatrixHelper<S>::nelt() const {   
-    return rep->nelt(); 
 }
-template <class S> int 
+template <class S> ptrdiff_t
+MatrixHelper<S>::nelt() const {
+    return rep->nelt();
+}
+template <class S> int
 MatrixHelper<S>::length() const {
     return rep->length();
 }
 
-template <class S> void 
-MatrixHelper<S>::resize    (int m, int n) {rep->resize(m,n,false);} 
-template <class S> void 
-MatrixHelper<S>::resizeKeep(int m, int n) {rep->resize(m,n,true);} 
- 
+template <class S> void
+MatrixHelper<S>::resize    (int m, int n) {rep->resize(m,n,false);}
+template <class S> void
+MatrixHelper<S>::resizeKeep(int m, int n) {rep->resize(m,n,true);}
+
 template <class S> void MatrixHelper<S>::lockShape() {rep->lockHandle();}
 template <class S> void MatrixHelper<S>::unlockShape() {rep->unlockHandle();}
 
 template <class S> void
 MatrixHelper<S>::sum(S* const answer) const {
     rep->sum(answer);
-}     
+}
 template <class S> void
 MatrixHelper<S>::colSum(int j, S* const answer) const {
     rep->colSum(j,answer);
@@ -530,41 +530,41 @@ MatrixHelper<S>::fillWithScalar(const typename CNT<S>::StdNumber& s) {
     rep->fillWithScalar(s);
 }
 
-template <class S> bool 
+template <class S> bool
 MatrixHelper<S>::hasContiguousData() const {
     return rep->hasContiguousData();
 }
-template <class S> ptrdiff_t 
+template <class S> ptrdiff_t
 MatrixHelper<S>::getContiguousDataLength() const {
     assert(hasContiguousData());
     return rep->nScalars();
 }
-template <class S> const S* 
+template <class S> const S*
 MatrixHelper<S>::getContiguousData() const {
     assert(hasContiguousData());
     return rep->m_data;
 }
-template <class S> S* 
+template <class S> S*
 MatrixHelper<S>::updContiguousData() {
     assert(hasContiguousData());
     return rep->m_data;
 }
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::replaceContiguousData(S* newData, ptrdiff_t length, bool takeOwnership) {
     assert(length == getContiguousDataLength());
     if (rep->m_owner) {
-        MatrixHelperRep<S>::deleteAllocatedMemory(rep->m_data); 
+        MatrixHelperRep<S>::deleteAllocatedMemory(rep->m_data);
         rep->m_data=0;
     }
     rep->m_data = newData;
     rep->m_owner = takeOwnership;
 }
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::replaceContiguousData(const S* newData, ptrdiff_t length) {
     replaceContiguousData(const_cast<S*>(newData), length, false);
     rep->m_writable = false;
 }
-template <class S> void 
+template <class S> void
 MatrixHelper<S>::swapOwnedContiguousData(S* newData, ptrdiff_t length, S*& oldData) {
     assert(length == getContiguousDataLength());
     assert(rep->m_owner);
@@ -596,10 +596,10 @@ MatrixHelperRep<S>::createOwnerMatrixHelperRep(int esz, int cppEsz, const Matrix
 
       case MatrixStructure::Full:
         if (rowOrder)
-            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullRowOrderScalarHelper<S>(nr,nc) 
+            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullRowOrderScalarHelper<S>(nr,nc)
                             : (RegularFullHelper<S>*)new FullRowOrderEltHelper<S>(esz, cppEsz,nr,nc));
         else
-            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(nr,nc) 
+            rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(nr,nc)
                             : (RegularFullHelper<S>*)new FullColOrderEltHelper<S>(esz, cppEsz,nr,nc));
         break;
 
@@ -616,12 +616,12 @@ MatrixHelperRep<S>::createOwnerMatrixHelperRep(int esz, int cppEsz, const Matrix
 
         if (/*storage.getPlacement() == MatrixStorage::Upper*/true)
             rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(1,1,nr,nc,
-                                                            triangular,hermitian,skew,rowOrder) 
+                                                            triangular,hermitian,skew,rowOrder)
                             : (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(esz,cppEsz,nr,nc,
                                                             triangular,hermitian,skew,rowOrder));
         //else
         //  rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(1,1,nr,nc,
-         //                                               false,true,false,rowOrder) 
+         //                                               false,true,false,rowOrder)
          //                 : (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(esz,cppEsz,nr,nc,
          //                                               false,true,false,rowOrder));
         break;
@@ -634,10 +634,10 @@ MatrixHelperRep<S>::createOwnerMatrixHelperRep(int esz, int cppEsz, const Matrix
                       : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,length,rowOrder));
         break;
       }
-                                        
+
       default:
           SimTK_ERRCHK1(!"not implemented", "MatrixHelperRep::createOwnerMatrixHelperRep()",
-              "Matrix structure commitment %s not implemented yet.", 
+              "Matrix structure commitment %s not implemented yet.",
               MatrixStructure::name(structure.getStructure()));
     }
 
@@ -666,12 +666,12 @@ MatrixHelperRep<S>::createExternalMatrixHelperRep
       case MatrixStructure::Full:
         if (rowOrder)
             rep = (esz == 1 ? (RegularFullHelper<S>*)new FullRowOrderScalarHelper<S>(nr,nc,
-                                                            spacing,data,canWrite) 
+                                                            spacing,data,canWrite)
                             : (RegularFullHelper<S>*)new FullRowOrderEltHelper<S>(esz, cppEsz,nr,nc,
                                                             spacing,data,canWrite));
         else
             rep = (esz == 1 ? (RegularFullHelper<S>*)new FullColOrderScalarHelper<S>(nr,nc,
-                                                            spacing,data,canWrite) 
+                                                            spacing,data,canWrite)
                             : (RegularFullHelper<S>*)new FullColOrderEltHelper<S>(esz, cppEsz,nr,nc,
                                                             spacing,data,canWrite));
         break;
@@ -690,13 +690,13 @@ MatrixHelperRep<S>::createExternalMatrixHelperRep
         if (/*storage.getPlacement() == MatrixStorage::Upper*/true)
             rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(1,1,nr,nc,
                                                             triangular,hermitian,skew,rowOrder,
-                                                            spacing,data,canWrite) 
+                                                            spacing,data,canWrite)
                             : (TriInFullHelper<S>*)new TriInFullUpperHelper<S>(esz,cppEsz,nr,nc,
                                                             triangular,hermitian,skew,rowOrder,
                                                             spacing,data,canWrite));
         //else
         //  rep = (esz == 1 ? (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(1,1,nr,nc,
-         //                                               false,true,false,rowOrder) 
+         //                                               false,true,false,rowOrder)
          //                 : (TriInFullHelper<S>*)new TriInFullLowerHelper<S>(esz,cppEsz,nr,nc,
          //                                               false,true,false,rowOrder));
         break;
@@ -711,17 +711,17 @@ MatrixHelperRep<S>::createExternalMatrixHelperRep
                                                             strideInElements,data,canWrite)
                           : (FullVectorHelper<S>*)new StridedVectorHelper<S>(esz,cppEsz,length,rowOrder,
                                                             strideInElements,data,canWrite));
-        else 
+        else
             rep = (esz==1 ? (FullVectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length,rowOrder,
                                                             data,canWrite)
                           : (FullVectorHelper<S>*)new ContiguousVectorHelper<S>(esz,cppEsz,length,rowOrder,
                                                             data,canWrite));
         break;
       }
-                                        
+
       default:
           SimTK_ERRCHK1(!"not implemented", "MatrixHelperRep::createOwnerMatrixHelperRep()",
-              "Matrix structure commitment %s not implemented yet.", 
+              "Matrix structure commitment %s not implemented yet.",
               MatrixStructure::name(structure.getStructure()));
     }
 
@@ -732,10 +732,10 @@ template <class S> void
 MatrixHelperRep<S>::scaleBy(const typename CNT<S>::StdNumber& s) {
     // XXX -- really, really bad! Optimize for contiguous data!
     for (int j=0; j<ncol(); ++j)
-        for (int i=0; i<nrow(); ++i) 
+        for (int i=0; i<nrow(); ++i)
             scaleElt(updElt(i,j),s);
-}  
-     
+}
+
 template <class S> void
 MatrixHelperRep<S>::addIn(const MatrixHelper<S>& h) {
     const MatrixHelperRep& hrep = h.getRep();
@@ -746,12 +746,12 @@ MatrixHelperRep<S>::addIn(const MatrixHelper<S>& h) {
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
             addToElt(updElt(i,j),hrep.getElt(i,j));
-} 
+}
 template <class S> void
 MatrixHelperRep<S>::addIn(const MatrixHelper<typename CNT<S>::TNeg>& nh) {
     subIn(reinterpret_cast<const MatrixHelper<S>&>(nh));
 }
-     
+
 template <class S> void
 MatrixHelperRep<S>::subIn(const MatrixHelper<S>& h) {
     const MatrixHelperRep& hrep = h.getRep();
@@ -762,7 +762,7 @@ MatrixHelperRep<S>::subIn(const MatrixHelper<S>& h) {
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
             subFromElt(updElt(i,j),hrep.getElt(i,j));
-}  
+}
 template <class S> void
 MatrixHelperRep<S>::subIn(const MatrixHelper<typename CNT<S>::TNeg>& nh) {
     addIn(reinterpret_cast<const MatrixHelper<S>&>(nh));
@@ -785,12 +785,12 @@ MatrixHelperRep<S>::fillWith(const S* eltp) {
             for (int i=0; i<nrow(); ++i)
                 copyElt(updElt(i,j),eltp);
     }
-} 
+}
 
 // We're copying data from a C++ row-oriented matrix into our general
 // Matrix. In addition to the row ordering, C++ may use different spacing
 // for elements than Simmatrix does. Lucky we know that value!
-template <class S> void 
+template <class S> void
 MatrixHelperRep<S>::copyInByRowsFromCpp(const S* elts) {
     const int cppRowSz = m_cppEltSize * ncol();
     // XXX -- really, really bad! Optimize for contiguous data, missing views, etc.!
@@ -799,10 +799,10 @@ MatrixHelperRep<S>::copyInByRowsFromCpp(const S* elts) {
             copyElt(updElt(i,j), elts + i*cppRowSz + j*m_cppEltSize);
 }
 
-template <class S> 
+template <class S>
 MatrixHelperRep<S>::~MatrixHelperRep()
 {
-    if (isOwner()) 
+    if (isOwner())
         deleteAllocatedMemory(m_data);
 }
 
@@ -818,7 +818,7 @@ dumpElt(const S* p, int sz) {
 
 template <class S> void
 MatrixHelperRep<S>::dump(const char* msg) const {
-    if (msg) 
+    if (msg)
         std::cout << std::string(msg) << std::endl;
     std::cout << "Matrix " << nrow() << " X " << ncol() << " "
               << getEltSize() << "-scalar entries:" << std::endl;
@@ -828,7 +828,7 @@ MatrixHelperRep<S>::dump(const char* msg) const {
     }
 
     S* elt = new S[getEltSize()];
-    const std::streamsize oldsz = std::cout.precision(20); 
+    const std::streamsize oldsz = std::cout.precision(20);
     for (int i=0; i<nrow(); ++i) {
         for (int j=0; j<ncol(); ++j) {
             if (j>0) std::cout << "\t";
@@ -844,33 +844,33 @@ MatrixHelperRep<S>::dump(const char* msg) const {
 //----------------------------- RegularFullHelper ------------------------------
 //------------------------------------------------------------------------------
 
-template <class S> VectorHelper<S>* 
+template <class S> VectorHelper<S>*
 RegularFullHelper<S>::createDiagonalView_() {
     VectorHelper<S>* p = 0;
     const int length = std::min(this->nrow(), this->ncol());
     S*        data   = length ? this->updElt_(0,0) : 0;
 
-    const int strideInScalars = length > 1 ? int(this->getElt_(1,1) - this->getElt_(0,0)) 
+    const int strideInScalars = length > 1 ? int(this->getElt_(1,1) - this->getElt_(0,0))
                                            : this->m_eltSize;
     const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (this->m_eltSize==1) 
+        p = (this->m_eltSize==1)
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length, false, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                               length, false, data, false);
         return p;
     }
 
     p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(length, false, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                        length, false, strideInElements, data, false);
     return p;
 }
 
-template <class S> VectorHelper<S>* 
+template <class S> VectorHelper<S>*
 RegularFullHelper<S>::createColumnView_(int j, int i, int m) {
     VectorHelper<S>* p = 0;
     S* data = m ? this->updElt_(i,j) : 0;
@@ -880,32 +880,32 @@ RegularFullHelper<S>::createColumnView_(int j, int i, int m) {
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (this->m_eltSize==1) 
+        p = (this->m_eltSize==1)
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m, false, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                               m, false, data, false);
         return p;
     }
 
     p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(m, false, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                        m, false, strideInElements, data, false);
     return p;
 }
 
-template <class S> VectorHelper<S>* 
+template <class S> VectorHelper<S>*
 RegularFullHelper<S>::createRowView_(int i, int j, int n) {
     VectorHelper<S>* p = 0;
     S* data = n ? this->updElt_(i,j) : 0;
 
-    const int strideInScalars = n > 1 ? int(this->getElt_(i,j+1) - this->getElt_(i,j)) 
+    const int strideInScalars = n > 1 ? int(this->getElt_(i,j+1) - this->getElt_(i,j))
                                       : this->m_eltSize;
     const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (this->m_eltSize==1) 
+        p = (this->m_eltSize==1)
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(n, true, data, false)
             : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                               n, true, data, false);
@@ -923,31 +923,31 @@ RegularFullHelper<S>::createRowView_(int i, int j, int n) {
 //------------------------------ TriInFullHelper -------------------------------
 //------------------------------------------------------------------------------
 
-template <class S> VectorHelper<S>* 
+template <class S> VectorHelper<S>*
 TriInFullHelper<S>::createDiagonalView_() {
-    SimTK_ERRCHK_ALWAYS(!hasKnownDiagonal(), "TriInFullHelper::createDiagonalView_()", 
+    SimTK_ERRCHK_ALWAYS(!hasKnownDiagonal(), "TriInFullHelper::createDiagonalView_()",
         "Diagonal view of a known-diagonal matrix is not yet implemented. Sorry.");
 
     VectorHelper<S>* p = 0;
     const int length = std::min(this->nrow(), this->ncol());
     S*        data   = length ? this->updElt_(0,0) : 0;
 
-    const int strideInScalars = length > 1 ? int(this->getElt_(1,1) - this->getElt_(0,0)) 
+    const int strideInScalars = length > 1 ? int(this->getElt_(1,1) - this->getElt_(0,0))
                                            : this->m_eltSize;
     const int strideInElements = strideInScalars / this->m_eltSize;
 
     // No need for a stride if there's 0 or 1 element, or if the stride is 1. TODO: scalar helper
     if (strideInElements == 1) {
-        p = (this->m_eltSize==1) 
+        p = (this->m_eltSize==1)
             ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(length, false, data, false)
-            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+            : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                               length, false, data, false);
         return p;
     }
 
     p = (this->m_eltSize==1)
         ? (VectorHelper<S>*)new StridedVectorScalarHelper<S>(length, false, strideInElements, data, false)
-        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+        : (VectorHelper<S>*)new StridedVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                        length, false, strideInElements, data, false);
     return p;
 }
@@ -990,4 +990,4 @@ INSTANTIATE(StridedVectorHelper);
 INSTANTIATE(StridedVectorScalarHelper);
 INSTANTIATE(IndexedVectorHelper);
 
-} // namespace SimTK   
+} // namespace SimTK

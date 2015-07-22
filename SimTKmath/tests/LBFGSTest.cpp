@@ -42,19 +42,19 @@ class ProblemSystem : public OptimizerSystem {
       const Real x = coefficients[0];
       const Real y = coefficients[1];
 
-      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
-    
+      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y;
+
       return(0);
 
    }
 
    int gradientFunc(  const Vector &coefficients, bool new_coefficients, Vector &gradient )const {
 
-      const Real x = coefficients[0]; 
-      const Real y = coefficients[1];  
+      const Real x = coefficients[0];
+      const Real y = coefficients[1];
 
       gradient[0] = 3*x + 2*y -2;
-      gradient[1] = 2*x + 6*y +8; 
+      gradient[1] = 2*x + 6*y +8;
 
       return(0);
 
@@ -80,13 +80,13 @@ int main() {
       int returnValue = 0; // assume success
   try {
 
-    
-    Optimizer opt( sys ); 
+
+    Optimizer opt( sys );
 
     opt.setConvergenceTolerance( .0001 );
     results[0] =  100;
     results[1] = -100;
-    
+
     opt.setAdvancedRealOption( "xtol", 1e-6 );
 
     opt.optimize( results );
@@ -104,7 +104,7 @@ int main() {
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if(!equalToTol(results[i], expected[i], TOL)) {
            printf(" LBFGSTest.cpp:  error results[%d] = %f  expected=%f \n",
-                  i,results[i], expected[i]); 
+                  i,results[i], expected[i]);
            returnValue = 1;
        }
     }
@@ -119,5 +119,5 @@ int main() {
 
     return( returnValue );
 
-  
+
 }

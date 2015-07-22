@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the private (library side) implementation of the 
+ * This is the private (library side) implementation of the
  * RungeKutta2Integrator and RungeKutta2IntegratorRep classes.
  */
 
@@ -42,7 +42,7 @@ using namespace SimTK;
 //                        RUNGE KUTTA 2 INTEGRATOR
 //------------------------------------------------------------------------------
 
-RungeKutta2Integrator::RungeKutta2Integrator(const System& sys) 
+RungeKutta2Integrator::RungeKutta2Integrator(const System& sys)
 {
     rep = new RungeKutta2IntegratorRep(this, sys);
 }
@@ -54,7 +54,7 @@ RungeKutta2Integrator::RungeKutta2Integrator(const System& sys)
 
 
 RungeKutta2IntegratorRep::RungeKutta2IntegratorRep
-   (Integrator* handle, const System& sys) 
+   (Integrator* handle, const System& sys)
 :   AbstractIntegratorRep(handle, sys, 2, 2, "RungeKutta2",  true) {
 }
 
@@ -100,9 +100,9 @@ bool RungeKutta2IntegratorRep::attemptODEStep
     setAdvancedStateAndRealizeDerivatives(t1, y0 + h*f0);
     f1 = getAdvancedState().getYDot();
 
-    // Final value. This is the 2nd order accurate estimate for 
-    // y1=y(t0+h)+O(h^3): y1 = y0 + (h/2)*(f0 + f1). 
-    // Evaluate through kinematics only; it is a waste of a stage to 
+    // Final value. This is the 2nd order accurate estimate for
+    // y1=y(t0+h)+O(h^3): y1 = y0 + (h/2)*(f0 + f1).
+    // Evaluate through kinematics only; it is a waste of a stage to
     // evaluate derivatives here since the caller will muck with this before
     // the end of the step.
     setAdvancedStateAndRealizeKinematics(t1, y0 + (h/2)*(f0 + f1));

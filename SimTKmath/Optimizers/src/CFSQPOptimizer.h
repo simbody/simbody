@@ -37,7 +37,7 @@
  * system by applying sequential quadratic programming techniques.  The core
  * algorithm is called fsqp, "Fast Sequential Quadratic Programming".
  */
-namespace SimTK { 
+namespace SimTK {
 
 class CFSQPOptimizer: public Optimizer::OptimizerRep {
 //=============================================================================
@@ -79,7 +79,7 @@ public:
     // CONSTRUCTION
     //--------------------------------------------------------------------------
     virtual ~CFSQPOptimizer();
-    CFSQPOptimizer(const OptimizerSystem& sys); 
+    CFSQPOptimizer(const OptimizerSystem& sys);
 
     static bool isAvailable();
 

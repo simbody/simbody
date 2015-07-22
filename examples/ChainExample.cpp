@@ -25,8 +25,8 @@
 This example demonstrates how to use the Simbody Visualizer to display and
 interact with a real time simulation. It shows the use of sliders to control
 "wind", uses a FrameController to track a body with the camera and show some
-feedback to the user, and adds a menu to the display. A description of all user 
-input received is written to the console, and some inputs are used to control 
+feedback to the user, and adds a menu to the display. A description of all user
+input received is written to the console, and some inputs are used to control
 the simulation. */
 
 #include "Simbody.h"
@@ -51,10 +51,10 @@ class MyFrameController : public Visualizer::FrameController {
 public:
     MyFrameController(const SimbodyMatterSubsystem& matter,
                       MobilizedBodyIndex whichBody, // tracked with camera
-                      const Force::Gravity& gravity) 
+                      const Force::Gravity& gravity)
     :   m_matter(matter), m_whichBody(whichBody), m_gravity(gravity) {}
 
-    virtual void generateControls(const Visualizer&           viz, 
+    virtual void generateControls(const Visualizer&           viz,
                                   const State&                state,
                                   Array_<DecorativeGeometry>& geometry)
     {
@@ -113,10 +113,10 @@ public:
         case '}': nm="right brace"; break;
         }
         if (modifier&IsSpecialKey)
-            std::cout << "Listener saw special key hit: " 
+            std::cout << "Listener saw special key hit: "
                 << mod << " key=" << key << " glut=" << (key & ~SpecialKeyOffset);
         else
-            std::cout << "Listener saw ordinary key hit: " 
+            std::cout << "Listener saw ordinary key hit: "
                 << mod << char(key) << " (" << (int)key << ")";
         std::cout << " " << nm << std::endl;
 
@@ -147,13 +147,13 @@ private:
 class UserInputHandler : public PeriodicEventHandler {
 public:
     UserInputHandler(Visualizer& viz,
-                     Visualizer::InputSilo& silo, 
-                     const Force::Gravity& gravity, 
-                     Real interval) 
+                     Visualizer::InputSilo& silo,
+                     const Force::Gravity& gravity,
+                     Real interval)
     :   PeriodicEventHandler(interval), m_viz(viz), m_silo(silo), m_gravity(gravity) {}
 
     virtual void handleEvent(State& state, Real accuracy,
-                             bool& shouldTerminate) const 
+                             bool& shouldTerminate) const
     {
         while (m_silo.isAnyUserInput()) {
             unsigned key, modifiers;
@@ -192,7 +192,7 @@ public:
                 m_viz.setSliderValue(GravityX+next, gdir[next]);
                 m_gravity.setDownDirection(state, gdir);
             }
-        }  
+        }
     }
 
 private:
@@ -222,7 +222,7 @@ int main() {
     pendulumBody[1].addDecoration(Transform(), DecorativeSphere(Real(0.49)).setOpacity(.5));
     MobilizedBody lastBody = matter.Ground();
     for (int i = 0; i < NBodies; ++i) {
-        MobilizedBody::Ball pendulum(lastBody, Transform(Vec3(0)), 
+        MobilizedBody::Ball pendulum(lastBody, Transform(Vec3(0)),
             pendulumBody[i%2], Transform(Vec3(0, 1, 0))); // alternate solid, translucent
         lastBody = pendulum;
     }
@@ -255,7 +255,7 @@ int main() {
     viz.addInputListener(silo);
 
     // Tell the frame controller to track the middle body.
-    viz.addFrameController(new MyFrameController(matter, 
+    viz.addFrameController(new MyFrameController(matter,
         MobilizedBodyIndex(NBodies/2), gravity));
 
     viz.setRealTimeScale(TimeScale);
@@ -265,7 +265,7 @@ int main() {
     //viz.setMode(Visualizer::PassThrough);
     viz.setMode(Visualizer::RealTime);
 
-    viz.setCameraTransform(Vec3(0,NBodies/4,2*NBodies)); 
+    viz.setCameraTransform(Vec3(0,NBodies/4,2*NBodies));
 
     system.addEventHandler
        (new UserInputHandler(viz,*silo, gravity, Real(0.1))); // check input every 100ms
@@ -273,14 +273,14 @@ int main() {
     // Report visualization frames.
     Visualizer::Reporter* vr = new Visualizer::Reporter(viz, TimeScale/FrameRate);
     system.addEventReporter(vr);
-    
+
     // Initialize the system and state.
 
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Gaussian random;
     for (int i = 0; i < state.getNQ(); ++i)
-        state.updQ()[i] = random.getValue(); 
+        state.updQ()[i] = random.getValue();
 
     // Use the Assembler to satisfy the loop-closing constraint.
     Assembler assembler(system);
@@ -303,7 +303,7 @@ int main() {
 
     // Add sliders to control gravity. They will display from bottom up.
     // Joy Ku thought calling this "wind direction" makes more sense.
-    viz.addSlider("Wind Z", 3, -1, 1, 0); 
+    viz.addSlider("Wind Z", 3, -1, 1, 0);
     viz.addSlider("Wind Y", 2, -1, 1, 1);
     viz.addSlider("Wind X", 1, -1, 1, 0);
     viz.addSlider("Wind Mag", 4, 0, GravityMax, GravityDefault);

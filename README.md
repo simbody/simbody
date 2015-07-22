@@ -140,7 +140,7 @@ Windows using Visual Studio
 
 #### Get the dependencies
 
-All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies. 
+All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies.
 
 1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The "Community Edition" is free for "non-enterprise" use. The "Express" edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
 2. Download and install [CMake](http://www.cmake.org/download), version 2.8.8 or higher.
@@ -341,7 +341,7 @@ Just so you know, you can also uninstall (delete all files that CMake placed int
 From your build directory, you can run Simbody's example programs. For instance, try:
 
         $ ./ExamplePendulum
-        
+
 
 #### Set environment variables and test the installation
 
@@ -365,7 +365,7 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
             $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bash_profile
     * Ubuntu:
-            
+
             $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bashrc
 3. Open a new terminal.
 4. Test your installation:
@@ -442,7 +442,7 @@ You can currently get Simbody via the Open Source Robotics Foundation's Debian r
 #### Install
 
 1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
-        
+
         $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
         $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
         $ sudo apt-get update
@@ -455,7 +455,7 @@ You can currently get Simbody via the Open Source Robotics Foundation's Debian r
 #### Layout of installation
 
 Simbody is installed into the `usr/` directory.  The directory
-`[x86_64-linux-gnu]` varies by platform. 
+`[x86_64-linux-gnu]` varies by platform.
 
 * `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
 * `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).

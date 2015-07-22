@@ -30,17 +30,17 @@
 /**@file
  * This file contains just the templatized class RigidBodyNodeSpec<dof> which
  * is used as the base class for most of the RigidBodyNodes (that is, the
- * implementations of Mobilizers). The only exceptions are nodes whose 
+ * implementations of Mobilizers). The only exceptions are nodes whose
  * mobilizers provide no degrees of freedom -- Ground and Weld.
  *
- * This file contains all the multibody mechanics method declarations that 
- * involve a single body and its mobilizer (inboard joint), that is, one node 
- * in the multibody tree. These methods constitute the inner loops of the 
- * multibody calculations, and much suffering is undergone here to make them 
- * run fast. In particular most calculations are templatized by the number of 
+ * This file contains all the multibody mechanics method declarations that
+ * involve a single body and its mobilizer (inboard joint), that is, one node
+ * in the multibody tree. These methods constitute the inner loops of the
+ * multibody calculations, and much suffering is undergone here to make them
+ * run fast. In particular most calculations are templatized by the number of
  * mobilities, so that compile-time sizes are known for everything.
  *
- * Most methods here expect to be called in a particular order during traversal 
+ * Most methods here expect to be called in a particular order during traversal
  * of the tree -- either base to tip or tip to base.
  */
 
@@ -48,12 +48,12 @@
 #include "RigidBodyNode.h"
 
 /**
- * This still-abstract class is a skeleton implementation of a built-in 
- * mobilizer, with the number of mobilities (dofs, u's) specified as a template 
+ * This still-abstract class is a skeleton implementation of a built-in
+ * mobilizer, with the number of mobilities (dofs, u's) specified as a template
  * parameter. That way all the code that is common except for the dimensionality
- * of the mobilizer can be written once, and the compiler generates specific 
- * implementations for each of the six possible dimensionalities (1-6 
- * mobilities). Each implementation works only on fixed size Vec<> and Mat<> 
+ * of the mobilizer can be written once, and the compiler generates specific
+ * implementations for each of the six possible dimensionalities (1-6
+ * mobilities). Each implementation works only on fixed size Vec<> and Mat<>
  * types, so can use very high speed inline operators.
  */
 template<int dof, bool noR_FM=false, bool noX_MB=false, bool noR_PF=false>
@@ -69,7 +69,7 @@ RigidBodyNodeSpec(const MassProperties& mProps_B,
                   QDotHandling          qdotHandling,
                   QuaternionUse         quaternionUse,
                   bool                  isReversed)
-:   RigidBodyNode(mProps_B, X_PF, X_BM, 
+:   RigidBodyNode(mProps_B, X_PF, X_BM,
                   qdotHandling, quaternionUse, isReversed)
 {
     // don't call any virtual methods in here!
@@ -88,19 +88,19 @@ void updateSlots(UIndex& nextUSlot, USquaredIndex& nextUSqSlot, QIndex& nextQSlo
 virtual ~RigidBodyNodeSpec() {}
 
 // This is the type of the joint transition matrix H, but our definition
-// of H is transposed from Jain's or Schwieters'. That is, what we're 
+// of H is transposed from Jain's or Schwieters'. That is, what we're
 // calling H here is what Jain calls H* and Schwieters calls H^T. So
 // our H matrix is 6 x nu, or more usefully it is 2 rows of Vec3's.
 // The first row define how u's contribute to angular velocities; the
 // second defines how u's contribute to linear velocities.
 typedef Mat<2,dof,Vec3> HType;
 
-// Provide default implementations for setQToFitTransformImpl() and setQToFitVelocityImpl() 
+// Provide default implementations for setQToFitTransformImpl() and setQToFitVelocityImpl()
 // which are implemented using the rotational and translational quantity routines. These assume
 // that the rotational and translational coordinates are independent, with rotation handled
 // first and then left alone. If a mobilizer type needs to deal with rotation and
 // translation simultaneously, it should provide a specific implementation for these two routines.
-// *Each* mobilizer must implement setQToFit{Rotation,Translation} and 
+// *Each* mobilizer must implement setQToFit{Rotation,Translation} and
 // setUToFit{AngularVelocity,LinearVelocity}; there are no defaults.
 
 virtual void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {
@@ -125,9 +125,9 @@ virtual void setUToFitVelocityImpl(const SBStateDigest& sbs, const Vector& q, co
 
 
 // This mandatory routine calculates the joint transition matrix H_FM, giving
-// the change of velocity induced by the generalized speeds u for this 
+// the change of velocity induced by the generalized speeds u for this
 // mobilizer, expressed in the mobilizer's inboard "fixed" frame F (attached to
-// this body's parent). 
+// this body's parent).
 // This method constitutes the *definition* of the generalized speeds for
 // a particular joint.
 // This routine can depend on X_FM having already
@@ -158,10 +158,10 @@ virtual void calcAcrossJointVelocityJacobianDot(
     HType&               HDot_F0M0) const = 0;
 
 // We allow a mobilizer to be defined in reverse when that is more
-// convenient. That is, the H matrix can be defined by giving H_F0M0=H_MF and 
-// HDot_F0M0=HDot_MF instead of H_FM and HDot_FM. In that case the 
-// following methods are called instead of the above; the default 
-// implementation postprocesses the output from the above methods, but a 
+// convenient. That is, the H matrix can be defined by giving H_F0M0=H_MF and
+// HDot_F0M0=HDot_MF instead of H_FM and HDot_FM. In that case the
+// following methods are called instead of the above; the default
+// implementation postprocesses the output from the above methods, but a
 // mobilizer can override it if it knows how to get the job done faster.
 virtual void calcReverseMobilizerH_FM(
     const SBStateDigest& sbs,
@@ -174,9 +174,9 @@ virtual void calcReverseMobilizerHDot_FM(
 // This routine is NOT joint specific, but cannot be called until the across-joint
 // transform X_FM has been calculated and is available in the State cache.
 void calcBodyTransforms(
-    const SBTreePositionCache&  pc, 
-    Transform&                  X_PB, 
-    Transform&                  X_GB) const 
+    const SBTreePositionCache&  pc,
+    Transform&                  X_PB,
+    Transform&                  X_GB) const
 {
     const Transform& X_MB = getX_MB();   // fixed
     const Transform& X_PF = getX_PF();   // fixed
@@ -188,23 +188,23 @@ void calcBodyTransforms(
     X_GB = X_GP * X_PB;        //  63 flops
 }
 
-// Same for all mobilizers. The return matrix here is precisely the 
+// Same for all mobilizers. The return matrix here is precisely the
 // one used by Jain and Schwieters, but transposed.
 void calcParentToChildVelocityJacobianInGround(
     const SBModelVars&          mv,
-    const SBTreePositionCache&  pc, 
+    const SBTreePositionCache&  pc,
     HType&                      H_PB_G) const;
 
-// Same for all mobilizers. This is the time derivative of 
-// the matrix H_PB_G above, with the derivative taken in the 
+// Same for all mobilizers. This is the time derivative of
+// the matrix H_PB_G above, with the derivative taken in the
 // Ground frame.
 void calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&          mv,
-    const SBTreePositionCache&  pc, 
-    const SBTreeVelocityCache&  vc, 
+    const SBTreePositionCache&  pc,
+    const SBTreeVelocityCache&  vc,
     HType&                      HDot_PB_G) const;
 
-void realizeModel(SBStateDigest& sbs) const 
+void realizeModel(SBStateDigest& sbs) const
 {
 }
 
@@ -214,7 +214,7 @@ void realizeInstance(const SBStateDigest& sbs) const
 
 // Set a new configuration and calculate the consequent kinematics.
 // Must call base-to-tip.
-void realizePosition(const SBStateDigest& sbs) const 
+void realizePosition(const SBStateDigest& sbs) const
 {
     const SBModelVars&      mv   = sbs.getModelVars();
     const SBModelCache&     mc   = sbs.getModelCache();
@@ -224,7 +224,7 @@ void realizePosition(const SBStateDigest& sbs) const
     Vector&                 allQErr = sbs.updQErr();
 
     // Mobilizer specific.
-    
+
     const SBModelPerMobodInfo& mbInfo = getModelInfo(mc);
 
     // First perform precalculations on these new q's, such as stashing away
@@ -238,12 +238,12 @@ void realizePosition(const SBStateDigest& sbs) const
     const Real* q0    = nq     ? &allQ[mbInfo.firstQIndex]                : 0;
     Real*       qpool0= nqpool ? &pc.mobilizerQCache[mbInfo.startInQPool] : 0;
     Real*       qerr0 = nqerr  ? &allQErr[ic.firstQuaternionQErrSlot
-                                          + mbInfo.quaternionPoolIndex]     
+                                          + mbInfo.quaternionPoolIndex]
                                : 0;
     performQPrecalculations(sbs, q0, nq, qpool0, nqpool, qerr0, nqerr);
 
     // Now that we've done the necessary precalculations, calculate the cross-
-    // mobilizer transform X_FM without recalculating anything. For reversed 
+    // mobilizer transform X_FM without recalculating anything. For reversed
     // mobilizers we have to do our own reversal here because mobilizers don't
     // handle that themselves.
 
@@ -251,7 +251,7 @@ void realizePosition(const SBStateDigest& sbs) const
         Transform X_MF;
         calcX_FM(sbs, q0, nq, qpool0, nqpool, X_MF);
         updX_FM(pc) = ~X_MF;
-    } else 
+    } else
         calcX_FM(sbs, q0, nq, qpool0, nqpool, updX_FM(pc));
 
     // With X_FM in the cache, and X_GP for the parent already calculated (we're doing
@@ -265,8 +265,8 @@ void realizePosition(const SBStateDigest& sbs) const
     if (isReversed()) calcReverseMobilizerH_FM       (sbs, updH_FM(pc));
     else              calcAcrossJointVelocityJacobian(sbs, updH_FM(pc));
 
-    // Here we're using the cross-mobilizer hinge matrix H_FM that we just 
-    // calculated to compute H(==H_PB_G), the equivalent hinge matrix between 
+    // Here we're using the cross-mobilizer hinge matrix H_FM that we just
+    // calculated to compute H(==H_PB_G), the equivalent hinge matrix between
     // the parent's body frame P and child's body frame B, but expressed in
     // Ground. (F is fixed on P and M is fixed on B.)
     calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
@@ -277,12 +277,12 @@ void realizePosition(const SBStateDigest& sbs) const
 
 // Set new velocities for the current configuration, and calculate
 // all the velocity-dependent terms. Must call base-to-tip.
-// This routine may assume that *all* position 
+// This routine may assume that *all* position
 // kinematics (not just joint-specific) has been done for this node,
 // that all velocity kinematics has been done for the parent, and
 // that the velocity state variables (u) are available. The
 // quantities that must be computed are:
-//   V_FM   relative velocity of B's M frame in P's F frame, 
+//   V_FM   relative velocity of B's M frame in P's F frame,
 //             expressed in F (note: this is also V_PM_F since
 //             F is fixed on P). (This is H_FM*u.)
 //   V_PB_G  relative velocity of B in P (==H*u), expr. in G
@@ -290,7 +290,7 @@ void realizePosition(const SBStateDigest& sbs) const
 //   HDot    time derivative of H (==H_PB_G) hinge matrix relating body frames
 //   VD_PB_G acceleration remainder term HDot*u, expr. in G
 // The code is the same for all joints, although parametrized by ndof.
-void realizeVelocity(const SBStateDigest& sbs) const 
+void realizeVelocity(const SBStateDigest& sbs) const
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
@@ -308,9 +308,9 @@ void realizeVelocity(const SBStateDigest& sbs) const
     if (isReversed()) calcReverseMobilizerHDot_FM       (sbs, updHDot_FM(vc));
     else              calcAcrossJointVelocityJacobianDot(sbs, updHDot_FM(vc));
 
-    // Here we're using the cross-mobilizer hinge matrix derivative HDot_FM 
+    // Here we're using the cross-mobilizer hinge matrix derivative HDot_FM
     // that we just calculated to compute HDot(==HDot_PB_G), the derivative
-    // of H (==H_PB_G) between the parent's body frame P and child's body 
+    // of H (==H_PB_G) between the parent's body frame P and child's body
     // frame B. The derivative is taken in the Ground frame and the result
     // is expressed in Ground. (F is fixed on P and M is fixed on B.)
     calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, updHDot(vc));
@@ -320,9 +320,9 @@ void realizeVelocity(const SBStateDigest& sbs) const
     calcJointIndependentKinematicsVel(pc,vc);
 }
 
-// Articulated body inertias have been calculated; here we're 
+// Articulated body inertias have been calculated; here we're
 void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
-                     const SBStateDigest&                   sbs) const 
+                     const SBStateDigest&                   sbs) const
 {
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
     const SBTreeVelocityCache&  vc = sbs.getTreeVelocityCache();
@@ -367,16 +367,16 @@ virtual void setMobilizerDefaultModelValues   (const SBTopologyCache&, SBModelVa
 virtual void setMobilizerDefaultInstanceValues(const SBModelVars&, SBInstanceVars&) const {}
 virtual void setMobilizerDefaultTimeValues    (const SBModelVars&, SBTimeVars&)    const {}
 
-virtual void setMobilizerDefaultPositionValues(const SBModelVars& s, Vector& q) const 
+virtual void setMobilizerDefaultPositionValues(const SBModelVars& s, Vector& q) const
 {
     toQ(q) = 0;
 }
-virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) const 
+virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) const
 {
     toU(u) = 0;
 }
 virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
-virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&, 
+virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&,
                                                    SBDynamicsVars& v) const {}
 
 int          getDOF()            const {return dof;}
@@ -388,7 +388,7 @@ virtual int  getMaxNQ()          const {
 // Default method must be overridden if there is a chance that NQ
 // might not be the same as NU.
 virtual int  getNQInUse(const SBModelVars&) const {
-    assert(quaternionUse == QuaternionIsNeverUsed); 
+    assert(quaternionUse == QuaternionIsNeverUsed);
     return dof; // DOF <= NQ <= maxNQ
 }
 
@@ -412,8 +412,8 @@ virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQua
 
 // This method should calculate qdot=N*u, where N=N(q) is the kinematic
 // coupling matrix. State digest should be at Stage::Position.
-virtual void calcQDot(const SBStateDigest&, 
-                      const Real* u, Real* qdot) const 
+virtual void calcQDot(const SBStateDigest&,
+                      const Real* u, Real* qdot) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdot) = Vec<dof>::getAs(u); // default says qdot=u
@@ -421,8 +421,8 @@ virtual void calcQDot(const SBStateDigest&,
 
 // This method should calculate u=N^-1*qdot, where N=N(q).
 // State digest should be at Stage::Position.
-virtual void calcLocalUFromLocalQDot(const SBStateDigest&, 
-                                     const Real* qdot, Real* u) const 
+virtual void calcLocalUFromLocalQDot(const SBStateDigest&,
+                                     const Real* qdot, Real* u) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(u) = Vec<dof>::getAs(qdot); // default says u=qdot
@@ -430,7 +430,7 @@ virtual void calcLocalUFromLocalQDot(const SBStateDigest&,
 
 // This method should calculate qdotdot=N*udot + NDot*u, where N=N(q),
 // NDot=NDot(q,u). State digest should be at Stage::Velocity.
-virtual void calcQDotDot(const SBStateDigest&, 
+virtual void calcQDotDot(const SBStateDigest&,
                          const Real* udot, Real* qdotdot) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
@@ -439,7 +439,7 @@ virtual void calcQDotDot(const SBStateDigest&,
 
 // This method should calculate udot=N^-1*(qdotdot-NDot*u), where N=N(q),
 // NDot=NDot(q,u). State digest should be at Stage::Velocity.
-virtual void calcLocalUDotFromLocalQDotDot(const SBStateDigest&, 
+virtual void calcLocalUDotFromLocalQDotDot(const SBStateDigest&,
                                            const Real* qdotdot, Real* udot) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
@@ -450,35 +450,35 @@ virtual void calcLocalUDotFromLocalQDotDot(const SBStateDigest&,
 
 
 // State digest should be at Stage::Position for calculating N (the matrix that
-// maps generalized speeds u to coordinate derivatives qdot, qdot=Nu). The 
-// default implementation assumes nq==nu and the nqXnu block of N corresponding 
-// to this mobilizer is identity. Then either operation (regardless of side) 
+// maps generalized speeds u to coordinate derivatives qdot, qdot=Nu). The
+// default implementation assumes nq==nu and the nqXnu block of N corresponding
+// to this mobilizer is identity. Then either operation (regardless of side)
 // just copies nu numbers from in to out.
 //
 // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
-virtual void multiplyByN(const SBStateDigest&, bool matrixOnRight,  
+virtual void multiplyByN(const SBStateDigest&, bool matrixOnRight,
                          const Real* in, Real* out) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
 }
 
-virtual void multiplyByNInv(const SBStateDigest&, bool matrixOnRight, 
+virtual void multiplyByNInv(const SBStateDigest&, bool matrixOnRight,
                             const Real* in, Real* out) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
 }
 
-// State digest should be at Stage::Velocity for calculating NDot (the matrix 
-// that is used in mapping generalized accelerations udot to coordinate 2nd 
-// derivatives qdotdot, qdotdot=N udot + NDot u. The default implementation 
-// assumes nq==nu and the nqXnu block of N corresponding to this mobilizer is 
-// identity, so NDot is an nuXnu block of zeroes. Then either operation 
+// State digest should be at Stage::Velocity for calculating NDot (the matrix
+// that is used in mapping generalized accelerations udot to coordinate 2nd
+// derivatives qdotdot, qdotdot=N udot + NDot u. The default implementation
+// assumes nq==nu and the nqXnu block of N corresponding to this mobilizer is
+// identity, so NDot is an nuXnu block of zeroes. Then either operation
 // (regardless of side) just copies nu zeros to out.
 //
 // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
-virtual void multiplyByNDot(const SBStateDigest&, bool matrixOnRight, 
+virtual void multiplyByNDot(const SBStateDigest&, bool matrixOnRight,
                             const Real* in, Real* out) const
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
@@ -496,16 +496,16 @@ virtual void multiplyByNDot(const SBStateDigest&, bool matrixOnRight,
 
 
 virtual void setVelFromSVel(
-    const SBTreePositionCache&  pc, 
+    const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
-    const SpatialVec&           sVel, 
+    const SpatialVec&           sVel,
     Vector&                     u) const;
 
 // Return true if any change is made to the q vector.
 virtual bool enforceQuaternionConstraints(
     const SBStateDigest&    sbs,
     Vector&                 q,
-    Vector&                 qErrest) const 
+    Vector&                 qErrest) const
 {
     assert(quaternionUse == QuaternionIsNeverUsed);
     return false;
@@ -636,14 +636,14 @@ HType&       updHDot(SBTreeVelocityCache& vc) const
     // Dynamics
 
 // These are calculated with articulated body inertias.
-const Mat<dof,dof>& getD(const SBArticulatedBodyInertiaCache& abc) const 
+const Mat<dof,dof>& getD(const SBArticulatedBodyInertiaCache& abc) const
 {return fromUSq(abc.storageForD);}
-Mat<dof,dof>&       updD(SBArticulatedBodyInertiaCache&       abc) const 
+Mat<dof,dof>&       updD(SBArticulatedBodyInertiaCache&       abc) const
 {return toUSq  (abc.storageForD);}
 
-const Mat<dof,dof>& getDI(const SBArticulatedBodyInertiaCache& abc) const 
+const Mat<dof,dof>& getDI(const SBArticulatedBodyInertiaCache& abc) const
 {return fromUSq(abc.storageForDI);}
-Mat<dof,dof>&       updDI(SBArticulatedBodyInertiaCache&       abc) const 
+Mat<dof,dof>&       updDI(SBArticulatedBodyInertiaCache&       abc) const
 {return toUSq  (abc.storageForDI);}
 
 const Mat<2,dof,Vec3>& getG(const SBArticulatedBodyInertiaCache& abc) const
@@ -676,9 +676,9 @@ void multiplyBySystemJacobian(
     SpatialVec*                 Jv) const;
 
 void multiplyBySystemJacobianTranspose(
-    const SBTreePositionCache&  pc, 
+    const SBTreePositionCache&  pc,
     SpatialVec*                 zTmp,
-    const SpatialVec*           X, 
+    const SpatialVec*           X,
     Real*                       JtX) const;
 
 void calcEquivalentJointForces(
@@ -742,7 +742,7 @@ void calcInverseDynamicsPass2Inward(
     const Real*                 jointForces,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allFTmp,
-    Real*                       allTau) const; 
+    Real*                       allTau) const;
 
 void multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,

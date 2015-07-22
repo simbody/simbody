@@ -22,31 +22,31 @@
  * -------------------------------------------------------------------------- */
 
 /* This test is drawn from the Open Source Robotics Foundation Gazebo physics
-regression test "CollisionTest". In the original test there is a cube and 
-a sphere, both of unit mass and same half-dimension 0.5. Initially they are 1 
-unit apart in x, with the block to the left of the sphere. The block is 
+regression test "CollisionTest". In the original test there is a cube and
+a sphere, both of unit mass and same half-dimension 0.5. Initially they are 1
+unit apart in x, with the block to the left of the sphere. The block is
 accelerated to the right with a discrete applied force of 1000 applied for 1ms
 for a total impulse of 1, which should produce a velocity of +1 that is steady
-until the block hits the stationary sphere. The collision is supposed to be 
-fully inelastic (coefficient of restitution=0), so there should be no rebound 
-and the two objects should move off to the right together at half the impact 
+until the block hits the stationary sphere. The collision is supposed to be
+fully inelastic (coefficient of restitution=0), so there should be no rebound
+and the two objects should move off to the right together at half the impact
 velocity.
 
-The test runs with fixed 1ms steps and calculates the expected result by 
-integrating manually. The position and velocity changes during the first step 
+The test runs with fixed 1ms steps and calculates the expected result by
+integrating manually. The position and velocity changes during the first step
 with the 1000 unit force active are
    x(.001) = 1/2 a t^2 = 1/2 1e3 1e-6 = .0005 length units
    v(.001) = a t       = 1e3 1e-3     = 1 velocity unit
 After that first step, all subsequent steps prior to the collision have
    deltaX = v t       = 1 1e-3       = .001 length units
-   deltaV = 0 
+   deltaV = 0
 We would like the collision to occur exactly at 1s, that is, between steps 1000
 and 1001. The position x(1)=.0005 + 999*.001=.9995. So if we were going to apply
-the entire impulse during the first step we would place the sphere initially so 
+the entire impulse during the first step we would place the sphere initially so
 that the block surface and sphere surface are separated by .9995. But read on.
 
-NOTE: to avoid problems with first-order integrators (explanation below), we're 
-modifying the test here to apply 1/10th of the impulse over the first 10 steps 
+NOTE: to avoid problems with first-order integrators (explanation below), we're
+modifying the test here to apply 1/10th of the impulse over the first 10 steps
 (.01 seconds) rather than all in the first step. Then
    x(.01) = 1/2 a t^2 = 1/2 1e2 1e-4 = .005 length units
    v(.01) = a t       = 1e2 1e-2     = 1 velocity unit
@@ -55,7 +55,7 @@ to .995 to get a collision at 1s (between steps 1000 and 1001).
 
 Why first order integrators cause trouble
 -----------------------------------------
-While any integrator can get the velocity correct in one step, no first order 
+While any integrator can get the velocity correct in one step, no first order
 integrator will be able to calculate x(.001) correctly in a single step.
   Explicit Euler:           v(.001)=v(0) + h*a(0)=1
                             x(.001)=x(0) + h*v(0)=0                 <--
@@ -67,8 +67,8 @@ integrator will be able to calculate x(.001) correctly in a single step.
                             x'(.0005)=x(0)+h/2 v'(.0005)=.00025
                             v(.001)=v'(.0005)+h/2 a'(.0005)=1
                             x(.001)=x'(.0005)+h/2 v(.001)=.00075    <--
-                       
-But any 2nd order integrator would give the correct result, for example 
+
+But any 2nd order integrator would give the correct result, for example
 Explicit trapezoid rule:    v'(.001)=v(0)+h*a(0)=1
                             x(.001)=x(0)+h*(v(0)+v'(.001))/2 =.0005 <--
 
@@ -116,7 +116,7 @@ const Real CheckAccuracy = 1e-3;
 
 struct MyMultibodySystem {
     MyMultibodySystem()
-    :   m_system(), m_matter(m_system), 
+    :   m_system(), m_matter(m_system),
         m_tracker(m_system), m_contact(m_system,m_tracker),
         m_forces(m_system), m_discrete(m_forces,m_matter)
         #ifdef USE_VISUALIZER
@@ -147,9 +147,9 @@ struct MyMultibodySystem {
 
         MobilizedBody Ground = m_matter.Ground();
 
-        m_cube   = MobilizedBody::Slider(Ground,   Transform(Vec3(0,2,0)), 
+        m_cube   = MobilizedBody::Slider(Ground,   Transform(Vec3(0,2,0)),
                                          cubeBody, Transform(Vec3(0)));
-        m_sphere = MobilizedBody::Slider(Ground,   Transform(Vec3(2-.005,2,0)), 
+        m_sphere = MobilizedBody::Slider(Ground,   Transform(Vec3(2-.005,2,0)),
                                          sphereBody, Transform(Vec3(0)));
 
         m_system.realizeTopology();
@@ -174,7 +174,7 @@ struct MyMultibodySystem {
     MobilizedBody                   m_sphere;
 };
 
-void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps) 
+void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps)
 {
     integ.setAllowInterpolation(false);
     integ.setAccuracy(IntegAccuracy);
@@ -184,8 +184,8 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps)
     "\n--------------------------------------------------------------------\n");
     printf(
     "Test with order %d integator %s, Accuracy=%g, MaxStepSize=%g #steps=%d\n",
-        integ.getMethodMinOrder(), integ.getMethodName(), 
-        integ.getAccuracyInUse(), MaxStepSize, nsteps); 
+        integ.getMethodMinOrder(), integ.getMethodName(),
+        integ.getAccuracyInUse(), MaxStepSize, nsteps);
 
     // These variables are the manually calculated values for the cube's
     // x coordinate and x velocity in Ground. We'll calculate these assuming
@@ -195,7 +195,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps)
 
     unsigned stepNum = 0;
     while (true) {
-        // Get access to State being advanced by the integrator. Interpolation 
+        // Get access to State being advanced by the integrator. Interpolation
         // must be off so that we're modifying the actual trajectory.
         State& state = integ.updAdvancedState();
 
@@ -212,15 +212,15 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps)
 
         mbs.m_discrete.clearAllBodyForces(state);
         if (stepNum <= 10)
-            mbs.m_discrete.setOneBodyForce(state, mbs.m_cube, 
+            mbs.m_discrete.setOneBodyForce(state, mbs.m_cube,
                 SpatialVec(Vec3(0), Vec3(StepForce/10,0,0)));
 
-        // Advance time by MaxStepSize. Might take multiple internal steps to 
+        // Advance time by MaxStepSize. Might take multiple internal steps to
         // get there, depending on difficulty and required accuracy.
         const Real tNext = stepNum * MaxStepSize;
         do {integ.stepTo(tNext,tNext);} while (integ.getTime() < tNext);
 
-        // From Gazebo test code in physics.cc: 
+        // From Gazebo test code in physics.cc:
         // integrate here to see when the collision should happen
         if (stepNum <= 10) {
             const Real a = StepForce/10/Mass;  // a is acceleration
@@ -246,9 +246,9 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps)
 
         // Allow some uncertainty between step 1000 and 1001.
         if (stepNum != 1000) {
-        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginLocation(state)[0], x, 
+        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginLocation(state)[0], x,
                           CheckAccuracy);
-        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginVelocity(state)[0], v, 
+        SimTK_TEST_EQ_TOL(mbs.m_cube.getBodyOriginVelocity(state)[0], v,
                           CheckAccuracy);
         }
 
@@ -260,7 +260,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, int nsteps)
 
 int main() {
     SimTK_START_TEST("GazeboInelasticCollision");
-        // Create the system.   
+        // Create the system.
         MyMultibodySystem mbs;
 
         RungeKuttaMersonIntegrator rkm(mbs.m_system);
@@ -304,16 +304,16 @@ int main() {
 //==============================================================================
 static void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }

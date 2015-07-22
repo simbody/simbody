@@ -21,10 +21,10 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* 
+/*
 This is a first try at using experimental Simbody built-in rigid contact,
 where the conditional contact constraints must be specified explicitly as
-part of the model. 
+part of the model.
 */
 
 //#define NDEBUG 1
@@ -55,7 +55,7 @@ using namespace SimTK;
 // to transition from sticking to sliding, for example.
 class MyPushForceImpl : public Force::Custom::Implementation {
 public:
-    MyPushForceImpl(const MobilizedBody& bodyB, 
+    MyPushForceImpl(const MobilizedBody& bodyB,
                     const Vec3&          stationB,
                     const Vec3&          forceG, // force direction in Ground!
                     Real                 onTime,
@@ -66,7 +66,7 @@ public:
 
     //--------------------------------------------------------------------------
     //                       Custom force virtuals
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
                    override
     {
@@ -80,7 +80,7 @@ public:
     Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
-       (const State& state, Stage stage, 
+       (const State& state, Stage stage,
         Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
@@ -93,7 +93,7 @@ public:
                             .setLineThickness(3));
     }
 private:
-    const MobilizedBody& m_bodyB; 
+    const MobilizedBody& m_bodyB;
     const Vec3           m_stationB;
     const Vec3           m_forceG;
     Real                 m_on;
@@ -111,7 +111,7 @@ const Real DefaultCaptureVelocity    = .01,
            DefaultTransitionVelocity = .01;
 class AugmentedMultibodySystem : public MultibodySystem {
 public:
-    AugmentedMultibodySystem() 
+    AugmentedMultibodySystem()
     :   m_matter(0), m_forces(0),
         m_captureVelocity(DefaultCaptureVelocity),
         m_transitionVelocity(DefaultTransitionVelocity)
@@ -121,7 +121,7 @@ public:
         //m_matter->setShowDefaultGeometry(false);
     }
 
-    virtual ~AugmentedMultibodySystem() 
+    virtual ~AugmentedMultibodySystem()
     {  delete m_forces; delete m_matter; }
 
     virtual const MobilizedBody& getBodyToWatch() const
@@ -135,7 +135,7 @@ public:
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {return *m_matter;}
     SimbodyMatterSubsystem& updMatterSubsystem() {return *m_matter;}
-    
+
     const GeneralForceSubsystem& getForceSubsystem() const {return *m_forces;}
     GeneralForceSubsystem& updForceSubsystem() {return *m_forces;}
 
@@ -154,21 +154,21 @@ private:
 };
 
 // Limit single-step direction change to 30 degrees.
-static const Real CosMaxSlidingDirChange = std::cos(Pi/6); 
+static const Real CosMaxSlidingDirChange = std::cos(Pi/6);
 static const Real MaxRollingTangVel   = 1.0e-1; //Can't roll above this velocity.
 
 
 //==============================================================================
 //                            SHOW CONTACT
 //==============================================================================
-// For each visualization frame, generate ephemeral geometry to show just 
+// For each visualization frame, generate ephemeral geometry to show just
 // during this frame, based on the current State.
 class ShowContact : public DecorationGenerator {
 public:
-    explicit ShowContact(const SemiExplicitEulerTimeStepper& ts) 
+    explicit ShowContact(const SemiExplicitEulerTimeStepper& ts)
     :   m_ts(ts) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         const MultibodySystem& mbs = m_ts.getMultibodySystem();
@@ -189,7 +189,7 @@ public:
             if (contact.isEnabled(state)) {
                 MultiplierIndex mx = contact.getContactMultiplierIndex(state);
                 const Vector& mults=state.updMultipliers();//TODO: can't use get
-                Vec3 color = std::abs(mults[mx])<SignificantReal 
+                Vec3 color = std::abs(mults[mx])<SignificantReal
                     ? Yellow : Cyan;
                 geometry.push_back(DecorativeSphere(.1)
                     .setTransform(loc).setColor(color).setOpacity(.5));
@@ -236,7 +236,7 @@ public:
     const MobilizedBody& getBodyToWatch() const override
     {   return m_brick; }
 
-    Vec3 getWatchOffset() const override 
+    Vec3 getWatchOffset() const override
     {   return Vec3(0, 8, 8); }
 
 private:
@@ -325,7 +325,7 @@ public:
     const MobilizedBody& getBodyToWatch() const override
     {   return m_block; }
 
-    Vec3 getWatchOffset() const override 
+    Vec3 getWatchOffset() const override
     {   return Vec3(0, 8, 20); }
 
     const MobilizedBody::Free& getBlock() const {return m_block;}
@@ -353,7 +353,7 @@ public:
 
     const MobilizedBody& getBodyToWatch() const override
     {   static const MobilizedBody mobod; return mobod; }
-    Vec3 getWatchOffset() const override 
+    Vec3 getWatchOffset() const override
     {   return Vec3(0, 8, 30); }
 
     const MobilizedBody& getSwingingBlock() const {return m_swinger;}
@@ -448,7 +448,7 @@ int main(int argc, char** argv) {
 
     sxe.initialize(s);
     mbs.resetAllCountersToZero();
-        
+
     Array_<State> states; states.reserve(10000);
 
     int nSteps=0, nStepsWithEvent = 0;
@@ -488,12 +488,12 @@ int main(int argc, char** argv) {
     const double timeInSec = realTime()-startReal;
     const double cpuInSec = cpuTime()-startCPU;
     cout << "Done -- took " << nSteps << " steps in " <<
-        timeInSec << "s for " << sxe.getTime() << "s sim (avg step=" 
+        timeInSec << "s for " << sxe.getTime() << "s sim (avg step="
         << (1000*sxe.getTime())/nSteps << "ms) ";
     cout << "CPUtime " << cpuInSec << endl;
 
-    printf("Used SXETimeStepper (%s) at acc=%g consTol=%g\n", 
-           sxe.getRestitutionModel()==SemiExplicitEulerTimeStepper::Newton 
+    printf("Used SXETimeStepper (%s) at acc=%g consTol=%g\n",
+           sxe.getRestitutionModel()==SemiExplicitEulerTimeStepper::Newton
             ? "Newton" : "Poisson",
            sxe.getAccuracyInUse(), sxe.getConstraintToleranceInUse());
 
@@ -516,7 +516,7 @@ int main(int argc, char** argv) {
 
     // Instant replay.
     while(true) {
-        printf("Hit ENTER for replay (%d states) ...", 
+        printf("Hit ENTER for replay (%d states) ...",
                 states.size());
         getchar();
         for (unsigned i=0; i < states.size(); ++i) {
@@ -525,7 +525,7 @@ int main(int argc, char** argv) {
         }
     }
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);
@@ -558,7 +558,7 @@ TimsBox::TimsBox() {
         const Real RunTime=16;  // Tim's time
         const Real Stiffness = 2e7;
         const Real Dissipation = 1;
-        const Real CoefRest = 0; 
+        const Real CoefRest = 0;
         // Painleve problem with these friction coefficients.
         //const Real mu_d = 1; /* compliant: .7*/
         //const Real mu_s = 1; /* compliant: .7*/
@@ -572,7 +572,7 @@ TimsBox::TimsBox() {
     #else
         const Real RunTime=20;
         const Real Stiffness = 1e6;
-        const Real CoefRest = 0.4; 
+        const Real CoefRest = 0.4;
         const Real TargetVelocity = 3; // speed at which to match coef rest
 //        const Real Dissipation = (1-CoefRest)/TargetVelocity;
         const Real Dissipation = 0.1;
@@ -600,13 +600,13 @@ TimsBox::TimsBox() {
     printf("  transition velocity=%g\n", TransitionVelocity);
     printf("  radius=%g\n", Radius);
     printf("  brick inertia=%g %g %g\n",
-        brickInertia.getMoments()[0], brickInertia.getMoments()[1], 
-        brickInertia.getMoments()[2]); 
+        brickInertia.getMoments()[0], brickInertia.getMoments()[1],
+        brickInertia.getMoments()[2]);
     printf("******************** Tim's Box ********************\n\n");
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    Body::Rigid brickBody = 
+    Body::Rigid brickBody =
         Body::Rigid(MassProperties(BrickMass, Vec3(0), brickInertia));
     brickBody.addDecoration(Transform(), DecorativeBrick(BrickHalfDims)
                                    .setColor(Red).setOpacity(.3));
@@ -690,9 +690,9 @@ TimsBox::TimsBox() {
 //---------------------------- CALC INITIAL STATE ------------------------------
 void TimsBox::calcInitialState(State& s) const {
     s = realizeTopology(); // returns a reference to the the default state
-    
+
     //matter.setUseEulerAngles(s, true);
-    
+
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
 
@@ -764,7 +764,7 @@ BouncingBalls::BouncingBalls() {
     const Real rubber_density = 1100.;  // kg/m^3
     const Real rubber_young   = 0.01e9; // pascals (N/m)
     const Real rubber_poisson = 0.5;    // ratio
-    const Real rubber_planestrain = 
+    const Real rubber_planestrain =
         ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
     const Real rubber_dissipation = 0.1;
     const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,0,0,0);
@@ -792,11 +792,11 @@ BouncingBalls::BouncingBalls() {
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    Body::Rigid ballBody(MassProperties(BallMass, Vec3(0), 
+    Body::Rigid ballBody(MassProperties(BallMass, Vec3(0),
                                         UnitInertia::sphere(BallRadius)));
     ballBody.addDecoration(Transform(), DecorativeSphere(BallRadius));
 
-    Body::Rigid ballBody_heavy(MassProperties(Heavy*BallMass, Vec3(0), 
+    Body::Rigid ballBody_heavy(MassProperties(Heavy*BallMass, Vec3(0),
                                         UnitInertia::sphere(BallRadius)));
     ballBody_heavy.addDecoration(Transform(), DecorativeSphere(BallRadius));
 
@@ -807,7 +807,7 @@ BouncingBalls::BouncingBalls() {
        (Ground, Transform(X2Y,Vec3(-1,BallRadius,0)),
         ballBody, X2Y);
     m_Hballs[0].updBody().addContactSurface(Vec3(0),
-            ContactSurface(ContactGeometry::Sphere(BallRadius), 
+            ContactSurface(ContactGeometry::Sphere(BallRadius),
             nylon
             //nylon_lossless
             ));
@@ -817,7 +817,7 @@ BouncingBalls::BouncingBalls() {
            (m_Hballs[i-1],Transform(X2Y,Vec3(0,2*BallRadius,0)),ballBody, X2Y);
         m_Hballs[i].updBody().updDecoration(0).setColor(HColor);
         m_Hballs[i].updBody().addContactSurface(Vec3(0),
-                ContactSurface(ContactGeometry::Sphere(BallRadius), 
+                ContactSurface(ContactGeometry::Sphere(BallRadius),
                 //nylon
                 nylon_lossless
                 ));
@@ -831,19 +831,19 @@ BouncingBalls::BouncingBalls() {
         X2Y);
     m_Pballs[0].updBody().updDecoration(0).setColor(PColor);
     matter.adoptUnilateralContact(new PointPlaneContact
-           (Ground, YAxis, 0., m_Pballs[0], Vec3(0,-BallRadius,0), 
+           (Ground, YAxis, 0., m_Pballs[0], Vec3(0,-BallRadius,0),
             CoefRest,
             0,0,0)); // no friction
     for (int i=1; i<NBalls; ++i) {
         m_Pballs[i] = MobilizedBody::Slider
            (m_Pballs[i-1],Transform(X2Y,Vec3(0,2*BallRadius,0)),
-           i==NBalls-1?ballBody_heavy:ballBody, 
+           i==NBalls-1?ballBody_heavy:ballBody,
            X2Y);
         m_Pballs[i].updBody().updDecoration(0).setColor(PColor);
         //Real cor = i==NBalls/2 ? .5 : CoefRest; // middle ball different
         Real cor = CoefRest;
         matter.adoptUnilateralContact(new PointPlaneFrictionlessContact
-               (m_Pballs[i-1], YAxis, BallRadius, 
+               (m_Pballs[i-1], YAxis, BallRadius,
                 m_Pballs[i], Vec3(0,-BallRadius,0), cor));
     }
 
@@ -855,7 +855,7 @@ void BouncingBalls::calcInitialState(State& s) const {
     const Real Height = 1;
     const Real Speed = -2;
 
-    s = realizeTopology(); // returns a reference to the the default state   
+    s = realizeTopology(); // returns a reference to the the default state
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
@@ -863,13 +863,13 @@ void BouncingBalls::calcInitialState(State& s) const {
     #ifdef HERTZ
         getHBall(0).setOneQ(s, MobilizerQIndex(0), Height);
         getHBall(0).setOneU(s, MobilizerUIndex(0), Speed);
-        for (int i=1; i<NBalls; ++i) 
+        for (int i=1; i<NBalls; ++i)
             getHBall(i).setOneQ(s, MobilizerQIndex(0), Separation);
     #endif
     #ifdef POISSON
         getPBall(0).setOneQ(s, MobilizerQIndex(0), Height);
         getPBall(0).setOneU(s, MobilizerUIndex(0), Speed);
-        for (int i=1; i<NBalls; ++i) 
+        for (int i=1; i<NBalls; ++i)
             getPBall(i).setOneQ(s, MobilizerQIndex(0), Separation);
     #endif
 }
@@ -910,7 +910,7 @@ Pencil::Pencil() {
     const Real rubber_density = 1100.;  // kg/m^3
     const Real rubber_young   = 0.01e9; // pascals (N/m)
     const Real rubber_poisson = 0.5;    // ratio
-    const Real rubber_planestrain = 
+    const Real rubber_planestrain =
         ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
     const Real rubber_dissipation = 0.1;
     const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,0,0,0);
@@ -936,9 +936,9 @@ Pencil::Pencil() {
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    Body::Rigid pencilBody(MassProperties(PencilMass, Vec3(0), 
+    Body::Rigid pencilBody(MassProperties(PencilMass, Vec3(0),
            UnitInertia::cylinderAlongY(PencilRadius,PencilHLength)));
-    pencilBody.addDecoration(Transform(), 
+    pencilBody.addDecoration(Transform(),
                              DecorativeCylinder(PencilRadius,PencilHLength)
                              .setOpacity(.3));
 
@@ -947,26 +947,26 @@ Pencil::Pencil() {
 
     const Real flapperRadius = 0.2;
     m_flapper = MobilizedBody::Pin
-       (m_pencil, Vec3(0), 
+       (m_pencil, Vec3(0),
         MassProperties(10,Vec3(0),UnitInertia(0)), Vec3(-2,0,0));
     m_flapper.addBodyDecoration(Vec3(0), DecorativeLine(Vec3(-2,0,0),Vec3(0)));
     HardStopLower* lower =
-        new HardStopLower(m_flapper, MobilizerQIndex(0), -Pi/6, StopCoefRest); 
+        new HardStopLower(m_flapper, MobilizerQIndex(0), -Pi/6, StopCoefRest);
     matter.adoptUnilateralContact(lower);
     HardStopUpper* upper =
-        new HardStopUpper(m_flapper, MobilizerQIndex(0), Pi/6, StopCoefRest); 
+        new HardStopUpper(m_flapper, MobilizerQIndex(0), Pi/6, StopCoefRest);
     matter.adoptUnilateralContact(upper);
     SpherePlaneContact* flapperContact =
         new SpherePlaneContact(Ground, YAxis, 0.,
                                     m_flapper, Vec3(0), flapperRadius,
                                     CoefRest/2, mu_s, mu_d, mu_v);
     matter.adoptUnilateralContact(flapperContact);
-    m_flapper.addBodyDecoration(Vec3(0,0,0), 
+    m_flapper.addBodyDecoration(Vec3(0,0,0),
                               DecorativeSphere(flapperRadius).setColor(Red));
 
     //PointPlaneContact* pc1 =
     //    new PointPlaneContact(Ground, YAxis, 0.,
-    //                                m_pencil, Vec3(0,-PencilHLength,0), 
+    //                                m_pencil, Vec3(0,-PencilHLength,0),
     //                                CoefRest, mu_s, mu_d, mu_v);
     Real radius1 = 1;
     m_pencilSphereCenter = Vec3(0,-PencilHLength,0);
@@ -974,15 +974,15 @@ Pencil::Pencil() {
         new SpherePlaneContact(Ground, YAxis, 0.,
                                     m_pencil, m_pencilSphereCenter, radius1,
                                     CoefRest/3, mu_s, mu_d, mu_v);
-    m_pencil.addBodyDecoration(m_pencilSphereCenter, 
+    m_pencil.addBodyDecoration(m_pencilSphereCenter,
         DecorativeSphere(radius1).setColor(Cyan).setOpacity(.5)
         .setResolution(3));
-    m_pencil.addBodyDecoration(m_pencilSphereCenter, 
+    m_pencil.addBodyDecoration(m_pencilSphereCenter,
         DecorativeSphere(radius1).setColor(Black).
         setRepresentation(DecorativeGeometry::DrawWireframe));
     PointPlaneContact* pc2 =
         new PointPlaneContact(Ground, YAxis, 0.,
-                                    m_pencil, Vec3(0,PencilHLength,0), 
+                                    m_pencil, Vec3(0,PencilHLength,0),
                                     CoefRest, mu_s, mu_d, mu_v);
     matter.adoptUnilateralContact(pc1);
     matter.adoptUnilateralContact(pc2);
@@ -991,10 +991,10 @@ Pencil::Pencil() {
     m_ball = MobilizedBody::Free(Ground, Vec3(0),
         MassProperties(BallMass, Vec3(0), UnitInertia::sphere(BallRad)),
         Vec3(0));
-    m_ball.addBodyDecoration(Vec3(0), 
+    m_ball.addBodyDecoration(Vec3(0),
                              DecorativeSphere(BallRad).setColor(Red)
                              .setResolution(3).setOpacity(.25));
-    m_ball.addBodyDecoration(Vec3(0), 
+    m_ball.addBodyDecoration(Vec3(0),
                              DecorativeSphere(BallRad).setColor(Black)
                              .setRepresentation(DecorativeGeometry::DrawWireframe)
                              );
@@ -1035,7 +1035,7 @@ void Pencil::addRubberBandLines(Visualizer& viz) const {
 
 
 void Pencil::calcInitialState(State& s) const {
-    s = realizeTopology(); // returns a reference to the the default state   
+    s = realizeTopology(); // returns a reference to the the default state
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
@@ -1102,7 +1102,7 @@ Block::Block() {
     Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
     DecorativeBrick drawCube(Cube); drawCube.setOpacity(0.5).setColor(Gray);
 
-    Body::Rigid blockBody(MassProperties(Mass1, COM1, Inertia1)); 
+    Body::Rigid blockBody(MassProperties(Mass1, COM1, Inertia1));
     blockBody.addDecoration(Centroid,drawCube);
     blockBody.addDecoration(COM1, DecorativePoint());
 
@@ -1121,10 +1121,10 @@ Block::Block() {
     link2Info.addDecoration(Centroid, drawCube);
 
     Body::Rigid link3Info(MassProperties(Mass3, COM3, Inertia3));
-    link3Info.addDecoration(Centroid, drawCube);    
-    //m_link2 = MobilizedBody::Pin(m_block, Vec3(2*Centroid), 
+    link3Info.addDecoration(Centroid, drawCube);
+    //m_link2 = MobilizedBody::Pin(m_block, Vec3(2*Centroid),
     //                                link2Info, Vec3(0));
-    //m_link3 = MobilizedBody::Pin(m_link2, Vec3(2*Centroid), 
+    //m_link3 = MobilizedBody::Pin(m_link2, Vec3(2*Centroid),
     //                                link3Info, Vec3(0));
 
     Force::ConstantTorque(forces, m_block, Vec3(0,0,-2000));
@@ -1142,7 +1142,7 @@ Block::Block() {
 }
 
 void Block::calcInitialState(State& s) const {
-    s = realizeTopology(); // returns a reference to the the default state   
+    s = realizeTopology(); // returns a reference to the the default state
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
@@ -1191,26 +1191,26 @@ Edges::Edges() {
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
     Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
-    DecorativeBrick drawGrounded(Grounded); 
+    DecorativeBrick drawGrounded(Grounded);
     drawGrounded.setOpacity(0.5).setColor(Gray);
 
-    Body::Rigid groundedBody(MassProperties(MassGrounded, Vec3(0), 
-                                            UnitInertia::brick(Grounded))); 
+    Body::Rigid groundedBody(MassProperties(MassGrounded, Vec3(0),
+                                            UnitInertia::brick(Grounded)));
     groundedBody.addDecoration(Vec3(0),drawGrounded);
 
     m_grounded = MobilizedBody::Free(Ground, Vec3(0), groundedBody, Vec3(0));
 
-    DecorativeBrick drawSwinging(Swinging); 
+    DecorativeBrick drawSwinging(Swinging);
     drawSwinging.setOpacity(0.5).setColor(Cyan);
 
-    Body::Rigid swingingBody(MassProperties(MassSwinging, Vec3(0), 
-                                            UnitInertia::brick(Swinging))); 
+    Body::Rigid swingingBody(MassProperties(MassSwinging, Vec3(0),
+                                            UnitInertia::brick(Swinging)));
     swingingBody.addDecoration(Vec3(0),drawSwinging);
 
     Rotation xy2xz(Pi/2,XAxis);
-    m_swinger = MobilizedBody::Universal(Ground, 
-                                         Transform(xy2xz,Vec3(-2,7,0)), 
-                                         swingingBody, 
+    m_swinger = MobilizedBody::Universal(Ground,
+                                         Transform(xy2xz,Vec3(-2,7,0)),
+                                         swingingBody,
                                          Transform(xy2xz,Vec3(-2,3,0.5)));
 
     //HardStopUpper* hsu= new HardStopUpper(m_swinger, MobilizerQIndex(2),
@@ -1232,35 +1232,35 @@ Edges::Edges() {
     Rotation sedge4(UnitVec3(YAxis),XAxis,
                    Vec3(1,0,1),ZAxis);
     EdgeEdgeContact* ee1 = new EdgeEdgeContact
-        (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+        (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)),
                                Grounded[2],
-         m_swinger, Transform(sedge1,Vec3(-Swinging[0],0,Swinging[2])), 
-                              Swinging[1], 
+         m_swinger, Transform(sedge1,Vec3(-Swinging[0],0,Swinging[2])),
+                              Swinging[1],
                               eCoefRest, emu_s, emu_d, emu_v);
     matter.adoptUnilateralContact(ee1);
 
     EdgeEdgeContact* ee2 = new EdgeEdgeContact
-        (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+        (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)),
                                Grounded[2],
-         m_swinger, Transform(sedge2,Vec3(-Swinging[0],0,-Swinging[2])), 
-                              Swinging[1], 
+         m_swinger, Transform(sedge2,Vec3(-Swinging[0],0,-Swinging[2])),
+                              Swinging[1],
                               eCoefRest, emu_s, emu_d, emu_v);
     matter.adoptUnilateralContact(ee2);
 
 
     //EdgeEdgeContact* ee3 = new EdgeEdgeContact
-    //    (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+    //    (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)),
     //                           Grounded[2],
-    //     m_swinger, Transform(sedge3,Vec3(Swinging[0],0,-Swinging[2])), 
-    //                          Swinging[1], 
+    //     m_swinger, Transform(sedge3,Vec3(Swinging[0],0,-Swinging[2])),
+    //                          Swinging[1],
     //                          eCoefRest, emu_s, emu_d, emu_v);
     //matter.adoptUnilateralContact(ee3);
 
     //EdgeEdgeContact* ee4 = new EdgeEdgeContact
-    //    (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)), 
+    //    (m_grounded, Transform(gedge,Vec3(Grounded[0],Grounded[1],0)),
     //                           Grounded[2],
-    //     m_swinger, Transform(sedge4,Vec3(Swinging[0],0,Swinging[2])), 
-    //                          Swinging[1], 
+    //     m_swinger, Transform(sedge4,Vec3(Swinging[0],0,Swinging[2])),
+    //                          Swinging[1],
     //                          eCoefRest, emu_s, emu_d, emu_v);
     //matter.adoptUnilateralContact(ee4);
 
@@ -1276,7 +1276,7 @@ Edges::Edges() {
 }
 
 void Edges::calcInitialState(State& s) const {
-    s = realizeTopology(); // returns a reference to the the default state 
+    s = realizeTopology(); // returns a reference to the the default state
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
@@ -1305,8 +1305,8 @@ void Edges::calcInitialState(State& s) const {
 //    for (int i=0; i < getNumContactElements(); ++i) {
 //        const MyContactElement& contact = getContactElement(i);
 //        const bool isActive = !contact.isDisabled(s);
-//        printf("  %6s %2d %s, h=%g dh=%g f=%g\n", 
-//                isActive?"ACTIVE":"off", i, contact.getContactType().c_str(), 
+//        printf("  %6s %2d %s, h=%g dh=%g f=%g\n",
+//                isActive?"ACTIVE":"off", i, contact.getContactType().c_str(),
 //                contact.getPerr(s),contact.getVerr(s),
 //                isActive?contact.getForce(s):Zero);
 //    }
@@ -1315,7 +1315,7 @@ void Edges::calcInitialState(State& s) const {
 //        if (!friction.isMasterActive(s))
 //            continue;
 //        const bool isEnabled = friction.isEnabled(s);
-//        printf("  %8s friction %2d\n", 
+//        printf("  %8s friction %2d\n",
 //                isEnabled?"STICKING":"sliding", i);
 //        friction.writeFrictionInfo(s, "    ", std::cout);
 //    }

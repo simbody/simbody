@@ -27,7 +27,7 @@
 /** @file
  *
  * Here we declare the detailed interface to the Simmatrix classes. This is
- * still client-side code although nothing here should need to appear as part 
+ * still client-side code although nothing here should need to appear as part
  * of the user documentation. Code here primarily deals with the interface
  * between the arbitrarily-templatized user visible Matrix, Vector, and
  * RowVector classes and the finitely templatized implementation classes,
@@ -52,35 +52,35 @@ class MatrixCommitment;
 //  ------------------------------ MatrixHelper --------------------------------
 
 /// Here we define class MatrixHelper<S>, the scalar-type templatized helper
-/// class for the more general, composite numerical type-templatized 
+/// class for the more general, composite numerical type-templatized
 /// class MatrixBase<ELT>. The helper class is not intended to appear
 /// directly in user programs; it is client-side code used by the client-side
 /// Matrix<CNT>, Vector<CNT>, etc. templates to reduce the infinite set
 /// of possible CNT templates to a finite set of scalar templates which
 /// can then have hidden implementations in the Simmatrix library.
-/// The hidden implementation class will be instantiated once each for 
+/// The hidden implementation class will be instantiated once each for
 /// float, double, long double and the associated complex and conjugate types,
 /// and their negators (a total of 18 types). Element size is
-/// dealt with at run time; otherwise the helper knows nothing about the 
+/// dealt with at run time; otherwise the helper knows nothing about the
 /// structure of the elements.
-/// 
+///
 /// The constructors for numerical types should not initialize the numerical
 /// values. We take advantage of that here -- this class assumes it can simply
 /// allocate the appropriate amount of data as an array of the underlying
 /// scalar type, with no implicit initialization. We'll fill uninitialized data
 /// with NaNs when debugging or if specifically requested; otherwise it will
 /// contain garbage initially.
-/// 
+///
 /// Note that this is just a templatized handle class. The implementation
 /// is private, in the undefined class MatrixHelperRep<S>.
 
 //  ----------------------------------------------------------------------------
-template <class S> 
+template <class S>
 class SimTK_SimTKCOMMON_EXPORT MatrixHelper {
     typedef MatrixHelper<S>                         This;
     typedef MatrixHelper<typename CNT<S>::TNeg>     ThisNeg;
     typedef MatrixHelper<typename CNT<S>::THerm>    ThisHerm;
-public: 
+public:
     typedef typename CNT<S>::Number     Number;     // strips off negator from S
     typedef typename CNT<S>::StdNumber  StdNumber;  // turns conjugate to complex
     typedef typename CNT<S>::Precision  Precision;  // strips off complex from StdNumber
@@ -96,11 +96,11 @@ public:
     class DeepCopy      { };
     class TransposeView { };
     class DiagonalView  { };
-    
+
         //////////////////////////
         // "Owner" constructors //
         //////////////////////////
-    
+
     // 0x0, fully resizable, fully uncommitted.
     MatrixHelper(int esz, int cppEsz);
 
@@ -122,8 +122,8 @@ public:
     // and logical values are identical to the source, meaning that the negation must
     // actually be performed here, using one flop for every meaningful source scalar.
     MatrixHelper(const MatrixCommitment&, const MatrixHelper<typename CNT<S>::TNeg>& source, const DeepCopy&);
-   
-    
+
+
         //////////////////////////////////
         // External "View" constructors //
         //////////////////////////////////
@@ -136,7 +136,7 @@ public:
     // that spacing is interpreted as "number of scalars between adjacent elements"
     // which has the usual Lapack interpretation if the elements are scalars but
     // can be used for C++ vs. Simmatrix packing differences for composite elements.
-    // The resulting handle is *not* the owner of the data, so destruction of the 
+    // The resulting handle is *not* the owner of the data, so destruction of the
     // handle does not delete the data.
 
     // Create a read-only view into existing data.
@@ -157,13 +157,13 @@ public:
 
     // "Block" views
     MatrixHelper(const MatrixCommitment&, const MatrixHelper&, int i, int j, int nrow, int ncol);
-    MatrixHelper(const MatrixCommitment&, MatrixHelper&,       int i, int j, int nrow, int ncol); 
+    MatrixHelper(const MatrixCommitment&, MatrixHelper&,       int i, int j, int nrow, int ncol);
 
     // "Transpose" views (note that this is Hermitian transpose; i.e., element
     // type is conjugated).
-    MatrixHelper(const MatrixCommitment&, const MatrixHelper<typename CNT<S>::THerm>&, 
+    MatrixHelper(const MatrixCommitment&, const MatrixHelper<typename CNT<S>::THerm>&,
                  const TransposeView&);    // a read only transposed view
-    MatrixHelper(const MatrixCommitment&, MatrixHelper<typename CNT<S>::THerm>&,       
+    MatrixHelper(const MatrixCommitment&, MatrixHelper<typename CNT<S>::THerm>&,
                  const TransposeView&);    // a writable transposed view
 
     // "Diagonal" views.
@@ -171,24 +171,24 @@ public:
     MatrixHelper(const MatrixCommitment&, MatrixHelper&,       const DiagonalView&); // a writable diagonal view
 
     // "Indexed" view of a 1d matrix.
-    MatrixHelper(const MatrixCommitment&, const MatrixHelper&, 
+    MatrixHelper(const MatrixCommitment&, const MatrixHelper&,
                  int n, const int* indices);
-    MatrixHelper(const MatrixCommitment&, MatrixHelper&, 
+    MatrixHelper(const MatrixCommitment&, MatrixHelper&,
                  int n, const int* indices);
 
     // These invoke the previous constructors but with friendlier index source.
-    MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h, 
+    MatrixHelper(const MatrixCommitment& mc, const MatrixHelper& h,
                  const Array_<int>& indices)
     {   new (this) MatrixHelper(mc, h, (int)indices.size(), indices.cbegin()); }
-    MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h, 
+    MatrixHelper(const MatrixCommitment& mc, MatrixHelper& h,
                  const Array_<int>& indices)
     {   new (this) MatrixHelper(mc, h, (int)indices.size(), indices.cbegin()); }
 
-    // "Copy" an existing MatrixHelper by making a new view into the same data. 
-    // The const form loses writability, non-const retains same writability status 
+    // "Copy" an existing MatrixHelper by making a new view into the same data.
+    // The const form loses writability, non-const retains same writability status
     // as source. If the source is already a view then the destination will have
     // an identical element filter so that the logical shape and values are the
-    // same for both source and copy. (The second argument is used just to 
+    // same for both source and copy. (The second argument is used just to
     // disambiguate this constructor from similar ones.)
     MatrixHelper(const MatrixCommitment&, const MatrixHelper& source, const ShallowCopy&);
     MatrixHelper(const MatrixCommitment&, MatrixHelper&       source, const ShallowCopy&);
@@ -199,7 +199,7 @@ public:
 
     // Behavior of copy assignment depends on whether "this" is an owner or view. If
     // it's an owner it is resized and ends up a new, dense copy of "source" just as
-    // for the DeepCopy constructor above. If "this" is a writable view, sizes must match 
+    // for the DeepCopy constructor above. If "this" is a writable view, sizes must match
     // and we copy elements from "source" to corresponding elements of "this". If
     // "this" is not writable then the operation will fail.
     MatrixHelper& copyAssign(const MatrixHelper& source);
@@ -216,7 +216,7 @@ public:
 
     // View assign always disconnects this helper from whatever view & data
     // it used to have (destructing as appropriate) and then makes it a new view
-    // of the source. Writability is lost if the source is const, otherwise 
+    // of the source. Writability is lost if the source is const, otherwise
     // writability is inherited from the source.
     MatrixHelper& readOnlyViewAssign(const MatrixHelper& source);
     MatrixHelper& writableViewAssign(MatrixHelper&       source);
@@ -255,12 +255,12 @@ public:
     void sum(S* eltp) const;
     void colSum(int j, S* eltp) const;
     void rowSum(int i, S* eltp) const;
-        
+
     // addition and subtraction (+= and -=)
-    void addIn(const MatrixHelper&);   
-    void addIn(const MatrixHelper<typename CNT<S>::TNeg>&);   
-    void subIn(const MatrixHelper&); 
-    void subIn(const MatrixHelper<typename CNT<S>::TNeg>&); 
+    void addIn(const MatrixHelper&);
+    void addIn(const MatrixHelper<typename CNT<S>::TNeg>&);
+    void subIn(const MatrixHelper&);
+    void subIn(const MatrixHelper<typename CNT<S>::TNeg>&);
 
     // Fill all our stored data with copies of the same supplied element.
     void fillWith(const S* eltp);
@@ -269,12 +269,12 @@ public:
     // Matrix. In addition to the row ordering, C++ may use different spacing
     // for elements than Simmatrix does.
     void copyInByRowsFromCpp(const S* elts);
-    
+
         // Scalar operations //
 
     // Fill every element with repeated copies of a single scalar value.
     void fillWithScalar(const StdNumber&);
-            
+
     // Scalar multiply (and divide). This is useful no matter what the
     // element structure and will produce the correct result.
     void scaleBy(const StdNumber&);
@@ -287,13 +287,13 @@ public:
     void dump(const char* msg=0) const; // For debugging -- comes out in a way you can feed to Matlab
 
         // Bookkeeping //
-    
+
     // This is the number of logical *elements* in each column of this matrix; i.e., m.
     int    nrow() const;
     // This is the number of *elements* in each row of this matrix; i.e., n.
     int    ncol() const;
     // This is the total number of *elements* in the logical shape of this matrix, i.e. m*n.
-    ptrdiff_t nelt() const; // nrow*ncol  
+    ptrdiff_t nelt() const; // nrow*ncol
     // This is the number of elements if this is a 1d matrix (vector or rowvector). That is,
     // it is the same as one of nrow() or ncol(); the other must be 1. It is also the
     // same as nelt() but limited to fit in 32 bits.
@@ -333,7 +333,7 @@ public:
     const MatrixHelperRep<S>& getRep() const {assert(rep); return *rep;}
     MatrixHelperRep<S>&       updRep()       {assert(rep); return *rep;}
     void setRep(MatrixHelperRep<S>* hrep)    {assert(!rep); rep = hrep;}
-    MatrixHelperRep<S>* stealRep() 
+    MatrixHelperRep<S>* stealRep()
     {   assert(rep); MatrixHelperRep<S>* stolen=rep; rep=0; return stolen; }
 
     void deleteRepIfOwner();
@@ -355,12 +355,12 @@ private:
     // See comment in MatrixBase::matmul for an explanation.
     template <class SA, class SB>
     void matmul(const StdNumber& beta,   // applied to 'this'
-                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);    
-    
+                const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);
+
 friend class MatrixHelper<typename CNT<S>::TNeg>;
 friend class MatrixHelper<typename CNT<S>::THerm>;
 };
-     
+
 } //namespace SimTK
 
 #endif // SimTK_SIMMATRIX_MATRIX_HELPER_H_

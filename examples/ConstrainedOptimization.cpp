@@ -26,18 +26,18 @@
 
 using namespace SimTK;
 
-static int  NumberOfParameters = 4; 
-static int  NumberOfEqualityConstraints = 1; 
-static int  NumberOfInequalityConstraints = 1; 
+static int  NumberOfParameters = 4;
+static int  NumberOfEqualityConstraints = 1;
+static int  NumberOfInequalityConstraints = 1;
 
 /*
- * This example was adapted from IPOPT's hs071 example 
+ * This example was adapted from IPOPT's hs071 example
  *
  *   Problem statement:
  *
  *     minimize:   x1*x4*(x1 + x2 + x3)  +  x3
  *
- *     s.t.  x1*x2*x3*x4                   >=  25    inequality constraint 
+ *     s.t.  x1*x2*x3*x4                   >=  25    inequality constraint
  *           x1**2 + x2**2 + x3**2 + x4**2 - 40.0 = 0.0  equality constraint
  *
  *           1 <=  x1,x2,x3,x4  <= 5    each parameter has a lower limit of 1.0 and an upper limit of 5.0
@@ -60,13 +60,13 @@ public:
       x = &coefficients[0];
 
       f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
-      return( 0 ); 
+      return( 0 );
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
      gradient[0] = x[0] * x[3] + x[3] * (x[0] + x[1] + x[2]);
      gradient[1] = x[0] * x[3];
@@ -77,14 +77,14 @@ public:
 
   }
 
-  /* 
+  /*
   ** Method to compute the value of the constraints.
   ** Equality constraints are first followed by the any inequality constraints
-  */ 
+  */
   int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
       constraints[0] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3] - 40.0;
       constraints[1] = x[0] * x[1] * x[2] * x[3] - 25.0;
 
@@ -99,7 +99,7 @@ public:
   int constraintJacobian( const Vector& coefficients, bool new_coefficients, Matrix& jac)  const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
       jac(0,0) = 2*x[0];
       jac(0,1) = 2*x[1];
       jac(0,2) = 2*x[2];
@@ -114,7 +114,7 @@ public:
   }
 
     ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInequalityConstraints ) :
-        OptimizerSystem( numParams ) 
+        OptimizerSystem( numParams )
     {
         setNumEqualityConstraints( numEqualityConstraints );
         setNumInequalityConstraints( numInequalityConstraints );
@@ -138,7 +138,7 @@ int main() {
     results[3] = 1.0;
 
     /* set bounds */
-    for(int i=0;i<NumberOfParameters;i++) {   
+    for(int i=0;i<NumberOfParameters;i++) {
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 5.0;
     }
@@ -147,11 +147,11 @@ int main() {
 
     Real f = NaN;
     try {
-        Optimizer opt( sys ); 
+        Optimizer opt( sys );
 
         opt.setConvergenceTolerance( .0001 );
 
-        /* compute  optimization */ 
+        /* compute  optimization */
         f = opt.optimize( results );
     }
     catch (const std::exception& e) {

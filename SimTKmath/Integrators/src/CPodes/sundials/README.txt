@@ -1,18 +1,18 @@
-                            SUNDIALS 
+                            SUNDIALS
     SUite of Nonlinear and DIfferential/ALgebraic equation Solvers
                    Release 2.3.0, November 2006
           Aaron Collier, Alan Hindmarsh, and Radu Serban
            Center for Applied Scientific Computing, LLNL
 
 
-The family of solvers referred to as SUNDIALS consists of solvers CVODE 
+The family of solvers referred to as SUNDIALS consists of solvers CVODE
 (for ODE systems), CVODES (ODE with sensitivity analysis capabilities),
-IDA (for differential-algebraic systems), and KINSOL (for nonlinear 
+IDA (for differential-algebraic systems), and KINSOL (for nonlinear
 algebraic systems).
 
 The various solvers of this family share many subordinate modules.
-For this reason, it is organized as a family, with a directory structure 
-that exploits that sharing. Each individual solver includes documentation 
+For this reason, it is organized as a family, with a directory structure
+that exploits that sharing. Each individual solver includes documentation
 on installation, along with full usage documentation.
 
 The following is a list of the solver packages presently available.
@@ -27,7 +27,7 @@ IDA:    A solver for differential-algebraic systems F(t,y,y') = 0.
 KINSOL: A solver for nonlinear algebraic systems F(u) = 0.
 
 Warning to users who receive more than one of these individual solvers
-at different times: The mixing of old and new versions SUNDIALS may fail.  
+at different times: The mixing of old and new versions SUNDIALS may fail.
 To avoid such failures, obtain all desired solvers at the same time.
 
 For installation directions see the file INSTALL_NOTES.

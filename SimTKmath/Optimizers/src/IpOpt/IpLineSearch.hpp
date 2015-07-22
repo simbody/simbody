@@ -59,7 +59,7 @@ namespace Ipopt
 
     /** Check if the line search procedure didn't accept a new iterate
      *  during the last call of FindAcceptableTrialPoint().
-     *  
+     *
      */
     virtual bool CheckSkippedLineSearch() = 0;
 
@@ -76,7 +76,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

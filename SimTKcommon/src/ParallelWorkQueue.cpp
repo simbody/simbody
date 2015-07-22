@@ -86,7 +86,7 @@ ParallelWorkQueueImpl::~ParallelWorkQueueImpl() {
         pthread_join(threads[i], NULL);
 
     // Clean up memory.
-    
+
     pthread_mutex_destroy(&queueLock);
     pthread_cond_destroy(&waitForTaskCondition);
     pthread_cond_destroy(&queueFullCondition);

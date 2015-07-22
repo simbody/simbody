@@ -30,20 +30,20 @@
 namespace SimTK {
 
 
-/** This is an EventReporter which prints out numeric data at regular intervals 
-in tabular form. You provide it with a UserFunction, which calculates the 
-values to be reported.  At every reporting interval, it invokes the 
-UserFunction, then prints out the current time along with the value or 
+/** This is an EventReporter which prints out numeric data at regular intervals
+in tabular form. You provide it with a UserFunction, which calculates the
+values to be reported.  At every reporting interval, it invokes the
+UserFunction, then prints out the current time along with the value or
 values returned by the function.
- 
+
 After creating a TextDataEventReporter, add it to the System by calling the
 addEventReporter() method. **/
-class SimTK_SIMBODY_EXPORT TextDataEventReporter 
+class SimTK_SIMBODY_EXPORT TextDataEventReporter
 :   public PeriodicEventReporter {
 public:
 
-    /** This template class defines a standard interface for objects that 
-    calculate a function based on a System and State for use in a 
+    /** This template class defines a standard interface for objects that
+    calculate a function based on a System and State for use in a
     TextDataEventReporter. **/
     template <class T> class UserFunction {
     public:
@@ -51,24 +51,24 @@ public:
         virtual T evaluate(const System& system, const State& state) = 0;
     };
 
-    /** Create a TextDataEventReporter which calculates a single number at each 
+    /** Create a TextDataEventReporter which calculates a single number at each
     reporting interval, and displays it along with the time. Takes ownership
     of the UserFunction object. **/
-    TextDataEventReporter(const System&         system, 
-                          UserFunction<Real>*   function, 
+    TextDataEventReporter(const System&         system,
+                          UserFunction<Real>*   function,
                           Real                  reportInterval);
 
-    /** Create a TextDataEventReporter which calculates a vector of numbers at 
-    each reporting interval, and displays them along with the time. Takes 
+    /** Create a TextDataEventReporter which calculates a vector of numbers at
+    each reporting interval, and displays them along with the time. Takes
     ownership of the UserFunction object.  **/
-    TextDataEventReporter(const System&         system, 
-                          UserFunction<Vector>* function, 
+    TextDataEventReporter(const System&         system,
+                          UserFunction<Vector>* function,
                           Real                  reportInterval);
     /** The destructor will take care of deleting the UserFunction object;
     don't delete it yourself. **/
     ~TextDataEventReporter();
 
-    /** This is the implementation of the EventReporter virtual. **/ 
+    /** This is the implementation of the EventReporter virtual. **/
     void handleEvent(const State& state) const override;
 
     class TextDataEventReporterRep;

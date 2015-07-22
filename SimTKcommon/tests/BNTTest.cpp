@@ -40,7 +40,7 @@ using std::setprecision;
 using std::complex;
 
 #define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed");}
-// Assert that two real-valued calculations should produce the same result to within a few 
+// Assert that two real-valued calculations should produce the same result to within a few
 // machine roundoff errors.
 #define ASSERT_EPS(x,y) {ASSERT(std::abs((x)-(y))<=(4*Eps));}
 // Assert that two complex-valued calculations should produce the same result (in both real and
@@ -57,7 +57,7 @@ int main() {
   try
   { const Real zero = 0., one = 1., two = 2.;
     const Complex oneTwo(1.,2.);
-    const Complex threeFour(3.,4.); 
+    const Complex threeFour(3.,4.);
     const complex<float> fcinf = CNT< complex<float> >::getInfinity();
 
         // nan tests
@@ -70,7 +70,7 @@ int main() {
     const std::complex<long double> clnan(lnan, 0L);
     const conjugate<float> jfnan(fnan, 0.09f);
     const conjugate<double> jdnan(3, dnan);
-    const conjugate<long double> jlnan(lnan, lnan);    
+    const conjugate<long double> jlnan(lnan, lnan);
     const negator<Real>& nzero = reinterpret_cast<const negator<Real>&>(zero);
     const negator<Real>& ntwo = reinterpret_cast<const negator<Real>&>(two);
     const negator<float>& nfnan = reinterpret_cast<const negator<float>&>(fnan);
@@ -79,7 +79,7 @@ int main() {
 
     writeUnformatted(std::cout, fcinf);
     Array_< negator<Complex> > arrc;
-    arrc.push_back(oneTwo); 
+    arrc.push_back(oneTwo);
     arrc.push_back(threeFour);
     arrc.push_back(fcinf);
     writeUnformatted(cout, arrc); cout << endl;
@@ -91,7 +91,7 @@ int main() {
                               5, NaN, 7, 8,
                               Infinity, 10, -Infinity, 12 ));
     cout << endl;
-    writeUnformatted(cout, SymMat33( 1, 
+    writeUnformatted(cout, SymMat33( 1,
                                  2, 3,
                                  NaN, 5, 6 )); cout << endl;
 
@@ -150,12 +150,12 @@ int main() {
     ASSERT(!isNaN(nzero)); ASSERT(!isNaN(-ntwo));
     ASSERT(isNaN(ncfnan)); ASSERT(isNaN(-ncfnan));
 
-    
+
     cout << "one=" << one << " two=" << two << endl;
-    cout << "oneTwo=" << oneTwo << " threeFour=" << threeFour << endl; 
-    
-    cout << "negator(one)=" << negator<Real>(one) << endl; 
-    cout << "reinterp<negator>(one)=" << reinterpret_cast<const negator<Real>&>(one) << endl; 
+    cout << "oneTwo=" << oneTwo << " threeFour=" << threeFour << endl;
+
+    cout << "negator(one)=" << negator<Real>(one) << endl;
+    cout << "reinterp<negator>(one)=" << reinterpret_cast<const negator<Real>&>(one) << endl;
 
     cout << "fcinf=" << fcinf << endl;
     cout << "nan=" << nan << endl;
@@ -163,14 +163,14 @@ int main() {
     cout << "negator<Real>::inf=" << CNT<negator<Real> >::getInfinity() << endl;
     cout << "negator<Real>::nan=" << CNT<negator<Real> >::getNaN() << endl;
     //cout << "conj(one)=" << SimTK::conj(one) << " conj(oneTwo)=" << SimTK::conj(oneTwo) << endl;
-    
+
     const conjugate<Real> conj34(threeFour);
     cout << "conj34=" << conj34 << endl;
-    cout << "complex(conj34)=" << 
+    cout << "complex(conj34)=" <<
         std::complex<Real>(conj34.real(),conj34.imag()) << endl;
     cout << "-conj34=" << -conj34 << endl;
 
-    const conjugate<Real>& reconj34 = 
+    const conjugate<Real>& reconj34 =
         reinterpret_cast<const conjugate<Real>&>(threeFour);
     cout << "reconj34=" << reconj34 << endl;
 
@@ -192,17 +192,17 @@ int main() {
     cout << " ... is a " << typeid(negreconj34).name() << endl;
     cout << "negreconj34.normalize()=" << negreconj34.normalize() << endl;
     cout << " ... is a " << typeid(negreconj34.normalize()).name() << endl;
-    cout << "(noneg)negreconj34=" 
+    cout << "(noneg)negreconj34="
          << CNT<NCR>::castAwayNegatorIfAny(negreconj34) << endl;
     cout << " ... is a "
          << typeid(CNT<NCR>::castAwayNegatorIfAny(negreconj34)).name() << endl;
     const NCRWN& nnn = CNT<NCR>::castAwayNegatorIfAny(negreconj34);
-     cout << "(noneg)negreconj34.normalize()=" 
+     cout << "(noneg)negreconj34.normalize()="
          << CNT<NCRWN>::normalize(nnn) << endl;
-   
-    const negator<conjugate<Real> >& nc_threeFour 
+
+    const negator<conjugate<Real> >& nc_threeFour
         = reinterpret_cast<const negator<conjugate<Real> >&>(threeFour);
-    cout << "nc_threeFour=" << nc_threeFour << " conj(.)=" 
+    cout << "nc_threeFour=" << nc_threeFour << " conj(.)="
         << CNT<negator<conjugate<Real> > >::transpose(nc_threeFour) << endl;
 
     cout << "NC<C> nan=" << CNT<negator<conjugate<Real> > >::getNaN() << endl;
@@ -210,19 +210,19 @@ int main() {
 
     cout << "negator<complex<float>>*long double=" <<
         typeid( negator< complex<float> >::Result<long double>::Mul ).name() << endl;
-    negator< complex<long double> > nlc = 
+    negator< complex<long double> > nlc =
         negator< complex<float> >::Result<long double>::Mul(complex<long double>(1,2));
     cout << "nlc=" << nlc << endl;
 
     cout << "NegConjugate<double>*float=" <<
         typeid( negator<conjugate<double> >::Result<float>::Mul ).name() << endl;
-    negator<conjugate<double> > ncdc = 
+    negator<conjugate<double> > ncdc =
         negator< conjugate<double> >::Result<float>::Mul(complex<double>(9,10));
     cout << "ncdc=" << ncdc << endl;
 
     cout << "NegConjugate<float>*complex<double>=" <<
         typeid( negator<conjugate<float> >::Result< complex<double> >::Mul ).name() << endl;
-    negator< complex<double> > ndc = 
+    negator< complex<double> > ndc =
         negator<conjugate<float> >::Result< complex<double> >::Mul(complex<double>(.1,.2));
     cout << "ndc=" << ndc << endl;
 
@@ -236,7 +236,7 @@ int main() {
     cout << "x+(-y)=" << x+(-y) << endl;
 
     // In gcc 4.1.2, if you remove this output line then the
-    // corresponding ASSERT below it will fail! 
+    // corresponding ASSERT below it will fail!
     cout << "-(-x)+y=" << -(-x)+y << endl;
     ASSERT_EPSX(x+y, -(-x)+y);
 
@@ -268,8 +268,8 @@ int main() {
 
     Real pp=27, nn=-14, zzz=0;
     cout << "Real: sign(27)=" << sign(pp) << " sign(-14)=" << sign(nn) << " sign(0)=" << sign(zzz) << endl;
-    cout << "negator<Real>: sign(27)=" 
-         <<  sign(negator<Real>::recast(pp)) << " sign(-14)=" << sign(negator<Real>::recast(nn)) 
+    cout << "negator<Real>: sign(27)="
+         <<  sign(negator<Real>::recast(pp)) << " sign(-14)=" << sign(negator<Real>::recast(nn))
          << " sign(0)=" << sign(negator<Real>::recast(zzz)) << endl;
 
 
@@ -341,30 +341,30 @@ int main() {
     cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getPi()
          << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getPi()
          << " ld=" << setprecision(NTraits<long double>::getNumDigits()+2) << NTraits<long double>::getPi() << endl;
-    
+
     std::printf("1/sqrt(2)=%.18Lg\n", 1/SimTK_SQRT2);
     cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getOneOverSqrt2()
          << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getOneOverSqrt2()
          << " ld=" << setprecision(NTraits<long double>::getNumDigits()+2) << NTraits<long double>::getOneOverSqrt2() << endl;
 
     printf("Eps f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getEps(), 
-        (long double)NTraits<double>::getEps(), 
+        (long double)NTraits<float>::getEps(),
+        (long double)NTraits<double>::getEps(),
         NTraits<long double>::getEps());
 
     printf("SqrtEps f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getSqrtEps(), 
-        (long double)NTraits<double>::getSqrtEps(), 
+        (long double)NTraits<float>::getSqrtEps(),
+        (long double)NTraits<double>::getSqrtEps(),
         NTraits<long double>::getSqrtEps());
 
     printf("Significant f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getSignificant(), 
-        (long double)NTraits<double>::getSignificant(), 
+        (long double)NTraits<float>::getSignificant(),
+        (long double)NTraits<double>::getSignificant(),
         NTraits<long double>::getSignificant());
 
     printf("Tiny f=%.16Lg d=%.16Lg ld=%.16Lg\n",
-        (long double)NTraits<float>::getTiny(), 
-        (long double)NTraits<double>::getTiny(), 
+        (long double)NTraits<float>::getTiny(),
+        (long double)NTraits<double>::getTiny(),
         NTraits<long double>::getTiny());
 
   } catch(const std::exception& e) {

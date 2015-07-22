@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the FactorSVD  class to compute 
+ * This is a test program which uses the FactorSVD  class to compute
  * eigen values and eigen vectors
  */
 
@@ -32,7 +32,7 @@ Numerical Algorithms Group (NAG)
 URL:http://www.nag.com/lapack-ex/lapack-ex.html
 
 
-Solves for the singular valus and vectors for the 
+Solves for the singular valus and vectors for the
 following matrix
 
 
@@ -40,11 +40,11 @@ following matrix
 A = 2.27   0.28  -0.48   1.07  -2.35   0.62
    -1.54  -1.67  -3.09   1.22   2.93  -7.39
     1.15   0.94   0.99   0.79  -1.45   1.03
-   -1.94  -0.78  -0.21   0.63   2.30  -2.57 
+   -1.94  -0.78  -0.21   0.63   2.30  -2.57
 
 
 
-SOLUTION = 
+SOLUTION =
 Singular values
      9.9966  3.6831  1.3569  0.5000
  Left singular vectors
@@ -97,8 +97,8 @@ Real X[4] =  { 9.9966,  3.6831,  1.3569,  0.5000 };
 
 
 int main () {
-    
-    try { 
+
+    try {
            // Default precision (Real, normally double) test.
 
         Matrix a(4,6, A);
@@ -107,14 +107,14 @@ int main () {
         Matrix rightVectors;
         Matrix leftVectors;
 
-        FactorSVD  svd(a, 0.01);   // setup the eigen system 
+        FactorSVD  svd(a, 0.01);   // setup the eigen system
 
-        svd.getSingularValues( singularValues );  // solve for the singular values  
+        svd.getSingularValues( singularValues );  // solve for the singular values
         cout << " SingularValues rcond = 0.01 : " << singularValues << endl;
 
-        svd.factor(a );   // setup the eigen system 
+        svd.factor(a );   // setup the eigen system
         cout << " SingularValues rcond = default : " << singularValues << "  errnorm=" << (singularValues-expectedValues).norm() << endl;
-        svd.getSingularValuesAndVectors( singularValues, leftVectors, rightVectors );  // solve for the singular values  
+        svd.getSingularValuesAndVectors( singularValues, leftVectors, rightVectors );  // solve for the singular values
         ASSERT((singularValues-expectedValues).norm() < 0.001);
 
 
@@ -124,7 +124,7 @@ int main () {
              printf("\n");
          }
 
-             
+
          printf("Right Vectors = \n");
          for(int i=0;i<rightVectors.ncol();i++) {
              for(int j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
@@ -161,10 +161,10 @@ int main () {
         cout << " solve with mat(0,0) : " << endl;
         for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
 
-         
+
         cout << " SVD factorization with mat(0,0) : " << endl;
         FactorSVD z0fsvd(z0);
-        z0fsvd.getSingularValuesAndVectors( singularValues, leftVectors, rightVectors );  // solve for the singular values  
+        z0fsvd.getSingularValuesAndVectors( singularValues, leftVectors, rightVectors );  // solve for the singular values
         cout << " Real SOLUTION: " << singularValues <<  endl;
 
          printf("Left Vectors = \n");
@@ -173,7 +173,7 @@ int main () {
              printf("\n");
          }
 
-             
+
          printf("Right Vectors = \n");
          for(int i=0;i<rightVectors.ncol();i++) {
              for(int j=0;j<rightVectors.nrow();j++)  printf("%f  ",rightVectors(i,j) );
@@ -181,7 +181,7 @@ int main () {
          }
 
         return 0;
-    } 
+    }
     catch (std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;

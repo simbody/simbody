@@ -43,7 +43,7 @@ namespace SimTK {
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
-/*static*/ bool 
+/*static*/ bool
 ForceSubsystem::isInstanceOf(const Subsystem& s) {
     return ForceSubsystemRep::isA(s.getSubsystemGuts());
 }
@@ -59,11 +59,11 @@ ForceSubsystem::updDowncast(Subsystem& s) {
 }
 
 
-const ForceSubsystemRep& 
+const ForceSubsystemRep&
 ForceSubsystem::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const ForceSubsystemRep&>(getSubsystemGuts());
 }
-ForceSubsystemRep&       
+ForceSubsystemRep&
 ForceSubsystem::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<ForceSubsystemRep&>(updSubsystemGuts());
 }

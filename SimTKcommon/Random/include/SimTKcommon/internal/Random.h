@@ -41,10 +41,10 @@ namespace SimTK {
  * by the seed value with which the Random object is initialized.  By default, a different seed is used for every object.
  * You can invoke setSeed(int seed) on a Random object to explicitly specify the seed to use.  Each seed
  * value corresponds to a different sequence of numbers that is uncorrelated with all others.
- * 
+ *
  * This class is implemented using the SIMD-oriented Fast Mersenne Twister (SFMT) library.  It provides
  * good performance, excellent statistical properties, and a very long period.
- * 
+ *
  * The methods of this class do not provide any synchronization or other mechanism to ensure thread safety.
  * It is therefore important that a single Random object not be accessed from multiple threads. One minor
  * concession to threads: even if you don't set the seed explicitly, each thread's Random object will

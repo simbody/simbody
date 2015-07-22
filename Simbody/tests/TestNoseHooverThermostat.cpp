@@ -38,7 +38,7 @@ class HarmonicOscillator
 {
 public:
 
-    class OscillatorReporter : public PeriodicEventReporter 
+    class OscillatorReporter : public PeriodicEventReporter
     {
     public:
         mutable int eventCount;
@@ -50,16 +50,16 @@ public:
         mutable Real sumPosition;
         mutable Real sumRMSVelPos;
 
-        OscillatorReporter(HarmonicOscillator& oscillator, Real reportInterval) 
+        OscillatorReporter(HarmonicOscillator& oscillator, Real reportInterval)
             : PeriodicEventReporter(reportInterval), oscillator(oscillator),
-              eventCount(0), sumEnergy(0.0), sumEnergySquared(0.0), 
+              eventCount(0), sumEnergy(0.0), sumEnergySquared(0.0),
               sumVelocity(0.0), sumAbsVelocity(0.0), sumVelocitySquared(0.0),
               sumPosition(0.0), sumRMSVelPos(0.0)
               // for Matlab
               //, phaseOut("phaseOut.txt")
         {}
 
-        void handleEvent(const State& state) const 
+        void handleEvent(const State& state) const
         {
             // Equilibrate a bit before collecting data
             if (state.getTime() <= 1)
@@ -100,14 +100,14 @@ public:
         Vec3 station(0.0);
 
         // Use a slider to constrain the oscillator to one dimension of motion
-        MobilizedBody::Slider body ( 
+        MobilizedBody::Slider body (
             matter.updGround(),
             Body::Rigid(MassProperties(mass, station, Inertia(1))) );
         body.setDefaultLength(-2.0); // initial position at -2
         sliderIndex = body.getMobilizedBodyIndex();
 
         // Unit spring constant to match example in Frenkel and Smit
-        Force::TwoPointLinearSpring(forces, 
+        Force::TwoPointLinearSpring(forces,
             matter.getGround(), Vec3(0),
             body, Vec3(0),
             1.0, 0.0);
@@ -131,7 +131,7 @@ public:
         //state.updU()[0] = rand.getValue();
 
         // Simulate it.
-        
+
         VerletIntegrator integ(system);
         //RungeKuttaMersonIntegrator integ(system);
         //integ.setAccuracy(0.01);
@@ -140,12 +140,12 @@ public:
         ts.stepTo(150.0);
     }
 
-    void assertTemperature(Real temperature) const 
+    void assertTemperature(Real temperature) const
     {
         // ensure we collected some data
         ASSERT(reporter->eventCount > 100);
 
-        int degreesOfFreedom = 1; 
+        int degreesOfFreedom = 1;
 
         // Sanity checks
 
@@ -168,7 +168,7 @@ public:
 
         // Mean squared velocity should be dof*kT/mass
         // Boltzmann distribution
-        Real expectedMeanVelocitySquared = 
+        Real expectedMeanVelocitySquared =
             degreesOfFreedom * SimTK_BOLTZMANN_CONSTANT_MD * temperature / mass;
         Real measuredMeanVelocitySquared =
             reporter->sumVelocitySquared / reporter->eventCount;
@@ -178,7 +178,7 @@ public:
         // Mean absolute velocity should be (8*v2bar/3PI)^1/2
         Real expectedMeanAbsVelocity = std::sqrt(
             8.0 * expectedMeanVelocitySquared / (degreesOfFreedom * SimTK_PI) );
-        Real measuredMeanAbsVelocity = 
+        Real measuredMeanAbsVelocity =
             reporter->sumAbsVelocity / reporter->eventCount;
        // ASSERT(std::abs(1.0 - measuredMeanAbsVelocity/expectedMeanAbsVelocity) < 0.2);
     }
@@ -227,7 +227,7 @@ private:
 // Case study 12, page 155 in
 // Understanding Molecular Simulation: From Algorithms to Applications
 // Frenkel and Smit
-void testHarmonicOscillatorNoThermostat() 
+void testHarmonicOscillatorNoThermostat()
 {
     HarmonicOscillator oscillator;
     oscillator.simulate();
@@ -237,7 +237,7 @@ void testNoseHooverConstructorSmoke()
 {
     HarmonicOscillator oscillator;
     GeneralForceSubsystem& forces = oscillator.updForceSubsystem();
-    Force::Thermostat(forces, oscillator.getMatterSubsystem(), 
+    Force::Thermostat(forces, oscillator.getMatterSubsystem(),
         SimTK_BOLTZMANN_CONSTANT_MD, 300, .1);
     oscillator.simulate();
 }
@@ -246,7 +246,7 @@ void testOscillatorTemperature(Real temperature, int nChains=-1)
 {
     HarmonicOscillator oscillator;
     GeneralForceSubsystem& forces = oscillator.updForceSubsystem();
-    Force::Thermostat nhc(forces, oscillator.getMatterSubsystem(), 
+    Force::Thermostat nhc(forces, oscillator.getMatterSubsystem(),
         SimTK_BOLTZMANN_CONSTANT_MD, temperature, 0.1);
     if (nChains > 0)
         nhc.setDefaultNumChains(nChains);
@@ -255,7 +255,7 @@ void testOscillatorTemperature(Real temperature, int nChains=-1)
 }
 
 
-int main() 
+int main()
 {
 
     // Several tests commented out to lessen burden on nightly build tests

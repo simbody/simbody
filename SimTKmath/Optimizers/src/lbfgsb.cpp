@@ -1524,7 +1524,7 @@ static int formk_(
     if (*info != 0) {
     *info = -1;
     return 0;
-    } 
+    }
 */
 /*        then form L^-1(-L_a'+R_z') in the (1,2) block. */
     col2 = *col << 1;
@@ -2759,12 +2759,12 @@ static int projgr_( int *n, Real *l, Real *u, int *nbd,
 //                    { x_i,  x_i in [l_i,u_i]
 //                    { u_i,  x_i > u_i
 //
-// Now take a unit step in the gradient direction, but use the above 
+// Now take a unit step in the gradient direction, but use the above
 // piecewise linear function to trim the final point to the bounds. Then
 // recalculate the direction that was actually taken; that is the projected
 // gradient pg:
 // 6.1   pg = P(x - g, l, u) - x
-//     
+//
 // To make this scale independent for both the function f and variables x,
 // we take pg = df/dx * (1/f) * x (with suitable worrying for f or x near
 // zero) to get pg' = (%chg f)/(%chg x), i.e. the fractional change of f
@@ -2802,7 +2802,7 @@ static int projgr_( int *n, Real *l, Real *u, int *nbd,
 
         // For large x, we want to know how the function changes with an
         // "x-sized" change, not a "1-sized" change.
-        const Real xscale = std::max(Real(1), std::abs(x[i])); 
+        const Real xscale = std::max(Real(1), std::abs(x[i]));
         // Retain the largest absolute value.
         *sbgnrm = std::max(*sbgnrm, std::abs(gi)*fscale*xscale);
     }

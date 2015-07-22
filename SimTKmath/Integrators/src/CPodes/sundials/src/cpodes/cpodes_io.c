@@ -27,19 +27,19 @@
 #define lrw1Q (cp_mem->cp_lrw1Q)
 #define liw1Q (cp_mem->cp_liw1Q)
 
-/* 
+/*
  * =================================================================
  * CPODES optional input functions
  * =================================================================
  */
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional inputs to the main solver
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * CPodeSetErrHandlerFn
  *
  * Specifies the error handler function
@@ -61,7 +61,7 @@ int CPodeSetErrHandlerFn(void *cpode_mem, CPErrHandlerFn ehfun, void *eh_data)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetErrFile
  *
  * Specifies the FILE pointer for output (NULL means no messages)
@@ -82,7 +82,7 @@ int CPodeSetErrFile(void *cpode_mem, FILE *errfp)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxOrd
  *
  * Specifies the maximum method order
@@ -103,7 +103,7 @@ int CPodeSetMaxOrd(void *cpode_mem, int maxord)
     cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeSetMaxOrd", MSGCP_NEG_MAXORD);
     return(CP_ILL_INPUT);
   }
-  
+
   /* Cannot increase maximum order beyond the value that
      was used when allocating memory */
   qmax_alloc = cp_mem->cp_qmax_alloc;
@@ -118,7 +118,7 @@ int CPodeSetMaxOrd(void *cpode_mem, int maxord)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxNumSteps
  *
  * Specifies the maximum number of integration steps
@@ -148,7 +148,7 @@ int CPodeSetMaxNumSteps(void *cpode_mem, long int mxsteps)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxHnilWarns
  *
  * Specifies the maximum number of warnings for small h
@@ -169,7 +169,7 @@ int CPodeSetMaxHnilWarns(void *cpode_mem, int mxhnil)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  *CPodeSetStabLimDet
  *
  * Turns on/off the stability limit detection algorithm
@@ -195,7 +195,7 @@ int CPodeSetStabLimDet(void *cpode_mem, booleantype sldet)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetInitStep
  *
  * Specifies the initial step size
@@ -216,7 +216,7 @@ int CPodeSetInitStep(void *cpode_mem, realtype hin)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMinStep
  *
  * Specifies the minimum step size
@@ -253,7 +253,7 @@ int CPodeSetMinStep(void *cpode_mem, realtype hmin)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxStep
  *
  * Specifies the maximum step size
@@ -292,7 +292,7 @@ int CPodeSetMaxStep(void *cpode_mem, realtype hmax)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetStopTime
  *
  * Specifies the time beyond which the integration is not to
@@ -315,7 +315,7 @@ int CPodeSetStopTime(void *cpode_mem, realtype tstop)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxErrTestFails
  *
  * Specifies the maximum number of error test failures during one
@@ -337,10 +337,10 @@ int CPodeSetMaxErrTestFails(void *cpode_mem, int maxnef)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxConvFails
  *
- * Specifies the maximum number of nonlinear convergence failures 
+ * Specifies the maximum number of nonlinear convergence failures
  * during one step try.
  */
 
@@ -359,7 +359,7 @@ int CPodeSetMaxConvFails(void *cpode_mem, int maxncf)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetMaxNonlinIters
  *
  * Specifies the maximum number of nonlinear iterations during
@@ -381,7 +381,7 @@ int CPodeSetMaxNonlinIters(void *cpode_mem, int maxcor)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetNonlinConvCoef
  *
  * Specifies the coeficient in the nonlinear solver convergence
@@ -410,7 +410,7 @@ int CPodeSetNonlinConvCoef(void *cpode_mem, realtype nlscoef)
  * Here, only CP_SS or CP_SV are allowed.
  */
 
-int CPodeSetTolerances(void *cpode_mem, 
+int CPodeSetTolerances(void *cpode_mem,
                        int tol_type, realtype reltol, void *abstol)
 {
   CPodeMem cp_mem;
@@ -449,7 +449,7 @@ int CPodeSetTolerances(void *cpode_mem,
     neg_abstol = (*((realtype *)abstol) < ZERO);
   else
     neg_abstol = (N_VMin((N_Vector)abstol) < ZERO);
- 
+
   if (neg_abstol) {
     cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeSetTolerances", MSGCP_BAD_ABSTOL);
     return(CP_ILL_INPUT);
@@ -474,10 +474,10 @@ int CPodeSetTolerances(void *cpode_mem,
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetEwtFn
  *
- * Specifies the user-provided function efun of type EwtSet 
+ * Specifies the user-provided function efun of type EwtSet
  * and a data pointer for efun.
  */
 
@@ -497,7 +497,7 @@ int CPodeSetEwtFn(void *cpode_mem, CPEwtFn efun, void *e_data)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetRootDirection
  *
  * Specifies the direction of zero-crossings to be monitored.
@@ -519,7 +519,7 @@ int CPodeSetRootDirection(void *cpode_mem, int *rootdir)
   nrt = cp_mem->cp_nrtfn;
   if (nrt==0) {
     cpProcessError(NULL, CP_ILL_INPUT, "CPODES", "CPodeSetRootDirection", MSGCP_NO_ROOT);
-    return(CP_ILL_INPUT);    
+    return(CP_ILL_INPUT);
   }
 
   for(i=0; i<nrt; i++) cp_mem->cp_rootdir[i] = rootdir[i];
@@ -527,7 +527,7 @@ int CPodeSetRootDirection(void *cpode_mem, int *rootdir)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional inputs for projection step
  * -----------------------------------------------------------------
@@ -624,11 +624,11 @@ int CPodeSetProjLsetupFreq(void *cpode_mem, long int lset_freq)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeSetProjNonlinConvCoef
  *
  * Specifies the coeficient in the projection nonlinear solver convergence
- * test 
+ * test
  */
 
 int CPodeSetProjNonlinConvCoef(void *cpode_mem, realtype prjcoef)
@@ -646,23 +646,23 @@ int CPodeSetProjNonlinConvCoef(void *cpode_mem, realtype prjcoef)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional inputs for quadrature integration
  * -----------------------------------------------------------------
  */
 
-int CPodeSetQuadErrCon(void *cpode_mem, booleantype errconQ, 
+int CPodeSetQuadErrCon(void *cpode_mem, booleantype errconQ,
                        int tol_typeQ, realtype reltolQ, void *abstolQ)
 {
   CPodeMem cp_mem;
   booleantype neg_abstol;
 
   if (cpode_mem==NULL) {
-    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeSetQuadErrCon", MSGCP_NO_MEM);    
+    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeSetQuadErrCon", MSGCP_NO_MEM);
     return(CP_MEM_NULL);
   }
-  
+
   cp_mem = (CPodeMem) cpode_mem;
 
   cp_mem->cp_errconQ = errconQ;
@@ -670,7 +670,7 @@ int CPodeSetQuadErrCon(void *cpode_mem, booleantype errconQ,
   /* Ckeck if quadrature was initialized? */
 
   if (cp_mem->cp_quadMallocDone == FALSE) {
-    cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeSetQuadErrCon", MSGCP_NO_QUAD); 
+    cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeSetQuadErrCon", MSGCP_NO_QUAD);
     return(CP_NO_QUAD);
   }
 
@@ -685,7 +685,7 @@ int CPodeSetQuadErrCon(void *cpode_mem, booleantype errconQ,
     }
     return(CP_SUCCESS);
   }
-  
+
   if ((tol_typeQ != CP_SS) && (tol_typeQ != CP_SV)) {
     cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeSetQuadErrCon", MSGCP_BAD_ITOLQ);
     return(CP_ILL_INPUT);
@@ -736,17 +736,17 @@ int CPodeSetQuadErrCon(void *cpode_mem, booleantype errconQ,
     cp_mem->cp_SabstolQ = *((realtype *)abstolQ);
   else
     N_VScale(ONE, (N_Vector)abstolQ, cp_mem->cp_VabstolQ);
-  
+
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * =================================================================
  * CPODE optional output functions
  * =================================================================
  */
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional outputs for IC calculation
  * -----------------------------------------------------------------
@@ -763,18 +763,18 @@ int CPodeGetConsistentIC(void *cpode_mem, N_Vector yy0, N_Vector yp0)
   cp_mem = (CPodeMem) cpode_mem;
 
   if (cp_mem->cp_next_q != 0) {
-    cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeGetConsistentIC", MSGCP_TOO_LATE); 
+    cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeGetConsistentIC", MSGCP_TOO_LATE);
     return(CP_ILL_INPUT);
   }
 
   if (yy0 != NULL) N_VScale(ONE, cp_mem->cp_zn[0], yy0);
-  if (cp_mem->cp_ode_type == CP_IMPL) 
+  if (cp_mem->cp_ode_type == CP_IMPL)
     if (yp0 != NULL) N_VScale(ONE, cp_mem->cp_zn[1], yp0);
 
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional outputs for integration
  * -----------------------------------------------------------------
@@ -801,7 +801,7 @@ int CPodeGetNumSteps(void *cpode_mem, long int *nsteps)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNumFctEvals
  *
  * Returns the current number of calls to f
@@ -822,7 +822,7 @@ int CPodeGetNumFctEvals(void *cpode_mem, long int *nfevals)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNumLinSolvSetups
  *
  * Returns the current number of calls to the linear solver setup routine
@@ -864,7 +864,7 @@ int CPodeGetNumErrTestFails(void *cpode_mem, long int *netfails)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetLastOrder
  *
  * Returns the order on the last succesful step
@@ -885,7 +885,7 @@ int CPodeGetLastOrder(void *cpode_mem, int *qlast)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetCurrentOrder
  *
  * Returns the order to be attempted on the next step
@@ -906,7 +906,7 @@ int CPodeGetCurrentOrder(void *cpode_mem, int *qcur)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNumStabLimOrderReds
  *
  * Returns the number of order reductions triggered by the stability
@@ -931,7 +931,7 @@ int CPodeGetNumStabLimOrderReds(void *cpode_mem, long int *nslred)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetActualInitStep
  *
  * Returns the step size used on the first step
@@ -973,7 +973,7 @@ int CPodeGetLastStep(void *cpode_mem, realtype *hlast)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetCurrentStep
  *
  * Returns the step size to be attempted on the next step
@@ -988,13 +988,13 @@ int CPodeGetCurrentStep(void *cpode_mem, realtype *hcur)
     return(CP_MEM_NULL);
   }
   cp_mem = (CPodeMem) cpode_mem;
-  
+
   *hcur = cp_mem->cp_next_h;
 
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetCurrentTime
  *
  * Returns the current value of the independent variable
@@ -1015,7 +1015,7 @@ int CPodeGetCurrentTime(void *cpode_mem, realtype *tcur)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetTolScaleFactor
  *
  * Returns a suggested factor for scaling tolerances
@@ -1036,7 +1036,7 @@ int CPodeGetTolScaleFactor(void *cpode_mem, realtype *tolsfact)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetErrWeights
  *
  * This routine returns the current weight vector.
@@ -1078,7 +1078,7 @@ int CPodeGetEstLocalErrors(void *cpode_mem, N_Vector ele)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetWorkSpace
  *
  * Returns integrator work space requirements
@@ -1100,15 +1100,15 @@ int CPodeGetWorkSpace(void *cpode_mem, long int *lenrw, long int *leniw)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetIntegratorStats
  *
  * Returns integrator statistics
  */
 
-int CPodeGetIntegratorStats(void *cpode_mem, long int *nsteps, long int *nfevals, 
-                            long int *nlinsetups, long int *netfails, int *qlast, 
-                            int *qcur, realtype *hinused, realtype *hlast, 
+int CPodeGetIntegratorStats(void *cpode_mem, long int *nsteps, long int *nfevals,
+                            long int *nlinsetups, long int *netfails, int *qlast,
+                            int *qcur, realtype *hinused, realtype *hlast,
                             realtype *hcur, realtype *tcur)
 {
   CPodeMem cp_mem;
@@ -1133,7 +1133,7 @@ int CPodeGetIntegratorStats(void *cpode_mem, long int *nsteps, long int *nfevals
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNumGEvals
  *
  * Returns the current number of calls to g (for rootfinding)
@@ -1154,7 +1154,7 @@ int CPodeGetNumGEvals(void *cpode_mem, long int *ngevals)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetRootInfo
  *
  * Returns pointer to array rootsfound showing roots found
@@ -1201,7 +1201,7 @@ int CPodeGetRootWindow(void *cpode_mem, realtype *tLo, realtype *tHi)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNumNonlinSolvIters
  *
  * Returns the current number of iterations in the nonlinear solver
@@ -1222,7 +1222,7 @@ int CPodeGetNumNonlinSolvIters(void *cpode_mem, long int *nniters)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNumNonlinSolvConvFails
  *
  * Returns the current number of convergence failures in the
@@ -1244,13 +1244,13 @@ int CPodeGetNumNonlinSolvConvFails(void *cpode_mem, long int *nncfails)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetNonlinSolvStats
  *
  * Returns nonlinear solver statistics
  */
 
-int CPodeGetNonlinSolvStats(void *cpode_mem, long int *nniters, 
+int CPodeGetNonlinSolvStats(void *cpode_mem, long int *nniters,
                             long int *nncfails)
 {
   CPodeMem cp_mem;
@@ -1267,7 +1267,7 @@ int CPodeGetNonlinSolvStats(void *cpode_mem, long int *nniters,
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional outputs for projection step
  * -----------------------------------------------------------------
@@ -1333,7 +1333,7 @@ int CPodeGetProjNumFailures(void *cpode_mem, long int *nprf)
   return(CP_SUCCESS);
 }
 
-int CPodeGetProjStats(void *cpode_mem, long int *nproj, long int *nce, 
+int CPodeGetProjStats(void *cpode_mem, long int *nproj, long int *nce,
                       long int *nsetupsP, long int *nprf)
 {
   CPodeMem cp_mem;
@@ -1352,7 +1352,7 @@ int CPodeGetProjStats(void *cpode_mem, long int *nproj, long int *nce,
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Optional outputs for quadrature integration
  * -----------------------------------------------------------------
@@ -1363,14 +1363,14 @@ int CPodeGetQuadNumFunEvals(void *cpode_mem, long int *nqevals)
   CPodeMem cp_mem;
 
   if (cpode_mem==NULL) {
-    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetQuadNumFunEvals", MSGCP_NO_MEM);    
+    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetQuadNumFunEvals", MSGCP_NO_MEM);
     return(CP_MEM_NULL);
   }
 
   cp_mem = (CPodeMem) cpode_mem;
 
   if (cp_mem->cp_quadr==FALSE) {
-    cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeGetQuadNumFunEvals", MSGCP_NO_QUAD); 
+    cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeGetQuadNumFunEvals", MSGCP_NO_QUAD);
     return(CP_NO_QUAD);
   }
 
@@ -1384,14 +1384,14 @@ int CPodeGetQuadErrWeights(void *cpode_mem, N_Vector eQweight)
   CPodeMem cp_mem;
 
   if (cpode_mem==NULL) {
-    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetQuadErrWeights", MSGCP_NO_MEM); 
+    cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetQuadErrWeights", MSGCP_NO_MEM);
     return(CP_MEM_NULL);
   }
 
   cp_mem = (CPodeMem) cpode_mem;
 
   if (cp_mem->cp_quadr==FALSE) {
-    cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeGetQuadErrWeights", MSGCP_NO_QUAD); 
+    cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeGetQuadErrWeights", MSGCP_NO_QUAD);
     return(CP_NO_QUAD);
   }
 

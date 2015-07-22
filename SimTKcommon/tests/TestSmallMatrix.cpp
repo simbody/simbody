@@ -175,7 +175,7 @@ void testSymMat() {
     Mat<2,2,Complex>   mc( ac[0].real(), std::conj(ac[1]),
                            ac[1],         ac[2].real() );
 
-    // This constructor has to figure out how to generate a conjugate 
+    // This constructor has to figure out how to generate a conjugate
     // element for the upper right in the full Mat.
     Mat<2,2,Complex> sm2mc(smc);
     SimTK_TEST_EQ( sm2mc, mc );
@@ -185,7 +185,7 @@ void testSymMat() {
     SimTK_TEST_EQ( ~vc*smc, ~vc*mc );
 
     SimTK_TEST_EQ( ~smc*vc, ~mc*vc );
-    SimTK_TEST_EQ( ~smc*vc, smc*vc );    
+    SimTK_TEST_EQ( ~smc*vc, smc*vc );
 }
 
 void testNumericallyEqual() {
@@ -229,8 +229,8 @@ void testNumericallyEqual() {
     fs1n(2,2) += (float)(2  *fs1.getDefaultTolerance()); // should test not equal
     fs1nz(2,1) = (float)(2  *fs1.getDefaultTolerance()); // should test not equal
 
-    const SymMat<3,float> fsident3( 1, 
-                                    0, 1, 
+    const SymMat<3,float> fsident3( 1,
+                                    0, 1,
                                     0, 0, 1 );
 
     SimTK_TEST(fs1==fsident3); // exact
@@ -292,7 +292,7 @@ void testNumericallyEqual() {
     // This one has *positional* symmetry, not Hermitian.
     Mat<2,2, std::complex<double> > mcp( std::complex<double>(1,2), std::complex<double>(3,4),
                                          std::complex<double>(3,4), std::complex<double>(5,6) );
-    // This one is Hermitian. 
+    // This one is Hermitian.
     Mat<2,2, std::complex<double> > mch( std::complex<double>(1,0), std::complex<double>(3,-4),
                                          std::complex<double>(3,4), std::complex<double>(5,0) );
 
@@ -363,7 +363,7 @@ void testUnitVec() {
     CoordinateAxis axis = ZAxis.crossProduct(YAxis, sign);
     SimTK_TEST(CoordinateDirection(axis,sign) == NegXAxis);
 
-    SimTK_TEST(CoordinateDirection(YAxis,CoordinateDirection::Negative()) 
+    SimTK_TEST(CoordinateDirection(YAxis,CoordinateDirection::Negative())
                == NegYAxis);
 
     SimTK_TEST(-XAxis == NegXAxis);
@@ -414,13 +414,13 @@ void testAppendRowCol() {
                            9, 10, 11, 12, -8));
 
     m35 = m34.insertCol(0, Vec3(-6, -7, -8));
-    SimTK_TEST(m35==Mat35( -6, 1,  2,  3,  4, 
-                           -7, 5,  6,  7,  8, 
+    SimTK_TEST(m35==Mat35( -6, 1,  2,  3,  4,
+                           -7, 5,  6,  7,  8,
                            -8, 9, 10, 11, 12));
 
     m35 = m34.insertCol(2, Vec3(-6, -7, -8));
-    SimTK_TEST(m35==Mat35( 1,  2, -6,  3,  4, 
-                           5,  6, -7,  7,  8, 
+    SimTK_TEST(m35==Mat35( 1,  2, -6,  3,  4,
+                           5,  6, -7,  7,  8,
                            9, 10, -8, 11, 12));
 
     m35 = m34.insertCol(4, Vec3(-6, -7, -8));

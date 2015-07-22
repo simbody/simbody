@@ -164,7 +164,7 @@ try {
 
     R = Rotation( u, ZAxis );
 
-    cout << "Rotation with u as z axis (norm=" << R.norm() << "): " << R; 
+    cout << "Rotation with u as z axis (norm=" << R.norm() << "): " << R;
     cout << "~R: " << ~R;
     cout << "typename(R[1])=" << typeid(R[1]).name() << " R(1)=" << typeid(R(1)).name() << endl;
 
@@ -174,7 +174,7 @@ try {
     cout << "   X.x=" << X.x() << "  y=" << X.y() << "  z=" << X.z() << endl;
     cout << "Transform ~X=" << ~X;
     cout << "   (~X).R=" << (~X).R() << "  (~X).p=" << (~X).p() << "  (~X).pInv=" << (~X).pInv() << endl;
-    cout << "   (~X).x=" << (~X).x() << "  y=" << (~X).y() << "  z=" << (~X).z() << endl;    
+    cout << "   (~X).x=" << (~X).x() << "  y=" << (~X).y() << "  z=" << (~X).z() << endl;
     cout << "Transform X asMat34():" << X.asMat34();
     cout << "Transform X toMat34():" << X.toMat34();
     cout << "Transform X toMat44():" << X.toMat44();
@@ -272,7 +272,7 @@ try {
                                 Vec3(1,-1,1), Vec3(0,0,0)};
     const Vector_<Vec3> s000(5, stations000);
     const Vec3 com000 = (~Vector(5,masses) * s000)/mtot;
-    Vector_<Vec3> s123(s000); 
+    Vector_<Vec3> s123(s000);
     for (int i=0;i<5;++i) s123[i] = ~X_01*s123[i];
     const Vec3 com123 = (~Vector(5,masses) * s123)/mtot;
     Inertia I000(0), I123(0);
@@ -283,18 +283,18 @@ try {
     cout << "com123=" << com123 << endl;
     cout << "I000=" << I000;
     cout << "I123=" << I123;
-    
+
     MassProperties mp(mtot, com000, I000);
     cout << mp;
     Real scale = std::sqrt(I123.toMat33().diag().normSqr()/3); cout << "inertia scale=" << scale << endl;
-    cout << "norm(I000->123-I123)/rms(I123)=" 
+    cout << "norm(I000->123-I123)/rms(I123)="
         << (mp.calcTransformedInertia(X_01).toMat33()-I123.toMat33()).norm()/scale
         << endl;
 
 
-    Rotation R_AB( BodyRotationSequence,   0.31, ZAxis, 0.17, YAxis, 0.1, XAxis ); 
+    Rotation R_AB( BodyRotationSequence,   0.31, ZAxis, 0.17, YAxis, 0.1, XAxis );
     Rotation R_BC( BodyRotationSequence, -123.3, ZAxis, 41.1, YAxis, 14,  XAxis );
-        
+
     Rotation Rtmp;
     cout << "R_AB*R_BC=" << R_AB*R_BC;
     Rtmp = R_AB;
@@ -323,7 +323,7 @@ try {
     const Real pi2x = -pi2 + 1e-8;
     cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << std::sin(pi2x)-1 << endl;
     const Vec3 vin(-3, pi2x, 0.1);
-    Rotation b123( BodyRotationSequence, vin[0], XAxis, vin[1], YAxis, vin[2], ZAxis );  
+    Rotation b123( BodyRotationSequence, vin[0], XAxis, vin[1], YAxis, vin[2], ZAxis );
     Mat33 m123=b123; m123[0][0] += 1e-14; m123[1][2] += 1e-14;
     //b123 = Rotation::trustMe(m123);
     //cout << "bad  b123*~b123 angle=" << (b123*~b123).convertToAngleAxis()[0] << endl;

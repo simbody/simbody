@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /* This test is drawn from the Open Source Robotics Foundation Gazebo physics
-regression test "Joint_TEST::ForceTorque". 
+regression test "Joint_TEST::ForceTorque".
 
 It is a small sphere pinned at its center to ground, rotating about X, then
 an outboard brick pinned to the sphere and rotating about mutual Z. Oblique
@@ -85,7 +85,7 @@ struct MyMultibodySystem {
 
 // Execute the simulation with a given integrator and accuracy, and verify that
 // it produces the correct answers.
-static void runOnce(const MyMultibodySystem& mbs, Integrator& integ, 
+static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
                     Real accuracy);
 
 
@@ -94,7 +94,7 @@ static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
 //==============================================================================
 int main() {
     SimTK_START_TEST("GazeboReactionForce");
-        // Create the system.   
+        // Create the system.
         MyMultibodySystem mbs;
 
         printf("LOW ACCURACY\n");
@@ -114,7 +114,7 @@ int main() {
 //==============================================================================
 // Construct the multibody system.
 MyMultibodySystem::MyMultibodySystem()
-:   m_system(), m_matter(m_system), 
+:   m_system(), m_matter(m_system),
     m_tracker(m_system), m_contact(m_system,m_tracker),
     m_forces(m_system), m_gravity(m_forces,m_matter,Vec3(-30,10,-50))
     #ifdef USE_VISUALIZER
@@ -155,10 +155,10 @@ MyMultibodySystem::MyMultibodySystem()
         ContactSurface(ContactGeometry::HalfSpace(),lossyMaterial));
 
     const Rotation ZtoX(Pi/2, YAxis);
-    m_link1 = MobilizedBody::Pin(Ground,Transform(ZtoX,COM1), 
+    m_link1 = MobilizedBody::Pin(Ground,Transform(ZtoX,COM1),
                                  link1Info, Transform(ZtoX,COM1));
 
-    m_link2 = MobilizedBody::Pin(m_link1, Vec3(0,0,1.5), 
+    m_link2 = MobilizedBody::Pin(m_link1, Vec3(0,0,1.5),
                                  link2Info, Vec3(0));
 
     Force::MobilityLinearStop
@@ -174,31 +174,31 @@ MyMultibodySystem::MyMultibodySystem()
 //                                 RUN ONCE
 //==============================================================================
 
-// Reaction force information: results are the joint reaction, at the F frame 
-// on the parent and M frame on the child, expressed in the parent or child 
+// Reaction force information: results are the joint reaction, at the F frame
+// on the parent and M frame on the child, expressed in the parent or child
 // frame, resp. Note that Gazebo's GetForceTorque() method uses the negation of
-// the joint reaction, and Gazebo's results are ordered (force,torque) rather 
+// the joint reaction, and Gazebo's results are ordered (force,torque) rather
 // than (torque,force) as in a Simbody SpatialVec.
 struct ReactionPair {
     SpatialVec reactionOnParentInParent;
     SpatialVec reactionOnChildInChild;
 };
 static ReactionPair getReactionPair(const State&         state,
-                                    const MobilizedBody& mobod); 
+                                    const MobilizedBody& mobod);
 
 // Write interesting integrator info to stdout.
 static void dumpIntegratorStats(const Integrator& integ);
 
 // Run the system until it settles down, then check the answers.
-void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy) 
+void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 {
     integ.setAllowInterpolation(false);
     integ.setAccuracy(accuracy);
     integ.initialize(mbs.m_system.getDefaultState());
 
     printf("Test with order %d integator %s, Accuracy=%g, MaxStepSize=%g\n",
-        integ.getMethodMinOrder(), integ.getMethodName(), 
-        integ.getAccuracyInUse(), MaxStepSize); 
+        integ.getMethodMinOrder(), integ.getMethodName(),
+        integ.getAccuracyInUse(), MaxStepSize);
 
     #ifdef USE_VISUALIZER
     mbs.m_viz.report(integ.getState());
@@ -208,7 +208,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 
     unsigned stepNum = 0;
     while (true) {
-        // Get access to State being advanced by the integrator. Interpolation 
+        // Get access to State being advanced by the integrator. Interpolation
         // must be off so that we're modifying the actual trajectory.
         State& state = integ.updAdvancedState();
 
@@ -221,7 +221,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
         if (stepNum++ == NSteps)
             break;
 
-        // Advance time by MaxStepSize. Might take multiple internal steps to 
+        // Advance time by MaxStepSize. Might take multiple internal steps to
         // get there, depending on difficulty and required accuracy.
         const Real tNext = stepNum * MaxStepSize;
         do {integ.stepTo(tNext,tNext);} while (integ.getTime() < tNext);
@@ -233,10 +233,10 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
     ReactionPair reaction1 = getReactionPair(state, mbs.m_link1);
     ReactionPair reaction2 = getReactionPair(state, mbs.m_link2);
     cout << "t=" << state.getTime() << endl;
-    cout << "  Reaction 1p=" << reaction1.reactionOnParentInParent << "\n"; 
-    cout << "  Reaction 1c=" << reaction1.reactionOnChildInChild << "\n"; 
-    cout << "  Reaction 2p=" << reaction2.reactionOnParentInParent << "\n"; 
-    cout << "  Reaction 2c=" << reaction2.reactionOnChildInChild << "\n"; 
+    cout << "  Reaction 1p=" << reaction1.reactionOnParentInParent << "\n";
+    cout << "  Reaction 1c=" << reaction1.reactionOnChildInChild << "\n";
+    cout << "  Reaction 2p=" << reaction2.reactionOnParentInParent << "\n";
+    cout << "  Reaction 2c=" << reaction2.reactionOnChildInChild << "\n";
 
     // Check the answers. Note (torque,force) ordering.
     SimTK_TEST_EQ_TOL(reaction1.reactionOnParentInParent,
@@ -257,7 +257,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 //                            GET REACTION PAIR
 //==============================================================================
 static ReactionPair getReactionPair(const State&         state,
-                                    const MobilizedBody& mobod) 
+                                    const MobilizedBody& mobod)
 {
     SpatialVec p = mobod.findMobilizerReactionOnParentAtFInGround(state);
     SpatialVec c = mobod.findMobilizerReactionOnBodyAtMInGround(state);
@@ -275,16 +275,16 @@ static ReactionPair getReactionPair(const State&         state,
 //==============================================================================
 static void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }

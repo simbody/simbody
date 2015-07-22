@@ -13,7 +13,7 @@
 #include "IpJournalist.hpp"
 
 /*  This file contains a base class for all exceptions
- *  and a set of macros to help with exceptions 
+ *  and a set of macros to help with exceptions
  */
 
 namespace Ipopt
@@ -99,7 +99,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

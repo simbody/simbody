@@ -39,46 +39,46 @@ using SimTK::Inertia;
 using SimTK::MassProperties;
 using SimTK::Array_;
 
-/* This is an abstract class representing the *computational* form of a body 
-and its (generic) mobilizer, that is, the joint connecting it to its parent. 
-Concrete classes are derived from this one to represent each specific type of 
-mobilizer, with the emphasis being on fast calculation since node traversals 
-are inner loops of all O(N) multibody algorithms. In particular, while the 
+/* This is an abstract class representing the *computational* form of a body
+and its (generic) mobilizer, that is, the joint connecting it to its parent.
+Concrete classes are derived from this one to represent each specific type of
+mobilizer, with the emphasis being on fast calculation since node traversals
+are inner loops of all O(N) multibody algorithms. In particular, while the
 generic RigidBodyNode has a variable number of mobilities, each concrete node
-has a compile-time known size so can perform inline floating point operations 
+has a compile-time known size so can perform inline floating point operations
 using stack-allocated variables.
 
 Every body has a body frame B, and a unique inboard mobilizer frame M fixed to
-that body. For convenience, we refer to the body frame of a body's unique 
-parent body P as the P frame. There is a frame F fixed to P which is where 
+that body. For convenience, we refer to the body frame of a body's unique
+parent body P as the P frame. There is a frame F fixed to P which is where
 B's inboard mobilizer attaches. The transform X_FM(q) tracks the across-
-mobilizer change in configuration induced by the generalized coordinates q. 
+mobilizer change in configuration induced by the generalized coordinates q.
 When all the mobilizer coordinates are 0 (=1000 for quaternions), M and F take
 on their "reference configuration" relationship. Usually M==F in the reference
-configuration, but sometimes only the axes are aligned (X_FM(0).R()=Identity) 
-while the origins are separated (X_FM(0).p() != 0); the ellipsoid joint is an 
+configuration, but sometimes only the axes are aligned (X_FM(0).R()=Identity)
+while the origins are separated (X_FM(0).p() != 0); the ellipsoid joint is an
 example.
 
 The mobilizer frame M is fixed with respect to B, and F is fixed with
 respect to P. In some cases M and B or F and P will be the same, but not always.
-The constant (TODO: Instance stage) transforms X_BM and X_PF provide the 
-configuration of the mobilizer frames with respect to the body and parent 
-frames. With these definitions we can easily calculate X_PB as 
+The constant (TODO: Instance stage) transforms X_BM and X_PF provide the
+configuration of the mobilizer frames with respect to the body and parent
+frames. With these definitions we can easily calculate X_PB as
 X_PB = X_PF*X_FM*X_MB, where X_FM is the q-dependent cross-mobilizer transform
 calculated at Position stage.
 
 RigidBodyNodes know how to extract and deposit their own information from and
 to the Simbody state variables and cache entries, but they don't know anything
-about the State class, stages, etc. Instead they depend on being given 
+about the State class, stages, etc. Instead they depend on being given
 appropriate access by the caller, whose job it is to mine the State.
 
-The RigidBodyNode abstract base class defines the interface a concrete 
-mobilized body node must implement. The nodes must implement two kinds of 
+The RigidBodyNode abstract base class defines the interface a concrete
+mobilized body node must implement. The nodes must implement two kinds of
 interface methods:
   - mobilizer-specific local computations
   - single-node contributions to multibody tree-sweeping algorithms
-The latter methods are called in a well-defined sequence, sweeping either 
-inwards or outwards so that a node can depend on either its child or parent 
+The latter methods are called in a well-defined sequence, sweeping either
+inwards or outwards so that a node can depend on either its child or parent
 computations (respectively) having already been completed.
 
 Here is the spec (TODO):
@@ -163,9 +163,9 @@ virtual int getNUInUse(const SBModelVars&) const=0; // actual number of u's
 // This depends on the mobilizer type and modeling options. If it returns
 // true it also returns the first generalized coordinate of the quaternion
 // (numbering locally), which is assumed to occupy that generalized coordinate
-// and the next three contiguous ones. Quaternion-using mobilizers should be 
+// and the next three contiguous ones. Quaternion-using mobilizers should be
 // assigned a slot in the quaternion pool.
-virtual bool isUsingQuaternion(const SBStateDigest&, 
+virtual bool isUsingQuaternion(const SBStateDigest&,
                                MobilizerQIndex& startOfQuaternion) const=0;
 
 // This depends on the mobilizer type and modeling options. This is the amount
@@ -179,13 +179,13 @@ virtual int calcQPoolSize(const SBModelVars&) const = 0;
 // that can be done knowing only the current modeling parameters and the
 // values of the q's. The results go into the posCache and qErr arrays which
 // have already been set to the first entry belonging exclusively to this
-// RBNode. DO NOT write directly into the provided State. (Typically 
+// RBNode. DO NOT write directly into the provided State. (Typically
 // the output arrays will be referring to cache entries in the same State, but
-// they don't have to.) Either of those output arrays may be null, and the 
+// they don't have to.) Either of those output arrays may be null, and the
 // expected lengths are passed in for consistency checking -- at least in Debug
 // mode you should make sure they are what you're expecting.
 //
-// The only mandatory calculation here is that this routine *must* calculate 
+// The only mandatory calculation here is that this routine *must* calculate
 // constraint errors if there are any mobilizer-local constraints among
 // the q's -- typically that is the quaternion normalization error where
 // qerr=|q|-1. For many mobilizers, it is a good idea to precalculate
@@ -210,8 +210,8 @@ virtual void performQPrecalculations(const SBStateDigest& sbs,
 // This method constitutes the *definition* of the generalized coordinates for
 // a particular mobilizer.
 //
-// Note: this calculates the transform between the *as defined* frames; we 
-// might reverse the frames in use. So we call this X_F0M0 while the possibly 
+// Note: this calculates the transform between the *as defined* frames; we
+// might reverse the frames in use. So we call this X_F0M0 while the possibly
 // reversed version is X_FM.
 virtual void calcX_FM(const SBStateDigest& sbs,
                       const Real* q,        int nq,
@@ -249,48 +249,48 @@ void calcAcrossJointTransform(
 }
 
 
-// This operator pulls N(q) from the StateDigest if necessary and calculates 
-// qdot=N(q)*u from the supplied argument. For many mobilizers it 
+// This operator pulls N(q) from the StateDigest if necessary and calculates
+// qdot=N(q)*u from the supplied argument. For many mobilizers it
 // can simply copy u to qdot without referencing the state at all.
 virtual void calcQDot
-   (const SBStateDigest&,    const Real* u,    Real* qdot)    const 
+   (const SBStateDigest&,    const Real* u,    Real* qdot)    const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDot");}
 // This operator pulls N(q) and NDot(q,u) from the StateDigest if necessary
 // and calculates qdotdot=N*udot + NDot*u from the supplied argument.
 // For many mobilizers it can simply copy udot to qdotdot without referencing
 // the state at all.
 virtual void calcQDotDot
-   (const SBStateDigest&,    const Real* udot, Real* qdotdot) const 
+   (const SBStateDigest&,    const Real* udot, Real* qdotdot) const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcQDotDot");}
-virtual Transform  calcMobilizerTransformFromQ          
-   (const SBStateDigest&,    const Real* q)    const 
+virtual Transform  calcMobilizerTransformFromQ
+   (const SBStateDigest&,    const Real* q)    const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMobilizerTransformFromQ");}
-virtual SpatialVec calcMobilizerVelocityFromU           
-   (const SBStateDigest&,    const Real* u)    const 
+virtual SpatialVec calcMobilizerVelocityFromU
+   (const SBStateDigest&,    const Real* u)    const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMobilizerVelocityFromU");}
-virtual SpatialVec calcMobilizerAccelerationFromUDot    
-   (const SBStateDigest&,    const Real* udot) const 
+virtual SpatialVec calcMobilizerAccelerationFromUDot
+   (const SBStateDigest&,    const Real* udot) const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcMobilizerAccelerationFromUDot");}
-virtual Transform  calcParentToChildTransformFromQ      
-   (const SBStateDigest&,    const Real* q)    const 
+virtual Transform  calcParentToChildTransformFromQ
+   (const SBStateDigest&,    const Real* q)    const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildTransformFromQ");}
-virtual SpatialVec calcParentToChildVelocityFromU       
-   (const SBStateDigest&,    const Real* u)    const 
+virtual SpatialVec calcParentToChildVelocityFromU
+   (const SBStateDigest&,    const Real* u)    const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildVelocityFromU");}
 virtual SpatialVec calcParentToChildAccelerationFromUDot
-   (const SBStateDigest&,    const Real* udot) const 
+   (const SBStateDigest&,    const Real* udot) const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcParentToChildAccelerationFromUDot");}
 
 // Operators involving kinematics matrix N and related matrices NInv and
-// NDot. These methods perform operations involving just the block on the 
+// NDot. These methods perform operations involving just the block on the
 // diagonal of the matrix that corresponds to this mobilizer. These blocks
 // can be rectangular, in which case the u-dimension is always the number
-// of mobilizers dofs (generalized speeds) but the q-dimension may depend on 
+// of mobilizers dofs (generalized speeds) but the q-dimension may depend on
 // modeling options (specifically, whether the mobilizer orientation is
 // modeled with 4 quaternions or 3 Euler angles). These normally treat the
 // input as a column vector and multiply with the matrix on the left.
-// Optionally they will treat the input as a row vector and multiply with 
-// the matrix on the right. (The latter is equivalent to multiplication on 
+// Optionally they will treat the input as a row vector and multiply with
+// the matrix on the right. (The latter is equivalent to multiplication on
 // the left by the transpose of the matrix.)
 //
 //   multiplyByN
@@ -306,29 +306,29 @@ virtual SpatialVec calcParentToChildAccelerationFromUDot
 //     Right  out_u = in_q * NDot
 //      (not invertible but inverse isn't needed; see below)
 //
-// where 'in_q' and 'in_u' etc. indicate q-like and u-like vectors or row 
+// where 'in_q' and 'in_u' etc. indicate q-like and u-like vectors or row
 // vectors, not the actual state variables of the same names. Note that the
-// interpretation of the in and out arrays is different depending on whether 
+// interpretation of the in and out arrays is different depending on whether
 // we're multiplying on the left or right; which is q-like and which is
 // u-like reverses.
 //
-// Note that N=N(q), NInv=Ninv(q), and NDot=NDot(q,u) where now I am talking 
+// Note that N=N(q), NInv=Ninv(q), and NDot=NDot(q,u) where now I am talking
 // about the real set of generalized coordinates q and generalized speeds u
-// but *just for this mobilizer*, whose values are taken from the supplied 
+// but *just for this mobilizer*, whose values are taken from the supplied
 // StateDigest.
 //
-// In typical usage these are used to calculate qdot=N*u, 
-// qdotdot=N*udot + NDot*u. These can be inverted to calculate u=inv(N)*qdot, 
-// and udot=inv(N)*(qdotdot - NDot*u); note that inv(NDot) is not needed (a 
+// In typical usage these are used to calculate qdot=N*u,
+// qdotdot=N*udot + NDot*u. These can be inverted to calculate u=inv(N)*qdot,
+// and udot=inv(N)*(qdotdot - NDot*u); note that inv(NDot) is not needed (a
 // good thing since it is likely to be singular!).
 //
-// WARNING: these routines do not normalize quaternions before using them, 
-// so the resulting matrices are scaled by the quaternion norm (if it 
-// isn't 1). That's a feature not a bug! This is important for correct 
-// calculation of qdots because otherwise they would not be the correct 
-// derivatives for unnormalized q's. 
+// WARNING: these routines do not normalize quaternions before using them,
+// so the resulting matrices are scaled by the quaternion norm (if it
+// isn't 1). That's a feature not a bug! This is important for correct
+// calculation of qdots because otherwise they would not be the correct
+// derivatives for unnormalized q's.
 
-virtual void multiplyByN   (const SBStateDigest&, bool matrixOnRight, 
+virtual void multiplyByN   (const SBStateDigest&, bool matrixOnRight,
                             const Real* in, Real* out) const = 0;
 virtual void multiplyByNInv(const SBStateDigest&, bool matrixOnRight,
                             const Real* in, Real* out) const = 0;
@@ -337,8 +337,8 @@ virtual void multiplyByNDot(const SBStateDigest&, bool matrixOnRight,
 
 // This will do nothing unless the mobilizer is using a quaternion. Otherwise it
 // will normalize its quaternion in q, and if qErrest has non-zero length then
-// it will remove the component of the error estimate which was along the 
-// direction of the quaternion, since that error will now be zero. That is, 
+// it will remove the component of the error estimate which was along the
+// direction of the quaternion, since that error will now be zero. That is,
 // we'll set
 //     q = q_fixed = q/|q|
 // and qErrest -= dot(qErrest,q_fixed)*q_fixed
@@ -348,10 +348,10 @@ virtual bool enforceQuaternionConstraints(
     Vector&            qErrest) const=0;
 
 // Convert from quaternion to Euler angle representations.
-virtual void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const 
+virtual void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "convertToEulerAngles");};
 // Convert from Euler angle to quaternion representations.
-virtual void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const 
+virtual void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const
 {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "convertToQuaternions");};
 
 // Called after Model variables are allocated by realizeTopology()
@@ -360,30 +360,30 @@ virtual void setMobilizerDefaultModelValues
 
 // All the rest are called right after realizeModel() since that's when all the
 // remaining state variables are allocated.
-virtual void setMobilizerDefaultInstanceValues    
+virtual void setMobilizerDefaultInstanceValues
    (const SBModelVars&,     SBInstanceVars&)     const {}
-virtual void setMobilizerDefaultTimeValues        
+virtual void setMobilizerDefaultTimeValues
    (const SBModelVars&,     SBTimeVars&)         const {}
-virtual void setMobilizerDefaultPositionValues    
+virtual void setMobilizerDefaultPositionValues
    (const SBModelVars&,     Vector& q)           const {}
-virtual void setMobilizerDefaultVelocityValues    
+virtual void setMobilizerDefaultVelocityValues
    (const SBModelVars&,     Vector& u)           const {}
-virtual void setMobilizerDefaultDynamicsValues    
+virtual void setMobilizerDefaultDynamicsValues
    (const SBModelVars&,     SBDynamicsVars&)     const {}
 virtual void setMobilizerDefaultAccelerationValues
    (const SBModelVars&,     SBAccelerationVars&) const {}
 
 // These attempt to set the mobilizer's internal configuration or velocity
-// to a specified value. This is intended to be a fast, local calculation that 
+// to a specified value. This is intended to be a fast, local calculation that
 // produces an answer to machine precision *if* the mobilizer can represent the
 // given quantity exactly. The answer is returned in the appropriate slots of a
-// caller-provided "q-like" or "u-like" Vector; the implementation must not 
+// caller-provided "q-like" or "u-like" Vector; the implementation must not
 // look at or change any other slots.
 //
 // It is OK for the implementation to use the current values of the coordinates
-// or speeds, and it is required to preserve any of these that are not needed 
-// to satisfy the request. If the mobilizer can't satisfy the request to 
-// machine precision it should just do nothing or the best it can, with the 
+// or speeds, and it is required to preserve any of these that are not needed
+// to satisfy the request. If the mobilizer can't satisfy the request to
+// machine precision it should just do nothing or the best it can, with the
 // only general rule being that it shouldn't make things worse. In particular,
 // it does not need to work hard on an approximate solution.
 //
@@ -404,7 +404,7 @@ void setQToFitRotation
 // part of the q's.
 void setQToFitTranslation
    (const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const
-{   
+{
     if (!isReversed()) {setQToFitTranslationImpl(sbs, p_FM, q); return;}
 
     Transform X_MF; // note reversal of frames
@@ -465,7 +465,7 @@ virtual void realizeVelocity(
 
 // Calculate base-to-tip velocity-dependent terms which will be used
 // in Dynamics stage operators. Assumes realizeVelocity()
-// has already been called on all nodes, as well as any Dynamics 
+// has already been called on all nodes, as well as any Dynamics
 // stage calculations which must go tip-to-base (e.g. articulated
 // body inertias).
 virtual void realizeDynamics(
@@ -498,15 +498,15 @@ virtual void multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
     const Real*                 v,
     SpatialVec*                 Jv) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", 
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode",
     "multiplyBySystemJacobian"); }
 
 virtual void multiplyBySystemJacobianTranspose(
-    const SBTreePositionCache&  pc, 
+    const SBTreePositionCache&  pc,
     SpatialVec*                 zTmp,
-    const SpatialVec*           X, 
+    const SpatialVec*           X,
     Real*                       JtX) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", 
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode",
     "multiplyBySystemJacobianTranspose"); }
 
 virtual void calcEquivalentJointForces(
@@ -589,10 +589,10 @@ virtual void setVelFromSVel(const SBStateDigest&,
                             const SpatialVec&, Vector& u) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "setVelFromSVel");}
 
 // Note that this requires columns of H to be packed like SpatialVec.
-virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const 
+virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const
 {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
 
-virtual const SpatialVec& getH_FMCol(const SBTreePositionCache&, int j) const 
+virtual const SpatialVec& getH_FMCol(const SBTreePositionCache&, int j) const
 {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getH_FMCol");}
 
 //TODO (does this even belong here?)
@@ -674,7 +674,7 @@ SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
 bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
 
 // Find cache resources allocated to this RigidBodyNode.
-const SBModelPerMobodInfo& 
+const SBModelPerMobodInfo&
 getModelInfo(const SBModelCache& mc) const
 {   return mc.getMobodModelInfo(nodeNum); }
 
@@ -689,14 +689,14 @@ int getNumUInUse(const SBModelCache& mc) const
 {   return getModelInfo(mc).nUInUse; }
 
 // Return value will be invalid if there are no quaternions currently in use here.
-QuaternionPoolIndex getQuaternionPoolIndex(const SBModelCache& mc) const 
+QuaternionPoolIndex getQuaternionPoolIndex(const SBModelCache& mc) const
 {   return getModelInfo(mc).quaternionPoolIndex; }
 bool isQuaternionInUse(const SBModelCache& mc) const
 {   return getModelInfo(mc).hasQuaternionInUse; }
 
-// Return value will be invalid if this node is not currently using any space 
+// Return value will be invalid if this node is not currently using any space
 // in the q-pool position cache entry.
-MobodQPoolIndex getQPoolIndex(const SBModelCache& mc) const 
+MobodQPoolIndex getQPoolIndex(const SBModelCache& mc) const
 {   return getModelInfo(mc).startInQPool; }
 int getQPoolSize(const SBModelCache& mc) const
 {   return getModelInfo(mc).nQPoolInUse; }
@@ -725,9 +725,9 @@ const Transform&      getX_MB          () const {return X_MB;}
 
 // This says whether this mobilizer has prescribed *acceleration*, and if so
 // whether the acceleration is known to be zero.
-bool isUDotKnown(const SBInstanceCache& ic) const 
+bool isUDotKnown(const SBInstanceCache& ic) const
 {   return ic.getMobodInstanceInfo(nodeNum).udotMethod!=Motion::Free; }
-bool isUDotKnownToBeZero(const SBInstanceCache& ic) const 
+bool isUDotKnownToBeZero(const SBInstanceCache& ic) const
 {   return ic.getMobodInstanceInfo(nodeNum).udotMethod==Motion::Zero; }
 
     // POSITION INFO
@@ -740,10 +740,10 @@ bool isUDotKnownToBeZero(const SBInstanceCache& ic) const
 const Transform& getX_FM(const SBTreePositionCache& pc) const {return fromB(pc.bodyJointInParentJointFrame);}
 Transform&       updX_FM(SBTreePositionCache&       pc) const {return toB  (pc.bodyJointInParentJointFrame);}
 
-// Return X_F0M0, the cross-joint mobilizer transform *as it was defined* in the mobilizer 
-// specification. If the mobilizer has been reversed, then X_F0M0=~X_FM, otherwise it is 
+// Return X_F0M0, the cross-joint mobilizer transform *as it was defined* in the mobilizer
+// specification. If the mobilizer has been reversed, then X_F0M0=~X_FM, otherwise it is
 // just X_FM.
-Transform findX_F0M0(const SBTreePositionCache& pc) const 
+Transform findX_F0M0(const SBTreePositionCache& pc) const
 {   return isReversed() ? Transform(~getX_FM(pc))   // 18 flops
                         : getX_FM(pc); }
 
@@ -763,12 +763,12 @@ Transform& updX_GB(SBTreePositionCache& pc) const {
     return toB(pc.bodyConfigInGround);
 }
 
-// Extract from the cache the body-to-parent shift matrix "phi". 
+// Extract from the cache the body-to-parent shift matrix "phi".
 const PhiMatrix& getPhi(const SBTreePositionCache& pc) const {return fromB(pc.bodyToParentShift);}
 PhiMatrix&       updPhi(SBTreePositionCache&       pc) const {return toB  (pc.bodyToParentShift);}
 
-// Extract this body's spatial inertia matrix from the cache. This contains 
-// the mass properties measured from (and about) the body frame origin, but 
+// Extract this body's spatial inertia matrix from the cache. This contains
+// the mass properties measured from (and about) the body frame origin, but
 // expressed in the Ground frame.
 const SpatialInertia& getMk_G(const SBTreePositionCache& pc) const {return fromB(pc.bodySpatialInertiaInGround);}
 SpatialInertia&       updMk_G(SBTreePositionCache&       pc) const {return toB  (pc.bodySpatialInertiaInGround);}
@@ -778,14 +778,14 @@ SpatialInertia&       updMk_G(SBTreePositionCache&       pc) const {return toB  
 const Vec3& getCOM_G(const SBTreePositionCache& pc) const {return fromB(pc.bodyCOMInGround);}
 Vec3&       updCOM_G(SBTreePositionCache&       pc) const {return toB  (pc.bodyCOMInGround);}
 
-// Extract from the cache the vector from body B's origin to its center of 
+// Extract from the cache the vector from body B's origin to its center of
 // mass, reexpressed in Ground.
-const Vec3& getCB_G(const SBTreePositionCache& pc) const 
+const Vec3& getCB_G(const SBTreePositionCache& pc) const
 {   return getMk_G(pc).getMassCenter(); }
 
-// Extract from the cache the body's inertia about the body origin OB, but 
+// Extract from the cache the body's inertia about the body origin OB, but
 // reexpressed in Ground.
-const UnitInertia& getUnitInertia_OB_G(const SBTreePositionCache& pc) const 
+const UnitInertia& getUnitInertia_OB_G(const SBTreePositionCache& pc) const
 {   return getMk_G(pc).getUnitInertia(); }
 
 // Extract from the cache the spatial (ground-relative) location and orientation of this body's
@@ -797,8 +797,8 @@ const Transform& getX_GP(const SBTreePositionCache& pc) const {assert(parent); r
 const SpatialVec& getV_FM(const SBTreeVelocityCache& vc) const {return fromB(vc.mobilizerRelativeVelocity);}
 SpatialVec&       updV_FM(SBTreeVelocityCache&       vc) const {return toB  (vc.mobilizerRelativeVelocity);}
 
-// Given V_AB, the spatial velocity of frame B in A expressed in A, return V_BA, the spatial 
-// velocity of frame A in B, expressed in B. The reversal also requires knowing X_AB, the spatial 
+// Given V_AB, the spatial velocity of frame B in A expressed in A, return V_BA, the spatial
+// velocity of frame A in B, expressed in B. The reversal also requires knowing X_AB, the spatial
 // position and orientation of B in A. Theory:
 //      V_BA = -R_BA * [        w_AB        ]
 //                     [ v_AB + p_AB x w_AB ]
@@ -812,8 +812,8 @@ static SpatialVec reverseSpatialVelocity(const Transform& X_AB, const SpatialVec
     return ~R_AB * SpatialVec( -w_AB,   (w_AB % p_AB) - v_AB );
 }
 
-// Given w_AB, the angular velocity of frame B in A expressed in A, return w_BA, the angular 
-// velocity of frame A in B, expressed in B. The reversal also requires knowing R_AB, the 
+// Given w_AB, the angular velocity of frame B in A expressed in A, return w_BA, the angular
+// velocity of frame A in B, expressed in B. The reversal also requires knowing R_AB, the
 // orientation of B in A. Theory:
 //      w_BA = -R_BA*w_AB
 // This is just a subset of what reverseSpatialVelocity does, but it is cheap and
@@ -823,7 +823,7 @@ static Vec3 reverseAngularVelocity(const Rotation& R_AB, const Vec3& w_AB) {
     return ~R_AB * (-w_AB);
 }
 
-// Return V_F0M0, the cross-joint mobilizer velocity *as it was defined* in the mobilizer 
+// Return V_F0M0, the cross-joint mobilizer velocity *as it was defined* in the mobilizer
 // specification. If the mobilizer has not been reversed, this is just V_FM.
 // 45 flops if reversed.
 SpatialVec findV_F0M0(const SBTreePositionCache& pc, const SBTreeVelocityCache& vc) const {
@@ -831,7 +831,7 @@ SpatialVec findV_F0M0(const SBTreePositionCache& pc, const SBTreeVelocityCache& 
                         : getV_FM(vc);
 }
 
-// Return w_F0M0, the cross-joint mobilizer angular velocity *as it was defined* 
+// Return w_F0M0, the cross-joint mobilizer angular velocity *as it was defined*
 // in the mobilizer specification. If the mobilizer has not been reversed, this is just w_FM.
 // This is a useful and much cheaper subset of findV_F0M0.
 // 18 flops if reversed.
@@ -863,9 +863,9 @@ const Vec3&       getSpatialLinVel(const SBTreeVelocityCache& vc) const {return 
 // generated by H_PB_G_Dot*u, where H_PB_G_Dot = d/dt H_PB_G with the derivative taken
 // in the Ground frame. This is used in calculation of coriolis acceleration.
 // CAUTION: our definition for the H matrix is transposed from those used by Jain and Schwieters.
-const SpatialVec& getVD_PB_G (const SBTreeVelocityCache& vc) const 
+const SpatialVec& getVD_PB_G (const SBTreeVelocityCache& vc) const
     {return fromB(vc.bodyVelocityInParentDerivRemainder);}
-SpatialVec&       updVD_PB_G (SBTreeVelocityCache&       vc) const 
+SpatialVec&       updVD_PB_G (SBTreeVelocityCache&       vc) const
     {return toB  (vc.bodyVelocityInParentDerivRemainder);}
 
 const SpatialVec& getGyroscopicForce(const SBTreeVelocityCache& vc) const {return fromB(vc.gyroscopicForces);}
@@ -926,7 +926,7 @@ const Vec3&       getSpatialLinAcc(const SBTreeAccelerationCache& ac) const {ret
 // in case there are any node-specific default values.
 // We can handle the "body" variables (like mass) here, but we have to forward the
 // request to the mobilizers to handle their own variables. At the Position
-// stage, for example, mobilizers which use quaternions will set the default ball 
+// stage, for example, mobilizers which use quaternions will set the default ball
 // joint q's to 1,0,0,0.
 // Most of these will use the default implementations here, i.e. do nothing.
 
@@ -970,7 +970,7 @@ void setNodeDefaultAccelerationValues(const SBModelVars& mv, SBAccelerationVars&
 // Calculate kinetic energy (from spatial quantities only).
 Real calcKineticEnergy(
     const SBTreePositionCache& pc,
-    const SBTreeVelocityCache& vc) const;   
+    const SBTreeVelocityCache& vc) const;
 
 // Calculate all spatial configuration quantities, assuming availability of
 // joint-specific relative quantities.
@@ -1002,7 +1002,7 @@ RigidBodyNode(const MassProperties& mProps_B,
               QuaternionUse         quatUse,
               bool                  reverse=false)
   : parent(0), children(), level(-1),
-    massProps_B(mProps_B), 
+    massProps_B(mProps_B),
     inertia_CB_B(mProps_B.isFinite()
                  ? mProps_B.calcCentralInertia()
                  : (mProps_B.isInf() ? Inertia(Infinity) : Inertia())),
@@ -1041,13 +1041,13 @@ UIndex              uIndex;   // index into internal coord vel,acc arrays
 USquaredIndex       uSqIndex; // index into array of DOF^2 objects
 QuaternionPoolIndex quaternionIndex; // if this mobilizer has a quaternion, this is our slot
 
-RigidBodyNode*     parent; 
+RigidBodyNode*     parent;
 RigidBodyNodeList  children;
-int                level;        //how far from base 
+int                level;        //how far from base
 MobilizedBodyIndex nodeNum;      //unique ID number in SimbodyMatterSubsystemRep
 
 // These are the default body properties, all supplied or calculated on
-// construction. TODO: they should be 
+// construction. TODO: they should be
 // (optionally?) overrideable by Instance-level state variable entries.
 
 // This is the mass, center of mass, and inertia as supplied at construction.
@@ -1060,12 +1060,12 @@ const Inertia   inertia_CB_B;
 
 // Orientation and location of inboard mobilizer frame M, measured
 // and expressed in body frame B.
-const Transform X_BM; 
+const Transform X_BM;
 const Transform X_MB; // inverse of X_BM, calculated on construction
 
 // This is set when we attach this node to its parent in the tree. This is the
 // configuration of the parent's outboard mobilizer attachment frame corresponding
-// to body B (F) measured from and expressed in the parent frame P. It is 
+// to body B (F) measured from and expressed in the parent frame P. It is
 // a constant in frame P. TODO: make it parameterizable.
 const Transform X_PF;
 

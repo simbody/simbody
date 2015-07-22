@@ -24,7 +24,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-// This is an internal header file; not part of the API. These are the 
+// This is an internal header file; not part of the API. These are the
 // classes representing the differential equations that must be solved to
 // calculate geodesics over general smooth surfaces.
 
@@ -47,15 +47,15 @@ namespace SimTK {
 /* This class satisfies the requirements for an Equations template argument
 to the GeodesicIntegrator class. These are the differential-algebraic
 equations that need to be solved to generate an arc length-parameterized
-geodesic over an arbitrary implicit surface, starting at a given point and 
-tangent direction. We also calculate the geodesic's Jacobi field[2,3] which 
-provides scalars relating changes in direction or position at the start to 
+geodesic over an arbitrary implicit surface, starting at a given point and
+tangent direction. We also calculate the geodesic's Jacobi field[2,3] which
+provides scalars relating changes in direction or position at the start to
 their effects on the location of the end point.
 
 Geodesic equations [1]
 ------------------
-This system can be viewed as a 3d particle mass constrained to move along a 
-surface with a unit velocity and no applied force except the constraint 
+This system can be viewed as a 3d particle mass constrained to move along a
+surface with a unit velocity and no applied force except the constraint
 reaction force normal to the surface. With no applied force the particle traces
 a geodesic along the surface.
 
@@ -90,7 +90,7 @@ tangential velocity's magnitude to 1, ensuring that we get an arc length
 parameterization of the geodesic:
       (9)          |v| = 1        (verr)
 
-So in eqns. (2,3) the matrix M=I (unit mass particle), G = ~g and b = -vHv, and 
+So in eqns. (2,3) the matrix M=I (unit mass particle), G = ~g and b = -vHv, and
 the equations of motion are:
               [  I  g ] [ a ]   [    0   ]
       (10)    [ ~g  0 ] [ L ] = [ - ~vHv ]
@@ -105,19 +105,19 @@ Solving for L and then a gives:
 
 Jacobi field equations [2,3]
 ----------------------
-There are two second order differential 
-equations to solve for the rotational and translational Jacobi field 
+There are two second order differential
+equations to solve for the rotational and translational Jacobi field
 amplitudes:
       (1) jr'' + Kg*jr = 0,   with jr(0)=0, jr'(0)=1
       (2) jt'' + Kg*jt = 0,   with jt(0)=1, jt'(0)=0
-where jr=jr(s), jt=jt(s). Kg=Kg(s) is the Gaussian curvature of the surface 
+where jr=jr(s), jt=jt(s). Kg=Kg(s) is the Gaussian curvature of the surface
 evaluated at s along the curve.
 
 
 Constraint projection
 ---------------------
 Although the equations of motion satisfy the constraints at the acceleration
-level, integration error will cause the solution to drift away from the 
+level, integration error will cause the solution to drift away from the
 position and velocity constraint manifolds. Unlike ref. [1] which uses
 Baumgarte stabilization, we use the more tractable coordinate projection
 method[4] to prevent this drift. This requires that at each step we perform
@@ -130,14 +130,14 @@ See the implementation of the projectIfNeeded() method for details.
 
 References
 ----------
-[1] De Sapio, V., Khatib, O., Delp, S. Least action principles and their 
+[1] De Sapio, V., Khatib, O., Delp, S. Least action principles and their
 application to constrained and task-level problems in robotics and 
 biomechanics. Multibody System Dynamics 19(3):303 (2008), section 3.1.
 [2] Do Carmo, M.P. Differential Geometry of Curves and Surfaces,
 Chapter 5-5 Jacobi Fields and Conjugate Points. Prentice Hall (1976).
 [3] For real understanding, see Andreas Scholz' master's thesis (2012).
-[4] Eich, E. Convergence results for a coordinate projection method applied 
-to mechanical systems with algebraic constraints. Siam Journal on Numerical 
+[4] Eich, E. Convergence results for a coordinate projection method applied
+to mechanical systems with algebraic constraints. Siam Journal on Numerical
 Analysis 30(5):1467 (1993).
 */
 class SimTK_SIMMATH_EXPORT GeodesicOnImplicitSurface {
@@ -150,7 +150,7 @@ public:
            N  = 2*NQ,   // Number of differential equations.
            NC = 3 };    // 3 constraints: point on surface, point velocity
                         // along surface, unit velocity
-    
+
     GeodesicOnImplicitSurface(const ContactGeometryImpl& geom)
     :   geom(geom) {}
 
@@ -165,7 +165,7 @@ public:
     void calcConstraintErrors(Real t, const Vec<N>& y, Vec<NC>& cerr) const;
 
     // This method is required by the GeodesicIntegrator.
-    // Given a state y drive the infinity norm of the position and velocity 
+    // Given a state y drive the infinity norm of the position and velocity
     // constraint errors to consTol or below by adjusting y.
     bool projectIfNeeded(Real consTol, Real t, Vec<N>& y) const;
 
@@ -199,15 +199,15 @@ public:
     static const Real& getJRot(const Vec<N>& y) {return y[D];}
     static Real& updJRot(Vec<N>& y) {return y[D];}
     static const Real& getJRotDot(const Vec<N>& y) {return y[NQ+D];}
-    static Real& updJRotDot(Vec<N>& y) {return y[NQ+D];}    
+    static Real& updJRotDot(Vec<N>& y) {return y[NQ+D];}
     // Extract the value of the translational Jacobi field from a state y.
     static const Real& getJTrans(const Vec<N>& y) {return y[D+1];}
     static Real& updJTrans(Vec<N>& y) {return y[D+1];}
     static const Real& getJTransDot(const Vec<N>& y) {return y[NQ+D+1];}
-    static Real& updJTransDot(Vec<N>& y) {return y[NQ+D+1];}    
+    static Real& updJTransDot(Vec<N>& y) {return y[NQ+D+1];}
 
 private:
-    const ContactGeometryImpl& geom;       
+    const ContactGeometryImpl& geom;
 };
 
 
@@ -238,14 +238,14 @@ public:
 
     void calcConstraintErrors(Real t, const Vec<N>& y, Vec<NC>& cerr) const {
         assert(!"not implemented");
-    }     
+    }
 
     bool projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
         assert(!"not implemented");
         return false;
     }
 private:
-    const ContactGeometryImpl& geom;       
+    const ContactGeometryImpl& geom;
 };
 
 

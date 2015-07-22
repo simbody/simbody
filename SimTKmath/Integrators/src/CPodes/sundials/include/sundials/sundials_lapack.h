@@ -40,7 +40,7 @@ extern "C" {
 
 SUNDIALS_EXPORT void LapackDenseZero(DlsMat A);
 SUNDIALS_EXPORT void LapackBandZero(DlsMat A);
-  
+
 /*
  * -----------------------------------------------------------------
  * Functions: LapackDenseAddI and LapackBandAddI
@@ -50,7 +50,7 @@ SUNDIALS_EXPORT void LapackBandZero(DlsMat A);
  * They are typically used with square matrices.
  * -----------------------------------------------------------------
  */
-  
+
 SUNDIALS_EXPORT void LapackDenseAddI(DlsMat A);
 SUNDIALS_EXPORT void LapackBandAddI(DlsMat A);
 
@@ -99,55 +99,55 @@ SUNDIALS_EXPORT void LapackBandAddI(DlsMat A);
 #endif
 
 /* Level-1 BLAS */
-  
+
 extern void dcopy_f77(int *n, const double *x, const int *inc_x, double *y, const int *inc_y);
 extern void dscal_f77(int *n, const double *alpha, double *x, const int *inc_x);
 
 /* Level-2 BLAS */
 
-extern void dgemv_f77(const char *trans, int *m, int *n, const double *alpha, const double *a, 
-              int *lda, const double *x, int *inc_x, const double *beta, double *y, int *inc_y, 
+extern void dgemv_f77(const char *trans, int *m, int *n, const double *alpha, const double *a,
+              int *lda, const double *x, int *inc_x, const double *beta, double *y, int *inc_y,
               int len_trans);
 
-extern void dtrsv_f77(const char *uplo, const char *trans, const char *diag, const int *n, 
-              const double *a, const int *lda, double *x, const int *inc_x, 
+extern void dtrsv_f77(const char *uplo, const char *trans, const char *diag, const int *n,
+              const double *a, const int *lda, double *x, const int *inc_x,
               int len_uplo, int len_trans, int len_diag);
 
 /* Level-3 BLAS */
 
-extern void dsyrk_f77(const char *uplo, const char *trans, const int *n, const int *k, 
-              const double *alpha, const double *a, const int *lda, const double *beta, 
+extern void dsyrk_f77(const char *uplo, const char *trans, const int *n, const int *k,
+              const double *alpha, const double *a, const int *lda, const double *beta,
               const double *c, const int *ldc, int len_uplo, int len_trans);
-  
+
 /* LAPACK */
 
-extern void dgbtrf_f77(const int *m, const int *n, const int *kl, const int *ku, 
+extern void dgbtrf_f77(const int *m, const int *n, const int *kl, const int *ku,
                double *ab, int *ldab, int *ipiv, int *info);
 
-extern void dgbtrs_f77(const char *trans, const int *n, const int *kl, const int *ku, const int *nrhs, 
-               double *ab, const int *ldab, int *ipiv, double *b, const int *ldb, 
+extern void dgbtrs_f77(const char *trans, const int *n, const int *kl, const int *ku, const int *nrhs,
+               double *ab, const int *ldab, int *ipiv, double *b, const int *ldb,
                int *info, int len_trans);
 
 
-extern void dgeqp3_f77(const int *m, const int *n, double *a, const int *lda, int *jpvt, double *tau, 
+extern void dgeqp3_f77(const int *m, const int *n, double *a, const int *lda, int *jpvt, double *tau,
                double *work, const int *lwork, int *info);
 
-extern void dgeqrf_f77(const int *m, const int *n, double *a, const int *lda, double *tau, double *work, 
+extern void dgeqrf_f77(const int *m, const int *n, double *a, const int *lda, double *tau, double *work,
                const int *lwork, int *info);
 
 extern void dgetrf_f77(const int *m, const int *n, double *a, int *lda, int *ipiv, int *info);
 
-extern void dgetrs_f77(const char *trans, const int *n, const int *nrhs, double *a, const int *lda, 
+extern void dgetrs_f77(const char *trans, const int *n, const int *nrhs, double *a, const int *lda,
                int *ipiv, double *b, const int *ldb, int *info, int len_trans);
 
 
-extern void dormqr_f77(const char *side, const char *trans, const int *m, const int *n, const int *k, 
-               double *a, const int *lda, double *tau, double *c, const int *ldc, 
+extern void dormqr_f77(const char *side, const char *trans, const int *m, const int *n, const int *k,
+               double *a, const int *lda, double *tau, double *c, const int *ldc,
                double *work, const int *lwork, int *info, int len_side, int len_trans);
 
 extern void dpotrf_f77(const char *uplo, const int *n, double *a, int *lda, int *info, int len_uplo);
 
-extern void dpotrs_f77(const char *uplo, const int *n, const int *nrhs, double *a, const int *lda, 
+extern void dpotrs_f77(const char *uplo, const int *n, const int *nrhs, double *a, const int *lda,
                double *b, const int *ldb, int * info, int len_uplo);
 
 

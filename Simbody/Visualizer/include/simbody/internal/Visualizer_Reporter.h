@@ -32,9 +32,9 @@ namespace SimTK {
 
 class MultibodySystem;
 
-/** This is an EventReporter that makes it easy to generate on-screen movies of 
+/** This is an EventReporter that makes it easy to generate on-screen movies of
 any simulation. Use it like this:
-@code 
+@code
     MultibodySystem system;
     // ... build your system
 
@@ -46,12 +46,12 @@ any simulation. Use it like this:
     // report() method to render frames. Note that ownership of the Reporter
     // is taken by the System; don't delete it yourself.
     system.addEventReporter(new Visualizer::Reporter(viz, interval));
-@endcode 
+@endcode
 **/
 class SimTK_SIMBODY_EXPORT Visualizer::Reporter : public PeriodicEventReporter {
 public:
-    /** Create a Reporter for the given Visualizer \a viz, and call its 
-    report() method every \a reportInterval time units of \e simulation time 
+    /** Create a Reporter for the given Visualizer \a viz, and call its
+    report() method every \a reportInterval time units of \e simulation time
     (not necessarily measured in seconds). Note that if you want to run your
     simulation in real time and you aren't using seconds as time units, you
     should set the time scale via the Visualizer's setRealTimeScale() method
@@ -62,12 +62,12 @@ public:
     settings for the supplied system \a sys. This is an abbreviation for
     @code Reporter(Visualizer(system), reportInterval); @endcode. **/
     explicit Reporter(const MultibodySystem& sys, Real reportInterval=Infinity);
- 
+
     /** Destructor will also destroy the contained Visualizer object if there
     are no other references to it. **/
     ~Reporter();
 
-    /** Get the Visualizer which this Reporter is using to generate images. **/ 
+    /** Get the Visualizer which this Reporter is using to generate images. **/
     const Visualizer& getVisualizer() const;
 
     /** This satisfies the pure virtual method in EventReporter. **/

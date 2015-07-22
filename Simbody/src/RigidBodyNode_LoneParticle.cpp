@@ -29,14 +29,14 @@
 /**
  * This is a specialized class used for MobilizedBody::Translation objects that satisfy
  * all of the following requirements:
- * 
+ *
  * <ul>
  * <li>The body has no children.</li>
  * <li>The body's parent is ground.</li>
  * <li>The inboard and outboard transforms are both identities.</li>
  * <li>The body is not reversed.</li>
  * </ul>
- * 
+ *
  * These assumptions allow lots of routines to be implemented in simpler, faster ways.
  */
 class RBNodeLoneParticle : public RigidBodyNode {
@@ -123,15 +123,15 @@ void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
 void setMobilizerDefaultModelValues
    (const SBTopologyCache&, SBModelVars&)        const {}
 
-void setMobilizerDefaultInstanceValues    
+void setMobilizerDefaultInstanceValues
    (const SBModelVars&,     SBInstanceVars&)     const {}
-void setMobilizerDefaultTimeValues        
+void setMobilizerDefaultTimeValues
    (const SBModelVars&,     SBTimeVars&)         const {}
-void setMobilizerDefaultPositionValues    
+void setMobilizerDefaultPositionValues
    (const SBModelVars&,     Vector& q)           const {q = 0;}
-void setMobilizerDefaultVelocityValues    
+void setMobilizerDefaultVelocityValues
    (const SBModelVars&,     Vector& u)           const {u = 0;}
-void setMobilizerDefaultDynamicsValues    
+void setMobilizerDefaultDynamicsValues
    (const SBModelVars&,     SBDynamicsVars&)     const {}
 void setMobilizerDefaultAccelerationValues
    (const SBModelVars&,     SBAccelerationVars&) const {}
@@ -141,7 +141,7 @@ void realizeModel(SBStateDigest& sbs) const {
 
 void realizeInstance(const SBStateDigest& sbs) const {
     // Initialize cache entries that will never be changed at later stages.
-    
+
     SBTreePositionCache& pc = sbs.updTreePositionCache();
     SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
     SBDynamicsCache& dc = sbs.updDynamicsCache();
@@ -210,7 +210,7 @@ void realizeYOutward(
 }
 
 void calcCompositeBodyInertiasInward
-   (const SBTreePositionCache& pc, 
+   (const SBTreePositionCache& pc,
     Array_<SpatialInertia,MobilizedBodyIndex>& R) const {
     toB(R) = getMk_G(pc);
 }
@@ -226,15 +226,15 @@ void multiplyBySystemJacobian(
 }
 
 void multiplyBySystemJacobianTranspose(
-        const SBTreePositionCache&  pc, 
+        const SBTreePositionCache&  pc,
         SpatialVec*                 zTmp,
-        const SpatialVec*           X, 
+        const SpatialVec*           X,
         Real*                       JtX) const {
     const SpatialVec& in = X[getNodeNum()];
     Vec3& out = Vec3::updAs(&JtX[getUIndex()]);
     SpatialVec& z = zTmp[getNodeNum()];
     z = in;
-    out = z[1]; 
+    out = z[1];
 }
 
 void calcEquivalentJointForces(
@@ -260,7 +260,7 @@ void calcUDotPass1Inward(
         const Real*                             allUDot,
         SpatialVec*                             allZ,
         SpatialVec*                             allZPlus,
-        Real*                                   allEpsilon) const 
+        Real*                                   allEpsilon) const
 {
     const Vec3&         f       = Vec3::getAs(&jointForces[uIndex]);
     const SpatialVec&   F       = bodyForces[nodeNum];
@@ -303,12 +303,12 @@ void calcUDotPass2Outward(
     const bool isPrescribed = isUDotKnown(ic);
 
     if (isPrescribed) {
-        const PresForcePoolIndex tauIx = 
+        const PresForcePoolIndex tauIx =
             ic.getMobodInstanceInfo(nodeNum).firstPresForce;
         assert(tauIx.isValid());
         Vec3& tau = Vec3::updAs(&allTau[tauIx]);
         tau = eps; // our sign convention
-    } else 
+    } else
         udot = eps/getMass();
 
     A_GB = SpatialVec(Vec3(0), udot);
@@ -402,7 +402,7 @@ void multiplyByMPass2Inward(
     const SpatialVec& A_GB = allA_GB[nodeNum];
     SpatialVec& F = allF[nodeNum];
     Vec3& tau = Vec3::updAs(&allTau[uIndex]);
-    F = getMk_G(pc)*A_GB; 
+    F = getMk_G(pc)*A_GB;
     tau = F[1];
 }
 
@@ -434,7 +434,7 @@ void setQToFitTranslationImpl(const SBStateDigest&, const Vec3& p_F0M0, Vector& 
 void setUToFitVelocityImpl(const SBStateDigest&, const Vector& q, const SpatialVec& V_F0M0, Vector& u) const {
     Vec3::updAs(&u[uIndex]) = V_F0M0[1];
 }
-void setUToFitAngularVelocityImpl(const SBStateDigest&, const Vector& q, const Vec3& w_F0M0, Vector& u) const {    
+void setUToFitAngularVelocityImpl(const SBStateDigest&, const Vector& q, const Vec3& w_F0M0, Vector& u) const {
 }
 void setUToFitLinearVelocityImpl(const SBStateDigest&, const Vector& q, const Vec3& v_F0M0, Vector& u) const {
     Vec3::updAs(&u[uIndex]) = v_F0M0;
@@ -450,12 +450,12 @@ RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
             getDefaultInboardFrame().p() == 0 && getDefaultInboardFrame().R() == Mat33(1) &&
             getDefaultOutboardFrame().p() == 0 && getDefaultOutboardFrame().R() == Mat33(1)) {
         // This satisfies all the requirements to use RBNodeLoneParticle.
-        
+
         return new RBNodeLoneParticle(getDefaultRigidBodyMassProperties(), nextUSlot,nextUSqSlot,nextQSlot);
     }
-    
+
     // Use RBNodeTranslate for the general case.
-    
+
     bool noX_MB = (getDefaultOutboardFrame().p() == 0 && getDefaultOutboardFrame().R() == Mat33(1));
     bool noR_PF = (getDefaultInboardFrame().R() == Mat33(1));
     if (noX_MB) {

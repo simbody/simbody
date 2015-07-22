@@ -1,5 +1,5 @@
 #ifndef SimTK_SIMMATH_COMMON_H_
-#define SimTK_SIMMATH_COMMON_H_ 
+#define SimTK_SIMMATH_COMMON_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -102,7 +102,7 @@ private:
 
 class IllegalLapackArg : public Base {
 public:
-        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine, 
+        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine,
                   int info ) : Base(fn, ln)
         {
         char buf[1024];
@@ -117,7 +117,7 @@ private:
 };
 class IncorrectArrayLength : public Base {
 public:
-        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  
+        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,
                               const char *paramName, int paramValue, const char *where) : Base(fn, ln)
         {
         char buf[1024];
@@ -132,7 +132,7 @@ private:
 
 class SingularMatrix : public Base {
 public:
-        SingularMatrix( const char *fn, int ln, int index,  
+        SingularMatrix( const char *fn, int ln, int index,
                                const char *where) : Base(fn, ln)
         {
         char buf[1024];
@@ -147,7 +147,7 @@ private:
 
 class ConvergedFailed : public Base {
 public:
-        ConvergedFailed( const char *fn, int ln, const char *algorithm,  
+        ConvergedFailed( const char *fn, int ln, const char *algorithm,
                                const char *where) : Base(fn, ln)
         {
         char buf[1024];
@@ -161,7 +161,7 @@ private:
 
 class NotPositiveDefinite : public Base {
 public:
-        NotPositiveDefinite( const char *fn, int ln, int index,  
+        NotPositiveDefinite( const char *fn, int ln, int index,
                                const char *where) : Base(fn, ln)
         {
         char buf[1024];

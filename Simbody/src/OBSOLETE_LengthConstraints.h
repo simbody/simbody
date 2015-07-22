@@ -43,7 +43,7 @@ using std::ostream;
 class RBStation {
 public:
     RBStation() : rbNode(0) { } // so we can have arrays of these
-    RBStation(const RigidBodyNode& n, const Vec3& pos) 
+    RBStation(const RigidBodyNode& n, const Vec3& pos)
         : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
@@ -63,7 +63,7 @@ std::ostream& operator<<(std::ostream&, const RBStation&);
 class RBDirection {
 public:
     RBDirection() : rbNode(0) { } // so we can have arrays of these
-    RBDirection(const RigidBodyNode& n, const UnitVec3& dir) 
+    RBDirection(const RigidBodyNode& n, const UnitVec3& dir)
         : rbNode(&n), direction_B(dir) { }
     // default copy, assignment, destructor
 
@@ -78,7 +78,7 @@ std::ostream& operator<<(std::ostream&, const RBDirection&);
 
 /**
  * This class requests that two stations, one on each of two rigid bodies,
- * be maintained at a certain separation distance at all times. This is 
+ * be maintained at a certain separation distance at all times. This is
  * an internal service provided by SimbodyMatterSubsystems and not something
  * built directly by users. User-requested Constraints may allocate one
  * or more distance constraints in the performance of their duties.
@@ -87,12 +87,12 @@ std::ostream& operator<<(std::ostream&, const RBDirection&);
  * associated with a particular constraint multiplier and matching
  * acceleration constraint error. However, not all multipliers come
  * from distance constraints, so we store both the distance constraint
- * number here and the multiplier index, for use in accessing the 
+ * number here and the multiplier index, for use in accessing the
  * appropriate quantities in the state cache.
  */
 class RBDistanceConstraint {
 public:
-    RBDistanceConstraint() : distance(-1.), distConstNum(-1), 
+    RBDistanceConstraint() : distance(-1.), distConstNum(-1),
                              qerrIndex(-1), uerrIndex(-1), multIndex(-1) {}
     RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const Real& d)
     {
@@ -105,11 +105,11 @@ public:
         Vector&                qErr,
         SBPositionCache&       pc) const;
     void calcVelInfo(
-        const SBPositionCache& pc, 
+        const SBPositionCache& pc,
         Vector&                uErr,
         SBVelocityCache&       vc) const;
     void calcAccInfo(
-        const SBPositionCache& pc, 
+        const SBPositionCache& pc,
         const SBVelocityCache& vc,
         Vector&                udotErr,
         SBAccelerationCache&   ac) const;
@@ -243,13 +243,13 @@ protected:
 
 private:
     // Per-station calculations
-    void calcStationPosInfo(int i, 
+    void calcStationPosInfo(int i,
         SBPositionCache&        pc) const;
-    void calcStationVelInfo(int i, 
-        const SBPositionCache&  pc, 
+    void calcStationVelInfo(int i,
+        const SBPositionCache&  pc,
         SBVelocityCache&        vc) const;
-    void calcStationAccInfo(int i, 
-        const SBPositionCache&  pc, 
+    void calcStationAccInfo(int i,
+        const SBPositionCache&  pc,
         const SBVelocityCache&  vc,
         SBAccelerationCache&    ac) const;
 };
@@ -259,7 +259,7 @@ class LengthConstraints;
 class LengthSet;
 
 /*
- * Collect up useful information about a loop. 
+ * Collect up useful information about a loop.
  * This includes the two connected stations, ordered by level, and the
  * paths from each of the associated nodes back to the common ancestor.
  * We also identify the molecule base node for the molecule which
@@ -269,28 +269,28 @@ class LengthSet;
  */
 class LoopWNodes {
 public:
-    LoopWNodes() 
-      : tree(0), rbDistCons(0), flipStations(false), outmostCommonBody(0) 
+    LoopWNodes()
+      : tree(0), rbDistCons(0), flipStations(false), outmostCommonBody(0)
     {
     }
     LoopWNodes(const SimbodyMatterSubsystemRep&, const RBDistanceConstraint&);
 
     void calcPosInfo(
         Vector&          qErr,
-        SBPositionCache& pc) const 
+        SBPositionCache& pc) const
       { rbDistCons->calcPosInfo(qErr,pc); }
 
     void calcVelInfo(
-        const SBPositionCache& pc, 
+        const SBPositionCache& pc,
         Vector&                uErr,
-        SBVelocityCache&       vc) const 
+        SBVelocityCache&       vc) const
       { rbDistCons->calcVelInfo(pc,uErr,vc); }
 
     void calcAccInfo(
-        const SBPositionCache& pc, 
+        const SBPositionCache& pc,
         const SBVelocityCache& vc,
         Vector&                udotErr,
-        SBAccelerationCache&   ac) const 
+        SBAccelerationCache&   ac) const
       { rbDistCons->calcAccInfo(pc,vc,udotErr,ac); }
 
     // TODO: State isn't currently in use but will be necessary when the distances
@@ -300,7 +300,7 @@ public:
     // Return one of the stations, ordered such that tips(1).level <= tips(2).level.
     const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
     const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
- 
+
     const Vec3& tipPos(const SBPositionCache& pc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
@@ -344,7 +344,7 @@ private:
     Array_<const RigidBodyNode*> nodes[2];     // the two paths: base..tip1, base..tip2,
                                                     //   incl. tip nodes but not base
     const RigidBodyNode*              outmostCommonBody; // highest-level common ancestor of tips
-    
+
     // Ancestors includes everything from outmostCommonBody (inclusive) down to ground
     // (exclusive).
     Array_<const RigidBodyNode*> ancestors;
@@ -360,7 +360,7 @@ typedef Array_<LoopWNodes> LoopList;
 class LengthSet {
     static void construct(const LoopList& loops);
     const LengthConstraints*          lConstraints;
-    LoopList                          loops;    
+    LoopList                          loops;
     int                               ndofThisSet;
     Array_<const RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
 public:
@@ -429,7 +429,7 @@ public:
     void projectQVecOntoConfigurationConstraints(const State&, Vector& q);
     void projectUVecOntoMotionConstraints(const State&, Vector& u);
 
-    bool calcConstraintForces(const State&, const Vector& udotErr, 
+    bool calcConstraintForces(const State&, const Vector& udotErr,
                               Vector& multipliers, SBAccelerationCache&) const;
     void addInCorrectionForces(const State&, const SBAccelerationCache&,
                                SpatialVecList& spatialForces) const;
@@ -451,9 +451,9 @@ private:
     friend class LengthSet;
 };
 
-inline const SimbodyMatterSubsystemRep& 
+inline const SimbodyMatterSubsystemRep&
 LengthSet::getRBTree()  const {return lConstraints->rbTree;}
-inline int                  
+inline int
 LengthSet::getVerbose() const {return lConstraints->verbose;}
 
 #endif

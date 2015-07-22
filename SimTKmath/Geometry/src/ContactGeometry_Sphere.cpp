@@ -174,7 +174,7 @@ static void setGeodesicToArc(const UnitVec3& e1, const UnitVec3& e2,
 
         Vec3 p = R*n;
 
-        // t = dp/dphi, hence pointing into direction of increasing phi. 
+        // t = dp/dphi, hence pointing into direction of increasing phi.
         Vec3 t = (-e1*sphi + e2*cphi)*orientation;
 
         // Though not needed, we use an orthogonalizing constructor for the rotation.
@@ -263,7 +263,7 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
         angleRightHanded = temp + 2*Pi;
     }
 
-    // Orientation of arc. A negative angle means a left-handed rotation around e3. 
+    // Orientation of arc. A negative angle means a left-handed rotation around e3.
     Real angle;
     if (M >= 0)    {
         angle = angleRightHanded;
@@ -315,7 +315,7 @@ Real SphereImplicitFunction::
 calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
     if (derivComponents.size() == 1)
         return -2*x[derivComponents[0]]/square(ownerp->getRadius());
-    if (   derivComponents.size() == 2 
+    if (   derivComponents.size() == 2
         && derivComponents[0] == derivComponents[1])
         return -2/square(ownerp->getRadius());
     // A mixed second derivative, or any higher derivative is zero.

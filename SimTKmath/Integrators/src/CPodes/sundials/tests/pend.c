@@ -15,7 +15,7 @@
 
 /* Functions Called by the Solver */
 static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data);
-static int proj(realtype t, N_Vector yy, N_Vector corr, 
+static int proj(realtype t, N_Vector yy, N_Vector corr,
                 realtype epsProj, N_Vector err, void *pdata);
 static int cfun(realtype t, N_Vector yy, N_Vector cout, void *c_data);
 static void PrintFinalStats(void *cpode_mem);
@@ -33,7 +33,7 @@ int main()
   realtype reltol, abstol, t, tout, Tout;
   realtype x, y, xd, yd, g;
   int iout, Nout, flag;
-  
+
 
   printf("double  %d\n",(int)sizeof(double));
   printf("long double  %d\n",(int)sizeof(long double));
@@ -58,19 +58,19 @@ int main()
   Tout = Nout*1.0;
 
   /* Initialize solver */
-  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);
   flag = CPodeInit(cpode_mem, f, NULL, 0.0, yy, yp, CP_SS, reltol, &abstol);
   flag = CPodeSetMaxNumSteps(cpode_mem, 5000);
   flag = CPodeSetStopTime(cpode_mem, Tout);
   flag = CPDense(cpode_mem, 4);
 
   /* USER-PROVIDED PROJECTION FUNCTION */
-  /*  
+  /*
   flag = CPodeProjDefine(cpode_mem, proj, NULL);
   */
 
-  /* INTERNAL PROJECTION FUNCTION */  
-  
+  /* INTERNAL PROJECTION FUNCTION */
+
   ctols = N_VNew_Serial(2);
   Ith(ctols,1) = 1.0e-8;
   Ith(ctols,2) = 1.0e-8;
@@ -79,7 +79,7 @@ int main()
   flag = CPDenseProj(cpode_mem, 2, 4, CPDIRECT_LU);
 
   flag = CPodeSetProjUpdateErrEst(cpode_mem, FALSE);
-  
+
   /* DISABLE PROJECTION */
   /*
   CPodeSetProjFrequency(cpode_mem, 0);
@@ -97,7 +97,7 @@ int main()
   Ith(yy,2) = y - 0.0;
   Ith(yy,3) = xd - 0.0;
   Ith(yy,4) = yd - 0.0;
-  printf("%14.10e  %14.10e  %14.10e  %14.10e  |  %14.10e\n",  
+  printf("%14.10e  %14.10e  %14.10e  %14.10e  |  %14.10e\n",
          Ith(yy,1),Ith(yy,2),Ith(yy,3),Ith(yy,4),g);
   */
 
@@ -138,7 +138,7 @@ static int f(realtype t, N_Vector yy, N_Vector fy, void *f_data)
   y  = Ith(yy,2);
   xd = Ith(yy,3);
   yd = Ith(yy,4);
- 
+
   tmp = xd*xd + yd*yd - g*y;
 
   Ith(fy,1) = xd;
@@ -149,7 +149,7 @@ static int f(realtype t, N_Vector yy, N_Vector fy, void *f_data)
   return(0);
 }
 
-static int proj(realtype t, N_Vector yy, N_Vector corr, 
+static int proj(realtype t, N_Vector yy, N_Vector corr,
                 realtype epsProj, N_Vector err, void *pdata)
 {
   realtype x, y, xd, yd;
@@ -164,7 +164,7 @@ static int proj(realtype t, N_Vector yy, N_Vector corr,
   yd = Ith(yy,4);
 
   R = sqrt(x*x+y*y);
-  
+
   x_new = x/R;
   y_new = y/R;
 
@@ -182,7 +182,7 @@ static int proj(realtype t, N_Vector yy, N_Vector corr,
    *      | -x*y     x*x |
    *      +-            -+
    */
-  
+
   /* Return err <-  P * err */
 
   e1 = Ith(err,1);

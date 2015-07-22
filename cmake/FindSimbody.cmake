@@ -1,17 +1,17 @@
 # FindSimbody.cmake
-# 
+#
 # Simbios National Center for Physics Based Simulation of Biological Structures
 # Stanford University
-# This cmake file created 2012 by Michael Sherman and is in the public 
+# This cmake file created 2012 by Michael Sherman and is in the public
 # domain; Simbody itself is open source under the Apache 2.0 license.
 #
-# This is a CMake "find" module that will try to find the Simbody multibody 
+# This is a CMake "find" module that will try to find the Simbody multibody
 # dynamics (physics) package installed somewhere on your computer. Simbody
 # is part of the SimTK biosimulation toolkit. For more information, see
 # https://simtk.org/home/simbody.
 #
-# To use this in a find_package() command from your own CMakeLists.txt file, 
-# make sure this file is in a directory that is in the CMAKE_MODULE_PATH. 
+# To use this in a find_package() command from your own CMakeLists.txt file,
+# make sure this file is in a directory that is in the CMAKE_MODULE_PATH.
 # You can add a directory to that path with a line like this:
 #     list(APPEND CMAKE_MODULE_PATH "myModuleDir")
 #
@@ -35,7 +35,7 @@
 #     Windows only: liblapack libblas pthreadVC2[_x64]
 # The above will be in Simbody_ROOT_DIR/lib.
 #
-# On Mac and Linux we don't provide our own lapack but expect it to be 
+# On Mac and Linux we don't provide our own lapack but expect it to be
 # available.
 #     Mac/Linux only: lapack blas
 #
@@ -63,14 +63,14 @@
 #   <standardPlaces>/Simbody, /simbody
 #   <standardPlaces>/SimTK, /simtk
 #
-# This module looks for certain CMake variables on input and behaves 
+# This module looks for certain CMake variables on input and behaves
 # accordingly if they are present:
 #
 #   SimTK_INSTALL_DIR
 #       This is commonly set by other SimTK software and overrides the
 #       environment variables if present. Note that this has the same name
 #       as one of the environment variables but is distinct.
-#   SimTK_SDK 	
+#   SimTK_SDK
 #       If this is set (probably by the nightly build system) then that
 #       will be the only place we'll look for Simbody, overriding environment
 #       variables if they are set, and overriding the above CMake variable.
@@ -99,11 +99,11 @@ else()
     if(UNIX)
         list(APPEND Simbody_SEARCH_PATHS /usr/local)
     endif()
-    
+
     if(APPLE) # Mac only
         list(APPEND Simbody_SEARCH_PATHS /Developer)
     endif()
-    
+
     # WIN32 includes Windows 32 & 64 bit, and Cygwin
     if(WIN32)
         if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
@@ -111,7 +111,7 @@ else()
 	      set(PROGFILE_DIR "$ENV{ProgramW6432}")
         else() # Target is 32 bit
 	      # present if 64bit Windows
-	      set(PROGFILE_DIR "$ENV{ProgramFiles(x86)}") 
+	      set(PROGFILE_DIR "$ENV{ProgramFiles(x86)}")
 	      if(NOT PROGFILE_DIR)
 	        set(PROGFILE_DIR "$ENV{ProgramFiles}") # on 32bit Windows
 	      endif()
@@ -121,7 +121,7 @@ else()
 endif(SimTK_SDK)
 
 # We'll use the main Simbody header as the key to finding the installation
-# root directory. We're assuming the header is in 
+# root directory. We're assuming the header is in
 #    Simbody_INCLUDE_DIR == ${Simbody_ROOT_DIR}/include
 # So stripping off the "/include" should give the root directory.
 
@@ -133,10 +133,10 @@ message("${Simbody_SEARCH_PATHS}")
 
 
 foreach(pth IN LISTS Simbody_SEARCH_PATHS)
-  find_path(Simbody_INCLUDE_DIR 
+  find_path(Simbody_INCLUDE_DIR
     NAMES "SimTKsimbody.h" "Simbody.h"
     PATHS "${pth}"
-    PATH_SUFFIXES "include" 
+    PATH_SUFFIXES "include"
                   "Simbody/include" "simbody/include"
                   "SimTK/include" "simtk/include"
     NO_DEFAULT_PATH
@@ -146,9 +146,9 @@ endforeach()
 
 # This will only be executed if the first loop fails. We're getting
 # desperate!
-find_path(Simbody_INCLUDE_DIR 
+find_path(Simbody_INCLUDE_DIR
     NAMES "SimTKsimbody.h" "Simbody.h"
-    PATH_SUFFIXES "include" 
+    PATH_SUFFIXES "include"
                   "Simbody/include" "simbody/include"
                   "SimTK/include" "simtk/include"
     DOC "Location of top-level installed Simbody header files"
@@ -227,10 +227,10 @@ if(LIBS)
     foreach(extra_lib IN LISTS Simbody_EXTRA_LIBRARY_LIST)
         set(LIBS ${LIBS} "${extra_lib}")
     endforeach()
-    set(Simbody_LIBRARIES ${LIBS} CACHE STRING 
+    set(Simbody_LIBRARIES ${LIBS} CACHE STRING
         "Simbody dynamic libraries" FORCE)
 else()
-    set(Simbody_LIBRARIES Simbody_LIBRARIES-NOTFOUND CACHE STRING 
+    set(Simbody_LIBRARIES Simbody_LIBRARIES-NOTFOUND CACHE STRING
         "Simbody dynamic libraries" FORCE)
 endif()
 
@@ -238,7 +238,7 @@ endif()
 set(LIBS)
 if(Simbody_STATIC_LIBRARY AND Simbody_STATIC_DEBUG_LIBRARY)
     foreach(libname IN LISTS Simbody_LIBRARY_LIST)
-        set(LIBS ${LIBS} optimized "${libname}_static" 
+        set(LIBS ${LIBS} optimized "${libname}_static"
 		         debug     "${libname}_static_d")
     endforeach()
 elseif(Simbody_STATIC_LIBRARY)
@@ -259,16 +259,16 @@ if(LIBS)
     foreach(extra_lib IN LISTS Simbody_EXTRA_LIBRARY_LIST)
         set(LIBS ${LIBS} "${extra_lib}")
     endforeach()
-    set(Simbody_STATIC_LIBRARIES "${LIBS}" CACHE STRING 
+    set(Simbody_STATIC_LIBRARIES "${LIBS}" CACHE STRING
         "Simbody static libraries" FORCE)
 else()
-    set(Simbody_STATIC_LIBRARIES Simbody_STATIC_LIBRARIES-NOTFOUND CACHE STRING 
+    set(Simbody_STATIC_LIBRARIES Simbody_STATIC_LIBRARIES-NOTFOUND CACHE STRING
         "Simbody static libraries" FORCE)
 endif()
 
 # This CMake-supplied script provides standard error handling.
 include(FindPackageHandleStandardArgs OPTIONAL)
-find_package_handle_standard_args(Simbody DEFAULT_MSG 
+find_package_handle_standard_args(Simbody DEFAULT_MSG
 	Simbody_INCLUDE_DIR)
 
 # Not all the variables we produced need be returned.

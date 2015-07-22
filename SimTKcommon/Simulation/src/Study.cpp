@@ -41,11 +41,11 @@ namespace SimTK {
 // This is the hidden implementation of the Study::Guts abstract base class.
 class Study::Guts::GutsRep {
 public:
-    GutsRep() 
+    GutsRep()
       : studyName("<NONAME>"), studyVersion("0.0.0"), myHandle(0)
     {
     }
-    GutsRep(const String& name, const String& version) 
+    GutsRep(const String& name, const String& version)
       : studyName(name), studyVersion(version), myHandle(0)
     {
     }
@@ -148,7 +148,7 @@ Study::Guts::Guts(const Guts& src) : rep(0) {
 }
 
 // Copy assignment is suppressed
-    
+
 
 const Study& Study::Guts::getStudy() const {
     assert(rep->myHandle);

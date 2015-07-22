@@ -176,7 +176,7 @@ public:
         setParameterLimits(-limits, limits);
     }
     int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
-        f = -cos(x[0]) * cos(x[1]) * 
+        f = -cos(x[0]) * cos(x[1]) *
             exp(-pow(x[0] - Pi, 2) - pow(x[1] - Pi, 2));
         return 0;
     }

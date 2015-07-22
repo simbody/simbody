@@ -38,11 +38,11 @@ using namespace SimTK;
 
 class MyReporter : public PeriodicEventReporter {
 public:
-    MyReporter(const MultibodySystem& system, 
+    MyReporter(const MultibodySystem& system,
         const Measure& power,
         const Measure& work,
         Real reportInterval)
-    :   PeriodicEventReporter(reportInterval), 
+    :   PeriodicEventReporter(reportInterval),
         m_system(system), m_power(power), m_work(work)
     {}
 
@@ -50,8 +50,8 @@ public:
 
     void handleEvent(const State& state) const {
         cout << state.getTime() << " " << m_system.calcEnergy(state);
-        cout << " " << m_power.getValue(state) << " " << m_work.getValue(state) 
-            << " " << 
+        cout << " " << m_power.getValue(state) << " " << m_work.getValue(state)
+            << " " <<
             m_system.calcEnergy(state) - m_work.getValue(state);
         //for (int i=0; i < state.getNQ(); ++i)
         //    cout << " " << state.getQ()[i];
@@ -84,7 +84,7 @@ public:
 template <class T>
 class PowerMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Implementation(const SimbodyMatterSubsystem& matter) 
+    Implementation(const SimbodyMatterSubsystem& matter)
     :   Measure_<T>::Implementation(1), m_matter(matter) {}
 
     // Default copy constructor, destructor, copy assignment are fine.
@@ -92,7 +92,7 @@ public:
     // Implementations of virtual methods.
     Implementation* cloneVirtual() const {return new Implementation(*this);}
     int getNumTimeDerivativesVirtual() const {return 0;}
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const
     {   return Stage::Acceleration; }
 
     void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
@@ -111,7 +111,7 @@ const Real RodLength = 1.1;
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -119,17 +119,17 @@ int main() {
 
     PowerMeasure<Real> powMeas(matter, matter);
     Measure::Zero zeroMeas(matter);
-    Measure::Integrate workMeas(matter, powMeas, zeroMeas); 
+    Measure::Integrate workMeas(matter, powMeas, zeroMeas);
 
     Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1));
 
 
     // Prescribed system.
-    MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
+    MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)),
                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
     Motion::Sinusoid(pendulum, Motion::Position, Pi/8, 2*Pi, Pi/4); // amp, rate, phase
-    MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)), 
+    MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)),
                                  pendulumBody,    Transform(Vec3(0, 1, 0)));
     MobilizedBody::Pin pendulum3(pendulum2, Vec3(0),
                                  pendulumBody, Vec3(0,.5,0));
@@ -138,12 +138,12 @@ int main() {
         100, 0*(Pi/180));
 
     // Identical constrained system.
-    MobilizedBody::Pin cpendulum(matter.Ground(), Transform(Vec3(2,0,0)), 
+    MobilizedBody::Pin cpendulum(matter.Ground(), Transform(Vec3(2,0,0)),
                                  pendulumBody,    Transform(Vec3(0, 1, 0)));
-    Constraint::PrescribedMotion(matter, 
+    Constraint::PrescribedMotion(matter,
                                  new Function::Sinusoid(Pi/8,2*Pi,Pi/4), //amp,rate,phase
                                  cpendulum, MobilizerQIndex(0));
-    MobilizedBody::Pin cpendulum2(cpendulum, Transform(Vec3(0)), 
+    MobilizedBody::Pin cpendulum2(cpendulum, Transform(Vec3(0)),
                                   pendulumBody, Transform(Vec3(0, 1, 0)));
     MobilizedBody::Pin cpendulum3(cpendulum2, Vec3(0),
                                  pendulumBody, Vec3(0,.5,0));
@@ -154,10 +154,10 @@ int main() {
     Constraint::Rod(pendulum3, cpendulum3, RodLength);
 
     // Identical mixed system 1.
-    MobilizedBody::Pin m1pendulum(matter.Ground(), Transform(Vec3(4,0,0)), 
+    MobilizedBody::Pin m1pendulum(matter.Ground(), Transform(Vec3(4,0,0)),
                                   pendulumBody,    Transform(Vec3(0, 1, 0)));
     Motion::Sinusoid(m1pendulum, Motion::Position, Pi/8, 2*Pi, Pi/4); // amp, rate, phase
-    MobilizedBody::Pin m1pendulum2(m1pendulum, Transform(Vec3(0)), 
+    MobilizedBody::Pin m1pendulum2(m1pendulum, Transform(Vec3(0)),
                                    pendulumBody, Transform(Vec3(0, 1, 0)));
     MobilizedBody::Pin m1pendulum3(m1pendulum2, Vec3(0),
                                    pendulumBody, Vec3(0,.5,0));
@@ -167,12 +167,12 @@ int main() {
 
 
     // Identical mixed system 2.
-    MobilizedBody::Pin m2pendulum(matter.Ground(), Transform(Vec3(6,0,0)), 
+    MobilizedBody::Pin m2pendulum(matter.Ground(), Transform(Vec3(6,0,0)),
                                  pendulumBody,    Transform(Vec3(0, 1, 0)));
-    Constraint::PrescribedMotion(matter, 
+    Constraint::PrescribedMotion(matter,
                                  new Function::Sinusoid(Pi/8,2*Pi,Pi/4), //amp,rate,phase
                                  m2pendulum, MobilizerQIndex(0));
-    MobilizedBody::Pin m2pendulum2(m2pendulum, Transform(Vec3(0)), 
+    MobilizedBody::Pin m2pendulum2(m2pendulum, Transform(Vec3(0)),
                                    pendulumBody, Transform(Vec3(0, 1, 0)));
     MobilizedBody::Pin m2pendulum3(m2pendulum2, Vec3(0),
                                    pendulumBody, Vec3(0,.5,0));
@@ -187,9 +187,9 @@ int main() {
     system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
     system.addEventReporter(new MyReporter(system, powMeas, workMeas, 0.01));
 
-   
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     system.realize(state, Stage::Instance);
@@ -200,9 +200,9 @@ int main() {
     viz.report(state);
     system.realize(state, Stage::Velocity);
     clog << "Default state -- hit ENTER\n";
-    clog << "t=" << state.getTime() 
-         << "\nq=" << state.getQ() 
-         << "\nu=" << state.getU() 
+    clog << "t=" << state.getTime()
+         << "\nq=" << state.getQ()
+         << "\nu=" << state.getU()
          << "\nqerr=" << state.getQErr()
          << "\nuerr=" << state.getUErr()
          << endl;
@@ -212,11 +212,11 @@ int main() {
     system.realize(state, Stage::Time);
 
 
-    clog << "After realize(Time) motion qerr=" 
+    clog << "After realize(Time) motion qerr="
          << matter.calcMotionErrors(state, Stage::Position) << "\n";
     system.prescribeQ(state);
 
-    clog << "After prescribe() motion qerr=" 
+    clog << "After prescribe() motion qerr="
          << matter.calcMotionErrors(state, Stage::Position) << "\n";
 
     //if (matter.prescribe(state, Stage::Position)) clog << "Some PresQ\n";
@@ -230,9 +230,9 @@ int main() {
 
     viz.report(state);
     clog << "After prescribe(Position) & project -- hit ENTER\n";
-    clog << "t=" << state.getTime() 
-         << "\nq=" << state.getQ() 
-         << "\nu=" << state.getU() 
+    clog << "t=" << state.getTime()
+         << "\nq=" << state.getQ()
+         << "\nu=" << state.getU()
          << "\nqerr=" << state.getQErr()
          << endl;
 
@@ -248,19 +248,19 @@ int main() {
 
     c=getchar();
 
-    clog << "After realize(Position) motion uerr=" 
+    clog << "After realize(Position) motion uerr="
          << matter.calcMotionErrors(state, Stage::Velocity) << "\n";
     system.prescribeU(state);
-    clog << "After prescribe() motion uerr=" 
+    clog << "After prescribe() motion uerr="
          << matter.calcMotionErrors(state, Stage::Velocity) << "\n";
 
     system.realize(state, Stage::Velocity);
     system.projectU(state, 1e-10);
     viz.report(state);
     clog << "After prescribe(Velocity) & project -- hit ENTER\n";
-    clog << "t=" << state.getTime() 
-         << "\nq=" << state.getQ() 
-         << "\nu=" << state.getU() 
+    clog << "t=" << state.getTime()
+         << "\nq=" << state.getQ()
+         << "\nu=" << state.getU()
          << "\nuerr=" << state.getUErr()
          << endl;
 
@@ -278,14 +278,14 @@ int main() {
     c=getchar();
 
     system.realize(state, Stage::Acceleration);
-    clog << "After realize(Acceleration) motion udoterr=" 
+    clog << "After realize(Acceleration) motion udoterr="
          << matter.calcMotionErrors(state, Stage::Acceleration) << "\n";
 
     clog << "After realize(Acceleration) -- hit ENTER\n";
-    clog << "t=" << state.getTime() 
+    clog << "t=" << state.getTime()
          << "\nq=" << state.getQ()
-         << "\nu=" << state.getU() 
-         << "\nudot=" << state.getUDot() 
+         << "\nu=" << state.getU()
+         << "\nudot=" << state.getUDot()
          << "\ntau=" << pendulum.getTauAsVector(state) << pendulum2.getTauAsVector(state) << pendulum3.getTauAsVector(state)
          << endl;
 
@@ -355,7 +355,7 @@ int main() {
 
     //pendulum.setOneU(state, 0, 1.0);
 
-    
+
     // Simulate it.
 
 

@@ -47,7 +47,7 @@ class TypedWorkSpace {
              data = new T[size];
              for(int i=0;i<size;i++) data[i] = c.data[i];
          }
-       
+
     }
     TypedWorkSpace& operator=(const TypedWorkSpace& rhs) {
         if (&rhs == this)
@@ -74,7 +74,7 @@ class TypedWorkSpace {
     ~TypedWorkSpace() {
         delete [] data;
     }
-    
+
     void resize( int n ) {
         delete [] data;
         size = n;
@@ -82,7 +82,7 @@ class TypedWorkSpace {
     }
 
     int size;
-    T* data; 
+    T* data;
 };
 
 } // namespace SimTK

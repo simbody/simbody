@@ -21,9 +21,9 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* Kevin He at Roblox created this example starting with 
+/* Kevin He at Roblox created this example starting with
 ExampleContactPlayground. It basically demonstrates why an Elastic Foundation
-(EF) contact model is not a good way to handle coarsely-meshed simple objects, 
+(EF) contact model is not a good way to handle coarsely-meshed simple objects,
 like a box. EF uses the centroid of each face to generate an area-weighted
 force, which can be a good physical representation with a dense mesh but
 since the vertices and edges don't participate there is a lot of visible
@@ -56,11 +56,11 @@ static const int GoItem = 1, ReplayItem=2, QuitItem=3;
 // This one does nothing but look for the Run->Quit selection.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, Real interval) 
+    UserInputHandler(Visualizer::InputSilo& silo, Real interval)
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
-    virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const 
+    virtual void handleEvent(State& state, Real accuracy,
+                             bool& shouldTerminate) const
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)
@@ -81,7 +81,7 @@ static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -101,17 +101,17 @@ int main() {
 
     const Real boxMass = halfSize[0] * halfSize[1] * halfSize[2] * 8;
     const Real boxMass2 = halfSize2[0] * halfSize2[1] * halfSize2[2] * 8;
-    Body::Rigid boxBody(MassProperties(boxMass, Vec3(0), 
+    Body::Rigid boxBody(MassProperties(boxMass, Vec3(0),
                                         boxMass * UnitInertia::brick(halfSize)));
-    Body::Rigid boxBody2(MassProperties(boxMass2, Vec3(0), 
+    Body::Rigid boxBody2(MassProperties(boxMass2, Vec3(0),
                         boxMass2 * UnitInertia::brick(halfSize2)));
-    boxBody.addDecoration(Transform(), 
+    boxBody.addDecoration(Transform(),
                             showBox.setColor(Red).setOpacity(1));
-    boxBody.addDecoration(Transform(), 
+    boxBody.addDecoration(Transform(),
                             showBox.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
-    boxBody2.addDecoration(Transform(), 
+    boxBody2.addDecoration(Transform(),
                             showBox2.setColor(Cyan).setOpacity(.6));
-    boxBody2.addDecoration(Transform(), 
+    boxBody2.addDecoration(Transform(),
                             showBox2.setColor(Gray).setRepresentation(DecorativeGeometry::DrawWireframe));
 //     boxBody.addDecoration(Transform(),
 //                           DecorativeSphere(1).setColor(Gray).setOpacity(.1).setResolution(10));
@@ -162,7 +162,7 @@ int main() {
     system.addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
-   
+
     system.realizeTopology();
     State state = system.getDefaultState();
     //ball.setQToFitTransform(state, Transform(Rotation(Pi/2,XAxis),
@@ -175,14 +175,14 @@ int main() {
     cout << "\nChoose 'Go' from Run menu to simulate:\n";
     int menuId, item;
     do { silo->waitForMenuPick(menuId, item);
-         if (menuId != RunMenuId || item != GoItem) 
+         if (menuId != RunMenuId || item != GoItem)
              cout << "\aDude ... follow instructions!\n";
     } while (menuId != RunMenuId || item != GoItem);
 
     //ball.setOneU(state, 2, -20);
 
    // ball.setOneU(state, 0, .05); // to break symmetry
-    
+
     CPodesIntegrator integ(system,CPodes::BDF,CPodes::Newton);
     integ.setAccuracy(1e-3); // minimum for CPodes
     TimeStepper ts(system, integ);
@@ -197,12 +197,12 @@ int main() {
     const double timeInSec = realTime() - realStart;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "  CPU time was " << cpuTime() - cpuStart << "s\n";
 
-    printf("Using Integrator %s at accuracy %g:\n", 
+    printf("Using Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
@@ -258,7 +258,7 @@ int main() {
 
 
 // Create a triangle mesh in the shape of a pyramid, with the
-// square base in the x-z plane centered at 0,0,0 of given side length s. 
+// square base in the x-z plane centered at 0,0,0 of given side length s.
 // The base is split into two triangles. The apex will be at (0,s,0).
 static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
     const Real h = s/2;
@@ -269,7 +269,7 @@ static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
     vertices.push_back(Vec3(-h, 0,  h));
     vertices.push_back(Vec3( 0, s,  0)); // apex
     Array_<int> faceIndices;
-    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, 
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4},
                        {2, 1, 4}, {3, 2, 4}, {0, 3, 4}};
     for (int i = 0; i < 6; i++)
         for (int j = 0; j < 3; j++)
@@ -289,7 +289,7 @@ static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
 static void makeTetrahedron(Real r, PolygonalMesh& tet) {
     const Real h = r/std::sqrt(Real(3)); // half-dim of cube
     Array_<Vec3> vertices;
-    vertices.push_back(Vec3( h, h,  h)); 
+    vertices.push_back(Vec3( h, h,  h));
     vertices.push_back(Vec3(-h,-h,  h));
     vertices.push_back(Vec3(-h, h, -h));
     vertices.push_back(Vec3( h,-h, -h));
@@ -315,16 +315,16 @@ static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
     vertices.push_back(Vec3( 0, -r[1],  0));   //3
     vertices.push_back(Vec3( 0,  0,  r[2]));   //4
     vertices.push_back(Vec3( 0,  0, -r[2]));   //5
-    int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
+    int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0},
                        {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
     for (int i = 0; i < 8; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
 }
 
-// Create a triangle mesh in the shape of an octahedron (like two 
-// pyramids stacked base-to-base, with the square base in the x-z plane 
-// centered at 0,0,0 of given "radius" r. 
+// Create a triangle mesh in the shape of an octahedron (like two
+// pyramids stacked base-to-base, with the square base in the x-z plane
+// centered at 0,0,0 of given "radius" r.
 // The apexes will be at (0,+/-r,0).
 static void makeOctahedron(Real r, PolygonalMesh& mesh) {
     Array_<Vec3> vertices;
@@ -341,11 +341,11 @@ static void makeOctahedron(Real r, PolygonalMesh& mesh) {
 
 static void makeCube(Real h, PolygonalMesh& cube) {
     Array_<Vec3> vertices;
-    vertices.push_back(Vec3( h, h,  h)); 
+    vertices.push_back(Vec3( h, h,  h));
     vertices.push_back(Vec3( h, h, -h));
     vertices.push_back(Vec3( h,-h,  h));
     vertices.push_back(Vec3( h,-h, -h));
-    vertices.push_back(Vec3(-h, h,  h)); 
+    vertices.push_back(Vec3(-h, h,  h));
     vertices.push_back(Vec3(-h, h, -h));
     vertices.push_back(Vec3(-h,-h,  h));
     vertices.push_back(Vec3(-h,-h, -h));

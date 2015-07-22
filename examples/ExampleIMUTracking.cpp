@@ -45,7 +45,7 @@ typedef SimTK::OrientationSensors::ObservationIx IMUObsIx;
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -65,22 +65,22 @@ int main() {
     const Vec3 hdims_torso(1,4,2), hdims_head(.3,1,.6);
     const Vec3 marker_head(hdims_head[0],hdims_head[1],0); // top front
 
-    Body::Rigid torsoBody(MassProperties(mass_torso, Vec3(0), 
+    Body::Rigid torsoBody(MassProperties(mass_torso, Vec3(0),
                                             UnitInertia::brick(hdims_torso)));
     torsoBody.addDecoration(DecorativeBrick(hdims_torso).setOpacity(.4));
-    torsoBody.addDecoration(torsoIMUOri, 
+    torsoBody.addDecoration(torsoIMUOri,
         DecorativeFrame(1).setColor(Green).setLineThickness(5));
 
-    Body::Rigid headBody(MassProperties(mass_head, Vec3(0), 
+    Body::Rigid headBody(MassProperties(mass_head, Vec3(0),
                                         UnitInertia::brick(hdims_head)));
     headBody.addDecoration(DecorativeBrick(hdims_head)
                            .setOpacity(.4).setColor(Cyan));
-    headBody.addDecoration(headIMUOri, 
+    headBody.addDecoration(headIMUOri,
         DecorativeFrame(1).setColor(Green).setLineThickness(5));
     headBody.addDecoration(marker_head,
         DecorativePoint().setColor(Green));
 
-    MobilizedBody::Free torso(matter.Ground(), Vec3(0,hdims_torso[1],0), 
+    MobilizedBody::Free torso(matter.Ground(), Vec3(0,hdims_torso[1],0),
                               torsoBody, Vec3(0,-hdims_torso[1],0));
 
     MobilizedBody::Ball head(torso, Vec3(0,hdims_torso[1],0),
@@ -88,7 +88,7 @@ int main() {
 
 
 
-    // Initialize the system and state. 
+    // Initialize the system and state.
     State state = system.realizeTopology();
 
     const Real Accuracy = 1e-5;
@@ -110,22 +110,22 @@ int main() {
 
     const IMUObsIx torsoObsIx = imus->getObservationIxForOSensor(torsoIMU);
     const IMUObsIx headObsIx  = imus->getObservationIxForOSensor(headIMU);
-    const MarkerObsIx headMarkerObsIx = 
+    const MarkerObsIx headMarkerObsIx =
         markers->getObservationIxForMarker(headMarker);
 
     // Try an initial assembly to an arbitrary pose.
-    imus->moveOneObservation(torsoObsIx, 
+    imus->moveOneObservation(torsoObsIx,
                              Rotation(SimTK::BodyRotationSequence,
                                       Pi/8, ZAxis, Pi/8, YAxis));
-    imus->moveOneObservation(headObsIx, 
+    imus->moveOneObservation(headObsIx,
                              Rotation()); // keep aligned with Ground
     markers->moveOneObservation(headMarkerObsIx,
                                 Vec3(0, 12, 0));
 
-    for (OrientationSensors::OSensorIx mx(0); 
+    for (OrientationSensors::OSensorIx mx(0);
          mx < imus->getNumOSensors(); ++mx)
     {
-        printf("mx=%d ox=%d err=%g\n", 
+        printf("mx=%d ox=%d err=%g\n",
             (int)mx, (int)imus->getObservationIxForOSensor(mx),
             imus->findCurrentOSensorError(mx));
     }
@@ -139,16 +139,16 @@ int main() {
     printf("Using accuracy=%g\n", ik.getAccuracyInUse());
     ik.assemble(state);
 
-    for (OrientationSensors::OSensorIx mx(0); 
+    for (OrientationSensors::OSensorIx mx(0);
          mx < imus->getNumOSensors(); ++mx)
     {
-        printf("mx=%d ox=%d err=%g\n", 
+        printf("mx=%d ox=%d err=%g\n",
             (int)mx, (int)imus->getObservationIxForOSensor(mx),
             imus->findCurrentOSensorError(mx));
     }
 
     viz.report(state);
-    cout << "ASSEMBLED CONFIGURATION\n";     
+    cout << "ASSEMBLED CONFIGURATION\n";
     cout << "Type any character to start tracking:\n";
     getchar();
 
@@ -158,7 +158,7 @@ int main() {
     for (int iters=0; iters <= NSteps; ++iters) {
         const Real slow = std::sin(2*Pi*iters/100);
         const Real fast = std::sin(10*Pi*iters/100);
-        Rotation torsoObs(SpaceRotationSequence, 
+        Rotation torsoObs(SpaceRotationSequence,
                           (Pi/4)*slow, ZAxis,
                           (Pi/2)*slow, YAxis);
         Rotation headObs((Pi/8)*fast, YAxis); // shake head
@@ -167,14 +167,14 @@ int main() {
         imus->moveOneObservation(torsoObsIx, torsoObs);
         imus->moveOneObservation(headObsIx, headObs);
         markers->moveOneObservation(headMarkerObsIx, markerObs);
-                                        
+
         ik.track();
         ik.updateFromInternalState(state);
         viz.report(state);
     }
 
-    cout << "TRACKED " << NSteps << " steps in " 
-         << cpuTime()-startCPU   << " CPU s, " 
+    cout << "TRACKED " << NSteps << " steps in "
+         << cpuTime()-startCPU   << " CPU s, "
          << realTime()-startReal << " REAL s\n";
 
     cout << "DONE TRACKING ...\n";

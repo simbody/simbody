@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2007/01/24 01:05:12 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Aaron Collier and Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2005, The Regents of the University of California.
@@ -17,8 +17,8 @@
 /* Define SUNDIALS version number */
 #define SUNDIALS_PACKAGE_VERSION "@PACKAGE_VERSION@"
 
-/* FCMIX: Define Fortran name-mangling macro 
- * Depending on the inferred scheme, one of the following 
+/* FCMIX: Define Fortran name-mangling macro
+ * Depending on the inferred scheme, one of the following
  * six macros will be defined:
  *     #define F77_FUNC(name,NAME) name
  *     #define F77_FUNC(name,NAME) name ## _
@@ -30,8 +30,8 @@
 @F77_MANGLE_MACRO1@
 @F77_MANGLE_MACRO2@
 
-/* Define precision of SUNDIALS data type 'realtype' 
- * Depending on the precision level, one of the following 
+/* Define precision of SUNDIALS data type 'realtype'
+ * Depending on the precision level, one of the following
  * three macros will be defined:
  *     #define SUNDIALS_SINGLE_PRECISION 1
  *     #define SUNDIALS_DOUBLE_PRECISION 1
@@ -39,7 +39,7 @@
  */
 @PRECISION_LEVEL@
 
-/* Use generic math functions 
+/* Use generic math functions
  * If it was decided that generic math functions can be used, then
  *     #define SUNDIALS_USE_GENERIC_MATH 1
  * otherwise

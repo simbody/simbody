@@ -42,8 +42,8 @@ template <class S> class VectorHelper;      // 1-d array of elements
 /* --------------------------- MatrixHelperRep ---------------------------------
  *
  * This is the private implementation of the MatrixHelper<S> class. Note that
- * this must be explicitly instantiated in library-side source code for all 
- * possible values of the template parameter S, which is just the set of all 
+ * this must be explicitly instantiated in library-side source code for all
+ * possible values of the template parameter S, which is just the set of all
  * SimTK scalar types.
  *
  * Every MatrixHelperRep has the following members:
@@ -53,14 +53,14 @@ template <class S> class VectorHelper;      // 1-d array of elements
  *  - pointer to memory
  *  - pointer to memory's reference counter
  *
- * Concrete derivatives of MatrixHelperRep contain additional information 
+ * Concrete derivatives of MatrixHelperRep contain additional information
  * used to map logical element indices to physical memory.
  *
- * There are some extremely performance-sensitive aspects to this object, 
+ * There are some extremely performance-sensitive aspects to this object,
  * especially with regard to selecting individual elements of a matrix. In order
  * to get here we have already had to follow the pointer in the Matrix handle.
- * We would like to be able to return an element in the fewest additional 
- * instructions possible. This is made difficult by the variety of run time 
+ * We would like to be able to return an element in the fewest additional
+ * instructions possible. This is made difficult by the variety of run time
  * features we want to support here:
  *  - writable vs. read-only access to data
  *  - row- and column-ordered data
@@ -72,30 +72,30 @@ template <class S> class VectorHelper;      // 1-d array of elements
  * If we had to check flags for each of these possibilities before finally
  * indexing the element of interest, access would be substantially slowed. We
  * are particularly concerned about performance for the most common case
- * of regularly-spaced scalar elements. Instead of checking flags at run time, 
- * we want to make use of the virtual function table so that the all of the 
- * above tests can be avoided with a single indirect call through the virtual 
- * function branch table. At run time the compiler will then translate a call 
+ * of regularly-spaced scalar elements. Instead of checking flags at run time,
+ * we want to make use of the virtual function table so that the all of the
+ * above tests can be avoided with a single indirect call through the virtual
+ * function branch table. At run time the compiler will then translate a call
  * like "rep->getElt(i,j)" to "call rep->vft[getElt](i,j)" where the particular
- * function called is the right one given this rep's particular combination of 
+ * function called is the right one given this rep's particular combination of
  * all the possibilities mentioned above, which is encapsulated in the concrete
- * type of the MatrixHelperRep object. Attempts to call update methods of 
- * non-writable reps will call directly to methods which throw an appropriate 
+ * type of the MatrixHelperRep object. Attempts to call update methods of
+ * non-writable reps will call directly to methods which throw an appropriate
  * error condition.
  *
  * Sorting out all these issues at compile time requires a large number of
- * small classes. All classes are templatized by Scalar type <S> and explicitly 
- * instantiated for all the SimTK scalar types. 
+ * small classes. All classes are templatized by Scalar type <S> and explicitly
+ * instantiated for all the SimTK scalar types.
  *
- * At handle construction, a suitable default helper is assigned with a minimal 
- * handle commitment derived from the handle type -- element size, column or 
- * row outline, and whether the handle must be a view. Everything else will be 
+ * At handle construction, a suitable default helper is assigned with a minimal
+ * handle commitment derived from the handle type -- element size, column or
+ * row outline, and whether the handle must be a view. Everything else will be
  * uncommitted. If a later assignment requires a different concrete helper, the
- * original one will be replaced but the commitments will remain unchanged. 
- * Note that MatrixHelpers cannot be shared; each is paired with just one 
+ * original one will be replaced but the commitments will remain unchanged.
+ * Note that MatrixHelpers cannot be shared; each is paired with just one
  * handle.
  * ---------------------------------------------------------------------------*/
-template <class S> 
+template <class S>
 class MatrixHelperRep {
     typedef MatrixHelperRep<S>                      This;
     typedef MatrixHelperRep<typename CNT<S>::TNeg>  ThisNeg;
@@ -109,10 +109,10 @@ public:
 
     // Constructors are protected; for use by derived classes only.
 
-    // This is the MatrixHelper factory method for owner matrices. Given a 
-    // particular matrix character, this method will deliver the best 
+    // This is the MatrixHelper factory method for owner matrices. Given a
+    // particular matrix character, this method will deliver the best
     // MatrixHelperRep subclass with those characteristics.
-    static This* createOwnerMatrixHelperRep(int esz, int cppEsz, 
+    static This* createOwnerMatrixHelperRep(int esz, int cppEsz,
                                             const MatrixCharacter&);
 
     // This is the MatrixHelper factory method for matrices providing a view
@@ -125,12 +125,12 @@ public:
     // best MatrixHelperRep we can come up with for these characteristics; it
     // will not be an owner rep.
     static This* createExternalMatrixHelperRep
-       (int esz, int cppEsz, const MatrixCharacter& actual, 
+       (int esz, int cppEsz, const MatrixCharacter& actual,
         int spacing, S* data, bool canWrite=true);
 
     // This is the factory for const access to externally-allocated storage.
     static This* createExternalMatrixHelperRep
-       (int esz, int cppEsz, const MatrixCharacter& actual, int spacing, 
+       (int esz, int cppEsz, const MatrixCharacter& actual, int spacing,
         const S* data)
     {   return createExternalMatrixHelperRep(esz, cppEsz, actual, spacing,
                                              const_cast<S*>(data), false); }
@@ -139,7 +139,7 @@ public:
     // already allocated in this handle. In particular both dimensions match.
     void copyInFromCompatibleSource(const MatrixHelperRep<S>& source) {
         if (!m_writable)
-            SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView, 
+            SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView,
                          "assignment");
         copyInFromCompatibleSource_(source);
     }
@@ -155,16 +155,16 @@ public:
     // The default implementation is very slow.
     void fillWithScalar(const StdNumber& scalar) {
         if (!m_writable)
-            SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView, 
+            SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView,
                          "fillWithScalar()");
         fillWithScalar_(scalar);
     }
 
     // These are used in copy constructors. Hence the resulting value must
     // be the same as the source value, even if we're removing a negator<> from
-    // the elements. So the createNegatedDeepCopy actually has to negate every 
-    // element with (yuck) floating point operations. Note that the returned 
-    // Matrix is always an owner, writable, and has whatever is the most 
+    // the elements. So the createNegatedDeepCopy actually has to negate every
+    // element with (yuck) floating point operations. Note that the returned
+    // Matrix is always an owner, writable, and has whatever is the most
     // efficient storage type for the source data.
     This* createDeepCopy() const {return createDeepCopy_();}
     ThisNeg* createNegatedDeepCopy() const {
@@ -176,7 +176,7 @@ public:
     This* createWholeView(bool wantToWrite) const {
         This* p       = cloneHelper_();
         p->m_owner    = false;
-        p->m_writable = m_writable && wantToWrite; 
+        p->m_writable = m_writable && wantToWrite;
         p->m_data     = m_data;
         p->m_actual   = m_actual;
         return p;
@@ -193,20 +193,20 @@ public:
 
 
     This* createBlockView(const EltBlock& block, bool wantToWrite) const {
-        SimTK_SIZECHECK(block.row0(), nrow()-block.nrow(), 
+        SimTK_SIZECHECK(block.row0(), nrow()-block.nrow(),
                         "MatrixHelperRep::createBlockView()");
-        SimTK_SIZECHECK(block.col0(), ncol()-block.ncol(), 
+        SimTK_SIZECHECK(block.col0(), ncol()-block.ncol(),
                         "MatrixHelperRep::createBlockView()");
         This* p = const_cast<This*>(this)->createBlockView_(block);
         p->m_writable = m_writable && wantToWrite;
         p->m_actual.setActualSize(block.nrow(), block.ncol());
         return p;
     }
-    This* createRegularView(const EltBlock& block, const EltIndexer& ix, 
+    This* createRegularView(const EltBlock& block, const EltIndexer& ix,
                             bool wantToWrite) const {
-        SimTK_SIZECHECK(block.row0(), nrow()-ix.row(block.nrow(), block.ncol()), 
+        SimTK_SIZECHECK(block.row0(), nrow()-ix.row(block.nrow(), block.ncol()),
                         "MatrixHelperRep::createRegularView()");
-        SimTK_SIZECHECK(block.col0(), ncol()-ix.col(block.nrow(), block.ncol()), 
+        SimTK_SIZECHECK(block.col0(), ncol()-ix.col(block.nrow(), block.ncol()),
                         "MatrixHelperRep::createRegularView()");
         This* p = const_cast<This*>(this)->createRegularView_(block, ix);
         p->m_writable = m_writable && wantToWrite;
@@ -251,11 +251,11 @@ public:
     // Is the memory that we ultimately reference organized contiguously?
     bool hasContiguousData() const {return hasContiguousData_();}
 
-    // Using *element* indices, obtain a pointer to the beginning of a 
-    // particular element. This is always a slow operation compared to raw 
+    // Using *element* indices, obtain a pointer to the beginning of a
+    // particular element. This is always a slow operation compared to raw
     // array access; use sparingly.
     //
-    // These inline base class interface routines provide Debug-mode range 
+    // These inline base class interface routines provide Debug-mode range
     // checking but evaporate completely in Release mode so that the underlying
     // virtual method is called directly.
     const S* getElt(int i, int j) const {
@@ -266,7 +266,7 @@ public:
     S* updElt(int i, int j) {
         SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::updElt(i,j)");
         SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::updElt(i,j)");
-        SimTK_ERRCHK(m_writable, "MatrixHelperRep::updElt()", 
+        SimTK_ERRCHK(m_writable, "MatrixHelperRep::updElt()",
                      "Matrix not writable.");
         return updElt_(i,j);
     }
@@ -274,7 +274,7 @@ public:
     void getAnyElt(int i, int j, S* value) const {
         SimTK_INDEXCHECK(i, nrow(), "MatrixHelperRep::getAnyElt(i,j)");
         SimTK_INDEXCHECK(j, ncol(), "MatrixHelperRep::getAnyElt(i,j)");
-        SimTK_ERRCHK(value, "MatrixHelperRep::getAnyElt()", 
+        SimTK_ERRCHK(value, "MatrixHelperRep::getAnyElt()",
             "The value return pointer must not be null.");
         return getAnyElt_(i,j,value);
     }
@@ -285,14 +285,14 @@ public:
     }
     S* updElt(int i) {
         SimTK_INDEXCHECK(i, length(), "MatrixHelperRep::updElt(i)");
-        SimTK_ERRCHK(m_writable, "MatrixHelperRep::updElt(i)", 
+        SimTK_ERRCHK(m_writable, "MatrixHelperRep::updElt(i)",
                      "Matrix not writable.");
         return updElt_(i);
     }
 
     void getAnyElt(int i, S* value) const {
         SimTK_INDEXCHECK(i, length(), "MatrixHelperRep::getAnyElt(i)");
-        SimTK_ERRCHK(value, "MatrixHelperRep::getAnyElt()", 
+        SimTK_ERRCHK(value, "MatrixHelperRep::getAnyElt()",
             "The value return pointer must not be null.");
         return getAnyElt_(i,value);
     }
@@ -336,10 +336,10 @@ public:
             SimTK_THROW1(Exception::OperationNotAllowedOnView, "resize()");
         // owner
         if (m_handleIsLocked)
-            SimTK_THROW1(Exception::Cant, 
+            SimTK_THROW1(Exception::Cant,
                 "resize(), because owner handle is locked.");
         if (!m_commitment.isSizeOK(m,n))
-            SimTK_THROW1(Exception::Cant, 
+            SimTK_THROW1(Exception::Cant,
                 "resize(), because handle commitment doesn't allow this size.");
         if (keep) resizeKeep_(m,n);
         else      resize_(m,n);
@@ -348,11 +348,11 @@ public:
 
 
     // addition and subtraction (+= and -=)
-    void addIn(const MatrixHelper<S>&);   
-    void addIn(const MatrixHelper<typename CNT<S>::TNeg>&);   
-    void subIn(const MatrixHelper<S>&); 
-    void subIn(const MatrixHelper<typename CNT<S>::TNeg>&); 
-    
+    void addIn(const MatrixHelper<S>&);
+    void addIn(const MatrixHelper<typename CNT<S>::TNeg>&);
+    void subIn(const MatrixHelper<S>&);
+    void subIn(const MatrixHelper<typename CNT<S>::TNeg>&);
+
     // Fill all our stored data with copies of the same supplied element.
     void fillWith(const S* eltp);
 
@@ -360,7 +360,7 @@ public:
     // Matrix. In addition to the row ordering, C++ may use different spacing
     // for elements than Simmatrix does. Lucky we know that value!
     void copyInByRowsFromCpp(const S* elts);
-            
+
     // Scalar multiply (and divide). This is useful no matter what the
     // element structure and will produce the correct result.
     void scaleBy(const StdNumber&);
@@ -370,10 +370,10 @@ public:
     // solve linear equations!).
     void invertInPlace() {
         if (!m_writable)
-            SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView, 
+            SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView,
                          "invertInPlace()");
         if (nrow() != ncol())
-            SimTK_THROW1(Exception::Cant, 
+            SimTK_THROW1(Exception::Cant,
                          "invertInPlace(): matrix must be square");
         invertInPlace_();
     }
@@ -415,13 +415,13 @@ public:
     const S*     getData()     const {assert(m_data); return m_data;}
     S*           updData()           {assert(m_data); return m_data;}
 
-    const SNeg*  getDataNeg()  const 
+    const SNeg*  getDataNeg()  const
     {   return reinterpret_cast<const SNeg*>(getData()); }
-    SNeg*        updDataNeg()        
+    SNeg*        updDataNeg()
     {   return reinterpret_cast<SNeg*>(updData()); }
-    const SHerm* getDataHerm() const 
+    const SHerm* getDataHerm() const
     {   return reinterpret_cast<const SHerm*>(getData()); }
-    SHerm*       updDataHerm()       
+    SHerm*       updDataHerm()
     {   return reinterpret_cast<SHerm*>(updData()); }
 
     // Delete the data if necessary, and leave the data pointer null. If this
@@ -431,7 +431,7 @@ public:
     // data while the handle is locked.
     void clearData() {
         if (m_handleIsLocked) {
-            SimTK_THROW1(Exception::Cant, 
+            SimTK_THROW1(Exception::Cant,
                 "MatrixHelperRep::clearData(): handle is locked.");
             return;
         }
@@ -446,7 +446,7 @@ public:
         assert(nelt >= 0);
         assert(m_owner && m_data==0);
         if (m_handleIsLocked) {
-            SimTK_THROW1(Exception::Cant, 
+            SimTK_THROW1(Exception::Cant,
                 "MatrixHelperRep::allocateData(): handle is locked.");
             return;
         }
@@ -455,19 +455,19 @@ public:
 
     // Given dimensions in number of elements (not scalars), allocate
     // just enough memory to hold m*n elements in packed storage.
-    void allocateData(int m, int n) 
+    void allocateData(int m, int n)
     {   assert(m>=0 && n>=0);
         allocateData(ptrdiff_t(m) * ptrdiff_t(n)); }
 
-    // Allocate new heap space to hold nelt densely-packed elements each 
+    // Allocate new heap space to hold nelt densely-packed elements each
     // composed of m_eltSize scalars of type S. We actually allocate an array of
-    // the underlying Precision type (float or double) to avoid any default 
+    // the underlying Precision type (float or double) to avoid any default
     // construction of more complicated elements like complex. If we're in Debug
-    // mode, we'll initialize the resulting data to NaN, otherwise we won't 
+    // mode, we'll initialize the resulting data to NaN, otherwise we won't
     // touch it. If nelt is zero we return a null pointer.
     S* allocateMemory(ptrdiff_t nElt) const {
         assert(nElt >= 0);
-        if (nElt==0) 
+        if (nElt==0)
             return 0;
         assert(sizeof(S) % sizeof(Precision) == 0);
         const ptrdiff_t nPrecPerElt = (sizeof(S)/sizeof(Precision))*m_eltSize;
@@ -483,14 +483,14 @@ public:
     // Allocate enough memory to hold m*n elements. m and n are ints, but their
     // product may not fit in an int, so we use ptrdiff_t which will be a 64-bit
     // signed integer on a 64 bit machine.
-    S* allocateMemory(int m, int n) const 
+    S* allocateMemory(int m, int n) const
     {   assert(m>=0 && n>=0);
         return allocateMemory(ptrdiff_t(m) * ptrdiff_t(n)); }
 
-    // Use this method to delete help space that you allocated using 
-    // allocateNewData() above. We recast it back to the form in which it was 
-    // allocated before deleting which will keep the heap system happy and also 
-    // prevent the calling of any element destructor that might be present for 
+    // Use this method to delete help space that you allocated using
+    // allocateNewData() above. We recast it back to the form in which it was
+    // allocated before deleting which will keep the heap system happy and also
+    // prevent the calling of any element destructor that might be present for
     // the fancier scalar types.
     static void deleteAllocatedMemory(S* mem) {
         Precision* p = reinterpret_cast<Precision*>(mem);
@@ -502,7 +502,7 @@ public:
     void setData(S* datap) {assert(!m_data); m_data = datap;}
     void setOwner(bool isOwner) {m_owner=isOwner;}
 
-    // Single element manipulation: VERY SLOW, use sparingly.    
+    // Single element manipulation: VERY SLOW, use sparingly.
     void copyElt(S* dest, const S* src) const
     {   for (int k=0; k<m_eltSize; ++k) dest[k] = src[k]; }
     void copyAndScaleElt(S* dest, const StdNumber& s, const S* src) const
@@ -515,9 +515,9 @@ public:
     {   for (int k=0; k<m_eltSize; ++k) dest[k] = -CNT<S>::transpose(src[k]); }
 
     void fillElt(S* dest, const StdNumber& src) const
-    {   for (int k=0; k<m_eltSize; ++k) dest[k] = src; }   
+    {   for (int k=0; k<m_eltSize; ++k) dest[k] = src; }
     void addToElt(S* dest, const S* src) const
-    {   for (int k=0; k<m_eltSize; ++k) dest[k] += src[k]; }        
+    {   for (int k=0; k<m_eltSize; ++k) dest[k] += src[k]; }
     void subFromElt(S* dest, const S* src) const
     {   for (int k=0; k<m_eltSize; ++k) dest[k] -= src[k]; }
     void scaleElt(S* dest, const StdNumber& s) const
@@ -529,10 +529,10 @@ protected:
     // This is the complete set of virtual methods which can be overridden
     // by classes derived from MatrixHelperRep. All the virtual methods have
     // names ending in an underscore "_". The base class provides an inline
-    // interface method of the same name but without the underscore. That 
+    // interface method of the same name but without the underscore. That
     // method performs operations common to all the implementations, such
     // as checking arguments and verifying that the handle permits the
-    // operation. It then transfers control to the virtual method, the 
+    // operation. It then transfers control to the virtual method, the
     // various implementations of which do not have to repeat the common
     // work.
     //--------------------------------------------------------------------------
@@ -570,56 +570,56 @@ protected:
     virtual void getAnyElt_(int i, int j, S* value) const = 0;
 
         // OPTIONAL FUNCTIONALITY
-        // Optional methods. No default implementation. A derived class can 
-        // supply these, but if it doesn't then this functionality will not 
+        // Optional methods. No default implementation. A derived class can
+        // supply these, but if it doesn't then this functionality will not
         // be available for matrices which use that class as a helper.
 
     virtual void resize_(int m, int n) {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "resize_() not implemented for this kind of matrix");
     }
     virtual void resizeKeep_(int m, int n) {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "resizeKeep_() not implemented for this kind of matrix");
     }
 
     // If this gets called we know the matrix is writable and square.
     virtual void invertInPlace_()  {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "invertInPlace_() not implemented for this kind of matrix");
     }
 
         // One-index versions of above two-index methods for use in Vector
         // helpers.
     virtual bool eltIsStored_(int i) const {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "One-index eltIsStored_() not available for 2D matrices");
         return false;
     }
     virtual const S* getElt_(int i) const {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "One-index getElt_() not available for 2D matrices");
         return 0;
     }
 
     virtual S* updElt_(int i) {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "One-index updElt_() not available for 2D matrices");
         return 0;
     }
 
     virtual void getAnyElt_(int i, S* value) const {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "One-index getAnyElt_() not available for 2D matrices");
     }
 
     virtual void resize_(int n) {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "One-index resize_() not available for 2D matrices");
     }
 
     virtual void resizeKeep_(int n) {
-        SimTK_THROW1(Exception::Cant, 
+        SimTK_THROW1(Exception::Cant,
             "One-index resizeKeep_() not available for 2D matrices");
     }
 
@@ -628,14 +628,14 @@ protected:
         // VIRTUALS WITH DEFAULT IMPLEMENTATIONS
         // This functionality is required of all MatrixHelpers, but there is
         // a base class default implementation here, slow but functional.
-        // In many cases a concrete class can do much better because of its 
+        // In many cases a concrete class can do much better because of its
         // intimate knowledge of the data layout; override if you can.
 
 
     // Overridable method to implement copyInFromCompatibleSource().
     // The default implementation works but is very slow.
     virtual void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
-        if (preferRowOrder_()) 
+        if (preferRowOrder_())
             for (int i=0; i<nrow(); ++i)
                 for (int j=0; j<ncol(); ++j) {
                     if (eltIsStored_(i,j))
@@ -681,10 +681,10 @@ protected:
         fillElt(esum, 0);
         S* tsum = new S[m_eltSize]; // temporary variable for row or col sums
         if (preferRowOrder_()) // i.e., row sums are cheaper
-            for (int i=0; i < nrow(); ++i) 
+            for (int i=0; i < nrow(); ++i)
             {   rowSum_(i, tsum); addToElt(esum, tsum); }
         else // col sums are cheaper
-            for (int j=0; j < ncol(); ++j) 
+            for (int j=0; j < ncol(); ++j)
             {   colSum_(j, tsum); addToElt(esum, tsum); }
         delete[] tsum;
     }
@@ -692,16 +692,16 @@ protected:
 
 
 protected:
-    MatrixHelperRep(int esz, int cppesz) 
-    :   m_data(0), m_actual(), m_writable(false), 
-        m_eltSize(esz), m_cppEltSize(cppesz), 
-        m_canBeOwner(true), m_owner(false), 
-        m_handleIsLocked(false), m_commitment(), m_handle(0) {}
-
-    MatrixHelperRep(int esz, int cppesz, const MatrixCommitment& commitment) 
+    MatrixHelperRep(int esz, int cppesz)
     :   m_data(0), m_actual(), m_writable(false),
         m_eltSize(esz), m_cppEltSize(cppesz),
-        m_canBeOwner(true), m_owner(false), 
+        m_canBeOwner(true), m_owner(false),
+        m_handleIsLocked(false), m_commitment(), m_handle(0) {}
+
+    MatrixHelperRep(int esz, int cppesz, const MatrixCommitment& commitment)
+    :   m_data(0), m_actual(), m_writable(false),
+        m_eltSize(esz), m_cppEltSize(cppesz),
+        m_canBeOwner(true), m_owner(false),
         m_handleIsLocked(false), m_commitment(commitment), m_handle(0) {}
 
     // Copy constructor copies just the base class members, and *not* the data.
@@ -710,8 +710,8 @@ protected:
     // copied from the source, but may need to be changed by the caller.
     MatrixHelperRep(const MatrixHelperRep& src)
     :   m_data(0), m_actual(src.m_actual), m_writable(false),
-        m_eltSize(src.m_eltSize), m_cppEltSize(src.m_cppEltSize),  
-        m_canBeOwner(true), m_owner(false), 
+        m_eltSize(src.m_eltSize), m_cppEltSize(src.m_cppEltSize),
+        m_canBeOwner(true), m_owner(false),
         m_handleIsLocked(false), m_commitment(src.m_commitment), m_handle(0) {}
 
         // Properties of the actual matrix //
@@ -720,7 +720,7 @@ protected:
     S*                  m_data;
     // The actual characteristics of the matrix as seen through this handle.
     MatrixCharacter     m_actual;
-    // Whether we have write access to the data through the pointer above. 
+    // Whether we have write access to the data through the pointer above.
     // If not, the data is treated as though it were "const".
     bool                m_writable;
 
@@ -734,7 +734,7 @@ protected:
     bool                m_handleIsLocked; // temporarily prevent resize of owner
 
     /// All commitments are by default "Uncommitted", meaning we're happy to
-    /// take on matrices in any format, provided that the element types match. 
+    /// take on matrices in any format, provided that the element types match.
     /// Otherwise the settings here limit what we'll find acceptable as actual data.
     /// Note: don't look at these to find out anything about the current
     /// matrix. These are used only when the matrix is being created or
@@ -759,7 +759,7 @@ private:
     template <class SA, class SB>
     void matmul(const StdNumber& beta,   // applied to 'this'
                 const StdNumber& alpha, const MatrixHelper<SA>& A, const MatrixHelper<SB>& B);
-    
+
 
 friend class MatrixHelperRep<typename CNT<S>::TNeg>;
 friend class MatrixHelperRep<typename CNT<S>::THerm>;
@@ -767,7 +767,7 @@ friend class MatrixHelper<S>;
 };
 
 
-} // namespace SimTK   
+} // namespace SimTK
 
 
 #endif // SimTK_SimTKCOMMON_MATRIX_HELPER_REP_H_

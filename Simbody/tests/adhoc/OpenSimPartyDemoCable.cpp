@@ -38,9 +38,9 @@ using namespace SimTK;
 static Array_<State> saveStates;
 class ShowStuff : public PeriodicEventReporter {
 public:
-    ShowStuff(const MultibodySystem& mbs, 
-              const CableSpring& cable1, Real interval) 
-    :   PeriodicEventReporter(interval), 
+    ShowStuff(const MultibodySystem& mbs,
+              const CableSpring& cable1, Real interval)
+    :   PeriodicEventReporter(interval),
         mbs(mbs), cable1(cable1) {}
 
     static void showHeading(std::ostream& o) {
@@ -49,7 +49,7 @@ public:
             "KE", "PE", "KE+PE-W");
     }
 
-    /** This is the implementation of the EventReporter virtual. **/ 
+    /** This is the implementation of the EventReporter virtual. **/
     void handleEvent(const State& state) const override {
         const CablePath& path1 = cable1.getCablePath();
         printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g CPU=%g\n",
@@ -73,8 +73,8 @@ private:
 };
 
 int main() {
-  try {    
-    // Create the system.   
+  try {
+    // Create the system.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
 
@@ -99,12 +99,12 @@ int main() {
     tibia.scaleMesh(30);
 
     // Build a pendulum
-    Body::Rigid pendulumBodyFemur(    MassProperties(1.0, Vec3(0, -5, 0), 
+    Body::Rigid pendulumBodyFemur(    MassProperties(1.0, Vec3(0, -5, 0),
                                     UnitInertia(1).shiftFromCentroid(Vec3(0, 5, 0))));
 
     pendulumBodyFemur.addDecoration(Transform(), DecorativeMesh(femur).setColor(Vec3(0.8, 0.8, 0.8)));
 
-    Body::Rigid pendulumBodyTibia(    MassProperties(1.0, Vec3(0, -5, 0), 
+    Body::Rigid pendulumBodyTibia(    MassProperties(1.0, Vec3(0, -5, 0),
                                     UnitInertia(1).shiftFromCentroid(Vec3(0, 5, 0))));
 
     pendulumBodyTibia.addDecoration(Transform(), DecorativeMesh(tibia).setColor(Vec3(0.8, 0.8, 0.8)));
@@ -125,13 +125,13 @@ int main() {
 
     Real initialPendulumOffset = -0.25*Pi;
 
-    Constraint::PrescribedMotion pres(matter, 
+    Constraint::PrescribedMotion pres(matter,
        new Function::Sinusoid(0.25*Pi, 0.2*Pi, 0*initialPendulumOffset), pendulumTibia, MobilizerQIndex(0));
-               
+
     // Build a wrapping cable path
     CablePath path2(cables, Ground, Vec3(1, 3, 1),             // origin
                             pendulumTibia, Vec3(1, -4, 0));  // termination
-    
+
     // Create a bicubic surface
     Vec3 patchOffset(0, -5, -1);
     Rotation rotZ90(0.5*Pi, ZAxis);
@@ -145,7 +145,7 @@ int main() {
     Real patchScaleF = 0.75;
 
     const int Nx = 4, Ny = 4;
-  
+
     const Real xData[Nx] = {  -2, -1, 1, 2 };
     const Real yData[Ny] = {  -2, -1, 1, 2 };
 
@@ -160,7 +160,7 @@ int main() {
 
     Vector x = patchScaleX*x_;
     Vector y = patchScaleY*y_;
-    Matrix f = patchScaleF*f_; 
+    Matrix f = patchScaleF*f_;
 
     BicubicSurface patch(x, y, f, 0);
 
@@ -170,7 +170,7 @@ int main() {
     PolygonalMesh highResPatchMesh = patch.createPolygonalMesh(highRes);
     PolygonalMesh lowResPatchMesh = patch.createPolygonalMesh(lowRes);
 
-   
+
     pendulumFemur.addBodyDecoration(patchTransform,
         DecorativeMesh(highResPatchMesh).setColor(Cyan).setOpacity(.75));
 
@@ -187,9 +187,9 @@ int main() {
 
      CableObstacle::Surface patchObstacle(path2, pendulumFemur, patchTransform,
          ContactGeometry::SmoothHeightMap(patch));
-        
+
       patchObstacle.setContactPointHints(patchP, patchQ);
-    
+
       patchObstacle.setDisabledByDefault(true);
 
     // Sphere
@@ -209,14 +209,14 @@ int main() {
         DecorativeSphere(sphRadius).setColor(Red).setOpacity(0.5));
 
     // Make cable a spring
-    CableSpring cable2(forces, path2, 50., 18., 0.1); 
+    CableSpring cable2(forces, path2, 50., 18., 0.1);
 
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    system.addEventReporter(new ShowStuff(system, cable2, 0.02));    
+    system.addEventReporter(new ShowStuff(system, cable2, 0.02));
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
@@ -243,7 +243,7 @@ int main() {
     const Real finalTime = 10;
     const double startTime = realTime();
     ts.stepTo(finalTime);
-    cout << "DONE with " << finalTime 
+    cout << "DONE with " << finalTime
          << "s simulated in " << realTime()-startTime
          << "s elapsed.\n";
 

@@ -29,22 +29,22 @@
 
 /* This is a Simbody model of the Boston Dynamics Atlas humanoid robot.
 
-The up direction is Z.      
+The up direction is Z.
 */
 
 class Atlas : public SimTK::MultibodySystem {
 public:
-    // Should be just the file name and extension; will search in 
+    // Should be just the file name and extension; will search in
     // auxDir/models/ directory.
     Atlas(const std::string& auxDir, const std::string& urdfFileName);
 
     // Return the parsed-in version of the URDF specification.
     const URDFRobot& getURDFRobot() const {return m_urdfRobot;}
 
-    void setAngleNoise(SimTK::State& state, SimTK::Real qNoise) const 
+    void setAngleNoise(SimTK::State& state, SimTK::Real qNoise) const
     {   m_qNoise.setValue(state, qNoise); }
 
-    void setRateNoise(SimTK::State& state, SimTK::Real uNoise) const 
+    void setRateNoise(SimTK::State& state, SimTK::Real uNoise) const
     {   m_uNoise.setValue(state, uNoise); }
 
     void setSampledAngles(SimTK::State& state, const SimTK::Vector& angles) const {
@@ -56,16 +56,16 @@ public:
     }
 
 
-    void setSampledPelvisPose(SimTK::State& state, 
-                              const SimTK::Transform& pose) const 
+    void setSampledPelvisPose(SimTK::State& state,
+                              const SimTK::Transform& pose) const
     {   m_sampledPelvisPose.setValue(state, pose); }
-    void setSampledEndEffectorPos(SimTK::State& state, 
-                                  const SimTK::Vec3& pos) const 
+    void setSampledEndEffectorPos(SimTK::State& state,
+                                  const SimTK::Vec3& pos) const
     {   m_sampledEndEffectorPos.setValue(state, pos); }
 
-    SimTK::Real getAngleNoise(const SimTK::State& s) const 
+    SimTK::Real getAngleNoise(const SimTK::State& s) const
     {   return m_qNoise.getValue(s); }
-    SimTK::Real getRateNoise(const SimTK::State& s) const 
+    SimTK::Real getRateNoise(const SimTK::State& s) const
     {   return m_uNoise.getValue(s); }
     const SimTK::Vector& getSampledAngles(const SimTK::State& s) const
     {   return m_sampledAngles.getValue(s); }
@@ -81,20 +81,20 @@ public:
     const SimTK::Vector& getLowerLimits()  const {return m_lowerLimits;}
     const SimTK::Vector& getUpperLimits()  const {return m_upperLimits;}
 
-    // Return the Ground frame location of the body origin point of the 
+    // Return the Ground frame location of the body origin point of the
     // EndEffector link.
-    SimTK::Vec3 getActualEndEffectorPosition(const SimTK::State& s) const 
+    SimTK::Vec3 getActualEndEffectorPosition(const SimTK::State& s) const
     {   return getBody(m_endEffectorLinkName)
                 .findStationLocationInGround(s, m_endEffectorStation); }
 
     // Set a particular joint angle (in radians) in the given State.
     void setJointAngle
-       (SimTK::State& s, SimTK::QIndex which, SimTK::Real angle) const 
+       (SimTK::State& s, SimTK::QIndex which, SimTK::Real angle) const
     {   s.updQ()[which] = angle; }
 
     // Set a particular joint angular rate (in radians/s) in the given State.
     void setJointRate
-       (SimTK::State& s, SimTK::UIndex which, SimTK::Real rate) const 
+       (SimTK::State& s, SimTK::UIndex which, SimTK::Real rate) const
     {   s.updU()[which] = rate; }
 
     const SimTK::SimbodyMatterSubsystem& getMatterSubsystem() const {return m_matter;}

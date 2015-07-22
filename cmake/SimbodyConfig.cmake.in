@@ -5,7 +5,7 @@
 #   Simbody_ROOT_DIR - the installation directory; all the pieces must be
 #                      found together
 #   Simbody_INCLUDE_DIR - location of Simbody.h
-#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib} 
+#   Simbody_LIB_DIR     - location of libSimTKsimbody.{a,so,dylib}
 #                         or SimTKsimbody.lib
 #   Simbody_BIN_DIR     - location of VisualizerGUI and .dll's on Windows
 #   Simbody_LIBRARIES   - suitable for target_link_libraries(); includes
@@ -34,19 +34,19 @@
 set_and_check(@PKG_NAME@_ROOT_DIR
               "@PACKAGE_CMAKE_INSTALL_PREFIX@")
 
-set_and_check(@PKG_NAME@_INCLUDE_DIR 
+set_and_check(@PKG_NAME@_INCLUDE_DIR
               "@PACKAGE_SIMBODY_INCLUDE_INSTALL_DIR@")
 
-set_and_check(@PKG_NAME@_LIB_DIR 
+set_and_check(@PKG_NAME@_LIB_DIR
               "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
 
-list(APPEND @PKG_NAME@_BIN_DIR 
+list(APPEND @PKG_NAME@_BIN_DIR
             "@PACKAGE_SIMBODY_VISUALIZER_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_CFLAGS 
+list(APPEND @PKG_NAME@_CFLAGS
             -I"@PACKAGE_SIMBODY_INCLUDE_INSTALL_DIR@")
 
-list(APPEND @PKG_NAME@_LDFLAGS 
+list(APPEND @PKG_NAME@_LDFLAGS
             -L"@PACKAGE_CMAKE_INSTALL_LIBDIR@")
 
 if (NOT "@SIMBODY_DOXYGEN_TAGFILE_NAME@" STREQUAL "")

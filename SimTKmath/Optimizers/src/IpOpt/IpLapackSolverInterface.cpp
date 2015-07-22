@@ -95,23 +95,23 @@ double *afact;
 
          smlsiz = 25;
          nosmlsiz = n/(smlsiz+1);
-/* 
+/*
 **      increased size of nlvl by adding 1 due to 64bit failures
 */
          nlvl = (int)(log10((double)nosmlsiz)/log10(2.)) + 2;
          if( nlvl < 0 ) nlvl = 0;
          liwork = 3*n*nlvl + 11*n;
          iwork = new int[liwork];
-/* 
-**       compute optimal size of workspace 
+/*
+**       compute optimal size of workspace
 */
-         DGELSD( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, workSize, 
+         DGELSD( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, workSize,
                   -1, iwork, info );
          lwork = (int)workSize[0];
          work = new Number[lwork];
-         DGELSD( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, work, 
+         DGELSD( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, work,
                   lwork, iwork, info );
-         
+
          delete [] work;
          delete [] s;
          delete [] iwork;
@@ -124,7 +124,7 @@ double *afact;
          }
       }
       delete [] atmp;
-      return retval;  
+      return retval;
 
   }
 
@@ -176,7 +176,7 @@ double *afact;
 
       negevals_ = 0;
       w = new Number[n];
-      lwork = 3*n;   // TODO get optimial value 
+      lwork = 3*n;   // TODO get optimial value
       work = new Number[lwork];
       atmp = new Number[n*n];
       for(i=0;i<n*n;i++) atmp[i] = a[i];
@@ -198,7 +198,7 @@ double *afact;
       }
 
 
-      DGETRF( n, n, a, n, ipiv, info); 
+      DGETRF( n, n, a, n, ipiv, info);
       delete [] atmp;
 
       if( info > 0  ) {
@@ -215,7 +215,7 @@ double *afact;
     int info;
     char transpose = 'N';
 
-    DGETRS( transpose, n, nrhs, a, n, ipiv, b, n, info, 1); 
+    DGETRS( transpose, n, nrhs, a, n, ipiv, b, n, info, 1);
     if( info != 0 ) {
         if( info > 0 && info <= n  ) {
             retval = SYMSOLVER_SINGULAR;

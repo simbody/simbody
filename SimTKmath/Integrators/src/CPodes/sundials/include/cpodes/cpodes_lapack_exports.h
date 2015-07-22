@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.3 $
  * $Date: 2006/11/29 00:05:06 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -25,7 +25,7 @@ extern "C" {
 
 /*
  * =================================================================
- *            E X P O R T E D    F U N C T I O N S 
+ *            E X P O R T E D    F U N C T I O N S
  * =================================================================
  */
 
@@ -56,7 +56,7 @@ SUNDIALS_EXPORT int CPLapackDense(void *cpode_mem, int N);
  * Function : CPLapackBand
  * -----------------------------------------------------------------
  * A call to the CPLapackBand function links the main integrator
- * with the CPLAPACK linear solver using banded Jacobians. 
+ * with the CPLAPACK linear solver using banded Jacobians.
  *
  * cpode_mem is the pointer to the integrator memory returned by
  *           CPodeCreate.
@@ -82,7 +82,7 @@ SUNDIALS_EXPORT int CPLapackBand(void *cpode_mem, int N, int mupper, int mlower)
  * -----------------------------------------------------------------
  * Function : CPLapackDenseProj
  * -----------------------------------------------------------------
- * A call to the CPLapackDenseProj function links the main integrator 
+ * A call to the CPLapackDenseProj function links the main integrator
  * with the CPLAPACK linear solver using dense Jacobians.
  *
  * cpode_mem  the pointer to the integrator memory returned by

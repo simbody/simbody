@@ -119,7 +119,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -248,7 +248,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -287,7 +287,7 @@ namespace Ipopt
     std::vector<Index> block_cols_;
 
     /** true if the CompoundMatrixSpace only has Matrix spaces along the diagonal.
-     *  this means that the CompoundMatrix will only have matrices along the 
+     *  this means that the CompoundMatrix will only have matrices along the
      *  diagonal and it could make some operations more efficient
      */
     bool diagonal_;

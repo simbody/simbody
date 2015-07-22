@@ -46,12 +46,12 @@ static void drawBoundingSphere( const Array_<Vec<3,P> >& v,
     cout << "volume=" << pms.findVolume() << "\n";
     for (unsigned i=0; i<v.size(); ++i) {
         const P d = pms.getRadius()-(v[i]-pms.getCenter()).norm();
-        if (d < 0) 
+        if (d < 0)
             printf("*** %d outside by %.17g\n", i, d);
     }
     std::cout << "which=" << which << "\n";
     Decorations dec;
-    //dec.addDecoration(Vec3(pms.getCenter()), 
+    //dec.addDecoration(Vec3(pms.getCenter()),
     //    DecorativeSphere(pms.getRadius()).setColor(color).setResolution(5));
     //for (unsigned i=0; i < which.size(); ++i)
     //    dec.addDecoration(Vec3(v[which[i]]), DecorativePoint().setColor(Green).setScale(3));
@@ -76,12 +76,12 @@ static void drawBoundingSphere( const Array_<Vec<3,P> >& v,
     for (unsigned i=0; i < support.size(); ++i) {
         const Vec<3,P>& supP = v[support[i]];
         const Vec3 sup((Real)supP[0], (Real)supP[1], (Real)supP[2]);
-        obbDec.addDecoration(sup, 
+        obbDec.addDecoration(sup,
             DecorativePoint().setColor(Blue).setScale(4));
     }
 
     Array_<int> badSupport;
-    Geo::OrientedBox_<P> badObb = 
+    Geo::OrientedBox_<P> badObb =
         Geo::Point_<P>::calcOrientedBoundingBox(v, badSupport, false);
     X_FB.updP() = Vec3(badObb.getTransform().p());
     x = UnitVec3(Vec3(badObb.getTransform().x()));
@@ -104,18 +104,18 @@ static void drawApproxBoundingSphere( const Array_<Vec<3,P> >& v,
 {
     return;
     Real tstart = realTime();
-    SimTK::Geo::Sphere_<P> pms = Geo::Point_<P>::calcApproxBoundingSphere(v); 
-    printf("Time for approx sphere around %d points: %gs\n", 
+    SimTK::Geo::Sphere_<P> pms = Geo::Point_<P>::calcApproxBoundingSphere(v);
+    printf("Time for approx sphere around %d points: %gs\n",
         v.size(), realTime()-tstart);
     cout << "ctr=" << pms.getCenter() << " rad=" << pms.getRadius() << "\n";
     cout << "volume=" << pms.findVolume() << "\n";
     for (unsigned i=0; i<v.size(); ++i) {
         const P d = pms.getRadius()-(v[i]-pms.getCenter()).norm();
-        if (d < 0) 
+        if (d < 0)
             printf("*** %d outside by %.17g\n", i, d);
     }
     Decorations dec;
-    dec.addDecoration(Vec3(pms.getCenter()), 
+    dec.addDecoration(Vec3(pms.getCenter()),
         DecorativeSphere(pms.getRadius()).setColor(color).setResolution(5));
     body.addBodyDecoration(pose,
         dec.setOpacity(.1).setLineThickness(1));
@@ -218,7 +218,7 @@ static void draw(const Geo::BicubicBezierPatch& patch, const Transform& pose,
     }
 }
 
-void makeDecorations(int level, const OBBNode& node, int which, 
+void makeDecorations(int level, const OBBNode& node, int which,
                      Decorations& dec) {
     static Vec3 colors[6] = {Cyan, Green, Magenta, Blue, Orange, Red};
 
@@ -268,7 +268,7 @@ void drawSpline(const Vector& x, const Vector& y,
 
     const int NSegs = 100;
     const Real dx = (x[x.size()-1]-x[0])/NSegs;
-    for (int c=0; c<3; ++c) 
+    for (int c=0; c<3; ++c)
         for (int s=0; s<NSegs; ++s) {
             Real xx = x[0] + s*dx;
             Vec3 p1(xx, curve[c].calcValue(Vector(1,xx)), 0);
@@ -283,7 +283,7 @@ void drawSpline(const Vector& x, const Vector& y,
 
 
 int main() {
-    
+
     // Create the system, with subsystems for the bodies and some forces.
     MultibodySystem system;
     system.setUseUniformBackground(true);
@@ -331,7 +331,7 @@ int main() {
                 .setIndexOnBody(22).setUserRef(&matter.Ground()));
     cout << "May intersect=" << box.mayIntersectOrientedBox(obox) << "\n";
     cout << "Intersects=" << box.intersectsOrientedBox(obox) << "\n";
-    
+
     const Body& groundBody = matter.Ground().getBody();
     const int nDecGeoms = groundBody.getNumDecorations();
     printf("%d Ground body decorations (&Ground=0x%llx). Last two:\n", nDecGeoms,
@@ -375,7 +375,7 @@ int main() {
         UnitVec3 uv(Test::randVec3());
         float nz = noise*(float)Test::randReal();
         fVec3 fuv((float)uv[0],(float)uv[1],(float)uv[2]);
-        fVec3 fru = start+(r+nz)*fuv; 
+        fVec3 fru = start+(r+nz)*fuv;
         p.push_back(fru);
     }
     drawBoundingSphere<float>(p, Transform(), matter.Ground());
@@ -392,7 +392,7 @@ int main() {
     const Vector y(Ny,   yData);
     const Matrix f(Nx,Ny, fData);
     BicubicSurface rough(x, y, f, 0);
-    BicubicSurface smooth(x, y, f, 1); 
+    BicubicSurface smooth(x, y, f, 1);
 
 
 
@@ -466,10 +466,10 @@ int main() {
     //drawBoundingSphere<Real>(v, patchPose, matter.Ground());
     //drawApproxBoundingSphere<Real>(v, patchPose, matter.Ground());
 
-    matter.Ground().addBodyDecoration(patchPose, 
+    matter.Ground().addBodyDecoration(patchPose,
         DecorativeMesh(patchMesh).setRepresentation(DecorativeGeometry::DrawWireframe)
         .setColor(Gray));
-    //matter.Ground().addBodyDecoration(patchPose, 
+    //matter.Ground().addBodyDecoration(patchPose,
     //    DecorativeMesh(patchMesh)
     //    .setColor(Blue).setOpacity(.4));
 
@@ -489,7 +489,7 @@ int main() {
     Transform pose1(xm90, Vec3(0,-15,0));
     Transform pose2(xm90, Vec3(5,-15,0));
 
-    
+
     ContactGeometry::SmoothHeightMap smoothMap(smooth);
 
     draw(smoothMap.getOBBTree(), 1, pose2, matter.Ground());
@@ -527,7 +527,7 @@ int main() {
     matter.Ground().addBodyDecoration(pose,
         DecorativeLine(P, P+.75*BigLen*UnitVec3(dPdx)).setColor(Red));
     matter.Ground().addBodyDecoration(pose,
-        DecorativeLine(P, P+.75*BigLen*UnitVec3(dPdy)).setColor(Blue));   
+        DecorativeLine(P, P+.75*BigLen*UnitVec3(dPdy)).setColor(Blue));
     }
     }
 
@@ -557,17 +557,17 @@ int main() {
     //drawBoundingSphere(v, pose2, matter.Ground(), Blue);
     //drawApproxBoundingSphere(v, pose2, matter.Ground(), Blue);
 
-    //matter.Ground().addBodyDecoration(pose1, 
+    //matter.Ground().addBodyDecoration(pose1,
     //    DecorativeMesh(origMesh).setRepresentation(DecorativeGeometry::DrawWireframe)
     //    .setColor(Gray));
-    matter.Ground().addBodyDecoration(pose1, 
+    matter.Ground().addBodyDecoration(pose1,
         DecorativeMesh(roughMesh)
         .setColor(Gray).setOpacity(.4));
 
-    //matter.Ground().addBodyDecoration(pose2, 
+    //matter.Ground().addBodyDecoration(pose2,
     //    DecorativeMesh(origMesh).setRepresentation(DecorativeGeometry::DrawWireframe)
     //    .setColor(Gray));
-    matter.Ground().addBodyDecoration(pose2, 
+    matter.Ground().addBodyDecoration(pose2,
         DecorativeMesh(smoothMesh)
         .setColor(Black).setOpacity(.4)
         .setRepresentation(DecorativeGeometry::DrawWireframe));
@@ -606,19 +606,19 @@ int main() {
     pendulumBody.addDecoration(Transform(), DecorativePoint(Vec3(0,.5,0)).setColor(Green));
     // Add an instance of the body to the multibody system by connecting
     // it to Ground via a pin mobilizer.
-    MobilizedBody::Pin pendulum1(matter.updGround(), 
-                                Transform(/*x45,*/Vec3(0,-1,0)), 
-                                pendulumBody, 
+    MobilizedBody::Pin pendulum1(matter.updGround(),
+                                Transform(/*x45,*/Vec3(0,-1,0)),
+                                pendulumBody,
                                 Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Pin pendulum1b(pendulum1, 
-                                Transform(/*x45,*/Vec3(0,-1,0)), 
-                                pendulumBody, 
+    MobilizedBody::Pin pendulum1b(pendulum1,
+                                Transform(/*x45,*/Vec3(0,-1,0)),
+                                pendulumBody,
                                 Transform(Vec3(0, 1, 0)));
 
 
-    MobilizedBody::Free pendulum2(matter.updGround(), 
+    MobilizedBody::Free pendulum2(matter.updGround(),
                                   Transform(/*x45,*/Vec3(2,-1,0)),
-                                  pendulumBody, 
+                                  pendulumBody,
                                   Transform(Vec3(0,1,0)));
     Constraint::Ball ballcons2(matter.updGround(), Vec3(2,-1,0),
                                pendulum2, Vec3(0,1,0));
@@ -629,9 +629,9 @@ int main() {
     Constraint::ConstantAngle angy2(matter.Ground(), X_GF2.y(),
                               pendulum2, X_P2M.z());
 
-    MobilizedBody::Free pendulum2b(pendulum2, 
+    MobilizedBody::Free pendulum2b(pendulum2,
                                    Transform(/*x45,*/Vec3(0,-1,0)),
-                                   pendulumBody, 
+                                   pendulumBody,
                                    Transform(Vec3(0,1,0)));
     Constraint::Ball ballcons2b(pendulum2, Vec3(0,-1,0),
                                 pendulum2b, Vec3(0,1,0));
@@ -647,9 +647,9 @@ int main() {
     // to match the Visualizer's default 30 frames per second rate.
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     pendulum1.setOneQ(state, 0, Pi/4);
@@ -685,13 +685,13 @@ int main() {
         const MobilizedBody& body   = matter.getMobilizedBody(i);
         const MobilizedBody& parent = body.getParentMobilizedBody();
         // Want to shift negated reaction by p_MF_G, the vector from M
-        // to F across the mobilizer, expressed in Ground. We can get p_FM, 
+        // to F across the mobilizer, expressed in Ground. We can get p_FM,
         // then re-express in Ground for the shift and negate.
         const Vec3& p_FM = body.getMobilizerTransform(state).p();
         const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
         const Rotation& R_GP = parent.getBodyTransform(state).R();
         Rotation R_GF   =   R_GP*R_PF;  // F frame orientation in Ground.
-        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector. 
+        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector.
         forcesAtFInG[i] = -shiftForceBy(forcesAtMInG[i], p_MF_G);
     }
 
@@ -717,7 +717,7 @@ int main() {
     cout << "FC_G=" << -(ballcons2.getConstrainedBodyForcesAsVector(state)
         + angx2.getConstrainedBodyForcesAsVector(state)
         + angy2.getConstrainedBodyForcesAsVector(state))[1] << " ";
-    cout << -(ballcons2b.getConstrainedBodyForcesAsVector(state) 
+    cout << -(ballcons2b.getConstrainedBodyForcesAsVector(state)
         + angx2b.getConstrainedBodyForcesAsVector(state)
         + angy2b.getConstrainedBodyForcesAsVector(state))[1] << endl;
 

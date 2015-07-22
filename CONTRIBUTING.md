@@ -1,8 +1,8 @@
 Contributing to Simbody
 =======================
-Simbody is a community resource and we encourage you to contribute in whatever way you can -- for example: new code, bug fixes, test cases, and examples; documentation improvements and typo fixes; bug reports, feature requests, ideas and discussion topics; and user forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy! 
+Simbody is a community resource and we encourage you to contribute in whatever way you can -- for example: new code, bug fixes, test cases, and examples; documentation improvements and typo fixes; bug reports, feature requests, ideas and discussion topics; and user forum questions and answers. We appreciate contributions and our development team is collaborative and constructive -- don't be shy!
 
-**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute. 
+**Important note:** Simbody is an open source project licensed under extremely flexible terms intended to encourage use by *anyone*, for *any purpose*. When you make a contribution to the Simbody project, **you are agreeing** to do so under those same terms. The details are [below](#contributor-license-agreement); if you aren't comfortable with those terms, we're still friends but you shouldn't contribute.
 
 Contents:
 - [Ways to Contribute](#ways-to-contribute)
@@ -16,7 +16,7 @@ Ways to contribute
 ------------------
 There are lots of ways to contribute to the Simbody project, and people with widely varying skill sets can make meaningful contributions. Please don't think your contribution has to be momentous to be appreciated. See a typo? Tell us about it or fix it! Here are some contribution ideas:
 
-- Use Simbody and let us know how you're using it by posting to the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47).  
+- Use Simbody and let us know how you're using it by posting to the [Simbody user forum](https://simtk.org/forums/viewforum.php?f=47).
 - Ask and/or answer questions on the forum.
 - File bug reports, documentation problems, feature requests, and developer discussion topics using the GitHub [Issue tracker](https://github.com/simbody/simbody/issues).
 - Submit GitHub Pull Requests providing new features, examples, or bug fixes to code or documentation (see below).
@@ -43,11 +43,11 @@ Below we'll assume your GitHub account is `yourid`.
 5. **Test and debug** your changes locally. Be sure to build at least occasionally in Debug mode -- it will run very slowly but you get much more error checking that way.
 6. **Push** now-debugged `something-feature` branch up to `yourid/simbody` fork on GitHub.
 7. **Create the PR**. Go to the `simbody/simbody` repo, click Pull Requests, and create a new PR. Specify `simbody/simbody master` as the base (destination) branch and `yourid/simbody something-feature` as the head (source) branch. Provide a description and reference the corresponding Issue(s). If there are particular people whose attention you want to draw to the PR, use "at mentions" like `@someone` in your PR description.
-8. **Check the build status**. Your PR submission will trigger our continuous integration builds on Travis (for Linux and OS-X) and AppVeyor (for Windows). GitHub provides a status message at the bottom of the PR's Conversation page allowing you to track build progress. Make sure the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help. 
-9. **Engage in discussion** with Simbody maintainers who will review your changes and make comments. 
+8. **Check the build status**. Your PR submission will trigger our continuous integration builds on Travis (for Linux and OS-X) and AppVeyor (for Windows). GitHub provides a status message at the bottom of the PR's Conversation page allowing you to track build progress. Make sure the build succeeds on all platforms, and if not click the `Details` button and fix the problem if you can, or else ask for help.
+9. **Engage in discussion** with Simbody maintainers who will review your changes and make comments.
 10. **Make changes**. In most cases discussions and build problems will require you to make some changes to your submission. That is very easy to do because a PR is a *reference* to your branch, not a copy. So you just make the changes to the `something-feature` (or whatever) branch on your local clone, and then push those changes back to the same branch in your `yourid/simbody` fork on GitHub. The changes will immediately start building and you can return to discussing them in the same PR.
 
-Eventually your PR will be merged (good) or closed unmerged by a Simbody maintainer, but always after an open discussion.   
+Eventually your PR will be merged (good) or closed unmerged by a Simbody maintainer, but always after an open discussion.
 
 Coding Conventions
 ------------------
@@ -126,17 +126,17 @@ Some programmers think comments interfere with the pure beauty of their code; we
 
 You can format your comments in any reasonable style (consistent within a source module, please). However, we would like to suggest that you forgo the old C-style comments where every line begins with ` * ` (space, asterisk, space). Since comments are almost universally colorized now in every viewer, you don't need the asterisks to make them stand out. And that wastes three characters on every line out of the limited budget we allow. Consider formatting like this:
 ```cpp
-/** This is the doxygen brief description. This is the rest of the documentation 
+/** This is the doxygen brief description. This is the rest of the documentation
 and when you get to the final line you can just wrap up on the same line. */
 void theMethodYouAreDocumenting();
 ```
 (The double asterisk is one way to signal a Doxygen comment.) That is compact and just as readable (when colorized) as this:
 ```cpp
 /**
- * This is the doxygen brief description. This is the rest of the documentation 
- * and when you get to the final line you will feel obligated to eat up one 
+ * This is the doxygen brief description. This is the rest of the documentation
+ * and when you get to the final line you will feel obligated to eat up one
  * more line.
- */ 
+ */
 void theMethodYouAreDocumenting();
 ```
 When you have short Doxygen comments to make about dozens of methods in a class, those two extra lines per method significantly reduce the amount of code you can squeeze onto one screen. The comments are harder to reformat also. The generated Doxygen documentation is identical either way.
@@ -148,7 +148,7 @@ In addition to catching many otherwise difficult-to-find or worse, unnoticed, bu
 All Simbody software which is written in C++, or provides a C++ interface, must be const correct. We highly recommend this strategy for all programmers. It works.
 
 #### Objects should be thread safe
-Simbody libraries are supposed to be thread safe and new code should not violate that promise. But, that does not mean you have to write parallelized code that uses multiple threads (although you can if you want and you know how). What it does mean is that your code should not prevent *other* Simbody users from writing multithreaded programs that use Simbody. That is, if each of several simultaneously-executing threads allocates its own, non-shared object of one of your classes, those threads will not interfere with each other. 
+Simbody libraries are supposed to be thread safe and new code should not violate that promise. But, that does not mean you have to write parallelized code that uses multiple threads (although you can if you want and you know how). What it does mean is that your code should not prevent *other* Simbody users from writing multithreaded programs that use Simbody. That is, if each of several simultaneously-executing threads allocates its own, non-shared object of one of your classes, those threads will not interfere with each other.
 
 In practice, that means you must (a) avoid using global variables, and (b) think carefully about using static variables. Basically this means whatever you write should be wrapped up in a class, and you should use class data members for communication among the methods of your class rather than global variables.
 
@@ -192,7 +192,7 @@ We have some conventional starting verbs and you should use the same ones when t
    verb   | meaning
 ----------|---------
 `get`     | Return a const reference to something that has already been computed.
-`set`     | Change the value of some internal quantity; may cause invalidation of dependent computations. 
+`set`     | Change the value of some internal quantity; may cause invalidation of dependent computations.
 `upd`     | (update) Return a writable reference to some internal variable. May cause invalidation of dependent computations.
 `find`    | Perform a small calculation (e.g., find the distance between two points) and return the result without changing anything else.
 `calc`    | (calculate) Perform an expensive calculation and return the result. Does not cause any other changes.
@@ -242,7 +242,7 @@ Header guards are preprocessor defines that surround every header file to preven
 ```
 The initial `SimTK_` should always be there; it is serving as a namespace to avoid collisions with other code. If you are using some other namespace, replace `SimTK_` with yours. `MODULE` should be replaced by something defining a major grouping of code within Simbody; its purpose is to avoid collisions with other Simbody modules. Then `SOME_CLASS_NAME` is replaced by an uglified version of the main class defined by this header file. Some headers aren't associated with a class (like `common.h`); you can use the file name or something else descriptive instead. The final `_H_` is just there to keep us out of trouble.
 
-**Note:** Embedded and trailing underscores (`_`) are allowed in C++ names, but the C++ standard forbids user symbols that begin with an underscore or contain two adjacent underscores. (Those are reserved for use by the language system itself, such as for variable names inside the C++ standard header files.) 
+**Note:** Embedded and trailing underscores (`_`) are allowed in C++ names, but the C++ standard forbids user symbols that begin with an underscore or contain two adjacent underscores. (Those are reserved for use by the language system itself, such as for variable names inside the C++ standard header files.)
 
 #### Calendar dates
 The need for date and time stamps arises frequently enough, and causes enough trouble, that we want to state some general preferences here, although not specific requirements for any particular situation. Maybe this goes without saying, but just go ahead and use four digits for the year! Let’s not go through that again. Compact date stamps such as those appearing in file names and source comments should have the form yyyymmdd, e.g. 20060322 which has the distinct advantage of being sortable, with the most significant part first. Code that formats friendly dates for user consumption should avoid ambiguous formats like 7/5/2005 (July 5 in the U.S. and May 7 in Europe). Instead, use July 5, 2005 or 5 July 2005 or 2005-May-07, for example.
@@ -264,7 +264,7 @@ If you define classes or external functions in C++ source, even if they appear n
 namespace {
     // declarations that are private to this source file
 }
-``` 
+```
 That prevents the symbols from being exported and you can use any names for them that you want.
 
 For functions you can achieve the same thing by declaring them `static` (which you must do if your code is in C) but anonymous namespaces in C++ are much more powerful.
@@ -302,42 +302,42 @@ In C++ `throw` and `return` are not functions. It is misleading to enclose their
 Operators for both pre-increment (`++i`) and post-increment (`i++`) are available in C++. If you don’t look at the result, they are logically equivalent. For simple types they are physically equivalent too. But for complicated types (like iterators), the pre-increment operators are much cheaper computationally, because they don’t require separate storage for saving the previous result. Therefore you should get in the habit of using pre-increment (or pre-decrement) in all your loops:
 
 ```cpp
-for (int i; i < limit; ++i) /* <-- YES*/ 
-for (int i; i < limit; i++) /* <-- NO */ 
+for (int i; i < limit; ++i) /* <-- YES*/
+for (int i; i < limit; i++) /* <-- NO */
 ```
 
-This will prevent you from using the wrong operator in the expensive cases, which are not always obvious. Of course in cases where you actually need the pre- or post-value for something, you should use the appropriate operator. 
+This will prevent you from using the wrong operator in the expensive cases, which are not always obvious. Of course in cases where you actually need the pre- or post-value for something, you should use the appropriate operator.
 
 #### Place pointer and reference symbols with the type
 References and pointers create new types. That is `T`, `T*`, and `T&` are three distinct types. You can tell because you can make `typedef`s like this:
 
 ```cpp
-typedef T  SameAsT; 
+typedef T  SameAsT;
 typedef T* PointerToT;
 typedef T& ReferenceToT;
- 
+
 // and then declare
- 
+
 SameAsT      t1,      t2;      // both are type T
-PointerToT   tptr1,   tptr2;   // both are type T* 
+PointerToT   tptr1,   tptr2;   // both are type T*
 ReferenceToT tref1=a, tref2=b; // both are type T&
 ```
 
 Therefore you should place the `*` and `&` next to the type, not the variable, because logically they are part of the type. Unfortunately, the C language had a bug in its syntax which has been inherited by C++. A line like `char* a,b;` is treated like `char* a; char b;` rather than `char* a; char* b;`, but if you write `typedef char* CharPtr;` then `CharPtr a,b;` declares both to be pointers. There is no perfect solution because the language is broken. However, there is no problem in argument lists (since each variable has to have its own type). So we recommend that you simply avoid the misleading multiple-declaration form when using pointers or references. Just use separate declarations or a `typedef`. Then always put the `*` and `&` with the type where they belong. Here are right and wrong examples for argument lists:
 
 ```cpp
-f(int I, string& name, char* something) /* <-- YES*/ 
-f(int I, string &name, char *something) /* <-- NO */ 
+f(int I, string& name, char* something) /* <-- YES*/
+f(int I, string &name, char *something) /* <-- NO */
 ```
 
 #### Avoid spaces that don't improve readability
 Add spaces where they improve clarity, otherwise leave them out. In particular, parentheses do a fine job of surrounding `if` and `for` conditions and do not require further setting off with spaces. On the other hand, operators within those conditions are sometimes hard to spot and worth setting apart. For example, we prefer the more-compact versions below:
 ```cpp
-    if (nextItem <= minItemSoFar)    /* <-- YES*/ 
-    if ( nextItem <= minItemSoFar )  /* <-- NO */ 
+    if (nextItem <= minItemSoFar)    /* <-- YES*/
+    if ( nextItem <= minItemSoFar )  /* <-- NO */
 
-    for (int i=0; i < length; ++i)   /* <-- YES*/ 
-    for ( int i=0; i < length; ++i ) /* <-- NO */ 
+    for (int i=0; i < length; ++i)   /* <-- YES*/
+    for ( int i=0; i < length; ++i ) /* <-- NO */
 ```
 You only get 80 characters per line; make them count!
 
@@ -350,7 +350,7 @@ MyClass& operator=(const MyClass& source) {
         // copy stuff from source to this
     }
     return *this;
-} 
+}
 ```
 
 A common mistake is to leave out the `if`. Since the "copy stuff" part often begins by deleting the contents of "this", a self assignment like a=a will fail without those lines; that is always supposed to work (and does for all the built-in and standard library types). Of course no one intentionally does that kind of assignment, but they occur anyway in general code since you don’t always know where the source comes from.
@@ -390,14 +390,14 @@ Matthew Millard    |@mjhmilla     |Bicubic spline
 Jack Middleton     |              |Numerical methods
 Christopher Bruns  |@cmbruns-hhmi |Molmodel
 Randy Radmer       |              |Molmodel
-Charles Schwieters |              |Provided initial multibody code 
+Charles Schwieters |              |Provided initial multibody code
 Abhinandan Jain    |              |Underlying spatial algebra formulation
 Isaac Newton       |              |F=ma, calculus, etc.
 
 
 Contributor License Agreement
 -----------------------------
-Simbody is licensed under the very permissive [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). Simbody users are not required to follow our noble egalitarian principles, nor to share their profits with us, nor even to acknowledge us (though they often do). When you make a contribution in any of the ways described above, you are agreeing to allow your contribution to be used under the same terms, adding no additional restrictions to the Simbody project nor requirements on Simbody users. 
+Simbody is licensed under the very permissive [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). Simbody users are not required to follow our noble egalitarian principles, nor to share their profits with us, nor even to acknowledge us (though they often do). When you make a contribution in any of the ways described above, you are agreeing to allow your contribution to be used under the same terms, adding no additional restrictions to the Simbody project nor requirements on Simbody users.
 
 Specifically, by contributing you are agreeing to the following terms:
 
@@ -406,4 +406,4 @@ Specifically, by contributing you are agreeing to the following terms:
   3. No part of your contribution is covered by a viral ("copyleft") license like GPL or LGPL.
   4. You are capable of granting these rights for the contribution.
 
-If your contribution contains others' open source code licensed under Apache 2.0 or other non-viral license like BSD, MIT, or ZLib, it is probably fine. But be sure to mention that in the Pull Request you submit so we can discuss it. 
+If your contribution contains others' open source code licensed under Apache 2.0 or other non-viral license like BSD, MIT, or ZLib, it is probably fine. But be sure to mention that in the Pull Request you submit so we can discuss it.

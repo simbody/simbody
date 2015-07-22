@@ -8,7 +8,7 @@
  * Example problem for the event detection in CPODES: a 2-pendulum
  * Newton's craddle. Two identical pendulums of length L and
  * mass M are suspended at points (+R,0) and (-R,0), where R is the
- * radius of the balls. 
+ * radius of the balls.
  * We consider elastic impact with a coefficient of restitution C=1.
  *
  * Case 1: The first pendulum has an initial horizontal
@@ -117,7 +117,7 @@ int main()
   ctols = N_VNew_Serial(Nc);
   N_VConst(1.0e-8, ctols);
 
-  /* Direction of monitored events 
+  /* Direction of monitored events
    * (only zero-crossing with decreasing even function) */
 
   rdir[0] = -1;
@@ -137,7 +137,7 @@ int main()
 
   /* Initialize solver */
 
-  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);
   flag = CPodeInit(cpode_mem, ffun1, data, t0, yy, yp, CP_SS, reltol, &abstol);
   flag = CPDense(cpode_mem, Neq);
 
@@ -145,7 +145,7 @@ int main()
   flag = CPodeSetRootDirection(cpode_mem, rdir);
 
   /* Set-up the internal projection */
-  
+
   flag = CPodeProjInit(cpode_mem, CP_PROJ_L2NORM, CP_CNSTR_NONLIN, cfun, data, ctols);
   flag = CPodeSetProjTestCnstr(cpode_mem, TRUE);
   flag = CPDenseProj(cpode_mem, Nc, Neq, CPDIRECT_LU);
@@ -192,7 +192,7 @@ int main()
   PrintFinalStats(cpode_mem);
 
   CPodeFree(&cpode_mem);
-    
+
   fclose(fout);
 
   /* --------------------------------
@@ -210,7 +210,7 @@ int main()
 
   /* Initialize solver */
 
-  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);
   flag = CPodeInit(cpode_mem, ffun2, data, t0, yy, yp, CP_SS, reltol, &abstol);
   flag = CPDense(cpode_mem, Neq);
 
@@ -218,7 +218,7 @@ int main()
   flag = CPodeSetRootDirection(cpode_mem, rdir);
 
   /* Set-up the internal projection */
-  
+
   flag = CPodeProjInit(cpode_mem, CP_PROJ_L2NORM, CP_CNSTR_NONLIN, cfun, data, ctols);
   flag = CPodeSetProjTestCnstr(cpode_mem, TRUE);
   flag = CPDenseProj(cpode_mem, Nc, Neq, CPDIRECT_LU);
@@ -265,7 +265,7 @@ int main()
   PrintFinalStats(cpode_mem);
 
   CPodeFree(&cpode_mem);
-    
+
   fclose(fout);
 
   /* --------------------------------
@@ -300,16 +300,16 @@ static int ffun1(realtype t, N_Vector yy, N_Vector fy, void *f_data)
   y1  = NV_Ith_S(yy,1);   y2  = NV_Ith_S(yy,5);
   vx1 = NV_Ith_S(yy,2);   vx2 = NV_Ith_S(yy,6);
   vy1 = NV_Ith_S(yy,3);   vy2 = NV_Ith_S(yy,7);
-  
+
   lam1 = m/(2*L*L)*(vx1*vx1 + vy1*vy1 - g*y1);
   lam2 = m/(2*L*L)*(vx2*vx2 + vy2*vy2 - g*y2);
- 
+
   ax1 = -2.0*(x1-R)*lam1/m;
   ay1 = -2.0*y1*lam1/m - g;
 
   ax2 = -2.0*(x2+R)*lam2/m;
   ay2 = -2.0*y2*lam2/m - g;
-  
+
   NV_Ith_S(fy,0) = vx1;    NV_Ith_S(fy, 4) = vx2;
   NV_Ith_S(fy,1) = vy1;    NV_Ith_S(fy, 5) = vy2;
   NV_Ith_S(fy,2) = ax1;    NV_Ith_S(fy, 6) = ax2;
@@ -346,16 +346,16 @@ static int ffun2(realtype t, N_Vector yy, N_Vector fy, void *f_data)
   y1  = NV_Ith_S(yy,1);   y2  = NV_Ith_S(yy,5);
   vx1 = NV_Ith_S(yy,2);   vx2 = NV_Ith_S(yy,6);
   vy1 = NV_Ith_S(yy,3);   vy2 = NV_Ith_S(yy,7);
-  
+
   lam1 = m/(2*L*L)*(vx1*vx1 + vy1*vy1 + frc*(x1-R) - g*y1);
   lam2 = m/(2*L*L)*(vx2*vx2 + vy2*vy2 - g*y2);
- 
+
   ax1 = -2.0*(x1-R)*lam1/m + frc;
   ay1 = -2.0*y1*lam1/m - g;
 
   ax2 = -2.0*(x2+R)*lam2/m;
   ay2 = -2.0*y2*lam2/m - g;
-  
+
   NV_Ith_S(fy,0) = vx1;    NV_Ith_S(fy, 4) = vx2;
   NV_Ith_S(fy,1) = vy1;    NV_Ith_S(fy, 5) = vy2;
   NV_Ith_S(fy,2) = ax1;    NV_Ith_S(fy, 6) = ax2;
@@ -452,7 +452,7 @@ static void contact(N_Vector yy, PbData data)
 
   vx2 = ca*vn2 - sa*vt2;
   vy2 = sa*vn2 + ca*vt2;
-  
+
   NV_Ith_S(yy,2) = vx1;   NV_Ith_S(yy,6) = vx2;
   NV_Ith_S(yy,3) = vy1;   NV_Ith_S(yy,7) = vy2;
 

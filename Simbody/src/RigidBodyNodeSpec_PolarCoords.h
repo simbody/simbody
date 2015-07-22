@@ -38,11 +38,11 @@
 
 // This is a "bend-stretch" joint, meaning one degree of rotational freedom
 // about a particular axis, and one degree of translational freedom
-// along a perpendicular axis. The z axis of the parent's F frame is 
+// along a perpendicular axis. The z axis of the parent's F frame is
 // used for rotation (and that is always aligned with the M frame z axis).
 // The x axis of the *M* frame is used for translation; that is, first
 // we rotate around z, which moves M's x with respect to F's x. Then
-// we slide along the rotated x axis. The two generalized coordinates are the 
+// we slide along the rotated x axis. The two generalized coordinates are the
 // rotation and the translation, in that order.
 template<bool noX_MB, bool noR_PF>
 class RBNodeBendStretch : public RigidBodyNodeSpec<2, false, noX_MB, noR_PF> {
@@ -58,14 +58,14 @@ RBNodeBendStretch(const MassProperties&   mProps_B,
                     USquaredIndex&        nextUSqSlot,
                     QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<2, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
+void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
     // The only rotation our bend-stretch joint can handle is about z.
     // TODO: this code is bad -- see comments for Torsion joint above.
@@ -73,9 +73,9 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     this->toQ(q)[0] = angles123[2];
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const {
-    // We can represent any translation that puts the M origin in the x-y plane 
+    // We can represent any translation that puts the M origin in the x-y plane
     // of F, by a suitable rotation around z followed by translation along x.
     const Vec2 r = p_FM.getSubVec<2>(0); // (rx, ry)
     const Real d = r.norm();
@@ -90,15 +90,15 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
         this->toQ(q)[1] = 0;
 }
 
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q,
                                   const Vec3& w_FM, Vector& u) const {
     // We can only represent an angular velocity along z with this joint.
     this->toU(u)[0] = w_FM[2];
 }
 
-// If the translational coordinate is zero, we can only represent a linear 
-// velocity of Mo in F which is along M's current x axis direction. Otherwise, 
-// we can represent any velocity in the x-y plane by introducing angular 
+// If the translational coordinate is zero, we can only represent a linear
+// velocity of Mo in F which is along M's current x axis direction. Otherwise,
+// we can represent any velocity in the x-y plane by introducing angular
 // velocity about z. We can never represent a linear velocity along z.
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
@@ -111,7 +111,7 @@ void setUToFitLinearVelocityImpl
 
     const Real x = this->fromQ(q)[1]; // translation along Mx (signed)
     if (std::abs(x) < SignificantReal) {
-        // No translation worth mentioning; we can only do x velocity, which 
+        // No translation worth mentioning; we can only do x velocity, which
         // we just set above.
         return;
     }
@@ -152,15 +152,15 @@ void calcX_FM(const SBStateDigest& sbs,
 // The generalized speeds for this bend-stretch joint are (1) the angular
 // velocity of M in the F frame, about F's z axis, expressed in F, and
 // (2) the (linear) velocity of M's origin in F, along *M's* current x axis
-// (that is, after rotation about z). (The z axis is also constant in M for 
-// this joint.) 
+// (that is, after rotation about z). (The z axis is also constant in M for
+// this joint.)
 // 9 flops (could be cheaper but who cares?)
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
     HType&               H_FM) const
 {
     // use "upd" because we're realizing positions now
-    const SBTreePositionCache& pc = sbs.updTreePositionCache(); 
+    const SBTreePositionCache& pc = sbs.updTreePositionCache();
     const Transform X_F0M0 = this->findX_F0M0(pc);
     const Rotation& R_F0M0 = X_F0M0.R();
 

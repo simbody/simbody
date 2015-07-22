@@ -22,31 +22,31 @@
  * -------------------------------------------------------------------------- */
 
 /* This example is for experimenting with the new Simbody contact implementation,
-which was in beta test in the Simbody 2.1 release, with first official release 
-in Simbody 2.2. The previous contact implementation is still present and 
+which was in beta test in the Simbody 2.1 release, with first official release
+in Simbody 2.2. The previous contact implementation is still present and
 functional but will be removed soon.
 
-The example shows how the new system tracks contact events and how you can 
+The example shows how the new system tracks contact events and how you can
 extract contact forces. It also shows off a number of features of the new
-Simbody Visualizer, new in release 2.2. also. Here we display the forces and 
-torques as colored lines which remain the same color as long as a particular 
-contact event continues. We also track the energy dissipated by the contacts 
+Simbody Visualizer, new in release 2.2. also. Here we display the forces and
+torques as colored lines which remain the same color as long as a particular
+contact event continues. We also track the energy dissipated by the contacts
 and use it to display an energy quantity that should be conserved throughout
 the simulation (that is, the current energy plus the dissipated energy
 should be a constant).
- 
+
 The simulation uses very expensive, detailed contact surfaces using dense
 meshes and the elastic foundation model. Consequently it runs with highly
 variable step sizes, and fails to keep up with real time for some short
 periods. We use the Visualizer's RealTime mode to buffer up some frames and
 smooth out these rough spots so the simulation appears to run at an almost
-steady real time rate, displayed at 30fps (depending on how fast your 
+steady real time rate, displayed at 30fps (depending on how fast your
 computer is). Then at the end you can watch the action replay.
 
-You can use this example to see how the different integrators behave when 
-confronted with a very stiff problem; depending on material properties CPodes 
-can be *much* faster than the explicit integrators, and it also exhibits very 
-high stability after the motion damps out. However, by changing material 
+You can use this example to see how the different integrators behave when
+confronted with a very stiff problem; depending on material properties CPodes
+can be *much* faster than the explicit integrators, and it also exhibits very
+high stability after the motion damps out. However, by changing material
 properties and accuracy setting you can get reasonably good performance out
 of the explicit integrators here, which will scale better to large systems.
 */
@@ -74,7 +74,7 @@ static const Real MomentScale = .5;
 class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
-                        const CompliantContactSubsystem& complCont) 
+                        const CompliantContactSubsystem& complCont)
     :   m_system(system), m_compliant(complCont) {}
 
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
@@ -116,7 +116,7 @@ public:
                 const Real peakPressure = detail.getPeakPressure();
                 // Make a black line from the element's contact point in the normal
                 // direction, with length proportional to log(peak pressure)
-                // on that element. 
+                // on that element.
                 DecorativeLine normal(detail.getContactPoint(),
                     detail.getContactPoint()+ std::log10(peakPressure)
                                                 * detail.getContactNormal());
@@ -138,7 +138,7 @@ private:
 
 class MyReporter : public PeriodicEventReporter {
 public:
-    MyReporter(const MultibodySystem& system, 
+    MyReporter(const MultibodySystem& system,
                const CompliantContactSubsystem& complCont,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
@@ -176,11 +176,11 @@ static const int GoItem = 1, ReplayItem=2, QuitItem=3;
 // This one does nothing but look for the Run->Quit selection.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, Real interval) 
+    UserInputHandler(Visualizer::InputSilo& silo, Real interval)
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
-    virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const 
+    virtual void handleEvent(State& state, Real accuracy,
+                             bool& shouldTerminate) const
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)
@@ -201,7 +201,7 @@ static void makeOctahedron(Real radius, PolygonalMesh& pyramid);
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -277,7 +277,7 @@ int main() {
 
     const Real rad = .4;
     Body::Rigid pendulumBody1(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody1.addDecoration(Transform(), 
+    pendulumBody1.addDecoration(Transform(),
         DecorativeSphere(rad).setOpacity(.4));
     pendulumBody1.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
@@ -285,26 +285,26 @@ int main() {
                        .joinClique(clique2));
 
     Body::Rigid pendulumBody2(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody2.addDecoration(Transform(), 
+    pendulumBody2.addDecoration(Transform(),
         DecorativeSphere(rad).setColor(Orange).setOpacity(.4));
     pendulumBody2.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Sphere(rad),
                        ContactMaterial(fK*.01,fDis*.9,fFac*.8,fFac*.7,fVis*10))
                        .joinClique(clique1));
 
-    MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
+    MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)),
                                 pendulumBody1,    Transform(Vec3(0, 1, 0)));
 
-    MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)), 
+    MobilizedBody::Pin pendulum2(pendulum, Transform(Vec3(0)),
                                  pendulumBody2, Transform(Vec3(0, 1, 0)));
 
     Body::Rigid pendulumBody3(MassProperties(100.0, Vec3(0), 100*Inertia(1)));
     PolygonalMesh body3contact = PolygonalMesh::createSphereMesh(rad,2);
     ContactGeometry::TriangleMesh geo3(body3contact);
     const DecorativeMesh mesh3(geo3.createPolygonalMesh());
-    pendulumBody3.addDecoration(Transform(), 
+    pendulumBody3.addDecoration(Transform(),
         DecorativeMesh(mesh3).setOpacity(.2));
-    pendulumBody3.addDecoration(Transform(), 
+    pendulumBody3.addDecoration(Transform(),
         DecorativeMesh(mesh3).setColor(Gray)
                    .setRepresentation(DecorativeGeometry::DrawWireframe)
                    .setOpacity(.1));
@@ -315,23 +315,23 @@ int main() {
                        ContactMaterial(fK*.1,fDis*.9,fFac*.8,fFac*.7,fVis*10),
                        rad/2 /*thickness*/)
                        .joinClique(clique2));
-    MobilizedBody::Pin pendulum3(matter.Ground(), Transform(Vec3(-2,0,0)), 
+    MobilizedBody::Pin pendulum3(matter.Ground(), Transform(Vec3(-2,0,0)),
                                  pendulumBody3, Transform(Vec3(0, 2, 0)));
 
     Force::MobilityLinearSpring(forces, pendulum2, MobilizerUIndex(0),
         10, 0*(Pi/180));
 
     const Real ballMass = 200;
-    Body::Rigid ballBody(MassProperties(ballMass, Vec3(0), 
+    Body::Rigid ballBody(MassProperties(ballMass, Vec3(0),
                             ballMass*UnitInertia::sphere(1)));
     //ballBody.addDecoration(Transform(), DecorativeSphere(.3).setColor(Cyan));
     //ballBody.addContactSurface(Transform(),
     //    ContactSurface(ContactGeometry::Sphere(.3),
     //                   ContactMaterial(1e7,.05,fFac*.8,fFac*.7,fVis*10))
     //                   .joinClique(clique2));
-    ballBody.addDecoration(Transform(), 
+    ballBody.addDecoration(Transform(),
         showSphere.setColor(Cyan).setOpacity(.2));
-    ballBody.addDecoration(Transform(), 
+    ballBody.addDecoration(Transform(),
         showSphere.setColor(Gray)
                    .setRepresentation(DecorativeGeometry::DrawWireframe));
     //Use this to display surface normals if you want to see them.
@@ -358,12 +358,12 @@ int main() {
     //OLDcontact.addBody(OLDcontactSet, matter.updGround(),
     //    ContactGeometry::HalfSpace(), Transform(R_xdown, Vec3(0,-3,0)));
     //ElasticFoundationForce ef(forces, OLDcontact, OLDcontactSet);
-    //Real stiffness = 1e6, dissipation = 0.01, us = 0.1, 
+    //Real stiffness = 1e6, dissipation = 0.01, us = 0.1,
     //    ud = 0.05, uv = 0.01, vt = 0.01;
-    ////Real stiffness = 1e6, dissipation = 0.1, us = 0.8, 
+    ////Real stiffness = 1e6, dissipation = 0.1, us = 0.8,
     ////    ud = 0.7, uv = 0.01, vt = 0.01;
 
-    //ef.setBodyParameters(ContactSurfaceIndex(0), 
+    //ef.setBodyParameters(ContactSurfaceIndex(0),
     //    stiffness, dissipation, us, ud, uv);
     //ef.setTransitionVelocity(vt);
     //// end of old way.
@@ -395,7 +395,7 @@ int main() {
     system.addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
 
     // Show ContactSurfaceIndex for each contact surface
@@ -404,8 +404,8 @@ int main() {
         const int nsurfs = mobod.getBody().getNumContactSurfaces();
         printf("mobod %d has %d contact surfaces\n", (int)mbx, nsurfs);
         for (int i=0; i<nsurfs; ++i) {
-            printf("%2d: index %d\n", i, 
-                   (int)tracker.getContactSurfaceIndex(mbx,i)); 
+            printf("%2d: index %d\n", i,
+                   (int)tracker.getContactSurfaceIndex(mbx,i));
         }
     }
 
@@ -418,15 +418,15 @@ int main() {
 
     viz.report(state);
     printf("Default state\n");
-    cout << "t=" << state.getTime() 
-         << " q=" << pendulum.getQAsVector(state) << pendulum2.getQAsVector(state) 
-         << " u=" << pendulum.getUAsVector(state) << pendulum2.getUAsVector(state) 
+    cout << "t=" << state.getTime()
+         << " q=" << pendulum.getQAsVector(state) << pendulum2.getQAsVector(state)
+         << " u=" << pendulum.getUAsVector(state) << pendulum2.getUAsVector(state)
          << endl;
 
     cout << "\nChoose 'Go' from Run menu to simulate:\n";
     int menuId, item;
     do { silo->waitForMenuPick(menuId, item);
-         if (menuId != RunMenuId || item != GoItem) 
+         if (menuId != RunMenuId || item != GoItem)
              cout << "\aDude ... follow instructions!\n";
     } while (menuId != RunMenuId || item != GoItem);
 
@@ -436,7 +436,7 @@ int main() {
     ball.setOneU(state, 2, -20);
 
     ball.setOneU(state, 0, .05); // to break symmetry
-    
+
     // Simulate it.
 
     // The system as parameterized is very stiff (mostly due to friction)
@@ -467,12 +467,12 @@ int main() {
     const double timeInSec = realTime() - realStart;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "  CPU time was " << cpuTime() - cpuStart << "s\n";
 
-    printf("Using Integrator %s at accuracy %g:\n", 
+    printf("Using Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
@@ -528,7 +528,7 @@ int main() {
 
 
 // Create a triangle mesh in the shape of a pyramid, with the
-// square base in the x-z plane centered at 0,0,0 of given side length s. 
+// square base in the x-z plane centered at 0,0,0 of given side length s.
 // The base is split into two triangles. The apex will be at (0,s,0).
 static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
     const Real h = s/2;
@@ -539,7 +539,7 @@ static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
     vertices.push_back(Vec3(-h, 0,  h));
     vertices.push_back(Vec3( 0, s,  0)); // apex
     Array_<int> faceIndices;
-    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4}, 
+    int faces[6][3] = {{0, 1, 2}, {0, 2, 3}, {1, 0, 4},
                        {2, 1, 4}, {3, 2, 4}, {0, 3, 4}};
     for (int i = 0; i < 6; i++)
         for (int j = 0; j < 3; j++)
@@ -559,7 +559,7 @@ static void makePyramid(Real s, PolygonalMesh& pyramidMesh) {
 static void makeTetrahedron(Real r, PolygonalMesh& tet) {
     const Real h = r/std::sqrt(Real(3)); // half-dim of cube
     Array_<Vec3> vertices;
-    vertices.push_back(Vec3( h, h,  h)); 
+    vertices.push_back(Vec3( h, h,  h));
     vertices.push_back(Vec3(-h,-h,  h));
     vertices.push_back(Vec3(-h, h, -h));
     vertices.push_back(Vec3( h,-h, -h));
@@ -585,16 +585,16 @@ static void makeOctahedralMesh(const Vec3& r, Array_<Vec3>& vertices,
     vertices.push_back(Vec3( 0, -r[1],  0));   //3
     vertices.push_back(Vec3( 0,  0,  r[2]));   //4
     vertices.push_back(Vec3( 0,  0, -r[2]));   //5
-    int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
+    int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0},
                        {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
     for (int i = 0; i < 8; i++)
         for (int j = 0; j < 3; j++)
             faceIndices.push_back(faces[i][j]);
 }
 
-// Create a triangle mesh in the shape of an octahedron (like two 
-// pyramids stacked base-to-base, with the square base in the x-z plane 
-// centered at 0,0,0 of given "radius" r. 
+// Create a triangle mesh in the shape of an octahedron (like two
+// pyramids stacked base-to-base, with the square base in the x-z plane
+// centered at 0,0,0 of given "radius" r.
 // The apexes will be at (0,+/-r,0).
 static void makeOctahedron(Real r, PolygonalMesh& mesh) {
     Array_<Vec3> vertices;
@@ -611,11 +611,11 @@ static void makeOctahedron(Real r, PolygonalMesh& mesh) {
 
 static void makeCube(Real h, PolygonalMesh& cube) {
     Array_<Vec3> vertices;
-    vertices.push_back(Vec3( h, h,  h)); 
+    vertices.push_back(Vec3( h, h,  h));
     vertices.push_back(Vec3( h, h, -h));
     vertices.push_back(Vec3( h,-h,  h));
     vertices.push_back(Vec3( h,-h, -h));
-    vertices.push_back(Vec3(-h, h,  h)); 
+    vertices.push_back(Vec3(-h, h,  h));
     vertices.push_back(Vec3(-h, h, -h));
     vertices.push_back(Vec3(-h,-h,  h));
     vertices.push_back(Vec3(-h,-h, -h));

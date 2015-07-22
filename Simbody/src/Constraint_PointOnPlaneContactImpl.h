@@ -47,10 +47,10 @@ class MobilizedBody;
 class Constraint::PointOnPlaneContactImpl : public ConstraintImpl {
 public:
 PointOnPlaneContactImpl()
-:   ConstraintImpl(1,2,0), m_X_SP(), m_p_BF(0), 
-    m_planeHalfWidth(1), m_pointRadius(Real(0.05)) 
+:   ConstraintImpl(1,2,0), m_X_SP(), m_p_BF(0),
+    m_planeHalfWidth(1), m_pointRadius(Real(0.05))
 { }
-PointOnPlaneContactImpl* clone() const override 
+PointOnPlaneContactImpl* clone() const override
 {   return new PointOnPlaneContactImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
@@ -77,9 +77,9 @@ Real getPointDisplayRadius() const {return m_pointRadius;}
 //    --------------------------------
 //    perr = ~p_SF*Pz - h
 //    --------------------------------
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -87,7 +87,7 @@ void calcPositionErrorsVirtual
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
     const Transform& X_AS = getBodyTransform(allX_AB, m_surfaceBody_S);
-    const Vec3 p_AF = 
+    const Vec3 p_AF =
         findStationLocation(allX_AB, m_followerBody_B, m_p_BF); // 18 flops
     const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
 
@@ -99,12 +99,12 @@ void calcPositionErrorsVirtual
 //    -----------------------------------
 //    verr = ~v_SF*Pz = ~(v_AF-v_AC)*Pz_A
 //    -----------------------------------
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
 
@@ -131,9 +131,9 @@ void calcPositionDotErrorsVirtual
 //    --------------------------------------------------------------
 //    aerr = ~a_SF*Pz = ~((a_AF-a_AC) - 2 w_AS X (v_AF-v_AC)) * Pz_A
 //    --------------------------------------------------------------
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -177,10 +177,10 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2
            && qForces.size()==0);
     const Real lambda = multipliers[0];
 
@@ -208,7 +208,7 @@ void addInPositionConstraintForcesVirtual
 // TODO: rework this using the more efficient API (see next method).
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
     const override
@@ -216,12 +216,12 @@ void calcVelocityErrorsVirtual
     assert(allV_AB.size()==2 && constrainedU.size()==0 && verr.size()==2);
 
     const Transform& X_AS = getBodyTransformFromState(s, m_surfaceBody_S);
-    const Vec3 p_AF = 
+    const Vec3 p_AF =
         findStationLocationFromState(s, m_followerBody_B, m_p_BF); // 18 flops
     const Vec3 p_SC = ~X_AS * p_AF; // shift to So, reexpress in S (18 flops)
     const UnitVec3 Px_A  = X_AS.R() * m_X_SP.x();                  // 15 flops
     const UnitVec3 Py_A  = X_AS.R() * m_X_SP.y();                  // 15 flops
-    
+
     // 54 flops for the two of these
     const Vec3 v_AF = findStationVelocity(s, allV_AB, m_followerBody_B, m_p_BF);
     const Vec3 v_AC = findStationVelocity(s, allV_AB, m_surfaceBody_S, p_SC);
@@ -238,9 +238,9 @@ void calcVelocityErrorsVirtual
 //           [~Py]          [~Py_A]
 //    ------------------------------------------------------------------
 
-void calcVelocityDotErrorsVirtual      
+void calcVelocityDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
     const override
@@ -287,10 +287,10 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces)
     const override
 {
-    assert(multipliers.size()==2 && mobilityForces.size()==0 
+    assert(multipliers.size()==2 && mobilityForces.size()==0
            && bodyForcesInA.size()==2);
 
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];

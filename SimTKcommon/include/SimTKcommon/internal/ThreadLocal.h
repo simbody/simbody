@@ -38,12 +38,12 @@ template <class T>
 static void cleanUpThreadLocalStorage(void* value) {
 
     // Delete the value.
-    
+
     T* t = reinterpret_cast<T*>(value);
     delete t;
-    
+
     // Remove it from the set of values needing to be deleted.
-    
+
     pthread_mutex_lock(&keyLock);
     pthread_key_t key = instanceMap[value];
     instanceMap.erase(value);
@@ -60,10 +60,10 @@ static void cleanUpThreadLocalStorage(void* value) {
  * to it would need to be synchronized to prevent threads from overwriting each other's values.
  * Using a ThreadLocal instead means that a separate workspace object will automatically be created
  * for each thread.
- * 
+ *
  * To use it, simply create a ThreadLocal, then call get() or upd() to get a readable or writable
  * reference to the value for the current thread:
- * 
+ *
  * <pre>
  * ThreadLocal<int> x;
  * ...
@@ -83,21 +83,21 @@ public:
     }
     /**
      * Create a new ThreadLocal variable.
-     * 
+     *
      * @param defaultValue the initial value which the variable will have on each thread
      */
     ThreadLocal(const T& defaultValue) : defaultValue(defaultValue) {
         this->initialize();
     }
     ~ThreadLocal() {
-        
+
         // Delete the key.
-        
+
         pthread_key_delete(key);
-        
+
         // Once the key is deleted, cleanUpThreadLocalStorage() will no longer be called, so delete
         // all instances now.
-        
+
         pthread_mutex_lock(&keyLock);
         std::set<void*>& instances = keyInstances[key];
         for (std::set<void*>::const_iterator iter = instances.begin(); iter != instances.end(); ++iter) {

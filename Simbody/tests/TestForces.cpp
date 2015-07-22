@@ -37,7 +37,7 @@ void verifyForces(const Force& force, const State& state, Vector_<SpatialVec> bo
     Vector_<SpatialVec> actualBodyForces(bodyForces.size());
     Vector_<Vec3> actualParticleForces(particleForces.size());
     Vector actualMobilityForces(mobilityForces.size());
-    force.calcForceContribution(state, actualBodyForces, actualParticleForces, 
+    force.calcForceContribution(state, actualBodyForces, actualParticleForces,
                                 actualMobilityForces);
 
     for (int i = 0; i < bodyForces.size(); ++i)
@@ -96,9 +96,9 @@ public:
  */
 
 void testStandardForces() {
-    
+
     // Create a system consisting of a chain of bodies.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
@@ -107,9 +107,9 @@ void testStandardForces() {
         MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
-    
+
     // Add one of each type of force.
-    
+
     MobilizedBody& body1 = matter.updMobilizedBody(MobilizedBodyIndex(1));
     MobilizedBody& body9 = matter.updMobilizedBody(MobilizedBodyIndex(9));
     Force::ConstantForce constantForce(forces, body1, Vec3(0), Vec3(1, 2, 3));
@@ -125,7 +125,7 @@ void testStandardForces() {
     Force::Custom custom(forces, new MyForceImpl());
 
     // Create a random state for it.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Uniform random;
@@ -135,72 +135,72 @@ void testStandardForces() {
     Vec3 pos1 = body1.getBodyOriginLocation(state);
     Vec3 pos9 = body9.getBodyOriginLocation(state);
     Vec3 delta19 = pos9-pos1;
-    
+
     // Calculate each force component and see if it is correct.
-    
+
     Vector_<SpatialVec> bodyForces(matter.getNumBodies());
     Vector_<Vec3> particleForces(0);
     Vector mobilityForces(state.getNU());
     Real pe = 0;
-    
+
     // Check ConstantForce
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
     bodyForces[1][1] = Vec3(1, 2, 3);
     verifyForces(constantForce, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check ConstantTorque
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
     bodyForces[1][0] = Vec3(1, 2, 3);
     verifyForces(constantTorque, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check GlobalDamper
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = -2.0*state.getU();
     verifyForces(globalDamper, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check MobilityConstantForce
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
     body1.updOneFromUPartition(state, 1, mobilityForces) = 2.0;
     verifyForces(mobilityConstantForce, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check MobilityLinearDamper
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
     body1.updOneFromUPartition(state, 1, mobilityForces) = -2.0*body1.getOneU(state, 1);
     verifyForces(mobilityLinearDamper, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check MobilityLinearSpring
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
     body1.updOneFromUPartition(state, 1, mobilityForces) = -2.0*(body1.getOneQ(state, 1)-1.0);
     verifyForces(mobilityLinearSpring, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check TwoPointConstantForce
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
     bodyForces[1][1] = -2.0*delta19.normalize();
     bodyForces[9][1] = 2.0*delta19.normalize();
     verifyForces(twoPointConstantForce, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check TwoPointLinearDamper
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
@@ -209,9 +209,9 @@ void testStandardForces() {
     bodyForces[1][1] = twoPointLinearDamperForce*delta19.normalize();
     bodyForces[9][1] = -twoPointLinearDamperForce*delta19.normalize();
     verifyForces(twoPointLinearDamper, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check TwoPointLinearSpring
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     mobilityForces = 0;
@@ -219,9 +219,9 @@ void testStandardForces() {
     bodyForces[1][1] = twoPointLinearSpringForce*delta19.normalize();
     bodyForces[9][1] = -twoPointLinearSpringForce*delta19.normalize();
     verifyForces(twoPointLinearSpring, state, bodyForces, particleForces, mobilityForces);
-    
+
     // Check UniformGravity
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0, -2.0, 0));
     bodyForces[0] = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
@@ -229,7 +229,7 @@ void testStandardForces() {
     verifyForces(uniformGravity, state, bodyForces, particleForces, mobilityForces);
 
     // Check Custom
-    
+
     bodyForces = SpatialVec(Vec3(0), Vec3(0));
     particleForces = Vec3(0);
     for (int i = 0; i < mobilityForces.size(); ++i)
@@ -242,9 +242,9 @@ void testStandardForces() {
  */
 
 void testEnergyConservation() {
-    
+
     // Create a system consisting of a chain of bodies.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
@@ -253,9 +253,9 @@ void testEnergyConservation() {
         MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         MobilizedBody::Gimbal b(parent, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
-    
+
     // Add one of each type of conservative force.
-    
+
     MobilizedBody& body1 = matter.updMobilizedBody(MobilizedBodyIndex(1));
     MobilizedBody& body9 = matter.updMobilizedBody(MobilizedBodyIndex(9));
     Force::MobilityLinearSpring mobilityLinearSpring(forces, body1, 1, 0.1, 1.0);
@@ -263,15 +263,15 @@ void testEnergyConservation() {
     Force::UniformGravity uniformGravity(forces, matter, Vec3(0, -1.0, 0));
 
     // Create a random initial state for it.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Uniform random;
     for (int i = 0; i < state.getNY(); ++i)
         state.updY()[i] = random.getValue();
-    
+
     // Simulate it for a while and see if the energy changes.
-    
+
     system.realize(state, Stage::Dynamics);
     Real initialEnergy = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
@@ -317,20 +317,20 @@ void testDisabling() {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -2.0, 0));
 
     // Create an initial state.
-    
+
     State state = system.realizeTopology();
     body1.setQToFitTranslation(state, Vec3(0, 1, 0));
     body2.setQToFitTranslation(state, Vec3(1, 1, 0));
-    
+
     // These are the contribution of each force to the energy and to the force on body1.
-    
+
     Real springEnergy = 0.5*2.0*0.5*0.5;
     SpatialVec springForce(Vec3(0), Vec3(2.0*0.5, 0, 0));
     Real gravityEnergy = 2*2.0;
     SpatialVec gravityForce(Vec3(0), Vec3(0, -2.0, 0));
-    
+
     // Verify the force and energy for each combination of the forces being enabled or disabled.
-    
+
     system.realize(state, Stage::Dynamics);
     ASSERT_EQUAL(springEnergy+gravityEnergy, system.calcEnergy(state));
     ASSERT((springForce+gravityForce-system.getRigidBodyForces(state, Stage::Dynamics)[1]).norm() < 1e-10);

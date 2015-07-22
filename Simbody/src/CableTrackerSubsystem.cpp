@@ -65,12 +65,12 @@ updImpl() {
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use
-// except for making std::vectors, which require a default constructor to be 
+// except for making std::vectors, which require a default constructor to be
 // available.
-CableTrackerSubsystem::CableTrackerSubsystem() 
+CableTrackerSubsystem::CableTrackerSubsystem()
 {   adoptSubsystemGuts(new Impl()); }
 
-CableTrackerSubsystem::CableTrackerSubsystem(MultibodySystem& mbs) 
+CableTrackerSubsystem::CableTrackerSubsystem(MultibodySystem& mbs)
 {   adoptSubsystemGuts(new Impl());
     mbs.adoptSubsystem(*this); } // steal ownership
 

@@ -36,7 +36,7 @@
     // BUSHING //
 
 // Bushing joint. This provides a full six degrees of freedom but with
-// orientation represented using Euler angles and thus not suited to 
+// orientation represented using Euler angles and thus not suited to
 // arbitrarily large rotations.
 // The generalized coordinates q are (in this order):
 //   * 3 x-y-z (1-2-3) body fixed Euler angles (that is, fixed in M)
@@ -45,9 +45,9 @@
 //   * u = qdot, that is, the x-y-z body fixed Euler angle derivatives
 //     followed by the velocity vector v_FM
 //
-// NOTE: This joint has a singularity when the middle angle (q[1]) is near 
+// NOTE: This joint has a singularity when the middle angle (q[1]) is near
 // +/-90 degrees. In most cases you should use a Free joint instead, which by
-// default uses a quaternion as its generalized coordinates to avoid this 
+// default uses a quaternion as its generalized coordinates to avoid this
 // singularity. A modeling option allows the Free to be switched to use Euler
 // angles when necessary.
 
@@ -68,8 +68,8 @@ RBNodeBushing(const MassProperties& mProps_B,
 :   RigidBodyNodeSpec<6, false, noX_MB, noR_PF>
        (mProps_B,X_PF,X_BM,
         nextUSlot,nextUSqSlot,nextQSlot,
-        RigidBodyNode::QDotIsAlwaysTheSameAsU, 
-        RigidBodyNode::QuaternionIsNeverUsed, 
+        RigidBodyNode::QDotIsAlwaysTheSameAsU,
+        RigidBodyNode::QuaternionIsNeverUsed,
         isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -80,8 +80,8 @@ RBNodeBushing(const MassProperties& mProps_B,
 // This has a default implementation but it rotates first then translates,
 // which works fine for the normal bushing but produces wrong behavior when
 // the mobilizer is reversed.
-void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, 
-                            Vector& q) const override 
+void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM,
+                            Vector& q) const override
 {
     setQToFitTranslationImpl(sbs, X_FM.p(), q); // see below
     setQToFitRotationImpl(sbs, X_FM.R(), q);
@@ -92,39 +92,39 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     this->toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const override {
     this->toQVec3(q,3) = p_FM; // skip the 3 Euler angles
 }
 
 // Given the angular velocity of M in F, expressed in F, compute the Euler
-// angle derivatives qdot that would produce that angular velocity, and 
+// angle derivatives qdot that would produce that angular velocity, and
 // return u=qdot.
 void setUToFitAngularVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
-    Vector& u) const override 
+    Vector& u) const override
 {
     const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
     const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
     const Real oocosy = 1 / cosxy[1];
-    const Vec3 qdot = 
+    const Vec3 qdot =
         Rotation::convertAngVelInParentToBodyXYZDot(cosxy,sinxy,oocosy,w_FM);
     this->toUVec3(u,0) = qdot;
 }
 
 void setUToFitLinearVelocityImpl
-   (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, 
-    Vector& u) const override 
+   (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM,
+    Vector& u) const override
 {
     this->toUVec3(u,3) = v_FM;
 }
 
-// We want to cache cos and sin for each angle, and also 1/cos of the middle 
+// We want to cache cos and sin for each angle, and also 1/cos of the middle
 // angle will be handy to have around.
 enum {PoolSize=7};
 // cos x,y,z sin x,y,z 1/cos(y)
 enum {CosQ=0, SinQ=3, OOCosQy=6};
-int calcQPoolSize(const SBModelVars& mv) const override 
+int calcQPoolSize(const SBModelVars& mv) const override
 {   return PoolSize; }
 
 // This is expensive since we have three sin/cos computations and a divide
@@ -133,7 +133,7 @@ int calcQPoolSize(const SBModelVars& mv) const override
 void performQPrecalculations(const SBStateDigest& sbs,
                              const Real* q,      int nq,
                              Real*       qCache, int nQCache,
-                             Real*       qErr,   int nQErr) const override 
+                             Real*       qErr,   int nQErr) const override
 {
     assert(q && nq==6 && qCache && nQCache==PoolSize && nQErr==0);
 
@@ -150,7 +150,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
 void calcX_FM(const SBStateDigest& sbs,
               const Real* q,      int nq,
               const Real* qCache, int nQCache,
-              Transform&  X_F0M0) const override 
+              Transform&  X_F0M0) const override
 {
     assert(q && nq==6 && qCache && nQCache==PoolSize);
 
@@ -160,7 +160,7 @@ void calcX_FM(const SBStateDigest& sbs,
 }
 
 // Generalized speeds are the Euler angle derivatives and the velocity
-// vector v_FM. The H_FM matrix maps those into the angular velocity of 
+// vector v_FM. The H_FM matrix maps those into the angular velocity of
 // M in F, expressed in F, and the linear velocity
 //  [w_FM]   [Hw_FM]
 //  [    ] = [     ] * qdot      (where v_FM=qdot(3,3))
@@ -169,7 +169,7 @@ void calcX_FM(const SBStateDigest& sbs,
 // a fair bit of poking around in memory required.
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
-    HType&               H_FM) const override 
+    HType&               H_FM) const override
 {
     const SBModelCache&        mc = sbs.getModelCache();
     // Use "upd" here because we're realizing positions now.
@@ -192,7 +192,7 @@ void calcAcrossJointVelocityJacobian(
 //    d/dt cos(q0) = -sin(q0)*qdot0, etc.
 void calcAcrossJointVelocityJacobianDot(
     const SBStateDigest& sbs,
-    HType&               HDot_FM) const override 
+    HType&               HDot_FM) const override
 {
     const SBModelCache&        mc = sbs.getModelCache();
     const SBTreePositionCache& pc = sbs.getTreePositionCache();

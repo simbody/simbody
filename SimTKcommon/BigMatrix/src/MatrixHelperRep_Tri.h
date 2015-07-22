@@ -36,7 +36,7 @@ namespace SimTK {
 
 //--------------------------------- TriHelper ----------------------------------
 
-/// This abstract class represents a square matrix for which only half the elements 
+/// This abstract class represents a square matrix for which only half the elements
 /// need to be stored in memory, and that half is either the lower or upper triangle.
 /// The remaining half must have elements whose values can be determined from
 /// the stored ones. There are several cases:
@@ -51,8 +51,8 @@ namespace SimTK {
 ///
 /// In addition, we allow for the possibility that the diagonal
 /// elements are all the same, known value and don't need to be stored; we'll
-/// call that a "known diagonal" matrix. The known diagonal capability permits 
-/// two full triangle-shaped matrices to be packed in the space of a single 
+/// call that a "known diagonal" matrix. The known diagonal capability permits
+/// two full triangle-shaped matrices to be packed in the space of a single
 /// full matrix provided that at least one of them is a known diagonal matrix.
 /// Typically the known diagonal value is one (unit diagonal), but it can have
 /// other values (e.g. a skew symmetric matrix has a zero diagonal).
@@ -74,7 +74,7 @@ namespace SimTK {
 /// Although the interesting part of the matrix is square, we allow that to be
 /// the upper left square of a rectangular matrix, where all the additional
 /// elements are zero (that's called "trapezoidal" although it might really
-/// be a trapezoid because the triangle part may be flipped. In any case if 
+/// be a trapezoid because the triangle part may be flipped. In any case if
 /// the matrix has dimension m X n, the leading square has dimension min(m,n).
 
 //------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ public:
     // TODO: the transpose has conjugate elements, which we would normally handle
     // by typecasting to CNT<S>::THerm. However, here we're being asked to make a
     // view without typecasting, so we have to do it with the elements we've got.
-    // No problem: turn a "lower" into an "upper"; the missing elements (the 
+    // No problem: turn a "lower" into an "upper"; the missing elements (the
     // conjugated ones) will have moved to their proper locations.
     MatrixHelperRep<S>* createTransposeView_() {
         SimTK_ERRCHK_ALWAYS(!"not implemented", "TriHelper::createTransposeView_()", "not implemented");
@@ -150,10 +150,10 @@ class TriInFullHelper : public TriHelper<S> {
 public:
     // If we're allocating the space, we'll just allocate a square even if the
     // matrix is trapezoidal.
-    TriInFullHelper(int esz, int cppesz, int m, int n, 
-         bool triangular, bool hermitian, bool skew, bool rowOrder) 
-    :   Base(esz,cppesz), m_minmn(std::min(m,n)), m_leadingDim(m_minmn*esz), 
-        m_triangular(triangular), m_hermitian(hermitian), 
+    TriInFullHelper(int esz, int cppesz, int m, int n,
+         bool triangular, bool hermitian, bool skew, bool rowOrder)
+    :   Base(esz,cppesz), m_minmn(std::min(m,n)), m_leadingDim(m_minmn*esz),
+        m_triangular(triangular), m_hermitian(hermitian),
         m_skew(skew), m_rowOrder(rowOrder), m_unstored(new S[NumUnstored*esz])
     {
         this->m_owner     = true;
@@ -162,14 +162,14 @@ public:
         this->m_actual.setActualSize(m, n); // the apparent size
     }
 
-    // Use someone else's memory, which we assume to be the right size. 
+    // Use someone else's memory, which we assume to be the right size.
     TriInFullHelper(int esz, int cppesz, int m, int n,
          bool triangular, bool hermitian, bool skew, bool rowOrder,
-         int ldim, const S* shared, bool canWrite) 
-    :   Base(esz,cppesz), m_minmn(std::min(m,n)), m_leadingDim(ldim), 
-        m_triangular(triangular), m_hermitian(hermitian), 
+         int ldim, const S* shared, bool canWrite)
+    :   Base(esz,cppesz), m_minmn(std::min(m,n)), m_leadingDim(ldim),
+        m_triangular(triangular), m_hermitian(hermitian),
         m_skew(skew), m_rowOrder(rowOrder), m_unstored(new S[NumUnstored*esz])
-    {        
+    {
         assert(m_leadingDim >= m_minmn*this->m_eltSize);
         this->m_owner     = false;
         this->m_writable  = canWrite;
@@ -193,10 +193,10 @@ public:
 
 
     // Compute the missing elements.
-    void getAnyElt_(int i, int j, S* value) const { 
+    void getAnyElt_(int i, int j, S* value) const {
         if (i==j || this->eltIsStored_(i,j)) {
             this->copyElt(value, this->getElt_(i,j));
-            return; 
+            return;
         }
         // Missing elements are all zero for triangular matrices, or if
         // either dimension is outside the square part of any triangular-storage
@@ -253,7 +253,7 @@ public:
             int startInScalars = 0; // data was already shifted by 1 if needed
             int lengthInBytes = (nToCopy-known)*eltBytes;
             for (ptrdiff_t j=0; j < nToCopy-known; ++j) {
-                std::memcpy(dest + j*p->m_leadingDim + startInScalars, 
+                std::memcpy(dest + j*p->m_leadingDim + startInScalars,
                             src  + j*m_leadingDim    + startInScalars, lengthInBytes);
                 startInScalars += this->m_eltSize;
                 lengthInBytes  -= eltBytes;
@@ -277,9 +277,9 @@ public:
 
     // OK for any size elements. We'll move along the fast direction; columns
     // for column-ordered and rows for row-ordered storage. There are two cases:
-    //   (upper, col order) and (lower, row order) 
+    //   (upper, col order) and (lower, row order)
     //      -- data starts at 0 for each column [row] and get longer (shortFirst)
-    //   (upper, row order) and (lower, col order) 
+    //   (upper, row order) and (lower, col order)
     //      -- data starts at the diagonal and gets shorter (longFirst)
     void resizeKeep_(int m, int n) {
         const int newMinmn = std::min(m,n);
@@ -307,7 +307,7 @@ public:
             int startInScalars = 0; // data was already shifted by 1 if needed
             int lengthInBytes = (nToCopy-known)*eltBytes;
             for (ptrdiff_t j=0; j < nToCopy-known; ++j) {
-                std::memcpy(dest + j*newLeadingDim + startInScalars, 
+                std::memcpy(dest + j*newLeadingDim + startInScalars,
                             src  + j*this->m_leadingDim  + startInScalars, lengthInBytes);
                 startInScalars += this->m_eltSize;
                 lengthInBytes  -= eltBytes;
@@ -323,7 +323,7 @@ protected:
     int     m_minmn;        // dimension of the square part (min(m,n))
     int     m_leadingDim;   // in scalars; can be row- or column-ordered.
 
-    // These should be implicit in the subclasses but for now they're here 
+    // These should be implicit in the subclasses but for now they're here
     bool    m_triangular;   // true if triangular, false if symmetric or hermitian
     bool    m_hermitian;    // m(i,j) = hermitianTranspose(m(j,i))
     bool    m_skew;         // m(i,j) = -op(m(j,i))
@@ -349,15 +349,15 @@ class TriInFullUpperHelper : public TriInFullHelper<S> {
     typedef TriInFullUpperHelper<S> This;
     typedef TriInFullHelper<S>      Base;
 public:
-    TriInFullUpperHelper(int esz, int cppesz, int m, int n, 
-         bool triangular, bool hermitian, bool skew, bool rowOrder) 
-    :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder) 
+    TriInFullUpperHelper(int esz, int cppesz, int m, int n,
+         bool triangular, bool hermitian, bool skew, bool rowOrder)
+    :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder)
     {   this->m_actual.setStructure(calcUpperTriStructure()); }
 
-    // Use someone else's memory, which we assume to be the right size. 
+    // Use someone else's memory, which we assume to be the right size.
     TriInFullUpperHelper(int esz, int cppesz, int m, int n,
          bool triangular, bool hermitian, bool skew, bool rowOrder,
-         int ldim, const S* shared, bool canWrite) 
+         int ldim, const S* shared, bool canWrite)
     :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder,ldim,shared,canWrite)
     {   this->m_actual.setStructure(calcUpperTriStructure()); }
 
@@ -395,11 +395,11 @@ private:
         ms.setDiagValue(this->hasKnownDiagonal() ? MatrixStructure::UnitDiag : MatrixStructure::StoredDiag);
         if (this->m_triangular) ms.setStructure(MatrixStructure::Triangular);
         else {
-            if (this->m_hermitian) 
-                ms.setStructure(this->m_skew ? MatrixStructure::SkewHermitian 
+            if (this->m_hermitian)
+                ms.setStructure(this->m_skew ? MatrixStructure::SkewHermitian
                                              : MatrixStructure::Hermitian);
             else // symmetric
-                ms.setStructure(this->m_skew ? MatrixStructure::SkewSymmetric 
+                ms.setStructure(this->m_skew ? MatrixStructure::SkewSymmetric
                                              : MatrixStructure::Symmetric);
         }
         return ms;
@@ -414,17 +414,17 @@ class TriInFullUpperKnownDiagHelper : public TriInFullUpperHelper<S> {
     typedef TriInFullUpperKnownDiagHelper<S>    This;
     typedef TriInFullUpperHelper<S>             Base;
 public:
-    TriInFullUpperKnownDiagHelper(int esz, int cppesz, int m, int n, 
-         bool triangular, bool hermitian, bool skew, bool rowOrder, const S* knownDiag) 
-    :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder) 
+    TriInFullUpperKnownDiagHelper(int esz, int cppesz, int m, int n,
+         bool triangular, bool hermitian, bool skew, bool rowOrder, const S* knownDiag)
+    :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder)
     {
         copyElt(&this->m_unknown[this->UnstoredDiag*this->m_eltSize], knownDiag);
     }
 
     TriInFullUpperKnownDiagHelper(int esz, int cppesz, int m, int n,
          bool triangular, bool hermitian, bool skew, bool rowOrder, const S* knownDiag,
-         int ldim, const S* shared, bool canWrite) 
-    :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder,ldim,shared,canWrite) 
+         int ldim, const S* shared, bool canWrite)
+    :   Base(esz,cppesz,m,n,triangular,hermitian,skew,rowOrder,ldim,shared,canWrite)
     {
         copyElt(&this->m_unknown[this->UnstoredDiag*this->m_eltSize], knownDiag);
     }
@@ -461,7 +461,7 @@ public:
 
 
 
-} // namespace SimTK   
+} // namespace SimTK
 
 
 #endif // SimTK_SimTKCOMMON_MATRIX_HELPER_REP_TRI_H_

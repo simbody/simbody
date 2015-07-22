@@ -34,7 +34,7 @@ namespace SimTK {
 
 /** Three mobilities -- unrestricted orientation modeled with a
 quaternion which is never singular. A modeling option allows the
-joint to use a 1-2-3 Euler sequence (identical to a Gimbal) 
+joint to use a 1-2-3 Euler sequence (identical to a Gimbal)
 instead. The three generalized speeds u for this mobilizer are always
 the three measure numbers of the angular velocity vector w_FM, the
 relative angular velocity of the outboard M frame in the inboard F frame,
@@ -47,15 +47,15 @@ public:
     reference any %MobilizedBody::Ball. **/
     Ball() {}
 
-    /** Create a %Ball mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Ball mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Ball(MobilizedBody& parent, const Transform& X_PF,
          const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Ball(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
@@ -102,7 +102,7 @@ public:
 
     const Vec4& getMyPartQ(const State&, const Vector& qlike) const;
     const Vec3& getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Vec4& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
 

@@ -124,8 +124,8 @@ public:
         ImagOffset          = NTraits<ENumber>::ImagOffset,
         RealStrideFactor    = 1, // composite types don't change size when
                                  // cast from complex to real or imaginary
-        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH 
-                                ? CNT<E>::ArgDepth + 1 
+        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH
+                                ? CNT<E>::ArgDepth + 1
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
         IsULessScalar       = 0,
@@ -139,9 +139,9 @@ public:
     typedef SymMat<M,ENeg,RS>               TNeg;
     typedef SymMat<M,EWithoutNegator,RS>    TWithoutNegator;
 
-    typedef SymMat<M,EReal,RS*CNT<E>::RealStrideFactor>          
+    typedef SymMat<M,EReal,RS*CNT<E>::RealStrideFactor>
                                             TReal;
-    typedef SymMat<M,EImag,RS*CNT<E>::RealStrideFactor>          
+    typedef SymMat<M,EImag,RS*CNT<E>::RealStrideFactor>
                                             TImag;
     typedef SymMat<M,EComplex,RS>           TComplex;
     typedef T                               THerm;   // These two are opposite of what you might expect
@@ -164,7 +164,7 @@ public:
     typedef SymMat<M,ESqHermT,1>        TSqHermT; // ~Mat*Mat
     typedef SymMat<M,ESqTHerm,1>        TSqTHerm; // Mat*~Mat
     typedef SymMat<M,E,1>               TPacked;  // no extra row spacing for new data
-    
+
     typedef EScalar                     Scalar;
     typedef EULessScalar                ULessScalar;
     typedef ENumber                     Number;
@@ -178,21 +178,21 @@ public:
 
     // Scalar norm square is sum( squares of all scalars ). The off-diagonals
     // come up twice.
-    ScalarNormSq scalarNormSqr() const { 
+    ScalarNormSq scalarNormSqr() const {
         return getDiag().scalarNormSqr() + 2.*getLower().scalarNormSqr();
     }
 
     // sqrt() is elementwise square root; that is, the return value has the same
     // dimension as this SymMat but with each element replaced by whatever it thinks
     // its square root is.
-    TSqrt sqrt() const { 
+    TSqrt sqrt() const {
         return TSqrt(getAsVec().sqrt());
     }
 
     // abs() is elementwise absolute value; that is, the return value has the same
     // dimension as this SymMat but with each element replaced by whatever it thinks
     // its absolute value is.
-    TAbs abs() const { 
+    TAbs abs() const {
         return TAbs(getAsVec().abs());
     }
 
@@ -205,7 +205,7 @@ public:
     // This gives the resulting SymMat type when (m[i] op P) is applied to each element of m.
     // It is a SymMat of dimension M, spacing 1, and element types which are the regular
     // composite result of E op P. Typically P is a scalar type but it doesn't have to be.
-    template <class P> struct EltResult { 
+    template <class P> struct EltResult {
         typedef SymMat<M, typename CNT<E>::template Result<P>::Mul, 1> Mul;
         typedef SymMat<M, typename CNT<E>::template Result<P>::Dvd, 1> Dvd;
         typedef SymMat<M, typename CNT<E>::template Result<P>::Add, 1> Add;
@@ -214,7 +214,7 @@ public:
 
     // This is the composite result for m op P where P is some kind of appropriately shaped
     // non-scalar type.
-    template <class P> struct Result { 
+    template <class P> struct Result {
         typedef MulCNTs<M,M,ArgDepth,SymMat,ColSpacing,RowSpacing,
             CNT<P>::NRows, CNT<P>::NCols, CNT<P>::ArgDepth,
             P, CNT<P>::ColSpacing, CNT<P>::RowSpacing> MulOp;
@@ -249,7 +249,7 @@ public:
 
     /// Default construction initializes to NaN when debugging but
     /// is left uninitialized otherwise.
-    SymMat(){ 
+    SymMat(){
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -267,7 +267,7 @@ public:
     }
 
     /// This is an \e explicit conversion from square Mat of right size, assuming
-    /// that the source matrix is symmetric to within a reasonable numerical 
+    /// that the source matrix is symmetric to within a reasonable numerical
     /// tolerance. In Debug mode we'll test that assumption and throw an exception
     /// if it is wrong. In Release mode you're on your own. All the elements of
     /// the source Mat are used; off-diagonal elements (i,j) are averaged with
@@ -321,14 +321,14 @@ public:
         this->updDiag() = m.diag().real();
         for (int j=0; j<M; ++j)
             for (int i=j+1; i<M; ++i)
-                this->updEltLower(i,j) = 
+                this->updEltLower(i,j) =
                     (m(i,j) + CNT<EE>::transpose(m(j,i)))/2;
         return *this;
     }
 
     /// This is an \e implicit conversion from a SymMat of the same length
     /// and element type but with different spacing.
-    template <int RSS> SymMat(const SymMat<M,E,RSS>& src) 
+    template <int RSS> SymMat(const SymMat<M,E,RSS>& src)
       { updAsVec() = src.getAsVec(); }
 
     /// This is an \e implicit conversion from a SymMat of the same length
@@ -337,7 +337,7 @@ public:
       { updAsVec() = src.getAsVec(); }
 
     /// Construct a SymMat from a SymMat of the same dimensions, with any
-    /// element type and spacing. Works as long as the element types are 
+    /// element type and spacing. Works as long as the element types are
     /// assignment compatible.
     template <class EE, int RSS> explicit SymMat(const SymMat<M,EE,RSS>& src)
       { updAsVec() = src.getAsVec(); }
@@ -345,20 +345,20 @@ public:
     // Construction using an element repeats that element on the diagonal
     // but sets the rest of the matrix to zero.
     explicit SymMat(const E& e) {
-        updDiag() = CNT<E>::real(e); 
-        for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
+        updDiag() = CNT<E>::real(e);
+        for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0);
     }
 
     // Construction using a negated element is just like construction from
     // the element.
     explicit SymMat(const ENeg& e) {
-        updDiag() = CNT<ENeg>::real(e); 
-        for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0); 
+        updDiag() = CNT<ENeg>::real(e);
+        for (int i=0; i < NLowerElements; ++i) updlowerE(i) = E(0);
     }
 
     // Given an int, turn it into a suitable floating point number
     // and then feed that to the above single-element constructor.
-    explicit SymMat(int i) 
+    explicit SymMat(int i)
       { new (this) SymMat(E(Precision(i))); }
 
     /// A bevy of constructors from individual exact-match elements IN ROW ORDER,
@@ -378,14 +378,14 @@ public:
     SymMat(const E& e0,
            const E& e1,const E& e2)
     {   assert(M==2); TDiag& d=updDiag(); TLower& l=updLower();
-        d[0]=CNT<E>::real(e0); d[1]=CNT<E>::real(e2); 
+        d[0]=CNT<E>::real(e0); d[1]=CNT<E>::real(e2);
         l[0]=e1; }
 
     SymMat(const E& e0,
            const E& e1,const E& e2,
            const E& e3,const E& e4, const E& e5)
     {   assert(M==3); TDiag& d=updDiag(); TLower& l=updLower();
-        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5); 
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);
         l[0]=e1;l[1]=e3;
         l[2]=e4; }
 
@@ -394,7 +394,7 @@ public:
            const E& e3,const E& e4, const E& e5,
            const E& e6,const E& e7, const E& e8, const E& e9)
     {   assert(M==4); TDiag& d=updDiag(); TLower& l=updLower();
-        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);d[3]=CNT<E>::real(e9); 
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);d[3]=CNT<E>::real(e9);
         l[0]=e1;l[1]=e3;l[2]=e6;
         l[3]=e4;l[4]=e7;
         l[5]=e8; }
@@ -405,7 +405,7 @@ public:
            const E& e6, const E& e7,  const E& e8,  const E& e9,
            const E& e10,const E& e11, const E& e12, const E& e13, const E& e14)
     {   assert(M==5); TDiag& d=updDiag(); TLower& l=updLower();
-        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);d[3]=CNT<E>::real(e9);d[4]=CNT<E>::real(e14); 
+        d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);d[3]=CNT<E>::real(e9);d[4]=CNT<E>::real(e14);
         l[0]=e1;l[1]=e3;l[2]=e6;l[3]=e10;
         l[4]=e4;l[5]=e7;l[6]=e11;
         l[7]=e8;l[8]=e12;
@@ -419,7 +419,7 @@ public:
            const E& e15,const E& e16, const E& e17, const E& e18, const E& e19, const E& e20)
     {   assert(M==6); TDiag& d=updDiag(); TLower& l=updLower();
         d[0]=CNT<E>::real(e0);d[1]=CNT<E>::real(e2);d[2]=CNT<E>::real(e5);
-        d[3]=CNT<E>::real(e9);d[4]=CNT<E>::real(e14);d[5]=CNT<E>::real(e20); 
+        d[3]=CNT<E>::real(e9);d[4]=CNT<E>::real(e14);d[5]=CNT<E>::real(e20);
         l[0] =e1; l[1] =e3; l[2] =e6;  l[3]=e10; l[4]=e15;
         l[5] =e4; l[6] =e7; l[7] =e11; l[8]=e16;
         l[9] =e8; l[10]=e12;l[11]=e17;
@@ -464,7 +464,7 @@ public:
     }
 
     // Assignment works similarly to copy -- if the lengths match,
-    // go element-by-element. Otherwise, zero and then copy to each 
+    // go element-by-element. Otherwise, zero and then copy to each
     // diagonal element.
     template <class EE, int RSS> SymMat& operator=(const SymMat<M,EE,RSS>& mm) {
         updAsVec() = mm.getAsVec();
@@ -473,7 +473,7 @@ public:
 
 
     // Conforming assignment ops
-    template <class EE, int RSS> SymMat& 
+    template <class EE, int RSS> SymMat&
     operator+=(const SymMat<M,EE,RSS>& mm) {
         updAsVec() += mm.getAsVec();
         return *this;
@@ -507,14 +507,14 @@ public:
     // Cases: sy=sy+-sy, m=sy+-m, m=sy*sy, m=sy*m, v=sy*v
 
     // sy= this + sy
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename Result<SymMat<M,E2,RS2> >::Add
     conformingAdd(const SymMat<M,E2,RS2>& r) const {
         return typename Result<SymMat<M,E2,RS2> >::Add
             (getAsVec().conformingAdd(r.getAsVec()));
     }
     // m= this - m
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename Result<SymMat<M,E2,RS2> >::Sub
     conformingSubtract(const SymMat<M,E2,RS2>& r) const {
         return typename Result<SymMat<M,E2,RS2> >::Sub
@@ -535,7 +535,7 @@ public:
     }
 
     // sy= this .* sy
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename EltResult<E2>::Mul
     elementwiseMultiply(const SymMat<M,E2,RS2>& r) const {
         return typename EltResult<E2>::Mul
@@ -543,7 +543,7 @@ public:
     }
 
     // sy= this ./ sy
-    template <class E2, int RS2> 
+    template <class E2, int RS2>
     typename EltResult<E2>::Dvd
     elementwiseDivide(const SymMat<M,E2,RS2>& r) const {
         return typename EltResult<E2>::Dvd
@@ -551,9 +551,9 @@ public:
     }
 
     // TODO: need the rest of the SymMat operators
-    
+
     // Must be i >= j.
-    const E& operator()(int i,int j) const 
+    const E& operator()(int i,int j) const
       { return i==j ? getDiag()[i] : getEltLower(i,j); }
     E& operator()(int i,int j)
       { return i==j ? updDiag()[i] : updEltLower(i,j); }
@@ -566,7 +566,7 @@ public:
 
     // This is the scalar Frobenius norm.
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
-    typename CNT<ScalarNormSq>::TSqrt 
+    typename CNT<ScalarNormSq>::TSqrt
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     /// There is no conventional meaning for normalize() applied to a matrix. We
@@ -614,12 +614,12 @@ public:
     TReal&       real()       { return *reinterpret_cast<      TReal*>(this); }
 
     // Had to contort these routines to get them through VC++ 7.net
-    const TImag& imag()    const { 
+    const TImag& imag()    const {
         const int offs = ImagOffset;
         const EImag* p = reinterpret_cast<const EImag*>(this);
         return *reinterpret_cast<const TImag*>(p+offs);
     }
-    TImag& imag() { 
+    TImag& imag() {
         const int offs = ImagOffset;
         EImag* p = reinterpret_cast<EImag*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
@@ -716,7 +716,7 @@ public:
     template <class EE> SymMat& scalarDivideEq(const EE& ee)
       { updAsVec() /= ee; return *this; }
     template <class EE> SymMat& scalarDivideEqFromLeft(const EE& ee)
-      { updAsVec().scalarDivideEqFromLeft(ee); return *this; } 
+      { updAsVec().scalarDivideEqFromLeft(ee); return *this; }
 
     void setToNaN()  { updAsVec().setToNaN();  }
     void setToZero() { updAsVec().setToZero(); }
@@ -761,14 +761,14 @@ public:
         return isNumericallyEqual(m, tol);
     }
 
-    /// %Test whether this is numerically a "scalar" matrix, meaning that it is 
-    /// a diagonal matrix in which each diagonal element is numerically equal to 
-    /// the same scalar, using either a specified tolerance or the matrix's 
+    /// %Test whether this is numerically a "scalar" matrix, meaning that it is
+    /// a diagonal matrix in which each diagonal element is numerically equal to
+    /// the same scalar, using either a specified tolerance or the matrix's
     /// default tolerance (which is always the same or looser than the default
     /// tolerance for one of its elements).
     bool isNumericallyEqual
        (const ELT& e,
-        double     tol = getDefaultTolerance()) const 
+        double     tol = getDefaultTolerance()) const
     {
         if (!diag().isNumericallyEqual(e, tol))
             return false;
@@ -812,7 +812,7 @@ public:
         SimTK_INDEXCHECK(j,M,"SymMat::elt(i,j)");
         if      (i>j)  return getEltLower(i,j); // copy element
         else if (i==j) return getEltDiag(i);    // copy element
-        else           return getEltUpper(i,j); // conversion from EHerm to E may cost flops 
+        else           return getEltUpper(i,j); // conversion from EHerm to E may cost flops
     }
 
     const TDiag&  getDiag()  const {return TDiag::getAs(d);}
@@ -841,7 +841,7 @@ public:
     // must be i < j
     const EHerm& getEltUpper(int i, int j) const {return getUpper()[lowerIx(j,i)];}
     EHerm&       updEltUpper(int i, int j)       {return updUpper()[lowerIx(j,i)];}
-    
+
     /// Returns a row vector (Row) containing the column sums of this matrix.
     TRow colSum() const {
         TRow temp(~getDiag());
@@ -884,7 +884,7 @@ private:
     explicit SymMat(const TAsVec& v) {
         TAsVec::updAs(d) = v;
     }
-    
+
     // Convert i,j with i>j to an index in "lower". This also gives the
     // right index for "upper" with i and j reversed.
     static int lowerIx(int i, int j) {
@@ -900,7 +900,7 @@ private:
 //   sy=sy+sy, sy=sy-sy, m=sy*sy, sy==sy, sy!=sy      //
 ////////////////////////////////////////////////////////
 
-// m3 = m1 + m2 where all m's have the same dimension M. 
+// m3 = m1 + m2 where all m's have the same dimension M.
 template <int M, class E1, int S1, class E2, int S2> inline
 typename SymMat<M,E1,S1>::template Result< SymMat<M,E2,S2> >::Add
 operator+(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
@@ -908,7 +908,7 @@ operator+(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
         ::AddOp::perform(l,r);
 }
 
-// m3 = m1 - m2 where all m's have the same dimension M. 
+// m3 = m1 - m2 where all m's have the same dimension M.
 template <int M, class E1, int S1, class E2, int S2> inline
 typename SymMat<M,E1,S1>::template Result< SymMat<M,E2,S2> >::Sub
 operator-(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
@@ -916,7 +916,7 @@ operator-(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
         ::SubOp::perform(l,r);
 }
 
-// m3 = m1 * m2 where all m's have the same dimension M. 
+// m3 = m1 * m2 where all m's have the same dimension M.
 // The result will not be symmetric.
 template <int M, class E1, int S1, class E2, int S2> inline
 typename SymMat<M,E1,S1>::template Result< SymMat<M,E2,S2> >::Mul
@@ -933,7 +933,7 @@ operator==(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {
 
 // bool = m1 == m2, m1 and m2 have the same dimension M
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator!=(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {return !(l==r);} 
+operator!=(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {return !(l==r);}
 
 ///////////////////////////////////////////////////////
 // Global operators involving a SymMat and a scalar. //
@@ -941,7 +941,7 @@ operator!=(const SymMat<M,E1,S1>& l, const SymMat<M,E2,S2>& r) {return !(l==r);}
 
 // SCALAR MULTIPLY
 
-// m = m*real, real*m 
+// m = m*real, real*m
 template <int M, class E, int S> inline
 typename SymMat<M,E,S>::template Result<float>::Mul
 operator*(const SymMat<M,E,S>& l, const float& r)
@@ -1003,10 +1003,10 @@ operator*(const negator<R>& l, const SymMat<M,E,S>& r) {return r * (typename neg
 
 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
-// but when it is on the left it means scalar * pseudoInverse(mat), which is 
+// but when it is on the left it means scalar * pseudoInverse(mat), which is
 // a similar symmetric matrix.
 
-// m = m/real, real/m 
+// m = m/real, real/m
 template <int M, class E, int S> inline
 typename SymMat<M,E,S>::template Result<float>::Dvd
 operator/(const SymMat<M,E,S>& l, const float& r)
@@ -1078,7 +1078,7 @@ operator/(const negator<R>& l, const SymMat<M,E,S>& r) {return (typename negator
 
 // SCALAR ADD
 
-// m = m+real, real+m 
+// m = m+real, real+m
 template <int M, class E, int S> inline
 typename SymMat<M,E,S>::template Result<float>::Add
 operator+(const SymMat<M,E,S>& l, const float& r)
@@ -1140,7 +1140,7 @@ operator+(const negator<R>& l, const SymMat<M,E,S>& r) {return r + (typename neg
 
 // SCALAR SUBTRACT -- careful, not commutative.
 
-// m = m-real, real-m 
+// m = m-real, real-m
 template <int M, class E, int S> inline
 typename SymMat<M,E,S>::template Result<float>::Sub
 operator-(const SymMat<M,E,S>& l, const float& r)
@@ -1212,14 +1212,14 @@ std::basic_ostream<CHAR,TRAITS>&
 operator<<(std::basic_ostream<CHAR,TRAITS>& o, const SymMat<M,E,RS>& m) {
     for (int i=0;i<M;++i) {
         o << std::endl << "[";
-        for (int j=0; j<=i; ++j)         
+        for (int j=0; j<=i; ++j)
             o << (j>0?" ":"") << m(i,j);
         for (int j=i+1; j<M; ++j)
             o << " *";
         o << "]";
     }
     if (M) o << std::endl;
-    return o; 
+    return o;
 }
 
 template <int M, class E, int RS, class CHAR, class TRAITS> inline

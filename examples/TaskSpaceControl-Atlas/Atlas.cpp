@@ -31,12 +31,12 @@
 using namespace SimTK;
 
 namespace {
-// This local event handler is called periodically to sample the robot's 
+// This local event handler is called periodically to sample the robot's
 // sensors.
 class AtlasJointSampler : public PeriodicEventHandler {
 public:
-    AtlasJointSampler(const Atlas& realRobot, 
-                      Real          interval) 
+    AtlasJointSampler(const Atlas& realRobot,
+                      Real          interval)
     :   PeriodicEventHandler(interval), m_realRobot(realRobot) {}
 
     // This method is called whenever this event occurs.
@@ -65,7 +65,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
 //------------------------------------------------------------------------------
 // Build a Simbody System of the Boston Dynamics Atlas robot.
 Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
-:   m_matter(*this), m_forces(*this), m_tracker(*this), 
+:   m_matter(*this), m_forces(*this), m_tracker(*this),
     m_contact(*this, m_tracker),
     m_sampledAngles(*this, Stage::Dynamics, Vector()),
     m_sampledRates(*this, Stage::Dynamics, Vector()),
@@ -80,7 +80,7 @@ Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
     m_matter.setShowDefaultGeometry(false);
 
     // Set the sensor sampling rate. TODO: should be settable.
-    addEventHandler(new AtlasJointSampler(*this, 0.002));  
+    addEventHandler(new AtlasJointSampler(*this, 0.002));
 
     //--------------------------------------------------------------------------
     //                          Read the robot file
@@ -95,7 +95,7 @@ Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
 
     // This is a URDF robot document.
     Xml::Element root = urdf.getRootElement();
-    std::cout << "Reading robot '" 
+    std::cout << "Reading robot '"
               << root.getOptionalAttributeValue("name","NONAME") << "'\n";
 
     m_urdfRobot.readRobot(root);
@@ -120,13 +120,13 @@ Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
     m_matter.Ground().updBody().addContactSurface(Rotation(Pi/2,YAxis),
        ContactSurface(ContactGeometry::HalfSpace(), groundMaterial));
     // Draw world frame.
-    m_matter.Ground().addBodyDecoration(Vec3(0), 
+    m_matter.Ground().addBodyDecoration(Vec3(0),
         DecorativeFrame(1).setColor(Green).setLineThickness(3)); // World
 
     //--------------------------------------------------------------------------
     //                          Build Simbody System
     //--------------------------------------------------------------------------
-    addRobotToSimbodySystem(auxDir, m_mbGraph, m_urdfRobot, 
+    addRobotToSimbodySystem(auxDir, m_mbGraph, m_urdfRobot,
                             *this, m_matter, m_forces, m_contact);
 }
 
@@ -136,7 +136,7 @@ Atlas::Atlas(const std::string& auxDir, const std::string& fileNameAndExt)
 //------------------------------------------------------------------------------
 // This method is called whenever this event occurs.
 void AtlasJointSampler::handleEvent
-    (State& state, Real, bool&) const 
+    (State& state, Real, bool&) const
 {
     const int nq = state.getNQ(), nu = state.getNU();
     const Vector& q = state.getQ();
@@ -150,9 +150,9 @@ void AtlasJointSampler::handleEvent
         uSample[i] = u[i] + uNoise * m_gaussian.getValue();
     m_realRobot.setSampledAngles(state, qSample);
     m_realRobot.setSampledRates(state, uSample);
-    m_realRobot.setSampledPelvisPose(state, 
+    m_realRobot.setSampledPelvisPose(state,
         m_realRobot.getBody("pelvis").getBodyTransform(state));
-    m_realRobot.setSampledEndEffectorPos(state, 
+    m_realRobot.setSampledEndEffectorPos(state,
         m_realRobot.getActualEndEffectorPosition(state));
 }
 
@@ -176,11 +176,11 @@ static void createMultibodyGraph(URDFRobot&             robot,
     mbgraph.addJointType("continuous", 1);   // Pin with no limits
     mbgraph.addJointType("planar",     3);   // Planar
 
-    // Step 2: Tell it about all the links we read from the input file, 
+    // Step 2: Tell it about all the links we read from the input file,
     // starting with world, and provide a reference pointer.
     for (int lx=0; lx < robot.links.size(); ++lx) {
         URDFLinkInfo& link = robot.links.updLink(lx);
-        mbgraph.addBody(link.name, link.massProps.getMass(), 
+        mbgraph.addBody(link.name, link.massProps.getMass(),
                         link.mustBeBaseLink, &link);
     }
 
@@ -188,7 +188,7 @@ static void createMultibodyGraph(URDFRobot&             robot,
     // and provide a reference pointer.
     for (int jx=0; jx < robot.joints.size(); ++jx) {
         URDFJointInfo& joint = robot.joints.updJoint(jx);
-        mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child, 
+        mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child,
                             joint.mustBreakLoopHere, &joint);
     }
 
@@ -232,7 +232,7 @@ void Atlas::initialize(SimTK::State& state) {
 //==============================================================================
 // Given a desired multibody graph, gravity, and the URDF robot that was
 // used to generate the graph, add elements to the Simbody System to represent
-// it. There are many limitations here, especially in the handling of contact. 
+// it. There are many limitations here, especially in the handling of contact.
 // Any URDF features that we haven't roboted are just ignored.
 // The URDFRobot is updated so that its links and joints have references to
 // their corresponding Simbody elements.
@@ -243,7 +243,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                                     MultibodySystem&           mbs,
                                     SimbodyMatterSubsystem&    matter,
                                     GeneralForceSubsystem&     forces,
-                                    CompliantContactSubsystem& contact) 
+                                    CompliantContactSubsystem& contact)
 {
     const std::string& freeJointName = mbgraph.getFreeJointTypeName();
     const std::string& weldJointName = mbgraph.getWeldJointTypeName();
@@ -256,7 +256,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                              0.5);  // mu_viscous
 
     // Draw the robot frame.
-    matter.Ground().addBodyDecoration(robot.X_WM, 
+    matter.Ground().addBodyDecoration(robot.X_WM,
         DecorativeFrame(.75).setColor(Orange).setLineThickness(3));  // Model
     matter.Ground().addBodyDecoration(robot.X_WM.p()+Vec3(0,0,.1),
         DecorativeText(robot.name).setScale(.2)
@@ -287,14 +287,14 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
         URDFLinkInfo& gzInb  = *(URDFLinkInfo*)mob.getInboardBodyRef();
         URDFLinkInfo& gzOutb = *(URDFLinkInfo*)mob.getOutboardMasterBodyRef();
 
-        const MassProperties massProps = 
+        const MassProperties massProps =
             gzOutb.getEffectiveMassProps(mob.getNumFragments());
 
         //std::cout << "link=" << gzOutb.name << std::endl;
         //std::cout << "     " << massProps << std::endl;
 
         // This will reference the new mobilized body once we create it.
-        MobilizedBody mobod; 
+        MobilizedBody mobod;
 
         if (robot.isStatic) {
             mobod = matter.updGround();
@@ -328,11 +328,11 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
             // so that we'll have Euler angle rotations & derivatives rather
             // than the quaternions we would get with a Simbody Free joint.
             // Of course that does mean there will be a singularity somewhere.
-            // This makes it easier to apply prescribed motion. 
+            // This makes it easier to apply prescribed motion.
             if (type == freeJointName) {
                 MobilizedBody::Bushing freeJoint(
                     gzInb.masterMobod,  X_IF0,
-                    massProps,          X_OM0, 
+                    massProps,          X_OM0,
                     direction);
                 Transform defX_FM = isReversed ? Transform(~gzJoint.defX_AB)
                                                : gzJoint.defX_AB;
@@ -342,14 +342,14 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
             // Pin joint with no limits
             } else if (type == "continuous") {
                 Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
-                UnitVec3 axis = 
-                    UnitVec3(axisElt.getRequiredAttributeValueAs<Vec3>("xyz")); 
+                UnitVec3 axis =
+                    UnitVec3(axisElt.getRequiredAttributeValueAs<Vec3>("xyz"));
                 Rotation R_JZ(axis, ZAxis); // Simbody's pin is along Z
                 Transform X_IF(X_IF0.R()*R_JZ, X_IF0.p());
                 Transform X_OM(X_OM0.R()*R_JZ, X_OM0.p());
                 MobilizedBody::Pin pinJoint(
                     gzInb.masterMobod,      X_IF,
-                    massProps,              X_OM, 
+                    massProps,              X_OM,
                     direction);
                 mobod = pinJoint;
 
@@ -361,14 +361,14 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
             // Pin joint with limits
             } else if (type == "revolute") {
                 Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
-                UnitVec3 axis = 
-                    UnitVec3(axisElt.getRequiredAttributeValueAs<Vec3>("xyz")); 
+                UnitVec3 axis =
+                    UnitVec3(axisElt.getRequiredAttributeValueAs<Vec3>("xyz"));
                 Rotation R_JZ(axis, ZAxis); // Simbody's pin is along Z
                 Transform X_IF(X_IF0.R()*R_JZ, X_IF0.p());
                 Transform X_OM(X_OM0.R()*R_JZ, X_OM0.p());
                 MobilizedBody::Pin pinJoint(
                     gzInb.masterMobod,      X_IF,
-                    massProps,              X_OM, 
+                    massProps,              X_OM,
                     direction);
                 mobod = pinJoint;
 
@@ -379,14 +379,14 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                 #endif
             } else if (type == "prismatic") {
                 Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
-                UnitVec3 axis = 
-                    UnitVec3(axisElt.getRequiredAttributeValueAs<Vec3>("xyz")); 
+                UnitVec3 axis =
+                    UnitVec3(axisElt.getRequiredAttributeValueAs<Vec3>("xyz"));
                 Rotation R_JX(axis, XAxis); // Simbody's slider is along X
                 Transform X_IF(X_IF0.R()*R_JX, X_IF0.p());
                 Transform X_OM(X_OM0.R()*R_JX, X_OM0.p());
                 MobilizedBody::Slider sliderJoint(
                     gzInb.masterMobod,      X_IF,
-                    massProps,              X_OM, 
+                    massProps,              X_OM,
                     direction);
                 mobod = sliderJoint;
 
@@ -398,9 +398,9 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
             } else if (type == "ball") {
                 MobilizedBody::Ball ballJoint(
                     gzInb.masterMobod,  X_IF0,
-                    massProps,          X_OM0, 
+                    massProps,          X_OM0,
                     direction);
-                Rotation defR_FM = isReversed 
+                Rotation defR_FM = isReversed
                     ? Rotation(~gzJoint.defX_AB.R())
                     : gzJoint.defX_AB.R();
                 ballJoint.setDefaultRotation(defR_FM);
@@ -410,7 +410,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                     gzInb.masterMobod,  X_IF0,
                     massProps,          X_OM0);
                 mobod = weldJoint;
-            } 
+            }
 
             // Created a mobilizer that corresponds to gzJoint. Keep track.
             gzJoint.mobod = mobod;
@@ -460,12 +460,12 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                 }
                 Xml::Element meshFile = geo.getOptionalElement("mesh");
                 if (meshFile.isValid()) {
-                    std::string pathname = 
+                    std::string pathname =
                         meshFile.getRequiredAttributeValue("filename");
                     const std::string::size_type spos = pathname.rfind('/');
                     if (spos != std::string::npos)
                         pathname = pathname.substr(spos+1);
-                    const Vec3 scale = 
+                    const Vec3 scale =
                         meshFile.getOptionalAttributeValueAs<Vec3>
                                                             ("scale", Vec3(1));
                     bool isAbsolutePath; std::string dir, fn, ext;
@@ -477,7 +477,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                     decMesh.setColor(Cyan).setScaleFactors(scale);
                     mobod.addBodyDecoration(X_LV, decMesh);
                 }
-            } 
+            }
 
             // COLLISION
             Array_<Xml::Element> coll = master.getAllElements("collision");
@@ -510,7 +510,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                     // Cylinder is along Z in URDF
 #ifndef USE_CONTACT_MESH
                     Vec3 esz = Vec3(r,r,len/2); // Use ellipsoid instead
-                    mobod.addBodyDecoration(X_LC, 
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeEllipsoid(esz)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                             .setColor(collColor));
@@ -521,8 +521,8 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                     const PolygonalMesh mesh = PolygonalMesh::
                         createCylinderMesh(ZAxis,r,len/2,resolution);
                     const ContactGeometry::TriangleMesh triMesh(mesh);
-    
-                    mobod.addBodyDecoration(X_LC, 
+
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeMesh(triMesh.createPolygonalMesh())
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
                         .setColor(collColor));
@@ -539,7 +539,7 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                 if (box.isValid()) {
                     Vec3 hsz = box.getRequiredAttributeValueAs<Vec3>("size")/2;
 #ifndef USE_CONTACT_MESH
-                    mobod.addBodyDecoration(X_LC, 
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeEllipsoid(hsz) // use half dimensions
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                             .setColor(collColor));
@@ -550,8 +550,8 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
                     const PolygonalMesh mesh = PolygonalMesh::
                         createBrickMesh(hsz,resolution);
                     const ContactGeometry::TriangleMesh triMesh(mesh);
-    
-                    mobod.addBodyDecoration(X_LC, 
+
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeMesh(triMesh.createPolygonalMesh())
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
                         .setColor(collColor));
@@ -585,11 +585,11 @@ static void addRobotToSimbodySystem(const std::string&         auxDir,
         URDFLinkInfo&  child  = *(URDFLinkInfo*) loop.getChildBodyRef();
 
         if (joint.type == weldJointName) {
-            Constraint::Weld weld(parent.masterMobod, joint.X_PA, 
+            Constraint::Weld weld(parent.masterMobod, joint.X_PA,
                                   child.masterMobod,  joint.X_CB);
             joint.constraint = weld;
         } else if (joint.type == "ball") {
-            Constraint::Ball ball(parent.masterMobod, joint.X_PA.p(), 
+            Constraint::Ball ball(parent.masterMobod, joint.X_PA.p(),
                                   child.masterMobod,  joint.X_CB.p());
             joint.constraint = ball;
         } else if (joint.type == freeJointName) {

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/29 00:05:07 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Scott D. Cohen, Alan C. Hindmarsh, Radu Serban,
  *                and Aaron Collier @ LLNL
  * -----------------------------------------------------------------
@@ -31,8 +31,8 @@
  *     in the header file sundials_nvector.h.
  *
  *   - The definition of the type 'realtype' can be found in the
- *     header file sundials_types.h, and it may be changed (at the 
- *     configuration stage) according to the user's needs. 
+ *     header file sundials_types.h, and it may be changed (at the
+ *     configuration stage) according to the user's needs.
  *     The sundials_types.h file also contains the definition
  *     for the type 'booleantype'.
  *
@@ -136,7 +136,7 @@ typedef struct _N_VectorContent_Serial *N_VectorContent_Serial;
 /*
  * -----------------------------------------------------------------
  * PART III: functions exported by nvector_serial
- * 
+ *
  * CONSTRUCTORS:
  *    N_VNew_Serial
  *    N_VNewEmpty_Serial
@@ -209,7 +209,7 @@ SUNDIALS_EXPORT N_Vector *N_VCloneVectorArrayEmpty_Serial(int count, N_Vector w)
  * -----------------------------------------------------------------
  * Function : N_VDestroyVectorArray_Serial
  * -----------------------------------------------------------------
- * This function frees an array of SERIAL vectors created with 
+ * This function frees an array of SERIAL vectors created with
  * N_VCloneVectorArray_Serial or N_VCloneVectorArrayEmpty_Serial.
  * -----------------------------------------------------------------
  */

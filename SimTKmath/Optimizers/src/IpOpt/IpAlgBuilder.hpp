@@ -18,10 +18,10 @@ namespace Ipopt
   /** Builder to create a complete IpoptAlg object.  This object
    *  contains all subelements (such as line search objects etc).  How
    *  the resulting IpoptAlg object is built can be influenced by the
-   *  options. 
+   *  options.
    * TODO: Currently, this is a basic implementation with everything
    *  in one method that can be overloaded. This will need to be expanded
-   *  to allow customization of different parts without recoding everything. 
+   *  to allow customization of different parts without recoding everything.
    */
   class AlgorithmBuilder : public ReferencedObject
   {
@@ -62,7 +62,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

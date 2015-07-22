@@ -43,7 +43,7 @@ class Problem1System : public SimTK::CPodesSystem {
 public:
     // Override default implementations of these virtual functions.
     int explicitODE(Real t, const Vector& y, Vector& fout) const;
-    int implicitODE(Real t, const Vector& y, const Vector& yp, 
+    int implicitODE(Real t, const Vector& y, const Vector& yp,
                     Vector& fout) const;
 };
 
@@ -52,7 +52,7 @@ class Problem2System : public SimTK::CPodesSystem {
 public:
     // Override default implementations of these virtual functions.
     int explicitODE(Real t, const Vector& y, Vector& fout) const;
-    int implicitODE(Real t, const Vector& y, const Vector& yp, 
+    int implicitODE(Real t, const Vector& y, const Vector& yp,
                     Vector& fout) const;
 };
 
@@ -132,16 +132,16 @@ static void Problem1(void)
     flag = cpode.step(tout, &t, y, yp, CPodes::Normal);
     if (flag != CPodes::Success)  break;
     flag = cpode.getLastOrder(&qu);
-    flag = cpode.getLastStep(&hu);    
+    flag = cpode.getLastStep(&hu);
     printf("%10.5f    %12.5le   %12.5le   %2d    %6.4le\n", t, y[0], y[1], qu, hu);
   }
-  
+
   PrintFinalStats(cpode);
 
   return;
 }
 
-int Problem1System::implicitODE(Real t, const Vector& y, const Vector& yp, 
+int Problem1System::implicitODE(Real t, const Vector& y, const Vector& yp,
                                 Vector& res) const
 {
   const int ret = Problem1System::explicitODE(t,y,res);
@@ -153,7 +153,7 @@ int Problem1System::implicitODE(Real t, const Vector& y, const Vector& yp,
 int Problem1System::explicitODE(Real t, const Vector& y, Vector& ydot) const
 {
   Real y0, y1;
-  
+
   y0 = y[0];
   y1 = y[1];
 
@@ -161,7 +161,7 @@ int Problem1System::explicitODE(Real t, const Vector& y, Vector& ydot) const
   ydot[1] = (ONE - y0*y0)* P1_ETA * y1 - y0;
 
   return(0);
-} 
+}
 
 
 
@@ -180,10 +180,10 @@ static void Problem2(void)
   if (odeType == CPodes::ImplicitODE)
     sys2.explicitODE(P2_T0, y, yp);
 
-  CPodes cpode(odeType, CPodes::Adams, CPodes::Functional);      
+  CPodes cpode(odeType, CPodes::Adams, CPodes::Functional);
   /*  flag = cpode.setInitStep(2.0e-9);*/
   flag = cpode.init(sys2, P2_T0, y, yp, CPodes::ScalarScalar, reltol, &abstol);
-  
+
   printf("\n      t        max.err      qu     hu \n");
   for(iout=1, tout=P2_T1; iout <= P2_NOUT; iout++, tout*=P2_TOUT_MULT) {
     flag = cpode.step(tout, &t, y, yp, CPodes::Normal);
@@ -193,13 +193,13 @@ static void Problem2(void)
     flag = cpode.getLastStep(&hu);
     printf("%10.3f  %12.4le   %2d   %12.4le\n", t, erm, qu, hu);
   }
-  
+
   PrintFinalStats(cpode);
 
   return;
 }
 
-int Problem2System::implicitODE(Real t, const Vector& y, const Vector& yp, 
+int Problem2System::implicitODE(Real t, const Vector& y, const Vector& yp,
                                 Vector& res) const
 {
   const int ret = Problem2System::explicitODE(t, y, res);
@@ -213,7 +213,7 @@ int Problem2System::explicitODE(Real t, const Vector& y, Vector& ydot) const
   Real d;
 
   /*
-     Excluding boundaries, 
+     Excluding boundaries,
 
      ydot    = f    = -2 y    + alpha1 * y      + alpha2 * y
          i,j    i,j       i,j             i-1,j             i,j-1
@@ -235,11 +235,11 @@ int Problem2System::explicitODE(Real t, const Vector& y, Vector& ydot) const
 static Real MaxError(const Vector& y, Real t)
 {
   Real er, ex=ZERO, yt, maxError=ZERO, ifact_inv, jfact_inv=ONE;
-  
+
   if (t == ZERO) return(ZERO);
 
-  if (t <= THIRTY) ex = std::exp(-TWO*t); 
-  
+  if (t <= THIRTY) ex = std::exp(-TWO*t);
+
   for (int j = 0; j < P2_MESHY; j++) {
     ifact_inv = ONE;
     for (int i = 0; i < P2_MESHX; i++) {
@@ -261,7 +261,7 @@ static void PrintFinalStats(CPodes& cpode)
   int nst, nfe, nni, ncfn, netf;
   Real h0u;
   int flag;
-  
+
   flag = cpode.getActualInitStep(&h0u);
   flag = cpode.getNumSteps(&nst);
   flag = cpode.getNumFctEvals(&nfe);

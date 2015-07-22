@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.3 $
  * $Date: 2006/12/01 22:48:57 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -16,14 +16,14 @@
  */
 
 /*
- * NOTE: the only operations (all O(n)) that do not use Blas/Lapack 
+ * NOTE: the only operations (all O(n)) that do not use Blas/Lapack
  *       functions are:
  *
  *   - matrix plus identity (I-gamma*J)
  *     (in lsetup -> use functions from sundials_lapack)
- *   - diagonal matrix times vector (D^(-1)*x) 
+ *   - diagonal matrix times vector (D^(-1)*x)
  *     (in lsolveP for QR, QRP, and SC -> hardcoded)
- *   - permutation of a diagonal matrix (P*D*P^T) 
+ *   - permutation of a diagonal matrix (P*D*P^T)
  *     (in lsolveP for LU; P uses pivots from dgetrv -> hardcoded)
  *   - permutation matrix times vector (P^T*x)
  *     (in lsolveP for LU; P uses pivots from dgetr -> hardcoded)
@@ -33,13 +33,13 @@
 
 /*
  * TODO:
- *   
+ *
  *   cplLUcomputeKD
  *   cplQRcomputeKD
  *   cplSCcomputeKD
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -54,26 +54,26 @@
 
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
  */
 
-/* CPLAPACK DENSE linit, lsetup, lsolve, and lfree routines */ 
+/* CPLAPACK DENSE linit, lsetup, lsolve, and lfree routines */
 static int cpLapackDenseInit(CPodeMem cp_mem);
-static int cpLapackDenseSetup(CPodeMem cp_mem, int convfail, 
-                              N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpLapackDenseSetup(CPodeMem cp_mem, int convfail,
+                              N_Vector yP, N_Vector ypP, N_Vector fctP,
                               booleantype *jcurPtr,
                               N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int cpLapackDenseSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
                               N_Vector yC, N_Vector ypC, N_Vector fctC);
 static void cpLapackDenseFree(CPodeMem cp_mem);
 
-/* CPLAPACK BAND linit, lsetup, lsolve, and lfree routines */ 
+/* CPLAPACK BAND linit, lsetup, lsolve, and lfree routines */
 static int cpLapackBandInit(CPodeMem cp_mem);
-static int cpLapackBandSetup(CPodeMem cp_mem, int convfail, 
-                             N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpLapackBandSetup(CPodeMem cp_mem, int convfail,
+                             N_Vector yP, N_Vector ypP, N_Vector fctP,
                              booleantype *jcurPtr,
                              N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int cpLapackBandSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
@@ -169,12 +169,12 @@ static void cplSCcomputeKD(CPodeMem cp_mem, N_Vector d);
 #define njeP           (cpdlsP_mem->d_njeP)
 #define nceDQ          (cpdlsP_mem->d_nceDQ)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
  */
-              
+
 /*
  * -----------------------------------------------------------------
  * CPLapackDense
@@ -183,19 +183,19 @@ static void cplSCcomputeKD(CPodeMem cp_mem, N_Vector d);
  * fields specific to the linear solver module.  CPLapackDense first
  * calls the existing lfree routine if this is not NULL.  Then it sets
  * the cp_linit, cp_lsetup, cp_lsolve, cp_lfree fields in (*cpode_mem)
- * to be cpLapackDenseInit, cpLapackDenseSetup, cpLapackDenseSolve, 
- * and cpLapackDenseFree, respectively.  It allocates memory for a 
- * structure of type CPDlsMemRec and sets the cp_lmem field in 
- * (*cpode_mem) to the address of this structure.  It sets lsetup_exists 
- * in (*cpode_mem) to TRUE, and the d_jac field to the default 
- * cpDlsDenseDQJac. Finally, it allocates memory for M, pivots, and 
+ * to be cpLapackDenseInit, cpLapackDenseSetup, cpLapackDenseSolve,
+ * and cpLapackDenseFree, respectively.  It allocates memory for a
+ * structure of type CPDlsMemRec and sets the cp_lmem field in
+ * (*cpode_mem) to the address of this structure.  It sets lsetup_exists
+ * in (*cpode_mem) to TRUE, and the d_jac field to the default
+ * cpDlsDenseDQJac. Finally, it allocates memory for M, pivots, and
  * (if needed) savedJ.
  * The return value is SUCCESS = 0, or LMEM_FAIL = -1.
  *
  * NOTE: The dense linear solver assumes a serial implementation
- *       of the NVECTOR package. Therefore, CPLapackDense will first 
- *       test for a compatible N_Vector internal representation 
- *       by checking that N_VGetArrayPointer and N_VSetArrayPointer 
+ *       of the NVECTOR package. Therefore, CPLapackDense will first
+ *       test for a compatible N_Vector internal representation
+ *       by checking that N_VGetArrayPointer and N_VSetArrayPointer
  *       exist.
  * -----------------------------------------------------------------
  */
@@ -291,23 +291,23 @@ int CPLapackDense(void *cpode_mem, int N)
  * fields specific to the band linear solver module. It first calls
  * the existing lfree routine if this is not NULL.  It then sets the
  * cp_linit, cp_lsetup, cp_lsolve, and cp_lfree fields in (*cpode_mem)
- * to be cpLapackBandInit, cpLapackBandSetup, cpLapackBandSolve, 
- * and cpLapackBandFree, respectively.  It allocates memory for a 
- * structure of type CPLapackBandMemRec and sets the cp_lmem field in 
- * (*cpode_mem) to the address of this structure.  It sets lsetup_exists 
- * in (*cpode_mem) to be TRUE, mu to be mupper, ml to be mlower, and 
+ * to be cpLapackBandInit, cpLapackBandSetup, cpLapackBandSolve,
+ * and cpLapackBandFree, respectively.  It allocates memory for a
+ * structure of type CPLapackBandMemRec and sets the cp_lmem field in
+ * (*cpode_mem) to the address of this structure.  It sets lsetup_exists
+ * in (*cpode_mem) to be TRUE, mu to be mupper, ml to be mlower, and
  * the jacE and jacI field to NULL.
- * Finally, it allocates memory for M, pivots, and (if needed) savedJ.  
- * The CPLapackBand return value is CPDIRECT_SUCCESS = 0, 
+ * Finally, it allocates memory for M, pivots, and (if needed) savedJ.
+ * The CPLapackBand return value is CPDIRECT_SUCCESS = 0,
  * CPDIRECT_MEM_FAIL = -1, or CPDIRECT_ILL_INPUT = -2.
  *
  * NOTE: The CPLAPACK linear solver assumes a serial implementation
- *       of the NVECTOR package. Therefore, CPLapackBand will first 
+ *       of the NVECTOR package. Therefore, CPLapackBand will first
  *       test for compatible a compatible N_Vector internal
- *       representation by checking that the function 
+ *       representation by checking that the function
  *       N_VGetArrayPointer exists.
  * -----------------------------------------------------------------
- */                  
+ */
 int CPLapackBand(void *cpode_mem, int N, int mupper, int mlower)
 {
   CPodeMem cp_mem;
@@ -328,12 +328,12 @@ int CPLapackBand(void *cpode_mem, int N, int mupper, int mlower)
 
   if (lfree != NULL) lfree(cp_mem);
 
-  /* Set four main function fields in cp_mem */  
+  /* Set four main function fields in cp_mem */
   linit  = cpLapackBandInit;
   lsetup = cpLapackBandSetup;
   lsolve = cpLapackBandSolve;
   lfree  = cpLapackBandFree;
-  
+
   /* Get memory for CPDlsMemRec */
   cpdls_mem = NULL;
   cpdls_mem = (CPDlsMem) malloc(sizeof(CPDlsMemRec));
@@ -352,7 +352,7 @@ int CPLapackBand(void *cpode_mem, int N, int mupper, int mlower)
 
   last_flag = CPDIRECT_SUCCESS;
   lsetup_exists = TRUE;
-  
+
   /* Load problem dimension */
   n = N;
 
@@ -380,7 +380,7 @@ int CPLapackBand(void *cpode_mem, int N, int mupper, int mlower)
     cpProcessError(cp_mem, CPDIRECT_MEM_FAIL, "CPLAPACK", "CPLapackBand", MSGD_MEM_FAIL);
     free(cpdls_mem);
     return(CPDIRECT_MEM_FAIL);
-  }  
+  }
   pivots = NewIntArray(N);
   if (pivots == NULL) {
     cpProcessError(cp_mem, CPDIRECT_MEM_FAIL, "CPLAPACK", "CPLapackBand", MSGD_MEM_FAIL);
@@ -441,8 +441,8 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
   }
 
   /* Check if fact_type has a legal value */
-  if ( (fact_type != CPDIRECT_LU) && 
-       (fact_type != CPDIRECT_QR) && 
+  if ( (fact_type != CPDIRECT_LU) &&
+       (fact_type != CPDIRECT_QR) &&
        (fact_type != CPDIRECT_SC) &&
        (fact_type != CPDIRECT_QRP) ) {
     cpProcessError(cp_mem, CPDIRECT_ILL_INPUT, "CPLAPACK", "CPLapackDenseProj", MSGD_BAD_FACT);
@@ -478,7 +478,7 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
   K = NULL;
   beta = NULL;
   wrk = NULL;
-     
+
   /* Allocate memory for G */
   G = NewDenseMat(Ny, Nc);
   if (G == NULL) {
@@ -526,7 +526,7 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
       DestroyMat(savedG);
       DestroyMat(G);
       free(cpdlsP_mem);
-      return(CPDIRECT_MEM_FAIL);      
+      return(CPDIRECT_MEM_FAIL);
     }
     /* Find optimal length of work array */
     dgeqrf_f77(&Ny, &Nc, G->data, &Ny, beta, &tmp, &mone, &ier);
@@ -539,7 +539,7 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
       DestroyMat(savedG);
       DestroyMat(G);
       free(cpdlsP_mem);
-      return(CPDIRECT_MEM_FAIL);      
+      return(CPDIRECT_MEM_FAIL);
     }
     /* If projecting in WRMS norm, allocate space for K=Q^T*D^(-1)*Q */
     if (pnorm == CP_PROJ_ERRNORM) {
@@ -574,7 +574,7 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
       DestroyMat(savedG);
       DestroyMat(G);
       free(cpdlsP_mem);
-      return(CPDIRECT_MEM_FAIL);      
+      return(CPDIRECT_MEM_FAIL);
     }
     /* Find optimal length of work array */
     dgeqp3_f77(&Ny, &Nc, G->data, &Ny, pivotsP, beta, &tmp, &mone, &ier);
@@ -588,7 +588,7 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
       DestroyMat(savedG);
       DestroyMat(G);
       free(cpdlsP_mem);
-      return(CPDIRECT_MEM_FAIL);      
+      return(CPDIRECT_MEM_FAIL);
     }
     /* If projecting in WRMS norm, allocate space for K=Q^T*D^(-1)*Q */
     if (pnorm == CP_PROJ_ERRNORM) {
@@ -632,7 +632,7 @@ int CPLapackDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
   return(CPDIRECT_SUCCESS);
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS FOR IMPLICIT INTEGRATION WITH DENSE JACOBIANS
  * =================================================================
@@ -647,16 +647,16 @@ static int cpLapackDenseInit(CPodeMem cp_mem)
   CPDlsMem cpdls_mem;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   nje   = 0;
   nfeDQ = 0;
   nstlj = 0;
-  
+
   if (ode_type == CP_EXPL && djacE == NULL) {
     djacE = cpDlsDenseDQJacExpl;
     J_data = cp_mem;
-  } 
-  
+  }
+
   if (ode_type == CP_IMPL && djacI == NULL) {
     djacI = cpDlsDenseDQJacImpl;
     J_data = cp_mem;
@@ -669,9 +669,9 @@ static int cpLapackDenseInit(CPodeMem cp_mem)
 /*
  * cpLapackDenseSetup does the setup operations for the dense linear solver.
  * It makes a decision whether or not to call the Jacobian evaluation
- * routine based on various state variables, and if not it uses the 
- * saved copy (for explicit ODE only). In any case, it constructs 
- * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates 
+ * routine based on various state variables, and if not it uses the
+ * saved copy (for explicit ODE only). In any case, it constructs
+ * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates
  * counters, and calls the dense LU factorization routine.
  */
 static int cpLapackDenseSetup(CPodeMem cp_mem, int convfail,
@@ -696,7 +696,7 @@ static int cpLapackDenseSetup(CPodeMem cp_mem, int convfail,
       ((convfail == CP_FAIL_BAD_J) && (dgamma < CPD_DGMAX)) ||
       (convfail == CP_FAIL_OTHER);
     jok = !jbad;
-    
+
     if (jok) {
 
       /* If jok = TRUE, use saved copy of J */
@@ -748,7 +748,7 @@ static int cpLapackDenseSetup(CPodeMem cp_mem, int convfail,
       last_flag = CPDIRECT_JACFUNC_RECVR;
       return(1);
     }
-  
+
     break;
 
   }
@@ -774,18 +774,18 @@ static int cpLapackDenseSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   int ier, one = 1;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   bd = N_VGetArrayPointer(b);
 
-  dgetrs_f77("N", &n, &one, M->data, &(M->ldim), pivots, bd, &n, &ier, 1); 
+  dgetrs_f77("N", &n, &one, M->data, &(M->ldim), pivots, bd, &n, &ier, 1);
   if (ier > 0) return(1);
 
   /* For BDF, scale the correction to account for change in gamma */
   if ((lmm_type == CP_BDF) && (gamrat != ONE)) {
     fact = TWO/(ONE + gamrat);
-    dscal_f77(&n, &fact, bd, &one); 
+    dscal_f77(&n, &fact, bd, &one);
   }
-  
+
   last_flag = CPDIRECT_SUCCESS;
   return(0);
 }
@@ -798,15 +798,15 @@ static void cpLapackDenseFree(CPodeMem cp_mem)
   CPDlsMem  cpdls_mem;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   DestroyMat(M);
   DestroyArray(pivots);
   if (ode_type == CP_EXPL) DestroyMat(savedJ);
-  free(cpdls_mem); 
+  free(cpdls_mem);
   cpdls_mem = NULL;
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS FOR IMPLICIT INTEGRATION WITH BAND JACOBIANS
  * =================================================================
@@ -829,8 +829,8 @@ static int cpLapackBandInit(CPodeMem cp_mem)
   if (ode_type == CP_EXPL && bjacE == NULL) {
     bjacE = cpDlsBandDQJacExpl;
     J_data = cp_mem;
-  } 
-  
+  }
+
   if (ode_type == CP_IMPL && bjacI == NULL) {
     bjacI = cpDlsBandDQJacImpl;
     J_data = cp_mem;
@@ -843,13 +843,13 @@ static int cpLapackBandInit(CPodeMem cp_mem)
 /*
  * cpLapackBandSetup does the setup operations for the band linear solver.
  * It makes a decision whether or not to call the Jacobian evaluation
- * routine based on various state variables, and if not it uses the 
- * saved copy (for explicit ODE only). In any case, it constructs 
- * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates 
+ * routine based on various state variables, and if not it uses the
+ * saved copy (for explicit ODE only). In any case, it constructs
+ * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates
  * counters, and calls the band LU factorization routine.
  */
-static int cpLapackBandSetup(CPodeMem cp_mem, int convfail, 
-                             N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpLapackBandSetup(CPodeMem cp_mem, int convfail,
+                             N_Vector yP, N_Vector ypP, N_Vector fctP,
                              booleantype *jcurPtr,
                              N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -870,15 +870,15 @@ static int cpLapackBandSetup(CPodeMem cp_mem, int convfail,
       ((convfail == CP_FAIL_BAD_J) && (dgamma < CPD_DGMAX)) ||
       (convfail == CP_FAIL_OTHER);
     jok = !jbad;
-    
+
     if (jok) {
-      
+
       /* If jok = TRUE, use saved copy of J */
       *jcurPtr = FALSE;
       dcopy_f77(&(savedJ->ldata), savedJ->data, &one, M->data, &one);
-      
+
     } else {
-      
+
       /* If jok = FALSE, call jac routine for new J value */
       nje++;
       nstlj = nst;
@@ -897,7 +897,7 @@ static int cpLapackBandSetup(CPodeMem cp_mem, int convfail,
       }
 
     }
-  
+
     /* Scale J by - gamma */
     fact = -gamma;
     dscal_f77(&(M->ldata), &fact, M->data, &one);
@@ -958,7 +958,7 @@ static int cpLapackBandSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   /* For BDF, scale the correction to account for change in gamma */
   if ((lmm_type == CP_BDF) && (gamrat != ONE)) {
     fact = TWO/(ONE + gamrat);
-    dscal_f77(&n, &fact, bd, &one); 
+    dscal_f77(&n, &fact, bd, &one);
   }
 
   last_flag = CPDIRECT_SUCCESS;
@@ -973,15 +973,15 @@ static void cpLapackBandFree(CPodeMem cp_mem)
   CPDlsMem  cpdls_mem;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   DestroyMat(M);
   DestroyArray(pivots);
   if (ode_type == CP_EXPL) DestroyMat(savedJ);
-  free(cpdls_mem); 
+  free(cpdls_mem);
   cpdls_mem = NULL;
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS FOR PROJECTION WITH DENSE JACOBIANS
  * =================================================================
@@ -996,21 +996,21 @@ static int cpLapackDenseProjInit(CPodeMem cp_mem)
   CPDlsProjMem cpdlsP_mem;
 
   cpdlsP_mem = (CPDlsProjMem) lmemP;
-  
+
   njeP   = 0;
   nceDQ  = 0;
   nstljP = 0;
-  
+
   if (djacP == NULL) {
     djacP = cpDlsDenseProjDQJac;
     JP_data = cp_mem;
-  }  
+  }
 
   return(0);
 }
 
 /*
- * cpLapackDenseProjSetup does the setup operations for the dense 
+ * cpLapackDenseProjSetup does the setup operations for the dense
  * linear solver.
  * It calls the Jacobian evaluation routine and, depending on ftype,
  * it performs various factorizations.
@@ -1048,20 +1048,20 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_LU:
 
-    /* 
+    /*
      * LU factorization of G^T with partial pivoting
      *    P*G^T = | U1^T | * L^T
      *            | U2^T |
      * After factorization, P is encoded in pivotsP and
-     * G^T is overwritten with U1 (nc by nc unit upper triangular), 
+     * G^T is overwritten with U1 (nc by nc unit upper triangular),
      * U2 ( nc by ny-nc rectangular), and L (nc by nc lower triangular).
-     * Return ier if factorization failed. 
+     * Return ier if factorization failed.
      */
     dgetrf_f77(&ny, &nc, G->data, &ny, pivotsP, &ier);
     if (ier != 0) return(ier);
 
-    /* 
-     * Build S = U1^{-1} * U2 (in place, S overwrites U2) 
+    /*
+     * Build S = U1^{-1} * U2 (in place, S overwrites U2)
      * For each row j of G, j = nc,...,ny-1, perform
      * a backward substitution (row version).
      * After this step, G^T contains U1, S, and L.
@@ -1069,8 +1069,8 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
     for (j=nc; j<ny; j++)
       dtrsv_f77("L", "T", "U", &nc, G->data, &ny, (G->data + j), &ny, 1, 1, 1);
 
-    /*   
-     * Build K = D1 + S^T * D2 * S 
+    /*
+     * Build K = D1 + S^T * D2 * S
      * S^T is stored in g_mat[nc...ny-1][0...nc]
      * Compute and store only the lower triangular part of K.
      */
@@ -1084,7 +1084,7 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
     /*
      * Perform Cholesky decomposition of K: K = C*C^T
      * After factorization, the lower triangular part of K contains C.
-     * Return ier if factorization failed. 
+     * Return ier if factorization failed.
      */
     dpotrf_f77("L", &nd, K->data, &nd, &ier, 1);
     if (ier != 0) return(ier);
@@ -1093,9 +1093,9 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_QR:
 
-    /* 
+    /*
      * QR factorization of G^T: G^T = Q*R
-     * After factorization, the upper triangular part of G^T 
+     * After factorization, the upper triangular part of G^T
      * contains the matrix R. The lower trapezoidal part of
      * G^T, together with the array beta, encodes the orthonormal
      * columns of Q as elementary reflectors.
@@ -1116,9 +1116,9 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_QRP:
 
-    /* 
+    /*
      * QR with pivoting factorization of G^T: G^T * P = Q * R.
-     * After factorization, the upper triangular part of G^T 
+     * After factorization, the upper triangular part of G^T
      * contains the matrix R. The lower trapezoidal part of
      * G^T, together with the array beta, encodes the orthonormal
      * columns of Q as elementary reflectors.
@@ -1130,7 +1130,7 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
     /*
      * Determine the number of independent constraints.
-     * After the QR factorization, the diagonal elements of R should 
+     * After the QR factorization, the diagonal elements of R should
      * be in decreasing order of their absolute values.
      */
     rim1 = ABS(G->data[0]);
@@ -1154,7 +1154,7 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_SC:
 
-    /* 
+    /*
      * Build K = G*D^(-1)*G^T
      * G^T is stored in g_mat[0...ny-1][0...nc]
      * Compute and store only the lower triangular part of K.
@@ -1165,10 +1165,10 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
       cplSCcomputeKD(cp_mem, s_tmp1);
     }
 
-    /* 
+    /*
      * Perform Cholesky decomposition of K: K = C*C^T
      * After factorization, the lower triangular part of K contains C.
-     * Return 1 if factorization failed. 
+     * Return 1 if factorization failed.
      */
     dpotrf_f77("L", &nc, K->data, &nc, &ier, 1);
     if (ier != 0) return(ier);
@@ -1181,7 +1181,7 @@ static int cpLapackDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 }
 
 /*
- * cpLapackDenseProjSolve handles the solve operation for the dense linear 
+ * cpLapackDenseProjSolve handles the solve operation for the dense linear
  * linear solver.
  */
 static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
@@ -1223,10 +1223,10 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
      * Store result in x2 = x[nc...ny-1].
      */
     if (pnorm == CP_PROJ_ERRNORM) {
-      
+
       /* Load squared error weights into d */
       for (k=0; k<ny; k++) d_data[k] = ewt_data[k] * ewt_data[k];
-      /* Permute elements of d, based on pivotsP. 
+      /* Permute elements of d, based on pivotsP.
        * Note that pivot information from dgetrf is 1-based.
        * Swap d[k] and d[pivotsP[k]]. */
       for (k=0; k<nc; k++) {
@@ -1242,9 +1242,9 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
       for(k=0; k<nc; k++) da_data[k] = d_data[k] * bd[k];
       /* Compute S^T * D1 * alpha = S^T * da */
       dgemv_f77("N", &ny, &nc, &coef_1, (G->data + nc), &ny, da_data, &one, &coef_0, (xd + nc), &one, 1);
-      
+
     } else {
-      
+
       /* Compute S^T * alpha */
       dgemv_f77("N", &nd, &nc, &coef_1, (G->data + nc), &ny, bd, &one, &coef_0, (xd + nc), &one, 1);
 
@@ -1256,7 +1256,7 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
     dpotrs_f77("L", &nd, &one, K->data, &nd, (xd + nc), &nd, &ier, 1);
     if (ier != 0) return(ier);
 
-    /* Compute x1 = alpha - S*x2 
+    /* Compute x1 = alpha - S*x2
      * alpha is stored in bd.
      * x2 is stored in x[nc...ny-1].
      * S^T is stored in g_mat[nc...ny-1][0...nc-1].
@@ -1282,7 +1282,7 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 
   case CPDIRECT_QR:
 
-    /* 
+    /*
      * Solve R^T*alpha = bd using fwd. subst. (row version)
      * The upper triangular matrix R is stored in g_mat[0...nc-1][0...nc-1]
      * alpha overwrites bd.
@@ -1295,8 +1295,8 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
       if (ier != 0) return(ier);
     }
 
-    /* 
-     * Compute x = Q1*alpha 
+    /*
+     * Compute x = Q1*alpha
      *
      * Since we cannot really use the "thin" QR decomposition, we
      * first need to initialize xd = [alpha; 0].
@@ -1312,13 +1312,13 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
         xd[i] /= ewt_data[i]*ewt_data[i];
     }
 
-    break;    
+    break;
 
 
   case CPDIRECT_QRP:
 
     /* Compute P^T * b, where P is encoded into pivotsP.
-     * If pivotsP[j] = k, then, for the factorization, the j-th column of G^T*P 
+     * If pivotsP[j] = k, then, for the factorization, the j-th column of G^T*P
      * was the k-th column of G^T.
      * Therefore, to compute P^T*b, we must move the k-th element of b to the
      * j-th position, for j=1,2,... This is a forward permutation.
@@ -1328,7 +1328,7 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
     for (i=1; i<=nc; i++) pivotsP[i-1] = -pivotsP[i-1];
 
     for (i=1; i<=nc; i++) {
-      
+
       if (pivotsP[i-1] > 0) continue;
 
       j = i;
@@ -1345,10 +1345,10 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
         j = pk;
         pk = pivotsP[pk-1];
       }
-      
+
     }
 
-    /* 
+    /*
      * Solve R11^T * alpha = P^T * bd using fwd. subst. (row version)
      * The upper triangular matrix R is stored in g_mat[0...nr-1][0...nr-1]
      * P^T * bd is available in bd.
@@ -1363,8 +1363,8 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
       if (ier != 0) return(ier);
     }
 
-    /* 
-     * Compute x = Q1*alpha 
+    /*
+     * Compute x = Q1*alpha
      *
      * Since we cannot really use the "thin" QR decomposition, we
      * first need to initialize xd = [alpha; 0].
@@ -1380,12 +1380,12 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
         xd[i] /= ewt_data[i]*ewt_data[i];
     }
 
-    break;    
+    break;
 
 
   case CPDIRECT_SC:
 
-    /* 
+    /*
      * Solve K*xi = bd, using the Cholesky decomposition available in K.
      * xi overwrites bd.
      */
@@ -1412,7 +1412,7 @@ static int cpLapackDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 }
 
 /*
- * cpDenseProjMult computes the Jacobian-vector product used a saved 
+ * cpDenseProjMult computes the Jacobian-vector product used a saved
  * Jacobian copy.
  */
 static void cpLapackDenseProjMult(CPodeMem cp_mem, N_Vector x, N_Vector Gx)
@@ -1438,7 +1438,7 @@ static void cpLapackDenseProjFree(CPodeMem cp_mem)
   CPDlsProjMem cpdlsP_mem;
 
   cpdlsP_mem = (CPDlsProjMem) lmemP;
-  
+
   DestroyMat(G);
   DestroyMat(savedG);
   switch (ftype) {
@@ -1462,7 +1462,7 @@ static void cpLapackDenseProjFree(CPodeMem cp_mem)
     break;
   }
 
-  free(cpdlsP_mem); 
+  free(cpdlsP_mem);
   cpdlsP_mem = NULL;
 }
 
@@ -1475,7 +1475,7 @@ static void cpLapackDenseProjFree(CPodeMem cp_mem)
 /*
  * Compute the lower triangle of K = D1 + S^T*D2*S,
  * D = diag(D1, D2) = P*W*P^T, W is a diagonal matrix
- * containing the squared error weights, and P is the 
+ * containing the squared error weights, and P is the
  * permutation matrix encoded into pivotsP.
  * D1 has length nc and D2 has length (ny-nc).
  */

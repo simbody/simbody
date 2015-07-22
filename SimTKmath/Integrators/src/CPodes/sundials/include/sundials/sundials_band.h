@@ -124,7 +124,7 @@ SUNDIALS_EXPORT void bandZero(realtype **a, int n, int mu, int ml, int smu);
  * BandCopy copies the submatrix with upper and lower bandwidths
  * copymu, copyml of the N by N band matrix A into the N by N
  * band matrix B.
- * 
+ *
  * BandCopy is a wrapper around bandCopy which accesses the data
  * in the DlsMat A and B (i.e. the fields cols)
  * -----------------------------------------------------------------

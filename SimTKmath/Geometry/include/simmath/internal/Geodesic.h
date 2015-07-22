@@ -59,8 +59,8 @@ public:
         - origin: point on geodesic at s
         - z axis: outward surface (unit) normal n at s
         - y axis: unit tangent t at s in direction of increasing arc length
-        - x axis: unit binormal at s: b=t X n (x=y X z) 
-    
+        - x axis: unit binormal at s: b=t X n (x=y X z)
+
     Note that this convention is different from that of a curve, because
     our normal vector always points outwards from the surface. **/
     const Array_<Transform>& getFrenetFrames() const {return frenetFrames;}
@@ -75,33 +75,33 @@ public:
     const Array_<Real>& getCurvatures() const {return curvature;}
     void addCurvature(Real kappa) {curvature.push_back(kappa);}
 
-    Array_<Vec2>& updDirectionalSensitivityPtoQ() 
+    Array_<Vec2>& updDirectionalSensitivityPtoQ()
     {   return directionalSensitivityPtoQ; }
-    const Array_<Vec2>& getDirectionalSensitivityPtoQ() const 
+    const Array_<Vec2>& getDirectionalSensitivityPtoQ() const
     {   return directionalSensitivityPtoQ; }
     void addDirectionalSensitivityPtoQ(const Vec2& jP) {
         directionalSensitivityPtoQ.push_back(jP);
     }
 
-    Array_<Vec2>& updDirectionalSensitivityQtoP() 
+    Array_<Vec2>& updDirectionalSensitivityQtoP()
     {   return directionalSensitivityQtoP; }
-    const Array_<Vec2>& getDirectionalSensitivityQtoP() const 
+    const Array_<Vec2>& getDirectionalSensitivityQtoP() const
     {   return directionalSensitivityQtoP; }
     void addDirectionalSensitivityQtoP(const Vec2& jQ) {
         directionalSensitivityQtoP.push_back(jQ);
     }
 
-    Array_<Vec2>& updPositionalSensitivityPtoQ() 
+    Array_<Vec2>& updPositionalSensitivityPtoQ()
     {   return positionalSensitivityPtoQ; }
-    const Array_<Vec2>& getPositionalSensitivityPtoQ() const 
+    const Array_<Vec2>& getPositionalSensitivityPtoQ() const
     {   return positionalSensitivityPtoQ; }
     void addPositionalSensitivityPtoQ(const Vec2& jtP) {
         positionalSensitivityPtoQ.push_back(jtP);
     }
 
-    Array_<Vec2>& updPositionalSensitivityQtoP() 
+    Array_<Vec2>& updPositionalSensitivityQtoP()
     {   return positionalSensitivityQtoP; }
-    const Array_<Vec2>& getPositionalSensitivityQtoP() const 
+    const Array_<Vec2>& getPositionalSensitivityQtoP() const
     {   return positionalSensitivityQtoP; }
     void addPositionalSensitivityQtoP(const Vec2& jtQ) {
         positionalSensitivityQtoP.push_back(jtQ);
@@ -117,11 +117,11 @@ public:
     Real getLength() const {return arcLengths.empty() ? 0 : arcLengths.back();}
 
     /** Given the time derivatives of the surface coordinates of P and Q,
-    calculate the rate of change of length of this geodesic. Only the 
+    calculate the rate of change of length of this geodesic. Only the
     components of \a xdotP and \a xdotQ along the curve tangent directions
     can affect its length; moves in the normal or binormal direction leave
     the length unchanged. **/
-    Real calcLengthDot(const Vec3& xdotP, const Vec3& xdotQ) const 
+    Real calcLengthDot(const Vec3& xdotP, const Vec3& xdotQ) const
     {   return ~xdotQ*getTangentQ() - ~xdotP*getTangentP(); }
 
     /** Return the location on the surface of the geodesic's starting point P,
@@ -140,52 +140,52 @@ public:
     geodesic curvature is positive at Q. **/
     const UnitVec3& getNormalQ() const {return frenetFrames.back().z();}
 
-    /** Return the unit tangent to the geodesic at P, pointing in the 
+    /** Return the unit tangent to the geodesic at P, pointing in the
     direction of increasing arc length parameters (i.e., towards Q). **/
     const UnitVec3& getTangentP() const {return frenetFrames.front().y();}
-    /** Return the unit tangent to the geodesic at Q, pointing in the 
+    /** Return the unit tangent to the geodesic at Q, pointing in the
     direction of increasing arc length parameters (i.e., away from P). **/
     const UnitVec3& getTangentQ() const {return frenetFrames.back().y();}
 
-    /** Return the unit binormal vector to the curve at P, defined as 
+    /** Return the unit binormal vector to the curve at P, defined as
     bP = tP X nP. **/
     const UnitVec3& getBinormalP() const {return frenetFrames.front().x();}
-    /** Return the unit binormal vector to the curve at Q, defined as 
+    /** Return the unit binormal vector to the curve at Q, defined as
     bQ = tQ X nQ. **/
     const UnitVec3& getBinormalQ() const {return frenetFrames.back().x();}
 
     /** Return the geodesic normal curvature at P, defined to be positive when
     the surface is convex in the curve tangent direction at P, negative if the
-    surface is concave in that direction. This is a scalar 
+    surface is concave in that direction. This is a scalar
     kappaP=-dot(DtP/ds,nP). Note that the geodesic curvature is
-    the same as the surface curvature in the curve tangent direction. **/ 
+    the same as the surface curvature in the curve tangent direction. **/
     Real getCurvatureP() const {return curvature.front();}
     /** Return the geodesic normal curvature at Q, defined to be positive when
     the surface is convex in the curve tangent direction at Q, negative if the
-    surface is concave in that direction. This is a scalar 
+    surface is concave in that direction. This is a scalar
     kappaQ=-dot(DtQ/ds,nQ). Note that the geodesic curvature is
     the same as the surface curvature in the curve tangent direction, and
     remember that the curve tangent at Q points \e away from P, that is, off
-    the end of the geodesic. **/ 
+    the end of the geodesic. **/
     Real getCurvatureQ() const {return curvature.back();}
 
-    /** Return the geodesic torsion at P, that is, the twisting of the 
+    /** Return the geodesic torsion at P, that is, the twisting of the
     Frenet frame as you move along the tangent towards Q. The sign follows
     the right hand rule with your thumb directed along the tangent. This
     is a scalar tauP=-dot(DbP/Ds,nP). **/
     Real getTorsionP() const {return torsionAtP;}
-    /** Return the geodesic torsion at Q, that is, the twisting of the 
+    /** Return the geodesic torsion at Q, that is, the twisting of the
     Frenet frame as you move along the tangent away from P, that is, off the
-    end of the geodesic. The sign follows the right hand rule with your thumb 
+    end of the geodesic. The sign follows the right hand rule with your thumb
     directed along the tangent. This is a scalar tauQ=-dot(DbQ/Ds,nQ). **/
     Real getTorsionQ() const {return torsionAtQ;}
 
     /** Return the \e surface curvature in the binormal direction at P; don't
-    confuse this with the geodesic torsion at P. Surface curvature in a 
+    confuse this with the geodesic torsion at P. Surface curvature in a
     direction is a property of the surface independent of any curve. **/
     Real getBinormalCurvatureP() const {return binormalCurvatureAtP;}
     /** Return the \e surface curvature in the binormal direction at Q; don't
-    confuse this with the geodesic torsion at Q. Surface curvature in a 
+    confuse this with the geodesic torsion at Q. Surface curvature in a
     direction is a property of the surface independent of any curve. **/
     Real getBinormalCurvatureQ() const {return binormalCurvatureAtQ;}
 
@@ -197,7 +197,7 @@ public:
     Real getJacobiP() const {return directionalSensitivityQtoP.front()[0];}
     /** Return jQ, the Jacobi field term giving the sensitivity of the Q end
     of the geodesic to changes in tangent direction at the P end, assuming
-    the geodesic length is fixed. This is a scalar jQ=-dot(DQ/DthetaP,bQ) 
+    the geodesic length is fixed. This is a scalar jQ=-dot(DQ/DthetaP,bQ)
     where thetaP is a right-hand-rule rotation about the normal nP at P.
     Note that jQ has the opposite sign from jP. **/
     Real getJacobiQ() const {return directionalSensitivityPtoQ.back()[0];}
@@ -222,11 +222,11 @@ public:
     state, although memory remains allocated. **/
     void clear() {
         arcLengths.clear();
-        frenetFrames.clear(); 
-        directionalSensitivityPtoQ.clear(); 
-        directionalSensitivityQtoP.clear(); 
-        positionalSensitivityPtoQ.clear(); 
-        positionalSensitivityQtoP.clear(); 
+        frenetFrames.clear();
+        directionalSensitivityPtoQ.clear();
+        directionalSensitivityQtoP.clear();
+        positionalSensitivityPtoQ.clear();
+        positionalSensitivityQtoP.clear();
         curvature.clear();
         torsionAtP = torsionAtQ = NaN;
         binormalCurvatureAtP = binormalCurvatureAtQ = NaN;
@@ -236,8 +236,8 @@ public:
 
     void setIsConvex(bool isConvex) {convexFlag = isConvex;}
     void setIsShortest(bool isShortest) {shortestFlag = isShortest;}
-    void setInitialStepSizeHint(Real sz) {initialStepSizeHint=sz;} 
-    void setAchievedAccuracy(Real acc) {achievedAccuracy=acc;} 
+    void setInitialStepSizeHint(Real sz) {initialStepSizeHint=sz;}
+    void setAchievedAccuracy(Real acc) {achievedAccuracy=acc;}
 
     bool isConvex() const {return convexFlag;}
     bool isShortest() const {return shortestFlag;}
@@ -256,7 +256,7 @@ private:
     Array_<Vec2>      positionalSensitivityQtoP; // jtP and -jtPdot
     Array_<Real>      curvature; // normal curvature kappa in tangent direction
     // These are only calculated at the end points.
-    Real              torsionAtP, torsionAtQ; // torsion tau (only at ends) 
+    Real              torsionAtP, torsionAtQ; // torsion tau (only at ends)
     Real              binormalCurvatureAtP, binormalCurvatureAtQ;
 
     // This flag is set true if curvature[i]>=0 for all i.

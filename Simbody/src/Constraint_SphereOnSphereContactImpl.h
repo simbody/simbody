@@ -48,7 +48,7 @@ class Constraint::SphereOnSphereContactImpl : public ConstraintImpl {
 public:
 
 // An object of this local type is used as the value of a Position-stage
-// discrete state variable that allows sphere parameters to be changed for a 
+// discrete state variable that allows sphere parameters to be changed for a
 // particular State.
 struct Parameters {
     Parameters(const Vec3& p_FSf, Real rad_F, const Vec3& p_BSb, Real rad_B)
@@ -81,8 +81,8 @@ struct VelocityCache {
 };
 
 explicit SphereOnSphereContactImpl(bool enforceRolling)
-:   ConstraintImpl(1, enforceRolling?2:0, 0), 
-    m_enforceRolling(enforceRolling), 
+:   ConstraintImpl(1, enforceRolling?2:0, 0),
+    m_enforceRolling(enforceRolling),
     m_def_p_FSf(0), m_def_radius_F(NaN), m_def_p_BSb(0), m_def_radius_B(NaN)
 { }
 SphereOnSphereContactImpl* clone() const override
@@ -99,7 +99,7 @@ void realizeTopologyVirtual(State& state) const override;
 // Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;
 
-// Get a writable reference to the value of the discrete variable; this 
+// Get a writable reference to the value of the discrete variable; this
 // invalidated Position stage in the given state.
 Parameters& updParameters(State& state) const;
 
@@ -120,7 +120,7 @@ acts along the center-center line, so the force application point doesn't
 matter; it would be the same for any contact point along that line so we don't
 need to calculate it explicitly for the normal contact constraint; it will
 matter for tangential forces.
-Let 
+Let
     P = Sf, Q = Sb
     p_PQ   = p_AQ - p_AP
     pd_PQ  = d/dt_A p_PQ  = v_AQ - v_AP
@@ -129,8 +129,8 @@ Let
 
 There is a pathological case in which the center points of the two spheres
 are overlapping, r(q)=0. In that case we can't use the center-center line as the
-contact normal Cz since it is zero length. This condition will be corrected 
-eventually by assembly analysis; we just need some consistent return values 
+contact normal Cz since it is zero length. This condition will be corrected
+eventually by assembly analysis; we just need some consistent return values
 until then. In this case we declare that Cz=Fz:
 
 (1)   Cz = {p_PQ/r,    r != 0                 [contact normal]
@@ -147,7 +147,7 @@ In case r==0, Cz is fixed in F (it is Fz). So Czd = d/dt_A Cz = w_AF x Cz and
            = pdd_PQ . Cz + (pd_PQ x w_AF) . Cz       [triple product identity]
 (5)        = (pdd_PQ - w_AF x pd_PQ) . Cz            [r==0]
 
-Otherwise we need to calculate 
+Otherwise we need to calculate
        Czd = d/dt_A Cz = d/dt_A p_PQ/r
            = pd_PQ * oor + p_PQ * oord
            = pd_PQ/r - p_PQ * (pd_PQ . p_PQ)/r^3
@@ -160,11 +160,11 @@ where
     oord(q) = d/dt oor(q) = -pd_PQ . p_PQ/r^3
 
 Substituting (6) into (4) gives
-    aerr = pdd_PQ . Cz + pd_PQ . [pd_PQ - (pd_PQ . Cz)*Cz]/r 
+    aerr = pdd_PQ . Cz + pd_PQ . [pd_PQ - (pd_PQ . Cz)*Cz]/r
          = pdd_PQ . Cz + [pd_PQ^2 - (pd_PQ . Cz)^2] / r
 (7)      = pdd_PQ . Cz + [pd_PQ^2 - verr^2] / r
 
-The scalars returned by perr,verr, and aerr are measure numbers along Cz (a 
+The scalars returned by perr,verr, and aerr are measure numbers along Cz (a
 unit vector aligned with p_SfSb). The multiplier will consequently act along Cz.
 
 (See comments below for friction.)
@@ -178,12 +178,12 @@ unit vector aligned with p_SfSb). The multiplier will consequently act along Cz.
 Note that the give State does not necessarily correspond to the given X_AB
 and constrainedQ so we can't cache the results.
 
-TODO: there ought to be a flag saying whether the X_AB and q are from the 
+TODO: there ought to be a flag saying whether the X_AB and q are from the
 state (which is common) so that the results could be saved.
 */
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -197,8 +197,8 @@ void calcPositionErrorsVirtual
     const Real        rb    = params.m_radius_B;
 
     // 36 flops for these two together.
-    const Vec3 p_ASf =  findStationLocation(allX_AB, m_mobod_F, p_FSf); 
-    const Vec3 p_ASb =  findStationLocation(allX_AB, m_mobod_B, p_BSb); 
+    const Vec3 p_ASf =  findStationLocation(allX_AB, m_mobod_F, p_FSf);
+    const Vec3 p_ASb =  findStationLocation(allX_AB, m_mobod_B, p_BSb);
 
     const Vec3 p_SfSb_A = p_ASb - p_ASf;    //  3 flops
     const Real r = p_SfSb_A.norm();         // ~20 flops
@@ -219,9 +219,9 @@ void calcPositionErrorsVirtual
 Note that we can't cache the velocity results here because we don't know that
 V_AB and qdot were taken from the given State.
 */
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
     const override
@@ -249,12 +249,12 @@ void calcPositionDotErrorsVirtual
                {Fz_A,          r==0
     and   Czd = d/dt_A Cz = {(pd_SfSb - Cz * (pd_SfSb . Cz))/r
                             {w_AF x Fz_A,     r==0
-    ------------------------------------------------------------ 
+    ------------------------------------------------------------
     44 flops if position & velocity info already calculated
 */
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -268,9 +268,9 @@ void calcPositionDotDotErrorsVirtual
     const UnitVec3& Cz_A = pc.X_AC.z();
 
     // 30 flops for these two together.
-    const Vec3 a_ASf = findStationInAAcceleration(s, allA_AB, m_mobod_F, 
+    const Vec3 a_ASf = findStationInAAcceleration(s, allA_AB, m_mobod_F,
                                                   pc.p_FSf_A, vc.wXwX_p_FSf_A);
-    const Vec3 a_ASb = findStationInAAcceleration(s, allA_AB, m_mobod_B, 
+    const Vec3 a_ASb = findStationInAAcceleration(s, allA_AB, m_mobod_B,
                                                   pc.p_BSb_A, vc.wXwX_p_BSb_A);
 
     const Vec3 pdd_SfSb_A = a_ASb - a_ASf; // 2nd deriv in A,     3 flops
@@ -279,7 +279,7 @@ void calcPositionDotDotErrorsVirtual
 
 // Because the normal force is applied along the line between the centers, it
 // does not matter where along that line we apply the force -- the force and
-// resulting moment are the same anywhere along the line. Thus we are not 
+// resulting moment are the same anywhere along the line. Thus we are not
 // required to use the same point in space here -- for convenience we'll just
 // apply forces to the sphere centers whose locations we have available.
 // We won't have this luxury for tangential forces -- for those the application
@@ -292,7 +292,7 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
     assert(multipliers.size()==1&&bodyForcesInA.size()==2&&qForces.size()==0);
@@ -311,9 +311,9 @@ void addInPositionConstraintForcesVirtual
 
 // Implementation of virtuals required for nonholonomic constraints.
 
-/* The rolling friction constraint says that the velocity in F of the material 
-point of B coincident with the contact point Co, must be zero in the contact 
-frame's Cx and Cy directions. 
+/* The rolling friction constraint says that the velocity in F of the material
+point of B coincident with the contact point Co, must be zero in the contact
+frame's Cx and Cy directions.
 
 We have:
 (1) p_FCo = p_FSf +   k   p_SfSb, k=rf/(rf+rb)
@@ -323,7 +323,7 @@ Note that the contact point Co is not a station of either body but moves with
 respect to the body frames F and B. However, for the velocity constraint
 we want to enforce no relative tangential velocity of the two *material* points
 at Co, which we'll call B/Co and F/Co and write
-(3) vA_FCo = d/dt_A p_FCo 
+(3) vA_FCo = d/dt_A p_FCo
            = v_AF + w_AF x p_FCo
 (4) vA_BCo = d/dt A p_BCo
              v_AB + w_AB x p_BCo
@@ -356,7 +356,7 @@ d/dt_B p_BCo != 0. We'll use "d" to mean time derivative in A:
     pd_BCo  = pdFCo - pd_FB                         from (2)
     pd_FB   = v_AB - v_AF
 
-You can find the velocity-dependent portions of the above calculations, 
+You can find the velocity-dependent portions of the above calculations,
 including Cxd and Cyd, in ensureVelocityCacheRealized().
 */
 
@@ -369,7 +369,7 @@ including Cxd and Cyd, in ensureVelocityCacheRealized().
 */
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
     const override
@@ -404,9 +404,9 @@ void calcVelocityErrorsVirtual
     55 flops if position and velocity info already calculated.
 */
 
-void calcVelocityDotErrorsVirtual      
+void calcVelocityDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
     const override
@@ -444,10 +444,10 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces)
     const override
 {
-    assert(multipliers.size()==2 && mobilityForces.size()==0 
+    assert(multipliers.size()==2 && mobilityForces.size()==0
            && bodyForcesInA.size()==2);
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
 

@@ -48,7 +48,7 @@ private:
 public:
     class UniformImpl;
     class GaussianImpl;
-    
+
     RandomImpl() {
         sfmt = createSFMTData();
         nextIndex = bufferSize;
@@ -58,18 +58,18 @@ public:
     virtual ~RandomImpl() {
         deleteSFMTData(sfmt);
     }
-    
+
     virtual void setSeed(int seed) {
         nextIndex = bufferSize;
         init_gen_rand(seed, *sfmt);
     }
-    
+
     virtual Real getValue() const = 0;
 
     Real getNextRandom() const {
         if (nextIndex >= bufferSize) {
             // There are no remaining values in the buffer, so we need to refill it.
-            
+
             fill_array64(buffer, bufferSize, *sfmt);
             nextIndex = 0;
         }
@@ -98,24 +98,24 @@ private:
 public:
     UniformImpl(Real min, Real max) : min(min), max(max), range(max-min) {
     }
-    
+
     Real getValue() const {
         return min+getNextRandom()*range;
     }
-    
+
     Real getMin() const {
         return min;
     }
-    
+
     void setMin(Real value) {
         min = value;
         range = max-min;
     }
-    
+
     Real getMax() const {
         return max;
     }
-    
+
     void setMax(Real value) {
         max = value;
         range = max-min;
@@ -135,15 +135,15 @@ public:
     GaussianImpl(Real mean, Real stddev) : mean(mean), stddev(stddev) {
         nextGaussianIsValid = false;
     }
-    
+
     Real getValue() const {
         if (nextGaussianIsValid) {
             nextGaussianIsValid = false;
             return mean+stddev*nextGaussian;
         }
-        
+
         // Use the polar form of the Box-Muller transformation to generate two Gaussian random numbers.
-        
+
         Real x, y, r2;
         do {
             x = 2*getNextRandom()-1;
@@ -155,24 +155,24 @@ public:
         nextGaussianIsValid = true;
         return mean+stddev*x*multiplier;
     }
-    
+
     void setSeed(int seed) {
         RandomImpl::setSeed(seed);
         nextGaussianIsValid = false;
     }
-    
+
     Real getMean() const {
         return mean;
     }
-    
+
     void setMean(Real value) {
         mean = value;
     }
-    
+
     Real getStdDev() const {
         return stddev;
     }
-    
+
     void setStdDev(Real value) {
         stddev = value;
     }

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.1 $
  * $Date: 2006/11/08 01:07:06 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -26,8 +26,8 @@
 
 /* CPSPGMR linit, lsetup, lsolve, and lfree routines */
 static int cpSpgmrInit(CPodeMem cp_mem);
-static int cpSpgmrSetup(CPodeMem cp_mem, int convfail, 
-                        N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpSpgmrSetup(CPodeMem cp_mem, int convfail,
+                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                         booleantype *jcurPtr,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int cpSpgmrSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
@@ -43,7 +43,7 @@ static void cpSpgmrFree(CPodeMem cp_mem);
 #define tn            (cp_mem->cp_tn)
 #define h             (cp_mem->cp_h)
 #define gamma         (cp_mem->cp_gamma)
-#define gammap        (cp_mem->cp_gammap)   
+#define gammap        (cp_mem->cp_gammap)
 #define f             (cp_mem->cp_f)
 #define f_data        (cp_mem->cp_f_data)
 #define ewt           (cp_mem->cp_ewt)
@@ -57,7 +57,7 @@ static void cpSpgmrFree(CPodeMem cp_mem);
 #define vec_tmpl      (cp_mem->cp_tempv)
 #define lsetup_exists (cp_mem->cp_lsetup_exists)
 
-#define sqrtN     (cpspils_mem->s_sqrtN)   
+#define sqrtN     (cpspils_mem->s_sqrtN)
 #define ytemp     (cpspils_mem->s_ytemp)
 #define yptemp    (cpspils_mem->s_yptemp)
 #define x         (cpspils_mem->s_x)
@@ -89,19 +89,19 @@ static void cpSpgmrFree(CPodeMem cp_mem);
  * CPSpilsMemRec and sets the cp_lmem field in (*cpode_mem) to the
  * address of this structure.  It sets lsetup_exists in (*cpode_mem),
  * and sets the following fields in the CPSpilsMemRec structure:
- *   s_pretype = pretype                                       
- *   s_gstype  = gstype                                       
- *   s_maxl    = MIN(N,CPSPILS_MAXL  if maxl <= 0             
- *             = maxl                 if maxl > 0              
- *   s_delt    = CPSPILS_DELT if delt == 0.0                     
- *             = delt         if delt != 0.0                     
+ *   s_pretype = pretype
+ *   s_gstype  = gstype
+ *   s_maxl    = MIN(N,CPSPILS_MAXL  if maxl <= 0
+ *             = maxl                 if maxl > 0
+ *   s_delt    = CPSPILS_DELT if delt == 0.0
+ *             = delt         if delt != 0.0
  *   s_psetE   = NULL
  *   s_psetI   = NULL
- *   s_pslvE   = NULL                                       
- *   s_pslvI   = NULL                                       
+ *   s_pslvE   = NULL
+ *   s_pslvI   = NULL
  *   s_jtvE    = NULL
  *   s_jtvI    = NULL
- *   s_P_data  = NULL                                        
+ *   s_P_data  = NULL
  *   s_j_data  = NULL
  * Finally, CPSpgmr allocates memory for ytemp and x, and calls
  * SpgmrMalloc to allocate memory for the Spgmr solver.
@@ -168,7 +168,7 @@ int CPSpgmr(void *cpode_mem, int pretype, int maxl)
 
   lsetup_exists = FALSE;
 
-  /* Check for legal pretype */ 
+  /* Check for legal pretype */
   if ((pretype != PREC_NONE) && (pretype != PREC_LEFT) &&
       (pretype != PREC_RIGHT) && (pretype != PREC_BOTH)) {
     cpProcessError(cp_mem, CPSPILS_ILL_INPUT, "CPSPGMR", "CPSpgmr", MSGS_BAD_PRETYPE);
@@ -189,8 +189,8 @@ int CPSpgmr(void *cpode_mem, int pretype, int maxl)
     free(cpspils_mem);
     return(CPSPILS_MEM_FAIL);
   }
-  
-  /* Allocate memory for x, ytemp and (if needed) yptemp */ 
+
+  /* Allocate memory for x, ytemp and (if needed) yptemp */
   x = N_VClone(vec_tmpl);
   if (x == NULL) {
     cpProcessError(cp_mem, CPSPILS_MEM_FAIL, "CPSPGMR", "CPSpgmr", MSGS_MEM_FAIL);
@@ -215,7 +215,7 @@ int CPSpgmr(void *cpode_mem, int pretype, int maxl)
       N_VDestroy(ytemp);
       free(cpspils_mem);
       return(CPSPILS_MEM_FAIL);
-    } 
+    }
   }
 
   /* Compute sqrtN from a dot product */
@@ -250,7 +250,7 @@ int CPSpgmr(void *cpode_mem, int pretype, int maxl)
  * -----------------------------------------------------------------
  * cpSpgmrInit
  * -----------------------------------------------------------------
- * This routine does remaining initializations specific to the Spgmr 
+ * This routine does remaining initializations specific to the Spgmr
  * linear solver.
  * -----------------------------------------------------------------
  */
@@ -264,13 +264,13 @@ static int cpSpgmrInit(CPodeMem cp_mem)
   npe = nli = nps = ncfl = nstlpre = 0;
   njtimes = nfes = 0;
 
-  /* 
+  /*
    * Check for legal combination pretype - psolve
    *
    * Set lsetup_exists = TRUE iff there is preconditioning (pretype != PREC_NONE)
-   * and there is a preconditioning setup phase (pset != NULL)             
+   * and there is a preconditioning setup phase (pset != NULL)
    *
-   * If jtimes is NULL at this time, set it to DQ 
+   * If jtimes is NULL at this time, set it to DQ
    */
 
   if (ode_type == CP_EXPL) {
@@ -313,8 +313,8 @@ static int cpSpgmrInit(CPodeMem cp_mem)
  * In any case, if jcur == TRUE, we increment npe and save nst in nstlpre.
  * -----------------------------------------------------------------
  */
-static int cpSpgmrSetup(CPodeMem cp_mem, int convfail, 
-                        N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpSpgmrSetup(CPodeMem cp_mem, int convfail,
+                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                         booleantype *jcurPtr,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -353,7 +353,7 @@ static int cpSpgmrSetup(CPodeMem cp_mem, int convfail,
     } else if (retval > 0) {
       last_flag = SPGMR_PSET_FAIL_REC;
     }
-    
+
 
     break;
 
@@ -409,17 +409,17 @@ static int cpSpgmrSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   CPSpilsMem cpspils_mem;
   SpgmrMem spgmr_mem;
   int nli_inc, nps_inc, retval;
-  
+
   cpspils_mem = (CPSpilsMem) lmem;
 
   spgmr_mem = (SpgmrMem) spils_mem;
 
   /* Test norm(b); if small, return x = 0 or x = b */
-  deltar = delt*tq[4]; 
+  deltar = delt*tq[4];
 
   bnorm = N_VWrmsNorm(b, weight);
   if (bnorm <= deltar) {
-    if (mnewt > 0) N_VConst(ZERO, b); 
+    if (mnewt > 0) N_VConst(ZERO, b);
     return(0);
   }
 
@@ -428,17 +428,17 @@ static int cpSpgmrSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   ypcur = ypC;
   fcur  = fctC;
 
-  /* Set inputs delta and initial guess x = 0 to SpgmrSolve */  
+  /* Set inputs delta and initial guess x = 0 to SpgmrSolve */
   delta = deltar * sqrtN;
   N_VConst(ZERO, x);
-  
+
   /* Call SpgmrSolve and copy x to b */
   retval = SpgmrSolve(spgmr_mem, cp_mem, x, b, pretype, gstype, delta, 0,
                       cp_mem, weight, weight, cpSpilsAtimes, cpSpilsPSolve,
                       &res_norm, &nli_inc, &nps_inc);
 
   N_VScale(ONE, x, b);
-  
+
   /* Increment counters nli, nps, and ncfl */
   nli += nli_inc;
   nps += nps_inc;
@@ -473,7 +473,7 @@ static int cpSpgmrSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
     return(-1);
     break;
   case SPGMR_ATIMES_FAIL_UNREC:
-    cpProcessError(cp_mem, SPGMR_ATIMES_FAIL_UNREC, "CPSPGMR", "CPSpgmrSolve", MSGS_JTIMES_FAILED);    
+    cpProcessError(cp_mem, SPGMR_ATIMES_FAIL_UNREC, "CPSPGMR", "CPSpgmrSolve", MSGS_JTIMES_FAILED);
     return(-1);
     break;
   case SPGMR_PSOLVE_FAIL_UNREC:
@@ -505,7 +505,7 @@ static void cpSpgmrFree(CPodeMem cp_mem)
   SpgmrMem spgmr_mem;
 
   cpspils_mem = (CPSpilsMem) lmem;
-  
+
   spgmr_mem = (SpgmrMem) spils_mem;
 
   SpgmrFree(spgmr_mem);

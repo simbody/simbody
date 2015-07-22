@@ -3,7 +3,7 @@ Maintainer: Michael Sherman <msherman@stanford.edu>
 Standards-Version: 3.9.5
 Section: science
 Priority: extra
-Build-Depends: debhelper (>= 9), 
+Build-Depends: debhelper (>= 9),
                cmake,
                doxygen,
                freeglut3-dev,

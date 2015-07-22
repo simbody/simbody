@@ -31,20 +31,20 @@ Declares the MobilizedBody::Free class. **/
 
 namespace SimTK {
 
-/** Unrestricted motion for a rigid body (six mobilities). 
+/** Unrestricted motion for a rigid body (six mobilities).
 
 Orientation is modeled the same as for the Ball mobilizer, that is, using
-quaternions to avoid singularities. A modeling option exists to 
+quaternions to avoid singularities. A modeling option exists to
 have the joint modeled with an x-y-z body fixed Euler sequence like
 a Gimbal or Bushing mobilizer. Translational generalized coordinates are
 x,y,z translations along the F (inboard) axes. There are six generalized speeds
-u for this mobilizer. The first three are always the three measure numbers of 
-the angular velocity vector w_FM, the relative angular velocity of the outboard 
+u for this mobilizer. The first three are always the three measure numbers of
+the angular velocity vector w_FM, the relative angular velocity of the outboard
 M frame in the inboard F frame, expressed in the F frame. The second three
 are the measure numbers of v_FM, the relative linear velocity of the M frame's
-origin Mo in the F frame, expressed in the F frame. The meaning of the 
+origin Mo in the F frame, expressed in the F frame. The meaning of the
 generalized speeds is unchanged by setting the "use Euler
-angles" modeling option, so the rotational generalized speeds here differ from 
+angles" modeling option, so the rotational generalized speeds here differ from
 those of a Bushing joint, and qdot != u for this mobilizer.
 
 @see MobilizedBody::Bushing for an alternative.
@@ -55,15 +55,15 @@ public:
     reference any %MobilizedBody::Free. **/
     Free() {}
 
-    /** Create a %Free mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Free mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Free(MobilizedBody& parent, const Transform& X_PF,
          const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Free(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
@@ -96,7 +96,7 @@ public:
     // Leaves translation unchanged. The Rotation matrix will be converted to
     // a quaternion for storage.
     Free& setDefaultRotation(const Rotation&);
-    // Sets both translation and rotation. The Rotation part of the Transform 
+    // Sets both translation and rotation. The Rotation part of the Transform
     // will be converted to a quaternion for storage.
     Free& setDefaultTransform(const Transform&);
 
@@ -137,7 +137,7 @@ public:
 
     const Vec7& getMyPartQ(const State&, const Vector& qlike) const;
     const Vec6& getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Vec7& updMyPartQ(const State&, Vector& qlike) const;
     Vec6& updMyPartU(const State&, Vector& ulike) const;
 

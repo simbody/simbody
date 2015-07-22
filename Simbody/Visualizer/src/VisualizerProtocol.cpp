@@ -47,7 +47,7 @@ using namespace std;
 #endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return
-// status from the write() system call. This avoids those 
+// status from the write() system call. This avoids those
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
    {int status=write((pipeno), (buf), (len)); \
@@ -96,7 +96,7 @@ static int createPipeViz2Sim(int viz2sim[2]) {
 // this platform. We take two executables to try in order,
 // and return after the first one succeeds. If neither works, we throw
 // an error that is hopefully helful.
-static void spawnViz(const Array_<String>& searchPath, const String& appName, 
+static void spawnViz(const Array_<String>& searchPath, const String& appName,
                      int sim2vizPipe[2], int viz2simPipe[2])
 {
     int status;
@@ -112,7 +112,7 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
     intptr_t handle;
     for (unsigned i=0; i < searchPath.size(); ++i) {
         exePath = searchPath[i] + appName;
-        handle = _spawnl(P_NOWAIT, exePath.c_str(), appName.c_str(), 
+        handle = _spawnl(P_NOWAIT, exePath.c_str(), appName.c_str(),
                          vizReadFromSim, vizWriteToSim, (const char*)0);
         if (handle != -1) {
             // success: visualizer is running
@@ -130,8 +130,8 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
         close(viz2simPipe[0]); // read end(belongs to simulator)
         for (unsigned i=0; i < searchPath.size(); ++i) {
             exePath = searchPath[i] + appName;
-            status = execl(exePath.c_str(), appName.c_str(), 
-                           vizReadFromSim, vizWriteToSim, (const char*)0); 
+            status = execl(exePath.c_str(), appName.c_str(),
+                           vizReadFromSim, vizWriteToSim, (const char*)0);
             // if we get here the execl() failed
         }
         // fall through -- we failed on every try
@@ -153,7 +153,7 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
 
         SimTK_ERRCHK4_ALWAYS(status == 0, "VisualizerProtocol::ctor()",
             "Unable to spawn executable '%s' from directories:\n%s"
-            "Final system error was errno=%d (%s).", 
+            "Final system error was errno=%d (%s).",
             appName.c_str(), failedPath.c_str(), errno, strerror(errno));
     }
 }
@@ -164,7 +164,7 @@ static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
         totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
 }
 
-static void readData(unsigned char* buffer, int bytes) 
+static void readData(unsigned char* buffer, int bytes)
 {
     readDataFromPipe(inPipe, buffer, bytes);
 }
@@ -226,7 +226,7 @@ static void* listenForVisualizerEvents(void* arg) {
 }
 
 VisualizerProtocol::VisualizerProtocol
-   (Visualizer& visualizer, const Array_<String>& userSearchPath) 
+   (Visualizer& visualizer, const Array_<String>& userSearchPath)
 {
     // Launch the GUI application. We'll first look for one in the same
     // directory as the running executable; then if that doesn't work we'll
@@ -460,11 +460,11 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
             faces.push_back((unsigned short) newIndex);
         }
     }
-    SimTK_ERRCHK1_ALWAYS(vertices.size() <= 65535*3, 
+    SimTK_ERRCHK1_ALWAYS(vertices.size() <= 65535*3,
         "VisualizerProtocol::drawPolygonalMesh()",
         "Can't display a DecorativeMesh with more than 65535 vertices;"
         " received one with %llu.", (unsigned long long)vertices.size());
-    SimTK_ERRCHK1_ALWAYS(faces.size() <= 65535*3, 
+    SimTK_ERRCHK1_ALWAYS(faces.size() <= 65535*3,
         "VisualizerProtocol::drawPolygonalMesh()",
         "Can't display a DecorativeMesh with more than 65535 vertices;"
         " received one with %llu.", (unsigned long long)faces.size());
@@ -473,7 +473,7 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
     SimTK_ERRCHK_ALWAYS(index <= 65535,
         "VisualizerProtocol::drawPolygonalMesh()",
         "Too many unique DecorativeMesh objects; max is 65535.");
-    
+
     meshes[impl] = (unsigned short)index;    // insert new mesh
     WRITE(outPipe, &DefineMesh, 1);
     unsigned short numVertices = (unsigned short)(vertices.size()/3);
@@ -487,12 +487,12 @@ void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Tran
 }
 
 void VisualizerProtocol::
-drawMesh(const Transform& X_GM, const Vec3& scale, const Vec4& color, 
+drawMesh(const Transform& X_GM, const Vec3& scale, const Vec4& color,
          short representation, unsigned short meshIndex, unsigned short resolution)
 {
-    char command = (representation == DecorativeGeometry::DrawPoints 
-                    ? AddPointMesh 
-                    : (representation == DecorativeGeometry::DrawWireframe 
+    char command = (representation == DecorativeGeometry::DrawPoints
+                    ? AddPointMesh
+                    : (representation == DecorativeGeometry::DrawWireframe
                         ? AddWireframeMesh : AddSolidMesh));
     WRITE(outPipe, &command, 1);
     float buffer[13];
@@ -536,7 +536,7 @@ drawLine(const Vec3& end1, const Vec3& end2, const Vec4& color, Real thickness)
 }
 
 void VisualizerProtocol::
-drawText(const Transform& X_GT, const Vec3& scale, const Vec4& color, 
+drawText(const Transform& X_GT, const Vec3& scale, const Vec4& color,
          const string& string, bool faceCamera, bool isScreenText) {
     SimTK_ERRCHK1_ALWAYS(string.size() <= 256,
         "VisualizerProtocol::drawText()",
@@ -661,8 +661,8 @@ void VisualizerProtocol::setMaxFrameRate(Real rate) const {
 
 void VisualizerProtocol::setBackgroundColor(const Vec3& color) const {
     float buffer[3];
-    buffer[0] = (float)color[0]; 
-    buffer[1] = (float)color[1]; 
+    buffer[0] = (float)color[0];
+    buffer[1] = (float)color[1];
     buffer[2] = (float)color[2];
     pthread_mutex_lock(&sceneLock);
     WRITE(outPipe, &SetBackgroundColor, 1);

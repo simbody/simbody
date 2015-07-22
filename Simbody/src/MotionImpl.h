@@ -38,26 +38,26 @@ class MobilizedBodyImpl;
 //==============================================================================
 //                               MOTION IMPL
 //==============================================================================
-// This is the hidden implementation class for Motion objects. This is the 
+// This is the hidden implementation class for Motion objects. This is the
 // abstract base class to which every Motion handle points.
 class MotionImpl : public PIMPLImplementation<Motion, MotionImpl> {
 public:
-    MotionImpl() 
+    MotionImpl()
     :   m_isDisabledByDefault(false) {}
 
-    // Default copy constructor, copy assignment, and destructor; note that the 
+    // Default copy constructor, copy assignment, and destructor; note that the
     // pointer to the mobilized body is not copied or deleted.
 
     bool hasMobilizedBody() const {return m_mobodImpl != 0;}
-    const MobilizedBodyImpl& getMobilizedBodyImpl() const 
+    const MobilizedBodyImpl& getMobilizedBodyImpl() const
     {   assert(m_mobodImpl); return *m_mobodImpl; }
     MobilizedBodyIndex getMobilizedBodyIndex() const;
 
-    void setMobilizedBodyImpl(MobilizedBodyImpl* mbi) 
+    void setMobilizedBodyImpl(MobilizedBodyImpl* mbi)
     {   assert(!m_mobodImpl); m_mobodImpl = mbi; }
     void invalidateTopologyCache() const;
 
-    const SimbodyMatterSubsystem& getMatterSubsystem() const; 
+    const SimbodyMatterSubsystem& getMatterSubsystem() const;
 
     const AbstractValue&
     getDiscreteVariable(const State& s, DiscreteVariableIndex vx) const;
@@ -68,37 +68,37 @@ public:
     DiscreteVariableIndex
     allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const;
 
-    template <class T> const T& 
+    template <class T> const T&
     getVar(const State& s, DiscreteVariableIndex vx) const {
         return Value<T>::downcast(getDiscreteVariable(s, vx));
     }
 
-    template <class T> T& 
+    template <class T> T&
     updVar(State& s, DiscreteVariableIndex vx) const {
         return Value<T>::updDowncast(updDiscreteVariable(s, vx));
     }
 
-    template <class T> DiscreteVariableIndex 
-    allocVar(State& state, const T& initVal, 
-             const Stage& stage=Stage::Instance) const 
+    template <class T> DiscreteVariableIndex
+    allocVar(State& state, const T& initVal,
+             const Stage& stage=Stage::Instance) const
     {
-        return allocateDiscreteVariable(state, stage, new Value<T>(initVal)); 
+        return allocateDiscreteVariable(state, stage, new Value<T>(initVal));
     }
 
 
     virtual ~MotionImpl() {}
     virtual MotionImpl* clone() const = 0;
 
-    // This reports whether this Motion is holonomic (Level::Position), 
+    // This reports whether this Motion is holonomic (Level::Position),
     // nonholonomic (Level::Velocity), or acceleration (Level::Acceleration).
     Motion::Level getLevel(const State& s) const {
         if (isDisabled(s)) return Motion::NoLevel;
         return getLevelVirtual(s); // ask concrete class
     }
 
-    Motion::Method getLevelMethod(const State& s) const {   
+    Motion::Method getLevelMethod(const State& s) const {
         if (isDisabled(s)) return Motion::NoMethod;
-        return getLevelMethodVirtual(s); 
+        return getLevelMethodVirtual(s);
     }
 
 
@@ -110,7 +110,7 @@ public:
     {   invalidateTopologyCache(); m_isDisabledByDefault=shouldBeDisabled; }
     bool isDisabledByDefault() const {return m_isDisabledByDefault;}
 
-    // These operators calculate prescribed positions, velocities, or 
+    // These operators calculate prescribed positions, velocities, or
     // accelerations given a State realized to the previous Stage.
     void calcPrescribedPosition      (const State& s, int nq, Real* q)      const
     {   calcPrescribedPositionVirtual(s,nq,q); }
@@ -127,38 +127,38 @@ public:
 
     void realizeTopology(State& state)              const
     {   realizeTopologyVirtual(state); }
-    void realizeModel(State& state)                 const 
+    void realizeModel(State& state)                 const
     {   realizeModelVirtual(state); }
     void realizeInstance(const State& state)        const
     {   realizeInstanceVirtual(state); }
-    void realizeTime(const State& state)            const 
+    void realizeTime(const State& state)            const
     {   realizeTimeVirtual(state); }
-    void realizePosition(const State& state)        const 
+    void realizePosition(const State& state)        const
     {   realizePositionVirtual(state); }
-    void realizeVelocity(const State& state)        const 
+    void realizeVelocity(const State& state)        const
     {   realizeVelocityVirtual(state); }
-    void realizeDynamics(const State& state)        const 
+    void realizeDynamics(const State& state)        const
     {   realizeDynamicsVirtual(state); }
-    void realizeAcceleration(const State& state)    const 
+    void realizeAcceleration(const State& state)    const
     {   realizeAccelerationVirtual(state); }
-    void realizeReport(const State& state)          const 
+    void realizeReport(const State& state)          const
     {   realizeReportVirtual(state); }
 
     virtual Motion::Level getLevelVirtual(const State&) const = 0;
-    virtual Motion::Method getLevelMethodVirtual(const State&) const 
+    virtual Motion::Method getLevelMethodVirtual(const State&) const
     {   return Motion::Prescribed; }
 
-    virtual void calcPrescribedPositionVirtual      
+    virtual void calcPrescribedPositionVirtual
                    (const State&, int nq, Real* q)          const;
-    virtual void calcPrescribedPositionDotVirtual   
+    virtual void calcPrescribedPositionDotVirtual
                    (const State&, int nq, Real* qdot)       const;
     virtual void calcPrescribedPositionDotDotVirtual
                    (const State&, int nq, Real* qdotdot)    const;
-    virtual void calcPrescribedVelocityVirtual      
+    virtual void calcPrescribedVelocityVirtual
                    (const State&, int nu, Real* u)          const;
-    virtual void calcPrescribedVelocityDotVirtual   
+    virtual void calcPrescribedVelocityDotVirtual
                    (const State&, int nu, Real* udot)       const;
-    virtual void calcPrescribedAccelerationVirtual  
+    virtual void calcPrescribedAccelerationVirtual
                    (const State&, int nu, Real* udot)       const;
 
     virtual void realizeTopologyVirtual    (State&)         const {}
@@ -184,19 +184,19 @@ public:
     // no default constructor
     SinusoidImpl(Motion::Level level,
                  Real amplitude, Real rate, Real phase)
-    :   level(level), defAmplitude(amplitude), defRate(rate), 
+    :   level(level), defAmplitude(amplitude), defRate(rate),
         defPhase(phase)
     {
     }
 
-    SinusoidImpl* clone() const override { 
+    SinusoidImpl* clone() const override {
         SinusoidImpl* copy = new SinusoidImpl(*this);
-        return copy; 
+        return copy;
     }
 
-    Motion::Level  getLevelVirtual (const State&) const override 
+    Motion::Level  getLevelVirtual (const State&) const override
     {   return level; }
-    Motion::Method getLevelMethodVirtual(const State&) const override 
+    Motion::Method getLevelMethodVirtual(const State&) const override
     {   return Motion::Prescribed; }
 
     // Allocate variables if needed.
@@ -210,7 +210,7 @@ public:
         assert(level==Motion::Position); assert(nq==0 || q);
         const Real t = state.getTime();
         const Real out = defAmplitude*std::sin(defRate*t + defPhase);
-        for (int i=0; i<nq; ++i) 
+        for (int i=0; i<nq; ++i)
             q[i] = out;
     }
 
@@ -219,7 +219,7 @@ public:
         assert(level==Motion::Position); assert(nq==0 || qdot);
         const Real t = state.getTime();
         const Real outd = defAmplitude*defRate*std::cos(defRate*t + defPhase);
-        for (int i=0; i<nq; ++i) 
+        for (int i=0; i<nq; ++i)
             qdot[i] = outd;
     }
 
@@ -227,9 +227,9 @@ public:
        (const State& state, int nq, Real* qdotdot) const override {
         assert(level==Motion::Position); assert(nq==0 || qdotdot);
         const Real t = state.getTime();
-        const Real outdd = 
+        const Real outdd =
             -defAmplitude*defRate*defRate*std::sin(defRate*t + defPhase);
-        for (int i=0; i<nq; ++i) 
+        for (int i=0; i<nq; ++i)
             qdotdot[i] = outdd;
     }
 
@@ -239,7 +239,7 @@ public:
         assert(nu==0 || u);
         const Real t = state.getTime();
         const Real out = defAmplitude*std::sin(defRate*t + defPhase);
-        for (int i=0; i<nu; ++i) 
+        for (int i=0; i<nu; ++i)
             u[i] = out;
     }
 
@@ -249,7 +249,7 @@ public:
         assert(nu==0 || udot);
         const Real t = state.getTime();
         const Real outd = defAmplitude*defRate*std::cos(defRate*t + defPhase);
-        for (int i=0; i<nu; ++i) 
+        for (int i=0; i<nu; ++i)
             udot[i] = outd;
     }
 
@@ -258,7 +258,7 @@ public:
         assert(level==Motion::Acceleration); assert(nu==0 || udot);
         const Real t = state.getTime();
         const Real out = defAmplitude*std::sin(defRate*t + defPhase);
-        for (int i=0; i<nu; ++i) 
+        for (int i=0; i<nu; ++i)
             udot[i] = out;
     }
 private:
@@ -279,10 +279,10 @@ public:
     // no default constructor
     explicit SteadyImpl(const Vec6& u) : defaultU(u) {}
 
-    SteadyImpl* clone() const override { 
+    SteadyImpl* clone() const override {
         SteadyImpl* copy = new SteadyImpl(*this);
         copy->currentU.invalidate(); // no sharing state variables
-        return copy; 
+        return copy;
     }
 
     void setDefaultRates(const Vec6& u) {
@@ -310,35 +310,35 @@ public:
         return getVar<Vec6>(s, currentU)[ux];
     }
 
-    Motion::Level  getLevelVirtual (const State&) const override 
+    Motion::Level  getLevelVirtual (const State&) const override
     {   return Motion::Velocity; }
-    Motion::Method getLevelMethodVirtual(const State&) const override 
+    Motion::Method getLevelMethodVirtual(const State&) const override
     {   return Motion::Prescribed; }
 
     // Allocate a discrete variable to hold the constant rates.
     void realizeTopologyVirtual(State& state) const override {
         // This is in the Topology-stage "cache" so we can write to it,
         // but only here.
-        const_cast<DiscreteVariableIndex&>(currentU) = 
+        const_cast<DiscreteVariableIndex&>(currentU) =
             allocVar(state, defaultU);
     }
 
     void calcPrescribedVelocityVirtual
-       (const State& state, int nu, Real* u) const override 
+       (const State& state, int nu, Real* u) const override
     {
         assert(0 <= nu && nu <= 6);
         assert(nu==0 || u);
         const Vec6& uval = getVar<Vec6>(state, currentU);
-        for (int i=0; i<nu; ++i) 
+        for (int i=0; i<nu; ++i)
             u[i] = uval[i];
     }
 
     void calcPrescribedVelocityDotVirtual
-       (const State& state, int nu, Real* udot) const override 
+       (const State& state, int nu, Real* udot) const override
     {
         assert(0 <= nu && nu <= 6);
         assert(nu==0 || udot);
-        for (int i=0; i<nu; ++i) 
+        for (int i=0; i<nu; ++i)
             udot[i] = 0;
     }
 
@@ -360,7 +360,7 @@ public:
     explicit CustomImpl(Motion::Custom::Implementation* implementation);
 
     CustomImpl(const CustomImpl& src) : implementation(0) {
-        if (src.implementation) 
+        if (src.implementation)
             implementation = src.implementation->clone();
     }
 

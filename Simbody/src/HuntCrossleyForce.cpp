@@ -39,7 +39,7 @@ HuntCrossleyForce::HuntCrossleyForce(GeneralForceSubsystem& forces, GeneralConta
 }
 
 void HuntCrossleyForce::setBodyParameters
-   (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation, 
+   (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation,
     Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     updImpl().setBodyParameters(surfIndex, stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
 }
@@ -57,12 +57,12 @@ ContactSetIndex HuntCrossleyForce::getContactSetIndex() const {
 }
 
 
-HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) : 
+HuntCrossleyForceImpl::HuntCrossleyForceImpl(GeneralContactSubsystem& subsystem, ContactSetIndex set) :
         subsystem(subsystem), set(set), transitionVelocity(Real(0.01)) {
 }
 
 void HuntCrossleyForceImpl::setBodyParameters
-   (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation, 
+   (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation,
     Real staticFriction, Real dynamicFriction, Real viscousFriction) {
     updParameters(bodyIndex) = Parameters(stiffness, dissipation, staticFriction, dynamicFriction, viscousFriction);
     subsystem.invalidateSubsystemTopologyCache();
@@ -71,7 +71,7 @@ void HuntCrossleyForceImpl::setBodyParameters
 const HuntCrossleyForceImpl::Parameters& HuntCrossleyForceImpl::
 getParameters(ContactSurfaceIndex bodyIndex) const {
     assert(bodyIndex >= 0 && bodyIndex < subsystem.getNumBodies(set));
-    // This fills in the default values which the missing entries implicitly 
+    // This fills in the default values which the missing entries implicitly
     // had already.
     if (bodyIndex >= parameters.size())
         const_cast<Array_<Parameters,ContactSurfaceIndex>&>(parameters)
@@ -98,7 +98,7 @@ void HuntCrossleyForceImpl::setTransitionVelocity(Real v) {
     subsystem.invalidateSubsystemTopologyCache();
 }
 
-void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                                       Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
     const Array_<Contact>& contacts = subsystem.getContacts(state, set);
     Real& pe = Value<Real>::downcast(state.updCacheEntry(subsystem.getMySubsystemIndex(), energyCacheIndex)).upd();
@@ -109,15 +109,15 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         const PointContact& contact = static_cast<const PointContact&>(contacts[i]);
         const Parameters& param1 = getParameters(contact.getSurface1());
         const Parameters& param2 = getParameters(contact.getSurface2());
-        
+
         // Adjust the contact location based on the relative stiffness of the two materials.
-        
+
         const Real s1 = param2.stiffness/(param1.stiffness+param2.stiffness);
         const Real s2 = 1-s1;
         const Real depth = contact.getDepth();
         const Vec3& normal = contact.getNormal();
         const Vec3 location = contact.getLocation()+(depth*(Real(0.5)-s1))*normal;
-        
+
         // Calculate the Hertz force.
 
         const Real k = param1.stiffness*s1;
@@ -125,9 +125,9 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         const Real radius = contact.getEffectiveRadiusOfCurvature();
         const Real fH = Real(4./3.)*k*depth*std::sqrt(radius*k*depth);
         pe += Real(2./5.)*fH*depth;
-        
+
         // Calculate the relative velocity of the two bodies at the contact point.
-        
+
         const MobilizedBody& body1 = subsystem.getBody(set, contact.getSurface1());
         const MobilizedBody& body2 = subsystem.getBody(set, contact.getSurface2());
         const Vec3 station1 = body1.findStationAtGroundPoint(state, location);
@@ -137,17 +137,17 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
         const Vec3 v = v1-v2;
         const Real vnormal = dot(v, normal);
         const Vec3 vtangent = v-vnormal*normal;
-        
+
         // Calculate the Hunt-Crossley force.
-        
+
         const Real f = fH*(1+Real(1.5)*c*vnormal);
-        if (f <= 0) 
+        if (f <= 0)
             return;
 
         Vec3 force = f*normal;
-        
+
         // Calculate the friction force.
-        
+
         const Real vslip = vtangent.norm();
         if (vslip != 0) {
             const bool hasStatic = (param1.staticFriction != 0 || param2.staticFriction != 0);
@@ -160,9 +160,9 @@ void HuntCrossleyForceImpl::calcForce(const State& state, Vector_<SpatialVec>& b
             const Real ffriction = f*(std::min(vrel, Real(1))*(ud+2*(us-ud)/(1+vrel*vrel))+uv*vslip);
             force += ffriction*vtangent/vslip;
         }
-        
+
         // Apply the force to the bodies.
-        
+
         body1.applyForceToBodyPoint(state, station1, -force, bodyForces);
         body2.applyForceToBodyPoint(state, station2, force, bodyForces);
     }

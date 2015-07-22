@@ -42,18 +42,18 @@ public:
     reference any %MobilizedBody::Screw. **/
     Screw() {}
 
-    /** Create a %Screw mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Screw mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Screw(MobilizedBody& parent, const Transform& X_PF,
           const Body& bodyInfo,  const Transform& X_BM,
           Real pitch, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
-    Screw(MobilizedBody& parent, const Body& bodyInfo, Real pitch, 
+    Screw(MobilizedBody& parent, const Body& bodyInfo, Real pitch,
           Direction=Forward);
 
 
@@ -92,7 +92,7 @@ public:
 
     Real getMyPartQ(const State&, const Vector& qlike) const;
     Real getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
 

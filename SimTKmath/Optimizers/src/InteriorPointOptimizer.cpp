@@ -65,7 +65,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         if( n < 1 ) {
             const char* where = " InteriorPointOptimizer Initialization";
             const char* szName = "dimension";
-            SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1, n, INT_MAX, where); 
+            SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1, n, INT_MAX, where);
         }
 
         // Initialize arrays to store multipliers -- will be used for warm starts
@@ -88,7 +88,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         }
 
         firstOptimization = true;
-    } 
+    }
 
 
     SimTK::Real InteriorPointOptimizer::optimize(  Vector &results ) {
@@ -115,13 +115,13 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
 
         SimTK::Real *x = &results[0];
 
-        IpoptProblem nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, 
-                           nele_hess, index_style, objectiveFuncWrapper, constraintFuncWrapper, 
+        IpoptProblem nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac,
+                           nele_hess, index_style, objectiveFuncWrapper, constraintFuncWrapper,
                            gradientFuncWrapper, constraintJacobianWrapper, hessianWrapper);
 
         // If you want to verify which options are getting set in the optimizer, you can create a file ipopt.opt
         // with "print_user_options yes", and set print_level to (at least 1).  It will then print the options to the screen.
-        
+
         // sherm 100302: you have to set all of these tolerances to get IpOpt to change
         // its convergence criteria; see OptimalityErrorConvergenceCheck::CheckConvergence().
         // We'll set acceptable tolerances to the same value to disable them.
@@ -143,50 +143,50 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
 
         int i;
         static const char *advancedRealOptions[] = {
-                                                    "compl_inf_tol", 
-                                                    "dual_inf_tol", 
-                                                    "constr_viol_tol", 
-                                                    "acceptable_tol", 
-                                                    "acceptable_compl_inf_tol", 
-                                                    "acceptable_constr_viol_tol", 
-                                                    "acceptable_dual_inf_tol", 
-                                                    "diverging_iterates_tol", 
-                                                    "barrier_tol_factor", 
-                                                    "obj_scaling_factor", 
-                                                    "nlp_scaling_max_gradient", 
-                                                    "bounds_relax_factor", 
-                                                    "recalc_y_feas_tol", 
-                                                    "mu_init", 
-                                                    "mu_max_fact", 
-                                                    "mu_max", 
-                                                    "mu_min", 
-                                                    "mu_linear_decrease_factor", 
-                                                    "mu_superlinear_decrease_factor", 
-                                                    "bound_frac", 
-                                                    "bound_push", 
-                                                    "bound_mult_init_val", 
-                                                    "constr_mult_init_max", 
-                                                    "constr_mult_init_val", 
-                                                    "warm_start_bound_push", 
-                                                    "warm_start_bound_frac", 
-                                                    "warm_start_mult_bound_push", 
-                                                    "warm_start_mult_init_max", 
-                                                    "recalc_y_feas_tol", 
-                                                    "expect_infeasible_problem_ctol", 
-                                                    "soft_resto_pderror_reduction_factor", 
-                                                    "required_infeasibility_reduction", 
-                                                    "bound_mult_reset_threshold", 
-                                                    "constr_mult_reset_threshold", 
-                                                    "max_hessian_perturbation", 
-                                                    "min_hessian_perturbation", 
-                                                    "first_hessian_perturbation", 
-                                                    "perturb_inc_fact_first", 
-                                                    "perturb_inc_fact", 
-                                                    "perturb_dec_fact", 
-                                                    "jacobian_reqularization_value", 
-                                                    "derivative_test_perturbation", 
-                                                    "derivative_test_tol", 
-                                                    0}; 
+                                                    "compl_inf_tol",
+                                                    "dual_inf_tol",
+                                                    "constr_viol_tol",
+                                                    "acceptable_tol",
+                                                    "acceptable_compl_inf_tol",
+                                                    "acceptable_constr_viol_tol",
+                                                    "acceptable_dual_inf_tol",
+                                                    "diverging_iterates_tol",
+                                                    "barrier_tol_factor",
+                                                    "obj_scaling_factor",
+                                                    "nlp_scaling_max_gradient",
+                                                    "bounds_relax_factor",
+                                                    "recalc_y_feas_tol",
+                                                    "mu_init",
+                                                    "mu_max_fact",
+                                                    "mu_max",
+                                                    "mu_min",
+                                                    "mu_linear_decrease_factor",
+                                                    "mu_superlinear_decrease_factor",
+                                                    "bound_frac",
+                                                    "bound_push",
+                                                    "bound_mult_init_val",
+                                                    "constr_mult_init_max",
+                                                    "constr_mult_init_val",
+                                                    "warm_start_bound_push",
+                                                    "warm_start_bound_frac",
+                                                    "warm_start_mult_bound_push",
+                                                    "warm_start_mult_init_max",
+                                                    "recalc_y_feas_tol",
+                                                    "expect_infeasible_problem_ctol",
+                                                    "soft_resto_pderror_reduction_factor",
+                                                    "required_infeasibility_reduction",
+                                                    "bound_mult_reset_threshold",
+                                                    "constr_mult_reset_threshold",
+                                                    "max_hessian_perturbation",
+                                                    "min_hessian_perturbation",
+                                                    "first_hessian_perturbation",
+                                                    "perturb_inc_fact_first",
+                                                    "perturb_inc_fact",
+                                                    "perturb_dec_fact",
+                                                    "jacobian_reqularization_value",
+                                                    "derivative_test_perturbation",
+                                                    "derivative_test_tol",
+                                                    0};
         Real value;
         for(i=0;advancedRealOptions[i];i++) {
             if(getAdvancedRealOption(advancedRealOptions[i],value))
@@ -194,21 +194,21 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
         }
 
         static const std::string advancedStrOptions[] = {"nlp_scaling_method",
-                                                         "honor_original_bounds", 
-                                                         "check_derivatives_for_naninf", 
-                                                         "mu_strategy", 
-                                                         "mu_oracle", 
-                                                         "fixed_mu_oracle", 
-                                                         "alpha_for_y", 
-                                                         "recalc_y", 
-                                                         "expect_infeasible_problem", 
-                                                         "print_options_documentation", 
-                                                         "print_user_options", 
-                                                         "start_with_resto", 
-                                                         "evaluate_orig_obj_at_resto_trial", 
-                                                         "hessian_approximation", 
-                                                         "derivative_test", 
-                                                         ""}; 
+                                                         "honor_original_bounds",
+                                                         "check_derivatives_for_naninf",
+                                                         "mu_strategy",
+                                                         "mu_oracle",
+                                                         "fixed_mu_oracle",
+                                                         "alpha_for_y",
+                                                         "recalc_y",
+                                                         "expect_infeasible_problem",
+                                                         "print_options_documentation",
+                                                         "print_user_options",
+                                                         "start_with_resto",
+                                                         "evaluate_orig_obj_at_resto_trial",
+                                                         "hessian_approximation",
+                                                         "derivative_test",
+                                                         ""};
         std::string svalue;
         for(i=0;!advancedStrOptions[i].empty();i++) {
             if(getAdvancedStrOption(advancedStrOptions[i], svalue))
@@ -224,27 +224,27 @@ InteriorPointOptimizer::InteriorPointOptimizer( const OptimizerSystem& sys )
                                                          "limited_memory_max_history",
                                                          "limited_memory_max_skipping",
                                                          "derivative_test_print_all",
-                                                         0}; 
+                                                         0};
         int ivalue;
         for(i=0;advancedIntOptions[i];i++) {
             if(getAdvancedIntOption(advancedIntOptions[i], ivalue))
                 AddIpoptIntOption(nlp, advancedIntOptions[i], ivalue);
         }
 
-        // Only makes sense to do a warm start if this is not the first call to optimize() (since we need 
+        // Only makes sense to do a warm start if this is not the first call to optimize() (since we need
         // reasonable starting multiplier values)
         bool use_warm_start=false;
         if(getAdvancedBoolOption("warm_start", use_warm_start) && use_warm_start && !firstOptimization) {
             AddIpoptStrOption(nlp, "warm_start_init_point", "yes");
             AddIpoptStrOption(nlp, "warm_start_entire_iterate", "yes");
             //AddIpoptStrOption(nlp, "warm_start_same_structure", "yes"); // couldn't get this one to work
-        } 
+        }
 
         SimTK::Real obj;
 
         int status = IpoptSolve(nlp, x, NULL, &obj, mult_g, mult_x_L, mult_x_U, (void *)this );
 
-        FreeIpoptProblem(nlp); 
+        FreeIpoptProblem(nlp);
 
         // Only delete these if they aren't pointing to existing parameter limits
         if( !getOptimizerSystem().getHasLimits() ) {

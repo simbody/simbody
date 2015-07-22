@@ -42,12 +42,12 @@ public:
                     const Force::Thermostat& thermo,
                     const Force::LinearBushing& bushing1,
                     const Force::LinearBushing& bushing2,
-                    Real dt) 
+                    Real dt)
     :   PeriodicEventReporter(dt), system(sys), thermo(thermo),
         bushing1(bushing1), bushing2(bushing2) {}
 
     void handleEvent(const State& state) const {
-        printf("THERMO t=%g, stage %s, KE+PE=%g Ebath=%g CONSERVED=%g\n", 
+        printf("THERMO t=%g, stage %s, KE+PE=%g Ebath=%g CONSERVED=%g\n",
                 state.getTime(),
                 state.getSystemStage().getName().c_str(),
                 system.calcEnergy(state),
@@ -56,7 +56,7 @@ public:
                     + thermo.calcBathEnergy(state)
                     + bushing1.getDissipatedEnergy(state)
                     + bushing2.getDissipatedEnergy(state));
-        printf("TEMP=%g N=%d Power=%g Work=%g\n", 
+        printf("TEMP=%g N=%d Power=%g Work=%g\n",
             thermo.getCurrentTemperature(state),
             thermo.getNumThermalDofs(state),
             thermo.getExternalPower(state),
@@ -79,9 +79,9 @@ void testConservationOfEnergy() {
     const Real Mass = 1;
     const Vec3 HalfShape = Vec3(1,.5,.25)/2;
     const Transform BodyAttach(Rotation(), Vec3(HalfShape[0],0,0));
-    Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3), 
+    Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3),
                                 Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
-    //Body::Rigid brickBody(MassProperties(Mass, Vec3(0), 
+    //Body::Rigid brickBody(MassProperties(Mass, Vec3(0),
     //                        Mass*UnitInertia::ellipsoid(HalfShape)));
     brickBody.addDecoration(Transform(), DecorativeEllipsoid(HalfShape)
                                             .setOpacity(0.25)
@@ -90,14 +90,14 @@ void testConservationOfEnergy() {
                 DecorativeFrame(0.5).setColor(Red));
 
     const int NBod=50;
-    MobilizedBody::Free brick1(matter.Ground(), Transform(), 
+    MobilizedBody::Free brick1(matter.Ground(), Transform(),
                                brickBody,       BodyAttach);
-    MobilizedBody::Free brick2(brick1, Transform(), 
+    MobilizedBody::Free brick2(brick1, Transform(),
                                brickBody,       BodyAttach);
     MobilizedBody prev=brick2;
     MobilizedBody body25;
     for (int i=0; i<NBod; ++i) {
-        MobilizedBody::Ball next(prev, -1*BodyAttach.p(), 
+        MobilizedBody::Ball next(prev, -1*BodyAttach.p(),
                                  brickBody, BodyAttach);
         if (i==25) body25=next;
         //Force::TwoPointLinearSpring(forces,
@@ -112,7 +112,7 @@ void testConservationOfEnergy() {
 
 
     Vec6 k1(1,100,1,100,100,100), c1(0);
-    Force::LinearBushing(forces, matter.Ground(), -2*NBod/3*BodyAttach.p(), 
+    Force::LinearBushing(forces, matter.Ground(), -2*NBod/3*BodyAttach.p(),
                  prev, BodyAttach.p(), k1, c1);
     matter.Ground().addBodyDecoration(-2*NBod/3*BodyAttach.p(),
         DecorativeFrame().setColor(Green));
@@ -129,7 +129,7 @@ void testConservationOfEnergy() {
         brick2, BodyAttach, k, c);
     matter.Ground().addBodyDecoration(-1*NBod/3*BodyAttach.p(),
         DecorativeFrame().setColor(Green));
- 
+
 
     Visualizer viz(system);
     Visualizer::Reporter* reporter = new Visualizer::Reporter(viz, 1./30);
@@ -139,17 +139,17 @@ void testConservationOfEnergy() {
     ThermoReporter* thermoReport = new ThermoReporter
         (system, thermo, bushing1, bushing2, 1./10);
     system.addEventReporter(thermoReport);
-   
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
     viz.report(state);
     printf("Default state -- hit ENTER\n");
-    cout << "t=" << state.getTime() 
-         << " q=" << brick1.getQAsVector(state) << brick2.getQAsVector(state) 
-         << " u=" << brick1.getUAsVector(state) << brick2.getUAsVector(state) 
+    cout << "t=" << state.getTime()
+         << " q=" << brick1.getQAsVector(state) << brick2.getQAsVector(state)
+         << " u=" << brick1.getUAsVector(state) << brick2.getUAsVector(state)
          << "\nnChains=" << thermo.getNumChains(state)
          << " T="        << thermo.getBathTemperature(state)
          << "\nt_relax=" << thermo.getRelaxationTime(state)
@@ -162,7 +162,7 @@ void testConservationOfEnergy() {
     Vector initU(state.getNU());
     initU = Test::randVector(state.getNU());
     state.updU()=initU;
-    
+
 
     RungeKuttaMersonIntegrator integ(system);
     //integ.setMinimumStepSize(1e-1);
@@ -174,7 +174,7 @@ void testConservationOfEnergy() {
     viz.report(integ.getState());
     viz.zoomCameraToShowAllGeometry();
     printf("After initialize -- hit ENTER\n");
-    cout << "t=" << integ.getTime() 
+    cout << "t=" << integ.getTime()
          << "\nE=" << system.calcEnergy(istate)
          << "\nEbath=" << thermo.calcBathEnergy(istate)
          << endl;
@@ -187,7 +187,7 @@ void testConservationOfEnergy() {
     viz.report(integ.getState());
     viz.zoomCameraToShowAllGeometry();
     printf("After simulation:\n");
-    cout << "t=" << integ.getTime() 
+    cout << "t=" << integ.getTime()
          << "\nE=" << system.calcEnergy(istate)
          << "\nEbath=" << thermo.calcBathEnergy(istate)
          << "\nNsteps=" << integ.getNumStepsTaken()

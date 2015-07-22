@@ -34,9 +34,9 @@ namespace Ipopt
    *  Main Ipopt algorithm class, contains the main optimize method,
    *  handles the execution of the optimization.
    *  The constructor initializes the data structures through the nlp,
-   *  and the Optimize method then assumes that everything is 
+   *  and the Optimize method then assumes that everything is
    *  initialized and ready to go.
-   *  After an optimization is complete, the user can access the 
+   *  After an optimization is complete, the user can access the
    *  solution through the passed in ip_data structure.
    *  Multiple calls to the Optimize method are allowed as long as the
    *  structure of the problem remains the same (i.e. starting point
@@ -81,7 +81,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -144,7 +144,7 @@ namespace Ipopt
     void OutputIteration();
 
     /** Sets up initial values for the iterates,
-     * Corrects the initial values for x and s (force in bounds) 
+     * Corrects the initial values for x and s (force in bounds)
      */
     void InitializeIterates();
 

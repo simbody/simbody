@@ -30,7 +30,7 @@ build_script:
 
 test_script:
   - ctest --parallel 4 --build-config Release --output-on-failure
-    
+
 after_test:
   ## On master branch, create NuGet package for Simbody, for use by OpenSim.
   # Detect if we are on the master branch.

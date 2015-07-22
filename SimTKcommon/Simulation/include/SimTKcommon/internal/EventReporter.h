@@ -40,12 +40,12 @@ namespace SimTK {
  * occur when some condition is satisfied within the system).  ScheduledEventReporter
  * also has another subclass, PeriodicEventReporter, for the common situation of
  * events that occur at regular intervals.
- * 
+ *
  * EventReporter is very similar to EventHandler, but differs in that it is not permitted
  * to modify the state of the system.  It can observe the system's behavior, but not
  * alter it.  This means that adding an EventReporter to a System is not considered a
- * change to the physical system it represents. 
- * 
+ * change to the physical system it represents.
+ *
  * Once you have created an EventReporter, you can add it to a System by calling
  * addEventReporter() on the System.
  */
@@ -53,12 +53,12 @@ namespace SimTK {
 class SimTK_SimTKCOMMON_EXPORT EventReporter {
 public:
     virtual ~EventReporter();
-    
+
     /**
      * This method is invoked to handle the event.  It is given a State which describes the
      * system at the time when the event occurs.
      */
-    
+
     virtual void handleEvent(const State& state) const = 0;
 };
 
@@ -72,15 +72,15 @@ public:
 class SimTK_SimTKCOMMON_EXPORT ScheduledEventReporter : public EventReporter {
 public:
     virtual ~ScheduledEventReporter();
-    
+
     /**
      * Get the next time at which an event will occur.
-     * 
+     *
      * @param state                 the current state of the system
      * @param includeCurrentTime    if true, return the next event whose time is >= the current time.
      *                              If false, only return events after (not at) the current time.
      */
-    
+
     virtual Real getNextEventTime(const State& state, bool includeCurrentTime) const = 0;
 };
 
@@ -99,31 +99,31 @@ public:
     TriggeredEventReporter(const TriggeredEventReporter& clone);
     TriggeredEventReporter& operator=(const TriggeredEventReporter& clone);
     virtual ~TriggeredEventReporter();
-    
+
     /**
      * Construct a new TriggeredEventReporter.
-     * 
+     *
      * @param requiredStage    the stage at which the trigger function will be evaluated
      */
-    
+
     TriggeredEventReporter(Stage requiredStage);
-    
+
     /**
      * Get the value of the event trigger function for a State.
      */
-    
+
     virtual Real getValue(const State&) const = 0;
-    
+
     /**
      * Get an EventTriggerInfo object which can be used to customize when the event occurs.
      */
-    
+
     EventTriggerInfo& getTriggerInfo();
-    
+
     /**
      * Get the stage at which the trigger function will be evaluated.
      */
-    
+
     Stage getRequiredStage() const;
 private:
     TriggeredEventReporterImpl* impl;
@@ -140,25 +140,25 @@ public:
     class PeriodicEventReporterImpl;
     ~PeriodicEventReporter();
     Real getNextEventTime(const State& state, bool includeCurrentTime) const;
-    
+
     /**
      * Create a PeriodicEventReporter.
-     * 
+     *
      * @param eventInterval       the time interval at which events should occur.
      */
 
     PeriodicEventReporter(Real eventInterval);
-    
+
     /**
      * Get the time interval at which events occur.
      */
-    
+
     Real getEventInterval() const;
-    
+
     /**
      * Set the time interval at which events occur.
      */
-    
+
     void setEventInterval(Real eventInterval);
 private:
     PeriodicEventReporterImpl* impl;

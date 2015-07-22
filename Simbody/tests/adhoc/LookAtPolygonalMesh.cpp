@@ -36,20 +36,20 @@ using namespace SimTK;
 
 class ShowMesh : public DecorationGenerator {
 public:
-    ShowMesh() {} 
+    ShowMesh() {}
 
     // This is a shallow reference to the supplied mesh.
     void setMesh(const PolygonalMesh& mesh) {m_mesh=mesh;}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         const Real TextScale = 0.1;
         DecorativeText info; info.setIsScreenText(true);
-        info.setText("Faces/vertices: " + String(m_mesh.getNumFaces()) 
+        info.setText("Faces/vertices: " + String(m_mesh.getNumFaces())
                      + "/" + String(m_mesh.getNumVertices()));
         geometry.push_back(info);
-        if (!m_mesh.getNumFaces()) 
+        if (!m_mesh.getNumFaces())
             return;
 
         DecorativeMesh dmesh(m_mesh);
@@ -65,8 +65,8 @@ private:
 };
 
 int main() {
-  try {    
-    // Create a system containing only Ground.   
+  try {
+    // Create a system containing only Ground.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
 
@@ -79,8 +79,8 @@ int main() {
     viz.addDecorationGenerator(sp);
     viz.report(system.getDefaultState()); // show default shape
 
-    // The Visualizer caches meshes by their addresses so won't update 
-    // properly if memory gets reused in a modified mesh. Since there's a 
+    // The Visualizer caches meshes by their addresses so won't update
+    // properly if memory gets reused in a modified mesh. Since there's a
     // human in the loop here we can just keep all the meshes around until
     // termination; that way there is no danger of reuse.
     Array_<PolygonalMesh> meshes;

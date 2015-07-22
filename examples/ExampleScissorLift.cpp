@@ -34,9 +34,9 @@ using std::cout; using std::endl;
 // as O(m^3) once the number of constraints m is large enough so that factoring
 // the constraint matrix dominates the execution time.
 //
-// You can instead use stiff springs instead of constraints to model the 
+// You can instead use stiff springs instead of constraints to model the
 // cross-connections. That results in considerable savings in per-evaluation
-// CPU time (I measured almost 10X at 10 levels), but it makes the system stiff 
+// CPU time (I measured almost 10X at 10 levels), but it makes the system stiff
 // and requires *much* smaller time steps.
 //
 // The mechanism is built to operate in the X-Y plane, with Y vertical and
@@ -46,7 +46,7 @@ static const int NumLevels = 10;
 static const bool PrescribeRotor = true;
 static const bool UseSpringsInsteadOfConstraints = false;
 
-// This Force element holds a point on one body (the "follower") onto a plane 
+// This Force element holds a point on one body (the "follower") onto a plane
 // on another via a spring that acts always along the plane normal.
 class DirectionalSpringDamper : public Force::Custom::Implementation {
 public:
@@ -54,13 +54,13 @@ public:
        (const MobilizedBody& plane, const UnitVec3& normal, Real h,
         const MobilizedBody& follower, const Vec3& point,
         Real k, Real c) // stiffness and damping
-    :   plane(plane), normal(normal), h(h), 
+    :   plane(plane), normal(normal), h(h),
         follower(follower), point(point), k(k), c(c)
     {   assert(k >= 0 && c >= 0); }
 
-    virtual void calcForce(const State&         state, 
-                           Vector_<SpatialVec>& bodyForces, 
-                           Vector_<Vec3>&       particleForces, 
+    virtual void calcForce(const State&         state,
+                           Vector_<SpatialVec>& bodyForces,
+                           Vector_<Vec3>&       particleForces,
                            Vector&              mobilityForces) const
     {
         const Vec3 p = follower.findStationLocationInAnotherBody
@@ -96,7 +96,7 @@ int main() {
     try { // catch errors if any
 
     // Create the system, with subsystems for the bodies and some forces.
-    MultibodySystem system; 
+    MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::Gravity gravity(forces, matter, -YAxis, 9.8);
@@ -109,43 +109,43 @@ int main() {
     Real Height = 2, BaseHalfWidth = .35;
 
     // Definition of the rotor body, used so the simulation won't be boring.
-    Real rotorMass = .5; 
+    Real rotorMass = .5;
     Vec3 rotorSz(.25,.05,.025);  // half dimensions of rotor body
     Body::Rigid rotorInfo(MassProperties(rotorMass, Vec3(0),
                                          UnitInertia::brick(rotorSz)));
     rotorInfo.addDecoration(Vec3(0), DecorativeBrick(rotorSz).setColor(Red));
 
     // Describe a long thin rectangular body, with the long direction in Y.
-    Real linkMass = 1; 
+    Real linkMass = 1;
     Vec3 linkSz(.1,1,.025); // half dimensions of link body
-    Body::Rigid linkInfo(MassProperties(linkMass, Vec3(0), 
+    Body::Rigid linkInfo(MassProperties(linkMass, Vec3(0),
                                         UnitInertia::brick(linkSz)));
     linkInfo.addDecoration(Vec3(0), DecorativeBrick(linkSz).setColor(Green));
 
     // Attach the rotor to Ground off to the right and push into -z a little
     // so it is offset from the link.
-    MobilizedBody::Pin rotor(matter.Ground(), Vec3(BaseHalfWidth + 2*rotorSz[0], 
+    MobilizedBody::Pin rotor(matter.Ground(), Vec3(BaseHalfWidth + 2*rotorSz[0],
                                                    Height, 0),
                              rotorInfo,       Vec3(rotorSz[0],0, rotorSz[2]));
 
     // Can let the rotor flop or prescribe it to go at a constant velocity.
     if (PrescribeRotor) {
         //Vector coef(2); coef[0]=1; coef[1]=0;
-        //Constraint::PrescribedMotion(matter, new Function::Linear(coef), 
+        //Constraint::PrescribedMotion(matter, new Function::Linear(coef),
         //                             rotor, MobilizerQIndex(0));
 
         // Using a Motion rather than a constraint is faster, especially if
         // there are no other constraints.
-        Motion::Steady(rotor, 1.); 
+        Motion::Steady(rotor, 1.);
     }
 
-    // Create the two trees of mobilized bodies, reusing the above link 
+    // Create the two trees of mobilized bodies, reusing the above link
     // description.
     MobilizedBody::Pin right1
-       (rotor,           Vec3(-rotorSz[0], 0, rotorSz[2]), 
+       (rotor,           Vec3(-rotorSz[0], 0, rotorSz[2]),
         linkInfo,        Vec3(0, -linkSz[1], -linkSz[2]));
-    MobilizedBody::Pin left1 
-       (matter.Ground(), Vec3(-BaseHalfWidth,Height,2*linkSz[2]), 
+    MobilizedBody::Pin left1
+       (matter.Ground(), Vec3(-BaseHalfWidth,Height,2*linkSz[2]),
         linkInfo,        Vec3(0, -linkSz[1], -linkSz[2]));
     right1.setDefaultAngle(Pi/8);
     left1.setDefaultAngle(-Pi/8);
@@ -153,14 +153,14 @@ int main() {
     MobilizedBody::Pin lastRight = right1, lastLeft = left1;
     Real sign = -1; // alternate initial angles
     for (int i=1; i <= NumLevels; ++i) {
-        // Add cross connections between the tree ends using two 1-dof 
+        // Add cross connections between the tree ends using two 1-dof
         // constraints (that's enough since this is planar).
         if (UseSpringsInsteadOfConstraints) {
             const Real k = 3000000, c = 1000;
-            Force::Custom(forces, 
+            Force::Custom(forces,
                 new DirectionalSpringDamper(lastLeft,YAxis, 0.,
                                             lastRight, Vec3(0), k, c));
-            Force::Custom(forces, 
+            Force::Custom(forces,
                 new DirectionalSpringDamper(lastRight,YAxis, 0.,
                                             lastLeft, Vec3(0), k, c));
         } else {
@@ -186,8 +186,8 @@ int main() {
     // Ask for visualization every 1/30 second.
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    
-    // Initialize the system and state.    
+
+    // Initialize the system and state.
     State state = system.realizeTopology();
 
     cout << "Scissors before assembly ... ENTER to assemble.\n";
@@ -224,7 +224,7 @@ int main() {
     //const Real Accuracy = 0.5; // 50%
 
     const Real MaxStepSize = Infinity;
-    //RungeKuttaMersonIntegrator integ(system); // 4th order 
+    //RungeKuttaMersonIntegrator integ(system); // 4th order
 
     //const Real MaxStepSize = 0.05; // 50 ms
     RungeKutta3Integrator integ(system);        // 3rd order
@@ -253,17 +253,17 @@ int main() {
     const double cpuInSec = cpuTime()-startCPU;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << integ.getTime() << "s sim (avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s for " << integ.getTime() << "s sim (avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*integ.getTime())/evals << "sim ms/eval\n";
     cout << "CPUtime (not reliable when visualizing) " << cpuInSec << endl;
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(),
         integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
         integ.getNumProjections());
 
     } catch (const std::exception& e) {

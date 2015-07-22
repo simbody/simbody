@@ -43,19 +43,19 @@ namespace SimTK {
 
 template <class N> class negator;
 template <class R> class conjugate;
-    
+
 /** SimTK::String is a plug-compatible std::string replacement (plus some
-additional functionality) intended to be suitable for passing through the 
-SimTK API without introducing binary compatibility problems the way 
-std::string does, especially on Windows. You can work in your own code with 
-std::strings which will be quietly converted to and from SimTK::Strings when 
-invoking SimTK API methods. Or, you can use SimTK::Strings and still pass them 
-to standard library or other methods that are expecting std::strings, usually 
+additional functionality) intended to be suitable for passing through the
+SimTK API without introducing binary compatibility problems the way
+std::string does, especially on Windows. You can work in your own code with
+std::strings which will be quietly converted to and from SimTK::Strings when
+invoking SimTK API methods. Or, you can use SimTK::Strings and still pass them
+to standard library or other methods that are expecting std::strings, usually
 transparently. The SimTK::Array_<T> class is used similarly to avoid binary
 compatibility problems that arise with std::vector<T>.
 
 @todo Currently this is just derived from std::string and inherits all the
-binary compatibility issues. Use it now anyway and you'll pick up the 
+binary compatibility issues. Use it now anyway and you'll pick up the
 compatibility benefits later, when we get the time ...
 
 @see SimTK::Array_  **/
@@ -76,11 +76,11 @@ explicit String(char c) {push_back(c);}
 /** This is an implicit conversion from std::string to String **/
 String(const std::string& s) : std::string(s) { }
 
-/** Construct a String as a copy of a substring begining at position \a start 
+/** Construct a String as a copy of a substring begining at position \a start
 with length \a len. **/
 String(const String& s, int start, int len) : std::string(s,start,len) { }
 
-/** This is an implicit conversion from String to null-terminated C-style 
+/** This is an implicit conversion from String to null-terminated C-style
 string (array of chars). **/
 operator const char*() const { return c_str(); }
 
@@ -101,38 +101,38 @@ char& operator[](std::string::size_type i) {return std::string::operator[](i);}
 /** Pass through to string::operator[]. **/
 char operator[](std::string::size_type i) const {return std::string::operator[](i);}
 
-/** Override std::string size() method to return an int instead of the 
+/** Override std::string size() method to return an int instead of the
 inconvenient unsigned type size_type. **/
 int size() const {return (int)std::string::size();}
 
-/** Override std::string length() method to return an int instead of the 
+/** Override std::string length() method to return an int instead of the
 inconvenient unsigned type size_type. **/
 int length() const {return (int)std::string::length();}
 
 /** @name             Formatted output constructors
 These contructors format the supplied argument into a human-readable %String,
-using a default or caller-supplied printf-like format. By default, maximum 
-precision is used for floating point values, and user-friendly strings are 
-used for bool (true or false) and non-finite floating point values (NaN, 
+using a default or caller-supplied printf-like format. By default, maximum
+precision is used for floating point values, and user-friendly strings are
+used for bool (true or false) and non-finite floating point values (NaN,
 Inf, -Inf). **/
 /*@{*/
 /** Format an int as a printable %String. **/
-explicit String(int i, const char* fmt="%d") 
+explicit String(int i, const char* fmt="%d")
 {   char buf[32]; sprintf(buf,fmt,i); (*this)=buf; }
 /** Format a long as a printable %String. **/
-explicit String(long i, const char* fmt="%ld") 
+explicit String(long i, const char* fmt="%ld")
 {   char buf[64]; sprintf(buf,fmt,i); (*this)=buf; }
 /** Format a long long as a printable %String. **/
-explicit String(long long i, const char* fmt="%lld") 
+explicit String(long long i, const char* fmt="%lld")
 {   char buf[64]; sprintf(buf,fmt,i); (*this)=buf; }
 /** Format an unsigned int as a printable %String. **/
-explicit String(unsigned int s, const char* fmt="%u")  
+explicit String(unsigned int s, const char* fmt="%u")
 {   char buf[32]; sprintf(buf,fmt,s); (*this)=buf; }
 /** Format an unsigned long as a printable %String. **/
-explicit String(unsigned long s, const char* fmt="%lu") 
+explicit String(unsigned long s, const char* fmt="%lu")
 {   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
 /** Format an unsigned long long as a printable %String. **/
-explicit String(unsigned long long s, const char* fmt="%llu") 
+explicit String(unsigned long long s, const char* fmt="%llu")
 {   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
 
 /** Format a float as a printable %String. Nonfinite values are formatted as
@@ -143,26 +143,26 @@ SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.7g");
 NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
 SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.15g");
 
-/** Format a long double as a printable %String. Nonfinite values are 
+/** Format a long double as a printable %String. Nonfinite values are
 formatted as NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
-SimTK_SimTKCOMMON_EXPORT explicit String(long double r, 
+SimTK_SimTKCOMMON_EXPORT explicit String(long double r,
                                          const char* fmt="%.20Lg");
 
 /** Format a complex\<float> as a printable %String (real,imag) with parentheses
-and a comma as shown. The format string should be for a single float and will 
+and a comma as shown. The format string should be for a single float and will
 be used twice; the default format is the same as for float. **/
 explicit String(std::complex<float> r, const char* fmt="%.7g")
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
-/** Format a complex\<double> as a printable %String (real,imag) with 
-parentheses and a comma as shown. The format string should be for a single 
+/** Format a complex\<double> as a printable %String (real,imag) with
+parentheses and a comma as shown. The format string should be for a single
 double and will be used twice; the default format is the same as for double. **/
-explicit String(std::complex<double> r, const char* fmt="%.15g")    
+explicit String(std::complex<double> r, const char* fmt="%.15g")
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
-/** Format a complex\<long double> as a printable %String (real,imag) with 
+/** Format a complex\<long double> as a printable %String (real,imag) with
 parentheses and a comma as shown. The format string should be for a single long
 double and will be used twice; the default format is the same as for long
 double. **/
-explicit String(std::complex<long double> r, const char* fmt="%.20Lg")    
+explicit String(std::complex<long double> r, const char* fmt="%.20Lg")
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
 
 /** Format a bool as a printable %String "true" or "false"; if you want "1"
@@ -176,7 +176,7 @@ operator<<() available for type T. **/
 template <class T> inline explicit String(const T& t); // see below
 
 /** Constructing a %String from a negated value converts to the underlying
-native type and then uses one of the native-type constructors. **/ 
+native type and then uses one of the native-type constructors. **/
 template <class T> explicit
 String(const negator<T>& nt) {
     new (this) String(T(nt));
@@ -188,7 +188,7 @@ String(const negator<T>& nt, const char* fmt) {
 }
 
 /** Constructing a %String from a conjugate value converts to the underlying
-complex type and then uses one of the native-type constructors. **/ 
+complex type and then uses one of the native-type constructors. **/
 template <class T> explicit
 String(const conjugate<T>& ct) {
     new (this) String(std::complex<T>(ct));
@@ -204,33 +204,33 @@ String(const conjugate<T>& ct, const char* fmt) {
 
 /** @name             Formatted input from String
 These templatized methods attempt to interpret the entire contents of
-this String as a single object of type T (although T may itself be a 
+this String as a single object of type T (although T may itself be a
 container like an Array or Vector). It is an error if the String has
 the wrong format for an object of this type, or if the entire String is
 not consumed. The acceptable formatting is defined by type T based on what
-it thinks is acceptable stream formatting. Leading and trailing white space 
-are ignored except when type T is itself a String or std::string in which case 
+it thinks is acceptable stream formatting. Leading and trailing white space
+are ignored except when type T is itself a String or std::string in which case
 the white space is included in the result. It is not acceptable for type T
 to be a pointer type. In particular if you want to convert a String to a null-
-terminated C-style char*, use the standard c_str() method rather than any of 
+terminated C-style char*, use the standard c_str() method rather than any of
 these.
 @see Related namespace-level static methods convertStringTo<T>().
 **/
 /*@{*/
 /** Attempt to convert this String to an object of type T, returning a status
-value to indicate success or failure. We require that the whole string is 
-consumed except possibly for some trailing white space. 
-@tparam         T   
-    A non-pointer type that supports extraction operator>>() from an istream. 
-    You will get a compilation failure if you try to use this method for a 
+value to indicate success or failure. We require that the whole string is
+consumed except possibly for some trailing white space.
+@tparam         T
+    A non-pointer type that supports extraction operator>>() from an istream.
+    You will get a compilation failure if you try to use this method for a
     type T for which no extraction operator is available and a runtime error
     if T is a pointer type.
 @param[out]     out
     The converted value if we were able to parse the string successfully
-    (i.e., function return is true), otherwise the output value is 
+    (i.e., function return is true), otherwise the output value is
     undefined.
 @return true if we got what we're looking for, false if anything went
-wrong including failure to consume the entire string. 
+wrong including failure to consume the entire string.
 @see convertTo<T>() **/
 template <class T> inline bool tryConvertTo(T& out) const; // see below
 
@@ -242,13 +242,13 @@ have to throw an error anyway.
 @see tryConvertTo<T>(out), SimTK::convertStringTo<T>() **/
 template <class T> inline void convertTo(T& out) const; // see below
 
-/** A more convenient form of convertTo<T>() that returns the result as its 
+/** A more convenient form of convertTo<T>() that returns the result as its
 function argument, although this may involve an extra copy operation. For very
 large objects you may want to use the other form where the output is written
-to an already-constructed object you provide. 
+to an already-constructed object you provide.
 @return The converted value as an object of type T.
 @see convertTo<T>(out), tryConvertTo<T>(out), SimTK::convertStringTo<T>() **/
-template <class T> T convertTo() const 
+template <class T> T convertTo() const
 {   T temp; convertTo<T>(temp); return temp; }
 
 /** Special-purpose method for interpreting this %String as a bool. Recognizes
@@ -269,29 +269,29 @@ Returns false if the contents of this %String, ignoring leading and trailing
 whitespace, can't be interpreted as a double. **/
 SimTK_SimTKCOMMON_EXPORT bool tryConvertToDouble(double& out) const;
 
-/** Special-purpose method for interpreting this %String as a long double. 
-Recognizes NaN, [-]Inf, [-]Infinity (in any case) as well as whatever 
-operator>>() accepts. Returns false if the contents of this %String, ignoring 
+/** Special-purpose method for interpreting this %String as a long double.
+Recognizes NaN, [-]Inf, [-]Infinity (in any case) as well as whatever
+operator>>() accepts. Returns false if the contents of this %String, ignoring
 leading and trailing whitespace, can't be interpreted as a long double. **/
 SimTK_SimTKCOMMON_EXPORT bool tryConvertToLongDouble(long double& out) const;
 /*@}*/
 
 /** @name In-place modifications
 These are member functions which add to the existing std::string functionality.
-These methods return a reference to "this" String, so may be chained like 
-assignment statements. If you would like to use these on an std::string, use 
-the String::updAs() method to recast the std::string to a String. Note that 
-there is also an equivalent set of static methods which return a new String 
+These methods return a reference to "this" String, so may be chained like
+assignment statements. If you would like to use these on an std::string, use
+the String::updAs() method to recast the std::string to a String. Note that
+there is also an equivalent set of static methods which return a new String
 rather than changing the original. **/
 /*@{*/
-/** Upshift the given String in place, so that lowercase letters are replaced 
+/** Upshift the given String in place, so that lowercase letters are replaced
 with their uppercase equivalents as defined by std::toupper(). **/
 SimTK_SimTKCOMMON_EXPORT String& toUpper();
 /** Downshift the given String in place, so that uppercase letters are replaced
 with their lowercase equivalents as defined by std::tolower(). **/
 SimTK_SimTKCOMMON_EXPORT String& toLower();
-/** Trim this String in place, removing all the initial leading and trailing 
-white space, as defined by std::isspace() which typically includes space, 
+/** Trim this String in place, removing all the initial leading and trailing
+white space, as defined by std::isspace() which typically includes space,
 tab (\\t), newline (\\n), return (\\r),  and form feed (\\f). **/
 SimTK_SimTKCOMMON_EXPORT String& trimWhiteSpace();
 /** Substitute in place \a newChar for \a oldChar wherever \a oldChar appears
@@ -314,7 +314,7 @@ static String toLower(const std::string& in)
 {   return String(in).toLower(); }
 /** Copy the input std::string to a new SimTK::String leaving off all the
 initial leading and trailing white space, as defined by isspace() which
-typically includes space, tab (\\t), newline (\\n), return (\\r), 
+typically includes space, tab (\\t), newline (\\n), return (\\r),
 and form feed (\\f). **/
 static SimTK_SimTKCOMMON_EXPORT String trimWhiteSpace(const std::string& in);
 /** Copy the input std::string to a new SimTK::String while substituting
@@ -323,14 +323,14 @@ String& replaceAllChar(const std::string& in, char oldChar, char newChar)
 {   return String(in).replaceAllChar(oldChar, newChar); }
 /*@}*/
 
-};    
+};
 
 // All std::stream activity should be dealt with inline so that we don't have
-// to worry about binary compatibility issues that can arise when passing 
+// to worry about binary compatibility issues that can arise when passing
 // streams through the API.
 
 /** Generic templatized %String constructor uses T::operator<<() to generate
-the %String when no specialization is available. **/ 
+the %String when no specialization is available. **/
 template <class T> inline
 String::String(const T& t) {
     std::ostringstream stream;
@@ -341,7 +341,7 @@ String::String(const T& t) {
 
 // This namespace-level static method should not be necessary but gcc 4.1
 // still has trouble with template specialization for template member
-// functions. So rather than specializing the tryConvertTo() member, I'm 
+// functions. So rather than specializing the tryConvertTo() member, I'm
 // specializing this helper function instead.
 template <class T> inline static
 bool tryConvertStringTo(const String& value, T& out) {
@@ -354,30 +354,30 @@ bool tryConvertStringTo(const String& value, T& out) {
     return sstream.eof();   // We must have used up the whole string now.
 }
 
-// This specialization ensures that "true" and "false" are recognized as 
+// This specialization ensures that "true" and "false" are recognized as
 // values for bools (with any case).
-template <> inline 
+template <> inline
 bool tryConvertStringTo(const String& value, bool& out)
 {   return value.tryConvertToBool(out); }
 
 // Specialization to ensure recognition of non-finite values NaN, Inf, etc.
-template <> inline 
+template <> inline
 bool tryConvertStringTo(const String& value, float& out)
 {   return value.tryConvertToFloat(out); }
 
 // Specialization to ensure recognition of non-finite values NaN, Inf, etc.
-template <> inline 
+template <> inline
 bool tryConvertStringTo(const String& value, double& out)
 {   return value.tryConvertToDouble(out); }
 
 // Specialization to ensure recognition of non-finite values NaN, Inf, etc.
-template <> inline 
+template <> inline
 bool tryConvertStringTo(const String& value, long double& out)
 {   return value.tryConvertToLongDouble(out); }
 
 // This specialization ensures that we get the whole String including
-// leading and trailing white space. Of course this is not useful for 
-// anything but may occur as a result of some higher-level templatized 
+// leading and trailing white space. Of course this is not useful for
+// anything but may occur as a result of some higher-level templatized
 // method that doesn't know what type it is converting here.
 template<> inline
 bool tryConvertStringTo(const String& value, String& out)
@@ -391,7 +391,7 @@ bool tryConvertStringTo(const String& value, std::string& out)
 /** Partial specialization to read negator<T> as a T. **/
 template <class T> inline
 bool tryConvertStringTo(const String& value, negator<T>& out) {
-    T nonnegated; 
+    T nonnegated;
     if (!tryConvertStringTo(value, nonnegated)) return false;
     out = nonnegated;
     return true;
@@ -400,7 +400,7 @@ bool tryConvertStringTo(const String& value, negator<T>& out) {
 /** Partial specialization to read conjugate<T> as a std::complex<T>. **/
 template <class T> inline
 bool tryConvertStringTo(const String& value, conjugate<T>& out) {
-    std::complex<T> cmplx; 
+    std::complex<T> cmplx;
     if (!tryConvertStringTo(value, cmplx)) return false;
     out = cmplx;
     return true;
@@ -414,14 +414,14 @@ bool tryConvertStringTo(const String& value, T*& out) {
     SimTK_ERRCHK1_ALWAYS(false, "SimTK::convertStringTo(value,T*)",
         "Can't interpret a string as a pointer (%s*).",
         NiceTypeName<T>::namestr().c_str());
-    return false; 
+    return false;
 }
 
-template <class T> inline bool 
-String::tryConvertTo(T& out) const 
+template <class T> inline bool
+String::tryConvertTo(T& out) const
 {   return tryConvertStringTo(*this, out); }
 
-template <class T> inline void 
+template <class T> inline void
 String::convertTo(T& out) const {
     const int MaxStr = 50;
     const bool convertOK = tryConvertTo<T>(out);
@@ -438,7 +438,7 @@ String::convertTo(T& out) const {
 
 /** This method converts its String argument to type T and returns it into
 the variable supplied as its second argument; this is particularly convenient
-when you have a string literal or std::string since the conversion to String 
+when you have a string literal or std::string since the conversion to String
 happens automatically. For example the two lines shown are equivalent:
 @code
     Array_<float> array;

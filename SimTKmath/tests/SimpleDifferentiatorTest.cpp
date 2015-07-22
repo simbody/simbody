@@ -46,7 +46,7 @@ using std::endl;
 // the concrete class. Time should be set prior to calculation of the Jacobian.
 class MyVectorFunc : public Differentiator::JacobianFunction {
 public:
-    MyVectorFunc(int nf, int ny) 
+    MyVectorFunc(int nf, int ny)
         : Differentiator::JacobianFunction(nf,ny), time(0) { }
 
     void setTime(Real t) {time=t;}
@@ -61,7 +61,7 @@ private:
 // This is a single scalar function of a vector of parameters.
 class MyObjectiveFunc : public Differentiator::GradientFunction {
 public:
-    MyObjectiveFunc(int ny) 
+    MyObjectiveFunc(int ny)
         : Differentiator::GradientFunction(ny), time(0) { }
 
     void setTime(Real t) {time=t;}
@@ -78,7 +78,7 @@ private:
 class GenericScalarFunc : public Differentiator::ScalarFunction {
     typedef Real (*CFunc)(Real);
 public:
-    GenericScalarFunc(CFunc cf) 
+    GenericScalarFunc(CFunc cf)
         : Differentiator::ScalarFunction(), cp(cf) { }
 
     // Must provide this pure virtual function.
@@ -86,7 +86,7 @@ public:
         fx = cp(x);
         return 0;
     }
-    
+
     CFunc cp;
 };
 
@@ -115,11 +115,11 @@ int main () {
         Real approx = dsinwx.calcDerivative(x);
 
         std::printf("exact =%16.12f\n", exact);
-        std::printf("approx=%16.12f err=%.3e\n", 
+        std::printf("approx=%16.12f err=%.3e\n",
             approx, std::abs((approx-exact)/exact));
 
         return 0;
-    } 
+    }
     catch (std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;

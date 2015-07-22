@@ -68,9 +68,9 @@ std::ostream& operator<<(std::ostream& o, std::vector<T>& v) {
 //            i >> a[e];
 //    }
 //    return i;
-//} 
+//}
 //template <class T, class X> inline std::istream&
-//operator>>(std::istream& i, ArrayView_<T,X>& a) 
+//operator>>(std::istream& i, ArrayView_<T,X>& a)
 //{   return i >> (Array_<T,X>&)a; }
 
 template <class T>
@@ -91,13 +91,13 @@ public:
     SmallIx() : ix(0xff) {}
     explicit SmallIx(unsigned char i) : ix(i) {}
 
-    SmallIx& operator++() 
+    SmallIx& operator++()
     {   assert(ix<max_size()); ++ix; return *this;}
-    SmallIx operator++(int) 
+    SmallIx operator++(int)
     {   assert(ix<max_size()); const SmallIx x=*this; ++ix; return x;}
-    SmallIx& operator--() 
+    SmallIx& operator--()
     {   assert(ix>0); --ix; return *this;}
-    SmallIx operator--(int) 
+    SmallIx operator--(int)
     {   assert(ix>0); const SmallIx x=*this; ++ix; return x;}
 
     // These are required for any class to be used an index type.
@@ -130,7 +130,7 @@ private:
 inline std::ostream&
 operator<<(std::ostream& o, const Counter& c) {
     return o << (int)c;
-} 
+}
 
 // This class is a T but augmented with counters that track the number
 // of calls to constructors, assignment, and the destructor.
@@ -161,7 +161,7 @@ struct Count {
         cout << endl;
     }
 
-    static bool isReset() 
+    static bool isReset()
     {   return !(defCtor||initCtor||copyCtor||initAssign||copyAssign||dtor); }
 
     T val;
@@ -177,7 +177,7 @@ struct Count {
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const Count<T>& c) {
     return o << c.val;
-} 
+}
 template <class T> Counter Count<T>::defCtor;
 template <class T> Counter Count<T>::initCtor;
 template <class T> Counter Count<T>::copyCtor;
@@ -198,7 +198,7 @@ template class Array_<std::string, unsigned char>;
 template Array_<float,int>::Array_(const float*,const float*);
 
 
-// Gcc 4.8.2 complains that these two instantiations are ambiguous, and 
+// Gcc 4.8.2 complains that these two instantiations are ambiguous, and
 // clang 3.4 dies with an internal error. cl has no problem with them. It is
 // hard to determine who is right so I'll just include this for cl for now.
 #ifdef _MSC_VER
@@ -208,11 +208,11 @@ template Array_<float,int>::Array_(const float*,const float*);
 #endif
 
 // Assignment.
-template void 
+template void
 Array_<float,int>::assign(const float*,const float*);
 template void
 Array_<double,int>::assign(const inputIt&, const inputIt&);
-template Array_<double,int>& 
+template Array_<double,int>&
 Array_<double,int>::operator=(const std::vector<float>&);
 
 
@@ -224,7 +224,7 @@ template float*
 Array_<float,short>::insert(float*, const inputIt&, const inputIt&);
 
 // Comparison
-template bool operator==(const ArrayViewConst_<float,int>&, 
+template bool operator==(const ArrayViewConst_<float,int>&,
                          const ArrayViewConst_<float,unsigned>&);
 };
 
@@ -265,13 +265,13 @@ void testConstruction() {
 
     Array_<int,SmallIx> ismall0;
     cout << "default constructed Array_<int> begin()=" << ismall0.begin()
-         << " end()=" << ismall0.end() 
-         << " capacity()=" << (int)ismall0.capacity() 
+         << " end()=" << ismall0.end()
+         << " capacity()=" << (int)ismall0.capacity()
          << endl;
 
     std::vector<int> ivec0;
-    cout << "default constructed std::vector<int>" 
-         << " capacity()=" << ivec0.capacity() 
+    cout << "default constructed std::vector<int>"
+         << " capacity()=" << ivec0.capacity()
          << endl;
 
     Array_<int,SmallIx> ismall(3);
@@ -302,7 +302,7 @@ void testConstruction() {
     strings.push_back("last");
     for (int i=0; i<5; ++i) {
         strings.insert(strings.end(), 2, "ins" + String(i));
-        cout << strings.size() << ":" << strings.capacity() 
+        cout << strings.size() << ":" << strings.capacity()
                                << ":" << strings << endl;
     }
     cout << "strings=" << strings << endl;
@@ -360,8 +360,8 @@ void testConversion() {
     cout << "av=" << av << " &av[0]=" << &av[0] << endl;
     cout << "ca=" << ca << " &ca[0]=" << &ca[0] << endl;
 
-    toArray(ArrayView_<int>(v)); 
-    toArrayView(v); 
+    toArray(ArrayView_<int>(v));
+    toArrayView(v);
     toArrayViewConst(v);
 }
 
@@ -516,15 +516,15 @@ void testInsert() {
 
     // Fill in a bunch of 1000's in the middle, erase the beginning and
     // end, and make sure we see just the 1000's.
-    ac.insert(ac.begin()+2, 99, 1000); 
+    ac.insert(ac.begin()+2, 99, 1000);
     ac.erase(ac.begin(), ac.begin()+2);
     ac.erase(ac.end()-3, ac.end());
     SimTK_TEST(ac == Array_<int>(99,1000));
 
 }
 
-// A bool index type is more or less useless in real life but was handy for 
-// catching obscure implementation bugs having to do with index_type vs. 
+// A bool index type is more or less useless in real life but was handy for
+// catching obscure implementation bugs having to do with index_type vs.
 // size_type.
 void testBoolIndex() {
     SimTK_TEST((Array_<int,long>().empty()));
@@ -608,7 +608,7 @@ void testNonRandomIterator() {
     Array_<int> dummy2(4U, 129U);     // 4*129
     SimTK_TEST(dummy2 == Array_<int>(4, 129));
 
-    // This should use the constant-time std::swap specialization that is 
+    // This should use the constant-time std::swap specialization that is
     // provided in the Array.h header file.
     std::swap(dummy1, dummy2);
     SimTK_TEST(dummy2 == Array_<int>(3, (int)'A'));
@@ -640,7 +640,7 @@ void testNonRandomIterator() {
 // it can't be determined for them how many elements are in a range
 // [first,last1) because to increment an iterator is to consume it. This is
 // the only case where a bulk constructor, insert(), or assign() must be
-// done with multiple space reallocations (basically like a series of 
+// done with multiple space reallocations (basically like a series of
 // one-element push_back() calls).
 void testInputIterator() {
     const int answerData[]={10,12,-14,5,203,-232,1,2,3,4};
@@ -725,7 +725,7 @@ void testSpeedStdVector() {
 }
 
 void testSpeedSimTKArray() {
-    Array_<int> v; 
+    Array_<int> v;
     using Index = Array_<int>::size_type;
     v.reserve(Inner);
 
@@ -746,30 +746,30 @@ void testSpeedSimTKArray() {
 
 void testNiceTypeName() {
     cout << "Is64BitPlatform=" << NiceTypeName<Is64BitPlatformType>::name() << endl;
-    cout << "packed_size_type<bool>=" 
+    cout << "packed_size_type<bool>="
         << NiceTypeName<ArrayIndexPackType<bool>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<char>=" 
+    cout << "packed_size_type<char>="
         << NiceTypeName<ArrayIndexPackType<char>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<signed char>=" 
+    cout << "packed_size_type<signed char>="
         << NiceTypeName<ArrayIndexPackType<signed char>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<unsigned char>=" 
+    cout << "packed_size_type<unsigned char>="
         << NiceTypeName<ArrayIndexPackType<unsigned char>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<short>=" 
+    cout << "packed_size_type<short>="
         << NiceTypeName<ArrayIndexPackType<short>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<unsigned short>=" 
+    cout << "packed_size_type<unsigned short>="
         << NiceTypeName<ArrayIndexPackType<unsigned short>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<int>=" 
+    cout << "packed_size_type<int>="
         << NiceTypeName<ArrayIndexPackType<int>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<unsigned>=" 
+    cout << "packed_size_type<unsigned>="
         << NiceTypeName<ArrayIndexPackType<unsigned>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<long>=" 
+    cout << "packed_size_type<long>="
         << NiceTypeName<ArrayIndexPackType<long>::packed_size_type>::name() << endl;
-    cout << "packed_size_type<unsigned long long>=" 
+    cout << "packed_size_type<unsigned long long>="
         << NiceTypeName<ArrayIndexPackType<unsigned long long>::packed_size_type>::name() << endl;
-    cout << "Array_<String,char> using name(): " 
+    cout << "Array_<String,char> using name(): "
          << NiceTypeName< Array_<String,char> >::name() << endl;
     // Check demangling on GCC/Clang.
-    cout << "Array_<String,char> using namestr(): " 
+    cout << "Array_<String,char> using namestr(): "
          << NiceTypeName< Array_<String,char> >::namestr() << endl;
 }
 
@@ -802,7 +802,7 @@ void testMemoryFootprint() {
     SimTK_TEST(sizeof(Array_<int,long>) <= sizeof(std::vector<int>));
 
     // Check that packing is working right.
-    // ints and larger are treated the same for 32 vs 64. (longs are 
+    // ints and larger are treated the same for 32 vs 64. (longs are
     // wobblers though so we don't check here)
     SimTK_TEST(sizeof(Array_<int>::packed_size_type)==sizeof(int));
     SimTK_TEST(sizeof(Array_<int,int>::packed_size_type)==sizeof(int));
@@ -817,7 +817,7 @@ void testMemoryFootprint() {
         SimTK_TEST(sizeof(Array_<int,unsigned char>::packed_size_type)==sizeof(int));
         SimTK_TEST(sizeof(Array_<int,short>::packed_size_type)==sizeof(int));
         SimTK_TEST(sizeof(Array_<int,unsigned short>::packed_size_type)==sizeof(int));
-    } else { 
+    } else {
         // Small types are packed into a short on 32 bit platform.
         SimTK_TEST(sizeof(Array_<int,bool>::packed_size_type)==sizeof(short));
         SimTK_TEST(sizeof(Array_<int,char>::packed_size_type)==sizeof(short));
@@ -915,7 +915,7 @@ template <class T>
 static void takeAnArray(const Array_<T>& arr) {
 }
 
-// Array_<T> has a non-explicit constructor that accepts an 
+// Array_<T> has a non-explicit constructor that accepts an
 // std::initializer_list<T> which should provide implicit conversion from an
 // initializer list to an Array_ and allow initializer_list<T2> as long as
 // T(T2) works (the compiler takes care of that while building the initializer
@@ -951,7 +951,7 @@ public: explicit SubTestIx(int ix) : TestIx(ix) {}
 }
 
 // Should be able to copy or assign arrays with different element types
-// provided that the source type is implicitly convertible to the 
+// provided that the source type is implicitly convertible to the
 // destination type, but should fail even if there is an explicit
 // conversion.
 void testTypeMismatch() {
@@ -969,7 +969,7 @@ void testTypeMismatch() {
     argConversion(stxarray); // should work
 }
 
-// For comparison of Array_ with std::vector. 
+// For comparison of Array_ with std::vector.
 // std::vector is more strict.
 void testTypeMismatchStdVector() {
     std::vector<TestIx> txarray(2,TestIx(3));

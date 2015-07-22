@@ -27,9 +27,9 @@
 #include "Simbody.h"
 
 /* This is a Simbody model of the Universal Robotics UR10 6-dof manipulator arm.
-See http://www.universal-robots.com. 
+See http://www.universal-robots.com.
 
-The up direction is Z. The model has the following bodies (links in robot 
+The up direction is Z. The model has the following bodies (links in robot
 parlance) and joints. All joints are pin joints:
     base        welded to ground
     shoulder    shoulder_pan joint to base, about Z
@@ -45,9 +45,9 @@ speed. All angles are restricted to -2Pi .. 2Pi (per Universal Robotics spec
 sheet).
     Joint           Tmax(N-m)   Vmax(rad/s)
     shoulder_pan    330         2.16
-    shoulder_lift   330         2.16 
+    shoulder_lift   330         2.16
     elbow           150         3.15
-    wrist_1,2,3      54         3.2         
+    wrist_1,2,3      54         3.2
 */
 
 class UR10 : public SimTK::MultibodySystem {
@@ -78,10 +78,10 @@ public:
     };
     static const int NumCoords = Wrist3Coord + 1;
 
-    void setAngleNoise(SimTK::State& state, SimTK::Real qNoise) const 
+    void setAngleNoise(SimTK::State& state, SimTK::Real qNoise) const
     {   m_qNoise.setValue(state, qNoise); }
 
-    void setRateNoise(SimTK::State& state, SimTK::Real uNoise) const 
+    void setRateNoise(SimTK::State& state, SimTK::Real uNoise) const
     {   m_uNoise.setValue(state, uNoise); }
 
     void setSampledAngles(SimTK::State& state, const SimTK::Vector& angles) const {
@@ -94,13 +94,13 @@ public:
         m_sampledRates.setValue(state, rates);
     }
 
-    void setSampledEndEffectorPos(SimTK::State& state, 
-                                  const SimTK::Vec3& pos) const 
+    void setSampledEndEffectorPos(SimTK::State& state,
+                                  const SimTK::Vec3& pos) const
     {   m_sampledEndEffectorPos.setValue(state, pos); }
 
-    SimTK::Real getAngleNoise(const SimTK::State& s) const 
+    SimTK::Real getAngleNoise(const SimTK::State& s) const
     {   return m_qNoise.getValue(s); }
-    SimTK::Real getRateNoise(const SimTK::State& s) const 
+    SimTK::Real getRateNoise(const SimTK::State& s) const
     {   return m_uNoise.getValue(s); }
     const SimTK::Vector& getSampledAngles(const SimTK::State& s) const
     {   return m_sampledAngles.getValue(s); }
@@ -109,17 +109,17 @@ public:
     const SimTK::Vec3& getSampledEndEffectorPos(const SimTK::State& s) const
     {   return m_sampledEndEffectorPos.getValue(s); }
 
-    // Return the Ground frame location of the body origin point of the 
+    // Return the Ground frame location of the body origin point of the
     // EndEffector link.
-    SimTK::Vec3 getActualEndEffectorPosition(const SimTK::State& s) const 
+    SimTK::Vec3 getActualEndEffectorPosition(const SimTK::State& s) const
     {   return m_bodies[EndEffector].getBodyOriginLocation(s); }
 
     // Set a particular joint angle (in radians) in the given State.
-    void setJointAngle(SimTK::State& s, Coords which, SimTK::Real angle) const 
+    void setJointAngle(SimTK::State& s, Coords which, SimTK::Real angle) const
     {   s.updQ()[which] = angle; }
 
     // Set a particular joint angular rate (in radians/s) in the given State.
-    void setJointRate(SimTK::State& s, Coords which, SimTK::Real rate) const 
+    void setJointRate(SimTK::State& s, Coords which, SimTK::Real rate) const
     {   s.updU()[which] = rate; }
 
     // Given a set of proposed actuator torques tau, make sure each is in

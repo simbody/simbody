@@ -17,8 +17,8 @@ override_dh_auto_build-indep:
 	dh_auto_build -- doxygen
 
 override_dh_auto_install:
-	dh_auto_install --buildsystem=cmake 
-	
+	dh_auto_install --buildsystem=cmake
+
 	# Remove extra LICENSE file
 	rm debian/tmp/usr/share/doc/simbody/LICENSE.txt
 

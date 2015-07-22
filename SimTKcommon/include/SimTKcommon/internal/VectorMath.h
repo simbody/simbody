@@ -31,14 +31,14 @@
 #include <algorithm> // for std:sort, nth_element, etc.
 
 /** @file
- * This file defines a large number of standard math functions that can be 
- * applied to vectors and matrices (both the large matrix and small matrix 
+ * This file defines a large number of standard math functions that can be
+ * applied to vectors and matrices (both the large matrix and small matrix
  * classes).
  */
 
 namespace SimTK {
 
-// We can use a single definition for a number of functions that simply call a 
+// We can use a single definition for a number of functions that simply call a
 // function on each element, returning a value of the same type.
 // Note that some of these intentionally copy their argument for use as a temp.
 
@@ -406,7 +406,7 @@ ELEM median(RandomAccessIterator start, RandomAccessIterator end) {
         // nth_element has given us the first of them and partially sorted the list.
         // We need to scan through the rest of the list and find the next element in
         // sorted order.
-        
+
         RandomAccessIterator min = mid+1;
         for (RandomAccessIterator iter = mid+1; iter < end; iter++) {
             if (*iter < *min)

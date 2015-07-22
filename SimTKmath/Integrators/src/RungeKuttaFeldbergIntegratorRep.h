@@ -29,7 +29,7 @@
 namespace SimTK {
 
 /**
- * This is the private (library side) implementation of the 
+ * This is the private (library side) implementation of the
  * RungeKuttaFeldbergIntegratorRep class which is a concrete class
  * implementing the abstract IntegratorRep.
  */
@@ -40,7 +40,7 @@ public:
 protected:
     bool attemptODEStep
        (Real t1, Vector& yErrEst, int& errOrder, int& numIterations);
-private:    
+private:
     static const int NTemps = 5;
     Vector ytmp[NTemps];
 };

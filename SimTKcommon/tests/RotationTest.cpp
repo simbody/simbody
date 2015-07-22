@@ -339,7 +339,7 @@ bool  testRotationTwoAxes( const BodyOrSpaceType bodyOrSpace, const Real angle1,
     test = test && rotationSpecified.areAllRotationElementsSameToMachinePrecision( testRotation );
 
     // Conversion should produce same angles for for appropriate ranges of angle1 and angle2
-    if( axis1.isSameAxis(axis2) ) 
+    if( axis1.isSameAxis(axis2) )
        test = test && testInverseRotation1Angle( angle1+angle2, theta1+theta2 );
     else
        test = test && testInverseRotation2Angle( angle1,theta1, angle2,theta2 );
@@ -374,15 +374,15 @@ bool  testRotationThreeAxes( const BodyOrSpaceType bodyOrSpace, const Real angle
     test = test && rotationSpecified.areAllRotationElementsSameToMachinePrecision( testRotation );
 
     // Conversion should produce same angles for for appropriate ranges of angle1 and angle2
-    if( axis1.areAllSameAxes(axis2,axis3) ) 
+    if( axis1.areAllSameAxes(axis2,axis3) )
        test = test && testInverseRotation1Angle( angle1+angle2+angle3, theta1+theta2+theta3 );
-    else if( axis1.isSameAxis(axis2) ) 
+    else if( axis1.isSameAxis(axis2) )
        test = test && testInverseRotation2Angle( angle1+angle2, theta1+theta1, angle3,theta3 );
-    else if( axis2.isSameAxis(axis3) ) 
+    else if( axis2.isSameAxis(axis3) )
        test = test && testInverseRotation2Angle( angle1,theta1, angle2+angle3, theta2+theta3 );
     else if( axis1.isSameAxis(axis3) )
        test = test && testInverseRotation3AngleTwoAxes( angle1,theta1, angle2,theta2, angle3,theta3 );
-    else 
+    else
        test = test && testInverseRotation3AngleThreeAxes( angle1,theta1, angle2,theta2, angle3,theta3 );
 
     return test;
@@ -546,7 +546,7 @@ bool  exhaustiveTestof2AngleRotation( ) {
       for( int j=0;  j<=2;  j++ ) {
          CoordinateAxis axisj = CoordinateAxis::getCoordinateAxis(j);
 
-         for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementAngle ) 
+         for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementAngle )
          for( Real anglej = negativeStartAngle;  anglej < positiveStartAngle;  anglej += incrementAngle ) {
                test = test && testRotationTwoAxes(  BodyRotationSequence,  anglei, axisi, anglej, axisj );
                test = test && testRotationTwoAxes( SpaceRotationSequence,  anglei, axisi, anglej, axisj );
@@ -576,8 +576,8 @@ bool  exhaustiveTestof3AngleRotation( ) {
          for( int k=0;  k<=2;  k++ ) {
             CoordinateAxis axisk = CoordinateAxis::getCoordinateAxis(k);
 
-            for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementAngle ) 
-            for( Real anglej = negativeStartAngle;  anglej < positiveStartAngle;  anglej += incrementAngle ) 
+            for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementAngle )
+            for( Real anglej = negativeStartAngle;  anglej < positiveStartAngle;  anglej += incrementAngle )
             for( Real anglek = negativeStartAngle;  anglek < positiveStartAngle;  anglek += incrementAngle ) {
                test = test && testRotationThreeAxes(  BodyRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
                test = test && testRotationThreeAxes( SpaceRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
@@ -598,7 +598,7 @@ bool  exhaustiveTestof3AngleTwoAxesRotationNearSingularity() {
    Real positiveStartAngle = convertDegreesToRadians(  200 );
    Real incrementStartAngle = convertDegreesToRadians( 20.0 );
 
-   // Range to check around singularity 
+   // Range to check around singularity
    Real negativeSinglAngle = convertDegreesToRadians( 0 - 1.0E-11 );
    Real positiveSinglAngle = convertDegreesToRadians( 0 + 1.0E-11 );
    Real incrementSinglAngle = convertDegreesToRadians( 1.0E-12 );
@@ -613,8 +613,8 @@ bool  exhaustiveTestof3AngleTwoAxesRotationNearSingularity() {
          for( int k=0;  k<=2;  k++ ) {
             CoordinateAxis axisk = CoordinateAxis::getCoordinateAxis(k);
 
-            for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementStartAngle ) 
-            for( Real anglej = negativeSinglAngle;  anglej < positiveSinglAngle;  anglej += incrementSinglAngle ) 
+            for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementStartAngle )
+            for( Real anglej = negativeSinglAngle;  anglej < positiveSinglAngle;  anglej += incrementSinglAngle )
             for( Real anglek = negativeStartAngle;  anglek < positiveStartAngle;  anglek += incrementStartAngle ) {
                test = test && testRotationThreeAxes(  BodyRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
                test = test && testRotationThreeAxes( SpaceRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
@@ -635,7 +635,7 @@ bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity() {
    Real positiveStartAngle = convertDegreesToRadians(  200 );
    Real incrementStartAngle = convertDegreesToRadians( 20.0 );
 
-   // Range to check around singularity 
+   // Range to check around singularity
    Real negativeSinglAngle = convertDegreesToRadians( 90 - 1.0E-11 );
    Real positiveSinglAngle = convertDegreesToRadians( 90 + 1.0E-11 );
    Real incrementSinglAngle = convertDegreesToRadians( 1.0E-12 );
@@ -650,8 +650,8 @@ bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity() {
          for( int k=0;  k<=2;  k++ ) {
             CoordinateAxis axisk = CoordinateAxis::getCoordinateAxis(k);
 
-            for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementStartAngle ) 
-            for( Real anglej = negativeSinglAngle;  anglej < positiveSinglAngle;  anglej += incrementSinglAngle ) 
+            for( Real anglei = negativeStartAngle;  anglei < positiveStartAngle;  anglei += incrementStartAngle )
+            for( Real anglej = negativeSinglAngle;  anglej < positiveSinglAngle;  anglej += incrementSinglAngle )
             for( Real anglek = negativeStartAngle;  anglek < positiveStartAngle;  anglek += incrementStartAngle ) {
                test = test && testRotationThreeAxes(  BodyRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );
                test = test && testRotationThreeAxes( SpaceRotationSequence,  anglei, axisi,  anglej, axisj,  anglek, axisk );

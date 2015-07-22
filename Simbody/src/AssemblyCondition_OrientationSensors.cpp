@@ -47,7 +47,7 @@ Rotation OrientationSensors::findCurrentOSensorOrientation(OSensorIx mx) const {
     return R_GB * osensor.orientationInB;
 }
 
-// goal = 1/2 sum( wi * ai^2 ) / sum(wi) for WRMS 
+// goal = 1/2 sum( wi * ai^2 ) / sum(wi) for WRMS
 // ai == rotation angle between sensor and observation (-Pi:Pi)
 int OrientationSensors::calcGoal(const State& state, Real& goal) const {
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -83,7 +83,7 @@ int OrientationSensors::calcGoal(const State& state, Real& goal) const {
 }
 // dgoal/dq = sum( wi * ai * dai/dq ) / sum(wi)
 // This calculation is modeled after Peter Eastman's gradient implementation
-// in ObservedPointFitter. It treats each osensor orientation error as a 
+// in ObservedPointFitter. It treats each osensor orientation error as a
 // potential energy function whose negative spatial gradient would be a spatial
 // force F. We can then use Simbody's spatial force-to-generalized force method
 // (using -F instead of F) to obtain the gradient in internal coordinates.
@@ -158,8 +158,8 @@ int OrientationSensors::getNumErrors(const State& state) const
 // Run through all the OSensors to find all the bodies that have at least one
 // active osensor. For each of those bodies, we collect all its osensors so that
 // we can process them all at once. Active osensors are those whose weight is
-// greater than zero. Also, if we haven't been given any observation<->osensor 
-// correspondence, we're going to assume they map directly, with each 
+// greater than zero. Also, if we haven't been given any observation<->osensor
+// correspondence, we're going to assume they map directly, with each
 // ObservationIx the same as its OSensorIx.
 int OrientationSensors::initializeCondition() const {
     // Fill in missing observation information if needed.

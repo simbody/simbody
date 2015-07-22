@@ -40,7 +40,7 @@ variable size matrices.
 More commonly, the typedef @ref SimTK::Matrix "Matrix" is used instead; that is
 just an abbreviation for \c Matrix_<Real>.
 
-A %Matrix_ can be a fixed-size view of someone else's data, or can be a 
+A %Matrix_ can be a fixed-size view of someone else's data, or can be a
 resizable data owner itself.
 
 @see Mat for handling of small, fixed-size matrices with no runtime overhead.
@@ -73,7 +73,7 @@ public:
 
     // Assignment is a deep copy and will also allow reallocation if this Matrix
     // doesn't have a view.
-    Matrix_& operator=(const Matrix_& src) { 
+    Matrix_& operator=(const Matrix_& src) {
         Base::operator=(src); return *this;
     }
 
@@ -91,18 +91,18 @@ public:
 
     Matrix_(int m, int n) : Base(MatrixCommitment(), m, n) {}
 
-    Matrix_(int m, int n, const ELT* cppInitialValuesByRow) 
+    Matrix_(int m, int n, const ELT* cppInitialValuesByRow)
     :   Base(MatrixCommitment(), m, n, cppInitialValuesByRow) {}
-    Matrix_(int m, int n, const ELT& initialValue) 
+    Matrix_(int m, int n, const ELT& initialValue)
     :   Base(MatrixCommitment(), m, n, initialValue) {}
-    
+
     Matrix_(int m, int n, int leadingDim, const S* data) // read only
-    :   Base(MatrixCommitment(), MatrixCharacter::LapackFull(m,n), 
+    :   Base(MatrixCommitment(), MatrixCharacter::LapackFull(m,n),
              leadingDim, data) {}
     Matrix_(int m, int n, int leadingDim, S* data) // writable
-    :   Base(MatrixCommitment(), MatrixCharacter::LapackFull(m,n), 
+    :   Base(MatrixCommitment(), MatrixCharacter::LapackFull(m,n),
              leadingDim, data) {}
-    
+
     /// Convert a Mat to a Matrix_.
     template <int M, int N, int CS, int RS>
     explicit Matrix_(const Mat<M,N,ELT,CS,RS>& mat)
@@ -123,20 +123,20 @@ public:
     Matrix_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     Matrix_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
     Matrix_& operator+=(const ELT& r)       { this->updDiag() += r; return *this; }
-    Matrix_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }  
+    Matrix_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }
 
     const TNeg& negate()    const {return *reinterpret_cast<const TNeg*>(this); }
     TNeg&       updNegate()       {return *reinterpret_cast<TNeg*>(this); }
 
     const TNeg& operator-() const {return negate();}
     TNeg&       operator-()       {return updNegate();}
-   
+
     // Functions to be used for Scripting in MATLAB and languages that do not support operator overloading
     /** toString() returns a string representation of the Matrix_. Please refer to operator<< for details. **/
     std::string toString() const {
         std::stringstream stream;
         stream <<  (*this) ;
-        return stream.str(); 
+        return stream.str();
     }
     /** Variant of indexing operator that's scripting friendly to get entry (i, j) **/
     const ELT& get(int i,int j) const { return this->getElt(i,j); }

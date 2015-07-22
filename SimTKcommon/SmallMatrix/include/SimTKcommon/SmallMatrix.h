@@ -31,10 +31,10 @@
  * vectors and matrices. The idea is to convey all needed information,
  * including the size, at compile time through the templatized types.
  * These classes have well-defined minimal storage layouts and can
- * be easily interconverted to/from arrays of scalar types, with zero 
+ * be easily interconverted to/from arrays of scalar types, with zero
  * conversion overhead.
  *
- * There are three generic types required: a column vector Vec, a row 
+ * There are three generic types required: a column vector Vec, a row
  * vector (a.k.a. "covector") Row, and a matrix Mat. Real and Complex
  * elements at single, double, and quad precision are supported.
  * Almost all operations are inline -- this package is intended to
@@ -82,7 +82,7 @@
  *   m=v*r (outer product)
  *   v=m*v, r=r*m
  *   m=m*m (with compatible dimensions)
- * 
+ *
  */
 
 #include "SimTKcommon/Scalar.h"
@@ -99,19 +99,19 @@
 // Friendly abbreviations.
 namespace SimTK {
 /** @defgroup MatVecTypedefs     Predefined typedefs
-@ingroup MatVecUtilities 
+@ingroup MatVecUtilities
 
 These typedefs provide convenient synonyms for common matrix and vector types.
-Note that the typedef name may be used interchangeably with the fully 
+Note that the typedef name may be used interchangeably with the fully
 templatized names; they represent exactly the same type.
 
-The simplest names are for types whose elements are of the compile-time default 
+The simplest names are for types whose elements are of the compile-time default
 precision type @ref SimTK::Real "Real" which is typically \c double but
 can be changed to \c float at compile time. There are also names prefixed with
 a lowercase "f" that always use float regardless of the default precision.
 
 Note that there are more template parameters than are specified here;
-these typedefs are using default values for them. The missing parameters 
+these typedefs are using default values for them. The missing parameters
 specify the spacing between elements; these typedefs always refer to types for
 which the elements are packed in memory. See Vec, Row, Mat, SymMat for more
 information.
@@ -163,7 +163,7 @@ and usually does not appear explicitly in user programs. **/
 typedef Row<4> Row4;
 /**@}**/
 
-/** @defgroup UncommonMatVecTypedefs    Less commonly-used typedefs 
+/** @defgroup UncommonMatVecTypedefs    Less commonly-used typedefs
 @ingroup MatVecTypedefs **/
 /**@{**/
 

@@ -33,8 +33,8 @@ class RungeKutta2IntegratorRep;
 
 /**
  * This is a 2nd order Runge-Kutta Integrator using coefficients that are
- * also known as the explicit trapezoid rule. It is an error controlled, 
- * second order, two stage explicit integrator with an embedded 1st order 
+ * also known as the explicit trapezoid rule. It is an error controlled,
+ * second order, two stage explicit integrator with an embedded 1st order
  * error estimate.
  */
 class SimTK_SIMMATH_EXPORT RungeKutta2Integrator : public Integrator {

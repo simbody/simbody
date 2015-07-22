@@ -38,7 +38,7 @@ class CPodesIntegratorRep;
  * This is an Integrator based on the CPODES library.  It is an error controlled, variable order
  * implicit integrator.  It provides a good combination of accuracy, stability, and speed, and
  * is a good choice for integrating stiff problems.
- * 
+ *
  * When creating a CPodesIntegrator, you can specify various options for how to perform
  * the implicit integration: the linear multistep method to use (Adams or BDF), and the nonlinear system
  * iteration type (Newton iteration or functional iteration).  For stiff problems, the recommended choices
@@ -62,7 +62,7 @@ public:
      * CPODES provides its own mechanism for projecting the system onto the constraint manifold.  By default,
      * CPodesIntegrator uses the System's project() method for doing projection, which is usually more
      * efficient.  Invoking this method tells it to use the CPODES mechanism instead.
-     * 
+     *
      * This method must be invoked before the integrator is initialized.  Invoking it after initialization
      * will produce an exception.
      */

@@ -80,7 +80,7 @@ namespace Ipopt
   {
     DBG_ASSERT(initialize_called_);
     /*
-     * Allocate space for all the required linear algebra 
+     * Allocate space for all the required linear algebra
      * structures
      */
 

@@ -64,7 +64,7 @@ int main()
   NV_Ith_S(y,1) = ZERO;
 
   yp = N_VNew_Serial(P1_NEQ);
-  
+
   if (ODE == CP_EXPL) {
     fct = (void *)f;
   } else {
@@ -81,10 +81,10 @@ int main()
     flag = CPode(cpode_mem, tout, &t, y, yp, CP_NORMAL);
     if (flag != CP_SUCCESS)  break;
     flag = CPodeGetLastOrder(cpode_mem, &qu);
-    flag = CPodeGetLastStep(cpode_mem, &hu);    
+    flag = CPodeGetLastStep(cpode_mem, &hu);
     printf("%10.5f    %12.5le   %12.5le   %2d    %6.4le\n", t, NV_Ith_S(y,0), NV_Ith_S(y,1), qu, hu);
   }
-  
+
   PrintFinalStats(cpode_mem);
 
   CPodeFree(&cpode_mem);
@@ -105,7 +105,7 @@ static int res(realtype t, N_Vector y, N_Vector yp, N_Vector res, void *f_data)
 static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data)
 {
   realtype y0, y1;
-  
+
   y0 = NV_Ith_S(y,0);
   y1 = NV_Ith_S(y,1);
 
@@ -113,7 +113,7 @@ static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data)
   NV_Ith_S(ydot,1) = (ONE - SQR(y0))* P1_ETA * y1 - y0;
 
   return(0);
-} 
+}
 
 
 static void PrintFinalStats(void *cpode_mem)
@@ -121,7 +121,7 @@ static void PrintFinalStats(void *cpode_mem)
   long int nst, nfe, nni, ncfn, netf;
   realtype h0u;
   int flag;
-  
+
   flag = CPodeGetActualInitStep(cpode_mem, &h0u);
   flag = CPodeGetNumSteps(cpode_mem, &nst);
   flag = CPodeGetNumFctEvals(cpode_mem, &nfe);

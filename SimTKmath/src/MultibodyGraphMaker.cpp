@@ -21,7 +21,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* This is the implementation of MultibodyGraphMaker and its auxiliary classes. 
+/* This is the implementation of MultibodyGraphMaker and its auxiliary classes.
 */
 
 #include "SimTKcommon.h"
@@ -44,7 +44,7 @@ namespace SimTK {
 MultibodyGraphMaker::MultibodyGraphMaker()
 :   weldTypeName("weld"), freeTypeName("free")
 {   initialize(); }
- 
+
 
 //------------------------------------------------------------------------------
 //                          GET GROUND BODY NAME
@@ -68,13 +68,13 @@ addJointType(const std::string&     name,
              void*                  userRef)
 {
     if (!(0 <= numMobilities && numMobilities <= 6)) throw std::runtime_error
-       ("addJointType(): Illegal number of mobilities for joint type '" 
+       ("addJointType(): Illegal number of mobilities for joint type '"
         + name + "'");
 
     // Reject duplicate type name, and reserved type names.
     if (name==getWeldJointTypeName() || name==getFreeJointTypeName())
-        throw std::runtime_error("addJointType(): Joint type '" + name 
-            + "' is reserved (you can change the reserved names).");   
+        throw std::runtime_error("addJointType(): Joint type '" + name
+            + "' is reserved (you can change the reserved names).");
     std::map<std::string,int>::const_iterator p = jointTypeName2Num.find(name);
     if (p != jointTypeName2Num.end()) throw std::runtime_error
        ("addJointType(): Duplicate joint type '" + name + "'");
@@ -82,7 +82,7 @@ addJointType(const std::string&     name,
     const int jointTypeNum = (int)jointTypes.size(); // next available
     jointTypeName2Num[name] = jointTypeNum; // provide fast name lookup
 
-    jointTypes.push_back(JointType(name, numMobilities, 
+    jointTypes.push_back(JointType(name, numMobilities,
                                    haveGoodLoopJointAvailable, userRef));
 
     return jointTypeNum;
@@ -92,8 +92,8 @@ addJointType(const std::string&     name,
 //------------------------------------------------------------------------------
 //                                 ADD BODY
 //------------------------------------------------------------------------------
-void MultibodyGraphMaker::addBody(const std::string& name, 
-                                  double             mass, 
+void MultibodyGraphMaker::addBody(const std::string& name,
+                                  double             mass,
                                   bool               mustBeBaseBody,
                                   void*              userRef)
 {
@@ -171,22 +171,22 @@ void MultibodyGraphMaker::addJoint(const std::string&  name,
 
     const int typeNum = getJointTypeNum(type);
     if (typeNum < 0) throw std::runtime_error
-       ("addJoint(): Joint " + name + " had unrecognized joint type '" 
+       ("addJoint(): Joint " + name + " had unrecognized joint type '"
         + type + "'");
 
     const int parentBodyNum = getBodyNum(parentBodyName);
     if (parentBodyNum < 0) throw std::runtime_error
-       ("addJoint(): Joint " + name + " had unrecognized parent body '" 
+       ("addJoint(): Joint " + name + " had unrecognized parent body '"
         + parentBodyName + "'");
 
     const int childBodyNum = getBodyNum(childBodyName);
     if (childBodyNum < 0) throw std::runtime_error
-       ("addJoint(): Joint " + name + " had unrecognized child body '" 
+       ("addJoint(): Joint " + name + " had unrecognized child body '"
         + childBodyName + "'");
 
     const int jointNum = (int)joints.size(); // next available slot
     jointName2Num[name] = jointNum; // provide fast name lookup
-  
+
     joints.push_back(Joint(name, typeNum, parentBodyNum, childBodyNum,
                            mustBeLoopJoint, userRef));
 
@@ -207,20 +207,20 @@ bool MultibodyGraphMaker::deleteJoint(const std::string&  name)
     const int jointNum = p->second;
     jointName2Num.erase(p);
 
-    std::vector<int>& jointsAsParent = 
+    std::vector<int>& jointsAsParent =
         updBody(joints[jointNum].parentBodyNum).jointsAsParent;
-    std::vector<int>::iterator it = 
+    std::vector<int>::iterator it =
         std::find(jointsAsParent.begin(), jointsAsParent.end(), jointNum);
     if (it == jointsAsParent.end()) throw std::runtime_error
-        ("deleteJoint(): Joint " + name + 
+        ("deleteJoint(): Joint " + name +
          " doesn't exist in jointsAsParent of parent body ");
     jointsAsParent.erase(it);
 
-    std::vector<int>& jointsAsChild = 
+    std::vector<int>& jointsAsChild =
         updBody(joints[jointNum].childBodyNum).jointsAsChild;
     it = std::find(jointsAsChild.begin(), jointsAsChild.end(), jointNum);
     if (it == jointsAsChild.end()) throw std::runtime_error
-        ("deleteJoint(): Joint " + name + 
+        ("deleteJoint(): Joint " + name +
          " doesn't exist in jointsAsChild of child body ");
     jointsAsChild.erase(it);
 
@@ -257,7 +257,7 @@ void MultibodyGraphMaker::generateGraph() {
     //
     // While we're at it, look for dangling massless bodies -- they are only
     // allowed if they were originally connected to at least two other bodies
-    // by given tree-eligible joints, or if they are connected by a weld 
+    // by given tree-eligible joints, or if they are connected by a weld
     // joint and thus have no mobility.
     // TODO: "must be loop joint" joints shouldn't count but we're not
     // checking.
@@ -267,25 +267,25 @@ void MultibodyGraphMaker::generateGraph() {
         if (body.mass == 0) {
             if (nJoints == 0) {
                 throw std::runtime_error(
-                    "generateGraph(): body " + body.name + 
+                    "generateGraph(): body " + body.name +
                     " is massless but free (no joint). Must be internal or"
                     " welded to a massful body.");
             }
             if (nJoints == 1) {
-                const int jnum = body.jointsAsChild.empty() 
-                                    ? body.jointsAsParent[0] 
+                const int jnum = body.jointsAsChild.empty()
+                                    ? body.jointsAsParent[0]
                                     : body.jointsAsChild[0];
                 const Joint& joint = getJoint(jnum);
                 const JointType& jtype = getJointType(joint.jointTypeNum);
                 if (jtype.numMobilities > 0) {
                     throw std::runtime_error(
-                        "generateGraph(): body " + body.name + 
+                        "generateGraph(): body " + body.name +
                         " is massless but not internal and not welded to"
                         " a massful body.");
-                }                               
+                }
             }
         }
-        if (nJoints==0 || (body.mustBeBaseBody && !bodiesAreConnected(bn, 0))) 
+        if (nJoints==0 || (body.mustBeBaseBody && !bodiesAreConnected(bn, 0)))
             connectBodyToGround(bn);
     }
 
@@ -296,7 +296,7 @@ void MultibodyGraphMaker::generateGraph() {
     while (true) {
         growTree();
         const int newBaseBody = chooseNewBaseBody();
-        if (newBaseBody < 0) 
+        if (newBaseBody < 0)
             break; // all bodies are in the tree
         // Add joint to Ground.
         connectBodyToGround(newBaseBody);
@@ -341,7 +341,7 @@ void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
     o << "\n" << getNumBodies() << " BODIES:\n";
     for (int i=0; i < getNumBodies(); ++i) {
         const MultibodyGraphMaker::Body& body  = getBody(i);
-        sprintf(buf, "%2d %2d: %s mass=%g mob=%d master=%d %s\n", 
+        sprintf(buf, "%2d %2d: %s mass=%g mob=%d master=%d %s\n",
             i, body.level,
             body.name.c_str(), body.mass, body.mobilizer, body.master,
             body.mustBeBaseBody?"MUST BE BASE BODY":"");
@@ -379,9 +379,9 @@ void MultibodyGraphMaker::dumpGraph(std::ostream& o) const {
         const MultibodyGraphMaker::Body&      inb   = getBody(mo.inboardBody);
         const MultibodyGraphMaker::Body&      outb  = getBody(mo.outboardBody);
         sprintf(buf, "%2d %2d: %20s %20s->%-20s %10s %2d %3s\n",
-            i, mo.level, joint.name.c_str(), 
-            inb.name.c_str(), outb.name.c_str(), 
-            mo.getJointTypeName().c_str(), 
+            i, mo.level, joint.name.c_str(),
+            inb.name.c_str(), outb.name.c_str(),
+            mo.getJointTypeName().c_str(),
             mo.joint, mo.isReversed?"REV":"");
         o << buf;
     }
@@ -438,7 +438,7 @@ int MultibodyGraphMaker::splitBody(int masterBodyNum) {
 //                          CHOOSE NEW BASE BODY
 //------------------------------------------------------------------------------
 // We've tried to build the tree but might not have succeeded in using
-// all the bodies. That means we'll have to connect one of them to Ground. 
+// all the bodies. That means we'll have to connect one of them to Ground.
 // Select the best unattached body to use as a base body, or -1 if all bodies
 // are already included in the spanning tree. We hope to find a body that is
 // serving as a parent but has never been listed as a child; that is crying out
@@ -450,9 +450,9 @@ int MultibodyGraphMaker::chooseNewBaseBody() const {
     // Skip the Ground body.
     for (int bx=1; bx < getNumBodies(); ++bx) {
         const Body& body = bodies[bx];
-        if (body.isInTree()) 
+        if (body.isInTree())
             continue; // unavailable
-        if (parentOnlyBodySeen && !body.jointsAsChild.empty()) 
+        if (parentOnlyBodySeen && !body.jointsAsChild.empty())
             continue; // already seen parent-only bodies; no need for this one
         if (!parentOnlyBodySeen && body.jointsAsChild.empty()) {
             // This is our first parent-only body; it is automatically the
@@ -461,7 +461,7 @@ int MultibodyGraphMaker::chooseNewBaseBody() const {
             bestBody = bx; nChildren = (int)body.jointsAsParent.size();
         } else { // Keep the body that has the most children.
             if ((int)body.jointsAsParent.size() > nChildren) {
-                bestBody  = bx; 
+                bestBody  = bx;
                 nChildren = (int)body.jointsAsParent.size();
             }
         }
@@ -480,7 +480,7 @@ void MultibodyGraphMaker::connectBodyToGround(int bodyNum) {
     const Body& body = getBody(bodyNum);
     assert(!body.isInTree());
     const std::string jointName = "#" + getGroundBodyName() + "_" + body.name;
-    addJoint(jointName, getFreeJointTypeName(), 
+    addJoint(jointName, getFreeJointTypeName(),
                     getGroundBodyName(), body.name, false, NULL);
     updJoint(jointName).isAddedBaseJoint = true;
 }
@@ -490,8 +490,8 @@ void MultibodyGraphMaker::connectBodyToGround(int bodyNum) {
 //                          ADD MOBILIZER FOR JOINT
 //------------------------------------------------------------------------------
 // We've already determined this joint is eligible to become a mobilizer; now
-// make it so. Given a joint for which either the parent or child is in the 
-// tree, but not both, create a mobilizer implementing this joint and attaching 
+// make it so. Given a joint for which either the parent or child is in the
+// tree, but not both, create a mobilizer implementing this joint and attaching
 // the unattached body (which will be the mobilizer's outboard body) to the
 // tree. The mobilizer number is returned and also recorded in the joint
 // and outboard body.
@@ -506,13 +506,13 @@ int MultibodyGraphMaker::addMobilizerForJoint(int jointNum) {
     assert(parent.isInTree() ^ child.isInTree());
 
     const int mobNum = (int)mobilizers.size(); // next available
-    if (parent.isInTree()) { 
+    if (parent.isInTree()) {
         // Child is outboard body (forward joint)
         child.level = parent.level + 1;
         mobilizers.push_back(Mobilizer(jointNum,child.level,
                                        pNum,cNum,false,this));
         child.mobilizer = mobNum;
-    } else if (child.isInTree()) { 
+    } else if (child.isInTree()) {
         // Parent is outboard body (reverse joint)
         parent.level = child.level + 1;
         mobilizers.push_back(Mobilizer(jointNum,parent.level,
@@ -527,10 +527,10 @@ int MultibodyGraphMaker::addMobilizerForJoint(int jointNum) {
 //------------------------------------------------------------------------------
 //                   FIND HEAVIEST UNASSIGNED FORWARD JOINT
 //------------------------------------------------------------------------------
-// Starting with a given body that is in the tree already, look at its 
-// unassigned children (meaning bodies connected by joints that aren't 
-// mobilizers yet) and return the joint connecting it to the child with the 
-// largest mass. (The idea is that this would be a good direction to extend the 
+// Starting with a given body that is in the tree already, look at its
+// unassigned children (meaning bodies connected by joints that aren't
+// mobilizers yet) and return the joint connecting it to the child with the
+// largest mass. (The idea is that this would be a good direction to extend the
 // chain.) Return -1 if this body has no children.
 int MultibodyGraphMaker::
 findHeaviestUnassignedForwardJoint(int inboardBody) const {
@@ -557,8 +557,8 @@ findHeaviestUnassignedForwardJoint(int inboardBody) const {
 //------------------------------------------------------------------------------
 //                   FIND HEAVIEST UNASSIGNED REVERSE JOINT
 //------------------------------------------------------------------------------
-// Same as previous method, but now we are looking for unassigned joints where 
-// the given body serves as the child so we would have to reverse the joint to 
+// Same as previous method, but now we are looking for unassigned joints where
+// the given body serves as the child so we would have to reverse the joint to
 // add it to the tree. (This is less desirable so is a fallback.)
 int MultibodyGraphMaker::
 findHeaviestUnassignedReverseJoint(int inboardBody) const {
@@ -585,24 +585,24 @@ findHeaviestUnassignedReverseJoint(int inboardBody) const {
 //------------------------------------------------------------------------------
 //                                 GROW TREE
 //------------------------------------------------------------------------------
-// Process unused joints for which one body is in the tree (at level h) and the 
-// other is not. Add the other body to the tree at level h+1, marking the joint 
-// as forward (other body is child) or reverse (other body is parent). Repeat 
-// until no changes are made. Does not assign loop joints or any bodies that 
-// don't have a path to Ground. Extend the multibody tree starting with the 
-// lowest-level eligible joints and moving outwards. We're doing this 
-// breadth-first so that we get roughly even-length chains and we'll stop at 
-// the first level at which we fail to find any joint. If we fail to consume 
-// all the bodies, the caller will have to add a level 1 joint to attach a 
+// Process unused joints for which one body is in the tree (at level h) and the
+// other is not. Add the other body to the tree at level h+1, marking the joint
+// as forward (other body is child) or reverse (other body is parent). Repeat
+// until no changes are made. Does not assign loop joints or any bodies that
+// don't have a path to Ground. Extend the multibody tree starting with the
+// lowest-level eligible joints and moving outwards. We're doing this
+// breadth-first so that we get roughly even-length chains and we'll stop at
+// the first level at which we fail to find any joint. If we fail to consume
+// all the bodies, the caller will have to add a level 1 joint to attach a
 // previously-disconnected base body to Ground and then call this again.
 //
-// We violate the breadth-first heuristic to avoid ending a branch with a 
+// We violate the breadth-first heuristic to avoid ending a branch with a
 // massless body, unless it is welded to its parent. If we add a mobile massless
-// body, we'll keep going out along its branch until we hit a massful body. It 
-// is a disaster if we fail to find a massful body because a tree that 
-// terminates in a mobile massless body will generate a singular mass matrix. 
-// We'll throw an exception in that case, but note that this may just be a 
-// failure of the heuristic; there may be some tree that could have avoided the 
+// body, we'll keep going out along its branch until we hit a massful body. It
+// is a disaster if we fail to find a massful body because a tree that
+// terminates in a mobile massless body will generate a singular mass matrix.
+// We'll throw an exception in that case, but note that this may just be a
+// failure of the heuristic; there may be some tree that could have avoided the
 // terminal massless body but we failed to discover it.
 //
 // TODO: keep a list of unprocessed joints so we don't have to go through
@@ -624,13 +624,13 @@ void MultibodyGraphMaker::growTree() {
                 if (parent.level != level-1) continue; // not time yet
             } else { // child is in tree
                 if (child.level != level-1) continue; // not time yet
-            } 
+            }
             addMobilizerForJoint(jNum);
             anyMobilizerAdded = true;
 
-            // We just made joint jNum a mobilizer. If its outboard body 
-            // is massless and the mobilizer was not a weld, we need to keep 
-            // extending this branch of the tree until we can end it with a 
+            // We just made joint jNum a mobilizer. If its outboard body
+            // is massless and the mobilizer was not a weld, we need to keep
+            // extending this branch of the tree until we can end it with a
             // massful body.
             const Body& outboard = getBody(mobilizers.back().outboardBody);
             const JointType& jtype = getJointType(joint.jointTypeNum);
@@ -654,7 +654,7 @@ void MultibodyGraphMaker::growTree() {
                     break;
                 }
 
-                // Couldn't find a massful body to add. Add another massless 
+                // Couldn't find a massful body to add. Add another massless
                 // body (if there is one) and keep trying.
                 if (jfwd >= 0) {
                     addMobilizerForJoint(jfwd);
@@ -669,13 +669,13 @@ void MultibodyGraphMaker::growTree() {
                 // We're ending this chain with a massless body; not good.
                 throw std::runtime_error("growTree(): algorithm produced an"
                     " invalid tree containing a terminal massless body ("
-                    + getBody(bNum).name + "). This may be due to an invalid" 
+                    + getBody(bNum).name + "). This may be due to an invalid"
                     " model or failure of heuristics. In the latter case you"
                     " may be able to get a valid tree by forcing a different"
                     " loop break or changing parent->child ordering.");
             }
         }
-        if (!anyMobilizerAdded) 
+        if (!anyMobilizerAdded)
             break;
     }
 }
@@ -686,9 +686,9 @@ void MultibodyGraphMaker::growTree() {
 //------------------------------------------------------------------------------
 // Find any remaining unused joints, which will have both parent and
 // child bodies already in the tree. This includes joints that the user
-// told us must be loop joints, and ones picked by the algorithm. 
+// told us must be loop joints, and ones picked by the algorithm.
 // For each of those, implement the joint with a loop constraint if one
-// is provided, otherwise implement it with a mobilizer and split off a 
+// is provided, otherwise implement it with a mobilizer and split off a
 // slave body from the child body, use that slave as the outboard body
 // for the mobilizer, and add a weld constraint to reconnect the slave to
 // its master (the original child body).
@@ -707,7 +707,7 @@ void MultibodyGraphMaker::breakLoops() {
             continue;
         }
 
-        // No usable loop constraint for this type of joint. Add a new slave 
+        // No usable loop constraint for this type of joint. Add a new slave
         // body so we can use a mobilizer. (Body references are invalidated here
         // since we're adding a new body -- don't reuse them.)
         const int sx = splitBody(cx);
@@ -747,7 +747,7 @@ bool MultibodyGraphMaker::bodiesAreConnected(int b1, int b2) const {
 //------------------------------------------------------------------------------
 // Restore the Body to its state prior to generateGraph()
 void MultibodyGraphMaker::Body::forgetGraph(MultibodyGraphMaker& graph)
-{   
+{
     level = -1;
     mobilizer = -1;
     master = -1;

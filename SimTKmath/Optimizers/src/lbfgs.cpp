@@ -25,12 +25,12 @@
 
 
 #include "LBFGSOptimizer.h"
-#include "../src/Simmath_f2c.h" 
+#include "../src/Simmath_f2c.h"
 
-#include <iostream> 
+#include <iostream>
 #include <cmath>
 
-#define NUMBER_OF_CORRECTIONS 5   
+#define NUMBER_OF_CORRECTIONS 5
 
 #if SimTK_DEFAULT_PRECISION==1 // float
 #define DAXPY   saxpy_
@@ -99,7 +99,7 @@ void lbp1d_(char* msg, int* i);
 
 
 void SimTK::LBFGSOptimizer::lbfgs_
-   (int n, int m, SimTK::Real *x, SimTK::Real *f, 
+   (int n, int m, SimTK::Real *x, SimTK::Real *f,
     int *iprint, SimTK::Real *eps, SimTK::Real *xtol)
 {
 
@@ -448,9 +448,9 @@ void SimTK::LBFGSOptimizer::lbfgs_
        }
 
        do {
-          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, 
-                                         &w[ispt + point * n], 
-                                         &stp, &ftol, xtol, 
+          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient,
+                                         &w[ispt + point * n],
+                                         &stp, &ftol, xtol,
                                          &maxfev, &info, &nfev, diag);
           if (info == -1) {
               objectiveFuncWrapper( n, x, true, f, this);
@@ -460,8 +460,8 @@ void SimTK::LBFGSOptimizer::lbfgs_
               delete [] gradient;
               delete [] w;
               if (lb3_1.lp > 0) {
-                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , 
-                 "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES");  
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed ,
+                 "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES");
               } else if( info == 0) {
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed,
                  "LBFGS ERROR: IMPROPER INPUT PARAMETERS");
@@ -481,11 +481,11 @@ void SimTK::LBFGSOptimizer::lbfgs_
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed,
                  "LBFGS ERROR: ROUNDING ERRORS PREVENT FURTHER PROGRESS.\n THERE MAY NOT BE A STEP WHICH SATISFIES THE SUFFICIENT DECREASE AND CURVATURE\n CONDITIONS. TOLERANCES MAY BE TOO SMALL.");
              } else if( info == 7){
-                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to MCSRCH"); 
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to MCSRCH");
              } else if( info == 8){
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed , "THE SEARCH DIRECTION IS NOT A DESCENT DIRECTION");
              } else if( info == 9){
-                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to mcstep_"); 
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to mcstep_");
              } else {
                  sprintf(buf, "LBFGS ERROR: info = %d \n",info );
                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf) );
@@ -529,7 +529,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
         converged = (gnorm <= *eps);
 
         if (iprint[0] > 0)
-            lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, 
+            lb1_(iprint, &iter, &nfun, &gnorm, &n, &m,
                  x, f, gradient, &stp, &converged);
 
     }  // end while loop
@@ -659,7 +659,7 @@ void SimTK::LBFGSOptimizer::lbfgs_
 /* Subroutine */
 void SimTK::LBFGSOptimizer::mcsrch_
    (integer *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
-    Real *ftol, Real *xtol, integer *maxfev, 
+    Real *ftol, Real *xtol, integer *maxfev,
     integer *info, integer *nfev, Real *wa)
 {
     /* Initialized data */
@@ -862,7 +862,7 @@ L30:
     for (j = 0; j < *n; ++j) {
         x[j] = wa[j] + *stp * s[j];
     }
-    
+
     objectiveFuncWrapper( *n, x, true, f, this);
     gradientFuncWrapper( *n,  x, false, g, this);
 
@@ -1261,7 +1261,7 @@ static void write50(Real* v, int n)
 //C     AMOUNT OF OUTPUT ARE CONTROLLED BY IPRINT.
 //C     -------------------------------------------------------------
 */
-void lb1_( int *iprint, int *iter, int *nfun, Real *gnorm, int *n, 
+void lb1_( int *iprint, int *iter, int *nfun, Real *gnorm, int *n,
            int *m, Real *x, Real *f, Real *g, Real *stp, bool *finish) /* bool*/
 {
   (void)m;

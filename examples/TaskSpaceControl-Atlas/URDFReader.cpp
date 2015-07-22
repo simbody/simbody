@@ -46,7 +46,7 @@ using namespace SimTK;
 /*static*/ Transform URDF::origin2Transform(const Vec3& xyz, const Vec3& rpy) {
     Transform frame(Rotation(SimTK::BodyRotationSequence,
                              rpy[0], XAxis, rpy[1], YAxis, rpy[2], ZAxis),
-                    xyz); 
+                    xyz);
     return frame;
 }
 
@@ -79,7 +79,7 @@ using namespace SimTK;
     if (!inertial.isValid())
         return MassProperties(1,Vec3(0),UnitInertia(1,1,1));
     Xml::Element massElt = inertial.getOptionalElement("mass");
-    const Real mass = massElt.isValid() 
+    const Real mass = massElt.isValid()
         ? massElt.getRequiredAttributeValueAs<Real>("value")
         : Real(1);
     Transform X_LI = getOrigin(inertial); // identity if not provided
@@ -107,7 +107,7 @@ using namespace SimTK;
 
 int URDFLinks::addLink(const URDFLinkInfo& info) {
     if (name2index.find(info.name) != name2index.end())
-        throw std::runtime_error("URDFLinks::addLink(): Link name '" 
+        throw std::runtime_error("URDFLinks::addLink(): Link name '"
             + info.name + " was used more than once.");
 
     const int lx = (int)linkByIndex.size();
@@ -120,7 +120,7 @@ int URDFLinks::addLink(const URDFLinkInfo& info) {
 int URDFJoints::addJoint(const URDFJointInfo& info) {
     if(name2index.find(info.name) != name2index.end())
         throw std::runtime_error(
-            "URDFJoints::addJoint(): Joint name '" + info.name 
+            "URDFJoints::addJoint(): Joint name '" + info.name
             + "' was used more than once.");
 
     const int jx = (int)jointByIndex.size();
@@ -184,18 +184,18 @@ void URDFRobot::readRobot(Xml::Element robotElt) {
 
         Xml::Element limit = elt.getOptionalElement("limit");
         if (limit.isValid()) {
-            jinfo.effort = 
+            jinfo.effort =
                 limit.getOptionalAttributeValueAs<Real>("effort", Infinity);
-            jinfo.lower = 
+            jinfo.lower =
                 limit.getOptionalAttributeValueAs<Real>("lower", -Infinity);
-            jinfo.upper = 
+            jinfo.upper =
                 limit.getOptionalAttributeValueAs<Real>("upper", Infinity);
-            jinfo.velocity = 
+            jinfo.velocity =
                 limit.getOptionalAttributeValueAs<Real>("velocity", Infinity);
 
             if (jinfo.lower > jinfo.upper)
                 throw std::runtime_error(
-                    "URDFRobot::readRobot(): Joint name '" + name 
+                    "URDFRobot::readRobot(): Joint name '" + name
                     + "' had lower limit " + String(jinfo.lower)
                     + " > upper limit " + String(jinfo.upper) + ".");
         }

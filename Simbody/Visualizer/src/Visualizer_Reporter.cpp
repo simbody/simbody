@@ -30,9 +30,9 @@ using namespace SimTK;
 
 class Visualizer::Reporter::Impl {
 public:
-    explicit Impl(const Visualizer& viz) 
+    explicit Impl(const Visualizer& viz)
     :   handle(0), visualizer(viz) {}
-    explicit Impl(const MultibodySystem& system) 
+    explicit Impl(const MultibodySystem& system)
     :   handle(0), visualizer(system) {}
 
     const Visualizer& getVisualizer() const {
@@ -48,13 +48,13 @@ public:
     Visualizer              visualizer; // shallow copy
 };
 
-Visualizer::Reporter::Reporter(const Visualizer& viz, Real reportInterval) 
+Visualizer::Reporter::Reporter(const Visualizer& viz, Real reportInterval)
 :   PeriodicEventReporter(reportInterval) {
     impl = new Impl(viz);
     updImpl().handle = this;
 }
 
-Visualizer::Reporter::Reporter(const MultibodySystem& sys, Real reportInterval) 
+Visualizer::Reporter::Reporter(const MultibodySystem& sys, Real reportInterval)
 :   PeriodicEventReporter(reportInterval) {
     impl = new Impl(sys);
     updImpl().handle = this;

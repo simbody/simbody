@@ -24,8 +24,8 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* This file contains the classes which define the SimbodyMatterSubsystem State, 
-that is, everything that can be changed in a SimbodyMatterSubsystem after 
+/* This file contains the classes which define the SimbodyMatterSubsystem State,
+that is, everything that can be changed in a SimbodyMatterSubsystem after
 construction.
 
 State variables and computation results are organized into stages:
@@ -35,20 +35,20 @@ State variables and computation results are organized into stages:
    Stage::Model         Stored in the State object
    Stage::Instance
    Stage::Time
-   Stage::Position  
-   Stage::Velocity  
+   Stage::Position
+   Stage::Velocity
    Stage::Dynamics      calculate forces
    Stage::Acceleration  response to forces in the state
   ---------------------------------------------------------
    Stage::Report        only used when outputting something
 
-Construction proceeds until all the bodies and constraints have been specified. 
+Construction proceeds until all the bodies and constraints have been specified.
 After that, realizeTopology() is called. Construction-related calculations are
-performed leading to values which are stored in the SimbodyMatterSubsystem 
+performed leading to values which are stored in the SimbodyMatterSubsystem
 object, NOT in the State (e.g., total number of bodies). At the same time, an
 initial state is built, with space allocated for the state variables that will
-be needed by the next stage (Stage::Model),and these are assigned default 
-values. Then the stage in the SimbodyMatterSubsystem and in the initial state 
+be needed by the next stage (Stage::Model),and these are assigned default
+values. Then the stage in the SimbodyMatterSubsystem and in the initial state
 is set to "Topology".
 
 After that, values for Model stage variables can be set in the State.
@@ -58,9 +58,9 @@ all remaining state variables are allocated, and set to their default values.
 All defaults must be computable knowing only the Model stage values.
 Then the stage is advanced to Stage::Model.
 
-This continues through all the stages, with realizeWhatever() expecting to 
-receive a state evaluated to stage Whatever-1 equipped with values for stage 
-Whatever so that it can calculate results and put them in the cache (which is 
+This continues through all the stages, with realizeWhatever() expecting to
+receive a state evaluated to stage Whatever-1 equipped with values for stage
+Whatever so that it can calculate results and put them in the cache (which is
 allocated if necessary), and then advance to stage Whatever. */
 
 #include "simbody/internal/common.h"
@@ -74,7 +74,7 @@ using namespace SimTK;
 
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
-template <int dof, bool noR_FM, bool noX_MB, bool noR_PF> 
+template <int dof, bool noR_FM, bool noX_MB, bool noR_PF>
     class RigidBodyNodeSpec;
 
 // defined below
@@ -110,10 +110,10 @@ class SBAccelerationVars;
 // construction is complete, then copied into a slot in the State upon
 // realizeTopology(). It should contain enough information to size the Model
 // stage, and State resource index numbers for the Model-stage state variables
-// and Model-stage cache entry. This topology cache entry can also contain 
-// whatever arbitrary data you would like to have in a State to verify that it 
+// and Model-stage cache entry. This topology cache entry can also contain
+// whatever arbitrary data you would like to have in a State to verify that it
 // is a match for the SimbodyMatterSubsystem.
-// 
+//
 // Note that this does not include all possible topological information in
 // a SimbodyMatterSubsystem -- any subobjects are free to hold their own
 // as long as they don't change it after realizeTopology().
@@ -135,10 +135,10 @@ public:
     int nParticles;
     int nConstraints;
 
-    // This is the total number of Constrained Bodies appearing in all 
-    // Constraints where the Ancestor body is not Ground, excluding the 
-    // Ancestor bodies themselves even if they are also Constrained Bodies 
-    // (which is common). This is used for sizing pool entries in various 
+    // This is the total number of Constrained Bodies appearing in all
+    // Constraints where the Ancestor body is not Ground, excluding the
+    // Ancestor bodies themselves even if they are also Constrained Bodies
+    // (which is common). This is used for sizing pool entries in various
     // caches to hold precalculated Ancestor-frame data about these bodies.
     int nAncestorConstrainedBodies;
 
@@ -148,13 +148,13 @@ public:
     int sumSqDOFs;
 
     DiscreteVariableIndex modelingVarsIndex;
-    CacheEntryIndex       modelingCacheIndex,instanceCacheIndex, timeCacheIndex, 
+    CacheEntryIndex       modelingCacheIndex,instanceCacheIndex, timeCacheIndex,
                           treePositionCacheIndex, constrainedPositionCacheIndex,
-                          compositeBodyInertiaCacheIndex, 
+                          compositeBodyInertiaCacheIndex,
                           articulatedBodyInertiaCacheIndex,
                           treeVelocityCacheIndex, constrainedVelocityCacheIndex,
-                          dynamicsCacheIndex, 
-                          treeAccelerationCacheIndex, 
+                          dynamicsCacheIndex,
+                          treeAccelerationCacheIndex,
                           constrainedAccelerationCacheIndex;
 
 
@@ -171,13 +171,13 @@ public:
 // =============================================================================
 //                                MODEL CACHE
 // =============================================================================
-// This cache entry contains counts of various things resulting from the 
+// This cache entry contains counts of various things resulting from the
 // settings of Model-stage state variables. It also contains the resource index
-// numbers for all state variable and state cache resources allocated during 
+// numbers for all state variable and state cache resources allocated during
 // realizeModel().
 //
 // Model stage is when the mobilizers settle on the meaning of the q's and u's
-// they will employ, so here is where we count up the total number of q's and 
+// they will employ, so here is where we count up the total number of q's and
 // u's and assign particular slots in those arrays to each mobilizer. We also
 // determine the sizes of related "pools", including the number of q's which
 // are angles (for sincos calculations), and the number of quaternions in use
@@ -193,24 +193,24 @@ public:
 //                      PER MOBILIZED BODY MODEL INFO
 class SBModelPerMobodInfo {
 public:
-    SBModelPerMobodInfo() 
-    :   nQInUse(-1), nUInUse(-1), hasQuaternionInUse(false), 
+    SBModelPerMobodInfo()
+    :   nQInUse(-1), nUInUse(-1), hasQuaternionInUse(false),
         nQPoolInUse(-1) {}
 
     int     nQInUse, nUInUse;
     QIndex  firstQIndex; // Count from 0 for this SimbodyMatterSubsystem
     UIndex  firstUIndex;
 
-    // In case there is a quaternion in use by this Mobilizer: The index 
-    // here can be used to find precalculated data associated with this 
+    // In case there is a quaternion in use by this Mobilizer: The index
+    // here can be used to find precalculated data associated with this
     // quaternion, such as its current length.
     bool                hasQuaternionInUse;
     // 0..nQInUse-1: which local coordinate starts the quaternion if any?
-    MobilizerQIndex     startOfQuaternion;   
+    MobilizerQIndex     startOfQuaternion;
     // assigned slot # for this MB's quat, -1 if none
-    QuaternionPoolIndex quaternionPoolIndex; 
+    QuaternionPoolIndex quaternionPoolIndex;
 
-    // Each mobilizer can request some position-cache storage space for 
+    // Each mobilizer can request some position-cache storage space for
     // precalculations involving its generalized coordinates q.
     // Here we keep track of our chunk.
     int nQPoolInUse; // reserved space in sizeof(Real) units
@@ -240,7 +240,7 @@ public:
 
     // Use these accessors so that you get type checking on the index types.
     int getNumMobilizedBodies() const {return (int)mobodModelInfo.size();}
-    SBModelPerMobodInfo& updMobodModelInfo(MobilizedBodyIndex mbx) 
+    SBModelPerMobodInfo& updMobodModelInfo(MobilizedBodyIndex mbx)
     {   return mobodModelInfo[mbx]; }
     const SBModelPerMobodInfo& getMobodModelInfo(MobilizedBodyIndex mbx) const
     {   return mobodModelInfo[mbx]; }
@@ -252,24 +252,24 @@ public:
 
         // STATE ALLOCATION FOR THIS SUBSYSTEM
 
-    // Note that a MatterSubsystem is only one of potentially many users of a 
-    // System's State, so only a subset of State variables and State Cache 
-    // entries belong to it. Here we record the indices we were given when 
+    // Note that a MatterSubsystem is only one of potentially many users of a
+    // System's State, so only a subset of State variables and State Cache
+    // entries belong to it. Here we record the indices we were given when
     // we asked the State for some resources. All indices are private to this
     // Subsystem -- they'll start from zero regardless of whether there are
     // other State resource consumers.
 
     QIndex qIndex;  // NOTE: local, currently always zero
     UIndex uIndex;
-    DiscreteVariableIndex timeVarsIndex, qVarsIndex, uVarsIndex, 
+    DiscreteVariableIndex timeVarsIndex, qVarsIndex, uVarsIndex,
                           dynamicsVarsIndex, accelerationVarsIndex;
 
 private:
     // MobilizedBody 0 is Ground.
-    Array_<SBModelPerMobodInfo,MobilizedBodyIndex> mobodModelInfo; 
+    Array_<SBModelPerMobodInfo,MobilizedBodyIndex> mobodModelInfo;
 };
 
-inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) { 
+inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
     o << "SBModelCache:\n";
     o << "  " << c.getNumMobilizedBodies() << " Mobilized Bodies:\n";
     for (MobilizedBodyIndex mbx(0); mbx < c.getNumMobilizedBodies(); ++mbx) {
@@ -283,7 +283,7 @@ inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
              o << "    nQPool,qPoolIx=" << mInfo.nQPoolInUse << "," << mInfo.startInQPool << endl;
         else o << "    no angles in use\n";
     }
-    return o; 
+    return o;
 }
 //............................... MODEL CACHE ..................................
 
@@ -292,8 +292,8 @@ inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
 // =============================================================================
 //                               INSTANCE CACHE
 // =============================================================================
-// This is SimbodyMatterSubsystem information calculated during 
-// realizeInstance(), possibly based on the settings of Instance-stage state 
+// This is SimbodyMatterSubsystem information calculated during
+// realizeInstance(), possibly based on the settings of Instance-stage state
 // variables. At this point we will have determined the following information:
 //  - final mass properties for all bodies (can calculate total mass)
 //  - final locations for all mobilizer frames
@@ -301,11 +301,11 @@ inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
 //  - how many and what types of constraint equations are to be included
 //  - how motion is to be calculated for each mobilizer
 //
-// We allocate entries in the constraint error and multiplier pools among the 
+// We allocate entries in the constraint error and multiplier pools among the
 // Constraints, and allocate entries in the prescribed motion and prescribed
 // force pools among mobilizers whose motion is prescribed.
 //
-// At this point we can classify all the mobilizers based on the kind of Motion 
+// At this point we can classify all the mobilizers based on the kind of Motion
 // they will undergo. We determine the scope of every Constraint, and classify
 // them based on the kinds of mobilizers they affect.
 
@@ -314,7 +314,7 @@ inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c) {
 //                      PER MOBILIZED BODY INSTANCE INFO
 // This is information calculated once we have seen all the Instance-stage
 // State variable values that can affect bodies, mobilizers, and motions.
-// Notes: 
+// Notes:
 //   - all mobilities of a mobilizer must be treated identically
 //   - if any motion level is fast, then the whole mobilizer is fast
 //   - if a mobilizer is fast, so are all its outboard mobilizers
@@ -322,9 +322,9 @@ class SBInstancePerMobodInfo {
 public:
     SBInstancePerMobodInfo() {clear();}
 
-    void clear() {   
+    void clear() {
         qMethod=uMethod=udotMethod=Motion::Free;
-        firstPresQ.invalidate(); firstPresU.invalidate(); 
+        firstPresQ.invalidate(); firstPresU.invalidate();
         firstPresUDot.invalidate(); firstPresForce.invalidate();
     }
 
@@ -341,23 +341,23 @@ public:
 
 // -----------------------------------------------------------------------------
 //                       PER CONSTRAINT INSTANCE INFO
-// Store some Instance-stage information about each Constraint. Most 
-// important, we don't know how many constraint equations (if any) the 
+// Store some Instance-stage information about each Constraint. Most
+// important, we don't know how many constraint equations (if any) the
 // Constraint will generate until Instance stage. In particular, a disabled
-// Constraint won't generate any equations (it will have an Info entry 
-// here, however). Also, although we know the Constrained Mobilizers at 
+// Constraint won't generate any equations (it will have an Info entry
+// here, however). Also, although we know the Constrained Mobilizers at
 // Topology stage, we don't know the specific number or types of internal
 // coordinates involved until Instance stage.
 
 // Helper class for per-constrained mobilizer information.
 class SBInstancePerConstrainedMobilizerInfo {
 public:
-    SBInstancePerConstrainedMobilizerInfo() 
+    SBInstancePerConstrainedMobilizerInfo()
     :   nQInUse(0), nUInUse(0) { } // assume disabled
-    // The correspondence between Constrained Mobilizers and Mobilized 
-    // Bodies is Topological information you can pull from the 
-    // TopologyCache. See the MobilizedBody for counts of its q's and u's, 
-    // which define the allocated number of slots for the 
+    // The correspondence between Constrained Mobilizers and Mobilized
+    // Bodies is Topological information you can pull from the
+    // TopologyCache. See the MobilizedBody for counts of its q's and u's,
+    // which define the allocated number of slots for the
     // ConstrainedMobilizer as well.
     int nQInUse, nUInUse; // same as corr. MobilizedBody unless disabled
     ConstrainedQIndex  firstConstrainedQIndex; // these count from 0 for
@@ -381,17 +381,17 @@ public:
         constrainedU.clear();
     }
 
-    int getNumConstrainedMobilizers() const 
+    int getNumConstrainedMobilizers() const
     {   return (int)constrainedMobilizerInstanceInfo.size(); }
 
-    const SBInstancePerConstrainedMobilizerInfo& 
-    getConstrainedMobilizerInstanceInfo(ConstrainedMobilizerIndex M) const 
+    const SBInstancePerConstrainedMobilizerInfo&
+    getConstrainedMobilizerInstanceInfo(ConstrainedMobilizerIndex M) const
     {   return constrainedMobilizerInstanceInfo[M]; }
 
-    SBInstancePerConstrainedMobilizerInfo& 
-    updConstrainedMobilizerInstanceInfo(ConstrainedMobilizerIndex M) 
+    SBInstancePerConstrainedMobilizerInfo&
+    updConstrainedMobilizerInstanceInfo(ConstrainedMobilizerIndex M)
     {   return constrainedMobilizerInstanceInfo[M]; }
-        
+
     int getNumConstrainedQ() const {return (int)constrainedQ.size();}
     int getNumConstrainedU() const {return (int)constrainedU.size();}
     ConstrainedQIndex addConstrainedQ(QIndex qx) {
@@ -402,9 +402,9 @@ public:
         constrainedU.push_back(ux);
         return ConstrainedUIndex(constrainedU.size()-1);
     }
-    QIndex getQIndexFromConstrainedQ(ConstrainedQIndex i) const 
+    QIndex getQIndexFromConstrainedQ(ConstrainedQIndex i) const
     {   return constrainedQ[i]; }
-    UIndex getUIndexFromConstrainedU(ConstrainedUIndex i) const 
+    UIndex getUIndexFromConstrainedU(ConstrainedUIndex i) const
     {   return constrainedU[i]; }
 
     int getNumParticipatingQ() const {return (int)participatingQ.size();}
@@ -417,9 +417,9 @@ public:
         participatingU.push_back(ux);
         return ParticipatingUIndex(participatingU.size()-1);
     }
-    QIndex getQIndexFromParticipatingQ(ParticipatingQIndex i) const 
+    QIndex getQIndexFromParticipatingQ(ParticipatingQIndex i) const
     {   return participatingQ[i]; }
-    UIndex getUIndexFromParticipatingU(ParticipatingUIndex i) const 
+    UIndex getUIndexFromParticipatingU(ParticipatingUIndex i) const
     {   return participatingU[i]; }
 
     Segment holoErrSegment;    // (offset,mHolo)    for each Constraint, within subsystem qErr
@@ -434,21 +434,21 @@ public:
     Array_<SBInstancePerConstrainedMobilizerInfo,
            ConstrainedMobilizerIndex>   constrainedMobilizerInstanceInfo;
 
-    // The ConstrainedBodies and ConstrainedMobilizers are set at Topology 
-    // stage, but the particular generalized coordinates q and generalized 
-    // speeds u which are involved can't be determined until Model stage, 
-    // since the associated mobilizers have Model stage options which can 
-    // affect the number and meanings of these variables. These are sorted 
+    // The ConstrainedBodies and ConstrainedMobilizers are set at Topology
+    // stage, but the particular generalized coordinates q and generalized
+    // speeds u which are involved can't be determined until Model stage,
+    // since the associated mobilizers have Model stage options which can
+    // affect the number and meanings of these variables. These are sorted
     // in order of their associated ConstrainedMobilizer, not necessarily
     // in order of QIndex or UIndex. Each value appears only once.
     Array_<QIndex,ConstrainedQIndex> constrainedQ; // -> subsystem QIndex
     Array_<UIndex,ConstrainedUIndex> constrainedU; // -> subsystem UIndex
 
-    // Participating mobilities include ALL the mobilities which may be 
-    // involved in any of this Constraint's constraint equations, whether 
-    // from being directly constrained or indirectly as a result of their 
-    // effects on ConstrainedBodies. These are sorted in order of 
-    // increasing QIndex and UIndex, and each QIndex or UIndex appears 
+    // Participating mobilities include ALL the mobilities which may be
+    // involved in any of this Constraint's constraint equations, whether
+    // from being directly constrained or indirectly as a result of their
+    // effects on ConstrainedBodies. These are sorted in order of
+    // increasing QIndex and UIndex, and each QIndex or UIndex appears
     // only once.
     Array_<QIndex,ParticipatingQIndex> participatingQ; // -> subsystem QIndex
     Array_<UIndex,ParticipatingUIndex> participatingU; // -> subsystem UIndex
@@ -462,13 +462,13 @@ public:
     // Instance variables are:
     //   body mass props; particle masses
     //   X_BM, X_PF mobilizer transforms
-    //  
+    //
     // Calculations stored here derive from those states:
     //   total mass
     //   central inertia of each rigid body
-    //   principal axes and corresponding principal moments of inertia of 
+    //   principal axes and corresponding principal moments of inertia of
     //       each rigid body
-    //   reference configuration X_PB when q==0 (usually that means M==F), 
+    //   reference configuration X_PB when q==0 (usually that means M==F),
     //       for each rigid body
 
     Real              totalMass; // sum of all rigid body and particles masses
@@ -492,12 +492,12 @@ public:
     Array_<SBInstancePerConstraintInfo,ConstraintIndex> constraintInstanceInfo;
 
     // This is a sum over all the mobilizers whose q's are currently prescribed,
-    // adding the number of q's (generalized coordinates) nq currently being 
-    // used for each of those. An array of size totalNPresQ is allocated in the 
-    // TimeCache to hold the calculated q's (which will be different from the 
-    // actual q's until they are applied). Motions will also provide this many 
-    // prescribed qdots and qdotdots, but we will map those to u's and udots 
-    // before recording them, with nu entries being allocated in each. These 
+    // adding the number of q's (generalized coordinates) nq currently being
+    // used for each of those. An array of size totalNPresQ is allocated in the
+    // TimeCache to hold the calculated q's (which will be different from the
+    // actual q's until they are applied). Motions will also provide this many
+    // prescribed qdots and qdotdots, but we will map those to u's and udots
+    // before recording them, with nu entries being allocated in each. These
     // nq- and nu-sized slots are allocated in order of MobilizedBodyIndex.
     int getTotalNumPresQ() const {return (int)presQ.size();}
     int getTotalNumZeroQ() const {return (int)zeroQ.size();}
@@ -506,14 +506,14 @@ public:
     Array_<QIndex> zeroQ;
     Array_<QIndex> freeQ; // must be integrated
 
-    // This is a sum over all the mobilizers whose u's are current prescribed, 
-    // whether because of non-holonomic (velocity) prescribed motion u=u(t,q), 
-    // or because the q's are prescribed via holonomic (position) prescribed 
-    // motion and the u's are calculated from the qdots. We add the number u's 
-    // (generalized speeds) nu currently being used for each holonomic- or 
-    // nonholonomic-prescribed mobilizer. An array of this size is allocated 
-    // in the PositionCache to hold the calculated u's (which will be 
-    // different from the actual u's until they are applied). Nu-sized slots 
+    // This is a sum over all the mobilizers whose u's are current prescribed,
+    // whether because of non-holonomic (velocity) prescribed motion u=u(t,q),
+    // or because the q's are prescribed via holonomic (position) prescribed
+    // motion and the u's are calculated from the qdots. We add the number u's
+    // (generalized speeds) nu currently being used for each holonomic- or
+    // nonholonomic-prescribed mobilizer. An array of this size is allocated
+    // in the PositionCache to hold the calculated u's (which will be
+    // different from the actual u's until they are applied). Nu-sized slots
     // are allocated in order of MobilizedBodyIndex.
     int getTotalNumPresU() const {return (int)presU.size();}
     int getTotalNumZeroU() const {return (int)zeroU.size();}
@@ -522,11 +522,11 @@ public:
     Array_<UIndex> zeroU;
     Array_<UIndex> freeU; // must be integrated
 
-    // This is a sum over all the mobilizers whose udots are currently 
-    // prescribed, adding the number of udots (mobilities) nu from each 
-    // holonomic-, nonholonomic-, or acceleration-prescribed mobilizer. An 
-    // array of this size is allocated in the DynamicsCache, and an entry is 
-    // needed in the prescribed force array in the AccelerationCache as well. 
+    // This is a sum over all the mobilizers whose udots are currently
+    // prescribed, adding the number of udots (mobilities) nu from each
+    // holonomic-, nonholonomic-, or acceleration-prescribed mobilizer. An
+    // array of this size is allocated in the DynamicsCache, and an entry is
+    // needed in the prescribed force array in the AccelerationCache as well.
     // These nu-sized slots are allocated in order of MobilizedBodyIndex.
     int getTotalNumPresUDot() const {return (int)presUDot.size();}
     int getTotalNumZeroUDot() const {return (int)zeroUDot.size();}
@@ -535,45 +535,45 @@ public:
     Array_<UIndex> zeroUDot;
     Array_<UIndex> freeUDot; // calculated from forces
 
-    // This includes all the mobilizers whose udots are known for any 
-    // reason: Prescribed, Zero, Discrete, or Fast (anything but Free). 
-    // These need slots in the array of calculated prescribed motion 
+    // This includes all the mobilizers whose udots are known for any
+    // reason: Prescribed, Zero, Discrete, or Fast (anything but Free).
+    // These need slots in the array of calculated prescribed motion
     // forces (taus). This maps those tau entries to the mobility at
     // which they are generalized forces.
     int getTotalNumPresForces() const {return (int)presForce.size();}
     Array_<UIndex> presForce;
 
-    // Quaternion errors go in qErr also, but after all the physical contraint 
-    // errors. That is, they start at index 
+    // Quaternion errors go in qErr also, but after all the physical contraint
+    // errors. That is, they start at index
     // totalNHolonomicConstraintEquationsInUse.
     int firstQuaternionQErrSlot;
 
     // These record where in the full System's State our Subsystem's qErr, uErr,
-    // and udotErr entries begin. That is, this subsystem's segments can be 
+    // and udotErr entries begin. That is, this subsystem's segments can be
     // found at
-    //    qErr   (qErrIndex,    nPositionConstraintEquationsInUse 
+    //    qErr   (qErrIndex,    nPositionConstraintEquationsInUse
     //                                        + nQuaternionsInUse)
     //    uErr   (uErrIndex,    nVelocityConstraintEquationsInUse)
     //    udotErr(udotErrIndex, nAccelerationConstraintEquationsInUse)
     int qErrIndex, uErrIndex, udotErrIndex;
 
     // These are the sums over the per-Constraint data above. The number of
-    // position constraint equations (not counting quaternion normalization 
-    // constraints) is the same as the number of holonomic constraints mHolo. 
-    // The number of velocity constraint equations is mHolo+mNonholo. The 
-    // number of acceleration constraint equations, and thus the number of 
+    // position constraint equations (not counting quaternion normalization
+    // constraints) is the same as the number of holonomic constraints mHolo.
+    // The number of velocity constraint equations is mHolo+mNonholo. The
+    // number of acceleration constraint equations, and thus the number of
     // udotErrs and multipliers, is mHolo+mNonholo+mAccOnly.
     int totalNHolonomicConstraintEquationsInUse;         // sum(mHolo)    (#position equations = mHolo)
     int totalNNonholonomicConstraintEquationsInUse;      // sum(mNonholo) (#velocity equations = mHolo+mNonholo)
     int totalNAccelerationOnlyConstraintEquationsInUse;  // sum(mAccOnly) (#acceleration eqns  = mHolo+mNonholo+mAccOnly)
-    
+
     int totalNConstrainedBodiesInUse;
     int totalNConstrainedMobilizersInUse;
     int totalNConstrainedQInUse; // q,u from the constrained mobilizers
-    int totalNConstrainedUInUse; 
+    int totalNConstrainedUInUse;
 public:
     void allocate(const SBTopologyCache& topo,
-                  const SBModelCache&    model) 
+                  const SBModelCache&    model)
     {
         totalMass = SimTK::NaN;
         centralInertias.resize(topo.nBodies);           // I_CB
@@ -593,7 +593,7 @@ public:
         totalNConstrainedBodiesInUse     = 0;
         totalNConstrainedMobilizersInUse = 0;
         totalNConstrainedQInUse          = 0;
-        totalNConstrainedUInUse          = 0; 
+        totalNConstrainedUInUse          = 0;
     }
 
 };
@@ -616,7 +616,7 @@ public:
 public:
     void allocate(const SBTopologyCache& topo,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         presQPool.resize(instance.getTotalNumPresQ());
     }
@@ -631,17 +631,17 @@ public:
 // Here we hold information that is calculated early in the matter subsystem's
 // realizePosition() method. This includes
 //
-//  - mobilizer matrices X_FM, H_FM, X_PB, H_PB_G 
+//  - mobilizer matrices X_FM, H_FM, X_PB, H_PB_G
 //  - basic kinematic information X_GB, Phi_PB_G
 //  - mass properties expressed in Ground (TODO: these should probably be in
 //    their own cache since they aren't needed for kinematics)
 //
 //  - for constrained bodies, position X_AB of each body in its ancestor A
 //
-// This cache entry can be calculated after Stage::Time and is guaranteed to 
-// have been calculated by the end of Stage::Position. The 
-// SimbodyMatterSubsystem's realizePosition() method will mark this done as 
-// soon as possible, so that later calculations (constraint position errors, 
+// This cache entry can be calculated after Stage::Time and is guaranteed to
+// have been calculated by the end of Stage::Position. The
+// SimbodyMatterSubsystem's realizePosition() method will mark this done as
+// soon as possible, so that later calculations (constraint position errors,
 // prescribed velocities) can access these without a stage violation.
 
 class SBTreePositionCache {
@@ -653,7 +653,7 @@ public:
     const Transform& getX_GB(MobilizedBodyIndex mbx) const {return bodyConfigInGround[mbx];}
     Transform&       updX_GB(MobilizedBodyIndex mbx)       {return bodyConfigInGround[mbx];}
 
-    const Transform& getX_AB(AncestorConstrainedBodyPoolIndex cbpx) const 
+    const Transform& getX_AB(AncestorConstrainedBodyPoolIndex cbpx) const
     {   return constrainedBodyConfigInAncestor[cbpx]; }
     Transform&       updX_AB(AncestorConstrainedBodyPoolIndex cbpx)
     {   return constrainedBodyConfigInAncestor[cbpx]; }
@@ -694,15 +694,15 @@ public:
         // Constrained Body Pool
 
     // For Constraints whose Ancestor body A is not Ground G, we assign pool
-    // entries for each of their Constrained Bodies (call the total number 
-    // 'nacb') to store the above information but measured and expressed in 
+    // entries for each of their Constrained Bodies (call the total number
+    // 'nacb') to store the above information but measured and expressed in
     // the Ancestor frame rather than Ground.
     Array_<Transform> constrainedBodyConfigInAncestor;   // nacb (X_AB)
 
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
@@ -718,24 +718,24 @@ public:
         storageForH_FM.resize(2*nDofs);
         storageForH.resize(2*nDofs);
 
-        bodyJointInParentJointFrame.resize(nBodies); 
+        bodyJointInParentJointFrame.resize(nBodies);
         bodyJointInParentJointFrame[GroundIndex].setToZero();
 
-        bodyConfigInParent.resize(nBodies);          
+        bodyConfigInParent.resize(nBodies);
         bodyConfigInParent[GroundIndex].setToZero();
 
-        bodyConfigInGround.resize(nBodies);          
+        bodyConfigInGround.resize(nBodies);
         bodyConfigInGround[GroundIndex].setToZero();
 
-        bodyToParentShift.resize(nBodies);           
+        bodyToParentShift.resize(nBodies);
         bodyToParentShift[GroundIndex].setToZero();
 
-        bodySpatialInertiaInGround.resize(nBodies); 
+        bodySpatialInertiaInGround.resize(nBodies);
         bodySpatialInertiaInGround[GroundIndex].setMass(Infinity);
         bodySpatialInertiaInGround[GroundIndex].setMassCenter(Vec3(0));
         bodySpatialInertiaInGround[GroundIndex].setUnitInertia(UnitInertia(Infinity));
 
-        bodyCOMInGround.resize(nBodies);             
+        bodyCOMInGround.resize(nBodies);
         bodyCOMInGround[GroundIndex] = Vec3(0);
 
         constrainedBodyConfigInAncestor.resize(nacb);
@@ -746,9 +746,9 @@ public:
 
 
 // =============================================================================
-//                         CONSTRAINED POSITION CACHE 
+//                         CONSTRAINED POSITION CACHE
 // =============================================================================
-// Here we hold information that is part of the matter subsystem's 
+// Here we hold information that is part of the matter subsystem's
 // realizePosition() calculation but depends on the TreePositionCache having
 // already been calculated. This includes:
 //
@@ -765,14 +765,14 @@ class SBConstrainedPositionCache {
 public:
     // qerr cache space is provided directly by the State
 
-    // This holds values from all the Motion prescribed velocity (nonholonomic) 
+    // This holds values from all the Motion prescribed velocity (nonholonomic)
     // calculations, and those resulting from diffentiating prescribed positions.
     Array_<Real> presUPool;   // Index with PresUPoolIndex
 
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         presUPool.resize(instance.getTotalNumPresU());
     }
@@ -786,10 +786,10 @@ public:
 // =============================================================================
 // Composite body inertias R are those that would be felt if all the mobilizers
 // had prescribed motion (or were welded in their current configurations). These
-// are convenient for inverse dynamics computations and for scaling of 
+// are convenient for inverse dynamics computations and for scaling of
 // generalized coordinates and speeds.
 //
-// Each spatial inertia here is expressed in the Ground frame but measured about 
+// Each spatial inertia here is expressed in the Ground frame but measured about
 // its body's origin.
 //
 // Note that each composite body inertia is a rigid-body spatial inertia, not
@@ -798,8 +798,8 @@ public:
 // can be exploited for speed. There are at most 10 unique elements in a rigid
 // body spatial inertia matrix.
 //
-// Composite body inertias depend only on positions but are often not needed at 
-// all. So we give them their own cache entry and expect explicit realization 
+// Composite body inertias depend only on positions but are often not needed at
+// all. So we give them their own cache entry and expect explicit realization
 // some time after Position stage, if at all.
 
 class SBCompositeBodyInertiaCache {
@@ -809,11 +809,11 @@ public:
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // Pull out construction-stage information from the tree.
-        const int nBodies = tree.nBodies; 
-        
+        const int nBodies = tree.nBodies;
+
         compositeBodyInertia.resize(nBodies); // TODO: ground initialization
     }
 };
@@ -824,14 +824,14 @@ public:
 // =============================================================================
 //                       ARTICULATED BODY INERTIA CACHE
 // =============================================================================
-// These articulated body inertias take into account prescribed motion, 
+// These articulated body inertias take into account prescribed motion,
 // meaning that they are produced by a combination of articulated and rigid
 // shift operations depending on each mobilizer's current status as "free"
 // or "prescribed". That means that the articulated inertias here are suited
 // only for "mixed" dynamics; you can't use them to calculate M^-1*f unless
 // there is no prescribed motion in the system.
 //
-// Each articulated body inertia here is expressed in the Ground frame but 
+// Each articulated body inertia here is expressed in the Ground frame but
 // measured about its body's origin.
 //
 // Articulated body inertia matrices, though symmetric and positive
@@ -840,24 +840,24 @@ public:
 // All 21 elements of this symmetric 6x6 matrix are unique, while there are only
 // 10 unique elements in a rigid body spatial inertia.
 //
-// Note that although we use some *rigid* body shift operations here, the 
-// results in general are all *articulated* body inertias, because a rigid shift 
-// of an articulated body inertia is still an articulated body inertia. Only if 
-// all mobilizers are prescribed will these be rigid body spatial inertias. For 
-// a discussion of the properties of articulated body inertias, see Section 7.1 
-// (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics 
-// Algorithms. 
+// Note that although we use some *rigid* body shift operations here, the
+// results in general are all *articulated* body inertias, because a rigid shift
+// of an articulated body inertia is still an articulated body inertia. Only if
+// all mobilizers are prescribed will these be rigid body spatial inertias. For
+// a discussion of the properties of articulated body inertias, see Section 7.1
+// (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics
+// Algorithms.
 //
-// Intermediate quantities PPlus, D, DI, and G are calculated here which are 
+// Intermediate quantities PPlus, D, DI, and G are calculated here which are
 // separately useful when dealing with "free" mobilized bodies. These quantities
-// are not calculated for prescribed mobilizers; they will remain NaN in that 
+// are not calculated for prescribed mobilizers; they will remain NaN in that
 // case. In particular, this means that the prescribed-mobilizer mass properties
-// do not have to be invertible, so you can have terminal massless bodies as 
+// do not have to be invertible, so you can have terminal massless bodies as
 // long as their motion is always prescribed.
 // TODO: should D still be calculated? It doesn't require inversion.
 //
-// Articulated body inertias depend only on positions but are not usually needed 
-// until Acceleration stage. Thus this cache entry should have dependsOn stage 
+// Articulated body inertias depend only on positions but are not usually needed
+// until Acceleration stage. Thus this cache entry should have dependsOn stage
 // Position, and computedBy stage Dynamics. However, it can be realized any
 // time after Position.
 
@@ -874,14 +874,14 @@ public:
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
-        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need     
-        
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
 
         pPlus.resize(nBodies); // TODO: ground initialization
@@ -909,10 +909,10 @@ public:
 //  - velocity-dependent dynamics remainder terms: coriolis acceleration and
 //    gyroscopic forces
 //
-// This cache entry can be calculated after Stage::Position and is guaranteed to 
+// This cache entry can be calculated after Stage::Position and is guaranteed to
 // have been calculated by the end of Stage::Velocity. The matter subsystem's
 // realizeVelocity() method will mark this done as soon as possible, so that
-// later calculations (constraint velocity errors) can access these without a 
+// later calculations (constraint velocity errors) can access these without a
 // stage violation.
 
 class SBTreeVelocityCache {
@@ -924,9 +924,9 @@ public:
     const SpatialVec& getV_GB(MobilizedBodyIndex mbx) const {return bodyVelocityInGround[mbx];}
     SpatialVec&       updV_GB(MobilizedBodyIndex mbx)       {return bodyVelocityInGround[mbx];}
 
-    const SpatialVec& getV_AB(AncestorConstrainedBodyPoolIndex cbpx) const 
+    const SpatialVec& getV_AB(AncestorConstrainedBodyPoolIndex cbpx) const
     {   return constrainedBodyVelocityInAncestor[cbpx]; }
-    SpatialVec&       updV_AB(AncestorConstrainedBodyPoolIndex cbpx)       
+    SpatialVec&       updV_AB(AncestorConstrainedBodyPoolIndex cbpx)
     {   return constrainedBodyVelocityInAncestor[cbpx]; }
 
 public:
@@ -942,16 +942,16 @@ public:
     Array_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
 
     // nb (VB_PB_G=HDot_PB_G*u)
-    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInParentDerivRemainder; 
-    
+    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInParentDerivRemainder;
+
     Array_<SpatialVec,MobilizedBodyIndex> gyroscopicForces;                // nb (b)
     Array_<SpatialVec,MobilizedBodyIndex> mobilizerCoriolisAcceleration;   // nb (a)
     Array_<SpatialVec,MobilizedBodyIndex> totalCoriolisAcceleration;       // nb (A)
 
         // Ancestor Constrained Body Pool
 
-    // For Constraints whose Ancestor body A is not Ground G, we assign pool 
-    // entries for each of their Constrained Bodies (call the total number 
+    // For Constraints whose Ancestor body A is not Ground G, we assign pool
+    // entries for each of their Constrained Bodies (call the total number
     // 'nacb') to store the above information but measured and expressed in the
     // Ancestor frame rather than Ground.
     Array_<SpatialVec> constrainedBodyVelocityInAncestor; // nacb (V_AB)
@@ -959,7 +959,7 @@ public:
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
@@ -967,28 +967,28 @@ public:
         const int maxNQs  = tree.maxNQs; // allocate max # q's we'll ever need
         const int nacb    = tree.nAncestorConstrainedBodies;
 
-        mobilizerRelativeVelocity.resize(nBodies);       
+        mobilizerRelativeVelocity.resize(nBodies);
         mobilizerRelativeVelocity[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
-        bodyVelocityInParent.resize(nBodies);       
+        bodyVelocityInParent.resize(nBodies);
         bodyVelocityInParent[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
-        bodyVelocityInGround.resize(nBodies);       
+        bodyVelocityInGround.resize(nBodies);
         bodyVelocityInGround[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         storageForHDot_FM.resize(2*nDofs);
         storageForHDot.resize(2*nDofs);
 
-        bodyVelocityInParentDerivRemainder.resize(nBodies);       
+        bodyVelocityInParentDerivRemainder.resize(nBodies);
         bodyVelocityInParentDerivRemainder[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
-        
-        gyroscopicForces.resize(nBodies);           
+
+        gyroscopicForces.resize(nBodies);
         gyroscopicForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
-     
-        mobilizerCoriolisAcceleration.resize(nBodies);       
+
+        mobilizerCoriolisAcceleration.resize(nBodies);
         mobilizerCoriolisAcceleration[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
-        totalCoriolisAcceleration.resize(nBodies);       
+        totalCoriolisAcceleration.resize(nBodies);
         totalCoriolisAcceleration[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         constrainedBodyVelocityInAncestor.resize(nacb);
@@ -999,9 +999,9 @@ public:
 
 
 // =============================================================================
-//                         CONSTRAINED VELOCITY CACHE 
+//                         CONSTRAINED VELOCITY CACHE
 // =============================================================================
-// Here we hold information that is part of the matter subsystem's 
+// Here we hold information that is part of the matter subsystem's
 // realizeVelocity() calculation but depends on the TreeVelocityCache having
 // already been calculated. This includes:
 //
@@ -1021,7 +1021,7 @@ public:
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // nothing yet
     }
@@ -1035,8 +1035,8 @@ public:
 // =============================================================================
 class SBDynamicsCache {
 public:
-    // This holds the values from all the Motion prescribed acceleration 
-    // calculations, and those which result from diffentiating prescribed 
+    // This holds the values from all the Motion prescribed acceleration
+    // calculations, and those which result from diffentiating prescribed
     // velocities, or twice-differentiating prescribed positions.
     Array_<Real> presUDotPool;    // Index with PresUDotPoolIndex
 
@@ -1052,20 +1052,20 @@ public:
 public:
     void allocate(const SBTopologyCache& tree,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int nSqDofs = tree.sumSqDOFs; // sum(ndof^2) for each joint
-        const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need     
+        const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need
 
         presUDotPool.resize(instance.getTotalNumPresUDot());
 
-        mobilizerCentrifugalForces.resize(nBodies);           
+        mobilizerCentrifugalForces.resize(nBodies);
         mobilizerCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
-        totalCentrifugalForces.resize(nBodies);           
+        totalCentrifugalForces.resize(nBodies);
         totalCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         Y.resize(nBodies); // TODO: op space compliance kernel (see Jain 2011)
@@ -1084,22 +1084,22 @@ public:
 //
 //  - basic kinematics A_GB giving body accelerations in Ground
 //  - prescribed motion forces tau
-//  - logically, udot and qdotdot, but those arrays are provided as built-in 
+//  - logically, udot and qdotdot, but those arrays are provided as built-in
 //    cache entries in State
 //
 //  - mobilizer reaction forces (TODO)
 //
-// This cache entry can be calculated after Stage::Dynamics and is guaranteed 
-// to have been calculated by the end of Stage::Acceleration. The matter 
-// subsystem's realizeAcceleration() method will mark this done as soon as 
-// possible, so that later calculations (constraint acceleration errors) can 
+// This cache entry can be calculated after Stage::Dynamics and is guaranteed
+// to have been calculated by the end of Stage::Acceleration. The matter
+// subsystem's realizeAcceleration() method will mark this done as soon as
+// possible, so that later calculations (constraint acceleration errors) can
 // access these without a stage violation.
 
 class SBTreeAccelerationCache {
 public:
-    const SpatialVec& getA_GB(MobilizedBodyIndex mbx) const 
+    const SpatialVec& getA_GB(MobilizedBodyIndex mbx) const
     {   return bodyAccelerationInGround[mbx]; }
-    SpatialVec&       updA_GB(MobilizedBodyIndex mbx)       
+    SpatialVec&       updA_GB(MobilizedBodyIndex mbx)
     {   return bodyAccelerationInGround[mbx]; }
 
 public:
@@ -1108,10 +1108,10 @@ public:
 
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (A_GB)
 
-    // This is where the calculated prescribed motion "taus" go. (That is, 
-    // generalized forces needed to implement prescribed generalized 
-    // accelerations.) Slots here are doled out only for mobilizers that have 
-    // known accelerations; there is one scalar here per mobility in those 
+    // This is where the calculated prescribed motion "taus" go. (That is,
+    // generalized forces needed to implement prescribed generalized
+    // accelerations.) Slots here are doled out only for mobilizers that have
+    // known accelerations; there is one scalar here per mobility in those
     // mobilizers. Look in the InstanceCache to see which slots are allocated
     // to which mobilizers.
     Vector presMotionForces;    // Index with PresForcePoolIndex
@@ -1124,13 +1124,13 @@ public:
 public:
     void allocate(const SBTopologyCache& topo,
                   const SBModelCache&    model,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         // Pull out topology-stage information from the tree.
         const int nBodies = topo.nBodies;
         const int nDofs   = topo.nDOFs;     // this is the number of u's (nu)
 
-        bodyAccelerationInGround.resize(nBodies);   
+        bodyAccelerationInGround.resize(nBodies);
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
 
         presMotionForces.resize(instance.getTotalNumPresForces());
@@ -1145,14 +1145,14 @@ public:
 
 
 // =============================================================================
-//                        CONSTRAINED ACCELERATION CACHE 
+//                        CONSTRAINED ACCELERATION CACHE
 // =============================================================================
-// Here we hold information that is part of the matter subsystem's 
-// realizeAcceleration() calculation but depends on the TreeAccelerationCache 
+// Here we hold information that is part of the matter subsystem's
+// realizeAcceleration() calculation but depends on the TreeAccelerationCache
 // having already been calculated. This includes:
 //
 //  - logically, acceleration constraint errors (udoterrs), and constraint
-//    multipliers, although in fact those arrays are provided as built-ins by 
+//    multipliers, although in fact those arrays are provided as built-ins by
 //    the State
 //
 //  - constraint-generated body and mobility forces
@@ -1171,7 +1171,7 @@ public:
     // The same system mobilized body may appear more than once in this list
     // if it is affected by multiple Constraints.
     Array_<SpatialVec> constrainedBodyForcesInG;    // [ncb]
-    // Ordered by ConstraintIndex, and then by ConstrainedUIndex within 
+    // Ordered by ConstraintIndex, and then by ConstrainedUIndex within
     // the constraint (and those are grouped in order of ConstrainedMobilizer
     // for that Constraint). The same system mobility may appear more than once
     // in this list if it is involved in multiple constraints.
@@ -1180,7 +1180,7 @@ public:
 public:
     void allocate(const SBTopologyCache&,
                   const SBModelCache&,
-                  const SBInstanceCache& instance) 
+                  const SBInstanceCache& instance)
     {
         const int ncb = instance.totalNConstrainedBodiesInUse;
         const int ncu = instance.totalNConstrainedUInUse;
@@ -1194,8 +1194,8 @@ public:
 
 
 
-/* 
- * Generalized state variable collection for a SimbodyMatterSubsystem. 
+/*
+ * Generalized state variable collection for a SimbodyMatterSubsystem.
  * Variables are divided into Stages, according to when their values
  * are needed during a calculation. The Stages are:
  *       (Topology: not part of the state. These are the bodies, mobilizers,
@@ -1207,7 +1207,7 @@ public:
  *     Velocity:      generalized speeds u
  *     Dynamics:      dynamic quantities & operators available
  *     Acceleration:  applied forces and prescribed accelerations
- *     Report:        used by study for end-user reporting only; no effect on 
+ *     Report:        used by study for end-user reporting only; no effect on
  *                      results
  *
  */
@@ -1238,12 +1238,12 @@ public:
 // =============================================================================
 //                               INSTANCE VARS
 // =============================================================================
-// This state variable is allocated during realizeTopology(), because its 
+// This state variable is allocated during realizeTopology(), because its
 // contents refer only to elements that form part of the fixed topology of the
 // matter subsystem -- mobilized bodies, particles, and constraints that are
 // specified as permanent parts of this matter subsystem.
-// 
-// Any change to this variable invalidates Stage::Instance (not Stage::Model), 
+//
+// Any change to this variable invalidates Stage::Instance (not Stage::Model),
 // requiring realize(Instance) to be performed.
 //
 // Note: we may at some point have instance variables whose allocation is
@@ -1275,7 +1275,7 @@ public:
         // Clear first to make sure all entries are reset to default values.
         bodyMassProperties.clear();
         bodyMassProperties.resize(nb, MassProperties(1,Vec3(0),Inertia(1)));
-        
+
         outboardMobilizerFrames.clear();
         outboardMobilizerFrames.resize(nb, Transform());
 
@@ -1346,9 +1346,9 @@ public:
     // none here -- z is supplied directly by the State, but not
     //              used by the SimbodyMatterSubsystem anyway
 public:
-    void allocate(const SBTopologyCache&) {    
+    void allocate(const SBTopologyCache&) {
     }
-}; 
+};
 
 
 
@@ -1382,7 +1382,7 @@ public:
  */
 class SBStateDigest {
 public:
-    explicit SBStateDigest(const State& s) : state(s), modifiableState(0), stage(Stage::Empty) 
+    explicit SBStateDigest(const State& s) : state(s), modifiableState(0), stage(Stage::Empty)
     {
     }
     SBStateDigest(const State& s, const SimbodyMatterSubsystemRep& matter, Stage g)
@@ -1642,17 +1642,17 @@ public:
 
     void clear() {
         // state
-        mv=0; iv=0; tv=0; 
+        mv=0; iv=0; tv=0;
         q=0; pv=0;
-        u=0; vv=0; 
-        dv=0; 
+        u=0; vv=0;
+        dv=0;
         av=0;
 
         // cache
-        mc=0; ic=0; tc=0; 
+        mc=0; ic=0; tc=0;
         qErr=0; tpc=0; cpc=0;
-        qdot=uErr=0; tvc=0; cvc=0; 
-        dc=0; 
+        qdot=uErr=0; tvc=0; cvc=0;
+        dc=0;
         udot=qdotdot=udotErr=0; tac=0; cac=0;
     }
 

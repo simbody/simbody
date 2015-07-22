@@ -44,7 +44,7 @@ namespace SimTK {
 /** Abstract base class representing an arbitrary value of unknown type.
 This provides an ability to manipulate "values" abstractly without knowing the
 specific type of that value. This is useful, for example, for discrete state
-variables and Measures, where much of what we need to do with them is 
+variables and Measures, where much of what we need to do with them is
 independent of their types. **/
 class AbstractValue {
 public:
@@ -53,7 +53,7 @@ public:
 
     /** Return a human-readable form of the object type that is stored in the
     concrete derived class underlying this %AbstractValue. **/
-    virtual String getTypeName() const = 0;  
+    virtual String getTypeName() const = 0;
 
     /** Return a human-readable representation of the value stored in this
     %AbstractValue object. **/
@@ -67,10 +67,10 @@ public:
     /** If the `source` contains a compatible value, assign a copy of
     that value into this object. Otherwise an exception is thrown. **/
     virtual void compatibleAssign(const AbstractValue& source) = 0;
-    
+
     /** Invokes the compatibleAssign() method which will perform the assignment
     if the source object is compatible, or throw an exception otherwise. **/
-    AbstractValue& operator=(const AbstractValue& v) 
+    AbstractValue& operator=(const AbstractValue& v)
     {   compatibleAssign(v); return *this; }
 
     /** Retrieve the original (type-erased)`thing` as read-only. The template
@@ -87,13 +87,13 @@ public:
       return Value<T>::updDowncast(*this).upd();
     }
 
-    virtual ~AbstractValue() {}   
+    virtual ~AbstractValue() {}
 };
 
 /** Write a human-readable representation of an AbstractValue to an output
-stream, using the getValueAsString() member function. 
+stream, using the getValueAsString() member function.
 @relates AbstractValue **/
-inline std::ostream& operator<<(std::ostream& o, const AbstractValue& v) 
+inline std::ostream& operator<<(std::ostream& o, const AbstractValue& v)
 {   o << v.getValueAsString(); return o; }
 
 
@@ -101,12 +101,12 @@ inline std::ostream& operator<<(std::ostream& o, const AbstractValue& v)
 //==============================================================================
 //                               VALUE <T>
 //==============================================================================
-/** Concrete templatized class derived from AbstractValue, adding generic 
-value type-specific functionality, with implicit conversion to the underlying 
+/** Concrete templatized class derived from AbstractValue, adding generic
+value type-specific functionality, with implicit conversion to the underlying
 type `T`. **/
 template <class T> class Value : public AbstractValue {
 public:
-    /** Creates a `Value<T>` whose contained object of type `T` has been default 
+    /** Creates a `Value<T>` whose contained object of type `T` has been default
     constructed. **/
     Value() {}
 
@@ -131,26 +131,26 @@ public:
 
     /** The copy assignment here invokes type `T` copy assignment on the
     contained object, it does not invoke AbstractValue's copy assignment. **/
-    Value& operator=(const Value& value) 
+    Value& operator=(const Value& value)
     {   m_thing = value.m_thing; return *this; }
 
     /** The move assignment here invokes type `T` move assignment on the
-    contained object, it does not invoke AbstractValue's move assignment. If 
+    contained object, it does not invoke AbstractValue's move assignment. If
     type `T` doesn't provide move assignment then copy assignment is used
     instead. **/
-    Value& operator=(const Value&& value) 
+    Value& operator=(const Value&& value)
     {   m_thing = std::move(value.m_thing); return *this; }
- 
+
     /** Assign a new value to the contained object, using the type `T`
     copy assignment operator. **/
-    Value& operator=(const T& value) 
+    Value& operator=(const T& value)
     {   m_thing = value; return *this; }
 
     /** Assign a new value to the contained object, using the type `T`
     move assignment operator, if available. **/
-    Value& operator=(const T&& value) 
+    Value& operator=(const T&& value)
     {   m_thing = std::move(value); return *this; }
-  
+
     /** Return a const reference to the object of type `T` that is contained
     in this `Value<T>` object. There is also an implicit conversion that
     performs the same function. **/
@@ -160,14 +160,14 @@ public:
     in this %Value object. There is also an implicit conversion that performs
     the same function. @see set() **/
     T& upd() {return m_thing;}
- 
+
     /** Assign the contained object to the given `value` by invoking the
     type `T` copy assignment operator. @see upd() **/
-    void set(const T& value)  {m_thing = value;}   
+    void set(const T& value)  {m_thing = value;}
 
     /** Assign the contained object to the given `value` by invoking the
     type `T` move assignment operator, if available. **/
-    void set(const T&& value)  {m_thing = std::move(value);}   
+    void set(const T&& value)  {m_thing = std::move(value);}
 
     /** Implicit conversion from a const reference to a `Value<T>` object to a
     const reference to the type `T` object it contains. This is identical to
@@ -179,37 +179,37 @@ public:
     to the upd() method. **/
     operator T&() {return upd();}
 
-    /** Covariant implementation of the AbstractValue::clone() method. 
-    (Covariant means that the return type has been changed to the derived 
+    /** Covariant implementation of the AbstractValue::clone() method.
+    (Covariant means that the return type has been changed to the derived
     type.) **/
     Value* clone() const override {return new Value(*this);}
 
     /** Test whether a given AbstractValue is assignment-compatible with this
     %Value object. Currently this only returns true if the source is exactly
     the same type as this. **/
-    bool isCompatible(const AbstractValue& value) const override 
+    bool isCompatible(const AbstractValue& value) const override
     {   return isA(value); }
 
     /** If the given AbstractValue is assignment-compatible, perform the
     assignment. Otherwise, throw an exception (at least in a Debug build). **/
     void compatibleAssign(const AbstractValue& value) override {
-        if (!isA(value)) 
+        if (!isA(value))
             SimTK_THROW2(Exception::IncompatibleValues,value.getTypeName(),
                          getTypeName());
         *this = downcast(value);
     }
 
-    /** Use NiceTypeName to produce a human-friendly representation of the 
+    /** Use NiceTypeName to produce a human-friendly representation of the
     type `T`. **/
     String getTypeName() const override {return NiceTypeName<T>::namestr();}
 
-    /** (Not implemented yet) Produce a human-friendly representation of the 
+    /** (Not implemented yet) Produce a human-friendly representation of the
     contained value of type `T`. Currently just returns the type name. **/
-    String getValueAsString() const 
+    String getValueAsString() const
     {   return "Value<" + getTypeName() + ">"; }
-    
+
     /** Return true if the given AbstractValue is an object of this type
-    `Value<T>`. **/ 
+    `Value<T>`. **/
     static bool isA(const AbstractValue& value)
     {   return dynamic_cast<const Value*>(&value) != nullptr; }
 
@@ -219,8 +219,8 @@ public:
     static const Value& downcast(const AbstractValue& value)
     {   return SimTK_DYNAMIC_CAST_DEBUG<const Value&>(value); }
 
-    /** Downcast a writable reference to an AbstractValue to a writable 
-    reference to this type `Value<T>`. A std::bad_cast exception is thrown if 
+    /** Downcast a writable reference to an AbstractValue to a writable
+    reference to this type `Value<T>`. A std::bad_cast exception is thrown if
     the type is wrong, at least in Debug builds. **/
     static Value& updDowncast(AbstractValue& value)
     {   return SimTK_DYNAMIC_CAST_DEBUG<Value&>(value); }

@@ -30,10 +30,10 @@ See GazeboReactionForceWithAppliedForceRigid.cpp for the same problem done
 using rigid contact.
 
 It is a stack of three cubes hinged together at their edges. The bottom block
-is heavy and rests on the ground, the other two are light and have their 
+is heavy and rests on the ground, the other two are light and have their
 positions maintained by a pair of PD controllers like this:
 
-              / 
+              /
      link3  /   \         * = pin joint
            /     \
            \  1  /
@@ -41,24 +41,24 @@ positions maintained by a pair of PD controllers like this:
         ------*  45 degrees         ^                     g = 0 0 -50
   link2 |     |                     |   y                       |
         |  6  |                     |  /                        |
-   -----*------                     | /                         v 
+   -----*------                     | /                         v
   |     | 0 degrees                 ---------> x
   | 100 |
   ------- link1
   contact
    GROUND
 
-All the cube edges are of length 1. Masses are 100,6,1 as shown. The top block 
-has a COM that is offset into the +y direction by 0.5. 
+All the cube edges are of length 1. Masses are 100,6,1 as shown. The top block
+has a COM that is offset into the +y direction by 0.5.
 
 Expected reaction force results:
     pin1 on inboard:  tx=-25, ty= 175, fz=-300
-    pin1 on outboard: tx= 25, ty=-175, fx=1, fz= 300, 
+    pin1 on outboard: tx= 25, ty=-175, fx=1, fz= 300,
     pin2 on inboard:  tx=-25, fz=-50
-    pin2 in outboard: tx=25*pi/4, tz=-25*pi/4, fx=fz=50*pi/4 
+    pin2 in outboard: tx=25*pi/4, tz=-25*pi/4, fx=fz=50*pi/4
 
 The reason for fx=1 in the second line is that with a gain of only 50000, the
-first pin joint must be at an angle of 0.0035 radians to generate a torque of 
+first pin joint must be at an angle of 0.0035 radians to generate a torque of
 175. That tips link2's frame in which (0,0,300)_G is reexpressed.
 */
 
@@ -132,7 +132,7 @@ struct MyMultibodySystem {
 
 // Execute the simulation with a given integrator and accuracy, and verify that
 // it produces the correct answers.
-static void runOnce(const MyMultibodySystem& mbs, Integrator& integ, 
+static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
                     Real accuracy);
 
 
@@ -141,7 +141,7 @@ static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
 //==============================================================================
 int main() {
     SimTK_START_TEST("GazeboReactionForce");
-        // Create the system.   
+        // Create the system.
         MyMultibodySystem mbs;
 
         printf("LOW ACCURACY\n");
@@ -162,7 +162,7 @@ int main() {
 // Construct the multibody system. The dampers are built in here but the springs
 // are applied during execution.
 MyMultibodySystem::MyMultibodySystem()
-:   m_system(), m_matter(m_system), 
+:   m_system(), m_matter(m_system),
     m_tracker(m_system), m_contact(m_system,m_tracker),
     m_forces(m_system), m_discrete(m_forces,m_matter)
     #ifdef USE_VISUALIZER
@@ -196,7 +196,7 @@ MyMultibodySystem::MyMultibodySystem()
     link2Info.addDecoration(Centroid, drawCube);
 
     Body::Rigid link3Info(MassProperties(Mass3, COM3, Inertia3));
-    link3Info.addDecoration(Centroid, drawCube);    
+    link3Info.addDecoration(Centroid, drawCube);
 
     MobilizedBody& Ground = m_matter.updGround(); // Nicer name for Ground.
     Ground.addBodyDecoration(Vec3(0,0,.05),
@@ -207,17 +207,17 @@ MyMultibodySystem::MyMultibodySystem()
     const Rotation NegXToZ(Pi/2, YAxis);
     Ground.updBody().addContactSurface(Transform(NegXToZ,Vec3(0)),
         ContactSurface(ContactGeometry::HalfSpace(),lossyMaterial));
-    m_link1 = MobilizedBody::Free(Ground,Vec3(0), 
+    m_link1 = MobilizedBody::Free(Ground,Vec3(0),
                                     link1Info, Vec3(0));
 
     // Use this instead of the free joint to remove contact.
-    //m_link1 = MobilizedBody::Weld(Ground,Vec3(0), 
+    //m_link1 = MobilizedBody::Weld(Ground,Vec3(0),
     //                              link1Info, Vec3(0));
 
     const Rotation ZtoY(-Pi/2, XAxis);
-    m_link2 = MobilizedBody::Pin(m_link1, Transform(ZtoY,2*Centroid), 
+    m_link2 = MobilizedBody::Pin(m_link1, Transform(ZtoY,2*Centroid),
                                     link2Info, Transform(ZtoY,Vec3(0)));
-    m_link3 = MobilizedBody::Pin(m_link2, Transform(ZtoY,2*Centroid), 
+    m_link3 = MobilizedBody::Pin(m_link2, Transform(ZtoY,2*Centroid),
                                     link3Info, Transform(ZtoY,Vec3(0)));
 
     // It is more stable to build the springs into the mechanism like
@@ -239,31 +239,31 @@ MyMultibodySystem::MyMultibodySystem()
 //                                 RUN ONCE
 //==============================================================================
 
-// Reaction force information: results are the joint reaction, at the F frame 
-// on the parent and M frame on the child, expressed in the parent or child 
+// Reaction force information: results are the joint reaction, at the F frame
+// on the parent and M frame on the child, expressed in the parent or child
 // frame, resp. Note that Gazebo's GetForceTorque() method uses the negation of
-// the joint reaction, and Gazebo's results are ordered (force,torque) rather 
+// the joint reaction, and Gazebo's results are ordered (force,torque) rather
 // than (torque,force) as in a Simbody SpatialVec.
 struct ReactionPair {
     SpatialVec reactionOnParentInParent;
     SpatialVec reactionOnChildInChild;
 };
 static ReactionPair getReactionPair(const State&         state,
-                                    const MobilizedBody& mobod); 
+                                    const MobilizedBody& mobod);
 
 // Write interesting integrator info to stdout.
 static void dumpIntegratorStats(const Integrator& integ);
 
 // Run the system until it settles down, then check the answers.
-void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy) 
+void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 {
     integ.setAllowInterpolation(false);
     integ.setAccuracy(accuracy);
     integ.initialize(mbs.m_system.getDefaultState());
 
     printf("Test with order %d integator %s, Accuracy=%g, MaxStepSize=%g\n",
-        integ.getMethodMinOrder(), integ.getMethodName(), 
-        integ.getAccuracyInUse(), MaxStepSize); 
+        integ.getMethodMinOrder(), integ.getMethodName(),
+        integ.getAccuracyInUse(), MaxStepSize);
 
     #ifdef USE_VISUALIZER
     mbs.m_viz.report(integ.getState());
@@ -273,7 +273,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 
     unsigned stepNum = 0;
     while (true) {
-        // Get access to State being advanced by the integrator. Interpolation 
+        // Get access to State being advanced by the integrator. Interpolation
         // must be off so that we're modifying the actual trajectory.
         State& state = integ.updAdvancedState();
 
@@ -289,12 +289,12 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
         // Apply discrete spring forces.
         const Real a1err = mbs.m_link2.getAngle(state)-Target1;
         const Real a2err = mbs.m_link3.getAngle(state)-Target2;
-        mbs.m_discrete.setOneMobilityForce(state, mbs.m_link2, 
+        mbs.m_discrete.setOneMobilityForce(state, mbs.m_link2,
             MobilizerUIndex(0), -Kp1*a1err);
-        mbs.m_discrete.setOneMobilityForce(state, mbs.m_link3, 
+        mbs.m_discrete.setOneMobilityForce(state, mbs.m_link3,
             MobilizerUIndex(0), -Kp2*a2err);
 
-        // Advance time by MaxStepSize. Might take multiple internal steps to 
+        // Advance time by MaxStepSize. Might take multiple internal steps to
         // get there, depending on difficulty and required accuracy.
         const Real tNext = stepNum * MaxStepSize;
         do {integ.stepTo(tNext,tNext);} while (integ.getTime() < tNext);
@@ -313,10 +313,10 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
             << " u=" << mbs.m_link2.getRate(state) << endl;
     cout << "  joint3 qerr=" << mbs.m_link3.getAngle(state)-Target2
             << " u=" << mbs.m_link3.getRate(state) << endl;
-    cout << "  Reaction 2p=" << reaction2.reactionOnParentInParent << "\n"; 
-    cout << "  Reaction 2c=" << reaction2.reactionOnChildInChild << "\n"; 
-    cout << "  Reaction 3p=" << reaction3.reactionOnParentInParent << "\n"; 
-    cout << "  Reaction 3c=" << reaction3.reactionOnChildInChild << "\n"; 
+    cout << "  Reaction 2p=" << reaction2.reactionOnParentInParent << "\n";
+    cout << "  Reaction 2c=" << reaction2.reactionOnChildInChild << "\n";
+    cout << "  Reaction 3p=" << reaction3.reactionOnParentInParent << "\n";
+    cout << "  Reaction 3c=" << reaction3.reactionOnChildInChild << "\n";
 
     // Check the answers. Note (torque,force) ordering.
     SimTK_TEST_EQ_TOL(reaction2.reactionOnParentInParent,
@@ -337,7 +337,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 //                            GET REACTION PAIR
 //==============================================================================
 static ReactionPair getReactionPair(const State&         state,
-                                    const MobilizedBody& mobod) 
+                                    const MobilizedBody& mobod)
 {
     SpatialVec p = mobod.findMobilizerReactionOnParentAtFInGround(state);
     SpatialVec c = mobod.findMobilizerReactionOnBodyAtMInGround(state);
@@ -355,16 +355,16 @@ static ReactionPair getReactionPair(const State&         state,
 //==============================================================================
 static void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }

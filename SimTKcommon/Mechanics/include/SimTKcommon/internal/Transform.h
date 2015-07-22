@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_TRANSFORM_H 
-#define SimTK_SimTKCOMMON_TRANSFORM_H 
+#ifndef SimTK_SimTKCOMMON_TRANSFORM_H
+#define SimTK_SimTKCOMMON_TRANSFORM_H
 
 /* -------------------------------------------------------------------------- *
  *                       Simbody(tm): SimTKcommon                             *
@@ -50,24 +50,24 @@ typedef Transform_<double>  dTransform;
 
 //-----------------------------------------------------------------------------
 /**
- * This class represents the rotate-and-shift transform which gives the 
+ * This class represents the rotate-and-shift transform which gives the
  * location and orientation of a new frame F in a base (reference) frame
  * B. A frame is an orthogonal, right-handed set of three axes, and an
  * origin point. A transform X from frame B to F consists of 3 perpendicular
- * unit vectors defining F's axes as viewed from B (that is, as expressed in 
+ * unit vectors defining F's axes as viewed from B (that is, as expressed in
  * the basis formed by B's axes), and a vector from B's origin point Bo to F's
  * origin point Fo. Note that the meaning of "B" comes from the context in
  * which the transform is used. We use the phrase "frame F is in frame B" to
  * describe the above relationship, that is, "in" means both measured from
- * and expressed in. 
+ * and expressed in.
  *
  * The axis vectors constitute a Rotation_. They are ordered 1-2-3 or x-y-z
- * as you prefer, with z = x X y, making a right-handed set. These axes are 
- * arranged as columns of a 3x3 rotation matrix R_BF = [ x y z ] which is a 
- * direction cosine (rotation) matrix useful for conversions between frame 
+ * as you prefer, with z = x X y, making a right-handed set. These axes are
+ * arranged as columns of a 3x3 rotation matrix R_BF = [ x y z ] which is a
+ * direction cosine (rotation) matrix useful for conversions between frame
  * B and F. (The columns of R_BF are F's coordinate axes, expressed in B.) For
  * example, given a vector vF expressed in the F frame, that same vector
- * re-expressed in B is given by vB = R_BF*vF. F's origin point OF is 
+ * re-expressed in B is given by vB = R_BF*vF. F's origin point OF is
  * stored as the translation vector p_BF=(Fo-Bo) and expressed in B.
  *
  * Transform is designed to behave as much as possible like the computer
@@ -80,14 +80,14 @@ typedef Transform_<double>  dTransform;
  *         [ 0 0 0   1 ]
  * </pre>
  *
- * These can be composed directly by matrix multiplication, but more 
+ * These can be composed directly by matrix multiplication, but more
  * importantly they have a particularly simple inverse:
  * <pre>
  *
  *    -1   [       |    ]
  *   X   = [  ~R   | p* ]   ~R is R transpose, p* = ~R(-p).
  *         [.......|....]
- *         [ 0 0 0   1  ] 
+ *         [ 0 0 0   1  ]
  * </pre>
  *
  * This inverse is so simple that we compute it simply by defining another
@@ -96,9 +96,9 @@ typedef Transform_<double>  dTransform;
  * changing point of view (recasting) rather than computing.
  *
  * This is a "POD" (plain old data) class with a well-defined memory
- * layout on which a client of this class may depend: There are 
+ * layout on which a client of this class may depend: There are
  * exactly 4 consecutive, packed 3-vectors in the order x,y,z,p.
- * That is, this class is equivalent to an array of 12 Reals with 
+ * That is, this class is equivalent to an array of 12 Reals with
  * the order x1,x2,x3,y1,y2,y3,z1,z2,z3,p1,p2,p3. It is expressly allowed
  * to reinterpret Transform objects in any appropriate manner that depends
  * on this memory layout.
@@ -123,7 +123,7 @@ public:
 
     // default copy, assignment, destructor
 
-    /// Assignment from InverseTransform. This means that the 
+    /// Assignment from InverseTransform. This means that the
     /// transform we're assigning to must end up with the same @em meaning
     /// as the inverse transform X has, so we'll need to end up with:
     ///   @li  p == X.p()
@@ -133,7 +133,7 @@ public:
     // (Definition is below after InverseTransform is declared.)
     inline Transform_&  operator=( const InverseTransform_<P>& X );
 
-    /// Add an offset to the position vector in this %Transform. Cost 
+    /// Add an offset to the position vector in this %Transform. Cost
     /// is 3 flops.
     template <int S>
     Transform_& operator+=(const Vec<3,P,S>& offset_B)
@@ -152,13 +152,13 @@ public:
 
     /// By zero we mean "zero transform", i.e., an identity rotation
     /// and zero translation. We return a reference to the now-modified
-    /// transform as though this were an assignment operator. 
+    /// transform as though this were an assignment operator.
     Transform_&  setToZero()  { R_BF.setRotationToIdentityMatrix();  p_BF = P(0);  return *this; }
 
     /// This fills both the rotation and translation with NaNs. Note: this is
     /// @em not the same as a default-constructed transform, which is a
     /// legitimate identity transform instead. We return a reference to the now-modified
-    /// transform as though this were an assignment operator. 
+    /// transform as though this were an assignment operator.
     Transform_&  setToNaN()  { R_BF.setRotationToNaN();  p_BF.setToNaN();  return *this; }
 
     /// Return a read-only inverse of the current Transform_<P>, simply by casting it to
@@ -183,7 +183,7 @@ public:
 
     /// Compose the current transform (X_BF) with one that is supplied
     /// as an InverseTransform_ (typically as a result of applying
-    /// the "~" operator to a transform). That is, return 
+    /// the "~" operator to a transform). That is, return
     /// X_BY=X_BF*X_FY, but now X_FY is represented as ~X_YF. Cost
     /// is an extra 18 flops to calculate X_FY.p(), total 81 flops.
     // (Definition is below after InverseTransform_ is declared.)
@@ -202,13 +202,13 @@ public:
     /// %Transform a point (station) measured from and expressed in
     /// our "F" frame to that same point but measured from and
     /// expressed in our "B" frame. Cost is 18 flops.
-    Vec<3,P>  shiftFrameStationToBase( const Vec<3,P>& sF ) const 
+    Vec<3,P>  shiftFrameStationToBase( const Vec<3,P>& sF ) const
     {   return p_BF + xformFrameVecToBase(sF); }
 
     /// %Transform a point (station) measured from and expressed in
     /// our "B" frame to that same point but measured from and
     /// expressed in our "F" frame. Cost is 18 flops.
-    Vec<3,P>  shiftBaseStationToFrame( const Vec<3,P>& sB ) const 
+    Vec<3,P>  shiftBaseStationToFrame( const Vec<3,P>& sB ) const
     {   return xformBaseVecToFrame(sB - p_BF); }
 
     /// Return a read-only reference to the contained rotation R_BF.
@@ -285,20 +285,20 @@ public:
 private:
     //TODO: these might not pack correctly; should use an array of 12 Reals.
     Rotation_<P> R_BF;   // rotation matrix that expresses F's axes in R
-    Vec<3,P>     p_BF;   // location of F's origin measured from B's origin, expressed in B 
+    Vec<3,P>     p_BF;   // location of F's origin measured from B's origin, expressed in B
 };
 
 
 //-----------------------------------------------------------------------------
 /**
- * %Transform from frame B to frame F, but with the internal representation 
+ * %Transform from frame B to frame F, but with the internal representation
  * inverted. That is, we store R*,p* here but the transform this represents is
  * <pre>
  *
  *             B F    [       |   ]
  *      X_BF =  X   = [   R   | p ]   where R=~(R*), p = - ~(R*)(p*).
  *                    [.......|...]
- *                    [ 0 0 0   1 ] 
+ *                    [ 0 0 0   1 ]
  * </pre>
  */
 //-----------------------------------------------------------------------------
@@ -344,8 +344,8 @@ public:
     // Return X_BY=X_BF*X_FY, but now both xforms are represented by their inverses.
     // This costs one extra vector transformation and a negation (18 flops) more
     // than a composition of two Transforms, for a total of 81 flops.
-    Transform_<P>  compose(const InverseTransform_<P>& X_FY) const { 
-        return Transform_<P>(  ~R_FB * X_FY.R(),  ~R_FB *(X_FY.p() - p_FB)  ); 
+    Transform_<P>  compose(const InverseTransform_<P>& X_FY) const {
+        return Transform_<P>(  ~R_FB * X_FY.R(),  ~R_FB *(X_FY.p() - p_FB)  );
     }
 
     // Forward and inverse vector transformations cost the same here as
@@ -356,7 +356,7 @@ public:
     // Forward and inverse station shift & transform cost the same here as for a Transform_<P>: 18 flops.
     Vec<3,P>  shiftFrameStationToBase(const Vec<3,P>& sF) const  { return ~R_FB*(sF-p_FB); }
     Vec<3,P>  shiftBaseStationToFrame(const Vec<3,P>& sB) const  { return R_FB*sB + p_FB; }
-    
+
     const InverseRotation_<P>&  R() const  {return ~R_FB;}
     InverseRotation_<P>&        updR()     {return ~R_FB;}
 
@@ -400,22 +400,22 @@ private:
     Vec<3,P>     p_FB; // our translation is -(R_BF*p_FB)=-(~R_FB*p_FB)
 };
 
-/// If we multiply a transform or inverse transform by a 3-vector, we treat 
-/// the vector as though it had a 4th element "1" appended, that is, it is 
+/// If we multiply a transform or inverse transform by a 3-vector, we treat
+/// the vector as though it had a 4th element "1" appended, that is, it is
 /// treated as a \e station rather than a \e vector. This way we use both
 /// the rotational and translational components of the transform.
 /// @relates Transform_
-template <class P, int S> inline Vec<3,P>  
-operator*(const Transform_<P>& X_BF,        const Vec<3,P,S>& s_F)  
+template <class P, int S> inline Vec<3,P>
+operator*(const Transform_<P>& X_BF,        const Vec<3,P,S>& s_F)
 {   return X_BF.shiftFrameStationToBase(s_F); }
-template <class P, int S> inline Vec<3,P>  
-operator*(const InverseTransform_<P>& X_BF, const Vec<3,P,S>& s_F)  
+template <class P, int S> inline Vec<3,P>
+operator*(const InverseTransform_<P>& X_BF, const Vec<3,P,S>& s_F)
 {   return X_BF.shiftFrameStationToBase(s_F); }
-template <class P, int S> inline Vec<3,P>  
-operator*(const Transform_<P>& X_BF,        const Vec<3,negator<P>,S>& s_F)  
+template <class P, int S> inline Vec<3,P>
+operator*(const Transform_<P>& X_BF,        const Vec<3,negator<P>,S>& s_F)
 {   return X_BF*Vec<3,P>(s_F); }
-template <class P, int S> inline Vec<3,P>  
-operator*(const InverseTransform_<P>& X_BF, const Vec<3,negator<P>,S>& s_F)  
+template <class P, int S> inline Vec<3,P>
+operator*(const InverseTransform_<P>& X_BF, const Vec<3,negator<P>,S>& s_F)
 {   return X_BF*Vec<3,P>(s_F); }
 
 /// Adding a 3-vector to a Transform produces a new shifted transform.
@@ -436,70 +436,70 @@ operator-(const Transform_<P>& X_BF, const Vec<3,P,S>& offset_B)
 {   return Transform_<P>(X_BF) -= offset_B; }
 
 //-----------------------------------------------------------------------------
-/// If we multiply a transform or inverse transform by an augmented 4-vector, 
-/// we use the 4th element to decide how to treat it. The 4th element must be 
-/// 0 or 1. If 0 it is treated as a vector only and the translation is ignored. 
+/// If we multiply a transform or inverse transform by an augmented 4-vector,
+/// we use the 4th element to decide how to treat it. The 4th element must be
+/// 0 or 1. If 0 it is treated as a vector only and the translation is ignored.
 /// If 1 it is treated as a station and rotated & shifted.
 /// @relates Transform_
-template <class P, int S> inline Vec<4,P> 
+template <class P, int S> inline Vec<4,P>
 operator*(const Transform_<P>& X_BF, const Vec<4,P,S>& a_F) {
     assert(a_F[3]==0 || a_F[3]==1);
     const Vec<3,P,S>& v_F = Vec<3,P,S>::getAs(&a_F[0]); // recast the 1st 3 elements as Vec3
 
     Vec<4,P> out;
-    if( a_F[3] == 0 ) { Vec<3,P>::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);      out[3] = 0; } 
+    if( a_F[3] == 0 ) { Vec<3,P>::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);      out[3] = 0; }
     else              { Vec<3,P>::updAs(&out[0]) = X_BF.shiftFrameStationToBase(v_F);  out[3] = 1; }
     return out;
 }
 
-template <class P, int S> inline Vec<4,P> 
+template <class P, int S> inline Vec<4,P>
 operator*(const InverseTransform_<P>& X_BF, const Vec<4,P,S>& a_F ) {
     assert(a_F[3]==0 || a_F[3]==1);
     const Vec<3,P,S>& v_F = Vec<3,P,S>::getAs(&a_F[0]); // recast the 1st 3 elements as Vec3
 
     Vec<4,P> out;
-    if( a_F[3] == 0 ) { Vec<3,P>::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);      out[3] = 0; } 
+    if( a_F[3] == 0 ) { Vec<3,P>::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);      out[3] = 0; }
     else              { Vec<3,P>::updAs(&out[0]) = X_BF.shiftFrameStationToBase(v_F);  out[3] = 1; }
     return out;
 }
-template <class P, int S> inline Vec<4,P>  
+template <class P, int S> inline Vec<4,P>
 operator*(const Transform_<P>& X_BF,        const Vec<4,negator<P>,S>& s_F)  {return X_BF*Vec<4,P>(s_F);}
-template <class P, int S> inline Vec<4,P>  
+template <class P, int S> inline Vec<4,P>
 operator*(const InverseTransform_<P>& X_BF, const Vec<4,negator<P>,S>& s_F)  {return X_BF*Vec<4,P>(s_F);}
 //-----------------------------------------------------------------------------
 
-/// Multiplying a matrix or vector by a Transform_<P> applies it to each element 
+/// Multiplying a matrix or vector by a Transform_<P> applies it to each element
 /// individually.
 /// @relates Transform_
-template <class P, class E> inline Vector_<E> 
+template <class P, class E> inline Vector_<E>
 operator*(const Transform_<P>& X, const VectorBase<E>& v) {
     Vector_<E> result(v.size());
     for (int i = 0; i < v.size(); ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, class E> inline Vector_<E> 
+template <class P, class E> inline Vector_<E>
 operator*(const VectorBase<E>& v, const Transform_<P>& X) {
     Vector_<E> result(v.size());
     for (int i = 0; i < v.size(); ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, class E> inline RowVector_<E> 
+template <class P, class E> inline RowVector_<E>
 operator*(const Transform_<P>& X, const RowVectorBase<E>& v) {
     RowVector_<E> result(v.size());
     for (int i = 0; i < v.size(); ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, class E> inline RowVector_<E> 
+template <class P, class E> inline RowVector_<E>
 operator*(const RowVectorBase<E>& v, const Transform_<P>& X) {
     RowVector_<E> result(v.size());
     for (int i = 0; i < v.size(); ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, class E> inline Matrix_<E> 
+template <class P, class E> inline Matrix_<E>
 operator*(const Transform_<P>& X, const MatrixBase<E>& v) {
     Matrix_<E> result(v.nrow(), v.ncol());
     for (int i = 0; i < v.nrow(); ++i)
@@ -507,7 +507,7 @@ operator*(const Transform_<P>& X, const MatrixBase<E>& v) {
             result(i, j) = X*v(i, j);
     return result;
 }
-template <class P, class E> inline Matrix_<E> 
+template <class P, class E> inline Matrix_<E>
 operator*(const MatrixBase<E>& v, const Transform_<P>& X) {
     Matrix_<E> result(v.nrow(), v.ncol());
     for (int i = 0; i < v.nrow(); ++i)
@@ -515,35 +515,35 @@ operator*(const MatrixBase<E>& v, const Transform_<P>& X) {
             result(i, j) = X*v(i, j);
     return result;
 }
-template <class P, int N, class E, int S> inline Vec<N,E> 
+template <class P, int N, class E, int S> inline Vec<N,E>
 operator*(const Transform_<P>& X, const Vec<N,E,S>& v) {
     Vec<N,E> result;
     for (int i = 0; i < N; ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, int N, class E, int S> inline Vec<N,E> 
+template <class P, int N, class E, int S> inline Vec<N,E>
 operator*(const Vec<N,E,S>& v, const Transform_<P>& X) {
     Vec<N,E> result;
     for (int i = 0; i < N; ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, int N, class E, int S> inline Row<N,E> 
+template <class P, int N, class E, int S> inline Row<N,E>
 operator*(const Transform_<P>& X, const Row<N,E,S>& v) {
     Row<N,E> result;
     for (int i = 0; i < N; ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, int N, class E, int S> inline Row<N,E> 
+template <class P, int N, class E, int S> inline Row<N,E>
 operator*(const Row<N,E,S>& v, const Transform_<P>& X) {
     Row<N,E> result;
     for (int i = 0; i < N; ++i)
         result[i] = X*v[i];
     return result;
 }
-template <class P, int M, int N, class E, int CS, int RS> inline Mat<M,N,E> 
+template <class P, int M, int N, class E, int CS, int RS> inline Mat<M,N,E>
 operator*(const Transform_<P>& X, const Mat<M,N,E,CS,RS>& v) {
     Mat<M,N,E> result;
     for (int i = 0; i < M; ++i)
@@ -551,7 +551,7 @@ operator*(const Transform_<P>& X, const Mat<M,N,E,CS,RS>& v) {
             result(i, j) = X*v(i, j);
     return result;
 }
-template <class P, int M, int N, class E, int CS, int RS> inline Mat<M,N,E> 
+template <class P, int M, int N, class E, int CS, int RS> inline Mat<M,N,E>
 operator*(const Mat<M,N,E,CS,RS>& v, const Transform_<P>& X) {
     Mat<M,N,E> result;
     for (int i = 0; i < M; ++i)

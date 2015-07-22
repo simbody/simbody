@@ -47,7 +47,7 @@ static const Real MomentScale = 20;
 class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
-                        const CompliantContactSubsystem& complCont) 
+                        const CompliantContactSubsystem& complCont)
     :   m_system(system), m_compliant(complCont) {}
 
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
@@ -88,11 +88,11 @@ private:
 
 class MyReporter : public PeriodicEventReporter {
 public:
-    MyReporter(const MultibodySystem& system, 
+    MyReporter(const MultibodySystem& system,
                const CompliantContactSubsystem& complCont,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
-        m_compliant(complCont) 
+        m_compliant(complCont)
     {}
 
     ~MyReporter() {}
@@ -120,11 +120,11 @@ private:
 
 int main() {
   try
-  { std::cout << "Current working directory: " 
+  { std::cout << "Current working directory: "
               << Pathname::getCurrentWorkingDirectory() << std::endl;
 
     // Create the system.
-    
+
     MultibodySystem         system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -140,10 +140,10 @@ int main() {
     contactForces.setTransitionVelocity(1e-3);
 
     std::ifstream meshFile1, meshFile2;
-    PolygonalMesh femurMesh; 
-    femurMesh.loadObjFile("ContactBigMeshes_Femur.obj"); 
-    PolygonalMesh patellaMesh; 
-    patellaMesh.loadObjFile("ContactBigMeshes_Patella.obj"); 
+    PolygonalMesh femurMesh;
+    femurMesh.loadObjFile("ContactBigMeshes_Femur.obj");
+    PolygonalMesh patellaMesh;
+    patellaMesh.loadObjFile("ContactBigMeshes_Patella.obj");
 
     ContactGeometry::TriangleMesh femurTri(femurMesh);
     ContactGeometry::TriangleMesh patellaTri(patellaMesh);
@@ -171,7 +171,7 @@ int main() {
         Rotation(Mat33( 0.97107625831404454, 0.23876955530133021, 0,
                        -0.23876955530133021, 0.97107625831404454, 0,
                         0,                   0,                   1), true),
-        Vec3(0.057400580865008571, 0.43859170879135373, 
+        Vec3(0.057400580865008571, 0.43859170879135373,
              -0.00016506240185135300)
         );
 
@@ -191,14 +191,14 @@ int main() {
 
 
     Body::Rigid patellaBody(MassProperties(1.0, Vec3(0), Inertia(1)));
-    patellaBody.addDecoration(Transform(), 
+    patellaBody.addDecoration(Transform(),
         showPatella.setColor(Red).setOpacity(.2));
     patellaBody.addContactSurface(Transform(),
         ContactSurface(patellaTri,
             ContactMaterial(fK*.001,fDis*.9,fFac*.8,fFac*.7,fVis*10),
             .01 /*thickness*/));
 
-    MobilizedBody::Free patella(matter.Ground(), Transform(Vec3(0)), 
+    MobilizedBody::Free patella(matter.Ground(), Transform(Vec3(0)),
                                 patellaBody,    Transform(Vec3(0)));
 
 
@@ -209,12 +209,12 @@ int main() {
     //OLDcontact.addBody(OLDcontactSet, matter.updGround(),
     //    ContactGeometry::HalfSpace(), Transform(R_xdown, Vec3(0,-3,0)));
     //ElasticFoundationForce ef(forces, OLDcontact, OLDcontactSet);
-    //Real stiffness = 1e6, dissipation = 0.01, us = 0.1, 
+    //Real stiffness = 1e6, dissipation = 0.01, us = 0.1,
     //    ud = 0.05, uv = 0.01, vt = 0.01;
-    ////Real stiffness = 1e6, dissipation = 0.1, us = 0.8, 
+    ////Real stiffness = 1e6, dissipation = 0.1, us = 0.8,
     ////    ud = 0.7, uv = 0.01, vt = 0.01;
 
-    //ef.setBodyParameters(ContactSurfaceIndex(0), 
+    //ef.setBodyParameters(ContactSurfaceIndex(0),
     //    stiffness, dissipation, us, ud, uv);
     //ef.setTransitionVelocity(vt);
     //// end of old way.
@@ -228,27 +228,27 @@ int main() {
     system.addEventReporter(&reporter);
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
     viz.report(state);
     printf("Reference state -- hit ENTER\n");
-    cout << "t=" << state.getTime() 
-         << " q=" << patella.getQAsVector(state)  
-         << " u=" << patella.getUAsVector(state)  
+    cout << "t=" << state.getTime()
+         << " q=" << patella.getQAsVector(state)
+         << " u=" << patella.getUAsVector(state)
          << endl;
     char c=getchar();
 
     patella.setQToFitTransform(state, ~X_FP);
     viz.report(state);
     printf("Initial state -- hit ENTER\n");
-    cout << "t=" << state.getTime() 
-         << " q=" << patella.getQAsVector(state)  
-         << " u=" << patella.getUAsVector(state)  
+    cout << "t=" << state.getTime()
+         << " q=" << patella.getQAsVector(state)
+         << " u=" << patella.getUAsVector(state)
          << endl;
     c=getchar();
-    
+
     // Simulate it.
     const clock_t start = clock();
 
@@ -260,11 +260,11 @@ int main() {
     const double timeInSec = (double)(clock()-start)/CLOCKS_PER_SEC;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
 
-    printf("Using Integrator %s at accuracy %g:\n", 
+    printf("Using Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());

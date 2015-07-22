@@ -43,7 +43,7 @@ namespace SimTK {
 //                              GEO :: POINT
 //==============================================================================
 
-// These local helpers find the minimum or maximum of several values and 
+// These local helpers find the minimum or maximum of several values and
 // return which one was the extreme value.
 template <class P>
 inline static void minOf(P a, P b, P& minVal, int& which) {
@@ -120,10 +120,10 @@ findSupportPoint(const Array_<Vec3P>& points, const UnitVec3P& direction,
 }
 
 template <class P> /*static*/ void Geo::Point_<P>::
-findSupportPointIndirect(const Array_<const Vec3P*>& points, 
+findSupportPointIndirect(const Array_<const Vec3P*>& points,
                          const UnitVec3P& direction,
                          int& most, RealP& maxCoord) {
-    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_",
         "findSupportPointIndirect()",
         "There must be at least one point in the set.");
     most=0; maxCoord = dot(*points[0],direction);
@@ -134,14 +134,14 @@ findSupportPointIndirect(const Array_<const Vec3P*>& points,
 }
 
 // Given a set of points, find the two points that are the most extreme along
-// a given direction (not necessarily distinct). There must be at least one 
+// a given direction (not necessarily distinct). There must be at least one
 // point in the set.
 template <class P> /*static*/ void Geo::Point_<P>::
 findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
                   int& least, int& most, RealP& leastCoord, RealP& mostCoord) {
     SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", "findExtremePoints()",
         "There must be at least one point in the set.");
-    least=most=0; 
+    least=most=0;
     leastCoord = dot(points[0],direction); mostCoord=leastCoord;
     for (int i=1; i < (int)points.size(); ++i) {
         const Vec3P& p = points[i];
@@ -152,14 +152,14 @@ findExtremePoints(const Array_<Vec3P>& points, const UnitVec3P& direction,
 }
 
 template <class P> /*static*/ void Geo::Point_<P>::
-findExtremePointsIndirect(const Array_<const Vec3P*>& points, 
+findExtremePointsIndirect(const Array_<const Vec3P*>& points,
                           const UnitVec3P& direction,
-                          int& least, int& most, 
+                          int& least, int& most,
                           RealP& leastCoord, RealP& mostCoord) {
-    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_",
         "findExtremePointsIndirect()",
         "There must be at least one point in the set.");
-    least=most=0; 
+    least=most=0;
     leastCoord = dot(*points[0],direction); mostCoord=leastCoord;
     for (int i=1; i < (int)points.size(); ++i) {
         const Vec3P& p = *points[i];
@@ -212,7 +212,7 @@ calcCovariance(const Array_<Vec3P>& points_F,
 template <class P> /*static*/ void Geo::Point_<P>::
 calcCovarianceIndirect(const Array_<const Vec3P*>& points_F,
                        Vec3P& centroid, SymMat33P& covariance) {
-    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_",
         "calcCovarianceIndirect()",
         "There must be at least one point in the set.");
 
@@ -250,7 +250,7 @@ calcPrincipalComponents(const Array_<Vec3P>& points_F,
 template <class P> /*static*/ void Geo::Point_<P>::
 calcPrincipalComponentsIndirect(const Array_<const Vec3P*>& points_F,
                                 TransformP&                 X_FP) {
-    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_",
         "calcPrincipalComponentsIndirect()",
         "There must be at least one point in the set.");
 
@@ -276,11 +276,11 @@ calcPrincipalComponentsIndirect(const Array_<const Vec3P*>& points_F,
 
     // Eigenvectors for a real symmetric matrix are perpendicular and
     // normalized already.
-    UnitVec3P longAxis( Vec3P(evecs(0,maxIx).real(), evecs(1,maxIx).real(), 
-                              evecs(2,maxIx).real()), 
+    UnitVec3P longAxis( Vec3P(evecs(0,maxIx).real(), evecs(1,maxIx).real(),
+                              evecs(2,maxIx).real()),
                         true); // "trust me" to prevent normalizing
-    UnitVec3P shortAxis(Vec3P(evecs(0,minIx).real(), evecs(1,minIx).real(), 
-                              evecs(2,minIx).real()), 
+    UnitVec3P shortAxis(Vec3P(evecs(0,minIx).real(), evecs(1,minIx).real(),
+                              evecs(2,minIx).real()),
                         true);
     X_FP.updR() = RotationP(longAxis, XAxis, shortAxis, YAxis);
 }
@@ -294,13 +294,13 @@ template <class P> /*static*/ void Geo::Point_<P>::
 findAxisAlignedExtremePoints(const Array_<Vec3P>& points,
                              int least[3], int most[3],
                              Vec3P& low, Vec3P& high) {
-    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_",
         "findAxisAlignedExtremePoints()",
         "There must be at least one point in the set.");
 
     low=points[0]; high=points[0];
     for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
-    
+
     for (int i=1; i < (int)points.size(); ++i) {
         const Vec3P& p = points[i];
         if (p[0] < low [0]) low [0]=p[0], least[0]=i;
@@ -319,13 +319,13 @@ template <class P> /*static*/ void Geo::Point_<P>::
 findAxisAlignedExtremePointsIndirect(const Array_<const Vec3P*>& points,
                                      int least[3], int most[3],
                                      Vec3P& low, Vec3P& high) {
-    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points.empty(),"Geo::Point_",
         "findAxisAlignedExtremePointsIndirect()",
         "There must be at least one point in the set.");
 
     low=(*points[0]); high=(*points[0]);
     for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
-    
+
     for (int i=1; i < (int)points.size(); ++i) {
         const Vec3P& p = (*points[i]);
         if (p[0] < low [0]) low [0]=p[0], least[0]=i;
@@ -370,13 +370,13 @@ calcAxisAlignedBoundingBoxIndirect(const Array_<const Vec<3,P>*>& points,
                      std::max(high[1]-ctr[1], ctr[1]-low[1]),
                      std::max(high[2]-ctr[2], ctr[2]-low[2]));
 
-    return AlignedBox_<P>(ctr, hdim).stretchBoundary(); 
+    return AlignedBox_<P>(ctr, hdim).stretchBoundary();
 }
 
 
-// This signature takes an array of points, creates an array of pointers to 
+// This signature takes an array of points, creates an array of pointers to
 // those points and calls the other signature.
-template <class P> /*static*/ 
+template <class P> /*static*/
 Geo::AlignedBox_<P> Geo::Point_<P>::
 calcAxisAlignedBoundingBox(const Array_< Vec<3,P> >& points,
                            Array_<int>&         support) {
@@ -390,18 +390,18 @@ calcAxisAlignedBoundingBox(const Array_< Vec<3,P> >& points,
 //==============================================================================
 
 template <class P> /*static*/ void Geo::Point_<P>::
-findOrientedExtremePoints(const Array_<Vec3P>& points_F, 
+findOrientedExtremePoints(const Array_<Vec3P>& points_F,
                           const RotationP& R_FB,
                           int least[3], int most[3],
                           Vec3P& low_B, Vec3P& high_B) {
-    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_",
         "findOrientedExtremePoints()",
         "There must be at least one point in the set.");
     const RotationP R_BF = ~R_FB;
 
     low_B=R_BF*points_F[0]; high_B=R_BF*points_F[0];
     for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
-    
+
     for (int i=1; i < (int)points_F.size(); ++i) {
         const Vec3P p = R_BF*points_F[i];
         if (p[0] < low_B [0]) low_B [0]=p[0], least[0]=i;
@@ -415,18 +415,18 @@ findOrientedExtremePoints(const Array_<Vec3P>& points_F,
 
 
 template <class P> /*static*/ void Geo::Point_<P>::
-findOrientedExtremePointsIndirect(const Array_<const Vec3P*>& points_F, 
+findOrientedExtremePointsIndirect(const Array_<const Vec3P*>& points_F,
                                   const RotationP& R_FB,
                                   int least[3], int most[3],
                                   Vec3P& low_B, Vec3P& high_B) {
-    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_", 
+    SimTK_APIARGCHECK(!points_F.empty(),"Geo::Point_",
         "findOrientedExtremePointsIndirect()",
         "There must be at least one point in the set.");
     const RotationP R_BF = ~R_FB;
 
     low_B=R_BF*(*points_F[0]); high_B=R_BF*(*points_F[0]);
     for (int i=0; i<3; i++) least[i]=most[i]=0; // point 0 most extreme so far
-    
+
     for (int i=1; i < (int)points_F.size(); ++i) {
         const Vec3P p = R_BF*(*points_F[i]);
         if (p[0] < low_B [0]) low_B [0]=p[0], least[0]=i;
@@ -444,9 +444,9 @@ template <class P>
 class VolumeGradient : public Differentiator::GradientFunction {
     typedef Vec<3,P> Vec3P;
 public:
-    VolumeGradient(const Array_<const Vec3P*>&  points, 
+    VolumeGradient(const Array_<const Vec3P*>&  points,
                    const Rotation_<P>&          R_FB0)
-    :   Differentiator::GradientFunction(3,(Real)Geo::getDefaultTol<P>()), 
+    :   Differentiator::GradientFunction(3,(Real)Geo::getDefaultTol<P>()),
         p(&points), R_FB0(R_FB0) {}
 
     // This function calculates the volume as a function of rotation angles
@@ -498,8 +498,8 @@ calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points_F,
     // This is a very abbreviated steepest-descent optimizer. Starting with
     // R_FB0 it uses three Euler angles a as parameters for an incremental
     // rotation R_B0B(a) and calculates volume of the box whose orientation
-    // is R_FB(a)=R_FB0*R_B0B(a). It calculates the downhill gradient once, 
-    // then does a line search along that gradient and quits as soon as it 
+    // is R_FB(a)=R_FB0*R_B0B(a). It calculates the downhill gradient once,
+    // then does a line search along that gradient and quits as soon as it
     // stops making significant progress.
     if (optimize) {
         VolumeGradient<P> grad(points_F, R_FB);
@@ -530,21 +530,21 @@ calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points_F,
 
             if (tryVol < volume) {
                 const RealP improvement = (volume-tryVol)/volume;
-                for (int j=0; j<3; ++j) 
+                for (int j=0; j<3; ++j)
                     least[j]=tryLeast[j], most[j]=tryMost[j];
                 R_FB = tryR_FB;
                 extent_B = tryExtent_B;
                 center_F = R_FB*(tryHigh_B+tryLow_B)/2;
                 volume = tryVol;
                 if (improvement < MinImprovement)
-                    break;           
+                    break;
                 incr *= RealP(1.5); // grow slowly
                 continue;
-            } 
+            }
 
             // Volume got worse.
-            step += incr; // back to previous best 
-            if (incr <= minIncr) 
+            step += incr; // back to previous best
+            if (incr <= minIncr)
                 break;
             incr /= 10; // shrink fast
         }
@@ -557,7 +557,7 @@ calcOrientedBoundingBoxIndirect(const Array_<const Vec3P*>& points_F,
         supportSet.insert(most[i]);
     }
     support.assign(supportSet.begin(), supportSet.end());
-    
+
     OrientedBox_<P> obb(TransformP(R_FB,center_F), extent_B/2);
     return obb.stretchBoundary();
 }
@@ -581,7 +581,7 @@ calcOrientedBoundingBox(const Array_<Vec3P>& points,
 //                       CALC BOUNDING SPHERE - 2 POINTS
 //==============================================================================
 /* I bet you think this is easy! Unfortunately if the points in question are
-far from the origin (at 100, say) but close together, we can't compute the 
+far from the origin (at 100, say) but close together, we can't compute the
 separation very accurately (around 100*eps for this example). So the resulting
 sphere can be too big (annoying but OK) or too small (very bad). Also, if the
 line length is <= tol, we want to consider these a single point rather than
@@ -596,11 +596,11 @@ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
     const Vec3P ctr = (p0 + p1)/2; // 6 flops
 
     // Rather than using (p0-p1)/2 as the radius which can result in a sphere
-    // that doesn't include the points by a large margin (I tried it), measure 
-    // the actual distances from the center to each point and use the larger 
-    // as the radius. If that radius is <= tol/2 (meaning line length <= tol) 
-    // then we'll just move the center to the closer point, set the radius to 
-    // tol or more (depending on expected roundoff) and return with 1 support 
+    // that doesn't include the points by a large margin (I tried it), measure
+    // the actual distances from the center to each point and use the larger
+    // as the radius. If that radius is <= tol/2 (meaning line length <= tol)
+    // then we'll just move the center to the closer point, set the radius to
+    // tol or more (depending on expected roundoff) and return with 1 support
     // point (i.e., we consider this a point not a line).
     const RealP p0d2 = (p0-ctr).normSqr();  // squared dist from center
     const RealP p1d2 = (p1-ctr).normSqr();  // (8 flops each)
@@ -611,18 +611,18 @@ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
         rad = std::sqrt(p0d2);          // 20 flops
         if (rad <= tol/2) {             //  2 flops
             which.push_back(1);
-            return Sphere_<P>(p1, 0).stretchBoundary(); 
+            return Sphere_<P>(p1, 0).stretchBoundary();
         }
     } else { // p1d2 > p0d2
         rad = std::sqrt(p1d2);          // same cost here
         if (rad <= tol/2) {
             which.push_back(0);
-            return Sphere_<P>(p0, 0).stretchBoundary(); 
+            return Sphere_<P>(p0, 0).stretchBoundary();
         }
     }
     // use both points
     which.push_back(0); which.push_back(1);
-    return Sphere_<P>(ctr, rad).stretchBoundary(); 
+    return Sphere_<P>(ctr, rad).stretchBoundary();
 }
 
 
@@ -631,14 +631,14 @@ calcBoundingSphere(const Vec3P& p0, const Vec3P& p1, Array_<int>& which) {
 //                       CALC BOUNDING SPHERE - 3 POINTS
 //==============================================================================
 /* (Note that the 3- and 4-point methods from Nicolas Capens compute only the
-sphere that passes through all points (the circumsphere), which can be *way* 
+sphere that passes through all points (the circumsphere), which can be *way*
 too big.)
 
 This method produces the minimum bounding sphere around three points (i.e.,
 a triangle) for all cases except some very, very small triangles where it will
-give a small, but perhaps not minimal, bounding sphere. It is 
-modified from Christer Ericson's blog: "Minimum bounding circle (sphere) for 
-a triangle (tetrahedron)" July 27, 2007. 
+give a small, but perhaps not minimal, bounding sphere. It is
+modified from Christer Ericson's blog: "Minimum bounding circle (sphere) for
+a triangle (tetrahedron)" July 27, 2007.
 http://realtimecollisiondetection.net/blog/?p=20
 Accessed 12/12/2011 and reimplemented by Sherm. The main change is handling of
 singular triangles and roundoff problems.
@@ -647,7 +647,7 @@ Cost is about 110 flops for a typical case.
 
 Implementation
 --------------
-We have a triangle with vertices a,b,c with no restrictions on their placement 
+We have a triangle with vertices a,b,c with no restrictions on their placement
 (i.e., they can be singular in several different ways). Algorithm:
     - Calculate the area of the triangle.
     - If the area is very small:
@@ -658,27 +658,27 @@ We have a triangle with vertices a,b,c with no restrictions on their placement
          - Return that sphere as the result (might not be perfect but will
            be very good).
     - Else (area is OK):
-         - Calculate barycentric coordinates s,t, u=1-s-t of the 
+         - Calculate barycentric coordinates s,t, u=1-s-t of the
            circumsphere center P (the point equidistant to all vertices).
-         - If s,t, or u < 0, P lies outside the triangle and a 2-point sphere 
-           will be smaller. Drop the corresponding vertex and return the 
+         - If s,t, or u < 0, P lies outside the triangle and a 2-point sphere
+           will be smaller. Drop the corresponding vertex and return the
            bounding sphere for the remaining edge (2 supporting points).
          - Otherwise return the circumsphere (3 supporting points).
          - There is an option to force use of the circumsphere regardless of
            where P ends up; sometimes that is needed by the 4-point method.
 
 How to calculate the circumsphere:
-    We express center P as P=a + s*(b-a) + t*(c-a). This point is to be 
+    We express center P as P=a + s*(b-a) + t*(c-a). This point is to be
     equidistant from all vertices, giving us two equations for s and t:
            (P-b)^2 = (P-a)^2, (P-c)^2 = (P-a)^2
     Substituting the definition of P gives us the following system of equations
     for s and t:
            [ab^2  abac] [s]   [ab^2/2]
            [abac  ac^2] [t] = [ac^2/2]   or   M x = b
-    We'll use Cramer's rule to solve the equation, which requires computing 
-    determinants of three matrices: M, Ms, Mt where the latter are M with its 
-    1st or 2nd column replaced by b. Let dm=det(M), ds=det(Ms), dt=det(Mt). 
-    Then s=ds/dm, t=dt/dm. Determinant dm is related to the area of the 
+    We'll use Cramer's rule to solve the equation, which requires computing
+    determinants of three matrices: M, Ms, Mt where the latter are M with its
+    1st or 2nd column replaced by b. Let dm=det(M), ds=det(Ms), dt=det(Mt).
+    Then s=ds/dm, t=dt/dm. Determinant dm is related to the area of the
     triangle by 2*a = sqrt(dm), so dm = 4 a^2. Note that dm can't be negative
     except possibly due to roundoff error. Below we'll actually calculate
     2*dm, 2*ds, etc. since that saves some multiplies.
@@ -694,10 +694,10 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
     const RealP abac = dot(ab, ac); // == |ab||ac|cos theta     5 flops
     const RealP ab2ac2 = ab2*ac2;                           //  1 flop
 
-    // The expression below is equivalent to 
+    // The expression below is equivalent to
     //      dm2 = 2*dm = 2 * (|ab||ac|)^2 * (1-cos^2 theta)
     // where theta is the angle between side ab and ac. That quantity can't
-    // be negative except for roundoff error. Note that the area of this 
+    // be negative except for roundoff error. Note that the area of this
     // triangle is area = 1/2 sqrt(ab2*ac2-square(abac)) so dm2 = 8*area^2
     const RealP dm2 = 2*(ab2ac2 - square(abac));             //  3 flops
 
@@ -735,8 +735,8 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
         // all 3 points to be on the sphere surface. If one or more of the
         // barycentric coordinates is negative, it means that the circumsphere
         // center is outside the triangle. Pick the most negative, then drop
-        // the opposite vertex. The circumsphere around the remaining edge will 
-        // include the dropped one for free. 
+        // the opposite vertex. The circumsphere around the remaining edge will
+        // include the dropped one for free.
 
         // s controls P's height over ac, t over ab, u=1-s-t over bc.
         const RealP ds2 = ab2ac2 - ac2*abac;                 // 2 flops
@@ -753,24 +753,24 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
             switch(minBaryIx) {
             case 0: // s is the most negative
                 map[0]=0; map[1]=2; // sphere around ac includes b
-                edgeSphere=calcBoundingSphere(a,c,which); 
+                edgeSphere=calcBoundingSphere(a,c,which);
                 break;
             case 1: // t is the most negative
                 map[0]=0; map[1]=1; // sphere around ab includes c
-                edgeSphere=calcBoundingSphere(a,b,which); 
+                edgeSphere=calcBoundingSphere(a,b,which);
                 break;
             case 2: // u=1-s-t is the most negative
                 map[0]=1; map[1]=2; // sphere around bc includes a
-                edgeSphere=calcBoundingSphere(b,c,which); 
+                edgeSphere=calcBoundingSphere(b,c,which);
                 break;
             };
             fixWhich(map, which);
             ctr = edgeSphere.getCenter();
         } else { // s,t,u > 0 or we're forced to use circumsphere
-            // All barycentric coordinates are positive. The circumsphere's 
+            // All barycentric coordinates are positive. The circumsphere's
             // center will be inside the triangle and thus of minimal size
             // (unless we were forced to use the circumsphere).
-            which.clear(); 
+            which.clear();
             which.push_back(0); which.push_back(1); which.push_back(2);
             const Vec3P aToCenter = s*ab + t*ac;    //   9 flops
             ctr = a + aToCenter;                    //   3 flops
@@ -782,7 +782,7 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
 
     // This cleans up ugly roundoff errors that cause the center not to be
     // exactly equidistant from the points. This makes sure that the radius
-    // touches the outermost point with the rest inside. This is 
+    // touches the outermost point with the rest inside. This is
     // expensive but worth it to ensure a trouble-free sphere.
     RealP rmax2; int rmaxIx;
     maxOf((a-ctr).normSqr(),(b-ctr).normSqr(),(c-ctr).normSqr(),
@@ -790,7 +790,7 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b, const Vec3P& c,
     const RealP rad = std::sqrt(rmax2);              // 20 flops
 
     // If the max radius point wasn't in the support set, we have to add it.
-    if (   which.size() < 3 
+    if (   which.size() < 3
         && std::find(which.begin(), which.end(), rmaxIx) == which.end())
         which.push_back(rmaxIx);
 
@@ -810,7 +810,7 @@ Cost is about 190 flops in a typical case where all 4 points are used.
 
 Implementation
 --------------
-We have a tetrahedron with vertices a,b,c,d with no restrictions on their 
+We have a tetrahedron with vertices a,b,c,d with no restrictions on their
 placement (i.e., they can be singular in a bunch of different ways). Algorithm:
     - Calculate the volume of the tetrahedron.
     - If the volume is very small:
@@ -821,9 +821,9 @@ placement (i.e., they can be singular in a bunch of different ways). Algorithm:
          - Return that sphere as the result (might not be perfect but will
            be very good).
     - Else (volume is OK):
-         - Calculate barycentric coordinates s,t,u, v=1-s-t-u of the 
+         - Calculate barycentric coordinates s,t,u, v=1-s-t-u of the
            circumsphere center P (the point equidistant to all vertices).
-         - If s,t,u, or v < 0, P lies outside the tetrahedron and a 3-point 
+         - If s,t,u, or v < 0, P lies outside the tetrahedron and a 3-point
            sphere will be smaller. Drop the corresponding vertex and return the
            bounding sphere for the remaining face. (3 support points).
          - Otherwise return the circumsphere (4 support points).
@@ -831,7 +831,7 @@ placement (i.e., they can be singular in a bunch of different ways). Algorithm:
            where P ends up.
 
 How to calculate the circumsphere:
-    We express center P as P=a + s*(b-a) + t*(c-a) + u*(d-a). This point is to 
+    We express center P as P=a + s*(b-a) + t*(c-a) + u*(d-a). This point is to
     be equidistant from all vertices, giving us 3 equations for s, t, and u:
            (P-b)^2 = (P-a)^2, (P-c)^2 = (P-a)^2, (P-d)^2 = (P-a)^2
     Substituting the definition of P gives us the following system of equations
@@ -839,19 +839,19 @@ How to calculate the circumsphere:
          [ab^2  abac  abad] [s]   [ab^2/2]
          [abac  ac^2  acad] [t] = [ac^2/2]   or   M x = b
          [abad  acad  ad^2] [u] = [ad^2/2]
-    We'll use Cramer's rule to solve the equation, which requires computing 
-    determinants of four matrices: M, Ms, Mt, Mu where the latter are M with 
-    its 1st, 2nd, or 3rd column replaced by b. Let dm=det(M), ds=det(Ms), 
-    dt=det(Mt), du=det(Mu). Then s=ds/dm, t=dt/dm, u=du/dm. There are going to 
-    be lots of common subexpressions, and we can pick up face areas along the 
-    way. Also, determinant dm is related to the volume of the tetrahedron by 
+    We'll use Cramer's rule to solve the equation, which requires computing
+    determinants of four matrices: M, Ms, Mt, Mu where the latter are M with
+    its 1st, 2nd, or 3rd column replaced by b. Let dm=det(M), ds=det(Ms),
+    dt=det(Mt), du=det(Mu). Then s=ds/dm, t=dt/dm, u=du/dm. There are going to
+    be lots of common subexpressions, and we can pick up face areas along the
+    way. Also, determinant dm is related to the volume of the tetrahedron by
     6*v = sqrt(dm), so dm = 36 v^2. Note that dm can't be negative except
     possibly due to roundoff error. Below we'll work with 2*dm, 2*ds, etc.
     because it saves some multiplies.
 */
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
-calcBoundingSphere(const Vec3P& a, const Vec3P& b, 
+calcBoundingSphere(const Vec3P& a, const Vec3P& b,
                    const Vec3P& c, const Vec3P& d,
                    bool forceCircumsphere, Array_<int>& which) {
     const RealP tol = Geo::getDefaultTol<P>();
@@ -861,11 +861,11 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
     const RealP abad = dot(ab, ad); // == |ab||ad|cos theta   ( 5 flops)
     const RealP acad = dot(ac, ad); // == |ac||ad|cos theta   ( 5 flops)
     // 25 flops in the next two lines.
-    const RealP ab2=ab.normSqr(), ac2=ac.normSqr(), ad2=ad.normSqr(); 
+    const RealP ab2=ab.normSqr(), ac2=ac.normSqr(), ad2=ad.normSqr();
     const RealP abac2=square(abac), abad2=square(abad), acad2=square(acad);
     const RealP ab2ac2=ab2*ac2, ab2ad2=ab2*ad2, ac2ad2=ac2*ad2;
     const RealP ab2ac2ad2=ab2ac2*ad2;
-   
+
     const RealP dm2 = 2*(  ab2ac2ad2          // 10 flops
                          - ab2*acad2
                          - ad2*abac2
@@ -886,7 +886,7 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
         const Vec3P bc = c-b, cd = d-c;
         const RealP bccd = dot(bc, cd), bccd2 = square(bccd);
         const RealP bc2=bc.normSqr(), cd2=cd.normSqr(), bc2cd2=bc2*cd2;
-        // Find the largest face.The expressions below are equivalent to, for 
+        // Find the largest face.The expressions below are equivalent to, for
         // example: (|ab||ac|)^2 * (1-cos^2 theta)
         // where theta is the angle between side ab and ac. Note that the area
         // of this triangle is area = 1/2 sqrt(ab2*ac2-square(abac)).
@@ -916,8 +916,8 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
         // all four points to be on the sphere surface. If one or more of the
         // barycentric coordinates is negative, it means that the circumsphere
         // center is outside the tetrahedron. Pick the most negative, then drop
-        // the opposite vertex. The circumsphere around the remaining face will 
-        // include the dropped one for free. 
+        // the opposite vertex. The circumsphere around the remaining face will
+        // include the dropped one for free.
 
         // s controls height over acd, t over abd, u over abc, 1-s-t-u over bcd.
         const RealP ds2 =  ab2ac2ad2            // 12 flops
@@ -937,10 +937,10 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
                          + ac2*abac*abad
                          - ad2*abac2
                          - ab2ac2*acad
-                         - ab2ac2*abad;    
-        const RealP dv2 = dm2-ds2-dt2-du2;      //  3 flops  
+                         - ab2ac2*abad;
+        const RealP dv2 = dm2-ds2-dt2-du2;      //  3 flops
         const RealP oodm2 = 1/dm2; // (> 0)       ~10 flops
-        const RealP s=ds2*oodm2, t=dt2*oodm2, u=du2*oodm2, v=dv2*oodm2; 
+        const RealP s=ds2*oodm2, t=dt2*oodm2, u=du2*oodm2, v=dv2*oodm2;
                                                 //  4 flops
 
         RealP minBary; int minBaryIx;
@@ -957,31 +957,31 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
                 break;
             case 1: // t is the most negative
                 map[0]=0; map[1]=1; map[2]=3; // sphere around abd includes c
-                faceSphere=calcBoundingSphere(a,b,d,false,which); 
+                faceSphere=calcBoundingSphere(a,b,d,false,which);
                 if (which.size()<3 && faceSphere.isPointOutside(c))
-                    faceSphere=calcBoundingSphere(a,b,d,true,which); 
+                    faceSphere=calcBoundingSphere(a,b,d,true,which);
                 break;
             case 2: // u is the most negative
                 map[0]=0; map[1]=1; map[2]=2; // sphere around abc includes d
-                faceSphere=calcBoundingSphere(a,b,c,false,which); 
+                faceSphere=calcBoundingSphere(a,b,c,false,which);
                 if (which.size()<3 && faceSphere.isPointOutside(d))
-                    faceSphere=calcBoundingSphere(a,b,c,true,which); 
+                    faceSphere=calcBoundingSphere(a,b,c,true,which);
                 break;
             case 3: // v is the most negative
                 map[0]=1; map[1]=2; map[2]=3; // sphere around bcd includes a
-                faceSphere=calcBoundingSphere(b,c,d,false,which); 
+                faceSphere=calcBoundingSphere(b,c,d,false,which);
                 if (which.size()<3 && faceSphere.isPointOutside(d))
-                    faceSphere=calcBoundingSphere(b,c,d,true,which); 
+                    faceSphere=calcBoundingSphere(b,c,d,true,which);
                 break;
             };
             fixWhich(map, which);
             ctr = faceSphere.getCenter();
         } else { // s,t,u,v > 0 or we're forced to use circumsphere
-            // All barycentric coordinates are positive. The circumsphere's 
+            // All barycentric coordinates are positive. The circumsphere's
             // center will be inside the tetrahedron and thus of minimal size
             // (unless we were forced to use the circumsphere).
-            which.clear(); 
-            which.push_back(0); which.push_back(1);  
+            which.clear();
+            which.push_back(0); which.push_back(1);
             which.push_back(2); which.push_back(3);
             const Vec3P aToCenter = s*ab + t*ac + u*ad;     //  12 flops
             ctr = a + aToCenter;                            //   3 flops
@@ -993,7 +993,7 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
 
     // This cleans up ugly roundoff errors that cause the center not to be
     // exactly equidistant from the points. This makes sure that the radius
-    // touches the outermost point with the rest inside. This is 
+    // touches the outermost point with the rest inside. This is
     // expensive but worth it to ensure a trouble-free sphere.
     RealP rmax2; int rmaxIx;
     maxOf((a-ctr).normSqr(),(b-ctr).normSqr(),
@@ -1002,7 +1002,7 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
     const RealP rad = std::sqrt(rmax2);              // 20 flops
 
     // If the max radius point wasn't in the support set, we have to add it.
-    if (   which.size() < 4 
+    if (   which.size() < 4
         && std::find(which.begin(), which.end(), rmaxIx) == which.end())
         which.push_back(rmaxIx);
 
@@ -1015,17 +1015,17 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
 //                       CALC BOUNDING SPHERE - N POINTS
 //==============================================================================
 // This is called recursively to calculate the minimum bounding sphere for a
-// set of points (like the vertices of a mesh). It uses an algorithm developed 
+// set of points (like the vertices of a mesh). It uses an algorithm developed
 // by Emo Welzl which, despite appearances, has O(n) expected running time.
-// We tried the implementation by Nicolas Capens at 
+// We tried the implementation by Nicolas Capens at
 // http://www.flipcode.com/archives/Smallest_Enclosing_Spheres.shtml.
-// As described there, the algorithm is highly susceptible to numerical 
-// instabilities. Bernd Gartner describes an improved version in "Fast and 
-// robust smallest enclosing balls", Proc. 7th Annual ACM European Symposium on 
+// As described there, the algorithm is highly susceptible to numerical
+// instabilities. Bernd Gartner describes an improved version in "Fast and
+// robust smallest enclosing balls", Proc. 7th Annual ACM European Symposium on
 // Algorithms, v. 1643 Lecture Notes in Computer Science, pp. 325-338, 1999.
 // The implementation here follows Gartner's "pivoting" method which uses
-// Welzl's recursive algorithm only for maximum sets of 5 points. But here the 
-// primitives have been reworked so that they deal nicely with singularities 
+// Welzl's recursive algorithm only for maximum sets of 5 points. But here the
+// primitives have been reworked so that they deal nicely with singularities
 // and roundoff. TODO: there are still rare problems that crop up in random-
 // point tests. With about 5 million random sets of 1000 points (see TestGeo)
 // I found a case that went into an infinite loop (now falls back to Ritter
@@ -1036,8 +1036,8 @@ calcBoundingSphere(const Vec3P& a, const Vec3P& b,
 // than Ritter's. (sherm 20111227)
 
 // It is possible that we didn't need as support points all the bIn points
-// we were given, but instead used a smaller number, bActual. In that case 
-// we have to make sure that the *first* bActual are  the support points. 
+// we were given, but instead used a smaller number, bActual. In that case
+// we have to make sure that the *first* bActual are  the support points.
 // So we'll look at the entries [bActual..bIn-1]; if one is now part of the
 // support set we'll swap it with a now-unused point in [0..bActual-1].
 static void moveSupportToFront(int bIn, const Array_<int>& support,
@@ -1065,15 +1065,15 @@ Geo::Sphere_<P>
 findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
                 int bIn, Array_<int>& which, int recursionLevel) {
 
-    // The first bIn points should be an independent support set, and we're 
-    // hoping to calculate their circumsphere here. Although in theory the 
-    // algorithm wouldn't have gotten here if all bIn points weren't 
-    // independent, roundoff issues may cause the underlying primitive to 
+    // The first bIn points should be an independent support set, and we're
+    // hoping to calculate their circumsphere here. Although in theory the
+    // algorithm wouldn't have gotten here if all bIn points weren't
+    // independent, roundoff issues may cause the underlying primitive to
     // disagree. So we might use only a subset of the available points, and
     // "which" will list the ones we used. If necessary we'll rearrange the
     // first few entries in "ix" to make sure that the indices of the new
     // support set come first.
-    
+
     Geo::Sphere_<P> minSphere;
 
     switch(bIn) {
@@ -1083,7 +1083,7 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
     // *right* four points because our primitives might not have used all
     // the points they were given earlier and we need to make sure the new
     // 4-point circumsphere includes the points that were dropped.
-    case 0: 
+    case 0:
         minSphere = Geo::Sphere_<P>(Vec<3,P>(NTraits<P>::getInfinity()),0);
         which.clear();
         break;
@@ -1106,7 +1106,7 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
 
     // We have a sphere that surrounds all bIn points but might not have
     // used them all as support in "which".
-    
+
     // Fix the indices in which (the primitives number from 0).
     fixWhich(ix.begin(), which);
     // Make sure the support set is at the front of ix.
@@ -1114,7 +1114,7 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
 
     if (bIn==4) {
         // There can only be 4 or 5 points. If 4 we're done.
-        if (ix.size()==4 || !minSphere.isPointOutside(*p[ix[4]])) 
+        if (ix.size()==4 || !minSphere.isPointOutside(*p[ix[4]]))
             return minSphere; // all the points already enclosed
         // We failed with the current "left out" point in ix[4]. We'll try
         // the other four possibilities until one works.
@@ -1136,36 +1136,36 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
         Array_<const Vec<3,P>*> ritterPoints;
         for (int i=0; i < (int)ix.size(); ++i)
             ritterPoints.push_back(p[ix[i]]);
-        minSphere = 
+        minSphere =
             Geo::Point_<P>::calcApproxBoundingSphereIndirect(ritterPoints);
         which.clear(); // we don't know
         return minSphere;
     }
 
 
-    // The indices of the support points are within the first bIn entries in 
+    // The indices of the support points are within the first bIn entries in
     // ix, although they may not be in the first bActual slots. The first bIn
     // may therefore contain some unused points we already processed
     // but didn't need. Now run through all subsequent points and update the
-    // sphere to include them if necessary, each time ensuring that all 
+    // sphere to include them if necessary, each time ensuring that all
     // previous points remain included.
-  
+
     for (int i = bIn; i < (int)ix.size(); ++i) {
         // We expect the sphere already to have been enlarged to deal with
         // roundoff so we can do an exact test here.
         if (minSphere.isPointOutside(*p[ix[i]])) {
-            // This point is outside the current bounding sphere.  
+            // This point is outside the current bounding sphere.
             // Move it to the start of the list *without* reordering.
             for (int j = i; j > 0; --j)
                 std::swap(ix[j], ix[j-1]);
-            
+
             // Update the bounding sphere, taking the new point into account
             // and ensuring that the resulting sphere also includes all the
             // previous points as well. No more than 4 support points are ever
             // needed.
             ArrayView_<int> toBoundIx(ix.begin(), &ix[i]+1);
-            minSphere = findWelzlSphere<P>(p, toBoundIx, 
-                                           std::min(bIn+1,4), 
+            minSphere = findWelzlSphere<P>(p, toBoundIx,
+                                           std::min(bIn+1,4),
                                            which, recursionLevel+1);
 
         }
@@ -1174,7 +1174,7 @@ findWelzlSphere(const Array_<const Vec<3,P>*>& p, Array_<int>& ix,
     return minSphere; // Already stretched for roundoff.
 }
 
-// This signature takes an array of points, creates an array of pointers to 
+// This signature takes an array of points, creates an array of pointers to
 // those points and calls the other signature.
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
@@ -1193,9 +1193,9 @@ calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which) {
 //calcBoundingSphere(const Array_<const Vec3P*>& points, Array_<int>& which) {
 //    const unsigned npoints = points.size();
 //
-//    // Allocate and initialize an array of point indices. These will get 
+//    // Allocate and initialize an array of point indices. These will get
 //    // moved around during the computation.
-//    Array_<int> ix(npoints); for (unsigned i=0; i<npoints; ++i) ix[i] = i; 
+//    Array_<int> ix(npoints); for (unsigned i=0; i<npoints; ++i) ix[i] = i;
 //
 //    if (npoints < 10) {
 //        // Not worth rearranging.
@@ -1203,7 +1203,7 @@ calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which) {
 //    }
 //
 //    // There are enough points that we'll try to improve the ordering so that
-//    // the bounding sphere gets large quickly. This optimization helps *a lot* 
+//    // the bounding sphere gets large quickly. This optimization helps *a lot*
 //    // for large numbers of points.
 //
 //    // Find the six points that have the most extreme
@@ -1244,17 +1244,17 @@ calcBoundingSphere(const Array_<Vec3P>& points, Array_<int>& which) {
 
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
-calcBoundingSphereIndirect(const Array_<const Vec3P*>& points, 
+calcBoundingSphereIndirect(const Array_<const Vec3P*>& points,
                            Array_<int>& which) {
     const unsigned npoints = points.size();
     if (npoints == 0)
         return Geo::Sphere_<P>(Vec<3,P>(NTraits<P>::getInfinity()),0);
 
-    // Allocate and initialize an array of point indices. These will get 
+    // Allocate and initialize an array of point indices. These will get
     // moved around during the computation.
-    Array_<int> ix(npoints); for (unsigned i=0; i<npoints; ++i) ix[i] = i; 
+    Array_<int> ix(npoints); for (unsigned i=0; i<npoints; ++i) ix[i] = i;
 
-    // Sherm 20111225: there are still very obscure cases where this 
+    // Sherm 20111225: there are still very obscure cases where this
     // code may get stuck in a cycle and iterate forever. It usually only
     // takes a few iterations to finish, so 100 means something is very wrong.
     // In that case we'll give up and return a Ritter sphere.
@@ -1282,11 +1282,11 @@ calcBoundingSphereIndirect(const Array_<const Vec3P*>& points,
             break;
         }
 
-        // Point worst (>=nxt) is outside the current bounding sphere.  
+        // Point worst (>=nxt) is outside the current bounding sphere.
         // Move it to the start of the list *without* reordering.
         for (int j = worst; j > 0; --j)
             std::swap(ix[j], ix[j-1]);
-        
+
         // Make a list of the initial s+1 points, s <= 4.
         ArrayView_<int> toBoundIx(ix.begin(), &ix[s]+1);
 
@@ -1299,7 +1299,7 @@ calcBoundingSphereIndirect(const Array_<const Vec3P*>& points,
     return minSphere;
 }
 
-// This signature takes an array of points, creates an array of pointers to 
+// This signature takes an array of points, creates an array of pointers to
 // those points and calls the other signature.
 template <class P> /*static*/
 Geo::Sphere_<P> Geo::Point_<P>::
@@ -1350,11 +1350,11 @@ calcApproxBoundingSphereIndirect(const Array_<const Vec3P*>& points) {
     rad = std::sqrt(std::max((pmax-ctr).normSqr(),
                              (pmin-ctr).normSqr()));
 
-    // Now run through all the points again and grow the sphere if necessary. 
+    // Now run through all the points again and grow the sphere if necessary.
     // This requires moving the center too so we don't grow more than needed.
     for (unsigned i=0; i<points.size(); ++i) {
         const Vec3P& p = *points[i];
-        const Vec3P ctr2p = p-ctr; 
+        const Vec3P ctr2p = p-ctr;
         const RealP dist2 = ctr2p.normSqr();
         if (dist2 > square(rad)) {
             const RealP dist   = std::sqrt(dist2);
@@ -1363,7 +1363,7 @@ calcApproxBoundingSphereIndirect(const Array_<const Vec3P*>& points) {
             rad = newrad;
             // Make sure we didn't miss the new point due to roundoff.
             const RealP newdist2 = (p-ctr).normSqr();
-            if (newdist2 > square(rad)) 
+            if (newdist2 > square(rad))
                 rad = std::sqrt(newdist2);
         }
     }

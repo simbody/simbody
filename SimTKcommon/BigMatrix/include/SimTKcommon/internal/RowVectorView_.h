@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Define the SimTK::RowVectorView_ class that is part of Simbody's BigMatrix 
+Define the SimTK::RowVectorView_ class that is part of Simbody's BigMatrix
 toolset. **/
 
 namespace SimTK {
@@ -33,11 +33,11 @@ namespace SimTK {
 //==============================================================================
 //                              ROW VECTOR VIEW
 //==============================================================================
-/** @brief (Advanced) This class is identical to RowVector_ except that it has 
-shallow (reference) copy and assignment semantics. 
+/** @brief (Advanced) This class is identical to RowVector_ except that it has
+shallow (reference) copy and assignment semantics.
 
-Despite the name, this may be an owner if a RowVector_ is recast to a 
-%RowVectorView_. However, there are no owner constructors for %RowVectorView_. 
+Despite the name, this may be an owner if a RowVector_ is recast to a
+%RowVectorView_. However, there are no owner constructors for %RowVectorView_.
 @see RowVector_, RowVectorBase, MatrixView_ **/
 template <class ELT> class RowVectorView_ : public RowVectorBase<ELT> {
     typedef RowVectorBase<ELT>                              Base;
@@ -51,13 +51,13 @@ public:
     // Default construction is suppressed.
     // Uses default destructor.
 
-    // Create a RowVectorView_ handle using a given helper rep. 
+    // Create a RowVectorView_ handle using a given helper rep.
     explicit RowVectorView_(MatrixHelperRep<S>* hrep) : Base(hrep) {}
 
     // Copy constructor is shallow. CAUTION: despite const argument, this preserves writability
     // if it was present in the source. This is necessary to allow temporary views to be
     // created and used as lvalues.
-    RowVectorView_(const RowVectorView_& r) 
+    RowVectorView_(const RowVectorView_& r)
       : Base(const_cast<MatrixHelper<S>&>(r.getHelper()), typename MatrixHelper<S>::ShallowCopy()) { }
 
     // Copy assignment is deep but not reallocating.
@@ -65,13 +65,13 @@ public:
         Base::operator=(r); return *this;
     }
 
-    // Ask for shallow copy    
+    // Ask for shallow copy
     explicit RowVectorView_(const MatrixHelper<S>& h) : Base(h, typename MatrixHelper<S>::ShallowCopy()) { }
     explicit RowVectorView_(MatrixHelper<S>&       h) : Base(h, typename MatrixHelper<S>::ShallowCopy()) { }
-    
+
     RowVectorView_& operator=(const Base& b) { Base::operator=(b); return *this; }
 
-    RowVectorView_& operator=(const ELT& v) { Base::operator=(v); return *this; } 
+    RowVectorView_& operator=(const ELT& v) { Base::operator=(v); return *this; }
 
     template <class EE> RowVectorView_& operator=(const RowVectorBase<EE>& m)
       { Base::operator=(m); return*this; }

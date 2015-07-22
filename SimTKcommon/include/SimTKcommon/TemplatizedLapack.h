@@ -55,18 +55,18 @@ public:
    (int          n,
     P            a[],
     int          lda,
-    const int    ipiv[], 
-    P            work[], 
-    int          lwork, 
+    const int    ipiv[],
+    P            work[],
+    int          lwork,
     int         &info ) {assert(false);}
 
         template <class P> static void
     getrf
    (int          m,
-    int          n, 
+    int          n,
     P            a[],
-    int          lda, 
-    int          ipiv[], 
+    int          lda,
+    int          ipiv[],
     int         &info ) {assert(false);}
 
 };
@@ -128,9 +128,9 @@ template <> inline void Lapack::getri<float>
    (int          n,
     float        a[],
     int          lda,
-    const int    ipiv[], 
-    float        work[], 
-    int          lwork, 
+    const int    ipiv[],
+    float        work[],
+    int          lwork,
     int&         info )
 {
     sgetri_(n,a,lda,ipiv,work,lwork,info);
@@ -140,9 +140,9 @@ template <> inline void Lapack::getri<double>
    (int          n,
     double       a[],
     int          lda,
-    const int    ipiv[], 
-    double       work[], 
-    int          lwork, 
+    const int    ipiv[],
+    double       work[],
+    int          lwork,
     int&         info )
 {
     dgetri_(n,a,lda,ipiv,work,lwork,info);
@@ -152,9 +152,9 @@ template <> inline void Lapack::getri< complex<float> >
    (int             n,
     complex<float>  a[],
     int             lda,
-    const int       ipiv[], 
-    complex<float>  work[], 
-    int             lwork, 
+    const int       ipiv[],
+    complex<float>  work[],
+    int             lwork,
     int&            info )
 {
     cgetri_(n,a,lda,ipiv,work,lwork,info);
@@ -164,9 +164,9 @@ template <> inline void Lapack::getri< complex<double> >
    (int             n,
     complex<double> a[],
     int             lda,
-    const int       ipiv[], 
-    complex<double> work[], 
-    int             lwork, 
+    const int       ipiv[],
+    complex<double> work[],
+    int             lwork,
     int&            info )
 {
     zgetri_(n,a,lda,ipiv,work,lwork,info);
@@ -175,10 +175,10 @@ template <> inline void Lapack::getri< complex<double> >
 
 template <> inline void Lapack::getrf<float>
    (int          m,
-    int          n, 
+    int          n,
     float        a[],
-    int          lda, 
-    int          ipiv[], 
+    int          lda,
+    int          ipiv[],
     int&         info )
 {
     sgetrf_(m,n,a,lda,ipiv,info);
@@ -186,10 +186,10 @@ template <> inline void Lapack::getrf<float>
 
 template <> inline void Lapack::getrf<double>
    (int          m,
-    int          n, 
+    int          n,
     double       a[],
-    int          lda, 
-    int          ipiv[], 
+    int          lda,
+    int          ipiv[],
     int&         info )
 {
     dgetrf_(m,n,a,lda,ipiv,info);
@@ -197,10 +197,10 @@ template <> inline void Lapack::getrf<double>
 
 template <> inline void Lapack::getrf< complex<float> >
    (int             m,
-    int             n, 
+    int             n,
     complex<float>  a[],
-    int             lda, 
-    int             ipiv[], 
+    int             lda,
+    int             ipiv[],
     int&            info )
 {
     cgetrf_(m,n,a,lda,ipiv,info);
@@ -208,10 +208,10 @@ template <> inline void Lapack::getrf< complex<float> >
 
 template <> inline void Lapack::getrf< complex<double> >
    (int             m,
-    int             n, 
+    int             n,
     complex<double> a[],
-    int             lda, 
-    int             ipiv[], 
+    int             lda,
+    int             ipiv[],
     int&            info )
 {
     zgetrf_(m,n,a,lda,ipiv,info);
@@ -221,11 +221,11 @@ template <> inline void Lapack::getrf< complex<double> >
 /*
 void SimTK_STDCALL
 SimTK_LAPACK(dgeev,DGEEV)
-   (const char  &jobvl SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
-    const char  &jobvr SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
+   (const char  &jobvl SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
+    const char  &jobvr SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
     const int   &n,
     double       a[],
-    const int   &lda, 
+    const int   &lda,
     double       wr[],
     double       wi[],
     double       vl[],
@@ -234,35 +234,35 @@ SimTK_LAPACK(dgeev,DGEEV)
     const int   &ldvr,
     double       work[],
     const int   &lwork,
-    int         &info  
+    int         &info
     SimTK_LAPACK_STRLEN_ATEND_DECL
     SimTK_LAPACK_STRLEN_ATEND_DECL);
 
 void SimTK_STDCALL
 SimTK_LAPACK(dsyev,DSYEV)
-   (const char  &jobz SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
-    const char  &uplo SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
+   (const char  &jobz SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
+    const char  &uplo SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
     const int   &n,
     double       a[],
-    const int   &lda, 
+    const int   &lda,
     double       w[],
     double       work[],
     const int   &lwork,
-    int         &info  
+    int         &info
     SimTK_LAPACK_STRLEN_ATEND_DECL
     SimTK_LAPACK_STRLEN_ATEND_DECL);
 
 void SimTK_STDCALL
 SimTK_LAPACK(dspev,DSPEV)
-   (const char  &jobz SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
-    const char  &uplo SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
+   (const char  &jobz SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
+    const char  &uplo SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
     const int   &n,
     double       a[],
     double       w[],
     double       z[],
     const int   &ldz,
     double       work[],
-    int         &info  
+    int         &info
     SimTK_LAPACK_STRLEN_ATEND_DECL
     SimTK_LAPACK_STRLEN_ATEND_DECL);
 
@@ -272,8 +272,8 @@ SimTK_LAPACK(dsptri,DSPTRI)
     const int   &size,
     double       a[],
     int          ipiv[],
-    double       work[], 
-    int         &info  
+    double       work[],
+    int         &info
     SimTK_LAPACK_STRLEN_ATEND_DECL);
 
 void SimTK_STDCALL
@@ -281,8 +281,8 @@ SimTK_LAPACK(dsptrf,DSPTRF)
    (const char  &uplo SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
     const int   &size,
     double       a[],
-    int          ipiv[], 
-    int         &info  
+    int          ipiv[],
+    int         &info
     SimTK_LAPACK_STRLEN_ATEND_DECL);
 
 void SimTK_STDCALL
@@ -337,19 +337,19 @@ SimTK_LAPACK(dgesv,DGESV)
 
 void SimTK_STDCALL
 SimTK_LAPACK(dgesvd,DGESVD)
-   (const char  &jobu  SimTK_LAPACK_STRLEN_FOLLOWS_DECL, 
+   (const char  &jobu  SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
     const char  &jobvt SimTK_LAPACK_STRLEN_FOLLOWS_DECL,
-    const int   &m, 
-    const int   &n, 
+    const int   &m,
+    const int   &n,
     double       a[],
     const int   &lda,
     double       s[],
     double       u[],
-    const int   &ldu, 
-    double       vt[], 
-    const int   &ldvt, 
+    const int   &ldu,
+    double       vt[],
+    const int   &ldvt,
     double       work[],
-    const int   &lwork, 
+    const int   &lwork,
     int         &info
     SimTK_LAPACK_STRLEN_ATEND_DECL
     SimTK_LAPACK_STRLEN_ATEND_DECL);

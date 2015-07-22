@@ -78,9 +78,9 @@ void testHalfSpaceSphere() {
             state.updY()[i] = 5*random.getValue();
         system.realize(state, Stage::Dynamics);
         centerInGround = sphere.findStationLocationInGround(state, center);
-        
+
         // Check the results of collision detection.
-        
+
         const Array_<Contact>& contact = contacts.getContacts(state, setIndex);
         if (centerInGround[1] > radius+1) {
             ASSERT(contact.size() == 0);
@@ -120,9 +120,9 @@ void testSphereSphere() {
         system.realize(state, Stage::Dynamics);
         for (MobilizedBodyIndex index(1); index <= numBodies; ++index)
             centerInGround[index-1] = matter.getMobilizedBody(index).findStationLocationInGround(state, center[index-1]);
-        
+
         // Make sure all contacts are accurate.
-        
+
         const Array_<Contact>& contact = contacts.getContacts(state, setIndex);
         for (int i = 0; i < (int) contact.size(); i++) {
             ASSERT(PointContact::isInstance(contact[i]));
@@ -138,7 +138,7 @@ void testSphereSphere() {
         }
 
         // Make sure no contacts were missed.
-        
+
         int expectedContacts = 0;
         for (int i = 0; i < numBodies; i++)
             for (int j = 0; j < i; j++)
@@ -290,7 +290,7 @@ void verifyContactFaces(int* expected, int numExpected, const set<int>& found) {
 
 void testHalfSpaceTriangleMesh() {
     // Create a triangle mesh consisting of two pyramids: one right side up and one upside down.
-    
+
     vector<Vec3> vertices;
     vertices.push_back(Vec3(0, 0, 0));
     vertices.push_back(Vec3(1, 0, 0));
@@ -313,7 +313,7 @@ void testHalfSpaceTriangleMesh() {
     ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
 
     // Create the system.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralContactSubsystem contacts(system);
@@ -344,7 +344,7 @@ void testHalfSpaceTriangleMesh() {
 
 void testSphereTriangleMesh() {
     // Create a triangle mesh consisting of two pyramids: one right side up and one upside down.
-    
+
     vector<Vec3> vertices;
     vertices.push_back(Vec3(0, 0, 0));
     vertices.push_back(Vec3(0, 0, 1));
@@ -367,7 +367,7 @@ void testSphereTriangleMesh() {
     ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
 
     // Create the system.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralContactSubsystem contacts(system);
@@ -377,9 +377,9 @@ void testSphereTriangleMesh() {
     contacts.addBody(setIndex, b, mesh, Transform());
     contacts.addBody(setIndex, matter.updGround(), ContactGeometry::Sphere(0.5), Transform(Vec3(0, 1, 0)));
     State state = system.realizeTopology();
-    
+
     // Try various positions and make sure the results are correct.
-    
+
     b.setQToFitTranslation(state, Vec3(0, -2, 0));
     system.realize(state, Stage::Dynamics);
     ASSERT(contacts.getContacts(state, setIndex).size() == 0);
@@ -420,7 +420,7 @@ void testSphereTriangleMesh() {
 
 void testTriangleMeshTriangleMesh() {
     // Create two triangle meshes, each consisting of a pyramid.
-    
+
     vector<Vec3> vertices;
     vertices.push_back(Vec3(0, 0, 0));
     vertices.push_back(Vec3(1, 0, 0));
@@ -436,7 +436,7 @@ void testTriangleMeshTriangleMesh() {
     ContactGeometry::TriangleMesh mesh2(vertices, faceIndices);
 
     // Create the system.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralContactSubsystem contacts(system);
@@ -447,9 +447,9 @@ void testTriangleMeshTriangleMesh() {
     contacts.addBody(setIndex, b1, mesh1, Transform());
     contacts.addBody(setIndex, b2, mesh2, Transform());
     State state = system.realizeTopology();
-    
+
     // Try some configurations that should not intersect.
-    
+
     b1.setQToFitTranslation(state, Vec3(0));
     b2.setQToFitTranslation(state, Vec3(2));
     system.realize(state, Stage::Dynamics);
@@ -466,9 +466,9 @@ void testTriangleMeshTriangleMesh() {
     b2.setQToFitTranslation(state, Vec3(0, -1.01, 0));
     system.realize(state, Stage::Dynamics);
     ASSERT(contacts.getContacts(state, setIndex).size() == 0);
-    
+
     // Now try ones that should intersect.
-    
+
     int baseFaces[2] = {0, 1};
     int pointFaces[4] = {2, 3, 4, 5};
     {

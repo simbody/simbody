@@ -47,14 +47,14 @@ using namespace SimTK;
 #ifdef USE_MY_CABLE_SPRING
 // This force element implements an elastic cable of a given nominal length,
 // and a stiffness k that generates a k*x force opposing stretch beyond
-// the slack length. There is also a dissipation term (k*x)*c*xdot. We keep 
+// the slack length. There is also a dissipation term (k*x)*c*xdot. We keep
 // track of dissipated power here so we can use conservation of energy to check
 // that the cable and force element aren't obviously broken.
 class MyCableSpringImpl : public Force::Custom::Implementation {
 public:
-    MyCableSpringImpl(const GeneralForceSubsystem& forces, 
-                      const CablePath& path, 
-                      Real stiffness, Real nominal, Real damping) 
+    MyCableSpringImpl(const GeneralForceSubsystem& forces,
+                      const CablePath& path,
+                      Real stiffness, Real nominal, Real damping)
     :   forces(forces), path(path), k(stiffness), x0(nominal), c(damping)
     {   assert(stiffness >= 0 && nominal >= 0 && damping >= 0); }
 
@@ -83,7 +83,7 @@ public:
     //                       Custom force virtuals
 
     // Ask the cable to apply body forces given the tension calculated here.
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
                    override
     {   path.applyBodyForces(state, getTension(state), bodyForces); }
@@ -135,7 +135,7 @@ private:
     void ensureTensionCalculated(const State& state) const {
         if (forces.isCacheValueRealized(state, tensionx))
             return;
-        Value<Real>::updDowncast(forces.updCacheEntry(state, tensionx)) 
+        Value<Real>::updDowncast(forces.updCacheEntry(state, tensionx))
             = calcTension(state);
         forces.markCacheValueRealized(state, tensionx);
     }
@@ -151,14 +151,14 @@ private:
 // a user's API.
 class MyCableSpring : public Force::Custom {
 public:
-    MyCableSpring(GeneralForceSubsystem& forces, const CablePath& path, 
-                  Real stiffness, Real nominal, Real damping) 
+    MyCableSpring(GeneralForceSubsystem& forces, const CablePath& path,
+                  Real stiffness, Real nominal, Real damping)
     :   Force::Custom(forces, new MyCableSpringImpl(forces,path,
-                                                    stiffness,nominal,damping)) 
+                                                    stiffness,nominal,damping))
     {}
-    
+
     // Expose some useful methods.
-    const CablePath& getCablePath() const 
+    const CablePath& getCablePath() const
     {   return getImpl().getCablePath(); }
     Real getTension(const State& state) const
     {   return getImpl().getTension(state); }
@@ -179,10 +179,10 @@ private:
 static Array_<State> saveStates;
 class ShowStuff : public PeriodicEventReporter {
 public:
-    ShowStuff(const MultibodySystem& mbs, 
-              const CABLE_SPRING& cable1, 
-              const CABLE_SPRING& cable2, Real interval) 
-    :   PeriodicEventReporter(interval), 
+    ShowStuff(const MultibodySystem& mbs,
+              const CABLE_SPRING& cable1,
+              const CABLE_SPRING& cable2, Real interval)
+    :   PeriodicEventReporter(interval),
         mbs(mbs), cable1(cable1), cable2(cable2) {}
 
     static void showHeading(std::ostream& o) {
@@ -191,7 +191,7 @@ public:
             "KE", "PE", "KE+PE-W");
     }
 
-    /** This is the implementation of the EventReporter virtual. **/ 
+    /** This is the implementation of the EventReporter virtual. **/
     void handleEvent(const State& state) const override {
         const CablePath& path1 = cable1.getCablePath();
         const CablePath& path2 = cable2.getCablePath();
@@ -202,7 +202,7 @@ public:
             path1.getIntegratedCableLengthDot(state),
             path1.calcCablePower(state, 1), // unit power
             cable1.getTension(state),
-            cable1.getDissipatedEnergy(state), 
+            cable1.getDissipatedEnergy(state),
             cpuTime());
         printf("%8s %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g\n",
             "",
@@ -225,8 +225,8 @@ private:
 };
 
 int main() {
-  try {    
-    // Create the system.   
+  try {
+    // Create the system.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     CableTrackerSubsystem cables(system);
@@ -244,26 +244,26 @@ int main() {
     const Real BiggerRad = .5;
 
     const Vec3 radii(.4, .25, .15);
-    Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
+    Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0),
         1.*UnitInertia::ellipsoid(radii)));
 
     const Real CylRad = .3, HalfLen = .5;
-    Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0), 
+    Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0),
         1.*UnitInertia::cylinderAlongX(Rad,HalfLen)));
 
     Body::Rigid fancyBody = biggerBody; // NOT USING ELLIPSOID
 
     MobilizedBody Ground = matter.Ground();
 
-    MobilizedBody::Ball body1(Ground,           Transform(Vec3(0)), 
+    MobilizedBody::Ball body1(Ground,           Transform(Vec3(0)),
                               someBody,         Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Ball body2(body1,            Transform(Vec3(0)), 
+    MobilizedBody::Ball body2(body1,            Transform(Vec3(0)),
                               someBody,         Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Ball body3(body2,            Transform(Vec3(0)), 
+    MobilizedBody::Ball body3(body2,            Transform(Vec3(0)),
                               someBody,         Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Ball body4(body3,            Transform(Vec3(0)), 
+    MobilizedBody::Ball body4(body3,            Transform(Vec3(0)),
                               fancyBody,        Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Ball body5(body4,            Transform(Vec3(0)), 
+    MobilizedBody::Ball body5(body4,            Transform(Vec3(0)),
                               someBody,         Transform(Vec3(0, 1, 0)));
 
     CablePath path1(cables, body1, Vec3(Rad,0,0),   // origin
@@ -272,7 +272,7 @@ int main() {
     CableObstacle::ViaPoint p1(path1, body2, Rad*UnitVec3(1,1,0));
     //CableObstacle::ViaPoint p2(path1, body3, Rad*UnitVec3(0,1,1));
     //CableObstacle::ViaPoint p3(path1, body3, Rad*UnitVec3(1,0,1));
-    CableObstacle::Surface obs4(path1, body3, Transform(), 
+    CableObstacle::Surface obs4(path1, body3, Transform(),
         ContactGeometry::Sphere(Rad));
     //obs4.setContactPointHints(Rad*UnitVec3(-1,1,0),Rad*UnitVec3(-1,0,1));
     obs4.setContactPointHints(Rad*UnitVec3(-.25,.04,0.08),
@@ -280,7 +280,7 @@ int main() {
 
     //CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     //CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
-    CableObstacle::Surface obs5(path1, body4, 
+    CableObstacle::Surface obs5(path1, body4,
         // Transform(), ContactGeometry::Ellipsoid(radii));
         //Rotation(Pi/2, YAxis), ContactGeometry::Cylinder(CylRad)); // along y
         //Transform(), ContactGeometry::Sphere(Rad));
@@ -289,13 +289,13 @@ int main() {
     obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
                               Rad*UnitVec3(0.1,-.1,-.2));
 
-    CABLE_SPRING cable1(forces, path1, 100., 3.5, 0.1); 
+    CABLE_SPRING cable1(forces, path1, 100., 3.5, 0.1);
 
     CablePath path2(cables, Ground, Vec3(-3,0,0),   // origin
                             Ground, Vec3(-2,1,0)); // termination
     CableObstacle::ViaPoint(path2, body3, 2*Rad*UnitVec3(1,1,1));
     CableObstacle::ViaPoint(path2, Ground, Vec3(-2.5,1,0));
-    CABLE_SPRING cable2(forces, path2, 100., 2, 0.1); 
+    CABLE_SPRING cable2(forces, path2, 100., 2, 0.1);
 
 
     //obs1.setPathPreferencePoint(Vec3(2,3,4));
@@ -304,16 +304,16 @@ int main() {
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
     system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
-    system.addEventReporter(new ShowStuff(system, cable1, cable2, 0.1*0.1));    
+    system.addEventReporter(new ShowStuff(system, cable1, cable2, 0.1*0.1));
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Gaussian random;
     for (int i = 0; i < state.getNQ(); ++i)
         state.updQ()[i] = random.getValue();
     for (int i = 0; i < state.getNU(); ++i)
-        state.updU()[i] = 0.1*random.getValue(); 
+        state.updU()[i] = 0.1*random.getValue();
 
     system.realize(state, Stage::Position);
     viz.report(state);
@@ -340,7 +340,7 @@ int main() {
     const Real finalTime = 2;
     const double startTime = realTime();
     ts.stepTo(finalTime);
-    cout << "DONE with " << finalTime 
+    cout << "DONE with " << finalTime
          << "s simulated in " << realTime()-startTime
          << "s elapsed.\n";
 

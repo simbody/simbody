@@ -39,7 +39,7 @@ bool Body::isEmptyHandle() const {return rep==0;}
 bool Body::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
 
 Body::~Body() {
-    if (isOwnerHandle()) delete rep; 
+    if (isOwnerHandle()) delete rep;
     rep=0;
 }
 
@@ -54,7 +54,7 @@ Body::Body(const Body& src) : rep(0) {
 // Assignment puts a deep copy of the src Body's rep into the current handle.
 Body& Body::operator=(const Body& src) {
     if (&src != this) {
-        if (isOwnerHandle()) delete rep; 
+        if (isOwnerHandle()) delete rep;
         rep=0;
         if (src.rep) {
             rep = src.rep->clone(); // create a new object
@@ -73,7 +73,7 @@ Body::Body(const MassProperties& m) : rep(0) {
 int Body::addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
     return updRep().addDecoration(X_BD, g);
 }
-int Body::getNumDecorations() const 
+int Body::getNumDecorations() const
 {   return (int)getRep().decorations.size(); }
 const DecorativeGeometry& Body::getDecoration(int i) const
 {   return getRep().decorations[i]; }
@@ -82,7 +82,7 @@ DecorativeGeometry& Body::updDecoration(int i) const
 {   return const_cast<DecorativeGeometry&>(getDecoration(i)); }
 
 
-int Body::addContactSurface(const Transform&      X_BS, 
+int Body::addContactSurface(const Transform&      X_BS,
                             const ContactSurface& surface) {
     BodyRep& rep = updRep();
     const int nxt = (int)rep.surfaces.size();
@@ -90,7 +90,7 @@ int Body::addContactSurface(const Transform&      X_BS,
     rep.surfaces.back().second.setIndexOnBody(nxt);
     return nxt;
 }
-int Body::getNumContactSurfaces() const 
+int Body::getNumContactSurfaces() const
 {   return (int)getRep().surfaces.size(); }
 const ContactSurface& Body::getContactSurface(int i) const
 {   return getRep().surfaces[i].second; }

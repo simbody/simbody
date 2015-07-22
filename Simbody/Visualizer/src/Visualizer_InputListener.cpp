@@ -37,7 +37,7 @@ using namespace SimTK;
 //==============================================================================
 //                              INPUT SILO IMPL
 //==============================================================================
-/* This is the private implementation object contained in a 
+/* This is the private implementation object contained in a
 Visualizer::InputSilo handle. */
 
 class Visualizer::InputSilo::Impl {
@@ -60,19 +60,19 @@ public:
     void LOCK_silo()     const {pthread_mutex_lock(&m_siloLock);}
     void UNLOCK_silo()   const {pthread_mutex_unlock(&m_siloLock);}
 
-    void WAIT_anyInput() const {pthread_cond_wait(&m_someInputAvailable, 
+    void WAIT_anyInput() const {pthread_cond_wait(&m_someInputAvailable,
                                                   &m_siloLock);}
     void POST_anyInput() const {pthread_cond_signal(&m_someInputAvailable);}
 
-    void WAIT_keyHit()   const {pthread_cond_wait(&m_keyHitAvailable, 
+    void WAIT_keyHit()   const {pthread_cond_wait(&m_keyHitAvailable,
                                                   &m_siloLock);}
     void POST_keyHit()   const {pthread_cond_signal(&m_keyHitAvailable);}
 
-    void WAIT_menuPick() const {pthread_cond_wait(&m_menuPickAvailable, 
+    void WAIT_menuPick() const {pthread_cond_wait(&m_menuPickAvailable,
                                                   &m_siloLock);}
     void POST_menuPick() const {pthread_cond_signal(&m_menuPickAvailable);}
 
-    void WAIT_sliderMove() const {pthread_cond_wait(&m_sliderMoveAvailable, 
+    void WAIT_sliderMove() const {pthread_cond_wait(&m_sliderMoveAvailable,
                                                     &m_siloLock);}
     void POST_sliderMove() const {pthread_cond_signal(&m_sliderMoveAvailable);}
 
@@ -95,7 +95,7 @@ Visualizer::InputSilo::InputSilo() {m_impl = new InputSilo::Impl();}
 Visualizer::InputSilo::~InputSilo() {delete m_impl;}
 
 // Fast ... no locking required for this check.
-bool Visualizer::InputSilo::isAnyUserInput() const 
+bool Visualizer::InputSilo::isAnyUserInput() const
 {   return getImpl().m_inputCount != 0; }
 
 // Hang until "anyInput" condition is signaled.
@@ -113,7 +113,7 @@ bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
     impl.LOCK_silo();
     if (impl.m_keyHitSilo.empty()) key=0, modifiers=0, gotOne=false;
     else {
-        key       = impl.m_keyHitSilo.front().first; 
+        key       = impl.m_keyHitSilo.front().first;
         modifiers = impl.m_keyHitSilo.front().second;
         impl.m_keyHitSilo.pop_front();
         --impl.m_inputCount;
@@ -126,9 +126,9 @@ bool Visualizer::InputSilo::takeKeyHit(unsigned& key, unsigned& modifiers) {
 void Visualizer::InputSilo::waitForKeyHit(unsigned& key, unsigned& modifiers) {
     Impl& impl = updImpl();
     impl.LOCK_silo();
-    while (!impl.m_keyHitSilo.size()) 
+    while (!impl.m_keyHitSilo.size())
         impl.WAIT_keyHit();
-    key       = impl.m_keyHitSilo.front().first; 
+    key       = impl.m_keyHitSilo.front().first;
     modifiers = impl.m_keyHitSilo.front().second;
     impl.m_keyHitSilo.pop_front();
     --impl.m_inputCount;
@@ -142,7 +142,7 @@ bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
     impl.LOCK_silo();
     if (impl.m_menuPickSilo.empty()) item=0, gotOne=false;
     else {
-        menuId = impl.m_menuPickSilo.front().first; 
+        menuId = impl.m_menuPickSilo.front().first;
         item   = impl.m_menuPickSilo.front().second;
         impl.m_menuPickSilo.pop_front();
         --impl.m_inputCount;
@@ -155,9 +155,9 @@ bool Visualizer::InputSilo::takeMenuPick(int& menuId, int& item) {
 void Visualizer::InputSilo::waitForMenuPick(int& menuId, int& item) {
     Impl& impl = updImpl();
     impl.LOCK_silo();
-    while (!impl.m_menuPickSilo.size()) 
+    while (!impl.m_menuPickSilo.size())
         impl.WAIT_menuPick();
-    menuId = impl.m_menuPickSilo.front().first; 
+    menuId = impl.m_menuPickSilo.front().first;
     item   = impl.m_menuPickSilo.front().second;
     impl.m_menuPickSilo.pop_front();
     --impl.m_inputCount;
@@ -170,7 +170,7 @@ bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
     impl.LOCK_silo();
     if (impl.m_sliderMoveSilo.empty()) slider=0, value=NaN, gotOne=false;
     else {
-        slider = impl.m_sliderMoveSilo.front().first; 
+        slider = impl.m_sliderMoveSilo.front().first;
         value  = impl.m_sliderMoveSilo.front().second;
         impl.m_sliderMoveSilo.pop_front();
         --impl.m_inputCount;
@@ -183,9 +183,9 @@ bool Visualizer::InputSilo::takeSliderMove(int& slider, Real& value) {
 void Visualizer::InputSilo::waitForSliderMove(int& slider, Real& value) {
     Impl& impl = updImpl();
     impl.LOCK_silo();
-    while (!impl.m_sliderMoveSilo.size()) 
+    while (!impl.m_sliderMoveSilo.size())
         impl.WAIT_sliderMove();
-    slider = impl.m_sliderMoveSilo.front().first; 
+    slider = impl.m_sliderMoveSilo.front().first;
     value  = impl.m_sliderMoveSilo.front().second;
     impl.m_sliderMoveSilo.pop_front();
     --impl.m_inputCount;

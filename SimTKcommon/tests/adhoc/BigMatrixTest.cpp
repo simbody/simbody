@@ -38,7 +38,7 @@ using namespace SimTK;
 // Numerical Recipes declarations.
 namespace NR {
     template <class DP>
-    void lubksb(const int N, const DP* a/*N,N*/, const int* indx/*N*/, 
+    void lubksb(const int N, const DP* a/*N,N*/, const int* indx/*N*/,
                 DP* b/*N*/);
 
     template <class DP>
@@ -62,7 +62,7 @@ template class RowVectorView_< negator< conjugate<float> > >;
 
 template <class NT>
 void dump(const String& s,  const Matrix_<NT>& mm) {
-    cout << s << ":" << endl; 
+    cout << s << ":" << endl;
     for (int i=0; i<mm.nrow(); ++i) {
         for (int j=0; j<mm.ncol(); ++j)
             cout << mm(i,j) << " ";
@@ -128,7 +128,7 @@ void testCharacter() {
     t.resize(5,3);
     t.dump("t");
 
-    t.clear(); 
+    t.clear();
     t.commitTo(MatrixStructure(MatrixStructure::Hermitian, MatrixStructure::Upper));
     t.dump("t now hermitian, prior to resize");
     cout << "t commit=" << t.getCharacterCommitment() << "t actual=" << t.getMatrixCharacter();
@@ -194,7 +194,7 @@ void testCharacter() {
 
     // Share data but note that it is row order. Using MatrixBase to get to
     // a general constructor.
-    MatrixCharacter::LapackFull mchar(2,3); 
+    MatrixCharacter::LapackFull mchar(2,3);
     mchar.setStorage(MatrixStorage(MatrixStorage::NoPacking,MatrixStorage::RowOrder));
     MatrixBase<Complex> cm3(MatrixCommitment(), mchar, 3, cmplx);
     cout << "cm3(RowOrder,2,3,lda=3,cmplx)=" << cm3;
@@ -209,7 +209,7 @@ void testCharacter() {
 // NOTE: the Vector elements and the "scalar" CNT must conform for this
 // to work; nonconforming will cause obscure compile errors.
 void testScalarMultiply() {
-    cout << "\n------ TEST SCALAR MULTIPLY ------\n"; 
+    cout << "\n------ TEST SCALAR MULTIPLY ------\n";
     Mat33 m33( .03, .04, .05,
                .06, .08, .09,
                .07, .10, .11 );
@@ -225,12 +225,12 @@ void testScalarMultiply() {
     cout << "rv=" << rv << endl;
     cout << "rv*Vec2=" << rv*Vec2(.1,.2) << endl;
     cout << "Row2*rv=" << Row2(.1,.2)*rv << endl;
-    cout << "------ END TEST SCALAR MULTIPLY ------\n\n"; 
+    cout << "------ END TEST SCALAR MULTIPLY ------\n\n";
 }
 
 
 void testAjaysBlock() {
-    cout << "\n------ TEST AJAY'S BLOCK ------\n"; 
+    cout << "\n------ TEST AJAY'S BLOCK ------\n";
     const int nu =7, nm=4;
     Matrix J(6,nu);
     for (int i=0; i<6; ++i)
@@ -239,7 +239,7 @@ void testAjaysBlock() {
     Matrix t = ~J(0,3,3,nm);
     cout << "J=" << J << endl;
     cout << "t=" << t;
-    cout << "\n------ END TEST AJAY'S BLOCK ------\n"; 
+    cout << "\n------ END TEST AJAY'S BLOCK ------\n";
 }
 
 int main()
@@ -294,19 +294,19 @@ int main()
     vvv00 = vb;
     cout << "after vvv00=vb [null], vvv00(" << vvv00.nrow() << "," << vvv00.ncol() << ")=" << vvv00 << endl;
 
-    const Complex mdc[] = { Complex(1.,2.),  
+    const Complex mdc[] = { Complex(1.,2.),
                             Complex(3.,4.),
                             Complex(5.,6.),
                             Complex(7.,8.),
                             Complex(9.,10.),
                             Complex(10.,11.),
-                            Complex(.1,.26),  
+                            Complex(.1,.26),
                             Complex(.3,.45),
                             Complex(.5,.64),
                             Complex(.7,.83),
                             Complex(.9,.102),
-                            Complex(.10,.111)   
-                          };    
+                            Complex(.10,.111)
+                          };
     Matrix_<Complex> md(2,2,mdc);
     cout << "2x2 complex Matrix md=" << md;
     Mat<2,2,Complex> md_mat(mdc);
@@ -344,9 +344,9 @@ int main()
     dump("md after md(1,0) *= 10.",md);
     md(0,1,2,1) *= Complex(10.,100.);
     dump("md after md(0,1,2,1)*=(10+100i)",md);
-        
+
     Matrix_<Complex> mm(3,4);
-    mm = 2390.; 
+    mm = 2390.;
     cout << "after [3x4 complex] mm = 2390, mm: " << mm << endl;
     for (int i=0; i<mm.nrow(); ++i) {
         for (int j=0; j<mm.ncol(); ++j)
@@ -383,7 +383,7 @@ int main()
     cout << "mm Vec2 colScale=" << mmVCol << endl;
     cout << "mm.colScale(Vec2)=" << mm.colScale(mmVCol);
     cout << "type(mm.colScale(Vec2))=" << typeid(mm.colScale(mmVCol)).name() << endl;
-    
+
     mm *= 1000.; dump("mm(3,4) after *=1000", mm);
     mm.dump("*** mm ***");
 
@@ -432,8 +432,8 @@ int main()
 
 
     cout << "\n-------- ASSIGN TEST --------\n";
-    Matrix_< Vec<2,Complex> > rr(2,3); 
-    for (int i=0;i<2;++i) for (int j=0;j<3;++j) 
+    Matrix_< Vec<2,Complex> > rr(2,3);
+    for (int i=0;i<2;++i) for (int j=0;j<3;++j)
         rr(i,j) = Vec<2,Complex>(mdc[i]*(j+1), mdc[i]*(j-1));
     Matrix_< Vec<2,Complex> > rrAssign;
     (rrAssign = rr(0,1,2,2)) *= 1000.;
@@ -448,15 +448,15 @@ int main()
     cout << "\n-------- RESIZE KEEP TEST --------\n";
     Vector resizeMe(5); for (int i=0; i<5; ++i) resizeMe[i]=i;
     cout << "resizeMe=" << resizeMe << endl;
-    resizeMe.resize(10); 
+    resizeMe.resize(10);
     cout << "after resize(10), resizeMe=" << resizeMe << endl;
     Vector resizeMe2(5); for (int i=0; i<5; ++i) resizeMe2[i]=i;
     cout << "resizeMe2=" << resizeMe2 << endl;
-    resizeMe2.resizeKeep(10); 
+    resizeMe2.resizeKeep(10);
     cout << "after resizeKeep(10), resizeMe2=" << resizeMe2 << endl;
     Matrix resizeMem(2,3); for (int i=0; i<2; ++i) for (int j=0; j<3; ++j) resizeMem(i,j)=(i+1)*(j+1);
     cout << "resizeMem(2,3)=" << resizeMem << endl;
-    resizeMem.resizeKeep(3,5); 
+    resizeMem.resizeKeep(3,5);
     cout << "after resizeKeep(3,5), resizeMem=" << resizeMem << endl;
     resizeMem.resizeKeep(2,2);
     cout << "after resizeKeep(2,2), resizeMem=" << resizeMem << endl;
@@ -503,13 +503,13 @@ int main()
     vvvv = vv[2] * vv;
     cout << "vvvv = vv[2]*vv = " << vvvv << endl;
 
-    Matrix_<Mat<2,2, Mat<2,2,double> > > mmm(2,1); 
+    Matrix_<Mat<2,2, Mat<2,2,double> > > mmm(2,1);
     mmm = Mat<2,2, Mat<2,2,double> >(Mat<2,2,double>(1));
     cout << "*****>>> mmm=" << mmm << endl;
 
     Matrix mnm(4,2), nn;
     cout << "mnm(4,2)=" << mnm;
-    mnm(0) = vv; 
+    mnm(0) = vv;
     mnm(1) = -0.01 * vv;
     cout << "mnm(vv,-.01*vv)=" << mnm;
     cout << "===> mnm.abs()=" << mnm.abs();
@@ -517,12 +517,12 @@ int main()
     cout << "mnm(1).abs()=" << mnm(1).abs() << endl;
     cout << "mnm[1]=" << mnm[1] << endl;
     cout << "mnm[1].abs()=" << mnm[1].abs() << endl;
-    
+
     ww = vv;
     ww *= 0.1;
     vv += ww;
     cout << "ww=vv, *=0.1:" << ww << endl;
-    cout << "vv+=ww:" << vv << endl; 
+    cout << "vv+=ww:" << vv << endl;
 
     const Real rdata[]={1,2,3,
                         9,.1,14,
@@ -559,7 +559,7 @@ int main()
     nnnr = smallNegA(0,1)-smallNegA(1,0);
     cout << "negator nnn=" << nnn << " real nnnr=" << nnnr << endl;
 
-    cout << "det(smallNegA)=" << det(smallNegA) 
+    cout << "det(smallNegA)=" << det(smallNegA)
          << " det(inv(smallNegA))=" << det(smallNegAI) << endl;
 
     const Real cjdata[]={1,1,  2,2,   3,3, 4,4,
@@ -578,7 +578,7 @@ int main()
     cout << "inverse(smallConjA4)=" << inverse(smallConjA4) << endl;
     cout << "norm(inverse-lapackInverse4)=" << (inverse(smallConjA4)-lapackInverse(smallConjA4)).norm() << endl;
 
-    cout << "det(smallConjA4)=" << det(smallConjA4) 
+    cout << "det(smallConjA4)=" << det(smallConjA4)
          << " det(inv(smallConjA4))=" << det(smallConjAI4) << endl;
 
     // Specialized inverse.
@@ -594,58 +594,58 @@ int main()
 
     cout << "norm(inverse-lapackInverse3)=" << (inverse(smallConjA3)-lapackInverse(smallConjA3)).norm() << endl;
 
-    cout << "det(smallConjA3)=" << det(smallConjA3) 
+    cout << "det(smallConjA3)=" << det(smallConjA3)
          << " det(inv(smallConjA3))=" << det(smallConjAI3) << endl;
 
     cout << "Mat<1,1,conj>=" << smallConjA3.getSubMat<1,1>(1,0) << "inv(...)=" <<
         smallConjA3.getSubMat<1,1>(1,0).invert();
-    cout << "Mat11*inv(Mat11)=" << 
+    cout << "Mat11*inv(Mat11)=" <<
         smallConjA3.getSubMat<1,1>(1,0)*smallConjA3.getSubMat<1,1>(1,0).invert();
     cout << "Mat<2,2,conj>=" << smallConjA3.getSubMat<2,2>(0,0) << "inv(...)=" <<
         smallConjA3.getSubMat<2,2>(0,0).invert();
-    cout << "Mat22*inv(Mat22)=" << 
+    cout << "Mat22*inv(Mat22)=" <<
         smallConjA3.getSubMat<2,2>(0,0)*smallConjA3.getSubMat<2,2>(0,0).invert();
 
     try {
-    const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 
-    const float fddd[] = { 11, 12, 13, 14, 15, 16 }; 
-    const complex<float> ccc[] = {  complex<float>(1.,2.),  
+    const double ddd[] = { 11, 12, 13, 14, 15, 16 };
+    const float fddd[] = { 11, 12, 13, 14, 15, 16 };
+    const complex<float> ccc[] = {  complex<float>(1.,2.),
                                     complex<float>(3.,4.),
                                     complex<float>(5.,6.),
                                     complex<float>(7.,8.) };
-    Vec< 2,complex<float> > cv2(ccc); 
+    Vec< 2,complex<float> > cv2(ccc);
     cout << "cv2=" << cv2 << endl;
-    cout << "(cv2+cv2)/1000:" << (cv2 + cv2) / complex<float>(1000,0) 
-              << endl; 
-    
+    cout << "(cv2+cv2)/1000:" << (cv2 + cv2) / complex<float>(1000,0)
+              << endl;
+
     cout << "cv2:  " << cv2 << endl;
-    cout << "cv2T: " << cv2.transpose() << endl; 
+    cout << "cv2T: " << cv2.transpose() << endl;
     cout << "-cv2: " << -cv2 << endl;
     cout << "~cv2: " << ~cv2 << endl;
     cout << "-~cv2: " << -(~cv2) << endl;
-    cout << "~-cv2: " << ~(-cv2) << endl; 
-    cout << "~-cv2*10000: " << (~(-cv2))*10000.f << endl;  
-        
+    cout << "~-cv2: " << ~(-cv2) << endl;
+    cout << "~-cv2*10000: " << (~(-cv2))*10000.f << endl;
+
     (~cv2)[1]=complex<float>(101.1f,202.3f);
-    cout << "after ~cv2[1]=(101.1f,202.3f), cv2= " << cv2 << endl;    
+    cout << "after ~cv2[1]=(101.1f,202.3f), cv2= " << cv2 << endl;
     -(~cv2)[1]=complex<float>(11.1f,22.3f);
-    cout << "after -~cv2[1]=(11.1f,22.3f), cv2= " << cv2 << endl; 
-        
+    cout << "after -~cv2[1]=(11.1f,22.3f), cv2= " << cv2 << endl;
+
     Vec<3,float> dv2(fddd), ddv2(fddd+3);
     dv2[2] = 1000;
-    cout << 100.* (ddv2 - dv2) / 1000. << endl; 
-    
+    cout << 100.* (ddv2 - dv2) / 1000. << endl;
+
     cout << "dv2=" << dv2 << " dv2.norm()=" << dv2.norm() << endl;
-    cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl; 
+    cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl;
 
     dv2 = 100*dv2;
-       
+
     const Vec<3,float> v3c[] = {Vec<3,float>(fddd),Vec<3,float>(fddd+1)};
 
     Vector_< Vec<2, Vec<3,float> > > vflt(2);
-    vflt[0] = Vec<2, Vec<3,float> >(v3c); 
-    vflt[1] = vflt[0]*100; 
-    vflt[1] = 100*vflt[0]; 
+    vflt[0] = Vec<2, Vec<3,float> >(v3c);
+    vflt[1] = vflt[0]*100;
+    vflt[1] = 100*vflt[0];
     cout << "vflt 2xvec3=" << vflt << endl;
 
 
@@ -676,7 +676,7 @@ int main()
     catch(const Exception::Base& b)
     {
         cout << b.getMessage() << endl;
-    }  
+    }
 
     typedef double P;
     const int N = 1000;
@@ -688,7 +688,7 @@ int main()
     cout << "big.norm()=" << big.norm() << endl;
 
 
-    cout << "INVERTING " << LUP << "x" << N << "x" << N 
+    cout << "INVERTING " << LUP << "x" << N << "x" << N
         << (sizeof(P)==4 ? std::string(" float") : std::string(" double")) << endl << std::flush;
 
     Matrix_<P> flip(N,N), nrflip(N,N);
@@ -775,7 +775,7 @@ void luinvert(const int N, DP* a/*N,N*/, DP* y/*N,N*/) {
 }
 
 template <class DP>
-void lubksb(const int N, const DP* a/*N,N*/, const int* indx/*N*/, 
+void lubksb(const int N, const DP* a/*N,N*/, const int* indx/*N*/,
                 DP* b/*N*/)
 {
     int i,ii=0,ip,j;

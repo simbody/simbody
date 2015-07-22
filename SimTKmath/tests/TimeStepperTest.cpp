@@ -44,10 +44,10 @@ public:
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
-        
+
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q == -1, u == 0.
-        
+
         Real q = state.getQ(pendulum.getGuts().getSubsysIndex())[0];
         Real u = state.getU(pendulum.getGuts().getSubsysIndex())[0];
         ASSERT(std::abs(q+1.0) < 0.05);
@@ -68,9 +68,9 @@ public:
         return lastEventTime+1.5;
     }
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
-        
+
         // This should be triggered every 1.5 time units.
-        
+
         ASSERT(state.getTime() == lastEventTime+1.5);
         eventCount++;
         lastEventTime = state.getTime();
@@ -87,9 +87,9 @@ public:
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
     void handleEvent(const State& state) const {
-        
+
         // This should be triggered when the pendulum crosses q == 0.
-        
+
         Real q = state.getQ(pendulum.getGuts().getSubsysIndex())[0];
         ASSERT(std::abs(q) < 0.01);
         ASSERT(state.getTime() > lastEventTime);
@@ -108,9 +108,9 @@ public:
         return lastEventTime*2;
     }
     void handleEvent(const State& state) const {
-        
+
         // This should be triggered every 1.5 time units.
-        
+
         ASSERT(state.getTime() == lastEventTime*2);
         eventCount++;
         lastEventTime = state.getTime();
@@ -153,7 +153,7 @@ int main () {
     const Real hReport = 1.;
 
     integ.setFinalTime(tFinal);
-    
+
     TimeStepper ts(sys);
     ts.setIntegrator(integ);
     ts.initialize(sys.getDefaultState());

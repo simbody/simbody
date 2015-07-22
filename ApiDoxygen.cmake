@@ -8,11 +8,11 @@ else(DOXYGEN_EXECUTABLE-NOTFOUND)
     set(SIMBODY_INSTALL_DOXYGENDIR   "${CMAKE_INSTALL_DOCDIR}/api")
     set(SIMBODY_DOXYGEN_TAGFILE_NAME "SimbodyDoxygenTagfile")
 
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in 
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
           ${DOXY_CONFIG}
           @ONLY )
 
-    add_custom_target(doxygen ${DOXYGEN_EXECUTABLE} ${DOXY_CONFIG}) 
+    add_custom_target(doxygen ${DOXYGEN_EXECUTABLE} ${DOXY_CONFIG})
 
     file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/html/")
     install(DIRECTORY "${PROJECT_BINARY_DIR}/html/"

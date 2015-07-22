@@ -43,7 +43,7 @@ namespace SimTK {
 //                               GEO LINESEG
 //==============================================================================
 /** A 3d line segment primitive represented by its end points
-in an unspecified frame, and a collection of line segment-related utility 
+in an unspecified frame, and a collection of line segment-related utility
 methods. We support a one-parameter t representation of the line segment, where
 t=0 gives the first end point and t=1 gives the second end point. **/
 template <class P>
@@ -52,17 +52,17 @@ typedef P               RealP;
 typedef Vec<3,RealP>    Vec3P;
 
 public:
-/** Construct an uninitialized LineSeg object; the end points will 
+/** Construct an uninitialized LineSeg object; the end points will
 be garbage (NaN in Debug builds). **/
 LineSeg_() {}
 
 /** Construct a LineSeg with the given end points. When an orientation is
 needed we define the line segment to go from \a e0 to \a e1. **/
-LineSeg_(const Vec3P& e0, const Vec3P& e1) 
+LineSeg_(const Vec3P& e0, const Vec3P& e1)
 {   setEndpoints(e0,e1); }
 
 /** Change the end points of this line segment. **/
-LineSeg_& setEndpoints(const Vec3P& e0, const Vec3P& e1) 
+LineSeg_& setEndpoints(const Vec3P& e0, const Vec3P& e1)
 {   e[0]=e0; e[1]=e1; return *this; }
 
 /** Change one end point of this line segment. **/
@@ -72,20 +72,20 @@ LineSeg_& setEndpoint(int which, const Vec3P& p)
 /** Determine whether this line segment is degenerate to a given tolerance,
 meaning that its length is less than or equal to the tolerance. Use a tolerance
 of zero if you want to check only for exact degeneracy. By default the
-tolerance is SignificantReal for the precision in use, about 2e-14 in double, 
+tolerance is SignificantReal for the precision in use, about 2e-14 in double,
 9e-7 in float. Cost is 10 flops. **/
 bool isDegenerate(RealP tol = Geo::getDefaultTol<P>()) const
 {   assert(tol >= 0); return calcLengthSqr() <= square(tol); }
 
 /** Get the location of an end point.\ Order is the same as construction. You
 can use operator[] instead for a more compact notation. **/
-const Vec3P& getEndpoint(int which) const 
+const Vec3P& getEndpoint(int which) const
 {   assert(which==0 || which==1); return e[which]; }
 
-/** Get a writable reference to the location of an end point.\ Order is the 
-same as construction. You can use operator[] instead for a more compact 
+/** Get a writable reference to the location of an end point.\ Order is the
+same as construction. You can use operator[] instead for a more compact
 notation. **/
-Vec3P& updEndpoint(int which) 
+Vec3P& updEndpoint(int which)
 {   assert(which==0 || which==1); return e[which]; }
 
 /** Access an end point by indexing the line segment. **/
@@ -97,7 +97,7 @@ Vec3P& operator[](int which) {return updEndpoint(which);}
 40 flops. **/
 RealP calcLength() const {return (e[1]-e[0]).norm(); }
 
-/** Calculate the square of the length of this line segment (cheap). Cost 
+/** Calculate the square of the length of this line segment (cheap). Cost
 is 8 flops. **/
 RealP calcLengthSqr() const {return (e[1]-e[0]).normSqr(); }
 
@@ -114,22 +114,22 @@ Vec3P findMidpoint() const
 {   return (e[0]+e[1]) / RealP(2); }
 
 /** Calculate a minimal bounding sphere for this line segment. This is the
-sphere whose center is the segment midpoint and whose radius is half the 
+sphere whose center is the segment midpoint and whose radius is half the
 segment length, plus a little slop. Cost is about 45 flops. **/
-Sphere_<P> calcBoundingSphere() const 
+Sphere_<P> calcBoundingSphere() const
 {   return Geo::Point_<P>::calcBoundingSphere(e[0],e[1]); }
 
-/** Find the distance between this line segment and a point expressed in the 
+/** Find the distance between this line segment and a point expressed in the
 same frame. Cost is XXX flops. **/
 RealP findDistanceToPoint(const Vec3P& p2) const
-{SimTK_ASSERT_ALWAYS(!"implemented", 
+{SimTK_ASSERT_ALWAYS(!"implemented",
 "Geo::LineSeg_::findDistanceToPoint(): Not implemented yet.");
 return Geo::getNaN<P>();}
 
-/** Find the square of the distance between this line segment and a point 
+/** Find the square of the distance between this line segment and a point
 expressed in the same frame. Cost is XXX flops. **/
 RealP findDistanceToPointSqr(const Vec3P& p2) const
-{SimTK_ASSERT_ALWAYS(!"implemented", 
+{SimTK_ASSERT_ALWAYS(!"implemented",
 "Geo::LineSeg_::findDistanceToPointSqr(): Not implemented yet.");
 return Geo::getNaN<P>();}
 

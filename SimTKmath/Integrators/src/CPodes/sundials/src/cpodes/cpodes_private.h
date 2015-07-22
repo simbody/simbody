@@ -42,7 +42,7 @@ extern "C" {
  *    MXSTEP_DEFAULT    default value for maximum number of steps
  *
  * Nonlinear solver
- *    
+ *
  *    MXNCF         max no. of convergence failures during one step try
  *    NLS_MAXCOR    maximum no. of corrector iterations for the nonlinear solver
  *    NLS_TEST_COEF constant in error test (used in the test quantity tq[4])
@@ -59,8 +59,8 @@ extern "C" {
  *    SMALL_NEF   if an error failure occurs and SMALL_NEF <= nef <= MXNEF1, then
  *                reset eta =  MIN(eta, ETAMXF)
  *    LONG_WAIT   number of steps to wait before considering an order change when
- *                q==1 and MXNEF1 error test failures have occurred   
- *    SMALL_NST   nst > SMALL_NST => use ETAMX3 
+ *                q==1 and MXNEF1 error test failures have occurred
+ *    SMALL_NST   nst > SMALL_NST => use ETAMX3
  *
  * Projection
  *
@@ -71,7 +71,7 @@ extern "C" {
  *    PRJ_RDIV      declare divergence if ratio del/delp > PRJ_RDIV
  *    PRJ_MSBLS     max no. of steps between lsetupP calls
  *
- * 
+ *
  * Other
  *
  *    FUZZ_FACTOR   factor used in defining an infinitesimal time interval
@@ -107,7 +107,7 @@ extern "C" {
 #define FUZZ_FACTOR RCONST(100.0)
 
 
-/* 
+/*
  * Control constants for communication between main integrator and
  * lower level functions in cpStep
  * ---------------------------------------------------------------
@@ -117,24 +117,24 @@ extern "C" {
  *    PREV_CONV_FAIL
  *    PREV_PROJ_FAIL
  *    PREV_ERR_FAIL
- *    
- * cpNls return values: 
+ *
+ * cpNls return values:
  *    CP_SUCCESS,
  *    CP_LSETUP_FAIL, CP_LSOLVE_FAIL, CP_ODEFUNC_FAIL,
  *    CP_CONV_FAILURE, CP_REPTD_ODEFUNC_ERR,
  *    PREDICT_AGAIN
  *
- * cpDoProjection return values: 
+ * cpDoProjection return values:
  *    CP_SUCCESS,
  *    CP_PLSETUP_FAIL, CP_PLSOLVE_FAIL, CP_CNSTRFUNC_FAIL, CP_PROJFUNC_FAIL
  *    CP_PROJ_FAILURE, CP_REPTD_CNSTRFUNC_ERR, CP_REPTD_PROJFUNC_ERR,
  *    PREDICT_AGAIN
- * 
- * cpDoErrorTest return values: 
+ *
+ * cpDoErrorTest return values:
  *    CP_SUCCESS,
  *    CP_ERR_FAILURE,
  *    PREDICT_AGAIN
- * 
+ *
  * cpRcheck* return values:
  *    CP_RTFUNC_FAIL,
  *    RTFOUND,
@@ -148,7 +148,7 @@ extern "C" {
 #define PREV_PROJ_FAIL   +103
 #define PREV_ERR_FAIL    +104
 
-#define CONV_FAIL        +110 
+#define CONV_FAIL        +110
 #define ODEFUNC_RECVR    +111
 #define CNSTRFUNC_RECVR  +112
 #define PROJFUNC_RECVR   +113
@@ -160,7 +160,7 @@ extern "C" {
  * CPODES Private Constants
  * ---------------------------------------------------------------
  */
-  
+
 #define ZERO    RCONST(0.0)
 #define TINY    RCONST(1.0e-10)
 #define PT001   RCONST(0.001)
@@ -195,11 +195,11 @@ int cpDoProjection(CPodeMem cp_mem, realtype saved_t, int *npfPtr);
 int cpEwtSet(N_Vector ycur, N_Vector weight, void *edata);
 
 /* Error return handler */
-void cpProcessError(CPodeMem cp_mem, 
-                    int error_code, const char *module, const char *fname, 
+void cpProcessError(CPodeMem cp_mem,
+                    int error_code, const char *module, const char *fname,
                     const char *msgfmt, ...);
 
-/* Functions acting on the Nordsieck history array */ 
+/* Functions acting on the Nordsieck history array */
 void cpRestore(CPodeMem cp_mem, realtype saved_t);
 void cpRescale(CPodeMem cp_mem);
 
@@ -341,7 +341,7 @@ void cpRootFree(CPodeMem cp_mem);
 #define MSGCP_BAD_ITOLQ "Illegal value for tol_typeQ. The legal values are CP_SS and CP_SV."
 #define MSGCP_NULL_ABSTOLQ "abstolQ = NULL illegal."
 #define MSGCP_BAD_RELTOLQ "reltolQ < 0 illegal."
-#define MSGCP_BAD_ABSTOLQ "abstolQ has negative component(s) (illegal)."  
+#define MSGCP_BAD_ABSTOLQ "abstolQ has negative component(s) (illegal)."
 #define MSGCP_BAD_EWTQ "Initial ewtQ has component(s) equal to zero (illegal)."
 #define MSGCP_EWTQ_NOW_BAD "At " MSG_TIME ", a component of ewtQ has become <= 0."
 #define MSGCP_QUADFUNC_FAILED "At " MSG_TIME ", the quadrature function failed in an unrecoverable manner."

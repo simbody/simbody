@@ -37,7 +37,7 @@ namespace SimTK {
 // Constructs a canonical quaternion from a rotation matrix (cost is ~60 flops).
 //------------------------------------------------------------------------------
 template <class P>
-Quaternion_<P>::Quaternion_(const Rotation_<P>& r) 
+Quaternion_<P>::Quaternion_(const Rotation_<P>& r)
 :   Vec<4,P>(r.convertRotationToQuaternion()) {}
 
 

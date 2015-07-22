@@ -123,10 +123,10 @@ private:
  */
 
 void ObservedPointFitter::
-createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, 
-                   const Array_<MobilizedBodyIndex>& originalBodyIxs, 
+createClonedSystem(const MultibodySystem& original, MultibodySystem& copy,
+                   const Array_<MobilizedBodyIndex>& originalBodyIxs,
                    Array_<MobilizedBodyIndex>& copyBodyIxs,
-                   bool& hasArtificialBaseBody) 
+                   bool& hasArtificialBaseBody)
 {
     const SimbodyMatterSubsystem& originalMatter = original.getMatterSubsystem();
     SimbodyMatterSubsystem copyMatter(copy);
@@ -204,11 +204,11 @@ int ObservedPointFitter::findBodiesForClonedSystem(MobilizedBodyIndex primaryBod
 }
 
 Real ObservedPointFitter::findBestFit
-   (const MultibodySystem& system, State& state, 
-    const Array_<MobilizedBodyIndex>&  bodyIxs, 
-    const Array_<Array_<Vec3> >&       stations, 
-    const Array_<Array_<Vec3> >&       targetLocations, 
-    Real                                        tolerance) 
+   (const MultibodySystem& system, State& state,
+    const Array_<MobilizedBodyIndex>&  bodyIxs,
+    const Array_<Array_<Vec3> >&       stations,
+    const Array_<Array_<Vec3> >&       targetLocations,
+    Real                                        tolerance)
 {
     Array_<Array_<Real> > weights(stations.size());
     for (int i = 0; i < (int)stations.size(); ++i)
@@ -218,15 +218,15 @@ Real ObservedPointFitter::findBestFit
 }
 
 Real ObservedPointFitter::findBestFit
-   (const MultibodySystem& system, State& state, 
-    const Array_<MobilizedBodyIndex>&  bodyIxs, 
-    const Array_<Array_<Vec3> >&       stations, 
-    const Array_<Array_<Vec3> >&       targetLocations, 
-    const Array_<Array_<Real> >&       weights, 
-    Real tolerance) 
-{    
+   (const MultibodySystem& system, State& state,
+    const Array_<MobilizedBodyIndex>&  bodyIxs,
+    const Array_<Array_<Vec3> >&       stations,
+    const Array_<Array_<Vec3> >&       targetLocations,
+    const Array_<Array_<Real> >&       weights,
+    Real tolerance)
+{
     // Verify the inputs.
-    
+
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     SimTK_APIARGCHECK(bodyIxs.size() == stations.size() && stations.size() == targetLocations.size(), "ObservedPointFitter", "findBestFit", "bodyIxs, stations, and targetLocations must all be the same length");
     int numBodies = matter.getNumBodies();
@@ -234,9 +234,9 @@ Real ObservedPointFitter::findBestFit
         SimTK_APIARGCHECK(bodyIxs[i] >= 0 && bodyIxs[i] < numBodies, "ObservedPointFitter", "findBestFit", "Illegal body ID");
         SimTK_APIARGCHECK(stations[i].size() == targetLocations[i].size(), "ObservedPointFitter", "findBestFit", "Different number of stations and target locations for body");
     }
-    
+
     // Build a list of children for each body.
-    
+
     Array_<Array_<MobilizedBodyIndex> > children(matter.getNumBodies());
     for (int i = 0; i < matter.getNumBodies(); ++i) {
         const MobilizedBody& body = matter.getMobilizedBody(MobilizedBodyIndex(i));
@@ -245,15 +245,15 @@ Real ObservedPointFitter::findBestFit
     }
 
     // Build a mapping of body IDs to indices.
-    
+
     Array_<int> bodyIndex(matter.getNumBodies());
     for (int i = 0; i < (int) bodyIndex.size(); ++i)
         bodyIndex[i] = -1;
     for (int i = 0; i < (int)bodyIxs.size(); ++i)
         bodyIndex[bodyIxs[i]] = i;
-    
+
     // Find the number of stations on each body with a nonzero weight.
-    
+
     Array_<int> numStations(matter.getNumBodies());
     for (int i = 0; i < (int) numStations.size(); ++i)
         numStations[i] = 0;
@@ -292,7 +292,7 @@ Real ObservedPointFitter::findBestFit
             continue; // There are no stations whose positions are affected by this.
         Array_<MobilizedBodyIndex> originalBodyIxs;
         int currentBodyIndex = findBodiesForClonedSystem(body.getMobilizedBodyIndex(), numStations, matter, children, originalBodyIxs);
-        if (currentBodyIndex == (int)originalBodyIxs.size()-1 
+        if (currentBodyIndex == (int)originalBodyIxs.size()-1
             && (bodyIndex[id] == -1 || stations[bodyIndex[id]].size() == 0))
             continue; // There are no stations whose positions are affected by this.
         MultibodySystem copy;
@@ -360,9 +360,9 @@ Real ObservedPointFitter::findBestFit
         tempState.updQ() = q;
         matter.convertToQuaternions(tempState, state);
     }
-    
+
     // Return the RMS error in the optimized system.
-    
+
     Real error;
     optimizer.objectiveFunc(q, true, error);
     if (UseWeighted)

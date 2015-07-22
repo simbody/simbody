@@ -23,7 +23,7 @@ if(BUILD_TESTS_AND_EXAMPLES_SHARED)
                           PROJECT_LABEL "Example - ${EX_NAME}")
     target_link_libraries(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
     # Don't install Debug examples
-    install(TARGETS ${EX_NAME} 
+    install(TARGETS ${EX_NAME}
             DESTINATION ${EXAMPLES_INSTALL_BIN}
             CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
 endif()
@@ -43,7 +43,7 @@ if(BUILD_STATIC_LIBRARIES AND BUILD_TESTS_AND_EXAMPLES_STATIC)
     # Don't install static examples
 endif()
 
-# Copy geometry to the binary directory that will 
+# Copy geometry to the binary directory that will
 # be the working directory when the example is run from a source build;
 # and install it in the examples installation.
 foreach(extradir geometry)
@@ -52,7 +52,7 @@ foreach(extradir geometry)
     get_filename_component(xfile_name ${xfile} NAME)
     configure_file(${xfile}
         ${CMAKE_CURRENT_BINARY_DIR}/${extradir}/${xfile_name} COPYONLY)
-    install(FILES ${xfile} DESTINATION 
+    install(FILES ${xfile} DESTINATION
             ${EXAMPLES_INSTALL_SRC}/${EX_NAME}/${extradir})
   endforeach()
 endforeach()
@@ -62,6 +62,6 @@ install(FILES ${source_files} ${header_files}
         DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME})
 
 # install the installed version of CMakeLists.txt
-install(FILES InstalledCMakeLists.txt 
+install(FILES InstalledCMakeLists.txt
         DESTINATION ${EXAMPLES_INSTALL_SRC}/${EX_NAME}
         RENAME CMakeLists.txt)

@@ -30,7 +30,7 @@ int main()
   int /*iout,*/ Nout, flag;
 
   half_pi = 2.0*atan(1.0);
-  
+
   yy = N_VNew_Serial(2);
   yp = N_VNew_Serial(2);
 
@@ -46,7 +46,7 @@ int main()
   Tout = Nout*1.0;
 
   /* CREATE CPODES OBJECT */
-  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);
   flag = CPodeSetMaxNumSteps(cpode_mem, 50000);
   flag = CPodeSetStopTime(cpode_mem, Tout);
 
@@ -82,7 +82,7 @@ int main()
 
   PrintFinalStats(cpode_mem, FALSE);
 
-  /* RE-INITIALIZE SOLVER */  
+  /* RE-INITIALIZE SOLVER */
   NV_Ith_S(yy,0) = half_pi;
   NV_Ith_S(yy,1) = 0.0;
 
@@ -96,7 +96,7 @@ int main()
   flag = CPodeReInit(cpode_mem, f, NULL, 0.0, yy, yp, CP_SS, reltol, &abstol);
   flag = CPDense(cpode_mem, 2);
 
-  /* INTERNAL PROJECTION FUNCTION */  
+  /* INTERNAL PROJECTION FUNCTION */
   ctols = N_VNew_Serial(1);
   NV_Ith_S(ctols,0) = 1.0e-2;
   flag = CPodeProjInit(cpode_mem, CP_PROJ_L2NORM, CP_CNSTR_NONLIN, cfun, NULL, ctols);
@@ -115,7 +115,7 @@ int main()
     printf("%le  %14.10le  %14.10le     %14.10le\n",  t, a, ad, E);
   }
 
- 
+
   /* INTEGRATE THROUGH A SEQUENCE OF TIMES */
   /*
   t = 0.0;

@@ -110,7 +110,7 @@ public: \
 *     This is used to allocate cache entries.
 *  -# Access the quantities (perhaps in a calcForce method).
 *
-* Look at the TaskSpaceControl-{UR10,Atlas} examples to see how to use this 
+* Look at the TaskSpaceControl-{UR10,Atlas} examples to see how to use this
 * class.
 *
 * [1] Khatib, Oussama, et al. "Robotics-based synthesis of human motion."
@@ -349,7 +349,7 @@ public:
     @param[in] gravityForce The gravity forces, which should be in the same
                             System as matter. **/
     TaskSpace(const SimbodyMatterSubsystem& matter,
-              const Force::Gravity&         gravityForce) 
+              const Force::Gravity&         gravityForce)
     :   m_matter(matter), m_gravityForce(gravityForce) {}
 
     /** This \a must be called within realizeTopology of the class that owns

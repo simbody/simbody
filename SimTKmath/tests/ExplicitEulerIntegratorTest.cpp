@@ -36,9 +36,9 @@ int main () {
     sys.realizeTopology();
     PeriodicHandler::handler->setEventInterval(0.01);
     PeriodicReporter::reporter->setEventInterval(0.015);
-    
+
     // Test the integrator in both normal and single step modes.
-    
+
     ExplicitEulerIntegrator integ(sys);
     testIntegrator(integ, sys, 1e-7);
     integ.setReturnEveryInternalStep(true);

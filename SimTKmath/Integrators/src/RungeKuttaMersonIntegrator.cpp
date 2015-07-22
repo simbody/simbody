@@ -22,8 +22,8 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the private (library side) implementation of the 
- * RungeKuttaMersonIntegrator and RungeKuttaMersonIntegratorRep class which 
+ * This is the private (library side) implementation of the
+ * RungeKuttaMersonIntegrator and RungeKuttaMersonIntegratorRep class which
  * is a concrete class implementing the abstract IntegratorRep.
  */
 
@@ -43,7 +43,7 @@ using namespace SimTK;
 //                     RUNGE KUTTA MERSON INTEGRATOR
 //------------------------------------------------------------------------------
 
-RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys) 
+RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys)
 {
     rep = new RungeKuttaMersonIntegratorRep(this, sys);
 }
@@ -54,7 +54,7 @@ RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys)
 //------------------------------------------------------------------------------
 
 RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep
-   (Integrator* handle, const System& sys) 
+   (Integrator* handle, const System& sys)
 :   AbstractIntegratorRep(handle, sys, 4, 4, "RungeKuttaMerson",  true) {
 }
 
@@ -72,16 +72,16 @@ RungeKuttaMersonIntegratorRep::RungeKuttaMersonIntegratorRep
 //       --|----------------------------
 //        1|  1/10  0   3/10 2/5  1/5  0    embedded 3rd order solution
 //
-// This is a 5-stage, first-same-as-last (FSAL) 4th order method which gives 
-// us an embedded 3rd order method as well, so we can extract a 4th-order 
-// error estimate for the 3rd-order result, which error estimate can then be 
-// used for step size control, since it will behave as h^4. We then propagate 
-// the 4th order result (whose error is unknown), which Hairer calls "local 
-// extrapolation". We call the initial state (t0,y0) and want (t0+h,y1). We 
-// are given the initial derivative f0=f(t0,y0), which most likely is left 
+// This is a 5-stage, first-same-as-last (FSAL) 4th order method which gives
+// us an embedded 3rd order method as well, so we can extract a 4th-order
+// error estimate for the 3rd-order result, which error estimate can then be
+// used for step size control, since it will behave as h^4. We then propagate
+// the 4th order result (whose error is unknown), which Hairer calls "local
+// extrapolation". We call the initial state (t0,y0) and want (t0+h,y1). We
+// are given the initial derivative f0=f(t0,y0), which most likely is left
 // over from an evaluation at the end of the last step.
-// 
-// We will call the derivatives at stage f1,f2,f3,f4 but these are done with 
+//
+// We will call the derivatives at stage f1,f2,f3,f4 but these are done with
 // only two temporaries fa and fb. (What we're calling "f" Hairer calls "k".)
 bool RungeKuttaMersonIntegratorRep::attemptODEStep
    (Real t1, Vector& y1err, int& errOrder, int& numIterations)
@@ -116,9 +116,9 @@ bool RungeKuttaMersonIntegratorRep::attemptODEStep
     setAdvancedStateAndRealizeDerivatives(t1, ysave);
     fa = getAdvancedState().getYDot(); // fa=f4
 
-    // Final value. This is the 4th order accurate estimate for 
-    // y1=y(t0+h)+O(h^5): y1 = y0 + (h/6)*(f0 + 4 f3 + f4). 
-    // Evaluate through kinematics only; it is a waste of a stage to 
+    // Final value. This is the 4th order accurate estimate for
+    // y1=y(t0+h)+O(h^5): y1 = y0 + (h/6)*(f0 + 4 f3 + f4).
+    // Evaluate through kinematics only; it is a waste of a stage to
     // evaluate derivatives here since the caller will muck with this before
     // the end of the step.
     setAdvancedStateAndRealizeKinematics(t1, y0 + (h/6)*(f0 + 4*fb + fa));

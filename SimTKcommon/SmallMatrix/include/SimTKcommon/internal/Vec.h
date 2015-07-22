@@ -39,65 +39,65 @@ namespace SimTK {
 /** @cond **/
 namespace Impl {
 
-// For those wimpy compilers that don't unroll short, constant-limit loops, 
-// Peter Eastman added these recursive template implementations of 
+// For those wimpy compilers that don't unroll short, constant-limit loops,
+// Peter Eastman added these recursive template implementations of
 // elementwise add, subtract, and copy. Sherm added multiply and divide.
 
 template <class E1, int S1, class E2, int S2> void
-conformingAdd(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+conformingAdd(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2,
               Vec<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] + r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-conformingAdd(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+conformingAdd(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2,
               Vec<N,typename CNT<E1>::template Result<E2>::Add>& result) {
-    conformingAdd(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
-                  reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+    conformingAdd(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1),
+                  reinterpret_cast<const Vec<N-1,E2,S2>&>(r2),
                   reinterpret_cast<Vec<N-1,typename CNT<E1>::
                               template Result<E2>::Add>&>(result));
     result[N-1] = r1[N-1] + r2[N-1];
 }
 
 template <class E1, int S1, class E2, int S2> void
-conformingSubtract(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+conformingSubtract(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2,
                    Vec<1,typename CNT<E1>::template Result<E2>::Sub>& result) {
     result[0] = r1[0] - r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-conformingSubtract(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+conformingSubtract(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2,
                    Vec<N,typename CNT<E1>::template Result<E2>::Sub>& result) {
-    conformingSubtract(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
-                       reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+    conformingSubtract(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1),
+                       reinterpret_cast<const Vec<N-1,E2,S2>&>(r2),
                        reinterpret_cast<Vec<N-1,typename CNT<E1>::
                                    template Result<E2>::Sub>&>(result));
     result[N-1] = r1[N-1] - r2[N-1];
 }
 
 template <class E1, int S1, class E2, int S2> void
-elementwiseMultiply(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+elementwiseMultiply(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2,
               Vec<1,typename CNT<E1>::template Result<E2>::Mul>& result) {
     result[0] = r1[0] * r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-elementwiseMultiply(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+elementwiseMultiply(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2,
               Vec<N,typename CNT<E1>::template Result<E2>::Mul>& result) {
-    elementwiseMultiply(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
-                        reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+    elementwiseMultiply(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1),
+                        reinterpret_cast<const Vec<N-1,E2,S2>&>(r2),
                         reinterpret_cast<Vec<N-1,typename CNT<E1>::
                                     template Result<E2>::Mul>&>(result));
     result[N-1] = r1[N-1] * r2[N-1];
 }
 
 template <class E1, int S1, class E2, int S2> void
-elementwiseDivide(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2, 
+elementwiseDivide(const Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2,
               Vec<1,typename CNT<E1>::template Result<E2>::Dvd>& result) {
     result[0] = r1[0] / r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-elementwiseDivide(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2, 
+elementwiseDivide(const Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2,
               Vec<N,typename CNT<E1>::template Result<E2>::Dvd>& result) {
-    elementwiseDivide(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1), 
-                      reinterpret_cast<const Vec<N-1,E2,S2>&>(r2), 
+    elementwiseDivide(reinterpret_cast<const Vec<N-1,E1,S1>&>(r1),
+                      reinterpret_cast<const Vec<N-1,E2,S2>&>(r2),
                       reinterpret_cast<Vec<N-1,typename CNT<E1>::
                                   template Result<E2>::Dvd>&>(result));
     result[N-1] = r1[N-1] / r2[N-1];
@@ -109,7 +109,7 @@ copy(Vec<1,E1,S1>& r1, const Vec<1,E2,S2>& r2) {
 }
 template <int N, class E1, int S1, class E2, int S2> void
 copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
-    copy(reinterpret_cast<Vec<N-1,E1,S1>&>(r1), 
+    copy(reinterpret_cast<Vec<N-1,E1,S1>&>(r1),
          reinterpret_cast<const Vec<N-1,E2,S2>&>(r2));
     r1[N-1] = r2[N-1];
 }
@@ -117,7 +117,7 @@ copy(Vec<N,E1,S1>& r1, const Vec<N,E2,S2>& r2) {
 }
 /** @endcond **/
 
-/** This is a fixed-length column vector designed for no-overhead inline 
+/** This is a fixed-length column vector designed for no-overhead inline
 computation.
 
 @ingroup MatVecUtilities
@@ -125,17 +125,17 @@ computation.
 @tparam     M       The number of rows in the vector.
 @tparam     ELT     The element type. Must be a composite numerical type (CNT).
                     The default is ELT=Real.
-@tparam     STRIDE  The spacing from one element to the next in memory, as an 
-                    integer number of elements of type ELT. The default is 
+@tparam     STRIDE  The spacing from one element to the next in memory, as an
+                    integer number of elements of type ELT. The default is
                     STRIDE=1.
 
 <b>Usage</b>
 
-The %Vec and @ref SimTK::Vector_ "Vector" classes are commonly used to represent 
-tuples of Real values, and have methods like %norm() to calculate the vector 
-2-norm. Use %Vec for a small vector whose length is known at compile time; 
-otherwise, use @ref SimTK::Vector_ "Vector". To collect elements of the same 
-type that do not constitute a tuple, it is more appropriate to use the Array_ 
+The %Vec and @ref SimTK::Vector_ "Vector" classes are commonly used to represent
+tuples of Real values, and have methods like %norm() to calculate the vector
+2-norm. Use %Vec for a small vector whose length is known at compile time;
+otherwise, use @ref SimTK::Vector_ "Vector". To collect elements of the same
+type that do not constitute a tuple, it is more appropriate to use the Array_
 container. Some common %Vec use cases are provided below.
 
 <b>Construction</b>
@@ -183,7 +183,7 @@ std::cout << Vector(myVec3) << std::endl;
 template <int M, class ELT, int STRIDE>
 class Vec {
 public:
-    /** @name Advanced 
+    /** @name Advanced
     These are obscure members of %Vec that are used for template metaprogramming
     and can be ignored by most users. **/
     /**@{**/
@@ -197,7 +197,7 @@ public:
     are complex; otherwise just the element type. **/
     typedef typename CNT<E>::TReal              EReal;
     /** Type showing the imaginary part of an element of this %Vec as real,
-    if elements are complex; otherwise a type that can hold a zero of the 
+    if elements are complex; otherwise a type that can hold a zero of the
     element type. **/
     typedef typename CNT<E>::TImag              EImag;
     /** Type that elements would have if complex, if E is currently real;
@@ -245,8 +245,8 @@ public:
         ImagOffset          = NTraits<ENumber>::ImagOffset,
         RealStrideFactor    = 1, // composite types don't change size when
                                  // cast from complex to real or imaginary
-        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH 
-                                ? CNT<E>::ArgDepth + 1 
+        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH
+                                ? CNT<E>::ArgDepth + 1
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
         IsULessScalar       = 0,
@@ -269,11 +269,11 @@ public:
     typedef Vec<M,EWithoutNegator,STRIDE>   TWithoutNegator;
     /** Type of this Vec cast to show only the real part of its element;
     this might affect the stride. **/
-    typedef Vec<M,EReal,STRIDE*CNT<E>::RealStrideFactor>         
+    typedef Vec<M,EReal,STRIDE*CNT<E>::RealStrideFactor>
                                             TReal;
     /** Type of this Vec cast to show only the imaginary part of its element;
     this might affect the stride. **/
-    typedef Vec<M,EImag,STRIDE*CNT<E>::RealStrideFactor>         
+    typedef Vec<M,EImag,STRIDE*CNT<E>::RealStrideFactor>
                                             TImag;
     typedef Vec<M,EComplex,STRIDE>          TComplex;
     /** Type of this Vec after casting to its Hermitian transpose; that is,
@@ -311,7 +311,7 @@ public:
     typedef EScalarNormSq                   ScalarNormSq;
     /**@}**/
 
-    /** The number of elements in this Vec (note that stride does not 
+    /** The number of elements in this Vec (note that stride does not
     affect this number.) **/
     static int size() { return M; }
     /** The number of rows in a Vec is the number of elements. **/
@@ -320,9 +320,9 @@ public:
     static int ncol() { return 1; }
 
 
-    /** Scalar norm square is sum( conjugate squares of all underlying scalars ), 
-    where conjugate square of scalar s is conj(s)*s. **/ 
-    ScalarNormSq scalarNormSqr() const { 
+    /** Scalar norm square is sum( conjugate squares of all underlying scalars ),
+    where conjugate square of scalar s is conj(s)*s. **/
+    ScalarNormSq scalarNormSqr() const {
         ScalarNormSq sum(0);
         for(int i=0;i<M;++i) sum += CNT<E>::scalarNormSqr(d[i*STRIDE]);
         return sum;
@@ -368,20 +368,20 @@ public:
     }
 
 
-    // This gives the resulting vector type when (v[i] op P) is applied to 
-    // each element of v. It is a vector of length M, stride 1, and element 
-    // types which are the regular composite result of E op P. Typically P is 
+    // This gives the resulting vector type when (v[i] op P) is applied to
+    // each element of v. It is a vector of length M, stride 1, and element
+    // types which are the regular composite result of E op P. Typically P is
     // a scalar type but it doesn't have to be.
-    template <class P> struct EltResult { 
+    template <class P> struct EltResult {
         typedef Vec<M, typename CNT<E>::template Result<P>::Mul, 1> Mul;
         typedef Vec<M, typename CNT<E>::template Result<P>::Dvd, 1> Dvd;
         typedef Vec<M, typename CNT<E>::template Result<P>::Add, 1> Add;
         typedef Vec<M, typename CNT<E>::template Result<P>::Sub, 1> Sub;
     };
 
-    // This is the composite result for v op P where P is some kind of 
+    // This is the composite result for v op P where P is some kind of
     // appropriately shaped non-scalar type.
-    template <class P> struct Result { 
+    template <class P> struct Result {
         typedef MulCNTs<M,1,ArgDepth,Vec,ColSpacing,RowSpacing,
             CNT<P>::NRows, CNT<P>::NCols, CNT<P>::ArgDepth,
             P, CNT<P>::ColSpacing, CNT<P>::RowSpacing> MulOp;
@@ -417,10 +417,10 @@ public:
         typedef Vec<M,P> Type;
     };
 
-    /** Default construction initializes %Vec's elements to NaN when debugging 
+    /** Default construction initializes %Vec's elements to NaN when debugging
     but leaves them uninitialized garbage otherwise, so declarations have zero
     cost in Release builds. **/
-    Vec(){ 
+    Vec(){
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -436,11 +436,11 @@ public:
     Vec(const Vec& src) {
         Impl::copy(*this, src);
     }
-    /** Copy assignment operator copies the logically-included elements from 
+    /** Copy assignment operator copies the logically-included elements from
     the source %Vec; gaps due to stride are not accessed in either source or
     destination. OK if source and destination are the same vector; results
     are unpredictable if they otherwise overlap with elements in common. **/
-    Vec& operator=(const Vec& src) {    
+    Vec& operator=(const Vec& src) {
         Impl::copy(*this, src);
         return *this;
     }
@@ -457,7 +457,7 @@ public:
         Impl::copy(*this, src);
     }
 
-    /** Construct a Vec from a Vec of the same length, with any stride. Works 
+    /** Construct a Vec from a Vec of the same length, with any stride. Works
     as long as the element types are assignment compatible. **/
     template <class EE, int SS> explicit Vec(const Vec<M,EE,SS>& src) {
         Impl::copy(*this, src);
@@ -467,9 +467,9 @@ public:
     that value to each element. **/
     explicit Vec(const E& e) {for (int i=0;i<M;++i) d[i*STRIDE]=e;}
 
-    /** Construction from a single value of this %Vec's negated element type 
+    /** Construction from a single value of this %Vec's negated element type
     assigns that value to each element, requiring floating point negation
-    to be performed once to compute the type-E representation of the 
+    to be performed once to compute the type-E representation of the
     type negator<E> value provided. **/
     explicit Vec(const ENeg& ne) {
         const E e = ne; // requires floating point negation
@@ -477,8 +477,8 @@ public:
     }
 
     /** Given an int value, turn it into a suitable floating point number,
-    convert that to element type E and then feed that to the above 
-    single-element constructor. 
+    convert that to element type E and then feed that to the above
+    single-element constructor.
     @see Vec::Vec(const E&). **/
     explicit Vec(int i) {new (this) Vec(E(Precision(i)));}
 
@@ -507,14 +507,14 @@ public:
       { assert(M==9);(*this)[0]=e0;(*this)[1]=e1;(*this)[2]=e2;
         (*this)[3]=e3;(*this)[4]=e4;(*this)[5]=e5;(*this)[6]=e6;(*this)[7]=e7;(*this)[8]=e8; }
 
-    /** Construction from a pointer to elements of any type EE assumes we're 
+    /** Construction from a pointer to elements of any type EE assumes we're
     pointing at a C++ array of EE's of the right length, and that EE is
     assignment compatible with this %Vec's element type E. The supplied
     pointer cannot be null. **/
     template <class EE> explicit Vec(const EE* p)
     {   assert(p); for(int i=0;i<M;++i) d[i*STRIDE]=p[i]; }
 
-    /** Assignment to a pointer to elements of any type EE assumes we're 
+    /** Assignment to a pointer to elements of any type EE assumes we're
     pointing at a C++ array of EE's of the right length, and that EE is
     assignment compatible with this %Vec's element type E. The supplied
     pointer cannot be null. **/
@@ -523,7 +523,7 @@ public:
 
     /** Assignment to a conforming %Vec, of any element type and stride,
     provided that the element types are assignment-compatible. **/
-    template <class EE, int SS> Vec& operator=(const Vec<M,EE,SS>& vv) 
+    template <class EE, int SS> Vec& operator=(const Vec<M,EE,SS>& vv)
     {   Impl::copy(*this, vv); return *this; }
 
     /** Add in a conforming %Vec, of any element type and stride,
@@ -564,7 +564,7 @@ public:
         return result;
     }
 
-    /** Same as outer product (m = col*row) -- use operator* or outer() 
+    /** Same as outer product (m = col*row) -- use operator* or outer()
     instead. **/
     template <class EE, int SS> Mat<M,M,typename CNT<E>::template Result<EE>::Mul>
     conformingMultiply(const Row<M,EE,SS>& r) const {
@@ -591,20 +591,20 @@ public:
     /** Select an element of this %Vec and return a const reference to it.
     This is range-checked in Debug builds but has zero overhead in Release
     builds. **/
-    const E& operator[](int i) const 
+    const E& operator[](int i) const
     {   assert(0 <= i && i < M); return d[i*STRIDE]; }
     /** Same as const operator[] above. **/
     const E& operator()(int i) const {return (*this)[i];}
 
-    /** Select an element of this %Vec and return a writable reference 
-    to it. This is range-checked in Debug builds but has zero overhead in 
+    /** Select an element of this %Vec and return a writable reference
+    to it. This is range-checked in Debug builds but has zero overhead in
     Release builds. **/
     E& operator[](int i) {assert(0 <= i && i < M); return d[i*STRIDE];}
     /** Same as non-const operator[] above. **/
     E& operator()(int i) {return (*this)[i];}
 
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
-    typename CNT<ScalarNormSq>::TSqrt 
+    typename CNT<ScalarNormSq>::TSqrt
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     /** If the elements of this Vec are scalars, the result is what you get by
@@ -612,7 +612,7 @@ public:
     \e not scalars, then the elements are *separately* normalized. That means
     you will get a different answer from Vec<2,Vec3>::normalize() than you
     would from a Vec<6>::normalize() containing the same scalars.
-    
+
     Normalize returns a vector of the same dimension but in new, packed storage
     and with a return type that does not include negator<> even if the original
     Vec<> does, because we can eliminate the negation here almost for free.
@@ -623,7 +623,7 @@ public:
             return castAwayNegatorIfAny() / (SignInterpretation*norm());
         } else {
             TNormalize elementwiseNormalized;
-            for (int i=0; i<M; ++i) 
+            for (int i=0; i<M; ++i)
                 elementwiseNormalized[i] = CNT<E>::normalize((*this)[i]);
             return elementwiseNormalized;
         }
@@ -634,7 +634,7 @@ public:
 
     /** Unary plus does nothing. **/
     const Vec&   operator+() const { return *this; }
-    /** Unary minus recasts this %Vec to a type that has the opposite 
+    /** Unary minus recasts this %Vec to a type that has the opposite
     interpretation of the sign but is otherwise identical, so no computation
     or copying is performed here. **/
     const TNeg&  operator-() const { return negate(); }
@@ -642,7 +642,7 @@ public:
     this will cause the negated result to be placed in the original %Vec. **/
     TNeg&        operator-()       { return updNegate(); }
     /** The Hermitian transpose operator recasts this %Vec to a type that
-    specifies the opposite storage order (row vs.\ column) then returns a 
+    specifies the opposite storage order (row vs.\ column) then returns a
     reference, so no computation or copying is performed here. **/
     const THerm& operator~() const { return transpose(); }
     /** Recast to Hermitian transposed type and return a writable reference;
@@ -652,13 +652,13 @@ public:
 
     /** Non-operator version of unary negation; just a recast. **/
     const TNeg&  negate() const { return *reinterpret_cast<const TNeg*>(this); }
-    /** Non-operator version of unary negation; recasts and returns a 
+    /** Non-operator version of unary negation; recasts and returns a
     writable reference. **/
     TNeg&        updNegate()    { return *reinterpret_cast<      TNeg*>(this); }
 
     /** Non-operator version of Hermitian transpose; just a recast. **/
     const THerm& transpose()    const { return *reinterpret_cast<const THerm*>(this); }
-    /** Non-operator version of Hermitian transpose; recasts and returns a 
+    /** Non-operator version of Hermitian transpose; recasts and returns a
     writable reference. **/
     THerm&       updTranspose()       { return *reinterpret_cast<      THerm*>(this); }
 
@@ -674,7 +674,7 @@ public:
 
     /** Return a reference to the real portion of this %Vec if it has complex
     elements; otherwise the type doesn't change. This is just a recast; no
-    copying or computation is done here. The result may have a different 
+    copying or computation is done here. The result may have a different
     stride than the original since the imaginary parts must be skipped. **/
     const TReal& real() const { return *reinterpret_cast<const TReal*>(this); }
     /** Recast to show only the real portion of this %Vec and return a writable
@@ -683,18 +683,18 @@ public:
 
     // Had to contort these next two routines to get them through VC++ 7.net
 
-    /** Return a reference to the imaginary portion of this %Vec if it has 
-    complex elements; otherwise the type doesn't change. This is just a recast; 
-    no copying or computation is done here. The result may have a different 
+    /** Return a reference to the imaginary portion of this %Vec if it has
+    complex elements; otherwise the type doesn't change. This is just a recast;
+    no copying or computation is done here. The result may have a different
     stride than the original since the real parts must be skipped. **/
-    const TImag& imag()    const { 
+    const TImag& imag()    const {
         const int offs = ImagOffset;
         const EImag* p = reinterpret_cast<const EImag*>(this);
         return *reinterpret_cast<const TImag*>(p+offs);
     }
-    /** Recast to show only the imaginary portion of this %Vec and return a 
+    /** Recast to show only the imaginary portion of this %Vec and return a
     writable reference. **/
-    TImag& imag() { 
+    TImag& imag() {
         const int offs = ImagOffset;
         EImag* p = reinterpret_cast<EImag*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
@@ -703,20 +703,20 @@ public:
     /** Recast to remove negators from this %Vec's type if present; this is
     handy for simplifying operations where we know the sign can be ignored
     such as squaring. **/
-    const TWithoutNegator& castAwayNegatorIfAny() const 
+    const TWithoutNegator& castAwayNegatorIfAny() const
     {   return *reinterpret_cast<const TWithoutNegator*>(this); }
     /** Recast to remove negators from this %Vec's type if present and return
     a writable reference. **/
-    TWithoutNegator&       updCastAwayNegatorIfAny()    
+    TWithoutNegator&       updCastAwayNegatorIfAny()
     {   return *reinterpret_cast<TWithoutNegator*>(this); }
 
-    // These are elementwise binary operators, (this op ee) by default but 
-    // (ee op this) if 'FromLeft' appears in the name. The result is a packed 
-    // Vec<M> but the element type may change. These are mostly used to 
-    // implement global operators. We call these "scalar" operators but 
+    // These are elementwise binary operators, (this op ee) by default but
+    // (ee op this) if 'FromLeft' appears in the name. The result is a packed
+    // Vec<M> but the element type may change. These are mostly used to
+    // implement global operators. We call these "scalar" operators but
     // actually the "scalar" can be a composite type.
 
-    //TODO: consider converting 'e' to Standard Numbers as precalculation and 
+    //TODO: consider converting 'e' to Standard Numbers as precalculation and
     // changing return type appropriately.
     template <class EE> Vec<M, typename CNT<E>::template Result<EE>::Mul>
     scalarMultiply(const EE& e) const {
@@ -731,7 +731,7 @@ public:
         return result;
     }
 
-    // TODO: should precalculate and store 1/e, while converting to Standard 
+    // TODO: should precalculate and store 1/e, while converting to Standard
     // Numbers. Note that return type should change appropriately.
     template <class EE> Vec<M, typename CNT<E>::template Result<EE>::Dvd>
     scalarDivide(const EE& e) const {
@@ -816,7 +816,7 @@ public:
         (*this) = ELT(0);
     }
 
-    /** Extract a const reference to a sub-Vec with size known at compile time. 
+    /** Extract a const reference to a sub-Vec with size known at compile time.
     This must be called with an explicit template argument for the size, for
     example, getSubVec<3>(i). This is only a recast; no copying or computation
     is performed. The size and index are range checked in Debug builds but
@@ -826,7 +826,7 @@ public:
         assert(0 <= i && i + MM <= M);
         return Vec<MM,ELT,STRIDE>::getAs(&(*this)[i]);
     }
-    /** Extract a writable reference to a sub-Vec with size known at compile time. 
+    /** Extract a writable reference to a sub-Vec with size known at compile time.
     This must be called with an explicit template argument for the size, for
     example, updSubVec<3>(i). This is only a recast; no copying or computation
     is performed. The size and index are range checked in Debug builds but
@@ -839,7 +839,7 @@ public:
 
 
     /** Extract a subvector of type %Vec from a longer one that has the same
-    element type and stride, and return a const reference to the selected 
+    element type and stride, and return a const reference to the selected
     subsequence. **/
     template <int MM>
     static const Vec& getSubVec(const Vec<MM,ELT,STRIDE>& v, int i) {
@@ -847,7 +847,7 @@ public:
         return getAs(&v[i]);
     }
     /** Extract a subvector of type %Vec from a longer one that has the same
-    element type and stride, and return a writable reference to the selected 
+    element type and stride, and return a writable reference to the selected
     subsequence. **/
     template <int MM>
     static Vec& updSubVec(Vec<MM,ELT,STRIDE>& v, int i) {
@@ -881,8 +881,8 @@ public:
 
 
     /** Return a vector one larger than this one by inserting an element
-    \e before the indicated one. The result is a packed copy with the same 
-    element type as this one. Works for any assignment compatible element. The 
+    \e before the indicated one. The result is a packed copy with the same
+    element type as this one. Works for any assignment compatible element. The
     index can be one greater than normally allowed in which case the element
     is appended (but use append1() if you know you're appending). **/
     template <class EE> Vec<M+1,ELT,1> insert1(int p, const EE& v) const {
@@ -896,12 +896,12 @@ public:
         }
         return out;
     }
-            
-    /** Recast an ordinary C++ array E[] to a const %Vec<M,E,S>; assumes 
+
+    /** Recast an ordinary C++ array E[] to a const %Vec<M,E,S>; assumes
     compatible length, stride, and packing. **/
-    static const Vec& getAs(const ELT* p)  
+    static const Vec& getAs(const ELT* p)
     {   return *reinterpret_cast<const Vec*>(p); }
-    /** Recast a writable ordinary C++ array E[] to a writable %Vec<M,E,S>; 
+    /** Recast a writable ordinary C++ array E[] to a writable %Vec<M,E,S>;
     assumes compatible length, stride, and packing. **/
     static Vec&       updAs(ELT* p)
     {   return *reinterpret_cast<Vec*>(p); }
@@ -927,15 +927,15 @@ public:
         for (int i=0; i<M; ++i) {
             const ELT& e = (*this)[i];
             if (!CNT<ELT>::isFinite(e)) {
-                if (!CNT<ELT>::isInf(e)) 
+                if (!CNT<ELT>::isInf(e))
                     return false; // something bad was found
-                seenInf = true; 
+                seenInf = true;
             }
         }
         return seenInf;
     }
 
-    /** Return true if no element of this %Vec contains an Infinity or a NaN 
+    /** Return true if no element of this %Vec contains an Infinity or a NaN
     anywhere. **/
     bool isFinite() const {
         for (int i=0; i<M; ++i)
@@ -968,12 +968,12 @@ public:
     }
 
     /** %Test whether every element of this vector is numerically equal to the given
-    element, using either a specified tolerance or the vector's 
+    element, using either a specified tolerance or the vector's
     default tolerance (which is always the same or looser than the default
     tolerance for one of its elements). **/
     bool isNumericallyEqual
        (const ELT& e,
-        double     tol = getDefaultTolerance()) const 
+        double     tol = getDefaultTolerance()) const
     {
         for (int i=0; i<M; ++i)
             if (!CNT<ELT>::isNumericallyEqual((*this)[i], e, tol))
@@ -986,15 +986,15 @@ public:
     std::string toString() const {
         std::stringstream stream;
         stream <<  (*this);
-        return stream.str(); 
+        return stream.str();
     }
 
     /** Variant of operator[] that's scripting friendly to set ith entry **/
-    void set(int i, const E& value)  
+    void set(int i, const E& value)
     {   (*this)[i] = value; }
 
     /** Variant of operator[] that's scripting friendly to get const reference to ith entry **/
-    const E& get(int i) const 
+    const E& get(int i) const
     {   return operator[](i); }
 
 private:
@@ -1008,7 +1008,7 @@ private:
 //   v+v, v-v, v==v, v!=v                  //
 /////////////////////////////////////////////
 
-// v3 = v1 + v2 where all v's have the same length M. 
+// v3 = v1 + v2 where all v's have the same length M.
 template <int M, class E1, int S1, class E2, int S2> inline
 typename Vec<M,E1,S1>::template Result< Vec<M,E2,S2> >::Add
 operator+(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {
@@ -1019,74 +1019,74 @@ operator+(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {
 // v3 = v1 - v2, similar to +
 template <int M, class E1, int S1, class E2, int S2> inline
 typename Vec<M,E1,S1>::template Result< Vec<M,E2,S2> >::Sub
-operator-(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) { 
+operator-(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {
     return Vec<M,E1,S1>::template Result< Vec<M,E2,S2> >
         ::SubOp::perform(l,r);
 }
 
 /// bool = v1[i] == v2[i], for all elements i
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator==(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+operator==(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r)
 {   for (int i=0; i < M; ++i) if (l[i] != r[i]) return false;
     return true; }
 /// bool = v1[i] != v2[i], for any element i
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator!=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {return !(l==r);} 
+operator!=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) {return !(l==r);}
 
 /// bool = v[i] == e, for all elements v[i] and element e
 template <int M, class E1, int S1, class E2> inline bool
-operator==(const Vec<M,E1,S1>& v, const E2& e) 
+operator==(const Vec<M,E1,S1>& v, const E2& e)
 {   for (int i=0; i < M; ++i) if (v[i] != e) return false;
     return true; }
 /// bool = v[i] != e, for any element v[i] and element e
 template <int M, class E1, int S1, class E2> inline bool
-operator!=(const Vec<M,E1,S1>& v, const E2& e) {return !(v==e);} 
+operator!=(const Vec<M,E1,S1>& v, const E2& e) {return !(v==e);}
 
 /// bool = v1[i] < v2[i], for all elements i
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator<(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+operator<(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r)
 {   for (int i=0; i < M; ++i) if (l[i] >= r[i]) return false;
     return true; }
 /// bool = v[i] < e, for all elements v[i] and element e
 template <int M, class E1, int S1, class E2> inline bool
-operator<(const Vec<M,E1,S1>& v, const E2& e) 
+operator<(const Vec<M,E1,S1>& v, const E2& e)
 {   for (int i=0; i < M; ++i) if (v[i] >= e) return false;
     return true; }
 
 /// bool = v1[i] > v2[i], for all elements i
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator>(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+operator>(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r)
 {   for (int i=0; i < M; ++i) if (l[i] <= r[i]) return false;
     return true; }
 /// bool = v[i] > e, for all elements v[i] and element e
 template <int M, class E1, int S1, class E2> inline bool
-operator>(const Vec<M,E1,S1>& v, const E2& e) 
+operator>(const Vec<M,E1,S1>& v, const E2& e)
 {   for (int i=0; i < M; ++i) if (v[i] <= e) return false;
     return true; }
 
 /// bool = v1[i] <= v2[i], for all elements i.
 /// This is not the same as !(v1>v2).
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator<=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+operator<=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r)
 {   for (int i=0; i < M; ++i) if (l[i] > r[i]) return false;
     return true; }
 /// bool = v[i] <= e, for all elements v[i] and element e.
 /// This is not the same as !(v1>e).
 template <int M, class E1, int S1, class E2> inline bool
-operator<=(const Vec<M,E1,S1>& v, const E2& e) 
+operator<=(const Vec<M,E1,S1>& v, const E2& e)
 {   for (int i=0; i < M; ++i) if (v[i] > e) return false;
     return true; }
 
 /// bool = v1[i] >= v2[i], for all elements i
 /// This is not the same as !(v1<v2).
 template <int M, class E1, int S1, class E2, int S2> inline bool
-operator>=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r) 
+operator>=(const Vec<M,E1,S1>& l, const Vec<M,E2,S2>& r)
 {   for (int i=0; i < M; ++i) if (l[i] < r[i]) return false;
     return true; }
 /// bool = v[i] >= e, for all elements v[i] and element e.
 /// This is not the same as !(v1<e).
 template <int M, class E1, int S1, class E2> inline bool
-operator>=(const Vec<M,E1,S1>& v, const E2& e) 
+operator>=(const Vec<M,E1,S1>& v, const E2& e)
 {   for (int i=0; i < M; ++i) if (v[i] < e) return false;
     return true; }
 
@@ -1100,7 +1100,7 @@ operator>=(const Vec<M,E1,S1>& v, const E2& e)
 
 // SCALAR MULTIPLY
 
-// v = v*real, real*v 
+// v = v*real, real*v
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<float>::Mul
 operator*(const Vec<M,E,S>& l, const float& r)
@@ -1162,10 +1162,10 @@ operator*(const negator<R>& l, const Vec<M,E,S>& r) {return r * (typename negato
 
 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
-// but when it is on the left it means scalar * pseudoInverse(vec), which is 
+// but when it is on the left it means scalar * pseudoInverse(vec), which is
 // a row.
 
-// v = v/real, real/v 
+// v = v/real, real/v
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<float>::Dvd
 operator/(const Vec<M,E,S>& l, const float& r)
@@ -1237,7 +1237,7 @@ operator/(const negator<R>& l, const Vec<M,E,S>& r) {return (typename negator<R>
 
 // SCALAR ADD
 
-// v = v+real, real+v 
+// v = v+real, real+v
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<float>::Add
 operator+(const Vec<M,E,S>& l, const float& r)
@@ -1299,7 +1299,7 @@ operator+(const negator<R>& l, const Vec<M,E,S>& r) {return r + (typename negato
 
 // SCALAR SUBTRACT -- careful, not commutative.
 
-// v = v-real, real-v 
+// v = v-real, real-v
 template <int M, class E, int S> inline
 typename Vec<M,E,S>::template Result<float>::Sub
 operator-(const Vec<M,E,S>& l, const float& r)

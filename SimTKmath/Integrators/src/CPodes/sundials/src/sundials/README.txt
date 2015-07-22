@@ -1,12 +1,12 @@
-                           SUNDIALS 
+                           SUNDIALS
                         Shared Module
                   Release 2.4.0, *** 2007
 
 
-The family of solvers referred to as SUNDIALS consists of solvers CVODE 
+The family of solvers referred to as SUNDIALS consists of solvers CVODE
 (for ODE systems), CVODES (ODE with sensitivity analysis capabilities),
-IDA (for differential-algebraic systems), and KINSOL (for nonlinear 
-algebraic systems), 
+IDA (for differential-algebraic systems), and KINSOL (for nonlinear
+algebraic systems),
 
 The various solvers of this family share many subordinate modules contained
 in this module:
@@ -18,32 +18,32 @@ in this module:
 
 A. Documentation
 ----------------
-All shared submodules are fully described in the user documentation for any of 
-the SUNDIALS solvers [1,2,3,4]. PostScript and PDF files for the uer guide for 
+All shared submodules are fully described in the user documentation for any of
+the SUNDIALS solvers [1,2,3,4]. PostScript and PDF files for the uer guide for
 a particular solver are available in the solver's directory.
 
 
 B. Installation
 ---------------
 
-For basic installation instructions see the file /sundials/INSTALL. 
+For basic installation instructions see the file /sundials/INSTALL.
 For complete installation instructions see any of the user guides.
 
 
 C. References
 -------------
 
-[1] A. C. Hindmarsh and R. Serban, "User Documentation for CVODE v2.4.0," 
+[1] A. C. Hindmarsh and R. Serban, "User Documentation for CVODE v2.4.0,"
     LLLNL technical report UCRL-MA-208108, November 2004.
 
-[2] A. C. Hindmarsh and R. Serban, "User Documentation for CVODES v2.4.0," 
+[2] A. C. Hindmarsh and R. Serban, "User Documentation for CVODES v2.4.0,"
     LLNL technical report UCRL-MA-208111, November 2004.
 
-[3] A. C. Hindmarsh and R. Serban, "User Documentation for IDA v2.4.0," 
+[3] A. C. Hindmarsh and R. Serban, "User Documentation for IDA v2.4.0,"
     LLNL technical report UCRL-MA-208112, November 2004.
 
-[4] A. M. Collier, A. C. Hindmarsh, R. Serban,and C. S. Woodward, "User 
-    Documentation for KINSOL v2.4.0," LLNL technical report UCRL-MA-208116, 
+[4] A. M. Collier, A. C. Hindmarsh, R. Serban,and C. S. Woodward, "User
+    Documentation for KINSOL v2.4.0," LLNL technical report UCRL-MA-208116,
     November 2004.
 
 
@@ -76,10 +76,10 @@ v. 2.3.0 (Nov. 2006) ---> v. 2.4.0 (***. 2007)
    - common functionality for all direct linear solvers (dense, band, and
      the new Lapack solver) has been collected into the DLS (Direct Linear
      Solver) module, implemented in the files sundials_direct.h and
-     sundials_direct.c (similar to the SPILS module for the iterative linear 
+     sundials_direct.c (similar to the SPILS module for the iterative linear
      solvers).
    - in order to include the new Lapack-based linear solver, all dimensions
-     for the above linear solvers (problem sizes, bandwidths,... including 
+     for the above linear solvers (problem sizes, bandwidths,... including
      the underlying matrix data types) are now of type 'int' (and not 'long int').
 
 
@@ -87,8 +87,8 @@ v. 2.2.0 (Mar. 2006) ---> v. 2.3.0 (Nov. 2006)
 ----------------------------------------------
 
 - Changes to the user interface
-   - modified sundials_dense and sundials_smalldense to work with 
-     rectangular m by n matrices (m <= n). 
+   - modified sundials_dense and sundials_smalldense to work with
+     rectangular m by n matrices (m <= n).
 
 - Changes related to the build system
    - reorganized source tree
@@ -130,7 +130,7 @@ v. 2.0.1 (Jan. 2005) ---> v. 2.0.2 (Mar. 2005)
 
 - Changes related to the build system
    - fixed autoconf-related bug to allow configuration with the PGI Fortran compiler
-   - modified to use customized detection of the Fortran name mangling scheme 
+   - modified to use customized detection of the Fortran name mangling scheme
      (autoconf's AC_F77_WRAPPERS routine is problematic on some platforms)
    - added --with-mpi-flags as a configure option to allow user to specify
      MPI-specific flags
@@ -152,7 +152,7 @@ v. 1.0 (Jul. 2002) ---> v. 2.0 (Dec. 2004)
      in the N_Vector structure itself).
    - all SUNDIALS functions create new N_Vector variables through cloning, using
      an N_Vector passed by the user as a template.
-   - a particular NVECTOR implementation is supposed to provide user-callable 
+   - a particular NVECTOR implementation is supposed to provide user-callable
      constructor and destructor functions.
    - removed from structure of vector operations the following functions:
      N_VNew, N_VNew_S, N_VFree, N_VFree_S, N_VMake, N_VDispose, N_VGetData,
@@ -160,7 +160,7 @@ v. 1.0 (Jul. 2002) ---> v. 2.0 (Dec. 2004)
    - added in structure of vector operations the following functions:
      N_VClone, N_VDestroy, N_VSpace, N_VGetArrayPointer, N_VSetArrayPointer,
      and N_VWrmsNormMask.
-   - Note that nvec_ser and nvec_par are now separate modules outside the 
+   - Note that nvec_ser and nvec_par are now separate modules outside the
      shared SUNDIALS module.
 
 - Changes to the generic linear solvers
@@ -176,7 +176,7 @@ v. 1.0 (Jul. 2002) ---> v. 2.0 (Dec. 2004)
 - Changes to sundialsmath submodule
    - replaced internal routine for estimation of unit roundoff with definition
      of unit roundoff from float.h
-   - modified functions to call appropriate math routines given the precision 
+   - modified functions to call appropriate math routines given the precision
      level specified by the user.
 
 - Changes to sundialstypes submodule

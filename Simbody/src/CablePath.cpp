@@ -44,8 +44,8 @@ PathInstanceInfo::PathInstanceInfo
     (const Array_<CableObstacle,CableObstacleIndex>& obstacles)
 :   mapObstacleToSurface(obstacles.size()),
     mapSurfaceToObstacle(0),
-    obstacleDisabled(obstacles.size(),false), 
-    obstaclePose(obstacles.size()) 
+    obstacleDisabled(obstacles.size(),false),
+    obstaclePose(obstacles.size())
 {
     SurfaceObstacleIndex next(0);
     for (CableObstacleIndex ox(0); ox < obstacles.size(); ++ox) {
@@ -67,7 +67,7 @@ std::ostream& operator<<(std::ostream& o, const PathInstanceInfo& info) {
         << " nSurf=" << info.getNumSurfaceObstacles() << endl;
     o << "  obs2surf: " << info.mapObstacleToSurface << endl;
     o << "  surf2obs: " << info.mapSurfaceToObstacle << endl;
-    o << "  disabled="; 
+    o << "  disabled=";
     for (CableObstacleIndex ox(0); ox < info.obstacleDisabled.size(); ++ox)
         o << " " << String(info.obstacleDisabled[ox]);
     o << "\n  pose: ";
@@ -101,7 +101,7 @@ std::ostream& operator<<(std::ostream& o, const PathVelEntry& entry) {
 
 
 //==============================================================================
-//                              CABLE PATH 
+//                              CABLE PATH
 //==============================================================================
 
 CablePath::CablePath
@@ -127,7 +127,7 @@ CablePath::CablePath
 }
 
 // Copy constructor is shallow and reference counted.
-CablePath::CablePath(const CablePath& src) : impl(src.impl) 
+CablePath::CablePath(const CablePath& src) : impl(src.impl)
 {   if (impl) ++impl->referenceCount; }
 
 // Copy assignment is shallow and reference counted.
@@ -154,27 +154,27 @@ void CablePath::clear() {
 void CablePath::solveForInitialCablePath(State& state) const
 {   getImpl().solveForInitialCablePath(state); }
 
-int CablePath::getNumObstacles() const 
+int CablePath::getNumObstacles() const
 {   return getImpl().obstacles.size(); }
 
 const CableObstacle& CablePath::
 getObstacle(CableObstacleIndex obstacleIx) const
 {   return getImpl().obstacles[obstacleIx]; }
 
-Real CablePath::getCableLength(const State& state) const 
+Real CablePath::getCableLength(const State& state) const
 {   return getImpl().getCableLength(state); }
 
-Real CablePath::getCableLengthDot(const State& state) const 
+Real CablePath::getCableLengthDot(const State& state) const
 {   return getImpl().getCableLengthDot(state); }
 
-void CablePath::applyBodyForces(const State& state, Real tension, 
+void CablePath::applyBodyForces(const State& state, Real tension,
                      Vector_<SpatialVec>& bodyForcesInG) const
 {   getImpl().applyBodyForces(state,tension,bodyForcesInG); }
 
 Real CablePath::calcCablePower(const State& state, Real tension) const
 {   return getImpl().calcCablePower(state,tension); }
 
-Real CablePath::getIntegratedCableLengthDot(const State& state) const 
+Real CablePath::getIntegratedCableLengthDot(const State& state) const
 {   return getImpl().getIntegratedLengthDot(state); }
 
 void CablePath::setIntegratedCableLengthDot(State& state, Real value) const
@@ -189,7 +189,7 @@ void CablePath::setIntegratedCableLengthDot(State& state, Real value) const
 //                           APPLY BODY FORCES
 //------------------------------------------------------------------------------
 void CablePath::Impl::
-applyBodyForces(const State& state, Real tension, 
+applyBodyForces(const State& state, Real tension,
                 Vector_<SpatialVec>& bodyForcesInG) const
 {
     if (tension <= 0) return;
@@ -249,10 +249,10 @@ realizeTopology(State& state) {
         Stage::Velocity,    // invalidates Velocity
         posEntry,           // takes over ownership of this Value
         Stage::Position);   // update depends on positions
-        
+
     Value<PathVelEntry>* velEntry = new Value<PathVelEntry>();
     velEntry->upd().setNumObstacles(instInfo.getNumObstacles(),
-                                    instInfo.getNumSurfaceObstacles());        
+                                    instInfo.getNumSurfaceObstacles());
     velEntryIx = cables->allocateAutoUpdateDiscreteVariable(state,
         Stage::Dynamics,    // invalidates Dynamics (forces)
         velEntry,           // takes over ownership of this Value
@@ -316,7 +316,7 @@ realizeInstance(const State& state) const {
         // This obstacle is a surface obstacle.
 
         // Assuming here that any enabled surface is active.
-        ppe.mapToActiveSurface[ox] = nActiveSurface++; 
+        ppe.mapToActiveSurface[ox] = nActiveSurface++;
 
         const CableObstacle::Surface::Impl& surf =
             SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>(obs);
@@ -448,7 +448,7 @@ void CablePath::Impl::handleEvents
         const CableObstacleIndex   ox  = p->second;
         if (instInfo.obstacleDisabled[ox]) {
             Vec3 rSQp, rSPn;
-            findPathSegmentForObstacle(state, instInfo, currPPE, ox, 
+            findPathSegmentForObstacle(state, instInfo, currPPE, ox,
                                        rSQp, rSPn);
             r_SQp[ox] = rSQp;
             r_SPn[ox] = rSPn;
@@ -475,13 +475,13 @@ void CablePath::Impl::handleEvents
 
     // We're going to modify the *State* variable here. The state is the
     // one used as "previous" when evaluating the current path, which is what
-    // triggered the event. We'll modify the cache entry to change the 
+    // triggered the event. We'll modify the cache entry to change the
     // obstacle activation, then write the modified entry onto the state.
     PathPosEntry& prevPPE = updPrevPosEntry(state);
     std::cout << "PrevPPE in handler=\n" << prevPPE << std::endl;
     std::cout << "CurrPPE in handler=\n" << currPPE << std::endl;
 
-    // Look through the triggered events to see if any of the event ids 
+    // Look through the triggered events to see if any of the event ids
     // belong to this cable path. If so, activate or deactive the corresponding
     // surface obstacle.
     for (unsigned i=0; i < eventIds.size(); ++i) {
@@ -491,7 +491,7 @@ void CablePath::Impl::handleEvents
             continue;
         const CableObstacleIndex   ox  = p->second;
         const SurfaceObstacleIndex sox = instInfo.mapObstacleToSurface[ox];
-        const CableObstacle::Surface::Impl& obs = 
+        const CableObstacle::Surface::Impl& obs =
             SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                         (getObstacleImpl(ox));
         if (instInfo.obstacleDisabled[ox]) {
@@ -514,7 +514,7 @@ void CablePath::Impl::handleEvents
             geom.makeStraightLineGeodesic(P,Q,d, GeodesicOptions(),zeroLength);
             geodesics[ox] = zeroLength;
         } else {
-            // Save the point of last contact as the initial guess for 
+            // Save the point of last contact as the initial guess for
             // closest point tracking.
             Vec3 P_S, Q_S; // these will be almost the same point
             obs.getContactPointsOnObstacle(state,instInfo,currPPE,P_S,Q_S);
@@ -534,7 +534,7 @@ void CablePath::Impl::handleEvents
             const Vec3& Q = xQ[ox];
             SimTK_ASSERT1_ALWAYS(!P.isNaN() && !Q.isNaN(),
                 "CablePath::Impl::handleEvents(): "
-                "saved point for obstacle %d was NaN.", (int)ox); 
+                "saved point for obstacle %d was NaN.", (int)ox);
             Vec3::updAs(&currPPE.x[xSlot])   = P;
             Vec3::updAs(&currPPE.x[xSlot+3]) = Q;;
 
@@ -559,15 +559,15 @@ void CablePath::Impl::handleEvents
 // between the previous and next obstacles).
 void CablePath::Impl::
 findPathSegmentForObstacle
-    (const State& state, const PathInstanceInfo& instInfo, 
-     const PathPosEntry& ppe, CableObstacleIndex ox, 
+    (const State& state, const PathInstanceInfo& instInfo,
+     const PathPosEntry& ppe, CableObstacleIndex ox,
      Vec3& Qprev_S, Vec3& Pnext_S) const
 {
     const CableObstacleIndex prevOx = ppe.findPrevActiveObstacle(ox);
     const CableObstacleIndex nextOx = ppe.findNextActiveObstacle(ox);
     assert(prevOx.isValid() && nextOx.isValid());
 
-    const CableObstacle::Surface::Impl& thisObs = 
+    const CableObstacle::Surface::Impl& thisObs =
         SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                         (getObstacleImpl(ox));
     const CableObstacle::Impl& prevObs = getObstacleImpl(prevOx);
@@ -634,7 +634,7 @@ ensurePositionKinematicsCalculated(const State& state) const {
         const Vec3 r_QpPn = (r_SPn - r_SQp);
         const UnitVec3 d_QpPn(r_QpPn); // direction of line
 
-        const CableObstacle::Surface::Impl& thisObs = 
+        const CableObstacle::Surface::Impl& thisObs =
         SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                         (getObstacleImpl(ox));
         const ContactGeometry& geo = thisObs.getContactGeometry();
@@ -659,8 +659,8 @@ ensurePositionKinematicsCalculated(const State& state) const {
         //std::cout << "HEIGHT=" << ppe.witnesses[sox] << std::endl;
     }
 
-    Vector& eventTriggers = 
-        cables->updEventTriggersByStage(state,Stage::Position); 
+    Vector& eventTriggers =
+        cables->updEventTriggersByStage(state,Stage::Position);
 
     for (SurfaceObstacleIndex i(0); i < instInfo.getNumSurfaceObstacles(); ++i)
     {
@@ -689,7 +689,7 @@ ensureVelocityKinematicsCalculated(const State& state) const {
 
     // Solve for xdot:
     //   Calc RHS in J xdot = Kdot.
-    //   Solve xdot = J\ Kdot. 
+    //   Solve xdot = J\ Kdot.
 
     if (ppe.x.size()) {
         findKinematicVelocityErrors(state, instInfo, ppe, pve);
@@ -731,11 +731,11 @@ ensureVelocityKinematicsCalculated(const State& state) const {
 class PathError : public Differentiator::JacobianFunction {
 public:
     // Caution: we're holding references.
-    PathError(int nx, 
+    PathError(int nx,
               const CablePath::Impl&  path,
               const State&            state,
               const PathInstanceInfo& instInfo,
-              const PathPosEntry&     ppe, 
+              const PathPosEntry&     ppe,
               Real                    accuracy)
     :   Differentiator::JacobianFunction(nx, nx), path(path),
         state(state),instInfo(instInfo),localPpe(ppe)
@@ -761,7 +761,7 @@ private:
 // Take whatever is in ppe.x and move any implicit surface points that are not
 // on the surface downhill to the nearest surface point.
 void CablePath::Impl::
-projectOntoSurface(const PathInstanceInfo& instInfo, 
+projectOntoSurface(const PathInstanceInfo& instInfo,
                    PathPosEntry& ppe) const
 {
     // Skip origin and termination "obstacles" at beginning and end.
@@ -776,7 +776,7 @@ projectOntoSurface(const PathInstanceInfo& instInfo,
         Vec3& P = Vec3::updAs(&ppe.x[xSlot]);
         Vec3& Q = Vec3::updAs(&ppe.x[xSlot+3]);
 
-        const CableObstacle::Surface::Impl& obs = 
+        const CableObstacle::Surface::Impl& obs =
             SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                         (getObstacleImpl(ox));
 
@@ -794,8 +794,8 @@ projectOntoSurface(const PathInstanceInfo& instInfo,
 // path point locations on surface obstacles, and accumulate the resulting
 // geodesic lengths to complete the path length.
 void CablePath::Impl::
-solveForPathPoints(const State& state, const PathInstanceInfo& instInfo, 
-                   PathPosEntry& ppe) const 
+solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
+                   PathPosEntry& ppe) const
 {
     const PathPosEntry& prevPPE = getPrevPosEntry(state);
     if (prevPPE.x.size())
@@ -812,15 +812,15 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
     const Real xtol = Real(1e-12)*1000;
 
     const Real estimatedPathErrorAccuracy = ftol;
-    PathError pathErrorFnc(ppe.x.size(), *this, state, instInfo, ppe, 
+    PathError pathErrorFnc(ppe.x.size(), *this, state, instInfo, ppe,
                            estimatedPathErrorAccuracy);
     Differentiator diff(pathErrorFnc);
 
     Vector dx, xold, xchg;
 
     Real f = ppe.err.norm();
-    cout << "\n***PATH solveForPathPoints@t=" << state.getTime() 
-         << " err=" << f << "\n"; 
+    cout << "\n***PATH solveForPathPoints@t=" << state.getTime()
+         << " err=" << f << "\n";
 
     Real fold, lam = 1, nextlam = 1;
     Real dxnormPrev = Infinity;
@@ -830,13 +830,13 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         // because we use it to solve for xdot. So we might as well do one
         // iteration.
         if (i > 0 && f <= ftol) {
-            std::cout << "\n***PATH converged in " 
+            std::cout << "\n***PATH converged in "
                 << i << " iterations err=" << f << "\n\n";
             break;
         }
         //cout << "obstacle err = " << f << ", x = " << ppe.x << endl;
 
-        //diff.calcJacobian(ppe.x, ppe.err, ppe.J, 
+        //diff.calcJacobian(ppe.x, ppe.err, ppe.J,
         //                  Differentiator::ForwardDifference);
        // Matrix Jnum = ppe.J;
         calcPathErrorJacobian(state, instInfo, ppe);
@@ -855,7 +855,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         const Real dxnorm = std::sqrt(dx.normSqr()/ppe.x.size()); // rms
         cout << "|dx| = " << dxnorm << endl;
         if (dxnorm > Real(.99)*dxnormPrev) {
-           std::cout << "\nPATH stalled in " 
+           std::cout << "\nPATH stalled in "
                 << i << " iterations err=" << f << " |dx|=" << dxnorm << "\n\n";
             break;
         }
@@ -869,7 +869,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 
             calcPathError(state,instInfo,ppe);
             f = ppe.err.norm();
-            //cout << "step=" << lam << " obstacle err = " << f 
+            //cout << "step=" << lam << " obstacle err = " << f
             //     << ", x = " << ppe.x << endl;
             if (f <= fold)
                 break;
@@ -883,7 +883,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
         dxnormPrev = dxnorm;
     }
     //cout << "obstacle error = " << ppe.err << endl;
-    //SimTK_ERRCHK3_ALWAYS(f <= ftol, "CablePath::solveForPathPoints()", 
+    //SimTK_ERRCHK3_ALWAYS(f <= ftol, "CablePath::solveForPathPoints()",
     //    "At t=%g, achieved patherr=%g but tol=%g.", state.getTime(), f, ftol);
 }
 
@@ -892,7 +892,7 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 //------------------------------------------------------------------------------
 //                      FIND KINEMATIC VELOCITY ERRORS
 //------------------------------------------------------------------------------
-// Given a patherr function err(K;x), the time derivative at x=x0 is 
+// Given a patherr function err(K;x), the time derivative at x=x0 is
 //    errdot(K,Kdot,x0; xdot) = Derr/Dx xdot + errdotK
 //            where   errdotK = Derr/DK Kdot
 // Here we calculate errdotK, which is the errdot we would get if
@@ -904,15 +904,15 @@ solveForPathPoints(const State& state, const PathInstanceInfo& instInfo,
 // it later.
 void CablePath::Impl::
 findKinematicVelocityErrors
-   (const State& state, const PathInstanceInfo& instInfo, 
+   (const State& state, const PathInstanceInfo& instInfo,
     const PathPosEntry& ppe, PathVelEntry& pve) const
 {
     if (ppe.x.size() == 0)
         return; // only via points; no xdots to worry about
 
-    // Run through all the active surface obstacles calculating time 
-    // derivatives of the input unit vectors eIn and eOut and passing those 
-    // to the obstacles to obtain the kinematic velocity errors. 
+    // Run through all the active surface obstacles calculating time
+    // derivatives of the input unit vectors eIn and eOut and passing those
+    // to the obstacles to obtain the kinematic velocity errors.
     // TODO: accumulate the length changes of the straight-line segments
     // here.
 
@@ -935,7 +935,7 @@ findKinematicVelocityErrors
         }
 
         // This active obstacle is a surface. Find the next active obstacle.
-        const CableObstacleIndex nextActiveOx = 
+        const CableObstacleIndex nextActiveOx =
             ppe.findNextActiveObstacle(thisActiveOx);
 
         // Now we have prev, this, and next with prev and next active and
@@ -943,7 +943,7 @@ findKinematicVelocityErrors
         // and the velocities of Qprev and Pnext in the S frame (P and Q
         // velocities are zero in S).
         const CableObstacle::Impl& prevObs = getObstacleImpl(prevActiveOx);
-        const CableObstacle::Surface::Impl& thisObs = 
+        const CableObstacle::Surface::Impl& thisObs =
             SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                 (getObstacleImpl(thisActiveOx));
         const CableObstacle::Impl& nextObs = getObstacleImpl(nextActiveOx);
@@ -979,21 +979,21 @@ findKinematicVelocityErrors
         const Vec3 vIn  = -(R_SB*v_BQp);
         const Vec3 vOut =   R_SB*v_BPn;
 
-        // Now create unit vectors along rIn and rOut and their time 
+        // Now create unit vectors along rIn and rOut and their time
         // derivatives in S.
         const Real ooNormIn  = 1/rIn.norm();    // oo == "one over"
-        const Real ooNormOut = 1/rOut.norm(); 
+        const Real ooNormOut = 1/rOut.norm();
 
         // Create unit vectors in S; "true" here means no need to normalize.
         const UnitVec3 eIn (ooNormIn *rIn,  true);
-        const UnitVec3 eOut(ooNormOut*rOut, true); 
+        const UnitVec3 eOut(ooNormOut*rOut, true);
 
         const Vec3 eInDot  = ooNormIn* (vIn  - (~eIn *vIn )*eIn);
         const Vec3 eOutDot = ooNormOut*(vOut - (~eOut*vOut)*eOut);
 
         // Now ask the obstacle to calculate the kinematic velocity errors
         // given the in/out direction time derivatives.
-        
+
         const int xSlot = ppe.mapToCoords[thisActiveOx];
         assert(xSlot >= 0); // Should have had coordinates assigned
 
@@ -1006,9 +1006,9 @@ findKinematicVelocityErrors
                 Vec3::getAs(&ppe.x[xSlot+3]),   // xQ
                 eOut,                           // in S frame
                 eOutDot);
-        
+
         prevActiveOx = thisActiveOx;
-        thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);       
+        thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);
     }
 }
 
@@ -1019,7 +1019,7 @@ findKinematicVelocityErrors
 // path points, calculate the nx error conditions that result. Return the
 // new geodesics in case anyone is interested.
 void CablePath::Impl::
-calcPathError(const State& state, const PathInstanceInfo& instInfo, 
+calcPathError(const State& state, const PathInstanceInfo& instInfo,
               PathPosEntry& ppe) const
 {
     const PathPosEntry& prevPPE = getPrevPosEntry(state);
@@ -1074,7 +1074,7 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
     }
 
     if (ppe.x.size() == 0) {
-        // No active surfaces -- this path is all lines between points so 
+        // No active surfaces -- this path is all lines between points so
         // has no errors.
         return;
     }
@@ -1091,7 +1091,7 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
         const int xSlot = ppe.mapToCoords[ox];
         assert(xSlot >= 0); // Should have had coordinates assigned
 
-        const CableObstacle::Surface::Impl& obs = 
+        const CableObstacle::Surface::Impl& obs =
             SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                         (getObstacleImpl(ox));
 
@@ -1104,7 +1104,7 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
         const UnitVec3 eIn_S  = ~R_GS * ppe.eIn_G[ax];
         const UnitVec3 eOut_S = ~R_GS * ppe.eIn_G[ax.next()];
         Vec6::updAs(&ppe.err[xSlot]) =
-            obs.calcSurfacePathError(   
+            obs.calcSurfacePathError(
                 prevASX.isValid() ? prevPPE.geodesics[prevASX] : Geodesic(),
                 eIn_S,
                 Vec3::getAs(&ppe.x[xSlot]),  // xP
@@ -1133,8 +1133,8 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
 //------------------------------------------------------------------------------
 //                          CALC PATH ERROR JACOBIAN
 //------------------------------------------------------------------------------
-// Assemble the nx X nx banded Jacobian J=D patherr / Dx from per-obstacle 
-// blocks. The obstacles compute the Jacobian of their own path error 
+// Assemble the nx X nx banded Jacobian J=D patherr / Dx from per-obstacle
+// blocks. The obstacles compute the Jacobian of their own path error
 // functions, which are eHat(eIn_S, xP, xQ, eOut_S), with all arguments in the
 // obstacle frame S. The blocks we need are instead the Jacobian of
 //    e(xQ-1, xP, xQ, xP+1) = eHat(eIn_S(xQ-1,xP), xP, xQ, eOut_S(xQ,xP+1))
@@ -1144,8 +1144,8 @@ calcPathError(const State& state, const PathInstanceInfo& instInfo,
 //           D xQ-1      D xP        D xQ       D xP+1
 // to produce the block we need for the patherr Jacobian.
 void CablePath::Impl::
-calcPathErrorJacobian(const State&            state, 
-                      const PathInstanceInfo& instInfo, 
+calcPathErrorJacobian(const State&            state,
+                      const PathInstanceInfo& instInfo,
                       PathPosEntry&           ppe) // in/out
                       const
 {
@@ -1157,7 +1157,7 @@ calcPathErrorJacobian(const State&            state,
     if (nx == 0)
         return; // only via points; nothing to do
 
-    // Run through all the active surface obstacles calculating partial 
+    // Run through all the active surface obstacles calculating partial
     // derivatives of the input unit vectors eIn and eOut and applying those
     // to the Jacobian blocks returned by the obstacles.
 
@@ -1180,7 +1180,7 @@ calcPathErrorJacobian(const State&            state,
         }
 
         // This active obstacle is a surface. Find the next active obstacle.
-        const CableObstacleIndex nextActiveOx = 
+        const CableObstacleIndex nextActiveOx =
             ppe.findNextActiveObstacle(thisActiveOx);
 
         // Now we have prev, this, and next with prev and next active and
@@ -1188,7 +1188,7 @@ calcPathErrorJacobian(const State&            state,
         // and the velocities of Qprev and Pnext in the S frame (P and Q
         // velocities are zero in S).
         const CableObstacle::Impl& prevObs = getObstacleImpl(prevActiveOx);
-        const CableObstacle::Surface::Impl& thisObs = 
+        const CableObstacle::Surface::Impl& thisObs =
             SimTK_DYNAMIC_CAST_DEBUG<const CableObstacle::Surface::Impl&>
                                                 (getObstacleImpl(thisActiveOx));
         const CableObstacle::Impl& nextObs = getObstacleImpl(nextActiveOx);
@@ -1226,11 +1226,11 @@ calcPathErrorJacobian(const State&            state,
 
         // Now create unit vectors along rIn and rOut, in S.
         const Real ooNormIn  = 1/rIn.norm();    // oo == "one over"
-        const Real ooNormOut = 1/rOut.norm(); 
+        const Real ooNormOut = 1/rOut.norm();
 
         // Create unit vectors in S; "true" here means no need to normalize.
         UnitVec3 eIn (ooNormIn *rIn,  true);
-        UnitVec3 eOut(ooNormOut*rOut, true); 
+        UnitVec3 eOut(ooNormOut*rOut, true);
 
         Mat33 DeinDP   =  ooNormIn *(Mat33(1) - eIn*~eIn);
         Mat33 DeoutDQ  = -ooNormOut*(Mat33(1) - eOut*~eOut);
@@ -1239,12 +1239,12 @@ calcPathErrorJacobian(const State&            state,
 
         // Now ask the obstacle to calculate the Jacobian Jhat of its error
         // function ehat(e_In, xP, xQ, e_Out).
-        
+
         const int xSlot = ppe.mapToCoords[thisActiveOx];
         assert(xSlot >= 0); // Should have had coordinates assigned
-        const ActiveSurfaceIndex prevASX = 
+        const ActiveSurfaceIndex prevASX =
             prevPPE.mapToActiveSurface[thisActiveOx];
- 
+
         //Mat63 DehatDein1, DehatDxP1, DehatDxQ1, DehatDeout1;
         //thisObs.calcSurfacePathErrorJacobianNumerically
         //   (prevASX.isValid() ? prevPPE.geodesics[prevASX] : Geodesic(),
@@ -1284,7 +1284,7 @@ calcPathErrorJacobian(const State&            state,
             ppe.J(xSlot,xSlot+6,6,3) = Matrix(DehatDeout*DeoutDPn);
 
         prevActiveOx = thisActiveOx;
-        thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);       
+        thisActiveOx = ppe.findNextActiveObstacle(prevActiveOx);
     }
 
 }
@@ -1299,7 +1299,7 @@ CableObstacle::CableObstacle(CableObstacle::Impl* guts) : impl(guts)
 }
 
 // Copy constructor is shallow and reference counted.
-CableObstacle::CableObstacle(const CableObstacle& src) : impl(src.impl) 
+CableObstacle::CableObstacle(const CableObstacle& src) : impl(src.impl)
 {   if (impl) ++impl->referenceCount; }
 
 // Copy assignment is shallow and reference counted.
@@ -1339,17 +1339,17 @@ bool CableObstacle::
 isDisabledByDefault() const {return impl->isDisabledByDefault();}
 
 CableObstacle& CableObstacle::
-setDisabledByDefault(bool shouldBeDisabled) 
+setDisabledByDefault(bool shouldBeDisabled)
 {   impl->setDisabledByDefault(shouldBeDisabled); return *this;}
 CableObstacle& CableObstacle::
-setDefaultTransform(const Transform& X_BS) 
+setDefaultTransform(const Transform& X_BS)
 {   impl->defaultX_BS=X_BS; return *this;}
 CableObstacle& CableObstacle::
 setDecorativeGeometry(const DecorativeGeometry& viz)
 {   impl->setDecoration(viz); return *this; }
 
-inline void CableObstacle::Impl::invalidateTopology() 
-{   if (cablePath) cablePath->updImpl().invalidateTopology(); }   
+inline void CableObstacle::Impl::invalidateTopology()
+{   if (cablePath) cablePath->updImpl().invalidateTopology(); }
 
 
 //==============================================================================
@@ -1361,7 +1361,7 @@ ViaPoint(CablePath& path, const MobilizedBody& viaMobod,
          const Vec3& defaultStation)
 :   CableObstacle(new ViaPoint::Impl(path, viaMobod, defaultStation))
 {
-    impl->index = path.updImpl().adoptObstacle(*this); 
+    impl->index = path.updImpl().adoptObstacle(*this);
 }
 
 
@@ -1371,41 +1371,41 @@ ViaPoint(CablePath& path, const MobilizedBody& viaMobod,
 //==============================================================================
 
 CableObstacle::Surface::
-Surface(CablePath& path, const MobilizedBody& mobod, 
+Surface(CablePath& path, const MobilizedBody& mobod,
         const Transform& X_BS, const ContactGeometry& geom)
 :   CableObstacle(new Surface::Impl(path, mobod, X_BS, geom))
 {
-    impl->index = path.updImpl().adoptObstacle(*this); 
+    impl->index = path.updImpl().adoptObstacle(*this);
 }
 
 CableObstacle::Surface& CableObstacle::Surface::
-setNearPoint(const Vec3& stationInS) { 
+setNearPoint(const Vec3& stationInS) {
     Impl& surfImpl = SimTK_DYNAMIC_CAST_DEBUG<Impl&>(*impl);
-    surfImpl.nearPointInS = stationInS; 
-    return *this; 
+    surfImpl.nearPointInS = stationInS;
+    return *this;
 }
 
 // Points are provided in S frame but converted to coordinates.
 CableObstacle::Surface& CableObstacle::Surface::
-setContactPointHints(const Vec3& Phint_S, const Vec3& Qhint_S) { 
+setContactPointHints(const Vec3& Phint_S, const Vec3& Qhint_S) {
     Impl& surfImpl = SimTK_DYNAMIC_CAST_DEBUG<Impl&>(*impl);
     surfImpl.xPhint = Phint_S; // TODO: only works for implicit surfaces
-    surfImpl.xQhint = Qhint_S; 
-    return *this; 
+    surfImpl.xQhint = Qhint_S;
+    return *this;
 }
 
 //==============================================================================
 //                   CABLE OBSTACLE :: SURFACE :: IMPL
 //==============================================================================
 void CableObstacle::Surface::Impl::initSurfacePath
-   (const Vec3&        xP, 
+   (const Vec3&        xP,
     const Vec3&        xQ,
     const UnitVec3&    entryHint_S, // optional (use NaN)
     const UnitVec3&    exitHint_S,  // optional (use NaN)
     Geodesic&          path) const
 {
     // TODO
-    surface.initGeodesic(xP, xQ, nearPointInS, 
+    surface.initGeodesic(xP, xQ, nearPointInS,
         GeodesicOptions(), path);
 }
 
@@ -1433,7 +1433,7 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     // Watch for backwards geodesic and flip tangent error conditions.
     Real signP = Real(~eIn *tP < 0 ? -1 : 1);
     Real signQ = Real(~eOut*tQ < 0 ? -1 : 1);
-    //XXX 
+    //XXX
     //signP = signQ = 1;
 
     // If length is very short, or geodesic is backwards, use path binormals
@@ -1441,8 +1441,8 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     const Real ShortLength = Real(1e-3);
     if (length <= ShortLength)
         cout << "==> Using short formulation for length=" << length << endl;
-    if (signP < 0 || signQ < 0) { 
-        cout << "==> Backwards geodesic with length=" << length 
+    if (signP < 0 || signQ < 0) {
+        cout << "==> Backwards geodesic with length=" << length
              << " eIn*tP=" << ~eIn*tP << " eOut*tQ=" << ~eOut*tQ << endl;
         if (signP != signQ) {
             cout <<"    Mismatch eIn="<<eIn << " eOut="<<eOut<<endl;
@@ -1456,7 +1456,7 @@ Vec6 CableObstacle::Surface::Impl::calcSurfacePathError
     Vec6 err;
     err[0] = ~eIn*nP;   // tangent error in normal direction
     err[1] = ~eOut*nQ;
-    
+
     err[2] = ~eIn*bbarP;   // tangent errors in geodesic direction
     err[3] = ~eOut*bbarQ;
 
@@ -1499,13 +1499,13 @@ calcSurfacePathErrorJacobianAnalytically
     // XXX
     //signP = signQ = 1;
 
-    const Real jP = current.getJacobiP(), 
+    const Real jP = current.getJacobiP(),
                jQ = current.getJacobiQ();
-    const Real jdP = current.getJacobiPDot(), 
+    const Real jdP = current.getJacobiPDot(),
                jdQ = current.getJacobiQDot();
-    const Real tauP = current.getTorsionP(), 
+    const Real tauP = current.getTorsionP(),
                tauQ = current.getTorsionQ();
-    const Real kappaP = current.getCurvatureP(), 
+    const Real kappaP = current.getCurvatureP(),
                kappaQ = current.getCurvatureQ();
     const Real muP = current.getBinormalCurvatureP(),
                muQ = current.getBinormalCurvatureQ();
@@ -1516,7 +1516,7 @@ calcSurfacePathErrorJacobianAnalytically
                gQ = surface.calcSurfaceGradient(xQ);
     const Mat33 HP = surface.calcSurfaceHessian(xP),
                 HQ = surface.calcSurfaceHessian(xQ);
-    const Real oojP = std::abs(jP) < SqrtEps ? Real(0) : 1/jP, 
+    const Real oojP = std::abs(jP) < SqrtEps ? Real(0) : 1/jP,
                oojQ = std::abs(jQ) < SqrtEps ? Real(0) : 1/jQ;
     const Mat33 DnPDxP = (Mat33(1) - nP*~nP)*HP / (~gP*nP),
                 DnQDxQ = (Mat33(1) - nQ*~nQ)*HQ / (~gQ*nQ);
@@ -1572,7 +1572,7 @@ Vec6 CableObstacle::Surface::Impl::calcSurfaceNegKinematicVelocityError
     // These must be the kinematic part of the time derivatives of the
     // error conditions that were reported for this obstacle during path
     // error calculation, but negated.
-    errdotK[0] = - ~eInDot*nP; 
+    errdotK[0] = - ~eInDot*nP;
     errdotK[1] = - ~eOutDot*nQ;
     errdotK[2] = -signP*(~eInDot*bP);
     errdotK[3] = -signQ*(~eOutDot*bQ);
@@ -1607,7 +1607,7 @@ public:
         return 0;
     }
 
-    void mapXToVecs(const Vector& x, 
+    void mapXToVecs(const Vector& x,
                     UnitVec3& eIn, Vec3& xP, Vec3& xQ, UnitVec3& eOut) const
     {
         assert(x.size()==12);
@@ -1619,7 +1619,7 @@ public:
         eOut = UnitVec3(Vec3::getAs(&x[9]));
     }
 
-    void mapVecsToX(const UnitVec3& eIn, const Vec3& xP, 
+    void mapVecsToX(const UnitVec3& eIn, const Vec3& xP,
                     const Vec3& xQ, const UnitVec3& eOut,
                     Vector& x) const
     {
@@ -1629,10 +1629,10 @@ public:
         Vec3::updAs(&x[6]) = xQ;
         Vec3::updAs(&x[9]) = eOut.asVec3();
     }
-    
+
     // Map 6x12 matrix into four 6x3 blocks. We're assuming the Matrix is
     // compact and column-ordered.
-    void mapMatrixToMats(const Matrix& J, 
+    void mapMatrixToMats(const Matrix& J,
         Mat63&          DerrDentry,
         Mat63&          DerrDxP,
         Mat63&          DerrDxQ,

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/08 00:48:24 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Aaron Collier and Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2005, The Regents of the University of California.
@@ -14,7 +14,7 @@
  *------------------------------------------------------------------
  */
 #ifndef SimTK_SIMMATH_SUNDIALS_CONFIG_H_
-#define SimTK_SIMMATH_SUNDIALS_CONFIG_H_ 
+#define SimTK_SIMMATH_SUNDIALS_CONFIG_H_
 
 /***** ADDED BY SHERM 20061121 */
 #include "SimTKcommon.h"
@@ -40,8 +40,8 @@
     #define SUNDIALS_EXPORT
 #endif
 
-/* Define precision of SUNDIALS data type 'realtype' 
- * Depending on the precision level, one of the following 
+/* Define precision of SUNDIALS data type 'realtype'
+ * Depending on the precision level, one of the following
  * three macros will be defined:
  *     #define SUNDIALS_SINGLE_PRECISION 1
  *     #define SUNDIALS_DOUBLE_PRECISION 1
@@ -64,8 +64,8 @@
 /* Define SUNDIALS version number */
 #define SUNDIALS_PACKAGE_VERSION "2.3.0"
 
-/* FCMIX: Define Fortran name-mangling macro 
- * Depending on the inferred scheme, one of the following 
+/* FCMIX: Define Fortran name-mangling macro
+ * Depending on the inferred scheme, one of the following
  * six macros will be defined:
  *     #define F77_FUNC(name,NAME) name
  *     #define F77_FUNC(name,NAME) name ## _
@@ -78,7 +78,7 @@
 #define F77_FUNC_(name,NAME) name ## _
 
 
-/* Use generic math functions 
+/* Use generic math functions
  * If it was decided that generic math functions can be used, then
  *     #define SUNDIALS_USE_GENERIC_MATH 1
  * otherwise

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.3 $
  * $Date: 2006/11/29 00:05:09 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Radu Serban and Aaron Collier @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2002, The Regents of the University of California.
@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#include <nvector/nvector_serial.h>  
+#include <nvector/nvector_serial.h>
 #include <sundials/sundials_fnvector.h>
 
 #if defined(F77_FUNC)
@@ -60,8 +60,8 @@ extern N_Vector F2C_IDA_vecQB;
 
 extern N_Vector F2C_KINSOL_vec;
 
-/* 
- * Prototypes of exported functions 
+/*
+ * Prototypes of exported functions
  *
  * FNV_INITS    - initializes serial vector operations for main problem
  * FNV_INITS_Q  - initializes serial vector operations for quadratures

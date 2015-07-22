@@ -46,7 +46,7 @@ public:
 template <class T>
 class PowerMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Implementation(const Constraint& constraint) 
+    Implementation(const Constraint& constraint)
     :   Measure_<T>::Implementation(1), m_constraint(constraint) {}
 
     // Default copy constructor, destructor, copy assignment are fine.
@@ -54,7 +54,7 @@ public:
     // Implementations of virtual methods.
     Implementation* cloneVirtual() const {return new Implementation(*this);}
     int getNumTimeDerivativesVirtual() const {return 0;}
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const
     {   return Stage::Acceleration; }
 
     void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
@@ -169,11 +169,11 @@ void createCylinderSystem(MultibodySystem& system) {
     // Skew gravity so moving takes work.
     Force::UniformGravity gravity(forces, matter, Vec3(0, -2, -3));
     for (int i = 0; i < NUM_BODIES; ++i) {
-        MobilizedBody& parent = 
+        MobilizedBody& parent =
             matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
         const Real mass = 1 + 0.1*i;
         Body::Rigid body(MassProperties(mass, Vec3(0), mass*UnitInertia(1)));
-        MobilizedBody::Cylinder b(parent, Transform(Vec3(.1,.2,.3)), 
+        MobilizedBody::Cylinder b(parent, Transform(Vec3(.1,.2,.3)),
                                   body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     }
 }
@@ -201,9 +201,9 @@ void createState(MultibodySystem& system, State& state, const Vector& y=Vector()
 
 void testCoordinateCoupler1() {
 
-    // Create a system using three CoordinateCouplers to fix the orientation 
+    // Create a system using three CoordinateCouplers to fix the orientation
     // of one body.
-    
+
     MultibodySystem system1;
     SimbodyMatterSubsystem matter1(system1);
     createGimbalSystem(system1);
@@ -220,19 +220,19 @@ void testCoordinateCoupler1() {
     State state1;
     createState(system1, state1);
 
-    // Create a system using a ConstantOrientation constraint to do the 
+    // Create a system using a ConstantOrientation constraint to do the
     // same thing.
-    
+
     MultibodySystem system2;
     SimbodyMatterSubsystem matter2(system2);
     createGimbalSystem(system2);
-    Constraint::ConstantOrientation orient(matter2.updGround(), Rotation(), 
+    Constraint::ConstantOrientation orient(matter2.updGround(), Rotation(),
         matter2.updMobilizedBody(MobilizedBodyIndex(1)), Rotation());
     State state2;
     createState(system2, state2, state1.getY());
-    
+
     // Compare the results.
-    
+
     SimTK_TEST_EQ(state1.getQ(), state2.getQ());
     SimTK_TEST_EQ(state1.getQDot(), state2.getQDot());
     SimTK_TEST_EQ(state1.getQDotDot(), state2.getQDotDot());
@@ -241,9 +241,9 @@ void testCoordinateCoupler1() {
 }
 
 void testCoordinateCoupler2() {
-    
+
     // Create a system involving a constraint that affects multiple mobilizers.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     createCylinderSystem(system);
@@ -257,19 +257,19 @@ void testCoordinateCoupler2() {
     coordinates[1] = MobilizerQIndex(1);
     coordinates[2] = MobilizerQIndex(1);
     Function* function = new CompoundFunction();
-    Constraint::CoordinateCoupler coupler(matter, function, 
+    Constraint::CoordinateCoupler coupler(matter, function,
                                           mobilizers, coordinates);
     State state;
     createState(system, state);
-    
+
     // Make sure the constraint is satisfied.
-    
+
     Vector cq(function->getArgumentSize());
     for (int i = 0; i < cq.size(); ++i)
         cq[i] = matter.getMobilizedBody(mobilizers[i])
                       .getOneQ(state, coordinates[i]);
     SimTK_TEST_EQ(0.0, function->calcValue(cq));
-    
+
     // Simulate it and make sure the constraint is working correctly and
     // energy is being conserved. This is a workless constraint so the
     // power should be zer
@@ -291,7 +291,7 @@ void testCoordinateCoupler2() {
         for (int i = 0; i < cq.size(); ++i)
             cq[i] = matter.getMobilizedBody(mobilizers[i])
                           .getOneQ(istate, coordinates[i]);
-        SimTK_TEST_EQ_TOL(0.0, function->calcValue(cq), 
+        SimTK_TEST_EQ_TOL(0.0, function->calcValue(cq),
                           integ.getConstraintToleranceInUse());
 
         // Power output should always be zero to machine precision
@@ -307,9 +307,9 @@ void testCoordinateCoupler2() {
 }
 
 void testCoordinateCoupler3() {
-    
+
     // Create a system involving a constrained body for which qdot != u.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     createBallSystem(system);
@@ -326,17 +326,17 @@ void testCoordinateCoupler3() {
     Constraint::CoordinateCoupler coupler(matter, function, bodies, coordinates);
     State state;
     createState(system, state);
-    
+
     // Make sure the constraint is satisfied.
-    
+
     Vector args(function->getArgumentSize());
     for (int i = 0; i < args.size(); ++i)
         args[i] = matter.getMobilizedBody(bodies[i]).getOneQ(state, coordinates[i]);
     SimTK_TEST_EQ(0.0, function->calcValue(args));
-    
-    // Simulate it and make sure the constraint is working correctly and 
+
+    // Simulate it and make sure the constraint is working correctly and
     // energy is being conserved.
-    
+
     const Real energy0 = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setReturnEveryInternalStep(true);
@@ -349,25 +349,25 @@ void testCoordinateCoupler3() {
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i])
                             .getOneQ(integ.getState(), coordinates[i]);
-        // Constraints are applied to unnormalized quaternions. When they are 
-        // normalized, that can increase the constraint error. That is why we 
+        // Constraints are applied to unnormalized quaternions. When they are
+        // normalized, that can increase the constraint error. That is why we
         // need the factor of 3 in the next line.
         // TODO: Huh? (sherm)
-        SimTK_TEST_EQ_TOL(0.0, function->calcValue(args), 
+        SimTK_TEST_EQ_TOL(0.0, function->calcValue(args),
                           3*integ.getConstraintToleranceInUse());
-        
+
          // Energy conservation depends on global integration accuracy;
         // accuracy returned here is local so we'll fudge at 10X.
         const Real etol = 10*integ.getAccuracyInUse()
-                          *std::max(std::abs(energy), std::abs(energy0));        
-        SimTK_TEST_EQ_TOL(energy0, energy, etol);       
+                          *std::max(std::abs(energy), std::abs(energy0));
+        SimTK_TEST_EQ_TOL(energy0, energy, etol);
     }
 }
 
 void testSpeedCoupler1() {
 
     // Create a system using a SpeedCoupler to fix one speed.
-    
+
     MultibodySystem system1;
     SimbodyMatterSubsystem matter1(system1);
     createGimbalSystem(system1);
@@ -381,16 +381,16 @@ void testSpeedCoupler1() {
     createState(system1, state1);
 
     // Create a system using a ConstantSpeed constraint to do the same thing.
-    
+
     MultibodySystem system2;
     SimbodyMatterSubsystem matter2(system2);
     createGimbalSystem(system2);
     Constraint::ConstantSpeed orient(matter2.updMobilizedBody(MobilizedBodyIndex(1)), MobilizerUIndex(2), 0);
     State state2;
     createState(system2, state2, state1.getY());
-    
+
     // Compare the results.
-    
+
     SimTK_TEST_EQ(state1.getQ(), state2.getQ());
     SimTK_TEST_EQ(state1.getQDot(), state2.getQDot());
     SimTK_TEST_EQ(state1.getQDotDot(), state2.getQDotDot());
@@ -399,10 +399,10 @@ void testSpeedCoupler1() {
 }
 
 void testSpeedCoupler2() {
-    
-    // Create a system involving a constraint that affects three different 
+
+    // Create a system involving a constraint that affects three different
     // bodies.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     createGimbalSystem(system);
@@ -419,18 +419,18 @@ void testSpeedCoupler2() {
     Constraint::SpeedCoupler coupler(matter, function, bodies, speeds);
     State state;
     createState(system, state);
-    
+
     // Make sure the constraint is satisfied.
-    
+
     Vector args(function->getArgumentSize());
     for (int i = 0; i < args.size(); ++i)
         args[i] = matter.getMobilizedBody(bodies[i]).getOneU(state, speeds[i]);
     SimTK_TEST_EQ(0.0, function->calcValue(args));
-    
-    // Simulate it and make sure the constraint is working correctly and 
+
+    // Simulate it and make sure the constraint is working correctly and
     // energy is being conserved. This should be workless and power should
     // always be zero (to the extent that the constraint is satisfied).
-    
+
     Real energy0 = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-6);
@@ -445,7 +445,7 @@ void testSpeedCoupler2() {
 
         for (int i = 0; i < args.size(); ++i)
             args[i] = matter.getMobilizedBody(bodies[i]).getOneU(istate, speeds[i]);
-        SimTK_TEST_EQ_TOL(0.0, function->calcValue(args), 
+        SimTK_TEST_EQ_TOL(0.0, function->calcValue(args),
                           integ.getConstraintToleranceInUse());
 
         SimTK_TEST_EQ_TOL(0.0, power, 10*integ.getConstraintToleranceInUse());
@@ -453,16 +453,16 @@ void testSpeedCoupler2() {
         // Energy conservation depends on global integration accuracy;
         // accuracy returned here is local so we'll fudge at 10X.
         const Real etol = 10*integ.getAccuracyInUse()
-                          *std::max(std::abs(energy), std::abs(energy0));        
+                          *std::max(std::abs(energy), std::abs(energy0));
         SimTK_TEST_EQ_TOL(energy0, energy, etol);
     }
 }
 
 void testSpeedCoupler3() {
-    
+
     // Create a system with a constraint that uses both u's and q's.
     // This will not be workless in general.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     createCylinderSystem(system);
@@ -477,24 +477,24 @@ void testSpeedCoupler3() {
     uindex[1] = MobilizerUIndex(1);
     qindex[0] = MobilizerQIndex(1);
     Function* function = new CompoundFunction();
-    Constraint::SpeedCoupler coupler(matter, function, ubody, uindex, 
+    Constraint::SpeedCoupler coupler(matter, function, ubody, uindex,
                                      qbody, qindex);
     PowerMeasure<Real> powMeas(matter, coupler);
     Measure::Zero zeroMeas(matter);
-    Measure::Integrate workMeas(matter, powMeas, zeroMeas); 
+    Measure::Integrate workMeas(matter, powMeas, zeroMeas);
 
     State state;
     createState(system, state);
     workMeas.setValue(state, 0); // override createState
-    
+
     // Make sure the constraint is satisfied.
-    
+
     Vector args(function->getArgumentSize());
     args[0] = matter.getMobilizedBody(ubody[0]).getOneU(state, uindex[0]);
     args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
     args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
     SimTK_TEST_EQ(0.0, function->calcValue(args));
-    
+
     // Simulate it and make sure the constraint is working correctly.
     // We don't expect energy to be conserved here but energy minus the
     // work done by the constraint should be conserved.
@@ -516,25 +516,25 @@ void testSpeedCoupler3() {
         args[0] = matter.getMobilizedBody(ubody[0]).getOneU(state, uindex[0]);
         args[1] = matter.getMobilizedBody(ubody[1]).getOneU(state, uindex[1]);
         args[2] = matter.getMobilizedBody(qbody[0]).getOneQ(state, qindex[0]);
-        SimTK_TEST_EQ_TOL(0.0, function->calcValue(args), 
+        SimTK_TEST_EQ_TOL(0.0, function->calcValue(args),
                           integ.getConstraintToleranceInUse());
 
         // Energy conservation depends on global integration accuracy;
         // accuracy returned here is local so we'll fudge at 10X.
         const Real etol = 10*integ.getAccuracyInUse()
-                          *std::max(std::abs(energy-work), std::abs(energy0));        
+                          *std::max(std::abs(energy-work), std::abs(energy0));
         SimTK_TEST_EQ_TOL(energy0, energy-work, etol)
 
     }
 }
 
 void testPrescribedMotion1() {
-    
+
     // Create a system requiring simple linear motion of one Q. This
     // may require that the constraint do work.
     // (The way the cylinder system is structured it only takes work to
     // keep body one at a uniform velocity; the rest are in free fall.)
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     createCylinderSystem(system);
@@ -547,20 +547,20 @@ void testPrescribedMotion1() {
     Constraint::PrescribedMotion constraint(matter, function, body, coordinate);
     PowerMeasure<Real> powMeas(matter, constraint);
     Measure::Zero zeroMeas(matter);
-    Measure::Integrate workMeas(matter, powMeas, zeroMeas);     
-    
+    Measure::Integrate workMeas(matter, powMeas, zeroMeas);
+
     State state;
     createState(system, state);
     workMeas.setValue(state, 0); // override createState
-    
+
     // Make sure the constraint is satisfied.
-    
+
     Vector args(1, state.getTime());
-    SimTK_TEST_EQ(function->calcValue(args), 
+    SimTK_TEST_EQ(function->calcValue(args),
                   matter.getMobilizedBody(body).getOneQ(state, coordinate));
-    
+
     // Simulate it and make sure the constraint is working correctly.
-    const Real energy0 = system.calcEnergy(state);   
+    const Real energy0 = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setReturnEveryInternalStep(true);
     integ.initialize(state);
@@ -574,21 +574,21 @@ void testPrescribedMotion1() {
 
         Vector args(1, istate.getTime());
         const Real q = matter.getMobilizedBody(body).getOneQ(istate, coordinate);
-        SimTK_TEST_EQ_TOL(function->calcValue(args), q, 
+        SimTK_TEST_EQ_TOL(function->calcValue(args), q,
                           integ.getConstraintToleranceInUse());
 
         // Energy conservation depends on global integration accuracy;
         // accuracy returned here is local so we'll fudge at 10X.
         const Real etol = 10*integ.getAccuracyInUse()
-                          *std::max(std::abs(energy-work), std::abs(energy0));        
+                          *std::max(std::abs(energy-work), std::abs(energy0));
         SimTK_TEST_EQ_TOL(energy0, energy-work, etol)
     }
 }
 
 void testPrescribedMotion2() {
-    
+
     // Create a system prescribing the motion of two Qs.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     createCylinderSystem(system);
@@ -607,31 +607,31 @@ void testPrescribedMotion2() {
     coefficients2[2] = 1.1;
     Function* function2 = new Function::Polynomial(coefficients2);
     Constraint::PrescribedMotion constraint2(matter, function2, body2, coordinate2);
-    
+
     // Must track work done by the constraints in order to check that
     // energy is conserved.
     Measure::Zero zeroMeas(matter);
     PowerMeasure<Real> powMeas1(matter, constraint1);
-    Measure::Integrate workMeas1(matter, powMeas1, zeroMeas);     
+    Measure::Integrate workMeas1(matter, powMeas1, zeroMeas);
     PowerMeasure<Real> powMeas2(matter, constraint2);
-    Measure::Integrate workMeas2(matter, powMeas2, zeroMeas);    
-    
+    Measure::Integrate workMeas2(matter, powMeas2, zeroMeas);
+
     State state;
     createState(system, state);
     workMeas1.setValue(state, 0); // override createState
     workMeas2.setValue(state, 0); // override createState
-    
+
     // Make sure the constraint is satisfied.
-    
+
     Vector args(1, state.getTime());
-    SimTK_TEST_EQ(function1->calcValue(args), 
+    SimTK_TEST_EQ(function1->calcValue(args),
         matter.getMobilizedBody(body1).getOneQ(state, coordinate1));
-    SimTK_TEST_EQ(function2->calcValue(args), 
+    SimTK_TEST_EQ(function2->calcValue(args),
         matter.getMobilizedBody(body2).getOneQ(state, coordinate2));
-    
+
     // Simulate it and make sure the constraint is working correctly and energy is being conserved.
-    const Real energy0 = system.calcEnergy(state);   
-    
+    const Real energy0 = system.calcEnergy(state);
+
     RungeKuttaMersonIntegrator integ(system);
     integ.setReturnEveryInternalStep(true);
     integ.initialize(state);
@@ -646,17 +646,17 @@ void testPrescribedMotion2() {
         const Real work2 =  workMeas2.getValue(istate);
 
         Vector args(1, istate.getTime());
-        SimTK_TEST_EQ_TOL(function1->calcValue(args), 
-            matter.getMobilizedBody(body1).getOneQ(istate, coordinate1), 
+        SimTK_TEST_EQ_TOL(function1->calcValue(args),
+            matter.getMobilizedBody(body1).getOneQ(istate, coordinate1),
             integ.getConstraintToleranceInUse());
-        SimTK_TEST_EQ_TOL(function2->calcValue(args), 
-            matter.getMobilizedBody(body2).getOneQ(istate, coordinate2), 
+        SimTK_TEST_EQ_TOL(function2->calcValue(args),
+            matter.getMobilizedBody(body2).getOneQ(istate, coordinate2),
             integ.getConstraintToleranceInUse());
 
         // Energy conservation depends on global integration accuracy;
         // accuracy returned here is local so we'll fudge at 10X.
         const Real etol = 10*integ.getAccuracyInUse()
-                          *std::max(std::abs(energy-(work1+work2)), std::abs(energy0));        
+                          *std::max(std::abs(energy-(work1+work2)), std::abs(energy0));
         SimTK_TEST_EQ_TOL(energy0, energy-(work1+work2), etol)
     }
 }

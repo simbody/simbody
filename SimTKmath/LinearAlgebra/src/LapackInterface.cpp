@@ -48,7 +48,7 @@ template <typename T> void LapackInterface::gelss( int m, int n,  int mn, int nr
 
 template <> void LapackInterface::gelss<double>( int m, int n,  int mn, int nrhs,
            double* a, int lda, double* b,  int ldb, double* s,
-           double rcond, int& rank, int& info){ 
+           double rcond, int& rank, int& info){
 
     double wsize[1];
     dgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, wsize, -1, info );
@@ -65,7 +65,7 @@ template <> void LapackInterface::gelss<double>( int m, int n,  int mn, int nrhs
 
 template <> void LapackInterface::gelss<float>( int m, int n,  int mn, int nrhs,
            float* a, int lda, float* b, int ldb,   float* s,
-           float rcond, int& rank, int& info){ 
+           float rcond, int& rank, int& info){
 
     float wsize[1];
     sgelss_(m, n, nrhs, a, lda, b, ldb, s, rcond, rank, wsize, -1, info );
@@ -82,7 +82,7 @@ template <> void LapackInterface::gelss<float>( int m, int n,  int mn, int nrhs,
 
 template <> void LapackInterface::gelss<std::complex<float> >( int m, int n,  int mn, int nrhs,
            std::complex<float>* a, int lda, std::complex<float>* b,  int ldb, float* s,
-           float rcond, int& rank, int& info){ 
+           float rcond, int& rank, int& info){
 
     std::complex<float>  wsize[1];
     TypedWorkSpace<float> rwork(5*mn);
@@ -100,7 +100,7 @@ template <> void LapackInterface::gelss<std::complex<float> >( int m, int n,  in
 
 template <> void LapackInterface::gelss<std::complex<double> >( int m, int n,  int mn, int nrhs,
            std::complex<double>* a, int lda, std::complex<double>* b,  int ldb, double* s,
-           double rcond, int& rank, int& info){ 
+           double rcond, int& rank, int& info){
 
     TypedWorkSpace<double> rwork(5*mn);
     std::complex<double>  wsize[1];
@@ -123,7 +123,7 @@ template <> void LapackInterface::potrs<double>
     int info;
 
     dpotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dpotrs", info );
     }
@@ -137,7 +137,7 @@ template <> void LapackInterface::potrs<float>
     int info;
 
     spotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "spotrs", info );
     }
@@ -151,7 +151,7 @@ template <> void LapackInterface::potrs<std::complex<float> >
     int info;
 
     cpotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cpotrs", info );
     }
@@ -165,7 +165,7 @@ template <> void LapackInterface::potrs<std::complex<double> >
     int info;
 
     zpotrs_(uplo, ncol, nrhs, lu, ncol, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zpotrs", info );
     }
@@ -179,7 +179,7 @@ template <> void LapackInterface::sytrs<double>
     int info;
 
     dsytrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dsytrs", info );
     }
@@ -194,7 +194,7 @@ template <> void LapackInterface::sytrs<float>
     int info;
 
     ssytrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ssytrs", info );
     }
@@ -209,7 +209,7 @@ template <> void LapackInterface::sytrs<std::complex<float> >
     int info;
 
     chetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "chetrs", info );
     }
@@ -224,7 +224,7 @@ template <> void LapackInterface::sytrs<std::complex<double> >
     int info;
 
     zhetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zhetrs", info );
     }
@@ -237,7 +237,7 @@ template <> void LapackInterface::getrs<double>
     int info;
 
     dgetrs_(trans, ncol, nrhs, lu, ncol, pivots, b, ncol, info, 1  );
-  
+
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dgetrs", info );
     }
@@ -287,28 +287,28 @@ template <> void LapackInterface::getrs<complex<double> >
     return;
 }
 // selected eigenvalues for symmetric matrices
-template <class T> 
+template <class T>
 void LapackInterface::syevx( char jobz, char range, char uplo, int n, T* a, int lda,
-    typename CNT<T>::TReal vl, typename CNT<T>::TReal vu, int il, int iu,     
-    typename CNT<T>::TReal abstol, int& nFound, typename CNT<T>::TReal* values, 
+    typename CNT<T>::TReal vl, typename CNT<T>::TReal vu, int il, int iu,
+    typename CNT<T>::TReal abstol, int& nFound, typename CNT<T>::TReal* values,
     T* vectors, int LDVectors, int* ifail, int& info ) {
     assert(false);
-} 
-template <> void LapackInterface::syevx<float>( char jobz, char range, 
-    char uplo, int n, float* a, int lda, float vl, float vu, int il, 
-    int iu,   float abstol, int& nFound, float *values, float* vectors, 
+}
+template <> void LapackInterface::syevx<float>( char jobz, char range,
+    char uplo, int n, float* a, int lda, float vl, float vu, int il,
+    int iu,   float abstol, int& nFound, float *values, float* vectors,
     int LDVectors, int* ifail, int& info ) {
-    
+
     TypedWorkSpace<int> iwork(5*n);
     float wsize[1];
     ssyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
-          values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info, 
+          values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info,
           1, 1, 1);
 
     int lwork = (int)wsize[0];
     TypedWorkSpace<float> work(lwork);
     ssyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
-          values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
+          values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail,
           info, 1, 1, 1);
 
     if( info < 0 ) {
@@ -319,21 +319,21 @@ template <> void LapackInterface::syevx<float>( char jobz, char range,
     return;
 }
 
-template <> void LapackInterface::syevx<double>( char jobz, char range, 
-    char uplo, int n, double* a, int lda, double vl, double vu, int il, 
-    int iu,   double abstol, int& nFound, double *values, double* vectors, 
+template <> void LapackInterface::syevx<double>( char jobz, char range,
+    char uplo, int n, double* a, int lda, double vl, double vu, int il,
+    int iu,   double abstol, int& nFound, double *values, double* vectors,
     int LDVectors, int* ifail, int& info ) {
-    
+
     TypedWorkSpace<int> iwork(5*n);
     double wsize[1];
     dsyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
-          values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info, 
+          values, vectors, LDVectors, wsize, -1, iwork.data, ifail, info,
           1, 1, 1);
 
     int lwork = (int)wsize[0];
     TypedWorkSpace<double> work(lwork);
     dsyevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
-          values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail, 
+          values, vectors, LDVectors,  work.data, lwork, iwork.data, ifail,
           info, 1, 1, 1);
 
     if( info < 0 ) {
@@ -342,22 +342,22 @@ template <> void LapackInterface::syevx<double>( char jobz, char range,
     return;
 }
 
-template <> void LapackInterface::syevx<std::complex<double> >( char jobz, 
-    char range, char uplo, int n, std::complex<double>* a, int lda, double vl, 
-    double vu, int il, int iu,   double abstol, int& nFound, double *values, 
+template <> void LapackInterface::syevx<std::complex<double> >( char jobz,
+    char range, char uplo, int n, std::complex<double>* a, int lda, double vl,
+    double vu, int il, int iu,   double abstol, int& nFound, double *values,
     std::complex<double>* vectors, int LDVectors, int* ifail, int& info ) {
-    
+
     TypedWorkSpace<int> iwork(5*n);
     TypedWorkSpace<double> rwork( 7*n );
     std::complex<double>  wsize[1];
-    zheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound, 
-          values, vectors, LDVectors, wsize, -1,  rwork.data, iwork.data, 
+    zheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
+          values, vectors, LDVectors, wsize, -1,  rwork.data, iwork.data,
           ifail, info, 1, 1, 1);
 
     int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<double> > work(lwork);
     zheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
-          values, vectors, LDVectors,  work.data, lwork, rwork.data, 
+          values, vectors, LDVectors,  work.data, lwork, rwork.data,
           iwork.data, ifail, info, 1, 1, 1);
 
     if( info < 0 ) {
@@ -366,16 +366,16 @@ template <> void LapackInterface::syevx<std::complex<double> >( char jobz,
     return;
 }
 
-template <> void LapackInterface::syevx<std::complex<float> >( char jobz, 
-    char range, char uplo, int n, std::complex<float>* a, int lda, float vl, 
-    float vu, int il, int iu,   float abstol, int& nFound, float *values, 
+template <> void LapackInterface::syevx<std::complex<float> >( char jobz,
+    char range, char uplo, int n, std::complex<float>* a, int lda, float vl,
+    float vu, int il, int iu,   float abstol, int& nFound, float *values,
     std::complex<float>* vectors, int LDVectors, int* ifail, int& info ) {
-    
+
     TypedWorkSpace<int> iwork(5*n);
     TypedWorkSpace<float> rwork( 7*n );
     std::complex<float> wsize[1];
     cheevx_( jobz, range, uplo, n, a, lda, vl, vu, il, iu, abstol, nFound,
-          values, vectors, LDVectors, wsize, -1, rwork.data, iwork.data, ifail, 
+          values, vectors, LDVectors, wsize, -1, rwork.data, iwork.data, ifail,
           info, 1, 1, 1);
 
     int lwork = (int)wsize[0].real();
@@ -391,12 +391,12 @@ template <> void LapackInterface::syevx<std::complex<float> >( char jobz,
 }
 
 // all eigenvalues for symmetric matrices eigen vectors returned in a
-template <class T> 
-void LapackInterface::syev( char jobz,  char uplo, int n, 
+template <class T>
+void LapackInterface::syev( char jobz,  char uplo, int n,
     T* a, int lda, typename CNT<T>::TReal * eigenValues, int& info ) {
     assert(false);
-} 
-template <> void LapackInterface::syev<float>( char jobz,  char uplo, int n, 
+}
+template <> void LapackInterface::syev<float>( char jobz,  char uplo, int n,
     float* a, int lda, float* eigenValues, int& info ) {
 
     float wsize[1];
@@ -408,9 +408,9 @@ template <> void LapackInterface::syev<float>( char jobz,  char uplo, int n,
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "ssyev", info );
     }
-} 
+}
 
-template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n, 
+template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n,
     double* a, int lda, double* eigenValues, int& info ) {
 
     double wsize[1];
@@ -422,15 +422,15 @@ template <> void LapackInterface::syev<double>( char jobz,  char uplo, int n,
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dsyev", info );
     }
-} 
+}
 
-template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char uplo, int n, 
+template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char uplo, int n,
     std::complex<float>* a, int lda, float* eigenValues, int& info ) {
 
     std::complex<float> wsize[1];
     int l = 3*n -2;
     if( l < 1 ) l = 1;
-    
+
     TypedWorkSpace<float> rwork( l );
 
     cheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
@@ -442,15 +442,15 @@ template <> void LapackInterface::syev<std::complex<float> >( char jobz,  char u
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "cheev", info );
     }
-} 
+}
 
-template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char uplo, int n, 
+template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char uplo, int n,
     std::complex<double>* a, int lda, double* eigenValues, int& info ) {
 
     std::complex<double> wsize[1];
     int l = 3*n -2;
     if( l < 1 ) l = 1;
-    
+
     TypedWorkSpace<double> rwork( l );
 
     zheev_( jobz, uplo, n, a, lda, eigenValues, wsize, -1, rwork.data, info,  1, 1 );
@@ -462,8 +462,8 @@ template <> void LapackInterface::syev<std::complex<double> >( char jobz,  char 
     int lwork = (int)wsize[0].real();
     TypedWorkSpace<std::complex<double> > work(lwork);
     zheev_( jobz, uplo, n, a, lda, eigenValues, work.data, lwork, rwork.data, info, 1, 1 );
-} 
-template <class T> 
+}
+template <class T>
 void LapackInterface::gesdd( char jobz, int m, int n, T* a, int lda,
            typename CNT<T>::TReal* s, T* u, int ldu,  T* vt,
            int ldvt,  int& info) {
@@ -478,10 +478,10 @@ void LapackInterface::gesdd<float>( char jobz, int m, int n, float* a, int lda,
     int mn = (m < n ) ? m : n;  // min(m,n)
     TypedWorkSpace<float> work(1);
     TypedWorkSpace<int> iwork(8*mn);
-    
+
     sgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, iwork.data, info, 1);
     lwork = (int)work.data[0];
-    work.resize(lwork); 
+    work.resize(lwork);
     sgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, iwork.data, info, 1);
 
     if( info < 0 ) {
@@ -500,7 +500,7 @@ void LapackInterface::gesdd<double>( char jobz, int m, int n, double* a, int lda
 
     dgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, iwork.data, info, 1);
     lwork = (int)work.data[0];
-    work.resize(lwork); 
+    work.resize(lwork);
     dgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, iwork.data, info, 1);
 
     if( info < 0 ) {
@@ -513,8 +513,8 @@ extern "C" {
     extern void zgesdd_(const char& jobz, const int& m, const int& n,  std::complex<double> *a, const int& lda, double *s,  std::complex<double> *u, const int& ldu,  std::complex<double> *vt, const int& ldvt,  std::complex<double> *work, const int& lwork, double *rwork, int *iwork, int& info, int jobz_len=1 );
 }
 template <>
-void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n, 
-      std::complex<float>* a, int lda, float* s, std::complex<float>* u, 
+void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n,
+      std::complex<float>* a, int lda, float* s, std::complex<float>* u,
       int ldu,  std::complex<float>* vt, int ldvt, int& info ){
 
     int mn = (m < n ) ? m : n;  // min(m,n)
@@ -529,7 +529,7 @@ void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n,
 
     cgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, rwork.data, iwork.data, info, 1);
     int lwork = (int)work.data[0].real();
-    work.resize(lwork); 
+    work.resize(lwork);
     cgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, rwork.data, iwork.data, info, 1);
 
     if( info < 0 ) {
@@ -539,8 +539,8 @@ void LapackInterface::gesdd<std::complex<float> >( char jobz, int m, int n,
 }
 
 template <>
-void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n, 
-      std::complex<double>* a, int lda, double* s, std::complex<double>* u, 
+void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n,
+      std::complex<double>* a, int lda, double* s, std::complex<double>* u,
       int ldu,  std::complex<double>* vt, int ldvt, int& info ){
 
     int mn = (m < n ) ? m : n;  // min(m,n)
@@ -555,7 +555,7 @@ void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n,
 
     zgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, -1, rwork.data, iwork.data, info, 1);
     int lwork = (int)work.data[0].real();
-    work.resize(lwork); 
+    work.resize(lwork);
     zgesdd_( jobz, m, n, a, lda, s, u, ldu, vt, ldvt, work.data, lwork, rwork.data, iwork.data, info, 1);
 
 
@@ -565,17 +565,17 @@ void LapackInterface::gesdd<std::complex<double> >( char jobz, int m, int n,
     return;
 }
 // eigenvlaues for nonsymmetric matrices
-template <class T> 
+template <class T>
 void LapackInterface::geev (char jobvl, char jobvr,
-    int n, T* a, int lda, std::complex<typename CNT<T>::TReal>* values, 
-    T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
+    int n, T* a, int lda, std::complex<typename CNT<T>::TReal>* values,
+    T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr,
     int ldvr, T* work, int lwork, int& info ) {
     assert(false);
 }
 
 template <> void LapackInterface::geev<double>
    (char jobvl, char jobvr,
-    int n, double* a, int lda, std::complex<double>* values, 
+    int n, double* a, int lda, std::complex<double>* values,
     double* vl, int ldvl, std::complex<double>* rightVectors, int ldvr, double* work,
     int lwork, int& info )
 {
@@ -584,10 +584,10 @@ template <> void LapackInterface::geev<double>
     TypedWorkSpace<double> vr(n*n);
 
     // avoid valgrind unintialized warnings
-    for(int i=0;i<n;i++) wi.data[i] = 0;  
-    dgeev_( jobvl, jobvr, 
-//             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
-             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
+    for(int i=0;i<n;i++) wi.data[i] = 0;
+    dgeev_( jobvl, jobvr,
+//             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr,
+             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr,
              work, lwork, info, 1, 1);
 
     if( info < 0 ) {
@@ -599,7 +599,7 @@ template <> void LapackInterface::geev<double>
     }
 
     /*
-    ** LAPACK returns the eigen vectors as complex conjuate pairs 
+    ** LAPACK returns the eigen vectors as complex conjuate pairs
     ** if the eigen value is real  ( imaginary part == 0 ) then the eigen vector is real
     ** else the vectors are returned with the real part in the jth column and the
     ** imaginary part in the j+1 column
@@ -616,10 +616,10 @@ template <> void LapackInterface::geev<double>
             }
             j++;
         }
-    } 
+    }
 /*
-    for(int j=0;j<n;j++) { 
-        for(int i=0;i<n;i++) printf("%f %f    ", rightVectors(i,j).real(), rightVectors(i,j).imag() ); 
+    for(int j=0;j<n;j++) {
+        for(int i=0;i<n;i++) printf("%f %f    ", rightVectors(i,j).real(), rightVectors(i,j).imag() );
         printf("\n");
     }
 */
@@ -636,11 +636,11 @@ template <> void LapackInterface::geev<float>
     TypedWorkSpace<float> vr(n*n);
 
     // avoid valgrind unintialized warnings
-    for(int i=0;i<n;i++) wi.data[i] = 0;  
+    for(int i=0;i<n;i++) wi.data[i] = 0;
 
-    sgeev_( jobvl, jobvr, 
-             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr, 
-             work, lwork, info, 
+    sgeev_( jobvl, jobvr,
+             n, a, lda, wr.data, wi.data, vl, ldvl, vr.data, ldvr,
+             work, lwork, info,
              1, 1);
 
     if( info < 0 ) {
@@ -651,7 +651,7 @@ template <> void LapackInterface::geev<float>
         values[i] = std::complex<float>(wr.data[i], wi.data[i] );
     }
     /*
-    ** LAPACK returns the eigen vectors as complex conjuate pairs 
+    ** LAPACK returns the eigen vectors as complex conjuate pairs
     ** if the eigen value is real  ( imaginary part == 0 ) then the eigen vector is real
     ** else the vectors are returned with the real part in the jth column and the
     ** imaginary part in the j+1 column
@@ -670,19 +670,19 @@ template <> void LapackInterface::geev<float>
             }
             j++;
     }
-    } 
+    }
 }
 template <> void LapackInterface::geev<std::complex<float> >
    (char jobvl, char jobvr,
-    int n, std::complex<float>* a, int lda, std::complex<float>* values, 
+    int n, std::complex<float>* a, int lda, std::complex<float>* values,
     std::complex<float>* vl, int ldvl, std::complex<float>* rightVectors, int ldvr, std::complex<float>* work,
     int lwork, int& info )
 {
 
     TypedWorkSpace<float> Rwork(2*n);
-    cgeev_( jobvl, jobvr, 
-             n, a, lda, values,  vl, ldvl, rightVectors, ldvr, 
-             work, lwork, Rwork.data, info, 
+    cgeev_( jobvl, jobvr,
+             n, a, lda, values,  vl, ldvl, rightVectors, ldvr,
+             work, lwork, Rwork.data, info,
              1, 1);
 
     if( info < 0 ) {
@@ -693,15 +693,15 @@ template <> void LapackInterface::geev<std::complex<float> >
 
 template <> void LapackInterface::geev<std::complex<double> >
    (char jobvl, char jobvr,
-    int n, std::complex<double>* a, int lda, std::complex<double>* values, 
+    int n, std::complex<double>* a, int lda, std::complex<double>* values,
     std::complex<double>* vl, int ldvl, std::complex<double>* rightVectors, int ldvr, std::complex<double>* work,
     int lwork, int& info )
 {
 
     TypedWorkSpace<double> Rwork(2*n);
-    zgeev_( jobvl, jobvr, 
-             n, a, lda, values,  vl, ldvl, rightVectors, ldvr, 
-             work, lwork, Rwork.data, info, 
+    zgeev_( jobvl, jobvr,
+             n, a, lda, values,  vl, ldvl, rightVectors, ldvr,
+             work, lwork, Rwork.data, info,
              1, 1);
 
     if( info < 0 ) {
@@ -709,17 +709,17 @@ template <> void LapackInterface::geev<std::complex<double> >
     }
 
 }
-template <> 
+template <>
 void  LapackInterface::getrf<double>( const int m, const int n, double *lu, const int lda,  int *pivots, int& info ) {
     dgetrf_(m, n, lu, lda, pivots, info   );
    return;
 }
-template <> 
+template <>
 void  LapackInterface::getrf<float>( const int m, const int n, float *lu, const int lda,  int *pivots, int& info ) {
     sgetrf_(m, n, lu, lda, pivots, info   );
    return;
 }
-template <> 
+template <>
 void  LapackInterface::getrf<std::complex<double> >( const int m, const int n, std::complex<double> *lu, const int lda,  int *pivots, int& info ) {
     zgetrf_(m, n, lu, lda, pivots, info   );
 
@@ -729,7 +729,7 @@ void  LapackInterface::getrf<std::complex<double> >( const int m, const int n, s
 
    return;
 }
-template <> 
+template <>
 void  LapackInterface::getrf<std::complex<float> >( const int m, const int n, std::complex<float> *lu, const int lda,  int *pivots, int& info ) {
     cgetrf_(m, n, lu, lda, pivots, info   );
 
@@ -739,7 +739,7 @@ void  LapackInterface::getrf<std::complex<float> >( const int m, const int n, st
    return;
 }
 
-template <> 
+template <>
 void LapackInterface::tzrzf<double>( const int& m, const int& n,  double* a, const int& lda, double* tau, double* work, const int& lwork, int& info ) {
     dtzrzf_(m, n, a, lda, tau, work, lwork, info );
 
@@ -749,7 +749,7 @@ void LapackInterface::tzrzf<double>( const int& m, const int& n,  double* a, con
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::tzrzf<float>( const int& m, const int& n,  float* a, const int& lda, float* tau, float* work, const int& lwork, int& info ) {
     stzrzf_(m, n, a, lda, tau, work, lwork, info );
 
@@ -759,13 +759,13 @@ void LapackInterface::tzrzf<float>( const int& m, const int& n,  float* a, const
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::tzrzf<std::complex<double> >( const int& m, const int& n,  std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* work, const int& lwork, int& info ) {
     ztzrzf_(m, n, a, lda, tau, work, lwork, info );
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::tzrzf<std::complex<float> >( const int& m, const int& n,  std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* work, const int& lwork, int& info ) {
     ctzrzf_(m, n, a, lda, tau, work, lwork, info );
 
@@ -775,7 +775,7 @@ void LapackInterface::tzrzf<std::complex<float> >( const int& m, const int& n,  
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::geqp3<double>( const int& m, const int& n,  double* a, const int& lda, int *pivots, double* tau, double* work, const int& lwork, int& info ) {
      dgeqp3_( m, n, a, lda, pivots, tau, work, lwork, info );
 
@@ -785,7 +785,7 @@ void LapackInterface::geqp3<double>( const int& m, const int& n,  double* a, con
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::geqp3<float>( const int& m, const int& n,  float* a, const int& lda, int *pivots, float* tau, float* work, const int& lwork, int& info ) {
      sgeqp3_( m, n, a, lda, pivots, tau, work, lwork, info );
 
@@ -795,7 +795,7 @@ void LapackInterface::geqp3<float>( const int& m, const int& n,  float* a, const
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::geqp3<std::complex<float> >( const int& m, const int& n,  std::complex<float>* a, const int& lda, int *pivots, std::complex<float>* tau, std::complex<float>* work, const int& lwork,  int& info ) {
      TypedWorkSpace<float> rwork(2*n);
      cgeqp3_( m, n, a, lda, pivots, tau, work, lwork, rwork.data, info );
@@ -806,7 +806,7 @@ void LapackInterface::geqp3<std::complex<float> >( const int& m, const int& n,  
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::geqp3<std::complex<double> >( const int& m, const int& n,  std::complex<double>* a, const int& lda, int *pivots, std::complex<double>*  tau, std::complex<double>* work, const int& lwork,  int& info ) {
      TypedWorkSpace<double> rwork(2*n);
      zgeqp3_( m, n, a, lda, pivots, tau, work,  lwork, rwork.data, info );
@@ -817,10 +817,10 @@ void LapackInterface::geqp3<std::complex<double> >( const int& m, const int& n, 
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::lascl<double>( const char& type, const int& kl, const int& ku, const double& cfrom, const double& cto,  const int& m, const int& n, double* a, const int& lda, int& info ) {
-//TODO     dlascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
-    dlascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+//TODO     dlascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 );
+    dlascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 );
 
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "dlascl", info );
@@ -828,10 +828,10 @@ void LapackInterface::lascl<double>( const char& type, const int& kl, const int&
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::lascl<float>( const char& type, const int& kl, const int& ku, const float& cfrom, const float& cto,  const int& m, const int& n, float* a, const int& lda, int& info ) {
-// TODO    slascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
-    slascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+// TODO    slascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 );
+    slascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 );
 
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "slascl", info );
@@ -839,10 +839,10 @@ void LapackInterface::lascl<float>( const char& type, const int& kl, const int& 
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::lascl<std::complex<float> >( const char& type, const int& kl, const int& ku, const float& cfrom, const float& cto,  const int& m, const int& n, std::complex<float>* a, const int& lda, int& info) {
-// TODO    clascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
-    clascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+// TODO    clascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 );
+    clascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 );
 
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "clascl", info );
@@ -850,10 +850,10 @@ void LapackInterface::lascl<std::complex<float> >( const char& type, const int& 
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::lascl<std::complex<double> >( const char& type, const int& kl, const int& ku, const double& cfrom, const double& cto,  const int& m, const int& n, std::complex<double>* a, const int& lda, int& info) {
-// TODO    zlascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 ); 
-    zlascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 ); 
+// TODO    zlascl_( type, kl, ku, cfrom, cto, m, n, a, lda, info, 1 );
+    zlascl_( type, kl, ku, &cfrom, &cto, m, n, a, lda, info, 1 );
 
     if( info < 0 ) {
         SimTK_THROW2( SimTK::Exception::IllegalLapackArg, "zlascl", info );
@@ -862,13 +862,13 @@ void LapackInterface::lascl<std::complex<double> >( const char& type, const int&
 }
 
 
-template <> 
+template <>
 double LapackInterface::lange<float>( const char& norm, const int& m, const int& n, const float* a, const int& lda){
 /*
  TODO JACKM because g77 returns FORTRAN REAL's as doubles and gfortran returns them as floats
  changes this once everyone has changed to new libraries and SimTKlapack.h has been updated
      TypedWorkSpace<float> work(m);
-     return( slange_( norm, m, n, a, lda, work.data, 1 ) ); 
+     return( slange_( norm, m, n, a, lda, work.data, 1 ) );
 */
 
      TypedWorkSpace<double> work(m);
@@ -881,14 +881,14 @@ double LapackInterface::lange<float>( const char& norm, const int& m, const int&
      // leading dimension of da.data is m now, not lda
      return( dlange_( norm, m, n, da.data, m, work.data, 1 ) );
 }
- 
-template <> 
+
+template <>
 double LapackInterface::lange<double>( const char& norm, const int& m, const int& n, const double* a, const int& lda ){
      TypedWorkSpace<double> work(m);
-     return( dlange_( norm, m, n, a, lda, work.data, 1 ) ); 
+     return( dlange_( norm, m, n, a, lda, work.data, 1 ) );
 }
- 
-template <> 
+
+template <>
 double LapackInterface::lange<std::complex<float> >( const char& norm, const int& m, const int& n, const std::complex<float>* a, const int& lda ){
 /*
  TODO JACKM because g77 returns FORTRAN REAL's as doubles and gfortran returns them as floats
@@ -905,16 +905,16 @@ double LapackInterface::lange<std::complex<float> >( const char& norm, const int
          for (int i=0; i<m; i++)
              za.data[j*m + i] = a[j*lda + i];
      // leading dimension of za.data is m now, not lda
-     return zlange_( norm, m, n, za.data, m, work.data, 1 );    
+     return zlange_( norm, m, n, za.data, m, work.data, 1 );
 }
- 
-template <> 
+
+template <>
 double LapackInterface::lange<std::complex<double> >( const char& norm, const int& m, const int& n, const std::complex<double>* a, const int& lda) {
      TypedWorkSpace<double> work(m);
      return( zlange_( norm, m, n, a, lda, work.data, 1 ) );
 }
- 
-template <> 
+
+template <>
 void LapackInterface::ormqr<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, float* a, const int& lda, float *tau, float *c__, const int& ldc, float* work, const int& lwork, int& info) {
 
      sormqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
@@ -925,7 +925,7 @@ void LapackInterface::ormqr<float>(const char& side, const char& trans, const in
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::ormqr<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, double* a, const int& lda, double *tau, double *c__, const int& ldc, double* work, const int& lwork, int& info) {
 
      dormqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
@@ -936,7 +936,7 @@ void LapackInterface::ormqr<double>(const char& side, const char& trans, const i
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::ormqr<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, std::complex<double>* a, const int& lda, std::complex<double> *tau, std::complex<double> *c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
 
      zunmqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
@@ -947,7 +947,7 @@ void LapackInterface::ormqr<std::complex<double> >(const char& side, const char&
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::ormqr<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, std::complex<float>* a, const int& lda, std::complex<float> *tau, std::complex<float> *c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
 
      cunmqr_( side, trans, m, n, k, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
@@ -958,30 +958,30 @@ void LapackInterface::ormqr<std::complex<float> >(const char& side, const char& 
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::trsm<float>(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const float& alpha, const float* a, const int& lda, float* b, const int& ldb ) {
      strsm_( side, uplo, transA, diag, m, n, alpha, a, lda, b, ldb, 1, 1, 1 );
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::trsm<double>(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const double& alpha, const double* a, const int& lda, double* b, const int& ldb ) {
      dtrsm_( side, uplo, transA, diag, m, n, alpha, a, lda, b, ldb, 1, 1, 1 );
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::trsm<std::complex<double> >(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const std::complex<double>& alpha, const std::complex<double>* a, const int& lda, std::complex<double>* b, const int& ldb ) {
      ztrsm_( side, uplo, transA, diag, m, n, alpha, a, lda, b, ldb, 1, 1, 1 );
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::trsm<std::complex<float> >(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const std::complex<float>& alpha, const std::complex<float>* a, const int& lda, std::complex<float>* b, const int& ldb ) {
      ctrsm_( side, uplo, transA, diag, m, n, alpha, a, lda, b, ldb, 1, 1, 1 );
      return;
 }
-template <> 
+template <>
 void LapackInterface::ormrz<float>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, float* a, const int& lda, float* tau, float* c__, const int& ldc, float* work, const int& lwork, int& info) {
    sormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
@@ -991,7 +991,7 @@ void LapackInterface::ormrz<float>(const char& side, const char& trans, const in
    return;
 }
 
-template <> 
+template <>
 void LapackInterface::ormrz<double>(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, double* a, const int& lda, double* tau, double* c__, const int& ldc, double* work, const int& lwork, int& info) {
    dormrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
@@ -1001,7 +1001,7 @@ void LapackInterface::ormrz<double>(const char& side, const char& trans, const i
    return;
 }
 
-template <> 
+template <>
 void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<float>* a, const int& lda, std::complex<float>* tau, std::complex<float>* c__, const int& ldc, std::complex<float>* work, const int& lwork, int& info) {
    cunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
@@ -1011,7 +1011,7 @@ void LapackInterface::ormrz<std::complex<float> >(const char& side, const char& 
    return;
 }
 
-template <> 
+template <>
 void LapackInterface::ormrz<std::complex<double> >(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, std::complex<double>* a, const int& lda, std::complex<double>* tau, std::complex<double>* c__, const int& ldc, std::complex<double>* work, const int& lwork, int& info) {
    zunmrz_( side, trans, m, n, k, l, a, lda, tau, c__, ldc, work, lwork, info, 1, 1 );
 
@@ -1021,25 +1021,25 @@ void LapackInterface::ormrz<std::complex<double> >(const char& side, const char&
    return;
 }
 
-template <> 
+template <>
 void LapackInterface::copy<float>( const int& n, const float* x, const int& incx, float* y, const int& incy) {
      scopy_(n, x, incx, y, incy );
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::copy<double>( const int& n, const double* x, const int& incx, double* y, const int& incy) {
      dcopy_(n, x, incx, y, incy );
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::copy<std::complex<float> >( const int& n, const std::complex<float>* x, const int& incx, std::complex<float>* y, const int& incy) {
      ccopy_(n, x, incx, y, incy );
      return;
 }
 
-template <> 
+template <>
 void LapackInterface::copy<std::complex<double> >( const int& n, const std::complex<double>* x, const int& incx, std::complex<double>* y, const int& incy) {
      zcopy_(n, x, incx, y, incy );
      return;
@@ -1056,7 +1056,7 @@ void LapackInterface::getMachineUnderflow<double>( double& underFlow ) {
 }
 template <>
 void LapackInterface::getMachinePrecision<float>( float& smallNumber, float& bigNumber ) {
-    
+
     smallNumber = slamch_( 'S' )/slamch_( 'P' );
     bigNumber = 1.f/smallNumber;
     slabad_(smallNumber, bigNumber );
@@ -1064,39 +1064,39 @@ void LapackInterface::getMachinePrecision<float>( float& smallNumber, float& big
 
 template <>
 void LapackInterface::getMachinePrecision<double>( double& smallNumber, double& bigNumber ) {
-    
+
     smallNumber = dlamch_( 'S' )/dlamch_( 'P' );
     bigNumber = 1.0/smallNumber;
     dlabad_(smallNumber, bigNumber );
 }
 
-template <> 
+template <>
 void LapackInterface::laic1<float>(const int& job, const int& j, const float* x, const float& sest, const float* w, const float& gamma, float& sestpr, float& s, float& c__ ) {
     slaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::laic1<double>(const int& job, const int& j, const double* x, const double& sest, const double* w, const double& gamma, double& sestpr, double& s, double& c__ ) {
     dlaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
     return;
 }
 
-template <> 
+template <>
 void LapackInterface::laic1<std::complex<float> >(const int& job, const int& j, const std::complex<float>* x, const float& sest, const std::complex<float>* w, const std::complex<float>& gamma, float& sestpr, std::complex<float>& s, std::complex<float>& c__ ) {
     claic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
     return;
 }
 
 
-template <> 
+template <>
 void LapackInterface::laic1<std::complex<double> >(const int& job, const int& j, const std::complex<double>* x, const double& sest, const std::complex<double>* w, const std::complex<double>& gamma, double& sestpr, std::complex<double>& s, std::complex<double>& c__ ) {
     zlaic1_( job, j, x, sest, w, gamma, sestpr, s, c__ );
     return;
 }
 
 template <>
-void LapackInterface::potrf<double>( const char& uplo, const int n,  double* a, const int lda, int& info ) { 
+void LapackInterface::potrf<double>( const char& uplo, const int n,  double* a, const int lda, int& info ) {
 
     dpotrf_(uplo, n, a, lda, info);
     if( info < 0 ) {
@@ -1106,7 +1106,7 @@ void LapackInterface::potrf<double>( const char& uplo, const int n,  double* a, 
     return;
  }
 template <>
-void LapackInterface::potrf<float>( const char& uplo, const int n,  float* a, const int lda, int& info ) { 
+void LapackInterface::potrf<float>( const char& uplo, const int n,  float* a, const int lda, int& info ) {
 
     spotrf_(uplo, n, a, lda, info);
     if( info < 0 ) {
@@ -1116,7 +1116,7 @@ void LapackInterface::potrf<float>( const char& uplo, const int n,  float* a, co
     return;
  }
 template <>
-void LapackInterface::potrf<std::complex<double> >( const char& uplo, const int n,  std::complex<double>* a, const int lda, int& info ) { 
+void LapackInterface::potrf<std::complex<double> >( const char& uplo, const int n,  std::complex<double>* a, const int lda, int& info ) {
 
     zpotrf_(uplo, n, a, lda, info);
     if( info < 0 ) {
@@ -1126,7 +1126,7 @@ void LapackInterface::potrf<std::complex<double> >( const char& uplo, const int 
     return;
  }
 template <>
-void LapackInterface::potrf<std::complex<float> >( const char& uplo, const int n,  std::complex<float>* a, const int lda, int& info ) { 
+void LapackInterface::potrf<std::complex<float> >( const char& uplo, const int n,  std::complex<float>* a, const int lda, int& info ) {
 
     cpotrf_(uplo, n, a, lda, info);
 
@@ -1136,8 +1136,8 @@ void LapackInterface::potrf<std::complex<float> >( const char& uplo, const int n
 
     return;
  }
-template <> 
-void LapackInterface::sytrf<float>( const char& uplo, const int n, float* a,  const int lda, int* pivots, float* work, const int lwork, int& info){ 
+template <>
+void LapackInterface::sytrf<float>( const char& uplo, const int n, float* a,  const int lda, int* pivots, float* work, const int lwork, int& info){
 
     ssytrf_( uplo, n, a, lda, pivots, work, lwork, info );
 
@@ -1146,8 +1146,8 @@ void LapackInterface::sytrf<float>( const char& uplo, const int n, float* a,  co
     }
     return;
 }
-template <> 
-void LapackInterface::sytrf<double>( const char& uplo, const int n, double* a,  const int lda, int* pivots, double* work, const int lwork, int& info){ 
+template <>
+void LapackInterface::sytrf<double>( const char& uplo, const int n, double* a,  const int lda, int* pivots, double* work, const int lwork, int& info){
 
     dsytrf_( uplo, n, a, lda, pivots, work, lwork, info );
 
@@ -1156,8 +1156,8 @@ void LapackInterface::sytrf<double>( const char& uplo, const int n, double* a,  
     }
     return;
 }
-template <> 
-void LapackInterface::sytrf<std::complex<double> >( const char& uplo, const int n, std::complex<double>* a,  const int lda, int* pivots, std::complex<double>* work, const int lwork, int& info){ 
+template <>
+void LapackInterface::sytrf<std::complex<double> >( const char& uplo, const int n, std::complex<double>* a,  const int lda, int* pivots, std::complex<double>* work, const int lwork, int& info){
 
     zsytrf_( uplo, n, a, lda, pivots, work, lwork, info );
 
@@ -1166,8 +1166,8 @@ void LapackInterface::sytrf<std::complex<double> >( const char& uplo, const int 
     }
     return;
 }
-template <> 
-void LapackInterface::sytrf<std::complex<float> >( const char& uplo, const int n, std::complex<float>* a,  const int lda, int* pivots, std::complex<float>* work, const int lwork, int& info){ 
+template <>
+void LapackInterface::sytrf<std::complex<float> >( const char& uplo, const int n, std::complex<float>* a,  const int lda, int* pivots, std::complex<float>* work, const int lwork, int& info){
 
     csytrf_( uplo, n, a, lda, pivots, work, lwork, info );
 
@@ -1176,36 +1176,36 @@ void LapackInterface::sytrf<std::complex<float> >( const char& uplo, const int n
     }
     return;
 }
-template <typename T> 
+template <typename T>
 void LapackInterface::sytrf( const char& uplo, const int n, T* a,  const int lda, int *pivots, T* work, const int lwork, int& info ) { assert(false); }
 
 template <>
-int LapackInterface::ilaenv<double>( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
+int LapackInterface::ilaenv<double>( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) {
      char d[10];
      d[0] = 'd';
      d[1] = '\0';
-     return (ilaenv_( ispec, strcat( d, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( d, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) );
 }
 template <>
-int LapackInterface::ilaenv<float>( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
+int LapackInterface::ilaenv<float>( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) {
      char s[10];
      s[0] = 's';
      s[1] = '\0';
-     return (ilaenv_( ispec, strcat( s, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( s, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) );
 }
 template <>
-int LapackInterface::ilaenv<std::complex<double> >( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
+int LapackInterface::ilaenv<std::complex<double> >( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) {
      char z[10];
      z[0] = 'z';
      z[1] = '\0';
-     return (ilaenv_( ispec, strcat( z, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( z, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) );
 }
 template <>
-int LapackInterface::ilaenv<std::complex<float> >( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) { 
+int LapackInterface::ilaenv<std::complex<float> >( const int& ispec,  const char* name,  const char *opts, const int& n1, const int& n2, const int& n3, const int& n4 ) {
      char c[10];
      c[0] = 'c';
      c[1] = '\0';
-     return (ilaenv_( ispec, strcat( c, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) ); 
+     return (ilaenv_( ispec, strcat( c, name), opts, n1, n2, n3, n3, 6, (int)strlen(opts)) );
 }
 
 

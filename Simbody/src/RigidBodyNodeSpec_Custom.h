@@ -43,19 +43,19 @@ class RBNodeCustom : public RigidBodyNodeSpec<nu, false, noX_MB, noR_PF> {
     typedef typename RigidBodyNodeSpec<nu, false, noX_MB, noR_PF>::HType HType;
 public:
     RBNodeCustom(const MobilizedBody::Custom::Implementation& impl,
-                 const MassProperties&  mProps_B, 
-                 const Transform&       X_PF, 
+                 const MassProperties&  mProps_B,
+                 const Transform&       X_PF,
                  const Transform&       X_BM,
                  bool                   isReversed,
-                 UIndex&                nextUSlot, 
-                 USquaredIndex&         nextUSqSlot, 
+                 UIndex&                nextUSlot,
+                 USquaredIndex&         nextUSqSlot,
                  QIndex&                nextQSlot)
-    :   RigidBodyNodeSpec<nu, false, noX_MB, noR_PF>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot, 
+    :   RigidBodyNodeSpec<nu, false, noX_MB, noR_PF>(mProps_B, X_PF, X_BM, nextUSlot, nextUSqSlot, nextQSlot,
                               RigidBodyNode::QDotMayDifferFromU,
-                              impl.getImpl().getNumAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed 
+                              impl.getImpl().getNumAngles() == 4 ? RigidBodyNode::QuaternionMayBeUsed
                                                                  : RigidBodyNode::QuaternionIsNeverUsed,
                               isReversed),
-        impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNumAngles()) 
+        impl(impl), nq(impl.getImpl().getNQ()), nAngles(impl.getImpl().getNumAngles())
     {
         this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -79,16 +79,16 @@ public:
         startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
         return true;
     }
-    void calcQDot(const SBStateDigest& sbs, 
-                                 const Real* u, Real* qdot) const 
+    void calcQDot(const SBStateDigest& sbs,
+                                 const Real* u, Real* qdot) const
     {
         const int nqInUse = getNQInUse(sbs.getModelVars());
         impl.multiplyByN(sbs.getState(), false, nu, u, getNQInUse(sbs.getModelVars()), qdot);
         for (int i = nqInUse; i < nq; ++i)
             qdot[i] = 0.0;
     }
-    void calcQDotDot(const SBStateDigest& sbs, 
-                                       const Real* udot, Real* qdotdot) const 
+    void calcQDotDot(const SBStateDigest& sbs,
+                                       const Real* udot, Real* qdotdot) const
     {
         const SBModelVars&          mv = sbs.getModelVars();
         const SBTreePositionCache&  pc = sbs.getTreePositionCache();
@@ -102,8 +102,8 @@ public:
         for (int i = nqInUse; i < nq; ++i)
             qdotdot[i] = 0.0;
     }
-    void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
-                     const Real* in, Real* out) const 
+    void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
+                     const Real* in, Real* out) const
     {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
@@ -118,7 +118,7 @@ public:
         impl.multiplyByN(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
     void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
-                        const Real* in, Real* out) const 
+                        const Real* in, Real* out) const
     {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
@@ -132,8 +132,8 @@ public:
         }
         impl.multiplyByNInv(sbs.getState(), matrixOnRight, nIn, in, nOut, out);
     }
-    void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight, 
-                        const Real* in, Real* out) const 
+    void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
+                        const Real* in, Real* out) const
     {
         const SBModelVars& mv = sbs.getModelVars();
         int nIn, nOut;
@@ -149,7 +149,7 @@ public:
     }
 
     bool enforceQuaternionConstraints(const SBStateDigest& sbs, Vector& q, Vector& qErrest) const {
-        if (nAngles != 4 || this->getUseEulerAngles(sbs.getModelVars())) 
+        if (nAngles != 4 || this->getUseEulerAngles(sbs.getModelVars()))
             return false;
         Vec4& quat = this->toQuat(q);
         quat = quat / quat.norm();
@@ -159,7 +159,7 @@ public:
         }
         return true;
     }
-    
+
     // Convert from quaternion to Euler angle representations.
     void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
         int indexBase = this->getQIndex();
@@ -220,7 +220,7 @@ public:
                                  Real* qCache,  int nQCache,
                                  Real* qErr,    int nQErr) const
     {
-        assert(nq==getNQInUse(sbs.getModelVars()) && nQCache==0); 
+        assert(nq==getNQInUse(sbs.getModelVars()) && nQCache==0);
         if (nAngles == 4 && !this->getUseEulerAngles(sbs.getModelVars())) {
             // Need to calculate qerr
             assert(nQErr==1);
@@ -228,17 +228,17 @@ public:
             qErr[0] = quatLen - Real(1);    // normalization error
         }
     }
-    
+
     void calcX_FM(const SBStateDigest& sbs,
                   const Real* q,      int nq,
                   const Real* qCache, int nQCache,
                   Transform&  X_F0M0) const
     {
-        assert(nq==getNQInUse(sbs.getModelVars()) && nQCache==0); 
+        assert(nq==getNQInUse(sbs.getModelVars()) && nQCache==0);
         // Note: quaternion will be unnormalized.
         X_F0M0 = impl.calcMobilizerTransformFromQ(sbs.getState(), nq, q);
     }
-    
+
     void calcAcrossJointVelocityJacobian(
         const SBStateDigest& sbs,
         HType&  H_F0M0) const {

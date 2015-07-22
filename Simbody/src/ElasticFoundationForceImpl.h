@@ -34,21 +34,21 @@ namespace SimTK {
 class ElasticFoundationForceImpl : public ForceImpl {
 public:
     class Parameters;
-    ElasticFoundationForceImpl(GeneralContactSubsystem& subystem, 
+    ElasticFoundationForceImpl(GeneralContactSubsystem& subystem,
                                ContactSetIndex set);
     ElasticFoundationForceImpl* clone() const {
         return new ElasticFoundationForceImpl(*this);
     }
     void setBodyParameters
-       (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation, 
+       (ContactSurfaceIndex bodyIndex, Real stiffness, Real dissipation,
         Real staticFriction, Real dynamicFriction, Real viscousFriction);
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
     Real calcPotentialEnergy(const State& state) const;
     void realizeTopology(State& state) const;
-    void processContact(const State& state, ContactSurfaceIndex meshIndex, 
-                        ContactSurfaceIndex otherBodyIndex, 
-                        const Parameters& param, 
+    void processContact(const State& state, ContactSurfaceIndex meshIndex,
+                        ContactSurfaceIndex otherBodyIndex,
+                        const Parameters& param,
                         const std::set<int>& insideFaces,
                         Real areaScale,
                         Vector_<SpatialVec>& bodyForces, Real& pe) const;

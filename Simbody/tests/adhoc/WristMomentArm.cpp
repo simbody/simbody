@@ -36,26 +36,26 @@
  *
  * aux1,2 are small bones and "*" is a rotational dof "|" is a sliding dof.
  * The "O" is a circular wrap surface attached to a body that is on a slider
- * connected to aux2, where the sliding dof is coupled to one of the 
+ * connected to aux2, where the sliding dof is coupled to one of the
  * rotational dofs and affects the length of the muscle as it passes
- * frictionlessly over the wrap circle. There are coupler constraints 
+ * frictionlessly over the wrap circle. There are coupler constraints
  * connecting all the dofs so that setting any q determines all the others
  * and thus the muscle length; alternatively we can turn off one of the
  * coupler constraints and use a contact constraint to remove a dof from
  * the hand, coupling all the q's indirectly.
  *
- * We would like a good 
- * instantaneous calculation of the moment arm r(q) defined as r=dl/dtheta 
- * where l(q) is muscle length and theta is the angle between a line fixed in 
+ * We would like a good
+ * instantaneous calculation of the moment arm r(q) defined as r=dl/dtheta
+ * where l(q) is muscle length and theta is the angle between a line fixed in
  * the hand (=====) and a line fixed in the forearm. Theta is also the sum
- * of the three rotational joint angles; we're assuming the q's are 
+ * of the three rotational joint angles; we're assuming the q's are
  * scaled angles such that angle a0=q0/s0, a1=q1/s1, and a2=q2/s2 so we
  * have theta=q0/s0+q1/s1+q2/s2. In OpenSim it is common to scale the
  * generalized coordinate of the "independent" angle so that its numerical
  * value is the total angle theta.
  *
  * We can calculate r=ldot/thetadot and if all
- * velocities are zero we can also calculate r=ldotdot/thetadotdot. 
+ * velocities are zero we can also calculate r=ldotdot/thetadotdot.
  * Unfortunately, in practice it is difficult to determine ldot and ldotdot (unless
  * the muscle is a straight line; i.e., no wrap surface), otherwise
  * this would be an easy solution: apply a muscle tension t along the
@@ -93,7 +93,7 @@ static const Real ReportInterval = 0.5;
 static bool find_tangent_points(const Vec2& c, Real r, const Vec2& p,
                                 Vec2& p0, Vec2& p1);
 // Given chord length h in a circle of radius r, return the corresponding
-// arc length, going from one end of the chord the short way around to 
+// arc length, going from one end of the chord the short way around to
 // the other end.
 static Real calc_arc_length(Real r, Real h);
 
@@ -103,11 +103,11 @@ static Real calc_arc_length(Real r, Real h);
 // DEFINE THE MUSCLE
 //==============================================================================
 
-// This helper class holds cached path geometry calculations done by the 
+// This helper class holds cached path geometry calculations done by the
 // muscle below.
 class PathInfo {
 public:
-    PathInfo() 
+    PathInfo()
     :   p1(NaN), p2(NaN), pathLengthA(NaN), arcLength(NaN), pathLengthB(NaN) {}
     Vec2 p1, p2; // tangent points on body C, in G
     Real pathLengthA, arcLength, pathLengthB;
@@ -118,9 +118,9 @@ std::ostream& operator<<(std::ostream& o, const PathInfo& pi) {
     return o;
 }
 
-// This is a model of a muscle with origin/insertion points on bodies A and B, 
-// using a planar path that passes frictionlessly over one side of a wrapping 
-// circle of radius r on body W. 
+// This is a model of a muscle with origin/insertion points on bodies A and B,
+// using a planar path that passes frictionlessly over one side of a wrapping
+// circle of radius r on body W.
 //
 // The muscle defines a scalar discrete state variable to hold the current
 // tension value t that is used to generate the muscle forces F=T(q)*t.
@@ -133,10 +133,10 @@ public:
                  const MobilizedBody& B, const Vec3& ptB,
                  const MobilizedBody& W, const Vec3& center,
                  Real radius, const UnitVec3& side)
-    :   m_forces(forces), m_matter(matter), 
-        m_A(A), m_ptA(ptA), m_B(B), m_ptB(ptB),     // origin/insertion points 
-        m_W(W), m_center(center), m_radius(radius), // wrapping circle 
-        m_side(side) {} // which side of the circle to wrap around (in W frame) 
+    :   m_forces(forces), m_matter(matter),
+        m_A(A), m_ptA(ptA), m_B(B), m_ptB(ptB),     // origin/insertion points
+        m_W(W), m_center(center), m_radius(radius), // wrapping circle
+        m_side(side) {} // which side of the circle to wrap around (in W frame)
 
 
     //      Specialized interface for PlanarMuscle.
@@ -158,7 +158,7 @@ public:
         pA = A.findStationLocationInGround(state, m_ptA);
         pB = B.findStationLocationInGround(state, m_ptB);
     }
-    
+
     // These retrieve items from the PathInfo cache entry that is set
     // in realizePosition() below, so these can't be called until Position
     // stage has been realized in the supplied State.
@@ -176,14 +176,14 @@ public:
         pAC = info.p1.append1(0);
         pBC = info.p2.append1(0);
     }
-        
+
     //      Satisfy the virtual methods of Force::Custom::Implementation.
-                 
+
     // Calculate the muscle forces and accumulate into bodyForces array.
     // (We aren't going to generate any particle or mobility forces.)
-    virtual void calcForce(const State& state, 
-                           Vector_<SpatialVec>& bodyForces, 
-                           Vector_<Vec3>& particleForces, 
+    virtual void calcForce(const State& state,
+                           Vector_<SpatialVec>& bodyForces,
+                           Vector_<Vec3>& particleForces,
                            Vector& mobilityForces) const
     {
         const MobilizedBody& A = m_matter.getMobilizedBody(m_A);
@@ -214,7 +214,7 @@ public:
 
         A.applyForceToBodyPoint(state, m_ptA, fA, bodyForces);
         B.applyForceToBodyPoint(state, m_ptB, fB, bodyForces);
-        W.applyForceToBodyPoint(state, m_center, -(fA+fB), bodyForces); 
+        W.applyForceToBodyPoint(state, m_center, -(fA+fB), bodyForces);
     }
 
     // This muscle model doesn't store energy.
@@ -224,11 +224,11 @@ public:
     virtual void realizeTopology(State& state) const {
         PlanarMuscle* mThis = const_cast<PlanarMuscle*>(this);
         mThis->m_tensionVarIx = m_forces
-            .allocateDiscreteVariable(state, Stage::Dynamics, 
+            .allocateDiscreteVariable(state, Stage::Dynamics,
                                       new Value<Real>(0));
 
         mThis->m_pathInfoIx = m_forces
-            .allocateCacheEntry(state, Stage::Position, 
+            .allocateCacheEntry(state, Stage::Position,
                                 new Value<PathInfo>());
     }
 
@@ -251,7 +251,7 @@ public:
         b = dot(p0-ctr,side) > dot(p1-ctr,side) ? p0 : p1;
 
         PathInfo& info = updPathInfo(state);
-        info.p1 = a; info.p2 = b; 
+        info.p1 = a; info.p2 = b;
         info.pathLengthA = (a-ptA).norm();
         info.pathLengthB = (b-ptB).norm();
         info.arcLength = calc_arc_length(m_radius, (a-b).norm());
@@ -280,14 +280,14 @@ private:
 //==============================================================================
 // DEFINE A CUSTOM MOBILIZER
 //==============================================================================
-// This is a pin joint but with a generalized coordinate 
+// This is a pin joint but with a generalized coordinate
 //      q0=scale*theta0
-// where theta0 is its actual angle. We'll use a coupler to make the 
-// other pin joints have angles q1=theta0, q2=theta0 so that the 
+// where theta0 is its actual angle. We'll use a coupler to make the
+// other pin joints have angles q1=theta0, q2=theta0 so that the
 // total angle theta0+theta1+theta2=q0.
 class ScaledPin : public MobilizedBody::FunctionBased {
 public:
-    ScaledPin(MobilizedBody& parent, const Transform& inbFrameF, 
+    ScaledPin(MobilizedBody& parent, const Transform& inbFrameF,
             const Body& body, const Transform& outbFrameM,
             Real scale)
     :   FunctionBased(parent,inbFrameF,body,outbFrameM,1,
@@ -302,14 +302,14 @@ public:
     Real getQ(const State& s) const {return getOneQ(s,MobilizerQIndex(0));}
     Real getU(const State& s) const {return getOneU(s,MobilizerQIndex(0));}
 
-    void setAngle(State& s, Real angle) const 
+    void setAngle(State& s, Real angle) const
     {   setOneQ(s, MobilizerQIndex(0), m_scale*angle); }
-    Real getAngle(const State& s) const 
+    Real getAngle(const State& s) const
     {   return getOneQ(s, MobilizerQIndex(0)) / m_scale; }
 
-    void setAngularRate(State& s, Real angularRate) const 
+    void setAngularRate(State& s, Real angularRate) const
     {   setOneU(s, MobilizerQIndex(0), m_scale*angularRate); }
-    Real getAngularRate(const State& s) const 
+    Real getAngularRate(const State& s) const
     {   return getOneU(s, MobilizerQIndex(0)) / m_scale; }
 
 private:
@@ -335,11 +335,11 @@ private:
 // to add the path lines to each frame here since the tangent end points move.
 class MyReporter : public PeriodicEventReporter {
 public:
-    MyReporter(const MultibodySystem& system, 
+    MyReporter(const MultibodySystem& system,
                Visualizer& viz,
                const PlanarMuscle& planarMuscle,
                Real reportInterval)
-    :   PeriodicEventReporter(reportInterval), m_system(system), m_viz(viz), 
+    :   PeriodicEventReporter(reportInterval), m_system(system), m_viz(viz),
         m_planarMuscle(planarMuscle) {}
 
     ~MyReporter() {}
@@ -349,7 +349,7 @@ public:
     void report(const State& state) const {
         m_system.realize(state, Stage::Position);
         m_viz.report(state);
-        cout << "t=" << state.getTime() 
+        cout << "t=" << state.getTime()
              << " path length=" << m_planarMuscle.getPathLength(state) << endl;
     }
 
@@ -369,16 +369,16 @@ private:
 //==============================================================================
 // DRAW PATH LINES
 //==============================================================================
-// We have to add the path lines to each frame here since the tangent end points 
+// We have to add the path lines to each frame here since the tangent end points
 // move.
 class DrawPathLines : public DecorationGenerator {
 public:
     DrawPathLines(const MultibodySystem& system,
-                  const PlanarMuscle&    muscle) 
+                  const PlanarMuscle&    muscle)
     :   m_system(system), m_planarMuscle(muscle) {}
 
-    virtual void generateDecorations(const State& state, 
-                                     Array_<DecorativeGeometry>& geometry) 
+    virtual void generateDecorations(const State& state,
+                                     Array_<DecorativeGeometry>& geometry)
     {
         m_system.realize(state, Stage::Position);
         Vec3 iptA, iptB, tptA, tptB;
@@ -401,7 +401,7 @@ int main() {
 
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -441,15 +441,15 @@ int main() {
     const DecorativeGeometry wrapViz  = DecorativeCylinder(wrapRadius,wrapHThick)
         .setTransform(Rotation(Pi/2, XAxis)).setColor(Purple).setResolution(10);
 
-    Body::Rigid forearmBody(MassProperties(forearmMass, Vec3(0), 
+    Body::Rigid forearmBody(MassProperties(forearmMass, Vec3(0),
                                          forearmMass*UnitInertia::brick(forearmHDim)));
     forearmBody.addDecoration(Vec3(0), forearmViz);
 
-    Body::Rigid handBody(MassProperties(handMass, Vec3(0), 
+    Body::Rigid handBody(MassProperties(handMass, Vec3(0),
                                          handMass*UnitInertia::brick(handHDim)));
     handBody.addDecoration(Vec3(0), handViz);
 
-    Body::Rigid auxBody(MassProperties(auxMass, Vec3(0), 
+    Body::Rigid auxBody(MassProperties(auxMass, Vec3(0),
                                          auxMass*UnitInertia::brick(auxHDim)));
     auxBody.addDecoration(Vec3(0), auxViz);
 
@@ -457,24 +457,24 @@ int main() {
         wrapMass*UnitInertia::cylinderAlongZ(wrapRadius, wrapHThick)));
     wrapBody.addDecoration(Vec3(0), wrapViz);
 
-    MobilizedBody::Weld forearm(matter.Ground(), Vec3(forearmHDim[0], forearmHDim[1], 0), 
+    MobilizedBody::Weld forearm(matter.Ground(), Vec3(forearmHDim[0], forearmHDim[1], 0),
                                 forearmBody, Vec3(0));
 
 
-    ScaledPin aux1(forearm, Vec3(-forearmHDim[0], -forearmHDim[1]-.5, 0), 
+    ScaledPin aux1(forearm, Vec3(-forearmHDim[0], -forearmHDim[1]-.5, 0),
                    auxBody, Vec3(0, auxHDim[1], 0), scale[0]);
 
     ScaledPin aux2(aux1, Vec3(0, -auxHDim[1]-.1, 0),
                    auxBody, Vec3(0, auxHDim[1]+.3, 0), scale[1]);
 
-    ScaledPin hand(aux2, Vec3(0, -auxHDim[1], 0), 
+    ScaledPin hand(aux2, Vec3(0, -auxHDim[1], 0),
                    handBody, Vec3(-handHDim[0], handHDim[1]+.5, 0), scale[2]);
 
     MobilizedBody::Slider wrap(aux2, Vec3(1.5,0,0),
                                wrapBody, Vec3(0));
 
     // Spring
-    Force::MobilityLinearSpring aux1Spring(forces, aux1, 
+    Force::MobilityLinearSpring aux1Spring(forces, aux1,
                                     MobilizerUIndex(0), k, 0);
 
     // Straight-line muscle with no wrapping.
@@ -496,22 +496,22 @@ int main() {
     //    a0/c0 - a2/c2 = 0  =>  q[0]/(s0*c0) - q[2]/(s2*c2) = 0
     const Vec2 ratios1(1/(scale[0]*c[0]), -1/(scale[1]*c[1]));
     const Vec2 ratios2(1/(scale[0]*c[0]), -1/(scale[2]*c[2]));
-    Array_<MobilizedBodyIndex> aux1aux2, aux1Hand, aux1Wrap; 
-    aux1aux2.push_back(MobilizedBodyIndex(aux1)); 
+    Array_<MobilizedBodyIndex> aux1aux2, aux1Hand, aux1Wrap;
+    aux1aux2.push_back(MobilizedBodyIndex(aux1));
     aux1aux2.push_back(MobilizedBodyIndex(aux2));
-    aux1Hand.push_back(MobilizedBodyIndex(aux1)); 
-    aux1Hand.push_back(MobilizedBodyIndex(hand)); 
-    aux1Wrap.push_back(MobilizedBodyIndex(aux1)); 
-    aux1Wrap.push_back(MobilizedBodyIndex(wrap)); 
+    aux1Hand.push_back(MobilizedBodyIndex(aux1));
+    aux1Hand.push_back(MobilizedBodyIndex(hand));
+    aux1Wrap.push_back(MobilizedBodyIndex(aux1));
+    aux1Wrap.push_back(MobilizedBodyIndex(wrap));
     Array_<MobilizerQIndex> whichQs(2, MobilizerQIndex(0));
 
-    Constraint::CoordinateCoupler 
+    Constraint::CoordinateCoupler
     aux1toAux2(matter,
         new Function::Linear(Vector(Vec3(ratios1[0],ratios1[1],0))),
         aux1aux2, whichQs);
     aux1toAux2.setDisabledByDefault(true);
 
-    Constraint::CoordinateCoupler 
+    Constraint::CoordinateCoupler
     aux1toHand(matter,
         new Function::Linear(Vector(Vec3(ratios2[0],ratios2[1],0))),
         aux1Hand, whichQs);
@@ -542,13 +542,13 @@ int main() {
 
     // Add generator for muscle path lines.
     viz.addDecorationGenerator(new DrawPathLines(system,planarMuscle));
-    
+
     MyReporter& myRep = *new MyReporter(system,viz,planarMuscle,ReportInterval);
     system.addEventReporter(&myRep);
 
     // Initialize the system and state.
     State state = system.realizeTopology();
-    
+
     aux1.setAngle(state,0);
     aux2.setAngle(state,0);
     hand.setAngle(state,0);
@@ -609,18 +609,18 @@ int main() {
     system.projectU(state, 1e-10);
     cout << "after project u=" << state.getU() << " uerr=" << state.getUErr() << endl;
     // To compute thetadot, convert u's to angular rates and add.
-    const Real thetaDot =   aux1.getAngularRate(state) 
-                          + aux2.getAngularRate(state) 
+    const Real thetaDot =   aux1.getAngularRate(state)
+                          + aux2.getAngularRate(state)
                           + hand.getAngularRate(state);
     cout << "calculated thetadot=" << thetaDot << endl;
-    const Vector calcc(state.getU()/thetaDot); 
+    const Vector calcc(state.getU()/thetaDot);
 
     const Real calccsum = sum(calcc);
     cout << "calc c=" << calcc << " csum=" << calccsum << endl;
     state.updU() = 0;
 
-    // None of the acceleration- and multiplier-dependent stuff here 
-    // matters for moment arm; this is just for playing around with 
+    // None of the acceleration- and multiplier-dependent stuff here
+    // matters for moment arm; this is just for playing around with
     // related dynamic quantities. Feel free to ignore.
 
     system.realize(state, Stage::Acceleration);
@@ -632,7 +632,7 @@ int main() {
     f0 += system.getMobilityForces(state,Stage::Dynamics);
 
     // This is how you find the scaling if you need it; we don't require
-    // this knowledge to calculate moment arm since it is implicitly 
+    // this knowledge to calculate moment arm since it is implicitly
     // embedded in the coupling matrix C.
     const SpatialVec H_PB_G = aux1.getHCol(state, MobilizerUIndex(0));
     const SpatialVec H_FM   = aux1.getH_FMCol(state, MobilizerUIndex(0));
@@ -658,7 +658,7 @@ int main() {
     planarMuscle.setTension(state, tension);
     cout << "Muscle tension = " << planarMuscle.getTension(state) << endl;
 
-    // See note above regarding irrelevance of acceleration-related 
+    // See note above regarding irrelevance of acceleration-related
     // computations for moment arm.
     system.realize(state, Stage::Acceleration);
 
@@ -674,7 +674,7 @@ int main() {
     cout << "dd2l=" << dd2l << endl;
     Vector momentArm = dd2l * dudot.elementwiseInvert();
     cout << "dd2l ./ dudot=" << momentArm << endl;
-    Vector dudotAdj(dudot); 
+    Vector dudotAdj(dudot);
     dudotAdj.elementwiseDivideInPlace(Vector(scale)); // fix units so we have angles
     cout << "dudotAdj=" << dudotAdj << endl;
     cout << "dd2l / sum(dudotAdj) = " << dd2l / sum(dudotAdj) << endl;
@@ -691,9 +691,9 @@ int main() {
     Vector f1l = f1 - Gt*lambda1;
 
     Vector f = f1-f0, fl=f1l-f0l;
-    cout << "f/tension=" << f/tension << " ~C*f/tension=" 
+    cout << "f/tension=" << f/tension << " ~C*f/tension="
         << (~calcc*f)/tension << endl;
-    cout << "fl/tension=" << fl/tension << " ~C*fl/tension=" 
+    cout << "fl/tension=" << fl/tension << " ~C*fl/tension="
         << (~calcc*fl)/tension << endl;
 
     Assembler asmb(system);
@@ -703,8 +703,8 @@ int main() {
     Real startAngle = aux1.getAngle(state)
                         + aux2.getAngle(state)
                         + hand.getAngle(state);
-    const Real startLength = planarMuscle.getPathLength(state); 
-    cout << "ASSEMBLED to tol=" << tol 
+    const Real startLength = planarMuscle.getPathLength(state);
+    cout << "ASSEMBLED to tol=" << tol
          << " startAngle=" << startAngle
          << " startLength=" << startLength << endl;
 
@@ -715,8 +715,8 @@ int main() {
     Real endAngle = aux1.getAngle(state)
                         + aux2.getAngle(state)
                         + hand.getAngle(state);
-    const Real endLength = planarMuscle.getPathLength(state); 
-    cout << "ASSEMBLED to tol=" << tol 
+    const Real endLength = planarMuscle.getPathLength(state);
+    cout << "ASSEMBLED to tol=" << tol
          << " endAngle=" << endAngle
          << " endLength=" << endLength << endl;
     cout << "r = " << (endLength-startLength)/(endAngle-startAngle) << endl;
@@ -741,23 +741,23 @@ int main() {
     state = ts.getState();
     system.realize(state, Stage::Velocity);
     const Real length1 = forearm.calcStationToStationDistance(state, forearmAttach, hand, handAttach);
-    const Real pathLength1 = planarMuscle.getPathLength(state); 
-    
+    const Real pathLength1 = planarMuscle.getPathLength(state);
+
     const Vector q1 = state.getQ();
 
     myRep.report(state);
-    printf("Tension %g; final equilibrium ke=%g -- hit ENTER\n", 
+    printf("Tension %g; final equilibrium ke=%g -- hit ENTER\n",
         tension, system.calcKineticEnergy(state));
     cout << "length1=" << length1 << " q1=" << q1 << endl;
     cout << "pathLength1=" << pathLength1 << endl;
-    const Real dl=-(length1-length0); 
+    const Real dl=-(length1-length0);
     const Real dpl=-(pathLength1-pathLength0);
     const Vector dtheta=q1-q0;
     cout << "dl=" << dl << " dpl=" << dpl << " dtheta=" << dtheta << endl;
     momentArm = dl * dtheta.elementwiseInvert();
     cout << "dl ./ dtheta=" << momentArm << endl;
     cout << "dpl ./ dtheta=" << dpl * dtheta.elementwiseInvert() << endl;
-    Vector dthetaAdj(dtheta); 
+    Vector dthetaAdj(dtheta);
     dthetaAdj.elementwiseDivideInPlace(Vector(scale)); // convert to angles
     cout << "sum of 3 joint angles=" << sum(dthetaAdj(0,3)) << " angles=" << dthetaAdj << endl;
     const Real angle1 = hand.getBodyRotation(state).convertOneAxisRotationToOneAngle( ZAxis );
@@ -803,24 +803,24 @@ int main() {
 // Code adapted from Tim Voght's public domain code linked to be the above
 // article, dated 3/26/2005.
 //
-static bool circle_circle_intersection( const Vec2& c0, Real r0, 
-                                        const Vec2& c1, Real r1, 
+static bool circle_circle_intersection( const Vec2& c0, Real r0,
+                                        const Vec2& c1, Real r1,
                                         Vec2& p0, Vec2& p1)
-{ 
+{
     const Vec2 c2c = c1 - c0;
     const Real d2 = c2c.normSqr();
 
     // Check for solvability.
-    if (d2 > square(r0 + r1)) { 
+    if (d2 > square(r0 + r1)) {
       // no solution. circles do not intersect.
       p0 = p1 = NaN;
-      return false; 
-    } 
+      return false;
+    }
     if (d2 < square(r0 - r1)) {
       // no solution. one circle is contained in the other
       p0 = p1 = NaN;
       return false;
-    } 
+    }
     if (d2 == 0) {
       // circles must be coincident and intersect at every point;
       // treat as unsolvable
@@ -841,7 +841,7 @@ static bool circle_circle_intersection( const Vec2& c0, Real r0,
     // Determine the coordinates of point 2.
     const Vec2 p2 = c0 + c2c*a*ood;
 
-    // Determine the distance from point 2 to the intersection points. 
+    // Determine the distance from point 2 to the intersection points.
     const Real h = std::sqrt(r0*r0 - a*a);
     // Now determine the offsets of the intersection points from
     // point 2.
@@ -850,11 +850,11 @@ static bool circle_circle_intersection( const Vec2& c0, Real r0,
     // Determine the absolute intersection points.
     p0 = p2 + offs;
     p1 = p2 - offs;
-    return true; 
-} 
+    return true;
+}
 
 // Find tangent points of line from point p to circle at c, radius r.
-// By Thales' theorem via Wikipedia, the two tangent points are the points of 
+// By Thales' theorem via Wikipedia, the two tangent points are the points of
 // intersection of circle c with a circle centered on the midpoint
 // of line cp and having cp as a diameter.
 static bool find_tangent_points(const Vec2& c, Real r, const Vec2& p,
@@ -866,11 +866,11 @@ static bool find_tangent_points(const Vec2& c, Real r, const Vec2& p,
 }
 
 // Given a circle of radius r and a chord length h(<= d=2r), calculate the arc length
-// s between them (going the shorter direction). We calculate the angle theta 
-// subtended by the chord, then the arc length is r*theta. 
+// s between them (going the shorter direction). We calculate the angle theta
+// subtended by the chord, then the arc length is r*theta.
 //      r*sin(theta/2)=h/2 => theta/2 = asin(h/d)
 //      s = r*theta = d*asin(h/d)
-static Real calc_arc_length(Real r, Real h) 
+static Real calc_arc_length(Real r, Real h)
 {
     const Real d = 2*r;
     assert(0 <= h && h <= d);
@@ -878,23 +878,23 @@ static Real calc_arc_length(Real r, Real h)
 }
 
 #define TEST
-#ifdef TEST 
-static void run_test(double x0, double y0, double r0, double x1, double y1, double r1) 
+#ifdef TEST
+static void run_test(double x0, double y0, double r0, double x1, double y1, double r1)
 {   Vec2 p0, p1;
-    printf("x0=%g, y0=%g, r0=%g, x1=%g, y1=%g, r1=%g :\n", x0, y0, r0, x1, y1, r1); 
-    circle_circle_intersection(Vec2(x0, y0), r0, Vec2(x1, y1), r1, p0, p1); 
-    printf(" p0=%g,%g, p1=%g,%g\n", p0[0],p0[1], p1[0],p1[1]); 
-} 
+    printf("x0=%g, y0=%g, r0=%g, x1=%g, y1=%g, r1=%g :\n", x0, y0, r0, x1, y1, r1);
+    circle_circle_intersection(Vec2(x0, y0), r0, Vec2(x1, y1), r1, p0, p1);
+    printf(" p0=%g,%g, p1=%g,%g\n", p0[0],p0[1], p1[0],p1[1]);
+}
 static void testmain() {
-    /* Add more! */ 
+    /* Add more! */
     run_test(0,0,4,4,0,4);
     run_test(0,0,4,-2,0,2);      // 1 point (-4,0 twice)
     run_test(0,0,4,-2,0,1.9999); // no points
     run_test(0,0,4,-2,0,2.0001); // two points near -4,0
-    run_test(-1.0, -1.0, 1.5, 1.0, 1.0, 2.0); 
-    run_test(1.0, -1.0, 1.5, -1.0, 1.0, 2.0); 
-    run_test(-1.0, 1.0, 1.5, 1.0, -1.0, 2.0); 
-    run_test(1.0, 1.0, 1.5, -1.0, -1.0, 2.0);  
+    run_test(-1.0, -1.0, 1.5, 1.0, 1.0, 2.0);
+    run_test(1.0, -1.0, 1.5, -1.0, 1.0, 2.0);
+    run_test(-1.0, 1.0, 1.5, 1.0, -1.0, 2.0);
+    run_test(1.0, 1.0, 1.5, -1.0, -1.0, 2.0);
 
     Vec2 p0,p1;
     find_tangent_points(Vec2(0,0),4,Vec2(-4,0), p0,p1);
@@ -904,5 +904,5 @@ static void testmain() {
 
     cout << "s=" << calc_arc_length(4, (p1-p0).norm()) << " (2pi?)\n";
 
-} 
-#endif 
+}
+#endif

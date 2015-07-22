@@ -46,7 +46,7 @@ Finds a solution to
     ||piUnknown_F|| <= mu*N                friction with known normal force N
 </pre>
 When piUnknown_z[k] hits its upper limit of 0, we must have v_z[k] >= 0
-(contact surfaces separating). We don't explicitly enforce that here; it 
+(contact surfaces separating). We don't explicitly enforce that here; it
 depends on all diag(A)[z[k]] > 0. That means that if v_z[k]<0 we could improve
 the solution by making piUnknown_z[k] negative, so it wouldn't have hit the
 limit.
@@ -54,7 +54,7 @@ limit.
 
 class SimTK_SIMBODY_EXPORT PGSImpulseSolver : public ImpulseSolver {
 public:
-    explicit PGSImpulseSolver(Real roll2slipTransitionSpeed) 
+    explicit PGSImpulseSolver(Real roll2slipTransitionSpeed)
     :   ImpulseSolver(roll2slipTransitionSpeed,
                       1e-6, // default PGS convergence tolerance
                       100), // default PGS max number iterations
@@ -67,12 +67,12 @@ public:
        (int                                 phase,
         const Array_<MultiplierIndex>&      participating,
         const Matrix&                       A,
-        const Vector&                       D, 
-        const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
+        const Vector&                       D,
+        const Array_<MultiplierIndex>&      expanding, // nx<=m of these
         Vector&                             piExpand,
         Vector&                             verrStart, // in/out
         Vector&                             verrApplied, // in/out
-        Vector&                             pi, 
+        Vector&                             pi,
         Array_<UncondRT>&                   unconditional,
         Array_<UniContactRT>&               uniContact,
         Array_<UniSpeedRT>&                 uniSpeed,
@@ -87,7 +87,7 @@ public:
     will iterate for a long time and may converge on the least-error solution
     but cannot guarantee that. **/
     bool solveBilateral
-       (const Array_<MultiplierIndex>&      participating, // p<=m of these 
+       (const Array_<MultiplierIndex>&      participating, // p<=m of these
         const Matrix&                       A,     // m X m, symmetric
         const Vector&                       D,     // m, diag>=0 added to A
         const Vector&                       rhs,   // m, RHS
@@ -95,7 +95,7 @@ public:
         ) const override;
 
 private:
-    Real m_SOR; 
+    Real m_SOR;
 };
 
 } // namespace SimTK

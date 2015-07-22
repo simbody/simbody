@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /* This example reads input in the form of a Gazebo ".sdf" file and generates
-a roughly-equivalent Simbody model. Gazebo is a robot simulator from the Open 
+a roughly-equivalent Simbody model. Gazebo is a robot simulator from the Open
 Source Robotics Foundation (http://osrfoundation.org). This is not intended to
 be comprehensive -- it is just a proof of concept.
 
@@ -40,9 +40,9 @@ world   The Ground frame. May have associated geometry and lights. Contains one
 model   Named grouping of physical objects. Provides a model frame given
         relative to the world frame, however this frame is still fixed in the
         world. A model contains links and joints.
-link    Named mass- and geometry-carrying object (a body). There is a link 
-        frame, and inertial, visual, and collision objects each with their own 
-        frame given relative to the link frame. An initial pose for the link 
+link    Named mass- and geometry-carrying object (a body). There is a link
+        frame, and inertial, visual, and collision objects each with their own
+        frame given relative to the link frame. An initial pose for the link
         frame is given, relative to the model frame.
 joint   Connection between two links or between a link and the world.
         There is a parent and child link, given by name, with "world"
@@ -54,20 +54,20 @@ joint   Connection between two links or between a link and the world.
 
 NOTE: for purposes of this example we have implemented some extensions:
 - You can specify that a link must be a base link, i.e. must be connected
-  directly to World. Use 
-      <must_be_base_link> 1 </must_be_base_link> 
+  directly to World. Use
+      <must_be_base_link> 1 </must_be_base_link>
   in the <link> element.
 - You can force a loop to be cut at a particular joint. Use
-      <must_be_loop_joint> 1 </must_be_loop_joint> 
+      <must_be_loop_joint> 1 </must_be_loop_joint>
   in the <joint> element.
 - We accept John Hsu's proposed modification allowing a joint to specify
-  separate child and parent frames. Use 
-      <child  link="childName" ><pose>...</pose></child> 
-      <parent link="parentName"><pose>...</pose></parent> 
+  separate child and parent frames. Use
+      <child  link="childName" ><pose>...</pose></child>
+      <parent link="parentName"><pose>...</pose></parent>
   to specify separate frame. (We also accept the old style.)
 
 A <pose> element (containing six scalars) is equivalent to a Simbody Transform,
-interpreted as x,y,z translation vector followed by an x-y-z body-fixed Euler 
+interpreted as x,y,z translation vector followed by an x-y-z body-fixed Euler
 angle sequence given in radians. Gazebo refers to this as pitch-roll-yaw.
 
 A <visual> element has <geometry> and <material> subelements; here we'll use the
@@ -84,15 +84,15 @@ links and joints and construct a spanning tree whose root is
 the World, with every link appearing exactly once. Any link that does not appear
 in any joint will be given six degrees of freedom relative to the World via a
 Simbody "Free" mobilizer. Note: If a disconnected link is a point mass (that is,
-inertialess) it should be mobilized with a 3 dof "Translation" mobilizer but 
-we're not doing that in this example. Also if there are disconnected branches we 
-will pick one of the bodies as a "base" body and connect it to World by a Free 
+inertialess) it should be mobilized with a 3 dof "Translation" mobilizer but
+we're not doing that in this example. Also if there are disconnected branches we
+will pick one of the bodies as a "base" body and connect it to World by a Free
 (6dof) mobilizer.
 
-MultibodyGraphMaker won't take the parent-child specification too seriously when 
-building the tree since these can be arbitrary in the Gazebo description. To 
+MultibodyGraphMaker won't take the parent-child specification too seriously when
+building the tree since these can be arbitrary in the Gazebo description. To
 avoid confusion, we speak of the "inboard" and "outboard" bodies of a mobilizer;
-usually inboard==parent and outboard==child but the relationship is opposite for 
+usually inboard==parent and outboard==child but the relationship is opposite for
 a reverse mobilizer. For example, a three-body chain might be defined
      link1--j1--link2--j2--link3
      joint1 parent=link1 child=link2
@@ -100,17 +100,17 @@ a reverse mobilizer. For example, a three-body chain might be defined
 There is no way to build a tree where inboard/outboard matches parent/child
 for both joints in this example. MultibodyGraphMaker will tell us if we have
 to reverse, which we'll do using Simbody's reverse mobilizer capability so
-that the meaning of the joint is unchanged. 
+that the meaning of the joint is unchanged.
 
 After the tree is built, all the links will have been used but there may still
 be some unused joints. Those joints will involve parent and child links both
 of which are already in the tree. That means these joints form topological
-loops in the multibody graph. MultibodyGraphMaker will normally handle that by 
+loops in the multibody graph. MultibodyGraphMaker will normally handle that by
 splitting the child link to create a new "slave" body, mobilizing the slave
-with the given joint, and then introducing a Weld constraint (-6 dofs) to hold 
-the master link and its slaves together. Note that in this example the visual 
-and contact geometry stays with the master; the mass and inertia are divided 
-equally among the master and slaves. We'll also generate some "shadow" 
+with the given joint, and then introducing a Weld constraint (-6 dofs) to hold
+the master link and its slaves together. Note that in this example the visual
+and contact geometry stays with the master; the mass and inertia are divided
+equally among the master and slaves. We'll also generate some "shadow"
 visualization for the slaves since they are interesting.
 
 An alternative is used if you tell MultibodyGraphMaker that there is a good
@@ -143,7 +143,7 @@ using namespace SimTK;
 //                            GAZEBO LINK INFO
 //==============================================================================
 // This is one link's information read from the Gazebo input file and translated
-// into Simbody's terminology and conventions. The mapping to Simbody 
+// into Simbody's terminology and conventions. The mapping to Simbody
 // MobilizedBody is written here after we build the Simbody System.
 class GazeboLinkInfo {
 public:
@@ -153,7 +153,7 @@ public:
     // When a link is broken into several fragments (master and slaves), they
     // share the mass equally. Given the number of fragments, this returns the
     // appropriate mass properties to use for each fragment. Per Simbody's
-    // convention, COM is measured from, and inertia taken about, the link 
+    // convention, COM is measured from, and inertia taken about, the link
     // origin and both are expressed in the link frame.
     MassProperties getEffectiveMassProps(int numFragments) const {
         assert(numFragments > 0); // must be at least 1 for the master
@@ -179,7 +179,7 @@ public:
     // Which MobilizedBody corresponds to the master instance of this link.
     MobilizedBody                   masterMobod;
 
-    // If this link got split into a master and slaves, these are the 
+    // If this link got split into a master and slaves, these are the
     // MobilizedBodies used to mobilize the slaves.
     std::vector<MobilizedBody>      slaveMobods;
 
@@ -191,14 +191,14 @@ public:
 //==============================================================================
 //                            GAZEBO JOINT INFO
 //==============================================================================
-// This is one joint's information read from the Gazebo input file and 
+// This is one joint's information read from the Gazebo input file and
 // translated into Simbody's terminology and conventions. The joint will
 // typically have been modeled as a Mobilizer, but may have been modeled as
 // a Constraint; in either case the corresponding Simbody element is written
 // here after we build the Simbody System.
 class GazeboJointInfo {
 public:
-    GazeboJointInfo(const std::string& name, const std::string& type) 
+    GazeboJointInfo(const std::string& name, const std::string& type)
     :   name(name), type(type), mustBreakLoopHere(false), isReversed(false) {}
 
     // These are set when we process the input.
@@ -227,7 +227,7 @@ public:
 //==============================================================================
 //                               GAZEBO LINKS
 //==============================================================================
-// This collects all the links for a particular model, and maintains a 
+// This collects all the links for a particular model, and maintains a
 // name->GazeboLinkInfo mapping. Be sure to add a world link first, with the
 // appropriate pose measured from the model frame.
 class GazeboLinks {
@@ -237,19 +237,19 @@ public:
     // Return the number of links so far.
     int size() const {return (int)linkByIndex.size();}
 
-    bool hasLink(const std::string& name) const 
+    bool hasLink(const std::string& name) const
     {   return name2index.find(name) != name2index.end(); }
     bool hasLink(int index) const
     {   assert(index>=0); return index < size(); }
 
     // Get link by name (const or writable).
-    const GazeboLinkInfo& getLink(const std::string& name) const 
+    const GazeboLinkInfo& getLink(const std::string& name) const
     {   return getLink(getLinkIndex(name)); }
-    GazeboLinkInfo& updLink(const std::string& name) 
+    GazeboLinkInfo& updLink(const std::string& name)
     {   return updLink(getLinkIndex(name)); }
 
     // Get link fast by index (const or writable).
-    GazeboLinkInfo& updLink(int index) 
+    GazeboLinkInfo& updLink(int index)
     {   return linkByIndex[index]; }
     const GazeboLinkInfo& getLink(int index) const
     {   return linkByIndex[index];}
@@ -275,21 +275,21 @@ public:
     // Return the number of joints added so far.
     int size() const {return (int)jointByIndex.size();}
 
-    bool hasJoint(const std::string& name) const 
+    bool hasJoint(const std::string& name) const
     {   return name2index.find(name) != name2index.end(); }
     bool hasJoint(int index) const
     {   assert(index>=0); return index < size(); }
 
     // Get joint by name (const or writable).
-    const GazeboJointInfo& getJoint(const std::string& name) const 
+    const GazeboJointInfo& getJoint(const std::string& name) const
     {   return getJoint(getJointIndex(name)); }
-    GazeboJointInfo& updJoint(const std::string& name) 
+    GazeboJointInfo& updJoint(const std::string& name)
     {   return updJoint(getJointIndex(name)); }
 
     // Get joint fast by index (const or writable).
-    const GazeboJointInfo& getJoint(int index) const 
+    const GazeboJointInfo& getJoint(int index) const
     {   return jointByIndex[index]; }
-    GazeboJointInfo& updJoint(int index) 
+    GazeboJointInfo& updJoint(int index)
     {   return jointByIndex[index]; }
 
 private:
@@ -344,7 +344,7 @@ static void runSimulation(const MultibodySystem&          mbs,
                           const std::vector<GazeboModel>& gzModels);
 
 int main(int argc, const char* argv[]) {
-    cout << "This is Simbody example '" 
+    cout << "This is Simbody example '"
          << SimbodyExampleHelper::getExampleName() << "'\n";
 
     std::string sdfFileName;
@@ -361,7 +361,7 @@ int main(int argc, const char* argv[]) {
     // to get gravity and locate the Models.
     cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
 
-    const std::string auxDir = 
+    const std::string auxDir =
         SimbodyExampleHelper::findAuxiliaryDirectoryContaining
         ("models/" + sdfFileName);
     std::cout << "Getting models from '" << auxDir << "'\n";
@@ -377,13 +377,13 @@ int main(int argc, const char* argv[]) {
 
     // This is a Gazebo document.
     Xml::Element root = sdf.getRootElement();
-    cout << "sdf version=" 
+    cout << "sdf version="
          << root.getOptionalAttributeValue("version", "unspecified") << endl;
 
     Xml::Element world = root.getRequiredElement("world");
     Xml::Element physics = world.getOptionalElement("physics");
     const Vec3 gravity = // default is std gravity at Earth's surface, m/s^2
-        world.hasElement("gravity") 
+        world.hasElement("gravity")
         ? world.getRequiredElementValueAs<Vec3>("gravity")
         : (physics.hasElement("gravity") ? physics.getRequiredElementValueAs<Vec3>("gravity")
                                          : Vec3(0,0,-9.80665));
@@ -397,10 +397,10 @@ int main(int argc, const char* argv[]) {
         cout << "File contained no model -- nothing to do. Goodbye.\n";
         return 0;
     }
-   
+
     //------------------------ CREATE SIMBODY SYSTEM ---------------------------
     // Create a Simbody System and populate it with Subsystems we'll need.
-    MultibodySystem mbs; 
+    MultibodySystem mbs;
     SimbodyMatterSubsystem matter(mbs);
     GeneralForceSubsystem forces(mbs);
     ContactTrackerSubsystem tracker(mbs);
@@ -424,7 +424,7 @@ int main(int argc, const char* argv[]) {
     matter.Ground().updBody().addContactSurface(Rotation(Pi/2,YAxis),
        ContactSurface(ContactGeometry::HalfSpace(), groundMaterial));
     // Draw world frame and model frame.
-    matter.Ground().addBodyDecoration(Vec3(0), 
+    matter.Ground().addBodyDecoration(Vec3(0),
         DecorativeFrame(1).setColor(Green).setLineThickness(3)); // World
 
     std::vector<GazeboModel> gzModels(models.size());
@@ -438,7 +438,7 @@ int main(int argc, const char* argv[]) {
         // Optional: dump the graph to stdout for debugging or curiosity.
         mbgraph.dumpGraph(std::cout);
 
-        addModelToSimbodySystem(mbgraph, gzModels[m], 
+        addModelToSimbodySystem(mbgraph, gzModels[m],
                                 mbs, matter, forces, contact);
     }
 
@@ -478,11 +478,11 @@ static void createMultibodyGraph(GazeboModel&           model,
     // break a loop at a ball joint.
     mbgraph.addJointType("ball", 3, true);  // Ball
 
-    // Step 2: Tell it about all the links we read from the input file, 
+    // Step 2: Tell it about all the links we read from the input file,
     // starting with world, and provide a reference pointer.
     for (int lx=0; lx < model.links.size(); ++lx) {
         GazeboLinkInfo& link = model.links.updLink(lx);
-        mbgraph.addBody(link.name, link.massProps.getMass(), 
+        mbgraph.addBody(link.name, link.massProps.getMass(),
                         link.mustBeBaseLink, &link);
     }
 
@@ -490,7 +490,7 @@ static void createMultibodyGraph(GazeboModel&           model,
     // and provide a reference pointer.
     for (int jx=0; jx < model.joints.size(); ++jx) {
         GazeboJointInfo& joint = model.joints.updJoint(jx);
-        mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child, 
+        mbgraph.addJoint(joint.name, joint.type, joint.parent, joint.child,
                             joint.mustBreakLoopHere, &joint);
     }
 
@@ -511,7 +511,7 @@ static void createMultibodyGraph(GazeboModel&           model,
 static Transform pose2Transform(const Vec6& pose) {
     Transform frame(Rotation(SimTK::BodyRotationSequence,
                              pose[3], XAxis, pose[4], YAxis, pose[5], ZAxis),
-                    pose.getSubVec<3>(0)); 
+                    pose.getSubVec<3>(0));
     return frame;
 }
 
@@ -566,7 +566,7 @@ static MassProperties getMassProperties(Xml::Element link) {
 //==============================================================================
 // Given a desired multibody graph, gravity, and the Gazebo model that was
 // used to generate the graph, add elements to the Simbody System to represent
-// it. There are many limitations here, especially in the handling of contact. 
+// it. There are many limitations here, especially in the handling of contact.
 // Any Gazebo features that we haven't modeled are just ignored.
 // The GazeboModel is updated so that its links and joints have references to
 // their corresponding Simbody elements.
@@ -577,7 +577,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                                     MultibodySystem&           mbs,
                                     SimbodyMatterSubsystem&    matter,
                                     GeneralForceSubsystem&     forces,
-                                    CompliantContactSubsystem& contact) 
+                                    CompliantContactSubsystem& contact)
 {
     // Define a material to use for contact. This is not very stiff.
     ContactMaterial material(1e6,   // stiffness
@@ -587,7 +587,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                              0.5);  // mu_viscous
 
     // Draw the model frame.
-    matter.Ground().addBodyDecoration(model.X_WM, 
+    matter.Ground().addBodyDecoration(model.X_WM,
         DecorativeFrame(.75).setColor(Orange).setLineThickness(3));  // Model
     matter.Ground().addBodyDecoration(model.X_WM.p()+Vec3(0,0,.1),
         DecorativeText(model.name).setScale(.2)
@@ -618,11 +618,11 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
         GazeboLinkInfo& gzInb  = *(GazeboLinkInfo*)mob.getInboardBodyRef();
         GazeboLinkInfo& gzOutb = *(GazeboLinkInfo*)mob.getOutboardMasterBodyRef();
 
-        const MassProperties massProps = 
+        const MassProperties massProps =
             gzOutb.getEffectiveMassProps(mob.getNumFragments());
 
         // This will reference the new mobilized body once we create it.
-        MobilizedBody mobod; 
+        MobilizedBody mobod;
 
         if (model.isStatic) {
             mobod = matter.updGround();
@@ -655,7 +655,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
             if (type == "free") {
                 MobilizedBody::Free freeJoint(
                     gzInb.masterMobod,  X_IF0,
-                    massProps,          X_OM0, 
+                    massProps,          X_OM0,
                     direction);
                 Transform defX_FM = isReversed ? Transform(~gzJoint.defX_AB)
                                                : gzJoint.defX_AB;
@@ -663,14 +663,14 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                 mobod = freeJoint;
             } else if (type == "revolute") {
                 Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
-                UnitVec3 axis = 
-                    UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz")); 
+                UnitVec3 axis =
+                    UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz"));
                 Rotation R_JZ(axis, ZAxis); // Simbody's pin is along Z
                 Transform X_IF(X_IF0.R()*R_JZ, X_IF0.p());
                 Transform X_OM(X_OM0.R()*R_JZ, X_OM0.p());
                 MobilizedBody::Pin pinJoint(
                     gzInb.masterMobod,      X_IF,
-                    massProps,              X_OM, 
+                    massProps,              X_OM,
                     direction);
                 mobod = pinJoint;
 
@@ -681,14 +681,14 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                 #endif
             } else if (type == "prismatic") {
                 Xml::Element axisElt = gzJoint.element.getRequiredElement("axis");
-                UnitVec3 axis = 
-                    UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz")); 
+                UnitVec3 axis =
+                    UnitVec3(axisElt.getRequiredElementValueAs<Vec3>("xyz"));
                 Rotation R_JX(axis, XAxis); // Simbody's slider is along X
                 Transform X_IF(X_IF0.R()*R_JX, X_IF0.p());
                 Transform X_OM(X_OM0.R()*R_JX, X_OM0.p());
                 MobilizedBody::Slider sliderJoint(
                     gzInb.masterMobod,      X_IF,
-                    massProps,              X_OM, 
+                    massProps,              X_OM,
                     direction);
                 mobod = sliderJoint;
 
@@ -700,9 +700,9 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
             } else if (type == "ball") {
                 MobilizedBody::Ball ballJoint(
                     gzInb.masterMobod,  X_IF0,
-                    massProps,          X_OM0, 
+                    massProps,          X_OM0,
                     direction);
-                Rotation defR_FM = isReversed 
+                Rotation defR_FM = isReversed
                     ? Rotation(~gzJoint.defX_AB.R())
                     : gzJoint.defX_AB.R();
                 ballJoint.setDefaultRotation(defR_FM);
@@ -712,7 +712,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     gzInb.masterMobod,  X_IF0,
                     massProps,          X_OM0);
                 mobod = weldJoint;
-            } 
+            }
 
             // Created a mobilizer that corresponds to gzJoint. Keep track.
             gzJoint.mobod = mobod;
@@ -761,7 +761,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                                 .setColor(color).setScale(scale));
                 }
 
-            } 
+            }
 
             // COLLISION
             Array_<Xml::Element> coll = master.getAllElements("collision");
@@ -793,7 +793,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     // Cylinder is along Z in Gazebo
 #ifndef USE_CONTACT_MESH
                     Vec3 esz = Vec3(r,r,len/2); // Use ellipsoid instead
-                    mobod.addBodyDecoration(X_LC, 
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeEllipsoid(esz)
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                             .setColor(collColor));
@@ -804,8 +804,8 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     const PolygonalMesh mesh = PolygonalMesh::
                         createCylinderMesh(ZAxis,r,len/2,resolution);
                     const ContactGeometry::TriangleMesh triMesh(mesh);
-    
-                    mobod.addBodyDecoration(X_LC, 
+
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeMesh(triMesh.createPolygonalMesh())
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
                         .setColor(collColor));
@@ -822,7 +822,7 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                 if (box.isValid()) {
                     Vec3 hsz = box.getRequiredElementValueAs<Vec3>("size")/2;
 #ifndef USE_CONTACT_MESH
-                    mobod.addBodyDecoration(X_LC, 
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeEllipsoid(hsz) // use half dimensions
                             .setRepresentation(DecorativeGeometry::DrawWireframe)
                             .setColor(collColor));
@@ -833,8 +833,8 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
                     const PolygonalMesh mesh = PolygonalMesh::
                         createBrickMesh(hsz,resolution);
                     const ContactGeometry::TriangleMesh triMesh(mesh);
-    
-                    mobod.addBodyDecoration(X_LC, 
+
+                    mobod.addBodyDecoration(X_LC,
                         DecorativeMesh(triMesh.createPolygonalMesh())
                         .setRepresentation(DecorativeGeometry::DrawWireframe)
                         .setColor(collColor));
@@ -868,11 +868,11 @@ static void addModelToSimbodySystem(const MultibodyGraphMaker& mbgraph,
         GazeboLinkInfo&  child  = *(GazeboLinkInfo*) loop.getChildBodyRef();
 
         if (joint.type == "weld") {
-            Constraint::Weld weld(parent.masterMobod, joint.X_PA, 
+            Constraint::Weld weld(parent.masterMobod, joint.X_PA,
                                   child.masterMobod,  joint.X_CB);
             joint.constraint = weld;
         } else if (joint.type == "ball") {
-            Constraint::Ball ball(parent.masterMobod, joint.X_PA.p(), 
+            Constraint::Ball ball(parent.masterMobod, joint.X_PA.p(),
                                   child.masterMobod,  joint.X_CB.p());
             joint.constraint = ball;
         } else if (joint.type == "free") {
@@ -922,7 +922,7 @@ static void runSimulation(const MultibodySystem&          mbs,
     Assembler assembler(mbs);
     Real assemblyTol = assembler.assemble(state);
     viz.report(state);
-    printf("ASSEMBLED to err=%g -- ENTER to simulate\n", 
+    printf("ASSEMBLED to err=%g -- ENTER to simulate\n",
         state.getQErr().norm());
     getchar();
 
@@ -945,7 +945,7 @@ static void runSimulation(const MultibodySystem&          mbs,
     //CPodesIntegrator integ(mbs); // implicit integrator
 
     integ.setAccuracy(Accuracy);
-    integ.setConstraintTolerance(std::min(1e-3, Accuracy/10)); 
+    integ.setConstraintTolerance(std::min(1e-3, Accuracy/10));
 
     integ.initialize(state);
     viz.report(integ.getState());
@@ -965,9 +965,9 @@ static void runSimulation(const MultibodySystem&          mbs,
         viz.report(state);
         #endif
 
-        // Show body origin locations and joint angles and rates at integer 
+        // Show body origin locations and joint angles and rates at integer
         // times to demo data extraction.
-        if (std::abs(std::floor(t+ReportTime/2)-t) > ReportTime/2) 
+        if (std::abs(std::floor(t+ReportTime/2)-t) > ReportTime/2)
             continue;
 
         for (unsigned m=0; m < gzModels.size(); ++m) {
@@ -977,8 +977,8 @@ static void runSimulation(const MultibodySystem&          mbs,
             for (int i=0; i < model.links.size(); ++i) {
                 const GazeboLinkInfo& link = model.links.getLink(i);
                 const Vec3& loc = link.masterMobod.getBodyOriginLocation(state);
-                printf("  %20s %10.3g %10.3g %10.3g\n", 
-                    link.name.c_str(), loc[0], loc[1], loc[2]); 
+                printf("  %20s %10.3g %10.3g %10.3g\n",
+                    link.name.c_str(), loc[0], loc[1], loc[2]);
             }
             printf("\n  JOINTS t=%g\n", t);
             for (int i=0; i < model.joints.size(); ++i) {
@@ -986,10 +986,10 @@ static void runSimulation(const MultibodySystem&          mbs,
                 if (joint.mobod.getNumU(state)) {
                     const Real q0 = joint.mobod.getOneQ(state, 0);
                     const Real u0 = joint.mobod.getOneU(state, 0);
-                    printf("  %20s %10.3g %10.3g\n", 
-                        joint.name.c_str(), q0, u0); 
+                    printf("  %20s %10.3g %10.3g\n",
+                        joint.name.c_str(), q0, u0);
                 } else { // weld joint
-                    printf("  %20s weld; no dofs\n", 
+                    printf("  %20s weld; no dofs\n",
                         joint.name.c_str());
                 }
             }
@@ -1004,17 +1004,17 @@ static void runSimulation(const MultibodySystem&          mbs,
     const double cpuInSec = cpuTime()-startCPU;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s for " << integ.getTime() << "s sim (avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s for " << integ.getTime() << "s sim (avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*integ.getTime())/evals << "sim ms/eval\n";
     cout << "CPUtime (not reliable when visualizing) " << cpuInSec << endl;
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(),
         integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
         integ.getNumProjections());
 }
 
@@ -1025,7 +1025,7 @@ static void runSimulation(const MultibodySystem&          mbs,
 
 int GazeboLinks::addLink(const GazeboLinkInfo& info) {
     if (name2index.find(info.name) != name2index.end())
-        throw std::runtime_error("GazeboLinks::addLink(): Link name '" 
+        throw std::runtime_error("GazeboLinks::addLink(): Link name '"
             + info.name + " was used more than once.");
 
     const int lx = (int)linkByIndex.size();
@@ -1038,7 +1038,7 @@ int GazeboLinks::addLink(const GazeboLinkInfo& info) {
 int GazeboJoints::addJoint(const GazeboJointInfo& info) {
     if(name2index.find(info.name) != name2index.end())
         throw std::runtime_error(
-            "GazeboJoints::addJoint(): Joint name '" + info.name 
+            "GazeboJoints::addJoint(): Joint name '" + info.name
             + "' was used more than once.");
 
     const int jx = (int)jointByIndex.size();
@@ -1057,7 +1057,7 @@ void GazeboModel::readModel(Xml::Element modelElt) {
     Array_<Xml::Element> linkElts = modelElt.getAllElements("link");
     Array_<Xml::Element> jointElts = modelElt.getAllElements("joint");
     printf("Reading %s model '%s' with ground + %d links, %d joints.\n",
-        isStatic ? "STATIC" : "DYNAMIC", name.c_str(), 
+        isStatic ? "STATIC" : "DYNAMIC", name.c_str(),
         linkElts.size(), jointElts.size());
     cout << "  Model frame X_WM as pose=" << transform2Pose(X_WM) << endl;
 
@@ -1107,7 +1107,7 @@ void GazeboModel::readModel(Xml::Element modelElt) {
         Xml::Element cElt = elt.getRequiredElement("child");
         if (cElt.hasElement("link_name")) {
             child = cElt.getRequiredElementValue("link_name");
-            if (cElt.hasElement("pose")) 
+            if (cElt.hasElement("pose"))
                 jinfo.X_CB = getPose(cElt);
             // else leave it as it was
         } else child = cElt.getValue(); // old style

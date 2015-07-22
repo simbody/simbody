@@ -96,15 +96,15 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     OptimizerRep* newRep = 0;
 
     // if constructor specifies which algorithm, use it else select based on
-    // problem paramters 
+    // problem paramters
     if ( algorithm == InteriorPoint ) {
         newRep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
     } else if( algorithm == LBFGSB ) {
         newRep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
     } else if( algorithm == LBFGS ) {
         newRep = (OptimizerRep *) new LBFGSOptimizer( sys  );
-    } 
-#if SimTK_DEFAULT_PRECISION==2 // double only   
+    }
+#if SimTK_DEFAULT_PRECISION==2 // double only
     else if( algorithm == CFSQP ) {
         try {
             newRep = (OptimizerRep *) new CFSQPOptimizer( sys  );
@@ -127,7 +127,7 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
             "UnknownOptimizerAlgorithm and UserSuppliedOptimizerAlgorithm "
             "do not specify specific algorithms.");
 
-    if(!newRep) { 
+    if(!newRep) {
         if( sys.getNumConstraints() > 0)   {
             newRep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
         } else if( sys.getHasLimits() ) {
@@ -135,7 +135,7 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
         } else {
             newRep = (OptimizerRep *) new LBFGSOptimizer( sys  );
         }
-    } 
+    }
     newRep->setMyHandle(*this);
     newRep->sysp = &sys;
 

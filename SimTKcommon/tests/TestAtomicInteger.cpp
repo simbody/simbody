@@ -77,9 +77,9 @@ void testParallelExecution() {
     for (int i = 0; i < (int)flags.size(); ++i)
         flags[i] = 0;
     ParallelExecutor executor;
-    
+
     // See if the ++ operator is properly atomic.
-    
+
     class SetFlagTask : public ParallelExecutor::Task {
     public:
         SetFlagTask(vector<int>& flags, AtomicInteger& index) : flags(flags), index(index) {
@@ -99,9 +99,9 @@ void testParallelExecution() {
         for (int j = 0; j < (int)flags.size(); ++j)
             ASSERT(flags[j] == (j < 5000 ? i+1 : 0));
     }
-    
+
     // See if the += operator is properly atomic.
-    
+
     class IncrementTask : public ParallelExecutor::Task {
     public:
         IncrementTask(AtomicInteger& index) : index(index) {
@@ -118,9 +118,9 @@ void testParallelExecution() {
         executor.execute(task, 5000);
         ASSERT(index == 10000);
     }
-    
+
     // See if the *= operator is properly atomic.
-    
+
     class MultiplyTask : public ParallelExecutor::Task {
     public:
         MultiplyTask(AtomicInteger& index) : index(index) {

@@ -20,7 +20,7 @@ namespace Ipopt
 
   /** Class for a Matrix in conjunction with its scaling factors for
    *  row and column scaling. Operations on the matrix are performed using
-   *  the scaled matrix. You can pull out the pointer to the 
+   *  the scaled matrix. You can pull out the pointer to the
    *  unscaled matrix for unscaled calculations.
    */
   class SymScaledMatrix : public SymMatrix
@@ -75,7 +75,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -167,7 +167,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

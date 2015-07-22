@@ -29,7 +29,7 @@
 // 12 all the cmaes options.
 // 14 threading.
 //
-// 
+//
 
 #include "SimTKmath.h"
 #include "OptimizerSystems.h"
@@ -142,7 +142,7 @@ void testCigtabOptimum() {
     // Sometimes this test fails, so choose a seed where the test passes.
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
-    
+
     // Optimize!
     SimTK_TEST_OPT(opt, results, 1e-5);
 }
@@ -251,7 +251,7 @@ void testMaxFunEvals() {
     opt.setAdvancedRealOption("init_stepsize", 0.3);
     opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
-    
+
     // Will not find optimum to tolerance with small # function evals.
     // =================================================================
     opt.setAdvancedIntOption("stopMaxFunEvals", 1);
@@ -283,7 +283,7 @@ void testSeed() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setAdvancedRealOption("init_stepsize", 1);
-    
+
     // A negative seed causes an exception to be thrown upon optimization.
     // ===================================================================
     opt.setAdvancedIntOption("seed", -10);
@@ -443,7 +443,7 @@ void testSchwefel() {
     opt.setAdvancedRealOption("init_stepsize", 300);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
-    
+
     // Optimize!
     SimTK_TEST_OPT(opt, results, 1e-4);
 }
@@ -464,7 +464,7 @@ void testEasom() {
     opt.setAdvancedRealOption("init_stepsize", 25);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
-    
+
     // Optimize!
     SimTK_TEST_OPT(opt, results, 1e-5);
 }

@@ -23,7 +23,7 @@
 
 /**@file
  *
- * Solves for singular values and singular vectors 
+ * Solves for singular values and singular vectors
  */
 
 
@@ -38,7 +38,7 @@
 #include "LATraits.h"
 #include "LapackConvert.h"
 
-#include <iostream> 
+#include <iostream>
 #include <cstdio>
 #include <cmath>
 #include <complex>
@@ -98,7 +98,7 @@ FactorSVD::FactorSVD( const Matrix_<ELT>& m ) {
 
     // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
     int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()); 
+    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant());
 }
 template < class ELT >
 FactorSVD::FactorSVD( const Matrix_<ELT>& m, double rcond ) {
@@ -115,7 +115,7 @@ void FactorSVD::factor( const Matrix_<ELT>& m ) {
 
     // if user does not supply rcond set it to max(nRow,nCol)*(eps)^7/8 (similar to matlab)
     int mnmax = (m.nrow() > m.ncol()) ? m.nrow() : m.ncol();
-    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant()); 
+    rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, mnmax*NTraits<typename CNT<ELT>::Precision>::getSignificant());
 }
 
 template < class ELT >
@@ -129,7 +129,7 @@ void FactorSVD::factor( const Matrix_<ELT>& m, float rcond ){
     rep = new FactorSVDRep<typename CNT<ELT>::StdNumber>(m, rcond );
 }
 
-template <class T> 
+template <class T>
 void FactorSVD::getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal >& values, Matrix_<T>& leftVectors, Matrix_<T>& rightVectors) {
 
     rep->getSingularValuesAndVectors( values, leftVectors, rightVectors );
@@ -137,7 +137,7 @@ void FactorSVD::getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal >& v
     return;
 }
 
-template <class T> 
+template <class T>
 void FactorSVD::getSingularValues( Vector_<T>& values ) {
     rep->getSingularValues( values );
     return;
@@ -145,31 +145,31 @@ void FactorSVD::getSingularValues( Vector_<T>& values ) {
 //////////////////
    // FactorSVDRep //
    //////////////////
-template <typename T >        // constructor 
+template <typename T >        // constructor
     template < typename ELT >
 FactorSVDRep<T>::FactorSVDRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal rc):
-    nCol(mat.ncol()),  
+    nCol(mat.ncol()),
     nRow(mat.nrow()),
-    mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ), 
-    maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ), 
+    mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
+    maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ),
     singularValues(mn),
     inputMatrix(nCol*nRow),
     rank(0),
     structure(mat.getMatrixCharacter().getStructure())  {
-    
+
     LapackInterface::getMachineUnderflow( abstol );
     abstol *= 0.5;
      rcond = rc;
 
     LapackConvert::convertMatrixToLapack( inputMatrix.data, mat );
     isFactored = true;
-        
+
 }
 template <typename T >
 int FactorSVDRep<T>::getRank() {
 
     if( rank == 0 ) {   // check if SVD has been done
-        Vector_<RType> v;    
+        Vector_<RType> v;
         getSingularValues( v );
     }
     return( rank );
@@ -181,7 +181,7 @@ void FactorSVDRep<T>::inverse(  Matrix_<T>& inverse ) {
     inverse.resize(mn,mn);
     iden = 1.0;
     solve( iden, inverse );
- 
+
 }
 
 template <typename T >
@@ -204,7 +204,7 @@ void FactorSVDRep<T>::solve( const Vector_<T>& b, Vector_<T> &x ) {
 
     if( inputMatrix.size == 0 || b.size() == 0 ) {
         x.resize(0);
-    } else { 
+    } else {
 
         Matrix_<T> m(maxmn,1);
 
@@ -231,7 +231,7 @@ void FactorSVDRep<T>::solve( const Matrix_<T>& b, Matrix_<T> &x ) {
 
     if( inputMatrix.size == 0 || b.nelt() == 0 ) {
         x.resize(0,0);
-    } else { 
+    } else {
         x.resize( nCol, b.ncol() );
         Matrix_<T> tb;
         tb.resize(maxmn, b.ncol() );
@@ -257,22 +257,22 @@ void FactorSVDRep<T>::doSolve(  Matrix_<T>& b, Matrix_<T>& x) {
     tb.resize(maxmn, b.ncol() );
     for(j=0;j<b.ncol();j++) for(i=0;i<b.nrow();i++) tb(i,j) = b(i,j);
 
-    LapackInterface::gelss<T>( nRow, nCol, mn, b.ncol(), tempMatrix.data, nRow, &tb(0,0), 
+    LapackInterface::gelss<T>( nRow, nCol, mn, b.ncol(), tempMatrix.data, nRow, &tb(0,0),
                       tb.nrow(), singularValues.data, rcond, rank, info  );
 
     if( info > 0 ) {
         SimTK_THROW2( SimTK::Exception::ConvergedFailed,
-        "FactorSVD::solve", 
+        "FactorSVD::solve",
         "divide and conquer singular value decomposition" );
     }
-    
+
     for(j=0;j<b.ncol();j++) for(i=0;i<nCol;i++) x(i,j) = tb(i,j);
 
 }
 
 template < class T >
 void FactorSVDRep<T>::getSingularValuesAndVectors( Vector_<RType>& values,  Matrix_<T>& leftVectors, Matrix_<T>& rightVectors ) {
-   
+
 
     if( inputMatrix.size == 0 ) {
         leftVectors.resize(0,0);
@@ -322,11 +322,11 @@ void FactorSVDRep<T>::computeSVD( bool computeVectors, RType* values, T* leftVec
 
     for(int i=0, rank=0;i<mn;i++) {
         if( values[i] > rcond*values[0] ) rank++;
-    } 
+    }
 
     if( info > 0 ) {
         SimTK_THROW2( SimTK::Exception::ConvergedFailed,
-        "FactorSVD::getSingularValuesAndVectors", 
+        "FactorSVD::getSingularValuesAndVectors",
         "divide and conquer singular value decomposition" );
     }
 

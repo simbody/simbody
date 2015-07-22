@@ -92,12 +92,12 @@ Subsystem::Guts::Guts(const String& name, const String& version)
 :   m_subsystemName(name), m_subsystemVersion(version),
     m_mySystem(0), m_mySubsystemIndex(InvalidSubsystemIndex), m_myHandle(0),
     m_subsystemTopologyRealized(false)
-{ 
+{
 }
 
 // Copy constructor isn't very useful. Note that it doesn't copy Measures.
-Subsystem::Guts::Guts(const Subsystem::Guts& src) 
-:   m_subsystemName(src.m_subsystemName), 
+Subsystem::Guts::Guts(const Subsystem::Guts& src)
+:   m_subsystemName(src.m_subsystemName),
     m_subsystemVersion(src.m_subsystemVersion),
     m_mySystem(0), m_mySubsystemIndex(InvalidSubsystemIndex), m_myHandle(0),
     m_subsystemTopologyRealized(false)
@@ -139,7 +139,7 @@ bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
 void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
     if (m_subsystemTopologyRealized) {
         m_subsystemTopologyRealized = false;
-        if (isInSystem()) 
+        if (isInSystem())
             getSystem().getSystemGuts().invalidateSystemTopologyCache();
     }
 }
@@ -149,11 +149,11 @@ void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
 //                         CREATE SCHEDULED EVENT
 //------------------------------------------------------------------------------
 /*
- * A Subsystem should invoke this method during Instance stage for each 
+ * A Subsystem should invoke this method during Instance stage for each
  * scheduled event it defines.
- * It allocates a global event ID for the event, and registers that ID as 
+ * It allocates a global event ID for the event, and registers that ID as
  * belonging to this Subsystem.
- * 
+ *
  * @param state     the State which is being realized
  * @param eventId   on exit, the newly allocated event ID is stored here
  */
@@ -167,26 +167,26 @@ createScheduledEvent(const State& state, EventId& eventId) const {
 //                         CREATE TRIGGERED EVENT
 //------------------------------------------------------------------------------
 /*
- * A Subsystem should invoke this method during Instance stage for each 
- * triggered event it defines. It allocates a global event ID for the event, 
+ * A Subsystem should invoke this method during Instance stage for each
+ * triggered event it defines. It allocates a global event ID for the event,
  * registers that ID as belonging to this Subsystem, and allocates space in the
  * State for the event trigger function.
- * 
+ *
  * @param state     the State which is being realized
  * @param eventId   on exit, the newly allocated event ID is stored here
- * @param triggerFunctionIndex  
+ * @param triggerFunctionIndex
  *      on exit, the index corresponding to the event's trigger function
  *      is stored here (this is a local, per-Subsystem, per-Stage index)
  * @param stage     the Stage at which the event will be evaluated
  */
 void Subsystem::Guts::
-createTriggeredEvent(const State& state, EventId& eventId, 
-                     EventTriggerByStageIndex& triggerFunctionIndex, 
-                     Stage stage) const 
+createTriggeredEvent(const State& state, EventId& eventId,
+                     EventTriggerByStageIndex& triggerFunctionIndex,
+                     Stage stage) const
 {
     eventId = getSystem().getDefaultSubsystem()
                          .createEventId(getMySubsystemIndex(), state);
-    triggerFunctionIndex = 
+    triggerFunctionIndex =
         state.allocateEventTrigger(getMySubsystemIndex(), stage, 1);
 }
 
@@ -204,7 +204,7 @@ Subsystem::Guts* Subsystem::Guts::clone() const {
 //                     REALIZE SUBSYSTEM TOPOLOGY
 //------------------------------------------------------------------------------
 void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
-    SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
+    SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty,
         "Subsystem::Guts::realizeSubsystemTopology()");
     realizeSubsystemTopologyImpl(s);
 
@@ -223,7 +223,7 @@ void Subsystem::Guts::realizeSubsystemModel(State& s) const {
     SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(subsystemTopologyHasBeenRealized(),
         "Subsystem", getName(), "Subsystem::Guts::realizeSubsystemModel()");
 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Topology, 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Topology,
         "Subsystem::Guts::realizeSubsystemModel()");
     if (getStage(s) < Stage::Model) {
         realizeSubsystemModelImpl(s);
@@ -239,8 +239,8 @@ void Subsystem::Guts::realizeSubsystemModel(State& s) const {
 //------------------------------------------------------------------------------
 //                     REALIZE SUBSYSTEM INSTANCE
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemInstance(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
+void Subsystem::Guts::realizeSubsystemInstance(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(),
         "Subsystem::Guts::realizeSubsystemInstance()");
     if (getStage(s) < Stage::Instance) {
         realizeSubsystemInstanceImpl(s);
@@ -256,8 +256,8 @@ void Subsystem::Guts::realizeSubsystemInstance(const State& s) const {
 //------------------------------------------------------------------------------
 //                         REALIZE SUBSYSTEM TIME
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemTime(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
+void Subsystem::Guts::realizeSubsystemTime(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(),
         "Subsystem::Guts::realizeTime()");
     if (getStage(s) < Stage::Time) {
         realizeSubsystemTimeImpl(s);
@@ -273,8 +273,8 @@ void Subsystem::Guts::realizeSubsystemTime(const State& s) const {
 //------------------------------------------------------------------------------
 //                     REALIZE SUBSYSTEM POSITION
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemPosition(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
+void Subsystem::Guts::realizeSubsystemPosition(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(),
         "Subsystem::Guts::realizeSubsystemPosition()");
     if (getStage(s) < Stage::Position) {
         realizeSubsystemPositionImpl(s);
@@ -290,8 +290,8 @@ void Subsystem::Guts::realizeSubsystemPosition(const State& s) const {
 //------------------------------------------------------------------------------
 //                       REALIZE SUBSYSTEM VELOCITY
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
+void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(),
         "Subsystem::Guts::realizeSubsystemVelocity()");
     if (getStage(s) < Stage::Velocity) {
         realizeSubsystemVelocityImpl(s);
@@ -307,8 +307,8 @@ void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const {
 //------------------------------------------------------------------------------
 //                       REALIZE SUBSYSTEM DYNAMICS
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
+void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(),
         "Subsystem::Guts::realizeSubsystemDynamics()");
     if (getStage(s) < Stage::Dynamics) {
         realizeSubsystemDynamicsImpl(s);
@@ -324,8 +324,8 @@ void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const {
 //------------------------------------------------------------------------------
 //                     REALIZE SUBSYSTEM ACCELERATION
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
+void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(),
         "Subsystem::Guts::realizeSubsystemAcceleration()");
     if (getStage(s) < Stage::Acceleration) {
         realizeSubsystemAccelerationImpl(s);
@@ -341,8 +341,8 @@ void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const {
 //------------------------------------------------------------------------------
 //                         REALIZE SUBSYSTEM REPORT
 //------------------------------------------------------------------------------
-void Subsystem::Guts::realizeSubsystemReport(const State& s) const { 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
+void Subsystem::Guts::realizeSubsystemReport(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(),
         "Subsystem::Guts::realizeSubsystemReport()");
     if (getStage(s) < Stage::Report) {
         realizeSubsystemReportImpl(s);
@@ -359,7 +359,7 @@ void Subsystem::Guts::realizeSubsystemReport(const State& s) const {
 //                  CALC DECORATIVE GEOMETRY AND APPEND
 //------------------------------------------------------------------------------
 void Subsystem::Guts::calcDecorativeGeometryAndAppend
-   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const 
+   (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     calcDecorativeGeometryAndAppendImpl(s,stage,geom);
 }
@@ -367,7 +367,7 @@ void Subsystem::Guts::calcDecorativeGeometryAndAppend
 //------------------------------------------------------------------------------
 //                              HANDLE EVENTS
 //------------------------------------------------------------------------------
-void Subsystem::Guts::handleEvents(State& state, Event::Cause cause, 
+void Subsystem::Guts::handleEvents(State& state, Event::Cause cause,
     const Array_<EventId>& eventIds,
     const HandleEventsOptions& options, HandleEventsResults& results) const
 {
@@ -380,14 +380,14 @@ void Subsystem::Guts::handleEvents(State& state, Event::Cause cause,
     }
 
     // assume success
-    results.clear(); results.setExitStatus(HandleEventsResults::Succeeded); 
+    results.clear(); results.setExitStatus(HandleEventsResults::Succeeded);
     handleEventsImpl(state, cause, eventIds, options, results);
 }
 
 //------------------------------------------------------------------------------
 //                               REPORT EVENTS
 //------------------------------------------------------------------------------
-void Subsystem::Guts::reportEvents(const State& state, Event::Cause cause, 
+void Subsystem::Guts::reportEvents(const State& state, Event::Cause cause,
                                    const Array_<EventId>& eventIds) const
 {
     reportEventsImpl(state, cause, eventIds);
@@ -405,13 +405,13 @@ calcEventTriggerInfo(const State& state, Array_<EventTriggerInfo>& info) const {
 //                     CALC TIME OF NEXT SCHEDULED EVENT
 //------------------------------------------------------------------------------
 void Subsystem::Guts::
-calcTimeOfNextScheduledEvent(const State& state, Real& tNextEvent, 
-                             Array_<EventId>& eventIds, 
-                             bool includeCurrentTime) const 
+calcTimeOfNextScheduledEvent(const State& state, Real& tNextEvent,
+                             Array_<EventId>& eventIds,
+                             bool includeCurrentTime) const
 {
     tNextEvent = Infinity;
     eventIds.clear();
-    calcTimeOfNextScheduledEventImpl(state, tNextEvent, eventIds, 
+    calcTimeOfNextScheduledEventImpl(state, tNextEvent, eventIds,
                                      includeCurrentTime);
 }
 
@@ -419,13 +419,13 @@ calcTimeOfNextScheduledEvent(const State& state, Real& tNextEvent,
 //                    CALC TIME OF NEXT SCHEDULED REPORT
 //------------------------------------------------------------------------------
 void Subsystem::Guts::
-calcTimeOfNextScheduledReport(const State& state, Real& tNextReport, 
-                              Array_<EventId>& eventIds, 
-                              bool includeCurrentTime) const 
+calcTimeOfNextScheduledReport(const State& state, Real& tNextReport,
+                              Array_<EventId>& eventIds,
+                              bool includeCurrentTime) const
 {
     tNextReport = Infinity;
     eventIds.clear();
-    calcTimeOfNextScheduledReportImpl(state, tNextReport, eventIds, 
+    calcTimeOfNextScheduledReportImpl(state, tNextReport, eventIds,
                                       includeCurrentTime);
 }
 

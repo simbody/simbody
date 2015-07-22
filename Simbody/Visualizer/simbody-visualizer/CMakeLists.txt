@@ -38,7 +38,7 @@ endif()
 
 if(OPENGL_FOUND AND SIMBODY_HAS_GLUT)
 
-add_executable(${GUI_NAME} 
+add_executable(${GUI_NAME}
     simbody-visualizer.cpp lodepng.cpp lodepng.h
     ${GLUT32_HEADERS}) # only on Windows
 
@@ -49,7 +49,7 @@ set_target_properties(${GUI_NAME} PROPERTIES
         PROJECT_LABEL "Code - ${GUI_NAME}"
         DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-target_link_libraries(${GUI_NAME} 
+target_link_libraries(${GUI_NAME}
     ${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
 # SIMBODY_VISUALIZER_INSTALL_DIR is set in the root CMakeLists.txt

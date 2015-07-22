@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the private (library side) implementation of the 
+ * This is the private (library side) implementation of the
  * RungeKutta3Integrator and RungeKutta3IntegratorRep classes.
  */
 
@@ -42,7 +42,7 @@ using namespace SimTK;
 //                        RUNGE KUTTA 3 INTEGRATOR
 //------------------------------------------------------------------------------
 
-RungeKutta3Integrator::RungeKutta3Integrator(const System& sys) 
+RungeKutta3Integrator::RungeKutta3Integrator(const System& sys)
 {
     rep = new RungeKutta3IntegratorRep(this, sys);
 }
@@ -53,11 +53,11 @@ RungeKutta3Integrator::RungeKutta3Integrator(const System& sys)
 
 
 RungeKutta3IntegratorRep::RungeKutta3IntegratorRep
-   (Integrator* handle, const System& sys) 
+   (Integrator* handle, const System& sys)
 :   AbstractIntegratorRep(handle, sys, 3, 3, "RungeKutta3",  true) {
 }
 
-// For a discussion of this Runge-Kutta 3(2) method, see J.C. Butcher, "The 
+// For a discussion of this Runge-Kutta 3(2) method, see J.C. Butcher, "The
 // Numerical Analysis of Ordinary Differential Equations", John Wiley & Sons,
 // 1987, page 325. The embedded error estimate was derived using the method
 // mentioned in Hairer, Norsett & Wanner, Solving ODEs I, 2nd rev. ed. on
@@ -105,9 +105,9 @@ bool RungeKutta3IntegratorRep::attemptODEStep
     setAdvancedStateAndRealizeDerivatives(t1,     y0 + h*(2*f1-f0));
     f2 = getAdvancedState().getYDot();
 
-    // Final value. This is the 3rd order accurate estimate for 
-    // y1=y(t0+h)+O(h^4): y1 = y0 + (h/6)*(f0 + 4 f1 + f2). 
-    // Evaluate through kinematics only; it is a waste of a stage to 
+    // Final value. This is the 3rd order accurate estimate for
+    // y1=y(t0+h)+O(h^4): y1 = y0 + (h/6)*(f0 + 4 f1 + f2).
+    // Evaluate through kinematics only; it is a waste of a stage to
     // evaluate derivatives here since the caller will muck with this before
     // the end of the step.
     setAdvancedStateAndRealizeKinematics(t1,      y0 + (h/6)*(f0 + 4*f1 + f2));

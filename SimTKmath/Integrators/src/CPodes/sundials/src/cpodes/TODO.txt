@@ -1,7 +1,7 @@
 Not implemented yet:
-- various functions needed for projection in WRMS norm 
+- various functions needed for projection in WRMS norm
   (in cpodes_dense and cpodes_lapack)
-- function to compute consistent y' for implicit-form ODEs 
+- function to compute consistent y' for implicit-form ODEs
   (in cpodes_ic)
 - add some more optional I/O functions for IC calculation
 
@@ -16,15 +16,15 @@ Under consideration:
   variable dqincfac (cpSpilsDQjtvImpl in cpodes_spils), like it's done in IDA?
 - automatic stiff-nonstiff switch (through nonlinear solver switch)?
   We could add a Lipschitz constant estimator for this. But what about the
-  influence of problem size (when using DQ Jacobians) or the relative cost 
+  influence of problem size (when using DQ Jacobians) or the relative cost
   of fct/Jac. evals (when the user provides the Jacobian)?
 
-NOTES: 
+NOTES:
 
-- At this time, unless we allocate one additional vector, we cannot return the 
+- At this time, unless we allocate one additional vector, we cannot return the
   proper estimated local error vector if the error estimate was actually projected.
   (i.e. we still return acor/tq[2] when we really should return P*acor/tq[2], but we
-  do not have P*acor anymore -- it was stored into a temporary vector). 
+  do not have P*acor anymore -- it was stored into a temporary vector).
 
 - To save an additional function evaluation at the projected state (i.e. finding
   yP' such that yP' = f(t,yP) or F(t, yP', yP) = 0, the latter also requiring

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.4 $
  * $Date: 2007/10/26 21:48:38 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -23,7 +23,7 @@
  */
 
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -38,17 +38,17 @@
 
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
  */
 
 /* CPDENSE linit, lsetup, lsolve, and lfree routines */
- 
+
 static int cpDenseInit(CPodeMem cp_mem);
-static int cpDenseSetup(CPodeMem cp_mem, int convfail, 
-                        N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpDenseSetup(CPodeMem cp_mem, int convfail,
+                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                         booleantype *jcurPtr,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int cpDenseSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
@@ -137,12 +137,12 @@ static void cpdSCcomputeKD(CPodeMem cp_mem, N_Vector d);
 #define njeP           (cpdlsP_mem->d_njeP)
 #define nceDQ          (cpdlsP_mem->d_nceDQ)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
  */
-              
+
 /*
  * -----------------------------------------------------------------
  * CPDense
@@ -160,7 +160,7 @@ static void cpdSCcomputeKD(CPodeMem cp_mem, N_Vector d);
  * The return value is SUCCESS = 0, or LMEM_FAIL = -1.
  *
  * NOTE: The dense linear solver assumes a serial implementation
- *       of the NVECTOR package. Therefore, CPDense will first 
+ *       of the NVECTOR package. Therefore, CPDense will first
  *       test for compatible a compatible N_Vector internal
  *       representation by checking that N_VGetArrayPointer and
  *       N_VSetArrayPointer exist.
@@ -259,7 +259,7 @@ int CPDense(void *cpode_mem, int N)
  * fields specific to the dense linear solver module for the projection.
  *
  * NOTE: The dense linear solver assumes a serial implementation
- *       of the NVECTOR package. Therefore, CPDense will first 
+ *       of the NVECTOR package. Therefore, CPDense will first
  *       test for compatible a compatible N_Vector internal
  *       representation by checking that N_VGetArrayPointer and
  *       N_VSetArrayPointer exist.
@@ -363,7 +363,7 @@ int CPDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
       DestroyMat(savedG);
       DestroyMat(G);
       free(cpdlsP_mem);
-      return(CPDIRECT_MEM_FAIL);      
+      return(CPDIRECT_MEM_FAIL);
     }
     /* If projecting in WRMS norm, allocate space for K=Q^T*D^(-1)*Q */
     if (pnorm == CP_PROJ_ERRNORM) {
@@ -411,7 +411,7 @@ int CPDenseProj(void *cpode_mem, int Nc, int Ny, int fact_type)
   return(CPDIRECT_SUCCESS);
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS FOR IMPLICIT INTEGRATION
  * =================================================================
@@ -431,16 +431,16 @@ static int cpDenseInit(CPodeMem cp_mem)
   CPDlsMem cpdls_mem;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   nje   = 0;
   nfeDQ = 0;
   nstlj = 0;
-  
+
   if (ode_type == CP_EXPL && jacE == NULL) {
     jacE = cpDlsDenseDQJacExpl;
     J_data = cp_mem;
-  } 
-  
+  }
+
   if (ode_type == CP_IMPL && jacI == NULL) {
     jacI = cpDlsDenseDQJacImpl;
     J_data = cp_mem;
@@ -456,9 +456,9 @@ static int cpDenseInit(CPodeMem cp_mem)
  * -----------------------------------------------------------------
  * This routine does the setup operations for the dense linear solver.
  * It makes a decision whether or not to call the Jacobian evaluation
- * routine based on various state variables, and if not it uses the 
- * saved copy (for explicit ODE only). In any case, it constructs 
- * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates 
+ * routine based on various state variables, and if not it uses the
+ * saved copy (for explicit ODE only). In any case, it constructs
+ * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates
  * counters, and calls the dense LU factorization routine.
  * -----------------------------------------------------------------
  */
@@ -486,7 +486,7 @@ static int cpDenseSetup(CPodeMem cp_mem, int convfail,
       ((convfail == CP_FAIL_BAD_J) && (dgamma < CPD_DGMAX)) ||
       (convfail == CP_FAIL_OTHER);
     jok = !jbad;
-    
+
     /* Test if it is enough to use a saved Jacobian copy */
     if (jok) {
       *jcurPtr = FALSE;
@@ -508,7 +508,7 @@ static int cpDenseSetup(CPodeMem cp_mem, int convfail,
       }
       DenseCopy(M, savedJ);
     }
-  
+
     /* Scale and add I to get M = I - gamma*J */
     DenseScale(-gamma, M);
     DenseAddI(M);
@@ -530,13 +530,13 @@ static int cpDenseSetup(CPodeMem cp_mem, int convfail,
       last_flag = CPDIRECT_JACFUNC_RECVR;
       return(1);
     }
-  
+
     break;
 
   }
 
   /* Do LU factorization of M */
-  ier = DenseGETRF(M, pivots); 
+  ier = DenseGETRF(M, pivots);
 
   /* Return 0 if the LU was complete; otherwise return 1 */
   last_flag = ier;
@@ -560,7 +560,7 @@ static int cpDenseSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   realtype *bd;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   bd = N_VGetArrayPointer(b);
 
   DenseGETRS(M, pivots, bd);
@@ -569,7 +569,7 @@ static int cpDenseSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   if ((lmm_type == CP_BDF) && (gamrat != ONE)) {
     N_VScale(TWO/(ONE + gamrat), b, b);
   }
-  
+
   last_flag = CPDIRECT_SUCCESS;
   return(0);
 }
@@ -587,15 +587,15 @@ static void cpDenseFree(CPodeMem cp_mem)
   CPDlsMem  cpdls_mem;
 
   cpdls_mem = (CPDlsMem) lmem;
-  
+
   DestroyMat(M);
   DestroyArray(pivots);
   if (ode_type == CP_EXPL) DestroyMat(savedJ);
-  free(cpdls_mem); 
+  free(cpdls_mem);
   cpdls_mem = NULL;
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS FOR PROJECTION
  * =================================================================
@@ -615,15 +615,15 @@ static int cpDenseProjInit(CPodeMem cp_mem)
   CPDlsProjMem cpdlsP_mem;
 
   cpdlsP_mem = (CPDlsProjMem) lmemP;
-  
+
   njeP   = 0;
   nceDQ  = 0;
   nstljP = 0;
-  
+
   if (jacP == NULL) {
     jacP = cpDlsDenseProjDQJac;
     JP_data = cp_mem;
-  }  
+  }
 
   return(0);
 }
@@ -651,9 +651,9 @@ static int cpDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   g_mat = G->cols;
 
-  /* 
-   * Initialize Jacobian matrix to 0 and call Jacobian function 
-   * G will contain the Jacobian transposed. 
+  /*
+   * Initialize Jacobian matrix to 0 and call Jacobian function
+   * G will contain the Jacobian transposed.
    */
   DenseZero(G);
   retval = jacP(nc, ny, tn, y, cy, G, JP_data, c_tmp1, c_tmp2);
@@ -673,23 +673,23 @@ static int cpDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_LU:
 
-    /* 
+    /*
      * LU factorization of G^T
-     *      
-     *    P*G^T =  | U1^T | * L^T     
+     *
+     *    P*G^T =  | U1^T | * L^T
      *             | U2^T |
      *
      * After factorization, P is encoded in pivotsP and
-     * G^T is overwritten with U1 (nc by nc unit upper triangular), 
+     * G^T is overwritten with U1 (nc by nc unit upper triangular),
      * U2 ( nc by ny-nc rectangular), and L (nc by nc lower triangular).
      *
-     * Return 1 if factorization failed. 
+     * Return 1 if factorization failed.
      */
-    ier = DenseGETRF(G, pivotsP); 
+    ier = DenseGETRF(G, pivotsP);
     if (ier > 0) return(1);
 
-    /* 
-     * Build S = U1^{-1} * U2 (in place, S overwrites U2) 
+    /*
+     * Build S = U1^{-1} * U2 (in place, S overwrites U2)
      * For each row j of G, j = nc,...,ny-1, perform
      * a backward substitution (row version).
      *
@@ -699,24 +699,24 @@ static int cpDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
       for (i=nc-2; i>=0; i--) {
         col_i = g_mat[i];
         for (k=i+1; k<nc; k++) g_mat[i][j] -= col_i[k]*g_mat[k][j];
-      }      
+      }
     }
 
-    /* 
-     * Build K = D1 + S^T * D2 * S 
+    /*
+     * Build K = D1 + S^T * D2 * S
      * Compute and store only the lower triangular part of K.
      */
     if (pnorm == CP_PROJ_L2NORM) cpdLUcomputeKI(cp_mem);
     else                         cpdLUcomputeKD(cp_mem, s_tmp1);
 
-    /* 
+    /*
      * Perform Cholesky decomposition of K (in place, gaxpy version)
-     * 
+     *
      *     K = C*C^T
      *
      * After factorization, the lower triangular part of K contains C.
      *
-     * Return 1 if factorization failed. 
+     * Return 1 if factorization failed.
      */
     ier = DensePOTRF(K);
     if (ier > 0) return(1);
@@ -725,12 +725,12 @@ static int cpDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_QR:
 
-    /* 
+    /*
      * Thin QR factorization of G^T
      *
      *   G^T = Q * R
      *
-     * After factorization, the upper trianguler part of G^T 
+     * After factorization, the upper trianguler part of G^T
      * contains the matrix R. The lower trapezoidal part of
      * G^T, together with the array beta, encodes the orthonormal
      * columns of Q as elementary reflectors.
@@ -753,21 +753,21 @@ static int cpDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
 
   case CPDIRECT_SC:
 
-    /* 
+    /*
      * Build K = G*D^(-1)*G^T
      * Compute and store only the lower triangular part of K.
      */
     if (pnorm == CP_PROJ_L2NORM) cpdSCcomputeKI(cp_mem);
     else                         cpdSCcomputeKD(cp_mem, s_tmp1);
 
-    /* 
+    /*
      * Perform Cholesky decomposition of K (in place, gaxpy version)
-     * 
+     *
      *     K = C*C^T
      *
      * After factorization, the lower triangular part of K contains C.
      *
-     * Return 1 if factorization failed. 
+     * Return 1 if factorization failed.
      */
     ier = DensePOTRF(K);
     if (ier > 0) return(1);
@@ -783,7 +783,7 @@ static int cpDenseProjSetup(CPodeMem cp_mem, N_Vector y, N_Vector cy,
  * -----------------------------------------------------------------
  * cpDenseProjSolve
  * -----------------------------------------------------------------
- * This routine handles the solve operation for the dense linear 
+ * This routine handles the solve operation for the dense linear
  * solver. The returned value is 0.
  * -----------------------------------------------------------------
  */
@@ -813,10 +813,10 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 
   case CPDIRECT_LU:
 
-    /* 
+    /*
      * Solve L*U1*alpha = bd
      *   (a) solve L*beta = bd using fwd. subst. (row version)
-     *   (b) solve U1*alpha = beta using bckwd. subst (row version) 
+     *   (b) solve U1*alpha = beta using bckwd. subst (row version)
      * where L^T and U1^T are stored in G[0...nc-1][0...nc-1].
      * beta and then alpha overwrite bd.
      */
@@ -829,9 +829,9 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
     for (i=nc-2; i>=0; i--) {
       col_i = g_mat[i];
       for (k=i+1; k<nc; k++) bd[i] -= col_i[k]*bd[k];
-    }  
+    }
 
-    /* 
+    /*
      * Compute S^T * (D1 * alpha)
      * alpha is stored in bd.
      * S^T is stored in g_mat[nc...ny-1][0...nc-1].
@@ -869,14 +869,14 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 
     }
 
-    /* 
+    /*
      * Solve K*x2 = S^T*D1*alpha, using the Cholesky decomposition available in K.
      * S^T*D1*alpha is stored in x2 = x[nc...ny-1].
      */
     DensePOTRS(K, &xd[nc]);
 
-    /* 
-     * Compute x1 = alpha - S*x2 
+    /*
+     * Compute x1 = alpha - S*x2
      * alpha is stored in bd.
      * x2 is stored in x[nc...ny-1].
      * S^T is stored in g_mat[nc...ny-1][0...nc-1].
@@ -888,7 +888,7 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
       for (k=nc; k<ny; k++) xd[i] -= col_i[k]*xd[k];
     }
 
-    /* 
+    /*
      * Compute P^T * x, where P is encoded into pivotsP.
      * Store result in x.
      */
@@ -906,7 +906,7 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 
   case CPDIRECT_QR:
 
-    /* 
+    /*
      * Solve R^T*alpha = bd using fwd. subst. (row version)
      * alpha overwrites bd.
      */
@@ -922,7 +922,7 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 
     /* Compute x = Q*alpha */
     s_tmpd = N_VGetArrayPointer(s_tmp1);
-    DenseORMQR(G, beta, bd, xd, s_tmpd); 
+    DenseORMQR(G, beta, bd, xd, s_tmpd);
 
     /* If projecting in WRMS norm, scale x by D^(-1) */
     if (pnorm == CP_PROJ_ERRNORM) {
@@ -934,7 +934,7 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
 
   case CPDIRECT_SC:
 
-    /* 
+    /*
      * Solve K*xi = bd, using the Cholesky decomposition available in K.
      * xi overwrites bd.
      */
@@ -965,7 +965,7 @@ static int cpDenseProjSolve(CPodeMem cp_mem, N_Vector b, N_Vector x,
  * -----------------------------------------------------------------
  * cpDenseProjMult
  * -----------------------------------------------------------------
- * This routine computes the Jacobian-vector product used a saved 
+ * This routine computes the Jacobian-vector product used a saved
  * Jacobian copy.
  * -----------------------------------------------------------------
  */
@@ -1002,7 +1002,7 @@ static void cpDenseProjFree(CPodeMem cp_mem)
   CPDlsProjMem  cpdlsP_mem;
 
   cpdlsP_mem = (CPDlsProjMem) lmemP;
-  
+
   DestroyMat(G);
   DestroyMat(savedG);
   switch (ftype) {
@@ -1019,7 +1019,7 @@ static void cpDenseProjFree(CPodeMem cp_mem)
     break;
   }
 
-  free(cpdlsP_mem); 
+  free(cpdlsP_mem);
   cpdlsP_mem = NULL;
 }
 
@@ -1049,22 +1049,22 @@ static void cpdLUcomputeKI(CPodeMem cp_mem)
   for (j=0; j<nd; j++) {
 
     k_col_j = k_mat[j];
-    
+
     for (i=j; i<nd; i++) {
       k_col_j[i] = ZERO;
       for (k=0; k<nc; k++) k_col_j[i] += g_mat[k][nc+i]*g_mat[k][nc+j];
     }
-    
+
     k_col_j[j] += ONE;
 
   }
-  
+
 }
 
 /*
  * Compute the lower triangle of K = D1 + S^T*D2*S,
  * D = diag(D1, D2) = P*W*P^T, W is a diagonal matrix
- * containing the squared error weights, and P is the 
+ * containing the squared error weights, and P is the
  * permutation matrix encoded into pivotsP.
  * D1 has length nc and D2 has length (ny-nc).
  */
@@ -1102,10 +1102,10 @@ static void cpdLUcomputeKD(CPodeMem cp_mem, N_Vector d)
   for (j=0; j<nd; j++) {
 
     k_col_j = k_mat[j];
- 
+
     for (i=j; i<nd; i++) {
       k_col_j[i] = ZERO;
-      for(k=0; k<nc; k++) 
+      for(k=0; k<nc; k++)
         k_col_j[i] += g_mat[k][nc+i] * d_data[k]*d_data[k] * g_mat[k][nc+j];
     }
 
@@ -1142,7 +1142,7 @@ static void cpdSCcomputeKI(CPodeMem cp_mem)
     for (i=0; i<nc; i++) {
       k_col_j[i] = ZERO;
       for (k=0; k<ny; k++) k_col_j[i] += g_mat[i][k]*g_mat[j][k];
-    }    
+    }
   }
 
 }

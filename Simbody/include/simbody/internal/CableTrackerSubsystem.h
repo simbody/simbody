@@ -30,7 +30,7 @@
 namespace SimTK {
 
 /** @class SimTK::CablePathIndex
-This is a unique integer type for quickly identifying specific cables for 
+This is a unique integer type for quickly identifying specific cables for
 fast lookup purposes. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(CablePathIndex);
 
@@ -41,24 +41,24 @@ class CablePath;
 //                          CABLE TRACKER SUBSYSTEM
 //==============================================================================
 /** This subsystem tracks the paths of massless, frictionless cables that take
-the shortest route between two distant points of a multibody system, passing 
-smoothly over geometric obstacles that are attached to intermediate bodies. 
-The calculated path will consist of a series of straight line segments 
+the shortest route between two distant points of a multibody system, passing
+smoothly over geometric obstacles that are attached to intermediate bodies.
+The calculated path will consist of a series of straight line segments
 between obstacles, and geodesics over the obstacles.
 
 Force elements defined elsewhere may make use of cable paths to apply forces
-to the system, by calculating a uniform tension in the cable that may depend 
+to the system, by calculating a uniform tension in the cable that may depend
 on the cable kinematics calculated here. Cable kinematics includes the path,
-the cable length, and the cable "rate", defined as the time derivative of 
+the cable length, and the cable "rate", defined as the time derivative of
 length. The path and length are available at Position stage, the rate is
 available at Velocity stage.
 
 During construction, one or more CablePath objects are defined by giving for
-each CablePath an origin and end point and an ordered set of geometric 
-obstacles represented either by surfaces or "via" points. Via points are like 
+each CablePath an origin and end point and an ordered set of geometric
+obstacles represented either by surfaces or "via" points. Via points are like
 frictionless eyelets that the cable must pass through and can generate forces
 in any direction perpendicular to the cable; surfaces are one-sided and can
-only apply positive forces to the cable. Thus the cable path does not 
+only apply positive forces to the cable. Thus the cable path does not
 necessarily touch all the obstacles; the obstacles that it does touch are
 called the "active" obstacles. Via points are always active.
 
@@ -71,7 +71,7 @@ CableTrackerSubsystem();
 explicit CableTrackerSubsystem(MultibodySystem&);
 
 /** Get the number of cable paths being managed by this cable tracker subsystem.
-These are identified by CablePathIndex values from 0 to getNumCablePaths()-1. 
+These are identified by CablePathIndex values from 0 to getNumCablePaths()-1.
 This is available after realizeTopology() and does not change subsequently. **/
 int getNumCablePaths() const;
 

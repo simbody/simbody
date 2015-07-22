@@ -127,7 +127,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
                         Real& height) const {
      return getImpl().trackSeparationFromLine(pointOnLine,directionOfLine,
                 startingGuessForClosestPoint,newClosestPointOnSurface,
-                closestPointOnLine,height); 
+                closestPointOnLine,height);
 }
 
 
@@ -138,11 +138,11 @@ void ContactGeometry::getBoundingSphere(Vec3& center, Real& radius) const {
 bool ContactGeometry::isSmooth() const {return getImpl().isSmooth();}
 bool ContactGeometry::isConvex() const {return getImpl().isConvex();}
 
-void ContactGeometry::calcCurvature(const Vec3& point, Vec2& curvature, 
-                                    Rotation& orientation) const 
+void ContactGeometry::calcCurvature(const Vec3& point, Vec2& curvature,
+                                    Rotation& orientation) const
 {   getImpl().calcCurvature(point, curvature, orientation); }
 
-const Function& ContactGeometry::getImplicitFunction() const 
+const Function& ContactGeometry::getImplicitFunction() const
 {   return getImpl().getImplicitFunction(); }
 
 
@@ -171,14 +171,14 @@ Real ContactGeometry::calcSurfaceCurvatureInDirection(const Vec3& point, const U
     return getImpl().calcSurfaceCurvatureInDirection(point, direction);
 }
 
-void ContactGeometry::calcSurfacePrincipalCurvatures(const Vec3& point, 
+void ContactGeometry::calcSurfacePrincipalCurvatures(const Vec3& point,
                                                      Vec2&       k,
                                                      Rotation&   R_SP) const
 {
     getImpl().calcSurfacePrincipalCurvatures(point, k, R_SP);
 }
 
-Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const 
+Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const
 {   return getImpl().calcSupportPoint(direction); }
 
 
@@ -188,7 +188,7 @@ Vec3 ContactGeometry::calcSupportPoint(UnitVec3 direction) const
 /*static*/Vec2 ContactGeometry::
 evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
                         const Vec3& dPdu, const Vec3& dPdv,
-                        const Vec3& d2Pdu2, const Vec3& d2Pdv2, 
+                        const Vec3& d2Pdu2, const Vec3& d2Pdv2,
                         const Vec3& d2Pdudv,
                         Transform& X_EP)
 {
@@ -244,21 +244,21 @@ evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
 //------------------------------------------------------------------------------
 // See the documentation in the header file for a complete description of
 // what's being calculated here. This comment adds implementation information
-// that isn't relevant to the API user. 
-// 
-// Given two paraboloids P1 and P2 sharing a common normal z and origin,
-// compute the paraboloid that represents their difference, and express that 
-// paraboloid in a frame that has been rotated around z so that x and y 
-// coincide with the principal curvature directions. P1 and P2 may be
-// elliptic (kmax>=kmin>=0) or hyperbolic (kmax>=0>kmin). If the surfaces are 
-// non-conforming, their difference will be elliptic with kmax>=kmin>0. 
+// that isn't relevant to the API user.
 //
-// We assume the paraboloids represent surfaces and that each has its z axis 
-// oriented away from the surface, pointing outside the "bowl" of the elliptic 
-// paraboloid or away from the convex direction of a hyperbolic paraboloid. 
+// Given two paraboloids P1 and P2 sharing a common normal z and origin,
+// compute the paraboloid that represents their difference, and express that
+// paraboloid in a frame that has been rotated around z so that x and y
+// coincide with the principal curvature directions. P1 and P2 may be
+// elliptic (kmax>=kmin>=0) or hyperbolic (kmax>=0>kmin). If the surfaces are
+// non-conforming, their difference will be elliptic with kmax>=kmin>0.
+//
+// We assume the paraboloids represent surfaces and that each has its z axis
+// oriented away from the surface, pointing outside the "bowl" of the elliptic
+// paraboloid or away from the convex direction of a hyperbolic paraboloid.
 // That's the opposite sense from a standard paraboloid parameterization.
-// The z axes are antiparallel. We will return the resulting difference 
-// paraboloid in a frame whose z axis is coincident with P1's z axis, and thus 
+// The z axes are antiparallel. We will return the resulting difference
+// paraboloid in a frame whose z axis is coincident with P1's z axis, and thus
 // antiparallel to P2's z axis.
 //
 //     P1: z = -(kmax1/2 x1^2 + kmin1/2 y1^2)
@@ -272,9 +272,9 @@ evalParametricCurvature(const Vec3& P, const UnitVec3& nn,
 // but still, I thought you might like to know anyway.
 //
 // Cost is about 70 flops to get the curvatures kmax,kmin. Then if you want
-// the curvature directions too it costs another 150 flops. 
+// the curvature directions too it costs another 150 flops.
 
-// This local static helper method calculates the curvatures and returns 
+// This local static helper method calculates the curvatures and returns
 // intermediates necessary for calculating the directions, but doesn't actually
 // calculate them. So we use only about 70 flops here.
 static void combineParaboloidsHelper
@@ -291,7 +291,7 @@ static void combineParaboloidsHelper
     // w is angle between x1, x2 max curvature directions defined
     // using right hand rule rotation of x1 about z until it is
     // coincident with x2. But ... we want -90 <= w <= 90, meaning
-    // cos(w) >= 0. If necessary we flip x2 180 degrees around z, 
+    // cos(w) >= 0. If necessary we flip x2 180 degrees around z,
     // since -x2 is an equally good max curvature direction.
     const Real dotx1x2 = dot(x1,x2);         // 5 flops
     const UnitVec3 x2p = dotx1x2 < 0 ? -x2 : x2;
@@ -303,12 +303,12 @@ static void combineParaboloidsHelper
     sin2w = 2*sinw*cosw;
 
     // Compute min/max curvatures of the difference surface.
-    // See KL Johnson 1987 Ch. 4 and Appendix 2, and J-F Antoine, et al. 
+    // See KL Johnson 1987 Ch. 4 and Appendix 2, and J-F Antoine, et al.
     // 2006 pg 661. ~35 flops
     const Real ksum = ksum1 + ksum2;
     const Real kdiff = std::sqrt(square(kdiff1) + square(kdiff2)
                                  + 2*kdiff1*kdiff2*cos2w);
-    k = Vec2(ksum + kdiff, ksum - kdiff)/2; // kmax, kmin (4 flops)  
+    k = Vec2(ksum + kdiff, ksum - kdiff)/2; // kmax, kmin (4 flops)
 }
 
 // This is the full version that calculates the curvatures for 70 flops
@@ -349,7 +349,7 @@ static void combineParaboloidsHelper
 {
     Real cos2w, sin2w, kdiff1, kdiff2; // unneeded
     combineParaboloidsHelper(R_SP1, k1, x2, k2,
-                             cos2w, sin2w, kdiff1, kdiff2, k);     
+                             cos2w, sin2w, kdiff1, kdiff2, k);
 }
 
 //------------------------------------------------------------------------------
@@ -410,7 +410,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
     UnitVec3 tP = nP.perp();
     UnitVec3 bP(tP%nP);
 
-    // Estimate a scale for the local neighborhood of this surface by 
+    // Estimate a scale for the local neighborhood of this surface by
     // using the larger curvature in the t or b direction. We want to take
     // conservative steps that never move by more than a fraction of the
     // scale to avoid jumping out of the local minimum.
@@ -454,9 +454,9 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         t = tP-n*(~tP*n); // project tP to tangent plane at x
         b = bP-n*(~bP*n); // project bP to tangent plane at x
 
-        SimTK_ASSERT_ALWAYS(t.norm() > Real(1e-6), 
+        SimTK_ASSERT_ALWAYS(t.norm() > Real(1e-6),
             "t is aligned with the normal vector at the current point.");
-        SimTK_ASSERT_ALWAYS(b.norm() > Real(1e-6), 
+        SimTK_ASSERT_ALWAYS(b.norm() > Real(1e-6),
             "b is aligned with the with normal vector at the current point.");
 
         // calculate error
@@ -482,7 +482,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
         // Backtracking. Limit the starting step size if dx is too big.
         lam = std::min(Real(1), MaxMove*(scale/dxrms));
         if (lam < 1) {
-            //std::cout << "PROJECT: LIMITED STEP: iter=" << cnt 
+            //std::cout << "PROJECT: LIMITED STEP: iter=" << cnt
             //          << " lam=" << lam << endl;
         }
         while (true) {
@@ -505,13 +505,13 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
             }
         }
 
-        //std::cout << cnt << ": AFTER x-=" << lam << "*dx, x=" << x 
+        //std::cout << cnt << ": AFTER x-=" << lam << "*dx, x=" << x
         //          << ", f=" << f  << ", frms=" << rmsError << std::endl;
 
         if (rmsError > ftol) {
             xchg = dxrms*lam; // roughly, how much we changed x
             if (xchg < xtol) { // check step size
-                std::cout << "PROJECT: STALLED on step size, xchg=" << xchg 
+                std::cout << "PROJECT: STALLED on step size, xchg=" << xchg
                           << " frms=" << rmsError << std::endl;
                 break;
             }
@@ -539,7 +539,7 @@ projectDownhillToNearestPoint(const Vec3& Q) const {
 
 class TrackLineSeparationJacobian : public Differentiator::JacobianFunction {
 public:
-    TrackLineSeparationJacobian(const ContactGeometryImpl& geom, 
+    TrackLineSeparationJacobian(const ContactGeometryImpl& geom,
                                 const Vec3& p, const UnitVec3& e)
     :   Differentiator::JacobianFunction(3,3), geom(geom), p(p), e(e) { }
 
@@ -560,10 +560,10 @@ public:
 
         Vec3 Q; // Q is the point of the normal line closest to L
         bool linesAreParallel;
-        Geo::findClosestPointsOfTwoLines(x, n, p, e, 
+        Geo::findClosestPointsOfTwoLines(x, n, p, e,
             Q, R, linesAreParallel);
 
-        if (linesAreParallel)           
+        if (linesAreParallel)
             cout << "findClosest: PARALLEL!!!" << endl;
 
         Vec3 errf( ~n * e,   // normal and line should be perpendicular
@@ -597,7 +597,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 
     // Limit the number of Newton steps. We don't
     // count steps that we limited because we were nervous about the size of
-    // the change, so this value is *very* generous. It should never take 
+    // the change, so this value is *very* generous. It should never take
     // more than 7 full Newton iterations to solve to machine precision.
     const int MaxNewtonIterations = 20;
     // Make sure there is at least some limit on the total number of steps
@@ -625,12 +625,12 @@ trackSeparationFromLine(const Vec3& pointOnLine,
     // Initialize the extreme point to the given value.
     x = startingGuessForClosestPoint;
     UnitVec3 nX; // normal at x
-    Vec3 f = extremePointJac.calcExtremePointError(x, 
+    Vec3 f = extremePointJac.calcExtremePointError(x,
                 nX, closestPointOnLine);
     Real frms2 = f.normSqr(); // initial error
 
     if (frms2 <= Ftol2) {
-        //cout << "TRACK: already at extreme point with frms=" 
+        //cout << "TRACK: already at extreme point with frms="
         //     << std::sqrt(frms2) << endl;
         height = ~(closestPointOnLine - x) * nX;
         return true; // Success
@@ -641,13 +641,13 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 
     // Estimate a scale for the local neighborhood of this surface by
     // sampling the curvature around x, taking the largest curvature we find.
-    // We want to take conservative steps that never move by more than a 
+    // We want to take conservative steps that never move by more than a
     // fraction of the scale to avoid jumping out of the local minimum.
-    // TODO: could calculate the actual max curvature here but it is 
+    // TODO: could calculate the actual max curvature here but it is
     // more expensive.
     const UnitVec3 tX = nX.perp(); // any perpendicular to the normal at x
     const UnitVec3 bX(tX % nX, true);    // another tangent vector
-    // using the larger curvature in the t or b direction. 
+    // using the larger curvature in the t or b direction.
     const Real kt = calcSurfaceCurvatureInDirection(x, tX);
     const Real kb = calcSurfaceCurvatureInDirection(x, bX);
     const Real maxK = std::max(std::abs(kt),std::abs(kb));
@@ -655,7 +655,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 
     //cout << "TRACK START: line p0=" << pointOnLine << " d=" << directionOfLine << "\n";
     //cout << "  starting x=" << x << " nX=" << nX << " scale est=" << std::sqrt(scale2) << "\n";
-    //cout << "  err=" << f << " rms=" << std::sqrt(frms2) 
+    //cout << "  err=" << f << " rms=" << std::sqrt(frms2)
     //     << " closest line pt=" << closestPointOnLine
     //     << " height=" << ~(closestPointOnLine - x) * nX << "\n";
 
@@ -686,7 +686,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
         Real stepFrac = 1;
         if (stepFrac2 < 1) {
             stepFrac = std::sqrt(stepFrac2); // not done often
-            //cout << "TRACK: LIMITED STEP: iter=" << stepCount 
+            //cout << "TRACK: LIMITED STEP: iter=" << stepCount
             //          << " stepFrac=" << stepFrac << endl;
             ++limitedStepCount;
         }
@@ -703,12 +703,12 @@ trackSeparationFromLine(const Vec3& pointOnLine,
             stepFrac /= 2;
         }
 
-        //cout << stepCount << ": TRACK lam=" << stepFrac << " |lam*dx|=" << (stepFrac*dx).norm() 
-        //            << " lam*dx=" << stepFrac*dx << "-> new x=" << x << "\n"; 
+        //cout << stepCount << ": TRACK lam=" << stepFrac << " |lam*dx|=" << (stepFrac*dx).norm()
+        //            << " lam*dx=" << stepFrac*dx << "-> new x=" << x << "\n";
         //cout << "     |f|=" << std::sqrt(frms2) << " f=" << f  << "\n";
 
         if (frms2 <= Ftol2) { // found solution
-            //cout << "TRACK CONVERGED in " << stepCount << " steps, frms=" 
+            //cout << "TRACK CONVERGED in " << stepCount << " steps, frms="
             //     << std::sqrt(frms2) << endl;
             succeeded = true;
             break;
@@ -722,7 +722,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
                 f = extremePointJac.calcExtremePointError(x, nX, closestPointOnLine);
                 frms2 = f.normSqr()/3;
             }
-            //cout << "TRACK FAILED at " << stepCount << " steps, frms=" 
+            //cout << "TRACK FAILED at " << stepCount << " steps, frms="
             //     << std::sqrt(frms2) << endl;
             break;
         }
@@ -730,7 +730,7 @@ trackSeparationFromLine(const Vec3& pointOnLine,
         // We took a step and made an improvement but haven't converged yet.
 
         if (xchgrms2 < Xtol2) { // check step size
-            //std::cout << "TRACK: STALLED on step size, xchg=" << std::sqrt(xchgrms2) 
+            //std::cout << "TRACK: STALLED on step size, xchg=" << std::sqrt(xchgrms2)
             //            << " frms=" << std::sqrt(frms2) << std::endl;
             break;
         }
@@ -745,12 +745,12 @@ trackSeparationFromLine(const Vec3& pointOnLine,
 
     if (!succeeded)
         x = projectDownhillToNearestPoint(x); // push to surface
-    
+
     height = ~(closestPointOnLine - x) * nX;
-    
+
     //cout << "TRACK END:  x=" << x << " nX=" << nX << "\n";
-    //cout << "  err=" << f << " rms=" << std::sqrt(frms2) 
-    //     << " closest line pt=" << closestPointOnLine 
+    //cout << "  err=" << f << " rms=" << std::sqrt(frms2)
+    //     << " closest line pt=" << closestPointOnLine
     //     << " height=" << height << "\n";
     return succeeded;
 }
@@ -779,7 +779,7 @@ void ContactGeometry::
 makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
         const UnitVec3& defaultDirectionIfNeeded,
         const GeodesicOptions& options, Geodesic& geod) const {
-    getImpl().makeStraightLineGeodesic(xP, xQ, defaultDirectionIfNeeded, 
+    getImpl().makeStraightLineGeodesic(xP, xQ, defaultDirectionIfNeeded,
                                        options, geod);
 }
 
@@ -923,7 +923,7 @@ calcSurfaceGradient(const Vec3& p) const {
 UnitVec3 ContactGeometryImpl::
 calcSurfaceUnitNormal(const Vec3& p) const {
     // Implicit surface functions may have singularities away from the surface,
-    // such as a point along the central axis of a cylinder. This would 
+    // such as a point along the central axis of a cylinder. This would
     // produce a NaN unit normal; we'll instead move the point slightly to
     // return a valid nearby normal. This helps algorithms that are looking
     // for the surface to get there rather than blow up.
@@ -931,11 +931,11 @@ calcSurfaceUnitNormal(const Vec3& p) const {
     Real gradMag = grad.norm();
 
     if (gradMag < TinyReal) {
-        // Try perturbing in x, y, or z and take the first one that has a 
+        // Try perturbing in x, y, or z and take the first one that has a
         // non-zero gradient.
         for (int i=0; i < 3; ++i) {
             Vec3 phat(p); phat[i] += SqrtEps;
-            grad=calcSurfaceGradient(phat); 
+            grad=calcSurfaceGradient(phat);
             gradMag = grad.norm();
             if (gradMag >= TinyReal)
                 break;
@@ -1020,8 +1020,8 @@ calcGaussianCurvature(const Vec3&  g, const Mat33& H) const {
 //                    CALC SURFACE CURVATURE IN A DIRECTION
 //------------------------------------------------------------------------------
 Real ContactGeometryImpl::
-calcSurfaceCurvatureInDirection(const Vec3& point, 
-                                const UnitVec3& direction) const 
+calcSurfaceCurvatureInDirection(const Vec3& point,
+                                const UnitVec3& direction) const
 {
     const UnitVec3 nn = calcSurfaceUnitNormal(point);
     const Vec3     g  = calcSurfaceGradient(point);
@@ -1029,7 +1029,7 @@ calcSurfaceCurvatureInDirection(const Vec3& point,
     const Real  knum = ~direction*H*direction; // numerator
     if (std::abs(knum) < TinyReal)
         return 0; // don't want to return 0/0.
-        
+
     const Real k = knum/(~g*nn);
 
     return k;
@@ -1048,13 +1048,13 @@ calcSurfaceCurvatureInDirection(const Vec3& point,
 // References (thanks to Ian Stavness for sending these):
 //  [1] Snyder, John. Deriving the Weingarten Map. Microsoft Research 2011
 //      http://research.microsoft.com/en-us/um/people/johnsny/papers/weingarten.docx
-//  [2] Zhihong, Mao. Curvature computing based on shape operator for 
+//  [2] Zhihong, Mao. Curvature computing based on shape operator for
 //      implicit surfaces. (www.paper.edu.cn, 2013)
 //      http://www.paper.edu.cn/index.php/default/en_releasepaper/content/4574762
 // If the above links are dead, I have pdfs.
 //
-// I used Snyder's idea for forming the Weingarten Map (see eqn. 10) and 
-// Zhihong's equations for getting its eigenvalues and eignenvectors. 
+// I used Snyder's idea for forming the Weingarten Map (see eqn. 10) and
+// Zhihong's equations for getting its eigenvalues and eignenvectors.
 // (sherm 140826)
 void ContactGeometryImpl::
 calcSurfacePrincipalCurvatures(const Vec3&  point,
@@ -1067,7 +1067,7 @@ calcSurfacePrincipalCurvatures(const Vec3&  point,
 
     // 1/2 signed length of gradient. The 1/2 here simplifies the rest of
     // the code but makes it not quite match the papers.
-    const Real     oow2 = Real(0.5)/(~g*nn); 
+    const Real     oow2 = Real(0.5)/(~g*nn);
 
     // Create an arbitrary frame with z=nn.
     const Rotation R_SF(nn, ZAxis); //                 ~60 flops
@@ -1083,7 +1083,7 @@ calcSurfacePrincipalCurvatures(const Vec3&  point,
     // principal curvature directions in the t1,t2 basis.
 
     // If b is zero then the matrix is diagonal and its eigenvalues are
-    // 2a and 2c in directions [1,0] (t1) and [0,1] (t2) resp. Must order 
+    // 2a and 2c in directions [1,0] (t1) and [0,1] (t2) resp. Must order
     // correctly so x is kmax direction and y kmin direction.
     if (std::abs(b) < SignificantReal) {
         if (a >= c) {
@@ -1105,7 +1105,7 @@ calcSurfacePrincipalCurvatures(const Vec3&  point,
 }
 
 // used in numerical differentiation. TODO: what value for single precision?
-static const Real estimatedGeodesicAccuracy = Real(1e-12); 
+static const Real estimatedGeodesicAccuracy = Real(1e-12);
 static const Real pauseBetweenGeodIterations = 0; // sec, used in newton solver
 
 
@@ -1115,8 +1115,8 @@ class ContactGeometryImpl::SplitGeodesicError: public Differentiator::JacobianFu
 
 public:
     SplitGeodesicError(int nf, int ny, const ContactGeometryImpl& geom,
-            const Vec3& xP, const Vec3& xQ, 
-            const Vec3& tPhint, const Vec3& tQhint) 
+            const Vec3& xP, const Vec3& xQ,
+            const Vec3& tPhint, const Vec3& tQhint)
     :   Differentiator::JacobianFunction(nf, ny),
                     geom(geom),
                     P(xP), Q(xQ),
@@ -1191,13 +1191,13 @@ void ContactGeometryImpl::initGeodesic(const Vec3& xP, const Vec3& xQ,
 //                            CONTINUE GEODESIC
 //------------------------------------------------------------------------------
 // Given two points and a previous geodesic curve close to the points, find
-// a geodesic curve connecting the points that is close to the previous 
+// a geodesic curve connecting the points that is close to the previous
 // geodesic. See header or doxygen for algorithmic details.
 // Note that the geodesic runs from P' to Q', which are closest-point
 // projections of the initial points which might not be on the surface.
 void ContactGeometryImpl::
 continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
-                 const GeodesicOptions& options, Geodesic& geod) const 
+                 const GeodesicOptions& options, Geodesic& geod) const
 {
     const Real StraightLineGeoFrac = Real(1e-5); // a straight line
 
@@ -1209,14 +1209,14 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     // If P and Q are bit-identical to P and Q from the previous geodesic,
     // then the new one is just a copy of the previous one. This is especially
     // likely when doing numerical Jacobians since many value remain unchanged.
-    if (prevGeod.getNumPoints() 
+    if (prevGeod.getNumPoints()
         && prevGeod.getPointP()==P && prevGeod.getPointQ()==Q) {
             geod = prevGeod;
-            cout << "REUSING OLD GEODESIC of length=" 
+            cout << "REUSING OLD GEODESIC of length="
                 << prevGeod.getLength() << "\n";
             return;
     }
-   
+
     const Vec3 PQ = Q-P;
     const Real PQlength = PQ.norm();
     const UnitVec3 PQdir =
@@ -1224,7 +1224,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
     cout << "  PQlen=" << PQlength << " PQdir=" << PQdir << "\n";
 
     // If the length is less than this fraction of the maximum radius of
-    // curvature (1/kdP) then the geodesic is indistinguishable from a 
+    // curvature (1/kdP) then the geodesic is indistinguishable from a
     // straight line.
     // TODO: if the previous geodesic was very long and came all the way
     // around this will incorrectly switch to a very short geodesic. Does
@@ -1279,7 +1279,7 @@ continueGeodesic(const Vec3& xP, const Vec3& xQ, const Geodesic& prevGeod,
             tPhint = PQdir;
             tQhint = PQdir;
             sHint = PQlength;
-            cout << "GEODESIC FLIPPED. Prev len was " 
+            cout << "GEODESIC FLIPPED. Prev len was "
                  << prevGeod.getLength() << endl;
         }
     }
@@ -1303,7 +1303,7 @@ makeStraightLineGeodesic(const Vec3& xP, const Vec3& xQ,
     Vec3 Pprime = projectDownhillToNearestPoint(xP);
     Vec3 Qprime = projectDownhillToNearestPoint(xQ);
 
-    const bool isZeroLength = 
+    const bool isZeroLength =
         Geo::Point::pointsAreNumericallyCoincident(Pprime,Qprime);
 
     UnitVec3 d;
@@ -1387,7 +1387,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     u[0] = tP[0]; u[1] = tP[1]; u[2] = tP[2];
 
     // Jacobi field states
-    q[3] = 0; 
+    q[3] = 0;
     u[3] = 1;
 
     // Setup integrator to integrate until terminatingLength
@@ -1440,7 +1440,7 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
         geod.addPositionalSensitivityPtoQ(Vec2(NaN,NaN)); // XXX
         const Real kappa = calcSurfaceCurvatureInDirection(pt, frenetFrame.y());
         geod.addCurvature(kappa);
-        if (kappa < 0) 
+        if (kappa < 0)
             geod.setIsConvex(false);
 
         ++stepcnt;
@@ -1458,10 +1458,10 @@ shootGeodesicInDirection(const Vec3& P, const UnitVec3& tP,
     const Real lFirst = arcLen[1];
     const Real lLast  = arcLen[last] - arcLen[last-1];
     const Real tauP = lFirst==0 ? Real(0)
-        : -dot(frenet[0].z(), 
+        : -dot(frenet[0].z(),
               (frenet[1].x()-frenet[0].x())) / lFirst; // dbP/ds
     const Real tauQ = lLast==0 ? Real(0)
-        : -dot(frenet[last].z(), 
+        : -dot(frenet[last].z(),
               (frenet[last].x()-frenet[last-1].x())) / lLast;
 
     geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
@@ -1482,7 +1482,7 @@ shootGeodesicInDirection2(const Vec3& P, const UnitVec3& tP,
     const Real startArcLength = 0;
 
     GeodesicOnImplicitSurface eqns(*this);
-    GeodesicIntegrator<GeodesicOnImplicitSurface> 
+    GeodesicIntegrator<GeodesicOnImplicitSurface>
         integ(eqns,IntegratorAccuracy,IntegratorConstraintTol);
     static const int N = GeodesicOnImplicitSurface::N;
 
@@ -1538,10 +1538,10 @@ shootGeodesicInDirection2(const Vec3& P, const UnitVec3& tP,
     const Real lFirst = arcLen[1];
     const Real lLast  = arcLen[last] - arcLen[last-1];
     const Real tauP = lFirst==0 ? Real(0)
-        : -dot(frenet[0].z(), 
+        : -dot(frenet[0].z(),
               (frenet[1].x()-frenet[0].x())) / lFirst; // dbP/ds
     const Real tauQ = lLast==0 ? Real(0)
-        : -dot(frenet[last].z(), 
+        : -dot(frenet[last].z(),
               (frenet[last].x()-frenet[last-1].x())) / lLast;
 
     geod.setTorsionAtP(tauP); geod.setTorsionAtQ(tauQ);
@@ -1561,7 +1561,7 @@ shootGeodesicInDirection2(const Vec3& P, const UnitVec3& tP,
 // to fill in the missing reverse Jacobi term.
 void ContactGeometryImpl::
 calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
-    
+
     // Don't look for a plane.
     geodHitPlaneEvent->setEnabled(false);
 
@@ -1576,7 +1576,7 @@ calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
     Vector& u = sysState.updU();
 
     // Initial Jacobi field states.
-    q[3] = initJacobi[0]; 
+    q[3] = initJacobi[0];
     u[3] = initJacobi[1];
 
     Array_<Vec2>& jQ = geod.updDirectionalSensitivityQtoP();
@@ -1598,7 +1598,7 @@ calcGeodesicReverseSensitivity(Geodesic& geod, const Vec2& initJacobi) const {
         sysState.setTime(0);
         q[0] = Q[0]; q[1] = Q[1]; q[2] = Q[2];
         u[0] = -tQ[0]; u[1] = -tQ[1]; u[2] = -tQ[2];
-        q[3] = jQ[step][0]; 
+        q[3] = jQ[step][0];
         u[3] = jQ[step][1];
 
         const Real arcLength = sQ-sP; // how far to integrate
@@ -1628,11 +1628,11 @@ calcGeodesicReverseSensitivity2
    (Geodesic& geod, const Vec2& initJRot, const Vec2& initJTrans) const {
 
     GeodesicOnImplicitSurface eqns(*this);
-    GeodesicIntegrator<GeodesicOnImplicitSurface> 
+    GeodesicIntegrator<GeodesicOnImplicitSurface>
         integ(eqns,IntegratorAccuracy,IntegratorConstraintTol);
     static const int N = GeodesicOnImplicitSurface::N;
 
-    integ.initialize(0, 
+    integ.initialize(0,
         eqns.getInitialState(geod.getPointQ(),-geod.getTangentQ()));
     // Aliases for the integrators internal time and state variables.
     const Vec<N>& y = integ.getY();
@@ -1843,7 +1843,7 @@ void ContactGeometryImpl::calcGeodesic(const Vec3& xP, const Vec3& xQ,
 //------------------------------------------------------------------------------
 void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
    (const Vec3& xP, const Vec3& xQ,
-    const Vec3& tPhint, Real lengthHint, Geodesic& geod) const 
+    const Vec3& tPhint, Real lengthHint, Geodesic& geod) const
 {
     const Vec3 P = projectDownhillToNearestPoint(xP);
     const Vec3 Q = projectDownhillToNearestPoint(xQ);
@@ -1887,18 +1887,18 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         f = std::sqrt(~Fx*Fx);
         const Vec3 r_QQhat = geod.getPointQ()-Q;
         dist = r_QQhat.norm();
-        //std::cout << "ORTHO x= " << x << " err = " << Fx << " |err|=" << f 
+        //std::cout << "ORTHO x= " << x << " err = " << Fx << " |err|=" << f
         //          << " dist=" << dist << std::endl;
         if (f <= ftol) {
-           // std::cout << "ORTHO geodesic converged in " 
+           // std::cout << "ORTHO geodesic converged in "
             //          << i << " iterations with err=" << f << std::endl;
             break;
         }
 
         if (useNewtonIteration) {
-            // This numerical Jacobian is very bad; CentralDifference is 
+            // This numerical Jacobian is very bad; CentralDifference is
             // required in order to produce a reasonable one.
-            //diff.calcJacobian(Vector(x),  Vector(Fx), JMat, 
+            //diff.calcJacobian(Vector(x),  Vector(Fx), JMat,
             //                  Differentiator::CentralDifference);
             //J = Mat22::getAs(&JMat(0,0));
 
@@ -1908,7 +1908,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             //calcOrthogonalGeodError(P, Q, x[0]+1e-5, x[1], geod1);
             //Vec3 qdiff = geod1.getPointQ() - geod0.getPointQ();
             //Real num_j = dot(qdiff,geod0.getBinormalQ())/2e-5;
-            //printf("Jacobi Q num=%g, analytic=%g\n", 
+            //printf("Jacobi Q num=%g, analytic=%g\n",
             //    num_j, geod0.getJacobiQ());
 
             //calcOrthogonalGeodError(P, Q, x[0]-1e-5, x[1]+1e-5, geod0);
@@ -1926,7 +1926,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             //calcOrthogonalGeodError(P+1e-5*geod.getBinormalP(), Q, x[0], x[1], geod1);
             //Vec3 qdiff = geod1.getPointQ() - geod0.getPointQ();
             //Real num_jt = dot(qdiff,geod0.getBinormalQ())/2e-5;
-            //printf("Jacobi Trans Q num=%g, analytic=%g\n", 
+            //printf("Jacobi Trans Q num=%g, analytic=%g\n",
             //    num_jt, geod0.getJacobiTransQ());
 
             //calcOrthogonalGeodError(P-1e-5*geod.getBinormalP(), Q, x[0], x[1]+1e-5, geod0);
@@ -1963,7 +1963,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             dx = newJ.invert()*Fx;
         } else {
             // fixed point -- feed error back to variables
-            dx = Vec2(Fx[0]/geod.getJacobiQ(), Fx[1]); 
+            dx = Vec2(Fx[0]/geod.getJacobiQ(), Fx[1]);
         }
 
         //cout << "f=" << f << "-> dx=" << dx << endl;
@@ -1975,7 +1975,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
         const Real dtheta = std::abs(dx[0]);
         lam = 1;
         if (dtheta > Pi/8) {
-            lam = (Pi/8)/dtheta; 
+            lam = (Pi/8)/dtheta;
             //cout << "ORTHO: lam reduced to " << lam << "\n";
         }
 
@@ -2008,7 +2008,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
             }
         }
         if (f > ftol && maxabsdiff(x,xold) < xtol) {
-            std::cout << "ORTHO terminated on too-small step size after " 
+            std::cout << "ORTHO terminated on too-small step size after "
                       << i << " iterations" << std::endl;
             std::cout << "err = " << Fx << std::endl;
             break;
@@ -2021,7 +2021,7 @@ void ContactGeometryImpl::calcGeodesicUsingOrthogonalMethod
 
     }
     if (f > ftol)
-        std::cout << "### ORTHO geodesic DIVERGED in " 
+        std::cout << "### ORTHO geodesic DIVERGED in "
                     << MaxIterations << " iterations with err=" << f << std::endl;
 
     // Finish each geodesic with reverse Jacobi field.

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/22 00:12:48 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -14,7 +14,7 @@
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -29,7 +29,7 @@
 
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
@@ -37,7 +37,7 @@
 
 /* CPBAND linit, lsetup, lsolve, and lfree routines */
 static int cpBandInit(CPodeMem cp_mem);
-static int cpBandSetup(CPodeMem cp_mem, int convfail, 
+static int cpBandSetup(CPodeMem cp_mem, int convfail,
                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                        booleantype *jcurPtr,
                        N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
@@ -89,7 +89,7 @@ static void cpBandFree(CPodeMem cp_mem);
 #define J_data         (cpdls_mem->d_J_data)
 #define last_flag      (cpdls_mem->d_last_flag)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
@@ -113,13 +113,13 @@ static void cpBandFree(CPodeMem cp_mem);
  * return value is SUCCESS = 0, LMEM_FAIL = -1, or LIN_ILL_INPUT = -2.
  *
  * NOTE: The band linear solver assumes a serial implementation
- *       of the NVECTOR package. Therefore, CPBand will first 
+ *       of the NVECTOR package. Therefore, CPBand will first
  *       test for compatible a compatible N_Vector internal
- *       representation by checking that the function 
+ *       representation by checking that the function
  *       N_VGetArrayPointer exists.
  * -----------------------------------------------------------------
  */
-                  
+
 int CPBand(void *cpode_mem, int N, int mupper, int mlower)
 {
   CPodeMem cp_mem;
@@ -140,12 +140,12 @@ int CPBand(void *cpode_mem, int N, int mupper, int mlower)
 
   if (lfree != NULL) lfree(cp_mem);
 
-  /* Set four main function fields in cp_mem */  
+  /* Set four main function fields in cp_mem */
   linit  = cpBandInit;
   lsetup = cpBandSetup;
   lsolve = cpBandSolve;
   lfree  = cpBandFree;
-  
+
   /* Get memory for CPDlsMemRec */
   cpdls_mem = NULL;
   cpdls_mem = (CPDlsMem) malloc(sizeof(CPDlsMemRec));
@@ -164,7 +164,7 @@ int CPBand(void *cpode_mem, int N, int mupper, int mlower)
 
   last_flag = CPDIRECT_SUCCESS;
   lsetup_exists = TRUE;
-  
+
   /* Load problem dimension */
   n = N;
 
@@ -192,7 +192,7 @@ int CPBand(void *cpode_mem, int N, int mupper, int mlower)
     cpProcessError(cp_mem, CPDIRECT_MEM_FAIL, "CPBAND", "CPBand", MSGD_MEM_FAIL);
     free(cpdls_mem);
     return(CPDIRECT_MEM_FAIL);
-  }  
+  }
   pivots = NewIntArray(N);
   if (pivots == NULL) {
     cpProcessError(cp_mem, CPDIRECT_MEM_FAIL, "CPBAND", "CPBand", MSGD_MEM_FAIL);
@@ -217,7 +217,7 @@ int CPBand(void *cpode_mem, int N, int mupper, int mlower)
   return(CPDIRECT_SUCCESS);
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS FOR IMPLICIT INTEGRATION
  * =================================================================
@@ -245,8 +245,8 @@ static int cpBandInit(CPodeMem cp_mem)
   if (ode_type == CP_EXPL && jacE == NULL) {
     jacE = cpDlsBandDQJacExpl;
     J_data = cp_mem;
-  } 
-  
+  }
+
   if (ode_type == CP_IMPL && jacI == NULL) {
     jacI = cpDlsBandDQJacImpl;
     J_data = cp_mem;
@@ -262,14 +262,14 @@ static int cpBandInit(CPodeMem cp_mem)
  * -----------------------------------------------------------------
  * This routine does the setup operations for the band linear solver.
  * It makes a decision whether or not to call the Jacobian evaluation
- * routine based on various state variables, and if not it uses the 
- * saved copy (for explicit ODE only). In any case, it constructs 
- * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates 
+ * routine based on various state variables, and if not it uses the
+ * saved copy (for explicit ODE only). In any case, it constructs
+ * the Newton matrix M = I - gamma*J or M = F_y' - gamma*F_y, updates
  * counters, and calls the band LU factorization routine.
  * -----------------------------------------------------------------
  */
 
-static int cpBandSetup(CPodeMem cp_mem, int convfail, 
+static int cpBandSetup(CPodeMem cp_mem, int convfail,
                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                         booleantype *jcurPtr,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
@@ -291,15 +291,15 @@ static int cpBandSetup(CPodeMem cp_mem, int convfail,
       ((convfail == CP_FAIL_BAD_J) && (dgamma < CPD_DGMAX)) ||
       (convfail == CP_FAIL_OTHER);
     jok = !jbad;
-    
+
     if (jok) {
-      
+
       /* If jok = TRUE, use saved copy of J */
       *jcurPtr = FALSE;
       BandCopy(savedJ, M, mu, ml);
-      
+
     } else {
-      
+
       /* If jok = FALSE, call jac routine for new J value */
       nje++;
       nstlj = nst;
@@ -319,7 +319,7 @@ static int cpBandSetup(CPodeMem cp_mem, int convfail,
       }
 
     }
-  
+
     /* Scale and add I to get M = I - gamma*J */
     BandScale(-gamma, M);
     BandAddI(M);
@@ -399,7 +399,7 @@ static void cpBandFree(CPodeMem cp_mem)
   DestroyMat(M);
   DestroyArray(pivots);
   if (ode_type == CP_EXPL) DestroyMat(savedJ);
-  free(cpdls_mem); 
+  free(cpdls_mem);
   cpdls_mem = NULL;
 }
 

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.1 $
  * $Date: 2006/11/08 01:07:06 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -27,8 +27,8 @@
 /* CPSPBCG linit, lsetup, lsolve, and lfree routines */
 
 static int cpSpbcgInit(CPodeMem cp_mem);
-static int cpSpbcgSetup(CPodeMem cp_mem, int convfail, 
-                        N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpSpbcgSetup(CPodeMem cp_mem, int convfail,
+                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                         booleantype *jcurPtr,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int cpSpbcgSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
@@ -57,7 +57,7 @@ static void cpSpbcgFree(CPodeMem cp_mem);
 #define vec_tmpl      (cp_mem->cp_tempv)
 #define lsetup_exists (cp_mem->cp_lsetup_exists)
 
-#define sqrtN     (cpspils_mem->s_sqrtN)   
+#define sqrtN     (cpspils_mem->s_sqrtN)
 #define ytemp     (cpspils_mem->s_ytemp)
 #define yptemp    (cpspils_mem->s_yptemp)
 #define x         (cpspils_mem->s_x)
@@ -96,11 +96,11 @@ static void cpSpbcgFree(CPodeMem cp_mem);
  *   s_delt      = CPSPILS_DELT
  *   s_psetE   = NULL
  *   s_psetI   = NULL
- *   s_pslvE   = NULL                                       
- *   s_pslvI   = NULL                                       
+ *   s_pslvE   = NULL
+ *   s_pslvI   = NULL
  *   s_jtvE    = NULL
  *   s_jtvI    = NULL
- *   s_P_data  = NULL                                        
+ *   s_P_data  = NULL
  *   s_j_data  = NULL
  * Finally, CPSpbcg allocates memory for ytemp and x, and calls
  * SpbcgMalloc to allocate memory for the Spbcg solver.
@@ -166,7 +166,7 @@ int CPSpbcg(void *cpode_mem, int pretype, int maxl)
 
   lsetup_exists = FALSE;
 
-  /* Check for legal pretype */ 
+  /* Check for legal pretype */
   if ((pretype != PREC_NONE) && (pretype != PREC_LEFT) &&
       (pretype != PREC_RIGHT) && (pretype != PREC_BOTH)) {
     cpProcessError(cp_mem, CPSPILS_ILL_INPUT, "CPSPBCG", "CPSpbcg", MSGS_BAD_PRETYPE);
@@ -188,7 +188,7 @@ int CPSpbcg(void *cpode_mem, int pretype, int maxl)
     return(CPSPILS_MEM_FAIL);
   }
 
-  /* Allocate memory for x, ytemp and (if needed) yptemp */ 
+  /* Allocate memory for x, ytemp and (if needed) yptemp */
   x = N_VClone(vec_tmpl);
   if (x == NULL) {
     cpProcessError(cp_mem, CPSPILS_MEM_FAIL, "CPSPBCG", "CPSpbcg", MSGS_MEM_FAIL);
@@ -219,7 +219,7 @@ int CPSpbcg(void *cpode_mem, int pretype, int maxl)
   /* Compute sqrtN from a dot product */
   N_VConst(ONE, ytemp);
   sqrtN = RSqrt(N_VDotProd(ytemp, ytemp));
-  
+
   /* Attach SPBCG memory to spils memory structure */
   spils_mem = (void *) spbcg_mem;
 
@@ -264,13 +264,13 @@ static int cpSpbcgInit(CPodeMem cp_mem)
   npe = nli = nps = ncfl = nstlpre = 0;
   njtimes = nfes = 0;
 
-  /* 
+  /*
    * Check for legal combination pretype - psolve
    *
    * Set lsetup_exists = TRUE iff there is preconditioning (pretype != PREC_NONE)
-   * and there is a preconditioning setup phase (pset != NULL)             
+   * and there is a preconditioning setup phase (pset != NULL)
    *
-   * If jtimes is NULL at this time, set it to DQ 
+   * If jtimes is NULL at this time, set it to DQ
    */
 
   if (ode_type == CP_EXPL) {
@@ -316,8 +316,8 @@ static int cpSpbcgInit(CPodeMem cp_mem)
  * In any case, if jcur == TRUE, we increment npe and save nst in nstlpre.
  * -----------------------------------------------------------------
  */
-static int cpSpbcgSetup(CPodeMem cp_mem, int convfail, 
-                        N_Vector yP, N_Vector ypP, N_Vector fctP, 
+static int cpSpbcgSetup(CPodeMem cp_mem, int convfail,
+                        N_Vector yP, N_Vector ypP, N_Vector fctP,
                         booleantype *jcurPtr,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -339,7 +339,7 @@ static int cpSpbcgSetup(CPodeMem cp_mem, int convfail,
       (convfail == CP_FAIL_OTHER);
     *jcurPtr = jbad;
     jok = !jbad;
-    
+
     /* Call pset routine and possibly reset jcur */
     retval = psetE(tn, yP, fctP, jok, jcurPtr, gamma, P_data, tmp1, tmp2, tmp3);
     if (retval == 0) {
@@ -356,7 +356,7 @@ static int cpSpbcgSetup(CPodeMem cp_mem, int convfail,
     } else if (retval > 0) {
       last_flag = SPBCG_PSET_FAIL_REC;
     }
-    
+
     break;
 
   case CP_IMPL:
@@ -411,17 +411,17 @@ static int cpSpbcgSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   CPSpilsMem cpspils_mem;
   SpbcgMem spbcg_mem;
   int nli_inc, nps_inc, retval;
-  
+
   cpspils_mem = (CPSpilsMem) lmem;
 
   spbcg_mem = (SpbcgMem) spils_mem;
 
   /* Test norm(b); if small, return x = 0 or x = b */
-  deltar = delt * tq[4]; 
+  deltar = delt * tq[4];
 
   bnorm = N_VWrmsNorm(b, weight);
   if (bnorm <= deltar) {
-    if (mnewt > 0) N_VConst(ZERO, b); 
+    if (mnewt > 0) N_VConst(ZERO, b);
     return(0);
   }
 
@@ -430,17 +430,17 @@ static int cpSpbcgSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
   ypcur = ypC;
   fcur  = fctC;
 
-  /* Set inputs delta and initial guess x = 0 to SpbcgSolve */  
+  /* Set inputs delta and initial guess x = 0 to SpbcgSolve */
   delta = deltar * sqrtN;
   N_VConst(ZERO, x);
-  
+
   /* Call SpbcgSolve and copy x to b */
   retval = SpbcgSolve(spbcg_mem, cp_mem, x, b, pretype, delta,
                       cp_mem, weight, weight, cpSpilsAtimes, cpSpilsPSolve,
                       &res_norm, &nli_inc, &nps_inc);
 
   N_VScale(ONE, x, b);
-  
+
   /* Increment counters nli, nps, and ncfl */
   nli += nli_inc;
   nps += nps_inc;
@@ -472,7 +472,7 @@ static int cpSpbcgSolve(CPodeMem cp_mem, N_Vector b, N_Vector weight,
     return(-1);
     break;
   case SPBCG_ATIMES_FAIL_UNREC:
-    cpProcessError(cp_mem, SPBCG_ATIMES_FAIL_UNREC, "CPSPBCG", "CPSpbcgSolve", MSGS_JTIMES_FAILED);    
+    cpProcessError(cp_mem, SPBCG_ATIMES_FAIL_UNREC, "CPSPBCG", "CPSpbcgSolve", MSGS_JTIMES_FAILED);
     return(-1);
     break;
   case SPBCG_PSOLVE_FAIL_UNREC:

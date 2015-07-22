@@ -86,7 +86,7 @@
     #include <GL/glut.h>
 #endif
 
-// Returns true if we were able to find sufficent OpenGL functionality to 
+// Returns true if we were able to find sufficent OpenGL functionality to
 // operate. We'll still limp along if we can't get enough to save images.
 static bool initGlextFuncPointersIfNeeded(bool& canSaveImages);
 static void redrawDisplay();
@@ -147,7 +147,7 @@ static void computeBoundingSphereForVertices(const vector<float>& vertices, floa
 
 class Mesh {
 public:
-    Mesh(vector<float>& vertices, vector<float>& normals, vector<GLushort>& faces) 
+    Mesh(vector<float>& vertices, vector<float>& normals, vector<GLushort>& faces)
     :   numVertices((int)(vertices.size()/3)), faces(faces) {
         // Build OpenGL buffers.
 
@@ -279,8 +279,8 @@ private:
 
 class RenderedText {
 public:
-    RenderedText(const fTransform& X_GT, const fVec3& scale, const fVec3& color, 
-                 const string& text, bool faceCamera = true) 
+    RenderedText(const fTransform& X_GT, const fVec3& scale, const fVec3& color,
+                 const string& text, bool faceCamera = true)
     :   X_GT(X_GT), scale(scale/119), text(text),
         faceCamera(faceCamera) {
         this->color[0] = color[0];
@@ -301,7 +301,7 @@ public:
     }
     void computeBoundingSphere(float& radius, fVec3& center) const {
         center = X_GT.p();
-        radius = glutStrokeLength(GLUT_STROKE_ROMAN, 
+        radius = glutStrokeLength(GLUT_STROKE_ROMAN,
                                   (unsigned char*)text.c_str())*scale[0];
     }
 private:
@@ -314,7 +314,7 @@ private:
 
 class ScreenText {
 public:
-    ScreenText(const string& txt) 
+    ScreenText(const string& txt)
     :   text(txt) {}
 
     const string& getString() const {return text;}
@@ -823,7 +823,7 @@ static void zoomCameraToShowWholeScene(bool sceneAlreadyLocked=false) {
     computeSceneBounds(scene, radius, center);
     if (!sceneAlreadyLocked)
         pthread_mutex_unlock(&sceneLock);       //----- UNLOCK SCENE ---------
-   float viewDistance = 
+   float viewDistance =
         radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     // Back up 1 unit more to make sure we don't clip at this position.
     // Also add a modest offset in the (x,y) direction to avoid edge-on views.
@@ -832,7 +832,7 @@ static void zoomCameraToShowWholeScene(bool sceneAlreadyLocked=false) {
     // Now fix the aim to point at the center.
     fVec3 zdir = X_GC.p() - center;
     if (zdir.normSqr() >= square(1e-6))
-        X_GC.updR().setRotationFromTwoAxes(fUnitVec3(zdir), ZAxis, 
+        X_GC.updR().setRotationFromTwoAxes(fUnitVec3(zdir), ZAxis,
                                            X_GC.y(),        YAxis);
 }
 
@@ -890,7 +890,7 @@ public:
     Menu(string title, int id, const vector<pair<string, int> >& items,
          void(*handler)(int))
     :   title(title), menuId(id), items(items), handler(handler),
-        hasCreated(false) 
+        hasCreated(false)
     {   glutId = -1; minx=miny=maxx=maxy= -1; }
 
     // This is called once, the first time we try to draw this menu.
@@ -1597,7 +1597,7 @@ static void redrawDisplay() {
         nextLine += lineHeight;
     }
 
-    // Draw a message overlay 
+    // Draw a message overlay
     // (center box, with text left justified in box).
     // ------------------------------------------------------------
     if (displayOverlayMessage) {
@@ -2106,8 +2106,8 @@ static Scene* readNewScene() {
         case AddCoords: {
             readData(buffer, 12*sizeof(float));
             fRotation rotation;
-            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0], 
-                                                     floatBuffer[1], 
+            rotation.setRotationToBodyFixedXYZ(fVec3(floatBuffer[0],
+                                                     floatBuffer[1],
                                                      floatBuffer[2]));
             fVec3 position(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
             fVec3 axisLengths(floatBuffer[6], floatBuffer[7], floatBuffer[8]);
@@ -2116,10 +2116,10 @@ static Scene* readNewScene() {
             fVec3 color = fVec3(floatBuffer[9], floatBuffer[10], floatBuffer[11]);
             int index;
             int numLines = (int)newScene->lines.size();
-            for (index = 0; 
-                 index < numLines && (color != newScene->lines[index].getColor() 
-                                      || newScene->lines[index].getThickness() 
-                                                              != lineThickness); 
+            for (index = 0;
+                 index < numLines && (color != newScene->lines[index].getColor()
+                                      || newScene->lines[index].getThickness()
+                                                              != lineThickness);
                  index++)
                 ;
             if (index == numLines)
@@ -2307,7 +2307,7 @@ void* listenForInput(void* args) {
             fVec3 pt2camera = X_GC.p()-point;
             if (pt2camera.normSqr() < square(1e-6))
                 pt2camera = fVec3(X_GC.z()); // leave unchanged
-            X_GC.updR().setRotationFromTwoAxes(fUnitVec3(pt2camera), ZAxis, 
+            X_GC.updR().setRotationFromTwoAxes(fUnitVec3(pt2camera), ZAxis,
                                                updir, YAxis);
             pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
             break;
@@ -2572,7 +2572,7 @@ void viewMenuSelected(int option) {
     case MENU_SAVE_IMAGE:
         if (canSaveImages) {
             saveImage();
-        } else 
+        } else
             setOverlayMessage(
             "Sorry -- image capture not available due to your\n"
             "backlevel OpenGL. At least OpenGL 2.0 is required.\n"
@@ -2585,7 +2585,7 @@ void viewMenuSelected(int option) {
                 setOverlayMessage("Frame capture off.");
             } else
                 saveMovie();
-        } else 
+        } else
             setOverlayMessage(
             "Sorry -- movie capture not available due to your\n"
             "backlevel OpenGL. At least OpenGL 2.0 is required.\n"
@@ -2705,7 +2705,7 @@ static void shutdown() {
 int main(int argc, char** argv) {
   try
   { bool talkingToSimulator = false;
-      
+
     if (argc >= 3) {
         stringstream(argv[1]) >> inPipe;
         stringstream(argv[2]) >> outPipe;
@@ -2866,7 +2866,7 @@ static bool initGlextFuncPointersIfNeeded(bool& glCanSaveImages) {
     if (!(glGenBuffers && glBindBuffer && glBufferData && glActiveTexture))
         return false; // fatal error
 
-    // These are needed only when saving images or movies so the Visualizer can 
+    // These are needed only when saving images or movies so the Visualizer can
     // function without them.
 
     // Using the "EXT" names here means we only require OpenGL 2.0.

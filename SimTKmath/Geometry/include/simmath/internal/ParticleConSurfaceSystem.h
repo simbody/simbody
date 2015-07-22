@@ -64,7 +64,7 @@ public:
     }
 
     inline const ParticleConSurfaceSystem& getParticleConSurfaceSystem() const;
-    
+
     SubsystemIndex getSubsysIndex() const {
         return subsysIndex;
     }
@@ -84,13 +84,13 @@ public:
     /*virtual*/int realizeAccelerationImpl(const State&) const;
 
     // qdot==u here so these are just copies
-    /*virtual*/void multiplyByNImpl(const State& state, const Vector& u, 
+    /*virtual*/void multiplyByNImpl(const State& state, const Vector& u,
                                  Vector& dq) const {dq=u;}
-    /*virtual*/void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+    /*virtual*/void multiplyByNTransposeImpl(const State& state, const Vector& fq,
                                           Vector& fu) const {fu=fq;}
-    /*virtual*/void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+    /*virtual*/void multiplyByNPInvImpl(const State& state, const Vector& dq,
                                      Vector& u) const {u=dq;}
-    /*virtual*/void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+    /*virtual*/void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu,
                                               Vector& fq) const {fq=fu;}
 
     // No prescribed motion.
@@ -111,7 +111,7 @@ private:
 class ParticleConSurfaceSystem: public System {
 public:
     ParticleConSurfaceSystem(const ContactGeometryImpl& geom) : System()
-    { 
+    {
         adoptSystemGuts(new ParticleConSurfaceSystemGuts(geom));
         DefaultSystemSubsystem defsub(*this);
         updGuts().subsysIndex = defsub.getMySubsystemIndex();

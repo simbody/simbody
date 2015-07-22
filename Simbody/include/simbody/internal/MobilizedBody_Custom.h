@@ -33,12 +33,12 @@ subclasses. **/
 namespace SimTK {
 
 //==============================================================================
-//                        MOBILIZED BODY :: CUSTOM  
+//                        MOBILIZED BODY :: CUSTOM
 //==============================================================================
-/** The handle class MobilizedBody::Custom (dataless) and its companion class 
-MobilizedBody::Custom::Implementation can be used together to define new 
-MobilizedBody types with arbitrary properties. To use it, create a class that 
-extends MobilizedBody::Custom::Implementation. You can then create an instance 
+/** The handle class MobilizedBody::Custom (dataless) and its companion class
+MobilizedBody::Custom::Implementation can be used together to define new
+MobilizedBody types with arbitrary properties. To use it, create a class that
+extends MobilizedBody::Custom::Implementation. You can then create an instance
 of it and pass it to the MobilizedBody::Custom constructor:
 
 @code
@@ -47,13 +47,13 @@ MobilizedBody::Custom myMobilizedBody(new MyMobilizedBodyImplementation(args));
 ("args" here and below stands for whatever arguments are needed for your
 particular mobilizer; it isn't meant literally.)
 
-Alternatively, you can also create a new Handle class which is a subclass of 
-MobilizedBody::Custom and which creates the Implementation itself in its 
+Alternatively, you can also create a new Handle class which is a subclass of
+MobilizedBody::Custom and which creates the Implementation itself in its
 constructors.
 @code
 class MyMobilizedBody : public MobilizedBody::Custom {
 public:
-  MyMobilizedBody(args) 
+  MyMobilizedBody(args)
   :   MobilizedBody::Custom(new MyMobilizedBodyImplementation(args)) {}
 };
 @endcode
@@ -63,8 +63,8 @@ This allows an end user to simply write
 MyMobilizedBody(args);
 @endcode
 
-and not worry about implementation classes or creating objects on the heap.  
-If you do this, your MobilizedBody::Custom subclass must not have any data 
+and not worry about implementation classes or creating objects on the heap.
+If you do this, your MobilizedBody::Custom subclass must not have any data
 members or virtual methods. If it does, it will not work correctly. Instead,
 store all data in the Implementation subclass.
 
@@ -78,30 +78,30 @@ public:
     reference any %MobilizedBody::Custom. **/
     Custom() {}
 
-    /** Create a %Custom mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Custom mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology.
-    
+
     @param parent         the %MobilizedBody's parent (inboard) body
     @param implementation the object which implements the custom mobilized body.
                           The %MobilizedBody::Custom takes over ownership of the
-                          implementation object, and deletes it when the 
+                          implementation object, and deletes it when the
                           %MobilizedBody itself is deleted.
     @param X_PF           the %MobilizedBody's F (inboard) frame
     @param bodyInfo       describes this %MobilizedBody's physical properties
     @param X_BM           the %MobilizedBody's M (outboard) frame
-    @param direction      whether you want the coordinates defined as though 
+    @param direction      whether you want the coordinates defined as though
                           parent & child were swapped
     **/
-    Custom(MobilizedBody& parent, Implementation* implementation, 
+    Custom(MobilizedBody& parent, Implementation* implementation,
            const Transform& X_PF, const Body& bodyInfo, const Transform& X_BM,
            Direction direction=Forward);
-    
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
-    Custom(MobilizedBody& parent, Implementation* implementation, 
+    Custom(MobilizedBody& parent, Implementation* implementation,
            const Body& bodyInfo, Direction direction=Forward);
 
     /** @cond **/ // hide from Doxygen
@@ -113,11 +113,11 @@ protected:
 
 };
 
-// We only want the template instantiation to occur once. This symbol is 
+// We only want the template instantiation to occur once. This symbol is
 // defined in the Simbody compilation unit that defines the MobilizedBody class
 // but should not be defined any other time.
 #ifndef SimTK_SIMBODY_DEFINING_MOBILIZED_BODY
-    extern template class PIMPLHandle<MobilizedBody::Custom::Implementation, 
+    extern template class PIMPLHandle<MobilizedBody::Custom::Implementation,
                                       MobilizedBody::Custom::ImplementationImpl>;
 #endif
 
@@ -127,8 +127,8 @@ protected:
 //==============================================================================
 /** This is the implementation class for Custom mobilizers.
 @see MobilizedBody::Custom **/
-class SimTK_SIMBODY_EXPORT MobilizedBody::Custom::Implementation 
-  : public PIMPLHandle<Implementation,ImplementationImpl> 
+class SimTK_SIMBODY_EXPORT MobilizedBody::Custom::Implementation
+  : public PIMPLHandle<Implementation,ImplementationImpl>
 {
 public:
     // No default constructor because you have to supply at least the SimbodyMatterSubsystem
@@ -172,7 +172,7 @@ public:
     /// Note that if this mobilizer uses quaternions, the number of q's will depend on whether
     /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
     Vector getQ(const State& s) const;
-    
+
     /// Return a Vector containing all the generalized speeds u currently in use by this mobilizer.
     Vector getU(const State& s) const;
 
@@ -183,7 +183,7 @@ public:
 
     /// Return a Vector containing all the generalized accelerations udot currently in use by this mobilizer.
     Vector getUDot(const State& s) const;
-    
+
     /// Return a Vector containing all the generalized coordinate second derivatives qdotdot currently in use by this mobilizer.
     /// Note that if this mobilizer uses quaternions, the number of q's will depend on whether
     /// quaternions are currently enabled.  Call getUseEulerAngles() to check this.
@@ -191,15 +191,15 @@ public:
 
     /// Get the cross-mobilizer transform X_FM, the body's "moving" mobilizer frame M measured and expressed in
     /// the parent body's corresponding "fixed" frame F.  The state must have been realized to at least
-    /// Position stage. Note: this refers to F and M <em>as defined</em>, not as they are if the 
+    /// Position stage. Note: this refers to F and M <em>as defined</em>, not as they are if the
     /// mobilizer has been reversed (that is, we're really returning X_F0M0 here).
     Transform getMobilizerTransform(const State& s) const;
 
     /// Get the cross-mobilizer velocity V_FM, the relative velocity of this body's "moving" mobilizer
     /// frame M in the parent body's corresponding "fixed" frame F, measured and expressed in F.
     /// Note that this isn't the usual spatial velocity since it isn't expressed in G.
-    /// The state must have been realized to at least Velocity stage. Note: this refers to 
-    /// F and M <em>as defined</em>, not as they are if the 
+    /// The state must have been realized to at least Velocity stage. Note: this refers to
+    /// F and M <em>as defined</em>, not as they are if the
     /// mobilizer has been reversed (that is, we're really returning V_F0M0 here).
     SpatialVec getMobilizerVelocity(const State& s) const;
 
@@ -217,7 +217,7 @@ public:
     /// something. This is done automatically when you modify the MobilizedBody in ways
     /// understood by Simbody. But if you are just
     /// changing some of your own topology and want to make sure you get a chance to
-    /// recompute something in realizeTopology(), make this call at the time of 
+    /// recompute something in realizeTopology(), make this call at the time of
     /// modification.
     void invalidateTopologyCache() const;
 
@@ -249,8 +249,8 @@ public:
     /// and the HDot methods must use the time derivative of H.
     ///
     /// Note: the "H" we're using here is the transpose of what is used in Schwieter's IVM
-    /// paper and in all of Abhi Jain's papers. That's because Jain used H^T as the joint 
-    /// kinematics Jacobian, with H being the force transmission matrix which no 
+    /// paper and in all of Abhi Jain's papers. That's because Jain used H^T as the joint
+    /// kinematics Jacobian, with H being the force transmission matrix which no
     /// mobilizer-writing user is going to be thinking about.
     /// @see multiplyByHTranspose()
     virtual SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const = 0;
@@ -296,7 +296,7 @@ public:
     /// is true for your mobilizer, you do not need to implement this method.
     ///
     /// The state is guaranteed to have been realized to at least Position stage.
-    virtual void multiplyByN(const State& s, bool transposeMatrix, 
+    virtual void multiplyByN(const State& s, bool transposeMatrix,
                              int nIn, const Real* in, int nOut, Real* out) const;
 
     /// Calculate out_u = NInv(q)*in_q (e.g., u=NInv*qdot)
@@ -309,7 +309,7 @@ public:
     /// is true for your mobilizer, you do not need to implement this method.
     ///
     /// The state is guaranteed to have been realized to at least Position stage.
-    virtual void multiplyByNInv(const State& s, bool transposeMatrix, 
+    virtual void multiplyByNInv(const State& s, bool transposeMatrix,
                                 int nIn, const Real* in, int nOut, Real* out) const;
 
     /// Calculate out_q = NDot(q)*in_u
@@ -322,11 +322,11 @@ public:
     /// is true for your mobilizer, you do not need to implement this method.
     ///
     /// The state is guaranteed to have been realized to at least Position stage.
-    virtual void multiplyByNDot(const State& s, bool transposeMatrix, 
+    virtual void multiplyByNDot(const State& s, bool transposeMatrix,
                                 int nIn, const Real* in, int nOut, Real* out) const;
 
         // Methods for setting Mobilizer initial conditions. Note -- I've stripped this
-        // down to the two basic routines but the built-ins have 8 so that you can 
+        // down to the two basic routines but the built-ins have 8 so that you can
         // specify only rotations or translations. I'm not sure that's needed here and
         // I suppose you could add more routines later if needed.
         // Eventually it might be nice to provide default implementation here that would
@@ -382,19 +382,19 @@ public:
 
     //@{
     /// The Matter Subsystem's realizeTopology() method will call this method along with the built-in
-    /// MobilizedBodies' realizeTopology() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeTopology() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Topology stage "cache" values (mutable values which are stored
     ///     in the derived Implementation class directly), and
     ///   - allocate Model-stage state variables for later use, and
     ///   - allocate Model-stage cache entries in the State.
-    /// The indices to the Model-stage state & cache entries are stored locally as part of 
+    /// The indices to the Model-stage state & cache entries are stored locally as part of
     /// the Topology-stage cache.
     virtual void realizeTopology(State&) const { }
 
     /// The Matter Subsystem's realizeModel() method will call this method along with the built-in
-    /// MobilizedBodies' realizeModel() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeModel() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Model stage cache values according to the settings of the Model variables,
-    ///   - allocate any later-Stage variables that may be needed (typically these will be 
+    ///   - allocate any later-Stage variables that may be needed (typically these will be
     ///     Instance stage variables containing geometric information or parameters
     ///     like lengths or pitch for a Screw.
     /// The indices to any of the State entries allocated here are stored in the State as part
@@ -402,18 +402,18 @@ public:
     virtual void realizeModel(State&) const { }
 
     /// The Matter Subsystem's realizeInstance() method will call this method along with the built-in
-    /// MobilizedBodies' realizeInstance() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeInstance() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Instance stage cache values according to the settings of the Instance variables.
     virtual void realizeInstance(const State&) const { }
 
     /// The Matter Subsystem's realizeTime() method will call this method along with the built-in
-    /// MobilizedBodies' realizeTime() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeTime() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Time stage cache values according to the current value of time found
     ///     in the State.
     virtual void realizeTime(const State&) const { }
 
     /// The Matter Subsystem's realizePosition() method will call this method along with the built-in
-    /// MobilizedBodies' realizePosition() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizePosition() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Position stage cache values according to the current values of positions found
     ///     in the State.
     /// Note that this is called <em>before</em> methods which implement operators involving position-dependent
@@ -421,7 +421,7 @@ public:
     virtual void realizePosition(const State&) const { }
 
     /// The Matter Subsystem's realizeVelocity() method will call this method along with the built-in
-    /// MobilizedBodies' realizeVelocity() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeVelocity() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Velocity stage cache values according to the current values of velocities found
     ///     in the State.
     /// Note that this is called <em>before</em> methods which implement operators involving velocity-dependent
@@ -429,7 +429,7 @@ public:
     virtual void realizeVelocity(const State&) const { }
 
     /// The Matter Subsystem's realizeDynamics() method will call this method along with the built-in
-    /// MobilizedBodies' realizeDynamics() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeDynamics() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Dynamics stage cache values according to the current values found
     ///     in the State.
     /// Computations at Dynamics stage cannot affect the behavior of the MobilizedBody since that
@@ -437,7 +437,7 @@ public:
     virtual void realizeDynamics(const State&) const { }
 
     /// The Matter Subsystem's realizeAcceleration() method will call this method along with the built-in
-    /// MobilizedBodies' realizeAcceleration() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeAcceleration() methods. This gives the MobilizedBody a chance to
     ///   - pre-calculate Acceleration stage cache values according to the current values of body
     ///     and mobility accelerations found in the State.
     /// Computations at Acceleration stage cannot affect the behavior of the MobilizedBody since that
@@ -445,7 +445,7 @@ public:
     virtual void realizeAcceleration(const State&) const { }
 
     /// The Matter Subsystem's realizeReport() method will call this method along with the built-in
-    /// MobilizedBodies' realizeReport() methods. This gives the MobilizedBody a chance to 
+    /// MobilizedBodies' realizeReport() methods. This gives the MobilizedBody a chance to
     ///   - calculate Report stage cache values according to the current values found
     ///     in the State.
     /// Computations at Report stage cannot affect the progress of a simulation in any way.

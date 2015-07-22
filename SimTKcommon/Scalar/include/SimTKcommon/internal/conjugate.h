@@ -34,7 +34,7 @@
  * It is guaranteed that our conjugate type has the identical size and
  * representation as complex. Together, these definitions and
  * guarantee permit conjugation to be done by reinterpretation (i.e. type
- * casting) rather than by computation.  
+ * casting) rather than by computation.
  *
  * A caution on implementation of complex numbers: it's not as simple
  * as you might think. A mildly nasty issue is handling mixed precision
@@ -159,7 +159,7 @@ inline complex<long double> operator-(const complex<long double>& c,const double
 inline complex<long double> operator-(const double& r,const complex<long double>& c){return (long double)r-c;}
 } // namespace SimTK
 #endif
-    
+
 namespace SimTK {
 
 template <class R> class conjugate;    // Only defined for float, double, long double
@@ -257,7 +257,7 @@ public:
     conjugate() {
     #ifndef NDEBUG
         re = negIm = std::numeric_limits<float>::quiet_NaN();
-    #endif  
+    #endif
     }
     // default copy constructor, copy assignment, destructor
 
@@ -295,8 +295,8 @@ public:
     /// Implicit conversion to complex<float> when necessary
     /// (costs an actual negation -- yuck!).
     operator complex<float>() const
-      { return complex<float>(re,-negIm); } 
-    
+      { return complex<float>(re,-negIm); }
+
     // Can't defer here by casting to negator<conjugate> -- this must act
     // like a built-in. But ... we can use this as a chance to convert
     // to complex and save one negation.
@@ -343,7 +343,7 @@ public:
         negIm=(re*c.negIm + negIm*c.re); re=r; return *this;
     }
     conjugate& operator*=(const complex<float>& t) {
-        const float r=(re*t.real() + negIm*t.imag()); 
+        const float r=(re*t.real() + negIm*t.imag());
         negIm=(negIm*t.real() - re*t.imag()); re=r; return *this;
     }
 
@@ -391,7 +391,7 @@ public:
     conjugate() {
     #ifndef NDEBUG
         re = negIm = std::numeric_limits<double>::quiet_NaN();
-    #endif  
+    #endif
     }
     // default copy constructor, copy assignment, destructor
 
@@ -431,8 +431,8 @@ public:
     /// Implicit conversion to complex<double> when necessary
     /// (costs an actual negation -- yuck!).
     operator complex<double>() const
-      { return complex<double>(re,-negIm); } 
-    
+      { return complex<double>(re,-negIm); }
+
     // Can't defer here by casting to negator<conjugate> -- this must act
     // like a built-in. But ... we can use this as a chance to convert
     // to complex and save one negation.
@@ -509,7 +509,7 @@ public:
         negIm=(re*c.negIm + negIm*c.re); re=r; return *this;
     }
     conjugate& operator*=(const complex<double>& t) {
-        const double r=(re*t.real() + negIm*t.imag()); 
+        const double r=(re*t.real() + negIm*t.imag());
         negIm=(negIm*t.real() - re*t.imag()); re=r; return *this;
     }
 
@@ -562,7 +562,7 @@ public:
     conjugate() {
     #ifndef NDEBUG
         re = negIm = std::numeric_limits<long double>::quiet_NaN();
-    #endif  
+    #endif
     }
     // default copy constructor, copy assignment, destructor
 
@@ -602,8 +602,8 @@ public:
     /// Implicit conversion to complex<long double> when necessary
     /// (costs an actual negation -- yuck!).
     operator complex<long double>() const
-      { return complex<long double>(re,-negIm); } 
-    
+      { return complex<long double>(re,-negIm); }
+
     // Can't defer here by casting to negator<conjugate> -- this must act
     // like a built-in. But ... we can use this as a chance to convert
     // to complex and save one negation.
@@ -705,7 +705,7 @@ public:
         negIm=(re*c.negIm + negIm*c.re); re=r; return *this;
     }
     conjugate& operator*=(const complex<long double>& t) {
-        const long double r=(re*t.real() + negIm*t.imag()); 
+        const long double r=(re*t.real() + negIm*t.imag());
         negIm=(negIm*t.real() - re*t.imag()); re=r; return *this;
     }
 
@@ -752,7 +752,7 @@ private:
 };
 
 // These definitions had to be deferred until all the specializations have been declared.
-conjugate<float>::conjugate(const conjugate<double>& cd) { 
+conjugate<float>::conjugate(const conjugate<double>& cd) {
     re = float(cd.real()); negIm = float(cd.negImag());
 }
 conjugate<float>::conjugate(const conjugate<long double>& cl) {
@@ -852,7 +852,7 @@ template <class R> inline bool                            operator==(const conju
 template <class R> inline bool                            operator==(const conjugate<R>& a, const double&      b)
   { return a.isReal() && a.real()==b; }
 
-// bool = real==conjugate, bool = conjugate!=real, bool = real!=conjugate 
+// bool = real==conjugate, bool = conjugate!=real, bool = real!=conjugate
 template <class R> inline bool operator==(const float&        a, const conjugate<R>& b) {return b==a;}
 template <class R> inline bool operator==(const long double&  a, const conjugate<R>& b) {return b==a;}
 template <class R> inline bool operator==(const double&       a, const conjugate<R>& b) {return b==a;}
@@ -873,7 +873,7 @@ template <class R> inline conjugate<long double>          operator-(const conjug
 template <class R> inline typename Wider<R,double>::WConj operator-(const conjugate<R>& a, const double&      b)
   { return typename Wider<R,double>::WConj(a) -= b; }
 
-// complex = real - conjugate 
+// complex = real - conjugate
 // This is nice because -conjugate.imag() is free.
 template <class R> inline complex<R>                      operator-(const float&       a, const conjugate<R>& b)
   { return complex<R>(a-b.real(), -b.imag()); }
@@ -890,7 +890,7 @@ template <class R> inline conjugate<long double>          operator/(const conjug
 template <class R> inline typename Wider<R,double>::WConj operator/(const conjugate<R>& a, const double&      b)
   { return typename Wider<R,double>::WConj(a) /= b; }
 
-// complex = real / conjugate 
+// complex = real / conjugate
 // Division by complex is tricky and slow anyway so we'll just convert to complex
 // at the cost of one negation.
 template <class R> inline complex<R>                      operator/(const float&       a, const conjugate<R>& b)
@@ -910,14 +910,14 @@ template <class R> inline typename Wider<R,double>::WCplx operator/(const double
 // conjugate = conjugate + conjugate: (a-Bi)+(r-Si) = (a+r)-(B+S)i
 template <class R, class S> inline typename Wider<R,S>::WConj
 operator+(const conjugate<R>& a, const conjugate<S>& r) {
-    return typename Wider<R,S>::WConj(a.real()+r.real(), 
+    return typename Wider<R,S>::WConj(a.real()+r.real(),
                                       a.negImag()+r.negImag());
 }
 
 // complex = conjugate + complex = complex + conjugate: (a-Bi)+(r+si) = (a+r)+(s-B)i
 template <class R, class S> inline typename Wider<R,S>::WCplx
 operator+(const conjugate<R>& a, const complex<S>& r) {
-    return typename Wider<R,S>::WCplx(a.real()+r.real(), 
+    return typename Wider<R,S>::WCplx(a.real()+r.real(),
                                       r.imag()-a.negImag());
 }
 template <class R, class S> inline typename Wider<R,S>::WCplx
@@ -934,7 +934,7 @@ operator-(const conjugate<R>& a, const conjugate<S>& r) {
 template <class R, class S> inline negator<typename Wider<R,S>::WCplx>
 operator-(const conjugate<R>& a, const complex<S>& r) {
     return negator<typename Wider<R,S>::WCplx>::recast
-             (typename Wider<R,S>::WCplx(r.real()-a.real(), 
+             (typename Wider<R,S>::WCplx(r.real()-a.real(),
                                          a.negImag()+r.imag()));
 }
 
@@ -945,7 +945,7 @@ operator-(const complex<R>& a, const conjugate<S>& r) {
                                       a.imag()+r.negImag());
 }
 
-// We can multiply by either a complex or a conjugate (leaving a complex 
+// We can multiply by either a complex or a conjugate (leaving a complex
 // or negated complex result) in six flops which is the same cost as an
 // ordinary complex multiply.
 //        (cplx=cplx*cplx: (a+bi)(r+si) =   (ar-bs)+(as+br)i)

@@ -63,9 +63,9 @@ class SysConstraintFunc : public Differentiator::JacobianFunction {
 class SimTK_SIMMATH_EXPORT Optimizer::OptimizerRep {
 public:
     virtual ~OptimizerRep();
-    OptimizerRep(const OptimizerSystem& sys) 
-       : sysp(&sys), 
-         myHandle(0), 
+    OptimizerRep(const OptimizerSystem& sys)
+       : sysp(&sys),
+         myHandle(0),
          cf(0),
          of(0),
          jacDiff(0),
@@ -78,14 +78,14 @@ public:
          diffMethod(Differentiator::CentralDifference),
          objectiveEstimatedAccuracy(SignificantReal),
          constraintsEstimatedAccuracy(SignificantReal),
-         numericalGradient(false), 
+         numericalGradient(false),
          numericalJacobian(false)
 
     {
     }
     OptimizerRep()
-       : sysp(0), 
-         myHandle(0), 
+       : sysp(0),
+         myHandle(0),
          cf(0),
          of(0),
          jacDiff(0),
@@ -98,7 +98,7 @@ public:
          diffMethod(Differentiator::CentralDifference),
          objectiveEstimatedAccuracy(SignificantReal),
          constraintsEstimatedAccuracy(SignificantReal),
-         numericalGradient(false), 
+         numericalGradient(false),
          numericalJacobian(false)
     {
     }
@@ -110,7 +110,7 @@ public:
 
     const OptimizerSystem& getOptimizerSystem() const {return *sysp;}
 
-  
+
     void setDiagnosticsLevel( const int  level );
     void setConvergenceTolerance( Real accuracy );
     void setConstraintTolerance( Real tolerance );
@@ -129,18 +129,18 @@ public:
 
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
-    void  clearMyHandle() {myHandle=0;} 
+    void  clearMyHandle() {myHandle=0;}
 
-    void useNumericalGradient(bool flag, Real objEstAccuracy); 
-    void useNumericalJacobian(bool flag, Real consEstAccuracy);  
+    void useNumericalGradient(bool flag, Real objEstAccuracy);
+    void useNumericalJacobian(bool flag, Real consEstAccuracy);
     void setDifferentiatorMethod( Differentiator::Method method);
 
     bool isUsingNumericalGradient() const { return numericalGradient; }
     bool isUsingNumericalJacobian() const { return numericalJacobian; }
     Differentiator::Method getDifferentiatorMethod() const {return diffMethod;}
-    Real getEstimatedAccuracyOfObjective() const 
+    Real getEstimatedAccuracyOfObjective() const
     {   return objectiveEstimatedAccuracy; }
-    Real getEstimatedAccuracyOfConstraints() const 
+    Real getEstimatedAccuracyOfConstraints() const
     {   return constraintsEstimatedAccuracy; }
 
     const Differentiator& getGradientDifferentiator() const {
@@ -190,11 +190,11 @@ private:
     const OptimizerSystem* sysp;
     bool numericalGradient; // true if optimizer will compute an numerical gradient
     bool numericalJacobian; // true if optimizer will compute an numerical Jacobian
-    Differentiator *gradDiff;   
-    Differentiator *jacDiff; 
+    Differentiator *gradDiff;
+    Differentiator *jacDiff;
 
-    SysObjectiveFunc  *of;   
-    SysConstraintFunc *cf; 
+    SysObjectiveFunc  *of;
+    SysConstraintFunc *cf;
 
     std::map<std::string, std::string> advancedStrOptions;
     std::map<std::string, Real> advancedRealOptions;
@@ -203,7 +203,7 @@ private:
 
     friend class Optimizer;
     Optimizer* myHandle;   // The owner handle of this Rep.
-    
+
 }; // end class OptimizerRep
 
 class DefaultOptimizer: public Optimizer::OptimizerRep {

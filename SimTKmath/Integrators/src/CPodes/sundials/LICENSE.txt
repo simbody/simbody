@@ -1,12 +1,12 @@
-Copyright (c) 2002, The Regents of the University of California. 
+Copyright (c) 2002, The Regents of the University of California.
 Produced at the Lawrence Livermore National Laboratory.
-Written by S.D. Cohen, A.C. Hindmarsh, R. Serban, 
+Written by S.D. Cohen, A.C. Hindmarsh, R. Serban,
            D. Shumaker, and A.G. Taylor.
 UCRL-CODE-155951    (CVODE)
 UCRL-CODE-155950    (CVODES)
 UCRL-CODE-155952    (IDA)
 UCRL-CODE-155953    (KINSOL)
-All rights reserved. 
+All rights reserved.
 
 This file is part of SUNDIALS.
 

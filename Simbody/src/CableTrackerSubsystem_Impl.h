@@ -42,8 +42,8 @@ namespace SimTK {
 //==============================================================================
 //                    CABLE TRACKER SUBSYSTEM :: IMPL
 //==============================================================================
-// This is the private implementation of CableTrackerSubsystem.   
-    
+// This is the private implementation of CableTrackerSubsystem.
+
 class CableTrackerSubsystem::Impl : public Subsystem::Guts {
 public:
 // Constructor registers a default set of Trackers to use with geometry
@@ -52,15 +52,15 @@ Impl() {}
 
 ~Impl() {}
 
-Impl* cloneImpl() const override 
+Impl* cloneImpl() const override
 {   return new Impl(*this); }
 
 int getNumCablePaths() const {return cablePaths.size();}
 
-const CablePath& getCablePath(CablePathIndex index) const 
+const CablePath& getCablePath(CablePathIndex index) const
 {   return cablePaths[index]; }
 
-CablePath& updCablePath(CablePathIndex index) 
+CablePath& updCablePath(CablePathIndex index)
 {   return cablePaths[index]; }
 
 // Add a cable path to the list, bumping the reference count.
@@ -70,12 +70,12 @@ CablePathIndex adoptCablePath(CablePath& path) {
 }
 
 // Return the MultibodySystem which owns this CableTrackerSubsystem.
-const MultibodySystem& getMultibodySystem() const 
+const MultibodySystem& getMultibodySystem() const
 {   return MultibodySystem::downcast(getSystem()); }
 
 // Return the SimbodyMatterSubsystem from which this CableTrackerSubsystem
 // gets the bodies to track.
-const SimbodyMatterSubsystem& getMatterSubsystem() const 
+const SimbodyMatterSubsystem& getMatterSubsystem() const
 {   return getMultibodySystem().getMatterSubsystem(); }
 
 // Get access to state variables and cache entries.
@@ -92,7 +92,7 @@ void calcEventTriggerInfoImpl
 
 void handleEventsImpl
    (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
-    const HandleEventsOptions& options, 
+    const HandleEventsOptions& options,
     HandleEventsResults& results) const override
 {
     for (CablePathIndex ix(0); ix < cablePaths.size(); ++ix) {
@@ -150,9 +150,9 @@ int realizeSubsystemAccelerationImpl(const State& state) const override {
 }
 
 int calcDecorativeGeometryAndAppendImpl
-   (const State&                state, 
-    Stage                       stage, 
-    Array_<DecorativeGeometry>& decorations) const override 
+   (const State&                state,
+    Stage                       stage,
+    Array_<DecorativeGeometry>& decorations) const override
 {
     if (stage != Stage::Position)
         return 0;
@@ -175,7 +175,7 @@ int calcDecorativeGeometryAndAppendImpl
                 const Transform& X_SD = geo.getTransform();
                 decorations.push_back(
                     geo.setTransform(X_GS*X_SD).setColor(Real(0.75)*geo.getColor()));
-                continue; 
+                continue;
             }
 
             // If this is a surface, draw it.
@@ -189,7 +189,7 @@ int calcDecorativeGeometryAndAppendImpl
             obs.getContactStationsOnBody(state, instInfo, ppe, P_B, Q_B);
             Vec3 P_G = X_GB*P_B, Q_G = X_GB*Q_B;
 
-            const Vec3 color = ox==0 ? Green 
+            const Vec3 color = ox==0 ? Green
                              : ox==path.getNumObstacles()-1 ? Red : Purple;
             // Draw point at Pi.
             decorations.push_back(DecorativePoint(P_G).setColor(color));
@@ -230,7 +230,7 @@ int calcDecorativeGeometryAndAppendImpl
             if (ppe.mapToActiveSurface[ox].isValid())
                 continue; // skip active surface obstacles
 
-            const CableObstacle::Surface::Impl& obs = 
+            const CableObstacle::Surface::Impl& obs =
                 dynamic_cast<const CableObstacle::Surface::Impl&>
                     (path.getObstacleImpl(ox));
 

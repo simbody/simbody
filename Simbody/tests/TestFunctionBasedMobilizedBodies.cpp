@@ -20,7 +20,7 @@
  * See the License for the specific language governing permissions and        *
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
- 
+
 #include "SimTKsimbody.h"
 
 #include <vector>
@@ -65,15 +65,15 @@ void assertEqual(Transform val1, Transform val2, Real tol) {
 void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bool eulerAngles, int expectedQ, int expectedU) {
     const SimbodyMatterSubsystem& matter = b1.getMatterSubsystem();
     const System& system = matter.getSystem();
-    
+
     // Set whether to use Euler angles.
-    
+
     State state = system.getDefaultState();
     matter.setUseEulerAngles(state, eulerAngles);
     system.realizeModel(state);
-    
+
     // Make sure the number of state variables is correct.
-    
+
     assertEqual(b1.getNumQ(state), expectedQ);
     assertEqual(b1.getNumU(state), expectedU);
     assertEqual(b2.getNumQ(state), expectedQ);
@@ -89,9 +89,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     for (int i = 0; i < nu; ++i)
         state.updU()[i] = state.updU()[i+nu] = (eulerAngles ? 0.0 : random.getValue());
     system.realize(state, Stage::Acceleration);
-        
+
     // Compare state variables and their derivatives.
-    
+
     for (int i = 0; i < b1.getNumQ(state); ++i) {
         assertEqual(b1.getOneQ(state, i), b2.getOneQ(state, i));
         assertEqual(b1.getOneQDot(state, i), b2.getOneQDot(state, i));
@@ -104,7 +104,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     }
     */
     // Compare lots of properties of the two bodies.
-    
+
     assertEqual(b1.getBodyTransform(state), b2.getBodyTransform(state));
     assertEqual(b1.getBodyVelocity(state), b2.getBodyVelocity(state));
     assertEqual(b1.getBodyAcceleration(state), b2.getBodyAcceleration(state));
@@ -113,9 +113,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     assertEqual(b1.getBodyOriginAcceleration(state), b2.getBodyOriginAcceleration(state));
     assertEqual(b1.getMobilizerTransform(state), b2.getMobilizerTransform(state));
     assertEqual(b1.getMobilizerVelocity(state), b2.getMobilizerVelocity(state));
-    
+
     // Test methods that multiply by various matrices.
-    
+
     Vector tempq(state.getNQ());
     Vector tempu(state.getNU());
     /*
@@ -132,9 +132,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
     */
-    
+
     // Have them calculate q and u, and see if they agree.
-    
+
     if (!eulerAngles) { // The optimizer does not work reliably for Euler angles, since it can hit a singularity
         Transform t = b1.getBodyTransform(state);
         b1.setQFromVector(state, Vector(b1.getNumQ(state), 0.0));
@@ -151,7 +151,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
         b2.setUToFitVelocity(state, v);
         assertEqual(b1.getUAsVector(state), b2.getUAsVector(state), 1e-2);
     }
-    
+
     // Simulate the system, and see if the two bodies remain identical.
     b2.setQFromVector(state, b1.getQAsVector(state));
     b2.setUFromVector(state, b1.getUAsVector(state));
@@ -160,7 +160,7 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(1.0);
-    
+
     assertEqual(b1.getQAsVector(integ.getState()), b2.getQAsVector(integ.getState()));
     assertEqual(b1.getQDotAsVector(integ.getState()), b2.getQDotAsVector(integ.getState()));
 }
@@ -341,7 +341,7 @@ void testFunctionBasedSkewedPin() {
 
     Transform inParentPin = Transform(Rotation(angle, YAxis), Vec3(0));
     Transform inChildPin = Transform(Rotation(angle, YAxis), Vec3(0,1,0));
-    
+
     Transform inParentFB = Transform(Vec3(0));
     Transform inChildFB = Transform(Vec3(0,1,0));
 
@@ -435,7 +435,7 @@ void testFunctionBasedCylinder() {
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
-    MobilizedBody::Cylinder c1(matter.Ground(), body); 
+    MobilizedBody::Cylinder c1(matter.Ground(), body);
     MobilizedBody::Cylinder c2(c1, body);
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
     MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
@@ -459,7 +459,7 @@ void testFunctionBasedUniversal() {
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
-    MobilizedBody::Universal u1(matter.Ground(), body); 
+    MobilizedBody::Universal u1(matter.Ground(), body);
     MobilizedBody::Universal u2(u1, body);
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
     MobilizedBody::FunctionBased fb2(u1, body, nm, functions2, coordIndices);
@@ -485,7 +485,7 @@ void testFunctionBasedPlanar() {
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     //Vec3(1/sqrt(2.0000000000000), 1/sqrt(2.0000000000000), 0)
     Body::Rigid body(MassProperties(1.0, Vec3(0, 0, 0), Inertia(1)));
-    MobilizedBody::Planar u1(matter.Ground(), body); 
+    MobilizedBody::Planar u1(matter.Ground(), body);
     MobilizedBody::Planar u2(u1, body);
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
     MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
@@ -510,7 +510,7 @@ void testFunctionBasedGimbal() {
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid body(MassProperties(1.0, Vec3(0, -0.5, 0), Inertia(0.5)));
-    MobilizedBody::Gimbal b1(matter.Ground(), body); 
+    MobilizedBody::Gimbal b1(matter.Ground(), body);
     MobilizedBody::Gimbal b2(b1, body);
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
     MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
@@ -560,7 +560,7 @@ void testFunctionBasedGimbalUserAxes() {
     Transform childPinAxis1 = Transform(Rotation(UnitVec3(axes[1]), ZAxis), Vec3(0,0,0));
     Transform parentPinAxis2 = Transform(Rotation(UnitVec3(axes[2]), ZAxis), Vec3(0,0,0));
     Transform childPinAxis2 = Transform(Rotation(UnitVec3(axes[2]), ZAxis), Vec3(0,1,0));
-    
+
     MobilizedBody::Pin masslessPin0(matter.Ground(), parentPinAxis0, massLessBody, childPinAxis0);
     MobilizedBody::Pin masslessPin1(masslessPin0, parentPinAxis1, massLessBody, childPinAxis1);
     MobilizedBody::Pin b1(masslessPin1, parentPinAxis2, body, childPinAxis2);
@@ -577,7 +577,7 @@ void testFunctionBasedGimbalUserAxes() {
     matter.setUseEulerAngles(state, true);
     system.realizeModel(state);
 
-    // These were generated randomly but we want repeatability across 
+    // These were generated randomly but we want repeatability across
     // machines so we'll use the same numbers every time. Note that we'll
     // re-use each of these twice, once for the pin joint system and once
     // for the function based mobilizers.
@@ -589,7 +589,7 @@ void testFunctionBasedGimbalUserAxes() {
         state.updQ()[i] = state.updQ()[i+nq] = initq[i];
     int nu = state.getNU()/2;
     for (int i = 0; i < nu; ++i)
-        state.updU()[i] = state.updU()[i+nu] = initu[i]; 
+        state.updU()[i] = state.updU()[i+nu] = initu[i];
 
     system.realize(state, Stage::Acceleration);
 
@@ -602,7 +602,7 @@ void testFunctionBasedGimbalUserAxes() {
     SpatialVec A_fb2 = fb2.getBodyAcceleration(state);
 
     assertEqual(A_b2, A_fb2);
-    
+
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
@@ -613,10 +613,10 @@ void testFunctionBasedGimbalUserAxes() {
 
     Vec3 com_bin = b2.getBodyOriginLocation(result);
     Vec3 com_fb = fb2.getBodyOriginLocation(result);
-    
+
     assertEqual(com_bin, com_fb);
     assertEqual(b2.getBodyVelocity(result), fb2.getBodyVelocity(result));
-    
+
     // stepTo() only guarantees realization through velocity stage.
     system.realize(result, Stage::Acceleration);
     assertEqual(b2.getBodyAcceleration(result), fb2.getBodyAcceleration(result));
@@ -649,9 +649,9 @@ void testFunctionBasedTranslation() {
     Body::Rigid body(MassProperties(1.0, Vec3(0, -0.5, 0), Inertia(0.5)));
 
     //Built-in mobilized bodies
-    MobilizedBody::Translation b1(matter.Ground(), body);  
+    MobilizedBody::Translation b1(matter.Ground(), body);
     MobilizedBody::Translation b2(b1, body);
-    
+
     // Function-based
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
     MobilizedBody::FunctionBased fb2(fb1, body, nm, functions2, coordIndices);
@@ -679,7 +679,7 @@ void testFunctionBasedTranslation() {
     SpatialVec A_fb2 = fb2.getBodyAcceleration(state);
 
     assertEqual(A_b2, A_fb2);
-    
+
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
@@ -690,7 +690,7 @@ void testFunctionBasedTranslation() {
 
     Vec3 com_bin = b2.getBodyOriginLocation(result);
     Vec3 com_fb = fb2.getBodyOriginLocation(result);
-    
+
     assertEqual(com_bin, com_fb);
     assertEqual(b2.getBodyVelocity(result), fb2.getBodyVelocity(result));
 
@@ -722,9 +722,9 @@ void testFunctionBasedFree() {
     //Built-in free
     MobilizedBody::Free b1(matter.Ground(), body);
 
-    //Function-based equivalent?    
+    //Function-based equivalent?
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm, functions1, coordIndices);
- 
+
     system.realizeTopology();
 
     State state = system.getDefaultState();
@@ -733,7 +733,7 @@ void testFunctionBasedFree() {
 
     int nq = state.getNQ();
     nq = nq-nm;
-  
+
     assert(nm == state.getNU()/2);
 
     // Get random q's and u's and set equivalent on both bodies.
@@ -760,13 +760,13 @@ void testFunctionBasedFree() {
     Transform Xb1 = b1.getBodyTransform(state);
     Transform Xfb1 = fb1.getBodyTransform(state);
 
-    assertEqual(Xb1, Xfb1); 
+    assertEqual(Xb1, Xfb1);
 
     SpatialVec A_b1 = b1.getBodyAcceleration(state);
     SpatialVec A_fb1 = fb1.getBodyAcceleration(state);
 
     assertEqual(A_b1, A_fb1);
-    
+
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
@@ -784,7 +784,7 @@ void testFunctionBasedFree() {
 
     Vec3 com_bin = b1.getBodyOriginLocation(result);
     Vec3 com_fb = fb1.getBodyOriginLocation(result);
-    
+
     assertEqual(com_bin, com_fb);
     assertEqual(b1.getBodyVelocity(result), fb1.getBodyVelocity(result));
 
@@ -820,11 +820,11 @@ void testFunctionBasedFreeVsTranslationGimbal() {
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid body(MassProperties(0.1, Vec3(0.25, -0.5, 0.1), Inertia(0.5)));
-   
+
     // One Free-like function-based mmobilizer
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm1, functions1, coordIndices1);
 
-    // Two function-based mmobilizers: 2a for translation and 2b for rotation 
+    // Two function-based mmobilizers: 2a for translation and 2b for rotation
     MobilizedBody::Translation massLessTrans(matter.Ground(), massLessBody);
     MobilizedBody::Gimbal b1(massLessTrans, body);
 
@@ -843,13 +843,13 @@ void testFunctionBasedFreeVsTranslationGimbal() {
     // Set rotation states first
     for (int i = 0; i < nm2b; ++i){
         state.updQ()[i] = state.updQ()[i+nq+nm2a] = 0.0; //random.getValue();
-        state.updU()[i] = state.updU()[i+nq+nm2a] = random.getValue(); 
+        state.updU()[i] = state.updU()[i+nq+nm2a] = random.getValue();
     }
 
     // Set translations states second
     for (int i = 0; i < nm2a; ++i){
         state.updQ()[i+nm2a] = state.updQ()[i+nq] = random.getValue();
-        state.updU()[i+nm2a] = state.updU()[i+nq] = random.getValue(); 
+        state.updU()[i+nm2a] = state.updU()[i+nq] = random.getValue();
     }
 
     system.realize(state, Stage::Acceleration);
@@ -863,7 +863,7 @@ void testFunctionBasedFreeVsTranslationGimbal() {
     SpatialVec A_b1 = b1.getBodyAcceleration(state);
 
     assertEqual(A_fb1, A_b1);
-    
+
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
@@ -875,7 +875,7 @@ void testFunctionBasedFreeVsTranslationGimbal() {
 
     Xfb1 = fb1.getBodyTransform(result);
     Xb1 = b1.getBodyTransform(result);
-    
+
     assertEqual(Xfb1, Xb1);
     assertEqual(fb1.getBodyVelocity(result), b1.getBodyVelocity(result));
 
@@ -897,7 +897,7 @@ void testFunctionBasedFreeVs2FunctionBased() {
     // Set 6 mobilities: rotation and translation about body's X, Y, and then Z axes
     std::vector<bool> isdof1(6,true), isdof2a(6,true), isdof2b(6,true);
 
-    // Just translation 
+    // Just translation
     isdof2a[0] = false;  //rot X
     isdof2a[1] = false;  //rot Y
     isdof2a[2] = false;  //rot Z
@@ -922,11 +922,11 @@ void testFunctionBasedFreeVs2FunctionBased() {
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.8, 0));
     Body::Rigid body(MassProperties(0.1, Vec3(0.25, -0.5, 0.1), Inertia(0.5)));
-   
+
     // One Free-like function-based mmobilizer
     MobilizedBody::FunctionBased fb1(matter.Ground(), body, nm1, functions1, coordIndices1);
 
-    // Two function-based mmobilizers: 2a for translation and 2b for rotation 
+    // Two function-based mmobilizers: 2a for translation and 2b for rotation
     MobilizedBody::FunctionBased massLessfb(matter.Ground(), massLessBody, nm2a, functions2a, coordIndices2a);
     MobilizedBody::FunctionBased fb2(massLessfb, body, nm2b, functions2b, coordIndices2b);
 
@@ -945,13 +945,13 @@ void testFunctionBasedFreeVs2FunctionBased() {
     // Set rotation states first
     for (int i = 0; i < nm2b; ++i){
         state.updQ()[i] = state.updQ()[i+nq+nm2a] = random.getValue();
-        state.updU()[i] = state.updU()[i+nq+nm2a] = random.getValue(); 
+        state.updU()[i] = state.updU()[i+nq+nm2a] = random.getValue();
     }
 
     // Set translations states second
     for (int i = 0; i < nm2a; ++i){
         state.updQ()[i+nm2a] = state.updQ()[i+nq] = random.getValue();
-        state.updU()[i+nm2a] = state.updU()[i+nq] = random.getValue(); 
+        state.updU()[i+nm2a] = state.updU()[i+nq] = random.getValue();
     }
 
     system.realize(state, Stage::Acceleration);
@@ -963,7 +963,7 @@ void testFunctionBasedFreeVs2FunctionBased() {
     SpatialVec A_fb2 = fb2.getBodyAcceleration(state);
 
     assertEqual(A_fb1, A_fb2);
-    
+
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
@@ -975,7 +975,7 @@ void testFunctionBasedFreeVs2FunctionBased() {
 
     Vec3 com_fb1 = fb1.getBodyOriginLocation(result);
     Vec3 com_fb2 = fb2.getBodyOriginLocation(result);
-    
+
     assertEqual(com_fb1, com_fb2);
     assertEqual(fb1.getBodyVelocity(result), fb2.getBodyVelocity(result));
 
@@ -991,7 +991,7 @@ void testFunctionBasedFreeVs2FunctionBased() {
  */
 void testMultipleArguments() {
     // Define the functions that specify the FunctionBased Mobilized Body.
-    
+
     std::vector<std::vector<int> > coordIndices(6);
     std::vector<const Function*> functions(6);
     Vector coeff(3);
@@ -1018,9 +1018,9 @@ void testMultipleArguments() {
     Body::Rigid body(MassProperties(1.0, Vec3(0, -0.5, 0), Inertia(0.5)));
     MobilizedBody::FunctionBased fb(matter.Ground(), body, 2, functions, coordIndices);
     State state = system.realizeTopology();
-    
+
     // See if coordinates and velocities are calculated correctly.
-    
+
     ASSERT(state.getNQ() == 2);
     ASSERT(state.getNU() == 2);
     state.updQ()[0] = 2.0;
@@ -1032,7 +1032,7 @@ void testMultipleArguments() {
     assertEqual(fb.getBodyVelocity(state), SpatialVec(Vec3(0.0), Vec3(0.1+3.0*0.4, 0.25, 0.0)));
 
     // Simulate it.
-    
+
     Real energy = system.calcEnergy(state);
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-8);
@@ -1045,7 +1045,7 @@ void testMultipleArguments() {
 int main() {
     try {
         cout << "FunctionBased MobilizedBodies vs. Built-in Types: " << endl;
-      
+
         testFunctionBasedPin();
         cout << "Pin: Passed" << endl;
 
@@ -1057,7 +1057,7 @@ int main() {
 
         testFunctionBasedSkewedSlider();
         cout << "Skewed Slider: Passed" << endl;
-        
+
         testFunctionBasedCylinder();
         cout << "Cylinder: Passed" << endl;
 

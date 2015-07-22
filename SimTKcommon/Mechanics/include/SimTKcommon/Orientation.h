@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // File:     Orientation.h
-// Class:    None 
+// Class:    None
 // Parent:   None
 // Purpose:  Includes UnitVec3, Quaternion, Rotation, Transform, and related classes
 //-----------------------------------------------------------------------------
@@ -49,7 +49,7 @@
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-// Some handy conversion constants. 
+// Some handy conversion constants.
 // Use templatized inline conversion routines instead whenever possible.
 // These are defined so that you can multiply by them. For example, if you have
 // an angle qRad in radians and want to convert to degrees, write qDeg = qRad*SimTK_RTD.

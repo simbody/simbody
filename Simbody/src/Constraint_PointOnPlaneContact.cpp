@@ -39,8 +39,8 @@ namespace SimTK {
 //==============================================================================
 //                         POINT ON PLANE CONTACT
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnPlaneContact, 
-                                        Constraint::PointOnPlaneContactImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::PointOnPlaneContact,
+                                        Constraint::PointOnPlaneContactImpl,
                                         Constraint);
 
 Constraint::PointOnPlaneContact::PointOnPlaneContact
@@ -155,18 +155,18 @@ calcDecorativeGeometryAndAppendVirtual
 {
     // We can't generate the artwork until we know the frame and follower
     // point location, which might not be until Instance stage.
-    if (   stage == Stage::Instance 
-        && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    if (   stage == Stage::Instance
+        && getMyMatterSubsystemRep().getShowDefaultGeometry())
     {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
 
-        const MobilizedBodyIndex planeMBId = 
+        const MobilizedBodyIndex planeMBId =
             getMobilizedBodyIndexOfConstrainedBody(m_surfaceBody_S);
-        const MobilizedBodyIndex followerMBId = 
+        const MobilizedBodyIndex followerMBId =
             getMobilizedBodyIndexOfConstrainedBody(m_followerBody_B);
 
         if (m_planeHalfWidth > 0 && m_pointRadius > 0) {
-            // On the plane body, draw a gray transparent rectangle, outlined 
+            // On the plane body, draw a gray transparent rectangle, outlined
             // in black lines.
             geom.push_back(DecorativeBrick
                (Vec3(m_planeHalfWidth,m_planeHalfWidth,m_pointRadius/2))

@@ -139,16 +139,16 @@ void ContactGeometry::Torus::Impl::getBoundingSphere
 void ContactGeometry::Torus::Impl::createPolygonalMesh(PolygonalMesh& mesh) const {
     // TODO add resolution argument
     const int numSides = 12; //*resolution;
-    const int numSlices = 36; //*resolution;   
+    const int numSlices = 36; //*resolution;
 
-    // add vertices 
+    // add vertices
     for (int i = 0; i < numSlices; ++i) {
       Real u = Real((i*2*SimTK_PI)/numSlices);
       UnitVec3 e1(std::sin(u), std::cos(u), 0); // torus circle aligned with z-axis (z-axis through hole)
       for (int j = 0; j < numSides; ++j) {
         Real v = Real((j*2*SimTK_PI)/numSides);
-        Vec3 vtx = (torusRadius + tubeRadius*std::cos(v))*e1 + tubeRadius*std::sin(v)*Vec3(0,0,1); // use ZAXIS? 
-        mesh.addVertex(vtx);  
+        Vec3 vtx = (torusRadius + tubeRadius*std::cos(v))*e1 + tubeRadius*std::sin(v)*Vec3(0,0,1); // use ZAXIS?
+        mesh.addVertex(vtx);
       }
     }
 
@@ -163,7 +163,7 @@ void ContactGeometry::Torus::Impl::createPolygonalMesh(PolygonalMesh& mesh) cons
       faceIndices.push_back((i+1)%numVertices); // u_i, v_i+1
       faceIndices.push_back((i+1+numSides)%numVertices); // u_i+1, v_i+1
       faceIndices.push_back((i+numSides)%numVertices); // u_i+1, v_i
-      mesh.addFace(faceIndices);    
+      mesh.addFace(faceIndices);
     }
 
 }

@@ -36,7 +36,7 @@ using std::cout; using std::endl;
 using namespace SimTK;
 
 // We keep a list of all the ContactSurfaces being tracked by this
-// subsystem, and a separate list of "bubble wrap" spheres that are 
+// subsystem, and a separate list of "bubble wrap" spheres that are
 // used in broad phase determination of which contact surfaces need
 // to be examined more closely by ContactTracker objects.
 
@@ -70,10 +70,10 @@ static std::ostream& operator<<(std::ostream& o, const Bubble& bb) {
 // For spatial sorting of bubbles.
 class BubbleExtent {
 public:
-    BubbleExtent(Real start, Real end, BubbleIndex index) 
+    BubbleExtent(Real start, Real end, BubbleIndex index)
     :   start(start), end(end), index(index) {}
     BubbleExtent() {}
-    bool operator<(const BubbleExtent& e) const 
+    bool operator<(const BubbleExtent& e) const
     {   return start < e.start; }
     Real        start, end; // span along chosen sort axis
     BubbleIndex index;
@@ -89,7 +89,7 @@ typedef std::map< pair<ContactGeometryTypeId,ContactGeometryTypeId>,
 // This type maps a contact surface onto a set of all the higher-numbered
 // contact surfaces it might be touching, and for each of those we keep
 // a pointer to that pair's Contact object if it is currently being tracked
-// (null if it is new). You must use the *lower* numbered surface as the key 
+// (null if it is new). You must use the *lower* numbered surface as the key
 // when inserting a pair so that any given pair of surfaces appears just once.
 // However, the surface order in the Contact object will be determined by
 // the order required by the corresponding tracker.
@@ -153,7 +153,7 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     // The map itself gets deleted automatically.
 }
 
-ContactTrackerSubsystemImpl* cloneImpl() const 
+ContactTrackerSubsystemImpl* cloneImpl() const
 {   return new ContactTrackerSubsystemImpl(*this); }
 
 void adoptContactTracker(ContactTracker* tracker) {
@@ -168,12 +168,12 @@ void adoptContactTracker(ContactTracker* tracker) {
 }
 
 // Return the MultibodySystem which owns this ContactTrackerSubsystem.
-const MultibodySystem& getMultibodySystem() const 
+const MultibodySystem& getMultibodySystem() const
 {   return MultibodySystem::downcast(getSystem()); }
 
 // Return the SimbodyMatterSubsystem from which this ContactTrackerSubsystem
 // gets the bodies to track.
-const SimbodyMatterSubsystem& getMatterSubsystem() const 
+const SimbodyMatterSubsystem& getMatterSubsystem() const
 {   return getMultibodySystem().getMatterSubsystem(); }
 
 // Get access to state variables and cache entries.
@@ -216,13 +216,13 @@ ContactSnapshot& updNextPredictedContacts(const State& state) const {
 int realizeSubsystemTopologyImpl(State& state) const {
     // Briefly allow writing into the Topology cache; after this the
     // Topology cache is const.
-    ContactTrackerSubsystemImpl* wThis = 
+    ContactTrackerSubsystemImpl* wThis =
         const_cast<ContactTrackerSubsystemImpl*>(this);
     wThis->m_activeContactsIx = allocateAutoUpdateDiscreteVariable
-        (state, Stage::Dynamics, new Value<ContactSnapshot>(), 
+        (state, Stage::Dynamics, new Value<ContactSnapshot>(),
          Stage::Position);      // update depends on positions
     wThis->m_predictedContactsIx = allocateAutoUpdateDiscreteVariable
-        (state, Stage::Dynamics, new Value<ContactSnapshot>(), 
+        (state, Stage::Dynamics, new Value<ContactSnapshot>(),
          Stage::Acceleration);  // update depends on accelerations
 
     const SimbodyMatterSubsystem& matter = getMatterSubsystem();
@@ -240,7 +240,7 @@ int realizeSubsystemTopologyImpl(State& state) const {
         const MobilizedBody& mobod  = matter.getMobilizedBody(mbx);
         const Body&          body   = mobod.getBody();
         const int            nSurfs = body.getNumContactSurfaces();
-        const ContactSurfaceIndex firstIx = 
+        const ContactSurfaceIndex firstIx =
             nSurfs ? ContactSurfaceIndex(m_surfaces.size())
                    : InvalidContactSurfaceIndex;
         wThis->m_mobodContactSurfaceIndex[mbx] = make_pair(firstIx,nSurfs);
@@ -248,7 +248,7 @@ int realizeSubsystemTopologyImpl(State& state) const {
             const ContactSurfaceIndex surfx(firstIx + i);
             wThis->m_surfaces.push_back(); // default construct
             Surface& surf = wThis->m_surfaces.back();
-            surf.mobod   = &mobod; 
+            surf.mobod   = &mobod;
             surf.surface = &body.getContactSurface(i);
             assert(surf.surface->getIndexOnBody() == i);
             surf.X_BS    =  body.getContactSurfaceTransform(i);
@@ -256,7 +256,7 @@ int realizeSubsystemTopologyImpl(State& state) const {
             // for each bubble:
             wThis->m_bubbles.push_back(); // default construct
             Bubble& bubble = wThis->m_bubbles.back();
-            Vec3 center_S; 
+            Vec3 center_S;
             geo.getBoundingSphere(center_S, bubble.updRadius());
             bubble.updCenter() = surf.X_BS*center_S; // in B
             bubble.surface = surfx;
@@ -277,17 +277,17 @@ int realizeSubsystemVelocityImpl(const State& state) const {
 // Adds new pairs to the existing set, if not already present.
 void addInBroadPhasePairs(const State& state, PairMap& pairs) const {
     const int numBubbles = getNumBubbles();
-    
-    // Perform a sweep-and-prune on a single axis to identify potential 
-    // contacts. First, find which axis has the most variation in body 
+
+    // Perform a sweep-and-prune on a single axis to identify potential
+    // contacts. First, find which axis has the most variation in body
     // locations. That is the axis we will use.
     // TODO: this one-axis method is not good enough in general
-    
+
     Vector_<Vec3> centers(numBubbles);
     for (BubbleIndex bbx(0); bbx < numBubbles; ++bbx) {
         const Bubble&  bubb = m_bubbles[bbx];
         const Surface& surf = m_surfaces[bubb.surface];
-        centers[bbx] = surf.mobod->getBodyTransform(state) 
+        centers[bbx] = surf.mobod->getBodyTransform(state)
                         * bubb.getCenter();
     }
     Vec3 average = mean(centers);
@@ -297,8 +297,8 @@ void addInBroadPhasePairs(const State& state, PairMap& pairs) const {
     int axis = (var[0] > var[1] ? 0 : 1);
     if (var[2] > var[axis])
         axis = 2;
-    
-    // Find the extent of each bubble along the axis and sort them by 
+
+    // Find the extent of each bubble along the axis and sort them by
     // starting location.
     Array_<BubbleExtent,int> extents(numBubbles);
     for (BubbleIndex bbx(0); bbx < numBubbles; ++bbx) {
@@ -310,9 +310,9 @@ void addInBroadPhasePairs(const State& state, PairMap& pairs) const {
 
     // Expensive: O(n log n)
     std::sort(extents.begin(), extents.end());
-    
+
     // Now sweep along the axis, finding potential contacts.
-    
+
     for (int ex1=0; ex1 < numBubbles; ++ex1) {
         const BubbleExtent& extent1 = extents[ex1];
         const Bubble&       bubb1   = m_bubbles[extent1.index];
@@ -387,7 +387,7 @@ void ensureActiveContactsUpdated(const State& state) const {
     PairMap interesting;
     for (int i=0; i < active.getNumContacts(); ++i) {
         const Contact& contact = active.getContact(i);
-        ContactSurfaceIndex low=contact.getSurface1(), 
+        ContactSurfaceIndex low=contact.getSurface1(),
                             high=contact.getSurface2();
         if (low > high) std::swap(low,high);
         ContactSurfaceSet& others = interesting[low];
@@ -396,7 +396,7 @@ void ensureActiveContactsUpdated(const State& state) const {
     }
     for (int i=0; i < predicted.getNumContacts(); ++i) {
         const Contact& contact = predicted.getContact(i);
-        ContactSurfaceIndex low=contact.getSurface1(), 
+        ContactSurfaceIndex low=contact.getSurface1(),
                             high=contact.getSurface2();
         if (low > high) std::swap(low,high);
         ContactSurfaceSet& others = interesting[low];
@@ -411,7 +411,7 @@ void ensureActiveContactsUpdated(const State& state) const {
     PairMap::const_iterator p = interesting.begin();
     for (; p != interesting.end(); ++p) {
         const ContactSurfaceIndex index1 = p->first;
-        const Transform transform1 = 
+        const Transform transform1 =
             m_surfaces[index1].mobod->getBodyTransform(state)
                 * m_surfaces[index1].X_BS;
         const ContactGeometry& geom1 = m_surfaces[index1].surface->getShape();
@@ -421,16 +421,16 @@ void ensureActiveContactsUpdated(const State& state) const {
         ContactSurfaceSet::const_iterator q = others.begin();
         for (; q != others.end(); ++q) {
             const ContactSurfaceIndex index2 = q->first;
-            const Transform transform2 = 
+            const Transform transform2 =
                 m_surfaces[index2].mobod->getBodyTransform(state)
                     * m_surfaces[index2].X_BS;
-            const ContactGeometry& geom2 = 
+            const ContactGeometry& geom2 =
                 m_surfaces[index2].surface->getShape();
             const ContactGeometryTypeId typeId2 = geom2.getTypeId();
             if (!hasContactTracker(typeId1,typeId2))
                 continue; // No algorithm available for detecting collisions between these two objects.
             bool mustReverse;
-            const ContactTracker& tracker = 
+            const ContactTracker& tracker =
                 getContactTracker(typeId1, typeId2, mustReverse);
 
             // Put the surfaces in the order required by the tracker.
@@ -441,7 +441,7 @@ void ensureActiveContactsUpdated(const State& state) const {
             const Contact* prev = q->second;
             if (prev && prev->getCondition() == Contact::Broken)
                 prev = 0; // that contact expired
-            if (!prev) { 
+            if (!prev) {
                 untracked = UntrackedContact(trackSurf1, trackSurf2);
                 prev = &untracked;
             }
@@ -483,7 +483,7 @@ void ensureActiveContactsUpdated(const State& state) const {
 //   - The previously-known set of impending contacts
 //   - The current contact surface positions, velocities, and accelerations
 // The active contact update cannot be modified here although we can
-// initiate its computation if it hasn't been done yet; after that it is 
+// initiate its computation if it hasn't been done yet; after that it is
 // frozen.
 //
 // Algorithm:
@@ -493,7 +493,7 @@ void ensureActiveContactsUpdated(const State& state) const {
 //      updNextImpendingContact(surf1,surf2) = next  (might be empty)
 //   "interesting" means not currently active and:
 //      - previously impending, or
-//      - fast(surf1)||fast(surf2) and 
+//      - fast(surf1)||fast(surf2) and
 //           fast object broad phase projected bounds intersect
 void ensurePredictedContactsUpdated(const State& state) const {
     if (isDiscreteVarUpdateValueRealized(state, m_predictedContactsIx))
@@ -516,16 +516,16 @@ int realizeSubsystemAccelerationImpl(const State& state) const {
     return 0;
 }
 
-bool hasContactTracker(ContactGeometryTypeId id1, 
-                       ContactGeometryTypeId id2) const 
+bool hasContactTracker(ContactGeometryTypeId id1,
+                       ContactGeometryTypeId id2) const
 {   if (id1 > id2) std::swap(id1,id2); // (low,high) order for lookup
     return m_contactTrackers.find(make_pair(id1,id2))
                 != m_contactTrackers.end();
 }
 
-const ContactTracker& 
+const ContactTracker&
 getContactTracker(ContactGeometryTypeId id1, ContactGeometryTypeId id2,
-                  bool& mustReverse) const 
+                  bool& mustReverse) const
 {   const bool inputSwapped = id1 > id2;
     if (inputSwapped) std::swap(id1,id2); // (low,high) order for lookup
     TrackerMap::const_iterator p = m_contactTrackers.find(make_pair(id1,id2));
@@ -549,14 +549,14 @@ getContactTracker(ContactGeometryTypeId id1, ContactGeometryTypeId id2,
 int getNumSurfaces() const {return m_surfaces.size();}
 int getNumBubbles()  const {return m_bubbles.size();}
 
-ContactSurfaceIndex getContactSurfaceIndex(MobilizedBodyIndex mobod, 
+ContactSurfaceIndex getContactSurfaceIndex(MobilizedBodyIndex mobod,
                                            int contactSurfaceOrdinal) const
 {
     const int nMobods = (int)m_mobodContactSurfaceIndex.size();
     SimTK_ERRCHK1_ALWAYS(mobod.isValid() && mobod < nMobods,
         "ContactTrackerSubsystem::getContactSurfaceIndex()",
         "Illegal mobilized body index %d.", (int)mobod);
-    const pair<ContactSurfaceIndex,int>& 
+    const pair<ContactSurfaceIndex,int>&
         info = m_mobodContactSurfaceIndex[mobod];
     const int nSurfaces = info.second;
     SimTK_ERRCHK3_ALWAYS(
@@ -575,9 +575,9 @@ friend class ContactTrackerSubsystem;
 
     // TOPOLOGY STATE
 // Always order the key with the lower numbered geometry type first but
-// if that is the reverse from how the tracker is defined then the bool 
+// if that is the reverse from how the tracker is defined then the bool
 // should be set to true meaning "reverse arguments".
-// This map owns the heap space for the ContactTrackers; be sure to 
+// This map owns the heap space for the ContactTrackers; be sure to
 // delete it when replacing or destructing.
 TrackerMap          m_contactTrackers;
 ContactTracker*     m_defaultTracker;
@@ -585,7 +585,7 @@ ContactTracker*     m_defaultTracker;
     // TOPOLOGY CACHE
 // The pair is the first assigned index, and the number of contact surfaces
 // for a mobod, at last realizeSubsystemTopology() call.
-Array_<pair<ContactSurfaceIndex,int>, MobilizedBodyIndex>  
+Array_<pair<ContactSurfaceIndex,int>, MobilizedBodyIndex>
                                         m_mobodContactSurfaceIndex;
 Array_<Surface,ContactSurfaceIndex>     m_surfaces;
 Array_<Bubble,BubbleIndex>              m_bubbles;
@@ -625,12 +625,12 @@ updImpl() {
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use
-// except for making std::vectors, which require a default constructor to be 
+// except for making std::vectors, which require a default constructor to be
 // available.
-ContactTrackerSubsystem::ContactTrackerSubsystem() 
+ContactTrackerSubsystem::ContactTrackerSubsystem()
 {   adoptSubsystemGuts(new ContactTrackerSubsystemImpl()); }
 
-ContactTrackerSubsystem::ContactTrackerSubsystem(MultibodySystem& mbs) 
+ContactTrackerSubsystem::ContactTrackerSubsystem(MultibodySystem& mbs)
 {   adoptSubsystemGuts(new ContactTrackerSubsystemImpl());
     mbs.adoptSubsystem(*this); } // steal ownership
 
@@ -650,7 +650,7 @@ getContactSurfaceTransform(ContactSurfaceIndex surfIx) const
 {   return getImpl().m_surfaces[surfIx].X_BS; }
 
 ContactSurfaceIndex ContactTrackerSubsystem::
-getContactSurfaceIndex(MobilizedBodyIndex mobod, 
+getContactSurfaceIndex(MobilizedBodyIndex mobod,
                        int contactSurfaceOrdinal) const
 {   return getImpl().getContactSurfaceIndex(mobod,contactSurfaceOrdinal); }
 
@@ -659,12 +659,12 @@ adoptContactTracker(ContactTracker* tracker)
 {   updImpl().adoptContactTracker(tracker); }
 
 bool ContactTrackerSubsystem::
-hasContactTracker(ContactGeometryTypeId surface1, 
+hasContactTracker(ContactGeometryTypeId surface1,
                   ContactGeometryTypeId surface2) const
 {   return getImpl().hasContactTracker(surface1,surface2); }
 
 const ContactTracker& ContactTrackerSubsystem::
-getContactTracker(ContactGeometryTypeId surface1, 
+getContactTracker(ContactGeometryTypeId surface1,
                   ContactGeometryTypeId surface2,
                   bool& reverseOrder) const
 {   return getImpl().getContactTracker(surface1,surface2,reverseOrder); }
@@ -692,7 +692,7 @@ getPredictedContacts(const State& state) const {
 }
 
 bool ContactTrackerSubsystem::
-realizeActiveContacts(const State& state, 
+realizeActiveContacts(const State& state,
                       bool         lastTry,
                       Real&        stepAdvice) const
 {   // TODO: errors and step advice
@@ -701,7 +701,7 @@ realizeActiveContacts(const State& state,
 }
 
 bool ContactTrackerSubsystem::
-realizePredictedContacts(const State& state, 
+realizePredictedContacts(const State& state,
                          bool         lastTry,
                          Real&        stepAdvice) const
 {   // TODO: errors and step advice

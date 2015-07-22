@@ -40,21 +40,21 @@ What this example demonstrates
    so that discontinuous speed changes are made consistent with Newton's laws.
 4. Integrating with a small maximum step size, using just an Integrator
    without a TimeStepper to handle events.
-5. Manually checking for events between integration steps, and handling 
+5. Manually checking for events between integration steps, and handling
    those events by making state changes before resuming integration.
 6. Creating sliders, menus, and screen text in the Visualizer.
 
-The advantages of using an intermittent Motion to implement this motor are: 
+The advantages of using an intermittent Motion to implement this motor are:
 (1) perfect speed tracking while the Motion is enabled, (2) no need to choose
 control gains, and (3) fastest execution time since there are no stiff forces
-and no Constraints. The primary disadvantage is coding the logic needed for 
-making the switch between speed controlled and torque controlled operation and 
-back. Here we are simplifying that by looking for transitions only at discrete 
+and no Constraints. The primary disadvantage is coding the logic needed for
+making the switch between speed controlled and torque controlled operation and
+back. Here we are simplifying that by looking for transitions only at discrete
 times rather than having the integrator isolate the event occurrence precisely.
 As a consequence, we have to deal with potentially large discrete state changes.
-This could be ignored in some low-accuracy applications, but for physically 
-consistent discrete velocity changes we need to perform an impulse ("momentum 
-balance") analysis to ensure that the sudden change is consistent with a 
+This could be ignored in some low-accuracy applications, but for physically
+consistent discrete velocity changes we need to perform an impulse ("momentum
+balance") analysis to ensure that the sudden change is consistent with a
 physical impact. You can undefine MOMENTUM_BALANCE below to disable this.
 
 Strategy used here
@@ -63,14 +63,14 @@ Assume initially that we can control speed and use the prescribed Motion
 element. Then prior to each small integration step:
 1. If speed control is active: Monitor the required torque; if it exceeds the
    limit then turn off the Motion and turn on the constant-torque force
-   element, applying the torque in the same direction that the excessive 
-   prescribed motion torque would have been applied (opposing the impending 
+   element, applying the torque in the same direction that the excessive
+   prescribed motion torque would have been applied (opposing the impending
    speed error).
-2. If torque control is active: Monitor the speed error. When the applied 
+2. If torque control is active: Monitor the speed error. When the applied
    torque is in the same direction as the error (meaning it is making the error
    worse), the speed must have gone from too slow to too fast or vice versa. Try
-   matching the speed and activating the speed lock. If the required torque is 
-   within range, enable speed control. Otherwise, correct the direction of the 
+   matching the speed and activating the speed lock. If the required torque is
+   within range, enable speed control. Otherwise, correct the direction of the
    applied torque to oppose the speed error and remain in torque control.
 3. Periodically update the Visualizer display and poll for user input. A user
    change to the desired speed always changes us to torque control until the
@@ -79,28 +79,28 @@ element. Then prior to each small integration step:
 Alternative strategies
 ----------------------
 1. Because we're checking for events only between steps, our choice of step size
-here limits how accurately we can isolate the transition events between speed- 
+here limits how accurately we can isolate the transition events between speed-
 and torque-control modes, requiring a small maximum step size for good event
-isolation. An alternative strategy is to let the integrator take whatever steps 
+isolation. An alternative strategy is to let the integrator take whatever steps
 it wants but use a TimeStepper and event witness functions to automatically
 isolate events when they occur. That would allow much larger steps and better
 event isolation.
-2. A simpler implementation is to use only a force element to implement the 
+2. A simpler implementation is to use only a force element to implement the
 motor, with a controller to generate the appropriate output torque to track a
 desired speed, with a limit set. This method is illustrated in the companion
-Simbody example ExampleMotor-TorqueLimited-Controller. This eliminates the need 
-for any switching logic so makes for a simpler flow of control. However, 
-depending on the control gains it may fail to track the desired speed well, or 
+Simbody example ExampleMotor-TorqueLimited-Controller. This eliminates the need
+for any switching logic so makes for a simpler flow of control. However,
+depending on the control gains it may fail to track the desired speed well, or
 may make the problem stiff causing the integrator to require smaller time steps.
-3. You can use a Constraint element \e added to the system instead of 
-prescribing the mobilizer motion with a Motion element. Constraints are more 
+3. You can use a Constraint element \e added to the system instead of
+prescribing the mobilizer motion with a Motion element. Constraints are more
 flexible in general (for example you can constrain just one coordinate of a
-multi-dof mobilizer), but for systems where prescribed motion can work it is 
+multi-dof mobilizer), but for systems where prescribed motion can work it is
 always faster. You can see this done with a Constraint in the companion example
 ExampleMotor-TorqueLimited-Constraint.
 */
 
-// Comment this out to allow enabling speed control (causing some speed 
+// Comment this out to allow enabling speed control (causing some speed
 // discontinuity) without performing an impulse analysis to conserve momentum
 // across the speed change.
 #define MOMENTUM_BALANCE
@@ -134,11 +134,11 @@ public:
     const MultibodySystem& getSystem() const {return m_system;}
     const State& getDefaultState()     const {return m_system.getDefaultState();}
 
-    Real getDesiredSpeed(const State& state) const 
+    Real getDesiredSpeed(const State& state) const
     {   return m_speedController.getOneRate(state, MobilizerUIndex(0)); }
     Real getTorqueLimit(const State& state) const
     {   return std::abs(m_torqueController.getForce(state)); }
-    Real getActualSpeed(const State& state) const 
+    Real getActualSpeed(const State& state) const
     {   return m_rtArm.getOneU(state, MobilizerUIndex(0)); }
     Real getSpeedError(const State& state) const
     {   return getActualSpeed(state) - getDesiredSpeed(state); }
@@ -156,15 +156,15 @@ public:
     }
 
     // Return true if speed control in effect; otherwise it's torque control.
-    bool isSpeedControlEnabled(const State& state) const 
+    bool isSpeedControlEnabled(const State& state) const
     {   return !m_speedController.isDisabled(state); }
 
-    // Switch from speed control to torque control. This leaves velocity 
+    // Switch from speed control to torque control. This leaves velocity
     // unchanged but causes a reduction in motor torque. It always succeeds.
     void switchToTorqueControl(State& state) const;
 
     // Turn on speed control if possible, meaning that the acceleration can be
-    // made zero with torque below the limit. If the actual and desired 
+    // made zero with torque below the limit. If the actual and desired
     // speeds don't match exactly, then we must make an impulsive speed change
     // that needs to be momentum balanced.
     void tryToSwitchToSpeedControl(State& state) const;
@@ -217,7 +217,7 @@ int main() {
 
     // We're forcing very small step sizes so should use very low order
     // integration and loose accuracy. We must prevent interpolation so that the
-    // state returned after each step is the integrator's "advanced state", 
+    // state returned after each step is the integrator's "advanced state",
     // which is modifiable, in case we need to make a state change.
     SemiExplicitEuler2Integrator integ(mech.getSystem());
     integ.setAccuracy(Real(1e-1)); // 10%
@@ -226,7 +226,7 @@ int main() {
     integ.initialize(mech.getDefaultState());
     unsigned stepNum = 0;
     while (true) {
-        // Get access to State being advanced by the integrator. Interpolation 
+        // Get access to State being advanced by the integrator. Interpolation
         // must be off so that we're modifying the actual trajectory.
         State& state = integ.updAdvancedState();
 
@@ -234,7 +234,7 @@ int main() {
         if (stepNum % DrawEveryN == 0)
             mech.draw(state);
 
-        // Check for user input periodically. 
+        // Check for user input periodically.
         if (stepNum % PollUserEveryN == 0 && mech.processUserInput(state))
             break; // stop if user picked Quit from the Run menu
 
@@ -242,10 +242,10 @@ int main() {
         const Real trqNow = mech.getMotorTorque(state);
         if (mech.isSpeedControlEnabled(state)) {
            if (std::abs(trqNow) > mech.getTorqueLimit(state)) {
-                printf("\n%d: SWITCH TO TORQUE CONTROL cuz trqNow=%g\n", 
+                printf("\n%d: SWITCH TO TORQUE CONTROL cuz trqNow=%g\n",
                        stepNum, trqNow);
                 mech.switchToTorqueControl(state);
-           } 
+           }
         } else { // Currently limiting torque.
             // If the torque is now in the same direction as the error, try
             // to switch back to speed control. If that doesn't work we'll at
@@ -258,7 +258,7 @@ int main() {
             }
         }
 
-        // Advance time by MaxStepSize. Might take multiple internal steps to 
+        // Advance time by MaxStepSize. Might take multiple internal steps to
         // get there, depending on required accuracy.
         integ.stepBy(MaxStepSize);
         ++stepNum;
@@ -281,8 +281,8 @@ int main() {
 //==============================================================================
 
 //------------------------------- CONSTRUCTOR ----------------------------------
-MyMechanism::MyMechanism() 
-:   m_system(), m_matter(m_system), m_forces(m_system), m_viz(m_system), 
+MyMechanism::MyMechanism()
+:   m_system(), m_matter(m_system), m_forces(m_system), m_viz(m_system),
     m_userInput(0)
 {
     constructSystem();
@@ -309,7 +309,7 @@ void MyMechanism::constructSystem() {
     Force::MobilityLinearDamper(m_forces, m_rtArm,   MobilizerUIndex(0), 10);
 
     // Add a joint stop to the left arm restricting it to q in [0,Pi/5].
-    Force::MobilityLinearStop(m_forces, m_leftArm, MobilizerQIndex(0), 
+    Force::MobilityLinearStop(m_forces, m_leftArm, MobilizerQIndex(0),
         StopStiffness, StopDissipation,
         -Pi/8,   // lower stop
          Pi/8);  // upper stop
@@ -318,7 +318,7 @@ void MyMechanism::constructSystem() {
     m_speedController = Motion::Steady(m_rtArm, InitialMotorSpeed);
 
     // This is used when we're at the maximum torque.
-    m_torqueController = Force::MobilityConstantForce(m_forces, m_rtArm, 
+    m_torqueController = Force::MobilityConstantForce(m_forces, m_rtArm,
                                                       InitialTorqueLimit);
     m_torqueController.setDisabledByDefault(true);
 
@@ -334,7 +334,7 @@ void MyMechanism::switchToTorqueControl(State& state) const {
 
     const Real oldTrq = getMotorTorque(state);
     const Real newTrq = sign(oldTrq)*getTorqueLimit(state);
-    printf("  switchToTorqueControl(): change torque from %g -> %g\n", 
+    printf("  switchToTorqueControl(): change torque from %g -> %g\n",
         oldTrq, newTrq);
 
     m_speedController.disable(state);
@@ -348,7 +348,7 @@ void MyMechanism::switchToTorqueControl(State& state) const {
 // If the actual speed and desired speed don't match, this will first require
 // an impulsive change to the speed. We'll perform a momentum balance analysis
 // here to calculate system wide velocity changes that will satisfy f=ma.
-// To do that we'll set the desired deltaV as though it were a prescribed 
+// To do that we'll set the desired deltaV as though it were a prescribed
 // acceleration, then use the calcAcceleration() operator with all velocities
 // set to zero to calculate the overall deltaU needed to conserve momentum
 // across the impulsive velocity change.
@@ -358,10 +358,10 @@ void MyMechanism::switchToTorqueControl(State& state) const {
 // and switch back to torque control, but with the torque applied in the same
 // direction as the excessive prescribed motion torque would have been.
 //
-// (Actually for a Ground-attached 
-// system we won't be able to conserve linear momentum but the angular 
+// (Actually for a Ground-attached
+// system we won't be able to conserve linear momentum but the angular
 // momentum about the ground origin is conserved. If you want to see linear
-// momentum conserved as well, make the system free flying by changing 
+// momentum conserved as well, make the system free flying by changing
 // the bodyT mobilizer from Pin to Planar. You'll also want to turn off gravity
 // in that case so the system will stay where you can see it.)
 void MyMechanism::tryToSwitchToSpeedControl(State& state) const {
@@ -370,7 +370,7 @@ void MyMechanism::tryToSwitchToSpeedControl(State& state) const {
     const Real curSpeed = getActualSpeed(state);
     const Real desSpeed = getDesiredSpeed(state);
     const Real deltaV   = desSpeed - curSpeed;
-    printf("  tryToSwitchToSpeedControl(): torque now is %g, speed err=%g\n", 
+    printf("  tryToSwitchToSpeedControl(): torque now is %g, speed err=%g\n",
         getMotorTorque(state), -deltaV);
 
     m_system.realize(state, Stage::Velocity);
@@ -399,7 +399,7 @@ void MyMechanism::tryToSwitchToSpeedControl(State& state) const {
         m_system.realize(state, Stage::Dynamics);
 
         // Don't apply any forces.
-        const Vector mobForces(m_matter.getNumMobilities(), Real(0)); 
+        const Vector mobForces(m_matter.getNumMobilities(), Real(0));
         const Vector_<SpatialVec> bodyForces(m_matter.getNumBodies(),
                                              SpatialVec(Vec3(0)));
         Vector_<SpatialVec> A_GB; // unneeded output
@@ -443,9 +443,9 @@ void MyMechanism::tryToSwitchToSpeedControl(State& state) const {
 
 //--------------------------- CHANGE DESIRED SPEED -----------------------------
 // The user has specified a new desired motor speed. This always requires a
-// switch to torque control if we're in speed control now, because an 
-// instantaneous speed change would require an infinite torque. The torque 
-// direction depends on whether the new desired speed is larger or smaller than 
+// switch to torque control if we're in speed control now, because an
+// instantaneous speed change would require an infinite torque. The torque
+// direction depends on whether the new desired speed is larger or smaller than
 // the current actual speed.
 void MyMechanism::changeDesiredSpeed(State& state, Real newDesiredSpeed) const {
     const Real actualSpeed = getActualSpeed(state);
@@ -489,7 +489,7 @@ void MyMechanism::changeTorqueLimit(State& state, Real newTorqueLimit) const {
 namespace {
 // Constants for the user interaction widgets.
 // Ids for the sliders.
-const int SliderIdMotorSpeed = 1, SliderIdTorqueLimit = 2, 
+const int SliderIdMotorSpeed = 1, SliderIdTorqueLimit = 2,
           SliderIdTach = 3, SliderIdTorque = 4; // these two are used for output
 // Ids for things on the Run Menu.
 const int MenuIdRun = 1;
@@ -509,17 +509,17 @@ bool MyMechanism::processUserInput(State& state) const {
             break;
         case SliderIdTorqueLimit:
             changeTorqueLimit(state, newValue);
-            m_viz.setSliderRange(SliderIdTorque, -newValue, newValue); 
+            m_viz.setSliderRange(SliderIdTorque, -newValue, newValue);
             break;
         }
     }
 
     // Was there a menu pick?
     if (m_userInput->takeMenuPick(whichMenu, whichItem)) {
-        if (whichItem == QuitItem) 
+        if (whichItem == QuitItem)
             return true; // done
 
-        // If Reset, stop the motor and zero out all the q's and u's. 
+        // If Reset, stop the motor and zero out all the q's and u's.
         // Tell visualizer to update the sliders to match.
         if (whichItem == ResetItem) {
             // Don't momentum balance here!
@@ -529,8 +529,8 @@ bool MyMechanism::processUserInput(State& state) const {
 
             m_torqueController.setForce(state, InitialTorqueLimit);
             m_viz.setSliderValue(SliderIdTorqueLimit, InitialTorqueLimit)
-                 .setSliderRange(SliderIdTorque, -InitialTorqueLimit, 
-                                                  InitialTorqueLimit) 
+                 .setSliderRange(SliderIdTorque, -InitialTorqueLimit,
+                                                  InitialTorqueLimit)
                  .setSliderValue(SliderIdTorque, 0);
 
             state.updQ() = 0; // all positions to zero
@@ -539,7 +539,7 @@ bool MyMechanism::processUserInput(State& state) const {
             m_system.projectU(state);
         }
     }
-    
+
     return false; // keep going
 }
 
@@ -551,7 +551,7 @@ class ShowStuff : public DecorationGenerator {
 public:
     ShowStuff(const MyMechanism& mech) : m_mech(mech) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         DecorativeText msg;
@@ -559,7 +559,7 @@ public:
         if (m_mech.isSpeedControlEnabled(state))
             msg.setText("OK");
         else
-            msg.setText("TORQUE LIMITED err=" 
+            msg.setText("TORQUE LIMITED err="
                          + String(m_mech.getSpeedError(state), "%.2g"));
         geometry.push_back(msg);
     }
@@ -574,13 +574,13 @@ void MyMechanism::setUpVisualizer() {
          .setBackgroundType(Visualizer::SolidColor); // turn off Ground & Sky
 
     // Add sliders.
-    m_viz.addSlider("Motor speed", SliderIdMotorSpeed, 
+    m_viz.addSlider("Motor speed", SliderIdMotorSpeed,
                     -MaxMotorSpeed, MaxMotorSpeed, InitialMotorSpeed)
-         .addSlider("Torque limit", SliderIdTorqueLimit, 
+         .addSlider("Torque limit", SliderIdTorqueLimit,
                     0, MaxTorqueLimit, InitialTorqueLimit)
-         .addSlider("Tach",   SliderIdTach,   
+         .addSlider("Tach",   SliderIdTach,
                     -MaxMotorSpeed,  MaxMotorSpeed,  0)
-         .addSlider("Torque", SliderIdTorque, 
+         .addSlider("Torque", SliderIdTorque,
                     -InitialTorqueLimit, InitialTorqueLimit, 0);
 
     // Add Run menu.
@@ -613,17 +613,17 @@ void MyMechanism::draw(const State& state) const {
 namespace {
 void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }
 }

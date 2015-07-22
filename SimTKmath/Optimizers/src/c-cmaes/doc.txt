@@ -1,4 +1,4 @@
-GENERAL PURPOSE: 
+GENERAL PURPOSE:
 The CMA-ES (Evolution Strategy with Covariance Matrix Adaptation) is a
 robust search/optimization method. The goal is to minimize a given
 objective function, f: R^N -> R.  The CMA-ES should be applied, if
@@ -13,7 +13,7 @@ sometimes faster, but less robust than CMA-ES.  On considerably hard
 problems the search (a single run) is expected to take between 100*N
 and 300*N^2 function evaluations. But you might be lucky...
 
-APPLICATION REMARK: 
+APPLICATION REMARK:
 
 The adaptation of the covariance matrix (e.g. by the CMA) is
 equivalent to a general linear transformation of the problem

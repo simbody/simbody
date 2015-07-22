@@ -28,7 +28,7 @@ in setting up the problem than you would expect for just an ODE. However, you
 can use the framework supplied here for any simple ODE, and you can easily
 extend it to integrate DAEs (ODEs + constraints) if you need to do so. */
 
-// We need only the SimTKmath (and implicitly, SimTKcommon) declarations since 
+// We need only the SimTKmath (and implicitly, SimTKcommon) declarations since
 // we're not doing any multibody dynamics here.
 #include "SimTKmath.h"
 
@@ -61,7 +61,7 @@ Real analyticIntegral(const SomeStuff& stuff, Real t) {
 }
 
 // This class has the form required by the Simbody integrators; that is, it
-// is a SimTK::System. It calls myFunction() to calculate its state derivative. 
+// is a SimTK::System. It calls myFunction() to calculate its state derivative.
 // It is defined after the main program below.
 class MySystem : public System {
 public:
@@ -75,7 +75,7 @@ const Real reportInterval = 0.1;
 int main () {
     try {
         SomeStuff myStuff; // constant data to pass to myFunction()
-        myStuff.w = Pi/2; 
+        myStuff.w = Pi/2;
         MySystem sys(myStuff);
         State initState = sys.realizeTopology();
         initState.setTime(startTime);
@@ -96,7 +96,7 @@ int main () {
         // taking as many steps as necessary to get there with the specified
         // accuracy.
         //integ.setReturnEveryInternalStep(true);
-        
+
         initState.setTime(startTime);
         integ.initialize(initState);
 
@@ -106,11 +106,11 @@ int main () {
         while (true) {
             const Real prevT = integ.getTime();
 
-            // To get evenly-spaced reporting intervals, disable 
+            // To get evenly-spaced reporting intervals, disable
             // returnEveryInternalStep above and use this line.
             status = integ.stepTo(prevT + reportInterval);
 
-            // Use this for variable step output, along with setting 
+            // Use this for variable step output, along with setting
             // returnEveryInternalStep above.
             // status = integ.stepTo(Infinity);
 
@@ -131,9 +131,9 @@ int main () {
 
         std::printf("\nDone. Used %s with %d function calls.\n",
             integ.getMethodName(), integ.getNumRealizations());
-        std::printf("  %d steps taken out of %d attempted.\n", 
+        std::printf("  %d steps taken out of %d attempted.\n",
             integ.getNumStepsTaken(), integ.getNumStepsAttempted());
-    } 
+    }
     catch (const std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;

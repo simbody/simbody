@@ -63,9 +63,9 @@ void compareAnalyticalAndNumericHessian(const ContactGeometry&, const Vec3& );
 
 void testHalfSpace() {
     ContactGeometry::HalfSpace hs;
-    
+
     // Check intersections with various rays.
-    
+
     Real distance;
     UnitVec3 normal;
     ASSERT(!hs.intersectsRay(Vec3(4, 0, 0), UnitVec3(1, 0, 0), distance, normal));
@@ -83,9 +83,9 @@ void testHalfSpace() {
     ASSERT(hs.intersectsRay(Vec3(2, 0, 0), UnitVec3(-1, 0, 1), distance, normal));
     assertEqual(2*Sqrt2, distance);
     assertEqual(Vec3(-1, 0, 0), normal);
-    
+
     // Test finding the nearest point.
-    
+
     Random::Gaussian random(0, 3);
     for (int i = 0; i < 100; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
@@ -147,13 +147,13 @@ void testCylinder() {
 
 void testSphere() {
     // Create a sphere.
-    
+
     Real radius = 3.5;
     ContactGeometry::Sphere sphere(radius);
     assert(sphere.getRadius() == radius);
-    
+
     // Check intersections with various rays.
-    
+
     Real distance;
     UnitVec3 normal;
     ASSERT(!sphere.intersectsRay(Vec3(4, 0, 0), UnitVec3(1, 0, 0), distance, normal));
@@ -171,7 +171,7 @@ void testSphere() {
     assertEqual(Vec3(1.0/Sqrt3), normal);
 
     // Test finding the nearest point.
-    
+
     Random::Gaussian random(0, 3);
     for (int i = 0; i < 100; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());

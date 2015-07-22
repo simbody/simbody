@@ -1,4 +1,4 @@
-#ifndef SimTK_SIMMATH_FACTORSVD_REP_H_ 
+#ifndef SimTK_SIMMATH_FACTORSVD_REP_H_
 #define SimTK_SIMMATH_FACTORSVD_REP_H_
 
 /* -------------------------------------------------------------------------- *
@@ -87,7 +87,7 @@ class FactorSVDRepBase {
    virtual void solve( const Vector_<std::complex<double> >& b, Vector_<std::complex<double> >& x ) {
         checkIfFactored("solve");
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","solve",
-        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
+        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");
    }
     virtual void solve( const Matrix_<float>& b, Matrix_<float>& x ) {
         checkIfFactored("solve");
@@ -107,7 +107,7 @@ class FactorSVDRepBase {
    virtual void solve  ( const Matrix_<std::complex<double> >& b, Matrix_<std::complex<double> >& x ) {
        checkIfFactored("solve");
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","solve",
-        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
+        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");
    }
     virtual void inverse(  Matrix_<double>& inverse ){
         checkIfFactored( "inverse" );

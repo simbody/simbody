@@ -8,7 +8,7 @@
 #    - Lapack
 # Pthreads is standard on Linux platforms, and close enough
 # on Macs. On Windows we have to supply our own.
-# We provide our own high-performance Lapack library 
+# We provide our own high-performance Lapack library
 # for Windows; Linux and Macs are expected to have one.
 #-----------------------------------------------------------
 
@@ -20,7 +20,7 @@ if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
 endif()
 
 set(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
-file(GLOB LIB_FILES 
+file(GLOB LIB_FILES
     "${LIB_ABI_DIR}/*.a"
     "${LIB_ABI_DIR}/*.so"
     "${LIB_ABI_DIR}/*.so.*"
@@ -64,13 +64,13 @@ foreach(LIBF ${LIB_FILES})
         VERBATIM)
 
     if(LIBF_SUFFIX STREQUAL ".dll")
-        install(FILES ${LIBF} 
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+        install(FILES ${LIBF}
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                GROUP_READ GROUP_WRITE GROUP_EXECUTE
                     WORLD_READ WORLD_EXECUTE
         DESTINATION ${CMAKE_INSTALL_BINDIR})
     else()
-        install(FILES ${LIBF} 
+        install(FILES ${LIBF}
         PERMISSIONS OWNER_READ OWNER_WRITE
                 GROUP_READ GROUP_WRITE
                     WORLD_READ
@@ -86,14 +86,14 @@ set(PLATFORM_LINK_LIBRARIES "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}"
 # There is just one item in PLATFORM_INCLUDE_DIRECTORIES.
 set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_ROOT}/include")
 # Copy to parent.
-set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_INCLUDE_DIRECTORIES}" 
+set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_INCLUDE_DIRECTORIES}"
     PARENT_SCOPE)
 
 # This needs an outer loop if you add more include directories.
 file(GLOB INCL_FILES "${PLATFORM_INCLUDE_DIRECTORIES}/*.h")
 foreach(INCLF ${INCL_FILES})
     get_filename_component(INCLF_ROOT ${INCLF} NAME)
-    install(FILES ${INCLF} 
+    install(FILES ${INCLF}
     PERMISSIONS OWNER_READ OWNER_WRITE
             GROUP_READ GROUP_WRITE
                 WORLD_READ

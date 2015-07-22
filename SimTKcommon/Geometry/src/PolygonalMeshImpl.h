@@ -32,7 +32,7 @@ namespace SimTK {
 /**
  * This is the internal implementation of PolygonalMesh.
  */
-class SimTK_SimTKCOMMON_EXPORT PolygonalMeshImpl 
+class SimTK_SimTKCOMMON_EXPORT PolygonalMeshImpl
 :   public PIMPLImplementation<PolygonalMesh, PolygonalMeshImpl> {
 public:
     PolygonalMeshImpl() {faceVertexStart.push_back(0);}

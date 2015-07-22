@@ -121,7 +121,7 @@ void testRealFunction() {
     assertEqual(0, f.calcDerivative(derivComponents2, Vector(Vec2(1, 0))));
 }
 
-void testSinusoid() { 
+void testSinusoid() {
     Real a=11.23, w=1.1, p=Pi/4;
     Vector t1(1,.23), t2(1,-3.2), t3(1,14.1);
     Function::Sinusoid s1(a,w,p);
@@ -187,7 +187,7 @@ void testStep() {
     const Real d2m=s2.calcDerivative(derivOrder2, Vector(1, x-dx));
     const Real d2p=s2.calcDerivative(derivOrder2, Vector(1, x+dx));
     const Real d3approx = (d2p-d2m)/(2*dx); // approx 10 digits
-    SimTK_TEST_EQ_TOL(s2.calcDerivative(derivOrder3, Vector(1,x)), 
+    SimTK_TEST_EQ_TOL(s2.calcDerivative(derivOrder3, Vector(1,x)),
                       d3approx, 1e-8);
 
     // Try interpolating a Vec3

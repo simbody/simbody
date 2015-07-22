@@ -222,12 +222,12 @@ void testInertia() {
 }
 
 // Calculate the lower half of vx*F where vx is the cross product matrix
-// of v and F is a full 3x3 matrix. This result would normally be a full 
-// 3x3 but for the uses below we know we're only going to need the diagonal 
+// of v and F is a full 3x3 matrix. This result would normally be a full
+// 3x3 but for the uses below we know we're only going to need the diagonal
 // and lower triangle so we can save some flops by working this out by hand.
 // The method is templatized so that it will work on a transposed matrix
 // as efficiently as an untransposed one. (18 flops)
-template <class P, int CS, int RS> 
+template <class P, int CS, int RS>
 static inline SymMat<3,P>
 halfCross(const Vec<3,P>& v, const Mat<3,3,P,CS,RS>& F) {
     return SymMat<3,P>
@@ -239,7 +239,7 @@ halfCross(const Vec<3,P>& v, const Mat<3,3,P,CS,RS>& F) {
 // Calculate the lower half of G*vx where G is a full 3x3 matrix and vx
 // is the cross product matrix of v. See comment above for details.
 // (18 flops)
-template <class P, int CS, int RS> 
+template <class P, int CS, int RS>
 static inline SymMat<3,P>
 halfCross(const Mat<3,3,P,CS,RS>& G, const Vec<3,P>& v) {
     return SymMat<3,P>
@@ -257,10 +257,10 @@ static inline SymMat<3,P>
 halfCrossDiff(const Vec<3,P>& v, const Mat<3,3,P,CS1,RS1>& F, const Mat<3,3,P,CS2,RS2>& G) {
     return SymMat<3,P>
       ( v[1]*(F(2,0)+G(0,2)) - v[2]*(F(1,0)+G(0,1)),
-        v[2]*(F(0,0)-G(1,1)) - v[0]*F(2,0) + v[1]*G(1,2), 
+        v[2]*(F(0,0)-G(1,1)) - v[0]*F(2,0) + v[1]*G(1,2),
                 v[2]*(F(0,1)+G(1,0)) - v[0]*(F(2,1)+G(1,2)),
-        v[0]*F(1,0) - v[2]*G(2,1) - v[1]*(F(0,0)-G(2,2)), 
-                v[0]*(F(1,1)-G(2,2)) - v[1]*F(0,1) + v[2]*G(2,0), 
+        v[0]*F(1,0) - v[2]*G(2,1) - v[1]*(F(0,0)-G(2,2)),
+                v[0]*(F(1,1)-G(2,2)) - v[1]*F(0,1) + v[2]*G(2,0),
                         v[0]*(F(1,2)+G(2,1)) - v[1]*(F(0,2)+G(2,0)) );
 }
 

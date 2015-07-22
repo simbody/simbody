@@ -155,14 +155,14 @@ void CFSQPOptimizer::bindToCFSQPLibrary()
     if(!libraryHandle) {
         const char *msg=LoadLibraryErrorMessage();
         if(msg)
-            SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "': " + msg); 
+            SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "': " + msg);
         else
-            SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "'"); 
+            SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "'");
     }
 
     cfsqp_fptr = (CFSQP_FUNCTION)GetProcAddress(libraryHandle, "cfsqp");
     if(!cfsqp_fptr) {
-        SimTK_THROW1(SimTK::Exception::Cant, std::string("CFSQP library '") + CFSQP_LIBRARY_NAME + "' not valid (could not find 'cfsqp' symbol)"); 
+        SimTK_THROW1(SimTK::Exception::Cant, std::string("CFSQP library '") + CFSQP_LIBRARY_NAME + "' not valid (could not find 'cfsqp' symbol)");
     }
 
     std::cout << "Successfully linked to CFSQP library '" << CFSQP_LIBRARY_NAME << "'" << std::endl;
@@ -225,7 +225,7 @@ optimize(Vector &results)
     }
 
     if(diagnosticsLevel > 0) PrintInform(_inform,std::cout);
-    
+
     if (_inform != 0 && _inform != 3 && _inform != 4 && _inform != 8) {
         char buf[1024];
         sprintf(buf, "CFSQP failed with status = %d",_inform);
@@ -382,7 +382,7 @@ computeConstraint(const SimTK::Vector &x, const bool new_coefficients, double &c
     bool cached_value_available = false;
     if(_cachedConstraintParameters.size()) {
         cached_value_available = true;
-        for(int i=0; i<nx; i++) 
+        for(int i=0; i<nx; i++)
             if(x[i] != _cachedConstraintParameters[i]) {
                 cached_value_available = false;
                 break;
@@ -393,7 +393,7 @@ computeConstraint(const SimTK::Vector &x, const bool new_coefficients, double &c
         status = getOptimizerSystem().constraintFunc(x,new_coefficients,_cachedConstraint);
         _cachedConstraintParameters.resize(nx);
         _cachedConstraintParameters = x;
-    } 
+    }
     c = _cachedConstraint[ic];
 #else
     SimTK::Vector allc(nc);
@@ -412,7 +412,7 @@ computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, S
     bool cached_value_available = false;
     if(_cachedConstraintJacobianParameters.size()) {
         cached_value_available = true;
-        for(int i=0; i<nx; i++) 
+        for(int i=0; i<nx; i++)
             if(x[i] != _cachedConstraintJacobianParameters[i]) {
                 cached_value_available = false;
                 break;
@@ -423,7 +423,7 @@ computeConstraintGradient(const SimTK::Vector &x, const bool new_coefficients, S
         status = getOptimizerSystem().constraintJacobian(x,new_coefficients,_cachedConstraintJacobian);
         _cachedConstraintJacobianParameters.resize(nx);
         _cachedConstraintJacobianParameters = x;
-    } 
+    }
     for(int col=0;col<nx;col++) dcdx[col]=_cachedConstraintJacobian(ic,col);
 #else
     SimTK::Matrix jacobian(nc,nx);

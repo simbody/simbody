@@ -39,7 +39,7 @@
 // Ball joint. This provides three degrees of rotational freedom,  i.e.,
 // unrestricted orientation of the body's M frame in the parent's F frame.
 // The generalized coordinates are:
-//   * 4 quaternions or 3 X-Y-Z (1-2-3) body fixed Euler angles (that is, 
+//   * 4 quaternions or 3 X-Y-Z (1-2-3) body fixed Euler angles (that is,
 //     fixed in M)
 // and generalized speeds are:
 //   * angular velocity w_FM as a vector expressed in the F (parent) frame.
@@ -69,7 +69,7 @@ RBNodeBall(const MassProperties& mProps_B,
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
-                          Vector& q) const 
+                          Vector& q) const
 {
     if (this->getUseEulerAngles(sbs.getModelVars()))
         this->toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
@@ -125,7 +125,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
             Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
         qCache[AngleOOCosQy] = 1/cy; // trouble at 90 or 270 degrees
     } else {
-        assert(q && nq==4 && qCache && nQCache==QuatPoolSize && 
+        assert(q && nq==4 && qCache && nQCache==QuatPoolSize &&
                qErr && nQErr==1);
 
         const Real quatLen = Vec4::getAs(q).norm();
@@ -150,7 +150,7 @@ void calcX_FM(const SBStateDigest& sbs,
         assert(q && nq==4 && qCache && nQCache==QuatPoolSize);
         // Must use a normalized quaternion to generate the rotation matrix.
         // Here we normalize with just 4 flops using precalculated 1/norm(q).
-        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true); 
+        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true);
         X_F0M0.updR().setRotationFromQuaternion(quat); // 29 flops
     }
 
@@ -184,7 +184,7 @@ void calcAcrossJointVelocityJacobianDot(
 // mode (10 flops); quaternion mode is 27 flops.
 // TODO: we're expecting that there are 4 qdots even in Euler angle mode
 // so we have to zero out the last one in that case.
-void calcQDot(const SBStateDigest& sbs, const Real* u, 
+void calcQDot(const SBStateDigest& sbs, const Real* u,
                              Real* qdot) const {
     assert(sbs.getStage() >= Stage::Position);
     assert(u && qdot);
@@ -217,11 +217,11 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
 // is up to the caller to do that if it is necessary.
 // Compute out_q = N * in_u
 //   or    out_u = in_q * N
-// The u quantity is a vector v_F in the parent frame (e.g. angular 
-// velocity of child in parent), while the q quantity is the derivative 
+// The u quantity is a vector v_F in the parent frame (e.g. angular
+// velocity of child in parent), while the q quantity is the derivative
 // of a quaternion representing R_FM, i.e. orientation of child in parent.
 // Cost: Euler angle mode - 10 flops, Quaternion mode - 27 flops.
-void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
+void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
                  const Real* in, Real* out) const
 {
     assert(sbs.getStage() >= Stage::Position);
@@ -254,7 +254,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
         const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Mat43 N_F = // This method returns N for the parent frame
             Rotation::calcUnnormalizedNForQuaternion(quat); // 7 flops
-        if (matrixOnRight) 
+        if (matrixOnRight)
                 Row3::updAs(out) = Row4::getAs(in) * N_F; // 20 flops
         else    Vec4::updAs(out) = N_F * Vec3::getAs(in);
     }
@@ -294,7 +294,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
         const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Mat34 NInv_F = // Returns NInv for parent frame.
             Rotation::calcUnnormalizedNInvForQuaternion(quat);  // 7 flops
-        if (matrixOnRight) 
+        if (matrixOnRight)
                 Row4::updAs(out) = Row3::getAs(in) * NInv_F; // 20 flops
         else    Vec3::updAs(out) = NInv_F * Vec4::getAs(in); // 21 flops
     }
@@ -327,7 +327,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 
         // We don't have a nice multiply-by routine here so just get the NDot
         // matrix and use it (21 flops).
-        const Mat33 NDot_F = 
+        const Mat33 NDot_F =
             Rotation::calcNDotForBodyXYZInParentFrame(cosxy, sinxy, oocosy, qdot);
 
         if (matrixOnRight) {    // out_u = in_q * NDot (15 flops)
@@ -340,7 +340,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
         const Vec4& qdot  = this->fromQuat(sbs.getQDot()); // unnormalized
         const Mat43 NDot_F = // This method returns NDot for the parent frame
             Rotation::calcUnnormalizedNDotForQuaternion(qdot); // 7 flops
-        if (matrixOnRight) 
+        if (matrixOnRight)
                 Row3::updAs(out) = Row4::getAs(in) * NDot_F;  // 21 flops
         else    Vec4::updAs(out) = NDot_F * Vec3::getAs(in);  // 20 flops
     }
@@ -352,7 +352,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 // idea to calculate this using explicit N and NDot matrices; we can save
 // a lot of time by using more specialized methods.
 // Cost: Euler angle mode - 22 flops, Quaternion mode - 41 flops.
-void calcQDotDot(const SBStateDigest& sbs, const Real* udot, 
+void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
                                    Real* qdotdot) const {
     assert(sbs.getStage() > Stage::Velocity);
     assert(udot && qdotdot);
@@ -384,7 +384,7 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
         // Quaternion mode (41 flops).
         const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Vec3& w_FM = this->fromU(sbs.getU());
-        Vec4::updAs(qdotdot) = 
+        Vec4::updAs(qdotdot) =
             Rotation::convertAngVelDotToQuaternionDotDot(quat,w_FM,b_FM);
     }
 }
@@ -392,10 +392,10 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
 int getMaxNQ()              const {return 4;}
 int getNQInUse(const SBModelVars& mv) const {
     return this->getUseEulerAngles(mv) ? 3 : 4;
-} 
+}
 bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
     if (this->getUseEulerAngles(sbs.getModelVars())) {
-        startOfQuaternion.invalidate(); 
+        startOfQuaternion.invalidate();
         return false;
     }
     startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
@@ -404,7 +404,7 @@ bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuatern
 
 void setMobilizerDefaultPositionValues(
     const SBModelVars& mv,
-    Vector&            q) const 
+    Vector&            q) const
 {
     if (this->getUseEulerAngles(mv)) {
         //TODO: kludge
@@ -417,9 +417,9 @@ void setMobilizerDefaultPositionValues(
 bool enforceQuaternionConstraints(
     const SBStateDigest& sbs,
     Vector&             q,
-    Vector&             qErrest) const 
+    Vector&             qErrest) const
 {
-    if (this->getUseEulerAngles(sbs.getModelVars())) 
+    if (this->getUseEulerAngles(sbs.getModelVars()))
         return false;   // no change
 
     Vec4& quat = this->toQuat(q);

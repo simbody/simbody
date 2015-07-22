@@ -22,9 +22,9 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the FactorLU  class to do an LU 
- * factorization on a system of linear equations and then use the 
- * factored LU matrix to solve for a particular right hand side 
+ * This is a test program which uses the FactorLU  class to do an LU
+ * factorization on a system of linear equations and then use the
+ * factored LU matrix to solve for a particular right hand side
  */
 
 /*
@@ -81,16 +81,16 @@ Real B[4] =  { 9.52, 24.35,  0.77, -6.22 };
 Real X[4] =  { 1.,   -1.,    3.,   -5.   };
 
 int main () {
-    try { 
+    try {
             // Default precision (Real, normally double) test.
         Matrix a(4,4, A);
         Vector b(4, B);
         Vector x_right(4, X);
         Vector x; // should get sized automatically to 4 by solve()
 
-        FactorLU lu(a);  // perform LU factorization 
+        FactorLU lu(a);  // perform LU factorization
 
-        lu.solve( b, x );  // solve for x given a right hand side 
+        lu.solve( b, x );  // solve for x given a right hand side
 
         cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
         ASSERT((x-x_right).norm() < 10*SignificantReal);
@@ -111,10 +111,10 @@ int main () {
         ASSERT((xf-xf_right).norm() < 10*SignificantFloat);
 
         luf.factor(a);
-        lu.solve( b, x );  // solve for x given a right hand side 
+        lu.solve( b, x );  // solve for x given a right hand side
         cout << " Real SOLUTION: " << x << "  errnorm=" << (x-x_right).norm() << endl;
         ASSERT((x-x_right).norm() < 10*SignificantReal);
-        
+
         Real C[4] = { 1.0,   2.0,
                       1.0,   3.0  };
         Matrix c(2,2, C);
@@ -134,7 +134,7 @@ int main () {
         zlu.solve( bz, xz );
         cout << " solve with mat all zeros : " << endl;
         for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
-   
+
         try {
             Matrix_<double> z0;
             FactorLU z0lu(z0);
@@ -143,10 +143,10 @@ int main () {
             cout << " solve with mat(0,0) : " << endl;
             for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
         } catch (const std::exception& e) {
-             cout << "(EXPECTED EXCEPTION) NULL matrix test: " 
+             cout << "(EXPECTED EXCEPTION) NULL matrix test: "
                  << e.what() << endl;
         }
-    } 
+    }
     catch (const std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;

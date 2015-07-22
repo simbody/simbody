@@ -20,7 +20,7 @@ static const Real hLarge = .03;
 
 class ForceReporter : public PeriodicEventReporter {
 public:
-    ForceReporter(const MultibodySystem& system, 
+    ForceReporter(const MultibodySystem& system,
                   const CompliantContactSubsystem& complCont,
                   Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
@@ -47,11 +47,11 @@ public:
         const Vec3 smallCtr = smallBod.findStationLocationInGround(state, smallPos);
         const Vec3 largeCtr = largeBod.findStationLocationInGround(state, largePos);
         const Real d = (smallRad+largeRad)-(smallCtr-largeCtr).norm();
-        
+
         for (int i=0; i < ncont; ++i) {
             const ContactForce& force = m_compliant.getContactForce(state,i);
             const ContactId     id    = force.getContactId();
-            cout << state.getTime() 
+            cout << state.getTime()
                  << " " << force.getForceOnSurface2()[1][1] // Normal
                  << " " << force.getForceOnSurface2()[1][0] // Tangential
                  << " " << d << "\n"; // penetration distance
@@ -70,7 +70,7 @@ public:
             //    ftot += detail.getForceOnSurface2();
             //    maxf = std::max(maxf, detail.getForceOnSurface2().norm());
             //}
-            //cout << "patchArea=" << patchArea 
+            //cout << "patchArea=" << patchArea
             //     << " ftot=" << ftot << " maxDepth=" << maxDepth << "\n";
             //cout << "maxf=" << maxf << "\n";
         }
@@ -84,7 +84,7 @@ private:
 static const Real nylon_density = 1100.;  // kg/m^3
 static const Real nylon_young   = .05*2.5e9;  // pascals (N/m)
 static const Real nylon_poisson = 0.4;    // ratio
-static const Real nylon_planestrain = 
+static const Real nylon_planestrain =
     ContactMaterial::calcPlaneStrainStiffness(nylon_young, nylon_poisson);
 static const Real nylon_confined =
     ContactMaterial::calcConfinedCompressionStiffness(nylon_young, nylon_poisson);
@@ -93,7 +93,7 @@ static const Real nylon_dissipation = 10*0.005;
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -114,7 +114,7 @@ int main() {
         UnitInertia::brick(halfDims).shiftFromCentroid(Vec3(.14,0,0));
 
     Body::Rigid lidBody(MassProperties(mass,com,inertia));
-    lidBody.addDecoration(Vec3(-.14,0,0), 
+    lidBody.addDecoration(Vec3(-.14,0,0),
         DecorativeBrick(halfDims).setColor(Cyan).setOpacity(.1));
 
     PolygonalMesh smallMesh, largeMesh;
@@ -172,34 +172,34 @@ const Real NormalLength = .001;
 
 
     ContactMaterial nylon(
-        //nylon_planestrain, 
-        nylon_confined, 
-        nylon_dissipation, 
+        //nylon_planestrain,
+        nylon_confined,
+        nylon_dissipation,
         .1*.9,.1*.8,.1*.6); // static, dynamic, viscous friction
 
-    lidBody.addDecoration(smallPos, 
+    lidBody.addDecoration(smallPos,
         smallArtwork.setOpacity(0.5));
-    lidBody.addDecoration(smallPos, 
+    lidBody.addDecoration(smallPos,
         smallArtwork.setRepresentation(DecorativeGeometry::DrawWireframe));
 
     for (unsigned i=0; i < smallNormals.size(); ++i)
         lidBody.addDecoration(smallPos, smallNormals[i]);
 
-    lidBody.addContactSurface(smallPos, 
+    lidBody.addContactSurface(smallPos,
         ContactSurface(smallContact, nylon, hSmall));
 
-    matter.Ground().updBody().addDecoration(largePos, 
+    matter.Ground().updBody().addDecoration(largePos,
         largeArtwork.setOpacity(0.5));
-    matter.Ground().updBody().addDecoration(largePos, 
+    matter.Ground().updBody().addDecoration(largePos,
         largeArtwork.setRepresentation(DecorativeGeometry::DrawWireframe));
 
     for (unsigned i=0; i < largeNormals.size(); ++i)
-        matter.Ground().updBody().addDecoration(largePos, 
+        matter.Ground().updBody().addDecoration(largePos,
         largeNormals[i]);
-    matter.Ground().updBody().addContactSurface(largePos, 
+    matter.Ground().updBody().addContactSurface(largePos,
         ContactSurface(largeContact, nylon, hLarge));
 
-    MobilizedBody::Pin lid(matter.Ground(), Vec3(0.05,smallRad+largeRad,0), 
+    MobilizedBody::Pin lid(matter.Ground(), Vec3(0.05,smallRad+largeRad,0),
                            lidBody,         Vec3(0,0,0));
 
 #ifdef USE_VIZ
@@ -208,7 +208,7 @@ const Real NormalLength = .001;
 #endif
 
     system.addEventReporter(new Visualizer::Reporter(viz, 1./1000));
-    ForceReporter* frcReporter = 
+    ForceReporter* frcReporter =
         new ForceReporter(system, contactForces, 1./100000);
     system.addEventReporter(frcReporter);
 

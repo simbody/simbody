@@ -33,12 +33,12 @@ using SimTK::Optimizer;
 using SimTK::OptimizerSystem;
 
 
-static int  NUMBER_OF_PARAMETERS = 4; 
-static int  NUMBER_OF_EQUALITY_CONSTRAINTS = 1; 
-static int  NUMBER_OF_INEQUALITY_CONSTRAINTS = 1; 
+static int  NUMBER_OF_PARAMETERS = 4;
+static int  NUMBER_OF_EQUALITY_CONSTRAINTS = 1;
+static int  NUMBER_OF_INEQUALITY_CONSTRAINTS = 1;
 
 /*
- * Adapted from Ipopt's hs071 example 
+ * Adapted from Ipopt's hs071 example
  *
  *     min   x1*x4*(x1 + x2 + x3)  +  x3
  *     s.t.  x1*x2*x3*x4                   >=  25
@@ -63,13 +63,13 @@ public:
       x = &coefficients[0];
 
       f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
-      return( 0 ); 
+      return( 0 );
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
      gradient[0] = x[0] * x[3] + x[3] * (x[0] + x[1] + x[2]);
      gradient[1] = x[0] * x[3];
@@ -82,7 +82,7 @@ public:
   int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
       constraints[0] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3] - 40.0;
       constraints[1] = x[0] * x[1] * x[2] * x[3] - 25.0;
 
@@ -92,7 +92,7 @@ public:
   int constraintJacobian( const Vector& coefficients, bool new_coefficients, Matrix& jac)  const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
       jac[0][0] = 2*x[0];
       jac[0][1] = 2*x[1];
@@ -110,7 +110,7 @@ public:
 /*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
 
     ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInequalityConstraints ) :
-        OptimizerSystem( numParams ) 
+        OptimizerSystem( numParams )
     {
         setNumEqualityConstraints( numEqualityConstraints );
         setNumInequalityConstraints( numInequalityConstraints );
@@ -138,7 +138,7 @@ int main() {
     results[3] = 1.0;
 
     /* set bounds */
-    for(i=0;i<NUMBER_OF_PARAMETERS;i++) {   
+    for(i=0;i<NUMBER_OF_PARAMETERS;i++) {
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 5.0;
     }
@@ -148,7 +148,7 @@ int main() {
     int returnValue = 0; // assume success
   try {
 
-    Optimizer opt( sys ); 
+    Optimizer opt( sys );
 
     opt.setConvergenceTolerance( 1e-4 );
 
@@ -156,7 +156,7 @@ int main() {
     opt.useNumericalJacobian( true );
     opt.setDiagnosticsLevel( 5 );
 
-    /* compute  optimization */ 
+    /* compute  optimization */
     f = opt.optimize( results );
   }
   catch (const std::exception& e) {
@@ -166,7 +166,7 @@ int main() {
 
     printf("IpoptTest.cpp: f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" %f",results[i]); 
+       printf(" %f",results[i]);
     }
     printf("\n");
 

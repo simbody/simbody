@@ -27,18 +27,18 @@
 
 using namespace SimTK;
 
-static int  NUMBER_OF_PARAMETERS = 2; 
-static int  NUMBER_OF_EQUALITY_CONSTRAINTS = 0; 
-static int  NUMBER_OF_INEQUALITY_CONSTRAINTS = 2; 
+static int  NUMBER_OF_PARAMETERS = 2;
+static int  NUMBER_OF_EQUALITY_CONSTRAINTS = 0;
+static int  NUMBER_OF_INEQUALITY_CONSTRAINTS = 2;
 
 /*
  *
  *   Problem statement:
  *
- *     minimize:   (x1+5)^2 + (x2 - 4)^2 
+ *     minimize:   (x1+5)^2 + (x2 - 4)^2
  *
  *     s.t.   x1 - x2^2 <= 0    // inequality constraint
-              x1 + x2 >= -2     //    inequality constraint 
+              x1 + x2 >= -2     //    inequality constraint
  *
  *     Starting point:
  *        x = ( 5, 5)   will be used for the initial conditions
@@ -58,13 +58,13 @@ public:
       x = &coefficients[0];
 
       f = (x[0] - 5.0)*(x[0] - 5.0) + (x[1] - 1.0)*(x[1] - 1.0);
-      return( 0 ); 
+      return( 0 );
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
      gradient[0] = 2.0*(x[0] - 5.0);
      gradient[1] = 2.0*(x[1] - 1.0);
@@ -73,14 +73,14 @@ public:
 
   }
 
-  /* 
+  /*
   ** Method to compute the value of the constraints.
   ** Equality constraints are first followed by the any inequality constraints
-  */ 
+  */
   int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
       constraints[0] = x[0] - x[1]*x[1];
       constraints[1] = x[1] - x[0] + 2.0;
 
@@ -95,7 +95,7 @@ public:
   int constraintJacobian( const Vector& coefficients, bool new_coefficients, Matrix& jac)  const{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
       jac(0,0) =  1.0;
       jac(0,1) = -2.0*x[1];
       jac(1,0) = -1.0;
@@ -106,7 +106,7 @@ public:
   }
 
     ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInequalityConstraints ) :
-        OptimizerSystem( numParams ) 
+        OptimizerSystem( numParams )
     {
         setNumEqualityConstraints( numEqualityConstraints );
         setNumInequalityConstraints( numInequalityConstraints );
@@ -128,11 +128,11 @@ int main() {
     Real f = NaN;
 
     try {
-        Optimizer opt( sys ); 
+        Optimizer opt( sys );
 
         opt.setConvergenceTolerance( .0000001 );
 
-        /* compute  optimization */ 
+        /* compute  optimization */
         f = opt.optimize( results );
     }
     catch (const std::exception& e) {

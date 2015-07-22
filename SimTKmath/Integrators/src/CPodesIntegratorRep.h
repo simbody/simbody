@@ -49,7 +49,7 @@ public:
     int getNumStepsTaken() const;
     int getNumErrorTestFailures() const;
     int getNumConvergenceTestFailures() const;
-    int getNumConvergentIterations() const 
+    int getNumConvergentIterations() const
        {SimTK_ASSERT_ALWAYS(false, "CPodesIntegratorRep::getNumConvergentIterations(): not implemented");}
     int getNumDivergentIterations() const
        {SimTK_ASSERT_ALWAYS(false, "CPodesIntegratorRep::getNumDivergentIterations(): not implemented");}

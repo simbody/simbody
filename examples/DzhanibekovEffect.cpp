@@ -23,7 +23,7 @@
 
 /*                      Simbody Dzhanibekov Effect
 This example demonstrates a non-intuitive behavior of a freely rotating
-rigid body, known as the Dzhanibekov Effect. This is best seen in zero 
+rigid body, known as the Dzhanibekov Effect. This is best seen in zero
 gravity on the space station. Here are some cool real-world videos:
     https://www.youtube.com/watch?v=L2o9eBl_Gzw
     https://www.youtube.com/watch?v=JB0OAt4zQ1E
@@ -40,13 +40,13 @@ using namespace SimTK;
 //==============================================================================
 //                              SHOW ENERGY
 //==============================================================================
-// Generate text in the scene that displays the total energy, which should be 
-// conserved to roughly the number of decimal places corresponding to the 
+// Generate text in the scene that displays the total energy, which should be
+// conserved to roughly the number of decimal places corresponding to the
 // accuracy setting (i.e., acc=1e-5 -> 5 digits).
 class ShowEnergy : public DecorationGenerator {
 public:
     explicit ShowEnergy(const MultibodySystem& mbs) : m_mbs(mbs) {}
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override;
 private:
     const MultibodySystem& m_mbs;
@@ -57,8 +57,8 @@ private:
 //                                  MAIN
 //==============================================================================
 int main() {
-  try {    
-    // Create the system.   
+  try {
+    // Create the system.
     MultibodySystem system; system.setUpDirection(ZAxis);
     SimbodyMatterSubsystem matter(system);
     // No gravity or other forces
@@ -70,7 +70,7 @@ int main() {
     Rotation YtoX(-Pi/2, ZAxis);
     Body::Rigid shaftBody(MassProperties(1, Vec3(0),
                             UnitInertia::cylinderAlongX(.02, .05)));
-    shaftBody.addDecoration(YtoX, 
+    shaftBody.addDecoration(YtoX,
                             DecorativeCylinder(.02, .05).setColor(Red));
 
     const Vec3 halfLengths(.02,.04,.3);
@@ -88,15 +88,15 @@ int main() {
     Visualizer viz(system); viz.setDesiredFrameRate(60);
     viz.addDecorationGenerator(new ShowEnergy(system));
     system.addEventReporter(new Visualizer::Reporter(viz, 1./60));
-    
-    // Initialize the system and state. 
+
+    // Initialize the system and state.
     State state = system.realizeTopology();
 
     // Set initial conditions. Need a slight perturbation of angular velocity
     // to trigger the instability.
     shaft.setQToFitTranslation(state, Vec3(0,0,.5));
     shaft.setUToFitAngularVelocity(state, Vec3(10,0,1e-10)); // 10 rad/s
-    
+
     // Simulate it.
     RungeKuttaMersonIntegrator integ(system);
     integ.setAccuracy(1e-5);
@@ -112,7 +112,7 @@ int main() {
 }
 
 
-void ShowEnergy::generateDecorations(const State&                state, 
+void ShowEnergy::generateDecorations(const State&                state,
                                      Array_<DecorativeGeometry>& geometry)
 {
     m_mbs.realize(state, Stage::Dynamics);

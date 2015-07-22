@@ -75,7 +75,7 @@ public:
     UnitVec3            normal; // central normal
     Real                coneHalfAngle;  // 0<=a<=pi, pi/2 makes a halfspace
 
-    // An arbitrary point on the contained surface, used in 
+    // An arbitrary point on the contained surface, used in
     // distance queries where distance to box is min distance, distance
     // to point is max distance.
     Vec3                pointOnSurface;

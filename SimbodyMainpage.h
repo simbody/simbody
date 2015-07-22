@@ -19,19 +19,19 @@ Simbody is a high-performance, industrial-grade open source C++ library
 providing sophisticated treatment of articulated multibody systems with special
 attention to the needs of biomedical simulation. It is useful for predictive
 dynamic simulations of diverse biological systems such as neuromuscular
-biomechanical models (<a href=http://opensim.stanford.edu>OpenSim</a>) 
-and coarse-grained biomolecular modeling 
-(<a href=https://simtk.org/home/rnatoolbox>MacroModelBuilder</a>). 
+biomechanical models (<a href=http://opensim.stanford.edu>OpenSim</a>)
+and coarse-grained biomolecular modeling
+(<a href=https://simtk.org/home/rnatoolbox>MacroModelBuilder</a>).
 It is also well
 suited to related simulation domains such as robot simulation and control
-(<a href=http://gazebosim.org>Gazebo</a>), and "soft" real time applications 
+(<a href=http://gazebosim.org>Gazebo</a>), and "soft" real time applications
 like interactive scientific simulation, virtual worlds, and games.
 
 @image html isaac.png "Our hero, Sir Isaac Newton"
 
 Simbody uses an internal coordinate, recursive formulation of the equations of
 motion, providing computation of system dynamics to machine precision with
-O(n) computational complexity for n joint degrees of freedom (similar to a 
+O(n) computational complexity for n joint degrees of freedom (similar to a
 Featherstone formulation). Arbitrary adjoined
 constraints, contact modeling, and advanced numerical methods provide fast,
 robust simulation for any mechanical or biomechanical system from machines and
@@ -49,17 +49,17 @@ models from high-level description.
 - OpenMM (https://simtk.org/home/openmm), a GPU-accelerated high-performance
 numerical library for efficient calculation of molecular force fields.
 
-Simbody is hosted on the <a href=https://simtk.org>SimTK.org</a> biosimulation 
-community site, at https://simtk.org/home/simbody and is a community resource 
-available for unrestricted academic, commercial, government, and personal use. 
-The source code is maintained on <a href=https://github.com>GitHub</a>, 
+Simbody is hosted on the <a href=https://simtk.org>SimTK.org</a> biosimulation
+community site, at https://simtk.org/home/simbody and is a community resource
+available for unrestricted academic, commercial, government, and personal use.
+The source code is maintained on <a href=https://github.com>GitHub</a>,
 at https://github.com/simbody.
 
 Simbody was conceived and initially implemented by Michael Sherman (Sherm),
 with substantial contributions from Peter Eastman, both of the Simbios Center
 at Stanford. Many others have contributed to the software, support, and
-documentation and we invite community contributions; please 
-see 
+documentation and we invite community contributions; please
+see
 <a href=https://github.com/simbody/simbody/blob/master/CONTRIBUTING.md>CONTRIBUTING.md</a>
 (also available in the \c doc subdirectory of your Simbody installation).
 
@@ -73,13 +73,13 @@ use if you know where to begin -- and this reference documentation is most
 definitely \e not the place to start if you want to learn how to use
 Simbody. Instead, start with
 <a href=https://github.com/simbody/simbody/blob/master/README.md>README.md</a>
-and the tutorials in the Simbody User's Guide (in the \c doc subdirectory of 
-your Simbody installation). There is also a collection of working example 
-programs that come with the Simbody installation (in the 
-<tt>Simbody/examples</tt> directory on Windows or 
+and the tutorials in the Simbody User's Guide (in the \c doc subdirectory of
+your Simbody installation). There is also a collection of working example
+programs that come with the Simbody installation (in the
+<tt>Simbody/examples</tt> directory on Windows or
 <tt>share/doc/simbody/examples</tt> on Linux or OSX). Both source
 and ready-to-execute binaries of the examples are installed. If you have
-specific questions, or success stories to share, use the  
+specific questions, or success stories to share, use the
 <a href=https://simtk.org/forums/viewforum.php?f=47>Simbody Forum</a>
 on SimTK.org.
 You can file bug reports and make feature requests using the
@@ -114,7 +114,7 @@ components.
 - Many utility classes (see tutorials, example programs, Doxygen Modules tab),
 including Rotation_, Transform_, Quaternion_,
 Vector_, Vec, @ref SimTK::SpatialVec "SpatialVec", Xml, and many more.
-- Matrix and vector classes and capabilities are discussed in the module 
+- Matrix and vector classes and capabilities are discussed in the module
 @ref MatVecUtilities "Matrix and Vector Utilities".
 
 For an overview of Simbody, read this paper:
@@ -133,7 +133,7 @@ require that. For more information see our
 
 /** @page simbody_license_page  Simbody&tm; Copyright and License
 <h2>Copyright and license</h2>
-This license, based on the maximally-permissive Apache 2.0 License, defines the 
+This license, based on the maximally-permissive Apache 2.0 License, defines the
 terms under which we offer Simbody.
 @verbatim
  * -------------------------------------------------------------------------- *
@@ -164,25 +164,25 @@ terms under which we offer Simbody.
 @endverbatim
 
 <h2>What's with that "TM" in Simbody&tm;?</h2>
-That symbol does not mean anything commercial. It is just to let you know that 
+That symbol does not mean anything commercial. It is just to let you know that
 we claim a trademark on the name "Simbody"
 so you may not use that name except to refer to our software as we distribute
 it. The license permits you to make any kind of derivative work, or to use
 all or part of Simbody code in any way you like, but you can't call the
-resulting work "Simbody" without our agreement. We make that restriction 
-because we don't want any confusion to exist about what is, and what is not, 
-the Simbody project that we support and carefully maintain. But ... if you want 
+resulting work "Simbody" without our agreement. We make that restriction
+because we don't want any confusion to exist about what is, and what is not,
+the Simbody project that we support and carefully maintain. But ... if you want
 to make improvements to Simbody we would love to have your open source
-contributions to put into the main Simbody source tree, in which case they 
-\e would be included under the Simbody name. See 
+contributions to put into the main Simbody source tree, in which case they
+\e would be included under the Simbody name. See
 <a href=https://github.com/simbody/simbody/blob/master/CONTRIBUTING.md>CONTRIBUTING.md</a>
 for information about how to contribute.
 
 <h2>How to acknowledge us</h2>
-Our license does not \e require that you acknowledge us, but we and our 
+Our license does not \e require that you acknowledge us, but we and our
 sponsors would be grateful if you did anyway! If our hard work has helped you
 with yours, please throw us a bone and mention on your "About" page and in
-your documentation that you are using Simbody from 
+your documentation that you are using Simbody from
 https://simtk.org/home/simbody. Where appropriate, please cite this paper:
 
 \par

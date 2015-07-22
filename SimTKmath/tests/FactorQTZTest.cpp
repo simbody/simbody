@@ -22,10 +22,10 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the FactorQTZ  class to do an QTZ 
- * factorization on a system of linear equations and then use the 
- * factored QTZ matrix to solve a find a least squares solution 
- * for a particular right hand side 
+ * This is a test program which uses the FactorQTZ  class to do an QTZ
+ * factorization on a system of linear equations and then use the
+ * factored QTZ matrix to solve a find a least squares solution
+ * for a particular right hand side
  */
 
 /*
@@ -51,7 +51,7 @@ A =  -1.48  -0.43   0.89   -0.71  -0.96    B= -8.3
 The default tolerance of 0.01 is used to determine the effective rank of A
 
 
-SOLUTION = 
+SOLUTION =
 0.6344     0.9699    -1.4402     3.3678     3.3992
 
 estimated rank = 4
@@ -72,18 +72,18 @@ using std::printf;
 using std::cout;
 using std::endl;
 
-Real A[30] = { -0.09,   0.14,  -0.46,    0.68,   1.29,       
-               -1.56,   0.20,   0.29,    1.09,   0.51,        
-               -1.48,  -0.43,   0.89,   -0.71,  -0.96,   
-               -1.09,   0.84,   0.77,    2.11,  -1.27,       
-                0.08,   0.55,  -1.13,    0.14,   1.74,        
-               -1.59,  -0.72,   1.06,    1.24,   0.34  };  
+Real A[30] = { -0.09,   0.14,  -0.46,    0.68,   1.29,
+               -1.56,   0.20,   0.29,    1.09,   0.51,
+               -1.48,  -0.43,   0.89,   -0.71,  -0.96,
+               -1.09,   0.84,   0.77,    2.11,  -1.27,
+                0.08,   0.55,  -1.13,    0.14,   1.74,
+               -1.59,  -0.72,   1.06,    1.24,   0.34  };
 
 Real B[6] =  { 7.4, 4.2, -8.3, 1.8, 8.6, 2.1 };
 Real X[5] =  { 0.6344, 0.9699, -1.4402, 3.3678,  3.3992 };
 
 int main () {
-    try { 
+    try {
            // Default precision (Real, normally double) test.
 
         Matrix a(6,5, A);
@@ -91,15 +91,15 @@ int main () {
         Vector x_right(5, X);
         Vector x; // should get sized automatically to 5 by solve()
 
-        FactorQTZ qtz;  // perform QTZ factorization 
+        FactorQTZ qtz;  // perform QTZ factorization
 
         qtz.factor(a);
         printf("\n  Estimated rank with default rcond  %d \n\n",qtz.getRank() );
         ASSERT( qtz.getRank() == 5 );
 
         qtz.factor(a, 0.01);
-        qtz.solve( b, x );  // solve for x given a right hand side 
-  
+        qtz.solve( b, x );  // solve for x given a right hand side
+
         printf("\n  Estimated rank with rcond = 0.01 : %d \n\n",qtz.getRank() );
 
 
@@ -128,9 +128,9 @@ int main () {
         const float SignificantFloat = NTraits<float>::getSignificant();
         ASSERT((xf-xf_right).norm() < 0.001);
 
-        // Underdetermined case adapted from 
+        // Underdetermined case adapted from
         // http://idlastro.gsfc.nasa.gov/idl_html_help/LA_LEAST_SQUARES.html
-        
+
         Real Au[12] = { 2,     5,     3,     4,
                         7,     1,     3,     5,
                         4,     3,     6,     2   };
@@ -151,7 +151,7 @@ int main () {
         qtzu.solve( bu, xu );  // solve for x given a right hand side
 
         cout << " Underdetermined Double SOLUTION: " << xu << "  errnorm=" << (xu-xu_right).norm() << endl;
-  
+
         qtzu.solve( bu2, xu2 );
         cout << " multiple rhs solution, double " << xu2 << endl;
 
@@ -168,7 +168,7 @@ int main () {
         FactorQTZ qtzfu(afu);  // perform QTZ factorization
 
         qtzfu.solve( bfu, xfu );  // solve for x given a right hand side
- 
+
         cout << " Underdetermined Float SOLUTION: " << xfu << "  errnorm=" << (xfu-xfu_right).norm() << endl;
 
         qtzfu.solve( bfu2, xfu2 );
@@ -184,7 +184,7 @@ int main () {
         cout << " FactorQTZ.inverse : " << endl;
         cout << invQTZ[0] << endl;
         cout << invQTZ[1] << endl;
-  
+
         Real Z[4] = { 0.0,   0.0,
                      0.0,   0.0  };
 
@@ -204,10 +204,10 @@ int main () {
             cout << " solve with mat(0,0) : " << endl;
             for(int i=0;i<xz.size();i++) printf("%f ", xz(i) );  printf("\n");
         } catch (const std::exception& e) {
-             cout << "(EXPECTED EXCEPTION) NULL matrix test: " 
+             cout << "(EXPECTED EXCEPTION) NULL matrix test: "
                  << e.what() << endl;
         }
-    } 
+    }
     catch (const std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;

@@ -36,9 +36,9 @@
 
     // PIN (TORSION) //
 
-// This is a "pin" or "torsion" or "revolute" joint, meaning one degree of 
-// rotational freedom about a particular axis, the z axis of the parent's F 
-// frame, which is aligned forever with the z axis of the body's M frame. In 
+// This is a "pin" or "torsion" or "revolute" joint, meaning one degree of
+// rotational freedom about a particular axis, the z axis of the parent's F
+// frame, which is aligned forever with the z axis of the body's M frame. In
 // addition, the origin points Mo of M and Fo of F are identical forever.
 template<bool noX_MB, bool noR_PF>
 class RBNodeTorsion : public RigidBodyNodeSpec<1, false, noX_MB, noR_PF> {
@@ -54,32 +54,32 @@ RBNodeTorsion(const MassProperties&   mProps_B,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<1, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
+void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
     // The only rotation our pin joint can handle is about z.
-    // TODO: should use 321 to deal with singular configuration (angle2==pi/2) 
-    // better; in that case 1 and 3 are aligned and the conversion routine 
+    // TODO: should use 321 to deal with singular configuration (angle2==pi/2)
+    // better; in that case 1 and 3 are aligned and the conversion routine
     // allocates all the rotation to whichever comes first.
-    // TODO: isn't there a better way to come up with "the rotation around z 
+    // TODO: isn't there a better way to come up with "the rotation around z
     // that best approximates a rotation R"?
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
     this->to1Q(q) = angles123[2];
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const {
-    // M and F frame origins are always coincident for this mobilizer so there 
-    // is no way to create a translation by rotating. So the only translation 
+    // M and F frame origins are always coincident for this mobilizer so there
+    // is no way to create a translation by rotating. So the only translation
     // we can represent is 0.
 }
 
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&,
                                   const Vec3& w_FM, Vector& u) const {
     // We can only represent an angular velocity along z with this joint.
     this->to1U(u) = w_FM[2]; // project angular velocity onto z axis
@@ -88,8 +88,8 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&,
 void setUToFitLinearVelocityImpl
     (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
 {
-    // M and F frame origins are always coincident for this mobilizer so there 
-    // is no way to create a linear velocity by rotating. So the only linear 
+    // M and F frame origins are always coincident for this mobilizer so there
+    // is no way to create a linear velocity by rotating. So the only linear
     // velocity we can represent is 0.
 }
 
@@ -153,7 +153,7 @@ void calcReverseMobilizerHDot_FM(
     HType&               HDot_FM) const
 {
     // doesn't get better than this!
-    HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) ); 
+    HDot_FM(0) = SpatialVec( Vec3(0), Vec3(0) );
 }
 
 };

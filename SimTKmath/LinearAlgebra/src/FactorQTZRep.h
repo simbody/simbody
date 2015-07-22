@@ -1,4 +1,4 @@
-#ifndef SimTK_SIMMATH_FACTOR_QTZ_REP_H_ 
+#ifndef SimTK_SIMMATH_FACTOR_QTZ_REP_H_
 #define SimTK_SIMMATH_FACTOR_QTZ_REP_H_
 
 /* -------------------------------------------------------------------------- *
@@ -54,7 +54,7 @@ public:
    virtual void solve( const Vector_<std::complex<double> >& b, Vector_<std::complex<double> >& x ) const {
         checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
-        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
+        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");
    }
     virtual void solve( const Matrix_<float>& b, Matrix_<float>& x ) const {
         checkIfFactored();
@@ -74,7 +74,7 @@ public:
    virtual void solve  ( const Matrix_<std::complex<double> >& b, Matrix_<std::complex<double> >& x ) const {
        checkIfFactored();
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","solve",
-        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
+        "solve called with rhs of type complex<double>  which does not match type of original linear system \n");
    }
     virtual void inverse(  Matrix_<double>& inverse ) const {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
@@ -122,13 +122,13 @@ public:
 
    ~FactorQTZRep();
 
-   template < class ELT > void factor(const Matrix_<ELT>& ); 
-   void inverse( Matrix_<T>& ) const; 
+   template < class ELT > void factor(const Matrix_<ELT>& );
+   void inverse( Matrix_<T>& ) const;
    void solve( const Vector_<T>& b, Vector_<T>& x ) const;
    void solve( const Matrix_<T>& b, Matrix_<T>& x ) const;
 
    FactorQTZRepBase* clone() const;
- 
+
 private:
    void doSolve( Matrix_<T>& b, Matrix_<T>& x ) const;
 
@@ -137,7 +137,7 @@ private:
    int                      nRow;         // number of rows in original matrix
    int                      nCol;         // number of columns in original matrix
    bool                     scaleLinSys; // true if matrix was scaled during factorization
-   typename CNT<T>::TReal   linSysScaleF; // scale factor applied to matrix 
+   typename CNT<T>::TReal   linSysScaleF; // scale factor applied to matrix
    typename CNT<T>::TReal   anrm;
    typename CNT<T>::TReal   rcond;      // 1 / (largest acceptable condition number)
    TypedWorkSpace<int>      pivots;

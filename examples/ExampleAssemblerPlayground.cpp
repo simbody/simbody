@@ -44,7 +44,7 @@ static const int NBodies2 = 7;
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -57,7 +57,7 @@ int main() {
     pendulumBody.addDecoration(DecorativeEllipsoid(hdims).setOpacity(.2));
 
     MobilizedBody midBody, finalBody;
-    MobilizedBody::Free baseBody(matter.Ground(), Transform(Vec3(0,-hdims[1],0)), 
+    MobilizedBody::Free baseBody(matter.Ground(), Transform(Vec3(0,-hdims[1],0)),
                                   pendulumBody, Transform(Vec3(0,hdims[1],0)));
 
     Force::TwoPointLinearSpring(forces, matter.Ground(), Vec3(0),
@@ -68,7 +68,7 @@ int main() {
 
     MobilizedBody parent = baseBody;
     for (int i=0; i < NBodies; ++i) {
-        MobilizedBody::Ball child(parent, Transform(Vec3(0,-hdims[1],0)), 
+        MobilizedBody::Ball child(parent, Transform(Vec3(0,-hdims[1],0)),
                                   pendulumBody, Transform(Vec3(0,hdims[1],0)));
         if (i==NBodies/2) midBody   = child;
         if (i==NBodies-1) finalBody = child;
@@ -80,7 +80,7 @@ int main() {
     parent = matter.Ground();
     Vec3 loc(-10,0,0);
     for (int i=0; i < NBodies2; ++i) {
-        MobilizedBody::Ball child(parent, loc, 
+        MobilizedBody::Ball child(parent, loc,
                                   pendulumBody, Transform(Vec3(0,hdims[1],0)));
         if (i==NBodies2-1) endOfSecondChain = child;
         parent = child;
@@ -92,7 +92,7 @@ int main() {
 
     Constraint pres[5];
     for (int i=0; i<5; ++i) {
-        pres[i] = Constraint::PrescribedMotion(matter, 
+        pres[i] = Constraint::PrescribedMotion(matter,
             new Function::Constant(.1),
             MobilizedBodyIndex(NBodies+2+i), MobilizerQIndex(2));
         //pres[i].setDisabledByDefault(true);
@@ -101,7 +101,7 @@ int main() {
     //Constraint::Ball chainConnection(endOfSecondChain, Vec3(0,-hdims[1],0),
     //    matter.updMobilizedBody(MobilizedBodyIndex(4)), Vec3(0));
 
-    //Constraint::Ball ball(matter.Ground(), Vec3(3*NBodies,-NBodies,0), 
+    //Constraint::Ball ball(matter.Ground(), Vec3(3*NBodies,-NBodies,0),
     //                      finalBody, Vec3(0,-hdims[1],0));
 
     Visualizer viz(system);
@@ -109,40 +109,40 @@ int main() {
 
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
 
     State state = system.getDefaultState();
     //for (int i=0; i<5; ++i) pres[i].disable(state);
 
     for (int i=0; i<5; ++i)
-        cout << "state pres[" << i << "].isDisabled=" 
+        cout << "state pres[" << i << "].isDisabled="
              << pres[i].isDisabled(state) << endl;
 
     const Vec3 midTarget(1.5*NBodies,-NBodies*0.5*hdims[1],3);
     const Vec3 finalTarget(2*NBodies, -NBodies*0.3*hdims[1],2);
     viz.addDecoration(midBody, Vec3(0), DecorativeSphere(1).setColor(Red));
     viz.addDecoration(midBody, Vec3(1,2,3), DecorativeSphere(1).setColor(Red));
-    viz.addDecoration(GroundIndex, midTarget, 
+    viz.addDecoration(GroundIndex, midTarget,
         DecorativeSphere(1).setColor(Green));
     viz.addDecoration(finalBody, Vec3(0), DecorativeSphere(1).setColor(Red));
     viz.addDecoration(finalBody, Vec3(1,2,3), DecorativeSphere(1).setColor(Red));
-    viz.addDecoration(GroundIndex, finalTarget, 
+    viz.addDecoration(GroundIndex, finalTarget,
         DecorativeSphere(1).setColor(Green));
 
     // Show initial configuration
     viz.report(state);
-    State tempState = state; 
+    State tempState = state;
     for (int i=0; i<5; ++i)
-        cout << "tempState copy pres[" << i << "].isDisabled=" 
+        cout << "tempState copy pres[" << i << "].isDisabled="
              << pres[i].isDisabled(tempState) << endl;
 
     system.realize(tempState, Stage::Position);
     const int nQuat = matter.getNumQuaternionsInUse(tempState);
-    cout << "INITIAL CONFIGURATION\n"; 
-    cout << tempState.getNU() << " dofs, " 
+    cout << "INITIAL CONFIGURATION\n";
+    cout << tempState.getNU() << " dofs, "
          << tempState.getNQErr()-nQuat << " constraints.\n";
-    
+
     cout << "Type any character to continue:\n";
     getchar();
 
@@ -194,7 +194,7 @@ int main() {
     markers.moveOneObservation(Markers::ObservationIx(3), finalTarget);
 
     for (Markers::MarkerIx mx(0); mx < markers.getNumMarkers(); ++mx)
-        printf("mx=%d ox=%d err=%g\n", 
+        printf("mx=%d ox=%d err=%g\n",
             (int)mx, (int)markers.getObservationIxForMarker(mx),
             markers.findCurrentMarkerError(mx));
 
@@ -202,13 +202,13 @@ int main() {
     ik.assemble(state);
 
     viz.report(state);
-    cout << "ASSEMBLED CONFIGURATION\n"; 
-    
+    cout << "ASSEMBLED CONFIGURATION\n";
+
     cout << "Type any character to continue:\n";
     getchar();
 
     for (Markers::MarkerIx mx(0); mx < markers.getNumMarkers(); ++mx)
-        printf("mx=%d ox=%d err=%g\n", 
+        printf("mx=%d ox=%d err=%g\n",
             (int)mx, (int)markers.getObservationIxForMarker(mx),
             markers.findCurrentMarkerError(mx));
 
@@ -227,7 +227,7 @@ int main() {
         markers.moveOneObservation(Markers::ObservationIx(3), newFinalTarget);
 
         qvalue.setValue(qvalue.getValue() + Pi/10);
-                                        
+
         ik.track();
         if (iters%NToSkip == 0) {
             ik.updateFromInternalState(state);
@@ -235,8 +235,8 @@ int main() {
         }
     }
 
-    cout << "ASSEMBLED " << NSteps << " steps in " 
-         << cpuTime()-startCPU   << " CPU s, " 
+    cout << "ASSEMBLED " << NSteps << " steps in "
+         << cpuTime()-startCPU   << " CPU s, "
          << realTime()-startReal << " REAL s\n";
 
     cout << "DONE ASSEMBLING -- SIMULATE ...\n";
@@ -244,10 +244,10 @@ int main() {
 
     cout << "Type any character to continue:\n";
     getchar();
-   
+
     // Simulate it.
     for (int i=0; i<5; ++i)
-        cout << "state pres[" << i << "].isDisabled=" 
+        cout << "state pres[" << i << "].isDisabled="
              << pres[i].isDisabled(state) << endl;
 
     RungeKuttaMersonIntegrator integ(system);

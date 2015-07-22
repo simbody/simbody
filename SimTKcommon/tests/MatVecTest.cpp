@@ -144,8 +144,8 @@ void testMiscellaneous()
     const Complex mdc[] = {
         Complex(1.,2.),  Complex(3.,4.),   Complex(5.,6.),   Complex(7.,8.),
         Complex(9.,10.), Complex(10.,11.), Complex(.1,.26),  Complex(.3,.45),
-        Complex(.5,.64), Complex(.7,.83),  Complex(.9,.102), Complex(.10,.111)   
-    }; 
+        Complex(.5,.64), Complex(.7,.83),  Complex(.9,.102), Complex(.10,.111)
+    };
 
     cout << "*** TEST COMPLEX DOT PRODUCT ***" << endl;
     Vec<3,Complex> vdot(mdc), wdot(&mdc[3]);
@@ -157,7 +157,7 @@ void testMiscellaneous()
 
 
     cout << "--- dot() global function:dot(v,w), rw, vs, rs should be the same" << endl;
-    cout << "vw=" << dot(vdot,wdot) << " rw" << dot(rdot,wdot) 
+    cout << "vw=" << dot(vdot,wdot) << " rw" << dot(rdot,wdot)
          << " vs" << dot(vdot,sdot) << " rs" << dot(rdot,sdot) << endl;
     cout << "--- dot operator* requires row*col meaning Hermitian transpose with sign changes" << endl;
     cout << "vw=" << ~vdot*wdot << " rw" << rdot*wdot
@@ -165,7 +165,7 @@ void testMiscellaneous()
 
     cout << endl << "*** TEST COMPLEX OUTER PRODUCT ***" << endl;
     cout << "--- outer() global function:dot(v,w), rw, vs, rs should be the same" << endl;
-    cout << "vw=" << outer(vdot,wdot) << " rw" << outer(rdot,wdot) 
+    cout << "vw=" << outer(vdot,wdot) << " rw" << outer(rdot,wdot)
          << " vs" << outer(vdot,sdot) << " rs" << outer(rdot,sdot) << endl;
     cout << "--- outer operator* requires col*row meaning Hermitian transpose with sign changes" << endl;
     cout << "vw=" << vdot*~wdot << " rw" << ~rdot*~wdot
@@ -173,7 +173,7 @@ void testMiscellaneous()
 
     cout << "*** TEST COMPLEX CROSS PRODUCT ***" << endl;
     cout << "--- cross() global function:dot(v,w), rw, vs, rs should be the same" << endl;
-    cout << "vw=" << cross(vdot,wdot) << " rw" << cross(rdot,wdot) 
+    cout << "vw=" << cross(vdot,wdot) << " rw" << cross(rdot,wdot)
          << " vs" << cross(vdot,sdot) << " rs" << cross(rdot,sdot) << endl;
     cout << "--- cross operator% involves NO sign changes, but returns row if either arg is a row" << endl;
     cout << "vw=" << vdot%wdot << " rw" << rdot%wdot
@@ -209,7 +209,7 @@ void testMiscellaneous()
     cout << "Mat<2,5,float>.normalize()=" << m25f.normalize();
     cout << "Mat<2,5,float>.sqrt()=" << m25f.sqrt();
 
-    const Mat<1,5,Vec<2,float> >& m15v2f = 
+    const Mat<1,5,Vec<2,float> >& m15v2f =
         *reinterpret_cast<const Mat<1,5,Vec<2,float> >*>(&m25f);
     cout << "  m25f@" << &m25f << " m15v2f@" << &m15v2f << endl;
     cout << "Mat<1,5,Vec<2,float> >=" << m15v2f;;
@@ -224,7 +224,7 @@ void testMiscellaneous()
     SymMat<3> sm3(sym33);
     cout << "SymMat<3> sm3=" << sm3;
     Mat<3,3> m33sm3;
-    for (int i=0; i<3; ++i) 
+    for (int i=0; i<3; ++i)
         for (int j=0; j<=i; ++j)
             m33sm3(i,j) = m33sm3(j,i) = sm3(i,j);
     cout << "Mat33(sm3)=" << m33sm3;
@@ -314,9 +314,9 @@ void testMiscellaneous()
     cout << "m34=" << m34 << endl;
     m34 =19.123;
     cout << "after m34=19.123, m34=" << m34 << endl;
- 
-    const double ddd[] = { 11, 12, 13, 14, 15, 16 }; 
-    const complex<float> ccc[] = {  complex<float>(1.,2.),  
+
+    const double ddd[] = { 11, 12, 13, 14, 15, 16 };
+    const complex<float> ccc[] = {  complex<float>(1.,2.),
                                     complex<float>(3.,4.),
                                     complex<float>(5.,6.),
                                     complex<float>(7.,8.) };
@@ -331,7 +331,7 @@ void testMiscellaneous()
     Vec<2,conjugate<float>,1>& conjCv2 = (Vec<2,conjugate<float>,1>&)cv2;
     Vec<2,negator<conjugate<float> >,1>& negConjCv2 = (Vec<2,negator<conjugate<float> >,1>&)cv2;
 
-    
+
 
     Vec<2,complex<float> > testMe = cv2;
     cout << "testMe=cv2 (init)=" << testMe << endl;
@@ -339,7 +339,7 @@ void testMiscellaneous()
     cout << "testMe=cv2 (assign)=" << testMe << endl;
 
 
-    cout << "(cv2+cv2)/complex<float>(1000,0):" << (cv2 + cv2) / complex<float>(1000,0) << endl; 
+    cout << "(cv2+cv2)/complex<float>(1000,0):" << (cv2 + cv2) / complex<float>(1000,0) << endl;
     cout << "(cv2+cv2)/1000.f:" << (cv2 + cv2) / 1000.f << endl;
     cout << "(cv2+cv2)/1000.:" << (cv2 + cv2) / 1000. << endl;
     cout << "(cv2+cv2)/1000.L:" << (cv2 + cv2) / 1000.L << endl;
@@ -358,29 +358,29 @@ void testMiscellaneous()
     cout << "  negConjCv2=" << negConjCv2 << endl;
 
     cout << "cv2:  " << cv2 << endl;
-    cout << "cv2T: " << cv2.transpose() << endl; 
+    cout << "cv2T: " << cv2.transpose() << endl;
     cout << "-cv2: " << -cv2 << endl;
     cout << "~cv2: " << ~cv2 << endl;
     cout << "-~cv2: " << -(~cv2) << endl;
-    cout << "~-cv2: " << ~(-cv2) << endl; 
-    cout << "~-cv2*10000: " << (~(-cv2))*10000.f << endl;  
-        
+    cout << "~-cv2: " << ~(-cv2) << endl;
+    cout << "~-cv2*10000: " << (~(-cv2))*10000.f << endl;
+
    (~cv2)[1]=complex<float>(101.1f,202.3f);
-    cout << "after ~cv2[1]=(101.1f,202.3f), cv2= " << cv2 << endl;    
+    cout << "after ~cv2[1]=(101.1f,202.3f), cv2= " << cv2 << endl;
     (-(~cv2))[1]=complex<float>(11.1f,22.3f);
-    cout << "after -~cv2[1]=(11.1f,22.3f), cv2= " << cv2 << endl; 
-        
+    cout << "after -~cv2[1]=(11.1f,22.3f), cv2= " << cv2 << endl;
+
     Vec<3> dv3(ddd), ddv3(ddd+3);
     dv3[2] = 1000;
     cout << "dv3=" << dv3 << " ddv3=" << ddv3 << endl;
-    cout << "100(ddv3-dv3)/1000=" << 100.* (ddv3 - dv3) / 1000. << endl; 
+    cout << "100(ddv3-dv3)/1000=" << 100.* (ddv3 - dv3) / 1000. << endl;
 
     Vec<3> xxx(dv3); cout << "copy of dv3 xxx=" << xxx << endl;
     Vec<3> yyy(*ddd);cout << "copy of *ddd yyy=" << yyy << endl;
-    
+
     cout << "dv3.norm()=" << dv3.norm() << endl;
-    cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl; 
-       
+    cout << "cv2=" << cv2 << " cv2.norm()=" << cv2.norm() << endl;
+
     const Vec<2> v2c[] = {Vec<2>(ddd),Vec<2>(ddd+1)};
     Vec<2, Vec<2> > vflt(v2c);
     cout << "vflt 2xvec2=" << vflt << endl;
@@ -390,7 +390,7 @@ void testMiscellaneous()
     int ivals[] = {0x10, 0x20, 0x30, 0x40};
     Vec<4> iv(ivals);
     cout << "iv=" << iv << endl;
-    
+
     Vec<2, Vec<2> > v22;
     v22 = Vec<2>(&ivals[2]);
     cout << "v22=" << v22 << endl;
@@ -418,7 +418,7 @@ void testMiscellaneous()
     cout << "dot r1*nv1=" << dot(r1,nv1) << endl;
     cout << "r1*v1 =" << r1*v1 << endl;
     cout << "r1*nv1=" << r1*nv1 << endl;
-    
+
     // outer product
     cout << " outer v1*r1=" << v1*r1 << endl;
     cout << " outer nv1*r1=" << nv1*r1 << endl;
@@ -454,12 +454,12 @@ void testMiscellaneous()
 
     // test constructors
     Mat<2,3> mvcols( v1, ~r1, v2 );
-    Mat<3,2> mvrows( ~v1, 
+    Mat<3,2> mvrows( ~v1,
                       r1,
-                      r2 ); 
+                      r2 );
 
     cout << "mvcols=" << mvcols << endl;
-    cout << "mvrows=" << mvrows << endl;   
+    cout << "mvrows=" << mvrows << endl;
 
     Vec<3,float> v2f(39.f, 40.f, 50.L);
     cout << "v2f=" << v2f << endl;
@@ -484,7 +484,7 @@ void testMiscellaneous()
     Mat33 m33( Row3(1,     2,     3),
                Row3(4,     5,     6),
                Row3(.003f, 9.62L, 41.1) );
-    cout << "m33=" << m33 << endl;  
+    cout << "m33=" << m33 << endl;
     cout << "v13=" << v13 << endl;
     cout << "m33*v13=" << m33*v13 << endl;
     cout << "~m33*v13=" << (~m33)*v13 << endl;

@@ -43,7 +43,7 @@ static void checkSphere(const Geo::Sphere_<P>& sph, const Array_<Vec<3,P> > pts)
     }
 }
 
-static void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices, 
+static void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices,
                           Vec3 offset) {
     int start = (int)vertices.size();
     vertices.push_back(Vec3(0, 1, 0)+offset);
@@ -52,7 +52,7 @@ static void addOctohedron(vector<Vec3>& vertices, vector<int>& faceIndices,
     vertices.push_back(Vec3(-1, 0, 0)+offset);
     vertices.push_back(Vec3(0, 0, -1)+offset);
     vertices.push_back(Vec3(0, -1, 0)+offset);
-    int faces[8][3] = {{0, 2, 1}, {0, 3, 2}, {0, 4, 3}, {0, 1, 4}, 
+    int faces[8][3] = {{0, 2, 1}, {0, 3, 2}, {0, 4, 3}, {0, 1, 4},
                        {5, 1, 2}, {5, 2, 3}, {5, 3, 4}, {5, 4, 1}};
     for (int i = 0; i < 8; i++)
         for (int j = 0; j < 3; j++)
@@ -66,19 +66,19 @@ void testTriMeshBoundingSphere() {
     const int NTrials = 100;
 
     for (int i = 0; i < NTrials; i++) {
-        // Create a mesh consisting of a random number of octohedra at random 
+        // Create a mesh consisting of a random number of octohedra at random
         // places.
-        
+
         vector<Vec3> vertices;
         vector<int> faceIndices;
         int numOctohedra = random.getIntValue()+1;
         for (int j = 0; j < numOctohedra; j++)
-            addOctohedron(vertices, faceIndices, 
+            addOctohedron(vertices, faceIndices,
             Vec3(random.getValue(), random.getValue(), random.getValue()));
         ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
 
         // Verify that all points are inside the bounding sphere.
-        
+
         Vec3 center;
         Real radius;
         mesh.getBoundingSphere(center, radius);
@@ -87,8 +87,8 @@ void testTriMeshBoundingSphere() {
             SimTK_TEST(dist <= radius);
         }
 
-        
-        // Make sure the bounding sphere is reasonably compact.      
+
+        // Make sure the bounding sphere is reasonably compact.
         Vec3 boxRadius = 0.5*mesh.getOBBTreeNode().getBounds().getSize();
         SimTK_TEST(radius <= boxRadius.norm());
 
@@ -123,7 +123,7 @@ void testRandomPoints() {
     const int NTrials = 10000;
     // TODO: At around 5,000,000 a case is generated where the "minimal" sphere
     // is more than 20% larger than the (bad) Ritter sphere.
-    //const int NTrials = 10000000; 
+    //const int NTrials = 10000000;
     for (int trial=0; trial<NTrials; ++trial) {
         pts.clear(); fpts.clear();
         int numPoints = random.getIntValue()+1;
@@ -139,12 +139,12 @@ void testRandomPoints() {
 
         Geo::Sphere bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
-        Geo::Sphere_<float> fbs = 
+        Geo::Sphere_<float> fbs =
             Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
         Geo::Sphere as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
-        Geo::Sphere_<float> fas = 
+        Geo::Sphere_<float> fas =
             Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
@@ -159,16 +159,16 @@ void testRandomPoints() {
         // The single and double precision spheres should be the same size
         // to within a small error. The Ritter sphere is more sensitive.
         const float frac = std::max((float)scale,1.f)*NTraits<float>::getSqrtEps();
-        
+
         //if (!Test::numericallyEqual((float)bs.getRadius(), fbs.getRadius(), 1, frac))
         //    printf("bs=%g fbs=%g\n", bs.getRadius(), fbs.getRadius());
         SimTK_TEST_EQ_TOL((float)bs.getRadius(), fbs.getRadius(), 0.2f);
         SimTK_TEST_EQ_TOL((float)as.getRadius(), fas.getRadius(), 0.2f);
 
-        // Compare Welzl spheres with fast & crude Ritter spheres. On lucky 
+        // Compare Welzl spheres with fast & crude Ritter spheres. On lucky
         // occasions the Ritter spheres can be just as good, and then roundoff
-        // might make them trivially better but they shouldn't ever actually 
-        // *be* better. TODO: check at the end. There are obscure cases 
+        // might make them trivially better but they shouldn't ever actually
+        // *be* better. TODO: check at the end. There are obscure cases
         // where the minimal sphere is too big.
         //SimTK_TEST(bs.getRadius() <= as.getRadius()*(1.2));
         //SimTK_TEST(fbs.getRadius() <= fas.getRadius()*(1.2f));
@@ -217,12 +217,12 @@ void testCollinearPoints() {
 
         Geo::Sphere bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
-        Geo::Sphere_<float> fbs = 
+        Geo::Sphere_<float> fbs =
             Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
         Geo::Sphere as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
-        Geo::Sphere_<float> fas = 
+        Geo::Sphere_<float> fas =
             Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
@@ -279,12 +279,12 @@ void testCollocatedPoints() {
 
         Geo::Sphere bs = Geo::Point::calcBoundingSphere(pts);
         checkSphere(bs, pts);
-        Geo::Sphere_<float> fbs = 
+        Geo::Sphere_<float> fbs =
             Geo::Point_<float>::calcBoundingSphere(fpts);
         checkSphere(fbs, fpts);
         Geo::Sphere as = Geo::Point::calcApproxBoundingSphere(pts);
         checkSphere(as, pts);
-        Geo::Sphere_<float> fas = 
+        Geo::Sphere_<float> fas =
             Geo::Point_<float>::calcApproxBoundingSphere(fpts);
         checkSphere(fas, fpts);
 
@@ -320,10 +320,10 @@ void testBox() {
     SimTK_TEST(box.getOrderedAxis(2) == YAxis); // largest
 
     Geo::AlignedBox abox(Vec3(0), Vec3(1,2,3));
-    abox.setCenter(Vec3(3,4,2)+Vec3(1,2,3)-Vec3(1e-6)); 
+    abox.setCenter(Vec3(3,4,2)+Vec3(1,2,3)-Vec3(1e-6));
     SimTK_TEST(box.intersectsAlignedBox(abox));
 
-    abox.setCenter(Vec3(3,4,2)+Vec3(1,2,3)+Vec3(1e-6)); 
+    abox.setCenter(Vec3(3,4,2)+Vec3(1,2,3)+Vec3(1e-6));
     SimTK_TEST(!box.intersectsAlignedBox(abox));
 
     Geo::OrientedBox obox(Transform(), Vec3(1,2,3));
@@ -382,7 +382,7 @@ void testMiscGeo() {
         10000.*Geo::getDefaultTol<Real>()));
 
     Vec3 q0, q1, x0, x1; UnitVec3 u0, u1;
-    Vec2 closest; bool parallel; 
+    Vec2 closest; bool parallel;
     p0 = Vec3(-1.1,0,0); q0 = Vec3(2.1,0,0); u0 = UnitVec3(q0-p0);
     p1 = Vec3(1.1,-1.2,0); q1 = Vec3(1.1,1.3,0); u1 = UnitVec3(q1-p1);
     Geo::findClosestPointsOfTwoLines(p0, u0, p1, u1, x0, x1, parallel);

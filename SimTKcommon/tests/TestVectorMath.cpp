@@ -91,7 +91,7 @@ void testSymMat(const T& value, const SymMat<N>& expected) {
 int main() {
     try {
         // Create a bunch of vectors and matrices that will be used for testing.
-        
+
         Vector vector(5);
         vector[0] = -1;
         vector[1] = 2;
@@ -108,15 +108,15 @@ int main() {
         matrix[1][0] = 4;
         matrix[1][1] = -5;
         matrix[1][2] = 6;
-        Mat<2,3> mat = Mat<2,3>(-1,  2, -3, 
+        Mat<2,3> mat = Mat<2,3>(-1,  2, -3,
                                  4, -5,  6);
         Real temp[] = {-1, 2, -3};
         SymMat<2> symmat = SymMat<2>(temp);
-        
+
         // Test the abs function.
-        
+
         Vec5 expectedVec = Vec5(1, 2, 3, 4, 5);
-        Mat<2,3> expectedMat = Mat<2,3>(1, 2, 3, 
+        Mat<2,3> expectedMat = Mat<2,3>(1, 2, 3,
                                         4, 5, 6);
         testVector(abs(vector), expectedVec);
         testVector(abs(rowvector), expectedVec);
@@ -124,13 +124,13 @@ int main() {
         testVector(abs(row), expectedVec);
         testMatrix<Matrix,2,3>(abs(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(abs(mat), expectedMat);
-        testSymMat(abs(symmat), SymMat<2>(Mat22(1, 2, 
+        testSymMat(abs(symmat), SymMat<2>(Mat22(1, 2,
                                                 2, 3)));
-        
+
         // Test the exp function.
-        
+
         expectedVec = Vec5(exp(-1), exp(2), exp(-3), exp(4), exp(-5));
-        expectedMat = Mat<2,3>(exp(-1), exp( 2), exp(-3), 
+        expectedMat = Mat<2,3>(exp(-1), exp( 2), exp(-3),
                                exp( 4), exp(-5), exp( 6));
         testVector(exp(vector), expectedVec);
         testVector(exp(rowvector), expectedVec);
@@ -138,11 +138,11 @@ int main() {
         testVector(exp(row), expectedVec);
         testMatrix<Matrix,2,3>(exp(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(exp(mat), expectedMat);
-        testSymMat(exp(symmat), SymMat<2>(Mat22(exp(-1), exp( 2), 
+        testSymMat(exp(symmat), SymMat<2>(Mat22(exp(-1), exp( 2),
                                                 exp( 2), exp(-3))));
-        
+
         // Test the log function.
-        
+
         expectedVec = Vec5(log(-1), log(2), log(-3), log(4), log(-5));
         expectedMat = Mat<2,3>(log(-1), log(2), log(-3), log(4), log(-5), log(6));
         testVector(log(vector), expectedVec);
@@ -151,11 +151,11 @@ int main() {
         testVector(log(row), expectedVec);
         testMatrix<Matrix,2,3>(log(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(log(mat), expectedMat);
-        testSymMat(log(symmat), SymMat<2>(Mat22(log(-1), log(2), 
+        testSymMat(log(symmat), SymMat<2>(Mat22(log(-1), log(2),
                                                 log(2), log(-3))));
-        
+
         // Test the sqrt function.
-        
+
         expectedVec = Vec5(sqrt(-1), sqrt(2), sqrt(-3), sqrt(4), sqrt(-5));
         expectedMat = Mat<2,3>(sqrt(-1), sqrt(2), sqrt(-3), sqrt(4), sqrt(-5), sqrt(6));
         testVector(sqrt(vector), expectedVec);
@@ -164,11 +164,11 @@ int main() {
         testVector(sqrt(row), expectedVec);
         testMatrix<Matrix,2,3>(sqrt(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(sqrt(mat), expectedMat);
-        testSymMat(sqrt(symmat), SymMat<2>(Mat22(sqrt(-1), sqrt(2), 
+        testSymMat(sqrt(symmat), SymMat<2>(Mat22(sqrt(-1), sqrt(2),
                                                  sqrt(2), sqrt(-3))));
-        
+
         // Test the sin function.
-        
+
         expectedVec = Vec5(sin(-1), sin(2), sin(-3), sin(4), sin(-5));
         expectedMat = Mat<2,3>(sin(-1), sin(2), sin(-3), sin(4), sin(-5), sin(6));
         testVector(sin(vector), expectedVec);
@@ -177,11 +177,11 @@ int main() {
         testVector(sin(row), expectedVec);
         testMatrix<Matrix,2,3>(sin(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(sin(mat), expectedMat);
-        testSymMat(sin(symmat), SymMat<2>(Mat22(sin(-1), sin(2), 
+        testSymMat(sin(symmat), SymMat<2>(Mat22(sin(-1), sin(2),
                                                 sin(2), sin(-3))));
-        
+
         // Test the cos function.
-        
+
         expectedVec = Vec5(cos(-1), cos(2), cos(-3), cos(4), cos(-5));
         expectedMat = Mat<2,3>(cos(-1), cos(2), cos(-3), cos(4), cos(-5), cos(6));
         testVector(cos(vector), expectedVec);
@@ -190,11 +190,11 @@ int main() {
         testVector(cos(row), expectedVec);
         testMatrix<Matrix,2,3>(cos(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(cos(mat), expectedMat);
-        testSymMat(cos(symmat), SymMat<2>(Mat22(cos(-1), cos(2), 
+        testSymMat(cos(symmat), SymMat<2>(Mat22(cos(-1), cos(2),
                                                 cos(2), cos(-3))));
-        
+
         // Test the tan function.
-        
+
         expectedVec = Vec5(tan(-1), tan(2), tan(-3), tan(4), tan(-5));
         expectedMat = Mat<2,3>(tan(-1), tan(2), tan(-3), tan(4), tan(-5), tan(6));
         testVector(tan(vector), expectedVec);
@@ -203,11 +203,11 @@ int main() {
         testVector(tan(row), expectedVec);
         testMatrix<Matrix,2,3>(tan(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(tan(mat), expectedMat);
-        testSymMat(tan(symmat), SymMat<2>(Mat22(tan(-1), tan(2), 
+        testSymMat(tan(symmat), SymMat<2>(Mat22(tan(-1), tan(2),
                                                 tan(2), tan(-3))));
-        
+
         // Test the asin function.
-        
+
         expectedVec = Vec5(asin(-1), asin(2), asin(-3), asin(4), asin(-5));
         expectedMat = Mat<2,3>(asin(-1), asin(2), asin(-3), asin(4), asin(-5), asin(6));
         testVector(asin(vector), expectedVec);
@@ -216,11 +216,11 @@ int main() {
         testVector(asin(row), expectedVec);
         testMatrix<Matrix,2,3>(asin(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(asin(mat), expectedMat);
-        testSymMat(asin(symmat), SymMat<2>(Mat22(asin(-1), asin(2), 
+        testSymMat(asin(symmat), SymMat<2>(Mat22(asin(-1), asin(2),
                                                  asin(2), asin(-3))));
-        
+
         // Test the asin function.
-        
+
         expectedVec = Vec5(acos(-1), acos(2), acos(-3), acos(4), acos(-5));
         expectedMat = Mat<2,3>(acos(-1), acos(2), acos(-3), acos(4), acos(-5), acos(6));
         testVector(acos(vector), expectedVec);
@@ -229,11 +229,11 @@ int main() {
         testVector(acos(row), expectedVec);
         testMatrix<Matrix,2,3>(acos(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(acos(mat), expectedMat);
-        testSymMat(acos(symmat), SymMat<2>(Mat22(acos(-1), acos(2), 
+        testSymMat(acos(symmat), SymMat<2>(Mat22(acos(-1), acos(2),
                                                  acos(2), acos(-3))));
-        
+
         // Test the atan function.
-        
+
         expectedVec = Vec5(atan(-1), atan(2), atan(-3), atan(4), atan(-5));
         expectedMat = Mat<2,3>(atan(-1), atan(2), atan(-3), atan(4), atan(-5), atan(6));
         testVector(atan(vector), expectedVec);
@@ -242,11 +242,11 @@ int main() {
         testVector(atan(row), expectedVec);
         testMatrix<Matrix,2,3>(atan(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(atan(mat), expectedMat);
-        testSymMat(atan(symmat), SymMat<2>(Mat22(atan(-1), atan(2), 
+        testSymMat(atan(symmat), SymMat<2>(Mat22(atan(-1), atan(2),
                                                  atan(2), atan(-3))));
-        
+
         // Test the sinh function.
-        
+
         expectedVec = Vec5(sinh(-1), sinh(2), sinh(-3), sinh(4), sinh(-5));
         expectedMat = Mat<2,3>(sinh(-1), sinh(2), sinh(-3), sinh(4), sinh(-5), sinh(6));
         testVector(sinh(vector), expectedVec);
@@ -255,11 +255,11 @@ int main() {
         testVector(sinh(row), expectedVec);
         testMatrix<Matrix,2,3>(sinh(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(sinh(mat), expectedMat);
-        testSymMat(sinh(symmat), SymMat<2>(Mat22(sinh(-1), sinh(2), 
+        testSymMat(sinh(symmat), SymMat<2>(Mat22(sinh(-1), sinh(2),
                                                  sinh(2), sinh(-3))));
-        
+
         // Test the cosh function.
-        
+
         expectedVec = Vec5(cosh(-1), cosh(2), cosh(-3), cosh(4), cosh(-5));
         expectedMat = Mat<2,3>(cosh(-1), cosh(2), cosh(-3), cosh(4), cosh(-5), cosh(6));
         testVector(cosh(vector), expectedVec);
@@ -268,11 +268,11 @@ int main() {
         testVector(cosh(row), expectedVec);
         testMatrix<Matrix,2,3>(cosh(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(cosh(mat), expectedMat);
-        testSymMat(cosh(symmat), SymMat<2>(Mat22(cosh(-1), cosh(2), 
+        testSymMat(cosh(symmat), SymMat<2>(Mat22(cosh(-1), cosh(2),
                                                  cosh(2), cosh(-3))));
-        
+
         // Test the tanh function.
-        
+
         expectedVec = Vec5(tanh(-1), tanh(2), tanh(-3), tanh(4), tanh(-5));
         expectedMat = Mat<2,3>(tanh(-1), tanh(2), tanh(-3), tanh(4), tanh(-5), tanh(6));
         testVector(tanh(vector), expectedVec);
@@ -281,11 +281,11 @@ int main() {
         testVector(tanh(row), expectedVec);
         testMatrix<Matrix,2,3>(tanh(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(tanh(mat), expectedMat);
-        testSymMat(tanh(symmat), SymMat<2>(Mat22(tanh(-1), tanh(2), 
+        testSymMat(tanh(symmat), SymMat<2>(Mat22(tanh(-1), tanh(2),
                                                  tanh(2), tanh(-3))));
-        
+
         // Test the sum function.
-        
+
         ASSERT_EQUAL(sum(vector), -3);
         ASSERT_EQUAL(sum(rowvector), -3);
         ASSERT_EQUAL(sum(vec), -3);
@@ -293,9 +293,9 @@ int main() {
         testVector(sum(matrix), Vec3(3, -3, 3));
         testVector(sum(mat), Vec3(3, -3, 3));
         testVector(sum(symmat), Vec2(1, -1));
-        
+
         // Test the min function.
-        
+
         ASSERT_EQUAL(min(vector), -5);
         ASSERT_EQUAL(min(rowvector), -5);
         ASSERT_EQUAL(min(vec), -5);
@@ -303,9 +303,9 @@ int main() {
         testVector(min(matrix), Vec3(-1, -5, -3));
         testVector(min(mat), Vec3(-1, -5, -3));
         testVector(min(symmat), Vec2(-1, -3));
-        
+
         // Test the max function.
-        
+
         ASSERT_EQUAL(max(vector), 4);
         ASSERT_EQUAL(max(rowvector), 4);
         ASSERT_EQUAL(max(vec), 4);
@@ -313,9 +313,9 @@ int main() {
         testVector(max(matrix), Vec3(4, 2, 6));
         testVector(max(mat), Vec3(4, 2, 6));
         testVector(max(symmat), Vec2(2, 2));
-        
+
         // Test the mean function.
-        
+
         ASSERT_EQUAL(mean(vector), -0.6);
         ASSERT_EQUAL(mean(rowvector), -0.6);
         ASSERT_EQUAL(mean(vec), -0.6);
@@ -323,7 +323,7 @@ int main() {
         testVector(mean(matrix), Vec3(1.5, -1.5, 1.5));
         testVector(mean(mat), Vec3(1.5, -1.5, 1.5));
         testVector(mean(symmat), Vec2(0.5, -0.5));
-        
+
         // Test the sort function.
 
         expectedVec = Vec5(-5, -3, -1, 2, 4);
@@ -334,11 +334,11 @@ int main() {
         testVector(sort(row), expectedVec);
         testMatrix<Matrix,2,3>(sort(matrix), expectedMat);
         testMatrix<Mat<2,3>,2,3>(sort(mat), expectedMat);
-        testMatrix<Mat<2,2>,2,2>(sort(symmat), Mat22(-1, -3, 
+        testMatrix<Mat<2,2>,2,2>(sort(symmat), Mat22(-1, -3,
                                                       2,  2));
-        
+
         // Test the median function.
-        
+
         ASSERT_EQUAL(median(vector), -1);
         ASSERT_EQUAL(median(rowvector), -1);
         ASSERT_EQUAL(median(vec), -1);

@@ -39,7 +39,7 @@ when you define the mobilized body, so that the x axes are in the desired
 direction.
 
 The single generalized coordinate q is the translation in length units of M's
-origin Mo with respect to F's origin Fo, and the generalized speed u is the 
+origin Mo with respect to F's origin Fo, and the generalized speed u is the
 translation rate in length units/time unit, with qdot=u.
 
 Synonym: Prismatic **/
@@ -49,19 +49,19 @@ public:
     reference any %MobilizedBody::Slider. **/
     Slider() {}
 
-    /** Create a %Slider mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Slider mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Slider(MobilizedBody& parent, const Transform& X_PF,
            const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Slider(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
-    
-    
+
+
     // SPECIALIZED INTERFACE FOR SLIDER MOBILIZER
 
     // "Length" is just a nicer name for a sliding joint's lone generalized coordinate q.
@@ -102,7 +102,7 @@ public:
 
     Real getMyPartQ(const State&, const Vector& qlike) const;
     Real getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
 

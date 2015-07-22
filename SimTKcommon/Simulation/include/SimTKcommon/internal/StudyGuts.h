@@ -58,12 +58,12 @@ namespace SimTK {
  *   ===============      | client-side VFT  |  .  |             |
  *   Concrete Study        ------------------   .  |             |
  *    adds no data                              .   -------------
- *       members   
+ *       members
  * @endverbatim
  *
  * If the concrete Study::Guts class also has an opaque implementation,
  * as it will for concrete Studies provided by the SimTK Core, then
- * the Study author should expose only the data-free handle class 
+ * the Study author should expose only the data-free handle class
  * derived from Study.
  */
 class SimTK_SimTKCOMMON_EXPORT Study::Guts {
@@ -74,7 +74,7 @@ class SimTK_SimTKCOMMON_EXPORT Study::Guts {
     GutsRep* rep; // opaque implementation of Study::Guts base class.
 public:
     // Note that this serves as a default constructor since both arguments have defaults.
-    explicit Guts(const String& name="<UNNAMED STUDY>", 
+    explicit Guts(const String& name="<UNNAMED STUDY>",
                   const String& version="0.0.0");
     virtual ~Guts();
 
@@ -98,7 +98,7 @@ public:
 
 protected:
     Guts(const Guts&);  // copies the base class; for use from derived class copy constructors
-    
+
     // The destructor is already virtual; see above.
 
     virtual Study::Guts* cloneImpl() const = 0;

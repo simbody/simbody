@@ -2,7 +2,7 @@
 # This must be invoked as a CMake subdirectory from
 # the main examples CMakeLists.txt file.
 
-set(header_files Atlas.h URDFReader.h) 
+set(header_files Atlas.h URDFReader.h)
 set(shared_header_files
     ../shared/TaskSpace.h ../shared/SimbodyExampleHelper.h)
 

@@ -39,20 +39,20 @@ namespace SimTK {
 //==============================================================================
 //                         SPHERE ON PLANE CONTACT
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::SphereOnPlaneContact, 
-                                        Constraint::SphereOnPlaneContactImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::SphereOnPlaneContact,
+                                        Constraint::SphereOnPlaneContactImpl,
                                         Constraint);
 
 Constraint::SphereOnPlaneContact::SphereOnPlaneContact
-   (MobilizedBody&      planeBody, 
-    const Transform&    defaultPlaneFrame, 
-    MobilizedBody&      sphereBody, 
+   (MobilizedBody&      planeBody,
+    const Transform&    defaultPlaneFrame,
+    MobilizedBody&      sphereBody,
     const Vec3&         defaultSphereCenter,
     Real                defaultSphereRadius,
     bool                enforceRolling)
 :   Constraint(new SphereOnPlaneContactImpl(enforceRolling))
 {
-    SimTK_APIARGCHECK_ALWAYS(   planeBody.isInSubsystem() 
+    SimTK_APIARGCHECK_ALWAYS(   planeBody.isInSubsystem()
                              && sphereBody.isInSubsystem(),
         "Constraint::SphereOnPlaneContact","SphereOnPlaneContact",
         "Both bodies must already be in a SimbodyMatterSubsystem.");
@@ -106,7 +106,7 @@ getSphereMobilizedBody() const {
     return impl.getMobilizedBodyFromConstrainedBody(impl.m_ballBody_B);
 }
 
-bool Constraint::SphereOnPlaneContact::isEnforcingRolling() const 
+bool Constraint::SphereOnPlaneContact::isEnforcingRolling() const
 {   return getImpl().m_enforceRolling; }
 
 const Transform& Constraint::SphereOnPlaneContact::getDefaultPlaneFrame() const {
@@ -166,7 +166,7 @@ Real Constraint::SphereOnPlaneContact::getPositionError(const State& s) const {
 
 Vec3 Constraint::SphereOnPlaneContact::getVelocityErrors(const State& s) const {
     const SphereOnPlaneContactImpl& impl = getImpl();
-    Vec3 verr_PC; // result is velocity error in P frame 
+    Vec3 verr_PC; // result is velocity error in P frame
     if (impl.m_enforceRolling) {
         Real verr[3];
         impl.getVelocityErrors(s, 3, verr);
@@ -181,7 +181,7 @@ Vec3 Constraint::SphereOnPlaneContact::getVelocityErrors(const State& s) const {
 
 Vec3 Constraint::SphereOnPlaneContact::getAccelerationErrors(const State& s) const {
     const SphereOnPlaneContactImpl& impl = getImpl();
-    Vec3 aerr_PC; // result is acceleration error in P frame 
+    Vec3 aerr_PC; // result is acceleration error in P frame
     if (impl.m_enforceRolling) {
         Real aerr[3];
         impl.getAccelerationErrors(s, 3, aerr);
@@ -196,7 +196,7 @@ Vec3 Constraint::SphereOnPlaneContact::getAccelerationErrors(const State& s) con
 
 Vec3 Constraint::SphereOnPlaneContact::getMultipliers(const State& s) const {
     const SphereOnPlaneContactImpl& impl = getImpl();
-    Vec3 lambda_PC; // result is -force on point F in P frame 
+    Vec3 lambda_PC; // result is -force on point F in P frame
     if (impl.m_enforceRolling) {
         Real lambda[3];
         impl.getMultipliers(s, 3, lambda);
@@ -212,7 +212,7 @@ Vec3 Constraint::SphereOnPlaneContact::getMultipliers(const State& s) const {
 Vec3 Constraint::SphereOnPlaneContact::
 findForceOnSphereInG(const State& state) const {
     const SphereOnPlaneContactImpl& impl = getImpl();
-    if (impl.isDisabled(state)) 
+    if (impl.isDisabled(state))
         return Vec3(0);
 
     const Rotation& R_FP = impl.getParameters(state).m_X_FP.R();
@@ -283,28 +283,28 @@ findSeparation(const State& s) const {
 void Constraint::SphereOnPlaneContactImpl::
 realizeTopologyVirtual(State& state) const {
     parametersIx = getMyMatterSubsystemRep().
-        allocateDiscreteVariable(state, Stage::Position, 
+        allocateDiscreteVariable(state, Stage::Position,
             new Value<Parameters>
                (Parameters(m_def_X_FP, m_def_p_BO, m_def_radius)));
 }
 
-// Return the pair of constrained station points, with the first expressed 
+// Return the pair of constrained station points, with the first expressed
 // in the body 1 frame and the second in the body 2 frame. Note that although
 // these are used to define the position error, only the station on body 2
-// is used to generate constraint forces; the point of body 1 that is 
+// is used to generate constraint forces; the point of body 1 that is
 // coincident with the body 2 point receives the equal and opposite force.
-const Constraint::SphereOnPlaneContactImpl::Parameters& 
+const Constraint::SphereOnPlaneContactImpl::Parameters&
 Constraint::SphereOnPlaneContactImpl::
 getParameters(const State& state) const {
     return Value<Parameters>::downcast
        (getMyMatterSubsystemRep().getDiscreteVariable(state,parametersIx));
 }
 
-// Return a writable reference into the Instance-stage state variable 
-// containing the pair of constrained station points, with the first expressed 
+// Return a writable reference into the Instance-stage state variable
+// containing the pair of constrained station points, with the first expressed
 // in the body 1 frame and the second in the body 2 frame. Calling this
 // method invalidates the Instance stage and above in the given state.
-Constraint::SphereOnPlaneContactImpl::Parameters& 
+Constraint::SphereOnPlaneContactImpl::Parameters&
 Constraint::SphereOnPlaneContactImpl::
 updParameters(State& state) const {
     return Value<Parameters>::updDowncast
@@ -317,8 +317,8 @@ calcDecorativeGeometryAndAppendVirtual
 {
     // We can't generate the artwork until we know the plane frame and the
     // sphere center and radius, which might not be until Position stage.
-    if (   stage == Stage::Position 
-        && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    if (   stage == Stage::Position
+        && getMyMatterSubsystemRep().getShowDefaultGeometry())
     {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Parameters& params = getParameters(s);
@@ -326,17 +326,17 @@ calcDecorativeGeometryAndAppendVirtual
         const Vec3&      p_BO = params.m_p_BO;
         const Real       r    = params.m_radius;
 
-        // TODO: should be instance-stage data from State rather than 
+        // TODO: should be instance-stage data from State rather than
         // topological data.
         // This makes z axis point along plane normal
 
-        const MobilizedBodyIndex planeMBIx = 
+        const MobilizedBodyIndex planeMBIx =
             getMobilizedBodyIndexOfConstrainedBody(m_planeBody_F);
-        const MobilizedBodyIndex ballMBIx = 
+        const MobilizedBodyIndex ballMBIx =
             getMobilizedBodyIndexOfConstrainedBody(m_ballBody_B);
 
         if (m_planeHalfWidth > 0) {
-            // On the inboard body, draw a gray transparent rectangle, 
+            // On the inboard body, draw a gray transparent rectangle,
             // outlined in black lines.
             geom.push_back(DecorativeBrick
                (Vec3(m_planeHalfWidth,m_planeHalfWidth,r/10))

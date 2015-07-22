@@ -83,10 +83,10 @@ private:
     // This is the Integrator used to advance through continuous intervals. The Integrator
     // maintains the current State for the System.
     Integrator* integ;
-    
+
     // Whether to report every significant state.
     bool reportAllSignificantStates;
-    
+
     // The last time at events and reports were processed.
     Real lastEventTime, lastReportTime;
 

@@ -15,7 +15,7 @@
  */
 
 /*
- * NOTE: cpNlsFunctionalImpl is never used 
+ * NOTE: cpNlsFunctionalImpl is never used
  * (the combination CP_IMPL/CP_FUNCTIONAL is disallowed in CPodeCreate)
  */
 
@@ -47,27 +47,27 @@ static int cpNlsFunctionalImpl(CPodeMem cp_mem);
 static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag);
 static int cpNewtonIterationImpl(CPodeMem cp_mem);
 
-/* 
+/*
  * =================================================================
  * Readibility Constants
  * =================================================================
  */
 
 #define ode_type       (cp_mem->cp_ode_type)
-#define nls_type       (cp_mem->cp_nls_type)  
+#define nls_type       (cp_mem->cp_nls_type)
 
-#define fi             (cp_mem->cp_fi)      
-#define fe             (cp_mem->cp_fe)      
-#define f_data         (cp_mem->cp_f_data) 
+#define fi             (cp_mem->cp_fi)
+#define fe             (cp_mem->cp_fe)
+#define f_data         (cp_mem->cp_f_data)
 
-#define zn             (cp_mem->cp_zn) 
-#define ewt            (cp_mem->cp_ewt)  
+#define zn             (cp_mem->cp_zn)
+#define ewt            (cp_mem->cp_ewt)
 #define y              (cp_mem->cp_y)
 #define yp             (cp_mem->cp_yp)
 #define maxcor         (cp_mem->cp_maxcor)
 #define acor           (cp_mem->cp_acor)
 #define tempv          (cp_mem->cp_tempv)
-#define ftemp          (cp_mem->cp_ftemp) 
+#define ftemp          (cp_mem->cp_ftemp)
 #define q              (cp_mem->cp_q)
 #define h              (cp_mem->cp_h)
 #define next_h         (cp_mem->cp_next_h)
@@ -78,8 +78,8 @@ static int cpNewtonIterationImpl(CPodeMem cp_mem);
 #define tn             (cp_mem->cp_tn)
 #define tq             (cp_mem->cp_tq)
 #define rl1            (cp_mem->cp_rl1)
-#define gamma          (cp_mem->cp_gamma) 
-#define gammap         (cp_mem->cp_gammap) 
+#define gamma          (cp_mem->cp_gamma)
+#define gammap         (cp_mem->cp_gammap)
 #define gamrat         (cp_mem->cp_gamrat)
 #define crate          (cp_mem->cp_crate)
 #define acnrm          (cp_mem->cp_acnrm)
@@ -93,12 +93,12 @@ static int cpNewtonIterationImpl(CPodeMem cp_mem);
 #define nscon          (cp_mem->cp_nscon)
 
 #define lsetup         (cp_mem->cp_lsetup)
-#define lsolve         (cp_mem->cp_lsolve) 
+#define lsolve         (cp_mem->cp_lsolve)
 
 #define jcur           (cp_mem->cp_jcur)
-#define nstlset        (cp_mem->cp_nstlset)  
+#define nstlset        (cp_mem->cp_nstlset)
 
-#define lsetup_exists  (cp_mem->cp_lsetup_exists) 
+#define lsetup_exists  (cp_mem->cp_lsetup_exists)
 
 /*
  * =================================================================
@@ -123,7 +123,7 @@ static int cpNewtonIterationImpl(CPodeMem cp_mem);
  *
  * If the nonlinear solver fails, the following actions are taken:
  *
- *  (1) ncfn and ncf=*ncfPtr are incremented and Nordsieck array zn 
+ *  (1) ncfn and ncf=*ncfPtr are incremented and Nordsieck array zn
  *      is restored.
  *
  *  (2) If the solution of the nonlinear system failed due to an
@@ -131,12 +131,12 @@ static int cpNewtonIterationImpl(CPodeMem cp_mem);
  *      an appropriate failure flag (CP_LSETUP_FAIL, CP_LSOLVE_FAIL,
  *      or CP_ODEFUNC_FAIL) which will tell cpStep to halt.
  *
- *  (3) Otherwise, a recoverable failure occurred when solving the 
- *      nonlinear system (flag == CONV_FAIL or ODEFUNC_RECVR). 
- *      In this case, if ncf is now equal to maxncf or |h| = hmin, 
+ *  (3) Otherwise, a recoverable failure occurred when solving the
+ *      nonlinear system (flag == CONV_FAIL or ODEFUNC_RECVR).
+ *      In this case, if ncf is now equal to maxncf or |h| = hmin,
  *      we return the value CP_CONV_FAILURE (if flag=CONV_FAIL) or
  *      CP_REPTD_ODEFUNC_ERR (if flag=ODEFUNC_RECVR).
- *      If not, we return the value PREDICT_AGAIN, telling cpStep to 
+ *      If not, we return the value PREDICT_AGAIN, telling cpStep to
  *      reattempt the step (with nflag = PREV_CONV_FAIL).
  */
 
@@ -146,7 +146,7 @@ int cpNls(CPodeMem cp_mem, int nflag, realtype saved_t, int *ncfPtr)
 
   switch(nls_type) {
 
-  case CP_FUNCTIONAL: 
+  case CP_FUNCTIONAL:
     switch(ode_type) {
     case CP_EXPL:
       flag = cpNlsFunctionalExpl(cp_mem);
@@ -190,11 +190,11 @@ int cpNls(CPodeMem cp_mem, int nflag, realtype saved_t, int *ncfPtr)
   (*ncfPtr)++;
   etamax = ONE;
 
-  /* If we had maxncf failures or |h| = hmin, 
+  /* If we had maxncf failures or |h| = hmin,
      return CP_CONV_FAILURE or CP_REPTD_ODEFUNC_ERR. */
   if ((ABS(h) <= hmin*ONEPSM) || (*ncfPtr == maxncf)) {
     if (flag == CONV_FAIL)     return(CP_CONV_FAILURE);
-    if (flag == ODEFUNC_RECVR) return(CP_REPTD_ODEFUNC_ERR);    
+    if (flag == ODEFUNC_RECVR) return(CP_REPTD_ODEFUNC_ERR);
   }
 
   /* Reduce step size; return to reattempt the step */
@@ -268,7 +268,7 @@ static int cpNlsFunctionalExpl(CPodeMem cp_mem)
 
     /* Update accumulated correction */
     N_VScale(ONE, tempv, acor);
-    
+
     /* Test for convergence.  If m > 0, an estimate of the convergence
        rate constant is stored in crate, and used in the test.        */
     if (m > 0) crate = MAX(NLS_CRDOWN * crate, del / delp);
@@ -297,17 +297,17 @@ static int cpNlsFunctionalExpl(CPodeMem cp_mem)
 /*
  * cpNlsNewtonExpl
  *
- * This routine handles the Newton iteration for an ODE in explicit form. 
- * It calls lsetup if indicated, calls cpNewtonIterationExpl to perform 
- * the actual Newton iteration, and retries a failed attempt at Newton 
+ * This routine handles the Newton iteration for an ODE in explicit form.
+ * It calls lsetup if indicated, calls cpNewtonIterationExpl to perform
+ * the actual Newton iteration, and retries a failed attempt at Newton
  * iteration if that is indicated.
  *
  * Possible return values:
  *
  *   CP_SUCCESS       ---> continue with error test
  *
- *   CP_ODEFUNC_FAIL  -+  
- *   CP_LSETUP_FAIL    |-> halt the integration 
+ *   CP_ODEFUNC_FAIL  -+
+ *   CP_LSETUP_FAIL    |-> halt the integration
  *   CP_LSOLVE_FAIL   -+
  *
  *   CONV_FAIL        -+
@@ -320,7 +320,7 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
   N_Vector vtemp1, vtemp2, vtemp3;
   int convfail, retval, ier;
   booleantype callSetup;
-  
+
 #ifdef CPODES_DEBUG
   printf("      Newton, explicit ODE\n");
 #endif
@@ -328,21 +328,21 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
   vtemp1 = acor;  /* rename acor as vtemp1 for readability  */
   vtemp2 = y;     /* rename y as vtemp2 for readability     */
   vtemp3 = tempv; /* rename tempv as vtemp3 for readability */
-  
+
   /* Set flag convfail, input to lsetup for its evaluation decision */
   convfail = ((nflag == FIRST_CALL) || (nflag == PREV_ERR_FAIL)) ?
     CP_NO_FAILURES : CP_FAIL_OTHER;
 
   /* Decide whether or not to call setup routine (if one exists) */
-  if (lsetup_exists) {      
+  if (lsetup_exists) {
     callSetup = (nflag == PREV_CONV_FAIL) || (nflag == PREV_ERR_FAIL) ||
       (nst == 0) || (nst >= nstlset + NLS_MSBLS) || (ABS(gamrat-ONE) > DGMAX);
-  } else {  
+  } else {
     crate = ONE;
     callSetup = FALSE;
   }
-  
-  /* Begin the main loop. This loop is traversed at most twice. 
+
+  /* Begin the main loop. This loop is traversed at most twice.
    * The second pass only occurs when the first pass had a recoverable
    * failure with old Jacobian data.
    */
@@ -350,13 +350,13 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
 
     /* Evaluate function at predicted y */
     retval = fe(tn, zn[0], ftemp, f_data);
-    nfe++; 
+    nfe++;
     if (retval < 0) return(CP_ODEFUNC_FAIL);
     if (retval > 0) return(ODEFUNC_RECVR);
 
     /* If needed, call setup function (ypP = NULL in this case) */
     if (callSetup) {
-      ier = lsetup(cp_mem, convfail, zn[0], NULL, ftemp, &jcur, 
+      ier = lsetup(cp_mem, convfail, zn[0], NULL, ftemp, &jcur,
                    vtemp1, vtemp2, vtemp3);
 
 #ifdef CPODES_DEBUG
@@ -365,7 +365,7 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
 
       nsetups++;
       callSetup = FALSE;
-      gamrat = crate = ONE; 
+      gamrat = crate = ONE;
       gammap = gamma;
       nstlset = nst;
       if (ier < 0) return(CP_LSETUP_FAIL);
@@ -385,10 +385,10 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
     ier = cpNewtonIterationExpl(cp_mem);
 
 #ifdef CPODES_DEBUG
-    printf("         NonlinearIteration return value = %d\n",ier);        
+    printf("         NonlinearIteration return value = %d\n",ier);
 #endif
 
-    /* If there is a convergence failure and the Jacobian-related 
+    /* If there is a convergence failure and the Jacobian-related
        data appears not to be current, loop again with a call to lsetup
        in which convfail=CP_FAIL_BAD_J.  Otherwise return.                 */
 
@@ -399,7 +399,7 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
     }
 
     return(ier);
-    
+
   }
 }
 
@@ -407,7 +407,7 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
  * cpNewtonIterationExpl
  *
  * This routine performs the actual Newton iteration for an ODE system
- * in explicit form. 
+ * in explicit form.
  *
  * Possible return values:
  *
@@ -459,7 +459,7 @@ static int cpNewtonIterationExpl(CPodeMem cp_mem)
     printf("                rhs   = "); N_VPrint_Serial(b);
 #endif
 
-    retval = lsolve(cp_mem, b, ewt, y, NULL, ftemp); 
+    retval = lsolve(cp_mem, b, ewt, y, NULL, ftemp);
 
 #ifdef CPODES_DEBUG_SERIAL
     printf("                sol   = "); N_VPrint_Serial(b);
@@ -468,7 +468,7 @@ static int cpNewtonIterationExpl(CPodeMem cp_mem)
     printf("            Linear solver solve return value = %d\n",retval);
 #endif
 
-    nni++;    
+    nni++;
     if (retval < 0) return(CP_LSOLVE_FAIL);
     if (retval > 0) return(CONV_FAIL);
 
@@ -481,7 +481,7 @@ static int cpNewtonIterationExpl(CPodeMem cp_mem)
 
     N_VLinearSum(ONE, acor, ONE, b, acor);
     N_VLinearSum(ONE, zn[0], ONE, acor, y);
-    
+
     /* Test for convergence.  If m > 0, an estimate of the convergence
        rate constant is stored in crate, and used in the test.        */
     if (m > 0) {
@@ -501,17 +501,17 @@ static int cpNewtonIterationExpl(CPodeMem cp_mem)
 #endif
 #ifdef CPODES_DEBUG
       printf("            Accumulated correction norm = %lg\n", acnrm);
-#endif      
+#endif
 
       jcur = FALSE;
       return(CP_SUCCESS); /* Nonlinear system was solved successfully */
     }
-    
+
     mnewt = ++m;
-    
+
     /* Stop at maxcor iterations or if iter. seems to be diverging. */
     if ((m == maxcor) || ((m >= 2) && (del > NLS_RDIV*delp))) return(CONV_FAIL);
-    
+
     /* Save norm of correction, evaluate f, and loop again */
     delp = del;
     retval = fe(tn, y, ftemp, f_data);
@@ -532,13 +532,13 @@ static int cpNewtonIterationExpl(CPodeMem cp_mem)
 /*
  * cpNlsFunctionalImpl
  *
- * This routine attempts to solve the nonlinear system for an ODE in 
- * implicit form using functional iteration (no matrices involved). 
+ * This routine attempts to solve the nonlinear system for an ODE in
+ * implicit form using functional iteration (no matrices involved).
  *
  * The system to be solved for y is written as
  *
  *    y = y - gamma * F( y, yP' + (y - yP)/gamma )
- * 
+ *
  * At each iterate, y' is obtained as
  *
  *    y' = yP' + 1/gamma * ( y - yP )
@@ -601,7 +601,7 @@ static int cpNlsFunctionalImpl(CPodeMem cp_mem)
 
     /* Update accumulated correction */
     N_VLinearSum(ONE, acor, ONE, tempv, acor);
-    
+
     /* Test for convergence.  If m > 0, an estimate of the convergence
        rate constant is stored in crate, and used in the test.        */
     if (m > 0) crate = MAX(NLS_CRDOWN * crate, del / delp);
@@ -632,17 +632,17 @@ static int cpNlsFunctionalImpl(CPodeMem cp_mem)
 /*
  * cpNlsNewtonImpl
  *
- * This routine handles the Newton iteration for an ODE in implicit form. 
- * It calls lsetup if indicated, calls cpNewtonIterationImpl to perform 
- * the actual Newton iteration, and retries a failed attempt at Newton 
+ * This routine handles the Newton iteration for an ODE in implicit form.
+ * It calls lsetup if indicated, calls cpNewtonIterationImpl to perform
+ * the actual Newton iteration, and retries a failed attempt at Newton
  * iteration if that is indicated.
  *
  * Possible return values:
  *
  *   CP_SUCCESS       ---> continue with error test
  *
- *   CP_ODEFUNC_FAIL  -+  
- *   CP_LSETUP_FAIL    |-> halt the integration 
+ *   CP_ODEFUNC_FAIL  -+
+ *   CP_LSETUP_FAIL    |-> halt the integration
  *   CP_LSOLVE_FAIL   -+
  *
  *   CONV_FAIL        -+
@@ -668,7 +668,7 @@ static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag)
   vtemp1 = acor;
   vtemp2 = y;
   vtemp3 = tempv;
-  
+
   /* If the linear solver provides a setup function, call it if:
    *   - we are at the first step (nst == 0), or
    *   - gamma changed significantly, or
@@ -682,7 +682,7 @@ static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag)
   }
 
 
-  /* Begin the main loop. This loop is traversed at most twice. 
+  /* Begin the main loop. This loop is traversed at most twice.
    * The second pass only occurs when the first pass had a recoverable
    * failure with old Jacobian data.
    */
@@ -693,7 +693,7 @@ static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag)
 
     /* Evaluate residual at predicted y and y' */
     retval = fi(tn, zn[0], yp, ftemp, f_data);
-    nfe++; 
+    nfe++;
     if (retval < 0) return(CP_ODEFUNC_FAIL);
     if (retval > 0) return(ODEFUNC_RECVR);
 
@@ -703,7 +703,7 @@ static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag)
                       vtemp1, vtemp2, vtemp3);
       nsetups++;
       nstlset = nst;
-      crate = ONE; 
+      crate = ONE;
       gammap = gamma;
       gamrat = ONE;
       if (retval < 0) return(CP_LSETUP_FAIL);
@@ -732,7 +732,7 @@ static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag)
 /*
  * cpNewtonIterationImpl
  *
- * This routine performs actual the Newton iteration for an ODE system 
+ * This routine performs actual the Newton iteration for an ODE system
  * given in implicit form.
  *
  * Possible return values:
@@ -778,17 +778,17 @@ static int cpNewtonIterationImpl(CPodeMem cp_mem)
     /* Test for convergence.  If m > 0, an estimate of the convergence
        rate constant is stored in crate, and used in the test.        */
     if (m > 0) crate = MAX(NLS_CRDOWN * crate, del/delp);
-    dcon = del * MIN(ONE, crate) / tq[4];    
+    dcon = del * MIN(ONE, crate) / tq[4];
     if (dcon <= ONE) {
       acnrm = (m==0) ? del : N_VWrmsNorm(acor, ewt);
       return(CP_SUCCESS);
     }
-    
+
     mnewt = ++m;
-    
+
     /* Stop at maxcor iterations or if iter. seems to be diverging. */
     if ((m == maxcor) || ((m >= 2) && (del > NLS_RDIV*delp)))  return(CONV_FAIL);
-    
+
     /* Save norm of correction, evaluate f, and loop again */
     delp = del;
     retval = fi(tn, y, yp, ftemp, f_data);

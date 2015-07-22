@@ -38,7 +38,7 @@
 using namespace SimTK;
 using std::cout; using std::endl;
 
-// This constraint holds the body origins of two bodies apart at a given 
+// This constraint holds the body origins of two bodies apart at a given
 // distance, without constraining any other motion. This is like connecting
 // the points with a massless rod with ball joints at each end. We will
 // use the following equation for this holonomic (position-level) constraint:
@@ -46,20 +46,20 @@ using std::cout; using std::endl;
 // where perr(q) = (dot(r, r) - d^2)/2
 // with r(q) the vector from body1's origin to body2's origin, and d a given
 // constant.
-// We must supply the first and second time derivatives of perr here as a 
+// We must supply the first and second time derivatives of perr here as a
 // velocity error function verr and acceleration error function aerr:
 //       verr(q,u) = d/dt perr = dot(v, r)
 //       aerr(q,u,udot) = d/dt verr = dot(a, r) + dot(v, v)
 // where v = d/dt r is the relative velocity between the body origins and
 // a = d/dt v is their relative acceleration.
-// 
+//
 class ExampleConstraint : public Constraint::Custom::Implementation {
 public:
     // Constructor takes two bodies and the desired separation distance
     // between their body frame origins. Tell the base class that this
     // constraint generates 1 holonomic (position level), 0 nonholonomic
     // (velocity level), and 0 acceleration-only constraint equations.
-    ExampleConstraint(MobilizedBody& b1, MobilizedBody& b2, Real distance) 
+    ExampleConstraint(MobilizedBody& b1, MobilizedBody& b2, Real distance)
     :   Implementation(b1.updMatterSubsystem(), 1, 0, 0), distance(distance) {
         body1 = addConstrainedBody(b1);
         body2 = addConstrainedBody(b2);
@@ -73,9 +73,9 @@ public:
 
     // Simbody supplies position information in argument list; we calculate
     // the constraint error that represents here.
-    void calcPositionErrors     
+    void calcPositionErrors
        (const State&                                    state,
-        const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+        const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
         const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
         Array_<Real>&                                   perr) const
     {
@@ -87,9 +87,9 @@ public:
 
     // Simbody supplies velocity information in argument list; position info
     // is in the state. Return time derivative of position constraint error.
-    void calcPositionDotErrors   
+    void calcPositionDotErrors
        (const State&                                    state,
-        const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+        const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
         const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
         Array_<Real>&                                   pverr) const
     {
@@ -107,9 +107,9 @@ public:
     // constraint error.
     void calcPositionDotDotErrors
        (const State&                                    state,
-        const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+        const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
         const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
-        Array_<Real>&                                   paerr) const 
+        Array_<Real>&                                   paerr) const
     {
         Vec3 r1 = getBodyOriginLocationFromState(state, body1);
         Vec3 r2 = getBodyOriginLocationFromState(state, body2);
@@ -123,14 +123,14 @@ public:
         paerr[0] = dot(a, r) + dot(v, v);
     }
 
-    // Simbody provides calculated constraint multiplier in argument list; we 
+    // Simbody provides calculated constraint multiplier in argument list; we
     // turn that into forces here and apply them to the two bodies as point
     // forces at the origins.
     void addInPositionConstraintForces
-       (const State&                                state, 
+       (const State&                                state,
         const Array_<Real>&                         multipliers,
         Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-        Array_<Real,      ConstrainedQIndex>&       qForces) const 
+        Array_<Real,      ConstrainedQIndex>&       qForces) const
     {
         Vec3 r1 = getBodyOriginLocationFromState(state, body1);
         Vec3 r2 = getBodyOriginLocationFromState(state, body2);
@@ -157,7 +157,7 @@ public:
 };
 
 int main() {
-  try {   
+  try {
     // Create the system, with subsystems for the bodies and some forces.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -172,18 +172,18 @@ int main() {
     // Create the body and some artwork for it.
     const Vec3 halfLengths(.5, .1, .25); // half-size of brick (m)
     const Real mass = 2; // total mass of brick (kg)
-    Body::Rigid pendulumBody(MassProperties(mass, Vec3(0), 
+    Body::Rigid pendulumBody(MassProperties(mass, Vec3(0),
                                 mass*UnitInertia::brick(halfLengths)));
-    pendulumBody.addDecoration(Transform(), 
+    pendulumBody.addDecoration(Transform(),
         DecorativeBrick(halfLengths).setColor(Red));
 
     // Add an instance of the body to the multibody system by connecting
     // it to Ground via a Ball mobilizer.
-    MobilizedBody::Ball pendulum1(matter.updGround(), Transform(Vec3(-1,-1, 0)), 
+    MobilizedBody::Ball pendulum1(matter.updGround(), Transform(Vec3(-1,-1, 0)),
                                   pendulumBody,       Transform(Vec3( 0, 1, 0)));
 
     // Add a second instance of the pendulum nearby.
-    MobilizedBody::Ball pendulum2(matter.updGround(), Transform(Vec3(1,-1, 0)), 
+    MobilizedBody::Ball pendulum2(matter.updGround(), Transform(Vec3(1,-1, 0)),
                                   pendulumBody,       Transform(Vec3(0, 1, 0)));
 
     // Connect the origins of the two pendulum bodies together with our
@@ -199,17 +199,17 @@ int main() {
     viz.addRubberBandLine(pendulum1, Vec3(0), pendulum2, Vec3(0),
         DecorativeLine().setColor(Blue).setLineThickness(3));
 
-    // Ask for a report every 1/30 of a second to match the Visualizer's 
+    // Ask for a report every 1/30 of a second to match the Visualizer's
     // default rate of 30 frames per second.
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
     // Output total energy to the console once per second.
     system.addEventReporter(new TextDataEventReporter
                                    (system, new MyEvaluateEnergy(), 1.0));
-    
-    // Initialize the system and state.   
+
+    // Initialize the system and state.
     State state = system.realizeTopology();
 
-    // Orient the two pendulums asymmetrically so they'll do something more 
+    // Orient the two pendulums asymmetrically so they'll do something more
     // interesting than just hang there.
     pendulum1.setQToFitRotation(state, Rotation(Pi/4, ZAxis));
     pendulum2.setQToFitRotation(state, Rotation(BodyRotationSequence,

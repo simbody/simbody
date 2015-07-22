@@ -108,7 +108,7 @@ void testCacheValidity() {
 
     // This cache entry depends on Model stage state and is guaranteed to be valid at Time stage.
     // In between (at Model or Instance stage) it *may* be valid if explicitly marked so.
-    const CacheEntryIndex cx = s.allocateCacheEntry(Sub0, 
+    const CacheEntryIndex cx = s.allocateCacheEntry(Sub0,
         Stage::Model, Stage::Time, new Value<int>(41));
 
     // "realize" Topology stage
@@ -152,7 +152,7 @@ void testCacheValidity() {
     SimTK_TEST_MUST_THROW(s.getCacheEntry(Sub0, cx));
 
     // "calculate" the cache entry and mark it valid.
-    Value<int>::updDowncast(s.updCacheEntry(Sub0,cx)) = 
+    Value<int>::updDowncast(s.updCacheEntry(Sub0,cx)) =
         (int)(2 * Value<Real>::downcast(s.getDiscreteVariable(Sub1, dvxModel)));
     s.markCacheValueRealized(Sub0, cx);
 

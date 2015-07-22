@@ -37,65 +37,65 @@ namespace SimTK {
 
 namespace Impl {
 
-// For those wimpy compilers that don't unroll short, constant-limit loops, 
-// Peter Eastman added these recursive template implementations of 
+// For those wimpy compilers that don't unroll short, constant-limit loops,
+// Peter Eastman added these recursive template implementations of
 // elementwise add, subtract, and copy. Sherm added multiply and divide.
 
 template <class E1, int S1, class E2, int S2> void
-conformingAdd(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, 
+conformingAdd(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2,
               Row<1,typename CNT<E1>::template Result<E2>::Add>& result) {
     result[0] = r1[0] + r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-conformingAdd(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, 
+conformingAdd(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2,
               Row<N,typename CNT<E1>::template Result<E2>::Add>& result) {
-    conformingAdd(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), 
-                  reinterpret_cast<const Row<N-1,E2,S2>&>(r2), 
+    conformingAdd(reinterpret_cast<const Row<N-1,E1,S1>&>(r1),
+                  reinterpret_cast<const Row<N-1,E2,S2>&>(r2),
                   reinterpret_cast<Row<N-1,typename CNT<E1>::
                               template Result<E2>::Add>&>(result));
     result[N-1] = r1[N-1] + r2[N-1];
 }
 
 template <class E1, int S1, class E2, int S2> void
-conformingSubtract(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, 
+conformingSubtract(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2,
                    Row<1,typename CNT<E1>::template Result<E2>::Sub>& result) {
     result[0] = r1[0] - r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
 conformingSubtract(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2,
                    Row<N,typename CNT<E1>::template Result<E2>::Sub>& result) {
-    conformingSubtract(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), 
-                       reinterpret_cast<const Row<N-1,E2,S2>&>(r2), 
+    conformingSubtract(reinterpret_cast<const Row<N-1,E1,S1>&>(r1),
+                       reinterpret_cast<const Row<N-1,E2,S2>&>(r2),
                        reinterpret_cast<Row<N-1,typename CNT<E1>::
                                    template Result<E2>::Sub>&>(result));
     result[N-1] = r1[N-1] - r2[N-1];
 }
 
 template <class E1, int S1, class E2, int S2> void
-elementwiseMultiply(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, 
+elementwiseMultiply(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2,
               Row<1,typename CNT<E1>::template Result<E2>::Mul>& result) {
     result[0] = r1[0] * r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-elementwiseMultiply(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, 
+elementwiseMultiply(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2,
               Row<N,typename CNT<E1>::template Result<E2>::Mul>& result) {
-    elementwiseMultiply(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), 
-                        reinterpret_cast<const Row<N-1,E2,S2>&>(r2), 
+    elementwiseMultiply(reinterpret_cast<const Row<N-1,E1,S1>&>(r1),
+                        reinterpret_cast<const Row<N-1,E2,S2>&>(r2),
                         reinterpret_cast<Row<N-1,typename CNT<E1>::
                                     template Result<E2>::Mul>&>(result));
     result[N-1] = r1[N-1] * r2[N-1];
 }
 
 template <class E1, int S1, class E2, int S2> void
-elementwiseDivide(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2, 
+elementwiseDivide(const Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2,
               Row<1,typename CNT<E1>::template Result<E2>::Dvd>& result) {
     result[0] = r1[0] / r2[0];
 }
 template <int N, class E1, int S1, class E2, int S2> void
-elementwiseDivide(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2, 
+elementwiseDivide(const Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2,
               Row<N,typename CNT<E1>::template Result<E2>::Dvd>& result) {
-    elementwiseDivide(reinterpret_cast<const Row<N-1,E1,S1>&>(r1), 
-                        reinterpret_cast<const Row<N-1,E2,S2>&>(r2), 
+    elementwiseDivide(reinterpret_cast<const Row<N-1,E1,S1>&>(r1),
+                        reinterpret_cast<const Row<N-1,E2,S2>&>(r2),
                         reinterpret_cast<Row<N-1,typename CNT<E1>::
                                     template Result<E2>::Dvd>&>(result));
     result[N-1] = r1[N-1] / r2[N-1];
@@ -107,7 +107,7 @@ copy(Row<1,E1,S1>& r1, const Row<1,E2,S2>& r2) {
 }
 template <int N, class E1, int S1, class E2, int S2> void
 copy(Row<N,E1,S1>& r1, const Row<N,E2,S2>& r2) {
-    copy(reinterpret_cast<Row<N-1,E1,S1>&>(r1), 
+    copy(reinterpret_cast<Row<N-1,E1,S1>&>(r1),
          reinterpret_cast<const Row<N-1,E2,S2>&>(r2));
     r1[N-1] = r2[N-1];
 }
@@ -167,8 +167,8 @@ public:
         ImagOffset          = NTraits<ENumber>::ImagOffset,
         RealStrideFactor    = 1, // composite types don't change size when
                                  // cast from complex to real or imaginary
-        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH 
-                                ? CNT<E>::ArgDepth + 1 
+        ArgDepth            = ((int)CNT<E>::ArgDepth < (int)MAX_RESOLVED_DEPTH
+                                ? CNT<E>::ArgDepth + 1
                                 : MAX_RESOLVED_DEPTH),
         IsScalar            = 0,
         IsULessScalar       = 0,
@@ -182,9 +182,9 @@ public:
     typedef Row<N,ENeg,STRIDE>              TNeg;
     typedef Row<N,EWithoutNegator,STRIDE>   TWithoutNegator;
 
-    typedef Row<N,EReal,STRIDE*CNT<E>::RealStrideFactor>         
+    typedef Row<N,EReal,STRIDE*CNT<E>::RealStrideFactor>
                                             TReal;
-    typedef Row<N,EImag,STRIDE*CNT<E>::RealStrideFactor>         
+    typedef Row<N,EImag,STRIDE*CNT<E>::RealStrideFactor>
                                             TImag;
     typedef Row<N,EComplex,STRIDE>          TComplex;
     typedef Vec<N,EHerm,STRIDE>             THerm;
@@ -219,7 +219,7 @@ public:
 
 
     // Scalar norm square is sum( conjugate squares of all scalars )
-    ScalarNormSq scalarNormSqr() const { 
+    ScalarNormSq scalarNormSqr() const {
         ScalarNormSq sum(0);
         for(int i=0;i<N;++i) sum += CNT<E>::scalarNormSqr(d[i*STRIDE]);
         return sum;
@@ -260,7 +260,7 @@ public:
     // This gives the resulting rowvector type when (v[i] op P) is applied to each element of v.
     // It is a row of length N, stride 1, and element types which are the regular
     // composite result of E op P. Typically P is a scalar type but it doesn't have to be.
-    template <class P> struct EltResult { 
+    template <class P> struct EltResult {
         typedef Row<N, typename CNT<E>::template Result<P>::Mul, 1> Mul;
         typedef Row<N, typename CNT<E>::template Result<P>::Dvd, 1> Dvd;
         typedef Row<N, typename CNT<E>::template Result<P>::Add, 1> Add;
@@ -269,7 +269,7 @@ public:
 
     // This is the composite result for v op P where P is some kind of appropriately shaped
     // non-scalar type.
-    template <class P> struct Result { 
+    template <class P> struct Result {
         typedef MulCNTs<1,N,ArgDepth,Row,ColSpacing,RowSpacing,
             CNT<P>::NRows, CNT<P>::NCols, CNT<P>::ArgDepth,
             P, CNT<P>::ColSpacing, CNT<P>::RowSpacing> MulOp;
@@ -304,7 +304,7 @@ public:
 
     // Default construction initializes to NaN when debugging but
     // is left uninitialized otherwise.
-    Row(){ 
+    Row(){
     #ifndef NDEBUG
         setToNaN();
     #endif
@@ -349,7 +349,7 @@ public:
 
     // Given an int, turn it into a suitable floating point number
     // and then feed that to the above single-element constructor.
-    explicit Row(int i) 
+    explicit Row(int i)
       { new (this) Row(E(Precision(i))); }
 
     // A bevy of constructors for Rows up to length 6.
@@ -422,7 +422,7 @@ public:
     }
 
     /** Row times a conforming matrix, row=row*mat -- use operator* instead. **/
-    template <int MatNCol, class EE, int CS, int RS> 
+    template <int MatNCol, class EE, int CS, int RS>
     Row<MatNCol,typename CNT<E>::template Result<EE>::Mul>
     conformingMultiply(const Mat<N,MatNCol,EE,CS,RS>& m) const {
         Row<MatNCol,typename CNT<E>::template Result<EE>::Mul> result;
@@ -452,7 +452,7 @@ public:
     E&       operator()(int i)         { return (*this)[i]; }
 
     ScalarNormSq normSqr() const { return scalarNormSqr(); }
-    typename CNT<ScalarNormSq>::TSqrt 
+    typename CNT<ScalarNormSq>::TSqrt
         norm() const { return CNT<ScalarNormSq>::sqrt(scalarNormSqr()); }
 
     // If the elements of this Row are scalars, the result is what you get by
@@ -471,7 +471,7 @@ public:
             return castAwayNegatorIfAny() / (SignInterpretation*norm());
         } else {
             TNormalize elementwiseNormalized;
-            for (int j=0; j<N; ++j) 
+            for (int j=0; j<N; ++j)
                 elementwiseNormalized[j] = CNT<E>::normalize((*this)[j]);
             return elementwiseNormalized;
         }
@@ -500,12 +500,12 @@ public:
     TReal&       real()       { return *reinterpret_cast<      TReal*>(this); }
 
     // Had to contort these routines to get them through VC++ 7.net
-    const TImag& imag()    const { 
+    const TImag& imag()    const {
         const int offs = ImagOffset;
         const EImag* p = reinterpret_cast<const EImag*>(this);
         return *reinterpret_cast<const TImag*>(p+offs);
     }
-    TImag& imag() { 
+    TImag& imag() {
         const int offs = ImagOffset;
         EImag* p = reinterpret_cast<EImag*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
@@ -515,13 +515,13 @@ public:
     TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
 
-    // These are elementwise binary operators, (this op ee) by default but 
-    // (ee op this) if 'FromLeft' appears in the name. The result is a packed 
-    // Row<N> but the element type may change. These are mostly used to 
-    // implement global operators. We call these "scalar" operators but 
+    // These are elementwise binary operators, (this op ee) by default but
+    // (ee op this) if 'FromLeft' appears in the name. The result is a packed
+    // Row<N> but the element type may change. These are mostly used to
+    // implement global operators. We call these "scalar" operators but
     // actually the "scalar" can be a composite type.
 
-    //TODO: consider converting 'e' to Standard Numbers as precalculation and 
+    //TODO: consider converting 'e' to Standard Numbers as precalculation and
     // changing return type appropriately.
     template <class EE> Row<N, typename CNT<E>::template Result<EE>::Mul>
     scalarMultiply(const EE& e) const {
@@ -536,7 +536,7 @@ public:
         return result;
     }
 
-    // TODO: should precalculate and store 1/e, while converting to Standard 
+    // TODO: should precalculate and store 1/e, while converting to Standard
     // Numbers. Note that return type should change appropriately.
     template <class EE> Row<N, typename CNT<E>::template Result<EE>::Dvd>
     scalarDivide(const EE& e) const {
@@ -622,7 +622,7 @@ public:
         (*this) = ELT(0);
     }
 
-    /** Extract a const reference to a sub-Row with size known at compile time. 
+    /** Extract a const reference to a sub-Row with size known at compile time.
     This must be called with an explicit template argument for the size, for
     example, getSubRow<3>(j). This is only a recast; no copying or computation
     is performed. The size and index are range checked in Debug builds but
@@ -632,7 +632,7 @@ public:
         assert(0 <= j && j + NN <= N);
         return Row<NN,ELT,STRIDE>::getAs(&(*this)[j]);
     }
-    /** Extract a writable reference to a sub-Row with size known at compile time. 
+    /** Extract a writable reference to a sub-Row with size known at compile time.
     This must be called with an explicit template argument for the size, for
     example, updSubRow<3>(j). This is only a recast; no copying or computation
     is performed. The size and index are range checked in Debug builds but
@@ -644,7 +644,7 @@ public:
     }
 
     /** Extract a subvector of type %Row from a longer one that has the same
-    element type and stride, and return a const reference to the selected 
+    element type and stride, and return a const reference to the selected
     subsequence. **/
     template <int NN>
     static const Row& getSubRow(const Row<NN,ELT,STRIDE>& r, int j) {
@@ -652,7 +652,7 @@ public:
         return getAs(&r[j]);
     }
     /** Extract a subvector of type %Row from a longer one that has the same
-    element type and stride, and return a writable reference to the selected 
+    element type and stride, and return a writable reference to the selected
     subsequence. **/
     template <int NN>
     static Row& updSubRow(Row<NN,ELT,STRIDE>& r, int j) {
@@ -686,8 +686,8 @@ public:
 
 
     /** Return a row one larger than this one by inserting an element
-    \e before the indicated one. The result is a packed copy with the same 
-    element type as this one. Works for any assignment compatible element. The 
+    \e before the indicated one. The result is a packed copy with the same
+    element type as this one. Works for any assignment compatible element. The
     index can be one greater than normally allowed in which case the element
     is appended (but use append1() if you know you're appending). **/
     template <class EE> Row<N+1,ELT,1> insert1(int p, const EE& v) const {
@@ -702,10 +702,10 @@ public:
         return out;
     }
 
-    /** Recast an ordinary C++ array E[] to a const %Row<N,E,S>; assumes 
+    /** Recast an ordinary C++ array E[] to a const %Row<N,E,S>; assumes
     compatible length, stride, and packing. **/
     static const Row& getAs(const ELT* p)  {return *reinterpret_cast<const Row*>(p);}
-    /** Recast a writable ordinary C++ array E[] to a writable %Row<N,E,S>; 
+    /** Recast a writable ordinary C++ array E[] to a writable %Row<N,E,S>;
     assumes compatible length, stride, and packing. **/
     static Row&       updAs(ELT* p)        {return *reinterpret_cast<Row*>(p);}
 
@@ -729,15 +729,15 @@ public:
         for (int j=0; j<N; ++j) {
             const ELT& e = (*this)[j];
             if (!CNT<ELT>::isFinite(e)) {
-                if (!CNT<ELT>::isInf(e)) 
+                if (!CNT<ELT>::isInf(e))
                     return false; // something bad was found
-                seenInf = true; 
+                seenInf = true;
             }
         }
         return seenInf;
     }
 
-    /** Return true if no element of this %Row contains an Infinity or a NaN 
+    /** Return true if no element of this %Row contains an Infinity or a NaN
     anywhere. **/
     bool isFinite() const {
         for (int j=0; j<N; ++j)
@@ -770,12 +770,12 @@ public:
     }
 
     /** %Test whether every element of this row vector is numerically equal to
-    the given element, using either a specified tolerance or the row's 
+    the given element, using either a specified tolerance or the row's
     default tolerance (which is always the same or looser than the default
     tolerance for one of its elements). **/
     bool isNumericallyEqual
        (const ELT& e,
-        double     tol = getDefaultTolerance()) const 
+        double     tol = getDefaultTolerance()) const
     {
         for (int j=0; j<N; ++j)
             if (!CNT<ELT>::isNumericallyEqual((*this)(j), e, tol))
@@ -791,10 +791,10 @@ private:
 //   v+v, v-v, v==v, v!=v                  //
 /////////////////////////////////////////////
 
-// v3 = v1 + v2 where all v's have the same length N. 
+// v3 = v1 + v2 where all v's have the same length N.
 template <int N, class E1, int S1, class E2, int S2> inline
 typename Row<N,E1,S1>::template Result< Row<N,E2,S2> >::Add
-operator+(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) { 
+operator+(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {
     return Row<N,E1,S1>::template Result< Row<N,E2,S2> >
         ::AddOp::perform(l,r);
 }
@@ -802,66 +802,66 @@ operator+(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {
 // v3 = v1 - v2, similar to +
 template <int N, class E1, int S1, class E2, int S2> inline
 typename Row<N,E1,S1>::template Result< Row<N,E2,S2> >::Sub
-operator-(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) { 
+operator-(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {
     return Row<N,E1,S1>::template Result< Row<N,E2,S2> >
         ::SubOp::perform(l,r);
 }
 
 /// bool = v1[i] == v2[i], for all elements i
 template <int N, class E1, int S1, class E2, int S2> inline bool
-operator==(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) { 
+operator==(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {
     for (int i=0; i < N; ++i) if (l[i] != r[i]) return false;
     return true;
 }
 /// bool = v1[i] != v2[i], for any element i
 template <int N, class E1, int S1, class E2, int S2> inline bool
-operator!=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {return !(l==r);} 
+operator!=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {return !(l==r);}
 
 /// bool = v1[i] < v2[i], for all elements i
 template <int N, class E1, int S1, class E2, int S2> inline bool
-operator<(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+operator<(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r)
 {   for (int i=0; i < N; ++i) if (l[i] >= r[i]) return false;
     return true; }
 /// bool = v[i] < e, for all elements v[i] and element e
 template <int N, class E1, int S1, class E2> inline bool
-operator<(const Row<N,E1,S1>& v, const E2& e) 
+operator<(const Row<N,E1,S1>& v, const E2& e)
 {   for (int i=0; i < N; ++i) if (v[i] >= e) return false;
     return true; }
 
 /// bool = v1[i] > v2[i], for all elements i
 template <int N, class E1, int S1, class E2, int S2> inline bool
-operator>(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+operator>(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r)
 {   for (int i=0; i < N; ++i) if (l[i] <= r[i]) return false;
     return true; }
 /// bool = v[i] > e, for all elements v[i] and element e
 template <int N, class E1, int S1, class E2> inline bool
-operator>(const Row<N,E1,S1>& v, const E2& e) 
+operator>(const Row<N,E1,S1>& v, const E2& e)
 {   for (int i=0; i < N; ++i) if (v[i] <= e) return false;
     return true; }
 
 /// bool = v1[i] <= v2[i], for all elements i.
 /// This is not the same as !(v1>v2).
 template <int N, class E1, int S1, class E2, int S2> inline bool
-operator<=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+operator<=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r)
 {   for (int i=0; i < N; ++i) if (l[i] > r[i]) return false;
     return true; }
 /// bool = v[i] <= e, for all elements v[i] and element e.
 /// This is not the same as !(v1>e).
 template <int N, class E1, int S1, class E2> inline bool
-operator<=(const Row<N,E1,S1>& v, const E2& e) 
+operator<=(const Row<N,E1,S1>& v, const E2& e)
 {   for (int i=0; i < N; ++i) if (v[i] > e) return false;
     return true; }
 
 /// bool = v1[i] >= v2[i], for all elements i
 /// This is not the same as !(v1<v2).
 template <int N, class E1, int S1, class E2, int S2> inline bool
-operator>=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) 
+operator>=(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r)
 {   for (int i=0; i < N; ++i) if (l[i] < r[i]) return false;
     return true; }
 /// bool = v[i] >= e, for all elements v[i] and element e.
 /// This is not the same as !(v1<e).
 template <int N, class E1, int S1, class E2> inline bool
-operator>=(const Row<N,E1,S1>& v, const E2& e) 
+operator>=(const Row<N,E1,S1>& v, const E2& e)
 {   for (int i=0; i < N; ++i) if (v[i] < e) return false;
     return true; }
 
@@ -875,7 +875,7 @@ operator>=(const Row<N,E1,S1>& v, const E2& e)
 
 // SCALAR MULTIPLY
 
-// v = v*real, real*v 
+// v = v*real, real*v
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<float>::Mul
 operator*(const Row<N,E,S>& l, const float& r)
@@ -937,10 +937,10 @@ operator*(const negator<R>& l, const Row<N,E,S>& r) {return r * (typename negato
 
 
 // SCALAR DIVIDE. This is a scalar operation when the scalar is on the right,
-// but when it is on the left it means scalar * pseudoInverse(row), which is 
+// but when it is on the left it means scalar * pseudoInverse(row), which is
 // a vec.
 
-// v = v/real, real/v 
+// v = v/real, real/v
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<float>::Dvd
 operator/(const Row<N,E,S>& l, const float& r)
@@ -1012,7 +1012,7 @@ operator/(const negator<R>& l, const Row<N,E,S>& r) {return (typename negator<R>
 
 // SCALAR ADD
 
-// v = v+real, real+v 
+// v = v+real, real+v
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<float>::Add
 operator+(const Row<N,E,S>& l, const float& r)
@@ -1074,7 +1074,7 @@ operator+(const negator<R>& l, const Row<N,E,S>& r) {return r + (typename negato
 
 // SCALAR SUBTRACT -- careful, not commutative.
 
-// v = v-real, real-v 
+// v = v-real, real-v
 template <int N, class E, int S> inline
 typename Row<N,E,S>::template Result<float>::Sub
 operator-(const Row<N,E,S>& l, const float& r)

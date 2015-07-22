@@ -21,7 +21,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* This example is for experimenting with ellipsoid contact which was 
+/* This example is for experimenting with ellipsoid contact which was
 introduced in Simbody 2.2.
 */
 
@@ -54,7 +54,7 @@ static const Real MomentScale = .5;
 class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
-                        const CompliantContactSubsystem& complCont) 
+                        const CompliantContactSubsystem& complCont)
     :   m_system(system), m_compliant(complCont) {}
 
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
@@ -96,7 +96,7 @@ public:
                 const Real peakPressure = detail.getPeakPressure();
                 // Make a black line from the element's contact point in the normal
                 // direction, with length proportional to log(peak pressure)
-                // on that element. 
+                // on that element.
                 DecorativeLine normal(detail.getContactPoint(),
                     detail.getContactPoint()+ std::log10(peakPressure)
                                                 * detail.getContactNormal());
@@ -118,7 +118,7 @@ private:
 
 class MyReporter : public PeriodicEventReporter {
 public:
-    MyReporter(const MultibodySystem& system, 
+    MyReporter(const MultibodySystem& system,
                const CompliantContactSubsystem& complCont,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
@@ -157,11 +157,11 @@ static const int GoItem = 1, ReplayItem=2, QuitItem=3;
 // This one does nothing but look for the Run->Quit selection.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, Real interval) 
+    UserInputHandler(Visualizer::InputSilo& silo, Real interval)
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
-    virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const 
+    virtual void handleEvent(State& state, Real accuracy,
+                             bool& shouldTerminate) const
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)
@@ -175,7 +175,7 @@ private:
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -210,12 +210,12 @@ int main() {
 
     const Real ellipsoidMass = 1; // kg
     const Vec3 halfDims(2*Cm2m, 20*Cm2m, 3*Cm2m); // m (read in cm)
-    const Vec3 comLoc(-1*Cm2m, 0, 0); 
+    const Vec3 comLoc(-1*Cm2m, 0, 0);
     const Inertia centralInertia(Vec3(17,2,16)*CmSq2mSq, Vec3(0,0,.2)*CmSq2mSq); // now kg-m^2
     const Inertia inertia(centralInertia.shiftFromMassCenter(-comLoc, ellipsoidMass)); // in S
     Body::Rigid ellipsoidBody(MassProperties(ellipsoidMass, comLoc, inertia));
 
-    ellipsoidBody.addDecoration(Transform(), 
+    ellipsoidBody.addDecoration(Transform(),
         DecorativeEllipsoid(halfDims).setColor(Cyan)
          //.setOpacity(.5)
          .setResolution(3));
@@ -252,7 +252,7 @@ int main() {
     system.addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     matter.setUseEulerAngles(state, true);
@@ -264,7 +264,7 @@ int main() {
                                        -0.5*Deg2Rad, ZAxis),
         Vec3(2.1*Cm2m, 0, 0)));
 
-    ellipsoid.setUToFitAngularVelocity(state, 2*Vec3(5,0,0)); // rad/s 
+    ellipsoid.setUToFitAngularVelocity(state, 2*Vec3(5,0,0)); // rad/s
 
     viz.report(state);
     printf("Default state\n");
@@ -272,12 +272,12 @@ int main() {
     cout << "\nChoose 'Go' from Run menu to simulate:\n";
     int menuId, item;
     do { silo->waitForMenuPick(menuId, item);
-         if (menuId != RunMenuId || item != GoItem) 
+         if (menuId != RunMenuId || item != GoItem)
              cout << "\aDude ... follow instructions!\n";
     } while (menuId != RunMenuId || item != GoItem);
 
 
-    
+
     // Simulate it.
 
     //ExplicitEulerIntegrator integ(system);
@@ -301,12 +301,12 @@ int main() {
     const double timeInSec = realTime() - realStart;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "  CPU time was " << cpuTime() - cpuStart << "s\n";
 
-    printf("Using Integrator %s at accuracy %g:\n", 
+    printf("Using Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());

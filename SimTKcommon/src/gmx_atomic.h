@@ -1,4 +1,4 @@
-/* -*- mode: c; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- 
+/* -*- mode: c; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
 *
 * Copyright (c) 2004-2008, Erik Lindahl <lindahl@cbr.su.se>
 *
@@ -13,10 +13,10 @@
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in
 * all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,10 +35,10 @@
  *
  *  @brief Atomic operations for fast SMP synchronization
  *
- *  This file defines atomic integer operations and spinlocks for 
+ *  This file defines atomic integer operations and spinlocks for
  *  fast synchronization in performance-critical regions of gromacs.
  *
- *  In general, the best option is to use functions without explicit 
+ *  In general, the best option is to use functions without explicit
  *  locking, e.g. gmx_atomic_fetch_add() or gmx_atomic_cmpxchg().
  *
  *  Not all architecture support atomic operations though inline assembly,
@@ -47,7 +47,7 @@
  *  the function interfaces working in Gromacs.
  *
  *  Don't use spinlocks in non-performance-critical regions like file I/O.
- *  Since they always spin busy they would waste CPU cycles instead of 
+ *  Since they always spin busy they would waste CPU cycles instead of
  *  properly yielding to a computation thread while waiting for the disk.
  *
  *  Finally, note that all our spinlock operations are defined to return
@@ -55,7 +55,7 @@
  *  This is the opposite of some other implementations, but the same standard
  *  as used for pthread mutexes. So, if e.g. are trying to lock a spinlock,
  *  you will have gotten the lock if the return value is 0.
- * 
+ *
  *  gmx_spinlock_islocked(x) obviously still returns 1 if the lock is locked,
  *  and 0 if it is available, though...
  */
@@ -67,8 +67,8 @@
 #include <pthread.h>
 
 #ifdef __cplusplus
-extern "C" 
-{  
+extern "C"
+{
 #endif
 #if 0
 } /* Avoids screwing up auto-indentation */
@@ -83,9 +83,9 @@ extern "C"
 
 /* This code is executed for x86 and x86-64, with these compilers:
  * GNU
- * Intel 
+ * Intel
  * Pathscale
- * All these support GCC-style inline assembly. 
+ * All these support GCC-style inline assembly.
  * We also use this section for the documentation.
  */
 
@@ -120,10 +120,10 @@ extern "C"
  *
  *  These things can often be implemented with inline-assembly or other
  *  system-dependent functions, and we provide such functionality for the
- *  most common platforms. For portability we also have a fallback 
+ *  most common platforms. For portability we also have a fallback
  *  implementation using a mutex for locking.
  *
- *  Performance-wise, the fastest solution is always to avoid locking 
+ *  Performance-wise, the fastest solution is always to avoid locking
  *  completely (obvious, but remember it!). If you cannot do that, the
  *  next best thing is to use atomic operations that e.g. increment a
  *  counter without explicit locking. Spinlocks are useful to lock an
@@ -131,8 +131,8 @@ extern "C"
  *  debug - it is up to you to make sure that only the thread owning the
  *  lock unlocks it!
  *
- *  You should normally NOT use atomic operations for things like 
- *  I/O threads. These should yield to other threads while waiting for 
+ *  You should normally NOT use atomic operations for things like
+ *  I/O threads. These should yield to other threads while waiting for
  *  the disk instead of spinning at 100% CPU usage.
  *
  *  It is imperative that you use the provided routines for reading
@@ -146,13 +146,13 @@ extern "C"
  *  Currently, we have (real) atomic operations for:
  *
  *  - x86 or x86_64, using GNU compilers
- *  - x86 or x86_64, using Intel compilers 
+ *  - x86 or x86_64, using Intel compilers
  *  - x86 or x86_64, using Pathscale compilers
- *  - Itanium, using GNU compilers 
+ *  - Itanium, using GNU compilers
  *  - Itanium, using Intel compilers
  *  - Itanium, using HP compilers
- *  - PowerPC, using GNU compilers 
- *  - PowerPC, using IBM AIX compilers 
+ *  - PowerPC, using GNU compilers
+ *  - PowerPC, using IBM AIX compilers
  *  - PowerPC, using IBM compilers >=7.0 under Linux or Mac OS X.
  */
 typedef struct gmx_atomic
@@ -199,7 +199,7 @@ gmx_spinlock_t;
 
 
 
-/*! \brief Return value of an atomic integer 
+/*! \brief Return value of an atomic integer
  *
  *  Also implements proper memory barriers when necessary.
  *  The actual implementation is system-dependent.
@@ -207,10 +207,10 @@ gmx_spinlock_t;
  *  \param  a   Atomic variable to read
  *  \return     Integer value of the atomic variable
  */
-#define gmx_atomic_read(a)  ((a)->value) 
+#define gmx_atomic_read(a)  ((a)->value)
 
- 
-/*! \brief Write value to an atomic integer 
+
+/*! \brief Write value to an atomic integer
  *
  *  Also implements proper memory barriers when necessary.
  *  The actual implementation is system-dependent.
@@ -220,7 +220,7 @@ gmx_spinlock_t;
  */
 #define gmx_atomic_set(a,i)  (((a)->value) = (i))
 
- 
+
 /*! \brief Add integer to atomic variable
  *
  *  Also implements proper memory barriers when necessary.
@@ -232,22 +232,22 @@ gmx_spinlock_t;
  *  \return The new value (after summation).
  */
 static inline int
-gmx_atomic_add_return(gmx_atomic_t *     a, 
+gmx_atomic_add_return(gmx_atomic_t *     a,
                       volatile int       i)
 {
     int __i;
-    
+
     __i = i;
     __asm__ __volatile__("lock ; xaddl %0, %1;"
                          :"=r"(i) :"m"(a->value), "0"(i));
     return i + __i;
-}  
-  
+}
+
 
 /*! \brief Add to variable, return the old value.
  *
  *  This operation is quite useful for synchronization counters.
- *  By performing a fetchadd with N, a thread can e.g. reserve a chunk 
+ *  By performing a fetchadd with N, a thread can e.g. reserve a chunk
  *  with the next N iterations, and the return value is the index
  *  of the first element to treat.
  *
@@ -275,9 +275,9 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
 /*! \brief Atomic compare-exchange operation
  *
  *   The \a old value is compared with the memory value in the atomic datatype.
- *   If the are identical, the atomic type is updated to the new value, 
- *   and otherwise left unchanged. 
- *  
+ *   If the are identical, the atomic type is updated to the new value,
+ *   and otherwise left unchanged.
+ *
  *   This is a very useful synchronization primitive: You can start by reading
  *   a value (without locking anything), perform some calculations, and then
  *   atomically try to update it in memory unless it has changed. If it has
@@ -289,26 +289,26 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
  *   \param newval   New value to write to the atomic type if it currently is
  *                   identical to the old value.
  *
- *   \return The value of the atomic memory variable in memory when this 
+ *   \return The value of the atomic memory variable in memory when this
  *           instruction was executed. This, if the operation succeeded the
  *           return value was identical to the \a old parameter, and if not
  *           it returns the updated value in memory so you can repeat your
- *           operations on it. 
+ *           operations on it.
  *
  *   \note   The exchange occured if the return value is identical to \a old.
  */
 static inline int
-gmx_atomic_cmpxchg(gmx_atomic_t *    a, 
+gmx_atomic_cmpxchg(gmx_atomic_t *    a,
                    int               oldval,
                    int               newval)
 {
     volatile unsigned long prev;
-    
+
     __asm__ __volatile__("lock ; cmpxchgl %1,%2"
                          : "=a"(prev)
                          : "q"(newval), "m"(a->value), "0"(oldval)
                          : "memory");
-    
+
     return prev;
 }
 
@@ -340,22 +340,22 @@ gmx_spinlock_init(gmx_spinlock_t *   x)
 static inline void
 gmx_spinlock_lock(gmx_spinlock_t *  x)
 {
-    __asm__ __volatile__("\n1:\t" 
-                         "lock ; decb %0\n\t" 
-                         "jns 3f\n" 
-                         "2:\t" 
-                         "rep;nop\n\t" 
-                         "cmpb $0,%0\n\t" 
-                         "jle 2b\n\t" 
-                         "jmp 1b\n" 
-                         "3:\n\t" 
-                         :"=m" (x->lock) : : "memory"); 
+    __asm__ __volatile__("\n1:\t"
+                         "lock ; decb %0\n\t"
+                         "jns 3f\n"
+                         "2:\t"
+                         "rep;nop\n\t"
+                         "cmpb $0,%0\n\t"
+                         "jle 2b\n\t"
+                         "jmp 1b\n"
+                         "3:\n\t"
+                         :"=m" (x->lock) : : "memory");
 }
 
 
 /*! \brief Attempt to acquire spinlock
  *
- * This routine acquires the spinlock if possible, but if 
+ * This routine acquires the spinlock if possible, but if
  * already locked it return an error code immediately.
  *
  *  \param x     Gromacs spinlock pointer
@@ -367,7 +367,7 @@ static inline int
 gmx_spinlock_trylock(gmx_spinlock_t *  x)
 {
     char old_value;
-    
+
     __asm__ __volatile__("xchgb %b0,%1"
                          :"=q" (old_value), "=m" (x->lock)
                          :"0" (0) : "memory");
@@ -385,14 +385,14 @@ static inline void
 gmx_spinlock_unlock(gmx_spinlock_t *  x)
 {
     char old_value = 1;
-    
+
     __asm__ __volatile__(
-                         "xchgb %b0, %1" 
-                         :"=q" (old_value), "=m" (x->lock) 
+                         "xchgb %b0, %1"
+                         :"=q" (old_value), "=m" (x->lock)
                          :"0" (old_value) : "memory"
                          );
 }
- 
+
 
 /*! \brief Check if spinlock is locked
  *
@@ -411,8 +411,8 @@ gmx_spinlock_islocked(gmx_spinlock_t *  x)
 
 /*! \brief Wait for a spinlock to become available
  *
- *  This routine blocks until the spinlock is unlocked, 
- *  but in contrast to gmx_spinlock_lock() it returns without 
+ *  This routine blocks until the spinlock is unlocked,
+ *  but in contrast to gmx_spinlock_lock() it returns without
  *  trying to lock the spinlock.
  *
  *  \param x  Gromacs spinlock pointer
@@ -420,16 +420,16 @@ gmx_spinlock_islocked(gmx_spinlock_t *  x)
 static inline void
 gmx_spinlock_wait(gmx_spinlock_t *   x)
 {
-    do 
+    do
     {
-        gmx_atomic_memory_barrier(); 
-    } 
+        gmx_atomic_memory_barrier();
+    }
     while(gmx_spinlock_islocked(x));
 }
 
 
 #elif ( defined(__GNUC__) && (defined(__powerpc__) || defined(__ppc__)))
-/* PowerPC using proper GCC inline assembly. 
+/* PowerPC using proper GCC inline assembly.
  * Recent versions of xlC (>=7.0) _partially_ support this, but since it is
  * not 100% compatible we provide a separate implementation for xlC in
  * the next section.
@@ -457,16 +457,16 @@ gmx_spinlock_t;
 #define GMX_SPINLOCK_INITIALIZER   { 0 }
 
 
-#define gmx_atomic_read(a)   ((a)->value) 
+#define gmx_atomic_read(a)   ((a)->value)
 #define gmx_atomic_set(a,i)  (((a)->value) = (i))
 
 
 static inline int
-gmx_atomic_add_return(gmx_atomic_t *    a, 
+gmx_atomic_add_return(gmx_atomic_t *    a,
                       int               i)
 {
     int t;
-    
+
     __asm__ __volatile__("1:     lwarx   %0,0,%2\n"
                          "\tadd     %0,%1,%0\n"
                          "\tstwcx.  %0,0,%2 \n"
@@ -485,9 +485,9 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
                      int                i)
 {
     int t;
-    
+
     __asm__ __volatile__("\teieio\n"
-                         "1:     lwarx   %0,0,%2\n"                         
+                         "1:     lwarx   %0,0,%2\n"
                          "\tadd     %0,%1,%0\n"
                          "\tstwcx.  %0,0,%2 \n"
                          "\tbne-    1b\n"
@@ -495,8 +495,8 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
                          : "=&r" (t)
                          : "r" (i), "r" (&a->value)
                          : "cc", "memory");
-    
-    return (t - i);    
+
+    return (t - i);
 }
 
 
@@ -506,7 +506,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *       a,
                    int                  newval)
 {
     int prev;
-    
+
     __asm__ __volatile__ ("1:    lwarx   %0,0,%2 \n"
                           "\tcmpw    0,%0,%3 \n"
                           "\tbne     2f \n"
@@ -517,7 +517,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *       a,
                           : "=&r" (prev), "=m" (a->value)
                           : "r" (&a->value), "r" (oldval), "r" (newval), "m" (a->value)
                           : "cc", "memory");
-    
+
     return prev;
 }
 
@@ -533,7 +533,7 @@ static inline void
 gmx_spinlock_lock(gmx_spinlock_t *  x)
 {
     unsigned int tmp;
-    
+
     __asm__ __volatile__("\tb      1f\n"
                          "2:      lwzx    %0,0,%1\n"
                          "\tcmpwi   0,%0,0\n"
@@ -556,7 +556,7 @@ gmx_spinlock_trylock(gmx_spinlock_t *  x)
     unsigned int old, t;
     unsigned int mask = 1;
     volatile unsigned int *p = &x->lock;
-    
+
     __asm__ __volatile__("\teieio\n"
                          "1:      lwarx   %0,0,%4 \n"
                          "\tor      %1,%0,%3 \n"
@@ -566,8 +566,8 @@ gmx_spinlock_trylock(gmx_spinlock_t *  x)
                          : "=&r" (old), "=&r" (t), "=m" (*p)
                          : "r" (mask), "r" (p), "m" (*p)
                          : "cc", "memory");
-    
-    return ((old & mask) != 0);    
+
+    return ((old & mask) != 0);
 }
 
 
@@ -589,9 +589,9 @@ gmx_spinlock_islocked(gmx_spinlock_t *   x)
 static inline void
 gmx_spinlock_wait(gmx_spinlock_t *x)
 {
-    do 
+    do
     {
-        gmx_atomic_memory_barrier(); 
+        gmx_atomic_memory_barrier();
     }
     while(gmx_spinlock_islocked(x));
 }
@@ -600,9 +600,9 @@ gmx_spinlock_wait(gmx_spinlock_t *x)
 
 #elif ( (defined(__IBM_GCC_ASM) || defined(__IBM_STDCPP_ASM))  && \
         (defined(__powerpc__) || defined(__ppc__)))
-/* PowerPC using xlC inline assembly. 
+/* PowerPC using xlC inline assembly.
  * Recent versions of xlC (>=7.0) _partially_ support GCC inline assembly
- * if you use the option -qasm=gcc but we have had to hack things a bit, in 
+ * if you use the option -qasm=gcc but we have had to hack things a bit, in
  * particular when it comes to clobbered variables. Since this implementation
  * _could_ be buggy, we have separated it from the known-to-be-working gcc
  * one above.
@@ -630,16 +630,16 @@ gmx_spinlock_t;
 #define GMX_SPINLOCK_INITIALIZER   { 0 }
 
 
-#define gmx_atomic_read(a)   ((a)->value) 
+#define gmx_atomic_read(a)   ((a)->value)
 #define gmx_atomic_set(a,i)  (((a)->value) = (i))
 
 
 static inline int
-gmx_atomic_add_return(gmx_atomic_t *    a, 
+gmx_atomic_add_return(gmx_atomic_t *    a,
                       int               i)
 {
     int t;
-    
+
     __asm__ __volatile__("1:     lwarx   %0,0,%2 \n"
                          "\t add     %0,%1,%0 \n"
                          "\t stwcx.  %0,0,%2 \n"
@@ -657,17 +657,17 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
                      int                i)
 {
     int t;
-    
+
     __asm__ __volatile__("\t eieio\n"
-                         "1:     lwarx   %0,0,%2 \n"                         
+                         "1:     lwarx   %0,0,%2 \n"
                          "\t add     %0,%1,%0 \n"
                          "\t stwcx.  %0,0,%2 \n"
                          "\t bne-    1b \n"
                          "\t isync \n"
                          : "=&r" (t)
                          : "r" (i), "r" (&a->value));
-    
-    return (t - i);    
+
+    return (t - i);
 }
 
 
@@ -677,7 +677,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *       a,
                    int                  newval)
 {
     int prev;
-    
+
     __asm__ __volatile__ ("1:    lwarx   %0,0,%2 \n"
                           "\t cmpw    0,%0,%3 \n"
                           "\t bne     2f \n"
@@ -687,7 +687,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *       a,
                           "2: \n"
                           : "=&r" (prev), "=m" (a->value)
                           : "r" (&a->value), "r" (oldval), "r" (newval), "m" (a->value));
-    
+
     return prev;
 }
 
@@ -703,7 +703,7 @@ static inline void
 gmx_spinlock_lock(gmx_spinlock_t *  x)
 {
     unsigned int tmp;
-    
+
     __asm__ __volatile__("\t b      1f \n"
                          "2:      lwzx    %0,0,%1 \n"
                          "\t cmpwi   0,%0,0 \n"
@@ -725,7 +725,7 @@ gmx_spinlock_trylock(gmx_spinlock_t *  x)
     unsigned int old, t;
     unsigned int mask = 1;
     volatile unsigned int *p = &x->lock;
-    
+
     __asm__ __volatile__("\t eieio\n"
                          "1:      lwarx   %0,0,%4 \n"
                          "\t or      %1,%0,%3 \n"
@@ -734,8 +734,8 @@ gmx_spinlock_trylock(gmx_spinlock_t *  x)
                          "\t sync \n"
                          : "=&r" (old), "=&r" (t), "=m" (*p)
                          : "r" (mask), "r" (p), "m" (*p));
-    
-    return ((old & mask) != 0);    
+
+    return ((old & mask) != 0);
 }
 
 
@@ -757,8 +757,8 @@ gmx_spinlock_islocked(gmx_spinlock_t *   x)
 static inline void
 gmx_spinlock_wait(gmx_spinlock_t *   x)
 {
-    
-    do 
+
+    do
     {
         gmx_atomic_memory_barrier();
     }
@@ -770,8 +770,8 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 
 #elif (defined(__ia64__) && (defined(__GNUC__) || defined(__INTEL_COMPILER)))
 /* ia64 with GCC or Intel compilers. Since we need to define everything through
-* cmpxchg and fetchadd on ia64, we merge the different compilers and only provide 
-* different implementations for that single function. 
+* cmpxchg and fetchadd on ia64, we merge the different compilers and only provide
+* different implementations for that single function.
 * Documentation? Check the gcc/x86 section.
 */
 
@@ -793,7 +793,7 @@ gmx_spinlock_t;
 #define GMX_SPINLOCK_INITIALIZER   { 0 }
 
 
-#define gmx_atomic_read(a)   ((a)->value) 
+#define gmx_atomic_read(a)   ((a)->value)
 #define gmx_atomic_set(a,i)  (((a)->value) = (i))
 
 
@@ -810,7 +810,7 @@ unsigned __int64 __fetchadd4_rel(unsigned int *addend, const int increment);
 /* ia64 fetchadd, but it only works with increments +/- 1,4,8,16 */
 #  define gmx_ia64_fetchadd(a, inc)  __fetchadd4_rel(a, inc)
 
-#elif defined __GNUC__  
+#elif defined __GNUC__
 /* ia64 memory barrier */
 #  define gmx_atomic_memory_barrier() asm volatile ("":::"memory")
 /* ia64 cmpxchg */
@@ -821,9 +821,9 @@ gmx_atomic_cmpxchg(gmx_atomic_t *   a,
 {
     volatile int res;
     asm volatile ("mov ar.ccv=%0;;" :: "rO"(oldval));
-    asm volatile ("cmpxchg4.acq %0=[%1],%2,ar.ccv":                    
-                  "=r"(res) : "r"(&a->value), "r"(newval) : "memory"); 
-                          
+    asm volatile ("cmpxchg4.acq %0=[%1],%2,ar.ccv":
+                  "=r"(res) : "r"(&a->value), "r"(newval) : "memory");
+
     return res;
 }
 
@@ -844,18 +844,18 @@ gmx_atomic_cmpxchg(gmx_atomic_t *   a,
 
 
 static inline int
-gmx_atomic_add_return(gmx_atomic_t *       a, 
+gmx_atomic_add_return(gmx_atomic_t *       a,
                       volatile int         i)
 {
-    volatile int oldval,newval;    
+    volatile int oldval,newval;
     volatile int __i = i;
 
     /* Use fetchadd if, and only if, the increment value can be determined
      * at compile time (otherwise this check is optimized away) and it is
      * a value supported by fetchadd (1,4,8,16,-1,-4,-8,-16).
-     */                         
+     */
     if (__builtin_constant_p(i) &&
-        ( (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||         
+        ( (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||
           (__i ==  -1) || (__i ==  -4)  || (__i ==  -8) || (__i == -16) ) )
     {
         oldval = gmx_ia64_fetchadd(a,__i);
@@ -880,15 +880,15 @@ static inline int
 gmx_atomic_fetch_add(gmx_atomic_t *     a,
                      volatile int       i)
 {
-    volatile int oldval,newval;    
+    volatile int oldval,newval;
     volatile int __i = i;
-    
+
     /* Use ia64 fetchadd if, and only if, the increment value can be determined
      * at compile time (otherwise this check is optimized away) and it is
      * a value supported by fetchadd (1,4,8,16,-1,-4,-8,-16).
-     */                         
+     */
     if (__builtin_constant_p(i) &&
-        ( (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||         
+        ( (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||
           (__i ==  -1) || (__i ==  -4)  || (__i ==  -8) || (__i == -16) ) )
     {
         oldval = gmx_ia64_fetchadd(a,__i);
@@ -919,21 +919,21 @@ static inline void
 gmx_spinlock_lock(gmx_spinlock_t *   x)
 {
     gmx_atomic_t *a = (gmx_atomic_t *) x;
-    unsigned long value;                                                 
-    value = gmx_atomic_cmpxchg(a, 0, 1);                             
-    if (value)                                                           
-    {                                                                    
-        do                                                               
-        {                                                                
-            while (a->value != 0)                                                 
-            {                                                            
-                gmx_atomic_memory_barrier();                             
-            }                                                            
-            value = gmx_atomic_cmpxchg(a, 0, 1);                       
-        }                                                                
-        while (value);                                                   
-    }                                                                    
-} 
+    unsigned long value;
+    value = gmx_atomic_cmpxchg(a, 0, 1);
+    if (value)
+    {
+        do
+        {
+            while (a->value != 0)
+            {
+                gmx_atomic_memory_barrier();
+            }
+            value = gmx_atomic_cmpxchg(a, 0, 1);
+        }
+        while (value);
+    }
+}
 
 
 static inline int
@@ -948,9 +948,9 @@ gmx_spinlock_unlock(gmx_spinlock_t *   x)
 {
     do
     {
-        gmx_atomic_memory_barrier(); 
+        gmx_atomic_memory_barrier();
         x->lock = 0;
-    } 
+    }
     while (0);
 }
 
@@ -965,8 +965,8 @@ gmx_spinlock_islocked(gmx_spinlock_t *   x)
 static inline void
 gmx_spinlock_wait(gmx_spinlock_t *   x)
 {
-    
-    do 
+
+    do
     {
         gmx_atomic_memory_barrier();
     }
@@ -988,7 +988,7 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
     _Asm_fetchadd((_Asm_fasz)_FASZ_W,(_Asm_sem)_SEM_REL,    \
                   (UInt32*)a,(unsigned int) i,              \
                   (_Asm_ldhint)LDHINT_NONE)
- 
+
 
 typedef struct gmx_atomic
 {
@@ -1010,14 +1010,14 @@ gmx_atomic_cmpxchg(gmx_atomic_t *   a,
                    int              newval)
 {
     int ret;
-    
-    _Asm_mov_to_ar((_Asm_app_reg)_AREG_CCV,(Uint32)oldval,                  
-                   (_Asm_fence)(_UP_CALL_FENCE | _UP_SYS_FENCE |         
+
+    _Asm_mov_to_ar((_Asm_app_reg)_AREG_CCV,(Uint32)oldval,
+                   (_Asm_fence)(_UP_CALL_FENCE | _UP_SYS_FENCE |
                                 _DOWN_CALL_FENCE | _DOWN_SYS_FENCE));
-                   
-    ret = _Asm_cmpxchg((_Asm_sz)SZ_W,(_Asm_sem)_SEM_ACQ,(Uint32*)a,    
+
+    ret = _Asm_cmpxchg((_Asm_sz)SZ_W,(_Asm_sem)_SEM_ACQ,(Uint32*)a,
                        (Uint32)newval,(_Asm_ldhint)_LDHINT_NONE);
-                   
+
     return ret;
 }
 
@@ -1026,22 +1026,22 @@ gmx_atomic_cmpxchg(gmx_atomic_t *   a,
 #define GMX_SPINLOCK_INITIALIZER   { 0 }
 
 
-#define gmx_atomic_read(a)   ((a)->value) 
+#define gmx_atomic_read(a)   ((a)->value)
 #define gmx_atomic_set(a,i)  (((a)->value) = (i))
 
 
-static inline void 
-gmx_atomic_add_return(gmx_atomic_t *       a, 
+static inline void
+gmx_atomic_add_return(gmx_atomic_t *       a,
                       int                  i)
 {
-    int old,new;    
+    int old,new;
     int __i = i;
-    
+
     /* On HP-UX we don't know any macro to determine whether the increment
      * is known at compile time, but hopefully the call uses something simple
      * like a constant, and then the optimizer should be able to do the job.
-     */                         
-    if (  (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||         
+     */
+    if (  (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||
           (__i ==  -1) || (__i ==  -4)  || (__i ==  -8) || (__i == -16) )
     {
         oldval = gmx_hpia64_fetchadd(a,__i);
@@ -1066,14 +1066,14 @@ static inline int
 gmx_atomic_fetch_add(gmx_atomic_t *     a,
                      int                i)
 {
-    int oldval,newval;    
+    int oldval,newval;
     int __i = i;
-    
+
     /* On HP-UX we don't know any macro to determine whether the increment
      * is known at compile time, but hopefully the call uses something simple
      * like a constant, and then the optimizer should be able to do the job.
-     */                         
-    if (  (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||         
+     */
+    if (  (__i ==   1) || (__i ==   4)  || (__i ==   8) || (__i ==  16) ||
           (__i ==  -1) || (__i ==  -4)  || (__i ==  -8) || (__i == -16) )
     {
         oldval = gmx_hpia64_fetchadd(a,__i);
@@ -1108,9 +1108,9 @@ gmx_spinlock_trylock(gmx_spinlock_t *x)
 {
     int rc;
 
-    rc = _Asm_xchg((_Asm_sz)_SZ_W, (unsigned int *)x, 1        
+    rc = _Asm_xchg((_Asm_sz)_SZ_W, (unsigned int *)x, 1
                     (_Asm_ldhit)_LDHINT_NONE);
-    
+
     return ( (rc>0) ? 1 : 0);
 }
 
@@ -1119,10 +1119,10 @@ static inline void
 gmx_spinlock_lock(gmx_spinlock_t *x)
 {
     int      status = 1;
-    
+
     do
     {
-        if( *((unsigned int *)x->lock) == 0 ) 
+        if( *((unsigned int *)x->lock) == 0 )
         {
             status = gmx_spinlock_trylock(x);
         }
@@ -1133,7 +1133,7 @@ gmx_spinlock_lock(gmx_spinlock_t *x)
 static inline void
 gmx_spinlock_unlock(gmx_spinlock_t *   x)
 {
-    _Asm_fetchadd((_Asm_fasz)_SZ_W,(_Asm_sem)_SEM_REL,                  
+    _Asm_fetchadd((_Asm_fasz)_SZ_W,(_Asm_sem)_SEM_REL,
                   (unsigned int *)x,-1,(_Asm_ldhint)_LDHINT_NONE);
 }
 
@@ -1152,8 +1152,8 @@ gmx_spinlock_wait(gmx_spinlock_t *   x)
 {
     do
     {
-        gmx_atomic_memory_barrier(); 
-    } 
+        gmx_atomic_memory_barrier();
+    }
     while(gmx_spinlock_islocked(x));
 }
 
@@ -1189,7 +1189,7 @@ gmx_spinlock_t;
 
 
 
-#define gmx_atomic_read(a)  ((a)->value) 
+#define gmx_atomic_read(a)  ((a)->value)
 #define gmx_atomic_set(a,i)  (((a)->value) = (i))
 
 
@@ -1266,7 +1266,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *    a,
                    int               newval)
 {
     int t;
-    
+
     if(__check_lock((atomic_p)&a->value, oldval, newval))
     {
         /* Not successful - value had changed in memory. Reload value. */
@@ -1277,16 +1277,16 @@ gmx_atomic_cmpxchg(gmx_atomic_t *    a,
         /* replacement suceeded */
         t = oldval;
     }
-    return t;        
+    return t;
 }
 
 
-static inline void 
-gmx_atomic_add_return(gmx_atomic_t *       a, 
+static inline void
+gmx_atomic_add_return(gmx_atomic_t *       a,
                       int                  i)
 {
-    int oldval,newval;    
-    
+    int oldval,newval;
+
     do
     {
         oldval = gmx_atomic_read(a);
@@ -1299,19 +1299,19 @@ gmx_atomic_add_return(gmx_atomic_t *       a,
 
 
 
-static inline void 
-gmx_atomic_fetch_add(gmx_atomic_t *       a, 
+static inline void
+gmx_atomic_fetch_add(gmx_atomic_t *       a,
                      int                  i)
 {
-    int oldval,newval;    
-    
+    int oldval,newval;
+
     do
     {
         oldval = gmx_atomic_read(a);
         newval = oldval + i;
     }
     while(__check_lock((atomic_p)&a->value, oldval, newval));
-    
+
     return oldval;
 }
 
@@ -1359,7 +1359,7 @@ gmx_spinlock_islocked(gmx_spinlock_t *   x)
 static inline void
 gmx_spinlock_wait(gmx_spinlock_t *    x)
 {
-    while(gmx_spinlock_islocked(x)) { ; } 
+    while(gmx_spinlock_islocked(x)) { ; }
 }
 
 
@@ -1382,7 +1382,7 @@ gmx_atomic_t;
 
 #define gmx_spinlock_t     pthread_mutex_t
 
- 
+
 #  define GMX_SPINLOCK_INITIALIZER   PTHREAD_MUTEX_INITIALIZER
 
 /* Since mutexes guarantee memory barriers this works fine */
@@ -1390,7 +1390,7 @@ gmx_atomic_t;
 
 
 static inline void
-gmx_atomic_set(gmx_atomic_t *   a, 
+gmx_atomic_set(gmx_atomic_t *   a,
                int              i)
 {
     /* Mutexes here are necessary to guarantee memory visibility */
@@ -1401,7 +1401,7 @@ gmx_atomic_set(gmx_atomic_t *   a,
 
 
 static inline int
-gmx_atomic_add_return(gmx_atomic_t *   a, 
+gmx_atomic_add_return(gmx_atomic_t *   a,
                       int              i)
 {
     int t;
@@ -1418,7 +1418,7 @@ gmx_atomic_fetch_add(gmx_atomic_t *   a,
                      int              i)
 {
     int old_value;
-    
+
     pthread_mutex_lock(&gmx_atomic_mutex);
     old_value  = a->value;
     a->value   = old_value + i;
@@ -1428,12 +1428,12 @@ gmx_atomic_fetch_add(gmx_atomic_t *   a,
 
 
 static inline int
-gmx_atomic_cmpxchg(gmx_atomic_t *           a, 
+gmx_atomic_cmpxchg(gmx_atomic_t *           a,
                    int                      oldv,
                    int                      newv)
 {
     int t;
-    
+
     pthread_mutex_lock(&gmx_atomic_mutex);
     t = a->value;
     if (t == oldv)
@@ -1454,7 +1454,7 @@ static inline int
 gmx_spinlock_islocked(gmx_spinlock_t *   x)
 {
     int rc;
-    
+
     if(gmx_spinlock_trylock(x) != 0)
     {
         /* It was locked */
@@ -1473,7 +1473,7 @@ static inline void
 gmx_spinlock_wait(gmx_spinlock_t *   x)
 {
     int rc;
-    
+
     gmx_spinlock_lock(x);
     /* Got the lock now, so the waiting is over */
     gmx_spinlock_unlock(x);
@@ -1502,7 +1502,7 @@ typedef struct gmx_spinlock_barrier
     volatile int            cycle;     /*!< Current cycle (alternating 0/1) */
 }
 gmx_spinlock_barrier_t;
- 
+
 
 
 
@@ -1511,10 +1511,10 @@ gmx_spinlock_barrier_t;
  *  \param barrier  Pointer to _spinlock_ barrier. Note that this is not
  *                  the same datatype as the full, thread based, barrier.
  *  \param count    Number of threads to synchronize. All threads
- *                  will be released after \a count calls to 
- *                  gmx_spinlock_barrier_wait().  
+ *                  will be released after \a count calls to
+ *                  gmx_spinlock_barrier_wait().
  */
-static inline void 
+static inline void
 gmx_spinlock_barrier_init(gmx_spinlock_barrier_t *         barrier,
                           int                              count)
 {
@@ -1534,7 +1534,7 @@ gmx_spinlock_barrier_init(gmx_spinlock_barrier_t *         barrier,
 *  cycles, and thus requires another N calls to unblock another time.
 *
 *  Note that spinlock-based barriers are completely different from
-*  standard ones (using mutexes and condition variables), only the 
+*  standard ones (using mutexes and condition variables), only the
 *  functionality and names are similar.
 *
 *  \param barrier  Pointer to previously create barrier.
@@ -1546,25 +1546,25 @@ gmx_spinlock_barrier_wait(gmx_spinlock_barrier_t *   barrier)
 {
   int    cycle;
   int    status;
-  
-  /* We don't need to lock or use atomic ops here, since the cycle index 
+
+  /* We don't need to lock or use atomic ops here, since the cycle index
     * cannot change until after the last thread has performed the check
-    * further down. Further, they cannot reach this point in the next 
-    * barrier iteration until all of them have been released, and that 
+    * further down. Further, they cannot reach this point in the next
+    * barrier iteration until all of them have been released, and that
     * happens after the cycle value has been updated.
     *
     * No synchronization == fast synchronization.
     */
   cycle = barrier->cycle;
-  
+
   /* Decrement the count atomically and check if it is zero.
     * This will only be true for the last thread calling us.
     */
   if( gmx_atomic_add_return( &(barrier->count), -1 ) == 0)
-  { 
+  {
     gmx_atomic_set(&(barrier->count), barrier->threshold);
     barrier->cycle = !barrier->cycle;
-    
+
     status = -1;
   }
   else
@@ -1575,11 +1575,11 @@ gmx_spinlock_barrier_wait(gmx_spinlock_barrier_t *   barrier)
     * doesn't try to be smart and cache the contents.
     */
     do
-    { 
+    {
       gmx_atomic_memory_barrier();
-    } 
+    }
     while( *(volatile int *)(&(barrier->cycle)) == cycle);
-    
+
     status = 0;
   }
   return status;

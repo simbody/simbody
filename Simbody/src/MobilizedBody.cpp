@@ -45,7 +45,7 @@ MobilizedBody::MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) {
 }
 
 int MobilizedBody::
-addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) 
+addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g)
 {   return updImpl().addOutboardDecoration(X_MD,g); }
 int MobilizedBody::getNumOutboardDecorations() const
 {   return (int)getImpl().outboardGeometry.size(); }
@@ -55,7 +55,7 @@ DecorativeGeometry& MobilizedBody::updOutboardDecoration(int i)
 {   return updImpl().outboardGeometry[i]; }
 
 int MobilizedBody::
-addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) 
+addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g)
 {   return updImpl().addInboardDecoration(X_FD,g); }
 int MobilizedBody::getNumInboardDecorations() const
 {   return (int)getImpl().inboardGeometry.size(); }
@@ -75,39 +75,39 @@ lockAt(State& s, Real value, Motion::Level level) const
 
 void MobilizedBody::
 lockAt(State& s, const Vector& value, Motion::Level level) const
-{   
+{
     const MobilizedBodyImpl& impl = getImpl();
     if (value.hasContiguousData()) {
-        getImpl().lockAt(s,value.size(),&value[0],level); 
+        getImpl().lockAt(s,value.size(),&value[0],level);
         return;
     }
 
     Vector contig(value.size()); // contiguous
     contig.viewAssign(value); // don't reallocate
     // This will produce an error if value.size()>7.
-    getImpl().lockAt(s,value.size(),&contig[0],level); 
+    getImpl().lockAt(s,value.size(),&contig[0],level);
 }
 
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<1>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<1>& value, Motion::Level level) const
 {   getImpl().lockAt(s,1,&value[0],level); }
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<2>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<2>& value, Motion::Level level) const
 {   getImpl().lockAt(s,2,&value[0],level); }
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<3>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<3>& value, Motion::Level level) const
 {   getImpl().lockAt(s,3,&value[0],level); }
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<4>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<4>& value, Motion::Level level) const
 {   getImpl().lockAt(s,4,&value[0],level); }
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<5>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<5>& value, Motion::Level level) const
 {   getImpl().lockAt(s,5,&value[0],level); }
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<6>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<6>& value, Motion::Level level) const
 {   getImpl().lockAt(s,6,&value[0],level); }
 template <> SimTK_SIMBODY_EXPORT void MobilizedBody::
-lockAt(State& s, const Vec<7>& value, Motion::Level level) const 
+lockAt(State& s, const Vec<7>& value, Motion::Level level) const
 {   getImpl().lockAt(s,7,&value[0],level); }
 
 void MobilizedBody::unlock(State& s) const
@@ -120,7 +120,7 @@ Vector MobilizedBody::getLockValueAsVector(const State& s) const
 {   return getImpl().getLockValueAsVector(s); }
 
 MobilizedBody& MobilizedBody::lockByDefault(Motion::Level level)
-{   updImpl().lockByDefault(level); return *this; } 
+{   updImpl().lockByDefault(level); return *this; }
 
 Motion::Level MobilizedBody::getLockByDefaultLevel() const
 {   return getImpl().getLockByDefaultLevel(); }
@@ -167,7 +167,7 @@ bool MobilizedBody::isSameMobilizedBody(const MobilizedBody& otherBody) const {
 }
 
 bool MobilizedBody::isGround() const {
-    return isInSubsystem() 
+    return isInSubsystem()
         && isSameMobilizedBody(getMatterSubsystem().getGround());
 }
 
@@ -213,7 +213,7 @@ const Transform& MobilizedBody::getDefaultOutboardFrame() const {
 
 // Access to State
 
-const MassProperties& MobilizedBody::getBodyMassProperties(const State& s) const 
+const MassProperties& MobilizedBody::getBodyMassProperties(const State& s) const
 {   return getImpl().getBodyMassProperties(s); }
 
 const SpatialInertia& MobilizedBody::
@@ -252,22 +252,22 @@ const SpatialVec& MobilizedBody::getMobilizerVelocity(const State& s) const {
     return getImpl().getMobilizerVelocity(s);
 }
 
-void MobilizedBody::setQToFitTransform(State& s, const Transform& X_MbM) const { 
-    getImpl().setQToFitTransform(s,X_MbM); 
+void MobilizedBody::setQToFitTransform(State& s, const Transform& X_MbM) const {
+    getImpl().setQToFitTransform(s,X_MbM);
 }
-void MobilizedBody::setQToFitRotation(State& s, const Rotation& R_MbM) const { 
-    getImpl().setQToFitRotation(s,R_MbM); 
+void MobilizedBody::setQToFitRotation(State& s, const Rotation& R_MbM) const {
+    getImpl().setQToFitRotation(s,R_MbM);
 }
-void MobilizedBody::setQToFitTranslation(State& s, const Vec3& p_MbM) const { 
+void MobilizedBody::setQToFitTranslation(State& s, const Vec3& p_MbM) const {
     getImpl().setQToFitTranslation(s,p_MbM);
 }
-void MobilizedBody::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const { 
+void MobilizedBody::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const {
     getImpl().setUToFitVelocity(s,V_MbM);
 }
-void MobilizedBody::setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const { 
+void MobilizedBody::setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const {
     getImpl().setUToFitAngularVelocity(s,w_MbM);
 }
-void MobilizedBody::setUToFitLinearVelocity(State& s, const Vec3& v_MbM) const { 
+void MobilizedBody::setUToFitLinearVelocity(State& s, const Vec3& v_MbM) const {
     getImpl().setUToFitLinearVelocity(s,v_MbM);
 }
 
@@ -301,7 +301,7 @@ UIndex MobilizedBody::getFirstUIndex(const State& s) const {
     return uStart;
 }
 
-Motion::Method MobilizedBody::getQMotionMethod(const State& s) const 
+Motion::Method MobilizedBody::getQMotionMethod(const State& s) const
 {   return getImpl().getQMotionMethod(s); }
 Motion::Method MobilizedBody::getUMotionMethod(const State& s) const
 {   return getImpl().getUMotionMethod(s); }
@@ -372,14 +372,14 @@ findMobilizerReactionOnBodyAtOriginInGround(const State& s) const {
     const SimbodyMatterSubsystemRep& matter = impl.getMyMatterSubsystemRep();
 
     // This will initiate computation if necessary.
-    const Array_<ArticulatedInertia,MobilizedBodyIndex>& PPlus = 
+    const Array_<ArticulatedInertia,MobilizedBodyIndex>& PPlus =
                                         matter.getArticulatedBodyInertiasPlus(s);
     const Array_<SpatialVec,MobilizedBodyIndex>& zPlus =
                                         matter.getArticulatedBodyForcesPlus(s);
 
     const Transform& X_GB = impl.getBodyTransform(s);
     const MobilizedBodyIndex mbx = impl.getMyMobilizedBodyIndex();
-     
+
     SpatialVec FB_G = zPlus[mbx];
     if (mbx != GroundIndex) {
         const MobilizedBody& parent = getParentMobilizedBody();
@@ -399,7 +399,7 @@ findMobilizerReactionOnParentAtFInGround(const State& s) const {
     const SpatialVec FP_G = findMobilizerReactionOnParentAtOriginInGround(s);
     // Shift from P to F
     const Vec3&      p_PF   = getInboardFrame(s).p();
-    if (isGround()) 
+    if (isGround())
         return shiftForceBy(FP_G, p_PF); // P==G (12 flops)
     const Rotation&  R_GP   = getParentMobilizedBody().getBodyRotation(s);
     const Vec3       p_PF_G = R_GP*p_PF; // p_PF in G, 15 flops
@@ -424,15 +424,15 @@ findMobilizerReactionOnParentAtOriginInGround(const State& s) const {
 
 
 void MobilizedBody::applyBodyForce
-   (const State& s, const SpatialVec& spatialForceInG, 
-    Vector_<SpatialVec>& bodyForces) const 
+   (const State& s, const SpatialVec& spatialForceInG,
+    Vector_<SpatialVec>& bodyForces) const
 {
     assert(bodyForces.size() == getMatterSubsystem().getNumBodies());
     bodyForces[getMobilizedBodyIndex()] += spatialForceInG;
 }
 
-void MobilizedBody::applyBodyTorque(const State& s, const Vec3& torqueInG, 
-                     Vector_<SpatialVec>& bodyForces) const 
+void MobilizedBody::applyBodyTorque(const State& s, const Vec3& torqueInG,
+                     Vector_<SpatialVec>& bodyForces) const
 {
     assert(bodyForces.size() == getMatterSubsystem().getNumBodies());
     bodyForces[getMobilizedBodyIndex()][0] += torqueInG; // don't change force
@@ -440,11 +440,11 @@ void MobilizedBody::applyBodyTorque(const State& s, const Vec3& torqueInG,
 
 void MobilizedBody::applyForceToBodyPoint
    (const State& s, const Vec3& pointInB, const Vec3& forceInG,
-    Vector_<SpatialVec>& bodyForces) const 
+    Vector_<SpatialVec>& bodyForces) const
 {
     assert(bodyForces.size() == getMatterSubsystem().getNumBodies());
     const Rotation& R_GB = getBodyTransform(s).R();
-    bodyForces[getMobilizedBodyIndex()] += 
+    bodyForces[getMobilizedBodyIndex()] +=
         SpatialVec((R_GB*pointInB) % forceInG, forceInG);
 }
 
@@ -491,7 +491,7 @@ Real MobilizedBody::getOneTau(const State& s, MobilizerUIndex which) const {
     SimTK_INDEXCHECK(which, nu, "MobilizedBody::getOneTau()");
 
     const SBInstanceCache& ic = matter.getInstanceCache(s);
-    const SBInstancePerMobodInfo& 
+    const SBInstancePerMobodInfo&
         mobodInstanceInfo = ic.getMobodInstanceInfo(mbx);
     if (mobodInstanceInfo.udotMethod == Motion::Free)
         return 0; // not prescribed
@@ -510,7 +510,7 @@ Vector MobilizedBody::getTauAsVector(const State& s) const {
     const int nu = mobodModelInfo.nUInUse;
 
     const SBInstanceCache& ic = matter.getInstanceCache(s);
-    const SBInstancePerMobodInfo& 
+    const SBInstancePerMobodInfo&
         mobodInstanceInfo = ic.getMobodInstanceInfo(mbx);
     if (mobodInstanceInfo.udotMethod == Motion::Free)
         return Vector(nu, Real(0)); // not prescribed
@@ -611,11 +611,11 @@ void MobilizedBodyImpl::findMobilizerUs
 // ensure that the state is prescribed to the recorded value. When locking
 // q, set u to zero now.
 // Can't do this until *after* realize(Model) because that's when the q's and
-// u's are sized and the lock-by-default coordinates are recorded, and this 
+// u's are sized and the lock-by-default coordinates are recorded, and this
 // should override those.
 void MobilizedBodyImpl::
 lock(State& state, Motion::Level level) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state),
         Stage::Model, "MobilizedBody::lock()");
 
     SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
@@ -625,30 +625,30 @@ lock(State& state, Motion::Level level) const {
 
     if (level == Motion::Position) {
         Vector& u = state.updU(); // set generalized speeds to zero
-        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+        for (UIndex ux=uStart; ux != uEnd; ++ux)
             u[ux] = 0;
         const Vector& q = state.getQ();
         assert(iv.lockedQs.size() == q.size());
         QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
         const QIndex qEnd(qStart+nq);
-        for (QIndex qx=qStart; qx != qEnd; ++qx) 
+        for (QIndex qx=qStart; qx != qEnd; ++qx)
             iv.lockedQs[qx] = q[qx];
-    } 
+    }
     else if (level == Motion::Velocity) {
         const Vector& u = state.getU();
         assert(iv.lockedUs.size() == u.size());
-        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+        for (UIndex ux=uStart; ux != uEnd; ++ux)
             iv.lockedUs[ux] = u[ux];
-    } 
+    }
     else if (level == Motion::Acceleration) {
-        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+        for (UIndex ux=uStart; ux != uEnd; ++ux)
             iv.lockedUs[ux] = 0;
     }
 }
 
 void MobilizedBodyImpl::
 lockAt(State& state, int n, const Real* value, Motion::Level level) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state),
         Stage::Model, "MobilizedBody::lockAt()");
 
     SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
@@ -658,7 +658,7 @@ lockAt(State& state, int n, const Real* value, Motion::Level level) const {
 
     if (level == Motion::Position) {
         Vector& u = state.updU(); // set generalized speeds to zero
-        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+        for (UIndex ux=uStart; ux != uEnd; ++ux)
             u[ux] = 0;
         Vector& q = state.updQ();
         QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
@@ -667,36 +667,36 @@ lockAt(State& state, int n, const Real* value, Motion::Level level) const {
             "Supplied value had wrong length %d for locking at "
             "%s level; should have been nq=%d.",
             n, Motion::nameOfLevel(level), nq);
-        for (QIndex qx=qStart; qx != qEnd; ++qx) 
+        for (QIndex qx=qStart; qx != qEnd; ++qx)
             q[qx] = iv.lockedQs[qx] = *value++; // set qs now & remember
-    } 
+    }
     else if (level == Motion::Velocity || level == Motion::Acceleration) {
         SimTK_ERRCHK3_ALWAYS(n==nu, "MobilizedBody::lockAt()",
             "Supplied value had wrong length %d for locking at "
             "%s level; should have been nu=%d.",
             n, Motion::nameOfLevel(level), nu);
-        for (UIndex ux=uStart; ux != uEnd; ++ux) 
+        for (UIndex ux=uStart; ux != uEnd; ++ux)
             iv.lockedUs[ux] = *value++;
-    } 
+    }
 }
 
 Vector MobilizedBodyImpl::
 getLockValueAsVector(const State& state) const {
     const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(state);
-    const Motion::Level level = 
+    const Motion::Level level =
         iv.mobilizerLockLevel[getMyMobilizedBodyIndex()];
     Vector value;
     if (level == Motion::Position) {
         QIndex qStart; int nq; findMobilizerQs(state, qStart, nq);
         value.resize(nq);
-        for (int i=0; i < nq; ++i) 
+        for (int i=0; i < nq; ++i)
             value[i] = iv.lockedQs[QIndex(qStart+i)];
     } else if (level == Motion::Velocity || level == Motion::Acceleration) {
         UIndex uStart; int nu; findMobilizerUs(state, uStart, nu);
         value.resize(nu);
-        for (int i=0; i < nu; ++i) 
+        for (int i=0; i < nu; ++i)
              value[i] = iv.lockedUs[UIndex(uStart+i)];
-    } 
+    }
     return value;
 }
 
@@ -705,7 +705,7 @@ getLockValueAsVector(const State& state) const {
 // If this was a lock-by-default mobilizer, this will unlock it since the
 // lock-by-default flag is transferred to InstanceVars during realize(Topology).
 void MobilizedBodyImpl::unlock(State& state) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state), 
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(state),
         Stage::Topology, "MobilizedBody::unlock()");
 
     SBInstanceVars& iv = getMyMatterSubsystemRep().updInstanceVars(state);
@@ -716,16 +716,16 @@ Motion::Level MobilizedBodyImpl::getLockLevel(const State& state) const {
     return iv.mobilizerLockLevel[getMyMobilizedBodyIndex()];
 }
 
-Motion::Method MobilizedBodyImpl::getQMotionMethod(const State& s) const 
+Motion::Method MobilizedBodyImpl::getQMotionMethod(const State& s) const
 {   return getMyInstanceInfo(s).qMethod; }
-Motion::Method MobilizedBodyImpl::getUMotionMethod(const State& s) const 
+Motion::Method MobilizedBodyImpl::getUMotionMethod(const State& s) const
 {   return getMyInstanceInfo(s).uMethod; }
-Motion::Method MobilizedBodyImpl::getUDotMotionMethod(const State& s) const 
+Motion::Method MobilizedBodyImpl::getUDotMotionMethod(const State& s) const
 {   return getMyInstanceInfo(s).udotMethod; }
 
 void MobilizedBodyImpl::
 copyOutDefaultQ(const State& s, Vector& qDefault) const {
-    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s), 
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s),
         Stage::Topology, "MobilizedBody::copyOutDefaultQ()");
     QIndex qStart; int nq;
     findMobilizerQs(s, qStart, nq);
@@ -733,7 +733,7 @@ copyOutDefaultQ(const State& s, Vector& qDefault) const {
         copyOutDefaultQImpl(nq, &qDefault[qStart]);
 }
 
-    // TODO: currently we delegate these requests to the RigidBodyNodes. 
+    // TODO: currently we delegate these requests to the RigidBodyNodes.
     // Probably most of this functionality should be handled directly
     // by the MobilizedBody objects.
 
@@ -792,7 +792,7 @@ const RigidBodyNode& MobilizedBodyImpl::realizeTopology
 
     if (myParentIndex.isValid()) {
         // not ground
-        const MobilizedBodyImpl& parent = 
+        const MobilizedBodyImpl& parent =
             myMatterSubsystemRep->getMobilizedBody(myParentIndex).getImpl();
         assert(myLevel == parent.myRBnode->getLevel() + 1);
         parent.myRBnode->addChild(myRBnode);
@@ -859,7 +859,7 @@ void MobilizedBodyImpl::realizeTime(const SBStateDigest& sbs) const {
             // Positions are prescribed because of a Motion.
             assert(hasMotion() && !iv.prescribedMotionIsDisabled[mbx]);
             const MotionImpl& motion = getMotion().getImpl();
-            motion.calcPrescribedPosition(sbs.getState(), nq, 
+            motion.calcPrescribedPosition(sbs.getState(), nq,
                                           &tc.presQPool[pqx]);
         }
     }
@@ -980,7 +980,7 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
                     rbn.multiplyByNDot(sbs, false, &u[uStart], ndotU);
 
                     Real qdotdot[8]; // nq of these -- max is 7
-                    motion.calcPrescribedPositionDotDot(sbs.getState(), nq, 
+                    motion.calcPrescribedPositionDotDot(sbs.getState(), nq,
                                                         qdotdot);
 
                     for (int i=0; i < nq; ++i)
@@ -989,10 +989,10 @@ void MobilizedBodyImpl::realizeDynamics(const SBStateDigest& sbs) const {
                     // udot = N^-1 (qdotdot - NDot*u)
                     rbn.multiplyByNInv(sbs, false, qdotdot, presUDotp);
                 }
-            } else if (instInfo.uMethod==Motion::Prescribed) { 
+            } else if (instInfo.uMethod==Motion::Prescribed) {
                 // Non-holonomic
                 motion.calcPrescribedVelocityDot(sbs.getState(), nu, presUDotp);
-            } else { 
+            } else {
                 // Acceleration-only
                 motion.calcPrescribedAcceleration(sbs.getState(), nu, presUDotp);
             }
@@ -1020,7 +1020,7 @@ void MobilizedBodyImpl::realizeReport(const SBStateDigest& sbs) const {
     // MOBILIZED BODY::PIN //
     /////////////////////////
 
-MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d) 
+MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new PinImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1030,7 +1030,7 @@ MobilizedBody::Pin::Pin(MobilizedBody& parent, const Body& body, Direction d)
 }
 
 MobilizedBody::Pin::Pin(MobilizedBody& parent, const Transform& inbFrame,
-                        const Body& body, const Transform& outbFrame, Direction d) 
+                        const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new PinImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1109,14 +1109,14 @@ Real& MobilizedBody::Pin::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Pin, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Pin,
                                         MobilizedBody::PinImpl, MobilizedBody);
 
     ////////////////////////////
     // MOBILIZED BODY::SLIDER //
     ////////////////////////////
 
-MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body, Direction d) 
+MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new SliderImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1126,7 +1126,7 @@ MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body, Direction
 }
 
 MobilizedBody::Slider::Slider(MobilizedBody& parent, const Transform& inbFrame,
-                              const Body& body, const Transform& outbFrame, Direction d) 
+                              const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new SliderImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1204,7 +1204,7 @@ Real& MobilizedBody::Slider::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider,
                                         MobilizedBody::SliderImpl, MobilizedBody);
 
     ///////////////////////////////
@@ -1212,7 +1212,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Slider,
     ///////////////////////////////
 
 MobilizedBody::Universal::Universal
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new UniversalImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1223,7 +1223,7 @@ MobilizedBody::Universal::Universal
 
 MobilizedBody::Universal::Universal
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new UniversalImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1233,7 +1233,7 @@ MobilizedBody::Universal::Universal
                                                    *this);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal,
     MobilizedBody::UniversalImpl, MobilizedBody);
 
     //////////////////////////////
@@ -1241,7 +1241,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Universal,
     //////////////////////////////
 
 MobilizedBody::Cylinder::Cylinder
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new CylinderImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1252,7 +1252,7 @@ MobilizedBody::Cylinder::Cylinder
 
 MobilizedBody::Cylinder::Cylinder
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new CylinderImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1262,7 +1262,7 @@ MobilizedBody::Cylinder::Cylinder
                                                    *this);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder,
     MobilizedBody::CylinderImpl, MobilizedBody);
 
     //////////////////////////////////
@@ -1270,7 +1270,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Cylinder,
     //////////////////////////////////
 
 MobilizedBody::BendStretch::BendStretch
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new BendStretchImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1281,7 +1281,7 @@ MobilizedBody::BendStretch::BendStretch
 
 MobilizedBody::BendStretch::BendStretch
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new BendStretchImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1291,7 +1291,7 @@ MobilizedBody::BendStretch::BendStretch
                                                    *this);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch,
     MobilizedBody::BendStretchImpl, MobilizedBody);
 
     ////////////////////////////
@@ -1299,7 +1299,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::BendStretch,
     ////////////////////////////
 
 MobilizedBody::Planar::Planar
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new PlanarImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1310,7 +1310,7 @@ MobilizedBody::Planar::Planar
 
 MobilizedBody::Planar::Planar(MobilizedBody& parent, const Transform& inbFrame,
                               const Body& body, const Transform& outbFrame,
-                              Direction d) 
+                              Direction d)
 :   MobilizedBody(new PlanarImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1387,7 +1387,7 @@ Vec3& MobilizedBody::Planar::updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar,
     MobilizedBody::PlanarImpl, MobilizedBody);
 
 
@@ -1396,7 +1396,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Planar,
     //////////////////////////////////////
 
 MobilizedBody::SphericalCoords::SphericalCoords
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new SphericalCoordsImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1408,7 +1408,7 @@ MobilizedBody::SphericalCoords::SphericalCoords
 MobilizedBody::SphericalCoords::SphericalCoords
    (MobilizedBody&  parent, const Transform& inbFrame,
     const Body&     body,   const Transform& outbFrame,
-    Direction       d) 
+    Direction       d)
 :   MobilizedBody(new SphericalCoordsImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1424,7 +1424,7 @@ MobilizedBody::SphericalCoords::SphericalCoords
     Real            azimuthOffset,  bool                azimuthNegated,
     Real            zenithOffset,   bool                zenithNegated,
     CoordinateAxis  radialAxis,     bool                radialNegated,
-    Direction       d) 
+    Direction       d)
 :   MobilizedBody(new SphericalCoordsImpl(azimuthOffset, azimuthNegated,
                                           zenithOffset,  zenithNegated,
                                           radialAxis,    radialNegated,
@@ -1441,9 +1441,9 @@ MobilizedBody::SphericalCoords::SphericalCoords
                                                    *this);
 }
 
-MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords&
 MobilizedBody::SphericalCoords::setRadialAxis(CoordinateAxis axis) {
-    SimTK_APIARGCHECK_ALWAYS(axis != YAxis, 
+    SimTK_APIARGCHECK_ALWAYS(axis != YAxis,
         "MobilizedBody::SphericalCoords", "setRadialAxis",
         "SphericalCoords translation (radial) axis must be X or Z; Y is not allowed.");
     getImpl().invalidateTopologyCache();
@@ -1451,32 +1451,32 @@ MobilizedBody::SphericalCoords::setRadialAxis(CoordinateAxis axis) {
     return *this;
 }
 
-MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords&
 MobilizedBody::SphericalCoords::setNegateAzimuth(bool shouldNegate) {
     getImpl().invalidateTopologyCache();
     updImpl().negAz = shouldNegate;
     return *this;
 }
-MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords&
 MobilizedBody::SphericalCoords::setNegateZenith(bool shouldNegate) {
     getImpl().invalidateTopologyCache();
     updImpl().negZe = shouldNegate;
     return *this;
 }
-MobilizedBody::SphericalCoords& 
+MobilizedBody::SphericalCoords&
 MobilizedBody::SphericalCoords::setNegateRadial(bool shouldNegate) {
     getImpl().invalidateTopologyCache();
     updImpl().negT = shouldNegate;
     return *this;
 }
 
-CoordinateAxis MobilizedBody::SphericalCoords::getRadialAxis()    const 
+CoordinateAxis MobilizedBody::SphericalCoords::getRadialAxis()    const
 {   return getImpl().axisT; }
-bool MobilizedBody::SphericalCoords::isAzimuthNegated() const 
+bool MobilizedBody::SphericalCoords::isAzimuthNegated() const
 {   return getImpl().negAz; }
-bool MobilizedBody::SphericalCoords::isZenithNegated()  const 
+bool MobilizedBody::SphericalCoords::isZenithNegated()  const
 {   return getImpl().negZe; }
-bool MobilizedBody::SphericalCoords::isRadialNegated()  const 
+bool MobilizedBody::SphericalCoords::isRadialNegated()  const
 {   return getImpl().negT; }
 
 const Vec3& MobilizedBody::SphericalCoords::getDefaultQ() const {
@@ -1551,7 +1551,7 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::SphericalCoords, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::SphericalCoords,
     MobilizedBody::SphericalCoordsImpl, MobilizedBody);
 
     ////////////////////////////
@@ -1559,7 +1559,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::SphericalCoords,
     ////////////////////////////
 
 MobilizedBody::Gimbal::Gimbal
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new GimbalImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1570,7 +1570,7 @@ MobilizedBody::Gimbal::Gimbal
 
 MobilizedBody::Gimbal::Gimbal
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new GimbalImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1661,7 +1661,7 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Gimbal, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Gimbal,
     MobilizedBody::GimbalImpl, MobilizedBody);
 
     // GimbalImpl
@@ -1670,13 +1670,13 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Call the superclass implementation to get standard default geometry.
-    
+
     MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
-    
+
     // We can't generate the ball until we know the radius, and we can't place
     // the geometry on the body until we know the parent and child mobilizer frame
     // placement on the body, which might not be until Instance stage.
-    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry())
     {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Transform& X_PMb = getInboardFrame(s);
@@ -1715,8 +1715,8 @@ void MobilizedBody::GimbalImpl::calcDecorativeGeometryAndAppendImpl
     // MOBILIZED BODY::BUSHING //
     /////////////////////////////
 
-MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Body& body, 
-                                Direction d) 
+MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Body& body,
+                                Direction d)
 :   MobilizedBody(new BushingImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1727,7 +1727,7 @@ MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Body& body,
 
 MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Transform& inbFrame,
                                 const Body& bodyInfo, const Transform& outbFrame,
-                                Direction d) 
+                                Direction d)
 :   MobilizedBody(new BushingImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1737,7 +1737,7 @@ MobilizedBody::Bushing::Bushing(MobilizedBody& parent, const Transform& inbFrame
                                                    *this);
 }
 
-const Vec6& MobilizedBody::Bushing::getDefaultQ() const 
+const Vec6& MobilizedBody::Bushing::getDefaultQ() const
 {   return getImpl().defaultQ; }
 
 MobilizedBody::Bushing& MobilizedBody::Bushing::setDefaultQ(const Vec6& q) {
@@ -1808,7 +1808,7 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec6::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Bushing, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Bushing,
     MobilizedBody::BushingImpl, MobilizedBody);
 
 
@@ -1817,7 +1817,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Bushing,
     ///////////////////////////////////////////////////
 
 MobilizedBody::Ball::Ball
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new BallImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1828,7 +1828,7 @@ MobilizedBody::Ball::Ball
 
 MobilizedBody::Ball::Ball
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new BallImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -1918,7 +1918,7 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ball, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ball,
     MobilizedBody::BallImpl, MobilizedBody);
 
     // BallImpl
@@ -1927,7 +1927,7 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Call the superclass implementation to get standard default geometry.
-    
+
     MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
 
     // We can't generate the ball until we know the radius, and we can't place
@@ -1972,7 +1972,7 @@ void MobilizedBody::BallImpl::calcDecorativeGeometryAndAppendImpl
     ///////////////////////////////
 
 MobilizedBody::Ellipsoid::Ellipsoid
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new EllipsoidImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -1982,7 +1982,7 @@ MobilizedBody::Ellipsoid::Ellipsoid
 }
 
 MobilizedBody::Ellipsoid::Ellipsoid
-   (MobilizedBody& parent, const Body& body, const Vec3& radii, Direction d) 
+   (MobilizedBody& parent, const Body& body, const Vec3& radii, Direction d)
 :   MobilizedBody(new EllipsoidImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2100,14 +2100,14 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
 {
     // Call the superclass implementation to get standard default geometry.
-    
+
     MobilizedBodyImpl::calcDecorativeGeometryAndAppendImpl(s, stage, geom);
 
-    // We can't generate the ellipsoid until we know the radius, and we can't 
-    // place either piece of geometry on the bodies until we know the parent 
-    // and child mobilizer frame placements, which might not be until Instance 
+    // We can't generate the ellipsoid until we know the radius, and we can't
+    // place either piece of geometry on the bodies until we know the parent
+    // and child mobilizer frame placements, which might not be until Instance
     // stage.
-    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    if (stage == Stage::Instance && getMyMatterSubsystemRep().getShowDefaultGeometry())
     {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Transform& X_PMb = getInboardFrame(s);
@@ -2147,7 +2147,7 @@ void MobilizedBody::EllipsoidImpl::calcDecorativeGeometryAndAppendImpl
     }
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid,
     MobilizedBody::EllipsoidImpl, MobilizedBody);
 
     /////////////////////////////////
@@ -2155,7 +2155,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ellipsoid,
     /////////////////////////////////
 
 MobilizedBody::Translation::Translation
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new TranslationImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2166,7 +2166,7 @@ MobilizedBody::Translation::Translation
 
 MobilizedBody::Translation::Translation
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new TranslationImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -2248,14 +2248,14 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec3::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Translation, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Translation,
     MobilizedBody::TranslationImpl, MobilizedBody);
 
     //////////////////////////
     // MOBILIZED BODY::FREE //
     //////////////////////////
 
-MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body, Direction d) 
+MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new FreeImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2265,7 +2265,7 @@ MobilizedBody::Free::Free(MobilizedBody& parent, const Body& body, Direction d)
 }
 
 MobilizedBody::Free::Free(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame, Direction d) 
+                          const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new FreeImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -2384,7 +2384,7 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec6::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free,
     MobilizedBody::FreeImpl, MobilizedBody);
 
     //////////////////////////////////////
@@ -2392,7 +2392,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Free,
     //////////////////////////////////////
 
 MobilizedBody::LineOrientation::LineOrientation
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new LineOrientationImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2403,7 +2403,7 @@ MobilizedBody::LineOrientation::LineOrientation
 
 MobilizedBody::LineOrientation::LineOrientation
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new LineOrientationImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -2484,7 +2484,7 @@ updMyPartU(const State& s, Vector& ulike) const {
     return Vec2::updAs(&ulike[uStart]);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation,
     MobilizedBody::LineOrientationImpl, MobilizedBody);
 
     ///////////////////////////////
@@ -2492,7 +2492,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::LineOrientation,
     ///////////////////////////////
 
 MobilizedBody::FreeLine::FreeLine
-   (MobilizedBody& parent, const Body& body, Direction d) 
+   (MobilizedBody& parent, const Body& body, Direction d)
 :   MobilizedBody(new FreeLineImpl(d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2503,7 +2503,7 @@ MobilizedBody::FreeLine::FreeLine
 
 MobilizedBody::FreeLine::FreeLine
    (MobilizedBody& parent, const Transform& inbFrame,
-    const Body& body, const Transform& outbFrame, Direction d) 
+    const Body& body, const Transform& outbFrame, Direction d)
 :   MobilizedBody(new FreeLineImpl(d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -2512,14 +2512,14 @@ MobilizedBody::FreeLine::FreeLine
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyIndex(),
                                                    *this);
 }
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::FreeLine, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::FreeLine,
     MobilizedBody::FreeLineImpl, MobilizedBody);
 
     //////////////////////////
     // MOBILIZED BODY::WELD //
     //////////////////////////
 
-MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body) 
+MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body)
 :   MobilizedBody(new WeldImpl(MobilizedBody::Forward)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2529,7 +2529,7 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body)
 }
 
 MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
-                          const Body& body, const Transform& outbFrame) 
+                          const Body& body, const Transform& outbFrame)
 :   MobilizedBody(new WeldImpl(MobilizedBody::Forward)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -2539,7 +2539,7 @@ MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
                                                    *this);
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Weld, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Weld,
     MobilizedBody::WeldImpl, MobilizedBody);
 
     ////////////////////////////////
@@ -2550,7 +2550,7 @@ MobilizedBody::Ground::Ground() : MobilizedBody(new GroundImpl()) {
     setBody(Body::Ground());
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground,
     MobilizedBody::GroundImpl, MobilizedBody);
 
     ///////////////////////////
@@ -2558,7 +2558,7 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Ground,
     ///////////////////////////
 
 MobilizedBody::Screw::Screw
-   (MobilizedBody& parent, const Body& body, Real pitch, Direction d) 
+   (MobilizedBody& parent, const Body& body, Real pitch, Direction d)
 :   MobilizedBody(new ScrewImpl(pitch,d)) {
     // inb & outb frames are just the parent body's frame and new body's frame
     setBody(body);
@@ -2569,7 +2569,7 @@ MobilizedBody::Screw::Screw
 
 MobilizedBody::Screw::Screw(MobilizedBody& parent, const Transform& inbFrame,
                             const Body& body, const Transform& outbFrame,
-                            Real pitch, Direction d) 
+                            Real pitch, Direction d)
 :   MobilizedBody(new ScrewImpl(pitch,d)) {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -2656,7 +2656,7 @@ Real& MobilizedBody::Screw::updMyPartU(const State& s, Vector& ulike) const {
     return ulike[uStart];
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw,
     MobilizedBody::ScrewImpl, MobilizedBody);
 
     ////////////////////////////
@@ -2667,10 +2667,10 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Screw,
 // object for us. We'll first take away ownership of the CustomImpl, then
 // make the CustomImpl take over ownership of the Implementation object.
 MobilizedBody::Custom::Custom
-   (MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, 
+   (MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation,
     const Body& body, Direction d)
-:   MobilizedBody(implementation 
-        ? implementation->updImpl().removeOwnershipOfCustomImpl() 
+:   MobilizedBody(implementation
+        ? implementation->updImpl().removeOwnershipOfCustomImpl()
         : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
@@ -2678,23 +2678,23 @@ MobilizedBody::Custom::Custom
     setBody(body);
 
     updImpl().setDirection(d);
-    
+
     // Now store the Implementation pointer in our CustomImpl. The Implementation
     // object retains its original pointer to the CustomImpl object so it can
     // operate as a proxy for the CustomImpl. However the Custom handle now owns
     // the CustomImpl and the CustomImpl owns the Implementation.
     updImpl().takeOwnershipOfImplementation(implementation);
-    
+
     updImpl().updMyMatterSubsystemRep()
         .adoptMobilizedBody(parent.getMobilizedBodyIndex(), *this);
 }
 
 MobilizedBody::Custom::Custom
-   (MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation, 
+   (MobilizedBody& parent, MobilizedBody::Custom::Implementation* implementation,
     const Transform& inbFrame, const Body& body, const Transform& outbFrame,
     Direction d)
-:   MobilizedBody(implementation 
-        ? implementation->updImpl().removeOwnershipOfCustomImpl() 
+:   MobilizedBody(implementation
+        ? implementation->updImpl().removeOwnershipOfCustomImpl()
         : 0)
 {
     SimTK_ASSERT_ALWAYS(implementation,
@@ -2704,13 +2704,13 @@ MobilizedBody::Custom::Custom
     setDefaultOutboardFrame(outbFrame);
 
     updImpl().setDirection(d);
-    
+
     // Now store the Implementation pointer in our CustomImpl. The Implementation
     // object retains its original pointer to the CustomImpl object so it can
     // operate as a proxy for the CustomImpl. However the Custom handle now owns
     // the CustomImpl and the CustomImpl owns the Implementation.
     updImpl().takeOwnershipOfImplementation(implementation);
-    
+
     updImpl().updMyMatterSubsystemRep()
         .adoptMobilizedBody(parent.getMobilizedBodyIndex(), *this);
 }
@@ -2725,7 +2725,7 @@ updImplementation() {
     return updImpl().updImplementation();
 }
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Custom, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(MobilizedBody::Custom,
     MobilizedBody::CustomImpl, MobilizedBody);
 
 // MobilizedBody::CustomImpl
@@ -2738,19 +2738,19 @@ takeOwnershipOfImplementation(Custom::Implementation* userImpl) {
     const Custom::ImplementationImpl& impImpl = userImpl->getImpl();
     assert(&impImpl.getCustomImpl() == this && !impImpl.isOwnerOfCustomImpl());
     implementation = userImpl;
-}  
+}
 
 ////////////////////////////////////////////
 // MOBILIZED BODY::CUSTOM::IMPLEMENTATION //
 ////////////////////////////////////////////
 
-// We create the initial CustomImpl as though it the mobilizer will be in the 
-// forward direction. However, that may be changed later when this 
+// We create the initial CustomImpl as though it the mobilizer will be in the
+// forward direction. However, that may be changed later when this
 // implementation is put to use.
 MobilizedBody::Custom::Implementation::Implementation
-   (SimbodyMatterSubsystem& matter, int nu, int nq, int nAngles) 
+   (SimbodyMatterSubsystem& matter, int nu, int nq, int nAngles)
 :   PIMPLHandle<Implementation,ImplementationImpl>
-       (new ImplementationImpl(new CustomImpl(MobilizedBody::Forward), 
+       (new ImplementationImpl(new CustomImpl(MobilizedBody::Forward),
                                nu, nq, nAngles))
 {
     assert(nu > 0);
@@ -2761,7 +2761,7 @@ MobilizedBody::Custom::Implementation::Implementation
     assert(nAngles <= 4);
     assert(nu <= nq);
     assert(nAngles <= nq);
-    // We don't know the MobilizedBodyIndex yet since this hasn't been adopted 
+    // We don't know the MobilizedBodyIndex yet since this hasn't been adopted
     // by the MatterSubsystem.
     updImpl().updCustomImpl().setMyMatterSubsystem
        (matter, MobilizedBodyIndex(0), MobilizedBodyIndex(0));
@@ -2844,12 +2844,12 @@ Vector MobilizedBody::Custom::Implementation::getQDotDot(const State& state) con
     return qdotdot;
 }
 
-// Careful: must return the transform X_F0M0 using the "as defined" frames, 
+// Careful: must return the transform X_F0M0 using the "as defined" frames,
 // rather than X_FM which might be reversed due to mobilizer reversal.
 Transform MobilizedBody::Custom::Implementation::
 getMobilizerTransform(const State& s) const {
-    // Use "upd" instead of "get" here because the custom mobilizer definition 
-    // needs access to this local information during realizePosition() so get 
+    // Use "upd" instead of "get" here because the custom mobilizer definition
+    // needs access to this local information during realizePosition() so get
     // would throw a stage violation.
     const SBTreePositionCache& pc = getImpl().getCustomImpl()
                             .getMyMatterSubsystemRep().updTreePositionCache(s);
@@ -2857,14 +2857,14 @@ getMobilizerTransform(const State& s) const {
     return node.findX_F0M0(pc);
 }
 
-// Careful: must return the velocity V_F0M0 using the "as defined" frames, 
+// Careful: must return the velocity V_F0M0 using the "as defined" frames,
 // rather than V_FM which might be reversed due to mobilizer reversal.
 SpatialVec MobilizedBody::Custom::Implementation::
 getMobilizerVelocity(const State& s) const {
     const SBTreePositionCache& pc = getImpl().getCustomImpl()
                             .getMyMatterSubsystemRep().getTreePositionCache(s);
-    // Use "upd" instead of "get" here because the custom mobilizer definition 
-    // needs access to this local information during realizeVelocity() so get 
+    // Use "upd" instead of "get" here because the custom mobilizer definition
+    // needs access to this local information during realizeVelocity() so get
     // would throw a stage violation.
     const SBTreeVelocityCache& vc = getImpl().getCustomImpl()
                             .getMyMatterSubsystemRep().updTreeVelocityCache(s);
@@ -2873,46 +2873,46 @@ getMobilizerVelocity(const State& s) const {
 }
 
 void MobilizedBody::Custom::Implementation::
-multiplyByN(const State& s, bool transposeMatrix, 
+multiplyByN(const State& s, bool transposeMatrix,
             int nIn, const Real* in, int nOut, Real* out) const {
     // Default implementation
     assert((nIn==0 || in) && (nOut==0 || out));
-    int nu = getImpl().getNU(), nq = getImpl().getNQ(), 
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(),
         nAngles = getImpl().getNumAngles();
     assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
     for (int i=0; i<nu; ++i) out[i] = in[i];
 }
 
 void MobilizedBody::Custom::Implementation::
-multiplyByNInv(const State& s, bool transposeMatrix, 
+multiplyByNInv(const State& s, bool transposeMatrix,
                int nIn, const Real* in, int nOut, Real* out) const {
     // Default implementation
     assert((nIn==0 || in) && (nOut==0 || out));
-    int nu = getImpl().getNU(), nq = getImpl().getNQ(), 
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(),
         nAngles = getImpl().getNumAngles();
     assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
     for (int i=0; i<nu; ++i) out[i] = in[i];
 }
 
 void MobilizedBody::Custom::Implementation::
-multiplyByNDot(const State& s, bool transposeMatrix, 
+multiplyByNDot(const State& s, bool transposeMatrix,
                int nIn, const Real* in, int nOut, Real* out) const {
     // Default implementation
     assert((nIn==0 || in) && (nOut==0 || out));
-    int nu = getImpl().getNU(), nq = getImpl().getNQ(), 
+    int nu = getImpl().getNU(), nq = getImpl().getNQ(),
         nAngles = getImpl().getNumAngles();
     assert(nq==nu && nIn==nu && nOut==nu && nAngles < 4);
     for (int i=0; i<nu; ++i) out[i] = 0;
 }
 
 void MobilizedBody::Custom::Implementation::
-setQToFitTransform(const State& state, const Transform& X_FM, 
-                   int nq, Real* q) const 
+setQToFitTransform(const State& state, const Transform& X_FM,
+                   int nq, Real* q) const
 {
     class OptimizerFunction : public OptimizerSystem {
     public:
-        OptimizerFunction(const MobilizedBody::Custom::Implementation& impl, 
-                          const State& state, int nq, const Transform& X_FM) 
+        OptimizerFunction(const MobilizedBody::Custom::Implementation& impl,
+                          const State& state, int nq, const Transform& X_FM)
         :   OptimizerSystem(nq), impl(impl), state(state), X_FM(X_FM) {}
 
         int objectiveFunc(const Vector& params, bool new_params, Real& f) const {
@@ -2933,11 +2933,11 @@ setQToFitTransform(const State& state, const Transform& X_FM,
     opt.useNumericalGradient(true);
     opt.setLimitedMemoryHistory(100);
     Vector qvec(nq);
-    
-    // Pick initial values which are 1) deterministic and 2) unlikely to 
-    // correspond to a local maximum or inflection point, which could cause the 
+
+    // Pick initial values which are 1) deterministic and 2) unlikely to
+    // correspond to a local maximum or inflection point, which could cause the
     // optimizer to fail.
-    
+
     for (int i = 0; i < nq; i++)
         qvec[i] = i+Real(0.12354);
     opt.optimize(qvec);
@@ -2946,13 +2946,13 @@ setQToFitTransform(const State& state, const Transform& X_FM,
 }
 
 void MobilizedBody::Custom::Implementation::
-setUToFitVelocity(const State& state, const SpatialVec& V_FM, 
-                  int nu, Real* u) const 
+setUToFitVelocity(const State& state, const SpatialVec& V_FM,
+                  int nu, Real* u) const
 {
     class OptimizerFunction : public OptimizerSystem {
     public:
-        OptimizerFunction(const MobilizedBody::Custom::Implementation& impl, 
-                          const State& state, int nu, const SpatialVec& V_FM) 
+        OptimizerFunction(const MobilizedBody::Custom::Implementation& impl,
+                          const State& state, int nu, const SpatialVec& V_FM)
         :   OptimizerSystem(nu), impl(impl), state(state), V_FM(V_FM) {}
 
         int objectiveFunc(const Vector& params, bool new_params, Real& f) const {
@@ -2973,11 +2973,11 @@ setUToFitVelocity(const State& state, const SpatialVec& V_FM,
     opt.useNumericalGradient(true);
     opt.setLimitedMemoryHistory(100);
     Vector uvec(nu);
-    
-    // Pick initiial values which are 1) deterministic and 2) unlikely to 
-    // correspond to a local maximum or inflection point, which could cause the 
+
+    // Pick initiial values which are 1) deterministic and 2) unlikely to
+    // correspond to a local maximum or inflection point, which could cause the
     // optimizer to fail.
-    
+
     for (int i = 0; i < nu; i++)
         uvec[i] = i+Real(0.12354);
     opt.optimize(uvec);
@@ -2987,25 +2987,25 @@ setUToFitVelocity(const State& state, const SpatialVec& V_FM,
 
 // Constructors without user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased
-   (MobilizedBody& parent, const Body& body, 
+   (MobilizedBody& parent, const Body& body,
     int nmobilities, const Array_<const Function*>& functions,
     const Array_<Array_<int> >& coordIndices,
     Direction direction)
-:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), 
-                                         nmobilities, functions, coordIndices), 
-           body, direction) 
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(),
+                                         nmobilities, functions, coordIndices),
+           body, direction)
 {
 }
 
 MobilizedBody::FunctionBased::FunctionBased
-   (MobilizedBody& parent, const Transform& inbFrame, 
-    const Body& body, const Transform& outbFrame, 
+   (MobilizedBody& parent, const Transform& inbFrame,
+    const Body& body, const Transform& outbFrame,
     int nmobilities, const Array_<const Function*>& functions,
     const Array_<Array_<int> >& coordIndices,
     Direction direction)
-:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), 
-                                         nmobilities, functions, coordIndices), 
-           body, direction) 
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(),
+                                         nmobilities, functions, coordIndices),
+           body, direction)
 {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);
@@ -3013,27 +3013,27 @@ MobilizedBody::FunctionBased::FunctionBased
 
 // Constructors that allow user-specified axes for function-based mobilized body
 MobilizedBody::FunctionBased::FunctionBased
-   (MobilizedBody& parent, const Body& body, 
+   (MobilizedBody& parent, const Body& body,
     int nmobilities, const Array_<const Function*>& functions,
     const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
     Direction direction)
-:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), 
-                                         nmobilities, functions, 
-                                         coordIndices, axes), 
-           body, direction) 
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(),
+                                         nmobilities, functions,
+                                         coordIndices, axes),
+           body, direction)
 {
 }
 
 MobilizedBody::FunctionBased::FunctionBased
-   (MobilizedBody& parent, const Transform& inbFrame, 
-    const Body& body, const Transform& outbFrame, 
+   (MobilizedBody& parent, const Transform& inbFrame,
+    const Body& body, const Transform& outbFrame,
     int nmobilities, const Array_<const Function*>& functions,
     const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
     Direction direction)
-:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(), 
-                                         nmobilities, functions, 
-                                         coordIndices, axes), 
-           body, direction) 
+:   Custom(parent, new FunctionBasedImpl(parent.updMatterSubsystem(),
+                                         nmobilities, functions,
+                                         coordIndices, axes),
+           body, direction)
 {
     setDefaultInboardFrame(inbFrame);
     setDefaultOutboardFrame(outbFrame);

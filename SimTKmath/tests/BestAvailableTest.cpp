@@ -52,14 +52,14 @@ public:
         x = &coefficients[0];
 
         f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
-        return( 0 ); 
+        return( 0 );
     }
 
     int gradientFunc( const Vector &coefficients, bool new_coefficients,
             Vector &gradient ) const{
         const Real *x;
 
-        x = &coefficients[0]; 
+        x = &coefficients[0];
 
         gradient[0] = x[0] * x[3] + x[3] * (x[0] + x[1] + x[2]);
         gradient[1] = x[0] * x[3];
@@ -74,7 +74,7 @@ public:
             Vector &constraints ) const{
         const Real *x;
 
-        x = &coefficients[0]; 
+        x = &coefficients[0];
         constraints[0] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3] - 40.0;
         constraints[1] = x[0] * x[1] * x[2] * x[3] - 25.0;
 
@@ -85,16 +85,16 @@ public:
             Matrix& jac ) const{
         const Real *x;
 
-        x = &coefficients[0]; 
+        x = &coefficients[0];
 
-        jac(0,0) = 2*x[0]; 
+        jac(0,0) = 2*x[0];
         jac(0,1) = 2*x[1];
-        jac(0,2) = 2*x[2]; 
-        jac(0,3) = 2*x[3]; 
-        jac(1,0) = x[1]*x[2]*x[3]; 
+        jac(0,2) = 2*x[2];
+        jac(0,3) = 2*x[3];
+        jac(1,0) = x[1]*x[2]*x[3];
         jac(1,1) = x[0]*x[2]*x[3];
-        jac(1,2) = x[0]*x[1]*x[3]; 
-        jac(1,3) = x[0]*x[1]*x[2]; 
+        jac(1,2) = x[0]*x[1]*x[3];
+        jac(1,3) = x[0]*x[1]*x[2];
 
         return(0);
     }
@@ -129,7 +129,7 @@ class LBFGSBSystem : public OptimizerSystem {
       }
 
       f = 4.0* f;
-      return( 0 ); 
+      return( 0 );
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients,  Vector &gradient ) const {
@@ -137,7 +137,7 @@ class LBFGSBSystem : public OptimizerSystem {
       Real t1,t2;
       int i;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
       t1 = x[1]-(x[0]*x[0]);
       gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
@@ -169,8 +169,8 @@ class LBFGSSystem : public OptimizerSystem {
       const Real x = coefficients[0];
       const Real y = coefficients[1];
 
-      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
-    
+      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y;
+
       return(0);
 
    }
@@ -178,11 +178,11 @@ class LBFGSSystem : public OptimizerSystem {
    int gradientFunc( const Vector &coefficients, bool new_coefficients,
            Vector &gradient ) const {
 
-      const Real x = coefficients[0]; 
-      const Real y = coefficients[1];  
+      const Real x = coefficients[0];
+      const Real y = coefficients[1];
 
       gradient[0] = 3*x + 2*y -2;
-      gradient[1] = 2*x + 6*y +8; 
+      gradient[1] = 2*x + 6*y +8;
 
       return(0);
 
@@ -200,7 +200,7 @@ int main() {
     IpoptSystem sysIPOPT;
     Vector lowerBoundsIPOPT(sysIPOPT.getNumParameters());
     Vector upperBoundsIPOPT(sysIPOPT.getNumParameters());
-    for(i=0;i<sysIPOPT.getNumParameters();i++) {   
+    for(i=0;i<sysIPOPT.getNumParameters();i++) {
         lowerBoundsIPOPT[i] = 1.0;
         upperBoundsIPOPT[i] = 5.0;
     }
@@ -212,7 +212,7 @@ int main() {
     LBFGSBSystem sysLBFGSB;
     Vector lowerBoundsLBFGSB(sysLBFGSB.getNumParameters());
     Vector upperBoundsLBFGSB(sysLBFGSB.getNumParameters());
-    for(i=0;i<sysLBFGSB.getNumParameters();i=i+2) {   // even numbered 
+    for(i=0;i<sysLBFGSB.getNumParameters();i=i+2) {   // even numbered
        lowerBoundsLBFGSB[i] = 1.0;
        upperBoundsLBFGSB[i] = 100.0;
     }
@@ -233,15 +233,15 @@ int main() {
     try {
 
         // Optimizer will choose the BestAvailable algorithm.
-        Optimizer optIPOPT( sysIPOPT ); 
+        Optimizer optIPOPT( sysIPOPT );
         if (optIPOPT.getAlgorithm() != SimTK::InteriorPoint)
         {   returnValue = 1; }
 
-        Optimizer optLBFGSB( sysLBFGSB ); 
+        Optimizer optLBFGSB( sysLBFGSB );
         if (optLBFGSB.getAlgorithm() != SimTK::LBFGSB)
         {   returnValue = 1; }
 
-        Optimizer optLBFGS( sysLBFGS ); 
+        Optimizer optLBFGS( sysLBFGS );
         if (optLBFGS.getAlgorithm() != SimTK::LBFGS)
         {   returnValue = 1; }
 

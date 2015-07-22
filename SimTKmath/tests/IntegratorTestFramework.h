@@ -58,9 +58,9 @@ public:
     PeriodicHandler() : PeriodicEventHandler(1.0) {
     }
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
-        
+
         // This should be triggered every (interval) time units.
-        
+
         ASSERT(state.getTime() == getNextEventTime(state, true));
         eventCount++;
     }
@@ -77,9 +77,9 @@ public:
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
-        
+
         // This should be triggered when the pendulum crosses x == 0.
-        
+
         Real x = state.getQ(pendulum.getGuts().getSubsysIndex())[0];
         ASSERT(std::abs(x) < 0.01);
         ASSERT(state.getTime() > lastEventTime);
@@ -89,7 +89,7 @@ public:
 
             // Multiply the pendulum's velocity by sqrt(1.5), which should multiply its total energy by 1.5 (since
             // at x=0, all of its energy is kinetic).
-            
+
             hasAccelerated = true;
             SubsystemIndex subsys = pendulum.getGuts().getSubsysIndex();
             state.updU(subsys) *= std::sqrt(1.5);
@@ -110,10 +110,10 @@ public:
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
     void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
-        
+
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q[0] == -1, u[0] == 0.
-        
+
         Vector u = state.getU(pendulum.getGuts().getSubsysIndex());
         ASSERT(std::abs(u[0]) < 0.01);
         ASSERT(state.getTime() > lastEventTime);
@@ -131,14 +131,14 @@ public:
     PeriodicReporter(PendulumSystem& pendulum) : PeriodicEventReporter(1.0), pendulum(pendulum) {
     }
     void handleEvent(const State& state) const {
-        
+
         // This should be triggered every (interval) time units.
-        
+
         ASSERT(state.getTime() == getNextEventTime(state, true));
         eventCount++;
-        
+
         // Verify conservation of energy.
-        
+
         const Vector q = state.getQ(pendulum.getGuts().getSubsysIndex());
         const Vector u = state.getU(pendulum.getGuts().getSubsysIndex());
         Real energy =   pendulum.getMass(state)*(0.5*(u[0]*u[0]+u[1]*u[1])
@@ -182,9 +182,9 @@ public:
         return 0.0;
     }
     void handleEvent(const State& state) const {
-        
+
         // This should be triggered when the value goes to 0, but not when it leaves 0.
-        
+
         Real t = state.getTime();
         Real phase = std::fmod(t, 2.0);
         ASSERT(std::abs(phase-1.0) < 0.01);
@@ -228,13 +228,13 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
     integ.setAccuracy(accuracy);
     integ.setConstraintTolerance(1e-4);
     integ.setFinalTime(tFinal);
-    
+
     TimeStepper ts(sys);
     ts.setIntegrator(integ);
     ts.initialize(sys.getDefaultState());
-    
+
     // Try taking a series of steps of constant size.
-    
+
     ASSERT(ts.getTime() == 0.0);
     Real time = 1.0;
     for (; time < 5.0; time += 1.0) {
@@ -243,9 +243,9 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
     }
     ASSERT(!OnceOnlyEventReporter::hasOccurred);
     ASSERT(!ZeroPositionHandler::hasAccelerated);
-    
+
     // Try some steps of random sizes.
-    
+
     static Random::Uniform random(0.0, 1.0);
     for (; time < 10.0; time += random.getValue()) {
         ASSERT(OnceOnlyEventReporter::hasOccurred == (ts.getTime() >= 5.0));
@@ -253,9 +253,9 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys, Real accuracy=1e-4)
         ASSERT(ts.getTime() == time);
     }
     ASSERT(ZeroPositionHandler::hasAccelerated);
-    
+
     // Try one large step that goes beyond tFinal.
-    
+
     ts.stepTo(50.0);
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);

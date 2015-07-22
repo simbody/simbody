@@ -17,7 +17,7 @@ env:
   # - ABC=ON DEF=OFF GHI=ON
   # Simbody 3.6 and up requires c++11
   - BTYPE=Release
-  
+
 matrix:
   exclude:
     - os: osx
@@ -33,7 +33,7 @@ before_install:
   # (e.g., literally a \t in a source file).
   # This grep command is invalid on osx.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then if grep --recursive --include={*.cpp,*.c,*.h,*.md,*.yml,*.cmake.*.xml,*.html,*.in,*.txt} -P "\t" . ; then echo "Tabs found in the lines shown above. See CONTRIBUTING.md about tabs."; false; else echo "Repo passed no-tabs check."; fi; else echo "No-tabs check not performed."; fi
-  
+
   ## Dependencies for Simbody.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install liblapack-dev; fi
@@ -48,7 +48,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get install -qq g++-4.8; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-  
+
   # CMake 2.8.11 on Ubuntu.
   - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo add-apt-repository ppa:kalakris/cmake -y; fi
   - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get update -qq; fi

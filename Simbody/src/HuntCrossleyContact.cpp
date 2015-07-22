@@ -46,14 +46,14 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
     // client-side class for why.
 
     struct SphereParameters {
-        SphereParameters() { 
+        SphereParameters() {
             center.setToNaN();
             radius = stiffness = dissipation = CNT<Real>::getNaN();
         }
 
         SphereParameters(MobilizedBodyIndex b, const Vec3& ctr,
-                         const Real& r, const Real& k, const Real& c) 
-          : body(b), center(ctr), radius(r), stiffness(std::pow(k,Real(2./3.))), dissipation(c) { 
+                         const Real& r, const Real& k, const Real& c)
+          : body(b), center(ctr), radius(r), stiffness(std::pow(k,Real(2./3.))), dissipation(c) {
             assert(b.isValid());
             assert(radius > 0 && stiffness >= 0 && dissipation >= 0);
         }
@@ -64,13 +64,13 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
     };
 
     struct HalfspaceParameters {
-        HalfspaceParameters() { 
+        HalfspaceParameters() {
             height = stiffness = dissipation = CNT<Real>::getNaN();
         }
 
         HalfspaceParameters(MobilizedBodyIndex b, const UnitVec3& n,
-                            const Real& h, const Real& k, const Real& c) 
-          : body(b), normal(n), height(h), stiffness(std::pow(k,Real(2./3.))), dissipation(c) { 
+                            const Real& h, const Real& k, const Real& c)
+          : body(b), normal(n), height(h), stiffness(std::pow(k,Real(2./3.))), dissipation(c) {
             assert(b.isValid());
             assert(stiffness >= 0 && dissipation >= 0);
         }
@@ -96,7 +96,7 @@ public:
     int addSphere(MobilizedBodyIndex body, const Vec3& center,
                   const Real& radius,
                   const Real& stiffness,
-                  const Real& dissipation) 
+                  const Real& dissipation)
     {
         assert(body.isValid() && radius > 0 && stiffness >= 0 && dissipation >= 0);
 
@@ -104,7 +104,7 @@ public:
 
         defaultParameters.spheres.push_back(
             SphereParameters(body,center,radius,stiffness,dissipation));
-        return (int)defaultParameters.spheres.size() - 1;    
+        return (int)defaultParameters.spheres.size() - 1;
     }
 
     int addHalfSpace(MobilizedBodyIndex body, const UnitVec3& normal,
@@ -127,7 +127,7 @@ public:
 
 
     int realizeSubsystemTopologyImpl(State& s) const {
-        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance,
             new Value<Parameters>(defaultParameters));
         energyCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Real>());
         return 0;
@@ -161,7 +161,7 @@ public:
     // Cost of contact processing here (in flops):
     //      30*(ns*ns)/2 + 7*(ns*nhg) + 28*(ns*nhm) -- to determine whether there is contact
     //    + 156 * (number of actual contacts)
-    // where ns==# spheres, nhg==# half spaces on ground, nhm==#half spaces on moving bodies. 
+    // where ns==# spheres, nhg==# half spaces on ground, nhm==#half spaces on moving bodies.
     // It doesn't take many objects before that first term is very expensive.
     // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
@@ -208,17 +208,17 @@ private:
     // different material properties. (cost ~144 flops)
     void processContact(const Real& R, // relative radius of curvature
                         const Real& k1, const Real& c1, const Transform& X_GB1, const SpatialVec& V_GB1,
-                        const Real& k2, const Real& c2, const Transform& X_GB2, const SpatialVec& V_GB2, 
+                        const Real& k2, const Real& c2, const Transform& X_GB2, const SpatialVec& V_GB2,
                         const Vec3& undefContactPt1_G, const Vec3& undefContactPt2_G,
                         const UnitVec3& contactNormal_G,    // points from body2 to body1
                         Real& pe, SpatialVec& force1, SpatialVec& force2) const;
 
-    friend std::ostream& operator<<(std::ostream& o, 
-                         const HuntCrossleyContactRep::Parameters&); 
+    friend std::ostream& operator<<(std::ostream& o,
+                         const HuntCrossleyContactRep::Parameters&);
 };
 // Useless, but required by Value<T>.
-std::ostream& operator<<(std::ostream& o, 
-                         const HuntCrossleyContactRep::Parameters&) 
+std::ostream& operator<<(std::ostream& o,
+                         const HuntCrossleyContactRep::Parameters&)
 {assert(false);return o;}
 
 
@@ -227,7 +227,7 @@ std::ostream& operator<<(std::ostream& o,
     // HuntCrossleyContact //
     /////////////////////////
 
-/*static*/ bool 
+/*static*/ bool
 HuntCrossleyContact::isInstanceOf(const ForceSubsystem& s) {
     return HuntCrossleyContactRep::isA(s.getRep());
 }
@@ -242,11 +242,11 @@ HuntCrossleyContact::updDowncast(ForceSubsystem& s) {
     return static_cast<HuntCrossleyContact&>(s);
 }
 
-const HuntCrossleyContactRep& 
+const HuntCrossleyContactRep&
 HuntCrossleyContact::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const HuntCrossleyContactRep&>(ForceSubsystem::getRep());
 }
-HuntCrossleyContactRep&       
+HuntCrossleyContactRep&
 HuntCrossleyContact::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<HuntCrossleyContactRep&>(ForceSubsystem::updRep());
 }
@@ -291,11 +291,11 @@ int HuntCrossleyContact::addHalfSpace(MobilizedBodyIndex body, const UnitVec3& n
 // Cost of contact processing here (in flops):
 //      30*(ns*ns)/2 + 7*(ns*nhg) + 28*(ns*nhm) -- to determine whether there is contact
 //    + 210 * (#sphere/sphere contacts) + 156 * (#sphere/halfspace contacts)
-// where ns==# spheres, nhg==# half spaces on ground, nhm==#half spaces on moving bodies. 
+// where ns==# spheres, nhg==# half spaces on ground, nhm==#half spaces on moving bodies.
 // It doesn't take many spheres before that first term is very expensive.
 // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
-int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const 
+int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
 {
     const Parameters& p = getParameters(s);
     if (!p.enabled) return 0;
@@ -367,7 +367,7 @@ int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
             const SpatialVec& V_GB2    = matter.getMobilizedBody(halfSpace.body).getBodyVelocity(s);
             const UnitVec3    normal_G = X_GB2.R()*halfSpace.normal;    // 15 flops
 
-            // Find the heights of the half space surface and sphere center measured 
+            // Find the heights of the half space surface and sphere center measured
             // along the contact normal from the ground origin. Then we can get the
             // height of the sphere center over the half space surface.
             const Real h_G   = ~X_GB2.p()*normal_G + halfSpace.height; // 6 flops
@@ -403,7 +403,7 @@ Real HuntCrossleyContactRep::calcPotentialEnergy(const State& state) const {
 //       R = r1                (sphere-halfspace)
 // We calculate:
 //       s1 = k2/(k1+k2); s2 = 1-s1
-//       k = k1*s1 
+//       k = k1*s1
 //       E = k^(3/2)
 //       c = c1*s1 + c2*s2
 // We need to calculate Hertz force fH
@@ -428,7 +428,7 @@ Real HuntCrossleyContactRep::calcPotentialEnergy(const State& state) const {
 void HuntCrossleyContactRep::processContact
    (const Real& R,
     const Real& k1, const Real& c1, const Transform& X_GB1, const SpatialVec& V_GB1,
-    const Real& k2, const Real& c2, const Transform& X_GB2, const SpatialVec& V_GB2, 
+    const Real& k2, const Real& c2, const Transform& X_GB2, const SpatialVec& V_GB2,
     const Vec3& undefContactPt1_G, const Vec3& undefContactPt2_G,
     const UnitVec3& contactNormal_G,    // points from body2 to body1
     Real& pe, SpatialVec& force1, SpatialVec& force2) const
@@ -436,7 +436,7 @@ void HuntCrossleyContactRep::processContact
     const Real x = ~(undefContactPt2_G-undefContactPt1_G) * contactNormal_G; // 8 flops
     // Body 1 must be "above" body 2, meaning its undeformed contact point must be "below"
     // body 2's so that they are interpenetrating.
-    assert(x > 0); 
+    assert(x > 0);
 
     // Calculate the fraction of total squish x which will be undergone by body 1; body 2's
     // squish fraction will be 1-squish1.

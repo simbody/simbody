@@ -43,20 +43,20 @@ using SimTK::Vector;
 class N_VectorContent_SimTK {
 public:
     N_VectorContent_SimTK()
-      : treatAsConst(false), ownVector(true), data(new Vector()) { 
+      : treatAsConst(false), ownVector(true), data(new Vector()) {
     }
 
-    N_VectorContent_SimTK(const Vector& v) 
+    N_VectorContent_SimTK(const Vector& v)
       : treatAsConst(true), ownVector(false),
         data(const_cast<Vector*>(&v)) {
     }
 
-    N_VectorContent_SimTK(Vector& v) 
+    N_VectorContent_SimTK(Vector& v)
       : treatAsConst(false), ownVector(false), data(&v) {
     }
 
     // Copy constructor makes a deep (new) copy.
-    N_VectorContent_SimTK(const N_VectorContent_SimTK& nv) 
+    N_VectorContent_SimTK(const N_VectorContent_SimTK& nv)
       : treatAsConst(false), ownVector(true), data(new Vector(*nv.data)) {
     }
 
@@ -153,7 +153,7 @@ public:
 
     // Assignment will fail if this isn't writable.
     N_Vector_SimTK& operator=(const N_Vector_SimTK& nv) {
-        assert(   ops    == &N_Vector_Ops_SimTK::getOps() 
+        assert(   ops    == &N_Vector_Ops_SimTK::getOps()
                && nv.ops == &N_Vector_Ops_SimTK::getOps());
         if (&nv != this)
             updContent() = nv.getContent();

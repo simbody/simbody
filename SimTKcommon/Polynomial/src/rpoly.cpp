@@ -1,6 +1,6 @@
 /*      rpoly.cpp -- Jenkins-Traub real polynomial root finder.
  *
- *      Written by C. Bond, with minor changes by Peter Eastman, Michael 
+ *      Written by C. Bond, with minor changes by Peter Eastman, Michael
  *      Sherman, and Chris Dembia (fabs->std::abs).
  *      This file is in the public domain.
  *
@@ -25,7 +25,7 @@
  *
  *      RETURN:
  *      returnval:   -1 if leading coefficient is zero, otherwise
- *                  number of roots found. 
+ *                  number of roots found.
  */
 
 #include <cmath>
@@ -51,7 +51,7 @@
 namespace SimTK {
 
 template <class T>
-int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi) 
+int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
 {
     T t,aa,bb,cc,*temp,factor,rot;
     T *pt;
@@ -67,7 +67,7 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     are = eta;
     mre = eta;
     lo = smalno/eta;
-/*  Initialization of constants for shift rotation. */        
+/*  Initialization of constants for shift rotation. */
     xx = sqrt((T) 0.5);
     yy = -xx;
     rot = (T) 94.0;
@@ -77,7 +77,7 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     n = degree;
 
 /*  Algorithm fails if the leading coefficient is zero (or if degree==0). */
-    if (n < 1 || op[0] == 0.0) 
+    if (n < 1 || op[0] == 0.0)
         return -1;
 
 /*  Remove the zeros at the origin, if any. */
@@ -90,7 +90,7 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
 
     // sherm 20130410: If all coefficients but the leading one were zero, then
     // all solutions are zero; should be a successful (if boring) return.
-    if (n == 0) 
+    if (n == 0)
         return degree;
 
 /*
@@ -107,7 +107,7 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     for (i=0;i<=n;i++)
         p[i] = op[i];
 /*  Start the algorithm for one zero. */
-_40:        
+_40:
     if (n == 1) {
         zeror[degree-1] = -p[1]/p[0];
         zeroi[degree-1] = 0.0;
@@ -145,7 +145,7 @@ _40:
     l = (int)(log(sc)/log(base) + 0.5);
     factor = pow(base*(T) 1.0,l);
     if (factor != 1.0) {
-        for (i=0;i<=n;i++) 
+        for (i=0;i<=n;i++)
             p[i] = factor*p[i];     /* Scale polynomial. */
     }
 _110:
@@ -156,7 +156,7 @@ _110:
     pt[n] = - pt[n];
 /*  Compute upper estimate of bound. */
     x = exp((log(-pt[n])-log(pt[0])) / (T)n);
-/*  If Newton step at the origin is better, use it. */        
+/*  If Newton step at the origin is better, use it. */
     if (pt[n-1] != 0.0) {
         xm = -pt[n]/pt[n-1];
         if (xm < x)  x = xm;
@@ -165,19 +165,19 @@ _110:
     while (1) {
         xm = x*(T) 0.1;
         ff = pt[0];
-        for (i=1;i<=n;i++) 
+        for (i=1;i<=n;i++)
             ff = ff*xm + pt[i];
         if (ff <= 0.0) break;
         x = xm;
     }
     dx = x;
-/*  Do Newton interation until x converges to two 
- *  decimal places. 
+/*  Do Newton interation until x converges to two
+ *  decimal places.
  */
     while (std::abs(dx/x) > 0.005) {
         ff = pt[0];
         df = ff;
-        for (i=1;i<n;i++) { 
+        for (i=1;i<n;i++) {
             ff = ff*x + pt[i];
             df = df*x + ff;
         }
@@ -199,7 +199,7 @@ _110:
     for(jj=0;jj<5;jj++) {
         cc = k[n-1];
         if (!zerok) {
-/*  Use a scaled form of recurrence if value of k at 0 is nonzero. */             
+/*  Use a scaled form of recurrence if value of k at 0 is nonzero. */
             t = -aa/cc;
             for (i=0;i<nm1;i++) {
                 j = n-i-1;
@@ -219,15 +219,15 @@ _110:
         }
     }
 /*  Save k for restarts with new shifts. */
-    for (i=0;i<n;i++) 
+    for (i=0;i<n;i++)
         temp[i] = k[i];
 /*  Loop to select the quadratic corresponding to each new shift. */
     for (cnt = 0;cnt < 20;cnt++) {
-/*  Quadratic corresponds to a double shift to a            
+/*  Quadratic corresponds to a double shift to a
  *  non-real point and its complex conjugate. The point
  *  has modulus bnd and amplitude rotated by 94 degrees
  *  from the previous shift.
- */ 
+ */
         xxx = cosr*xx - sinr*yy;
         yy = sinr*xx + cosr*yy;
         xx = xxx;
@@ -260,7 +260,7 @@ _110:
         for (i=0;i<n;i++) {
             k[i] = temp[i];
         }
-    } 
+    }
 /*  Return with failure if no convergence with 20 shifts. */
 _99:
     delete [] svk;
@@ -334,7 +334,7 @@ void RPoly<T>::fxshfr(int l2,int *nz)
         vtry = 0;
         stry = 0;
         if ( ( spass && (!vpass) ) || tss < tvv) goto _40;
-_20:        
+_20:
         quadit(&ui,&vi,nz);
         if (*nz > 0) return;
 /*  Quadratic iteration has failed. Flag that it has
@@ -406,27 +406,27 @@ void RPoly<T>::quadit(T *uu,T *vv,int *nz)
     v = *vv;
     j = 0;
 /*  Main loop. */
-_10:    
+_10:
     quad(1.0,u,v,&szr,&szi,&lzr,&lzi);
 /*  Return if roots of the quadratic are real and not
  *  close to multiple or nearly equal and of opposite
  *  sign.
  */
 
-// sherm 20130410: this early return caused premature termination and 
+// sherm 20130410: this early return caused premature termination and
 // then failure to find any roots in rare circumstances with 6th order
 // ellipsoid nearest point equations. Previously (and in all implementations of
 // Jenkins-Traub that I could find) it was just a test on the
 // relative size of the difference with respect to the larger root lzr.
 // I added the std::max(...,0.1) so that if the roots are small then an
-// absolute difference below 0.001 will be considered "close enough" to 
+// absolute difference below 0.001 will be considered "close enough" to
 // continue iterating. In the case that failed, the roots were around .0001
-// and .0002, so their difference was considered large compared with 1% of 
+// and .0002, so their difference was considered large compared with 1% of
 // the larger root, 2e-6. But in fact continuing the loop instead resulted in
 // six very high-quality roots instead of none.
 //
 // I'm sorry to say I don't know if I have correctly diagnosed the problem or
-// whether this is the right fix! It does pass the regression tests and 
+// whether this is the right fix! It does pass the regression tests and
 // apparently cured the ellipsoid problem. I added the particular bad
 // polynomial to the PolynomialTest regression if you want to see it fail.
 // These are the problematic coefficients:
@@ -441,7 +441,7 @@ _10:
 // Original code:
     //if (fabs(fabs(szr)-fabs(lzr)) > 0.01 * fabs(lzr)) return;
 // Fixed version:
-    if ((T)std::abs(std::abs(szr)-std::abs(lzr)) > (T)0.01 * std::max((T)std::abs(lzr),(T)0.1)) 
+    if ((T)std::abs(std::abs(szr)-std::abs(lzr)) > (T)0.01 * std::max((T)std::abs(lzr),(T)0.1))
         return;
 
 /*  Evaluate polynomial by quadratic synthetic division. */
@@ -599,7 +599,7 @@ _50:
 template <class T>
 void RPoly<T>::calcsc(int *type)
 {
-/*  Synthetic division of k by the quadratic 1,u,v */    
+/*  Synthetic division of k by the quadratic 1,u,v */
     quadsd(n-1,&u,&v,k,qk,&c,&d);
     if (std::abs(c) > std::abs(k[n-1]*100.0*eta)) goto _10;
     if (std::abs(d) > std::abs(k[n-2]*100.0*eta)) goto _10;
@@ -609,7 +609,7 @@ void RPoly<T>::calcsc(int *type)
 _10:
     if (std::abs(d) < std::abs(c)) {
         *type = 1;
-/*  Type=1 indicates that all formulas are divided by c. */   
+/*  Type=1 indicates that all formulas are divided by c. */
         e = a/c;
         f = d/c;
         g = u*e;
@@ -629,7 +629,7 @@ _10:
     a1 = b*f-a;
     a7 = (f+u)*a + h;
 }
-/*  Computes the next k polynomials using scalars 
+/*  Computes the next k polynomials using scalars
  *  computed in calcsc.
  */
 template <class T>
@@ -731,9 +731,9 @@ void RPoly<T>::quadsd(int nn,T *u,T *v,T *p,T *q,
     }
 }
 /*  Calculate the zeros of the quadratic a*z^2 + b1*z + c.
- *  The quadratic formula, modified to avoid overflow, is used 
+ *  The quadratic formula, modified to avoid overflow, is used
  *  to find the larger zero if the zeros are real and both
- *  are complex. The smaller real zero is found directly from 
+ *  are complex. The smaller real zero is found directly from
  *  the product of the zeros c/a.
  */
 template <class T>
@@ -743,9 +743,9 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
         T b,d,e;
 
         if (a == 0.0) {         /* less than two roots */
-            if (b1 != 0.0)     
+            if (b1 != 0.0)
                 *sr = -c/b1;
-            else 
+            else
                 *sr = 0.0;
             *lr = 0.0;
             *si = 0.0;
@@ -761,8 +761,8 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
         }
 /* Compute discriminant avoiding overflow. */
         b = b1/(T) 2.0;
-        if (std::abs(b) < std::abs(c)) { 
-            if (c < 0.0) 
+        if (std::abs(b) < std::abs(c)) {
+            if (c < 0.0)
                 e = -a;
             else
                 e = a;
@@ -784,7 +784,7 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
                 d = -d;
                 *lr = (-b+d)/a;
                 *sr = 0.0;
-                if (*lr != 0.0) 
+                if (*lr != 0.0)
                     *sr = (c/ *lr)/a;
                 *si = 0.0;
                 *li = 0.0;

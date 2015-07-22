@@ -47,7 +47,7 @@ enough.
 
 <h3>Class Equations</h3>
 This integrator is instantiated with a class that encapsulates the system of
-equations to be solved, and must provide compile time constants and methods 
+equations to be solved, and must provide compile time constants and methods
 with the following signatures:
 @code
 class MyEquations {
@@ -66,8 +66,8 @@ public:
     // Given a time and state y, ensure that the state satisfies the constraints
     // to within the indicated absolute tolerance, by performing the shortest
     // (i.e. least squares) projection of the state back to the constraint
-    // manifold. Return false if the desired tolerance cannot be achieved. 
-    // Otherwise (true return), a subsequent call to calcConstraintErrors() 
+    // manifold. Return false if the desired tolerance cannot be achieved.
+    // Otherwise (true return), a subsequent call to calcConstraintErrors()
     // would return each |cerr[i]|<=consTol.
     bool projectIfNeeded(Real consTol, Real t, Vec<N>& y) const;
 };
@@ -95,7 +95,7 @@ while (true) {
 
 <h3>Mathematical Overview</h3>
 
-This is an explicit, variable-step integrator solving a 2nd-order DAE 
+This is an explicit, variable-step integrator solving a 2nd-order DAE
 structured as an ODE-on-a-manifold system[1] like this:
 <pre>
         (1)  udot = f(t,q,u)      NQ dynamic differential equations
@@ -104,16 +104,16 @@ structured as an ODE-on-a-manifold system[1] like this:
 </pre>
 Here the "dot" suffix indicates differentiation with respect to the independent
 variable t which we'll refer to as time here although it can be anything (for
-geodesic calculations it is arc length). We'll  
-call the second order variables q the "position variables", and their time 
-derivatives u the "velocity variables". Collected together we call the state 
-y={q,u}. At the beginning of a step, we expect to have been given initial 
-conditions t0,q0,u0 such that |c(t0,q0,u0)|<=tol. The user provides the accuracy 
+geodesic calculations it is arc length). We'll
+call the second order variables q the "position variables", and their time
+derivatives u the "velocity variables". Collected together we call the state
+y={q,u}. At the beginning of a step, we expect to have been given initial
+conditions t0,q0,u0 such that |c(t0,q0,u0)|<=tol. The user provides the accuracy
 requirement and constraint tolerance. We solve the system to that accuracy while
 keeping the constraints within tolerance. The integrator returns after taking
 a successful step which may involve trial evaluations that are retracted.
 
-By "ODE on a manifold" we mean that the ODE (1,2) automatically satisfies the 
+By "ODE on a manifold" we mean that the ODE (1,2) automatically satisfies the
 condition that IF c==0, THEN cdot=0, where
 <pre>
     cdot=Dc/Dt + Dc/Dq*qdot + Dc/Du*udot
@@ -127,8 +127,8 @@ To handle the constraint drift we use the method of coordinate projection and
 expect the supplied Equations object to be able to perform a least-squares
 projection of a state (q,u) to move it onto the constraint manifolds.
 
-[1] Hairer, Lubich, Wanner, "Geometric Numerical Integration: 
-Structure-Preserving Algorithms for Ordinary Differential Equations", 2nd ed., 
+[1] Hairer, Lubich, Wanner, "Geometric Numerical Integration:
+Structure-Preserving Algorithms for Ordinary Differential Equations", 2nd ed.,
 section IV.4, pg 109ff, Springer, 2006. **/
 template <class Eqn>
 class GeodesicIntegrator {
@@ -136,11 +136,11 @@ public:
     enum { NQ = Eqn::NQ, NC = Eqn::NC, N = 2*NQ };
 
     /** Construct an integrator for the given set of equations \a eqn, which are
-    to be solved to the given \a accuracy, with constraints maintained to 
+    to be solved to the given \a accuracy, with constraints maintained to
     within the given \a constraintTol. **/
-    GeodesicIntegrator(const Eqn& eqn, Real accuracy, Real constraintTol) 
+    GeodesicIntegrator(const Eqn& eqn, Real accuracy, Real constraintTol)
     :   m_eqn(eqn), m_accuracy(accuracy), m_consTol(constraintTol),
-        m_hInit(NaN), m_hLast(NaN), m_hNext(Real(0.1)), m_nInitialize(0) 
+        m_hInit(NaN), m_hLast(NaN), m_hNext(Real(0.1)), m_nInitialize(0)
     {   reinitializeCounters(); }
 
     /** Call this once before taking a series of steps. This sets the initial
@@ -166,7 +166,7 @@ public:
     }
 
     /** Set initial time and state prior to integrating. State derivatives
-    and constraint errors are calculated and an error is thrown if the 
+    and constraint errors are calculated and an error is thrown if the
     constraints are not already satisifed to the required tolerance. **/
     void setTimeAndState(Real t, const Vec<N>& y) {
         m_t = t; m_y = y;
@@ -204,7 +204,7 @@ public:
     recent initialize() call. In general this will be more than the number
     of steps taken since some will be rejected. **/
     int getNumStepsAttempted() const {return m_nStepsAttempted;}
-    /** How many steps were rejected because they did not satisfy the 
+    /** How many steps were rejected because they did not satisfy the
     accuracy requirement, since the most recent initalize() call. This is
     common but for non-stiff systems should be only a modest fraction of the
     number of steps taken. **/
@@ -218,8 +218,8 @@ public:
     integrator object. **/
     int getNumInitializations() const {return m_nInitialize;}
 
-    /** Advance time and state by one error-controlled step and return, but 
-    in no case advance past t=tStop. The integrator's internal time, 
+    /** Advance time and state by one error-controlled step and return, but
+    in no case advance past t=tStop. The integrator's internal time,
     state, and state derivatives are advanced to the end of the step. If this
     step reaches \a tStop, the returned time will be \e exactly tStop. **/
     void takeOneStep(Real tStop);
@@ -250,11 +250,11 @@ public:
         return norm;
     }
 
-    /** This is a utility routine that returns the RMS norm of a fixed-size, 
+    /** This is a utility routine that returns the RMS norm of a fixed-size,
     scalar Vec. **/
     template <int Z> static Real calcNormRMS(const Vec<Z>& v) {
         Real norm = 0;
-        for (int i=0; i< Z; ++i) 
+        for (int i=0; i< Z; ++i)
             norm += square(v[i]);
         return std::sqrt(norm/Z);
     }
@@ -298,9 +298,9 @@ GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
     // Figure out the target ending time for the next step. Choosing time
     // rather than step size lets us end at exactly tStop.
     Real t1 = m_t + m_hNext; // this is the usual case
-    // If a small stretching of the next step would get us to tStop, try 
+    // If a small stretching of the next step would get us to tStop, try
     // to make it all the way in one step.
-    if (t1 + hStretch > tStop) 
+    if (t1 + hStretch > tStop)
         t1 = tStop;
 
     Real h, errNorm;
@@ -318,7 +318,7 @@ GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
             ++m_nErrtestFailures;
             // Failed to achieve required accuracy at this step size h.
             SimTK_ERRCHK4_ALWAYS(h > hMin,
-                "GeodesicIntegrator::takeOneStep()", 
+                "GeodesicIntegrator::takeOneStep()",
                 "Accuracy %g worse than required %g at t=%g with step size"
                 " h=%g; can't go any smaller.", errNorm, m_accuracy, m_t, h);
 
@@ -337,9 +337,9 @@ GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
         ++m_nProjectionFailures;
 
         SimTK_ERRCHK3_ALWAYS(h > hMin,
-            "GeodesicIntegrator::takeOneStep()", 
+            "GeodesicIntegrator::takeOneStep()",
             "Projection failed to reach constraint tolerance %g at t=%g "
-            "with step size h=%g; can't shrink step further.", 
+            "with step size h=%g; can't shrink step further.",
             m_consTol, m_t, h);
 
         const Real hNew = MinShrink*h;
@@ -347,7 +347,7 @@ GeodesicIntegrator<Eqn>::takeOneStep(Real tStop) {
     }
 
     // We achieved desired accuracy at step size h, and satisfied the
-    // constraints. (t1,y1) is now the final time and state; calculate 
+    // constraints. (t1,y1) is now the final time and state; calculate
     // state derivatives which will be used at the start of the next step.
     ++m_nStepsTaken;
     if (m_nStepsTaken==1) m_hInit = h; // that was the initial step
@@ -382,8 +382,8 @@ GeodesicIntegrator<Eqn>::takeRKMStep(Real h, Vec<N>& y1, Vec<N>& y1err) const {
     ysave = y0 + h2*(f0 - 3*f2 + 4*f3);
     m_eqn.calcDerivs(t1, ysave, f4);
 
-    // Final value. This is the 4th order accurate estimate for 
-    // y1=y(t0+h)+O(h^5): y1 = y0 + (h/6)*(f0 + 4 f3 + f4). 
+    // Final value. This is the 4th order accurate estimate for
+    // y1=y(t0+h)+O(h^5): y1 = y0 + (h/6)*(f0 + 4 f3 + f4).
     // Don't evaluate here yet because we might reject this step or we
     // might need to do a projection.
     y1 = y0 + h6*(f0 + 4*f3 + f4);
