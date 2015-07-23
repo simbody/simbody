@@ -25,7 +25,9 @@
  * -------------------------------------------------------------------------- */
 
 #include "PrivateImplementation.h"
-
+#include <thread>
+#include <iostream>
+ 		
 namespace SimTK {
 
 class ParallelExecutor;
@@ -33,6 +35,9 @@ class ParallelExecutorImpl;
 
 // We only want the template instantiation to occur once. This symbol is defined in the SimTK core
 // compilation unit that defines the ParallelExecutor class but should not be defined any other time.
+
+//TODO: Rewrite the threading class using C++11 std::thread
+
 #ifndef SimTK_SIMTKCOMMON_DEFINING_PARALLEL_EXECUTOR
     extern template class PIMPLHandle<ParallelExecutor, ParallelExecutorImpl>;
 #endif
@@ -66,12 +71,16 @@ class SimTK_SimTKCOMMON_EXPORT ParallelExecutor : public PIMPLHandle<ParallelExe
 public:
     class Task;
     /**
+     * Construct a ParallelExecutor. By default, constructs a ParallelExecutor with the number of threads equal 
+     * to the number of total processors on the computer (including hyperthreads).
+     */
+    explicit ParallelExecutor();
+    /**
      * Construct a ParallelExecutor.
      * 
-     * @param numThreads the number of threads to create.  By default, this is set equal to the number
-     * of processors.
+     * @param numThreads the maximum number of threads that the ParallelExecutor is allowed to launch
      */
-    explicit ParallelExecutor(int numThreads = getNumProcessors());
+    explicit ParallelExecutor(int maxThreads);
     /**
      * Execute a parallel task.
      * 
@@ -80,13 +89,22 @@ public:
      */
     void execute(Task& task, int times);
     /**
-     * Get the number of available processor cores.
+     * Get the total number of available processor cores.
      */
     static int getNumProcessors();
+    /**
+      * Get the number of physical processor cores.
+      */
+    static int getNumPhysicalProcessors();
     /**
      * Determine whether the thread invoking this method is a worker thread created by ParallelExecutor.
      */
     static bool isWorkerThread();
+private:
+    /**
+     * Maximum number of threads the ParallelExecutor is allowed to use
+     */
+    int NUM_MAX_THREADS; //TODO: Bad style?
 };
 
 /**

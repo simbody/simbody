@@ -27,7 +27,10 @@
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/Array.h"
+
 #include <pthread.h>
+#include <thread>
+#include <iostream>
 
 namespace SimTK {
 
@@ -36,6 +39,8 @@ class ParallelExecutorImpl;
 /**
  * This class stores per-thread information used while executing a task.
  */
+ 
+//TODO: Rewrite the threading class using C++11 std::thread
 
 class ThreadInfo {
 public:
@@ -52,6 +57,7 @@ public:
 
 class ParallelExecutorImpl : public PIMPLImplementation<ParallelExecutor, ParallelExecutorImpl> {
 public:
+    ParallelExecutorImpl();
     ParallelExecutorImpl(int numThreads);
     ~ParallelExecutorImpl();
     ParallelExecutorImpl* clone() const;
@@ -85,6 +91,7 @@ private:
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;
     int waitingThreadCount;
+    int NUM_MAX_THREADS;
 };
 
 } // namespace SimTK

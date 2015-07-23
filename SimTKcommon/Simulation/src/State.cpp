@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <ostream>
 #include <set>
+#include <mutex>
+#include <thread>
 
 namespace SimTK {
 
@@ -40,19 +42,25 @@ namespace SimTK {
 
 State::State() {
     impl = new StateImpl();
+    stateLock = new std::mutex;
 }
 
 // Restore state to default-constructed condition
 void State::clear() {
     delete impl;
     impl = new StateImpl();
+    
+    delete stateLock; //TODO: Is this necessary?
+    stateLock = new std::mutex;
 }
 State::~State() {
     delete impl; impl=0;
+    delete stateLock;
 }
 // copy constructor
 State::State(const State& state) {
     impl = new StateImpl(*state.impl);
+    stateLock = new std::mutex;
 }
     
 // copy assignment
