@@ -817,7 +817,7 @@ inline SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const;
 // whenever multiple threads are asynchronously writing/updating a common state
 // cache. If multiple threads are simply reading from the cache, locking the state
 // may not be necessary
-std::mutex* getStateLock() const;
+inline std::mutex* getStateLock() const;
 
 /// @}
 
@@ -1101,7 +1101,6 @@ inline String cacheToString() const;
 // separate header file included below.
                                 private:
 class StateImpl* impl;
-std::mutex* stateLock;
 
 const StateImpl& getImpl() const {assert(impl); return *impl;}
 StateImpl&       updImpl()       {assert(impl); return *impl;}

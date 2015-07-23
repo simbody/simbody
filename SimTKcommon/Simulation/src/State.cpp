@@ -42,25 +42,18 @@ namespace SimTK {
 
 State::State() {
     impl = new StateImpl();
-    stateLock = new std::mutex;
 }
 
 // Restore state to default-constructed condition
 void State::clear() {
-    delete impl;
-    impl = new StateImpl();
-    
-    delete stateLock; //TODO: Is this necessary?
-    stateLock = new std::mutex;
+    delete impl; impl = new StateImpl();
 }
 State::~State() {
     delete impl; impl=0;
-    delete stateLock;
 }
 // copy constructor
 State::State(const State& state) {
     impl = new StateImpl(*state.impl);
-    stateLock = new std::mutex;
 }
     
 // copy assignment
@@ -320,7 +313,8 @@ StateImpl::StateImpl(const StateImpl& src)
 :   currentSystemStage(Stage::Empty)
 {
     initializeStageVersions();
-
+    stateLock = new std::mutex; //TODO: When we copy a state, do we want it to have a different stateLock? I think yes?
+    
     // Make sure that no copied cache entry could accidentally think
     // it was up to date. We'll change some of these below if appropriate.
     // (We're skipping the Empty stage 0.)
