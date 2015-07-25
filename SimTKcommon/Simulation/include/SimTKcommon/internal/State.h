@@ -813,11 +813,12 @@ inline int getNEventTriggersByStage(Stage) const;
 /// first of the event triggers associated with a particular Stage are stored;
 /// the rest follow contiguously. Callable at Instance stage.
 inline SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const;
-// Returns a pointer to the mutex stateLock that should be used
-// whenever multiple threads are asynchronously writing/updating a common state
-// cache. If multiple threads are simply reading from the cache, locking the state
-// may not be necessary
-inline std::mutex* getStateLock() const;
+/// Returns a mutex that should be used to lock the state whenever multiple 
+/// threads are asynchronously writing/updating a common state cache. A lock
+/// should always be used when thread-safe state is not guarenteed. If multiple
+/// threads are simply reading from the cache, locking the state may not be
+/// necessary.
+inline std::mutex& getStateLock() const;
 
 /// @}
 

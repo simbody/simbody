@@ -628,7 +628,7 @@ private:
 class SimTK_SimTKCOMMON_EXPORT StateImpl {
 public:
     StateImpl():   t(NaN), currentSystemStage(Stage::Empty)
-    {initializeStageVersions(); stateLock = new std::mutex;} 
+    {initializeStageVersions();} 
 
     // We'll do the copy constructor and assignment explicitly here
     // to get tight control over what's allowed.
@@ -636,7 +636,7 @@ public:
 
     StateImpl& operator=(const StateImpl& src);
 
-    ~StateImpl() {delete stateLock;}
+    ~StateImpl() {}
 
     // Copies all the variables but not the cache.
     StateImpl* clone() const {return new StateImpl(*this);}
@@ -975,7 +975,7 @@ public:
         return triggers[g].size();
     }
     
-    std::mutex* getStateLock() const {
+    std::mutex& getStateLock() const {
       return stateLock;
     }
     
@@ -1787,7 +1787,10 @@ private:
 
 private:
         // Shared global resource State variables //
-    std::mutex* stateLock;
+    // State specific mutex that will be locked by external methods whenever
+    // such external methods are performing non-thread-safe operations involving
+    // the state.
+    mutable std::mutex stateLock;
 
     // We consider time t to be a state variable allocated at Topology stage,
     // with its "invalidated" stage Stage::Time. The value of t is NaN in an 
@@ -2051,7 +2054,7 @@ inline void State::
 markCacheValueNotRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
     getImpl().markCacheValueNotRealized(subx, cx); 
 }
-inline std::mutex* State::getStateLock() const {
+inline std::mutex& State::getStateLock() const {
   return getImpl().getStateLock();
 }
 // Global Resource Dimensions

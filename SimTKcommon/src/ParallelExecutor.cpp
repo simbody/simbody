@@ -37,24 +37,21 @@ static void* threadBody(void* args);
 
 ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
 
-    // Set the maximum number of threads that we can use
-    SimTK_APIARGCHECK_ALWAYS(ParallelExecutor::getNumProcessors() > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads detected is not positive.");
-    NUM_MAX_THREADS = ParallelExecutor::getNumProcessors();
-
-    pthread_mutex_init(&runLock, NULL);
-    pthread_cond_init(&runCondition, NULL);
-    pthread_cond_init(&waitCondition, NULL);
-
+    //By default, we use the total number of processors available of the
+    //computer (including hyperthreads)
+    numMaxThreads = ParallelExecutor::getNumProcessors();
+    if(numMaxThreads == 0)
+      numMaxThreads = 1;
+    
+    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
     // Set the maximum number of threads that we can use
     SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
-    NUM_MAX_THREADS = numThreads;
+    numMaxThreads = numThreads;
 
-    pthread_mutex_init(&runLock, NULL);
-    pthread_cond_init(&runCondition, NULL);
-    pthread_cond_init(&waitCondition, NULL);
+    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
     
@@ -79,10 +76,16 @@ ParallelExecutorImpl::~ParallelExecutorImpl() {
     pthread_cond_destroy(&waitCondition);
 }
 ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
-    return new ParallelExecutorImpl(NUM_MAX_THREADS);
+    return new ParallelExecutorImpl(numMaxThreads);
+}
+void ParallelExecutorImpl::init()
+{
+  pthread_mutex_init(&runLock, NULL);
+  pthread_cond_init(&runCondition, NULL);
+  pthread_cond_init(&waitCondition, NULL);
 }
 void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
-  if (min(times, NUM_MAX_THREADS) == 1) {
+  if (min(times, numMaxThreads) == 1) {
       //(1) NON-PARALLEL CASE:
       // Nothing is actually going to get done in parallel, so we might as well
       // just execute the task directly and save the threading overhead.
@@ -91,21 +94,18 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
           task.execute(i);
       task.finish();
       return;
-  }else{
-      //(2) PARALLEL CASE:
-      // We launch the needed number of threads, accounting for the fact that
-      // we may have previously already launched a smaller number of threads
-      int numThreadsToLaunch = min(times, NUM_MAX_THREADS);
-      if(threads.size() < numThreadsToLaunch)
-      {
-        int prevThreadSize = threads.size();
-        threads.resize(numThreadsToLaunch);
-        for (int i = prevThreadSize; i < numThreadsToLaunch; ++i) {
-            threadInfo.push_back(new ThreadInfo(i, this));
-            pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
-        }
+    }
+    
+    //(2) PARALLEL CASE:
+    // We launch the maximum number of threads and save them for later use
+    if(threads.size() < numMaxThreads)
+    {
+      threads.resize(numMaxThreads);
+      for (int i = 0; i < numMaxThreads; ++i) {
+          threadInfo.push_back(new ThreadInfo(i, this));
+          pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
       }
-  }
+    }
 
   // Initialize fields to execute the new task.
   pthread_mutex_lock(&runLock);
@@ -160,9 +160,7 @@ void* threadBody(void* args) {
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
             int index = info.index;
-            
-            //TODO: Is this the most informative way we can throw an error?
-            
+                        
             try {
                 while (index < count) {
                     task.execute(index);
@@ -244,12 +242,11 @@ int ParallelExecutor::getNumProcessors() {
 #endif
 }
 
-int ParallelExecutor::getNumPhysicalProcessors(){
-  return std::thread::hardware_concurrency();
-}
-
 bool ParallelExecutor::isWorkerThread() {
     return ParallelExecutorImpl::isWorker.get();
+}
+int ParallelExecutor::getNumMaxThreads(){
+    return updImpl().getNumMaxThreads();
 }
 
 } // namespace SimTK

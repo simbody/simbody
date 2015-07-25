@@ -86,13 +86,22 @@ public:
     void setForceIsDisabled
        (State& state, ForceIndex index, bool shouldBeDisabled) const;
        
-   /** Some of the dynamics calculations performed by the forces are
-     parallelized. Use this method to control the number of threads used when
-     calculating forces. The parallelism only affects forces that choose to
-     be executed in parallel. By default, the number of threads is the number
-     of cores on the machine. **/
-    void setNumberOfThreads(unsigned int numThreads);
+    /** Set the number of threads that the GeneralForceSubsystem can use to
+    calculate computationally expensive forces (that have the
+    shouldBeParallelIfPossible() method overridden). By default, the
+    number of threads is the number of total processors (including hyperthreads)
+    on the machine.
     
+    Note: This method should only be called before or after force contributions
+    are calculated (Stage::Dynamics). This method may NOT be called while
+    realizing Stage::Dynaimcs.**/
+    void setNumberOfThreads(unsigned numThreads);
+    
+    /** Returns the number of threads that the GeneralForceSubsystem can
+    use to calculate computationally expensive forces (that have the
+    shouldBeParallelIfPossible() method overridden). **/
+    const int getNumberOfThreads();
+
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects
     to be owned by a MultibodySystem. This method returns a const reference
     to the containing MultibodySystem and will throw an exception if there is

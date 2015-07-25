@@ -91,10 +91,15 @@ void testSingleThreadedExecution() {
         ASSERT(flags[j] == (j < numFlags-10 ? 1 : 0));
 }
 
+void testResizeThreads() {
+  ParallelExecutor executor(2);
+  
+}
 int main() {
     try {
         testParallelExecution();
         testSingleThreadedExecution();
+        testResizeThreads();
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;

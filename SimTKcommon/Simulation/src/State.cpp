@@ -313,7 +313,9 @@ StateImpl::StateImpl(const StateImpl& src)
 :   currentSystemStage(Stage::Empty)
 {
     initializeStageVersions();
-    stateLock = new std::mutex; //TODO: When we copy a state, do we want it to have a different stateLock? I think yes?
+    //TODO: When you copy a state, you don't get the same mutex, is that okay? 
+    // If not, how should we fix it? "mutex objects cannot be copied/moved (both 
+    //the copy constructor and assignment operator are deleted for this type)."
     
     // Make sure that no copied cache entry could accidentally think
     // it was up to date. We'll change some of these below if appropriate.

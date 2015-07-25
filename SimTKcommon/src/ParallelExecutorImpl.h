@@ -61,6 +61,7 @@ public:
     ParallelExecutorImpl(int numThreads);
     ~ParallelExecutorImpl();
     ParallelExecutorImpl* clone() const;
+    void init();
     void execute(ParallelExecutor::Task& task, int times);
     int getThreadCount() {
         return threads.size();
@@ -80,6 +81,9 @@ public:
     pthread_cond_t* getCondition() {
         return &runCondition;
     }
+    int getNumMaxThreads(){
+      return numMaxThreads;
+    }
     void incrementWaitingThreads();
     static ThreadLocal<bool> isWorker;
 private:
@@ -91,7 +95,7 @@ private:
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;
     int waitingThreadCount;
-    int NUM_MAX_THREADS;
+    int numMaxThreads;
 };
 
 } // namespace SimTK
