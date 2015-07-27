@@ -371,17 +371,13 @@ public:
         forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
             new Value<Array_<bool> >(forceEnabled));
 
-        //Set the force's parallelization flags accordingly, do not readd the forces to the vector
-        //since a force is not able to change its parallelism flag mid-computation
-        if(!cachedParallel){
-            Array_<bool> parallelEnabled(getNumForces());
-            for (int i = 0; i < (int)forces.size(); ++i){
-                parallelEnabled[i] = forces[i]->getImpl().shouldBeParallelIfPossible();
-            }
-            parallelEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
-                new Value<Array_<bool> >(parallelEnabled));
-             cachedParallel = true;
+        Array_<bool> parallelEnabled(getNumForces());
+        for (int i = 0; i < (int)forces.size(); ++i){
+            parallelEnabled[i] = forces[i]->getImpl().shouldBeParallelIfPossible();
         }
+        parallelEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
+            new Value<Array_<bool> >(parallelEnabled));
+         cachedParallel = true;
 
         // Note that we'll allocate these even if all the needs-caching
         // elements are presently disabled. That way they'll be around when
@@ -607,8 +603,6 @@ private:
     ReferencePtr<ParallelExecutor>               calcForcesExecutor;
     ReferencePtr<CalcForcesTask>                 calcForcesTask;
     
-    mutable bool cachedParallel = false;
-
     // TOPOLOGY "CACHE"
     // These indices must be filled in during realizeTopology and treated
     // as const thereafter.
