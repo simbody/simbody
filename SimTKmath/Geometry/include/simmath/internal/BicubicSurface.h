@@ -546,7 +546,7 @@ public:
      
     @param[in] XY   the 2-Vector of input arguments X and Y. 
     @return The interpolated value of the function at point (X,Y). **/
-    virtual Real calcValue(const Vector& XY) const {
+    Real calcValue(const Vector& XY) const override {
         SimTK_ERRCHK1(XY.size()==2, "BicubicFunction::calcValue()",
         "The argument Vector XY must have exactly 2 elements but had %d.",
         XY.size());        
@@ -572,8 +572,8 @@ public:
         surface. 
     @return The interpolated value of the selected function partial derivative
     for arguments (X,Y). **/
-    virtual Real calcDerivative(const Array_<int>& derivComponents, 
-                                const Vector& XY) const {
+    Real calcDerivative(const Array_<int>& derivComponents, 
+                        const Vector& XY) const override {
         SimTK_ERRCHK1(XY.size()==2, "BicubicFunction::calcDerivative()",
         "The argument Vector XY must have exactly 2 elements but had %d.",
         XY.size());        
@@ -582,15 +582,24 @@ public:
 
     /** This implements the Function base class pure virtual; here it
     always returns 2 (X and Y). **/
-    virtual int getArgumentSize() const {return 2;}
+    int getArgumentSize() const override {return 2;}
 
     /** This implements the Function base class pure virtual specifying how
     many derivatives can be taken of this function; here it is unlimited.
     However, note that a bicubic surface is continuous up to the second 
     derivative, discontinuous at the third, and zero for any derivatives equal 
     to or higher than the fourth. **/
-    virtual int getMaxDerivativeOrder() const 
+    int getMaxDerivativeOrder() const override 
     {   return std::numeric_limits<int>::max(); }
+
+    BicubicFunction* clone() const override {return new BicubicFunction(*this);}
+
+    /** This provides compatibility with std::vector without requiring any 
+    copying. **/
+    Real calcDerivative(const std::vector<int>& derivComponents, 
+                        const Vector& x) const 
+    {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
+
 private:
     BicubicSurface                      surface;
     mutable BicubicSurface::PatchHint   hint;

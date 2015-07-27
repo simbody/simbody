@@ -8,6 +8,10 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.6 (in development)
 --------------------
+* Added clone() method to `SimTK::Function_` base class and implemented it for
+  Simbody-defined concrete Function classes. Made concrete Function members
+  non-const to permit assignment, and modified Function_<T>::Step to allow
+  changing its parameters after construction.
 * Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
 * Prevented copy construction of `Array_<T>` from `Array_<T2>` unless T2 is *implicitly*
   convertible to T. Previously this was allowed if there was any conversion possible
