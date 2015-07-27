@@ -248,8 +248,10 @@ public:
         return false;
     }
     /**
-     * Called during the realizeSubsystemDynamicsImpl method in GenralForceSubsystemRep, used to determine whether a custom force
-     * should be parallelized. By default, this method returns false and can be overwritten by the force subclass.
+     * Called during the realizeSubsystemDynamicsImpl method in
+     * GeneralForceSubsystemRep, used to determine whether a custom force should
+     * be parallelized if possible. By default, this method returns false and
+     * can be overwritten by the force subclass.
      */
     virtual bool shouldBeParallelIfPossible() const {
         return false;
