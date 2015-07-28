@@ -8,6 +8,12 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.6 (in development)
 --------------------
+* Added smart pointer NullOnCopyUniquePtr which is the same as std::unique_ptr
+  except that it adds copy construction and copy assignment that leave the
+  target null. This can be used for owned heap-allocated objects that are
+  "local" in the sense that they should not be copied along with their owner.
+  That allows use of compiler-generated default copy construction and 
+  copy assignment for the owning class. 
 * Added clone() method to `SimTK::Function_` base class and implemented it for
   Simbody-defined concrete Function classes. Made concrete Function members
   non-const to permit assignment, and modified Function_<T>::Step to allow
