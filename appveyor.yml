@@ -13,6 +13,8 @@ shallow_clone: true
 
 platform: x64
 
+os: Visual Studio 2015
+
 init:
   # Put MSBuild on the path.
   - SET PATH=C:\Program Files (x86)\MSBuild\14.0\bin\;%PATH%
