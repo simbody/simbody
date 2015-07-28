@@ -28,6 +28,7 @@
 #include <cassert>
 #include <utility>
 #include <memory>
+#include <cstddef>
 
 namespace SimTK {
 
@@ -57,7 +58,18 @@ template < class T, class D = std::default_delete<T> >
 class NullOnCopyUniquePtr : public std::unique_ptr<T,D> {
     using Super = std::unique_ptr<T,D>;
 public:
-    using Super::unique_ptr; // inherit most constructors
+    //using Super::unique_ptr; // inherit most constructors (wait for VS2015)
+                               // TODO: also fix has below for vs2015
+
+    //--------------------------------------------------------------------------
+    // Inheriting constructors doesn't work in VS2013. These can be removed
+    // when we switch to VS2015.
+    explicit NullOnCopyUniquePtr(typename Super::pointer p) NOEXCEPT_11 
+    :   Super(p) {}
+    explicit NullOnCopyUniquePtr(std::nullptr_t) NOEXCEPT_11 : Super() {}
+    explicit NullOnCopyUniquePtr(Super&& up) NOEXCEPT_11 
+    :   Super(std::move(up)) {}
+    //--------------------------------------------------------------------------
 
     /** Default constructor creates a null pointer. **/
     NullOnCopyUniquePtr() NOEXCEPT_11 : Super() {}
@@ -83,6 +95,13 @@ public:
         Super::operator=(std::move(src));
         return *this;
     }
+
+    /** Allow move assignment from identical `std::unique_ptr`. **/
+    NullOnCopyUniquePtr& operator=(Super&& up) NOEXCEPT_11 {
+        Super::operator=(std::move(up));
+        return *this;
+    }
+
 }; 
 
 
@@ -128,7 +147,7 @@ template <class T, class D>
 struct hash<SimTK::NullOnCopyUniquePtr<T,D>> 
 :   public hash<std::unique_ptr<T,D>> 
 {
-    using hash<std::unique_ptr<T,D>>::hash; // inherit constructors
+    //using hash<std::unique_ptr<T,D>>::hash; // inherit constructors (vs2015)
 };
 } // namespace std
 
