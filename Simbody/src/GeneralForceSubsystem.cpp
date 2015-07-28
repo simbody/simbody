@@ -349,8 +349,9 @@ public:
     {   return new GeneralForceSubsystemRep(*this); }
 
     int realizeSubsystemTopologyImpl(State& s) const  override {
-        parallelEnabledIndex.invalidate();
         forceEnabledIndex.invalidate();
+        enabledParallelForcesIndex.invalidate();
+        enabledNonParallelForcesIndex.invalidate();
         cachedForcesAreValidCacheIndex.invalidate();
         rigidBodyForceCacheIndex.invalidate();
         mobilityForceCacheIndex.invalidate();
@@ -370,14 +371,29 @@ public:
 
         forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
             new Value<Array_<bool> >(forceEnabled));
+        
+        // Track the enabled forces and whether they should be parallelized.
+        Array_<Force*> enabledNonParallelForces;
+        Array_<Force*> enabledParallelForces;
 
-        Array_<bool> parallelEnabled(getNumForces());
-        for (int i = 0; i < (int)forces.size(); ++i){
-            parallelEnabled[i] = forces[i]->getImpl().shouldBeParallelIfPossible();
+        // Avoid repeatedly allocating memory.
+        enabledNonParallelForces.reserve(forces.size());
+        enabledParallelForces.reserve(forces.size());
+
+        for (int i = 0; i < (int) forces.size(); ++i) {
+            if(forceEnabled[i])
+            {
+                if (forces[i]->getImpl().shouldBeParallelIfPossible())
+                    enabledParallelForces.push_back(forces[i]);
+                else
+                    enabledNonParallelForces.push_back(forces[i]);
+            }
         }
-        parallelEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
-            new Value<Array_<bool> >(parallelEnabled));
-         cachedParallel = true;
+
+        enabledNonParallelForcesIndex = allocateCacheEntry(s, Stage::Instance,
+                          new Value<Array_<Force*> >(enabledNonParallelForces));
+        enabledParallelForcesIndex = allocateCacheEntry(s, Stage::Instance,
+                             new Value<Array_<Force*> >(enabledParallelForces));
 
         // Note that we'll allocate these even if all the needs-caching
         // elements are presently disabled. That way they'll be around when
@@ -413,6 +429,32 @@ public:
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
             if (enabled[i]) forces[i]->getImpl().realizeInstance(s);
+            
+        //Update non/parallel enabled force arrays
+        // Track the enabled forces and whether they should be parallelized.
+        const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
+                                    (getDiscreteVariable(s, forceEnabledIndex));
+        Array_<Force*>& enabledNonParallelForces = Value< Array_<Force*> >::
+                       downcast(updCacheEntry(s,enabledNonParallelForcesIndex));
+        Array_<Force*>& enabledParallelForces = Value< Array_<Force*> >::
+                          downcast(updCacheEntry(s,enabledParallelForcesIndex));
+
+        // Avoid repeatedly allocating memory.
+        enabledParallelForces.resize(0);
+        enabledNonParallelForces.resize(0);
+        
+        enabledNonParallelForces.reserve(forces.size());
+        enabledParallelForces.reserve(forces.size());
+
+        for (int i = 0; i < (int) forces.size(); ++i) {
+            if(forceEnabled[i])
+            {
+                if (forces[i]->getImpl().shouldBeParallelIfPossible())
+                    enabledParallelForces.push_back(forces[i]);
+                else
+                    enabledNonParallelForces.push_back(forces[i]);
+            }
+        }
         return 0;
     }
 
@@ -454,8 +496,10 @@ public:
         // force element is enabled.
         const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
                                     (getDiscreteVariable(s, forceEnabledIndex));
-        const Array_<bool>& parallelEnabled = Value< Array_<bool> >::downcast
-                                    (getDiscreteVariable(s, parallelEnabledIndex));
+        const Array_<Force*> enabledNonParallelForces = Value<Array_<Force*>>::
+                      downcast(getCacheEntry(s, enabledNonParallelForcesIndex));
+        const Array_<Force*> enabledParallelForces = Value<Array_<Force*>>::
+                         downcast(getCacheEntry(s, enabledParallelForcesIndex));
 
         // Get access to System-global force cache arrays.
         Vector_<SpatialVec>&   rigidBodyForces =
@@ -464,24 +508,6 @@ public:
                                     mbs.updParticleForces (s, Stage::Dynamics);
         Vector&                mobilityForces  =
                                     mbs.updMobilityForces (s, Stage::Dynamics);
-
-        // Track the enabled forces and whether they should be parallelized.
-        Array_<Force*> enabledNonParallelForces;
-        Array_<Force*> enabledParallelForces;
-
-        // Avoid repeatedly allocating memory.
-        enabledNonParallelForces.reserve(forces.size());
-        enabledParallelForces.reserve(forces.size());
-
-        for (int i = 0; i < (int) forces.size(); ++i) {
-            if(forceEnabled[i])
-            {
-                if (parallelEnabled[i])
-                    enabledParallelForces.push_back(forces[i]);
-                else
-                    enabledNonParallelForces.push_back(forces[i]);
-            }
-        }
 
         // Short circuit if we're not doing any caching here. Note that we're
         // checking whether the *index* is valid (i.e. does the cache entry
@@ -609,7 +635,11 @@ private:
 
     // This instance-stage variable holds a bool for each force element.
     mutable DiscreteVariableIndex   forceEnabledIndex;
-    mutable DiscreteVariableIndex   parallelEnabledIndex;
+    
+    //This set of cache entries stores an array of Force* elements for enabled
+    //parallel and non-parallel forces
+    mutable CacheEntryIndex   enabledParallelForcesIndex;
+    mutable CacheEntryIndex   enabledNonParallelForcesIndex;
 
     // This set of cache entries is allocated only if some force element
     // overrode dependsOnlyOnPositions().
