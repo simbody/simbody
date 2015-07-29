@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -99,6 +99,17 @@ public:
      * Get the maximum derivative order this Function_ object can calculate.
      */
     virtual int getMaxDerivativeOrder() const = 0;
+
+    /**
+     * Create a new heap-allocated copy of this concrete %Function. 
+     * For backwards compatibility this is not pure virtual; it has a default
+     * implementation that throws an exception if called. However, it should
+     * always be implemented.
+     */
+    virtual Function_* clone() const {
+        SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Function_", 
+                     "clone");
+    }
 };
 
 /** This typedef is used for the very common case that the return type of
@@ -124,19 +135,22 @@ public:
     explicit Constant(T value, int argumentSize=1) 
     :   argumentSize(argumentSize), value(value) {
     }
-    T calcValue(const Vector& x) const {
+    T calcValue(const Vector& x) const override {
         assert(x.size() == argumentSize);
         return value;
     }
-    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, 
+                     const Vector& x) const override {
         return static_cast<T>(0);
     }
-    virtual int getArgumentSize() const {
+    int getArgumentSize() const override {
         return argumentSize;
     }
-    int getMaxDerivativeOrder() const {
+    int getMaxDerivativeOrder() const override {
         return std::numeric_limits<int>::max();
     }
+
+    Constant* clone() const override {return new Constant(*this);}
 
     /** This provides compatibility with std::vector without requiring any 
     copying. **/
@@ -144,8 +158,8 @@ public:
     {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 
 private:
-    const int argumentSize;
-    const T value;
+    int argumentSize;
+    T   value;
 };
 
 /**
@@ -167,7 +181,7 @@ public:
      */
     explicit Linear(const Vector_<T>& coefficients) : coefficients(coefficients) {
     }
-    T calcValue(const Vector& x) const {
+    T calcValue(const Vector& x) const override {
         assert(x.size() == coefficients.size()-1);
         T value = static_cast<T>(0);
         for (int i = 0; i < x.size(); ++i)
@@ -175,26 +189,29 @@ public:
         value += coefficients[x.size()];
         return value;
     }
-    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, 
+                     const Vector& x) const override {
         assert(x.size() == coefficients.size()-1);
         assert(derivComponents.size() > 0);
         if (derivComponents.size() == 1)
             return coefficients(derivComponents[0]);
         return static_cast<T>(0);
     }
-    virtual int getArgumentSize() const {
+    int getArgumentSize() const override {
         return coefficients.size()-1;
     }
-    int getMaxDerivativeOrder() const {
+    int getMaxDerivativeOrder() const override {
         return std::numeric_limits<int>::max();
     }
+
+    Linear* clone() const override {return new Linear(*this);}
 
     /** This provides compatibility with std::vector without requiring any 
     copying. **/
     T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
     {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
-    const Vector_<T> coefficients;
+    Vector_<T> coefficients;
 };
 
 
@@ -213,7 +230,7 @@ public:
      */
     Polynomial(const Vector_<T>& coefficients) : coefficients(coefficients) {
     }
-    T calcValue(const Vector& x) const {
+    T calcValue(const Vector& x) const override {
         assert(x.size() == 1);
         Real arg = x[0];
         T value = static_cast<T>(0);
@@ -221,7 +238,8 @@ public:
             value = value*arg + coefficients[i];
         return value;
     }
-    T calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
+    T calcDerivative(const Array_<int>& derivComponents, 
+                     const Vector& x) const override {
         assert(x.size() == 1);
         assert(derivComponents.size() > 0);
         Real arg = x[0];
@@ -236,19 +254,21 @@ public:
         }
         return value;
     }
-    virtual int getArgumentSize() const {
+    int getArgumentSize() const override {
         return 1;
     }
-    int getMaxDerivativeOrder() const {
+    int getMaxDerivativeOrder() const override {
         return std::numeric_limits<int>::max();
     }
+
+    Polynomial* clone() const override {return new Polynomial(*this);}
 
     /** This provides compatibility with std::vector without requiring any 
     copying. **/
     T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
     {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
-    const Vector_<T> coefficients;
+    Vector_<T> coefficients;
 };
 
 
@@ -267,7 +287,7 @@ public:
      * 
      * @param[in] amplitude 'a' in the above formula
      * @param[in] frequency 'w' in the above formula
-     * @param[in] phase     'p' in the above formula
+     * @param[in] phase     'p' in the above formula (default is zero)
      */
     Sinusoid(Real amplitude, Real frequency, Real phase=0) 
     :   a(amplitude), w(frequency), p(phase) {}
@@ -282,13 +302,13 @@ public:
 
     // Implementation of Function_<T> virtuals.
 
-    virtual Real calcValue(const Vector& x) const {
+    virtual Real calcValue(const Vector& x) const override {
         const Real t = x[0]; // we expect just one argument
         return a*std::sin(w*t + p);
     }
 
     virtual Real calcDerivative(const Array_<int>& derivComponents,
-                                const Vector&      x) const {
+                                const Vector&      x) const override {
         const Real t = x[0]; // time is the only argument
         const int order = derivComponents.size();
         // The n'th derivative is
@@ -308,10 +328,12 @@ public:
         }
     }
 
-    virtual int getArgumentSize() const {return 1;} // just time
-    virtual int getMaxDerivativeOrder() const {
+    int getArgumentSize() const override {return 1;}
+    int getMaxDerivativeOrder() const override {
         return std::numeric_limits<int>::max();
     }
+
+    Sinusoid* clone() const override {return new Sinusoid(*this);}
 
     /** This provides compatibility with std::vector without requiring any 
     copying. **/
@@ -339,7 +361,7 @@ public:
      * @param y0    Output value when (x-x0)*sign(x1-x0) <= 0.
      * @param y1    Output value when (x-x1)*sign(x1-x0) >= 0.
      * @param x0    Start of switching interval.
-     * @param x1    End of switching interval.
+     * @param x1    End of switching interval (must not equal x0).
      *
      * @tparam T    The template type is the type of y0 and y1. This must
      *              be a type that supports subtraction and scalar
@@ -347,16 +369,21 @@ public:
      *              an expression like y=y0 + f*(y1-y0) for some Real scalar f.
      *
      * Note that the numerical values of x0 and x1 can be in either order
-     * x0 < x1 or x0 > x1.
+     * x0 < x1 or x0 > x1, but they cannot be equal.
      */
     Step(const T& y0, const T& y1, Real x0, Real x1) 
-    :   m_y0(y0), m_y1(y1), m_yr(y1-y0), m_zero(Real(0)*y0),
-        m_x0(x0), m_x1(x1), m_ooxr(1/(x1-x0)), m_sign(sign(m_ooxr)) 
-    {   SimTK_ERRCHK1_ALWAYS(x0 != x1, "Function_<T>::Step::ctor()",
+    {   setParameters(y0,y1,x0,x1); }
+
+    /** Change the four parameters that define the step function; see 
+    constructor for documentation. **/
+    void setParameters(const T& y0, const T& y1, Real x0, Real x1) {
+        SimTK_ERRCHK1_ALWAYS(x0 != x1, "Function_<T>::Step::setParameters()",
         "A zero-length switching interval is illegal; both ends were %g.", x0);
+        m_y0 = y0; m_y1 = y1; m_yr = y1-y0; m_zero = Real(0)*y0;
+        m_x0 = x0; m_x1 = x1; m_ooxr = 1/(x1-x0); m_sign = sign(m_ooxr); 
     }
 
-    T calcValue(const Vector& xin) const {
+    T calcValue(const Vector& xin) const override {
         SimTK_ERRCHK1_ALWAYS(xin.size() == 1,
             "Function_<T>::Step::calcValue()", 
             "Expected just one input argument but got %d.", xin.size());
@@ -369,7 +396,8 @@ public:
         return m_y0 + f*m_yr;
     }
 
-    T calcDerivative(const Array_<int>& derivComponents, const Vector& xin) const {
+    T calcDerivative(const Array_<int>& derivComponents, 
+                     const Vector& xin) const override {
         SimTK_ERRCHK1_ALWAYS(xin.size() == 1,
             "Function_<T>::Step::calcDerivative()", 
             "Expected just one input argument but got %d.", xin.size());
@@ -391,18 +419,20 @@ public:
         return NaN*m_yr; /*NOTREACHED*/
     }
 
-    virtual int getArgumentSize() const {return 1;}
-    int getMaxDerivativeOrder() const {return 3;}
+    int getArgumentSize() const override {return 1;}
+    int getMaxDerivativeOrder() const override {return 3;}
+
+    Step* clone() const override {return new Step(*this);}
 
     /** This provides compatibility with std::vector without requiring any 
     copying. **/
     T calcDerivative(const std::vector<int>& derivComponents, const Vector& x) const 
     {   return calcDerivative(ArrayViewConst_<int>(derivComponents),x); }
 private:
-    const T    m_y0, m_y1, m_yr;   // precalculate yr=(y1-y0)
-    const T    m_zero;             // precalculate T(0)
-    const Real m_x0, m_x1, m_ooxr; // precalculate ooxr=1/(x1-x0)
-    const Real m_sign;             // sign(x1-x0) is 1 or -1
+    T    m_y0, m_y1, m_yr;   // precalculate yr=(y1-y0)
+    T    m_zero;             // precalculate T(0)
+    Real m_x0, m_x1, m_ooxr; // precalculate ooxr=1/(x1-x0)
+    Real m_sign;             // sign(x1-x0) is 1 or -1
 };
 
 } // namespace SimTK
