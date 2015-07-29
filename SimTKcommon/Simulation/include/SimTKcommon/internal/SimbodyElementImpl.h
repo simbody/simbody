@@ -59,6 +59,9 @@ public:
     SimbodyElementImpl* clone() const 
     {   return cloneVirtual(); }
 
+    // acquireSubsystemResources() is only virtual; it is invoked through
+    // nonvirtual setSubsystem() below.
+
     void realizeTopology(State& state) const 
     {   realizeTopologyVirtual(state); }
     void realizeModel(State& state) const 
