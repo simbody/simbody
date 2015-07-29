@@ -145,7 +145,6 @@ Subsystem::Guts::~Guts() {
 
 // Subsystem is being added to a System. Can now set up any System-level
 // resources, such as Event actions. 
-// TODO: concrete subsystem needs to get a chance to do this too.
 void Subsystem::Guts::setSystem(System& sys, SubsystemIndex index) {
     SimTK_ASSERT(!isInSystem(), "Subsystem::setSystem()");
     SimTK_ASSERT(index.isValid(), "Subsystem::setSystem()");

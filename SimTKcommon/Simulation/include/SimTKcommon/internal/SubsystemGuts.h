@@ -497,7 +497,7 @@ inline void Subsystem::setSystem(System& sys, SubsystemIndex id)
 {   updSubsystemGuts().setSystem(sys,id); }
 
 inline bool Subsystem::isOwnerHandle() const 
-{   return guts==0 || &guts->getOwnerSubsystemHandle()==this; }
+{   return guts==nullptr || &guts->getOwnerSubsystemHandle()==this; }
 
 } // namespace SimTK
 
