@@ -181,7 +181,6 @@ public:
     class UniformGravity;
     class Gravity;
     class Custom;
-    class TestParallelForce; //Class for testing purposes
     
     class TwoPointLinearSpringImpl;
     class TwoPointLinearDamperImpl;
@@ -200,7 +199,6 @@ public:
     class UniformGravityImpl;
     class GravityImpl;
     class CustomImpl;
-    class TestParallelForceImpl; //Class for testing purposes
 
 protected:
     /** Use this in a derived Force handle class constructor to supply the 
