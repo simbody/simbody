@@ -220,9 +220,13 @@ public:
     this should be the same Vec3 you got from getPositionInfo(). **/
     virtual void setInstanceParameter(State& state, const Vec3& pos) const {}
 
+    /** Eventually invokes acquireSubsystemResourcesVirtual(). **/
+    void acquireSubsystemResources();
+
     /** Eventually invokes realizeTopologyVirtual(). **/
     void realizeTopology(State& state) const;
 
+    virtual void acquireSubsystemResourcesVirtual() {}
     virtual void realizeTopologyVirtual     (State&)        const {}
     virtual void realizeModelVirtual        (State&)        const {}
     virtual void realizeInstanceVirtual     (const State&)  const {}
@@ -238,6 +242,8 @@ public:
     {   m_matter = &matter; m_myIx = myIndex; }
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const
+    {   assert(m_matter); return *m_matter; }
+    SimbodyMatterSubsystem& updMatterSubsystem()
     {   assert(m_matter); return *m_matter; }
     UnilateralContactIndex getMyIndex() const
     {   assert(m_matter); return m_myIx; }

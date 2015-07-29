@@ -33,11 +33,123 @@ using namespace SimTK;
 //==============================================================================
 //                             UNILATERAL CONTACT
 //==============================================================================
-void UnilateralContact::realizeTopology(State& state) const {
-    auto mThis = const_cast<UnilateralContact*>(this);
-    auto& matter = getMatterSubsystem();
-    const SubsystemIndex matterIx = matter.getMySubsystemIndex();
 
+namespace {
+//------------------------------------------------------------------------------
+//                               IMPACT WITNESS
+//------------------------------------------------------------------------------
+// Should only be enabled when constraint is not active.
+
+class ImpactWitness : public EventTrigger::Witness {
+public:
+    explicit ImpactWitness(const UnilateralContact& uni)
+    :   EventTrigger::Witness("UnilateralContact ImpactWitness"),
+        m_uniContact(uni) 
+    {   setTriggerOnRisingSignTransition(false); } // + -> - only
+
+private:
+    ImpactWitness* cloneVirtual() const override
+    {   return new ImpactWitness(*this); }
+
+    Real calcWitnessValueVirtual(const System& system,
+                                 const State&  state,
+                                 int           derivOrder) const override {
+        if (m_uniContact.isEnabled(state)) 
+            return NaN;
+
+        const Real sign = m_uniContact.getSignConvention();
+        switch(derivOrder) {
+        case 0: return sign*m_uniContact.getPerr(state);
+        case 1: return sign*m_uniContact.getVerr(state);
+        case 2: return sign*m_uniContact.getAerr(state);
+        }
+        assert(!"illegal derivOrder");
+        return NaN;
+    }
+
+    Stage getDependsOnStageVirtual(int derivOrder) const override
+    {
+        switch(derivOrder) {
+        case 0: return Stage::Position;
+        case 1: return Stage::Velocity;
+        case 2: return Stage::Acceleration;
+        }
+        assert(!"illegal derivOrder");
+        return Stage::Infinity;
+    }
+
+    int getNumTimeDerivativesVirtual() const override {return 2;}
+
+    const UnilateralContact& m_uniContact;
+};
+
+//------------------------------------------------------------------------------
+//                          CONTACT CHANGE WITNESS
+//------------------------------------------------------------------------------
+// Should only be enabled when constraint is active.
+
+class ContactChangeWitness: public EventTrigger::Witness {
+public:
+    explicit ContactChangeWitness(const UnilateralContact& uni)
+        : EventTrigger::Witness("UnilateralContact ContactChangeWitness"),
+        m_uniContact(uni)
+    {
+        setTriggerOnRisingSignTransition(false);
+    } // + -> - only
+
+private:
+    ContactChangeWitness* cloneVirtual() const override
+    {   return new ContactChangeWitness(*this); }
+
+    Real calcWitnessValueVirtual(const System& system,
+                                 const State&  state,
+                                 int           derivOrder) const override {
+        if(!m_uniContact.isEnabled(state))
+            return NaN;
+
+        assert(derivOrder==0);
+        const Real sign = m_uniContact.getSignConvention();
+        const Vector& multipliers = state.getMultipliers();
+        auto index = m_uniContact.getContactMultiplierIndex(state);
+        return -sign*multipliers[index];
+    }
+
+    Stage getDependsOnStageVirtual(int derivOrder) const override
+    {   assert(derivOrder==0);
+        return Stage::Acceleration; }
+
+    int getNumTimeDerivativesVirtual() const override {return 0;}
+
+    const UnilateralContact& m_uniContact;
+};
+
+
+}
+
+//------------------------------------------------------------------------------
+//                        ACQUIRE SUBSYSTEM RESOURCES
+//------------------------------------------------------------------------------
+void UnilateralContact::acquireSubsystemResources() {
+    SimbodyMatterSubsystem& matter = updMatterSubsystem();
+    System&                 system = matter.updSystem();
+
+    // Create EventWitness objects for impact and liftoff, and connect them
+    // to the appropriate Event objects. 
+    auto impact = new ImpactWitness(*this);
+    impact->addEvent(EventId(/*ImpactEvent*/));
+    system.adoptEventTrigger(impact);
+
+    auto liftoff = new ContactChangeWitness(*this);
+    liftoff->addEvent(EventId(/*ContactChangeEvent*/));
+    system.adoptEventTrigger(liftoff);
+
+    acquireSubsystemResourcesVirtual(); // delegate to derived class
+}
+
+//------------------------------------------------------------------------------
+//                            REALIZE TOPOLOGY
+//------------------------------------------------------------------------------
+void UnilateralContact::realizeTopology(State& state) const {
     realizeTopologyVirtual(state); // delegate to derived class
 }
 
