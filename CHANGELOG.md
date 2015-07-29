@@ -34,6 +34,11 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 * Make doxygen run silently so errors will be easier to see.
 * Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
 of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
+* The simbody-visualizer now has the option to provide smoother visualization
+via an anti-aliasing option (in the visualizer, click View -> Antialias).
+Note that the
+anti-aliasing may slow down the visualization, and does not affect the quality
+of images saved via "Save Image" or "Save Movie".
 * (There are more that haven't been added yet)
 
 

@@ -457,6 +457,7 @@ static GLfloat groundHeight = 0;
 static CoordinateDirection groundNormal = YAxis; // the +Y direction
 static bool showGround=true, showShadows=true;
 static bool showFPS=false, showSimTime=false, showFrameNum=false;
+static bool shouldAntialias=false;
 static fVec3 backgroundColor = fVec3(1,1,1); // white is the default
 static vector<PendingCommand*> pendingCommands;
 static float fps = 0.0f;
@@ -2501,10 +2502,11 @@ static const int MENU_SHOW_FPS = 10;
 static const int MENU_SHOW_SIM_TIME = 11;
 static const int MENU_SHOW_FRAME_NUM = 12;
 
-static const int MENU_SAVE_IMAGE = 13;
-static const int MENU_SAVE_MOVIE = 14;
+static const int MENU_ANTIALIAS = 13;
+static const int MENU_SAVE_IMAGE = 14;
+static const int MENU_SAVE_MOVIE = 15;
 
-static const int MENU_ABOUT = 15;
+static const int MENU_ABOUT = 16;
 
 // This is the handler for our built-in "View" pull down menu.
 void viewMenuSelected(int option) {
@@ -2575,6 +2577,11 @@ void viewMenuSelected(int option) {
         break;
     case MENU_SHOW_FRAME_NUM:
         showFrameNum = !showFrameNum;
+        break;
+    case MENU_ANTIALIAS:
+        shouldAntialias = !shouldAntialias;
+        if (shouldAntialias) glEnable(GL_MULTISAMPLE);
+        else glDisable(GL_MULTISAMPLE);
         break;
     case MENU_SAVE_IMAGE:
         if (canSaveImages) {
@@ -2747,11 +2754,15 @@ int main(int argc, char** argv) {
     int windowPosX = (screenW - DefaultWindowWidth) - 50;   // 50 pixel margin
     int windowPosY = 50;
 
-    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+    glutInitDisplayMode(
+            GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE);
     glutInitWindowPosition(windowPosX,windowPosY);
     glutInitWindowSize(DefaultWindowWidth, DefaultWindowHeight);
     glutCreateWindow(title.c_str());
 
+    // Initially, disable antialiasing.
+    glDisable(GL_MULTISAMPLE);
+    shouldAntialias = false;
 
     // Set up callback funtions.
     glutDisplayFunc(redrawDisplay);
@@ -2823,6 +2834,7 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("Show//Hide/Frame Rate", MENU_SHOW_FPS));
     items.push_back(make_pair("Show//Hide/Sim Time", MENU_SHOW_SIM_TIME));
     items.push_back(make_pair("Show//Hide/Frame #", MENU_SHOW_FRAME_NUM));
+    items.push_back(make_pair("Antialias", MENU_ANTIALIAS));
     items.push_back(make_pair("Save Image", MENU_SAVE_IMAGE));
     items.push_back(make_pair("Save Movie", MENU_SAVE_MOVIE));
     items.push_back(make_pair("About (to console)", MENU_ABOUT));
