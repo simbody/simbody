@@ -81,7 +81,7 @@ public:
     pthread_cond_t* getCondition() {
         return &runCondition;
     }
-    int getNumMaxThreads(){
+    int getNumMaxThreads() const{
       return numMaxThreads;
     }
     void incrementWaitingThreads();

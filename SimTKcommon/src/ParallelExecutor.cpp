@@ -40,9 +40,9 @@ ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
     //By default, we use the total number of processors available of the
     //computer (including hyperthreads)
     numMaxThreads = ParallelExecutor::getNumProcessors();
-    if(numMaxThreads == 0)
+    if(numMaxThreads <= 0)
       numMaxThreads = 1;
-    
+
     ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
@@ -245,8 +245,8 @@ int ParallelExecutor::getNumProcessors() {
 bool ParallelExecutor::isWorkerThread() {
     return ParallelExecutorImpl::isWorker.get();
 }
-int ParallelExecutor::getNumMaxThreads(){
-    return updImpl().getNumMaxThreads();
+int ParallelExecutor::getNumMaxThreads() const{
+    return getImpl().getNumMaxThreads();
 }
 
 } // namespace SimTK

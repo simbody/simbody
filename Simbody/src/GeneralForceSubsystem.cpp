@@ -339,7 +339,7 @@ public:
         calcForcesTask = new CalcForcesTask(*calcForcesExecutor);
     }
     int getNumberOfThreads() const{
-      calcForcesExecutor->getNumMaxThreads();
+      return calcForcesExecutor->getNumMaxThreads();
     }
 
     // These override default implementations of virtual methods in the

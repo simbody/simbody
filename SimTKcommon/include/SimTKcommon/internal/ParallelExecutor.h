@@ -105,7 +105,7 @@ public:
      * Get the maximum number of thread contexts that the ParallelExecutor is
      * currently allowed to use.
      */
-    int getNumMaxThreads();
+    int getNumMaxThreads() const;
 };
 
 /**
