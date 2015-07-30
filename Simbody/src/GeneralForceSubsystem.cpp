@@ -338,7 +338,7 @@ public:
         calcForcesExecutor = new ParallelExecutor(numThreads);
         calcForcesTask = new CalcForcesTask(*calcForcesExecutor);
     }
-    const int getNumberOfThreads(){
+    int getNumberOfThreads() const{
       calcForcesExecutor->getNumMaxThreads();
     }
 
@@ -711,6 +711,9 @@ void GeneralForceSubsystem::setForceIsDisabled
 
 void GeneralForceSubsystem::setNumberOfThreads(unsigned int numThreads)
 {   updRep().setNumberOfThreads(numThreads); }
+
+int GeneralForceSubsystem::getNumberOfThreads() const
+{   return getRep().getNumberOfThreads(); }
 
 const MultibodySystem& GeneralForceSubsystem::getMultibodySystem() const
 {   return MultibodySystem::downcast(getSystem()); }

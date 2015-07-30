@@ -100,7 +100,7 @@ public:
     /** Returns the number of threads that the GeneralForceSubsystem can
     use to calculate computationally expensive forces (that have the
     shouldBeParallelIfPossible() method overridden). **/
-    const int getNumberOfThreads();
+    int getNumberOfThreads() const;
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects
     to be owned by a MultibodySystem. This method returns a const reference
