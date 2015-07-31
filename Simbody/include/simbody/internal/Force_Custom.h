@@ -248,10 +248,15 @@ public:
         return false;
     }
     /**
-     * Called during the realizeSubsystemDynamicsImpl method in
-     * GeneralForceSubsystemRep, used to determine whether a custom force should
-     * be parallelized if possible. By default, this method returns false and
-     * can be overwritten by the force subclass.
+     * Returns a boolean flag telling Simbody whether a this Force type should
+     * be calculated in parallel if possible. By default, this method returns
+     * false.
+     *
+     * @note: By overriding this method, you are telling Simbody that (1) the
+     * Force class is computationally expensive to calculate and (2) the Force
+     * class is thread safe such that multiple instances of the Force class
+     * will not rely on any shared cache variables in the state. See
+     * getStateLock() in SimTK::State.
      */
     virtual bool shouldBeParallelIfPossible() const {
         return false;

@@ -92,14 +92,15 @@ public:
     number of threads is the number of total processors (including hyperthreads)
     on the machine.
     
-    Note: This method should only be called before or after force contributions
-    are calculated (Stage::Dynamics). This method may NOT be called while
-    realizing Stage::Dynaimcs.**/
+    @note This method should NOT be called while realizing Stage::Dynaimcs.**/
     void setNumberOfThreads(unsigned numThreads);
     
     /** Returns the number of threads that the GeneralForceSubsystem can
     use to calculate computationally expensive forces (that have the
-    shouldBeParallelIfPossible() method overridden). **/
+    shouldBeParallelIfPossible() method overridden).
+    
+    @return Maximum number of threads GeneralForceSubsystem can use for force
+    computations**/
     int getNumberOfThreads() const;
 
     /** Every Subsystem is owned by a System; a GeneralForceSubsystem expects

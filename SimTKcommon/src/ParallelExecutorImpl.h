@@ -61,7 +61,6 @@ public:
     ParallelExecutorImpl(int numThreads);
     ~ParallelExecutorImpl();
     ParallelExecutorImpl* clone() const;
-    void init();
     void execute(ParallelExecutor::Task& task, int times);
     int getThreadCount() {
         return threads.size();
@@ -81,12 +80,13 @@ public:
     pthread_cond_t* getCondition() {
         return &runCondition;
     }
-    int getNumMaxThreads() const{
+    int getMaxThreads() const{
       return numMaxThreads;
     }
     void incrementWaitingThreads();
     static ThreadLocal<bool> isWorker;
 private:
+    void init();
     bool finished;
     pthread_mutex_t runLock;
     pthread_cond_t runCondition, waitCondition;

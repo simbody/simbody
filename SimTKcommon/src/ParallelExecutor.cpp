@@ -48,7 +48,8 @@ ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
     // Set the maximum number of threads that we can use
-    SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl", "ParallelExecutorImpl", "Number of threads must be positive.");
+    SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl",
+                 "ParallelExecutorImpl", "Number of threads must be positive.");
     numMaxThreads = numThreads;
 
     ParallelExecutorImpl::init();
@@ -188,6 +189,10 @@ ParallelExecutor::ParallelExecutor() : HandleBase(new ParallelExecutorImpl()) {
 ParallelExecutor::ParallelExecutor(int numThreads) : HandleBase(new ParallelExecutorImpl(numThreads)) {
 }
 
+ParallelExecutor* ParallelExecutor::clone() const{
+    return new ParallelExecutor(getMaxThreads());
+}
+
 void ParallelExecutor::execute(Task& task, int times) {
     updImpl().execute(task, times);
 }
@@ -245,8 +250,8 @@ int ParallelExecutor::getNumProcessors() {
 bool ParallelExecutor::isWorkerThread() {
     return ParallelExecutorImpl::isWorker.get();
 }
-int ParallelExecutor::getNumMaxThreads() const{
-    return getImpl().getNumMaxThreads();
+int ParallelExecutor::getMaxThreads() const{
+    return getImpl().getMaxThreads();
 }
 
 } // namespace SimTK

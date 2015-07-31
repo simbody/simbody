@@ -40,37 +40,38 @@ public:
     bool shouldBeParallelIfPossible() const override{
       return true;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+                  Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
          std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     Real calcPotentialEnergy(const State& state) const {
         return 0.0;
     }
-    void realizeTopology(State& state) const {
+    void realizeTopology(State& state) const override{
         hasRealized[Stage::Topology] = true;
     }
-    void realizeModel(State& state) const {
+    void realizeModel(State& state) const override{
         hasRealized[Stage::Model] = true;
     }
-    void realizeInstance(const State& state) const {
+    void realizeInstance(const State& state) const override{
         hasRealized[Stage::Instance] = true;
     }
-    void realizeTime(const State& state) const {
+    void realizeTime(const State& state) const override{
         hasRealized[Stage::Time] = true;
     }
-    void realizePosition(const State& state) const {
+    void realizePosition(const State& state) const override{
         hasRealized[Stage::Position] = true;
     }
-    void realizeVelocity(const State& state) const {
+    void realizeVelocity(const State& state) const override{
         hasRealized[Stage::Velocity] = true;
     }
-    void realizeDynamics(const State& state) const {
+    void realizeDynamics(const State& state) const override{
         hasRealized[Stage::Dynamics] = true;
     }
-    void realizeAcceleration(const State& state) const {
+    void realizeAcceleration(const State& state) const override{
         hasRealized[Stage::Acceleration] = true;
     }
-    void realizeReport(const State& state) const {
+    void realizeReport(const State& state) const override{
         hasRealized[Stage::Report] = true;
     }
 };
@@ -91,31 +92,31 @@ public:
     Real calcPotentialEnergy(const State& state) const {
         return 0.0;
     }
-    void realizeTopology(State& state) const {
+    void realizeTopology(State& state) const override{
         hasRealized[Stage::Topology] = true;
     }
-    void realizeModel(State& state) const {
+    void realizeModel(State& state) const override{
         hasRealized[Stage::Model] = true;
     }
-    void realizeInstance(const State& state) const {
+    void realizeInstance(const State& state) const override{
         hasRealized[Stage::Instance] = true;
     }
-    void realizeTime(const State& state) const {
+    void realizeTime(const State& state) const override{
         hasRealized[Stage::Time] = true;
     }
-    void realizePosition(const State& state) const {
+    void realizePosition(const State& state) const override{
         hasRealized[Stage::Position] = true;
     }
-    void realizeVelocity(const State& state) const {
+    void realizeVelocity(const State& state) const override{
         hasRealized[Stage::Velocity] = true;
     }
-    void realizeDynamics(const State& state) const {
+    void realizeDynamics(const State& state) const override{
         hasRealized[Stage::Dynamics] = true;
     }
-    void realizeAcceleration(const State& state) const {
+    void realizeAcceleration(const State& state) const override{
         hasRealized[Stage::Acceleration] = true;
     }
-    void realizeReport(const State& state) const {
+    void realizeReport(const State& state) const override{
         hasRealized[Stage::Report] = true;
     }
 };
@@ -150,19 +151,21 @@ void testNonParallelForce()
 
 int main()
 {
-    auto start = std::chrono::high_resolution_clock::now();
-    testParallelForce();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsedParallel = end-start;
-    
-    start = std::chrono::high_resolution_clock::now();
-    testNonParallelForce();
-    end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsedNonParallel = end-start;
-    
-    cout << "Parallel Forces Time: " << elapsedParallel.count() << endl;
-    cout << "NonParallel Forces Time: " << elapsedNonParallel.count() << endl;
-    
-    assert(elapsedNonParallel.count() < elapsedParallel.count());
+    SimTK_START_TEST("TestParallelForces");
+        auto start = std::chrono::high_resolution_clock::now();
+        testParallelForce();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsedParallel = end-start;
+        
+        start = std::chrono::high_resolution_clock::now();
+        testNonParallelForce();
+        end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsedNonParallel = end-start;
+        
+        cout << "Parallel Forces Time: " << elapsedParallel.count() << endl;
+        cout << "NonParallel Forces Time: " << elapsedNonParallel.count() << endl;
+        
+        SimTK_TEST(elapsedNonParallel.count() > elapsedParallel.count());
+    SimTK_END_TEST();
     return 0;
 }

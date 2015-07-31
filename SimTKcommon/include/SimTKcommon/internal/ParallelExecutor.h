@@ -84,6 +84,12 @@ public:
      */
     explicit ParallelExecutor(int maxThreads);
     /**
+     * Clone the ParallelExecutor.
+     *
+     * @return Returns a ParallelExecutor with the same number of maxThreads
+     */
+    ParallelExecutor* clone() const;
+    /**
      * Execute a parallel task.
      * 
      * @param task    the Task to execute
@@ -105,7 +111,7 @@ public:
      * Get the maximum number of thread contexts that the ParallelExecutor is
      * currently allowed to use.
      */
-    int getNumMaxThreads() const;
+    int getMaxThreads() const;
 };
 
 /**
