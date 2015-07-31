@@ -99,7 +99,7 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
     
     //(2) PARALLEL CASE:
     // We launch the maximum number of threads and save them for later use
-    if(threads.size() < (unsigned)numMaxThreads)
+    if(threads.size() < (size_t)numMaxThreads)
     {
       threads.resize(numMaxThreads);
       for (int i = 0; i < numMaxThreads; ++i) {
