@@ -32,92 +32,31 @@ using namespace std;
 
 class ParallelForceImpl : public Force::Custom::Implementation {
 public:
-    mutable bool hasRealized[Stage::Report+1];
-    ParallelForceImpl() {
-        for (int i = 0; i < Stage::NValid; i++)
-            hasRealized[i] = false;
-    }
+    ParallelForceImpl() {}
     bool shouldBeParallelIfPossible() const override{
       return true;
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
-                  Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const override{
          std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    Real calcPotentialEnergy(const State& state) const {
+    Real calcPotentialEnergy(const State& state) const override{
         return 0.0;
-    }
-    void realizeTopology(State& state) const override{
-        hasRealized[Stage::Topology] = true;
-    }
-    void realizeModel(State& state) const override{
-        hasRealized[Stage::Model] = true;
-    }
-    void realizeInstance(const State& state) const override{
-        hasRealized[Stage::Instance] = true;
-    }
-    void realizeTime(const State& state) const override{
-        hasRealized[Stage::Time] = true;
-    }
-    void realizePosition(const State& state) const override{
-        hasRealized[Stage::Position] = true;
-    }
-    void realizeVelocity(const State& state) const override{
-        hasRealized[Stage::Velocity] = true;
-    }
-    void realizeDynamics(const State& state) const override{
-        hasRealized[Stage::Dynamics] = true;
-    }
-    void realizeAcceleration(const State& state) const override{
-        hasRealized[Stage::Acceleration] = true;
-    }
-    void realizeReport(const State& state) const override{
-        hasRealized[Stage::Report] = true;
     }
 };
 
 class NonParallelForceImpl : public Force::Custom::Implementation {
 public:
-    mutable bool hasRealized[Stage::Report+1];
-    NonParallelForceImpl() {
-        for (int i = 0; i < Stage::NValid; i++)
-            hasRealized[i] = false;
-    }
+    NonParallelForceImpl() {}
     bool shouldBeParallelIfPossible() const override{
       return false;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const override{
          std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    Real calcPotentialEnergy(const State& state) const {
+    Real calcPotentialEnergy(const State& state) const override{
         return 0.0;
-    }
-    void realizeTopology(State& state) const override{
-        hasRealized[Stage::Topology] = true;
-    }
-    void realizeModel(State& state) const override{
-        hasRealized[Stage::Model] = true;
-    }
-    void realizeInstance(const State& state) const override{
-        hasRealized[Stage::Instance] = true;
-    }
-    void realizeTime(const State& state) const override{
-        hasRealized[Stage::Time] = true;
-    }
-    void realizePosition(const State& state) const override{
-        hasRealized[Stage::Position] = true;
-    }
-    void realizeVelocity(const State& state) const override{
-        hasRealized[Stage::Velocity] = true;
-    }
-    void realizeDynamics(const State& state) const override{
-        hasRealized[Stage::Dynamics] = true;
-    }
-    void realizeAcceleration(const State& state) const override{
-        hasRealized[Stage::Acceleration] = true;
-    }
-    void realizeReport(const State& state) const override{
-        hasRealized[Stage::Report] = true;
     }
 };
 

@@ -523,7 +523,7 @@ public:
             calcForcesTask->initializeAll(s,
                     enabledNonParallelForces, enabledParallelForces,
                     rigidBodyForces, particleForces, mobilityForces);
-            calcForcesExecutor->execute(calcForcesTask,
+            calcForcesExecutor->execute(calcForcesTask.updRef(),
                           enabledParallelForces.size() + NumNonParallelThreads);
 
             // Allow forces to do their own realization, but wait until all
@@ -567,7 +567,7 @@ public:
                                 rigidBodyForces, particleForces, mobilityForces,
                                 rigidBodyForceCache, particleForceCache,
                                 mobilityForceCache);
-            calcForcesExecutor->execute(calcForcesTask,
+            calcForcesExecutor->execute(calcForcesTask.updRef(),
                           enabledParallelForces.size() + NumNonParallelThreads);
             cachedForcesAreValid = true;
         } else {
@@ -576,7 +576,7 @@ public:
             calcForcesTask->initializeNonCached(s,
                                enabledNonParallelForces, enabledParallelForces,
                                rigidBodyForces, particleForces, mobilityForces);
-            calcForcesExecutor->execute(calcForcesTask,
+            calcForcesExecutor->execute(calcForcesTask.updRef(),
                           enabledParallelForces.size() + NumNonParallelThreads);
         }
 
