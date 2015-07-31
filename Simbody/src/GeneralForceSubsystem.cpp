@@ -720,7 +720,7 @@ void GeneralForceSubsystem::setForceIsDisabled
    (State& state, ForceIndex index, bool disabled) const
 {   getRep().setForceIsDisabled(state, index, disabled); }
 
-void GeneralForceSubsystem::setNumberOfThreads(unsigned int numThreads)
+void GeneralForceSubsystem::setNumberOfThreads(unsigned numThreads)
 {   updRep().setNumberOfThreads(numThreads); }
 
 int GeneralForceSubsystem::getNumberOfThreads() const

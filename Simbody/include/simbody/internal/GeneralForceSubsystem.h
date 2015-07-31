@@ -92,7 +92,7 @@ public:
     number of threads is the number of total processors (including hyperthreads)
     on the machine.
     
-    @note This method should NOT be called while realizing Stage::Dynaimcs.**/
+    @note This method should NOT be called while realizing Stage::Dynamics.**/
     void setNumberOfThreads(unsigned numThreads);
     
     /** Returns the number of threads that the GeneralForceSubsystem can
