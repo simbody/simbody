@@ -392,6 +392,7 @@ Christopher Bruns  |@cmbruns-hhmi |Molmodel
 Randy Radmer       |              |Molmodel
 Charles Schwieters |              |Provided initial multibody code 
 Abhinandan Jain    |              |Underlying spatial algebra formulation
+Thomas Lau         |@thomasklau   |Force Parallelization
 Isaac Newton       |              |F=ma, calculus, etc.
 
 
