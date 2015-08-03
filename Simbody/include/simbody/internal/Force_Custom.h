@@ -248,7 +248,7 @@ public:
         return false;
     }
     /**
-     * Returns a boolean flag telling Simbody whether a this Force type should
+     * Returns a boolean flag telling Simbody whether this Force type should
      * be calculated in parallel if possible. By default, this method returns
      * false.
      *
