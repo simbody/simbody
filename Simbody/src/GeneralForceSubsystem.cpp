@@ -132,6 +132,8 @@ public:
     // Set all of the local force contribution arrays to 0. This is so that
     // each local thread can sum up it's force contribution to be later
     // added into the total force array.
+    //
+    // Note: Execute MUST be called directly after CalcForceTask is initialized
     void initialize() override {
         m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
         m_rigidBodyForcesLocal.upd().setToZero();
