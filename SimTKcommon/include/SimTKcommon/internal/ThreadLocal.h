@@ -38,7 +38,6 @@ template <class T>
 static void cleanUpThreadLocalStorage(void* value) {
 
     // Delete the value.
-    
     T* t = reinterpret_cast<T*>(value);
     delete t;
     
@@ -92,7 +91,6 @@ public:
     ~ThreadLocal() {
         
         // Delete the key.
-        
         pthread_key_delete(key);
         
         // Once the key is deleted, cleanUpThreadLocalStorage() will no longer be called, so delete
