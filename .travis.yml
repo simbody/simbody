@@ -2,6 +2,7 @@
 # framework to run Simbody's tests with every GitHub push or pull-request.
 language: cpp
 
+# Use newer container-based infrastructure.
 sudo: false
 
 os:
@@ -20,14 +21,6 @@ matrix:
 env:
   global:
     - BTYPE=Release
-    # 'ccache' caches compiled objects to speed up the build.
-    - USE_CCACHE=1
-    - CCACHE_COMPRESS=1
-    # for Clang to work with ccache.
-    - CCACHE_CPP2=1
-  
-cache: 
-  - directories: $HOME/.ccache
   
 addons:
   # Dependencies on linux.
@@ -65,17 +58,6 @@ before_install:
   # Make sure we use the newer gcc.
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$CXX" = "g++" ]]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
   
-  ## Set up ccache.
-  # Lots of this is borrowed from https://github.com/weitjong/Urho3D/blob/master/.travis.yml.
-  # Put /usr/lib/ccache on the path.
-  - export PATH=$(whereis -b ccache |grep -o '\S*lib\S*'):$PATH
-  # For some reason the Travis CI clang compiler toolchain installation does not
-  # have a symlink in the ccache symlinks directory, so workaround it
-  - if [ "$CC"  == "clang" ]; then ln -s $(which ccache) $HOME/clang && ln -s $(which ccache) $HOME/clang++ && export PATH=$HOME:$PATH; fi
-  # Without the following lines, ccache causes clang to not print in color.
-  - if [ "$CC" == "clang" ]; then export CC="clang -fcolor-diagnostics"; fi
-  - if [ "$CXX" == "clang++" ]; then export CX="clang++ -fcolor-diagnostics"; fi
-  
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build
   # Configure.
@@ -89,10 +71,3 @@ script:
 
   ## Make sure we can install with no issues.
   - make -j8 install
-  
-  # Maximum size of cache is 100 MB.
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ccache -M 100M; fi
-  
-before_cache:
-  # Show cache statistics.
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ccache -s; fi
