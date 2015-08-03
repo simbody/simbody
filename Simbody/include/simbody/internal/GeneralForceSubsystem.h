@@ -92,6 +92,10 @@ public:
     no containing System or it is not a MultibodySystem. **/
     const MultibodySystem& getMultibodySystem() const;
 
+	/** Set the number of threads to distribute dynamics calculations among. 
+	Defaults to number of cores on machine. **/
+	void setNumberOfThreads(int nThreads) const;
+
     /** @cond **/   // don't show in Doxygen docs
     SimTK_PIMPL_DOWNCAST(GeneralForceSubsystem, ForceSubsystem);
     /** @endcond **/

@@ -49,6 +49,9 @@ public:
     virtual bool dependsOnlyOnPositions() const {
         return false;
     }
+	virtual bool shouldBeParallelized() const {
+		return false;
+	}
     ForceIndex getForceIndex() const {return index;}
     const GeneralForceSubsystem& getForceSubsystem() const 
     {   assert(forces); return *forces; }
@@ -608,6 +611,9 @@ public:
     bool dependsOnlyOnPositions() const {
         return implementation->dependsOnlyOnPositions();
     }
+	bool shouldBeParallelized() const {
+		return implementation->shouldBeParallelized();
+	}
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) 
                    const override;

@@ -53,6 +53,8 @@
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include "SimTKcommon/internal/Parallel2DExecutor.h"
 #include "SimTKcommon/internal/ParallelWorkQueue.h"
+#include "SimTKcommon/internal/ParallelWorkQueue11.h"
+#include "SimTKcommon/internal/ObjectPool.h"
 #include "SimTKcommon/internal/ThreadLocal.h"
 #include "SimTKcommon/internal/AtomicInteger.h"
 #include "SimTKcommon/internal/Pathname.h"

@@ -246,7 +246,14 @@ public:
      */
     virtual bool dependsOnlyOnPositions() const {
         return false;
-    }
+	}
+	/**
+	 * Gets whether this force should be considered as heavy and its calcForce method run in
+	 * parallel with other forces.
+	 */
+	virtual bool shouldBeParallelized() const {
+		return false;
+	}
     /** The following methods may optionally be overridden to do specialized 
     realization for a Force. **/
     //@{

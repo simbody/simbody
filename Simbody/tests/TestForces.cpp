@@ -310,6 +310,7 @@ void testDisabling() {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
+	forces.setNumberOfThreads(15);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Free body1(matter.updGround(), Vec3(0), body, Vec3(0));
     MobilizedBody::Free body2(matter.updGround(), Vec3(0), body, Vec3(0));
@@ -357,16 +358,20 @@ void testDisabling() {
 }
 
 int main() {
+	std::chrono::high_resolution_clock::time_point m_timestamp = std::chrono::high_resolution_clock::now();
     try {
-        testStandardForces();
-        testEnergyConservation();
-        testCustomRealization();
+		testStandardForces();
+		testEnergyConservation();
+		testCustomRealization();
         testDisabling();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
     }
-    cout << "Done" << endl;
+
+	std::chrono::duration<float> fs = std::chrono::high_resolution_clock::now() - m_timestamp;
+
+    cout << "Done [" << fs.count() << "]" << endl;
     return 0;
 }
