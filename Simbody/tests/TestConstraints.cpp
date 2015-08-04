@@ -579,7 +579,7 @@ void testConstraintMatrices() {
     matter.calcProjectedMInv(state, GMInvGt); // O(m*n)
     SimTK_TEST_EQ(GMInvGt, numGMInvGt);
 
-
+    delete &system;
 }
 
 int main() {
