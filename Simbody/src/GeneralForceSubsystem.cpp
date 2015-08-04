@@ -628,6 +628,14 @@ public:
         //parallel implementation of CalcForcesTask (even if those parallel
         //forces are not currently enabled - they could be enabled in the
         //future)
+        //
+        // *Consider the following example:*
+        // Parallel Forces: A B C
+        // NonParallel Forces: D E
+        //
+        // Enabled Forces at Time 0: D E
+        // Enabled Forces at Time 1: A B C D E
+        
         bool hasParallelForces = false;
         for(int x = 0; x < forces.size(); ++x)
         {
