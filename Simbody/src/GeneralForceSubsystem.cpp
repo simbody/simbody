@@ -53,8 +53,7 @@ out common methods that will be implemented to suit the parallel/non-parallel
 use cases*/
 class CalcForcesTask : public ParallelExecutor::Task {
 public:
-    //By default, CalcForcesTask will be in Mode All.
-    CalcForcesTask(){};
+    CalcForcesTask() = default;
     
     virtual CalcForcesTask* clone() const = 0;
     
