@@ -56,13 +56,36 @@ forces being calculated on seperate threads.*/
 class CalcForcesTask : public ParallelExecutor::Task {
 public:
     //By default, CalcForcesTask will be in Mode All.
-    CalcForcesTask(): {}
+    CalcForcesTask(){};
     
-    CalcForcesTask* clone() const{
-        return new CalcForcesTask();
-    }
+    virtual CalcForcesTask* clone() const = 0;
     
-    virtual void initializeAll() = 0;
+    virtual void initializeAll(
+            const State& s,
+            const Array_<Force*>& enabledNonParallelForces,
+            const Array_<Force*>& enabledParallelForces,
+            Vector_<SpatialVec>& rigidBodyForces,
+            Vector_<Vec3>& particleForces,
+            Vector& mobilityForces) = 0;
+    virtual void initializeCachedAndNonCached(
+            const State& s,
+            const Array_<Force*>& enabledNonParallelForces,
+            const Array_<Force*>& enabledParallelForces,
+            Vector_<SpatialVec>& rigidBodyForces,
+            Vector_<Vec3>& particleForces,
+            Vector& mobilityForces,
+            Vector_<SpatialVec>& rigidBodyForceCache,
+            Vector_<Vec3>& particleForceCache,
+            Vector& mobilityForceCache) = 0;
+    virtual void initializeNonCached(
+            const State& s,
+            const Array_<Force*>& enabledNonParallelForces,
+            const Array_<Force*>& enabledParallelForces,
+            Vector_<SpatialVec>& rigidBodyForces,
+            Vector_<Vec3>& particleForces,
+            Vector& mobilityForces) = 0;
+    virtual void initialize() = 0; 
+    virtual void execute(int threadIndex) = 0;
     
 };
 //Implementation of CalcForcesTask for parallel forces
@@ -76,7 +99,7 @@ public:
         NonCached
     };
     
-    CalcForcesParallelTask* clone(){
+    CalcForcesParallelTask* clone() const override {
         return new CalcForcesParallelTask();
     }
     // Each different force calculation Mode requires different parameters
@@ -88,7 +111,7 @@ public:
             const Array_<Force*>& enabledParallelForces,
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
-            Vector& mobilityForces)
+            Vector& mobilityForces) override
     {
         m_state = &s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -108,7 +131,7 @@ public:
             Vector& mobilityForces,
             Vector_<SpatialVec>& rigidBodyForceCache,
             Vector_<Vec3>& particleForceCache,
-            Vector& mobilityForceCache)
+            Vector& mobilityForceCache) override
     {
         m_state = s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -128,7 +151,7 @@ public:
             const Array_<Force*>& enabledParallelForces,
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
-            Vector& mobilityForces)
+            Vector& mobilityForces) override
     {
         m_state = s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -273,7 +296,7 @@ private:
     ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForceCacheLocal;
     ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocal;
     ThreadLocal<Vector> m_mobilityForceCacheLocal;
-}
+};
 
 //Implementation of CalcForcesTask for non-parallel forces
 class CalcForcesNonParallelTask : public CalcForcesTask {
@@ -286,7 +309,7 @@ public:
         NonCached
     };
     
-    CalcForcesNonParallelTask* clone(){
+    CalcForcesNonParallelTask* clone() const override {
         return new CalcForcesNonParallelTask();
     }
     
@@ -299,7 +322,7 @@ public:
             const Array_<Force*>& enabledParallelForces,
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
-            Vector& mobilityForces)
+            Vector& mobilityForces) override
     {
         m_state = &s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -319,7 +342,7 @@ public:
             Vector& mobilityForces,
             Vector_<SpatialVec>& rigidBodyForceCache,
             Vector_<Vec3>& particleForceCache,
-            Vector& mobilityForceCache)
+            Vector& mobilityForceCache) override
     {
         m_state = s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -339,7 +362,7 @@ public:
             const Array_<Force*>& enabledParallelForces,
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
-            Vector& mobilityForces)
+            Vector& mobilityForces) override
     {
         m_state = s;
         m_enabledNonParallelForces = &enabledNonParallelForces;
@@ -460,7 +483,7 @@ private:
     Vector_<SpatialVec> m_rigidBodyForceCacheLocal;
     Vector_<Vec3> m_particleForceCacheLocal;
     Vector m_mobilityForceCacheLocal;
-}
+};
 
 // There is some tricky caching being done here for forces that have overridden
 // dependsOnlyOnPositions() (and returned "true"). This is probably only worth
@@ -600,7 +623,7 @@ public:
         bool hasParallelForces = false;
         for(int x = 0; x < forces.size(); ++x)
         {
-            if (forces[i]->getImpl().shouldBeParallelIfPossible())
+            if (forces[x]->getImpl().shouldBeParallelIfPossible())
             {
                 hasParallelForces = true;
                 break;
