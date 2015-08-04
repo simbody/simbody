@@ -43,16 +43,14 @@
 
 //Threading constants used by CalcForcesTask
 namespace {
+using namespace SimTK;
+
 const int NumNonParallelThreads = 1;
 const int NonParallelForcesIndex = 0;
-}
 
-namespace SimTK {
-
-/** Calculates each enabled force's contribution in the MultibodySystem.
-CalcForcesTask allows force calculations to occur in parallel with non-parallel
-forces being calculated on Thread NonParallelForcesIndex and all other parallel
-forces being calculated on seperate threads.*/
+/* Base class for CalcForcesParallelTask and CalcForcesNonParallelTask - lays 
+out common methods that will be implemented to suit the parallel/non-parallel
+use cases*/
 class CalcForcesTask : public ParallelExecutor::Task {
 public:
     //By default, CalcForcesTask will be in Mode All.
@@ -84,10 +82,13 @@ public:
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
             Vector& mobilityForces) = 0;
-    virtual void initialize() = 0; 
-    virtual void execute(int threadIndex) = 0;
     
 };
+/*Calculates each enabled force's contribution in the MultibodySystem.
+CalcForcesParallelTask allows force calculations to occur in parallel with
+non-parallel forces being calculated on Thread NonParallelForcesIndex and all
+other parallel forces being calculated on seperate threads.*/
+
 //Implementation of CalcForcesTask for parallel forces
 class CalcForcesParallelTask : public CalcForcesTask {
 public:
@@ -297,6 +298,8 @@ private:
     ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocal;
     ThreadLocal<Vector> m_mobilityForceCacheLocal;
 };
+/* Calculates each enabled force's contribution in the MultibodySystem. These
+calculations occur on the main thread, without use of local thread variables.*/
 
 //Implementation of CalcForcesTask for non-parallel forces
 class CalcForcesNonParallelTask : public CalcForcesTask {
@@ -484,7 +487,9 @@ private:
     Vector_<Vec3> m_particleForceCacheLocal;
     Vector m_mobilityForceCacheLocal;
 };
+} //namespace
 
+namespace SimTK{
 // There is some tricky caching being done here for forces that have overridden
 // dependsOnlyOnPositions() (and returned "true"). This is probably only worth
 // doing for very expensive position-only forces like atomic force fields. We
