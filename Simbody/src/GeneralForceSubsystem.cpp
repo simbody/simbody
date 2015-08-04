@@ -624,7 +624,10 @@ public:
         enabledParallelForcesIndex = allocateCacheEntry(s, Stage::Instance,
                              new Value<Array_<Force*> >(enabledParallelForces));
 
-        //Determine whether the subsystem has parallel forces
+        //Determine whether the subsystem has parallel forces - if so, use the
+        //parallel implementation of CalcForcesTask (even if those parallel
+        //forces are not currently enabled - they could be enabled in the
+        //future)
         bool hasParallelForces = false;
         for(int x = 0; x < forces.size(); ++x)
         {

@@ -91,6 +91,7 @@ void testNonParallelForce()
 int main()
 {
     SimTK_START_TEST("TestParallelForces");
+        //Simply pass the test if only one thread is supported on this machine
         unsigned concurrentThreadsSupported = std::thread::hardware_concurrency();
         if(concurrentThreadsSupported <= 1)
             {
@@ -98,6 +99,7 @@ int main()
                 "insufficient number of supported concurrent threads" << endl;
                 return 0;
             }
+            
         auto start = std::chrono::high_resolution_clock::now();
         testParallelForce();
         auto end = std::chrono::high_resolution_clock::now();
