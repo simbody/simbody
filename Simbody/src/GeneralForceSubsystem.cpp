@@ -167,20 +167,20 @@ public:
     // each local thread can sum up it's force contribution to be later
     // added into the total force array.
     void initialize() override {
-        m_rigidBodyForcesLocal.upd().resize(m_rigidBodyForces->size());
-        m_rigidBodyForcesLocal.upd().setToZero();
-        m_particleForcesLocal.upd().resize(m_particleForces->size());
-        m_particleForcesLocal.upd().setToZero();
-        m_mobilityForcesLocal.upd().resize(m_mobilityForces->size());
-        m_mobilityForcesLocal.upd().setToZero();
+        m_rigidBodyForcesLocalStatic.upd().resize(m_rigidBodyForces->size());
+        m_rigidBodyForcesLocalStatic.upd().setToZero();
+        m_particleForcesLocalStatic.upd().resize(m_particleForces->size());
+        m_particleForcesLocalStatic.upd().setToZero();
+        m_mobilityForcesLocalStatic.upd().resize(m_mobilityForces->size());
+        m_mobilityForcesLocalStatic.upd().setToZero();
 
         if (m_mode == CachedAndNonCached) {
-            m_rigidBodyForceCacheLocal.upd().resize(m_rigidBodyForceCache->size());
-            m_rigidBodyForceCacheLocal.upd().setToZero();
-            m_particleForceCacheLocal.upd().resize(m_particleForceCache->size());
-            m_particleForceCacheLocal.upd().setToZero();
-            m_mobilityForceCacheLocal.upd().resize(m_mobilityForceCache->size());
-            m_mobilityForceCacheLocal.upd().setToZero();
+            m_rigidBodyForceCacheLocalStatic.upd().resize(m_rigidBodyForceCache->size());
+            m_rigidBodyForceCacheLocalStatic.upd().setToZero();
+            m_particleForceCacheLocalStatic.upd().resize(m_particleForceCache->size());
+            m_particleForceCacheLocalStatic.upd().setToZero();
+            m_mobilityForceCacheLocalStatic.upd().resize(m_mobilityForceCache->size());
+            m_mobilityForceCacheLocalStatic.upd().setToZero();
         }
     }
     
@@ -191,14 +191,14 @@ public:
             if (threadIndex == NonParallelForcesIndex) {
                 // Process all non-parallel forces
                 for (Force* force : *m_enabledNonParallelForces) {
-                    force->getImpl().calcForce(*m_state, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
+                    force->getImpl().calcForce(*m_state, m_rigidBodyForcesLocalStatic.upd(), m_particleForcesLocalStatic.upd(), m_mobilityForcesLocalStatic.upd());
                 }
             } else {
                 // Process a single parallel force. Subtract 1 from index b/c
                 // we use 0 for the non-parallel forces.
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
-                impl.calcForce(*m_state, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
+                impl.calcForce(*m_state, m_rigidBodyForcesLocalStatic.upd(), m_particleForcesLocalStatic.upd(), m_mobilityForcesLocalStatic.upd());
 
             }
             break;
@@ -220,9 +220,9 @@ public:
                 const auto& impl =
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                 if (impl.dependsOnlyOnPositions()) {
-                    impl.calcForce(*m_state, m_rigidBodyForceCacheLocal.upd(), m_particleForceCacheLocal.upd(), m_mobilityForceCacheLocal.upd());
+                    impl.calcForce(*m_state, m_rigidBodyForceCacheLocalStatic.upd(), m_particleForceCacheLocalStatic.upd(), m_mobilityForceCacheLocalStatic.upd());
                 } else { // ordinary velocity dependent force
-                    impl.calcForce(*m_state, m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(), m_mobilityForcesLocal.upd());
+                    impl.calcForce(*m_state, m_rigidBodyForcesLocalStatic.upd(), m_particleForcesLocalStatic.upd(), m_mobilityForcesLocalStatic.upd());
                 }
             }
             break;
@@ -245,8 +245,8 @@ public:
                     m_enabledParallelForces->getElt(threadIndex-1)->getImpl();
                     if (!impl.dependsOnlyOnPositions()) {
                         impl.calcForce(*m_state,
-                                m_rigidBodyForcesLocal.upd(), m_particleForcesLocal.upd(),
-                                m_mobilityForcesLocal.upd());
+                                m_rigidBodyForcesLocalStatic.upd(), m_particleForcesLocalStatic.upd(),
+                                m_mobilityForcesLocalStatic.upd());
                     }
             }
             break;
@@ -256,14 +256,14 @@ public:
     //Once a thread has finished it's force calculations, we add in the thread's
     //contribution into the cached force arrays in the State
     void finish() override {
-        *m_rigidBodyForces += m_rigidBodyForcesLocal.get();
-        *m_particleForces += m_particleForcesLocal.get();
-        *m_mobilityForces += m_mobilityForcesLocal.get();
+        *m_rigidBodyForces += m_rigidBodyForcesLocalStatic.get();
+        *m_particleForces += m_particleForcesLocalStatic.get();
+        *m_mobilityForces += m_mobilityForcesLocalStatic.get();
 
         if (m_mode == CachedAndNonCached) {
-            *m_rigidBodyForceCache += m_rigidBodyForceCacheLocal.get();
-            *m_particleForceCache += m_particleForceCacheLocal.get();
-            *m_mobilityForceCache += m_mobilityForceCacheLocal.get();
+            *m_rigidBodyForceCache += m_rigidBodyForceCacheLocalStatic.get();
+            *m_particleForceCache += m_particleForceCacheLocalStatic.get();
+            *m_mobilityForceCache += m_mobilityForceCacheLocalStatic.get();
         }
     }
 private:
@@ -289,14 +289,24 @@ private:
     // These variables are local to a thread. They are set to their default
     // value when the threads are spawned. We use them to keep track of each
     // thread's contribution that we will later add in to the final state cache.
-    static ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocal;
-    static ThreadLocal<Vector_<Vec3>> m_particleForcesLocal;
-    static ThreadLocal<Vector> m_mobilityForcesLocal;
+    ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocalStatic;
+    ThreadLocal<Vector_<Vec3>> m_particleForcesLocalStatic;
+    ThreadLocal<Vector> m_mobilityForcesLocalStatic;
 
-    static ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForceCacheLocal;
-    static ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocal;
-    static ThreadLocal<Vector> m_mobilityForceCacheLocal;
+    ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForceCacheLocalStatic;
+    ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocalStatic;
+    ThreadLocal<Vector> m_mobilityForceCacheLocalStatic;
 };
+
+//local declarations of static member variables
+static ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocalStatic();
+static ThreadLocal<Vector_<Vec3>> m_particleForcesLocalStatic();
+static ThreadLocal<Vector> m_mobilityForcesLocalStatic();
+
+static ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForceCacheLocalStatic();
+static ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocalStatic();
+static ThreadLocal<Vector> m_mobilityForceCacheLocalStatic();
+
 /* Calculates each enabled force's contribution in the MultibodySystem. These
 calculations occur on the main thread, without use of local thread variables.*/
 
