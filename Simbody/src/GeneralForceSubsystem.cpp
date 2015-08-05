@@ -53,8 +53,7 @@ out common methods that will be implemented to suit the parallel/non-parallel
 use cases*/
 class CalcForcesTask : public ParallelExecutor::Task {
 public:
-    //By default, CalcForcesTask will be in Mode All.
-    CalcForcesTask(){};
+    CalcForcesTask() = default;
     
     virtual CalcForcesTask* clone() const = 0;
     
@@ -290,13 +289,13 @@ private:
     // These variables are local to a thread. They are set to their default
     // value when the threads are spawned. We use them to keep track of each
     // thread's contribution that we will later add in to the final state cache.
-    ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocal;
-    ThreadLocal<Vector_<Vec3>> m_particleForcesLocal;
-    ThreadLocal<Vector> m_mobilityForcesLocal;
+    static ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForcesLocal;
+    static ThreadLocal<Vector_<Vec3>> m_particleForcesLocal;
+    static ThreadLocal<Vector> m_mobilityForcesLocal;
 
-    ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForceCacheLocal;
-    ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocal;
-    ThreadLocal<Vector> m_mobilityForceCacheLocal;
+    static ThreadLocal<Vector_<SpatialVec>> m_rigidBodyForceCacheLocal;
+    static ThreadLocal<Vector_<Vec3>> m_particleForceCacheLocal;
+    static ThreadLocal<Vector> m_mobilityForceCacheLocal;
 };
 /* Calculates each enabled force's contribution in the MultibodySystem. These
 calculations occur on the main thread, without use of local thread variables.*/
@@ -508,7 +507,7 @@ public:
 
     ~GeneralForceSubsystemRep() {
         // Delete in reverse order to be nice to heap system.
-        for (int i = (int)forces.size()-1; i >= 0; --i)
+        for (int i = (int) forces.size()-1; i >= 0; --i)
             delete forces[i];
     }
 
@@ -637,7 +636,7 @@ public:
         // Enabled Forces at Time 1: A B C D E
         
         bool hasParallelForces = false;
-        for(int x = 0; x < forces.size(); ++x)
+        for(int x = 0; x < (int)forces.size(); ++x)
         {
             if (forces[x]->getImpl().shouldBeParallelIfPossible())
             {

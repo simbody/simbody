@@ -38,7 +38,7 @@ public:
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
           Vector_<Vec3>& particleForces, Vector& mobilityForces) const override{
-         std::this_thread::sleep_for(std::chrono::seconds(1));
+         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     Real calcPotentialEnergy(const State& state) const override{
         return 0.0;
@@ -53,7 +53,7 @@ public:
     }
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
           Vector_<Vec3>& particleForces, Vector& mobilityForces) const override{
-         std::this_thread::sleep_for(std::chrono::seconds(1));
+         std::this_thread::sleep_for(std::chrono::seconds(100));
     }
     Real calcPotentialEnergy(const State& state) const override{
         return 0.0;
