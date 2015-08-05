@@ -66,7 +66,7 @@ public:
 
     /** Default constructor creates an empty %Spline_ handle; not very 
     useful. **/
-    Spline_() : impl(NULL) {}
+    Spline_() : impl(nullptr) {}
 
     /** Copy constructor is shallow and reference-counted; that is, the new
     %Spline_ refers to the same object as does \a source. **/
@@ -168,6 +168,8 @@ public:
     /** Required by the Function_ interface. **/
     int getMaxDerivativeOrder() const override 
     {   return std::numeric_limits<int>::max(); }
+    /** Required by the Function_ interface. **/
+    Spline_* clone() const override {return new Spline_(*this);}
 
 private:
     class SplineImpl;

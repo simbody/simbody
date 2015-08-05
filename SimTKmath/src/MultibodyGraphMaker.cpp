@@ -36,6 +36,10 @@
 
 using std::cout; using std::endl;
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#endif
+
 namespace SimTK {
 
 //------------------------------------------------------------------------------

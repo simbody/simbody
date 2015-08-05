@@ -73,11 +73,9 @@ std::string Event::eventTriggerString(Trigger e) {
 
     // should have accounted for everything by now
     if (e != NoEventTrigger) {
-        char buf[128];
-        std::sprintf(buf, "0x%x", (unsigned)e);
         if (s.size()) s += " + ";
         s += "UNRECOGNIZED EVENT TRIGGER GARBAGE ";
-        s += buf;
+        s += String((unsigned)e, "0x%x");
     }
     return s;
 }

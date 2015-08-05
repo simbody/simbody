@@ -29,6 +29,10 @@ using std::cout;
 using std::endl;
 using std::string;
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strerror, sprintf, etc.
+#endif
+
 using namespace SimTK;
 
 /**

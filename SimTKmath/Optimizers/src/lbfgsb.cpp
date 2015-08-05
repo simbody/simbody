@@ -52,6 +52,10 @@
 #include <ctime>
 #include <cstring>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
+#endif
+
 #define  imin(X, Y)  ((X) < (Y) ? (X) : (Y))
 
 #if SimTK_DEFAULT_PRECISION==1 // float

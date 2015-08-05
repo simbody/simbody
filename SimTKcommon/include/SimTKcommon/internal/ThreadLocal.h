@@ -9,9 +9,9 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
- * Contributors:                                                              *
+ * Contributors: Michael Sherman                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -30,117 +30,103 @@
 
 namespace SimTK {
 
-static std::map<void*, pthread_key_t> instanceMap;
-static std::map<pthread_key_t, std::set<void*> > keyInstances;
-static pthread_mutex_t keyLock = PTHREAD_MUTEX_INITIALIZER;
+/** <b>(Deprecated)</b> This class represents a "thread local" variable: one 
+which may have a different value on each thread; use C++11 `thread_local`
+instead. This class is no longer necessary since C++11 has `thread_local` as a 
+built-in keyword -- you should use that instead.
 
-template <class T>
-static void cleanUpThreadLocalStorage(void* value) {
+Thread-local storage is useful in many situations when writing multithreaded 
+code. For example, it can be used as temporary workspace for calculations. If a 
+single workspace object were created, all access to it would need to be 
+synchronized to prevent threads from overwriting each other's values. Using a 
+`ThreadLocal<T>` instead means that a separate workspace object of type
+`T` will automatically be created for each thread. That object will have 
+"thread scope" meaning it will be destructed only on thread termination. Note
+that that means it can outlive destruction of the `ThreadLocal<T>` object.
 
-    // Delete the value.
-    T* t = reinterpret_cast<T*>(value);
-    delete t;
-    
-    // Remove it from the set of values needing to be deleted.
-    
-    pthread_mutex_lock(&keyLock);
-    pthread_key_t key = instanceMap[value];
-    instanceMap.erase(value);
-    if (keyInstances.find(key) != keyInstances.end())
-        keyInstances.find(key)->second.erase(value);
-    pthread_mutex_unlock(&keyLock);
+To use it, simply create a `ThreadLocal<T>`, then call get() or upd() to get a 
+readable or writable reference to the value of type `T` that is available for
+the exclusive use of the current thread:
+@code
+    ThreadLocal<int> x;
+    ...
+    x.upd() = 5;
+    assert(x.get() == 5);
+@endcode
 
-}
-
-/**
- * This class represents a "thread local" variable: one which has a different value on each thread.
- * This is useful in many situations when writing multithreaded code.  For example, it can be used
- * as temporary workspace for calculations.  If a single workspace object were created, all access
- * to it would need to be synchronized to prevent threads from overwriting each other's values.
- * Using a ThreadLocal instead means that a separate workspace object will automatically be created
- * for each thread.
- * 
- * To use it, simply create a ThreadLocal, then call get() or upd() to get a readable or writable
- * reference to the value for the current thread:
- * 
- * <pre>
- * ThreadLocal<int> x;
- * ...
- * x.upd() = 5;
- * assert(x.get() == 5);
- * </pre>
- */
-
+@warning You should avoid allocating `ThreadLocal` objects in single-threaded
+code because the objects of type `T` have "thread scope"; they do not get 
+destructed when the `ThreadLocal` object does. So in the single-threaded case
+they will persist until program termination, creating a potential for leaks.
+**/
 template <class T>
 class ThreadLocal {
 public:
-    /**
-     * Create a new ThreadLocal variable.
-     */
+    /** Create a new `ThreadLocal<T>` object. This does not allocate any of
+    the thread-local objects of type `T`; that is done from the individual
+    threads when they first request such an object. **/
     ThreadLocal() {
-        this->initialize();
+        initialize();
     }
-    /**
-     * Create a new ThreadLocal variable.
-     * 
-     * @param defaultValue the initial value which the variable will have on each thread
-     */
-    ThreadLocal(const T& defaultValue) : defaultValue(defaultValue) {
-        this->initialize();
+
+    /** Create a new `ThreadLocal<T>` object and provide a default value of type
+    `T` to be used to initialize the thread-local objects when they are first
+    allocated by the individual threads.
+
+    @param defaultValue     The initial value that the objects of type `T` will
+                            have when created by the individual threads.
+    **/
+    explicit ThreadLocal(const T& defaultValue) : m_defaultValue(defaultValue) {
+        initialize();
     }
+
+    /** Destructor deletes the thread local object but does not delete the
+    individual thread-allocated objects of type T. Those are deleted only on
+    thread termination. **/
     ~ThreadLocal() {
-        
-        // Delete the key.
-        pthread_key_delete(key);
-        
-        // Once the key is deleted, cleanUpThreadLocalStorage() will no longer be called, so delete
-        // all instances now.
-        
-        pthread_mutex_lock(&keyLock);
-        std::set<void*>& instances = keyInstances[key];
-        for (std::set<void*>::const_iterator iter = instances.begin(); iter != instances.end(); ++iter) {
-            instanceMap.erase(*iter);
-            delete (T*) *iter;
-        }
-        keyInstances.erase(key);
-        pthread_mutex_unlock(&keyLock);
+        pthread_key_delete(m_key);
     }
-    /**
-     * Get a reference to the value for the current thread.
-     */
+
+    /** Get a writable reference to the value of type `T` that was allocated
+    for the current thread's exclusive use. **/
     T& upd() {
-        T* value = reinterpret_cast<T*>(pthread_getspecific(key));
-        if (value == NULL)
-            return createValue();
+        T* value = reinterpret_cast<T*>(pthread_getspecific(m_key));
+        if (!value) 
+            value = createValue();
         return *value;
     }
-    /**
-     * Get a const reference to the value for the current thread.
-     */
+
+    /** Get a const reference to the value of type `T` that was allocated
+    for the current thread's exclusive use. **/
     const T& get() const {
-        T* value = reinterpret_cast<T*>(pthread_getspecific(key));
-        if (value == NULL)
-            return createValue();
+        T* value = reinterpret_cast<T*>(pthread_getspecific(m_key));
+        if (!value) 
+            value = createValue();
         return *value;
     }
+
 private:
+    // This is a destructor for an object of type T that was allocated for this
+    // thread's exclusive use. This will be called at thread termination, from
+    // the same thread that allocated this object via the createValue() 
+    // method below.
+    static void cleanUpThreadLocalStorage(void* value) {
+        T* t = reinterpret_cast<T*>(value);
+        delete t;
+    }
+
     void initialize() {
-        pthread_key_create(&key, cleanUpThreadLocalStorage<T>);
-        pthread_mutex_lock(&keyLock);
-        keyInstances[key] = std::set<void*>();
-        pthread_mutex_unlock(&keyLock);
+        pthread_key_create(&m_key, cleanUpThreadLocalStorage);
     }
-    T& createValue() const {
-        T* value = new T(defaultValue);
-        pthread_setspecific(key, value);
-        pthread_mutex_lock(&keyLock);
-        instanceMap[value] = key;
-        keyInstances[key].insert(value);
-        pthread_mutex_unlock(&keyLock);
-        return *value;
+
+    T* createValue() const {
+        T* value = new T(m_defaultValue);
+        pthread_setspecific(m_key, value);
+        return value;
     }
-    pthread_key_t key;
-    T defaultValue;
+
+    pthread_key_t   m_key;
+    T               m_defaultValue;
 };
 
 } // namespace SimTK

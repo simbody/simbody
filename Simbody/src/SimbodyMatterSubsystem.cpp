@@ -387,7 +387,7 @@ void SimbodyMatterSubsystem::multiplyByM(const State&  state,
     const int nu = rep.getNU(state);
 
     SimTK_ERRCHK2_ALWAYS(a.size() == nu,
-        "SimbodyMatterSubsystem::multiplyByMInv()",
+        "SimbodyMatterSubsystem::multiplyByM()",
         "Argument 'a' had length %d but should have the same length"
         " as the number of mobilities (generalized speeds u) %d.", 
         a.size(), nu);

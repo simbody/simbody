@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -41,16 +41,22 @@ using namespace std;
     #include <io.h>
     #include <process.h>
     #define READ _read
+    #define WRITEFUNC _write
 #else
     #include <unistd.h>
     #define READ read
+    #define WRITEFUNC write
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(disable:4996) // don't warn about strcat, sprintf, etc.
 #endif
 
 // gcc 4.4.3 complains bitterly if you don't check the return
 // status from the write() system call. This avoids those 
 // warnings and maybe, someday, will catch an error.
 #define WRITE(pipeno, buf, len) \
-   {int status=write((pipeno), (buf), (len)); \
+   {int status=WRITEFUNC((pipeno), (buf), (len)); \
     SimTK_ERRCHK4_ALWAYS(status!=-1, "VisualizerProtocol",  \
     "An attempt to write() %d bytes to pipe %d failed with errno=%d (%s).", \
     (len),(pipeno),errno,strerror(errno));}

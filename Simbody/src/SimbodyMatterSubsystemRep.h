@@ -216,7 +216,8 @@ public:
     int getNumMobilizedBodies() const {return (int)mobilizedBodies.size();}
 
     const MobilizedBody& getMobilizedBody(MobilizedBodyIndex ix) const {
-        assert(ix < (int)mobilizedBodies.size());
+        SimTK_INDEXCHECK(ix, (int)mobilizedBodies.size(),
+                         "SimbodyMatterSubsystem::getMobilizedBody()");
         assert(mobilizedBodies[ix]);
         return *mobilizedBodies[ix];
     }
@@ -230,7 +231,8 @@ public:
     // every non-const method of MobilizedBody and its many descendants mark 
     // the subsystem topology invalid when called.
     MobilizedBody& updMobilizedBody(MobilizedBodyIndex ix) {
-        assert(ix < (int)mobilizedBodies.size());
+        SimTK_INDEXCHECK(ix, (int)mobilizedBodies.size(),
+                         "SimbodyMatterSubsystem::updMobilizedBody()");
         assert(mobilizedBodies[ix]);
         return *mobilizedBodies[ix]; // topology not marked invalid yet
     }
@@ -249,15 +251,17 @@ public:
 
     ConstraintIndex adoptConstraint(Constraint& child);
 
-    const Constraint& getConstraint(ConstraintIndex id) const {
-        assert(id < (int)constraints.size());
-        assert(constraints[id]);
-        return *constraints[id];
+    const Constraint& getConstraint(ConstraintIndex ix) const {
+        SimTK_INDEXCHECK(ix, (int)constraints.size(),
+                         "SimbodyMatterSubsystem::getConstraint()");
+        assert(constraints[ix]);
+        return *constraints[ix];
     }
-    Constraint& updConstraint(ConstraintIndex id) {
-        assert(id < (int)constraints.size());
-        assert(constraints[id]);
-        return *constraints[id];
+    Constraint& updConstraint(ConstraintIndex ix) {
+        SimTK_INDEXCHECK(ix, (int)constraints.size(),
+                         "SimbodyMatterSubsystem::updConstraint()");
+        assert(constraints[ix]);
+        return *constraints[ix];
     }
 
     UnilateralContactIndex adoptUnilateralContact(UnilateralContact*);
@@ -265,13 +269,15 @@ public:
     {   return (int)uniContacts.size(); }
     const UnilateralContact& 
     getUnilateralContact(UnilateralContactIndex ix) const {
-        assert(ix < uniContacts.size());
+        SimTK_INDEXCHECK(ix, (int)uniContacts.size(),
+                         "SimbodyMatterSubsystem::getUnilateralContact()");
         assert(uniContacts[ix]);
         return *uniContacts[ix];
     }
     UnilateralContact& 
     updUnilateralContact(UnilateralContactIndex ix) {
-        assert(ix < uniContacts.size());
+        SimTK_INDEXCHECK(ix, (int)uniContacts.size(),
+                         "SimbodyMatterSubsystem::updUnilateralContact()");
         assert(uniContacts[ix]);
         return *uniContacts[ix];
     }
@@ -282,13 +288,15 @@ public:
 
     const StateLimitedFriction& 
     getStateLimitedFriction(StateLimitedFrictionIndex ix) const {
-        assert(ix < stateLtdFriction.size());
+        SimTK_INDEXCHECK(ix, (int)stateLtdFriction.size(),
+                         "SimbodyMatterSubsystem::getStateLimitedFriction()");
         assert(stateLtdFriction[ix]);
         return *stateLtdFriction[ix];
     }
     StateLimitedFriction& 
     updStateLimitedFriction(StateLimitedFrictionIndex ix) {
-        assert(ix < stateLtdFriction.size());
+        SimTK_INDEXCHECK(ix, (int)stateLtdFriction.size(),
+                         "SimbodyMatterSubsystem::updStateLimitedFriction()");
         assert(stateLtdFriction[ix]);
         return *stateLtdFriction[ix];
     }

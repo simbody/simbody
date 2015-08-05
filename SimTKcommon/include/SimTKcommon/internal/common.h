@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Chris Dembia                                                 *
  *                                                                            *
@@ -169,6 +169,7 @@ or any other Index type to an argument expecting a certain Index type. **/
     #pragma warning(disable:4275) /*no DLL interface for base class of exported class*/
     #pragma warning(disable:4345) /*warning about PODs being default-initialized*/
 
+
     /* Until VS2015 struct timespec was missing from <ctime> so is faked here 
     if needed. However, note that it is also defined in the pthread.h header on 
     Windows, so the guard symbol must match here to avoid a duplicate declaration. 
@@ -178,7 +179,7 @@ or any other Index type to an argument expecting a certain Index type. **/
     #define HAVE_STRUCT_TIMESPEC 1
         #if _MSC_VER < 1900
         struct timespec {
-            long tv_sec;  // TODO: this should be time_t but must fix in pthreads too
+            long tv_sec; /*TODO: should be time_t but must fix in pthreads too*/
             long tv_nsec;
         };
         #endif
@@ -262,8 +263,31 @@ cache misses which ultimately reduce performance. */
     #define SimTK_FORCE_INLINE __attribute__((always_inline))
 #endif
 
+/* Microsoft added noexcept in VS2015 */
+#if defined(_MSC_VER) && _MSC_VER < 1900
+    #define NOEXCEPT_11 throw()
+#else
+    #define NOEXCEPT_11 noexcept
+#endif
+
+/* C++14 introduces a standard way to mark deprecated declarations. Before
+that we can use non-standard compiler hacks. */
+#ifndef SWIG
+    #if __cplusplus >= 201402L
+        /* C++14 */
+        #define DEPRECATED_14(MSG) [[deprecated(MSG)]]
+    #elif _MSC_VER
+        /* VC++ just says warning C4996 so add "DEPRECATED" to the message. */
+        #define DEPRECATED_14(MSG) __declspec(deprecated("DEPRECATED: " MSG))
+    #else /* gcc or clang */
+        #define DEPRECATED_14(MSG) __attribute__((deprecated(MSG)))
+    #endif
+#else /* Swigging */
+    #define DEPRECATED_14(MSG)
+#endif
+
 /* These macros are deprecated, leftover from before C++11 was available. 
-Don't use them. */
+Don't use them. Sorry, can't use the DEPRECATED_14 macro here! */
 #define OVERRIDE_11 override
 #define FINAL_11 final
 

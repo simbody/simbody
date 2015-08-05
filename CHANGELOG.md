@@ -8,7 +8,29 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.6 (in development)
 --------------------
+* Added smart pointer NullOnCopyUniquePtr which is the same as std::unique_ptr
+  except that it adds copy construction and copy assignment that leave the
+  target null. This can be used for owned heap-allocated objects that are
+  "local" in the sense that they should not be copied along with their owner.
+  That allows use of compiler-generated default copy construction and 
+  copy assignment for the owning class. 
+* Added clone() method to `SimTK::Function_` base class and implemented it for
+  Simbody-defined concrete Function classes. Made concrete Function members
+  non-const to permit assignment, and modified Function_<T>::Step to allow
+  changing its parameters after construction.
 * Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
+* Prevented copy construction of `Array_<T>` from `Array_<T2>` unless T2 is *implicitly*
+  convertible to T. Previously this was allowed if there was any conversion possible
+  even if it was explicit. Array_ was being too relaxed about this, causing hidden 
+  copies to occur. 
+* Added CloneOnWritePtr smart pointer (acts like ClonePtr but with deferred cloning).
+* Updated ClonePtr and ReferencePtr APIs to follow C++11 standard smart pointer
+  terminology. This required deprecating some existing methods and operators, so
+  you can expect to get annoying warnings until you switch to the new API. 
+* Possible BREAKING CHANGE: ClonePtr's operator==() previously delegated
+  to the managed object; now it just operates on the managed pointer as is done 
+  in other smart pointers. Consequently now only a clone() method is required for a type
+  to be contained in a ClonePtr; previously it had to support comparison also.
 * Make doxygen run silently so errors will be easier to see.
 * Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
 of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
@@ -20,6 +42,7 @@ to ParallelExecutor, mutex state lock.
 
 3.5.3 (15 June 2015)
 -------------------
+This is the release that shipped with OpenSim 3.3.
 * Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
 * Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
 * Fixed a problem with VectorIterator which could unnecessary copying, possibly affecting mesh handling performance. See issue [#349](https://github.com/simbody/simbody/issues/349). 
