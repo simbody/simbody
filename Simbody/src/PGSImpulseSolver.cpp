@@ -231,7 +231,7 @@ representing m scalar constraint equations A[i]*pi=rhs[i].
 A smaller square "participating" subset may be selected via
     - I, selection index set, a p-element subset of IA={1,...,m}
 
-The selected subset I is partitioned into four disjoint index sets
+The selected subset I is partitioned into disjoint index sets
     - IU: Unconditional
     - IC: Unilateral contact, optionally with planar friction
     - IS: Unilateral speed constraint
