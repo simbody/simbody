@@ -300,18 +300,24 @@ private:
 
 //local declarations of static member variables
 /*static*/ ThreadLocal<Vector_<SpatialVec>>
-                           CalcForcesParallelTask::m_rigidBodyForcesLocalStatic;
+                            CalcForcesParallelTask::m_rigidBodyForcesLocalStatic
+                                           = ThreadLocal<Vector_<SpatialVec>>();
 /*static*/ ThreadLocal<Vector_<Vec3>>
-                            CalcForcesParallelTask::m_particleForcesLocalStatic;
+                            CalcForcesParallelTask::m_particleForcesLocalStatic
+                                                 = ThreadLocal<Vector_<Vec3>>();
 /*static*/ ThreadLocal<Vector>
-                            CalcForcesParallelTask::m_mobilityForcesLocalStatic;
+                            CalcForcesParallelTask::m_mobilityForcesLocalStatic
+                                                        = ThreadLocal<Vector>();
 
 /*static*/ ThreadLocal<Vector_<SpatialVec>>
-                       CalcForcesParallelTask::m_rigidBodyForceCacheLocalStatic;
+                       CalcForcesParallelTask::m_rigidBodyForceCacheLocalStatic
+                                           = ThreadLocal<Vector_<SpatialVec>>();
 /*static*/ ThreadLocal<Vector_<Vec3>>
-                        CalcForcesParallelTask::m_particleForceCacheLocalStatic;
+                        CalcForcesParallelTask::m_particleForceCacheLocalStatic
+                                                 = ThreadLocal<Vector_<Vec3>>();
 /*static*/ ThreadLocal<Vector>
-                        CalcForcesParallelTask::m_mobilityForceCacheLocalStatic;
+                        CalcForcesParallelTask::m_mobilityForceCacheLocalStatic
+                                                        = ThreadLocal<Vector>();
 
 /* Calculates each enabled force's contribution in the MultibodySystem. These
 calculations occur on the main thread, without use of local thread variables.*/
