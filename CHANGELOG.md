@@ -34,6 +34,9 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 * Make doxygen run silently so errors will be easier to see.
 * Added new methods to `Pathname` class for interpreting pathnames against a specified working directory instead
 of the current working directory (thanks to Carmichael Ong). See [Issue #264](https://github.com/simbody/simbody/issues/264) and [PR #307](https://github.com/simbody/simbody/pull/307). 
+* Added the ability to parallelize forces, robustness/performance improvements
+to ParallelExecutor, mutex state lock.
+[PR #414](https://github.com/simbody/simbody/pull/414).
 * (There are more that haven't been added yet)
 
 

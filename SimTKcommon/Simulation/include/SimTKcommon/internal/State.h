@@ -37,6 +37,7 @@ done in a separate internal class. **/
 #include <ostream>
 #include <cassert>
 #include <algorithm>
+#include <mutex>
 
 namespace SimTK {
 
@@ -812,6 +813,12 @@ inline int getNEventTriggersByStage(Stage) const;
 /// first of the event triggers associated with a particular Stage are stored;
 /// the rest follow contiguously. Callable at Instance stage.
 inline SystemEventTriggerIndex getEventTriggerStartByStage(Stage) const;
+/// Returns a mutex that should be used to lock the state whenever multiple 
+/// threads are asynchronously writing/updating a common state cache. A lock
+/// should always be used when thread-safe state is not guarenteed. If multiple
+/// threads are simply reading from the cache, locking the state may not be
+/// necessary.
+inline std::mutex& getStateLock() const;
 
 /// @}
 
@@ -1095,6 +1102,7 @@ inline String cacheToString() const;
 // separate header file included below.
                                 private:
 class StateImpl* impl;
+
 const StateImpl& getImpl() const {assert(impl); return *impl;}
 StateImpl&       updImpl()       {assert(impl); return *impl;}
 };

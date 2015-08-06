@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <ostream>
 #include <set>
+#include <mutex>
+#include <thread>
 
 namespace SimTK {
 
@@ -44,8 +46,7 @@ State::State() {
 
 // Restore state to default-constructed condition
 void State::clear() {
-    delete impl;
-    impl = new StateImpl();
+    delete impl; impl = new StateImpl();
 }
 State::~State() {
     delete impl; impl=0;
@@ -312,7 +313,7 @@ StateImpl::StateImpl(const StateImpl& src)
 :   currentSystemStage(Stage::Empty)
 {
     initializeStageVersions();
-
+    
     // Make sure that no copied cache entry could accidentally think
     // it was up to date. We'll change some of these below if appropriate.
     // (We're skipping the Empty stage 0.)
