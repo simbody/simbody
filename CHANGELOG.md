@@ -19,11 +19,11 @@ Non-breaking changes
 * Renamed `addEventHandler/Reporter()` methods to `adoptEventHandler/Reporter()` since that is what they are doing without following the correct naming convention. The old methods are still around for backwards compatibility but they are deprecated.
 
 
-**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
-
-
 3.6 (in development)
 --------------------
+
+**Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
+
 * Added smart pointer NullOnCopyUniquePtr which is the same as std::unique_ptr
   except that it adds copy construction and copy assignment that leave the
   target null. This can be used for owned heap-allocated objects that are
@@ -35,7 +35,7 @@ Non-breaking changes
   non-const to permit assignment, and modified Function_<T>::Step to allow
   changing its parameters after construction.
 * Added C++11 features to the `SimTK::Array_` container including `std::initializer_list` construction, move construction, move assignment, and `emplace` methods.
-* Prevented copy construction of Array_<T> from Array_<T2> unless T2 is *implicitly*
+* Prevented copy construction of `Array_<T>` from `Array_<T2>` unless T2 is *implicitly*
   convertible to T. Previously this was allowed if there was any conversion possible
   even if it was explicit. Array_ was being too relaxed about this, causing hidden 
   copies to occur. 
@@ -44,7 +44,7 @@ Non-breaking changes
   terminology. This required deprecating some existing methods and operators, so
   you can expect to get annoying warnings until you switch to the new API. 
 * Possible BREAKING CHANGE: ClonePtr's operator==() previously delegated
-  to the managed object; not it just operates on the managed pointer as is done 
+  to the managed object; now it just operates on the managed pointer as is done 
   in other smart pointers. Consequently now only a clone() method is required for a type
   to be contained in a ClonePtr; previously it had to support comparison also.
 * Make doxygen run silently so errors will be easier to see.
@@ -58,6 +58,7 @@ to ParallelExecutor, mutex state lock.
 
 3.5.3 (15 June 2015)
 -------------------
+This is the release that shipped with OpenSim 3.3.
 * Small changes to allow compilation with Visual Studio 2015 (PRs [#395](https://github.com/simbody/simbody/pull/395) and [#396](https://github.com/simbody/simbody/pull/396)).
 * Fixed a problem with SpatialInertia::shift() with non-zero COM offset, see issue [#334](https://github.com/simbody/simbody/issues/334). This also affected calcCompositeBodyInertias(). These are not commonly used.
 * Fixed a problem with VectorIterator which could unnecessary copying, possibly affecting mesh handling performance. See issue [#349](https://github.com/simbody/simbody/issues/349). 
