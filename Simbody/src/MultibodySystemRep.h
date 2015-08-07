@@ -294,84 +294,82 @@ public:
 MatterSubsystem and a set of ForceSubsystems. */
 class MultibodySystemRep : public System::Guts {
 public:
-    MultibodySystemRep() 
-        : System::Guts("MultibodySystem", "0.0.1")
-    {
-    }
-    ~MultibodySystemRep() {
-    }
+    MultibodySystemRep();
+    ~MultibodySystemRep() {}
 
     SubsystemIndex setGlobalSubsystem() {
-        assert(!globalSub.isValid());
+        assert(!m_globalSub.isValid());
         MultibodySystemGlobalSubsystem glo;
-        globalSub = adoptSubsystem(glo);
-        return globalSub;
+        m_globalSub = adoptSubsystem(glo);
+        return m_globalSub;
     }
     SubsystemIndex setMatterSubsystem(SimbodyMatterSubsystem& m) {
-        assert(!matterSub.isValid());
-        matterSub = adoptSubsystem(m);
-        return matterSub;
+        assert(!m_matterSub.isValid());
+        m_matterSub = adoptSubsystem(m);
+        return m_matterSub;
     }
     SubsystemIndex addForceSubsystem(ForceSubsystem& f) {
-        forceSubs.push_back(adoptSubsystem(f));
-        return forceSubs.back();
+        m_forceSubs.push_back(adoptSubsystem(f));
+        return m_forceSubs.back();
     }
     SubsystemIndex setDecorationSubsystem(DecorationSubsystem& d) {
-        assert(!decorationSub.isValid());
-        decorationSub = adoptSubsystem(d);
-        return decorationSub;
+        assert(!m_decorationSub.isValid());
+        m_decorationSub = adoptSubsystem(d);
+        return m_decorationSub;
     }
     SubsystemIndex setContactSubsystem(GeneralContactSubsystem& c) {
-        assert(!contactSub.isValid());
-        contactSub = adoptSubsystem(c);
-        return contactSub;
+        assert(!m_contactSub.isValid());
+        m_contactSub = adoptSubsystem(c);
+        return m_contactSub;
     }
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {
-        assert(matterSub.isValid());
-        return SimbodyMatterSubsystem::downcast(getSubsystem(matterSub));
+        assert(m_matterSub.isValid());
+        return SimbodyMatterSubsystem::downcast(getSubsystem(m_matterSub));
     }
     const ForceSubsystem& getForceSubsystem(SubsystemIndex id) const {
         return ForceSubsystem::downcast(getSubsystem(id));
     }
     const MultibodySystemGlobalSubsystem& getGlobalSubsystem() const {
-        assert(globalSub.isValid());
-        return MultibodySystemGlobalSubsystem::downcast(getSubsystem(globalSub));
+        assert(m_globalSub.isValid());
+        return MultibodySystemGlobalSubsystem::downcast
+                                                    (getSubsystem(m_globalSub));
     }
 
-    bool hasDecorationSubsystem() const {return decorationSub.isValid();}
-    bool hasContactSubsystem() const {return contactSub.isValid();}
-    bool hasMatterSubsystem() const {return matterSub.isValid();}
-    bool hasGlobalSubsystem() const {return globalSub.isValid();}
+    bool hasDecorationSubsystem() const {return m_decorationSub.isValid();}
+    bool hasContactSubsystem() const {return m_contactSub.isValid();}
+    bool hasMatterSubsystem() const {return m_matterSub.isValid();}
+    bool hasGlobalSubsystem() const {return m_globalSub.isValid();}
 
     const DecorationSubsystem& getDecorationSubsystem() const {
-        assert(decorationSub.isValid());
-        return DecorationSubsystem::downcast(getSubsystem(decorationSub));
+        assert(m_decorationSub.isValid());
+        return DecorationSubsystem::downcast(getSubsystem(m_decorationSub));
     }
 
     const GeneralContactSubsystem& getContactSubsystem() const {
-        assert(contactSub.isValid());
-        return GeneralContactSubsystem::downcast(getSubsystem(contactSub));
+        assert(m_contactSub.isValid());
+        return GeneralContactSubsystem::downcast(getSubsystem(m_contactSub));
     }
 
     SimbodyMatterSubsystem& updMatterSubsystem() {
-        assert(matterSub.isValid());
-        return SimbodyMatterSubsystem::updDowncast(updSubsystem(matterSub));
+        assert(m_matterSub.isValid());
+        return SimbodyMatterSubsystem::updDowncast(updSubsystem(m_matterSub));
     }
     ForceSubsystem& updForceSubsystem(SubsystemIndex id) {
         return ForceSubsystem::updDowncast(updSubsystem(id));
     }
     MultibodySystemGlobalSubsystem& updGlobalSubsystem() {
-        assert(globalSub.isValid());
-        return MultibodySystemGlobalSubsystem::updDowncast(updSubsystem(globalSub));
+        assert(m_globalSub.isValid());
+        return MultibodySystemGlobalSubsystem::updDowncast
+                                                    (updSubsystem(m_globalSub));
     }
     DecorationSubsystem& updDecorationSubsystem() {
-        assert(decorationSub.isValid());
-        return DecorationSubsystem::updDowncast(updSubsystem(decorationSub));
+        assert(m_decorationSub.isValid());
+        return DecorationSubsystem::updDowncast(updSubsystem(m_decorationSub));
     }
     GeneralContactSubsystem& updContactSubsystem() {
-        assert(contactSub.isValid());
-        return GeneralContactSubsystem::updDowncast(updSubsystem(contactSub));
+        assert(m_contactSub.isValid());
+        return GeneralContactSubsystem::updDowncast(updSubsystem(m_contactSub));
     }
 
     // Global state cache entries dealing with interaction between forces & 
@@ -390,8 +388,9 @@ public:
     }
     const Real calcPotentialEnergy(const State& s) const {
         Real pe = 0;
-        for (int i = 0; i < (int) forceSubs.size(); ++i)
-            pe += getForceSubsystem(forceSubs[i]).getRep().calcPotentialEnergy(s);
+        for (int i = 0; i < (int)m_forceSubs.size(); ++i)
+            pe += getForceSubsystem(m_forceSubs[i]).getRep()
+                                                        .calcPotentialEnergy(s);
         return pe;
     }
 
@@ -406,6 +405,9 @@ public:
     Vector& updMobilityForces(const State& s, Stage g) const {
         return getGlobalSubsystem().getRep().updMobilityForces(s,g);
     }
+
+    EventId getImpactEventId() const {return m_impactEventId;}
+    EventId getContactChangeEventId() const {return m_contactChangeEventId;}
 
     // pure virtual
     MultibodySystemRep* cloneImpl() const override
@@ -487,23 +489,22 @@ public:
         for (unsigned i=0; i < matterFreeUs.size(); ++i)
             freeUs[i] = SystemUIndex(uStart + matterFreeUs[i]);
     }
-    /* TODO: not yet
-    virtual void handleEventsImpl
-       (State&, EventCause, const Array<EventId>& eventIds,
-        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
-        Stage& lowestModified, bool& shouldTerminate) const;
-    virtual int calcEventTriggerInfoImpl(const State&, Array<EventTriggerInfo>&) const;
-    virtual int calcTimeOfNextScheduledEventImpl
-        (const State&, Real& tNextEvent, Array<EventId>& eventIds) const;
-    */
 
     SimTK_DOWNCAST(MultibodySystemRep, System::Guts);
+
 private:
-    SubsystemIndex         globalSub;       // index of global subsystem
-    SubsystemIndex         matterSub;       // index of matter subsystems
-    Array_<SubsystemIndex> forceSubs;       // indices of force subsystems
-    SubsystemIndex         decorationSub;   // index of DecorationSubsystem if any, else -1
-    SubsystemIndex         contactSub;      // index of contact subsystem if any, else -1
+friend class MultibodySystem;
+
+    SubsystemIndex         m_globalSub;       // index of global subsystem
+    SubsystemIndex         m_matterSub;       // index of matter subsystems
+    Array_<SubsystemIndex> m_forceSubs;       // indices of force subsystems
+    SubsystemIndex         m_decorationSub;   // DecorationSubsystem indx if any
+    SubsystemIndex         m_contactSub;      // Contact subsystem index if any
+
+    // These are IDs of events used to activate and deactivate conditional 
+    // constraints.
+    EventId     m_impactEventId;
+    EventId     m_contactChangeEventId;
 };
 
 

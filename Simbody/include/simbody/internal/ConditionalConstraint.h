@@ -239,7 +239,9 @@ public:
 
     void setMyMatterSubsystem(SimbodyMatterSubsystem&   matter,
                               UnilateralContactIndex    myIndex) 
-    {   m_matter = &matter; m_myIx = myIndex; }
+    {   m_matter = &matter; m_myIx = myIndex; 
+        acquireSubsystemResources();
+    }
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const
     {   assert(m_matter); return *m_matter; }

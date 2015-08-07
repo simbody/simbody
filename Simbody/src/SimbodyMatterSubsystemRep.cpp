@@ -247,22 +247,7 @@ SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBo
 
 
 namespace {
-//==============================================================================
-//                              IMPACT EVENT
-//==============================================================================
-// This is the Event that triggers whenever any currently-inactive, 
-// position-level unilateral constraint is about to be violated. We expect
-// an EventAction to correct that by making a discontinuous velocity change.
-// This should trigger a follow-up ContactChangeEvent.
-class ImpactEvent : public Event {
-public:
-    ImpactEvent() 
-    :   Event("Impact") {}
 
-private:
-    ImpactEvent* cloneVirtual() const override 
-    {   return new ImpactEvent(*this); }
-};
 
 //==============================================================================
 //                              IMPACT ACTION
@@ -278,6 +263,20 @@ public:
                        const EventTriggers&    triggers,
                        EventChangeResult&      result) const override {
         //TODO: write this!
+        const State& low = study.getCurrentState();
+        State& high = study.updInternalState();
+
+        printf("Impact Action (%.15g,%.15g], w=%.15g\n", 
+               low.getTime(), high.getTime(), high.getTime()-low.getTime());
+        for (auto& tp : triggers) {
+            const EventTrigger::Witness& w = 
+                dynamic_cast<const EventTrigger::Witness&>(*tp);
+            printf("  Trigger %d '%s'=(%.15g,%.15g]\n", 
+                   (int)w.getEventTriggerId(),
+                   w.getTriggerDescription().c_str(),
+                   w.calcWitnessValue(study.getSystem(), low),
+                   w.calcWitnessValue(study.getSystem(), high));
+        }
     }
 
 private:
@@ -287,22 +286,6 @@ private:
     const SimbodyMatterSubsystemRep&    m_matter;
 };
 
-//==============================================================================
-//                           CONTACT CHANGE EVENT
-//==============================================================================
-// This is the Event that triggers whenever a change of contact active set is
-// needed. Triggers include liftoff, contact without impact, persistent 
-// contact after an impact, sliding-to-stiction, stiction-to-impending slip.
-// TODO: Come here for Painleve problems also?
-class ContactChangeEvent : public Event {
-public:
-    ContactChangeEvent() 
-    :   Event("Contact Change") {}
-
-private:
-    ContactChangeEvent* cloneVirtual() const override 
-    {   return new ContactChangeEvent(*this); }
-};
 
 //==============================================================================
 //                           CONTACT CHANGE ACTION
@@ -318,6 +301,7 @@ public:
                        const EventTriggers&    triggers,
                        EventChangeResult&      result) const override {
         //TODO: write this!
+        printf("Contact Action @t=%.15g\n", study.getCurrentState().getTime());
     }
 
 private:
@@ -336,16 +320,15 @@ private:
 // This method is invoked after the matter subsystem has been added to a
 // MultibodySystem. We can now create system-level objects.
 void SimbodyMatterSubsystemRep::acquireSystemResourcesImpl() {
+    auto& mbs = updMultibodySystem();
 
-    // Create impact and contact Events and Actions.
-   {ImpactEvent* impact = new ImpactEvent();
-    impact->adoptEventAction(new ImpactAction(*this));
-    m_impactEventId = updSystem().adoptEvent(impact);}
+    // Add impact and contact Actions.
+    ImpactEvent& impact = mbs.updImpactEvent();
+    ContactChangeEvent& contChange = mbs.updContactChangeEvent();
 
-   {ContactChangeEvent* contactChg = new ContactChangeEvent();
-    contactChg->adoptEventAction(new ContactChangeAction(*this));
-    m_contactChangeEventId = updSystem().adoptEvent(contactChg);}
+    impact.adoptEventAction(new ImpactAction(*this));
 
+    contChange.adoptEventAction(new ContactChangeAction(*this));
 }
 
 

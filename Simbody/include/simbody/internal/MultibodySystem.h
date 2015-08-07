@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,22 +35,77 @@ class SimbodyMatterSubsystem;
 class ForceSubsystem;
 class DecorationSubsystem;
 class GeneralContactSubsystem;
+class ImpactEvent;
+class ContactChangeEvent;
 
 
 /** The job of the MultibodySystem class is to coordinate the activities of 
 various subsystems which can be part of a multibody system. We insist on 
-having exactly one SimbodyMatterSubsystem, and we would like also to have:
-    - one or more ForceSubsystems
-    - a DecorationSubsystem for visualization
-    - a GeneralContactSubsystem for contact geometry
-There will also be a generic System-level "subsystem" for global variables.
+having exactly one SimbodyMatterSubsystem, and expect to have one or more
+ForceSubsystems.
+
+There will also be a generic System-level Subsystem for global variables that
+span multiple subsystems.
 **/
 class SimTK_SIMBODY_EXPORT MultibodySystem : public System {
 public:
     MultibodySystem();
     explicit MultibodySystem(SimbodyMatterSubsystem& m);
 
-    // Steals ownership of the source; returns subsystem ID number.
+    //--------------------------------------------------------------------------
+    /** @name                       System Energy **/
+    /**@{**/
+    /** Calculate the total potential energy of the system. The state must be at
+    Dynamics stage or later. **/
+    const Real calcPotentialEnergy(const State&) const;
+
+    /** Calculate the total kinetic energy of the system. The state must be at 
+    Velocity stage or later. **/
+    const Real calcKineticEnergy(const State&) const;
+
+    /** Calculate the total energy of the system. The state must be at Dynamics 
+    stage or later. **/
+    Real calcEnergy(const State& s) const {
+        return calcPotentialEnergy(s)+calcKineticEnergy(s);
+    }
+    /**@}**/
+
+    //--------------------------------------------------------------------------
+    /** @name                       System Forces
+    These cache entries belong to the global subsystem, which zeroes them at
+    the start of the corresponding stage. They are filled in by the force 
+    subsystems when they are realized to each stage. Forces are cumulative 
+    from stage to stage, so the Dynamics stage includes everything. That may
+    then be accessed by the matter subsystem in Acceleration stage to 
+    generate the accelerations. **/
+    /**@{**/
+    const Vector_<SpatialVec>& getRigidBodyForces(const State&, Stage) const;
+    const Vector_<Vec3>&       getParticleForces (const State&, Stage) const;
+    const Vector&              getMobilityForces (const State&, Stage) const;
+
+    // These routines are for use by force subsystems during Dynamics stage.
+    Vector_<SpatialVec>& updRigidBodyForces(const State&, Stage) const;
+    Vector_<Vec3>&       updParticleForces (const State&, Stage) const;
+    Vector&              updMobilityForces (const State&, Stage) const;
+    /**@}**/
+
+    //--------------------------------------------------------------------------
+    /** @name                       System Events
+    **/
+    /**@{**/
+    const ImpactEvent& getImpactEvent() const;
+    ImpactEvent& updImpactEvent();
+
+    const ContactChangeEvent& getContactChangeEvent() const;
+    ContactChangeEvent& updContactChangeEvent();
+    /**@}**/
+
+    //--------------------------------------------------------------------------
+    /** @name                       Subsystems 
+    These are normally invoked from withing Subsystem constructors rather
+    than by end users. **/
+    /**@{**/
+    /** Steals ownership of the source; returns Subsystem ID number. **/
     int addForceSubsystem(ForceSubsystem&);
 
     int setMatterSubsystem(SimbodyMatterSubsystem&);
@@ -67,44 +122,62 @@ public:
     const GeneralContactSubsystem& getContactSubsystem() const;
     GeneralContactSubsystem&       updContactSubsystem();
     bool hasContactSubsystem() const;
+    /**@}**/
 
 
-    /// Calculate the total potential energy of the system.  The state must
-    /// be at Dynamics stage or later.
-    const Real calcPotentialEnergy(const State&) const;
-    /// Calculate the total kinetic energy of the system.  The state must
-    /// be at Velocity stage or later.
-    const Real calcKineticEnergy(const State&) const;
-    /// Calculate the total energy of the system.  The state must
-    /// be at Dynamics stage or later.
-    Real calcEnergy(const State& s) const {
-        return calcPotentialEnergy(s)+calcKineticEnergy(s);
-    }
-
-    // These methods are for use by our constituent subsystems to communicate 
-    // with each other and with the MultibodySystem as a whole.
-
-    // These cache entries belong to the global subsystem, which zeroes them at
-    // the start of the corresponding stage. They are filled in by the force 
-    // subsystems when they are realized to each stage. Forces are cumulative 
-    // from stage to stage, so the Dynamics stage includes everything. That may
-    // then be accessed by the matter subsystem in Acceleration stage to 
-    // generate the accelerations.
-    const Vector_<SpatialVec>& getRigidBodyForces(const State&, Stage) const;
-    const Vector_<Vec3>&       getParticleForces (const State&, Stage) const;
-    const Vector&              getMobilityForces (const State&, Stage) const;
-
-    // These routines are for use by force subsystems during Dynamics stage.
-    Vector_<SpatialVec>& updRigidBodyForces(const State&, Stage) const;
-    Vector_<Vec3>&       updParticleForces (const State&, Stage) const;
-    Vector&              updMobilityForces (const State&, Stage) const;
-
+    //--------------------------------------------------------------------------
+    /**@name              Advanced/obscure/debugging/obsolete
+    You probably don't want to use these methods. **/
+    /**@{**/
     // Private implementation.
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);
     class MultibodySystemRep& updRep();
     const MultibodySystemRep& getRep() const;
+    /**@}**/
+
 protected:
     explicit MultibodySystem(MultibodySystemRep*);
+
+private:
+    void initRep(); // shared by constructors
+};
+
+
+
+//==============================================================================
+//                              IMPACT EVENT
+//==============================================================================
+// This is the Event that is triggered whenever any currently-inactive, 
+// position-level unilateral constraint is about to be violated. We expect
+// an EventAction to correct that by making a discontinuous velocity change.
+// This should trigger a follow-up ContactChangeEvent.
+class ImpactEvent : public Event {
+public:
+    ImpactEvent() 
+    :   Event("Impact") {}
+
+private:
+    ImpactEvent* cloneVirtual() const override 
+    {   return new ImpactEvent(*this); }
+};
+
+
+
+//==============================================================================
+//                           CONTACT CHANGE EVENT
+//==============================================================================
+// This is the Event that is triggered whenever a change of contact active set 
+// is needed. Triggers include liftoff, contact without impact, persistent 
+// contact after an impact, sliding-to-stiction, stiction-to-impending slip.
+// TODO: Come here for Painleve problems also?
+class ContactChangeEvent : public Event {
+public:
+    ContactChangeEvent() 
+    :   Event("Contact Change") {}
+
+private:
+    ContactChangeEvent* cloneVirtual() const override 
+    {   return new ContactChangeEvent(*this); }
 };
 
 

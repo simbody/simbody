@@ -50,7 +50,7 @@ const Real StopCoefRest = .1;
 }
 
 int main() {
-    try { // catch errors if any
+  try { // catch errors if any
 
     // Create the system, with subsystems for the bodies and some forces.
     MultibodySystem system; 
@@ -81,39 +81,50 @@ int main() {
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor 
     Visualizer viz(system);
+    viz.setShowSimTime(true);
     system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
     
     // Initialize the system and state.    
     State state = system.realizeTopology();
     bodyT.setRate(state, 2);
 
-    // Simulate for 10 seconds.
-    //RungeKuttaMersonIntegrator integ(system);
-    //TimeStepper ts(integ);
-    //ts.initialize(state);
-    //ts.stepTo(10);
+    const double SimTime = 10;
 
+    // Simulate with acceleration-level time stepper.
+    RungeKuttaMersonIntegrator integ(system);
+    TimeStepper ts(integ);
+    ts.initialize(state);
+    ts.stepTo(SimTime);
+
+    // Simulate with velocity-level time stepper.
     SemiExplicitEulerTimeStepper sxe(system);
     sxe.initialize(state);
     const Real h = .001;
     const int DrawEvery = 33; // draw every nth step ~= 33ms
     int nSteps = 0;
-    do {
+    while (true) {
         const State& sxeState = sxe.getState();
-        if((nSteps%DrawEvery)==0) {
+        const double t = sxe.getTime();
+        const bool isLastStep = t + h/2 > SimTime;
+
+        if((nSteps%DrawEvery)==0 || isLastStep) {
             viz.report(sxeState);
-            printf("%g %g\n", leftArm.getAngle(sxeState),
-                              rtArm.getAngle(sxeState));
+            printf("%7.4f %9.3g %9.3g\n", t,
+                   leftArm.getAngle(sxeState),
+                   rtArm.getAngle(sxeState));
         }
+
+        if (isLastStep)
+            break;
 
         sxe.stepTo(sxeState.getTime() + h);
         ++nSteps;
-    } while(sxe.getTime() < 100);
-
-
-    } catch (const std::exception& e) {
-        std::cout << "ERROR: " << e.what() << std::endl;
-        return 1;
     }
+
+  } catch (const std::exception& e) {
+    std::cout << "ERROR: " << e.what() << std::endl;
+    return 1;
+  }
+
     return 0;
 }

@@ -159,6 +159,8 @@ public:
         return new SimbodyMatterSubsystemRep(*this);
     }
 
+    void acquireSystemResourcesImpl() override;
+
     int realizeSubsystemTopologyImpl    (State&) const override;
     int realizeSubsystemModelImpl       (State&) const override;
     int realizeSubsystemInstanceImpl    (const State&) const override;
@@ -172,18 +174,17 @@ public:
     int calcDecorativeGeometryAndAppendImpl
        (const State&, Stage, Array_<DecorativeGeometry>&) const override;
 
-    void acquireSystemResourcesImpl() override;
-
-
         // END OF SUBSYSTEM::GUTS VIRTUALS.
 
     // Return the MultibodySystem which owns this MatterSubsystem.
     const MultibodySystem& getMultibodySystem() const {
         return MultibodySystem::downcast(getSystem());
     }
+    // Return the MultibodySystem which owns this MatterSubsystem.
+    MultibodySystem& updMultibodySystem() {
+        return MultibodySystem::updDowncast(updSystem());
+    }
 
-    EventId getImpactEventId() const {return m_impactEventId;}
-    EventId getContactChangeEventId() const {return m_contactChangeEventId;}
 
 
         // CONSTRUCTION STAGE //
@@ -1374,9 +1375,6 @@ private:
     bool            m_showDefaultGeometry;
     bool            m_useEulerAnglesByDefault;
 
-    // These are IDs of events used for conditional constraints.
-    EventId         m_impactEventId;
-    EventId         m_contactChangeEventId;
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);

@@ -26,6 +26,7 @@
 #include "simbody/internal/Constraint.h"
 #include "simbody/internal/ConditionalConstraint.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/MultibodySystem.h"
 
 
 using namespace SimTK;
@@ -54,17 +55,22 @@ private:
     Real calcWitnessValueVirtual(const System& system,
                                  const State&  state,
                                  int           derivOrder) const override {
-        if (m_uniContact.isEnabled(state)) 
-            return NaN;
-
-        const Real sign = m_uniContact.getSignConvention();
-        switch(derivOrder) {
-        case 0: return sign*m_uniContact.getPerr(state);
-        case 1: return sign*m_uniContact.getVerr(state);
-        case 2: return sign*m_uniContact.getAerr(state);
+        Real value = NaN;
+        if (!m_uniContact.isEnabled(state)) {
+            const Real sign = m_uniContact.getSignConvention();
+            switch(derivOrder) {
+            case 0: value = sign*m_uniContact.getPerr(state); break;
+            case 1: value = sign*m_uniContact.getVerr(state); break;
+            case 2: value = sign*m_uniContact.getAerr(state); break;
+            default: assert(!"illegal derivOrder");
+            }
         }
-        assert(!"illegal derivOrder");
-        return NaN;
+
+        printf("%s %d: %.15g @t=%.15g\n", 
+               getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+               value, state.getTime());
+
+        return value;
     }
 
     Stage getDependsOnStageVirtual(int derivOrder) const override
@@ -131,17 +137,17 @@ private:
 //------------------------------------------------------------------------------
 void UnilateralContact::acquireSubsystemResources() {
     SimbodyMatterSubsystem& matter = updMatterSubsystem();
-    System&                 system = matter.updSystem();
+    MultibodySystem& mbs = MultibodySystem::updDowncast(matter.updSystem());
 
     // Create EventWitness objects for impact and liftoff, and connect them
     // to the appropriate Event objects. 
     auto impact = new ImpactWitness(*this);
-    impact->addEvent(EventId(/*ImpactEvent*/));
-    system.adoptEventTrigger(impact);
+    impact->addEvent(mbs.getImpactEvent().getEventId());
+    mbs.adoptEventTrigger(impact);
 
     auto liftoff = new ContactChangeWitness(*this);
-    liftoff->addEvent(EventId(/*ContactChangeEvent*/));
-    system.adoptEventTrigger(liftoff);
+    liftoff->addEvent(mbs.getContactChangeEvent().getEventId());
+    mbs.adoptEventTrigger(liftoff);
 
     acquireSubsystemResourcesVirtual(); // delegate to derived class
 }

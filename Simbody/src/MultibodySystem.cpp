@@ -62,22 +62,29 @@ MultibodySystem::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<MultibodySystemRep&>(updSystemGuts());
 }
 
+// Private method shared by constructors.
+void MultibodySystem::initRep() {
+    MultibodySystemRep& rep = updRep();
+    rep.setGlobalSubsystem();
+    rep.m_impactEventId        = adoptEvent(new ImpactEvent());
+    rep.m_contactChangeEventId = adoptEvent(new ContactChangeEvent());
+}
+
 // Create generic multibody system by default.
 MultibodySystem::MultibodySystem() : System(new MultibodySystemRep()) {
-    updRep().setGlobalSubsystem();
+    initRep();
 }
 
 MultibodySystem::MultibodySystem(SimbodyMatterSubsystem& m)
-:   System(new MultibodySystemRep())
-{
-    updRep().setGlobalSubsystem();
+:   System(new MultibodySystemRep()) {
+    initRep();
     setMatterSubsystem(m);
 }
 
 // This is a protected constructor for use by derived classes which
 // allocate a more specialized MultibodySystemRep.
 MultibodySystem::MultibodySystem(MultibodySystemRep* rp) : System(rp) {
-    updRep().setGlobalSubsystem();
+    initRep();
 }
 
 int MultibodySystem::setMatterSubsystem(SimbodyMatterSubsystem& m) {
@@ -164,25 +171,47 @@ MultibodySystem::updMobilityForces(const State& s, Stage g) const {
     return getRep().updMobilityForces(s,g);
 }
 
+const ImpactEvent& MultibodySystem::getImpactEvent() const {
+    const Event& evnt = getEvent(getRep().getImpactEventId());
+    return SimTK_DYNAMIC_CAST_DEBUG<const ImpactEvent&>(evnt);
+}
+ImpactEvent& MultibodySystem::updImpactEvent() {
+    Event& evnt = updEvent(getRep().getImpactEventId());
+    return SimTK_DYNAMIC_CAST_DEBUG<ImpactEvent&>(evnt);
+}
+
+const ContactChangeEvent& MultibodySystem::getContactChangeEvent() const {
+    const Event& evnt = getEvent(getRep().getContactChangeEventId());
+    return SimTK_DYNAMIC_CAST_DEBUG<const ContactChangeEvent&>(evnt);
+}
+ContactChangeEvent& MultibodySystem::updContactChangeEvent() {
+    Event& evnt = updEvent(getRep().getContactChangeEventId());
+    return SimTK_DYNAMIC_CAST_DEBUG<ContactChangeEvent&>(evnt);
+}
+
 //==============================================================================
 //                          MULTIBODY SYSTEM REP
 //==============================================================================
 
+MultibodySystemRep::MultibodySystemRep() 
+:   System::Guts("MultibodySystem", "0.0.1")
+{
+}
 
 //------------------------------------------------------------------------------
 //                          REALIZE TOPOLOGY IMPL
 //------------------------------------------------------------------------------
 int MultibodySystemRep::realizeTopologyImpl(State& s) const {
-    assert(globalSub.isValid());
-    assert(matterSub.isValid());
+    assert(m_globalSub.isValid());
+    assert(m_matterSub.isValid());
 
     // We do Matter subsystem first here in case any of the GlobalSubsystem
     // topology depends on Matter topology. That's unlikely though since
     // we don't know sizes until Model stage.
     getMatterSubsystem().getRep().realizeSubsystemTopology(s);
     getGlobalSubsystem().getRep().realizeSubsystemTopology(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTopology(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemTopology(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemTopology(s);
@@ -201,8 +230,8 @@ int MultibodySystemRep::realizeModelImpl(State& s) const {
     // Stage::Model dimensions of the Matter subsystem.
     getMatterSubsystem().getRep().realizeSubsystemModel(s);
     getGlobalSubsystem().getRep().realizeSubsystemModel(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemModel(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemModel(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemModel(s);
@@ -217,8 +246,8 @@ int MultibodySystemRep::realizeModelImpl(State& s) const {
 int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemInstance(s);
     getMatterSubsystem().getRep().realizeSubsystemInstance(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemInstance(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemInstance(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemInstance(s);
@@ -232,8 +261,8 @@ int MultibodySystemRep::realizeInstanceImpl(const State& s) const {
 int MultibodySystemRep::realizeTimeImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemTime(s);
     getMatterSubsystem().getRep().realizeSubsystemTime(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTime(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemTime(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemTime(s);
@@ -247,8 +276,8 @@ int MultibodySystemRep::realizeTimeImpl(const State& s) const {
 int MultibodySystemRep::realizePositionImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemPosition(s);
     getMatterSubsystem().getRep().realizeSubsystemPosition(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemPosition(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemPosition(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemPosition(s);
@@ -263,8 +292,8 @@ int MultibodySystemRep::realizePositionImpl(const State& s) const {
 int MultibodySystemRep::realizeVelocityImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemVelocity(s);
     getMatterSubsystem().getRep().realizeSubsystemVelocity(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemVelocity(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemVelocity(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemVelocity(s);
@@ -285,8 +314,8 @@ int MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
     getMatterSubsystem().getRep().realizeSubsystemDynamics(s);
 
     // Now do forces in case any of them need dynamics-stage operators.
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemDynamics(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemDynamics(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemDynamics(s);
@@ -309,8 +338,9 @@ int MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
     // accelerations or multipliers we just calculated. For example, a friction
     // force might record normal forces to use as an initial guess in the
     // next time step.
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemAcceleration(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep()
+                                            .realizeSubsystemAcceleration(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemAcceleration(s);
@@ -326,8 +356,8 @@ int MultibodySystemRep::realizeReportImpl(const State& s) const {
     getGlobalSubsystem().getRep().realizeSubsystemReport(s);
 
     getMatterSubsystem().getRep().realizeSubsystemReport(s);
-    for (int i=0; i < (int)forceSubs.size(); ++i)
-        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemReport(s);
+    for (int i=0; i < (int)m_forceSubs.size(); ++i)
+        getForceSubsystem(m_forceSubs[i]).getRep().realizeSubsystemReport(s);
 
     if (hasDecorationSubsystem())
         getDecorationSubsystem().getGuts().realizeSubsystemReport(s);
