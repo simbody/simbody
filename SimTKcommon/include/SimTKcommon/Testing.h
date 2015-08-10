@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2009-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2009-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -57,11 +57,9 @@ namespace SimTK {
  *      - convenient testing of required argument checking (i.e., test
  *          fails unless an exception is thrown)
  *
- * The Testing.h header file is
- * <em>not</em> automatically included with SimTKcommon.h; you have to
- * ask for it explicilty. Here's how you use this facility:
+ * Here's how you use this facility:
  * <pre>
- * \#include "SimTKcommon/Testing.h"
+ * \#include "SimTKcommon.h"
  * void myFirstSubtest() {...}
  * void myNextSubtest() {...}
  * int main() {
