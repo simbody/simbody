@@ -37,6 +37,9 @@
 #include "MultibodySystemRep.h"
 #include "MobilizedBodyImpl.h"
 #include "ConstraintImpl.h"
+#include "ContactEventActions.h"
+
+using namespace SimTK;
 
 #include <string>
 #include <iostream>
@@ -246,74 +249,6 @@ SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBo
 }
 
 
-namespace {
-
-
-//==============================================================================
-//                              IMPACT ACTION
-//==============================================================================
-// This is the EventAction we will perform when an ImpactEvent triggers.
-class ImpactAction : public EventAction {
-public:
-    explicit ImpactAction(const SimbodyMatterSubsystemRep& matter) 
-    :   EventAction(Change), m_matter(matter) {}
-
-    void changeVirtual(Study&                  study,
-                       const Event&            event,
-                       const EventTriggers&    triggers,
-                       EventChangeResult&      result) const override {
-        //TODO: write this!
-        const State& low = study.getCurrentState();
-        State& high = study.updInternalState();
-
-        printf("Impact Action (%.15g,%.15g], w=%.15g\n", 
-               low.getTime(), high.getTime(), high.getTime()-low.getTime());
-        for (auto& tp : triggers) {
-            const EventTrigger::Witness& w = 
-                dynamic_cast<const EventTrigger::Witness&>(*tp);
-            printf("  Trigger %d '%s'=(%.15g,%.15g]\n", 
-                   (int)w.getEventTriggerId(),
-                   w.getTriggerDescription().c_str(),
-                   w.calcWitnessValue(study.getSystem(), low),
-                   w.calcWitnessValue(study.getSystem(), high));
-        }
-    }
-
-private:
-    ImpactAction* cloneVirtual() const override 
-    {   return new ImpactAction(*this); }
-
-    const SimbodyMatterSubsystemRep&    m_matter;
-};
-
-
-//==============================================================================
-//                           CONTACT CHANGE ACTION
-//==============================================================================
-// This is the EventAction we will perform when an ContactChangeEvent triggers.
-class ContactChangeAction : public EventAction {
-public:
-    explicit ContactChangeAction(const SimbodyMatterSubsystemRep& matter) 
-    :   EventAction(Change), m_matter(matter) {}
-
-    void changeVirtual(Study&                  study,
-                       const Event&            event,
-                       const EventTriggers&    triggers,
-                       EventChangeResult&      result) const override {
-        //TODO: write this!
-        printf("Contact Action @t=%.15g\n", study.getCurrentState().getTime());
-    }
-
-private:
-    ContactChangeAction* cloneVirtual() const override 
-    {   return new ContactChangeAction(*this); }
-
-    const SimbodyMatterSubsystemRep&    m_matter;
-};
-
-} // end of anonymous namespace
-
-
 //==============================================================================
 //                     ACQUIRE SYSTEM RESOURCES IMPL
 //==============================================================================
@@ -324,11 +259,11 @@ void SimbodyMatterSubsystemRep::acquireSystemResourcesImpl() {
 
     // Add impact and contact Actions.
     ImpactEvent& impact = mbs.updImpactEvent();
-    ContactChangeEvent& contChange = mbs.updContactChangeEvent();
+    ContactEvent& contact = mbs.updContactEvent();
 
-    impact.adoptEventAction(new ImpactAction(*this));
+    impact.adoptEventAction(new ImpactEventAction(*this));
 
-    contChange.adoptEventAction(new ContactChangeAction(*this));
+    contact.adoptEventAction(new ContactEventAction(*this));
 }
 
 
@@ -6243,7 +6178,8 @@ bool SimbodyMatterSubsystemRep::getUseEulerAnglesByDefault() const
 void SimbodyMatterSubsystemRep::setUseEulerAnglesByDefault(bool useAngles) 
 {   m_useEulerAnglesByDefault = useAngles; }
 
-std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree) {
+std::ostream& SimTK::operator<<(std::ostream& o, 
+                                const SimbodyMatterSubsystemRep& tree) {
     o << "SimbodyMatterSubsystemRep has " << tree.getNumBodies() << " bodies (incl. G) in "
       << tree.rbNodeLevels.size() << " levels." << std::endl;
     o << "NodeNum->level,offset;stored nodeNum,level (stateOffset:dim)" << std::endl;

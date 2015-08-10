@@ -407,7 +407,7 @@ public:
     }
 
     EventId getImpactEventId() const {return m_impactEventId;}
-    EventId getContactChangeEventId() const {return m_contactChangeEventId;}
+    EventId getContactEventId() const {return m_contactEventId;}
 
     // pure virtual
     MultibodySystemRep* cloneImpl() const override
@@ -504,7 +504,7 @@ friend class MultibodySystem;
     // These are IDs of events used to activate and deactivate conditional 
     // constraints.
     EventId     m_impactEventId;
-    EventId     m_contactChangeEventId;
+    EventId     m_contactEventId;
 };
 
 

@@ -66,8 +66,8 @@ MultibodySystem::updRep() {
 void MultibodySystem::initRep() {
     MultibodySystemRep& rep = updRep();
     rep.setGlobalSubsystem();
-    rep.m_impactEventId        = adoptEvent(new ImpactEvent());
-    rep.m_contactChangeEventId = adoptEvent(new ContactChangeEvent());
+    rep.m_impactEventId  = adoptEvent(new ImpactEvent());
+    rep.m_contactEventId = adoptEvent(new ContactEvent());
 }
 
 // Create generic multibody system by default.
@@ -180,13 +180,13 @@ ImpactEvent& MultibodySystem::updImpactEvent() {
     return SimTK_DYNAMIC_CAST_DEBUG<ImpactEvent&>(evnt);
 }
 
-const ContactChangeEvent& MultibodySystem::getContactChangeEvent() const {
-    const Event& evnt = getEvent(getRep().getContactChangeEventId());
-    return SimTK_DYNAMIC_CAST_DEBUG<const ContactChangeEvent&>(evnt);
+const ContactEvent& MultibodySystem::getContactEvent() const {
+    const Event& evnt = getEvent(getRep().getContactEventId());
+    return SimTK_DYNAMIC_CAST_DEBUG<const ContactEvent&>(evnt);
 }
-ContactChangeEvent& MultibodySystem::updContactChangeEvent() {
-    Event& evnt = updEvent(getRep().getContactChangeEventId());
-    return SimTK_DYNAMIC_CAST_DEBUG<ContactChangeEvent&>(evnt);
+ContactEvent& MultibodySystem::updContactEvent() {
+    Event& evnt = updEvent(getRep().getContactEventId());
+    return SimTK_DYNAMIC_CAST_DEBUG<ContactEvent&>(evnt);
 }
 
 //==============================================================================

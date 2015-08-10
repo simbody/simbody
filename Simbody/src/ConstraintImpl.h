@@ -41,11 +41,11 @@ represent the built-in constraint types. **/
 #include <iostream>
 using std::cout; using std::endl;
 
-class SimbodyMatterSubsystemRep;
 
 namespace SimTK {
 
 class SimbodyMatterSubsystem;
+class SimbodyMatterSubsystemRep;
 class SimbodyMatterSubtree;
 class MobilizedBody;
 

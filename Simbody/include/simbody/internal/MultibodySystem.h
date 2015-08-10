@@ -36,7 +36,7 @@ class ForceSubsystem;
 class DecorationSubsystem;
 class GeneralContactSubsystem;
 class ImpactEvent;
-class ContactChangeEvent;
+class ContactEvent;
 
 
 /** The job of the MultibodySystem class is to coordinate the activities of 
@@ -96,8 +96,8 @@ public:
     const ImpactEvent& getImpactEvent() const;
     ImpactEvent& updImpactEvent();
 
-    const ContactChangeEvent& getContactChangeEvent() const;
-    ContactChangeEvent& updContactChangeEvent();
+    const ContactEvent& getContactEvent() const;
+    ContactEvent& updContactEvent();
     /**@}**/
 
     //--------------------------------------------------------------------------
@@ -145,12 +145,12 @@ private:
 
 
 //==============================================================================
-//                              IMPACT EVENT
+//                                IMPACT EVENT
 //==============================================================================
 // This is the Event that is triggered whenever any currently-inactive, 
 // position-level unilateral constraint is about to be violated. We expect
 // an EventAction to correct that by making a discontinuous velocity change.
-// This should trigger a follow-up ContactChangeEvent.
+// This should trigger a follow-up ContactEvent.
 class ImpactEvent : public Event {
 public:
     ImpactEvent() 
@@ -164,20 +164,20 @@ private:
 
 
 //==============================================================================
-//                           CONTACT CHANGE EVENT
+//                               CONTACT EVENT
 //==============================================================================
 // This is the Event that is triggered whenever a change of contact active set 
 // is needed. Triggers include liftoff, contact without impact, persistent 
 // contact after an impact, sliding-to-stiction, stiction-to-impending slip.
 // TODO: Come here for Painleve problems also?
-class ContactChangeEvent : public Event {
+class ContactEvent : public Event {
 public:
-    ContactChangeEvent() 
-    :   Event("Contact Change") {}
+    ContactEvent() 
+    :   Event("Contact change") {}
 
 private:
-    ContactChangeEvent* cloneVirtual() const override 
-    {   return new ContactChangeEvent(*this); }
+    ContactEvent* cloneVirtual() const override 
+    {   return new ContactEvent(*this); }
 };
 
 

@@ -33,11 +33,11 @@ Private implementation of Constraint::SphereOnPlaneContact. **/
 
 #include "ConstraintImpl.h"
 
-class SimbodyMatterSubsystemRep;
 
 namespace SimTK {
 
 class SimbodyMatterSubsystem;
+class SimbodyMatterSubsystemRep;
 class SimbodyMatterSubtree;
 class MobilizedBody;
 

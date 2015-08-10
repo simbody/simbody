@@ -66,13 +66,16 @@ allocated if necessary), and then advance to stage Whatever. */
 #include "simbody/internal/common.h"
 #include "simbody/internal/Motion.h"
 
+namespace SimTK {
+class SimbodyMatterSubsystemRep;
+}
+
 #include <cassert>
 #include <iostream>
 using std::cout; using std::endl;
 
 using namespace SimTK;
 
-class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
 template <int dof, bool noR_FM, bool noX_MB, bool noR_PF> 
     class RigidBodyNodeSpec;

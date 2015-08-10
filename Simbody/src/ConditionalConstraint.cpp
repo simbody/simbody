@@ -90,34 +90,40 @@ private:
 };
 
 //------------------------------------------------------------------------------
-//                          CONTACT CHANGE WITNESS
+//                             CONTACT WITNESS
 //------------------------------------------------------------------------------
 // Should only be enabled when constraint is active.
 
-class ContactChangeWitness: public EventTrigger::Witness {
+class ContactWitness: public EventTrigger::Witness {
 public:
-    explicit ContactChangeWitness(const UnilateralContact& uni)
-        : EventTrigger::Witness("UnilateralContact ContactChangeWitness"),
+    explicit ContactWitness(const UnilateralContact& uni)
+        : EventTrigger::Witness("UnilateralContact ContactWitness"),
         m_uniContact(uni)
     {
         setTriggerOnRisingSignTransition(false);
     } // + -> - only
 
 private:
-    ContactChangeWitness* cloneVirtual() const override
-    {   return new ContactChangeWitness(*this); }
+    ContactWitness* cloneVirtual() const override
+    {   return new ContactWitness(*this); }
 
     Real calcWitnessValueVirtual(const System& system,
                                  const State&  state,
                                  int           derivOrder) const override {
-        if(!m_uniContact.isEnabled(state))
-            return NaN;
+        Real value = NaN;
+        if(m_uniContact.isEnabled(state)) {
+            assert(derivOrder==0);
+            const Real sign = m_uniContact.getSignConvention();
+            const Vector& multipliers = state.getMultipliers();
+            auto index = m_uniContact.getContactMultiplierIndex(state);
+            value = -sign*multipliers[index];
+        }
 
-        assert(derivOrder==0);
-        const Real sign = m_uniContact.getSignConvention();
-        const Vector& multipliers = state.getMultipliers();
-        auto index = m_uniContact.getContactMultiplierIndex(state);
-        return -sign*multipliers[index];
+        printf("%s %d: %.15g @t=%.15g\n", 
+               getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+               value, state.getTime());
+
+        return value;
     }
 
     Stage getDependsOnStageVirtual(int derivOrder) const override
@@ -145,8 +151,8 @@ void UnilateralContact::acquireSubsystemResources() {
     impact->addEvent(mbs.getImpactEvent().getEventId());
     mbs.adoptEventTrigger(impact);
 
-    auto liftoff = new ContactChangeWitness(*this);
-    liftoff->addEvent(mbs.getContactChangeEvent().getEventId());
+    auto liftoff = new ContactWitness(*this);
+    liftoff->addEvent(mbs.getContactEvent().getEventId());
     mbs.adoptEventTrigger(liftoff);
 
     acquireSubsystemResourcesVirtual(); // delegate to derived class

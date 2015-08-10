@@ -54,10 +54,10 @@ class RBDistanceConstraint;
 class RBStation;
 class RBDirection;
 
-using namespace SimTK;
+typedef SimTK::Array_<const RigidBodyNode*>   RBNodePtrList;
+typedef SimTK::Vector_<SpatialVec>            SpatialVecList;
 
-typedef Array_<const RigidBodyNode*>   RBNodePtrList;
-typedef Vector_<SpatialVec>            SpatialVecList;
+namespace SimTK {
 
 /*
  * A CoupledConstraintSet is a set of Simbody Constraints which must be
@@ -135,7 +135,7 @@ both to index MobilizedBodies and their corresponding RigidBodyNodes. You can
 get the abstract MobilizedBody corresponding to a MobilizedBodyIndex if you want
 one, but you should prefer MobilizedBodyIndex when working at the "Rep" 
 level here. */
-class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
+class SimbodyMatterSubsystemRep : public Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
       : Subsystem::Guts("SimbodyMatterSubsystem", "0.7.1")
@@ -1246,8 +1246,9 @@ public:
     // a properly-zeroed unpackedFreeU.
     void zeroKnownU(const State& s, Vector& ulike) const;
 
-    friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
-    friend class SimTK::SimbodyMatterSubsystem;
+    friend std::ostream& operator<<(std::ostream&, 
+                                    const SimbodyMatterSubsystemRep&);
+    friend class SimbodyMatterSubsystem;
 
     struct RigidBodyNodeId {
         RigidBodyNodeId(int l, int o) : level(l), offset(o) { }
@@ -1378,6 +1379,8 @@ private:
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
+
+} // namespace SimTK
 
 
 #endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_

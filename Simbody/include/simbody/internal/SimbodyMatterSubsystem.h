@@ -32,9 +32,9 @@
 #include <vector>
 #include <iostream>
 
-class SimbodyMatterSubsystemRep;
 
 namespace SimTK {
+class SimbodyMatterSubsystemRep;
 
 class MobilizedBody;
 class MultibodySystem;
