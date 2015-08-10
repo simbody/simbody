@@ -79,7 +79,7 @@ public:
     /**
      * Construct a ParallelExecutor.
      * 
-     * @param numThreads the maximum number of threads that the ParallelExecutor
+     * @param maxThreads the maximum number of threads that the ParallelExecutor
      * is allowed to launch
      */
     explicit ParallelExecutor(int maxThreads);
