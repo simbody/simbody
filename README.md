@@ -100,7 +100,7 @@ Dependencies
 Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.8 or later
-* compiler: [Visual Studio](http://www.visualstudio.com) 2013 or later (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
+* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
@@ -140,9 +140,9 @@ Windows using Visual Studio
 
 #### Get the dependencies
 
-All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies. 
+All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies.
 
-1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2013 or higher. The "Community Edition" is free for "non-enterprise" use. The "Express" edition is another free option, in that case use *Visual Studio Express for Windows Desktop*.
+1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2015. The Community edition is free and sufficient. By default, Visual Studio 2015 does not provide C++ support; when installing, make sure to select *Custom*, and check *Programming Languages > Visual C++ > Common Tools for Visual C++ 2015*.
 2. Download and install [CMake](http://www.cmake.org/download), version 2.8.8 or higher.
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 
@@ -164,7 +164,7 @@ All needed library dependencies are provided with the Simbody installation on Wi
 2. In the field **Where is the source code**, specify `C:/Simbody-source`.
 3. In the field **Where to build the binaries**, specify something like `C:/Simbody-build`, just not inside your source directory. This is *not* where we will install Simbody; see below.
 4. Click the **Configure** button.
-    1. Choose a "generator" that corresponds to the Visual Studio you're using. For *Visual Studio 2013*, select **Visual Studio 12**. To build as 64-bit (recommended), select an option that ends with **Win64**.
+    1. When prompted to select a *generator*, choose either **Visual Studio 14 2015** (to build 32-bit binaries) or **Visual Studio 14 2015 Win64** (to build 64-bit binaries).
     2. Click **Finish**.
 5. Where do you want to install Simbody on your computer? Set this by changing the `CMAKE_INSTALL_PREFIX` variable. We'll assume you set it to `C:/Simbody`. If you choose a different installation location, make sure to use *yours* where we use `C:/Simbody` below.
 6. Play around with the other build options:
@@ -341,7 +341,7 @@ Just so you know, you can also uninstall (delete all files that CMake placed int
 From your build directory, you can run Simbody's example programs. For instance, try:
 
         $ ./ExamplePendulum
-        
+
 
 #### Set environment variables and test the installation
 
@@ -365,7 +365,7 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
 
             $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bash_profile
     * Ubuntu:
-            
+
             $ echo 'export SIMBODY_HOME=~/simbody' >> ~/.bashrc
 3. Open a new terminal.
 4. Test your installation:
@@ -442,7 +442,7 @@ You can currently get Simbody via the Open Source Robotics Foundation's Debian r
 #### Install
 
 1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
-        
+
         $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
         $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
         $ sudo apt-get update
@@ -455,7 +455,7 @@ You can currently get Simbody via the Open Source Robotics Foundation's Debian r
 #### Layout of installation
 
 Simbody is installed into the `usr/` directory.  The directory
-`[x86_64-linux-gnu]` varies by platform. 
+`[x86_64-linux-gnu]` varies by platform.
 
 * `usr/include/simbody/` the header (.h) files; necessary for projects that use Simbody.
 * `usr/lib/[x86_64-linux-gnu]` shared libraries (.so's).
