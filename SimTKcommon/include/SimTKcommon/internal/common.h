@@ -633,25 +633,25 @@ struct Segment {
 
 template<class L, class R> inline
 bool operator!=(const L& left, const R& right)
-{	// test for inequality, in terms of equality
+{   // test for inequality, in terms of equality
     return !(left == right);
 }
 
 template<class L, class R> inline
 bool operator>(const L& left, const R& right)
-{	// test if left > right, in terms of operator<
+{   // test if left > right, in terms of operator<
     return right < left;
 }
 
 template<class L, class R> inline
 bool operator<=(const L& left, const R& right)
-{	// test if left <= right, in terms of operator<
+{   // test if left <= right, in terms of operator<
     return !(right < left);
 }
 
 template<class L, class R> inline
 bool operator>=(const L& left, const R& right)
-{	// test if left >= right, in terms of operator<
+{   // test if left >= right, in terms of operator<
     return !(left < right);
 }
 
