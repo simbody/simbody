@@ -447,7 +447,8 @@ public:                                     \
     operator int() const {return ix;}               \
     bool isValid() const {return ix>=0;}            \
     bool isValidExtended() const {return ix>=-1;}   \
-    void invalidate(){ix=SimTK::InvalidIndex;}      \
+    void invalidate(){clear();}                     \
+    void clear(){ix=SimTK::InvalidIndex;}           \
     \
     bool operator==(int  i) const {assert(isValidExtended() && isValidExtended(i)); return ix==i;}    \
     bool operator==(short s) const{assert(isValidExtended() && isValidExtended(s)); return ix==(int)s;}  \
@@ -624,6 +625,35 @@ struct Segment {
     int length;
     int offset;
 };  
+
+// These next four methods supply the missing relational operators for any
+// types L and R where L==R and L<R have been defined. This is like the
+// operators in the std::rel_ops namespace, except that those require both
+// types to be the same.
+
+template<class L, class R> inline
+bool operator!=(const L& left, const R& right)
+{	// test for inequality, in terms of equality
+    return !(left == right);
+}
+
+template<class L, class R> inline
+bool operator>(const L& left, const R& right)
+{	// test if left > right, in terms of operator<
+    return right < left;
+}
+
+template<class L, class R> inline
+bool operator<=(const L& left, const R& right)
+{	// test if left <= right, in terms of operator<
+    return !(right < left);
+}
+
+template<class L, class R> inline
+bool operator>=(const L& left, const R& right)
+{	// test if left >= right, in terms of operator<
+    return !(left < right);
+}
 
 
 /** This is a special type used for causing invocation of a particular

@@ -30,9 +30,13 @@ called SimTK::NullOnCopyUniquePtr. */
 #include <iostream>
 #include <string>
 #include <cstdio>
+#include <utility>
+#include <memory>
+#include <vector>
 
 using namespace SimTK;
-using std::cout; using std::endl;
+using std::cout; using std::endl; using std::string; using std::unique_ptr;
+using namespace std::literals;
 
 class Base {
 public:
@@ -426,6 +430,244 @@ void testNullOnCopyUniquePtr() {
     SimTK_TEST(hvaln2 == hvaln);
 }
 
+class UsesResetOnCopy {
+public:
+    ResetOnCopy<int>                    defint;
+    ResetOnCopy<char>                   charZ = 'z';
+    ResetOnCopy<string>                 defstr;
+    ResetOnCopy<string>                 strHelloC = "hello";    // char* literal
+    ResetOnCopy<string>                 strGoodbyeS = "goodbye"s; // string literal
+    ResetOnCopy<short>                  shArr[3] = {9,8,7};
+    ResetOnCopy<SubsystemIndex>         subIx{5};
+    ResetOnCopy<std::vector<string>>    vstr {"one", "two", "three"};
+    ResetOnCopy<unique_ptr<Array_<int>>> up{new Array_<int>({1,2,3})};
+
+    void checkHasInitialValues() const {
+        SimTK_TEST(defint == 0 && charZ == 'z');
+        SimTK_TEST(defstr.empty());
+        SimTK_TEST(strHelloC == "hello");
+        SimTK_TEST(strGoodbyeS == "goodbye");
+        SimTK_TEST(shArr[0]==9 && shArr[1]==8 && shArr[2]==7);
+        SimTK_TEST(subIx == 5);
+        SimTK_TEST(vstr.size() == 3);
+        SimTK_TEST(vstr[0]=="one" && vstr[2]=="three");
+        SimTK_TEST((*up).size() == 3);
+        SimTK_TEST((*up)[0]==1 && (*up)[2]==3);
+    }
+
+    void checkHasResetValues() const {
+        SimTK_TEST(defint == 0 && charZ == '\0');
+        SimTK_TEST(defstr.empty());
+        SimTK_TEST(strHelloC.empty());
+        SimTK_TEST(strGoodbyeS.empty());
+        SimTK_TEST(shArr[0]==0 && shArr[1]==0 && shArr[2]==0);
+        SimTK_TEST(!subIx.isValid());
+        SimTK_TEST(vstr.empty());
+        SimTK_TEST(!up);
+    }
+};
+
+void testResetOnCopy() {
+    UsesResetOnCopy r1;
+    r1.checkHasInitialValues();
+
+    UsesResetOnCopy r2(r1); // copy construction
+    r2.checkHasResetValues();
+
+    r2 = r1; // copy assignment
+    r2.checkHasResetValues();
+
+    r2 = std::move(r1); // move assignment (r1 is damaged now)
+    r2.checkHasInitialValues();
+
+    UsesResetOnCopy r3(std::move(r2)); // move construction
+    r3.checkHasInitialValues();
+
+    string str1("hi there");
+    ResetOnCopy<string> rcstr2(str1);
+    SimTK_TEST(rcstr2 == "hi there");
+
+    ResetOnCopy<int> rint(3);
+    SimTK_TEST(rint == 3);
+
+    ResetOnCopy<const double*> dstar;
+    SimTK_TEST(dstar == nullptr);
+
+    ResetOnCopy<double> rdub;
+    SimTK_TEST(rdub == 0.);
+
+    ResetOnCopy<string> mystr("hello");
+    SimTK_TEST(mystr == "hello");
+
+    mystr = std::move(mystr); // self-move assignment should do nothing
+    SimTK_TEST(mystr == "hello");
+
+    mystr = mystr; // copy assignment should clear
+    SimTK_TEST(mystr.empty());
+
+    ResetOnCopy<unique_ptr<double>> updub;
+    SimTK_TEST(updub.get() == nullptr);
+
+    updub.reset(new double(1.25));
+    SimTK_TEST(updub && *updub == 1.25);
+
+    // This is a move assignment since the RHS is a temporary rvalue. Copy
+    // assignment wouldn't compile;
+    double* dp = new double(3.125); 
+    updub = unique_ptr<double>(dp); // should transfer the heap object
+    SimTK_TEST(updub.get()==dp && *updub == 3.125);
+
+    // This is copy construction so should default initialize and leave source
+    // untouched.
+    ResetOnCopy<unique_ptr<double>> updub2(updub);
+    SimTK_TEST(!updub2 && updub.get()==dp && *updub == 3.125);
+
+    // Move construction should move the heap object and leave the source
+    // empty.
+    ResetOnCopy<unique_ptr<double>> updub3(std::move(updub));
+    SimTK_TEST(updub3.get()==dp && *updub3 == 3.125);
+    SimTK_TEST(!updub);
+
+    ResetOnCopy<SubsystemIndex> mysix(6);
+    SimTK_TEST(mysix == 6);
+
+    ResetOnCopy<SubsystemIndex> newsix(mysix); // copy construct
+    SimTK_TEST(!newsix.isValid());
+
+    newsix = SubsystemIndex(7); // ordinary assignment to contained type
+    SimTK_TEST(newsix == 7);
+
+    newsix = mysix; // copy assignment; should reinitialize
+    SimTK_TEST(!newsix.isValid());
+
+    newsix = std::move(mysix); // move assignment
+    SimTK_TEST(newsix == 6);
+
+    ResetOnCopy<int> arr[3];
+    SimTK_TEST(arr[0]==0 && arr[1]==0 && arr[2]==0);
+    ResetOnCopy<double> arr2[3] {9.25,8,7};
+    SimTK_TEST(arr2[0]==9.25 && arr2[1]==8 && arr2[2]==7);
+}
+
+class UsesReinitOnCopy {
+public:
+    enum Color {Red, Green, Blue};
+
+    ReinitOnCopy<char>                   charZ = 'z';
+    ReinitOnCopy<string>                 strHelloC = "hello";    // char* literal
+    ReinitOnCopy<string>                 strGoodbyeS = "goodbye"s; // string literal
+    ReinitOnCopy<short>                  shArr[3] = {9,8,7};
+    ReinitOnCopy<SubsystemIndex>         subIx{5};
+    ReinitOnCopy<std::vector<string>>    vstr {"one", "two", "three"};
+    ReinitOnCopy<Color>                  color{Blue};
+
+    void checkHasInitialValues() const {
+        SimTK_TEST(charZ == 'z');
+        SimTK_TEST(strHelloC == "hello");
+        SimTK_TEST(strGoodbyeS == "goodbye");
+        SimTK_TEST(shArr[0]==9 && shArr[1]==8 && shArr[2]==7);
+        SimTK_TEST(subIx == 5);
+        SimTK_TEST(vstr.size() == 3);
+        SimTK_TEST(vstr[0]=="one" && vstr[2]=="three");
+        SimTK_TEST(color == Blue);
+    }
+
+    void changeAll() {
+        charZ = 'y';
+        strHelloC = "something";
+        strGoodbyeS = "a string"s;
+        // shArr[0] = shArr[1] = shArr[2] = -123 won't work: two of those are
+        // copy assignments so get reinitialized instead.
+        shArr[0] = -123; shArr[1] = -123; shArr[2] = -123;
+        subIx.invalidate();
+        vstr = std::vector<string>{"breakfast", "lunch"};
+        color = Red;
+    }
+
+    void checkHasChanged() const {
+        SimTK_TEST(charZ == 'y');
+        SimTK_TEST(strHelloC == "something");
+        SimTK_TEST(strGoodbyeS == "a string");
+        SimTK_TEST(shArr[0]==-123 && shArr[1]==-123 && shArr[2]==-123);
+        SimTK_TEST(!subIx.isValid());
+        SimTK_TEST(vstr.size() == 2);
+        SimTK_TEST(vstr[0]=="breakfast" && vstr[1]=="lunch");
+        SimTK_TEST(color == Red);
+    }
+
+};
+
+void testReinitOnCopy() {
+    UsesReinitOnCopy r1;
+    r1.checkHasInitialValues();
+    
+    // Change every field and make sure it changes back on copy.
+    r1.changeAll();
+    r1.checkHasChanged();
+
+    UsesReinitOnCopy r2(r1); // copy construction; should reinit
+    r2.checkHasInitialValues();
+
+    r2.changeAll();
+    r2.checkHasChanged();
+
+    r2 = r1; // copy assignment; should reinit.
+    r2.checkHasInitialValues();
+
+    r2 = std::move(r1); // move assignment; r2 gets changed values
+    r2.checkHasChanged();
+
+    UsesReinitOnCopy r3(std::move(r2)); // move construction; r3 gets changed
+    r3.checkHasChanged();
+
+
+    enum Color {Red=1,Green,Blue}; // 0 isn't one of the enumerators
+    ReinitOnCopy<Color> myColor{Blue};
+    SimTK_TEST(myColor == Blue);
+    myColor = Green;
+    SimTK_TEST(myColor == Green);
+
+    ReinitOnCopy<Color> myColor2(myColor); // copy construction; reinit
+    SimTK_TEST(myColor2 == Blue);
+
+    ReinitOnCopy<double> d{123.};
+    SimTK_TEST(d == 123.);
+    d = 3.125;
+    SimTK_TEST(d == 3.125);
+
+    ReinitOnCopy<double> dd(d); // copy construction; reinit
+    SimTK_TEST(dd == 123.);
+
+    ReinitOnCopy<string> mystr1 = "unknown";
+    SimTK_TEST(mystr1 == "unknown" && mystr1.getReinitValue() == "unknown");
+    mystr1 = "now we know";
+    SimTK_TEST(mystr1 == "now we know" && mystr1.getReinitValue() == "unknown");
+
+    ReinitOnCopy<string> mystr2(mystr1); // reinit
+    SimTK_TEST(mystr2 == "unknown" && mystr2.getReinitValue() == "unknown");
+
+    ReinitOnCopy<char*> mychar1 = "charstr";
+    SimTK_TEST(string(mychar1) == "charstr");
+    mychar1 = "here is a new string";
+    SimTK_TEST(string(mychar1) == "here is a new string");
+
+    // Weird -- mychar converts to char* implicitly, then this is a construction
+    // from value rather than copy construction, so mychar2 doesn't inherit
+    // mychar1's initial value.
+    ReinitOnCopy<const char*> mychar2(mychar1);
+    SimTK_TEST(string(mychar2) == "here is a new string" 
+               && string(mychar2.getReinitValue()) == "here is a new string");
+
+    ReinitOnCopy<std::vector<char>> vc = {'a','b','c'};
+    SimTK_TEST(vc.size()==3 && vc.getReinitValue().size()==3);
+    vc = {'x', 'y'};
+    SimTK_TEST(vc.size()==2 && vc.getReinitValue().size()==3);
+
+    auto vc2(vc); // copy construction; reinit
+    SimTK_TEST(vc2.size()==3 && vc2.getReinitValue().size()==3);
+}
+
+
 int main() {
     SimTK_START_TEST("TestCloneOnWritePtr");
         SimTK_SUBTEST(testEmpty);
@@ -433,6 +675,8 @@ int main() {
         SimTK_SUBTEST(testForLeaks);
 
         SimTK_SUBTEST(testNullOnCopyUniquePtr);
+        SimTK_SUBTEST(testResetOnCopy);
+        SimTK_SUBTEST(testReinitOnCopy);
     SimTK_END_TEST();
 }
 
