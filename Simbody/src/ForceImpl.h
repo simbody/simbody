@@ -49,6 +49,9 @@ public:
     virtual bool dependsOnlyOnPositions() const {
         return false;
     }
+    virtual bool shouldBeParallelIfPossible() const{
+        return false;
+    }
     ForceIndex getForceIndex() const {return index;}
     const GeneralForceSubsystem& getForceSubsystem() const 
     {   assert(forces); return *forces; }
@@ -612,6 +615,9 @@ public:
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) 
                    const override;
     Real calcPotentialEnergy(const State& state) const override;
+    bool shouldBeParallelIfPossible() const {
+        return implementation->shouldBeParallelIfPossible();
+    }
     ~CustomImpl() {
         delete implementation;
     }
