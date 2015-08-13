@@ -500,6 +500,7 @@ void testResetOnCopy() {
 
     // Using std::string here failed on OSX clang 3.6 due to bad std::string
     // move assignment operator (didn't check for self-move).
+    // std::vector seemed to be more widely broken.
     //ResetOnCopy<string> mystr("hello");
     //SimTK_TEST(mystr == "hello");
 
@@ -509,8 +510,8 @@ void testResetOnCopy() {
     //mystr = mystr; // copy assignment should clear
     //SimTK_TEST(mystr.empty());
 
-    // Using std::vector instead hoping for correctly-implemented moves.
-    ResetOnCopy<std::vector<int>> myvec{1,2,3};
+    // Using Array_ instead to guarantee correctly-implemented moves.
+    ResetOnCopy<Array_<int>> myvec{1,2,3};
     SimTK_TEST(myvec.size()==3 && myvec[2]==3);
     // remember location of third element to check for unexpected reallocation
     int* const addr2 = &myvec[2];
