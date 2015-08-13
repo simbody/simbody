@@ -36,7 +36,9 @@ called SimTK::NullOnCopyUniquePtr. */
 
 using namespace SimTK;
 using std::cout; using std::endl; using std::string; using std::unique_ptr;
-using namespace std::literals;
+
+// C++14
+// using namespace std::literals;
 
 class Base {
 public:
@@ -436,7 +438,7 @@ public:
     ResetOnCopy<char>                   charZ = 'z';
     ResetOnCopy<string>                 defstr;
     ResetOnCopy<string>                 strHelloC = "hello";    // char* literal
-    ResetOnCopy<string>                 strGoodbyeS = "goodbye"s; // string literal
+    //ResetOnCopy<string>                 strGoodbyeS = "goodbye"s; // string literal C++14
     ResetOnCopy<short>                  shArr[3] = {9,8,7};
     ResetOnCopy<SubsystemIndex>         subIx{5};
     ResetOnCopy<std::vector<string>>    vstr {"one", "two", "three"};
@@ -446,7 +448,7 @@ public:
         SimTK_TEST(defint == 0 && charZ == 'z');
         SimTK_TEST(defstr.empty());
         SimTK_TEST(strHelloC == "hello");
-        SimTK_TEST(strGoodbyeS == "goodbye");
+        //SimTK_TEST(strGoodbyeS == "goodbye");
         SimTK_TEST(shArr[0]==9 && shArr[1]==8 && shArr[2]==7);
         SimTK_TEST(subIx == 5);
         SimTK_TEST(vstr.size() == 3);
@@ -459,7 +461,7 @@ public:
         SimTK_TEST(defint == 0 && charZ == '\0');
         SimTK_TEST(defstr.empty());
         SimTK_TEST(strHelloC.empty());
-        SimTK_TEST(strGoodbyeS.empty());
+        //SimTK_TEST(strGoodbyeS.empty());
         SimTK_TEST(shArr[0]==0 && shArr[1]==0 && shArr[2]==0);
         SimTK_TEST(!subIx.isValid());
         SimTK_TEST(vstr.empty());
@@ -555,7 +557,7 @@ public:
 
     ReinitOnCopy<char>                   charZ = 'z';
     ReinitOnCopy<string>                 strHelloC = "hello";    // char* literal
-    ReinitOnCopy<string>                 strGoodbyeS = "goodbye"s; // string literal
+    // ReinitOnCopy<string>                 strGoodbyeS = "goodbye"s; // string literal C++14
     ReinitOnCopy<short>                  shArr[3] = {9,8,7};
     ReinitOnCopy<SubsystemIndex>         subIx{5};
     ReinitOnCopy<std::vector<string>>    vstr {"one", "two", "three"};
@@ -564,7 +566,7 @@ public:
     void checkHasInitialValues() const {
         SimTK_TEST(charZ == 'z');
         SimTK_TEST(strHelloC == "hello");
-        SimTK_TEST(strGoodbyeS == "goodbye");
+        //SimTK_TEST(strGoodbyeS == "goodbye");
         SimTK_TEST(shArr[0]==9 && shArr[1]==8 && shArr[2]==7);
         SimTK_TEST(subIx == 5);
         SimTK_TEST(vstr.size() == 3);
@@ -575,7 +577,7 @@ public:
     void changeAll() {
         charZ = 'y';
         strHelloC = "something";
-        strGoodbyeS = "a string"s;
+        //strGoodbyeS = "a string"s;
         // shArr[0] = shArr[1] = shArr[2] = -123 won't work: two of those are
         // copy assignments so get reinitialized instead.
         shArr[0] = -123; shArr[1] = -123; shArr[2] = -123;
@@ -587,7 +589,7 @@ public:
     void checkHasChanged() const {
         SimTK_TEST(charZ == 'y');
         SimTK_TEST(strHelloC == "something");
-        SimTK_TEST(strGoodbyeS == "a string");
+        //SimTK_TEST(strGoodbyeS == "a string");
         SimTK_TEST(shArr[0]==-123 && shArr[1]==-123 && shArr[2]==-123);
         SimTK_TEST(!subIx.isValid());
         SimTK_TEST(vstr.size() == 2);
