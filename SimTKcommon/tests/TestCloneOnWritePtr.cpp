@@ -648,17 +648,14 @@ void testReinitOnCopy() {
     ReinitOnCopy<string> mystr2(mystr1); // reinit
     SimTK_TEST(mystr2 == "unknown" && mystr2.getReinitValue() == "unknown");
 
-    ReinitOnCopy<char*> mychar1 = "charstr";
+    ReinitOnCopy<const char*> mychar1 = "charstr";
     SimTK_TEST(string(mychar1) == "charstr");
     mychar1 = "here is a new string";
     SimTK_TEST(string(mychar1) == "here is a new string");
 
-    // Weird -- mychar converts to char* implicitly, then this is a construction
-    // from value rather than copy construction, so mychar2 doesn't inherit
-    // mychar1's initial value.
-    ReinitOnCopy<const char*> mychar2(mychar1);
-    SimTK_TEST(string(mychar2) == "here is a new string" 
-               && string(mychar2.getReinitValue()) == "here is a new string");
+    ReinitOnCopy<const char*> mychar2(mychar1); // copy construction; reinit
+    SimTK_TEST(string(mychar2) == "charstr" 
+               && string(mychar2.getReinitValue()) == "charstr");
 
     ReinitOnCopy<std::vector<char>> vc = {'a','b','c'};
     SimTK_TEST(vc.size()==3 && vc.getReinitValue().size()==3);
