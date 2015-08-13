@@ -82,6 +82,11 @@ from an object of type `T` to an object of type `ReinitOnCopy<T>` will invoke
 `T`'s ordinary copy assignment operator if there is one, and fail to compile if
 an attempt is made to use a non-existent assignment operator.
 
+@tparam  T  Template type that is a numeric, character, enum, or pointer 
+            built-in type, or a class type that is CopyConstructible and 
+            CopyAssignable, and has an accessible destructor. Array types are
+            not allowed.
+
 @see ResetOnCopy if you only need to reinitialize to the default value.
 **/
 template <class T> 
@@ -100,6 +105,11 @@ public:
     /** Construct or implicitly convert from an object of type `T`.\ This sets
     both the current and remembered initial value to the given `value`. **/ 
     ReinitOnCopy(const T& value) : Super(value) {}
+
+    /** Construct or implicitly convert from an rvalue object of type 
+    `T`.\ This sets both the current and remembered initial value to the given
+    `value`. **/ 
+    ReinitOnCopy(T&& value) : Super(std::move(value)) {}
 
     /** Copy constructor sets the value and remembered initial value to the
     initial value in the source, using type `T`'s copy constructor. The 
@@ -126,12 +136,24 @@ public:
     ReinitOnCopy& operator=(const T& value) 
     {   Super::operator=(value); return *this; }
 
+    /** Assignment from an rvalue object of type `T` uses `T`'s move or copy
+    assignment operator; affects only the current value but does not change the 
+    remembered initial value. **/
+    ReinitOnCopy& operator=(T&& value) 
+    {   Super::operator=(std::move(value)); return *this; }
+
+    /** Return a const reference to the contained object of type `T`. **/
+    const T& getT() const {return Super::getT();}
+
+    /** Return a writable reference to the contained object of type `T`. **/
+    T& updT() {return Super::updT();}
+
     /** (Advanced) Return a const reference to the stored initial value. **/
-    const T& getReinitValue() const {return Super::getReinitValue();}
+    const T& getReinitT() const {return Super::getReinitT();}
 
     /** (Advanced) Return a writable reference to the stored initial 
     value.\ Use of this should be rare and restricted to constructors. **/
-    T& updReinitValue() {return Super::updReinitValue();}
+    T& updReinitT() {return Super::updReinitT();}
 };
 
 //==============================================================================
@@ -156,11 +178,6 @@ public:
     // Default construction (note that members are "value initialized").
     ReinitOnCopyHelper() {}
 
-    // Constructor from `T` sets the value and remembered initial value to the
-    // given value, using type `T`'s copy constructor.
-    explicit ReinitOnCopyHelper(const T& value) 
-    :   m_value(value), m_reinitValue(value) {}
-
     // Copy constructor sets the value and remembered initial value to the
     // initial value in the source, using type `T`'s copy constructor. The 
     // current value of the source is ignored.
@@ -172,6 +189,11 @@ public:
     :   m_value(std::move(source.m_value)), 
         m_reinitValue(std::move(source.m_reinitValue)) {}
 
+    // Constructor from lvalue or rvalue `T` sets the value and remembered 
+    // initial value to the given value, using type `T`'s copy constructor.
+    explicit ReinitOnCopyHelper(const T& value) 
+    :   m_value(value), m_reinitValue(value) {}
+
     // Move assignment moves the *value* from source to `this` but does not
     // move the recorded initial value which may differ.
     ReinitOnCopyHelper& operator=(ReinitOnCopyHelper&& source) 
@@ -182,25 +204,28 @@ public:
     ReinitOnCopyHelper& operator=(const ReinitOnCopyHelper&) 
     {   m_value = m_reinitValue; return *this; }
 
-    // Allow assignment from an object of type T; affects only the current
-    // value. Uses type `T`'s copy assignment operator.
+    // Allow assignment from an lvalue or rvalue object of type T; affects only
+    // the current value. Uses built-in type `T`'s copy assignment operator.
     ReinitOnCopyHelper& operator=(const T& value) 
     {   m_value = value; return *this; }
 
     // Implicit conversion to a const reference to the contained object of
     // type `T`.
-    operator const T&() const {return m_value;}
+    operator const T&() const {return getT();}
 
     // Implicit conversion to a writable reference to the contained object of
     // type `T`.
-    operator T&() {return m_value;}
+    operator T&() {return updT();}
+
+    const T& getT() const {return m_value;}
+    T&       updT()       {return m_value;}
 
     // Return a const reference to the stored initial value.
-    const T& getReinitValue() const {return m_reinitValue;}
+    const T& getReinitT() const {return m_reinitValue;}
 
     // Return a writable reference to the stored initial value. Use of this 
     // should be restricted to constructors.
-    T& updReinitValue() {return m_reinitValue;}
+    T& updReinitT() {return m_reinitValue;}
 
 private:
     T           m_value{};          // note "value initialization"; i.e. zero
@@ -239,10 +264,15 @@ public:
     ReinitOnCopyHelper(ReinitOnCopyHelper&& source) 
     :   T(std::move(source)), m_reinitValue(std::move(source.m_reinitValue)) {}
 
-    // Constructor from `T` sets the value and remembered initial value to the
-    // given value, using type `T`'s copy constructor.
+    // Constructor from lvalue `T` sets the value and remembered initial value 
+    // to the given value, using type `T`'s copy constructor.
     explicit ReinitOnCopyHelper(const T& value) 
     :   T(value), m_reinitValue(value) {}
+
+    // Constructor from rvalue `T` sets the value and remembered initial value 
+    // to the given value, using type `T`'s move and copy constructors.
+    explicit ReinitOnCopyHelper(T&& value) 
+    :   T(value), m_reinitValue(static_cast<const T&>(*this)) {} // careful!
 
     // Copy constructor sets the value and remembered initial value to the
     // initial value in the source, using type `T`'s copy constructor. The 
@@ -260,23 +290,31 @@ public:
     ReinitOnCopyHelper& operator=(const ReinitOnCopyHelper&) 
     {   T::operator=(m_reinitValue); return *this; }
 
-    // Allow assignment from an object of type T; affects only the current
-    // value. Uses type `T`'s copy assignment operator.
+    // Allow assignment from an lvalue object of type T; affects only the 
+    // current value. Uses type `T`'s copy assignment operator.
     ReinitOnCopyHelper& operator=(const T& value) 
     {   T::operator=(value); return *this; }
 
+    // Allow assignment from an rvalue object of type T; affects only the 
+    // current value. Uses type `T`'s move assignment operator.
+    ReinitOnCopyHelper& operator=(T&& value) 
+    {   T::operator=(std::move(value)); return *this; }
+
+    const T& getT() const {return static_cast<const T&>(*this);}
+    T&       updT()       {return static_cast<T&>(*this);}
+
     // Return a const reference to the stored initial value.
-    const T& getReinitValue() const {return m_reinitValue;}
+    const T& getReinitT() const {return m_reinitValue;}
 
     // Return a writable reference to the stored initial value. Use of this 
     // should be restricted to constructors.
-    T& updReinitValue() {return m_reinitValue;}
+    T& updReinitT() {return m_reinitValue;}
 
 private:
     // The remembered initial value is set to the already-constructed
     // base value in case we used one of the base constructors. This uses
     // the base class copy constructor.
-    const T m_reinitValue = {static_cast<const T&>(*this)}; 
+    const T m_reinitValue {static_cast<const T&>(*this)}; 
 };
 
 /** @endcond **/

@@ -498,14 +498,34 @@ void testResetOnCopy() {
     ResetOnCopy<double> rdub;
     SimTK_TEST(rdub == 0.);
 
-    ResetOnCopy<string> mystr("hello");
-    SimTK_TEST(mystr == "hello");
+    // Using std::string here failed on OSX clang 3.6 due to bad std::string
+    // move assignment operator (didn't check for self-move).
+    //ResetOnCopy<string> mystr("hello");
+    //SimTK_TEST(mystr == "hello");
 
-    mystr = std::move(mystr); // self-move assignment should do nothing
-    SimTK_TEST(mystr == "hello");
+    //mystr = std::move(mystr); // self-move assignment should do nothing
+    //SimTK_TEST(mystr == "hello");
 
-    mystr = mystr; // copy assignment should clear
-    SimTK_TEST(mystr.empty());
+    //mystr = mystr; // copy assignment should clear
+    //SimTK_TEST(mystr.empty());
+
+    // Using std::vector instead hoping for correctly-implemented moves.
+    ResetOnCopy<std::vector<int>> myvec{1,2,3};
+    SimTK_TEST(myvec.size()==3 && myvec[2]==3);
+    // remember location of third element to check for unexpected reallocation
+    int* const addr2 = &myvec[2];
+
+    // self-move assignment should do nothing
+    myvec = std::move(myvec); 
+    SimTK_TEST(myvec.size()==3 && myvec[2]==3 && &myvec[2]==addr2);
+
+    // self copy of underlying std::vector should do nothing
+    myvec.updT() = myvec.getT();
+    SimTK_TEST(myvec.size()==3 && myvec[2]==3 && &myvec[2]==addr2);
+
+    // But, self-copy assignment should clear (cuz reset-on-copy)
+    myvec = myvec;
+    SimTK_TEST(myvec.empty());
 
     ResetOnCopy<unique_ptr<double>> updub;
     SimTK_TEST(updub.get() == nullptr);
@@ -641,12 +661,12 @@ void testReinitOnCopy() {
     SimTK_TEST(dd == 123.);
 
     ReinitOnCopy<string> mystr1 = "unknown";
-    SimTK_TEST(mystr1 == "unknown" && mystr1.getReinitValue() == "unknown");
+    SimTK_TEST(mystr1 == "unknown" && mystr1.getReinitT() == "unknown");
     mystr1 = "now we know";
-    SimTK_TEST(mystr1 == "now we know" && mystr1.getReinitValue() == "unknown");
+    SimTK_TEST(mystr1 == "now we know" && mystr1.getReinitT() == "unknown");
 
     ReinitOnCopy<string> mystr2(mystr1); // reinit
-    SimTK_TEST(mystr2 == "unknown" && mystr2.getReinitValue() == "unknown");
+    SimTK_TEST(mystr2 == "unknown" && mystr2.getReinitT() == "unknown");
 
     ReinitOnCopy<const char*> mychar1 = "charstr";
     SimTK_TEST(string(mychar1) == "charstr");
@@ -655,15 +675,15 @@ void testReinitOnCopy() {
 
     ReinitOnCopy<const char*> mychar2(mychar1); // copy construction; reinit
     SimTK_TEST(string(mychar2) == "charstr" 
-               && string(mychar2.getReinitValue()) == "charstr");
+               && string(mychar2.getReinitT()) == "charstr");
 
     ReinitOnCopy<std::vector<char>> vc = {'a','b','c'};
-    SimTK_TEST(vc.size()==3 && vc.getReinitValue().size()==3);
+    SimTK_TEST(vc.size()==3 && vc.getReinitT().size()==3);
     vc = {'x', 'y'};
-    SimTK_TEST(vc.size()==2 && vc.getReinitValue().size()==3);
+    SimTK_TEST(vc.size()==2 && vc.getReinitT().size()==3);
 
     auto vc2(vc); // copy construction; reinit
-    SimTK_TEST(vc2.size()==3 && vc2.getReinitValue().size()==3);
+    SimTK_TEST(vc2.size()==3 && vc2.getReinitT().size()==3);
 }
 
 

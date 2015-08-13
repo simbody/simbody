@@ -67,7 +67,6 @@ class Thing {
 };
 @endcode
 
-
 Other than copy behavior, an object of type `ResetOnCopy<T>` behaves just like 
 the underlying object of type `T`. It will implicitly convert to `T` when 
 needed, and inherit constructors, assignment, and other methods from `T`. Move 
@@ -80,11 +79,15 @@ If `T` is a C++ built-in "scalar" type (arithmetic, character, or pointer type)
 it will be reset to `T(0)` or `nullptr` when copy constructed or copy assigned. 
 We don't allow `T` to be an enumerated type here since resetting an enum
 to zero isn't always reasonable; use `ReinitOnCopy<T>` instead and provide
-an initialing enumerator. For class types `T`, copy construction will use the 
-default constructor, and copy assignment will invoke `T::reset()` or, if there 
-is no such method then `T::clear()`. This will add `CopyConstructible` and 
-`CopyAssignable` concepts to move-only classes like `std::unique_ptr`, but those
-operations just reset the object to its default-constructed state.
+an initializing enumerator. For class types `T`, copy construction and copy
+assignment will use the default constructor. `ResetOnCopy<T>` adds 
+`CopyConstructible` and `CopyAssignable` concepts to move-only classes like 
+`std::unique_ptr`, but those operations just reset the object to its 
+default-constructed condition.
+
+@tparam  T  Template type that is a numeric, character, or pointer built-in
+            type, or a class type that is DefaultConstructible and has an 
+            accessible destructor. Enum and array types are not allowed.
 
 @see ReinitOnCopy if you want to reset to a non-default value.
 **/
@@ -94,6 +97,7 @@ class ResetOnCopy
             std::is_scalar<typename std::remove_all_extents<T>::type>::value> {
     using Super = ResetOnCopyHelper<T, 
             std::is_scalar<typename std::remove_all_extents<T>::type>::value>;
+
 public:
     using Super::Super;
     using Super::operator=;
@@ -105,6 +109,11 @@ public:
     /** Construct or implicitly convert from an object of type `T` if there
     is a suitable copy constructor available. **/ 
     ResetOnCopy(const T& value) : Super(value) {}
+
+    /** Construct or implicitly convert from an rvalue object of type `T` if 
+    thereis a suitable move constructor available, otherwise use the copy
+    constructor if available, otherwise fails to compile. **/ 
+    ResetOnCopy(T&& value) : Super(std::move(value)) {}
 
     /** Copy constructor behaves identically to the default constructor; the
     supplied source argument is ignored. **/
@@ -128,6 +137,18 @@ public:
     operator if there is a suitable copy assignment operator available. **/
     ResetOnCopy& operator=(const T& value) 
     {   Super::operator=(value); return *this; }
+
+    /** Assignment from an rvalue object of type `T` uses `T`'s move assignment
+    operator if available, otherwise uses copy assignment if available, 
+    otherwise fails to compile. **/
+    ResetOnCopy& operator=(T&& value) 
+    {   Super::operator=(std::move(value)); return *this; }
+
+    /** Return a const reference to the contained object of type `T`. **/
+    const T& getT() const {return Super::getT();}
+
+    /** Return a writable reference to the contained object of type `T`. **/
+    T& updT() {return Super::updT();}
 };
 
 //==============================================================================
@@ -171,30 +192,27 @@ public:
     // Copy constructor isn't needed here since ResetOnCopy doesn't use it.
     ResetOnCopyHelper(const ResetOnCopyHelper&) = delete;
 
-    /** Constructor from T sets an initial value but this initial value
-    will not be restored on copy. **/
-    ResetOnCopyHelper(const T& value) : m_value(value) {}
+    // Constructor from lvalue or rvalue T sets an initial value but this 
+    // initial value will not be restored on copy. 
+    explicit ResetOnCopyHelper(const T& value) : m_value(value) {}
 
-    /** Make copy assignment produce the same result as if the target were
-    default constructed; the source is ignored. **/
-    ResetOnCopyHelper& operator=(const ResetOnCopyHelper&) {
-        m_value = T{};
-        return *this;
-    }
+    // Make copy assignment produce the same result as if the target were
+    // value initialized; the source is ignored.
+    ResetOnCopyHelper& operator=(const ResetOnCopyHelper&) 
+    {   m_value = T{}; return *this; }
 
-    /** Allow assignment from an object of type T. **/
-    ResetOnCopyHelper& operator=(const T& value) {
-        m_value = value;
-        return *this;
-    }
+    // Allow assignment from an lvalue or rvalue object of type T.
+    ResetOnCopyHelper& operator=(const T& value) 
+    {   m_value = value; return *this; }
 
-    /** Implicit conversion to a const reference to the contained object of
-    type `T`. **/
-    operator const T&() const {return m_value;}
+    // Implicit conversion to a const reference to the contained object.
+    operator const T&() const {return getT();}
 
-    /** Implicit conversion to a writable reference to the contained object of
-    type `T`. **/
-    operator T&() {return m_value;}
+    // Implicit conversion to a writable reference to the contained object.
+    operator T&() {return updT();}
+
+    const T& getT() const {return m_value;}
+    T&       updT()       {return m_value;}
 
 private:
     T   m_value{}; // value initialize; i.e., set to zero
@@ -213,6 +231,10 @@ class ResetOnCopyHelper<T,false> : public T {
     static_assert(!std::is_array<T>::value, 
         "ResetOnCopy<T> does not allow T to be an array. Use an array "
         "of ResetOnCopy<E> instead, where E is the element type.");
+
+    static_assert(std::is_default_constructible<T>::value,
+        "ResetOnCopy<T> requires type T to have a default constructor. "
+        "Use ReinitOnCopy<T> instead to construct from an initial value.");
 public:
     using T::T;
     using T::operator=;
@@ -223,42 +245,37 @@ public:
     // Default construction (T is default constructed).
     ResetOnCopyHelper() : T() {}
 
-    // Constructor from T sets an initial value but this initial value
-    // will not be restored on copy. Won't compile if T doesn't have a copy
-    // constructor.
-    ResetOnCopyHelper(const T& value) : T(value) {}
-
     // Default move construction.
     ResetOnCopyHelper(ResetOnCopyHelper&& source) : T(std::move(source)) {}
 
     // Default move assignment.
-    ResetOnCopyHelper& operator=(ResetOnCopyHelper&& source) {
-        T::operator=(std::move(source));
-        return *this;
-    }
+    ResetOnCopyHelper& operator=(ResetOnCopyHelper&& source) 
+    {   T::operator=(std::move(source)); return *this; }
 
     // Copy constructor isn't needed here since ResetOnCopy doesn't use it.
     ResetOnCopyHelper(const ResetOnCopyHelper&) = delete;
 
-    /** Copy assignment just invokes `this->reset()` or `this->clear()` and 
-    ignores the source. **/
+    // Constructor from lvalue T sets an initial value but this initial value
+    // will not be restored on copy. Won't compile if T doesn't have a copy
+    // constructor.
+    explicit ResetOnCopyHelper(const T& value) : T(value) {}
+
+    // Constructor from rvalue T sets an initial value but this initial value
+    // will not be restored on copy. Won't compile if T doesn't have a move
+    // or copy constructor.
+    explicit ResetOnCopyHelper(const T&& value) : T(std::move(value)) {}
+
+    // Copy assignment just destroys and reconstructs this object using 
+    // the default constructor for type `T`.
     ResetOnCopyHelper& operator=(const ResetOnCopyHelper&) {
-        resetOrClear<T>(0); // int(0) favors reset() over clear()
+        T* thisT = static_cast<T*>(this); // upcast to base
+        thisT->~T();        // destruct the current base object
+        new (thisT) T();    // reconstruct it with default constructor
         return *this;
     }
 
-private:
-    // Thanks to Shrinidhi Kowshika Lakshmikanth for this lovely code that 
-    // figures out whether to call clear() or reset(). This depends on SFINAE to
-    // avoid generating any code that would depend on a non-existent method.
-    // reset() is preferred if both methods are available.
-
-    template<class TT, class = decltype(std::declval<TT>().reset())>
-    void resetOrClear(int) {TT::reset();}
-
-    template<class TT, class = decltype(std::declval<TT>().clear())>
-    void resetOrClear(float) {TT::clear();}
-
+    const T& getT() const {return static_cast<const T&>(*this);}
+    T&       updT()       {return static_cast<T&>(*this);}
 };
 /** @endcond **/
 
