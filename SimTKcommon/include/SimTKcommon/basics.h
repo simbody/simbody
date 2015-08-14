@@ -45,6 +45,8 @@
 #include "SimTKcommon/internal/CloneOnWritePtr.h"
 #include "SimTKcommon/internal/ReferencePtr.h"
 #include "SimTKcommon/internal/NullOnCopyUniquePtr.h"
+#include "SimTKcommon/internal/ResetOnCopy.h"
+#include "SimTKcommon/internal/ReinitOnCopy.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Serialize.h"
 #include "SimTKcommon/internal/Fortran.h"

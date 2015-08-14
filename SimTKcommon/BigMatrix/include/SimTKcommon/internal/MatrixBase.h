@@ -100,7 +100,6 @@ public:
     typedef EPrecision Precision;     // complex removed from StdNumber
     typedef EScalarNormSq  ScalarNormSq;      // type of scalar^2
 
-    typedef MatrixBase<E>                T;
     typedef MatrixBase<ENeg>             TNeg;
     typedef MatrixBase<EWithoutNegator>  TWithoutNegator;
     typedef MatrixBase<EReal>            TReal;

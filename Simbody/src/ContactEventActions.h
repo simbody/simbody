@@ -32,46 +32,89 @@
 
 #include "simbody/internal/common.h"
 
+#include <memory>
+
 namespace SimTK {
 class SimbodyMatterSubsystemRep;
+class ImpulseSolver;
 
 //==============================================================================
 //                           IMPACT EVENT ACTION
 //==============================================================================
-// This is the EventAction we will perform when an ImpactEvent triggers.
+/* This is the EventAction we will perform when an ImpactEvent triggers.
+This action assumes that the given Study's internal state has velocities that
+need to be corrected using an impact model. The state is corrected by applying
+impulses that correct the velocities in a manner that satisfies the equations
+of motion and the impact model equations.
+
+The action here is:
+(1) Considering only currently-active constraints, or constraints that are 
+    inactive but proximal,
+(2) determine an acceptable impulse that corrects hard-constraint velocity 
+    errors,
+(3) project all hard position constraints that were active during the impact 
+    onto the position manifold, and
+(4) follow up with a ContactEventAction to choose the active set.
+
+*/
 class ImpactEventAction : public EventAction {
 public:
-    explicit ImpactEventAction(const SimbodyMatterSubsystemRep& matter) 
-    :   EventAction(Change), m_matter(matter) {}
+    explicit ImpactEventAction(const SimbodyMatterSubsystemRep& matter);
 
+    // A unilateral contact constraint is proximal if it is currently active
+    // or satisfies a proximity condition.
+    static void findProximalConstraints
+       (const MultibodySystem&          mbs,
+        const State&                    state,
+        Real                            proximityTol,
+        Array_<UnilateralContactIndex>& proximalUniContacts); 
+
+private:
     void changeVirtual(Study&                  study,
                        const Event&            event,
                        const EventTriggers&    triggers,
                        EventChangeResult&      result) const override;
 
-private:
     ImpactEventAction* cloneVirtual() const override 
     {   return new ImpactEventAction(*this); }
 
     const SimbodyMatterSubsystemRep&    m_matter;
+
+    std::unique_ptr<ImpulseSolver>      m_solver;
 };
 
 
 //==============================================================================
 //                           CONTACT EVENT ACTION
 //==============================================================================
-// This is the EventAction we will perform when an ContactEvent triggers.
+/* This is the EventAction we will perform when a ContactEvent triggers.
+This action assumes that the conditional constraint active set in the given
+Study's internal state needs to be revised. The current set generates a 
+constraint force solution that is inconsistent with one or more of the 
+conditional constraint inequality conditions. The active set
+is corrected and new, consistent constraint forces are computed.
+
+The action here is
+(1) Considering only currently-active constraints, or constraints that are 
+    inactive but proximal and persisting,
+(2) choose an acceptable active set for contact, sticking, and sliding 
+    constraint equations,
+(3) project active, hard position constraints onto the position manifold, and
+(4) project active, hard velocity constraints onto the velocity manifold.
+
+Soft constraints need only be satisfied at the acceleration level.
+*/
 class ContactEventAction : public EventAction {
 public:
     explicit ContactEventAction(const SimbodyMatterSubsystemRep& matter) 
     :   EventAction(Change), m_matter(matter) {}
 
+private:
     void changeVirtual(Study&                  study,
                        const Event&            event,
                        const EventTriggers&    triggers,
                        EventChangeResult&      result) const override;
 
-private:
     ContactEventAction* cloneVirtual() const override 
     {   return new ContactEventAction(*this); }
 
