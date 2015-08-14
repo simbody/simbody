@@ -22,8 +22,8 @@
  * -------------------------------------------------------------------------- */
 
 /* Test for proper functioning of the copy-on-write smart pointer class
-SimTK::CloneOnWritePtr, and the null-on-copy variant of std::unique_ptr 
-called SimTK::NullOnCopyUniquePtr. */
+SimTK::CloneOnWritePtr, and the mixin classes SimTK::ResetOnCopy and
+SimTK::ReinitOnCopy. */
 
 #include "SimTKcommon.h"
 
@@ -350,87 +350,6 @@ void testForLeaks() {
     SimTK_TEST(Base::getNumAlive() == 0);
 }
 
-//#define TRACE(fmt, ...) printf(fmt, __VA_ARGS__)
-#define TRACE(fmt, ...)
-class Thing {
-public:
-    explicit Thing(int i) : t(i) {TRACE("construct T @0x%llx\n", 
-                                      (unsigned long long)this);}
-    ~Thing() { TRACE("destruct T @0x%llx\n", (unsigned long long)this); }
-    Thing(const Thing& s) : t(s.t) { TRACE("copy construct T\n"); }
-    Thing(Thing&& s) : t(std::move(s.t)) { TRACE("move construct T\n"); }
-    Thing& operator=(const Thing& s) {
-        t = s.t; TRACE("copy assign T\n");
-        return *this;
-    }
-    Thing& operator=(Thing&& s) {
-        t = s.t; TRACE("move assign T\n");
-        return *this;
-    }
-    int getVal() const {return t;}
-private:
-    int t;
-};
-
-std::ostream& operator<<(std::ostream& o, const Thing& t) {
-    return o << t.getVal();
-}
-
-void testNullOnCopyUniquePtr() {
-    std::unique_ptr<Thing> u(new Thing(-3));
-    NullOnCopyUniquePtr<Thing> pu(std::move(u));
-    SimTK_TEST(pu->getVal() == -3 && !u);
-    u = std::move(pu); // should move it back
-    SimTK_TEST(u->getVal() == -3 && !pu);
-    NullOnCopyUniquePtr<Thing> au;
-    au = std::move(u); 
-    SimTK_TEST(au->getVal() == -3 && !u);
-
-    // Test swap.
-    NullOnCopyUniquePtr<Thing> p(new Thing(3));
-    NullOnCopyUniquePtr<Thing> q(new Thing(33));
-    SimTK_TEST(p->getVal()==3 && q->getVal()==33);
-    const Thing* pp = p.get(); const Thing* qp = q.get();
-    swap(p,q);
-    SimTK_TEST(q->getVal()==3 && p->getVal()==33);
-    SimTK_TEST(q.get() == pp && p.get() == qp);
-
-    NullOnCopyUniquePtr<Thing> np;
-    NullOnCopyUniquePtr<Thing> npn(nullptr);
-    SimTK_TEST(!np && !npn && np==nullptr && npn==nullptr);
-    SimTK_TEST(nullptr==np && nullptr==npn);
-    SimTK_TEST(np <= nullptr && np >= nullptr);
-    SimTK_TEST(!(np > nullptr || np < nullptr));
-    SimTK_TEST(np != q);
-
-    NullOnCopyUniquePtr<Thing> cp = p; // copy constructor
-    SimTK_TEST(!cp && p.get() == qp);
-
-    NullOnCopyUniquePtr<Thing> ap;
-    ap = p; // copy assignment
-    SimTK_TEST(!ap && p.get() == qp);
-
-    NullOnCopyUniquePtr<Thing> mp = std::move(p); // move constructor
-    SimTK_TEST(mp->getVal()==33 && mp.get()==qp && !p);
-    ap = std::move(mp); // move assignment
-    SimTK_TEST(ap->getVal()==33 && ap.get()==qp && !mp);
-
-    ap = nullptr; // null assignment inherited from std::unique_ptr
-    SimTK_TEST(!ap);
-
-    // Hash should be the same for pointer, unique_ptr, and our class.
-    size_t hval = std::hash<Thing*>()(q.get());
-    size_t hvalu = std::hash<std::unique_ptr<Thing>>()
-                                    (static_cast<std::unique_ptr<Thing>&>(q));
-    SimTK_TEST(hvalu == hval);
-
-    size_t hvaln = std::hash<NullOnCopyUniquePtr<Thing>>()(q);
-    SimTK_TEST(hvaln == hvalu);
-
-    std::hash<NullOnCopyUniquePtr<Thing>> myhash;
-    size_t hvaln2 = myhash(q);
-    SimTK_TEST(hvaln2 == hvaln);
-}
 
 class UsesResetOnCopy {
 public:
@@ -719,7 +638,6 @@ int main() {
         SimTK_SUBTEST(testAllocate);
         SimTK_SUBTEST(testForLeaks);
 
-        SimTK_SUBTEST(testNullOnCopyUniquePtr);
         SimTK_SUBTEST(testResetOnCopy);
         SimTK_SUBTEST(testReinitOnCopy);
     SimTK_END_TEST();
