@@ -90,11 +90,23 @@ an attempt is made to use a non-existent assignment operator.
 @see ResetOnCopy if you only need to reinitialize to the default value.
 **/
 template <class T> 
-class ReinitOnCopy 
-:   public ReinitOnCopyHelper<T, 
-            std::is_scalar<typename std::remove_all_extents<T>::type>::value> {
-    using Super = ReinitOnCopyHelper<T, 
-            std::is_scalar<typename std::remove_all_extents<T>::type>::value>;
+class ReinitOnCopy : public ReinitOnCopyHelper<T, std::is_scalar<T>::value> {
+    using Super = ReinitOnCopyHelper<T, std::is_scalar<T>::value>;
+    
+    // TODO: should be possible to specialize this for arrays.
+    static_assert(!std::is_array<T>::value, 
+        "ReinitOnCopy<T> does not allow T to be an array. Use an array "
+        "of ReinitOnCopy<E> instead, where E is the element type.");
+
+    static_assert(   std::is_copy_constructible<T>::value
+                  && std::is_copy_assignable<T>::value,
+        "ReinitOnCopy<T> requires type T to have an accessible copy "
+        "constructor and copy assignment operator. Use ResetOnCopy<T> instead "
+        "to reinitialize using only default construction.");
+
+    static_assert(std::is_destructible<T>::value,
+        "ReinitOnCopy<T> requires type T to have an accessible destructor.");
+
 public:
     using Super::Super;
     using Super::operator=;
@@ -168,11 +180,6 @@ public:
 These types are value initialized, so will be reset to zero. **/
 template <class T>
 class ReinitOnCopyHelper<T,true> {
-
-    // TODO: should be possible to specialize this for arrays.
-    static_assert(!std::is_array<T>::value, 
-        "ReinitOnCopy<T> does not allow T to be an array. Use an array "
-        "of ReinitOnCopy<E> instead, where E is the element type.");
 public:
     // These three are just the defaults but for debugging it is helpful to
     // have them explicitly present to step into.
@@ -241,18 +248,6 @@ Those operators are used to reinitialize the object to a stored initial value
 when copy constructor or copy assignment is performed. **/
 template <class T>
 class ReinitOnCopyHelper<T,false> : public T {
-
-    // TODO: should be possible to specialize this for arrays.
-    static_assert(!std::is_array<T>::value, 
-        "ReinitOnCopy<T> does not allow T to be an array. Use an array "
-        "of ReinitOnCopy<E> instead, where E is the element type.");
-
-    static_assert(   std::is_copy_constructible<T>::value
-                  && std::is_copy_assignable<T>::value,
-        "ReinitOnCopy<T> requires type T to have a copy constructor and copy "
-        "assignment operator. Use ResetOnCopy<T> instead to reinitialize to "
-        "the default value.");
-
 public:
     using T::T;
     using T::operator=;

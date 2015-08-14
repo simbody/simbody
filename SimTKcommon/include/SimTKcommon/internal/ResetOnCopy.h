@@ -92,11 +92,26 @@ default-constructed condition.
 @see ReinitOnCopy if you want to reset to a non-default value.
 **/
 template <class T> 
-class ResetOnCopy 
-:   public ResetOnCopyHelper<T, 
-            std::is_scalar<typename std::remove_all_extents<T>::type>::value> {
-    using Super = ResetOnCopyHelper<T, 
-            std::is_scalar<typename std::remove_all_extents<T>::type>::value>;
+class ResetOnCopy : public ResetOnCopyHelper<T, std::is_scalar<T>::value> {
+    using Super = ResetOnCopyHelper<T, std::is_scalar<T>::value>;
+
+    // TODO: should be possible to specialize this for arrays.
+    static_assert(!std::is_array<T>::value, 
+        "ResetOnCopy<T> does not allow T to be an array. Use an array "
+        "of ResetOnCopy<E> instead, where E is the element type.");
+
+    static_assert(!std::is_enum<T>::value,
+        "ResetOnCopy<T> does not allow T to be an enum, because resetting to "
+        "zero may be inappropriate. Use ReinitOnCopy<T> instead and "
+        "provide the desired reinitialization enumerator value.");
+
+    static_assert(std::is_default_constructible<T>::value,
+        "ResetOnCopy<T> requires type T to have an accessible default "
+        "constructor. Use ReinitOnCopy<T> instead to construct from an "
+        "initial value.");
+
+    static_assert(std::is_destructible<T>::value,
+        "ResetOnCopy<T> requires type T to have an accessible destructor.");
 
 public:
     using Super::Super;
@@ -164,17 +179,6 @@ should always be initialized to one of their values, not necessarily zero.
 These types are value initialized, so will be reset to zero. **/
 template <class T>
 class ResetOnCopyHelper<T,true> {
-
-    // TODO: should be possible to specialize this for arrays.
-    static_assert(!std::is_array<T>::value, 
-        "ResetOnCopy<T> does not allow T to be an array. Use an array "
-        "of ResetOnCopy<E> instead, where E is the element type.");
-
-    static_assert(!std::is_enum<T>::value,
-        "ResetOnCopy<T> does not allow T to be an enum, because resetting to "
-        "zero may be inappropriate. Use ReinitOnCopy<T> instead and "
-        "provide the desired reinitialization enumerator value.");
-
 public:
     // These three are just the defaults but for debugging it is helpful to
     // have them explicitly present to step into.
@@ -227,15 +231,6 @@ like `std::unique`, but those operations just reset the object to its
 default-constructed state. **/
 template <class T>
 class ResetOnCopyHelper<T,false> : public T {
-
-    // TODO: should be possible to specialize this for arrays.
-    static_assert(!std::is_array<T>::value, 
-        "ResetOnCopy<T> does not allow T to be an array. Use an array "
-        "of ResetOnCopy<E> instead, where E is the element type.");
-
-    static_assert(std::is_default_constructible<T>::value,
-        "ResetOnCopy<T> requires type T to have a default constructor. "
-        "Use ReinitOnCopy<T> instead to construct from an initial value.");
 public:
     using T::T;
     using T::operator=;
