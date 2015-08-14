@@ -498,19 +498,10 @@ void testResetOnCopy() {
     ResetOnCopy<double> rdub;
     SimTK_TEST(rdub == 0.);
 
-    // Using std::string here failed on OSX clang 3.6 due to bad std::string
-    // move assignment operator (didn't check for self-move).
-    // std::vector seemed to be more widely broken.
-    //ResetOnCopy<string> mystr("hello");
-    //SimTK_TEST(mystr == "hello");
-
-    //mystr = std::move(mystr); // self-move assignment should do nothing
-    //SimTK_TEST(mystr == "hello");
-
-    //mystr = mystr; // copy assignment should clear
-    //SimTK_TEST(mystr.empty());
-
-    // Using Array_ instead to guarantee correctly-implemented moves.
+    // C++ library move assignment methods like those for std::string and 
+    // std::vector are not required to treat self-move as a no-op.
+    // In practice some implementations do and others empty out the object.
+    // So I'm using Array_ instead to guarantee no-op self move.
     ResetOnCopy<Array_<int>> myvec{1,2,3};
     SimTK_TEST(myvec.size()==3 && myvec[2]==3);
     // remember location of third element to check for unexpected reallocation
@@ -527,6 +518,27 @@ void testResetOnCopy() {
     // But, self-copy assignment should clear (cuz reset-on-copy)
     myvec = myvec;
     SimTK_TEST(myvec.empty());
+
+    // Test with a matrix.
+    ResetOnCopy<Mat<2,3>> mat23(1,2,3,
+                                4,5,6);
+    SimTK_TEST(mat23 == (Mat<2,3>(1,2,3,4,5,6)));
+    ResetOnCopy<Mat<2,3>> z23; // default constructed
+    z23.updT() = mat23.getT(); // should be same as mat23 now
+    SimTK_TEST(z23 == (Mat<2,3>(1,2,3,4,5,6)));
+    z23 = mat23; // should get default constructed, NaN in debug else anything
+    #ifndef NDEBUG
+        SimTK_TEST(z23.isNaN());
+    #endif
+
+    // Big matrix
+    Real ivals[] = {7,8,9,10,11,12};
+    ResetOnCopy<Matrix> bigM(2,3, ivals);
+    ResetOnCopy<Matrix> bigMcopy(bigM); // should default construct
+    SimTK_TEST(bigMcopy.nrow()==0 && bigMcopy.ncol()==0);
+    // copy assignment should default reconstruct
+    bigM = bigM;
+    SimTK_TEST(bigM.nrow()==0 && bigM.ncol()==0);
 
     ResetOnCopy<unique_ptr<double>> updub;
     SimTK_TEST(updub.get() == nullptr);
@@ -660,6 +672,19 @@ void testReinitOnCopy() {
 
     ReinitOnCopy<double> dd(d); // copy construction; reinit
     SimTK_TEST(dd == 123.);
+
+    // Test with a matrix.
+    ReinitOnCopy<Mat<2,3>> mat23(1,2,3,
+                                4,5,6);
+    SimTK_TEST(mat23 == (Mat<2,3>(1,2,3,4,5,6)));
+    ReinitOnCopy<Mat<2,3>> z23(99); // 99's on the diagonal
+    SimTK_TEST(z23 == (Mat<2,3>(99,0,0,0,99,0)));
+    z23.updT() = mat23.getT(); // should be same as mat23 now
+    SimTK_TEST(z23 == (Mat<2,3>(1,2,3,4,5,6)));
+    ReinitOnCopy<Mat<2,3>> z23copy(z23); // should get z23's initial value
+    SimTK_TEST(z23copy == (Mat<2,3>(99,0,0,0,99,0)));
+    z23 = mat23; // z23 should get reinitialized to 99's on the diagonal
+    SimTK_TEST(z23 == (Mat<2,3>(99,0,0,0,99,0)));
 
     ReinitOnCopy<string> mystr1 = "unknown";
     SimTK_TEST(mystr1 == "unknown" && mystr1.getReinitT() == "unknown");

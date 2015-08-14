@@ -121,17 +121,18 @@ public:
 
     /** Move constructor is simply a pass-through to the move constructor of
     the contained object so behaves normally. **/
-    ResetOnCopy(ResetOnCopy&& source) : Super(std::move(source)) {} // default
+    ResetOnCopy(ResetOnCopy&& source) 
+    :   Super(static_cast<Super&&>(source)) {} // default
 
     /** Copy assignment reinitializes this object to its default-constructed
     condition; the source argument is ignored. **/
     ResetOnCopy& operator=(const ResetOnCopy& ignored) 
-    {   Super::operator=(ignored); return *this; }
+    {   Super::operator=(static_cast<const Super&>(ignored)); return *this; }
 
     /** Move assignment is simply a pass-through to the move assignment of the
     contained object so behaves normally. **/
     ResetOnCopy& operator=(ResetOnCopy&& source) 
-    {   Super::operator=(std::move(source)); return *this; }
+    {   Super::operator=(static_cast<Super&&>(source)); return *this; }
 
     /** Assignment from an object of type `T` uses `T`'s copy assignment
     operator if there is a suitable copy assignment operator available. **/

@@ -60,7 +60,6 @@ template <class ELT> class Matrix_ : public MatrixBase<ELT> {
     typedef MatrixBase<ENeg>    BaseNeg;
     typedef MatrixBase<EHerm>   BaseHerm;
 
-    typedef Matrix_<ELT>        T;
     typedef MatrixView_<ELT>    TView;
     typedef Matrix_<ENeg>       TNeg;
 

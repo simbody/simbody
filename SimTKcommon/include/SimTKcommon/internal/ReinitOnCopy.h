@@ -114,21 +114,23 @@ public:
     /** Copy constructor sets the value and remembered initial value to the
     initial value in the source, using type `T`'s copy constructor. The 
     current value of the source is ignored. **/
-    ReinitOnCopy(const ReinitOnCopy& source) : Super(source) {}
+    ReinitOnCopy(const ReinitOnCopy& source) 
+    :   Super(static_cast<const Super&>(source)) {}
 
     /** Move constructor is simply a pass-through to the move constructor of
     the contained object for both the current and initial values. **/
-    ReinitOnCopy(ReinitOnCopy&& source) : Super(std::move(source)) {} // default
+    ReinitOnCopy(ReinitOnCopy&& source) 
+    :   Super(static_cast<Super&&>(source)) {} // default
 
     /** Copy assignment reinitializes this object to its original condition; the
     source argument is ignored. **/
     ReinitOnCopy& operator=(const ReinitOnCopy& ignored) 
-    {   Super::operator=(ignored); return *this; }
+    {   Super::operator=(static_cast<const Super&>(ignored)); return *this; }
 
     /** Move assignment uses type `T`'s move assignment for the current value
     but does not change the remembered initial value here. **/
     ReinitOnCopy& operator=(ReinitOnCopy&& source) 
-    {   Super::operator=(std::move(source)); return *this; }
+    {   Super::operator=(static_cast<Super&&>(source)); return *this; }
 
     /** Assignment from an object of type `T` uses `T`'s copy assignment
     operator; affects only the current value but does not change the remembered
