@@ -46,15 +46,15 @@ class ResetOnCopyHelper {};
 
 /** Ensures that a data member of type `T` is automatically reset to its default
 value upon copy construction or copy assignment.\ This allows the
-compiler-generated defaults for these to be used.
+compiler-generated default copy methods to be used.
 
 Here are some usage examples:
 @code
 class Thing {
-    // Able to use default constructors and assignments.
+    // Able to use default or initializing constructors, but note that any 
+    // initial values shown here disappear when this is copied; all members will
+    // be default-initialized in the copy.
 
-    // Note that any initial values shown here disappear when this
-    // is copied; all members will be default-initialized in the copy.
     ResetOnCopy<int>                     m_defint;
     ResetOnCopy<char>                    m_charZ = 'z';
     ResetOnCopy<string>                  m_defstr;
@@ -63,6 +63,11 @@ class Thing {
     ResetOnCopy<short>                   m_shArr[3] = {9,8,7};
     ResetOnCopy<SubsystemIndex>          m_subIx{5};
     ResetOnCopy<std::vector<string>>     m_vstr {"one", "two", "three"};
+
+    // Caution: not a smart pointer; will be cleared but not deleted.
+    ResetOnCopy<const int*>              m_ptr;
+
+    // Must use a smart pointer like this for automatic delete on copy.
     ResetOnCopy<unique_ptr<Array_<int>>> m_up{new Array_<int>({1,2,3})};
 };
 @endcode
@@ -86,15 +91,16 @@ assignment will use the default constructor. `ResetOnCopy<T>` adds
 default-constructed condition.
 
 @tparam  T  Template type that is a numeric, character, or pointer built-in
-            type, or a class type that is DefaultConstructible and has an 
-            accessible destructor. Enum and array types are not allowed.
+            type, or a class type that is DefaultConstructible and  
+            `Destructible`. Enum and array types are not allowed.
 
-@see ReinitOnCopy if you want to reset to a non-default value.
+@see ReinitOnCopy if you want to reset to a non-default value or use an enum.
 **/
 template <class T> 
 class ResetOnCopy : public ResetOnCopyHelper<T, std::is_scalar<T>::value> {
     using Super = ResetOnCopyHelper<T, std::is_scalar<T>::value>;
 
+    /** @cond **/ // These confuse doxygen.
     // TODO: should be possible to specialize this for arrays.
     static_assert(!std::is_array<T>::value, 
         "ResetOnCopy<T> does not allow T to be an array. Use an array "
@@ -112,6 +118,7 @@ class ResetOnCopy : public ResetOnCopyHelper<T, std::is_scalar<T>::value> {
 
     static_assert(std::is_destructible<T>::value,
         "ResetOnCopy<T> requires type T to have an accessible destructor.");
+    /** @endcond **/
 
 public:
     using Super::Super;

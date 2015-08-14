@@ -46,23 +46,25 @@ class ReinitOnCopyHelper {};
 
 /** Ensures that a data member of type `T` is automatically reinitialized to a 
 given initial value upon copy construction or copy assignment.\ This allows the
-compiler-generated defaults for these to be used.
+compiler-generated default copy methods to be used.
 
-The template type `T` here is required to be `CopyAssignable` and 
-`CopyConstructible`. There is space overhead here for one extra copy of `T`
-used to hold the initial value. The default constructor is suppressed here; if 
-you just need the data member reset to zero 
-or to its default-constructed value, use class `ResetOnCopy<T>` instead. That 
-class has zero overhead and accepts a wider range of template arguments.
+The template type `T` here is required to be `CopyAssignable`,  
+`CopyConstructible`, and `Destructible`, and cannot be an array type. There is 
+space overhead here for one extra copy of `T` used to hold the initial value. 
+The default constructor is suppressed here; if you just need the data member 
+reset to zero or to its default-constructed value, use class `ResetOnCopy<T>` 
+instead. That class has zero overhead and accepts a wider range of template 
+arguments.
 
 Here are some usage examples:
 @code
 class Thing {
-    // Able to use default constructors and assignments
+    // Must provide an initial value; no default construction allowed.
 
     ReinitOnCopy<int>         m_which{-1};          // reinit to -1 on copy
     ReinitOnCopy<string>      m_name{"unknown"};    // back to "unknown" on copy
     ReinitOnCopy<const char*> m_desc{"none given"}; // similar
+    ReinitOnCopy<Color>       m_color{Blue};        // works for enums
 
     // An example where ResetOnCopy is better.
     ResetOnCopy<unsigned>     m_count1;     // reset to 0 on copy; no overhead
@@ -83,9 +85,8 @@ from an object of type `T` to an object of type `ReinitOnCopy<T>` will invoke
 an attempt is made to use a non-existent assignment operator.
 
 @tparam  T  Template type that is a numeric, character, enum, or pointer 
-            built-in type, or a class type that is CopyConstructible and 
-            CopyAssignable, and has an accessible destructor. Array types are
-            not allowed.
+            built-in type, or a class type that is CopyConstructible, 
+            CopyAssignable, and Destructible. Array types are not allowed.
 
 @see ResetOnCopy if you only need to reinitialize to the default value.
 **/
@@ -93,6 +94,7 @@ template <class T>
 class ReinitOnCopy : public ReinitOnCopyHelper<T, std::is_scalar<T>::value> {
     using Super = ReinitOnCopyHelper<T, std::is_scalar<T>::value>;
     
+    /** @cond **/ // These confuse doxygen.
     // TODO: should be possible to specialize this for arrays.
     static_assert(!std::is_array<T>::value, 
         "ReinitOnCopy<T> does not allow T to be an array. Use an array "
@@ -106,6 +108,7 @@ class ReinitOnCopy : public ReinitOnCopyHelper<T, std::is_scalar<T>::value> {
 
     static_assert(std::is_destructible<T>::value,
         "ReinitOnCopy<T> requires type T to have an accessible destructor.");
+    /** @endcond **/
 
 public:
     using Super::Super;
