@@ -31,6 +31,7 @@
 // 
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/ImpulseSolver.h"
 
 #include <memory>
 
@@ -78,9 +79,36 @@ private:
     ImpactEventAction* cloneVirtual() const override 
     {   return new ImpactEventAction(*this); }
 
-    const SimbodyMatterSubsystemRep&    m_matter;
+    void collectConstraintInfo
+       (const MultibodySystem&                  mbs,
+        const State&                            state,
+        const Array_<UnilateralContactIndex>&   proximalUniContacts,
+        Array_<ImpulseSolver::UncondRT>&        unconditional,
+        Array_<ImpulseSolver::UniContactRT>&    uniContact,
+        Array_<MultiplierIndex>&                allParticipating) const; 
 
-    std::unique_ptr<ImpulseSolver>      m_solver;
+    void classifyUnilateralContactsForSimultaneousImpact
+       (Real                                    consTol,
+        const Vector&                           verr,
+        const Vector&                           expansionImpulse,
+        Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
+        Array_<int>&                            impacters,
+        Array_<int>&                            expanders,
+        Array_<int>&                            observers,
+        Array_<MultiplierIndex>&                participaters,
+        Array_<MultiplierIndex>&                expanding) const;
+
+    void calcCoefficientsOfRestitution
+       (const SimbodyMatterSubsystem& matter,
+        const State& s, const Vector& verr,
+        bool disableRestitution,
+        Real consTol, Real defCaptureVel, Real defMinCORVel,
+        Array_<ImpulseSolver::UniContactRT>& uniContact) const;
+
+    const SimbodyMatterSubsystemRep&            m_matter;
+
+    ResetOnCopy<std::unique_ptr<ImpulseSolver>> m_solver;
+
 };
 
 
@@ -96,7 +124,7 @@ is corrected and new, consistent constraint forces are computed.
 
 The action here is
 (1) Considering only currently-active constraints, or constraints that are 
-    inactive but proximal and persisting,
+    inactive but proximal and lingering,
 (2) choose an acceptable active set for contact, sticking, and sliding 
     constraint equations,
 (3) project active, hard position constraints onto the position manifold, and
@@ -108,6 +136,15 @@ class ContactEventAction : public EventAction {
 public:
     explicit ContactEventAction(const SimbodyMatterSubsystemRep& matter) 
     :   EventAction(Change), m_matter(matter) {}
+
+    // A unilateral contact constraint is lingering if it is (1) currently 
+    // active, or (2) proximal and satisifies a velocity condition.
+    static void findLingeringConstraints
+       (const MultibodySystem&          mbs,
+        const State&                    state,
+        Real                            proximityTol,
+        Real                            velocityTol,
+        Array_<UnilateralContactIndex>& lingeringUniContacts); 
 
 private:
     void changeVirtual(Study&                  study,

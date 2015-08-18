@@ -64,11 +64,12 @@ private:
             case 2: value = sign*m_uniContact.getAerr(state); break;
             default: assert(!"illegal derivOrder");
             }
-        }
 
-        printf("%s %d: %.15g @t=%.15g\n", 
-               getTriggerDescription().c_str(), (int)getEventTriggerId(), 
-               value, state.getTime());
+            printf("%s %d: %.15g @t=%.15g\n", 
+                   getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+                   value, state.getTime());
+       }
+
 
         return value;
     }
@@ -117,11 +118,11 @@ private:
             const Vector& multipliers = state.getMultipliers();
             auto index = m_uniContact.getContactMultiplierIndex(state);
             value = -sign*multipliers[index];
-        }
 
-        printf("%s %d: %.15g @t=%.15g\n", 
-               getTriggerDescription().c_str(), (int)getEventTriggerId(), 
-               value, state.getTime());
+            printf("%s %d: %.15g @t=%.15g\n", 
+                   getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+                   value, state.getTime());
+        }
 
         return value;
     }
@@ -228,10 +229,18 @@ Real HardStopLower::getPerr(const State& state) const
     return q - p; // negative when violated (q<p)
 }
 Real HardStopUpper::getVerr(const State& state) const
-{   return m_upper.getVelocityError(state); }
+{   //return m_upper.getVelocityError(state); 
+    const MobilizerQIndex whichQ = m_upper.getWhichQ();
+    const Real qdot = m_mobod.getOneQDot(state, whichQ);
+    return qdot; // positive when penetrating
+}
 
 Real HardStopLower::getVerr(const State& state) const
-{   return m_lower.getVelocityError(state); }
+{   //return m_lower.getVelocityError(state); 
+    const MobilizerQIndex whichQ = m_lower.getWhichQ();
+    const Real qdot = m_mobod.getOneQDot(state, whichQ);
+    return qdot; // negative when penetrating
+}
 
 Real HardStopUpper::getAerr(const State& state) const
 {   return m_upper.getAccelerationError(state); }

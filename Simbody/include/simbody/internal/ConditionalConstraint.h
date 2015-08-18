@@ -177,6 +177,13 @@ public:
     virtual bool isProximal(const State& state, Real ptol) const 
     {   return m_sign*getPerr(state) <= ptol; }
 
+    /** Given the velocity constraint tolerance currently in use, is this 
+    contact separating at a rate above that tolerance? Normally we just see if
+    sign*verr > tol, but individual contacts can override this if they want to 
+    do some scaling. **/
+    virtual bool isSeparating(const State& state, Real vtol) const 
+    {   return m_sign*getVerr(state) > vtol; }
+
     /** Return the multiplier index Simbody assigned for the unilateral 
     contact constraint (for contact, this is the normal constraint). If the
     constraint is not enabled, there is no multiplier and the returned index

@@ -63,30 +63,45 @@ int main() {
     Body::Rigid bodyInfo(MassProperties(mass, pos, UnitInertia::pointMassAt(pos)));
     bodyInfo.addDecoration(pos, DecorativeSphere(.2).setOpacity(.5));
 
+    Body::Rigid heavyInfo(MassProperties(10*mass, pos, UnitInertia::pointMassAt(pos)));
+    heavyInfo.addDecoration(pos, DecorativeSphere(.3).setOpacity(.5));
+
     // Create the tree of mobilized bodies, reusing the above body description.
     MobilizedBody::Pin bodyT  (matter.Ground(), Vec3(0), bodyInfo, Vec3(0));
-    MobilizedBody::Pin leftArm(bodyT, Vec3(-2, 0, 0),    bodyInfo, Vec3(0));
-    MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     bodyInfo, Vec3(0));
+    MobilizedBody::Pin leftArm(bodyT, Vec3(-2, 0, 0),    heavyInfo, Vec3(0));
+    MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     heavyInfo, Vec3(0));
 
     matter.adoptUnilateralContact(
-        new HardStopLower(leftArm, MobilizerQIndex(0), -0.1, StopCoefRest));
+        new HardStopLower(leftArm, MobilizerQIndex(0), -1, StopCoefRest));
     matter.adoptUnilateralContact(
-        new HardStopUpper(leftArm, MobilizerQIndex(0), .15, StopCoefRest));
+        new HardStopUpper(leftArm, MobilizerQIndex(0), -.1, StopCoefRest));
 
     matter.adoptUnilateralContact(
-        new HardStopLower(rtArm, MobilizerQIndex(0), -0.2, StopCoefRest));
+        new HardStopLower(rtArm, MobilizerQIndex(0), -.1, StopCoefRest));
     matter.adoptUnilateralContact(
-        new HardStopUpper(rtArm, MobilizerQIndex(0), .25, StopCoefRest));
+        new HardStopUpper(rtArm, MobilizerQIndex(0), 1., StopCoefRest));
 
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor 
     Visualizer viz(system);
     viz.setShowSimTime(true);
     system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
+
+    class ReportQ : public TextDataEventReporter::UserFunction<Vector> {
+    public:
+        Vector evaluate(const System& sys, const State& state) {
+            return state.getQ();
+        }
+    };
+   // system.adoptEventReporter(new TextDataEventReporter(system,
+    //                                                    new ReportQ(),
+    //                                                    1./300));
     
     // Initialize the system and state.    
     State state = system.realizeTopology();
-    bodyT.setRate(state, 2);
+    //bodyT.setRate(state, 2);
+    leftArm.setAngle(state, -0.9);
+    rtArm.setAngle(state, 1.);
 
     const double SimTime = 10;
 
@@ -96,30 +111,30 @@ int main() {
     ts.initialize(state);
     ts.stepTo(SimTime);
 
-    // Simulate with velocity-level time stepper.
-    SemiExplicitEulerTimeStepper sxe(system);
-    sxe.initialize(state);
-    const Real h = .001;
-    const int DrawEvery = 33; // draw every nth step ~= 33ms
-    int nSteps = 0;
-    while (true) {
-        const State& sxeState = sxe.getState();
-        const double t = sxe.getTime();
-        const bool isLastStep = t + h/2 > SimTime;
+    //// Simulate with velocity-level time stepper.
+    //SemiExplicitEulerTimeStepper sxe(system);
+    //sxe.initialize(state);
+    //const Real h = .001;
+    //const int DrawEvery = 33; // draw every nth step ~= 33ms
+    //int nSteps = 0;
+    //while (true) {
+    //    const State& sxeState = sxe.getState();
+    //    const double t = sxe.getTime();
+    //    const bool isLastStep = t + h/2 > SimTime;
 
-        if((nSteps%DrawEvery)==0 || isLastStep) {
-            viz.report(sxeState);
-            printf("%7.4f %9.3g %9.3g\n", t,
-                   leftArm.getAngle(sxeState),
-                   rtArm.getAngle(sxeState));
-        }
+    //    if((nSteps%DrawEvery)==0 || isLastStep) {
+    //        viz.report(sxeState);
+    //        //printf("%7.4f %9.3g %9.3g\n", t,
+    //        //       leftArm.getAngle(sxeState),
+    //        //       rtArm.getAngle(sxeState));
+    //    }
 
-        if (isLastStep)
-            break;
+    //    if (isLastStep)
+    //        break;
 
-        sxe.stepTo(sxeState.getTime() + h);
-        ++nSteps;
-    }
+    //    sxe.stepTo(sxeState.getTime() + h);
+    //    ++nSteps;
+    //}
 
   } catch (const std::exception& e) {
     std::cout << "ERROR: " << e.what() << std::endl;
