@@ -658,8 +658,6 @@ public:
     Transform&       updX_AB(AncestorConstrainedBodyPoolIndex cbpx)
     {   return constrainedBodyConfigInAncestor[cbpx]; }
 public:
-    // qerr cache space is provided directly by the State
-
     // At model stage, each mobilizer (RBNode) is given a chance to grab
     // a segment of this cache entry for its own private use. This includes
     // pre-calculated sincos(q) for mobilizers with angular coordinates,
