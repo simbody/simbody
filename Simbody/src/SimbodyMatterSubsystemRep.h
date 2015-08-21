@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from IVM code written by Charles Schwieters          *
  *                                                                            *
@@ -464,13 +464,27 @@ public:
 
         // REALIZATIONS //
 
+
+    // Call at Instance Stage or later.
+    void realizePositionKinematics(const State&) const;
+
+    // Call at Instance + PositionKinematics Stage or later.
+    void realizeVelocityKinematics(const State&) const;
+
     // Call at Position Stage or later.
     void realizeCompositeBodyInertias(const State&) const;
 
     // Call at Position Stage or later.
     void realizeArticulatedBodyInertias(const State&) const;
 
+    bool isPositionKinematicsRealized(const State&, 
+                                      StageVersion&) const;
+    bool isVelocityKinematicsRealized(const State&, 
+                                      StageVersion&) const;
+
     // These are just used in timing tests.
+    void invalidatePositionKinematics(const State&) const;
+    void invalidateVelocityKinematics(const State&) const;
     void invalidateCompositeBodyInertias(const State&) const;
     void invalidateArticulatedBodyInertias(const State&) const;
 

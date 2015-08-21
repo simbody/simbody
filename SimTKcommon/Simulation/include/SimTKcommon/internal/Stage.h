@@ -34,6 +34,16 @@
 #include <cstdarg>
 
 namespace SimTK {
+ 
+/** This is the type to use for Stage and state variable version numbers that
+get incremented whenever a state value changes. Whenever time or any state 
+variable is modified, we increment the stage version for any stage that gets
+invalidated. We also increment a separate version number for the state variable
+that changes, so that cache entries can have finer-grained dependencies than
+just on whole stages. -1 means "unintialized". 0 is never used as 
+a %StageVersion, but is allowed as a cache value which is guaranteed never to 
+look valid. **/
+typedef long long StageVersion;
 
 /** This class is basically a glorified enumerated type, type-safe and range
 checked but permitting convenient (if limited) arithmetic. Constants look like 
@@ -254,7 +264,8 @@ public:
 class CacheEntryOutOfDate : public Base {
 public:
     CacheEntryOutOfDate(const char* fn, int ln,
-        Stage currentStage, Stage dependsOn, int dependsOnVersion, int lastCalculatedVersion) 
+        Stage currentStage, Stage dependsOn, 
+        StageVersion dependsOnVersion, StageVersion lastCalculatedVersion) 
     :   Base(fn,ln)
     {
         setMessage("State Cache entry was out of date at Stage " + currentStage.getName() 
