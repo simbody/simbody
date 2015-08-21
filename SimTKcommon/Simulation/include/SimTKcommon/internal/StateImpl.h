@@ -199,10 +199,11 @@ public:
     // determine whether the value is current; see isCurrent...() methods above.
     // If a cache entry has a computed-by stage, you have to invalidate that
     // stage in its subsystem also if you want to ensure it is invalid.
+    // The value version is not affected here; that only changes when the
+    // cache entry is explicitly marked valid.
     void invalidate() {
         m_dependsOnVersionWhenLastComputed = StageVersion(0);
         m_extraVersionWhenLastComputed.fill(StageVersion(0));
-        ++m_valueVersion; // not zero; we don't want to repeat one
     }
 
     // Call one of these markAsComputed() methods last when realizing this cache
@@ -256,13 +257,12 @@ public:
     // entry but we're not checking here).
     void swapValue(Real updTime, DiscreteVarInfo& dv) 
     {   dv.swapValue(updTime, m_value); }
+
     const AbstractValue& getValue() const {assert(m_value); return *m_value;}
 
-    AbstractValue& updValue() {
-        assert(m_value);
-        ++m_valueVersion;
-        return *m_value;
-    }
+    // Returning the value for write access doesn't affect the version; that
+    // happens only if the cache entries gets marked valid explicitly.
+    AbstractValue& updValue() {assert(m_value); return *m_value;}
 
     const Stage&          getDependsOnStage()  const {return m_dependsOnStage;}
     const Stage&          getComputedByStage() const {return m_computedByStage;}
