@@ -87,7 +87,7 @@ template <> class NTraits<long double>;
 // negator<N> has exactly the same internal representation as a numeric value N, 
 // but it is to be interpreted has having the negative of the value it would 
 // have if interpreted as an N. This permits negation to be done by 
-// reinterpretation rather than compuation. A full set of arithmetic operators
+// reinterpretation rather than computation. A full set of arithmetic operators
 // are provided involving negator<N>'s and N's. Sometimes we can save an op or
 // two this way. For example negator<N>*negator<N> can be performed as an N*N
 // since the negations cancel, and we saved two floating point negations.

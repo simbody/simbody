@@ -321,7 +321,7 @@ setBodyIsExcluded(State& state, MobilizedBodyIndex mobod,
     const GravityImpl& impl = getImpl();
     SimTK_ERRCHK2_ALWAYS(mobod < impl.matter.getNumBodies(),
         "Force::Gravity::setBodyIsExcluded()",
-        "Attemped to exclude mobilized body with index %d but only mobilized"
+        "Attempted to exclude mobilized body with index %d but only mobilized"
         " bodies with indices between 0 and %d exist in this System.", 
         (int)mobod, impl.matter.getNumBodies()-1);
 

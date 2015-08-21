@@ -96,7 +96,7 @@ Optimizer::constructOptimizerRep( const OptimizerSystem& sys, OptimizerAlgorithm
     OptimizerRep* newRep = 0;
 
     // if constructor specifies which algorithm, use it else select based on
-    // problem paramters 
+    // problem parameters 
     if ( algorithm == InteriorPoint ) {
         newRep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
     } else if( algorithm == LBFGSB ) {

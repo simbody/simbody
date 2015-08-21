@@ -686,7 +686,7 @@ static unsigned HuffmanTree_makeFromFrequencies(HuffmanTree* tree, const unsigne
     /*keep the coins with lowest weight, so that they add up to the amount of symbols - 1*/
     vector_resized(&coins, numpresent - 1, Coin_cleanup);
     
-    /*calculate the lenghts of each symbol, as the amount of times a coin of each symbol is used*/
+    /*calculate the lengths of each symbol, as the amount of times a coin of each symbol is used*/
     for(i = 0; i < coins.size; i++)
     {
       Coin* coin = (Coin*)vector_get(&coins, i);
@@ -1458,7 +1458,7 @@ static unsigned deflateDynamic(ucvector* out, const unsigned char* data, size_t 
   after the BFINAL and BTYPE, the dynamic block consists out of the following:
   - 5 bits HLIT, 5 bits HDIST, 4 bits HCLEN
   - (HCLEN+4)*3 bits code lengths of code length alphabet
-  - HLIT + 257 code lenghts of lit/length alphabet (encoded using the code length alphabet, + possible repetition codes 16, 17, 18)
+  - HLIT + 257 code lengths of lit/length alphabet (encoded using the code length alphabet, + possible repetition codes 16, 17, 18)
   - HDIST + 1 code lengths of distance alphabet (encoded using the code length alphabet, + possible repetition codes 16, 17, 18)
   - compressed data
   - 256 (end code)
@@ -1474,7 +1474,7 @@ static unsigned deflateDynamic(ucvector* out, const unsigned char* data, size_t 
   uivector frequenciesD;
   uivector amounts; /*the amounts in the "normal" order*/
   uivector lldl;
-  uivector lldll; /*lit/len & dist code lenghts*/
+  uivector lldll; /*lit/len & dist code lengths*/
   uivector clcls;
   
   unsigned BFINAL = 1; /*make only one block... the first and final one*/
@@ -1610,7 +1610,7 @@ static unsigned deflateDynamic(ucvector* out, const unsigned char* data, size_t 
       error = 9927; /*memory allocation failed*/
       break;
     }
-    for(i = 0; i < 19; i++) clcls.data[i] = HuffmanTree_getLength(&codelengthcodes, CLCL[i]); /*lenghts of code length tree is in the order as specified by deflate*/
+    for(i = 0; i < 19; i++) clcls.data[i] = HuffmanTree_getLength(&codelengthcodes, CLCL[i]); /*lengths of code length tree is in the order as specified by deflate*/
     while(clcls.data[clcls.size - 1] == 0 && clcls.size > 4)
     {
       if(!uivector_resize(&clcls, clcls.size - 1)) /*remove zeros at the end, but minimum size must be 4*/
@@ -1629,10 +1629,10 @@ static unsigned deflateDynamic(ucvector* out, const unsigned char* data, size_t 
     addBitsToStream(&bp, out, HDIST, 5);
     addBitsToStream(&bp, out, HCLEN, 4);
     
-    /*write the code lenghts of the code length alphabet*/
+    /*write the code lengths of the code length alphabet*/
     for(i = 0; i < HCLEN + 4; i++) addBitsToStream(&bp, out, clcls.data[i], 3);
   
-    /*write the lenghts of the lit/len AND the dist alphabet*/
+    /*write the lengths of the lit/len AND the dist alphabet*/
     for(i = 0; i < lldl.size; i++)
     {
       addHuffmanSymbol(&bp, out, HuffmanTree_getCode(&codelengthcodes, lldl.data[i]), HuffmanTree_getLength(&codelengthcodes, lldl.data[i]));
@@ -3092,7 +3092,7 @@ static unsigned postProcessScanlines(unsigned char* out, unsigned char* in, cons
       if(error) return error;
       removePaddingBits(out, in, w * bpp, ((w * bpp + 7) / 8) * 8, h);
     }
-    else error = unfilter(out, in, w, h, bpp); /*we can immediatly filter into the out buffer, no other steps needed*/
+    else error = unfilter(out, in, w, h, bpp); /*we can immediately filter into the out buffer, no other steps needed*/
   }
   else /*interlaceMethod is 1 (Adam7)*/
   {
@@ -4265,7 +4265,7 @@ static unsigned preProcessScanlines(unsigned char** out, size_t* outsize, const 
         }
         ucvector_cleanup(&padded);
       }
-      else error = filter(*out, in, w, h, &infoPng->color); /*we can immediatly filter into the out buffer, no other steps needed*/
+      else error = filter(*out, in, w, h, &infoPng->color); /*we can immediately filter into the out buffer, no other steps needed*/
     }
   }
   else /*interlaceMethod is 1 (Adam7)*/

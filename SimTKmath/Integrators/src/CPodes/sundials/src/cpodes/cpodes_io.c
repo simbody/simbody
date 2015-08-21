@@ -867,7 +867,7 @@ int CPodeGetNumErrTestFails(void *cpode_mem, long int *netfails)
 /* 
  * CPodeGetLastOrder
  *
- * Returns the order on the last succesful step
+ * Returns the order on the last successful step
  */
 
 int CPodeGetLastOrder(void *cpode_mem, int *qlast)

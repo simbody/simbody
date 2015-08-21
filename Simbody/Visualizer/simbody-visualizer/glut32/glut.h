@@ -80,7 +80,7 @@ typedef unsigned short wchar_t;
 #  endif
 # endif
 
-/* To disable supression of annoying warnings about floats being promoted
+/* To disable suppression of annoying warnings about floats being promoted
    to doubles, define GLUT_NO_WARNING_DISABLE in your compile preprocessor
    options. */
 # ifndef GLUT_NO_WARNING_DISABLE

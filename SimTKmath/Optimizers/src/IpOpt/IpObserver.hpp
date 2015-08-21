@@ -24,7 +24,7 @@ namespace Ipopt
    *  Observer Design Pattern. An Observer "Attach"es
    *  to a Subject, indicating that it would like to
    *  be notified of changes in the Subject.
-   *  Any derived class wishing to recieve notifications
+   *  Any derived class wishing to receive notifications
    *  from a Subject should inherit off of 
    *  Observer and overload the protected method,
    *  RecieveNotification_(...).
@@ -70,7 +70,7 @@ namespace Ipopt
     void RequestDetach(NotifyType notify_type, const Subject* subject);
 
     /** Derived classes should overload this method to
-     * recieve the requested notification from 
+     * receive the requested notification from 
      * attached Subjects
      */
     virtual void RecieveNotification(NotifyType notify_type, const Subject* subject)=0;
@@ -136,7 +136,7 @@ namespace Ipopt
     /**@name Methods to Add and Remove Observers.
      *  Currently, the notify_type flags are not used,
      *  and Observers are attached in general and will
-     *  recieve all notifications (of the type requested
+     *  receive all notifications (of the type requested
      *  and possibly of types not requested). It is 
      *  up to the observer to ignore the types they
      *  are not interested in. The NotifyType in the
@@ -150,7 +150,7 @@ namespace Ipopt
     void AttachObserver(Observer::NotifyType notify_type, Observer* observer) const;
 
     /** Detach the specified observer
-     *  (i.e., no longer recieve notifications). */
+     *  (i.e., no longer receive notifications). */
     void DetachObserver(Observer::NotifyType notify_type, Observer* observer) const;
     //@}
 

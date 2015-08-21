@@ -44,7 +44,7 @@ class DecorativeGeometry;
  *
  * Below is the physical layout of memory for a System, and which
  * portions are allocated by the client program and which by the
- * binary library code. For binary compatiblity, only the side
+ * binary library code. For binary compatibility, only the side
  * which allocated a piece of memory can access it. Exception: both
  * the client and library side must agree on the virtual function
  * table (VFT) ordering of the client's virtual functions.

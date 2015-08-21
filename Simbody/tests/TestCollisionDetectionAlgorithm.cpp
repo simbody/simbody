@@ -197,7 +197,7 @@ bool verifyEllipsoidContact(const Contact& contact, const Vec3& radii1, const Ve
     Vec3 loc2 = ~t2*(c.getLocation()-0.5*c.getDepth()*c.getNormal())-center2;
     assertEqual(loc2[0]*loc2[0]/(radii2[0]*radii2[0])+loc2[1]*loc2[1]/(radii2[1]*radii2[1])+loc2[2]*loc2[2]/(radii2[2]*radii2[2]), 1.0);
 
-    // Check that the normals are correct.  This test may occassionally fail (when points of very high
+    // Check that the normals are correct.  This test may occasionally fail (when points of very high
     // curvate cause the Newton iteration not to converge), so instead of an assertion, which just return
     // whether the normals were correct.
 

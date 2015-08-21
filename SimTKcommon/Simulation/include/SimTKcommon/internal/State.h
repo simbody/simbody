@@ -156,7 +156,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MultiplierIndex);
 
 /// This is the type to use for Stage version numbers. Whenever any state 
 /// variable is modified, we increment the stage version for the stage(s) that
-/// depend on it. -1 means "unintialized". 0 is never used as a stage version, 
+/// depend on it. -1 means "uninitialized". 0 is never used as a stage version, 
 /// but is allowed as a cache value which is guaranteed never to look valid. 
 typedef int StageVersion;
 
@@ -196,7 +196,7 @@ methods:
      (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
 </pre>
 with initial conditions t0,y0,d0 such that c=0. The discrete variables d are 
-updated upon occurence of specific events. When those events are functions of 
+updated upon occurrence of specific events. When those events are functions of 
 time or state, they are detected using the set of scalar-valued event trigger 
 functions e (3).
 

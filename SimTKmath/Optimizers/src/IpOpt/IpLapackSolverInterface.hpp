@@ -33,7 +33,7 @@ namespace Ipopt
     /** Method for initializing internal stuctures. */
     virtual ESymSolverStatus InitializeStructure(Index dim, Index nonzeros, const Index *ia, const Index *ja);
 
-    /** Method returing an internal array into which the nonzero
+    /** Method returning an internal array into which the nonzero
      *  elements are to be stored. */
     virtual Number* GetValuesArrayPtr();
 
