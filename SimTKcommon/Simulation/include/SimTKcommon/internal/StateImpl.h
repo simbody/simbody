@@ -568,6 +568,23 @@ public:
             (last.getFirstIndex()+last.getNumSlots());
     }
 
+    SimTK_FORCE_INLINE const CacheEntryInfo& 
+    getCacheEntryInfo(CacheEntryIndex index) const {
+        SimTK_INDEXCHECK(index,(int)cacheInfo.size(),
+                         "PerSubsystemInfo::getCacheEntryInfo()");
+        return cacheInfo[index];
+    }
+
+    SimTK_FORCE_INLINE CacheEntryInfo&
+    updCacheEntryInfo(CacheEntryIndex index) const {
+        SimTK_INDEXCHECK(index,(int)cacheInfo.size(),
+                         "PerSubsystemInfo::updCacheEntryInfo()");
+        return cacheInfo[index]; // mutable
+    }
+
+    SimTK_FORCE_INLINE Stage getCurrentStage() const {return currentStage;}
+    SimTK_FORCE_INLINE StageVersion getStageVersion(Stage g) const 
+    {   return stageVersions[g]; }
 
     String name;
     String version;
@@ -732,13 +749,13 @@ public:
     Stage&       updSystemStage() const {return currentSystemStage;} // mutable
 
 
-    const PerSubsystemInfo& getSubsystem(int subsystem) const {
+    SimTK_FORCE_INLINE const PerSubsystemInfo& getSubsystem(int subsystem) const {
         SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), 
                          "StateImpl::getSubsystem()");
         return subsystems[subsystem];
     }
 
-    PerSubsystemInfo& updSubsystem(int subsystem) {
+    SimTK_FORCE_INLINE PerSubsystemInfo& updSubsystem(int subsystem) {
         SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), 
                          "StateImpl::updSubsystem()");
         return subsystems[subsystem];
@@ -1622,57 +1639,44 @@ public:
         return triggers[g];
     }
 
-    CacheEntryIndex getDiscreteVarUpdateIndex
+    const DiscreteVarInfo& getDiscreteVarInfo
        (SubsystemIndex subsys, DiscreteVariableIndex index) const {
         const PerSubsystemInfo& ss = subsystems[subsys];
         SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateImpl::getDiscreteVarUpdateIndex()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getAutoUpdateEntry();
+            "StateImpl::getDiscreteVarInfo()");
+        return ss.discreteInfo[index];
+    } 
+
+    CacheEntryIndex getDiscreteVarUpdateIndex
+       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
+        return getDiscreteVarInfo(subsys,index).getAutoUpdateEntry();
     } 
 
     Stage getDiscreteVarAllocationStage
        (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateImpl::getDiscreteVarAllocationStage()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getAllocationStage();
+        return getDiscreteVarInfo(subsys,index).getAllocationStage();
     } 
 
     Stage getDiscreteVarInvalidatesStage
        (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateImpl::getDiscreteVarInvalidatesStage()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getInvalidatedStage();
+        return getDiscreteVarInfo(subsys,index).getInvalidatedStage();
     } 
 
     // You can access at any time a variable that was allocated during 
     // realizeTopology(), but don't access others until you have done 
     // realizeModel().
     const AbstractValue& 
-    getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-                         "StateImpl::getDiscreteVariable()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-    
+    getDiscreteVariable(SubsystemIndex subx, DiscreteVariableIndex dvx) const {
+        const DiscreteVarInfo& dv = getDiscreteVarInfo(subx,dvx);   
         if (dv.getAllocationStage() > Stage::Topology) {
-            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Model, 
+            SimTK_STAGECHECK_GE(getSubsystemStage(subx), Stage::Model, 
                                 "StateImpl::getDiscreteVariable()");
-        }
-    
+        }   
         return dv.getValue();
     }
+
     Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-                         "StateImpl::getDiscreteVarLastUpdateTime()");
-        const DiscreteVarInfo& dv = ss.discreteInfo[index];
-        return dv.getTimeLastUpdated();
+        return getDiscreteVarInfo(subsys,index).getTimeLastUpdated();
     }
 
     const AbstractValue& getDiscreteVarUpdateValue
@@ -1741,18 +1745,33 @@ public:
         // current time.
         return dv.updValue(t);
     }
-    
+
+    const CacheEntryInfo& 
+    getCacheEntryInfo(SubsystemIndex subsys, CacheEntryIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];  
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
+                         "StateImpl::getCacheEntryInfo()");
+        return ss.cacheInfo[index];
+    }
+
+    CacheEntryInfo&
+    updCacheEntryInfo(SubsystemIndex subsys, CacheEntryIndex index) const {
+        const PerSubsystemInfo& ss = subsystems[subsys];  
+        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
+                         "StateImpl::updCacheEntryInfo()");
+        return ss.cacheInfo[index]; // mutable
+    }
+
     Stage getCacheEntryAllocationStage
        (SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
-            "StateImpl::getCacheEntryAllocationStage()");
-        const CacheEntryInfo& ce = ss.cacheInfo[index];
-        return ce.getAllocationStage();
+        return getCacheEntryInfo(subsys,index).getAllocationStage();
     } 
+
 
     // Stage >= ce.stage
     // This method gets called a lot, so make it fast in Release mode.
+    // NOTE: can't use this method for cache entries with extra dependencies
+    // because it ignores them.
     const AbstractValue& 
     getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
         const PerSubsystemInfo& ss = subsystems[subsys];
@@ -1760,6 +1779,10 @@ public:
         SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
                          "StateImpl::getCacheEntry()");
         const CacheEntryInfo& ce = ss.cacheInfo[index];
+
+        SimTK_ASSERT(ce.getNumExtras()==0,
+            "State::getCacheEntry() must not be used for a cache entry "
+            "that has extra dependencies.");
 
         // These two unconditional checks are somewhat expensive; I'm leaving
         // them in though because they catch so many user errors.
@@ -1791,21 +1814,12 @@ public:
     // allocated. This does not affect the stage.
     AbstractValue& 
     updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
-                         "StateImpl::updCacheEntry()");
-        CacheEntryInfo& ce = ss.cacheInfo[index];
-    
-        return ce.updValue();
+        return updCacheEntryInfo(subsys, index).updValue();
     }
 
     bool isCacheValueRealizedNoExtras(SubsystemIndex subx, 
                                       CacheEntryIndex cx) const {
-        const PerSubsystemInfo& ss = subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),
-                         "StateImpl::isCacheValueRealized()");
-        const CacheEntryInfo& ce = ss.cacheInfo[cx];
+        const CacheEntryInfo& ce = getCacheEntryInfo(subx,cx);
         return ce.isCurrentNoExtras(getSubsystemStage(subx), 
                                     getSubsystemStageVersions(subx));
     }
@@ -1815,10 +1829,7 @@ public:
                                         const StageVersion* extraVersions,
                                         StageVersion& cacheValueVersion) const
     {
-        const PerSubsystemInfo& ss = subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),
-                         "StateImpl::isCacheValueRealized()");
-        const CacheEntryInfo& ce = ss.cacheInfo[cx];
+        const CacheEntryInfo& ce = getCacheEntryInfo(subx,cx);
         return ce.isCurrentWithExtras(getSubsystemStage(subx), 
                                       getSubsystemStageVersions(subx),
                                       numExtras, extraVersions,
@@ -1827,10 +1838,7 @@ public:
 
     void markCacheValueRealizedNoExtras(SubsystemIndex subx, 
                                         CacheEntryIndex cx) const {
-        const PerSubsystemInfo& ss = subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),
-                         "StateImpl::markCacheValueRealized()");
-        CacheEntryInfo& ce = ss.cacheInfo[cx];
+        CacheEntryInfo& ce = updCacheEntryInfo(subx,cx);
     
         // If this cache entry depends on anything, it can't be valid unless 
         // we're at least *working* on its depends-on stage, meaning the current
@@ -1848,10 +1856,7 @@ public:
        (SubsystemIndex subx, CacheEntryIndex cx,
         unsigned numExtras, const StageVersion* extraVersions) const
     {
-        const PerSubsystemInfo& ss = subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),
-                         "StateImpl::markCacheValueRealized()");
-        CacheEntryInfo& ce = ss.cacheInfo[cx];
+        CacheEntryInfo& ce = updCacheEntryInfo(subx,cx);
     
         // If this cache entry depends on anything, it can't be valid unless 
         // we're at least *working* on its depends-on stage, meaning the current
@@ -1867,11 +1872,7 @@ public:
 
     void markCacheValueNotRealized
        (SubsystemIndex subx, CacheEntryIndex cx) const {
-        const PerSubsystemInfo& ss = subsystems[subx];
-        SimTK_INDEXCHECK(cx,(int)ss.cacheInfo.size(),
-            "StateImpl::markCacheValueNotRealized()");
-        CacheEntryInfo& ce = ss.cacheInfo[cx];
-
+        CacheEntryInfo& ce = updCacheEntryInfo(subx,cx);
         ce.invalidate();
     }
 
@@ -2635,6 +2636,23 @@ inline StageVersion State::getUStageVersion() const {
 
 inline StageVersion State::getZStageVersion() const {
     return getImpl().getZStageVersion();
+}
+
+inline const CacheEntryInfo& State::
+getCacheEntryInfo(SubsystemIndex subx, CacheEntryIndex cachex) const {
+    return getImpl().getCacheEntryInfo(subx, cachex);
+}
+
+/** (Advanced) Return a reference to the discrete variable information for a 
+particular discrete variable. **/
+inline const DiscreteVarInfo& State::
+getDiscreteVarInfo(SubsystemIndex subx, DiscreteVariableIndex dvx) const {
+    return getImpl().getDiscreteVarInfo(subx, dvx);
+}
+
+inline const PerSubsystemInfo& State::
+getPerSubsystemInfo(SubsystemIndex subx) const {
+    return getImpl().getSubsystem(subx);
 }
 
 

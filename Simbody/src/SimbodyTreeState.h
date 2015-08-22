@@ -1426,7 +1426,7 @@ public:
     }
 
     const Vector& getQ() const {
-        assert(stage >= Stage::Position);
+        assert(stage >= Stage::Model);
         assert(q);
         return *q;
     }
@@ -1438,7 +1438,7 @@ public:
     }
 
     const Vector& getU() const {
-        assert(stage >= Stage::Velocity);
+        assert(stage >= Stage::Model);
         assert(u);
         return *u;
     }
@@ -1501,7 +1501,7 @@ public:
 
     // Position
     Vector& updQErr() const {
-        assert(stage == Stage::Position);
+        assert(stage > Stage::Instance);
         assert(qErr);
         return *qErr;
     }
@@ -1516,7 +1516,7 @@ public:
         return *tpc;
     }
     const SBTreePositionCache& getTreePositionCache() const {
-        assert(stage > Stage::Position);
+        assert(stage > Stage::Instance);
         assert(tpc);
         return *tpc;
     }
@@ -1533,7 +1533,7 @@ public:
 
     // Velocity
     Vector& updQDot() const {
-        assert(stage == Stage::Velocity);
+        assert(stage > Stage::Instance);
         assert(qdot);
         return *qdot;
     }
@@ -1543,7 +1543,7 @@ public:
         return *qdot;
     }
     Vector& updUErr() const {
-        assert(stage == Stage::Velocity);
+        assert(stage > Stage::Instance);
         assert(uErr);
         return *uErr;
     }
@@ -1558,7 +1558,7 @@ public:
         return *tvc;
     }
     const SBTreeVelocityCache& getTreeVelocityCache() const {
-        assert(stage > Stage::Velocity);
+        assert(stage > Stage::Instance);
         assert(tvc);
         return *tvc;
     }

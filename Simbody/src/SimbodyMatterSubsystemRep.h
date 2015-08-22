@@ -1003,10 +1003,32 @@ public:
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.timeCacheIndex)).upd();
     }
 
-    const SBTreePositionCache& getTreePositionCache(const State& s) const {
-        return Value<SBTreePositionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treePositionCacheIndex)).get();
+    // Must do this very carefully because the position kinematics cache entry
+    // has an extra dependency on the q-version so can't use getCacheEntry().
+    // This needs to be very fast because it gets called a lot. Keep it small
+    // so it will be inlined.
+    const SBTreePositionCache& getTreePositionCache(const State& state) const {
+        const PerSubsystemInfo& subInfo = 
+                            state.getPerSubsystemInfo(getMySubsystemIndex());  
+        const CacheEntryInfo& ce = subInfo.getCacheEntryInfo
+                                        (topologyCache.treePositionCacheIndex);
+
+        const Stage current = subInfo.getCurrentStage();
+        const Stage computedBy = ce.getComputedByStage();
+        assert(computedBy == Stage::Position); // or else we're confused
+
+        // Fast exit if we've reached Stage::Position since position kinematics
+        // is guaranteed to be available there.
+        if (current < computedBy) {
+            // This will throw an exception if the cache enty isn't valid.
+            checkValidityOfTreePositionCache(state,subInfo,ce);  
+            // It's good!
+        } 
+
+        return Value<SBTreePositionCache>::downcast(ce.getValue()).get();
     }
+
+
     SBTreePositionCache& updTreePositionCache(const State& s) const { //mutable
         return Value<SBTreePositionCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treePositionCacheIndex)).upd();
@@ -1039,10 +1061,32 @@ public:
             (updCacheEntry(s,topologyCache.articulatedBodyInertiaCacheIndex));
     }
 
-    const SBTreeVelocityCache& getTreeVelocityCache(const State& s) const {
-        return Value<SBTreeVelocityCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.treeVelocityCacheIndex)).get();
+
+    // Must do this very carefully because the position kinematics cache entry
+    // has extra dependencies on the treePositionCache version and u-version.
+    // This needs to be very fast because it gets called a lot. Keep it small
+    // so it will be inlined.
+    const SBTreeVelocityCache& getTreeVelocityCache(const State& state) const {
+        const PerSubsystemInfo& subInfo = 
+            state.getPerSubsystemInfo(getMySubsystemIndex());  
+        const CacheEntryInfo& ce = subInfo.getCacheEntryInfo
+            (topologyCache.treeVelocityCacheIndex);
+
+        const Stage current = subInfo.currentStage;
+        const Stage computedBy = ce.getComputedByStage();
+        assert(computedBy == Stage::Velocity); // or else we're confused
+
+        // Fast exit if we've reached Stage::Velocity since position kinematics
+        // is guaranteed to be available there.
+        if (current < computedBy) {
+            // This will throw an exception if the cache enty isn't valid.
+            checkValidityOfTreeVelocityCache(state,subInfo,ce);  
+            // It's good!
+        } 
+
+        return Value<SBTreeVelocityCache>::downcast(ce.getValue()).get();
     }
+
     SBTreeVelocityCache& updTreeVelocityCache(const State& s) const { //mutable
         return Value<SBTreeVelocityCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.treeVelocityCacheIndex)).upd();
@@ -1268,6 +1312,23 @@ public:
     };
 
     SimTK_DOWNCAST(SimbodyMatterSubsystemRep, Subsystem::Guts);
+
+private:
+    // We've already determined that we haven't reached Stage::Position where
+    // the position kinematics are guaranteed to be valid. Now do the
+    // fancier checks that won't get inlined and throw an exception if the
+    // cache entry is not valid.
+    void checkValidityOfTreePositionCache(const State& state,
+                                          const PerSubsystemInfo& subInfo,
+                                          const CacheEntryInfo&   ce) const;
+
+    // We've already determined that we haven't reached Stage::Velocity where
+    // the velocity kinematics are guaranteed to be valid. Now do the
+    // fancier checks that won't get inlined and throw an exception if the
+    // cache entry is not valid.
+    void checkValidityOfTreeVelocityCache(const State& state,
+                                          const PerSubsystemInfo& subInfo,
+                                          const CacheEntryInfo&   ce) const;
 
 private:
         // TOPOLOGY "STATE VARIABLES"

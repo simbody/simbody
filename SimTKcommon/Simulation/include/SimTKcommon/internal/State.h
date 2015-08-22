@@ -155,6 +155,11 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemMultiplierIndex);
 /// @see SystemMultiplierIndex
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MultiplierIndex);
 
+class StateImpl;
+class PerSubsystemInfo;
+class DiscreteVarInfo;
+class CacheEntryInfo;
+
 /** This object is intended to contain all state information for a 
 SimTK::System, except topological information which is stored in the %System 
 itself. 
@@ -1133,6 +1138,21 @@ returned with writable access). Will be 1 or greater if z has been
 allocated. **/
 inline StageVersion getZStageVersion() const;
 
+/** (Advanced) Return a reference to the cache entry information for a 
+particular cache entry. No validity checking is performed. **/
+SimTK_FORCE_INLINE const CacheEntryInfo& 
+getCacheEntryInfo(SubsystemIndex, CacheEntryIndex) const;
+
+/** (Advanced) Return a reference to the discrete variable information for a 
+particular discrete variable. **/
+SimTK_FORCE_INLINE const DiscreteVarInfo& 
+getDiscreteVarInfo(SubsystemIndex, DiscreteVariableIndex) const;
+
+/** (Advanced) Return a reference to the per-subsystem information in the
+state. **/
+SimTK_FORCE_INLINE const PerSubsystemInfo& 
+getPerSubsystemInfo(SubsystemIndex) const;
+
 /** (Advanced) This is called at the beginning of every integration step to set
 the values of auto-update discrete variables from the values stored in their 
 associated cache entries. **/
@@ -1145,7 +1165,7 @@ inline String cacheToString() const;
 // The implementation class and associated inline methods are defined in a
 // separate header file included below.
                                 private:
-class StateImpl* impl;
+StateImpl* impl;
 
 const StateImpl& getImpl() const {assert(impl); return *impl;}
 StateImpl&       updImpl()       {assert(impl); return *impl;}
