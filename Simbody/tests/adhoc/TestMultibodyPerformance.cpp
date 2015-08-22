@@ -101,6 +101,7 @@ void doRealizeDynamics2Acceleration(MultibodySystem& system, State& state) {
 // Cost to re-evaluate accelerations after updating velocities, but leaving
 // the positions unchanged (e.g. semi-implicit Euler iterating velocities).
 void doRealizeVelocity2Acceleration(MultibodySystem& system, State& state) {
+    state.updU(); // should invalidate velocity kinematics
     state.invalidateAllCacheAtOrAbove(Stage::Velocity);
     system.realize(state, Stage::Acceleration);
 }
@@ -108,6 +109,7 @@ void doRealizeVelocity2Acceleration(MultibodySystem& system, State& state) {
 // Cost for a complete acceleration calculation at a new time and state.
 // This includes the cost of articulated body inertias.
 void doRealizeTime2Acceleration(MultibodySystem& system, State& state) {
+    state.updQ(); // should invalidate position & velocity kinematics
     state.invalidateAllCacheAtOrAbove(Stage::Time);
     system.realize(state, Stage::Acceleration);
 }
