@@ -40,6 +40,11 @@ to ParallelExecutor, mutex state lock.
 * Added move constructor and move assignment to State (very fast).
 * Added "stage version" counters for time, q, u, and z that are incremented
   whenever one of these changes.
+* Separated time-independent position and kinematics calculations so that 
+  they are not invalidated by a time change. These can also be initiated
+  explicitly with new methods `realizePositionKinematics()` and
+  `realizeVelocityKinematics()`. They are invalidated by a change to q or
+  to u, respectively. 
 * (There are more that haven't been added yet)
 
 
