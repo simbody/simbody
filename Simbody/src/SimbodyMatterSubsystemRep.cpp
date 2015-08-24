@@ -1415,9 +1415,9 @@ invalidateVelocityKinematics(const State& state) const {
 }
 
 
-    // We've already determined that we haven't reached Stage::Velocity where
-    // the velocity kinematics are guaranteed to be valid. Now do the
-    // fancier checks that won't get inlined.
+// We've already determined that we haven't reached Stage::Velocity where
+// the velocity kinematics are guaranteed to be valid. Now do the
+// fancier checks that won't get inlined.
 void SimbodyMatterSubsystemRep::
 checkValidityOfTreeVelocityCache(const State& state,
                                  const PerSubsystemInfo& subInfo,
@@ -1425,29 +1425,10 @@ checkValidityOfTreeVelocityCache(const State& state,
     const Stage current   = subInfo.getCurrentStage();
     const Stage dependsOn = ce.getDependsOnStage();
     assert(dependsOn == Stage::Instance);
-            
-    // If we're below Instance stage we are hosed.
-    SimTK_ERRCHK2_ALWAYS(current >= dependsOn, 
-    "SimbodyMatterSubsytemRep::getTreeVelocityCache()",
-    "Velocity kinematics can't be obtained until at least Stage::%s "
-    "but state was at Stage::%s.\nEither realize(Stage::Velocity) "
-    "or realize(Stage::Instance), realizePositionKinematics(), and then call "
-    "realizeVelocityKinematics() before asking for velocity "
-    "kinematic information.", 
-        dependsOn.getName().c_str(), current.getName().c_str());
 
-    // Otherwise make sure we agree on the Instance version number.
-    const StageVersion currentVersion = subInfo.getStageVersion(dependsOn);
-    const StageVersion savedVersion = ce.getDependsOnVersionWhenLastComputed();
-
-    SimTK_ERRCHK3_ALWAYS(savedVersion == currentVersion, 
-    "SimbodyMatterSubsytemRep::getTreeVelocityCache()",
-    "Velocity kinematics can't be obtained because it was last "
-    "realized against version %lld of Stage::%s, but that stage "
-    "is currently at version %lld.\nEither realize(Stage::Velocity) "
-    "or call realizeVelocityKinematics() before asking for velocity "
-    "kinematic information.",
-        savedVersion, dependsOn.getName().c_str(), currentVersion);
+    // We don't need to check explicitly whether Instance stage has been
+    // realized because we're going to check that position kinematics has been
+    // realized and that can't happen unless Instance stages was realized first.
 
     StageVersion posKinVersion;
     const bool positionKinematicsRealized =
@@ -1460,8 +1441,8 @@ checkValidityOfTreeVelocityCache(const State& state,
     "call realizeVelocityKinematics() before asking for velocity "
     "kinematic information.");
 
-    // We are happy with the depends-on stage. 
-    // Now check the position kinematics version.
+    // We have determined that position kinematics has been realized. But was
+    // it changed since we last used it? Check the position kinematics version.
     const StageVersion savedPosKinVersion = 
         ce.getExtraDependencyVersionWhenLastComputed(0); // first extra
 

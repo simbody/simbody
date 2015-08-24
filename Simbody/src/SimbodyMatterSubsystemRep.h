@@ -1062,7 +1062,7 @@ public:
     }
 
 
-    // Must do this very carefully because the position kinematics cache entry
+    // Must do this very carefully because the velocity kinematics cache entry
     // has extra dependencies on the treePositionCache version and u-version.
     // This needs to be very fast because it gets called a lot. Keep it small
     // so it will be inlined.
@@ -1076,7 +1076,7 @@ public:
         const Stage computedBy = ce.getComputedByStage();
         assert(computedBy == Stage::Velocity); // or else we're confused
 
-        // Fast exit if we've reached Stage::Velocity since position kinematics
+        // Fast exit if we've reached Stage::Velocity since velocity kinematics
         // is guaranteed to be available there.
         if (current < computedBy) {
             // This will throw an exception if the cache enty isn't valid.
