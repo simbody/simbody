@@ -1089,6 +1089,10 @@ inline Vector& updUErr() const; // Stage::Velocity-1        "
 inline Vector& updUDotErr()     const; // Stage::Acceleration-1 (not a view)
 inline Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
 
+/** @name                 Advanced/Obscure/Debugging
+Don't call these methods unless you know what you're doing. **/
+/**@{**/
+
 /** (Advanced) Record the current version numbers of each valid System-level 
 stage. This can be used to unambiguously determine what stages have been 
 changed by some opaque operation, even if that operation realized the stages 
@@ -1158,8 +1162,11 @@ the values of auto-update discrete variables from the values stored in their
 associated cache entries. **/
 inline void autoUpdateDiscreteVariables();
 
+/** (Debugging) Not suitable for serialization. **/
 inline String toString() const;
+/** (Debugging) Not suitable for serialization. **/
 inline String cacheToString() const;
+/**@}**/
 
 //------------------------------------------------------------------------------
 // The implementation class and associated inline methods are defined in a
