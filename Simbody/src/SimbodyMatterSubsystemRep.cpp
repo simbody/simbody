@@ -1378,7 +1378,7 @@ realizeVelocityKinematics(const State& state) const {
             rbNodeLevels[i][j]->realizeVelocity(stateDigest); 
 
     // Ask the constraints to calculate ancestor-relative velocity kinematics 
-    // (still goes in TreePositionCache).
+    // (still goes in TreeVelocityCache).
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl()
             .calcConstrainedBodyVelocityInAncestor(iv, tpc, tvc);
