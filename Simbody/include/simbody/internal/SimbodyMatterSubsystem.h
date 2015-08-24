@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
@@ -2487,7 +2487,31 @@ delayed until needed; you can cause those calculations to be performed
 explicitly here if you want. **/
 /**@{**/
 
-    // POSITION STAGE realizations //
+/** Position kinematics is the first part of the Stage::Position realization,
+mapping generalized coordinates q to the spatial (Cartesian) poses of the 
+mobilized bodies. This mapping depends only on instance variables and q; it is
+time-independent, so does not get invalidated by a time change. This 
+computation is normally initiated by a `realize(state,Stage::Position)` 
+call, but you can realize just the kinematics explicitly here. The calculation
+will *not* be repeated when realizing Stage::Position for the same q values. 
+@par Required stage
+  \c Stage::Instance 
+@see invalidatePositionKinematics() **/
+void realizePositionKinematics(const State& state) const;
+
+/** Velocity kinematics is the first part of the Stage::Velocity realization,
+mapping generalized speeds u to the spatial (Cartesian) velocities of the 
+mobilized bodies. This mapping depends only on instance variables, position
+kinematics, and u; it is time-independent, so does not get invalidated by a time
+change. This computation is normally initiated by a 
+`realize(state,Stage::Velocity)` call, but you can realize just the kinematics 
+explicitly here. The calculation will *not* be repeated when realizing 
+Stage::Velocity for the same q and u values. Note that you must already have
+realized position kinematics in order to call this method.
+@par Required stage
+  \c Stage::Position, or \c Stage::Instance and \c PositionKinematics
+@see invalidateVelocityKinematics() **/
+void realizeVelocityKinematics(const State&) const;
 
 /** This method checks whether composite body inertias have already been 
 computed since the last change to a Position stage state variable (q) and if so 
@@ -2495,7 +2519,7 @@ returns immediately at little cost; otherwise, it initiates computation of
 composite body inertias for all of the mobilized bodies. These are not otherwise
 computed unless specifically requested.
 @par Required stage
-  \c Stage::Position 
+  \c Stage::Position
 @see invalidateCompositeBodyInertias() **/
 void realizeCompositeBodyInertias(const State&) const;
 
@@ -2511,18 +2535,65 @@ stage.
 void realizeArticulatedBodyInertias(const State&) const;
 
 
-    // INSTANCE STAGE responses //
+    // INSTANCE STAGE responses and operators //
 
+/** Return a list of the generalized coordinates q that are free, that is,
+not locked or prescribed with a Motion.
+@par Required stage
+  \c Stage::Instance **/
 const Array_<QIndex>& getFreeQIndex(const State& state) const;
+
+/** Return a list of the generalized speeds u that are free, that is,
+not locked or prescribed with a Motion.
+@par Required stage
+  \c Stage::Instance **/
 const Array_<UIndex>& getFreeUIndex(const State& state) const;
+
+/** Return a list of the generalized speeds whose time derivatives udot are
+unknown, that is, not locked or prescribed with a Motion. This is the 
+complement of getKnownUDotIndex().
+@par Required stage
+  \c Stage::Instance **/
 const Array_<UIndex>& getFreeUDotIndex(const State& state) const;
+
+/** Return a list of the generalized speeds whose time derivatives udot are
+known, that is, locked or prescribed with a Motion.  This is the 
+complement of getFreeUDotIndex().
+@par Required stage
+  \c Stage::Instance **/
 const Array_<UIndex>& getKnownUDotIndex(const State& state) const;
+
+/** Given a generalized coordinate (q-space) Vector, select only those 
+elements that are free (in the sense of getFreeQIndex()) and pack them in
+order into `packedFreeQ`, which must already be allocated to the correct
+length, getFreeQIndex().size().
+@par Required stage
+  \c Stage::Instance **/
 void packFreeQ
    (const State& s, const Vector& allQ, Vector& packedFreeQ) const;
+
+/** Given a free-q Vector, unpack it into a q-space Vector which 
+must already be allocated to the correct size. The not-free elements already
+in `unpackedFreeQ` are not touched.
+@par Required stage
+  \c Stage::Instance **/
 void unpackFreeQ
    (const State& s, const Vector& packedFreeQ, Vector& unpackedFreeQ) const;
+
+/** Given a generalized speed (u- or mobility-space) Vector, select only those 
+elements that are free (in the sense of getFreeUIndex()) and pack them in
+order into `packedFreeU`, which must already be allocated to the correct
+length, getFreeUIndex().size().
+@par Required stage
+  \c Stage::Instance **/
 void packFreeU
    (const State& s, const Vector& allU, Vector& packedFreeU) const;
+
+/** Given a free-u Vector, unpack it into a u-space Vector which 
+must already be allocated to the correct size. The not-free elements already
+in `unpackedFreeU` are not touched.
+@par Required stage
+  \c Stage::Instance **/
 void unpackFreeU
    (const State& s, const Vector& packedFreeU, Vector& unpackedFreeU) const;
 
@@ -2645,15 +2716,34 @@ void calcMobilizerReactionForcesUsingFreebodyMethod
    (const State&         state, 
     Vector_<SpatialVec>& forcesAtMInG) const;
 
-/** This is useful for timing computation time for 
+/** (Advanced) Force invalidation of position kinematics, which otherwise 
+remains valid until an instance-stage variable or a generalized coordinate q
+is modified. This is useful for timing computation time for 
+realizePositionKinematics(), which otherwise will not recalculate if called 
+repeatedly. Note that this also invalidates Position stage and 
+above in `state` because position kinematics is assumed to be
+valid after Position stage, regardless of lazy evaluation status. **/
+void invalidatePositionKinematics(const State& state) const;
+
+/** (Advanced) Force invalidation of velocity kinematics, which otherwise 
+remains valid until an instance-stage variable, generalized coordinate q, or
+generalized speed u is modified. This is useful for timing computation time for 
+realizeVelocityKinematics(), which otherwise will not recalculate if called 
+repeatedly. Note that this also invalidates Velocity stage and 
+above in `state` because velocity kinematics is assumed to be
+valid after Velocity stage, regardless of lazy evaluation status. **/
+void invalidateVelocityKinematics(const State& state) const;
+
+/** (Advanced) This is useful for timing computation time for 
 realizeCompositeBodyInertias(), which otherwise will not recalculate them
 if called repeatedly. **/
 void invalidateCompositeBodyInertias(const State& state) const;
 
-/** This is useful for timing computation time for 
-realizeArticulatedBodyInertias(), which otherwise will not recalculate them
-if called repeatedly. Note that this also invalidates Dynamics stage and 
-above in the \a state because articulated body inertias are assumed to be
+/** (Advanced) Force invalidation of articulated body inertias (ABIs), which 
+otherwise remain valid until a position-stage variable is modified. This is 
+useful for timing computation time for realizeArticulatedBodyInertias(), which 
+otherwise will not recalculate if called repeatedly. Note that this also 
+invalidates Dynamics stage and above in `state` because ABIs are assumed to be
 valid after Dynamics stage, regardless of lazy evaluation status. **/
 void invalidateArticulatedBodyInertias(const State& state) const;
 /**@}**/

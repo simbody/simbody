@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2006-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2006-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -2007,6 +2007,15 @@ void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyInde
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 
+void SimbodyMatterSubsystem::realizePositionKinematics(const State& s) const {
+    getRep().realizePositionKinematics(s);
+}
+
+
+void SimbodyMatterSubsystem::realizeVelocityKinematics(const State& s) const {
+    getRep().realizeVelocityKinematics(s);
+}
+
 void SimbodyMatterSubsystem::realizeCompositeBodyInertias(const State& s) const {
     getRep().realizeCompositeBodyInertias(s);
 }
@@ -2015,12 +2024,23 @@ void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) cons
     getRep().realizeArticulatedBodyInertias(s);
 }
 
+void SimbodyMatterSubsystem::
+invalidatePositionKinematics(const State& s) const {
+    getRep().invalidatePositionKinematics(s);
+}
 
-void SimbodyMatterSubsystem::invalidateCompositeBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+invalidateVelocityKinematics(const State& s) const {
+    getRep().invalidateVelocityKinematics(s);
+}
+
+void SimbodyMatterSubsystem::
+invalidateCompositeBodyInertias(const State& s) const {
     getRep().invalidateCompositeBodyInertias(s);
 }
 
-void SimbodyMatterSubsystem::invalidateArticulatedBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+invalidateArticulatedBodyInertias(const State& s) const {
     getRep().invalidateArticulatedBodyInertias(s);
 }
 

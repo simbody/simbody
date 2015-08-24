@@ -1166,15 +1166,11 @@ ConstraintIndex getMyConstraintIndex() const {
 
 
 // Calculate the transform X_AB of each ConstrainedBody in its Ancestor frame, 
-// provided Ancestor!=Ground and A!=B. We expect a StateDigest of a State
-// that has been realized through Time stage, and a TreePositionCache in
+// provided Ancestor!=Ground and A!=B. We expect a TreePositionCache in
 // which the mobilizer- and ground-frame position kinematics results have
 // already been calculated. We then fill in the missing ancestor-frame
-// results back into that same TreePositionCache. The TreePositionCache
-// in the StateDigest is ignored; it may or may not be the same as the
-// second argument depending on whether this is part of a realization or
-// part of an operator.
-void calcConstrainedBodyTransformInAncestor(const SBStateDigest&,   // in only
+// results back into that same TreePositionCache.
+void calcConstrainedBodyTransformInAncestor(const SBInstanceVars&,  // in only
                                             SBTreePositionCache&    // in/out
                                             ) const;
 
@@ -1182,7 +1178,8 @@ void calcConstrainedBodyTransformInAncestor(const SBStateDigest&,   // in only
 // Here we expect a StateDigest realized through Position stage, and a 
 // partly-filled-in VelocityCache where we'll put V_AB for the 
 // ConstrainedBodies.
-void calcConstrainedBodyVelocityInAncestor(const SBStateDigest&,    // in only
+void calcConstrainedBodyVelocityInAncestor(const SBInstanceVars&,   // in only
+                                           const SBTreePositionCache&, // "
                                            SBTreeVelocityCache&     // in/out
                                            ) const;
 

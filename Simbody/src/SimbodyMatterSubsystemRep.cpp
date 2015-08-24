@@ -409,13 +409,17 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     tc.timeCacheIndex = 
         allocateCacheEntry(s, Stage::Time, new Value<SBTimeCache>());
 
-    // Basic tree position kinematics can be calculated any time after Time
+    // Basic tree position kinematics can be calculated any time after Instance
     // stage and should be filled in first during realizePosition() and then
     // marked valid so later computations during the same realization can
-    // access these quantities.
+    // access these quantities. This has an extra dependency on the q-version
+    // so that it is invalidated whenever a q changes. This can be evaluated
+    // earlier using realizePositionKinematics(). We guarantee this has been
+    // realized by Stage::Position.
     tc.treePositionCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Time,
-                               new Value<SBTreePositionCache>());
+        allocateCacheEntry(s, Stage::Instance, Stage::Position,
+                           new Value<SBTreePositionCache>(), 
+                           1 /* depends on qVersion */);
 
 
     // Here is where later computations during realizePosition() go; these
@@ -440,14 +444,20 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
         allocateCacheEntry(s, Stage::Position, Stage::Dynamics, 
                            new Value<SBArticulatedBodyInertiaCache>());
 
-    // Basic tree velocity kinematics can be calculated any time after Position
-    // stage and should be filled in first during realizeVelocity() and then
-    // marked valid so later computations during the same realization can
-    // access these quantities. Note that qdots are automatically allocated in 
-    // the State's Velocity-stage cache.
+    // Basic tree velocity kinematics can be calculated any time after Instance
+    // stage, provided PositionKinematics have been realized, or unconditionally
+    // after stage Position. These should be filled in first during 
+    // realizeVelocity() and then marked valid so later computations during the 
+    // same realization can access these quantities. Note that qdots are 
+    // automatically allocated in the State's Velocity-stage cache. This has 
+    // extra dependencies on the position kinematics version and u-version so 
+    // that it is invalidated whenever a q or u changes. This can be evaluated
+    // earlier using realizeVelocityKinematics(). We guarantee this has been
+    // realized by Stage::Velociy.
     tc.treeVelocityCacheIndex = 
-        allocateLazyCacheEntry(s, Stage::Position,
-                               new Value<SBTreeVelocityCache>());
+        allocateCacheEntry(s, Stage::Instance, Stage::Velocity,
+                           new Value<SBTreeVelocityCache>(), 
+                           2 /* posKinematicsVersion, uVersion */);
 
     // Here is where later computations during realizeVelocity() go; these
     // will assume that the TreeVelocityCache is available. So you can 
@@ -1066,30 +1076,13 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
         "SimbodyMatterSubsystem::realizePosition()");
 
-    // Set up StateDigest for calculating position information.
-    const SBStateDigest stateDigest(s, *this, Stage::Position);
-    const SBInstanceCache&      ic   = stateDigest.getInstanceCache();
-    SBTreePositionCache&        tpc  = stateDigest.updTreePositionCache();
+    // We promise that position kinematics is available after Stage::Position,
+    // so force that calculation now if it hasn't already been done.
+    realizePositionKinematics(s);
 
-    // realize tree positions (kinematics)
-    // This includes all local cross-mobilizer kinematics (M in F, B in P)
-    // and all global kinematics relative to Ground (G).
-
-    // Any body which is using quaternions should calculate the quaternion
-    // constraint here and put it in the appropriate slot of qErr.
-    // Set generalized coordinates: sweep from base to tips.
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizePosition(stateDigest); 
-
-    // Ask the constraints to calculate ancestor-relative kinematics (still 
-    // goes in TreePositionCache).
-    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
-        getConstraint(cx).getImpl()
-            .calcConstrainedBodyTransformInAncestor(stateDigest, tpc);
-
-    // Now we're done with the TreePositionCache.
-    markCacheValueRealized(s, topologyCache.treePositionCacheIndex);
+    // Set up StateDigest for calculating remaining position information.
+    const SBStateDigest     stateDigest(s, *this, Stage::Position);
+    const SBInstanceCache&  ic = stateDigest.getInstanceCache();
 
     // MobilizedBodies
     // This will include writing the prescribed velocities (u's) into
@@ -1120,6 +1113,114 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
     for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
         getConstraint(cx).getImpl().realizePosition(stateDigest);
     return 0;
+}
+
+
+//==============================================================================
+//                       REALIZE POSITION KINEMATICS
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+realizePositionKinematics(const State& state) const {
+    const CacheEntryIndex tpcx = topologyCache.treePositionCacheIndex;
+
+    StageVersion posKinVersion;
+    const StageVersion qVersion = state.getQStageVersion();
+    if (isCacheValueRealizedWithExtras(state, tpcx, 1, &qVersion, 
+                                       posKinVersion))
+        return; // already realized
+
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Instance, 
+        "SimbodyMatterSubsystem::realizePositionKinematics()");
+
+    const SBStateDigest     stateDigest(state, *this, Stage::Time);
+    const SBInstanceVars&   iv = stateDigest.getInstanceVars();
+    SBTreePositionCache&    tpc = stateDigest.updTreePositionCache();
+
+    // realize tree positions (kinematics)
+    // This includes all local cross-mobilizer kinematics (M in F, B in P)
+    // and all global kinematics relative to Ground (G).
+
+    // Any body which is using quaternions should calculate the quaternion
+    // constraint here and put it in the appropriate slot of qErr.
+    // Set generalized coordinates: sweep from base to tips.
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizePosition(stateDigest); 
+
+    // Ask the constraints to calculate ancestor-relative kinematics (still 
+    // goes in TreePositionCache).
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl()
+                            .calcConstrainedBodyTransformInAncestor(iv, tpc);
+
+    markCacheValueRealizedWithExtras(state, tpcx, 1, &qVersion);
+}
+
+bool SimbodyMatterSubsystemRep::
+isPositionKinematicsRealized(const State&  state,
+                             StageVersion& posKinVersion) const {
+    const CacheEntryIndex tpcx = topologyCache.treePositionCacheIndex;
+    const StageVersion qVersion = state.getQStageVersion();
+    return isCacheValueRealizedWithExtras(state, tpcx, 1, &qVersion,
+                                          posKinVersion);
+}
+
+
+void SimbodyMatterSubsystemRep::
+invalidatePositionKinematics(const State& state) const {
+    // Position kinematics is assumed calculated at Position stage, regardless 
+    // of stage versions in the cache entry.
+    state.invalidateAllCacheAtOrAbove(Stage::Position);
+    const CacheEntryIndex tpcx = topologyCache.treePositionCacheIndex;
+    markCacheValueNotRealized(state, tpcx);
+}
+
+// We've already determined that we haven't reached Stage::Position where
+// the position kinematics are guaranteed to be valid. Now do the
+// fancier checks that won't get inlined.
+void SimbodyMatterSubsystemRep::
+checkValidityOfTreePositionCache(const State& state,
+                                 const PerSubsystemInfo& subInfo,
+                                 const CacheEntryInfo&   ce) const {
+    const Stage current   = subInfo.getCurrentStage();
+    const Stage dependsOn = ce.getDependsOnStage();
+    assert(dependsOn == Stage::Instance);
+            
+    // If we're below Instance stage we are hosed.
+    SimTK_ERRCHK2_ALWAYS(current >= dependsOn, 
+    "SimbodyMatterSubsytemRep::getTreePositionCache()",
+    "Position kinematics can't be obtained until at least Stage::%s "
+    "but state was at Stage::%s.\nEither realize(Stage::Position) "
+    "or realize(Stage::Instance) and then call "
+    "realizePositionKinematics() before asking for position "
+    "kinematic information.", 
+        dependsOn.getName().c_str(), current.getName().c_str());
+
+    // Otherwise make sure we agree on the Instance version number.
+    const StageVersion currentVersion = subInfo.getStageVersion(dependsOn);
+    const StageVersion savedVersion = ce.getDependsOnVersionWhenLastComputed();
+
+    SimTK_ERRCHK3_ALWAYS(savedVersion == currentVersion, 
+    "SimbodyMatterSubsytemRep::getTreePositionCache()",
+    "Position kinematics can't be obtained because it was last "
+    "realized against version %lld of Stage::%s, but that stage "
+    "is currently at version %lld.\nEither realize(Stage::Position) "
+    "or call realizePositionKinematics() before asking for position "
+    "kinematic information.",
+        savedVersion, dependsOn.getName().c_str(), currentVersion);
+
+    // We are happy with the depends-on stage. Now check q-version.
+    const StageVersion currentQVersion = state.getQStageVersion();
+    const StageVersion savedQVersion = 
+        ce.getExtraDependencyVersionWhenLastComputed(0);
+
+    SimTK_ERRCHK2_ALWAYS(savedQVersion == currentQVersion, 
+    "SimbodyMatterSubsytemRep::getTreePositionCache()",
+    "Position kinematics can't be obtained because it was last "
+    "realized against q version %lld, but q has been modified and is "
+    "is now at version %lld.\nEither realize(Stage::Position) "
+    "or call realizePositionKinematics() before asking for position "
+    "kinematic information.", savedQVersion, currentQVersion);
 }
 
 
@@ -1216,33 +1317,17 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "SimbodyMatterSubsystem::realizeVelocity()");
 
+    // We promise that velocity kinematics is available after Stage::Velocity,
+    // so force that calculation now if it hasn't already been done.
+    realizeVelocityKinematics(s);
+
     const SBStateDigest stateDigest(s, *this, Stage::Velocity);
-    const SBInstanceCache& ic   = stateDigest.getInstanceCache();
-    SBTreeVelocityCache&   tvc  = stateDigest.updTreeVelocityCache();
-
-    // realize tree velocity kinematics
-    // This includes all local cross-mobilizer velocities (M in F, B in P)
-    // and all global velocities relative to Ground (G).
-
-    // Set generalized speeds: sweep from base to tips.
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
-            rbNodeLevels[i][j]->realizeVelocity(stateDigest); 
-
-    // Ask the constraints to calculate ancestor-relative velocity kinematics 
-    // (still goes in TreePositionCache).
-    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
-        getConstraint(cx).getImpl()
-            .calcConstrainedBodyVelocityInAncestor(stateDigest, tvc);
-
-    // Now we're done with the TreeVelocityCache.
-    markCacheValueRealized(s, topologyCache.treeVelocityCacheIndex);
+    const SBInstanceCache& ic = stateDigest.getInstanceCache();
 
     // MobilizedBodies
     // probably not much to do here
     for (MobilizedBodyIndex mbx(0); mbx < mobilizedBodies.size(); ++mbx)
         getMobilizedBody(mbx).getImpl().realizeVelocity(stateDigest);
-
 
     // Put velocity constraint equation errors in uErr
     Vector& uErr = stateDigest.updUErr();
@@ -1277,6 +1362,141 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
     return 0;
 }
 
+
+//==============================================================================
+//                       REALIZE VELOCITY KINEMATICS
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+realizeVelocityKinematics(const State& state) const {
+    StageVersion posKinVersion;
+    const bool positionKinematicsRealized =
+                        isPositionKinematicsRealized(state, posKinVersion);
+    SimTK_ERRCHK_ALWAYS(positionKinematicsRealized, 
+        "SimbodyMatterSubsystem::realizeVelocityKinematics()",
+        "Velocity kinematics cannot be realized unless the state has been "
+        "realized to Stage::Position or realizePositionKinematics() has been "
+        "called explicitly.");
+
+    const CacheEntryIndex velx = topologyCache.treeVelocityCacheIndex;
+    const StageVersion puVersions[2] = {posKinVersion,
+                                        state.getUStageVersion()};
+    StageVersion velKinVersion; // not used
+    if (isCacheValueRealizedWithExtras(state, velx, 2, puVersions, 
+                                       velKinVersion))
+        return; // already realized
+
+    // Here we know that position kinematics has already been realized but
+    // velocity kinematics is out of date with respect to the position
+    // kinematics version number, or because a u changed since last computed.
+    // We know this subsystem's stage is at least Instance since otherwise
+    // position kinematics couldn't have been valid.
+
+    const SBStateDigest stateDigest(state, *this, Stage::Time);
+    const SBInstanceVars&      iv  = stateDigest.getInstanceVars();
+    const SBTreePositionCache& tpc = stateDigest.getTreePositionCache();
+    SBTreeVelocityCache&       tvc = stateDigest.updTreeVelocityCache();
+
+    // realize tree velocity kinematics
+    // This includes all local cross-mobilizer velocities (M in F, B in P)
+    // and all global velocities relative to Ground (G). Also computes qdots.
+
+    // Set generalized speeds: sweep from base to tips.
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; ++j)
+            rbNodeLevels[i][j]->realizeVelocity(stateDigest); 
+
+    // Ask the constraints to calculate ancestor-relative velocity kinematics 
+    // (still goes in TreeVelocityCache).
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx)
+        getConstraint(cx).getImpl()
+            .calcConstrainedBodyVelocityInAncestor(iv, tpc, tvc);
+
+    // Record the version numbers we used for position kinematics and u.
+    markCacheValueRealizedWithExtras(state, velx, 2, puVersions);
+}
+
+
+// Velocity kinematics is realized only if position kinematics is realized,
+// AND the stage version of the position kinematics cache entry is unchanged
+// since we last computed velocity kinematics, AND the u's are also unchanged.
+bool SimbodyMatterSubsystemRep::
+isVelocityKinematicsRealized(const State& state, 
+                             StageVersion& velKinVersion) const {
+    StageVersion posKinVersion;
+    if (!isPositionKinematicsRealized(state, posKinVersion))
+        return false;
+
+    const CacheEntryIndex velx = topologyCache.treeVelocityCacheIndex;
+    const StageVersion puVersions[2] = 
+                                    {posKinVersion, state.getUStageVersion()};
+    return isCacheValueRealizedWithExtras(state, velx, 1, puVersions,
+                                          velKinVersion);
+}
+
+void SimbodyMatterSubsystemRep::
+invalidateVelocityKinematics(const State& state) const {
+    // Velocity kinematics is assumed calculated at Velocity stage, regardless 
+    // of the flag in the cache entry.
+    state.invalidateAllCacheAtOrAbove(Stage::Velocity);
+    const CacheEntryIndex tvcx = topologyCache.treeVelocityCacheIndex;
+    markCacheValueNotRealized(state, tvcx);
+}
+
+
+// We've already determined that we haven't reached Stage::Velocity where
+// the velocity kinematics are guaranteed to be valid. Now do the
+// fancier checks that won't get inlined.
+void SimbodyMatterSubsystemRep::
+checkValidityOfTreeVelocityCache(const State& state,
+                                 const PerSubsystemInfo& subInfo,
+                                 const CacheEntryInfo&   ce) const {
+    const Stage current   = subInfo.getCurrentStage();
+    const Stage dependsOn = ce.getDependsOnStage();
+    assert(dependsOn == Stage::Instance);
+
+    // We don't need to check explicitly whether Instance stage has been
+    // realized because we're going to check that position kinematics has been
+    // realized and that can't happen unless Instance stage was realized first.
+
+    StageVersion posKinVersion;
+    const bool positionKinematicsRealized =
+                        isPositionKinematicsRealized(state, posKinVersion);
+    SimTK_ERRCHK_ALWAYS(positionKinematicsRealized, 
+    "SimbodyMatterSubsytemRep::getTreeVelocityCache()",
+    "Velocity kinematics can't be obtained because neither it nor position "
+    "kinematics has been realized since the last position change.\nEither "
+    "realize(Stage::Velocity) or call realizePositionKinematics() and then "
+    "call realizeVelocityKinematics() before asking for velocity "
+    "kinematic information.");
+
+    // We have determined that position kinematics has been realized. But was
+    // it changed since we last used it? Check the position kinematics version.
+    const StageVersion savedPosKinVersion = 
+        ce.getExtraDependencyVersionWhenLastComputed(0); // first extra
+
+    SimTK_ERRCHK2_ALWAYS(savedPosKinVersion == posKinVersion, 
+    "SimbodyMatterSubsytemRep::getTreeVelocityCache()",
+    "Velocity kinematics can't be obtained because it was last realized "
+    "against position kinematics version %lld, but position kinematics is now "
+    "at version %lld.\nEither realize(Stage::Velocity) or call "
+    "realizeVelocityKinematics() before asking for velocity kinematic "
+    "information.", savedPosKinVersion, posKinVersion);
+
+    // We're up to date with respect to the position kinematics. The only
+    // remaining dependency is that a u might have been changed.
+
+    const StageVersion currentUVersion = state.getUStageVersion();
+    const StageVersion savedUVersion = 
+        ce.getExtraDependencyVersionWhenLastComputed(1); // second extra
+
+    SimTK_ERRCHK2_ALWAYS(savedUVersion == currentUVersion, 
+    "SimbodyMatterSubsytemRep::getTreeVelocityCache()",
+    "Velocity kinematics can't be obtained because it was last "
+    "realized against u version %lld, but u has been modified and is "
+    "is now at version %lld.\nEither realize(Stage::Velocity) "
+    "or call realizeVelocityKinematics() before asking for velocity "
+    "kinematic information.", savedUVersion, currentUVersion);
+}
 
 
 //==============================================================================
@@ -6238,23 +6458,24 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
             tac = &matter.updTreeAccelerationCache(state);
         if (topo.constrainedAccelerationCacheIndex.isValid())
             cac = &matter.updConstrainedAccelerationCache(state);
+
+        qdot = &matter.updQDot(state);
     }
     if (g >= Stage::Time) {
         if (mc->timeVarsIndex.isValid())
             tv = &matter.getTimeVars(state);
+
+        // These are unavailable until Instance stage is done.
+        qErr = &matter.updQErr(state);
+        uErr = &matter.updUErr(state);
     }
     if (g >= Stage::Position) {
         if (mc->qVarsIndex.isValid())
             pv = &matter.getPositionVars(state);
-
-        qErr = &matter.updQErr(state);
     }
     if (g >= Stage::Velocity) {
         if (mc->uVarsIndex.isValid())
             vv = &matter.getVelocityVars(state);
-
-        qdot = &matter.updQDot(state);
-        uErr = &matter.updUErr(state);
     }
     if (g >= Stage::Dynamics) {
         if (mc->dynamicsVarsIndex.isValid())
