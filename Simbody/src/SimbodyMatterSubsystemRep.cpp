@@ -1428,7 +1428,7 @@ checkValidityOfTreeVelocityCache(const State& state,
 
     // We don't need to check explicitly whether Instance stage has been
     // realized because we're going to check that position kinematics has been
-    // realized and that can't happen unless Instance stages was realized first.
+    // realized and that can't happen unless Instance stage was realized first.
 
     StageVersion posKinVersion;
     const bool positionKinematicsRealized =
