@@ -79,11 +79,11 @@ State& State::operator=(const State& src) {
     return *this;
 }
 
+// move assignment
 State& State::operator=(State&& source) {
     std::swap(impl, source.impl); // just swap the pointers
     return *this;
 }
-
 
 // See StateImpl.h for inline method implementations.
 
