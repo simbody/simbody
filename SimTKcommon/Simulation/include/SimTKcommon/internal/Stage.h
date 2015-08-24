@@ -40,7 +40,7 @@ get incremented whenever a state value changes. Whenever time or any state
 variable is modified, we increment the stage version for any stage that gets
 invalidated. We also increment a separate version number for the state variable
 that changes, so that cache entries can have finer-grained dependencies than
-just on whole stages. -1 means "unintialized". 0 is never used as 
+just on whole stages. -1 means "uninitialized". 0 is never used as 
 a %StageVersion, but is allowed as a cache value which is guaranteed never to 
 look valid. **/
 typedef long long StageVersion;
