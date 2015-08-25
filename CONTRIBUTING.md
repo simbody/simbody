@@ -383,6 +383,7 @@ Jack Wang          |@jmwang       |Bug fixes; visualization improvements
 Tim Dorn           |@twdorn       |Bug fixes
 Apoorva Rajagopal  |@apoorvar     |Xcode build fixes
 Kevin Xu           |@kevunix      |Build fix
+Anonymous          |@tbeu         |Fix many typos and spelling errors
 Julien Nabet       |@serval2412   |Code style & safety improvements
 Elena Ceseracciu   |@elen4        |Improved dependency resolution
 Kevin He           |@kingchurch   |Bug fixes
