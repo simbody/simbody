@@ -221,7 +221,7 @@ void calcAcrossJointVelocityJacobianDot(
 // so we have to zero out the last one in that case.
 void calcQDot(const SBStateDigest& sbs, const Real* u, 
                              Real* qdot) const {
-    assert(sbs.getStage() >= Stage::Position);
+    // We have to trust that the tree position cache is valid here.
     assert(u && qdot);
 
     const SBModelVars& mv = sbs.getModelVars();

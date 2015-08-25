@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Peter Eastman                                                *
  *                                                                            *
@@ -28,6 +28,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <utility>
 #include <ostream>
 #include <set>
 #include <mutex>
@@ -55,6 +56,12 @@ State::~State() {
 State::State(const State& state) {
     impl = new StateImpl(*state.impl);
 }
+  
+// move constructor
+State::State(State&& source) {
+    impl = source.impl;
+    source.impl = nullptr;
+}
     
 // copy assignment
 State& State::operator=(const State& src) {
@@ -72,6 +79,11 @@ State& State::operator=(const State& src) {
     return *this;
 }
 
+// move assignment
+State& State::operator=(State&& source) {
+    std::swap(impl, source.impl); // just swap the pointers
+    return *this;
+}
 
 // See StateImpl.h for inline method implementations.
 
@@ -309,29 +321,24 @@ void PerSubsystemInfo::copyFrom(const PerSubsystemInfo& src, Stage maxStage) {
 //------------------------------------------------------------------------------
 //                           COPY CONSTRUCTOR
 //------------------------------------------------------------------------------
-StateImpl::StateImpl(const StateImpl& src)
-:   currentSystemStage(Stage::Empty)
-{
-    initializeStageVersions();
-    
+StateImpl::StateImpl(const StateImpl& src) {
     // Make sure that no copied cache entry could accidentally think
     // it was up to date. We'll change some of these below if appropriate.
     // (We're skipping the Empty stage 0.)
-    for (int i=1; i <= src.currentSystemStage; ++i)
-        systemStageVersions[i] = src.systemStageVersions[i]+1;
+    invalidateCopiedStageVersions(src);
 
     subsystems = src.subsystems;
     if (src.currentSystemStage >= Stage::Topology) {
         advanceSystemToStage(Stage::Topology);
         systemStageVersions[Stage::Topology] = 
             src.systemStageVersions[Stage::Topology];
-        t = src.t;
+        t = src.t; // not validating time version or Stage::Time
         if (src.currentSystemStage >= Stage::Model) {
             advanceSystemToStage(Stage::Model);
             systemStageVersions[Stage::Model] = 
                 src.systemStageVersions[Stage::Model];
             // careful -- don't allow reallocation
-            y = src.y;
+            y = src.y; // not validating state versions or later stages
             uWeights = src.uWeights;
             zWeights = src.zWeights;
         }
@@ -358,21 +365,22 @@ StateImpl& StateImpl::operator=(const StateImpl& src) {
     // Make sure that no copied cache entry could accidentally think
     // it was up to date. We'll change some of these below if appropriate.
     // (We're skipping the Empty stage 0.)
-    for (int i=1; i <= src.currentSystemStage; ++i)
-        systemStageVersions[i] = src.systemStageVersions[i]+1;
+    invalidateCopiedStageVersions(src);
+
+    t = NaN;
 
     subsystems = src.subsystems;
     if (src.currentSystemStage >= Stage::Topology) {
         advanceSystemToStage(Stage::Topology);
         systemStageVersions[Stage::Topology] = 
             src.systemStageVersions[Stage::Topology];
-        t = src.t;
+        t = src.t; // not validating time version or Stage::Time
         if (src.currentSystemStage >= Stage::Model) {
             advanceSystemToStage(Stage::Model);
             systemStageVersions[Stage::Model] = 
                 src.systemStageVersions[Stage::Model];
             // careful -- don't allow reallocation
-            y = src.y;
+            y = src.y; // not validating state versions or later stages
             uWeights = src.uWeights;
             zWeights = src.zWeights;
         }
@@ -439,6 +447,8 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
         q.clear(); u.clear(); z.clear(); // y views
         // Finally nuke the actual y data.
         y.unlockShape(); y.clear(); 
+        noteYChange(); // bump the q,u,z version numbers
+
         uWeights.unlockShape(); uWeights.clear();
         zWeights.unlockShape(); zWeights.clear();
 
@@ -450,12 +460,13 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
         // We're invalidating the topology stage. Time is considered
         // a topology stage variable so needs to be invalidated here.
         t = NaN;
+        noteTimeChange(); // bump the version number
     }
 
     // Raise the version number for every stage that we're invalidating and
     // set the current System Stage one lower than the one being invalidated.
     for (int i=currentSystemStage; i >= stg; --i)
-        systemStageVersions[i]++;
+        ++systemStageVersions[i];
     currentSystemStage = stg.prev();
 }
 
@@ -474,7 +485,9 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
     if (stg == Stage::Topology) {
         // As the final "Topology" step, initialize time to 0 (it's NaN 
         // before this).
-        const_cast<StateImpl*>(this)->t = 0;
+        StateImpl* wThis = const_cast<StateImpl*>(this);
+        wThis->t = 0;
+        ++wThis->tVersion;
     }
     else if (stg == Stage::Model) {
         // We know the shared state pool sizes now. Allocate the
@@ -513,6 +526,9 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         wThis->q.viewAssign(wThis->y(0,nq));
         wThis->u.viewAssign(wThis->y(nq,nu));
         wThis->z.viewAssign(wThis->y(nq+nu,nz));
+
+        // Update modification versions since these are changing.
+        ++wThis->qVersion; ++wThis->uVersion; ++wThis->zVersion;
 
         qdot.viewAssign(ydot(0,     nq));
         udot.viewAssign(ydot(nq,    nu));
@@ -705,8 +721,8 @@ void StateImpl::autoUpdateDiscreteVariables() {
             const CacheEntryIndex cx = dinfo.getAutoUpdateEntry();
             if (!cx.isValid()) continue; // not an auto-update variable
             CacheEntryInfo& cinfo = ss.cacheInfo[cx];
-            if (cinfo.isCurrent(getSubsystemStage(subx), 
-                                getSubsystemStageVersions(subx)))
+            if (cinfo.isCurrentNoExtras(getSubsystemStage(subx), 
+                                        getSubsystemStageVersions(subx)))
                 cinfo.swapValue(getTime(), dinfo);
             cinfo.invalidate();
         }

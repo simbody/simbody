@@ -562,6 +562,17 @@ private:
         if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
     }while(false)
 
+/// Test that the supplied statement throws an std::exception of some kind, and
+/// show what message got thrown.
+#define SimTK_TEST_MUST_THROW_SHOW(stmt)        \
+    do {int threw=0; try {stmt;}                \
+        catch(const std::exception& e) {threw=1; \
+            std::cout << "(OK) Threw: " << e.what() << std::endl;}  \
+        catch(...){threw=2;}                    \
+        if (threw==0) SimTK_TEST_FAILED1("Expected statement\n----\n%s\n----\n  to throw an exception but it did not.",#stmt); \
+        if (threw==2) SimTK_TEST_FAILED1("Expected statement\n%s\n  to throw an std::exception but it threw something else.",#stmt); \
+    }while(false)
+
 /// Test that the supplied statement throws a particular exception.
 #define SimTK_TEST_MUST_THROW_EXC(stmt,exc)     \
     do {int threw=0; try {stmt;}                \
