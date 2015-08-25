@@ -91,7 +91,7 @@ public:
 //------------------------------------------------------------------------------
 /** @name                       Construction
 Methods in this section refer both to constructors, and to methods that can
-be used to set or change contruction (Topology-stage) parameters; these
+be used to set or change construction (Topology-stage) parameters; these
 specify the values assigned by default to the corresponding state variables. 
 Note:
   - Changing one of these default parameters invalidates the containing 
@@ -206,7 +206,7 @@ Real getPlaneDisplayHalfWidth() const;
 These refer to Position-stage discrete state variables that determine the sphere
 and plane parameters to be used to calculate constraint forces from a given
 State object. If these are not set explicitly, the parameters are set to those
-provided in the constructor or via the correponding setDefault...() methods. 
+provided in the constructor or via the corresponding setDefault...() methods. 
 Note:
   - Changing one of these parameters invalidates the given State's 
     Stage::Position, meaning that the State's stage will be no higher than

@@ -100,7 +100,7 @@ namespace Ipopt
     /** default constructor */
     DebugJournalistWrapper();
 
-    /** copy contructor */
+    /** copy constructor */
     DebugJournalistWrapper(const DebugJournalistWrapper&);
 
     /** Overloaded Equals Operator */

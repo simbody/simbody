@@ -175,15 +175,15 @@ public:
            numLinearInequalityConstraints = n;
        }
    }
-   /// Set the upper and lower bounds on the paramters.
+   /// Set the upper and lower bounds on the parameters.
    void setParameterLimits( const Vector& lower, const Vector& upper  ) {
        if(   upper.size() != numParameters  && upper.size() != 0) {
-           const char* where = " OptimizerSystem  setParamtersLimits";
+           const char* where = " OptimizerSystem  setParametersLimits";
            const char* szName = "upper limits length";
            SimTK_THROW5(Exception::IncorrectArrayLength, szName, upper.size(), "numParameters", numParameters, where);
        }
        if(   lower.size() != numParameters  && lower.size() != 0 ) {
-           const char* where = " OptimizerSystem  setParamtersLimits";
+           const char* where = " OptimizerSystem  setParametersLimits";
            const char* szName = "lower limits length";
            SimTK_THROW5(Exception::IncorrectArrayLength, szName, lower.size(), "numParameters", numParameters, where);
        } 
@@ -342,7 +342,7 @@ private:
  *   is the number of processors/threads on the machine).
  *
  * If you want to generate identical results with repeated optimizations for,
- * you can set the <b>seed</b> option. In addtion, you *must* set the
+ * you can set the <b>seed</b> option. In addition, you *must* set the
  * <b>maxTimeFractionForEigendecomposition</b> option to be greater or
  * equal to 1.0.
  *

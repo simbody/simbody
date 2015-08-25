@@ -32,7 +32,7 @@
  *   - Main step function
  *   - LMM-related functions
  *   - Nonlinear and error test failure handlers
- *   - Succesful step completion functions
+ *   - Successful step completion functions
  *   - BDF stability limit detection functions
  *   - Projection functions
  *   - Internal error weight evaluation functions
@@ -135,7 +135,7 @@ static void cpSetTqBDF(CPodeMem cp_mem, realtype hsum, realtype alpha0,
 static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
                          int *nefPtr, realtype *dsmPtr);
 
-/* Succesful step completion functions */
+/* Successful step completion functions */
 static void cpCompleteStep(CPodeMem cp_mem);
 static void cpPrepareNextStep(CPodeMem cp_mem, realtype dsm);
 static void cpSetEta(CPodeMem cp_mem);
@@ -805,7 +805,7 @@ int CPodeQuadInit(void *cpode_mem, CPQuadFn qfun, void *q_data, N_Vector q0)
   cp_mem->cp_quadr = TRUE;
   cp_mem->cp_quadMallocDone = TRUE;
 
-  /* Quadrature initialization was successfull */
+  /* Quadrature initialization was successful */
   return(CP_SUCCESS);
 }
 
@@ -860,7 +860,7 @@ int CPodeQuadReInit(void *cpode_mem, CPQuadFn qfun, void *q_data, N_Vector q0)
   /* Quadrature integration turned ON */
   cp_mem->cp_quadr = TRUE;
 
-  /* Quadrature re-initialization was successfull */
+  /* Quadrature re-initialization was successful */
   return(CP_SUCCESS);
 }
 
@@ -3444,7 +3444,7 @@ static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
 
 /* 
  * -----------------------------------------------------------------
- * Succesful step completion functions
+ * Successful step completion functions
  * -----------------------------------------------------------------
  */
 
@@ -3539,7 +3539,7 @@ static void cpPrepareNextStep(CPodeMem cp_mem, realtype dsm)
 static void cpSetEta(CPodeMem cp_mem)
 {
 
-  /* If eta below the threshhold THRESH, reject a change of step size */
+  /* If eta below the threshold THRESH, reject a change of step size */
   if (eta < THRESH) {
     eta = ONE;
     hprime = h;
@@ -3607,7 +3607,7 @@ static realtype cpComputeEtaqp1(CPodeMem cp_mem)
  * corresponding value of q.  If there is a tie, the preference
  * order is to (1) keep the same order, then (2) decrease the order,
  * and finally (3) increase the order.  If the maximum eta value
- * is below the threshhold THRESH, the order is kept unchanged and
+ * is below the threshold THRESH, the order is kept unchanged and
  * eta is set to 1.
  */
 
@@ -4148,7 +4148,7 @@ int cpEwtSet(N_Vector ycur, N_Vector weight, void *edata)
 /*
  * cpEwtSetSS
  *
- * This routine sets ewt as decribed above in the case tol_type = CP_SS.
+ * This routine sets ewt as described above in the case tol_type = CP_SS.
  * It tests for non-positive components before inverting. cpEwtSetSS
  * returns 0 if ewt is successfully set to a positive vector
  * and -1 otherwise. In the latter case, ewt is considered undefined.
@@ -4167,7 +4167,7 @@ static int cpEwtSetSS(CPodeMem cp_mem, N_Vector ycur, N_Vector weight)
 /*
  * cpEwtSetSV
  *
- * This routine sets ewt as decribed above in the case tol_type = CP_SV.
+ * This routine sets ewt as described above in the case tol_type = CP_SV.
  * It tests for non-positive components before inverting. cpEwtSetSV
  * returns 0 if ewt is successfully set to a positive vector
  * and -1 otherwise. In the latter case, ewt is considered undefined.

@@ -70,7 +70,7 @@ public: \
 * themselves. This encapsulation allows us to perform
 * the necessary calculations more efficiently under the covers.
 *
-* Computing quantities such as the jacobian \a explicity is often very
+* Computing quantities such as the jacobian \a explicitly is often very
 * inefficient, and is usually unnecessary. The jacobian usually appears in a
 * matrix-vector product, which is more efficient to compute. This class and
 * the classes within use operator overloading to allow a user to write code

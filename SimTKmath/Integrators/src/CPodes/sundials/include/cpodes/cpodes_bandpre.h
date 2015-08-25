@@ -28,7 +28,7 @@
  * CSPILS iterative linear solvers. Although this matrix is intended
  * to approximate the Jacobian df/dy (respectively dF/dy + gamma*dF/dy,
  * it may be a very crude approximation. The true Jacobian need not 
- * be banded, or its true bandwith may be larger than ml + mu + 1, 
+ * be banded, or its true bandwidth may be larger than ml + mu + 1, 
  * as long as the banded approximation generated here is sufficiently 
  * accurate to speed convergence as a preconditioner.
  *

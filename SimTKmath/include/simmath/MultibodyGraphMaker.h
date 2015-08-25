@@ -204,7 +204,7 @@ public:
     @param[in]      name     
         A unique string identifying this body. There are no other restrictions
         on the contents of \a name. Don't delete the Ground body.
-    @returns \c true if the body is succesfully deleted, \c false if it
+    @returns \c true if the body is successfully deleted, \c false if it
         didn't exist. **/
     bool deleteBody(const std::string&  name);
 
@@ -253,7 +253,7 @@ public:
     @param[in]      name
         A string uniquely identifying this joint. There are no other 
         restrictions on the contents of \a name. 
-    @returns \c true if the joint is succesfully deleted, \c false if it
+    @returns \c true if the joint is successfully deleted, \c false if it
         didn't exist. **/
     bool deleteJoint(const std::string& name);
 

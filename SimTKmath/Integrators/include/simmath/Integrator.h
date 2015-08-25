@@ -46,7 +46,7 @@ and various other properties.
 
 An Integrator is most often used in combination with a TimeStepper.  The
 TimeStepper automates much of the work of using an Integrator: invoking it 
-repeatedly to advance time, calling event handlers, reintializing the 
+repeatedly to advance time, calling event handlers, reinitializing the 
 Integrator as necessary, and so on.  A typical use of an Integrator generally 
 resembles the following:
 
@@ -93,7 +93,7 @@ in which c'=0 regardless of whether c=0.
 Structure-Preserving Algorithms for Ordinary Differential Equations", 2nd ed., 
 section IV.4, pg 109ff, Springer, 2006.
 
-The discrete variables d are updated by the time stepper upon occurence of 
+The discrete variables d are updated by the time stepper upon occurrence of 
 specific events, which terminate a continuous interval. The Integrator detects
 these using a set of scalar-valued event trigger functions shown as equation 
 (3) above. An event trigger function for a particular event must be designed so

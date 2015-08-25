@@ -360,7 +360,7 @@ namespace Ipopt
     SmartPtr<const Vector> v = matrix.GetDiag();
     FillValuesFromVector(n_entries, *v, values);
     //    const DenseVector* vec = dynamic_cast<const DenseVector*>(GetRawPtr(v));
-    //    ASSERT_EXCEPTION(vec, UNKNOWN_VECTOR_TYPE, "Unkown Vector type found in FillValues for DiagMatrix");
+    //    ASSERT_EXCEPTION(vec, UNKNOWN_VECTOR_TYPE, "Unknown Vector type found in FillValues for DiagMatrix");
     //    const Number* vals = vec->Values();
     //    IpBlasDcopy(n_entries, vals, 1, values, 1);
   }

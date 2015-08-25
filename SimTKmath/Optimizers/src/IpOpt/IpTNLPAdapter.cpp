@@ -1614,7 +1614,7 @@ namespace Ipopt
 
     // Obtain the problem size
     Index nx; // number of variables
-    Index ng; // number of constriants
+    Index ng; // number of constraints
     Index nz_jac_g; // number of nonzeros in constraint Jacobian
     Index nz_hess_lag; // number of nonzeros in Lagrangian Hessian
     TNLP::IndexStyleEnum index_style;

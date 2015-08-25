@@ -590,7 +590,7 @@ cmaes_SetMean(cmaes_t *t, const double *xmean)
   int i, N=t->sp.N;
 
   if (t->state >= 1 && t->state < 3)
-    FATAL("cmaes_SetMean: mean cannot be set inbetween the calls of ",
+    FATAL("cmaes_SetMean: mean cannot be set between the calls of ",
           "SamplePopulation and UpdateDistribution",0,0);
 
   if (xmean != NULL && xmean != t->rgxmean)

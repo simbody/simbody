@@ -17,7 +17,7 @@ namespace Ipopt
 
   /** Class for calculator for the least-square equality constraint
    *  multipliers.  The Calculate method of this class computes the
-   *  least-square estimate for the y_c and y_d multiplers, based on
+   *  least-square estimate for the y_c and y_d multipliers, based on
    *  the current values of the gradient of the Lagrangian.
    */
   class LeastSquareMultipliers: public EqMultiplierCalculator

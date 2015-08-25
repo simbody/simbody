@@ -38,7 +38,7 @@ class ContactGeometry;
  * of bodies that can potentially interact with each other.  At each time step, it identifies
  * all the contacts between them.  It does not directly affect the behavior of the system
  * in any way.  Instead, it simply provides a service that can be used by other classes
- * to implement forces, events, contraints, etc. that are based on contacts between bodies.
+ * to implement forces, events, constraints, etc. that are based on contacts between bodies.
  *
  * To use this class, first create a "contact set" by calling createContactSet().  A contact
  * set is a group of bodies which can interact with each other.  If you create multiple contact

@@ -28,7 +28,7 @@ namespace Ipopt
     /** Call the solver interface again after the matrix values have
      *  been restored */
     SYMSOLVER_CALL_AGAIN,
-    /** Unrecoverable error in linear solver occured.  The
+    /** Unrecoverable error in linear solver occurred.  The
      *  optimization will be aborted. */
     SYMSOLVER_FATAL_ERROR
   };

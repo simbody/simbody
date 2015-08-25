@@ -483,7 +483,7 @@ void testNaturalCubicSpline() {
         const int size =6;             //Number of knot points
         const int sizeDK = 100;        //Number of points per knot in 
                                        //the densely sampled vector
-        int sizeD=sizeDK*(size-1);     //Number of points in a densly sampled 
+        int sizeD=sizeDK*(size-1);     //Number of points in a densely sampled 
                                        //interpolation
 
         //Domain vector variables
