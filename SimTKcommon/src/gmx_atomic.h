@@ -295,7 +295,7 @@ gmx_atomic_fetch_add(gmx_atomic_t *     a,
  *           it returns the updated value in memory so you can repeat your
  *           operations on it. 
  *
- *   \note   The exchange occured if the return value is identical to \a old.
+ *   \note   The exchange occurred if the return value is identical to \a old.
  */
 static inline int
 gmx_atomic_cmpxchg(gmx_atomic_t *    a, 
@@ -1274,7 +1274,7 @@ gmx_atomic_cmpxchg(gmx_atomic_t *    a,
     }
     else
     {
-        /* replacement suceeded */
+        /* replacement succeeded */
         t = oldval;
     }
     return t;        

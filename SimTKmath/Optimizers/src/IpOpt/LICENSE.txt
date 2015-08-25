@@ -3,7 +3,7 @@ IPOPT LICENSE AGREEMENT
 
 IPOPT is distributed from https://projects.coin-or.org/Ipopt. The version we
 downloaded and modified to produce the source code in this directory was 
-covered by the Common Public License, but that has been superceded by the 
+covered by the Common Public License, but that has been superseded by the 
 Eclipse Public License version 1.0 available here: 
 http://www.eclipse.org/legal/epl-v10.html and included below;
 we have chosen to use that one.

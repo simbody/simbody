@@ -74,7 +74,7 @@ public:
 //------------------------------------------------------------------------------
 /** @name                       Construction
 Methods in this section refer both to constructors, and to methods that can
-be used to set or change contruction (Topology-stage) parameters; these
+be used to set or change construction (Topology-stage) parameters; these
 specify the values assigned by default to the corresponding state variables. 
 Note:
   - Changing one of these default parameters invalidates the containing 
@@ -162,7 +162,7 @@ Gravity(GeneralForceSubsystem&          forces,
 /** Convenience constructor to create a %Gravity force element by specifying 
 only gravity's magnitude, with the direction chosen to oppose the containing 
 System's "up" direction. Note that the direction is extracted from the System 
-and recorded when this %Gravity element is contructed; it will not be affected
+and recorded when this %Gravity element is constructed; it will not be affected
 by subsequent changes to the System's up direction.
 
 If you want to exclude by default some bodies from the effects of this force 
@@ -291,7 +291,7 @@ These refer to Dynamics-stage discrete state variables that determine the actual
 values to be used to calculate gravitational forces and energy from a given
 State object, and which bodies are to be excluded from that calculation. If 
 these are not set explicitly, the values are set to those provided in the 
-constructor or via the correponding setDefault...() methods. Note:
+constructor or via the corresponding setDefault...() methods. Note:
   - Changing one of these parameters invalidates the given State's 
     Stage::Dynamics, meaning that the State's stage will be no higher than
     Stage::Velocity after the parameter change. That ensures that forces

@@ -225,7 +225,7 @@ namespace Ipopt
       }
     }
     else if (retval==SYMSOLVER_FATAL_ERROR) {
-      THROW_EXCEPTION(FATAL_ERROR_IN_LINEAR_SOLVER,"A fatal error occured in the linear solver.");
+      THROW_EXCEPTION(FATAL_ERROR_IN_LINEAR_SOLVER,"A fatal error occurred in the linear solver.");
     }
     else {
       Jnlst().Printf(J_DETAILED, J_LINEAR_ALGEBRA, "Factorization failed with retval = %d\n", retval);

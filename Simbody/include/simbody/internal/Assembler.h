@@ -65,7 +65,7 @@ assembly error conditions are just the errors in the position (holonomic)
 constraints that are present in the MultibodySystem and currently enabled. 
 (Quaternion normalization constraints will also be satisfied, but do not 
 generate assembly errors.) There are no default assembly goals. This is very 
-similiar in behavior to the System's project() method except that project() 
+similar in behavior to the System's project() method except that project() 
 considers it an error if the constraints aren't already close to being 
 satisfied initially, while Assembler will attempt to satisfy them regardless, 
 and may take a series of increasingly desperate measures to do so. 

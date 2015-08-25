@@ -113,7 +113,7 @@ cmaes_resume_distribution(cmaes_t *evo_ptr, char *filename):
         subsequent values for xmean, evolution paths ps and pc, sigma
         and covariance matrix.  Note that cmaes_init() needs to be 
         called before calling cmaes_resume_distribution()
-        explicitely.  In the former all the remaining
+        explicitly.  In the former all the remaining
         (strategy-)parameters are set. It can be useful to edit the
         written parameters, in particular to increase sigma, before
         resume. 

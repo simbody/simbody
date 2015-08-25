@@ -87,7 +87,7 @@
     #include <GL/glut.h>
 #endif
 
-// Returns true if we were able to find sufficent OpenGL functionality to 
+// Returns true if we were able to find sufficient OpenGL functionality to 
 // operate. We'll still limp along if we can't get enough to save images.
 static bool initGlextFuncPointersIfNeeded(bool& canSaveImages);
 static void redrawDisplay();
@@ -2753,7 +2753,7 @@ int main(int argc, char** argv) {
     glutCreateWindow(title.c_str());
 
 
-    // Set up callback funtions.
+    // Set up callback functions.
     glutDisplayFunc(redrawDisplay);
     glutReshapeFunc(changeSize);
     glutMouseFunc(mouseButtonPressedOrReleased);

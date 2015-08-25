@@ -194,7 +194,7 @@ methods:
      (3)  e  = e(d;t,y)         event witnesses (watch for zero crossings)
 </pre>
 with initial conditions t0,y0,d0 such that c=0. The discrete variables d are 
-updated upon occurence of specific events. When those events are functions of 
+updated upon occurrence of specific events. When those events are functions of 
 time or state, they are detected using the set of scalar-valued event witness 
 functions e (3).
 

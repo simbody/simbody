@@ -256,7 +256,7 @@ namespace Ipopt
       new PDFullSpaceSolver(*AugSolver, *pertHandler);
 
     // Create the object for initializing the iterates Initialization
-    // object.  We include both the warm start and the defaut
+    // object.  We include both the warm start and the default
     // initializer, so that the warm start options can be activated
     // without having to rebuild the algorithm
     SmartPtr<EqMultiplierCalculator> EqMultCalculator =

@@ -94,7 +94,7 @@ Mobilizer-specific
   calcMobilizerAccelerationFromUDot
 
 
-  Intialization of state variables
+  Initialization of state variables
   -------------------------------------
   setMobilizerDefaultModelValues
   setMobilizerDefaultInstanceValues

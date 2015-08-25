@@ -500,7 +500,7 @@ void testStopFitness() {
 
 // This is a soft test. Just makes sure we get the right answer and we don't
 // get any exceptions. We don't actually make sure that multithreading is
-// occuring.
+// occurring.
 void testMultithreading() {
 
     Cigtab sys(22);

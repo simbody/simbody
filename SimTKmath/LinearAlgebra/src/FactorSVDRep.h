@@ -40,34 +40,34 @@ class FactorSVDRepBase {
     virtual void getSingularValues( Vector_<float>& values ){
         checkIfFactored( "getSingularValues" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","getSingularValues",
-        "getSingularValues( float) called with types that are inconsistant with the original matrix  \n");
+        "getSingularValues( float) called with types that are inconsistent with the original matrix  \n");
     }
     virtual void getSingularValues( Vector_<double>& values ){
         checkIfFactored( "getSingularValues" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","getSingularValues",
-       "getSingularValues( double) called with types that are inconsistant with the original matrix  \n");
+       "getSingularValues( double) called with types that are inconsistent with the original matrix  \n");
     }
     virtual void getSingularValuesAndVectors( Vector_<float>& values, Matrix_<float>& leftVectors, Matrix_<float>& rightVectors ){
         checkIfFactored( "getSingularValuesAndVectors" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","getSingularValuesAndVectors",
-        "getSingularValuesAndVectors( float, float, float) called with types that are inconsistant with the original matrix  \n");
+        "getSingularValuesAndVectors( float, float, float) called with types that are inconsistent with the original matrix  \n");
     }
     virtual void getSingularValuesAndVectors( Vector_<double>& values, Matrix_<double>& leftVectors, Matrix_<double>& rightVectors ){
         checkIfFactored( "getSingularValuesAndVectors" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","getSingularValuesAndVectors",
-        "getSingularValuesAndVectors( double, double, double) called with types that are inconsistant with the original matrix  \n");
+        "getSingularValuesAndVectors( double, double, double) called with types that are inconsistent with the original matrix  \n");
     }
 
     virtual void getSingularValuesAndVectors( Vector_<float>& values, Matrix_<std::complex<float> >& leftVectors, Matrix_<std::complex<float> >& rightVectors ){
         checkIfFactored( "getSingularValuesAndVectors" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","getSingularValuesAndVectors",
-        "getSingularValuesAndVectors( float, std::complex<float> , std::complex<float> ) called with types that are inconsistant with the original matrix  \n");
+        "getSingularValuesAndVectors( float, std::complex<float> , std::complex<float> ) called with types that are inconsistent with the original matrix  \n");
     }
 
     virtual void getSingularValuesAndVectors( Vector_<double>& values, Matrix_<std::complex<double> >& leftVectors, Matrix_<std::complex<double> >& rightVectors ){
         checkIfFactored( "getSingularValuesAndVectors" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","getSingularValuesAndVectors",
-        "getSingularValuesAndVectors( double, std::complex<double> , std::complex<double> ) called with types that are inconsistant with the original matrix  \n");
+        "getSingularValuesAndVectors( double, std::complex<double> , std::complex<double> ) called with types that are inconsistent with the original matrix  \n");
     }
     virtual void solve( const Vector_<float>& b, Vector_<float>& x ) {
         checkIfFactored("solve");
@@ -112,22 +112,22 @@ class FactorSVDRepBase {
     virtual void inverse(  Matrix_<double>& inverse ){
         checkIfFactored( "inverse" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","inverse",
-        "inverse(  <double> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  <double> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<float>& inverse ){
         checkIfFactored( "inverse" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","inverse",
-        "inverse(  <float> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  <float> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<std::complex<float> >& inverse ){
         checkIfFactored( "inverse" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","inverse",
-        "inverse(  std::complex<float> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  std::complex<float> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<std::complex<double> >& inverse ){
         checkIfFactored( "inverse" );
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","inverse",
-        "inverse(  std::complex<double> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  std::complex<double> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual int getRank() const {
        checkIfFactored( "getRank" );

@@ -86,7 +86,7 @@ public:
 /*Calculates each enabled force's contribution in the MultibodySystem.
 CalcForcesParallelTask allows force calculations to occur in parallel with
 non-parallel forces being calculated on Thread NonParallelForcesIndex and all
-other parallel forces being calculated on seperate threads.*/
+other parallel forces being calculated on separate threads.*/
 
 //Implementation of CalcForcesTask for parallel forces
 class CalcForcesParallelTask : public CalcForcesTask {

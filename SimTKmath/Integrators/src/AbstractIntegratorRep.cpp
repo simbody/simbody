@@ -668,7 +668,7 @@ bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
 
     // There is an event in (tLow,tHigh], with the eariest occurrence
     // estimated at tMid=earliestTimeEst, tLow<tMid<tHigh. 
-    // Decide whether the earliest occurence is actually in the
+    // Decide whether the earliest occurrence is actually in the
     // (tLow,tMid] interval or (tMid,tHigh].
 
     // Remember which side of the interval the root estimate was in over

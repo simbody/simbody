@@ -46,14 +46,14 @@ namespace Ipopt
     bool ConsiderNewSystem(Number& delta_x, Number& delta_s,
                            Number& delta_c, Number& delta_d);
 
-    /** This method returns pertubation factors for the case when the
+    /** This method returns perturbation factors for the case when the
      *  most recent factorization resulted in a singular matrix. If
      *  the return value is false, no suitable perturbation could be
      *  found. */
     bool PerturbForSingularity(Number& delta_x, Number& delta_s,
                                Number& delta_c, Number& delta_d);
 
-    /** This method returns pertubation factors for the case when the
+    /** This method returns perturbation factors for the case when the
      *  most recent factorization resulted in a matrix with an
      *  incorrect number of negative eigenvalues. If the return value
      *  is false, no suitable perturbation could be found. */

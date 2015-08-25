@@ -40,7 +40,7 @@ an attempt is made to write on the contained object.
 
 This is like `std::shared_ptr` when an object is being read, but like 
 SimTK::ClonePtr when the object is written. Like SimTK::ClonePtr, 
-%CloneOnWritePtr supports copy and assigment operations, by insisting that the 
+%CloneOnWritePtr supports copy and assignment operations, by insisting that the 
 contained object have a `clone()` method that returns a pointer to a 
 heap-allocated deep copy of the *concrete* object. The API is modeled as closely
 as possible to the C++11 `std::shared_ptr` and `std::unique_ptr`. However,

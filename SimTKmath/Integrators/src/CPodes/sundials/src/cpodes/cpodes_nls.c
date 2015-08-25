@@ -417,7 +417,7 @@ static int cpNlsNewtonExpl(CPodeMem cp_mem, int nflag)
  *   CP_ODEFUNC_FAIL - the ODE function failed unrecoverably.
  *
  *   ODEFUNC_RECVR - the ODE function failed recoverably.
- *   CONV_FAIL - a recoverable error occured.
+ *   CONV_FAIL - a recoverable error occurred.
  */
 
 static int cpNewtonIterationExpl(CPodeMem cp_mem)
@@ -743,7 +743,7 @@ static int cpNlsNewtonImpl(CPodeMem cp_mem, int nflag)
  *   CP_ODEFUNC_FAIL - the ODE function failed unrecoverably.
  *
  *   ODEFUNC_RECVR - the ODE function failed recoverably.
- *   CONV_FAIL - a recoverable error occured.
+ *   CONV_FAIL - a recoverable error occurred.
  */
 
 static int cpNewtonIterationImpl(CPodeMem cp_mem)

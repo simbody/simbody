@@ -588,7 +588,7 @@ public:
     TiXmlNode* IterateChildren( const String& _value, const TiXmlNode* previous ) {    return IterateChildren (_value.c_str (), previous);    }
 
     /** Add a new node related to this. Adds a child past the LastChild.
-        Returns a pointer to the new object or NULL if an error occured.
+        Returns a pointer to the new object or NULL if an error occurred.
     */
     TiXmlNode* InsertEndChild( const TiXmlNode& addThis );
 
@@ -614,17 +614,17 @@ public:
     TiXmlNode* LinkAfterChild( TiXmlNode* afterThis, TiXmlNode* addThis );
 
     /** Add a new node related to this. Adds a child before the specified child.
-        Returns a pointer to the new object or NULL if an error occured.
+        Returns a pointer to the new object or NULL if an error occurred.
     */
     TiXmlNode* InsertBeforeChild( TiXmlNode* beforeThis, const TiXmlNode& addThis );
 
     /** Add a new node related to this. Adds a child after the specified child.
-        Returns a pointer to the new object or NULL if an error occured.
+        Returns a pointer to the new object or NULL if an error occurred.
     */
     TiXmlNode* InsertAfterChild(  TiXmlNode* afterThis, const TiXmlNode& addThis );
 
     /** Replace a child of this node.
-        Returns a pointer to the new object or NULL if an error occured.
+        Returns a pointer to the new object or NULL if an error occurred.
     */
     TiXmlNode* ReplaceChild( TiXmlNode* replaceThis, const TiXmlNode& withThis );
 
@@ -1555,7 +1555,7 @@ public:
     case.)
     @sa SetTabSize, Row, Column **/
     int ErrorRow() const { return errorLocation.row+1; }
-    /** The column where the error occured. @sa ErrorRow() **/
+    /** The column where the error occurred. @sa ErrorRow() **/
     int ErrorCol() const { return errorLocation.col+1; } 
 
     /** SetTabSize() allows the error reporting functions (ErrorRow() and 

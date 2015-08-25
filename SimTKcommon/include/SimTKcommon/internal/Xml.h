@@ -56,7 +56,7 @@ http://en.wikipedia.org/wiki/XML. However, everything you need to know in
 order to read and write XML documents with the SimTK::Xml class is described 
 below.
 
-Much of the detailed documention is in the class Xml::Element; be sure to look
+Much of the detailed documentation is in the class Xml::Element; be sure to look
 there as well as at this overview.
 
 <h2>Our in-memory model of an XML document</h2>
@@ -599,7 +599,7 @@ Attribute& setValue(const String& value);
 state but does not recover any heap space; use clearOrphan() if you know
 this attribute was never put into a document. **/
 void clear();
-/** This method explictly frees the heap space for an orphan attribute that
+/** This method explicitly frees the heap space for an orphan attribute that
 was created but never inserted into a document. It is an error to call this
 if the attribute is in a document. **/
 void clearOrphan();
@@ -782,7 +782,7 @@ leak unless you explicitly destruct them first with clearOrphan(). **/
 state but does not recover any heap space; use clearOrphan() if you know
 this node was never put into a document. **/
 void clear();
-/** This method explictly frees the heap space for an orphan node that
+/** This method explicitly frees the heap space for an orphan node that
 was created but never inserted into a document. It is an error to call this
 if the node is in a document. **/
 void clearOrphan();

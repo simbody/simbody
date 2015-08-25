@@ -136,17 +136,17 @@ class FactorLURepBase {
        " getD called with D of type complex<double>  which does not match type of original linear system \n");   
    }
     virtual void inverse(  Matrix_<double>& inverse ) const{
-        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <double> ) called with type that is inconsistant with the original matrix  \n");
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <double> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<float>& inverse ) const{
-        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <float> ) called with type that is inconsistant with the original matrix  \n");
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <float> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<std::complex<float> >& inverse ) const{
-        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  std::complex<float> ) called with type that is inconsistant with the original matrix  \n");
+        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  std::complex<float> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<std::complex<double> >& inverse ) const{
         SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",
-        "inverse(  std::complex<double> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  std::complex<double> ) called with type that is inconsistent with the original matrix  \n");
     }
 
    virtual bool isSingular() const{ return false;};

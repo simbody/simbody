@@ -519,7 +519,7 @@ public:
     static ConditionMask calcMask(Condition);
 
     /// Given a particular Diagonal condition provided as a commitment, calculate
-    /// the mask of all Diagonal conditions taht would satisfy that commitment.
+    /// the mask of all Diagonal conditions that would satisfy that commitment.
     /// For example, if the commitment is "RealDiagonal" then "ZeroDiagonal"
     /// and "OneDiagonal" would also be acceptable. If the Diagonal condition
     /// is specified as "UnknownDiagonal" then we'll return an Uncommitted mask.

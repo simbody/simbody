@@ -741,7 +741,7 @@ public:
     /// Return true if no element contains an Infinity or a NaN.
     bool isFinite() const {return getAsVec().isFinite();}
 
-    /// For approximate comparisions, the default tolerance to use for a matrix is
+    /// For approximate comparisons, the default tolerance to use for a matrix is
     /// its shortest dimension times its elements' default tolerance.
     static double getDefaultTolerance() {return M*CNT<ELT>::getDefaultTolerance();}
 
