@@ -27,7 +27,7 @@ namespace Ipopt
    *  Any derived class wishing to receive notifications
    *  from a Subject should inherit off of 
    *  Observer and overload the protected method,
-   *  RecieveNotification_(...).
+   *  ReceiveNotification_(...).
    */
   class Observer
   {
@@ -73,7 +73,7 @@ namespace Ipopt
      * receive the requested notification from 
      * attached Subjects
      */
-    virtual void RecieveNotification(NotifyType notify_type, const Subject* subject)=0;
+    virtual void ReceiveNotification(NotifyType notify_type, const Subject* subject)=0;
 
   private:
     /**@name Default Compiler Generated Methods
@@ -98,7 +98,7 @@ namespace Ipopt
     /** Private Method for Recieving Notification
      *  should only be called by the friend class
      *  Subject. This method will, in turn, call
-     *  the overloaded RecieveNotification method
+     *  the overloaded ReceiveNotification method
      *  for the derived class to process.
      */
     void ProcessNotification(NotifyType notify_type, const Subject* subject);
@@ -271,7 +271,7 @@ namespace Ipopt
       DBG_ASSERT(attached_subject != subjects_.end());
 #endif
 
-      this->RecieveNotification(notify_type, subject);
+      this->ReceiveNotification(notify_type, subject);
 
       if (notify_type == NT_BeingDestroyed) {
         // the subject is going away, remove it from our list
