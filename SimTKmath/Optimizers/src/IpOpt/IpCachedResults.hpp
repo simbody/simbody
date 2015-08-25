@@ -291,7 +291,7 @@ namespace Ipopt
      *  notify_type==NT_Changed or NT_BeingDeleted, then this results
      *  is marked as stale.
      */
-    virtual void RecieveNotification(NotifyType notify_type, const Subject* subject);
+    virtual void ReceiveNotification(NotifyType notify_type, const Subject* subject);
 
   private:
 
@@ -314,7 +314,7 @@ namespace Ipopt
     //@}
 
     /** Flag indicating, if the cached result is still valid.  A
-    result becomes invalid, if the RecieveNotification method is
+    result becomes invalid, if the ReceiveNotification method is
     called with NT_Changed */
     bool stale_;
     /** The value of the dependent results */
@@ -354,7 +354,7 @@ namespace Ipopt
         // Call the RequestAttach method of the Observer base class.
         // This will add this dependent result in the Observer list
         // for the Subject dependents[i].  As a consequence, the
-        // RecieveNotification method of this DependentResult will be
+        // ReceiveNotification method of this DependentResult will be
         // called with notify_type=NT_Changed, whenever the
         // TaggedResult dependents[i] is changed (i.e. its HasChanged
         // method is called).
@@ -392,10 +392,10 @@ namespace Ipopt
   }
 
   template <class T>
-  void DependentResult<T>::RecieveNotification(NotifyType notify_type, const Subject* subject)
+  void DependentResult<T>::ReceiveNotification(NotifyType notify_type, const Subject* subject)
   {
 #ifdef IP_DEBUG_CACHE
-    DBG_START_METH("DependentResult<T>::RecieveNotification", dbg_verbosity);
+    DBG_START_METH("DependentResult<T>::ReceiveNotification", dbg_verbosity);
 #endif
 
     if (notify_type == NT_Changed || notify_type==NT_BeingDestroyed) {
