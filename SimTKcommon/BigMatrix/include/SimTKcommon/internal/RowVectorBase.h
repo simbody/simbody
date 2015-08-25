@@ -158,7 +158,7 @@ public:
     /// everything else is set to zero.)
     RowVectorBase& operator=(const ELT& t) { Base::setTo(t); return *this; } 
 
-    /// There's only one row here so it's a bit wierd to use colScale rather than
+    /// There's only one row here so it's a bit weird to use colScale rather than
     /// elementwiseMultiply, but there's nothing really wrong with it. Using rowScale
     /// would be really wacky since it is the same as a scalar multiply. We won't support
     /// rowScale here except through inheritance where it will not be much use.

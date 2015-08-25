@@ -78,24 +78,24 @@ public:
    }
     virtual void inverse(  Matrix_<double>& inverse ) const {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
-        "inverse(  <double> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  <double> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<float>& inverse ) const {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
-        "inverse(  <float> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  <float> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<std::complex<float> >& inverse ) const {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
-        "inverse(  std::complex<float> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  std::complex<float> ) called with type that is inconsistent with the original matrix  \n");
     }
     virtual void inverse(  Matrix_<std::complex<double> >& inverse ) const {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorQTZ","inverse",
-        "inverse(  std::complex<double> ) called with type that is inconsistant with the original matrix  \n");
+        "inverse(  std::complex<double> ) called with type that is inconsistent with the original matrix  \n");
     }
 
 
    bool isFactored;
-   int rank;     // esitmated rank computed during factorization
+   int rank;     // estimated rank computed during factorization
    double actualRCond; // 1 / condition number we actually got (est.)
 
 

@@ -393,7 +393,7 @@ static const int InvalidIndex = -1111111111;
  * the value -1 if that is produced by a subtraction operation acting on a 
  * previously-valid Index, since that can occur during loops which are 
  * processed from the end towards the beginning. -1 is then allowed in 
- * comparision operators but not in any other operations, including further 
+ * comparison operators but not in any other operations, including further 
  * decrementing.
  *
  * No namespace is assumed for the newly-defined type; if you want the 

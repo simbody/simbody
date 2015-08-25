@@ -23,7 +23,7 @@ namespace Ipopt
   /** General driver for linear solvers for sparse indefinite
    *  symmetric matrices.  This interface includes a call to a method
    *  for scaling of the matrix (if given).  This class takes in the
-   *  contructor a pointer to the interface to an actual linear
+   *  constructor a pointer to the interface to an actual linear
    *  solver, and possibly a pointer to a method for computing scaling
    *  factors.  It translates the SymMatrix into the format required
    *  by the linear solver and calls the solver via the

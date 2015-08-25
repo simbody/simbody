@@ -158,7 +158,7 @@ SptfqmrMem SptfqmrMalloc(int l_max, N_Vector vec_tmpl)
     return(NULL);
   }
 
-  /* Intialize SptfqmrMemRec data structure */
+  /* Initialize SptfqmrMemRec data structure */
   mem->l_max  = l_max;
   mem->r_star = r_star;
   mem->q      = q;

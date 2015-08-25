@@ -51,7 +51,7 @@ typedef struct {
 
   int d_ml;               /* lower bandwidth of Jacobian                  */
   int d_mu;               /* upper bandwidth of Jacobian                  */ 
-  int d_smu;              /* upper bandwith of M = MIN(N-1,d_mu+d_ml)     */
+  int d_smu;              /* upper bandwidth of M = MIN(N-1,d_mu+d_ml)     */
 
   CPDlsDenseJacExplFn d_djacE; /* dense Jacobian routine (CP_EXPL)        */
   CPDlsDenseJacImplFn d_djacI; /* dense Jacobian routine (CP_IMPL)        */

@@ -49,7 +49,7 @@ in that form, but methods are provided for easy conversion to or from Hermite
 form and for working directly with the Hermite form.
 
 Note that a cubic Hermite spline (made up of multiple segments) would not 
-necessarily be composed of these because they can be contructed more compactly 
+necessarily be composed of these because they can be constructed more compactly 
 with shared end points. However, the primitive and inline methods here can be 
 used for fast curve segment computations.
 

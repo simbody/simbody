@@ -113,7 +113,7 @@ const Vec3& getDefaultPointOnBody2() const;
 /** For visualization only, you can override the default radius used by
 this %Constraint to draw itself. **/
 Ball& setDefaultRadius(Real r);
-/** Retreive the radius being used for visualization of 
+/** Retrieve the radius being used for visualization of 
 this %Constraint. **/
 Real getDefaultRadius() const;
 

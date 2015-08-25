@@ -411,7 +411,7 @@ private:
     const CPodesRep& getRep() const {assert(rep); return *rep;}
     CPodesRep&       updRep()       {assert(rep); return *rep;}
 
-    // Suppress copy constructor and default assigment operator.
+    // Suppress copy constructor and default assignment operator.
     CPodes(const CPodes&);
     CPodes& operator=(const CPodes&);
 };

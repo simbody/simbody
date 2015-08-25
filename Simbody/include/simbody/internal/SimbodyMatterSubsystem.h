@@ -670,7 +670,7 @@ the spatial velocity of Ground.
 Before using this method, consider whether you really need to form this
 very large matrix which necessarily will take O(n^2) space and time; it will 
 almost always be \e much faster to use the multiplyBySystemJacobian() method 
-that directly calculate the matrix-vector product in O(n) time without explictly 
+that directly calculate the matrix-vector product in O(n) time without explicitly 
 forming the matrix. Here are the details:
 
 As currently implemented, forming the full Jacobian J costs about
@@ -1958,7 +1958,7 @@ void calcAcceleration
 acceleration constraints although it obeys prescribed accelerations. The 
 supplied forces, prescribed motion forces, and velocity-induced centrifugal 
 and gyroscopic effects are properly accounted for, but any forces that would 
-have resulted from enforcing the contraints are not present. This operator 
+have resulted from enforcing the constraints are not present. This operator 
 solves the equations
 <pre>
             M udot + tau + f_inertial = f_applied           (1)

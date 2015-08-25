@@ -127,7 +127,7 @@ namespace Ipopt
     /** boolean indicating if the compound matrix is in a "valid" state */
     mutable bool matrices_valid_;
 
-    /** method to check wether or not the matrices are valid */
+    /** method to check whether or not the matrices are valid */
     bool MatricesValid() const;
 
     /** Internal method to return a const pointer to one of the comps */

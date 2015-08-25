@@ -76,7 +76,7 @@ explicit String(char c) {push_back(c);}
 /** This is an implicit conversion from std::string to String **/
 String(const std::string& s) : std::string(s) { }
 
-/** Construct a String as a copy of a substring begining at position \a start 
+/** Construct a String as a copy of a substring beginning at position \a start 
 with length \a len. **/
 String(const String& s, int start, int len) : std::string(s,start,len) { }
 
@@ -110,7 +110,7 @@ inconvenient unsigned type size_type. **/
 int length() const {return (int)std::string::length();}
 
 /** @name             Formatted output constructors
-These contructors format the supplied argument into a human-readable %String,
+These constructors format the supplied argument into a human-readable %String,
 using a default or caller-supplied printf-like format. By default, maximum 
 precision is used for floating point values, and user-friendly strings are 
 used for bool (true or false) and non-finite floating point values (NaN, 

@@ -746,7 +746,7 @@ public:
         return true;
     }
 
-    /** For approximate comparisions, the default tolerance to use for a vector is
+    /** For approximate comparisons, the default tolerance to use for a vector is
     the same as its elements' default tolerance. **/
     static double getDefaultTolerance() {return CNT<ELT>::getDefaultTolerance();}
 

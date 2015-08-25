@@ -98,7 +98,7 @@ namespace Ipopt
     /** Method for ending the current line search.  When it is called,
      *  the internal data should be updates, e.g., the filter might be
      *  augmented.  alpha_primal_test is the value of alpha that has
-     *  been used for in the acceptence test ealier. */
+     *  been used for in the acceptance test earlier. */
     virtual char UpdateForNextIteration(Number alpha_primal_test);
 
     /** Method for setting internal data if the watchdog procedure is

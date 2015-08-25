@@ -194,10 +194,10 @@ public:
     /** Return the total number of elements M*N contained in this Mat. **/
     static int size() { return M*N; }
     /** Return the number of rows in this Mat, echoing the value supplied
-    for the template paramter \a M. **/
+    for the template parameter \a M. **/
     static int nrow() { return M; }
     /** Return the number of columns in this Mat, echoing the value supplied
-    for the template paramter \a N. **/
+    for the template parameter \a N. **/
     static int ncol() { return N; }
 
     /** Scalar norm square is the sum of squares of all the scalars that 
@@ -1116,7 +1116,7 @@ public:
         return true;
     }
 
-    /// For approximate comparisions, the default tolerance to use for a matrix is
+    /// For approximate comparisons, the default tolerance to use for a matrix is
     /// its shortest dimension times its elements' default tolerance.
     static double getDefaultTolerance() {return MinDim*CNT<ELT>::getDefaultTolerance();}
 

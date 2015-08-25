@@ -152,7 +152,7 @@ namespace Ipopt
       //                   Initialize primal variables                   //
       /////////////////////////////////////////////////////////////////////
 
-      // Get the intial values for x, y_c, y_d, z_L, z_U,
+      // Get the initial values for x, y_c, y_d, z_L, z_U,
       IpData().InitializeDataStructures(IpNLP(), true, true, true, true, true);
 
       IpData().curr()->x()->Print(Jnlst(), J_VECTOR, J_INITIALIZATION,

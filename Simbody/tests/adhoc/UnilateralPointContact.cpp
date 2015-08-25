@@ -1332,7 +1332,7 @@ updateVelocities(const Vector& u0, const Vector& lambda, State& state) const {
 // lead to a negative acceleration.
 // This is invoked by the ContactOff handler, and as the last step of the
 // ContactOn (impact) handler.
-// TODO: need to search for a consistent set of active contraints.
+// TODO: need to search for a consistent set of active constraints.
 
 /*static*/ void ContactOff::disablePullingContacts
    (const MultibodySystem& mbs, State& s, 
