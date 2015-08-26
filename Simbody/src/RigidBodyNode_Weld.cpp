@@ -683,7 +683,7 @@ public:
         const SpatialVec& myBodyForce  = bodyForces[nodeNum];
         SpatialVec&       z            = allZ[nodeNum];
 
-        // Centrifugal forces are PA+b where P is articulated body inertia,
+        // Centrifugal forces are MA+b where M is body spatial inertia,
         // A is total coriolis acceleration, and b is gyroscopic force.
         z = myBodyForce - getTotalCentrifugalForces(dc);
 
