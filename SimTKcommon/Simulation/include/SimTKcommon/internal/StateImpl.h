@@ -51,9 +51,9 @@ each of the dependent cache entries to be called.
 
 CAUTION: upstream cache entries may be invalidated implicitly by their
 depends-on stage becoming invalid. For this to work, the depends-on stage
-of a downstream cache entry must be the same as the highest depends-on stage of 
-any of it upstream cache prerequisites. That way it is guaranteed to be 
-implicitly invalidated whenever any of its upstream prerequisites are.
+of a downstream cache entry must be at least as high as the highest depends-on
+stage of any of its upstream cache prerequisites. That way it is guaranteed to
+be implicitly invalidated whenever any of its upstream prerequisites are.
 
 The dependents are expected to know their prerequisites so that they can
 remove themselves from any DependentLists they are on when deleted; and so 
