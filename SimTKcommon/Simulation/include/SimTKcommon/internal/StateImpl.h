@@ -35,6 +35,100 @@ contain any user-visible objects. **/
 
 namespace SimTK {
 
+//==============================================================================
+//                             DEPENDENT LIST
+//==============================================================================
+/* This class contains a set of downstream cache entries that are dependent 
+on the value of some prerequisite that is the owner of this object. 
+Prerequisites may be 
+  - continuous state variables q,u,z
+  - discrete variables, or
+  - upstream cache entries. 
+
+When the prerequisite's value changes or is explicitly invalidated, the
+notePrerequisiteChange() method is invoked, causing the invalidate() method of 
+each of the dependent cache entries to be called.
+
+CAUTION: upstream cache entries may be invalidated implicitly by their
+depends-on stage becoming invalid. For this to work, the depends-on stage
+of a downstream cache entry must be the same as the highest depends-on stage of 
+any of it upstream cache prerequisites. That way it is guaranteed to be 
+implicitly invalidated whenever any of its upstream prerequisites are.
+
+The dependents are expected to know their prerequisites so that they can
+remove themselves from any DependentLists they are on when deleted; and so 
+that they can be registered on the appropriate DependentLists when copied.
+*/
+class DependentList {
+    using CacheList = Array_<CacheEntryKey>;
+public:
+    using size_type      = CacheList::size_type;
+    using value_type     = CacheEntryKey;
+    using iterator       = CacheList::iterator;
+    using const_iterator = CacheList::const_iterator;
+
+    // default constructors, assignment, destructor
+
+    void clear() {m_dependents.clear();}
+    bool empty() const {return m_dependents.empty();}
+
+    size_type size() const {return m_dependents.size();}
+    const_iterator cbegin() const {return m_dependents.cbegin();}
+    const_iterator cend()   const {return m_dependents.cend();}
+    iterator begin() {return m_dependents.begin();}
+    iterator end()   {return m_dependents.end();}
+    const value_type& front() const {return m_dependents.front();}
+    const value_type& back() const {return m_dependents.back();}
+
+    // Search the dependents list to see if this cache entry is already on it.
+    // This is a linear search but we expect these lists to be *very* short.
+    // We only expect to use this during set up and tear down, not while 
+    // running so we'll leave the asserts in Release builds.
+    bool contains(const CacheEntryKey& ck) const {
+        SimTK_ASSERT2_ALWAYS(isCacheEntryKeyValid(ck),
+            "DependentList::contains(): invalid cache key (%d,%d).",
+            (int)ck.first, (int)ck.second);
+        return std::find(cbegin(), cend(), ck) != cend(); 
+    }
+
+    // When a cache entry is allocated or copied it has to add itself to the
+    // dependency lists for its prerequisites. If it is already on the list then
+    // we screwed up the bookkeeping somehow. We don't expect to do this often
+    // so we'll leave the assert in Release builds.
+    void addDependent(const CacheEntryKey& ck) {
+        SimTK_ASSERT2_ALWAYS(!contains(ck),
+            "DependentList::addDependent(): Cache entry (%d,%d) was already "
+            "present in the dependent list.",
+            (int)ck.first, (int)ck.second);
+        m_dependents.push_back(ck);
+    }
+
+    // Invalidates dependents (mutable).
+    inline void notePrerequisiteChange(const StateImpl& stateImpl) const;
+
+    // When a cache entry gets de-allocated, it will call this method to
+    // remove itself from any dependent lists it is on. This doesn't happen
+    // often so keep the asserts in Release.
+    void removeDependent(const CacheEntryKey& ck) {
+        SimTK_ASSERT2_ALWAYS(isCacheEntryKeyValid(ck),
+            "DependentList::removeDependent(): invalid cache key (%d,%d).",
+            (int)ck.first, (int)ck.second);
+
+        auto p = std::find(begin(), end(), ck);
+        SimTK_ASSERT2_ALWAYS(p!=m_dependents.end(),
+            "DependentList::removeDependent(): Cache entry (%d,%d) to be "
+            "removed should have been present in the dependent list.",
+            (int)ck.first, (int)ck.second);
+        m_dependents.erase(p);
+    }
+
+    static bool isCacheEntryKeyValid(const CacheEntryKey& ck) 
+    {   return ck.first.isValid() && ck.second.isValid(); }
+
+private:
+    CacheList               m_dependents;
+};
+
 // These local classes
 //      DiscreteVarInfo
 //      CacheVarInfo
@@ -60,13 +154,11 @@ namespace SimTK {
 //==============================================================================
 class DiscreteVarInfo {
 public:
-    DiscreteVarInfo()
-    :   allocationStage(Stage::Empty), invalidatedStage(Stage::Empty),
-        value(0), timeLastUpdated(NaN) {}
+    DiscreteVarInfo() = default;
 
     DiscreteVarInfo(Stage allocation, Stage invalidated, AbstractValue* v)
-    :   allocationStage(allocation), invalidatedStage(invalidated),
-        autoUpdateEntry(), value(v), timeLastUpdated(NaN) 
+    :   m_allocationStage(allocation), m_invalidatedStage(invalidated),
+        m_value(v) 
     {   assert(isReasonable()); }
 
     // Default copy constructor, copy assignment, destructor are shallow.
@@ -75,50 +167,66 @@ public:
     // If the destination already has a value, the new value must be
     // assignment compatible.
     DiscreteVarInfo& deepAssign(const DiscreteVarInfo& src) {
-        assert(src.isReasonable());
-         
-        allocationStage   = src.allocationStage;
-        invalidatedStage  = src.invalidatedStage;
-        autoUpdateEntry   = src.autoUpdateEntry;
-        if (value) *value = *src.value;
-        else        value = src.value->clone();
-        timeLastUpdated   = src.timeLastUpdated;
+        *this = src; // copy assignment forgets dependents
         return *this;
     }
 
     // For use in the containing class's destructor.
-    void deepDestruct() {delete value; value=0;}
-    const Stage& getAllocationStage()  const {return allocationStage;}
+    void deepDestruct(StateImpl&) {
+        m_value.reset();
+    }
+
+    const Stage& getAllocationStage()  const {return m_allocationStage;}
 
     // Exchange value pointers (should be from this dv's update cache entry).
-    void swapValue(Real updTime, AbstractValue*& other) 
-    {   std::swap(value, other); timeLastUpdated=updTime; }
+    void swapValue(Real updTime, ClonePtr<AbstractValue>& other) 
+    {   m_value.swap(other); m_timeLastUpdated=updTime; }
 
-    const AbstractValue& getValue() const {assert(value); return *value;}
-    Real                 getTimeLastUpdated() const 
-    {   assert(value); return timeLastUpdated; }
-    AbstractValue&       updValue(Real updTime)
-    {   assert(value); timeLastUpdated=updTime; return *value; }
+    const AbstractValue& getValue() const {assert(m_value); return *m_value;}
 
-    const Stage&    getInvalidatedStage() const {return invalidatedStage;}
-    CacheEntryIndex getAutoUpdateEntry()  const {return autoUpdateEntry;}
-    void setAutoUpdateEntry(CacheEntryIndex cx) {autoUpdateEntry = cx;}
+    // Whenever we hand out this variables value for write access we update
+    // the value version, note the update time, and notify any dependents that
+    // they are now invalid with respect to this variable's value.
+    AbstractValue& updValue(const StateImpl& stateImpl, Real updTime) {
+       assert(m_value); 
+       ++m_valueVersion;
+       m_timeLastUpdated=updTime; 
+       m_dependents.notePrerequisiteChange(stateImpl);
+       return *m_value; 
+    }
+    StageVersion getValueVersion() const {return m_valueVersion;}
+    Real getTimeLastUpdated() const 
+    {   assert(m_value); return m_timeLastUpdated; }
+
+    const Stage&    getInvalidatedStage() const {return m_invalidatedStage;}
+    CacheEntryIndex getAutoUpdateEntry()  const {return m_autoUpdateEntry;}
+    void setAutoUpdateEntry(CacheEntryIndex cx) {m_autoUpdateEntry = cx;}
+
+    const DependentList& getDependents() const {return m_dependents;}
+    DependentList& updDependents() {return m_dependents;}
 
 private:
     // These are fixed at construction.
-    Stage           allocationStage;
-    Stage           invalidatedStage;
-    CacheEntryIndex autoUpdateEntry;
+    Stage                           m_allocationStage;
+    Stage                           m_invalidatedStage;
+    CacheEntryIndex                 m_autoUpdateEntry; // if auto update var
+
+    // This is the list of cache entries that have declared explicitly that
+    // this variable is a prerequisite. This list gets forgotten if we
+    // copy this variable; copied cache entries (if any) have to re-register
+    // themselves.
+    ResetOnCopy<DependentList>      m_dependents;
 
     // These change at run time.
-    AbstractValue*  value;
-    Real            timeLastUpdated;
+    ClonePtr<AbstractValue>         m_value;
+    StageVersion                    m_valueVersion{1};
+    Real                            m_timeLastUpdated{NaN};
 
     bool isReasonable() const
-    {    return (allocationStage==Stage::Topology 
-                 || allocationStage==Stage::Model)
-             && (invalidatedStage > allocationStage)
-             && (value != 0); }
+    {    return (m_allocationStage==Stage::Topology 
+                 || m_allocationStage==Stage::Model)
+             && (m_invalidatedStage > m_allocationStage)
+             && (m_value != nullptr); }
 };
 
 
@@ -126,130 +234,115 @@ private:
 //==============================================================================
 //                            CACHE ENTRY INFO
 //==============================================================================
-class CacheEntryInfo {
+/* A cache entry holds an AbstractValue that is computed ("realized") from the
+values of state variables. Its primary purpose is to efficiently and flawlessly
+keep track of whether that value is up to date with respect to the state
+variables from which it is realized. For efficiency, there are two 
+mechanisms used: the "computation stage" system provides coarse granularity
+that is sufficient for most cache entries. When additional finesse is needed,
+a cache entry may also specify a set of prerequisite state variables or other
+cache entries that it depends on. 
+
+A cache entry specifies a "depends-on" stage. If its owning subsystem's stage
+is below that, the cache entry's value *cannot* be valid. It may optionally
+specify a "computed-by" stage; if its subsystem's stage has reached that then
+the cache entry's value is *guaranteed* to be valid. If the stage is in 
+between, then validity is determined as follows:
+  - compare the saved depends-on stage version with the curent version; if they
+    don't match then the cache entry is not valid
+  - then, the cache entry is valid if its up-to-date-with-prerequisites
+    flag is set and invalid otherwise.
+
+Cache entries also have an allocation stage (Topology, Model, or Instance)
+and must be de-allocated if that stage is invalidated.
+*/
+class SimTK_SimTKCOMMON_EXPORT CacheEntryInfo {
 public:
     CacheEntryInfo() {}
 
-    CacheEntryInfo
-       (Stage allocation, Stage dependsOn, Stage computedBy, AbstractValue* v,
-        unsigned numExtras=0)
-    :   m_allocationStage(allocation), m_dependsOnStage(dependsOn), 
-        m_computedByStage(computedBy), m_value(v), 
-        m_extraVersionWhenLastComputed(numExtras, StageVersion(0))
+    CacheEntryInfo(const CacheEntryKey& myKey, 
+                   Stage allocation, Stage dependsOn, Stage computedBy, 
+                   AbstractValue* value)
+    :   m_myKey(myKey), 
+        m_allocationStage(allocation), m_dependsOnStage(dependsOn), 
+        m_computedByStage(computedBy), m_value(value)
     {   assert(isReasonable()); }
 
-    unsigned getNumExtras() const 
-    {   return (unsigned)m_extraVersionWhenLastComputed.size(); }
+    CacheEntryInfo& setPrerequisiteQ() {m_qIsPrerequisite = true; return *this;}
+    CacheEntryInfo& setPrerequisiteU() {m_uIsPrerequisite = true; return *this;}
+    CacheEntryInfo& setPrerequisiteZ() {m_zIsPrerequisite = true; return *this;}
 
-
-    // This checks the basics of whether this cache entry is valid, but doesn't
-    // deal with extra dependencies.
-    bool isCurrentNoExtras(const Stage&         current, 
-                           const StageVersion   stageVersions[]) const {
-        assert(getNumExtras() == 0);
-        if (current >= m_computedByStage) return true;
-        if (current <  m_dependsOnStage)  return false;
-        assert(stageVersions[m_dependsOnStage] >= 1);
-        return stageVersions[m_dependsOnStage] 
-               == m_dependsOnVersionWhenLastComputed;
+    CacheEntryInfo& setPrerequisite(const DiscreteVarKey& dk) {
+        SimTK_ASSERT2(!isPrerequisite(dk),
+            "CacheEntryInfo::setPrerequisite(): "
+            "Discrete variable (%d,%d) is already on the list.",
+             (int)dk.first, (int)dk.second);
+        m_discreteVarPrerequisites.push_back(dk);
+        return *this;
     }
 
-    // For a cache entry with extra dependencies, check whether the current
-    // value is up to date with respect to all dependencies, and if so return
-    // the stage version of this cache entry's value. Stage version is 
-    // meaningless unless the cache entry is current (meaning it has been 
-    // realized since any of its dependencies changed), so we'll only return
-    // it if the function return here is true (otherwise -1).
-    bool isCurrentWithExtras(const Stage&       current, 
-                             const StageVersion stageVersions[],
-                             unsigned           numExtras,
-                             const StageVersion extraVersions[],
-                             StageVersion&      cacheValueVersion) const {
-        assert(getNumExtras() && numExtras==getNumExtras());
-        cacheValueVersion = -1;
-        if (current < m_computedByStage) {
-            if (current <  m_dependsOnStage)  
-                return false;
-            assert(stageVersions[m_dependsOnStage] >= 1);
-            if (   stageVersions[m_dependsOnStage] 
-                != m_dependsOnVersionWhenLastComputed)
-                return false;
-            for (unsigned i=0; i < numExtras; ++i) {
-                assert(extraVersions[i] >= 1);
-                if (extraVersions[i] != m_extraVersionWhenLastComputed[i])
-                    return false;
-            }
-        }
-        cacheValueVersion = m_valueVersion;
-        return true;
+    CacheEntryInfo& setPrerequisite(const CacheEntryKey& ck) {
+        SimTK_ASSERT2(!isPrerequisite(ck),
+            "CacheEntryInfo::setPrerequisite(): "
+            "Cache entry (%d,%d) is already on the list.",
+             (int)ck.first, (int)ck.second);
+        m_cacheEntryPrerequisites.push_back(ck);
+        return *this;
     }
 
-    // Recall the stage version number of this CacheEntry's owner Subsystem's 
-    // depends-on stage as it was at last realization of this entry.
-    StageVersion getDependsOnVersionWhenLastComputed() const 
-    {   return m_dependsOnVersionWhenLastComputed; }
+    // Add this cache entry to the dependent lists of its prerequisites in
+    // the containing State. If there are no prerequisites the "is up to date
+    // with prerequisites" flag is set true, otherwise it is set false and
+    // requires an explicit markAsUpToDate() call to be valid.
+    void registerWithPrerequisites(StateImpl&);
 
-    // If this CacheEntry has extra dependencies, this recalls one extra 
-    // dependency's stage version at last realization of this entry.
-    StageVersion getExtraDependencyVersionWhenLastComputed(unsigned which) const
-    {   assert(which < getNumExtras());
-        return m_extraVersionWhenLastComputed[which]; }
+    // Remove this cache entry from the dependent lists of its prerequisites
+    // in the containing State. This is invoked on destruction. It is possible
+    // that a prerequisite has already been destructed; that's not an error
+    // because we don't attempt to destruct dependents before their 
+    // prerequisites when un-allocating things.
+    void unregisterWithPrerequisites(StateImpl&) const;
+
+    // This method must be *very* fast and inline-able; it is called every time
+    // a cache entry is accessed to look at its value -- and that is a lot!
+    SimTK_FORCE_INLINE bool isUpToDate(const StateImpl&) const;
+
+    // This must be called when cache entry evaluation is complete to record
+    // the depends-on version and set the "is up to date with prerequisites"
+    // flag. A cache entry with no prerequisites need not call this as long
+    // as it isn't accessed until its computed-by stage.
+    inline void markAsUpToDate(const StateImpl&);
+
+    // We know this cache entry is illegally out of date from an earlier
+    // call to isUpToDate(). Now we can afford to spend some time making
+    // a nice error message.
+    void throwHelpfulOutOfDateMessage(const StateImpl&,
+                                      const char* funcName) const;
+
 
     // This affects only the explicit "last computed" flags which do not fully
-    // determine whether the value is current; see isCurrent...() methods above.
+    // determine whether the value is current; see isUpToDate() above.
     // If a cache entry has a computed-by stage, you have to invalidate that
     // stage in its subsystem also if you want to ensure it is invalid.
-    // The value version is not affected here; that only changes when the
-    // cache entry is explicitly marked valid.
-    void invalidate() {
+    void invalidate(const StateImpl& stateImpl) {
         m_dependsOnVersionWhenLastComputed = StageVersion(0);
-        m_extraVersionWhenLastComputed.fill(StageVersion(0));
-    }
-
-    // Call one of these markAsComputed() methods last when realizing this cache
-    // entry to record the current version number of this cache entry's 
-    // dependencies and to set a new version number for the cache entry's value.
-
-    void markAsComputedNoExtras(const StageVersion stageVersions[]) {
-        m_dependsOnVersionWhenLastComputed = stageVersions[m_dependsOnStage];
+        m_isUpToDateWithPrerequisites = false;
         ++m_valueVersion;
+        m_dependents.notePrerequisiteChange(stateImpl);
     }
-
-    void markAsComputedWithExtras(const StageVersion stageVersions[],
-                                  unsigned           numExtras,
-                                  const StageVersion extraVersions[]) {
-        assert(getNumExtras() && numExtras==getNumExtras());
-        m_dependsOnVersionWhenLastComputed = stageVersions[m_dependsOnStage];
-        for (unsigned i=0; i < numExtras; ++i) {
-            assert(extraVersions[i] >= 1);
-            m_extraVersionWhenLastComputed[i] = extraVersions[i];
-        }
-        ++m_valueVersion;
-    }
-
-    // Default copy constructor, copy assignment, destructor are shallow.
 
     // Use this to make this entry contain a *copy* of the source value.
     CacheEntryInfo& deepAssign(const CacheEntryInfo& src) {
-        assert(src.isReasonable());
-
-        m_allocationStage   = src.m_allocationStage;
-        m_dependsOnStage    = src.m_dependsOnStage;
-        m_computedByStage   = src.m_computedByStage;
-        m_associatedVar     = src.m_associatedVar;
-
-        if (m_value) *m_value = *src.m_value;
-        else          m_value = src.m_value->clone();
-        m_valueVersion        = src.m_valueVersion + 1; // "new" value
-
-        m_dependsOnVersionWhenLastComputed = 
-                                         src.m_dependsOnVersionWhenLastComputed;
-        m_extraVersionWhenLastComputed = src.m_extraVersionWhenLastComputed;
+        *this = src; // copy assignment forgets dependents
         return *this;
     }
 
     // For use in the containing class's destructor.
-    void deepDestruct() {delete m_value; m_value=nullptr;}
+    void deepDestruct(StateImpl& stateImpl) {
+        m_value.reset(); // destruct the AbstractValue
+        unregisterWithPrerequisites(stateImpl);
+    }
+
     const Stage& getAllocationStage() const {return m_allocationStage;}
 
     // Exchange values with a discrete variable (presumably this
@@ -260,36 +353,102 @@ public:
 
     const AbstractValue& getValue() const {assert(m_value); return *m_value;}
 
-    // Returning the value for write access doesn't affect the version; that
-    // happens only if the cache entries gets marked valid explicitly.
-    AbstractValue& updValue() {assert(m_value); return *m_value;}
+    // Merely handing out the cache entry's value with write access does not
+    // trigger invalidation of dependents. (Maybe it should, but currently it
+    // gets done often with no intent to modify, esp. by SBStateDigest.)
+    // So be sure that the cache entry gets invalidated first either by an
+    // explicit prerequisite change notification, or because the depends-on
+    // stage got invalidated.
+    AbstractValue& updValue(const StateImpl& stateImpl) {
+       assert(m_value); 
+       return *m_value; 
+    }
+    StageVersion getValueVersion() const {return m_valueVersion;}
+
+    // Recall the stage version number of this CacheEntry's owner Subsystem's 
+    // depends-on stage as it was at last realization of this entry.
+    StageVersion getDependsOnVersionWhenLastComputed() const 
+    {   return m_dependsOnVersionWhenLastComputed; }
 
     const Stage&          getDependsOnStage()  const {return m_dependsOnStage;}
     const Stage&          getComputedByStage() const {return m_computedByStage;}
     DiscreteVariableIndex getAssociatedVar()   const {return m_associatedVar;}
     void setAssociatedVar(DiscreteVariableIndex dx)  {m_associatedVar=dx;}
 
+    bool isQPrerequisite() const {return m_qIsPrerequisite;}
+    bool isUPrerequisite() const {return m_uIsPrerequisite;}
+    bool isZPrerequisite() const {return m_zIsPrerequisite;}
+    bool isPrerequisite(const DiscreteVarKey& dk) const { 
+        return std::find(m_discreteVarPrerequisites.cbegin(),
+                         m_discreteVarPrerequisites.cend(), dk)
+               != m_discreteVarPrerequisites.cend();
+    }
+    bool isPrerequisite(const CacheEntryKey& ck) const { 
+        return std::find(m_cacheEntryPrerequisites.cbegin(),
+                         m_cacheEntryPrerequisites.cend(), ck)
+               != m_cacheEntryPrerequisites.cend();
+    }
+
+    #ifndef NDEBUG
+    void recordPrerequisiteVersions(const StateImpl&);
+    void validatePrerequisiteVersions(const StateImpl&) const;
+    #endif
+
+    const DependentList& getDependents() const {return m_dependents;}
+    DependentList& updDependents() {return m_dependents;}
+
 private:
     // These are fixed at construction.
-    Stage                   m_allocationStage; // will init to Stage::Empty
-    Stage                   m_dependsOnStage;
-    Stage                   m_computedByStage;
-    DiscreteVariableIndex   m_associatedVar;  // if this is an auto-update entry
+    CacheEntryKey               m_myKey;           // location in State
+    Stage                       m_allocationStage; // lifetime
+    Stage                       m_dependsOnStage;  // can't be valid until here
+    Stage                       m_computedByStage; // must be valid after here
+    DiscreteVariableIndex       m_associatedVar;   // if an auto-update entry
 
-    // These change at run time.
-    AbstractValue*          m_value{nullptr};
-    StageVersion            m_valueVersion{}; // bumped when value changed
-    // Version of dependencies, initialized to zero.
-    StageVersion            m_dependsOnVersionWhenLastComputed{};
-    Array_<StageVersion>    m_extraVersionWhenLastComputed;
+    // Dependencies in addition to depends-on stage dependence. These are set
+    // during allocation and used during de-allocation and copying.
+    bool                        m_qIsPrerequisite{false}, 
+                                m_uIsPrerequisite{false}, 
+                                m_zIsPrerequisite{false};
+    Array_<DiscreteVarKey>      m_discreteVarPrerequisites;
+    Array_<CacheEntryKey>       m_cacheEntryPrerequisites;
 
-    bool isReasonable() const
-    {    return (   m_allocationStage==Stage::Topology
-                 || m_allocationStage==Stage::Model
-                 || m_allocationStage==Stage::Instance)
-             && (m_computedByStage >= m_dependsOnStage)
-             && (m_value != 0)
-             && (m_dependsOnVersionWhenLastComputed >= 0); }
+    // This is set when other cache entries dependent on this one are
+    // constructed. Each of these is invalidated whenever this entry is
+    // explicitly invalidated (not when dependsOn stage gets invalidated).
+    // This is not copied if the cache entry is copied; copied dependents
+    // if any have to re-register themselves.
+    ResetOnCopy<DependentList>  m_dependents;
+
+    // These change at run time. Initially assume we don't have any
+    // prerequisites so we are up to date with respect to them. We'll change
+    // the initial value to false in registerWithPrerequisites() if there
+    // are some.
+    ClonePtr<AbstractValue>     m_value;
+    StageVersion                m_valueVersion{1};
+    StageVersion                m_dependsOnVersionWhenLastComputed{0};
+    bool                        m_isUpToDateWithPrerequisites{true};
+
+
+    // These are just for debugging. At the time this is marked valid version
+    // numbers are recorded for every prerequisite. Then the "is valid" code
+    // can double check that the "is up to date with prerequisites" flag is
+    // set correctly.
+    #ifndef NDEBUG
+    StageVersion                m_qVersion{0}, m_uVersion{0}, m_zVersion{0};
+    Array_<StageVersion>        m_discreteVarVersions;
+    Array_<StageVersion>        m_cacheEntryVersions;
+    #endif
+
+    bool isReasonable() const {
+        return (   m_allocationStage==Stage::Topology
+                || m_allocationStage==Stage::Model
+                || m_allocationStage==Stage::Instance)
+            && (m_computedByStage >= m_dependsOnStage)
+            && (m_value != nullptr)
+            && (m_dependsOnVersionWhenLastComputed >= 0)
+            && (DependentList::isCacheEntryKeyValid(m_myKey)); 
+    }
 };
 
 
@@ -315,7 +474,7 @@ public:
     // These the the "virtual" methods required by template methods elsewhere.
     TriggerInfo& deepAssign(const TriggerInfo& src) 
     {   return operator=(src); }
-    void         deepDestruct() {}
+    void         deepDestruct(StateImpl&) {}
     const Stage& getAllocationStage() const {return allocationStage;}
 private:
     // These are fixed at construction.
@@ -370,7 +529,7 @@ public:
     // These the the "virtual" methods required by template methods elsewhere.
     ContinuousVarInfo& deepAssign(const ContinuousVarInfo& src) 
     {   return operator=(src); }
-    void               deepDestruct() {}
+    void               deepDestruct(StateImpl&) {}
     const Stage&       getAllocationStage() const {return allocationStage;}
 private:
     // These are fixed at construction.
@@ -421,7 +580,7 @@ public:
     // These the the "virtual" methods required by template methods elsewhere.
     ConstraintErrInfo& deepAssign(const ConstraintErrInfo& src) 
     {   return operator=(src); }
-    void               deepDestruct() {}
+    void               deepDestruct(StateImpl&) {}
     const Stage&       getAllocationStage() const {return allocationStage;}
 private:
     // These are fixed at construction.
@@ -451,26 +610,29 @@ private:
 // a single subsystem within the StateImpl.
 class SimTK_SimTKCOMMON_EXPORT PerSubsystemInfo {
 public:
-    PerSubsystemInfo() : currentStage(Stage::Empty)     {initialize();}
-    PerSubsystemInfo(const String& n, const String& v) 
-      : name(n), version(v), currentStage(Stage::Empty) {initialize();}
+    explicit PerSubsystemInfo(StateImpl& stateImpl,
+                              const String& n="", const String& v="") 
+    :   m_stateImpl(stateImpl), name(n), version(v)
+    {   initialize(); }
 
-    // Everything will properly clean itself up except for the AbstractValues
-    // stored in the discrete variable and cache entry arrays. Be sure to
-    // delete those prior to allowing the arrays themselves to destruct.
+    // Everything will properly clean itself up.
     ~PerSubsystemInfo() {
-        clearAllStacks();
     }
 
     // Copy constructor copies all variables but cache only through
     // Instance stage. Note that this must be done in conjunction with
     // copying the whole state or our global resource indices will
-    // be nonsense.
-    PerSubsystemInfo(const PerSubsystemInfo& src) : currentStage(Stage::Empty) {
+    // be nonsense. Also, dependency lists are cleared and cache entries
+    // must re-register in the new State after all subsystems have been copied.
+    // (Dependencies can be cross-subsystem.)
+    // The back reference to the StateImpl is null after this and must be
+    // set to reference the new StateImpl.
+    PerSubsystemInfo(const PerSubsystemInfo& src) {
         initialize();
         copyFrom(src, Stage::Instance);
     }
 
+    // The back reference to the containing StateImpl remains unchanged.
     PerSubsystemInfo& operator=(const PerSubsystemInfo& src) {
         // destination is already initialized; copyFrom() will try
         // to reuse space and will properly clean up unused stuff
@@ -568,6 +730,30 @@ public:
             (last.getFirstIndex()+last.getNumSlots());
     }
 
+    bool hasDiscreteVar(DiscreteVariableIndex index) const {
+        return index < (int)discreteInfo.size();
+    }
+
+
+    SimTK_FORCE_INLINE const DiscreteVarInfo& 
+    getDiscreteVarInfo(DiscreteVariableIndex index) const {
+        SimTK_INDEXCHECK(index,(int)discreteInfo.size(),
+                         "PerSubsystemInfo::getDiscreteVarInfo()");
+        return discreteInfo[index];
+    }
+
+    SimTK_FORCE_INLINE DiscreteVarInfo&
+    updDiscreteVarInfo(DiscreteVariableIndex index) {
+        SimTK_INDEXCHECK(index,(int)discreteInfo.size(),
+                         "PerSubsystemInfo::updDiscreteVarInfo()");
+        return discreteInfo[index];
+    }
+
+
+    bool hasCacheEntry(CacheEntryIndex index) const {
+        return index < (int)cacheInfo.size();
+    }
+
     SimTK_FORCE_INLINE const CacheEntryInfo& 
     getCacheEntryInfo(CacheEntryIndex index) const {
         SimTK_INDEXCHECK(index,(int)cacheInfo.size(),
@@ -585,6 +771,10 @@ public:
     SimTK_FORCE_INLINE Stage getCurrentStage() const {return currentStage;}
     SimTK_FORCE_INLINE StageVersion getStageVersion(Stage g) const 
     {   return stageVersions[g]; }
+
+private:
+friend class StateImpl;
+    ReferencePtr<StateImpl>     m_stateImpl; // container of this subsystem
 
     String name;
     String version;
@@ -723,6 +913,17 @@ private:
     // our references to global variables regardless -- those will have to
     // be repaired at the System (State global) level.
     void copyFrom(const PerSubsystemInfo& src, Stage maxStage);
+
+    // Stack methods; see implementation for explanation.
+    template <class T> 
+    void clearAllocationStack(Array_<T>& stack);
+    template <class T> 
+    void resizeAllocationStack(Array_<T>& stack, int newSize);
+    template <class T>
+    void popAllocationStackBackToStage(Array_<T>& stack, const Stage&);
+    template <class T>
+    void copyAllocationStackThroughStage(Array_<T>& stack, 
+                                         const Array_<T>& src, const Stage&);
 };
 
 
@@ -732,7 +933,15 @@ private:
 
 class SimTK_SimTKCOMMON_EXPORT StateImpl {
 public:
-    StateImpl() {initializeStageVersions();} 
+    // For stages, the version is always the one that will be there when
+    // the stage is next realized, so the constructor initializes them to
+    // the first valid stage version, 1. Value versions for state variables
+    // and cache entries are initialized to 0 (not valid) and bumped when
+    // marked valid.
+    StateImpl() {        
+        for (int i=0; i < Stage::NValid; ++i)
+            systemStageVersions[i] = 1; // 0 is not legal
+    }
 
     // We'll do the copy constructor and assignment explicitly here
     // to get tight control over what's allowed.
@@ -749,16 +958,18 @@ public:
     Stage&       updSystemStage() const {return currentSystemStage;} // mutable
 
 
-    SimTK_FORCE_INLINE const PerSubsystemInfo& getSubsystem(int subsystem) const {
-        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), 
+    SimTK_FORCE_INLINE const PerSubsystemInfo& 
+    getSubsystem(SubsystemIndex subx) const {
+        SimTK_INDEXCHECK(subx, (int)subsystems.size(), 
                          "StateImpl::getSubsystem()");
-        return subsystems[subsystem];
+        return subsystems[subx];
     }
 
-    SimTK_FORCE_INLINE PerSubsystemInfo& updSubsystem(int subsystem) {
-        SimTK_INDEXCHECK(subsystem, (int)subsystems.size(), 
+    SimTK_FORCE_INLINE PerSubsystemInfo& 
+    updSubsystem(SubsystemIndex subx) {
+        SimTK_INDEXCHECK(subx, (int)subsystems.size(), 
                          "StateImpl::updSubsystem()");
-        return subsystems[subsystem];
+        return subsystems[subx];
     }
 
     const Stage& getSubsystemStage(int subsystem) const {
@@ -787,10 +998,11 @@ public:
     // already gotten there.
     void advanceSystemToStage(Stage stg) const;
     
-    void setNumSubsystems(int i) {
-        assert(i >= 0);
+    void setNumSubsystems(int nSubs) {
+        assert(nSubs >= 0);
         subsystems.clear();
-        subsystems.resize(i);
+        for (int i=0; i < nSubs; ++i)
+            subsystems.emplace_back(*this); // set backpointer
     }
     
     void initializeSubsystem
@@ -801,7 +1013,7 @@ public:
       
     SubsystemIndex addSubsystem(const String& name, const String& version) {
         const SubsystemIndex sx(subsystems.size());
-        subsystems.push_back(PerSubsystemInfo(name,version));
+        subsystems.emplace_back(*this, name, version);
         return sx;
     }
     
@@ -944,7 +1156,7 @@ public:
     // Cache entries can be allocated while stage < Instance.
     CacheEntryIndex allocateCacheEntry
        (SubsystemIndex subsys, Stage dependsOn, Stage computedBy,
-        AbstractValue* vp, unsigned numExtras) const 
+        AbstractValue* vp) const 
     {
         SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), 
                                       dependsOn, Stage::HighestRuntime, 
@@ -957,10 +1169,49 @@ public:
         const Stage allocStage = getSubsystemStage(subsys).next();    
         const PerSubsystemInfo& ss = subsystems[subsys];
         const CacheEntryIndex nxt(ss.getNextCacheEntryIndex());
-        ss.cacheInfo.push_back
-           (CacheEntryInfo(allocStage, dependsOn, computedBy, 
-                           vp, numExtras)); //mutable
+        ss.cacheInfo.emplace_back(CacheEntryKey(subsys,nxt),
+                                  allocStage, dependsOn, computedBy, vp);
         return nxt;
+    }
+
+    CacheEntryIndex allocateCacheEntryWithPrerequisites
+       (SubsystemIndex subsys, Stage earliest, Stage latest,
+        bool qPre, bool uPre, bool zPre,
+        const Array_<DiscreteVarKey>& discreteVars,
+        const Array_<CacheEntryKey>& cacheEntries,
+        AbstractValue* value)
+    {
+        // First pre-check that no cache entry prerequisite has a later
+        // depends-on stage than this one does. I'm doing this first rather
+        // than combining it with the loop below so there won't be side effects
+        // if this exception gets caught (likely only in testing).
+        for (const auto& ckey : cacheEntries) {
+            const CacheEntryInfo& prereq = getCacheEntryInfo(ckey);
+            SimTK_ERRCHK4_ALWAYS(prereq.getDependsOnStage() <= earliest,
+                "State::allocateCacheEntryWithPrerequisites()",
+                "Prerequisite cache entry (%d,%d) has depends-on stage %s "
+                "but this one would have lower depends-on stage %s. That "
+                "would mean the prerequisite could get invalidated without "
+                "invalidating this one; not good.",
+                (int)ckey.first, (int)ckey.second, 
+                prereq.getDependsOnStage().getName().c_str(),
+                earliest.getName().c_str());
+        }
+
+        const CacheEntryIndex cx = 
+            allocateCacheEntry(subsys,earliest,latest,value);
+        CacheEntryInfo& cinfo = updCacheEntryInfo(CacheEntryKey(subsys,cx));
+
+        if (qPre) cinfo.setPrerequisiteQ();
+        if (uPre) cinfo.setPrerequisiteU();
+        if (zPre) cinfo.setPrerequisiteZ();
+        for (const auto& dk : discreteVars)
+            cinfo.setPrerequisite(dk);
+        for (const auto& ckey : cacheEntries)
+            cinfo.setPrerequisite(ckey); // already validated above
+
+        cinfo.registerWithPrerequisites(*this);
+        return cx;
     }
 
     // Allocate a discrete variable and a corresponding cache entry for
@@ -972,7 +1223,7 @@ public:
         const DiscreteVariableIndex dx = 
             allocateDiscreteVariable(subsys,invalidates,vp->clone());
         const CacheEntryIndex       cx = 
-            allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp,0);
+            allocateCacheEntry(subsys,updateDependsOn,Stage::Infinity,vp);
 
         PerSubsystemInfo& ss = subsystems[subsys];
         DiscreteVarInfo& dvinfo = ss.discreteInfo[dx];
@@ -1419,12 +1670,12 @@ public:
     }
        
     // You can call these as long as stage >= allocation stage, but the
-    // stage will be backed up if necessary to one stage prior to the invalidated stage.
+    // stage will be backed up if necessary to one stage prior to the 
+    // invalidated stage.
     Real& updTime() {  // Back to Stage::Time-1
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Topology, 
                             "StateImpl::updTime()");
         invalidateAll(Stage::Time);
-        noteTimeChange();
         return t;
     }
     
@@ -1639,241 +1890,161 @@ public:
         return triggers[g];
     }
 
-    const DiscreteVarInfo& getDiscreteVarInfo
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-            "StateImpl::getDiscreteVarInfo()");
-        return ss.discreteInfo[index];
+    bool hasDiscreteVar(const DiscreteVarKey& dk) const {
+        return getSubsystem(dk.first).hasDiscreteVar(dk.second);
+    }
+
+    const DiscreteVarInfo& getDiscreteVarInfo(const DiscreteVarKey& dk) const {
+        return getSubsystem(dk.first).getDiscreteVarInfo(dk.second);
     } 
 
-    CacheEntryIndex getDiscreteVarUpdateIndex
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        return getDiscreteVarInfo(subsys,index).getAutoUpdateEntry();
+    DiscreteVarInfo& updDiscreteVarInfo(const DiscreteVarKey& dk) {
+        return updSubsystem(dk.first).updDiscreteVarInfo(dk.second);
     } 
 
-    Stage getDiscreteVarAllocationStage
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        return getDiscreteVarInfo(subsys,index).getAllocationStage();
+    CacheEntryIndex getDiscreteVarUpdateIndex(const DiscreteVarKey& dk) const {
+        return getDiscreteVarInfo(dk).getAutoUpdateEntry();
     } 
 
-    Stage getDiscreteVarInvalidatesStage
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        return getDiscreteVarInfo(subsys,index).getInvalidatedStage();
+    Stage getDiscreteVarAllocationStage(const DiscreteVarKey& dk) const {
+        return getDiscreteVarInfo(dk).getAllocationStage();
     } 
 
-    // You can access at any time a variable that was allocated during 
-    // realizeTopology(), but don't access others until you have done 
-    // realizeModel().
+    Stage getDiscreteVarInvalidatesStage(const DiscreteVarKey& dk) const {
+        return getDiscreteVarInfo(dk).getInvalidatedStage();
+    } 
+
+    // You can access a variable any time after it has been allocated.
     const AbstractValue& 
-    getDiscreteVariable(SubsystemIndex subx, DiscreteVariableIndex dvx) const {
-        const DiscreteVarInfo& dv = getDiscreteVarInfo(subx,dvx);   
-        if (dv.getAllocationStage() > Stage::Topology) {
-            SimTK_STAGECHECK_GE(getSubsystemStage(subx), Stage::Model, 
-                                "StateImpl::getDiscreteVariable()");
-        }   
+    getDiscreteVariable(const DiscreteVarKey& dk) const {
+        const DiscreteVarInfo& dv = getDiscreteVarInfo(dk);   
         return dv.getValue();
     }
 
-    Real getDiscreteVarLastUpdateTime(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        return getDiscreteVarInfo(subsys,index).getTimeLastUpdated();
+    Real getDiscreteVarLastUpdateTime(const DiscreteVarKey& dk) const {
+        return getDiscreteVarInfo(dk).getTimeLastUpdated();
     }
 
-    const AbstractValue& getDiscreteVarUpdateValue
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+    const AbstractValue& getDiscreteVarUpdateValue(const DiscreteVarKey& dk) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(dk);
         SimTK_ERRCHK2(cx.isValid(), "StateImpl::getDiscreteVarUpdateValue()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        return getCacheEntry(subsys, cx);
+            " associated update cache variable.", 
+            (int)dk.first, (int)dk.second);
+        return getCacheEntry(CacheEntryKey(dk.first,cx));
     }
-    AbstractValue& updDiscreteVarUpdateValue
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+    AbstractValue& updDiscreteVarUpdateValue(const DiscreteVarKey& dk) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(dk);
         SimTK_ERRCHK2(cx.isValid(), "StateImpl::updDiscreteVarUpdateValue()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        return updCacheEntry(subsys, cx);
+            " associated update cache variable.", 
+            (int)dk.first, (int)dk.second);
+        return updCacheEntry(CacheEntryKey(dk.first,cx));
     }
-    bool isDiscreteVarUpdateValueRealized
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+    bool isDiscreteVarUpdateValueRealized(const DiscreteVarKey& dk) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(dk);
         SimTK_ERRCHK2(cx.isValid(), 
             "StateImpl::isDiscreteVarUpdateValueRealized()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        return isCacheValueRealizedNoExtras(subsys, cx);
+            " associated update cache variable.", 
+            (int)dk.first, (int)dk.second);
+        return isCacheValueRealized(CacheEntryKey(dk.first,cx));
     }
-    void markDiscreteVarUpdateValueRealized
-       (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(subsys,index);
+    void markDiscreteVarUpdateValueRealized(const DiscreteVarKey& dk) const {
+        const CacheEntryIndex cx = getDiscreteVarUpdateIndex(dk);
         SimTK_ERRCHK2(cx.isValid(), 
             "StateImpl::markDiscreteVarUpdateValueRealized()", 
             "Subsystem %d has a discrete variable %d but it does not have an"
-            " associated update cache variable.", (int)subsys, (int)index);
-        markCacheValueRealizedNoExtras(subsys, cx);
+            " associated update cache variable.", 
+            (int)dk.first, (int)dk.second);
+        markCacheValueRealized(CacheEntryKey(dk.first,cx));
     }
 
-    // You can update at any time a variable that was allocated during 
-    // realizeTopology(), but later variables must wait until you have done 
-    // realizeModel(). This always backs the stage up to one earlier than the 
+    // You can update a variable's value any time after it is allocated.
+    // This always backs the stage up to one earlier than the 
     // variable's "invalidates" stage, and if there is an auto-update cache 
     // entry it is also invalidated, regardless of its "depends on" stage.
+    // Any explicit dependent cache entries are also invalidated.
     AbstractValue& 
-    updDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) {
-        PerSubsystemInfo& ss = subsystems[subsys];
+    updDiscreteVariable(const DiscreteVarKey& dk) {
+        DiscreteVarInfo& dv = updDiscreteVarInfo(dk);
     
-        SimTK_INDEXCHECK(index,(int)ss.discreteInfo.size(),
-                         "StateImpl::updDiscreteVariable()");
-        DiscreteVarInfo& dv = ss.discreteInfo[index];
-
-        if (dv.getAllocationStage() > Stage::Topology) {
-            SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-                Stage::Model, "StateImpl::updDiscreteVariable()");
-        }
-    
+        // Invalidate the "invalidates" stage. (All subsystems and the system
+        // have their stage reduced to no higher than invalidates-1.)
         invalidateAll(dv.getInvalidatedStage());
 
         // Invalidate the auto-update entry, if any.
         const CacheEntryIndex cx = dv.getAutoUpdateEntry();
         if (cx.isValid()) {
-            CacheEntryInfo& ce = ss.cacheInfo[cx];
-            ce.invalidate();
+            CacheEntryInfo& ce = updCacheEntryInfo(CacheEntryKey(dk.first,cx));
+            ce.invalidate(*this);
         }
     
         // We're now marking this variable as having been updated at the 
-        // current time.
-        return dv.updValue(t);
+        // current time. Dependents get invalidated here.
+        return dv.updValue(*this, t);
+    }
+
+    bool hasCacheEntry(const CacheEntryKey& ck) const {
+        return getSubsystem(ck.first).hasCacheEntry(ck.second);
     }
 
     const CacheEntryInfo& 
-    getCacheEntryInfo(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];  
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
-                         "StateImpl::getCacheEntryInfo()");
-        return ss.cacheInfo[index];
+    getCacheEntryInfo(const CacheEntryKey& ck) const {
+        return getSubsystem(ck.first).getCacheEntryInfo(ck.second);
     }
 
     CacheEntryInfo&
-    updCacheEntryInfo(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];  
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
-                         "StateImpl::updCacheEntryInfo()");
-        return ss.cacheInfo[index]; // mutable
+    updCacheEntryInfo(const CacheEntryKey& ck) const {
+        return getSubsystem(ck.first).updCacheEntryInfo(ck.second);
     }
 
-    Stage getCacheEntryAllocationStage
-       (SubsystemIndex subsys, CacheEntryIndex index) const {
-        return getCacheEntryInfo(subsys,index).getAllocationStage();
+    Stage getCacheEntryAllocationStage(const CacheEntryKey& ck) const {
+        return getCacheEntryInfo(ck).getAllocationStage();
     } 
 
 
     // Stage >= ce.stage
-    // This method gets called a lot, so make it fast in Release mode.
-    // NOTE: can't use this method for cache entries with extra dependencies
-    // because it ignores them.
+    // This method gets called a lot, so make it fast in Release mode. Keep
+    // it small so it gets inlined.
     const AbstractValue& 
-    getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-        const PerSubsystemInfo& ss = subsystems[subsys];
-    
-        SimTK_INDEXCHECK(index,(int)ss.cacheInfo.size(),
-                         "StateImpl::getCacheEntry()");
-        const CacheEntryInfo& ce = ss.cacheInfo[index];
+    getCacheEntry(const CacheEntryKey& ck) const {
+        const CacheEntryInfo& ce = getCacheEntryInfo(ck);
 
-        SimTK_ASSERT(ce.getNumExtras()==0,
-            "State::getCacheEntry() must not be used for a cache entry "
-            "that has extra dependencies.");
-
-        // These two unconditional checks are somewhat expensive; I'm leaving
-        // them in though because they catch so many user errors.
-        // (sherm 20130222).
-        SimTK_STAGECHECK_GE_ALWAYS(ss.currentStage, 
-            ce.getDependsOnStage(), "StateImpl::getCacheEntry()");
-
-        if (ss.currentStage < ce.getComputedByStage()) {
-            const StageVersion currentDependsOnVersion = 
-                ss.stageVersions[ce.getDependsOnStage()];
-            const StageVersion lastCacheVersion = 
-                ce.getDependsOnVersionWhenLastComputed();
-
-            if (lastCacheVersion != currentDependsOnVersion) {
-                SimTK_THROW4(Exception::CacheEntryOutOfDate,
-                    ss.currentStage, ce.getDependsOnStage(), 
-                    currentDependsOnVersion, lastCacheVersion);
-            }
-        }
-
-        // If we get here then we're either past the "computed by" stage, or
-        // we're past "depends on" with an explicit validation having been made 
-        // at the "depends on" stage's current version.
-
+        if (!ce.isUpToDate(*this))
+            ce.throwHelpfulOutOfDateMessage(*this, __func__);
         return ce.getValue();
     }
     
     // You can access a cache entry for update any time after it has been
     // allocated. This does not affect the stage.
     AbstractValue& 
-    updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-        return updCacheEntryInfo(subsys, index).updValue();
+    updCacheEntry(const CacheEntryKey& ck) const {
+        return updCacheEntryInfo(ck).updValue(*this);
     }
 
-    bool isCacheValueRealizedNoExtras(SubsystemIndex subx, 
-                                      CacheEntryIndex cx) const {
-        const CacheEntryInfo& ce = getCacheEntryInfo(subx,cx);
-        return ce.isCurrentNoExtras(getSubsystemStage(subx), 
-                                    getSubsystemStageVersions(subx));
+    bool isCacheValueRealized(const CacheEntryKey& ck) const {
+        const CacheEntryInfo& ce = getCacheEntryInfo(ck);
+        return ce.isUpToDate(*this);
     }
 
-    bool isCacheValueRealizedWithExtras(SubsystemIndex subx, CacheEntryIndex cx,
-                                        unsigned numExtras, 
-                                        const StageVersion* extraVersions,
-                                        StageVersion& cacheValueVersion) const
-    {
-        const CacheEntryInfo& ce = getCacheEntryInfo(subx,cx);
-        return ce.isCurrentWithExtras(getSubsystemStage(subx), 
-                                      getSubsystemStageVersions(subx),
-                                      numExtras, extraVersions,
-                                      cacheValueVersion);
-    }
-
-    void markCacheValueRealizedNoExtras(SubsystemIndex subx, 
-                                        CacheEntryIndex cx) const {
-        CacheEntryInfo& ce = updCacheEntryInfo(subx,cx);
+    void markCacheValueRealized(const CacheEntryKey& ck) const {
+        CacheEntryInfo& ce = updCacheEntryInfo(ck);
     
-        // If this cache entry depends on anything, it can't be valid unless 
+        // This cache entry can't be valid unless 
         // we're at least *working* on its depends-on stage, meaning the current
         // stage would have to be the one before that. The depends-on stage is 
         // required to be at least Stage::Topology, so its prev() stage exists.
-        SimTK_STAGECHECK_GE(getSubsystemStage(subx), 
+        SimTK_STAGECHECK_GE(getSubsystemStage(ck.first), 
                             ce.getDependsOnStage().prev(), 
                             "StateImpl::markCacheValueRealized()");
 
-        ce.markAsComputedNoExtras(getSubsystemStageVersions(subx));
+        ce.markAsUpToDate(*this);
     }
 
-
-    void markCacheValueRealizedWithExtras
-       (SubsystemIndex subx, CacheEntryIndex cx,
-        unsigned numExtras, const StageVersion* extraVersions) const
-    {
-        CacheEntryInfo& ce = updCacheEntryInfo(subx,cx);
-    
-        // If this cache entry depends on anything, it can't be valid unless 
-        // we're at least *working* on its depends-on stage, meaning the current
-        // stage would have to be the one before that. The depends-on stage is 
-        // required to be at least Stage::Topology, so its prev() stage exists.
-        SimTK_STAGECHECK_GE(getSubsystemStage(subx), 
-                            ce.getDependsOnStage().prev(), 
-                            "StateImpl::markCacheValueRealized()");
-
-        ce.markAsComputedWithExtras(getSubsystemStageVersions(subx),
-                                    numExtras, extraVersions);
-    }
-
-    void markCacheValueNotRealized
-       (SubsystemIndex subx, CacheEntryIndex cx) const {
-        CacheEntryInfo& ce = updCacheEntryInfo(subx,cx);
-        ce.invalidate();
+    void markCacheValueNotRealized(const CacheEntryKey& ck) const {
+        CacheEntryInfo& ce = updCacheEntryInfo(ck);
+        ce.invalidate(*this);
     }
 
     StageVersion getSystemTopologyStageVersion() const
@@ -1912,10 +2083,17 @@ public:
                                                : g; // 1st unrealized stage
     }
 
-    StageVersion getTimeStageVersion() const {return tVersion;}
-    StageVersion getQStageVersion()    const {return qVersion;}
-    StageVersion getUStageVersion()    const {return uVersion;}
-    StageVersion getZStageVersion()    const {return zVersion;}
+    StageVersion getQValueVersion() const {return qVersion;}
+    StageVersion getUValueVersion() const {return uVersion;}
+    StageVersion getZValueVersion() const {return zVersion;}
+
+    const DependentList& getQDependents() const {return qDependents;}
+    const DependentList& getUDependents() const {return uDependents;}
+    const DependentList& getZDependents() const {return zDependents;}
+
+    DependentList& updQDependents() {return qDependents;}
+    DependentList& updUDependents() {return uDependents;}
+    DependentList& updZDependents() {return zDependents;}
 
     void autoUpdateDiscreteVariables();
     
@@ -1923,14 +2101,10 @@ public:
     String cacheToString() const;
 
 private:
-    void initializeStageVersions() {
-        // For stages, the version is always the one that will be there when
-        // the stage is next realized.
-        for (int i=0; i < Stage::NValid; ++i)
-            systemStageVersions[i] = 1; // never 0
-        // For states, the version is set to 1 when initialized.
-        tVersion = qVersion = uVersion = zVersion = 0; // invalid
-    }
+    // This is the guts of copy construction and copy assignment which have to
+    // be done carefully to manage what gets copied and whether the resulting
+    // cache entries are valid.
+    void copyFrom(const StateImpl& source);
 
     // Make sure that no cache entry copied from src could accidentally think
     // it was up to date, by setting all the version counters higher than
@@ -1939,32 +2113,58 @@ private:
     void invalidateCopiedStageVersions(const StateImpl& src) {
         for (int i=1; i <= src.currentSystemStage; ++i)
             systemStageVersions[i] = src.systemStageVersions[i]+1;
-        tVersion = src.tVersion+1;
-        qVersion = src.qVersion+1;
-        uVersion = src.uVersion+1;
-        zVersion = src.zVersion+1;
+
+        qVersion = src.qVersion + 1;
+        uVersion = src.uVersion + 1;
+        zVersion = src.zVersion + 1;
+
+        qDependents.clear(); // these shouldn't copy
+        uDependents.clear();
+        zDependents.clear();
     }
 
-    // Bump modifictation version numbers for state variables.
-    void noteTimeChange()   {++tVersion;}
-    void noteQChange()      {++qVersion;}
-    void noteUChange()      {++uVersion;}
-    void noteZChange()      {++zVersion;}
-    void noteYChange()      {noteQChange();noteUChange();noteZChange();}
+    // After we have copied variables and cache entries from another state into
+    // this one, all variable and cache entry dependency lists are empty. Any
+    // cache entry with prerequisites must register itself now.
+    void registerWithPrerequisitesAfterCopy() {
+        for (auto& subsys : subsystems) {
+            for (auto& ce : subsys.cacheInfo)
+                ce.registerWithPrerequisites(*this);
+        }
+    }
 
 private:
+    // Bump modification version numbers for state variables and notify their
+    // dependents.
+    void noteQChange() 
+    {   ++qVersion; qDependents.notePrerequisiteChange(*this); }
+    void noteUChange() 
+    {   ++uVersion; uDependents.notePrerequisiteChange(*this); }
+    void noteZChange() 
+    {   ++zVersion; zDependents.notePrerequisiteChange(*this); }
+
+    void noteYChange() {noteQChange();noteUChange();noteZChange();}
+
+    // Return true only if all subsystems are realized to at least Stage g.
+    bool allSubsystemsAtLeastAtStage(Stage g) const {
+        for (SubsystemIndex i(0); i < (int)subsystems.size(); ++i)
+            if (subsystems[i].currentStage < g)
+                return false;
+        return true;
+    }
+
+private:
+        // Subsystem support //
+
+    Array_<PerSubsystemInfo> subsystems;
+
         // Shared global resource State variables //
-    // State specific mutex that will be locked by external methods whenever
-    // such external methods are performing non-thread-safe operations involving
-    // the state.
-    mutable std::mutex stateLock;
 
     // We consider time t to be a state variable allocated at Topology stage,
     // with its "invalidated" stage Stage::Time. The value of t is NaN in an 
     // Empty State, and is initialized to zero when the System stage advances
     // to Stage::Topology (i.e., when the System is realized to stage Topology).
     Real            t{NaN};         // no value until Topology stage
-    StageVersion    tVersion{0};    // 0 is never valid
 
     // The continuous state variables are allocated at Model stage, and given
     // their specified initial values when the System stage advances to
@@ -1976,13 +2176,21 @@ private:
     Vector          u; // Stage::Velocity continuous variables
     Vector          z; // Stage::Dynamics continuous variables
 
-        // These counters are bumped whenever the corresponding variable is
-        // requested for write access. updY() bumps all three counters.
-    StageVersion    qVersion{0};    // 0 is never valid
-    StageVersion    uVersion{0};    // 0 is never valid
-    StageVersion    zVersion{0};    // 0 is never valid
+    // These version numbers are incremented whenever the corresponding variable
+    // is handed out with write access. updY() increments all three versions.
+    StageVersion    qVersion{1};
+    StageVersion    uVersion{1};
+    StageVersion    zVersion{1};
 
-        // These are not views; there are no qWeights.
+    // These lists are notified whenever the corresponding variable is requested
+    // for write access. updY() notifies all three lists. These do not
+    // get copied when state copying is done; cache entries must re-register
+    // with their prerequisites after a copy.
+    DependentList   qDependents;
+    DependentList   uDependents;
+    DependentList   zDependents;
+
+        // These are not views; there are no qWeights (because qdot=N*u).
     Vector          uWeights; // scaling for u
     Vector          zWeights; // scaling for z
 
@@ -2032,24 +2240,69 @@ private:
 
     // These are views into allTriggers.
     mutable Vector  triggers[Stage::NValid];
-    
 
-        // Subsystem support //
-
-    // Subsystem 0 (always present) is for the System as a whole. Its name
-    // and version are the System name and version.
-    Array_<PerSubsystemInfo> subsystems;
-
-    // Return true only if all subsystems are realized to at least Stage g.
-    bool allSubsystemsAtLeastAtStage(Stage g) const {
-        for (SubsystemIndex i(0); i < (int)subsystems.size(); ++i)
-            if (subsystems[i].currentStage < g)
-                return false;
-        return true;
-    }
+    // State specific mutex that should be locked by external methods whenever
+    // they are performing non-thread-safe operations involving the state.
+    // This is not copied when a State is copied or assigned; each State object
+    // has its own mutex.
+    mutable std::mutex stateLock;
 
 };
 
+//==============================================================================
+//                      DEPENDENT LIST IMPLEMENTATIONS
+//==============================================================================
+inline void DependentList::
+notePrerequisiteChange(const StateImpl& stateImpl) const {
+    for (auto ckey : m_dependents) {
+        // Cache entries are mutable.
+        CacheEntryInfo& ce = stateImpl.updCacheEntryInfo(ckey);
+        ce.invalidate(stateImpl);
+    }
+}
+
+//==============================================================================
+//               CACHE ENTRY INFO :: INLINE IMPLEMENTATIONS
+//==============================================================================
+SimTK_FORCE_INLINE bool CacheEntryInfo::
+isUpToDate(const StateImpl& stateImpl) const {
+    const PerSubsystemInfo& subsys = stateImpl.getSubsystem(m_myKey.first);
+    assert(&subsys.getCacheEntryInfo(m_myKey.second) == this);
+    if (subsys.getCurrentStage() >= m_computedByStage) 
+        return true;    // guaranteed to have been computed by now
+    if (subsys.getCurrentStage() <  m_dependsOnStage)  
+        return false;   // can't have been computed yet
+
+    // Stage is OK; is valid if the depends-on stage version hasn't 
+    // changed and if no prerequisite invalidated this.
+    const StageVersion version = subsys.getStageVersion(m_dependsOnStage);
+    assert(version >= 1);
+    if (!(   version == m_dependsOnVersionWhenLastComputed
+            && m_isUpToDateWithPrerequisites))
+        return false;
+
+    // This entry is allegedly up to date. In Debug we'll double check.
+    #ifndef NDEBUG
+    validatePrerequisiteVersions(stateImpl);
+    #endif
+    return true;
+}
+
+inline void CacheEntryInfo::
+markAsUpToDate(const StateImpl& stateImpl) {
+    const PerSubsystemInfo& subsys = stateImpl.getSubsystem(m_myKey.first);
+    assert(&subsys.getCacheEntryInfo(m_myKey.second) == this);
+    const StageVersion version = subsys.getStageVersion(m_dependsOnStage);
+    assert(version >= 1);
+    m_dependsOnVersionWhenLastComputed = version;
+    m_isUpToDateWithPrerequisites = true;
+
+    // In Debug we'll record versions for all the prerequisites so we
+    // can double check later in isUpToDate().
+    #ifndef NDEBUG
+    recordPrerequisiteVersions(stateImpl);
+    #endif
+}
 
 //==============================================================================
 //                   INLINE IMPLEMENTATIONS OF STATE METHODS
@@ -2144,53 +2397,54 @@ allocateAutoUpdateDiscreteVariable
 inline CacheEntryIndex State::
 getDiscreteVarUpdateIndex
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().getDiscreteVarUpdateIndex(subsys, index);
+    return getImpl().getDiscreteVarUpdateIndex(DiscreteVarKey(subsys,index));
 }
 inline Stage State::
 getDiscreteVarAllocationStage
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().getDiscreteVarAllocationStage(subsys, index);
+    return getImpl().getDiscreteVarAllocationStage(DiscreteVarKey(subsys,index));
 }
 inline Stage State::
 getDiscreteVarInvalidatesStage
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().getDiscreteVarInvalidatesStage(subsys, index);
+    return getImpl().getDiscreteVarInvalidatesStage(DiscreteVarKey(subsys,index));
 }
 
 inline const AbstractValue& State::
 getDiscreteVariable(SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().getDiscreteVariable(subsys, index);
+    return getImpl().getDiscreteVariable(DiscreteVarKey(subsys,index));
 }
 inline Real State::
 getDiscreteVarLastUpdateTime
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().getDiscreteVarLastUpdateTime(subsys, index);
+    return getImpl().getDiscreteVarLastUpdateTime(DiscreteVarKey(subsys,index));
 }
 inline const AbstractValue& State::
 getDiscreteVarUpdateValue
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().getDiscreteVarUpdateValue(subsys, index);
+    return getImpl().getDiscreteVarUpdateValue(DiscreteVarKey(subsys,index));
 }
 inline AbstractValue& State::
 updDiscreteVarUpdateValue
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().updDiscreteVarUpdateValue(subsys, index);
+    return getImpl().updDiscreteVarUpdateValue(DiscreteVarKey(subsys,index));
 }
 inline bool State::
 isDiscreteVarUpdateValueRealized
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    return getImpl().isDiscreteVarUpdateValueRealized(subsys, index);
+    return getImpl().isDiscreteVarUpdateValueRealized
+                                                (DiscreteVarKey(subsys,index));
 }
 inline void State::
 markDiscreteVarUpdateValueRealized
    (SubsystemIndex subsys, DiscreteVariableIndex index) const {
-    getImpl().markDiscreteVarUpdateValueRealized(subsys, index);
+    getImpl().markDiscreteVarUpdateValueRealized(DiscreteVarKey(subsys,index));
 }
 
 inline AbstractValue& State::
 updDiscreteVariable
    (SubsystemIndex subsys, DiscreteVariableIndex index) {
-    return updImpl().updDiscreteVariable(subsys, index);
+    return updImpl().updDiscreteVariable(DiscreteVarKey(subsys,index));
 }
 inline void State::
 setDiscreteVariable
@@ -2201,54 +2455,47 @@ setDiscreteVariable
 // Cache Entries
 inline CacheEntryIndex State::
 allocateCacheEntry(SubsystemIndex subsys, Stage dependsOn, Stage computedBy, 
-                   AbstractValue* value, unsigned numExtras) const {
-    return getImpl().allocateCacheEntry(subsys, dependsOn, computedBy, 
-                                        value, numExtras);
+                   AbstractValue* value) const {
+    return getImpl().allocateCacheEntry(subsys, dependsOn, computedBy, value);
+}
+
+inline CacheEntryIndex State::
+allocateCacheEntryWithPrerequisites
+   (SubsystemIndex subsys, Stage earliest, Stage latest,
+    bool q, bool u, bool z,
+    const Array_<DiscreteVarKey>& discreteVars,
+    const Array_<CacheEntryKey>& cacheEntries,
+    AbstractValue* value) {
+    return updImpl().allocateCacheEntryWithPrerequisites
+       (subsys, earliest, latest, q, u, z, discreteVars, cacheEntries, value);
 }
 
 inline Stage State::
 getCacheEntryAllocationStage(SubsystemIndex subsys, CacheEntryIndex index) const {
-    return getImpl().getCacheEntryAllocationStage(subsys, index);
+    return getImpl().getCacheEntryAllocationStage(CacheEntryKey(subsys,index));
 }
 inline const AbstractValue& State::
 getCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-    return getImpl().getCacheEntry(subsys, index);
+    return getImpl().getCacheEntry(CacheEntryKey(subsys,index));
 }
 inline AbstractValue& State::
 updCacheEntry(SubsystemIndex subsys, CacheEntryIndex index) const {
-    return getImpl().updCacheEntry(subsys, index);
+    return getImpl().updCacheEntry(CacheEntryKey(subsys,index));
 }
 
 inline bool State::
 isCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-    return getImpl().isCacheValueRealizedNoExtras(subx, cx); 
-}
-inline bool State::
-isCacheValueRealizedWithExtras(SubsystemIndex subx, CacheEntryIndex cx,
-                               unsigned numExtras, 
-                               const StageVersion* extraVersions,
-                               StageVersion& cacheValueVersion) const {
-    return getImpl().isCacheValueRealizedWithExtras(subx, cx, 
-                                                    numExtras, extraVersions,
-                                                    cacheValueVersion); 
+    return getImpl().isCacheValueRealized(CacheEntryKey(subx,cx)); 
 }
 
 inline void State::
 markCacheValueRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-    getImpl().markCacheValueRealizedNoExtras(subx, cx); 
-}
-
-inline void State::
-markCacheValueRealizedWithExtras(SubsystemIndex subx, CacheEntryIndex cx,
-                                 unsigned numExtras, 
-                                 const StageVersion* extraVersions) const {
-    getImpl().markCacheValueRealizedWithExtras(subx, cx, 
-                                               numExtras, extraVersions); 
+    getImpl().markCacheValueRealized(CacheEntryKey(subx,cx)); 
 }
 
 inline void State::
 markCacheValueNotRealized(SubsystemIndex subx, CacheEntryIndex cx) const {
-    getImpl().markCacheValueNotRealized(subx, cx); 
+    getImpl().markCacheValueNotRealized(CacheEntryKey(subx,cx)); 
 }
 
 inline std::mutex& State::getStateLock() const {
@@ -2622,32 +2869,51 @@ getLowestSystemStageDifference(const Array_<StageVersion>& prev) const {
     return getImpl().getLowestSystemStageDifference(prev); 
 }
 
-inline StageVersion State::getTimeStageVersion() const {
-    return getImpl().getTimeStageVersion();
+inline StageVersion State::getQValueVersion() const {
+    return getImpl().getQValueVersion();
 }
 
-inline StageVersion State::getQStageVersion() const {
-    return getImpl().getQStageVersion();
+inline StageVersion State::getUValueVersion() const {
+    return getImpl().getUValueVersion();
 }
 
-inline StageVersion State::getUStageVersion() const {
-    return getImpl().getUStageVersion();
+inline StageVersion State::getZValueVersion() const {
+    return getImpl().getZValueVersion();
 }
 
-inline StageVersion State::getZStageVersion() const {
-    return getImpl().getZStageVersion();
+inline const DependentList& State::getQDependents() const {
+    return getImpl().getQDependents();
+}
+
+inline const DependentList& State::getUDependents() const {
+    return getImpl().getUDependents();
+}
+
+inline const DependentList& State::getZDependents() const {
+    return getImpl().getZDependents();
+}
+
+inline bool State::hasCacheEntry(const CacheEntryKey& cacheEntry) const {
+    return getImpl().hasCacheEntry(cacheEntry);
 }
 
 inline const CacheEntryInfo& State::
-getCacheEntryInfo(SubsystemIndex subx, CacheEntryIndex cachex) const {
-    return getImpl().getCacheEntryInfo(subx, cachex);
+getCacheEntryInfo(const CacheEntryKey& cacheEntry) const {
+    return getImpl().getCacheEntryInfo(cacheEntry);
 }
 
-/** (Advanced) Return a reference to the discrete variable information for a 
-particular discrete variable. **/
+inline CacheEntryInfo& State::
+updCacheEntryInfo(const CacheEntryKey& cacheEntry) {
+    return updImpl().updCacheEntryInfo(cacheEntry);
+}
+
+inline bool State::hasDiscreteVar(const DiscreteVarKey& discreteVar) const {
+    return getImpl().hasDiscreteVar(discreteVar);
+}
+
 inline const DiscreteVarInfo& State::
-getDiscreteVarInfo(SubsystemIndex subx, DiscreteVariableIndex dvx) const {
-    return getImpl().getDiscreteVarInfo(subx, dvx);
+getDiscreteVarInfo(const DiscreteVarKey& discreteVar) const {
+    return getImpl().getDiscreteVarInfo(discreteVar);
 }
 
 inline const PerSubsystemInfo& State::
