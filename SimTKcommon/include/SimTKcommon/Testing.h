@@ -112,6 +112,12 @@ namespace SimTK {
  *      SimTK_TEST_MUST_THROW_EXC(statement, exception) -- we expect a particular exception type
  *      SimTK_TEST_MUST_THROW_DEBUG(statement)  -- same as above but only checked in Debug builds
  *      SimTK_TEST_MUST_THROW_EXC_DEBUG(statement, exception) -- ditto
+ *
+ *      #define SimTK_TEST_SUPPRESS_MUST_THROW 
+ *          -- Define this temporarily at top of test programs to make it 
+ *             easier to locate an *unexpected* exception while debugging. It
+ *             simply disables the "MUST_THROW" macros so you don't have to wade
+ *             through them in the debugger to get to the actual problem.
  * </pre>
  * The SimTK_TEST_EQ macros test scalar and composite numerical values for
  * equality to within a numerical tolerance, using both relative
@@ -553,6 +559,7 @@ private:
     {SimTK_ASSERT1_ALWAYS(!SimTK::Test::numericallyEqual((v1),(v2),1,(tol)),   \
      "Test values should NOT have been numerically equivalent at tolerance=%g.",(tol));}
 
+#ifndef SimTK_TEST_SUPPRESS_EXPECTED_THROW
 /// Test that the supplied statement throws an std::exception of some kind.
 #define SimTK_TEST_MUST_THROW(stmt)             \
     do {int threw=0; try {stmt;}                \
@@ -616,8 +623,15 @@ private:
     #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc) \
                 SimTK_TEST_MUST_THROW_EXC(stmt,exc)
 #endif
-
-
+#else // expected throws are suppressed
+#define SimTK_TEST_MUST_THROW(stmt)
+#define SimTK_TEST_MUST_THROW_SHOW(stmt)
+#define SimTK_TEST_MUST_THROW_EXC(stmt,exc)
+#define SimTK_TEST_MAY_THROW(stmt)
+#define SimTK_TEST_MAY_THROW_EXC(stmt,exc)
+#define SimTK_TEST_MUST_THROW_DEBUG(stmt)
+#define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc)
+#endif
 
 
 //  End of Regression testing group.
