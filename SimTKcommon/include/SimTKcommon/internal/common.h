@@ -260,7 +260,7 @@ cache misses which ultimately reduce performance. */
 #ifdef _MSC_VER
     #define SimTK_FORCE_INLINE __forceinline
 #else
-    #define SimTK_FORCE_INLINE __attribute__((always_inline))
+    #define SimTK_FORCE_INLINE __attribute__((always_inline)) inline
 #endif
 
 /* Microsoft added noexcept in VS2015 */
