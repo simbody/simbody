@@ -36,7 +36,7 @@ contain any user-visible objects. **/
 namespace SimTK {
 
 //==============================================================================
-//                             DEPENDENT LIST
+//                           LIST OF DEPENDENTS
 //==============================================================================
 /* This class contains a set of downstream cache entries that are dependent 
 on the value of some prerequisite that is the owner of this object. 
@@ -56,10 +56,10 @@ any of it upstream cache prerequisites. That way it is guaranteed to be
 implicitly invalidated whenever any of its upstream prerequisites are.
 
 The dependents are expected to know their prerequisites so that they can
-remove themselves from any DependentLists they are on when deleted; and so 
-that they can be registered on the appropriate DependentLists when copied.
+remove themselves from any lists of dependents they are on when deleted; and so 
+that they can be registered on the appropriate lists of dependents when copied.
 */
-class DependentList {
+class ListOfDependents {
     using CacheList = Array_<CacheEntryKey>;
 public:
     using size_type      = CacheList::size_type;
@@ -86,7 +86,7 @@ public:
     // running so we'll leave the asserts in Release builds.
     bool contains(const CacheEntryKey& ck) const {
         SimTK_ASSERT2_ALWAYS(isCacheEntryKeyValid(ck),
-            "DependentList::contains(): invalid cache key (%d,%d).",
+            "ListOfDependents::contains(): invalid cache key (%d,%d).",
             (int)ck.first, (int)ck.second);
         return std::find(cbegin(), cend(), ck) != cend(); 
     }
@@ -97,8 +97,8 @@ public:
     // so we'll leave the assert in Release builds.
     void addDependent(const CacheEntryKey& ck) {
         SimTK_ASSERT2_ALWAYS(!contains(ck),
-            "DependentList::addDependent(): Cache entry (%d,%d) was already "
-            "present in the dependent list.",
+            "ListOfDependents::addDependent(): Cache entry (%d,%d) was already "
+            "present in the list of dependents.",
             (int)ck.first, (int)ck.second);
         m_dependents.push_back(ck);
     }
@@ -107,17 +107,17 @@ public:
     inline void notePrerequisiteChange(const StateImpl& stateImpl) const;
 
     // When a cache entry gets de-allocated, it will call this method to
-    // remove itself from any dependent lists it is on. This doesn't happen
+    // remove itself from any lists of dependents it is on. This doesn't happen
     // often so keep the asserts in Release.
     void removeDependent(const CacheEntryKey& ck) {
         SimTK_ASSERT2_ALWAYS(isCacheEntryKeyValid(ck),
-            "DependentList::removeDependent(): invalid cache key (%d,%d).",
+            "ListOfDependents::removeDependent(): invalid cache key (%d,%d).",
             (int)ck.first, (int)ck.second);
 
         auto p = std::find(begin(), end(), ck);
         SimTK_ASSERT2_ALWAYS(p!=m_dependents.end(),
-            "DependentList::removeDependent(): Cache entry (%d,%d) to be "
-            "removed should have been present in the dependent list.",
+            "ListOfDependents::removeDependent(): Cache entry (%d,%d) to be "
+            "removed should have been present in the list of dependents.",
             (int)ck.first, (int)ck.second);
         m_dependents.erase(p);
     }
@@ -194,7 +194,7 @@ public:
        m_dependents.notePrerequisiteChange(stateImpl);
        return *m_value; 
     }
-    StageVersion getValueVersion() const {return m_valueVersion;}
+    ValueVersion getValueVersion() const {return m_valueVersion;}
     Real getTimeLastUpdated() const 
     {   assert(m_value); return m_timeLastUpdated; }
 
@@ -202,8 +202,8 @@ public:
     CacheEntryIndex getAutoUpdateEntry()  const {return m_autoUpdateEntry;}
     void setAutoUpdateEntry(CacheEntryIndex cx) {m_autoUpdateEntry = cx;}
 
-    const DependentList& getDependents() const {return m_dependents;}
-    DependentList& updDependents() {return m_dependents;}
+    const ListOfDependents& getDependents() const {return m_dependents;}
+    ListOfDependents& updDependents() {return m_dependents;}
 
 private:
     // These are fixed at construction.
@@ -215,11 +215,11 @@ private:
     // this variable is a prerequisite. This list gets forgotten if we
     // copy this variable; copied cache entries (if any) have to re-register
     // themselves.
-    ResetOnCopy<DependentList>      m_dependents;
+    ResetOnCopy<ListOfDependents>   m_dependents;
 
     // These change at run time.
     ClonePtr<AbstractValue>         m_value;
-    StageVersion                    m_valueVersion{1};
+    ValueVersion                    m_valueVersion{1};
     Real                            m_timeLastUpdated{NaN};
 
     bool isReasonable() const
@@ -290,13 +290,13 @@ public:
         return *this;
     }
 
-    // Add this cache entry to the dependent lists of its prerequisites in
+    // Add this cache entry to the lists of dependents of its prerequisites in
     // the containing State. If there are no prerequisites the "is up to date
     // with prerequisites" flag is set true, otherwise it is set false and
     // requires an explicit markAsUpToDate() call to be valid.
     void registerWithPrerequisites(StateImpl&);
 
-    // Remove this cache entry from the dependent lists of its prerequisites
+    // Remove this cache entry from the lists of dependents of its prerequisites
     // in the containing State. This is invoked on destruction. It is possible
     // that a prerequisite has already been destructed; that's not an error
     // because we don't attempt to destruct dependents before their 
@@ -363,7 +363,7 @@ public:
        assert(m_value); 
        return *m_value; 
     }
-    StageVersion getValueVersion() const {return m_valueVersion;}
+    ValueVersion getValueVersion() const {return m_valueVersion;}
 
     // Recall the stage version number of this CacheEntry's owner Subsystem's 
     // depends-on stage as it was at last realization of this entry.
@@ -394,8 +394,8 @@ public:
     void validatePrerequisiteVersions(const StateImpl&) const;
     #endif
 
-    const DependentList& getDependents() const {return m_dependents;}
-    DependentList& updDependents() {return m_dependents;}
+    const ListOfDependents& getDependents() const {return m_dependents;}
+    ListOfDependents& updDependents() {return m_dependents;}
 
 private:
     // These are fixed at construction.
@@ -418,14 +418,14 @@ private:
     // explicitly invalidated (not when dependsOn stage gets invalidated).
     // This is not copied if the cache entry is copied; copied dependents
     // if any have to re-register themselves.
-    ResetOnCopy<DependentList>  m_dependents;
+    ResetOnCopy<ListOfDependents> m_dependents;
 
     // These change at run time. Initially assume we don't have any
     // prerequisites so we are up to date with respect to them. We'll change
     // the initial value to false in registerWithPrerequisites() if there
     // are some.
     ClonePtr<AbstractValue>     m_value;
-    StageVersion                m_valueVersion{1};
+    ValueVersion                m_valueVersion{1};
     StageVersion                m_dependsOnVersionWhenLastComputed{0};
     bool                        m_isUpToDateWithPrerequisites{true};
 
@@ -435,9 +435,9 @@ private:
     // can double check that the "is up to date with prerequisites" flag is
     // set correctly.
     #ifndef NDEBUG
-    StageVersion                m_qVersion{0}, m_uVersion{0}, m_zVersion{0};
-    Array_<StageVersion>        m_discreteVarVersions;
-    Array_<StageVersion>        m_cacheEntryVersions;
+    ValueVersion                m_qVersion{0}, m_uVersion{0}, m_zVersion{0};
+    Array_<ValueVersion>        m_discreteVarVersions;
+    Array_<ValueVersion>        m_cacheEntryVersions;
     #endif
 
     bool isReasonable() const {
@@ -447,7 +447,7 @@ private:
             && (m_computedByStage >= m_dependsOnStage)
             && (m_value != nullptr)
             && (m_dependsOnVersionWhenLastComputed >= 0)
-            && (DependentList::isCacheEntryKeyValid(m_myKey)); 
+            && (ListOfDependents::isCacheEntryKeyValid(m_myKey)); 
     }
 };
 
@@ -2083,17 +2083,17 @@ public:
                                                : g; // 1st unrealized stage
     }
 
-    StageVersion getQValueVersion() const {return qVersion;}
-    StageVersion getUValueVersion() const {return uVersion;}
-    StageVersion getZValueVersion() const {return zVersion;}
+    ValueVersion getQValueVersion() const {return qVersion;}
+    ValueVersion getUValueVersion() const {return uVersion;}
+    ValueVersion getZValueVersion() const {return zVersion;}
 
-    const DependentList& getQDependents() const {return qDependents;}
-    const DependentList& getUDependents() const {return uDependents;}
-    const DependentList& getZDependents() const {return zDependents;}
+    const ListOfDependents& getQDependents() const {return qDependents;}
+    const ListOfDependents& getUDependents() const {return uDependents;}
+    const ListOfDependents& getZDependents() const {return zDependents;}
 
-    DependentList& updQDependents() {return qDependents;}
-    DependentList& updUDependents() {return uDependents;}
-    DependentList& updZDependents() {return zDependents;}
+    ListOfDependents& updQDependents() {return qDependents;}
+    ListOfDependents& updUDependents() {return uDependents;}
+    ListOfDependents& updZDependents() {return zDependents;}
 
     void autoUpdateDiscreteVariables();
     
@@ -2178,17 +2178,17 @@ private:
 
     // These version numbers are incremented whenever the corresponding variable
     // is handed out with write access. updY() increments all three versions.
-    StageVersion    qVersion{1};
-    StageVersion    uVersion{1};
-    StageVersion    zVersion{1};
+    ValueVersion    qVersion{1};
+    ValueVersion    uVersion{1};
+    ValueVersion    zVersion{1};
 
     // These lists are notified whenever the corresponding variable is requested
     // for write access. updY() notifies all three lists. These do not
     // get copied when state copying is done; cache entries must re-register
     // with their prerequisites after a copy.
-    DependentList   qDependents;
-    DependentList   uDependents;
-    DependentList   zDependents;
+    ListOfDependents   qDependents;
+    ListOfDependents   uDependents;
+    ListOfDependents   zDependents;
 
         // These are not views; there are no qWeights (because qdot=N*u).
     Vector          uWeights; // scaling for u
@@ -2250,9 +2250,9 @@ private:
 };
 
 //==============================================================================
-//                      DEPENDENT LIST IMPLEMENTATIONS
+//                   LIST OF DEPENDENTS :: IMPLEMENTATIONS
 //==============================================================================
-inline void DependentList::
+inline void ListOfDependents::
 notePrerequisiteChange(const StateImpl& stateImpl) const {
     for (auto ckey : m_dependents) {
         // Cache entries are mutable.
@@ -2262,7 +2262,7 @@ notePrerequisiteChange(const StateImpl& stateImpl) const {
 }
 
 //==============================================================================
-//               CACHE ENTRY INFO :: INLINE IMPLEMENTATIONS
+//                 CACHE ENTRY INFO :: INLINE IMPLEMENTATIONS
 //==============================================================================
 SimTK_FORCE_INLINE bool CacheEntryInfo::
 isUpToDate(const StateImpl& stateImpl) const {
@@ -2869,27 +2869,27 @@ getLowestSystemStageDifference(const Array_<StageVersion>& prev) const {
     return getImpl().getLowestSystemStageDifference(prev); 
 }
 
-inline StageVersion State::getQValueVersion() const {
+inline ValueVersion State::getQValueVersion() const {
     return getImpl().getQValueVersion();
 }
 
-inline StageVersion State::getUValueVersion() const {
+inline ValueVersion State::getUValueVersion() const {
     return getImpl().getUValueVersion();
 }
 
-inline StageVersion State::getZValueVersion() const {
+inline ValueVersion State::getZValueVersion() const {
     return getImpl().getZValueVersion();
 }
 
-inline const DependentList& State::getQDependents() const {
+inline const ListOfDependents& State::getQDependents() const {
     return getImpl().getQDependents();
 }
 
-inline const DependentList& State::getUDependents() const {
+inline const ListOfDependents& State::getUDependents() const {
     return getImpl().getUDependents();
 }
 
-inline const DependentList& State::getZDependents() const {
+inline const ListOfDependents& State::getZDependents() const {
     return getImpl().getZDependents();
 }
 

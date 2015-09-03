@@ -159,7 +159,7 @@ class StateImpl;
 class PerSubsystemInfo;
 class DiscreteVarInfo;
 class CacheEntryInfo;
-class DependentList;
+class ListOfDependents;
 
 using CacheEntryKey = std::pair<SubsystemIndex,CacheEntryIndex>;
 using DiscreteVarKey = std::pair<SubsystemIndex,DiscreteVariableIndex>;
@@ -1117,34 +1117,34 @@ was created. This has no effect on the realization level.
 **/
 inline void setSystemTopologyStageVersion(StageVersion topoVersion);
 
-/** (Advanced) Return a StageVersion for q, meaning an integer that is
+/** (Advanced) Return a ValueVersion for q, meaning an integer that is
 incremented whenever any q is changed (or more precisely whenever q or y is
 returned with writable access). Will be 1 or greater if q has been
 allocated. **/
-inline StageVersion getQValueVersion() const;
-/** (Advanced) Return a StageVersion for u, meaning an integer that is
+inline ValueVersion getQValueVersion() const;
+/** (Advanced) Return a ValueVersion for u, meaning an integer that is
 incremented whenever any u is changed (or more precisely whenever u or y is
 returned with writable access). Will be 1 or greater if u has been
 allocated. **/
-inline StageVersion getUValueVersion() const;
-/** (Advanced) Return a StageVersion for z, meaning an integer that is
+inline ValueVersion getUValueVersion() const;
+/** (Advanced) Return a ValueVersion for z, meaning an integer that is
 incremented whenever any z is changed (or more precisely whenever z or y is
 returned with writable access). Will be 1 or greater if z has been
 allocated. **/
-inline StageVersion getZValueVersion() const;
+inline ValueVersion getZValueVersion() const;
 
 /** (Advanced) Return the list of cache entries for which q was specified
 as an explicit prerequisite. 
 @see allocateCacheEntryWithPrerequisites() **/
-inline const DependentList& getQDependents() const;
+inline const ListOfDependents& getQDependents() const;
 /** (Advanced) Return the list of cache entries for which u was specified
 as an explicit prerequisite. 
 @see allocateCacheEntryWithPrerequisites() **/
-inline const DependentList& getUDependents() const;
+inline const ListOfDependents& getUDependents() const;
 /** (Advanced) Return the list of cache entries for which z was specified
 as an explicit prerequisite. 
 @see allocateCacheEntryWithPrerequisites() **/
-inline const DependentList& getZDependents() const;
+inline const ListOfDependents& getZDependents() const;
 
 /** (Advanced) Check whether this %State has a particular cache entry. **/
 inline bool hasCacheEntry(const CacheEntryKey& cacheEntry) const;
