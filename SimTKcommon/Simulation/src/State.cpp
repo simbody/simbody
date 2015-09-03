@@ -433,7 +433,7 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
     if (currentSystemStage >= Stage::Topology && Stage::Topology >= stg) {
         // We're invalidating the topology stage. Time is considered
         // a topology stage variable so needs to be invalidated here.
-        t = NaN;
+        t = dNaN;
     }
 
     // Raise the version number for every stage that we're invalidating and

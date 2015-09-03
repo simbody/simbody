@@ -177,7 +177,7 @@ public:
     const Stage& getAllocationStage()  const {return m_allocationStage;}
 
     // Exchange value pointers (should be from this dv's update cache entry).
-    void swapValue(Real updTime, ClonePtr<AbstractValue>& other) 
+    void swapValue(double updTime, ClonePtr<AbstractValue>& other) 
     {   m_value.swap(other); m_timeLastUpdated=updTime; }
 
     const AbstractValue& getValue() const {assert(m_value); return *m_value;}
@@ -185,7 +185,7 @@ public:
     // Whenever we hand out this variables value for write access we update
     // the value version, note the update time, and notify any dependents that
     // they are now invalid with respect to this variable's value.
-    AbstractValue& updValue(const StateImpl& stateImpl, Real updTime) {
+    AbstractValue& updValue(const StateImpl& stateImpl, double updTime) {
        assert(m_value); 
        ++m_valueVersion;
        m_timeLastUpdated=updTime; 
@@ -193,7 +193,7 @@ public:
        return *m_value; 
     }
     ValueVersion getValueVersion() const {return m_valueVersion;}
-    Real getTimeLastUpdated() const 
+    double getTimeLastUpdated() const 
     {   assert(m_value); return m_timeLastUpdated; }
 
     const Stage&    getInvalidatedStage() const {return m_invalidatedStage;}
@@ -218,7 +218,7 @@ private:
     // These change at run time.
     ClonePtr<AbstractValue>         m_value;
     ValueVersion                    m_valueVersion{1};
-    Real                            m_timeLastUpdated{NaN};
+    double                          m_timeLastUpdated{dNaN};
 
     bool isReasonable() const
     {    return (m_allocationStage==Stage::Topology 
@@ -346,7 +346,7 @@ public:
     // Exchange values with a discrete variable (presumably this
     // cache entry has been determined to be that variable's update
     // entry but we're not checking here).
-    void swapValue(Real updTime, DiscreteVarInfo& dv) 
+    void swapValue(double updTime, DiscreteVarInfo& dv) 
     {   dv.swapValue(updTime, m_value); }
 
     const AbstractValue& getValue() const {assert(m_value); return *m_value;}
@@ -2020,7 +2020,7 @@ private:
     // with its "invalidated" stage Stage::Time. The value of t is NaN in an 
     // Empty State, and is initialized to zero when the System stage advances
     // to Stage::Topology (i.e., when the System is realized to stage Topology).
-    Real            t{NaN};         // no value until Topology stage
+    double          t{dNaN};         // no value until Topology stage
 
     // The continuous state variables are allocated at Model stage, and given
     // their specified initial values when the System stage advances to
