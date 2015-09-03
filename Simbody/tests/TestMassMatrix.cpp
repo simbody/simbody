@@ -1332,13 +1332,13 @@ void testVelocityKinematics() {
     SimTK_TEST_MUST_THROW // Instance + pos kinematics is not enough
        (syscomv = matter.calcSystemMassCenterVelocityInGround(state));
     matter.realizeVelocityKinematics(state);
-    syscomv = matter.calcSystemMassCenterLocationInGround(state); // OK
+    syscomv = matter.calcSystemMassCenterVelocityInGround(state); // OK
 
     matter.invalidateVelocityKinematics(state);
     SimTK_TEST_MUST_THROW // No good again
        (syscomv = matter.calcSystemMassCenterVelocityInGround(state));
     matter.realizeVelocityKinematics(state);
-    syscomv = matter.calcSystemMassCenterLocationInGround(state); // OK
+    syscomv = matter.calcSystemMassCenterVelocityInGround(state); // OK
 
     matter.invalidatePositionKinematics(state);
     SimTK_TEST_MUST_THROW // No good again

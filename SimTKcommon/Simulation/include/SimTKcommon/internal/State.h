@@ -159,6 +159,10 @@ class StateImpl;
 class PerSubsystemInfo;
 class DiscreteVarInfo;
 class CacheEntryInfo;
+class ListOfDependents;
+
+using CacheEntryKey = std::pair<SubsystemIndex,CacheEntryIndex>;
+using DiscreteVarKey = std::pair<SubsystemIndex,DiscreteVariableIndex>;
 
 /** This object is intended to contain all state information for a 
 SimTK::System, except topological information which is stored in the %System 
@@ -666,7 +670,7 @@ State -- don't delete the object after this call!
 @see allocateLazyCacheEntry(), isCacheValueRealized(), markCacheValueRealized() **/
 inline CacheEntryIndex 
 allocateCacheEntry(SubsystemIndex, Stage earliest, Stage latest,
-                   AbstractValue* value, unsigned numExtras=0) const;
+                   AbstractValue* value) const;
 
 /** This is an abbreviation for allocation of a cache entry whose earliest
 and latest Stages are the same. That is, this cache entry is guaranteed to
@@ -674,8 +678,8 @@ be valid if its Subsystem has advanced to the supplied Stage or later, and
 is guaranteed to be invalid below that Stage. **/
 inline CacheEntryIndex 
 allocateCacheEntry(SubsystemIndex sx, Stage stage, 
-                   AbstractValue* value, unsigned numExtras=0) const
-{   return allocateCacheEntry(sx, stage, stage, value, numExtras); }
+                   AbstractValue* value) const
+{   return allocateCacheEntry(sx, stage, stage, value); }
 
 /** This is an abbreviation for allocation of a lazy cache entry. The 
 \a earliest stage at which this \e can be evaluated is provided; but there is no
@@ -687,10 +691,21 @@ invalidated in the State.
 @see allocateCacheEntry(), isCacheValueRealized(), markCacheValueRealized() **/
 inline CacheEntryIndex 
 allocateLazyCacheEntry(SubsystemIndex sx, Stage earliest, 
-                       AbstractValue* value, unsigned numExtras=0) const {
-    return allocateCacheEntry(sx, earliest, Stage::Infinity, 
-                              value, numExtras);
+                       AbstractValue* value) const {
+    return allocateCacheEntry(sx, earliest, Stage::Infinity, value);
 }
+
+/** (Advanced) Allocate a cache entry with prerequisites other than just
+reaching a particular computation stage. Possible prerequisites are continuous
+variables q, u, and z; any discrete variable; and any "upstream" cache entry
+whose `earliest` stage is no later than this one's `earliest` stage. **/
+inline CacheEntryIndex
+allocateCacheEntryWithPrerequisites
+   (SubsystemIndex, Stage earliest, Stage latest,
+    bool q, bool u, bool z,
+    const Array_<DiscreteVarKey>& discreteVars,
+    const Array_<CacheEntryKey>& cacheEntries,
+    AbstractValue* value);
 
 /** At what stage was this State when this cache entry was allocated?
 The answer must be Stage::Empty, Stage::Topology, or Stage::Model. **/
@@ -725,18 +740,6 @@ without getting an exception thrown.
 @see allocateCacheEntry(), markCacheValueRealized(), getCacheEntry() **/
 inline bool isCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
 
-/** (Advanced) Check whether cache entry value is up to date, dealing with
-extra dependencies. The number of extras must match the number provided
-when the cache entry was allocated. If the cache value is up to date, its
-stage version is returned for the convenience of higher-level computations
-that might have a dependency on this one. Otherwise the stage version is
-returned with an invalid value.
-@see markCacheValueRealizedWithExtras() **/
-inline bool isCacheValueRealizedWithExtras
-   (SubsystemIndex, CacheEntryIndex,
-    unsigned numExtras, const StageVersion* extraVersions,
-    StageVersion& cacheValueVersion) const;
-
 /** Mark the value of a particular cache entry as up to date after it has
 been recalculated. This %State's current stage must be at least the
 \a earliest stage as supplied when this cache entry was allocated, and
@@ -751,18 +754,10 @@ a state variable on which it depends.
 @see allocateCacheEntry(), isCacheValueRealized(), getCacheEntry() **/
 inline void markCacheValueRealized(SubsystemIndex, CacheEntryIndex) const;
 
-/** (Advanced) Mark a cache entry up to date after recalculating it and
-include version information for extra dependencies. The number of extras must 
-match the number provided when the cache entry was allocated. 
-@see isCacheValueRealizedWithExtras() **/
-inline void markCacheValueRealizedWithExtras
-   (SubsystemIndex, CacheEntryIndex,
-    unsigned numExtras, const StageVersion* extraVersions) const;
-
 /** (Advanced) Normally cache entries are invalidated automatically, however 
 this method allows manual invalidation of the value of a particular cache entry.
-After a cache entry has been marked invalid here, isCacheValueRealized() or
-isCacheValueRealizedWithExtras() will return false.
+After a cache entry has been marked invalid here, isCacheValueRealized() will 
+return false.
 @see isCacheValueRealized(), markCacheValueRealized() **/
 inline void markCacheValueNotRealized(SubsystemIndex, CacheEntryIndex) const;
 /**@}**/
@@ -1122,35 +1117,56 @@ was created. This has no effect on the realization level.
 **/
 inline void setSystemTopologyStageVersion(StageVersion topoVersion);
 
-/** (Advanced) Return a StageVersion for time, meaning an integer that is
-incremented whenever time is changed. Will be 1 or greater if time has been
-initialized; otherwise, time is meaningless and may be NaN. **/
-inline StageVersion getTimeStageVersion() const;
-/** (Advanced) Return a StageVersion for q, meaning an integer that is
+/** (Advanced) Return a ValueVersion for q, meaning an integer that is
 incremented whenever any q is changed (or more precisely whenever q or y is
 returned with writable access). Will be 1 or greater if q has been
 allocated. **/
-inline StageVersion getQStageVersion() const;
-/** (Advanced) Return a StageVersion for u, meaning an integer that is
+inline ValueVersion getQValueVersion() const;
+/** (Advanced) Return a ValueVersion for u, meaning an integer that is
 incremented whenever any u is changed (or more precisely whenever u or y is
 returned with writable access). Will be 1 or greater if u has been
 allocated. **/
-inline StageVersion getUStageVersion() const;
-/** (Advanced) Return a StageVersion for z, meaning an integer that is
+inline ValueVersion getUValueVersion() const;
+/** (Advanced) Return a ValueVersion for z, meaning an integer that is
 incremented whenever any z is changed (or more precisely whenever z or y is
 returned with writable access). Will be 1 or greater if z has been
 allocated. **/
-inline StageVersion getZStageVersion() const;
+inline ValueVersion getZValueVersion() const;
 
-/** (Advanced) Return a reference to the cache entry information for a 
+/** (Advanced) Return the list of cache entries for which q was specified
+as an explicit prerequisite. 
+@see allocateCacheEntryWithPrerequisites() **/
+inline const ListOfDependents& getQDependents() const;
+/** (Advanced) Return the list of cache entries for which u was specified
+as an explicit prerequisite. 
+@see allocateCacheEntryWithPrerequisites() **/
+inline const ListOfDependents& getUDependents() const;
+/** (Advanced) Return the list of cache entries for which z was specified
+as an explicit prerequisite. 
+@see allocateCacheEntryWithPrerequisites() **/
+inline const ListOfDependents& getZDependents() const;
+
+/** (Advanced) Check whether this %State has a particular cache entry. **/
+inline bool hasCacheEntry(const CacheEntryKey& cacheEntry) const;
+
+/** (Advanced) Return a const reference to the cache entry information for a 
 particular cache entry. No validity checking is performed. **/
 SimTK_FORCE_INLINE const CacheEntryInfo& 
-getCacheEntryInfo(SubsystemIndex, CacheEntryIndex) const;
+getCacheEntryInfo(const CacheEntryKey& cacheEntry) const;
+
+/** (Advanced) Return a writable reference to the cache entry information for a 
+particular cache entry. No validity checking is performed. **/
+SimTK_FORCE_INLINE CacheEntryInfo& 
+updCacheEntryInfo(const CacheEntryKey& cacheEntry);
+
+/** (Advanced) Check whether this %State has a particular discrete state
+variable. **/
+inline bool hasDiscreteVar(const DiscreteVarKey& discreteVar) const;
 
 /** (Advanced) Return a reference to the discrete variable information for a 
 particular discrete variable. **/
 SimTK_FORCE_INLINE const DiscreteVarInfo& 
-getDiscreteVarInfo(SubsystemIndex, DiscreteVariableIndex) const;
+getDiscreteVarInfo(const DiscreteVarKey& discreteVar) const;
 
 /** (Advanced) Return a reference to the per-subsystem information in the
 state. **/
