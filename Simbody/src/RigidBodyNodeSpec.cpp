@@ -448,7 +448,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 
  
 //==============================================================================
-//                              CALC M INVERSE F
+//                          MULTIPLY BY M INVERSE
 //==============================================================================
 // Temps do not need to be initialized.
 //
@@ -644,7 +644,7 @@ calcInverseDynamicsPass2Inward(
 
 
 //==============================================================================
-//                                 CALC M V
+//                             MULTIPLY BY M
 //==============================================================================
 // The next two methods calculate x=M*v (or f=M*a) in O(N) time, given v.
 // The first one is called base to tip.
@@ -820,7 +820,7 @@ multiplyBySystemJacobianTranspose(
 //==============================================================================
 // To be called from tip to base.
 // Temps do not need to be initialized.
-// (sherm 060727) In spatial operators, this calculates ~H*Phi*(F-(Pa+b))
+// (sherm 060727) In spatial operators, this calculates ~H*Phi*(F-(MA+b))
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
@@ -833,7 +833,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     SpatialVec&       z            = allZ[nodeNum];
     Vec<dof>&         eps          = toU(jointForces);
 
-    // Centrifugal forces are PA+b where P is articulated body inertia,
+    // Centrifugal forces are MA+b where M is body spatial inertia,
     // A is total coriolis acceleration, and b is gyroscopic force.
     z = myBodyForce - getTotalCentrifugalForces(dc);
 

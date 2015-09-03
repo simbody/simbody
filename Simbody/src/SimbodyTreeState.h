@@ -1046,7 +1046,7 @@ public:
     //      A=total coriolis acceleration for this body
     //      b=gyroscopic force
     Array_<SpatialVec,MobilizedBodyIndex> mobilizerCentrifugalForces; // nb (P*a+b)
-    Array_<SpatialVec,MobilizedBodyIndex> totalCentrifugalForces;     // nb (P*A+b)
+    Array_<SpatialVec,MobilizedBodyIndex> totalCentrifugalForces;     // nb (M*A+b)
 
     Array_<SpatialMat,MobilizedBodyIndex> Y;                          // nb
 

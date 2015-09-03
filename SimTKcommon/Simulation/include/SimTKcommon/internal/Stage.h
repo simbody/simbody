@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,15 +35,21 @@
 
 namespace SimTK {
  
-/** This is the type to use for Stage and state variable version numbers that
-get incremented whenever a state value changes. Whenever time or any state 
-variable is modified, we increment the stage version for any stage that gets
-invalidated. We also increment a separate version number for the state variable
-that changes, so that cache entries can have finer-grained dependencies than
-just on whole stages. -1 means "uninitialized". 0 is never used as 
-a %StageVersion, but is allowed as a cache value which is guaranteed never to 
-look valid. **/
+/** This is the type to use for Stage version numbers that get incremented 
+whenever a state variable change invalidates a Stage. Whenever time or any state 
+variable is modified, we increment the %StageVersion for any Stage that gets
+invalidated. -1 means "uninitialized". 0 is never used as a %StageVersion, but 
+is allowed as a remembered %StageVersion which is guaranteed never to look 
+valid. **/
 typedef long long StageVersion;
+
+/** This is the type to use for state variable version numbers that get 
+incremented whenever a state value changes. Whenever time or any state variable 
+is modified, we increment a version number for the state variable that changes, 
+so that cache entries can have finer-grained prerequisites than just on whole 
+stages. -1 means "uninitialized". 0 is never used as a %ValueVersion, but is 
+allowed as a remembered version which is guaranteed never to look valid. **/
+typedef long long ValueVersion;
 
 /** This class is basically a glorified enumerated type, type-safe and range
 checked but permitting convenient (if limited) arithmetic. Constants look like 

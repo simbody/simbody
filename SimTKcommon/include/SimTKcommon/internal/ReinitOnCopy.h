@@ -179,8 +179,8 @@ public:
 
 
 /** @cond **/ // hide helpers from doxygen
-/** ReinitOnCopy helper class for built-in types (integral or floating point). 
-These types are value initialized, so will be reset to zero. **/
+/* ReinitOnCopy helper class for built-in types (integral or floating point). 
+These types are value initialized, so will be reset to zero. */
 template <class T>
 class ReinitOnCopyHelper<T,true> {
 public:
@@ -245,10 +245,10 @@ private:
 };
 
 
-/** ReinitOnCopy helper class specialization for any type `T` that is not a
+/* ReinitOnCopy helper class specialization for any type `T` that is not a
 built-in ("scalar") type and that is `CopyConstructible` and `CopyAssignable`.
 Those operators are used to reinitialize the object to a stored initial value
-when copy constructor or copy assignment is performed. **/
+when copy constructor or copy assignment is performed. */
 template <class T>
 class ReinitOnCopyHelper<T,false> : public T {
 public:

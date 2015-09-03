@@ -90,17 +90,15 @@ DiscreteVariableIndex allocateAutoUpdateDiscreteVariable
                (getMySubsystemIndex(),invalidates,v,updateDependsOn); }
 
 CacheEntryIndex allocateCacheEntry
-   (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v,
-    unsigned numExtras=0) const 
+   (const State& s, Stage dependsOn, Stage computedBy, AbstractValue* v) const 
 {   return s.allocateCacheEntry
-               (getMySubsystemIndex(), dependsOn, computedBy, v, numExtras); }
+               (getMySubsystemIndex(), dependsOn, computedBy, v); }
 CacheEntryIndex allocateCacheEntry
-   (const State& state, Stage g, AbstractValue* v, unsigned numExtras=0) const 
-{   return allocateCacheEntry(state, g, g, v, numExtras); }
+   (const State& state, Stage g, AbstractValue* v) const 
+{   return allocateCacheEntry(state, g, g, v); }
 CacheEntryIndex allocateLazyCacheEntry   
-   (const State& state, Stage earliest, AbstractValue* v, 
-    unsigned numExtras=0) const 
-{   return allocateCacheEntry(state, earliest, Stage::Infinity, v, numExtras); }
+   (const State& state, Stage earliest, AbstractValue* v) const 
+{   return allocateCacheEntry(state, earliest, Stage::Infinity, v); }
 
 QErrIndex allocateQErr(const State& s, int nqerr) const 
 {   return s.allocateQErr(getMySubsystemIndex(), nqerr); }
@@ -249,21 +247,9 @@ void markDiscreteVarUpdateValueRealized
 
 bool isCacheValueRealized(const State& s, CacheEntryIndex cx) const 
 {   return s.isCacheValueRealized(getMySubsystemIndex(), cx); }
-bool isCacheValueRealizedWithExtras
-   (const State& s, CacheEntryIndex cx,
-    unsigned numExtras, const StageVersion* extraVersions,
-    StageVersion& cacheValueVersion) const 
-{   return s.isCacheValueRealizedWithExtras(getMySubsystemIndex(), cx,
-                                            numExtras, extraVersions,
-                                            cacheValueVersion); }
 
 void markCacheValueRealized(const State& s, CacheEntryIndex cx) const 
 {   s.markCacheValueRealized(getMySubsystemIndex(), cx); }
-void markCacheValueRealizedWithExtras
-   (const State& s, CacheEntryIndex cx,
-    unsigned numExtras, const StageVersion* extraVersions) const 
-{   s.markCacheValueRealizedWithExtras(getMySubsystemIndex(), cx,
-                                       numExtras, extraVersions); }
 
 void markCacheValueNotRealized(const State& s, CacheEntryIndex cx) const 
 {   s.markCacheValueNotRealized(getMySubsystemIndex(), cx); }

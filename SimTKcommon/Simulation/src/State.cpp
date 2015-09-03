@@ -33,7 +33,7 @@
 #include <mutex>
 #include <thread>
 
-namespace SimTK {
+using namespace SimTK;
 
 
 //==============================================================================
@@ -89,7 +89,7 @@ State& State::operator=(State&& source) {
 
 
 std::ostream& 
-operator<<(std::ostream& o, const State& s) {
+SimTK::operator<<(std::ostream& o, const State& s) {
     o << "STATE:" << std::endl;
     o << s.toString() << std::endl;
     o << "CACHE:" << std::endl;
@@ -108,7 +108,7 @@ operator<<(std::ostream& o, const State& s) {
 // subsequently invalidated, and keeping their allocations stacked by
 // stage allows that to be done efficiently.
 //
-// The method are templatized and expect the stacks to be in Arrays
+// The methods are templatized and expect the stacks to be in Arrays
 // of the same template. The template value must be a type that supports
 // three methods (the template analog to virtual functions):
 //      deepAssign()            a non-shallow assignment, i.e. clone the value
@@ -121,35 +121,36 @@ operator<<(std::ostream& o, const State& s) {
 // Clear the contents of an allocation stack, freeing up all associated heap 
 // space.
 template <class T>
-static void clearAllocationStack(Array_<T>& stack) {
+void PerSubsystemInfo::clearAllocationStack(Array_<T>& stack) {
     for (int i=stack.size()-1; i >= 0; --i)
-        stack[i].deepDestruct();
+        stack[i].deepDestruct(*m_stateImpl);
     stack.clear();
 }
 
 // Resize the given allocation stack, taking care to free the heap space if the
 // size is reduced.
 template <class T>
-static void resizeAllocationStack(Array_<T>& stack, int newSize) {
+void PerSubsystemInfo::resizeAllocationStack(Array_<T>& stack, int newSize) {
     assert(newSize >= 0);
     for (int i = stack.size()-1; i >= newSize; --i)
-        stack[i].deepDestruct();
+        stack[i].deepDestruct(*m_stateImpl);
     stack.resize(newSize);
 }
 
 // Keep only those stack entries whose allocation stage is <= the supplied one.
 template <class T>
-static void popAllocationStackBackToStage(Array_<T>& stack, const Stage& g) {
+void PerSubsystemInfo::
+popAllocationStackBackToStage(Array_<T>& stack, const Stage& g) {
     unsigned newSize = stack.size();
     while (newSize > 0 && stack[newSize-1].getAllocationStage() > g)
-        stack[--newSize].deepDestruct();
+        stack[--newSize].deepDestruct(*m_stateImpl);
     stack.resize(newSize); 
 }
 
 // Make this allocation stack the same as the source, copying only through the 
 // given stage.
 template <class T>
-static void copyAllocationStackThroughStage
+void PerSubsystemInfo::copyAllocationStackThroughStage
    (Array_<T>& stack, const Array_<T>& src, const Stage& g) 
 {
     unsigned nVarsToCopy = src.size(); // assume we'll copy all
@@ -179,8 +180,10 @@ void PerSubsystemInfo::clearCache()
 {   clearAllocationStack(cacheInfo); }
 
 void PerSubsystemInfo::clearAllStacks() {
-    clearContinuousVars(); clearDiscreteVars();
-    clearConstraintErrs(); clearCache();
+    clearCache();
+    clearConstraintErrs();
+    clearContinuousVars(); 
+    clearDiscreteVars();
 }
 
 void PerSubsystemInfo::popContinuousVarsBackToStage(const Stage& g) { 
@@ -200,10 +203,10 @@ void PerSubsystemInfo::popCacheBackToStage(const Stage& g)
 {   popAllocationStackBackToStage(cacheInfo,g); }
 
 void PerSubsystemInfo::popAllStacksBackToStage(const Stage& g) {
+    popCacheBackToStage(g);
+    popConstraintErrsBackToStage(g);
     popContinuousVarsBackToStage(g);
     popDiscreteVarsBackToStage(g);
-    popConstraintErrsBackToStage(g);
-    popCacheBackToStage(g);
 }
 
 void PerSubsystemInfo::copyContinuousVarInfoThroughStage
@@ -301,28 +304,35 @@ void PerSubsystemInfo::copyFrom(const PerSubsystemInfo& src, Stage maxStage) {
 //                              STATE IMPL
 //==============================================================================
 
-
 //------------------------------------------------------------------------------
-//                           COPY CONSTRUCTOR
+//                     COPY FROM (private guts of copy operators)
 //------------------------------------------------------------------------------
-StateImpl::StateImpl(const StateImpl& src) {
+// Destination (this) should start out with no system or subsystem stage
+// valid. We'll selectively validate some depending on what's valid in the
+// source.
+void StateImpl::copyFrom(const StateImpl& src) {
     // Make sure that no copied cache entry could accidentally think
     // it was up to date. We'll change some of these below if appropriate.
-    // (We're skipping the Empty stage 0.)
     invalidateCopiedStageVersions(src);
 
     subsystems = src.subsystems;
+    for (auto& subsys : subsystems)
+        subsys.m_stateImpl = this;
+
     if (src.currentSystemStage >= Stage::Topology) {
         advanceSystemToStage(Stage::Topology);
         systemStageVersions[Stage::Topology] = 
             src.systemStageVersions[Stage::Topology];
-        t = src.t; // not validating time version or Stage::Time
+        t = src.t;
         if (src.currentSystemStage >= Stage::Model) {
             advanceSystemToStage(Stage::Model);
             systemStageVersions[Stage::Model] = 
                 src.systemStageVersions[Stage::Model];
             // careful -- don't allow reallocation
-            y = src.y; // not validating state versions or later stages
+            y = src.y;
+            qVersion = src.qVersion; 
+            uVersion = src.uVersion; 
+            zVersion = src.zVersion;
             uWeights = src.uWeights;
             zWeights = src.zWeights;
         }
@@ -335,6 +345,17 @@ StateImpl::StateImpl(const StateImpl& src) {
             uerrWeights = src.uerrWeights;
         }
     }
+
+    // DepedencyLists don't get copied. Any cache entries we copied must
+    // re-register with their prerequisites to get these lists rebuilt.
+    registerWithPrerequisitesAfterCopy();
+}
+
+//------------------------------------------------------------------------------
+//                           COPY CONSTRUCTOR
+//------------------------------------------------------------------------------
+StateImpl::StateImpl(const StateImpl& src) : StateImpl() {
+    copyFrom(src);
 }
 
 //------------------------------------------------------------------------------
@@ -342,41 +363,13 @@ StateImpl::StateImpl(const StateImpl& src) {
 //------------------------------------------------------------------------------
 StateImpl& StateImpl::operator=(const StateImpl& src) {
     if (&src == this) return *this;
+
+    // Make sure no stage is valid.
     invalidateJustSystemStage(Stage::Topology);
     for (SubsystemIndex i(0); i<(int)subsystems.size(); ++i)
         subsystems[i].invalidateStageJustThisSubsystem(Stage::Topology);
 
-    // Make sure that no copied cache entry could accidentally think
-    // it was up to date. We'll change some of these below if appropriate.
-    // (We're skipping the Empty stage 0.)
-    invalidateCopiedStageVersions(src);
-
-    t = NaN;
-
-    subsystems = src.subsystems;
-    if (src.currentSystemStage >= Stage::Topology) {
-        advanceSystemToStage(Stage::Topology);
-        systemStageVersions[Stage::Topology] = 
-            src.systemStageVersions[Stage::Topology];
-        t = src.t; // not validating time version or Stage::Time
-        if (src.currentSystemStage >= Stage::Model) {
-            advanceSystemToStage(Stage::Model);
-            systemStageVersions[Stage::Model] = 
-                src.systemStageVersions[Stage::Model];
-            // careful -- don't allow reallocation
-            y = src.y; // not validating state versions or later stages
-            uWeights = src.uWeights;
-            zWeights = src.zWeights;
-        }
-        if (src.currentSystemStage >= Stage::Instance) {
-            advanceSystemToStage(Stage::Instance);
-            systemStageVersions[Stage::Instance] = 
-                src.systemStageVersions[Stage::Instance];
-            // careful -- don't allow reallocation
-            qerrWeights = src.qerrWeights;
-            uerrWeights = src.uerrWeights;
-        }
-    }
+    copyFrom(src);
     return *this;
 }
 
@@ -441,7 +434,6 @@ void StateImpl::invalidateJustSystemStage(Stage stg) {
         // We're invalidating the topology stage. Time is considered
         // a topology stage variable so needs to be invalidated here.
         t = NaN;
-        noteTimeChange(); // bump the version number
     }
 
     // Raise the version number for every stage that we're invalidating and
@@ -468,7 +460,6 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         // before this).
         StateImpl* wThis = const_cast<StateImpl*>(this);
         wThis->t = 0;
-        ++wThis->tVersion;
     }
     else if (stg == Stage::Model) {
         // We know the shared state pool sizes now. Allocate the
@@ -508,8 +499,10 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         wThis->u.viewAssign(wThis->y(nq,nu));
         wThis->z.viewAssign(wThis->y(nq+nu,nz));
 
-        // Update modification versions since these are changing.
-        ++wThis->qVersion; ++wThis->uVersion; ++wThis->zVersion;
+        // Make sure no dependents think they are valid.
+        wThis->qDependents.notePrerequisiteChange(*wThis);
+        wThis->uDependents.notePrerequisiteChange(*wThis);
+        wThis->zDependents.notePrerequisiteChange(*wThis);
 
         qdot.viewAssign(ydot(0,     nq));
         udot.viewAssign(ydot(nq,    nu));
@@ -668,10 +661,10 @@ void StateImpl::autoUpdateDiscreteVariables() {
             const CacheEntryIndex cx = dinfo.getAutoUpdateEntry();
             if (!cx.isValid()) continue; // not an auto-update variable
             CacheEntryInfo& cinfo = ss.cacheInfo[cx];
-            if (cinfo.isCurrentNoExtras(getSubsystemStage(subx), 
-                                        getSubsystemStageVersions(subx)))
+            if (cinfo.isUpToDate(*this)) {
                 cinfo.swapValue(getTime(), dinfo);
-            cinfo.invalidate();
+                cinfo.invalidate(*this);
+            }
         }
     }
 }
@@ -836,5 +829,154 @@ String StateImpl::cacheToString() const {
 }
 
 
-} // namespace SimTK
+//==============================================================================
+//               CACHE ENTRY INFO :: NON-INLINE IMPLEMENTATIONS
+//==============================================================================
+
+
+void CacheEntryInfo::
+throwHelpfulOutOfDateMessage(const StateImpl& stateImpl,
+                             const char* funcName) const {
+    const PerSubsystemInfo& subsys = stateImpl.getSubsystem(m_myKey.first);
+    assert(&subsys.getCacheEntryInfo(m_myKey.second) == this);
+    const Stage current = subsys.getCurrentStage();
+    SimTK_STAGECHECK_GE_ALWAYS(current, getDependsOnStage(), funcName);
+
+    const StageVersion version = subsys.getStageVersion(m_dependsOnStage);
+
+    SimTK_ERRCHK4_ALWAYS(version == m_dependsOnVersionWhenLastComputed,
+                            funcName,
+        "State Cache entry was out of date at Stage %s. This entry depends "
+        "on version %lld of Stage %s but was last updated at version %lld.",
+        current.getName().c_str(), version, 
+        getDependsOnStage().getName().c_str(),
+        m_dependsOnVersionWhenLastComputed);
+
+    SimTK_ASSERT_ALWAYS(!m_isUpToDateWithPrerequisites,
+    "CacheEntryInfo::throwHelpfulOutOfDateMessage(): not out of date???");
+
+    SimTK_ERRCHK_ALWAYS(m_isUpToDateWithPrerequisites, funcName,
+        "State Cache entry was out of date with respect to one of its "
+        "explicit prerequisites.");
+}
+
+void CacheEntryInfo::
+registerWithPrerequisites(StateImpl& stateImpl) {
+    m_isUpToDateWithPrerequisites = true; // assume no prerequisites
+    if (isQPrerequisite()) {
+        auto& dl = stateImpl.updQDependents();
+        dl.addDependent(m_myKey);
+        m_isUpToDateWithPrerequisites = false;
+    }
+    if (isUPrerequisite()) {
+        auto& dl = stateImpl.updUDependents();
+        dl.addDependent(m_myKey);
+        m_isUpToDateWithPrerequisites = false;
+    }
+    if (isZPrerequisite()) {
+        auto& dl = stateImpl.updZDependents();
+        dl.addDependent(m_myKey);
+        m_isUpToDateWithPrerequisites = false;
+    }
+    for (const auto& dk : m_discreteVarPrerequisites) {
+        auto& info = stateImpl.updDiscreteVarInfo(dk);
+        auto& dl = info.updDependents();
+        dl.addDependent(m_myKey);
+        m_isUpToDateWithPrerequisites = false;
+    }
+    for (const auto& ck : m_cacheEntryPrerequisites) {
+        auto& info = stateImpl.updCacheEntryInfo(ck);
+        auto& dl = info.updDependents();
+        dl.addDependent(m_myKey);
+        m_isUpToDateWithPrerequisites = false;
+    }
+}
+
+void CacheEntryInfo::
+unregisterWithPrerequisites(StateImpl& stateImpl) const {
+    if (isQPrerequisite()) {
+        auto& dl = stateImpl.updQDependents();
+        dl.removeDependent(m_myKey);
+    }
+    if (isUPrerequisite()) {
+        auto& dl = stateImpl.updUDependents();
+        dl.removeDependent(m_myKey);
+    }
+    if (isZPrerequisite()) {
+        auto& dl = stateImpl.updZDependents();
+        dl.removeDependent(m_myKey);
+    }
+    for (const auto& dk : m_discreteVarPrerequisites) {
+        if (!stateImpl.hasDiscreteVar(dk)) continue;
+        auto& info = stateImpl.updDiscreteVarInfo(dk);
+        auto& dl = info.updDependents();
+        dl.removeDependent(m_myKey);
+    }
+    for (const auto& ck : m_cacheEntryPrerequisites) {
+        if (!stateImpl.hasCacheEntry(ck)) continue;
+        auto& info = stateImpl.updCacheEntryInfo(ck);
+        auto& dl = info.updDependents();
+        dl.removeDependent(m_myKey);
+    }
+}
+
+
+
+#ifndef NDEBUG
+//--------------------------------- Debug only ---------------------------------
+void CacheEntryInfo::
+recordPrerequisiteVersions(const StateImpl& stateImpl) {
+    if (isQPrerequisite())
+        m_qVersion = stateImpl.getQValueVersion();
+    if (isUPrerequisite())
+        m_uVersion = stateImpl.getUValueVersion();
+    if (isZPrerequisite())
+        m_zVersion = stateImpl.getZValueVersion();
+
+    m_discreteVarVersions.clear();
+    for (const auto& dk : m_discreteVarPrerequisites) {
+        const auto& info = stateImpl.getDiscreteVarInfo(dk);
+        m_discreteVarVersions.push_back(info.getValueVersion());
+    }
+    m_cacheEntryVersions.clear();
+    for (const auto& ck : m_cacheEntryPrerequisites) {
+        const auto& info = stateImpl.getCacheEntryInfo(ck);
+        m_cacheEntryVersions.push_back(info.getValueVersion());
+    }
+}
+
+void CacheEntryInfo::
+validatePrerequisiteVersions(const StateImpl& stateImpl) const {
+    if (isQPrerequisite()) {
+        SimTK_ASSERT(stateImpl.getQValueVersion() == m_qVersion,
+            "CacheEntryInfo::isUpToDate(): q versions didn't match.");
+    }
+    if (isUPrerequisite()) {
+        SimTK_ASSERT(stateImpl.getUValueVersion() == m_uVersion,
+            "CacheEntryInfo::isUpToDate(): u versions didn't match.");
+    }
+    if (isZPrerequisite()) {
+        SimTK_ASSERT(stateImpl.getZValueVersion() == m_zVersion,
+            "CacheEntryInfo::isUpToDate(): z versions didn't match.");
+    }
+    for (unsigned i=0; i < m_discreteVarPrerequisites.size(); ++i) {
+        auto& dk = m_discreteVarPrerequisites[i];
+        const auto& info = stateImpl.getDiscreteVarInfo(dk);
+        SimTK_ASSERT2(info.getValueVersion() == m_discreteVarVersions[i],
+            "CacheEntryInfo::isUpToDate(): "
+            "discrete var versions didn't match; current=%lld stored=%lld.",
+            info.getValueVersion(), m_discreteVarVersions[i]);
+    }
+    for (unsigned i=0; i < m_cacheEntryPrerequisites.size(); ++i) {
+        auto& ck = m_cacheEntryPrerequisites[i];
+        const auto& info = stateImpl.getCacheEntryInfo(ck);
+        SimTK_ASSERT2(info.getValueVersion() == m_cacheEntryVersions[i],
+            "CacheEntryInfo::isUpToDate(): "
+            "cache entry versions didn't match; current=%lld stored=%lld.",
+            info.getValueVersion(), m_cacheEntryVersions[i]);
+    }
+}
+//--------------------------------- Debug only ---------------------------------
+#endif
+
 

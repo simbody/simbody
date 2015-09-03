@@ -21,15 +21,15 @@ Non-breaking changes
 
 3.6 (in development)
 --------------------
+* Added mixin classes `ResetOnCopy<T>` and `ReinitOnCopy<T>` to force default
+  construction or reinitialization of data members on copy construction or copy
+  assignment, without requiring a user written copy constructor and copy
+  assignment operator just to get those reinitializations done.
+
 
 **Heads up**: Simbody 3.5 was the last release that will build with C++03 (patch builds with version numbers like 3.5.1, if any, will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
-* Added smart pointer NullOnCopyUniquePtr which is the same as std::unique_ptr
-  except that it adds copy construction and copy assignment that leave the
-  target null. This can be used for owned heap-allocated objects that are
-  "local" in the sense that they should not be copied along with their owner.
-  That allows use of compiler-generated default copy construction and 
-  copy assignment for the owning class. 
+
 * Added clone() method to `SimTK::Function_` base class and implemented it for
   Simbody-defined concrete Function classes. Made concrete Function members
   non-const to permit assignment, and modified Function_<T>::Step to allow
