@@ -180,10 +180,10 @@ public:
 
 
 /** @cond **/ // hide helpers from doxygen
-/** ResetOnCopy helper class for built-in ("scalar") types (arithmetic, 
+/* ResetOnCopy helper class for built-in ("scalar") types (arithmetic, 
 character, and pointer types). We don't want to allow enums here because they
 should always be initialized to one of their values, not necessarily zero.
-These types are value initialized, so will be reset to zero. **/
+These types are value initialized, so will be reset to zero. */
 template <class T>
 class ResetOnCopyHelper<T,true> {
 public:
@@ -231,11 +231,11 @@ private:
 };
 
 
-/** ResetOnCopy helper class specialization for any type `T` that is not a
-built-in ("scalar") type and that has a reset() or clear() method. This will
-add `CopyConstructible` and `CopyAssignable` concepts to move-only classes
-like `std::unique`, but those operations just reset the object to its 
-default-constructed state. **/
+/* ResetOnCopy helper class specialization for any type `T` that is not a
+built-in ("scalar") type, as long as it is DefaultConstructible and 
+Destructible. This will add `CopyConstructible` and `CopyAssignable` concepts to
+move-only classes like `std::unique`, but those operations just reset the object
+to its default-constructed state. */
 template <class T>
 class ResetOnCopyHelper<T,false> : public T {
 public:
