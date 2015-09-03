@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,7 +35,7 @@
 
 namespace SimTK {
  
-/** This is the type to use for Stage version numbers thatget incremented 
+/** This is the type to use for Stage version numbers that get incremented 
 whenever a state variable change invalidates a Stage. Whenever time or any state 
 variable is modified, we increment the %StageVersion for any Stage that gets
 invalidated. -1 means "uninitialized". 0 is never used as a %StageVersion, but 
