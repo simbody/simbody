@@ -95,6 +95,7 @@ std::cout << Matrix(myMat33) << std::endl;
 @see SymMat, Vec, Row
 **/
 template <int M, int N, class ELT, int CS, int RS> class Mat {
+public:
     typedef ELT                                 E;
     typedef typename CNT<E>::TNeg               ENeg;
     typedef typename CNT<E>::TWithoutNegator    EWithoutNegator;
@@ -121,6 +122,7 @@ template <int M, int N, class ELT, int CS, int RS> class Mat {
 
 public:
     /** Every Composite Numerical Type (CNT) must define these values. **/
+#ifndef SWIG
     enum {
         NRows               = M,
         NCols               = N,
@@ -144,6 +146,7 @@ public:
         IsPrecision         = 0,
         SignInterpretation  = CNT<E>::SignInterpretation
     };
+#endif
 
     typedef Mat<M,N,E,CS,RS>                T;
     typedef Mat<M,N,ENeg,CS,RS>             TNeg;

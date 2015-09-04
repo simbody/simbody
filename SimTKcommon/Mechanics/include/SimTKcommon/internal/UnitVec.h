@@ -54,8 +54,8 @@ typedef UnitVec<double,1>   dUnitVec3;
 //-----------------------------------------------------------------------------
 template <class P, int S>
 class UnitVec : public Vec<3,P,S> {
-    typedef P   RealP;
 public:
+    typedef P   RealP;
     typedef Vec<3,P,S>      BaseVec;
     typedef UnitRow<P,S>    TransposeType;
 

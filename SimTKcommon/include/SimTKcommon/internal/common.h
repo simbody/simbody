@@ -782,7 +782,9 @@ template<> struct Is64BitHelper<false>
 platform, meaning that the size of a pointer is the same as the size of a 
 long long; otherwise it will be FalseType and we have a 32-bit platform meaning
 that the size of a pointer is the same as an int. **/
-static const bool Is64BitPlatform = sizeof(size_t) > sizeof(int);
+// We use a constexpr function to avoid a bug in SWIG.
+constexpr bool detect64BitPlatform() { return (sizeof(size_t) > sizeof(int)); }
+static const bool Is64BitPlatform = detect64BitPlatform();
 typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 

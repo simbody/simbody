@@ -191,12 +191,12 @@ Typedefs exist for the most common invocations of Inertia_\<P\>:
 **/
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT Inertia_ {
+public:
     typedef P               RealP;
     typedef Vec<3,P>        Vec3P;
     typedef SymMat<3,P>     SymMat33P;
     typedef Mat<3,3,P>      Mat33P;
     typedef Rotation_<P>    RotationP;
-public:
 /// Default is a NaN-ed out mess to avoid accidents, even in Release mode.
 /// Other than this value, an Inertia matrix should always be valid.
 Inertia_() : I_OF_F(NTraits<P>::getNaN()) {}
@@ -1357,6 +1357,7 @@ Typedefs exist for the most common invocations of MassProperties_\<P\>:
  - \ref SimTK::dMassProperties "dMassProperties" for double precision **/
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT MassProperties_ {
+public:
     typedef P               RealP;
     typedef Vec<3,P>        Vec3P;
     typedef UnitInertia_<P> UnitInertiaP;
@@ -1367,7 +1368,6 @@ class SimTK_SimTKCOMMON_EXPORT MassProperties_ {
     typedef Rotation_<P>    RotationP;
     typedef Transform_<P>   TransformP;
     typedef Inertia_<P>     InertiaP;
-public:
 /** Create a mass properties object in which the mass, mass center, and 
 inertia are meaningless; you must assign values before using this. **/
 MassProperties_() { setMassProperties(0,Vec3P(0),UnitInertiaP()); }

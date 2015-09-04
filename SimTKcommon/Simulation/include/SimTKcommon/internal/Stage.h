@@ -281,7 +281,7 @@ class RealizeCheckFailed : public Base {
 public:
     RealizeCheckFailed(const char* fn, int ln, Stage g, 
                        int subsystemId, const char* subsystemName,
-                       const char* fmt ...) : Base(fn,ln)
+                       const char* fmt, ...) : Base(fn,ln)
     {
         char buf[1024];
         va_list args;

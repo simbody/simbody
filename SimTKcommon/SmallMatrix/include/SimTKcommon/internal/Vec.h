@@ -234,6 +234,7 @@ public:
 
     /** These compile-time constants are required of every Composite
     Numerical Type (CNT). **/
+#ifndef SWIG
     enum {
         NRows               = M,
         NCols               = 1,
@@ -255,6 +256,7 @@ public:
         IsPrecision         = 0,
         SignInterpretation  = CNT<E>::SignInterpretation
     };
+#endif
 
     // These are reinterpretations of the current data, so have the
     // same packing (stride).
