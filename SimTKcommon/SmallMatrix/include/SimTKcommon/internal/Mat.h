@@ -120,9 +120,8 @@ public:
     typedef typename CNT<E>::Precision          EPrecision;
     typedef typename CNT<E>::ScalarNormSq       EScalarNormSq;
 
-public:
     /** Every Composite Numerical Type (CNT) must define these values. **/
-#ifndef SWIG
+    #ifndef SWIG
     enum {
         NRows               = M,
         NCols               = N,
@@ -146,7 +145,7 @@ public:
         IsPrecision         = 0,
         SignInterpretation  = CNT<E>::SignInterpretation
     };
-#endif
+    #endif
 
     typedef Mat<M,N,E,CS,RS>                T;
     typedef Mat<M,N,ENeg,CS,RS>             TNeg;
