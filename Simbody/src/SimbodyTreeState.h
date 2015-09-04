@@ -915,12 +915,18 @@ public:
 
 class SBTreeVelocityCache {
 public:
-    const SpatialVec& getV_FM(MobilizedBodyIndex mbx) const {return mobilizerRelativeVelocity[mbx];}
-    SpatialVec&       updV_FM(MobilizedBodyIndex mbx)       {return mobilizerRelativeVelocity[mbx];}
-    const SpatialVec& getV_PB(MobilizedBodyIndex mbx) const {return bodyVelocityInParent[mbx];}
-    SpatialVec&       updV_PB(MobilizedBodyIndex mbx)       {return bodyVelocityInParent[mbx];}
-    const SpatialVec& getV_GB(MobilizedBodyIndex mbx) const {return bodyVelocityInGround[mbx];}
-    SpatialVec&       updV_GB(MobilizedBodyIndex mbx)       {return bodyVelocityInGround[mbx];}
+    const SpatialVec& getV_FM(MobodIndex mbx) const 
+    {   return mobilizerRelativeVelocity[mbx]; }
+    SpatialVec&       updV_FM(MobodIndex mbx)       
+    {   return mobilizerRelativeVelocity[mbx]; }
+    const SpatialVec& getV_PB(MobodIndex mbx) const 
+    {   return bodyVelocityInParent[mbx]; }
+    SpatialVec&       updV_PB(MobodIndex mbx)       
+    {   return bodyVelocityInParent[mbx]; }
+    const SpatialVec& getV_GB(MobodIndex mbx) const 
+    {   return bodyVelocityInGround[mbx]; }
+    SpatialVec&       updV_GB(MobodIndex mbx)       
+    {   return bodyVelocityInGround[mbx]; }
 
     const SpatialVec& getV_AB(AncestorConstrainedBodyPoolIndex cbpx) const 
     {   return constrainedBodyVelocityInAncestor[cbpx]; }
@@ -930,9 +936,9 @@ public:
 public:
     // qdot cache space is supplied directly by the State
 
-    Array_<SpatialVec,MobilizedBodyIndex> mobilizerRelativeVelocity; // nb (V_FM) cross-mobilizer velocity
-    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInParent;      // nb (V_PB)
-    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInGround;      // nb (V_GB)
+    Array_<SpatialVec,MobodIndex> mobilizerRelativeVelocity; // nb (V_FM)
+    Array_<SpatialVec,MobodIndex> bodyVelocityInParent;      // nb (V_PB)
+    Array_<SpatialVec,MobodIndex> bodyVelocityInGround;      // nb (V_GB)
 
     // CAUTION: our definition of the H matrix is transposed from those used
     // by Jain and by Schwieters.
@@ -940,11 +946,13 @@ public:
     Array_<Vec3> storageForHDot;     // 2 x ndof (HDot_PB_G)
 
     // nb (VB_PB_G=HDot_PB_G*u)
-    Array_<SpatialVec,MobilizedBodyIndex> bodyVelocityInParentDerivRemainder; 
+    Array_<SpatialVec,MobodIndex> bodyVelocityInParentDerivRemainder; 
     
-    Array_<SpatialVec,MobilizedBodyIndex> gyroscopicForces;                // nb (b)
-    Array_<SpatialVec,MobilizedBodyIndex> mobilizerCoriolisAcceleration;   // nb (a)
-    Array_<SpatialVec,MobilizedBodyIndex> totalCoriolisAcceleration;       // nb (A)
+    Array_<SpatialVec,MobodIndex> gyroscopicForces;                // nb (b)
+    Array_<SpatialVec,MobodIndex> mobilizerCoriolisAcceleration;   // nb (a)
+    Array_<SpatialVec,MobodIndex> totalCoriolisAcceleration;       // nb (A)
+    Array_<SpatialVec,MobodIndex> totalCentrifugalForces;          // nb (M*A+b)
+
 
         // Ancestor Constrained Body Pool
 
@@ -965,29 +973,34 @@ public:
         const int maxNQs  = tree.maxNQs; // allocate max # q's we'll ever need
         const int nacb    = tree.nAncestorConstrainedBodies;
 
+        const SpatialVec SVZero(Vec3(0),Vec3(0));
+
         mobilizerRelativeVelocity.resize(nBodies);       
-        mobilizerRelativeVelocity[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerRelativeVelocity[GroundIndex] = SVZero;
 
         bodyVelocityInParent.resize(nBodies);       
-        bodyVelocityInParent[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        bodyVelocityInParent[GroundIndex] = SVZero;
 
         bodyVelocityInGround.resize(nBodies);       
-        bodyVelocityInGround[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        bodyVelocityInGround[GroundIndex] = SVZero;
 
         storageForHDot_FM.resize(2*nDofs);
         storageForHDot.resize(2*nDofs);
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       
-        bodyVelocityInParentDerivRemainder[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        bodyVelocityInParentDerivRemainder[GroundIndex] = SVZero;
         
         gyroscopicForces.resize(nBodies);           
-        gyroscopicForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        gyroscopicForces[GroundIndex] = SVZero;
      
         mobilizerCoriolisAcceleration.resize(nBodies);       
-        mobilizerCoriolisAcceleration[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        mobilizerCoriolisAcceleration[GroundIndex] = SVZero;
 
         totalCoriolisAcceleration.resize(nBodies);       
-        totalCoriolisAcceleration[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
+        totalCoriolisAcceleration[GroundIndex] = SVZero;
+    
+        totalCentrifugalForces.resize(nBodies);           
+        totalCentrifugalForces[GroundIndex] = SVZero;
 
         constrainedBodyVelocityInAncestor.resize(nacb);
     }
@@ -1043,7 +1056,6 @@ public:
     //      A=total coriolis acceleration for this body
     //      b=gyroscopic force
     Array_<SpatialVec,MobilizedBodyIndex> mobilizerCentrifugalForces; // nb (P*a+b)
-    Array_<SpatialVec,MobilizedBodyIndex> totalCentrifugalForces;     // nb (M*A+b)
 
     Array_<SpatialMat,MobilizedBodyIndex> Y;                          // nb
 
@@ -1063,8 +1075,6 @@ public:
         mobilizerCentrifugalForces.resize(nBodies);           
         mobilizerCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
-        totalCentrifugalForces.resize(nBodies);           
-        totalCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
 
         Y.resize(nBodies); // TODO: op space compliance kernel (see Jain 2011)
         Y[GroundIndex] = SpatialMat(Mat33(0));

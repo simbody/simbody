@@ -199,7 +199,7 @@ virtual int calcQPoolSize(const SBModelVars&) const = 0;
 virtual void performQPrecalculations(const SBStateDigest& sbs,
                                      const Real* q,  int nq,
                                      Real* posCache, int nPosCache,
-                                     Real* qErr,     int nQErr) const=0;
+                                     Real* qErr,     int nQErr) const = 0;
 
 // This mandatory routine calculates the across-joint transform X_FM generated
 // by the supplied q values. This may depend on sines & cosines or normalized
@@ -511,11 +511,12 @@ virtual void multiplyBySystemJacobianTranspose(
 
 virtual void calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
-    const SBDynamicsCache&      dc,
+    const SBTreeVelocityCache&  vc,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allZ,
     Real*                       jointForces) const
-  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "calcEquivalentJointForces"); }
+  { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", 
+    "calcEquivalentJointForces"); }
 
 virtual void calcUDotPass1Inward(
     const SBInstanceCache&                  ic,
@@ -584,19 +585,12 @@ virtual void multiplyByMPass2Inward(
     Real*                       allTau) const
   { SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "multiplyByMPass2Inward"); }
 
-
-virtual void setVelFromSVel(const SBStateDigest&,
-                            const SpatialVec&, Vector& u) const {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "setVelFromSVel");}
-
 // Note that this requires columns of H to be packed like SpatialVec.
 virtual const SpatialVec& getHCol(const SBTreePositionCache&, int j) const 
 {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getHCol");}
 
 virtual const SpatialVec& getH_FMCol(const SBTreePositionCache&, int j) const 
 {SimTK_THROW2(Exception::UnimplementedVirtualMethod, "RigidBodeNode", "getH_FMCol");}
-
-//TODO (does this even belong here?)
-virtual void velFromCartesian() {}
 
 
     // BASE CLASS METHODS //
@@ -877,6 +871,9 @@ SpatialVec&       updMobilizerCoriolisAcceleration(SBTreeVelocityCache&       vc
 const SpatialVec& getTotalCoriolisAcceleration(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCoriolisAcceleration);}
 SpatialVec&       updTotalCoriolisAcceleration(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCoriolisAcceleration);}
 
+const SpatialVec& getTotalCentrifugalForces(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCentrifugalForces);}
+SpatialVec&       updTotalCentrifugalForces(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCentrifugalForces);}
+
     // DYNAMICS INFO
 
 // Composite body inertias.
@@ -894,9 +891,6 @@ ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) con
 
 const SpatialVec& getMobilizerCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.mobilizerCentrifugalForces);}
 SpatialVec&       updMobilizerCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.mobilizerCentrifugalForces);}
-
-const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
-SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
 
 const SpatialVec& getZ(const SBTreeAccelerationCache& tac) const {return fromB(tac.z);}
 SpatialVec&       updZ(SBTreeAccelerationCache&       tac) const {return toB  (tac.z);}

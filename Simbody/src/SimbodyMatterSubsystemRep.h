@@ -930,9 +930,6 @@ public:
         const Vector_<Real>&        qdotdot,
         Vector&                     pvaerr) const;
 
-    // This is a solver which generates internal velocities from spatial ones.
-    void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
-
     void enforcePositionConstraints(State& s, Real consAccuracy, const Vector& yWeights,
                                     const Vector& ooTols, Vector& yErrest, ProjectOptions) const;
     void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,

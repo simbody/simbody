@@ -155,8 +155,8 @@ void realizeInstance(const SBStateDigest& sbs) const {
     updGyroscopicForce(vc) = SpatialVec(Vec3(0), Vec3(0));
     updMobilizerCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
     updTotalCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
+    updTotalCentrifugalForces(vc) = SpatialVec(Vec3(0), Vec3(0));
     updMobilizerCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
-    updTotalCentrifugalForces(dc) = SpatialVec(Vec3(0), Vec3(0));
     updY(dc) = SpatialMat(Mat33(0), Mat33(0), Mat33(0), Mat33(1/getMass()));
     updA_GB(ac)[0] = Vec3(0);
 }
@@ -239,7 +239,7 @@ void multiplyBySystemJacobianTranspose(
 
 void calcEquivalentJointForces(
         const SBTreePositionCache&  pc,
-        const SBDynamicsCache&      dc,
+        const SBTreeVelocityCache&  vc,
         const SpatialVec*           bodyForces,
         SpatialVec*                 allZ,
         Real*                       jointForces) const {

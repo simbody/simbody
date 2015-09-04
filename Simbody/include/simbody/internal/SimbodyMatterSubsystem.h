@@ -2583,83 +2583,117 @@ void unpackFreeU
 
     // POSITION STAGE responses //
 
-/** Return the composite body inertia for a particular mobilized body. You can 
-call this any time after the State has been realized to Position stage, however
-it will first trigger realization of all the composite body inertias if they 
-have not already been calculated. Ground is mobilized body zero; its composite
-body inertia has infinite mass and principle moments of inertia, and zero 
-center of mass.
+/** Return the composite body inertia (CBI) R for a particular mobilized body. 
+You can call this any time after the State has been realized to Position stage
+(or in fact any time after PositionKinematics have been realized). However, 
+the first call to this method will trigger realization of all the CBIs if they 
+have not already been calculated using realizeCompositeBodyInertias(). Ground is
+mobilized body zero; its CBI has infinite mass and principle moments of inertia, 
+and center of mass at (0,0,0).
+
+Although CBIs can be useful in inverse dynamics calculations, Simbody does not
+use them for that purpose so they won't be calculated unless requested.
+
 @par Required stage
-  \c Stage::Position
+  \c Stage::Position, or Stage::Instance and realizePositionKinematics()
 @see realizeCompositeBodyInertias() **/
 const SpatialInertia& 
 getCompositeBodyInertia(const State& state, MobilizedBodyIndex mbx) const;
 
-/** Return the articulated body inertia for a particular mobilized body. You
-can call this any time after the State has been realized to Position stage, 
-however it will first trigger expensive realization of all the articulated body
-inertias if they have not already been calculated. Ground is mobilized body 
-zero; its articulated body inertia is the same as its composite body inertia --
-an ordinary Spatial Inertia but with infinite mass and principle moments of
-inertia, and zero center of mass.
+/** Return the articulated body inertia (ABI) P for a particular mobilized body.
+These are normally not needed until some forward dynamics operation is to be
+performed, such as realize(Acceleration) or applying the multiplyByMInv() 
+operator. ABIs are expensive to calculate and require invertible mass properties
+so we normally defer their calculation until they are actually required. 
+However, you can ask for an ABI anytime after the State has been realized to 
+Position stage (or in fact any time after PositionKinematics have been 
+realized). If ABIs haven't been calculated yet for the current configuration, 
+either implicitly as discussed above or explicitly with 
+realizeArticulatedBodyInertias(), then their calculation will be triggered by 
+the first call to this method (they must all be calculated at the same time).
+ABIs are saved once calculated and will be reused until the configuration q
+changes.
+
+Ground is mobilized body zero; its articulated body inertia is the same as its 
+composite body inertia -- an ordinary Spatial Inertia but with infinite mass and
+principle moments of inertia, and center of mass at (0,0,0).
 @par Required stage
-  \c Stage::Position
-@see realizeArticulatedBodyInertias() **/
+  \c Stage::Position, or Stage::Instance and realizePositionKinematics()
+@see realizeArticulatedBodyInertias(), multiplyByMInv(),
+     realizePositionKinematics() **/
 const ArticulatedInertia& 
 getArticulatedBodyInertia(const State& state, MobilizedBodyIndex mbx) const;
 
 
     // VELOCITY STAGE responses //
 
-/** This is the angular velocity-dependent force on the body due to rotational 
-inertia.
+/** This is the rotational velocity-dependent force `b` on the body due to 
+rotational inertia.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& 
 getGyroscopicForce(const State& state, MobilizedBodyIndex mbx) const;
 
-/** This is the cross-mobilizer incremental contribution to coriolis (angular 
-velocity dependent) acceleration; not too useful, see 
-getTotalCoriolisAcceleration() instead.
+/** This is the *cross-mobilizer* incremental contribution `A` to the Coriolis 
+(angular velocity dependent) acceleration of a particular mobilized body; it is
+not too useful except as an intermediate calculation for more interesting 
+quantities -- you are probably interested in getTotalCoriolisAcceleration() 
+instead.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& 
 getMobilizerCoriolisAcceleration(const State&       state, 
                                  MobilizedBodyIndex mbx) const;
 
-/** This is the total coriolis acceleration including the effect of the parent's
-angular velocity as well as the joint's. This is Jdot*u where J is the system
-kinematic Jacobian and u is the current set of generalized speeds in the 
-supplied state. It is thus the remainder term in calculation of body 
-accelerations from generalized accelerations udot: since V=J*u, 
-A=J*udot + Jdot*u.
+/** This is the total Coriolis acceleration of a particular mobilized body,
+including the effect of the parent's angular velocity as well as the 
+mobilizer's. This is one element of Jdot*u where J is the system kinematic 
+Jacobian and u is the current set of generalized speeds in the supplied state. 
+It is thus the remainder term in calculation of body accelerations from 
+generalized accelerations udot: since `V=J*u`, `A=J*udot + Jdot*u`.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& 
 getTotalCoriolisAcceleration(const State& state, MobilizedBodyIndex mbx) const;
 
 
-    // DYNAMICS STAGE responses //
-
-/** This is the angular velocity-dependent force accounting for gyroscopic 
-forces plus coriolis forces due only to the cross-mobilizer velocity; this 
-ignores the parent's velocity and is not too useful -- see 
-getTotalCentrifugalForces() instead.
-@par Required stage
-  \c Stage::Dynamics **/
-const SpatialVec& 
-getMobilizerCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
-
-/** This is the total angular velocity-dependent force acting on this body, 
+/** This is the total rotational velocity-dependent force acting on this body B, 
 including forces due to Coriolis acceleration and gyroscopic forces due to 
-rotational inertia. This is F(b)=M[b]*A[b]+g[b] where M[b] is the spatial 
-inertia matrix of body b (\e not the articulated inertia), A[b] is the total 
-spatial Coriolis acceleration of body b, and g[b] is the (velocity-dependent) 
-spatial gyroscopic force acting on body b.
+rotational inertia. This is `C=M*a+b` where `M` is the spatial inertia matrix 
+of body B (*not* its articulated body inertia), `a` is the total spatial 
+Coriolis acceleration of B, and `b` is the (rotational velocity-dependent) 
+spatial gyroscopic force acting on B.
 @par Required stage
-  \c Stage::Dynamics **/
+  \c Stage::Velocity **/
 const SpatialVec& 
 getTotalCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
+
+/** This is part of the rotational velocity-dependent forces acting on a
+particular mobilized body B, accounting for gyroscopic forces plus Coriolis 
+forces due only to the *cross-mobilizer* velocity; this ignores the parent's 
+velocity and is not too useful except as an intermediate term in acceleration 
+calculations -- you probably want getTotalCentrifugalForces() instead. This is 
+`F=P*A+b` where `P` is mobod B's articulated body inertia (ABI), `A` is its 
+cross-mobilizer Coriolis acceleration (as returned by 
+getMobilizerCoriolisAcceleration()), and `b` is the (rotational 
+velocity-dependent) spatial gyroscopic force acting on B, as returned by
+getGyroscopicForce().
+
+Although this computation depends only on position and velocity kinematics, 
+we won't calculate it until the first time it is needed, generally during 
+realize(Acceleration). You can get it earlier if you have already realized 
+velocity kinematics *and* ABIs, either by an explicit call to 
+realizeArticulatedBodyInertias() or implicitly by asking for an ABI
+using getArticulatedBodyInertia(). This method will not initiate ABI calculation
+automatically but will throw an exception instead if they are not available.
+
+@par Required stage
+  \c Stage::Velocity and realizeArticulatedBodyInertias() 
+  
+@see getTotalCentrifugalForces(), realizeArticulatedBodyInertias(), 
+     getArticulatedBodyInertia(), getMobilizerCoriolisAcceleration() **/
+const SpatialVec& 
+getMobilizerCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
 /**@}**/
 
 

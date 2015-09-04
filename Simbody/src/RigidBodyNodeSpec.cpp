@@ -824,7 +824,7 @@ multiplyBySystemJacobianTranspose(
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
-    const SBDynamicsCache&      dc,
+    const SBTreeVelocityCache&  vc,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allZ,
     Real*                       jointForces) const 
@@ -835,7 +835,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
 
     // Centrifugal forces are MA+b where M is body spatial inertia,
     // A is total coriolis acceleration, and b is gyroscopic force.
-    z = myBodyForce - getTotalCentrifugalForces(dc);
+    z = myBodyForce - getTotalCentrifugalForces(vc);
 
     for (unsigned i=0; i<children.size(); ++i) {
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
@@ -847,18 +847,6 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     eps  = ~getH(pc) * z;
 }
 
-//
-// to be called from base to tip.
-//
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::setVelFromSVel(
-    const SBTreePositionCache&  pc, 
-    const SBTreeVelocityCache&  mc,
-    const SpatialVec&           sVel, 
-    Vector&                     u) const 
-{
-    toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
-}
 
     ////////////////////
     // INSTANTIATIONS //

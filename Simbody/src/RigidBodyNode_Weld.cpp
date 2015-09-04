@@ -120,12 +120,6 @@ public:
 
     void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {}
     void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {}
-
-    void setVelFromSVel(
-        const SBTreePositionCache&  pc, 
-        const SBTreeVelocityCache&  vc,
-        const SpatialVec&           sVel, 
-        Vector&                     u) const {}
 };
 
 /**
@@ -343,7 +337,7 @@ public:
 
     void calcEquivalentJointForces(
         const SBTreePositionCache&  pc,
-        const SBDynamicsCache&,
+        const SBTreeVelocityCache&,
         const SpatialVec*           bodyForces,
         SpatialVec*                 allZ,
         Real*                       jointForces) const 
@@ -675,7 +669,7 @@ public:
 
     void calcEquivalentJointForces(
         const SBTreePositionCache&  pc,
-        const SBDynamicsCache&      dc,
+        const SBTreeVelocityCache&  vc,
         const SpatialVec*           bodyForces,
         SpatialVec*                 allZ,
         Real*                       jointForces) const 
@@ -685,7 +679,7 @@ public:
 
         // Centrifugal forces are MA+b where M is body spatial inertia,
         // A is total coriolis acceleration, and b is gyroscopic force.
-        z = myBodyForce - getTotalCentrifugalForces(dc);
+        z = myBodyForce - getTotalCentrifugalForces(vc);
 
         for (int i=0 ; i<(int)children.size() ; i++) {
             const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];

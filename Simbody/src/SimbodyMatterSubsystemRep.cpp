@@ -235,13 +235,14 @@ SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyIndex
   return getRigidBodyNode(body).getGyroscopicForce(getTreeVelocityCache(s));
 }
 const SpatialVec&
+SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+  return getRigidBodyNode(body).getTotalCentrifugalForces(getTreeVelocityCache(s));
+}
+const SpatialVec&
 SimbodyMatterSubsystemRep::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
   return getRigidBodyNode(body).getMobilizerCentrifugalForces(getDynamicsCache(s));
 }
-const SpatialVec&
-SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getTotalCentrifugalForces(getDynamicsCache(s));
-}
+
 
 
 
@@ -6221,7 +6222,7 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
     Vector&                    mobilityForces) const
 {
     const SBTreePositionCache&  tpc = getTreePositionCache(s);
-    const SBDynamicsCache&      dc  = getDynamicsCache(s);
+    const SBTreeVelocityCache&  tvc = getTreeVelocityCache(s);
 
     assert(bodyForces.size() == getNumBodies());
     mobilityForces.resize(getTotalDOF());
@@ -6238,7 +6239,7 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcEquivalentJointForces(tpc,dc,
+            node.calcEquivalentJointForces(tpc,tvc,
                 bodyForcePtr, zPtr,
                 mobilityForcePtr);
         }
