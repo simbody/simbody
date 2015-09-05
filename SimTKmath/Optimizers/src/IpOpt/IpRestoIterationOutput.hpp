@@ -36,12 +36,12 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Method to do all the summary output per iteration.  This
      *  include the one-line summary output as well as writing the
      *  details about the iterates if desired */
-    virtual void WriteOutput();
+    virtual void WriteOutput() override;
 
   private:
     /**@name Default Compiler Generated Methods (Hidden to avoid

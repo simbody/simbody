@@ -104,7 +104,7 @@ friend class CableSpring;
 
     // We must always evaluate the power if we're going to calculate its
     // integral.
-    void realizeAcceleration(const State& s) const {
+    void realizeAcceleration(const State& s) const override {
         const ForceCache& forceCache = ensureForceCacheValid(s);
         updDissipatedEnergyDeriv(s) = forceCache.powerLoss;
     }

@@ -32,12 +32,12 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Method for computing the value of the barrier parameter that
      *  could be used in the current iteration (using the LOQO formula).
      */
-    virtual bool CalculateMu(Number mu_min, Number mu_max, Number& new_mu);
+    virtual bool CalculateMu(Number mu_min, Number mu_max, Number& new_mu) override;
 
     /** Methods for IpoptType */
     //@{

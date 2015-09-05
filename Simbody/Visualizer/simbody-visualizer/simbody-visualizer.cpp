@@ -480,7 +480,7 @@ public:
     PendingMesh() {
         index = nextMeshIndex++;
     }
-    void execute() {
+    void execute() override {
         if ((int) meshes.size() <= index)
             meshes.resize(index+1);
         meshes[index].push_back(new Mesh(vertices, normals, faces));
@@ -735,7 +735,7 @@ class PendingStandardMesh : public PendingCommand {
 public:
     PendingStandardMesh(unsigned short meshIndex, unsigned short resolution) : meshIndex(meshIndex), resolution(resolution) {
     }
-    void execute() {
+    void execute() override {
         if ((int) meshes[meshIndex].size() <= resolution)
             meshes[meshIndex].resize(resolution+1, NULL);
         if (meshes[meshIndex][resolution] == NULL) {
@@ -845,7 +845,7 @@ static void zoomCameraToShowWholeScene(bool sceneAlreadyLocked=false) {
 
 class PendingCameraZoom : public PendingCommand {
 public:
-    void execute() {
+    void execute() override {
         zoomCameraToShowWholeScene(true); // scene already locked
     }
 };
@@ -854,7 +854,7 @@ class PendingSetCameraTransform : public PendingCommand {
 public:
     PendingSetCameraTransform(fVec3 R, fVec3 p) : Rxyz(R), p(p) { }
 
-    void execute() {
+    void execute() override {
         X_GC.updR().setRotationToBodyFixedXYZ(Rxyz);
         X_GC.updP() = p;
     }
@@ -867,7 +867,7 @@ private:
 class PendingWindowTitleChange : public PendingCommand {
 public:
     PendingWindowTitleChange(const string& title) : title(title) {}
-    void execute() {glutSetWindowTitle(title.c_str());}
+    void execute() override {glutSetWindowTitle(title.c_str());}
 private:
     string title;
 };
@@ -876,7 +876,7 @@ private:
 class PendingBackgroundColorChange : public PendingCommand {
 public:
     PendingBackgroundColorChange(const fVec3& color) : color(color) {}
-    void execute() {
+    void execute() override {
         backgroundColor=color; setClearColorToBackgroundColor();
     }
 private:
@@ -1900,7 +1900,7 @@ public:
     Array_<unsigned char> data;
     SaveImageTask(const string& filename, int width, int height) : filename(filename), width(width), height(height), data(width*height*3) {
     }
-    void execute() {
+    void execute() override {
         // Flip the image vertically, since OpenGL and PNG use different row orders.
 
         const int rowLength = 3*width;

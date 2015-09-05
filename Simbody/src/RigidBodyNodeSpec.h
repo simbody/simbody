@@ -103,12 +103,12 @@ typedef Mat<2,dof,Vec3> HType;
 // *Each* mobilizer must implement setQToFit{Rotation,Translation} and 
 // setUToFit{AngularVelocity,LinearVelocity}; there are no defaults.
 
-virtual void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const {
+virtual void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, Vector& q) const override {
     setQToFitRotationImpl   (sbs,X_FM.R(),q);
     setQToFitTranslationImpl(sbs,X_FM.p(),q);
 }
 
-virtual void setUToFitVelocityImpl(const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
+virtual void setUToFitVelocityImpl(const SBStateDigest& sbs, const Vector& q, const SpatialVec& V_FM, Vector& u) const override {
     setUToFitAngularVelocityImpl(sbs,q,V_FM[0],u);
     setUToFitLinearVelocityImpl (sbs,q,V_FM[1],u);
 }
@@ -204,17 +204,17 @@ void calcParentToChildVelocityJacobianInGroundDot(
     const SBTreeVelocityCache&  vc, 
     HType&                      HDot_PB_G) const;
 
-void realizeModel(SBStateDigest& sbs) const 
+void realizeModel(SBStateDigest& sbs) const override 
 {
 }
 
-void realizeInstance(const SBStateDigest& sbs) const
+void realizeInstance(const SBStateDigest& sbs) const override
 {
 }
 
 // Set a new configuration and calculate the consequent kinematics.
 // Must call base-to-tip.
-void realizePosition(const SBStateDigest& sbs) const 
+void realizePosition(const SBStateDigest& sbs) const override 
 {
     const SBModelVars&      mv   = sbs.getModelVars();
     const SBModelCache&     mc   = sbs.getModelCache();
@@ -290,7 +290,7 @@ void realizePosition(const SBStateDigest& sbs) const
 //   HDot    time derivative of H (==H_PB_G) hinge matrix relating body frames
 //   VD_PB_G acceleration remainder term HDot*u, expr. in G
 // The code is the same for all joints, although parametrized by ndof.
-void realizeVelocity(const SBStateDigest& sbs) const 
+void realizeVelocity(const SBStateDigest& sbs) const override 
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
@@ -322,7 +322,7 @@ void realizeVelocity(const SBStateDigest& sbs) const
 
 // Articulated body inertias have been calculated; here we're 
 void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
-                     const SBStateDigest&                   sbs) const 
+                     const SBStateDigest&                   sbs) const override 
 {
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
     const SBTreeVelocityCache&  vc = sbs.getTreeVelocityCache();
@@ -337,7 +337,7 @@ void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
 
 // There is no realizeAcceleration().
 
-void realizeReport(const SBStateDigest& sbs) const
+void realizeReport(const SBStateDigest& sbs) const override
 {
 }
 
@@ -348,7 +348,7 @@ void realizeReport(const SBStateDigest& sbs) const
 void realizeArticulatedBodyInertiasInward(
     const SBInstanceCache&          ic,
     const SBTreePositionCache&      pc,
-    SBArticulatedBodyInertiaCache&  abc) const;
+    SBArticulatedBodyInertiaCache&  abc) const override;
 
 // calcJointIndependentDynamicsVel() must be called after ArticulatedBodyInertias.
 
@@ -358,36 +358,36 @@ void realizeYOutward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    SBDynamicsCache&                        dc) const;
+    SBDynamicsCache&                        dc) const override;
 
 // These routines give each node a chance to set appropriate defaults in a piece
 // of the state corresponding to a particular stage. Default implementations here
 // assume non-ball joint; override if necessary.
-virtual void setMobilizerDefaultModelValues   (const SBTopologyCache&, SBModelVars&)  const {}
-virtual void setMobilizerDefaultInstanceValues(const SBModelVars&, SBInstanceVars&) const {}
-virtual void setMobilizerDefaultTimeValues    (const SBModelVars&, SBTimeVars&)    const {}
+virtual void setMobilizerDefaultModelValues   (const SBTopologyCache&, SBModelVars&)  const override {}
+virtual void setMobilizerDefaultInstanceValues(const SBModelVars&, SBInstanceVars&) const override {}
+virtual void setMobilizerDefaultTimeValues    (const SBModelVars&, SBTimeVars&)    const override {}
 
-virtual void setMobilizerDefaultPositionValues(const SBModelVars& s, Vector& q) const 
+virtual void setMobilizerDefaultPositionValues(const SBModelVars& s, Vector& q) const override 
 {
     toQ(q) = 0;
 }
-virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) const 
+virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) const override 
 {
     toU(u) = 0;
 }
-virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
+virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const override {}
 virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&, 
                                                    SBDynamicsVars& v) const {}
 
-int          getDOF()            const {return dof;}
-virtual int  getMaxNQ()          const {
+int          getDOF()            const override {return dof;}
+virtual int  getMaxNQ()          const override {
     assert(quaternionUse == QuaternionIsNeverUsed);
     return dof; // maxNQ can be larger than dof if there's a quaternion
 }
 
 // Default method must be overridden if there is a chance that NQ
 // might not be the same as NU.
-virtual int  getNQInUse(const SBModelVars&) const {
+virtual int  getNQInUse(const SBModelVars&) const override {
     assert(quaternionUse == QuaternionIsNeverUsed); 
     return dof; // DOF <= NQ <= maxNQ
 }
@@ -395,13 +395,13 @@ virtual int  getNQInUse(const SBModelVars&) const {
 // Currently NU is always just the Mobilizer's DOFs (the template argument)
 // Later we may want to offer modeling options to lock joints, or perhaps
 // break them.
-virtual int  getNUInUse(const SBModelVars&) const {
+virtual int  getNUInUse(const SBModelVars&) const override {
     return dof;
 }
 
 // Default method must be overridden if this mobilizer might use a
 // quaternion under some conditions.
-virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQuaternion) const {
+virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQuaternion) const override {
     assert(quaternionUse == QuaternionIsNeverUsed);
     startOfQuaternion.invalidate();
     return false;
@@ -413,7 +413,7 @@ virtual bool isUsingQuaternion(const SBStateDigest&, MobilizerQIndex& startOfQua
 // This method should calculate qdot=N*u, where N=N(q) is the kinematic
 // coupling matrix. State digest should be at Stage::Position.
 virtual void calcQDot(const SBStateDigest&, 
-                      const Real* u, Real* qdot) const 
+                      const Real* u, Real* qdot) const override 
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdot) = Vec<dof>::getAs(u); // default says qdot=u
@@ -431,7 +431,7 @@ virtual void calcLocalUFromLocalQDot(const SBStateDigest&,
 // This method should calculate qdotdot=N*udot + NDot*u, where N=N(q),
 // NDot=NDot(q,u). State digest should be at Stage::Velocity.
 virtual void calcQDotDot(const SBStateDigest&, 
-                         const Real* udot, Real* qdotdot) const
+                         const Real* udot, Real* qdotdot) const override
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(qdotdot) = Vec<dof>::getAs(udot); // default: qdotdot=udot
@@ -457,14 +457,14 @@ virtual void calcLocalUDotFromLocalQDotDot(const SBStateDigest&,
 //
 // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
 virtual void multiplyByN(const SBStateDigest&, bool matrixOnRight,  
-                         const Real* in, Real* out) const
+                         const Real* in, Real* out) const override
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
 }
 
 virtual void multiplyByNInv(const SBStateDigest&, bool matrixOnRight, 
-                            const Real* in, Real* out) const
+                            const Real* in, Real* out) const override
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(out) = Vec<dof>::getAs(in);
@@ -479,7 +479,7 @@ virtual void multiplyByNInv(const SBStateDigest&, bool matrixOnRight,
 //
 // THIS MUST BE OVERRIDDEN by any mobilizer for which nq != nu, or qdot != u.
 virtual void multiplyByNDot(const SBStateDigest&, bool matrixOnRight, 
-                            const Real* in, Real* out) const
+                            const Real* in, Real* out) const override
 {
     assert(qdotHandling == QDotIsAlwaysTheSameAsU);
     Vec<dof>::updAs(out) = 0;
@@ -505,32 +505,32 @@ virtual void setVelFromSVel(
 virtual bool enforceQuaternionConstraints(
     const SBStateDigest&    sbs,
     Vector&                 q,
-    Vector&                 qErrest) const 
+    Vector&                 qErrest) const override 
 {
     assert(quaternionUse == QuaternionIsNeverUsed);
     return false;
 }
 
-void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const {
+void convertToEulerAngles(const Vector& inputQ, Vector& outputQ) const override {
     // The default implementation just copies Q.  Subclasses may override this.
     assert(quaternionUse == QuaternionIsNeverUsed);
     toQ(outputQ) = fromQ(inputQ);
 }
 
-void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const {
+void convertToQuaternions(const Vector& inputQ, Vector& outputQ) const override {
     // The default implementation just copies Q.  Subclasses may override this.
     assert(quaternionUse == QuaternionIsNeverUsed);
     toQ(outputQ) = fromQ(inputQ);
 }
 
 // Get a column of H_PB_G, which is what Jain calls H* and Schwieters calls H^T.
-const SpatialVec& getHCol(const SBTreePositionCache& pc, int j) const {
+const SpatialVec& getHCol(const SBTreePositionCache& pc, int j) const override {
     return getH(pc)(j);
 }
 
 // Get a column of H_FM the local cross-mobilizer hinge matrix expressed in the
 // parent (inboard) mobilizer frame F.
-const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, int j) const {
+const SpatialVec& getH_FMCol(const SBTreePositionCache& pc, int j) const override {
     return getH_FM(pc)(j);
 }
 
@@ -673,20 +673,20 @@ Real&             upd1Epsilon(SBTreeAccelerationCache&       ac) const {return t
 void multiplyBySystemJacobian(
     const SBTreePositionCache&  pc,
     const Real*                 v,
-    SpatialVec*                 Jv) const;
+    SpatialVec*                 Jv) const override;
 
 void multiplyBySystemJacobianTranspose(
     const SBTreePositionCache&  pc, 
     SpatialVec*                 zTmp,
     const SpatialVec*           X, 
-    Real*                       JtX) const;
+    Real*                       JtX) const override;
 
 void calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
     const SBDynamicsCache&      dc,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allZ,
-    Real*                       jointForces) const;
+    Real*                       jointForces) const override;
 
 void calcUDotPass1Inward(
     const SBInstanceCache&      ic,
@@ -698,7 +698,7 @@ void calcUDotPass1Inward(
     const Real*                 allUDot,
     SpatialVec*                 allZ,
     SpatialVec*                 allGepsilon,
-    Real*                       allEpsilon) const;
+    Real*                       allEpsilon) const override;
 
 void calcUDotPass2Outward(
     const SBInstanceCache&      ic,
@@ -709,7 +709,7 @@ void calcUDotPass2Outward(
     const Real*                 epsilonTmp,
     SpatialVec*                 allA_GB,
     Real*                       allUDot,
-    Real*                       allTau) const;
+    Real*                       allTau) const override;
 
 void multiplyByMInvPass1Inward(
     const SBInstanceCache&      ic,
@@ -733,7 +733,7 @@ void calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     const Real*                 allUDot,
-    SpatialVec*                 allA_GB) const;
+    SpatialVec*                 allA_GB) const override;
 
 void calcInverseDynamicsPass2Inward(
     const SBTreePositionCache&  pc,
@@ -742,17 +742,17 @@ void calcInverseDynamicsPass2Inward(
     const Real*                 jointForces,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allFTmp,
-    Real*                       allTau) const; 
+    Real*                       allTau) const override; 
 
 void multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
-    SpatialVec*                 allA_GB) const;
+    SpatialVec*                 allA_GB) const override;
 void multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allFTmp,
-    Real*                       allTau) const;
+    Real*                       allTau) const override;
 
 };
 

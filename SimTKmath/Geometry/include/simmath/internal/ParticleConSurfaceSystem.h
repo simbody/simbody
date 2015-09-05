@@ -69,39 +69,39 @@ public:
         return subsysIndex;
     }
 
-    /*virtual*/ParticleConSurfaceSystemGuts* cloneImpl() const {return new ParticleConSurfaceSystemGuts(*this);}
+    /*virtual*/ParticleConSurfaceSystemGuts* cloneImpl() const override {return new ParticleConSurfaceSystemGuts(*this);}
 
         /////////////////////////////////////////////////////////
         // Implementation of continuous DynamicSystem virtuals //
         /////////////////////////////////////////////////////////
 
-    /*virtual*/int realizeTopologyImpl(State&) const;
-    /*virtual*/int realizeModelImpl(State&) const;
-    /*virtual*/int realizeInstanceImpl(const State&) const;
-    /*virtual*/int realizePositionImpl(const State&) const;
-    /*virtual*/int realizeVelocityImpl(const State&) const;
-    /*virtual*/int realizeDynamicsImpl(const State&) const;
-    /*virtual*/int realizeAccelerationImpl(const State&) const;
+    /*virtual*/int realizeTopologyImpl(State&) const override;
+    /*virtual*/int realizeModelImpl(State&) const override;
+    /*virtual*/int realizeInstanceImpl(const State&) const override;
+    /*virtual*/int realizePositionImpl(const State&) const override;
+    /*virtual*/int realizeVelocityImpl(const State&) const override;
+    /*virtual*/int realizeDynamicsImpl(const State&) const override;
+    /*virtual*/int realizeAccelerationImpl(const State&) const override;
 
     // qdot==u here so these are just copies
     /*virtual*/void multiplyByNImpl(const State& state, const Vector& u, 
-                                 Vector& dq) const {dq=u;}
+                                 Vector& dq) const override {dq=u;}
     /*virtual*/void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
-                                          Vector& fu) const {fu=fq;}
+                                          Vector& fu) const override {fu=fq;}
     /*virtual*/void multiplyByNPInvImpl(const State& state, const Vector& dq, 
-                                     Vector& u) const {u=dq;}
+                                     Vector& u) const override {u=dq;}
     /*virtual*/void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
-                                              Vector& fq) const {fq=fu;}
+                                              Vector& fq) const override {fq=fu;}
 
     // No prescribed motion.
-    /*virtual*/bool prescribeQImpl(State&) const {return false;}
-    /*virtual*/bool prescribeUImpl(State&) const {return false;}
+    /*virtual*/bool prescribeQImpl(State&) const override {return false;}
+    /*virtual*/bool prescribeUImpl(State&) const override {return false;}
 
     // No constraints.
     /*virtual*/void projectQImpl(State&, Vector& qErrEst,
-             const ProjectOptions& options, ProjectResults& results) const;
+             const ProjectOptions& options, ProjectResults& results) const override;
     /*virtual*/void projectUImpl(State&, Vector& uErrEst,
-             const ProjectOptions& options, ProjectResults& results) const;
+             const ProjectOptions& options, ProjectResults& results) const override;
 private:
     const ContactGeometryImpl& geom;
 }; // class ParticleConSurfaceSystemGuts

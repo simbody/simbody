@@ -349,7 +349,7 @@ template class PIMPLImplementation<MyHandle,MyHandle_Impl>;
 
 class DerivedHandle_Impl : public MyHandle_Impl {
 public:
-    virtual DerivedHandle_Impl* clone() const {return new DerivedHandle_Impl(*this);}
+    virtual DerivedHandle_Impl* clone() const override {return new DerivedHandle_Impl(*this);}
 
 private:
     Real r;
@@ -358,7 +358,7 @@ private:
 
 class DerDerivedHandle_Impl : public DerivedHandle_Impl {
 public:
-    virtual DerDerivedHandle_Impl* clone() const {return new DerDerivedHandle_Impl(*this);}
+    virtual DerDerivedHandle_Impl* clone() const override {return new DerDerivedHandle_Impl(*this);}
 
 private:
     string s;

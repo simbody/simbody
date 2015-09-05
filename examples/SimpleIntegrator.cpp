@@ -156,10 +156,10 @@ class MySystemGuts : public System::Guts {
     MySystemGuts(const SomeStuff& stuff) : stuff(stuff) {}
 
     // Implement required System::Guts virtuals.
-    MySystemGuts* cloneImpl() const {return new MySystemGuts(*this);}
+    MySystemGuts* cloneImpl() const override {return new MySystemGuts(*this);}
 
     // During realizeTopology() we allocate the needed State.
-    int realizeTopologyImpl(State& state) const {
+    int realizeTopologyImpl(State& state) const override {
         // HERE'S WHERE THE IC GETS SET
         const Vector zInit(1, 0.); // initial value for the one z we want
         state.allocateZ(SubsystemIndex(0), zInit);
@@ -167,7 +167,7 @@ class MySystemGuts : public System::Guts {
     }
 
     // During realizeAcceleration() we calculate the State derivative.
-    int realizeAccelerationImpl(const State& state) const {
+    int realizeAccelerationImpl(const State& state) const override {
         const Real t = state.getTime();
         // HERE'S THE CALL TO YOUR FUNCTION
         state.updZDot()[0] = myFunction(stuff, t);

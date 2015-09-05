@@ -291,7 +291,7 @@ namespace Ipopt
      *  notify_type==NT_Changed or NT_BeingDeleted, then this results
      *  is marked as stale.
      */
-    virtual void ReceiveNotification(NotifyType notify_type, const Subject* subject);
+    virtual void ReceiveNotification(NotifyType notify_type, const Subject* subject) override;
 
   private:
 

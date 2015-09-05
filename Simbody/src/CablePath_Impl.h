@@ -597,7 +597,7 @@ public:
     :   Super(path, viaMobod, station) 
     {   decoration = DecorativePoint().setColor(Red); }
 
-    int getNumCoordsPerContactPoint() const {return 0;}
+    int getNumCoordsPerContactPoint() const override {return 0;}
 
     void getContactPointsOnObstacle(const State& state, 
                                     const PathInstanceInfo& instInfo,
@@ -637,7 +637,7 @@ public:
     const ContactGeometry& getContactGeometry() const {return surface;}
 
     // Hardcoded for implicit surfaces -- would be 2 for parametric.
-    int getNumCoordsPerContactPoint() const {return 3;}
+    int getNumCoordsPerContactPoint() const override {return 3;}
 
     void getContactPointsOnObstacle(const State& state, 
                                     const PathInstanceInfo& instInfo,

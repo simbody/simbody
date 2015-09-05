@@ -1124,7 +1124,7 @@ public:
                     R_SQ(geom.calcTangentBasis(Q, tQhint)) { }
 
     // x = ~[thetaP, thetaQ]
-    int f(const Vector& x, Vector& fx) const  {
+    int f(const Vector& x, Vector& fx) const override  {
         UnitVec3 tP = calcUnitTangentVec(x[0], R_SP);
         UnitVec3 tQ = calcUnitTangentVec(x[1], R_SQ);
 
@@ -1157,7 +1157,7 @@ public:
                     geom(geom), P(xP), Q(xQ) { }
 
     // x = ~[thetaP, length]
-    int f(const Vector& x, Vector& fx) const  {
+    int f(const Vector& x, Vector& fx) const override  {
         Geodesic geod;
         Vec2 geodErr = geom.calcOrthogonalGeodError(P, Q, x[0], x[1], geod);
 

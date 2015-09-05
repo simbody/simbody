@@ -40,20 +40,20 @@ public:
     VisualizerGeometry(VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, const State& state);
     ~VisualizerGeometry() {
     }
-    void implementPointGeometry(const DecorativePoint& geom);
-    void implementLineGeometry(const DecorativeLine& geom);
-    void implementBrickGeometry(const DecorativeBrick& geom);
-    void implementCylinderGeometry(const DecorativeCylinder& geom);
-    void implementCircleGeometry(const DecorativeCircle& geom);
-    void implementSphereGeometry(const DecorativeSphere& geom);
-    void implementEllipsoidGeometry(const DecorativeEllipsoid& geom);
-    void implementFrameGeometry(const DecorativeFrame& geom);
-    void implementTextGeometry(const DecorativeText& geom);
-    void implementMeshGeometry(const DecorativeMesh& geom);
-    void implementMeshFileGeometry(const DecorativeMeshFile& geom) {}; // Not handled yet by this Visualizer
-    void implementArrowGeometry(const DecorativeArrow& geom) {}; // Not handled yet by this Visualizer
-    void implementTorusGeometry(const DecorativeTorus& geom) {}; // Not handled yet by this Visualizer
-    void implementConeGeometry(const DecorativeCone& geom) {}; // Not handled yet by this Visualizer
+    void implementPointGeometry(const DecorativePoint& geom) override;
+    void implementLineGeometry(const DecorativeLine& geom) override;
+    void implementBrickGeometry(const DecorativeBrick& geom) override;
+    void implementCylinderGeometry(const DecorativeCylinder& geom) override;
+    void implementCircleGeometry(const DecorativeCircle& geom) override;
+    void implementSphereGeometry(const DecorativeSphere& geom) override;
+    void implementEllipsoidGeometry(const DecorativeEllipsoid& geom) override;
+    void implementFrameGeometry(const DecorativeFrame& geom) override;
+    void implementTextGeometry(const DecorativeText& geom) override;
+    void implementMeshGeometry(const DecorativeMesh& geom) override;
+    void implementMeshFileGeometry(const DecorativeMeshFile& geom) override {}; // Not handled yet by this Visualizer
+    void implementArrowGeometry(const DecorativeArrow& geom) override {}; // Not handled yet by this Visualizer
+    void implementTorusGeometry(const DecorativeTorus& geom) override {}; // Not handled yet by this Visualizer
+    void implementConeGeometry(const DecorativeCone& geom) override {}; // Not handled yet by this Visualizer
     static Vec4 getColor(const DecorativeGeometry& geom,
                          const Vec3& defaultColor = Vec3(-1));
 private:

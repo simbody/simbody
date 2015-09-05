@@ -66,7 +66,7 @@ public:
     }
 
     // Implement required pure virtual method.
-    Implementation* clone () const {return new ExampleConstraint(*this);}
+    Implementation* clone () const override {return new ExampleConstraint(*this);}
 
     // Implement the Implementation virtuals required for a holonomic
     // (position level) constraint.
@@ -77,7 +77,7 @@ public:
        (const State&                                    state,
         const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
         const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
-        Array_<Real>&                                   perr) const
+        Array_<Real>&                                   perr) const override
     {
         Vec3 r1 = getBodyOriginLocation(X_AB, body1);
         Vec3 r2 = getBodyOriginLocation(X_AB, body2);
@@ -91,7 +91,7 @@ public:
        (const State&                                    state,
         const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
         const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
-        Array_<Real>&                                   pverr) const
+        Array_<Real>&                                   pverr) const override
     {
         Vec3 r1 = getBodyOriginLocationFromState(state, body1);
         Vec3 r2 = getBodyOriginLocationFromState(state, body2);
@@ -109,7 +109,7 @@ public:
        (const State&                                    state,
         const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
         const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
-        Array_<Real>&                                   paerr) const 
+        Array_<Real>&                                   paerr) const override 
     {
         Vec3 r1 = getBodyOriginLocationFromState(state, body1);
         Vec3 r2 = getBodyOriginLocationFromState(state, body2);
@@ -130,7 +130,7 @@ public:
        (const State&                                state, 
         const Array_<Real>&                         multipliers,
         Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-        Array_<Real,      ConstrainedQIndex>&       qForces) const 
+        Array_<Real,      ConstrainedQIndex>&       qForces) const override 
     {
         Vec3 r1 = getBodyOriginLocationFromState(state, body1);
         Vec3 r2 = getBodyOriginLocationFromState(state, body2);
@@ -149,7 +149,7 @@ private:
 // for more information.
 class MyEvaluateEnergy : public TextDataEventReporter::UserFunction<Real> {
 public:
-    Real evaluate(const System& system, const State& state) {
+    Real evaluate(const System& system, const State& state) override {
         const MultibodySystem& mbs = MultibodySystem::downcast(system);
         mbs.realize(state, Stage::Dynamics);
         return mbs.calcEnergy(state);

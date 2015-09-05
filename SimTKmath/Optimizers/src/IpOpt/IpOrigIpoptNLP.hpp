@@ -44,7 +44,7 @@ namespace Ipopt
     /** Initialize - overloaded from IpoptNLP */
     virtual bool Initialize(const Journalist& jnlst,
                             const OptionsList& options,
-                            const std::string& prefix);
+                            const std::string& prefix) override;
 
     /** Initialize (create) structures for
      *  the iteration data */
@@ -60,48 +60,48 @@ namespace Ipopt
                                       bool init_z_U,
                                       SmartPtr<Vector>& v_L,
                                       SmartPtr<Vector>& v_U
-                                     );
+                                     ) override;
 
     /** Method accessing the GetWarmStartIterate of the NLP */
-    virtual bool GetWarmStartIterate(IteratesVector& warm_start_iterate)
+    virtual bool GetWarmStartIterate(IteratesVector& warm_start_iterate) override
     {
       return nlp_->GetWarmStartIterate(warm_start_iterate);
     }
     /** Accessor methods for model data */
     //@{
     /** Objective value */
-    virtual Number f(const Vector& x);
+    virtual Number f(const Vector& x) override;
 
     /** Objective value (depending in mu) - incorrect version for
      *  OrigIpoptNLP */
-    virtual Number f(const Vector& x, Number mu);
+    virtual Number f(const Vector& x, Number mu) override;
 
     /** Gradient of the objective */
-    virtual SmartPtr<const Vector> grad_f(const Vector& x);
+    virtual SmartPtr<const Vector> grad_f(const Vector& x) override;
 
     /** Gradient of the objective (depending in mu) - incorrect
      *  version for OrigIpoptNLP */
-    virtual SmartPtr<const Vector> grad_f(const Vector& x, Number mu);
+    virtual SmartPtr<const Vector> grad_f(const Vector& x, Number mu) override;
 
     /** Equality constraint residual */
-    virtual SmartPtr<const Vector> c(const Vector& x);
+    virtual SmartPtr<const Vector> c(const Vector& x) override;
 
     /** Jacobian Matrix for equality constraints */
-    virtual SmartPtr<const Matrix> jac_c(const Vector& x);
+    virtual SmartPtr<const Matrix> jac_c(const Vector& x) override;
 
     /** Inequality constraint residual (reformulated
      *  as equalities with slacks */
-    virtual SmartPtr<const Vector> d(const Vector& x);
+    virtual SmartPtr<const Vector> d(const Vector& x) override;
 
     /** Jacobian Matrix for inequality constraints*/
-    virtual SmartPtr<const Matrix> jac_d(const Vector& x);
+    virtual SmartPtr<const Matrix> jac_d(const Vector& x) override;
 
     /** Hessian of the Lagrangian */
     virtual SmartPtr<const SymMatrix> h(const Vector& x,
                                         Number obj_factor,
                                         const Vector& yc,
                                         const Vector& yd
-                                       );
+                                       ) override;
 
     /** Hessian of the Lagrangian (depending in mu) - incorrect
      *  version for OrigIpoptNLP */
@@ -109,62 +109,62 @@ namespace Ipopt
                                         Number obj_factor,
                                         const Vector& yc,
                                         const Vector& yd,
-                                        Number mu);
+                                        Number mu) override;
 
     /** Provides a Hessian matrix from the correct matrix space with
      *  uninitialized values.  This can be used in LeastSquareMults to
      *  obtain a "zero Hessian". */
-    virtual SmartPtr<const SymMatrix> uninitialized_h();
+    virtual SmartPtr<const SymMatrix> uninitialized_h() override;
 
     /** Lower bounds on x */
-    virtual SmartPtr<const Vector> x_L()
+    virtual SmartPtr<const Vector> x_L() override
     {
       return x_L_;
     }
 
     /** Permutation matrix (x_L_ -> x) */
-    virtual SmartPtr<const Matrix> Px_L()
+    virtual SmartPtr<const Matrix> Px_L() override
     {
       return Px_L_;
     }
 
     /** Upper bounds on x */
-    virtual SmartPtr<const Vector> x_U()
+    virtual SmartPtr<const Vector> x_U() override
     {
       return x_U_;
     }
 
     /** Permutation matrix (x_U_ -> x */
-    virtual SmartPtr<const Matrix> Px_U()
+    virtual SmartPtr<const Matrix> Px_U() override
     {
       return Px_U_;
     }
 
     /** Lower bounds on d */
-    virtual SmartPtr<const Vector> d_L()
+    virtual SmartPtr<const Vector> d_L() override
     {
       return d_L_;
     }
 
     /** Permutation matrix (d_L_ -> d) */
-    virtual SmartPtr<const Matrix> Pd_L()
+    virtual SmartPtr<const Matrix> Pd_L() override
     {
       return Pd_L_;
     }
 
     /** Upper bounds on d */
-    virtual SmartPtr<const Vector> d_U()
+    virtual SmartPtr<const Vector> d_U() override
     {
       return d_U_;
     }
 
     /** Permutation matrix (d_U_ -> d */
-    virtual SmartPtr<const Matrix> Pd_U()
+    virtual SmartPtr<const Matrix> Pd_U() override
     {
       return Pd_U_;
     }
 
-    virtual SmartPtr<const SymMatrixSpace> HessianMatrixSpace() const
+    virtual SmartPtr<const SymMatrixSpace> HessianMatrixSpace() const override
     {
       return h_space_;
     }
@@ -184,42 +184,42 @@ namespace Ipopt
                            SmartPtr<const MatrixSpace>& pd_u_space,
                            SmartPtr<const MatrixSpace>& Jac_c_space,
                            SmartPtr<const MatrixSpace>& Jac_d_space,
-                           SmartPtr<const SymMatrixSpace>& Hess_lagrangian_space);
+                           SmartPtr<const SymMatrixSpace>& Hess_lagrangian_space) override;
 
     /** Method for adapting the variable bounds.  This is called if
      *  slacks are becoming too small */
     virtual void AdjustVariableBounds(const Vector& new_x_L,
                                       const Vector& new_x_U,
                                       const Vector& new_d_L,
-                                      const Vector& new_d_U);
+                                      const Vector& new_d_U) override;
 
     /** @name Counters for the number of function evaluations. */
     //@{
-    virtual Index f_evals() const
+    virtual Index f_evals() const override
     {
       return f_evals_;
     }
-    virtual Index grad_f_evals() const
+    virtual Index grad_f_evals() const override
     {
       return grad_f_evals_;
     }
-    virtual Index c_evals() const
+    virtual Index c_evals() const override
     {
       return c_evals_;
     }
-    virtual Index jac_c_evals() const
+    virtual Index jac_c_evals() const override
     {
       return jac_c_evals_;
     }
-    virtual Index d_evals() const
+    virtual Index d_evals() const override
     {
       return d_evals_;
     }
-    virtual Index jac_d_evals() const
+    virtual Index jac_d_evals() const override
     {
       return jac_d_evals_;
     }
-    virtual Index h_evals() const
+    virtual Index h_evals() const override
     {
       return h_evals_;
     }
@@ -231,7 +231,7 @@ namespace Ipopt
                           const Vector& x, const Vector& z_L, const Vector& z_U,
                           const Vector& c, const Vector& d,
                           const Vector& y_c, const Vector& y_d,
-                          Number obj_value);
+                          Number obj_value) override;
     bool IntermediateCallBack(AlgorithmMode mode,
                               Index iter, Number obj_value,
                               Number inf_pr, Number inf_du,
@@ -240,7 +240,7 @@ namespace Ipopt
                               Number alpha_du, Number alpha_pr,
                               Index ls_trials,
                               SmartPtr<const IpoptData> ip_data,
-                              SmartPtr<IpoptCalculatedQuantities> ip_cq);
+                              SmartPtr<IpoptCalculatedQuantities> ip_cq) override;
     //@}
 
     /** @name Methods for IpoptType */

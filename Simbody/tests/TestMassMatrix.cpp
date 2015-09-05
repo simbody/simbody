@@ -42,7 +42,7 @@ class MyForceImpl : public Force::Custom::Implementation {
 public:
     MyForceImpl() {}
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, 
-                   Vector& mobilityForces) const 
+                   Vector& mobilityForces) const override 
     {
         SimTK_TEST( f.size() == 0 || f.size() == mobilityForces.size() );
         SimTK_TEST( F.size() == 0 || F.size() == bodyForces.size() );
@@ -51,7 +51,7 @@ public:
         if (F.size())
             bodyForces += F;
     }
-    Real calcPotentialEnergy(const State&) const {return 0;}
+    Real calcPotentialEnergy(const State&) const override {return 0;}
 
     void setMobilityForces(const Vector& mobFrc) {
         f = mobFrc;

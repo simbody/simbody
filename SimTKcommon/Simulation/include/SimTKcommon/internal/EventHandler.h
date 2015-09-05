@@ -148,7 +148,7 @@ class SimTK_SimTKCOMMON_EXPORT PeriodicEventHandler
 public:
     class PeriodicEventHandlerImpl;
     ~PeriodicEventHandler();
-    Real getNextEventTime(const State& state, bool includeCurrentTime) const;
+    Real getNextEventTime(const State& state, bool includeCurrentTime) const override;
     
     /**
      * Create a PeriodicEventHandler.

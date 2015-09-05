@@ -49,21 +49,21 @@ namespace Ipopt
     /**@name Methods overloaded from matrix */
     //@{
     virtual void MultVectorImpl(Number alpha, const Vector& x,
-                                Number beta, Vector& y) const;
+                                Number beta, Vector& y) const override;
 
     virtual void TransMultVectorImpl(Number alpha, const Vector& x,
-                                     Number beta, Vector& y) const;
+                                     Number beta, Vector& y) const override;
 
     /** Method for determining if all stored numbers are valid (i.e.,
      *  no Inf or Nan). */
-    virtual bool HasValidNumbersImpl() const;
+    virtual bool HasValidNumbersImpl() const override;
 
     virtual void PrintImpl(const Journalist& jnlst,
                            EJournalLevel level,
                            EJournalCategory category,
                            const std::string& name,
                            Index indent,
-                           const std::string& prefix) const;
+                           const std::string& prefix) const override;
     //@}
 
   private:
@@ -133,7 +133,7 @@ namespace Ipopt
 
     /** Overloaded MakeNew method for the MatrixSpace base class.
      */
-    virtual Matrix* MakeNew() const;
+    virtual Matrix* MakeNew() const override;
 
   private:
     /**@name Default Compiler Generated Methods

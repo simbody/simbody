@@ -36,7 +36,7 @@ namespace Ipopt
 
     /** InitializeImpl - overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Reset the acceptor.
      *  This function should be called if all previous information
@@ -44,31 +44,31 @@ namespace Ipopt
      *  next time.  For example, this method should be called if
      *  the barrier parameter is changed.
      */
-    virtual void Reset();
+    virtual void Reset() override;
 
     /** Initialization for the next line search.  The flag in_watchdog
      *  indicates if we are currently in an active watchdog
      *  procedure. */
-    virtual void InitThisLineSearch(bool in_watchdog);
+    virtual void InitThisLineSearch(bool in_watchdog) override;
 
     /** Method that is called before the restoration phase is called.
      *  Here, we can set up things that are required in the
      *  termination test for the restoration phase, such as augmenting
      *  a filter. */
-    virtual void PrepareRestoPhaseStart();
+    virtual void PrepareRestoPhaseStart() override;
 
     /** Method returning the lower bound on the trial step sizes.  If
      *  the backtracking procedure encounters a trial step size below
      *  this value after the first trial set, it swtiches to the
      *  (soft) restoration phase. */
-    virtual Number CalculateAlphaMin();
+    virtual Number CalculateAlphaMin() override;
 
     /** Method for checking if current trial point is acceptable.
      *  It is assumed that the delta information in ip_data is the
      *  search direction used in criteria.  The primal trial point has
      *  to be set before the call.
      */
-    virtual bool CheckAcceptabilityOfTrialPoint(Number alpha_primal);
+    virtual bool CheckAcceptabilityOfTrialPoint(Number alpha_primal) override;
 
     /** Try a second order correction for the constraints.  If the
      *  first trial step (with incoming alpha_primal) has been reject,
@@ -83,7 +83,7 @@ namespace Ipopt
      */
     virtual bool TrySecondOrderCorrection(Number alpha_primal_test,
                                           Number& alpha_primal,
-                                          SmartPtr<IteratesVector>& actual_delta);
+                                          SmartPtr<IteratesVector>& actual_delta) override;
 
     /** Try higher order corrector (for fast local convergence).  In
      *  contrast to a second order correction step, which tries to
@@ -93,21 +93,21 @@ namespace Ipopt
      */
     virtual bool TryCorrector(Number alpha_primal_test,
                               Number& alpha_primal,
-                              SmartPtr<IteratesVector>& actual_delta);
+                              SmartPtr<IteratesVector>& actual_delta) override;
 
     /** Method for ending the current line search.  When it is called,
      *  the internal data should be updates, e.g., the filter might be
      *  augmented.  alpha_primal_test is the value of alpha that has
      *  been used for in the acceptance test earlier. */
-    virtual char UpdateForNextIteration(Number alpha_primal_test);
+    virtual char UpdateForNextIteration(Number alpha_primal_test) override;
 
     /** Method for setting internal data if the watchdog procedure is
      *  started. */
-    virtual void StartWatchDog();
+    virtual void StartWatchDog() override;
 
     /** Method for setting internal data if the watchdog procedure is
      *  stopped. */
-    virtual void StopWatchDog();
+    virtual void StopWatchDog() override;
 
     /**@name Trial Point Accepting Methods. Used internally to check certain
      * acceptability criteria and used externally (by the restoration phase
