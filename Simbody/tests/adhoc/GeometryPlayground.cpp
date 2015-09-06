@@ -295,6 +295,35 @@ int main() {
     Vector spx(7, spxdata), spy(7, spydata);
     drawSpline(spx, spy, matter.Ground());
 
+   // SuperEllipsoids 
+    // -------------------------------------------------------------------------------
+    ContactGeometry::SuperEllipsoid SE_geom_01(Vec3(0.5, 0.5, 0.5) /*dimensions*/, Vec2(2.0,2.0) /*exponents*/);
+    matter.updGround().addBodyDecoration(Transform(Vec3(15.0, 40.0, 0.0)), SE_geom_01.createDecorativeGeometry()
+        .setColor(Red)
+        .setOpacity(0.9));
+    matter.Ground().addBodyDecoration(Transform(Vec3(15.0, 40.0, 0.0)), SE_geom_01.createDecorativeGeometry()
+        .setRepresentation(DecorativeGeometry::DrawWireframe)
+        .setColor(Black));
+
+    ContactGeometry::SuperEllipsoid SE_geom_02(Vec3(0.5, 0.5, 1.0), Vec2(3.0, 3.0));
+    matter.updGround().addBodyDecoration(Transform(Vec3(16.5,40.0,0.0)), SE_geom_02.createDecorativeGeometry()
+        .setColor(Green)
+        .setOpacity(0.9));
+    matter.Ground().addBodyDecoration(Transform(Vec3(16.5,40.0,0.0)), SE_geom_02.createDecorativeGeometry()
+        .setRepresentation(DecorativeGeometry::DrawWireframe)
+        .setColor(Black));
+
+    ContactGeometry::SuperEllipsoid SE_geom_03(Vec3(0.5, 0.5, 1.5), Vec2(10.0, 10.0));
+    matter.updGround().addBodyDecoration(Transform(Vec3(18.0,40.0,0.0)), SE_geom_03.createDecorativeGeometry()
+        .setColor(Blue)
+        .setOpacity(0.9));
+    matter.Ground().addBodyDecoration(Transform(Vec3(18.0,40.0,0.0)), SE_geom_03.createDecorativeGeometry()
+        .setRepresentation(DecorativeGeometry::DrawWireframe)
+        .setColor(Black));
+
+    // -------------------------------------------------------------------------------
+
+
     Vec<4,Vec3> B( Vec3(3,0,0), Vec3(5,.5,2), Vec3(4,1,0), Vec3(6,0,0));
     Geo::CubicBezierCurve curve(B);
     draw(curve, Vec3(0), matter.Ground(), Orange);

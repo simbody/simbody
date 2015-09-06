@@ -47,6 +47,14 @@ public:
     void implementCircleGeometry(const DecorativeCircle& geom);
     void implementSphereGeometry(const DecorativeSphere& geom);
     void implementEllipsoidGeometry(const DecorativeEllipsoid& geom);
+    
+    // SuperEllipsoid Code
+    // -------------------------------------------------------------------------------
+
+    void implementSuperEllipsoidGeometry(const DecorativeSuperEllipsoid& geom);
+        
+    // -------------------------------------------------------------------------------
+        
     void implementFrameGeometry(const DecorativeFrame& geom);
     void implementTextGeometry(const DecorativeText& geom);
     void implementMeshGeometry(const DecorativeMesh& geom);

@@ -167,3 +167,16 @@ Vec3 VisualizerGeometry::getScaleFactors(const DecorativeGeometry& geom) const {
         actual[i] = scale[i] <= 0 ? 1 : scale[i];
     return actual;
 }
+
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+
+void VisualizerGeometry::implementSuperEllipsoidGeometry(const SimTK::DecorativeSuperEllipsoid& geom) {
+    const Transform X_GD = calcX_GD(geom);
+    const Vec3 radii = getScaleFactors(geom).elementwiseMultiply(geom.getRadii());
+    const Vec2 gammas = geom.getGammas();
+    protocol.drawSuperEllipsoid(X_GD, radii, gammas, getColor(geom), getRepresentation(geom),
+        getResolution(geom));
+}
+
+// -------------------------------------------------------------------------------

@@ -365,6 +365,60 @@ private:
     }
 };
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+/////////////////////////////////
+// DecorativeSuperEllipsoidRep //
+/////////////////////////////////
+
+class DecorativeSuperEllipsoidRep : public DecorativeGeometryRep {
+public:
+    // no default constructor
+    DecorativeSuperEllipsoidRep(const Vec3& xyzRadii, const Vec2& g1g2Gammas) : radii(xyzRadii), gammas(g1g2Gammas) {
+        assert(radii[0]>0 && radii[1]>0 && radii[2]>0 && gammas[0] >= 2 && gammas[1] >= 2); // TODO
+    }
+
+    void setRadii(const Vec3& r) {
+        assert(r[0]>0 && r[1]>0 && r[2]>0); // TODO;
+        radii = r;
+    }
+    const Vec3& getRadii() const { return radii; }
+
+
+    void setGammas(const Vec2& g) {
+        assert(g[0] >= 2 && g[1] >= 2);
+        gammas = g;
+    }
+    const Vec2& getGammas() const { return gammas; }
+
+
+    // virtuals
+    DecorativeSuperEllipsoidRep* cloneDecorativeGeometryRep() const {
+        DecorativeSuperEllipsoidRep* DGRep = new DecorativeSuperEllipsoidRep(*this);
+        return(DGRep);
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementSuperEllipsoidGeometry(getMySuperEllipsoidHandle());
+    }
+
+    SimTK_DOWNCAST(DecorativeSuperEllipsoidRep, DecorativeGeometryRep);
+private:
+    Vec3 radii;
+
+
+    Vec2 gammas;
+
+
+
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeSuperEllipsoid& getMySuperEllipsoidHandle() const {
+        return *static_cast<const DecorativeSuperEllipsoid*>(myHandle);
+    }
+};
+
+// -------------------------------------------------------------------------------
+
 
     ////////////////////////
     // DecorativeBrickRep //

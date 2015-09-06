@@ -46,9 +46,17 @@ static const unsigned short MeshEllipsoid        = 1;    // works for sphere
 static const unsigned short MeshCylinder         = 2;
 static const unsigned short MeshCircle           = 3;
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+
+static const unsigned short MeshSuperEllipsoid = 4;
+
 // This serves as the first index number for unique meshes that are 
 // defined during this run.
-static const unsigned short NumPredefinedMeshes  = 4;
+static const unsigned short NumPredefinedMeshes  = 5;
+
+// -------------------------------------------------------------------------------
+
 
 // Commands sent to the GUI.
 
@@ -111,6 +119,16 @@ public:
     void drawEllipsoid(const Transform& transform, const Vec3& scale, 
                        const Vec4& color, int representation, 
                        unsigned short resolution);
+                       
+    // SuperEllipsoid Code
+    // -------------------------------------------------------------------------------
+        
+     void drawSuperEllipsoid(const Transform& transform, const Vec3& scale, const Vec2& gammas,
+            const Vec4& color, int representation,
+            unsigned short resolution);
+        
+    // -------------------------------------------------------------------------------
+
     void drawCylinder(const Transform& transform, const Vec3& scale, 
                       const Vec4& color, int representation, 
                       unsigned short resolution);

@@ -34,6 +34,15 @@
 
 #include <limits>
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+
+#define PI 3.14159265358979323846    // irracional constant.
+#define EPS 1.0e-6                    // indetermination tolerance (so that phi1 or phi2 are not equal to 0/0).
+
+// -------------------------------------------------------------------------------
+
+
 namespace SimTK {
 
 class SplitGeodesicError;
@@ -820,6 +829,249 @@ findUnitNormalAtPoint(const Vec3& Q) const {
     return UnitVec3(kk[0]*Q[0], kk[1]*Q[1], kk[2]*Q[2]);
 }
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+//==============================================================================
+//                           SUPERELLIPSOID IMPL
+//==============================================================================
+class SuperEllipsoidImplicitFunction : public Function {
+public:
+    SuperEllipsoidImplicitFunction() : ownerp(0) {}
+    SuperEllipsoidImplicitFunction(const ContactGeometry::SuperEllipsoid::Impl& owner)
+        : ownerp(&owner) {}
+    void setOwner(const ContactGeometry::SuperEllipsoid::Impl& owner) { ownerp = &owner; }
+    Real calcValue(const Vector& x) const;
+    Real calcDerivative(const Array_<int>& derivComponents,
+        const Vector& x) const;
+    int getArgumentSize() const { return 3; }
+    int getMaxDerivativeOrder() const
+    {
+        return std::numeric_limits<int>::max();
+    }
+
+
+private:
+    const ContactGeometry::SuperEllipsoid::Impl* ownerp;// just a ref.; don't delete
+};
+
+class ContactGeometry::SuperEllipsoid::Impl : public ContactGeometryImpl{
+public:
+    explicit Impl(const Vec3& radii, const Vec2& gammas)
+        : radii(radii),
+        gammas(gammas),
+
+        //TODO
+        curvatures(Vec3(1 / radii[0], 1 / radii[1], 1 / radii[2]))
+
+    {
+        function.setOwner(*this);
+        createOBBTree();
+    }
+
+    ContactGeometryImpl* clone() const { return new Impl(radii, gammas); }
+    const Vec3& getRadii() const { return radii; }
+    void setRadii(const Vec3& r)
+    {
+        radii = r;
+
+        //TODO
+        curvatures = Vec3(1 / r[0], 1 / r[1], 1 / r[2]);
+    }
+
+
+    const Vec2& getGammas() const { return gammas; };
+    void setGammas(const Vec2& g)
+    {
+        gammas = g;
+    }
+
+
+    const Vec3& getCurvatures() const { return curvatures; }
+
+    // See below.
+    inline Vec3 findPointWithThisUnitNormal(const UnitVec3& n) const;
+    inline Vec3 findPointInSameDirection(const Vec3& Q) const;
+    inline UnitVec3 findUnitNormalAtPoint(const Vec3& Q) const;
+
+    // Cost is findParaboloidAtPointWithNormal + about 40 flops.
+    void findParaboloidAtPoint(const Vec3& Q, Transform& X_EP, Vec2& k) const
+    {
+        findParaboloidAtPointWithNormal(Q, findUnitNormalAtPoint(Q), X_EP, k);
+    }
+
+    void findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& n,
+        Transform& X_EP, Vec2& k) const;
+
+    ContactGeometryTypeId getTypeId() const { return classTypeId(); }
+
+    DecorativeGeometry createDecorativeGeometry() const;
+    
+    
+    void createPolygonalMesh(PolygonalMesh& mesh) const;
+
+
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
+        UnitVec3& normal) const;
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
+        Real& distance, UnitVec3& normal) const;
+    void getBoundingSphere(Vec3& center, Real& radius) const;
+
+    bool isSmooth() const { return true; }
+    bool isConvex() const { return true; }
+    bool isFinite() const { return true; }
+
+    // The point furthest in this direction is the unique point whose outward
+    // normal is this direction.
+    Vec3 calcSupportPoint(UnitVec3 direction) const {
+        return findPointWithThisUnitNormal(direction);
+    }
+
+
+
+    //SHERMAN is on this.
+    void calcCurvature(const Vec3& point, Vec2& curvature,
+        Rotation& orientation) const;
+    const Function& getImplicitFunction() const {
+        return function;
+    }
+
+
+
+    static ContactGeometryTypeId classTypeId() {
+        static const ContactGeometryTypeId id =
+            createNewContactGeometryTypeId();
+        return id;
+    }
+private:
+    void createOBBTree();
+
+
+    Vec3 radii;
+    Vec2 gammas;
+    // The curvatures are calculated whenever the radii are set.
+    Vec3 curvatures; // (1/radii[0], 1/radii[1], 1/radii[2])
+    SuperEllipsoidImplicitFunction function;
+};
+
+
+// Given a superellipsoid and a unit normal direction, find the unique point on the
+// superellipsoid whose outward normal matches. 
+inline Vec3 ContactGeometry::SuperEllipsoid::Impl::
+findPointWithThisUnitNormal(const UnitVec3& nn) const {
+
+    const Vec3 n_pi = Vec3(nn[0],nn[1],nn[2]);
+    Real phi1, phi2;
+    const Real& rx = radii[0]; const Real& ry = radii[1]; const Real& rz = radii[2];
+    const Real& epsilon1 = 2.0 / gammas[0];
+    const Real& epsilon2 = 2.0 / gammas[1];
+
+
+
+    // Explicit relation between the surface points (angular parameters) and the surface normal.
+    if (fabs(n_pi[0]) <= EPS && fabs(n_pi[1]) <= EPS)
+    {
+        phi1 = PI / 2; phi2 = sign(n_pi[2])*PI / 2;
+    }
+    else
+    {
+        if (fabs(n_pi[0]) <= EPS && fabs(n_pi[2]) <= EPS)
+        {
+            phi1 = sign(n_pi[1])*PI / 2; phi2 = 0;
+        }
+        else
+        {
+            if (fabs(n_pi[1]) <= EPS && fabs(n_pi[2]) <= EPS)
+            {
+                //phi1 = PI + sign(n_pi[0])*PI; phi2 = 0;
+
+                //TODO: there is probably a more elegant way to express phi1 in order to PI and sign(n_pi[0]) unstead of explicitly stating its values.
+                if (n_pi[0] > 0)
+                {
+                    phi1 = 0; phi2 = 0;
+                }
+                if (n_pi[0] < 0)
+                {
+                    phi1 = PI; phi2 = 0;
+                }
+            }
+            else
+            {
+                //phi1 = std::atan((sign(n_pi[1])*pow(fabs(ry*n_pi[1]), 1 / (2 - epsilon1))) / (sign(n_pi[0])*pow(fabs(rx*n_pi[0]), 1 / (2 - epsilon1))));
+                //if (fabs(rx*n_pi[0]) > fabs(ry*n_pi[1]))
+                //{
+                //    phi2 = std::atan((sign(n_pi[2])*pow(fabs(rz*n_pi[2] * sign(std::cos(phi1))*pow(fabs(std::cos(phi1)), 2 - epsilon1)), 1 / (2 - epsilon2))) / ((sign(n_pi[0])*pow(fabs(rx*n_pi[0]), 1 / (2 - epsilon2)))));
+                //}
+                //else
+                //{
+                //    phi2 = std::atan((sign(n_pi[2])*pow(fabs(rz*n_pi[2] * sign(std::sin(phi1))*pow(fabs(std::sin(phi1)), 2 - epsilon1)), 1 / (2 - epsilon2))) / ((sign(n_pi[1])*pow(fabs(ry*n_pi[1]), 1 / (2 - epsilon2)))));
+                //}
+
+                phi1 = std::atan2(  ( sign(n_pi[1]) * pow(fabs(ry*n_pi[1]), 1 / (2 - epsilon1)) ),  //y
+                                    ( sign(n_pi[0]) * pow(fabs(rx*n_pi[0]), 1 / (2 - epsilon1)) )); //x
+                
+                if (fabs(rx*n_pi[0]) > fabs(ry*n_pi[1]))
+                {
+                    phi2 = std::atan2(         
+                        (sign(n_pi[2])*pow(fabs(rz*n_pi[2] /* *sign(std::cos(phi1))*/ * pow(fabs(std::cos(phi1)), 2 - epsilon1)), 1 / (2 - epsilon2))) ,  // y
+                 ((/*sign(n_pi[0])* */ pow(fabs(rx*n_pi[0]), 1 / (2 - epsilon2))))); //x
+                }
+                else
+                {
+                    phi2 = std::atan2(
+                        (sign(n_pi[2])*pow(fabs(rz*n_pi[2] /* * sign(std::sin(phi1))*/ *pow(fabs(std::sin(phi1)), 2 - epsilon1)), 1 / (2 - epsilon2))) , //y
+                 ((/*sign(n_pi[1])* */ pow(fabs(ry*n_pi[1]), 1 / (2 - epsilon2))))); //x
+                }
+            }
+        }
+    }
+
+    //Same as "position_vector_superellipsoid(radii, gammas, phi1, phi2, p);"
+    Vec3 p = Vec3((sign(std::cos(phi1)*std::cos(phi2)))*(rx)*(pow(fabs(std::cos(phi1)), epsilon1)*pow(fabs(std::cos(phi2)), epsilon2)),
+                  (sign(std::sin(phi1)*std::cos(phi2)))*(ry)*(pow(fabs(std::sin(phi1)), epsilon1)*pow(fabs(std::cos(phi2)), epsilon2)),
+                  (sign(std::sin(phi2)))*(rz)*(pow(fabs(std::sin(phi2)), epsilon2)));
+
+    //printf("\n POINT: %4.2f  %4.2f  %4.2f \n", p[0], p[1], p[2]);
+    //printf("\n N_PI: %4.2f %4.2f %4.2f \n", n_pi[0], n_pi[1], n_pi[2]);
+    //printf("\n GAMMAS: %4.2f %4.2f \n", gammas[0], gammas[1]);
+
+    return p;
+
+}
+
+
+// Given a point Q=(x,y,z) measured from ellipse center O, find the intersection 
+// of the ray d=Q-O with the ellipse surface. This just requires scaling the 
+// direction vector d by a factor s so that f(s*d)=0, that is, 
+//       s*|x/a y/b z/c|=1  => s = 1/|x/a y/b z/c|
+// Cost is about 40 flops.
+inline Vec3 ContactGeometry::SuperEllipsoid::Impl::
+findPointInSameDirection(const Vec3& Q) const {
+    Real s = 1 / Vec3(Q[0] * curvatures[0],
+        Q[1] * curvatures[1],
+        Q[2] * curvatures[2]).norm();
+    return s*Q;
+}
+
+//TODO - don't need to work on this one during the workshop.
+// The implicit equation of the ellipsoid surface is f(x,y,z)=0 where
+// f(x,y,z) = (ka x)^2 + (kb y)^2 (kc z)^2 - 1. Points p inside the ellipsoid
+// have f(p)<0, outside f(p)>0. f defines a field in space; its positive
+// gradient [df/dx df/dy df/dz] points outward. So, given an ellipsoid with 
+// principal curvatures ka,kb,kc and a point Q allegedly on the ellipsoid, the
+// outward normal (unnormalized) n at that point is
+//    n(p) = grad(f(p)) = 2*[ka^2 x, kb^2 y, kc^2 z]
+// so the unit norm we're interested in is nn=n/|n| (the "2" drops out).
+// If Q is not on the ellipsoid this is equivalent to scaling the ray Q-O
+// until it hits the ellipsoid surface at Q'=s*Q, and then reporting the outward
+// normal at Q' instead.
+// Cost is about 40 flops.
+inline UnitVec3 ContactGeometry::SuperEllipsoid::Impl::
+findUnitNormalAtPoint(const Vec3& Q) const {
+    const Vec3 kk(square(curvatures[0]), square(curvatures[1]), square(curvatures[2]));
+    return UnitVec3(kk[0] * Q[0], kk[1] * Q[1], kk[2] * Q[2]);
+}
+
+// -------------------------------------------------------------------------------
 
 
 //==============================================================================

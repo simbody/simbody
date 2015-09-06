@@ -402,6 +402,15 @@ void VisualizerProtocol::drawCircle(const Transform& X_GB, const Vec3& scale, co
     drawMesh(X_GB, scale, color, (short) representation, MeshCircle, resolution);
 }
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+
+void VisualizerProtocol::drawSuperEllipsoid(const Transform& X_GB, const Vec3& scale, const Vec2& gammas, const Vec4& color, int representation, unsigned short resolution) {
+    drawMesh(X_GB, scale, color, (short)representation, MeshSuperEllipsoid, resolution);
+}
+
+// -------------------------------------------------------------------------------
+
 void VisualizerProtocol::drawPolygonalMesh(const PolygonalMesh& mesh, const Transform& X_GM, const Vec3& scale, const Vec4& color, int representation) {
     const void* impl = &mesh.getImpl();
     map<const void*, unsigned short>::const_iterator iter = meshes.find(impl);

@@ -420,6 +420,46 @@ private:
     const DecorativeEllipsoidRep& getRep() const;
 };
 
+// SuperEllipsoid Code
+// -------------------------------------------------------------------------------
+/** This defines a superellipsoidal solid centered at the origin and aligned with
+the local frame axes. The default constructor creates an ellipsoid with radii
+(1/2, 1/3, 1/4) in x,y,z resp. **/
+class SimTK_SimTKCOMMON_EXPORT DecorativeSuperEllipsoid : public DecorativeGeometry {
+public:
+    explicit DecorativeSuperEllipsoid(const Vec3& radii =
+        Vec3(Real(0.5), Real(1 / 3.), Real(0.25)), const Vec2& gammas = Vec2(Real(2.0), Real(2.0)));
+
+    DecorativeSuperEllipsoid& setRadii(const Vec3&);
+    const Vec3& getRadii() const;
+
+
+    DecorativeSuperEllipsoid& setGammas(const Vec2&);
+    const Vec2& getGammas() const;
+
+
+    // Retain the derived type when setting generic geometry options.
+    DecorativeSuperEllipsoid& setBodyId(int b)          { DecorativeGeometry::setBodyId(b);        return *this; }
+    DecorativeSuperEllipsoid& setIndexOnBody(int x)     { DecorativeGeometry::setIndexOnBody(x);   return *this; }
+    DecorativeSuperEllipsoid& setUserRef(void* p)       { DecorativeGeometry::setUserRef(p);       return *this; }
+    DecorativeSuperEllipsoid& setTransform(const Transform& X_BD) { DecorativeGeometry::setTransform(X_BD); return *this; }
+    DecorativeSuperEllipsoid& setResolution(Real r)     { DecorativeGeometry::setResolution(r);    return *this; }
+    DecorativeSuperEllipsoid& setScaleFactors(const Vec3& s) { DecorativeGeometry::setScaleFactors(s); return *this; }
+    DecorativeSuperEllipsoid& setColor(const Vec3& rgb) { DecorativeGeometry::setColor(rgb);       return *this; }
+    DecorativeSuperEllipsoid& setOpacity(Real o)        { DecorativeGeometry::setOpacity(o);       return *this; }
+    DecorativeSuperEllipsoid& setLineThickness(Real t)  { DecorativeGeometry::setLineThickness(t); return *this; }
+    DecorativeSuperEllipsoid& setRepresentation(const Representation& r)
+    {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(DecorativeSuperEllipsoid, DecorativeGeometry);
+private:
+    class DecorativeSuperEllipsoidRep& updRep();
+    const DecorativeSuperEllipsoidRep& getRep() const;
+};
+// -------------------------------------------------------------------------------
+
 /** This defines a rectangular solid centered at the origin and aligned with 
 the local frame axes. The default constructor creates a cube of length 1 on 
 each side. **/
@@ -782,6 +822,12 @@ public:
     virtual void implementCircleGeometry(   const DecorativeCircle&)   = 0; 
     virtual void implementSphereGeometry(   const DecorativeSphere&)   = 0;
     virtual void implementEllipsoidGeometry(const DecorativeEllipsoid&)= 0;
+    
+    // SuperEllipsoid Code
+    // -------------------------------------------------------------------------------
+    virtual void implementSuperEllipsoidGeometry(const DecorativeSuperEllipsoid&) = 0;
+    // -------------------------------------------------------------------------------
+
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
     virtual void implementTextGeometry(     const DecorativeText&)     = 0;
     virtual void implementMeshGeometry(     const DecorativeMesh&)     = 0;
