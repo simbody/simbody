@@ -574,7 +574,7 @@ namespace Ipopt
      *  ComooundVectorSpace::MakeNewCompoundVector to make sure that
      *  we get a vector of the correct type
      */
-    virtual CompoundVector* MakeNewCompoundVector(bool create_new = true) const
+    virtual CompoundVector* MakeNewCompoundVector(bool create_new = true) const override
     {
       return MakeNewIteratesVector(create_new);
     }
@@ -584,7 +584,7 @@ namespace Ipopt
      *  does not know what type of vector it is dealing with - for
      *  example, this method is called from Vector::MakeNew()
      */
-    virtual Vector* MakeNew() const
+    virtual Vector* MakeNew() const override
     {
       return MakeNewIteratesVector();
     }
@@ -594,7 +594,7 @@ namespace Ipopt
      *  since the components of the Iterates are fixed at
      *  construction.
      */
-    virtual void SetCompSpace(Index icomp, const VectorSpace& vec_space)
+    virtual void SetCompSpace(Index icomp, const VectorSpace& vec_space) override
     {
       DBG_ASSERT(false && "This is an IteratesVectorSpace - a special compound vector for Ipopt iterates. The contained spaces should not be modified.");
     }

@@ -59,7 +59,7 @@ public:
               //, phaseOut("phaseOut.txt")
         {}
 
-        void handleEvent(const State& state) const 
+        void handleEvent(const State& state) const override 
         {
             // Equilibrate a bit before collecting data
             if (state.getTime() <= 1)

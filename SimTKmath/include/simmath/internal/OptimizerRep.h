@@ -39,7 +39,7 @@ public:
         : Differentiator::GradientFunction(ny) { sysp = sysPtr; }
 
     // Must provide this pure virtual function.
-    int f(const Vector& y, Real& fy) const  {
+    int f(const Vector& y, Real& fy) const override  {
          return(sysp->objectiveFunc(y, true, fy));   // class user's objectiveFunc
     }
     const OptimizerSystem* sysp;
@@ -53,7 +53,7 @@ class SysConstraintFunc : public Differentiator::JacobianFunction {
         : Differentiator::JacobianFunction(nf,ny) { sysp = sysPtr; }
 
     // Must provide this pure virtual function.
-    int f(const Vector& y, Vector& fy) const  {
+    int f(const Vector& y, Vector& fy) const override  {
        return(sysp->constraintFunc(y, true, fy));  // calls user's contraintFunc
     }
     const OptimizerSystem* sysp;
@@ -207,9 +207,9 @@ private:
 }; // end class OptimizerRep
 
 class DefaultOptimizer: public Optimizer::OptimizerRep {
-    Real optimize(  Vector &results );
-    OptimizerRep* clone() const;
-    OptimizerAlgorithm getAlgorithm() const;
+    Real optimize(  Vector &results ) override;
+    OptimizerRep* clone() const override;
+    OptimizerAlgorithm getAlgorithm() const override;
 };
 
 } // namespace SimTK

@@ -71,7 +71,7 @@ public:
     const Visualizer& getVisualizer() const;
 
     /** This satisfies the pure virtual method in EventReporter. **/
-    virtual void handleEvent(const State& state) const;
+    virtual void handleEvent(const State& state) const override;
 
 protected:
     class Impl;

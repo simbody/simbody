@@ -35,7 +35,7 @@ namespace Ipopt
 
     /* overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** This method must be called for each new matrix, and before any
      *  other method for generating perturbation factors.  Usually,

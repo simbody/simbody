@@ -31,15 +31,15 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Overloaded convergence check */
     virtual ConvergenceStatus
-    CheckConvergence(bool call_intermediate_callback = true);
+    CheckConvergence(bool call_intermediate_callback = true) override;
 
     /** Auxilliary function for testing whether current iterate
      *  satisfies the acceptable level of optimality */
-    virtual bool CurrentIsAcceptable();
+    virtual bool CurrentIsAcceptable() override;
 
     /** Methods for IpoptType */
     //@{

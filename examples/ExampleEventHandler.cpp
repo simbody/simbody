@@ -33,13 +33,13 @@ public:
     BounceHandler() : TriggeredEventHandler(Stage::Position) {
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         return state.getQ()[0];
     }
     // Note: in general a discontinuous velocity change should be followed by
     // an impulse-momentum analysis to ensure that momentum is conserved. We're
     // not doing that here.
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
         state.updU()[0] *= -1;
     }
 };

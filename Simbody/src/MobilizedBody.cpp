@@ -2915,7 +2915,7 @@ setQToFitTransform(const State& state, const Transform& X_FM,
                           const State& state, int nq, const Transform& X_FM) 
         :   OptimizerSystem(nq), impl(impl), state(state), X_FM(X_FM) {}
 
-        int objectiveFunc(const Vector& params, bool new_params, Real& f) const {
+        int objectiveFunc(const Vector& params, bool new_params, Real& f) const override {
             Transform transform = impl.calcMobilizerTransformFromQ
                                             (state, params.size(), &params[0]);
             f = (transform.p()-X_FM.p()).norm();
@@ -2955,7 +2955,7 @@ setUToFitVelocity(const State& state, const SpatialVec& V_FM,
                           const State& state, int nu, const SpatialVec& V_FM) 
         :   OptimizerSystem(nu), impl(impl), state(state), V_FM(V_FM) {}
 
-        int objectiveFunc(const Vector& params, bool new_params, Real& f) const {
+        int objectiveFunc(const Vector& params, bool new_params, Real& f) const override {
             SpatialVec v = impl.multiplyByHMatrix
                                             (state, params.size(), &params[0]);
             f = (v[0]-V_FM[0]).norm();

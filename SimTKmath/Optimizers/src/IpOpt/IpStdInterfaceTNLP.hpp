@@ -69,43 +69,43 @@ namespace Ipopt
     //@{
     /** returns dimensions of the nlp. Overloaded from TNLP */
     virtual bool get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
-                              Index& nnz_h_lag, IndexStyleEnum& index_style);
+                              Index& nnz_h_lag, IndexStyleEnum& index_style) override;
 
     /** returns bounds of the nlp. Overloaded from TNLP */
     virtual bool get_bounds_info(Index n, Number* x_l, Number* x_u,
-                                 Index m, Number* g_l, Number* g_u);
+                                 Index m, Number* g_l, Number* g_u) override;
 
     /** provides a starting point for the nlp variables. Overloaded from TNLP */
     virtual bool get_starting_point(Index n, bool init_x, Number* x,
                                     bool init_z, Number* z_L, Number* z_U,
-                                    Index m, bool init_lambda, Number* lambda);
+                                    Index m, bool init_lambda, Number* lambda) override;
 
     /** evaluates the objective value for the nlp. Overloaded from TNLP */
     virtual bool eval_f(Index n, const Number* x, bool new_x,
-                        Number& obj_value);
+                        Number& obj_value) override;
 
     /** evaluates the gradient of the objective for the
      *  nlp. Overloaded from TNLP */
     virtual bool eval_grad_f(Index n, const Number* x, bool new_x,
-                             Number* grad_f);
+                             Number* grad_f) override;
 
     /** evaluates the constraint residuals for the nlp. Overloaded from TNLP */
     virtual bool eval_g(Index n, const Number* x, bool new_x, Index m,
-                        Number* g);
+                        Number* g) override;
 
     /** specifies the jacobian structure (if values is NULL) and
      *  evaluates the jacobian values (if values is not NULL) for the
      *  nlp. Overloaded from TNLP */
     virtual bool eval_jac_g(Index n, const Number* x, bool new_x, Index m,
                             Index nele_jac, Index* iRow, Index *jCol,
-                            Number* values);
+                            Number* values) override;
 
     /** specifies the structure of the hessian of the lagrangian (if values is NULL) and
      *  evaluates the values (if values is not NULL). Overloaded from TNLP */
     virtual bool eval_h(Index n, const Number* x, bool new_x,
                         Number obj_factor, Index m, const Number* lambda,
                         bool new_lambda, Index nele_hess, Index* iRow,
-                        Index* jCol, Number* values);
+                        Index* jCol, Number* values) override;
     //@}
 
     /** @name Solution Methods */
@@ -113,7 +113,7 @@ namespace Ipopt
     virtual void finalize_solution(SolverReturn status,
                                    Index n, const Number* x, const Number* z_L, const Number* z_U,
                                    Index m, const Number* g, const Number* lambda,
-                                   Number obj_value);
+                                   Number obj_value) override;
     //@}
 
   private:

@@ -139,7 +139,7 @@ class SimTK_SimTKCOMMON_EXPORT PeriodicEventReporter : public ScheduledEventRepo
 public:
     class PeriodicEventReporterImpl;
     ~PeriodicEventReporter();
-    Real getNextEventTime(const State& state, bool includeCurrentTime) const;
+    Real getNextEventTime(const State& state, bool includeCurrentTime) const override;
     
     /**
      * Create a PeriodicEventReporter.

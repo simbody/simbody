@@ -39,7 +39,7 @@ namespace Ipopt
 
     /** Overloaded from AlgorithmStrategy case class */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Methods for IpoptType */
     //@{
@@ -48,7 +48,7 @@ namespace Ipopt
 
   protected:
     /** Overloaded method from RestorationPhase. */
-    virtual bool PerformRestoration();
+    virtual bool PerformRestoration() override;
 
   private:
     /**@name Default Compiler Generated Methods (Hidden to avoid

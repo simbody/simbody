@@ -205,7 +205,7 @@ public:
 
     /** (Not implemented yet) Produce a human-friendly representation of the 
     contained value of type `T`. Currently just returns the type name. **/
-    String getValueAsString() const 
+    String getValueAsString() const override
     {   return "Value<" + getTypeName() + ">"; }
     
     /** Return true if the given AbstractValue is an object of this type

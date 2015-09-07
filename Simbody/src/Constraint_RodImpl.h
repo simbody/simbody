@@ -192,7 +192,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
@@ -228,7 +228,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     const PositionCache& pc = ensurePositionCacheRealized(s);
@@ -260,7 +260,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(allA_AB.size()==2&&constrainedQDotDot.size()==0&&paerr.size()==1);
 
@@ -293,7 +293,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==1&&bodyForcesInA.size()==2&&qForces.size()==0);
     const Real lambda = multipliers[0];

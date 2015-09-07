@@ -41,11 +41,11 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Compute the initial iterates and set the into the curr field
      *  of the ip_data object. */
-    virtual bool SetInitialIterates();
+    virtual bool SetInitialIterates() override;
 
     /** Auxilliary function for moving the initial point.  This is
      *  declared static so that it can also be used from

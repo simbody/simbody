@@ -50,7 +50,7 @@ class ProblemSystem : public OptimizerSystem {
 public:
 
 
-   int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const {
+   int objectiveFunc(  const Vector &coefficients, bool new_coefficients, Real& f ) const override {
       const Real *x;
 
       x = &coefficients[0];
@@ -59,7 +59,7 @@ public:
       return( 0 ); 
    }
 
-  int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
+  int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const override{
       const Real *x;
 
       x = &coefficients[0]; 

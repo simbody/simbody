@@ -55,38 +55,38 @@ public:
         for (int i = 0; i < Stage::NValid; i++)
             hasRealized[i] = false;
     }
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const {
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const override {
         for (int i = 0; i < mobilityForces.size(); ++i)
             mobilityForces[i] += i;
     }
-    Real calcPotentialEnergy(const State& state) const {
+    Real calcPotentialEnergy(const State& state) const override {
         return 0.0;
     }
-    void realizeTopology(State& state) const {
+    void realizeTopology(State& state) const override {
         hasRealized[Stage::Topology] = true;
     }
-    void realizeModel(State& state) const {
+    void realizeModel(State& state) const override {
         hasRealized[Stage::Model] = true;
     }
-    void realizeInstance(const State& state) const {
+    void realizeInstance(const State& state) const override {
         hasRealized[Stage::Instance] = true;
     }
-    void realizeTime(const State& state) const {
+    void realizeTime(const State& state) const override {
         hasRealized[Stage::Time] = true;
     }
-    void realizePosition(const State& state) const {
+    void realizePosition(const State& state) const override {
         hasRealized[Stage::Position] = true;
     }
-    void realizeVelocity(const State& state) const {
+    void realizeVelocity(const State& state) const override {
         hasRealized[Stage::Velocity] = true;
     }
-    void realizeDynamics(const State& state) const {
+    void realizeDynamics(const State& state) const override {
         hasRealized[Stage::Dynamics] = true;
     }
-    void realizeAcceleration(const State& state) const {
+    void realizeAcceleration(const State& state) const override {
         hasRealized[Stage::Acceleration] = true;
     }
-    void realizeReport(const State& state) const {
+    void realizeReport(const State& state) const override {
         hasRealized[Stage::Report] = true;
     }
 };

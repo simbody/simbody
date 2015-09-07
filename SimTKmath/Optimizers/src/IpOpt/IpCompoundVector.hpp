@@ -103,84 +103,84 @@ namespace Ipopt
     /** @name Overloaded methods from Vector base class */
     //@{
     /** Copy the data of the vector x into this vector (DCOPY). */
-    virtual void CopyImpl(const Vector& x);
+    virtual void CopyImpl(const Vector& x) override;
 
     /** Scales the vector by scalar alpha (DSCAL) */
-    virtual void ScalImpl(Number alpha);
+    virtual void ScalImpl(Number alpha) override;
 
     /** Add the multiple alpha of vector x to this vector (DAXPY) */
-    virtual void AxpyImpl(Number alpha, const Vector &x);
+    virtual void AxpyImpl(Number alpha, const Vector &x) override;
 
     /** Computes inner product of vector x with this (DDOT) */
-    virtual Number DotImpl(const Vector &x) const;
+    virtual Number DotImpl(const Vector &x) const override;
 
     /** Computes the 2-norm of this vector (DNRM2) */
-    virtual Number Nrm2Impl() const;
+    virtual Number Nrm2Impl() const override;
 
     /** Computes the 1-norm of this vector (DASUM) */
-    virtual Number AsumImpl() const;
+    virtual Number AsumImpl() const override;
 
     /** Computes the max-norm of this vector (based on IDAMAX) */
-    virtual Number AmaxImpl() const;
+    virtual Number AmaxImpl() const override;
 
     /** Set each element in the vector to the scalar alpha. */
-    virtual void SetImpl(Number value);
+    virtual void SetImpl(Number value) override;
 
     /** Element-wise division  \f$y_i \gets y_i/x_i\f$.*/
-    virtual void ElementWiseDivideImpl(const Vector& x);
+    virtual void ElementWiseDivideImpl(const Vector& x) override;
 
     /** Element-wise multiplication \f$y_i \gets y_i*x_i\f$.*/
-    virtual void ElementWiseMultiplyImpl(const Vector& x);
+    virtual void ElementWiseMultiplyImpl(const Vector& x) override;
 
     /** Element-wise max against entries in x */
-    virtual void ElementWiseMaxImpl(const Vector& x);
+    virtual void ElementWiseMaxImpl(const Vector& x) override;
 
     /** Element-wise min against entries in x */
-    virtual void ElementWiseMinImpl(const Vector& x);
+    virtual void ElementWiseMinImpl(const Vector& x) override;
 
     /** Element-wise reciprocal */
-    virtual void ElementWiseReciprocalImpl();
+    virtual void ElementWiseReciprocalImpl() override;
 
     /** Element-wise absolute values */
-    virtual void ElementWiseAbsImpl();
+    virtual void ElementWiseAbsImpl() override;
 
     /** Element-wise square-root */
-    virtual void ElementWiseSqrtImpl();
+    virtual void ElementWiseSqrtImpl() override;
 
     /** Replaces entries with sgn of the entry */
-    virtual void ElementWiseSgnImpl();
+    virtual void ElementWiseSgnImpl() override;
 
     /** Add scalar to every component of the vector.*/
-    virtual void AddScalarImpl(Number scalar);
+    virtual void AddScalarImpl(Number scalar) override;
 
     /** Max value in the vector */
-    virtual Number MaxImpl() const;
+    virtual Number MaxImpl() const override;
 
     /** Min value in the vector */
-    virtual Number MinImpl() const;
+    virtual Number MinImpl() const override;
 
     /** Computes the sum of the lements of vector */
-    virtual Number SumImpl() const;
+    virtual Number SumImpl() const override;
 
     /** Computes the sum of the logs of the elements of vector */
-    virtual Number SumLogsImpl() const;
+    virtual Number SumLogsImpl() const override;
 
     /** @name Implemented specialized functions */
     //@{
     /** Add two vectors (a * v1 + b * v2).  Result is stored in this
     vector. */
     void AddTwoVectorsImpl(Number a, const Vector& v1,
-                           Number b, const Vector& v2, Number c);
+                           Number b, const Vector& v2, Number c) override;
     /** Fraction to the boundary parameter. */
-    Number FracToBoundImpl(const Vector& delta, Number tau) const;
+    Number FracToBoundImpl(const Vector& delta, Number tau) const override;
     /** Add the quotient of two vectors, y = a * z/s + c * y. */
     void AddVectorQuotientImpl(Number a, const Vector& z, const Vector& s,
-                               Number c);
+                               Number c) override;
     //@}
 
     /** Method for determining if all stored numbers are valid (i.e.,
      *  no Inf or Nan). */
-    virtual bool HasValidNumbersImpl() const;
+    virtual bool HasValidNumbersImpl() const override;
 
     /** @name Output methods */
     //@{
@@ -190,7 +190,7 @@ namespace Ipopt
                            EJournalCategory category,
                            const std::string& name,
                            Index indent,
-                           const std::string& prefix) const;
+                           const std::string& prefix) const override;
     //@}
 
   private:
@@ -272,7 +272,7 @@ namespace Ipopt
 
     /** Overloaded MakeNew method for the VectorSpace base class.
      */
-    virtual Vector* MakeNew() const
+    virtual Vector* MakeNew() const override
     {
       return MakeNewCompoundVector();
     }

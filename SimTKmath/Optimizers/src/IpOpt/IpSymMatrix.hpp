@@ -50,7 +50,7 @@ namespace Ipopt
      */
     //@{
     virtual void TransMultVectorImpl(Number alpha, const Vector& x, Number beta,
-                                     Vector& y) const;
+                                     Vector& y) const override;
     //@}
 
   private:
@@ -83,7 +83,7 @@ namespace Ipopt
 
     /** Overloaded MakeNew method for the MatrixSpace base class.
      */
-    virtual Matrix* MakeNew() const;
+    virtual Matrix* MakeNew() const override;
 
     /** Accessor method for the dimension of the matrices in this
      *  matrix space.

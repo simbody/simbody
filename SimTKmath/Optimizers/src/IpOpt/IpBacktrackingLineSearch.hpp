@@ -58,12 +58,12 @@ namespace Ipopt
 
     /** InitializeImpl - overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Perform the line search.  It is assumed that the search
      *  direction is computed in the data object.
      */
-    virtual void FindAcceptableTrialPoint();
+    virtual void FindAcceptableTrialPoint() override;
 
     /** Reset the line search.
      *  This function should be called if all previous information
@@ -71,7 +71,7 @@ namespace Ipopt
      *  next time.  For example, this method should be called if
      *  the barrier parameter is changed.
      */
-    virtual void Reset();
+    virtual void Reset() override;
 
     /** Set flag indicating whether a very rigorous line search should
      *  be performed.  If this flag is set to true, the line search
@@ -84,7 +84,7 @@ namespace Ipopt
      *  restoration phase in the free mode; instead, the algorithm
      *  should swtich to the fixed mode.
      */
-    virtual void SetRigorousLineSearch(bool rigorous)
+    virtual void SetRigorousLineSearch(bool rigorous) override
     {
       rigorous_ = rigorous;
     }
@@ -93,14 +93,14 @@ namespace Ipopt
      *  during the last call of FindAcceptableTrialPoint().
      *  
      */
-    virtual bool CheckSkippedLineSearch()
+    virtual bool CheckSkippedLineSearch() override
     {
       return skipped_line_search_;
     }
 
     /** Activate fallback mechanism.  Return false, if that is not
      *  possible. */
-    virtual bool ActivateFallbackMechanism();
+    virtual bool ActivateFallbackMechanism() override;
 
     /** Methods for OptionsList */
     //@{

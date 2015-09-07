@@ -40,7 +40,7 @@ public:
 
     virtual void generateControls(const Visualizer&           viz, 
                                   const State&                state,
-                                  Array_<DecorativeGeometry>& geometry)
+                                  Array_<DecorativeGeometry>& geometry) override
     {
         const MobilizedBody& mobod = m_matter.getMobilizedBody(m_whichBody);
         const Transform& X_GB = mobod.getBodyTransform(state);
@@ -66,7 +66,7 @@ public:
     :   PeriodicEventHandler(interval), m_silo(silo), m_gravity(gravity) {}
 
     virtual void handleEvent(State& state, Real accuracy,  
-                             bool& shouldTerminate) const 
+                             bool& shouldTerminate) const override 
     {
         unsigned key, modifiers;
         if (!m_silo.takeKeyHit(key, modifiers))
@@ -132,16 +132,16 @@ public:
                              Real d,
                              Real x0);
 
-  virtual bool dependsOnlyOnPositions() const {
+  virtual bool dependsOnlyOnPositions() const override {
     return false;
   }
 
   virtual void calcForce(const State& state,
                          Vector_<SpatialVec>& bodyForces,
                          Vector_<Vec3>& particleForces,
-                         Vector& mobilityForces) const;
+                         Vector& mobilityForces) const override;
 
-  virtual Real calcPotentialEnergy(const State& state) const;
+  virtual Real calcPotentialEnergy(const State& state) const override;
 
   void addDecorativeLine( DecorationSubsystem& viz,
                           const DecorativeLine& line,

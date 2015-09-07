@@ -52,7 +52,7 @@ public:
 
     // This method is called whenever this event occurs.
     virtual void handleEvent
-       (State& state, Real, bool&) const 
+       (State& state, Real, bool&) const override 
     {
         m_system.realize(state, Stage::Position);
         Vec3 location = m_mobod.findStationLocationInGround(state,m_station);
@@ -82,7 +82,7 @@ public:
         m_sample(sample) {}
 
     virtual void generateDecorations(const State& state, 
-                                     Array_<DecorativeGeometry>& geometry) 
+                                     Array_<DecorativeGeometry>& geometry) override 
     {
         m_system.realize(state, Stage::Position);
         Vec3 current = m_mobod.findStationLocationInGround(state,m_station);

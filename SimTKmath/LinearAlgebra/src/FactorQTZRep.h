@@ -111,7 +111,7 @@ public:
 class FactorQTZDefault : public FactorQTZRepBase {
    public:
        FactorQTZDefault();
-       FactorQTZRepBase* clone() const;
+       FactorQTZRepBase* clone() const override;
 };
 
 template <typename T>
@@ -123,11 +123,11 @@ public:
    ~FactorQTZRep();
 
    template < class ELT > void factor(const Matrix_<ELT>& ); 
-   void inverse( Matrix_<T>& ) const; 
-   void solve( const Vector_<T>& b, Vector_<T>& x ) const;
-   void solve( const Matrix_<T>& b, Matrix_<T>& x ) const;
+   void inverse( Matrix_<T>& ) const override; 
+   void solve( const Vector_<T>& b, Vector_<T>& x ) const override;
+   void solve( const Matrix_<T>& b, Matrix_<T>& x ) const override;
 
-   FactorQTZRepBase* clone() const;
+   FactorQTZRepBase* clone() const override;
  
 private:
    void doSolve( Matrix_<T>& b, Matrix_<T>& x ) const;

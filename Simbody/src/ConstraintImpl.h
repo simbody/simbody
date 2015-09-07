@@ -1259,10 +1259,10 @@ PointInPlaneImpl()
     : ConstraintImpl(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
     planeHalfWidth(1), pointRadius(Real(0.05)) 
 { }
-PointInPlaneImpl* clone() const { return new PointInPlaneImpl(*this); }
+PointInPlaneImpl* clone() const override { return new PointInPlaneImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
 void setPlaneDisplayHalfWidth(Real h) {
     // h <= 0 means don't display plane
@@ -1327,7 +1327,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
@@ -1350,7 +1350,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     //TODO: should be able to get p info from State
@@ -1378,7 +1378,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size() == 1);
     //TODO: should be able to get p and v info from State
@@ -1408,7 +1408,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==1 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -1455,10 +1455,10 @@ PointOnLineImpl()
     defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
     lineHalfLength(1), pointRadius(Real(0.05)) 
 { }
-PointOnLineImpl* clone() const { return new PointOnLineImpl(*this); }
+PointOnLineImpl* clone() const override { return new PointOnLineImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
 void setLineDisplayHalfLength(Real h) {
     // h <= 0 means don't display line
@@ -1475,7 +1475,7 @@ void setPointDisplayRadius(Real r) {
 Real getPointDisplayRadius() const {return pointRadius;}
 
 // Implementation of ContraintRep virtuals
-void realizeTopologyVirtual(State& s) const {
+void realizeTopologyVirtual(State& s) const override {
     x = defaultLineDirection.perp(); // x and y are mutable
     y = UnitVec3(defaultLineDirection % x);
 }
@@ -1506,7 +1506,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 2);
 
@@ -1531,7 +1531,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 2);
     //TODO: should be able to get p info from State
@@ -1561,7 +1561,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==2);
     //TODO: should be able to get p and v info from State
@@ -1594,7 +1594,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==2 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -1645,10 +1645,10 @@ ConstantAngleImpl()
     : ConstraintImpl(1,0,0), defaultAxisB(), defaultAxisF(), defaultAngle(Pi/2),
     axisLength(1), axisThickness(1), cosineOfDefaultAngle(NaN)
 { }
-ConstantAngleImpl* clone() const { return new ConstantAngleImpl(*this); }
+ConstantAngleImpl* clone() const override { return new ConstantAngleImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
 void setAxisLength(Real length) {
     // length <= 0 means don't display axis
@@ -1665,7 +1665,7 @@ void setAxisThickness(Real t) {
 Real getAxisThickness() const {return axisThickness;}
 
 // Implementation of ContraintRep virtuals
-void realizeTopologyVirtual(State& s) const {
+void realizeTopologyVirtual(State& s) const override {
     cosineOfDefaultAngle = std::cos(defaultAngle);
 }
 
@@ -1722,7 +1722,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
@@ -1742,7 +1742,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==1);
     //TODO: should be able to get p info from State
@@ -1766,7 +1766,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
     //TODO: should be able to get p and v info from State
@@ -1791,7 +1791,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==1 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -1836,10 +1836,10 @@ class Constraint::BallImpl : public ConstraintImpl {
 public:
 BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0), 
              defaultRadius(Real(0.1)) { }
-BallImpl* clone() const { return new BallImpl(*this); }
+BallImpl* clone() const override { return new BallImpl(*this); }
 
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
 void setDefaultRadius(Real r) {
     // r <= 0 means don't display
@@ -1850,7 +1850,7 @@ Real getDefaultRadius() const {return defaultRadius;}
 
 // The default body stations may be overridden by setting instance variables
 // in the state. We allocate the state resources here.
-void realizeTopologyVirtual(State& state) const;
+void realizeTopologyVirtual(State& state) const override;
 
 // Return the pair of constrained station points, with the first expressed 
 // in the body 1 frame and the second in the body 2 frame. Note that although
@@ -1898,7 +1898,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 3);
 
@@ -1917,7 +1917,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==3);
 
@@ -1940,7 +1940,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==3);
 
@@ -1964,7 +1964,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==3 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -2016,7 +2016,7 @@ public:
 ConstantOrientationImpl()
     : ConstraintImpl(3,0,0), defaultRB(), defaultRF()
 { }
-ConstantOrientationImpl* clone() const { return new ConstantOrientationImpl(*this); }
+ConstantOrientationImpl* clone() const override { return new ConstantOrientationImpl(*this); }
 
 //TODO: visualization?
 
@@ -2081,7 +2081,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size()==3);
 
@@ -2105,7 +2105,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==3);
     //TODO: should be able to get p info from State
@@ -2136,7 +2136,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==3);
     //TODO: should be able to get p and v info from State
@@ -2171,7 +2171,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==3 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -2219,11 +2219,11 @@ WeldImpl()
     frameBColor(-1), frameFColor(-1) // means "use default colors"
 {   // default Transforms are identity, i.e. body frames
 }
-WeldImpl* clone() const { return new WeldImpl(*this); }
+WeldImpl* clone() const override { return new WeldImpl(*this); }
 
 // Draw the two frames.
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
 void setAxisDisplayLength(Real len) {
     // len == 0 means "don't display"
@@ -2259,7 +2259,7 @@ void calcPositionErrorsVirtual
     const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
-    const
+    const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size()==6);
 
@@ -2285,7 +2285,7 @@ void calcPositionDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const 
+    const override 
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==6);
     //TODO: should be able to get p info from State
@@ -2322,7 +2322,7 @@ void calcPositionDotDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
-    const
+    const override
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==6);
     //TODO: should be able to get p and v info from State
@@ -2366,7 +2366,7 @@ void addInPositionConstraintForcesVirtual
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedQIndex>&           qForces) 
-    const
+    const override
 {
     assert(multipliers.size()==6 && bodyForcesInA.size()==2 
            && qForces.size()==0);
@@ -2424,12 +2424,12 @@ NoSlip1DImpl()
 :   ConstraintImpl(0,1,0), defaultContactPoint(0), defaultNoSlipDirection(),
     directionLength(1), pointRadius(Real(0.05)) 
 { }
-NoSlip1DImpl* clone() const { return new NoSlip1DImpl(*this); }
+NoSlip1DImpl* clone() const override { return new NoSlip1DImpl(*this); }
 
 // The default contact point and no-slip direction may be overridden by 
 // setting an instance variable in the state. We allocate the state 
 // resources here.
-void realizeTopologyVirtual(State& state) const;
+void realizeTopologyVirtual(State& state) const override;
 
 // Return the contact point and no-slip direction, both expressed 
 // in the Case body frame C.
@@ -2442,7 +2442,7 @@ const std::pair<Vec3,UnitVec3>& getContactInfo(const State& state) const;
 std::pair<Vec3,UnitVec3>& updContactInfo(State& state) const;
 
 void calcDecorativeGeometryAndAppendVirtual
-    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+    (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
 void setDirectionDisplayLength(Real l) {
     // l <= 0 means don't display direction line
@@ -2485,7 +2485,7 @@ void calcVelocityErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
-    const
+    const override
 {
     // There ought to be at least 2 distinct bodies, up to 3.
     assert((allV_AB.size()==2 || allV_AB.size() == 3)
@@ -2516,7 +2516,7 @@ void calcVelocityDotErrorsVirtual
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
-    const
+    const override
 {
     assert((allA_AB.size()==2 || allA_AB.size() == 3)
            && constrainedUDot.size()==0 && vaerr.size()==1);
@@ -2551,7 +2551,7 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const override
 {
     assert(multipliers.size()==1 && mobilityForces.size()==0 
            && (bodyForcesInA.size()==2 || bodyForcesInA.size()==3));
@@ -2607,11 +2607,11 @@ ConstantCoordinateImpl()
 :   ConstraintImpl(1,0,0), theMobilizer(), whichCoordinate(), 
     defaultPosition(NaN){}
 
-ConstantCoordinateImpl* clone() const 
+ConstantCoordinateImpl* clone() const override 
 {   return new ConstantCoordinateImpl(*this); }
 
 // Allocate a state variable to hold the desired position.
-void realizeTopologyVirtual(State& state) const;
+void realizeTopologyVirtual(State& state) const override;
 // Obtain the currently-set desired position from the state.
 Real getPosition(const State& state) const;
 // Get a reference to the desired position in the state; this 
@@ -2713,11 +2713,11 @@ ConstantSpeedImpl()
 :   ConstraintImpl(0,1,0), theMobilizer(), whichMobility(), 
     defaultSpeed(NaN){}
 
-ConstantSpeedImpl* clone() const 
+ConstantSpeedImpl* clone() const override 
 {   return new ConstantSpeedImpl(*this); }
 
 // Allocate a state variable to hold the desired speed.
-void realizeTopologyVirtual(State& state) const;
+void realizeTopologyVirtual(State& state) const override;
 // Obtain the currently-set desired speed from the state.
 Real getSpeed(const State& state) const;
 // Get a reference to the desired speed in the state; this 
@@ -2801,11 +2801,11 @@ ConstantAccelerationImpl()
 :   ConstraintImpl(0,0,1), theMobilizer(), whichMobility(), 
     defaultAcceleration(NaN) {}
 
-ConstantAccelerationImpl* clone() const 
+ConstantAccelerationImpl* clone() const override 
 {   return new ConstantAccelerationImpl(*this); }
 
 // Allocate a state variable to hold the desired acceleration.
-void realizeTopologyVirtual(State& state) const;
+void realizeTopologyVirtual(State& state) const override;
 // Obtain the currently-set desired acceleration from the state.
 Real getAcceleration(const State& state) const;
 // Get a reference to the desired acceleration in the state; this 
@@ -2821,7 +2821,7 @@ void calcAccelerationErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
-    Array_<Real>&                                   aerr) const // ma of these
+    Array_<Real>&                                   aerr) const override // ma of these
 {
     // All the u's for a given constrained mobilizer are considered 
     // constrainedUDots's, but we're just going to grab one of them.
@@ -2837,7 +2837,7 @@ void addInAccelerationConstraintForcesVirtual
    (const State&                                    state, // Stage::Velocity
     const Array_<Real>&                             multipliers, // ma of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces) const override
 {
    // All the mobilities for a given constrained mobilizer have slots in
    // mobilizedForces, but we're just going to update one of them.
@@ -2952,7 +2952,7 @@ CustomImpl(const CustomImpl& src) : implementation(0) {
     delete implementation;
 }
     
-CustomImpl* clone() const { return new CustomImpl(*this); }
+CustomImpl* clone() const override { return new CustomImpl(*this); }
 
 const Custom::Implementation& getImplementation() const {
     assert(implementation);
@@ -2965,28 +2965,28 @@ Custom::Implementation& updImplementation() {
 }
 
 // Forward all the virtuals to the Custom::Implementation virtuals.
-void realizeTopologyVirtual(State& s) const {getImplementation().realizeTopology(s);}
-void realizeModelVirtual   (State& s) const {getImplementation().realizeModel(s);}
-void realizeInstanceVirtual(const State& s) const {getImplementation().realizeInstance(s);}
-void realizeTimeVirtual    (const State& s) const {getImplementation().realizeTime(s);}
-void realizePositionVirtual(const State& s) const {getImplementation().realizePosition(s);}
-void realizeVelocityVirtual(const State& s) const {getImplementation().realizeVelocity(s);}
-void realizeDynamicsVirtual(const State& s) const {getImplementation().realizeDynamics(s);}
-void realizeAccelerationVirtual(const State& s) const {getImplementation().realizeAcceleration(s);}
-void realizeReportVirtual  (const State& s) const {getImplementation().realizeReport(s);}
+void realizeTopologyVirtual(State& s) const override {getImplementation().realizeTopology(s);}
+void realizeModelVirtual   (State& s) const override {getImplementation().realizeModel(s);}
+void realizeInstanceVirtual(const State& s) const override {getImplementation().realizeInstance(s);}
+void realizeTimeVirtual    (const State& s) const override {getImplementation().realizeTime(s);}
+void realizePositionVirtual(const State& s) const override {getImplementation().realizePosition(s);}
+void realizeVelocityVirtual(const State& s) const override {getImplementation().realizeVelocity(s);}
+void realizeDynamicsVirtual(const State& s) const override {getImplementation().realizeDynamics(s);}
+void realizeAccelerationVirtual(const State& s) const override {getImplementation().realizeAcceleration(s);}
+void realizeReportVirtual  (const State& s) const override {getImplementation().realizeReport(s);}
 
 void calcPositionErrorsVirtual     
    (const State&                                    state,
     const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
-    Array_<Real>&                                   perr) const
+    Array_<Real>&                                   perr) const override
 {   getImplementation().calcPositionErrors(state,X_AB,constrainedQ,perr); }
 
 void calcPositionDotErrorsVirtual      
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
-    Array_<Real>&                                   pverr) const
+    Array_<Real>&                                   pverr) const override
 {   getImplementation().calcPositionDotErrors
                                         (state,V_AB,constrainedQDot,pverr); }
 
@@ -2994,7 +2994,7 @@ void calcPositionDotDotErrorsVirtual
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
-    Array_<Real>&                                   paerr) const
+    Array_<Real>&                                   paerr) const override
 {   getImplementation().calcPositionDotDotErrors
                                     (state,A_AB,constrainedQDotDot,paerr); }
 
@@ -3002,7 +3002,7 @@ void addInPositionConstraintForcesVirtual
    (const State&                                s, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,ConstrainedQIndex>&             qForces) const
+    Array_<Real,ConstrainedQIndex>&             qForces) const override
 {   getImplementation().addInPositionConstraintForces
         (s,multipliers,bodyForcesInA,qForces); }
 
@@ -3010,14 +3010,14 @@ void calcVelocityErrorsVirtual
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
-    Array_<Real>&                                   verr) const
+    Array_<Real>&                                   verr) const override
 {   getImplementation().calcVelocityErrors(state,V_AB,constrainedU,verr); }
 
 void calcVelocityDotErrorsVirtual     
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
-    Array_<Real>&                                   vaerr) const
+    Array_<Real>&                                   vaerr) const override
 {   getImplementation().calcVelocityDotErrors
                                         (state,A_AB,constrainedUDot,vaerr); }
 
@@ -3025,7 +3025,7 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                s, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const override
 {   getImplementation().addInVelocityConstraintForces
         (s,multipliers,bodyForcesInA,mobilityForces); }
 
@@ -3033,7 +3033,7 @@ void calcAccelerationErrorsVirtual
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
-    Array_<Real>&                                   aerr) const
+    Array_<Real>&                                   aerr) const override
 {   getImplementation().calcVelocityDotErrors
                                         (state,A_AB,constrainedUDot,aerr); }
 
@@ -3041,12 +3041,12 @@ void addInAccelerationConstraintForcesVirtual
    (const State&                                s, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
-    Array_<Real,ConstrainedUIndex>&             mobilityForces) const
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const override
 {   getImplementation().addInAccelerationConstraintForces
         (s,multipliers,bodyForcesInA,mobilityForces); }
 
 void calcDecorativeGeometryAndAppendVirtual
-        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
+        (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override
     {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
 
 SimTK_DOWNCAST(CustomImpl, ConstraintImpl);
@@ -3086,7 +3086,7 @@ CoordinateCouplerImpl(SimbodyMatterSubsystem&           matter,
     }
 }
     
-Implementation* clone() const {
+Implementation* clone() const override {
     referenceCount[0]++;
     CoordinateCouplerImpl* newCoupler = new CoordinateCouplerImpl(*this);
     return newCoupler;
@@ -3096,25 +3096,25 @@ void calcPositionErrors
    (const State&                                    state,
     const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
-    Array_<Real>&                                   perr) const;
+    Array_<Real>&                                   perr) const override;
 
 void calcPositionDotErrors      
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
-    Array_<Real>&                                   pverr) const;
+    Array_<Real>&                                   pverr) const override;
 
 void calcPositionDotDotErrors     
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
-    Array_<Real>&                                   paerr) const;
+    Array_<Real>&                                   paerr) const override;
 
 void addInPositionConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
-    Array_<Real,ConstrainedQIndex>&             qForces) const;
+    Array_<Real,ConstrainedQIndex>&             qForces) const override;
 
 //------------------------------------------------------------------------------
                                     private:
@@ -3160,7 +3160,7 @@ SpeedCouplerImpl(SimbodyMatterSubsystem& matter,
     }
 }
     
-Implementation* clone() const {
+Implementation* clone() const override {
     referenceCount[0]++;
     return new SpeedCouplerImpl(*this);
 }
@@ -3169,19 +3169,19 @@ void calcVelocityErrors
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
-    Array_<Real>&                                   verr) const;
+    Array_<Real>&                                   verr) const override;
 
 void calcVelocityDotErrors     
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
-    Array_<Real>&                                   vaerr) const;
+    Array_<Real>&                                   vaerr) const override;
 
 void addInVelocityConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
-    Array_<Real,ConstrainedUIndex>&             mobilityForces) const;
+    Array_<Real,ConstrainedUIndex>&             mobilityForces) const override;
 
 //------------------------------------------------------------------------------
                                     private:
@@ -3215,7 +3215,7 @@ PrescribedMotionImpl(SimbodyMatterSubsystem&    matter,
     }
 }
     
-Implementation* clone() const {
+Implementation* clone() const override {
     referenceCount[0]++;
     return new PrescribedMotionImpl(*this);
 }
@@ -3224,25 +3224,25 @@ void calcPositionErrors
    (const State&                                    state,
     const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
-    Array_<Real>&                                   perr) const;
+    Array_<Real>&                                   perr) const override;
 
 void calcPositionDotErrors      
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
-    Array_<Real>&                                   pverr) const;
+    Array_<Real>&                                   pverr) const override;
 
 void calcPositionDotDotErrors     
    (const State&                                    state,
     const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
-    Array_<Real>&                                   paerr) const;
+    Array_<Real>&                                   paerr) const override;
 
 void addInPositionConstraintForces
    (const State&                                state, 
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
-    Array_<Real,ConstrainedQIndex>&             qForces) const;
+    Array_<Real,ConstrainedQIndex>&             qForces) const override;
 
 //------------------------------------------------------------------------------
                                     private:

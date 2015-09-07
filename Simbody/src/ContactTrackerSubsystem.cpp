@@ -153,7 +153,7 @@ ContactTrackerSubsystemImpl() : m_defaultTracker(0) {
     // The map itself gets deleted automatically.
 }
 
-ContactTrackerSubsystemImpl* cloneImpl() const 
+ContactTrackerSubsystemImpl* cloneImpl() const override 
 {   return new ContactTrackerSubsystemImpl(*this); }
 
 void adoptContactTracker(ContactTracker* tracker) {
@@ -213,7 +213,7 @@ ContactSnapshot& updNextPredictedContacts(const State& state) const {
 // a unique ContactSurfaceIndex. Then for each surface, get its geometry
 // and create a Bubble from each of its bubble wrap spheres; each of those
 // gets a unique BubbleIndex that maps back to the associated surface.
-int realizeSubsystemTopologyImpl(State& state) const {
+int realizeSubsystemTopologyImpl(State& state) const override {
     // Briefly allow writing into the Topology cache; after this the
     // Topology cache is const.
     ContactTrackerSubsystemImpl* wThis = 
@@ -266,11 +266,11 @@ int realizeSubsystemTopologyImpl(State& state) const {
     return 0;
 }
 
-int realizeSubsystemPositionImpl(const State& state) const {
+int realizeSubsystemPositionImpl(const State& state) const override {
     return 0;
 }
 
-int realizeSubsystemVelocityImpl(const State& state) const {
+int realizeSubsystemVelocityImpl(const State& state) const override {
     return 0;
 }
 
@@ -506,12 +506,12 @@ void ensurePredictedContactsUpdated(const State& state) const {
     markDiscreteVarUpdateValueRealized(state, m_predictedContactsIx);
 }
 
-int realizeSubsystemDynamicsImpl(const State& state) const {
+int realizeSubsystemDynamicsImpl(const State& state) const override {
     ensureActiveContactsUpdated(state);
     return 0;
 }
 
-int realizeSubsystemAccelerationImpl(const State& state) const {
+int realizeSubsystemAccelerationImpl(const State& state) const override {
     ensurePredictedContactsUpdated(state);
     return 0;
 }

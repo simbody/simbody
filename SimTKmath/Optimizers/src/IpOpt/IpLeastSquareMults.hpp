@@ -35,14 +35,14 @@ namespace Ipopt
 
     /* overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** This method computes the least-square estimates for y_c and
      *  y_d at the current point.  The return value is false, if the
      *  least square system could not be solved (the linear system is
      *  singular). */
     virtual bool CalculateMultipliers(Vector& y_c,
-                                      Vector& y_d);
+                                      Vector& y_d) override;
 
   private:
     /**@name Default Compiler Generated Methods
