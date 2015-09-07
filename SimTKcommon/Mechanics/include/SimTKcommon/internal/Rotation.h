@@ -1281,10 +1281,7 @@ Rotation class for more information. **/
 //-----------------------------------------------------------------------------
 template <class P>
 class InverseRotation_ : public Mat<3,3,P>::TransposeType {
-typedef P               RealP;
-typedef Rotation_<P>    RotationP;
 typedef Mat<3,3,P>      Mat33P; // not the base type!
-typedef SymMat<3,P>     SymMat33P;
 typedef Mat<2,2,P>      Mat22P;
 typedef Mat<3,2,P>      Mat32P;
 typedef Vec<2,P>        Vec2P;
@@ -1322,24 +1319,24 @@ matrix should be one that is formed as products of vectors expressed in A, such
 as inertia, unit inertia (gyration) or covariance matrices. This can be done 
 efficiently exploiting properties of R and S. Cost is 57 flops.
 @see Rotation::reexpressSymMat33() **/
-SimTK_SimTKCOMMON_EXPORT SymMat33P 
-reexpressSymMat33(const SymMat33P& S_BB) const;
+SimTK_SimTKCOMMON_EXPORT SymMat<3,P> 
+reexpressSymMat33(const SymMat<3,P>& S_BB) const;
 
 /** We can invert an InverseRotation just by recasting it to a Rotation at 
 zero cost. **/
 //@{
-const RotationP&  invert() const 
-{return *reinterpret_cast<const RotationP*>(this);}
-RotationP&        updInvert() {return *reinterpret_cast<RotationP*>(this);}
+const Rotation_<P>&  invert() const 
+{return *reinterpret_cast<const Rotation_<P>*>(this);}
+Rotation_<P>&        updInvert() {return *reinterpret_cast<Rotation_<P>*>(this);}
 //@}
 
 /** Transpose, and transpose operators (override BaseMat versions of transpose).
 For an orthogonal matrix like this one transpose is the same as inverse. **/
 //@{
-const RotationP&  transpose() const  { return invert(); }
-const RotationP&  operator~() const  { return invert(); }
-RotationP&        updTranspose()     { return updInvert(); }
-RotationP&        operator~()        { return updInvert(); }
+const Rotation_<P>&  transpose() const  { return invert(); }
+const Rotation_<P>&  operator~() const  { return invert(); }
+Rotation_<P>&        updTranspose()     { return updInvert(); }
+Rotation_<P>&        operator~()        { return updInvert(); }
 //@}
 
 /** Access individual rows and columns of this InverseRotation; no cost or
