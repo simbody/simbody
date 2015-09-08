@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from IVM code written by Charles Schwieters          *
  *                                                                            *
@@ -149,11 +149,13 @@ enum QuaternionUse {
 bool isQuaternionEverUsed() const
 {   return quaternionUse==QuaternionMayBeUsed; }
 
-virtual ~RigidBodyNode() {}
+virtual ~RigidBodyNode() = default;
+RigidBodyNode(const RigidBodyNode&) = delete;
+RigidBodyNode& operator=(const RigidBodyNode&) = delete;
 
     // MOBILIZER-SPECIFIC VIRTUAL METHODS //
 
-virtual const char* type()     const {return "unknown";}
+virtual const char* type() const {return "unknown";}
 virtual int  getDOF()   const=0; //number of independent dofs
 virtual int  getMaxNQ() const=0; //dofs plus extra quaternion coordinate if any
 
@@ -469,7 +471,6 @@ virtual void realizeVelocity(
 // stage calculations which must go tip-to-base (e.g. articulated
 // body inertias).
 virtual void realizeDynamics(
-    const SBArticulatedBodyInertiaCache&    abc,
     const SBStateDigest&                    sbs) const=0;
 
 // There is no realizeAcceleration().
@@ -522,7 +523,7 @@ virtual void calcUDotPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
+    const SBArticulatedBodyVelocityCache&   abvc,
     const Real*                             jointForces,
     const SpatialVec*                       bodyForces,
     const Real*                             allUDot,
@@ -595,7 +596,6 @@ virtual const SpatialVec& getH_FMCol(const SBTreePositionCache&, int j) const
 
     // BASE CLASS METHODS //
 
-RigidBodyNode& operator=(const RigidBodyNode&);
 
 static RigidBodyNode* createGroundNode();
 
@@ -786,6 +786,19 @@ const UnitInertia& getUnitInertia_OB_G(const SBTreePositionCache& pc) const
 // *parent's* body frame P.
 const Transform& getX_GP(const SBTreePositionCache& pc) const {assert(parent); return parent->getX_GB(pc);}
 
+// These depend only on PositionKinematics but they are delayed until needed.
+
+// Composite body inertias.
+const SpatialInertia& getR(const SBCompositeBodyInertiaCache& cbc) const {return fromB(cbc.compositeBodyInertia);}
+SpatialInertia&       updR(SBCompositeBodyInertiaCache&       cbc) const {return toB  (cbc.compositeBodyInertia);}
+
+// Articulated body inertias and related calculations
+const ArticulatedInertia& getP(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.articulatedBodyInertia);}
+ArticulatedInertia&       updP(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.articulatedBodyInertia);}
+
+const ArticulatedInertia& getPPlus(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.pPlus);}
+ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.pPlus);}
+
         // VELOCITY INFO
 
 const SpatialVec& getV_FM(const SBTreeVelocityCache& vc) const {return fromB(vc.mobilizerRelativeVelocity);}
@@ -874,35 +887,31 @@ SpatialVec&       updTotalCoriolisAcceleration(SBTreeVelocityCache&       vc) co
 const SpatialVec& getTotalCentrifugalForces(const SBTreeVelocityCache& vc) const {return fromB(vc.totalCentrifugalForces);}
 SpatialVec&       updTotalCentrifugalForces(SBTreeVelocityCache&       vc) const {return toB  (vc.totalCentrifugalForces);}
 
+// This requires both velocity kinematics (from SBTreeVelocityCache) and 
+// articulated body inertias (from SBArticulatedBodyInertiaCache).
+const SpatialVec& getArticulatedBodyCentrifugalForces
+   (const SBArticulatedBodyVelocityCache& abvc) const 
+{   return fromB(abvc.articulatedBodyCentrifugalForces); }
+SpatialVec& updArticulatedBodyCentrifugalForces
+   (SBArticulatedBodyVelocityCache& abvc) const 
+{   return toB(abvc.articulatedBodyCentrifugalForces); }
+
+
     // DYNAMICS INFO
 
-// Composite body inertias.
-const SpatialInertia& getR(const SBCompositeBodyInertiaCache& cbc) const {return fromB(cbc.compositeBodyInertia);}
-SpatialInertia&       updR(SBCompositeBodyInertiaCache&       cbc) const {return toB  (cbc.compositeBodyInertia);}
+const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}
+SpatialMat&       updY(SBDynamicsCache&       dc) const {return toB  (dc.Y);}
 
-// Articulated body inertias and related calculations
-const ArticulatedInertia& getP(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.articulatedBodyInertia);}
-ArticulatedInertia&       updP(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.articulatedBodyInertia);}
 
-const ArticulatedInertia& getPPlus(const SBArticulatedBodyInertiaCache& abc) const {return fromB(abc.pPlus);}
-ArticulatedInertia&       updPPlus(SBArticulatedBodyInertiaCache&       abc) const {return toB  (abc.pPlus);}
 
-// Others
 
-const SpatialVec& getMobilizerCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.mobilizerCentrifugalForces);}
-SpatialVec&       updMobilizerCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.mobilizerCentrifugalForces);}
+    // ACCELERATION INFO
 
 const SpatialVec& getZ(const SBTreeAccelerationCache& tac) const {return fromB(tac.z);}
 SpatialVec&       updZ(SBTreeAccelerationCache&       tac) const {return toB  (tac.z);}
 
 const SpatialVec& getZPlus(const SBTreeAccelerationCache& tac) const {return fromB(tac.zPlus);}
 SpatialVec&       updZPlus(SBTreeAccelerationCache&       tac) const {return toB  (tac.zPlus);}
-
-
-const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}
-SpatialMat&       updY(SBDynamicsCache&       dc) const {return toB  (dc.Y);}
-
-    // ACCELERATION INFO
 
 // Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
 // expressed in ground. This contains the inertial angular acceleration of B in G, and the
@@ -977,13 +986,13 @@ void calcJointIndependentKinematicsVel(
     const SBTreePositionCache& pc,
     SBTreeVelocityCache&       vc) const;
 
-// Calculate velocity-dependent quantities which will be needed for
-// computing accelerations.
-void calcJointIndependentDynamicsVel(
+// Calculate velocity-dependent quantities that involve articulated body
+// inertias and are needed for computing accelerations.
+void realizeArticulatedBodyVelocityCache(
     const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
     const SBTreeVelocityCache&              vc,
-    SBDynamicsCache&                        dc) const;
+    const SBArticulatedBodyInertiaCache&    abc,
+    SBArticulatedBodyVelocityCache&         abvc) const;
 
 
 protected:

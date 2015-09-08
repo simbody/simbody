@@ -153,6 +153,7 @@ public:
                           compositeBodyInertiaCacheIndex, 
                           articulatedBodyInertiaCacheIndex,
                           treeVelocityCacheIndex, constrainedVelocityCacheIndex,
+                          articulatedBodyVelocityCacheIndex,
                           dynamicsCacheIndex, 
                           treeAccelerationCacheIndex, 
                           constrainedAccelerationCacheIndex;
@@ -822,48 +823,52 @@ public:
 // =============================================================================
 //                       ARTICULATED BODY INERTIA CACHE
 // =============================================================================
-// These articulated body inertias take into account prescribed motion, 
-// meaning that they are produced by a combination of articulated and rigid
-// shift operations depending on each mobilizer's current status as "free"
-// or "prescribed". That means that the articulated inertias here are suited
-// only for "mixed" dynamics; you can't use them to calculate M^-1*f unless
-// there is no prescribed motion in the system.
-//
-// Each articulated body inertia here is expressed in the Ground frame but 
-// measured about its body's origin.
-//
-// Articulated body inertia matrices, though symmetric and positive
-// definite, do not have the same simple structure as rigid-body (or composite-
-// body) spatial inertias. For example, the apparent mass depends on direction.
-// All 21 elements of this symmetric 6x6 matrix are unique, while there are only
-// 10 unique elements in a rigid body spatial inertia.
-//
-// Note that although we use some *rigid* body shift operations here, the 
-// results in general are all *articulated* body inertias, because a rigid shift 
-// of an articulated body inertia is still an articulated body inertia. Only if 
-// all mobilizers are prescribed will these be rigid body spatial inertias. For 
-// a discussion of the properties of articulated body inertias, see Section 7.1 
-// (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics 
-// Algorithms. 
-//
-// Intermediate quantities PPlus, D, DI, and G are calculated here which are 
-// separately useful when dealing with "free" mobilized bodies. These quantities
-// are not calculated for prescribed mobilizers; they will remain NaN in that 
-// case. In particular, this means that the prescribed-mobilizer mass properties
-// do not have to be invertible, so you can have terminal massless bodies as 
-// long as their motion is always prescribed.
-// TODO: should D still be calculated? It doesn't require inversion.
-//
-// Articulated body inertias depend only on positions but are not usually needed 
-// until Acceleration stage. Thus this cache entry should have dependsOn stage 
-// Position, and computedBy stage Dynamics. However, it can be realized any
-// time after Position.
+/* These articulated body inertias (ABIs) take into account prescribed motion, 
+meaning that they are produced by a combination of articulated and rigid
+shift operations depending on each mobilizer's current status as "free"
+or "prescribed". That means that the articulated inertias here are suited
+only for "mixed" dynamics; you can't use them to calculate M^-1*f unless
+there is no prescribed motion in the system.
 
+Each articulated body inertia here is expressed in the Ground frame but 
+measured about its body's origin.
+
+Articulated body inertia matrices, though symmetric and positive
+definite, do not have the same simple structure as rigid-body (or composite-
+body) spatial inertias. For example, the apparent mass depends on direction.
+All 21 elements of this symmetric 6x6 matrix are unique, while there are only
+10 unique elements in a rigid body spatial inertia.
+
+Note that although we use some *rigid* body shift operations here, the 
+results in general are all *articulated* body inertias, because a rigid shift 
+of an articulated body inertia is still an articulated body inertia. Only if 
+all mobilizers are prescribed will these be rigid body spatial inertias. For 
+a discussion of the properties of articulated body inertias, see Section 7.1 
+(pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid Body Dynamics 
+Algorithms. 
+
+Intermediate quantities PPlus, D, DI, and G are calculated here which are 
+separately useful when dealing with "free" mobilized bodies. These quantities
+are not calculated for prescribed mobilizers; they will remain NaN in that 
+case. In particular, this means that the prescribed-mobilizer mass properties
+do not have to be invertible, so you can have terminal massless bodies as 
+long as their motion is always prescribed.
+TODO: should D still be calculated? It doesn't require inversion.
+
+ABIs depend only on position kinematics (they are time-independent) but are not
+usually needed until Acceleration stage, and we do not want to compute them
+earlier because (a) they are expensive, and (b) they require good, invertible
+mass properties. Some modelers don't bother with good mass properties since they
+have no intention of doing forward dynamics; they will rightfully complain
+if they get a singular mass matrix exception in Dynamics stage. So this cache
+entry should have depends-on stage Instance, with PositionKinematics as an 
+additional prerequisite, and computed-by stage Acceleration. However, it can
+be realized explicitly any time its stage and prerequisite are valid, such as
+after Stage::Position. */
 class SBArticulatedBodyInertiaCache {
 public:
-    Array_<ArticulatedInertia,MobilizedBodyIndex> articulatedBodyInertia; // nb (P)
-
-    Array_<ArticulatedInertia,MobilizedBodyIndex> pPlus; // nb
+    Array_<ArticulatedInertia,MobodIndex> articulatedBodyInertia; // nb (P)
+    Array_<ArticulatedInertia,MobodIndex> pPlus;                  // nb (PPlus)
 
     Vector_<Real>       storageForD;    // sum(nu[j]^2)
     Vector_<Real>       storageForDI;   // sum(nu[j]^2)
@@ -1040,6 +1045,44 @@ public:
 //........................ CONSTRAINED VELOCITY CACHE ..........................
 
 
+// =============================================================================
+//                     ARTICULATED BODY VELOCITY CACHE
+// =============================================================================
+/* This cache entry holds any time-independent precalculations that are 
+dependent both on velocity kinematics and articulated body inertias (ABIs). 
+Currently that is just the articulated body centrifugal forces F=P*a+b where P 
+is the ABI, a is the cross-mobilizer Coriolis acceleration, and b is the
+gyroscopic force due to rotational inertia.
+
+We want to pre-calculate this term for use during Stage::Acceleration because
+it does not change as a result of changes to forces in Stage::Dynamics, and it
+is common to recalculate accelerations with only forces changing, especially
+when dealing with cosntrained systems. But we don't want ot calculate them
+prior to Stage::Acceleration because of the dependence on ABIs; see the 
+comments for SBArticulatedBodyInertiaCache for why. So this cache
+entry should have depends-on stage Instance, with VelocityKinematics and ABIs
+as an additional prerequisites, and computed-by stage Acceleration. However, it 
+can be realized any time its stage and prerequisites are valid, such 
+as after Stage::Velocity plus realizeArticulatedBodyInertias(). */
+class SBArticulatedBodyVelocityCache {
+public:
+    Array_<SpatialVec,MobodIndex> articulatedBodyCentrifugalForces; //nb (P*a+b)
+
+public:
+    void allocate(const SBTopologyCache& tree,
+                  const SBModelCache&,
+                  const SBInstanceCache&) 
+    {
+        // Pull out construction-stage information from the tree.
+        const int nBodies = tree.nBodies;
+        
+        articulatedBodyCentrifugalForces.resize(nBodies);           
+        articulatedBodyCentrifugalForces[GroundIndex] = 
+                                                    SpatialVec(Vec3(0),Vec3(0));
+    }
+};
+//...................... ARTICULATED BODY VELOCITY CACHE .......................
+
 
 // =============================================================================
 //                                DYNAMICS CACHE
@@ -1051,30 +1094,17 @@ public:
     // velocities, or twice-differentiating prescribed positions.
     Array_<Real> presUDotPool;    // Index with PresUDotPoolIndex
 
-    // Dynamics
-    // Here a=body's incremental contribution to coriolis acceleration
-    //      A=total coriolis acceleration for this body
-    //      b=gyroscopic force
-    Array_<SpatialVec,MobilizedBodyIndex> mobilizerCentrifugalForces; // nb (P*a+b)
-
     Array_<SpatialMat,MobilizedBodyIndex> Y;                          // nb
 
 public:
     void allocate(const SBTopologyCache& tree,
-                  const SBModelCache&    model,
+                  const SBModelCache&,
                   const SBInstanceCache& instance) 
     {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
-        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
-        const int nSqDofs = tree.sumSqDOFs; // sum(ndof^2) for each joint
-        const int maxNQs  = tree.maxNQs;    // allocate the max # q's we'll ever need     
 
         presUDotPool.resize(instance.getTotalNumPresUDot());
-
-        mobilizerCentrifugalForces.resize(nBodies);           
-        mobilizerCentrifugalForces[GroundIndex] = SpatialVec(Vec3(0),Vec3(0));
-
 
         Y.resize(nBodies); // TODO: op space compliance kernel (see Jain 2011)
         Y[GroundIndex] = SpatialMat(Mat33(0));
@@ -1113,7 +1143,6 @@ public:
 public:
     // udot, qdotdot cache space is provided directly by the State.
 
-
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (A_GB)
 
     // This is where the calculated prescribed motion "taus" go. (That is, 
@@ -1131,7 +1160,7 @@ public:
 
 public:
     void allocate(const SBTopologyCache& topo,
-                  const SBModelCache&    model,
+                  const SBModelCache&,
                   const SBInstanceCache& instance) 
     {
         // Pull out topology-stage information from the tree.

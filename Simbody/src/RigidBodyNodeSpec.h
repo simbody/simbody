@@ -332,19 +332,9 @@ void realizeVelocity(const SBStateDigest& sbs) const override
     calcJointIndependentKinematicsVel(pc,vc);
 }
 
-// Articulated body inertias have been calculated; here we're 
-void realizeDynamics(const SBArticulatedBodyInertiaCache&   abc,
-                     const SBStateDigest&                   sbs) const override
+void realizeDynamics(const SBStateDigest&) const override
 {
-    const SBTreePositionCache&  pc = sbs.getTreePositionCache();
-    const SBTreeVelocityCache&  vc = sbs.getTreeVelocityCache();
-    SBDynamicsCache&            dc = sbs.updDynamicsCache();
-
-    // Mobilizer-specific.
-    // None.
-
-    // Mobilizer independent.
-    calcJointIndependentDynamicsVel(pc,abc,vc,dc);
+    // nothing to do
 }
 
 // There is no realizeAcceleration().
@@ -353,8 +343,9 @@ void realizeReport(const SBStateDigest& sbs) const override
 {
 }
 
-// Use base class implementation of calcCompositeBodyInertiasInward() since
-// that is independent of mobilities.
+// Use base class implementations of calcCompositeBodyInertiasInward()
+// and realizeArticulatedBodyVelocityCache() since they are independent of 
+// mobilities.
 
 // This is a dynamics-stage calculation and must be called tip-to-base (inward).
 void realizeArticulatedBodyInertiasInward(
@@ -392,7 +383,7 @@ void calcUDotPass1Inward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,
     const SBArticulatedBodyInertiaCache&,
-    const SBDynamicsCache&      dc,
+    const SBArticulatedBodyVelocityCache&,
     const Real*                 jointForces,
     const SpatialVec*           bodyForces,
     const Real*                 allUDot,

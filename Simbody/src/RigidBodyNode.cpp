@@ -54,6 +54,8 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 void RigidBodyNode::calcJointIndependentKinematicsPos(
     SBTreePositionCache&    pc) const
 {
+    assert(nodeNum != 0); // Don't call this for Ground.
+
     // Re-express parent-to-child shift vector (Bo-Po) into the ground frame.
     const Vec3 p_PB_G = getX_GP(pc).R() * getX_PB(pc).p(); // 15 flops
 
@@ -97,14 +99,7 @@ RigidBodyNode::calcJointIndependentKinematicsVel(
     const SBTreePositionCache& pc,
     SBTreeVelocityCache&       vc) const
 {
-    if (nodeNum == 0) { // ground, just in case
-        updV_GB(vc)                          = SpatialVec(Vec3(0), Vec3(0));
-        updGyroscopicForce(vc)               = SpatialVec(Vec3(0), Vec3(0));
-        updMobilizerCoriolisAcceleration(vc) = SpatialVec(Vec3(0), Vec3(0));
-        updTotalCoriolisAcceleration(vc)     = SpatialVec(Vec3(0), Vec3(0));
-        updTotalCentrifugalForces(vc)        = SpatialVec(Vec3(0), Vec3(0));
-        return;
-    }
+    assert(nodeNum != 0); // Don't call this for Ground.
 
     const SpatialVec& V_GP   = parent->getV_GB(vc); // parent P's velocity in G
     const SpatialVec& V_PB_G = getV_PB_G(vc); // child B's vel in P, exp. in G
@@ -195,31 +190,26 @@ Real RigidBodyNode::calcKineticEnergy(
 
 
 //==============================================================================
-//                     CALC JOINT INDEPENDENT DYNAMICS VEL
+//                 REALIZE ARTICULATED BODY VELOCITY CACHE
 //==============================================================================
-// Calculate mass and velocity-related quantities that are needed for building
-// our dynamics operators, namely the gyroscopic force and centrifugal 
-// forces due to coriolis acceleration.
-// This routine expects that coriolis accelerations, gyroscopic forces, and
-// articulated body inertias are already available.
-// As written, the calling order doesn't matter.
+// Calculate velocity-related quantities that also depend on articulated body
+// inertias. This routine expects that coriolis accelerations, gyroscopic 
+// forces, and articulated body inertias are already available.
+// As written, the calling order doesn't matter, but Ground's entries must
+// have been precalculated so don't call this on the Ground body.
 // Cost is 72 flops.
 void 
-RigidBodyNode::calcJointIndependentDynamicsVel(
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
+RigidBodyNode::realizeArticulatedBodyVelocityCache
+   (const SBTreePositionCache&              pc,
     const SBTreeVelocityCache&              vc,
-    SBDynamicsCache&                        dc) const
+    const SBArticulatedBodyInertiaCache&    abc,
+    SBArticulatedBodyVelocityCache&         abvc) const
 {
-    if (nodeNum == 0) { // ground, just in case
-        updMobilizerCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
-        return;
-    }
+    assert(nodeNum != 0); // Don't call this for Ground.
 
-    // 72 flops
-    updMobilizerCentrifugalForces(dc) =
-        getP(abc) * getMobilizerCoriolisAcceleration(vc) + getGyroscopicForce(vc);
-
+    // 72 flops (P*a + b)
+    updArticulatedBodyCentrifugalForces(abvc) =
+        getP(abc)*getMobilizerCoriolisAcceleration(vc) + getGyroscopicForce(vc);
 }
 
 
