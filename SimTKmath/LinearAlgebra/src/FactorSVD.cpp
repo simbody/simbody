@@ -152,9 +152,9 @@ FactorSVDRep<T>::FactorSVDRep( const Matrix_<ELT>& mat, typename CNT<T>::TReal r
     nRow(mat.nrow()),
     mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ), 
     maxmn( (mat.nrow() > mat.ncol()) ? mat.nrow() : mat.ncol() ), 
+    rank(0),
     singularValues(mn),
     inputMatrix(nCol*nRow),
-    rank(0),
     structure(mat.getMatrixCharacter().getStructure())  {
     
     LapackInterface::getMachineUnderflow( abstol );

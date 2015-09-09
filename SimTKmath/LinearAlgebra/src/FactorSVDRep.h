@@ -129,7 +129,7 @@ class FactorSVDRepBase {
         SimTK_APIARGCHECK_ALWAYS(false,"FactorSVD","inverse",
         "inverse(  std::complex<double> ) called with type that is inconsistent with the original matrix  \n");
     }
-    virtual int getRank() const {
+    virtual int getRank() {
        checkIfFactored( "getRank" );
        return(0);
     }
@@ -165,11 +165,11 @@ class FactorSVDRep : public FactorSVDRepBase {
 
     typedef typename CNT<T>::TReal RType;
 
-    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
-    void getSingularValues( Vector_<RType>& values );
-    int getRank();
-    void solve( const Vector_<T>& b, Vector_<T>& x );
-    void solve( const Matrix_<T>& b, Matrix_<T>& x );
+    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors ) override;
+    void getSingularValues( Vector_<RType>& values ) override;
+    int getRank() override;
+    void solve( const Vector_<T>& b, Vector_<T>& x ) override;
+    void solve( const Matrix_<T>& b, Matrix_<T>& x ) override;
 
 
     private:
@@ -183,11 +183,12 @@ class FactorSVDRep : public FactorSVDRepBase {
     int mn;      // min(m,n)
     int maxmn;   // max(m,n)
     int rank;
+    TypedWorkSpace<RType> singularValues;
+    TypedWorkSpace<T> inputMatrix;
+    MatrixStructure structure;
+
     RType rcond;   // reciprocol condition number
     RType abstol;
-    MatrixStructure structure;
-    TypedWorkSpace<T> inputMatrix;
-    TypedWorkSpace<RType> singularValues;
 
 }; // end class FactorSVDRep
 } // namespace SimTK
