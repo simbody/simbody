@@ -1081,6 +1081,9 @@ void testArticulatedBodyInertia() {
     state.updQ()=0.2; 
     SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
 
+    mbs.realize(state, Stage::Dynamics); // not high enough
+    SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
+
     mbs.realize(state, Stage::Acceleration); // implicit realization of abis
     SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
 
