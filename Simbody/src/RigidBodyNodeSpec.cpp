@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors: Derived from IVM code written by Charles Schwieters          *
  *                                                                            *
@@ -21,11 +21,9 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/**@file
- * This file contains implementations of the base class methods for the
- * templatized class RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>, and instantiations of the 
- * class for all possible values of the arguments.
- */
+/* This file contains implementations of the base class methods for the
+templatized class RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>, and 
+instantiations of the class for all possible values of the arguments. */
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
@@ -44,8 +42,9 @@
 // CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 // Cost: 60 + 45*dof flops
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcParentToChildVelocityJacobianInGround(
-    const SBModelVars&          mv,
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
+calcParentToChildVelocityJacobianInGround
+   (const SBModelVars&          mv,
     const SBTreePositionCache&  pc, 
     HType&                      H_PB_G) const
 {
@@ -66,7 +65,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcParentToChildVelocityJacobia
         // want r_MB_F, that is, the vector from Mo to Bo, expressed in F
         const Vec3&     r_MB   = getX_MB().p();     // fixed
         const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
-        const Vec3      r_MB_F = (noR_FM ? r_MB : R_FM*r_MB);         // 15 flops
+        const Vec3      r_MB_F = (noR_FM ? r_MB : R_FM*r_MB);       // 15 flops
         HType H_MB_F;
         H_MB_F[0] =  Vec3(0); // fills top row with zero
         H_MB_F[1] = -r_MB_F % H_FM[0]; // 9*dof (negation not actually done)
@@ -358,7 +357,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
+    const SBArticulatedBodyVelocityCache&   abvc,
     const Real*                             jointForces,
     const SpatialVec*                       bodyForces,
     const Real*                             allUDot,
@@ -378,7 +377,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
     const HType&              G = getG(abc);
 
     // z = Pa+b - F
-    z = getMobilizerCentrifugalForces(dc) - F; // 6 flops
+    z = getArticulatedBodyCentrifugalForces(abvc) - F; // 6 flops
 
     // z += P H udot_p if prescribed
     if (isPrescribed && !isUDotKnownToBeZero(ic)) {
@@ -824,7 +823,7 @@ multiplyBySystemJacobianTranspose(
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     const SBTreePositionCache&  pc,
-    const SBDynamicsCache&      dc,
+    const SBTreeVelocityCache&  vc,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allZ,
     Real*                       jointForces) const 
@@ -835,7 +834,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
 
     // Centrifugal forces are MA+b where M is body spatial inertia,
     // A is total coriolis acceleration, and b is gyroscopic force.
-    z = myBodyForce - getTotalCentrifugalForces(dc);
+    z = myBodyForce - getTotalCentrifugalForces(vc);
 
     for (unsigned i=0; i<children.size(); ++i) {
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
@@ -847,18 +846,6 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     eps  = ~getH(pc) * z;
 }
 
-//
-// to be called from base to tip.
-//
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::setVelFromSVel(
-    const SBTreePositionCache&  pc, 
-    const SBTreeVelocityCache&  mc,
-    const SpatialVec&           sVel, 
-    Vector&                     u) const 
-{
-    toU(u) = ~getH(pc) * (sVel - (~getPhi(pc) * parent->getV_GB(mc)));
-}
 
     ////////////////////
     // INSTANTIATIONS //

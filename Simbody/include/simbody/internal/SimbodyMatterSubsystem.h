@@ -237,12 +237,6 @@ int getNumMobilities() const;
 some that are not in use for particular modeling options. **/
 int getTotalQAlloc() const;
 
-/** This is the sum of all the allocations for constraint multipliers, one per
-acceleration constraint equation. There may be some that are not in use due
-to the corresonding Constraint elements being disabled in a given State. **/
-int getTotalMultAlloc() const;
-
-
 /** Attach new matter by attaching it to the indicated parent body (not
 normally called by users -- see MobilizedBody). The mobilizer and mass 
 properties are provided by \a child. A new MobilizedBodyIndex is assigned for
@@ -255,8 +249,8 @@ implementation object to which it refers.
 @note
 This method is usually called by concrete MobilizedBody constructors;
 it does not normally need to be called by end users. **/
-MobilizedBodyIndex   adoptMobilizedBody(MobilizedBodyIndex  parent, 
-                                        MobilizedBody&      child);
+MobilizedBodyIndex adoptMobilizedBody(MobilizedBodyIndex  parent, 
+                                      MobilizedBody&      child);
 
 /** Add a new Constraint object to the matter subsystem (not normally called
 by users -- see Constraint). The details of the Constraint are opaque here. 
@@ -339,6 +333,7 @@ on the type of mobilizer and the setting of the `useEulerAngles` flag in
 the supplied \a state. 
 @see getNumQuaternionsInUse(), getQuaternionPoolIndex() **/
 bool isUsingQuaternion(const State& state, MobilizedBodyIndex mobodIx) const;
+
 /** If the given mobilizer is currently using a quaternion to represent
 orientation, return the QuaternionPoolIndex (a small integer) assigned to that
 quaternion. This is used, for example, to find which normalization constraint
@@ -1359,12 +1354,12 @@ force realization of the articulated body inertias, call the method
 realizeArticulatedBodyInertias().
 
 @par Required stage
-  \c Stage::Position 
+  \c Stage::Position (articulated body inertias realized first if necessary)
 
 @see multiplyByM(), calcMInv(), realizeArticulatedBodyInertias() **/ 
-void multiplyByMInv(const State& state,
-    const Vector&               v,
-    Vector&                     MinvV) const;
+void multiplyByMInv(const State&    state,
+                    const Vector&   v,
+                    Vector&         MinvV) const;
 
 /** This operator explicitly calculates the n X n mass matrix M. Note that this
 is inherently an O(n^2) operation since the mass matrix has n^2 elements 
@@ -1374,6 +1369,10 @@ O(n^2) one. Instead, see if you can accomplish what you need with O(n) operators
 like multiplyByM() which calculates the matrix-vector product M*v in O(n)
 without explicitly forming M. Also, don't invert this matrix numerically to get
 M^-1. Instead, call the method calcMInv() which can produce M^-1 directly.
+
+@par Required stage
+  \c Stage::Position 
+
 @see multiplyByM(), calcMInv() **/
 void calcM(const State&, Matrix& M) const;
 
@@ -1389,6 +1388,10 @@ Instead, see if you can accomplish what you need with O(n) operators like
 multiplyByMInv() which calculates the matrix-vector product M^-1*v in O(n) 
 without explicitly forming M or M^-1. If you need M explicitly, you can get it
 with the calcM() method.
+
+@par Required stage
+  \c Stage::Position (articulated body inertias realized first if necessary)
+
 @see multiplyByMInv(), calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
@@ -1433,6 +1436,9 @@ O(n) operators:
 Even if G and M^-1 were already available, computing W by matrix multiplication
 would cost O(m^2*n + m*n^2) time and O(m*n) intermediate storage. Here we do 
 it in O(m*n) time with O(n) intermediate storage, which is a \e lot better.
+
+@par Required stage
+  \c Stage::Velocity (articulated body inertias realized first if necessary)
      
 @see multiplyByG(), calcG(), multiplyByGTranspose(), calcGTranspose()
 @see multiplyByMInv(), calcMInv() **/
@@ -1625,8 +1631,8 @@ constraints then the \a state need be realized only through Position stage.
 
 @param[in]      state
     A State that has been realized through Velocity stage (or Position stage
-    if the system has only position constraints). Time, configuration,
-    and velocities if needed are taken from \a state.
+    if the system has no velocity-dependent constraint Jacobians).
+    Configuration and velocities if needed are taken from \a state.
 @param[in]      lambda
     A multiplier-like vector to be multiplied by ~G. Its length must be the
     same as the total number of active constraint equations m.
@@ -1907,7 +1913,11 @@ void multiplyByNDot(const State& s, bool transpose,
 /** @name                  Miscellaneous Operators
 
 Operators make use of the State but do not write their results back
-into the State, not even into the State cache. **/
+into the State, although they may realize the lazy-evaluation cache entries
+containing articulated body inertias and related computations. If you want
+to avoid any implicit cache updates, use the explicit realization methods
+realizeArticulatedBodyInertias() and realizeArticulatedBodyVelocity()
+first to force those computations to complete. **/
 /**@{**/
 
 /** This is the primary forward dynamics operator. It takes a state which
@@ -1963,7 +1973,7 @@ and m the number of constraint equations (mobilities with prescribed motion are
 counted in n, not m).
 
 @par Required stage
-  \c Stage::Dynamics **/ 
+  \c Stage::Dynamics (articulated body inertia will be realized if needed) **/ 
 void calcAcceleration
    (const State&               state,
     const Vector&              appliedMobilityForces,
@@ -1993,7 +2003,7 @@ expressed in Ground) are also returned. tau_p is not returned.
 This is an O(n) operator.
 
 @par Required stage
-  \c Stage::Dynamics **/ 
+  \c Stage::Dynamics (articulated body inertia will be realized if needed) **/ 
 void calcAccelerationIgnoringConstraints
    (const State&                state,
     const Vector&               appliedMobilityForces,
@@ -2312,7 +2322,10 @@ already been calculated in the given \a state, which must have been realized
 through Acceleration stage. The result contains entries only for prescribed 
 mobilities; if you want these unpacked into u-space mobility forces, use
 findMotionForces() instead. A mobilizer may follow prescribed motion either
-because of a Motion object or a call to MobilizedBody::lock(). **/
+because of a Motion object or a call to MobilizedBody::lock(). 
+
+@par Required stage
+  \c Stage::Acceleration **/
 const Vector& getMotionMultipliers(const State& state) const;
 
 /** Calculate the degree to which the supplied \a state does not satisfy the
@@ -2334,7 +2347,10 @@ Vector calcMotionErrors(const State& state, const Stage& stage) const;
 objects active in this system. These are the same values as returned by 
 getMotionMultipliers() but unpacked into u-space slots, with zeroes 
 corresponding to any "free" mobilities, that is, those whose motion is not 
-prescribed. **/
+prescribed. 
+
+@par Required stage
+  \c Stage::Acceleration **/
 void findMotionForces
    (const State&         state,
     Vector&              mobilityForces) const;
@@ -2344,13 +2360,19 @@ been calculated in the given \a state, which must have been realized through
 Acceleration stage. Constraint multipliers are not directly interpretable as 
 forces; if you want the actual forces use findConstraintForces() instead. If
 you want to know individual Constraint contributions to these forces, ask the 
-Constraint objects rather than this SimbodyMatterSubsystem object. **/
+Constraint objects rather than this SimbodyMatterSubsystem object. 
+
+@par Required stage
+  \c Stage::Acceleration **/
 const Vector& getConstraintMultipliers(const State& state) const;
 
 /** Find the forces produced by all the active Constraint objects in this 
 system. Constraints produce both body spatial forces and generalized 
 mobility-space forces. The supplied \a state must have been realized through 
-Acceleration stage. **/
+Acceleration stage. 
+
+@par Required stage
+  \c Stage::Acceleration **/
 void findConstraintForces
   (const State&         state, 
    Vector_<SpatialVec>& bodyForcesInG,
@@ -2369,7 +2391,10 @@ Acceleration stage so that the prescribed motion forces are available.
 <h3>Implementation</h3>
 We calculate power=-dot(tau, u) where tau is the set of mobility reaction 
 forces generated by Motion objects and mobilizer locks (tau[i]==0 if mobility
-i is free), and u is the set of all generalized speeds. 
+i is free), and u is the set of all generalized speeds.
+
+@par Required stage
+  \c Stage::Acceleration
 @see calcConstraintPower() **/
 Real calcMotionPower(const State& state) const;
 
@@ -2397,7 +2422,10 @@ together.
 We calculate power=-(dot(F,V)+dot(f,u)) where F is the set of body spatial
 reaction forces produced by the Constraints, V is the body spatial velocities, 
 f is the set of mobility reaction forces produced by the Constraints, and u is 
-the set of generalized speeds. 
+the set of generalized speeds.
+
+@par Required stage
+  \c Stage::Acceleration 
 @see calcMotionPower() **/
 Real calcConstraintPower(const State& state) const;
 
@@ -2519,20 +2547,54 @@ returns immediately at little cost; otherwise, it initiates computation of
 composite body inertias for all of the mobilized bodies. These are not otherwise
 computed unless specifically requested.
 @par Required stage
-  \c Stage::Position
+  \c Stage::Position, or \c Stage::Instance and \c PositionKinematics
 @see invalidateCompositeBodyInertias() **/
 void realizeCompositeBodyInertias(const State&) const;
 
-/** This method checks whether articulated body inertias have already been 
-computed since the last change to a Position stage state variable (q) and if so 
-returns immediately at little cost; otherwise, it initiates the relatively 
-expensive computation of articulated body inertias for all of the mobilized 
-bodies. These are not otherwise computed until they are needed at Dynamics 
-stage.
+/** This method ensures that articulated body inertias (ABIs) are up to date 
+with the most recent change to the configuration state variables q. If already
+up to date, it returns immediately at little cost; otherwise, it initiates the 
+relatively expensive computation of ABIs for all of the mobilized bodies, which 
+will then be retained for reuse until the next configuration change. ABIs are 
+not otherwise computed until they are needed for forward dynamics computations,
+typically due to realization of Stage::Acceleration. Invoking any operator that
+needs the effect of the inverse mass matrix will realize ABIs implicitly. They
+are guaranteed to be available by Stage::Acceleration.
+
 @par Required stage
-  \c Stage::Position
+  \c Stage::Position, or \c Stage::Instance and \c PositionKinematics
 @see invalidateArticulatedBodyInertias() **/
 void realizeArticulatedBodyInertias(const State&) const;
+
+/** (Advanced) This method ensures that velocity-dependent computations that 
+also depend on articulated body inertias (ABIs) are up to date with the most 
+recent changes to the configuration state variables q and velocity state 
+variables u. If already up to date, it returns immediately at little cost; 
+otherwise, it initiates the computations for all of the mobilized bodies, which 
+will then be retained for reuse until the next velocity change. ABI-dependent
+computations are not otherwise computed until they are needed for forward 
+dynamics computations, typically due to realization of Stage::Acceleration. 
+Invoking any operator that needs the effect of both the inverse mass matrix 
+and internal Coriolis forces will realize these computations implicitly. They
+are guaranteed to be available by Stage::Acceleration.
+
+Note that this method does not implicitly realize anything it depends on; you
+must make sure its prerequisites VelocityKinematics and ArticulatedBodyInertias
+are already realized; see realizeVelocityKinematics() and 
+realizeArticulatedBodyInertias() for that purpose.
+
+The actual computations here are not made available through the API since
+(unlike the ABIs) they are not particularly meaningful. They do save time
+during repeated acceleration computations where forces are changing but 
+configuration and velocity are fixed; these are common. The ability to force
+realization here is provided so that you can make sure the state cache doesn't
+get implicitly updated behind your back; this can be necessary in some 
+multithreaded applications.
+
+@par Required stage
+  \c Stage::Instance and \c VelocityKinematics and \c ArticulatedBodyInertias
+@see invalidateArticulatedBodyVelocity() **/
+void realizeArticulatedBodyVelocity(const State&) const;
 
 
     // INSTANCE STAGE responses and operators //
@@ -2600,81 +2662,88 @@ void unpackFreeU
 
     // POSITION STAGE responses //
 
-/** Return the composite body inertia for a particular mobilized body. You can 
-call this any time after the State has been realized to Position stage, however
-it will first trigger realization of all the composite body inertias if they 
-have not already been calculated. Ground is mobilized body zero; its composite
-body inertia has infinite mass and principle moments of inertia, and zero 
-center of mass.
+/** Return the composite body inertia (CBI) R for a particular mobilized body. 
+You can call this any time after the State has been realized to Position stage
+(or in fact any time after PositionKinematics have been realized). However, 
+the first call to this method will trigger realization of all the CBIs if they 
+have not already been calculated using realizeCompositeBodyInertias(). Ground is
+mobilized body zero; its CBI has infinite mass and principle moments of inertia, 
+and center of mass at (0,0,0).
+
+Although CBIs can be useful in inverse dynamics calculations, Simbody does not
+use them for that purpose so they won't be calculated unless requested.
+
 @par Required stage
-  \c Stage::Position
+  \c Stage::Position, or Stage::Instance and realizePositionKinematics()
 @see realizeCompositeBodyInertias() **/
 const SpatialInertia& 
 getCompositeBodyInertia(const State& state, MobilizedBodyIndex mbx) const;
 
-/** Return the articulated body inertia for a particular mobilized body. You
-can call this any time after the State has been realized to Position stage, 
-however it will first trigger expensive realization of all the articulated body
-inertias if they have not already been calculated. Ground is mobilized body 
-zero; its articulated body inertia is the same as its composite body inertia --
-an ordinary Spatial Inertia but with infinite mass and principle moments of
-inertia, and zero center of mass.
+/** Return the articulated body inertia (ABI) P for a particular mobilized body.
+These are normally not needed until some forward dynamics operation is to be
+performed, such as realize(Acceleration) or applying the multiplyByMInv() 
+operator. ABIs are expensive to calculate and require invertible mass properties
+so we normally defer their calculation until they are actually required. 
+However, you can ask for an ABI anytime after the State has been realized to 
+Position stage (or in fact any time after PositionKinematics have been 
+realized). If ABIs haven't been calculated yet for the current configuration, 
+either implicitly as discussed above or explicitly with 
+realizeArticulatedBodyInertias(), then their calculation will be triggered by 
+the first call to this method (they must all be calculated at the same time).
+ABIs are saved once calculated and will be reused until the configuration q
+changes.
+
+Ground is mobilized body zero; its articulated body inertia is the same as its 
+composite body inertia -- an ordinary Spatial Inertia but with infinite mass and
+principle moments of inertia, and center of mass at (0,0,0).
 @par Required stage
-  \c Stage::Position
-@see realizeArticulatedBodyInertias() **/
+  \c Stage::Position, or Stage::Instance and realizePositionKinematics()
+@see realizeArticulatedBodyInertias(), multiplyByMInv(),
+     realizePositionKinematics() **/
 const ArticulatedInertia& 
 getArticulatedBodyInertia(const State& state, MobilizedBodyIndex mbx) const;
 
 
     // VELOCITY STAGE responses //
 
-/** This is the angular velocity-dependent force on the body due to rotational 
-inertia.
+/** This is the rotational velocity-dependent force `b` on the body due to 
+rotational inertia.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& 
 getGyroscopicForce(const State& state, MobilizedBodyIndex mbx) const;
 
-/** This is the cross-mobilizer incremental contribution to coriolis (angular 
-velocity dependent) acceleration; not too useful, see 
-getTotalCoriolisAcceleration() instead.
+/** This is the *cross-mobilizer* incremental contribution `A` to the Coriolis 
+(angular velocity dependent) acceleration of a particular mobilized body; it is
+not too useful except as an intermediate calculation for more interesting 
+quantities -- you are probably interested in getTotalCoriolisAcceleration() 
+instead.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& 
 getMobilizerCoriolisAcceleration(const State&       state, 
                                  MobilizedBodyIndex mbx) const;
 
-/** This is the total coriolis acceleration including the effect of the parent's
-angular velocity as well as the joint's. This is Jdot*u where J is the system
-kinematic Jacobian and u is the current set of generalized speeds in the 
-supplied state. It is thus the remainder term in calculation of body 
-accelerations from generalized accelerations udot: since V=J*u, 
-A=J*udot + Jdot*u.
+/** This is the total Coriolis acceleration of a particular mobilized body,
+including the effect of the parent's angular velocity as well as the 
+mobilizer's. This is one element of Jdot*u where J is the system kinematic 
+Jacobian and u is the current set of generalized speeds in the supplied state. 
+It is thus the remainder term in calculation of body accelerations from 
+generalized accelerations udot: since `V=J*u`, `A=J*udot + Jdot*u`.
 @par Required stage
   \c Stage::Velocity **/
 const SpatialVec& 
 getTotalCoriolisAcceleration(const State& state, MobilizedBodyIndex mbx) const;
 
 
-    // DYNAMICS STAGE responses //
-
-/** This is the angular velocity-dependent force accounting for gyroscopic 
-forces plus coriolis forces due only to the cross-mobilizer velocity; this 
-ignores the parent's velocity and is not too useful -- see 
-getTotalCentrifugalForces() instead.
-@par Required stage
-  \c Stage::Dynamics **/
-const SpatialVec& 
-getMobilizerCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
-
-/** This is the total angular velocity-dependent force acting on this body, 
+/** This is the total rotational velocity-dependent force acting on this body B, 
 including forces due to Coriolis acceleration and gyroscopic forces due to 
-rotational inertia. This is F(b)=M[b]*A[b]+g[b] where M[b] is the spatial 
-inertia matrix of body b (\e not the articulated inertia), A[b] is the total 
-spatial Coriolis acceleration of body b, and g[b] is the (velocity-dependent) 
-spatial gyroscopic force acting on body b.
+rotational inertia. This is `F=M*a+b` where `M` is the spatial inertia matrix 
+of body B (*not* its articulated body inertia), `a` is the total spatial 
+Coriolis acceleration of B, and `b` is the (rotational velocity-dependent) 
+spatial gyroscopic force acting on B.
 @par Required stage
-  \c Stage::Dynamics **/
+  \c Stage::Velocity **/
 const SpatialVec& 
 getTotalCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
 /**@}**/
@@ -2725,27 +2794,70 @@ above in `state` because position kinematics is assumed to be
 valid after Position stage, regardless of lazy evaluation status. **/
 void invalidatePositionKinematics(const State& state) const;
 
+/** (Advanced) Check whether position kinematics has already been realized.
+This will be true after realizePositionKinematics() or realize(Position);
+false after invalidation of Stage::Instance, a change to a generalized
+coordinate `q`, or after a call to invalidatePositionKinematics(). **/
+bool isPositionKinematicsRealized(const State&) const;
+
 /** (Advanced) Force invalidation of velocity kinematics, which otherwise 
 remains valid until an instance-stage variable, generalized coordinate q, or
-generalized speed u is modified. This is useful for timing computation time for 
+generalized speed u is modified, or if PositionKinematics is explicitly
+invalidated. This is useful for timing computation time for 
 realizeVelocityKinematics(), which otherwise will not recalculate if called 
 repeatedly. Note that this also invalidates Velocity stage and 
 above in `state` because velocity kinematics is assumed to be
 valid after Velocity stage, regardless of lazy evaluation status. **/
 void invalidateVelocityKinematics(const State& state) const;
 
+/** (Advanced) Check whether velocity kinematics has already been realized.
+This will be true after realizeVelocityKinematics() or realize(Velocity);
+false if isPositionKinematicsRealized() would return false, after a change
+to a generalized speed `u`, or after a call to 
+invalidateVelocityKinematics(). **/
+bool isVelocityKinematicsRealized(const State&) const;
+
 /** (Advanced) This is useful for timing computation time for 
 realizeCompositeBodyInertias(), which otherwise will not recalculate them
 if called repeatedly. **/
 void invalidateCompositeBodyInertias(const State& state) const;
 
+/** (Advanced) Check whether composite body inertias have already been realized.
+This will be true only after an explicit call to realizeCompositeBodyInertias();
+false if isPositionKinematicsRealized() would return false or after a call to 
+invalidateCompositeBodyInertias(). **/
+bool isCompositeBodyInertiasRealized(const State&) const;
+
 /** (Advanced) Force invalidation of articulated body inertias (ABIs), which 
-otherwise remain valid until a position-stage variable is modified. This is 
-useful for timing computation time for realizeArticulatedBodyInertias(), which 
-otherwise will not recalculate if called repeatedly. Note that this also 
-invalidates Dynamics stage and above in `state` because ABIs are assumed to be
-valid after Dynamics stage, regardless of lazy evaluation status. **/
+otherwise remain valid until a position-stage variable is modified or any other 
+prerequisite is invalidated. This is useful for timing computation time for 
+realizeArticulatedBodyInertias(), which otherwise will not recalculate if called
+repeatedly. Note that this also invalidates Acceleration stage in `state` 
+because ABIs are assumed to be valid after Acceleration stage, regardless of 
+lazy evaluation status. **/
 void invalidateArticulatedBodyInertias(const State& state) const;
+
+/** (Advanced) Check whether articulated body inertias have already been 
+realized. This will be true after realizeArticulatedBodyInertias() or
+realize(Acceleration); false if isPositionKinematicsRealized() would return 
+false, or after a call to invalidateArticulatedBodyInertias(). **/
+bool isArticulatedBodyInertiasRealized(const State&) const;
+
+/** (Advanced) Force invalidation of articulated body velocity computations, 
+which otherwise remain valid until a velocity- or position-stage variable is
+modified or any other prerequisite is invalidated. This is useful for timing 
+computation time for realizeArticulatedBodyVelocity(), which otherwise will not 
+recalculate if called repeatedly. Note that this also invalidates Acceleration 
+stage in `state` because these computations are assumed to be valid after 
+Acceleration stage, regardless of lazy evaluation status. **/
+void invalidateArticulatedBodyVelocity(const State& state) const;
+
+/** (Advanced) Check whether articulated body velocity computations have already
+been realized. This will be true after realizeArticulatedBodyVelocity() or
+realize(Acceleration); false if isArticulatedBodyInertiasRealized() or
+isVelocityKinematicsRealized() would return false, or after a call to 
+invalidateArticulatedBodyVelocity(). **/
+bool isArticulatedBodyVelocityRealized(const State&) const;
 /**@}**/
 
 
@@ -2826,50 +2938,20 @@ const Vec3& getParticleAcceleration(const State& s, ParticleIndex p) const {
 /**@}**/
 
 //==============================================================================
-/** @name                      Obsolete methods
+/** @name                    Deprecated methods
 
-These methods are deprecated because there is a better way now to do what they
-used to do. This may involve just a name change, calling signature, or something
-more substantial; see the documentation for the individual obsolete methods.
+If you are still using any methods in this section, please stop. If that's a
+problem, please post to the Simbody forum and explain why the method should
+not be deprecated.
 **/
 
 /**@{**/
-private:
-/** Obsolete synonym for multiplyBySystemJacobian().
-@see multiplyBySystemJacobian() **/
-void calcSpatialKinematicsFromInternal(const State&         state,
-                                       const Vector&        u,
-                                       Vector_<SpatialVec>& Ju) const
-{   multiplyBySystemJacobian(state,u,Ju); }
-
-/** Obsolete synonym for multiplyBySystemJacobianTranspose().
-@see multiplyBySystemJacobianTranspose() **/
-void calcInternalGradientFromSpatial(const State&               state,
-                                     const Vector_<SpatialVec>& F_G,
-                                     Vector&                    f) const
-{   multiplyBySystemJacobianTranspose(state, F_G, f); }
-
-/** Obsolete synonym for multiplyByM().
-@see multiplyByM() **/
-void calcMV(const State& state, const Vector& v, Vector& MV) const
-{   multiplyByM(state,v,MV); }
-
-/** Obsolete synonym for multiplyByMInv().
-@see multiplyByMInv() **/
-void calcMInverseV(const State& state,
-    const Vector&               v,
-    Vector&                     MinvV) const
-{   multiplyByMInv(state,v,MinvV); }
-
-/** Obsolete slow version of calcPq.
-@see calcPq() **/
-void calcPNInv(const State& state, Matrix& PNInv) const;
-
-/** Obsolete slow version of calcGTranspose().
-@see calcGTranspose() **/
-void calcGt(const State&, Matrix& Gt) const;
-
-
+// Internally this is now called getArticulatedBodyCentrifugalForces().
+/** <b>(Deprecated)</b> This is an obscure internal quantity and shouldn't
+have been exposed; see getTotalCentrifugalForces() instead. **/
+DEPRECATED_14("do you really need this? see getTotalCentrifugalForces() instead")
+const SpatialVec& 
+getMobilizerCentrifugalForces(const State& state, MobilizedBodyIndex mbx) const;
 /**@}**/
 
 

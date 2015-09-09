@@ -501,12 +501,6 @@ void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const
 void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const 
 {   getRep().calcPqTranspose(s,Pqt); }
 
-// OBSOLETE
-void SimbodyMatterSubsystem::
-calcPNInv(const State& s, Matrix& PNInv) const {
-    return getRep().calcHolonomicConstraintMatrixPNInv(s,PNInv);
-}
-
 void SimbodyMatterSubsystem::
 calcP(const State& s, Matrix& P) const {
     return getRep().calcHolonomicVelocityConstraintMatrixP(s,P);
@@ -856,32 +850,6 @@ calcBiasForMultiplyByPq(const State& state,
         getRep().calcBiasForMultiplyByPVA(state, true, false, false, tmpbias);
         biasp = tmpbias;
     }
-}
-
-
-
-
-//==============================================================================
-//             CALC Gt -- OBSOLETE, use calcGTranspose()
-//==============================================================================
-void SimbodyMatterSubsystem::
-calcGt(const State& s, Matrix& Gt) const {
-    const SimbodyMatterSubsystemRep& rep = getRep();
-    const int mHolo    = rep.getNumHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = rep.getNumNonholonomicConstraintEquationsInUse(s);
-    const int mAccOnly = rep.getNumAccelerationOnlyConstraintEquationsInUse(s);
-    const int m  = mHolo+mNonholo+mAccOnly;
-    const int nu = rep.getNU(s);
-
-    Gt.resize(nu,m);
-
-    if (m==0 || nu==0)
-        return;
-
-    // Fill in all the columns of Gt
-    rep.calcHolonomicVelocityConstraintMatrixPt(s, Gt(0,     0,          nu, mHolo));
-    rep.calcNonholonomicConstraintMatrixVt     (s, Gt(0,   mHolo,        nu, mNonholo));
-    rep.calcAccelerationOnlyConstraintMatrixAt (s, Gt(0, mHolo+mNonholo, nu, mAccOnly));
 }
 
 
@@ -1968,14 +1936,19 @@ const SpatialVec&
 SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyIndex body) const {
     return getRep().getGyroscopicForce(s,body);
 }
-const SpatialVec&
-SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-    return getRep().getMobilizerCentrifugalForces(s,body);
-}
+
 const SpatialVec&
 SimbodyMatterSubsystem::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
     return getRep().getTotalCentrifugalForces(s,body);
 }
+
+//TODO: user access to this quantity is deprecated in Simbody 3.6.
+const SpatialVec&
+SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
+    return getRep().getArticulatedBodyCentrifugalForces(s,body);
+}
+
+
 const Vector& 
 SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 
     return getRep().getAllParticleMasses(s); 
@@ -2007,21 +1980,30 @@ void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyInde
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 
-void SimbodyMatterSubsystem::realizePositionKinematics(const State& s) const {
+void SimbodyMatterSubsystem::
+realizePositionKinematics(const State& s) const {
     getRep().realizePositionKinematics(s);
 }
 
 
-void SimbodyMatterSubsystem::realizeVelocityKinematics(const State& s) const {
+void SimbodyMatterSubsystem::
+realizeVelocityKinematics(const State& s) const {
     getRep().realizeVelocityKinematics(s);
 }
 
-void SimbodyMatterSubsystem::realizeCompositeBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+realizeCompositeBodyInertias(const State& s) const {
     getRep().realizeCompositeBodyInertias(s);
 }
 
-void SimbodyMatterSubsystem::realizeArticulatedBodyInertias(const State& s) const {
+void SimbodyMatterSubsystem::
+realizeArticulatedBodyInertias(const State& s) const {
     getRep().realizeArticulatedBodyInertias(s);
+}
+
+void SimbodyMatterSubsystem::
+realizeArticulatedBodyVelocity(const State& s) const {
+    getRep().realizeArticulatedBodyVelocity(s);
 }
 
 void SimbodyMatterSubsystem::
@@ -2044,6 +2026,26 @@ invalidateArticulatedBodyInertias(const State& s) const {
     getRep().invalidateArticulatedBodyInertias(s);
 }
 
+void SimbodyMatterSubsystem::
+invalidateArticulatedBodyVelocity(const State& s) const {
+    getRep().invalidateArticulatedBodyVelocity(s);
+}
+
+bool SimbodyMatterSubsystem::
+isPositionKinematicsRealized(const State& state) const
+{   return getRep().isPositionKinematicsRealized(state); }
+bool SimbodyMatterSubsystem::
+isVelocityKinematicsRealized(const State& state) const
+{   return getRep().isVelocityKinematicsRealized(state); }
+bool SimbodyMatterSubsystem::
+isCompositeBodyInertiasRealized(const State& state) const
+{   return getRep().isCompositeBodyInertiasRealized(state); }
+bool SimbodyMatterSubsystem::
+isArticulatedBodyInertiasRealized(const State& state) const
+{   return getRep().isArticulatedBodyInertiasRealized(state); }
+bool SimbodyMatterSubsystem::
+isArticulatedBodyVelocityRealized(const State& state) const
+{   return getRep().isArticulatedBodyVelocityRealized(state); }
 
 const Array_<QIndex>& SimbodyMatterSubsystem::
 getFreeQIndex(const State& state) const
