@@ -2777,6 +2777,12 @@ above in `state` because position kinematics is assumed to be
 valid after Position stage, regardless of lazy evaluation status. **/
 void invalidatePositionKinematics(const State& state) const;
 
+/** (Advanced) Check whether position kinematics has already been realized.
+This will be true after realizePositionKinematics() or realize(Position);
+false after invalidation of Stage::Instance, a change to a generalized
+coordinate `q`, or after a call to invalidatePositionKinematics(). **/
+bool isPositionKinematicsRealized(const State&) const;
+
 /** (Advanced) Force invalidation of velocity kinematics, which otherwise 
 remains valid until an instance-stage variable, generalized coordinate q, or
 generalized speed u is modified, or if PositionKinematics is explicitly
@@ -2787,10 +2793,23 @@ above in `state` because velocity kinematics is assumed to be
 valid after Velocity stage, regardless of lazy evaluation status. **/
 void invalidateVelocityKinematics(const State& state) const;
 
+/** (Advanced) Check whether velocity kinematics has already been realized.
+This will be true after realizeVelocityKinematics() or realize(Velocity);
+false if isPositionKinematicsRealized() would return false, after a change
+to a generalized speed `u`, or after a call to 
+invalidateVelocityKinematics(). **/
+bool isVelocityKinematicsRealized(const State&) const;
+
 /** (Advanced) This is useful for timing computation time for 
 realizeCompositeBodyInertias(), which otherwise will not recalculate them
 if called repeatedly. **/
 void invalidateCompositeBodyInertias(const State& state) const;
+
+/** (Advanced) Check whether composite body inertias have already been realized.
+This will be true only after an explicit call to realizeCompositeBodyInertias();
+false if isPositionKinematicsRealized() would return false or after a call to 
+invalidateCompositeBodyInertias(). **/
+bool isCompositeBodyInertiasRealized(const State&) const;
 
 /** (Advanced) Force invalidation of articulated body inertias (ABIs), which 
 otherwise remain valid until a position-stage variable is modified or any other 
@@ -2801,6 +2820,12 @@ because ABIs are assumed to be valid after Acceleration stage, regardless of
 lazy evaluation status. **/
 void invalidateArticulatedBodyInertias(const State& state) const;
 
+/** (Advanced) Check whether articulated body inertias have already been 
+realized. This will be true after realizeArticulatedBodyInertias() or
+realize(Acceleration); false if isPositionKinematicsRealized() would return 
+false, or after a call to invalidateArticulatedBodyInertias(). **/
+bool isArticulatedBodyInertiasRealized(const State&) const;
+
 /** (Advanced) Force invalidation of articulated body velocity computations, 
 which otherwise remain valid until a velocity- or position-stage variable is
 modified or any other prerequisite is invalidated. This is useful for timing 
@@ -2809,6 +2834,13 @@ recalculate if called repeatedly. Note that this also invalidates Acceleration
 stage in `state` because these computations are assumed to be valid after 
 Acceleration stage, regardless of lazy evaluation status. **/
 void invalidateArticulatedBodyVelocity(const State& state) const;
+
+/** (Advanced) Check whether articulated body velocity computations have already
+been realized. This will be true after realizeArticulatedBodyVelocity() or
+realize(Acceleration); false if isArticulatedBodyInertiasRealized() or
+isVelocityKinematicsRealized() would return false, or after a call to 
+invalidateArticulatedBodyVelocity(). **/
+bool isArticulatedBodyVelocityRealized(const State&) const;
 /**@}**/
 
 
@@ -2889,11 +2921,11 @@ const Vec3& getParticleAcceleration(const State& s, ParticleIndex p) const {
 /**@}**/
 
 //==============================================================================
-/** @name                  Deprecated methods
+/** @name                    Deprecated methods
 
-These methods are deprecated because there is a better way now to do what they
-used to do. This may involve just a name change, calling signature, or something
-more substantial; see the documentation for the individual obsolete methods.
+If you are still using any methods in this section, please stop. If that's a
+problem, please post to the Simbody forum and explain why the method should
+not be deprecated.
 **/
 
 /**@{**/

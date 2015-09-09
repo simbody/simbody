@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2011-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2011-15 Stanford University and the Authors.        *
  * Authors: Peter Eastman                                                     *
  * Contributors: Michael Sherman                                              *
  *                                                                            *
@@ -79,6 +79,12 @@ void doRealizeArticulatedBodyInertias(MultibodySystem& system, State& state) {
     const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
     matter.invalidateArticulatedBodyInertias(state);
     matter.realizeArticulatedBodyInertias(state);
+}
+
+void doRealizeArticulatedBodyVelocity(MultibodySystem& system, State& state) {
+    const SimbodyMatterSubsystem& matter = system.getMatterSubsystem();
+    matter.invalidateArticulatedBodyVelocity(state);
+    matter.realizeArticulatedBodyVelocity(state);
 }
 
 void doRealizeDynamics(MultibodySystem& system, State& state) {
@@ -202,6 +208,7 @@ void runAllTests(MultibodySystem& system, bool useEulerAngles=false) {
     timeComputation(system, doRealizeVelocityKinematics, "realizeVelocityKinematics", 5000, useEulerAngles);
     timeComputation(system, doRealizeVelocity, "realizeVelocity", 5000, useEulerAngles);
     timeComputation(system, doRealizeArticulatedBodyInertias, "doRealizeArticulatedBodyInertias", 3000, useEulerAngles);
+    timeComputation(system, doRealizeArticulatedBodyVelocity, "doRealizeArticulatedBodyVelocity", 5000, useEulerAngles);
     timeComputation(system, doRealizeDynamics, "realizeDynamics", 5000, useEulerAngles);
     timeComputation(system, doRealizeAcceleration, "realizeAcceleration", 5000, useEulerAngles);
     timeComputation(system, doRealizeDynamics2Acceleration, "doRealizeDynamics2Acceleration", 5000, useEulerAngles);

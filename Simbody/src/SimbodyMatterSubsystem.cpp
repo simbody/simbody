@@ -2027,6 +2027,22 @@ invalidateArticulatedBodyVelocity(const State& s) const {
     getRep().invalidateArticulatedBodyVelocity(s);
 }
 
+bool SimbodyMatterSubsystem::
+isPositionKinematicsRealized(const State& state) const
+{   return getRep().isPositionKinematicsRealized(state); }
+bool SimbodyMatterSubsystem::
+isVelocityKinematicsRealized(const State& state) const
+{   return getRep().isVelocityKinematicsRealized(state); }
+bool SimbodyMatterSubsystem::
+isCompositeBodyInertiasRealized(const State& state) const
+{   return getRep().isCompositeBodyInertiasRealized(state); }
+bool SimbodyMatterSubsystem::
+isArticulatedBodyInertiasRealized(const State& state) const
+{   return getRep().isArticulatedBodyInertiasRealized(state); }
+bool SimbodyMatterSubsystem::
+isArticulatedBodyVelocityRealized(const State& state) const
+{   return getRep().isArticulatedBodyVelocityRealized(state); }
+
 const Array_<QIndex>& SimbodyMatterSubsystem::
 getFreeQIndex(const State& state) const
 {   return getRep().getFreeQIndex(state); }
