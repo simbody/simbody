@@ -55,7 +55,7 @@ class Cigtab : public TestOptimizerSystem {
 public:
     Cigtab(int nParameters) : TestOptimizerSystem(nParameters) {}
     int objectiveFunc(const Vector& x, bool new_parameters,
-            Real& f) const {
+            Real& f) const override {
         f = 1e4 * x[0] * x[0] + 1e-4 * x[1] * x[1];
         for (int i = 0; i < getNumParameters(); ++i) {
             f += x[i] * x[i];
@@ -80,7 +80,7 @@ public:
         limits.setTo(32.768);
         setParameterLimits(-limits, limits);
     }
-    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const override {
         const Real n = getNumParameters();
         Real sumcos = 0;
         for (int i = 0; i < n; ++i) {
@@ -89,7 +89,7 @@ public:
         f = -a * exp(-b * x.normRMS()) - exp(sumcos / n) + a + SimTK::E;
         return 0;
     }
-    Vector optimalParameters() const {
+    Vector optimalParameters() const override {
         Vector x(getNumParameters());
         x.setToZero();
         return x;
@@ -110,12 +110,12 @@ public:
         limits.setTo(5.12);
         setParameterLimits(-limits, limits);
     }
-    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const override {
         const Real dotprod = x[0] * x[0] + x[1] * x[1];
         f = -(1 + cos(12 * sqrt(dotprod))) / (0.5 * dotprod + 2);
         return 0;
     }
-    Vector optimalParameters() const {
+    Vector optimalParameters() const override {
         Vector x(getNumParameters());
         x.setToZero();
         return x;
@@ -127,14 +127,14 @@ public:
 class Rosenbrock : public TestOptimizerSystem {
 public:
     Rosenbrock(int nParameters) : TestOptimizerSystem(nParameters) {}
-    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const override {
         f = 0;
         for (int i = 0; i < getNumParameters() - 1; ++i) {
             f += 100.0 * square(x[i+1] - square(x[i])) + square(x[i] - 1);
         }
         return 0;
     }
-    Vector optimalParameters() const {
+    Vector optimalParameters() const override {
         Vector x(getNumParameters());
         x.setTo(1);
         return x;
@@ -151,7 +151,7 @@ public:
         limits.setTo(500);
         setParameterLimits(-limits, limits);
     }
-    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const override {
         Real sum = 0;
         for (int i = 0; i < getNumParameters(); ++i) {
             sum += x[i] * sin(sqrt(std::abs(x[i])));
@@ -159,7 +159,7 @@ public:
         f = 418.9829 * getNumParameters() -sum;
         return 0;
     }
-    Vector optimalParameters() const {
+    Vector optimalParameters() const override {
         Vector x(getNumParameters());
         x.setTo(420.9687);
         return x;
@@ -175,12 +175,12 @@ public:
         limits.setTo(100);
         setParameterLimits(-limits, limits);
     }
-    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& x, bool new_parameters, Real& f) const override {
         f = -cos(x[0]) * cos(x[1]) * 
             exp(-pow(x[0] - Pi, 2) - pow(x[1] - Pi, 2));
         return 0;
     }
-    Vector optimalParameters() const {
+    Vector optimalParameters() const override {
         Vector x(getNumParameters());
         x.setTo(Pi);
         return x;

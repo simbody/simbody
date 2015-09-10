@@ -235,71 +235,71 @@ namespace Ipopt
     /** Methods to map scaled and unscaled matrices */
     //@{
     /** Returns an obj-scaled version of the given scalar */
-    virtual Number apply_obj_scaling(const Number& f);
+    virtual Number apply_obj_scaling(const Number& f) override;
     /** Returns an obj-unscaled version of the given scalar */
-    virtual Number unapply_obj_scaling(const Number& f);
+    virtual Number unapply_obj_scaling(const Number& f) override;
     /** Returns an x-scaled version of the given vector */
     virtual SmartPtr<Vector>
-    apply_vector_scaling_x_NonConst(const SmartPtr<const Vector>& v);
+    apply_vector_scaling_x_NonConst(const SmartPtr<const Vector>& v) override;
     /** Returns an x-scaled version of the given vector */
     virtual SmartPtr<const Vector>
-    apply_vector_scaling_x(const SmartPtr<const Vector>& v);
+    apply_vector_scaling_x(const SmartPtr<const Vector>& v) override;
     /** Returns an x-unscaled version of the given vector */
     virtual SmartPtr<Vector>
-    unapply_vector_scaling_x_NonConst(const SmartPtr<const Vector>& v);
+    unapply_vector_scaling_x_NonConst(const SmartPtr<const Vector>& v) override;
     /** Returns an x-unscaled version of the given vector */
     virtual SmartPtr<const Vector>
-    unapply_vector_scaling_x(const SmartPtr<const Vector>& v);
+    unapply_vector_scaling_x(const SmartPtr<const Vector>& v) override;
     /** Returns an c-scaled version of the given vector */
     virtual SmartPtr<const Vector>
-    apply_vector_scaling_c(const SmartPtr<const Vector>& v);
+    apply_vector_scaling_c(const SmartPtr<const Vector>& v) override;
     /** Returns an c-unscaled version of the given vector */
     virtual SmartPtr<const Vector>
-    unapply_vector_scaling_c(const SmartPtr<const Vector>& v);
+    unapply_vector_scaling_c(const SmartPtr<const Vector>& v) override;
     /** Returns an c-scaled version of the given vector */
     virtual SmartPtr<Vector>
-    apply_vector_scaling_c_NonConst(const SmartPtr<const Vector>& v);
+    apply_vector_scaling_c_NonConst(const SmartPtr<const Vector>& v) override;
     /** Returns an c-unscaled version of the given vector */
     virtual SmartPtr<Vector>
-    unapply_vector_scaling_c_NonConst(const SmartPtr<const Vector>& v);
+    unapply_vector_scaling_c_NonConst(const SmartPtr<const Vector>& v) override;
     /** Returns an d-scaled version of the given vector */
     virtual SmartPtr<const Vector>
-    apply_vector_scaling_d(const SmartPtr<const Vector>& v);
+    apply_vector_scaling_d(const SmartPtr<const Vector>& v) override;
     /** Returns an d-unscaled version of the given vector */
     virtual SmartPtr<const Vector>
-    unapply_vector_scaling_d(const SmartPtr<const Vector>& v);
+    unapply_vector_scaling_d(const SmartPtr<const Vector>& v) override;
     /** Returns an d-scaled version of the given vector */
     virtual SmartPtr<Vector>
-    apply_vector_scaling_d_NonConst(const SmartPtr<const Vector>& v);
+    apply_vector_scaling_d_NonConst(const SmartPtr<const Vector>& v) override;
     /** Returns an d-unscaled version of the given vector */
     virtual SmartPtr<Vector>
-    unapply_vector_scaling_d_NonConst(const SmartPtr<const Vector>& v);
+    unapply_vector_scaling_d_NonConst(const SmartPtr<const Vector>& v) override;
     /** Returns a scaled version of the jacobian for c.  If the
      *  overloaded method does not make a new matrix, make sure to set
      *  the matrix ptr passed in to NULL.
      */
     virtual SmartPtr<const Matrix>
-    apply_jac_c_scaling(SmartPtr<const Matrix> matrix);
+    apply_jac_c_scaling(SmartPtr<const Matrix> matrix) override;
     /** Returns a scaled version of the jacobian for d If the
      *  overloaded method does not create a new matrix, make sure to
      *  set the matrix ptr passed in to NULL.
      */
     virtual SmartPtr<const Matrix>
-    apply_jac_d_scaling(SmartPtr<const Matrix> matrix);
+    apply_jac_d_scaling(SmartPtr<const Matrix> matrix) override;
     /** Returns a scaled version of the hessian of the lagrangian If
      *  the overloaded method does not create a new matrix, make sure
      *  to set the matrix ptr passed in to NULL.
      */
     virtual SmartPtr<const SymMatrix>
-    apply_hessian_scaling(SmartPtr<const SymMatrix> matrix);
+    apply_hessian_scaling(SmartPtr<const SymMatrix> matrix) override;
     //@}
 
     /** @name Methods for determining whether scaling for entities is
      *  done */
     //@{
-    virtual bool have_x_scaling();
-    virtual bool have_c_scaling();
-    virtual bool have_d_scaling();
+    virtual bool have_x_scaling() override;
+    virtual bool have_c_scaling() override;
+    virtual bool have_d_scaling() override;
     //@}
 
     /** This method is called by the IpoptNLP's at a convenient time to
@@ -313,7 +313,7 @@ namespace Ipopt
                                   const SmartPtr<const SymMatrixSpace> h_space,
                                   SmartPtr<const MatrixSpace>& new_jac_c_space,
                                   SmartPtr<const MatrixSpace>& new_jac_d_space,
-                                  SmartPtr<const SymMatrixSpace>& new_h_space);
+                                  SmartPtr<const SymMatrixSpace>& new_h_space) override;
 
     /** Methods for IpoptType */
     //@{
@@ -323,7 +323,7 @@ namespace Ipopt
   protected:
     /** Overloaded initialization method */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** This is the method that has to be overloaded by a particular
      *  scaling method that somehow computes the scaling vectors dx,
@@ -414,7 +414,7 @@ namespace Ipopt
       Number& df,
       SmartPtr<Vector>& dx,
       SmartPtr<Vector>& dc,
-      SmartPtr<Vector>& dd);
+      SmartPtr<Vector>& dd) override;
 
   private:
 

@@ -806,7 +806,7 @@ public:
     int getNumSavedStates() const {return (int)m_states.size();}
     const State& getState(int n) const {return m_states[n];}
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
         const SimbodyMatterSubsystem& matter=m_mbs.getMatterSubsystem();
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
         m_mbs.realize(s, Stage::Acceleration);
@@ -838,7 +838,7 @@ public:
     explicit Nada(Real reportInterval)
     :   PeriodicEventReporter(reportInterval) {} 
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
 #ifndef NDEBUG
         printf("%7g NADA\n", s.getTime());
 #endif
@@ -906,7 +906,7 @@ public:
 
     // This is the witness function. It is positive as long as we continue
     // to slide in the same direction; negative means reversal.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const MyHybridVertexContactElementImpl& contact = 
             m_unis.getContactElement(m_which);
         if (!contact.isInContact(state)) return 0;
@@ -915,7 +915,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
     ++m_counter;
     //printf("StictionOn #%d\n", m_counter);
@@ -970,7 +970,7 @@ public:
 
     // This is the witness function. It is positive as long as mu_s*N is greater
     // than the friction force magnitude.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const MyHybridVertexContactElementImpl& contact = 
             m_unis.getContactElement(m_which);
         if (!contact.isInContact(state)) return 0;
@@ -979,7 +979,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
     ++m_counter;
     //printf("StictionOff #%d\n", m_counter);

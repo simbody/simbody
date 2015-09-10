@@ -38,16 +38,16 @@ class SetFlagTask : public ParallelExecutor::Task {
 public:
     SetFlagTask(Array_<int>& flags, int& count) : flags(flags), count(count) {
     }
-    void execute(int index) {
+    void execute(int index) override {
         flags[index]++;
         localCount.upd()++;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
-    void initialize() {
+    void initialize() override {
         localCount.upd() = 0;
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }
-    void finish() {
+    void finish() override {
         count += localCount.get();
         ASSERT(ParallelExecutor::isWorkerThread() == isParallel);
     }

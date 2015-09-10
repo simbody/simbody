@@ -1597,7 +1597,7 @@ public:
         prevGeodesic(prevGeodesic)
     {   setEstimatedAccuracy(accuracy); }
 
-    int f(const Vector& x, Vector& fx) const {
+    int f(const Vector& x, Vector& fx) const override {
         UnitVec3 eIn, eOut;
         Vec3     xP, xQ;
         Geodesic newGeodesic; // throw away

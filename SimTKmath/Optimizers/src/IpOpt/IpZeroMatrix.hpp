@@ -36,17 +36,17 @@ namespace Ipopt
     /**@name Methods overloaded from matrix */
     //@{
     virtual void MultVectorImpl(Number alpha, const Vector& x,
-                                Number beta, Vector& y) const;
+                                Number beta, Vector& y) const override;
 
     virtual void TransMultVectorImpl(Number alpha, const Vector& x,
-                                     Number beta, Vector& y) const;
+                                     Number beta, Vector& y) const override;
 
     virtual void PrintImpl(const Journalist& jnlst,
                            EJournalLevel level,
                            EJournalCategory category,
                            const std::string& name,
                            Index indent,
-                           const std::string& prefix) const;
+                           const std::string& prefix) const override;
     //@}
 
   private:
@@ -89,7 +89,7 @@ namespace Ipopt
 
     /** Overloaded MakeNew method for the MatrixSpace base class.
      */
-    virtual Matrix* MakeNew() const
+    virtual Matrix* MakeNew() const override
     {
       return MakeNewZeroMatrix();
     }

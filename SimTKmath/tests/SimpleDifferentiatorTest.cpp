@@ -53,7 +53,7 @@ public:
     Real getTime() const {return time;}
 
     // Must provide this pure virtual function.
-    int f(const Vector& y, Vector& fy) const;
+    int f(const Vector& y, Vector& fy) const override;
 private:
     Real time;
 };
@@ -68,7 +68,7 @@ public:
     Real getTime() const {return time;}
 
     // Must provide this pure virtual function.
-    int f(const Vector& y, Real& fy) const;
+    int f(const Vector& y, Real& fy) const override;
 private:
     Real time;
 };
@@ -82,7 +82,7 @@ public:
         : Differentiator::ScalarFunction(), cp(cf) { }
 
     // Must provide this pure virtual function.
-    int f(Real x, Real& fx) const {
+    int f(Real x, Real& fx) const override {
         fx = cp(x);
         return 0;
     }
@@ -95,7 +95,7 @@ public:
     SinOmegaX(Real omega) : w(omega) { }
 
     // Must provide this virtual function.
-    int f(Real x, Real& fx) const {
+    int f(Real x, Real& fx) const override {
         fx = std::sin(w*x);
         return 0; // success
     }

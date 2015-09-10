@@ -60,7 +60,7 @@ public:
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
     virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const 
+                             bool& shouldTerminate) const override 
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)

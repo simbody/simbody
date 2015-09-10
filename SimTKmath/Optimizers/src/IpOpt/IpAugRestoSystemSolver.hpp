@@ -40,7 +40,7 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     bool InitializeImpl(const OptionsList& options,
-                        const std::string& prefix);
+                        const std::string& prefix) override;
 
     /** Translate the augmented system (in the full space of the
      *  restoration variables) into the smaller space of the original
@@ -68,12 +68,12 @@ namespace Ipopt
       Vector& sol_c,
       Vector& sol_d,
       bool check_NegEVals,
-      Index numberOfNegEVals);
+      Index numberOfNegEVals) override;
 
     /** Returns the number of negative eigenvalues from the original
      *  augmented system call
      */
-    virtual Index NumberOfNegEVals() const
+    virtual Index NumberOfNegEVals() const override
     {
       return orig_aug_solver_->NumberOfNegEVals();
     }
@@ -81,7 +81,7 @@ namespace Ipopt
     /** Query whether inertia is computed by linear solver.
      * Returns true, if linear solver provides inertia.
      */
-    virtual bool ProvidesInertia() const
+    virtual bool ProvidesInertia() const override
     {
       return orig_aug_solver_->ProvidesInertia();
     }
@@ -92,7 +92,7 @@ namespace Ipopt
      *  false, if this is not possible (e.g. maximal pivot tolerance
      *  already used.)
      */
-    virtual bool IncreaseQuality()
+    virtual bool IncreaseQuality() override
     {
       return orig_aug_solver_->IncreaseQuality();
     }

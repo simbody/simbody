@@ -82,7 +82,7 @@ public:
     int getNumSavedStates() const {return m_states.size();}
     const State& getState(int n) const {return m_states[n];}
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
         const SimbodyMatterSubsystem& matter=m_system.getMatterSubsystem();
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
 
@@ -125,7 +125,7 @@ public:
 
     const Array_<Real>& getOnTimes() const {return m_onTimes;}
 
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         if (!m_lock.isDisabled(state)) 
             return 0; // already locked
         const Real qdist = m_mobod.getOneQ(state, 0) - m_lockangle;
@@ -133,7 +133,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         assert(m_lock.isDisabled(s));
@@ -282,7 +282,7 @@ public:
 
     const Array_<Real>& getOffTimes() const {return m_offTimes;}
 
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         if (m_lock.isDisabled(state)) return 0;
         const Real f = m_lock.getMultiplier(state);
         const Real mid = (m_high+m_low)/2;
@@ -290,7 +290,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
         assert(!m_lock.isDisabled(s));
 

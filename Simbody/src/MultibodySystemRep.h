@@ -161,7 +161,7 @@ public:
 
     // Use default copy constructor, but then clear out the cache indices
     // and invalidate topology.
-    MultibodySystemGlobalSubsystemRep* cloneImpl() const {
+    MultibodySystemGlobalSubsystemRep* cloneImpl() const override {
         MultibodySystemGlobalSubsystemRep* p = 
             new MultibodySystemGlobalSubsystemRep(*this);
         for (int i=0; i<NumForceCacheEntries; ++i)
@@ -173,7 +173,7 @@ public:
     // At Topology stage we just allocate some slots in the State to hold
     // the forces. We can't initialize the force arrays because we don't yet
     // know the problem size.
-    int realizeSubsystemTopologyImpl(State& s) const {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         const MultibodySystem& mbs = getMultibodySystem();
 
         for (Stage g(Stage::Model); g<=Stage::Dynamics; ++g)
@@ -185,7 +185,7 @@ public:
 
     // At Model stage we know the problem size, so we can allocate the
     // model stage forces (if necessary) and initialize them (to zero).
-    int realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -200,7 +200,7 @@ public:
 
     // We treat the other stages like Model except that we use the 
     // previous Stage's ForceCacheEntry to initialize this one.
-    int realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -214,7 +214,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -228,7 +228,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -242,7 +242,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -256,7 +256,7 @@ public:
         return 0;
     }
 
-    int realizeSubsystemDynamicsImpl(const State& s) const {
+    int realizeSubsystemDynamicsImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 

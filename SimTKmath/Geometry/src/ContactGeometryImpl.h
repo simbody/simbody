@@ -472,7 +472,7 @@ public:
         return new Impl();
     }
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
@@ -543,7 +543,7 @@ public:
         radius = r;
     }
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside,
@@ -630,7 +630,7 @@ public:
         radius = r;
     }
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
@@ -725,7 +725,7 @@ public:
     void findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& n,
         Transform& X_EP, Vec2& k) const;
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
@@ -857,7 +857,7 @@ public:
     const BicubicSurface& getBicubicSurface() const {return surface;}
     BicubicSurface::PatchHint& updHint() const {return hint;}
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
@@ -946,7 +946,7 @@ public:
 
     const Geo::Box& getGeoBox() const {return m_box;}
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     Vec3 findNearestPoint(const Vec3& position, bool& inside, 
@@ -1016,7 +1016,7 @@ public:
         return new Impl(*this);
     }
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     Vec3     findPoint(int face, const Vec2& uv) const;
     Vec3     findCentroid(int face) const;
@@ -1161,7 +1161,7 @@ public:
         tubeRadius = r;
     }
 
-    ContactGeometryTypeId getTypeId() const {return classTypeId();}
+    ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
     bool intersectsRay(const Vec3& origin, const UnitVec3& direction,

@@ -184,7 +184,7 @@ public:
     virtual void calcForce(const State& state, 
                            Vector_<SpatialVec>& bodyForces, 
                            Vector_<Vec3>& particleForces, 
-                           Vector& mobilityForces) const
+                           Vector& mobilityForces) const override
     {
         const MobilizedBody& A = m_matter.getMobilizedBody(m_A);
         const MobilizedBody& B = m_matter.getMobilizedBody(m_B);
@@ -218,10 +218,10 @@ public:
     }
 
     // This muscle model doesn't store energy.
-    virtual Real calcPotentialEnergy(const State&) const {return 0;}
+    virtual Real calcPotentialEnergy(const State&) const override {return 0;}
 
     // Allocate variables and cache entries.
-    virtual void realizeTopology(State& state) const {
+    virtual void realizeTopology(State& state) const override {
         PlanarMuscle* mThis = const_cast<PlanarMuscle*>(this);
         mThis->m_tensionVarIx = m_forces
             .allocateDiscreteVariable(state, Stage::Dynamics, 
@@ -233,7 +233,7 @@ public:
     }
 
     // Calculate path geometry information.
-    virtual void realizePosition(const State& state) const {
+    virtual void realizePosition(const State& state) const override {
         // Get all the relevant points in Ground.
         const MobilizedBody& A = m_matter.getMobilizedBody(m_A);
         const MobilizedBody& B = m_matter.getMobilizedBody(m_B);
@@ -354,7 +354,7 @@ public:
     }
 
     // Supply the required virtual method.
-    virtual void handleEvent(const State& state) const {
+    virtual void handleEvent(const State& state) const override {
         report(state);
         saveEm.push_back(state);
     }
@@ -378,7 +378,7 @@ public:
     :   m_system(system), m_planarMuscle(muscle) {}
 
     virtual void generateDecorations(const State& state, 
-                                     Array_<DecorativeGeometry>& geometry) 
+                                     Array_<DecorativeGeometry>& geometry) override 
     {
         m_system.realize(state, Stage::Position);
         Vec3 iptA, iptB, tptA, tptB;

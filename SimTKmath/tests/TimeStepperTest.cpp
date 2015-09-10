@@ -40,10 +40,10 @@ public:
     ZeroVelocityHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
         updTriggerInfo().setTriggerOnFallingSignTransition(false);
     }
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
         
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q == -1, u == 0.
@@ -64,10 +64,10 @@ class PeriodicHandler : public ScheduledEventHandler {
 public:
     static int eventCount;
     static Real lastEventTime;
-    Real getNextEventTime(const State&, bool includeCurrentTime) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const override {
         return lastEventTime+1.5;
     }
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
         
         // This should be triggered every 1.5 time units.
         
@@ -83,10 +83,10 @@ public:
     static Real lastEventTime;
     ZeroPositionReporter(PendulumSystem& pendulum) : TriggeredEventReporter(Stage::Velocity), pendulum(pendulum) {
     }
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         
         // This should be triggered when the pendulum crosses q == 0.
         
@@ -104,10 +104,10 @@ class PeriodicReporter : public ScheduledEventReporter {
 public:
     static int eventCount;
     static Real lastEventTime;
-    Real getNextEventTime(const State&, bool includeCurrentTime) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const override {
         return lastEventTime*2;
     }
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         
         // This should be triggered every 1.5 time units.
         

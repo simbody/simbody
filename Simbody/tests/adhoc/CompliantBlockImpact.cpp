@@ -77,7 +77,7 @@ public:
     :   m_mbs(system), m_compliant(complCont), m_brick(brick),
         m_inContact(false), m_hasCompressionEnded(false) {}
 
-    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
+    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) override {
         const Vec3 frcColors[] = {Red,Orange,Cyan};
         const Vec3 momColors[] = {Blue,Green,Purple};
         m_mbs.realize(state, Stage::Velocity);
@@ -237,7 +237,7 @@ public:
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
     virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const 
+                             bool& shouldTerminate) const override 
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)

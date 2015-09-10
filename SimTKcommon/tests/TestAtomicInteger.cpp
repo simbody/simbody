@@ -84,7 +84,7 @@ void testParallelExecution() {
     public:
         SetFlagTask(vector<int>& flags, AtomicInteger& index) : flags(flags), index(index) {
         }
-        void execute(int i) {
+        void execute(int i) override {
             flags[index++]++;
         }
     private:
@@ -106,7 +106,7 @@ void testParallelExecution() {
     public:
         IncrementTask(AtomicInteger& index) : index(index) {
         }
-        void execute(int i) {
+        void execute(int i) override {
             index += 2;
         }
     private:
@@ -125,7 +125,7 @@ void testParallelExecution() {
     public:
         MultiplyTask(AtomicInteger& index) : index(index) {
         }
-        void execute(int i) {
+        void execute(int i) override {
             index *= (i%500 == 0 ? 2 : -1);
         }
     private:

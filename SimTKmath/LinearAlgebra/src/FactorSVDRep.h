@@ -151,7 +151,7 @@ class FactorSVDRepBase {
 class FactorSVDDefault : public FactorSVDRepBase {
    public:
    FactorSVDDefault();
-    FactorSVDRepBase* clone() const;
+    FactorSVDRepBase* clone() const override;
 };
 
 
@@ -161,22 +161,22 @@ class FactorSVDRep : public FactorSVDRepBase {
    template <class ELT> FactorSVDRep( const Matrix_<ELT>&, typename CNT<T>::TReal  );
 
     ~FactorSVDRep();
-    FactorSVDRepBase* clone() const;
+    FactorSVDRepBase* clone() const override;
 
     typedef typename CNT<T>::TReal RType;
 
-    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
-    void getSingularValues( Vector_<RType>& values );
+    void getSingularValuesAndVectors( Vector_<RType>& values,   Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors ) override;
+    void getSingularValues( Vector_<RType>& values ) override;
     int getRank();
-    void solve( const Vector_<T>& b, Vector_<T>& x );
-    void solve( const Matrix_<T>& b, Matrix_<T>& x );
+    void solve( const Vector_<T>& b, Vector_<T>& x ) override;
+    void solve( const Matrix_<T>& b, Matrix_<T>& x ) override;
 
 
     private:
 
     void computeSVD( bool, RType*, T*, T* );
     void doSolve( Matrix_<T>& b, Matrix_<T>& x );
-    void inverse( Matrix_<T>& b );
+    void inverse( Matrix_<T>& b ) override;
 
     int nCol;       // number of columns in original matrix
     int nRow;       // number of rows in original matrix

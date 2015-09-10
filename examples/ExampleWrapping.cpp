@@ -51,7 +51,7 @@ public:
         PeriodicEventReporter(interval), viz(viz), dummyState(dummyState) {
     }
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         viz.report(dummyState);
     }
 
@@ -73,7 +73,7 @@ public:
                     O(O), I(I) { }
 
     // x = ~[P, Q]
-    int f(const Vector& x, Vector& fx) const  {
+    int f(const Vector& x, Vector& fx) const override  {
         Vec3 P(&x[0]);
         Vec3 Q(&x[3]);
 
@@ -126,7 +126,7 @@ public:
                     O(O), I(I) { }
 
     // x = ~[P, Q]
-    int f(const Vector& x, Vector& fx) const  {
+    int f(const Vector& x, Vector& fx) const override  {
         Vec3 P(&x[0]);
         Vec3 Q(&x[3]);
 

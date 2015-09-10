@@ -80,10 +80,10 @@ public:
 
     // Note that we have turned off quaternions so the number of q error
     // slots in the State includes only real holonomic constraint equations.
-    int getNumErrors(const State& s) const {return s.getNQErr();}
+    int getNumErrors(const State& s) const override {return s.getNQErr();}
 
     // Return the system holonomic constraint errors as found in the State.
-    int calcErrors(const State& state, Vector& err) const {
+    int calcErrors(const State& state, Vector& err) const override {
         err = state.getQErr();
         return 0;
     }
@@ -91,7 +91,7 @@ public:
     // The Jacobian of the holonomic constraint errors is Pq=PN^-1. We can get
     // that analytically from Simbody but we might have to strip out some
     // of the columns if we aren't using all the q's.
-    int calcErrorJacobian(const State& state, Matrix& jacobian) const {
+    int calcErrorJacobian(const State& state, Matrix& jacobian) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const int np = getNumFreeQs();
         const int nq = state.getNQ();
@@ -112,7 +112,7 @@ public:
     }
 
     // Goal is qerr^2/2 (the /2 makes the gradient easier).
-    int calcGoal(const State& state, Real& goal) const {
+    int calcGoal(const State& state, Real& goal) const override {
         goal = (~state.getQErr() * state.getQErr()) / 2;
         return 0;
     }
@@ -121,7 +121,7 @@ public:
     // = ~Pq qerr. This can be done in O(n+m) time since we can calculate
     // the matrix-vector product ~Pq*v in O(n+m) time, where
     // n=#q's and m=# constraint equations.
-    int calcGoalGradient(const State& state, Vector& grad) const {
+    int calcGoalGradient(const State& state, Vector& grad) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
         const int np = getNumFreeQs();
         const int nq = state.getNQ();

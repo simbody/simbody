@@ -373,10 +373,10 @@ void testDisablingConstraints() {
     public:
         DisableHandler(Constraint& constraint) : constraint(constraint) {
         }
-        void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+        void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
             constraint.disable(state);
         }
-        Real getNextEventTime(const State&, bool includeCurrentTime) const {
+        Real getNextEventTime(const State&, bool includeCurrentTime) const override {
             return 4.9;
         }
         Constraint& constraint;

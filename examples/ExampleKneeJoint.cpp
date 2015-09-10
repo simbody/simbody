@@ -63,7 +63,7 @@ public:
     MyEnergyReporter(const MultibodySystem& system, Real period) 
     : PeriodicEventReporter(period), system(system) {}
 
-    virtual void handleEvent(const State& state) const {
+    virtual void handleEvent(const State& state) const override {
         cout << "t=" << state.getTime();
         cout << " E=" << system.calcEnergy(state) << endl;
     }
@@ -83,14 +83,14 @@ public:
     {   assert(low <= high && stiffness >= 0); }
 
     virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-                           Vector_<Vec3>& particleForces, Vector& mobilityForces) const
+                           Vector_<Vec3>& particleForces, Vector& mobilityForces) const override
     {
         const Real q = knee.getOneQ(state, 0);
         const Real x = q < low ? q-low : (q > high ? q-high : 0);
         knee.applyOneMobilityForce(state, 0, -k*x, mobilityForces);
     }
 
-    virtual Real calcPotentialEnergy(const State& state) const {
+    virtual Real calcPotentialEnergy(const State& state) const override {
         const Real q = knee.getOneQ(state, 0);
         const Real x = q < low ? q-low : (q > high ? q-high : 0);
         return k*x*x/2;

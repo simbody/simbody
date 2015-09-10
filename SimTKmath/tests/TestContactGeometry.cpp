@@ -291,7 +291,7 @@ public:
     ImplicitSurfaceFunction(const ContactGeometry& geom)
         : Differentiator::GradientFunction(3), geom(geom) { }
 
-    int f(const Vector& y, Real& fy) const {
+    int f(const Vector& y, Real& fy) const override {
         fy = geom.calcSurfaceValue(Vec3::getAs(&y[0]));
         return 0;
     }
@@ -304,7 +304,7 @@ public:
     ImplicitSurfaceGradient(const ContactGeometry& geom)
         : Differentiator::JacobianFunction(3,3), geom(geom) { }
 
-    int f(const Vector& y, Vector& fy) const {
+    int f(const Vector& y, Vector& fy) const override {
         fy = (Vector)geom.calcSurfaceGradient(Vec3::getAs(&y(0)));
         return 0;
     }

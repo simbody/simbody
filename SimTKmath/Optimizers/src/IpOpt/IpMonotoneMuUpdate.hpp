@@ -33,14 +33,14 @@ namespace Ipopt
 
     /** Initialize method - overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Method for determining the barrier parameter for the next
      *  iteration.  When the optimality error for the current barrier
      *  parameter is less than a tolerance, the barrier parameter is
      *  reduced, and the Reset method of the LineSearch object
      *  linesearch is called. */
-    virtual bool UpdateBarrierParameter();
+    virtual bool UpdateBarrierParameter() override;
 
     /** Methods for IpoptType */
     //@{

@@ -46,7 +46,7 @@ public:
         system.realize(state, Stage::Instance);
         setNumEqualityConstraints(state.getNQErr());
     }
-    int objectiveFunc(const Vector& parameters, bool new_parameters, Real& f) const {
+    int objectiveFunc(const Vector& parameters, bool new_parameters, Real& f) const override {
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Position);
@@ -65,7 +65,7 @@ public:
         f += MinimumShift; // so minimum won't be at zero where scaling is tricky
         return 0;
     }
-    int gradientFunc(const Vector &parameters, bool new_parameters, Vector &gradient) const  {
+    int gradientFunc(const Vector &parameters, bool new_parameters, Vector &gradient) const override  {
         if (new_parameters)
             state.updQ() = parameters;
         system.realize(state, Stage::Position);
@@ -89,7 +89,7 @@ public:
         matter.multiplyByNInv(state, true, dEdU, gradient);
         return 0;
     }
-    int constraintFunc(const Vector& parameters, bool new_parameters, Vector& constraints) const {
+    int constraintFunc(const Vector& parameters, bool new_parameters, Vector& constraints) const override {
         state.updQ() = parameters;
         system.realize(state, Stage::Velocity);
         constraints = state.getQErr();

@@ -1450,7 +1450,7 @@ public:
     }
 
     // event is triggered if distance of geodesic endpoint to plane is zero
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         if (!enabled) {
             return 1;
         }
@@ -1513,7 +1513,7 @@ public:
             m_x(x), m_O(O), m_I(I), m_color(color) { }
 
     virtual void generateDecorations(const State& state,
-            Array_<DecorativeGeometry>& geometry) {
+            Array_<DecorativeGeometry>& geometry) override {
 //        m_system.realize(state, Stage::Position);
 
         Vec3 P, Q;
@@ -1553,7 +1553,7 @@ public:
             m_plane(plane), m_color(color) { }
 
     virtual void generateDecorations(const State& state,
-            Array_<DecorativeGeometry>& geometry) {
+            Array_<DecorativeGeometry>& geometry) override {
 //        m_system.realize(state, Stage::Position);
 
         // draw plane

@@ -550,14 +550,14 @@ protected:
 class MobilizedBody::PinImpl : public MobilizedBodyImpl {
 public:
     explicit PinImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    PinImpl* clone() const { return new PinImpl(*this); }
+    PinImpl* clone() const override { return new PinImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==1, 
             "MobilizedBody::PinImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
@@ -573,14 +573,14 @@ private:
 class MobilizedBody::SliderImpl : public MobilizedBodyImpl {
 public:
     explicit SliderImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    SliderImpl* clone() const { return new SliderImpl(*this); }
+    SliderImpl* clone() const override { return new SliderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==1, 
             "MobilizedBody::SliderImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
@@ -595,14 +595,14 @@ private:
 class MobilizedBody::UniversalImpl : public MobilizedBodyImpl {
 public:
     explicit UniversalImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    UniversalImpl* clone() const { return new UniversalImpl(*this); }
+    UniversalImpl* clone() const override { return new UniversalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==2, 
             "MobilizedBody::UniversalImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
@@ -617,14 +617,14 @@ private:
 class MobilizedBody::CylinderImpl : public MobilizedBodyImpl {
 public:
     explicit CylinderImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    CylinderImpl* clone() const { return new CylinderImpl(*this); }
+    CylinderImpl* clone() const override { return new CylinderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==2, 
             "MobilizedBody::CylinderImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
@@ -639,14 +639,14 @@ private:
 class MobilizedBody::BendStretchImpl : public MobilizedBodyImpl {
 public:
     explicit BendStretchImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    BendStretchImpl* clone() const { return new BendStretchImpl(*this); }
+    BendStretchImpl* clone() const override { return new BendStretchImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==2, 
             "MobilizedBody::BendStretchImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
@@ -661,14 +661,14 @@ private:
 class MobilizedBody::PlanarImpl : public MobilizedBodyImpl {
 public:
     explicit PlanarImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    PlanarImpl* clone() const { return new PlanarImpl(*this); }
+    PlanarImpl* clone() const override { return new PlanarImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==3, 
             "MobilizedBody::PlanarImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
@@ -695,14 +695,14 @@ public:
         negAz(negAz), negZe(negZe), negT(negT), 
         defaultQ(0) {}
 
-    SphericalCoordsImpl* clone() const { return new SphericalCoordsImpl(*this); }
+    SphericalCoordsImpl* clone() const override { return new SphericalCoordsImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==3, 
             "MobilizedBody::SphericalCoordsImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
@@ -723,21 +723,21 @@ class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
     explicit GimbalImpl(Direction d) 
     :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ(0) { }
-    GimbalImpl* clone() const { return new GimbalImpl(*this); }
+    GimbalImpl* clone() const override { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==3, 
             "MobilizedBody::GimbalImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultRadius(Real r) {
         assert(r>0);
@@ -757,14 +757,14 @@ class MobilizedBody::BushingImpl : public MobilizedBodyImpl {
 public:
     explicit BushingImpl(Direction d) 
     :   MobilizedBodyImpl(d), defaultQ(0) { }
-    BushingImpl* clone() const { return new BushingImpl(*this); }
+    BushingImpl* clone() const override { return new BushingImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==6, 
             "MobilizedBody::BushingImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec6::updAs(q) = defaultQ;
@@ -780,14 +780,14 @@ class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
     explicit BallImpl(Direction d) 
     :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ() {} // (1,0,0,0), the identity rotation
-    BallImpl* clone() const { return new BallImpl(*this); }
+    BallImpl* clone() const override { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==4||nq==3, 
             "MobilizedBody::BallImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
@@ -797,7 +797,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultRadius(Real r) {
         assert(r>0);
@@ -818,14 +818,14 @@ public:
     explicit EllipsoidImpl(Direction d) 
     :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)), 
         defaultQ() { } // default is (1,0,0,0), the identity rotation
-    EllipsoidImpl* clone() const { return new EllipsoidImpl(*this); }
+    EllipsoidImpl* clone() const override { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==4||nq==3, 
             "MobilizedBody::EllipsoidImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
@@ -835,7 +835,7 @@ public:
     }
 
     void calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     void setDefaultRadii(const Vec3& r) {
         assert(r[0]>0 && r[1]>0 && r[2]>0);
@@ -854,14 +854,14 @@ private:
 class MobilizedBody::TranslationImpl : public MobilizedBodyImpl {
 public:
     explicit TranslationImpl(Direction d) : MobilizedBodyImpl(d), defaultQ(0) { }
-    TranslationImpl* clone() const { return new TranslationImpl(*this); }
+    TranslationImpl* clone() const override { return new TranslationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==3, 
             "MobilizedBody::TranslationImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
@@ -876,14 +876,14 @@ private:
 class MobilizedBody::FreeImpl : public MobilizedBodyImpl {
 public:
     explicit FreeImpl(Direction d) : MobilizedBodyImpl(d), defaultQOrientation(), defaultQTranslation(0) { }
-    FreeImpl* clone() const { return new FreeImpl(*this); }
+    FreeImpl* clone() const override { return new FreeImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==7||nq==6, 
             "MobilizedBody::FreeImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==7) {
@@ -905,14 +905,14 @@ private:
 class MobilizedBody::LineOrientationImpl : public MobilizedBodyImpl {
 public:
     explicit LineOrientationImpl(Direction d) : MobilizedBodyImpl(d), defaultQ() { } // 1,0,0,0
-    LineOrientationImpl* clone() const { return new LineOrientationImpl(*this); }
+    LineOrientationImpl* clone() const override { return new LineOrientationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==4||nq==3, 
             "MobilizedBody::LineOrientationImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
@@ -930,14 +930,14 @@ private:
 class MobilizedBody::FreeLineImpl : public MobilizedBodyImpl {
 public:
     explicit FreeLineImpl(Direction d) : MobilizedBodyImpl(d), defaultQOrientation(), defaultQTranslation(0) { }
-    FreeLineImpl* clone() const { return new FreeLineImpl(*this); }
+    FreeLineImpl* clone() const override { return new FreeLineImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==7||nq==6, 
             "MobilizedBody::FreeLineImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==7) {
@@ -959,14 +959,14 @@ private:
 class MobilizedBody::WeldImpl : public MobilizedBodyImpl {
 public:
     explicit WeldImpl(Direction d) : MobilizedBodyImpl(d) { }
-    WeldImpl* clone() const { return new WeldImpl(*this); }
+    WeldImpl* clone() const override { return new WeldImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==0, 
             "MobilizedBody::WeldImpl::copyOutDefaultQImpl(): wrong number of q's");
     }
@@ -980,14 +980,14 @@ private:
 class MobilizedBody::GroundImpl : public MobilizedBodyImpl {
 public:
     GroundImpl() : MobilizedBodyImpl(MobilizedBody::Forward) { }
-    GroundImpl* clone() const { return new GroundImpl(*this); }
+    GroundImpl* clone() const override { return new GroundImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==0, 
             "MobilizedBody::GroundImpl::copyOutDefaultQImpl(): wrong number of q's");
     }
@@ -1008,14 +1008,14 @@ public:
         defaultPitch=p;
     }
 
-    ScrewImpl* clone() const { return new ScrewImpl(*this); }
+    ScrewImpl* clone() const override { return new ScrewImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
 
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==1, 
             "MobilizedBody::ScrewImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
@@ -1126,7 +1126,7 @@ public:
             delete implementation;
     }
     
-    CustomImpl* clone() const { return new CustomImpl(*this); }
+    CustomImpl* clone() const override { return new CustomImpl(*this); }
     
     const Custom::Implementation& getImplementation() const {
         assert(implementation);
@@ -1141,9 +1141,9 @@ public:
     RigidBodyNode* createRigidBodyNode(
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
-        QIndex&        nextQSlot) const;
+        QIndex&        nextQSlot) const override;
     
-    void copyOutDefaultQImpl(int nq, Real* q) const {
+    void copyOutDefaultQImpl(int nq, Real* q) const override {
         SimTK_ASSERT(nq==getImplementation().getImpl().getNQ() || nq==getImplementation().getImpl().getNQ()-1, 
             "MobilizedBody::CustomImpl::copyOutDefaultQImpl(): wrong number of q's");
         for (int i = 0; i < nq; ++i)
@@ -1153,16 +1153,16 @@ public:
     }
 
     // Forward all the virtuals to the Custom::Implementation virtuals.
-    void realizeTopologyVirtual(State& s)       const {getImplementation().realizeTopology(s);}
-    void realizeModelVirtual   (State& s)       const {getImplementation().realizeModel(s);}
-    void realizeInstanceVirtual(const State& s) const {getImplementation().realizeInstance(s);}
-    void realizeTimeVirtual    (const State& s) const {getImplementation().realizeTime(s);}
-    void realizePositionVirtual(const State& s) const {getImplementation().realizePosition(s);}
-    void realizeVelocityVirtual(const State& s) const {getImplementation().realizeVelocity(s);}
-    void realizeDynamicsVirtual(const State& s) const {getImplementation().realizeDynamics(s);}
+    void realizeTopologyVirtual(State& s)       const override {getImplementation().realizeTopology(s);}
+    void realizeModelVirtual   (State& s)       const override {getImplementation().realizeModel(s);}
+    void realizeInstanceVirtual(const State& s) const override {getImplementation().realizeInstance(s);}
+    void realizeTimeVirtual    (const State& s) const override {getImplementation().realizeTime(s);}
+    void realizePositionVirtual(const State& s) const override {getImplementation().realizePosition(s);}
+    void realizeVelocityVirtual(const State& s) const override {getImplementation().realizeVelocity(s);}
+    void realizeDynamicsVirtual(const State& s) const override {getImplementation().realizeDynamics(s);}
     void realizeAccelerationVirtual
-                               (const State& s) const {getImplementation().realizeAcceleration(s);}
-    void realizeReportVirtual  (const State& s) const {getImplementation().realizeReport(s);}
+                               (const State& s) const override {getImplementation().realizeAcceleration(s);}
+    void realizeReportVirtual  (const State& s) const override {getImplementation().realizeReport(s);}
         
     void calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
        {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
@@ -1235,12 +1235,12 @@ public:
         }
     }
 
-    MobilizedBody::Custom::Implementation* clone() const {
+    MobilizedBody::Custom::Implementation* clone() const override {
         referenceCount[0]++;
         return new FunctionBasedImpl(*this);
     }
 
-    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const {
+    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const override {
         // Initialize the tranformation to be returned
         Transform X(Vec3(0));
         Vec6 spatialCoords;
@@ -1276,7 +1276,7 @@ public:
         return X;
     }
 
-    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const override {
 
         switch (nu) {
             case 1: {
@@ -1331,7 +1331,7 @@ public:
         SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHMatrix");
     }
 
-    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         
         switch (nu) {
             case 1: {
@@ -1392,7 +1392,7 @@ public:
         SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHTranspose");
     }
 
-    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const override {
 
         switch (nu) {
             case 1: {
@@ -1447,7 +1447,7 @@ public:
         SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHDotMatrix");
     }
 
-    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
 
         switch (nu) {
             case 1: {
@@ -1508,7 +1508,7 @@ public:
         SimTK_THROW5(SimTK::Exception::ValueOutOfRange, "nu", 1, nu, 6, "MobilizedBody::FunctionBasedImpl::multiplyByHDotTranspose");
     }
 
-    void realizeTopology(State& s) const {
+    void realizeTopology(State& s) const override {
         switch (nu) {
         case 1:
             cacheIndex = s.allocateCacheEntry(subsystem, Stage::Topology, new Value<CacheInfo<1> >());
@@ -1531,7 +1531,7 @@ public:
         }
     }
 
-    void realizePosition(const State& s) const {
+    void realizePosition(const State& s) const override {
         switch (nu) {
             case 1: {
                 // invalidate H and Hdot matrices
@@ -1566,7 +1566,7 @@ public:
         }
     }
 
-    void realizeVelocity(const State& s) const {
+    void realizeVelocity(const State& s) const override {
         switch (nu) {
             case 1: {
                 // invalidate H and Hdot matrices
