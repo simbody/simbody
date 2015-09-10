@@ -21,10 +21,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/**@file
- *
- * Implementation of SimbodyMatterSubsystemRep.
- */
+/* Implementation of SimbodyMatterSubsystemRep. */
 
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
@@ -42,8 +39,9 @@
 #include <iostream>
 using std::cout; using std::endl;
 
-SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep& src)
-  : SimTK::Subsystem::Guts("SimbodyMatterSubsystemRep", "X.X.X")
+SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep
+   (const SimbodyMatterSubsystemRep& src)
+:   SimTK::Subsystem::Guts("SimbodyMatterSubsystemRep", "X.X.X")
 {
     assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }
@@ -235,13 +233,15 @@ SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyIndex
   return getRigidBodyNode(body).getGyroscopicForce(getTreeVelocityCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getMobilizerCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getMobilizerCentrifugalForces(getDynamicsCache(s));
-}
-const SpatialVec&
 SimbodyMatterSubsystemRep::getTotalCentrifugalForces(const State& s, MobilizedBodyIndex body) const {
-  return getRigidBodyNode(body).getTotalCentrifugalForces(getDynamicsCache(s));
+  return getRigidBodyNode(body).getTotalCentrifugalForces(getTreeVelocityCache(s));
 }
+const SpatialVec& SimbodyMatterSubsystemRep::
+getArticulatedBodyCentrifugalForces(const State& s, MobodIndex body) const {
+  return getRigidBodyNode(body).getArticulatedBodyCentrifugalForces
+                                        (getArticulatedBodyVelocityCache(s));
+}
+
 
 
 
@@ -401,19 +401,23 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
         allocateLazyCacheEntry(s, Stage::Time,
                                new Value<SBConstrainedPositionCache>());
 
-    // Composite body inertias *can* be calculated any time after Position
-    // stage but we want to put them off as long as possible since
-    // they may never be needed. These will only be valid if they are 
-    // explicitly realized at some point.
-    tc.compositeBodyInertiaCacheIndex =
-        allocateLazyCacheEntry(s, Stage::Position,
-                               new Value<SBCompositeBodyInertiaCache>());
+    // Composite body inertias *can* be calculated any time after 
+    // PositionKinematics are available, but they aren't ever needed internally
+    // so we won't compute them unless explicitly requested.
+    tc.compositeBodyInertiaCacheIndex = s.allocateCacheEntryWithPrerequisites
+       (getMySubsystemIndex(), Stage::Instance, Stage::Infinity,
+        false /*q*/, false /*u*/, false /*z*/, {} /*dv*/, 
+        {CacheEntryKey(getMySubsystemIndex(), tc.treePositionCacheIndex)},
+        new Value<SBCompositeBodyInertiaCache>());
 
-    // Articulated body inertias *can* be calculated any time after Position 
-    // stage but we want to put them off until Dynamics stage if possible.
-    tc.articulatedBodyInertiaCacheIndex =
-        allocateCacheEntry(s, Stage::Position, Stage::Dynamics, 
-                           new Value<SBArticulatedBodyInertiaCache>());
+    // Articulated body inertias *can* be calculated any time after 
+    // PositionKinematics are available but we want to put them off until 
+    // Acceleration stage if possible.
+    tc.articulatedBodyInertiaCacheIndex = s.allocateCacheEntryWithPrerequisites
+       (getMySubsystemIndex(), Stage::Instance, Stage::Acceleration,
+        false /*q*/, false /*u*/, false /*z*/, {} /*dv*/, 
+        {CacheEntryKey(getMySubsystemIndex(), tc.treePositionCacheIndex)},
+        new Value<SBArticulatedBodyInertiaCache>());
 
     // Basic tree velocity kinematics can be calculated any time after Instance
     // stage, provided PositionKinematics have been realized, or unconditionally
@@ -438,6 +442,19 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     tc.constrainedVelocityCacheIndex = 
         allocateLazyCacheEntry(s, Stage::Position,
                                new Value<SBConstrainedVelocityCache>());
+
+    // Articulated body velocity calculations *can* be calculated any time after 
+    // VelocityKinematics and articulated body inertias are available but we 
+    // want to put them off until Acceleration stage if possible.
+    tc.articulatedBodyVelocityCacheIndex = s.allocateCacheEntryWithPrerequisites
+       (getMySubsystemIndex(), Stage::Instance, Stage::Acceleration,
+        false /*q*/, false /*u*/, false /*z*/, {} /*dv*/, 
+        {CacheEntryKey(getMySubsystemIndex(), 
+                       tc.treeVelocityCacheIndex),
+         CacheEntryKey(getMySubsystemIndex(), 
+                       tc.articulatedBodyInertiaCacheIndex)},
+        new Value<SBArticulatedBodyVelocityCache>());
+
     tc.dynamicsCacheIndex = 
         allocateCacheEntry(s, Stage::Dynamics, 
                            new Value<SBDynamicsCache>());
@@ -979,6 +996,7 @@ realizeSubsystemInstanceImpl(const State& s) const {
     updArticulatedBodyInertiaCache(s).allocate(topologyCache, mc, ic);
     updTreeVelocityCache(s).allocate(topologyCache, mc, ic);
     updConstrainedVelocityCache(s).allocate(topologyCache, mc, ic);
+    updArticulatedBodyVelocityCache(s).allocate(topologyCache, mc, ic);
     updDynamicsCache(s).allocate(topologyCache, mc, ic);
     updTreeAccelerationCache(s).allocate(topologyCache, mc, ic);
     updConstrainedAccelerationCache(s).allocate(topologyCache, mc, ic);
@@ -1125,12 +1143,16 @@ realizePositionKinematics(const State& state) const {
     markCacheValueRealized(state, tpcx);
 }
 
+// Position kinematics is realized only if 
+//  - we are currently at Stage::Position or later
+//      OR
+//  - position kinematics was previously realized since the most recent change 
+//    to Stage::Instance and the generalized coordinates q.
 bool SimbodyMatterSubsystemRep::
 isPositionKinematicsRealized(const State&  state) const {
     const CacheEntryIndex tpcx = topologyCache.treePositionCacheIndex;
     return isCacheValueRealized(state, tpcx);
 }
-
 
 void SimbodyMatterSubsystemRep::
 invalidatePositionKinematics(const State& state) const {
@@ -1144,26 +1166,46 @@ invalidatePositionKinematics(const State& state) const {
 //==============================================================================
 //                      REALIZE COMPOSITE BODY INERTIAS
 //==============================================================================
-void SimbodyMatterSubsystemRep::realizeCompositeBodyInertias(const State& state) const {
+void SimbodyMatterSubsystemRep::
+realizeCompositeBodyInertias(const State& state) const {
     const CacheEntryIndex cbx = topologyCache.compositeBodyInertiaCacheIndex;
 
     if (isCacheValueRealized(state, cbx))
         return; // already realized
 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position, 
-        "SimbodyMatterSubsystem::realizeCompositeBodyInertias()");
+    // Composite body inertias have not been realized. We don't want to realize 
+    // position kinematics implicitly here so we'll fail if that hasn't been 
+    // done already (typically by realize(Position)).
 
-    SBCompositeBodyInertiaCache& cbc = 
-        Value<SBCompositeBodyInertiaCache>::updDowncast(updCacheEntry(state, cbx));
+    SimTK_ERRCHK_ALWAYS(isPositionKinematicsRealized(state), 
+        "SimbodyMatterSubsystem::realizeCompositeBodyInertias()",
+        "Composite body inertias cannot be realized unless the state has been "
+        "realized to Stage::Position or realizePositionKinematics() has been "
+        "called explicitly.");
+
+    // OK, we have everything we'll need to compute CBIs.
+
+    SBCompositeBodyInertiaCache& cbc = Value<SBCompositeBodyInertiaCache>::
+                                        updDowncast(updCacheEntry(state, cbx));
 
     calcCompositeBodyInertias(state, cbc.compositeBodyInertia);
     markCacheValueRealized(state, cbx);
 }
 
+// Composite body inertias are realized only if
+//  - they were last realized since any change to Stage::Instance,
+//    PositionKinematics, and generalized coordinates q.
+bool SimbodyMatterSubsystemRep::
+isCompositeBodyInertiasRealized(const State& state) const {
+    const CacheEntryIndex cbx = topologyCache.compositeBodyInertiaCacheIndex;
+    return isCacheValueRealized(state, cbx);
+}
+
 void SimbodyMatterSubsystemRep::
 invalidateCompositeBodyInertias(const State& state) const {
-    const CacheEntryIndex cbx = 
-        topologyCache.compositeBodyInertiaCacheIndex;
+    // There is no stage at which CBIs are guaranteed to have been computed
+    // so we don't need to invalidate a stage here.
+    const CacheEntryIndex cbx = topologyCache.compositeBodyInertiaCacheIndex;
     markCacheValueNotRealized(state, cbx);
 }
 
@@ -1174,14 +1216,22 @@ invalidateCompositeBodyInertias(const State& state) const {
 //==============================================================================
 void SimbodyMatterSubsystemRep::
 realizeArticulatedBodyInertias(const State& state) const {
-    const CacheEntryIndex abx = 
-        topologyCache.articulatedBodyInertiaCacheIndex;
+    const CacheEntryIndex abx = topologyCache.articulatedBodyInertiaCacheIndex;
 
     if (isCacheValueRealized(state, abx))
         return; // already realized
 
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(state), Stage::Position, 
-        "SimbodyMatterSubsystem::realizeArticulatedBodyInertias()");
+    // Articulated body inertias have not been realized. We don't want to 
+    // realize position kinematics implicitly here so we'll fail if that hasn't 
+    // been done already (typically by realize(Position)).
+
+    SimTK_ERRCHK_ALWAYS(isPositionKinematicsRealized(state), 
+    "SimbodyMatterSubsystem::realizeArticulatedBodyInertias()",
+    "Articulated body inertias cannot be realized unless the state has been "
+    "realized to Stage::Position or realizePositionKinematics() has been "
+    "called explicitly.");
+
+    // OK, we have everything we'll need to compute ABIs.
 
     const SBInstanceCache&          ic  = getInstanceCache(state);
     const SBTreePositionCache&      tpc = getTreePositionCache(state);
@@ -1195,13 +1245,24 @@ realizeArticulatedBodyInertias(const State& state) const {
     markCacheValueRealized(state, abx);
 }
 
-void SimbodyMatterSubsystemRep::
-invalidateArticulatedBodyInertias(const State& state) const {
-    // ABIs are assumed calculated at Dynamics stage, regardless of the 
-    // flag in the cache entry.
-    state.invalidateAllCacheAtOrAbove(Stage::Dynamics);
+// Articulated body inertias are realized only if
+//  - we're already at Stage::Acceleration
+//          OR
+//  - they were last realized since any change to Stage::Instance,
+//    PositionKinematics, and generalized coordinates q.
+bool SimbodyMatterSubsystemRep::
+isArticulatedBodyInertiasRealized(const State& state) const {
     const CacheEntryIndex abx = 
         topologyCache.articulatedBodyInertiaCacheIndex;
+    return isCacheValueRealized(state, abx);
+}
+
+void SimbodyMatterSubsystemRep::
+invalidateArticulatedBodyInertias(const State& state) const {
+    // ABIs are assumed calculated at Acceleration stage, regardless of the 
+    // flag in the cache entry.
+    state.invalidateAllCacheAtOrAbove(Stage::Acceleration);
+    const CacheEntryIndex abx = topologyCache.articulatedBodyInertiaCacheIndex;
     markCacheValueNotRealized(state, abx);
 }
 
@@ -1328,9 +1389,11 @@ realizeVelocityKinematics(const State& state) const {
 }
 
 
-// Velocity kinematics is realized only if position kinematics is realized,
-// AND the stage version of the position kinematics cache entry is unchanged
-// since we last computed velocity kinematics, AND the u's are also unchanged.
+// Velocity kinematics is realized only if
+//  - we're at Stage::Velocity or later
+//          OR
+//  - velocity kinematics was last realized since any change to Stage::Instance,
+//    PositionKinematics, and generalized speeds u.
 bool SimbodyMatterSubsystemRep::
 isVelocityKinematicsRealized(const State& state) const {
     const CacheEntryIndex velx = topologyCache.treeVelocityCacheIndex;
@@ -1346,6 +1409,82 @@ invalidateVelocityKinematics(const State& state) const {
     markCacheValueNotRealized(state, tvcx);
 }
 
+
+
+
+//==============================================================================
+//                 REALIZE ARTICULATED BODY VELOCITY CACHE
+//==============================================================================
+void SimbodyMatterSubsystemRep::
+realizeArticulatedBodyVelocity(const State& state) const {
+    const CacheEntryIndex abvx = 
+        topologyCache.articulatedBodyVelocityCacheIndex;
+
+    if (isCacheValueRealized(state, abvx))
+        return; // already realized
+
+    // Articulated body velocity computations have not been realized. We don't 
+    // want to realize velocity kinematics or articulated body inertias 
+    // implicitly here so we'll fail if they haven't been realized already.
+    // Although velocity kinematics is available after Stage::Velocity, usually
+    // ABIs are not calculated until Stage::Acceleration.
+
+    SimTK_ERRCHK_ALWAYS(isVelocityKinematicsRealized(state), 
+    "SimbodyMatterSubsystem::realizeArticulatedBodyVelocity()",
+    "Articulated body velocity calculations cannot be realized unless "
+    "velocity kinematics have already been realized, either by realizing the "
+    "state to Stage::Velocity or by calling realizeVelocityKinematics() "
+    "explicitly.");
+
+    SimTK_ERRCHK_ALWAYS(isArticulatedBodyInertiasRealized(state), 
+    "SimbodyMatterSubsystem::realizeArticulatedBodyVelocity()",
+    "Articulated body velocity calculations cannot be realized unless "
+    "articulated body inertias have already been realized, implicitly "
+    "or by calling realizeArticulatedBodyInertias() explicitly.");
+
+    // OK, we have everything we'll need to compute ABIs.
+
+    const SBTreePositionCache&  tpc = getTreePositionCache(state);
+    const SBTreeVelocityCache&  tvc = getTreeVelocityCache(state);
+    const SBArticulatedBodyInertiaCache& 
+                                abc = getArticulatedBodyInertiaCache(state);
+    SBArticulatedBodyVelocityCache& 
+                                abvc = updArticulatedBodyVelocityCache(state);
+
+    // Order doesn't matter for this calculation. Ground's entries are
+    // precalculated so start at level 1.
+    for (int i=1 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeArticulatedBodyVelocityCache
+                                                            (tpc,tvc,abc,abvc);
+
+    markCacheValueRealized(state, abvx);
+}
+
+// Articulated body velocity computations are realized only if
+//  - we're already at Stage::Acceleration
+//          OR
+//  - they were last realized since any change to Stage::Instance,
+//    PositionKinematics, VelocityKinematics, ArticulatedBodyInertias,
+//    and generalized coordinates and speeds q and u.
+bool SimbodyMatterSubsystemRep::
+isArticulatedBodyVelocityRealized(const State& state) const {
+    const CacheEntryIndex abvx = 
+        topologyCache.articulatedBodyVelocityCacheIndex;
+    return isCacheValueRealized(state, abvx);
+}
+
+void SimbodyMatterSubsystemRep::
+invalidateArticulatedBodyVelocity(const State& state) const {
+    // AB velocity computations are assumed done at Acceleration stage, 
+    // regardless of the flag in the cache entry.
+    state.invalidateAllCacheAtOrAbove(Stage::Acceleration);
+    const CacheEntryIndex abvx = 
+        topologyCache.articulatedBodyVelocityCacheIndex;
+    markCacheValueNotRealized(state, abvx);
+}
+
+
 //==============================================================================
 //                               REALIZE DYNAMICS
 //==============================================================================
@@ -1357,20 +1496,15 @@ int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  con
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "SimbodyMatterSubsystem::realizeDynamics()");
 
-    // tip-to-base calculation
-    realizeArticulatedBodyInertias(s); // (may already have been realized)
-    const SBArticulatedBodyInertiaCache& abc = getArticulatedBodyInertiaCache(s);
-
     SBStateDigest stateDigest(s, *this, Stage::Dynamics);
 
     // Get the Dynamics-stage cache; it was already allocated at Instance stage.
     SBDynamicsCache& dc = stateDigest.updDynamicsCache();
 
-    // Realize velocity-dependent articulated body quantities needed for 
-    // dynamics: base-to-tip.
+    // Probably nothing to do here.
     for (int i=0; i < (int)rbNodeLevels.size(); ++i)
         for (int j=0; j < (int)rbNodeLevels[i].size(); ++j)
-            rbNodeLevels[i][j]->realizeDynamics(abc, stateDigest);
+            rbNodeLevels[i][j]->realizeDynamics(stateDigest);
 
     // MobilizedBodies
     // This will include writing the prescribed accelerations into
@@ -1394,14 +1528,9 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "SimbodyMatterSubsystem::realizeAcceleration()");
 
-    SBStateDigest stateDigest(s, *this, Stage::Acceleration);
-
-    // Get the Acceleration-stage cache entries. They were all allocated by
-    // the end of Instance stage.
-    Vector&                         udot    = stateDigest.updUDot();
-    Vector&                         qdotdot = stateDigest.updQDotDot();
-    SBTreeAccelerationCache&        tac     = stateDigest.updTreeAccelerationCache();
-    SBConstrainedAccelerationCache& cac     = stateDigest.updConstrainedAccelerationCache();
+    // Articulated body inertias and velocity will be realized if necessary
+    // when realizeLoopForwardDynamics() is called, fulfilling our propose that
+    // those will be calculated by Stage::Accleration.
 
     // We ask our containing MultibodySystem for a reference to the cached 
     // forces accumulated from all the force subsystems. We use these to 
@@ -1411,6 +1540,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
         mbs.getMobilityForces(s, Stage::Dynamics),
         mbs.getParticleForces(s, Stage::Dynamics),
         mbs.getRigidBodyForces(s, Stage::Dynamics));
+
+    SBStateDigest stateDigest(s, *this, Stage::Acceleration);
 
     // MobilizedBodies
     for (MobilizedBodyIndex mbx(0); mbx < mobilizedBodies.size(); ++mbx)
@@ -5120,9 +5251,10 @@ Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
 //                          CALC TREE ACCELERATIONS
 //==============================================================================
 // Operator for open-loop forward dynamics.
-// This Subsystem must have already been realized to Dynamics stage so that 
-// coriolis terms are available, and articulated body inertias should have been
-// realized. All vectors must use contiguous storage.
+// This Subsystem must have already realized VelocityKinematics so that 
+// Coriolis terms are available, and articulated body inertias and articulated
+// body velocities are realized here if necessary. All vectors must use 
+// contiguous storage.
 void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
@@ -5135,8 +5267,17 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Vector&                    qdotdot,
     Vector&                    tau) const 
 {
+    // Note that realize(Acceleration) depends on getting here to fulfill the
+    // promise of these cache entries' computed-by stage.
+    realizeArticulatedBodyInertias(s); // might already be done
+    realizeArticulatedBodyVelocity(s);
+
+    const SBArticulatedBodyInertiaCache& abc = 
+        getArticulatedBodyInertiaCache(s);
+    const SBArticulatedBodyVelocityCache& abvc = 
+        getArticulatedBodyVelocityCache(s);
+
     SBStateDigest sbs(s, *this, Stage::Acceleration);
-    const SBArticulatedBodyInertiaCache& abc = getArticulatedBodyInertiaCache(s);
 
     const SBInstanceCache&      ic  = sbs.getInstanceCache();
     const SBTreePositionCache&  tpc = sbs.getTreePositionCache();
@@ -5163,15 +5304,15 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     assert(tau.hasContiguousData());
 
     const Real*       mobilityForcePtr = mobilityForces.size() 
-                                            ? &mobilityForces[0] : NULL;
+                                            ? &mobilityForces[0] : nullptr;
     const SpatialVec* bodyForcePtr     = bodyForces.size() 
-                                            ? &bodyForces[0] : NULL;
+                                            ? &bodyForces[0] : nullptr;
     Real*             hingeForcePtr    = netHingeForces.size() 
-                                            ? &netHingeForces[0] : NULL;
-    SpatialVec*       aPtr             = A_GB.size()    ? &A_GB[0] : NULL;
-    Real*             udotPtr          = udot.size()    ? &udot[0] : NULL;
-    Real*             qdotdotPtr       = qdotdot.size() ? &qdotdot[0] : NULL;
-    Real*             tauPtr           = tau.size()     ? &tau[0] : NULL;
+                                            ? &netHingeForces[0] : nullptr;
+    SpatialVec*       aPtr             = A_GB.size()    ? &A_GB[0] : nullptr;
+    Real*             udotPtr          = udot.size()    ? &udot[0] : nullptr;
+    Real*             qdotdotPtr       = qdotdot.size() ? &qdotdot[0] : nullptr;
+    Real*             tauPtr           = tau.size()     ? &tau[0] : nullptr;
     SpatialVec*       zPtr             = allZ.begin();    
     SpatialVec*       zPlusPtr         = allZPlus.begin(); 
 
@@ -5186,7 +5327,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass1Inward(ic,tpc,abc,dc,
+            node.calcUDotPass1Inward(ic,tpc,abc,abvc,
                 mobilityForcePtr, bodyForcePtr, udotPtr, zPtr, zPlusPtr,
                 hingeForcePtr);
         }
@@ -5209,8 +5350,9 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 //==============================================================================
 // Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
 // each body as a side effect.
-// This Subsystem must already be realized through Position stage; we'll 
-// realize articulated body inertias if necessary.
+// This Subsystem must already be realized through Position stage or at
+// least have PositionKinematics already available; we'll 
+// realize articulated body inertias here if necessary.
 // All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
     const Vector&                                           f,
@@ -6221,7 +6363,7 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
     Vector&                    mobilityForces) const
 {
     const SBTreePositionCache&  tpc = getTreePositionCache(s);
-    const SBDynamicsCache&      dc  = getDynamicsCache(s);
+    const SBTreeVelocityCache&  tvc = getTreeVelocityCache(s);
 
     assert(bodyForces.size() == getNumBodies());
     mobilityForces.resize(getTotalDOF());
@@ -6238,7 +6380,7 @@ void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcEquivalentJointForces(tpc,dc,
+            node.calcEquivalentJointForces(tpc,tvc,
                 bodyForcePtr, zPtr,
                 mobilityForcePtr);
         }

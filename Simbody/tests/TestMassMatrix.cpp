@@ -982,7 +982,7 @@ void testConstrainedSystem() {
 
 
 
-void testCompositeInertia() {
+void testCompositeBodyInertia() {
     MultibodySystem         mbs;
     SimbodyMatterSubsystem  pend(mbs);
 
@@ -1026,18 +1026,124 @@ void testCompositeInertia() {
     SpatialInertia cbi = pend.getCompositeBodyInertia(state, body1);
 
     body2.setAngle(state, Pi/4);
-    // This is not allowed until Position stage.
+    // This is not allowed until PositionKinematics stage.
     SimTK_TEST_MUST_THROW(pend.getCompositeBodyInertia(state, body1));
     mbs.realize(state, Stage::Position);
     // Now it should be OK.
     cbi = pend.getCompositeBodyInertia(state, body1);
 
-    mbs.realize(state, Stage::Acceleration);
-    //cout << "udots=" << state.getUDot() << endl;
+    body2.setAngle(state, Pi/5);
+    pend.realizePositionKinematics(state);
+    SimTK_TEST(state.getSystemStage() == Stage::Time);
+    SimTK_TEST(!pend.isCompositeBodyInertiasRealized(state));
+    pend.realizeCompositeBodyInertias(state);
+    SimTK_TEST(pend.isCompositeBodyInertiasRealized(state));
+    pend.invalidateCompositeBodyInertias(state);
+    SimTK_TEST(!pend.isCompositeBodyInertiasRealized(state));
+}
 
-    body1.setRate(state, 27);
+// Currently just testing validity/invalidation, not correctness.
+void testArticulatedBodyInertia() {
+    MultibodySystem mbs;
+    MyForceImpl* frcp;
+    makeSystem(true, mbs, frcp);
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+
+    const MobodIndex body1(1), body2(2);
+
+
+    State state = mbs.realizeTopology();
+    mbs.realize(state, Stage::Position);
+
+    // This should force realization of the articulated body inertias.
+    ArticulatedInertia abi = matter.getArticulatedBodyInertia(state, body1);
+    SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+    matter.invalidateArticulatedBodyInertias(state);
+    SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
+    matter.realizeArticulatedBodyInertias(state);
+    SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+
+    state.updQ()=0.1; 
+    SimTK_TEST(state.getSystemStage()==Stage::Time);
+    SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
+    // This is not allowed until PositionKinematics stage.
+    SimTK_TEST_MUST_THROW(matter.getArticulatedBodyInertia(state, body2));
+    mbs.realize(state, Stage::Position);
+    // Now it should be OK.
+    abi = matter.getArticulatedBodyInertia(state, body1);
+
+    matter.invalidatePositionKinematics(state); // a prerequisite
+    SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
+    matter.realizePositionKinematics(state);
+    matter.getArticulatedBodyInertia(state, body2); // ok; implicit realization
+    SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+    SimTK_TEST(state.getSystemStage()==Stage::Time);
+    state.updQ()=0.2; 
+    SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
+
+    mbs.realize(state, Stage::Dynamics); // not high enough
+    SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
+
+    mbs.realize(state, Stage::Acceleration); // implicit realization of abis
+    SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+
+    state.updTime()=1.; // shouldn't affect time-independent stuff
+    SimTK_TEST(state.getSystemStage()==Stage::Instance);
+    SimTK_TEST(matter.isPositionKinematicsRealized(state));
+    SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+}
+
+// Currently just testing validity/invalidation, not correctness.
+void testArticulatedBodyVelocity() {
+    MultibodySystem mbs;
+    MyForceImpl* frcp;
+    makeSystem(true, mbs, frcp);
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+
+    const MobodIndex body1(1), body2(2);
+
+
+    State state = mbs.realizeTopology();
+    mbs.realize(state, Stage::Position);
+
+    // Neither ABIs nor VelocityKinematics valid.
+    SimTK_TEST_MUST_THROW(matter.realizeArticulatedBodyVelocity(state));
+
+    mbs.realize(state, Stage::Velocity);
+    // ABIs still not valid.
+    SimTK_TEST_MUST_THROW(matter.realizeArticulatedBodyVelocity(state));
+
+    matter.realizeArticulatedBodyInertias(state);
+    matter.realizeArticulatedBodyVelocity(state); // OK now
+
+    state.updU()=0.1; // invalidates VelocityKinematics
+    SimTK_TEST(state.getSystemStage()==Stage::Position);
+    SimTK_TEST(!matter.isArticulatedBodyVelocityRealized(state));
+
+    mbs.realize(state, Stage::Dynamics); // not enough
+    SimTK_TEST(!matter.isArticulatedBodyVelocityRealized(state));
+
+    mbs.realize(state, Stage::Acceleration); // that should do it!
+    SimTK_TEST(matter.isArticulatedBodyVelocityRealized(state));
+
+    matter.invalidateArticulatedBodyInertias(state); // a prerequisite
+    SimTK_TEST(!matter.isArticulatedBodyVelocityRealized(state));
+
     mbs.realize(state, Stage::Acceleration);
-    //cout << "udots=" << state.getUDot() << endl;
+    SimTK_TEST(matter.isArticulatedBodyVelocityRealized(state));
+
+    matter.invalidateVelocityKinematics(state); // another prerequisite
+    SimTK_TEST(!matter.isArticulatedBodyVelocityRealized(state));
+
+    mbs.realize(state, Stage::Acceleration);
+    SimTK_TEST(matter.isArticulatedBodyVelocityRealized(state));
+
+    state.updTime()=1.; // shouldn't affect time-independent stuff
+    SimTK_TEST(state.getSystemStage()==Stage::Instance);
+    SimTK_TEST(matter.isPositionKinematicsRealized(state));
+    SimTK_TEST(matter.isVelocityKinematicsRealized(state));
+    SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+    SimTK_TEST(matter.isArticulatedBodyVelocityRealized(state));
 }
 
 void testTaskJacobians() {
@@ -1384,7 +1490,9 @@ int main() {
         SimTK_SUBTEST(testVelocityKinematics);
         SimTK_SUBTEST(testRel2Cart);
         SimTK_SUBTEST(testJacobianBiasTerms);
-        SimTK_SUBTEST(testCompositeInertia);
+        SimTK_SUBTEST(testCompositeBodyInertia);
+        SimTK_SUBTEST(testArticulatedBodyInertia);
+        SimTK_SUBTEST(testArticulatedBodyVelocity);
         SimTK_SUBTEST(testUnconstrainedSystem);
         SimTK_SUBTEST(testConstrainedSystem);
         SimTK_SUBTEST(testTaskJacobians);

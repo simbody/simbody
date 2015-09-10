@@ -410,11 +410,39 @@ public:
     }
 
     // velocity dependent
-    const SpatialVec& getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getTotalCoriolisAcceleration    (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getGyroscopicForce              (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getMobilizerCentrifugalForces   (const State&, MobilizedBodyIndex) const;
-    const SpatialVec& getTotalCentrifugalForces       (const State&, MobilizedBodyIndex) const;
+    const SpatialVec& 
+    getMobilizerCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+    const SpatialVec& 
+    getTotalCoriolisAcceleration(const State&, MobilizedBodyIndex) const;
+    const SpatialVec& 
+    getGyroscopicForce(const State&, MobilizedBodyIndex) const;
+    const SpatialVec& 
+    getTotalCentrifugalForces(const State&, MobilizedBodyIndex) const;
+
+    /* [I'm not exposing this in the API any more so the detailed comment is
+    here rather than in SimbodyMatterSubsystem (where it used to be called
+    getMobilizerCentrifugalForces().]
+    This is part of the rotational velocity-dependent forces acting on a
+    particular mobilized body B, accounting for gyroscopic forces plus Coriolis 
+    forces due only to the *cross-mobilizer* velocity; this ignores the parent's 
+    velocity and is not useful except as an intermediate term in acceleration 
+    calculations -- see getTotalCentrifugalForces() instead. This is 
+    `F=P*A+b` where `P` is mobod B's articulated body inertia (ABI), `A` is its 
+    cross-mobilizer Coriolis acceleration (as returned by 
+    getMobilizerCoriolisAcceleration()), and `b` is the (rotational 
+    velocity-dependent) spatial gyroscopic force acting on B, as returned by
+    getGyroscopicForce().
+
+    Although this computation depends only on position and velocity kinematics, 
+    we won't calculate it until the first time it is needed, generally during 
+    realize(Acceleration). You can get it earlier if you have already realized 
+    velocity kinematics *and* ABIs, either by an explicit call to 
+    realizeArticulatedBodyInertias() or implicitly by asking for an ABI
+    using getArticulatedBodyInertia(). This method will not initiate ABI 
+    calculation automatically but will throw an exception instead if they are 
+    not available. */
+    const SpatialVec& 
+    getArticulatedBodyCentrifugalForces(const State&, MobilizedBodyIndex) const;
 
     // PARTICLES TODO
 
@@ -465,26 +493,38 @@ public:
         // REALIZATIONS //
 
 
-    // Call at Instance Stage or later.
+    // Call at Instance Stage or later. Depends on q; automatically realized
+    // at Stage::Position.
     void realizePositionKinematics(const State&) const;
 
-    // Call at Instance + PositionKinematics Stage or later.
+    // Call at Instance + PositionKinematics Stage or later. Depends on u;
+    // automatically realized at Stage::Velocity.
     void realizeVelocityKinematics(const State&) const;
 
-    // Call at Position Stage or later.
+    // Call at Instance + PositionKinematics Stage or later. Never realized
+    // automatically.
     void realizeCompositeBodyInertias(const State&) const;
 
-    // Call at Position Stage or later.
+    // Call at Instance + PositionKinematics Stage or later. Automatically
+    // realized at Stage::Acceleration.
     void realizeArticulatedBodyInertias(const State&) const;
+
+    // Call at Instance + VelocityKinematics + ArticulatedBodyInertias;
+    // automatically realized at Stage::Acceleration.
+    void realizeArticulatedBodyVelocity(const State&) const;
 
     bool isPositionKinematicsRealized(const State&) const;
     bool isVelocityKinematicsRealized(const State&) const;
+    bool isCompositeBodyInertiasRealized(const State&) const;
+    bool isArticulatedBodyInertiasRealized(const State&) const;
+    bool isArticulatedBodyVelocityRealized(const State&) const;
 
     // These are just used in timing tests.
     void invalidatePositionKinematics(const State&) const;
     void invalidateVelocityKinematics(const State&) const;
     void invalidateCompositeBodyInertias(const State&) const;
     void invalidateArticulatedBodyInertias(const State&) const;
+    void invalidateArticulatedBodyVelocity(const State&) const;
 
         // OPERATORS //
 
@@ -930,9 +970,6 @@ public:
         const Vector_<Real>&        qdotdot,
         Vector&                     pvaerr) const;
 
-    // This is a solver which generates internal velocities from spatial ones.
-    void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
-
     void enforcePositionConstraints(State& s, Real consAccuracy, const Vector& yWeights,
                                     const Vector& ooTols, Vector& yErrest, ProjectOptions) const;
     void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,
@@ -1057,6 +1094,20 @@ public:
     SBConstrainedVelocityCache& updConstrainedVelocityCache(const State& s) const { //mutable
         return Value<SBConstrainedVelocityCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),topologyCache.constrainedVelocityCacheIndex)).upd();
+    }
+
+    const SBArticulatedBodyVelocityCache& 
+    getArticulatedBodyVelocityCache(const State& state) const {
+        return Value<SBArticulatedBodyVelocityCache>::downcast
+           (state.getCacheEntry(getMySubsystemIndex(),
+                topologyCache.articulatedBodyVelocityCacheIndex)).get();
+    }
+
+    SBArticulatedBodyVelocityCache& 
+    updArticulatedBodyVelocityCache(const State& state) const { //mutable
+        return Value<SBArticulatedBodyVelocityCache>::downcast
+            (state.updCacheEntry(getMySubsystemIndex(),
+                topologyCache.articulatedBodyVelocityCacheIndex)).upd();
     }
 
     const SBDynamicsCache& getDynamicsCache(const State& s, bool realizingDynamics=false) const {

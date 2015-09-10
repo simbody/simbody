@@ -560,6 +560,7 @@ private:
      "Test values should NOT have been numerically equivalent at tolerance=%g.",(tol));}
 
 #ifndef SimTK_TEST_SUPPRESS_EXPECTED_THROW
+
 /// Test that the supplied statement throws an std::exception of some kind.
 #define SimTK_TEST_MUST_THROW(stmt)             \
     do {int threw=0; try {stmt;}                \
@@ -607,7 +608,7 @@ private:
 
 // When we're only required to throw in Debug, we have to suppress the
 // test case altogether in Release because it may cause damage. 
-#if defined(NDEBUG)
+#ifdef NDEBUG
     /// Include a bad statement when in Debug and insist that it get caught,
     /// but don't include the statement at all in Release.
     #define SimTK_TEST_MUST_THROW_DEBUG(stmt)
@@ -623,6 +624,7 @@ private:
     #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc) \
                 SimTK_TEST_MUST_THROW_EXC(stmt,exc)
 #endif
+
 #else // expected throws are suppressed
 #define SimTK_TEST_MUST_THROW(stmt)
 #define SimTK_TEST_MUST_THROW_SHOW(stmt)
