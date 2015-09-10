@@ -62,28 +62,28 @@ namespace Ipopt
     /**@name Overloaded methods from Matrix base class*/
     //@{
     virtual void MultVectorImpl(Number alpha, const Vector &x, Number beta,
-                                Vector &y) const;
+                                Vector &y) const override;
 
     virtual void TransMultVectorImpl(Number alpha, const Vector& x,
-                                     Number beta, Vector& y) const;
+                                     Number beta, Vector& y) const override;
 
     /** X = beta*X + alpha*(Matrix S^{-1} Z).  Specialized implementation.
      */
     virtual void AddMSinvZImpl(Number alpha, const Vector& S, const Vector& Z,
-                               Vector& X) const;
+                               Vector& X) const override;
 
     /** X = S^{-1} (r + alpha*Z*M^Td).  Specialized implementation.
      */
     virtual void SinvBlrmZMTdBrImpl(Number alpha, const Vector& S,
                                     const Vector& R, const Vector& Z,
-                                    const Vector& D, Vector& X) const;
+                                    const Vector& D, Vector& X) const override;
 
     virtual void PrintImpl(const Journalist& jnlst,
                            EJournalLevel level,
                            EJournalCategory category,
                            const std::string& name,
                            Index indent,
-                           const std::string& prefix) const;
+                           const std::string& prefix) const override;
     //@}
 
 
@@ -145,7 +145,7 @@ namespace Ipopt
 
     /** Overloaded MakeNew method for the MatrixSpace base class.
      */
-    virtual Matrix* MakeNew() const
+    virtual Matrix* MakeNew() const override
     {
       return MakeNewExpansionMatrix();
     }

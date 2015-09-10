@@ -52,7 +52,7 @@ public:
     const std::string& getMessageText() const { return text; }
 
     // override virtual function from std::exception
-    const char* what() const throw() {return getMessage().c_str();}
+    const char* what() const throw() override {return getMessage().c_str();}
 protected:
     void setMessage(const std::string& msgin) {
         text = msgin;

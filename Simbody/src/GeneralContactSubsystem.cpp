@@ -66,7 +66,7 @@ class GeneralContactSubsystemImpl : public Subsystem::Guts {
 public:
     GeneralContactSubsystemImpl() {}
 
-    GeneralContactSubsystemImpl* cloneImpl() const {
+    GeneralContactSubsystemImpl* cloneImpl() const override {
         return new GeneralContactSubsystemImpl(*this);
     }
     
@@ -133,7 +133,7 @@ public:
         return contacts[set];
     }
     
-    int realizeSubsystemTopologyImpl(State& state) const {
+    int realizeSubsystemTopologyImpl(State& state) const override {
         contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Array_<Array_<Contact> > >());
         contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
         for (int i = 0; i < (int) sets.size(); ++i) {
@@ -149,12 +149,12 @@ public:
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& state) const {
+    int realizeSubsystemPositionImpl(const State& state) const override {
         Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd() = false;
         return 0;
     }
 
-    int realizeSubsystemDynamicsImpl(const State& state) const {
+    int realizeSubsystemDynamicsImpl(const State& state) const override {
         bool& contactsValid = Value<bool>::downcast(state.updCacheEntry(getMySubsystemIndex(), contactsValidCacheIndex)).upd();
         if (contactsValid)
             return 0;

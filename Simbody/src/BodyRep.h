@@ -106,13 +106,13 @@ public:
     }
     explicit RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
     }
-    const MassProperties& getDefaultRigidBodyMassProperties() const {
+    const MassProperties& getDefaultRigidBodyMassProperties() const override {
         return defaultMassProperties;
     }
-    void setDefaultRigidBodyMassProperties(const MassProperties& m) {
+    void setDefaultRigidBodyMassProperties(const MassProperties& m) override {
         defaultMassProperties = m;
     }
-    RigidRep* clone() const {
+    RigidRep* clone() const override {
         return new RigidRep(*this);
     }
     const Body::Rigid& getMyRigidBodyHandle() const {
@@ -135,14 +135,14 @@ public:
     :   BodyRep(), infiniteMassProperties(Infinity, Vec3(0), Inertia(Infinity))
     {
     }
-    GroundRep* clone() const {
+    GroundRep* clone() const override {
         return new GroundRep(*this);
     }
-    const MassProperties& getDefaultRigidBodyMassProperties() const {
+    const MassProperties& getDefaultRigidBodyMassProperties() const override {
         return infiniteMassProperties;
     }
     
-    void setDefaultRigidBodyMassProperties(const MassProperties&) {
+    void setDefaultRigidBodyMassProperties(const MassProperties&) override {
         SimTK_THROW1(Exception::Cant, "You can't change Ground's mass properties!");
     }
 
@@ -166,14 +166,14 @@ public:
     :   BodyRep(), zeroMassProperties(0, Vec3(0), Inertia(0)) 
     {
     }
-    MasslessRep* clone() const {
+    MasslessRep* clone() const override {
         return new MasslessRep(*this);
     }
-    const MassProperties& getDefaultRigidBodyMassProperties() const {
+    const MassProperties& getDefaultRigidBodyMassProperties() const override {
         return zeroMassProperties;
     }
     
-    void setDefaultRigidBodyMassProperties(const MassProperties&) {
+    void setDefaultRigidBodyMassProperties(const MassProperties&) override {
         SimTK_THROW1(Exception::Cant, "You can't change a massless body's mass properties!");
     }
 

@@ -181,12 +181,12 @@ public:
         C = constant;
     }
 
-    Real calcValue(const Vector& x) const{
+    Real calcValue(const Vector& x) const override{
         return C;
     }
 
     // This is the pure virtual signature.
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override{
         return 0;
     }
     // This is just a local method providing std::vector compatibility without copying.
@@ -194,12 +194,12 @@ public:
         return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
     }
 
-    int getArgumentSize() const{
+    int getArgumentSize() const override{
         // constant has no arguments
         return 0;
     }
 
-    int getMaxDerivativeOrder() const{
+    int getMaxDerivativeOrder() const override{
         return 10;
     }
 };
@@ -223,11 +223,11 @@ public:
         b = intercept;
     }
 
-    Real calcValue(const Vector& x) const{
+    Real calcValue(const Vector& x) const override{
         return m*x[0]+b;
     }
 
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override{
         if (derivComponents.size() == 1)
             return m;
         return 0;
@@ -237,11 +237,11 @@ public:
         return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
     }
 
-    int getArgumentSize() const{
+    int getArgumentSize() const override{
         return 1;
     }
 
-    int getMaxDerivativeOrder() const{
+    int getMaxDerivativeOrder() const override{
         return 10;
     }
 };
@@ -250,10 +250,10 @@ class NonlinearFunction : public Function {
 public:
     NonlinearFunction(){
     }
-    Real calcValue(const Vector& x) const{
+    Real calcValue(const Vector& x) const override{
         return x[0]+x[1]*x[1];
     }
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override{
         switch (derivComponents.size()) {
             case 1:
                 return (derivComponents[0] == 0 ? 1.0 : x[1]);
@@ -267,10 +267,10 @@ public:
         return calcDerivative(ArrayViewConst_<int>(derivComponents), x);
     }
 
-    int getArgumentSize() const{
+    int getArgumentSize() const override{
         return 2;
     }
-    int getMaxDerivativeOrder() const{
+    int getMaxDerivativeOrder() const override{
         return std::numeric_limits<int>::max();
     }
 };

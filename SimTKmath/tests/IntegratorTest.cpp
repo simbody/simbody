@@ -68,7 +68,7 @@ public:
 
     inline const MyPendulum& getMyPendulum() const;
 
-    /*virtual*/MyPendulumGuts* cloneImpl() const {return new MyPendulumGuts(*this);}
+    /*virtual*/MyPendulumGuts* cloneImpl() const override {return new MyPendulumGuts(*this);}
 
         /////////////////////////////////////////////////////////
         // Implementation of continuous DynamicSystem virtuals //

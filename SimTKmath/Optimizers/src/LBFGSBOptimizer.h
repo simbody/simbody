@@ -37,10 +37,10 @@ public:
 
     LBFGSBOptimizer(const OptimizerSystem& sys); 
 
-    Real optimize(  Vector &results );
-    OptimizerRep* clone() const;
+    Real optimize(  Vector &results ) override;
+    OptimizerRep* clone() const override;
 
-    OptimizerAlgorithm getAlgorithm() const
+    OptimizerAlgorithm getAlgorithm() const override
     {   return LBFGSB; }
 
     int setulb_(int *n, int *m, Real *x, Real *l,

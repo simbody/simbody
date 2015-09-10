@@ -31,18 +31,18 @@ class IdentityFunction : public Function {
 public:
     IdentityFunction() {}
 
-    Real calcValue(const Vector& x) const{
+    Real calcValue(const Vector& x) const override{
         return x[0];
     }
 
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override{
         if (derivComponents.size() == 1) return 1.0;
         else return 0.0;
     }
 
-    int getArgumentSize() const {return 1;}
+    int getArgumentSize() const override {return 1;}
     
-    int getMaxDerivativeOrder() const {return 1000;}
+    int getMaxDerivativeOrder() const override {return 1000;}
 };
 
 // Difference between two components of a two component vector
@@ -69,7 +69,7 @@ private:
 /// df/dxdy = -2
 class ThreeDifferencesFunction : public Function {
 public:
-    Real calcValue(const Vector& x) const
+    Real calcValue(const Vector& x) const override
     {
         assert( 3 == x.size() );
 
@@ -80,7 +80,7 @@ public:
         return dxy*dxy + dxz*dxz + dyz*dyz;
     }
 
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override
     {
         Real deriv = 0;
     
@@ -111,11 +111,11 @@ public:
         return deriv;
     }
 
-    int getArgumentSize() const{
+    int getArgumentSize() const override{
         return 3;
     }
     
-    int getMaxDerivativeOrder() const{
+    int getMaxDerivativeOrder() const override{
         return 1000;
     }
 };
@@ -135,12 +135,12 @@ public:
     SinusoidFunction(angle_t amp, angle_t phi)
     : amplitude(amp), phase(phi) {}
     
-    Real calcValue(const Vector& x) const{
+    Real calcValue(const Vector& x) const override{
         assert( 1 == x.size() );
         return angle_t(amplitude*sin(x[0]*radians - phase));
     }
     
-    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const{
+    Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override{
         Real deriv = 0;
     
         assert(1 == x.size());
@@ -169,11 +169,11 @@ public:
         return deriv;
     }
     
-    int getArgumentSize() const{
+    int getArgumentSize() const override{
         return 1;
     }
     
-    int getMaxDerivativeOrder() const{
+    int getMaxDerivativeOrder() const override{
         return 1000;
     }
 };

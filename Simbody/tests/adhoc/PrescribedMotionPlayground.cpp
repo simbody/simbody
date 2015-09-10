@@ -48,7 +48,7 @@ public:
 
     ~MyReporter() {}
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         cout << state.getTime() << " " << m_system.calcEnergy(state);
         cout << " " << m_power.getValue(state) << " " << m_work.getValue(state) 
             << " " << 

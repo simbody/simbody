@@ -192,7 +192,7 @@ class FactorLURepBase {
 class FactorLUDefault : public FactorLURepBase {
    public:
    FactorLUDefault();
-   FactorLURepBase* clone() const;
+   FactorLURepBase* clone() const override;
 
 };
 
@@ -203,20 +203,20 @@ class FactorLURep : public FactorLURepBase {
    FactorLURep();
 
    ~FactorLURep();
-   FactorLURepBase* clone() const;
+   FactorLURepBase* clone() const override;
 
    template < class ELT > void factor(const Matrix_<ELT>& ); 
-   void solve( const Vector_<T>& b, Vector_<T>& x ) const;
-   void solve( const Matrix_<T>& b, Matrix_<T>& x ) const;
-   void inverse( Matrix_<T>& m ) const;
+   void solve( const Vector_<T>& b, Vector_<T>& x ) const override;
+   void solve( const Matrix_<T>& b, Matrix_<T>& x ) const override;
+   void inverse( Matrix_<T>& m ) const override;
 
-   void  getL( Matrix_<T>& l ) const; 
-   void  getU( Matrix_<T>& u ) const;
-   void  getD( Matrix_<T>& d ) const;
+   void  getL( Matrix_<T>& l ) const override; 
+   void  getU( Matrix_<T>& u ) const override;
+   void  getD( Matrix_<T>& d ) const override;
    void getErrorBounds( Vector_<T>& err, Vector_<T>& berr) const;
-   Real getConditionNumber() const;
-   bool isSingular() const;
-   int getSingularIndex() const;
+   Real getConditionNumber() const override;
+   bool isSingular() const override;
+   int getSingularIndex() const override;
  
    private:
 

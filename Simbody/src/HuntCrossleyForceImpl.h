@@ -35,7 +35,7 @@ class HuntCrossleyForceImpl : public ForceImpl {
 public:
     class Parameters;
     HuntCrossleyForceImpl(GeneralContactSubsystem& subystem, ContactSetIndex set);
-    HuntCrossleyForceImpl* clone() const {
+    HuntCrossleyForceImpl* clone() const override {
         return new HuntCrossleyForceImpl(*this);
     }
     void setBodyParameters
@@ -46,9 +46,9 @@ public:
     Real getTransitionVelocity() const;
     void setTransitionVelocity(Real v);
     ContactSetIndex getContactSetIndex() const {return set;}
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
-    Real calcPotentialEnergy(const State& state) const;
-    void realizeTopology(State& state) const;
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
+    Real calcPotentialEnergy(const State& state) const override;
+    void realizeTopology(State& state) const override;
 private:
     const GeneralContactSubsystem&          subsystem;
     const ContactSetIndex                   set;

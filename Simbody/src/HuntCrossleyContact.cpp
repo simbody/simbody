@@ -123,37 +123,37 @@ public:
 
         // OVERRIDE VIRTUAL FUNCTIONS FROM Subsystem::Guts
 
-    HuntCrossleyContactRep* cloneImpl() const {return new HuntCrossleyContactRep(*this);}
+    HuntCrossleyContactRep* cloneImpl() const override {return new HuntCrossleyContactRep(*this);}
 
 
-    int realizeSubsystemTopologyImpl(State& s) const {
+    int realizeSubsystemTopologyImpl(State& s) const override {
         instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
         energyCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Real>());
         return 0;
     }
 
-    int realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const override {
         // Sorry, no choices available at the moment.
         return 0;
     }
 
-    int realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
@@ -165,19 +165,19 @@ public:
     // It doesn't take many objects before that first term is very expensive.
     // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
-    int realizeSubsystemDynamicsImpl(const State& s) const;
+    int realizeSubsystemDynamicsImpl(const State& s) const override;
 
-    int realizeSubsystemAccelerationImpl(const State& s) const {
+    int realizeSubsystemAccelerationImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    int realizeSubsystemReportImpl(const State& s) const {
+    int realizeSubsystemReportImpl(const State& s) const override {
         // Nothing to compute here.
         return 0;
     }
 
-    Real calcPotentialEnergy(const State& state) const;
+    Real calcPotentialEnergy(const State& state) const override;
 
 private:
         // TOPOLOGY "STATE" VARIABLES

@@ -68,7 +68,7 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Main solve method. */
     SolverReturn Optimize();
