@@ -93,7 +93,7 @@ int main() {
             return state.getQ();
         }
     };
-   // system.adoptEventReporter(new TextDataEventReporter(system,
+    //system.adoptEventReporter(new TextDataEventReporter(system,
     //                                                    new ReportQ(),
     //                                                    1./300));
     

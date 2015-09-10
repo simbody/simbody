@@ -52,7 +52,7 @@ The action here is:
 (1) Considering only currently-active constraints, or constraints that are 
     inactive but proximal,
 (2) determine an acceptable impulse that corrects hard-constraint velocity 
-    errors,
+    errors while respecting restitution and friction laws,
 (3) project all hard position constraints that were active during the impact 
     onto the position manifold, and
 (4) follow up with a ContactEventAction to choose the active set.

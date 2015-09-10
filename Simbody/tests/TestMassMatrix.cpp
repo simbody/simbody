@@ -1042,7 +1042,8 @@ void testCompositeBodyInertia() {
     SimTK_TEST(!pend.isCompositeBodyInertiasRealized(state));
 }
 
-// Currently just testing validity/invalidation, not correctness.
+// Currently mostly testing validity/invalidation; there is a small correctness
+// test at the end.
 void testArticulatedBodyInertia() {
     MultibodySystem mbs;
     MyForceImpl* frcp;
@@ -1091,6 +1092,39 @@ void testArticulatedBodyInertia() {
     SimTK_TEST(state.getSystemStage()==Stage::Instance);
     SimTK_TEST(matter.isPositionKinematicsRealized(state));
     SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
+
+    // For a completely-welded system, composite body inertia and articulated
+    // body inertia should be the same.
+    MultibodySystem sys2;
+    SimbodyMatterSubsystem matter2(sys2);
+    Rotation R1(BodyRotationSequence, Pi/7, YAxis, -Pi/11, ZAxis, Pi/13, XAxis);
+    Rotation R2(BodyRotationSequence, -Pi/7, XAxis, Pi/3, YAxis, -Pi/17, ZAxis);
+    Transform xf1(R1, Vec3(.1,.2,-.4));
+    Transform xf2(R1, Vec3(-1,2,3));
+    Body::Rigid lumpy(MassProperties(3, Vec3(-.1,.2,.3), 
+                         UnitInertia(1,1.1,1.2,.01,.02,.03)));
+    MobilizedBody::Weld w1(matter2.Ground(), xf1,
+                           lumpy, xf2);
+    MobilizedBody::Pin w2(w1, xf2,
+                           lumpy, xf1);
+    MobilizedBody::Weld w3(w2, xf1,
+                           lumpy, xf2);
+    w2.lockByDefault();
+
+    // CBI and ABI should be the same with w2 locked.
+    State state2 = sys2.realizeTopology();
+    sys2.realize(state2, Stage::Position);
+    SpatialInertia cbi1 = matter2.getCompositeBodyInertia(state2, w1);
+    ArticulatedInertia abi1 = matter2.getArticulatedBodyInertia(state2, w1);
+    SimTK_TEST_EQ(cbi1.toSpatialMat(), abi1.toSpatialMat());
+
+    // CBI should be unchanged by unlocking, but ABI should change.
+    w2.unlock(state2);
+    sys2.realize(state2, Stage::Position);
+    SpatialInertia cbi2 = matter2.getCompositeBodyInertia(state2, w1);
+    ArticulatedInertia abi2 = matter2.getArticulatedBodyInertia(state2, w1);
+    SimTK_TEST_EQ(cbi1.toSpatialMat(), cbi2.toSpatialMat());
+    SimTK_TEST_NOTEQ(cbi2.toSpatialMat(), abi2.toSpatialMat());
 }
 
 // Currently just testing validity/invalidation, not correctness.
@@ -1145,39 +1179,6 @@ void testArticulatedBodyVelocity() {
     SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
     SimTK_TEST(matter.isArticulatedBodyVelocityRealized(state));
 
-
-    // For a completely-welded system, composite body inertia and articulated
-    // body inertia should be the same.
-    MultibodySystem sys2;
-    SimbodyMatterSubsystem matter2(sys2);
-    Rotation R1(BodyRotationSequence, Pi/7, YAxis, -Pi/11, ZAxis, Pi/13, XAxis);
-    Rotation R2(BodyRotationSequence, -Pi/7, XAxis, Pi/3, YAxis, -Pi/17, ZAxis);
-    Transform xf1(R1, Vec3(.1,.2,-.4));
-    Transform xf2(R1, Vec3(-1,2,3));
-    Body::Rigid lumpy(MassProperties(3, Vec3(-.1,.2,.3), 
-                         UnitInertia(1,1.1,1.2,.01,.02,.03)));
-    MobilizedBody::Weld w1(matter2.Ground(), xf1,
-                           lumpy, xf2);
-    MobilizedBody::Pin w2(w1, xf2,
-                           lumpy, xf1);
-    MobilizedBody::Weld w3(w2, xf1,
-                           lumpy, xf2);
-    w2.lockByDefault();
-
-    // CBI and ABI should be the same with w2 locked.
-    State state2 = sys2.realizeTopology();
-    sys2.realize(state2, Stage::Position);
-    SpatialInertia cbi1 = matter2.getCompositeBodyInertia(state2, w1);
-    ArticulatedInertia abi1 = matter2.getArticulatedBodyInertia(state2, w1);
-    SimTK_TEST_EQ(cbi1.toSpatialMat(), abi1.toSpatialMat());
-
-    // CBI should be unchanged by unlocking, but ABI should change.
-    w2.unlock(state2);
-    sys2.realize(state2, Stage::Position);
-    SpatialInertia cbi2 = matter2.getCompositeBodyInertia(state2, w1);
-    ArticulatedInertia abi2 = matter2.getArticulatedBodyInertia(state2, w1);
-    SimTK_TEST_EQ(cbi1.toSpatialMat(), cbi2.toSpatialMat());
-    SimTK_TEST_NOTEQ(cbi2.toSpatialMat(), abi2.toSpatialMat());
 }
 
 void testTaskJacobians() {
