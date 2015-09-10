@@ -37,11 +37,11 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     virtual bool InitializeImpl(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Update the Hessian based on the current information in IpData.
      */
-    virtual void UpdateHessian();
+    virtual void UpdateHessian() override;
 
     /** Methods for OptionsList */
     //@{

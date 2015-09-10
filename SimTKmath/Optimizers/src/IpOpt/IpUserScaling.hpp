@@ -44,7 +44,7 @@ namespace Ipopt
       Number& df,
       SmartPtr<Vector>& dx,
       SmartPtr<Vector>& dc,
-      SmartPtr<Vector>& dd);
+      SmartPtr<Vector>& dd) override;
 
   private:
 

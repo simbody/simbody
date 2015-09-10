@@ -34,7 +34,7 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     bool InitializeImpl(const OptionsList& options,
-                        const std::string& prefix);
+                        const std::string& prefix) override;
 
     /** Set up the augmented system and solve it for a given right hand
      *  side.
@@ -61,7 +61,7 @@ namespace Ipopt
       Vector& sol_c,
       Vector& sol_d,
       bool check_NegEVals,
-      Index numberOfNegEVals);
+      Index numberOfNegEVals) override;
 
     /** Number of negative eigenvalues detected during last
      * solve.  Returns the number of negative eigenvalues of
@@ -69,12 +69,12 @@ namespace Ipopt
      * the linear solver does not compute this quantities (see
      * ProvidesInertia).
      */
-    virtual Index NumberOfNegEVals() const;
+    virtual Index NumberOfNegEVals() const override;
 
     /** Query whether inertia is computed by linear solver.
      * Returns true, if linear solver provides inertia.
      */
-    virtual bool ProvidesInertia() const;
+    virtual bool ProvidesInertia() const override;
 
     /** Request to increase quality of solution for next solve.  Ask
      *  underlying linear solver to increase quality of solution for
@@ -82,7 +82,7 @@ namespace Ipopt
      *  false, if this is not possible (e.g. maximal pivot tolerance
      *  already used.)
      */
-    virtual bool IncreaseQuality();
+    virtual bool IncreaseQuality() override;
 
   private:
     /**@name Default Compiler Generated Methods

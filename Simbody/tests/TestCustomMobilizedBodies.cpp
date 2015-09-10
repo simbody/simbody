@@ -68,34 +68,34 @@ class CustomTranslation : public MobilizedBody::Custom::Implementation {
 public:
     CustomTranslation(SimbodyMatterSubsystem& matter) : Implementation(matter, 3, 3, 0) {
     }
-    Implementation* clone() const {
+    Implementation* clone() const override {
         return new CustomTranslation(*this);
     }
-    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const {
+    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const override {
         ASSERT(nq == 3);
         return Transform(Vec3(q[0], q[1], q[2]));
     }
-    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 3);
         return SpatialVec(Vec3(0), Vec3(u[0], u[1], u[2]));
     }
-    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         ASSERT(nu == 3);
         Vec3::updAs(f) = F[1];
     }
-    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 3);
         return SpatialVec(Vec3(0), Vec3(0));
     }
-    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         ASSERT(nu == 3);
         Vec3::updAs(f) = Vec3(0);
     }
-    void setQToFitTransform(const State&, const Transform& X_FM, int nq, Real* q) const {
+    void setQToFitTransform(const State&, const Transform& X_FM, int nq, Real* q) const override {
         ASSERT(nq == 3);
         Vec3::updAs(q) = X_FM.p();
     }
-    void setUToFitVelocity(const State&, const SpatialVec& V_FM, int nu, Real* u) const {
+    void setUToFitVelocity(const State&, const SpatialVec& V_FM, int nu, Real* u) const override {
         ASSERT(nu == 3);
         Vec3::updAs(u) = V_FM[1];
     }
@@ -109,10 +109,10 @@ class CustomBall : public MobilizedBody::Custom::Implementation {
 public:
     CustomBall(SimbodyMatterSubsystem& matter) : Implementation(matter, 3, 4, 4) {
     }
-    Implementation* clone() const {
+    Implementation* clone() const override {
         return new CustomBall(*this);
     }
-    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const {
+    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const override {
         Transform t(Vec3(0));
         if (getUseEulerAngles(s)) {
             ASSERT(nq == 3);
@@ -125,23 +125,23 @@ public:
         return t;
         
     }
-    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 3);
         return SpatialVec(Vec3(u[0], u[1], u[2]), Vec3(0));
     }
-    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         ASSERT(nu == 3);
         Vec3::updAs(f) = F[0];
     }
-    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 3);
         return SpatialVec(Vec3(0), Vec3(0));
     }
-    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         ASSERT(nu == 3);
         Vec3::updAs(f) = Vec3(0);
     }
-    void multiplyByN(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByN(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const override {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
@@ -161,7 +161,7 @@ public:
             else                 Vec4::updAs(out) = N * Vec3::getAs(in);
         }
     }
-    void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const override {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
@@ -181,7 +181,7 @@ public:
             else                 Vec3::updAs(out) = NInv * Vec4::getAs(in);
         }
     }
-    void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const override {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 3 && nOut == 3);
@@ -197,7 +197,7 @@ public:
             Vec4::updAs(out) = Rotation::convertAngVelDotToQuaternionDotDot(Vec4::getAs(&q[0]), Vec3::getAs(in), Vec3(0));
         }
     }
-    void setQToFitTransform(const State& s, const Transform& X_FM, int nq, Real* q) const {
+    void setQToFitTransform(const State& s, const Transform& X_FM, int nq, Real* q) const override {
         if (getUseEulerAngles(s)) {
             ASSERT(nq == 3);
             Vec3::updAs(q) = X_FM.R().convertRotationToBodyFixedXYZ();
@@ -207,7 +207,7 @@ public:
             Vec4::updAs(q) = X_FM.R().convertRotationToQuaternion().asVec4();
         }
     }
-    void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const {
+    void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const override {
         ASSERT(nu == 3);
         Vec3::updAs(u) = V_FM[0];
     }
@@ -221,10 +221,10 @@ class CustomFree : public MobilizedBody::Custom::Implementation {
 public:
     CustomFree(SimbodyMatterSubsystem& matter) : Implementation(matter, 6, 7, 4) {
     }
-    Implementation* clone() const {
+    Implementation* clone() const override {
         return new CustomFree(*this);
     }
-    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const {
+    Transform calcMobilizerTransformFromQ(const State& s, int nq, const Real* q) const override {
         Transform t(Vec3::getAs(&q[nq-3]));
         if (getUseEulerAngles(s)) {
             ASSERT(nq == 6);
@@ -237,23 +237,23 @@ public:
         return t;
         
     }
-    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 6);
         return SpatialVec(Vec3(u[0], u[1], u[2]), Vec3(u[3], u[4], u[5]));
     }
-    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         ASSERT(nu == 6);
         SpatialVec::updAs(reinterpret_cast<Vec3*>(f)) = F;
     }
-    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const {
+    SpatialVec multiplyByHDotMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 6);
         return SpatialVec(Vec3(0), Vec3(0));
     }
-    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const {
+    void multiplyByHDotTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
         ASSERT(nu == 6);
         SpatialVec::updAs(reinterpret_cast<Vec3*>(f)) = SpatialVec(Vec3(0), Vec3(0));
     }
-    void multiplyByN(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByN(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const override {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
@@ -274,7 +274,7 @@ public:
         }
         Vec3::updAs(&out[nOut-3]) = Vec3::getAs(&in[nIn-3]);
    }
-    void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNInv(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const override {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
@@ -295,7 +295,7 @@ public:
         }
         Vec3::updAs(&out[nOut-3]) = Vec3::getAs(&in[nIn-3]);
     }
-    void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const {
+    void multiplyByNDot(const State& s, bool transposeMatrix, int nIn, const Real* in, int nOut, Real* out) const override {
         const Vector q = getQ(s);
         if (getUseEulerAngles(s)) {
             ASSERT(nIn == 6 && nOut == 6);
@@ -312,7 +312,7 @@ public:
         }
         Vec3::updAs(&out[nOut-3]) = Vec3(0);
     }
-    void setQToFitTransform(const State& s, const Transform& X_FM, int nq, Real* q) const {
+    void setQToFitTransform(const State& s, const Transform& X_FM, int nq, Real* q) const override {
         if (getUseEulerAngles(s)) {
             ASSERT(nq == 6);
             Vec3::updAs(q) = X_FM.R().convertRotationToBodyFixedXYZ();
@@ -323,7 +323,7 @@ public:
         }
         Vec3::updAs(&q[nq-3]) = X_FM.p();
     }
-    void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const {
+    void setUToFitVelocity(const State& s, const SpatialVec& V_FM, int nu, Real* u) const override {
         ASSERT(nu == 6);
         SpatialVec::updAs(reinterpret_cast<Vec3*>(u)) = V_FM;
     }

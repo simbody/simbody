@@ -99,7 +99,7 @@ public:
     UniformImpl(Real min, Real max) : min(min), max(max), range(max-min) {
     }
     
-    Real getValue() const {
+    Real getValue() const override {
         return min+getNextRandom()*range;
     }
     
@@ -136,7 +136,7 @@ public:
         nextGaussianIsValid = false;
     }
     
-    Real getValue() const {
+    Real getValue() const override {
         if (nextGaussianIsValid) {
             nextGaussianIsValid = false;
             return mean+stddev*nextGaussian;
@@ -156,7 +156,7 @@ public:
         return mean+stddev*x*multiplier;
     }
     
-    void setSeed(int seed) {
+    void setSeed(int seed) override {
         RandomImpl::setSeed(seed);
         nextGaussianIsValid = false;
     }

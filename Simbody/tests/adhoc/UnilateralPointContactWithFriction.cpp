@@ -605,7 +605,7 @@ public:
     int getNumSavedStates() const {return (int)m_states.size();}
     const State& getState(int n) const {return m_states[n];}
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
         const SimbodyMatterSubsystem& matter=m_mbs.getMatterSubsystem();
         const SpatialVec PG = matter.calcSystemMomentumAboutGroundOrigin(s);
         m_mbs.realize(s, Stage::Acceleration);
@@ -634,7 +634,7 @@ public:
     explicit Nada(Real reportInterval)
     :   PeriodicEventReporter(reportInterval) {} 
 
-    void handleEvent(const State& s) const {
+    void handleEvent(const State& s) const override {
 #ifndef NDEBUG
         printf("%7g NADA\n", s.getTime());
 #endif
@@ -672,7 +672,7 @@ public:
     }
 
     // This is the witness function.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
         const MyContactElement& uni = m_unis.getContactElement(m_which);
         if (!uni.isDisabled(state)) 
@@ -711,7 +711,7 @@ public:
     // of restitution to calculate the rest of the impulse, then apply
     // both impulses to produce changes in velocity. In most cases this
     // will produce the same rebound velocity as Newton, but not always.
-    void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const;
+    void handleEvent(State& s, Real accuracy, bool& shouldTerminate) const override;
 
     // Given the set of proximal constraints, prevent penetration by applying
     // a nonnegative least squares impulse generating a step change in 
@@ -779,7 +779,7 @@ public:
     }
 
     // This is the witness function.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const MyContactElement& uni = m_unis.getContactElement(m_which);
         if (uni.isDisabled(state)) return 0;
         const Real f = uni.getForce(state);
@@ -787,7 +787,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
         SimTK_DEBUG2("\nhandle %d liftoff@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
@@ -1222,7 +1222,7 @@ public:
     }
 
     // This is the witness function.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const MyFrictionElement& friction = m_unis.getFrictionElement(m_which);
         if (!friction.isMasterActive(state)) return 0;
         const Real signedSlipSpeed = friction.calcSlipSpeedWitness(state);
@@ -1230,7 +1230,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
         SimTK_DEBUG2("\nhandle %d slide->stick@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
@@ -1276,7 +1276,7 @@ public:
 
     // This is the witness function. It is positive as long as mu_s*N is greater
     // than the friction force magnitude.
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         const MyFrictionElement& friction = m_unis.getFrictionElement(m_which);
         if (!friction.isMasterActive(state)) return 0;
         const Real forceMargin = friction.calcStictionForceWitness(state);
@@ -1284,7 +1284,7 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const 
+       (State& s, Real accuracy, bool& shouldTerminate) const override 
     {
         SimTK_DEBUG2("\nhandle %d stick->slide@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");

@@ -47,7 +47,7 @@ namespace Ipopt
     /** @name TNLPAdapter Initialization. */
     //@{
     virtual bool ProcessOptions(const OptionsList& options,
-                                const std::string& prefix);
+                                const std::string& prefix) override;
 
     /** Method for creating the derived vector / matrix types
      *  (Do not delete these, the ). */
@@ -64,7 +64,7 @@ namespace Ipopt
                            SmartPtr<const MatrixSpace>& pd_u_space,
                            SmartPtr<const MatrixSpace>& Jac_c_space,
                            SmartPtr<const MatrixSpace>& Jac_d_space,
-                           SmartPtr<const SymMatrixSpace>& Hess_lagrangian_space);
+                           SmartPtr<const SymMatrixSpace>& Hess_lagrangian_space) override;
 
     /** Method for obtaining the bounds information */
     virtual bool GetBoundsInformation(const Matrix& Px_L,
@@ -74,7 +74,7 @@ namespace Ipopt
                                       const Matrix& Pd_L,
                                       Vector& d_L,
                                       const Matrix& Pd_U,
-                                      Vector& d_U);
+                                      Vector& d_U) override;
 
     /** Method for obtaining the starting point
      *  for all the iterates. */
@@ -89,32 +89,32 @@ namespace Ipopt
       bool need_z_L,
       SmartPtr<Vector> z_U,
       bool need_z_U
-    );
+    ) override;
 
     /** Method for obtaining an entire iterate as a warmstart point.
      *  The incoming IteratesVector has to be filled. */
-    virtual bool GetWarmStartIterate(IteratesVector& warm_start_iterate);
+    virtual bool GetWarmStartIterate(IteratesVector& warm_start_iterate) override;
     //@}
 
     /** @name TNLPAdapter evaluation routines. */
     //@{
-    virtual bool Eval_f(const Vector& x, Number& f);
+    virtual bool Eval_f(const Vector& x, Number& f) override;
 
-    virtual bool Eval_grad_f(const Vector& x, Vector& g_f);
+    virtual bool Eval_grad_f(const Vector& x, Vector& g_f) override;
 
-    virtual bool Eval_c(const Vector& x, Vector& c);
+    virtual bool Eval_c(const Vector& x, Vector& c) override;
 
-    virtual bool Eval_jac_c(const Vector& x, Matrix& jac_c);
+    virtual bool Eval_jac_c(const Vector& x, Matrix& jac_c) override;
 
-    virtual bool Eval_d(const Vector& x, Vector& d);
+    virtual bool Eval_d(const Vector& x, Vector& d) override;
 
-    virtual bool Eval_jac_d(const Vector& x, Matrix& jac_d);
+    virtual bool Eval_jac_d(const Vector& x, Matrix& jac_d) override;
 
     virtual bool Eval_h(const Vector& x,
                         Number obj_factor,
                         const Vector& yc,
                         const Vector& yd,
-                        SymMatrix& h);
+                        SymMatrix& h) override;
 
     virtual void GetScalingParameters(
       const SmartPtr<const VectorSpace> x_space,
@@ -123,7 +123,7 @@ namespace Ipopt
       Number& obj_scaling,
       SmartPtr<Vector>& x_scaling,
       SmartPtr<Vector>& c_scaling,
-      SmartPtr<Vector>& d_scaling) const;
+      SmartPtr<Vector>& d_scaling) const override;
     //@}
 
     /** @name Solution Reporting Methods */
@@ -132,7 +132,7 @@ namespace Ipopt
                                   const Vector& x, const Vector& z_L, const Vector& z_U,
                                   const Vector& c, const Vector& d,
                                   const Vector& y_c, const Vector& y_d,
-                                  Number obj_value);
+                                  Number obj_value) override;
     virtual bool IntermediateCallBack(AlgorithmMode mode,
                                       Index iter, Number obj_value,
                                       Number inf_pr, Number inf_du,
@@ -141,13 +141,13 @@ namespace Ipopt
                                       Number alpha_du, Number alpha_pr,
                                       Index ls_trials,
                                       const IpoptData* ip_data,
-                                      IpoptCalculatedQuantities* ip_cq);
+                                      IpoptCalculatedQuantities* ip_cq) override;
     //@}
 
     /** Method returning information on quasi-Newton approximation. */
     virtual void
     GetQuasiNewtonApproximationSpaces(SmartPtr<VectorSpace>& approx_space,
-                                      SmartPtr<Matrix>& P_approx);
+                                      SmartPtr<Matrix>& P_approx) override;
 
     /** Enum for treatment of fixed variables option */
     enum FixedVariableTreatmentEnum {

@@ -190,12 +190,12 @@ public:
     const Vec3& getPoint() const {return point;}
 
     // virtuals
-    DecorativePointRep* cloneDecorativeGeometryRep() const {
+    DecorativePointRep* cloneDecorativeGeometryRep() const override {
         DecorativePointRep* DGRep = new DecorativePointRep(*this);
         return DGRep; 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementPointGeometry(getMyPointHandle());
     }
 
@@ -229,12 +229,12 @@ public:
     const Vec3& getPoint2() const {return point2;}
 
     // virtuals
-    DecorativeLineRep* cloneDecorativeGeometryRep() const {
+    DecorativeLineRep* cloneDecorativeGeometryRep() const override {
         DecorativeLineRep* DGRep = new DecorativeLineRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementLineGeometry(getMyLineHandle());
     }
 
@@ -267,12 +267,12 @@ public:
     const Real& getRadius() const {return r;}
 
     // virtuals
-    DecorativeCircleRep* cloneDecorativeGeometryRep() const {
+    DecorativeCircleRep* cloneDecorativeGeometryRep() const override {
         DecorativeCircleRep* DGRep = new DecorativeCircleRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementCircleGeometry(getMyCircleHandle());
     }
 
@@ -306,12 +306,12 @@ public:
     const Real& getRadius() const {return r;}
 
     // virtuals
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
         DecorativeSphereRep* DGRep = new DecorativeSphereRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementSphereGeometry(getMySphereHandle());
     }
 
@@ -345,12 +345,12 @@ public:
     const Vec3& getRadii() const {return radii;}
 
     // virtuals
-    DecorativeEllipsoidRep* cloneDecorativeGeometryRep() const {
+    DecorativeEllipsoidRep* cloneDecorativeGeometryRep() const override {
         DecorativeEllipsoidRep* DGRep = new DecorativeEllipsoidRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementEllipsoidGeometry(getMyEllipsoidHandle());
     }
 
@@ -385,12 +385,12 @@ public:
     const Vec3& getHalfLengths() const {return halfLengths;}
 
     // virtuals
-    DecorativeBrickRep* cloneDecorativeGeometryRep() const {
+    DecorativeBrickRep* cloneDecorativeGeometryRep() const override {
         DecorativeBrickRep* DGRep = new DecorativeBrickRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementBrickGeometry(getMyBrickHandle());
     }
 
@@ -427,12 +427,12 @@ public:
     Real getHalfHeight() const {return halfHeight;}
 
     // virtuals
-    DecorativeCylinderRep* cloneDecorativeGeometryRep() const {
+    DecorativeCylinderRep* cloneDecorativeGeometryRep() const override {
         DecorativeCylinderRep* DGRep = new DecorativeCylinderRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementCylinderGeometry(getMyCylinderHandle());
     }
 
@@ -461,12 +461,12 @@ public:
     const Real& getAxisLength() const {return axisLength;}
 
     // virtuals
-    DecorativeFrameRep* cloneDecorativeGeometryRep() const {
+    DecorativeFrameRep* cloneDecorativeGeometryRep() const override {
         DecorativeFrameRep* DGRep = new DecorativeFrameRep(*this);
         return( DGRep ); 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementFrameGeometry(getMyFrameHandle());
     }
 
@@ -503,12 +503,12 @@ void setIsScreenText(bool isScreen) {isScreenText=isScreen;}
 bool getIsScreenText() const {return isScreenText;}
 
 // virtuals
-DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeTextRep* DGRep = new DecorativeTextRep(*this);
     return( DGRep ); 
 }
 
-void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
     geometry.implementTextGeometry(getMyTextHandle());
 }
 
@@ -539,12 +539,12 @@ const PolygonalMesh& getMesh() const {
 }
 
 // virtuals
-DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeMeshRep* DGRep = new DecorativeMeshRep(*this);
     return( DGRep ); 
 }
 
-void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
     geometry.implementMeshGeometry(getMyMeshHandle());
 }
 
@@ -575,12 +575,12 @@ const std::string& getMeshFile() const {
 }
 
 // virtuals
-DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeMeshFileRep* DGRep = new DecorativeMeshFileRep(*this);
     return DGRep ; 
 }
 
-void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
     geometry.implementMeshFileGeometry(getMyMeshFileHandle());
 }
 
@@ -624,12 +624,12 @@ public:
         tubeRadius = tubeR;
     }
     // virtuals
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
         DecorativeTorusRep* DGRep = new DecorativeTorusRep(*this);
         return DGRep;
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementTorusGeometry(getMyTorusHandle());
     }
 
@@ -682,12 +682,12 @@ public:
     }
 
     // virtuals
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
         DecorativeArrowRep* DGRep = new DecorativeArrowRep(*this);
         return DGRep;
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementArrowGeometry(getMyArrowHandle());
     }
 
@@ -747,12 +747,12 @@ public:
         baseRadius = baseR;
     }
     // virtuals
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
         DecorativeConeRep* DGRep = new DecorativeConeRep(*this);
         return DGRep;
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         geometry.implementConeGeometry(getMyConeHandle());
     }
 
@@ -799,12 +799,12 @@ public:
 
     // virtuals
 
-    DecorationsRep* cloneDecorativeGeometryRep() const {
+    DecorationsRep* cloneDecorativeGeometryRep() const override {
         DecorationsRep* DGRep = new DecorationsRep(*this);
         return DGRep; 
     }
 
-    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
         for (unsigned i=0; i < geom.size(); ++i) {
             DecorativeGeometry copy = geom[i];
             copy.updRep().inheritPropertiesFrom(*this);

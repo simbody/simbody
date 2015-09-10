@@ -40,7 +40,7 @@ public:
                         const CompliantContactSubsystem& complCont)
         :   m_system(system), m_compliant(complCont) {}
 
-    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) {
+    virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) override {
         const Vec3 frcColors[] = {Red,Orange,Cyan};
         const Vec3 momColors[] = {Blue,Green,Purple};
         m_system.realize(state, Stage::Velocity);
@@ -113,7 +113,7 @@ public:
 
     ~MyReporter() {}
 
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         m_system.realize(state, Stage::Dynamics);
         /*   cout << state.getTime() << ": E = " << m_system.calcEnergy(state)
              << " Ediss=" << m_compliant.getDissipatedEnergy(state)
@@ -149,7 +149,7 @@ public:
         :   PeriodicEventHandler(interval), m_silo(silo) {}
 
     virtual void handleEvent(State& state, Real accuracy, 
-        bool& shouldTerminate) const
+        bool& shouldTerminate) const override
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)

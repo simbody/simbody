@@ -57,7 +57,7 @@ public:
     static PeriodicHandler* handler;
     PeriodicHandler() : PeriodicEventHandler(1.0) {
     }
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
         
         // This should be triggered every (interval) time units.
         
@@ -73,10 +73,10 @@ public:
     static bool hasAccelerated;
     ZeroPositionHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
     }
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
         
         // This should be triggered when the pendulum crosses x == 0.
         
@@ -106,10 +106,10 @@ public:
     ZeroVelocityHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
         getTriggerInfo().setTriggerOnFallingSignTransition(false);
     }
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
-    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const {
+    void handleEvent(State& state, Real accuracy, bool& shouldTerminate) const override {
         
         // This should be triggered when the pendulum reaches its farthest point in the
         // negative direction: q[0] == -1, u[0] == 0.
@@ -130,7 +130,7 @@ public:
     static PeriodicReporter* reporter;
     PeriodicReporter(PendulumSystem& pendulum) : PeriodicEventReporter(1.0), pendulum(pendulum) {
     }
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         
         // This should be triggered every (interval) time units.
         
@@ -158,10 +158,10 @@ public:
     static bool hasOccurred;
     OnceOnlyEventReporter() {
     }
-    Real getNextEventTime(const State&, bool includeCurrentTime) const {
+    Real getNextEventTime(const State&, bool includeCurrentTime) const override {
         return 5.0;
     }
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         ASSERT(!hasOccurred);
         hasOccurred = true;
     }
@@ -172,7 +172,7 @@ public:
     static int eventCount;
     DiscontinuousReporter() : TriggeredEventReporter(Stage::Time) {
     }
-    Real getValue(const State& state) const {
+    Real getValue(const State& state) const override {
         Real step = std::floor(state.getTime());
         step = std::fmod(step, 4.0);
         if (step == 0.0)
@@ -181,7 +181,7 @@ public:
             return -1.0;
         return 0.0;
     }
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         
         // This should be triggered when the value goes to 0, but not when it leaves 0.
         

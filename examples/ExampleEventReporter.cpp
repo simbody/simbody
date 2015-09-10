@@ -36,7 +36,7 @@ public:
     }
 
     // Show x-y position of the pendulum weight as a function of time.
-    void handleEvent(const State& state) const {
+    void handleEvent(const State& state) const override {
         system.realize(state, Stage::Position);
         Vec3 pos = body.getBodyOriginLocation(state);
         std::cout<<state.getTime()<<"\t"<<pos[0]<<"\t"<<pos[1]<<std::endl;

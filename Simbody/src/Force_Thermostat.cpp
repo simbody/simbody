@@ -46,19 +46,19 @@ public:
         defaultRelaxationTime(defRelaxationTime), 
         defaultNumExcludedDofs(defNumExcludedDofs) {}
 
-    ThermostatImpl* clone() const {return new ThermostatImpl(*this);}
-    bool dependsOnlyOnPositions() const {return false;}
+    ThermostatImpl* clone() const override {return new ThermostatImpl(*this);}
+    bool dependsOnlyOnPositions() const override {return false;}
 
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const;
+                   Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
 
     // Temperature does not contribute to potential energy.
-    Real calcPotentialEnergy(const State& state) const {return 0;}
+    Real calcPotentialEnergy(const State& state) const override {return 0;}
 
-    void realizeTopology(State& state) const;
-    void realizeModel(State& state) const;
-    void realizeVelocity(const State& state) const;
-    void realizeDynamics(const State& state) const;
+    void realizeTopology(State& state) const override;
+    void realizeModel(State& state) const override;
+    void realizeVelocity(const State& state) const override;
+    void realizeDynamics(const State& state) const override;
 
     // Get/update the current number of chains.
     int getNumChains(const State& s) const {

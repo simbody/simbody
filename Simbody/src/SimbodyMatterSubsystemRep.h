@@ -159,22 +159,22 @@ public:
         clearTopologyState();
     }
 
-    SimbodyMatterSubsystemRep* cloneImpl() const {
+    SimbodyMatterSubsystemRep* cloneImpl() const override {
         return new SimbodyMatterSubsystemRep(*this);
     }
 
-    int realizeSubsystemTopologyImpl    (State&) const;
-    int realizeSubsystemModelImpl       (State&) const;
-    int realizeSubsystemInstanceImpl    (const State&) const;
-    int realizeSubsystemTimeImpl        (const State&) const;
-    int realizeSubsystemPositionImpl    (const State&) const;
-    int realizeSubsystemVelocityImpl    (const State&) const;
-    int realizeSubsystemDynamicsImpl    (const State&) const;
-    int realizeSubsystemAccelerationImpl(const State&) const;
-    int realizeSubsystemReportImpl      (const State&) const;
+    int realizeSubsystemTopologyImpl    (State&) const override;
+    int realizeSubsystemModelImpl       (State&) const override;
+    int realizeSubsystemInstanceImpl    (const State&) const override;
+    int realizeSubsystemTimeImpl        (const State&) const override;
+    int realizeSubsystemPositionImpl    (const State&) const override;
+    int realizeSubsystemVelocityImpl    (const State&) const override;
+    int realizeSubsystemDynamicsImpl    (const State&) const override;
+    int realizeSubsystemAccelerationImpl(const State&) const override;
+    int realizeSubsystemReportImpl      (const State&) const override;
 
     int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const;
+       (const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const override;
 
     // TODO: these are just unit weights and tolerances. They should be calculated
     // to be something more reasonable.

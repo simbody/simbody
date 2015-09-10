@@ -48,26 +48,26 @@ public:
                           const std::string& methodName, 
                           bool hasErrorControl);
 
-    void methodInitialize(const State&);
+    void methodInitialize(const State&) override;
 
     Integrator::SuccessfulStepStatus 
-        stepTo(Real reportTime, Real scheduledEventTime);
+        stepTo(Real reportTime, Real scheduledEventTime) override;
 
-    Real getActualInitialStepSizeTaken() const;
-    Real getPreviousStepSizeTaken() const;
-    Real getPredictedNextStepSize() const;
-    int getNumStepsAttempted() const;
-    int getNumStepsTaken() const;
-    int getNumErrorTestFailures() const;
-    int getNumConvergenceTestFailures() const;
-    int getNumConvergentIterations() const;
-    int getNumDivergentIterations() const;
-    int getNumIterations() const;
-    void resetMethodStatistics();
-    const char* getMethodName() const;
-    int getMethodMinOrder() const;
-    int getMethodMaxOrder() const;
-    bool methodHasErrorControl() const;
+    Real getActualInitialStepSizeTaken() const override;
+    Real getPreviousStepSizeTaken() const override;
+    Real getPredictedNextStepSize() const override;
+    int getNumStepsAttempted() const override;
+    int getNumStepsTaken() const override;
+    int getNumErrorTestFailures() const override;
+    int getNumConvergenceTestFailures() const override;
+    int getNumConvergentIterations() const override;
+    int getNumDivergentIterations() const override;
+    int getNumIterations() const override;
+    void resetMethodStatistics() override;
+    const char* getMethodName() const override;
+    int getMethodMinOrder() const override;
+    int getMethodMaxOrder() const override;
+    bool methodHasErrorControl() const override;
 
 protected:
     /*
