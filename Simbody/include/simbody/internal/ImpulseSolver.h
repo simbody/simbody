@@ -180,7 +180,7 @@ public:
         const Matrix&                       A,     // m X m, symmetric
         const Vector&                       D,     // m, diag>=0 added to A
         const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
-        Vector&                             piExpand, // m
+        const Vector&                       piExpand, // m
         Vector&                             verrStart,   // m, RHS (in/out)
         Vector&                             verrApplied, // m
         Vector&                             pi,       // m, known+unknown
@@ -210,7 +210,7 @@ public:
     the solution that minimizes the 2-norm of the error ||(A+D)pi-rhs|| 
     (participating part only) if the solution is overdetermined and 
     inconsistent. However, concrete ImpulseSolvers are free to return a 
-    different solution provide their behavior is well documented. The method 
+    different solution provided their behavior is well documented. The method 
     used should be qualitatively similar to that used by the solve() method for
     the same concrete %ImpulseSolver. For example, if solve() uses an
     iterative method then this should also do so. **/

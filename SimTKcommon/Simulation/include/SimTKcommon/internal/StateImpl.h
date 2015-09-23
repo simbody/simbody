@@ -2554,7 +2554,7 @@ double& State::updTime() {
 inline Vector& State::updY() {
     return updImpl().updY();
 }
-inline void State::setTime(Real t) {
+inline void State::setTime(double t) {
     updTime() = t;
 }
 inline void State::setY(const Vector& y) {

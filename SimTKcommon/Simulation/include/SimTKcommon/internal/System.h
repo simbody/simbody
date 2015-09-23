@@ -630,11 +630,11 @@ triggered once at the end of a simulation. **/
 Event::Termination& updTerminationEvent();
 
 /** Return a const reference to the built-in ExtremeValueIsolated Event. This
-Event is triggered whenever a watched value reaches and extremum of 
+Event is triggered whenever a watched value reaches an extremum of 
 interest (could be a maximum, minimum, or either). **/
 const Event::ExtremeValueIsolated& getExtremeValueIsolatedEvent() const;
 /** Return a writable reference to the built-in ExtremeValueIsolated Event. This
-Event is triggered whenever a watched value reaches and extremum of 
+Event is triggered whenever a watched value reaches an extremum of 
 interest (could be a maximum, minimum, or either). **/
 Event::ExtremeValueIsolated& updExtremeValueIsolatedEvent();
 

@@ -289,7 +289,7 @@ solve(int                                 phase,
       const Matrix&                       A,     // m X m, symmetric
       const Vector&                       D,     // m, diag >= 0 added to A
       const Array_<MultiplierIndex>&      expanding,
-      Vector&                             piExpand,   // m
+      const Vector&                       piExpand,   // m
       Vector&                             verrStart, // m, in/out
       Vector&                             verrApplied, // m
       Vector&                             pi,         // m, piUnknown

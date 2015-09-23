@@ -173,8 +173,8 @@ void SimbodyMatterSubsystem::calcAcceleration
     const SBInstanceCache& ic = getRep().getInstanceCache(state);
     SBTreeAccelerationCache        tac;
     SBConstrainedAccelerationCache cac;
-    tac.allocate(getRep().topologyCache, mc, ic);
-    cac.allocate(getRep().topologyCache, mc, ic);
+    tac.allocate(getRep().getMatterTopologyCache(), mc, ic);
+    cac.allocate(getRep().getMatterTopologyCache(), mc, ic);
 
     Vector qdotdot; // unwanted return value
     Vector multipliers(getNMultipliers(state)); // unwanted return value

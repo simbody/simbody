@@ -1395,47 +1395,47 @@ with the calcM() method.
 @see multiplyByMInv(), calcM() **/
 void calcMInv(const State&, Matrix& MInv) const;
 
-/** This operator calculates in O(m*n) time the m X m "projected inverse mass 
-matrix" or "constraint compliance matrix" W=G*M^-1*~G, where G (mXn) is the 
-acceleration-level constraint Jacobian mapped to generalized coordinates,
-and M (nXn) is the unconstrained system mass matrix. In case there is prescribed
-motion specified with Motion objects or mobilizer locking, M^-1 here is really
-M_ff^-1, that is, it is restricted to the free (non-prescribed) mobilities, but 
-scattered into a full n X n matrix (conceptually). See multiplyByMInv() and 
-calcMInv() for more information.
+/** This operator calculates in O(m*n) time the m X m *constraint compliance 
+matrix* C=G*M^-1*~G, where G (mXn) is the acceleration-level constraint 
+Jacobian mapped to generalized coordinates, and M (nXn) is the unconstrained 
+system mass matrix. In case there is prescribed motion specified with Motion 
+objects or mobilizer locking, M^-1 here is really M_ff^-1, that is, it is 
+restricted to the free (non-prescribed) mobilities, but scattered into a full 
+n X n matrix (conceptually). See multiplyByMInv() and calcMInv() for more 
+information.
 
-W is the projection of the inverse mass matrix into the constraint coordinate
+C is the projection of the inverse mass matrix into the constraint coordinate
 space (that is, the vector space of the multipliers lambda). It can be used to 
 solve for the constraint forces that will eliminate a given constraint 
 acceleration error:
 <pre>
-    (1)     W * lambda = aerr
+    (1)     C * lambda = aerr
     (2)     aerr = G*udot - b(t,q,u)
 </pre>
 where udot is an unconstrained generalized acceleration. Note that you can
 view equation (1) as a dynamic system in a reduced set of m generalized
-coordinates, with the caveat that W may be singular.
+coordinates, with the caveat that C may be singular.
 
-In general W is singular and does not uniquely determine lambda. Simbody 
+In general C is singular and does not uniquely determine lambda. Simbody 
 normally calculates a least squares solution for lambda so that loads are 
 distributed among redundant constraints. 
 
-@note If you just need to multiply W by a vector or matrix, you do not need
-to form W explicitly. Instead you can use the method described in the 
-Implementation section to produce a W*v product in the O(n) time it takes to 
-compute a single column of W.
+@note If you just need to multiply C by a vector or matrix, you do not need
+to form C explicitly. Instead you can use the method described in the 
+Implementation section below to produce a C*v product in the O(n) time it takes
+to compute a single column of C.
 
 <h3>Implementation</h3>
-We are able to form W without forming G or M^-1 and without performing any 
-matrix-matrix multiplies. Instead, W is calculated using m applications of 
+We are able to form C without forming G or M^-1 and without performing any 
+matrix-matrix multiplies. Instead, C is calculated using m applications of 
 O(n) operators:
     - multiplyByGTranspose() by a unit vector to form a column of ~G
     - multiplyByMInv() to form a column of M^-1 ~G
-    - multiplyByG() to form a column of W
+    - multiplyByG() to form a column of C
     
-Even if G and M^-1 were already available, computing W by matrix multiplication
+Even if G and M^-1 were already available, computing C by matrix multiplication
 would cost O(m^2*n + m*n^2) time and O(m*n) intermediate storage. Here we do 
-it in O(m*n) time with O(n) intermediate storage, which is a \e lot better.
+it in O(m*n) time with O(n) intermediate storage, which is a *lot* better.
 
 @par Required stage
   \c Stage::Velocity (articulated body inertias realized first if necessary)
@@ -1449,14 +1449,14 @@ void calcProjectedMInv(const State&   s,
 corresponding constraint-space impulses that would cause those changes. Here we 
 are solving the equation
 <pre>
-    W * impulse = deltaV
+    C * impulse = deltaV
 </pre>
-for \e impulse, where W=G*M^-1*~G is the "projected inverse mass matrix" as 
-described for calcProjectedMInv(). In general W is singular due to constraint
+for \e impulse, where C=G*M^-1*~G is the constraint compliance matrix as 
+described for calcProjectedMInv(). In general C is singular due to constraint
 redundancies, so the solution for \e impulse is not unique. Simbody handles 
 redundant constraints by finding least squares solutions, and this operator 
 method duplicates the method Simbody uses for determining the rank and 
-performing the factorization of W. 
+performing the factorization of C. 
 
 @param[in]      state
     The State whose generalized coordinates and speeds define the matrix W.
@@ -1472,7 +1472,7 @@ performing the factorization of W.
 
 To convert these constraint-space impulses into updates to the mobility-space
 generalized speeds u, use code like this:
-@code
+@code{.cpp}
     const SimbodyMatterSubsystem& matter=...;
     Vector deltaV=...;  // constraint space speed change desired; length m
     Vector impulse;     // constraint space impulses; length m

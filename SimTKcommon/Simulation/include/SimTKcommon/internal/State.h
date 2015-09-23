@@ -808,7 +808,7 @@ inline int getNUDotErr() const;
 inline int getNMultipliers() const; // =mp+mv+ma, necessarily the same as NUDotErr
 /// Returns a mutex that should be used to lock the state whenever multiple 
 /// threads are asynchronously writing/updating a common state cache. A lock
-/// should always be used when thread-safe state is not guarenteed. If multiple
+/// should always be used when thread-safe state is not guaranteed. If multiple
 /// threads are simply reading from the cache, locking the state may not be
 /// necessary.
 inline std::mutex& getStateLock() const;

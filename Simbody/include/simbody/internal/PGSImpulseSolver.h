@@ -69,7 +69,7 @@ public:
         const Matrix&                       A,
         const Vector&                       D, 
         const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
-        Vector&                             piExpand,
+        const Vector&                       piExpand,
         Vector&                             verrStart, // in/out
         Vector&                             verrApplied, // in/out
         Vector&                             pi, 

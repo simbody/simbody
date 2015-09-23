@@ -48,7 +48,7 @@ public:
         const Matrix&                       A,
         const Vector&                       D,
         const Array_<MultiplierIndex>&      expanding,
-        Vector&                             piExpand, // in/out
+        const Vector&                       piExpand,
         Vector&                             verrStart, // in/out
         Vector&                             verrApplied,
         Vector&                             pi,  
