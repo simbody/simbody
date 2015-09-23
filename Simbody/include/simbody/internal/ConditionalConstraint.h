@@ -34,55 +34,152 @@ namespace SimTK {
 
 class SimbodyMatterSubsystem;
 
-/** TODO: Simbody model element representing a conditionally-enforced 
-constraint.
+/** Simbody model element representing a conditionally-enforced constraint,
+such as a unilateral contact constraint, joint stop, or torque-limited 
+speed control motor. A %CondConstraint controls a set of one or more
+Simbody Constraint objects, each defining some constraint equations. Normally
+those would be active as long as they haven't been disabled. The conditions
+defined here are used to determine whether the constraints should be active,
+and if so whether to use the standard constraint equations or replace them
+with something looser, like sliding friction instead of a rolling constraint.
+
+Given a State, it is always possible to determine whether a given 
+%CondConstraint is active, and if so whether to enforce it strictly or to
+allow slipping. Most %CondConstraints define a discrete state variable that 
+controls activity and the friction condition. However, in some cases other State
+information may determine activity. For example, if the normal force for a 
+frictional contact is a compliant force element, then activity for the friction
+constraints is determined by the normalpenetration and does not require a 
+discrete state variable. However, the friction condition (rolling or sliding)
+still requires a discrete state variable updated by an event handler.
+
+When sliding, we would like simply to generate a friction force opposing
+the slip direction. But at the transition from rolling to sliding (which we
+call "impending slip" there is no slip direction, so we have to oppose the slip
+acceleration instead which requires a different (and much nastier) set of 
+equations because of coupling between friction forces and accelerations. But the
+transition from impending slip to sliding does not require event isolation since
+it depends on the smooth velocity state variables.
 **/
-class SimTK_SIMBODY_EXPORT ConditionalConstraint {
+class SimTK_SIMBODY_EXPORT CondConstraint {
 public:
+    /** Anything greater than Off is active. **/
+    enum Condition : int {
+        UnknownCondition  = -1,
+        Off               = 0, 
+        Active            = 1,
+        Slipping          = 2
+    };
 
-/** Given the specified minimum coefficient of restitution (COR), capture speed,
-and the speed at which the minimum COR is attained, calculate an effective COR 
-for a given impact speed. All speeds must be nonnegative. The COR will be zero
-at or below capture speed, will be minCOR at or above minCORSpeed, and will 
-rise linearly with decreasing impact speed between minCORSpeed and the capture
-velocity. **/
-static Real calcEffectiveCOR(Real minCOR, Real captureSpeed, Real minCORSpeed, 
-                             Real impactSpeed)
-{
-    assert(0 <= minCOR && minCOR <= 1);
-    assert(0 <= captureSpeed && captureSpeed <= minCORSpeed);
-    assert(impactSpeed >= 0);
+    virtual ~CondConstraint() = default;
 
-    if (impactSpeed <= captureSpeed) return 0;
-    if (impactSpeed >= minCORSpeed)  return minCOR;
-    // captureSpeed < impactSpeed < minCORSpeed
-    const Real slope = (1-minCOR) / minCORSpeed;
-    return 1 - slope*impactSpeed;
-}
 
-/** Given the coefficients of friction and slip-to-rolling transition 
-speed, calculate the effective COF mu for a given slip velocity. Speeds
-must be nonnegative. This utility calculates mu with an abrupt rise at
-the transitionSpeed from the dynamic coefficient mu_d to the static 
-coefficient mu_s. There is also a linear contribution mu_v*slipSpeed. **/
-static Real calcEffectiveCOF(Real mu_s, Real mu_d, Real mu_v,
-                             Real transitionSpeed, Real slipSpeed)
-{
-    assert(mu_s>=0 && mu_d>=0 && mu_v>=0);
-    assert(mu_s>=mu_d);
-    assert(transitionSpeed>=0 && slipSpeed>=0);
-    const Real viscous = mu_v*slipSpeed; // typically zero
-    return viscous + (slipSpeed <= transitionSpeed ? mu_s : mu_d);
-}
+    /** Return the current Condition of this conditional constraint in the given
+    state. **/
+    Condition getCondition(const State& state) const;
 
+    /** Set the current Condition of this conditional constraint in the given
+    state. This is normally called from inside an event handler or initialization
+    study. Invalidates Stage::Acceleration. **/
+    void setCondition(State& state, Condition condition) const;
+
+    /** Eventually invokes acquireSubsystemResourcesVirtual(). **/
+    void acquireSubsystemResources();
+
+    /** Eventually invokes realizeTopologyVirtual(). **/
+    void realizeTopology(State& state) const;
+
+    // TODO: this should be a CondConstraintIndex.
+    void setMyMatterSubsystem(SimbodyMatterSubsystem&   matter,
+                              UnilateralContactIndex    myIndex) 
+    {   m_matter = &matter; m_myIx = myIndex; 
+        acquireSubsystemResources();
+    }
+
+    /** Return a const reference to the containing Subsystem. **/
+    const SimbodyMatterSubsystem& getMatterSubsystem() const
+    {   assert(m_matter); return *m_matter; }
+
+    /** Return a writable reference to the containing Subsystem. **/
+    SimbodyMatterSubsystem& updMatterSubsystem()
+    {   assert(m_matter); return *m_matter; }
+
+    /** Return index within containing subsystem; TODO: should be a
+    CondConstraintIndex. **/
+    UnilateralContactIndex getMyIndex() const
+    {   assert(m_matter); return m_myIx; }
+
+    /** Return a human-readable representation of the Condition enum, useful
+    for debugging. **/
+    static const char* getConditionName(Condition condition) {
+        switch (condition) {
+        case UnknownCondition:  return "UnknownCondition";
+        case Off:               return "Off";
+        case Active:            return "Active";
+        case Slipping:          return "Slipping";
+        }
+        return "BAD Condition value";
+    }
+
+    /** Given the specified minimum coefficient of restitution (COR), capture 
+    speed, and the speed at which the minimum COR is attained, calculate an 
+    effective COR for a given impact speed. All speeds must be nonnegative. The
+    COR will be zero at or below capture speed, will be minCOR at or above 
+    minCORSpeed, and will rise linearly with decreasing impact speed between 
+    minCORSpeed and the capture velocity. **/
+    static Real calcEffectiveCOR
+       (Real minCOR, Real captureSpeed, Real minCORSpeed, Real impactSpeed)
+    {
+        assert(0 <= minCOR && minCOR <= 1);
+        assert(0 <= captureSpeed && captureSpeed <= minCORSpeed);
+        assert(impactSpeed >= 0);
+
+        if (impactSpeed <= captureSpeed) return 0;
+        if (impactSpeed >= minCORSpeed)  return minCOR;
+        // captureSpeed < impactSpeed < minCORSpeed
+        const Real slope = (1-minCOR) / minCORSpeed;
+        return 1 - slope*impactSpeed;
+    }
+
+    /** Given the coefficients of friction and slip-to-rolling transition 
+    speed, calculate the effective COF mu for a given slip velocity. Speeds
+    must be nonnegative. This utility calculates mu with an abrupt rise at
+    the transitionSpeed from the dynamic coefficient mu_d to the static 
+    coefficient mu_s. There is also a linear contribution mu_v*slipSpeed. **/
+    static Real calcEffectiveCOF(Real mu_s, Real mu_d, Real mu_v,
+                                 Real transitionSpeed, Real slipSpeed)
+    {
+        assert(mu_s>=0 && mu_d>=0 && mu_v>=0);
+        assert(mu_s>=mu_d);
+        assert(transitionSpeed>=0 && slipSpeed>=0);
+        const Real viscous = mu_v*slipSpeed; // typically zero
+        return viscous + (slipSpeed <= transitionSpeed ? mu_s : mu_d);
+    }
+
+
+protected:
+
+    virtual void acquireSubsystemResourcesVirtual() {}
+    virtual void realizeTopologyVirtual     (State&)        const {}
+    virtual void realizeModelVirtual        (State&)        const {}
+    virtual void realizeInstanceVirtual     (const State&)  const {}
+    virtual void realizeTimeVirtual         (const State&)  const {}
+    virtual void realizePositionVirtual     (const State&)  const {}
+    virtual void realizeVelocityVirtual     (const State&)  const {}
+    virtual void realizeDynamicsVirtual     (const State&)  const {}
+    virtual void realizeAccelerationVirtual (const State&)  const {}
+    virtual void realizeReportVirtual       (const State&)  const {}
+
+private:
+    // Back pointer to containing subsystem.
+    ReferencePtr<SimbodyMatterSubsystem>    m_matter;
+    // Index within the subsystem; TODO: should be CondConstraintIndex.
+    UnilateralContactIndex                  m_myIx;
+
+    // Topology cache.
+    DiscreteVariableIndex                   m_conditionIx;
 };
 
-class UnilateralContact; // normal + friction
-class UnilateralSpeedConstraint;
-class BoundedSpeedConstraint;
-
-class ConstraintLimitedFriction;
-class StateLimitedFriction;
 
 //==============================================================================
 //                       UNILATERAL CONTACT CONSTRAINT
@@ -119,7 +216,7 @@ lambda>=0. So the constraints to be enforced are:
 In practice we enforce constraints up to a tolerance, so the zeroes above are
 not enforced exactly.
 **/
-class SimTK_SIMBODY_EXPORT UnilateralContact {
+class SimTK_SIMBODY_EXPORT UnilateralContact : public CondConstraint {
 public:
     /** The base class constructor allows specification of the sign convention
     to be used with this constraint. The sign convention cannot be changed
@@ -127,10 +224,15 @@ public:
     explicit UnilateralContact(int sign=1) : m_sign((Real)sign) 
     {   assert(sign==1 || sign==-1); }
 
-    virtual ~UnilateralContact() {}
+    ~UnilateralContact() override = default;
+
 
     /** Report the sign convention (1 or -1) supplied at construction. **/
     Real getSignConvention() const {return m_sign;}
+
+    bool isActive(const State& state) const {
+        return isEnabled(state) && getCondition(state) > Off;
+    }
 
     /** Disable the normal and friction constraints if they were enabled. 
     Return true if we actually had to disable something. **/
@@ -227,40 +329,10 @@ public:
     this should be the same Vec3 you got from getPositionInfo(). **/
     virtual void setInstanceParameter(State& state, const Vec3& pos) const {}
 
-    /** Eventually invokes acquireSubsystemResourcesVirtual(). **/
-    void acquireSubsystemResources();
-
-    /** Eventually invokes realizeTopologyVirtual(). **/
-    void realizeTopology(State& state) const;
-
-    virtual void acquireSubsystemResourcesVirtual() {}
-    virtual void realizeTopologyVirtual     (State&)        const {}
-    virtual void realizeModelVirtual        (State&)        const {}
-    virtual void realizeInstanceVirtual     (const State&)  const {}
-    virtual void realizeTimeVirtual         (const State&)  const {}
-    virtual void realizePositionVirtual     (const State&)  const {}
-    virtual void realizeVelocityVirtual     (const State&)  const {}
-    virtual void realizeDynamicsVirtual     (const State&)  const {}
-    virtual void realizeAccelerationVirtual (const State&)  const {}
-    virtual void realizeReportVirtual       (const State&)  const {}
-
-    void setMyMatterSubsystem(SimbodyMatterSubsystem&   matter,
-                              UnilateralContactIndex    myIndex) 
-    {   m_matter = &matter; m_myIx = myIndex; 
-        acquireSubsystemResources();
-    }
-
-    const SimbodyMatterSubsystem& getMatterSubsystem() const
-    {   assert(m_matter); return *m_matter; }
-    SimbodyMatterSubsystem& updMatterSubsystem()
-    {   assert(m_matter); return *m_matter; }
-    UnilateralContactIndex getMyIndex() const
-    {   assert(m_matter); return m_myIx; }
 private:
-    const Real                  m_sign; // 1 or -1
+    void acquireSubsystemResourcesVirtual() override;
 
-    ReferencePtr<SimbodyMatterSubsystem>    m_matter;
-    UnilateralContactIndex                  m_myIx;
+    const Real                              m_sign; // 1 or -1
 };
 
 //==============================================================================
@@ -272,10 +344,10 @@ A unilateral speed constraint uses a single nonholonomic (velocity)
 constraint equation to prevent relative slip in one direction but not in the 
 other. Examples are ratchets and mechanical diodes.
 **/
-class SimTK_SIMBODY_EXPORT UnilateralSpeedConstraint {
+class SimTK_SIMBODY_EXPORT UnilateralSpeedConstraint : public CondConstraint {
 public:
     UnilateralSpeedConstraint() {}
-    virtual ~UnilateralSpeedConstraint() {}
+    ~UnilateralSpeedConstraint() override = default;
 
 private:
 };
@@ -306,10 +378,10 @@ This constraint is workless when it is able to prevent slip with the force
 in range; it is maximally dissipative otherwise because the constraint force
 opposes the slip velocity.
 **/
-class SimTK_SIMBODY_EXPORT BoundedSpeedConstraint {
+class SimTK_SIMBODY_EXPORT BoundedSpeedConstraint : public CondConstraint {
 public:
     BoundedSpeedConstraint() {}
-    virtual ~BoundedSpeedConstraint() {}
+    ~BoundedSpeedConstraint() override = default;
 
     /** Return the currently effective lower and upper bounds on the
     associated multiplier as a Vec2(lower,upper). The bounds may depend on
@@ -323,10 +395,10 @@ private:
 //                          STATE LIMITED FRICTION
 //==============================================================================
 /** TODO: not implemented yet **/
-class SimTK_SIMBODY_EXPORT StateLimitedFriction {
+class SimTK_SIMBODY_EXPORT StateLimitedFriction : public CondConstraint  {
 public:
     StateLimitedFriction() {}
-    virtual ~StateLimitedFriction() {}
+    ~StateLimitedFriction() override = default;
 
     /** Disable the friction constraints if they were enabled. Return true if 
     we actually had to disable something. **/
@@ -380,6 +452,9 @@ class SimTK_SIMBODY_EXPORT HardStopUpper : public UnilateralContact {
 public:
     HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
              Real defaultUpperLimit, Real minCOR);
+    ~HardStopUpper() override = default;
+
+    // Details are not needed here; the constraint is either Off or Active.
 
     bool disable(State& state) const override 
     {   if (m_upper.isDisabled(state)) return false;
@@ -405,7 +480,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -438,6 +513,9 @@ class SimTK_SIMBODY_EXPORT HardStopLower : public UnilateralContact {
 public:
     HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
                   Real defaultLowerLimit, Real minCOR);
+    ~HardStopLower() override = default;
+
+    // Details are not needed here; the constraint is either Off or Active.
 
     bool disable(State& state) const override 
     {   if (m_lower.isDisabled(state)) return false;
@@ -463,7 +541,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -498,6 +576,9 @@ public:
     Rope(MobilizedBody& mobod1, const Vec3& point1, 
          MobilizedBody& mobod2, const Vec3& point2,
          Real defaultLengthLimit, Real minCOR);
+    ~Rope() override = default;
+
+    // Details are not needed here; the constraint is either Off or Active.
 
     bool disable(State& state) const override 
     {   if (m_rod.isDisabled(state)) return false;
@@ -522,7 +603,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -546,6 +627,9 @@ public:
     PointPlaneFrictionlessContact(
         MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
         MobilizedBody& followerBodyF, const Vec3& point_F, Real minCOR);
+    ~PointPlaneFrictionlessContact() override = default;
+
+    // Details are not needed here; the constraint is either Off or Active.
 
     bool disable(State& state) const override {
         if (m_ptInPlane.isDisabled(state)) return false;
@@ -583,7 +667,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -618,6 +702,8 @@ public:
         MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
         MobilizedBody& followerBodyF, const Vec3& point_F, 
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
+
+    ~PointPlaneContact() override = default;
 
     bool disable(State& state) const override {
         if (m_ptInPlane.isDisabled(state)) return false;
@@ -655,7 +741,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -672,7 +758,7 @@ public:
                           Real defaultTransitionSpeed,
                           Real slipSpeed) const override
     {
-       return ConditionalConstraint::calcEffectiveCOF
+       return CondConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
@@ -711,6 +797,8 @@ public:
         MobilizedBody& followerBodyF, const Vec3& point_F, Real radius,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
+    ~SpherePlaneContact() override = default;
+
     bool disable(State& state) const override {
         if (m_sphereOnPlane.isDisabled(state)) return false;
         m_sphereOnPlane.disable(state);
@@ -747,7 +835,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -764,7 +852,7 @@ public:
                           Real defaultTransitionSpeed,
                           Real slipSpeed) const override
     {
-       return ConditionalConstraint::calcEffectiveCOF
+       return CondConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
@@ -800,6 +888,8 @@ public:
         const Vec3&         defaultCenterOnB,
         Real                defaultRadiusOnB,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
+
+    ~SphereSphereContact() override = default;
 
     bool disable(State& state) const override {
         if (m_sphereOnSphere.isDisabled(state)) return false;
@@ -837,7 +927,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -854,7 +944,7 @@ public:
                           Real defaultTransitionSpeed,
                           Real slipSpeed) const override
     {
-       return ConditionalConstraint::calcEffectiveCOF
+       return CondConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 
@@ -897,6 +987,8 @@ public:
         Real                defaultHalfLengthB,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
+    ~EdgeEdgeContact() override = default;
+
     bool disable(State& state) const override {
         if (m_lineOnLine.isDisabled(state)) return false;
         m_lineOnLine.disable(state);
@@ -933,7 +1025,7 @@ public:
                           Real defaultMinCORSpeed,
                           Real impactSpeed) const override 
     {
-       return ConditionalConstraint::calcEffectiveCOR
+       return CondConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
                 impactSpeed);
     }
@@ -950,7 +1042,7 @@ public:
                           Real defaultTransitionSpeed,
                           Real slipSpeed) const override
     {
-       return ConditionalConstraint::calcEffectiveCOF
+       return CondConstraint::calcEffectiveCOF
                (m_mu_s, m_mu_d, m_mu_v, defaultTransitionSpeed, slipSpeed);
     }
 

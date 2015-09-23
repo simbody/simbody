@@ -1556,7 +1556,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s) 
         "SimbodyMatterSubsystem::realizeAcceleration()");
 
     // Articulated body inertias and velocity will be realized if necessary
-    // when realizeLoopForwardDynamics() is called, fulfilling our propose that
+    // when realizeLoopForwardDynamics() is called, fulfilling our promise that
     // those will be calculated by Stage::Accleration.
 
     // We ask our containing MultibodySystem for a reference to the cached 
@@ -2072,6 +2072,191 @@ zeroKnownU(const State& s, Vector& ulike) const
 }
 
 //==============================================================================
+//                     FIND ENFORCED POS CONSTRAINT EQNS
+//==============================================================================
+/* Currently any enabled, unconditional constraint's holonomic constraint
+equations are enforced (meaning they should be projected) as should any
+active conditional constraint's holonomic equations.
+*/
+Array_<MultiplierIndex> SimbodyMatterSubsystemRep::
+findEnforcedPosConstraintEqns(const State& state) const {
+    Array_<MultiplierIndex> eqns;
+
+    // Unconditional constraints.
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        const ConstraintImpl& cons = constraints[cx]->getImpl();
+        if (cons.isDisabled(state) || cons.isConditional())
+            continue;
+        int mp, mv, ma;
+        cons.getNumConstraintEquationsInUse(state, mp, mv, ma);
+        if (mp==0) continue;
+        MultiplierIndex px0, vx0, ax0;
+        cons.getIndexOfMultipliersInUse(state, px0, vx0, ax0);
+        for (int i=0; i<mp; ++i)
+            eqns.push_back(MultiplierIndex(px0+i));
+    }
+
+    // TODO: all conditional constraints (now just uni contact).
+    for (UnilateralContactIndex ucx(0); ucx < uniContacts.size(); ++ucx) {
+        const UnilateralContact& ucont = *uniContacts[ucx];
+        if (ucont.getCondition(state) <= CondConstraint::Off)
+            continue;
+        eqns.push_back(ucont.getContactMultiplierIndex(state));
+    }
+
+    return eqns;
+}
+
+
+//==============================================================================
+//                     FIND ENFORCED VEL CONSTRAINT EQNS
+//==============================================================================
+Array_<MultiplierIndex> SimbodyMatterSubsystemRep::
+findEnforcedVelConstraintEqns(const State& state) const {
+    Array_<MultiplierIndex> eqns;
+
+    // Unconditional constraints.
+    for (ConstraintIndex cx(0); cx < constraints.size(); ++cx) {
+        const ConstraintImpl& cons = constraints[cx]->getImpl();
+        if (cons.isDisabled(state) || cons.isConditional())
+            continue;
+        int mp, mv, ma;
+        cons.getNumConstraintEquationsInUse(state, mp, mv, ma);
+        if (mv==0) continue;
+        MultiplierIndex px0, vx0, ax0;
+        cons.getIndexOfMultipliersInUse(state, px0, vx0, ax0);
+        for (int i=0; i<mv; ++i)
+            eqns.push_back(MultiplierIndex(vx0+i));
+    }
+
+    // TODO: all conditional constraints (now just uni contact).
+    for (UnilateralContactIndex ucx(0); ucx < uniContacts.size(); ++ucx) {
+        const UnilateralContact& ucont = *uniContacts[ucx];
+        if (!ucont.hasFriction(state))
+            continue;
+        const CondConstraint::Condition cond = ucont.getCondition(state);
+        if (cond != CondConstraint::Active) // i.e., rolling
+            continue;
+        MultiplierIndex ix_x, ix_y;
+        ucont.getFrictionMultiplierIndices(state, ix_x, ix_y);
+        eqns.push_back(ix_x); 
+        eqns.push_back(ix_y);
+    }
+
+    return eqns;
+}
+
+//==============================================================================
+//                         FIND ACTIVE MULTIPLIERS
+//==============================================================================
+
+// Find the multiplier index of each active constraint equation from among
+// the enabled constraints, in ascending order.
+// TODO: precalculate this when active set changes
+Array_<MultiplierIndex> SimbodyMatterSubsystemRep::
+findActiveMultipliers(const State& s) const {
+    // These are the enabled constraint equations; they may not all be active.
+    const int mHolo    = getNumHolonomicConstraintEquationsInUse(s);
+    const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
+    const int mAccOnly = getNumAccelerationOnlyConstraintEquationsInUse(s);
+    const int m        = mHolo+mNonholo+mAccOnly;
+
+    // Assume all constraints are active.
+    Array_<bool> isActive(m, true);
+    int mActive = m; // may be reduced below
+
+    //TODO: generalize this
+    const int nUniContacts  = getNumUnilateralContacts();
+    for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
+        const UnilateralContact& contact = getUnilateralContact(ux);
+        if (contact.isActive(s))
+            continue;
+        isActive[contact.getContactMultiplierIndex(s)] = false;
+        --mActive;
+        if (contact.hasFriction(s)) {
+            MultiplierIndex xIx, yIx;
+            contact.getFrictionMultiplierIndices(s,xIx,yIx);
+            isActive[xIx] = isActive[yIx] = false;
+            mActive -= 2;
+        }
+    }
+
+    assert(mActive >= 0);
+
+    // Use the isActive array to enumerate the active constraint equations.
+    Array_<MultiplierIndex> active;
+    active.reserve(mActive);
+    for (MultiplierIndex mx(0); mx < m; ++mx)
+        if (isActive[mx]) active.push_back(mx);
+
+    return active; // counting on return value optimization
+}
+
+// Output array will be sized to active.size() since it does not need to be
+// pre-initialized.
+void SimbodyMatterSubsystemRep::
+packActiveMultipliers(const Array_<MultiplierIndex>& active,
+                      const Vector& multipliers,
+                      Vector& activeMultipliers) const
+{
+    const int mActive = (int)active.size();
+    assert(multipliers.size() >= mActive);
+    activeMultipliers.resize(mActive);
+
+    for (int a=0; a < mActive; ++a)
+        activeMultipliers[a] = multipliers[active[a]];
+}
+
+// Output array will be sized to active1.size()+active2.size() since it does 
+// not need to be pre-initialized.
+void SimbodyMatterSubsystemRep::
+packActiveMultipliers2(const Array_<MultiplierIndex>& active1,
+                       const Array_<MultiplierIndex>& active2,
+                       const Vector& multipliers,
+                       Vector& activeMultipliers) const
+{
+    const int mActive1 = active1.size(), mActive2 = active2.size();
+    const int mActive = mActive1 + mActive2;
+    assert(multipliers.size() >= mActive);
+    activeMultipliers.resize(mActive);
+
+    for (int a=0; a < mActive1; ++a)
+        activeMultipliers[a] = multipliers[active1[a]];
+    for (int a=0; a < mActive2; ++a)
+        activeMultipliers[mActive1+a] = multipliers[active2[a]];
+}
+
+// Note that the output array must already be sized and initialized (usually
+// to zero).
+void SimbodyMatterSubsystemRep::
+unpackActiveMultipliers(const Array_<MultiplierIndex>&  active,
+                        const Vector&                   activeMultipliers,
+                        Vector&                         multipliers) const 
+{
+    const int mActive = (int)active.size();
+    assert(activeMultipliers.size() == mActive);
+    assert(multipliers.size() >= mActive);
+
+    for (int a=0; a < mActive; ++a)
+        multipliers[active[a]] = activeMultipliers[a];
+}
+
+void SimbodyMatterSubsystemRep::
+formActiveSubmatrix(const Array_<MultiplierIndex>&  active,
+                    const Matrix&                   fullMat,
+                    Matrix&                         subMat) const
+{
+    const int mActive = (int)active.size();
+    assert(fullMat.nrow() == fullMat.ncol() && fullMat.nrow() >= mActive);
+
+    subMat.resize(mActive, mActive);
+    for (int col=0; col < mActive; ++col)
+        for (int row=0; row < mActive; ++row)
+            subMat(row,col) = fullMat(active[row],active[col]);
+}
+
+
+//==============================================================================
 //                   OBSOLETE -- see calcPq()
 //==============================================================================
 void SimbodyMatterSubsystemRep::calcHolonomicConstraintMatrixPNInv(const State& s, Matrix& PNInv) const {
@@ -2362,8 +2547,8 @@ calcConstraintForcesFromMultipliers
 //                                    [lambdaa]
 //
 // Individual constraint force equations are calculated in constant time, so 
-// the whole multiplication can be done in O(m) time where m=mp+mv+ma is the 
-// total number of active constraint equations.
+// the whole multiplication can be done in O(m+n) time where m=mp+mv+ma is the 
+// total number of active constraint equations, and n the number of mobilities.
 //
 // In general the state must be realized through Velocity stage, but if the 
 // system contains only holonomic constraints, or if only ~P is included, then 
@@ -2629,98 +2814,114 @@ calcPqTranspose(const State& s, Matrix& Pqt) const {
 
 
 //==============================================================================
-//                         CALC WEIGHTED Pq_r TRANSPOSE
+//                 CALC WEIGHTED Pq_r TRANSPOSE (private)
 //==============================================================================
-// The full Pq matrix is mp X nq. We want the mp X nfq submatrix that retains 
-// only the columns that correspond to free (not prescribed) q's; call that 
-// Pq_r. Also, we want the rows scaled by 1/constraint tolerances and retained 
-// columns scaled by 1/q weights; call that Pqw_r. And we're actually going to 
-// compute the nfq X mp transpose ~Pqw_r, which we'll call Pqw_rt.
-//
-//   Pq = P N^+
-//   Pqw = Tp Pq     Wq^+ 
-//       = Tp Pq (N Wu^-1 N^+)
-//       = (Tp P Wu^-1) N^+          (because N^+ N = I)
-//       =     Pw       N^+
-//   Pqwt = ~Pqw = ~N^+ Wu^-1 ~P Tp  (weights are symmetric)
-//       (= ~N^+ ~Pw)
-//
-//   Pqw_rt = Pqwt submatrix with rows removed if they correspond to q_p.
-//
-// We calculate one column at a time to avoid any matrix ops. We can do the
-// column scaling of ~P by Tp for free, but the row scaling requires nq*mp flops.
-// Return matrix Pqw_rt must have contiguous-data columns.
+/* The full Pq matrix for all mp enabled position constraint equatiosn and all 
+nq generalized coordinates is mp X nq. We want the mfp X nfq submatrix of Pq 
+that retains only 
+  - the rows corresponding to the mfp *enForced* position constraint equatiosn, 
+    and
+  - the columns that correspond to the nfq *Free* (not prescribed) q's.
+Call that submatrix Pq_r for "retained". Also, we want the retained rows scaled 
+by 1/constraint tolerances and retained columns scaled by 1/q weights; call that
+Pqw_r. And we're actually going to compute the nfq X mfp transpose ~Pqw_r, which
+we'll call Pqw_rt.
+
+  Pq   = P N\                   N\, Wq\ are pseudoinverses, Wu\ is inverse
+  Pqw  = Tp Pq     Wq\ 
+       = Tp Pq  (N Wu\ N\)
+       = (Tp P Wu\) N\          because N\ N = I
+       =     Pw     N\
+  Pqwt = ~Pqw = ~N\ ~Pw         ~Pw = Wu\ ~P Tp because weights are symmetric
+
+  Pqw_rt = Pqwt submatrix retaining only rows corresponding to free generalized
+           coordinates and columns corresponding to enforced position 
+           constraint equations.
+
+We calculate one column at a time to avoid any matrix ops. We can do the column 
+scaling of ~P by Tp for free, but the row scaling requires nq*mfp flops. Return 
+matrix Pqw_rt must have contiguous-data columns. */
 void SimbodyMatterSubsystemRep::
 calcWeightedPqrTranspose( 
-        const State&     s,
-        const Vector&    Tp,   // 1/perr tols (mp)
-        const Vector&    ooWu, // 1/u weights (nu)
-        Matrix&          Pqw_rt) const // nfq X mp
+    const State&                    s,
+    const Array_<MultiplierIndex>&  enforcedPosConsEqns,
+    const Vector&                   Tp,   // 1/perr tols (mp)
+    const Vector&                   ooWu, // 1/u weights (Wu\, nu)
+    Matrix&                         Pqw_rt) const // nfq X mfp
 {
     const SBInstanceCache& ic = getInstanceCache(s);
 
     // Global problem dimensions.
     const int mp = ic.totalNHolonomicConstraintEquationsInUse;
     const int nu = getNU(s);
+    assert(Tp.size() == mp && ooWu.size() == nu);
+
     const int nq = getNQ(s);
     const int nfq = ic.getTotalNumFreeQ();
     assert(nfq <= nq);
     const bool mustPack = (nfq != nq);
 
-    assert(Tp.size() == mp);
-    assert(ooWu.size() == nu);
+    const int mfp = (int)enforcedPosConsEqns.size();
 
-    Pqw_rt.resize(nfq, mp);
-    if (mp==0 || nfq==0)
+    Pqw_rt.resize(nfq, mfp);
+    if (mfp==0 || nfq==0)
         return;
 
     assert(Pqw_rt(0).hasContiguousData());
 
     Vector Ptcol(nu), PNInvtcol;
-    Vector lambdap(mp, Real(0));
+    Vector lambdap(mp, Real(0)); // full size
 
-    for (int j=0; j < mp; ++j) {
+    int nxtj = 0; // next available enforced constraint column
+    for (auto j : enforcedPosConsEqns) {
         lambdap[j] = Tp[j]; // this gives column j of ~P scaled by Tp[j]
-        multiplyByPVATranspose(s, true, false, false, lambdap, Ptcol);
+        multiplyByPVATranspose(s, true,false,false, lambdap, Ptcol);
         lambdap[j] = 0;
-        Ptcol.rowScaleInPlace(ooWu); // now (Wu^-1 ~P Tp)_i
-        // Calculate (~Pqw)(j) = ~(N^+) * (~Pw)(j)
+        Ptcol.rowScaleInPlace(ooWu); // now (Wu\ ~P Tp)_i
+        // Calculate (~Pqw)(j) = ~N\ (~Pw)(j)
         if (mustPack) {
             multiplyByNInv(s, true/*transpose*/,Ptcol,PNInvtcol);
-            packFreeQ(s, PNInvtcol, Pqw_rt(j));
+            packFreeQ(s, PNInvtcol, Pqw_rt(nxtj));
         } else
-            multiplyByNInv(s, true/*transpose*/,Ptcol,Pqw_rt(j));
+            multiplyByNInv(s, true/*transpose*/,Ptcol,Pqw_rt(nxtj));
+        ++nxtj;
     }
 }
 
 
 
 //==============================================================================
-//                        CALC WEIGHTED PV_r TRANSPOSE
+//                  CALC WEIGHTED PV_r TRANSPOSE (private)
 //==============================================================================
-// The full P;V matrix is mpv X nu, where mpv=(mp+mv). Here we want the 
-// mpv X nfu submatrix 
-// that retains only the columns that correspond to free (not prescribed) u's;
-// call that PV_r. Also, we want the rows scaled by 1/constraint tolerances and 
-// retained columns scaled by 1/u weights; call that PVw_r. And we're actually 
-// going to compute the nfu X mpv transpose ~PVw_r, which we'll call PVw_rt.
-//
-//   PV   = [P]
-//          [V]
-//   PVw  = Tpv PV Wu^-1 
-//   PVwt = ~PVw = Wu^-1 ~PV Tpv  (weights are symmetric)
-//
-//   PVw_rt = PVwt submatrix with rows removed if they correspond to u_p.
-//
-// We calculate one column at a time to avoid any matrix ops. We can do the
-// column scaling of ~PV by Tpv for free, but the row scaling requires nu*mpv 
-// flops. Return matrix PVw_rt must have contiguous-data columns.
+/* The full P;V matrix PV is mpv X nu, where mpv=(mp+mv), the number of enabled
+position and velocity constraint equations. Here we want the mfpv X nfu 
+submatrix that retains only the rows corresponding to the *enForced* position
+and velocity constraint equations, and retains only the columns that correspond 
+to *Free* (not prescribed) generalized speeds u; call that PV_r (for 
+"retained"). Also, we want the retained rows scaled by 1/constraint tolerances 
+and retained columns scaled by 1/u weights; call that PVw_r. And we're actually 
+going to compute the nfu X mfpv transpose ~PVw_r, which we'll call PVw_rt.
+
+  PV   = [P]
+         [V]
+  PVw  = Tpv PV Wu\             Wu\ is Wu^-1
+  PVwt = ~PVw = Wu\ ~PV Tpv     because weights are symmetric
+
+  PVw_rt = PVwt submatrix retaining only rows corresponding to free generalized
+           speeds and columns corresponding to enforced position and velocity 
+           constraint equations.
+
+We calculate one column at a time to avoid any matrix ops. We can do the
+column scaling of ~PV by Tpv for free, but the row scaling requires nu*mfpv 
+flops. Return matrix PVw_rt must have contiguous-data columns. */
 void SimbodyMatterSubsystemRep::
 calcWeightedPVrTranspose(
-    const State&     s,
-    const Vector&    Tpv,    // 1/verr tols (mp+mv)
-    const Vector&    ooWu, // 1/u weights (nu)
-    Matrix&          PVw_rt) const
+    const State&                    s,
+    const Array_<MultiplierIndex>&  enforcedPosConsEqns,
+    const Array_<MultiplierIndex>&  enforcedVelConsEqns,
+    const Vector&                   Tpv,  // 1/verr tols (mp+mv)
+    const Vector&                   ooWu, // 1/u weights (Wu\, nu)
+    Matrix&                         PVw_rt) const
 {
     const SBInstanceCache& ic = getInstanceCache(s);
 
@@ -2728,39 +2929,47 @@ calcWeightedPVrTranspose(
     const int mp = ic.totalNHolonomicConstraintEquationsInUse;
     const int mv = ic.totalNNonholonomicConstraintEquationsInUse;
     const int mpv = mp+mv;
-
     const int nu = getNU(s);
+    assert(Tpv.size() == mpv && ooWu.size() == nu);
+
     const int nfu = ic.getTotalNumFreeU();
     assert(nfu <= nu);
     const bool mustPack = (nfu != nu);
 
-    assert(Tpv.size() == mpv);
-    assert(ooWu.size() == nu);
 
-    PVw_rt.resize(nfu,mpv);
-    if (mpv==0 || nfu==0)
+    const int mfp = (int)enforcedPosConsEqns.size();
+    const int mfv = (int)enforcedVelConsEqns.size();
+    const int mfpv = mfp + mfv;
+
+    PVw_rt.resize(nfu,mfpv);
+    if (mfpv==0 || nfu==0)
         return;
-
     assert(PVw_rt.hasContiguousData());
 
-    Vector lambdapv(mpv, Real(0));
+    Vector lambdapv(mpv, Real(0)); // full size
+
+    int nxtj = 0; // next available enforced constraint column
     if (mustPack) {
         Vector PVtcol(nu);
-        for (int j=0; j < mpv; ++j) {
-            lambdapv[j] = Tpv[j]; // this gives column j of ~PV scaled by Tpv[i]
-            multiplyByPVATranspose(s, true, true, false, lambdapv, PVtcol);
-            lambdapv[j] = 0;
-            PVtcol.rowScaleInPlace(ooWu); // now (Wu^-1 ~PV Tpv)_j
-            packFreeU(s, PVtcol, PVw_rt(j));
-        }
+        for (auto list : {&enforcedPosConsEqns, &enforcedVelConsEqns})
+            for (auto j : *list) {
+                lambdapv[j] = Tpv[j]; // gives column j of ~PV scaled by Tpv[j]
+                multiplyByPVATranspose(s, true,true,false, lambdapv, PVtcol);
+                lambdapv[j] = 0;
+                PVtcol.rowScaleInPlace(ooWu); // now (Wu\ ~PV Tpv)_i
+                packFreeU(s, PVtcol, PVw_rt(nxtj));
+                ++nxtj;
+            }
     } else { // No prescribed motion so we can work in place.
-        for (int j=0; j < mpv; ++j) {
-            VectorView PVw_rt_j = PVw_rt(j);
-            lambdapv[j] = Tpv[j]; // this gives column j of ~PV scaled by Tpv[i]
-            multiplyByPVATranspose(s, true, true, false, lambdapv, PVw_rt_j);
-            lambdapv[j] = 0;
-            PVw_rt_j.rowScaleInPlace(ooWu); // now (Wu^-1 ~PV Tpv)_j
-        }
+        for (auto list : {&enforcedPosConsEqns, &enforcedVelConsEqns})
+            for (auto j : *list) {
+                VectorView PVw_rt_j = PVw_rt(nxtj);
+                lambdapv[j] = Tpv[j]; // gives column j of ~PV scaled by Tpv[j]
+                multiplyByPVATranspose(s, true,true,false, lambdapv, PVw_rt_j);
+                lambdapv[j] = 0;
+                PVw_rt_j.rowScaleInPlace(ooWu); // now (Wu\ ~PV Tpv)_i
+                ++nxtj;
+            }
     }
 }
 
@@ -3487,42 +3696,39 @@ calcPVA(const State&     s,
 // =============================================================================
 //                            CALC G MInv G^T
 // =============================================================================
-// We will calculate multipliers lambda as
-//     (G M^-1 ~G) lambda = aerr
-// and need a fast way to explicitly calculate this mXm matrix.
-// Optimally, we would calculate it in O(m^2) time. I don't know 
-// how to calculate it that fast, but using m calls to operator sequence:
-//     Gt_j       = Gt* lambda_j        O(n)
-//     MInvGt_j   = M^-1* Gt_j          O(n)
-//     GMInvGt(j) = G* MInvGt_j         O(n)
-// we can calculate it in O(mn) time. As long as m << n, and
-// especially if m is a small constant independent of n, and even better
-// if we've partitioned it into little subblocks, this is all very 
-// reasonable. One slip up and you'll toss in a factor of mn^2 or m^2n and
-// screw this up -- be careful!
-//
-// When there is prescribed motion in the system the matrix we want is
-// Gr Mrr^-1 ~Gr. That is still an mXm matrix and we are able to produce it
-// with no visible effort due to the definition of our a=M^-1*f operator. It 
-// ignores the prescribed part fp of f (here a column of ~Gp), and returns
-// zeroes in the prescribed part ap of a. Those zeroes have the effect of
-// removing the Gp columns of G in the final operation. Note: the resulting
-// matrix is *not* a submatrix of G*M^-1*~G!
-//
-// Note that we do not require contiguous storage for GMInvGt's columns, 
-// although we'll take advantage of it if they are. If not, we'll work in
-// a contiguous temp and then copy back. This is because we want to allow
-// any matrix at the Simbody API level and we don't want to force the API
-// method to have to allocate a whole new mXm matrix when all we need for
-// a temporary here is an m-length temporary.
-//
-// Complexity is O(m^2 + m*n) = O(m*n).
-//
-// TODO: as long as the force transmission matrix for all constraints is G^T
-// the resulting matrix is symmetric. But (a) I don't know how to take 
-// advantage of that in forming the matrix, and (b) some constraints may
-// result in the force transmission matrix != G (this occurs for example for
-// some kinds of "working" constraints like sliding friction).
+/* We will later calculate multipliers lambda as
+    C lambda = aerr
+where C(t,q,u) = G M^-1 ~G is the constraint compliance matrix. We need a fast 
+way to explicitly calculate the symmetric mXm matrix C, provided here.
+
+Optimally, we would calculate it in O(m^2) time. I don't know how to calculate 
+it that fast, but using m calls to operator sequence:
+           Gt_j      = Gt lambda_j        O(m+n)
+           MInvGt_j  = M^-1 Gt_j          O(n)
+    C(j) = GMInvGt_j = G MInvGt_j         O(m+n)
+we can calculate it in O(m^2 + mn) time (lambda_j is a unit vector with element
+j=1). As long as m << n, and especially if m is a small constant independent 
+of n, and even better if we've partitioned it into little subblocks, this is 
+all very reasonable. One slip up and you'll toss in a factor of m*n^2 or m^2*n 
+and screw this up -- be careful!
+
+When there is prescribed motion in the system the matrix we want is
+Gr Mrr^-1 ~Gr. That is still an mXm matrix and we are able to produce it with no
+visible effort due to the definition of our a=M^-1*f operator. It ignores the 
+prescribed part fp of f (here a column of ~Gp), and returns zeroes in the 
+prescribed part ap of a. Those zeroes have the effect of removing the Gp columns
+of G in the final operation. The resulting matrix is *not* a submatrix of C!
+
+Note that we do not require contiguous storage for GMInvGt's columns, although 
+we'll take advantage of it if they are. If not, we'll work in a contiguous temp 
+and then copy back. This is because we want to allow any matrix at the Simbody 
+API level and we don't want to force the API method to have to allocate a whole 
+new mXm matrix when all we need for a temporary here is an m-length temporary.
+
+Complexity is O(m^2 + m*n) = O(m*n) when m < n which is almost always.
+
+TODO: the resulting matrix C is symmetric but we are not taking advantage of 
+that here. */
 void SimbodyMatterSubsystemRep::
 calcGMInvGt(const State&   s,
             Matrix&        GMInvGt) const
@@ -3837,276 +4043,28 @@ bool SimbodyMatterSubsystemRep::prescribeU(State& s) const {
 
 
 //==============================================================================
-//                       ENFORCE POSITION CONSTRAINTS
-//==============================================================================
-// A note on state variable weights:
-// - q and u weights are not independent
-// - we consider u weights Wu primary and want the weighted variables to be 
-//   related like the unweighted ones: qdot=N*u so qdotw=N*uw, where
-//   uw = Wu*u. So qdotw should be Wq*qdot=N*uw=N*Wu*u=N*Wu*N^+*qdot ==>
-//   Wq = N*Wu*N^+. (and Wq^+=N*Wu^-1*N^+)
-// - Wu is diagonal, but Wq is block diagonal. We have fast operators for
-//   multiplying these matrices by columns, but not for producing Wq so we 
-//   just create it operationally as we go.
-
-// These statics are for debugging use only.
-static Real calcQErrestWeightedNormU(const SimbodyMatterSubsystemRep& matter, 
-    const State& s, const Vector& qErrest, const Vector& uWeights) {
-    Vector qhatErrest(uWeights.size());
-    matter.multiplyByNInv(s, false, qErrest, qhatErrest); // qhatErrest = N+ qErrest
-    qhatErrest.rowScaleInPlace(uWeights);                 // qhatErrest = Wu N+ qErrest
-    return qhatErrest.normRMS();
-}
-static Real calcQErrestWeightedNormQ(const SimbodyMatterSubsystemRep& matter, 
-    const State& s, const Vector& qErrest, const Vector& qWeights) {
-    Vector Wq_qErrest(qErrest.size());
-    Wq_qErrest = qErrest.rowScale(qWeights); // Wq*qErrest
-    return Wq_qErrest.normRMS();
-}
-
-void SimbodyMatterSubsystemRep::enforcePositionConstraints
-   (State& s, Real consAccuracy, const Vector& yWeights,
-    const Vector& ooTols, Vector& yErrest, ProjectOptions opts) const
-{
-    assert(getStage(s) >= Stage::Position-1);
-
-    const SBInstanceCache& ic = getInstanceCache(s);
-
-    realizeSubsystemPosition(s);
-
-    // First work only with the holonomic (position) constraints, which appear 
-    // first in the QErr array. Don't work on the quaternion constraints in 
-    // this first section.
-    const int mHolo  = getNumHolonomicConstraintEquationsInUse(s);
-    const int mQuats = getNumQuaternionsInUse(s);
-    const int nq     = getNQ(s);
-    const int nfq    = ic.getTotalNumFreeQ();
-    const int nu     = getNU(s);
-    bool hasPrescribedMotion = (nfq != nq);
-
-    // Wq   = N * Wu    * N^+
-    // Wq^+ = N * Wu^-1 * N^+
-    const VectorView uWeights   = yWeights(nq,nu);
-    const Vector     ooUWeights = uWeights.elementwiseInvert(); //TODO: precalc
-    const VectorView ooPTols  = ooTols(0,mHolo);
-
-    VectorView qErrest = yErrest.size() ? yErrest(0,nq) : yErrest(0,0);
-
-    // This is a const view into the State; the contents it refers to will 
-    // change though.
-    const VectorView pErrs = getQErr(s)(0,mHolo); // just leave off quaternions
-    bool anyChange = false;
-
-    // Check whether we should stop if we see the solution diverging
-    // which should not happen when we're in the neighborhood of a solution
-    // on entry. This is always set while integrating, except during
-    // initialization.
-    const bool localOnly = opts.isOptionSet(ProjectOptions::LocalOnly);
-
-    // Solve 
-    //        (Tp Pq Wq^+) dq_WLS  = Tp perr
-    //                         dq  = Wq^+ dq_WLS
-    //                          q -= dq
-    // until RMS(Tp perr) <= 0.1*accuracy.
-    //
-    // But Pq=P*N^+, Wq^+=N*Wu^-1*N^+ so Pq Wq^+=P*Wu^-1*N^+. Since N^+ N=I,
-    // we can rewrite the above:
-    //     
-    //    (Tp P Wu^-1 N^+) dq_WLS  = Tp perr
-    //                         dq  = N Wu^-1 N^+ dq_WLS
-    //                          q -= dq
-    //
-    // We define Pqwt = ~Pqw = ~(Tp P Wu^-1 N^+) = ~N^+ Wu^-1 ~P Tp
-    // (diagonal weights are symmetric). We only retain rows that 
-    // correspond to free (non prescribed) q's.
-    //
-    // This is a nonlinear least squares problem. Below is a full Newton 
-    // iteration since we recalculate the iteration matrix each time around the
-    // loop. TODO: a solution could be found using the same iteration matrix, 
-    // since we are projecting from (presumably) not too far away. Q1: will it
-    // be the same solution? Q2: if not, does it matter?
-    Vector scaledPerrs = pErrs.rowScale(ooPTols);
-    Real normAchievedTRMS = scaledPerrs.normRMS();
-
-    Real lastChangeMadeWRMS = 0; // size of last change in weighted dq
-    int nItsUsed = 0;
-
-    // Set how far past the required tolerance we'll attempt to go. 
-    // We only fail if we can't achieve consAccuracy, but while we're
-    // solving we'll see if we can get consAccuracyToTryFor.
-    const Real consAccuracyToTryFor = 
-        std::max(Real(0.1)*consAccuracy, SignificantReal);
-
-    // Conditioning tolerance. This determines when we'll drop a 
-    // constraint. 
-    // TODO: this is sloppy; should depend on constraint tolerance
-    // and rank should be saved and reused in velocity and acceleration
-    // constraint methods (or should be calculated elsewhere and passed in).
-    const Real conditioningTol = mHolo         
-      //* SignificantReal; -- too tight
-        * SqrtEps;
-
-    if (normAchievedTRMS > consAccuracyToTryFor) {
-        Vector saveQ = getQ(s);
-        Matrix Pqwrt(nfq,mHolo);
-        Vector dfq_WLS(nfq), du(nu), dq(nq); // = Wq^+ dq_WLS
-        Vector udfq_WLS(hasPrescribedMotion ? nq : 0); // unpacked if needed
-        udfq_WLS.setToZero(); // must initialize unwritten elements
-        FactorQTZ Pqwr_qtz;
-        Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
-        const int MaxIterations  = 20;
-        do {
-            calcWeightedPqrTranspose(s, ooPTols, ooUWeights, Pqwrt);//nfq X mp
-
-            // This factorization acts like a pseudoinverse.
-            Pqwr_qtz.factor<Real>(~Pqwrt, conditioningTol); 
-
-            //printf("enforcePositionConstraints %d: condTol=%g rank=%d rcond=%g\n",
-            //    nItsUsed, conditioningTol, Pqwr_qtz.getRank(),
-            //    Pqwr_qtz.getRCondEstimate());
-
-            Pqwr_qtz.solve(scaledPerrs, dfq_WLS); // this is weighted dq_WLS=Wq*dq
-            lastChangeMadeWRMS = dfq_WLS.normRMS(); // change in weighted norm
-
-            // switch back to unweighted dq=Wq^+*dq_WLS
-            // = N * Wu^-1 * N^+ * dq_WLS
-            if (hasPrescribedMotion) {
-                unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
-                multiplyByNInv(s,false,udfq_WLS,du);
-            } else {
-                multiplyByNInv(s,false,dfq_WLS,du);
-            }
-
-            du.rowScaleInPlace(ooUWeights); // in place to save memory
-            multiplyByN(s,false,du,dq);
-
-            // This causes quaternions to become unnormalized, but it doesn't
-            // matter because N is calculated from the unnormalized q's so
-            // scales dq to match.
-            updQ(s) -= dq; // this is unweighted dq
-            anyChange = true;
-
-            // Now recalculate the position constraint errors at the new q.
-            realizeSubsystemPosition(s); // pErrs changes here
-
-            scaledPerrs = pErrs.rowScale(ooPTols); // Tp * pErrs
-            normAchievedTRMS = scaledPerrs.normRMS();
-            ++nItsUsed;
-
-            if (localOnly && nItsUsed >= 2 
-                && normAchievedTRMS > prevNormAchievedTRMS) {
-                // perr norm got worse; restore to end of previous iteration
-                updQ(s) += dq;
-                realizeSubsystemPosition(s); // pErrs changes here
-                scaledPerrs = pErrs.rowScale(ooPTols);
-                normAchievedTRMS = scaledPerrs.normRMS();
-                break; // diverging -- quit now to prevent a bad solution
-            }
-
-            prevNormAchievedTRMS = normAchievedTRMS;
-
-        } while (normAchievedTRMS > consAccuracyToTryFor
-                 && nItsUsed < MaxIterations);
-
-        // Make sure we achieved at least the required constraint accuracy.
-        if (normAchievedTRMS > consAccuracy) {
-            updQ(s) = saveQ; // revert
-            realizeSubsystemPosition(s);
-            SimTK_THROW1(Exception::NewtonRaphsonFailure, 
-                         "Failed to converge in position projection");
-        }
-
-
-        // Next, if we projected out the position constraint errors, remove the
-        // corresponding error from the integrator's error estimate.
-        //
-        //    (Tp Pq Wq^+)_r dqr_WLS = (Tp Pq Wq^+)_r (Wq*qErrest)_r
-        //                    dq_WLS = unpack(dqr_WLS) (with zero fill)
-        //                       dq  = Wq^+ dq_WLS
-        //                           = N Wu^-1 N^+ dq_WLS
-        //                  qErrest -= dq
-        // No iteration is required.
-        //
-        // We can simplify the RHS of the first equation above:
-        //        (Tp Pq Wq^+)_r (Wq qErrest)_r = Tp Pq unpack(qErrest_r)
-        // for which we have an O(n) operator to use for the matrix-vector 
-        // product. (Proof: expand Pq, Wq^+, and Wq and cancel Wu^-1*Wu and
-        // N^+*N.)
-        if (qErrest.size()) {
-            // Work in Wq-norm
-            Vector Tp_Pq_qErrest, bias_p;
-            calcBiasForMultiplyByPq(s, bias_p);
-
-            // Switch back to unweighted dq=Wq^+*dq_WLS
-            // = N * Wu^-1 * N^+ * dq_WLS
-            if (hasPrescribedMotion) {
-                Vector qErrest_0(qErrest);
-                zeroKnownQ(s, qErrest_0); // zero out prescribed entries
-                multiplyByPq(s, bias_p, qErrest_0, Tp_Pq_qErrest); // (Pq*qErrest)_r
-                Tp_Pq_qErrest.rowScaleInPlace(ooPTols); // now Tp*(Pq*qErrest)_r
-                Pqwr_qtz.solve(Tp_Pq_qErrest, dfq_WLS); // weighted
-                unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
-                multiplyByNInv(s,false,udfq_WLS,du);
-            } else {
-                multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest); // Pq*qErrest
-                Tp_Pq_qErrest.rowScaleInPlace(ooPTols); // now Tp*Pq*qErrest
-                Pqwr_qtz.solve(Tp_Pq_qErrest, dfq_WLS); // weighted
-                multiplyByNInv(s,false,dfq_WLS,du);
-            }
-
-            du.rowScaleInPlace(ooUWeights); // in place to save memory
-            multiplyByN(s,false,du,dq);
-            qErrest -= dq; // unweighted
-        }
-    }
-
-    //cout << "!!!! perr TRMS achieved " << normAchievedTRMS << " in " 
-    //     << nItsUsed << " iterations"  << endl;
-
-    // By design, normalization of quaternions can't have any effect on the 
-    // length constraints we just fixed (because we normalize internally for 
-    // calculations). So now we can simply normalize the quaternions.
-    // Don't touch any q's that are prescribed, though.
-    if (mQuats) {
-        SBStateDigest sbs(s, *this, Stage::Model);
-        Vector& q  = updQ(s); // invalidates q's. TODO: see below.
-
-        for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-            for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) { 
-                const RigidBodyNode& node = *rbNodeLevels[i][j];
-                const SBInstancePerMobodInfo& mobodInfo =
-                    ic.mobodInstanceInfo[node.getNodeNum()];
-                if (mobodInfo.qMethod != Motion::Free)
-                    continue;
-
-                if (node.enforceQuaternionConstraints(sbs,q,qErrest))
-                    anyChange = true;
-            }
-
-        // This will recalculate the qnorms (all 1), qerrs (all 0). The only
-        // other quaternion dependency is the N matrix (and NInv, NDot).
-        // TODO: better if these updates could be made without invalidating
-        // Position stage in general. I *think* N is always calculated on they fly.
-        realizeSubsystemPosition(s);
-    }
-}
-//........................ ENFORCE POSITION CONSTRAINTS ........................
-
-
-
-//==============================================================================
 //                                  PROJECT Q
 //==============================================================================
-// A note on state variable weights:
-// - q and u weights are not independent
-// - we consider u weights Wu primary and want the weighted variables to be 
-//   related like the unweighted ones: qdot=N*u so qdotw=N*uw, where
-//   uw = Wu*u. So qdotw should be Wq*qdot=N*uw=N*Wu*u=N*Wu*N^+*qdot ==>
-//   Wq = N*Wu*N^+. (and Wq^+ = N*Wu^-1*N^+)
-// - Wu is diagonal, but Wq is block diagonal. We have fast operators for
-//   multiplying these matrices by columns, but not for producing Wq so we 
-//   just create it operationally as we go.
+/* A note on state variable weights Wq and Wu:
+  - q and u weights are not independent.
+  - We have    qdot=N  u 
+                  u=N\ qdot
+    where N\ is the left pseudoinverse of N, such that N\ N = I (N N\ != I).
+  - We consider u weights Wu primary and want the weighted variables to be 
+    related like the unweighted ones: qdot=N*u so qdotw=N*uw, where
+    uw = Wu*u and we should have qdotw=Wq*qdot for some matrix Wq.
+        qdotw = Wq qdot
+              = N Wu u
+              = N Wu N\ qdot
+        =>     Wq  = N Wu N\
+  - Wu is diagonal with full rank nu, but Wq is block diagonal and rank
+    deficient since it is nqXnq but has rank nu.
 
+The pseudoinverse of Wq, Wq\ = N Wu\ N\ (verified in Matlab). But since Wq has
+neither full row nor full column rank we have Wq Wq\ = Wq\ Wq = N N\ != I.
+
+We have fast operators for multiplying Wu, N, and N\ by columns, but not for 
+producing Wq so we just create it operationally as we go. */
 int SimbodyMatterSubsystemRep::projectQ
    (State&                  s, 
     Vector&                 qErrest, // q error estimate or empty 
@@ -4129,6 +4087,14 @@ int SimbodyMatterSubsystemRep::projectQ
     const int mHolo  = getNumHolonomicConstraintEquationsInUse(s);
     const int mQuats = getNumQuaternionsInUse(s);
 
+    // Thise array contains a unique MultiplierIndex for each perr 
+    // that is to be enforced by projection. Baumgarte-stabilized constraint
+    // equations don't count since then position constraints are 
+    // softly enforced through the acceleration error equation instead.
+    const Array_<MultiplierIndex> enforcedPosConsEqns =
+                                            findEnforcedPosConstraintEqns(s);
+    const int mfp = (int)enforcedPosConsEqns.size();
+
     // This is a const view into the State; the contents it refers to will 
     // change though.
     const VectorView pErrs = getQErr(s)(0,mHolo); // just leave off quaternions
@@ -4139,9 +4105,15 @@ int SimbodyMatterSubsystemRep::projectQ
 
     // Determine norms on entry.
     int worstPerr, worstQuatErr;
-    Vector scaledPerrs = pErrs.rowScale(perrWeights);
+    Vector scaledPerrs(mfp); // scaled and packed
+    packActiveMultipliers(enforcedPosConsEqns,
+                          pErrs.rowScale(perrWeights),
+                          scaledPerrs);
     const Real perrNormOnEntry = useNormInf ? scaledPerrs.normInf(&worstPerr)
                                             : scaledPerrs.normRMS(&worstPerr);
+    // Map worstPerr back to real index.
+    if (worstPerr >= 0) // will be -1 if mfp==0
+        worstPerr = enforcedPosConsEqns[worstPerr];
     const Real quatNormOnEntry = useNormInf ? quatErrs.normInf(&worstQuatErr)
                                             : quatErrs.normRMS(&worstQuatErr);
     
@@ -4163,7 +4135,7 @@ int SimbodyMatterSubsystemRep::projectQ
 
 
     // Return quickly if (a) constraint norm is zero (probably because there
-    // aren't any), or (b) constraints are already satisfied and we're
+    // aren't any), or (b) constraints are already satisfied and we're not
     // being forced to go ahead anyway.
     if (    perrNormOnEntry == 0 
         || (perrNormOnEntry <= consAccuracy && !forceOneIter)) {
@@ -4226,28 +4198,30 @@ int SimbodyMatterSubsystemRep::projectQ
     const int nu     = getNU(s);
     const bool hasPrescribedMotion = (nfq != nq);
 
-    // Solve 
-    //        (Tp Pq Wq^+) dq_WLS  = Tp perr
-    //                         dq  = Wq^+ dq_WLS
-    //                          q -= dq
-    // until RMS(Tp perr) <= 0.1*accuracy.
-    //
-    // But Pq=P*N^+, Wq^+=N*Wu^-1*N^+ so Pq Wq^+=P*Wu^-1*N^+. Since N^+ N=I,
-    // we can rewrite the above:
-    //     
-    //    (Tp P Wu^-1 N^+) dq_WLS  = Tp perr
-    //                         dq  = N Wu^-1 N^+ dq_WLS
-    //                          q -= dq
-    //
-    // We define Pqwt = ~Pqw = ~(Tp P Wu^-1 N^+) = ~N^+ Wu^-1 ~P Tp
-    // (diagonal weights are symmetric). We only retain rows that 
-    // correspond to free (non prescribed) q's.
-    //
-    // This is a nonlinear least squares problem. Below is a full Newton 
-    // iteration since we recalculate the iteration matrix each time around the
-    // loop. TODO: a solution could be found using the same iteration matrix, 
-    // since we are projecting from (presumably) not too far away. Q1: will it
-    // be the same solution? Q2: if not, does it matter?
+    /* Using only enforce position constraint equations and free generalized
+    coordinates q, solve:
+           (Tp Pq Wq\) dq_WLS  = Tp perr
+                           dq  = Wq\ dq_WLS
+                            q -= dq
+    until RMS(Tp perr) <= 0.1*accuracy.
+    
+    But Pq=P N\, Wq\ = N Wu\ N\ so Pq Wq\ = P Wu\ N\, since N\ N=I. So we can 
+    rewrite the above:
+        
+         (Tp P Wu\ N\) dq_WLS  = Tp perr
+                           dq  = N Wu\ N\ dq_WLS
+                            q -= dq
+    
+    We define Pqwt = ~Pqw = ~(Tp P Wu\ N\) = ~N\ Wu\ ~P Tp (diagonal weights are
+    symmetric). We only retain the nfq rows that correspond to free (non 
+    prescribed) q's, and retain only the mfp columns corresponding to enforced 
+    position constraint equations.
+    
+    This is a nonlinear least squares problem. Below is a full Newton iteration 
+    since we recalculate the iteration matrix each time around the loop. TODO: 
+    a solution could be found using the same iteration matrix, since we are 
+    projecting from (presumably) not too far away. Q1: will it be the same 
+    solution? Q2: if not, does it matter? */
 
     // These will be updated as we go.
     Real perrNormAchieved = perrNormOnEntry;
@@ -4255,8 +4229,8 @@ int SimbodyMatterSubsystemRep::projectQ
 
     // We always use absolute scaling for q's, derived from the absolute
     // scaling of u's.
-    const Vector& uWeights = getUWeights(s);    // 1/unit change (Wu)
-    const Vector uAbsScale = uWeights.elementwiseInvert(); // Wu^-1
+    const Vector& Wu    = getUWeights(s);         // 1/unit change (Wu)
+    const Vector  WuInv = Wu.elementwiseInvert(); // Wu\
 
     Real lastChangeMadeWRMS = 0; // size of last change in weighted dq
     int nItsUsed = 0;
@@ -4267,7 +4241,7 @@ int SimbodyMatterSubsystemRep::projectQ
     // TODO: this is sloppy; should depend on constraint tolerance
     // and rank should be saved and reused in velocity and acceleration
     // constraint methods (or should be calculated elsewhere and passed in).
-    const Real conditioningTol = mHolo         
+    const Real conditioningTol = mfp         
       //* SignificantReal; -- too tight
         * SqrtEps;
 
@@ -4275,8 +4249,8 @@ int SimbodyMatterSubsystemRep::projectQ
     // if the attempts here make the constraint norm worse.
     const Vector saveQ = getQ(s);
 
-    Matrix Pqwrt(nfq,mHolo);
-    Vector dfq_WLS(nfq), du(nu), dq(nq); // = Wq^+ dq_WLS
+    Matrix Pqwrt(nfq,mfp);
+    Vector dfq_WLS(nfq), du(nu), dq(nq); // = Wq\ dq_WLS
     Vector udfq_WLS(hasPrescribedMotion ? nq : 0); // unpacked if needed
     udfq_WLS.setToZero(); // must initialize unwritten elements
     FactorQTZ Pqwr_qtz;
@@ -4284,7 +4258,8 @@ int SimbodyMatterSubsystemRep::projectQ
     bool diverged = false;
     const int MaxIterations  = 20;
     do {
-        calcWeightedPqrTranspose(s, perrWeights, uAbsScale, Pqwrt);//nfq X mp
+        calcWeightedPqrTranspose(s, enforcedPosConsEqns,
+                                 perrWeights, WuInv, Pqwrt);//nfq X mfp
 
         // This factorization acts like a pseudoinverse.
         Pqwr_qtz.factor<Real>(~Pqwrt, conditioningTol); 
@@ -4296,17 +4271,16 @@ int SimbodyMatterSubsystemRep::projectQ
         Pqwr_qtz.solve(scaledPerrs, dfq_WLS); // this is weighted dq_WLS=Wq*dq
         lastChangeMadeWRMS = dfq_WLS.normRMS(); // change in weighted norm
 
-        // switch back to unweighted dq=Wq^+*dq_WLS
-        // = N * Wu^-1 * N^+ * dq_WLS
+        // Switch back to unweighted dq = Wq\ dq_WLS = N Wu\ N\ dq_WLS.
         if (hasPrescribedMotion) {
             unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
             multiplyByNInv(s,false,udfq_WLS,du);
         } else {
             multiplyByNInv(s,false,dfq_WLS,du);
         }
-        // Here du = du_WLS = N^+ * dq_WLS
-        du.rowScaleInPlace(uAbsScale); // Now du = Wu^-1 * du_WLS.
-        multiplyByN(s,false,du,dq);     // dq = N*du
+        // Here du = du_WLS = N\ dq_WLS.
+        du.rowScaleInPlace(WuInv); // Now du = Wu\ du_WLS.
+        multiplyByN(s,false,du,dq);    // dq = N du
 
         // This causes quaternions to become unnormalized, but it doesn't
         // matter because N is calculated from the unnormalized q's so
@@ -4317,7 +4291,9 @@ int SimbodyMatterSubsystemRep::projectQ
         // Now recalculate the position constraint errors at the new q.
         realizeSubsystemPosition(s); // pErrs changes here
 
-        scaledPerrs = pErrs.rowScale(perrWeights); // Tp * pErrs
+        packActiveMultipliers(enforcedPosConsEqns,
+                              pErrs.rowScale(perrWeights), // Tp * pErrs
+                              scaledPerrs);
         perrNormAchieved = useNormInf ? scaledPerrs.normInf()
                                       : scaledPerrs.normRMS();
         ++nItsUsed;
@@ -4327,7 +4303,9 @@ int SimbodyMatterSubsystemRep::projectQ
             // perr norm got worse; restore to end of previous iteration
             updQ(s) += dq;
             realizeSubsystemPosition(s); // pErrs changes here
-            scaledPerrs = pErrs.rowScale(perrWeights);
+            packActiveMultipliers(enforcedPosConsEqns,
+                                  pErrs.rowScale(perrWeights),
+                                  scaledPerrs);
             perrNormAchieved = useNormInf ? scaledPerrs.normInf()
                                           : scaledPerrs.normRMS();
             diverged = true;
@@ -4336,8 +4314,8 @@ int SimbodyMatterSubsystemRep::projectQ
 
         prevPerrNormAchieved = perrNormAchieved;
 
-    } while (perrNormAchieved > consAccuracyToTryFor
-                && nItsUsed < MaxIterations);
+    } while (   perrNormAchieved > consAccuracyToTryFor
+             && nItsUsed < MaxIterations);
 
     results.setNumIterations(nItsUsed);
 
@@ -4381,57 +4359,61 @@ int SimbodyMatterSubsystemRep::projectQ
 
     // Position constraint errors were successfully driven to consAccuracy.
 
-    // Next, remove the corresponding error from the integrator's error 
-    // estimate.
-    //
-    //    (Tp Pq Wq^+)_r dqr_WLS = (Tp Pq Wq^+)_r (Wq*qErrest)_r
-    //                    dq_WLS = unpack(dqr_WLS) (with zero fill)
-    //                       dq  = Wq^+ dq_WLS
-    //                           = N Wu^-1 N^+ dq_WLS
-    //                  qErrest -= dq
-    // No iteration is required.
-    //
-    // We can simplify the RHS of the first equation above:
-    //        (Tp Pq Wq^+)_r (Wq qErrest)_r = Tp Pq unpack(qErrest_r)
-    // for which we have an O(n) operator to use for the matrix-vector 
-    // product. (Proof: expand Pq, Wq^+, and Wq and cancel Wu^-1*Wu and
-    // N^+*N.)
+    /* Next, remove the corresponding error from the integrator's error 
+    estimate.   
+        (Tp Pq Wq\)_r dqr_WLS = (Tp Pq Wq\)_r (Wq qErrest)_r
+                       dq_WLS = unpack(dqr_WLS) (with zero fill)
+                          dq  = Wq\ dq_WLS
+                              = N Wu\ N\ dq_WLS
+                     qErrest -= dq
+    No iteration is required. Note that we only include the enforced constraints
+    that we used above, not all enabled constraint equations.
+    
+    We can simplify the RHS of the first equation above:
+           (Tp Pq Wq\)_r (Wq qErrest)_r = Tp Pq unpack(qErrest_r)
+    for which we have an O(n) operator to use for the matrix-vector product. 
+    Proof: expand Pq, Wq\, and Wq and cancel Wu\ Wu and N\ N. */
     if (qErrest.size()) {
         // Work in Wq-norm
-        Vector Tp_Pq_qErrest, bias_p;
+        Vector Tp_Pq_qErrest0, packed_Tp_Pq_qErrest0, bias_p;
         calcBiasForMultiplyByPq(s, bias_p);
 
-        // Switch back to unweighted dq = Wq^+ * dq_WLS
-        // = N * Wu^-1 * N^+ * dq_WLS
+        // Switch back to unweighted dq = Wq\ dq_WLS = N Wu\ N\ dq_WLS.
         if (hasPrescribedMotion) {
             Vector qErrest_0(qErrest);
             zeroKnownQ(s, qErrest_0); // zero out prescribed entries
-            multiplyByPq(s, bias_p, qErrest_0, Tp_Pq_qErrest); // (Pq*qErrest)_r
-            Tp_Pq_qErrest.rowScaleInPlace(perrWeights); // now Tp*(Pq*qErrest)_r
-            Pqwr_qtz.solve(Tp_Pq_qErrest, dfq_WLS); // weighted
+            multiplyByPq(s, bias_p, qErrest_0, Tp_Pq_qErrest0); // (Pq*qErrest)_r
+            Tp_Pq_qErrest0.rowScaleInPlace(perrWeights); // now Tp*(Pq*qErrest)_r
+            packActiveMultipliers(enforcedPosConsEqns,
+                                  Tp_Pq_qErrest0,
+                                  packed_Tp_Pq_qErrest0);         
+            Pqwr_qtz.solve(packed_Tp_Pq_qErrest0, dfq_WLS); // weighted
             unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
             multiplyByNInv(s,false,udfq_WLS,du);
         } else {
-            multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest); // Pq*qErrest
-            Tp_Pq_qErrest.rowScaleInPlace(perrWeights); // now Tp*Pq*qErrest
-            Pqwr_qtz.solve(Tp_Pq_qErrest, dfq_WLS); // weighted
+            multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest0); // Pq*qErrest
+            Tp_Pq_qErrest0.rowScaleInPlace(perrWeights); // now Tp*Pq*qErrest
+            packActiveMultipliers(enforcedPosConsEqns,
+                                  Tp_Pq_qErrest0,
+                                  packed_Tp_Pq_qErrest0);         
+            Pqwr_qtz.solve(packed_Tp_Pq_qErrest0, dfq_WLS); // weighted
             multiplyByNInv(s,false,dfq_WLS,du);
         }
-        // Here du = du_WLS = N^+ * dq_WLS
-        du.rowScaleInPlace(uAbsScale); // now du = Wu^-1 * du_WLS
-        multiplyByN(s,false,du,dq);     // dq = N*du
+        // Here du = du_WLS = N\ dq_WLS.
+        du.rowScaleInPlace(WuInv); // now du = Wu\ du_WLS
+        multiplyByN(s,false,du,dq);    // dq = N du
         qErrest -= dq; // unweighted
     }
 
     //cout << "!!!! perr TRMS achieved " << normAchievedTRMS << " in " 
     //     << nItsUsed << " iterations"  << endl;
 
-    // By design, normalization of quaternions can't have any effect on the 
-    // constraints we just fixed (because we normalize internally for 
-    // calculations). So now we can simply normalize the quaternions.
-    // We can't touch any q's that are prescribed, though, so it is 
-    // possible that we'll fail to achieve the required tolerance if some
-    // quaterion is prescribed but not up to date.
+    /* By design, normalization of quaternions can't have any effect on the 
+    constraints we just fixed (because we normalize internally for
+    calculations). So now we can simply normalize the quaternions. We can't 
+    touch any q's that are prescribed, though, so it is possible that we'll fail
+    to achieve the required tolerance if some quaterion is prescribed but not up
+    to date. */
     if (mQuats) {
         const bool anyQuatChange = normalizeQuaternions(s,qErrest);
         if (anyQuatChange) results.setAnyChangeMade(true);
@@ -4456,9 +4438,14 @@ int SimbodyMatterSubsystemRep::projectQ
 }
 //................................. PROJECT Q ..................................
 
-// Project quaternions onto their constraint manifold by normalizing
-// them. Also removes any error component along the length of the
-// quaternions if given a qErrest. Returns true if any change was made.
+
+
+//==============================================================================
+//                         NORMALIZE QUATERNIONS
+//==============================================================================
+/* Project quaternions onto their constraint manifold by normalizing them. Also 
+removes any error component along the length of the quaternions if given a 
+qErrest. Returns true if any change was made. */
 bool SimbodyMatterSubsystemRep::normalizeQuaternions
    (State& s, Vector& qErrest) const
 {
@@ -4487,191 +4474,8 @@ bool SimbodyMatterSubsystemRep::normalizeQuaternions
     realizeSubsystemPosition(s);
     return anyChangeMade;
 }
+//.......................... NORMALIZE QUATERNIONS .............................
 
-
-
-//==============================================================================
-//                         ENFORCE VELOCITY CONSTRAINTS
-//==============================================================================
-void SimbodyMatterSubsystemRep::enforceVelocityConstraints
-   (State& s, Real consAccuracy, const Vector& yWeights,
-    const Vector& ooTols, Vector& yErrest, ProjectOptions opts) const
-{
-    assert(getStage(s) >= Stage::Velocity-1);
-
-    const SBInstanceCache& ic = getInstanceCache(s);
-
-    realizeSubsystemVelocity(s);
-
-    // Here we deal with the nonholonomic (velocity) constraints and the 
-    // derivatives of the holonomic constraints.
-    const int mHolo    = getNumHolonomicConstraintEquationsInUse(s);
-    const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
-    const int nq       = getNQ(s);
-    const int nu       = getNU(s);
-    const int nfu      = ic.getTotalNumFreeU();
-    bool hasPrescribedMotion = (nfu != nu);
-
-    const VectorView uWeights   = yWeights(nq,nu); // skip the first nq weights
-    const Vector     ooUWeights = uWeights.elementwiseInvert();
-    const VectorView ooPVTols   = ooTols(0,mHolo+mNonholo);
-    //TODO: scale holo part by time scale
-
-    VectorView uErrest = yErrest.size() ? yErrest(nq,nu) : yErrest(0,0);
-
-    // This is a const view into the State; the contents it refers to will 
-    // change though.
-    const Vector& vErrs = getUErr(s); // all velocity constraint errors (mHolo+mNonholo)
-
-    bool anyChange = false;
-
-    // Solve 
-    //   (Tpv [P;V] Wu^-1) du_WLS  = Tpv uerr
-    //                         du  = Wu^-1*du_WLS
-    //                          u -= du
-    // Note that although this is a nonlinear least squares problem since uerr 
-    // is a function of u, we do not need to refactor the matrix since it does 
-    // not depend on u.
-    // TODO: I don't think that's true -- V can depend on u (rarely). That
-    // doesn't mean we need to refactor it, but then this is a modified Newton
-    // iteration (rather than full) if we're not updating V when we could be.
-    //
-    // This is a nonlinear least squares problem, but we only need to factor 
-    // once since only the RHS is dependent on u (TODO: see above).
-    Vector scaledVerrs = vErrs.rowScale(ooPVTols);
-    Real normAchievedTRMS = scaledVerrs.normRMS();
-    
-    //cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" 
-    //     << normAchievedTRMS << " consAcc=" << consAccuracy;
-    //if (uErrest.size())
-    //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
-    //else cout << " NO U ERROR ESTIMATE";
-    //cout << endl;
-    
-
-    Real lastChangeMadeWRMS = 0;
-    int nItsUsed = 0;
-
-    // Check whether we should stop if we see the solution diverging
-    // which should not happen when we're in the neighborhood of a solution
-    // on entry.
-    const bool localOnly = opts.isOptionSet(ProjectOptions::LocalOnly);
-
-    // Set how far past the required tolerance we'll attempt to go. 
-    // We only fail if we can't achieve consAccuracy, but while we're
-    // solving we'll see if we can get consAccuracyToTryFor.
-    const Real consAccuracyToTryFor = 
-        std::max(Real(0.1)*consAccuracy, SignificantReal);
-
-    // Conditioning tolerance. This determines when we'll drop a 
-    // constraint. 
-    // TODO: this is much too tight; should depend on constraint tolerance
-    // and should be consistent with the holonomic rank.
-    const Real conditioningTol = (mHolo+mNonholo) 
-        //* SignificantReal;
-        * SqrtEps;
-
-    if (normAchievedTRMS > consAccuracyToTryFor) {
-        const Vector saveU = getU(s);
-        Matrix PVwrt(nfu, mHolo+mNonholo);
-        Vector dfu_WLS(nfu);
-        Vector du(nu); // unpacked into here if necessary
-        if (hasPrescribedMotion)
-            du.setToZero(); // must initialize unwritten elements
-
-        calcWeightedPVrTranspose(s, ooPVTols, ooUWeights, PVwrt);
-        // PVwrt is now Wu^-1 (Pt Vt) Tpv
-
-        // Calculate pseudoinverse (just once)
-        FactorQTZ PVwr_qtz;
-        PVwr_qtz.factor<Real>(~PVwrt, conditioningTol);
-
-        Real prevNormAchievedTRMS = normAchievedTRMS; // watch for divergence
-        const int MaxIterations  = 7;
-        do {
-            PVwr_qtz.solve(scaledVerrs, dfu_WLS);
-            lastChangeMadeWRMS = dfu_WLS.normRMS(); // change in weighted norm
-            if (hasPrescribedMotion) {
-                unpackFreeU(s, dfu_WLS, du);    // zeroes in u_p slots
-                du.rowScaleInPlace(ooUWeights); // du=Wu^-1*unpack(dfu_WLS)
-            } else {
-                du = dfu_WLS.rowScale(ooUWeights); // unscale: du=Wu^-1*du_WLS
-            }
-            updU(s) -= du;
-            anyChange = true;
-
-            // Recalculate the constraint errors for the new u's.
-            realizeSubsystemVelocity(s);
-            scaledVerrs = vErrs.rowScale(ooPVTols);
-            normAchievedTRMS=scaledVerrs.normRMS();
-            ++nItsUsed;
-
-            if (localOnly && nItsUsed >= 2 
-                && normAchievedTRMS > prevNormAchievedTRMS) {
-                // Velocity norm worse -- restore to end of previous iteration.
-                updU(s) += du;
-                realizeSubsystemVelocity(s);
-                scaledVerrs = vErrs.rowScale(ooPVTols);
-                normAchievedTRMS=scaledVerrs.normRMS();
-                break; // diverging -- quit now to prevent a bad solution
-            }
-
-            prevNormAchievedTRMS = normAchievedTRMS;
-
-        } while (normAchievedTRMS > consAccuracyToTryFor
-                 && nItsUsed < MaxIterations);
-
-        // Make sure we achieved at least the required constraint accuracy.
-        if (normAchievedTRMS > consAccuracy) {
-            updU(s) = saveU;
-            realizeSubsystemVelocity(s);
-            SimTK_THROW1(Exception::NewtonRaphsonFailure, 
-                         "Failed to converge in velocity projection");
-        }
-
-        // Next, if we projected out the velocity constraint errors, remove the
-        // corresponding error from the integrator's error estimate.
-        //
-        //   (Tpv [P;V] Wu^-1)_f dfu_WLS  = (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f
-        //                        du_WLS  = unpack(dfu_WLS) (with zero fill)
-        //                         du  = Wu^-1 du_WLS
-        //                    uErrest -= du
-        // No iteration is required.
-        //
-        // We can simplify the RHS of the first equation above:
-        //   (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f = Tpv [P;V] unpack(uErrest_f)
-        // for which we have an O(n) operator to compute the matrix-vector 
-        // product.
-
-        if (uErrest.size()) {
-            // Work in Wu-norm
-            Vector Tpv_PV_uErrest(mHolo+mNonholo);
-            Vector bias_pv(mHolo+mNonholo);
-            calcBiasForMultiplyByPVA(s,true,true,false,bias_pv); // just P,V
-            if (hasPrescribedMotion) {
-                Vector uErrest_0(uErrest);
-                zeroKnownU(s, uErrest_0); // zero out prescribed entries
-                multiplyByPVA(s,true,true,false,bias_pv,
-                              uErrest_0,Tpv_PV_uErrest);
-                Tpv_PV_uErrest.rowScaleInPlace(ooPVTols); // = Tpv*PV*uErrest_0
-                PVwr_qtz.solve(Tpv_PV_uErrest, dfu_WLS);
-                unpackFreeU(s, dfu_WLS, du); // still weighted
-            } else {
-                multiplyByPVA(s,true,true,false,bias_pv,uErrest,Tpv_PV_uErrest);
-                Tpv_PV_uErrest.rowScaleInPlace(ooPVTols); // = Tpv PV uErrEst
-                PVwr_qtz.solve(Tpv_PV_uErrest, du);
-            }
-            du.rowScaleInPlace(ooUWeights); // now du=Wu^-1*unpack(dfu_WLS)
-            uErrest -= du; // this is unweighted now
-        }
-    }
-   
-    //cout << "!!!! verr achieved " << normAchievedTRMS << " in " 
-    //     << nItsUsed << " iterations" << endl;
-    //if (uErrest.size())
-    //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS() << endl;
-}
-//........................ ENFORCE VELOCITY CONSTRAINTS ........................
 
 
 //==============================================================================
@@ -4701,6 +4505,19 @@ int SimbodyMatterSubsystemRep::projectU
     const int mHolo    = getNumHolonomicConstraintEquationsInUse(s);
     const int mNonholo = getNumNonholonomicConstraintEquationsInUse(s);
 
+    // These arrays contain a unique MultiplierIndex for each perrdot and verr 
+    // that is to be enforced by projection. Baumgarte-stabilized constraint
+    // equations don't count since then position and velocity constraints are 
+    // softly enforced through the acceleration error equation instead.
+    const Array_<MultiplierIndex> enforcedPosConsEqns =
+                                            findEnforcedPosConstraintEqns(s);
+    const Array_<MultiplierIndex> enforcedVelConsEqns =
+                                            findEnforcedVelConstraintEqns(s);
+
+    const int mfp = (int)enforcedPosConsEqns.size();
+    const int mfv = (int)enforcedVelConsEqns.size();
+    const int mfpv = mfp + mfv;
+    
     // This is a const view into the State; the contents it refers to will 
     // change though. These are all the velocity-level constraint errors,
     // mHolo from differentiating holonomic constraints and mNonholo directly
@@ -4710,10 +4527,19 @@ int SimbodyMatterSubsystemRep::projectU
 
     // Determine norm on entry.
     int worstPVerr;
-    Vector scaledPVerrs = pvErrs.rowScale(pverrWeights);
+    Vector scaledPVerrs(mfpv); // scaled and packed
+    packActiveMultipliers2(enforcedPosConsEqns, enforcedVelConsEqns,
+                           pvErrs.rowScale(pverrWeights),
+                           scaledPVerrs);
     const Real pverrNormOnEntry = useNormInf ? scaledPVerrs.normInf(&worstPVerr)
                                              : scaledPVerrs.normRMS(&worstPVerr);
-    
+    // Map worstPVerr back to real index.
+    if (worstPVerr >= 0) {// will be -1 if mfpv==0
+        if (worstPVerr < mfp)
+            worstPVerr = enforcedPosConsEqns[worstPVerr];  
+        else 
+            worstPVerr = enforcedVelConsEqns[worstPVerr - mfp];  
+    }
     results.setNormOnEntrance(pverrNormOnEntry, worstPVerr);
 
     if (pverrNormOnEntry > opts.getProjectionLimit()) {
@@ -4725,7 +4551,7 @@ int SimbodyMatterSubsystemRep::projectU
     //cout << "!!!! initially @" << s.getTime() << ", verr TRMS=" 
     //     << normAchievedTRMS << " consAcc=" << consAccuracy;
     //if (uErrest.size())
-    //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS();
+    //    cout << " uErrest WRMS=" << uErrest.rowScale(Wu).normRMS();
     //else cout << " NO U ERROR ESTIMATE";
     //cout << endl;
     
@@ -4789,11 +4615,11 @@ int SimbodyMatterSubsystemRep::projectU
 
     // Calculate relative scaling for changes to u.
     const Vector& u = getU(s);
-    const Vector& uWeights = getUWeights(s); // 1/unit change (Wu)
+    const Vector& Wu = getUWeights(s); // 1/unit change (Wu)
     Vector uRelScale(nu);
     for (int i=0; i<nu; ++i) {
         const Real ui = std::abs(u[i]);
-        const Real wi = uWeights[i];
+        const Real wi = Wu[i];
         uRelScale[i] = ui*wi > 1 ? ui : 1/wi; // max(unit error, u) (1/Eu)
     }
 
@@ -4812,13 +4638,14 @@ int SimbodyMatterSubsystemRep::projectU
     // if the attempts here make the constraint norm worse.
     const Vector saveU = getU(s);
 
-    Matrix PVwrt(nfu, mHolo+mNonholo);
+    Matrix PVwrt(nfu, mfpv);
     Vector dfu_WLS(nfu);
     Vector du(nu); // unpacked into here if necessary
     if (hasPrescribedMotion)
         du.setToZero(); // must initialize unwritten elements
 
-    calcWeightedPVrTranspose(s, pverrWeights, uRelScale, PVwrt);
+    calcWeightedPVrTranspose(s, enforcedPosConsEqns, enforcedVelConsEqns,
+                             pverrWeights, uRelScale, PVwrt);
     // PVwrt is now Eu^-1 (Pt Vt) Tpv
 
     // Calculate pseudoinverse (just once)
@@ -4848,7 +4675,10 @@ int SimbodyMatterSubsystemRep::projectU
 
         // Recalculate the constraint errors for the new u's.
         realizeSubsystemVelocity(s);
-        scaledPVerrs = pvErrs.rowScale(pverrWeights); // Tpv * pvErrs
+
+        packActiveMultipliers2(enforcedPosConsEqns, enforcedVelConsEqns,
+                               pvErrs.rowScale(pverrWeights), // Tpv * pvErrs
+                               scaledPVerrs);
         pverrNormAchieved = useNormInf ? scaledPVerrs.normInf()
                                        : scaledPVerrs.normRMS();
         ++nItsUsed;
@@ -4858,7 +4688,9 @@ int SimbodyMatterSubsystemRep::projectU
             // Velocity norm worse -- restore to end of previous iteration.
             updU(s) += du;
             realizeSubsystemVelocity(s); // pvErrs changes here
-            scaledPVerrs = pvErrs.rowScale(pverrWeights);
+            packActiveMultipliers2(enforcedPosConsEqns, enforcedVelConsEqns,
+                                   pvErrs.rowScale(pverrWeights),
+                                   scaledPVerrs);
             pverrNormAchieved = useNormInf ? scaledPVerrs.normInf()
                                            : scaledPVerrs.normRMS();
             diverged = true;
@@ -4910,37 +4742,43 @@ int SimbodyMatterSubsystemRep::projectU
 
     // Velocity constraint errors were successfully driven to consAccuracy.
 
-    // Next, if we projected out the velocity constraint errors, remove the
-    // corresponding error from the integrator's error estimate.
-    //
-    //   (Tpv [P;V] Wu^-1)_f dfu_WLS  = (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f
-    //                        du_WLS  = unpack(dfu_WLS) (with zero fill)
-    //                         du  = Wu^-1 du_WLS
-    //                    uErrest -= du
-    // No iteration is required.
-    //
-    // We can simplify the RHS of the first equation above:
-    //   (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f = Tpv [P;V] unpack(uErrest_f)
-    // for which we have an O(n) operator to compute the matrix-vector 
-    // product.
+    /* Next, if we projected out the velocity constraint errors, remove the
+    corresponding error from the integrator's error estimate.
+    
+      (Tpv [P;V] Wu^-1)_f dfu_WLS  = (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f
+                           du_WLS  = unpack(dfu_WLS) (with zero fill)
+                            du  = Wu^-1 du_WLS
+                       uErrest -= du
+    No iteration is required. Note that we only include the enforced constraints
+    that we used above, not all enabled constraint equations.
+    
+    We can simplify the RHS of the first equation above:
+      (Tpv [P;V] Wu^-1)_f (Wu uErrest)_f = Tpv [P;V] unpack(uErrest_f)
+    for which we have an O(n) operator to compute the matrix-vector 
+    product. */
 
     if (uErrest.size()) {
         // Work in Wu-norm
-        Vector Tpv_PV_uErrest(mHolo+mNonholo);
-        Vector bias_pv(mHolo+mNonholo);
+        Vector Tpv_PV_uErrest0, packed_Tpv_PV_uErrest0, bias_pv;
         calcBiasForMultiplyByPVA(s,true,true,false,bias_pv); // just P,V
         if (hasPrescribedMotion) {
             Vector uErrest_0(uErrest);
             zeroKnownU(s, uErrest_0); // zero out prescribed entries
             multiplyByPVA(s,true,true,false,bias_pv,
-                            uErrest_0,Tpv_PV_uErrest);
-            Tpv_PV_uErrest.rowScaleInPlace(pverrWeights); // = Tpv*PV*uErrest_0
-            PVwr_qtz.solve(Tpv_PV_uErrest, dfu_WLS);
+                            uErrest_0,Tpv_PV_uErrest0);
+            Tpv_PV_uErrest0.rowScaleInPlace(pverrWeights); // = Tpv*PV*uErrest_0
+            packActiveMultipliers2(enforcedPosConsEqns,enforcedVelConsEqns,
+                                   Tpv_PV_uErrest0,
+                                   packed_Tpv_PV_uErrest0);
+            PVwr_qtz.solve(packed_Tpv_PV_uErrest0, dfu_WLS);
             unpackFreeU(s, dfu_WLS, du); // still weighted
         } else {
-            multiplyByPVA(s,true,true,false,bias_pv,uErrest,Tpv_PV_uErrest);
-            Tpv_PV_uErrest.rowScaleInPlace(pverrWeights); // = Tpv PV uErrEst
-            PVwr_qtz.solve(Tpv_PV_uErrest, du);
+            multiplyByPVA(s,true,true,false,bias_pv,uErrest,Tpv_PV_uErrest0);
+            Tpv_PV_uErrest0.rowScaleInPlace(pverrWeights); // = Tpv PV uErrEst
+            packActiveMultipliers2(enforcedPosConsEqns,enforcedVelConsEqns,
+                                   Tpv_PV_uErrest0,
+                                   packed_Tpv_PV_uErrest0);
+            PVwr_qtz.solve(packed_Tpv_PV_uErrest0, du);
         }
         du.rowScaleInPlace(uRelScale); // now du=Eu^-1*unpack(dfu_WLS)
         uErrest -= du; // this is unweighted now
@@ -4949,7 +4787,7 @@ int SimbodyMatterSubsystemRep::projectU
     //cout << "!!!! verr achieved " << pverrNormAchieved << " in " 
     //     << nItsUsed << " iterations" << endl;
     //if (uErrest.size())
-    //    cout << " uErrest WRMS=" << uErrest.rowScale(uWeights).normRMS() << endl;
+    //    cout << " uErrest WRMS=" << uErrest.rowScale(Wu).normRMS() << endl;
 
     results.setNormOnExit(pverrNormAchieved);
     results.setExitStatus(ProjectResults::Succeeded);
@@ -5083,10 +4921,10 @@ void SimbodyMatterSubsystemRep::realizeTreeForwardDynamics(
 // Given a State realized through Stage::Dynamics, and a complete set of applied 
 // forces, calculate all acceleration results resulting from those forces AND 
 // enforcement of the acceleration constraints. The results go into the return 
-// arguments here. This routine *does not* affect the State cache -- it is an 
-// operator. In typical usage, the output arguments actually will be part of 
-// the state cache to effect a response, but this method can also be used to 
-// effect an operator.
+// arguments here. This routine *does not* affect the State cache (except for
+// lazy realization of ABIs) -- it is an operator. In typical usage, the 
+// output arguments actually will be part of the state cache to effect a 
+// response, but this method can also be used to effect an operator.
 void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
    (const State& s, 
     const Vector&                   mobilityForces,
@@ -5118,8 +4956,9 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     const int nu       = getNU(s);
 
     multipliers.resize(m);
-    if (m==0) return;
-    if (nu==0) {multipliers.setToZero(); return;}
+    multipliers.setToZero();
+    if (m==0 || nu==0)
+        return;
 
     // Conditioning tolerance. This determines when we'll drop a 
     // constraint. 
@@ -5132,21 +4971,59 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
         * SqrtEps*std::sqrt(SqrtEps); // Eps^(3/4)
 
     // Calculate multipliers lambda as
-    //     (G M^-1 ~G) lambda = aerr
+    //     C lambda = aerr
+    // where C=G M^-1 ~G is the constraint compliance matrix. 
+    //
     // The method here calculates the mXm matrix G*M^-1*G^T as fast as 
     // I know how to do, O(m*n) with O(n) temporary memory, using a series
     // of O(n) operators. Then we'll factor it here in O(m^3) time. 
+    //
+    // TODO: Currently computing C for all enabled constraints and then select
+    // only the active ones afterwards. Better just to compute the active
+    // subset in the first place.
     Matrix GMInvGt(m,m);
-    calcGMInvGt(s, GMInvGt);
+    calcGMInvGt(s, GMInvGt); // All enabled constraints.
+
+    Array_<MultiplierIndex> active = findActiveMultipliers(s);
+    const int mActive = (int)active.size();
+    if (mActive == 0) {
+        SimTK_DEBUG2(
+        "calcFwdDyn @%g: None of the %d enabled constraint equations was active.\n",
+            s.getTime(), m);
+        return; // all multipliers are zero; accelerations unconstrained
+    }
+
+    // At least one constraint is active.
+
+    #ifndef NDEBUG
+    printf("calcFwdDyn @%g: %d constraints active out of %d enabled\n", 
+           s.getTime(), mActive, m);
+    cout << "  Active: " << active << endl;
+    #endif
+
+    // Here we don't care about the particular constraint status (rolling,
+    // sliding, impending slip); just whether it is active at all. If so we
+    // generate C for the normal and rolling constraints.
+    Matrix C(mActive,mActive);
+    formActiveSubmatrix(active, GMInvGt, C);
+
+    // TODO: Slip/impending slip are dealt with by replacing rows before
+    // factoring.
     
     // specify 1/cond at which we declare rank deficiency
-    FactorQTZ qtz(GMInvGt, conditioningTol); 
+    FactorQTZ qtz(C, conditioningTol); 
 
     //printf("fwdDynamics: m=%d condTol=%g rank=%d rcond=%g\n",
     //    GMInvGt.nrow(), conditioningTol, qtz.getRank(),
     //    qtz.getRCondEstimate());
 
-    qtz.solve(udotErr, multipliers);
+    Vector packedUdotErr(mActive), activeMultipliers(mActive);
+    packActiveMultipliers(active, udotErr, packedUdotErr);
+    qtz.solve(packedUdotErr, activeMultipliers);
+
+    // Unpack active multipliers into the full size multiplier array (which was
+    // initialized to zero above).
+    unpackActiveMultipliers(active, activeMultipliers, multipliers);
 
     // We have the multipliers, now turn them into forces.
 

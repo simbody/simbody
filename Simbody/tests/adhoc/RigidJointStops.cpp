@@ -21,7 +21,10 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 #include "Simbody.h"
+#include <iostream>
+
 using namespace SimTK;
+using std::cout; using std::endl;
 
 // This very simple example builds a 3-body planar mechanism that does 
 // nothing but rock back and forth for 10 seconds. Note that Simbody always
@@ -46,7 +49,7 @@ using namespace SimTK;
 // unilateral contact constraints.
 
 namespace {
-const Real StopCoefRest = .1;
+const Real StopCoefRest = 0.1;
 }
 
 int main() {
@@ -74,7 +77,7 @@ int main() {
     matter.adoptUnilateralContact(
         new HardStopLower(leftArm, MobilizerQIndex(0), -1, StopCoefRest));
     matter.adoptUnilateralContact(
-        new HardStopUpper(leftArm, MobilizerQIndex(0), -.1, StopCoefRest));
+        new HardStopUpper(leftArm, MobilizerQIndex(0), .1, StopCoefRest));
 
     matter.adoptUnilateralContact(
         new HardStopLower(rtArm, MobilizerQIndex(0), -.1, StopCoefRest));
@@ -99,17 +102,38 @@ int main() {
     
     // Initialize the system and state.    
     State state = system.realizeTopology();
+    //bodyT.lock(state);
     //bodyT.setRate(state, 2);
-    leftArm.setAngle(state, -0.9);
-    rtArm.setAngle(state, 1.);
+    //leftArm.setAngle(state, -0.9);
+    rtArm.setAngle(state, 0.9);
 
     const double SimTime = 10;
 
     // Simulate with acceleration-level time stepper.
-    RungeKuttaMersonIntegrator integ(system);
+    SemiExplicitEuler2Integrator integ(system);
+    //RungeKutta3Integrator integ(system);
+    //RungeKuttaMersonIntegrator integ(system);
+    integ.setAccuracy(0.1);
     TimeStepper ts(integ);
+
+    const double startReal = realTime(), startCPU=cpuTime();
     ts.initialize(state);
     ts.stepTo(SimTime);
+    const double timeInSec = realTime()-startReal, 
+                 cpuInSec = cpuTime()-startCPU;
+    const int evals = integ.getNumRealizations();
+    cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
+        timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        << (1000*ts.getTime())/evals << "ms/eval\n";
+    cout << "CPUtime " << cpuInSec << endl;
+
+    printf("Used Integrator %s at accuracy %g:\n", 
+        integ.getMethodName(), integ.getAccuracyInUse());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+    //printf("# EVENT STEPS = %d\n", nStepsWithEvent);
 
     //// Simulate with velocity-level time stepper.
     //SemiExplicitEulerTimeStepper sxe(system);

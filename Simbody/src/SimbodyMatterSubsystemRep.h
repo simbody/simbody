@@ -963,11 +963,6 @@ public:
         const Vector_<Real>&        qdotdot,
         Vector&                     pvaerr) const;
 
-    void enforcePositionConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                                    const Vector& ooTols, Vector& yErrest, ProjectOptions) const;
-    void enforceVelocityConstraints(State& s, Real consAccuracy, const Vector& yWeights,
-                                    const Vector& ooTols, Vector& yErrest, ProjectOptions) const;
-
     // Unconstrained (tree) dynamics methods for use during realization.
 
     // Part of OLD constrained dynamics; TODO: may be useful in op space inertia calcs.
@@ -1250,20 +1245,6 @@ public:
         const Vector_<Vec3>&       particleForces,
         const Vector_<SpatialVec>& bodyForces) const;
 
-    // calc ~(Tp Pq Wq^-1)_r (nfq X mp)
-    void calcWeightedPqrTranspose(   
-        const State&     state,
-        const Vector&    Tp,    // 1/perr tols
-        const Vector&    Wqinv, // 1/q weights
-        Matrix&          Pqrt) const;
-
-    // calc ~(Tp P Wu^-1)
-    //       (Tv V Wu^-1)_r (nfu X (mp+mv))
-    void calcWeightedPVrTranspose(
-        const State&     s,
-        const Vector&    Tpv,   // 1/verr tols
-        const Vector&    Wuinv, // 1/u weights
-        Matrix&          PVrt) const;
 
     const Array_<QIndex>& getFreeQIndex(const State& state) const;
     const Array_<QIndex>& getPresQIndex(const State& state) const;
@@ -1308,19 +1289,78 @@ public:
     // a properly-zeroed unpackedFreeU.
     void zeroKnownU(const State& s, Vector& ulike) const;
 
-    friend std::ostream& operator<<(std::ostream&, 
-                                    const SimbodyMatterSubsystemRep&);
-    friend class SimbodyMatterSubsystem;
+    // Get the perrdotdot multiplier indices for position (holonomic) constraint
+    // equations that are enabled, active, and expected to be enforced by 
+    // projection.
+    Array_<MultiplierIndex> findEnforcedPosConstraintEqns(const State&) const;
+
+    // Get the verrdot multiplier indices for velocity (nonholonomic) constraint
+    // equations that are enabled, active (rolling, not slipping), and expected
+    // to be enforced by projection.
+    Array_<MultiplierIndex> findEnforcedVelConstraintEqns(const State&) const;
+
+    // Find the multiplier index of each active constraint equation from among
+    // the enabled constraints, in ascending order.
+    Array_<MultiplierIndex> findActiveMultipliers(const State&) const;
+
+    // Given an mxm matrix, copy out the mActive x mActive submatrix for the
+    // active rows and columns. subMat is resized if necessary.
+    void formActiveSubmatrix(const Array_<MultiplierIndex>& active,
+                             const Matrix& fullMat,
+                             Matrix& subMat) const;
+
+    // Pack array of length m(=all enabled constraint equations) into an
+    // array of length mActive <= m.
+    void packActiveMultipliers(const Array_<MultiplierIndex>& active,
+                               const Vector& multipliers,
+                               Vector& activeMultipliers) const;
+
+    // Pack array of length m(=all enabled constraint equations) into an
+    // array of length mActive1+mActive2 <= m. The two lists should contain
+    // disjoint index sets but we won't check.
+    void packActiveMultipliers2(const Array_<MultiplierIndex>& active1,
+                                const Array_<MultiplierIndex>& active2,
+                                const Vector& multipliers,
+                                Vector& activeMultipliers) const;
+
+    // Unpack active multipliers into a full-size multiplier array that
+    // has already been sized and initialized. Only the active elements change.
+    void unpackActiveMultipliers(const Array_<MultiplierIndex>& active,
+                                 const Vector& activeMultipliers,
+                                 Vector& multipliers) const;
+
 
     struct RigidBodyNodeId {
         RigidBodyNodeId(int l, int o) : level(l), offset(o) { }
         int level, offset;
     };
 
+
     SimTK_DOWNCAST(SimbodyMatterSubsystemRep, Subsystem::Guts);
 
 private:
-        // TOPOLOGY "STATE VARIABLES"
+    friend std::ostream& operator<<(std::ostream&, 
+                                    const SimbodyMatterSubsystemRep&);
+
+    // calc Pqw_rt = ~(Tp Pq Wq^-1)_r (nfq X mfp)
+    void calcWeightedPqrTranspose(   
+        const State&                    state,
+        const Array_<MultiplierIndex>&  enforcedPosConsEqns,
+        const Vector&                   Tp,    // 1/perr tols
+        const Vector&                   Wqinv, // 1/q weights
+        Matrix&                         Pqw_rt) const;
+
+    //                (Tp P Wu^-1)
+    // calc PVw_rt= ~ (Tv V Wu^-1)_r (nfu X (mfp+mfv))
+    void calcWeightedPVrTranspose(
+        const State&                    s,
+        const Array_<MultiplierIndex>&  enforcedPosConsEqns,
+        const Array_<MultiplierIndex>&  enforcedVelConsEqns,
+        const Vector&                   Tpv,   // 1/verr tols
+        const Vector&                   Wuinv, // 1/u weights
+        Matrix&                         PVw_rt) const;
+
+    // TOPOLOGY "STATE VARIABLES"
 
     void clearTopologyState(); // note that this requires non-const access
 

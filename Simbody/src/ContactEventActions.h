@@ -105,10 +105,15 @@ private:
         Real consTol, Real defCaptureVel, Real defMinCORVel,
         Array_<ImpulseSolver::UniContactRT>& uniContact) const;
 
+    bool calcExpansionImpulseIfAny
+       (const Array_<ImpulseSolver::UniContactRT>&  uniContacts,
+        const Array_<int>&                          impacters,
+        const Vector&                               compressionImpulse,
+        Vector&                                     expansionImpulse,
+        Array_<int>&                                expanders) const; 
+
     const SimbodyMatterSubsystemRep&            m_matter;
-
     ResetOnCopy<std::unique_ptr<ImpulseSolver>> m_solver;
-
 };
 
 

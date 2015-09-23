@@ -63,18 +63,18 @@ findProximalConstraints
 
     for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
         const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        if (   contact.isEnabled(state)
+        if (   contact.isActive(state)
             || contact.isProximal(state, proximityTol)) // may be scaled
             proximalUniContacts.push_back(ux);
     }
 }
+
 //------------------------------------------------------------------------------
 //                         COLLECT CONSTRAINT INFO
 //------------------------------------------------------------------------------
 // Create lists of low-level constraint properties suited for analysis by
-// an Impulse solver. Only proximal constraints are considered, and those
-// must already have been enabled so that we can collect their Simbody-assigned
-// multipliers here.
+// an Impulse solver. Only proximal constraints are considered. We collect their
+// Simbody-assigned multipliers here.
 void ImpactEventAction::
 collectConstraintInfo
    (const MultibodySystem&                  mbs,
@@ -103,7 +103,7 @@ collectConstraintInfo
 
     for (auto cx : proximalUniContacts) {
         const UnilateralContact& contact = matter.getUnilateralContact(cx);
-        uniContact.push_back(); // default constructed
+        uniContact.emplace_back(); // default constructed
         ImpulseSolver::UniContactRT& rt = uniContact.back();
         rt.m_sign = (Real)contact.getSignConvention();
         rt.m_ucx = cx;
@@ -229,6 +229,40 @@ calcCoefficientsOfRestitution
     }
 }
 
+
+//------------------------------------------------------------------------------
+//                      CALC EXPANSION IMPULSE IF ANY
+//------------------------------------------------------------------------------
+/* We just generated a compression impulse, i.e., an impulse that brings all
+the impact velocities to zero. Figure out if we need to apply an expansion
+impulse and if so how much and to whom. */
+bool ImpactEventAction::
+calcExpansionImpulseIfAny
+   (const Array_<ImpulseSolver::UniContactRT>&  uniContacts,
+    const Array_<int>&                          impacters,
+    const Vector&                               compressionImpulse,
+    Vector&                                     expansionImpulse,
+    Array_<int>&                                expanders) const 
+{
+    expansionImpulse.resize(compressionImpulse.size());
+    expansionImpulse.setToZero();
+    expanders.clear();
+
+    bool anyRestitution = false;
+    for (unsigned i=0; i < impacters.size(); ++i) {
+        const int which = impacters[i];
+        const ImpulseSolver::UniContactRT& rt = uniContacts[which];
+        const MultiplierIndex              mz = rt.m_Nk;
+        const Real& pi = compressionImpulse[mz];
+        if (rt.m_effCOR > 0 && std::abs(pi) >= SignificantReal) {
+            expansionImpulse[mz] = pi*rt.m_effCOR;
+            anyRestitution = true;
+            expanders.push_back(impacters[i]);
+        }
+    }
+    return anyRestitution;
+}
+
 //------------------------------------------------------------------------------
 //                              CHANGE VIRTUAL
 //------------------------------------------------------------------------------
@@ -269,9 +303,8 @@ changeVirtual(Study&                  study,
 
     for (auto ucx : proximalUniContacts) { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
-        uni.enable(high);
+        uni.setCondition(high, CondConstraint::Active); // friction unknown
     }
-    mbs.realize(high, Stage::Instance); // assign multipliers
 
     Array_<MultiplierIndex>                 allParticipating;
     Array_<ImpulseSolver::UncondRT>         unconditional;
@@ -302,7 +335,7 @@ changeVirtual(Study&                  study,
     D.setToZero();
 
     // CLASSIFY FOR COMPRESSION
-    const Vector noExpansion;
+    const Vector noExpansion(m, 0.);
     Array_<int> impacters, expanders, observers;
     Array_<MultiplierIndex> participaters, expanding;
     classifyUnilateralContactsForSimultaneousImpact(consTol,
@@ -310,10 +343,12 @@ changeVirtual(Study&                  study,
         impacters, expanders, observers,
         participaters, expanding);
 
-    cout << "CLASSIFIED:\n";
+    #ifndef NDEBUG
+    cout << "CLASSIFIED FOR COMPRESSION:\n";
     cout << "  impacters=" << impacters << endl;
     cout << "  expanders=" << expanders << endl;
     cout << "  observers=" << observers << endl;
+    #endif
 
     // For simultaneous impact, CORs are determined only for the initial
     // impact velocities. In the reaction round they are treated as zero.
@@ -327,33 +362,114 @@ changeVirtual(Study&                  study,
     #endif
 
 
-    // CALC COMPRESSION IMPULSE
-    Vector verrStart(m), verrApplied(m);
-    Vector compressionImpulse(m);
-    Vector expansionImpulse(m, 0.);
-    verrStart = verr0; verrApplied.setToZero();
+    //----------------------PERFORM COMPRESSION ROUND---------------------------
+    Vector verr(m), verrApplied(m);
+    Vector totalImpulse(m);
+    verr = verr0; verrApplied.setToZero();
     bool converged = m_solver->solve(0,
         participaters, A, D, expanding, 
-        expansionImpulse, verrStart, verrApplied, // in/out
-        compressionImpulse, // result
+        noExpansion, verr, verrApplied, // in/out
+        totalImpulse, // compression impulse is all so far
         unconditional, uniContact,
         uniSpeedDummy, boundedDummy, consLtdFrictionDummy, 
                                      stateLtdFrictionDummy);
-    cout << "verr0=" << verr0 << " -> impulse " << compressionImpulse << endl;
+
+    // Calculate the next expansion impulse from the compression impulses
+    // we just generated. This only occurs if we are doing Poisson restitution.
+    Vector expansionImpulse(m);
+    const bool anyExpansion = 
+        calcExpansionImpulseIfAny(uniContact, impacters, totalImpulse,
+                                  expansionImpulse, expanders);
+    #ifndef NDEBUG
+    cout << "  Postcompression verr=" << verr << endl;
+    cout << "    impulse=" << totalImpulse << endl;
+    if (!anyExpansion) cout << "  No expansion needed." << endl;
+    #endif  
+
+    if(anyExpansion) {
+        //---------------------PERFORM EXPANSION ROUND--------------------------
+        #ifndef NDEBUG
+        cout << "  Next expansion impulse=" << expansionImpulse << endl;
+        cout << "  Next expanders: " << expanders << endl;
+        #endif 
+        classifyUnilateralContactsForSimultaneousImpact(consTol,
+            verr, expansionImpulse, uniContact,
+            impacters, expanders, observers,
+            participaters, expanding);
+
+        #ifndef NDEBUG
+        cout << "CLASSIFIED FOR EXPANSION:\n";
+        cout << "  impacters=" << impacters << endl;
+        cout << "  expanders=" << expanders << endl;
+        cout << "  observers=" << observers << endl;
+        #endif
+
+        Vector reactionImpulse(m);
+        bool converged = m_solver->solve(0,
+            participaters, A, D, expanding, 
+            expansionImpulse, verr, verrApplied, // in/out
+            reactionImpulse, // result
+            unconditional, uniContact,
+            uniSpeedDummy, boundedDummy, consLtdFrictionDummy, 
+                                         stateLtdFrictionDummy);
+        // verr has been updated here to verr-A*(expansionImpulse+reactionImpulse)
+        #ifndef NDEBUG
+        cout << "  expansion impulse: " << expansionImpulse << endl;
+        cout << "  reaction impulse: " << reactionImpulse << endl;
+        #endif    
+
+        totalImpulse += expansionImpulse;
+        totalImpulse += reactionImpulse;
+
+        // That should be the end but it is possible that one of the expanders
+        // is now impacting.
+        classifyUnilateralContactsForSimultaneousImpact(consTol,
+            verr, noExpansion, uniContact,
+            impacters, expanders, observers, 
+            participaters, expanding);  
+        assert(expanders.empty() && expanding.empty());
+
+        if (!impacters.empty()) {
+            //-------------------PERFORM EXPANSION ROUND------------------------
+            #ifndef NDEBUG
+            cout << "CLASSIFIED FOR CORRECTION:\n";
+            cout << "  impacters=" << impacters << endl;
+            cout << "  expanders=" << expanders << endl;
+            cout << "  observers=" << observers << endl;
+            #endif
+
+            bool converged = m_solver->solve(0,
+                participaters, A, D, expanding, 
+                noExpansion, verr, verrApplied, // in/out
+                reactionImpulse, // result
+                unconditional, uniContact,
+                uniSpeedDummy, boundedDummy, consLtdFrictionDummy, 
+                                             stateLtdFrictionDummy);
+            // verr has been updated here to verr-A*reactionImpulse
+            #ifndef NDEBUG
+            cout << "  correction impulse: " << reactionImpulse << endl;
+            cout << "  post-correction verr: " << verr << endl;
+            #endif
+
+            totalImpulse += reactionImpulse;
+        }
+    }
+
 
     // constraint impulse -> gen impulse
     Vector genImpulse, deltaU;
-    matter.multiplyByGTranspose(high, -compressionImpulse, genImpulse);
+    matter.multiplyByGTranspose(high, -totalImpulse, genImpulse);
     // gen impulse to delta-u
     matter.multiplyByMInv(high, genImpulse, deltaU);
     high.updU() += deltaU;
     mbs.realize(high, Stage::Velocity);
-
     cout << "deltaU=" << deltaU << " now verr=" << verr0 << endl;
+
+    // Decide which constraints stay active. TODO: should invoke contact
+    // handler here; this is a kludge.
     mbs.realize(high, Stage::Acceleration);
     Vector mults = high.getMultipliers();
     cout << "mults=" << mults << endl;
-    Array_<const UnilateralContact*> toDisable;
     for (auto ucx : proximalUniContacts) { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
         const Real sign = uni.getSignConvention();
@@ -361,10 +477,9 @@ changeVirtual(Study&                  study,
         printf("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
                frc<0?"disable":"OK");
         if (frc < 0)
-            toDisable.push_back(&uni);
+            uni.setCondition(high, CondConstraint::Off);
     }
-    for (auto ucp : toDisable)
-        ucp->disable(high);
+
     mbs.realize(high, Stage::Position);
 
     m_matter.getSystem().project(high);
@@ -395,7 +510,7 @@ findLingeringConstraints
 
     for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
         const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        if (   contact.isEnabled(state)
+        if (   contact.isActive(state)
             || (    contact.isProximal(state, proximityTol)
                 && !contact.isSeparating(state, velocityTol)))
             lingeringUniContacts.push_back(ux);
@@ -439,14 +554,11 @@ changeVirtual(Study&                  study,
 
     for (auto ucx : lingeringUniContacts) { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
-        uni.enable(high);
+        uni.setCondition(high, CondConstraint::Active); // rolling
     }
-    mbs.realize(high, Stage::Instance); // assign multipliers
-
     mbs.realize(high, Stage::Acceleration);
     const Vector& mults = high.getMultipliers();
 
-    Array_<const UnilateralContact*> toDisable;
     for (auto ucx : lingeringUniContacts) {
         const auto& uni = m_matter.getUnilateralContact(ucx);
         const Real sign = uni.getSignConvention();
@@ -454,10 +566,9 @@ changeVirtual(Study&                  study,
         printf("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
                frc<0?"disable":"OK");
         if (frc < 0) // TODO: Not sufficient!!
-            toDisable.push_back(&uni);
+            uni.setCondition(high, CondConstraint::Off);
     }
-    for (auto up : toDisable)
-        up->disable(high);
+
     mbs.realize(high, Stage::Position);
     m_matter.getSystem().project(high);
     printf("##########\n");

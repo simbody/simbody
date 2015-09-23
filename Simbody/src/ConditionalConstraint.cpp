@@ -28,12 +28,57 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 
-
 using namespace SimTK;
+
+//==============================================================================
+//                             COND CONSTRAINT
+//==============================================================================
+//------------------------------------------------------------------------------
+//                        ACQUIRE SUBSYSTEM RESOURCES
+//------------------------------------------------------------------------------
+void CondConstraint::acquireSubsystemResources() {
+    acquireSubsystemResourcesVirtual(); // delegate to derived class
+}
+
+//------------------------------------------------------------------------------
+//                            REALIZE TOPOLOGY
+//------------------------------------------------------------------------------
+void CondConstraint::realizeTopology(State& state) const {
+    const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+    auto mThis = const_cast<CondConstraint*>(this);
+
+    // TODO: may want to consolidate these into a single array as is done
+    // for enable/disable.
+    mThis->m_conditionIx = 
+        matter.allocateDiscreteVariable(state, Stage::Acceleration,
+            new Value<Condition>(UnknownCondition));
+
+    realizeTopologyVirtual(state); // delegate to derived class
+}
+
+
+//------------------------------------------------------------------------------
+//                            GET/SET CONDITION
+//------------------------------------------------------------------------------
+/** Return the current Condition of this conditional constraint in the given
+state. **/
+auto CondConstraint::getCondition(const State& state) const -> Condition {
+    return getMatterSubsystem().getDiscreteVariable(state, m_conditionIx)
+        .getValue<Condition>();
+}
+
+/** Set the current Condition of this conditional constraint in the given
+state. This is normally called from inside an event handler or initialization
+study. Invalidates Stage::Acceleration. **/
+void CondConstraint::setCondition(State& state, Condition condition) const {
+    getMatterSubsystem().updDiscreteVariable(state, m_conditionIx)
+        .updValue<Condition>() = condition;
+}
 
 //==============================================================================
 //                             UNILATERAL CONTACT
 //==============================================================================
+
 
 namespace {
 //------------------------------------------------------------------------------
@@ -56,7 +101,7 @@ private:
                                  const State&  state,
                                  int           derivOrder) const override {
         Real value = NaN;
-        if (!m_uniContact.isEnabled(state)) {
+        if (m_uniContact.getCondition(state) <= CondConstraint::Off) {
             const Real sign = m_uniContact.getSignConvention();
             switch(derivOrder) {
             case 0: value = sign*m_uniContact.getPerr(state); break;
@@ -65,9 +110,9 @@ private:
             default: assert(!"illegal derivOrder");
             }
 
-            printf("%s %d: %.15g @t=%.15g\n", 
-                   getTriggerDescription().c_str(), (int)getEventTriggerId(), 
-                   value, state.getTime());
+            SimTK_DEBUG4("%s %d: %.15g @t=%.15g\n", 
+                getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+                value, state.getTime());
        }
 
 
@@ -112,14 +157,14 @@ private:
                                  const State&  state,
                                  int           derivOrder) const override {
         Real value = NaN;
-        if(m_uniContact.isEnabled(state)) {
+        if(m_uniContact.getCondition(state) > CondConstraint::Off) {
             assert(derivOrder==0);
             const Real sign = m_uniContact.getSignConvention();
             const Vector& multipliers = state.getMultipliers();
             auto index = m_uniContact.getContactMultiplierIndex(state);
             value = -sign*multipliers[index];
 
-            printf("%s %d: %.15g @t=%.15g\n", 
+            SimTK_DEBUG4("%s %d: %.15g @t=%.15g\n", 
                    getTriggerDescription().c_str(), (int)getEventTriggerId(), 
                    value, state.getTime());
         }
@@ -142,7 +187,7 @@ private:
 //------------------------------------------------------------------------------
 //                        ACQUIRE SUBSYSTEM RESOURCES
 //------------------------------------------------------------------------------
-void UnilateralContact::acquireSubsystemResources() {
+void UnilateralContact::acquireSubsystemResourcesVirtual() {
     SimbodyMatterSubsystem& matter = updMatterSubsystem();
     MultibodySystem& mbs = MultibodySystem::updDowncast(matter.updSystem());
 
@@ -155,16 +200,8 @@ void UnilateralContact::acquireSubsystemResources() {
     auto liftoff = new ContactWitness(*this);
     liftoff->addEvent(mbs.getContactEvent().getEventId());
     mbs.adoptEventTrigger(liftoff);
-
-    acquireSubsystemResourcesVirtual(); // delegate to derived class
 }
 
-//------------------------------------------------------------------------------
-//                            REALIZE TOPOLOGY
-//------------------------------------------------------------------------------
-void UnilateralContact::realizeTopology(State& state) const {
-    realizeTopologyVirtual(state); // delegate to derived class
-}
 
 //==============================================================================
 //                           HARD STOP UPPER / LOWER
@@ -181,7 +218,6 @@ HardStopUpper::HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
     // Set up the constraint.
     m_upper = Constraint::ConstantCoordinate(mobod, whichQ, defaultUpperLimit);
     m_upper.setIsConditional(true);
-    m_upper.setDisabledByDefault(true);
 }
 
 HardStopLower::HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
@@ -196,7 +232,6 @@ HardStopLower::HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
     // Set up the constraint.
     m_lower = Constraint::ConstantCoordinate(mobod, whichQ, defaultLowerLimit);
     m_lower.setIsConditional(true);
-    m_lower.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
@@ -289,7 +324,6 @@ Rope::Rope(MobilizedBody& mobod1, const Vec3& point1,
     // Set up the constraint.
     m_rod = Constraint::Rod(mobod1, point1, mobod2, point2, defaultLengthLimit);
     m_rod.setIsConditional(true);
-    m_rod.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
@@ -351,7 +385,6 @@ PointPlaneFrictionlessContact::PointPlaneFrictionlessContact
     m_ptInPlane = Constraint::PointInPlane
        (planeBodyB, normal_B, height, followerBodyF, point_F);
     m_ptInPlane.setIsConditional(true);
-    m_ptInPlane.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
@@ -415,7 +448,6 @@ PointPlaneContact::PointPlaneContact
     m_ptInPlane = Constraint::PointOnPlaneContact
        (planeBodyB, m_frame, followerBodyF, point_F);
     m_ptInPlane.setIsConditional(true);
-    m_ptInPlane.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
@@ -497,7 +529,6 @@ SpherePlaneContact::SpherePlaneContact
     m_sphereOnPlane = Constraint::SphereOnPlaneContact
        (planeBodyB, frame, followerBodyF, point_F, radius, true);
     m_sphereOnPlane.setIsConditional(true);
-    m_sphereOnPlane.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
@@ -581,7 +612,6 @@ SphereSphereContact::SphereSphereContact
        (mobod_F, defaultCenterOnF, defaultRadiusOnF, 
        mobod_B, defaultCenterOnB, defaultRadiusOnB, true);
     m_sphereOnSphere.setIsConditional(true);
-    m_sphereOnSphere.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
@@ -665,7 +695,6 @@ EdgeEdgeContact::EdgeEdgeContact
        (mobod_F, defaultEdgeFrameF, defaultHalfLengthF, 
        mobod_B, defaultEdgeFrameB, defaultHalfLengthB, true);
     m_lineOnLine.setIsConditional(true);
-    m_lineOnLine.setDisabledByDefault(true);
 }
 
 //------------------------------------------------------------------------------
