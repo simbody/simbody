@@ -47,7 +47,7 @@ using std::endl;
 // the concrete class. Time should be set prior to calculation of the Jacobian.
 class MyVectorFunc : public Differentiator::JacobianFunction {
 public:
-    MyVectorFunc(int nf, int ny) 
+    MyVectorFunc(int nf, int ny)
         : Differentiator::JacobianFunction(nf,ny), time(0) { }
 
     void setTime(Real t) {time=t;}
@@ -62,7 +62,7 @@ private:
 // This is a single scalar function of a vector of parameters.
 class MyObjectiveFunc : public Differentiator::GradientFunction {
 public:
-    MyObjectiveFunc(int ny) 
+    MyObjectiveFunc(int ny)
         : Differentiator::GradientFunction(ny), time(0) { }
 
     void setTime(Real t) {time=t;}
@@ -79,7 +79,7 @@ private:
 class GenericScalarFunc : public Differentiator::ScalarFunction {
     typedef Real (*CFunc)(Real);
 public:
-    GenericScalarFunc(CFunc cf) 
+    GenericScalarFunc(CFunc cf)
         : Differentiator::ScalarFunction(), cp(cf) { }
 
     // Must provide this pure virtual function.
@@ -87,16 +87,16 @@ public:
         fx = cp(x);
         return 0;
     }
-    
+
     CFunc cp;
 };
 
 #define PREC double
 class SinOmegaX : public Differentiator::ScalarFunction {
 public:
-    SinOmegaX(Real omega, Real acc) 
-        : ScalarFunction(acc), w(omega) 
-    {  
+    SinOmegaX(Real omega, Real acc)
+        : ScalarFunction(acc), w(omega)
+    {
     }
 
     Real calc(Real x) const {
@@ -121,9 +121,9 @@ private:
 class Cubic : public Differentiator::ScalarFunction {
 public:
     // ax^3+bx^2+cx+d
-    Cubic(Real aa, Real bb, Real cc, Real dd, Real acc) 
+    Cubic(Real aa, Real bb, Real cc, Real dd, Real acc)
         : ScalarFunction(acc), a(aa),b(bb),c(cc),d(dd)
-    {  
+    {
     }
 
     Real calc(Real x) const {
@@ -166,7 +166,7 @@ static void doSinOmegaExample() {
     const int NEntries = 1000;
     const Real offs =0.1;
     const Real increment = (Real)SimTK_PI/NEntries;
-    //printf("%8s %12s %12s %12s\n", 
+    //printf("%8s %12s %12s %12s\n",
     //    "x", "3cos3x", "err1", "err2");
 
     Real err1rms=0, err1max=0, err2rms=0, err2max=0;
@@ -181,7 +181,7 @@ static void doSinOmegaExample() {
         err1rms += err1*err1; err2rms += err2*err2;
         if (err1 > err1max) err1max=err1;
         if (err2 > err2max) err2max=err2;
-        //printf("%8g %12g %12.3e %12.3e\n", 
+        //printf("%8g %12g %12.3e %12.3e\n",
           //  x, analytic, err1, err2);
     }
     printf("%.3e: err1: max=%.3e, rms=%.3e  err2: max=%.3e, rms=%.3e\n",
@@ -215,7 +215,7 @@ int main() {
     // Define a scalar, vector, and system of functions.
     GenericScalarFunc gf(mysin);
     MyObjectiveFunc   sf(4);
-    MyVectorFunc      vf(4,4); 
+    MyVectorFunc      vf(4,4);
     vf.setEstimatedAccuracy(1e-6); // claim reduced accuracy (6 digits)
 
     // Create differentiators for each of the functions.
@@ -279,7 +279,7 @@ int main() {
     Vector yp2(4);
     vf.f(y0+2*delta_y, yp2);
     cout << "f(y0+dy)=" << yp2 << endl;
-    cout << "1 f(y0)+(df/dy)dy=" << yp+dfdy*2*delta_y << endl; 
+    cout << "1 f(y0)+(df/dy)dy=" << yp+dfdy*2*delta_y << endl;
     cout << "2 f(y0)+(f/dy)dy=" << yp+dfdy2*2*delta_y << endl;
     cout << std::setprecision(16);
     cout << "1 err=" << (yp2-(yp+dfdy*2*delta_y)).norm() << endl;

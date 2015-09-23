@@ -40,35 +40,35 @@ namespace SimTK {
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromTwoAnglesTwoAxes
-  ( BodyOrSpaceType bodyOrSpace, 
-    RealP angle1, const CoordinateAxis& axis1In, 
-    RealP angle2, const CoordinateAxis& axis2In )  
+  ( BodyOrSpaceType bodyOrSpace,
+    RealP angle1, const CoordinateAxis& axis1In,
+    RealP angle2, const CoordinateAxis& axis2In )
 {
     // Non-const CoordinateAxes in case we have to switch axes
     CoordinateAxis axis1 = axis1In;
     CoordinateAxis axis2 = axis2In;
 
-    // If axis2 is same as axis1, efficiently calculate with a one-angle, 
+    // If axis2 is same as axis1, efficiently calculate with a one-angle,
     // one-axis rotation.
-    if( axis1.isSameAxis(axis2) ) 
+    if( axis1.isSameAxis(axis2) )
     { return setRotationFromAngleAboutAxis( angle1+angle2, axis1 ); }
 
     // If using a SpaceRotationSequence, switch order of axes and angles.
-    if( bodyOrSpace == SpaceRotationSequence )  
+    if( bodyOrSpace == SpaceRotationSequence )
     { std::swap(angle1,angle2);  std::swap(axis1,axis2); }
 
     // If using a reverse cyclical, negate the signs of the angles
-    if( axis1.isReverseCyclical(axis2) )  
+    if( axis1.isReverseCyclical(axis2) )
     { angle1 = -angle1; angle2 = -angle2; }
 
-    // Calculate the sines and cosines (some hardware can do this more 
+    // Calculate the sines and cosines (some hardware can do this more
     // efficiently as one Taylor series).
     const RealP c1 = std::cos( angle1 ),  s1 = std::sin( angle1 );
     const RealP c2 = std::cos( angle2 ),  s2 = std::sin( angle2 );
 
-    // All calculations are based on a body-fixed forward-cyclical rotation 
+    // All calculations are based on a body-fixed forward-cyclical rotation
     // sequence.
-    return setTwoAngleTwoAxesBodyFixedForwardCyclicalRotation( c1,s1,axis1,  
+    return setTwoAngleTwoAxesBodyFixedForwardCyclicalRotation( c1,s1,axis1,
                                                                c2,s2,axis2 );
 }
 
@@ -78,33 +78,33 @@ Rotation_<P>::setRotationFromTwoAnglesTwoAxes
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromThreeAnglesThreeAxes
-  ( BodyOrSpaceType bodyOrSpace, 
-    RealP angle1, const CoordinateAxis& axis1In, 
-    RealP angle2, const CoordinateAxis& axis2, 
+  ( BodyOrSpaceType bodyOrSpace,
+    RealP angle1, const CoordinateAxis& axis1In,
+    RealP angle2, const CoordinateAxis& axis2,
     RealP angle3, const CoordinateAxis& axis3In ) {
 
     // Non-const CoordinateAxes in case we have to switch axes.
     CoordinateAxis axis1 = axis1In;
     CoordinateAxis axis3 = axis3In;
 
-    // If axis2 is same as axis1 or axis3, efficiently calculate with a 
+    // If axis2 is same as axis1 or axis3, efficiently calculate with a
     // two-angle, two-axis rotation.
-    if( axis2.isSameAxis(axis1) ) 
-        return setRotationFromTwoAnglesTwoAxes(bodyOrSpace, angle1+angle2, 
+    if( axis2.isSameAxis(axis1) )
+        return setRotationFromTwoAnglesTwoAxes(bodyOrSpace, angle1+angle2,
                                                axis1,  angle3,axis3);
-    if( axis2.isSameAxis(axis3) ) 
-        return setRotationFromTwoAnglesTwoAxes(bodyOrSpace, angle1,axis1,  
+    if( axis2.isSameAxis(axis3) )
+        return setRotationFromTwoAnglesTwoAxes(bodyOrSpace, angle1,axis1,
                                                angle2+angle3, axis3);
 
     // If using a SpaceRotationSequence, switch order of the axes and angles.
-    if( bodyOrSpace == SpaceRotationSequence )  
+    if( bodyOrSpace == SpaceRotationSequence )
     { std::swap(angle1,angle3);  std::swap(axis1,axis3); }
 
     // If using a reverse cyclical, negate the signs of the angles.
-    if( axis1.isReverseCyclical(axis2) )  
+    if( axis1.isReverseCyclical(axis2) )
     { angle1 = -angle1;   angle2 = -angle2;   angle3 = -angle3; }
 
-    // Calculate the sines and cosines (some hardware can do this more 
+    // Calculate the sines and cosines (some hardware can do this more
     // efficiently as one Taylor series).
     const RealP c1 = std::cos( angle1 ),  s1 = std::sin( angle1 );
     const RealP c2 = std::cos( angle2 ),  s2 = std::sin( angle2 );
@@ -112,10 +112,10 @@ Rotation_<P>::setRotationFromThreeAnglesThreeAxes
 
     // All calculations are based on a body-fixed rotation sequence.
     // Determine whether this is a BodyXYX or BodyXYZ type of rotation sequence.
-    if( axis1.isSameAxis(axis3) )  
+    if( axis1.isSameAxis(axis3) )
         setThreeAngleTwoAxesBodyFixedForwardCyclicalRotation
                                         (c1,s1,axis1, c2,s2,axis2, c3,s3);
-    else                           
+    else
         setThreeAngleThreeAxesBodyFixedForwardCyclicalRotation
                                         (c1,s1,axis1, c2,s2,axis2, c3,s3,axis3);
 
@@ -127,7 +127,7 @@ Rotation_<P>::setRotationFromThreeAnglesThreeAxes
 // Calculate angle for ANY X or Y or Z rotation sequence
 //------------------------------------------------------------------------------
 template <class P> P
-Rotation_<P>::convertOneAxisRotationToOneAngle(const CoordinateAxis& axis1) const 
+Rotation_<P>::convertOneAxisRotationToOneAngle(const CoordinateAxis& axis1) const
 {
     // Get proper indices into Rotation matrix
     const CoordinateAxis axis2 = axis1.getNextAxis();
@@ -148,21 +148,21 @@ Rotation_<P>::convertOneAxisRotationToOneAngle(const CoordinateAxis& axis1) cons
 //------------------------------------------------------------------------------
 template <class P> Vec<2,P>
 Rotation_<P>::convertTwoAxesRotationToTwoAngles
-  ( BodyOrSpaceType bodyOrSpace, 
-    const CoordinateAxis& axis1In, 
-    const CoordinateAxis& axis2In ) const 
+  ( BodyOrSpaceType bodyOrSpace,
+    const CoordinateAxis& axis1In,
+    const CoordinateAxis& axis2In ) const
 {
     // Non-const CoordinateAxes in case we have to switch axes
     CoordinateAxis axis1 = axis1In;
     CoordinateAxis axis2 = axis2In;
 
-    // If axis2 is same as axis1, efficiently calculate with a one-axis, 
+    // If axis2 is same as axis1, efficiently calculate with a one-axis,
     // one-angle method.
-    if( axis1.isSameAxis(axis2) ) 
-    {   const RealP theta = convertOneAxisRotationToOneAngle(axis1) / 2; 
+    if( axis1.isSameAxis(axis2) )
+    {   const RealP theta = convertOneAxisRotationToOneAngle(axis1) / 2;
         return Vec<2,P>(theta,theta); }
 
-    // If using a SpaceRotationSequence, switch the order of the axes (later 
+    // If using a SpaceRotationSequence, switch the order of the axes (later
     // switch the angles).
     if( bodyOrSpace == SpaceRotationSequence )  std::swap(axis1,axis2);
 
@@ -181,23 +181,23 @@ Rotation_<P>::convertTwoAxesRotationToTwoAngles
 //------------------------------------------------------------------------------
 template <class P> Vec<3,P>
 Rotation_<P>::convertThreeAxesRotationToThreeAngles
-  ( BodyOrSpaceType         bodyOrSpace, 
-    const CoordinateAxis&   axis1In, 
-    const CoordinateAxis&   axis2, 
-    const CoordinateAxis&   axis3In ) const 
+  ( BodyOrSpaceType         bodyOrSpace,
+    const CoordinateAxis&   axis1In,
+    const CoordinateAxis&   axis2,
+    const CoordinateAxis&   axis3In ) const
 {
     // Non-const CoordinateAxes in case we have to switch axes.
     CoordinateAxis axis1 = axis1In;
     CoordinateAxis axis3 = axis3In;
 
-    // If all axes are same, efficiently calculate with a one-axis, one-angle 
+    // If all axes are same, efficiently calculate with a one-axis, one-angle
     // method.
-    if( axis1.areAllSameAxes(axis2,axis3) ) { 
-        RealP theta = convertOneAxisRotationToOneAngle(axis1) / 3;  
-        return Vec3P(theta,theta,theta); 
+    if( axis1.areAllSameAxes(axis2,axis3) ) {
+        RealP theta = convertOneAxisRotationToOneAngle(axis1) / 3;
+        return Vec3P(theta,theta,theta);
     }
 
-    // If axis2 is same as axis1, efficiently calculate with a two-angle, 
+    // If axis2 is same as axis1, efficiently calculate with a two-angle,
     // two-axis rotation.
     if( axis2.isSameAxis(axis1) ) {
         const Vec2P xz = convertTwoAxesRotationToTwoAngles
@@ -206,7 +206,7 @@ Rotation_<P>::convertThreeAxesRotationToThreeAngles
         return Vec3P( theta, theta, xz[1] );
     }
 
-    // If axis2 is same as axis3, efficiently calculate with a two-angle, 
+    // If axis2 is same as axis3, efficiently calculate with a two-angle,
     // two-axis rotation.
     if( axis2.isSameAxis(axis3) ) {
         const Vec2P xz = convertTwoAxesRotationToTwoAngles
@@ -215,13 +215,13 @@ Rotation_<P>::convertThreeAxesRotationToThreeAngles
         return Vec3P( xz[0], theta, theta);
     }
 
-    // If using a SpaceRotationSequence, switch the order of the axes (later 
+    // If using a SpaceRotationSequence, switch the order of the axes (later
     // switch the angles).
     if( bodyOrSpace == SpaceRotationSequence )  std::swap(axis1,axis3);
 
     // All calculations are based on a body-fixed rotation sequence.
     // Determine whether this is a BodyXYX or BodyXYZ type of rotation sequence.
-    Vec3P ans = axis1.isSameAxis(axis3) 
+    Vec3P ans = axis1.isSameAxis(axis3)
         ? convertTwoAxesBodyFixedRotationToThreeAngles(axis1, axis2)
         : convertThreeAxesBodyFixedRotationToThreeAngles(axis1, axis2, axis3);
 
@@ -234,13 +234,13 @@ Rotation_<P>::convertThreeAxesRotationToThreeAngles
 
 
 //------------------------------------------------------------------------------
-// Set Rotation ONLY for two-angle, two-axes, body-fixed, ij rotation sequence 
+// Set Rotation ONLY for two-angle, two-axes, body-fixed, ij rotation sequence
 // where i != j.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setTwoAngleTwoAxesBodyFixedForwardCyclicalRotation
-  ( RealP cosAngle1, RealP sinAngle1, const CoordinateAxis& axis1, 
-    RealP cosAngle2, RealP sinAngle2, const CoordinateAxis& axis2 ) 
+  ( RealP cosAngle1, RealP sinAngle1, const CoordinateAxis& axis1,
+    RealP cosAngle2, RealP sinAngle2, const CoordinateAxis& axis2 )
 {
     // Ensure this method has proper arguments
     assert( axis1.isDifferentAxis( axis2 ) );
@@ -265,14 +265,14 @@ Rotation_<P>::setTwoAngleTwoAxesBodyFixedForwardCyclicalRotation
 
 
 //------------------------------------------------------------------------------
-// Set Rotation ONLY for three-angle, two-axes, body-fixed, iji rotation 
+// Set Rotation ONLY for three-angle, two-axes, body-fixed, iji rotation
 // sequence where i != j.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setThreeAngleTwoAxesBodyFixedForwardCyclicalRotation
-  ( RealP cosAngle1, RealP sinAngle1, const CoordinateAxis& axis1, 
-    RealP cosAngle2, RealP sinAngle2, const CoordinateAxis& axis2, 
-    RealP cosAngle3, RealP sinAngle3 )  
+  ( RealP cosAngle1, RealP sinAngle1, const CoordinateAxis& axis1,
+    RealP cosAngle2, RealP sinAngle2, const CoordinateAxis& axis2,
+    RealP cosAngle3, RealP sinAngle3 )
 {
     // Ensure this method has proper arguments
     assert( axis1.isDifferentAxis( axis2 ) );
@@ -303,14 +303,14 @@ Rotation_<P>::setThreeAngleTwoAxesBodyFixedForwardCyclicalRotation
 
 
 //------------------------------------------------------------------------------
-// Set Rotation ONLY for three-angle, three-axes, body-fixed, ijk rotation 
+// Set Rotation ONLY for three-angle, three-axes, body-fixed, ijk rotation
 // sequence where i != j != k.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setThreeAngleThreeAxesBodyFixedForwardCyclicalRotation
-  ( RealP cosAngle1, RealP sinAngle1, const CoordinateAxis& axis1, 
+  ( RealP cosAngle1, RealP sinAngle1, const CoordinateAxis& axis1,
     RealP cosAngle2, RealP sinAngle2, const CoordinateAxis& axis2,
-    RealP cosAngle3, RealP sinAngle3, const CoordinateAxis& axis3 ) 
+    RealP cosAngle3, RealP sinAngle3, const CoordinateAxis& axis3 )
 {
     // Ensure this method has proper arguments
     assert( axis1.areAllDifferentAxes(axis2,axis3) );
@@ -340,12 +340,12 @@ Rotation_<P>::setThreeAngleThreeAxesBodyFixedForwardCyclicalRotation
 
 
 //------------------------------------------------------------------------------
-// Calculate angles ONLY for a two-angle, two-axes, body-fixed, ij rotation 
+// Calculate angles ONLY for a two-angle, two-axes, body-fixed, ij rotation
 // sequence where i != j.
 //------------------------------------------------------------------------------
 template <class P> Vec<2,P>
 Rotation_<P>::convertTwoAxesBodyFixedRotationToTwoAngles
-  ( const CoordinateAxis& axis1, const CoordinateAxis& axis2 ) const 
+  ( const CoordinateAxis& axis1, const CoordinateAxis& axis2 ) const
 {
     // Ensure this method has proper arguments
     assert( axis1.isDifferentAxis( axis2 ) );
@@ -356,17 +356,17 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToTwoAngles
     const int k = int(axis3);
     const Mat33P& R =  asMat33();
 
-    // Can use either direct method (fast) or all matrix elements with the 
+    // Can use either direct method (fast) or all matrix elements with the
     // overhead of two additional square roots (possibly more accurate).
     const RealP sinTheta1Direct = R[k][j];
     const RealP signSinTheta1 = sinTheta1Direct > 0 ? RealP(1) : RealP(-1);
-    const RealP sinTheta1Alternate = 
+    const RealP sinTheta1Alternate =
         signSinTheta1 * std::sqrt( square(R[j][i]) + square(R[j][k]) );
     const RealP sinTheta1 = ( sinTheta1Direct + sinTheta1Alternate ) / 2;
 
     const RealP cosTheta1Direct = R[j][j];
     const RealP signCosTheta1 = cosTheta1Direct > 0 ? RealP(1) : RealP(-1);
-    const RealP cosTheta1Alternate = 
+    const RealP cosTheta1Alternate =
         signCosTheta1 * std::sqrt( square(R[k][i]) + square(R[k][k]) );
     const RealP cosTheta1 = ( cosTheta1Direct + cosTheta1Alternate ) / 2;
 
@@ -375,13 +375,13 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToTwoAngles
     // Repeat for theta2
     const RealP sinTheta2Direct = R[i][k];
     const RealP signSinTheta2 = sinTheta2Direct > 0 ? RealP(1) : RealP(-1);
-    const RealP sinTheta2Alternate = 
+    const RealP sinTheta2Alternate =
         signSinTheta2 * std::sqrt( square(R[j][i]) + square(R[k][i]) );
     const RealP sinTheta2 = ( sinTheta2Direct + sinTheta2Alternate ) / 2;
 
     const RealP cosTheta2Direct = R[i][i];
     const RealP signCosTheta2 = cosTheta2Direct > 0 ? RealP(1) : RealP(-1);
-    const RealP cosTheta2Alternate = 
+    const RealP cosTheta2Alternate =
         signCosTheta2 * std::sqrt( square(R[j][k]) + square(R[k][k]) );
     const RealP cosTheta2 = ( cosTheta2Direct + cosTheta2Alternate ) / 2;
 
@@ -398,12 +398,12 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToTwoAngles
 
 
 //------------------------------------------------------------------------------
-// Calculate angles ONLY for a three-angle, two-axes, body-fixed, iji rotation 
+// Calculate angles ONLY for a three-angle, two-axes, body-fixed, iji rotation
 // sequence where i != j.
 //------------------------------------------------------------------------------
 template <class P> Vec<3,P>
 Rotation_<P>::convertTwoAxesBodyFixedRotationToThreeAngles
-  ( const CoordinateAxis& axis1, const CoordinateAxis& axis2 ) const 
+  ( const CoordinateAxis& axis1, const CoordinateAxis& axis2 ) const
 {
     // Ensure this method has proper arguments.
     assert( axis1.isDifferentAxis( axis2 ) );
@@ -421,10 +421,10 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToThreeAngles
     const Mat33P& R = asMat33();
 
     // Calculate theta2 using lots of information in the rotation matrix.
-    const RealP Rsum   = std::sqrt( (  square(R[i][j]) + square(R[i][k]) 
-                                     + square(R[j][i]) + square(R[k][i])) / 2 );  
+    const RealP Rsum   = std::sqrt( (  square(R[i][j]) + square(R[i][k])
+                                     + square(R[j][i]) + square(R[k][i])) / 2 );
     // Rsum = abs(sin(theta2)) is inherently positive.
-    const RealP theta2 = std::atan2( Rsum, R[i][i] );  
+    const RealP theta2 = std::atan2( Rsum, R[i][i] );
     RealP theta1, theta3;
 
     // There is a "singularity" when sin(theta2) == 0
@@ -456,13 +456,13 @@ Rotation_<P>::convertTwoAxesBodyFixedRotationToThreeAngles
 
 
 //------------------------------------------------------------------------------
-// Calculate angles ONLY for a three-angle, three-axes, body-fixed, ijk rotation 
+// Calculate angles ONLY for a three-angle, three-axes, body-fixed, ijk rotation
 // sequence where i != j and j != k.
 //------------------------------------------------------------------------------
 template <class P> Vec<3,P>
 Rotation_<P>::convertThreeAxesBodyFixedRotationToThreeAngles
-  ( const CoordinateAxis& axis1, const CoordinateAxis& axis2, 
-    const CoordinateAxis& axis3 ) const 
+  ( const CoordinateAxis& axis1, const CoordinateAxis& axis2,
+    const CoordinateAxis& axis3 ) const
 {
     // Ensure this method has proper arguments.
     assert( axis1.areAllDifferentAxes(axis2,axis3) );
@@ -479,10 +479,10 @@ Rotation_<P>::convertThreeAxesBodyFixedRotationToThreeAngles
     const Mat33P& R = asMat33();
 
     // Calculate theta2 using lots of information in the rotation matrix.
-    RealP Rsum   =  std::sqrt((  square(R[i][i]) + square(R[i][j]) 
+    RealP Rsum   =  std::sqrt((  square(R[i][i]) + square(R[i][j])
                                + square(R[j][k]) + square(R[k][k])) / 2);
     // Rsum = abs(cos(theta2)) is inherently positive.
-    RealP theta2 =  std::atan2( plusMinus*R[i][k], Rsum ); 
+    RealP theta2 =  std::atan2( plusMinus*R[i][k], Rsum );
     RealP theta1, theta3;
 
     // There is a "singularity" when cos(theta2) == 0
@@ -518,7 +518,7 @@ Rotation_<P>::convertThreeAxesBodyFixedRotationToThreeAngles
 // Note: The other vectors are perpendicular (but somewhat arbitrarily so).
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
-Rotation_<P>::setRotationFromOneAxis(const UnitVec3P& uveci, CoordinateAxis axisi)  
+Rotation_<P>::setRotationFromOneAxis(const UnitVec3P& uveci, CoordinateAxis axisi)
 {
     // Find a unit vector that is perpendicular to uveci.
     const UnitVec3P uvecj = uveci.perp();
@@ -540,14 +540,14 @@ Rotation_<P>::setRotationFromOneAxis(const UnitVec3P& uveci, CoordinateAxis axis
 
 
 //------------------------------------------------------------------------------
-// Calculate A.RotationMatrix.B by knowing one of B's unit vectors expressed in 
-// A and another vector that may be perpendicular. If the 2nd vector is not 
+// Calculate A.RotationMatrix.B by knowing one of B's unit vectors expressed in
+// A and another vector that may be perpendicular. If the 2nd vector is not
 // perpendicular, no worries - we'll make it so it is perpendicular.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromTwoAxes
-  ( const UnitVec3P& uveci, const CoordinateAxis& axisi, 
-    const Vec3P& vecjApprox, const CoordinateAxis& axisjApprox ) 
+  ( const UnitVec3P& uveci, const CoordinateAxis& axisi,
+    const Vec3P& vecjApprox, const CoordinateAxis& axisjApprox )
 {
     // Ensure vecjApprox is not a zero vector and the axes are not the same.
     RealP magnitudeOfVecjApprox = vecjApprox.normSqr();
@@ -558,10 +558,10 @@ Rotation_<P>::setRotationFromTwoAxes
     Vec3P veck = cross( uveci, vecjApprox );
 
     // Make sure (a x b) is not too close to the zero vector (vectors are nearly
-    // parallel). Since |a x b| = |a|*|b|*sin(theta), it is easy to determine 
-    // when sin(theta) = |a x b| / (|a| * |b|) is small. In other words, 
-    // sin(theta) = |a x b| / (|a| * |b|)  where |a| = 1 (since uveci is a unit 
-    // vector). I use SqrtEps (which is approx 1e-8 in double) which means 
+    // parallel). Since |a x b| = |a|*|b|*sin(theta), it is easy to determine
+    // when sin(theta) = |a x b| / (|a| * |b|) is small. In other words,
+    // sin(theta) = |a x b| / (|a| * |b|)  where |a| = 1 (since uveci is a unit
+    // vector). I use SqrtEps (which is approx 1e-8 in double) which means
     // that the angle between the vectors is less than 1e-8 rads = 6e-7 deg.
     RealP magnitudeOfVeck = veck.normSqr();   // Magnitude of the cross product.
     if( magnitudeOfVeck < SimTK::SqrtEps * magnitudeOfVecjApprox )
@@ -577,7 +577,7 @@ Rotation_<P>::setRotationFromTwoAxes
     CoordinateAxis axisj = axisi.getNextAxis();
     CoordinateAxis axisk = axisj.getNextAxis();
 
-    // If axisj is axisjApprox, all is good, otherwise switch axisj and axisk 
+    // If axisj is axisjApprox, all is good, otherwise switch axisj and axisk
     // and negate the k'th axis.
     if( axisj.isDifferentAxis(axisjApprox) ) {
         std::swap( axisj, axisk );
@@ -614,9 +614,9 @@ Rotation_<P>::setRotationFromQuaternion( const Quaternion_<P>& q )  {
 // Convert this Rotation matrix to the equivalent quaternion.
 //
 // We use a modification of Richard Spurrier's method: Spurrier, R.A., "Comment
-// on 'Singularity-Free Extraction of a Quaternion from a Direction-Cosine 
-// Matrix'", J. Spacecraft and Rockets, 15(4):255, 1977. Our modification 
-// avoids all but one square root and divide. In each of the four cases we 
+// on 'Singularity-Free Extraction of a Quaternion from a Direction-Cosine
+// Matrix'", J. Spacecraft and Rockets, 15(4):255, 1977. Our modification
+// avoids all but one square root and divide. In each of the four cases we
 // compute 4q[m]*q where m is the "max" element, with
 //   m=0 if the trace is larger than any diagonal or
 //   m=i if the i,i element is the largest diagonal and larger than the trace.
@@ -634,7 +634,7 @@ template <class P> Quaternion_<P>
 Rotation_<P>::convertRotationToQuaternion() const {
     const Mat33P& R = asMat33();
 
-    // Stores the return values [cos(theta/2), lambda1*sin(theta/2), 
+    // Stores the return values [cos(theta/2), lambda1*sin(theta/2),
     //                           lambda2*sin(theta/2), lambda3*sin(theta/2)]
     Vec4P q;
 
@@ -675,9 +675,9 @@ Rotation_<P>::convertRotationToQuaternion() const {
 
 
 //------------------------------------------------------------------------------
-// Determine whether "this" Rotation matrix is nearly identical to the one 
-// passed in (R) within a specified "pointing angle error".  If "this" and "R" 
-// are nearly identical, transpose(this) * R = closeToIdentity matrix. After 
+// Determine whether "this" Rotation matrix is nearly identical to the one
+// passed in (R) within a specified "pointing angle error".  If "this" and "R"
+// are nearly identical, transpose(this) * R = closeToIdentity matrix. After
 // finding the equivalent angle-axis for closeToIdentityMatrix, check the angle
 // to see if it is less than okPointingAngleErrorRads.
 //------------------------------------------------------------------------------
@@ -688,7 +688,7 @@ Rotation_<P>::isSameRotationToWithinAngle
     // The absolute maximum pointing error should be Pi (to machine precision).
     assert( 0 <= okPointingAngleErrorRads && okPointingAngleErrorRads <= Pi);
     const Rotation_<P> closeToIdentityMatrix = ~(*this) * R;
-    const Vec4P angleAxisEquivalent = 
+    const Vec4P angleAxisEquivalent =
         closeToIdentityMatrix.convertRotationToAngleAxis();
     const RealP pointingError = std::abs( angleAxisEquivalent[0] );
     return pointingError <= okPointingAngleErrorRads;
@@ -696,8 +696,8 @@ Rotation_<P>::isSameRotationToWithinAngle
 
 
 //------------------------------------------------------------------------------
-// This method is a poor man's orthogonalization from the supplied matrix to 
-// make a legitimate rotation. This is done by conversion to quaternions and 
+// This method is a poor man's orthogonalization from the supplied matrix to
+// make a legitimate rotation. This is done by conversion to quaternions and
 // back to Rotation and may not produce the closest rotation.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
@@ -711,12 +711,12 @@ Rotation_<P>::setRotationFromApproximateMat33( const Mat33P& m ) {
 
 
 //------------------------------------------------------------------------------
-// Note: It may be slightly more efficient to set this matrix directly rather 
+// Note: It may be slightly more efficient to set this matrix directly rather
 // than via the quaternion.
 //------------------------------------------------------------------------------
 template <class P> Rotation_<P>&
 Rotation_<P>::setRotationFromAngleAboutUnitVector
-  ( RealP angleInRad, const UnitVec3P& unitVector ) 
+  ( RealP angleInRad, const UnitVec3P& unitVector )
 {
     QuaternionP q;
     q.setQuaternionFromAngleAxis( angleInRad, unitVector );
@@ -733,7 +733,7 @@ Rotation_<P>::setRotationFromAngleAboutUnitVector
 //            [ d b f ]
 //            [ e f c ]
 //
-// First, factor S into S=L+D+vx with v=~[-f e 0] (x means cross 
+// First, factor S into S=L+D+vx with v=~[-f e 0] (x means cross
 // product matrix):
 //        [a-c   d   0]     [c 0 0]       [ 0  0  e]
 //    L = [ d   b-c  0] D = [0 c 0]  vx = [ 0  0  f]
@@ -741,8 +741,8 @@ Rotation_<P>::setRotationFromAngleAboutUnitVector
 // (4 flops to calculate L)
 //
 // A cross product matrix identity says R*vx*~R=(R*v)x, so:
-//    S'=R*S*~R = R*L*~R + D + (R*v)x. 
-// Let Y'=R*L, Z=Y'*~R. We only need the lower triangle of Z and a 
+//    S'=R*S*~R = R*L*~R + D + (R*v)x.
+// Let Y'=R*L, Z=Y'*~R. We only need the lower triangle of Z and a
 // 2x2 square of Y'.
 //
 // Don't-care's below are marked "-". Reminder: square bracket [i]
@@ -773,7 +773,7 @@ Rotation_<P>::setRotationFromAngleAboutUnitVector
 //  version 11.1 and counted exactly 57 inline flops.)
 //
 // NOTE: there are two implementations of this routine that have
-// to be kept in sync -- this one and the identical one for 
+// to be kept in sync -- this one and the identical one for
 // InverseRotation right below.
 //------------------------------------------------------------------------------
 template <class P> SymMat<3,P>
@@ -845,21 +845,21 @@ template class InverseRotation_<float>;
 template class InverseRotation_<double>;
 
 //------------------------------------------------------------------------------
-template <class P> std::ostream&  
-operator<<( std::ostream& o, const Rotation_<P>& m ) 
+template <class P> std::ostream&
+operator<<( std::ostream& o, const Rotation_<P>& m )
 { return o << m.asMat33(); }
-template <class P> std::ostream&  
-operator<<( std::ostream& o, const InverseRotation_<P>& m )  
+template <class P> std::ostream&
+operator<<( std::ostream& o, const InverseRotation_<P>& m )
 { return o << Rotation_<P>(m); }
 
-template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+template SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const Rotation_<float>&);
-template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+template SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const Rotation_<double>&);
 
-template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+template SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const InverseRotation_<float>&);
-template SimTK_SimTKCOMMON_EXPORT std::ostream& 
+template SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream&, const InverseRotation_<double>&);
 
 

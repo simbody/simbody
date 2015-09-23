@@ -41,15 +41,15 @@ public:
     reference any %MobilizedBody::Planar. **/
     Planar() {}
 
-    /** Create a %Planar mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Planar mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Planar(MobilizedBody& parent, const Transform& X_PF,
            const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Planar(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
@@ -105,7 +105,7 @@ public:
 
     const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
     const Vec3& getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
 

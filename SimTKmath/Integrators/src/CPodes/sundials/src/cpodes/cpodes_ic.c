@@ -20,7 +20,7 @@
  * cpicImplComputeYp
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -32,7 +32,7 @@
 #include "cpodes_private.h"
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * ALGORITHMIC CONSTANTS
  * =================================================================
@@ -43,7 +43,7 @@
 #define MAX_RECVR     5
 #define MAX_ITERS    10
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
@@ -64,7 +64,7 @@ static int cpicImplComputeYp(CPodeMem cp_mem);
 
 static void cpicFailFlag(CPodeMem, int flag);
 
-/* 
+/*
  * =================================================================
  * READIBILITY REPLACEMENTS
  * =================================================================
@@ -72,7 +72,7 @@ static void cpicFailFlag(CPodeMem, int flag);
 
 #define ode_type       (cp_mem->cp_ode_type)
 #define tn             (cp_mem->cp_tn)
-#define zn             (cp_mem->cp_zn) 
+#define zn             (cp_mem->cp_zn)
 #define tol_type       (cp_mem->cp_tol_type)
 #define efun           (cp_mem->cp_efun)
 #define e_data         (cp_mem->cp_e_data)
@@ -115,20 +115,20 @@ static void cpicFailFlag(CPodeMem, int flag);
 #define yy0            (cp_mem->cp_yy0)
 #define yp0            (cp_mem->cp_yp0)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
  */
 
 /*
- * CPodeCalcIC 
+ * CPodeCalcIC
  *
- * This calculates corrected initial conditions that are consistent 
- * with the invariant constraints and (for implicit-form ODEs) with 
- * the ODE system itself. It first projects the initial guess for 
- * the state vector (given by the user through CPodeInit or CPodeReInit) 
- * and then, if necessary, computes a state derivative vector as 
+ * This calculates corrected initial conditions that are consistent
+ * with the invariant constraints and (for implicit-form ODEs) with
+ * the ODE system itself. It first projects the initial guess for
+ * the state vector (given by the user through CPodeInit or CPodeReInit)
+ * and then, if necessary, computes a state derivative vector as
  * solution of F(t0, y0, y0') = 0.
  *
  */
@@ -160,13 +160,13 @@ int CPodeCalcIC(void *cpode_mem)
   flag = cpicInitialSetup(cp_mem);
   if (flag != CP_SUCCESS) return(flag);
 
-  /* Initialize various convergence test constants 
+  /* Initialize various convergence test constants
    *   icprj_convcoef - constant used to test weighted norms.
    *                    Here, we use a value 10 times smaller than the
    *                    one used in the projectin during integration.
    *   icprj_normtol  - stopping tolerance on max-norm of constraints
    *   icprj_maxrcvr  - maximum number of reductin in full Newton step
-   *                    in attempting to correct recoverable constraint 
+   *                    in attempting to correct recoverable constraint
    *                    function errors.
    *   icprj_maxiter  - maximum number of nonlinear iterations
    */
@@ -186,11 +186,11 @@ int CPodeCalcIC(void *cpode_mem)
   /* Compute y consistent with constraints */
   if (proj_enabled)
     flag = cpicDoProjection(cp_mem);
-  
+
   /* Compute yp consistent with DE */
   if ( (flag == CP_SUCCESS) && (ode_type == CP_IMPL) )
     flag = cpicImplComputeYp(cp_mem);
-  
+
   /* If successful, load yy0 and yp0 into Nordsieck array */
   if (flag == CP_SUCCESS) {
     N_VScale(ONE, yy0, zn[0]);
@@ -212,13 +212,13 @@ int CPodeCalcIC(void *cpode_mem)
 
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS
  * =================================================================
  */
 
-/*  
+/*
  * cpicInitialSetup
  *
  * This routine performs input consistency checks for IC calculation.
@@ -254,7 +254,7 @@ static int cpicInitialSetup(CPodeMem cp_mem)
         cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeCalcIC", MSGCP_NO_CFUN);
         return(CP_ILL_INPUT);
       }
-      /* Check that lsolveP exists */ 
+      /* Check that lsolveP exists */
       if ( lsolveP == NULL) {
         cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeCalcIC", MSGCP_PLSOLVE_NULL);
         return(CP_ILL_INPUT);
@@ -270,13 +270,13 @@ static int cpicInitialSetup(CPodeMem cp_mem)
 
       break;
 
-    } 
+    }
 
   }
 
   /* For implicit ODE, we will always need a linear solver */
   if (ode_type == CP_IMPL) {
-    /* Check that lsolve exists */ 
+    /* Check that lsolve exists */
     if (lsolve == NULL) {
       cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeCalcIC", MSGCP_LSOLVE_NULL);
       return(CP_ILL_INPUT);
@@ -305,7 +305,7 @@ static int cpicInitialSetup(CPodeMem cp_mem)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * cpicDoProjection
  *
  * This is the top-level function handling the projection onto the
@@ -314,10 +314,10 @@ static int cpicInitialSetup(CPodeMem cp_mem)
  * internal projection functions (cpicProjLinear or cpicProjNonlinear).
  *
  * For user supplied projection function, use tempv to store the
- * corection due to projection, acorP (tempv is not touched until it 
+ * corection due to projection, acorP (tempv is not touched until it
  * is potentially used in cpCompleteStep).
  *
- * For the internal projection function, space for acorP was allocated 
+ * For the internal projection function, space for acorP was allocated
  * in CPodeProjInit.
  */
 static int cpicDoProjection(CPodeMem cp_mem)
@@ -333,7 +333,7 @@ static int cpicDoProjection(CPodeMem cp_mem)
     if (retval < 0) return(CP_CNSTRFUNC_FAIL);
     if (retval > 0) return(CP_FIRST_CNSTRFUNC_ERR);
 
-    /* Perform projection step 
+    /* Perform projection step
      * On a successful return, yy0 was updated. */
     if (cnstr_type == CP_CNSTR_NONLIN) flag = cpicProjNonlinear(cp_mem);
     else                               flag = cpicProjLinear(cp_mem);
@@ -343,7 +343,7 @@ static int cpicDoProjection(CPodeMem cp_mem)
   case CP_PROJ_USER:
 
     acorP = tempv;
-    
+
     /* Call the user projection function (with err=NULL) */
     retval = pfun(tn, yy0, acorP, icprj_convcoef, NULL, p_data);
     if (retval != 0) return(CP_PROJFUNC_FAIL);
@@ -368,7 +368,7 @@ static int cpicProjLinear(CPodeMem cp_mem)
 {
   int retval;
 
-  /* Call the lsetupP function to evaluate and factorize the 
+  /* Call the lsetupP function to evaluate and factorize the
    * Jacobian of constraints */
   retval = lsetupP(cp_mem, yy0, ctemp, tempvP1, tempvP2, tempv);
   if (retval != 0) return(CP_PLSETUP_FAIL);
@@ -391,7 +391,7 @@ static int cpicProjLinear(CPodeMem cp_mem)
  * The convergence tests are:
  *  ||c||_WL2 < icprj_convcoef AND ||c||_max < icprj_normtol
  *       OR
- *  ||p||_WRMS < icprj_convcoef 
+ *  ||p||_WRMS < icprj_convcoef
  *
  * Default values:
  *   icprj_convcoef = 0.1 * prjcoef = 0.1 * 0.1
@@ -399,7 +399,7 @@ static int cpicProjLinear(CPodeMem cp_mem)
  *
  * In other words, we stop when the constraints are within the user-specified
  * tolerances (but, to cover the case where ctol was too large, we also impose
- * that the maximum constraint violation is small enough). Otherwise, we declare 
+ * that the maximum constraint violation is small enough). Otherwise, we declare
  * convergence when the current correction becomes small enough (within the
  * integration tolerances).
  *
@@ -420,7 +420,7 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
   /* Evaluate ewt at yy0 */
   flag = efun(yy0, ewt, e_data);
   if (flag != 0) return(CP_ILL_INPUT);
-  
+
   /* Rename yC to yy0_new */
   yy0_new = yC;
 
@@ -434,11 +434,11 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
   /* Looping point for iterations */
   loop {
 
-    /* 
+    /*
      * 1. Evaluate Jacobian (if requested)
      */
 
-    jacCurrent = FALSE;    
+    jacCurrent = FALSE;
     if (lsetupP_exists && callSetup) {
       retval = lsetupP(cp_mem, yy0, ctemp, tempvP1, tempvP2, tempv);
       if (retval != 0) return(CP_PLSETUP_FAIL);
@@ -453,13 +453,13 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
     printf("  Jacobian current: %d\n",jacCurrent);
 #endif
 
-    /* 
-     * 2. Solve for Newton step 
+    /*
+     * 2. Solve for Newton step
      */
 
     /* compute Newton step and load it into acorP */
     retval = lsolveP(cp_mem, ctemp, acorP, yy0, ctemp, tempvP1, tempv);
-    /* If lsolveP failed unrecoverably, return */ 
+    /* If lsolveP failed unrecoverably, return */
     if (retval < 0) return(CP_PLSOLVE_FAIL);
     /* If lsolveP had a recoverable error, with up-to-date Jacobian, return */
     if (retval > 0) {
@@ -475,33 +475,33 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
     /* Compute step length = ||acorP|| */
     pnorm = N_VWrmsNorm(acorP, ewt);
     ratio = ONE;
-    
+
 #ifdef CPODES_DEBUG
     printf("  Norm of full Newton step: %lg\n", pnorm);
 #endif
-    
-    /* Attempt (at most icprj_maxrcvr times) to evaluate 
+
+    /* Attempt (at most icprj_maxrcvr times) to evaluate
        constraint function at the new iterate */
     cOK = FALSE;
     for (ircvr=0; ircvr<icprj_maxrcvr; ircvr++) {
-      
+
       /* compute new iterate */
       N_VLinearSum(ONE, yy0, -ONE, acorP, yy0_new);
-      
+
       /* evaluate constraints at yy0_new */
       retval = cfun(tn, yy0_new, ctemp, c_data);
-      
+
       /* if successful, accept current acorP */
       if (retval == 0) {cOK = TRUE; break;}
-      
+
       /* if function failed unrecoverably, give up */
       if (retval < 0) return(CP_CNSTRFUNC_FAIL);
-      
+
       /* function had a recoverable error; cut step in half */
       pnorm *= HALF;
       ratio *= HALF;
       N_VScale(HALF, acorP, acorP);
-      
+
     }
 
     /* If cfunc failed recoverably MAX_RECVR times, give up */
@@ -514,7 +514,7 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
     /*
      * 4. Evaluate various stoping test quantities
      */
-    
+
     /* Weighted L-2 norm of constraints */
     cnorm = N_VWL2Norm(ctemp, ctol);
     ccon = cnorm / icprj_convcoef;
@@ -546,7 +546,7 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
       N_VScale(ONE, yy0_new, yy0);
       return(CP_SUCCESS);
     }
-    
+
     /* Increment iteration counter */
     m++;
 
@@ -584,7 +584,7 @@ static int cpicProjNonlinear(CPodeMem cp_mem)
 /*
  * cpicImplComputeYp
  *
- * For implicit-form ODEs, this function computes y' values consistent 
+ * For implicit-form ODEs, this function computes y' values consistent
  * with the ODE, given y values consistent with the constraints.
  * In other words, it solves F(t0,y0,y0') = 0 for y0' using a Newton
  * iteration.
@@ -595,7 +595,7 @@ static int cpicImplComputeYp(CPodeMem cp_mem)
   int retval;
   */
 
-  /* Evaluate residual at initial time, using the (projected) yy0 
+  /* Evaluate residual at initial time, using the (projected) yy0
      and the initial guess yp0 */
 
   /*
@@ -609,7 +609,7 @@ static int cpicImplComputeYp(CPodeMem cp_mem)
   /*
   gamma = ZERO;
   */
-  
+
 
   return(CP_SUCCESS);
 }

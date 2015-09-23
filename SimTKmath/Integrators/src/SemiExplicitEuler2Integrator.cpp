@@ -43,7 +43,7 @@ SemiExplicitEuler2Integrator::SemiExplicitEuler2Integrator
 //==============================================================================
 SemiExplicitEuler2IntegratorRep::SemiExplicitEuler2IntegratorRep
    (Integrator* handle, const System& sys)
-:   AbstractIntegratorRep(handle, sys, 1, 1, "SemiExplicitEuler2",  true) 
+:   AbstractIntegratorRep(handle, sys, 1, 1, "SemiExplicitEuler2",  true)
 {
 }
 
@@ -54,7 +54,7 @@ SemiExplicitEuler2IntegratorRep::SemiExplicitEuler2IntegratorRep
 // If we haven't yet delivered an interpolated state in this interval, we have
 // to initialize its discrete part from the advanced state.
 //
-// TODO: Note that this is a first-order interpolation across the *whole* step, 
+// TODO: Note that this is a first-order interpolation across the *whole* step,
 // even though this integrator takes two smaller first-order substeps. It would
 // be better to record the midstep values and perform a piecewise-linear
 // interpolation across the half steps so that the interpolated values match
@@ -114,7 +114,7 @@ backUpAdvancedStateByInterpolation(Real t) {
 
     // Ignore any user request not to project interpolated states here -- this
     // is the actual advanced state which will be propagated through the
-    // rest of the trajectory so we can't allow it not to satisfy the 
+    // rest of the trajectory so we can't allow it not to satisfy the
     // constraints!
     // But it is OK if it just *barely* satisfies the constraints so we
     // won't get carried away if the user isn't being finicky about it.
@@ -130,8 +130,8 @@ backUpAdvancedStateByInterpolation(Real t) {
 //==============================================================================
 //                            ATTEMPT DAE STEP
 //==============================================================================
-// Note that SemiExplicitEuler overrides the entire DAE step because it can't 
-// use the default ODE-then-DAE structure. Instead the constraint projections 
+// Note that SemiExplicitEuler overrides the entire DAE step because it can't
+// use the default ODE-then-DAE structure. Instead the constraint projections
 // are interwoven here.
 bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
    (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
@@ -139,7 +139,7 @@ bool SemiExplicitEuler2IntegratorRep::attemptDAEStep
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
     Vector dummyErrEst; // for when we don't want the error estimate projected
- 
+
     const int nq = advanced.getNQ();
     const int nu = advanced.getNU();
     const int nz = advanced.getNZ();

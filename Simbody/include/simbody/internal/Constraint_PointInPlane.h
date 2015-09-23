@@ -38,7 +38,7 @@ namespace SimTK {
 /** One constraint equation. This constraint enforces that a point fixed to
 one body (the "follower body") must travel in a plane fixed on another body
 (the "plane body"). The constraint is enforced by an internal (non-working)
-scalar force acting at the spatial location of the follower point, directed 
+scalar force acting at the spatial location of the follower point, directed
 along the plane normal, and equal and opposite on the two bodies.
 
 The assembly condition is the same as the run-time constraint: the point
@@ -47,10 +47,10 @@ has to be moved into the plane.
 class SimTK_SIMBODY_EXPORT Constraint::PointInPlane : public Constraint  {
 public:
 // no default constructor
-PointInPlane(MobilizedBody& planeBody_B, 
+PointInPlane(MobilizedBody& planeBody_B,
              const UnitVec3& defaultPlaneNormal_B, Real defaultHeight,
              MobilizedBody& followerBody_F, const Vec3& defaultFollowerPoint_F);
-    
+
 /** Default constructor creates an empty handle. **/
 PointInPlane() {}
 

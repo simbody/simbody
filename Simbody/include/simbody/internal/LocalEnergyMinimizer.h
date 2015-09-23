@@ -39,7 +39,7 @@ class SimTK_SIMBODY_EXPORT LocalEnergyMinimizer {
 public:
     /**
      * Find the local potential energy minimum of a MultibodySystem.
-     * 
+     *
      * @param system       the system whose energy should be minimized
      * @param state        on entry, this should contain the starting state from which to begin the search.
      *                     On exit, it contains a (usually nearby) state with revised generalized coordinate

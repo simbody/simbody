@@ -49,10 +49,10 @@ public:
 
 class ContactBodyExtent {
 public:
-    ContactBodyExtent(Real start, Real end, ContactSurfaceIndex index) 
+    ContactBodyExtent(Real start, Real end, ContactSurfaceIndex index)
     :   start(start), end(end), index(index) {}
     ContactBodyExtent() {}
-    bool operator<(const ContactBodyExtent& e) const 
+    bool operator<(const ContactBodyExtent& e) const
     {   return start < e.start; }
     Real start, end;
     ContactSurfaceIndex index;
@@ -69,18 +69,18 @@ public:
     GeneralContactSubsystemImpl* cloneImpl() const override {
         return new GeneralContactSubsystemImpl(*this);
     }
-    
+
     ContactSetIndex createContactSet() {
         invalidateSubsystemTopologyCache();
         int size = sets.size();
         sets.resize(size+1);
         return ContactSetIndex(size);
     }
-    
+
     int getNumContactSets() const {
         return sets.size();
     }
-    
+
     void addBody(ContactSetIndex setIndex, const MobilizedBody& body, const ContactGeometry& geom, Transform& transform) {
         assert(setIndex >= 0 && setIndex < sets.size());
         invalidateSubsystemTopologyCache();
@@ -132,7 +132,7 @@ public:
         Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
         return contacts[set];
     }
-    
+
     int realizeSubsystemTopologyImpl(State& state) const override {
         contactsCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics, new Value<Array_<Array_<Contact> > >());
         contactsValidCacheIndex = state.allocateCacheEntry(getMySubsystemIndex(), Stage::Position, new Value<bool>());
@@ -161,17 +161,17 @@ public:
         Array_<Array_<Contact> >& contacts = Value<Array_<Array_<Contact> > >::downcast(updCacheEntry(state, contactsCacheIndex)).upd();
         int numSets = getNumContactSets();
         contacts.resize(numSets);
-        
+
         // Loop over all contact sets.
-        
+
         for (int setIndex = 0; setIndex < numSets; setIndex++) {
             contacts[setIndex].clear();
             const ContactSet& set = sets[setIndex];
             int numBodies = set.bodies.size();
-            
+
             // Perform a sweep-and-prune on a single axis to identify potential contacts.  First, find which
             // axis has the most variation in body locations.  That is the axis we will use.
-            
+
             Vector_<Vec3> centers(numBodies);
             for (ContactSurfaceIndex i(0); i < numBodies; i++)
                 centers[i] = set.bodies[i].getBodyTransform(state)*set.sphereCenters[i];
@@ -182,16 +182,16 @@ public:
             int axis = (var[0] > var[1] ? 0 : 1);
             if (var[2] > var[axis])
                 axis = 2;
-            
+
             // Find the extent of each body along the axis and sort them by starting location.
-            
+
             Array_<ContactBodyExtent> extents(numBodies);
             for (ContactSurfaceIndex i(0); i < numBodies; i++)
                 extents[i] = ContactBodyExtent(centers[i][axis]-set.sphereRadii[i], centers[i][axis]+set.sphereRadii[i], i);
             std::sort(extents.begin(), extents.end());
-            
+
             // Now sweep along the axis, finding potential contacts.
-            
+
             for (int i = 0; i < numBodies; i++) {
                 const ContactSurfaceIndex index1 = extents[i].index;
                 const Transform transform1 = set.bodies[index1].getBodyTransform(state)*set.transforms[index1];
@@ -199,7 +199,7 @@ public:
                 const ContactGeometryTypeId typeId1 = geom1.getTypeId();
                 for (int j = i+1; j < numBodies && extents[j].start <= extents[i].end; j++) {
                     // They overlap along this axis.  See if the bounding spheres overlap.
-                    
+
                     const ContactSurfaceIndex index2 = extents[j].index;
                     const Real sumRadius = set.sphereRadii[index1]+set.sphereRadii[index2];
                     if ((centers[index1]-centers[index2]).normSqr() <= sumRadius*sumRadius) {
@@ -208,7 +208,7 @@ public:
                         const Transform transform2 = set.bodies[index2].getBodyTransform(state)*set.transforms[index2];
                         const ContactGeometry& geom2 = set.geometry[index2];
                         const ContactGeometryTypeId typeId2 = geom2.getTypeId();
-                        CollisionDetectionAlgorithm* algorithm = 
+                        CollisionDetectionAlgorithm* algorithm =
                             CollisionDetectionAlgorithm::getAlgorithm
                                                             (typeId1, typeId2);
                         if (algorithm == NULL) {

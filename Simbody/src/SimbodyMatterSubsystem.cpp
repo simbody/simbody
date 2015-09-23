@@ -41,7 +41,7 @@ using std::endl;
 namespace SimTK {
 
 
-/*static*/ bool 
+/*static*/ bool
 SimbodyMatterSubsystem::isInstanceOf(const Subsystem& s) {
     return SimbodyMatterSubsystemRep::isA(s.getSubsystemGuts());
 }
@@ -56,26 +56,26 @@ SimbodyMatterSubsystem::updDowncast(Subsystem& s) {
     return static_cast<SimbodyMatterSubsystem&>(s);
 }
 
-const SimbodyMatterSubsystemRep& 
+const SimbodyMatterSubsystemRep&
 SimbodyMatterSubsystem::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const SimbodyMatterSubsystemRep&>(getSubsystemGuts());
 }
-SimbodyMatterSubsystemRep&       
+SimbodyMatterSubsystemRep&
 SimbodyMatterSubsystem::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<SimbodyMatterSubsystemRep&>(updSubsystemGuts());
 }
 
-// Create Subsystem but don't associate it with any System. This isn't much 
-// use except for making std::vector's, which require a default constructor 
+// Create Subsystem but don't associate it with any System. This isn't much
+// use except for making std::vector's, which require a default constructor
 // to be available.
-SimbodyMatterSubsystem::SimbodyMatterSubsystem() 
+SimbodyMatterSubsystem::SimbodyMatterSubsystem()
   : Subsystem()
 {
     adoptSubsystemGuts(new SimbodyMatterSubsystemRep());
     updRep().createGroundBody(); //TODO: handle this differently
 }
 
-SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs) 
+SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs)
   : Subsystem()
 {
     adoptSubsystemGuts(new SimbodyMatterSubsystemRep());
@@ -120,7 +120,7 @@ UnilateralContactIndex SimbodyMatterSubsystem::
 adoptUnilateralContact(UnilateralContact* child)
 {   return updRep().adoptUnilateralContact(child); }
 int SimbodyMatterSubsystem::
-getNumUnilateralContacts() const 
+getNumUnilateralContacts() const
 {   return getRep().getNumUnilateralContacts(); }
 const UnilateralContact& SimbodyMatterSubsystem::
 getUnilateralContact(UnilateralContactIndex ix) const
@@ -180,7 +180,7 @@ void SimbodyMatterSubsystem::calcAcceleration
     Vector multipliers(getNMultipliers(state)); // unwanted return value
     Vector udotErr(getNUDotErr(state)); // unwanted return value
 
-    getRep().calcLoopForwardDynamicsOperator(state, 
+    getRep().calcLoopForwardDynamicsOperator(state,
         appliedMobilityForces, appliedParticleForces, appliedBodyForces,
         tac, cac, udot, qdotdot, multipliers, udotErr);
 
@@ -212,8 +212,8 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
         appliedBodyForces.size(), getNumBodies());
 
     Vector netHingeForces(getNumMobilities()); // unwanted side effects
-    Array_<SpatialVec,MobilizedBodyIndex> abForcesZ(getNumBodies());   
-    Array_<SpatialVec,MobilizedBodyIndex> abForcesZPlus(getNumBodies());   
+    Array_<SpatialVec,MobilizedBodyIndex> abForcesZ(getNumBodies());
+    Array_<SpatialVec,MobilizedBodyIndex> abForcesZPlus(getNumBodies());
     Vector tau;
     Vector qdotdot;
 
@@ -221,7 +221,7 @@ void SimbodyMatterSubsystem::calcAccelerationIgnoringConstraints
 
     getRep().calcTreeAccelerations(state,
         appliedMobilityForces, appliedBodyForces, dc.presUDotPool,
-        netHingeForces, abForcesZ, abForcesZPlus, 
+        netHingeForces, abForcesZ, abForcesZPlus,
         A_GB, udot, qdotdot, tau);
 }
 
@@ -306,7 +306,7 @@ void SimbodyMatterSubsystem::calcResidualForceIgnoringConstraints
 
 
 //==============================================================================
-//                          CALC RESIDUAL FORCE 
+//                          CALC RESIDUAL FORCE
 //==============================================================================
 // This is inverse dynamics with constraints.
 void SimbodyMatterSubsystem::calcResidualForce
@@ -348,7 +348,7 @@ void SimbodyMatterSubsystem::calcResidualForce
         calcResidualForceIgnoringConstraints(state,
             appliedMobilityForces, appliedBodyForcesInG, knownUdot,
             residualMobilityForces);
-        return; 
+        return;
     }
 
     // There are some lambdas, so calculate the forces they produce, with
@@ -379,8 +379,8 @@ void SimbodyMatterSubsystem::calcResidualForce
 //==============================================================================
 // Check arguments, copy in/out of contiguous Vectors if necessary, call the
 // implementation method to calculate f = M*a.
-void SimbodyMatterSubsystem::multiplyByM(const State&  state, 
-                                         const Vector& a, 
+void SimbodyMatterSubsystem::multiplyByM(const State&  state,
+                                         const Vector& a,
                                          Vector&       Ma) const
 {
     const SimbodyMatterSubsystemRep& rep = getRep();
@@ -389,7 +389,7 @@ void SimbodyMatterSubsystem::multiplyByM(const State&  state,
     SimTK_ERRCHK2_ALWAYS(a.size() == nu,
         "SimbodyMatterSubsystem::multiplyByM()",
         "Argument 'a' had length %d but should have the same length"
-        " as the number of mobilities (generalized speeds u) %d.", 
+        " as the number of mobilities (generalized speeds u) %d.",
         a.size(), nu);
 
     Ma.resize(nu);
@@ -438,7 +438,7 @@ void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
     SimTK_ERRCHK2_ALWAYS(v.size() == nu,
         "SimbodyMatterSubsystem::multiplyByMInv()",
         "Argument 'v' had length %d but should have the same length"
-        " as the number of mobilities (generalized speeds u) %d.", 
+        " as the number of mobilities (generalized speeds u) %d.",
         v.size(), nu);
 
     MInvV.resize(nu);
@@ -472,14 +472,14 @@ void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
 
 
 
-void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const 
+void SimbodyMatterSubsystem::calcM(const State& s, Matrix& M) const
 {   getRep().calcM(s, M); }
 
-void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const 
+void SimbodyMatterSubsystem::calcMInv(const State& s, Matrix& MInv) const
 {   getRep().calcMInv(s, MInv); }
 
 
-// Note: the implementation methods that generate matrices do *not* require 
+// Note: the implementation methods that generate matrices do *not* require
 // contiguous storage, so we can just forward to them with no preliminaries.
 void SimbodyMatterSubsystem::calcProjectedMInv(const State&   s,
                                                Matrix&        GMInvGt) const
@@ -492,13 +492,13 @@ solveForConstraintImpulses(const State&     state,
 {   getRep().solveForConstraintImpulses(state,deltaV,impulse); }
 
 
-void SimbodyMatterSubsystem::calcG(const State& s, Matrix& G) const 
+void SimbodyMatterSubsystem::calcG(const State& s, Matrix& G) const
 {   getRep().calcPVA(s, true, true, true, G); }
-void SimbodyMatterSubsystem::calcGTranspose(const State& s, Matrix& Gt) const 
+void SimbodyMatterSubsystem::calcGTranspose(const State& s, Matrix& Gt) const
 {   getRep().calcPVATranspose(s, true, true, true, Gt); }
-void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const 
+void SimbodyMatterSubsystem::calcPq(const State& s, Matrix& Pq) const
 {   getRep().calcPq(s,Pq); }
-void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const 
+void SimbodyMatterSubsystem::calcPqTranspose(const State& s, Matrix& Pqt) const
 {   getRep().calcPqTranspose(s,Pqt); }
 
 void SimbodyMatterSubsystem::
@@ -536,7 +536,7 @@ multiplyByGTranspose(const State&  s,
     SimTK_ERRCHK2_ALWAYS(lambda.size() == m,
         "SimbodyMatterSubsystem::multiplyByGTranspose()",
         "Argument 'lambda' had length %d but should have the same length"
-        " as the total number of active constraint equations m=%d.", 
+        " as the total number of active constraint equations m=%d.",
         lambda.size(), m);
 
     f.resize(nu);
@@ -767,7 +767,7 @@ multiplyByPq(const State&   s,
              const Vector&  qlike,
              const Vector&  biasp,
              Vector&        PqXqlike) const
-{   
+{
     const SimbodyMatterSubsystemRep& rep = getRep();
     const SBInstanceCache& ic = rep.getInstanceCache(s);
 
@@ -778,7 +778,7 @@ multiplyByPq(const State&   s,
     SimTK_ERRCHK2_ALWAYS(qlike.size() == nq,
         "SimbodyMatterSubsystem::multiplyByPq()",
         "Argument 'qlike' had length %d but should have been the same length"
-        " as the total number of generalized coordinates nq=%d.", 
+        " as the total number of generalized coordinates nq=%d.",
         qlike.size(), nq);
 
     SimTK_ERRCHK2_ALWAYS(biasp.size() == mp,
@@ -825,15 +825,15 @@ multiplyByPq(const State&   s,
 //==============================================================================
 //                       CALC BIAS FOR MULTIPLY BY Pq
 //==============================================================================
-// The bias term is the same for P as for Pq because you can view the 
-// position error first derivative as either 
+// The bias term is the same for P as for Pq because you can view the
+// position error first derivative as either
 //           pverr = Pq * qdot + Pt
 //      or   pverr = P  * u    + Pt
 // since Pq = P*N^-1. Either way the bias term is just Pt (or c(t,q)).
 void SimbodyMatterSubsystem::
 calcBiasForMultiplyByPq(const State& state,
                         Vector&      biasp) const
-{      
+{
     const SBInstanceCache& ic = getRep().getInstanceCache(state);
 
     // Problem dimension.
@@ -866,13 +866,13 @@ void SimbodyMatterSubsystem::
 calcBodyAccelerationFromUDot(const State&         state,
                              const Vector&        knownUDot,
                              Vector_<SpatialVec>& A_GB) const
-{  
+{
     // Interpret 0-length knownUDot as nu all-zero udots.
     if (knownUDot.size() == 0) {
         // Acceleration is just the coriolis acceleration.
         const SBTreeVelocityCache& vc = getRep().getTreeVelocityCache(state);
         const Array_<SpatialVec>& tca = vc.totalCoriolisAcceleration;
-        const Vector_<SpatialVec> 
+        const Vector_<SpatialVec>
             AC_GB(tca.size(), (const Real*)tca.begin(), true); // shallow ref
         A_GB = AC_GB;
         return;
@@ -883,7 +883,7 @@ calcBodyAccelerationFromUDot(const State&         state,
     SimTK_ERRCHK2_ALWAYS(knownUDot.size() == nu,
         "SimbodyMatterSubsystem::calcBodyAccelerationFromUDot()",
         "Length of knownUDot argument was %d but should have been either"
-        " zero or the same as the number of mobilities nu=%d.\n", 
+        " zero or the same as the number of mobilities nu=%d.\n",
         knownUDot.size(), nu);
 
     const int nb = getNumBodies();
@@ -930,12 +930,12 @@ calcBodyAccelerationFromUDot(const State&         state,
 // implementation method.
 void SimbodyMatterSubsystem::multiplyByN
    (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   
+{
     const bool inIsContig=in.hasContiguousData();
     const bool outIsContig=out.hasContiguousData();
 
     if (inIsContig && outIsContig) {
-        getRep().multiplyByN(s,matrixOnRight,in,out); 
+        getRep().multiplyByN(s,matrixOnRight,in,out);
         return;
     }
 
@@ -955,12 +955,12 @@ void SimbodyMatterSubsystem::multiplyByN
 
 void SimbodyMatterSubsystem::multiplyByNInv
    (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   
+{
     const bool inIsContig=in.hasContiguousData();
     const bool outIsContig=out.hasContiguousData();
 
     if (inIsContig && outIsContig) {
-        getRep().multiplyByNInv(s,matrixOnRight,in,out); 
+        getRep().multiplyByNInv(s,matrixOnRight,in,out);
         return;
     }
 
@@ -972,7 +972,7 @@ void SimbodyMatterSubsystem::multiplyByNInv
         inSpace(0, in.size()) = in; // prevent reallocation
     }
 
-    getRep().multiplyByNInv(s,matrixOnRight,*inp,*outp); 
+    getRep().multiplyByNInv(s,matrixOnRight,*inp,*outp);
 
     if (!outIsContig)
         out = *outp;
@@ -980,12 +980,12 @@ void SimbodyMatterSubsystem::multiplyByNInv
 
 void SimbodyMatterSubsystem::multiplyByNDot
    (const State& s, bool matrixOnRight, const Vector& in, Vector& out) const
-{   
+{
     const bool inIsContig=in.hasContiguousData();
     const bool outIsContig=out.hasContiguousData();
 
     if (inIsContig && outIsContig) {
-        getRep().multiplyByNDot(s,matrixOnRight,in,out); 
+        getRep().multiplyByNDot(s,matrixOnRight,in,out);
         return;
     }
 
@@ -997,7 +997,7 @@ void SimbodyMatterSubsystem::multiplyByNDot
         inSpace(0, in.size()) = in; // prevent reallocation
     }
 
-    getRep().multiplyByNDot(s,matrixOnRight,*inp,*outp); 
+    getRep().multiplyByNDot(s,matrixOnRight,*inp,*outp);
 
     if (!outIsContig)
         out = *outp;
@@ -1017,7 +1017,7 @@ void SimbodyMatterSubsystem::multiplyByNDot
 // Ensure that we have contiguous storage and then call the underlying method.
 void SimbodyMatterSubsystem::multiplyBySystemJacobian
    (const State& s, const Vector& u, Vector_<SpatialVec>& Ju) const
-{   
+{
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
 
@@ -1048,7 +1048,7 @@ void SimbodyMatterSubsystem::multiplyBySystemJacobian
 //------------------------------------------------------------------------------
 void SimbodyMatterSubsystem::multiplyBySystemJacobianTranspose
    (const State& s, const Vector_<SpatialVec>& F_G, Vector& f) const
-{   
+{
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
 
@@ -1061,7 +1061,7 @@ void SimbodyMatterSubsystem::multiplyBySystemJacobianTranspose
     const bool fIsContig    = f.hasContiguousData();
 
     Vector_<SpatialVec> F_G_contig; Vector f_contig; // allocate only if needed
-    const Vector_<SpatialVec>* F_Gp = F_GIsContig ? 
+    const Vector_<SpatialVec>* F_Gp = F_GIsContig ?
                                 &F_G : (const Vector_<SpatialVec>*)&F_G_contig;
     Vector* fp   = fIsContig  ? &f  : &f_contig;
     if (!F_GIsContig) {
@@ -1069,7 +1069,7 @@ void SimbodyMatterSubsystem::multiplyBySystemJacobianTranspose
         F_G_contig(0, nb) = F_G; // prevent reallocation
     }
 
-    rep.multiplyBySystemJacobianTranspose(s, *F_Gp, *fp); 
+    rep.multiplyBySystemJacobianTranspose(s, *F_Gp, *fp);
 
     if (!fIsContig)
         f = f_contig;
@@ -1079,13 +1079,13 @@ void SimbodyMatterSubsystem::multiplyBySystemJacobianTranspose
 //------------------------------------------------------------------------------
 //                       CALC SYSTEM JACOBIAN (spatial)
 //------------------------------------------------------------------------------
-// Calculate J as an nb X n matrix of SpatialVecs, by repeated calls 
+// Calculate J as an nb X n matrix of SpatialVecs, by repeated calls
 // to J*u with u=0 except one u[i]=1. Cost is 12*n*(nb+n).
-// If the output matrix J_G isn't contiguous we have to allocate an nb-length 
+// If the output matrix J_G isn't contiguous we have to allocate an nb-length
 // temporary and perform an extra copy from there into J_G.
 void SimbodyMatterSubsystem::calcSystemJacobian
    (const State&            state,
-    Matrix_<SpatialVec>&    J_G) const 
+    Matrix_<SpatialVec>&    J_G) const
 {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
@@ -1094,7 +1094,7 @@ void SimbodyMatterSubsystem::calcSystemJacobian
 
     // If J_G is contiguous we can generate results directly into its columns.
     if (J_G.hasContiguousData()) {
-        for (int j=0; j<nu; ++j) { 
+        for (int j=0; j<nu; ++j) {
             VectorView_<SpatialVec> col = J_G(j);
             u[j] = 1; rep.multiplyBySystemJacobian(state,u,col); u[j] = 0;
         }
@@ -1104,7 +1104,7 @@ void SimbodyMatterSubsystem::calcSystemJacobian
     // J_G is non-contiguous so generate results into a temporary column and
     // copy back.
     Vector_<SpatialVec> Ju(nb);
-    for (int j=0; j<nu; ++j) { 
+    for (int j=0; j<nu; ++j) {
         u[j] = 1; rep.multiplyBySystemJacobian(state,u,Ju); u[j] = 0;
         VectorView_<SpatialVec> col = J_G(j);
         col = Ju;
@@ -1115,7 +1115,7 @@ void SimbodyMatterSubsystem::calcSystemJacobian
 //------------------------------------------------------------------------------
 //                       CALC SYSTEM JACOBIAN (scalars)
 //------------------------------------------------------------------------------
-// Alternate signature that returns a system Jacobian as a 6*nb X n Matrix 
+// Alternate signature that returns a system Jacobian as a 6*nb X n Matrix
 // rather than as an nb X n matrix of spatial vectors. Note that we
 // don't know whether the output matrix has contiguous rows, columns or
 // neither; we'll always work with a contiguous temporary here and copy back.
@@ -1148,13 +1148,13 @@ void SimbodyMatterSubsystem::calcSystemJacobian
 // we already computed this.
 void SimbodyMatterSubsystem::calcBiasForSystemJacobian
    (const State&         state,
-    Vector_<SpatialVec>& JDotu) const 
+    Vector_<SpatialVec>& JDotu) const
 {
     // Just return the coriolis acceleration.
     const SBTreeVelocityCache& vc = getRep().getTreeVelocityCache(state);
-    const Array_<SpatialVec,MobilizedBodyIndex>& tca = 
+    const Array_<SpatialVec,MobilizedBodyIndex>& tca =
         vc.totalCoriolisAcceleration;
-    const Vector_<SpatialVec> 
+    const Vector_<SpatialVec>
         AC_GB(tca.size(), (const Real*)tca.begin(), true); // shallow ref
     JDotu = AC_GB;
 }
@@ -1166,13 +1166,13 @@ void SimbodyMatterSubsystem::calcBiasForSystemJacobian
 // Same as above but unpack into 6*nb vector rather nb spatial vecs.
 void SimbodyMatterSubsystem::calcBiasForSystemJacobian
    (const State&    state,
-    Vector&         JDotu) const 
+    Vector&         JDotu) const
 {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int nb = rep.getNumBodies(), nu = rep.getNumMobilities();
 
     const SBTreeVelocityCache& vc = rep.getTreeVelocityCache(state);
-    const Array_<SpatialVec,MobilizedBodyIndex>& tca = 
+    const Array_<SpatialVec,MobilizedBodyIndex>& tca =
         vc.totalCoriolisAcceleration;
 
     JDotu.resize(6*nb); // Might not be contiguous
@@ -1188,8 +1188,8 @@ void SimbodyMatterSubsystem::calcBiasForSystemJacobian
 //------------------------------------------------------------------------------
 //                       MULTIPLY BY STATION JACOBIAN
 //------------------------------------------------------------------------------
-// We want v_GS = J_GS*u, the linear velocity of nt station tasks Si in Ground 
-// induced by the given generalized speeds. Station Si is on body Bi and is 
+// We want v_GS = J_GS*u, the linear velocity of nt station tasks Si in Ground
+// induced by the given generalized speeds. Station Si is on body Bi and is
 // given by the Bi-frame vector p_BiS. We can easily calculate V_GB = J_GB*u,
 // the spatial velocity of *all* the mobilized bodies. Then for each station
 // task,
@@ -1224,11 +1224,11 @@ void SimbodyMatterSubsystem::multiplyByStationJacobian
     // mobilized body frames, at a cost of 12*(nb+nu) flops.
     Vector_<SpatialVec> Ju(nb); // temp Ju=J_G*u (contiguous)
     if (u.hasContiguousData())
-        rep.multiplyBySystemJacobian(state,u,Ju); 
+        rep.multiplyBySystemJacobian(state,u,Ju);
     else {
         Vector contig_u(nu); // contiguous data
         contig_u(0,nu) = u;  // no reallocation
-        rep.multiplyBySystemJacobian(state,contig_u,Ju); 
+        rep.multiplyBySystemJacobian(state,contig_u,Ju);
     }
 
     // Then for each station task, determine its linear velocity at a cost of
@@ -1240,7 +1240,7 @@ void SimbodyMatterSubsystem::multiplyByStationJacobian
             "SimbodyMatterSubsystem::multiplyByStationJacobian()");
 
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BS_G = 
+        const Vec3 p_BS_G =
             mobod.expressVectorInGroundFrame(state, p_BS[task]);    // 15 flops
         const SpatialVec& V_GB = Ju[mobodx];
         const SpatialVec  V_GS = shiftVelocityBy(V_GB, p_BS_G);     // 12 flops
@@ -1256,7 +1256,7 @@ void SimbodyMatterSubsystem::multiplyByStationJacobian
 // translational task force vectors f_GSi to stations Si. Each station Si is on
 // body Bi and is given by the Bi-frame vector p_BiSi. We can easily calculate
 // f = ~J_GB*F_GB for task body origins, so we shift the task forces there
-// with F_GBi=[p_BiSi_G X f_GSi, f_GSi]. 
+// with F_GBi=[p_BiSi_G X f_GSi, f_GSi].
 // It is OK if f_GS and/or f are not contiguous.
 // Cost is 30nt + 18nb + 11nu.
 void SimbodyMatterSubsystem::multiplyByStationJacobianTranspose
@@ -1273,7 +1273,7 @@ void SimbodyMatterSubsystem::multiplyByStationJacobianTranspose
     SimTK_ERRCHK3_ALWAYS(p_BS.size() == nt && f_GS.size() == nt,
         "SimbodyMatterSubsystem::multiplyByStationJacobianTranspose()",
         "The given number of task bodies (%d), task stations (%d), and "
-        "applied task forces (%d) must all be the same.", 
+        "applied task forces (%d) must all be the same.",
         nt, (int)p_BS.size(), (int)f_GS.size());
 
     f.resize(nu); // might not be contiguous
@@ -1290,7 +1290,7 @@ void SimbodyMatterSubsystem::multiplyByStationJacobianTranspose
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::multiplyByStationJacobianTranspose()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BS_G = 
+        const Vec3 p_BS_G =
             mobod.expressVectorInGroundFrame(state, p_BS[task]);    // 15 flops
         F_G[mobodx] += SpatialVec(p_BS_G % f_GS[task], f_GS[task]); // 15 flops
     }
@@ -1336,7 +1336,7 @@ void SimbodyMatterSubsystem::calcStationJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcStationJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BS_G = 
+        const Vec3 p_BS_G =
             mobod.expressVectorInGroundFrame(state, p_BS[task]);    // 15 flops
 
         // Calculate the 3 rows of JS corresponding to this task.
@@ -1346,7 +1346,7 @@ void SimbodyMatterSubsystem::calcStationJacobian
             Fb[1][i] = 1;
             Fb[0] = p_BS_G % Fb[1]; // r X F (9 flops)
             rep.multiplyBySystemJacobianTranspose(state,F_G,col);// 18nb+11nu flops
-            for (int r=0; r < nu; ++r) row[r][i] = col[r]; 
+            for (int r=0; r < nu; ++r) row[r][i] = col[r];
             Fb[1][i] = 0;
             Fb[0] = 0;
         }
@@ -1357,7 +1357,7 @@ void SimbodyMatterSubsystem::calcStationJacobian
 //------------------------------------------------------------------------------
 //                       CALC STATION JACOBIAN (scalar)
 //------------------------------------------------------------------------------
-// Alternate signature that returns a station Jacobian as a 3*nt X nu Matrix 
+// Alternate signature that returns a station Jacobian as a 3*nt X nu Matrix
 // rather than as an nt X nu Matrix of Vec3s.
 void SimbodyMatterSubsystem::calcStationJacobian
    (const State&                        state,
@@ -1388,7 +1388,7 @@ void SimbodyMatterSubsystem::calcStationJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcStationJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BS_G = 
+        const Vec3 p_BS_G =
             mobod.expressVectorInGroundFrame(state, p_BS[task]);    // 15 flops
 
         // Calculate the 3 rows of JS corresponding to this task.
@@ -1397,7 +1397,7 @@ void SimbodyMatterSubsystem::calcStationJacobian
             Fb[1][i] = 1;
             Fb[0] = p_BS_G % Fb[1]; // r X F (9 flops)
             rep.multiplyBySystemJacobianTranspose(state,F_G,col);// 18nb+11nu flops
-            JS_G[3*task + i] = ~col; 
+            JS_G[3*task + i] = ~col;
             Fb[1][i] = 0;
             Fb[0] = 0;
         }
@@ -1433,12 +1433,12 @@ void SimbodyMatterSubsystem::calcBiasForStationJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcBiasForStationJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BS_G = 
+        const Vec3 p_BS_G =
             mobod.expressVectorInGroundFrame(state, p_BS[task]);    // 15 flops
         const SpatialVec& A_GB = vc.totalCoriolisAcceleration[mobodx];
         const Vec3&       w_GB = mobod.getBodyAngularVelocity(state);
-        const SpatialVec  A_GS = shiftAccelerationBy(A_GB, w_GB, p_BS_G); 
-                                                                    // 33 flops 
+        const SpatialVec  A_GS = shiftAccelerationBy(A_GB, w_GB, p_BS_G);
+                                                                    // 33 flops
         JSDotu[task] = A_GS[1]; // linear acceleration only
     }
 }
@@ -1450,7 +1450,7 @@ void SimbodyMatterSubsystem::calcBiasForStationJacobian
    (const State&                        state,
     const Array_<MobilizedBodyIndex>&   onBodyB,        // nt task bodies
     const Array_<Vec3>&                 p_BS,           // nt task stations
-    Vector&                             JSDotu) const   // 3*nt  
+    Vector&                             JSDotu) const   // 3*nt
 {
     const SimbodyMatterSubsystemRep& rep = getRep();
     const int nb = rep.getNumBodies();
@@ -1469,14 +1469,14 @@ void SimbodyMatterSubsystem::calcBiasForStationJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcBiasForStationJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BS_G = 
+        const Vec3 p_BS_G =
             mobod.expressVectorInGroundFrame(state, p_BS[task]);    // 15 flops
         const SpatialVec& A_GB = vc.totalCoriolisAcceleration[mobodx];
         const Vec3&       w_GB = mobod.getBodyAngularVelocity(state);
-        const SpatialVec  A_GS = shiftAccelerationBy(A_GB, w_GB, p_BS_G); 
+        const SpatialVec  A_GS = shiftAccelerationBy(A_GB, w_GB, p_BS_G);
                                                                     // 33 flops
         const Vec3&       a_GS = A_GS[1]; // linear acceleration only
-        for (int k=0; k<3; ++k) JSDotu[3*task+k] = a_GS[k]; 
+        for (int k=0; k<3; ++k) JSDotu[3*task+k] = a_GS[k];
     }
 }
 
@@ -1484,12 +1484,12 @@ void SimbodyMatterSubsystem::calcBiasForStationJacobian
 //------------------------------------------------------------------------------
 //                       MULTIPLY BY FRAME JACOBIAN
 //------------------------------------------------------------------------------
-// We want V_GA = J_GA*u, the spatial velocity of nt task frames Ai in 
+// We want V_GA = J_GA*u, the spatial velocity of nt task frames Ai in
 // Ground induced by the given generalized speeds. Frames A are fixed on bodies
-// B and would be given by the transform X_BA, except the result depends only 
-// on A's origin position p_BA (==p_BoAo) because angular velocity is the same 
+// B and would be given by the transform X_BA, except the result depends only
+// on A's origin position p_BA (==p_BoAo) because angular velocity is the same
 // for all frames fixed to the same body. We can easily calculate V_GB = J_GB*u,
-// the spatial velocities at each body B's origin Bo. Then 
+// the spatial velocities at each body B's origin Bo. Then
 //      V_GAi = [w_GAi, v_GAi] = [w_GBi, v_GBi + w_GBi X p_BiAi_G]
 // where p_BiAi_G is p_BiAi re-expressed in Ground.
 //
@@ -1518,11 +1518,11 @@ void SimbodyMatterSubsystem::multiplyByFrameJacobian
     // mobilized body frames, at a cost of 12*(nb+nu) flops.
     Vector_<SpatialVec> Ju(nb); // temp Ju=J_G*u (contiguous)
     if (u.hasContiguousData())
-        rep.multiplyBySystemJacobian(state,u,Ju); 
+        rep.multiplyBySystemJacobian(state,u,Ju);
     else {
         Vector contig_u(nu); // contiguous data
         contig_u(0,nu) = u;  // no reallocation
-        rep.multiplyBySystemJacobian(state,contig_u,Ju); 
+        rep.multiplyBySystemJacobian(state,contig_u,Ju);
     }
 
     // Then for each frame task, determine its linear velocity at a cost of
@@ -1534,9 +1534,9 @@ void SimbodyMatterSubsystem::multiplyByFrameJacobian
             "SimbodyMatterSubsystem::multiplyByFrameJacobian()");
 
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BA_G = 
+        const Vec3 p_BA_G =
             mobod.expressVectorInGroundFrame(state, p_BA[task]);    // 15 flops
-        const SpatialVec& V_GB = Ju[mobodx]; 
+        const SpatialVec& V_GB = Ju[mobodx];
         JFu[task] = shiftVelocityBy(V_GB, p_BA_G);                  // 12 flops
     }
 }
@@ -1545,12 +1545,12 @@ void SimbodyMatterSubsystem::multiplyByFrameJacobian
 //                    MULTIPLY BY FRAME JACOBIAN TRANSPOSE
 //------------------------------------------------------------------------------
 // We want f = ~J_GA*F_GA, the generalized forces produced by applying spatial
-// force vectors F_GAi=[t_G,f_GAi] at Aio, the origin of task frame Ai, which 
+// force vectors F_GAi=[t_G,f_GAi] at Aio, the origin of task frame Ai, which
 // is fixed to some body Bi. Frame Ai would be given by transform X_BAi, but the
-// result depends only on Ai's origin location p_BiAi (==p_BioAio) since a 
+// result depends only on Ai's origin location p_BiAi (==p_BioAio) since a
 // torque is the same wherever it is applied. We can easily calculate
-// fb = ~J_GB*F_GB so we shift each F_GAi to Bi via 
-//      F_GBi = [t_G + p_BiAi_G X f_GAi, f_GAi]. 
+// fb = ~J_GB*F_GB so we shift each F_GAi to Bi via
+//      F_GBi = [t_G + p_BiAi_G X f_GAi, f_GAi].
 // Cost is 33nt + 18nb + 11nu.
 void SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose
    (const State&                        state,
@@ -1566,7 +1566,7 @@ void SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose
     SimTK_ERRCHK3_ALWAYS(p_BA.size() == nt && F_GA.size() == nt,
         "SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose()",
         "The given number of task bodies (%d), task stations (%d), and "
-        "applied task forces (%d) must all be the same.", 
+        "applied task forces (%d) must all be the same.",
         nt, (int)p_BA.size(), (int)F_GA.size());
 
     f.resize(nu); // might not be contiguous
@@ -1583,10 +1583,10 @@ void SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::multiplyByFrameJacobianTranspose()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BA_G = 
+        const Vec3 p_BA_G =
             mobod.expressVectorInGroundFrame(state, p_BA[task]);    // 15 flops
         const SpatialVec& F_GAi = F_GA[task];
-        F_G[mobodx] += SpatialVec(F_GAi[0] + p_BA_G % F_GAi[1],     // 18 flops 
+        F_G[mobodx] += SpatialVec(F_GAi[0] + p_BA_G % F_GAi[1],     // 18 flops
                                   F_GAi[1]);
     }
 
@@ -1632,7 +1632,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcFrameJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BA_G = 
+        const Vec3 p_BA_G =
             mobod.expressVectorInGroundFrame(state, p_BA[task]);    // 15 flops
 
         // Calculate the 6 rows of JS corresponding to this task.
@@ -1643,7 +1643,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
         for (int i=0; i < 3; ++i) {
             Fb[0][i] = 1;
             rep.multiplyBySystemJacobianTranspose(state,F_G,col);// 18nb+11nu flops
-            for (int r=0; r < nu; ++r) row[r][0][i] = col[r]; 
+            for (int r=0; r < nu; ++r) row[r][0][i] = col[r];
             Fb[0][i] = 0;
         }
 
@@ -1652,7 +1652,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
             Fb[1][i] = 1;
             Fb[0] = p_BA_G % Fb[1]; // r X F (9 flops)
             rep.multiplyBySystemJacobianTranspose(state,F_G,col);// 18nb+11nu flops
-            for (int r=0; r < nu; ++r) row[r][1][i] = col[r]; 
+            for (int r=0; r < nu; ++r) row[r][1][i] = col[r];
             Fb[1][i] = 0;
             Fb[0] = 0;
         }
@@ -1663,7 +1663,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
 //------------------------------------------------------------------------------
 //                        CALC FRAME JACOBIAN (scalar)
 //------------------------------------------------------------------------------
-// Alternate signature that returns a frame Jacobian as a 6*nt x n Matrix 
+// Alternate signature that returns a frame Jacobian as a 6*nt x n Matrix
 // rather than as a Matrix of SpatialVecs.
 // Cost is 42*nt + 6*(18*nb + 11*n)
 void SimbodyMatterSubsystem::calcFrameJacobian
@@ -1696,7 +1696,7 @@ void SimbodyMatterSubsystem::calcFrameJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcFrameJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BA_G = 
+        const Vec3 p_BA_G =
             mobod.expressVectorInGroundFrame(state, p_BA[task]);    // 15 flops
 
         // Calculate the 6 rows of JS corresponding to this task.
@@ -1752,12 +1752,12 @@ void SimbodyMatterSubsystem::calcBiasForFrameJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcBiasForFrameJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BA_G = 
+        const Vec3 p_BA_G =
             mobod.expressVectorInGroundFrame(state, p_BA[task]);    // 15 flops
         const SpatialVec& A_GB = vc.totalCoriolisAcceleration[mobodx];
         const Vec3&       w_GB = mobod.getBodyAngularVelocity(state);
-        const SpatialVec  A_GA = shiftAccelerationBy(A_GB, w_GB, p_BA_G); 
-                                                                    // 33 flops 
+        const SpatialVec  A_GA = shiftAccelerationBy(A_GB, w_GB, p_BA_G);
+                                                                    // 33 flops
         JFDotu[task] = A_GA; // linear acceleration only
     }
 }
@@ -1792,14 +1792,14 @@ void SimbodyMatterSubsystem::calcBiasForFrameJacobian
         SimTK_INDEXCHECK(mobodx, nb,
             "SimbodyMatterSubsystem::calcBiasForFrameJacobian()");
         const MobilizedBody& mobod = rep.getMobilizedBody(mobodx);
-        const Vec3 p_BA_G = 
+        const Vec3 p_BA_G =
             mobod.expressVectorInGroundFrame(state, p_BA[task]);    // 15 flops
         const SpatialVec& A_GB = vc.totalCoriolisAcceleration[mobodx];
         const Vec3&       w_GB = mobod.getBodyAngularVelocity(state);
-        const SpatialVec  A_GA = shiftAccelerationBy(A_GB, w_GB, p_BA_G); 
-                                                                    // 33 flops 
-        for (int k=0; k<3; ++k) JFDotu[6*task+k]   = A_GA[0][k]; 
-        for (int k=0; k<3; ++k) JFDotu[6*task+3+k] = A_GA[1][k]; 
+        const SpatialVec  A_GA = shiftAccelerationBy(A_GB, w_GB, p_BA_G);
+                                                                    // 33 flops
+        for (int k=0; k<3; ++k) JFDotu[6*task+k]   = A_GA[0][k];
+        for (int k=0; k<3; ++k) JFDotu[6*task+3+k] = A_GA[1][k];
     }
 }
 
@@ -1814,19 +1814,19 @@ void SimbodyMatterSubsystem::calcCompositeBodyInertias
 {   getRep().calcCompositeBodyInertias(s,R); }
 
 void SimbodyMatterSubsystem::calcTreeEquivalentMobilityForces
-   (const State& s, const Vector_<SpatialVec>& bodyForces, 
+   (const State& s, const Vector_<SpatialVec>& bodyForces,
     Vector& mobForces) const
 {   getRep().calcTreeEquivalentMobilityForces(s,bodyForces,mobForces); }
 
-Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const 
+Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const
 {   return getRep().calcKineticEnergy(s); }
 
 void SimbodyMatterSubsystem::calcMobilizerReactionForces
-   (const State& s, Vector_<SpatialVec>& forces) const 
+   (const State& s, Vector_<SpatialVec>& forces) const
 {   getRep().calcMobilizerReactionForces(s, forces); }
 
 const Vector& SimbodyMatterSubsystem::
-getMotionMultipliers(const State& s) const 
+getMotionMultipliers(const State& s) const
 {   return getRep().getMotionMultipliers(s); }
 
 Vector SimbodyMatterSubsystem::
@@ -1835,7 +1835,7 @@ calcMotionErrors(const State& s, const Stage& stage) const
 
 void SimbodyMatterSubsystem::
 findMotionForces(const State&         s,
-                 Vector&              mobilityForces) const 
+                 Vector&              mobilityForces) const
 {   getRep().findMotionForces(s, mobilityForces); }
 
 const Vector& SimbodyMatterSubsystem::
@@ -1843,9 +1843,9 @@ getConstraintMultipliers(const State& s) const
 {   return getRep().getConstraintMultipliers(s); }
 
 void SimbodyMatterSubsystem::
-findConstraintForces(const State&         s, 
+findConstraintForces(const State&         s,
                      Vector_<SpatialVec>& bodyForcesInG,
-                     Vector&              mobilityForces) const 
+                     Vector&              mobilityForces) const
 {   getRep().findConstraintForces(s, bodyForcesInG, mobilityForces); }
 
 Real SimbodyMatterSubsystem::
@@ -1859,14 +1859,14 @@ calcConstraintPower(const State& s) const
 void SimbodyMatterSubsystem::
 calcConstraintForcesFromMultipliers(const State&         s,
                                     const Vector&        lambda,
-                                    Vector_<SpatialVec>& bodyForcesInG, 
+                                    Vector_<SpatialVec>& bodyForcesInG,
                                     Vector&              mobilityForces) const
 {   getRep().calcConstraintForcesFromMultipliers
                 (s,lambda,bodyForcesInG,mobilityForces); }
 
 void SimbodyMatterSubsystem::
 calcMobilizerReactionForcesUsingFreebodyMethod
-   (const State& s, Vector_<SpatialVec>& forces) const 
+   (const State& s, Vector_<SpatialVec>& forces) const
 {   getRep().calcMobilizerReactionForcesUsingFreebodyMethod(s, forces); }
 
 
@@ -1945,31 +1945,31 @@ SimbodyMatterSubsystem::getMobilizerCentrifugalForces(const State& s, MobilizedB
 }
 
 
-const Vector& 
-SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 
-    return getRep().getAllParticleMasses(s); 
+const Vector&
+SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const {
+    return getRep().getAllParticleMasses(s);
 }
 Vector& SimbodyMatterSubsystem::updAllParticleMasses(State& s) const {
-    return getRep().updAllParticleMasses(s); 
+    return getRep().updAllParticleMasses(s);
 }
 
-const Vector_<Vec3>& 
-SimbodyMatterSubsystem::getAllParticleLocations(const State& s) const { 
-    return getRep().getAllParticleLocations(s); 
+const Vector_<Vec3>&
+SimbodyMatterSubsystem::getAllParticleLocations(const State& s) const {
+    return getRep().getAllParticleLocations(s);
 }
 
-const Vector_<Vec3>& 
+const Vector_<Vec3>&
 SimbodyMatterSubsystem::getAllParticleVelocities(const State& s) const {
     return getRep().getAllParticleVelocities(s);
 }
 
-const Vector_<Vec3>& 
+const Vector_<Vec3>&
 SimbodyMatterSubsystem::getAllParticleAccelerations(const State& s) const {
     return getRep().getAllParticleAccelerations(s);
 }
 
-void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyIndex body, const Vec3& stationInB, 
-                                               const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
+void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyIndex body, const Vec3& stationInB,
+                                               const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const
 {
     assert(bodyForces.size() == getRep().getNumBodies());
     const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
@@ -2079,14 +2079,14 @@ SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyI
 }
 
 void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyIndex body, const Vec3& torqueInG,
-                                             Vector_<SpatialVec>& bodyForces) const 
+                                             Vector_<SpatialVec>& bodyForces) const
 {
     assert(bodyForces.size() == getRep().getNumBodies());
     bodyForces[body][0] += torqueInG; // no force
 }
 void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyIndex body, MobilizerUIndex which, Real d,
-                                                Vector& mobilityForces) const 
-{ 
+                                                Vector& mobilityForces) const
+{
     assert(mobilityForces.size() == getRep().getNumMobilities());
     UIndex uStart; int nu; getRep().findMobilizerUs(s,body,uStart,nu);
     assert(0 <= which && which < nu);
@@ -2111,7 +2111,7 @@ Real SimbodyMatterSubsystem::calcSystemMass(const State& s) const {
 
 
 // Return the location r_OG_C of the system mass center C, measured from the ground
-// origin OG, and expressed in Ground. 
+// origin OG, and expressed in Ground.
 Vec3 SimbodyMatterSubsystem::calcSystemMassCenterLocationInGround(const State& s) const {
     Real    mass = 0;
     Vec3    com  = Vec3(0);
@@ -2125,7 +2125,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterLocationInGround(const State& s
         com  += mb * r_OG_CB; // weighted by mass
     }
 
-    if (mass != 0) 
+    if (mass != 0)
         com /= mass;
 
     return com;
@@ -2178,7 +2178,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterVelocityInGround(const State& s
         comv += mb * v_G_CB; // weighted by mass
     }
 
-    if (mass != 0) 
+    if (mass != 0)
         comv /= mass;
 
     return comv;
@@ -2199,7 +2199,7 @@ Vec3 SimbodyMatterSubsystem::calcSystemMassCenterAccelerationInGround(const Stat
         coma += mb * a_G_CB; // weighted by mass
     }
 
-    if (mass != 0) 
+    if (mass != 0)
         coma /= mass;
 
     return coma;

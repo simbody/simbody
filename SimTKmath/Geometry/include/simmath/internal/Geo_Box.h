@@ -40,8 +40,8 @@ namespace SimTK {
 //==============================================================================
 //                                  GEO BOX
 //==============================================================================
-/** A 3d rectangular box aligned with an unspecified frame F and centered at 
-that frame's origin. The box has a local frame B, centered at the box center 
+/** A 3d rectangular box aligned with an unspecified frame F and centered at
+that frame's origin. The box has a local frame B, centered at the box center
 and oriented along the box edges, and B==F. We keep track of the relative
 edge lengths to facilitate short-to-long processing. **/
 template <class P>
@@ -59,28 +59,28 @@ public:
 Box_() {}
 /** Construct a Box with the given nonnegative half-dimensions. Cost is 4
 flops to sort the edges. **/
-Box_(const Vec3P& halfLengths) {setHalfLengths(halfLengths);} 
+Box_(const Vec3P& halfLengths) {setHalfLengths(halfLengths);}
 
-/** Change the half-dimensions of this box. Dimensions must be nonnegative. 
+/** Change the half-dimensions of this box. Dimensions must be nonnegative.
 Cost is 4 flops to sort the edges. **/
 Box_& setHalfLengths(const Vec3P& halfLengths) {
     SimTK_ERRCHK3(halfLengths >= 0, "Geo::Box_::setHalfLengths()",
         "Half lengths must be nonnegative; got %g,%g,%g.",
         (double)halfLengths[0],(double)halfLengths[1],(double)halfLengths[2]);
-    h = halfLengths; 
+    h = halfLengths;
     sortEdges();
-    return *this; 
+    return *this;
 }
 
 /** Change the half-dimensions of this box by adding the given vector. The
 result must be nonnegative. Cost is 7 flops, including resorting the edges. **/
 Box_& addToHalfLengths(const Vec3P& incr) {
-    h += incr; 
+    h += incr;
     SimTK_ERRCHK3(h >= 0, "Geo::Box_::addToHalfLengths()",
         "Half lengths must be nonnegative but were %g,%g,%g after change.",
         (double)h[0],(double)h[1],(double)h[2]);
     sortEdges();
-    return *this; 
+    return *this;
 }
 
 /** Return the half-lengths of this box as a Vec3 from the center to the
@@ -119,7 +119,7 @@ box, using the same definition of "inside" as the containsPoint() method.
 Here we define the closest point to an inside point to be the point itself.
 Cost is about 9 flops. **/
 Vec3P findClosestPointOfSolidBox(const Vec3P& pt, bool& ptWasInside) const {
-    Vec3P c(pt); 
+    Vec3P c(pt);
     ptWasInside = true; // tentatively
     for (int i=0; i<3; ++i) {
         if      (c[i] < -h[i]) {c[i]=-h[i]; ptWasInside=false;}
@@ -149,8 +149,8 @@ Vec3P findClosestPointOnSurface(const Vec3P& pt, bool& ptWasInside) const {
 }
 
 /** Return the square of the distance from this box to a given point whose
-location is measured from and expressed in the box frame (at the box center). 
-If the point is on or inside the box the returned distance is zero. Cost is 
+location is measured from and expressed in the box frame (at the box center).
+If the point is on or inside the box the returned distance is zero. Cost is
 about 14 flops. **/
 RealP findDistanceSqrToPoint(const Vec3P& pt) const {
     const Vec3P absPt = pt.abs(); // reflect to first quadrant
@@ -164,7 +164,7 @@ RealP findDistanceSqrToPoint(const Vec3P& pt) const {
 
 /** Find a supporting point on the surface of the box in the given direction,
 which must be expressed in the box frame. The direction vector does not have
-to be a unit vector. The returned point will always be one of the eight 
+to be a unit vector. The returned point will always be one of the eight
 vertices; we treat zeroes here as positive. Consequently if the input vector is
 exactly zero, the vertex in the positive orthant is returned as it would be
 if the input direction were (1,1,1). Cost is about 5 flops. **/
@@ -174,8 +174,8 @@ Vec3P findSupportPoint(const Vec3& d) const {
 }
 
 /** Return the square of the distance from this box to a given sphere whose
-center location is measured from and expressed in the box frame (at the box 
-center). If the sphere intersects the box the returned distance is zero. Cost 
+center location is measured from and expressed in the box frame (at the box
+center). If the sphere intersects the box the returned distance is zero. Cost
 is about 17 flops. **/
 RealP findDistanceSqrToSphere(const Geo::Sphere_<P>& sphere) const {
     const Vec3P absCtr = sphere.getCenter().abs(); // reflect to first quadrant
@@ -188,8 +188,8 @@ RealP findDistanceSqrToSphere(const Geo::Sphere_<P>& sphere) const {
 }
 
 /** Return the square of the distance from this box to an axis-aligned box whose
-center location is measured from and expressed in this box frame (at the box 
-center). If the boxes intersect the returned distance is zero. Cost 
+center location is measured from and expressed in this box frame (at the box
+center). If the boxes intersect the returned distance is zero. Cost
 is about 17 flops. **/
 RealP findDistanceSqrToAlignedBox(const Geo::AlignedBox_<P>& aab) const {
     const Vec3P absCtr = aab.getCenter().abs(); // reflect to first quadrant
@@ -203,7 +203,7 @@ RealP findDistanceSqrToAlignedBox(const Geo::AlignedBox_<P>& aab) const {
 
 /** Given a sphere with center measured and expressed in the box frame, return
 true if the box and sphere intersect. We are treating both objects as solids,
-so we'll say yes even if one object completely contains the other. We also 
+so we'll say yes even if one object completely contains the other. We also
 return true if they are just touching. Cost is about 8 flops. **/
 bool intersectsSphere(const Geo::Sphere_<P>& sphere) const {
     const Vec3P absCtr = sphere.getCenter().abs(); // reflect to first quadrant
@@ -215,8 +215,8 @@ bool intersectsSphere(const Geo::Sphere_<P>& sphere) const {
 }
 
 /** Given an aligned box with center measured and expressed in the from of
-this box, return true if the two boxes intersect. We are treating both objects 
-as solids, so we'll say yes even if one box completely contains the other. We 
+this box, return true if the two boxes intersect. We are treating both objects
+as solids, so we'll say yes even if one box completely contains the other. We
 also return true if they are just touching. Cost is about 8 flops. **/
 bool intersectsAlignedBox(const Geo::AlignedBox_<P>& aab) const {
     const Vec3P absCtr = aab.getCenter().abs(); // reflect to first quadrant
@@ -228,35 +228,35 @@ bool intersectsAlignedBox(const Geo::AlignedBox_<P>& aab) const {
 }
 
 /** Given an oriented box whose pose is measured and expressed in the frame
-of this box, return true if the two boxes intersect. We are treating both 
-objects as solids, so we'll say yes even if one box completely contains the 
+of this box, return true if the two boxes intersect. We are treating both
+objects as solids, so we'll say yes even if one box completely contains the
 other. We also return true if they are just touching. This is an exact but
 fairly expensive test if the boxes are separated; if you don't mind some
 false positives, use mayIntersectOrientedBox() instead. Cost is about 200
-flops worst case (when boxes are intersecting) although it can return 
+flops worst case (when boxes are intersecting) although it can return
 \c false in as few as 16 flops. **/
-SimTK_SIMMATH_EXPORT bool 
+SimTK_SIMMATH_EXPORT bool
 intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const;
 
 /** Given an oriented box whose pose is measured and expressed in the frame
 of this box, return true if the two boxes may be intersecting. Only relatively
 cheap operations are performed at the expense of returning false positives
-sometimes (allegedly less than 10% of the time). If you need an exact 
-determination, use intersectsOrientedBox(). Cost is about 75 flops worst 
-case (when boxes appear to be intersecting) but can return \c false in as few 
+sometimes (allegedly less than 10% of the time). If you need an exact
+determination, use intersectsOrientedBox(). Cost is about 75 flops worst
+case (when boxes appear to be intersecting) but can return \c false in as few
 as 16 flops. **/
-SimTK_SIMMATH_EXPORT bool 
+SimTK_SIMMATH_EXPORT bool
 mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const;
 
 
 /** @name                  Box mesh methods
-Methods to use if you want to think of the box as a convex mesh. 
+Methods to use if you want to think of the box as a convex mesh.
 **/
 static int getNumVertices() {return 8;}
 static int getNumEdges()    {return 12;}
 static int getNumFaces()    {return 6;}
 
-/** Use bits in the vertex number to pick the signs, with 0=negative, 
+/** Use bits in the vertex number to pick the signs, with 0=negative,
 1=positive:
 <pre>
     000  -hx -hy -hz
@@ -270,7 +270,7 @@ Vec3P getVertexPos(int vx) const {
     return Vec3P(vx&0x4 ? h[0]:-h[0], vx&0x2 ? h[1]:-h[1], vx&0x1 ? h[2]:-h[2]);
 }
 
-/** Find the vertex (0-7) that is furthest in the direction d, which is given 
+/** Find the vertex (0-7) that is furthest in the direction d, which is given
 in the box frame. Zero coordinates in d are treated as though positive. **/
 int findSupportVertex(const Vec3P& d) const {
     int vx = 0;
@@ -330,7 +330,7 @@ CoordinateDirection getEdgeCoordinateDirection(int ex) const {
 /** Return a unit vector aligned with the selected edge, pointing in the
 direction from the first vertex towards the second vertex, in the box
 frame. For a box, all edges are aligned with the coordinate system axes so
-the returned vector will have only one non-zero component which will be 1 
+the returned vector will have only one non-zero component which will be 1
 or -1. **/
 UnitVec3P getEdgeDirection(int ex) const {
     SimTK_INDEXCHECK(ex,12,"Geo::Box::getEdgeUnitVec()");
@@ -379,7 +379,7 @@ void getVertexFaces(int vx, int f[3], int w[3]) const {
                                     {1,2,3},{1,3,5},{2,3,4},{3,4,5}};
     static const int which[8][3] = {{0,0,0},{1,3,2},{3,1,2},{2,3,1},
                                     {1,3,2},{2,1,3},{2,3,1},{0,0,0}};
-    for (int i=0; i<3; ++i) {f[i]=faces[vx][i]; w[i]=which[vx][i];} 
+    for (int i=0; i<3; ++i) {f[i]=faces[vx][i]; w[i]=which[vx][i];}
 }
 
 /** An edge connects two vertices. **/
@@ -398,7 +398,7 @@ void getVertexEdges(int vx, int e[3], int w[3]) const {
                                     {4,5,8},{5,6,9},{7,8,10},{9,10,11}};
     static const int which[8][3] = {{0,0,0},{1,0,0},{0,1,0},{1,1,0},
                                     {1,0,0},{1,1,0},{1,1,0},{1,1,1}};
-    for (int i=0; i<3; ++i) {e[i]=edges[vx][i]; w[i]=which[vx][i];} 
+    for (int i=0; i<3; ++i) {e[i]=edges[vx][i]; w[i]=which[vx][i];}
 }
 
 
@@ -428,17 +428,17 @@ void getEdgeFaces(int ex, int f[2], int w[2]) const {
 private:
 // Call this whenever an edge length changes. Each axis will appear once.
 void sortEdges() {
-    CoordinateAxis shortest = XAxis, longest = ZAxis; 
+    CoordinateAxis shortest = XAxis, longest = ZAxis;
     if (h[YAxis] < h[shortest]) shortest=YAxis;
     if (h[ZAxis] < h[shortest]) shortest=ZAxis;
     if (h[XAxis] > h[longest])  longest=XAxis;
     if (h[YAxis] > h[longest])  longest=YAxis;
-    order[0] = shortest; order[2] = longest; 
+    order[0] = shortest; order[2] = longest;
     order[1] = shortest.getThirdAxis(longest); // not shortest or longest
 }
 
 int intersectsOrientedBoxHelper(const OrientedBox_<P>& O,
-                                Mat33P&  absR_BO, 
+                                Mat33P&  absR_BO,
                                 Vec3P&   absP_BO) const;
 
 Vec3P           h;         // half-dimensions of the box
@@ -450,7 +450,7 @@ unsigned char   order[3];  // 0,1,2 reordered short to long
 //==============================================================================
 //                              GEO ALIGNED BOX
 //==============================================================================
-/** A 3d box aligned with an unspecified frame F and centered at a given 
+/** A 3d box aligned with an unspecified frame F and centered at a given
 point measured from that frame's origin. The box frame B is aligned with F
 but the origin Bo is shifted from Fo. **/
 template <class P>
@@ -464,19 +464,19 @@ will be garbage. **/
 AlignedBox_() {}
 /** Construct an AlignedBox with the given box shape with the center located
 as given. **/
-AlignedBox_(const Vec3P& center, const Geo::Box_<P>& box) 
-:   center(center), box(box) {} 
-/** Construct an AlignedBox with the given center location and 
+AlignedBox_(const Vec3P& center, const Geo::Box_<P>& box)
+:   center(center), box(box) {}
+/** Construct an AlignedBox with the given center location and
 half-dimensions. **/
-AlignedBox_(const Vec3P& center, const Vec3P& halfLengths) 
-:   center(center), box(halfLengths) {} 
+AlignedBox_(const Vec3P& center, const Vec3P& halfLengths)
+:   center(center), box(halfLengths) {}
 
 /** Change the center location of this box. **/
-AlignedBox_& setCenter(const Vec3P& center) 
+AlignedBox_& setCenter(const Vec3P& center)
 {   this->center=center; return *this; }
 
 /** Change the dimensions of this box. **/
-AlignedBox_& setHalfLengths(const Vec3P& halfLengths) 
+AlignedBox_& setHalfLengths(const Vec3P& halfLengths)
 {   box.setHalfLengths(halfLengths); return *this; }
 
 /** Return the location of the center of this box (box frame origin). **/
@@ -491,16 +491,16 @@ const Box_<P>& getBox() const {return box;}
 Box_<P>& updBox() {return box;}
 
 /** Given a point measured and expressed in the base frame F, determine whether
-it is strictly contained in the box (just touching doesn't count). Cost is 
+it is strictly contained in the box (just touching doesn't count). Cost is
 about 8 flops. **/
 bool containsPoint(const Vec3P& pt_F) const
 {   return box.containsPoint(pt_F - center); } // shift to box frame B
 
-/** Stretch this box in place by a small amount to ensure that there will 
-be no roundoff problems if this is used as a bounding box. The amount to 
-stretch depends on the default tolerance for this precision, the dimensions, 
-and the position of the box in space. A very large box, or a box that is 
-very far from the origin, must be stretched more than a small one at the 
+/** Stretch this box in place by a small amount to ensure that there will
+be no roundoff problems if this is used as a bounding box. The amount to
+stretch depends on the default tolerance for this precision, the dimensions,
+and the position of the box in space. A very large box, or a box that is
+very far from the origin, must be stretched more than a small one at the
 origin. Cost is 6 flops.
 @see Geo class for tolerance information. **/
 AlignedBox_& stretchBoundary() {
@@ -510,7 +510,7 @@ AlignedBox_& stretchBoundary() {
     const RealP scale  = std::max(maxdim, maxrad);
     const RealP incr   = std::max(scale*Geo::getEps<P>(), tol);
     box.addToHalfLengths(Vec3P(incr));
-    return *this; 
+    return *this;
 }
 
 private:
@@ -522,7 +522,7 @@ Geo::Box_<P>    box;
 //==============================================================================
 //                              GEO ORIENTED BOX
 //==============================================================================
-/** TODO: A 3d box oriented and positioned with respect to an unspecified 
+/** TODO: A 3d box oriented and positioned with respect to an unspecified
 frame F. **/
 template <class P>
 class SimTK_SIMMATH_EXPORT Geo::OrientedBox_ {
@@ -538,20 +538,20 @@ OrientedBox_() {}
 /** Construct an OrientedBox with the given box shape with positioned and
 oriented according to the given Transform X_FB which gives the box local
 frame B (at the box center) in an unspecifed frame F. **/
-OrientedBox_(const TransformP& X_FB, const Geo::Box_<P>& box) 
-:   X_FB(X_FB), box(box) {} 
-/** Construct an OrientedBox with the given location and 
+OrientedBox_(const TransformP& X_FB, const Geo::Box_<P>& box)
+:   X_FB(X_FB), box(box) {}
+/** Construct an OrientedBox with the given location and
 half-dimensions. **/
-OrientedBox_(const TransformP& X_FB, const Vec3P& halfLengths) 
-:   X_FB(X_FB), box(halfLengths) {} 
+OrientedBox_(const TransformP& X_FB, const Vec3P& halfLengths)
+:   X_FB(X_FB), box(halfLengths) {}
 
 
 /** Change the pose of this box. **/
-OrientedBox_& setTransform(const TransformP& newX_FB) 
+OrientedBox_& setTransform(const TransformP& newX_FB)
 {   X_FB=newX_FB; return *this; }
 
 /** Change the dimensions of this box. **/
-OrientedBox_& setHalfLengths(const Vec3P& halfLengths) 
+OrientedBox_& setHalfLengths(const Vec3P& halfLengths)
 {   box.setHalfLengths(halfLengths); return *this; }
 
 const Vec3P& getCenter() const {return X_FB.p();}
@@ -567,16 +567,16 @@ Box_<P>& updBox() {return box;}
 
 
 /** Given a point measured and expressed in the base frame F, determine whether
-it is strictly contained in the box (just touching doesn't count). Cost is 
+it is strictly contained in the box (just touching doesn't count). Cost is
 about 23 flops. **/
 bool containsPoint(const Vec3P& pt_F) const
 {   return box.containsPoint(~X_FB*pt_F); } // shift to box frame B
 
-/** Stretch this box in place by a small amount to ensure that there will 
-be no roundoff problems if this is used as a bounding box. The amount to 
-stretch depends on the default tolerance for this precision, the dimensions, 
-and the position of the box in space. A very large box, or a box that is 
-very far from the origin, must be stretched more than a small one at the 
+/** Stretch this box in place by a small amount to ensure that there will
+be no roundoff problems if this is used as a bounding box. The amount to
+stretch depends on the default tolerance for this precision, the dimensions,
+and the position of the box in space. A very large box, or a box that is
+very far from the origin, must be stretched more than a small one at the
 origin. Cost is 6 flops.
 @see Geo class for tolerance information. **/
 OrientedBox_& stretchBoundary() {
@@ -586,7 +586,7 @@ OrientedBox_& stretchBoundary() {
     const RealP scale  = std::max(maxdim, maxrad);
     const RealP incr   = std::max(scale*Geo::getEps<P>(), tol);
     box.addToHalfLengths(Vec3P(incr));
-    return *this; 
+    return *this;
 }
 
 private:

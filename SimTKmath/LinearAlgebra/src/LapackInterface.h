@@ -36,8 +36,8 @@
 
 namespace SimTK {
 
-class LapackInterface { 
-   
+class LapackInterface {
+
 public:
 
 static int getLWork( float* work);
@@ -46,58 +46,58 @@ static int getLWork( std::complex<float>* work);
 static int getLWork( std::complex<double>* work);
 
 template <class T> static
-void gelss( int m, int n,  int mn, int nrhs, 
+void gelss( int m, int n,  int mn, int nrhs,
            T* a, int lda, T* b,  int ldb, typename CNT<T>::TReal* s,
            typename CNT<T>::TReal rcond, int& rank, int& info);
 
 template <class T> static
-void gesdd( char jobz, int m, int n, T* a, int lda, 
+void gesdd( char jobz, int m, int n, T* a, int lda,
            typename CNT<T>::TReal* s, T* u, int ldu,
            T* vt, int ldvt, int& info);
 
 template <class T> static
-void geev(char jobvl, char jobvr, int n, T* a, int lda, 
-    std::complex<typename CNT<T>::TReal>* values, 
-    T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr, 
+void geev(char jobvl, char jobvr, int n, T* a, int lda,
+    std::complex<typename CNT<T>::TReal>* values,
+    T* vl, int ldvl, std::complex<typename CNT<T>::TReal>* vr,
     int ldvr, T* work, int lwork, int& info );
 
 template <class T> static
-void syevx( char jobz, char range, char uplo, int n, T* a, int lda, 
-    typename CNT<T>::TReal vl, typename CNT<T>::TReal vu, int il, int iu, 
-    typename CNT<T>::TReal abstol, int& nFound, typename CNT<T>::TReal* values, 
+void syevx( char jobz, char range, char uplo, int n, T* a, int lda,
+    typename CNT<T>::TReal vl, typename CNT<T>::TReal vu, int il, int iu,
+    typename CNT<T>::TReal abstol, int& nFound, typename CNT<T>::TReal* values,
     T* vectors, int LDVectors, int* ifail, int& info );
-                  
+
 
 template <class T> static
-void syev( char jobz,  char uplo, int n, T* a_eigenVectors, int lda,  
+void syev( char jobz,  char uplo, int n, T* a_eigenVectors, int lda,
     typename CNT<T>::TReal* eigenValues, int& info );
 
 
 /* solve system of linear equations using the LU factorization  */
-template <class T> static 
-void potrs( char uplo, const int ncol, const int nrhs, const T *lu,  T *b ); 
+template <class T> static
+void potrs( char uplo, const int ncol, const int nrhs, const T *lu,  T *b );
 
-template <class T> static 
-// TODO void sytrs( char uplo, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b ); 
-void sytrs( char uplo, const int ncol, const int nrhs, T *lu, int* pivots, T *b ); 
+template <class T> static
+// TODO void sytrs( char uplo, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b );
+void sytrs( char uplo, const int ncol, const int nrhs, T *lu, int* pivots, T *b );
 
 
-template <class T> static 
-void getrs( char trans, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b ); 
+template <class T> static
+void getrs( char trans, const int ncol, const int nrhs, const T *lu, const int* pivots, T *b );
 
-template <class T> static 
+template <class T> static
 void getrf( const int m, const int n, T *a, const int lda, int* pivots, int& info );
 
-template <class T> static 
+template <class T> static
 void gttrf( const int m, const int n, T* dl, T* d, T* du, T* du2, int* pivots, int& info );
 
-template <class T> static 
+template <class T> static
 void gbtrf( const int m, const int n, const int kl, const int ku, T* lu, const int lda, int* pivots, int& info );
 
-template <class T> static 
+template <class T> static
 void potrf( const char& uplo, const int n,  T* lu, const int lda, int& info );
 
-template <class T> static 
+template <class T> static
 void sytrf( const char& uplo, const int n, T* a,  const int lda, int* pivots, T* work, const int lwork, int& info );
 
 template <class T> static
@@ -126,10 +126,10 @@ void ormqr(const char& side, const char& trans, const int& m, const int& n, cons
 
 template <class T> static
 void trsm(const char& side, const char& uplo, const char& transA, const char& diag, const int& m, const int& n, const T& alpha, const T* A, const int& lda, T* B, const int& ldb );
- 
+
 template <class T> static
 void ormrz(const char& side, const char& trans, const int& m, const int& n, const int& k, const int& l, T* a, const int& lda, T* tau, T* c__, const int& ldc, T* work, const int& lwork, int& info);
- 
+
 template <class T> static
 void copy( const int& n, const T* x, const int& incx, T* y, const int& incy);
 

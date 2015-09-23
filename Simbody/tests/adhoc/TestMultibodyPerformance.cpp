@@ -165,7 +165,7 @@ static double flopTimeInNs;
  * Time how long it takes to perform an operation 1000 times.  The test is repeated 5 times,
  * and the average is returned.  The return value represents CPU time, *not* clock time.
  */
-void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state), 
+void timeComputation(MultibodySystem& system, void function(MultibodySystem& system, State& state),
                      const string& name, int iterations, bool useEulerAngles) {
     const int repeats = 3;
     Vector cpuTimes(repeats);
@@ -308,7 +308,7 @@ void createBallTree(MultibodySystem& system) {
 static int tenInts[10];
 static Real tenReals[10];
 // These should multiply out to about 1.
-static Real tenMults[10] = 
+static Real tenMults[10] =
     {Real(0.501),Real(0.2501),Real(0.201),Real(0.101),Real(1.000000001),
     Real(1/1.000000002),Real(1/.101), Real(1/.201), Real(1/.2501), Real(1/.501)};
 void testFunctions(double& flopTime, bool flopTimeOnly=false) {
@@ -398,8 +398,8 @@ void testFunctions(double& flopTime, bool flopTimeOnly=false) {
         divRes /= tenMults[5];
         // prevent clever optimization VC10 did to turn divides
         // into multiplies.
-        tenMults[i%10]     = Real(tenMults[i%10]*1.0000000000001); 
-        tenMults[(i+5)%10] = Real(tenMults[(i+5)%10]*0.9999999999999); 
+        tenMults[i%10]     = Real(tenMults[i%10]*1.0000000000001);
+        tenMults[(i+5)%10] = Real(tenMults[(i+5)%10]*0.9999999999999);
     }
     t = threadCpuTime(); double divTime=(t-tprev);
     printf("div %gs\n", t-tprev);
@@ -553,7 +553,7 @@ int main() {
         createParticles(system);
         runAllTests(system);
     }
-    
+
     {
         std::cout << "\nFree Bodies (Quaternions):\n" << std::endl;
         MultibodySystem system;
@@ -566,7 +566,7 @@ int main() {
         createFreeBodies(system);
         runAllTests(system, true);
     }
-    
+
     {
         std::cout << "\nPin Chain:\n" << std::endl;
         MultibodySystem system;
@@ -597,7 +597,7 @@ int main() {
         createGimbalChain(system);
         runAllTests(system);
     }
-    
+
     {
         std::cout << "\nPin Tree:\n" << std::endl;
         MultibodySystem system;
@@ -610,7 +610,7 @@ int main() {
         createBallTree(system);
         runAllTests(system);
     }
-    
+
 
     std::cout << "Total time:\n";
     std::cout << "  process CPU=" << cpuTime()-startCpu << "s\n";

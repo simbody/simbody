@@ -30,21 +30,21 @@
 
 namespace SimTK {
 
-/** <b>(Deprecated)</b> This class represents a "thread local" variable: one 
+/** <b>(Deprecated)</b> This class represents a "thread local" variable: one
 which may have a different value on each thread; use C++11 `thread_local`
-instead. This class is no longer necessary since C++11 has `thread_local` as a 
+instead. This class is no longer necessary since C++11 has `thread_local` as a
 built-in keyword -- you should use that instead.
 
-Thread-local storage is useful in many situations when writing multithreaded 
-code. For example, it can be used as temporary workspace for calculations. If a 
-single workspace object were created, all access to it would need to be 
-synchronized to prevent threads from overwriting each other's values. Using a 
+Thread-local storage is useful in many situations when writing multithreaded
+code. For example, it can be used as temporary workspace for calculations. If a
+single workspace object were created, all access to it would need to be
+synchronized to prevent threads from overwriting each other's values. Using a
 `ThreadLocal<T>` instead means that a separate workspace object of type
-`T` will automatically be created for each thread. That object will have 
+`T` will automatically be created for each thread. That object will have
 "thread scope" meaning it will be destructed only on thread termination. Note
 that that means it can outlive destruction of the `ThreadLocal<T>` object.
 
-To use it, simply create a `ThreadLocal<T>`, then call get() or upd() to get a 
+To use it, simply create a `ThreadLocal<T>`, then call get() or upd() to get a
 readable or writable reference to the value of type `T` that is available for
 the exclusive use of the current thread:
 @code
@@ -55,7 +55,7 @@ the exclusive use of the current thread:
 @endcode
 
 @warning You should avoid allocating `ThreadLocal` objects in single-threaded
-code because the objects of type `T` have "thread scope"; they do not get 
+code because the objects of type `T` have "thread scope"; they do not get
 destructed when the `ThreadLocal` object does. So in the single-threaded case
 they will persist until program termination, creating a potential for leaks.
 **/
@@ -91,7 +91,7 @@ public:
     for the current thread's exclusive use. **/
     T& upd() {
         T* value = reinterpret_cast<T*>(pthread_getspecific(m_key));
-        if (!value) 
+        if (!value)
             value = createValue();
         return *value;
     }
@@ -100,7 +100,7 @@ public:
     for the current thread's exclusive use. **/
     const T& get() const {
         T* value = reinterpret_cast<T*>(pthread_getspecific(m_key));
-        if (!value) 
+        if (!value)
             value = createValue();
         return *value;
     }
@@ -108,7 +108,7 @@ public:
 private:
     // This is a destructor for an object of type T that was allocated for this
     // thread's exclusive use. This will be called at thread termination, from
-    // the same thread that allocated this object via the createValue() 
+    // the same thread that allocated this object via the createValue()
     // method below.
     static void cleanUpThreadLocalStorage(void* value) {
         T* t = reinterpret_cast<T*>(value);

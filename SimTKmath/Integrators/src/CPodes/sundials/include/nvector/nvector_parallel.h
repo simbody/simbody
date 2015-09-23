@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/29 00:05:07 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Scott D. Cohen, Alan C. Hindmarsh, Radu Serban,
  *                and Aaron Collier @ LLNL
  * -----------------------------------------------------------------
@@ -31,8 +31,8 @@
  *     found in the header file sundials_nvector.h.
  *
  *   - The definition of the type realtype can be found in the
- *     header file sundials_types.h, and it may be changed (at the 
- *     configuration stage) according to the user's needs. 
+ *     header file sundials_types.h, and it may be changed (at the
+ *     configuration stage) according to the user's needs.
  *     The sundials_types.h file also contains the definition
  *     for the type booleantype.
  *
@@ -60,7 +60,7 @@ extern "C" {
 
 /*
  * -----------------------------------------------------------------
- * PART I: PARALLEL implementation of N_Vector               
+ * PART I: PARALLEL implementation of N_Vector
  * -----------------------------------------------------------------
  */
 
@@ -178,7 +178,7 @@ typedef struct _N_VectorContent_Parallel *N_VectorContent_Parallel;
 /*
  * -----------------------------------------------------------------
  * PART III: functions exported by nvector_parallel
- * 
+ *
  * CONSTRUCTORS:
  *    N_VNew_Parallel
  *    N_VNewEmpty_Parallel
@@ -201,7 +201,7 @@ typedef struct _N_VectorContent_Parallel *N_VectorContent_Parallel;
  * -----------------------------------------------------------------
  */
 
-SUNDIALS_EXPORT N_Vector N_VNew_Parallel(MPI_Comm comm, 
+SUNDIALS_EXPORT N_Vector N_VNew_Parallel(MPI_Comm comm,
                      long int local_length,
                      long int global_length);
 
@@ -214,7 +214,7 @@ SUNDIALS_EXPORT N_Vector N_VNew_Parallel(MPI_Comm comm,
  * -----------------------------------------------------------------
  */
 
-SUNDIALS_EXPORT N_Vector N_VNewEmpty_Parallel(MPI_Comm comm, 
+SUNDIALS_EXPORT N_Vector N_VNewEmpty_Parallel(MPI_Comm comm,
                           long int local_length,
                           long int global_length);
 
@@ -227,7 +227,7 @@ SUNDIALS_EXPORT N_Vector N_VNewEmpty_Parallel(MPI_Comm comm,
  * -----------------------------------------------------------------
  */
 
-SUNDIALS_EXPORT N_Vector N_VMake_Parallel(MPI_Comm comm, 
+SUNDIALS_EXPORT N_Vector N_VMake_Parallel(MPI_Comm comm,
                       long int local_length,
                       long int global_length,
                       realtype *v_data);
@@ -247,7 +247,7 @@ SUNDIALS_EXPORT N_Vector *N_VCloneVectorArray_Parallel(int count, N_Vector w);
  * -----------------------------------------------------------------
  * Function : N_VCloneVectorArrayEmpty_Parallel
  * -----------------------------------------------------------------
- * This function creates an array of 'count' PARALLEL vectors each 
+ * This function creates an array of 'count' PARALLEL vectors each
  * with an empty (NULL) data array by cloning w.
  * -----------------------------------------------------------------
  */
@@ -258,7 +258,7 @@ SUNDIALS_EXPORT N_Vector *N_VCloneVectorArrayEmpty_Parallel(int count, N_Vector 
  * -----------------------------------------------------------------
  * Function : N_VDestroyVectorArray_Parallel
  * -----------------------------------------------------------------
- * This function frees an array of N_Vector created with 
+ * This function frees an array of N_Vector created with
  * N_VCloneVectorArray_Parallel or N_VCloneVectorArrayEmpty_Parallel.
  * -----------------------------------------------------------------
  */

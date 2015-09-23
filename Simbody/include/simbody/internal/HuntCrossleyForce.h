@@ -59,7 +59,7 @@ class HuntCrossleyForceImpl;
  * ASME Journal of Applied Mechanics, pp. 440-445, June 1975. This is
  * a continuous model based on Hertz elastic contact theory,
  * which correctly reproduces the empirically observed dependence
- * on velocity of coefficient of restitution, where e=(1-cv) for 
+ * on velocity of coefficient of restitution, where e=(1-cv) for
  * (small) impact velocity v and a material property c with units 1/v. Note that
  * c can be measured right off the coefficient of restitution-vs.-velocity
  * curves: it is the absolute value of the slope at low velocities.
@@ -68,7 +68,7 @@ class HuntCrossleyForceImpl;
  * we can generate a contact force from this equation
  *      f = kx^n(1 + 3/2 cv)
  * where k is a stiffness constant incorporating material properties
- * and geometry (to be defined below), x is penetration depth and 
+ * and geometry (to be defined below), x is penetration depth and
  * v = dx/dt is penetration rate (positive during penetration and
  * negative during rebound). Exponent n depends on the surface
  * geometry. For Hertz contact where the geometry can be approximated
@@ -81,10 +81,10 @@ class HuntCrossleyForceImpl;
  *
  * <pre>
  *          R1*R2                                         E2^(2/3)
- *     R = -------,  E = (s1 * E1^(2/3))^(3/2),  s1= ------------------- 
+ *     R = -------,  E = (s1 * E1^(2/3))^(3/2),  s1= -------------------
  *         R1 + R2                                   E1^(2/3) + E2^(2/3)
  * </pre>
- *     
+ *
  *     c = c1*s1 + c2*(1-s1)
  *     k = (4/3) sqrt(R) E
  *     f = k x^(3/2) (1 + 3/2 c xdot)
@@ -96,7 +96,7 @@ class HuntCrossleyForceImpl;
  * Young's modulus Y1 and Poisson's ratio p1, then E1=Y1/(1-p1^2). The interface
  * to this subsystem asks for E1 (pressure/%strain) and c1 (1/velocity), and
  * E2,c2 only.
- * 
+ *
  * <h1>Friction Force</h1>
  *
  * The friction force is based on a model by Michael Hollars:
@@ -123,13 +123,13 @@ class SimTK_SIMBODY_EXPORT HuntCrossleyForce : public Force {
 public:
     /**
      * Create a Hunt-Crossley contact model.
-     * 
+     *
      * @param forces         the subsystem which will own this HuntCrossleyForce element
      * @param contacts       the subsystem to which this contact model should be applied
      * @param contactSet     the index of the contact set to which this contact model will be applied
      */
-    HuntCrossleyForce(GeneralForceSubsystem& forces, 
-                      GeneralContactSubsystem& contacts, 
+    HuntCrossleyForce(GeneralForceSubsystem& forces,
+                      GeneralContactSubsystem& contacts,
                       ContactSetIndex contactSet);
     /**
      * Set the material parameters for a surface in the contact set.
@@ -142,7 +142,7 @@ public:
      * @param viscousFriction the coefficient of viscous friction (uv) for the body
      */
     void setBodyParameters
-       (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation, 
+       (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation,
         Real staticFriction, Real dynamicFriction, Real viscousFriction);
     /**
      * Get the transition velocity (vt) of the friction model.
@@ -153,8 +153,8 @@ public:
      */
     void setTransitionVelocity(Real v);
     /**
-     * Retrieve the ContactSetIndex that was associated with this 
-     * %HuntCrossleyForce on construction. 
+     * Retrieve the ContactSetIndex that was associated with this
+     * %HuntCrossleyForce on construction.
      */
     ContactSetIndex getContactSetIndex() const;
 

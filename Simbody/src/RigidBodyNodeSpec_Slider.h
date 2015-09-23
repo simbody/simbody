@@ -52,7 +52,7 @@ RBNodeSlider(const MassProperties&    mProps_B,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<1, true, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -60,23 +60,23 @@ RBNodeSlider(const MassProperties&    mProps_B,
 
     // Implementations of virtual methods.
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
+void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
     // The only rotation a slider can represent is identity.
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const {
     // We can only represent the x coordinate with this joint.
     this->to1Q(q) = p_FM[0];
 }
 
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&,
                                   const Vec3& w_FM, Vector& u) const {
     // The only angular velocity a slider can represent is zero.
 }
 
-void setUToFitLinearVelocityImpl(const SBStateDigest& sbs, const Vector&, 
+void setUToFitLinearVelocityImpl(const SBStateDigest& sbs, const Vector&,
                                  const Vec3& v_FM, Vector& u) const
 {
     // We can only represent a velocity along x with this joint.
@@ -103,9 +103,9 @@ void calcX_FM(const SBStateDigest& sbs,
                 Transform&  X_FM) const
 {
     assert(q && nq==1 && nQCache==0);
-    // Translation vector q is expressed in F (and M since they have same 
-    // orientation). A sliding joint can't change orientation, and only 
-    // translates along x. 
+    // Translation vector q is expressed in F (and M since they have same
+    // orientation). A sliding joint can't change orientation, and only
+    // translates along x.
     X_FM = Transform(Rotation(), Vec3(q[0],0,0));
 }
 

@@ -48,15 +48,15 @@ using namespace SimTK;
 const int NumNonParallelThreads = 1;
 const int NonParallelForcesIndex = 0;
 
-/* Base class for CalcForcesParallelTask and CalcForcesNonParallelTask - lays 
+/* Base class for CalcForcesParallelTask and CalcForcesNonParallelTask - lays
 out common methods that will be implemented to suit the parallel/non-parallel
 use cases*/
 class CalcForcesTask : public ParallelExecutor::Task {
 public:
     CalcForcesTask() = default;
-    
+
     virtual CalcForcesTask* clone() const = 0;
-    
+
     virtual void initializeAll(
             const State& s,
             const Array_<Force*>& enabledNonParallelForces,
@@ -81,7 +81,7 @@ public:
             Vector_<SpatialVec>& rigidBodyForces,
             Vector_<Vec3>& particleForces,
             Vector& mobilityForces) = 0;
-    
+
 };
 /*Calculates each enabled force's contribution in the MultibodySystem.
 CalcForcesParallelTask allows force calculations to occur in parallel with
@@ -98,7 +98,7 @@ public:
         CachedAndNonCached,
         NonCached
     };
-    
+
     CalcForcesParallelTask* clone() const override {
         return new CalcForcesParallelTask();
     }
@@ -119,7 +119,7 @@ public:
         m_rigidBodyForces = &rigidBodyForces;
         m_particleForces = &particleForces;
         m_mobilityForces = &mobilityForces;
-        
+
         m_mode = All;
     }
     void initializeCachedAndNonCached(
@@ -162,7 +162,7 @@ public:
 
         m_mode = NonCached;
     }
-    
+
     // Set all of the local force contribution arrays to 0. This is so that
     // each local thread can sum up it's force contribution to be later
     // added into the total force array.
@@ -183,7 +183,7 @@ public:
             m_mobilityForceCacheLocalStatic.upd().setToZero();
         }
     }
-    
+
     // Calculate all enabled forces (taking into account mode and parallelism)
     void execute(int threadIndex) override {
       switch (m_mode) {
@@ -252,7 +252,7 @@ public:
             break;
         }
     }
-    
+
     //Once a thread has finished it's force calculations, we add in the thread's
     //contribution into the cached force arrays in the State
     void finish() override {
@@ -285,7 +285,7 @@ private:
     ReferencePtr<Vector_<SpatialVec>> m_rigidBodyForceCache;
     ReferencePtr<Vector_<Vec3>> m_particleForceCache;
     ReferencePtr<Vector> m_mobilityForceCache;
-    
+
     // These variables are local to a thread. They are set to their default
     // value when the threads are spawned. We use them to keep track of each
     // thread's contribution that we will later add in to the final state cache.
@@ -332,11 +332,11 @@ public:
         CachedAndNonCached,
         NonCached
     };
-    
+
     CalcForcesNonParallelTask* clone() const override {
         return new CalcForcesNonParallelTask();
     }
-    
+
     // Each different force calculation Mode requires different parameters
     //
     // Note: Execute MUST be called directly after CalcForceTask is initialized
@@ -354,7 +354,7 @@ public:
         m_rigidBodyForces = &rigidBodyForces;
         m_particleForces = &particleForces;
         m_mobilityForces = &mobilityForces;
-        
+
         m_mode = All;
     }
     void initializeCachedAndNonCached(
@@ -397,7 +397,7 @@ public:
 
         m_mode = NonCached;
     }
-    
+
     // Set all of the local force contribution arrays to 0. This is so that
     // each local thread can sum up it's force contribution to be later
     // added into the total force array.
@@ -418,7 +418,7 @@ public:
             m_mobilityForceCacheLocal.setToZero();
         }
     }
-    
+
     // Calculate all enabled forces (taking into account mode and parallelism)
     void execute(int threadIndex) override {
       switch (m_mode) {
@@ -463,7 +463,7 @@ public:
             break;
         }
     }
-    
+
     //Once a thread has finished it's force calculations, we add in the thread's
     //contribution into the cached force arrays in the State
     void finish() override {
@@ -496,7 +496,7 @@ private:
     ReferencePtr<Vector_<SpatialVec>> m_rigidBodyForceCache;
     ReferencePtr<Vector_<Vec3>> m_particleForceCache;
     ReferencePtr<Vector> m_mobilityForceCache;
-    
+
     // These variables belong to the main thread. We use them to keep track of
     // each thread's contribution that we will later add in to the final state
     // cache.
@@ -586,7 +586,7 @@ public:
                     "setNumberOfThreads", "Number of threads must be positive");
         calcForcesExecutor = new ParallelExecutor(numThreads);
     }
-    
+
     int getNumberOfThreads() const{
       return calcForcesExecutor->getMaxThreads();
     }
@@ -620,8 +620,8 @@ public:
 
         forceEnabledIndex = allocateDiscreteVariable(s, Stage::Instance,
             new Value<Array_<bool> >(forceEnabled));
-        
-        
+
+
         // Track the enabled forces and whether they should be parallelized.
         Array_<Force*> enabledNonParallelForces;
         Array_<Force*> enabledParallelForces;
@@ -656,7 +656,7 @@ public:
         //
         // Enabled Forces at Time 0: D E
         // Enabled Forces at Time 1: A B C D E
-        
+
         bool hasParallelForces = false;
         for(int x = 0; x < (int)forces.size(); ++x)
         {
@@ -670,7 +670,7 @@ public:
             calcForcesTask = new CalcForcesParallelTask();
         else
             calcForcesTask = new CalcForcesNonParallelTask();
-        
+
         // Note that we'll allocate these even if all the needs-caching
         // elements are presently disabled. That way they'll be around when
         // the force gets enabled.
@@ -705,7 +705,7 @@ public:
             (getDiscreteVariable(s, forceEnabledIndex));
         for (int i = 0; i < (int) forces.size(); ++i)
             if (enabled[i]) forces[i]->getImpl().realizeInstance(s);
-            
+
         //Update non/parallel enabled force arrays
         // Track the enabled forces and whether they should be parallelized.
         const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
@@ -718,7 +718,7 @@ public:
         // Avoid repeatedly allocating memory.
         enabledParallelForces.resize(0);
         enabledNonParallelForces.resize(0);
-        
+
         enabledNonParallelForces.reserve(forces.size());
         enabledParallelForces.reserve(forces.size());
 
@@ -909,14 +909,14 @@ private:
     // For parallel calculation of forces.
     mutable ClonePtr<ParallelExecutor>               calcForcesExecutor;
     mutable ClonePtr<CalcForcesTask>                 calcForcesTask;
-    
+
     // TOPOLOGY "CACHE"
     // These indices must be filled in during realizeTopology and treated
     // as const thereafter.
 
     // This instance-stage variable holds a bool for each force element.
     mutable DiscreteVariableIndex   forceEnabledIndex;
-    
+
     //This set of cache entries stores an array of Force* elements for enabled
     //parallel and non-parallel forces
     mutable CacheEntryIndex   enabledParallelForcesIndex;

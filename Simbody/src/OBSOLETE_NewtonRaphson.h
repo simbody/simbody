@@ -39,7 +39,7 @@ public:
     String name;
 
     NewtonRaphson(const String& id, std::ostream& errStream=std::cerr)
-      : maxMin( 20 ) , maxIters( 20 ), verbose(false), 
+      : maxMin( 20 ) , maxIters( 20 ), verbose(false),
         zTol( 1e-8 ), errStream(errStream), name(id)
     { }
 
@@ -48,8 +48,8 @@ public:
     // having an easy time of it we'll continue down to desiredTol, but we won't do
     // anything desperate once we're better than requiredTol.
     template<class CalcB,class CalcZ,class VecType>
-    void calc(const Real& requiredTol, const Real& desiredTol, 
-              VecType& x, CalcB calcB, CalcZ calcZ) const 
+    void calc(const Real& requiredTol, const Real& desiredTol,
+              VecType& x, CalcB calcB, CalcZ calcZ) const
     {
         assert(requiredTol >= desiredTol);
         if ( verbose )
@@ -62,29 +62,29 @@ public:
         Real onorm=norm;
         int  iters=0;
         if ( verbose )
-            errStream << "NewtonRaphson '" << name << "': iter: " 
+            errStream << "NewtonRaphson '" << name << "': iter: "
                       << iters << "  norm: " << norm << '\n';
         bool finished=(norm < desiredTol);
         while (!finished) {
             VecType ox = x;
-            //std::cout << "NR: vars=" << x << std::endl; 
+            //std::cout << "NR: vars=" << x << std::endl;
             //std::cout << "NR: errs=" << b << std::endl;
-            
+
             VecType z = calcZ(b);
             x -= z;
-            
+
             iters++;
 
             b = calcB(x);
             norm = std::sqrt(b.normSqr() / b.size());
 
-            // If that made the norm worse, we're going to need to back off and feel 
+            // If that made the norm worse, we're going to need to back off and feel
             // our way around slowly here. But we won't bother if we've already met
             // requiredTol.
             if (norm > onorm) {
                 if (onorm <= requiredTol) {
                     if (verbose) {
-                        errStream << "NewtonRaphson '" << name 
+                        errStream << "NewtonRaphson '" << name
                           << "': got required but not desired, giving up rather than gradient search\n";
                     }
                     x = ox; norm = onorm;   // back up to last good
@@ -102,8 +102,8 @@ public:
 
                 int mincnt = maxMin;
                 do {
-                    if ( mincnt < 1 ) 
-                        SimTK_THROW1(Exception::NewtonRaphsonFailure, 
+                    if ( mincnt < 1 )
+                        SimTK_THROW1(Exception::NewtonRaphsonFailure,
                             "Too many gradient search steps taken");
                     z *= 0.5;
                     if ( z.normSqr() < zTol2 )  // TODO should be weighted norm of z
@@ -112,7 +112,7 @@ public:
                     b = calcB(x);
                     norm = std::sqrt(b.normSqr() / b.size());
                     if ( verbose )
-                        errStream << "NewtonRaphson '" << name << "': gradient search in iter: " 
+                        errStream << "NewtonRaphson '" << name << "': gradient search in iter: "
                                   << iters << "  norm: " << norm << '\n';
                     mincnt--;
                 } while (norm >= onorm);
@@ -123,16 +123,16 @@ public:
             onorm = norm;
 
             if ( verbose )
-                errStream << "NewtonRaphson '" << name << "': iter: " 
+                errStream << "NewtonRaphson '" << name << "': iter: "
                           << iters << "  norm: " << norm << '\n';
-            
+
             if (norm <= desiredTol)
                 finished = true;
             else if (iters >= maxIters) {
                 if (norm > requiredTol)
                     SimTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
                 if (verbose) {
-                    errStream << "NewtonRaphson '" << name 
+                    errStream << "NewtonRaphson '" << name
                       << "': got required but not desired, giving up after iter "
                       << iters << "\n";
                 }

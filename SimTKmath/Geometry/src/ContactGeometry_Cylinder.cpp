@@ -159,7 +159,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
     // Arc length of the helix. Always
     const Real L = R * sqrt1m2 * std::abs(angle);
 
-    // Orientation of helix. 
+    // Orientation of helix.
     const Real orientation = angle < 0 ? Real(-1) : Real(1);
 
     // TODO: Make this generic, so long geodesics are sampled more than short ones.
@@ -185,7 +185,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
         // Current arc length s.
         Real s = R * sqrt1m2 * (Real(i)*deltaPhi);
         geod.addArcLength(s);
-        geod.addCurvature(kappa);        
+        geod.addCurvature(kappa);
 
         // Solve the scalar Jacobi equation
         //
@@ -233,7 +233,7 @@ static void setGeodesicToHelicalArc(Real R, Real phiP, Real angle, Real m, Real 
 //        p(phi) = [ R * sin(phi)    ]
 //                   [ R * m * phi + c ]
 //
-// where R is the radius of the cylinder, phi parameterizes the opening angle of the helix, m is  
+// where R is the radius of the cylinder, phi parameterizes the opening angle of the helix, m is
 // the slope and c is an offset. We define the geodesic from P to Q, hence c = Pz.
 void ContactGeometry::Cylinder::Impl::
 calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
@@ -267,7 +267,7 @@ calcGeodesicAnalytical(const Vec3& xP, const Vec3& xQ,
     // Average moment.
     Real M = (MP + MQ) / 2;
 
-    // Decide whether helix is right or left handed. The sign of angle stores the 
+    // Decide whether helix is right or left handed. The sign of angle stores the
     // information about the orientation (right handed, if positive)
     Real angle;
     if (M >= 0)    {

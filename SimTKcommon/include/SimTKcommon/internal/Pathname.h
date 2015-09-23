@@ -41,7 +41,7 @@ namespace SimTK {
  * of three components:
  * <pre> [directory] [filename [extension]] </pre>
  * where the directory may be an absolute location or relative to a
- * current working directory or specified working directory. 
+ * current working directory or specified working directory.
  *
  * Several special directory names are supported here:
  *  - root (/)
@@ -51,11 +51,11 @@ namespace SimTK {
  *  - parent directory (..)
  *
  * On Windows root and current working directory are drive-specific, referring
- * to the current drive if none is specified. The current executable 
+ * to the current drive if none is specified. The current executable
  * directory is the absolute directory name containing the executable
  * program which is currently running.
  *
- * A pathname has "segments" which are separated by either forward 
+ * A pathname has "segments" which are separated by either forward
  * slashes or backslashes. We are relaxed about the slashes and will
  * accept either one and pathnames which use both. However, each operating
  * system platform has a preferred separator character, backslash on
@@ -69,10 +69,10 @@ namespace SimTK {
  * or filenames depending on context. Whenever we generate a pathname that
  * we know to be a directory, it will end in a final slash.
  *
- * There is also the concept of a "drive" which on Windows is a drive 
- * letter followed by a colon (e.g. "c:") but is always the empty string 
- * on non-Windows platforms. The drive, if present is considered part of 
- * the directory and does not affect whether the directory is considered 
+ * There is also the concept of a "drive" which on Windows is a drive
+ * letter followed by a colon (e.g. "c:") but is always the empty string
+ * on non-Windows platforms. The drive, if present is considered part of
+ * the directory and does not affect whether the directory is considered
  * relative or absolute. Drive designators are recognized only on Windows;
  * they are just considered ordinary pathname characters on other platforms.
  *
@@ -93,16 +93,16 @@ public:
 
 
     /// Dismantle a supplied pathname into its component
-    /// parts. This can take pathnames like <pre>   
+    /// parts. This can take pathnames like <pre>
     ///     /usr/local/libMyDll_d.so
     ///     e:\\Program Files\\Something\\myLibrary_d.dll
     /// </pre> and chop them into <pre>
     /// directory                       fileName       extension
     /// ------------------------------- -------------- ---------
-    /// /usr/local/                     libMyDll_d     .so 
+    /// /usr/local/                     libMyDll_d     .so
     /// e:\\Program Files\\Something\\     myLibrary_d    .dll
     /// </pre>
-    /// as well as tell you whether the given pathname is absolute or relative 
+    /// as well as tell you whether the given pathname is absolute or relative
     /// (and thus subject to search rules). At the beginning of the pathname
     /// (or right after the drive specification on Windows) we recognize
     /// three special symbols:
@@ -120,11 +120,11 @@ public:
     /// beginning is treated as an ordinary file character.
     ///
     /// The pathname components are returned
-    /// as separate strings with separators included such that concatenating 
+    /// as separate strings with separators included such that concatenating
     /// all the strings reproduces the pathname in a canonicalized form.
-    /// The "drive" letter prefix is recognized only when running on Windows; 
-    /// otherwise a prefix like "C:" is treated as ordinary file name 
-    /// characters. Note that we include the drive letter as part of the 
+    /// The "drive" letter prefix is recognized only when running on Windows;
+    /// otherwise a prefix like "C:" is treated as ordinary file name
+    /// characters. Note that we include the drive letter as part of the
     /// absolute directory.
     /// White space is removed, and path separator characters
     /// in the directory are changed to the appropriate slash
@@ -136,11 +136,11 @@ public:
                                         std::string& fileName,
                                         std::string& extension);
 
-    /// An extension of deconstructPathname(). Given a specified working directory 
+    /// An extension of deconstructPathname(). Given a specified working directory
     /// (swd) and path, this function evaluates the absolute path of a given path
-    /// relative to the swd and returns the directory, fileName, and extension of 
-    /// the canonicalized path with respect to a swd, if needed. This means, for 
-    /// the path, that instead of evaluating "." as the current working directory 
+    /// relative to the swd and returns the directory, fileName, and extension of
+    /// the canonicalized path with respect to a swd, if needed. This means, for
+    /// the path, that instead of evaluating "." as the current working directory
     /// (cwd), the swd is used. Unlike deconstructPathname(), this function will
     /// always return an absolute path, and no bool dontApplySearchPath is returned.
     /// Rules:
@@ -149,24 +149,24 @@ public:
     /// - If the swd is empty (after removing whitespace), deconstructPathname()
     ///   is called, and cwd is prepended if needed to make it an absolute path.
     /// - Otherwise, we evaluate path relative to the swd. These steps are as follows:
-    ///   1. If path is an absolute path name (and on Windows this includes a drive) 
+    ///   1. If path is an absolute path name (and on Windows this includes a drive)
     ///      (e.g. /usr/file.ext or c:/documents/file.ext), then swd is ignored, and the
     ///      absolute path is returned.
     ///   2. Preprocess the swd. This means that if the swd is of any form that denotes
     ///      an absolute path (i.e. "C:/file.ext", "C:file.ext", "./file.ext", "/file.ext")
     ///      we change the swd to reflect the absolute path (e.g. "./file.ext" may change
     ///      to "/cwd/file.ext" or "C:/cwdOnC/file.ext").
-    ///   3. Otherwise, if a path is given relative to a directory that is not the root 
+    ///   3. Otherwise, if a path is given relative to a directory that is not the root
     ///      (e.g. "./dir/file.ext" or "dir/file.ext"), then the swd is prepended to path.
-    ///   4. To resolve drive ambiguities, if swd provides a drive, it is used. If not, 
-    ///      then the path drive is used. If neither provides a drive, then the current 
+    ///   4. To resolve drive ambiguities, if swd provides a drive, it is used. If not,
+    ///      then the path drive is used. If neither provides a drive, then the current
     ///      drive is used.
     static void deconstructPathnameUsingSpecifiedWorkingDirectory(const std::string& swd,
                                                                   const std::string& pathname,
                                                                   std::string& directory,
                                                                   std::string& fileName,
                                                                   std::string& extension);
-    
+
     /// Give back the deconstructed canonicalized absolute pathname for a given path.
     /// If the path is not an absolute path, it will be made into an absolute path first
     /// following the rules of deconstructPathname() (which it uses).
@@ -180,7 +180,7 @@ public:
             directory = getCurrentWorkingDirectory() + directory;
     }
 
-    /// Get canonicalized absolute pathname from a given pathname which 
+    /// Get canonicalized absolute pathname from a given pathname which
     /// can be relative or absolute. Canonicalizing means
     ///   - drive designator is recognized if we're on Windows;
     ///   - leading "." and "@" are replaced with the current working
@@ -224,13 +224,13 @@ public:
         return directory + fileName + extension;
     }
 
-    /// Same as getAbsoluteDirectoryPathname() but using a specified working 
+    /// Same as getAbsoluteDirectoryPathname() but using a specified working
     /// directory rather than the current working directory. See
     /// deconstructPathnameUsingSpecifiedWorkingDirectory() for subtleties.
-    static std::string 
+    static std::string
     getAbsoluteDirectoryPathnameUsingSpecifiedWorkingDirectory
        (const std::string& swd, const std::string& dirPathname) {
-        std::string absPath = 
+        std::string absPath =
             getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, dirPathname);
         if (!absPath.empty() && absPath[absPath.size()-1] != getPathSeparatorChar())
             absPath += getPathSeparatorChar();
@@ -248,10 +248,10 @@ public:
 
     /// Append a subdirectory offset to an existing pathname (relative or absolute).
     /// A single slash will be inserted in between, ignoring any slash at the
-    /// end of `base` or start of `offset`, and the result will end with a 
-    /// slash. All slashes in the result will be the correct ones for the 
+    /// end of `base` or start of `offset`, and the result will end with a
+    /// slash. All slashes in the result will be the correct ones for the
     /// current platform.
-    static std::string addDirectoryOffset(const std::string& base, 
+    static std::string addDirectoryOffset(const std::string& base,
                                           const std::string& offset);
 
     /// Find the installation directory for something, using the named
@@ -262,13 +262,13 @@ public:
 
     /// Get the absolute pathname of the currently executing program.
     static std::string getThisExecutablePath();
-    /// Get the absolute pathname of the directory which contains the 
+    /// Get the absolute pathname of the directory which contains the
     /// currently executing program.
     static std::string getThisExecutableDirectory();
     /// Get the absolute pathname of the current working directory
     /// including a trailing separator character. Windows keeps a current
     /// working directory for each drive which can be optionally specified
-    /// (otherwise we use the current drive). If the specified drive 
+    /// (otherwise we use the current drive). If the specified drive
     /// doesn't exist we'll behave as though root were its current
     /// working directory. The drive argument is ignored
     /// on non-Windows platforms.
@@ -280,13 +280,13 @@ public:
     /// On Windows, return the current drive letter in lowercase, with no
     /// trailing ":"; on other platforms return an empty string.
     static std::string getCurrentDriveLetter();
-    /// On Windows, return the current drive letter in lowercase, 
+    /// On Windows, return the current drive letter in lowercase,
     /// followed by ":"; on other platforms just return an empty string.
     static std::string getCurrentDrive();
     /// Return true if the named environment variable is present
     /// in the environment.
     static bool environmentVariableExists(const std::string& name);
-    /// Return the value of the named environment variable or 
+    /// Return the value of the named environment variable or
     /// the empty string if the variable is not found. Note that that
     /// is indistinguishable from a variable that is present but with
     /// a null value -- use environmentVariableExists() if you really

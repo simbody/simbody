@@ -24,7 +24,7 @@
 
 // Define two identical double pendulums, one modeled the easy way using
 // two pin mobilizers, the other modeled with free mobilizers plus a ball
-// constraint, plus two "constant angle" constraints to get rid of the extra 
+// constraint, plus two "constant angle" constraints to get rid of the extra
 // rotational degrees of freedom.
 // We're going to show that the resulting reaction forces are identical.
 
@@ -35,7 +35,7 @@ using namespace SimTK;
 using std::cout; using std::endl;
 
 int main() {
-  try {   
+  try {
     // Create the system, with subsystems for the bodies and some forces.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -48,25 +48,25 @@ int main() {
     Force::UniformGravity gravity(forces, matter, Vec3(10, Real(-9.8), 3));
     // Create the body and some artwork for it.
     Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
-    pendulumBody.addDecoration(Transform(), 
+    pendulumBody.addDecoration(Transform(),
                                DecorativeSphere(Real(0.1)).setColor(Red));
 
     // Add an instance of the body to the multibody system by connecting
     // it to Ground via a pin mobilizer.
-    MobilizedBody::Pin pendulum1(matter.updGround(), 
-                                Transform(/*x45,*/Vec3(0,-1,0)), 
-                                pendulumBody, 
+    MobilizedBody::Pin pendulum1(matter.updGround(),
+                                Transform(/*x45,*/Vec3(0,-1,0)),
+                                pendulumBody,
                                 Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Pin pendulum1b(pendulum1, 
-                                Transform(/*x45,*/Vec3(0,-1,0)), 
-                                pendulumBody, 
+    MobilizedBody::Pin pendulum1b(pendulum1,
+                                Transform(/*x45,*/Vec3(0,-1,0)),
+                                pendulumBody,
                                 Transform(Vec3(0, 1, 0)));
 
     // Now make an identical system with pin joints faked up using a
     // free mobilizer + ball constraint + two angle constraints.
-    MobilizedBody::Free pendulum2(matter.updGround(), 
+    MobilizedBody::Free pendulum2(matter.updGround(),
                                   Transform(/*x45,*/Vec3(2,-1,0)),
-                                  pendulumBody, 
+                                  pendulumBody,
                                   Transform(Vec3(0,1,0)));
     Constraint::Ball ballcons2(matter.updGround(), Vec3(2,-1,0),
                                pendulum2, Vec3(0,1,0));
@@ -77,9 +77,9 @@ int main() {
     Constraint::ConstantAngle angy2(matter.Ground(), X_GF2.y(),
                               pendulum2, X_P2M.z());
 
-    MobilizedBody::Free pendulum2b(pendulum2, 
+    MobilizedBody::Free pendulum2b(pendulum2,
                                    Transform(/*x45,*/Vec3(0,-1,0)),
-                                   pendulumBody, 
+                                   pendulumBody,
                                    Transform(Vec3(0,1,0)));
     Constraint::Ball ballcons2b(pendulum2, Vec3(0,-1,0),
                                 pendulum2b, Vec3(0,1,0));
@@ -95,9 +95,9 @@ int main() {
     // to match the Visualizer's default 30 frames per second rate.
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, Real(1./30)));
-    
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     pendulum1.setOneQ(state, 0, Pi/4);
@@ -128,10 +128,10 @@ int main() {
     matter.calcMobilizerReactionForces(state, forcesAtMInG);
 
     // The above method returns reactions *on the child body* at the outboard
-    // mobilizer frame M (that is, the frame fixed on the child body). 
-    // Calculate the same reactions, but *on the parent body* and at the 
-    // inboard mobilizer frame F (that is, the frame fixed on the parent body). 
-    // This is done by shifting the reaction forces across the mobilizer from 
+    // mobilizer frame M (that is, the frame fixed on the child body).
+    // Calculate the same reactions, but *on the parent body* and at the
+    // inboard mobilizer frame F (that is, the frame fixed on the parent body).
+    // This is done by shifting the reaction forces across the mobilizer from
     // M to F, and negating.
     // Note that for the example here the mobilizers aren't translating so
     // the origins Mo and Fo are identical. Nevertheless we're using the
@@ -143,7 +143,7 @@ int main() {
         const MobilizedBody& body   = matter.getMobilizedBody(i);
         const MobilizedBody& parent = body.getParentMobilizedBody();
         // Want to shift negated reaction by p_MF_G, the vector from M
-        // to F across the mobilizer, expressed in Ground. We can get p_FM, 
+        // to F across the mobilizer, expressed in Ground. We can get p_FM,
         // then re-express in Ground for the shift and negate.
         const Vec3& p_FM = body.getMobilizerTransform(state).p();
         const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
@@ -155,7 +155,7 @@ int main() {
 
     std::cout << "Reactions @M: " << forcesAtMInG << "\n";
     std::cout << "Reactions @F: " << forcesAtFInG << "\n";
-    std::cout << "norm of difference: " << (forcesAtMInG+forcesAtFInG).norm() 
+    std::cout << "norm of difference: " << (forcesAtMInG+forcesAtFInG).norm()
               << "\n";
 
     const MobodIndex p1x = pendulum1.getMobilizedBodyIndex();
@@ -176,14 +176,14 @@ int main() {
     }
 
     std::cout << "Pin mobilizer reaction forces:\n";
-    std::cout << "FB_G=" << forcesAtBInG[p1x] 
+    std::cout << "FB_G=" << forcesAtBInG[p1x]
               << " " << forcesAtBInG[p1bx] << "\n";
 
     std::cout << "Constraint reaction forces (should be the same):\n";
     cout << "FC_G=" << -(ballcons2.getConstrainedBodyForcesAsVector(state)
         + angx2.getConstrainedBodyForcesAsVector(state)
         + angy2.getConstrainedBodyForcesAsVector(state))[1] << " ";
-    cout << -(ballcons2b.getConstrainedBodyForcesAsVector(state) 
+    cout << -(ballcons2b.getConstrainedBodyForcesAsVector(state)
         + angx2b.getConstrainedBodyForcesAsVector(state)
         + angy2b.getConstrainedBodyForcesAsVector(state))[1] << endl;
 

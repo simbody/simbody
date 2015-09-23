@@ -116,7 +116,7 @@ void testCacheValidity() {
     // "realize" Topology stage
 
     // Allocate at Topology stage a Model stage-invalidating state variable.
-    const DiscreteVariableIndex dvx1TopoModel = 
+    const DiscreteVariableIndex dvx1TopoModel =
         s.allocateDiscreteVariable(Sub1, Stage::Model, new Value<Real>(2));
 
     SimTK_TEST(s.getDiscreteVarAllocationStage(Sub1,dvx1TopoModel)
@@ -126,17 +126,17 @@ void testCacheValidity() {
     SimTK_TEST(Value<Real>::downcast(s.getDiscreteVariable(Sub1,dvx1TopoModel))
                == Real(2));
 
-    // Allocate at Topology stage a cache entry that depends on Model stage 
-    // and is guaranteed to be valid at Time stage. In between (at Model or 
+    // Allocate at Topology stage a cache entry that depends on Model stage
+    // and is guaranteed to be valid at Time stage. In between (at Model or
     // Instance stage) it *may* be valid if explicitly marked so.
-    const CacheEntryIndex cx0TopoModel = s.allocateCacheEntry(Sub0, 
+    const CacheEntryIndex cx0TopoModel = s.allocateCacheEntry(Sub0,
         Stage::Model, Stage::Time, new Value<int>(41));
     SimTK_TEST(s.getCacheEntryAllocationStage(Sub0,cx0TopoModel)
                == Stage::Topology);
 
     // Here is a cache entry allocated at Topology stage, with depends-on
     // Velocity and no good-by guarantee.
-    const CacheEntryIndex cx0TopoVelocity = s.allocateCacheEntry(Sub0, 
+    const CacheEntryIndex cx0TopoVelocity = s.allocateCacheEntry(Sub0,
         Stage::Velocity, Stage::Infinity, new Value<char>('v'));
 
     advanceStage(s, Stage::Topology);
@@ -170,25 +170,25 @@ void testCacheValidity() {
     // "realize" Instance stage
 
     // Allocate a cache entry at Instance stage that has Time as depends-on
-    // and also has a cross-subsystem dependency on discrete variable 
+    // and also has a cross-subsystem dependency on discrete variable
     // dvx0ModelPos.
-    const CacheEntryIndex cx1InstanceTime = 
+    const CacheEntryIndex cx1InstanceTime =
     s.allocateCacheEntryWithPrerequisites(Sub1, Stage::Time, Stage::Velocity,
         false, false, true, // depends on z
-        {DiscreteVarKey(Sub0,dvx0ModelPos)}, 
+        {DiscreteVarKey(Sub0,dvx0ModelPos)},
         {CacheEntryKey(Sub0,cx0TopoModel)},
         new Value<string>("hasPrereqs_Time"));
 
     // Same but had depends-on Instance.
-    const CacheEntryIndex cx1InstInst = 
+    const CacheEntryIndex cx1InstInst =
     s.allocateCacheEntryWithPrerequisites(Sub1, Stage::Instance, Stage::Velocity,
         false, false, true, // depends on z
-        {DiscreteVarKey(Sub0,dvx0ModelPos)}, 
+        {DiscreteVarKey(Sub0,dvx0ModelPos)},
         {CacheEntryKey(Sub0,cx0TopoModel)},
         new Value<string>("hasPrereqs_Instance"));
 
     // This attempt to create a cache-to-cache dependency should fail because
-    // the prerequisite gets invalidated when Velocity stage changes but 
+    // the prerequisite gets invalidated when Velocity stage changes but
     // the "dependent" doesn't get invalidated unless Position stage does. Thus
     // a velocity could change, invlidating the prereq, but the downstream
     // cache entry still looks valid.
@@ -206,12 +206,12 @@ void testCacheValidity() {
     SimTK_TEST(s.getZDependents().size() == 2);
     SimTK_TEST(s.getZDependents().contains(ckey1));
     SimTK_TEST(s.getZDependents().contains(ckey2));
-    const DiscreteVarInfo& dvinfo = 
+    const DiscreteVarInfo& dvinfo =
         s.getDiscreteVarInfo(DiscreteVarKey(Sub0,dvx0ModelPos));
     SimTK_TEST(dvinfo.getDependents().size() == 2);
     SimTK_TEST(dvinfo.getDependents().contains(ckey1));
     SimTK_TEST(dvinfo.getDependents().contains(ckey2));
-    const CacheEntryInfo& ceinfo = 
+    const CacheEntryInfo& ceinfo =
         s.getCacheEntryInfo(CacheEntryKey(Sub0,cx0TopoModel));
     SimTK_TEST(ceinfo.getDependents().size() == 2);
     SimTK_TEST(ceinfo.getDependents().contains(ckey1));
@@ -288,12 +288,12 @@ void testCacheValidity() {
     SimTK_TEST(s2.getZDependents().size() == 2);
     SimTK_TEST(s2.getZDependents().contains(ckey1));
     SimTK_TEST(s2.getZDependents().contains(ckey2));
-    const DiscreteVarInfo& dvinfo2 = 
+    const DiscreteVarInfo& dvinfo2 =
         s2.getDiscreteVarInfo(DiscreteVarKey(Sub0,dvx0ModelPos));
     SimTK_TEST(dvinfo2.getDependents().size() == 2);
     SimTK_TEST(dvinfo2.getDependents().contains(ckey1));
     SimTK_TEST(dvinfo2.getDependents().contains(ckey2));
-    const CacheEntryInfo& ceinfo2 = 
+    const CacheEntryInfo& ceinfo2 =
         s2.getCacheEntryInfo(CacheEntryKey(Sub0,cx0TopoModel));
     SimTK_TEST(ceinfo2.getDependents().size() == 2);
     SimTK_TEST(ceinfo2.getDependents().contains(ckey1));
@@ -334,7 +334,7 @@ void testCacheValidity() {
     SimTK_TEST_MUST_THROW(s.getCacheEntry(Sub0, cx0TopoModel));
 
     // "calculate" the cache entry and mark it valid.
-    Value<int>::updDowncast(s.updCacheEntry(Sub0,cx0TopoModel)) = 
+    Value<int>::updDowncast(s.updCacheEntry(Sub0,cx0TopoModel)) =
         (int)(2*Value<Real>::downcast(s.getDiscreteVariable(Sub1,dvx1TopoModel)));
     s.markCacheValueRealized(Sub0, cx0TopoModel);
 

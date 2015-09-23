@@ -148,7 +148,7 @@ public:
     UserInputHandler(Visualizer::InputSilo& silo, Real interval)
         :   PeriodicEventHandler(interval), m_silo(silo) {}
 
-    virtual void handleEvent(State& state, Real accuracy, 
+    virtual void handleEvent(State& state, Real accuracy,
         bool& shouldTerminate) const override
     {
         int menuId, item;

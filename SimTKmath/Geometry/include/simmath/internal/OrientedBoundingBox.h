@@ -30,13 +30,13 @@
 namespace SimTK {
 
 /**
- * This class represents a rectangular box with arbitrary position and 
- * orientation.  It is used in collision detection as a bounding volume for 
+ * This class represents a rectangular box with arbitrary position and
+ * orientation.  It is used in collision detection as a bounding volume for
  * geometry of various types.
  *
  * An OrientedBoundingBox is defined by a Transform that specifies its position
  * and orientation, and a Vec3 that specifies its size. In the reference frame
- * defined by the Transform, one corner is at the origin and the opposite 
+ * defined by the Transform, one corner is at the origin and the opposite
  * corner is at the point returned by getSize().
  */
 class SimTK_SIMMATH_EXPORT OrientedBoundingBox {
@@ -79,10 +79,10 @@ public:
      *                   Otherwise, it is left unchanged.
      * @return true if an intersection is found, false otherwise
      */
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance) const;
     /**
-     * Given a point in space, find the point inside the bounding box which is 
+     * Given a point in space, find the point inside the bounding box which is
      * nearest to it.
      */
     Vec3 findNearestPoint(const Vec3& position) const;
@@ -98,7 +98,7 @@ private:
     Vec3 size;
 };
 
-SimTK_SIMMATH_EXPORT OrientedBoundingBox 
+SimTK_SIMMATH_EXPORT OrientedBoundingBox
 operator*(const Transform& t, const OrientedBoundingBox& box);
 
 } // namespace SimTK

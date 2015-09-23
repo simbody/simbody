@@ -72,7 +72,7 @@ private:
     const MobilizedBody& body2;
 };
 //template <class E> Vector_<E>
-//operator*(const VectorView_<E>& l, const typename CNT<E>::StdNumber& r) 
+//operator*(const VectorView_<E>& l, const typename CNT<E>::StdNumber& r)
 //  { return Vector_<E>(l)*=r; }
 
 void ff(Vector& v) {
@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 
         // ADD BODIES AND THEIR MOBILIZERS
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)));
-    pendulumBody.addDecoration(Transform(), 
+    pendulumBody.addDecoration(Transform(),
                                DecorativeBrick(Vec3(.1,.0667,.05)).setOpacity(.5));
 
     MobilizedBody:: Ball /*Gimbal*/ /*FreeLine*/ /*LineOrientation*/ /*Free*/
@@ -131,9 +131,9 @@ int main(int argc, char** argv) {
 
     ConstraintIndex cid;
     const Vec3 leftAttachPt(.1,0.05,0);
-    if (c == 'c') {   
+    if (c == 'c') {
 
-        cid = 
+        cid =
         //Constraint::PointInPlane(twoPends.Ground(), UnitVec3(0,1,0), -2*d,
         //                         leftPendulum2, Vec3(0))
         Constraint::Rod(leftPendulum, leftAttachPt,
@@ -193,8 +193,8 @@ int main(int argc, char** argv) {
 
     for (MobilizedBodyIndex i(0); i < twoPends.getNumBodies(); ++i) {
         const MobilizedBody& mb = twoPends.getMobilizedBody(i);
-        cout << "Body " << i 
-             << " base=" << mb.getBaseMobilizedBody().getMobilizedBodyIndex() 
+        cout << "Body " << i
+             << " base=" << mb.getBaseMobilizedBody().getMobilizedBodyIndex()
              << endl;
     }
 
@@ -311,16 +311,16 @@ int main(int argc, char** argv) {
     int nextScheduledEvent = 0;
     Real schedule[] = {1.234, 3.1415, 3.14159, 4.5, 9.090909, 100.};
     while ((status=myStudy.stepTo(nextReport*dt,schedule[nextScheduledEvent]))
-           != Integrator::EndOfSimulation) 
+           != Integrator::EndOfSimulation)
     {
         const State& s = myStudy.getState();
         mbs.realize(s);
         const Real leftPendulumAngle = leftPendulum.getBodyRotation(s).convertRotationToAngleAxis()[0] * Rad2Deg;
-        
+
         if (status == Integrator::ReachedScheduledEvent
             || std::abs(std::floor(s.getTime()+0.5)-s.getTime())<1e-4)
         {
-            printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+            printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(),
                 leftPendulumAngle,
                 mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
                 myStudy.getPreviousStepSizeTaken(),
@@ -331,7 +331,7 @@ int main(int argc, char** argv) {
                 twoPends.getUErr(s).normRMS(),
                 twoPends.getUDotErr(s).normRMS());
 
-            cout << "t=" << s.getTime() << "sint=" << sint.getValue(s) << "a*sin(wt+p)=" 
+            cout << "t=" << s.getTime() << "sint=" << sint.getValue(s) << "a*sin(wt+p)="
                 << amp*std::sin(freq*s.getTime() + phase) << endl;
 
             cout << "20+10t=" << twentyPlus10t.getValue(s) << endl;
@@ -376,7 +376,7 @@ int main(int argc, char** argv) {
         //status = myStudy.stepTo(s.getTime() + dt);
 
         //THIS CAN FAIL SOMETIMES
-        //if (s.getTime() >= nextReport*dt) 
+        //if (s.getTime() >= nextReport*dt)
         //    ++nextReport;
 
         if (status == Integrator::ReachedReportTime)
@@ -391,7 +391,7 @@ int main(int argc, char** argv) {
     printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
-  } 
+  }
   catch (const exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

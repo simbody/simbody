@@ -119,47 +119,47 @@ void testUniform() {
     ASSERT(rand.getMax() == 1.0)
 
     // Try generating a bunch of random numbers, and make sure they are distributed uniformly between 0 and 1.
-    
+
     Real value[2001];
     value[2000] = 123.4;
     rand.setSeed(1);
     for (int i = 0; i < 2000; ++i)
         value[i] = rand.getValue();
     verifyUniformDistribution(0.0, 1.0, value, 2000);
-    
+
     // Reset the random number generator, and make sure it produces the same values again.
-    
+
     rand.setSeed(1);
     for (int i = 0; i < 2000; ++i)
         ASSERT(value[i] == rand.getValue())
-    
+
     // Now try asking for a whole array at a time, and verify that it still gives the same results.
-    
+
     Real value2[2001];
     value2[2000] = 567.8;
     rand.setSeed(1);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
         ASSERT(value[i] == value2[i])
-    
+
     // Set the seed to a different value, and verify that the results are different.
-    
+
     rand.setSeed(2);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
         ASSERT(value[i] != value2[i])
-    
+
     // Change the range and test the distribution.
-    
+
     rand.setMin(5.0);
     rand.setMax(20.0);
     ASSERT(rand.getMin() == 5.0)
     ASSERT(rand.getMax() == 20.0)
     rand.fillArray(value2, 2000);
     verifyUniformDistribution(5.0, 20.0, value2, 2000);
-    
+
     // Try generating uniform integers.
-    
+
     int value3[2001];
     value3[2000] = -99;
     rand.setSeed(3);
@@ -168,7 +168,7 @@ void testUniform() {
     verifyUniformDistribution(5, 20, value3, 2000);
 
     // Verify that if we do not explicitly set the seed, every Random object is initialized with a different seed.
-    
+
     Random::Uniform rand1, rand2;
     rand1.fillArray(value, 2000);
     rand2.fillArray(value2, 2000);
@@ -176,7 +176,7 @@ void testUniform() {
         ASSERT(value[i] != value2[i])
 
     // Make sure none of the above operations has overwritten the final array element.
-    
+
     ASSERT(value[2000]  == 123.4)
     ASSERT(value2[2000] == 567.8)
     ASSERT(value3[2000] == -99)
@@ -186,36 +186,36 @@ void testGaussian() {
     Random::Gaussian rand;
     ASSERT(rand.getMean() == 0.0)
     ASSERT(rand.getStdDev() == 1.0)
-    
+
     // Try generating a bunch of Gaussian random numbers, and check the distribution.
-    
+
     Real value[2001];
     value[2000] = 123.4;
     rand.setSeed(1);
     for (int i = 0; i < 2000; ++i)
         value[i] = rand.getValue();
     verifyGaussianDistribution(0.0, 1.0, value, 2000);
-    
+
     // Try getting a whole array at a time.
-    
+
     Real value2[2001];
     value2[2000] = 567.8;
     rand.setSeed(1);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
         ASSERT(value[i] == value2[i])
-    
+
     // Change the parameters and test the distribution.
-    
+
     rand.setMean(10.0);
     rand.setStdDev(7.0);
     ASSERT(rand.getMean() == 10.0)
     ASSERT(rand.getStdDev() == 7.0)
     rand.fillArray(value2, 2000);
     verifyGaussianDistribution(10.0, 7.0, value2, 2000);
-    
+
     // Make sure none of the above operations has overwritten the final array element.
-    
+
     ASSERT(value[2000]  == 123.4)
     ASSERT(value2[2000] == 567.8)
 }

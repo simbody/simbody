@@ -33,7 +33,7 @@ namespace SimTK {
 
 /** Zero mobilities. This degenerate "mobilizer" serves only to weld together
 the M frame of a body to the F frame on its parent. It has no generalized
-coordinates or speeds. Note that there is no "reverse" weld, because "reverse" 
+coordinates or speeds. Note that there is no "reverse" weld, because "reverse"
 for a mobilizer refers to how the q's and u's are defined and there are none.
 
 You can use this (im)mobilizer to create a composite rigid body from simpler
@@ -46,15 +46,15 @@ public:
     reference any %MobilizedBody::Weld. **/
     Weld() {};
 
-    /** Create a %Weld mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Weld mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Weld(MobilizedBody& parent, const Transform& X_PF,
          const Body& bodyInfo,  const Transform& X_BM);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Weld(MobilizedBody& parent, const Body& bodyInfo);
 

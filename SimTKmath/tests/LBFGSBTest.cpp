@@ -51,7 +51,7 @@ class ProblemSystem : public OptimizerSystem {
       }
 
       f = 4.0* f;
-      return( 0 ); 
+      return( 0 );
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients,  Vector &gradient ) const override {
@@ -59,7 +59,7 @@ class ProblemSystem : public OptimizerSystem {
       Real t1,t2;
       int i;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
       t1 = x[1]-(x[0]*x[0]);
       gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
@@ -79,7 +79,7 @@ class ProblemSystem : public OptimizerSystem {
 static bool equalToTol(Real v1, Real v2, Real tol) {
     const Real scale = std::max(std::max(std::abs(v1), std::abs(v2)), Real(1));
     return std::abs(v1-v2) < scale*tol;
-} 
+}
 
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
 int main() {
@@ -100,7 +100,7 @@ int main() {
     }
 
     /* set bounds */
-    for(i=0;i<n;i=i+2) {   // even numbered 
+    for(i=0;i<n;i=i+2) {   // even numbered
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 100.0;
     }
@@ -114,7 +114,7 @@ int main() {
   int returnValue = 0; // assume success
 
   try {
-    Optimizer opt( sys ); 
+    Optimizer opt( sys );
 
     opt.setConvergenceTolerance( .0001 );
     opt.setDiagnosticsLevel( 5 );
@@ -131,15 +131,15 @@ int main() {
 
     printf("LBFGSBTest.cpp: f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" %f",results[i]); 
+       printf(" %f",results[i]);
     }
     printf("\n");
 
     static const Real TOL = 1e-3;
-    Real expected[] = { 1.000000, 0.999998, 1.000000, 1.000001, 1.000003, 
-                        1.000006, 1.000007, 1.000012, 1.000022, 1.000040, 
-                        1.000081, 1.000161, 1.000325, 1.000650, 1.001302, 
-                        1.002603, 1.005214, 1.010450, 1.021013, 1.042466, 
+    Real expected[] = { 1.000000, 0.999998, 1.000000, 1.000001, 1.000003,
+                        1.000006, 1.000007, 1.000012, 1.000022, 1.000040,
+                        1.000081, 1.000161, 1.000325, 1.000650, 1.001302,
+                        1.002603, 1.005214, 1.010450, 1.021013, 1.042466,
                         1.086736, 1.180997, 1.394759, 1.945352, 3.784388 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if(!equalToTol(results[i], expected[i], TOL)) {

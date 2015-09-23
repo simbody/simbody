@@ -20,7 +20,7 @@ namespace Ipopt
   /** This is the abstract base class for problem scaling.
    *  It is repsonsible for determining the scaling factors
    *  and mapping quantities in and out of scaled and unscaled
-   *  versions 
+   *  versions
    */
   class NLPScalingObject : public ReferencedObject
   {
@@ -172,7 +172,7 @@ namespace Ipopt
     //@}
 
     /** This method is called by the IpoptNLP's at a convenient time to
-     *  compute and/or read scaling factors 
+     *  compute and/or read scaling factors
      */
     virtual void DetermineScaling(const SmartPtr<const VectorSpace> x_space,
                                   const SmartPtr<const VectorSpace> c_space,
@@ -198,7 +198,7 @@ namespace Ipopt
 
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -303,7 +303,7 @@ namespace Ipopt
     //@}
 
     /** This method is called by the IpoptNLP's at a convenient time to
-     *  compute and/or read scaling factors 
+     *  compute and/or read scaling factors
      */
     virtual void DetermineScaling(const SmartPtr<const VectorSpace> x_space,
                                   const SmartPtr<const VectorSpace> c_space,
@@ -345,7 +345,7 @@ namespace Ipopt
 
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -420,7 +420,7 @@ namespace Ipopt
 
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

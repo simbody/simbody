@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Define the SimTK::MatrixView_ class that is part of Simbody's BigMatrix 
+Define the SimTK::MatrixView_ class that is part of Simbody's BigMatrix
 toolset. **/
 
 namespace SimTK {
@@ -33,11 +33,11 @@ namespace SimTK {
 //==============================================================================
 //                               MATRIX VIEW
 //==============================================================================
-/** @brief (Advanced) This class is identical to Matrix_ except that it has 
-shallow (reference) copy and assignment semantics. 
+/** @brief (Advanced) This class is identical to Matrix_ except that it has
+shallow (reference) copy and assignment semantics.
 
-Despite the name, this may be an owner if a Matrix_ is recast to a MatrixView_. 
-However, there are no owner constructors for MatrixView_. 
+Despite the name, this may be an owner if a Matrix_ is recast to a MatrixView_.
+However, there are no owner constructors for MatrixView_.
 
 @see Matrix_, MatrixBase, VectorView_ **/
 template <class ELT> class MatrixView_ : public MatrixBase<ELT> {
@@ -48,15 +48,15 @@ public:
     // Default construction is suppressed.
     // Uses default destructor.
 
-    // Create a MatrixView_ handle using a given helper rep. 
+    // Create a MatrixView_ handle using a given helper rep.
     explicit MatrixView_(MatrixHelperRep<S>* hrep) : Base(hrep) {}
 
     // Copy constructor is shallow. CAUTION: despite const argument, this preserves writability
     // if it was present in the source. This is necessary to allow temporary views to be
     // created and used as lvalues.
-    MatrixView_(const MatrixView_& m) 
+    MatrixView_(const MatrixView_& m)
       : Base(MatrixCommitment(),
-             const_cast<MatrixHelper<S>&>(m.getHelper()), 
+             const_cast<MatrixHelper<S>&>(m.getHelper()),
              typename MatrixHelper<S>::ShallowCopy()) {}
 
     // Copy assignment is deep but not reallocating.
@@ -64,7 +64,7 @@ public:
         Base::operator=(m); return *this;
     }
 
-    // Ask for shallow copy    
+    // Ask for shallow copy
     MatrixView_(const MatrixHelper<S>& h) : Base(MatrixCommitment(), h, typename MatrixHelper<S>::ShallowCopy()) { }
     MatrixView_(MatrixHelper<S>&       h) : Base(MatrixCommitment(), h, typename MatrixHelper<S>::ShallowCopy()) { }
 
@@ -81,10 +81,10 @@ public:
     MatrixView_& operator*=(const StdNumber& t) { Base::operator*=(t); return *this; }
     MatrixView_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
     MatrixView_& operator+=(const ELT& r)       { this->updDiag() += r; return *this; }
-    MatrixView_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }  
+    MatrixView_& operator-=(const ELT& r)       { this->updDiag() -= r; return *this; }
 
     operator const Matrix_<ELT>&() const { return *reinterpret_cast<const Matrix_<ELT>*>(this); }
-    operator Matrix_<ELT>&()             { return *reinterpret_cast<Matrix_<ELT>*>(this); }      
+    operator Matrix_<ELT>&()             { return *reinterpret_cast<Matrix_<ELT>*>(this); }
 
 private:
     // NO DATA MEMBERS ALLOWED

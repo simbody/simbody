@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/29 00:05:06 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -218,7 +218,7 @@ typedef int (*CPSpilsPrecSolveExplFn)(realtype t, N_Vector y, N_Vector fy,
 
 typedef int (*CPSpilsPrecSolveImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vector r,
                       N_Vector b, N_Vector x,
-                      realtype gamma, realtype delta, 
+                      realtype gamma, realtype delta,
                       void *P_data, N_Vector tmp);
 
 /*
@@ -231,7 +231,7 @@ typedef int (*CPSpilsPrecSolveImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vec
  * The user-supplied function jtimes is to generate the product
  * J*v for given v, where J is the Jacobian df/dy, or an
  * approximation to it, and v is a given vector. It should return
- * 0 if successful a positive value for a recoverable error or 
+ * 0 if successful a positive value for a recoverable error or
  * a negative value for an unrecoverable failure.
  *
  * A function jtimes must have the prototype given below. Its
@@ -249,7 +249,7 @@ typedef int (*CPSpilsPrecSolveImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vec
  *   fy       is the vector f(t,y).
  *
  *   jac_data is a pointer to user Jacobian data, the same as the
- *            jac_data parameter passed to the CP*SetJacTimesVecFn 
+ *            jac_data parameter passed to the CP*SetJacTimesVecFn
  *            function.
  *
  *   tmp      is a pointer to memory allocated for an N_Vector
@@ -262,11 +262,11 @@ typedef int (*CPSpilsPrecSolveImplFn)(realtype t, N_Vector y, N_Vector yp, N_Vec
  * -----------------------------------------------------------------
  */
 
-typedef int (*CPSpilsJacTimesVecExplFn)(realtype t, N_Vector y, N_Vector fy, 
-                    N_Vector v, N_Vector Jv, void *jac_data, 
+typedef int (*CPSpilsJacTimesVecExplFn)(realtype t, N_Vector y, N_Vector fy,
+                    N_Vector v, N_Vector Jv, void *jac_data,
                     N_Vector tmp);
 
-typedef int (*CPSpilsJacTimesVecImplFn)(realtype t, realtype gm, 
+typedef int (*CPSpilsJacTimesVecImplFn)(realtype t, realtype gm,
                     N_Vector y, N_Vector yp, N_Vector r,
                     N_Vector v, N_Vector Jv, void *jac_data,
                     N_Vector tmp1, N_Vector tmp2);
@@ -284,7 +284,7 @@ typedef int (*CPSpilsJacTimesVecImplFn)(realtype t, realtype gm,
  *
  * CPSpilsSetPrecType resets the type of preconditioner, pretype,
  *                from the value previously set.
- *                This must be one of PREC_NONE, PREC_LEFT, 
+ *                This must be one of PREC_NONE, PREC_LEFT,
  *                PREC_RIGHT, or PREC_BOTH.
  *
  * CPSpilsSetGSType specifies the type of Gram-Schmidt
@@ -311,7 +311,7 @@ typedef int (*CPSpilsJacTimesVecImplFn)(realtype t, realtype gm,
  *                Default is NULL for al three arguments.
  *
  * CPSpilsSetJacTimesVecFn specifies the jtimes function and a pointer to
- *                user Jacobian data. This pointer is passed to jtimes every 
+ *                user Jacobian data. This pointer is passed to jtimes every
  *                time the jtimes routine is called.
  *                Default is to use an internal finite difference
  *                approximation routine.
@@ -372,12 +372,12 @@ SUNDIALS_EXPORT int CPSpilsGetNumPrecSolves(void *cpode_mem, long int *npsolves)
 SUNDIALS_EXPORT int CPSpilsGetNumLinIters(void *cpode_mem, long int *nliters);
 SUNDIALS_EXPORT int CPSpilsGetNumConvFails(void *cpode_mem, long int *nlcfails);
 SUNDIALS_EXPORT int CPSpilsGetNumJtimesEvals(void *cpode_mem, long int *njvevals);
-SUNDIALS_EXPORT int CPSpilsGetNumFctEvals(void *cpode_mem, long int *nfevalsLS); 
+SUNDIALS_EXPORT int CPSpilsGetNumFctEvals(void *cpode_mem, long int *nfevalsLS);
 SUNDIALS_EXPORT int CPSpilsGetLastFlag(void *cpode_mem, int *flag);
 
 /*
  * -----------------------------------------------------------------
- * The following function returns the name of the constant 
+ * The following function returns the name of the constant
  * associated with a CPSPILS return flag
  * -----------------------------------------------------------------
  */

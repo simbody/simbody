@@ -26,9 +26,9 @@
 
 using namespace SimTK;
 
-static int  NumberOfParameters = 4; 
-static int  NumberOfEqualityConstraints = 1; 
-static int  NumberOfInequalityConstraints = 1; 
+static int  NumberOfParameters = 4;
+static int  NumberOfEqualityConstraints = 1;
+static int  NumberOfInequalityConstraints = 1;
 
 /*
  * Problem hs071 looks like this
@@ -56,13 +56,13 @@ public:
       x = &coefficients[0];
 
       f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
-      return( 0 ); 
+      return( 0 );
    }
 
   int constraintFunc( const Vector &coefficients, bool new_coefficients, Vector &constraints)  const override{
       const Real *x;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
       constraints[0] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3] - 40.0;
       constraints[1] = x[0] * x[1] * x[2] * x[3] - 25.0;
 
@@ -70,7 +70,7 @@ public:
   }
 
     ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInequalityConstraints ) :
-        OptimizerSystem( numParams ) 
+        OptimizerSystem( numParams )
     {
         setNumEqualityConstraints( numEqualityConstraints );
         setNumInequalityConstraints( numInequalityConstraints );
@@ -94,7 +94,7 @@ int main() {
     results[3] = 1.0;
 
     /* set bounds */
-    for(int i=0;i<NumberOfParameters;i++) {   
+    for(int i=0;i<NumberOfParameters;i++) {
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 5.0;
     }
@@ -103,13 +103,13 @@ int main() {
 
     Real f = NaN;
     try {
-       Optimizer opt( sys ); 
+       Optimizer opt( sys );
 
        opt.setConvergenceTolerance( .0001 );
        opt.useNumericalGradient( true );
        opt.useNumericalJacobian( true );
 
-       /* compute  optimization */ 
+       /* compute  optimization */
        f = opt.optimize( results );
     }
     catch (const std::exception& e) {

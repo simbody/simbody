@@ -44,7 +44,7 @@ class SplitGeodesicError;
 //==============================================================================
 class SimTK_SIMMATH_EXPORT ContactGeometryImpl {
 public:
-    ContactGeometryImpl() 
+    ContactGeometryImpl()
     :   myHandle(0), ptOnSurfSys(0), geodHitPlaneEvent(0), vizReporter(0),
         splitGeodErr(0), numGeodesicsShot(0)
     {
@@ -52,7 +52,7 @@ public:
     }
     ContactGeometryImpl(const ContactGeometryImpl& source)
     :   myHandle(0), ptOnSurfSys(0), geodHitPlaneEvent(0), vizReporter(0),
-        splitGeodErr(0), numGeodesicsShot(0) 
+        splitGeodErr(0), numGeodesicsShot(0)
     {}
 
     virtual ~ContactGeometryImpl() {
@@ -60,7 +60,7 @@ public:
         clearParticleOnSurfaceSystem();
     }
 
-    /* Create a new ContactGeometryTypeId and return this unique integer 
+    /* Create a new ContactGeometryTypeId and return this unique integer
     (thread safe). Each distinct type of ContactGeometry should use this to
     initialize a static variable for that concrete class. */
     static ContactGeometryTypeId  createNewContactGeometryTypeId()
@@ -75,10 +75,10 @@ public:
                 "ContactGeometryImpl", "createDecorativeGeometry()");
     }
 
-    virtual Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    virtual Vec3 findNearestPoint(const Vec3& position, bool& inside,
                                   UnitVec3& normal) const = 0;
 
-    virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    virtual bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                                Real& distance, UnitVec3& normal) const = 0;
 
     virtual void getBoundingSphere(Vec3& center, Real& radius) const = 0;
@@ -89,19 +89,19 @@ public:
     virtual bool isFinite() const = 0;
 
     // Smooth surfaces only.
-    virtual void calcCurvature(const Vec3& point, Vec2& curvature, 
+    virtual void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const
-    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
+    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod,
         "ContactGeometryImpl", "calcCurvature"); }
 
     // Smooth surfaces only.
     virtual const Function& getImplicitFunction() const
-    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
+    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod,
         "ContactGeometryImpl", "getImplicitFunction"); }
 
     // Convex surfaces only.
     virtual Vec3 calcSupportPoint(const UnitVec3& direction) const
-    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod, 
+    {   SimTK_THROW2(Exception::UnimplementedVirtualMethod,
         "ContactGeometryImpl", "calcSupportPoint"); }
 
     const OBBTree& getOBBTree() const {return obbTree;}
@@ -113,7 +113,7 @@ public:
     Mat33 calcSurfaceHessian(const Vec3& point) const;
     Real  calcGaussianCurvature(const Vec3& gradient,
                                 const Mat33& Hessian) const;
-    Real  calcSurfaceCurvatureInDirection(const Vec3& point, 
+    Real  calcSurfaceCurvatureInDirection(const Vec3& point,
                                           const UnitVec3& direction) const;
     // Generic method for calculating principal curvatures kmax,kmin and
     // corresponding unit tangent vector directions R_SP.x() and R_SP.y().
@@ -165,12 +165,12 @@ public:
     // directions tPhint and tQhint
     void calcGeodesic(const Vec3& xP, const Vec3& xQ,
             const Vec3& tPhint, const Vec3& tQhint, Geodesic& geod) const;
-    
+
     // Use a method that generates orthogonal error conditions in the tangent
     // and binormal directions.
     void calcGeodesicUsingOrthogonalMethod
        (const Vec3& xP, const Vec3& xQ,
-        const Vec3& tPhint, Real lengthHint, Geodesic& geod) const; 
+        const Vec3& tPhint, Real lengthHint, Geodesic& geod) const;
 
     // Utility method to calculate the "geodesic error" between one geodesic
     // shot from P in the direction tP and another geodesic shot from Q in the
@@ -218,10 +218,10 @@ public:
                         geod.updFrenetFrames());
         mergeArcLengths(geodP.getArcLengths(), geodQ.getArcLengths(),
                         geod.updArcLengths());
-        mergeJacobiField(geodP.getDirectionalSensitivityPtoQ(), 
+        mergeJacobiField(geodP.getDirectionalSensitivityPtoQ(),
                          geodQ.getDirectionalSensitivityQtoP(),
                          geod.updDirectionalSensitivityPtoQ());
-        mergeJacobiField(geodP.getDirectionalSensitivityQtoP(), 
+        mergeJacobiField(geodP.getDirectionalSensitivityQtoP(),
                          geodQ.getDirectionalSensitivityPtoQ(),
                          geod.updDirectionalSensitivityQtoP());
         // TODO: calculate QtoP
@@ -258,12 +258,12 @@ public:
         // Recalculate the midpoint by averaging the ends.
         Vec3     midpoint = (Pf.p() + Qf.p())/2;
         // TODO: get exact normal at midpoint from surface
-        UnitVec3 midnormal = UnitVec3((Pf.z() + Qf.z())/2); 
+        UnitVec3 midnormal = UnitVec3((Pf.z() + Qf.z())/2);
         Vec3     midtangent = (Pf.y() - Qf.y())/2; // approx
 
         // Replace the midpoint Frenet frame with one at the average of
         // the P and Q endpoints, using the calculated normal as the z axis,
-        // and the average tangent as y axis. We'll let Rotation 
+        // and the average tangent as y axis. We'll let Rotation
         // perpendicularize this, so the actual y axis may deviate slightly
         // from the calculated average normal. Then b=y X z is the x axis.
         geod.back() = Transform(Rotation(midnormal, ZAxis, midtangent, YAxis),
@@ -343,7 +343,7 @@ public:
     // Utility method to calculate the "orthogonal error" between a geodesic
     // shot from P in the direction thetaP with given length and a point Q.
     // We are actually shooting the geodesic here and we'll return it in
-    // the indicated variable. Note that we *do not* do the backwards 
+    // the indicated variable. Note that we *do not* do the backwards
     // integration for the reverse directional sensitivity; if you want to
     // return this as the final geodesic be sure to fill in that term.
     Vec2 calcOrthogonalGeodError(const Vec3& xP, const Vec3& xQ,
@@ -443,14 +443,14 @@ protected:
 class HalfSpaceImplicitFunction : public Function {
 public:
     HalfSpaceImplicitFunction() : ownerp(0) {}
-    HalfSpaceImplicitFunction(const ContactGeometry::HalfSpace::Impl& owner) 
+    HalfSpaceImplicitFunction(const ContactGeometry::HalfSpace::Impl& owner)
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::HalfSpace::Impl& owner) {ownerp=&owner;}
 
     // Value is positive for x>0.
     Real calcValue(const Vector& P) const override {return P[0];}
     // First derivative w.r.t. x is 1, all else is zero.
-    Real calcDerivative(const Array_<int>& components, 
+    Real calcDerivative(const Array_<int>& components,
                         const Vector& P) const override
     {   if (components.empty()) return calcValue(P);
         if (components.size()==1 && components[0]==0) return 1;
@@ -475,9 +475,9 @@ public:
     ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const override;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const override;
     void getBoundingSphere(Vec3& center, Real& radius) const override;
 
@@ -486,9 +486,9 @@ public:
     bool isFinite() const override {return false;}
 
     // Curvature is zero everywhere. Since the half plane occupies x>0 in
-    // its own frame, the surface normal is -x, and -x,y,-z forms a right 
+    // its own frame, the surface normal is -x, and -x,y,-z forms a right
     // handed set.
-    void calcCurvature(const Vec3& point, Vec2& curvature, 
+    void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const override
     {   curvature = 0;
         orientation.setRotationFromUnitVecsTrustMe
@@ -498,7 +498,7 @@ public:
     const Function& getImplicitFunction() const override {return function;}
 
     static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
+        static const ContactGeometryTypeId id =
             createNewContactGeometryTypeId();
         return id;
     }
@@ -566,7 +566,7 @@ public:
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
        (const Vec3& xP, const UnitVec3& tP,
-        const Real& terminatingLength, const GeodesicOptions& options, 
+        const Real& terminatingLength, const GeodesicOptions& options,
         Geodesic& geod) const override;
 
     void shootGeodesicInDirectionUntilPlaneHitAnalytical
@@ -575,7 +575,7 @@ public:
         Geodesic& geod) const override;
 
     void calcGeodesicAnalytical
-       (const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint, 
+       (const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint,
         Geodesic& geod) const override;
 
     const Function& getImplicitFunction() const override {
@@ -600,11 +600,11 @@ private:
 class SphereImplicitFunction : public Function {
 public:
     SphereImplicitFunction() : ownerp(0) {}
-    SphereImplicitFunction(const ContactGeometry::Sphere::Impl& owner) 
+    SphereImplicitFunction(const ContactGeometry::Sphere::Impl& owner)
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::Sphere::Impl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const override;
-    Real calcDerivative(const Array_<int>& derivComponents, 
+    Real calcDerivative(const Array_<int>& derivComponents,
                         const Vector& x) const override;
     int getArgumentSize() const override {return 3;}
     int getMaxDerivativeOrder() const override
@@ -617,7 +617,7 @@ class ContactGeometry::Sphere::Impl : public ContactGeometryImpl {
 public:
     explicit Impl(Real radius) : radius(radius) {
         function.setOwner(*this);
-        createOBBTree(); 
+        createOBBTree();
     }
 
     ContactGeometryImpl* clone() const override {
@@ -633,9 +633,9 @@ public:
     ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const override;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const override;
     void getBoundingSphere(Vec3& center, Real& radius) const override;
 
@@ -646,19 +646,19 @@ public:
     Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         return radius*direction;
     }
-    void calcCurvature(const Vec3& point, Vec2& curvature, 
+    void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const override;
 
     void shootGeodesicInDirectionUntilLengthReachedAnalytical
-       (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength, 
+       (const Vec3& xP, const UnitVec3& tP, const Real& terminatingLength,
         const GeodesicOptions& options, Geodesic& geod) const override;
 
     void shootGeodesicInDirectionUntilPlaneHitAnalytical
-       (const Vec3& xP, const UnitVec3& tP, const Plane& terminatingPlane, 
+       (const Vec3& xP, const UnitVec3& tP, const Plane& terminatingPlane,
         const GeodesicOptions& options, Geodesic& geod) const override;
 
     void calcGeodesicAnalytical
-       (const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint, 
+       (const Vec3& xP, const Vec3& xQ, const Vec3& tPhint, const Vec3& tQhint,
         Geodesic& geod) const override;
 
     const Function& getImplicitFunction() const override {
@@ -666,7 +666,7 @@ public:
     }
 
     static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
+        static const ContactGeometryTypeId id =
             createNewContactGeometryTypeId();
         return id;
     }
@@ -685,11 +685,11 @@ private:
 class EllipsoidImplicitFunction : public Function {
 public:
     EllipsoidImplicitFunction() : ownerp(0) {}
-    EllipsoidImplicitFunction(const ContactGeometry::Ellipsoid::Impl& owner) 
+    EllipsoidImplicitFunction(const ContactGeometry::Ellipsoid::Impl& owner)
     :   ownerp(&owner) {}
     void setOwner(const ContactGeometry::Ellipsoid::Impl& owner) {ownerp=&owner;}
     Real calcValue(const Vector& x) const override;
-    Real calcDerivative(const Array_<int>& derivComponents, 
+    Real calcDerivative(const Array_<int>& derivComponents,
                         const Vector& x) const override;
     int getArgumentSize() const override {return 3;}
     int getMaxDerivativeOrder() const override
@@ -702,13 +702,13 @@ class ContactGeometry::Ellipsoid::Impl : public ContactGeometryImpl  {
 public:
     explicit Impl(const Vec3& radii)
     :   radii(radii),
-        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2])) 
+        curvatures(Vec3(1/radii[0],1/radii[1],1/radii[2]))
     {   function.setOwner(*this);
         createOBBTree(); }
 
     ContactGeometryImpl* clone() const override {return new Impl(radii);}
     const Vec3& getRadii() const {return radii;}
-    void setRadii(const Vec3& r) 
+    void setRadii(const Vec3& r)
     {   radii = r; curvatures = Vec3(1/r[0],1/r[1],1/r[2]); }
 
     const Vec3& getCurvatures() const {return curvatures;}
@@ -728,9 +728,9 @@ public:
     ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const override;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const override;
     void getBoundingSphere(Vec3& center, Real& radius) const override;
 
@@ -743,14 +743,14 @@ public:
     Vec3 calcSupportPoint(const UnitVec3& direction) const override {
         return findPointWithThisUnitNormal(direction);
     }
-    void calcCurvature(const Vec3& point, Vec2& curvature, 
+    void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const override;
     const Function& getImplicitFunction() const override {
         return function;
     }
 
     static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
+        static const ContactGeometryTypeId id =
             createNewContactGeometryTypeId();
         return id;
     }
@@ -768,13 +768,13 @@ private:
 // ellipsoid whose outward normal matches. The unnormalized normal at a point
 // p=[x y z] is the gradient of the ellipsoid's implicit equation there:
 // (1)      n(p) = grad(f(p)) = 2*[x/a^2, y/b^2, z/c^2]
-// If we had that, we'd have 
+// If we had that, we'd have
 // (2)      p=[n[0]*a^2, n[1]*b^2, n[2]*c^2]/2,
 // but instead we're given the normalized normal that has been divided
 // by the length of n:
 // (3)      nn = n/|n| = s * [x/a^2, y/b^2, z/c^2]
-// where s = 2/|n|. 
-// 
+// where s = 2/|n|.
+//
 // We can solve for s using the fact that x,y,z must lie on the ellipsoid so
 // |x/a,y/b,z/c|=1. Construct the vector
 //          v = [nn[0]*a, nn[1]*b, nn[2]*c] = s*[x/a, y/b, z/c]
@@ -788,15 +788,15 @@ findPointWithThisUnitNormal(const UnitVec3& nn) const {
     return p;
 }
 
-// Given a point Q=(x,y,z) measured from ellipse center O, find the intersection 
-// of the ray d=Q-O with the ellipse surface. This just requires scaling the 
-// direction vector d by a factor s so that f(s*d)=0, that is, 
+// Given a point Q=(x,y,z) measured from ellipse center O, find the intersection
+// of the ray d=Q-O with the ellipse surface. This just requires scaling the
+// direction vector d by a factor s so that f(s*d)=0, that is,
 //       s*|x/a y/b z/c|=1  => s = 1/|x/a y/b z/c|
 // Cost is about 40 flops.
 inline Vec3 ContactGeometry::Ellipsoid::Impl::
 findPointInSameDirection(const Vec3& Q) const {
-    Real s = 1/Vec3(Q[0]*curvatures[0], 
-                    Q[1]*curvatures[1], 
+    Real s = 1/Vec3(Q[0]*curvatures[0],
+                    Q[1]*curvatures[1],
                     Q[2]*curvatures[2]).norm();
     return s*Q;
 }
@@ -804,7 +804,7 @@ findPointInSameDirection(const Vec3& Q) const {
 // The implicit equation of the ellipsoid surface is f(x,y,z)=0 where
 // f(x,y,z) = (ka x)^2 + (kb y)^2 (kc z)^2 - 1. Points p inside the ellipsoid
 // have f(p)<0, outside f(p)>0. f defines a field in space; its positive
-// gradient [df/dx df/dy df/dz] points outward. So, given an ellipsoid with 
+// gradient [df/dx df/dy df/dz] points outward. So, given an ellipsoid with
 // principal curvatures ka,kb,kc and a point Q allegedly on the ellipsoid, the
 // outward normal (unnormalized) n at that point is
 //    n(p) = grad(f(p)) = 2*[ka^2 x, kb^2 y, kc^2 z]
@@ -815,7 +815,7 @@ findPointInSameDirection(const Vec3& Q) const {
 // Cost is about 40 flops.
 inline UnitVec3 ContactGeometry::Ellipsoid::Impl::
 findUnitNormalAtPoint(const Vec3& Q) const {
-    const Vec3 kk(square(curvatures[0]), square(curvatures[1]), 
+    const Vec3 kk(square(curvatures[0]), square(curvatures[1]),
                   square(curvatures[2]));
     return UnitVec3(kk[0]*Q[0], kk[1]*Q[1], kk[2]*Q[2]);
 }
@@ -829,19 +829,19 @@ class SmoothHeightMapImplicitFunction : public Function {
 public:
     SmoothHeightMapImplicitFunction() : ownerp(0) {}
     SmoothHeightMapImplicitFunction
-       (const ContactGeometry::SmoothHeightMap::Impl& owner) 
+       (const ContactGeometry::SmoothHeightMap::Impl& owner)
     :   ownerp(&owner) {}
-    void setOwner(const ContactGeometry::SmoothHeightMap::Impl& owner) 
+    void setOwner(const ContactGeometry::SmoothHeightMap::Impl& owner)
     {   ownerp=&owner; }
     Real calcValue(const Vector& x) const override;
-    Real calcDerivative(const Array_<int>& derivComponents, 
+    Real calcDerivative(const Array_<int>& derivComponents,
                         const Vector& x) const override;
     int getArgumentSize() const override {return 3;}
     int getMaxDerivativeOrder() const override
     {   return std::numeric_limits<int>::max(); }
 private:
     // just a reference; don't delete
-    const ContactGeometry::SmoothHeightMap::Impl*   ownerp; 
+    const ContactGeometry::SmoothHeightMap::Impl*   ownerp;
 };
 
 
@@ -860,10 +860,10 @@ public:
     ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const override;
 
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const override;
 
     void getBoundingSphere(Vec3& center, Real& radius) const override {
@@ -882,18 +882,18 @@ public:
 
     // We ignore the z coordinate here and just return the curvature of
     // the unique point at (x,y).
-    void calcCurvature(const Vec3& point, Vec2& curvature, 
+    void calcCurvature(const Vec3& point, Vec2& curvature,
                        Rotation& orientation) const override {
         Transform X_SP;
         surface.calcParaboloid(Vec2(point[0],point[1]), hint, X_SP, curvature);
         orientation = X_SP.R();
     }
 
-    const Function& getImplicitFunction() const override 
+    const Function& getImplicitFunction() const override
     {   return implicitFunction; }
 
     static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
+        static const ContactGeometryTypeId id =
             createNewContactGeometryTypeId();
         return id;
     }
@@ -904,14 +904,14 @@ private:
     // children recursively until the leaves each have responsibility for
     // one patch. Then we'll deal with that patch, which may have to be
     // subdivided into submission.
-    void splitPatches(int x0,int y0, int nx, int ny, 
+    void splitPatches(int x0,int y0, int nx, int ny,
                       OBBNode& node, int depth,
                       Array_<const Vec3*>* parentControlPoints=0) const;
 
     // The supplied OBBNode has responsibility for the given subpatch, which
     // may need further subdivision.
     void assignPatch(const Geo::BicubicBezierPatch& patch,
-                     OBBNode& node, int depth, 
+                     OBBNode& node, int depth,
                      Array_<const Vec3*>* parentControlPoints=0) const;
 
 
@@ -932,7 +932,7 @@ private:
 class ContactGeometry::Brick::Impl : public ContactGeometryImpl {
 public:
     explicit Impl(const Vec3& halfLengths) : m_box(halfLengths) {
-        createOBBTree(); 
+        createOBBTree();
     }
 
     ContactGeometryImpl* clone() const override {
@@ -949,9 +949,9 @@ public:
     ContactGeometryTypeId getTypeId() const override {return classTypeId();}
 
     DecorativeGeometry createDecorativeGeometry() const override;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const override;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const override;
     void getBoundingSphere(Vec3& center, Real& radius) const override;
 
@@ -964,7 +964,7 @@ public:
     }
 
     static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
+        static const ContactGeometryTypeId id =
             createNewContactGeometryTypeId();
         return id;
     }
@@ -990,11 +990,11 @@ public:
     OBBTreeNodeImpl* child2;
     Array_<int> triangles;
     int numTriangles;
-    Vec3 findNearestPoint(const ContactGeometry::TriangleMesh::Impl& mesh, 
-                          const Vec3& position, Real cutoff2, Real& distance2, 
+    Vec3 findNearestPoint(const ContactGeometry::TriangleMesh::Impl& mesh,
+                          const Vec3& position, Real cutoff2, Real& distance2,
                           int& face, Vec2& uv) const;
-    bool intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh, 
-                       const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
+                       const Vec3& origin, const UnitVec3& direction,
                        Real& distance, int& face, Vec2& uv) const;
 };
 
@@ -1009,7 +1009,7 @@ public:
     class Face;
     class Vertex;
 
-    Impl(const ArrayViewConst_<Vec3>& vertexPositions, 
+    Impl(const ArrayViewConst_<Vec3>& vertexPositions,
          const ArrayViewConst_<int>& faceIndices, bool smooth);
     Impl(const PolygonalMesh& mesh, bool smooth);
     ContactGeometryImpl* clone() const override {
@@ -1021,17 +1021,17 @@ public:
     Vec3     findPoint(int face, const Vec2& uv) const;
     Vec3     findCentroid(int face) const;
     UnitVec3 findNormalAtPoint(int face, const Vec2& uv) const;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside, int& face,
                           Vec2& uv) const;
     Vec3 findNearestPointToFace(const Vec3& position, int face, Vec2& uv) const;
     void createPolygonalMesh(PolygonalMesh& mesh) const;
 
     DecorativeGeometry createDecorativeGeometry() const override;
-    Vec3 findNearestPoint(const Vec3& position, bool& inside, 
+    Vec3 findNearestPoint(const Vec3& position, bool& inside,
                           UnitVec3& normal) const override;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, UnitVec3& normal) const override;
-    bool intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+    bool intersectsRay(const Vec3& origin, const UnitVec3& direction,
                        Real& distance, int& face, Vec2& uv) const;
     void getBoundingSphere(Vec3& center, Real& radius) const override;
 
@@ -1041,17 +1041,17 @@ public:
 
 
     static ContactGeometryTypeId classTypeId() {
-        static const ContactGeometryTypeId id = 
+        static const ContactGeometryTypeId id =
             createNewContactGeometryTypeId();
         return id;
     }
 private:
     void init(const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices);
     void createObbTree(OBBTreeNodeImpl& node, const Array_<int>& faceIndices);
-    void splitObbAxis(const Array_<int>& parentIndices, 
-                      Array_<int>& child1Indices, 
+    void splitObbAxis(const Array_<int>& parentIndices,
+                      Array_<int>& child1Indices,
                       Array_<int>& child2Indices, int axis);
-    void findBoundingSphere(Vec3* point[], int p, int b, 
+    void findBoundingSphere(Vec3* point[], int p, int b,
                             Vec3& center, Real& radius);
     friend class ContactGeometry::TriangleMesh;
     friend class OBBTreeNodeImpl;
@@ -1089,8 +1089,8 @@ public:
 //==============================================================================
 class ContactGeometry::TriangleMesh::Impl::Face {
 public:
-    Face(int vert1, int vert2, int vert3, 
-         const Vec3& normal, Real area) 
+    Face(int vert1, int vert2, int vert3,
+         const Vec3& normal, Real area)
     :   normal(normal), area(area) {
         vertices[0] = vert1;
         vertices[1] = vert2;

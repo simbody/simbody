@@ -48,14 +48,14 @@ public:
     virtual const MassProperties& getDefaultRigidBodyMassProperties() const = 0;
     virtual void setDefaultRigidBodyMassProperties(const MassProperties&) = 0;
 
-    // Add a permanent ("Topological") piece of geometry which is permanently 
-    // fixed to the body. Thus the 3D polygonal representation can be 
-    // precalculated once and for all at Stage::Topology, then transformed at 
+    // Add a permanent ("Topological") piece of geometry which is permanently
+    // fixed to the body. Thus the 3D polygonal representation can be
+    // precalculated once and for all at Stage::Topology, then transformed at
     // Stage::Position for display on a screen.
     //
-    // This will make an internal copy of the supplied DecorativeGeometry. We 
-    // can't fill in the MobilizedBodyIndex yet, but we apply the transform 
-    // now to the saved copy so that the geometry we return later will be 
+    // This will make an internal copy of the supplied DecorativeGeometry. We
+    // can't fill in the MobilizedBodyIndex yet, but we apply the transform
+    // now to the saved copy so that the geometry we return later will be
     // relative to the body frame only.
     //
     // Return an index that can be used to find this decoration later; the
@@ -70,8 +70,8 @@ public:
         return nxt;
     }
 
-    void appendDecorativeGeometry(MobilizedBodyIndex id, 
-                                  Array_<DecorativeGeometry>& geom) const 
+    void appendDecorativeGeometry(MobilizedBodyIndex id,
+                                  Array_<DecorativeGeometry>& geom) const
     {
         for (int i=0; i<(int)decorations.size(); ++i) {
             geom.push_back(decorations[i]); // copies index and userRef
@@ -100,8 +100,8 @@ private:
 //==============================================================================
 class Body::Rigid::RigidRep : public Body::BodyRep {
 public:
-    RigidRep() 
-    :   BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1)) 
+    RigidRep()
+    :   BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1))
     {
     }
     explicit RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
@@ -131,7 +131,7 @@ private:
 //==============================================================================
 class Body::Ground::GroundRep : public Body::BodyRep {
 public:
-    GroundRep() 
+    GroundRep()
     :   BodyRep(), infiniteMassProperties(Infinity, Vec3(0), Inertia(Infinity))
     {
     }
@@ -141,7 +141,7 @@ public:
     const MassProperties& getDefaultRigidBodyMassProperties() const override {
         return infiniteMassProperties;
     }
-    
+
     void setDefaultRigidBodyMassProperties(const MassProperties&) override {
         SimTK_THROW1(Exception::Cant, "You can't change Ground's mass properties!");
     }
@@ -162,8 +162,8 @@ private:
 //==============================================================================
 class Body::Massless::MasslessRep : public Body::BodyRep {
 public:
-    MasslessRep() 
-    :   BodyRep(), zeroMassProperties(0, Vec3(0), Inertia(0)) 
+    MasslessRep()
+    :   BodyRep(), zeroMassProperties(0, Vec3(0), Inertia(0))
     {
     }
     MasslessRep* clone() const override {
@@ -172,7 +172,7 @@ public:
     const MassProperties& getDefaultRigidBodyMassProperties() const override {
         return zeroMassProperties;
     }
-    
+
     void setDefaultRigidBodyMassProperties(const MassProperties&) override {
         SimTK_THROW1(Exception::Cant, "You can't change a massless body's mass properties!");
     }

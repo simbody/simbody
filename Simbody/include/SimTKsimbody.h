@@ -31,9 +31,9 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-This header file includes all the Simbody header files that need to be 
+This header file includes all the Simbody header files that need to be
 visible to a compiler processing a Simbody-using compilation unit.\ However,
-user programs should included only the top-level Simbody.h header (which 
+user programs should included only the top-level Simbody.h header (which
 will include this one). **/
 
 // This should be kept self-contained for backwards compatibility since

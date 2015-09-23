@@ -53,45 +53,45 @@ static const int NTries=3;
 
 
 // This is the continuous stiction model used in Simbody's compliant contact
-// system for comparison with the new hybrid model. See end of this file for 
+// system for comparison with the new hybrid model. See end of this file for
 // implementation.
 static Real stribeck(Real us, Real ud, Real uv, Real v);
 
 //==============================================================================
 //                     MY HYBRID VERTEX CONTACT ELEMENT
 //==============================================================================
-// Given a contact material (with compliant material properties), this 
+// Given a contact material (with compliant material properties), this
 // represents a compliant point-and-rigid-halfspace contact element. We track
-// the height h of a vertex V on body B over a halfspace H on body P. The 
-// halfspace frame H serves as the contact frame, with Hz in the contact 
-// normal direction and Hxy spanning the tangent plane. The pose X_PH is 
-// a given constant. 
+// the height h of a vertex V on body B over a halfspace H on body P. The
+// halfspace frame H serves as the contact frame, with Hz in the contact
+// normal direction and Hxy spanning the tangent plane. The pose X_PH is
+// a given constant.
 //
 // Normal force
 // ------------
-// If the vertex height h is above the halfspace surface (h>=0), no forces are 
-// generated. If below the surface (h<0) we generate a normal force of magnitude 
+// If the vertex height h is above the halfspace surface (h>=0), no forces are
+// generated. If below the surface (h<0) we generate a normal force of magnitude
 //      N=max(0, -k*h(1-d*hdot)), with N >= 0
 // applied to both bodies at the contact point C, which is the point at h=0 just
 // up the halfspace normal direction from the vertex (because we're considering
-// the halfspace to be rigid). Denote by Cb the station (material point) of B 
+// the halfspace to be rigid). Denote by Cb the station (material point) of B
 // that is coincident with C, and Cp the station of P that is coincident with C.
 //
 // Sliding force
 // -------------
 // Then if we are in sliding mode, we also generate a tangential force of
 // magnitude T=(mu_d+mu_v*|v|)*N, where mu_d, mu_v are the dynamic and viscous
-// coefficients of friction, and v is the velocity of Cb relative to Cp, 
-// projected into the tangent plane (a 2d vector). If |v|>tol then the 
+// coefficients of friction, and v is the velocity of Cb relative to Cp,
+// projected into the tangent plane (a 2d vector). If |v|>tol then the
 // tangential slip direction is s=v/|v|, and we record this as the previous slip
-// direction s_prev. Otherwise the slip direction remains s=s_prev. In any case 
+// direction s_prev. Otherwise the slip direction remains s=s_prev. In any case
 // the tangential force applied is -T*s.
-// 
+//
 // Stiction force
 // --------------
 // If we are instead in stiction mode, then no sliding force is generated.
 // Instead a pair of no-slip constraints is active, generating constraint
-// multipliers (tx,ty), and we record s_prev=-[tx,ty]/|[tx,ty]| as the 
+// multipliers (tx,ty), and we record s_prev=-[tx,ty]/|[tx,ty]| as the
 // impending slip direction. Note that this will not be available until
 // Acceleration stage, while the normal force and tangential sliding force can
 // be calculated at Velocity stage.
@@ -105,7 +105,7 @@ static Real stribeck(Real us, Real ud, Real uv, Real v);
 // This is a velocity-stage cache entry.
 struct MyHybridContactInfo {
     MyHybridContactInfo()
-    :   h(NaN), Cp(NaN), Cb(NaN), v_HCb(NaN), vSlipMag(NaN), f_HCb(NaN) 
+    :   h(NaN), Cp(NaN), Cb(NaN), v_HCb(NaN), vSlipMag(NaN), f_HCb(NaN)
     {
     }
     // Position info.
@@ -126,12 +126,12 @@ public:
         MobilizedBody& hsmobod, const UnitVec3& hsn, Real hsh,
         MobilizedBody& vmobod, const Vec3& vertex,
         const ContactMaterial& material)
-    :   m_matter(hsmobod.getMatterSubsystem()), m_forces(forces), 
-        m_hsmobodx(hsmobod), m_X_PH(Rotation(hsn, ZAxis), hsh*hsn), 
+    :   m_matter(hsmobod.getMatterSubsystem()), m_forces(forces),
+        m_hsmobodx(hsmobod), m_X_PH(Rotation(hsn, ZAxis), hsh*hsn),
         m_vmobodx(vmobod), m_vertex_B(vertex),
         m_material(material),
         m_noslipX(hsmobod, Vec3(NaN), m_X_PH.x(), hsmobod, vmobod),
-        m_noslipY(hsmobod, Vec3(NaN), m_X_PH.y(), hsmobod, vmobod), 
+        m_noslipY(hsmobod, Vec3(NaN), m_X_PH.y(), hsmobod, vmobod),
         m_index(-1), m_vtrans(NaN), // assign later
         m_contactPointInP(NaN), m_recordedSlipDir(NaN)
     {
@@ -146,7 +146,7 @@ public:
         m_contactPointInP = NaN;
     }
 
-    // Set the friction application point to be the projection of the contact 
+    // Set the friction application point to be the projection of the contact
     // point onto the contact plane. This will be used the next time stiction
     // is enabled. Requires state realized to Position stage.
     void initializeForStiction(const State& s) {
@@ -157,14 +157,14 @@ public:
     {   return findH(s) < 0; }
 
     bool isSticking(const State& s) const
-    { 
+    {
         #ifdef USE_CONTINUOUS_STICTION
         return getActualSlipSpeed(s) <= m_vtrans;
         #else
         return !m_noslipX.isDisabled(s); // X,Y always on or off together
         #endif
     }
-    
+
     // Return a point in Ground coincident with the vertex.
     Vec3 whereToDisplay(const State& s) const {
         return getBodyB().findStationLocationInGround(s, m_vertex_B);
@@ -175,7 +175,7 @@ public:
         return info.vSlipMag;
     }
 
-    // Return the normal force N >= 0 currently being generated by this 
+    // Return the normal force N >= 0 currently being generated by this
     // contact. State must be realized to Stage::Velocity.
     Real getNormalForce(const State& s) const {
         const MyHybridContactInfo& info = getContactInfo(s);
@@ -213,7 +213,7 @@ public:
     }
 
     // The way we constructed the NoSlip1D constraints makes the multipliers be
-    // the force on the half space on body P; we negate here so we'll get the 
+    // the force on the half space on body P; we negate here so we'll get the
     // force on the vertex body B instead.
     Vec2 getStictionForce(const State& s) const {
         assert(isSticking(s));
@@ -278,7 +278,7 @@ public:
         return h;
     }
 
-    // Returns height of vertex over plane same as findH(); also returns 
+    // Returns height of vertex over plane same as findH(); also returns
     // contact point (projection of V onto plane along Hz).
     Real findContactPointInP(const State& state, Vec3& contactPointInP) const {
         const Vec3 V_P = findVInP(state);       // location of V in P
@@ -295,7 +295,7 @@ public:
         else return prevVslipDir;
     }
 
-    // Return the slip velocity as recorded at the end of the last time step. 
+    // Return the slip velocity as recorded at the end of the last time step.
     const Vec2& getPrevSlipDir(const State& state) const {
         const Vec2& prevSlipDir = Value<Vec2>::downcast
            (m_forces.getDiscreteVariable(state, m_prevSlipDirIx));
@@ -339,12 +339,12 @@ public:
     //                       Custom force virtuals
     // Apply the normal force, and the sliding friction force if it is enabled.
     // This is called during realize(Dynamics).
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
                    override
     {
         const MyHybridContactInfo& info = getContactInfo(state);
-        if (info.h >= 0) 
+        if (info.h >= 0)
             return; // no contact
 
         const Vec3 f_GCb = info.R_GH * info.f_HCb; // re-express in Ground
@@ -355,7 +355,7 @@ public:
     // The normal force stores energy as 2/5 k h^(5/2) when h<0.
     Real calcPotentialEnergy(const State& state) const override {
         const MyHybridContactInfo& info = getContactInfo(state);
-        if (info.h >= 0) 
+        if (info.h >= 0)
             return 0; // no contact
         const Real h52 = square(info.h)*std::sqrt(-info.h);
         const Real k = m_material.getStiffness();
@@ -364,10 +364,10 @@ public:
 
     // Allocate state variable for storing the previous sliding direction.
     void realizeTopology(State& state) const override {
-        // The previous sliding direction is used in an event witness that 
+        // The previous sliding direction is used in an event witness that
         // is evaluated at Velocity stage.
         m_prevSlipDirIx = m_forces.allocateAutoUpdateDiscreteVariable
-           (state, Stage::Velocity, new Value<Vec2>(Vec2(NaN)), 
+           (state, Stage::Velocity, new Value<Vec2>(Vec2(NaN)),
             Stage::Velocity);
 
         m_contactInfoIx = m_forces.allocateCacheEntry
@@ -389,7 +389,7 @@ public:
         info.R_GH = R_GP*R_PH;
 
         // Station of B coincident with the contact point.
-        info.Cb = info.h < 0 
+        info.Cb = info.h < 0
                     ? findPointOfBCoincidentWithPointOfP(state, info.Cp)
                     : getVertexOnB();
 
@@ -401,7 +401,7 @@ public:
         const Vec2 vSlip_HC(info.v_HCb[0], info.v_HCb[1]);
         info.vSlipMag = vSlip_HC.norm();
 
-        const Real k    = m_material.getStiffness(), 
+        const Real k    = m_material.getStiffness(),
                    c    = m_material.getDissipation(),
                    mu_d = m_material.getDynamicFriction(),
                    mu_s = m_material.getStaticFriction(),
@@ -413,7 +413,7 @@ public:
 
         const Real h32 = -info.h*sqrt(-info.h); // |h| ^ (3/2)
         const Real N = std::max(Real(0), k*h32*(1-c*hdot));
-        if (N==0) 
+        if (N==0)
             return; // no contact force
 
         // N is the Hz component of the force on Cb.
@@ -428,10 +428,10 @@ public:
         }
         #else
         if (!isSticking(state)) {
-            // Apply sliding force 
+            // Apply sliding force
             const Real T = (mu_d + mu_v*info.vSlipMag)*N;
             fT_HCb = -T*getEffectiveSlipDir(state, vSlip_HC, // in Hxy
-                                            info.vSlipMag); 
+                                            info.vSlipMag);
         }
         #endif
 
@@ -485,7 +485,7 @@ public:
             #ifndef NDEBUG
             printf("%d SLIDING UPDATE: prevSlipDir=%g %g; now=%g %g; |v|=%g dot=%g vdot=%g\n",
                 m_index, prevSlipDir[0],prevSlipDir[1],
-                prevSlipUpdate[0],prevSlipUpdate[1], info.vSlipMag, 
+                prevSlipUpdate[0],prevSlipUpdate[1], info.vSlipMag,
                 ~prevSlipUpdate*prevSlipDir, ~vSlip_HCb*prevSlipDir);
             #endif
         } else {
@@ -499,8 +499,8 @@ public:
     }
     #endif
 
-    std::ostream& writeFrictionInfo(const State& s, const String& indent, 
-                                    std::ostream& o) const 
+    std::ostream& writeFrictionInfo(const State& s, const String& indent,
+                                    std::ostream& o) const
     {
         o << indent;
         if (!isInContact(s)) o << "OFF";
@@ -511,13 +511,13 @@ public:
         const Vec2 pd = getPrevSlipDir(s);
         const Vec2 f = isSticking(s) ? getStictionForce(s)
                                      : getSlidingForce(s);
-        o << " prevDir=" << ~pd << " V=" << ~v << " Vdot=" << ~v*pd 
+        o << " prevDir=" << ~pd << " V=" << ~v << " Vdot=" << ~v*pd
           << " F=" << ~f << endl;
         return o;
     }
 
 
-    void showContactForces(const State& s, Array_<DecorativeGeometry>& geometry) 
+    void showContactForces(const State& s, Array_<DecorativeGeometry>& geometry)
         const
     {
         const Real Scale = 0.01;
@@ -552,10 +552,10 @@ public:
     }
 
     int getIndex() const {return m_index;}
-    const MobilizedBody& getBodyB() const 
+    const MobilizedBody& getBodyB() const
     {   return m_matter.getMobilizedBody(m_vmobodx); }
     const Vec3& getVertexOnB() const {return m_vertex_B;}
-    const MobilizedBody& getBodyP() const 
+    const MobilizedBody& getBodyP() const
     {   return m_matter.getMobilizedBody(m_hsmobodx); }
     const Transform& getX_PH() const {return m_X_PH;}
     const ContactMaterial& getMaterial() const {return m_material;}
@@ -564,7 +564,7 @@ public:
 private:
     // Determine whether the current slip velocity is reliable enough that
     // we should use it to replace the previous slip velocity.
-    static bool shouldUpdate(const Vec2& vSlip, Real vSlipMag, 
+    static bool shouldUpdate(const Vec2& vSlip, Real vSlipMag,
                              const Vec2& prevSlipDir, Real velTol) {
         if (prevSlipDir.isNaN())
             return vSlipMag > 0; // we'll take anything
@@ -623,7 +623,7 @@ private:
 
     // Set during realizeTopology().
     mutable DiscreteVariableIndex   m_prevSlipDirIx; // previous slip direction
-    mutable CacheEntryIndex         m_contactInfoIx; 
+    mutable CacheEntryIndex         m_contactInfoIx;
 };
 
 
@@ -633,7 +633,7 @@ private:
 
 // These are indices into the unilateral constraint set arrays.
 struct MyElementSubset {
-    void clear() 
+    void clear()
     {   m_contact.clear();m_sliding.clear();m_stiction.clear();
         m_ineligible.clear(); }
     Array_<int> m_contact;
@@ -646,7 +646,7 @@ class MyUnilateralConstraintSet {
 public:
     // Transition velocity: if a slip velocity is smaller than this the
     // contact is a candidate for stiction.
-    MyUnilateralConstraintSet(const MultibodySystem& mbs, 
+    MyUnilateralConstraintSet(const MultibodySystem& mbs,
                               Real transitionVelocity)
     :   m_mbs(mbs), m_transitionVelocity(transitionVelocity) {}
 
@@ -664,9 +664,9 @@ public:
     void setTransitionVelocity(Real v) {m_transitionVelocity=v;}
 
     int getNumContactElements() const {return (int)m_hybrid.size();}
-    const MyHybridVertexContactElementImpl& getContactElement(int ix) const 
+    const MyHybridVertexContactElementImpl& getContactElement(int ix) const
     {   return *m_hybrid[ix]; }
-    MyHybridVertexContactElementImpl& updContactElement(int ix) 
+    MyHybridVertexContactElementImpl& updContactElement(int ix)
     {   return *m_hybrid[ix]; }
 
     // Initialize all runtime fields in the contact & friction elements.
@@ -676,19 +676,19 @@ public:
             m_hybrid[i]->initialize();
     }
 
-    // Return the contact and friction elements that might be involved in 
+    // Return the contact and friction elements that might be involved in
     // generating contact forces at the current state. Candidate contact
-    // elements are those that are (a) already enabled, or (b) for which 
+    // elements are those that are (a) already enabled, or (b) for which
     // perr <= posTol and verr <= velTol. Candidate friction elements are those
-    // whose normal force master is unconditional or a candidate and (a) which 
+    // whose normal force master is unconditional or a candidate and (a) which
     // are already sticking, or (b) for which vslip <= velTol, or (c) for which
-    // vslip opposes the previous slip direction, meaning it has reversed and 
-    // must have passed through zero during the last step. These are the elements 
-    // that can be activated without making any changes to the configuration or 
-    // velocity state variables, except slightly for constraint projection. 
+    // vslip opposes the previous slip direction, meaning it has reversed and
+    // must have passed through zero during the last step. These are the elements
+    // that can be activated without making any changes to the configuration or
+    // velocity state variables, except slightly for constraint projection.
     //
-    // We also record the friction elements that, if their masters are active, 
-    // can only slide because they have a significant slip velocity. State must 
+    // We also record the friction elements that, if their masters are active,
+    // can only slide because they have a significant slip velocity. State must
     // be realized through Velocity stage.
     void findCandidateElements(const State&     s,
                                Real             velTol,
@@ -707,9 +707,9 @@ public:
 
             candidates.m_contact.push_back(i);
 
-            if (m_hybrid[i]->isSticking(s) 
+            if (m_hybrid[i]->isSticking(s)
                 || m_hybrid[i]->getActualSlipSpeed(s) <= velTol
-                || m_hybrid[i]->calcSlipSpeedWitness(s) <= 0) 
+                || m_hybrid[i]->calcSlipSpeedWitness(s) <= 0)
             {
                 m_hybrid[i]->initializeForStiction(s);
                 candidates.m_stiction.push_back(i); // could stick or slide
@@ -729,7 +729,7 @@ public:
         // Disable all ineligible constraints.
         for (unsigned i=0; i < subset.m_ineligible.size(); ++i) {
             const int which = subset.m_ineligible[i];
-            const MyHybridVertexContactElementImpl& fric = 
+            const MyHybridVertexContactElementImpl& fric =
                 getContactElement(which);
             SimTK_DEBUG1("%d DISABLING INELIGIBLE STICTION.\n", i);
             fric.disableStiction(state);
@@ -739,7 +739,7 @@ public:
         // Enable all stiction constraints.
         for (unsigned i=0; i < subset.m_stiction.size(); ++i) {
             const int which = subset.m_stiction[i];
-            const MyHybridVertexContactElementImpl& fric = 
+            const MyHybridVertexContactElementImpl& fric =
                 getContactElement(which);
             if (!fric.isSticking(state)) {
                 SimTK_DEBUG1("%d ENABLING CANDIDATE STICTION.\n", i);
@@ -754,9 +754,9 @@ public:
 
     // All event handlers call this method before returning. Given a state for
     // which no (further) impulse is required, here we decide which contact and
-    // stiction constraints are active, and ensure that they satisfy the 
-    // required constraint tolerances to the given accuracy. For sliding 
-    // contacts, we will have recorded the slip or impending slip direction and 
+    // stiction constraints are active, and ensure that they satisfy the
+    // required constraint tolerances to the given accuracy. For sliding
+    // contacts, we will have recorded the slip or impending slip direction and
     // converged the normal forces.
     // TODO: in future this may return indicating that an impulse is required
     // after all, as in Painleve's paradox.
@@ -765,7 +765,7 @@ public:
     // This is the inner loop of selectActiveConstraints(). Given a set of
     // candidates to consider, it finds an active subset and enables those
     // constraints.
-    void findActiveCandidates(State&                 state, 
+    void findActiveCandidates(State&                 state,
                               const MyElementSubset& candidates) const;
 
     // In Debug mode, produce a useful summary of the current state of the
@@ -796,8 +796,8 @@ public:
                const MyUnilateralConstraintSet&         unis,
                const Integrator&                        integ,
                Real                                     reportInterval)
-    :   PeriodicEventReporter(reportInterval), 
-        m_mbs(mbs), m_unis(unis), m_integ(integ) 
+    :   PeriodicEventReporter(reportInterval),
+        m_mbs(mbs), m_unis(unis), m_integ(integ)
     {   m_states.reserve(2000); }
 
     ~StateSaver() {}
@@ -833,7 +833,7 @@ private:
 class Nada : public PeriodicEventReporter {
 public:
     explicit Nada(Real reportInterval)
-    :   PeriodicEventReporter(reportInterval) {} 
+    :   PeriodicEventReporter(reportInterval) {}
 
     void handleEvent(const State& s) const override {
 #ifndef NDEBUG
@@ -846,18 +846,18 @@ public:
 //==============================================================================
 //                            SHOW CONTACT
 //==============================================================================
-// For each visualization frame, generate ephemeral geometry to show just 
+// For each visualization frame, generate ephemeral geometry to show just
 // during this frame, based on the current State.
 class ShowContact : public DecorationGenerator {
 public:
-    ShowContact(const MyUnilateralConstraintSet& unis) 
+    ShowContact(const MyUnilateralConstraintSet& unis)
     :   m_unis(unis) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         for (int i=0; i < m_unis.getNumContactElements(); ++i) {
-            const MyHybridVertexContactElementImpl& contact = 
+            const MyHybridVertexContactElementImpl& contact =
                 m_unis.getContactElement(i);
             const Vec3 loc = contact.whereToDisplay(state);
             if (contact.isInContact(state)) {
@@ -887,24 +887,24 @@ private:
 //==============================================================================
 //                          STICTION ON HANDLER
 //==============================================================================
-// Allocate one of these for each contact constraint that has friction. This 
-// handler takes care of turning on the stiction constraints when the sliding 
+// Allocate one of these for each contact constraint that has friction. This
+// handler takes care of turning on the stiction constraints when the sliding
 // velocity drops to zero.
 class StictionOn: public TriggeredEventHandler {
 public:
     StictionOn(const MultibodySystem&       system,
         const MyUnilateralConstraintSet&    unis,
-        unsigned                            which) 
-    :   TriggeredEventHandler(Stage::Velocity), 
+        unsigned                            which)
+    :   TriggeredEventHandler(Stage::Velocity),
         m_mbs(system), m_unis(unis), m_which(which)
-    { 
+    {
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
     }
 
     // This is the witness function. It is positive as long as we continue
     // to slide in the same direction; negative means reversal.
     Real getValue(const State& state) const override {
-        const MyHybridVertexContactElementImpl& contact = 
+        const MyHybridVertexContactElementImpl& contact =
             m_unis.getContactElement(m_which);
         if (!contact.isInContact(state)) return 0;
         const Real signedSlipSpeed = contact.calcSlipSpeedWitness(state);
@@ -912,13 +912,13 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const override 
+       (State& s, Real accuracy, bool& shouldTerminate) const override
     {
     ++m_counter;
     //printf("StictionOn #%d\n", m_counter);
         SimTK_DEBUG2("\nhandle %d slide->stick@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
-        SimTK_DEBUG2("STICTION ON triggered by friction element %d @t=%.15g\n", 
+        SimTK_DEBUG2("STICTION ON triggered by friction element %d @t=%.15g\n",
             m_which, s.getTime());
         m_mbs.realize(s, Stage::Acceleration);
 
@@ -939,7 +939,7 @@ public:
     }
 
 private:
-    const MultibodySystem&              m_mbs; 
+    const MultibodySystem&              m_mbs;
     const MyUnilateralConstraintSet&    m_unis;
     const int                           m_which; // one of the contact elements
     static int                          m_counter;
@@ -958,8 +958,8 @@ class StictionOff: public TriggeredEventHandler {
 public:
     StictionOff(const MultibodySystem&      system,
         const MyUnilateralConstraintSet&    unis,
-        unsigned                            which) 
-    :   TriggeredEventHandler(Stage::Acceleration), 
+        unsigned                            which)
+    :   TriggeredEventHandler(Stage::Acceleration),
         m_mbs(system), m_unis(unis), m_which(which)
     {
         getTriggerInfo().setTriggerOnRisingSignTransition(false);
@@ -968,7 +968,7 @@ public:
     // This is the witness function. It is positive as long as mu_s*N is greater
     // than the friction force magnitude.
     Real getValue(const State& state) const override {
-        const MyHybridVertexContactElementImpl& contact = 
+        const MyHybridVertexContactElementImpl& contact =
             m_unis.getContactElement(m_which);
         if (!contact.isInContact(state)) return 0;
         const Real capacity = contact.calcStictionForceWitness(state);
@@ -976,13 +976,13 @@ public:
     }
 
     void handleEvent
-       (State& s, Real accuracy, bool& shouldTerminate) const override 
+       (State& s, Real accuracy, bool& shouldTerminate) const override
     {
     ++m_counter;
     //printf("StictionOff #%d\n", m_counter);
         SimTK_DEBUG2("\nhandle %d stick->slide@%.17g\n", m_which, s.getTime());
         SimTK_DEBUG("\n----------------------------------------------------\n");
-        SimTK_DEBUG2("STICTION OFF triggered by friction element %d @t=%.15g\n", 
+        SimTK_DEBUG2("STICTION OFF triggered by friction element %d @t=%.15g\n",
             m_which, s.getTime());
         m_mbs.realize(s, Stage::Acceleration);
 
@@ -1003,7 +1003,7 @@ public:
     }
 
 private:
-    const MultibodySystem&              m_mbs; 
+    const MultibodySystem&              m_mbs;
     const MyUnilateralConstraintSet&    m_unis;
     const int                           m_which; // one of the friction elements
     static int                          m_counter;
@@ -1020,7 +1020,7 @@ int StictionOff::m_counter = 0;
 // to transition from sticking to sliding, for example.
 class MyPushForceImpl : public Force::Custom::Implementation {
 public:
-    MyPushForceImpl(const MobilizedBody& bodyB, 
+    MyPushForceImpl(const MobilizedBody& bodyB,
                     const Vec3&          stationB,
                     const Vec3&          forceG, // force direction in Ground!
                     Real                 onTime,
@@ -1031,7 +1031,7 @@ public:
 
     //--------------------------------------------------------------------------
     //                       Custom force virtuals
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
                    override
     {
@@ -1048,7 +1048,7 @@ public:
     Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
-       (const State& state, Stage stage, 
+       (const State& state, Stage stage,
         Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
@@ -1061,7 +1061,7 @@ public:
                             .setLineThickness(3));
     }
 private:
-    const MobilizedBody& m_bodyB; 
+    const MobilizedBody& m_bodyB;
     const Vec3           m_stationB;
     const Vec3           m_forceG;
     Real                 m_on;
@@ -1082,7 +1082,7 @@ int main(int argc, char** argv) {
         const Real RunTime=16;  // Tim's time
         const Real Stiffness = 2e7;
         const Real Dissipation = 1;
-        const Real CoefRest = 0; 
+        const Real CoefRest = 0;
         const Real mu_d = .5; /* compliant: .7*/
         const Real mu_s = .8; /* compliant: .7*/
         const Real mu_v = /*0.05*/0; //TODO: fails with mu_v=1, vtrans=.01
@@ -1093,7 +1093,7 @@ int main(int argc, char** argv) {
     #else
         const Real RunTime=20;
         const Real Stiffness = 1e6;
-        const Real CoefRest = 0; 
+        const Real CoefRest = 0;
         const Real TargetVelocity = 3; // speed at which to match coef rest
 //        const Real Dissipation = (1-CoefRest)/TargetVelocity;
         const Real Dissipation = .1;
@@ -1120,8 +1120,8 @@ int main(int argc, char** argv) {
     printf("  mu_d=%g mu_s=%g mu_v=%g\n", mu_d, mu_s, mu_v);
     printf("  transition velocity=%g\n", TransitionVelocity);
     printf("  brick inertia=%g %g %g\n",
-        brickInertia.getMoments()[0], brickInertia.getMoments()[1], 
-        brickInertia.getMoments()[2]); 
+        brickInertia.getMoments()[0], brickInertia.getMoments()[1],
+        brickInertia.getMoments()[2]);
     printf("******************** Tim's Box Hybrid ********************\n\n");
 
         // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
@@ -1143,7 +1143,7 @@ int main(int argc, char** argv) {
 
     MyUnilateralConstraintSet unis(mbs, TransitionVelocity);
 
-    Body::Rigid brickBody = 
+    Body::Rigid brickBody =
         Body::Rigid(MassProperties(BrickMass, Vec3(0), brickInertia));
 
     MobilizedBody::Free brick(Ground, Vec3(0),
@@ -1213,8 +1213,8 @@ int main(int argc, char** argv) {
 
     Vec3 cameraPos(0, 1, 2);
     UnitVec3 cameraZ(0,0,1);
-    viz.setCameraTransform(Transform(Rotation(cameraZ, ZAxis, 
-                                              UnitVec3(YAxis), YAxis), 
+    viz.setCameraTransform(Transform(Rotation(cameraZ, ZAxis,
+                                              UnitVec3(YAxis), YAxis),
                                      cameraPos));
     viz.pointCameraAt(Vec3(0,0,0), Vec3(0,1,0));
 
@@ -1246,9 +1246,9 @@ int main(int argc, char** argv) {
     mbs.addEventReporter(stateSaver);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
-    
+
     //matter.setUseEulerAngles(s, true);
-    
+
     mbs.realizeModel(s); // define appropriate states for this System
     mbs.realize(s, Stage::Instance); // instantiate constraints if any
 
@@ -1317,7 +1317,7 @@ tZ_u = 0.0 m/s
     Matrix M(1,1); M(0,0)=1.23;
     FactorLU Mlu(M);
 
-    
+
     // Simulate it.
 
     integ.setReturnEveryInternalStep(true);
@@ -1349,31 +1349,31 @@ tZ_u = 0.0 m/s
             status=ts.stepTo(RunTime);
             #ifdef TEST_REPEATABILITY
                 states[ntry].push_back(ts.getState());
-            #endif          
+            #endif
             const int j = states[ntry].size()-1;
             if (ntry>0) {
                 int prev = ntry-1;
                 //prev=0;
-                Real dt = states[ntry][j].getTime() 
+                Real dt = states[ntry][j].getTime()
                           - states[prev][j].getTime();
                 volatile double vd;
                 const int ny = states[ntry][j].getNY();
                 Vector d(ny);
                 for (int i=0; i<ny; ++i) {
-                    vd = states[ntry][j].getY()[i] 
+                    vd = states[ntry][j].getY()[i]
                            - states[prev][j].getY()[i];
                     d[i] = vd;
                 }
                 timeDiff[prev].push_back(dt);
                 yDiff[prev].push_back(d);
-                cout << "\n" << states[prev][j].getTime() 
+                cout << "\n" << states[prev][j].getTime()
                      << "+" << dt << ":" << d << endl;
             }
 
             const bool handledEvent = status==Integrator::ReachedEventTrigger;
             if (handledEvent) {
                 ++nStepsWithEvent;
-                SimTK_DEBUG3("EVENT %3d @%.17g status=%s\n\n", 
+                SimTK_DEBUG3("EVENT %3d @%.17g status=%s\n\n",
                     nStepsWithEvent, ts.getTime(),
                     Integrator::getSuccessfulStepStatusString(status).c_str());
             } else {
@@ -1391,17 +1391,17 @@ tZ_u = 0.0 m/s
         const double cpuInSec = cpuTime()-startCPU;
         const int evals = integ.getNumRealizations();
         cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-            timeInSec << "s for " << ts.getTime() << "s sim (avg step=" 
-            << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+            timeInSec << "s for " << ts.getTime() << "s sim (avg step="
+            << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
             << (1000*ts.getTime())/evals << "ms/eval\n";
         cout << "CPUtime " << cpuInSec << endl;
 
-        printf("Used Integrator %s at accuracy %g:\n", 
+        printf("Used Integrator %s at accuracy %g:\n",
             integ.getMethodName(), integ.getAccuracyInUse());
         printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
         printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
         printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
-        printf("# EVENT STEPS/HANDLER CALLS = %d/%d\n", 
+        printf("# EVENT STEPS/HANDLER CALLS = %d/%d\n",
             nStepsWithEvent, mbs.getNumHandleEventCalls());
     }
 
@@ -1410,7 +1410,7 @@ tZ_u = 0.0 m/s
 
     // Instant replay.
     while(true) {
-        printf("Hit ENTER for replay (%d states) ...", 
+        printf("Hit ENTER for replay (%d states) ...",
                 stateSaver->getNumSavedStates());
         getchar();
         for (int i=0; i < stateSaver->getNumSavedStates(); ++i) {
@@ -1419,7 +1419,7 @@ tZ_u = 0.0 m/s
         }
     }
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);
@@ -1448,8 +1448,8 @@ selectActiveConstraints(State& state, Real vtol) const {
         //TODO: this (mis)use of accuracy needs to be revisited.
         findCandidateElements(state, vtol, candidates);
 
-        // Evaluate accelerations and reaction forces and check if 
-        // any of the active contacts are generating negative ("pulling") 
+        // Evaluate accelerations and reaction forces and check if
+        // any of the active contacts are generating negative ("pulling")
         // forces; if so, inactivate them.
         findActiveCandidates(state, candidates);
 
@@ -1463,11 +1463,11 @@ selectActiveConstraints(State& state, Real vtol) const {
         needRestart = false;
         for (unsigned i=0; i < candidates.m_sliding.size(); ++i) {
             const int which = candidates.m_sliding[i];
-            const MyHybridVertexContactElementImpl& contact = 
+            const MyHybridVertexContactElementImpl& contact =
                 getContactElement(which);
             assert(!contact.isSticking(state));
             if (   contact.getActualSlipSpeed(state) <= vtol
-                || contact.calcSlipSpeedWitness(state) <= 0) 
+                || contact.calcSlipSpeedWitness(state) <= 0)
             {
                 SimTK_DEBUG3("***RESTART** selectActiveConstraints() because "
                     "sliding velocity %d is now |v|=%g or witness=%g\n",
@@ -1486,7 +1486,7 @@ selectActiveConstraints(State& state, Real vtol) const {
 //-------------------------- FIND ACTIVE CANDIDATES ---------------------------
 // Given a list of candidate stiction constraints,
 // determine which ones are active in the least squares solution for the
-// constraint multipliers. Candidates are those constraints that meet all 
+// constraint multipliers. Candidates are those constraints that meet all
 // kinematic conditions -- for stiction, sliding velocity less than tolerance,
 // or sliding direction reversed in the last step. Also, any
 // constraint that is currently active is a candidate, regardless of its
@@ -1511,7 +1511,7 @@ selectActiveConstraints(State& state, Real vtol) const {
 //    stiction offense = mu_s*max(0, fc) - |fs|
 // - Inactivate chosen constraint
 //     record impending slip direction stick->slide
-// end loop 
+// end loop
 //
 void MyUnilateralConstraintSet::
 findActiveCandidates(State& s, const MyElementSubset& candidates) const
@@ -1525,7 +1525,7 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
         candidates.m_ineligible.size());
 
     // Disable any sticking constraints that are now ineligible due to
-    // liftoff, and enable all other candidate stiction constraints if any 
+    // liftoff, and enable all other candidate stiction constraints if any
     // are currently disabled.
     enableConstraintSubset(candidates, s);
 
@@ -1538,7 +1538,7 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
 
     int pass=0, nStictionDisabled=0;
     while (true) {
-        ++pass; 
+        ++pass;
         SimTK_DEBUG1("\nfindActiveCandidates(): pass %d\n", pass);
 
         // Given an active set, evaluate multipliers and accelerations.
@@ -1547,23 +1547,23 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
             // First time through record all the slip directions.
             for (unsigned i=0; i < candidates.m_contact.size(); ++i) {
                 const int which = candidates.m_contact[i];
-                const MyHybridVertexContactElementImpl& fric = 
+                const MyHybridVertexContactElementImpl& fric =
                     getContactElement(which);
                 if (fric.isSticking(s))
                     fric.recordImpendingSlipDir(s);
                 else fric.recordActualSlipDir(s);
             }
-        } 
+        }
 
         // Scan all candidate stictions to find the active one that has the
         // most negative capacity.
 
-        int worstActiveStiction=-1; Real mostNegativeStictionCapacity=0;     
+        int worstActiveStiction=-1; Real mostNegativeStictionCapacity=0;
         SimTK_DEBUG("analyzing stiction constraints ...\n");
         for (unsigned i=0; i < candidates.m_stiction.size(); ++i) {
             const int which = candidates.m_stiction[i];
             SimTK_DEBUG1("  %d: ", which);
-            const MyHybridVertexContactElementImpl& fric = 
+            const MyHybridVertexContactElementImpl& fric =
                 getContactElement(which);
 
             if (!fric.isSticking(s)) {
@@ -1572,7 +1572,7 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
             }
 
             const Real capacity = fric.calcStictionForceWitness(s);
-            SimTK_DEBUG2("on capacity=%g (N=%g)\n", 
+            SimTK_DEBUG2("on capacity=%g (N=%g)\n",
                 capacity, fric.getNormalForce(s));
 
             if (capacity < mostNegativeStictionCapacity) {
@@ -1584,7 +1584,7 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
         #ifndef NDEBUG
         if (mostNegativeStictionCapacity == 0)
             printf("  All active stiction constraints are satisfied.\n");
-        else 
+        else
             printf("  Active stiction %d was worst violator with capacity=%g\n",
                 worstActiveStiction, mostNegativeStictionCapacity);
         #endif
@@ -1595,7 +1595,7 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
         }
 
         SimTK_DEBUG1("  Disable stiction %d\n", worstActiveStiction);
-        const MyHybridVertexContactElementImpl& fric = 
+        const MyHybridVertexContactElementImpl& fric =
             getContactElement(worstActiveStiction);
 
         ++nStictionDisabled;
@@ -1604,11 +1604,11 @@ findActiveCandidates(State& s, const MyElementSubset& candidates) const
         // Go back for another pass.
     }
 
-    // Reset all the slip directions so that all slip->stick event witnesses 
+    // Reset all the slip directions so that all slip->stick event witnesses
     // will be positive when integration resumes.
     for (unsigned i=0; i < candidates.m_contact.size(); ++i) {
         const int which = candidates.m_contact[i];
-        const MyHybridVertexContactElementImpl& fric = 
+        const MyHybridVertexContactElementImpl& fric =
             getContactElement(which);
         fric.updatePrevSlipDirFromRecorded(s);
     }
@@ -1633,14 +1633,14 @@ showConstraintStatus(const State& s, const String& place) const
     for (int i=0; i < getNumContactElements(); ++i) {
         const MyHybridVertexContactElementImpl& contact = getContactElement(i);
         const bool isActive = contact.isInContact(s);
-        printf("  %6s %2d %s, h=%g dh=%g f=%g\n", 
-                isActive?"ACTIVE":"off", i, "hybrid", 
+        printf("  %6s %2d %s, h=%g dh=%g f=%g\n",
+                isActive?"ACTIVE":"off", i, "hybrid",
                 contact.getHeight(s),contact.getHeightDot(s),
                 isActive?contact.getNormalForce(s):Zero);
         if (!isActive) continue;
 
         const bool isSticking = contact.isSticking(s);
-        printf("  %8s friction %2d, |v|=%g witness=%g\n", 
+        printf("  %8s friction %2d, |v|=%g witness=%g\n",
                 isSticking?"STICKING":"sliding", i,
                 contact.getActualSlipSpeed(s),
                 isSticking?contact.calcStictionForceWitness(s)
@@ -1655,7 +1655,7 @@ showConstraintStatus(const State& s, const String& place) const
 // This is extracted from Simbody's continuous friction model so that we can
 // compare it with the new implementation.
 
-// Input x goes from 0 to 1; output goes 0 to 1 but smoothed with an S-shaped 
+// Input x goes from 0 to 1; output goes 0 to 1 but smoothed with an S-shaped
 // quintic with two zero derivatives at either end. Cost is 7 flops.
 inline static Real step5(Real x) {
     assert(0 <= x && x <= 1);
@@ -1664,16 +1664,16 @@ inline static Real step5(Real x) {
 }
 
 // This is the sum of two curves:
-// (1) a wet friction term mu_wet which is a linear function of velocity: 
+// (1) a wet friction term mu_wet which is a linear function of velocity:
 //     mu_wet = uv*v
 // (2) a dry friction term mu_dry which is a quintic spline with 4 segments:
-//     mu_dry = 
+//     mu_dry =
 //      (a) v=0..1: smooth interpolation from 0 to us
 //      (b) v=1..3: smooth interp from us down to ud (Stribeck)
 //      (c) v=3..Inf ud
 // CAUTION: uv and v must be dimensionless in multiples of transition velocity.
 // The function mu = mu_wet + mu_dry is zero at v=0 with 1st deriv (slope) uv
-// and 2nd deriv (curvature) 0. At large velocities v>>0 the value is 
+// and 2nd deriv (curvature) 0. At large velocities v>>0 the value is
 // ud+uv*v, again with slope uv and zero curvature. We want mu(v) to be c2
 // continuous, so mu_wet(v) must have zero slope and curvature at v==0 and
 // at v==3 where it takes on a constant value ud.
@@ -1687,14 +1687,14 @@ inline static Real step5(Real x) {
 //           *    *                     *
 //           *     *               *____| slope = uv at Inf
 //           *      *         *
-// ud+3uv    *        *  *      
-//          *          
-//          *        
+// ud+3uv    *        *  *
+//          *
+//          *
 //         *
 //  0  *____| slope = uv at 0
 //
 //     |    |           |
-//   v=0    1           3 
+//   v=0    1           3
 //
 // This calculates a composite coefficient of friction that you should use
 // to scale the normal force to produce the friction force.

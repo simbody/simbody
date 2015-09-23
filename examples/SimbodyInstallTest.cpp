@@ -31,7 +31,7 @@ using namespace SimTK;
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -39,20 +39,20 @@ int main() {
 
     Body::Rigid pendulumBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     pendulumBody.addDecoration(Transform(), DecorativeSphere(0.1));
-    MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)), 
+    MobilizedBody::Pin pendulum(matter.Ground(), Transform(Vec3(0)),
                                 pendulumBody,    Transform(Vec3(0, 1, 0)));
     //Motion::Steady(pendulum, 1);
 
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-   
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     pendulum.setOneU(state, 0, 1.0);
 
-    
+
     // Simulate it.
 
     RungeKuttaMersonIntegrator integ(system);

@@ -25,13 +25,13 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This file contains macros which are convenient to use for 
+ * This file contains macros which are convenient to use for
  * sprinkling error checking around liberally in SimTK programs, a
  * practice which is highly encouraged. You can think of this as
- * a generalization of the standard assert() macro. By default, 
+ * a generalization of the standard assert() macro. By default,
  * these macros evaporate completely in a release build, but are
  * present in any debug build. Macros are also provided which are
- * always present in cases where the error checking is not a 
+ * always present in cases where the error checking is not a
  * performance problem, and those should be used in preference
  * to the disappearing ones when appropriate. Also, you can force
  * the disappearing macros to remain present on a file-by-file basis,
@@ -50,20 +50,20 @@
  *                  "expected %d < count < %d but count=%d",
  *                  lower, upper, count);
  * </pre>
- * To override the disappearance of the non-ALWAYS macros, your 
+ * To override the disappearance of the non-ALWAYS macros, your
  * compilation should define a preprocessor symbols like
  * SimTK_KEEP_ASSERT, SimTK_KEEP_ERRCHK, etc.
  *
- * These macros will also capture the current file name and line 
+ * These macros will also capture the current file name and line
  * number for reporting to developers when appropriate, and those
- * with a condition that failed will include the condition in the 
+ * with a condition that failed will include the condition in the
  * message.
  *
  * Note that these are *global* symbols, so we use the reserved
- * SimTK_ name prefix (since we can't use the SimTK:: namespace 
+ * SimTK_ name prefix (since we can't use the SimTK:: namespace
  * for macros) to attempt to avoid pollution of user programs.
  *
- * We distinguish between macros which are used as internal 
+ * We distinguish between macros which are used as internal
  * "bugcatchers" and those which are used to report errors to
  * API users. The C++ exception mechanism is used in both circumstances
  * but the meaning and intended audience is quite different. Any
@@ -84,7 +84,7 @@
 // These exceptions are to be used for situations in which a user of a SimTK
 // API method screws up by providing bad indices or dimensions. These are special
 // cases of the more general APIARGCHECK macros, providing "canned" error messages
-// for several common situations. Although there are several different macro 
+// for several common situations. Although there are several different macro
 // names here, all are controlled by SimTK_KEEP_RANGECHECK to allow enabling of
 // these index- and size-validating tests together in Release mode.
 //
@@ -152,7 +152,7 @@
 
 // --------------------------------- STAGECHECK --------------------------------
 // These exceptions are to be used for situations in which a
-// user of an API screws up by attempting to access something in the 
+// user of an API screws up by attempting to access something in the
 // state before it has been realized to the appropriate stage.
 //
 //   STAGECHECK_TOPOLOGY_REALIZED: Check that realizeTopology() has been done
@@ -191,7 +191,7 @@
 #if defined(NDEBUG) && !defined(SimTK_KEEP_STAGECHECK)
     #define SimTK_STAGECHECK_TOPOLOGY_REALIZED(cond,objType,objName,methodName)
     #define SimTK_STAGECHECK_TOPOLOGY_VERSIONS(sysTopoVersion,stateTopoVersion,\
-                                               objType,objName,methodNm)   
+                                               objType,objName,methodNm)
     #define SimTK_STAGECHECK_EQ(currentStage,targetStage,methodNm)
     #define SimTK_STAGECHECK_GE(currentStage,targetStage,methodNm)
     #define SimTK_STAGECHECK_LT(currentStage,targetStage,methodNm)
@@ -216,8 +216,8 @@
 // -------------------------------- APIARGCHECK --------------------------------
 // These should be used to catch all manner of problems with the arguments passed
 // in an API user's call to a method that is part of a SimTK API. Note that these
-// are intended for direct consumption by an application programmer using a SimTK 
-// API, so should be wordy and helpful. These macros accept printf-style format 
+// are intended for direct consumption by an application programmer using a SimTK
+// API, so should be wordy and helpful. These macros accept printf-style format
 // strings and arguments of whatever are the appropriate types for those formats.
 // -----------------------------------------------------------------------------
 
@@ -271,10 +271,10 @@
 
 // ----------------------------------- ERRCHK ----------------------------------
 // ERRCHK: these should be used to catch all manner of problems that occur
-// during execution of an API user's request by a method that is part of 
-// a SimTK API. Note that these are intended for direct consumption by 
-// an application programmer using a SimTK API, so should be wordy and 
-// helpful. These macros accept printf-style format strings and arguments 
+// during execution of an API user's request by a method that is part of
+// a SimTK API. Note that these are intended for direct consumption by
+// an application programmer using a SimTK API, so should be wordy and
+// helpful. These macros accept printf-style format strings and arguments
 // of whatever are the appropriate types for those formats.
 // -----------------------------------------------------------------------------
 

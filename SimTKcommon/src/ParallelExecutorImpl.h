@@ -39,7 +39,7 @@ class ParallelExecutorImpl;
 /**
  * This class stores per-thread information used while executing a task.
  */
- 
+
 //TODO: Rewrite the threading class using C++11 std::thread
 
 class ThreadInfo {

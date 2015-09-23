@@ -38,20 +38,20 @@ static const int ITERATIONS = 4;
 static const Real TOL = 1e-4;
 
 bool testFitting
-   (const MultibodySystem& mbs, State& state, 
-    const vector<MobilizedBodyIndex>& bodyIxs, 
-    const vector<vector<Vec3> >& stations, 
-    const vector<vector<Vec3> >& targetLocations, 
-    Real minError, Real maxError, Real endDistance) 
-{    
+   (const MultibodySystem& mbs, State& state,
+    const vector<MobilizedBodyIndex>& bodyIxs,
+    const vector<vector<Vec3> >& stations,
+    const vector<vector<Vec3> >& targetLocations,
+    Real minError, Real maxError, Real endDistance)
+{
     // Find the best fit.
-    
+
     Real reportedError = ObservedPointFitter::findBestFit(mbs, state, bodyIxs, stations, targetLocations, TOL);
     cout << "[min,max]=" << minError << "," << maxError << " actual=" << reportedError << endl;
     bool result = (reportedError <= maxError && reportedError >= minError);
-    
+
     // Verify that the error was calculated correctly.
-    
+
     Real error = 0.0;
     int numStations = 0;
     mbs.realize(state, Stage::Position);
@@ -65,7 +65,7 @@ bool testFitting
     error = std::sqrt(error/numStations);
     cout << "calc wrms=" << error << endl;
     ASSERT(std::abs(1.0-error/reportedError) < 0.0001); // should match to machine precision
-    
+
     if (endDistance >= 0) {
         // Verify that the ends are the correct distance apart.
         Real distance = (matter.getMobilizedBody(bodyIxs[0]).getBodyOriginLocation(state)-matter.getMobilizedBody(bodyIxs[bodyIxs.size()-1]).getBodyOriginLocation(state)).norm();
@@ -80,7 +80,7 @@ bool testFitting
 static void testObservedPointFitter(bool useConstraint) {
     int failures = 0;
     for (int iter = 0; iter < ITERATIONS; ++iter) {
-        
+
         // Build a system consisting of a chain of bodies with occasional side chains, and
         // a variety of mobilizers.
 

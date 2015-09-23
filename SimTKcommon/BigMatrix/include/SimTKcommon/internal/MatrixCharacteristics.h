@@ -50,8 +50,8 @@ class MatrixCommitment;
 
 
 //  ------------------------------ MatrixStructure -----------------------------
-/// Matrix "structure" refers to an inherent mathematical (or at least 
-/// algorithmic) characteristic of the matrix rather than a storage strategy. 
+/// Matrix "structure" refers to an inherent mathematical (or at least
+/// algorithmic) characteristic of the matrix rather than a storage strategy.
 /// Symmetry is the clearest example of this; it is far more significant
 /// mathematically than just a way to save storage and reduce operation count.
 //  ----------------------------------------------------------------------------
@@ -86,7 +86,7 @@ public:
     static const StructureMask UncommittedStructure = 0xffffffffU;
     static StructureMask calcStructureMask(Structure);
 
-    /// For triangular matrices, we have to know which triangle 
+    /// For triangular matrices, we have to know which triangle
     /// we're talking about. Don't confuse this with MatrixStorage::Placement
     /// which has to do with where we put it in memory, *not* what
     /// matrix is being represented.
@@ -131,7 +131,7 @@ public:
     }
 
     std::string name() const {
-        return std::string(name(getStructure())) 
+        return std::string(name(getStructure()))
             + "|" + std::string(name(getPosition()))
             + "|" + std::string(name(getDiagValue()));
     }
@@ -140,18 +140,18 @@ public:
         Mask() {setToUncommitted();}
         Mask(StructureMask sm, PositionMask pm, DiagValueMask dm)
         :   structure(sm), position(pm), diagValue(dm) {}
-        Mask& setToUncommitted() 
-        {   structure=UncommittedStructure; position=UncommittedPosition; 
+        Mask& setToUncommitted()
+        {   structure=UncommittedStructure; position=UncommittedPosition;
             diagValue=UncommittedDiagValue; return *this; }
         bool isUncommitted() const
-        {   return structure==UncommittedStructure && position==UncommittedPosition 
+        {   return structure==UncommittedStructure && position==UncommittedPosition
                 && diagValue==UncommittedDiagValue; }
         bool isSatisfiedBy(Structure str, Position pos, DiagValue diag) const
-        {   return ((StructureMask)str&structure)==(StructureMask)str 
+        {   return ((StructureMask)str&structure)==(StructureMask)str
                 && ((PositionMask)pos&position)==(PositionMask)pos
                 && ((DiagValueMask)diag&diagValue)==(DiagValueMask)diag; }
         bool isSatisfiedBy(const MatrixStructure& actual) const
-        {  return isSatisfiedBy(actual.getStructure(), actual.getPosition(), 
+        {  return isSatisfiedBy(actual.getStructure(), actual.getPosition(),
                                 actual.getDiagValue()); }
 
         StructureMask  structure;
@@ -164,7 +164,7 @@ public:
     /// This constructor is also an implicit conversion from the Structure enum
     /// to a MatrixStructure object which does not specify Position or DiagValue.
     MatrixStructure(Structure s, Position p=NoPosition, DiagValue d=NoDiagValue)
-        :   structure(s), position(p), diagValue(d) {} 
+        :   structure(s), position(p), diagValue(d) {}
 
     /// Given a Structure commitment, which more-restrictive Structures will
     /// still satisfy this commitment? Returned value is a mask with a bit
@@ -183,8 +183,8 @@ public:
     MatrixStructure& set(Structure s, Position p, DiagValue d)
     {   structure=s; position=p; diagValue=d; return *this; }
 
-    MatrixStructure& setToNone() 
-    {   structure=NoStructure; position=NoPosition; 
+    MatrixStructure& setToNone()
+    {   structure=NoStructure; position=NoPosition;
         diagValue=NoDiagValue; return *this; }
 
 private:
@@ -195,9 +195,9 @@ private:
 
 
 //  ------------------------------ MatrixStorage -------------------------------
-/// Matrix "storage" refers to the physical layout of data in the computer’s 
-/// memory. Whenever possible we attempt to store data in a format that enables 
-/// use of special high performance methods, such as those available in the 
+/// Matrix "storage" refers to the physical layout of data in the computer’s
+/// memory. Whenever possible we attempt to store data in a format that enables
+/// use of special high performance methods, such as those available in the
 /// SimTK LAPACK/BLAS implementation.
 //  ----------------------------------------------------------------------------
 class SimTK_SimTKCOMMON_EXPORT MatrixStorage {
@@ -247,28 +247,28 @@ public:
     static const DiagonalMask AllDiagonal = 0x0003U; // see above
     static const DiagonalMask UncommittedDiagonal = 0xffffU;
 
-    /// Use this class to represent sets of acceptable values for each of 
+    /// Use this class to represent sets of acceptable values for each of
     /// the storage attributes (packing, position, order, diagonal).
     struct Mask {
         Mask()
-        :   packing(UncommittedPacking), placement(UncommittedPlacement), 
+        :   packing(UncommittedPacking), placement(UncommittedPlacement),
             order(UncommittedOrder), diagonal(UncommittedDiagonal) {}
         Mask(PackingMask pkm, PlacementMask plm, OrderMask om, DiagonalMask dm)
         :   packing(pkm), placement(plm), order(om), diagonal(dm) {}
         Mask& setToUncommitted()
-        {   packing=UncommittedPacking; placement=UncommittedPlacement; 
+        {   packing=UncommittedPacking; placement=UncommittedPlacement;
             order=UncommittedOrder;     diagonal=UncommittedDiagonal; return *this; }
-        bool isUncommitted() const 
-        {   return packing==UncommittedPacking && placement==UncommittedPlacement 
-                && order==UncommittedOrder     && diagonal==UncommittedDiagonal; }        
+        bool isUncommitted() const
+        {   return packing==UncommittedPacking && placement==UncommittedPlacement
+                && order==UncommittedOrder     && diagonal==UncommittedDiagonal; }
         bool isSatisfiedBy(Packing pack, Placement place, Order ord, Diagonal diag) const
-        {   return ((PackingMask)pack    & packing)   == (PackingMask)  pack 
+        {   return ((PackingMask)pack    & packing)   == (PackingMask)  pack
                 && ((PlacementMask)place & placement) == (PlacementMask)place
-                && ((OrderMask)ord       & order)     == (OrderMask)    ord     
+                && ((OrderMask)ord       & order)     == (OrderMask)    ord
                 && ((DiagonalMask)diag   & diagonal)  == (DiagonalMask) diag; }
         bool isSatisfiedBy(const MatrixStorage& actual) const
-        {   return isSatisfiedBy(actual.getPacking(), actual.getPlacement(), 
-                                 actual.getOrder(),   actual.getDiagonal());}      
+        {   return isSatisfiedBy(actual.getPacking(), actual.getPlacement(),
+                                 actual.getOrder(),   actual.getDiagonal());}
 
         PackingMask   packing;
         PlacementMask placement;
@@ -300,7 +300,7 @@ public:
     }
 
     /// Default constructor leaves all fields unspecified.
-    MatrixStorage() 
+    MatrixStorage()
     :   packing(NoPacking), placement(NoPlacement), order(NoOrder), diagonal(NoDiag) {}
 
     /// This constructor is also an implicit conversion from the Packing enum to a
@@ -317,7 +317,7 @@ public:
     /// Assuming this is an actual matrix description, set any unspecified attributes
     /// to appropriate defaults to match the specified packing.
     MatrixStorage& setMissingAttributes() {
-        if (packing==NoPacking) 
+        if (packing==NoPacking)
             packing = Full;
         if (placement==NoPlacement)
             placement = Lower;
@@ -330,7 +330,7 @@ public:
 
     /// Restore this object to its default-constructed state of "none".
     MatrixStorage& setToNone()
-    {   packing=NoPacking; placement=NoPlacement; 
+    {   packing=NoPacking; placement=NoPlacement;
         order=NoOrder;     diagonal=NoDiag; return *this; }
 
     MatrixStorage& setPacking(Packing p)     {packing   = p; return *this;}
@@ -364,10 +364,10 @@ private:
 /// - Column (m x 1)
 /// - Row (1 x n)
 /// - Scalar (1 x 1)
-/// 
-/// A matrix handle with no outline commitment can hold a general (rectangular) 
-/// matrix, which of course includes all the other outlines as well. Vector 
-/// handles are always committed to column outline, RowVector handles to row 
+///
+/// A matrix handle with no outline commitment can hold a general (rectangular)
+/// matrix, which of course includes all the other outlines as well. Vector
+/// handles are always committed to column outline, RowVector handles to row
 /// outline. Scalar matrices are also rows, columns, and square and some
 /// rows and columns are square (if they are 1x1).
 ///
@@ -396,7 +396,7 @@ public:
         explicit Mask(OutlineMask mask) : outline(mask) {}
         Mask& setToUncommitted() {outline=UncommittedOutline; return *this;}
         bool isUncommitted() const {return outline==UncommittedOutline;}
-        bool isSatisfiedBy(const MatrixOutline& actual) const 
+        bool isSatisfiedBy(const MatrixOutline& actual) const
         {  return ((OutlineMask)actual.outline & outline) == (OutlineMask)actual.outline; }
 
         OutlineMask outline;
@@ -415,7 +415,7 @@ public:
     MatrixOutline& setToNone() {outline=NoOutline; return *this;}
 
     /// Compute a mask of acceptable Outline values given a particular
-    /// value specified as a commitment. For example, if the commitment 
+    /// value specified as a commitment. For example, if the commitment
     /// is "Wide" then Square, Row, and Scalar outlines are also acceptable.
     static OutlineMask calcMask(Outline);
 
@@ -442,10 +442,10 @@ private:
 
 
 //  ---------------------------- MatrixCondition -------------------------------
-/// Matrix "condition" is a statement about the numerical characteristics of a 
-/// Matrix. It can be set as a result of an operation, or by a knowledgeable user. 
-/// Simmatrix is entitled to rely on the correctness of these assertions, 
-/// although it will try to check them if requested or when it is possible to do 
+/// Matrix "condition" is a statement about the numerical characteristics of a
+/// Matrix. It can be set as a result of an operation, or by a knowledgeable user.
+/// Simmatrix is entitled to rely on the correctness of these assertions,
+/// although it will try to check them if requested or when it is possible to do
 /// so without sacrificing performance.
 /// In most cases the condition will not be set at all, which we interpret to
 /// mean "unknown condition" in an actual character, and "uncommitted" in
@@ -459,7 +459,7 @@ public:
         PositiveDefinite = 0x0002, // implies well conditioned
         WellConditioned  = 0x0004, // implies full rank
         FullRank         = 0x0008, // but might have bad conditioning
-        Singular         = 0x0010  // implies possible bad conditioning 
+        Singular         = 0x0010  // implies possible bad conditioning
     };
     static const char* name(Condition);
 
@@ -484,11 +484,11 @@ public:
     struct Mask {
         Mask() : condition(UncommittedCondition), diagonal(UncommittedDiagonal) {}
         Mask(ConditionMask cmask, DiagonalMask dmask) : condition(cmask), diagonal(dmask) {}
-        Mask& setToUncommitted()    
+        Mask& setToUncommitted()
         {   condition=UncommittedCondition; diagonal=UncommittedDiagonal; return *this;}
-        bool isUncommitted() const 
+        bool isUncommitted() const
         {   return condition==UncommittedCondition && diagonal==UncommittedDiagonal;}
-        bool isSatisfiedBy(const MatrixCondition& actual) const 
+        bool isSatisfiedBy(const MatrixCondition& actual) const
         {   return ((ConditionMask)actual.condition & condition) == (ConditionMask)actual.condition
                 && ((DiagonalMask) actual.diagonal  & diagonal)  == (DiagonalMask)actual.diagonal; }
 
@@ -496,7 +496,7 @@ public:
         DiagonalMask    diagonal;
     };
 
-    std::string name() const 
+    std::string name() const
     {   return std::string(name(getCondition())) + "|" + std::string(name(getDiagonal()));}
 
     /// The default constructor sets the condition to Unknown, which is typically
@@ -505,7 +505,7 @@ public:
 
     /// This is an implicit conversion from the Condition enum to a
     /// MatrixCondition object.
-    MatrixCondition(Condition cond, Diagonal diag=UnknownDiagonal) 
+    MatrixCondition(Condition cond, Diagonal diag=UnknownDiagonal)
     :   condition(cond), diagonal(diag) {}
 
     /// Restore to default-constructed state of "none".
@@ -527,7 +527,7 @@ public:
 
     /// Return the commitment mask corresponding to use of "this" condition
     /// as a commitment.
-    Mask mask() const 
+    Mask mask() const
     {   return Mask(calcMask(getCondition()), calcMask(getDiagonal())); }
 
     Condition getCondition() const {return condition;}
@@ -544,7 +544,7 @@ private:
 
 
 //  ------------------------------ MatrixCharacter -----------------------------
-/** A MatrixCharacter is a set containing a value for each of the matrix 
+/** A MatrixCharacter is a set containing a value for each of the matrix
 characteristics except element type, which is part of the templatized
 declaration of a Matrix_, Vector_, or RowVector_ handle. MatrixCharacters are
 used both as the handle "commitment", setting restrictions on what kinds
@@ -565,15 +565,15 @@ character</i>. A matrix character can be used to describe an existing matrix,
 or a character mask can be used to describe the range of characteristics that
 a matrix handle may support. The  character mask describing the acceptable
 matrices for a matrix handle is called the handle's <i>character commitment</i>
-or just the <i>handle commitment</i>. The character describing an existing 
-matrix is called the <i>actual character</i> of that matrix. Thus there are 
-always two sets of characteristics associated with a matrix: the handle's 
+or just the <i>handle commitment</i>. The character describing an existing
+matrix is called the <i>actual character</i> of that matrix. Thus there are
+always two sets of characteristics associated with a matrix: the handle's
 commitment, and the actual character of the matrix to which the handle currently
 refers. The actual character must always \e satisfy the character commitment.
 
-When a handle presents a view into another handle's data, it is the 
-characteristics of the matrix as seen through the view that must satisfy the 
-handle's character commitment. So for example, a view showing one column of a 
+When a handle presents a view into another handle's data, it is the
+characteristics of the matrix as seen through the view that must satisfy the
+handle's character commitment. So for example, a view showing one column of a
 full matrix satisfies a "column" outline commitment.
 
 Element type for a matrix handle is always determined at compile time via the
@@ -613,7 +613,7 @@ public:
         return *this;
     }
 
-    /// These are dimensions of the logical matrix and have nothing to do with 
+    /// These are dimensions of the logical matrix and have nothing to do with
     /// how much storage may be used to hold the elements.
     int                nrow()       const {return nr;}
     int                ncol()       const {return nc;}
@@ -622,7 +622,7 @@ public:
 
     int                getLowerBandwidth() const {return lband;}
     int                getUpperBandwidth() const {return uband;}
-    std::pair<int,int> getBandwidth()      const 
+    std::pair<int,int> getBandwidth()      const
     {   return std::pair<int,int>(getLowerBandwidth(), getUpperBandwidth()); }
 
     const MatrixStructure&  getStructure() const {return structure;}
@@ -674,8 +674,8 @@ protected:
                     MatrixStorage   storage,
                     MatrixCondition condition)
     :   nr(m), nc(n), lband(lb), uband(ub),
-        structure(structure), storage(storage), 
-        outline(MatrixOutline::calcFromSize(m,n)), 
+        structure(structure), storage(storage),
+        outline(MatrixOutline::calcFromSize(m,n)),
         condition(condition) {}
 
 
@@ -690,23 +690,23 @@ protected:
 
 private:
     // These are private because they don't set the outline as well.
-    MatrixCharacter& setSize(int m, int n) 
+    MatrixCharacter& setSize(int m, int n)
     {   assert(m>=0 && n>=0); nr = m; nc = n; return *this; }
-    MatrixCharacter& setNumRows(int m) 
+    MatrixCharacter& setNumRows(int m)
     {   assert(m>=0); nr = m; return *this; }
-    MatrixCharacter& setNumCols(int n) 
+    MatrixCharacter& setNumCols(int n)
     {   assert(n>=0); nc = n; return *this; }
 };
 
 /// Output a textual description of a MatrixCharacter; handy for debugging.
 /// @relates SimTK::MatrixCharacter
-SimTK_SimTKCOMMON_EXPORT std::ostream& 
+SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream& o, const MatrixCharacter&);
 
 /// Predefined MatrixCharacter for an ordinary Lapack-style full matrix
 /// of a particular dimension m x n (nrows X ncols). Note that the storage
-/// format allows for a "leading dimension" larger than m, but that the 
-/// leading dimension is not considered part of the matrix character. It is 
+/// format allows for a "leading dimension" larger than m, but that the
+/// leading dimension is not considered part of the matrix character. It is
 /// dealt with separately.
 class MatrixCharacter::LapackFull : public MatrixCharacter {
 public:
@@ -714,7 +714,7 @@ public:
     :   MatrixCharacter(m,n,0,0,
             MatrixStructure(MatrixStructure::Full),
             MatrixStorage(MatrixStorage::Full,MatrixStorage::ColumnOrder),
-            MatrixCondition()) {}                   
+            MatrixCondition()) {}
 };
 
 /// Predefined MatrixCharacter for an ordinary column vector of a particular
@@ -727,7 +727,7 @@ public:
     :   MatrixCharacter(m,1,0,0,
             MatrixStructure(MatrixStructure::Matrix1d),
             MatrixStorage(MatrixStorage::Vector,MatrixStorage::ColumnOrder),
-            MatrixCondition()) {}                   
+            MatrixCondition()) {}
 };
 
 /// Predefined MatrixCharacter for an ordinary row vector of a particular
@@ -740,7 +740,7 @@ public:
     :   MatrixCharacter(1,n,0,0,
             MatrixStructure(MatrixStructure::Matrix1d),
             MatrixStorage(MatrixStorage::Vector,MatrixStorage::RowOrder),
-            MatrixCondition()) {}                   
+            MatrixCondition()) {}
 };
 
 //  -------------------------- MatrixCharacter::Mask ---------------------------
@@ -782,7 +782,7 @@ public:
 
     /// Return if all fields are set to "Uncommitted" (all bits are one).
     bool isUncommitted() const {
-        return nr==SizeUncommitted       && nc==SizeUncommitted 
+        return nr==SizeUncommitted       && nc==SizeUncommitted
             && lband==SizeUncommitted    && uband==SizeUncommitted
             && structure.isUncommitted() && storage.isUncommitted()
             && outline.isUncommitted()   && condition.isUncommitted();
@@ -790,7 +790,7 @@ public:
 
     /// Check whether an actual matrix character satisfies this matrix commitment.
     bool isSatisfiedBy(const MatrixCharacter& actual) const {
-        return isSizeOK(actual.nr, actual.nc) 
+        return isSizeOK(actual.nr, actual.nc)
             && isBandwidthOK(actual.lband, actual.uband)
             && structure.isSatisfiedBy(actual.getStructure())
             && storage.isSatisfiedBy(actual.getStorage())
@@ -799,13 +799,13 @@ public:
     }
 
     /// Check whether an actual size satisfies the size commitment.
-    bool isSizeOK(int m, int n) const 
+    bool isSizeOK(int m, int n) const
     {   return ((SizeMask)m & nr)      == (SizeMask)m
             && ((SizeMask)n & nc)      == (SizeMask)n; }
 
     /// Check whether an actual bandwidth satisfies the bandwidth commitment.
     /// (If the matrix isn't banded any bandwidth will be OK.)
-    bool isBandwidthOK(int lower, int upper) const 
+    bool isBandwidthOK(int lower, int upper) const
     {   return ((SizeMask)lower & lband) == (SizeMask)lower
             && ((SizeMask)upper & uband) == (SizeMask)upper; }
 
@@ -833,7 +833,7 @@ class SimTK_SimTKCOMMON_EXPORT MatrixCommitment {
 public:
     MatrixCommitment() {} // set commitments to "none" and masks to "uncommitted"
 
-    /// This is an implicit conversion from a MatrixStructure specification to 
+    /// This is an implicit conversion from a MatrixStructure specification to
     /// a MatrixCommitment with storage, outline, and condition uncommitted.
     MatrixCommitment(const MatrixStructure& str)
     { new (this) MatrixCommitment(str, MatrixStorage(), MatrixOutline(), MatrixCondition());}
@@ -846,16 +846,16 @@ public:
     class SkewSymmetric;
     class SkewHermitian;
 
-    MatrixCommitment& commitSize(int m, int n) 
+    MatrixCommitment& commitSize(int m, int n)
     {   commitNumRows(m); commitNumCols(n); return *this; }
-    MatrixCommitment& commitNumRows(int m) 
+    MatrixCommitment& commitNumRows(int m)
     {   SimTK_SIZECHECK_NONNEG(m, "MatrixCommitment::commitNumRows()");
         masks.nr = m; return *this; }
-    MatrixCommitment& commitNumCols(int n)  
+    MatrixCommitment& commitNumCols(int n)
     {   SimTK_SIZECHECK_NONNEG(n, "MatrixCommitment::commitNumCols()");
         masks.nc = n; return *this; }
 
-    MatrixCommitment& commitBandwidth(int lb, int ub) 
+    MatrixCommitment& commitBandwidth(int lb, int ub)
     {  commitLowerBandwidth(lb); commitUpperBandwidth(ub); return *this;}
     MatrixCommitment& commitLowerBandwidth(int lb)
     {   SimTK_SIZECHECK_NONNEG(lb, "MatrixCommitment::commitLowerBandwidth()");
@@ -864,22 +864,22 @@ public:
     {   SimTK_SIZECHECK_NONNEG(ub, "MatrixCommitment::commitUpperBandwidth()");
         masks.uband = ub; return *this; }
 
-    MatrixCommitment& commitStructure(const MatrixStructure& s) 
+    MatrixCommitment& commitStructure(const MatrixStructure& s)
     {   structure=s; masks.structure=s.mask(); return *this; }
-    MatrixCommitment& commitStorage  (const MatrixStorage&   s) 
+    MatrixCommitment& commitStorage  (const MatrixStorage&   s)
     {   storage=s;   masks.storage  =s.mask(); return *this; }
-    MatrixCommitment& commitOutline  (const MatrixOutline&   o) 
+    MatrixCommitment& commitOutline  (const MatrixOutline&   o)
     {   outline=o;   masks.outline  =o.mask(); return *this; }
-    MatrixCommitment& commitCondition(const MatrixCondition& c) 
+    MatrixCommitment& commitCondition(const MatrixCondition& c)
     {   condition=c; masks.condition=c.mask(); return *this; }
 
     /// For any handle commitment, we can calculate a "best character" for
-    /// an allocation that satisfies the commitment, optionally with an 
-    /// initial allocation size. Typically it is the least-restrictive 
+    /// an allocation that satisfies the commitment, optionally with an
+    /// initial allocation size. Typically it is the least-restrictive
     /// actual character that satisfies the commitment. For
     /// example, if the commitment is Triangular we'll allocate a full triangular
     /// matrix, not a banded one, or a symmetric one, or for that matter an
-    /// identity matrix, all of which would satisfy the commitment. 
+    /// identity matrix, all of which would satisfy the commitment.
     /// The supplied sizes are used as minima -- if the commitment requires
     /// a larger minimum size you'll get that. For example, if you specify
     /// 0x0 but you're committed to a Column outline, you'll get 0x1.
@@ -905,13 +905,13 @@ public:
     int getDefaultNumRows() const {return masks.getDefaultNumRows();}
     int getDefaultNumCols() const {return masks.getDefaultNumRows();}
 
-    bool isSizeOK(int m, int n) const {return masks.isSizeOK(m,n);} 
+    bool isSizeOK(int m, int n) const {return masks.isSizeOK(m,n);}
     bool isSizeOK(const std::pair<int,int>& mn) const
     {   return isSizeOK(mn.first, mn.second); }
 
-    bool isBandwidthOK(int lower, int upper) const {return masks.isBandwidthOK(lower,upper);} 
+    bool isBandwidthOK(int lower, int upper) const {return masks.isBandwidthOK(lower,upper);}
 
-    bool isSatisfiedBy(const MatrixCharacter& actual) const 
+    bool isSatisfiedBy(const MatrixCharacter& actual) const
     {   return masks.isSatisfiedBy(actual); }
     bool isStructureOK(const MatrixStructure& s) const
     {   return getStructureMask().isSatisfiedBy(s); }
@@ -927,32 +927,32 @@ public:
     bool isNumRowsLocked()  const {return masks.isNumRowsLocked();}
     bool isNumColsLocked()  const {return masks.isNumColsLocked();}
 
-    bool isStructureCommitted() const 
+    bool isStructureCommitted() const
     {   return !getStructureMask().isUncommitted(); }
-    bool isStorageCommitted()   const 
+    bool isStorageCommitted()   const
     {   return !getStorageMask().isUncommitted();}
-    bool isOutlineCommitted()   const 
+    bool isOutlineCommitted()   const
     {   return !getOutlineMask().isUncommitted(); }
-    bool isConditionCommitted() const 
+    bool isConditionCommitted() const
     {   return !getConditionMask().isUncommitted();}
 
     /// Set commitment s to "none" and masks to "uncommitted" for all characteristics.
     void clear() {
-        structure.setToNone(); 
-        storage.setToNone(); 
-        outline.setToNone(); 
+        structure.setToNone();
+        storage.setToNone();
+        outline.setToNone();
         condition.setToNone();
         masks.setToUncommitted();
     }
 
 protected:
     MatrixCommitment(const MatrixStructure& structure,
-                     const MatrixStorage&   storage,                    
+                     const MatrixStorage&   storage,
                      const MatrixOutline&   outline,
                      const MatrixCondition& condition)
-    :   structure(structure), storage(storage), 
+    :   structure(structure), storage(storage),
         outline(outline), condition(condition),
-        masks() // set to all 1's 
+        masks() // set to all 1's
     {
         if (outline.getOutline()==MatrixOutline::Scalar) commitSize(1,1);
         else if (outline.getOutline()==MatrixOutline::Column) commitNumCols(1);
@@ -961,9 +961,9 @@ protected:
         masks.structure = structure.mask();
         masks.storage   = storage.mask();
         masks.outline   = outline.mask();
-        masks.condition = condition.mask(); 
+        masks.condition = condition.mask();
     }
-    
+
     /// These are the commitments as specified. They are used to fill in
     /// the corresponding bitmasks of acceptable characteristics below.
     MatrixStructure         structure;
@@ -983,18 +983,18 @@ public:
     /// Commit to a resizeable column vector.
     Vector()
     :   MatrixCommitment
-        (   MatrixStructure(MatrixStructure::Matrix1d), 
+        (   MatrixStructure(MatrixStructure::Matrix1d),
             MatrixStorage(),
-            MatrixOutline(MatrixOutline::Column), 
+            MatrixOutline(MatrixOutline::Column),
             MatrixCondition())
     {
     }
     /// Commit to a column vector of a particular length.
     explicit Vector(int m)
     :   MatrixCommitment
-        (   MatrixStructure(MatrixStructure::Matrix1d), 
+        (   MatrixStructure(MatrixStructure::Matrix1d),
             MatrixStorage(),
-            MatrixOutline(MatrixOutline::Column), 
+            MatrixOutline(MatrixOutline::Column),
             MatrixCondition())
     {
         commitNumRows(m);
@@ -1007,18 +1007,18 @@ public:
     /// Commit to a resizeable row vector.
     RowVector()
     :   MatrixCommitment
-        (   MatrixStructure(MatrixStructure::Matrix1d), 
+        (   MatrixStructure(MatrixStructure::Matrix1d),
             MatrixStorage(),
-            MatrixOutline(MatrixOutline::Row), 
+            MatrixOutline(MatrixOutline::Row),
             MatrixCondition())
     {
     }
     /// Commit to a row vector of a particular length.
     explicit RowVector(int n)
     :   MatrixCommitment
-        (   MatrixStructure(MatrixStructure::Matrix1d), 
+        (   MatrixStructure(MatrixStructure::Matrix1d),
             MatrixStorage(),
-            MatrixOutline(MatrixOutline::Row), 
+            MatrixOutline(MatrixOutline::Row),
             MatrixCondition())
     {
         commitNumCols(n);
@@ -1053,39 +1053,39 @@ class MatrixCommitment::Hermitian : public MatrixCommitment {
 public:
     Hermitian()
     :   MatrixCommitment
-        (   MatrixStructure::Hermitian, 
+        (   MatrixStructure::Hermitian,
             MatrixStorage(),
-            MatrixOutline(), 
+            MatrixOutline(),
             MatrixCondition().setDiagonal(MatrixCondition::RealDiagonal))
     {
     }
 };
 
-/// This is the default commitment for skew symmetric (*not* skew Hermitian) 
+/// This is the default commitment for skew symmetric (*not* skew Hermitian)
 /// matrix. Diagonal elements must be all-zero since they have to be their
 /// own negation. Otherwise any elements are acceptable.
 class MatrixCommitment::SkewSymmetric : public MatrixCommitment {
 public:
     SkewSymmetric()
     :   MatrixCommitment
-        (   MatrixStructure::SkewSymmetric, 
+        (   MatrixStructure::SkewSymmetric,
             MatrixStorage(),
-            MatrixOutline(), 
+            MatrixOutline(),
             MatrixCondition().setDiagonal(MatrixCondition::ZeroDiagonal))
     {
     }
 };
 
-/// This is the default commitment for a skew Hermitian (*not* skew symmetric) 
+/// This is the default commitment for a skew Hermitian (*not* skew symmetric)
 /// matrix. Diagonal elements must be pure imaginary since when conjugated they
 /// must be their own negation for a skew matrix.
 class MatrixCommitment::SkewHermitian : public MatrixCommitment {
 public:
     SkewHermitian()
     :   MatrixCommitment
-        (   MatrixStructure::SkewHermitian, 
+        (   MatrixStructure::SkewHermitian,
             MatrixStorage(),
-            MatrixOutline(), 
+            MatrixOutline(),
             MatrixCondition().setDiagonal(MatrixCondition::ImaginaryDiagonal))
     {
     }
@@ -1093,9 +1093,9 @@ public:
 
 /// Output a textual description of a MatrixCommitment; handy for debugging.
 /// @relates SimTK::MatrixCommitment
-SimTK_SimTKCOMMON_EXPORT std::ostream& 
+SimTK_SimTKCOMMON_EXPORT std::ostream&
 operator<<(std::ostream& o, const MatrixCommitment&);
-     
+
 } //namespace SimTK
 
 #endif // SimTK_SIMMATRIX_MATRIX_CHARACTERISTICS_H_

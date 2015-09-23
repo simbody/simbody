@@ -106,7 +106,7 @@ bool boundVector(Real maxLen, const Array_<int>& IV, Vector& w) {
     const Real maxLen2 = square(maxLen);
     Real wNorm2 = 0;
     for (unsigned i=0; i<IV.size(); ++i) wNorm2 += square(w[IV[i]]);
-    if (wNorm2 <= maxLen2) 
+    if (wNorm2 <= maxLen2)
         return false;
     const Real scale = std::sqrt(maxLen2/wNorm2); // 0 <= scale < 1
     for (unsigned i=0; i<IV.size(); ++i) w[IV[i]] *= scale;
@@ -117,14 +117,14 @@ bool boundVector(Real maxLen, const Array_<int>& IV, Vector& w) {
 and index set IF identifying the components of the friction vector, ensure
 that ||w[IF]|| <= mu*||w[IN]|| by scaling the friction vector if necessary.
 Return true if any change is made. **/
-bool boundFriction(Real mu, const Array_<int>& IN, 
+bool boundFriction(Real mu, const Array_<int>& IN,
                    const Array_<int>& IF, Vector& w) {
     assert(mu >= 0);
     Real N2=0, F2=0; // squares of normal and friction force magnitudes
     for (unsigned i=0; i<IN.size(); ++i) N2 += square(w[IN[i]]);
     for (unsigned i=0; i<IF.size(); ++i) F2 += square(w[IF[i]]);
     const Real mu2N2 = mu*mu*N2;
-    if (F2 <= mu2N2) 
+    if (F2 <= mu2N2)
         return false;
     const Real scale = std::sqrt(mu2N2/F2); // 0 <= scale < 1
     for (unsigned i=0; i<IF.size(); ++i) w[IF[i]] *= scale;
@@ -141,16 +141,16 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveIndex);
 // we're dealing with, while giving us enough to work with for deciding what's
 // on and off and generating impulses.
 //
-// There is always a scalar associated with the constraint for making 
+// There is always a scalar associated with the constraint for making
 // decisions. There may be a friction element associated with this contact.
 namespace {
 class MyFrictionElement;
 class MyContactElement {
 public:
-    MyContactElement(Constraint uni, Real multSign, Real coefRest) 
-    :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest), 
+    MyContactElement(Constraint uni, Real multSign, Real coefRest)
+    :   m_uni(uni), m_multSign(multSign), m_coefRest(coefRest),
         m_index(-1), m_friction(0),
-        m_velocityDependentCOR(NaN), m_restitutionDone(false) 
+        m_velocityDependentCOR(NaN), m_restitutionDone(false)
     {   m_uni.setDisabledByDefault(true); }
 
     MultiplierIndex getMultIndex(const State& s) const {
@@ -164,11 +164,11 @@ public:
     }
 
     virtual ~MyContactElement() {}
-    
+
     // (Re)initialize base & concrete class. If overridden, be sure to
     // invoke base class first.
     virtual void initialize() {
-        setRestitutionDone(false); 
+        setRestitutionDone(false);
         m_velocityDependentCOR = NaN;
     }
 
@@ -176,7 +176,7 @@ public:
     // constraint.
     virtual String getContactType() const = 0;
 
-    // These must be constructed so that a negative value means the 
+    // These must be constructed so that a negative value means the
     // unilateral constraint condition is violated.
     virtual Real getPerr(const State& state) const = 0;
     virtual Real getVerr(const State& state) const = 0;
@@ -190,7 +190,7 @@ public:
     // This is used by some constraints to collect position information that
     // may be used later to set instance variables when enabling the underlying
     // Simbody constraint. All constraints zero impulses here.
-    virtual void initializeForImpact(const State& state, Real captureVelocity) { 
+    virtual void initializeForImpact(const State& state, Real captureVelocity) {
         if (-captureVelocity <= getVerr(state) && getVerr(state) < 0) {
             m_velocityDependentCOR = 0;
             SimTK_DEBUG3("CAPTURING %d because %g <= v=%g < 0\n",
@@ -198,11 +198,11 @@ public:
         } else {
             m_velocityDependentCOR = m_coefRest;
         }
-        
-        setRestitutionDone(false);        
+
+        setRestitutionDone(false);
     }
 
-    // Returns zero if the constraint is not currently enabled. Otherwise 
+    // Returns zero if the constraint is not currently enabled. Otherwise
     // return the signed constraint force, with a negative value indicating
     // that the unilateral force condition is violated.
     Real getForce(const State& s) const {
@@ -211,7 +211,7 @@ public:
     }
 
     // Append to geometry array.
-    virtual void showContactForce(const State& s, 
+    virtual void showContactForce(const State& s,
                                   Array_<DecorativeGeometry>& geometry) const {}
 
     bool isProximal(const State& state, Real posTol) const
@@ -227,7 +227,7 @@ public:
     void setMyDesiredDeltaV(const State&    s,
                             Vector&         desiredDeltaV) const
     {   Vector myDesiredDV(1); myDesiredDV[0] = m_multSign*getVerr(s);
-        m_uni.setMyPartInConstraintSpaceVector(s, myDesiredDV, 
+        m_uni.setMyPartInConstraintSpaceVector(s, myDesiredDV,
                                                    desiredDeltaV); }
 
     Real getMyValueFromConstraintSpaceVector(const State& state,
@@ -266,7 +266,7 @@ protected:
     MyFrictionElement*  m_friction; // if any (just a reference, not owned)
 
     // Runtime -- initialized at start of impact handler.
-    Real m_velocityDependentCOR; // Calculated at start of impact 
+    Real m_velocityDependentCOR; // Calculated at start of impact
     bool m_restitutionDone;
 };
 
@@ -275,29 +275,29 @@ protected:
 //==============================================================================
 //                           MY FRICTION ELEMENT
 //==============================================================================
-// Generated forces during sliding, and the force limit during rolling, depend 
-// on a scalar normal force N that comes from a 
+// Generated forces during sliding, and the force limit during rolling, depend
+// on a scalar normal force N that comes from a
 // separate "normal force master", which might be one of the following:
 //  - a unilateral constraint
-//  - a bilateral constraint 
+//  - a bilateral constraint
 //  - a mobilizer
-//  - a compliant force element 
-// If the master is an inactive unilateral constraint, or if N=0, then no 
+//  - a compliant force element
+// If the master is an inactive unilateral constraint, or if N=0, then no
 // friction forces are generated. In this example, we're only going to use
 // a unilateral contact constraint as the "normal force master".
 //
-// For all but the compliant normal force master, the normal force N is 
+// For all but the compliant normal force master, the normal force N is
 // acceleration-dependent and thus may be coupled to the force produced by a
 // sliding friction element. This may require iteration to ensure consistency
 // between the sliding friction force and its master contact's normal force.
 //
 // A Coulomb friction element depends on a scalar slip speed defined by the
 // normal force master (this might be the magnitude of a generalized speed or
-// slip velocity vector). When the slip velocity goes to zero, the stiction 
+// slip velocity vector). When the slip velocity goes to zero, the stiction
 // constraint is enabled if its constraint force magnitude can be kept to
 // mu_s*|N| or less. Otherwise, or if the slip velocity is nonzero, the sliding
-// force is enabled instead and generates a force of constant magnitude mu_d*|N| 
-// that opposes the slip direction, or impending slip direction, as defined by 
+// force is enabled instead and generates a force of constant magnitude mu_d*|N|
+// that opposes the slip direction, or impending slip direction, as defined by
 // the master.
 class MyFrictionElement {
 public:
@@ -326,20 +326,20 @@ public:
     virtual void enable(State&) const = 0;
     virtual void disable(State&) const = 0;
 
-    // Return true if the normal force master *could* be involved in an 
+    // Return true if the normal force master *could* be involved in an
     // impact event (because it is touching).
     virtual bool isMasterProximal(const State&, Real posTol) const = 0;
 
     // Return true if the normal force master is currently generating a
-    // normal force (or impulse) so that this friction element might be 
+    // normal force (or impulse) so that this friction element might be
     // generating a force also.
     virtual bool isMasterActive(const State&) const = 0;
 
 
     // This is used by some stiction constraints to collect position information
-    // that may be used later to set instance variables when enabling the 
+    // that may be used later to set instance variables when enabling the
     // underlying Simbody constraint. Recorded impulses should be zeroed.
-    virtual void initializeFriction(const State& state) = 0; 
+    virtual void initializeFriction(const State& state) = 0;
 
     // If this friction element's stiction constraint is enabled, set its
     // constraint-space velocity entry(s) in desiredDeltaV to the current
@@ -348,14 +348,14 @@ public:
                                     Vector&      desiredDeltaV) const = 0;
 
     // Output the status, friction force, slip velocity, prev slip direction
-    // (scalar or vector) to the given ostream, indented as indicated and 
+    // (scalar or vector) to the given ostream, indented as indicated and
     // followed by a newline. May generate multiple lines.
     virtual std::ostream& writeFrictionInfo(const State& state,
                                             const String& indent,
                                             std::ostream& o) const = 0;
 
     // Optional: give some kind of visual representation for the friction force.
-    virtual void showFrictionForce(const State& state, 
+    virtual void showFrictionForce(const State& state,
         Array_<DecorativeGeometry>& geometry, const Vec3& color) const {}
 
 
@@ -383,11 +383,11 @@ struct MyElementSubset {
 class MyUnilateralConstraintSet {
 public:
     // Capture velocity: if the normal approach velocity
-    // is smaller, the coefficient of restitution is set to zero for the 
-    // upcoming impact. Transition velocity: if a slip velocity is smaller than 
+    // is smaller, the coefficient of restitution is set to zero for the
+    // upcoming impact. Transition velocity: if a slip velocity is smaller than
     // this use the static coefficient of friction, otherwise use dynamic
     // plus viscous.
-    MyUnilateralConstraintSet(const MultibodySystem& mbs, 
+    MyUnilateralConstraintSet(const MultibodySystem& mbs,
                               Real captureVelocity, Real transitionVelocity)
     :   m_mbs(mbs), m_captureVelocity(captureVelocity),
         m_transitionVelocity(transitionVelocity)  {}
@@ -414,9 +414,9 @@ public:
 
     int getNumContactElements() const {return (int)m_contact.size();}
     int getNumFrictionElements() const {return (int)m_friction.size();}
-    const MyContactElement& getContactElement(int ix) const 
+    const MyContactElement& getContactElement(int ix) const
     {   return *m_contact[ix]; }
-    const MyFrictionElement& getFrictionElement(int ix) const 
+    const MyFrictionElement& getFrictionElement(int ix) const
     {   return *m_friction[ix]; }
 
     // Allow writable access to elements from const set so we can record
@@ -434,9 +434,9 @@ public:
     }
 
     // Return the contact and friction elements that might be involved in an
-    // impact occurring in this configuration. They are the contact elements 
-    // for which perr <= posTol, and friction elements whose normal force 
-    // masters can be involved in the impact. State must be realized through 
+    // impact occurring in this configuration. They are the contact elements
+    // for which perr <= posTol, and friction elements whose normal force
+    // masters can be involved in the impact. State must be realized through
     // Position stage.
     void findProximalElements(const State&      state,
                               Real              posTol,
@@ -445,7 +445,7 @@ public:
     {
         proximals.clear(); distals.clear();
         for (unsigned i=0; i < m_contact.size(); ++i)
-            if (m_contact[i]->isProximal(state,posTol)) 
+            if (m_contact[i]->isProximal(state,posTol))
                 proximals.m_contact.push_back(i);
             else distals.m_contact.push_back(i);
         for (unsigned i=0; i < m_friction.size(); ++i)
@@ -480,21 +480,21 @@ private:
 //==============================================================================
 //                             MY POINT CONTACT
 //==============================================================================
-// Define a unilateral constraint to represent contact of a follower point on 
+// Define a unilateral constraint to represent contact of a follower point on
 // one body with a plane fixed to another body.
 class MyPointContact : public MyContactElement {
     typedef MyContactElement Super;
 public:
     MyPointContact(
         MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
-        MobilizedBody& followerBodyF, const Vec3& point_F, 
+        MobilizedBody& followerBodyF, const Vec3& point_F,
         Real           coefRest)
-    :   MyContactElement( 
+    :   MyContactElement(
              Constraint::PointInPlane(planeBodyB, normal_B, height,
                                       followerBodyF, point_F),
              Real(-1), // multiplier sign
              coefRest),
-        m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height), 
+        m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height),
         m_follower(followerBodyF), m_point(point_F)
     {
     }
@@ -537,7 +537,7 @@ public:
     {   return m_follower.findStationLocationInAnotherBody
                                                     (s, m_point, m_planeBody); }
 
-    void showContactForce(const State& s, 
+    void showContactForce(const State& s,
                           Array_<DecorativeGeometry>& geometry)
             const override
     {
@@ -574,9 +574,9 @@ private:
 //==============================================================================
 //                        MY POINT CONTACT FRICTION
 //==============================================================================
-// This friction element expects its master to be a unilateral point contact 
+// This friction element expects its master to be a unilateral point contact
 // constraint. It provides slipping forces or stiction constraint forces acting
-// in the plane, based on the normal force being applied by the point contact 
+// in the plane, based on the normal force being applied by the point contact
 // constraint.
 class MyPointContactFriction : public MyFrictionElement {
     typedef MyFrictionElement Super;
@@ -586,9 +586,9 @@ public:
         Real mu_d, Real mu_s, Real mu_v, Real vtol, //TODO: shouldn't go here
         GeneralForceSubsystem& forces)
     :   MyFrictionElement(mu_d,mu_s,mu_v), m_contact(contact),
-        m_noslipX(contact.updPlaneBody(), Vec3(0), contact.getPlaneFrame().x(), 
+        m_noslipX(contact.updPlaneBody(), Vec3(0), contact.getPlaneFrame().x(),
                   contact.updPlaneBody(), contact.updBody()),
-        m_noslipY(contact.updPlaneBody(), Vec3(0), contact.getPlaneFrame().y(), 
+        m_noslipY(contact.updPlaneBody(), Vec3(0), contact.getPlaneFrame().y(),
                   contact.updPlaneBody(), contact.updBody())
     {
         assert((0 <= mu_d && mu_d <= mu_s) && (0 <= mu_v));
@@ -665,7 +665,7 @@ public:
     {   return !m_contact.isDisabled(s); }
 
 
-    // Set the friction application point to be the projection of the contact 
+    // Set the friction application point to be the projection of the contact
     // point onto the contact plane. This will be used the next time friction
     // is enabled. Requires state realized to Position stage.
     void initializeFriction(const State& s) override {
@@ -673,7 +673,7 @@ public:
         m_contactPointInPlane = p;
     }
 
-    // Fill in deltaV to eliminate slip velocity using the stiction 
+    // Fill in deltaV to eliminate slip velocity using the stiction
     // constraints.
     void setMyDesiredDeltaV(const State& s,
                             Vector& desiredDeltaV) const override
@@ -698,8 +698,8 @@ public:
     }
 
 
-    std::ostream& writeFrictionInfo(const State& s, const String& indent, 
-                                    std::ostream& o) const override 
+    std::ostream& writeFrictionInfo(const State& s, const String& indent,
+                                    std::ostream& o) const override
     {
         o << indent;
         if (!isMasterActive(s)) o << "OFF";
@@ -714,7 +714,7 @@ public:
 
 
     void showFrictionForce(const State& s, Array_<DecorativeGeometry>& geometry,
-                           const Vec3& color) 
+                           const Vec3& color)
             const override
     {
         const Real Scale = 0.1;
@@ -736,7 +736,7 @@ public:
 
 private:
     void initializeRuntimeFields() {
-        m_contactPointInPlane = Vec3(0); 
+        m_contactPointInPlane = Vec3(0);
     }
     const MyPointContact&   m_contact;
 
@@ -756,7 +756,7 @@ private:
 // to transition from sticking to sliding, for example.
 class MyPushForceImpl : public Force::Custom::Implementation {
 public:
-    MyPushForceImpl(const MobilizedBody& bodyB, 
+    MyPushForceImpl(const MobilizedBody& bodyB,
                     const Vec3&          stationB,
                     const Vec3&          forceG, // force direction in Ground!
                     Real                 onTime,
@@ -767,7 +767,7 @@ public:
 
     //--------------------------------------------------------------------------
     //                       Custom force virtuals
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
                    override
     {
@@ -781,7 +781,7 @@ public:
     Real calcPotentialEnergy(const State& state) const override {return 0;}
 
     void calcDecorativeGeometryAndAppend
-       (const State& state, Stage stage, 
+       (const State& state, Stage stage,
         Array_<DecorativeGeometry>& geometry) const override
     {
         const Real ScaleFactor = 0.1;
@@ -794,7 +794,7 @@ public:
                             .setLineThickness(3));
     }
 private:
-    const MobilizedBody& m_bodyB; 
+    const MobilizedBody& m_bodyB;
     const Vec3           m_stationB;
     const Vec3           m_forceG;
     Real                 m_on;
@@ -806,20 +806,20 @@ private:
 //                       PGS AUGMENTED MULTIBODY SYSTEM
 //==============================================================================
 /* This is a Simbody MultibodySystem able to provide some additional information
-about its constraints, in a form suitable for a PGS solver. The extra 
-information allows us to emulate conditional constraints using Simbody's 
+about its constraints, in a form suitable for a PGS solver. The extra
+information allows us to emulate conditional constraints using Simbody's
 unconditional constraints plus its constraint enable/disable feature.
 
 We first construct the system with all possible constraints included, but with
-conditional ones initially disabled. Then for any given configuration q, we 
-determine which conditional constraints are "proximal", meaning that they may 
-participate in applying forces to the system in that configuration. Those 
-constraints are enabled and all other conditional constraints are disabled. 
-Simbody can then calculate the constraint Jacobian G(q), and the 
+conditional ones initially disabled. Then for any given configuration q, we
+determine which conditional constraints are "proximal", meaning that they may
+participate in applying forces to the system in that configuration. Those
+constraints are enabled and all other conditional constraints are disabled.
+Simbody can then calculate the constraint Jacobian G(q), and the
 constraint-space compliance matrix A(q)=GM\~G.
 
 Extra constraint info:
-Unconditional: 
+Unconditional:
   - which multipliers / holonomic or not
 Bounded scalar (stop/contact/clutch/motor):
   - lower and upper bounds
@@ -840,12 +840,12 @@ public:
     PGSAugmentedMultibodySystem() : m_matter(0), m_forces(0), m_unis(0) {
         m_matter = new SimbodyMatterSubsystem(*this);
         m_forces = new GeneralForceSubsystem(*this);
-        m_unis   = new MyUnilateralConstraintSet(*this, 
-                        DefaultCaptureVelocity, DefaultTransitionVelocity);   
+        m_unis   = new MyUnilateralConstraintSet(*this,
+                        DefaultCaptureVelocity, DefaultTransitionVelocity);
         m_matter->setShowDefaultGeometry(false);
     }
 
-    virtual ~PGSAugmentedMultibodySystem() 
+    virtual ~PGSAugmentedMultibodySystem()
     {   delete m_unis; delete m_forces; delete m_matter; }
 
     virtual const MobilizedBody& getBodyToWatch() const
@@ -857,7 +857,7 @@ public:
 
     const SimbodyMatterSubsystem& getMatterSubsystem() const {return *m_matter;}
     SimbodyMatterSubsystem& updMatterSubsystem() {return *m_matter;}
-    
+
     const GeneralForceSubsystem& getForceSubsystem() const {return *m_forces;}
     GeneralForceSubsystem& updForceSubsystem() {return *m_forces;}
 
@@ -876,10 +876,10 @@ private:
 //==============================================================================
 
 struct Bounded {
-    Bounded(MultiplierIndex ix, Real lb, Real ub, Real effCOR) 
+    Bounded(MultiplierIndex ix, Real lb, Real ub, Real effCOR)
     :   m_ix(ix), m_lb(lb), m_ub(ub), m_frictional(-1),
-        m_effCOR(effCOR), m_hitBound(false) 
-    {   assert(m_lb<=m_ub); 
+        m_effCOR(effCOR), m_hitBound(false)
+    {   assert(m_lb<=m_ub);
         assert(isNaN(m_effCOR) || (0<=m_effCOR && m_effCOR<=1)); }
     MultiplierIndex  m_ix;         // which constraint multiplier
     Real             m_lb, m_ub;   // lower, upper bounds; lb <= ub
@@ -890,7 +890,7 @@ struct Bounded {
 
 struct LengthLimited {
     LengthLimited(const Array_<MultiplierIndex>& components, Real maxLength)
-    :   m_components(components), m_maxLength(maxLength), m_hitLimit(false) 
+    :   m_components(components), m_maxLength(maxLength), m_hitLimit(false)
     {   assert(m_components.size()<=3); assert(m_maxLength>=0); }
     Array_<MultiplierIndex> m_components;
     Real                    m_maxLength;
@@ -898,12 +898,12 @@ struct LengthLimited {
 };
 
 struct Frictional {
-    Frictional(const Array_<MultiplierIndex>& frictionComponents, 
+    Frictional(const Array_<MultiplierIndex>& frictionComponents,
                const Array_<MultiplierIndex>& normalComponents,
                Real                           muEff)
-    :   m_Fk(frictionComponents), m_Nk(normalComponents), 
-        m_effMu(muEff), m_wasLimited(false) 
-    {   assert(m_Fk.size()<=3 && m_Nk.size()<=3); 
+    :   m_Fk(frictionComponents), m_Nk(normalComponents),
+        m_effMu(muEff), m_wasLimited(false)
+    {   assert(m_Fk.size()<=3 && m_Nk.size()<=3);
         assert(isNaN(m_effMu) || m_effMu>=0); }
     Array_<MultiplierIndex> m_Fk, m_Nk;
     Real                    m_effMu;
@@ -913,15 +913,15 @@ struct Frictional {
 /**
 **/
 // Limit single-step direction change to 30 degrees.
-static const Real CosMaxSlidingDirChange = std::cos(Pi/6); 
+static const Real CosMaxSlidingDirChange = std::cos(Pi/6);
 static const Real MaxRollingTangVel   = 1.0e-1; //Can't roll above this velocity.
 
 class PGSTimeStepper {
 public:
     explicit PGSTimeStepper(const PGSAugmentedMultibodySystem& ambs)
-    :   m_ambs(ambs), 
+    :   m_ambs(ambs),
         m_PGSConvergenceTol(1e-6), m_PGSMaxIters(100), m_PGSSOR(1),
-        m_accuracy(1e-2), m_consTol(1e-3), m_useNewton(false) 
+        m_accuracy(1e-2), m_consTol(1e-3), m_useNewton(false)
     {   resetPGSStats(); }
 
     void setUseNewtonRestitution(bool useNewton) {m_useNewton=useNewton;}
@@ -944,7 +944,7 @@ public:
     }
     long long getPGSNumCalls(int phase) const {return m_PGSNumCalls[phase];}
     long long getPGSNumIters(int phase) const {return m_PGSNumIters[phase];}
-    long long getPGSNumFailures(int phase) const 
+    long long getPGSNumFailures(int phase) const
     {   return m_PGSNumFailures[phase]; }
 
     void setPGSConvergenceTol(Real tol) {m_PGSConvergenceTol=tol;}
@@ -972,7 +972,7 @@ public:
 private:
     // Determine which constraints will be involved for this step.
     void findProximalConstraints(const State&);
-    // Enable all proximal constraints, disable all distal constraints, 
+    // Enable all proximal constraints, disable all distal constraints,
     // reassigning multipliers if needed. Returns true if anything changed.
     bool enableProximalConstraints(State&);
     // After constraints are enabled, gather up useful info about them.
@@ -989,7 +989,7 @@ private:
     // indicate that an impact is occurring.
     bool isImpact(const State& s, const Vector& verr) const;
 
-    // Adjust given verr to reflect Newton restitution. 
+    // Adjust given verr to reflect Newton restitution.
     bool applyNewtonRestitutionIfAny(const State&, Vector& verr) const;
 
     // Adjust given compression impulse to include Poisson restitution impulse.
@@ -1000,7 +1000,7 @@ private:
     bool calcExpansionImpulseIfAny(const State& s, const Array_<int>& impacters,
                                    const Vector& compressionImpulse,
                                    Vector& expansionImpulse,
-                                   Array_<int>& expanders) const; 
+                                   Array_<int>& expanders) const;
 
     // This phase uses all the proximal constraints and should use a starting
     // guess for impulse saved from the last step if possible.
@@ -1026,9 +1026,9 @@ private:
 private:
     // Returns true if it converges.
     bool projGaussSeidel(int phase, // for stats
-                         const Matrix& A, const Vector& eps, Vector& pi, 
-                         const Array_<MultiplierIndex>&     all, 
-                         const Array_<MultiplierIndex>&     unconditional, 
+                         const Matrix& A, const Vector& eps, Vector& pi,
+                         const Array_<MultiplierIndex>&     all,
+                         const Array_<MultiplierIndex>&     unconditional,
                          Array_<Bounded>&                   bounded,
                          Array_<LengthLimited>&             lengthLimited,
                          Array_<Frictional>&                frictional) const;
@@ -1068,14 +1068,14 @@ friend class ShowContact;
 //==============================================================================
 //                            SHOW CONTACT
 //==============================================================================
-// For each visualization frame, generate ephemeral geometry to show just 
+// For each visualization frame, generate ephemeral geometry to show just
 // during this frame, based on the current State.
 class ShowContact : public DecorationGenerator {
 public:
-    explicit ShowContact(const PGSTimeStepper& ts) 
+    explicit ShowContact(const PGSTimeStepper& ts)
     :   m_ts(ts) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         const PGSAugmentedMultibodySystem& ambs = m_ts.m_ambs;
@@ -1138,7 +1138,7 @@ public:
     const MobilizedBody& getBodyToWatch() const override
     {   return m_brick; }
 
-    Vec3 getWatchOffset() const override 
+    Vec3 getWatchOffset() const override
     {   return Vec3(0, 2, 8); }
 
 private:
@@ -1270,7 +1270,7 @@ int main(int argc, char** argv) {
     pgs.initialize(s);
     mbs.resetAllCountersToZero();
     mbs.updUnis().initialize(); // reinitialize
-        
+
     Array_<State> states; states.reserve(10000);
 
     int nSteps=0, nStepsWithEvent = 0;
@@ -1302,12 +1302,12 @@ int main(int argc, char** argv) {
     const double timeInSec = realTime()-startReal;
     const double cpuInSec = cpuTime()-startCPU;
     cout << "Done -- took " << nSteps << " steps in " <<
-        timeInSec << "s for " << pgs.getTime() << "s sim (avg step=" 
+        timeInSec << "s for " << pgs.getTime() << "s sim (avg step="
         << (1000*pgs.getTime())/nSteps << "ms) ";
     cout << "CPUtime " << cpuInSec << endl;
 
     printf("Used PGS solver (%s) at acc=%g consTol=%g"
-           " convergenceTol=%g maxIters=%d SOR=%g.\n", 
+           " convergenceTol=%g maxIters=%d SOR=%g.\n",
            pgs.getUseNewtonRestitution() ? "Newton" : "Poisson",
            pgs.getAccuracy(), pgs.getConstraintTol(),
            pgs.getPGSConvergenceTol(), pgs.getPGSMaxIters(),
@@ -1329,7 +1329,7 @@ int main(int argc, char** argv) {
 
     // Instant replay.
     while(true) {
-        printf("Hit ENTER for replay (%d states) ...", 
+        printf("Hit ENTER for replay (%d states) ...",
                 states.size());
         getchar();
         for (unsigned i=0; i < states.size(); ++i) {
@@ -1338,7 +1338,7 @@ int main(int argc, char** argv) {
         }
     }
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);
@@ -1364,7 +1364,7 @@ stepToOLD(Real time) {
     const Real h = time - m_state.getTime();    // max timestep
 
     // Kinematics should already be realized so this won't do anything.
-    mbs.realize(s, Stage::Position); 
+    mbs.realize(s, Stage::Position);
     // Determine which constraints will be involved for this step.
     findProximalConstraints(s);
     // Enable all proximal constraints, reassigning multipliers if needed.
@@ -1384,7 +1384,7 @@ stepToOLD(Real time) {
     calcCoefficientsOfRestitution(s, verr0);
     calcCoefficientsOfFriction(s, verr0);
 
-    // We're going to accumulate velocity errors here, starting with the 
+    // We're going to accumulate velocity errors here, starting with the
     // presenting violation.
     Vector verr = verr0;
 
@@ -1407,7 +1407,7 @@ stepToOLD(Real time) {
     matter.calcAccelerationIgnoringConstraints(s,f,F,udotExt,A_GB);
 
     // There are some constraints to deal with.
-    // Calculate verrExt = G*deltaU; the end-of-step constraint error due to 
+    // Calculate verrExt = G*deltaU; the end-of-step constraint error due to
     // external and centrifugal forces.
     Vector verrExt;
     matter.multiplyByG(s, h*udotExt, verrExt);
@@ -1429,11 +1429,11 @@ stepToOLD(Real time) {
     //cout << "Poisson impulse=" << impulse << endl;
 
     if (anyPoisson) {
-        // Must calculate a reaction impulse. Move now-known impulse to RHS 
+        // Must calculate a reaction impulse. Move now-known impulse to RHS
         // (convert to verr). For small m, it would probably be faster just
         // to multiply by GM\~G (O(m^2)), which we already calculated above.
         Vector reacImpulse;
-        //Vector genImpulse, deltaU, expVerr; 
+        //Vector genImpulse, deltaU, expVerr;
         //// constraint impulse -> gen impulse
         //matter.multiplyByGTranspose(s, impulse, genImpulse);
         //// gen impulse to delta-u, then to verr
@@ -1458,7 +1458,7 @@ stepToOLD(Real time) {
     // We need forces, not impulses for the next calculation.
     s.updMultipliers() = impulse/h;
     // Calculate constraint forces ~G*lambda (body frcs Fc, mobility frcs fc).
-    Vector_<SpatialVec> Fc; Vector fc; 
+    Vector_<SpatialVec> Fc; Vector fc;
     matter.calcConstraintForcesFromMultipliers
         (s,s.updMultipliers(), Fc, fc);
 
@@ -1472,7 +1472,7 @@ stepToOLD(Real time) {
     // Update auxiliary states z, invalidating Stage::Dynamics.
     s.updZ() += h*s.getZDot();
 
-    // Update u from deltaU, invalidating Stage::Velocity. 
+    // Update u from deltaU, invalidating Stage::Velocity.
     s.updU() += h*udot;
 
     // Done with velocity update. Now calculate qdot, possiblity including
@@ -1482,14 +1482,14 @@ stepToOLD(Real time) {
     if (!anyPositionErrorsViolated(s, perr0)) {
         matter.multiplyByN(s,false,s.getU(),qdot);
     } else {
-        // Don't include quaternions for position correction. 
+        // Don't include quaternions for position correction.
         Vector posImpulse, genImpulse, posVerr, deltaU;
         posVerr.resize(s.getNUErr()); posVerr.setToZero();
         const int nQuat = matter.getNumQuaternionsInUse(s);
         posVerr(0, perr0.size()-nQuat) = perr0(0, perr0.size()-nQuat)/h;
 
         //----------------------------------------------------------------------
-        // Calculate impulse and then deltaU=M\~G*impulse such that -h*deltaU 
+        // Calculate impulse and then deltaU=M\~G*impulse such that -h*deltaU
         // will eliminate position errors, respecting only position constraints.
         doPositionCorrectionPhase(s, posVerr, posImpulse);
         //----------------------------------------------------------------------
@@ -1529,7 +1529,7 @@ stepTo(Real time) {
     const Real h = time - t0;    // max timestep
 
     // Kinematics should already be realized so this won't do anything.
-    mbs.realize(s, Stage::Position); 
+    mbs.realize(s, Stage::Position);
     // Determine which constraints will be involved for this step.
     findProximalConstraints(s);
     // Enable all proximal constraints, reassigning multipliers if needed.
@@ -1618,7 +1618,7 @@ stepTo(Real time) {
         cout << "Preimpact impulse=" << impulse << endl;
         cout << "             verr=" << verr << endl;
         #endif
-        doInducedImpactRound(s, verr, participating, 
+        doInducedImpactRound(s, verr, participating,
                                 impacters, whichFrictional, impulse);
         //--------------------------------------------------------------------------
         impulse -= expansionImpulse; // already applied it
@@ -1645,7 +1645,7 @@ stepTo(Real time) {
     }
 
     if (anyImpact) {
-        Vector genImpulse, deltaU, expVerr; 
+        Vector genImpulse, deltaU, expVerr;
         // constraint impulse -> gen impulse
         matter.multiplyByGTranspose(s, -totalImpulse, genImpulse);
         // gen impulse to delta-u
@@ -1672,7 +1672,7 @@ stepTo(Real time) {
     Vector udotExt; Vector_<SpatialVec> A_GB;
     matter.calcAccelerationIgnoringConstraints(s,f,F,udotExt,A_GB);
 
-    // Calculate verrExt = G*deltaU; the end-of-step constraint error due to 
+    // Calculate verrExt = G*deltaU; the end-of-step constraint error due to
     // external and centrifugal forces.
     Vector verrExt;
     matter.multiplyByG(s, h*udotExt, verrExt);
@@ -1685,7 +1685,7 @@ stepTo(Real time) {
     totalImpulse += impulse;
     s.updMultipliers() = totalImpulse/h;
     // Calculate constraint forces ~G*lambda (body frcs Fc, mobility frcs fc).
-    Vector_<SpatialVec> Fc; Vector fc; 
+    Vector_<SpatialVec> Fc; Vector fc;
     matter.calcConstraintForcesFromMultipliers(s,impulse/h, Fc, fc);
 
     // Now calculate udot = M\(f-fc + ~J*(F-Fc-C)).
@@ -1695,7 +1695,7 @@ stepTo(Real time) {
     // Update auxiliary states z, invalidating Stage::Dynamics.
     s.updZ() += h*s.getZDot();
 
-    // Update u from deltaU, invalidating Stage::Velocity. 
+    // Update u from deltaU, invalidating Stage::Velocity.
     s.updU() += h*udot;
 
     s.updUDot() = (s.getU()-u0)/h;
@@ -1709,14 +1709,14 @@ stepTo(Real time) {
     if (!anyPositionErrorsViolated(s, perr0)) {
         matter.multiplyByN(s,false,s.getU(),qdot);
     } else {
-        // Don't include quaternions for position correction. 
+        // Don't include quaternions for position correction.
         Vector posImpulse, genImpulse, posVerr, deltaU;
         posVerr.resize(s.getNUErr()); posVerr.setToZero();
         const int nQuat = matter.getNumQuaternionsInUse(s);
         posVerr(0, perr0.size()-nQuat) = perr0(0, perr0.size()-nQuat)/h;
 
         //----------------------------------------------------------------------
-        // Calculate impulse and then deltaU=M\~G*impulse such that -h*deltaU 
+        // Calculate impulse and then deltaU=M\~G*impulse such that -h*deltaU
         // will eliminate position errors, respecting only position constraints.
         doPositionCorrectionPhase(s, posVerr, posImpulse);
         //----------------------------------------------------------------------
@@ -1750,9 +1750,9 @@ stepTo(Real time) {
 //==============================================================================
 //                           PROJECTED GAUSS SEIDEL
 //==============================================================================
-/* 
-We are given 
-    - A, square matrix of dimension mA 
+/*
+We are given
+    - A, square matrix of dimension mA
     - b, rhs vector (length mA)
     - w, solution vector with initial value w=w0 (length mA)
 representing mA scalar constraint equations A[i]*w=b[i].
@@ -1767,21 +1767,21 @@ The selected subset I is partitioned into four disjoint index sets
     - IF: Friction
 
 Each bounded scalar constraint k provides
-    - a single constraint index iB_k from IB, and 
+    - a single constraint index iB_k from IB, and
     - lower and upper bounds lb_k, ub_k.
 
-Each length-limited vector constraint k specifies 
+Each length-limited vector constraint k specifies
     - a unique index set of 1-3 distinct constraints IV_k from IV,
     - a nonnegative scalar L_k specifing the maximum length of the vector.
 
-Each friction constraint k specifies 
-    - a unique index set of 1-3 distinct friction constraints IF_k from IF, 
+Each friction constraint k specifies
+    - a unique index set of 1-3 distinct friction constraints IF_k from IF,
     - an index set of 1-3 distinct normal constraints IN_k from IA-IF,
     - the effective coefficient of friction mu.
-Note that the normal constraints in IN_k do not have to be selected from the 
-active subset I; if not they will be fixed at w0[IN_k] on entry. 
+Note that the normal constraints in IN_k do not have to be selected from the
+active subset I; if not they will be fixed at w0[IN_k] on entry.
 
-Given those inputs, we attempt to solve: 
+Given those inputs, we attempt to solve:
     A[I,I] w[I] = b[I]
     subject to lb_k <= w[iB_k] <= ub_k       for bounded constraints k in IB
     and        ||w[IV_k]|| <= L_k            for vector constraints k in IV
@@ -1798,8 +1798,8 @@ Implicitly, complementarity conditions must hold:
 bool PGSTimeStepper::projGaussSeidel
                     (int phase,
                      const Matrix& A, const Vector& b, Vector& w,
-                     const Array_<MultiplierIndex>&     all, 
-                     const Array_<MultiplierIndex>&     unconditional, 
+                     const Array_<MultiplierIndex>&     all,
+                     const Array_<MultiplierIndex>&     unconditional,
                      Array_<Bounded>&                   bounded,
                      Array_<LengthLimited>&             lengthLimited,
                      Array_<Frictional>&                frictional) const
@@ -1942,10 +1942,10 @@ bool PGSTimeStepper::projGaussSeidel
             if (sor > .1)
                 sor = std::max(.8*sor, .1);
             decreasing = true;
-        } 
+        }
         else if (!decreasing && its > 5 && rate > .9) {
             printf("TOO SLOW@%d: sor=%g rate=%g\n", its, sor, rate);
-            //if (its > 20) { 
+            //if (its > 20) {
             //    const Real needFac = normRMSenf/m_PGSConvergenceTol;
             //    const int needIts = -std::ceil(std::log(needFac)/std::log(rate));
             //    SimTK_DEBUG2("  need reduction by %g (%d iters)\n", needFac, needIts);
@@ -1959,22 +1959,22 @@ bool PGSTimeStepper::projGaussSeidel
             if (sor < 1.6)
                 sor = std::min(1.1*sor, 1.6);
             increasing = true;
-        } 
+        }
 
         #ifndef NDEBUG
         printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,
-                     normRMSall, normRMSenf, 
+                     normRMSall, normRMSenf,
                      normRMSenf/prevNormRMSenf);
         #endif
         #ifdef NDEBUG // i.e., NOT debugging (TODO)
         if (its > 90)
             printf("%d/%d: EST rmsAll=%g rmsEnf=%g rate=%g\n", phase, its,
-                     normRMSall, normRMSenf, 
+                     normRMSall, normRMSenf,
                      normRMSenf/prevNormRMSenf);
         #endif
         if (normRMSenf < m_PGSConvergenceTol) //TODO: add failure-to-improve check
         {
-            SimTK_DEBUG3("PGS %d converged to %g in %d iters\n", 
+            SimTK_DEBUG3("PGS %d converged to %g in %d iters\n",
                          phase, normRMSenf, its);
             converged = true;
             break;
@@ -1997,34 +1997,34 @@ bool PGSTimeStepper::projGaussSeidel
 
 /** An object of this class attempts to find the m-dimensional impulse vector
 pi that best solves a given impact or velocity-level contact problem. The total
-impulse is modeled as the vector sum of of a series of impulse "intervals". 
+impulse is modeled as the vector sum of of a series of impulse "intervals".
 <pre>
     pi_total = sum_i[ alpha(i)*pi_interval(i) ], i=1..numIntervals
         where   0<alpha(i)<1, i=1..numIntervals-1
         and     alpha(numIntervals)=1.
 </pre>
-Each interval's impulse represents a solution to that interval's set of 
+Each interval's impulse represents a solution to that interval's set of
 equations and inequalitites. We treat that as a line of constant direction in
-the overall solution space, and advance the solution a fraction alpha along 
+the overall solution space, and advance the solution a fraction alpha along
 that line until we encounter a qualitative change to a sliding contact (or other
-slipping constraint), signaling the need for a direction change. If no such 
-change occurs, we accept the full impulse (alpha=1) and no further intervals 
+slipping constraint), signaling the need for a direction change. If no such
+change occurs, we accept the full impulse (alpha=1) and no further intervals
 are required. Otherwise we accept the fraction alpha<1 of the impulse that ends
-with the first sliding change, reformulate the equations, and begin a new 
-interval. 
+with the first sliding change, reformulate the equations, and begin a new
+interval.
 
 If there are no slipping constraints at the beginning of an interval, then that
 will be the final interval. Even with slipping present, often only a single
-interval will be required, but in that case we do not know in advance how many 
+interval will be required, but in that case we do not know in advance how many
 more intervals will be needed.
 
-Within each interval, we seek the least squares impulse (impulse vector of 
-minimum 2-norm) that satisfies the interval equations and inequalities; the 
-total impulse is the the scaled sum of these least squares impulses. The 
+Within each interval, we seek the least squares impulse (impulse vector of
+minimum 2-norm) that satisfies the interval equations and inequalities; the
+total impulse is the the scaled sum of these least squares impulses. The
 qualitative changes that terminate an interval are: (1) a sliding contact comes
-to a stop (so it should transition to rolling), or (2) a sliding direction 
+to a stop (so it should transition to rolling), or (2) a sliding direction
 changes substantially, where the allowed amount is a parameter but must be less
-than 90 degrees. 
+than 90 degrees.
 
 We distinguish four kinds of constraints:
   - Unconditional
@@ -2032,39 +2032,39 @@ We distinguish four kinds of constraints:
   - Bounded scalar (upper, lower bounds; slipping/impending/rolling)
   - Frictional (inactive/slipping/impending/rolling)
 
-(Here we're using "rolling" to include "sticking" and "engaged".) The solution 
-to the interval equations requires determining the state of the conditional 
+(Here we're using "rolling" to include "sticking" and "engaged".) The solution
+to the interval equations requires determining the state of the conditional
 constraints, collectively the "active set".
 
-Unconditional constraints are workless linear equality constraints, always 
+Unconditional constraints are workless linear equality constraints, always
 active.
 
 Unilateral constraints are workless linear complementarity constraints (joint
-stops, ropes, contact normals), each either enforced as an equality with a 
-negative impulse pi_i (active), or satisfied as an inequality with a zero 
+stops, ropes, contact normals), each either enforced as an equality with a
+negative impulse pi_i (active), or satisfied as an inequality with a zero
 impulse (inactive). There may be an associated frictional constraints which
-must be marked inactive whenever the corresponding unilateral constraint is 
+must be marked inactive whenever the corresponding unilateral constraint is
 inactive.
 
 A Bounded scalar constraint's impulse remains within given upper and lower
-bounds (torque-limited motor). It is always active, but may be governed by one 
+bounds (torque-limited motor). It is always active, but may be governed by one
 of three equations. When rolling (engaged) it is a workless equality constraint. Otherwise it is
-maximally dissipative and has either the upper or lower value depending on 
-the sign of the slip velocity. When slipping, the velocity sign is known. When 
-impending, the initial slip velocity is zero and the constraint equation 
+maximally dissipative and has either the upper or lower value depending on
+the sign of the slip velocity. When slipping, the velocity sign is known. When
+impending, the initial slip velocity is zero and the constraint equation
 includes an unknown direction.
 
-Frictional constraints consist of 1-3 nonholonomic constraint equations whose 
-impulse multipliers form a vector whose magnitude cannot exceed a given 
-limiting value N>=0. There are three subtypes of Frictional constraint, 
+Frictional constraints consist of 1-3 nonholonomic constraint equations whose
+impulse multipliers form a vector whose magnitude cannot exceed a given
+limiting value N>=0. There are three subtypes of Frictional constraint,
 depending on the source of N:
   - Limited: N=mu*F, where F>=0 is a given force magnitude
-  - Unilateral: N=mu*max(-pi_i,0) where pi_i is a unilateral constraint 
+  - Unilateral: N=mu*max(-pi_i,0) where pi_i is a unilateral constraint
     multiplier
-  - Bilateral: N=mu*||pi_N|| where pi_N is a vector formed from 1-3 
+  - Bilateral: N=mu*||pi_N|| where pi_N is a vector formed from 1-3
     unconditional constraint multipliers
 
-When rolling (sticking), the Frictional equations are workless, linear equations 
+When rolling (sticking), the Frictional equations are workless, linear equations
 that eliminate relative sliding velocity. When sliding, the equations represent
 maximally dissipative behavior in which the impulse direction opposes the known
 relative slip velocity. When impending, the equations represent maximal
@@ -2072,14 +2072,14 @@ dissipation but the sliding direction is unknown. For either sliding or
 impending slip, the magnitude may be given or may be a function of unknown
 normal multipliers.
 
-A Frictional constraint whose normal contact force magnitude N comes from a 
+A Frictional constraint whose normal contact force magnitude N comes from a
 Unilateral constraint (always a scalar) uses N=max(-pi_N,0) if the Unilateral
-constraint is active, N=0 if not. All other Frictional constraints are limited 
+constraint is active, N=0 if not. All other Frictional constraints are limited
 by N=||pi_N|| where pi_N is the normal force vector.
 
 We are given the mXm matrix A=GM\~G that maps an impulse pi to the constraint-
 space velocity it induces: dv=-A*pi. Note the sign convention: in Simbody's
-formulation, multipliers have the opposite sign from applied forces so a 
+formulation, multipliers have the opposite sign from applied forces so a
 negative impulse produces a positive velocity. If a diagonal A_ii is
 nonpositive, we ignore that equation and set pi_i=0.
 
@@ -2089,7 +2089,7 @@ its workless (rolling) state. In that case we would write err(pi)=A*pi-verr
 and solve err(pi)=0. If the i'th constraint is unilateral, we instead have
 the complementarity condition err_i(pi)>=0, pi_i<=0, err_i*pi_i=0. For a rolling
 constraint, we must check that the impulse is within the bounds or magnitude
-limit. In the case of sliding or impending slip constraints, the corresponding 
+limit. In the case of sliding or impending slip constraints, the corresponding
 error functions are replaced by the appropriate linear or nonlinear equations.
 
 
@@ -2122,8 +2122,8 @@ public:
 
     bool solve( int phase,
                 const Matrix& A, const Vector& b, Vector& w,
-                const Array_<MultiplierIndex>&     all, 
-                const Array_<MultiplierIndex>&     unconditional, 
+                const Array_<MultiplierIndex>&     all,
+                const Array_<MultiplierIndex>&     unconditional,
                 Array_<Bounded>&                   bounded,
                 Array_<LengthLimited>&             lengthLimited,
                 Array_<Frictional>&                frictional);
@@ -2154,7 +2154,7 @@ private:
 
     // Copy the active rows and columns of A into the Jacobian. These will
     // be the right values for the linear equations, but rows for nonlinear
-    // equations (sliding, impending) will get overwritten. Initialize piActive 
+    // equations (sliding, impending) will get overwritten. Initialize piActive
     // from pi.
     void initializeNewton(const Vector&          piGuess,
                           const Array_<Bounded>& bounded);
@@ -2218,9 +2218,9 @@ namespace {
 
 // Multiply the active entries of a row of the full matrix A by a packed
 // column containing only active entries. Useful for A[r]*piActive.
-static Real multRowTimesActiveCol(const Matrix& A, MultiplierIndex row, 
+static Real multRowTimesActiveCol(const Matrix& A, MultiplierIndex row,
            const Array_<MultiplierIndex,ActiveIndex>& active,
-           const Vector& colActive) 
+           const Vector& colActive)
 {
     const RowVectorView Ar = A[row];
     Real result = 0;
@@ -2232,9 +2232,9 @@ static Real multRowTimesActiveCol(const Matrix& A, MultiplierIndex row,
 // Unpack an active column vector and add its values into a full column.
 static void addInActiveCol(const Array_<MultiplierIndex,ActiveIndex>& active,
                            const Vector& colActive,
-                           Vector& colFull) 
+                           Vector& colFull)
 {
-    for (ActiveIndex ax(0); ax < active.size(); ++ax) 
+    for (ActiveIndex ax(0); ax < active.size(); ++ax)
         colFull[active[ax]] += colActive[ax];
 }
 
@@ -2243,8 +2243,8 @@ static void addInActiveCol(const Array_<MultiplierIndex,ActiveIndex>& active,
 bool SuccessivePruning::solve
                     (int phase,
                      const Matrix& A, const Vector& b, Vector& w,
-                     const Array_<MultiplierIndex>&     all, 
-                     const Array_<MultiplierIndex>&     unconditional, 
+                     const Array_<MultiplierIndex>&     all,
+                     const Array_<MultiplierIndex>&     unconditional,
                      Array_<Bounded>&                   bounded,
                      Array_<LengthLimited>&             lengthLimited,
                      Array_<Frictional>&                frictional)
@@ -2281,7 +2281,7 @@ bool SuccessivePruning::solve
     m_A = &A; m_b = &b;
 
     // Note: w contains only expansion impulse, already applied.
-    m_expImpulse = w; 
+    m_expImpulse = w;
     m_verr       = b; // what's left to solve
 
     // Make room for friction information.
@@ -2304,7 +2304,7 @@ bool SuccessivePruning::solve
     int interval = 0;
     Real alpha = 0;
     while (alpha < 1) {
-        ++interval; 
+        ++interval;
         m_active = all; fillMult2Active(m_active, m_mult2active);
         printf("\n***** Interval %d start\n", interval);
         cout << "  active=" << m_active << endl;
@@ -2320,7 +2320,7 @@ bool SuccessivePruning::solve
 
         int its = 1;
         for (; ; ++its) {
-            printf("\n....... Active set iter %d start\n", its); 
+            printf("\n....... Active set iter %d start\n", its);
             cout << ": active=" << m_active << endl;
             cout << ": slipMag=" << m_slipMag << endl;
             cout << ": slipVel=" << m_slipVel << endl;
@@ -2334,10 +2334,10 @@ bool SuccessivePruning::solve
             fillMult2Active(m_active, m_mult2active);
             initializeNewton(piGuess, bounded);
             updateDirectionsAndCalcCurrentError(frictional,m_piActive,m_errActive);
-            
+
             if (m_active.empty())
                 break;
-          
+
             updateJacobianForSliding(frictional);
             const Real NewtonTol = 1e-10;
             Real errNorm = m_errActive.norm();
@@ -2357,7 +2357,7 @@ bool SuccessivePruning::solve
                 // Backtracking line search.
                 const Real MinFrac = 0.01; // take at least this much
                 const Real SearchReduceFac = 0.5;
-                
+
                 Real frac = 1;
                 int nsearch = 0;
                 piSave = m_piActive;
@@ -2371,11 +2371,11 @@ bool SuccessivePruning::solve
                         const Array_<MultiplierIndex>& Fk = fric.m_Fk;
                         const Array_<MultiplierIndex>& Nk = fric.m_Nk;
                         assert(Fk.size()==2); //TODO: generalize
-                        if (!m_mult2active[Fk[0]].isValid()) 
+                        if (!m_mult2active[Fk[0]].isValid())
                             continue;
                         if (!(m_fricCondition[k]==Slipping || m_fricCondition[k]==Impending))
                             continue;
-                        const ActiveIndex ax=m_mult2active[Fk[0]], ay=m_mult2active[Fk[1]], 
+                        const ActiveIndex ax=m_mult2active[Fk[0]], ay=m_mult2active[Fk[1]],
                                           az=m_mult2active[Nk[0]];
                         if (!az.isValid())
                             continue; // expander; always N>0
@@ -2398,7 +2398,7 @@ bool SuccessivePruning::solve
                         errNorm = normNow;
                         break;
                     }
-                    printf("GOT WORSE at iter %d: backtracking to frac=%g\n", 
+                    printf("GOT WORSE at iter %d: backtracking to frac=%g\n",
                            nsearch, frac);
                 }
 
@@ -2428,7 +2428,7 @@ bool SuccessivePruning::solve
                 // need to use it for an initial guess on the next iteration.
                 piGuess[mx] = clamp(bnd.m_lb, m_piActive[ax], bnd.m_ub);
                 const Real err=std::abs(m_piActive[ax] - piGuess[mx]);
-                if (err>worstBoundedValue) 
+                if (err>worstBoundedValue)
                     worstBounded=k, worstBoundedValue=err;
             }
 
@@ -2479,7 +2479,7 @@ bool SuccessivePruning::solve
                         assert(Nk.size()==1); // TODO: generalize
                         // "Sucking" normal forces are zero already in piGuess.
                         for (unsigned i=0; i<Nk.size(); ++i)
-                            nmag += square(piGuess[Nk[i]]); 
+                            nmag += square(piGuess[Nk[i]]);
                     } else { // expander
                         // Expansion forces always have the right sign.
                         for (unsigned i=0; i<Nk.size(); ++i)
@@ -2501,7 +2501,7 @@ bool SuccessivePruning::solve
                     piGuess[mx] = scale*m_piActive[ax];
                 }
             }
-            if (   worstFricValue<=SignificantReal 
+            if (   worstFricValue<=SignificantReal
                 && worstBoundedValue<=SignificantReal) {
                 printf("Contact & rolling OK; worstBounded=%g, worstFric=%g. Check sliding.\n",
                        worstBoundedValue, worstFricValue);
@@ -2510,7 +2510,7 @@ bool SuccessivePruning::solve
 
             bool mustReleaseFriction = true; // if we don't release a normal.
             if (worstBoundedValue > worstFricValue) {
-                printf("Worst offender is bounded %d err=%g ...\n", 
+                printf("Worst offender is bounded %d err=%g ...\n",
                     worstBounded, worstBoundedValue);
                 // A contact normal is the worst offender. However, if it has a
                 // rolling friction constraint active we should release that first
@@ -2549,20 +2549,20 @@ bool SuccessivePruning::solve
                 Frictional& fric = frictional[worstFric];
                 const Array_<MultiplierIndex>& Fk = fric.m_Fk;
                 const Array_<MultiplierIndex>& Nk = fric.m_Nk; // normal components
-                const ActiveIndex ax=m_mult2active[Fk[0]], ay=m_mult2active[Fk[1]], 
+                const ActiveIndex ax=m_mult2active[Fk[0]], ay=m_mult2active[Fk[1]],
                                   az=m_mult2active[Nk[0]];
 
-                printf("switch worst fric %d from rolling->impending err=%g\n", 
+                printf("switch worst fric %d from rolling->impending err=%g\n",
                        worstFric, worstFricValue);
                 m_fricCondition[worstFric] = Impending;
 
                 // Oppose the last rolling force as a guess at the slip velocity.
-                // Sign convention for multiplier is opposite velocity, so no 
+                // Sign convention for multiplier is opposite velocity, so no
                 // explicit negation here.
                 const Vec2 ft(piGuess[Fk[0]], piGuess[Fk[1]]);
                 cout << "  rolling impulse was " << ft << endl;
             }
-        } 
+        }
 
         tidyUpSolution(bounded,frictional);
 
@@ -2574,7 +2574,7 @@ bool SuccessivePruning::solve
             const Array_<MultiplierIndex>& Nk = fric.m_Nk;
             assert(Fk.size()==2); //TODO: generalize
             assert(Nk.size()==1); //TODO: generalize
-            if (!m_mult2active[Fk[0]].isValid()) 
+            if (!m_mult2active[Fk[0]].isValid())
                 continue;
             if (!(m_fricCondition[k]==Slipping))
                 continue; // no limit for Impending
@@ -2591,15 +2591,15 @@ bool SuccessivePruning::solve
                 printf("Friction %d slowed to a halt, v=%g\n", k, bendMag);
                 continue;
             }
-            const Real cosTheta = 
+            const Real cosTheta =
                 clamp(-1, dot(m_slipVel[k],bend)/(m_slipMag[k]*bendMag), 1);
             if (cosTheta >= CosMaxSlidingDirChange) {
-                printf("Friction %d rotated %g degrees, less than max %g\n", k, 
+                printf("Friction %d rotated %g degrees, less than max %g\n", k,
                        std::acos(cosTheta)*180/Pi,
                        std::acos(CosMaxSlidingDirChange)*180/Pi);
                 continue;
             }
-            printf("TOO BIG: Sliding friction %d; endmag=%g, rotation=%g deg > %g.\n", 
+            printf("TOO BIG: Sliding friction %d; endmag=%g, rotation=%g deg > %g.\n",
                    k, bendMag, std::acos(cosTheta)*180/Pi,
                    std::acos(CosMaxSlidingDirChange)*180/Pi);
 
@@ -2612,7 +2612,7 @@ bool SuccessivePruning::solve
                 continue;
             }
             Real alpha2 = calcSlidingStepLengthToMaxChange(m_slipVel[k],bend);
-            printf("  Alpha=%g reduces angle to %g degrees.\n", 
+            printf("  Alpha=%g reduces angle to %g degrees.\n",
                    alpha2, std::acos(CosMaxSlidingDirChange)*180/Pi);
             alpha = std::min(alpha, alpha2);
         }
@@ -2632,7 +2632,7 @@ bool SuccessivePruning::solve
         cout << ": m_verr=" << m_verr << endl;
     }
 
-    // Return the result. TODO: don't copy 
+    // Return the result. TODO: don't copy
     w = piTotal;
 
     // Check how we did on the original problem.
@@ -2642,11 +2642,11 @@ bool SuccessivePruning::solve
         const Bounded& bnd = bounded[k];
         const MultiplierIndex mx = bnd.m_ix;
         printf("%d: pi=%g verr=%g pi*v=%g\n", k, w[mx], res[mx], w[mx]*res[mx]);
-    } 
+    }
     //TODO: printf("SP DONE. Check friction cones ...\n");
 
     #ifndef NDEBUG
-    cout << "SP FINAL " << interval << "intervals, piTotal=" << piTotal 
+    cout << "SP FINAL " << interval << "intervals, piTotal=" << piTotal
          <<  " errNorm=" << m_errActive.norm() << endl;
     #endif
     return converged;
@@ -2680,13 +2680,13 @@ findProximalConstraints(const State& s) { //TODO: redo
     #endif
 }
 
-// Enable all proximal constraints, disable all distal constraints, 
+// Enable all proximal constraints, disable all distal constraints,
 // reassigning multipliers if needed. Returns true if any change was made.
 bool PGSTimeStepper::
 enableProximalConstraints(State& s) {
     const MyUnilateralConstraintSet& unis = m_ambs.getUnis();
 
-    // Record friction application points. This has to be done while Position 
+    // Record friction application points. This has to be done while Position
     // stage is still valid.
     for (unsigned i=0; i < m_proximals.m_friction.size(); ++i) {
         const int id = m_proximals.m_friction[i];
@@ -2740,7 +2740,7 @@ collectConstraintInfo(const State& s) { //TODO: redo
         contactElement2Bounded[id] = (int)m_bounded.size();
         // COR will be set later when we know the impact velocity.
         // TODO: fix sign convention (want 0,+Infinity)
-        m_bounded.push_back(Bounded(mx,-Infinity, Zero, NaN)); 
+        m_bounded.push_back(Bounded(mx,-Infinity, Zero, NaN));
     }
 
     m_frictional.clear();
@@ -2769,8 +2769,8 @@ collectConstraintInfo(const State& s) { //TODO: redo
     }
 
     const int m = s.getNUErr();
-    m_all.clear(); m_uncond.clear(); 
-    for (int i=0; i<m; ++i) 
+    m_all.clear(); m_uncond.clear();
+    for (int i=0; i<m; ++i)
         m_all.push_back(MultiplierIndex(i));
     // TODO: add in unconditionals in m_uncond
     #ifndef NDEBUG
@@ -2864,7 +2864,7 @@ calcCoefficientsOfRestitution(const State& s, const Vector& verr) {
 
 bool PGSTimeStepper::
 applyNewtonRestitutionIfAny(const State& s, Vector& verr) const {
-    if (!m_useNewton) 
+    if (!m_useNewton)
         return false; //TODO: check individual contacts
     bool anyRestitution = false;
     const PGSAugmentedMultibodySystem&  mbs    = m_ambs;
@@ -2887,7 +2887,7 @@ bool PGSTimeStepper::
 applyPoissonRestitutionIfAny(const State& s, Vector& impulse,
                              Array_<int>& expanders) const {
     expanders.clear();
-    if (m_useNewton) 
+    if (m_useNewton)
         return false; //TODO: check individual contacts
     bool anyRestitution = false;
     const PGSAugmentedMultibodySystem&  mbs    = m_ambs;
@@ -2912,12 +2912,12 @@ bool PGSTimeStepper::
 calcExpansionImpulseIfAny(const State& s, const Array_<int>& impacters,
                           const Vector& compressionImpulse,
                           Vector& expansionImpulse,
-                          Array_<int>& expanders) const 
+                          Array_<int>& expanders) const
 {
     expansionImpulse.resize(compressionImpulse.size());
     expansionImpulse.setToZero();
     expanders.clear();
-    if (m_useNewton) 
+    if (m_useNewton)
         return false; //TODO: check individual contacts
     bool anyRestitution = false;
     const PGSAugmentedMultibodySystem&  mbs    = m_ambs;
@@ -2949,11 +2949,11 @@ doCompressionPhase(const State& s, const Vector& eps, Vector& compImpulse) {
     compImpulse.resize(m_GMInvGt.ncol()); compImpulse.setToZero();
     //compImpulse = 0.001;//TODO: more stable solution?
     SuccessivePruning prune;
-    bool converged = prune.solve(0, m_GMInvGt, eps, compImpulse, 
-                                     m_all, m_uncond, m_bounded, 
+    bool converged = prune.solve(0, m_GMInvGt, eps, compImpulse,
+                                     m_all, m_uncond, m_bounded,
                                      m_lengthLimited, m_frictional);
-    //bool converged = projGaussSeidel(0, m_GMInvGt, eps, compImpulse, 
-    //                                 m_all, m_uncond, m_bounded, 
+    //bool converged = projGaussSeidel(0, m_GMInvGt, eps, compImpulse,
+    //                                 m_all, m_uncond, m_bounded,
     //                                 m_lengthLimited, m_frictional);
     return converged;
 }
@@ -2963,8 +2963,8 @@ bool PGSTimeStepper::
 doExpansionPhase(const State&, const Vector& eps, Vector& reactionImpulse) {
     // TODO: improve initial guess
     reactionImpulse.resize(m_GMInvGt.ncol()); reactionImpulse.setToZero();
-    bool converged = projGaussSeidel(1, m_GMInvGt, eps, reactionImpulse, 
-                                     m_all, m_uncond, m_bounded, 
+    bool converged = projGaussSeidel(1, m_GMInvGt, eps, reactionImpulse,
+                                     m_all, m_uncond, m_bounded,
                                      m_lengthLimited, m_frictional);
     return converged;
 }
@@ -2989,11 +2989,11 @@ doInducedImpactRound(const State& s, const Vector& eps,
 
     // impulse must already contain initial guess, including expansion impulse
     SuccessivePruning prune;
-    bool converged = prune.solve(0, m_GMInvGt, eps, impulse, 
-                                     participating, m_uncond, bounded, 
+    bool converged = prune.solve(0, m_GMInvGt, eps, impulse,
+                                     participating, m_uncond, bounded,
                                      m_lengthLimited, frictional);
-    //bool converged = projGaussSeidel(0, m_GMInvGt, eps, impulse, 
-    //                                 participating, m_uncond, bounded, 
+    //bool converged = projGaussSeidel(0, m_GMInvGt, eps, impulse,
+    //                                 participating, m_uncond, bounded,
     //                                 m_lengthLimited, frictional);
     return converged;
 }
@@ -3005,11 +3005,11 @@ doPositionCorrectionPhase(const State&, const Vector& eps,
     positionImpulse.resize(m_GMInvGt.ncol()); positionImpulse.setToZero();
     Array_<Frictional> noFrictionals;
     SuccessivePruning prune;
-    bool converged = prune.solve(2, m_GMInvGt, eps, positionImpulse, 
-                                m_allPos, m_uncondPos, m_boundedPos, 
+    bool converged = prune.solve(2, m_GMInvGt, eps, positionImpulse,
+                                m_allPos, m_uncondPos, m_boundedPos,
                                 m_lengthLimited, noFrictionals);
-    //bool converged = projGaussSeidel(2, m_GMInvGt, eps, positionImpulse, 
-    //                            m_allPos, m_uncondPos, m_boundedPos, 
+    //bool converged = projGaussSeidel(2, m_GMInvGt, eps, positionImpulse,
+    //                            m_allPos, m_uncondPos, m_boundedPos,
     //                            m_lengthLimited, noFrictionals);
     return converged;
 }
@@ -3146,7 +3146,7 @@ calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const
     t7 = A[1] * A[1];
     t8 = A[1] * v[1];
     t9 = A[0] * v[0];
-    t10 = std::sqrt(-(t1 * t2 * (t3 * t6 + t4 * t7 + t5 * (t6 + t4) 
+    t10 = std::sqrt(-(t1 * t2 * (t3 * t6 + t4 * t7 + t5 * (t6 + t4)
           + (-2 * A[2] * (t9 + t8) + (t7 + t3) * v[2]) * v[2] - 2 * t8 * t9)));
     t11 = t9 * t2;
     t12 = t8 * t2;
@@ -3199,7 +3199,7 @@ classifyFrictionals(const Array_<Frictional>& frictional) {
 void SuccessivePruning::
 updateDirectionsAndCalcCurrentError
    (const Array_<Frictional>& frictional, const Vector& piActive,
-    Vector& errActive) 
+    Vector& errActive)
 {
     const Matrix& A = (*m_A);
     const int m = m_active.size();
@@ -3223,7 +3223,7 @@ updateDirectionsAndCalcCurrentError
         assert(Fk.size()==2); //TODO: generalize
         assert(Nk.size()==1); //TODO: generalize
         const MultiplierIndex mx=Fk[0], my=Fk[1], mz=Nk[0];
-        if (!m_mult2active[mx].isValid()) 
+        if (!m_mult2active[mx].isValid())
             continue;
         if (!(m_fricCondition[k]==Slipping || m_fricCondition[k]==Impending))
             continue;
@@ -3238,7 +3238,7 @@ updateDirectionsAndCalcCurrentError
         }
 
         const Real mu = fric.m_effMu;
-        const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my], 
+        const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my],
                           az=m_mult2active[mz];
         const Real pix = piActive[ax], piy=piActive[ay];
 
@@ -3248,7 +3248,7 @@ updateDirectionsAndCalcCurrentError
              const Real piz=piActive[az];
             // errx=|v|pi_x + mu*vx*min(pi_z,0)   [erry similar]
             // But we calculate the Jacobian as though the equation were:
-            // errx=|v|pi_x + mu*vx*softmin0(pi_z) 
+            // errx=|v|pi_x + mu*vx*softmin0(pi_z)
             const Real minz = std::min(piz, Real(0));
             //const Real minz = softmin0(piz, m_minSmoothness);
 
@@ -3309,8 +3309,8 @@ fillMult2Active(const Array_<MultiplierIndex,ActiveIndex>& active,
 // previous impulses pi to new piActive. Assumes m_active and m_mult2active
 // have been filled in.
 void SuccessivePruning::
-initializeNewton(const Vector& pi, // mA of these 
-                 const Array_<Bounded>& bounded) { 
+initializeNewton(const Vector& pi, // mA of these
+                 const Array_<Bounded>& bounded) {
     const int m = m_active.size();
     const Matrix& A = *m_A;
     m_JacActive.resize(m,m); m_verrActive.resize(m); m_piActive.resize(m);
@@ -3363,14 +3363,14 @@ updateJacobianForSliding(const Array_<Frictional>& frictional) {
         assert(Fk.size()==2); //TODO: generalize
         assert(Nk.size()==1); //TODO: generalize
         const MultiplierIndex mx=Fk[0], my=Fk[1], mz=Nk[0];
-        if (!m_mult2active[mx].isValid()) 
+        if (!m_mult2active[mx].isValid())
             continue;
         if (!(m_fricCondition[k]==Slipping || m_fricCondition[k]==Impending))
             continue;
 
          // Handy abbreviations to better match equations.
         const Real mu = fric.m_effMu;
-        const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my], 
+        const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my],
                           az=m_mult2active[mz];
         const Real pix = m_piActive[ax], piy=m_piActive[ay];
         const Vec2 d     = m_slipVel[k];
@@ -3435,7 +3435,7 @@ updateJacobianForSliding(const Array_<Frictional>& frictional) {
                 const Real dminz = dsoftmin0(piz, m_minSmoothness);
                 m_JacActive(ax,az) = mu*d[0]*dminz;
                 m_JacActive(ay,az) = mu*d[1]*dminz;
-            } 
+            }
         }
         ++nPairsChanged;
     }
@@ -3484,7 +3484,7 @@ TimsBox::TimsBox() {
         const Real RunTime=16;  // Tim's time
         const Real Stiffness = 2e7;
         const Real Dissipation = 1;
-        const Real CoefRest = 0; 
+        const Real CoefRest = 0;
         // Painleve problem with these friction coefficients.
         //const Real mu_d = 1; /* compliant: .7*/
         //const Real mu_s = 1; /* compliant: .7*/
@@ -3498,7 +3498,7 @@ TimsBox::TimsBox() {
     #else
         const Real RunTime=20;
         const Real Stiffness = 1e6;
-        const Real CoefRest = 0.3; 
+        const Real CoefRest = 0.3;
         const Real TargetVelocity = 3; // speed at which to match coef rest
 //        const Real Dissipation = (1-CoefRest)/TargetVelocity;
         const Real Dissipation = 0.1;
@@ -3526,13 +3526,13 @@ TimsBox::TimsBox() {
     printf("  transition velocity=%g\n", TransitionVelocity);
     printf("  radius=%g\n", Radius);
     printf("  brick inertia=%g %g %g\n",
-        brickInertia.getMoments()[0], brickInertia.getMoments()[1], 
-        brickInertia.getMoments()[2]); 
+        brickInertia.getMoments()[0], brickInertia.getMoments()[1],
+        brickInertia.getMoments()[2]);
     printf("******************** Tim's Box ********************\n\n");
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    Body::Rigid brickBody = 
+    Body::Rigid brickBody =
         Body::Rigid(MassProperties(BrickMass, Vec3(0), brickInertia));
     brickBody.addDecoration(Transform(), DecorativeBrick(BrickHalfDims)
                                    .setColor(Red).setOpacity(.3));
@@ -3578,7 +3578,7 @@ TimsBox::TimsBox() {
            (Ground, YAxis, 0., m_brick, pt, CoefRest);
         unis.addContactElement(contact);
         unis.addFrictionElement(
-            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v, 
+            new MyPointContactFriction(*contact, mu_d, mu_s, mu_v,
                                        CaptureVelocity, // TODO: vtol?
                                        forces));
         if (i==-1 && j==-1 && k==-1)
@@ -3587,14 +3587,14 @@ TimsBox::TimsBox() {
            (Ground, YAxis, 0., m_brick2, pt, CoefRest);
         unis.addContactElement(contact2);
         unis.addFrictionElement(
-            new MyPointContactFriction(*contact2, mu_d, mu_s, mu_v, 
+            new MyPointContactFriction(*contact2, mu_d, mu_s, mu_v,
                                        CaptureVelocity, // TODO: vtol?
                                        forces));
         //MyPointContact* contact3 = new MyPointContact
         //  (Ground, YAxis, 0., m_brick3, pt, CoefRest);
         //unis.addContactElement(contact3);
         //unis.addFrictionElement(
-        //    new MyPointContactFriction(*contact3, mu_d, mu_s, mu_v, 
+        //    new MyPointContactFriction(*contact3, mu_d, mu_s, mu_v,
         //                               CaptureVelocity, // TODO: vtol?
         //                               forces));
     }
@@ -3603,9 +3603,9 @@ TimsBox::TimsBox() {
 //---------------------------- CALC INITIAL STATE ------------------------------
 void TimsBox::calcInitialState(State& s) const {
     s = realizeTopology(); // returns a reference to the the default state
-    
+
     //matter.setUseEulerAngles(s, true);
-    
+
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
 
@@ -3675,7 +3675,7 @@ BouncingBalls::BouncingBalls() {
     const Real rubber_density = 1100.;  // kg/m^3
     const Real rubber_young   = 0.01e9; // pascals (N/m)
     const Real rubber_poisson = 0.5;    // ratio
-    const Real rubber_planestrain = 
+    const Real rubber_planestrain =
         ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
     const Real rubber_dissipation = 0.1;
     const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,0,0,0);
@@ -3701,7 +3701,7 @@ BouncingBalls::BouncingBalls() {
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    Body::Rigid ballBody(MassProperties(BallMass, Vec3(0), 
+    Body::Rigid ballBody(MassProperties(BallMass, Vec3(0),
                                         UnitInertia::sphere(BallRadius)));
     ballBody.addDecoration(Transform(), DecorativeSphere(BallRadius));
 
@@ -3735,7 +3735,7 @@ BouncingBalls::BouncingBalls() {
         m_Pballs[i].updBody().updDecoration(0).setColor(PColor);
         Real cor = i==NBalls/2 ? .5 : CoefRest;
         unis.addContactElement(new MyPointContact
-               (m_Pballs[i-1], YAxis, BallRadius, 
+               (m_Pballs[i-1], YAxis, BallRadius,
                 m_Pballs[i], Vec3(0,-BallRadius,0), cor));
     }
 
@@ -3752,7 +3752,7 @@ BouncingBalls::BouncingBalls() {
            (m_Nballs[i-1],Transform(X2Y,Vec3(0,2*BallRadius,0)),ballBody, X2Y);
         m_Nballs[i].updBody().updDecoration(0).setColor(NColor);
         unis.addContactElement(new MyPointContact
-               (m_Nballs[i-1], YAxis, BallRadius, 
+               (m_Nballs[i-1], YAxis, BallRadius,
                 m_Nballs[i], Vec3(0,-BallRadius,0), CoefRest));
     }
 #endif
@@ -3764,7 +3764,7 @@ void BouncingBalls::calcInitialState(State& s) const {
     const Real Height = 1;
     const Real Speed = -2;
 
-    s = realizeTopology(); // returns a reference to the the default state   
+    s = realizeTopology(); // returns a reference to the the default state
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
@@ -3772,19 +3772,19 @@ void BouncingBalls::calcInitialState(State& s) const {
     #ifdef HERTZ
         getHBall(0).setOneQ(s, MobilizerQIndex(0), Height);
         getHBall(0).setOneU(s, MobilizerUIndex(0), Speed);
-        for (int i=1; i<NBalls; ++i) 
+        for (int i=1; i<NBalls; ++i)
             getHBall(i).setOneQ(s, MobilizerQIndex(0), Separation);
     #endif
     #ifdef POISSON
         getPBall(0).setOneQ(s, MobilizerQIndex(0), Height);
         getPBall(0).setOneU(s, MobilizerUIndex(0), Speed);
-        for (int i=1; i<NBalls; ++i) 
+        for (int i=1; i<NBalls; ++i)
             getPBall(i).setOneQ(s, MobilizerQIndex(0), Separation);
     #endif
     #ifdef NEWTON
         getNBall(0).setOneQ(s, MobilizerQIndex(0), Height);
         getNBall(0).setOneU(s, MobilizerUIndex(0), Speed);
-        for (int i=1; i<NBalls; ++i) 
+        for (int i=1; i<NBalls; ++i)
             getNBall(i).setOneQ(s, MobilizerQIndex(0), Separation);
     #endif
 }
@@ -3822,7 +3822,7 @@ Pencil::Pencil() {
     const Real rubber_density = 1100.;  // kg/m^3
     const Real rubber_young   = 0.01e9; // pascals (N/m)
     const Real rubber_poisson = 0.5;    // ratio
-    const Real rubber_planestrain = 
+    const Real rubber_planestrain =
         ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
     const Real rubber_dissipation = 0.1;
     const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,0,0,0);
@@ -3848,9 +3848,9 @@ Pencil::Pencil() {
 
         // ADD MOBILIZED BODIES AND CONTACT CONSTRAINTS
 
-    Body::Rigid pencilBody(MassProperties(PencilMass, Vec3(0), 
+    Body::Rigid pencilBody(MassProperties(PencilMass, Vec3(0),
            UnitInertia::cylinderAlongY(PencilRadius,PencilHLength)));
-    pencilBody.addDecoration(Transform(), 
+    pencilBody.addDecoration(Transform(),
                              DecorativeCylinder(PencilRadius,PencilHLength)
                              .setOpacity(.3));
 
@@ -3862,17 +3862,17 @@ Pencil::Pencil() {
     unis.addContactElement(pc2=new MyPointContact
            (Ground, YAxis, 0., m_pencil, Vec3(0,PencilHLength,0), CoefRest));
     unis.addFrictionElement(
-        new MyPointContactFriction(*pc1, mu_d, mu_s, mu_v, 
+        new MyPointContactFriction(*pc1, mu_d, mu_s, mu_v,
                                     CaptureVelocity, // TODO: vtol?
                                     forces));
     unis.addFrictionElement(
-        new MyPointContactFriction(*pc2, mu_d, mu_s, mu_v, 
+        new MyPointContactFriction(*pc2, mu_d, mu_s, mu_v,
                                     CaptureVelocity, // TODO: vtol?
                                     forces));
 }
 
 void Pencil::calcInitialState(State& s) const {
-    s = realizeTopology(); // returns a reference to the the default state   
+    s = realizeTopology(); // returns a reference to the the default state
     realizeModel(s); // define appropriate states for this System
     realize(s, Stage::Instance); // instantiate constraints if any
     realize(s, Stage::Position);
@@ -3893,8 +3893,8 @@ showConstraintStatus(const State& s, const String& place) const
     for (int i=0; i < getNumContactElements(); ++i) {
         const MyContactElement& contact = getContactElement(i);
         const bool isActive = !contact.isDisabled(s);
-        printf("  %6s %2d %s, h=%g dh=%g f=%g\n", 
-                isActive?"ACTIVE":"off", i, contact.getContactType().c_str(), 
+        printf("  %6s %2d %s, h=%g dh=%g f=%g\n",
+                isActive?"ACTIVE":"off", i, contact.getContactType().c_str(),
                 contact.getPerr(s),contact.getVerr(s),
                 isActive?contact.getForce(s):Zero);
     }
@@ -3903,7 +3903,7 @@ showConstraintStatus(const State& s, const String& place) const
         if (!friction.isMasterActive(s))
             continue;
         const bool isEnabled = friction.isEnabled(s);
-        printf("  %8s friction %2d\n", 
+        printf("  %8s friction %2d\n",
                 isEnabled?"STICKING":"sliding", i);
         friction.writeFrictionInfo(s, "    ", std::cout);
     }

@@ -35,8 +35,8 @@ int main () {
     sys.addEventReporter(new DiscontinuousReporter());
     sys.realizeTopology();
 
-    // Test with various intervals for the event handler and event reporter, 
-    // ones that are either large or small compared to the expected internal 
+    // Test with various intervals for the event handler and event reporter,
+    // ones that are either large or small compared to the expected internal
     // step size of the integrator.
 
     for (int i = 0; i < 4; ++i) {
@@ -44,9 +44,9 @@ int main () {
            (i == 0 || i == 1 ? 0.01 : 2.0);
         PeriodicReporter::reporter->setEventInterval
            (i == 0 || i == 2 ? 0.015 : 1.5);
-        
+
         // Test the integrator in both normal and single step modes.
-        
+
         RungeKutta2Integrator integ(sys);
         testIntegrator(integ, sys);
         integ.setReturnEveryInternalStep(true);

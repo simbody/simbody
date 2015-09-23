@@ -67,9 +67,9 @@ void compareReactionToConstraint(SpatialVec reactionForce, const Constraint& con
     Vector_<SpatialVec> constraintForce(constraint.getNumConstrainedBodies());
     Vector mobilityForce(constraint.getNumConstrainedU(state));
     constraint.calcConstraintForcesFromMultipliers(state, constraint.getMultipliersAsVector(state), constraintForce, mobilityForce);
-    
+
     // Transform the reaction force from the joint location to the body location.
-    
+
     const MobilizedBody& body = constraint.getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex(1));
     Vec3 localForce = ~body.getBodyTransform(state).R()*reactionForce[1];
     reactionForce[0] += body.getBodyTransform(state).R()*(body.getOutboardFrame(state).p()%localForce);
@@ -85,15 +85,15 @@ void testByComparingToConstraints() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity(forces, matter, Vec3(0, -9.8, 0));
-    
+
     // Create two free joints (which should produce no reaction forces).
-    
+
     Body::Rigid body = Body::Rigid(MassProperties(1.3, Vec3(0), Inertia(1.3)));
     MobilizedBody::Free f1(matter.updGround(), Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     MobilizedBody::Free f2(f1, Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
-    
+
     // Two ball joints, and two free joints constrained to act like ball joints.
-    
+
     MobilizedBody::Free fb1(matter.updGround(), Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     MobilizedBody::Free fb2(fb1, Transform(Vec3(0, 0, BOND_LENGTH)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     Constraint::Ball fb1constraint(matter.updGround(), Vec3(0, 0, 0), fb1, Vec3(BOND_LENGTH, 0, 0));
@@ -102,7 +102,7 @@ void testByComparingToConstraints() {
     MobilizedBody::Ball b2(b1, Transform(Vec3(0, 0, BOND_LENGTH)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
     Force::ConstantTorque(forces, fb2, Vec3(0.1, 0.1, 1.0));
     Force::ConstantTorque(forces, b2, Vec3(0.1, 0.1, 1.0));
-    
+
     // Two translation joints, and two free joints constrained to act like translation joints.
 
     MobilizedBody::Free ft1(matter.updGround(), Transform(Vec3(0)), body, Transform(Vec3(BOND_LENGTH, 0, 0)));
@@ -113,9 +113,9 @@ void testByComparingToConstraints() {
     MobilizedBody::Translation t2(t1, Transform(Vec3(0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
     Force::ConstantTorque(forces, ft2, Vec3(0.1, 0.1, 1.0));
     Force::ConstantTorque(forces, t2, Vec3(0.1, 0.1, 1.0));
-    
+
     // Create the state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Gaussian random;
@@ -142,9 +142,9 @@ void testByComparingToConstraints() {
 
     system.project(state, TOL);
     system.realize(state, Stage::Acceleration);
-    
+
     // Make sure the free and constrained bodies really are identical.
-    
+
     assertEqual(b1.getBodyTransform(state), fb1.getBodyTransform(state));
     assertEqual(b2.getBodyTransform(state), fb2.getBodyTransform(state));
     assertEqual(b1.getBodyVelocity(state), fb1.getBodyVelocity(state));
@@ -153,7 +153,7 @@ void testByComparingToConstraints() {
     assertEqual(t2.getBodyTransform(state), ft2.getBodyTransform(state));
     assertEqual(t1.getBodyVelocity(state), ft1.getBodyVelocity(state));
     assertEqual(t2.getBodyVelocity(state), ft2.getBodyVelocity(state));
-    
+
     // Calculate the mobility reaction forces.
 
     Vector_<SpatialVec> forcesAtMInG(matter.getNumBodies());
@@ -163,22 +163,22 @@ void testByComparingToConstraints() {
 
     // Check that the bulk calculation matches the body-by-body calculation.
     for (MobilizedBodyIndex bx(0); bx < matter.getNumBodies(); ++bx) {
-        assertEqual(forcesAtMInG[bx], 
+        assertEqual(forcesAtMInG[bx],
             matter.getMobilizedBody(bx)
                .findMobilizerReactionOnBodyAtMInGround(state));
     }
 
     // Make sure all free bodies have no reaction force on them.
-    
+
     assertEqual((forcesAtMInG[f1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
     assertEqual((forcesAtMInG[f2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
     assertEqual((forcesAtMInG[fb1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
     assertEqual((forcesAtMInG[fb2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
     assertEqual((forcesAtMInG[ft1.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
     assertEqual((forcesAtMInG[ft2.getMobilizedBodyIndex()]), SpatialVec(Vec3(0), Vec3(0)));
-    
+
     // The reaction forces should match the corresponding constraint forces.
-    
+
     compareReactionToConstraint(forcesAtMInG[b1.getMobilizedBodyIndex()], fb1constraint, state);
     compareReactionToConstraint(forcesAtMInG[b2.getMobilizedBodyIndex()], fb2constraint, state);
     compareReactionToConstraint(forcesAtMInG[t1.getMobilizedBodyIndex()], ft1constraint, state);
@@ -202,19 +202,19 @@ void testByComparingToConstraints2() {
 
     // First double pendulum, using Pin joints.
     Rotation x45(Pi/4, XAxis);
-    MobilizedBody::Pin pendulum1(matter.updGround(), 
-                                Transform(x45,Vec3(0,-1,0)), 
-                                pendulumBody, 
+    MobilizedBody::Pin pendulum1(matter.updGround(),
+                                Transform(x45,Vec3(0,-1,0)),
+                                pendulumBody,
                                 Transform(Vec3(0, 1, 0)));
-    MobilizedBody::Pin pendulum1b(pendulum1, 
-                                Transform(x45,Vec3(0,-1,0)), 
-                                pendulumBody, 
+    MobilizedBody::Pin pendulum1b(pendulum1,
+                                Transform(x45,Vec3(0,-1,0)),
+                                pendulumBody,
                                 Transform(Vec3(0, 1, 0)));
 
     // Second double pendulum, using Free joints plus 5 constraints.
-    MobilizedBody::Free pendulum2(matter.updGround(), 
+    MobilizedBody::Free pendulum2(matter.updGround(),
                                   Transform(x45,Vec3(2,-1,0)),
-                                  pendulumBody, 
+                                  pendulumBody,
                                   Transform(Vec3(0,1,0)));
     Constraint::Ball ballcons2(matter.updGround(), Vec3(2,-1,0),
                                pendulum2, Vec3(0,1,0));
@@ -225,9 +225,9 @@ void testByComparingToConstraints2() {
     Constraint::ConstantAngle angy2(matter.Ground(), X_GF2.y(),
                               pendulum2, X_P2M.z());
 
-    MobilizedBody::Free pendulum2b(pendulum2, 
+    MobilizedBody::Free pendulum2b(pendulum2,
                                    Transform(x45,Vec3(0,-1,0)),
-                                   pendulumBody, 
+                                   pendulumBody,
                                    Transform(Vec3(0,1,0)));
     Constraint::Ball ballcons2b(pendulum2, Vec3(0,-1,0),
                                 pendulum2b, Vec3(0,1,0));
@@ -240,9 +240,9 @@ void testByComparingToConstraints2() {
 
     // Uncomment if you want to see this.
     //Visualizer viz(system);
-    
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     pendulum1.setOneQ(state, 0, Pi/4);
@@ -290,7 +290,7 @@ void testByComparingToConstraints2() {
         const Rotation& R_PF = body.getInboardFrame(state).R(); // In parent.
         const Rotation& R_GP = parent.getBodyTransform(state).R();
         Rotation R_GF   =   R_GP*R_PF;  // F frame orientation in Ground.
-        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector. 
+        Vec3     p_MF_G = -(R_GF*p_FM); // Re-express and negate shift vector.
         forcesAtFInG_byhand[i] = -shiftForceBy(forcesAtMInG[i], p_MF_G);
     }
 
@@ -308,11 +308,11 @@ void testByComparingToConstraints2() {
     forcesAtBInG[p1bx] = shiftForceFromTo(forcesAtMInG[p1bx],
                                          R_G1b*Vec3(0,1,0), Vec3(0));
 
-    // Compare those manually-shifted quantities to the ones we can get 
+    // Compare those manually-shifted quantities to the ones we can get
     // direction from the MobilizedBody.
-    SpatialVec forcesAtBInG_p1 = 
+    SpatialVec forcesAtBInG_p1 =
         pendulum1.findMobilizerReactionOnBodyAtOriginInGround(state);
-    SpatialVec forcesAtBInG_p1b = 
+    SpatialVec forcesAtBInG_p1b =
         pendulum1b.findMobilizerReactionOnBodyAtOriginInGround(state);
 
     SimTK_TEST_EQ(forcesAtBInG[p1x], forcesAtBInG_p1);
@@ -323,12 +323,12 @@ void testByComparingToConstraints2() {
     // the ball and constant angle constraints are ordered the same way; if
     // that ever changes the constraints can be queried to find the mobilized
     // body index corresponding to the constrained body index.
-    Vector_<SpatialVec> cons2Forces = 
+    Vector_<SpatialVec> cons2Forces =
         -(ballcons2.getConstrainedBodyForcesAsVector(state)
           + angx2.getConstrainedBodyForcesAsVector(state)
           + angy2.getConstrainedBodyForcesAsVector(state));
-    Vector_<SpatialVec> cons2bForces = 
-        -(ballcons2b.getConstrainedBodyForcesAsVector(state) 
+    Vector_<SpatialVec> cons2bForces =
+        -(ballcons2b.getConstrainedBodyForcesAsVector(state)
           + angx2b.getConstrainedBodyForcesAsVector(state)
           + angy2b.getConstrainedBodyForcesAsVector(state));
 
@@ -349,7 +349,7 @@ void testByComparingToSDFAST() {
     Force::UniformGravity(forces, matter, Vec3(0, -9.8, 0));
 
     // Construct the set of bodies.
-    
+
     Inertia inertia = Inertia(Mat33(0.1, 0.01, 0.01,
                                     0.01, 0.1, 0.01,
                                     0.01, 0.01, 0.1));
@@ -359,18 +359,18 @@ void testByComparingToSDFAST() {
     MobilizedBody::Pin body4(body3, Vec3(0, 0.2, 0), MassProperties(30.0, Vec3(0), inertia), Vec3(0, -0.2, 0));
     State state = system.realizeTopology();
     system.realize(state, Stage::Acceleration);
-    
+
     // Calculate reaction forces, and compare to the values that were generated by SD/FAST.
-    
+
     Vector_<SpatialVec> reaction(matter.getNumBodies());
     matter.calcMobilizerReactionForces(state, reaction);
     assertEqual(~body1.getBodyTransform(state).R()*reaction[body1.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 68.6), Vec3(0, 784.0, 0)));
     assertEqual(~body2.getBodyTransform(state).R()*reaction[body2.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(0, 686.0, 0)));
     assertEqual(~body3.getBodyTransform(state).R()*reaction[body3.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(0, 490.0, 0)));
     assertEqual(~body4.getBodyTransform(state).R()*reaction[body4.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(0, 294.0, 0)));
-    
+
     // Now set it to a different configuration and try again.
-    
+
     body1.setLength(state, 1.0);
     body2.setAngle(state, 0.5);
     Rotation r;
@@ -383,7 +383,7 @@ void testByComparingToSDFAST() {
     assertEqual(~body2.getBodyTransform(state).R()*reaction[body2.getMobilizedBodyIndex()], SpatialVec(Vec3(1.688077, 0.351125, 0), Vec3(55.399123, 267.455570, 3.342380)), 1e-5);
     assertEqual(~body3.getBodyTransform(state).R()*reaction[body3.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(-17.757553, 174.663042, -11.383057)), 1e-5);
     assertEqual(~body4.getBodyTransform(state).R()*reaction[body4.getMobilizedBodyIndex()], SpatialVec(Vec3(0.910890, 0.082353, 0), Vec3(-13.977214, 74.444715, 4.943682)), 1e-5);
-    
+
     // Try giving it momentum.
 
     state.updQ() = 0.0;
@@ -409,23 +409,23 @@ void testByComparingToSDFAST2() {
     Force::UniformGravity(forces, matter, Vec3(0, -9.8065, 0));
 
     // Construct the set of bodies.
-    
+
     Body::Rigid femur(MassProperties(8.806, Vec3(0), Inertia(Vec3(0.1268, 0.0332, 0.1337))));
     Body::Rigid tibia(MassProperties(3.510, Vec3(0), Inertia(Vec3(0.0477, 0.0048, 0.0484))));
     MobilizedBody::Pin p1(matter.Ground(), Transform(Vec3(0.0000, -0.0700, 0.0935)), femur, Transform(Vec3(0.0020, 0.1715, 0)));
     MobilizedBody::Slider p2(p1, Transform(Vec3(0.0033, -0.2294, 0)), tibia, Transform(Vec3(0.0, 0.1862, 0.0)));
     State state = system.realizeTopology();
     system.realize(state, Stage::Acceleration);
-    
+
     // Calculate reaction forces, and compare to the values that were generated by SD/FAST.
-    
+
     Vector_<SpatialVec> reaction(matter.getNumBodies());
     matter.calcMobilizerReactionForces(state, reaction);
     assertEqual(~p1.getBodyTransform(state).R()*reaction[p1.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0), Vec3(0.438079, 120.773069, 0)), 1e-5);
     assertEqual(~p2.getBodyTransform(state).R()*reaction[p2.getMobilizedBodyIndex()], SpatialVec(Vec3(0, 0, 0.014040), Vec3(0, 34.422139, 0)), 1e-5);
-    
+
     // Now set it to a different configuration and try again.
-    
+
     p1.setOneQ(state, 0, -90*NTraits<Real>::getPi()/180);
     p2.setOneQ(state, 0, 0.1);
     system.realize(state, Stage::Acceleration);
@@ -445,19 +445,19 @@ void testByComparingToSDFASTWithConstraint() {
     Force::UniformGravity(forces, matter, Vec3(0, -9.8, 0));
 
     // Construct the set of bodies.
-    
+
     Inertia inertia = Inertia(Mat33(0.1, 0.01, 0.01,
                                     0.01, 0.1, 0.01,
                                     0.01, 0.01, 0.1));
-    MobilizedBody::Gimbal body1(matter.updGround(), 
+    MobilizedBody::Gimbal body1(matter.updGround(),
         MassProperties(10.0, Vec3(0), inertia));
-    MobilizedBody::Gimbal body2(body1, Vec3(0, -0.1, 0.2), 
+    MobilizedBody::Gimbal body2(body1, Vec3(0, -0.1, 0.2),
         MassProperties(20.0, Vec3(0), inertia), Vec3(0, 0.2, 0));
-    MobilizedBody::Gimbal body3(body1, Vec3(0, -0.1, -0.2), 
+    MobilizedBody::Gimbal body3(body1, Vec3(0, -0.1, -0.2),
         MassProperties(20.0, Vec3(0), inertia), Vec3(0, 0.2, 0));
-    MobilizedBody::Gimbal body4(body2, Vec3(0, -0.2, 0), 
+    MobilizedBody::Gimbal body4(body2, Vec3(0, -0.2, 0),
         MassProperties(30.0, Vec3(0), inertia), Vec3(0, 0.2, 0));
-    MobilizedBody::Gimbal body5(body3, Vec3(0, -0.2, 0), 
+    MobilizedBody::Gimbal body5(body3, Vec3(0, -0.2, 0),
         MassProperties(30.0, Vec3(0), inertia), Vec3(0, 0.2, 0));
     Constraint::Rod constraint(body4, body5, 0.15);
     State state = system.realizeTopology();
@@ -467,34 +467,34 @@ void testByComparingToSDFASTWithConstraint() {
     // this precision. So I replaced the project() call with the result from
     // the older squared equations. The result I was getting from project() with
     // the distance equations was:
-    //          0 0 0 0.188972205696439 0 0 -0.188972205696439 0 0 
+    //          0 0 0 0.188972205696439 0 0 -0.188972205696439 0 0
     //          0.062986198663389 0 0 -0.062986198663389 0 0
-    // which is nearly identical to those below, but different enough to cause 
-    // a failure here. With the same set of q's, the reactions should be the 
+    // which is nearly identical to those below, but different enough to cause
+    // a failure here. With the same set of q's, the reactions should be the
     // same regardless of the equations being used for Rod. (sherm 140506)
     //system.project(state, 1e-10);
     Real q[15]={0,0,0,0.189000969332574,0,0,-0.189000969332574,0,0,
                 0.0628990902570866,0,0,-0.0628990902570866,0,0};
     state.updQ() = Vector(15, q);
     system.realize(state, Stage::Acceleration);
-    
+
     // Calculate reaction forces, and compare to the values that were generated by SD/FAST.
-    
+
     Vector_<SpatialVec> reaction(matter.getNumBodies());
     matter.calcMobilizerReactionForces(state, reaction);
-    assertEqual(~body1.getBodyTransform(state).R()*reaction[body1.getMobilizedBodyIndex()], 
+    assertEqual(~body1.getBodyTransform(state).R()*reaction[body1.getMobilizedBodyIndex()],
                 SpatialVec(Vec3(0, 0, 0), Vec3(-0.000626, 1077.988912, 0.000030)), 1e-5);
-    assertEqual(~body2.getBodyTransform(state).R()*reaction[body2.getMobilizedBodyIndex()], 
+    assertEqual(~body2.getBodyTransform(state).R()*reaction[body2.getMobilizedBodyIndex()],
                 SpatialVec(Vec3(0, 0, 0), Vec3(-0.005038, 495.288692, -18.767467)), 1e-5);
-    assertEqual(~body3.getBodyTransform(state).R()*reaction[body3.getMobilizedBodyIndex()], 
+    assertEqual(~body3.getBodyTransform(state).R()*reaction[body3.getMobilizedBodyIndex()],
                 SpatialVec(Vec3(0, 0, 0), Vec3(0.004236, 495.287857, 18.767535)), 1e-5);
-    assertEqual(~body4.getBodyTransform(state).R()*reaction[body4.getMobilizedBodyIndex()], 
+    assertEqual(~body4.getBodyTransform(state).R()*reaction[body4.getMobilizedBodyIndex()],
                 SpatialVec(Vec3(0, 0, 0), Vec3(0.006251, 303.365940, -0.202330)), 1e-5);
-    assertEqual(~body5.getBodyTransform(state).R()*reaction[body5.getMobilizedBodyIndex()], 
+    assertEqual(~body5.getBodyTransform(state).R()*reaction[body5.getMobilizedBodyIndex()],
                 SpatialVec(Vec3(0, 0, 0), Vec3(-0.005933, 303.365472, 0.202301)), 1e-5);
-    
+
     // Now set it to a different configuration and try again.
-    
+
     Rotation r;
     r.setRotationFromThreeAnglesThreeAxes(BodyRotationSequence, 1.0, ZAxis, 1.0, XAxis, 1.0, YAxis);
     body1.setQToFitRotation(state, r);

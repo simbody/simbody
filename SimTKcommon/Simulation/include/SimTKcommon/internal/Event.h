@@ -32,25 +32,25 @@
 #include "SimTKcommon/basics.h"
 
 namespace SimTK {
-    
+
 /** @class SimTK::EventId
 This is a class to represent unique IDs for events in a type-safe way. These
 are created and managed by the System, not the State. **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventId);
 
 /** @class SimTK::SystemEventTriggerIndex
-This unique integer type is for identifying a triggered event in the full 
-System-level view of the State. More precisely, this is the index of the slot 
+This unique integer type is for identifying a triggered event in the full
+System-level view of the State. More precisely, this is the index of the slot
 in the global array in the cache allocated to hold the value of that event's
 trigger function.
 @see EventTriggerIndex **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(SystemEventTriggerIndex);
 
 /** @class SimTK::SystemEventTriggerByStageIndex
-This unique integer type is for identifying a triggered event within a 
-particular Stage of the full System-level view of the State. (Event triggers 
-for a particular Stage are stored consecutively within the full collection of 
-event triggers.) That is, the EventTriggerByStageIndex will be 0 for the first 
+This unique integer type is for identifying a triggered event within a
+particular Stage of the full System-level view of the State. (Event triggers
+for a particular Stage are stored consecutively within the full collection of
+event triggers.) That is, the EventTriggerByStageIndex will be 0 for the first
 event trigger at that stage.
 @see EventTriggerByStageIndex
 **/
@@ -65,13 +65,13 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventTriggerByStageIndex);
 through time. Its occurrence interrupts the normal flow of computation, allowing
 an event Handler to adjust the State prior to resuming the Study.
 
-Events are allocated by Subsystems, but require some System global resources. 
-All Events are given a unique EventId. Some Events require other State 
-resources, such as slots for the values of trigger functions in the case of 
+Events are allocated by Subsystems, but require some System global resources.
+All Events are given a unique EventId. Some Events require other State
+resources, such as slots for the values of trigger functions in the case of
 Triggered events.
 
-Events can be allocated at Topology, Model, and Instance Stages. All Event 
-resources are assigned when the Instance stage is realized. However, if an 
+Events can be allocated at Topology, Model, and Instance Stages. All Event
+resources are assigned when the Instance stage is realized. However, if an
 Event requires state variables, then it must be allocated by Model stage. **/
 class Event {
 public:
@@ -102,25 +102,25 @@ public:
     Events, those signaled events are not processed by the Study; that is,
     the signals remain set in the final State.
 
-    In case several of these causes are detected in a single step, they are 
+    In case several of these causes are detected in a single step, they are
     sequentialized in the order shown, like this:
 
-    1. The occurrence of triggered events is reported and the triggering state 
-       and a list of triggered events are passed to the event handler for 
-       processing (meaning the state, but not the time, is modified). Note 
-       that simultaneity *within* the set of triggered events may also require 
-       special handling; we're not talking about that here, just simultaneity 
+    1. The occurrence of triggered events is reported and the triggering state
+       and a list of triggered events are passed to the event handler for
+       processing (meaning the state, but not the time, is modified). Note
+       that simultaneity *within* the set of triggered events may also require
+       special handling; we're not talking about that here, just simultaneity
        of *causes*.
-    2. Next, using the state resulting from step 1, the time is checked to see 
-       if scheduled events have occurred. If so, a list of those events is 
+    2. Next, using the state resulting from step 1, the time is checked to see
+       if scheduled events have occurred. If so, a list of those events is
        passed to the event handler for processing.
-    3. Next, if this system has requested time-advanced events, the event 
-       handler is called with the state that resulted from step 2 and the "time 
-       advanced" cause noted. No event list is passed in that case. The state 
+    3. Next, if this system has requested time-advanced events, the event
+       handler is called with the state that resulted from step 2 and the "time
+       advanced" cause noted. No event list is passed in that case. The state
        may be modified.
     4. Last, if the final time has been reached or if any of the event handlers
-       asked for termination, we pass the state to the event handler again 
-       noting that we have reached termination. The state may be modified and 
+       asked for termination, we pass the state to the event handler again
+       noting that we have reached termination. The state may be modified and
        the result will be the final state of the simulation.
     **/
     class Cause {
@@ -146,7 +146,7 @@ public:
         Num value;
     };
 
-    /** This is useful for debugging; it translates an Event::Cause into a 
+    /** This is useful for debugging; it translates an Event::Cause into a
     readable string. **/
     SimTK_SimTKCOMMON_EXPORT static const char* getCauseName(Cause);
 
@@ -190,21 +190,21 @@ public:
     Trigger was present in the mask. **/
     static Trigger maskTransition(Trigger transition, Trigger mask) {
         // we're depending on NoEventTrigger==0
-        return Trigger(transition & mask); 
+        return Trigger(transition & mask);
     }
 
 private:
 };
 
 
-/** This class is used to communicate between the System and an Integrator 
-regarding the properties of a particular event trigger function. Currently 
+/** This class is used to communicate between the System and an Integrator
+regarding the properties of a particular event trigger function. Currently
 these are:
   - Whether to watch for rising sign transitions, falling, or both. [BOTH]
   - Whether to watch for transitions to and from zero. [NO]
   - The localization window in units of the System's timescale. [10%]
     (That is then the "unit" window which is reduced by the accuracy setting.)
-    
+
 The default values are shown in brackets above. **/
 class SimTK_SimTKCOMMON_EXPORT EventTriggerInfo {
 public:
@@ -272,7 +272,7 @@ public:
         /** Take all defaults. **/
         None            = 0x0000,
         /** Normally failure to meet the accuracy requirements throws an
-        exception. This will force the handleEvent() method to quietly return bad 
+        exception. This will force the handleEvent() method to quietly return bad
         status instead. **/
         DontThrow       = 0x0001,
         /** Use the stricter infinity (max absolute value) norm rather than
@@ -282,7 +282,7 @@ public:
 
 
     HandleEventsOptions() {clear();}
-    explicit HandleEventsOptions(Real accuracy) 
+    explicit HandleEventsOptions(Real accuracy)
     {   clear(); setAccuracy(accuracy); }
     explicit HandleEventsOptions(Option opt)
     {   clear(); setOption(opt); }
@@ -290,7 +290,7 @@ public:
     /** Restore this object to its default-constructed state (no options
     selected, default accuracy). A reference to the
     newly-cleared object is returned. **/
-    HandleEventsOptions& clear() 
+    HandleEventsOptions& clear()
     {   optionSet=0; setAccuracyDefaults(); return *this; }
 
     /** The norm of the constraint errors must be driven to below this value
@@ -304,11 +304,11 @@ public:
 
     /** Remove a given option from the set. Nothing happens if the option wasn't
     already set. **/
-    HandleEventsOptions& clearOption(Option opt) 
+    HandleEventsOptions& clearOption(Option opt)
     {   optionSet &= ~(unsigned)opt; return *this; }
     /** Select a given option from the set. Nothing happens if the option wasn't
     already set. **/
-    HandleEventsOptions& setOption  (Option opt) 
+    HandleEventsOptions& setOption  (Option opt)
     {   optionSet |= (unsigned)opt; return *this; }
 
     /** Return the current value for the accuracy option. **/
@@ -319,11 +319,11 @@ public:
     static Real getDefaultAccuracy() {return Real(1e-4);}
 
     // Set operators: not, or, and, set difference
-    HandleEventsOptions& operator|=(const HandleEventsOptions& opts) 
+    HandleEventsOptions& operator|=(const HandleEventsOptions& opts)
     {   optionSet |= opts.optionSet; return *this; }
-    HandleEventsOptions& operator&=(const HandleEventsOptions& opts) 
+    HandleEventsOptions& operator&=(const HandleEventsOptions& opts)
     {   optionSet &= opts.optionSet; return *this; }
-    HandleEventsOptions& operator-=(const HandleEventsOptions& opts) 
+    HandleEventsOptions& operator-=(const HandleEventsOptions& opts)
     {   optionSet &= ~opts.optionSet; return *this; }
 
     HandleEventsOptions& operator|=(Option opt) {setOption(opt); return *this;}
@@ -338,7 +338,7 @@ private:
     }
 };
 
-/** Results returned by the handleEvent() method. In addition to return 
+/** Results returned by the handleEvent() method. In addition to return
 status, this records the lowest stage in the state that was modified by
 the handler. The caller can use this to determine how much reinitialization
 is required before time stepping can proceed. **/
@@ -352,14 +352,14 @@ public:
         /** The handleEvent() operation was successful and time stepping
         may continue. **/
         Succeeded               = 0,
-        /** The handleEvent() call was successful but the event requires 
+        /** The handleEvent() call was successful but the event requires
         time stepping to terminate. An explanation may have been placed in
         the message argument. **/
         ShouldTerminate         = 1,
         /** The handleEvent() call was unable to successfully handle the
-        event. This is likely to be a fatal error. A human-readable 
+        event. This is likely to be a fatal error. A human-readable
         explanation is in the message argument. **/
-        Failed                  = 2    
+        Failed                  = 2
     };
 
     /** Restore this object to its default-constructed state, with the return
@@ -374,20 +374,20 @@ public:
     bool    isValid()           const {return m_exitStatus != Invalid;}
     Status  getExitStatus()     const {return m_exitStatus;}
 
-    bool getAnyChangeMade()     const 
+    bool getAnyChangeMade()     const
     {   assert(isValid()); return m_anyChangeMade; }
-    Stage getLowestModifiedStage() const 
+    Stage getLowestModifiedStage() const
     {   assert(isValid()); return m_lowestModifiedStage; }
     const String& getMessage() const
     {   assert(isValid()); return m_message; }
 
-    HandleEventsResults& setExitStatus(Status status) 
+    HandleEventsResults& setExitStatus(Status status)
     {   m_exitStatus=status; return *this; }
-    HandleEventsResults& setAnyChangeMade(bool changeMade) 
+    HandleEventsResults& setAnyChangeMade(bool changeMade)
     {   m_anyChangeMade=changeMade; return *this; }
-    HandleEventsResults& setLowestModifiedStage(Stage stage) 
+    HandleEventsResults& setLowestModifiedStage(Stage stage)
     {   m_lowestModifiedStage=stage; return *this; }
-    HandleEventsResults& setMessage(const String& message) 
+    HandleEventsResults& setMessage(const String& message)
     {   m_message=message; return *this; }
 private:
     Status  m_exitStatus;

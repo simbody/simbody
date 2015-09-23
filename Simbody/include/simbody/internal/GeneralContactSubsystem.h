@@ -82,35 +82,35 @@ public:
     int getNumBodies(ContactSetIndex set) const;
     /**
      * Get the MobilizedBody in whose reference frame a body is defined.
-     * 
+     *
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
     const MobilizedBody& getBody(ContactSetIndex set, ContactSurfaceIndex index) const;
     /**
      * Get the ContactGeometry which defines the shape of a body.
-     * 
+     *
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
     const ContactGeometry& getBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index) const;
     /**
      * Get a mutable reference to the ContactGeometry which defines the shape of a body.
-     * 
+     *
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
     ContactGeometry& updBodyGeometry(ContactSetIndex set, ContactSurfaceIndex index);
     /**
      * Get the location and orientation of a body.
-     * 
+     *
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */
     const Transform& getBodyTransform(ContactSetIndex set, ContactSurfaceIndex index) const;
     /**
      * Get a mutable reference to the location and orientation of a body.
-     * 
+     *
      * @param set    the contact set the body belongs to
      * @param index  the index of the body within the contact set
      */

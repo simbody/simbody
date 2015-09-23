@@ -31,14 +31,14 @@ namespace SimTK {
 class State;
 
 /**
- * A DecorationGenerator is used to define geometry that may change over the 
+ * A DecorationGenerator is used to define geometry that may change over the
  * course of a simulation.  Example include
  *  - Geometry whose position is not fixed relative to any single body.
  *  - Geometry which may appear or disappear during the simulation.
- *  - Geometry whose properties (color, size, etc.) may change during the 
+ *  - Geometry whose properties (color, size, etc.) may change during the
  *    simulation.
  *
- * To use it, define a concrete subclass that implements generateDecorations() 
+ * To use it, define a concrete subclass that implements generateDecorations()
  * to generate whatever geometry is appropriate for a given State. It can then
  * be added to a DecorationSubsystem, or directly to a Visualizer.
  */
@@ -46,10 +46,10 @@ class DecorationGenerator {
 public:
     /**
      * This will be called every time a new State is about to be visualized.
-     * It should generate whatever decorations are appropriate for the State 
+     * It should generate whatever decorations are appropriate for the State
      * and append them to the array.
      */
-    virtual void generateDecorations(const State& state, 
+    virtual void generateDecorations(const State& state,
                                      Array_<DecorativeGeometry>& geometry) = 0;
 
     /** Destructor is virtual; be sure to override it if you have something

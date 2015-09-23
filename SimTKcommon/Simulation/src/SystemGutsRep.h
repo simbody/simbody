@@ -43,16 +43,16 @@ namespace SimTK {
 class System::Guts::GutsRep {
 public:
 
-    GutsRep(const String& name, const String& version) 
-      : systemName(name), 
-        systemVersion(version), 
-        myHandle(0), 
-        defaultTimeScale(Real(0.1)), 
+    GutsRep(const String& name, const String& version)
+      : systemName(name),
+        systemVersion(version),
+        myHandle(0),
+        defaultTimeScale(Real(0.1)),
         defaultLengthScale(Real(1)),
-        defaultUpDirection(YAxis), 
+        defaultUpDirection(YAxis),
         useUniformBackground(false),
         hasTimeAdvancedEventsFlag(false),
-        systemTopologyRealized(false), 
+        systemTopologyRealized(false),
         topologyCacheVersion(1) // not zero
 
     {
@@ -70,7 +70,7 @@ public:
         myHandle(0),
         defaultTimeScale(src.defaultTimeScale),
         defaultLengthScale(src.defaultLengthScale),
-        defaultUpDirection(src.defaultUpDirection), 
+        defaultUpDirection(src.defaultUpDirection),
         useUniformBackground(src.useUniformBackground),
         hasTimeAdvancedEventsFlag(src.hasTimeAdvancedEventsFlag),
         systemTopologyRealized(false),
@@ -88,14 +88,14 @@ public:
     const String& getName()    const {return systemName;}
     const String& getVersion() const {return systemVersion;}
 
-    void setDefaultTimeScale(Real tc) 
+    void setDefaultTimeScale(Real tc)
     {   defaultTimeScale = tc; }
     Real getDefaultTimeScale() const {return defaultTimeScale;}
     void setDefaultLengthScale(Real lc)
     {   defaultLengthScale = lc; }
     Real getDefaultLengthScale() const {return defaultLengthScale;}
 
-    void setUpDirection(const CoordinateDirection& up) 
+    void setUpDirection(const CoordinateDirection& up)
     {   defaultUpDirection = up; }
     CoordinateDirection getUpDirection() const {return defaultUpDirection;}
     void setUseUniformBackground(bool useUniform)
@@ -111,7 +111,7 @@ public:
 
 
     // Take over ownership from the Subsystem handle, allocate a new
-    // subsystem slot for it, and return the slot number. This is only 
+    // subsystem slot for it, and return the slot number. This is only
     // allowed if the supplied Subsytem already has a rep, but is
     // NOT part of some other System.
     SubsystemIndex adoptSubsystem(Subsystem& child) {
@@ -137,7 +137,7 @@ public:
     void clearMyHandle() {myHandle=0;}
 
 
-    bool systemTopologyHasBeenRealized() const 
+    bool systemTopologyHasBeenRealized() const
     {   return systemTopologyRealized; }
 
     StageVersion getSystemTopologyCacheVersion() const
@@ -183,8 +183,8 @@ private:
     bool                useUniformBackground;   // visualization hint
 
     bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
-       
-    
+
+
     // TOPOLOGY STAGE CACHE //
 
     // This should only be true when *all* subsystems have successfully

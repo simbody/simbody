@@ -40,7 +40,7 @@ namespace Ipopt
     virtual ~IpoptApplication();
 
     /** Initialize method. This method reads the params file and initializes
-     *  the journalists. You should call this method at some point before the 
+     *  the journalists. You should call this method at some point before the
      *  first optimize call. Note: you can skip the processing of a params
      *  file by setting params_file to ""
      */
@@ -114,7 +114,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

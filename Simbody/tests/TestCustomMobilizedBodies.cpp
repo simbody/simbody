@@ -116,14 +116,14 @@ public:
         Transform t(Vec3(0));
         if (getUseEulerAngles(s)) {
             ASSERT(nq == 3);
-            t.updR().setRotationToBodyFixedXYZ(Vec3::getAs(q)); 
+            t.updR().setRotationToBodyFixedXYZ(Vec3::getAs(q));
         }
         else {
             ASSERT(nq == 4);
             t.updR().setRotationFromQuaternion(Quaternion(Vec4::getAs(q)));
         }
         return t;
-        
+
     }
     SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 3);
@@ -228,14 +228,14 @@ public:
         Transform t(Vec3::getAs(&q[nq-3]));
         if (getUseEulerAngles(s)) {
             ASSERT(nq == 6);
-            t.updR().setRotationToBodyFixedXYZ(Vec3::getAs(q)); 
+            t.updR().setRotationToBodyFixedXYZ(Vec3::getAs(q));
         }
         else {
             ASSERT(nq == 7);
             t.updR().setRotationFromQuaternion(Quaternion(Vec4::getAs(q)));
         }
         return t;
-        
+
     }
     SpatialVec multiplyByHMatrix(const State& s, int nu, const Real* u) const override {
         ASSERT(nu == 6);
@@ -332,15 +332,15 @@ public:
 void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bool eulerAngles, int expectedQ, int expectedU) {
     const SimbodyMatterSubsystem& matter = b1.getMatterSubsystem();
     const System& system = matter.getSystem();
-    
+
     // Set whether to use Euler angles.
-    
+
     State state = system.getDefaultState();
     matter.setUseEulerAngles(state, eulerAngles);
     system.realizeModel(state);
-    
+
     // Make sure the number of state variables is correct.
-    
+
     assertEqual(b1.getNumQ(state), expectedQ);
     assertEqual(b1.getNumU(state), expectedU);
     assertEqual(b2.getNumQ(state), expectedQ);
@@ -356,9 +356,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     for (int i = 0; i < nu; ++i)
         state.updU()[i] = state.updU()[i+nu] = random.getValue();
     system.realize(state, Stage::Acceleration);
-        
+
     // Compare state variables and their derivatives.
-    
+
     for (int i = 0; i < b1.getNumQ(state); ++i) {
         assertEqual(b1.getOneQ(state, i), b2.getOneQ(state, i));
         assertEqual(b1.getOneQDot(state, i), b2.getOneQDot(state, i));
@@ -368,9 +368,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
         assertEqual(b1.getOneU(state, i), b2.getOneU(state, i));
         assertEqual(b1.getOneUDot(state, i), b2.getOneUDot(state, i));
     }
-    
+
     // Compare lots of properties of the two bodies.
-    
+
     assertEqual(b1.getBodyTransform(state), b2.getBodyTransform(state));
     assertEqual(b1.getBodyVelocity(state), b2.getBodyVelocity(state));
     assertEqual(b1.getBodyAcceleration(state), b2.getBodyAcceleration(state));
@@ -379,9 +379,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     assertEqual(b1.getBodyOriginAcceleration(state), b2.getBodyOriginAcceleration(state));
     assertEqual(b1.getMobilizerTransform(state), b2.getMobilizerTransform(state));
     assertEqual(b1.getMobilizerVelocity(state), b2.getMobilizerVelocity(state));
-    
+
     // Test methods that multiply by various matrices.
-    
+
     Vector tempq(state.getNQ());
     Vector tempu(state.getNU());
     matter.multiplyByN(state, false, state.getU(), tempq);
@@ -396,9 +396,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     matter.multiplyByNInv(state, true, state.getU(), tempq);
     for (int i = 0; i < b1.getNumQ(state); ++i)
         assertEqual(b1.getOneFromQPartition(state, i, tempq), b2.getOneFromQPartition(state, i, tempq));
-    
+
     // Have them calculate q and u, and see if they agree.
-    
+
     Transform t(Rotation(random.getValue(), Vec3(random.getValue(), random.getValue(), random.getValue())), Vec3(random.getValue(), random.getValue(), random.getValue()));
     b1.setQToFitTransform(state, t);
     b2.setQToFitTransform(state, t);
@@ -407,9 +407,9 @@ void compareMobilizedBodies(const MobilizedBody& b1, const MobilizedBody& b2, bo
     b1.setUToFitVelocity(state, v);
     b2.setUToFitVelocity(state, v);
     assertEqual(b1.getUAsVector(state), b2.getUAsVector(state));
-    
+
     // Simulate the system, and see if the two bodies remain identical.
-    
+
     VerletIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);

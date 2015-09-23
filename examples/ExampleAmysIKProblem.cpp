@@ -21,16 +21,16 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* This is a test of repeated Assembly analysis, also known as 
-InverseKinematics (IK). The problem is from a 56 dof OpenSim model built by Amy 
+/* This is a test of repeated Assembly analysis, also known as
+InverseKinematics (IK). The problem is from a 56 dof OpenSim model built by Amy
 Silder in Scott Delp's lab. The model was read from various OpenSim data
-files and machine-translated into a standalone C++ Simbody model during the 
+files and machine-translated into a standalone C++ Simbody model during the
 development of the Assembler study. There are "markers" (distinguished points)
 on many of the bodies, and many frames of laboratory data giving sequentially-
 observed positions of these markers. The idea is to solve for the set of q's
 in each frame that pose the bodies so that their attached marker positions
 are a best fit for the observed data. Sequential frames are expected to be
-spatially close. 
+spatially close.
 
 There is some commented-out code below for playing with various ways
 of handling constraints.
@@ -55,7 +55,7 @@ static ArrayViewConst_<Vec3> getFrame(int i);
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -363,20 +363,20 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
 
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
     // Show initial configuration
     viz.report(state);
-    State tempState = state; 
+    State tempState = state;
     matter.setUseEulerAngles(tempState, true);
     system.realizeModel(tempState);
     system.realize(tempState, Stage::Position);
-    cout << "INITIAL CONFIGURATION\n"; 
-    cout << tempState.getNU() << " dofs, " 
+    cout << "INITIAL CONFIGURATION\n";
+    cout << tempState.getNU() << " dofs, "
          << tempState.getNQErr() << " constraints.\n";
-    
+
     cout << "Type any character to continue:\n";
     getchar();
 
@@ -421,7 +421,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     ik.updateFromInternalState(state);
     viz.report(state);
     printf("ASSEMBLED CONFIGURATION (acc=%g tol=%g err=%g, cost=%g, qerr=%g)\n",
-        ik.getAccuracyInUse(), ik.getErrorToleranceInUse(), 
+        ik.getAccuracyInUse(), ik.getErrorToleranceInUse(),
         ik.calcCurrentErrorNorm(), ik.calcCurrentGoal(),
         max(abs(ik.getInternalState().getQErr())));
     printf("# initializations=%d\n", ik.getNumInitializations());
@@ -439,7 +439,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
     for (int f=1; f < NSteps; ++f) {
         markers.moveAllObservations(getFrame(f));
         // update internal state to match new observed locations
-        ik.track(getFrameTime(f)); 
+        ik.track(getFrameTime(f));
         if ((f%NToSkip)==0) {
             ik.updateFromInternalState(state);
             viz.report(state);
@@ -450,7 +450,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
         cpuTime()-startCPU << " CPU s, " << realTime()-startReal << " REAL s\n";
 
     printf("FINAL CONFIGURATION (acc=%g tol=%g err=%g, cost=%g, qerr=%g)\n",
-        ik.getAccuracyInUse(), ik.getErrorToleranceInUse(), 
+        ik.getAccuracyInUse(), ik.getErrorToleranceInUse(),
         ik.calcCurrentErrorNorm(), ik.calcCurrentGoal(),
         max(abs(ik.getInternalState().getQErr())));
 
@@ -467,7 +467,7 @@ MobilizedBody::Pin mobod_toes_l(mobod_foot_l,Vec3(0.1768,-0.002,-0.00108), body_
 
     cout << "Type any character to continue:\n";
     getchar();
-   
+
   } catch (const std::exception& e) {
     std::printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

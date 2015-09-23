@@ -80,7 +80,7 @@ void testMatDivision() {
     Mat<2,2,Mat22> oom2(Mat22( .5, 0,
                                0, OneThird));
 
-    SimTK_TEST_EQ(1/m1, oom1); 
+    SimTK_TEST_EQ(1/m1, oom1);
     SimTK_TEST_EQ(1/m2, oom2);
 }
 
@@ -99,7 +99,7 @@ void testTransform() {
 
     SimTK_TEST(X*vs == -(X*-vs));
     SimTK_TEST(X*vs2 == -(X*-vs2));
-    
+
     SimTK_TEST(R*vs == -(R*-vs));
     SimTK_TEST(~vs*R == -(-~vs*R));
 }
@@ -145,7 +145,7 @@ int main() {
 
         testMatDivision();
         testTransform();
-        
+
         Matrix m(Mat22(1, 2, 3, 4));
         testMatrix<Matrix,2,2>(m, Mat22(1, 2, 3, 4));
         m += 3;
@@ -196,13 +196,13 @@ int main() {
             // Test copying a row into a Vector and column into RowVector.
 
         // Test assignment (copy) constructor
-        RowVector rrr = ~mm(1); 
+        RowVector rrr = ~mm(1);
         testVector(rrr, Vec2(2,8));
         // Test copy assignment
         rrr = ~mm(0); testVector(rrr, Vec2(1,7));
 
         // Test assignment (copy) constructor
-        Vector vvv = ~mm[1]; 
+        Vector vvv = ~mm[1];
         testVector(vvv, Vec3(7,8,9));
         // Test copy assignment
         vvv = ~mm[0]; testVector(vvv, Vec3(1,2,3));
@@ -218,14 +218,14 @@ int main() {
                                               2.2, 4.4));
 
         // Here sizeof(element) != sizeof(scalar)
-        Array_<SpatialVec> svarrmat;                                 
+        Array_<SpatialVec> svarrmat;
         svarrmat.push_back(SpatialVec(Vec3(1,2,3),Vec3(4,5,6)));
         svarrmat.push_back(SpatialVec(Vec3(1.1,2.1,3.1),Vec3(4.1,5.1,6.1)));
         svarrmat.push_back(SpatialVec(Vec3(1.2,2.2,3.2),Vec3(4.2,5.2,6.2)));
         svarrmat.push_back(SpatialVec(Vec3(1.3,2.3,3.3),Vec3(4.3,5.3,6.3)));
         const int szInScalars = sizeof(SpatialVec)/sizeof(Real);
-        Matrix_<SpatialVec> svmatrix(2,2, 2*szInScalars/*lda*/, 
-                                    (Real*)&svarrmat[0]); 
+        Matrix_<SpatialVec> svmatrix(2,2, 2*szInScalars/*lda*/,
+                                    (Real*)&svarrmat[0]);
         Matrix_<SpatialVec> svmatans(2,2);
         svmatans(0,0) = svarrmat[0]; svmatans(1,0)=svarrmat[1];
         svmatans(0,1) = svarrmat[2]; svmatans(1,1)=svarrmat[3];
@@ -245,7 +245,7 @@ int main() {
         svarray.push_back(SpatialVec(Vec3(1.1,2.1,3.1),Vec3(4.1,5.1,6.1)));
         svarray.push_back(SpatialVec(Vec3(1.2,2.2,3.2),Vec3(4.2,5.2,6.2)));
         Vector_<SpatialVec> svvector(3, (Real*)&svarray[0], true);
-        Vector_<SpatialVec> svanswer(3); 
+        Vector_<SpatialVec> svanswer(3);
         svanswer[0]=svarray[0];svanswer[1]=svarray[1];svanswer[2]=svarray[2];
         SimTK_TEST_EQ_TOL(svvector, svanswer, 1e-16); // should be exact
 

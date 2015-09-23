@@ -38,7 +38,7 @@ namespace SimTK {
 //------------------------------- FullHelper -----------------------------------
 //
 // This abstract class represents a matrix for which every one
-// of the mXn elements is stored explicitly in data. 
+// of the mXn elements is stored explicitly in data.
 // Derived classes provide fast scalar elements, column- or row-order storage,
 // or fancier indexing schemes.
 //------------------------------------------------------------------------------
@@ -58,9 +58,9 @@ public:
     FullHelper(int esz, int cppesz, int nr, int nc, int ldim)
     :   Base(esz,cppesz), m_leadingDim(ldim)
     {
-        assert(   m_leadingDim==nr*this->m_eltSize 
+        assert(   m_leadingDim==nr*this->m_eltSize
                || m_leadingDim==nc*this->m_eltSize);
-        // The "this->" (or Base::) is required here (by gcc and the standard, 
+        // The "this->" (or Base::) is required here (by gcc and the standard,
         // though not VC++ 9) to delay lookup of these non-tempatized members
         // until instantiation. (Google "two-stage name lookup".)
         this->m_owner     = true;
@@ -70,8 +70,8 @@ public:
         this->m_actual.setActualSize(nr,nc);
     }
 
-    // Use someone else's memory, which we assume to be the right size. 
-    FullHelper(int esz, int cppesz, int nr, int nc, int ldim, 
+    // Use someone else's memory, which we assume to be the right size.
+    FullHelper(int esz, int cppesz, int nr, int nc, int ldim,
                const S* shared, bool canWrite)
     :   Base(esz,cppesz), m_leadingDim(ldim)
     {
@@ -84,7 +84,7 @@ public:
 
     int getLeadingDim() const {return m_leadingDim;}
 
-    void getAnyElt_(int i, int j, S* value) const 
+    void getAnyElt_(int i, int j, S* value) const
     {   this->copyElt(value, this->getElt_(i,j)); }
 
     // The meaning of "Full" is that every element is stored in memory somewhere.
@@ -114,14 +114,14 @@ protected:
     // where "fast" is the one that moves consecutively through memory.
 
     // First is for use with composite elements, second is for scalar elements.
-    ptrdiff_t eltIx   (int fast, int slow) const 
+    ptrdiff_t eltIx   (int fast, int slow) const
     {   return (ptrdiff_t)slow*m_leadingDim + fast*this->m_eltSize; }
-    ptrdiff_t scalarIx(int fast, int slow) const 
+    ptrdiff_t scalarIx(int fast, int slow) const
     {   return (ptrdiff_t)slow*m_leadingDim + fast; }
 
-    bool isContiguousElt   (int nFast) const 
+    bool isContiguousElt   (int nFast) const
     {   return m_leadingDim == nFast*this->m_eltSize; }
-    bool isContiguousScalar(int nFast) const 
+    bool isContiguousScalar(int nFast) const
     {   return m_leadingDim == nFast; }
 
     S scalarColSum(int j) const {
@@ -151,7 +151,7 @@ class RegularFullHelper : public FullHelper<S> {
 public:
     RegularFullHelper(int esz, int cppesz, int nr, int nc, int ldim)
     :   Base(esz,cppesz,nr,nc,ldim) {}
-    RegularFullHelper(int esz, int cppesz, int nr, int nc, int ldim, 
+    RegularFullHelper(int esz, int cppesz, int nr, int nc, int ldim,
                       const S* shared, bool canWrite)
     :   Base(esz,cppesz,nr,nc,ldim,shared,canWrite) {}
 
@@ -174,7 +174,7 @@ protected:
     // code works because transpose(inv(m))==inv(transpose(m)).
     void lapackInvertInPlace() {
         // should have been checked already
-        assert(this->m_eltSize==1 && this->nrow()==this->ncol()); 
+        assert(this->m_eltSize==1 && this->nrow()==this->ncol());
         const int m = this->nrow();
         StdNumber* rawMem = reinterpret_cast<StdNumber*>(this->m_data);
         Array_<int> ipiv(m);
@@ -203,13 +203,13 @@ class FullColOrderEltHelper : public RegularFullHelper<S> {
 public:
     // Leading dimension is # rows for contiguous column-ordered memory.
     FullColOrderEltHelper(int esz, int cppesz, int nr, int nc)
-    :   Base(esz, cppesz, nr, nc, nr*esz) {   
+    :   Base(esz, cppesz, nr, nc, nr*esz) {
         this->m_actual.setStorage
            (MatrixStorage(MatrixStorage::Full, MatrixStorage::NoPlacement,
-                          MatrixStorage::ColumnOrder, MatrixStorage::NoDiag)); 
+                          MatrixStorage::ColumnOrder, MatrixStorage::NoDiag));
     }
 
-    FullColOrderEltHelper(int esz, int cppesz, int nr, int nc, int ldim, 
+    FullColOrderEltHelper(int esz, int cppesz, int nr, int nc, int ldim,
                           S* shared, bool canWrite)
     :   Base(esz, cppesz, nr, nc, ldim, shared, canWrite) {
         assert(ldim>=nr*esz);
@@ -222,22 +222,22 @@ public:
     bool preferRowOrder_() const {return false;}
 
     // These virtual methods should be overridden in the derived scalar class.
-    virtual const S*    getElt_(int i, int j) const 
+    virtual const S*    getElt_(int i, int j) const
     {   return this->m_data + this->eltIx(i,j); }
-    virtual S*          updElt_(int i, int j)       
+    virtual S*          updElt_(int i, int j)
     {   return this->m_data + this->eltIx(i,j); }
-    virtual bool        hasContiguousData_()  const 
+    virtual bool        hasContiguousData_()  const
     {   return this->isContiguousElt(this->nrow()); }
-    virtual This*       cloneHelper_()        const 
+    virtual This*       cloneHelper_()        const
     {   return new This(*this); }
 
-    // This implementation will return a FullRowOrderEltHelper. Override for 
+    // This implementation will return a FullRowOrderEltHelper. Override for
     // scalars.
     virtual RegularFullHelper<S>* createTransposeView_();
 
     // These implementations are fine for both composite and scalar class.
 
-    // Regular spacing as (dfast/di, dfast/dj) and (dslow/di, dslow/dj), 
+    // Regular spacing as (dfast/di, dfast/dj) and (dslow/di, dslow/dj),
     // with i,j in elements.
     EltIndexer getEltIndexer() const {return EltIndexer(1,0,0,1);}
 
@@ -248,10 +248,10 @@ public:
         p->m_owner = true;
         p->allocateData(this->nelt());
         if (hasContiguousData_())
-            std::memcpy(p->m_data, this->m_data, 
+            std::memcpy(p->m_data, this->m_data,
                         Base::nelt()*this->m_eltSize*sizeof(S));
         else for (int j=0; j < this->ncol(); ++j)
-            std::memcpy(p->updElt_(0,j), getElt_(0,j), 
+            std::memcpy(p->updElt_(0,j), getElt_(0,j),
                         this->nrow()*this->m_eltSize*sizeof(S));
         return p;
     }
@@ -294,13 +294,13 @@ public:
     :   Base(1, 1, nr, nc, ldim, shared, canWrite) {}
 
     // For speed, these override the Base implementations for composite elements.
-    const S*    getElt_(int i, int j) const 
+    const S*    getElt_(int i, int j) const
     {   return this->m_data + this->scalarIx(i,j); }
-    S*          updElt_(int i, int j)       
+    S*          updElt_(int i, int j)
     {   return this->m_data + this->scalarIx(i,j); }
-    bool        hasContiguousData_()  const 
+    bool        hasContiguousData_()  const
     {   return this->isContiguousScalar(this->nrow()); }
-    This*       cloneHelper_()        const 
+    This*       cloneHelper_()        const
     {   return new This(*this); }
 
     // This implementation will return a FullRowOrderScalarHelper.
@@ -325,13 +325,13 @@ class FullRowOrderEltHelper : public RegularFullHelper<S> {
 public:
     // Leading dimension is # cols for contiguous row-ordered memory.
     FullRowOrderEltHelper(int esz, int cppesz, int nr, int nc)
-    :   Base(esz, cppesz, nr, nc, nc*esz) {   
+    :   Base(esz, cppesz, nr, nc, nc*esz) {
         this->m_actual.setStorage
            (MatrixStorage(MatrixStorage::Full, MatrixStorage::NoPlacement,
-                          MatrixStorage::RowOrder, MatrixStorage::NoDiag)); 
+                          MatrixStorage::RowOrder, MatrixStorage::NoDiag));
     }
 
-    FullRowOrderEltHelper(int esz, int cppesz, int nr, int nc, int ldim, 
+    FullRowOrderEltHelper(int esz, int cppesz, int nr, int nc, int ldim,
                           S* shared, bool canWrite)
     :   Base(esz, cppesz, nr, nc, ldim, shared, canWrite) {
         assert(ldim>=nc*esz);
@@ -344,16 +344,16 @@ public:
     bool preferRowOrder_() const {return true;}
 
     // These virtual methods should be overridden in the derived scalar class.
-    virtual const S*    getElt_(int i, int j) const 
+    virtual const S*    getElt_(int i, int j) const
     {   return this->m_data + this->eltIx(j,i); }
-    virtual S*          updElt_(int i, int j)       
+    virtual S*          updElt_(int i, int j)
     {   return this->m_data + this->eltIx(j,i); }
-    virtual bool        hasContiguousData_()  const 
+    virtual bool        hasContiguousData_()  const
     {   return this->isContiguousElt(this->ncol()); }
-    virtual This*       cloneHelper_()        const 
+    virtual This*       cloneHelper_()        const
     {   return new This(*this); }
 
-    // This implementation will return a FullColOrderEltHelper. Override for 
+    // This implementation will return a FullColOrderEltHelper. Override for
     // scalars.
     virtual RegularFullHelper<S>* createTransposeView_();
 
@@ -367,10 +367,10 @@ public:
         p->m_owner = true;
         p->allocateData(this->nelt());
         if (hasContiguousData_())
-            std::memcpy(p->m_data, this->m_data, 
+            std::memcpy(p->m_data, this->m_data,
                         this->nelt()*this->m_eltSize*sizeof(S));
         else for (int i=0; i < this->nrow(); ++i)
-            std::memcpy(p->updElt_(i,0), this->getElt_(i,0), 
+            std::memcpy(p->updElt_(i,0), this->getElt_(i,0),
                         this->ncol()*this->m_eltSize*sizeof(S));
         return p;
     }
@@ -411,13 +411,13 @@ public:
     :   Base(1, 1, nr, nc, ldim, shared, canWrite) {}
 
     // For speed, these override the Base implementations for composite elements.
-    const S*    getElt_(int i, int j) const 
+    const S*    getElt_(int i, int j) const
     {   return this->m_data + this->scalarIx(j,i); }
-    S*          updElt_(int i, int j)       
+    S*          updElt_(int i, int j)
     {   return this->m_data + this->scalarIx(j,i); }
-    bool        hasContiguousData_()  const 
+    bool        hasContiguousData_()  const
     {   return this->isContiguousScalar(this->ncol()); }
-    This*       cloneHelper_()        const 
+    This*       cloneHelper_()        const
     {   return new This(*this); }
 
     // This implementation will return a FullColOrderScalarHelper.
@@ -440,34 +440,34 @@ public:
 
 template <class S> inline RegularFullHelper<S>*
 FullColOrderEltHelper<S>::createTransposeView_() {
-    FullRowOrderEltHelper<S>* p = 
-        new FullRowOrderEltHelper<S>(this->m_eltSize, this->m_cppEltSize, 
-                                     this->ncol(), this->nrow(), 
+    FullRowOrderEltHelper<S>* p =
+        new FullRowOrderEltHelper<S>(this->m_eltSize, this->m_cppEltSize,
+                                     this->ncol(), this->nrow(),
                                      this->m_leadingDim, this->m_data, this->m_writable);
     return p;
 }
 
 template <class S> inline RegularFullHelper<S>*
 FullColOrderScalarHelper<S>::createTransposeView_() {
-    FullRowOrderScalarHelper<S>* p = 
-        new FullRowOrderScalarHelper<S>(this->ncol(), this->nrow(), 
+    FullRowOrderScalarHelper<S>* p =
+        new FullRowOrderScalarHelper<S>(this->ncol(), this->nrow(),
                                         this->m_leadingDim, this->m_data, this->m_writable);
     return p;
 }
 
 template <class S> inline RegularFullHelper<S>*
 FullRowOrderEltHelper<S>::createTransposeView_() {
-    FullColOrderEltHelper<S>* p = 
-        new FullColOrderEltHelper<S>(this->m_eltSize, this->m_cppEltSize, 
-                                     this->ncol(), this->nrow(), 
+    FullColOrderEltHelper<S>* p =
+        new FullColOrderEltHelper<S>(this->m_eltSize, this->m_cppEltSize,
+                                     this->ncol(), this->nrow(),
                                      this->m_leadingDim, this->m_data, this->m_writable);
     return p;
 }
 
 template <class S> inline RegularFullHelper<S>*
 FullRowOrderScalarHelper<S>::createTransposeView_() {
-    FullColOrderScalarHelper<S>* p = 
-        new FullColOrderScalarHelper<S>(this->ncol(), this->nrow(), 
+    FullColOrderScalarHelper<S>* p =
+        new FullColOrderScalarHelper<S>(this->ncol(), this->nrow(),
                                         this->m_leadingDim, this->m_data, this->m_writable);
     return p;
 }
@@ -484,13 +484,13 @@ public:
     // Note that the (r0,c0) element may be one element off the end of the
     // matrix as long as the corresponding dimension is 0.
     FullIndexedEltHelper(RegularFullHelper<S>& src, const EltBlock& block, const EltIndexer& ix)
-    :   Base(src.getEltSize(), src.getCppEltSize(), 
-             block.nrow(), block.ncol(), src.getLeadingDim(), 
-             src.getElt(block.row0(), block.col0()), src.isWritable()), 
+    :   Base(src.getEltSize(), src.getCppEltSize(),
+             block.nrow(), block.ncol(), src.getLeadingDim(),
+             src.getElt(block.row0(), block.col0()), src.isWritable()),
         m_indexer(src.getEltIndexer().postIndexBy(ix))
     {
         SimTK_SIZECHECK(block.row0(), src.nrow()-block.nrow(), "FullIndexedEltHelper ctor");
-        SimTK_SIZECHECK(block.col0(), src.ncol()-block.ncol(), "FullIndexedEltHelper ctor"); 
+        SimTK_SIZECHECK(block.col0(), src.ncol()-block.ncol(), "FullIndexedEltHelper ctor");
     }
 
         // Implementations good for both composite and scalar elements. //
@@ -518,13 +518,13 @@ public:
     }
 
     // A deep copy of an indexed matrix eliminates the index, producing a
-    // full, column- or row-ordered matrix with contiguous storage. 
+    // full, column- or row-ordered matrix with contiguous storage.
     // We choose the destination storage order to match whichever way is
     // fastest to travel through the indexed matrix, since then we can
     // traverse both matrices in their fastest order.
     virtual RegularFullHelper<S>* createDeepCopy_() const {
         if (preferRowOrder_()) {
-            FullRowOrderEltHelper<S>* p = 
+            FullRowOrderEltHelper<S>* p =
                 new FullRowOrderEltHelper<S>(this->m_eltSize,this->m_cppEltSize,
                                              this->nrow(),this->ncol());
             for (int i=0; i < this->nrow(); ++i) {
@@ -534,7 +534,7 @@ public:
             }
             return p;
         } else {
-            FullColOrderEltHelper<S>* p = 
+            FullColOrderEltHelper<S>* p =
                 new FullColOrderEltHelper<S>(this->m_eltSize,this->m_cppEltSize,
                                              this->nrow(), this->ncol());
             for (int j=0; j < this->ncol(); ++j) {
@@ -563,25 +563,25 @@ class FullIndexedScalarHelper : public FullIndexedEltHelper<S> {
 public:
     // Construct a new view of any regularly-spaced full matrix, as long as that
     // matrix has scalar elements.
-    FullIndexedScalarHelper(RegularFullHelper<S>& src, const EltBlock& block, 
+    FullIndexedScalarHelper(RegularFullHelper<S>& src, const EltBlock& block,
                             const EltIndexer& ix)
     :   Base(src, block, ix)
     {
-        SimTK_ASSERT_ALWAYS(src.getEltSize()==1, 
+        SimTK_ASSERT_ALWAYS(src.getEltSize()==1,
             "FullIndexedScalarHelper ctor: source must have scalar elements");
     }
 
     // For speed, these override the composite-element implementatiosn.
-    const S* getElt_(int i, int j) const 
+    const S* getElt_(int i, int j) const
     {   return this->m_data + ixScalarIx(i,j); }
-    S*       updElt_(int i, int j)       
+    S*       updElt_(int i, int j)
     {   return this->m_data + ixScalarIx(i,j); }
 
     This* cloneHelper_() const {return new This(*this);}
 
     RegularFullHelper<S>* createDeepCopy_() const {
         if (this->preferRowOrder_()) {
-            FullRowOrderScalarHelper<S>* p = 
+            FullRowOrderScalarHelper<S>* p =
                 new FullRowOrderScalarHelper<S>(this->nrow(),this->ncol());
             for (int i=0; i < this->nrow(); ++i) {
                 S* dest = p->updElt_(i,0);   // start of a dense row
@@ -590,7 +590,7 @@ public:
             }
             return p;
         } else {
-            FullColOrderScalarHelper<S>* p = 
+            FullColOrderScalarHelper<S>* p =
                 new FullColOrderScalarHelper<S>(this->nrow(),this->ncol());
             for (int j=0; j < this->ncol(); ++j) {
                 S* dest = p->updElt_(0,j);   // start of a dense column
@@ -602,12 +602,12 @@ public:
     }
 
 private:
-    ptrdiff_t ixScalarIx(int i, int j) const 
+    ptrdiff_t ixScalarIx(int i, int j) const
     {   return this->scalarIx(this->row(i,j),this->col(i,j)); }
 };
 
 template <class S> inline RegularFullHelper<S>*
-RegularFullHelper<S>::createRegularView_(const EltBlock& block, 
+RegularFullHelper<S>::createRegularView_(const EltBlock& block,
                                          const EltIndexer& ix) {
     RegularFullHelper<S>* p;
     if (this->m_eltSize==1) p = new FullIndexedScalarHelper<S>(*this, block, ix);
@@ -618,7 +618,7 @@ RegularFullHelper<S>::createRegularView_(const EltBlock& block,
 
 
 
-} // namespace SimTK   
+} // namespace SimTK
 
 
 #endif // SimTK_SimTKCOMMON_MATRIX_HELPER_REP_FULL_H_

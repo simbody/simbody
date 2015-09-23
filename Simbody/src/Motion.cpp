@@ -36,7 +36,7 @@ namespace SimTK {
 //==============================================================================
 //                                MOTION
 //==============================================================================
-const MobilizedBody& Motion::getMobilizedBody() const 
+const MobilizedBody& Motion::getMobilizedBody() const
 {   return getImpl().getMobilizedBodyImpl().getMyHandle(); }
 
 Motion::Level Motion::getLevel(const State& s) const
@@ -61,8 +61,8 @@ void Motion::setDisabledByDefault(bool shouldBeDisabled)
 bool Motion::isDisabledByDefault() const
 {   return getImpl().isDisabledByDefault(); }
 
-void Motion::calcAllMethods(const State& s, Method& qMethod, Method& uMethod, 
-                            Method& udotMethod) const 
+void Motion::calcAllMethods(const State& s, Method& qMethod, Method& uMethod,
+                            Method& udotMethod) const
 {
     const Level  level       = getLevel(s);
     const Method levelMethod = getLevelMethod(s);
@@ -71,7 +71,7 @@ void Motion::calcAllMethods(const State& s, Method& qMethod, Method& uMethod,
 
     switch (level) {
     case Position:
-        method[Velocity]=method[Acceleration]= 
+        method[Velocity]=method[Acceleration]=
             (levelMethod==Prescribed ? Prescribed : Zero);
         break;
     case Velocity:
@@ -98,7 +98,7 @@ Motion::nameOfLevel(Level l) {
     case Acceleration: return "Acceleration";
     case Velocity:     return "Velocity";
     case Position:     return "Position";
-    default: 
+    default:
         return "*** UNRECOGNIZED Motion::Level ***";
     }
 }
@@ -112,7 +112,7 @@ Motion::nameOfMethod(Method m) {
     case Prescribed: return "Prescribed";
     case Free:       return "Free";
     case Fast:       return "Fast";
-    default: 
+    default:
         return "*** UNRECOGNIZED Motion::Method ***";
     }
 }
@@ -137,9 +137,9 @@ bool MotionImpl::isDisabled(const State& s) const {
     return iv.prescribedMotionIsDisabled[mbi.getMyMobilizedBodyIndex()];
 }
 
-const SimbodyMatterSubsystem&  
+const SimbodyMatterSubsystem&
 MotionImpl::getMatterSubsystem() const {
-    return getMobilizedBodyImpl().getMySimbodyMatterSubsystem(); 
+    return getMobilizedBodyImpl().getMySimbodyMatterSubsystem();
 }
 
 const AbstractValue&
@@ -159,7 +159,7 @@ MotionImpl::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const 
 
 
 void MotionImpl::invalidateTopologyCache() const {
-    if (hasMobilizedBody()) 
+    if (hasMobilizedBody())
         getMatterSubsystem().invalidateSubsystemTopologyCache();
 }
 
@@ -239,7 +239,7 @@ Motion::Sinusoid::Sinusoid(MobilizedBody& mobod, Motion::Level level,
 SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Motion::Steady, Motion::SteadyImpl, Motion);
 
 
-Motion::Steady::Steady(MobilizedBody& mobod, Real u) 
+Motion::Steady::Steady(MobilizedBody& mobod, Real u)
   : Motion(new SteadyImpl(Vec<6>(u))) {
     mobod.adoptMotion(*this);
 }
@@ -286,7 +286,7 @@ Motion::Steady::Steady(MobilizedBody& mobod, const Vec<6>& u)
 Motion::Steady&
 Motion::Steady::setDefaultRate(Real u)
 {   updImpl().setDefaultRates(Vec6(u)); return *this; }
-Motion::Steady& 
+Motion::Steady&
 Motion::Steady::setOneDefaultRate(MobilizerUIndex ux, Real u)
 {   updImpl().setOneDefaultRate(ux,u); return *this; }
 Real Motion::Steady::getOneDefaultRate(MobilizerUIndex ux) const
@@ -334,7 +334,7 @@ const Motion::Custom::Implementation& Motion::Custom::getImplementation() const 
 }
 
 Motion::Custom::Implementation& Motion::Custom::updImplementation() {
-    return updImpl().updImplementation();    
+    return updImpl().updImplementation();
 }
 
 

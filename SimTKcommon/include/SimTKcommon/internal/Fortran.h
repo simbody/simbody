@@ -25,14 +25,14 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This header defines a set of macros which are useful for 
+ * This header defines a set of macros which are useful for
  * making calls to Fortran routines from C++ programs. Please don't
  * take this as encouragement to use Fortran, but sometimes it
  * is necessary.
  */
 
 // Although we are currently triggering this off the OS, these
-// really are compiler dependencies. 
+// really are compiler dependencies.
 //      (1) The calling convention (__stdcall for Windows)
 //      (2) Name capitalization (either all-lower or all-uppercase)
 //      (3) Is a trailing underscore added to the name?
@@ -95,7 +95,7 @@
 
 // TODO: Currently this is unused and may not be needed anymore.
 // Call these routines to initialize the GNU Fortran RTL.
-// 
+//
 
 #ifdef USING_G77
     extern "C" {

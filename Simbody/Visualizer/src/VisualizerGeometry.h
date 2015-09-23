@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the implementation of DecorativeGeometry used by 
+ * This is the implementation of DecorativeGeometry used by
  * Visualizer::Reporter.
  */
 

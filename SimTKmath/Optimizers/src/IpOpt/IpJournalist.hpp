@@ -80,27 +80,27 @@ namespace Ipopt
    * The "printing" code or "author" should send ALL messages to the
    * Journalist, indicating an appropriate category and print level.
    * The journalist then decides, based on reader specified
-   * acceptance criteria, which message is actually printed in which 
+   * acceptance criteria, which message is actually printed in which
    * journals.
-   * This allows the printing code to send everything, while the 
+   * This allows the printing code to send everything, while the
    * "reader" can decide what they really want to see.
-   * 
+   *
    * Authors:
-   * Authors use the 
+   * Authors use the
    * Journals: You can add as many Journals as you like to the
-   * Journalist with the AddJournal or the AddFileJournal methods. 
-   * Each one represents a different printing location (or file).  
+   * Journalist with the AddJournal or the AddFileJournal methods.
+   * Each one represents a different printing location (or file).
    * Then, you can call the "print" methods of the Journalist to output
    * information to each of the journals.
-   * 
-   * Acceptance Criteria: Each print message should be flagged 
+   *
+   * Acceptance Criteria: Each print message should be flagged
    * appropriately with an EJournalCategory and EJournalLevel.
-   * 
+   *
    * The AddFileJournal
    * method returns a pointer to the newly created Journal object
    * (if successful) so you can set Acceptance criteria for that
    * particular location.
-   * 
+   *
    */
   class Journalist : public ReferencedObject
   {
@@ -173,15 +173,15 @@ namespace Ipopt
     //@}
 
     /**@name Reader Methods.
-     * These methods are used by the reader. The reader will setup the 
+     * These methods are used by the reader. The reader will setup the
      * journalist with each output file and the acceptance
      * criteria for that file.
      *
      * Use these methods to setup the journals (files or other output).
-     * These are the internal objects that keep track of the print levels 
+     * These are the internal objects that keep track of the print levels
      * for each category. Then use the internal Journal objects to
      * set specific print levels for each category (or keep defaults).
-     *  
+     *
      */
     //@{
     /** Add a new journal.  The location_name is a string identifier,
@@ -197,7 +197,7 @@ namespace Ipopt
      *  fname="stdout" * for stdout, and use fname="stderr" for
      *  stderr.  This method * returns the Journal pointer so you can
      *  set specific acceptance criteria.  It returns NULL if there
-     *  was a problem creating a new Journal.    
+     *  was a problem creating a new Journal.
      */
     SmartPtr<Journal> AddFileJournal(
       const std::string& location_name,    /** identifier */
@@ -214,7 +214,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -234,7 +234,7 @@ namespace Ipopt
   };
 
   /** Journal class (part of the Journalist implementation.). This
-   *  class is the base class for all Journals. It controls the 
+   *  class is the base class for all Journals. It controls the
    *  acceptance criteria for print statements etc. Derived classes
    *  like the FileJournal - output those messages to specific locations
    */
@@ -263,7 +263,7 @@ namespace Ipopt
     /**@name Journal Output Methods. These methods are called by the
      *  Journalist who first checks if the output print level and category
      *  are acceptable.
-     *  Calling the Print methods explicitly (instead of through the 
+     *  Calling the Print methods explicitly (instead of through the
      *  Journalist will output the message regardless of print level
      *  and category. You should use the Journalist to print & flush instead
      */
@@ -312,7 +312,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -376,7 +376,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

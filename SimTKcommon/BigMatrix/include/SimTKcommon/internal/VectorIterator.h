@@ -35,7 +35,7 @@ namespace SimTK {
 //==============================================================================
 //                            VECTOR ITERATOR
 //==============================================================================
-/** @brief This is an iterator for iterating over the elements of a Vector_ 
+/** @brief This is an iterator for iterating over the elements of a Vector_
 or Vec object.
 
 @tparam ELT             The type of an element stored in the vector whose type
@@ -44,7 +44,7 @@ or Vec object.
                         element type must be \p ELT.
 
 This random access iterator can be used with any container that supports
-random-access indexing and a <code>size()</code> method. However, the intent is 
+random-access indexing and a <code>size()</code> method. However, the intent is
 for use internally to allow writing a variety of vector math functions without
 having to specialize them for the various flavors of vector we support.
 **/
@@ -59,7 +59,7 @@ public:
 
     /** Create an iterator for the supplied `vector` and set it to refer to the
     element at `index`. **/
-    VectorIterator(VECTOR_CLASS& vector, ptrdiff_t index) 
+    VectorIterator(VECTOR_CLASS& vector, ptrdiff_t index)
     :   vectorp(&vector), index(index) {}
 
     /** No default constructor. **/

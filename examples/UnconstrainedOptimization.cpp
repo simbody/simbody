@@ -41,19 +41,19 @@ class ProblemSystem : public OptimizerSystem {
       const Real x = coefficients[0];
       const Real y = coefficients[1];
 
-      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
-    
+      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y;
+
       return(0);
 
    }
 
    int gradientFunc(  const Vector &coefficients, bool new_coefficients, Vector &gradient )const override {
 
-      const Real x = coefficients[0]; 
-      const Real y = coefficients[1];  
+      const Real x = coefficients[0];
+      const Real y = coefficients[1];
 
       gradient[0] = 3*x + 2*y -2;
-      gradient[1] = 2*x + 6*y +8; 
+      gradient[1] = 2*x + 6*y +8;
       return(0);
 
    }
@@ -66,13 +66,13 @@ int main() {
 
     Real f = NaN;
     try {
-       Optimizer opt( sys ); 
+       Optimizer opt( sys );
 
        opt.setConvergenceTolerance( .0001 );
 
        results[0] =  100;
        results[1] = -100;
-    
+
        f = opt.optimize( results );
     }
     catch  (const SimTK::Exception::Base& e) {

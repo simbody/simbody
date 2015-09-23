@@ -71,13 +71,13 @@ void Optimizer::OptimizerRep::setDiagnosticsLevel( const int  level ) {
 }
 
 // These helper methods are private to this compilation unit.
-template<class T> 
+template<class T>
 static bool setAdvancedOptionHelper(std::map<std::string,T> &optionMap, const std::string &option, const T &value) {
     optionMap[option] = value;
     return true;
 }
 
-template<class T> 
+template<class T>
 static bool getAdvancedOptionHelper(const std::map<std::string,T> &optionMap, const std::string &option, T &value) {
     typename std::map<std::string,T>::const_iterator iter = optionMap.find(option);
     if(iter != optionMap.end()) {
@@ -121,7 +121,7 @@ setDifferentiatorMethod(Differentiator::Method method) {
 
 void Optimizer::OptimizerRep::
 useNumericalGradient(bool flag, Real objEstAccuracy) {
-    objectiveEstimatedAccuracy = 
+    objectiveEstimatedAccuracy =
         objEstAccuracy > 0 ? objEstAccuracy : SignificantReal;
     delete gradDiff; gradDiff=0; delete of; of=0;
     if (flag) {     // turn on numerical jacbobian
@@ -133,14 +133,14 @@ useNumericalGradient(bool flag, Real objEstAccuracy) {
 }
 void Optimizer::OptimizerRep::
 useNumericalJacobian(bool flag, Real consEstAccuracy) {
-    constraintsEstimatedAccuracy = 
+    constraintsEstimatedAccuracy =
         consEstAccuracy > 0 ? consEstAccuracy : SignificantReal;
     delete jacDiff; jacDiff=0; delete cf; cf=0;
     if (flag) {     // turn on numerical gradients
-        cf = new SysConstraintFunc(sysp->getNumConstraints(), 
+        cf = new SysConstraintFunc(sysp->getNumConstraints(),
                                    sysp->getNumParameters(), sysp);
         cf->setEstimatedAccuracy(constraintsEstimatedAccuracy);
-        jacDiff = new Differentiator(*cf, diffMethod); 
+        jacDiff = new Differentiator(*cf, diffMethod);
     }
     numericalJacobian = flag;
 }
@@ -153,11 +153,11 @@ int Optimizer::OptimizerRep::objectiveFuncWrapper
     const OptimizerRep* rep = reinterpret_cast<const OptimizerRep*>(vrep);
 
     // This Vector is just a reference to existing space.
-    const Vector    params(n, x, true); 
+    const Vector    params(n, x, true);
     const bool      isNewParam  = (newX==1);
     Real&           frep        = *f;
 
-    return (rep->getOptimizerSystem().objectiveFunc(params, isNewParam, frep)==0) 
+    return (rep->getOptimizerSystem().objectiveFunc(params, isNewParam, frep)==0)
             ? 1 : 0;
 }
 
@@ -168,7 +168,7 @@ int Optimizer::OptimizerRep::gradientFuncWrapper
     const OptimizerRep* rep = reinterpret_cast<const OptimizerRep*>(vrep);
 
     // These Vectors are just references to existing space.
-    const Vector    params(n, x, true); 
+    const Vector    params(n, x, true);
     Vector          grad_vec(n,gradient,true);
     Real            fy0;
     const bool      isNewParam = (newX==1);
@@ -224,12 +224,12 @@ int Optimizer::OptimizerRep::constraintJacobianWrapper
 
     // Calculate the Jacobian of the constraints.
 
-    const Vector    params(n,x,true);   // This Vector refers to existing space 
+    const Vector    params(n,x,true);   // This Vector refers to existing space
     Matrix          jac(m,n);           // This is a new local temporary. TODO: get rid of this
 
     int status = -1;
     if( rep->isUsingNumericalJacobian() ) {
-        Vector sfy0(m);            
+        Vector sfy0(m);
         status = rep->getOptimizerSystem().constraintFunc(params, true, sfy0);
         rep->getJacobianDifferentiator().calcJacobian( params, sfy0, jac);
     } else {
@@ -256,8 +256,8 @@ int Optimizer::OptimizerRep::hessianWrapper
     const OptimizerRep* rep = reinterpret_cast<const OptimizerRep*>(vrep);
 
     // These Vectors refer to existing space.
-    const Vector coeff(n,x,true); 
-    Vector hess(n*n,values,true); 
+    const Vector coeff(n,x,true);
+    Vector hess(n*n,values,true);
     const bool isNewParam = (newX==1);
 
     return rep->getOptimizerSystem().hessian(coeff, isNewParam, hess)==0

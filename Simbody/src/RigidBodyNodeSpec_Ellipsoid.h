@@ -15,7 +15,7 @@
  *    Charles Schwieters (NIH): wrote the public domain IVM code from which   *
  *                              this was derived.                             *
  *    Ajay Seth: wrote the Ellipsoid joint as a Custom mobilizer; Sherm       *
- *               derived this implementation from Ajay's                      *     
+ *               derived this implementation from Ajay's                      *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -40,12 +40,12 @@
     // ELLIPSOID //
 
 // ELLIPSOID mobilizer. This provides three degrees of rotational freedom, i.e.,
-// unrestricted orientation, of the body's M frame in the parent's F frame, 
+// unrestricted orientation, of the body's M frame in the parent's F frame,
 // along with coordinated translation that keeps the M frame origin on
 // the surface of an ellipsoid fixed in F and centered on the F origin.
-// The surface point is chosen for a given orientation of M in F as the 
-// unique point on the ellipsoid surface where the surface normal is aligned 
-// with Mz. That is, the z axis of M is assumed to be normal to the ellipsoid 
+// The surface point is chosen for a given orientation of M in F as the
+// unique point on the ellipsoid surface where the surface normal is aligned
+// with Mz. That is, the z axis of M is assumed to be normal to the ellipsoid
 // at all times, and the translation is chosen to make that true.
 //
 // Unlike most joints, the reference configuration (i.e., X_FM when q=0 is
@@ -95,7 +95,7 @@ RBNodeEllipsoid(const MassProperties& mProps_B,
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
-                       Vector& q) const 
+                       Vector& q) const
 {
     if (this->getUseEulerAngles(sbs.getModelVars()))
         this->toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
@@ -103,22 +103,22 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
         this->toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
 }
 
-// We can't hope to represent arbitrary translations with a joint that has 
-// only rotational coordinates! However, since F is at the center of the 
-// ellipsoid and M on its surface, we can at least obtain a translation in 
-// the *direction* of the requested translation. The magnitude must of 
-// course be set to end up with the M origin right on the surface of the 
+// We can't hope to represent arbitrary translations with a joint that has
+// only rotational coordinates! However, since F is at the center of the
+// ellipsoid and M on its surface, we can at least obtain a translation in
+// the *direction* of the requested translation. The magnitude must of
+// course be set to end up with the M origin right on the surface of the
 // ellipsoid, and Mz will be the normal at that point.
 //
-// Expressed as an x-y-z body fixed Euler sequence, the z rotation is just 
-// the spin around the Mz (surface normal) and could be anything, so we'll 
-// just leave it at its current value. The x and y rotations act like polar 
-// coordinates to get the M origin point on the direction indicated by the 
+// Expressed as an x-y-z body fixed Euler sequence, the z rotation is just
+// the spin around the Mz (surface normal) and could be anything, so we'll
+// just leave it at its current value. The x and y rotations act like polar
+// coordinates to get the M origin point on the direction indicated by the
 // requested translation.
 //
-// If the requested translation is near zero we can't do anything since we 
-// can't find a direction to align with. And of course we can't do anything 
-// if "only" is true here -- that means we aren't allowed to touch the 
+// If the requested translation is near zero we can't do anything since we
+// can't find a direction to align with. And of course we can't do anything
+// if "only" is true here -- that means we aren't allowed to touch the
 // rotations, and for this joint that's all there is.
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
     if (p_FM.norm() < Eps) return;
@@ -155,10 +155,10 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, con
         this->toU(u) = w_FM; // relative ang. vel. always used as generalized speeds
 }
 
-// We can't do general linear velocity with this rotation-only mobilizer, but 
-// we can express any velocity which is tangent to the ellipsoid surface. So 
-// we'll find the current surface normal (Mz) and ignore any component of the 
-// requested velocity which is along that direction. (The resulting vz won't 
+// We can't do general linear velocity with this rotation-only mobilizer, but
+// we can express any velocity which is tangent to the ellipsoid surface. So
+// we'll find the current surface normal (Mz) and ignore any component of the
+// requested velocity which is along that direction. (The resulting vz won't
 // be zero, though, but it is completely determined by vx,vy.)
 void setUToFitLinearVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& v_FM, Vector& u) const
@@ -167,7 +167,7 @@ void setUToFitLinearVelocityImpl
     this->calcAcrossJointTransform(sbs,q,X_FM);
 
     const Vec3 v_FM_M    = ~X_FM.R()*v_FM; // we can only do vx and vy in this frame
-    const Vec3 r_FM_M    = ~X_FM.R()*X_FM.p(); 
+    const Vec3 r_FM_M    = ~X_FM.R()*X_FM.p();
     const Vec3 wnow_FM_M = ~X_FM.R()*this->fromU(u); // preserve z component
 
     // Now vx can only result from angular velocity about y, vy from x.
@@ -209,7 +209,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
             Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
         qCache[AngleOOCosQy] = 1/cy; // trouble at 90 degrees
     } else {
-        assert(q && nq==4 && qCache && nQCache==QuatPoolSize && 
+        assert(q && nq==4 && qCache && nQCache==QuatPoolSize &&
                qErr && nQErr==1);
         const Real quatLen = Vec4::getAs(q).norm();
         qErr[0] = quatLen - Real(1);    // normalization error
@@ -233,7 +233,7 @@ void calcX_FM(const SBStateDigest& sbs,
         assert(q && nq==4 && qCache && nQCache==QuatPoolSize);
         // Must use a normalized quaternion to generate the rotation matrix.
         // Here we normalize with just 4 flops using precalculated 1/norm(q).
-        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true); 
+        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true);
         X_F0M0.updR().setRotationFromQuaternion(quat); // 29 flops
     }
 
@@ -268,8 +268,8 @@ void calcAcrossJointVelocityJacobianDot(
     const SBTreePositionCache& pc = sbs.getTreePositionCache();
     const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); // "upd" because we're realizing velocities now
 
-    // We need the normal and cross-joint velocity in the frames we're 
-    // using to *define* the mobilizer, not necessarily the frames we're 
+    // We need the normal and cross-joint velocity in the frames we're
+    // using to *define* the mobilizer, not necessarily the frames we're
     // using to compute it it (if it has been reversed).
     const Vec3       n      = this->findX_F0M0(pc).z();
     const Vec3       w_F0M0 = this->find_w_F0M0(pc, vc);
@@ -284,7 +284,7 @@ void calcAcrossJointVelocityJacobianDot(
 // mode (10 flops); quaternion mode is 27 flops.
 // TODO: we're expecting that there are 4 qdots even in Euler angle mode
 // so we have to zero out the last one in that case.
-void calcQDot(const SBStateDigest& sbs, const Real* u, 
+void calcQDot(const SBStateDigest& sbs, const Real* u,
                              Real* qdot) const {
     // We have to trust that the tree position cache is valid here.
     assert(u && qdot);
@@ -317,11 +317,11 @@ void calcQDot(const SBStateDigest& sbs, const Real* u,
 // is up to the caller to do that if it is necessary.
 // Compute out_q = N * in_u
 //   or    out_u = in_q * N
-// The u quantity is a vector v_F in the parent frame (e.g. angular 
-// velocity of child in parent), while the q quantity is the derivative 
+// The u quantity is a vector v_F in the parent frame (e.g. angular
+// velocity of child in parent), while the q quantity is the derivative
 // of a quaternion representing R_FM, i.e. orientation of child in parent.
 // Cost: Euler angle mode - 10 flops, Quaternion mode - 27 flops.
-void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
+void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
                  const Real* in, Real* out) const
 {
     assert(sbs.getStage() >= Stage::Position);
@@ -354,7 +354,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
         const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Mat43 N_F = // This method returns N for the parent frame
             Rotation::calcUnnormalizedNForQuaternion(quat); // 7 flops
-        if (matrixOnRight) 
+        if (matrixOnRight)
                 Row3::updAs(out) = Row4::getAs(in) * N_F; // 20 flops
         else    Vec4::updAs(out) = N_F * Vec3::getAs(in);
     }
@@ -394,7 +394,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
         const Vec4& quat  = this->fromQuat(sbs.getQ()); // unnormalized
         const Mat34 NInv_F = // Returns NInv for parent frame.
             Rotation::calcUnnormalizedNInvForQuaternion(quat);  // 7 flops
-        if (matrixOnRight) 
+        if (matrixOnRight)
                 Row4::updAs(out) = Row3::getAs(in) * NInv_F; // 20 flops
         else    Vec3::updAs(out) = NInv_F * Vec4::getAs(in); // 21 flops
     }
@@ -427,7 +427,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 
         // We don't have a nice multiply-by routine here so just get the NDot
         // matrix and use it (21 flops).
-        const Mat33 NDot_F = 
+        const Mat33 NDot_F =
             Rotation::calcNDotForBodyXYZInParentFrame(cosxy, sinxy, oocosy, qdot);
 
         if (matrixOnRight) {    // out_u = in_q * NDot (15 flops)
@@ -440,7 +440,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
         const Vec4& qdot  = this->fromQuat(sbs.getQDot()); // unnormalized
         const Mat43 NDot_F = // This method returns NDot for the parent frame
             Rotation::calcUnnormalizedNDotForQuaternion(qdot); // 7 flops
-        if (matrixOnRight) 
+        if (matrixOnRight)
                 Row3::updAs(out) = Row4::getAs(in) * NDot_F;  // 21 flops
         else    Vec4::updAs(out) = NDot_F * Vec3::getAs(in);  // 20 flops
     }
@@ -452,7 +452,7 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
 // idea to calculate this using explicit N and NDot matrices; we can save
 // a lot of time by using more specialized methods.
 // Cost: Euler angle mode - 22 flops, Quaternion mode - 41 flops.
-void calcQDotDot(const SBStateDigest& sbs, const Real* udot, 
+void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
                                    Real* qdotdot) const {
     assert(sbs.getStage() > Stage::Velocity);
     assert(udot && qdotdot);
@@ -484,7 +484,7 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
         // Quaternion mode (41 flops).
         const Vec4& quat = this->fromQuat(sbs.getQ()); // unnormalized
         const Vec3& w_FM = this->fromU(sbs.getU());
-        Vec4::updAs(qdotdot) = 
+        Vec4::updAs(qdotdot) =
             Rotation::convertAngVelDotToQuaternionDotDot(quat,w_FM,b_FM);
     }
 }
@@ -492,11 +492,11 @@ void calcQDotDot(const SBStateDigest& sbs, const Real* udot,
 int getMaxNQ() const {return 4;}
 int getNQInUse(const SBModelVars& mv) const {
     return this->getUseEulerAngles(mv) ? 3 : 4;
-} 
-bool isUsingQuaternion(const SBStateDigest& sbs, 
+}
+bool isUsingQuaternion(const SBStateDigest& sbs,
                        MobilizerQIndex& startOfQuaternion) const {
     if (this->getUseEulerAngles(sbs.getModelVars())) {
-        startOfQuaternion.invalidate(); 
+        startOfQuaternion.invalidate();
         return false;
     }
     startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
@@ -505,7 +505,7 @@ bool isUsingQuaternion(const SBStateDigest& sbs,
 
 void setMobilizerDefaultPositionValues(
     const SBModelVars& mv,
-    Vector&            q) const 
+    Vector&            q) const
 {
     if (this->getUseEulerAngles(mv)) {
         //TODO: kludge
@@ -518,9 +518,9 @@ void setMobilizerDefaultPositionValues(
 bool enforceQuaternionConstraints(
     const SBStateDigest& sbs,
     Vector&             q,
-    Vector&             qErrest) const 
+    Vector&             qErrest) const
 {
-    if (this->getUseEulerAngles(sbs.getModelVars())) 
+    if (this->getUseEulerAngles(sbs.getModelVars()))
         return false;   // no change
 
     Vec4& quat = this->toQuat(q);

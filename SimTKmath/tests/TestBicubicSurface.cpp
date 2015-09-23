@@ -36,17 +36,17 @@ using namespace SimTK;
 using namespace std;
 
 /**
-This function computes a standard central difference dy/dx. 
-If extrap_endpoints is set to 1, then the derivative at the end points 
+This function computes a standard central difference dy/dx.
+If extrap_endpoints is set to 1, then the derivative at the end points
 is estimated by linearly extrapolating the dy/dx values beside the  end points
 
  @param x domain vector
  @param y range vector
- @param extrap_endpoints:(false) Endpoints of the returned vector will be zero, 
-                                  because a central difference is undefined at 
+ @param extrap_endpoints:(false) Endpoints of the returned vector will be zero,
+                                  because a central difference is undefined at
                                   these endpoints
-                          (true) Endpoints are computed by linearly 
-                                 extrapolating using a first difference from 
+                          (true) Endpoints are computed by linearly
+                                 extrapolating using a first difference from
                                  the neighboring 2 points
 
  @returns dy/dx computed using central differences
@@ -85,7 +85,7 @@ Vector getCentralDifference(Vector x, Vector y, bool extrap_endpoints) {
  @param y : y argument of the function f(x,y)
  @param fcnType [0,1,2,3,4]. Chooses one of the following functions for
                              f(x,y):
- 
+
          fcnType = 0 :f(x,y) = 0;
          fcnType = 1 :f(x,y) = 2*x + y
          fcnType = 2 :f(x,y) = xy
@@ -114,13 +114,13 @@ Vector getAnalyticFunction(Real x, Real y, int fcnType){
             break;
         case 3:    //f(x,y) = cos( (3x^2+y^2)^0.5 );
             //f
-            fdF(0) = cos( sqrt((3*x*x + y*y)) );        
+            fdF(0) = cos( sqrt((3*x*x + y*y)) );
             //fx - exported from Maple (didn't trust myself not to make a typing mistake
-            fdF(1) = -0.3e1*x*sin( sqrt( (3*x*x + y*y)) ) * pow( (3*x*x + y*y + 1e-6), -0.1e1 / 0.2e1) ;            
+            fdF(1) = -0.3e1*x*sin( sqrt( (3*x*x + y*y)) ) * pow( (3*x*x + y*y + 1e-6), -0.1e1 / 0.2e1) ;
             //fy
-            fdF(2) = -sin(sqrt( (3 * x * x + y * y))) * pow((3 * x * x + y * y + 1e-6), -0.1e1 / 0.2e1) * y;            
+            fdF(2) = -sin(sqrt( (3 * x * x + y * y))) * pow((3 * x * x + y * y + 1e-6), -0.1e1 / 0.2e1) * y;
             //fxy
-            fdF(3) =  -0.3e1 * cos(sqrt((3 * x * x + y * y)))/(3 * x * x + y * y + 1e-6) *  y *  x + 0.3e1 * sin(sqrt( (3 * x * x + y * y))) * pow( (3 * x * x + y * y + 1e-6), -0.3e1 / 0.2e1) * x *  y;            
+            fdF(3) =  -0.3e1 * cos(sqrt((3 * x * x + y * y)))/(3 * x * x + y * y + 1e-6) *  y *  x + 0.3e1 * sin(sqrt( (3 * x * x + y * y))) * pow( (3 * x * x + y * y + 1e-6), -0.3e1 / 0.2e1) * x *  y;
 
             break;
         case 4: //f(x,y) = 3x^2 + y^2
@@ -139,23 +139,23 @@ Vector getAnalyticFunction(Real x, Real y, int fcnType){
 
 
 /**
- This function will generate a rectangular grid that spans from xmin to xmax 
+ This function will generate a rectangular grid that spans from xmin to xmax
  in size number of steps, and also from ymin to ymax in size number of steps.
- Although the grid spacing can be different in the x and y dimensions, within 
+ Although the grid spacing can be different in the x and y dimensions, within
  these dimensions the grids are equally spaced (by xDelta and yDelta).
 
  An analytic function (chosen using the fcnType variable) is used to generate
- f(x,y) values at each grid point. These values are used to initialize a 
+ f(x,y) values at each grid point. These values are used to initialize a
  bicubic surface using the advanced test constructor that sets the partial
  derivatives fx, fy, and fxy directly.
 
- The values of the bicubic surface are evaluated at the grid points, we'll 
+ The values of the bicubic surface are evaluated at the grid points, we'll
  call them knot points, and are asserted to be equal to the analytic function
- at these values. Additionally, every grid is evaluated at its center, and 
- the value of the bicubic surface is asserted to be equal to the analytic 
+ at these values. Additionally, every grid is evaluated at its center, and
+ the value of the bicubic surface is asserted to be equal to the analytic
  function at the mid point to within a tolerance. This tolerance is a function
- of the grid size. This tolerance has been determined hueristically, so if you 
- try a new function and the test fails, look closely at the values to see if 
+ of the grid size. This tolerance has been determined hueristically, so if you
+ try a new function and the test fails, look closely at the values to see if
  its really failing or if the tolerance is just too tight.
 
  @params xmin: the minimum value of the x,y grid in the x dimension
@@ -166,24 +166,24 @@ Vector getAnalyticFunction(Real x, Real y, int fcnType){
                ymin to ymax
  @params fcnType: An integer value [0-4] that picks an analytical function
                   to use for comparison purposes.
- @params flag_verbosePrint: false: print only the maximum error at the 
-                                   knot points, mid points and the 
+ @params flag_verbosePrint: false: print only the maximum error at the
+                                   knot points, mid points and the
                                    tolerance used at the assertions
 
                             true: Additionally print the values of f, fx,
                                   fy, and fxy at the knots and the mid
-                                  points if there are less than 10 steps 
+                                  points if there are less than 10 steps
 @params flag_matlabcompre: true:    Will print
 @returns nothing
 */
-void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin, 
+void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
                 Real ymax, int size, int fcnType, bool flag_verbosePrint,
                                                    bool flag_matlabcompare){
-        
+
     Real deltaX,deltaY;
     deltaX = (xmax-xmin)/(size-1);
     deltaY = (ymax-ymin)/(size-1);
-        
+
     //Generate initialization data
     // two constant spaced vectors & height matrix & first derivatives to initialize the grid
     Vector x(size), y(size);
@@ -245,7 +245,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
                 zMy(i,j)        = fdFM(2);
                 zMxy(i,j)       = fdFM(3);
             }
-        }        
+        }
     }
 
 
@@ -267,7 +267,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
 
     Vector bcsV(4);    //Spline surface values at the knots
     Vector bcsMV(4);    //Spline surface values at the midpoints
-        
+
     Vector XY(2); //XY value at the knot points;
     Vector XYM(2); //XY value at mid grid;
 
@@ -279,7 +279,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
     const int ifyyy[] = {1,1,1};
     const int ifxyy[] = {1,1,0};
 
-    Array_<int> fx(1); //Arguments required to get the correct derivative 
+    Array_<int> fx(1); //Arguments required to get the correct derivative
     Array_<int> fy(1); // from the calcDerivatie interface
     Array_<int> fxy(ifxy,ifxy+2);
     Array_<int> fxx(ifxx,ifxx+2);
@@ -287,7 +287,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
     Array_<int> fxxx(ifxxx,ifxxx+3);
     Array_<int> fyyy(ifyyy,ifyyy+3);
     Array_<int> fxxy(ifxxy,ifxxy+3);
-    Array_<int> fxyy(ifxyy,ifxyy+3);                
+    Array_<int> fxyy(ifxyy,ifxyy+3);
 
     fx[0]   =0;
     fy[0]   =1;
@@ -330,7 +330,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
                 errV(2) = abs(fyk(i,j) - zy(i,j));
             if( errV(3) < abs(fxyk(i,j) - zxy(i,j)) )
                 errV(3) = abs(fxyk(i,j) - zxy(i,j));
-                        
+
                 /*if(abs(errV(0)) > 1e-4 ){
                     printf("Analytic (x,y),f,fx,fy,fxy: (%g,%g),%g, %g, %g, %g\n",
                         x(i),y(j),z(i,j),zx(i,j),zy(i,j),zxy(i,j));
@@ -342,10 +342,10 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
             if(i<size-1 && j<size-1){
                 XYM(0)=xM(i);
                 XYM(1)=yM(j);
-                fMk(i,j)    = bcsf.calcValue(XYM);                            
+                fMk(i,j)    = bcsf.calcValue(XYM);
                 fxMk(i,j)   = bcsf.calcDerivative(fx,XYM);
                 fyMk(i,j)   = bcsf.calcDerivative(fy,XYM);
-                fxyMk(i,j)  = bcsf.calcDerivative(fxy,XYM);    
+                fxyMk(i,j)  = bcsf.calcDerivative(fxy,XYM);
                 fxxMk(i,j)  = bcsf.calcDerivative(fxx,XYM);
                 fyyMk(i,j)  = bcsf.calcDerivative(fyy,XYM);
 
@@ -362,7 +362,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
                     errVM(2) = abs(fyMk(i,j) - zMy(i,j));
                 if( errVM(3) < abs(fxyMk(i,j) - zMxy(i,j)) )
                     errVM(3) = abs(fxyMk(i,j) - zMxy(i,j));
-                        
+
             }
         }
     }
@@ -374,7 +374,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
         cout << "\n\n Err fx (@knot, calc):\n" << fxk -zx << endl;
         cout << "\n\n Err fy (@knot, calc):\n" << fyk -zy << endl;
         cout << "\n\n Err fxy (@knot, calc):\n" << fxyk -zxy << endl;
-                    
+
         if(flag_matlabcompare == true){
             cout << "\n\n    x (@knot):\n" << x << endl;
             cout << "\n\n    x (@knot):\n" << y << endl;
@@ -388,7 +388,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
             cout << "\n\n    fyyy (@knot, calc):\n" << fyyyk << endl;
             cout << "\n\n    fxxy (@knot, calc):\n" << fxxyk << endl;
             cout << "\n\n    fxyy (@knot, calc):\n" << fxyyk << endl;
-                    
+
 
             cout << "\n\n    x (@mid):\n" << xM << endl;
             cout << "\n\n    y (@mid):\n" << yM << endl;
@@ -406,7 +406,7 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
 
     }
 
-                
+
     Real mid_tol = (1e-1)*(deltaX/2+deltaY/2);
     Real knot_tol = 0;
 
@@ -415,13 +415,13 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
         printf("    f:  err@knots %f, err@mid %f\n",errV(0),errVM(0));
         printf("    fx: err@knots %f, err@mid %f\n",errV(1),errVM(1));
         printf("    fy: err@knots %f, err@mid %f\n",errV(2),errVM(2));
-        printf("    fxy:err@knots %f, err@mid %f\n\n",errV(3),errVM(3));                       
-        printf("    Test tolerance for f(x,y) @knots : %f, @mid: %f\n\n", 
+        printf("    fxy:err@knots %f, err@mid %f\n\n",errV(3),errVM(3));
+        printf("    Test tolerance for f(x,y) @knots : %f, @mid: %f\n\n",
                                                         knot_tol,mid_tol);
         cout<< "    First derivatives are not tested because these derivatives" << endl;
         cout<< "    shouldn't match: the bicubic interpolation estimates" << endl;
         cout<< "    these derivatives using the derivative of a natural" << endl;
-        cout<< "    cubic spline" << endl; 
+        cout<< "    cubic spline" << endl;
     }
 
     //See if the values for f, fx, fy and fxy match the knot points
@@ -432,26 +432,26 @@ void testBicubicAgainstAnalyticFcn(Real xmin, Real xmax, Real ymin,
     SimTK_TEST_EQ_TOL(fxyk,zxy,1e-10);
     //See if the maximum error at the mid points are acceptable
     SimTK_TEST_EQ_TOL(errVM(0),0,mid_tol);
-    
+
 }
 
 /**
 This function will construct a single bicubic surface patch that goes from xmin,ymin
 to xmax, ymax. A series of points within this patch will be computed using the bicubic
-interpolation method, and the coefficients will be checked to ensure that the 
+interpolation method, and the coefficients will be checked to ensure that the
 relationship between the 16 coefficients, aV, and the 16 corner conditions, fV, are
-related to eachother through the endpoint conditions that define a bicubic surface 
+related to eachother through the endpoint conditions that define a bicubic surface
 interpolation (http://en.wikipedia.org/wiki/Bicubic_interpolation)
 
 fV = A*aV
 
-aV: [a00,   a10     a20     a30,    
-     a01    a11     a21     a31, 
-     a02    a12     a22     a32, 
+aV: [a00,   a10     a20     a30,
+     a01    a11     a21     a31,
+     a02    a12     a22     a32,
      a03    a13     a23     a33]^T
 
-fV:[f(0,0)   f(1,0)   f(0,1)   f(1,1)  
-   fx(0,0)  fx(1,0)  fx(0,1)  fx(1,1) 
+fV:[f(0,0)   f(1,0)   f(0,1)   f(1,1)
+   fx(0,0)  fx(1,0)  fx(0,1)  fx(1,1)
    fy(0,0)  fy(1,0)  fy(0,1)  fy(1,1)
   fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)]
 
@@ -467,13 +467,13 @@ where as the one in the test code is a hand derived version of A.
  @params ymax: the maximum value of the y grid in the y dimension
  @params fcnType: An integer value [0-4] that picks an analytical function
                   to use for comparison purposes.
- @params smoothness: A value of 0 will make sure the patch goes through the 
+ @params smoothness: A value of 0 will make sure the patch goes through the
                      desired points exactly. A value between 0 and 1 will
                      relax the surface.
  @returns nothing
 
 */
-void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax, 
+void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
                                               int fcnType, Real smoothness){
     int size = 4;
 
@@ -488,15 +488,15 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
                         0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
                         0, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0,
                         0, 0, 0, 0,  1, 0, 0, 0,  2, 0, 0, 0,  3, 0, 0, 0,
-                        0, 0, 0, 0,  1, 1, 1, 1,  2, 2, 2, 2,  3, 3, 3, 3,                  
+                        0, 0, 0, 0,  1, 1, 1, 1,  2, 2, 2, 2,  3, 3, 3, 3,
                         0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
                         0, 0, 0, 0,  0, 1, 2, 3,  0, 0, 0, 0,  0, 0, 0, 0,
                         0, 0, 0, 0,  0, 1, 0, 0,  0, 2, 0, 0,  0, 3, 0, 0,
                         0, 0, 0, 0,  0, 1, 2, 3,  0, 2, 4, 6,  0, 3, 6, 9};
 
-    /*Ok we need at least a 4x4 grid to use the default bicubic surface 
-    interpolation because the constructor forms the partial derivatives 
-    using natural cubic splines. Natural cubic splines require at least 
+    /*Ok we need at least a 4x4 grid to use the default bicubic surface
+    interpolation because the constructor forms the partial derivatives
+    using natural cubic splines. Natural cubic splines require at least
     4 knot points to be defined.
     */
     Vector xV(size), yV(size), xeV(2*size-1), yeV(2*size-1);
@@ -509,7 +509,7 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
     //Initialize the grid
     for(int i=0; i<size; i++){
         xV(i) = xmin + i*(xmax-xmin)/((Real)size-1.0);
-        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);        
+        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);
     }
     for(int i=0; i<size;i++){
         for(int j=0; j<size; j++){
@@ -522,16 +522,16 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
     BicubicSurface bcs(xV, yV, zM, smoothness);
     const BicubicSurface::Guts& bcsg = bcs.getGuts();
 
-    //Initialize the grid to evaluate the surface at the knots and at 
+    //Initialize the grid to evaluate the surface at the knots and at
     //the midpoints
     for(int i=0; i<(2*size-1); i++){
         xeV(i) = xmin + i*(xmax-xmin)/((Real)(2*size)-1.0);
         yeV(i) = ymin + i*(ymax-ymin)/((Real)(2*size)-1.0);
     }
 
-    //Evaluate the surface at the knot points, and at the 
+    //Evaluate the surface at the knot points, and at the
     //mid grid points and test if fV = A*aV holds
-    Vec2 aXY;    
+    Vec2 aXY;
     for(int i=0; i<(2*size-1); i++){
         for(int j=0; j<(2*size-1); j++){
             aXY = Vec2(xeV(i), yeV(j));
@@ -539,7 +539,7 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
             aV = bcsg.getPatchBicubicCoefficients(aXY);
             fT = AM*aV;
             fVerr = fV-fT;
-            
+
             //printf(" (%d,%d) ",i,j);
             //cout << fVerr.norm() << endl;
 
@@ -561,8 +561,8 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
  extrapolating back to the knot point. If the linear extrapolation (of f, fx
  fy, fxy, fxx or fyy) matches the value of the function (f, fx, fy, fxy, fxx
  or fyy) at the knot point closely, then we can have some confidence that the
- surface is continuous. I say confidence rather than certaintity because for 
- certaintity we'd have to take the limit as that distance approches zero, and 
+ surface is continuous. I say confidence rather than certaintity because for
+ certaintity we'd have to take the limit as that distance approches zero, and
  that doesn't make sense in floating point.
 
  @params xmin: the minimum value of the x,y grid in the x dimension
@@ -571,15 +571,15 @@ void testBicubicCoefficients(Real xmin,Real xmax,Real ymin, Real ymax,
  @params ymax: the maximum value of the y grid in the y dimension
  @params fcnType: An integer value [0-4] that picks an analytical function
                   to use for comparison purposes.
- @params smoothness: A value of 0 will make sure the patch goes through the 
+ @params smoothness: A value of 0 will make sure the patch goes through the
                      desired points exactly. A value between 0 and 1 will
                      relax the surface.
  @params verbosePrint: true:  will print all of the detailed results for the
-                              derivative comparisons, and the continuity 
+                              derivative comparisons, and the continuity
                               checks
  @returns nothing
 */
-void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin, 
+void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
              Real ymax, int fcnType, Real smoothness, bool verbosePrint){
     int size = 4;
     Real minstep = min((xmax-xmin),(ymax-ymin));
@@ -595,12 +595,12 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
 
     for(int i=0; i<size; i++){
         xV(i) = xmin + i*(xmax-xmin)/((Real)size-1.0);
-        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);        
+        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);
     }
 
     //Adjust the interior points a little bit to make
     //the spacing of the grid non-even. This will test
-    //that BicubicSurface correctly handling the stretching 
+    //that BicubicSurface correctly handling the stretching
     //of each individual patch correctly.
     for(int i=1; i<size-1;i++){
         xV(i) = xV(i) + 0.1*spacingX*pow(-1.0,i);
@@ -618,7 +618,7 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
             zM(i,j) = tmpV(0);
         }
     }
-    
+
     //Create the bicubic surface
     BicubicSurface bcs(xV, yV, zM, smoothness);
     BicubicFunction bcsf(bcs);
@@ -628,7 +628,7 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
     //and the second patch a distance h+dx away from the knot point
 
     int tsize = 17;
-    Real tsizeh = floor((Real)tsize/2.0);    
+    Real tsizeh = floor((Real)tsize/2.0);
 
     Matrix meshX(tsize,tsize), meshY(tsize,tsize);
 
@@ -695,12 +695,12 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
             meshY(i,j) = (yV(1) - tsizeh*dh) + dh*j;
             aXY(0) = meshX(i,j);
             aXY(1) = meshY(i,j);
-            
+
             bcsF(i,j) = bcsf.calcValue(aXY);
-            
+
             bcsFx(i,j)= bcsf.calcDerivative(derivX,aXY);
             bcsFy(i,j)= bcsf.calcDerivative(derivY,aXY);
-            
+
             bcsFxy(i,j)= bcsf.calcDerivative(derivXY,aXY);
             bcsFxx(i,j)= bcsf.calcDerivative(derivXX,aXY);
             bcsFyy(i,j)= bcsf.calcDerivative(derivYY,aXY);
@@ -732,20 +732,20 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
         numFxxy[i]  = ~getCentralDifference(~meshY[i],    ~numFxx[i],   true);
     }
     for(int i=0;i<tsize;i++){
-        numFxyy[i]  = ~getCentralDifference(~meshY[i],    ~numFxy[i],    true); 
-    }       
+        numFxyy[i]  = ~getCentralDifference(~meshY[i],    ~numFxy[i],    true);
+    }
 
     Real tol1 = dh;
     Real tol2 = dh*10;
     Real tol3 = dh*100;
     Vector dirXY(2);
 
-    
+
     for(int i=3;i<tsize-3;i++){
         for(int j=3;j<tsize-3;j++){
 
-            //1. Now compare the inner 10x10 numerical values 
-            //   for each of the derivatives to the values computed 
+            //1. Now compare the inner 10x10 numerical values
+            //   for each of the derivatives to the values computed
             //   by the bicubic function
             if(verbosePrint==true){
                 printf("\n\nCheck Derivatives (i,j): %d, %d", i,j);
@@ -760,35 +760,35 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
                 printf("\nnum: fxxy:%f fxyy:%f fxxx:%f fyyy:%f",
                     numFxxy(i,j), numFxyy(i,j), numFxxx(i,j), numFyyy(i,j));
             }
-           
+
             SimTK_TEST_EQ_TOL(bcsFx(i,j),numFx(i,j),tol1);
             SimTK_TEST_EQ_TOL(bcsFy(i,j),numFy(i,j),tol1);
-            
+
             SimTK_TEST_EQ_TOL(bcsFxy(i,j),numFxy(i,j),tol2);
             SimTK_TEST_EQ_TOL(bcsFxx(i,j),numFxx(i,j),tol2);
             SimTK_TEST_EQ_TOL(bcsFyy(i,j),numFyy(i,j),tol2);
 
             /*The numerical 3rd derivatives will not match at the boundaries
-            between patches. They are discontinuous in this region in the 
-            formulation, and make the numerical derivatives around these 
+            between patches. They are discontinuous in this region in the
+            formulation, and make the numerical derivatives around these
             boundaries poorly estimated.*/
 
             //2. Continuity testing:
             //Test that a linear extrapolation from the current location
             //to the knot point matches the value of the knot point
             if(j != tsizeh || i != tsizeh){
-                
+
                 dirXY(0) = meshX(i,j)-meshX(8,8);
                 dirXY(1) = meshY(i,j)-meshY(8,8);
 
                 Real dist = pow(dirXY(0)*dirXY(0) + dirXY(1)*dirXY(1),0.5);
 
                 //Test for surface continuity
-                Real f0 = bcsF(i,j) -(bcsFx(i,j)*dirXY(0) 
+                Real f0 = bcsF(i,j) -(bcsFx(i,j)*dirXY(0)
                                       + bcsFy(i,j)*dirXY(1));
                 Real err0 =f0-bcsF(8,8);
                 Real errR0= abs(err0)/( abs(bcsF(8,8)) + 1e-10);
-                
+
                 //Test for fx derivative continuity
                 Real f1x = bcsFx(i,j) -(bcsFxx(i,j)*dirXY(0));
                 Real err1x =f1x-bcsFx(8,8);
@@ -817,20 +817,20 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
 
                 if(verbosePrint==true){
                     printf("\n\nCheck Continuity (i,j): %d, %d", i,j);
-                    printf("\nf(x,y)  : %f num f  : %f  errR: %f" 
-                                                , bcsF(8,8),  f0,  errR0);  
-                    printf("\nfx(x,y) : %f num fx : %f  errR: %f" 
-                                                , bcsFx(8,8), f1x, errR1x); 
-                    printf("\nfy(x,y) : %f num fx : %f  errR: %f" 
-                                                , bcsFy(8,8), f1y, errR1y); 
-                    printf("\nfxx(x,y): %f num fxx: %f  errR: %f" 
-                                                , bcsFxx(8,8),f2x, errR2x); 
-                    printf("\nfyy(x,y): %f num fyy: %f  errR: %f" 
-                                                , bcsFyy(8,8),f2y, errR2y); 
-                    printf("\nfxy(x,y): %f num fxy: %f  errR: %f" 
-                                                , bcsFxy(8,8),fxy, errRxy); 
+                    printf("\nf(x,y)  : %f num f  : %f  errR: %f"
+                                                , bcsF(8,8),  f0,  errR0);
+                    printf("\nfx(x,y) : %f num fx : %f  errR: %f"
+                                                , bcsFx(8,8), f1x, errR1x);
+                    printf("\nfy(x,y) : %f num fx : %f  errR: %f"
+                                                , bcsFy(8,8), f1y, errR1y);
+                    printf("\nfxx(x,y): %f num fxx: %f  errR: %f"
+                                                , bcsFxx(8,8),f2x, errR2x);
+                    printf("\nfyy(x,y): %f num fyy: %f  errR: %f"
+                                                , bcsFyy(8,8),f2y, errR2y);
+                    printf("\nfxy(x,y): %f num fxy: %f  errR: %f"
+                                                , bcsFxy(8,8),fxy, errRxy);
                 }
-                   
+
 
 
                 SimTK_TEST_EQ_TOL(errR0,0, dh);
@@ -847,7 +847,7 @@ void testBicubicConsistencyContinuity(Real xmin, Real xmax, Real ymin,
 }
 
 /**
- This test function will create a bicubic surface and then test that 
+ This test function will create a bicubic surface and then test that
  a version of this surface initialized using the copy constructor and
  the equal operator returns the same values over the surface as the original
 */
@@ -873,12 +873,12 @@ void testCopyConstEqOp(){
 
     for(int i=0; i<size; i++){
         xV(i) = xmin + i*(xmax-xmin)/((Real)size-1.0);
-        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);        
+        yV(i) = xmin + i*(ymax-ymin)/((Real)size-1.0);
     }
 
     //Adjust the interior points a little bit to make
     //the spacing of the grid non-even. This will test
-    //that BicubicSurface correctly handling the stretching 
+    //that BicubicSurface correctly handling the stretching
     //of each individual patch correctly.
     for(int i=1; i<size-1;i++){
         xV(i) = xV(i) + 0.1*spacingX*pow(-1.0,i);
@@ -896,7 +896,7 @@ void testCopyConstEqOp(){
             zM(i,j) = tmpV(0);
         }
     }
-    
+
     //Create the bicubic surface
     BicubicSurface bcs(xV, yV, zM, smoothness);
     BicubicSurface bcsCC(bcs);
@@ -1036,7 +1036,7 @@ void testHint() {
 }
 
 int main() {
-    //Evaluate the bicubic surface interpolation against an analytical 
+    //Evaluate the bicubic surface interpolation against an analytical
     //function. Throw an error if the values of the function are different
     //at the knot points, or different within tolerance at the mid grid points
     SimTK_START_TEST("Testing Bicubic Interpolation");
@@ -1059,7 +1059,7 @@ int main() {
     cout << "\n\nBICUBIC COEFFICIENT VALIDATION:" << endl;
     cout << "  Testing that the bicubic interpolation coefficients" <<endl;
     cout << " are being solved correctly by asserting fV - A*aV = 0"<<endl;
-    testBicubicCoefficients(      0.0, 1.0, 0.0, 1.0,  3, 0.0);          
+    testBicubicCoefficients(      0.0, 1.0, 0.0, 1.0,  3, 0.0);
     testBicubicCoefficients(      0.0, 1.0, 0.0, 1.0,  3, 0.5);
     printf("\n\n*Test Passed*. Constructor with x,y,f specified,"
            " \n\tSmoothness parameter %f and %f tested",(Real)0.0,(Real)0.5);
@@ -1070,7 +1070,7 @@ int main() {
     cout << " 1. Derivative are tested for consistency by ensuring that" << endl;
     cout << "    numerical derivatives of f(x,y) match values returned " << endl;
     cout << "    by the function." << endl;
-    cout << "    Partial derivatives tested: fx,fy,fxy,fxx,fyy" << endl; 
+    cout << "    Partial derivatives tested: fx,fy,fxy,fxx,fyy" << endl;
     cout << "\n 2. Continuity is tested by asserting that a linear extrapolation" << endl;
     cout << "    from a a point near a knot is equal to the value of the surface" << endl;
     cout << "    of f(x,y) at the knot. Surfaces tested f, fx, fy, fxy, fxx, fyy." << endl;

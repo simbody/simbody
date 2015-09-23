@@ -58,9 +58,9 @@ void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector
     SimTK_APIARGCHECK_ALWAYS(wx.size() >= x.size(), "GCVSPLUtil", "gcvspl", "wx and x must be the same size");
     SimTK_APIARGCHECK_ALWAYS(x.hasContiguousData(), "GCVSPLUtil", "gcvspl", "x must have contiguous storage (i.e. not be a view)");
     SimTK_APIARGCHECK_ALWAYS(wk.hasContiguousData(), "GCVSPLUtil", "gcvspl", "wk must have contiguous storage (i.e. not be a view)");
-    
+
     // Create various temporary variables.
-    
+
     int m = (degree+1)/2;
     int n = x.size();
     int ny = y.size();
@@ -73,9 +73,9 @@ void GCVSPLUtil::gcvspl(const Vector& x, const Vector_<Vec<K> >& y, const Vector
     Vector cvec(nc);
     wk.resize(6*(m*n+1)+n);
     int k = K;
-    
+
     // Invoke GCV.
-    
+
     SimTK_gcvspl_(&x[0], &yvec[0], &ny, &wx[0], &wy[0], &m, &n, &k, &md, &val, &cvec[0], &n, &wk[0], &ier);
     if (ier != 0) {
         SimTK_APIARGCHECK_ALWAYS(n >= 2*m, "GCVSPLUtil", "gcvspl", "Too few data points");
@@ -96,10 +96,10 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     assert(x.size() == coeff.size());
     assert(degree > 0 && degree%2==1);
     assert(x.hasContiguousData());
-    
+
     // Create various temporary variables.
 
-    
+
     Vec<K> result;
     int m = (degree+1)/2;
     int n = x.size();
@@ -111,17 +111,17 @@ Vec<K> GCVSPLUtil::splder(int derivOrder, int degree, Real t, const Vector& x, c
     Real *q = qbuf; // tentatively
     if (m > MaxCheapM)
         q = new Real[2*m]; // use heap instead; don't forget to delete
-    
+
     int offset = (int) (&coeff[1][0]-&coeff[0][0]);
 
     // Evaluate the spline one component at a time.
-    
+
     for (int i = 0; i < K; ++i)
         result[i] = SimTK_splder_(&derivOrder, &m, &n, &t, &x[0], &coeff[0][i], &interval, q, offset);
-    
+
     if (m > MaxCheapM)
         delete[] q;
-    
+
     return result;
 }
 

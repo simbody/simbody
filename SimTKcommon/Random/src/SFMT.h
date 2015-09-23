@@ -1,5 +1,5 @@
-/** 
- * @file SFMT.h 
+/**
+ * @file SFMT.h
  *
  * @brief SIMD oriented Fast Mersenne Twister(SFMT) pseudorandom
  * number generator
@@ -18,7 +18,7 @@
  * and you have to define PRIu64 and PRIx64 in this file as follows:
  * @verbatim
  typedef unsigned int uint32_t
- typedef unsigned long long uint64_t  
+ typedef unsigned long long uint64_t
  #define PRIu64 "llu"
  #define PRIx64 "llx"
 @endverbatim
@@ -98,8 +98,8 @@ SimTK_SimTKCOMMON_EXPORT void deleteSFMTData(SFMTData* data);
 /** generates a random number on [0,1]-real-interval */
 inline static double to_real1(uint32_t v)
 {
-    return v * (1.0/4294967295.0); 
-    /* divided by 2^32-1 */ 
+    return v * (1.0/4294967295.0);
+    /* divided by 2^32-1 */
 }
 
 /** generates a random number on [0,1]-real-interval */
@@ -111,7 +111,7 @@ inline static double genrand_real1(SFMTData& data)
 /** generates a random number on [0,1)-real-interval */
 inline static double to_real2(uint32_t v)
 {
-    return v * (1.0/4294967296.0); 
+    return v * (1.0/4294967296.0);
     /* divided by 2^32 */
 }
 
@@ -124,7 +124,7 @@ inline static double genrand_real2(SFMTData& data)
 /** generates a random number on (0,1)-real-interval */
 inline static double to_real3(uint32_t v)
 {
-    return (((double)v) + 0.5)*(1.0/4294967296.0); 
+    return (((double)v) + 0.5)*(1.0/4294967296.0);
     /* divided by 2^32 */
 }
 
@@ -136,30 +136,30 @@ inline static double genrand_real3(SFMTData& data)
 /** These real versions are due to Isaku Wada */
 
 /** generates a random number on [0,1) with 53-bit resolution*/
-inline static double to_res53(uint64_t v) 
-{ 
+inline static double to_res53(uint64_t v)
+{
     return v * (1.0/18446744073709551616.0L);
 }
 
 /** generates a random number on [0,1) with 53-bit resolution from two
  * 32 bit integers */
-inline static double to_res53_mix(uint32_t x, uint32_t y) 
-{ 
+inline static double to_res53_mix(uint32_t x, uint32_t y)
+{
     return to_res53(x | ((uint64_t)y << 32));
 }
 
 /** generates a random number on [0,1) with 53-bit resolution
  */
-inline static double genrand_res53(SFMTData& data) 
-{ 
+inline static double genrand_res53(SFMTData& data)
+{
     return to_res53(gen_rand64(data));
-} 
+}
 
 /** generates a random number on [0,1) with 53-bit resolution
     using 32bit integer.
  */
-inline static double genrand_res53_mix(SFMTData& data) 
-{ 
+inline static double genrand_res53_mix(SFMTData& data)
+{
     uint32_t x, y;
 
     x = gen_rand32(data);

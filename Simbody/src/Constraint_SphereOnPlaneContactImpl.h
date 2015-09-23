@@ -59,8 +59,8 @@ struct Parameters {
 };
 
 explicit SphereOnPlaneContactImpl(bool enforceRolling)
-:   ConstraintImpl(1, enforceRolling?2:0, 0), 
-    m_enforceRolling(enforceRolling), 
+:   ConstraintImpl(1, enforceRolling?2:0, 0),
+    m_enforceRolling(enforceRolling),
     m_def_X_FP(), m_def_p_BO(0), m_def_radius(NaN),
     m_planeHalfWidth(1)
 { }
@@ -77,7 +77,7 @@ void realizeTopologyVirtual(State& state) const override;
 // Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;
 
-// Get a writable reference to the value of the discrete variable; this 
+// Get a writable reference to the value of the discrete variable; this
 // invalidated Position stage in the given state.
 Parameters& updParameters(State& state) const;
 
@@ -89,18 +89,18 @@ Real getPlaneDisplayHalfWidth() const {return m_planeHalfWidth;}
 
 // Implementation of virtuals required for holonomic constraints.
 
-/* Body B, the "ball" body has a sphere fixed to it with center O and radius r. 
-Call the contact point at the bottom (w.r.t. plane normal) of the sphere C, 
+/* Body B, the "ball" body has a sphere fixed to it with center O and radius r.
+Call the contact point at the bottom (w.r.t. plane normal) of the sphere C,
 with C=O-r*Pz. We'll define contact to occur at the contact point C.
 The body to which the plane P is attached is called the "floor" body F.
 
 The position constraint equation for contact enforces that point C must always
 touch the plane P, that is, pz_PC=p_PC[2]=0, or equivalent
 
-    (1) perr = pz_PC = p_PC.Pz = (p_PO-r*Pz).Pz = (p_FO-p_FP).Pz-r 
+    (1) perr = pz_PC = p_PC.Pz = (p_PO-r*Pz).Pz = (p_FO-p_FP).Pz-r
              = p_FO.Pz-(h+r)
              = (p_AO-p_AF).Pz-(h+r)
-    (2) verr = d/dt_F perr = (d/dt_F (p_AO-p_AF)) . Pz 
+    (2) verr = d/dt_F perr = (d/dt_F (p_AO-p_AF)) . Pz
                               + (p_AO-p_AF) . d/dt_F Pz  <-- this term is 0
              = [d/dt_A (p_AO-p_AF) - w_AF x (p_AO-p_AF)] . Pz
              = [(v_AO-v_AF) - w_AF x (p_AO-p_AF)] . Pz
@@ -117,7 +117,7 @@ where
 Combining these gives the last expression.
 
 Note that we took the time derivative in the F frame. But the scalars returned
-by perr,verr, and aerr are measure numbers along Pz. The multiplier will 
+by perr,verr, and aerr are measure numbers along Pz. The multiplier will
 consequently act along Pz.
 
 Note that because the ball center and bottom point lie along the plane normal
@@ -132,9 +132,9 @@ way to tell.
     perr = p_FO_A.Pz_A - (h+r)
     --------------------------------
 */
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -151,7 +151,7 @@ void calcPositionErrorsVirtual
     const Real h = dot(Po_F, Pz_F);     // Height; could precalculate (5 flops)
 
     const Transform& X_AF = getBodyTransform(allX_AB, m_planeBody_F);
-    const Vec3 p_AO =  findStationLocation(allX_AB, m_ballBody_B, p_BO); 
+    const Vec3 p_AO =  findStationLocation(allX_AB, m_ballBody_B, p_BO);
                                                                     // 18 flops
     const Vec3     p_FO_A = p_AO - X_AF.p();    //  3 flops
     const UnitVec3 Pz_A = X_AF.R() * Pz_F;      // 15 flops
@@ -161,20 +161,20 @@ void calcPositionErrorsVirtual
 }
 
 
-/*  
+/*
     --------------------------------
     verr = v_FO_A.Pz_A
-    -------------------------------- 
+    --------------------------------
 */
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
     const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
-    
+
     const Parameters& params = getParameters(s);
     const Transform&  X_FP = params.m_X_FP;
     const Vec3&       p_BO = params.m_p_BO;
@@ -201,20 +201,20 @@ void calcPositionDotErrorsVirtual
     pverr[0] = ~v_FO_A * Pz_A;                           // 5 flops
 }
 
-/*  
+/*
     --------------------------------
     aerr = a_FO_A.Pz_A
-    -------------------------------- 
+    --------------------------------
 */
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
 {
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==1);
-    
+
     const Parameters& params = getParameters(s);
     const Transform&  X_FP = params.m_X_FP;
     const Vec3&       p_BO = params.m_p_BO;
@@ -257,10 +257,10 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2
            && qForces.size()==0);
     const Real lambda = multipliers[0];
 
@@ -290,20 +290,20 @@ void addInPositionConstraintForcesVirtual
 
 // Implementation of virtuals required for nonholonomic constraints.
 
-/* The rolling friction constraint says that the velocity of the material 
-point of B at the contact point C = O - r Pz 
-(at the bottom of the ball with center O and radius r), measured 
-with respect to the plane body F, must be zero in the plane's Px and Py 
-directions. Note that the contact point is not a station of body B but moves 
+/* The rolling friction constraint says that the velocity of the material
+point of B at the contact point C = O - r Pz
+(at the bottom of the ball with center O and radius r), measured
+with respect to the plane body F, must be zero in the plane's Px and Py
+directions. Note that the contact point is not a station of body B but moves
 in the B frame. We have
     p_BC = p_BO - r Pz
     p_FC = p_FO - r Pz
-    verr = v_FC = d/dt_F p_FC 
+    verr = v_FC = d/dt_F p_FC
          = v_FO - r w_FB x Pz
 where   v_FO = (v_AO-v_AF) - w_AF x (p_AO-p_AF)
 and     w_FB = (w_AB-w_AF)
 
-You have to differentiate verr carefully. Because Pz is fixed in F, the 
+You have to differentiate verr carefully. Because Pz is fixed in F, the
 result is not the acceleration of the material point at C, but rather of
 the moving contact point C.
 
@@ -333,7 +333,7 @@ aerr = a_FC = a_FO - r [b_AB-b_AF - w_AF x w_AB] x Pz
 */
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
     const override
@@ -380,9 +380,9 @@ void calcVelocityErrorsVirtual
     ~ 200 flops TODO should precalculate where possible
 */
 
-void calcVelocityDotErrorsVirtual      
+void calcVelocityDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
     const override
@@ -440,10 +440,10 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces)
     const override
 {
-    assert(multipliers.size()==2 && mobilityForces.size()==0 
+    assert(multipliers.size()==2 && mobilityForces.size()==0
            && bodyForcesInA.size()==2);
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
 

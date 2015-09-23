@@ -39,15 +39,15 @@ namespace SimTK {
 //==============================================================================
 //                         SPHERE ON SPHERE CONTACT
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::SphereOnSphereContact, 
-                                        Constraint::SphereOnSphereContactImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::SphereOnSphereContact,
+                                        Constraint::SphereOnSphereContactImpl,
                                         Constraint);
 
 Constraint::SphereOnSphereContact::SphereOnSphereContact
-   (MobilizedBody&      mobod_F, 
-    const Vec3&         defaultCenter_F, 
-    Real                defaultRadius_F, 
-    MobilizedBody&      mobod_B, 
+   (MobilizedBody&      mobod_F,
+    const Vec3&         defaultCenter_F,
+    Real                defaultRadius_F,
+    MobilizedBody&      mobod_B,
     const Vec3&         defaultCenter_B,
     Real                defaultRadius_B,
     bool                enforceRolling)
@@ -114,7 +114,7 @@ getMobilizedBodyB() const {
     return impl.getMobilizedBodyFromConstrainedBody(impl.m_mobod_B);
 }
 
-bool Constraint::SphereOnSphereContact::isEnforcingRolling() const 
+bool Constraint::SphereOnSphereContact::isEnforcingRolling() const
 {   return getImpl().m_enforceRolling; }
 
 const Vec3& Constraint::SphereOnSphereContact::
@@ -174,7 +174,7 @@ Real Constraint::SphereOnSphereContact::getPositionError(const State& s) const {
 
 Vec3 Constraint::SphereOnSphereContact::getVelocityErrors(const State& s) const {
     const SphereOnSphereContactImpl& impl = getImpl();
-    Vec3 verr_PC; // result is velocity error in P frame 
+    Vec3 verr_PC; // result is velocity error in P frame
     if (impl.m_enforceRolling) {
         Real verr[3];
         impl.getVelocityErrors(s, 3, verr);
@@ -189,7 +189,7 @@ Vec3 Constraint::SphereOnSphereContact::getVelocityErrors(const State& s) const 
 
 Vec3 Constraint::SphereOnSphereContact::getAccelerationErrors(const State& s) const {
     const SphereOnSphereContactImpl& impl = getImpl();
-    Vec3 aerr_PC; // result is acceleration error in P frame 
+    Vec3 aerr_PC; // result is acceleration error in P frame
     if (impl.m_enforceRolling) {
         Real aerr[3];
         impl.getAccelerationErrors(s, 3, aerr);
@@ -204,7 +204,7 @@ Vec3 Constraint::SphereOnSphereContact::getAccelerationErrors(const State& s) co
 
 Vec3 Constraint::SphereOnSphereContact::getMultipliers(const State& s) const {
     const SphereOnSphereContactImpl& impl = getImpl();
-    Vec3 lambda_PC; // result is -force on point F in P frame 
+    Vec3 lambda_PC; // result is -force on point F in P frame
     if (impl.m_enforceRolling) {
         Real lambda[3];
         impl.getMultipliers(s, 3, lambda);
@@ -220,7 +220,7 @@ Vec3 Constraint::SphereOnSphereContact::getMultipliers(const State& s) const {
 Vec3 Constraint::SphereOnSphereContact::
 findForceOnSphereBInG(const State& s) const {
     const SphereOnSphereContactImpl& impl = getImpl();
-    if (impl.isDisabled(s)) 
+    if (impl.isDisabled(s))
         return Vec3(0);
 
     const Transform X_GC = findContactFrameInG(s);
@@ -235,14 +235,14 @@ findForceOnSphereBInG(const State& s) const {
 // The z direction Cz is the contact normal given by
 //      Cz=p_SbSf/||p_SbSf||
 // (arbitrary if the centers are coincident, which is pathological).
-// The x-y directions are an arbitrary parameterization of the plane 
+// The x-y directions are an arbitrary parameterization of the plane
 // perpendicular to Cz. They are calculated using the Rotation class algorithm
 // for constructing a frame given only one axis (in the F frame). That will tend
-// to align frame C (vaguely) with the F frame coordinate axes. 
+// to align frame C (vaguely) with the F frame coordinate axes.
 Transform Constraint::SphereOnSphereContact::
 findContactFrameInG(const State& s) const {
     const SphereOnSphereContactImpl& impl = getImpl();
-    const SphereOnSphereContactImpl::PositionCache& pc = 
+    const SphereOnSphereContactImpl::PositionCache& pc =
         impl.ensurePositionCacheRealized(s);
 
     const MobilizedBody& mobod_A = impl.getAncestorMobilizedBody();
@@ -255,7 +255,7 @@ findContactFrameInG(const State& s) const {
 }
 
 // The separation is the difference between the spheres's center-to-center
-// distance and the sum of their radii. 
+// distance and the sum of their radii.
 Real Constraint::SphereOnSphereContact::
 findSeparation(const State& s) const {
     const SphereOnSphereContactImpl& impl = getImpl();
@@ -286,55 +286,55 @@ findSeparation(const State& s) const {
 void Constraint::SphereOnSphereContactImpl::
 realizeTopologyVirtual(State& state) const {
     m_parametersIx = getMyMatterSubsystemRep().
-        allocateDiscreteVariable(state, Stage::Position, 
-            new Value<Parameters>(Parameters(m_def_p_FSf, m_def_radius_F, 
+        allocateDiscreteVariable(state, Stage::Position,
+            new Value<Parameters>(Parameters(m_def_p_FSf, m_def_radius_F,
                                              m_def_p_BSb, m_def_radius_B)));
 
     m_posCacheIx = getMyMatterSubsystemRep().
-        allocateLazyCacheEntry(state, Stage::Position, 
+        allocateLazyCacheEntry(state, Stage::Position,
             new Value<PositionCache>());
 
     m_velCacheIx = getMyMatterSubsystemRep().
-        allocateLazyCacheEntry(state, Stage::Velocity, 
+        allocateLazyCacheEntry(state, Stage::Velocity,
             new Value<VelocityCache>());
 }
 
-const Constraint::SphereOnSphereContactImpl::Parameters& 
+const Constraint::SphereOnSphereContactImpl::Parameters&
 Constraint::SphereOnSphereContactImpl::
 getParameters(const State& state) const {
     return Value<Parameters>::downcast
        (getMyMatterSubsystemRep().getDiscreteVariable(state,m_parametersIx));
 }
 
-Constraint::SphereOnSphereContactImpl::Parameters& 
+Constraint::SphereOnSphereContactImpl::Parameters&
 Constraint::SphereOnSphereContactImpl::
 updParameters(State& state) const {
     return Value<Parameters>::updDowncast
        (getMyMatterSubsystemRep().updDiscreteVariable(state,m_parametersIx));
 }
 
-const Constraint::SphereOnSphereContactImpl::PositionCache& 
+const Constraint::SphereOnSphereContactImpl::PositionCache&
 Constraint::SphereOnSphereContactImpl::
 getPositionCache(const State& state) const {
     return Value<PositionCache>::downcast
        (getMyMatterSubsystemRep().getCacheEntry(state,m_posCacheIx));
 }
 
-Constraint::SphereOnSphereContactImpl::PositionCache& 
+Constraint::SphereOnSphereContactImpl::PositionCache&
 Constraint::SphereOnSphereContactImpl::
 updPositionCache(const State& state) const {
     return Value<PositionCache>::updDowncast
        (getMyMatterSubsystemRep().updCacheEntry(state,m_posCacheIx));
 }
 
-const Constraint::SphereOnSphereContactImpl::VelocityCache& 
+const Constraint::SphereOnSphereContactImpl::VelocityCache&
 Constraint::SphereOnSphereContactImpl::
 getVelocityCache(const State& state) const {
     return Value<VelocityCache>::downcast
        (getMyMatterSubsystemRep().getCacheEntry(state,m_velCacheIx));
 }
 
-Constraint::SphereOnSphereContactImpl::VelocityCache& 
+Constraint::SphereOnSphereContactImpl::VelocityCache&
 Constraint::SphereOnSphereContactImpl::
 updVelocityCache(const State& state) const {
     return Value<VelocityCache>::updDowncast
@@ -342,7 +342,7 @@ updVelocityCache(const State& state) const {
 }
 
 // This costs about 154 flops.
-const Constraint::SphereOnSphereContactImpl::PositionCache& 
+const Constraint::SphereOnSphereContactImpl::PositionCache&
 Constraint::SphereOnSphereContactImpl::
 ensurePositionCacheRealized(const State& s) const {
     if (getMyMatterSubsystemRep().isCacheValueRealized(s, m_posCacheIx))
@@ -402,7 +402,7 @@ ensurePositionCacheRealized(const State& s) const {
 
 // This costs about 175 flops if position info has already been calculated,
 // otherwise we also pay for ensurePositionCacheRealized().
-const Constraint::SphereOnSphereContactImpl::VelocityCache& 
+const Constraint::SphereOnSphereContactImpl::VelocityCache&
 Constraint::SphereOnSphereContactImpl::
 ensureVelocityCacheRealized(const State& s) const {
     if (getMyMatterSubsystemRep().isCacheValueRealized(s, m_velCacheIx))
@@ -433,7 +433,7 @@ ensureVelocityCacheRealized(const State& s) const {
     vc.wXwX_p_FSf_A = w_AF % wX_p_FSf_A;            // 9 flops
     vc.wXwX_p_BSb_A = w_AB % wX_p_BSb_A;            // 9 flops
 
-    // Calculate the velocity of B's material point (station) at Co, 
+    // Calculate the velocity of B's material point (station) at Co,
     // measured in the F frame and expressed in A.
     const Vec3 pd_FB_A  = v_AB - v_AF;              //  3 flops
     const Vec3 vA_BCo_A = v_AB + w_AB % pc.p_BCo_A; // 12 flops
@@ -449,15 +449,15 @@ ensureVelocityCacheRealized(const State& s) const {
     vc.wXpd_BCo_A = w_AB % pd_BCo_A;                //  9 flops
 
     // Calculate d/dt_A Cz.
-    vc.Czd_A = pc.isSingular 
+    vc.Czd_A = pc.isSingular
         ? w_AF % Cz_A // rare
         : pc.oor*(vc.pd_SfSb_A - (~vc.pd_SfSb_A*Cz_A)*Cz_A); // 12 flops
 
-    // We also need d/dt_A of Cx and Cy, which we'll call Cxd and Cyd. Here's 
+    // We also need d/dt_A of Cx and Cy, which we'll call Cxd and Cyd. Here's
     // how to get those. Since the x-y directions are arbitrary in the plane, we
-    // can assume that they are not rotating about z, that is, w_FC is in the 
+    // can assume that they are not rotating about z, that is, w_FC is in the
     // x-y plane. Our strategy will be to work in the F frame here, because we
-    // know that CzdF = d/dt_F Cz = w_FC % Cz, a vector perpendicular to both 
+    // know that CzdF = d/dt_F Cz = w_FC % Cz, a vector perpendicular to both
     // w_FC and Cz. But that means CzdF is in the x-y plane and since there
     // was no z component of w_FC it is just w_FC rotated 90 degrees. Since x
     // and y are also 90 degrees apart, we can get the derivatives we need:
@@ -472,7 +472,7 @@ ensureVelocityCacheRealized(const State& s) const {
     vc.Cyd_A = CydF_A + w_AF % Cy_A;            // 12 flops
 
     getMyMatterSubsystemRep().markCacheValueRealized(s, m_velCacheIx);
-    
+
     return vc;
 }
 
@@ -482,8 +482,8 @@ calcDecorativeGeometryAndAppendVirtual
 {
     // We can't generate the artwork until we know the spheres' centers and
     // radii, which might not be until Position stage.
-    if (   stage == Stage::Position 
-        && getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    if (   stage == Stage::Position
+        && getMyMatterSubsystemRep().getShowDefaultGeometry())
     {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const Parameters& params = getParameters(s);
@@ -492,9 +492,9 @@ calcDecorativeGeometryAndAppendVirtual
         const Vec3&       p_BSb = params.m_p_BSb;
         const Real        rb    = params.m_radius_B;
 
-        const MobilizedBodyIndex mobodFIx = 
+        const MobilizedBodyIndex mobodFIx =
             getMobilizedBodyIndexOfConstrainedBody(m_mobod_F);
-        const MobilizedBodyIndex mobodBIx = 
+        const MobilizedBodyIndex mobodBIx =
             getMobilizedBodyIndexOfConstrainedBody(m_mobod_B);
 
         // On body F draw a green mesh sphere.

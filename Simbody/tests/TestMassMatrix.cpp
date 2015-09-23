@@ -25,7 +25,7 @@
 // Test the functioning of Simbody operators which involve the mass matrix,
 // and other system matrices like the Jacobian (partial velocity matrix) that
 // maps between generalized and spatial coordinates.
-// The O(N) operators like multiplyByM() and multiplyByMInv() are supposed to 
+// The O(N) operators like multiplyByM() and multiplyByMInv() are supposed to
 // behave *as though* they used the mass matrix, without actually forming it.
 
 #include "SimTKsimbody.h"
@@ -41,8 +41,8 @@ using std::cout; using std::endl;
 class MyForceImpl : public Force::Custom::Implementation {
 public:
     MyForceImpl() {}
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, 
-                   Vector& mobilityForces) const override 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces,
+                   Vector& mobilityForces) const override
     {
         SimTK_TEST( f.size() == 0 || f.size() == mobilityForces.size() );
         SimTK_TEST( F.size() == 0 || F.size() == bodyForces.size() );
@@ -66,25 +66,25 @@ private:
 
 // This is an imitation of SD/FAST's sdrel2cart() subroutine. We
 // are given a station point S fixed to a body B. S is given by
-// the constant vector p_BS from B's origin Bo to point S, expressed 
+// the constant vector p_BS from B's origin Bo to point S, expressed
 // in B's frame. Denote the position of S in the ground frame G
 // p_GS = p_GB + p_BS_G, where p_BS_G=R_GB*p_BS is the vector p_BS
 // reexpressed in G. The velocity of S in G is v_GS = d/dt p_GS, taken
 // in G. So v_GS = v_GB + w_GB X p_BS_G = v_GB - p_BS_G % w_GB.
 //
-// We would like to obtain the partial velocity of S with respect to each of 
-// the generalized speeds u, taken in the Ground frame, that is, 
-// JS=d v_GS / du. (JS is a 3xnu matrix, or a single row of Vec3s.) We have 
-// a method that can calculate J=d V_GB / du where V_GB=[w_GB;v_GB] is the 
+// We would like to obtain the partial velocity of S with respect to each of
+// the generalized speeds u, taken in the Ground frame, that is,
+// JS=d v_GS / du. (JS is a 3xnu matrix, or a single row of Vec3s.) We have
+// a method that can calculate J=d V_GB / du where V_GB=[w_GB;v_GB] is the
 // spatial velocity of B at its origin. So we need to calculate
 //        d v_GS   d v_GS   d V_GB
-//   JS = ------ = ------ * ------ = 
+//   JS = ------ = ------ * ------ =
 //          du     d V_GB     du
-// 
+//
 //               = [ -px | eye(3) ] * J
 // where px is the cross product matrix of p_BS_G and eye(3) is a 3x3
 // identity matrix.
-// 
+//
 // This function should produce the same result as the SimbodyMatterSubsystem
 // method calcStationJacobian().
 void sbrel2cart(const State& state,
@@ -103,7 +103,7 @@ void sbrel2cart(const State& state,
     J = SpatialVec(Vec3(0), Vec3(0)); // or J.setToZero();
 
     Vector u(nu); u = 0;
-    Vector_<SpatialVec> Ju(nu); // d allV / d ui 
+    Vector_<SpatialVec> Ju(nu); // d allV / d ui
     for (int i=0; i < nu; ++i) {
         u[i] = 1;
         matter.multiplyBySystemJacobian(state,u,Ju);
@@ -137,7 +137,7 @@ void sbrel2cart2(const State& state,
 
     Vector_<SpatialVec> F(nb, SpatialVec(Vec3(0)));
     SpatialVec& Fb = F[bodyIx]; // the only one we'll change
-    for (int which=0; which < 2; ++which) { // moment, force   
+    for (int which=0; which < 2; ++which) { // moment, force
         for (int i=0; i < 3; ++i) {
             Fb[which][i] = 1;
             VectorView col = Jt(3*which + i);
@@ -149,7 +149,7 @@ void sbrel2cart2(const State& state,
     Row<2,Mat33> dvdV( -crossMat(p_BS_G), Mat33(1) );
     dvdu.resize(nu);
     for (int i=0; i < nu; ++i) {
-        const RowVectorView r = Jt[i]; 
+        const RowVectorView r = Jt[i];
         SpatialVec V(Vec3::getAs(&r[0]), Vec3::getAs(&r[3]));
         dvdu[i] = dvdV * V; // or J[i][0] % p_BS_G + J[i][1]
     }
@@ -182,7 +182,7 @@ void sbrel2cart3(const State& state,
         Fb[1][i] = 1;
         Fb[0] = p_BS_G % Fb[1]; // r X F
         matter.multiplyBySystemJacobianTranspose(state,F,col);
-        for (int r=0; r < nu; ++r) dvdu[r][i] = col[r]; 
+        for (int r=0; r < nu; ++r) dvdu[r][i] = col[r];
         Fb[1][i] = 0;
     }
 }
@@ -215,7 +215,7 @@ void sbrel2cart4(const State& state,
     for (int i=0; i < 3; ++i) {
         Fb[0][i] = 1;
         matter.multiplyBySystemJacobianTranspose(state,F,col);
-        for (int r=0; r < nu; ++r) dVdu[r][0][i] = col[r]; 
+        for (int r=0; r < nu; ++r) dVdu[r][0][i] = col[r];
         Fb[0][i] = 0;
     }
     // Translational part.
@@ -223,18 +223,18 @@ void sbrel2cart4(const State& state,
         Fb[1][i] = 1;
         Fb[0] = p_BS_G % Fb[1]; // r X F
         matter.multiplyBySystemJacobianTranspose(state,F,col);
-        for (int r=0; r < nu; ++r) dVdu[r][1][i] = col[r]; 
+        for (int r=0; r < nu; ++r) dVdu[r][1][i] = col[r];
         Fb[1][i] = 0;
     }
 }
 
 // Compare two representations of the same matrix: one as an mXn matrix
 // of SpatialVecs, the other as a 6mXn matrix of scalars. Note that this
-// will also work if the first actual parameter is a Vector_<SpatialVec> 
-// or RowVector_<SpatialVec> since those have implicit conversions to mX1 
+// will also work if the first actual parameter is a Vector_<SpatialVec>
+// or RowVector_<SpatialVec> since those have implicit conversions to mX1
 // or 1Xn Matrix_<SpatialVec>, resp.
 static void compareElementwise(const Matrix_<SpatialVec>& J,
-                               const Matrix&              Jf) 
+                               const Matrix&              Jf)
 {
     const int m = J.nrow(), n = J.ncol();
     SimTK_TEST(Jf.nrow()==6*m && Jf.ncol()==n);
@@ -243,7 +243,7 @@ static void compareElementwise(const Matrix_<SpatialVec>& J,
         const int r = 6*b; // row start for Jf
         for (int i=0; i<6; ++i)
             for (int j=0; j<n; ++j) {
-                SimTK_TEST_EQ(J (b,  j)[i/3][i%3], 
+                SimTK_TEST_EQ(J (b,  j)[i/3][i%3],
                               Jf(r+i,j));
             }
     }
@@ -251,7 +251,7 @@ static void compareElementwise(const Matrix_<SpatialVec>& J,
 
 // Same thing but for comparing matrices where one has Vec3 elements.
 static void compareElementwise(const Matrix_<Vec3>& JS,
-                               const Matrix&        JSf) 
+                               const Matrix&        JSf)
 {
     const int m = JS.nrow(), n = JS.ncol();
     SimTK_TEST(JSf.nrow()==3*m && JSf.ncol()==n);
@@ -260,7 +260,7 @@ static void compareElementwise(const Matrix_<Vec3>& JS,
         const int r = 3*b; // row start for JSf
         for (int i=0; i<3; ++i)
             for (int j=0; j<n; ++j) {
-                SimTK_TEST_EQ(JS (b,  j)[i], 
+                SimTK_TEST_EQ(JS (b,  j)[i],
                               JSf(r+i,j));
             }
     }
@@ -284,7 +284,7 @@ void testRel2Cart() {
     // so partial(S)/partial(u) = (0, -sqrt(2)/2, 0).
     //
     // In all cases the partial angular velocity is (0,0,1).
-    // 
+    //
     MobilizedBody::Pin pinBody
        (matter.Ground(),                       Transform(),
         MassProperties(1,Vec3(0),Inertia(1)),  Vec3(1,0,0));
@@ -296,7 +296,7 @@ void testRel2Cart() {
     Matrix_<SpatialVec> J, Jn;
     Matrix JSf, JFf, Jf; // flat
 
-    // We'll compute Jacobians for the body origin Bo in 2 configurations, 
+    // We'll compute Jacobians for the body origin Bo in 2 configurations,
     // q==0,pi/2 then for station S (0,1,0) at q==pi/4. Not
     // much of a test, I know, but at least we know the right answer.
 
@@ -327,7 +327,7 @@ void testRel2Cart() {
     SimTK_TEST_EQ(dvdu4, JF);
     compareElementwise(JF, JFf);
 
-    // Calculate the whole system Jacobian at q==0 in two different 
+    // Calculate the whole system Jacobian at q==0 in two different
     // representations and make sure they are the same.
     matter.calcSystemJacobian(s, J);
     matter.calcSystemJacobian(s, Jf);
@@ -360,7 +360,7 @@ void testRel2Cart() {
     SimTK_TEST_EQ(dvdu4, JF);
     compareElementwise(JF, JFf);
 
-    // Calculate the whole system Jacobian at q==pi/2 in two different 
+    // Calculate the whole system Jacobian at q==pi/2 in two different
     // representations and make sure they are the same.
     matter.calcSystemJacobian(s, J);
     matter.calcSystemJacobian(s, Jf);
@@ -429,7 +429,7 @@ void testRel2Cart() {
     }
     SimTK_TEST_EQ(JFnt, ~dvdu4[0]);
 
-    // Calculate the whole system Jacobian at q==pi/4 in two different 
+    // Calculate the whole system Jacobian at q==pi/4 in two different
     // representations and make sure they are the same.
     matter.calcSystemJacobian(s, J);
     matter.calcSystemJacobian(s, Jf);
@@ -442,8 +442,8 @@ void testRel2Cart() {
         Jn[i] = matter.multiplyByFrameJacobian(s,i,Vec3(0),u);
     SimTK_TEST_EQ(Jn, J);
 }
-              
-void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {    
+
+void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {
     SimbodyMatterSubsystem  pend(mbs);
     GeneralForceSubsystem   forces(mbs);
     frcp = new MyForceImpl();
@@ -452,7 +452,7 @@ void makeSystem(bool constrained, MultibodySystem& mbs, MyForceImpl*& frcp) {
     const Real randomAngle1 = (Pi/2)*Test::randReal();
     const Real randomAngle2 = (Pi/2)*Test::randReal();
     Vector_<Vec3> randomVecs(10);
-    for (int i=0; i<10; ++i) 
+    for (int i=0; i<10; ++i)
         randomVecs[i] = Test::randVec3();
 
     const Real mass = 2.3;
@@ -588,7 +588,7 @@ void testJacobianBiasTerms() {
     // sbias, fbias, sysbias are the JDot*u quantities we want to check.
     const Vec3 sbias =
         matter.calcBiasForStationJacobian(state, whichBod, whichPt);
-    const SpatialVec fbias = 
+    const SpatialVec fbias =
         matter.calcBiasForFrameJacobian(state, whichBod, whichPt);
     Vector_<SpatialVec> sysbias;
     matter.calcBiasForSystemJacobian(state, sysbias);
@@ -748,7 +748,7 @@ void testUnconstrainedSystem() {
     // Test forward and inverse dynamics operators.
     // Apply random forces and a random prescribed acceleration to
     // get back the residual generalized forces. Then applying those
-    // should result in zero residual, and applying them. 
+    // should result in zero residual, and applying them.
 
     // Randomize state.
     state.updQ() = Test::randVector(nq);
@@ -781,12 +781,12 @@ void testUnconstrainedSystem() {
     system.realize(state, Stage::Dynamics);
     Vector udots;
     Vector_<SpatialVec> bodyAccels;
-    matter.calcAccelerationIgnoringConstraints(state, 
+    matter.calcAccelerationIgnoringConstraints(state,
         mobilityForces+residualForces, bodyForces, udots, bodyAccels);
 
     SimTK_TEST_EQ_TOL(udots, knownUdots, Slop);
 
-    // See if we get back the same body accelerations by feeding in 
+    // See if we get back the same body accelerations by feeding in
     // these udots.
     Vector_<SpatialVec> A_GB, AC_GB;
     matter.calcBodyAccelerationFromUDot(state, udots, A_GB);
@@ -992,7 +992,7 @@ void testCompositeBodyInertia() {
 
     // Point mass at x=4.5 with origin at x=1.5 rotating about (0,0,0).
     MobilizedBody::Pin
-        body1( pend.Ground(), Transform(), 
+        body1( pend.Ground(), Transform(),
                pointMass, Vec3(-1.5,0,0));
     const MobilizedBodyIndex body1x = body1.getMobilizedBodyIndex();
 
@@ -1000,7 +1000,7 @@ void testCompositeBodyInertia() {
     // first point mass origin. So this one's origin is at x=3.5 and its
     // mass is at x=6.5.
     MobilizedBody::Pin
-        body2( body1, Transform(), 
+        body2( body1, Transform(),
                pointMass, Vec3(-2,0,0));
     const MobilizedBodyIndex body2x = body2.getMobilizedBodyIndex();
 
@@ -1063,7 +1063,7 @@ void testArticulatedBodyInertia() {
     matter.realizeArticulatedBodyInertias(state);
     SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
 
-    state.updQ()=0.1; 
+    state.updQ()=0.1;
     SimTK_TEST(state.getSystemStage()==Stage::Time);
     SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
     // This is not allowed until PositionKinematics stage.
@@ -1078,7 +1078,7 @@ void testArticulatedBodyInertia() {
     matter.getArticulatedBodyInertia(state, body2); // ok; implicit realization
     SimTK_TEST(matter.isArticulatedBodyInertiasRealized(state));
     SimTK_TEST(state.getSystemStage()==Stage::Time);
-    state.updQ()=0.2; 
+    state.updQ()=0.2;
     SimTK_TEST(!matter.isArticulatedBodyInertiasRealized(state));
 
     mbs.realize(state, Stage::Dynamics); // not high enough
@@ -1235,7 +1235,7 @@ void testTaskJacobians() {
     SimTK_TEST_EQ(JS, JSbyrow);
     SimTK_TEST_EQ(JF, JFbyrow);
 
-    // Calculate JS2=JS and JF2=JF again using multiplication by mobility-space 
+    // Calculate JS2=JS and JF2=JF again using multiplication by mobility-space
     // unit vectors.
     JS2.resize(nb, nu); JF2.resize(nb, nu);
     Vector zeroU(nu, 0.);
@@ -1258,7 +1258,7 @@ void testTaskJacobians() {
         for (int k=0; k<3; ++k) {
             zeroF[b][k] = 1;
             RowVectorView JS3matr = JS3mat[3*b+k];
-            matter.multiplyByStationJacobianTranspose(state, allBodies, randS, 
+            matter.multiplyByStationJacobianTranspose(state, allBodies, randS,
                 zeroF, ~JS3matr);
             zeroF[b][k] = 0;
             for (int u=0; u < nu; ++u)
@@ -1277,7 +1277,7 @@ void testTaskJacobians() {
         for (int k=0; k<6; ++k) {
             zeroSF[b][k/3][k%3] = 1;
             RowVectorView JF3matr = JF3mat[6*b+k];
-            matter.multiplyByFrameJacobianTranspose(state, allBodies, randS, 
+            matter.multiplyByFrameJacobianTranspose(state, allBodies, randS,
                 zeroSF, ~JF3matr);
             zeroSF[b][k/3][k%3] = 0;
             for (int u=0; u < nu; ++u)
@@ -1463,7 +1463,7 @@ void testVelocityKinematics() {
        (syscomv = matter.calcSystemMassCenterVelocityInGround(state));
     matter.realizeVelocityKinematics(state);
     syscomv = matter.calcSystemMassCenterVelocityInGround(state); // OK
-    
+
     state.updQ() = Test::randVector(nq); // invalides position kinematics
     SimTK_TEST_MUST_THROW // Pos kinematics no good
        (syscomv = matter.calcSystemMassCenterVelocityInGround(state));

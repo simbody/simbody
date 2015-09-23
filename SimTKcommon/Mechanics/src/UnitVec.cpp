@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Implementations of non-inline methods of classes dealing with UnitVec and 
+ * Implementations of non-inline methods of classes dealing with UnitVec and
  * UnitRow.
  */
 

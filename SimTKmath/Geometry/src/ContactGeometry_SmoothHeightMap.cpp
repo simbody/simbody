@@ -50,11 +50,11 @@ using std::cout; using std::endl;
 //==============================================================================
 
 ContactGeometry::SmoothHeightMap::
-SmoothHeightMap(const BicubicSurface& surface) 
+SmoothHeightMap(const BicubicSurface& surface)
 :   ContactGeometry(new SmoothHeightMap::Impl(surface)) {}
 
 /*static*/ ContactGeometryTypeId ContactGeometry::SmoothHeightMap::
-classTypeId() 
+classTypeId()
 {   return ContactGeometry::SmoothHeightMap::Impl::classTypeId(); }
 
 const BicubicSurface& ContactGeometry::SmoothHeightMap::
@@ -77,18 +77,18 @@ updImpl() {
 
 // This is the main constructor.
 ContactGeometry::SmoothHeightMap::Impl::
-Impl(const BicubicSurface& surface) 
-:   surface(surface) { 
-    implicitFunction.setOwner(*this); 
+Impl(const BicubicSurface& surface)
+:   surface(surface) {
+    implicitFunction.setOwner(*this);
 
     createBoundingVolumes();
 
 }
 
 void ContactGeometry::SmoothHeightMap::Impl::
-assignPatch(const Geo::BicubicBezierPatch& patch, 
+assignPatch(const Geo::BicubicBezierPatch& patch,
             OBBNode& node, int depth,
-            Array_<const Vec3*>* parentControlPoints) const 
+            Array_<const Vec3*>* parentControlPoints) const
 {
     const Mat<4,4,Vec3>& nodeB = patch.getControlPoints();
     const Vec2& nodeB11 = nodeB(0,0).getSubVec<2>(0); // just x,y
@@ -112,8 +112,8 @@ assignPatch(const Geo::BicubicBezierPatch& patch,
         const Vec2& b44 = B(3,3).getSubVec<2>(0);
         child.centerUW = (b11+b44)/2;
         child.dims     = (b11-b44).abs()/2;
-        for (int i=0; i<4; ++i) 
-            for (int j=0; j<4; ++j) 
+        for (int i=0; i<4; ++i)
+            for (int j=0; j<4; ++j)
                 myControlPoints.push_back(&B(i,j));
     }
 
@@ -130,7 +130,7 @@ assignPatch(const Geo::BicubicBezierPatch& patch,
 }
 
 void ContactGeometry::SmoothHeightMap::Impl::
-splitPatches(int x0,int y0, int nx, int ny, 
+splitPatches(int x0,int y0, int nx, int ny,
              OBBNode& node, int depth,
              Array_<const Vec3*>* parentControlPoints) const {
     assert(nx>0 && ny>0 && depth>=0);
@@ -141,7 +141,7 @@ splitPatches(int x0,int y0, int nx, int ny,
         assignPatch(surface.calcBezierPatch(x0,y0), node, depth,
                     parentControlPoints);
         return;
-    } 
+    }
 
     // Add two children.
     node.children.resize(2);
@@ -207,8 +207,8 @@ findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
 }
 
 bool ContactGeometry::SmoothHeightMap::Impl::intersectsRay
-   (const Vec3& origin, const UnitVec3& direction, 
-    Real& distance, UnitVec3& normal) const 
+   (const Vec3& origin, const UnitVec3& direction,
+    Real& distance, UnitVec3& normal) const
 {
     assert(false);
     return true;

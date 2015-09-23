@@ -80,7 +80,7 @@ namespace Ipopt
        }
     }
 /*
-printf("TripletToDenseConverter::ConvertValues input = \n");     
+printf("TripletToDenseConverter::ConvertValues input = \n");
  for (Index i=0; i<nonzeros_triplet; i++) {
   printf(" %d %d %f \n",ia_[i],ja_[i],a_triplet[i]);
 }
@@ -90,7 +90,7 @@ printf("TripletToDenseConverter::ConvertValues input = \n");
     for (Index i=0; i<nonzeros_triplet; i++) {
 //       printf("dim = %d value = %f index = %d %d \n",dim, a_triplet[i], ia_[i]*dim+ja_[i], ja_[i]*dim+ia_[i]);
        a[ja_[i]*dim+ia_[i]] += a_triplet[i]; // lower triangle
-       if(ia_[i] != ja_[i] ) { // only fill in off diagonal elements 
+       if(ia_[i] != ja_[i] ) { // only fill in off diagonal elements
           a[ia_[i]*dim+ja_[i]] += a_triplet[i]; // upper triangle
        }
     }

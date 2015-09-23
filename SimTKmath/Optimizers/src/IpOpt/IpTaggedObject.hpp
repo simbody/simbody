@@ -22,26 +22,26 @@ namespace Ipopt
    * Often, certain calculations or operations are expensive,
    * and it can be very inefficient to perform these calculations
    * again if the input to the calculation has not changed
-   * since the result was last stored. 
+   * since the result was last stored.
    * This base class provides an efficient mechanism to update
    * a tag, indicating that the object has changed.
    * Users of a TaggedObject class, need their own Tag data
    * member to keep track of the state of the TaggedObject, the
-   * last time they performed a calculation. A basic use case for 
+   * last time they performed a calculation. A basic use case for
    * users of a class inheriting off of TaggedObject follows like
    * this:
-   * 
+   *
    *  Initialize your own Tag to zero in constructor.
-   *      
-   *     
-   *     
+   *
+   *
+   *
    *  Before an expensive calculation,
    *      check if the TaggedObject has changed, passing in
    *      your own Tag, indicating the last time you used
    *      the object for the calculation. If it has changed,
    *      perform the calculation again, and store the result.
    *      If it has not changed, simply return the stored result.
-   * 
+   *
    *      Here is a simple example:
    \verbatim
           if (vector.HasChanged(my_vector_tag_)) {
@@ -53,11 +53,11 @@ namespace Ipopt
             return result;
           }
    \endverbatim
-   * 
+   *
    * Objects derived from TaggedObject:
    *  Objects derived from TaggedObject must indicate that they have changed to
    *  the base class using the protected member function ObjectChanged(). For
-   *  example, a Vector class, inside its own set method, MUST call 
+   *  example, a Vector class, inside its own set method, MUST call
    *  ObjectChanged() to update the internally stored tag for comparison.
    */
   class TaggedObject : public ReferencedObject, public Subject
@@ -98,7 +98,7 @@ namespace Ipopt
     }
   protected:
     /** Objects derived from TaggedObject MUST call this
-     *  method every time their internal state changes to 
+     *  method every time their internal state changes to
      *  update the internal tag for comparison
      */
     void ObjectChanged()
@@ -139,7 +139,7 @@ namespace Ipopt
     Tag tag_;
 
     /** The index indicating the cache priority for this
-     * TaggedObject. If a result that depended on this 
+     * TaggedObject. If a result that depended on this
      * TaggedObject is cached, it will be cached with this
      * priority
      */

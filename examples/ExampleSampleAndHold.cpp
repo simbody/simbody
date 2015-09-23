@@ -27,7 +27,7 @@ in Simbody. The outline is:
     2 define a periodic event handler that reads the signal and updates
       the variable
     3 define a system that has some dependence on the variable
-Here the system is just a simple pendulum swinging in gravity. We'll 
+Here the system is just a simple pendulum swinging in gravity. We'll
 sample the position of its end point periodically, and stretch a rubber
 band line from the sampled location to the current location.
 */
@@ -42,17 +42,17 @@ using namespace SimTK;
 class StationSampler : public PeriodicEventHandler {
 public:
     StationSampler(const MultibodySystem&           system,
-                   const MobilizedBody&             mobod, 
+                   const MobilizedBody&             mobod,
                    const Vec3&                      station,
-                   const Measure_<Vec3>::Variable&  sample, 
-                   Real                             interval) 
+                   const Measure_<Vec3>::Variable&  sample,
+                   Real                             interval)
     :   PeriodicEventHandler(interval), m_system(system),
         m_mobod(mobod), m_station(station),
         m_sample(sample) {}
 
     // This method is called whenever this event occurs.
     virtual void handleEvent
-       (State& state, Real, bool&) const override 
+       (State& state, Real, bool&) const override
     {
         m_system.realize(state, Stage::Position);
         Vec3 location = m_mobod.findStationLocationInGround(state,m_station);
@@ -69,20 +69,20 @@ private:
 // The only effect our example sample is going to have on this system is
 // to change what's drawn. For that purpose we're defining a
 // DecorationGenerator here that we can register with the Visualizer which then
-// calls it each time it generates a frame to allow dynamically-generated 
+// calls it each time it generates a frame to allow dynamically-generated
 // geometry. Here we'll add a mark at the last-sampled location, and draw a
 // line from there to the current location.
 class RubberBand : public DecorationGenerator {
 public:
     RubberBand(const MultibodySystem&           system,
-               const MobilizedBody&             mobod, 
+               const MobilizedBody&             mobod,
                const Vec3&                      station,
-               const Measure_<Vec3>::Variable&  sample) 
+               const Measure_<Vec3>::Variable&  sample)
     :   m_system(system), m_mobod(mobod), m_station(station),
         m_sample(sample) {}
 
-    virtual void generateDecorations(const State& state, 
-                                     Array_<DecorativeGeometry>& geometry) override 
+    virtual void generateDecorations(const State& state,
+                                     Array_<DecorativeGeometry>& geometry) override
     {
         m_system.realize(state, Stage::Position);
         Vec3 current = m_mobod.findStationLocationInGround(state,m_station);
@@ -123,7 +123,7 @@ int main() {
 
     // Add an instance of the body to the multibody system by connecting
     // it to Ground via a pin mobilizer.
-    MobilizedBody::Pin pendulum(matter.updGround(), Transform(Vec3(0)), 
+    MobilizedBody::Pin pendulum(matter.updGround(), Transform(Vec3(0)),
                                 pendulumBody, Transform(Vec3(0, 1, 0)));
 
     // Once a second we'll record the pendulum's ground location.
@@ -139,13 +139,13 @@ int main() {
                                               pendulum, Vec3(0),
                                               prevPos));
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     pendulum.setOneU(state, 0, 2.0); // initial velocity 2 rad/sec
-    
+
     // Simulate it.
 
     RungeKuttaMersonIntegrator integ(system);

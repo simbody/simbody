@@ -37,7 +37,7 @@ namespace SimTK {
 
 /** Enforce that a fixed station on one body remains coincident with a fixed
 station on a second body, as though there were a ball joint connecting them at
-those points. Uses three position-level (holonomic) constraint equations to 
+those points. Uses three position-level (holonomic) constraint equations to
 prevent relative translation in three orthogonal directions.
 
 At construction you specify the two bodies to be connected by the %Constraint,
@@ -49,7 +49,7 @@ spatial location of the point on body 2, on material points of each body that
 are coincident with that spatial location. Note that this is somewhat asymmetric
 when the ball is not properly assembled -- it acts as though the contact occurs
 at the point on body 2, \e not at the point on body 1. That is critical to
-ensure that Newton's 3rd law is satisified -- the action and reaction must 
+ensure that Newton's 3rd law is satisified -- the action and reaction must
 occur at the same point.
 
 The assembly condition is the same as the runtime constraint -- the two points
@@ -60,8 +60,8 @@ public:
 the default stations will both be (0,0,0). You can change those later
 in the State using setPointOnBody1() and setPointOnBody2(). **/
 Ball(MobilizedBody& body1, MobilizedBody& body2);
-/** Connect \a body1 and \a body2 at given station points, given in the 
-body frame of the corresponding body. You can change 
+/** Connect \a body1 and \a body2 at given station points, given in the
+body frame of the corresponding body. You can change
 those later in the State using setPointOnBody1() and setPointOnBody2(). **/
 Ball(MobilizedBody& body1, const Vec3& defaultPoint1,
         MobilizedBody& body2, const Vec3& defaultPoint2);
@@ -80,10 +80,10 @@ This overrides the default point that was supplied on construction. This
 is an Instance-stage change. **/
 void setPointOnBody2(State& state, const Vec3& point_B2) const;
 
-/** Return from the given \a state the constrained station on body 1, in 
+/** Return from the given \a state the constrained station on body 1, in
 the body 1 frame. **/
 const Vec3& getPointOnBody1(const State& state) const;
-/** Return from the given \a state the constrained station on body 2, in 
+/** Return from the given \a state the constrained station on body 2, in
 the body 2 frame. **/
 const Vec3& getPointOnBody2(const State& state) const;
 
@@ -103,7 +103,7 @@ vector in the body 1 frame. Note that
 this is not necessarily the station point being used for any given State;
 use getPointOnBody1() for that. **/
 const Vec3& getDefaultPointOnBody1() const;
-/** Return the default location for the station point on body 2, as a 
+/** Return the default location for the station point on body 2, as a
 vector in the body 2 frame. Note that
 this is not necessarily the station point being used for any given State;
 use getPointOnBody2() for that. **/
@@ -113,7 +113,7 @@ const Vec3& getDefaultPointOnBody2() const;
 /** For visualization only, you can override the default radius used by
 this %Constraint to draw itself. **/
 Ball& setDefaultRadius(Real r);
-/** Retrieve the radius being used for visualization of 
+/** Retrieve the radius being used for visualization of
 this %Constraint. **/
 Real getDefaultRadius() const;
 
@@ -125,7 +125,7 @@ MobilizedBodyIndex getBody2MobilizedBodyIndex() const;
 
 /** Return the current position-level constraint error for this %Constraint.
 This is the vector between the constrained stations on body 1 and body 2,
-which would be zero if this constraint were perfectly satisfied. The 
+which would be zero if this constraint were perfectly satisfied. The
 returned vector is measured in the Ancestor body frame. The given
 \a state must be realized through Position stage. **/
 Vec3 getPositionErrors(const State& state) const;
@@ -133,17 +133,17 @@ Vec3 getPositionErrors(const State& state) const;
 /** Return the current velocity-level constraint error for this %Constraint.
 This is the relative velocity between the material points of body 1 and
 body 2 that are coincident with the constrained station point on body 2;
-note that this is subtly different from the time derivative of the 
-position error vector. The returned vector is measured in the Ancestor 
+note that this is subtly different from the time derivative of the
+position error vector. The returned vector is measured in the Ancestor
 body frame. The given \a state must be realized through Velocity stage. **/
 Vec3 getVelocityErrors(const State& state) const;
 
-/** Return the current acceleration-level constraint error for this 
+/** Return the current acceleration-level constraint error for this
 %Constraint. This is the relative acceleration between the material points
 of body 1 and body 2 that are coincident with the constrained station point
-on body 2; this is precisely the time derivative of the 
+on body 2; this is precisely the time derivative of the
 velocity error vector (but not exactly the second time derivative of the
-position error). The returned vector is measured in the Ancestor 
+position error). The returned vector is measured in the Ancestor
 body frame. The given \a state must be realized through Acceleration
 stage. **/
 Vec3 getAccelerationErrors(const State&) const;
@@ -153,16 +153,16 @@ point of body 1 that is coincident in space with the constrained point on
 body 2. The force vector is expressed in body 1's local frame. **/
 Vec3 getBallReactionForceOnBody1(const State&) const;
 /** Return the force currently being applied by this %Constraint to body 2,
-at its constrained station point. The force vector is expressed in body 2's 
+at its constrained station point. The force vector is expressed in body 2's
 local frame. **/
 Vec3 getBallReactionForceOnBody2(const State&) const;
 
 /** Return the three Lagrange multipliers associated with the three
 accleration-level constraint equations generated by this %Constraint.
-Although these are related to reaction forces, if that's what you're 
-interested in you should use getBallReactionForcesOnBody1() or 
+Although these are related to reaction forces, if that's what you're
+interested in you should use getBallReactionForcesOnBody1() or
 getBallReactionForceOnBody2() instead; the definition of the multipliers
-is somewhat arbitrary and will not always be easy to interpret as forces. 
+is somewhat arbitrary and will not always be easy to interpret as forces.
 The given \a state must be realized through Acceleration stage. **/
 Vec3 getMultipliers(const State& state) const;
 

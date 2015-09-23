@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.3 $
  * $Date: 2006/11/24 19:09:18 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -17,7 +17,7 @@
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -35,7 +35,7 @@
 
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * FUNCTION SPECIFIC CONSTANTS
  * =================================================================
@@ -43,7 +43,7 @@
 
 #define MIN_INC_MULT RCONST(1000.0)
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
@@ -51,9 +51,9 @@
 
 /* cpBBDPrecSetupExpl and cpBBDPrecSetupImpl */
 
-static int cpBBDPrecSetupExpl(realtype t, N_Vector y, N_Vector fy, 
-                              booleantype jok, booleantype *jcurPtr, 
-                              realtype gamma, void *bbd_data, 
+static int cpBBDPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
+                              booleantype jok, booleantype *jcurPtr,
+                              realtype gamma, void *bbd_data,
                               N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 static int cpBBDPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
@@ -62,24 +62,24 @@ static int cpBBDPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
 
 /* cpBBDPrecSolveExpl and cpBBDPrecSolveImpl */
 
-static int cpBBDPrecSolveExpl(realtype t, N_Vector y, N_Vector fy, 
-                              N_Vector b, N_Vector x, 
+static int cpBBDPrecSolveExpl(realtype t, N_Vector y, N_Vector fy,
+                              N_Vector b, N_Vector x,
                               realtype gamma, realtype delta,
                               int lr, void *bbd_data, N_Vector tmp);
 
 static int cpBBDPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
                               N_Vector b, N_Vector x,
-                              realtype gamma, realtype delta, 
+                              realtype gamma, realtype delta,
                               void *bbd_data, N_Vector tmp);
 
 /* Difference quotient Jacobian calculation routines */
 
-static int cpBBDDQJacExpl(CPBBDPrecData pdata, realtype t, 
-                          N_Vector y, N_Vector gy, 
+static int cpBBDDQJacExpl(CPBBDPrecData pdata, realtype t,
+                          N_Vector y, N_Vector gy,
                           N_Vector ytemp, N_Vector gtemp);
 
 static int cpBBDDQJacImpl(CPBBDPrecData pdata, realtype tt, realtype gamma,
-                          N_Vector yy, N_Vector yp, N_Vector gref, 
+                          N_Vector yy, N_Vector yp, N_Vector gref,
                           N_Vector ytemp, N_Vector yptemp, N_Vector gtemp);
 
 /* Redability replacements */
@@ -88,15 +88,15 @@ static int cpBBDDQJacImpl(CPBBDPrecData pdata, realtype tt, realtype gamma,
 #define uround   (cp_mem->cp_uround)
 #define vec_tmpl (cp_mem->cp_tempv)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
  */
 
-void *CPBBDPrecAlloc(void *cpode_mem, int Nlocal, 
-                     int mudq, int mldq, int mukeep, int mlkeep, 
-                     realtype dqrely, 
+void *CPBBDPrecAlloc(void *cpode_mem, int Nlocal,
+                     int mudq, int mldq, int mukeep, int mlkeep,
+                     realtype dqrely,
                      void *gloc, CPBBDCommFn cfn)
 {
   CPodeMem cp_mem;
@@ -118,7 +118,7 @@ void *CPBBDPrecAlloc(void *cpode_mem, int Nlocal,
 
   /* Allocate data memory */
   pdata = NULL;
-  pdata = (CPBBDPrecData) malloc(sizeof *pdata);  
+  pdata = (CPBBDPrecData) malloc(sizeof *pdata);
   if (pdata == NULL) {
     cpProcessError(cp_mem, 0, "CPBBDPRE", "CPBBDPrecAlloc", MSGBBDP_MEM_FAIL);
     return(NULL);
@@ -151,10 +151,10 @@ void *CPBBDPrecAlloc(void *cpode_mem, int Nlocal,
 
   /* Allocate memory for saved Jacobian */
   pdata->savedJ = NewBandMat(Nlocal, muk, mlk, muk);
-  if (pdata->savedJ == NULL) { 
-    free(pdata); pdata = NULL; 
+  if (pdata->savedJ == NULL) {
+    free(pdata); pdata = NULL;
     cpProcessError(cp_mem, 0, "CPBBDPRE", "CPBBDPrecAlloc", MSGBBDP_MEM_FAIL);
-    return(NULL); 
+    return(NULL);
   }
 
   /* Allocate memory for preconditioner matrix */
@@ -179,7 +179,7 @@ void *CPBBDPrecAlloc(void *cpode_mem, int Nlocal,
   }
   /* Allocate tmp4 for use by cpBBDDQJacImpl */
   tmp4 = NULL;
-  tmp4 = N_VClone(vec_tmpl); 
+  tmp4 = N_VClone(vec_tmpl);
   if (tmp4 == NULL){
     DestroyMat(pdata->savedP);
     DestroyMat(pdata->savedJ);
@@ -217,7 +217,7 @@ int CPBBDSptfqmr(void *cpode_mem, int pretype, int maxl, void *bbd_data)
   if (bbd_data == NULL) {
     cpProcessError(cp_mem, CPBBDPRE_PDATA_NULL, "CPBBDPRE", "CPBBDSptfqmr", MSGBBDP_PDATA_NULL);
     return(CPBBDPRE_PDATA_NULL);
-  } 
+  }
 
   switch (ode_type) {
   case CP_EXPL:
@@ -245,7 +245,7 @@ int CPBBDSpbcg(void *cpode_mem, int pretype, int maxl, void *bbd_data)
   if (bbd_data == NULL) {
     cpProcessError(cp_mem, CPBBDPRE_PDATA_NULL, "CPBBDPRE", "CPBBDSpbcg", MSGBBDP_PDATA_NULL);
     return(CPBBDPRE_PDATA_NULL);
-  } 
+  }
 
   switch (ode_type) {
   case CP_EXPL:
@@ -273,7 +273,7 @@ int CPBBDSpgmr(void *cpode_mem, int pretype, int maxl, void *bbd_data)
   if (bbd_data == NULL) {
     cpProcessError(cp_mem, CPBBDPRE_PDATA_NULL, "CPBBDPRE", "CPBBDSpgmr", MSGBBDP_PDATA_NULL);
     return(CPBBDPRE_PDATA_NULL);
-  } 
+  }
 
   switch (ode_type) {
   case CP_EXPL:
@@ -288,7 +288,7 @@ int CPBBDSpgmr(void *cpode_mem, int pretype, int maxl, void *bbd_data)
   return(CPSPILS_SUCCESS);
 }
 
-int CPBBDPrecReInit(void *bbd_data, int mudq, int mldq, 
+int CPBBDPrecReInit(void *bbd_data, int mudq, int mldq,
                     realtype dqrely,
                     void *gloc, CPBBDCommFn cfn)
 {
@@ -331,7 +331,7 @@ int CPBBDPrecReInit(void *bbd_data, int mudq, int mldq,
 void CPBBDPrecFree(void **bbd_data)
 {
   CPBBDPrecData pdata;
-  
+
   if (*bbd_data == NULL) return;
 
   pdata = (CPBBDPrecData) (*bbd_data);
@@ -350,9 +350,9 @@ int CPBBDPrecGetWorkSpace(void *bbd_data, long int *lenrwBBDP, long int *leniwBB
   CPBBDPrecData pdata;
 
   if (bbd_data == NULL) {
-    cpProcessError(NULL, CPBBDPRE_PDATA_NULL, "CPBBDPRE", "CPBBDPrecGetWorkSpace", MSGBBDP_PDATA_NULL);    
+    cpProcessError(NULL, CPBBDPRE_PDATA_NULL, "CPBBDPRE", "CPBBDPrecGetWorkSpace", MSGBBDP_PDATA_NULL);
     return(CPBBDPRE_PDATA_NULL);
-  } 
+  }
 
   pdata = (CPBBDPrecData) bbd_data;
 
@@ -369,7 +369,7 @@ int CPBBDPrecGetNumGfnEvals(void *bbd_data, long int *ngevalsBBDP)
   if (bbd_data == NULL) {
     cpProcessError(NULL, CPBBDPRE_PDATA_NULL, "CPBBDPRE", "CPBBDPrecGetNumGfnEvals", MSGBBDP_PDATA_NULL);
     return(CPBBDPRE_PDATA_NULL);
-  } 
+  }
 
   pdata = (CPBBDPrecData) bbd_data;
 
@@ -393,7 +393,7 @@ char *CPBBDPrecGetReturnFlagName(int flag)
   switch(flag) {
   case CPBBDPRE_SUCCESS:
     sprintf(name,"CPBBDPRE_SUCCESS");
-    break;   
+    break;
   case CPBBDPRE_PDATA_NULL:
     sprintf(name,"CPBBDPRE_PDATA_NULL");
     break;
@@ -407,7 +407,7 @@ char *CPBBDPrecGetReturnFlagName(int flag)
   return(name);
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS
  * =================================================================
@@ -431,7 +431,7 @@ char *CPBBDPrecGetReturnFlagName(int flag)
 
 /*
  * -----------------------------------------------------------------
- * Function: cpBBDPrecSetupExpl                                      
+ * Function: cpBBDPrecSetupExpl
  * -----------------------------------------------------------------
  * cpBBDPrecSetupExpl generates and factors a banded block of the
  * preconditioner matrix on each processor, via calls to the
@@ -481,9 +481,9 @@ char *CPBBDPrecGetReturnFlagName(int flag)
  * -----------------------------------------------------------------
  */
 
-static int cpBBDPrecSetupExpl(realtype t, N_Vector y, N_Vector fy, 
-                              booleantype jok, booleantype *jcurPtr, 
-                              realtype gamma, void *bbd_data, 
+static int cpBBDPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
+                              booleantype jok, booleantype *jcurPtr,
+                              realtype gamma, void *bbd_data,
                               N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
   int ier;
@@ -519,14 +519,14 @@ static int cpBBDPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
     BandCopy(savedJ, savedP, mukeep, mlkeep);
 
   }
-  
+
   /* Scale and add I to get P = I - gamma*J */
   BandScale(-gamma, savedP);
   BandAddI(savedP);
- 
+
   /* Do LU factorization of P in place */
   ier = BandGBTRF(savedP, pivots);
- 
+
   /* Return 0 if the LU was complete; otherwise return 1 */
   if (ier > 0) return(1);
   return(0);
@@ -554,8 +554,8 @@ static int cpBBDPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
  * -----------------------------------------------------------------
  */
 
-static int cpBBDPrecSolveExpl(realtype t, N_Vector y, N_Vector fy, 
-                              N_Vector b, N_Vector x, 
+static int cpBBDPrecSolveExpl(realtype t, N_Vector y, N_Vector fy,
+                              N_Vector b, N_Vector x,
                               realtype gamma, realtype delta,
                               int lr, void *bbd_data, N_Vector tmp)
 {
@@ -566,7 +566,7 @@ static int cpBBDPrecSolveExpl(realtype t, N_Vector y, N_Vector fy,
 
   /* Copy b to x, then do backsolve and return */
   N_VScale(ONE, b, x);
-  
+
   xd = N_VGetArrayPointer(x);
 
   BandGBTRS(savedP, pivots, xd);
@@ -600,7 +600,7 @@ static int cpBBDPrecSolveExpl(realtype t, N_Vector y, N_Vector fy,
  * bbd_data is a pointer to user preconditioner data returned by
  *    CPBBDPrecAlloc.
  *
- * tmp1, tmp2, tmp3 are pointers to vectors of type N_Vector, 
+ * tmp1, tmp2, tmp3 are pointers to vectors of type N_Vector,
  *    used for temporary storage or work space.
  *
  * Return value:
@@ -634,7 +634,7 @@ static int cpBBDPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
   }
   if (retval > 0) {
     return(+1);
-  } 
+  }
 
   /* Do LU factorization of preconditioner block in place (in savedP). */
   ier = BandGBTRF(savedP, pivots);
@@ -670,7 +670,7 @@ static int cpBBDPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
 
 static int cpBBDPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
                               N_Vector b, N_Vector x,
-                              realtype gamma, realtype delta, 
+                              realtype gamma, realtype delta,
                               void *bbd_data, N_Vector tmp)
 {
   CPBBDPrecData pdata;
@@ -688,7 +688,7 @@ static int cpBBDPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
   return(0);
 }
 
-/* 
+/*
  * =================================================================
  * DQ LOCAL JACOBIAN APROXIMATIONS
  * =================================================================
@@ -715,8 +715,8 @@ static int cpBBDPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
  * -----------------------------------------------------------------
  */
 
-static int cpBBDDQJacExpl(CPBBDPrecData pdata, realtype t, 
-                          N_Vector y, N_Vector gy, 
+static int cpBBDDQJacExpl(CPBBDPrecData pdata, realtype t,
+                          N_Vector y, N_Vector gy,
                           N_Vector ytemp, N_Vector gtemp)
 {
   CPodeMem cp_mem;
@@ -756,9 +756,9 @@ static int cpBBDDQJacExpl(CPBBDPrecData pdata, realtype t,
   width = mldq + mudq + 1;
   ngroups = MIN(width, Nlocal);
 
-  /* Loop over groups */  
+  /* Loop over groups */
   for (group=1; group <= ngroups; group++) {
-    
+
     /* Increment all y_j in group */
     for(j=group-1; j < Nlocal; j+=width) {
       inc = MAX(dqrely*ABS(y_data[j]), minInc/ewt_data[j]);
@@ -810,7 +810,7 @@ static int cpBBDDQJacExpl(CPBBDPrecData pdata, realtype t,
  */
 
 static int cpBBDDQJacImpl(CPBBDPrecData pdata, realtype t, realtype gamma,
-                          N_Vector y, N_Vector yp, N_Vector gref, 
+                          N_Vector y, N_Vector yp, N_Vector gref,
                           N_Vector ytemp, N_Vector yptemp, N_Vector gtemp)
 {
   CPodeMem cp_mem;
@@ -842,7 +842,7 @@ static int cpBBDDQJacImpl(CPBBDPrecData pdata, realtype t, realtype gamma,
     if (retval != 0) return(retval);
   }
 
-  retval = glocI(Nlocal, t, y, yp, gref, f_data); 
+  retval = glocI(Nlocal, t, y, yp, gref, f_data);
   nge++;
   if (retval != 0) return(retval);
 
@@ -852,28 +852,28 @@ static int cpBBDDQJacImpl(CPBBDPrecData pdata, realtype t, realtype gamma,
 
   /* Loop over groups. */
   for(group = 1; group <= ngroups; group++) {
-    
+
     /* Loop over the components in this group. */
     for(j = group-1; j < Nlocal; j += width) {
       yj = ydata[j];
       ypj = ypdata[j];
       ewtj = ewtdata[j];
-      
+
       /* Set increment inc to yj based on rel_yy*abs(yj), with
          adjustments using ypj and ewtj if this is small, and a further
          adjustment to give it the same sign as hh*ypj. */
       inc = dqrely*MAX(ABS(yj), MAX( ABS(h*ypj), ONE/ewtj));
       if (h*ypj < ZERO) inc = -inc;
       inc = (yj + inc) - yj;
-      
+
       /* Increment yj and ypj. */
       ytempdata[j]  += gamma*inc;
       yptempdata[j] += inc;
-      
+
     }
 
     /* Evaluate G with incremented y and yp arguments. */
-    retval = glocI(Nlocal, t, ytemp, yptemp, gtemp, f_data); 
+    retval = glocI(Nlocal, t, ytemp, yptemp, gtemp, f_data);
     nge++;
     if (retval != 0) return(retval);
 
@@ -893,10 +893,10 @@ static int cpBBDDQJacImpl(CPBBDPrecData pdata, realtype t, realtype gamma,
       col_j = BAND_COL(savedP,j);
       i1 = MAX(0, j-mukeep);
       i2 = MIN(j+mlkeep, Nlocal-1);
-      for(i = i1; i <= i2; i++) 
+      for(i = i1; i <= i2; i++)
         BAND_COL_ELEM(col_j,i,j) = inc_inv * (gtempdata[i] - grefdata[i]);
     }
   }
-  
+
   return(0);
 }

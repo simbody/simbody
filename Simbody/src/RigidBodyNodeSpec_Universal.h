@@ -35,24 +35,24 @@
 
     // UNIVERSAL (U-JOINT, HOOKE'S JOINT) //
 
-// This is a Universal Joint (U-Joint), also known as a Hooke's joint. This is 
-// identical to the joint that connects pieces of a driveshaft together under 
-// a car. Physically, you can think of this as a parent body P, hinged to a 
+// This is a Universal Joint (U-Joint), also known as a Hooke's joint. This is
+// identical to the joint that connects pieces of a driveshaft together under
+// a car. Physically, you can think of this as a parent body P, hinged to a
 // massless cross-shaped coupler, which is then hinged to the child body B. The
-// massless coupler doesn't actually appear in the model. Instead, we use a 
-// body-fixed 1-2 Euler rotation sequence for orientation, which has the same 
-// effect: starting with frames B and P aligned (when q0=q1=0), rotate frame 
-// B about the Px(=Bx) axis by q0; then, rotate frame B further about the new 
-// By(!=Py) by q1. For generalized speeds u we use the Euler angle derivatives 
+// massless coupler doesn't actually appear in the model. Instead, we use a
+// body-fixed 1-2 Euler rotation sequence for orientation, which has the same
+// effect: starting with frames B and P aligned (when q0=q1=0), rotate frame
+// B about the Px(=Bx) axis by q0; then, rotate frame B further about the new
+// By(!=Py) by q1. For generalized speeds u we use the Euler angle derivatives
 // qdot, which are *not* the same as angular velocity components because u0 is
-// a rotation rate around Px(!=Bx any more) while u1 is a rotation rate 
+// a rotation rate around Px(!=Bx any more) while u1 is a rotation rate
 // about By.
 //
 // To summarize,
 //    q's: a two-angle body-fixed rotation sequence about x, then new y
 //    u's: time derivatives of the q's
 //
-// Note that the U-Joint degrees of freedom relating the parent's F frame to 
+// Note that the U-Joint degrees of freedom relating the parent's F frame to
 // the child's M frame are about x and y, with the "long" axis of the
 // driveshaft along z.
 template<bool noX_MB, bool noR_PF>
@@ -69,38 +69,38 @@ RBNodeUJoint(const MassProperties& mProps_B,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<2, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
+void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
     // The only rotations this joint can handle are about Mx and My.
-    // TODO: isn't there a better way to come up with "the rotation around x&y 
-    // that best approximates a rotation R"? Here we're just hoping that the 
+    // TODO: isn't there a better way to come up with "the rotation around x&y
+    // that best approximates a rotation R"? Here we're just hoping that the
     // supplied rotation matrix can be decomposed into (x,y) rotations.
     const Vec2 angles12 = R_FM.convertRotationToBodyFixedXY();
     this->toQ(q) = angles12;
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const {
-    // M and F frame origins are always coincident for this mobilizer so there 
-    // is no way to create a translation by rotating. So the only translation 
+    // M and F frame origins are always coincident for this mobilizer so there
+    // is no way to create a translation by rotating. So the only translation
     // we can represent is 0.
 }
 
-// We can only express angular velocity that can be produced with our 
-// generalized speeds which are Fx and My rotations rates. So we'll take the 
-// supplied angular velocity expressed in F, project it on Fx and use that as 
-// the first generalized speed. Then take whatever angular velocity is 
-// unaccounted for, express it in M, and project onto My and use that as the 
+// We can only express angular velocity that can be produced with our
+// generalized speeds which are Fx and My rotations rates. So we'll take the
+// supplied angular velocity expressed in F, project it on Fx and use that as
+// the first generalized speed. Then take whatever angular velocity is
+// unaccounted for, express it in M, and project onto My and use that as the
 // second generalized speed.
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q,
                                   const Vec3& w_FM, Vector& u) const {
-    const Rotation R_FM = 
+    const Rotation R_FM =
         Rotation(BodyRotationSequence, this->fromQ(q)[0], XAxis, this->fromQ(q)[1], YAxis);  // body fixed 1-2 sequence
     const Vec3 wyz_FM_M = ~R_FM*Vec3(0,w_FM[1],w_FM[2]);
     this->toU(u) = Vec2(w_FM[0], wyz_FM_M[1]);
@@ -109,8 +109,8 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector& q,
 void setUToFitLinearVelocityImpl
     (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, Vector& u) const
 {
-    // M and F frame origins are always coincident for this mobilizer so there 
-    // is no way to create a linear velocity by rotating. So the only linear 
+    // M and F frame origins are always coincident for this mobilizer so there
+    // is no way to create a linear velocity by rotating. So the only linear
     // velocity we can represent is 0.
 }
 
@@ -139,23 +139,23 @@ void calcX_FM(const SBStateDigest& sbs,
 {
     assert(q && nq==2 && qCache && nQCache==PoolSize);
     // TODO: use qCache
-    // We're only updating the orientation here because a U-joint 
+    // We're only updating the orientation here because a U-joint
     // can't translate. This is a body fixed X-Y sequence.
     X_FM.updR() = Rotation(BodyRotationSequence, q[0], XAxis, q[1], YAxis);
     X_FM.updP() = 0;
 }
 
-// The generalized speeds for this 2-dof rotational joint are the time 
-// derivatives of the body-fixed 1-2 rotation sequence defining the 
+// The generalized speeds for this 2-dof rotational joint are the time
+// derivatives of the body-fixed 1-2 rotation sequence defining the
 // orientation. That is, the first speed is just a rotation rate about Fx. The
-// second is a rotation rate about the current My, so we have to transform it 
+// second is a rotation rate about the current My, so we have to transform it
 // into F to make H_FM uniformly expressed in F.
 void calcAcrossJointVelocityJacobian(
     const SBStateDigest& sbs,
     HType&               H_FM) const
 {
     // "upd" because we're realizing positions now
-    const SBTreePositionCache& pc = sbs.updTreePositionCache(); 
+    const SBTreePositionCache& pc = sbs.updTreePositionCache();
     const Transform  X_F0M0 = this->findX_F0M0(pc);
 
     // Dropping the 0's here.
@@ -176,7 +176,7 @@ void calcAcrossJointVelocityJacobianDot(
 {
     const SBTreePositionCache& pc = sbs.getTreePositionCache();
     // "upd" because we're realizing velocities now
-    const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache(); 
+    const SBTreeVelocityCache& vc = sbs.updTreeVelocityCache();
 
     const Transform  X_F0M0 = this->findX_F0M0(pc);
 

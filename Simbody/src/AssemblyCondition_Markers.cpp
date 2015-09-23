@@ -67,7 +67,7 @@ int Markers::calcGoal(const State& state, Real& goal) const {
             assert(marker.bodyB == mobodIx); // better be on this body!
             const Vec3& location = observations[getObservationIxForMarker(mx)];
             if (location.isFinite()) { // skip NaNs
-                goal += marker.weight 
+                goal += marker.weight
                         * (X_GB*marker.markerInB - location).normSqr();
                 wtot += marker.weight;
             }
@@ -81,8 +81,8 @@ int Markers::calcGoal(const State& state, Real& goal) const {
 // dgoal/dq = sum( wi * ri * dri/dq ) / sum(wi)
 // This calculation is modeled after Peter Eastman's gradient implementation
 // in ObservedPointFitter. It treats each marker position error as a potential
-// energy function whose negative spatial gradient would be a spatial force F. 
-// We can then use Simbody's spatial force-to-generalized force method (using 
+// energy function whose negative spatial gradient would be a spatial force F.
+// We can then use Simbody's spatial force-to-generalized force method (using
 // -F instead of F) to obtain the gradient in internal coordinates.
 int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
     const int np = getNumFreeQs();
@@ -107,7 +107,7 @@ int Markers::calcGoalGradient(const State& state, Vector& gradient) const {
             assert(marker.bodyB == mobodIx); // better be on this body!
             const Vec3& location = observations[getObservationIxForMarker(mx)];
             if (location.isFinite()) { // skip NaNs
-                const Vec3 nf = marker.weight 
+                const Vec3 nf = marker.weight
                                 * (X_GB*marker.markerInB - location);
                 mobod.applyForceToBodyPoint(state, marker.markerInB, nf, dEdR);
                 wtot += marker.weight;
@@ -150,8 +150,8 @@ int Markers::getNumErrors(const State& state) const
 // Run through all the Markers to find all the bodies that have at least one
 // active marker. For each of those bodies, we collect all its markers so that
 // we can process them all at once. Active markers are those whose weight is
-// greater than zero. Also, if we haven't been given any observation<->marker 
-// correspondence, we're going to assume they map directly, with each 
+// greater than zero. Also, if we haven't been given any observation<->marker
+// correspondence, we're going to assume they map directly, with each
 // ObservationIx the same as its MarkerIx.
 int Markers::initializeCondition() const {
     // Fill in missing observation information if needed.

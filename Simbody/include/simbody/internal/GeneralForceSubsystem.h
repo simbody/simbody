@@ -35,8 +35,8 @@ class MultibodySystem;
 class SimbodyMatterSubsystem;
 class Force;
 
-/** This is a concrete subsystem which can apply arbitrary forces to a 
-MultibodySystem. Each force element is represented by a Force object. For 
+/** This is a concrete subsystem which can apply arbitrary forces to a
+MultibodySystem. Each force element is represented by a Force object. For
 example, to add a spring between two bodies, you would write
 @code
     GeneralForceSubsystem forces(system);
@@ -49,21 +49,21 @@ public:
     GeneralForceSubsystem();
     explicit GeneralForceSubsystem(MultibodySystem&);
 
-    /** Attach a new force to this subsystem. The subsystem takes over 
-    ownership of the force, leaving the passed in handle as a reference to 
+    /** Attach a new force to this subsystem. The subsystem takes over
+    ownership of the force, leaving the passed in handle as a reference to
     it. This is normally called by the Force handle constructor.
     @param      force
-        A writable reference to a Force handle whose referenced force element 
-        is not yet owned by any subsystem. We will take over ownership of the 
+        A writable reference to a Force handle whose referenced force element
+        is not yet owned by any subsystem. We will take over ownership of the
         ForceImpl implementation objected referenced by the handle, bumping the
         reference count and leaving the reference in place so that the original
-        handle can continue to be used to reference and modify the force 
+        handle can continue to be used to reference and modify the force
         element.
     @return A unique integer index for the adopted force element that can be
     used to retrieve this force element from the subsystem later if needed. **/
     ForceIndex adoptForce(Force& force);
-    
-    /** Get the number of force elements which have been added to this 
+
+    /** Get the number of force elements which have been added to this
     Subsystem. Legal ForceIndex values range from 0 to getNumForces()-1. **/
     int getNumForces() const;
 
@@ -76,8 +76,8 @@ public:
     /** Find out whether a particular force element contained in this
     subsystem is currently disabled in the given state. **/
     bool isForceDisabled(const State& state, ForceIndex index) const;
-    
-    /** Disable or enable a particular force element contained in this 
+
+    /** Disable or enable a particular force element contained in this
     subsystem. This can usually be done more conveniently through the Force
     handle's disable() and enable() methods. Note that although force elements
     are normally enabled when created, it is possible that the force element
@@ -85,20 +85,20 @@ public:
     be explicitly enabled. **/
     void setForceIsDisabled
        (State& state, ForceIndex index, bool shouldBeDisabled) const;
-       
+
     /** Set the number of threads that the GeneralForceSubsystem can use to
     calculate computationally expensive forces (that have the
     shouldBeParallelIfPossible() method overridden). By default, the
     number of threads is the number of total processors (including hyperthreads)
     on the machine.
-    
+
     @note This method should NOT be called while realizing Stage::Dynamics.**/
     void setNumberOfThreads(unsigned numThreads);
-    
+
     /** Returns the number of threads that the GeneralForceSubsystem can
     use to calculate computationally expensive forces (that have the
     shouldBeParallelIfPossible() method overridden).
-    
+
     @return Maximum number of threads GeneralForceSubsystem can use for force
     computations**/
     int getNumberOfThreads() const;

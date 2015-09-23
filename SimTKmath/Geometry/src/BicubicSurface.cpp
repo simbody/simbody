@@ -70,14 +70,14 @@ BicubicSurface& BicubicSurface::operator=(const BicubicSurface& source) {
 // Return handle to its default-constructed state, deleting guts if this was
 // the last reference.
 void BicubicSurface::clear() {
-    if (guts && guts->decrReferenceCount()==0) 
+    if (guts && guts->decrReferenceCount()==0)
         delete guts;
     guts = 0;
 }
 
 // Constructor for irregularly spaced samples.
 BicubicSurface::BicubicSurface
-   (const Vector& x, const Vector& y, const Matrix& f, Real smoothness) 
+   (const Vector& x, const Vector& y, const Matrix& f, Real smoothness)
 :   guts(0) {
     guts = new BicubicSurface::Guts(x,y,f,smoothness);
     guts->incrReferenceCount(); // will be 1
@@ -93,7 +93,7 @@ BicubicSurface::BicubicSurface
 
 // Constructor from known patch derivatives.
 BicubicSurface::BicubicSurface
-   (const Vector& x, const Vector& y, const Matrix& f, 
+   (const Vector& x, const Vector& y, const Matrix& f,
     const Matrix& fx, const Matrix& fy, const Matrix& fxy)
 :   guts(0) {
     guts = new BicubicSurface::Guts(x,y,f,fx,fy,fxy);
@@ -102,7 +102,7 @@ BicubicSurface::BicubicSurface
 
 // Constructor from known patch derivatives with regular spacing.
 BicubicSurface::BicubicSurface
-   (const Vec2& XY, const Vec2& spacing, const Matrix& f, 
+   (const Vec2& XY, const Vec2& spacing, const Matrix& f,
     const Matrix& fx, const Matrix& fy, const Matrix& fxy)
 :   guts(0) {
     guts = new BicubicSurface::Guts(XY,spacing,f,fx,fy,fxy);
@@ -113,13 +113,13 @@ BicubicSurface::BicubicSurface
 Real BicubicSurface::calcValue(const Vec2& XY, PatchHint& hint) const {
     SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcValue()",
         "This method can't be called on an empty handle.");
-    return guts->calcValue(XY, hint); 
+    return guts->calcValue(XY, hint);
 }
 
 // calcValue(), the slow version.
 Real BicubicSurface::calcValue(const Vec2& XY) const {
     PatchHint hint; // create an empty hint
-    return calcValue(XY, hint); 
+    return calcValue(XY, hint);
 }
 
 // calcDerivative(), the fast version.
@@ -127,14 +127,14 @@ Real BicubicSurface::calcDerivative
    (const Array_<int>& components, const Vec2& XY, PatchHint& hint) const {
     SimTK_ERRCHK_ALWAYS(!isEmpty(), "BicubicSurface::calcDerivative()",
         "This method can't be called on an empty handle.");
-    return guts->calcDerivative(components, XY, hint); 
+    return guts->calcDerivative(components, XY, hint);
 }
 
 // calcDerivative(), the slow version.
 Real BicubicSurface::calcDerivative
    (const Array_<int>& components, const Vec2& XY) const {
     PatchHint hint; // create an empty hint
-    return calcDerivative(components, XY, hint); 
+    return calcDerivative(components, XY, hint);
 }
 
 UnitVec3 BicubicSurface::calcUnitNormal(const Vec2& XY, PatchHint& hint) const {
@@ -163,7 +163,7 @@ void BicubicSurface::calcParaboloid
     calcParaboloid(XY, hint, X_SP, k);
 }
 
-void BicubicSurface::getNumPatches(int& nx, int& ny) const 
+void BicubicSurface::getNumPatches(int& nx, int& ny) const
 {   guts->getNumPatches(nx,ny); }
 
 Geo::BicubicHermitePatch BicubicSurface::
@@ -174,7 +174,7 @@ Geo::BicubicBezierPatch BicubicSurface::
 calcBezierPatch(int x, int y) const
 {   PatchHint hint; return guts->calcBezierPatch(x,y, hint); }
 
-bool BicubicSurface::isSurfaceDefined(const Vec2& XY) const 
+bool BicubicSurface::isSurfaceDefined(const Vec2& XY) const
 {   return getGuts().isSurfaceDefined(XY); }
 
 Vec2 BicubicSurface::getMinXY() const {
@@ -215,7 +215,7 @@ void BicubicSurface::resetStatistics() const
 //==============================================================================
 
 // This is the constructor for irregularly-spaced samples.
-BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY, 
+BicubicSurface::Guts::Guts(const Vector& aX, const Vector& aY,
                            const Matrix& af, Real smoothness)
 {
     construct();
@@ -234,10 +234,10 @@ BicubicSurface::Guts::Guts
    (const Vec2& XY, const Vec2& spacing, const Matrix& af, Real smoothness)
 {
     construct();
-    
+
     // Check for reasonable spacing.
     SimTK_ERRCHK2_ALWAYS(spacing > 0,
-        "BicubicSurface::BicubicSurface(XY,spacing,af,smoothness)", 
+        "BicubicSurface::BicubicSurface(XY,spacing,af,smoothness)",
         "A BicubicSurface requires positive spacing in both x and y"
         " but spacing was %g and %g.", spacing[0], spacing[1]);
 
@@ -265,18 +265,18 @@ constructFromSplines(const Matrix& af, Real smoothness)
 
     // Check for sufficient sample size.
     SimTK_ERRCHK2_ALWAYS(af.nrow() >= 4 && af.ncol() >= 4,
-        "BicubicSurface::BicubicSurface()", 
+        "BicubicSurface::BicubicSurface()",
         "A BicubicSurface requires at least 4 sample in x and y directions"
         " but grid dimensions were %d and %d.", nx, ny);
 
     SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
-        "BicubicSurface::BicubicSurface()", 
+        "BicubicSurface::BicubicSurface()",
         "Number of samples must match the grid dimension (%d X %d) but"
         "the number of supplied sample points was %d X %d.",
         nx, ny, _x.size(), _y.size());
 
     // We're checking this even for generated regularly-spaced samples
-    // to catch the rare case that the spacing was so small that it 
+    // to catch the rare case that the spacing was so small that it
     // produced two identical sample locations.
 
     SimTK_ERRCHK_ALWAYS(   isMonotonicallyIncreasing(_x)
@@ -308,23 +308,23 @@ constructFromSplines(const Matrix& af, Real smoothness)
         // This temp holds the function values as they look after smoothing
         // in the x direction (that is, down the columns of constant y).
         Matrix xf(nx,ny);
-    
+
         // Smooth position data along lines of constant y.
-        for(int j=0; j < ny; ++j){       
+        for(int j=0; j < ny; ++j){
             Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
                                             (3,_x,af(j),smoothness).getSpline();
-            for(int i=0; i < nx; ++i){    
+            for(int i=0; i < nx; ++i){
                 coord[0] = _x[i];
                 xf(i,j) = xspline.calcValue(coord);
             }
         }
 
         // Smooth position data along lines of constant x, then average the
-        // result with the corresponding value from smoothing the other way. 
-        for(int i=0; i < nx; ++i){       
+        // result with the corresponding value from smoothing the other way.
+        for(int i=0; i < nx; ++i){
             Spline_<Real> yspline = SplineFitter<Real>::fitForSmoothingParameter
                                            (3,_y,~af[i],smoothness).getSpline();
-            for(int j=0; j < ny; ++j){    
+            for(int j=0; j < ny; ++j){
                 coord[0] = _y[j];
                 const Real yfij = yspline.calcValue(coord);
                 fSmooth(i,j) = (xf(i,j) + yfij) / 2; // average xf,xy
@@ -337,10 +337,10 @@ constructFromSplines(const Matrix& af, Real smoothness)
 
     // Now fill in the f and fx entries in our internal grid by exactly
     // fitting a spline to the already-smoothed data.
-    for(int j=0; j < ny; ++j){       
+    for(int j=0; j < ny; ++j){
         Spline_<Real> xspline = SplineFitter<Real>::fitForSmoothingParameter
                                         (3,_x,fSmooth(j),0).getSpline();
-        for(int i=0; i < nx; ++i){    
+        for(int i=0; i < nx; ++i){
             coord[0] = _x[i];
             Vec4& fij = _ff(i,j);
             fij[F]  = fSmooth(i,j);
@@ -352,7 +352,7 @@ constructFromSplines(const Matrix& af, Real smoothness)
     // Note that we are using the already-smoothed value of f here.
     Vector tmpRow(ny);
     for(int i=0; i < nx; ++i){
-        // Fit splines along rows of constant x to go exactly through the 
+        // Fit splines along rows of constant x to go exactly through the
         // already-smoothed sample points in order to get fy=Df/Dy.
         Spline_<Real> yspline = SplineFitter<Real>::fitForSmoothingParameter
                                                (3,_y,~fSmooth[i],0).getSpline();
@@ -363,10 +363,10 @@ constructFromSplines(const Matrix& af, Real smoothness)
         Spline_<Real> ydxspline = SplineFitter<Real>::fitForSmoothingParameter
                                                  (3,_y,tmpRow,0).getSpline();
 
-        for(int j=0; j < ny; ++j){    
+        for(int j=0; j < ny; ++j){
             coord[0] = _y[j];
             Vec4& fij = _ff(i,j);
-            fij[Fy]  = yspline.calcDerivative(deriv1,coord);            
+            fij[Fy]  = yspline.calcDerivative(deriv1,coord);
             fij[Fxy] = ydxspline.calcDerivative(deriv1,coord);
         }
     }
@@ -374,7 +374,7 @@ constructFromSplines(const Matrix& af, Real smoothness)
 
 // This is the advanced constructor where everything is known already.
 BicubicSurface::Guts::Guts
-   (const Vector& aX, const Vector& aY, const Matrix& af, 
+   (const Vector& aX, const Vector& aY, const Matrix& af,
     const Matrix& afx, const Matrix& afy, const Matrix& afxy)
 {
     construct();
@@ -388,14 +388,14 @@ BicubicSurface::Guts::Guts
 }
 
 BicubicSurface::Guts::Guts
-   (const Vec2& XY, const Vec2& spacing, const Matrix& af, 
+   (const Vec2& XY, const Vec2& spacing, const Matrix& af,
     const Matrix& afx, const Matrix& afy, const Matrix& afxy)
 {
     construct();
 
     // Check for reasonable spacing.
     SimTK_ERRCHK2_ALWAYS(spacing > 0,
-        "BicubicSurface::BicubicSurface(XY,spacing,af,smoothness)", 
+        "BicubicSurface::BicubicSurface(XY,spacing,af,smoothness)",
         "A BicubicSurface requires positive spacing in both x and y"
         " but spacing was %g and %g.", spacing[0], spacing[1]);
 
@@ -418,17 +418,17 @@ void BicubicSurface::Guts::
 constructFromKnownFunction
    (const Matrix& af, const Matrix& afx, const Matrix& afy,
     const Matrix& afxy)
-{ 
+{
     const int nx = af.nrow(), ny = af.ncol();
 
     // Check for sufficient sample size.
     SimTK_ERRCHK2_ALWAYS(nx >= 2 && ny >= 2,
-        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)", 
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)",
         "A BicubicSurface requires at least 2 sample in x and y directions"
         " but grid dimensions were %d and %d.", nx, ny);
 
     SimTK_ERRCHK4_ALWAYS(_x.size() == nx && _y.size() == ny,
-        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)", 
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)",
         "Number of samples must match the grid dimension (%d X %d) but"
         "the number of supplied sample points was %d X %d.",
         nx, ny, _x.size(), _y.size());
@@ -436,7 +436,7 @@ constructFromKnownFunction
     SimTK_ERRCHK2_ALWAYS(   afx.nrow()  == nx && afx.ncol()  == ny
                          && afy.nrow()  == nx && afy.ncol()  == ny
                          && afxy.nrow() == nx && afxy.ncol() == ny,
-        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)", 
+        "BicubicSurface::BicubicSurface(f,fx,fy,fxy)",
         "All the derivative sample matrices must match the grid dimension"
         " (%d X %d).", nx, ny);
 
@@ -453,7 +453,7 @@ constructFromKnownFunction
     for(int i=0; i < nx; ++i) {
         for(int j=0; j < ny; ++j){
             Vec4& fij = _ff(i,j);
-            fij[F]    = af(i,j);      
+            fij[F]    = af(i,j);
             fij[Fx]   = afx(i,j);
             fij[Fy]   = afy(i,j);
             fij[Fxy]  = afxy(i,j);
@@ -464,7 +464,7 @@ constructFromKnownFunction
 //_____________________________________________________________________________
 
 Real BicubicSurface::Guts::calcValue(const Vec2& aXY, PatchHint& hint) const
-{    
+{
     getFdF(aXY,0,hint); // just function value
     const PatchHint::Guts& h = hint.getGuts();
     assert(h.xy == aXY && h.level >= 0);
@@ -542,7 +542,7 @@ void BicubicSurface::Guts::calcParaboloid
 
 bool BicubicSurface::Guts::isSurfaceDefined(const Vec2& XYval) const
 {
-    const bool valueDefined = 
+    const bool valueDefined =
             (_x[0] <= XYval[0] &&  XYval[0] <= _x[_x.size()-1])
         &&  (_y[0] <= XYval[1] &&  XYval[1] <= _y[_y.size()-1]);
 
@@ -562,7 +562,7 @@ getPatchInfoIfNeeded(int x0, int y0, BicubicSurface::PatchHint::Guts& h) const {
         h.clear();
         h.x0 = x0; h.y0 = y0;
 
-        // Compute the scaling of the new patch. Note that neither patch 
+        // Compute the scaling of the new patch. Note that neither patch
         // dimension can be zero since we don't allow duplicates in x or y.
         h.xS = _x(x1)-_x(x0);
         h.yS = _y(y1)-_y(y0);
@@ -587,7 +587,7 @@ getPatchInfoIfNeeded(int x0, int y0, BicubicSurface::PatchHint::Guts& h) const {
         h.fV[5] = f10[Fx]*h.xS;
         h.fV[6] = f01[Fx]*h.xS;
         h.fV[7] = f11[Fx]*h.xS;
-    
+
         h.fV[8]  = f00[Fy]*h.yS;
         h.fV[9]  = f10[Fy]*h.yS;
         h.fV[10] = f01[Fy]*h.yS;
@@ -605,11 +605,11 @@ getPatchInfoIfNeeded(int x0, int y0, BicubicSurface::PatchHint::Guts& h) const {
 
 /**
 This function computes the surface value and all derivatives (because it is
-cheap to compute these derivatives once the bicubic interpolation 
+cheap to compute these derivatives once the bicubic interpolation
 coefficients have been solved for). These values are stored in mutable
 function members so that if a user repeatedly asks for information about
-the same location the stored data is supplied. Additionally, if the user 
-is staying within a single patch, the the coefficients required for this 
+the same location the stored data is supplied. Additionally, if the user
+is staying within a single patch, the the coefficients required for this
 patch are only computed once, and they are re-used until a location outside
 the patch is requested.
 
@@ -620,16 +620,16 @@ the patch is requested.
                 fx(0,0)  fx(1,0)  fx(0,1)  fx(1,1),
                 fy(0,0)  fy(1,0)  fy(0,1)  fy(1,1),
                 fxy(0,0) fxy(1,0) fxy(0,1) fxy(1,1)
-@param aijV an empty vector that is set to the coefficient values of the 
+@param aijV an empty vector that is set to the coefficient values of the
             bicubic surface polynomials for the patch that the current
-            XY location resides in. The coefficients are returned in this 
+            XY location resides in. The coefficients are returned in this
             order
 
             a00,a10,a20,a30,a01,a11,a21,a31,a02,a12,a22,a32,a03,a13,a23,a33
 
 @param aFdF an empty vector that is set to the 10 values of f and its partial
 derivatives at the point XY. These values are stored in the following order:
-            f(x,y) fx(x,y)  fy(x,y)  fxy(x,y)  fxx(x,y)  fyy(x,y) 
+            f(x,y) fx(x,y)  fy(x,y)  fxy(x,y)  fxx(x,y)  fyy(x,y)
             fxxx(x,y) fxxy(x,y) fyyy(x,y) fxyy(x,y)
 */
 void BicubicSurface::Guts::
@@ -637,8 +637,8 @@ getFdF(const Vec2& aXY, int wantLevel, PatchHint& hint) const {
     ++numAccesses; // All surface accesses come through here.
 
     //0. Check if the surface is defined for the XY value given.
-    SimTK_ERRCHK6_ALWAYS(isSurfaceDefined(aXY), 
-        "BicubicSurface::getFdF (private fcn)", 
+    SimTK_ERRCHK6_ALWAYS(isSurfaceDefined(aXY),
+        "BicubicSurface::getFdF (private fcn)",
         "BicubicSurface is not defined at requested location (%g,%g)."
         " The surface is valid from x[%g %g], y[%g %g].", aXY(0), aXY(1),
         _x[0], _x[_x.size()-1], _y[0], _y[_y.size()-1]);
@@ -653,7 +653,7 @@ getFdF(const Vec2& aXY, int wantLevel, PatchHint& hint) const {
     //1. Check to see if we have already computed values for the requested point.
     if(h.level >= wantLevel && aXY == h.xy){
         ++numAccessesSamePoint;
-        return;    
+        return;
     }
 
     // Nope. We're at least changing points.
@@ -683,7 +683,7 @@ getFdF(const Vec2& aXY, int wantLevel, PatchHint& hint) const {
     const int howResolved = std::max(howResolvedX, howResolvedY);
     if      (howResolved == 0) ++numAccessesSamePatch;
     else if (howResolved == 1) ++numAccessesNearbyPatch;
- 
+
     // Compute Bicubic coefficients only if we're in a new patch
     // else use the old ones, because this is an expensive step!
     getPatchInfoIfNeeded(x0,y0,h);
@@ -799,9 +799,9 @@ getFdF(const Vec2& aXY, int wantLevel, PatchHint& hint) const {
 }
 
 
-/** Given a search value aVal and an n-vector aVec (n>=2) containing 
+/** Given a search value aVal and an n-vector aVec (n>=2) containing
 monotonically increasing values (no duplicates), this method finds the unique
-pair of indices (i,i+1) such that either 
+pair of indices (i,i+1) such that either
     - aVec[i] <= aVal < aVec[i+1], or
     - aVec[n-2] < aVal == aVec[n-1].
 
@@ -815,11 +815,11 @@ method:
 aVec = [0.1 0.2 0.3 0.4 0.5];
 aVal = 0.125
 idxLB = calcLowerBoundIndex(aVec,aVal,-1);
- 
-Then idxLB should be 0. Some effort has been put into making this code 
-efficient, as  it is expected that very large vectors could be used in this 
-function. If the data is evenly spaced, the index is computed. If not data 
-near a previous index (set by the user) is searched. If the data is still 
+
+Then idxLB should be 0. Some effort has been put into making this code
+efficient, as  it is expected that very large vectors could be used in this
+function. If the data is evenly spaced, the index is computed. If not data
+near a previous index (set by the user) is searched. If the data is still
 not found a binary search is performed
 
 @params aVec: A SimTK vector containing monotonically increasing data
@@ -830,7 +830,7 @@ not found a binary search is performed
 
 */
 
-// Return true if aVal is on the patch (really the line) between 
+// Return true if aVal is on the patch (really the line) between
 // aVec[indxL] and aVec[indxL+1]. By "on the patch" we mean that
 // aVec[indxL] <= aVal < aVec[indxL+1] unless this is the last patch in
 // which case we allow aVec[indxL] < aVal <= aVec[indxL+1].
@@ -861,9 +861,9 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx,
     // Because we're trying to find the lower index, it can't be the very
     // last knot.
     const int maxLB = aVec.size() - 2;
-        
+
     // 1. Do a local search around the previous index, if one is given.
-    if(0 <= pIdx && pIdx <= maxLB) {    
+    if(0 <= pIdx && pIdx <= maxLB) {
         // Are we still on the same patch? Caution -- can't be equal to the
         // upper knot unless it is the last one.
         if (isOnPatch(aVec, pIdx, aVal)) {
@@ -884,9 +884,9 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx,
                 howResolved = 1;
                 return pIdx+1; // found it next door!
             }
-        }    
+        }
     }
-    
+
     // Either we didn't have a previous index to try, or it didn't help.
 
     // 2. Check the end points. We'll count these as "nearby patches" since
@@ -899,13 +899,13 @@ calcLowerBoundIndex(const Vector& aVec, Real aVal, int pIdx,
         howResolved = 1;
         return maxLB;
     }
-        
+
     // 3. If still not found, use binary search to find the appropriate index.
-    
+
     // std::upper_bound returns the index of the first element that
     // is strictly greater than aVal (one after the last element
     // if aVal is exactly equal to the last knot).
-    const Real* upper = 
+    const Real* upper =
         std::upper_bound(&aVec[0], &aVec[0] + aVec.size(), aVal);
     const int upperIx = clamp(0, (int)(upper-&aVec[1]), maxLB);
 
@@ -919,7 +919,7 @@ the values of f, fx, fy and fxy defined at its four corners. This function is
 relatively expensive, as it involves multiplying a 16x16 matrix by a 16x1,
 so it is called only when absolutely necessary.
 
-@param f  Vector f defining the values of f, fx, fy and fxy at the four 
+@param f  Vector f defining the values of f, fx, fy and fxy at the four
             corners of the patch. Vector f is in this order:
             f(0,0)   f(1,0)   f(0,1)   f(1,1),
             fx(0,0)  fx(1,0)  fx(0,1)  fx(1,1),
@@ -935,26 +935,26 @@ getCoefficients(const Vec<16>& fV, Vec<16>& aV) const {
     // This is what the full matrix inverse looks like (copied here from
     // Wikipedia). It is very sparse and contains only a few unique values
     // so the matrix-vector product can be done very cheaply if worked out
-    // in painstaking detail (with some help from Maple). The full 
+    // in painstaking detail (with some help from Maple). The full
     // matrix-vector product takes 496 flops; we can do it in 80.
     /*
-    const Real Ainv[] = { 
-        1, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0, 
-        0, 0, 0, 0,     1, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0, 
-       -3, 3, 0, 0,    -2,-1, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0, 
-        2,-2, 0, 0,     1, 1, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0, 
-        0, 0, 0, 0,     0, 0, 0, 0,     1, 0, 0, 0,     0, 0, 0, 0, 
-        0, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,     1, 0, 0, 0, 
-        0, 0, 0, 0,     0, 0, 0, 0,    -3, 3, 0, 0,    -2,-1, 0, 0, 
-        0, 0, 0, 0,     0, 0, 0, 0,     2,-2, 0, 0,     1, 1, 0, 0, 
-       -3, 0, 3, 0,     0, 0, 0, 0,    -2, 0,-1, 0,     0, 0, 0, 0, 
-        0, 0, 0, 0,    -3, 0, 3, 0,     0, 0, 0, 0,    -2, 0,-1, 0, 
-        9,-9,-9, 9,     6, 3,-6,-3,     6,-6, 3,-3,     4, 2, 2, 1, 
-       -6, 6, 6,-6,    -3,-3, 3, 3,    -4, 4,-2, 2,    -2,-2,-1,-1, 
-        2, 0,-2, 0,     0, 0, 0, 0,     1, 0, 1, 0,     0, 0, 0, 0, 
-        0, 0, 0, 0,     2, 0,-2, 0,     0, 0, 0, 0,     1, 0, 1, 0, 
-       -6, 6, 6,-6,    -4,-2, 4, 2,    -3, 3,-3, 3,    -2,-1,-2,-1, 
-        4,-4,-4, 4,     2, 2,-2,-2,     2,-2, 2,-2,     1, 1, 1, 1 
+    const Real Ainv[] = {
+        1, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,
+        0, 0, 0, 0,     1, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,
+       -3, 3, 0, 0,    -2,-1, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,
+        2,-2, 0, 0,     1, 1, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,
+        0, 0, 0, 0,     0, 0, 0, 0,     1, 0, 0, 0,     0, 0, 0, 0,
+        0, 0, 0, 0,     0, 0, 0, 0,     0, 0, 0, 0,     1, 0, 0, 0,
+        0, 0, 0, 0,     0, 0, 0, 0,    -3, 3, 0, 0,    -2,-1, 0, 0,
+        0, 0, 0, 0,     0, 0, 0, 0,     2,-2, 0, 0,     1, 1, 0, 0,
+       -3, 0, 3, 0,     0, 0, 0, 0,    -2, 0,-1, 0,     0, 0, 0, 0,
+        0, 0, 0, 0,    -3, 0, 3, 0,     0, 0, 0, 0,    -2, 0,-1, 0,
+        9,-9,-9, 9,     6, 3,-6,-3,     6,-6, 3,-3,     4, 2, 2, 1,
+       -6, 6, 6,-6,    -3,-3, 3, 3,    -4, 4,-2, 2,    -2,-2,-1,-1,
+        2, 0,-2, 0,     0, 0, 0, 0,     1, 0, 1, 0,     0, 0, 0, 0,
+        0, 0, 0, 0,     2, 0,-2, 0,     0, 0, 0, 0,     1, 0, 1, 0,
+       -6, 6, 6,-6,    -4,-2, 4, 2,    -3, 3,-3, 3,    -2,-1,-2,-1,
+        4,-4,-4, 4,     2, 2,-2,-2,     2,-2, 2,-2,     1, 1, 1, 1
     };
     Mat<16,16> AinvM(Ainv);
     aV = AinvM*fV; // So cool that I can do this in C++! Go Sherm!
@@ -1098,7 +1098,7 @@ BicubicSurface::PatchHint::PatchHint(const PatchHint& src)
 :   guts(new PatchHint::Guts(*src.guts)) {}
 
 BicubicSurface::PatchHint&
-BicubicSurface::PatchHint::operator=(const PatchHint& src) 
+BicubicSurface::PatchHint::operator=(const PatchHint& src)
 {   *guts = *src.guts; return *this; }
 
 bool BicubicSurface::PatchHint::isEmpty() const {return guts->isEmpty();}

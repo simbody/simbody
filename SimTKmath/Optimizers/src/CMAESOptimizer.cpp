@@ -50,15 +50,15 @@ Optimizer::OptimizerRep* CMAESOptimizer::clone() const {
 }
 
 Real CMAESOptimizer::optimize(SimTK::Vector& results)
-{ 
+{
     const OptimizerSystem& sys = getOptimizerSystem();
     int n = sys.getNumParameters();
 
     // Initialize objective function value and cmaes data structure.
     // =============================================================
-    Real f; 
+    Real f;
     cmaes_t evo;
-    
+
     // Initialize parallelism, if requested.
     std::string parallel;
     std::unique_ptr<ParallelExecutor> executor;
@@ -78,12 +78,12 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // Check that the initial point is feasible.
     // =========================================
     checkInitialPointIsFeasible(results);
-    
+
     // Initialize cmaes.
     // =================
     double* funvals = init(evo, results);
     SimTK_CMAES_PRINT(diagnosticsLevel, printf("%s\n", cmaes_SayHello(&evo)));
-    
+
     // Optimize.
     // =========
     while (!cmaes_TestForTermination(&evo)) {
@@ -99,7 +99,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
         // Evaluate the objective function on the samples.
         // ===============================================
         evaluateObjectiveFunctionOnPopulation(evo, pop, funvals, executor.get());
-        
+
         // Update the distribution (mean, covariance, etc.).
         // =================================================
         cmaes_UpdateDistribution(&evo, funvals);
@@ -113,7 +113,7 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
     // Update results and objective function value.
     const double* xbestever = cmaes_GetPtr(&evo, "xbestever");
     for (int i = 0; i < n; i++) {
-        results[i] = xbestever[i]; 
+        results[i] = xbestever[i];
     }
     f = cmaes_Get(&evo, "fbestever");
 
@@ -122,8 +122,8 @@ Real CMAESOptimizer::optimize(SimTK::Vector& results)
 
     // Free memory.
     cmaes_exit(&evo);
-    
-    return f;  
+
+    return f;
 }
 
 void CMAESOptimizer::checkInitialPointIsFeasible(const Vector& x) const {
@@ -156,7 +156,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     // -------
     int popsize = 0;
     getAdvancedIntOption("popsize", popsize);
-    
+
     // init_stepsize
     // --------
     double init_stepsize = 0;
@@ -195,7 +195,7 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
             seed,              // seed
             popsize,           // lambda
             input_parameter_filename.c_str() // input_parameter_filename
-            ); 
+            );
 
     // Set settings that are usually read in from cmaes_initials.par.
     // ==============================================================
@@ -277,14 +277,14 @@ void CMAESOptimizer::resampleToObeyLimits(cmaes_t& evo, double*const* pop)
         sys.getParameterLimits( &lower, &upper );
 
         for (int i = 0; i < cmaes_Get(&evo, "popsize"); i++) {
-            bool feasible = false; 
+            bool feasible = false;
             while (!feasible) {
-                feasible = true; 
+                feasible = true;
                 for (int j = 0; j < sys.getNumParameters(); j++) {
                     if (pop[i][j] < lower[j] || pop[i][j] > upper[j]) {
-                        feasible = false; 
-                        pop = cmaes_ReSampleSingle(&evo, i); 
-                        break; 
+                        feasible = false;
+                        pop = cmaes_ReSampleSingle(&evo, i);
+                        break;
                     }
                 }
             }

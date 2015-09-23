@@ -33,9 +33,9 @@ using namespace std;
  */
 
 int main() {
-    
+
     // Build a system consisting of a chain of bodies with every possible mobilizer.
-    
+
     MultibodySystem mbs;
     SimbodyMatterSubsystem matter(mbs);
     Body::Rigid body = Body::Rigid(MassProperties(1, Vec3(0), Inertia(1)));
@@ -59,9 +59,9 @@ int main() {
     mbs.realizeTopology();
     State& s = mbs.updDefaultState();
     mbs.realizeModel(s);
-    
+
     // Choose a random initial conformation.
-    
+
     for (int i = 0; i < s.getNQ(); ++i)
         s.updQ()[i] = random.getValue();
     mbs.realize(s, Stage::Instance);
@@ -69,9 +69,9 @@ int main() {
     Vector temp;
     mbs.project(s, 0.01);
     mbs.realize(s, Stage::Position);
-    
+
     // Convert to Euler angles and make sure the positions are all the same.
-    
+
     State euler = s;
     matter.convertToEulerAngles(s, euler);
     mbs.realize(euler, Stage::Position);
@@ -82,7 +82,7 @@ int main() {
     }
 
     // Now convert back to quaternions and make sure the positions are still the same.
-    
+
     State quaternions = s;
     matter.convertToQuaternions(euler, quaternions);
     mbs.realize(quaternions, Stage::Position);
@@ -91,9 +91,9 @@ int main() {
         Real dist = (body.getBodyOriginLocation(quaternions)-body.getBodyOriginLocation(s)).norm();
         ASSERT(dist < 1e-5);
     }
-    
+
     // Compare the state variables to see if they have been accurately reproduced.
-    
+
     mbs.project(s, 0.01); // Normalize the quaternions
     Real diff = std::sqrt((s.getQ()-quaternions.getQ()).normSqr()/s.getNQ());
     ASSERT(diff < 1e-5);

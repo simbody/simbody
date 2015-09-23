@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Define the SimTK::VectorView_ class that is part of Simbody's BigMatrix 
+Define the SimTK::VectorView_ class that is part of Simbody's BigMatrix
 toolset. **/
 
 namespace SimTK {
@@ -33,11 +33,11 @@ namespace SimTK {
 //==============================================================================
 //                                VECTOR VIEW
 //==============================================================================
-/** @brief (Advanced) This class is identical to Vector_ except that it has 
-shallow (reference) copy and assignment semantics. 
+/** @brief (Advanced) This class is identical to Vector_ except that it has
+shallow (reference) copy and assignment semantics.
 
 Despite the name, this may be an owner if a Vector_ is recast to a %VectorView_.
-However, there are no owner constructors for %VectorView_. 
+However, there are no owner constructors for %VectorView_.
 @see Vector_, VectorBase, MatrixView_ **/
 template <class ELT> class VectorView_ : public VectorBase<ELT> {
     typedef VectorBase<ELT>                             Base;
@@ -51,13 +51,13 @@ public:
     // Default construction is suppressed.
     // Uses default destructor.
 
-    // Create a VectorView_ handle using a given helper rep. 
+    // Create a VectorView_ handle using a given helper rep.
     explicit VectorView_(MatrixHelperRep<S>* hrep) : Base(hrep) {}
 
     // Copy constructor is shallow. CAUTION: despite const argument, this preserves writability
     // if it was present in the source. This is necessary to allow temporary views to be
     // created and used as lvalues.
-    VectorView_(const VectorView_& v) 
+    VectorView_(const VectorView_& v)
       : Base(const_cast<MatrixHelper<S>&>(v.getHelper()), typename MatrixHelper<S>::ShallowCopy()) { }
 
     // Copy assignment is deep but not reallocating.
@@ -65,13 +65,13 @@ public:
         Base::operator=(v); return *this;
     }
 
-    // Ask for shallow copy    
+    // Ask for shallow copy
     explicit VectorView_(const MatrixHelper<S>& h) : Base(h, typename MatrixHelper<S>::ShallowCopy()) { }
     explicit VectorView_(MatrixHelper<S>&       h) : Base(h, typename MatrixHelper<S>::ShallowCopy()) { }
-    
+
     VectorView_& operator=(const Base& b) { Base::operator=(b); return *this; }
 
-    VectorView_& operator=(const ELT& v) { Base::operator=(v); return *this; } 
+    VectorView_& operator=(const ELT& v) { Base::operator=(v); return *this; }
 
     template <class EE> VectorView_& operator=(const VectorBase<EE>& m)
       { Base::operator=(m); return*this; }

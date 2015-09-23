@@ -82,9 +82,9 @@ struct Frame {
 // to the Visualizer.
 class RubberBandLine {
 public:
-    RubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
-                   MobilizedBodyIndex b2, const Vec3& station2, 
-                   const DecorativeLine& line) 
+    RubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+                   MobilizedBodyIndex b2, const Vec3& station2,
+                   const DecorativeLine& line)
     :   b1(b1), station1(station1), b2(b2), station2(station2), line(line) {}
 
     MobilizedBodyIndex  b1, b2;
@@ -98,37 +98,37 @@ class Visualizer::Impl {
 public:
     // Create a Visualizer and put it in PassThrough mode.
     Impl(Visualizer* owner, const MultibodySystem& system,
-         const Array_<String>& searchPath) 
+         const Array_<String>& searchPath)
     :   m_system(system), m_protocol(*owner, searchPath),
         m_shutdownWhenDestructed(false), m_upDirection(YAxis), m_groundHeight(0),
-        m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS), 
-        m_simTimeUnitsPerSec(1), 
-        m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec), 
+        m_mode(PassThrough), m_frameRateFPS(DefaultFrameRateFPS),
+        m_simTimeUnitsPerSec(1),
+        m_desiredBufferLengthInSec(DefaultDesiredBufferLengthInSec),
         m_timeBetweenFramesInNs(secToNs(1/DefaultFrameRateFPS)),
         m_allowableFrameJitterInNs(DefaultAllowableFrameJitterInNs),
         m_allowableFrameTimeSlopInNs(
             secToNs(DefaultSlopAsFractionOfFrameInterval/DefaultFrameRateFPS)),
         m_adjustedRealTimeBase(realTimeInNs()),
-        m_prevFrameSimTime(-1), m_nextFrameDueAdjRT(-1), 
+        m_prevFrameSimTime(-1), m_nextFrameDueAdjRT(-1),
         m_oldest(0),m_nframe(0),
         m_drawThreadIsRunning(false), m_drawThreadShouldSuicide(false),
         m_refCount(0)
-    {   
-        pthread_mutex_init(&m_queueLock, NULL); 
-        pthread_cond_init(&m_queueNotFull, NULL); 
-        pthread_cond_init(&m_queueNotEmpty, NULL); 
-        pthread_cond_init(&m_queueIsEmpty, NULL); 
+    {
+        pthread_mutex_init(&m_queueLock, NULL);
+        pthread_cond_init(&m_queueNotFull, NULL);
+        pthread_cond_init(&m_queueNotEmpty, NULL);
+        pthread_cond_init(&m_queueIsEmpty, NULL);
 
         setMode(PassThrough);
         clearStats();
 
         m_protocol.setMaxFrameRate(m_frameRateFPS);
         m_protocol.setBackgroundColor(White);
-        m_protocol.setBackgroundType(system.getUseUniformBackground() 
+        m_protocol.setBackgroundType(system.getUseUniformBackground()
                                         ? SolidColor : GroundAndSky);
         m_protocol.setSystemUpDirection(system.getUpDirection());
     }
-    
+
     ~Impl() {
         if (m_mode==RealTime && m_pool.size()) {
             pthread_cancel(m_drawThread);
@@ -179,33 +179,33 @@ public:
         // We'll do it twice 100ms apart to avoid a timing issue where
         // we signal just before the thread waits.
         POST_QueueNotEmpty(); // wake it if necessary
-        sleepInSec(0.1); 
+        sleepInSec(0.1);
         POST_QueueNotEmpty();
         pthread_join(m_drawThread, 0); // wait for death
         m_drawThreadIsRunning = m_drawThreadShouldSuicide = false;
     }
 
-    void startDrawThreadIfNecessary() 
+    void startDrawThreadIfNecessary()
     {   if (!m_drawThreadIsRunning) startDrawThread(); }
 
-    void killDrawThreadIfNecessary() 
+    void killDrawThreadIfNecessary()
     {   if (m_drawThreadIsRunning) killDrawThread(); }
 
-    // Whenever a "set" method is called that may change one of the 
+    // Whenever a "set" method is called that may change one of the
     // interrelated time quantities, set all of them. We expect
     // the mode to have been set already.
     void resetTimeRelatedQuantities(Real framesPerSec,
-        Real timeScale, Real desiredBufLengthSec) 
+        Real timeScale, Real desiredBufLengthSec)
     {
         if (framesPerSec <= 0) framesPerSec = DefaultFrameRateFPS;
         if (timeScale <= 0)    timeScale = 1;
-        if (desiredBufLengthSec < 0) 
+        if (desiredBufLengthSec < 0)
             desiredBufLengthSec = DefaultDesiredBufferLengthInSec;
 
         // Frame rate.
         m_frameRateFPS               = framesPerSec;
         m_timeBetweenFramesInNs      = secToNs(1/m_frameRateFPS);
-        m_allowableFrameTimeSlopInNs = 
+        m_allowableFrameTimeSlopInNs =
             secToNs(DefaultSlopAsFractionOfFrameInterval/m_frameRateFPS);
         m_allowableFrameJitterInNs   = DefaultAllowableFrameJitterInNs;
 
@@ -215,8 +215,8 @@ public:
         // Realtime buffer.
         m_desiredBufferLengthInSec = desiredBufLengthSec;
 
-        int numFrames = 
-            (int)(m_desiredBufferLengthInSec/nsToSec(m_timeBetweenFramesInNs) 
+        int numFrames =
+            (int)(m_desiredBufferLengthInSec/nsToSec(m_timeBetweenFramesInNs)
                   + 0.5);
         if (numFrames==0 && m_desiredBufferLengthInSec > 0)
             numFrames = 1;
@@ -280,20 +280,20 @@ public:
     void setDesiredBufferLengthInSec(Real bufferLengthInSec) {
         resetTimeRelatedQuantities(m_frameRateFPS,
                                    m_simTimeUnitsPerSec,
-                                   bufferLengthInSec);                               
+                                   bufferLengthInSec);
     }
 
     void setRealTimeScale(Real simTimePerRealSec)  {
         resetTimeRelatedQuantities(m_frameRateFPS,
                                    simTimePerRealSec,
-                                   m_desiredBufferLengthInSec);                               
+                                   m_desiredBufferLengthInSec);
     }
 
-    Real getDesiredBufferLengthInSec() const 
+    Real getDesiredBufferLengthInSec() const
     {   return m_desiredBufferLengthInSec; }
 
     int getActualBufferLengthInFrames() const {return m_pool.size();}
-    Real getActualBufferLengthInSec() const 
+    Real getActualBufferLengthInSec() const
     {   return (Real)nsToSec(getActualBufferLengthInFrames()
                              *m_timeBetweenFramesInNs); }
 
@@ -338,10 +338,10 @@ public:
 
     // Called from simulation thread. Blocks until there is room in
     // the queue, then inserts this state unconditionally, with the indicated
-    // desired rendering time in adjusted real time. We then update the 
-    // "time of next queue slot" to be one ideal frame interval later than 
+    // desired rendering time in adjusted real time. We then update the
+    // "time of next queue slot" to be one ideal frame interval later than
     // the desired draw time.
-    void addFrameToQueueWithWait(const State& state, 
+    void addFrameToQueueWithWait(const State& state,
                                  const long long& desiredDrawTimeAdjRT)
     {
         LOCK_Queue();
@@ -363,7 +363,7 @@ public:
         // Set the expected next frame time (in AdjRT).
         m_nextFrameDueAdjRT = desiredDrawTimeAdjRT + m_timeBetweenFramesInNs;
 
-        if (++m_nframe == 1) 
+        if (++m_nframe == 1)
             POST_QueueNotEmpty(); // wake up rendering thread on first frame
 
         UNLOCK_Queue();
@@ -372,7 +372,7 @@ public:
     // Call from simulation thread to allow the drawing thread to flush
     // any frames currently in the queue.
     void waitUntilQueueIsEmpty() {
-        if (   !queuingIsEnabled() || m_nframe==0 
+        if (   !queuingIsEnabled() || m_nframe==0
             || !m_drawThreadIsRunning || m_drawThreadShouldSuicide)
             return;
         LOCK_Queue();
@@ -407,7 +407,7 @@ public:
 
     // Drawing thread uses this to note that it is done with the oldest
     // frame which may now be reused by the simulation thread. The queueNotFull
-    // condition is posted if there is a reasonable amount of room in the pool 
+    // condition is posted if there is a reasonable amount of room in the pool
     // now.
     void noteThatOldestFrameIsNowAvailable() {
         LOCK_Queue();
@@ -430,7 +430,7 @@ public:
 
     // same as ns; that's what AdjRT tries to be
     long long convertSimTimeToAdjRT(const double& t)
-    {   return convertSimTimeToNs(t); } 
+    {   return convertSimTimeToNs(t); }
 
     double convertAdjRTtoSimTime(const long long& a)
     {   return nsToSec(a) * m_simTimeUnitsPerSec; }
@@ -448,11 +448,11 @@ public:
     // new base adjustment r0 such that a = r - r0. So:
     //      a = r - r0* - e => r0=r0*+e.
     void readjustAdjustedRealTimeBy(const long long& e) {
-        m_adjustedRealTimeBase += e; 
+        m_adjustedRealTimeBase += e;
         ++numAdjustmentsToRealTimeBase;
     }
 
-    long long getAdjustedRealTime() 
+    long long getAdjustedRealTime()
     {   return realTimeInNs() - m_adjustedRealTimeBase; }
 
     // Increment the reference count and return its new value.
@@ -491,16 +491,16 @@ public:
     // to the real time at which its frame is drawn?
     long long m_allowableFrameTimeSlopInNs;
 
-    // The offset r0 to subtract from the interval timer reading to produce 
+    // The offset r0 to subtract from the interval timer reading to produce
     // the adjusted real time a that we expect to match the current simulation
     // time t in ns. That is a = realTimeInNs()-r0. This base is adjusted by
     // the drawing thread when we see what time we actually were able to
     // deliver a frame.
     long long m_adjustedRealTimeBase; // r0
-    
+
     // This is when we would like the simulation to send us another frame.
     // It is optimistically set to one frame interval later than the desired
-    // draw time of the most recent frame to be put in the queue. This is 
+    // draw time of the most recent frame to be put in the queue. This is
     // also used in non-RealTime mode where AdjRT==RT.
     long long m_nextFrameDueAdjRT;
 
@@ -571,16 +571,16 @@ public:
 
     void dumpStats(std::ostream& o) const {
         o << "Visualizer stats:\n";
-        o << "  Mode: "; 
+        o << "  Mode: ";
         switch(m_mode) {
         case PassThrough: o << "PassThrough\n"; break;
         case Sampling: o << "Sampling\n"; break;
-        case RealTime: 
-            o << "RealTime, TimeScale=" << m_simTimeUnitsPerSec 
-              << " sim time units/real second\n"; 
-            o << "  Desired/actual buffer length(s): " 
-              << getDesiredBufferLengthInSec() << "/" 
-              << getActualBufferLengthInSec() << " (" 
+        case RealTime:
+            o << "RealTime, TimeScale=" << m_simTimeUnitsPerSec
+              << " sim time units/real second\n";
+            o << "  Desired/actual buffer length(s): "
+              << getDesiredBufferLengthInSec() << "/"
+              << getActualBufferLengthInSec() << " ("
               << getActualBufferLengthInFrames() << " frames)\n";
             break;
         };
@@ -597,19 +597,19 @@ public:
         if (numReportedFramesThatWereQueued && numFramesSentToRenderer) {
             const double avg = sumOfQueueLengths/numFramesSentToRenderer;
             o << "  | average buffer length (frames): " << avg << endl;
-            o << "  | std dev buffer length (frames): " 
+            o << "  | std dev buffer length (frames): "
               << std::sqrt(std::max(0.,
-                              sumSquaredOfQueueLengths/numFramesSentToRenderer 
+                              sumSquaredOfQueueLengths/numFramesSentToRenderer
                               - square(avg))) << endl;
         }
-        o << "  draw blocked for empty buffer: " 
+        o << "  draw blocked for empty buffer: "
           << numTimesDrawThreadBlockedOnEmptyQueue << endl;
-        o << "  adjustments to real time base: " 
+        o << "  adjustments to real time base: "
           << numAdjustmentsToRealTimeBase << endl;
         if (numFramesSentToRenderer > 0) {
             const double avg = sumOfAllJitter/numFramesSentToRenderer;
             o << "  average jitter (ms): " << avg << endl;
-            o << "  jitter std dev (ms): " 
+            o << "  jitter std dev (ms): "
               << std::sqrt(sumSquaredOfAllJitter/numFramesSentToRenderer
                  - square(avg)) << endl;
         }
@@ -652,9 +652,9 @@ void Visualizer::Impl::drawFrameNow(const State& state) {
         const Transform&  X_GB2 = B2.getBodyTransform(state);
         const Vec3 end1 = X_GB1*line.station1;
         const Vec3 end2 = X_GB2*line.station2;
-        const Real thickness = line.line.getLineThickness() == -1 
+        const Real thickness = line.line.getLineThickness() == -1
                                ? 1 : line.line.getLineThickness();
-        m_protocol.drawLine(end1, end2, 
+        m_protocol.drawLine(end1, end2,
             VisualizerGeometry::getColor(line.line), thickness);
     }
     m_protocol.finishScene();
@@ -667,12 +667,12 @@ void Visualizer::Impl::drawFrameNow(const State& state) {
 void Visualizer::Impl::drawRealtimeFrameWhenReady
    (const State& state, const long long& desiredDrawTimeAdjRT)
 {
-    const long long earliestDrawTimeAdjRT = 
+    const long long earliestDrawTimeAdjRT =
         desiredDrawTimeAdjRT - m_allowableFrameJitterInNs;
-    const long long latestDrawTimeAdjRT = 
+    const long long latestDrawTimeAdjRT =
         desiredDrawTimeAdjRT + m_allowableFrameJitterInNs;
 
-    // Wait for the next frame time, allowing for a little jitter 
+    // Wait for the next frame time, allowing for a little jitter
     // since we can't expect sleep to wake us up at the exact time.
     long long now = getAdjustedRealTime();
     if (now < earliestDrawTimeAdjRT) {
@@ -690,19 +690,19 @@ void Visualizer::Impl::drawRealtimeFrameWhenReady
     // timingError is signed with + meaning we sent the frame late.
     const long long timingError = now - desiredDrawTimeAdjRT;
 
-    // If we sent this frame more than one frame time late we're going to 
+    // If we sent this frame more than one frame time late we're going to
     // admit we're not making real time and adjust the
     // AdjRT base to  match.
     if (timingError > m_timeBetweenFramesInNs)
         readjustAdjustedRealTimeBy(now - desiredDrawTimeAdjRT);
-   
+
     // It is time to render the frame.
-    drawFrameNow(state);   
+    drawFrameNow(state);
 }
 
-// Attempt to report a frame while we're in realtime mode. 
+// Attempt to report a frame while we're in realtime mode.
 void Visualizer::Impl::reportRealtime(const State& state) {
-    // If we see a simulation time that is earlier than the last one, 
+    // If we see a simulation time that is earlier than the last one,
     // we are probably starting a new simulation or playback. Flush the
     // old one. Note that we're using actual simulation time; we don't
     // want to get tricked by adjustments to the real time base.
@@ -712,7 +712,7 @@ void Visualizer::Impl::reportRealtime(const State& state) {
     }
 
     // scale, convert to ns (doesn't depend on real time base)
-    const long long t = convertSimTimeToAdjRT(state.getTime()); 
+    const long long t = convertSimTimeToAdjRT(state.getTime());
 
     // If this is the first frame, or first since last setMode(), then
     // we synchronize Adjusted Real Time to match. Readjustments will occur
@@ -723,17 +723,17 @@ void Visualizer::Impl::reportRealtime(const State& state) {
         m_nextFrameDueAdjRT = t; // i.e., now
     }
 
-    // "timeSlop" is the amount we'll allow a frame's simulation time to 
-    // deviate from the real time at which we draw it. That is, if we're 
+    // "timeSlop" is the amount we'll allow a frame's simulation time to
+    // deviate from the real time at which we draw it. That is, if we're
     // expecting a frame at time t_f and the simulator instead delivers a
     // frame at t_s, we'll consider that a match if |t_s-t_f|<=slop.
-    // The reason for this is that we prefer to issue frames at regular 
+    // The reason for this is that we prefer to issue frames at regular
     // intervals, so if the frame time and sim time match closely enough
     // we won't reschedule the frames. Otherwise, a sim frame whose time
     // is too early (t_s<t_f-slop) gets thrown away (or used in desperation
     // if we're not keeping up with real time), and a sim frame
     // whose time is too late (t_s>t_f+slop) causes us to delay drawing
-    // that frame until real time catches up with what's in it. Typically 
+    // that frame until real time catches up with what's in it. Typically
     // timeSlop is set to a small fraction of the frame time, like 5%.
     const long long timeSlop = m_allowableFrameTimeSlopInNs;
     const long long next     = m_nextFrameDueAdjRT;
@@ -743,8 +743,8 @@ void Visualizer::Impl::reportRealtime(const State& state) {
     if (t < earliest) {
         ++numReportedFramesThatWereIgnored; // we don't need this one
         return;
-    } 
-    
+    }
+
     long long desiredDrawTimeAdjRT = next;
     if (t > latest) {
         ++numReportedFramesThatSkippedAhead;
@@ -760,7 +760,7 @@ void Visualizer::Impl::reportRealtime(const State& state) {
     }
 
     // There is no buffer. We'll just render this frame as soon as its
-    // drawing time arrives. No need to copy the state here. Note that 
+    // drawing time arrives. No need to copy the state here. Note that
     // the simulation thread is doing the drawing as well as the simulating.
     // This method will also readjust adjusted real time if the frame came
     // too late.
@@ -811,7 +811,7 @@ Visualizer::~Visualizer() {
         delete impl;
 }
 
-void Visualizer::shutdown() 
+void Visualizer::shutdown()
 {   updImpl().m_protocol.shutdownGUI(); }
 
 Visualizer& Visualizer::setShutdownWhenDestructed(bool shouldShutdown)
@@ -883,8 +883,8 @@ void Visualizer::report(const State& state) const {
     // Frame time reached in Sampling or PassThrough modes. Draw the frame.
     drawFrameNow(state);
 
-    // This frame might have been on time or late; we'll schedule the next 
-    // time for one ideal frame interval later to keep the maximum rate down 
+    // This frame might have been on time or late; we'll schedule the next
+    // time for one ideal frame interval later to keep the maximum rate down
     // to the specified rate. Otherwise a late frame could be followed by lots
     // of fast frames playing catch-up.
     if (now-rep.m_nextFrameDueAdjRT <= rep.m_timeBetweenFramesInNs)
@@ -897,31 +897,31 @@ void Visualizer::report(const State& state) const {
 
         // Visualizer display options
 
-Visualizer& Visualizer::setBackgroundType(BackgroundType type) 
+Visualizer& Visualizer::setBackgroundType(BackgroundType type)
 {   updImpl().m_protocol.setBackgroundType(type); return *this; }
 
-const Visualizer& Visualizer::setBackgroundColor(const Vec3& color) const 
+const Visualizer& Visualizer::setBackgroundColor(const Vec3& color) const
 {   getImpl().m_protocol.setBackgroundColor(color); return *this; }
 
-const Visualizer& Visualizer::setShowShadows(bool showShadows) const 
+const Visualizer& Visualizer::setShowShadows(bool showShadows) const
 {   getImpl().m_protocol.setShowShadows(showShadows); return *this; }
 
-const Visualizer& Visualizer::setShowFrameRate(bool showFrameRate) const 
+const Visualizer& Visualizer::setShowFrameRate(bool showFrameRate) const
 {   getImpl().m_protocol.setShowFrameRate(showFrameRate); return *this; }
 
-const Visualizer& Visualizer::setShowSimTime(bool showSimTime) const 
+const Visualizer& Visualizer::setShowSimTime(bool showSimTime) const
 {   getImpl().m_protocol.setShowSimTime(showSimTime); return *this; }
 
-const Visualizer& Visualizer::setShowFrameNumber(bool showFrameNumber) const 
+const Visualizer& Visualizer::setShowFrameNumber(bool showFrameNumber) const
 {   getImpl().m_protocol.setShowFrameNumber(showFrameNumber); return *this; }
 
-const Visualizer& Visualizer::setWindowTitle(const String& title) const 
+const Visualizer& Visualizer::setWindowTitle(const String& title) const
 {   getImpl().m_protocol.setWindowTitle(title); return *this; }
 
         // Visualizer options
 
 Visualizer& Visualizer::setSystemUpDirection(const CoordinateDirection& upDir)
-{   updImpl().m_upDirection = upDir; 
+{   updImpl().m_upDirection = upDir;
     updImpl().m_protocol.setSystemUpDirection(upDir); return *this; }
 CoordinateDirection Visualizer::getSystemUpDirection() const
 {   return getImpl().m_upDirection; }
@@ -934,62 +934,62 @@ Visualizer& Visualizer::setGroundHeight(Real height) {
 Real Visualizer::getGroundHeight() const
 {   return getImpl().m_groundHeight; }
 
-Visualizer& Visualizer::setMode(Visualizer::Mode mode) 
+Visualizer& Visualizer::setMode(Visualizer::Mode mode)
 {   updImpl().setMode(mode); return *this; }
 Visualizer::Mode Visualizer::getMode() const {return getImpl().m_mode;}
 
-Visualizer& Visualizer::setDesiredFrameRate(Real fps) 
+Visualizer& Visualizer::setDesiredFrameRate(Real fps)
 {   updImpl().setDesiredFrameRate(std::max(fps, Real(0))); return *this; }
-Real Visualizer::getDesiredFrameRate() const 
+Real Visualizer::getDesiredFrameRate() const
 {   return getImpl().m_frameRateFPS; }
 
-Visualizer& Visualizer::setRealTimeScale(Real simTimePerRealSec) 
+Visualizer& Visualizer::setRealTimeScale(Real simTimePerRealSec)
 {   updImpl().setRealTimeScale(simTimePerRealSec); return *this; }
-Real Visualizer::getRealTimeScale() const 
+Real Visualizer::getRealTimeScale() const
 {   return getImpl().m_simTimeUnitsPerSec; }
 
 Visualizer& Visualizer::setDesiredBufferLengthInSec(Real bufferLengthInSec)
 {   updImpl().setDesiredBufferLengthInSec(bufferLengthInSec); return *this; }
 Real Visualizer::getDesiredBufferLengthInSec() const
 {   return getImpl().getDesiredBufferLengthInSec(); }
-int Visualizer::getActualBufferLengthInFrames() const 
+int Visualizer::getActualBufferLengthInFrames() const
 {   return getImpl().getActualBufferLengthInFrames(); }
-Real Visualizer::getActualBufferLengthInSec() const 
+Real Visualizer::getActualBufferLengthInSec() const
 {   return getImpl().getActualBufferLengthInSec(); }
 
 
 int Visualizer::addInputListener(Visualizer::InputListener* listener) {
     Impl& impl = updImpl();
     const int nxt = (int)impl.m_listeners.size();
-    impl.m_listeners.push_back(listener); 
-    return nxt; 
+    impl.m_listeners.push_back(listener);
+    return nxt;
 }
-int Visualizer::getNumInputListeners() const 
+int Visualizer::getNumInputListeners() const
 {   return (int)getImpl().m_listeners.size(); }
-const Visualizer::InputListener& Visualizer::getInputListener(int i) const 
+const Visualizer::InputListener& Visualizer::getInputListener(int i) const
 {   return *getImpl().m_listeners[i]; }
-Visualizer::InputListener& Visualizer::updInputListener(int i) 
+Visualizer::InputListener& Visualizer::updInputListener(int i)
 {   return *updImpl().m_listeners[i]; }
 
 int Visualizer::addFrameController(Visualizer::FrameController* fc) {
     Impl& impl = updImpl();
     const int nxt = (int)impl.m_controllers.size();
-    impl.m_controllers.push_back(fc); 
-    return nxt; 
+    impl.m_controllers.push_back(fc);
+    return nxt;
 }
-int Visualizer::getNumFrameControllers() const 
+int Visualizer::getNumFrameControllers() const
 {   return (int)getImpl().m_controllers.size(); }
-const Visualizer::FrameController& Visualizer::getFrameController(int i) const 
+const Visualizer::FrameController& Visualizer::getFrameController(int i) const
 {   return *getImpl().m_controllers[i]; }
-Visualizer::FrameController& Visualizer::updFrameController(int i) 
+Visualizer::FrameController& Visualizer::updFrameController(int i)
 {   return *updImpl().m_controllers[i]; }
 
 
         // Scene-building methods
 
 Visualizer& Visualizer::
-addMenu(const String& title, int menuId, 
-        const Array_<pair<String, int> >& items) 
+addMenu(const String& title, int menuId,
+        const Array_<pair<String, int> >& items)
 {
     SimTK_ERRCHK2_ALWAYS(menuId >= 0, "Visualizer::addMenu()",
         "Assigned menu ids must be nonnegative, but an attempt was made to create"
@@ -1000,13 +1000,13 @@ addMenu(const String& title, int menuId,
 }
 
 Visualizer& Visualizer::
-addSlider(const String& title, int sliderId, 
-          Real minVal, Real maxVal, Real value) 
+addSlider(const String& title, int sliderId,
+          Real minVal, Real maxVal, Real value)
 {
     SimTK_ERRCHK2_ALWAYS(sliderId >= 0, "Visualizer::addSlider()",
         "Assigned slider ids must be nonnegative, but an attempt was made to create"
         " a slider %s with id %d.", title.c_str(), sliderId);
-    SimTK_ERRCHK4_ALWAYS(minVal <= value && value <= maxVal, "Visualizer::addSlider()", 
+    SimTK_ERRCHK4_ALWAYS(minVal <= value && value <= maxVal, "Visualizer::addSlider()",
         "Initial slider value %g for slider %s was outside the specified range [%g,%g].",
         value, title.c_str(), minVal, maxVal);
 
@@ -1015,8 +1015,8 @@ addSlider(const String& title, int sliderId,
 }
 
 int Visualizer::
-addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD, 
-              const DecorativeGeometry& geom) 
+addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD,
+              const DecorativeGeometry& geom)
 {
     Array_<DecorativeGeometry>& addedGeometry = updImpl().m_addedGeometry;
     const int nxt = (int)addedGeometry.size();
@@ -1026,74 +1026,74 @@ addDecoration(MobilizedBodyIndex mobodIx, const Transform& X_BD,
     geomCopy.setTransform(X_BD * geomCopy.getTransform());
     return nxt;
 }
-int Visualizer::getNumDecorations() const 
+int Visualizer::getNumDecorations() const
 {   return (int)getImpl().m_addedGeometry.size(); }
-const DecorativeGeometry& Visualizer::getDecoration(int i) const 
+const DecorativeGeometry& Visualizer::getDecoration(int i) const
 {   return getImpl().m_addedGeometry[i]; }
 DecorativeGeometry& Visualizer::updDecoration(int i) const
 {   return const_cast<Visualizer*>(this)->updImpl().m_addedGeometry[i]; }
 
 int Visualizer::
-addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1, 
-                  MobilizedBodyIndex b2, const Vec3& station2, 
-                  const DecorativeLine& line) 
-{   
+addRubberBandLine(MobilizedBodyIndex b1, const Vec3& station1,
+                  MobilizedBodyIndex b2, const Vec3& station2,
+                  const DecorativeLine& line)
+{
     Impl& impl = updImpl();
     const int nxt = (int)impl.m_lines.size();
-    impl.m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line)); 
-    return nxt; 
+    impl.m_lines.push_back(RubberBandLine(b1,station1, b2,station2, line));
+    return nxt;
 }
-int Visualizer::getNumRubberBandLines() const 
+int Visualizer::getNumRubberBandLines() const
 {   return (int)getImpl().m_lines.size(); }
-const DecorativeLine& Visualizer::getRubberBandLine(int i) const 
+const DecorativeLine& Visualizer::getRubberBandLine(int i) const
 {   return getImpl().m_lines[i].line; }
 DecorativeLine& Visualizer::updRubberBandLine(int i) const
 {   return const_cast<Visualizer*>(this)->updImpl().m_lines[i].line; }
 
 int Visualizer::
-addDecorationGenerator(DecorationGenerator* generator) 
-{   
+addDecorationGenerator(DecorationGenerator* generator)
+{
     Impl& impl = updImpl();
     const int nxt = (int)impl.m_generators.size();
-    impl.m_generators.push_back(generator); 
+    impl.m_generators.push_back(generator);
     return nxt;
 }
 int Visualizer::
-getNumDecorationGenerators() const 
+getNumDecorationGenerators() const
 {   return (int)getImpl().m_generators.size(); }
 const DecorationGenerator& Visualizer::
-getDecorationGenerator(int i) const 
+getDecorationGenerator(int i) const
 {   return *getImpl().m_generators[i]; }
 DecorationGenerator& Visualizer::
-updDecorationGenerator(int i) 
+updDecorationGenerator(int i)
 {   return *updImpl().m_generators[i]; }
 
         // Frame control methods
 const Visualizer& Visualizer::
-setCameraTransform(const Transform& transform) const 
+setCameraTransform(const Transform& transform) const
 {   getImpl().m_protocol.setCameraTransform(transform); return *this; }
 
-const Visualizer& Visualizer::zoomCameraToShowAllGeometry() const 
+const Visualizer& Visualizer::zoomCameraToShowAllGeometry() const
 {   getImpl().m_protocol.zoomCamera(); return *this; }
 
 const Visualizer& Visualizer::
-pointCameraAt(const Vec3& point, const Vec3& upDirection) const 
+pointCameraAt(const Vec3& point, const Vec3& upDirection) const
 {   getImpl().m_protocol.lookAt(point, upDirection); return *this; }
 
-const Visualizer& Visualizer::setCameraFieldOfView(Real fov) const 
+const Visualizer& Visualizer::setCameraFieldOfView(Real fov) const
 {   getImpl().m_protocol.setFieldOfView(fov); return *this; }
 
 const Visualizer& Visualizer::
-setCameraClippingPlanes(Real nearPlane, Real farPlane) const 
+setCameraClippingPlanes(Real nearPlane, Real farPlane) const
 {   getImpl().m_protocol.setClippingPlanes(nearPlane, farPlane);
     return *this; }
 
 
-const Visualizer& Visualizer::setSliderValue(int slider, Real newValue) const 
+const Visualizer& Visualizer::setSliderValue(int slider, Real newValue) const
 {   getImpl().m_protocol.setSliderValue(slider, newValue); return *this; }
 
 const Visualizer& Visualizer::
-setSliderRange(int slider, Real newMin, Real newMax) const 
+setSliderRange(int slider, Real newMin, Real newMax) const
 {   getImpl().m_protocol.setSliderRange(slider, newMin, newMax); return *this; }
 
         // Debugging and statistics
@@ -1118,7 +1118,7 @@ Visualizer::BodyFollower::BodyFollower(
         const UnitVec3&      upDirection)
     :   m_mobodB(mobodB), m_stationPinB(stationPinB), m_offset(offset),
         m_upDirection(upDirection) {}
-    
+
 void Visualizer::BodyFollower::generateControls(
         const Visualizer&             viz,
         const State&                  state,
@@ -1153,22 +1153,22 @@ void Visualizer::BodyFollower::generateControls(
 //                             THE DRAWING THREAD
 //==============================================================================
 /* When we're in RealTime mode, we run a separate thread that actually sends
-frames to the renderer. It pulls frames off the back (oldest) end of the 
-frame buffer queue, while the simulation thread is pushing frames onto the 
-front (newest) end of the queue. The rendering thread is created whenever 
-the Visualizer enters RealTime mode, and canceled whenever it leaves 
+frames to the renderer. It pulls frames off the back (oldest) end of the
+frame buffer queue, while the simulation thread is pushing frames onto the
+front (newest) end of the queue. The rendering thread is created whenever
+the Visualizer enters RealTime mode, and canceled whenever it leaves
 RealTime mode or is destructed.
 
-This is the main function for the buffered drawing thread. Its job is to 
+This is the main function for the buffered drawing thread. Its job is to
 pull the oldest frames off the queue and send them to the renderer at
 the right real times. We use adjusted real time (AdjRT) which should match
 the simulation time kept with the frame as its desired draw time. If the
-frame is ahead of AdjRT, we'll sleep to let real time catch up. If the 
-frame is substantially behind, we'll render it now and then adjust the AdjRT 
-base to acknowledge that we have irretrievably slipped from real time and need 
+frame is ahead of AdjRT, we'll sleep to let real time catch up. If the
+frame is substantially behind, we'll render it now and then adjust the AdjRT
+base to acknowledge that we have irretrievably slipped from real time and need
 to adjust our expectations for the future. */
 static void* drawingThreadMain(void* visualizerRepAsVoidp) {
-    Visualizer::Impl& vizImpl = 
+    Visualizer::Impl& vizImpl =
         *reinterpret_cast<Visualizer::Impl*>(visualizerRepAsVoidp);
 
     do {
@@ -1179,7 +1179,7 @@ static void* drawingThreadMain(void* visualizerRepAsVoidp) {
             // Draw this frame as soon as its draw time arrives, and readjust
             // adjusted real time if necessary.
             vizImpl.drawRealtimeFrameWhenReady
-               (framep->state, framep->desiredDrawTimeAdjRT); 
+               (framep->state, framep->desiredDrawTimeAdjRT);
 
             // Return the now-rendered frame to circulation in the pool. This may
             // wake up the simulation thread if it was waiting for space.

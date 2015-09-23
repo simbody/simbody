@@ -418,7 +418,7 @@ int SptfqmrSolve(SptfqmrMem mem, void *A_data, N_Vector x, N_Vector b,
     N_VLinearSum(ONE, vtemp3, -ONE, vtemp2, vtemp1);
     *res_norm = r_curr_norm = RSqrt(N_VDotProd(vtemp1, vtemp1));
 
-    /* Exit inner loop if inequality condition is satisfied 
+    /* Exit inner loop if inequality condition is satisfied
        (meaning exit if we have converged) */
     if (r_curr_norm <= delta) {
       converged = TRUE;

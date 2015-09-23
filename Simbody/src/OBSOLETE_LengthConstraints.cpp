@@ -32,15 +32,15 @@ void dummySymbolToAvoidWarningInLengthConstraints() {}
  *
  * Module for bond-length constraints use a shake-like algorithm.
  * Requires integrator to specify time derivatives to constrain.
- * 
+ *
  * setup:
  * 1) determine couplings
  * 2) determine which time derivatives to be applied
- * 
+ *
  * execution:
  * 1) need all time derivs of theta passed in
  * 2) iteratively apply constraints from lowest to highest time deriv
- * 
+ *
  * Deal with loop bond-length constraints.
  */
 
@@ -106,9 +106,9 @@ LoopWNodes::LoopWNodes(const SimbodyMatterSubsystemRep& t, const RBDistanceConst
     while ( node1 != node2 ) {
         if ( node1->isGroundNode() ) {
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
-                 << "loop between stations " << tips(1) << " and " 
+                 << "loop between stations " << tips(1) << " and "
                  << tips(2) << "\n";
-            SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure, 
+            SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure,
                          "could not find base node");
         }
         nodes[0].push_back(node1);
@@ -134,8 +134,8 @@ LoopWNodes::LoopWNodes(const SimbodyMatterSubsystemRep& t, const RBDistanceConst
 }
 
 
-ostream& 
-operator<<(ostream& o, const LengthSet& s) 
+ostream&
+operator<<(ostream& o, const LengthSet& s)
 {
     o << "LengthSet --------------->\n";
     for (int i=0 ; i<(int)s.loops.size() ; i++) {
@@ -150,18 +150,18 @@ operator<<(ostream& o, const LengthSet& s)
 }
 
 
-ostream& 
-operator<<(ostream& o, const LoopWNodes& w) 
+ostream&
+operator<<(ostream& o, const LoopWNodes& w)
 {
-    o << "tip1=" << w.tips(1) << " tip2=" << w.tips(2) 
+    o << "tip1=" << w.tips(1) << " tip2=" << w.tips(2)
       << " distance=" << w.getDistance() << endl;
     o << "nodes[0]:";
     for (int i=0; i<(int)w.nodes[0].size(); ++i)
-        o << " " << w.nodes[0][i]->getNodeNum() 
+        o << " " << w.nodes[0][i]->getNodeNum()
                  << "[" << w.nodes[0][i]->getLevel() << "]";
     o << "\nnodes[1]:";
     for (int i=0; i<(int)w.nodes[1].size(); ++i)
-        o << " " << w.nodes[1][i]->getNodeNum() 
+        o << " " << w.nodes[1][i]->getNodeNum()
                  << "[" << w.nodes[1][i]->getLevel() << "]";
     o << "\nOutmost common body: " << w.getOutmostCommonBody()->getNodeNum()
         << "[" << w.getOutmostCommonBody()->getLevel() << "]";
@@ -175,7 +175,7 @@ operator<<(ostream& o, const LoopWNodes& w)
 
 LengthConstraints::LengthConstraints
     (const SimbodyMatterSubsystemRep& rbt, int vbose)
-  : maxIters( 20 ), maxMin( 20 ), 
+  : maxIters( 20 ), maxMin( 20 ),
     rbTree(rbt), verbose(vbose), posMin("posMin", cout), velMin("velMin", cout)
 {
     posMin.maxIters = maxIters;
@@ -189,13 +189,13 @@ LengthConstraints::LengthConstraints
 //
 static int
 compareLevel(const LoopWNodes& l1,
-             const LoopWNodes& l2) 
-{ 
-    if ( l1.getOutmostCommonBody()->getLevel() > l2.getOutmostCommonBody()->getLevel() ) 
+             const LoopWNodes& l2)
+{
+    if ( l1.getOutmostCommonBody()->getLevel() > l2.getOutmostCommonBody()->getLevel() )
         return 1;
     else if ( l1.getOutmostCommonBody()->getLevel() < l2.getOutmostCommonBody()->getLevel() )
         return -1;
-    else 
+    else
         return 0;
 }
 
@@ -204,7 +204,7 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
     return compareLevel(l1,l2) == -1;
 }
 
-//1) construct: given list of loops 
+//1) construct: given list of loops
 //   a) if appropriate issue warning and exit.
 //   b) sort by base node of each loop.
 //   c) find loops which intersect: combine loops and increment
@@ -213,23 +213,23 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 // Sherm's constraint coupling hypothesis (060616):
 //
 // For a constraint i:
-//   Kinematic participants K[i] 
+//   Kinematic participants K[i]
 //       = the set of bodies whose mobilities can affect verr[i]
 //   Dynamic participants D[i]
-//       = the set of bodies whose effective inertias can change 
+//       = the set of bodies whose effective inertias can change
 //         as a result of enforcement of constraint i
 // TODO: A thought on dynamic coupling -- is this the same as computing
 //       effective joint forces? Then only mobilities that can feel a
 //       test constraint force can be considered dynamic participants of
 //       that constraint.
-// 
-// Constraints i & j are directly kinematically coupled if 
+//
+// Constraints i & j are directly kinematically coupled if
 //   K[i] intersect K[j] <> { }
 // Constraints i & j are directly dynamically coupled if
 //   (a) they are directly kinematically coupled, or
 //   (b) D[i] intersect D[j] <> { }
 // TODO: I *think* dynamic coupling is one-way, from outboard to inboard.
-//       That means it defines an evaluation *order*, where modified 
+//       That means it defines an evaluation *order*, where modified
 //       inertias from outboard loops become the articulated body
 //       inertias to use in the inboard loops, rather than requiring simultaneous
 //       solutions for the multipliers.
@@ -245,8 +245,8 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 //
 // For now, do the same thing with acceleration constraints but this
 // is too strict. TODO
-// 
-//   
+//
+//
 void
 LengthConstraints::construct(const Array_<RBDistanceConstraint*>& iloops)
 {
@@ -275,8 +275,8 @@ LengthConstraints::construct(const Array_<RBDistanceConstraint*>& iloops)
     std::sort(loops.begin(), loops.end()); // uses "<" operator by default; see above
     LoopList accLoops = loops;  //version for acceleration
 
-    // Sherm 060616: transitive closure calculation. Remember that 
-    // the constraints are sorted by the level of their outmost common body, 
+    // Sherm 060616: transitive closure calculation. Remember that
+    // the constraints are sorted by the level of their outmost common body,
     // starting at ground, so that more-outboard constraints cannot cause
     // us to need to revisit an earlier cluster. However, constraints at
     // the same level can bring together earlier ones at that level.
@@ -390,9 +390,9 @@ class CalcPosZ {
     const State&   s;
     const LengthSet* lengthSet;
 public:
-    CalcPosZ(const State& ss, const LengthSet* constraint) 
+    CalcPosZ(const State& ss, const LengthSet* constraint)
         : s(ss), lengthSet(constraint) {}
-    Vector operator()(const Vector& b) const 
+    Vector operator()(const Vector& b) const
         { return lengthSet->calcPosZ(s, b); }
 };
 
@@ -402,7 +402,7 @@ class CalcVelB {
 public:
     CalcVelB(State& ss, const LengthSet* constraint)
         : s(ss), lengthSet(constraint) {}
-    Vector operator()(const Vector& vel) 
+    Vector operator()(const Vector& vel)
         { return lengthSet->calcVelB(s,vel); }
 };
 
@@ -428,7 +428,7 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
 // Calculate the velocity constraint violation (zero when constraint met).
 //
 Vector
-LengthSet::calcVelB(State& s, const Vector& vel) const 
+LengthSet::calcVelB(State& s, const Vector& vel) const
 {
     setVel(s, vel);
 
@@ -450,7 +450,7 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 //
 // This is a little tricky since the gradient we have is actually the
 // gradient of the *velocity* errors with respect to the generalized speeds,
-// but we want the gradient of the *position* errors with respect to 
+// but we want the gradient of the *position* errors with respect to
 // the generalized coordinates. The theory goes something like this:
 //
 //       d perr    d perr_dot   d verr    d u
@@ -465,11 +465,11 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 // relation between qdot's and u's: qdot = Q*u.
 //
 // TODO: Sherm 080101: the above is incorrect. We have to factor (PQ^-1) and
-// solve (PQ^-1)*deltaq = b for LS deltaq, which is not the same as 
+// solve (PQ^-1)*deltaq = b for LS deltaq, which is not the same as
 // solving for LS x in P*x=b and then deltaq=Q*x.
 //
 // TODO: I have oversimplified the above since we are really looking for
-// a least squares solution to an underdetermined system. With the 
+// a least squares solution to an underdetermined system. With the
 // pseudoinverse A+ available we can write x = A+ * b.
 //
 Vector
@@ -515,7 +515,7 @@ class CalcVelZ {
 public:
     CalcVelZ(const State& ss, const LengthSet* lset)
       : s(ss), lengthSet(lset), Gt(lset->calcGrad(s)),
-        GInverse(LengthSet::calcPseudoInverseA(Gt)) 
+        GInverse(LengthSet::calcPseudoInverseA(Gt))
     {
     }
 
@@ -537,7 +537,7 @@ public:
     }
 };
 
-// Project out the position constraint errors from the given state. 
+// Project out the position constraint errors from the given state.
 bool
 LengthConstraints::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
 {
@@ -546,7 +546,7 @@ LengthConstraints::enforcePositionConstraints(State& s, const Real& requiredTol,
 
     bool anyChanges = false;
 
-    try { 
+    try {
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
             posMin.calc(requiredTol, desiredTol, pos,
@@ -557,12 +557,12 @@ LengthConstraints::enforcePositionConstraints(State& s, const Real& requiredTol,
     catch (const SimTK::Exception::NewtonRaphsonFailure& cptn ) {
         cout << "LengthConstraints::enforcePositionConstraints: exception: "
              << cptn.getMessage() << '\n';
-    } 
+    }
 
     return anyChanges;
 }
 
-// Project out the velocity constraint errors from the given state. 
+// Project out the velocity constraint errors from the given state.
 bool
 LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
 {
@@ -571,7 +571,7 @@ LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol,
 
     bool anyChanges = false;
 
-    try { 
+    try {
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
             velMin.calc(requiredTol, desiredTol, vel,
@@ -582,7 +582,7 @@ LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol,
     catch (const  SimTK::Exception::NewtonRaphsonFailure& cptn ) {
         cout << "LengthConstraints::enforceVelocityConstraints: exception: "
              << cptn.getMessage() << '\n';
-    } 
+    }
 
     return anyChanges;
 }
@@ -592,7 +592,7 @@ LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol,
 //// for each loop
 //// -first calc all usual properties
 //// -recursively compute phi_ni for each length constraint
-////   from tip to outmost common body of 
+////   from tip to outmost common body of
 //// -compute gradient
 //// -update theta using quasi-Newton-Raphson
 //// -compute Cartesian coords
@@ -657,12 +657,12 @@ void LengthSet::setVel(State& s, const Vector& vel) const
 //
 
 // Calculate gradient by central difference for testing the analytic
-// version. Presumes that calcEnergy has been called previously with current 
+// version. Presumes that calcEnergy has been called previously with current
 // value of ipos.
-void 
+void
 LengthSet::fdgradf(State& s,
                    const Vector&  pos,
-                   Matrix&        grad) const 
+                   Matrix&        grad) const
 {
     const SBModelVars& mv = getRBTree().getModelVars(s);
 
@@ -686,7 +686,7 @@ LengthSet::fdgradf(State& s,
     }
 }
 
-void 
+void
 LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 {
     double tol = 1e-4;
@@ -697,7 +697,7 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
     for (int i=0 ; i<grad.nrow() ; i++)
         for (int j=0 ; j<grad.ncol() ; j++)
             if (fabs(grad(i,j)-fdgrad(i,j)) > fabs(tol))
-                cout << "testGrad: error in gradient: " 
+                cout << "testGrad: error in gradient: "
                      << setw(2) << i << ' '
                      << setw(2) << j << ": "
                      << grad(i,j) << ' ' << fdgrad(i,j) << '\n';
@@ -713,7 +713,7 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 // sherm 060222: OK, this routine doesn't really do what it says
 // when the constraint includes a ball or free joint. It
 // does not use the actual q's, which are quaternions. Instead
-// it is something like d(v+ - v-)/du. If the u's are the 
+// it is something like d(v+ - v-)/du. If the u's are the
 // angular velocity across the joint then this is
 // d(p+ - p-)/d qbar where qbar is a 1-2-3 Euler sequence
 // which is 0,0,0 at the current orientation. ("instant
@@ -724,7 +724,7 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 // partial derivative of the cross-joint relative *spatial* velocity
 // with respect to that joint's generalized speeds uB. This allows
 // analytic computation of d verr / d u where verr is the set of
-// distance constraint velocity errors for the current set of 
+// distance constraint velocity errors for the current set of
 // coupled loops, and u are the generalized speeds for all joints
 // which contribute to any of those loops. Some times this is the
 // gradient we want, but we also want to use this routine to
@@ -786,9 +786,9 @@ LengthSet::calcGrad(const State& s) const
 
             for (int k=0 ; k < nodeMap[j]->getDOF() ; k++) {
                 const SpatialVec& HtCol = ~nodeMap[j]->getHRow(digest, k);
-                if ( l1_indx >= 0 ) { 
+                if ( l1_indx >= 0 ) {
                     elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*HtCol));
-                } else if ( l2_indx >= 0 ) { 
+                } else if ( l2_indx >= 0 ) {
                     elem =  dot(uBond , Vec3(J[1] * phiT[1][l2_indx]*HtCol));
                 }
                 grad(g_indx++,i) = elem;
@@ -798,13 +798,13 @@ LengthSet::calcGrad(const State& s) const
         assert(g_indx == ndofThisSet); // ??
     }
     return grad;
-} 
+}
 
 //
 // Calculate generalized inverse which minimizes changes in soln vector.
 // TODO (sherm) This is trying to create a pseudoinverse
 // using normal equations which is numerically bad and can't deal with
-// redundant constraints. Should use an SVD or (faster) QTZ factorization 
+// redundant constraints. Should use an SVD or (faster) QTZ factorization
 // instead.
 //
 // sherm 060314:
@@ -842,13 +842,13 @@ LengthSet::calcPseudoInverseA(const Matrix& transposeOfA)
             pinvA = ~A * (A * ~A).invert(); // normal underdetermined case
         else if (m > n)
             pinvA = (A * ~A).invert() * ~A; // wow, that's a lot of constraints!
-        else 
+        else
             pinvA = A.invert();             // not likely
     }
     return pinvA;
 }
 
-   
+
 //
 // Given a vector in mobility space, project it along the motion constraints
 // of this LengthSet, by removing its component normal to the constraint
@@ -875,7 +875,7 @@ LengthSet::projectUVecOntoMotionConstraints(const State& s, Vector& v)
     const Vector x = pinvA * rhs;
 
     // subtract forces due to these constraints
-    subtractPackedVecFromVec(v, x); 
+    subtractPackedVecFromVec(v, x);
 }
 
 Matrix
@@ -897,7 +897,7 @@ LengthSet::calcPseudoInverseAFD(const State& s) const
             pinvA = ~A * (A * ~A).invert(); // normal underdetermined case
         else if (m > n)
             pinvA = (A * ~A).invert() * ~A; // wow, that's a lot of constraints!
-        else 
+        else
             pinvA = A.invert();             // not likely
     }
     return pinvA;
@@ -912,8 +912,8 @@ LengthSet::calcPseudoInverseAFD(const State& s) const
 //
 
 bool LengthConstraints::calcConstraintForces(const State& s, const Vector& udotErr,
-                                             Vector& multipliers, 
-                                             SBAccelerationCache& ac) const 
+                                             Vector& multipliers,
+                                             SBAccelerationCache& ac) const
 {
     if ( accConstraints.size() == 0 )
         return false;
@@ -927,13 +927,13 @@ bool LengthConstraints::calcConstraintForces(const State& s, const Vector& udotE
 }
 
 void LengthConstraints::addInCorrectionForces(const State& s, const SBAccelerationCache& ac,
-                                              SpatialVecList& spatialForces) const 
+                                              SpatialVecList& spatialForces) const
 {
     for (int i=accConstraints.size()-1 ; i>=0 ; i--)
         accConstraints[i].addInCorrectionForces(s, ac, spatialForces);
 }
 
-void 
+void
 LengthConstraints::projectUVecOntoMotionConstraints(const State& s, Vector& vec)
 {
     if ( pvConstraints.size() == 0 )
@@ -942,7 +942,7 @@ LengthConstraints::projectUVecOntoMotionConstraints(const State& s, Vector& vec)
     for (int i=pvConstraints.size()-1 ; i>=0 ; i--)
         pvConstraints[i].projectUVecOntoMotionConstraints(s, vec);
 
-    for (int i=pvConstraints.size()-1 ; i>=0 ; i--) 
+    for (int i=pvConstraints.size()-1 ; i>=0 ; i--)
         pvConstraints[i].testProjectedVec(s, vec);
 }
 
@@ -960,12 +960,12 @@ LengthConstraints::projectUVecOntoMotionConstraints(const State& s, Vector& vec)
 //    return ret;
 //}
 
-//             T     -1 T   
-// Compute   v1 *(J M  J )_mn * v2   where the indices mn are given by 
+//             T     -1 T
+// Compute   v1 *(J M  J )_mn * v2   where the indices mn are given by
 // the nodes associated with stations s1 & s2.
 //
 static Real
-computeA(const SBPositionCache& cc, 
+computeA(const SBPositionCache& cc,
          const SBDynamicsCache&      dc,
          const Vec3&    v1,
          const LoopWNodes& loop1, int s1,
@@ -1017,14 +1017,14 @@ computeA(const SBPositionCache& cc,
 // in the runtime block associated with that loop in the AccelerationCache
 // output argument. It is up to the caller to do something with these forces.
 //
-// See Section 2.6 on p. 294 of Schwieters & Clore, 
+// See Section 2.6 on p. 294 of Schwieters & Clore,
 // J. Magnetic Resonance 152:288-302. Equation reference below
 // are to that paper. (sherm)
 //
 void
 LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
                                 Vector& multipliers, SBAccelerationCache& ac) const
-{ 
+{
     const SBPositionCache& pc      = getRBTree().getPositionCache(s);
     const SBVelocityCache& vc      = getRBTree().getVelocityCache(s);
     const SBDynamicsCache& dc      = getRBTree().getDynamicsCache(s);
@@ -1038,7 +1038,7 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
         rhs[i] = loops[i].rbDistCons->getAccErr(udotErr);
 
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
-    // the constrained points and Q is the constraint Jacobian. See first 
+    // the constrained points and Q is the constraint Jacobian. See first
     // term of Eq. [66].
     Matrix A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<(int)loops.size() ; i++) {
@@ -1054,7 +1054,7 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
             }
     }
 
-    // (sherm) Ouch -- this part is very crude. If this is known to be well 
+    // (sherm) Ouch -- this part is very crude. If this is known to be well
     // conditioned it should be factored with a symmetric method
     // like Cholesky, otherwise use an SVD (or better, complete orthogonal
     // factorization QTZ) to get appropriate least squares solution.
@@ -1063,7 +1063,7 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
         for (int j=0 ; j<i ; j++)
             A(i,j) = A(j,i);
 
-    //cout << "Solve A lambda=rhs; A=" << A; 
+    //cout << "Solve A lambda=rhs; A=" << A;
     //cout << "  rhs = " << rhs << endl;
 
     //FIX: using inverse is inefficient
@@ -1082,7 +1082,7 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
 }
 
 void LengthSet::addInCorrectionForces(const State& s, const SBAccelerationCache& ac,
-                                      SpatialVecList& spatialForces) const 
+                                      SpatialVecList& spatialForces) const
 {
     const SBPositionCache& pc = getRBTree().getPositionCache(s);
 
@@ -1114,10 +1114,10 @@ void LengthSet::testAccel(const State& s) const
 
 // This just computes ~mat*vec but first plucks out the relevant entries
 // in vec to squash it down to the same size as mat.
-Vector 
+Vector
 LengthSet::packedMatTransposeTimesVec(const Matrix& packedMat, const Vector& vec)
 {
-    // sherm 060222: 
+    // sherm 060222:
     assert(vec.size() == getRBTree().getTotalDOF());
     assert(packedMat.nrow() == ndofThisSet && packedMat.ncol() == ndofThisSet);
 
@@ -1129,10 +1129,10 @@ LengthSet::packedMatTransposeTimesVec(const Matrix& packedMat, const Vector& vec
         packedVec(indx,d) = vec(offs,d);
         indx += d;
     }
-    // sherm 060222: 
+    // sherm 060222:
     assert(indx == ndofThisSet);
 
-    return ~packedMat * packedVec; 
+    return ~packedMat * packedVec;
 }
 
 // vec is a full vector in mobility space; packedVec consists of just
@@ -1157,7 +1157,7 @@ LengthSet::subtractPackedVecFromVec(Vector& vec,
 }
 
 void
-LengthSet::testProjectedVec(const State& s, 
+LengthSet::testProjectedVec(const State& s,
                             const Vector& vec) const
 {
     // sherm 060222:
@@ -1238,7 +1238,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         getRBTree().realizeSubsystemVelocity(s);
 
         // sherm: I think the following is a unit "probe" velocity, projected
-        // along the separation vector. 
+        // along the separation vector.
         // That would explain the fact that there are no velocities here!
         const Vec3 probeImpulse = loops[m].tipPos(pc,2)-loops[m].tipPos(pc,1);
         const Vec3 force1 = -probeImpulse;
@@ -1281,7 +1281,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
     // Calculate the fraction of each deltaV by which we should change V to simultaneously
     // drive all the velocity errors to zero.
-    // TODO: deal with a badly conditioned Jacobian to produce a least squares lambda. 
+    // TODO: deal with a badly conditioned Jacobian to produce a least squares lambda.
     const Vector lambda = mat.invert() * verr;
 
     iVel = iVel0;
@@ -1307,15 +1307,15 @@ std::ostream& operator<<(std::ostream& o, const RBDirection& d) {
     // RB DISTANCE CONSTRAINT //
     ////////////////////////////
 
-void RBDistanceConstraint::calcStationPosInfo(int i, 
+void RBDistanceConstraint::calcStationPosInfo(int i,
         SBPositionCache& pc) const
 {
     updStation_G(pc,i) = getNode(i).getX_GB(pc).R() * getPoint(i);
     updPos_G(pc,i)     = getNode(i).getX_GB(pc).p() + getStation_G(pc,i);
 }
 
-void RBDistanceConstraint::calcStationVelInfo(int i, 
-        const SBPositionCache& pc, 
+void RBDistanceConstraint::calcStationVelInfo(int i,
+        const SBPositionCache& pc,
         SBVelocityCache&       vc) const
 {
     const Vec3& w_G = getNode(i).getSpatialAngVel(vc);
@@ -1324,8 +1324,8 @@ void RBDistanceConstraint::calcStationVelInfo(int i,
     updVel_G(vc,i)        = v_G + getStationVel_G(vc,i);
 }
 
-void RBDistanceConstraint::calcStationAccInfo(int i, 
-        const SBPositionCache& pc, 
+void RBDistanceConstraint::calcStationAccInfo(int i,
+        const SBPositionCache& pc,
         const SBVelocityCache& vc,
         SBAccelerationCache&   ac) const
 {
@@ -1348,13 +1348,13 @@ void RBDistanceConstraint::calcPosInfo(Vector& qErr, SBPositionCache& pc) const
     const Real separation  = getFromTip1ToTip2_G(pc).norm();
     updUnitDirection_G(pc)   = getFromTip1ToTip2_G(pc) / separation;
     //TODO:  |p|-d (should be 0.5(p^2-d^2)
-    //updPosErr(cc) = separation - distance; 
+    //updPosErr(cc) = separation - distance;
     updPosErr(qErr) = 0.5*(p.normSqr() - distance*distance);
 
 }
 
 void RBDistanceConstraint::calcVelInfo(
-        const SBPositionCache& pc, 
+        const SBPositionCache& pc,
         Vector&                uErr,
         SBVelocityCache&       vc) const
 {
@@ -1368,7 +1368,7 @@ void RBDistanceConstraint::calcVelInfo(
 }
 
 void RBDistanceConstraint::calcAccInfo(
-        const SBPositionCache& pc, 
+        const SBPositionCache& pc,
         const SBVelocityCache& vc,
         Vector&                udotErr,
         SBAccelerationCache&   ac) const

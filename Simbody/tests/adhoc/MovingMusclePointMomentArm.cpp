@@ -33,25 +33,25 @@ using std::cout; using std::endl;
 #define USE_RACK
 
 /*
-In biomechanics muscle forces are modeled as acting on the system via 
+In biomechanics muscle forces are modeled as acting on the system via
 frictionless cables anchored at an "origin point" on one bone and following a
 curved path over obstacles to a final anchor at an "insertion point" on another
 bone. The cables have uniform tension and apply forces to the end points and
 the obstacles over which they pass.
 
-Because it can be very expensive to calculate the actual path, obstacle 
+Because it can be very expensive to calculate the actual path, obstacle
 surfaces are often replaced by simplified representations involving "via points"
 (frictionless eyelets fixed to bones), or "moving muscle points" (MMPs). An MMP
 is a via point that moves around on its body's surface, with its location P(q)
-given in its body's local frame as a smooth kinematic function of a designated 
-generalized coordinate q. The function P(q) is typically a vector-valued spline 
-fit through point locations measured at sampled coordinate values taken on a 
+given in its body's local frame as a smooth kinematic function of a designated
+generalized coordinate q. The function P(q) is typically a vector-valued spline
+fit through point locations measured at sampled coordinate values taken on a
 cadaver or a more complex computational model.
 
 For information on how we calculate moment arm in OpenSim using Simbody's
 tools, see the paper
-  Sherman MA, Seth A, Delp SL. What is moment arm? Calculating muscle 
-  effectiveness in biomechanical models using generalized coordinates. Proc. 
+  Sherman MA, Seth A, Delp SL. What is moment arm? Calculating muscle
+  effectiveness in biomechanical models using generalized coordinates. Proc.
   ASME IDETC/CIE Conference, Paper DETC2013-13633, Aug 2013, Portland, Oregon.
   http://doi.org/10.1115/DETC2013-13633
 This paper discusses problems with MMPs. The method demonstrated below addresses
@@ -61,16 +61,16 @@ MMPs.
 We would like to ensure that the moment arm and dynamics we calculate using the
 reduced model with MMPs is the same as we would have gotten with the more
 complex model, assuming that P(q) is the same in both models. (Reaction forces
-will unavoidably differ, but accelerations should be the same.) One way to do 
+will unavoidably differ, but accelerations should be the same.) One way to do
 that is to calculate moment arm by perturbation r(theta)=dL/dtheta where L is
 the length of the muscle path. We would like to be able to obtain the same value
 for r(theta) with an instantaneous calculation r(theta)=tau_theta/s where s
-is the tension in the muscle path and tau_theta is the generalized torque 
+is the tension in the muscle path and tau_theta is the generalized torque
 produced about theta by that tension. The two values are equivalent if all
 constraints in the model are workless. For an MMP, there must be a workless
 constraint that accounts for its motion. In the real system, that will be
-produced by the mechanical contacts and tendons that form the joint. In the MMP 
-model we don't have that mechanical system present but would like to treat it as 
+produced by the mechanical contacts and tendons that form the joint. In the MMP
+model we don't have that mechanical system present but would like to treat it as
 though motion were caused by an equivalent "gearbox" driven by q.
 
 In this example, we will build a simplified knee-like mechanism in which the
@@ -171,8 +171,8 @@ private:
     Real m_tension; // NaN to calculate as k*x
 };
 
-/* This muscle uses a differentiable function 
-        P(q)_A=P0_A + (pitch, 0, 0)*q 
+/* This muscle uses a differentiable function
+        P(q)_A=P0_A + (pitch, 0, 0)*q
 to determine the location of a moving muscle point on the origin body A;
 there is no rack body. */
 class MuscleMMP : public Force::Custom::Implementation {
@@ -182,7 +182,7 @@ public:
         const MobilizedBody& B, const Vec3& insertion,
         const Vec3& P0_A, Real pitch,
         Real stiffness, Real zeroLength)
-        : m_matter(matter), m_A(A), m_ptA(origin), m_B(B), m_ptB(insertion), 
+        : m_matter(matter), m_A(A), m_ptA(origin), m_B(B), m_ptB(insertion),
         m_P0(P0_A), m_pitch(pitch),
         m_k(stiffness), m_zero(zeroLength), m_tension(NaN)
     {
@@ -263,7 +263,7 @@ public:
         m_A.applyForceToBodyPoint(state, m_ptA, fA, bodyForces);
         m_B.applyForceToBodyPoint(state, m_ptB, fB, bodyForces);
         m_A.applyForceToBodyPoint(state, ptP_A, fP, bodyForces);
-        m_B.applyOneMobilityForce(state, MobilizerQIndex(0), f, mobilityForces); 
+        m_B.applyOneMobilityForce(state, MobilizerQIndex(0), f, mobilityForces);
     }
 
     Real calcPotentialEnergy(const State&) const override { return 0; }
@@ -281,7 +281,7 @@ public:
     explicit DrawPath(const MuscleMMP& muscle)
     :   m_muscle(muscle) {}
 
-    void generateDecorations(const State& state, 
+    void generateDecorations(const State& state,
         Array_<DecorativeGeometry>& geometry) override{
         Array_<Vec3> path;
         m_muscle.calcPathPoints(state, path);
@@ -360,10 +360,10 @@ int main() {
     Constraint::CoordinateCoupler(matter,
         new Function::Linear(Vector(Vec3(-pitch,1,0))),
         mobods, coords);
-    MuscleVP* mmp = new MuscleVP(matter, tibia, origin_T, rack, mmp_R, 
+    MuscleVP* mmp = new MuscleVP(matter, tibia, origin_T, rack, mmp_R,
                                  femur, insertion_F, 100., 2.75);
 
-    viz.addRubberBandLine(tibia, origin_T, rack, mmp_R, 
+    viz.addRubberBandLine(tibia, origin_T, rack, mmp_R,
         DecorativeLine().setColor(Red));
     viz.addRubberBandLine(femur, insertion_F, rack, mmp_R,
         DecorativeLine().setColor(Red));
@@ -413,7 +413,7 @@ int main() {
     system.realize(state, Stage::Velocity);
     cout << "before project u=" << state.getU() << endl;
     system.projectU(state, 1e-10);
-    cout << "after project u=" << state.getU() 
+    cout << "after project u=" << state.getU()
          << " uerr=" << state.getUErr() << endl;
     const Vector C(state.getU());
     femur.unlock(state);

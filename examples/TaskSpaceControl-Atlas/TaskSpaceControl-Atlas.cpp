@@ -22,13 +22,13 @@
  * -------------------------------------------------------------------------- */
 
 /* This example shows a task space (a.k.a. operational space) controller for
-the Gazebo model of the Boston Dynamics Atlas humanoid robot used in the 
+the Gazebo model of the Boston Dynamics Atlas humanoid robot used in the
 DARPA Robotics Challenge. Task space controllers are model-based, meaning that
 the controller itself contains a model of the system being controlled. Since
 we don't have a real robot handy, that means there will be two versions of
 the Atlas system here: one that we're simulating that is taking the role of the
 "real" robot, and one contained in the task space controller that we'll call
-the "model" robot. In real life the internal model won't perfectly match the 
+the "model" robot. In real life the internal model won't perfectly match the
 real one; we'll fake that here by introducing some sensor noise which you can
 control with sliders in the user interface.
 
@@ -45,7 +45,7 @@ We assume the system has a direct-drive torque motor at each of its degrees of
 freedom.
 
 The task the controller will achieve has several components:
-1. One of the robot's arms reaches for a target point that can be moved with 
+1. One of the robot's arms reaches for a target point that can be moved with
    arrow keys.
 2. Subject to achieving the reaching task, we try to keep the robot's pose
    neutral in joint space, that is, with all joint angles and velocities zero.
@@ -57,7 +57,7 @@ Each of the above effects may be disabled independently via letter keys in
 the visualizer window.
 
 You can also optionally sense the end effector position on the real robot
-and have that sent to the controller so that it doesn't have to depend 
+and have that sent to the controller so that it doesn't have to depend
 entirely on the behavior of the model robot when the real robot's sensors are
 noisy. Try cranking up the noise, which causes poor tracking, and then hit
 "e" to enable the end effector sensing which improves things dramatically.
@@ -94,8 +94,8 @@ class TasksMeasure : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(TasksMeasure, Measure_<T>);
 
-    TasksMeasure(Atlas& modelRobot) 
-    :   Measure_<T>(modelRobot.updForceSubsystem(), 
+    TasksMeasure(Atlas& modelRobot)
+    :   Measure_<T>(modelRobot.updForceSubsystem(),
                     new Implementation(modelRobot),
                     AbstractMeasure::SetHandle()) {}
 
@@ -109,18 +109,18 @@ public:
     void togglePoseControl() {
         updImpl().m_controlPose = !isPoseControlOn();}
     void toggleTask() {updImpl().m_controlTask = !getImpl().m_controlTask;}
-    void toggleEndEffectorSensing() 
+    void toggleEndEffectorSensing()
     {   updImpl().m_endEffectorSensing = !getImpl().m_endEffectorSensing;}
 
-    bool isGravityCompensationOn() const 
+    bool isGravityCompensationOn() const
     {   return getImpl().m_compensateForGravity; }
-    bool isPoseControlOn() const 
+    bool isPoseControlOn() const
     {   return getImpl().m_controlPose; }
-    bool isEndEffectorSensingOn() const 
+    bool isEndEffectorSensingOn() const
     {   return getImpl().m_endEffectorSensing; }
     bool isTaskPointFollowingOn() const
     {   return getImpl().m_controlTask; }
-    const Vec3& getTaskPointInEndEffector() const 
+    const Vec3& getTaskPointInEndEffector() const
     {   return getImpl().m_taskPointInEndEffector; }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(TasksMeasure, Measure_<T>);
@@ -131,8 +131,8 @@ template <class T>
 class TasksMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
     Implementation(const Atlas& modelRobot,
-                   Real proportionalGain=225, double derivativeGain=30) 
-                   //Real proportionalGain=100, double derivativeGain=20) 
+                   Real proportionalGain=225, double derivativeGain=30)
+                   //Real proportionalGain=100, double derivativeGain=20)
     :   Measure_<T>::Implementation(T(), 1),
         m_modelRobot(modelRobot),
         m_tspace1(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
@@ -147,7 +147,7 @@ public:
         m_controlTask(false),
         m_endEffectorSensing(false),
         m_desiredTaskPosInGround(Vec3(0.4, -0.1, 1)) // Z is up
-    {       
+    {
         //TODO: should have end effector body
         m_tspace1.addStationTask(m_modelRobot.getEndEffectorBody(),
                                  m_modelRobot.getEndEffectorStation());
@@ -195,7 +195,7 @@ friend class TasksMeasure<T>;
 //==============================================================================
 //                    REACHING AND GRAVITY COMPENSATION
 //==============================================================================
-// This is a task-space controller that tries to move the end effector to 
+// This is a task-space controller that tries to move the end effector to
 // a particular target location, and applies gravity compensation and some
 // joint damping as lower-priority tasks.
 //
@@ -206,9 +206,9 @@ friend class TasksMeasure<T>;
 // for the internal model, but returns them to be applied to the real Atlas.
 class ReachingAndGravityCompensation : public Force::Custom::Implementation {
 public:
-    ReachingAndGravityCompensation(const std::string& auxDir, 
-                                   const Atlas& realRobot) 
-    :   m_modelRobot(auxDir, "atlas_v4_upper.urdf"), m_modelTasks(m_modelRobot), 
+    ReachingAndGravityCompensation(const std::string& auxDir,
+                                   const Atlas& realRobot)
+    :   m_modelRobot(auxDir, "atlas_v4_upper.urdf"), m_modelTasks(m_modelRobot),
         m_realRobot(realRobot), m_targetColor(Red)
     {
         m_modelRobot.initialize(m_modelState);
@@ -229,7 +229,7 @@ public:
     void toggleTask() {m_modelTasks.toggleTask();}
     void toggleEndEffectorSensing() {m_modelTasks.toggleEndEffectorSensing();}
 
-    bool isGravityCompensationOn() const 
+    bool isGravityCompensationOn() const
     {   return m_modelTasks.isGravityCompensationOn(); }
 
     // This method calculates the needed control torques and adds them into
@@ -272,7 +272,7 @@ class UserInputHandler : public PeriodicEventHandler {
 public:
     UserInputHandler(Visualizer::InputSilo&             silo,
                      Atlas&                             realRobot,
-                     ReachingAndGravityCompensation&    controller, 
+                     ReachingAndGravityCompensation&    controller,
                      Real                               interval)
     :   PeriodicEventHandler(interval), m_silo(silo), m_realRobot(realRobot),
         m_controller(controller), m_increment(0.05) {}
@@ -292,11 +292,11 @@ private:
 //==============================================================================
 int main(int argc, char **argv) {
   try {
-    cout << "This is Simbody example '" 
+    cout << "This is Simbody example '"
          << SimbodyExampleHelper::getExampleName() << "'\n";
     cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
 
-    const std::string auxDir = 
+    const std::string auxDir =
         SimbodyExampleHelper::findAuxiliaryDirectoryContaining
         ("models/atlas_v4_free_pelvis.urdf");
     std::cout << "Getting geometry and models from '" << auxDir << "'\n";
@@ -331,8 +331,8 @@ int main(int argc, char **argv) {
     viz.setShowFrameRate(true);
     viz.setShowSimTime(true);
 
-    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0); 
-    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0); 
+    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0);
+    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0);
 
     Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
     viz.addInputListener(userInput);
@@ -392,7 +392,7 @@ int main(int argc, char **argv) {
 //------------------------------------------------------------------------------
 //                TASKS MEASURE :: CALC CACHED VALUE VIRTUAL
 //------------------------------------------------------------------------------
-// Given a modelState that has been updated from the real robot's sensors, 
+// Given a modelState that has been updated from the real robot's sensors,
 // generate control torques as the TasksMeasure's value. This is the only part
 // of the code that is actually doing task space operations.
 
@@ -417,7 +417,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     const Real& kp = m_proportionalGain;
 
     // The desired task position is in Ground. We need instead to measure it
-    // from the real robot's pelvis origin so that we can translate it into the 
+    // from the real robot's pelvis origin so that we can translate it into the
     // model's pelvis-centric viewpoint.
     const Transform& X_GP   = m_modelRobot.getSampledPelvisPose(ms);
     const Vec3 x1_des = ~X_GP*m_desiredTaskPosInGround; // measure in P
@@ -453,7 +453,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     Vector F1 = p1.Lambda(ms) * Fstar1 + p1.mu(ms) + p1.p(ms);
     //Vector F2 = p2.calcInverseDynamics(ms, Fstar2);
 
-    // Combine the reaching task with the gravity compensation and pose 
+    // Combine the reaching task with the gravity compensation and pose
     // control to a neutral q=0 pose with u=0 also.
     const Vector& q = ms.getQ();
     const Vector& u = ms.getU();
@@ -469,7 +469,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     if (m_controlTask) {
         tau += p1.JT(ms) * F1;
         tau += p1.NT(ms) * (gFac*p1.g(ms) - pFac*k*Mq - c*Mu); // damping always
-    } else 
+    } else
         tau += gFac*p1.g(ms) - (pFac*k*Mq + c*Mu);
 
     // Cut tau back to within effort limits.
@@ -496,7 +496,7 @@ mapModelToRealRobot(const State& realState) {
     const URDFJoints& modelJoints = m_modelRobot.getURDFRobot().joints;
     const URDFJoints& realJoints  = m_realRobot.getURDFRobot().joints;
 
-    m_model2realU.resize(m_modelState.getNU()); 
+    m_model2realU.resize(m_modelState.getNU());
     m_model2realQ.resize(m_modelState.getNQ());
 
     for (int mj=0; mj < (int)modelJoints.size(); ++mj) {
@@ -504,14 +504,14 @@ mapModelToRealRobot(const State& realState) {
         const URDFJointInfo& realInfo = realJoints.getJoint(modelInfo.name);
         const MobilizedBody& modelMobod = modelInfo.mobod;
         const MobilizedBody& realMobod = realInfo.mobod;
-        const int mnu = modelMobod.getNumU(m_modelState), 
+        const int mnu = modelMobod.getNumU(m_modelState),
                   mnq = modelMobod.getNumQ(m_modelState),
                   mu0 = modelMobod.getFirstUIndex(m_modelState),
                   mq0 = modelMobod.getFirstQIndex(m_modelState);
         if (mnu==0)
             continue; // this is fixed in the model; might not be in real robot
 
-        const int rnu = realMobod.getNumU(realState), 
+        const int rnu = realMobod.getNumU(realState),
                   rnq = realMobod.getNumQ(realState),
                   ru0 = realMobod.getFirstUIndex(realState),
                   rq0 = realMobod.getFirstQIndex(realState);
@@ -520,7 +520,7 @@ mapModelToRealRobot(const State& realState) {
             "joint '%s' dof mismatch.", modelInfo.name.c_str());
         for (int mu=0; mu < mnu; ++mu)
             m_model2realU[mu0+mu] = ru0+mu;
-        for (int mq=0; mq < mnq; ++mq) 
+        for (int mq=0; mq < mnq; ++mq)
             m_model2realQ[mq0+mq] = rq0+mq;
     }
 
@@ -547,10 +547,10 @@ void ReachingAndGravityCompensation::calcForce(
     const Vector& sensedQ = m_realRobot.getSampledAngles(realState);
     const Vector& sensedU = m_realRobot.getSampledRates(realState);
     for (int i=0; i < mnq; ++i)
-        m_modelRobot.setJointAngle(m_modelState, QIndex(i), 
+        m_modelRobot.setJointAngle(m_modelState, QIndex(i),
                                    sensedQ[m_model2realQ[i]]);
     for (int i=0; i < mnu; ++i)
-        m_modelRobot.setJointRate(m_modelState, UIndex(i), 
+        m_modelRobot.setJointRate(m_modelState, UIndex(i),
                                   sensedU[m_model2realU[i]]);
 
     // We have to know the pose of the real robot's pelvis so we can figure
@@ -655,7 +655,7 @@ void UserInputHandler::handleEvent(State& realState, Real accuracy,
             if (key == 't') {
                 m_controller.toggleTask();
                 continue;
-            }            
+            }
             if (key == 'e') {
                 m_controller.toggleEndEffectorSensing();
                 continue;

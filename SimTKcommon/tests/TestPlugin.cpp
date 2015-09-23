@@ -41,7 +41,7 @@ class MyPlugin : public Plugin {
 public:
     explicit MyPlugin(const std::string& name)
     :   Plugin(name) {
-        addSearchDirectory(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK") 
+        addSearchDirectory(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")
                             + "/lib/plugins/");
     }
 
@@ -63,7 +63,7 @@ void testDeconstructFileName() {
 
 
     //printf("'%s': %s %s|%s|%s|%s|%s\n", name.c_str(),
-    //    isAbsPath?"ABS":"REL", directory.c_str(), libPrefix.c_str(), baseName.c_str(), 
+    //    isAbsPath?"ABS":"REL", directory.c_str(), libPrefix.c_str(), baseName.c_str(),
     //    debugSuffix.c_str(), extension.c_str());
 
 
@@ -78,7 +78,7 @@ void testDeconstructFileName() {
     name = "   This.Is.Not.A.Suffix_A.dylib  "; // OK
     SimTK_TEST(Plugin::deconstructLibraryName(name,
         isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
-    SimTK_TEST(!isAbsPath && directory.empty() && libPrefix.empty() 
+    SimTK_TEST(!isAbsPath && directory.empty() && libPrefix.empty()
         && baseName=="This.Is.Not.A.Suffix_A"
         && debugSuffix.empty() && extension==".dylib");
 
@@ -86,8 +86,8 @@ void testDeconstructFileName() {
     name = "/usr/local/lib/"; // illegal because no file name
     SimTK_TEST(!Plugin::deconstructLibraryName(name,
         isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
-    SimTK_TEST(isAbsPath 
-        && directory==(dd+s+"usr"+s+"local"+s+"lib"+s) 
+    SimTK_TEST(isAbsPath
+        && directory==(dd+s+"usr"+s+"local"+s+"lib"+s)
         && libPrefix.empty()&&baseName.empty()
         && debugSuffix.empty()&&extension.empty());
 
@@ -102,15 +102,15 @@ void testDeconstructFileName() {
     name = "/mylibrary_D."; // OK (empty file type suffix)
     SimTK_TEST(Plugin::deconstructLibraryName(name,
         isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
-    SimTK_TEST(isAbsPath 
+    SimTK_TEST(isAbsPath
         && directory==(dd+s) && libPrefix.empty()&&baseName=="mylibrary"
         && debugSuffix=="_D"&&extension==".");
 
     directory=libPrefix=baseName=debugSuffix=extension="junk";
-    name = "./first/more/../../filename"; 
+    name = "./first/more/../../filename";
     SimTK_TEST(Plugin::deconstructLibraryName(name,
         isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
-    SimTK_TEST(isAbsPath 
+    SimTK_TEST(isAbsPath
         && directory==cwd
         && libPrefix.empty()&&baseName=="filename"
         && debugSuffix.empty()&&extension.empty());
@@ -120,7 +120,7 @@ void testDeconstructFileName() {
     SimTK_TEST(Plugin::deconstructLibraryName(name,
         isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
 
-    SimTK_TEST(isAbsPath 
+    SimTK_TEST(isAbsPath
         //&& directory==xd
         && libPrefix.empty()&&baseName=="filename"
         && debugSuffix.empty()&&extension.empty());
@@ -138,7 +138,7 @@ void testDeconstructFileName() {
     name = "  c:\\Program Files\\lib\\libMyPlugIn_d.dll \n ";   // OK
     SimTK_TEST(Plugin::deconstructLibraryName(name,
         isAbsPath, directory, libPrefix, baseName, debugSuffix, extension));
-    SimTK_TEST(isAbsPath && 
+    SimTK_TEST(isAbsPath &&
         directory==("c:"+s+"Program Files"+s+"lib"+s) && libPrefix=="lib"
         && baseName=="MyPlugIn" && debugSuffix=="_d" && extension==".dll");
 
@@ -171,9 +171,9 @@ void testPathname() {
     std::string name;
     bool isAbsPath;
     std::string directory, fileName, extension;
-    const std::string curDrive = 
-        Pathname::getCurrentDriveLetter().empty() 
-            ? std::string() 
+    const std::string curDrive =
+        Pathname::getCurrentDriveLetter().empty()
+            ? std::string()
             : Pathname::getCurrentDriveLetter()+":";
     const std::string sep = Pathname::getPathSeparator();
 
@@ -593,7 +593,7 @@ void testPathname() {
     SimTK_TEST(directory == dir && fileName == "myFileName" && extension == ".ext");
     pathname = Pathname::getAbsolutePathnameUsingSpecifiedWorkingDirectory(swd, path);
     SimTK_TEST(pathname == dir + "myFileName.ext");
- 
+
     ///
 
     swd = "D:specified"; path = "C:/topdir/seconddir/myFileName.ext";

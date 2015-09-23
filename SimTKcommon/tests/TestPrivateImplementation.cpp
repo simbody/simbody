@@ -48,7 +48,7 @@ using namespace SimTK;
 
 // This is a simple, concrete class which has been split into a
 // Handle and an Implementation. It has ordinary object (value)
-// semantics meaning that copy construction an copy assignment 
+// semantics meaning that copy construction an copy assignment
 // produce independent objects, not an additional reference to an
 // existing object.
 
@@ -162,9 +162,9 @@ int main() {
 
     Concrete copyOfc2(c2);      ConcreteRef copyOfcr2(cr2);
     Concrete copyOfc2ViaAssign; ConcreteRef copyOfcr2ViaAssign;
-    copyOfc2ViaAssign = c2; 
+    copyOfc2ViaAssign = c2;
     copyOfc2ViaAssign.clearHandle();
-    copyOfc2ViaAssign = c2; 
+    copyOfc2ViaAssign = c2;
 
     ASSERT(c2.getImplHandleCount()==1);
     ASSERT(copyOfc2.getImplHandleCount()==1);
@@ -174,7 +174,7 @@ int main() {
     ASSERT(copyOfcr2.getImplHandleCount()==2);
 
     // can't do reference assign to an owner handle
-    copyOfcr2ViaAssign.clearHandle(); 
+    copyOfcr2ViaAssign.clearHandle();
     copyOfcr2ViaAssign = cr2;
 
     ASSERT(copyOfc2.isOwnerHandle() && copyOfc2ViaAssign.isOwnerHandle());
@@ -220,7 +220,7 @@ int main() {
 
     ASSERT(c1.getString() == "setThroughC1" && c2.getString() == "setThroughC1");
     ASSERT(cr1.getString() == "setThroughCR1" && cr2.getString() == "copyOfcr2");
-    
+
     // TODO: regression tests for hierarchical handle classes
 
     // TODO: regression tests for client-side custom implementations
@@ -263,21 +263,21 @@ int main() {
     cout << "dd.upcast()  =" << dd.upcast();
     cout << "dd.upcast^2()= "<< dd.upcast().upcast();
 
-    cout << "sizeof(MyHandle)=" << sizeof(MyHandle) 
-         << " sizeof(DerivedHandle)=" << sizeof(DerivedHandle) 
-         << " sizeof(DerDerivedHandle)=" << sizeof(DerDerivedHandle) 
+    cout << "sizeof(MyHandle)=" << sizeof(MyHandle)
+         << " sizeof(DerivedHandle)=" << sizeof(DerivedHandle)
+         << " sizeof(DerDerivedHandle)=" << sizeof(DerDerivedHandle)
          << endl;
 
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     return 1;
-  } 
+  }
   catch (...) {
     printf("UNKNOWN EXCEPTION THROWN\n");
     return 1;
-  }    
+  }
 
     return 0;
 }

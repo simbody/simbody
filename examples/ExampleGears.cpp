@@ -26,15 +26,15 @@
 using namespace SimTK;
 
 int main() {
-    
+
     // Create the system.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
 
     // Create bodies.
     Body::Rigid gearBody(MassProperties(1.0, Vec3(0), Inertia(1)));
-    gearBody.addDecoration(Transform(Rotation(0.5*Pi, XAxis)), 
+    gearBody.addDecoration(Transform(Rotation(0.5*Pi, XAxis)),
         DecorativeCylinder(1.0, 0.1));
     Body::Rigid rodBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     rodBody.addDecoration(Transform(Vec3(0, 1, 0)), DecorativeCylinder(0.05, 1.0));
@@ -42,38 +42,38 @@ int main() {
     // Create instances of the bodies that are connected into the multibody
     // system via Mobilizers. Note that we use the gear body twice.
 
-    MobilizedBody::Pin gear1(matter.updGround(), Transform(Vec3(1, 0, 0)), 
+    MobilizedBody::Pin gear1(matter.updGround(), Transform(Vec3(1, 0, 0)),
                              gearBody, Transform());
-    MobilizedBody::Pin gear2(matter.updGround(), Transform(Vec3(-1, 0, 0)), 
+    MobilizedBody::Pin gear2(matter.updGround(), Transform(Vec3(-1, 0, 0)),
                              gearBody, Transform());
     MobilizedBody::Pin rod(gear2, Transform(Vec3(0, 0.8, 0.1)), rodBody, Transform());
 
     // Add constraints.
     Constraint::ConstantSpeed(gear1, 2*Pi); // i.e., 1 rotation per second
     Constraint::NoSlip1D(matter.updGround(), Vec3(0), UnitVec3(0, 1, 0), gear1, gear2);
-    
+
     // We want the rod end point traveling along a line. We'll draw part of the
     // line to make it clear.
-    Constraint::PointOnLine(matter.updGround(), UnitVec3(0, 1, 0), Vec3(0, 0, 0.1), 
+    Constraint::PointOnLine(matter.updGround(), UnitVec3(0, 1, 0), Vec3(0, 0, 0.1),
                             rod, Vec3(0, 2, 0));
 
     matter.updGround().addBodyDecoration(Vec3(0,0,.1),
         DecorativeLine(Vec3(0), 3*UnitVec3(0,1,0))
         .setColor(Red));
-   
+
     // Visualize the system, reporting an output frame every 1/30 of a simulated
     // second. The Visualizer's default frame rate is 30fps, and it will slow the
-    // simulation down to keep to that speed, so we'll get exactly real time 
+    // simulation down to keep to that speed, so we'll get exactly real time
     // this way. We don't want the default ground and sky background here.
     Visualizer viz(system);
     viz.setBackgroundType(Visualizer::SolidColor); // default is white
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
-    
+
     // Simulate it.
 
     RungeKuttaMersonIntegrator integ(system);

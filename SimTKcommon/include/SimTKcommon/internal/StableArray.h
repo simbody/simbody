@@ -33,7 +33,7 @@
 namespace SimTK {
 
 /**
- * StableArray<T> is like std::vector<T> (or SimTK::Array_<T>) but more stable 
+ * StableArray<T> is like std::vector<T> (or SimTK::Array_<T>) but more stable
  * in two ways:
  *  - the addresses of the inserted items never change, even if the array
  *     has to be resized, and
@@ -62,7 +62,7 @@ public:
 
     // Copy constructor must preserve slot numbers.
     StableArray(const StableArray& s) : nOccupiedSlots(0), stuff(s.size(),0) {
-        for (size_t i=0; i<s.size(); ++i) 
+        for (size_t i=0; i<s.size(); ++i)
             if (!s.empty(i)) initializeEmptyElement(i, s[i]);
         assert(nItems() == s.nItems());
     }
@@ -71,7 +71,7 @@ public:
     StableArray& operator=(const StableArray& s) {
         clear();
         stuff.resize(s.size(),0);
-        for (size_t i=0; i<s.size(); ++i) 
+        for (size_t i=0; i<s.size(); ++i)
             if (!s.empty(i)) initializeEmptyElement(i, s[i]);
         assert(nItems() == s.nItems());
         return *this;
@@ -166,7 +166,7 @@ public:
 
     // Erasing an element slot if it isn't already empty. If we erase the
     // last element we don't have to leave a hole, and in fact we might
-    // expose a hole in the second-to-the-last element too. In that 
+    // expose a hole in the second-to-the-last element too. In that
     // case we erase by resizing away trailing detritus, otherwise we'll
     // make a hole.
     void erase(size_t i) {
@@ -230,5 +230,5 @@ private:
 };
 
 } // namespace SimTK
-  
+
 #endif // SimTK_SimTKCOMMON_STABLEARRAY_H_

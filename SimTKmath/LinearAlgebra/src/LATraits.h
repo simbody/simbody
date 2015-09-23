@@ -30,7 +30,7 @@
 namespace SimTK {
 
 template <typename T> struct LANT;
-        
+
 template <> struct LANT<float>{
      static const int sign =  1;
      static const bool conjugate = false;

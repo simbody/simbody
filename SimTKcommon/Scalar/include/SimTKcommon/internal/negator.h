@@ -55,7 +55,7 @@
  */
 
 #include <iostream>
-    
+
 namespace SimTK {
 
 // Specializations of this class provide information about Composite Numerical Types
@@ -66,12 +66,12 @@ template <class N> class negator;   // negator is only defined for numbers.
 
 
 /**
- * negator<N>, where N is a number type (real, complex, conjugate), is represented in 
+ * negator<N>, where N is a number type (real, complex, conjugate), is represented in
  * memory identically to N, but behaves as though multiplied by -1, though at zero
- * cost. Only negators instantiated with the nine number types (real, complex, 
+ * cost. Only negators instantiated with the nine number types (real, complex,
  * conjugate) are allowed.
- */ 
-template <class NUMBER> 
+ */
+template <class NUMBER>
 class SimTK_SimTKCOMMON_EXPORT negator {
     typedef NUMBER N;
     typedef typename NTraits<N>::TReal      NReal;
@@ -109,7 +109,7 @@ public:
     typedef typename NTraits<N>::ScalarNormSq                   ScalarNormSq;
 
     // negator may be used in combination with any composite numerical type, not just
-    // numbers. Hence we must use CNT<P> here rather than NTraits<P> (they are 
+    // numbers. Hence we must use CNT<P> here rather than NTraits<P> (they are
     // the same when P turns out to be a numeric type).
     //      Typeof( Neg<N>*P ) is Typeof(P*N)::TNeg
     //      Typeof( Neg<N>/P ) is Typeof(N/P)::TNeg
@@ -187,7 +187,7 @@ public:
 
     static double getDefaultTolerance() {return NTraits<N>::getDefaultTolerance();}
 
-    /// In the generic case we'll perform the negation here to get a number, 
+    /// In the generic case we'll perform the negation here to get a number,
     /// and then delegate to the other type which can be any CNT.
     template <class T2> bool isNumericallyEqual(const T2& t2) const
     {   return CNT<T2>::isNumericallyEqual(t2, -v); } // perform negation
@@ -195,7 +195,7 @@ public:
     /// In this partial specialization we know that both types have negators so we
     /// can just compare the underlying numbers, each of which has the reversed sign,
     /// using the global SimTK method available for comparing numbers.
-    template <class N2> bool isNumericallyEqual(const negator<N2>& t2) const 
+    template <class N2> bool isNumericallyEqual(const negator<N2>& t2) const
     {   return SimTK::isNumericallyEqual(v, t2.v); }
 
     /// This is the generic case (see above) but with an explicitly-provided tolerance.
@@ -217,7 +217,7 @@ public:
     negator& operator=(const negator& n) { v=n.v; return *this; }
 
     // These are implicit conversions from numeric type NN to negator<N>. The
-    // value must be unchanged, so we must negate. Note that NN==N is a 
+    // value must be unchanged, so we must negate. Note that NN==N is a
     // certainty for one of these cases.
     negator(int                t) {v = -N((typename NTraits<N>::Precision)t);}
     negator(const float&       t) {v = -N((typename NTraits<N>::Precision)t);}
@@ -248,15 +248,15 @@ public:
     template <class P> negator& operator*=(const P& t) { v *= t; return *this; } //don't swap!
     template <class P> negator& operator/=(const P& t) { v /= t; return *this; }
 
-    // If we know we've got a negator as an argument, get rid of its negation 
-    // and change signs as necessary. We're guaranteed to get rid of at least 
+    // If we know we've got a negator as an argument, get rid of its negation
+    // and change signs as necessary. We're guaranteed to get rid of at least
     // one negator<> this way. Nothing to gain for multiplication or division,
     // though.
-    template <class NN> negator& operator =(const negator<NN>& t) 
+    template <class NN> negator& operator =(const negator<NN>& t)
     {   v =  -t; return *this; }
-    template <class NN> negator& operator+=(const negator<NN>& t) 
+    template <class NN> negator& operator+=(const negator<NN>& t)
     {   v += -t; return *this; } //swap sign
-    template <class NN> negator& operator-=(const negator<NN>& t) 
+    template <class NN> negator& operator-=(const negator<NN>& t)
     {   v -= -t; return *this; }
 
 private:
@@ -338,7 +338,7 @@ operator+(const A& l, const negator<B>& r)
   {return negRecast<typename CNT<A>::template Result<negator<B> >::Add>(l-(-r));}
 // One step at a time here (see above).
 template <class A, class B> inline typename negator<A>::template Result<negator<B> >::Add
-operator+(const negator<A>& l, const negator<B>& r) 
+operator+(const negator<A>& l, const negator<B>& r)
   {return negRecast<typename negator<A>::template Result<negator<B> >::Add>(r-(-l)); }
 
     // Binary '-' with a negator as one or both arguments //
@@ -350,12 +350,12 @@ operator-(const A& l, const negator<B>& r)
   {return negRecast<typename CNT<A>::template Result<negator<B> >::Sub>(l+(-r));}
 // One step at a time here (see above).
 template <class A, class B> inline typename negator<A>::template Result<negator<B> >::Sub
-operator-(const negator<A>& l, const negator<B>& r) 
+operator-(const negator<A>& l, const negator<B>& r)
   {return negRecast<typename negator<A>::template Result<negator<B> >::Sub>(r+(-l));}
 
 // Binary '*' with a negator as one or both arguments
 template <class A, class B> inline typename negator<A>::template Result<B>::Mul
-operator*(const negator<A>& l, const B& r) 
+operator*(const negator<A>& l, const B& r)
   {return negRecast<typename negator<A>::template Result<B>::Mul>((-l)*r);}
 template <class A, class B> inline typename CNT<A>::template Result<negator<B> >::Mul
 operator*(const A& l, const negator<B>& r)
@@ -367,7 +367,7 @@ operator*(const negator<A>& l, const negator<B>& r)
 
 // Binary '/' with a negator as one or both arguments
 template <class A, class B> inline typename negator<A>::template Result<B>::Dvd
-operator/(const negator<A>& l, const B& r) 
+operator/(const negator<A>& l, const B& r)
   {return negRecast<typename negator<A>::template Result<B>::Dvd>((-l)/r);}
 template <class A, class B> inline typename CNT<A>::template Result<negator<B> >::Dvd
 operator/(const A& l, const negator<B>& r)

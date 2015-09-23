@@ -40,11 +40,11 @@ restitution (not used for Poisson restitution). Moving knowns to the right:
 <pre>
     M  du    + ~G pi = -~G piE
     G  du    -  D pi = b - G u - verrNewton + D piE
-</pre> Substituting 2nd eqn into first gives this impact subproblem: 
+</pre> Substituting 2nd eqn into first gives this impact subproblem:
 <pre>
     [A+D] pi = verr0 + verrNewton + verrExpand
     where verr0 = Gu-b, verrExpand = -[A+D]piE, and A=G M\ ~G.
-</pre> 
+</pre>
 %Contact problem: <pre>
     M du + ~G pi  = h f
     G du -  D pi  = b - G u
@@ -55,18 +55,18 @@ restitution (not used for Poisson restitution). Moving knowns to the right:
 </pre>
 
 The form of the problems is the same, with different RHS and no expansion
-impulse given for contact. The impulse solver thus solves this system of 
+impulse given for contact. The impulse solver thus solves this system of
 equations and inequalities:
 <pre>
     [A+D] (piExpand + piUnknown) = verrStart + verrApplied
     where verrStart = verr0 + verrNewton
 </pre>
-subject to several inequalities and replacement of friction rows by sliding or 
+subject to several inequalities and replacement of friction rows by sliding or
 impending slip equations
 for the unknown impulse piUnknown. piExpand is the given Poisson expansion
-impulse, non-zero only for expanding unilateral normal contacts, with 
+impulse, non-zero only for expanding unilateral normal contacts, with
 piExpand_z[k]<=0 for each unilateral contact k. A is an mXm symmetric positive
-semidefinite matrix, D a diagonal matrix with nonnegative elements, 
+semidefinite matrix, D a diagonal matrix with nonnegative elements,
 pi=piExpand+piUnknown and rhs are m-vectors. We write pi this way because
 friction limits depend on pi, not just piUnknown. We require piExpand_z<=0
 for unilateral normal contacts z.
@@ -75,13 +75,13 @@ Similarly, we must separate verrStart and verrApplied, because verrStart
 contains the actual constraint-space velocities, especially sliding, which
 we need in order to determine sliding direction and contact status (rolling
 or sliding). verrApplied just represents what the applied forces would do if
-there were no constraints; the constraints will react to that so that the 
+there were no constraints; the constraints will react to that so that the
 actual velocity changes will be much different.
 
 For each "sliding step", we classify frictional contacts based on the current
 contents of verrStart, then solve:
 <pre>
-    [A+D] piUnknown = verrStart + verrApplied - [A+D]*piExpand 
+    [A+D] piUnknown = verrStart + verrApplied - [A+D]*piExpand
     with inequalities
     piUnknown_z <= 0
     sqrt(piUnknown_x^2+piUnknown_y^2) <= -mu*pi_z
@@ -94,15 +94,15 @@ update <pre>
     verrApplied -= s*verrApplied
 </pre>
 If s < 1 then we are not done. In that case we have removed some of the verr
-and used up some of the expansion impulse. Return to do 
+and used up some of the expansion impulse. Return to do
 another sliding step until we take one where s==1.
 
-We return piUnknown and the updated verrStart which would be zero if all 
+We return piUnknown and the updated verrStart which would be zero if all
 contacts were active and rolling.
 
-There are often multiple solutions for piUnknown; consult the documentation for 
-particular ImpulseSolver implementations to determine which solution is 
-returned. Possibilities include: any solution (PGS), and the least squares 
+There are often multiple solutions for piUnknown; consult the documentation for
+particular ImpulseSolver implementations to determine which solution is
+returned. Possibilities include: any solution (PGS), and the least squares
 solution (PLUS).
 **/
 
@@ -122,13 +122,13 @@ public:
     // enum numbering here; we're counting on it.
     enum UniCond  {UniNA=-1, UniOff=0, UniActive=1, UniKnown=2};
     enum FricCond {FricNA=-1, FricOff=0, Sliding=1, Impending=2, Rolling=3};
-    enum BndCond  {BndNA=-1, SlipLow=0, ImpendLow=1, Engaged=2, 
+    enum BndCond  {BndNA=-1, SlipLow=0, ImpendLow=1, Engaged=2,
                    ImpendHigh=3, SlipHigh=4};
 
 
     ImpulseSolver(Real roll2slipTransitionSpeed,
                   Real convergenceTol,
-                  int maxIters) 
+                  int maxIters)
     :   m_maxRollingTangVel(roll2slipTransitionSpeed),
         m_convergenceTol(convergenceTol),
         m_maxIters(maxIters)
@@ -140,7 +140,7 @@ public:
 
     void setMaxRollingSpeed(Real roll2slipTransitionSpeed) {
         assert(roll2slipTransitionSpeed >= 0);
-        m_maxRollingTangVel = roll2slipTransitionSpeed; 
+        m_maxRollingTangVel = roll2slipTransitionSpeed;
     }
     Real getMaxRollingSpeed() const {return m_maxRollingTangVel;}
 
@@ -176,10 +176,10 @@ public:
     /** Solve. **/
     virtual bool solve
        (int                                 phase,
-        const Array_<MultiplierIndex>&      participating, // p<=m of these 
+        const Array_<MultiplierIndex>&      participating, // p<=m of these
         const Matrix&                       A,     // m X m, symmetric
         const Vector&                       D,     // m, diag>=0 added to A
-        const Array_<MultiplierIndex>&      expanding, // nx<=m of these 
+        const Array_<MultiplierIndex>&      expanding, // nx<=m of these
         Vector&                             piExpand, // m
         Vector&                             verrStart,   // m, RHS (in/out)
         Vector&                             verrApplied, // m
@@ -195,27 +195,27 @@ public:
 
     /** Solve a set of bilateral (unconditional) constraints for the impulse
     necessary to enforce them. This can be used for projecting a set of
-    violated active constraints onto their manifold. This just solves the 
+    violated active constraints onto their manifold. This just solves the
     linear system <pre>
-        P*(A+D)*~P P*pi = P*rhs 
+        P*(A+D)*~P P*pi = P*rhs
                 Pbar*pi = 0
     </pre>
     where P is a pXm "participation" matrix such that P(i,j)=1 if constraint
     j is the i'th active constraint, zero otherwise, and Pbar is the
     "nonparticipation" matrix such that Pbar(i,j)=1 if constraint j is the i'th
-    inactive constraint, zero otherwise. A is mXm symmetric, positive 
+    inactive constraint, zero otherwise. A is mXm symmetric, positive
     semidefinite, but may be rank deficient. D is an mXm diagonal matrix with
-    only nonnegative elements. The returned solution pi (mX1) should ideally be 
-    the solution of minimum 2-norm ||pi|| if the system is underdetermined, or 
-    the solution that minimizes the 2-norm of the error ||(A+D)pi-rhs|| 
-    (participating part only) if the solution is overdetermined and 
-    inconsistent. However, concrete ImpulseSolvers are free to return a 
-    different solution provide their behavior is well documented. The method 
+    only nonnegative elements. The returned solution pi (mX1) should ideally be
+    the solution of minimum 2-norm ||pi|| if the system is underdetermined, or
+    the solution that minimizes the 2-norm of the error ||(A+D)pi-rhs||
+    (participating part only) if the solution is overdetermined and
+    inconsistent. However, concrete ImpulseSolvers are free to return a
+    different solution provide their behavior is well documented. The method
     used should be qualitatively similar to that used by the solve() method for
     the same concrete %ImpulseSolver. For example, if solve() uses an
     iterative method then this should also do so. **/
     virtual bool solveBilateral
-       (const Array_<MultiplierIndex>&      participating, // p<=m of these 
+       (const Array_<MultiplierIndex>&      participating, // p<=m of these
         const Matrix&                       A,     // m X m, symmetric
         const Vector&                       D,     // m, diag>=0 added to A
         const Vector&                       rhs,   // m, RHS
@@ -259,13 +259,13 @@ struct ImpulseSolver::UncondRT {
 // A unilateral contact (possibly with friction), joint stop, rope.
 // These are the only constraints that can undergo impacts. Note that the COR
 // is here for the convenience of the time stepper; it doesn't affect the
-// impulse solvers. "Known" here means the normal constraint does not 
-// participate (that is, the constraint equation cannot be active), but an 
+// impulse solvers. "Known" here means the normal constraint does not
+// participate (that is, the constraint equation cannot be active), but an
 // expansion impulse has been supplied for it.
 struct ImpulseSolver::UniContactRT {
-    UniContactRT() 
+    UniContactRT()
     :   m_sign(1), m_type(TypeNA), m_effCOR(NaN), m_effMu(NaN),
-        m_contactCond(UniNA), m_frictionCond(FricNA), 
+        m_contactCond(UniNA), m_frictionCond(FricNA),
         m_impulse(NaN)
     {}
 
@@ -293,7 +293,7 @@ struct ImpulseSolver::UniContactRT {
 
 // Ratchet.
 struct ImpulseSolver::UniSpeedRT {
-    UniSpeedRT(MultiplierIndex ix, int sign) 
+    UniSpeedRT(MultiplierIndex ix, int sign)
     :   m_ix(ix), m_sign(sign), m_speedCond(UniNA), m_impulse(NaN)
     {   assert(sign==-1 || sign==1); }
 
@@ -308,8 +308,8 @@ struct ImpulseSolver::UniSpeedRT {
 
 // Torque-limited motor.
 struct ImpulseSolver::BoundedRT {
-    BoundedRT(MultiplierIndex ix, Real lb, Real ub) 
-    :   m_ix(ix), m_lb(lb), m_ub(ub), m_boundedCond(BndNA), m_impulse(NaN) 
+    BoundedRT(MultiplierIndex ix, Real lb, Real ub)
+    :   m_ix(ix), m_lb(lb), m_ub(ub), m_boundedCond(BndNA), m_impulse(NaN)
     {   assert(m_lb<=m_ub); }
 
     // Input to solver.
@@ -324,13 +324,13 @@ struct ImpulseSolver::BoundedRT {
 // Friction acting at a joint-like constraint, bead-on-a-wire.
 struct ImpulseSolver::ConstraintLtdFrictionRT {
     ConstraintLtdFrictionRT
-       (const Array_<MultiplierIndex>& frictionComponents, 
+       (const Array_<MultiplierIndex>& frictionComponents,
         const Array_<MultiplierIndex>& normalComponents,
         Real                           effMu)
-    :   m_Fk(frictionComponents), m_Nk(normalComponents), 
-        m_effMu(effMu), m_frictionCond(FricNA), 
-        m_Fimpulse(frictionComponents.size(), NaN) 
-    {   assert(m_Fk.size()<=3 && m_Nk.size()<=3); 
+    :   m_Fk(frictionComponents), m_Nk(normalComponents),
+        m_effMu(effMu), m_frictionCond(FricNA),
+        m_Fimpulse(frictionComponents.size(), NaN)
+    {   assert(m_Fk.size()<=3 && m_Nk.size()<=3);
         assert(isNaN(m_effMu) || m_effMu>=0); }
 
     // Inputs to solver.
@@ -345,10 +345,10 @@ struct ImpulseSolver::ConstraintLtdFrictionRT {
 
 // Friction acting at a compliant contact.
 struct ImpulseSolver::StateLtdFrictionRT {
-    StateLtdFrictionRT(const Array_<MultiplierIndex>& frictionComponents, 
+    StateLtdFrictionRT(const Array_<MultiplierIndex>& frictionComponents,
                        Real knownN, Real muEff)
-    :   m_Fk(frictionComponents), m_knownN(knownN), m_effMu(muEff), 
-        m_frictionCond(FricNA), m_Fimpulse(frictionComponents.size(), NaN) 
+    :   m_Fk(frictionComponents), m_knownN(knownN), m_effMu(muEff),
+        m_frictionCond(FricNA), m_Fimpulse(frictionComponents.size(), NaN)
     {   assert(m_Fk.size()<=3); assert(m_knownN >= 0);
         assert(isNaN(m_effMu) || m_effMu>=0); }
 

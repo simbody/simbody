@@ -53,25 +53,25 @@ MultibodySystem& createSystem() {
     SimbodyMatterSubsystem matter(*system);
     GeneralForceSubsystem forces(*system);
     const Real mass = 1.23;
-    Body::Rigid body(MassProperties(mass, Vec3(.1,.2,-.03), 
+    Body::Rigid body(MassProperties(mass, Vec3(.1,.2,-.03),
                      mass*UnitInertia(1.1, 1.2, 1.3, .01, -.02, .07)));
 
     Rotation R_PF(Pi/20, UnitVec3(1,2,3));
     Rotation R_BM(-Pi/17, UnitVec3(2,.2,3));
     for (int i = 0; i < NUM_BODIES; ++i) {
         MobilizedBody& parent = matter.updMobilizedBody(MobilizedBodyIndex(matter.getNumBodies()-1));
-        
+
         if (i == NUM_BODIES-5) {
             MobilizedBody::Universal b(
-                parent, Transform(R_PF, Vec3(-.1,.3,.2)), 
+                parent, Transform(R_PF, Vec3(-.1,.3,.2)),
                 body, Transform(R_BM, Vec3(BOND_LENGTH, 0, 0)));
         } else if (i == NUM_BODIES-3) {
             MobilizedBody::Ball b(
-                parent, Transform(R_PF, Vec3(-.1,.3,.2)), 
+                parent, Transform(R_PF, Vec3(-.1,.3,.2)),
                 body, Transform(R_BM, Vec3(BOND_LENGTH, 0, 0)));
         } else {
             MobilizedBody::Gimbal b(
-                parent, Transform(R_PF, Vec3(-.1,.3,.2)), 
+                parent, Transform(R_PF, Vec3(-.1,.3,.2)),
                 body, Transform(R_BM, Vec3(BOND_LENGTH, 0, 0)));
         }
     }
@@ -98,7 +98,7 @@ void createState(MultibodySystem& system, State& state, const Vector& qOverride=
 }
 
 void testBallConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -127,7 +127,7 @@ void testBallConstraint() {
 }
 
 void testConstantAngleConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -148,7 +148,7 @@ void testConstantAngleConstraint() {
 }
 
 void testConstantOrientationConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -164,10 +164,10 @@ void testConstantOrientationConstraint() {
     Vec3 v2 = last.getBodyAngularVelocity(state);
     Vec3 a1 = first.getBodyAngularAcceleration(state);
     Vec3 a2 = last.getBodyAngularAcceleration(state);
-    
+
     // Extra constraints are required for assembly.  Without them, this constraint only guarantees
     // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis.
-    
+
     // Careful: constraint is x2 perp y1, y2 perp z1, z2 perp x1; this isn't the
     // same if bodies are interchanged.
     CONSTRAINT_TEST(dot(R_G2*r2*Vec3(1, 0, 0), R_G1*r1*Vec3(0, 1, 0)), 0.0);
@@ -180,7 +180,7 @@ void testConstantOrientationConstraint() {
 }
 
 void testConstantSpeedConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -195,7 +195,7 @@ void testConstantSpeedConstraint() {
 }
 
 void testNoSlip1DConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -219,7 +219,7 @@ void testNoSlip1DConstraint() {
 }
 
 void testPointInPlaneConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -235,12 +235,12 @@ void testPointInPlaneConstraint() {
     CONSTRAINT_TEST(dot(p1, normal), height);
     CONSTRAINT_TEST(dot(p1, normal)-height, constraint.getPositionError(state));
     CONSTRAINT_TEST(dot(v1, normal), 0.0);
-    CONSTRAINT_TEST(dot(v1, normal), constraint.getVelocityError(state));    
+    CONSTRAINT_TEST(dot(v1, normal), constraint.getVelocityError(state));
     delete &system;
 }
 
 void testPointOnLineConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -259,7 +259,7 @@ void testPointOnLineConstraint() {
 }
 
 void testRodConstraint() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -300,10 +300,10 @@ void testWeldConstraint() {
 
     const Rotation& R_G1 = first.getBodyRotation(state);
     const Rotation& R_G2 = last.getBodyRotation(state);
-    
+
     // Extra constraints are required for assembly.  Without them, this constraint only guarantees
     // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis.
-    
+
     // Careful: constraint is x2 perp y1, y2 perp z1, z2 perp x1; this isn't the
     // same if bodies are interchanged.
     CONSTRAINT_TEST(dot(R_G2*Vec3(1, 0, 0), R_G1*Vec3(0, 1, 0)), 0.0);
@@ -313,7 +313,7 @@ void testWeldConstraint() {
 }
 
 void testWeldConstraintWithPreAssembly() {
-    
+
     // Different constraints are required for assembly.  Without them, this constraint only guarantees
     // that the second body's X/Y/Z axis is perpendicular to the first body's Y/Z/X axis. Here we'll
     // attempt to point all the axes in roughly the right direction prior to Weld-ing them.
@@ -361,7 +361,7 @@ void testWeldConstraintWithPreAssembly() {
 }
 
 void testDisablingConstraints() {
-    
+
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -462,12 +462,12 @@ void testConstraintForces() {
     matter.calcConstraintForcesFromMultipliers(state, mults,
         constraintForces, mobilityForces);
 
-    MACHINE_TEST(constraintForces[loose.getMobilizedBodyIndex()], 
+    MACHINE_TEST(constraintForces[loose.getMobilizedBodyIndex()],
                  mobilizerReactions[welded.getMobilizedBodyIndex()]);
 
     // This returns just the forces on the weld's two bodies: in this
     // case Ground and "loose", in that order.
-    Vector_<SpatialVec> glueForces = 
+    Vector_<SpatialVec> glueForces =
         glue.getConstrainedBodyForcesAsVector(state);
 
     MACHINE_TEST(-glueForces[1], // watch the sign!
@@ -492,7 +492,7 @@ void testConstraintForces() {
 // right constraint-specific segments in the holonomic, nonholonomic, and
 // acceleration-only arrays is tricky.
 void testConstraintMatrices() {
-    // Create a chain of bodies 
+    // Create a chain of bodies
     State state;
     MultibodySystem& system = createSystem();
     SimbodyMatterSubsystem& matter = system.updMatterSubsystem();
@@ -500,12 +500,12 @@ void testConstraintMatrices() {
     MobilizedBody& second = matter.updMobilizedBody(MobilizedBodyIndex(2));
     MobilizedBody& fifth = matter.updMobilizedBody(MobilizedBodyIndex(5));
     MobilizedBody& last = matter.updMobilizedBody(MobilizedBodyIndex(NUM_BODIES));
-   
+
     // Add a body on a free joint to body 5 then weld it.
     MobilizedBody::Free extra(fifth, Transform(),
         MassProperties(1, Vec3(.01,.02,.03), Inertia(1,1.1,1.2)), Transform());
     Constraint::Weld weld(extra, fifth);
-    
+
     Constraint::Ball ball(first, last);
     Constraint::ConstantAcceleration accel2(second, MobilizerUIndex(1), .01);
     Constraint::ConstantSpeed speed5(fifth, MobilizerUIndex(1), .1);
@@ -525,10 +525,10 @@ void testConstraintMatrices() {
     matter.calcGTranspose(state, Gt); // use force routines
     SimTK_TEST_EQ(G, ~Gt); // match to numerical precision
 
-    // Repeat using matrix views that have non-contiguous columns by 
+    // Repeat using matrix views that have non-contiguous columns by
     // generating them into transposed matrices.
     Matrix Gx(G.nrow(),G.ncol()), Gtx(Gt.nrow(),Gt.ncol());
-    matter.calcG(state, ~Gtx); 
+    matter.calcG(state, ~Gtx);
     matter.calcGTranspose(state, ~Gx);
     SimTK_TEST_EQ_TOL(G, ~Gtx, 1e-16); // should be identical
     SimTK_TEST_EQ_TOL(Gt, ~Gx, 1e-16);

@@ -41,9 +41,9 @@ using namespace SimTK;
 static Array_<State> saveStates;
 class ShowStuff : public PeriodicEventReporter {
 public:
-    ShowStuff(const MultibodySystem& mbs, 
-              const CableSpring& cable1, Real interval) 
-    :   PeriodicEventReporter(interval), 
+    ShowStuff(const MultibodySystem& mbs,
+              const CableSpring& cable1, Real interval)
+    :   PeriodicEventReporter(interval),
         mbs(mbs), cable1(cable1) {}
 
     static void showHeading(std::ostream& o) {
@@ -52,7 +52,7 @@ public:
             "KE", "PE", "KE+PE-W");
     }
 
-    /** This is the implementation of the EventReporter virtual. **/ 
+    /** This is the implementation of the EventReporter virtual. **/
     void handleEvent(const State& state) const override {
         const CablePath& path1 = cable1.getCablePath();
         printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g CPU=%g\n",
@@ -76,8 +76,8 @@ private:
 };
 
 int main() {
-  try {    
-    // Create the system.   
+  try {
+    // Create the system.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     CableTrackerSubsystem cables(system);
@@ -90,25 +90,25 @@ int main() {
 
     Body::Rigid someBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real Rad = .25;
-    someBody.addDecoration(Transform(), 
+    someBody.addDecoration(Transform(),
         DecorativeSphere(Rad).setOpacity(.75).setResolution(4));
 
     Body::Rigid biggerBody(MassProperties(1.0, Vec3(0), Inertia(1)));
     const Real BiggerRad = .5;
-    biggerBody.addDecoration(Transform(), 
+    biggerBody.addDecoration(Transform(),
         DecorativeSphere(BiggerRad).setOpacity(.75).setResolution(4));
 
     const Vec3 radii(.3, .25, .25);
-    Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0), 
+    Body::Rigid ellipsoidBody(MassProperties(1.0, Vec3(0),
         UnitInertia::ellipsoid(radii)));
-    ellipsoidBody.addDecoration(Transform(), 
+    ellipsoidBody.addDecoration(Transform(),
         DecorativeEllipsoid(radii).setOpacity(.75).setResolution(4)
                                   .setColor(Orange));
 
     const Real CylRad = .25, HalfLen = .5;
-    Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0), 
+    Body::Rigid cylinderBody(MassProperties(1.0, Vec3(0),
         1.*UnitInertia::cylinderAlongX(Rad,HalfLen)));
-    cylinderBody.addDecoration(Rotation(-Pi/2,ZAxis), 
+    cylinderBody.addDecoration(Rotation(-Pi/2,ZAxis),
         DecorativeCylinder(CylRad,HalfLen).setOpacity(.75)
            .setResolution(4).setColor(Orange));
 
@@ -116,25 +116,25 @@ int main() {
 
     MobilizedBody Ground = matter.Ground();
 
-    MobilizedBody::Free body1(Ground,           Transform(Vec3(0)), 
+    MobilizedBody::Free body1(Ground,           Transform(Vec3(0)),
                               someBody,         Transform(Vec3(0, 1, 0)));
-    //MobilizedBody::Ball body2(body1,            Transform(Vec3(0)), 
+    //MobilizedBody::Ball body2(body1,            Transform(Vec3(0)),
     //                          someBody,         Transform(Vec3(0, 1, 0)));
-    //MobilizedBody::Ball body3(body2,            Transform(Vec3(0)), 
+    //MobilizedBody::Ball body3(body2,            Transform(Vec3(0)),
     //                          someBody,         Transform(Vec3(0, 1, 0)));
-    //MobilizedBody::Ball body4(body3,            Transform(Vec3(0)), 
+    //MobilizedBody::Ball body4(body3,            Transform(Vec3(0)),
     //                          fancyBody,    Transform(Vec3(0, 1, 0)));
-    //MobilizedBody::Ball body5(body4,            Transform(Vec3(0)), 
+    //MobilizedBody::Ball body5(body4,            Transform(Vec3(0)),
     //                          someBody,         Transform(Vec3(0, 1, 0)));
 
     CablePath path1(cables, Ground, Vec3(0,0,0),   // origin
                             body1, Vec3(0,Rad,0));  // termination
 
-    //CableObstacle::Surface obstacle(path1, Ground, Vec3(1,-1,0), 
+    //CableObstacle::Surface obstacle(path1, Ground, Vec3(1,-1,0),
     //    ContactGeometry::Sphere(Rad));
     //obstacle.setContactPointHints(Rad*UnitVec3(1,1,0),Rad*UnitVec3(1,.5,0));
     //
-    CableObstacle::Surface obstacle2(path1, Ground, Vec3(0,-1,0), 
+    CableObstacle::Surface obstacle2(path1, Ground, Vec3(0,-1,0),
         //ContactGeometry::Sphere(CylRad));
         ContactGeometry::Ellipsoid(radii));
         //ContactGeometry::Torus(CylRad,.1));
@@ -142,10 +142,10 @@ int main() {
 
     obstacle2.setContactPointHints(1.5*CylRad*UnitVec3(1,1,0),1.5*CylRad*UnitVec3(1,.5,0));
     obstacle2.setDisabledByDefault(true);
-    
+
     ////CableObstacle::ViaPoint p4(path1, body4, Rad*UnitVec3(0,1,1));
     ////CableObstacle::ViaPoint p5(path1, body4, Rad*UnitVec3(1,0,1));
-    //CableObstacle::Surface obs5(path1, body4, 
+    //CableObstacle::Surface obs5(path1, body4,
     //    // Transform(), ContactGeometry::Ellipsoid(radii));
     //    //Rotation(Pi/2, YAxis), ContactGeometry::Cylinder(CylRad)); // along y
     //    //Transform(), ContactGeometry::Sphere(Rad));
@@ -154,7 +154,7 @@ int main() {
     //obs5.setContactPointHints(Rad*UnitVec3(.1,.125,-.2),
     //                          Rad*UnitVec3(0.1,-.1,-.2));
 
-    CableSpring cable1(forces, path1, .5*100., 2, 0.1); 
+    CableSpring cable1(forces, path1, .5*100., 2, 0.1);
 
     //obs1.setPathPreferencePoint(Vec3(2,3,4));
     //obs1.setDecorativeGeometry(DecorativeSphere(0.25).setOpacity(.5));
@@ -162,16 +162,16 @@ int main() {
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
     system.addEventReporter(new Visualizer::Reporter(viz, 0.1*1./30));
-    system.addEventReporter(new ShowStuff(system, cable1, 0.1*0.1));    
+    system.addEventReporter(new ShowStuff(system, cable1, 0.1*0.1));
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     //Random::Gaussian random;
     //for (int i = 0; i < state.getNQ(); ++i)
     //    state.updQ()[i] = random.getValue();
     //for (int i = 0; i < state.getNU(); ++i)
-    //    state.updU()[i] = 0.1*random.getValue(); 
+    //    state.updU()[i] = 0.1*random.getValue();
     body1.setQToFitTranslation(state, Vec3(2,-1,.5));
 
     system.realize(state, Stage::Position);
@@ -198,7 +198,7 @@ int main() {
     const Real finalTime = 2;
     const double startTime = realTime(), startCPU = cpuTime();
     ts.stepTo(finalTime);
-    cout << "DONE with " << finalTime 
+    cout << "DONE with " << finalTime
          << "s simulated in " << realTime()-startTime
          << "s elapsed, " << cpuTime()-startCPU << "s CPU.\n";
 

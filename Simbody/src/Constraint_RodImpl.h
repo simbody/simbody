@@ -44,16 +44,16 @@ class MobilizedBody;
 //==============================================================================
 //                                  ROD IMPL
 //==============================================================================
-/* This constraint can be implemented using perr = (~p*p - d^2)/2 which results 
+/* This constraint can be implemented using perr = (~p*p - d^2)/2 which results
 in very tidy and cheap equations, but suffers from poor scaling, especially when
-combined with other constraints where perr is an actual distance. That's how 
-Constraint::Rod was originally implemented but I reworked it to use 
-perr=sqrt(~p*p)-d instead. This constraint is nearly identical to the normal 
-part of the sphere-on-sphere contact constraint, which says that the distance 
+combined with other constraints where perr is an actual distance. That's how
+Constraint::Rod was originally implemented but I reworked it to use
+perr=sqrt(~p*p)-d instead. This constraint is nearly identical to the normal
+part of the sphere-on-sphere contact constraint, which says that the distance
 between the two sphere centers must be d=r1+r2. The terminology (and code) used
 here is borrowed from sphere-on-sphere; one body is called "F" and the other is
 "B" and the connected stations are Sf and Sb. However, I left the user-side
-terminology as it was for compatibility. (sherm 140505) 
+terminology as it was for compatibility. (sherm 140505)
 
 For comparison, here are the lovely squared equations:
     perr = (p . p - d^2)/2          [NOT using these equatiosn]
@@ -65,17 +65,17 @@ where
 
 Instead, we're going to do it this way:
 
-Let 
+Let
     P = Sf, Q = Sb
     p_PQ   = p_AQ - p_AP
     pd_PQ  = d/dt_A p_PQ  = v_AQ - v_AP
     pdd_PQ = d/dt_A pd_PQ = a_AQ - a_AP
     r(q)   = ||p_PQ||                       [center-center distance]
 
-There is a pathological case in which the two connected points are coincident, 
+There is a pathological case in which the two connected points are coincident,
 so r(q)=0. In that case we can't use the point-to-point line as the
-force direction Cz since it is zero length. This condition will be corrected 
-eventually by assembly analysis; we just need some consistent return values 
+force direction Cz since it is zero length. This condition will be corrected
+eventually by assembly analysis; we just need some consistent return values
 until then. In this case we arbitrarily declare that Cz=Fz:
 
 (1)   Cz = {p_PQ/r,    r != 0                 [force direction]
@@ -93,7 +93,7 @@ In case r==0, Cz is fixed in F (it is Fz). So Czd = d/dt_A Cz = w_AF x Cz and
            = pdd_PQ . Cz + (pd_PQ x w_AF) . Cz       [triple product identity]
 (5)        = (pdd_PQ - w_AF x pd_PQ) . Cz            [if r==0]
 
-Otherwise we need to calculate 
+Otherwise we need to calculate
        Czd = d/dt_A Cz = d/dt_A p_PQ/r
            = pd_PQ * oor + p_PQ * oord
            = pd_PQ/r - p_PQ * (pd_PQ . p_PQ)/r^3
@@ -106,11 +106,11 @@ where
     oord(q) = d/dt oor(q) = -pd_PQ . p_PQ/r^3
 
 Substituting (6) into (4) gives
-    aerr = pdd_PQ . Cz + pd_PQ . [pd_PQ - (pd_PQ . Cz)*Cz]/r 
+    aerr = pdd_PQ . Cz + pd_PQ . [pd_PQ - (pd_PQ . Cz)*Cz]/r
          = pdd_PQ . Cz + [pd_PQ^2 - (pd_PQ . Cz)^2] / r
 (7)      = pdd_PQ . Cz + [pd_PQ^2 - verr^2] / r
 
-The scalars returned by perr,verr, and aerr are measure numbers along Cz (a 
+The scalars returned by perr,verr, and aerr are measure numbers along Cz (a
 unit vector normally aligned with p_SfSb). The multiplier will consequently act
 along Cz.
 */
@@ -143,7 +143,7 @@ struct VelocityCache {
     Vec3 Czd_A;             // d/dt_A Cz_A -- depends on isSingular
 };
 
-RodImpl() : ConstraintImpl(1, 0, 0), 
+RodImpl() : ConstraintImpl(1, 0, 0),
             m_def_p_FSf(0), m_def_p_BSb(0), m_def_length(NaN) {}
 
 RodImpl* clone() const override
@@ -161,7 +161,7 @@ void realizeTopologyVirtual(State& state) const override;
 // Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;
 
-// Get a writable reference to the value of the discrete variable; this 
+// Get a writable reference to the value of the discrete variable; this
 // invalidated Position stage in the given state.
 Parameters& updParameters(State& state) const;
 
@@ -184,12 +184,12 @@ const VelocityCache& ensureVelocityCacheRealized(const State& state) const;
 Note that the give State does not necessarily correspond to the given X_AB
 and constrainedQ so we can't cache the results.
 
-TODO: there ought to be a flag saying whether the X_AB and q are from the 
+TODO: there ought to be a flag saying whether the X_AB and q are from the
 state (which is common) so that the results could be saved.
 */
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -202,8 +202,8 @@ void calcPositionErrorsVirtual
     const Real        d     = params.m_length;
 
     // 36 flops for these two together.
-    const Vec3 p_ASf =  findStationLocation(allX_AB, m_mobod_F, p_FSf); 
-    const Vec3 p_ASb =  findStationLocation(allX_AB, m_mobod_B, p_BSb); 
+    const Vec3 p_ASf =  findStationLocation(allX_AB, m_mobod_F, p_FSf);
+    const Vec3 p_ASb =  findStationLocation(allX_AB, m_mobod_B, p_BSb);
 
     const Vec3 p_SfSb_A = p_ASb - p_ASf;    //  3 flops
     const Real r = p_SfSb_A.norm();         // ~20 flops
@@ -223,12 +223,12 @@ void calcPositionErrorsVirtual
 Note that we can't cache the velocity results here because we don't know that
 V_AB and qdot were taken from the given State.
 */
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     const PositionCache& pc = ensurePositionCacheRealized(s);
@@ -252,12 +252,12 @@ void calcPositionDotErrorsVirtual
                {Fz_A,          r==0
     and   Czd = d/dt_A Cz = {(pd_SfSb - Cz * (pd_SfSb . Cz))/r
                             {w_AF x Fz_A,     r==0
-    ------------------------------------------------------------ 
+    ------------------------------------------------------------
     44 flops if position & velocity info already calculated
 */
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -270,9 +270,9 @@ void calcPositionDotDotErrorsVirtual
     const PositionCache& pc = getPositionCache(s);
 
     // 30 flops for these two together.
-    const Vec3 a_ASf = findStationInAAcceleration(s, allA_AB, m_mobod_F, 
+    const Vec3 a_ASf = findStationInAAcceleration(s, allA_AB, m_mobod_F,
                                                   pc.p_FSf_A, vc.wXwX_p_FSf_A);
-    const Vec3 a_ASb = findStationInAAcceleration(s, allA_AB, m_mobod_B, 
+    const Vec3 a_ASb = findStationInAAcceleration(s, allA_AB, m_mobod_B,
                                                   pc.p_BSb_A, vc.wXwX_p_BSb_A);
 
     const Vec3 pdd_SfSb_A = a_ASb - a_ASf; // 2nd deriv in A,        3 flops
@@ -281,7 +281,7 @@ void calcPositionDotDotErrorsVirtual
 
 // Because the normal force is applied along the line between the points, it
 // does not matter where along that line we apply the force -- the force and
-// resulting moment are the same anywhere along the line. Thus we are not 
+// resulting moment are the same anywhere along the line. Thus we are not
 // required to use the same point in space here -- for convenience we'll just
 // apply forces to the defining end points, whose locations we have available.
 //
@@ -292,7 +292,7 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
     assert(multipliers.size()==1&&bodyForcesInA.size()==2&&qForces.size()==0);

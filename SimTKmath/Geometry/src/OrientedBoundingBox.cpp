@@ -32,7 +32,7 @@ OrientedBoundingBox::OrientedBoundingBox() {
 }
 
 OrientedBoundingBox::OrientedBoundingBox
-   (const Transform& transform, const Vec3& size) 
+   (const Transform& transform, const Vec3& size)
 :   transform(transform), size(size) {
 }
 
@@ -45,11 +45,11 @@ const Vec3& OrientedBoundingBox::getSize() const {
 }
 
 OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
-    SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox", 
+    SimTK_APIARGCHECK(points.size() > 0, "OrientedBoundingBox",
                       "OrientedBoundingBox", "No points passed to constructor");
-    
+
     // Construct the covariance matrix of the points.
-    
+
     Vec3 center = mean(points);
     Vector_<Vec3> p = points-center;
     Mat33 c(0);
@@ -58,10 +58,10 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
             for (int k = 0; k < 3; k++)
                 c(j, k) += p[i][j]*p[i][k];
     c *= Real(1)/p.size();
-    
-    // Find the eigenvectors, which will be our initial guess for the axes of 
+
+    // Find the eigenvectors, which will be our initial guess for the axes of
     // the box.
-    
+
     Vector_<std::complex<Real> > eigenvalues;
     Matrix_<std::complex<Real> > eigenvectors;
     Eigen(Matrix(c)).getAllEigenValuesAndVectors(eigenvalues, eigenvectors);
@@ -71,7 +71,7 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
             axes[i][j] = eigenvectors(j, i).real();
 
     // Now try optimizing the rotation to give a better fit.
-    
+
     Rotation rot(UnitVec3(axes[0]), XAxis, axes[1], YAxis);
     Real volume = calculateVolume(points, rot);
     for (Real step = Real(0.1); step > Real(0.01); step /= 2) {
@@ -96,9 +96,9 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
             }
         }
     }
-    
+
     // Find the extent along each axis.
-  
+
     axes[0] = Vec3(rot.col(0));
     axes[1] = Vec3(rot.col(1));
     axes[2] = Vec3(rot.col(2));
@@ -110,9 +110,9 @@ OrientedBoundingBox::OrientedBoundingBox(const Vector_<Vec3>& points) {
             maxExtent[j] = std::max(maxExtent[j], ~axes[j]*points[i]);
         }
     }
-    
+
     // Create the bounding box.
-    
+
     size = maxExtent-minExtent;
     Vec3 tol = Real(1e-5)*size;
     for (int i = 0; i < 3; i++)
@@ -145,9 +145,9 @@ bool OrientedBoundingBox::containsPoint(const Vec3& point) const {
 
 bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     // Precalculate various quantities.
-    
+
     // From the other box's frame to this one's
-    const Transform t = ~getTransform()*box.getTransform(); 
+    const Transform t = ~getTransform()*box.getTransform();
     const Mat33& r = t.R().asMat33();
     const Mat33 rabs = r.abs();
     const Vec3 a = getSize()/2;
@@ -155,17 +155,17 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     const Vec3 center1 = a;
     const Vec3 center2 = t*b;
     const Vec3 d = center2-center1;
-    
-    // Now perform a series of 15 tests where we project each box onto an axis 
-    // and see if they overlap.  This is described in Gottschalk, S., Lin, MC, 
-    // Manocha, D, "OBBTree: a hierarchical structure for rapid interference 
-    // detection." Proceedings of the 23rd Annual Conference on Computer 
-    // Graphics and Interactive Techniques, pp. 171-180, 1996. We also perform 
+
+    // Now perform a series of 15 tests where we project each box onto an axis
+    // and see if they overlap.  This is described in Gottschalk, S., Lin, MC,
+    // Manocha, D, "OBBTree: a hierarchical structure for rapid interference
+    // detection." Proceedings of the 23rd Annual Conference on Computer
+    // Graphics and Interactive Techniques, pp. 171-180, 1996. We also perform
     // an additional check which allows an early acceptance if the center of
     // one box is inside the other one.
-    
+
     // First check the three axes of this box.
-    
+
     bool accept = true;
     for (int i = 0; i < 3; i++) {
         Real ra = a[i];
@@ -178,9 +178,9 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     }
     if (accept)
         return true;
-    
+
     // Now check the three axes of the other box.
-    
+
     accept = true;
     for (int i = 0; i < 3; i++) {
         Real ra = ~a*rabs.col(i);
@@ -193,10 +193,10 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
     }
     if (accept)
         return true;
-    
-    // Now check the nine axes formed from cross products of one axis from each 
+
+    // Now check the nine axes formed from cross products of one axis from each
     // box.
-    
+
     {
         Real ra = a[1]*rabs(2, 0)+a[2]*rabs(1, 0);
         Real rb = b[1]*rabs(0, 2)+b[2]*rabs(0, 1);
@@ -258,12 +258,12 @@ bool OrientedBoundingBox::intersectsBox(const OrientedBoundingBox& box) const {
 bool OrientedBoundingBox::intersectsRay
    (const Vec3& origin, const UnitVec3& direction, Real& distance) const {
     // Transform the ray to the bounding box's reference frame.
-    
+
     Vec3 orig = ~getTransform()*origin;
     UnitVec3 dir = ~getTransform().R()*direction;
-    
+
     // Check it against each plane that defines a side of the box.
-    
+
     Real minDist = MostNegativeReal;
     Real maxDist = MostPositiveReal;
     if (dir[0] == 0.0) {
@@ -341,11 +341,11 @@ bool OrientedBoundingBox::intersectsRay
 
 Vec3 OrientedBoundingBox::findNearestPoint(const Vec3& position) const {
     // Transform the point to the bounding box's reference frame.
-    
+
     Vec3 p = ~getTransform()*position;
-    
+
     // Find the nearest point in the box.
-    
+
     if (p[0] < 0)
         p[0] = 0;
     if (p[0] > getSize()[0])
@@ -358,9 +358,9 @@ Vec3 OrientedBoundingBox::findNearestPoint(const Vec3& position) const {
         p[2] = 0;
     if (p[2] > getSize()[2])
         p[2] = getSize()[2];
-    
+
     // Transform it back again.
-    
+
     return getTransform()*p;
 }
 
@@ -378,7 +378,7 @@ void OrientedBoundingBox::getCorners(Vec3 corners[8]) const {
     corners[7] = corners[3]+dz;
 }
 
-OrientedBoundingBox 
+OrientedBoundingBox
 operator*(const Transform& t, const OrientedBoundingBox& box) {
     return OrientedBoundingBox(t*box.getTransform(), box.getSize());
 }

@@ -51,10 +51,10 @@ using std::cout; using std::endl;
 ContactGeometry::Brick::Brick(const Vec3& halfLengths)
 :   ContactGeometry(new Brick::Impl(halfLengths)) {}
 
-void ContactGeometry::Brick::setHalfLengths(const Vec3& halfLengths) 
+void ContactGeometry::Brick::setHalfLengths(const Vec3& halfLengths)
 {   updImpl().setHalfLengths(halfLengths); }
 
-const Vec3& ContactGeometry::Brick::getHalfLengths() const 
+const Vec3& ContactGeometry::Brick::getHalfLengths() const
 {   return getImpl().getHalfLengths(); }
 
 const Geo::Box& ContactGeometry::Brick::getGeoBox() const {
@@ -89,16 +89,16 @@ createDecorativeGeometry() const {
 
 Vec3 ContactGeometry::Brick::Impl::
 findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
-    SimTK_ASSERT_ALWAYS(!"implemented", 
+    SimTK_ASSERT_ALWAYS(!"implemented",
                         "ContactGeometry::Brick::Impl::findNearestPoint()");
     return Vec3(NaN);
 
 }
 
 bool ContactGeometry::Brick::Impl::
-intersectsRay(const Vec3& origin, const UnitVec3& direction, 
+intersectsRay(const Vec3& origin, const UnitVec3& direction,
               Real& distance, UnitVec3& normal) const {
-    SimTK_ASSERT_ALWAYS(!"implemented", 
+    SimTK_ASSERT_ALWAYS(!"implemented",
                         "ContactGeometry::Brick::Impl::intersectsRay()");
     return false;
 }

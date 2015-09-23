@@ -36,7 +36,7 @@
 static booleantype cpRootAlloc(CPodeMem cp_mem, int nrt);
 static int cpRootfind(CPodeMem cp_mem, realtype ttol);
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
@@ -100,7 +100,7 @@ int CPodeRootInit(void *cpode_mem, int nrtfn, CPRootFn gfun, void *g_data)
   cp_mem->cp_gfun   = gfun;
   cp_mem->cp_g_data = g_data;
 
-  /* Set default values for rootdir (both directions) 
+  /* Set default values for rootdir (both directions)
    * and for gactive (all active) */
   for(i=0; i<nrtfn; i++) {
     cp_mem->cp_rootdir[i] = 0;
@@ -114,7 +114,7 @@ int CPodeRootInit(void *cpode_mem, int nrtfn, CPRootFn gfun, void *g_data)
 }
 
 
-/* 
+/*
  * =================================================================
  * Readibility Constants
  * =================================================================
@@ -149,16 +149,16 @@ int CPodeRootInit(void *cpode_mem, int nrtfn, CPRootFn gfun, void *g_data)
 #define trout          (cp_mem->cp_trout)
 #define grout          (cp_mem->cp_grout)
 
-/* 
+/*
  * =================================================================
  * INTERNAL FUNCTIONS
  * =================================================================
  */
 
-/* 
+/*
  * -----------------------------------------------------------------
- * Root finding functions 
- *   cpRcheck1    | 
+ * Root finding functions
+ *   cpRcheck1    |
  *   cpRcheck2    |-> interface functions to CPode
  *   cpRcheck3    |
  *   cpRootfind
@@ -169,7 +169,7 @@ int CPodeRootInit(void *cpode_mem, int nrtfn, CPRootFn gfun, void *g_data)
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * cpRcheck1
  *
  * This routine completes the initialization of rootfinding memory
@@ -202,7 +202,7 @@ int cpRcheck1(CPodeMem cp_mem)
   ttol = (ABS(tn) + ABS(h))*uround*FUZZ_FACTOR;
 
   /*
-   * Evaluate g at initial t and check for zero values. 
+   * Evaluate g at initial t and check for zero values.
    * Note that cpRcheck1 is called at the first step
    * before scaling zn[1] and therefore, y'(t0)=zn[1].
    */
@@ -224,10 +224,10 @@ int cpRcheck1(CPodeMem cp_mem)
   if (!zroot) return(CP_SUCCESS);
 
   /*
-   * Some g_i is zero at t0; look at g at t0+(small increment). 
+   * Some g_i is zero at t0; look at g at t0+(small increment).
    * At the initial time and at order 1, we have:
    * y(t0+smallh) = zn[0] + (smallh/h) * zn[1]
-   * y'(t0+smallh) = zn[1] 
+   * y'(t0+smallh) = zn[1]
    */
 
   hratio = MAX(ttol/ABS(h), PT1);
@@ -259,9 +259,9 @@ int cpRcheck1(CPodeMem cp_mem)
  * This routine is called at the beginning of a step to find the beginning tlo
  * of the next root search interval, which is usually the end (thi) of the
  * previous search interval. But it first checks for exact zeros of any active
- * g at thi. It then checks for a close pair of zeros (a condition that 
- * would trigger making inactive the corresponding components 
- * of g), and for a new root at a nearby point.  
+ * g at thi. It then checks for a close pair of zeros (a condition that
+ * would trigger making inactive the corresponding components
+ * of g), and for a new root at a nearby point.
  * The endpoint thi of the previous search interval is thus adjusted
  * if necessary to assure that all active g_i are nonzero there,
  * before returning to do a root search in the interval.
@@ -354,8 +354,8 @@ int cpRcheck2(CPodeMem cp_mem)
  * On entry, both thi and ghi=g(thi) should have been evaluated. We start by
  * setting tlo=thi and glo=ghi, shiting the search interval to start at the
  * end of the previous one.
- * On return, if there is a root it is in (tlo,thi] which will have been 
- * adjusted to a very narrow bracket around the zero crossing. If there is no 
+ * On return, if there is a root it is in (tlo,thi] which will have been
+ * adjusted to a very narrow bracket around the zero crossing. If there is no
  * root then thi and ghi are at the end of the search interval, where they can
  * serve as the start for the next one.
  *
@@ -406,7 +406,7 @@ int cpRcheck3(CPodeMem cp_mem)
     if(!gactive[i] && grout[i] != ZERO) gactive[i] = TRUE;
   }
 
-  /* If no root found, return CP_SUCCESS. */  
+  /* If no root found, return CP_SUCCESS. */
   if (ier == CP_SUCCESS) return(CP_SUCCESS);
 
   /* If a root was found, interpolate to get y(trout) and return.  */
@@ -442,7 +442,7 @@ int cpRcheck3(CPodeMem cp_mem)
  *            set to TRUE for all i=0,...,nrtfn-1, but it may be
  *            reset to FALSE if at the first step g[i] is 0.0
  *            both at the I.C. and at a small perturbation of them.
- *            gactive[i] is then set back on TRUE only after the 
+ *            gactive[i] is then set back on TRUE only after the
  *            corresponding g function moves away from 0.0.
  *
  * rootdir  = array specifying the direction of zero-crossings.
@@ -474,7 +474,7 @@ int cpRcheck3(CPodeMem cp_mem)
  *            none of the active glo[i] should be zero.
  *
  * trout    = root location (same as thi), if a root was found, or the original
- *            value of thi if not. Output only. trout is the endpoint thi of 
+ *            value of thi if not. Output only. trout is the endpoint thi of
  *            the final interval (tlo,thi] bracketing the root, with |thi-tlo|
  *            at most ttol.
  *
@@ -512,11 +512,11 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
    */
   alpha = ONE;
 
-  /* First, for each active g function, check whether an event occurred in 
+  /* First, for each active g function, check whether an event occurred in
    * (tlo,thi). Since glo != 0 for an active component, this means we check for
-   * a sign change or for ghi = 0 (taking into account rootdir). For each 
+   * a sign change or for ghi = 0 (taking into account rootdir). For each
    * component that triggers an event, we estimate a "proposal" mid point (by
-   * bisection if ghi=0 or with secant method otherwise) and select the one 
+   * bisection if ghi=0 or with secant method otherwise) and select the one
    * closest to tlo. */
   zroot = FALSE;
   tmid = thi;
@@ -526,7 +526,7 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
     if ( (glo[i]*ghi[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) {
       zroot = TRUE;
       if (ghi[i] == ZERO) {
-        my_tmid = thi - HALF * (thi-tlo); 
+        my_tmid = thi - HALF * (thi-tlo);
       } else {
         my_tmid = thi - (thi - tlo)*ghi[i]/(ghi[i] - alpha*glo[i]);
       }
@@ -580,12 +580,12 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
       if ( (glo[i]*grout[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) {
         zroot = TRUE;
         if (grout[i] == ZERO) {
-          my_tmid = thi - HALF * (thi-tlo); 
+          my_tmid = thi - HALF * (thi-tlo);
         } else {
           my_tmid = thi - (thi - tlo)*grout[i]/(grout[i] - alpha*glo[i]);
         }
         if ( (my_tmid-tmid)*h < ZERO ) tmid = my_tmid;
-      }      
+      }
     }
 
     /* If we detected an event in the "low" side:
@@ -617,18 +617,18 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
     for (i = 0; i < nrtfn; i++) glo[i] = grout[i];
     if (ABS(thi - tlo) <= ttol) break;
 
-    tmid = thi;  
+    tmid = thi;
     for (i = 0;  i < nrtfn; i++) {
       if(!gactive[i]) continue;
 
       if ( (glo[i]*ghi[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) {
         if (ghi[i] == ZERO) {
-          my_tmid = thi - HALF * (thi-tlo); 
+          my_tmid = thi - HALF * (thi-tlo);
         } else {
           my_tmid = thi - (thi - tlo)*ghi[i]/(ghi[i] - alpha*glo[i]);
         }
         if ( (my_tmid-tmid)*h < ZERO ) tmid = my_tmid;
-      }      
+      }
     }
 
     side = 2;
@@ -638,7 +638,7 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
   } /* End of root-search loop */
 
   /* Root has been isolated to (tlo,thi] and |thi-tlo| <= ttol. We'll declare
-  that the root was found at trout=thi. 
+  that the root was found at trout=thi.
      - Reset trout and grout
      - Set iroots
      - Return RTFOUND. */
@@ -647,7 +647,7 @@ static int cpRootfind(CPodeMem cp_mem, realtype ttol)
     grout[i] = ghi[i];
     iroots[i] = 0;
     if(!gactive[i]) continue;
-    if ( (glo[i]*ghi[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) ) 
+    if ( (glo[i]*ghi[i] <= ZERO) && (rootdir[i]*glo[i] <= ZERO) )
       iroots[i] = glo[i] > 0 ? -1:1;
   }
 
@@ -683,7 +683,7 @@ static booleantype cpRootAlloc(CPodeMem cp_mem, int nrt)
   iroots = NULL;
   iroots = (int *) malloc(nrt*sizeof(int));
   if (iroots == NULL) {
-    free(glo); glo = NULL; 
+    free(glo); glo = NULL;
     free(ghi); ghi = NULL;
     free(grout); grout = NULL;
     return(FALSE);
@@ -692,7 +692,7 @@ static booleantype cpRootAlloc(CPodeMem cp_mem, int nrt)
   rootdir = NULL;
   rootdir = (int *) malloc(nrt*sizeof(int));
   if (rootdir == NULL) {
-    free(glo); glo = NULL; 
+    free(glo); glo = NULL;
     free(ghi); ghi = NULL;
     free(grout); grout = NULL;
     free(iroots); iroots = NULL;
@@ -701,7 +701,7 @@ static booleantype cpRootAlloc(CPodeMem cp_mem, int nrt)
   gactive = NULL;
   gactive = (booleantype *) malloc(nrt*sizeof(booleantype));
   if (gactive == NULL) {
-    free(glo); glo = NULL; 
+    free(glo); glo = NULL;
     free(ghi); ghi = NULL;
     free(grout); grout = NULL;
     free(iroots); iroots = NULL;

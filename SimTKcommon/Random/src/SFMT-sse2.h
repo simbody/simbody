@@ -1,4 +1,4 @@
-/** 
+/**
  * @file  SFMT-sse2.h
  * @brief SIMD oriented Fast Mersenne Twister(SFMT) for Intel SSE2
  *
@@ -28,10 +28,10 @@ PRE_ALWAYS static __m128i mm_recursion(__m128i *a, __m128i *b, __m128i c,
  * @param mask 128-bit mask
  * @return output
  */
-PRE_ALWAYS static __m128i mm_recursion(__m128i *a, __m128i *b, 
+PRE_ALWAYS static __m128i mm_recursion(__m128i *a, __m128i *b,
                    __m128i c, __m128i d, __m128i mask) {
     __m128i v, x, y, z;
-    
+
     x = _mm_load_si128(a);
     y = _mm_srli_epi32(*b, SR1);
     z = _mm_srli_si128(c, SR2);
@@ -74,7 +74,7 @@ inline static void gen_rand_all(void) {
  * This function fills the user-specified array with pseudorandom
  * integers.
  *
- * @param array an 128-bit array to be filled by pseudorandom numbers.  
+ * @param array an 128-bit array to be filled by pseudorandom numbers.
  * @param size number of 128-bit pesudorandom numbers to be generated.
  */
 inline static void gen_rand_array(w128_t *array, int size) {

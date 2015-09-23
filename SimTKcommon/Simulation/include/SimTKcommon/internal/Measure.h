@@ -26,11 +26,11 @@
 
 /** @file
  *
- * This file declares the base class AbstractMeasure for all derived Measure 
- * handle classes, and the handle classes for built-in Measures. Measure 
- * handles provide the end user API, while the implementations of Measures 
+ * This file declares the base class AbstractMeasure for all derived Measure
+ * handle classes, and the handle classes for built-in Measures. Measure
+ * handles provide the end user API, while the implementations of Measures
  * derive from the abstract Measure::Implementation class defined in
- * MeasureImplementation.h. Measure Implementation classes provide the Measure 
+ * MeasureImplementation.h. Measure Implementation classes provide the Measure
  * developer's API.
  */
 
@@ -40,22 +40,22 @@
 #include <cassert>
 
 /**
- * Every concrete measure handle class "MH" derived from a parent handle "PH" 
- * that derives directly or indirectly from the AbstractMeasure handle class 
- * should include the macro SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH) at the 
- * beginning of the public section of its declaration. It performs the following 
+ * Every concrete measure handle class "MH" derived from a parent handle "PH"
+ * that derives directly or indirectly from the AbstractMeasure handle class
+ * should include the macro SimTK_MEASURE_HANDLE_PREAMBLE(MH,PH) at the
+ * beginning of the public section of its declaration. It performs the following
  * declarations:
  * <pre>
  *   MH::Implementation         the handle's local implementation class
  *   MH::MH()                   default constructor creates an empty handle
  *   MH::MH(Implementation*)    create a handle referencing an existing object
- *   MH::MH(Subsystem&, Implementation*)  
+ *   MH::MH(Subsystem&, Implementation*)
  *                              create a handle referencing an existing but
  *                                unowned object, then installs that in the
  *                                given Subsystem which becomes the owner
  * </pre>
  *
- * MH::Implementation must be defined elsewhere as a class derived 
+ * MH::Implementation must be defined elsewhere as a class derived
  * from Measure::Implementation.
  */
 
@@ -94,8 +94,8 @@
  * abstract measure handle class "Measure" should include this macro at
  * the end of the "public" section of its declaration. The macro expects
  * there to be a local class, MH::Implementation,
- * already declared. (MH::Implementation is the type of MH's 
- * implementation object to be derived from Measure::Implementation 
+ * already declared. (MH::Implementation is the type of MH's
+ * implementation object to be derived from Measure::Implementation
  * and defined elsewhere.) Then the following
  * type-safe downcast methods will be added to MH's definition:
  * <pre>
@@ -120,7 +120,7 @@
                     (SimTK::AbstractMeasure::getImpl());}                   \
     Implementation& updImpl()                                               \
     {   return SimTK_DYNAMIC_CAST_DEBUG<Implementation&>                    \
-                    (SimTK::AbstractMeasure::updImpl());} 
+                    (SimTK::AbstractMeasure::updImpl());}
 
 namespace SimTK {
 
@@ -129,7 +129,7 @@ class Subsystem;
 class System;
 class EventId;
 
-/// Define a unique integral type for safe indexing of Measures. 
+/// Define a unique integral type for safe indexing of Measures.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
 
 //==============================================================================
@@ -137,21 +137,21 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MeasureIndex);
 //==============================================================================
 /** This is the base class for all Measure handle classes. This class is not
 templatized, and represents a Measure generically without knowledge of its
-value type. This is useful for most of the basic operations that are 
-performed on measures, such as realization, adoption by a Subsystem, and 
-other bookkeeping tasks. For most user purposes, the still-generic derived 
-class Measure_<T> is a more useful handle since its value, of known type T, 
-can be obtained. All the built-in concrete Measure types derive from 
-Measure_<T> rather than AbstractMeasure. The various concrete Measures, 
-built in or otherwise, may set restrictions on the kinds of types that 
+value type. This is useful for most of the basic operations that are
+performed on measures, such as realization, adoption by a Subsystem, and
+other bookkeeping tasks. For most user purposes, the still-generic derived
+class Measure_<T> is a more useful handle since its value, of known type T,
+can be obtained. All the built-in concrete Measure types derive from
+Measure_<T> rather than AbstractMeasure. The various concrete Measures,
+built in or otherwise, may set restrictions on the kinds of types that
 are allowable as the template argument.
 
 Note that handles always consist of exactly one pointer, and handle classes
 are always concrete (meaning they have no virtual methods). **/
 class SimTK_SimTKCOMMON_EXPORT AbstractMeasure {
 protected:
-    /// An object of this type is used as a dummy argument to make sure the 
-    /// automatically-generated handle constructor's signature doesn't conflict 
+    /// An object of this type is used as a dummy argument to make sure the
+    /// automatically-generated handle constructor's signature doesn't conflict
     /// with an explicitly-defined one.
     class SetHandle {};
 
@@ -185,7 +185,7 @@ public:
 
     /// Shallow assignment operator destructs the current Implementation
     /// object (meaning its reference count is decremented and the object
-    /// actually deleted only if the count goes to zero), then copies the 
+    /// actually deleted only if the count goes to zero), then copies the
     /// Implementation pointer from the source and bumps its reference count.
     /// This is what the copy assignment operator= does for this class.
     AbstractMeasure& shallowAssign(const AbstractMeasure&);
@@ -206,13 +206,13 @@ public:
     int getNumTimeDerivatives() const;
 
     /// At what Stage can we expect the value of this AbstractMeasure or
-    /// one of its time derivatives to be available? Users of Measures will 
+    /// one of its time derivatives to be available? Users of Measures will
     /// typically impose restrictions on the levels they will accept.
     /// @param[in] derivOrder
     ///     Which derivative level is to be checked: 0 -> the value,
     ///     1 -> the 1st time derivative, etc. Must not be higher than the
     ///     value returned by getNumTimeDerivatives().
-    /// @return The Stage after which this value is available.                  
+    /// @return The Stage after which this value is available.
     Stage getDependsOnStage(int derivOrder=0) const;
 
 
@@ -228,8 +228,8 @@ public:
     /// throw an exception if the Measure is not currently owned by any
     /// Subsystem.
     const Subsystem& getSubsystem()  const;
-    /// Return the MeasureIndex by which this Measure is known to the Subsystem 
-    /// that owns it. Will throw an exception if the Measure is not currently 
+    /// Return the MeasureIndex by which this Measure is known to the Subsystem
+    /// that owns it. Will throw an exception if the Measure is not currently
     /// owned by any Subsystem.
     MeasureIndex getSubsystemMeasureIndex() const;
 
@@ -243,8 +243,8 @@ public:
 
     int getRefCount() const;
 private:
-    // This is the only data member in this class. Also, any class derived 
-    // from AbstractMeasure must have *NO* data members at all (data goes 
+    // This is the only data member in this class. Also, any class derived
+    // from AbstractMeasure must have *NO* data members at all (data goes
     // in the Implementation class).
     Implementation* impl;
 
@@ -264,31 +264,31 @@ public:
     Implementation object in its default constructor. **/
     SimTK_MEASURE_HANDLE_PREAMBLE_ABSTRACT(Measure_, AbstractMeasure);
 
-    /** Retrieve the Value of this Measure or one of its time derivatives, 
-    assuming the supplied State has been realized to at least the required 
+    /** Retrieve the Value of this Measure or one of its time derivatives,
+    assuming the supplied State has been realized to at least the required
     stage for the selected value or derivative, as reported by
-    getDependsOnStage(). If the stage is sufficient but the corresponding 
-    value has not yet been computed, it will be computed first with its 
-    value going into this State's cache so that subsequent calls do not 
+    getDependsOnStage(). If the stage is sufficient but the corresponding
+    value has not yet been computed, it will be computed first with its
+    value going into this State's cache so that subsequent calls do not
     require further computation. **/
-    const T& getValue(const State& s, int derivOrder=0) const 
+    const T& getValue(const State& s, int derivOrder=0) const
     {   return getImpl().getValue(s,derivOrder); }
 
     /** Change the default value associated with this %Measure. How this is
     used varies with the %Measure type but generally it is the value that
-    the %Measure will have before any calculations are performed. Note 
-    that this does not require a State since it is a Topology-stage 
+    the %Measure will have before any calculations are performed. Note
+    that this does not require a State since it is a Topology-stage
     change; you have to call realizeTopology() again if you call this
     method. **/
-    Measure_& setDefaultValue(const T& defaultValue) 
+    Measure_& setDefaultValue(const T& defaultValue)
     {   updImpl().setDefaultValue(defaultValue); return *this; }
 
-    /** Obtain a reference to the default value associated with 
+    /** Obtain a reference to the default value associated with
     this %Measure. **/
     const T& getDefaultValue() const
     {   return getImpl().getDefaultValue(); }
 
-    // These are built-in Measures with local class names. 
+    // These are built-in Measures with local class names.
 
     // Templatized measures may have restrictions on the allowable template
     // type and may be specialized for particular types.
@@ -322,7 +322,7 @@ public:
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Measure_, AbstractMeasure);
 };
 
-/** This typedef is a convenient abbreviation for the most common kind of 
+/** This typedef is a convenient abbreviation for the most common kind of
 %Measure -- one that returns a single Real result; the underlying class is
 Measure_; look there for documentation. **/
 typedef Measure_<Real> Measure;
@@ -333,27 +333,27 @@ typedef Measure_<Real> Measure;
 //==============================================================================
 /** This creates a Measure whose value is a Topology-stage constant of any
 type T. This does not have to be part of a Subsystem, but if it is then changing
-the constant's value invalidates the containing Subsystem's Topology. 
+the constant's value invalidates the containing Subsystem's Topology.
 @tparam T   This can be any type that supports copy construction. **/
 template <class T>
 class Measure_<T>::Constant : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Constant, Measure_<T>);
 
-    /** Create a constant measure that is not part of any Subsystem, and 
+    /** Create a constant measure that is not part of any Subsystem, and
     provide the constant value. **/
     explicit Constant(const T& value)
     :   Measure_<T>(new Implementation(value)) {}
 
-    /** Create a constant measure with the given \a value and install it into 
+    /** Create a constant measure with the given \a value and install it into
     the given Subsystem. **/
     Constant(Subsystem& sub, const T& value)
-    :   Measure_<T>(sub, new Implementation(value), 
+    :   Measure_<T>(sub, new Implementation(value),
                     AbstractMeasure::SetHandle()) {}
 
-    /** Change the value returned by this %Measure. Note that this does not 
+    /** Change the value returned by this %Measure. Note that this does not
     require a State since it is a Topology-stage change. **/
-    Constant& setValue(const T& value) 
+    Constant& setValue(const T& value)
     {   updImpl().setValue(value); return *this; }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Constant, Measure_<T>);
@@ -362,7 +362,7 @@ public:
 //==============================================================================
 //                                   ZERO
 //==============================================================================
-/** This creates a Measure::Constant whose value is always T(0) and can't be 
+/** This creates a Measure::Constant whose value is always T(0) and can't be
 changed. This class is specialized for Vector so that you must provide a
 size at construction. **/
 template <class T>
@@ -382,7 +382,7 @@ public:
 //==============================================================================
 //                                    ONE
 //==============================================================================
-/** This creates a Measure::Constant whose value is always T(1) and can't be 
+/** This creates a Measure::Constant whose value is always T(1) and can't be
 changed. This class is specialized for Vector so that you must provide a
 size at construction. **/
 template <class T>
@@ -414,18 +414,18 @@ public:
 //==============================================================================
 //                                 VARIABLE
 //==============================================================================
-/** This creates a Measure whose value is a discrete State variable of any 
+/** This creates a Measure whose value is a discrete State variable of any
 type T. **/
 template <class T>
 class Measure_<T>::Variable : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Variable, Measure_<T>);
 
-    // TODO: should not require invalidated Stage here. Instead, 
+    // TODO: should not require invalidated Stage here. Instead,
     // should have a unique "generation" counter for this variable
     // and allow subsequent users to check it.
     Variable(Subsystem& sub, Stage invalidates, const T& defaultValue)
-    :   Measure_<T>(sub, new Implementation(invalidates, defaultValue), 
+    :   Measure_<T>(sub, new Implementation(invalidates, defaultValue),
                     AbstractMeasure::SetHandle()) {}
 
 
@@ -441,7 +441,7 @@ public:
 /** This Measure holds the result of some externally-determined computation,
 and helps to coordinate the validity of that computation with respect
 to the state variables. The value must be set manually and explicitly
-marked valid when it is complete. The value will be automatically 
+marked valid when it is complete. The value will be automatically
 invalidated after a state change at or below a specified Stage, and changing
 the value here will automatically invalidate a specified Stage and above.
 
@@ -456,7 +456,7 @@ class Measure_<T>::Result : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Result, Measure_<T>);
 
-    // TODO: should not require invalidated Stage here. Instead, 
+    // TODO: should not require invalidated Stage here. Instead,
     // should have a unique "generation" counter for this cache entry
     // and allow subsequent users of the value to check it.
 
@@ -475,7 +475,7 @@ public:
     /// Set \a invalidated = Stage::Infinity if you don't want anything
     /// invalidated when this value is changed.
     Result(Subsystem& sub, Stage dependsOn, Stage invalidated)
-    :   Measure_<T>(sub, new Implementation(dependsOn, invalidated), 
+    :   Measure_<T>(sub, new Implementation(dependsOn, invalidated),
                     AbstractMeasure::SetHandle()) {}
 
     /// Get the \a dependsOn stage for this measure's value.
@@ -486,29 +486,29 @@ public:
     /// be strictly less than the current setting for the \a invalidated
     /// stage. If you set the dependsOn stage to Stage::Empty it will be
     /// interpreted as Stage::Topology since the value must always depend
-    /// on at least topology. Setting the dependsOn stage is itself a 
-    /// topological change requiring reallocation of the value if it has 
+    /// on at least topology. Setting the dependsOn stage is itself a
+    /// topological change requiring reallocation of the value if it has
     /// already been allocated; you must call realizeTopology() again.
-    Result& setDependsOnStage(Stage dependsOn) 
+    Result& setDependsOnStage(Stage dependsOn)
     {   updImpl().setDependsOnStage(dependsOn); return *this; }
     /// Change the \a invalidated stage for this measure's value, which must
     /// be strictly greater than the current setting for the \a dependsOn
-    /// stage. This is a topological change requiring reallocation of the 
-    /// value if it has already been allocated; you must call 
+    /// stage. This is a topological change requiring reallocation of the
+    /// value if it has already been allocated; you must call
     /// realizeTopology() again.
-    Result& setInvalidatedStage(Stage invalidated) 
+    Result& setInvalidatedStage(Stage invalidated)
     {   updImpl().setInvalidatedStage(invalidated); return *this; }
 
     /// Normally a Result measure's value is not considered valid unless
     /// we are notified explicitly that it is, via a call to markAsValid()
     /// or setValue(); this method allows the value to be assumed valid
     /// after the \a dependsOn stage has been realized. The reason this
-    /// exists is that in some cases it is difficult to find a place from 
+    /// exists is that in some cases it is difficult to find a place from
     /// which to call markAsValid(). That means you must set the value during
     /// realization of the dependsOn stage, but there is no way for this to
     /// be checked automatically. Thus use of this feature can lead
     /// to very difficult-to-find bugs; you should try hard to find a place
-    /// to call markAsValid() before resorting to this method. This is a 
+    /// to call markAsValid() before resorting to this method. This is a
     /// topological change requiring reallocation of the value if it has
     /// already been allocated; you must call realizeTopology() again.
     Result& setIsPresumedValidAtDependsOnStage(bool presume)
@@ -530,7 +530,7 @@ public:
 
     /// Mark the current value as valid. This is done automatically if you
     /// call setValue() but must be done manually if you use updValue() to
-    /// access the value. Note that you cannot mark this valid if 
+    /// access the value. Note that you cannot mark this valid if
     /// \a state hasn't been realized already to at least the stage prior
     /// to this measure's \a dependsOn stage; that is, you must at least
     /// be working on the dependsOn stage at the time this is called.
@@ -541,14 +541,14 @@ public:
     /// calling getValue() will throw an exception.
     bool isValid(const State& state) const {return getImpl().isValid(state);}
 
-    /// Manually mark the contained value as invalid. This will also 
-    /// invalidate any stages in \a state that depend on this value. This 
+    /// Manually mark the contained value as invalid. This will also
+    /// invalidate any stages in \a state that depend on this value. This
     /// is called automatically whenever the updValue() method is invoked,
     /// and the value starts out invalid. The value becomes valid either
     /// by calling markAsValid() explicitly or calling setValue().
     /// @warning If you have set this Result measure to be presumed valid
     /// at dependsOn stage, this method will have no effect.
-    void markAsNotValid(const State& state) const 
+    void markAsNotValid(const State& state) const
     {   getImpl().markAsNotValid(state); }
 
     /// Set a new value and mark it as valid. For more flexibility, use the
@@ -567,7 +567,7 @@ public:
 <pre>
      m(t) = a*sin(w*t+p)
 </pre>
-where a=amplitude in arbitrary units, w=frequency in rad/unit time, p=phase 
+where a=amplitude in arbitrary units, w=frequency in rad/unit time, p=phase
 in radians. **/
 template <class T>
 class Measure_<T>::Sinusoid : public Measure_<T> {
@@ -575,10 +575,10 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Sinusoid, Measure_<T>);
 
     Sinusoid(Subsystem& sub,
-             const T& amplitude, 
+             const T& amplitude,
              const T& frequency,
              const T& phase=T(0))
-    :   Measure_<T>(sub, new Implementation(amplitude,frequency,phase), 
+    :   Measure_<T>(sub, new Implementation(amplitude,frequency,phase),
                     AbstractMeasure::SetHandle()) {}
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Sinusoid, Measure_<T>);
@@ -597,7 +597,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Plus, Measure_<T>);
 
     Plus(Subsystem& sub, const Measure_<T>& left, const Measure_<T>& right)
-    :   Measure_<T>(sub, new Implementation(left, right), 
+    :   Measure_<T>(sub, new Implementation(left, right),
                     AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
            (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
@@ -614,7 +614,7 @@ public:
 //==============================================================================
 /** This Measure is the difference of two Measures of the same type T.
 @tparam T    Any type that supports a subtract operator that returns the
-             difference as another object of type T. In particular, Real, 
+             difference as another object of type T. In particular, Real,
              Vec<N>, and Vector will work. **/
 template <class T>
 class Measure_<T>::Minus : public Measure_<T> {
@@ -622,7 +622,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Minus, Measure_<T>);
 
     Minus(Subsystem& sub, const Measure_<T>& left, const Measure_<T>& right)
-    :   Measure_<T>(sub, new Implementation(left, right), 
+    :   Measure_<T>(sub, new Implementation(left, right),
                     AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
            (   this->getSubsystem().isSameSubsystem(left.getSubsystem())
@@ -639,7 +639,7 @@ public:
 //==============================================================================
 /** This Measure multiplies some other Measure by a Real scale factor.
 @tparam T    Any type that supports a scalar multiply, with the scalar on
-             the left, that returns the product as another object of type T. 
+             the left, that returns the product as another object of type T.
              In particular, Real, Vec<N>, and Vector will work. **/
 template <class T>
 class Measure_<T>::Scale : public Measure_<T> {
@@ -647,7 +647,7 @@ public:
     SimTK_MEASURE_HANDLE_PREAMBLE(Scale, Measure_<T>);
 
     Scale(Subsystem& sub, Real factor, const Measure_<T>& operand)
-    :   Measure_<T>(sub, new Implementation(factor, operand), 
+    :   Measure_<T>(sub, new Implementation(factor, operand),
                     AbstractMeasure::SetHandle())
     {   SimTK_ERRCHK_ALWAYS
            (this->getSubsystem().isSameSubsystem(operand.getSubsystem()),
@@ -656,7 +656,7 @@ public:
     }
 
     /** Get the operand (thing being scaled) measure for this measure. **/
-    const Measure_<T>& getOperandMeasure() const 
+    const Measure_<T>& getOperandMeasure() const
     { return getImpl().getOperandMeasure(); }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Scale, Measure_<T>);
@@ -665,7 +665,7 @@ public:
 //==============================================================================
 //                                 INTEGRATE
 //==============================================================================
-/** This measure yields the time integral of a given derivative measure, 
+/** This measure yields the time integral of a given derivative measure,
 initializing with an initial condition measure of the same type T. The type
 T can be Real or a fixed size Vec type like Vec<3>, or a variable-size
 Vector. But in the case of a Vector you must say at construction what size
@@ -682,25 +682,25 @@ public:
     to size and initialized the number of state variables at allocation. In
     that case both the \a ic and \a deriv measures must return Vector values
     of the same size as the allocation constant. **/
-    Integrate(Subsystem&            subsystem, 
-              const Measure_<T>&    deriv, 
+    Integrate(Subsystem&            subsystem,
+              const Measure_<T>&    deriv,
               const Measure_<T>&    ic,
               const T&              initAlloc=T(0))
-    :   Measure_<T>(subsystem, new Implementation(deriv,ic,initAlloc), 
+    :   Measure_<T>(subsystem, new Implementation(deriv,ic,initAlloc),
                     AbstractMeasure::SetHandle()) {}
 
     /** Set the current value of this measure by modifying the state variables
     that hold the integral. **/
-    void setValue(State& s, const T& value) const 
+    void setValue(State& s, const T& value) const
     {   return getImpl().setValue(s, value); }
 
     /** Get the integrand (derivative) measure for this integral. **/
-    const Measure_<T>& getDerivativeMeasure() const 
+    const Measure_<T>& getDerivativeMeasure() const
 
     {   return getImpl().getDerivativeMeasure(); }
     /** Get the measure whose value is used as an initial condition for the
     integral at the start of an integration. **/
-    const Measure_<T>& getInitialConditionMeasure() const 
+    const Measure_<T>& getInitialConditionMeasure() const
     {   return getImpl().getInitialConditionMeasure(); }
 
     Integrate& setDerivativeMeasure(const Measure_<T>& d)
@@ -718,12 +718,12 @@ public:
 or a numerical approximation of the time derivative if an analytic one is not
 available.
 
-If the operand measure provides its own derivative measure, then the value of 
-the Differentiate operator is just the value of the operand's derivative 
-measure, and this measure will have one fewer available derivatives than does 
-the operand. If the operand does not have a derivative, then we will estimate 
+If the operand measure provides its own derivative measure, then the value of
+the Differentiate operator is just the value of the operand's derivative
+measure, and this measure will have one fewer available derivatives than does
+the operand. If the operand does not have a derivative, then we will estimate
 it by the following method:
-    - retrieve the previous value f0 and previous derivative fdot0 of the 
+    - retrieve the previous value f0 and previous derivative fdot0 of the
       operand measure, and their sample time t0
     - obtain the current value f(t) of the operand
     - estimate fdot(t)=2(f-f0)/(t-t0) - fdot0  (fit a quadratic)
@@ -733,9 +733,9 @@ Special cases:
     - if t==t0 then fdot(t)=fdot0 (if available) else fdot(t)=0
     - if fdot0 not available, fdot(t)=(f-f0)/(t-t0) (first order estimate)
 
-At initialization of a timestepping study beginning at t=t0, we sample the 
+At initialization of a timestepping study beginning at t=t0, we sample the
 operand and record its initial value f0 at t0, and set fdot0=NaN. This
-ensures that we'll return zero as the initial derivative (for lack of anything 
+ensures that we'll return zero as the initial derivative (for lack of anything
 better) and then use the first order method for the first step's derivative.
 **/
 template <class T>
@@ -748,19 +748,19 @@ public:
     @param  subsystem   The Subsystem into which this measure will be placed.
     @param  operand     The Measure to be differentiated. **/
     Differentiate(Subsystem& subsystem, const Measure_<T>& operand)
-    :   Measure_<T>(subsystem, new Implementation(operand), 
+    :   Measure_<T>(subsystem, new Implementation(operand),
                     AbstractMeasure::SetHandle()) {}
 
     /** Test whether the derivative returned as the value of this measure is
     being estimated numerically, either because the operand measure is unable
     to supply its derivative or because setForceUseApproximation(true) has
     been called. **/
-    bool isUsingApproximation() const 
+    bool isUsingApproximation() const
     {   return getImpl().isUsingApproximation(); }
 
     /** Get a reference to the measure that is being differentiated by this
     measure. **/
-    const Measure_<T>& getOperandMeasure() const 
+    const Measure_<T>& getOperandMeasure() const
     {   return getImpl().getOperandMeasure(); }
 
     /** Set the measure that is to be differentiated by this measure. This is
@@ -779,7 +779,7 @@ public:
     numerical approximation regardless of whether the operand can supply its
     own derivative. Note that even if the flag is currently false (the default)
     we may still have to use approximation; see isUsingApproximation(). **/
-    bool getForceUseApproximation() const 
+    bool getForceUseApproximation() const
     {   return getImpl().getForceUseApproximation(); }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(Differentiate, Measure_<T>);
@@ -788,16 +788,16 @@ public:
 //==============================================================================
 //                 EXTREME, MINIMUM, MAXIMUM, MINABS, MAXABS
 //==============================================================================
-/** This Measure tracks extreme values attained by the elements of its source 
-operand since the last initialize() call or explicit call to setValue(). The 
-extreme is either minimum or maximum and may be determined by the actual or 
-absolute value of the operand. In any case the value of the %Extreme measure is 
+/** This Measure tracks extreme values attained by the elements of its source
+operand since the last initialize() call or explicit call to setValue(). The
+extreme is either minimum or maximum and may be determined by the actual or
+absolute value of the operand. In any case the value of the %Extreme measure is
 the actual extreme value of the operand, not its absolute value.
 
-The template type T must be the same as the template type of the operand 
+The template type T must be the same as the template type of the operand
 measure. If T is a Vec or Vector type, each element is treated separately.
 
-Normally %Extreme is not used directly; it is the common implementation 
+Normally %Extreme is not used directly; it is the common implementation
 underlying the Minimum, Maximum, MinAbs, and MaxAbs measures.
 
 Information available from this Measure:
@@ -819,9 +819,9 @@ At the start of a continuous interval, the updated value (if any)
 replaces the stored value.
 
 <h3>Extreme isolation (not implemented yet)</h3>
-If the time derivative of the 
+If the time derivative of the
 source operand is available, the measure will arrange to ensure
-precise isolation of the minimum values by defining a triggered 
+precise isolation of the minimum values by defining a triggered
 event that watches for negative-to-positive sign changes of the derivative.
 Then if you output reporting data upon the occurrence of triggered
 events (as well as your regularly scheduled output) your data will
@@ -847,7 +847,7 @@ public:
     value that is of maximum absolute value. You can change that to minimum
     and/or actual value. **/
     Extreme(Subsystem& sub, const Measure_<T>& operand, Operation op=MaxAbs)
-    :   Measure_<T>(sub, new Implementation(operand, op), 
+    :   Measure_<T>(sub, new Implementation(operand, op),
                     AbstractMeasure::SetHandle()) {}
 
     /** Set the operation to be performed. The default operation is MaxAbs. **/
@@ -858,17 +858,17 @@ public:
     Operation getOperation() const {return getImpl().getOperation();}
 
     /** Return the time at which the reported extreme value first occurred.
-    This is the current time if the operand is at its extreme value now, 
-    otherwise it is the time that the extreme value first occurred during a 
-    time stepping study. The \a state must be realized to the level required 
+    This is the current time if the operand is at its extreme value now,
+    otherwise it is the time that the extreme value first occurred during a
+    time stepping study. The \a state must be realized to the level required
     to evaluate the operand measure. **/
     Real getTimeOfExtremeValue(const State& state) const
     {   return getImpl().getTimeOfExtremeValue(state); }
 
-    void setValue(State& s, const T& value) const 
+    void setValue(State& s, const T& value) const
     {   return getImpl().setValue(s, value); }
 
-    const Measure_<T>& getOperandMeasure() const 
+    const Measure_<T>& getOperandMeasure() const
     {   return getImpl().getOperandMeasure(); }
 
     Extreme& setOperandMeasure(const Measure_<T>& s)
@@ -921,41 +921,41 @@ public:
 //==============================================================================
 //                                 DELAY
 //==============================================================================
-/** (CAUTION: still under development) 
-This is a %Measure whose value at time t is the value that its 
-\a source operand had at time t-delay for a specified \a delay. For times prior 
-to the start of a simulation this %Measure behaves as though the source value 
-had been constant at its initial value. 
+/** (CAUTION: still under development)
+This is a %Measure whose value at time t is the value that its
+\a source operand had at time t-delay for a specified \a delay. For times prior
+to the start of a simulation this %Measure behaves as though the source value
+had been constant at its initial value.
 
 When the \a source %Measure can provide a time derivative dvalue we use saved
 (t,value,dvalue) triples surrounding the required time to construct a cubic
 Hermite interpolant giving a third-order accurate estimate of the delayed
 value. Otherwise we use more data points to construct the cubic interpolant but
-the accuracy cannot be guaranteed. If there aren't enough data points, then 
-linear interpolation is used instead. There is an option to force use of linear 
+the accuracy cannot be guaranteed. If there aren't enough data points, then
+linear interpolation is used instead. There is an option to force use of linear
 interpolation if you prefer.
 
 In the case where the delayed time is within the current step, we would need
 the current \a source value in order to interpolate. We assume that is not
 available (commonly the current value depends on the delayed value) so have to
-extrapolate beyond the last buffered value in that case. Extrapolation is 
-considerably less accurate than interpolation, so when step sizes are large 
-compared to delay times the accuracy of the delayed value is reduced. In cases 
+extrapolate beyond the last buffered value in that case. Extrapolation is
+considerably less accurate than interpolation, so when step sizes are large
+compared to delay times the accuracy of the delayed value is reduced. In cases
 where the \a source does not depend on its delayed value, you can request that
-the current value be used if necessary, ensuring consistent accuracy. 
-Alternatively, you can set the maximum integrator step size to be just less 
+the current value be used if necessary, ensuring consistent accuracy.
+Alternatively, you can set the maximum integrator step size to be just less
 than the minimum delay time, guaranteeing that there will always be an entry
-already in the buffer that is later than any requested delayed time. That 
+already in the buffer that is later than any requested delayed time. That
 could have a substantial performance penalty if steps much larger than the
 delay would otherwise have been taken.
 
 <h3>%Implementation</h3>
-This %Measure maintains a variable-sized buffer holding values that the 
+This %Measure maintains a variable-sized buffer holding values that the
 \a source measure and its time derivative (if available) had at each time step
-starting just prior to t-delay until just before the current time t. New values 
+starting just prior to t-delay until just before the current time t. New values
 are added to the end of the buffer as integrator steps are completed, and old
-values that are no longer needed are removed from the beginning. When a value is 
-requested at current time t, the %Measure interpolates using values from just 
+values that are no longer needed are removed from the beginning. When a value is
+requested at current time t, the %Measure interpolates using values from just
 prior to t-delay and just afterwards to approximate the value at t-delay.
 
 @bug Only linear interpolation implemented so far.
@@ -977,12 +977,12 @@ public:
     /** Create a %Measure whose output is the same as the given \a source
     measure but delayed by a time \a delay. **/
     Delay(Subsystem& sub, const Measure_<T>& source, Real delay)
-    :   Measure_<T>(sub, new Implementation(source, delay), 
+    :   Measure_<T>(sub, new Implementation(source, delay),
                     AbstractMeasure::SetHandle()) {}
 
     /** (Advanced) Restrict the %Delay measure to use only linear interpolation
-    to estimate delayed values. By default it uses cubic interpolation whenever 
-    possible. Cubic interpolation will almost always be better but can be 
+    to estimate delayed values. By default it uses cubic interpolation whenever
+    possible. Cubic interpolation will almost always be better but can be
     unstable in some circumstances. Despite its name this flag also applies
     to extrapolation if we have to do any. This is a topological change. **/
     Delay& setUseLinearInterpolationOnly(bool linearOnly)
@@ -990,15 +990,15 @@ public:
 
     /** (Advanced) Allow the %Delay measure to refer to the current
     value when estimating the delayed value. Normally we expect that the current
-    value might depend on the delayed value so is not available at the time 
-    we ask for the delayed value. That means that if the delayed time is 
+    value might depend on the delayed value so is not available at the time
+    we ask for the delayed value. That means that if the delayed time is
     between the current time and the last saved time (that is, it is a time
-    during the current integration step), the measure will have to 
+    during the current integration step), the measure will have to
     extrapolate from the last-saved values to avoid requiring the current
     value to be available. With this approach the "depends on" time for a %Delay
     measure is just Time stage since it does not depend on any current
-    calculations. However, \e extrapolation is much less accurate than 
-    \e interpolation so if you don't mind the "depends on" stage for a %Delay 
+    calculations. However, \e extrapolation is much less accurate than
+    \e interpolation so if you don't mind the "depends on" stage for a %Delay
     measure being the same stage as for its \a source measure, then you can get
     nicer interpolated values. This is a topological change. **/
     Delay& setCanUseCurrentValue(bool canUseCurrentValue)
@@ -1038,9 +1038,9 @@ public:
 //                              SAMPLE AND HOLD
 //==============================================================================
 /** NOT IMPLEMENTED YET --
-This is a Measure operator which, upon occurrence of a designated event, 
-samples its source Measure and then holds its value in a discrete state 
-variable until the next occurrence of the event. Any type of data can be 
+This is a Measure operator which, upon occurrence of a designated event,
+samples its source Measure and then holds its value in a discrete state
+variable until the next occurrence of the event. Any type of data can be
 sampled this way.
 
 Information available from this Measure:

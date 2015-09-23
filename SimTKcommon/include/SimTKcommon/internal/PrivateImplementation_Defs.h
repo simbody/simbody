@@ -34,7 +34,7 @@
  * included with SimTKcommon.h. It is intended to be included explicitly in
  * compilation units where the private implementations are being defined.
  * When used in SimTK Core software, this header will be included only
- * in library-side compilation units. 
+ * in library-side compilation units.
  */
 
 #include "SimTKcommon/internal/PrivateImplementation.h"
@@ -86,7 +86,7 @@ PIMPLImplementation<HANDLE, IMPL>& PIMPLImplementation<HANDLE, IMPL>::operator=(
 
 template <class HANDLE, class IMPL>
 void PIMPLImplementation<HANDLE, IMPL>::setOwnerHandle(HANDLE& p) {
-    assert(!hasOwnerHandle()); 
+    assert(!hasOwnerHandle());
     ownerHandle=&p;
     incrementHandleCount();
 }
@@ -100,7 +100,7 @@ int PIMPLImplementation<HANDLE, IMPL>::removeOwnerHandle() {
 
 template <class HANDLE, class IMPL>
 void PIMPLImplementation<HANDLE, IMPL>::replaceOwnerHandle(HANDLE& p) {
-    assert(hasOwnerHandle()); 
+    assert(hasOwnerHandle());
     ownerHandle=&p;
 }
 
@@ -116,7 +116,7 @@ bool PIMPLImplementation<HANDLE, IMPL>::isOwnerHandle(const HANDLE& p) const {
 
 template <class HANDLE, class IMPL>
 const HANDLE& PIMPLImplementation<HANDLE, IMPL>::getOwnerHandle() const {
-    assert(hasOwnerHandle()); 
+    assert(hasOwnerHandle());
     return *ownerHandle;
 }
 
@@ -136,14 +136,14 @@ template <class HANDLE, class IMPL, bool PTR>
 PIMPLHandle<HANDLE,IMPL,PTR>::~PIMPLHandle() {
     // reduces the implementation reference count and deletes it if it hits 0
     clearHandle();
-} 
+}
 
 // copy constructor
 template <class HANDLE, class IMPL, bool PTR>
 PIMPLHandle<HANDLE,IMPL,PTR>::PIMPLHandle(const PIMPLHandle& src) : impl(0) {
     if (PTR) referenceAssign(src.downcastToHandle());
     else     copyAssign(src.downcastToHandle());
-}                   
+}
 
 // copy assignment
 template <class HANDLE, class IMPL, bool PTR>
@@ -152,7 +152,7 @@ operator=(const PIMPLHandle& src) {
     if (PTR) referenceAssign(src.downcastToHandle());
     else     copyAssign(src.downcastToHandle());
     return *this;
-} 
+}
 
 template <class HANDLE, class IMPL, bool PTR>
 bool PIMPLHandle<HANDLE,IMPL,PTR>::isOwnerHandle() const {
@@ -232,13 +232,13 @@ setImpl(IMPL* p){
 // Remove this handle from its current implementation (if any). If this was the
 // owner handle, we clear the owner reference in the implementation. We decrement
 // the implementation's handle count and delete the implementation if this
-// was the last handle referencing it. 
+// was the last handle referencing it.
 template <class HANDLE, class IMPL, bool PTR>
 void PIMPLHandle<HANDLE,IMPL,PTR>::
 clearHandle() {
     if (isEmptyHandle()) return; // handle is already clear
-    const int nHandlesLeft = 
-        isOwnerHandle() ? impl->removeOwnerHandle() 
+    const int nHandlesLeft =
+        isOwnerHandle() ? impl->removeOwnerHandle()
                         : impl->decrementHandleCount();
     if (nHandlesLeft == 0)
         delete impl;
@@ -249,7 +249,7 @@ template <class HANDLE, class IMPL, bool PTR>
 int PIMPLHandle<HANDLE,IMPL,PTR>::
 getImplHandleCount() const {
     assert(!isEmptyHandle());
-    return impl->getHandleCount(); 
+    return impl->getHandleCount();
 }
 
     ////////////////////////////////

@@ -38,10 +38,10 @@ namespace SimTK {
 //                                   ROD
 //==============================================================================
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Rod, Constraint::RodImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::Rod, Constraint::RodImpl,
                                         Constraint);
 
-Constraint::Rod::Rod(MobilizedBody& mobod_F, MobilizedBody& mobod_B, 
+Constraint::Rod::Rod(MobilizedBody& mobod_F, MobilizedBody& mobod_B,
                      Real defaultRodLength)
 :   Constraint(new RodImpl())
 {
@@ -68,7 +68,7 @@ Constraint::Rod::Rod(MobilizedBody& mobod_F, MobilizedBody& mobod_B,
 }
 
 Constraint::Rod::Rod(MobilizedBody& mobod_F, const Vec3& station_F,
-                     MobilizedBody& mobod_B, const Vec3& station_B, 
+                     MobilizedBody& mobod_B, const Vec3& station_B,
                      Real defaultRodLength)
 :   Constraint(new RodImpl())
 {
@@ -115,17 +115,17 @@ setDefaultRodLength(Real length) {
     return *this;
 }
 
-const Constraint::Rod& Constraint::Rod:: 
+const Constraint::Rod& Constraint::Rod::
 setPointOnBody1(State& state, const Vec3& point) const {
     getImpl().updParameters(state).m_p_FSf = point;
     return *this;
 }
-const Constraint::Rod& Constraint::Rod:: 
+const Constraint::Rod& Constraint::Rod::
 setPointOnBody2(State& state, const Vec3& point) const {
     getImpl().updParameters(state).m_p_BSb = point;
     return *this;
 }
-const Constraint::Rod& Constraint::Rod:: 
+const Constraint::Rod& Constraint::Rod::
 setRodLength(State& state, Real rodLength) const {
     getImpl().updParameters(state).m_length = rodLength;
     return *this;
@@ -199,7 +199,7 @@ Real Constraint::Rod::getRodTension(const State& s) const {
 
 UnitVec3 Constraint::Rod::findRodOrientationInG(const State& s) const {
     const RodImpl& impl = getImpl();
-    const RodImpl::PositionCache& pc = 
+    const RodImpl::PositionCache& pc =
         impl.ensurePositionCacheRealized(s);
 
     const MobilizedBody& mobod_A = impl.getAncestorMobilizedBody();
@@ -233,23 +233,23 @@ Real Constraint::Rod::findLengthViolation(const State& s) const {
 //                                ROD IMPL
 //==============================================================================
 
-// The default point location and rod length parameters may be overridden by 
+// The default point location and rod length parameters may be overridden by
 // setting a discrete variable in the state. Also, we want to cache expensive
-// position- and velocity-level calculations since they will be reused 
+// position- and velocity-level calculations since they will be reused
 // repeatedly. We allocate the state resources here.
 void Constraint::RodImpl::
 realizeTopologyVirtual(State& state) const {
     m_parametersIx = getMyMatterSubsystemRep().
-        allocateDiscreteVariable(state, Stage::Position, 
-            new Value<Parameters>(Parameters(m_def_p_FSf,  m_def_p_BSb, 
+        allocateDiscreteVariable(state, Stage::Position,
+            new Value<Parameters>(Parameters(m_def_p_FSf,  m_def_p_BSb,
                                              m_def_length)));
 
     m_posCacheIx = getMyMatterSubsystemRep().
-        allocateLazyCacheEntry(state, Stage::Position, 
+        allocateLazyCacheEntry(state, Stage::Position,
             new Value<PositionCache>());
 
     m_velCacheIx = getMyMatterSubsystemRep().
-        allocateLazyCacheEntry(state, Stage::Velocity, 
+        allocateLazyCacheEntry(state, Stage::Velocity,
             new Value<VelocityCache>());
 }
 
@@ -331,7 +331,7 @@ ensurePositionCacheRealized(const State& s) const {
 
 // This costs about 57 flops if position info has already been calculated,
 // otherwise we also pay for ensurePositionCacheRealized().
-const Constraint::RodImpl::VelocityCache& 
+const Constraint::RodImpl::VelocityCache&
 Constraint::RodImpl::
 ensureVelocityCacheRealized(const State& s) const {
     if (getMyMatterSubsystemRep().isCacheValueRealized(s, m_velCacheIx))
@@ -361,12 +361,12 @@ ensureVelocityCacheRealized(const State& s) const {
     vc.wXwX_p_BSb_A = w_AB % wX_p_BSb_A;            // 9 flops
 
     // Calculate d/dt_A Cz.
-    vc.Czd_A = pc.isSingular 
+    vc.Czd_A = pc.isSingular
         ? w_AF % Cz_A // rare
         : pc.oor*(vc.pd_SfSb_A - (~vc.pd_SfSb_A*Cz_A)*Cz_A); // 12 flops
 
     getMyMatterSubsystemRep().markCacheValueRealized(s, m_velCacheIx);
-    
+
     return vc;
 }
 
@@ -376,7 +376,7 @@ void Constraint::RodImpl::calcDecorativeGeometryAndAppendVirtual
     if (!getMyMatterSubsystemRep().getShowDefaultGeometry())
         return;
 
-    // We can't generate the endpoint artwork until we know the end point 
+    // We can't generate the endpoint artwork until we know the end point
     // stations, which could be as late as Stage::Position.
     if (stage == Stage::Position) {
         const Parameters& params = getParameters(s);
@@ -384,9 +384,9 @@ void Constraint::RodImpl::calcDecorativeGeometryAndAppendVirtual
         const Vec3&       p_BSb  = params.m_p_BSb;
         const Real        length = params.m_length;
 
-        const MobilizedBodyIndex body1 = 
+        const MobilizedBodyIndex body1 =
             getMobilizedBodyIndexOfConstrainedBody(m_mobod_F);
-        const MobilizedBodyIndex body2 = 
+        const MobilizedBodyIndex body2 =
             getMobilizedBodyIndexOfConstrainedBody(m_mobod_B);
 
         // Draw a blue point at the point on body F.

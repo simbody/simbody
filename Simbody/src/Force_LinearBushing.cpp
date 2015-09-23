@@ -57,8 +57,8 @@ class Force::LinearBushingImpl : public ForceImpl {
         Real       power;
     };
 public:
-    LinearBushingImpl(const MobilizedBody& body1, const Transform& frameOnB1, 
-                      const MobilizedBody& body2, const Transform& frameOnB2, 
+    LinearBushingImpl(const MobilizedBody& body1, const Transform& frameOnB1,
+                      const MobilizedBody& body2, const Transform& frameOnB2,
                       const Vec6& stiffness, const Vec6& damping);
     LinearBushingImpl* clone() const override {
         return new LinearBushingImpl(*this);
@@ -80,7 +80,7 @@ public:
 
         const InstanceVars iv(defX_B1F,defX_B2M,defK,defC);
         mThis->instanceVarsIx = getForceSubsystem()
-            .allocateDiscreteVariable(s, Stage::Instance, 
+            .allocateDiscreteVariable(s, Stage::Instance,
                                       new Value<InstanceVars>(iv));
 
         Vector einit(1, Real(0));
@@ -100,7 +100,7 @@ public:
         ensureForceCacheValid(s);
         updDissipatedEnergyDeriv(s) = getForceCache(s).power;
     }
-        
+
 private:
     const InstanceVars& getInstanceVars(const State& s) const
     {   return Value<InstanceVars>::downcast
@@ -205,14 +205,14 @@ inline std::ostream& operator<<
 //------------------------------ LinearBushing ---------------------------------
 //------------------------------------------------------------------------------
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::LinearBushing, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::LinearBushing,
                                         Force::LinearBushingImpl, Force);
 
 Force::LinearBushing::LinearBushing
-   (GeneralForceSubsystem& forces, 
+   (GeneralForceSubsystem& forces,
     const MobilizedBody& body1, const Transform& frameOnB1,
     const MobilizedBody& body2, const Transform& frameOnB2,
-    const Vec6& stiffness,  const Vec6&  damping) 
+    const Vec6& stiffness,  const Vec6&  damping)
 :   Force(new LinearBushingImpl(body1,frameOnB1,body2,frameOnB2,
                                 stiffness,damping))
 {
@@ -227,10 +227,10 @@ Force::LinearBushing::LinearBushing
 
 
 Force::LinearBushing::LinearBushing
-   (GeneralForceSubsystem& forces, 
+   (GeneralForceSubsystem& forces,
     const MobilizedBody& body1, // assume body frames
     const MobilizedBody& body2,
-    const Vec6& stiffness,  const Vec6&  damping) 
+    const Vec6& stiffness,  const Vec6&  damping)
 :   Force(new LinearBushingImpl(body1,Transform(),body2,Transform(),
                                 stiffness,damping))
 {
@@ -246,13 +246,13 @@ Force::LinearBushing::LinearBushing
 Force::LinearBushing& Force::LinearBushing::
 setDefaultFrameOnBody1(const Transform& X_B1F) {
     getImpl().invalidateTopologyCache();
-    updImpl().defX_B1F = X_B1F; 
+    updImpl().defX_B1F = X_B1F;
     return *this;
 }
 Force::LinearBushing& Force::LinearBushing::
 setDefaultFrameOnBody2(const Transform& X_B2M) {
     getImpl().invalidateTopologyCache();
-    updImpl().defX_B2M = X_B2M; 
+    updImpl().defX_B2M = X_B2M;
     return *this;
 }
 Force::LinearBushing& Force::LinearBushing::
@@ -261,7 +261,7 @@ setDefaultStiffness(const Vec6& stiffness) {
         "Force::LinearBushing::setDefaultStiffness()",
         "Bushing spring constants must be nonnegative.");
     getImpl().invalidateTopologyCache();
-    updImpl().defK = stiffness; 
+    updImpl().defK = stiffness;
     return *this;
 }
 Force::LinearBushing& Force::LinearBushing::
@@ -270,7 +270,7 @@ setDefaultDamping(const Vec6& damping) {
         "Force::LinearBushing::setDefaultDamping()",
         "Bushing damping coefficients must be nonnegative.");
     getImpl().invalidateTopologyCache();
-    updImpl().defC = damping; 
+    updImpl().defC = damping;
     return *this;
 }
 const Transform& Force::LinearBushing::
@@ -284,12 +284,12 @@ getDefaultDamping() const {return getImpl().defC;}
 
 const Force::LinearBushing& Force::LinearBushing::
 setFrameOnBody1(State& state, const Transform& X_B1F) const {
-    getImpl().updInstanceVars(state).X_B1F = X_B1F; 
+    getImpl().updInstanceVars(state).X_B1F = X_B1F;
     return *this;
 }
 const Force::LinearBushing& Force::LinearBushing::
 setFrameOnBody2(State& state, const Transform& X_B2M) const {
-    getImpl().updInstanceVars(state).X_B2M = X_B2M; 
+    getImpl().updInstanceVars(state).X_B2M = X_B2M;
     return *this;
 }
 const Force::LinearBushing& Force::LinearBushing::
@@ -297,7 +297,7 @@ setStiffness(State& state, const Vec6& stiffness) const {
     SimTK_ERRCHK_ALWAYS(stiffness >= 0,
         "Force::LinearBushing::setStiffness()",
         "Bushing spring constants must be nonnegative.");
-    getImpl().updInstanceVars(state).k = stiffness; 
+    getImpl().updInstanceVars(state).k = stiffness;
     return *this;
 }
 const Force::LinearBushing& Force::LinearBushing::
@@ -305,78 +305,78 @@ setDamping(State& state, const Vec6& damping) const {
     SimTK_ERRCHK_ALWAYS(damping >= 0,
         "Force::LinearBushing::setDamping()",
         "Bushing damping coefficients must be nonnegative.");
-    getImpl().updInstanceVars(state).c = damping; 
+    getImpl().updInstanceVars(state).c = damping;
     return *this;
 }
 const Transform& Force::LinearBushing::
-getFrameOnBody1(const State& state) const 
+getFrameOnBody1(const State& state) const
 {   return getImpl().getInstanceVars(state).X_B1F; }
 const Transform& Force::LinearBushing::
-getFrameOnBody2(const State& state) const 
+getFrameOnBody2(const State& state) const
 {   return getImpl().getInstanceVars(state).X_B2M; }
 const Vec6& Force::LinearBushing::
-getStiffness(const State& state) const 
+getStiffness(const State& state) const
 {   return getImpl().getInstanceVars(state).k; }
 const Vec6& Force::LinearBushing::
-getDamping(const State& state) const 
+getDamping(const State& state) const
 {   return getImpl().getInstanceVars(state).c; }
 
 const Vec6& Force::LinearBushing::
-getQ(const State& s) const 
-{   getImpl().ensurePositionCacheValid(s); 
+getQ(const State& s) const
+{   getImpl().ensurePositionCacheValid(s);
     return getImpl().getPositionCache(s).q; }
 
 const Transform& Force::LinearBushing::
-getX_GF(const State& s) const 
-{   getImpl().ensurePositionCacheValid(s); 
+getX_GF(const State& s) const
+{   getImpl().ensurePositionCacheValid(s);
     return getImpl().getPositionCache(s).X_GF; }
 const Transform& Force::LinearBushing::
-getX_GM(const State& s) const 
-{   getImpl().ensurePositionCacheValid(s); 
+getX_GM(const State& s) const
+{   getImpl().ensurePositionCacheValid(s);
     return getImpl().getPositionCache(s).X_GM; }
 const Transform& Force::LinearBushing::
-getX_FM(const State& s) const 
-{   getImpl().ensurePositionCacheValid(s); 
+getX_FM(const State& s) const
+{   getImpl().ensurePositionCacheValid(s);
     return getImpl().getPositionCache(s).X_FM; }
 
 const Vec6& Force::LinearBushing::
-getQDot(const State& s) const 
-{   getImpl().ensureVelocityCacheValid(s); 
+getQDot(const State& s) const
+{   getImpl().ensureVelocityCacheValid(s);
     return getImpl().getVelocityCache(s).qdot; }
 const SpatialVec& Force::LinearBushing::
-getV_GF(const State& s) const 
-{   getImpl().ensureVelocityCacheValid(s); 
+getV_GF(const State& s) const
+{   getImpl().ensureVelocityCacheValid(s);
     return getImpl().getVelocityCache(s).V_GF; }
 const SpatialVec& Force::LinearBushing::
-getV_GM(const State& s) const 
-{   getImpl().ensureVelocityCacheValid(s); 
+getV_GM(const State& s) const
+{   getImpl().ensureVelocityCacheValid(s);
     return getImpl().getVelocityCache(s).V_GM; }
 const SpatialVec& Force::LinearBushing::
-getV_FM(const State& s) const 
-{   getImpl().ensureVelocityCacheValid(s); 
+getV_FM(const State& s) const
+{   getImpl().ensureVelocityCacheValid(s);
     return getImpl().getVelocityCache(s).V_FM; }
 
 const Vec6& Force::LinearBushing::
 getF(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).f; }
 const SpatialVec& Force::LinearBushing::
 getF_GF(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).F_GF; }
 const SpatialVec& Force::LinearBushing::
 getF_GM(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).F_GM; }
 
 Real Force::LinearBushing::
 getPotentialEnergy(const State& s) const
-{   getImpl().ensurePotentialEnergyValid(s); 
+{   getImpl().ensurePotentialEnergyValid(s);
     return getImpl().getPotentialEnergyCache(s); }
 
 Real Force::LinearBushing::
 getPowerDissipation(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).power; }
 
 Real Force::LinearBushing::
@@ -389,7 +389,7 @@ setDissipatedEnergy(State& s, Real energy) const {
         "Force::LinearBushing::setDissipatedEnergy()",
         "The initial value for the dissipated energy must be nonnegative"
         " but an attempt was made to set it to %g.", energy);
-    getImpl().updDissipatedEnergyVar(s) = energy; 
+    getImpl().updDissipatedEnergyVar(s) = energy;
 }
 
 
@@ -403,10 +403,10 @@ Force::LinearBushingImpl::LinearBushingImpl
     const MobilizedBody& body2, const Transform& frameOnB2,
     const Vec6& stiffness, const Vec6& damping)
 :   matter(body1.getMatterSubsystem()),
-    body1x(body1.getMobilizedBodyIndex()), 
-    body2x(body2.getMobilizedBodyIndex()), 
-    defX_B1F(frameOnB1),    defX_B2M(frameOnB2), 
-    defK(stiffness),        defC(damping) 
+    body1x(body1.getMobilizedBodyIndex()),
+    body2x(body2.getMobilizedBodyIndex()),
+    defX_B1F(frameOnB1),    defX_B2M(frameOnB2),
+    defK(stiffness),        defC(damping)
 {
 }
 
@@ -474,7 +474,7 @@ ensureVelocityCacheValid(const State& state) const {
 
     // To get derivative in F, we must remove the part due to the
     // angular velocity w_GF of F in G.
-    vc.V_FM = ~R_GF * SpatialVec(V_FM_G[0], 
+    vc.V_FM = ~R_GF * SpatialVec(V_FM_G[0],
                                  V_FM_G[1] - vc.V_GF[0] % pc.p_FM_G);
 
     // Need angular velocity in M frame for conversion to qdot.
@@ -528,8 +528,8 @@ ensureForceCacheValid(const State& state) const {
     // energy (cheap to do here).
     const Vec6& q = pc.q;
     Vec6 fk; Real pe2=0;
-    for (int i=0; i<6; ++i) 
-        pe2 += (fk[i]=k[i]*q[i])*q[i]; 
+    for (int i=0; i<6; ++i)
+        pe2 += (fk[i]=k[i]*q[i])*q[i];
     updPotentialEnergyCache(state) = pe2/2;
     markPotentialEnergyValid(state);
 
@@ -538,7 +538,7 @@ ensureForceCacheValid(const State& state) const {
 
     const Vec6& qd = vc.qdot;
     Vec6 fv; fc.power=0;
-    for (int i=0; i<6; ++i) 
+    for (int i=0; i<6; ++i)
         fc.power += (fv[i]=c[i]*qd[i])*qd[i];
 
     fc.f = -(fk+fv); // generalized forces on body 2
@@ -555,7 +555,7 @@ ensureForceCacheValid(const State& state) const {
     const Vec3  mB2_M = ~N_FM * fB2_q; // moment acting on body 2, exp. in M
     const Vec3  mB2_G =  R_GM * mB2_M; // moment on body 2, now exp. in G
 
-    // Transform force from F frame to ground. This is the force to 
+    // Transform force from F frame to ground. This is the force to
     // apply to body 2 at point OM; -f goes on body 1 at the same
     // spatial location. Here we actually apply it at OF so we have to
     // account for the moment produced by the shift from OM.
@@ -585,7 +585,7 @@ ensurePotentialEnergyValid(const State& state) const {
     const Vec6& q = pc.q;
 
     Real pe2=0;
-    for (int i=0; i<6; ++i) 
+    for (int i=0; i<6; ++i)
         pe2 += k[i]*q[i]*q[i];
 
     updPotentialEnergyCache(state) = pe2 / 2;
@@ -593,8 +593,8 @@ ensurePotentialEnergyValid(const State& state) const {
 }
 
 void Force::LinearBushingImpl::
-calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const
 {
     ensureForceCacheValid(state);
     const ForceCache& fc = getForceCache(state);

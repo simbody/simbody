@@ -30,7 +30,7 @@ namespace Ipopt
    *  ipopt.
    *
    *  This interface presents the problem form:
-   *  
+   *
    *     min f(x)
    *
    *     s.t. gL <= g(x) <= gU
@@ -212,7 +212,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

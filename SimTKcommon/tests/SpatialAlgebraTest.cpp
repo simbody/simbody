@@ -60,13 +60,13 @@ void testMiscSpatialAlgebra() {
     cout << endl << "TEST: uninitialized should be NaN in Debug, random crap in Release" << endl;
     cout << "rawVec=" << v << " rawRow=" << r << " rawMat=" << m;
 
-    cout << "SpatialMat::NRows=" << SpatialMat::NRows 
-         << " SpatialMat::ArgDepth=" << CNT<SpatialMat>::ArgDepth 
-         << " CNT<SpatialMat>::ArgDepth=" << SpatialMat::ArgDepth 
-         << " SpatialRow::ArgDepth=" << SpatialRow::ArgDepth 
-         << " SpatialVec::ArgDepth=" << SpatialVec::ArgDepth 
-         << " Mat33::ArgDepth=" << Mat33::ArgDepth 
-         << " CNT<Real>::ArgDepth=" << CNT<Real>::ArgDepth 
+    cout << "SpatialMat::NRows=" << SpatialMat::NRows
+         << " SpatialMat::ArgDepth=" << CNT<SpatialMat>::ArgDepth
+         << " CNT<SpatialMat>::ArgDepth=" << SpatialMat::ArgDepth
+         << " SpatialRow::ArgDepth=" << SpatialRow::ArgDepth
+         << " SpatialVec::ArgDepth=" << SpatialVec::ArgDepth
+         << " Mat33::ArgDepth=" << Mat33::ArgDepth
+         << " CNT<Real>::ArgDepth=" << CNT<Real>::ArgDepth
          << endl;
 
     cout << endl << "TEST: set to 1; element wise for col/row; diagonal for mat" << endl;
@@ -106,9 +106,9 @@ void testMiscSpatialAlgebra() {
     cout << endl << "TEST: v/complex<Real>(2.,3.)=" << v/complex<Real>(2.,3.);
     cout << endl << "TEST: v/conjugate<Real>(2.,3.)=" << v/conjugate<Real>(2.,3.);
     const conjugate<Real> cr23(2.,3.);
-    cout << endl << "TEST: v*negator<conjugate<Real>(2.,3.)>=" 
+    cout << endl << "TEST: v*negator<conjugate<Real>(2.,3.)>="
          << v*negator<conjugate<Real> >::recast(cr23);
-    cout << endl << "TEST: v/negator<conjugate<Real>(2.,3.)>=" 
+    cout << endl << "TEST: v/negator<conjugate<Real>(2.,3.)>="
          << v/negator<conjugate<Real> >::recast(cr23);
     //cout << endl << "TEST: v-v=" << v-v;
     //cout << endl << "TEST: r+r=" << r+r;
@@ -133,7 +133,7 @@ void testMiscSpatialAlgebra() {
     cout << "r*v=" << r*v << " ~v*~r=" << ~v*~r << endl;
 
     cout << endl << "TEST: outer product" << endl;
-    cout << "v*r=" << v*r << endl; 
+    cout << "v*r=" << v*r << endl;
     cout << " ~r*~v=" << ~r*~v << endl;
 
     // NONCONFORMING MULTIPLY
@@ -167,8 +167,8 @@ void testMiscSpatialAlgebra() {
     Vec<2, Real>   v1(10,20);
     cout << "r1=" << r1 << " v1=" << v1 << " m11=" << m11;
     cout << "m11*v1=" << m11*v1 << endl;
-    cout << "r1*m11=" << r1*m11 << endl;; 
-    //cout << "r2*v1=" << r1*v1 << endl; 
+    cout << "r1*m11=" << r1*m11 << endl;;
+    //cout << "r2*v1=" << r1*v1 << endl;
     //cout << "v1*r1=" << v1*r1 << endl;;
 
 

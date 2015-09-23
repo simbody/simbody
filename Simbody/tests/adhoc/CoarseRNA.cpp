@@ -85,10 +85,10 @@ public:
     void decorateBody(MobilizedBodyIndex bodyNum, Visualizer& display) const {
         assert(bodyInfo[bodyNum].bnum == bodyNum);
         if (bodyInfo[bodyNum].isDuplex)
-            addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
+            addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop,
                                  NAtoms, AtomRadius, display);
-        else 
-            addConnectorDecorations(bodyNum, ConnectorRadius, ConnectorHalfHeight, 
+        else
+            addConnectorDecorations(bodyNum, ConnectorRadius, ConnectorHalfHeight,
                                     ConnectorEndSlop, display);
     }
 
@@ -126,7 +126,7 @@ private:
             rt1.setDefaultRadius(1.5);
             bodyInfo.push_back(PerBodyInfo(rt1, false));
 
-            MobilizedBody::Ball rt2(                             
+            MobilizedBody::Ball rt2(
                 rt1, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                 Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
                 Transform(Vec3(0, ConnectorHalfHeight, 0)));
@@ -185,7 +185,7 @@ private:
     void addDuplexDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
                               Real atomRadius, Visualizer& display) const
     {
-        display.addDecoration(bodyNum, Transform(), 
+        display.addDecoration(bodyNum, Transform(),
             DecorativeCylinder(r+atomRadius+slop, halfHeight).setColor(Cyan).setOpacity(0.4));
 
         const Real pitch = 2*Pi/halfHeight;
@@ -195,17 +195,17 @@ private:
             const Real h = halfHeight - i*trans;
             const Real th = i*rot;
             const Vec3 p1(-r*cos(th),h,r*sin(th)), p2(r*cos(th),h,-r*sin(th));
-            display.addDecoration(bodyNum, Transform(Vec3(p1)), 
+            display.addDecoration(bodyNum, Transform(Vec3(p1)),
                 DecorativeSphere(atomRadius).setColor(Red).setResolution(0.5));
-            display.addDecoration(bodyNum, Transform(Vec3(p2)), 
+            display.addDecoration(bodyNum, Transform(Vec3(p2)),
                 DecorativeSphere(atomRadius).setColor(Green).setResolution(0.5));
         }
     }
 
-    void addConnectorDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real endSlop,  
+    void addConnectorDecorations(MobilizedBodyIndex bodyNum, Real r, Real halfHeight, Real endSlop,
                                  Visualizer& display) const
     {
-        display.addDecoration(bodyNum, Transform(), 
+        display.addDecoration(bodyNum, Transform(),
             DecorativeCylinder(r, halfHeight-endSlop).setColor(Blue));
     }
 };
@@ -252,22 +252,22 @@ try // If anything goes wrong, an exception will be thrown.
         int mp,mv,ma;
         c.getNumConstraintEquationsInUse(s, mp,mv,ma);
 
-        cout << "CONSTRAINT " << cid 
-             << " constrained bodies=" << c.getNumConstrainedBodies() 
+        cout << "CONSTRAINT " << cid
+             << " constrained bodies=" << c.getNumConstrainedBodies()
              << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex()
-             << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers() 
+             << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers()
                                            << "/" << c.getNumConstrainedQ(s) << "/" << c.getNumConstrainedU(s)
-             << " mp,mv,ma=" << mp << "," << mv << "," << ma 
+             << " mp,mv,ma=" << mp << "," << mv << "," << ma
              << endl;
         for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid) {
-            cout << "  constrained body: " << c.getMobilizedBodyFromConstrainedBody(cid).getMobilizedBodyIndex(); 
+            cout << "  constrained body: " << c.getMobilizedBodyFromConstrainedBody(cid).getMobilizedBodyIndex();
             cout << endl;
         }
         for (ConstrainedMobilizerIndex cmx(0); cmx < c.getNumConstrainedMobilizers(); ++cmx) {
-            cout << "  constrained mobilizer " << c.getMobilizedBodyFromConstrainedMobilizer(cmx).getMobilizedBodyIndex() 
-                  << ", q(" << c.getNumConstrainedQ(s, cmx) << ")="; 
+            cout << "  constrained mobilizer " << c.getMobilizedBodyFromConstrainedMobilizer(cmx).getMobilizedBodyIndex()
+                  << ", q(" << c.getNumConstrainedQ(s, cmx) << ")=";
             for (MobilizerQIndex i(0); i < c.getNumConstrainedQ(s, cmx); ++i)
-                cout << " " << c.getConstrainedQIndex(s, cmx, i);                  
+                cout << " " << c.getConstrainedQIndex(s, cmx, i);
             cout << ", u(" << c.getNumConstrainedU(s, cmx) << ")=";
             for (MobilizerUIndex i(0); i < c.getNumConstrainedU(s, cmx); ++i)
                 cout << " " << c.getConstrainedUIndex(s, cmx, i);
@@ -297,12 +297,12 @@ try // If anything goes wrong, an exception will be thrown.
        cout << "sub.parent[" << i << "]=" << sub.getParentSubtreeBodyIndex(i);
 //       cout << "  sub.children[" << i << "]=" << sub.getChildSubtreeBodyIndexs(i) << endl;
     }
-   
+
 
     printf("# quaternions in use = %d\n", myRNA.getNumQuaternionsInUse(s));
     for (MobilizedBodyIndex i(0); i<myRNA.getNumBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
-            (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
+            (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false",
             (int)myRNA.getQuaternionPoolIndex(s,i));
     }
 
@@ -317,7 +317,7 @@ try // If anything goes wrong, an exception will be thrown.
     //ExplicitEulerIntegrator myStudy(mbs);
 
     myStudy.setAccuracy(1e-2);
-    myStudy.setConstraintTolerance(1e-3); 
+    myStudy.setConstraintTolerance(1e-3);
     myStudy.setProjectEveryStep(false);
 
     Visualizer display(mbs);
@@ -366,7 +366,7 @@ try // If anything goes wrong, an exception will be thrown.
         mbs.realize(ss);
 
         if ((stepNum++%100)==0) {
-            printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", ss.getTime(), 
+            printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", ss.getTime(),
                 myRNA.getQErr(ss).normRMS(), myRNA.getUErr(ss).normRMS(),
                 myStudy.getPredictedNextStepSize());
             printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
@@ -385,7 +385,7 @@ try // If anything goes wrong, an exception will be thrown.
         if (ss.getTime() >= 10)
             break;
 
-        // TODO: should check for errors or have or teach RKM to throw. 
+        // TODO: should check for errors or have or teach RKM to throw.
         myStudy.stepTo(ss.getTime() + dt, Infinity);
     }
 
@@ -406,7 +406,7 @@ try // If anything goes wrong, an exception will be thrown.
         }
         getchar();
     }
-  } 
+  }
 catch (const exception& e)
   {
     printf("EXCEPTION THROWN: %s\n", e.what());

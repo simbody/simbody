@@ -30,7 +30,7 @@ namespace Ipopt
    *  factorized matrix.
    *
    *  This interface is used by the calling objective in the following
-   *  way: 
+   *  way:
    *
    *  1. The InitializeImpl method is called at the very beginning
    *  (for every optimization run), which allows the linear solver
@@ -108,9 +108,9 @@ namespace Ipopt
       /** Compressed sparse row format for lower triangular part, with
        *  1 offset. */
       CSR_Format_1_Offset,
-      /** Dense format 
+      /** Dense format
        *  1 offset. */
-      Dense_Format 
+      Dense_Format
     };
     /** @name Constructor/Destructor */
     //@{

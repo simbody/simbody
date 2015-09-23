@@ -42,12 +42,12 @@ class MultibodySystem;
 
 /**
  * This is a concrete subsystem that handles simple, frictionless contact situations
- * with a model due to Hunt & Crossley: K. H. Hunt and F. R. E. Crossley, 
+ * with a model due to Hunt & Crossley: K. H. Hunt and F. R. E. Crossley,
  * "Coefficient of Restitution Interpreted as Damping in Vibroimpact,"
  * ASME Journal of Applied Mechanics, pp. 440-445, June 1975. This is
  * a continuous model based on Hertz elastic contact theory,
  * which correctly reproduces the empirically observed dependence
- * on velocity of coefficient of restitution, where e=(1-cv) for 
+ * on velocity of coefficient of restitution, where e=(1-cv) for
  * (small) impact velocity v and a material property c with units 1/v. Note that
  * c can be measured right off the coefficient of restitution-vs.-velocity
  * curves: it is the absolute value of the slope at low velocities.
@@ -56,7 +56,7 @@ class MultibodySystem;
  * we can generate a contact force from this equation
  *      f = kx^n(1 + 3/2 cv)
  * where k is a stiffness constant incorporating material properties
- * and geometry (to be defined below), x is penetration depth and 
+ * and geometry (to be defined below), x is penetration depth and
  * v = dx/dt is penetration rate (positive during penetration and
  * negative during rebound). Exponent n depends on the surface
  * geometry. For Hertz contact where the geometry can be approximated
@@ -65,14 +65,14 @@ class MultibodySystem;
  *
  * Stiffness k is defined in terms of the relative radius of curvature R and
  * effective plane-strain modulus E, each of which is a combination of
- * the description of the two individual contacting elements. TODO: 
+ * the description of the two individual contacting elements. TODO:
  * derivation of the following results should be in the SimTK Engr J; you'll
  * have to take my word for it now:
  *
  *          R1*R2                                         E2^(2/3)
- *     R = -------,  E = (s1 * E1^(2/3))^(3/2),  s1= ------------------- 
+ *     R = -------,  E = (s1 * E1^(2/3))^(3/2),  s1= -------------------
  *         R1 + R2                                   E1^(2/3) + E2^(2/3)
- *     
+ *
  *     c = c1*s1 + c2*(1-s1)
  *     k = (4/3) sqrt(R) E
  *     f = k x^(3/2) (1 + 3/2 c xdot)

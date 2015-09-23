@@ -17,7 +17,7 @@
  * this file: one set uses type DlsMat defined below and the
  * other set uses the type realtype ** for dense matrix arguments.
  * Routines that work with the type DlsMat begin with "Dense".
- * Routines that work with realtype** begin with "dense". 
+ * Routines that work with realtype** begin with "dense".
  * -----------------------------------------------------------------
  */
 
@@ -86,7 +86,7 @@ SUNDIALS_EXPORT void denseGETRS(realtype **a, int n, int *p, realtype *b);
  * DensePOTRF computes the Cholesky factorization of a real symmetric
  * positive definite matrix A.
  * -----------------------------------------------------------------
- * DensePOTRS solves a system of linear equations A*X = B with a 
+ * DensePOTRS solves a system of linear equations A*X = B with a
  * symmetric positive definite matrix A using the Cholesky factorization
  * A = L*L**T computed by DensePOTRF.
  *
@@ -109,10 +109,10 @@ SUNDIALS_EXPORT void densePOTRS(realtype **a, int m, realtype *b);
  * -----------------------------------------------------------------
  * DenseGEQRF computes a QR factorization of a real M-by-N matrix A:
  * A = Q * R (with M>= N).
- * 
+ *
  * DenseGEQRF requires a temporary work vector wrk of length M.
  * -----------------------------------------------------------------
- * DenseORMQR computes the product w = Q * v where Q is a real 
+ * DenseORMQR computes the product w = Q * v where Q is a real
  * orthogonal matrix defined as the product of k elementary reflectors
  *
  *        Q = H(1) H(2) . . . H(k)
@@ -130,7 +130,7 @@ SUNDIALS_EXPORT void densePOTRS(realtype **a, int m, realtype *b);
  */
 
 SUNDIALS_EXPORT int DenseGEQRF(DlsMat A, realtype *beta, realtype *wrk);
-SUNDIALS_EXPORT int DenseORMQR(DlsMat A, realtype *beta, realtype *vn, realtype *vm, 
+SUNDIALS_EXPORT int DenseORMQR(DlsMat A, realtype *beta, realtype *vn, realtype *vm,
                    realtype *wrk);
 
 SUNDIALS_EXPORT int denseGEQRF(realtype **a, int m, int n, realtype *beta, realtype *v);
@@ -157,7 +157,7 @@ SUNDIALS_EXPORT void denseZero(realtype **a, int m, int n);
  * -----------------------------------------------------------------
  * DenseCopy copies the contents of the M-by-N matrix A into the
  * M-by-N matrix B.
- * 
+ *
  * DenseCopy is a wrapper around denseCopy which accesses the data
  * in the DlsMat A and B (i.e. the fields cols)
  * -----------------------------------------------------------------

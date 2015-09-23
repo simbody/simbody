@@ -1,4 +1,4 @@
-#ifndef SimTK_SIMMATH_FACTOR_REP_H_ 
+#ifndef SimTK_SIMMATH_FACTOR_REP_H_
 #define SimTK_SIMMATH_FACTOR_REP_H_
 
 /* -------------------------------------------------------------------------- *
@@ -53,7 +53,7 @@ class FactorLURepBase {
    virtual void solve( const Vector_<std::complex<double> >& b, Vector_<std::complex<double> >& x ) const {
        checkIfFactored("solve");
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","solve",
-       " solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
+       " solve called with rhs of type complex<double>  which does not match type of original linear system \n");
    }
      virtual void solve( const Matrix_<float>& b, Matrix_<float>& x ) const {
        checkIfFactored("solve");
@@ -73,7 +73,7 @@ class FactorLURepBase {
    virtual void solve( const Matrix_<std::complex<double> >& b, Matrix_<std::complex<double> >& x ) const {
        checkIfFactored("solve");
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","solve",
-       " solve called with rhs of type complex<double>  which does not match type of original linear system \n");   
+       " solve called with rhs of type complex<double>  which does not match type of original linear system \n");
    }
      virtual void getL( Matrix_<float>& l) const{
        checkIfFactored( "getL" );
@@ -93,7 +93,7 @@ class FactorLURepBase {
    virtual void getL( Matrix_<std::complex<double> >& l ) const{
        checkIfFactored( "getL" );
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","getL",
-       " getL called with L of type complex<double>  which does not match type of original linear system \n");   
+       " getL called with L of type complex<double>  which does not match type of original linear system \n");
    }
    virtual void getU( Matrix_<float>& u) const{
        checkIfFactored( "getU" );
@@ -113,7 +113,7 @@ class FactorLURepBase {
    virtual void getU( Matrix_<std::complex<double> >& u ) const{
        checkIfFactored( "getU" );
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","getU",
-       " getU called with U of type complex<double>  which does not match type of original linear system \n");   
+       " getU called with U of type complex<double>  which does not match type of original linear system \n");
    }
    virtual void getD( Matrix_<float>& d) const{
        checkIfFactored( "getD" );
@@ -133,7 +133,7 @@ class FactorLURepBase {
    virtual void getD( Matrix_<std::complex<double> >& d ) const{
        checkIfFactored( "getD" );
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","getD",
-       " getD called with D of type complex<double>  which does not match type of original linear system \n");   
+       " getD called with D of type complex<double>  which does not match type of original linear system \n");
    }
     virtual void inverse(  Matrix_<double>& inverse ) const{
         SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","inverse",         "inverse(  <double> ) called with type that is inconsistent with the original matrix  \n");
@@ -152,7 +152,7 @@ class FactorLURepBase {
    virtual bool isSingular() const{ return false;};
    virtual int getSingularIndex() const{ return 1; };
    virtual  Real getConditionNumber() const{ return 0.0;};
-   
+
    virtual void getErrorBounds( const Vector_<float>& err, Vector_<float>& berr ){
        checkIfFactored( "getErrorBounds" );
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","getErrorBounds",
@@ -171,8 +171,8 @@ class FactorLURepBase {
    virtual void getErrorBounds( const Vector_<std::complex<double> >& err, Vector_<float>& berr ){
        checkIfFactored( "getErrorBounds" );
        SimTK_APIARGCHECK_ALWAYS(false,"FactorLU","getErrorBounds",
-       " getErrorBounds called with arguments of type complex<double>  which does not match type of original linear system \n");   
-   } 
+       " getErrorBounds called with arguments of type complex<double>  which does not match type of original linear system \n");
+   }
    bool isFactored;
 
    private:
@@ -205,23 +205,23 @@ class FactorLURep : public FactorLURepBase {
    ~FactorLURep();
    FactorLURepBase* clone() const override;
 
-   template < class ELT > void factor(const Matrix_<ELT>& ); 
+   template < class ELT > void factor(const Matrix_<ELT>& );
    void solve( const Vector_<T>& b, Vector_<T>& x ) const override;
    void solve( const Matrix_<T>& b, Matrix_<T>& x ) const override;
    void inverse( Matrix_<T>& m ) const override;
 
-   void  getL( Matrix_<T>& l ) const override; 
+   void  getL( Matrix_<T>& l ) const override;
    void  getU( Matrix_<T>& u ) const override;
    void  getD( Matrix_<T>& d ) const override;
    void getErrorBounds( Vector_<T>& err, Vector_<T>& berr) const;
    Real getConditionNumber() const override;
    bool isSingular() const override;
    int getSingularIndex() const override;
- 
+
    private:
 
 // factored matrix stored in LAPACK LU format
-   template < class ELT> int getType(ELT*);   
+   template < class ELT> int getType(ELT*);
    int nRow;
    int nCol;
    int mn;        // min(m,n)

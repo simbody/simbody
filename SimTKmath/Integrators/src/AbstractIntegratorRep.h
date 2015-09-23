@@ -34,8 +34,8 @@
 namespace SimTK {
 
 /**
- * This class implements most of the generic functionality needed for an 
- * Integrator, leaving only the actual integration method to be implemented 
+ * This class implements most of the generic functionality needed for an
+ * Integrator, leaving only the actual integration method to be implemented
  * by the subclass. This is the parent class of several different integrators.
  *
  * There are default implementations for everything but the ODE formula.
@@ -43,14 +43,14 @@ namespace SimTK {
 
 class AbstractIntegratorRep : public IntegratorRep {
 public:
-    AbstractIntegratorRep(Integrator* handle, const System& sys, 
-                          int minOrder, int maxOrder, 
-                          const std::string& methodName, 
+    AbstractIntegratorRep(Integrator* handle, const System& sys,
+                          int minOrder, int maxOrder,
+                          const std::string& methodName,
                           bool hasErrorControl);
 
     void methodInitialize(const State&) override;
 
-    Integrator::SuccessfulStepStatus 
+    Integrator::SuccessfulStepStatus
         stepTo(Real reportTime, Real scheduledEventTime) override;
 
     Real getActualInitialStepSizeTaken() const override;
@@ -71,17 +71,17 @@ public:
 
 protected:
     /*
-     * Given initial values for time, all the continuous variables y=(q,u,z) and 
-     * their derivatives (not necessarily what's in advancedState currently), 
-     * take a trial step of size h=(t1-t0), optimistically storing the result 
+     * Given initial values for time, all the continuous variables y=(q,u,z) and
+     * their derivatives (not necessarily what's in advancedState currently),
+     * take a trial step of size h=(t1-t0), optimistically storing the result
      * in advancedState. The starting values have been saved in the parent
-     * IntegratorRep class and are accessible with getPreviousTime(), 
+     * IntegratorRep class and are accessible with getPreviousTime(),
      * getPreviousY() and getPreviousYDot().
      *
      * Also estimate the absolute error in each element of y,
-     * and store them in yErrEst. Returns true if the step converged (always 
+     * and store them in yErrEst. Returns true if the step converged (always
      * true for non-iterative methods), false otherwise. The number of internal
-     * iterations just for this step is return in numIterations, which should 
+     * iterations just for this step is return in numIterations, which should
      * always be 1 for non-iterative methods.
      *
      * This is a DAE step, meaning that coordinate projections should be done
@@ -90,7 +90,7 @@ protected:
      * handles the necessary projections; if that's OK for your method then
      * you only have to implement attemptODEStep(). Otherwise, you should
      * override the attemptDAEStep() and deal carefully with the DAE-specific
-     * issues yourself. 
+     * issues yourself.
      *
      * The return value is true if the step converged; that tells the caller
      * to look at the error estimate. If the step doesn't converge, the error
@@ -102,15 +102,15 @@ protected:
     // Any integrator that doesn't override the above attemptDAEStep() method
     // must override at least the ODE part here. The method must take an ODE
     // step modifying y in advancedState, return false for failure to converge,
-    // or return true and an estimate of the absolute error in each element of 
-    // the advancedState y variables. The integrator should not attempt to 
+    // or return true and an estimate of the absolute error in each element of
+    // the advancedState y variables. The integrator should not attempt to
     // evaluate derivatives at the final y value because we want to project
     // onto the position and velocity constraint manifolds first so the
     // derivative calculation would have been wasted.
     virtual bool attemptODEStep
-       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations) 
+       (Real t1, Vector& yErrEst, int& errOrder, int& numIterations)
     {
-        SimTK_ERRCHK_ALWAYS(!"Unimplemented virtual function", 
+        SimTK_ERRCHK_ALWAYS(!"Unimplemented virtual function",
             "AbstractIntegratorRep::attemptODEStep()",
             "This virtual function was called but wasn't defined. Every"
             " concrete integrator must override attemptODEStep() or override"
@@ -120,42 +120,42 @@ protected:
 
 
     /**
-     * Evaluate the error that occurred in the step we just attempted, and 
-     * select a new step size accordingly.  The default implementation should 
+     * Evaluate the error that occurred in the step we just attempted, and
+     * select a new step size accordingly.  The default implementation should
      * work well for most integrators.
-     * 
-     * @param   err     
+     *
+     * @param   err
      *      The error estimate from the step that was just attempted.
-     * @param   errOrder     
+     * @param   errOrder
      *      The order of the error estimator so we know what the effect of a
      *      step size change would be on the error we see next time.
-     * @param   hWasArtificiallyLimited   
-     *      Tells whether the step size was artificially reduced due to a 
-     *      scheduled event time. If this is true, we will never attempt to 
+     * @param   hWasArtificiallyLimited
+     *      Tells whether the step size was artificially reduced due to a
+     *      scheduled event time. If this is true, we will never attempt to
      *      increase the step size.
-     * @return 
+     * @return
      *      True if the step should be accepted, false if it should be rejected
      *      and retried with a smaller step size.
      */
-    virtual bool adjustStepSize(Real err, int errOrder, 
+    virtual bool adjustStepSize(Real err, int errOrder,
                                 bool hWasArtificiallyLimited);
     /**
-     * Create an interpolated state at time t, which is between the previous 
-     * and advanced times. The default implementation uses third order 
+     * Create an interpolated state at time t, which is between the previous
+     * and advanced times. The default implementation uses third order
      * Hermite spline interpolation.
      */
     virtual void createInterpolatedState(Real t);
     /**
      * Interpolate the advanced state back to an earlier part of the interval,
-     * forgetting about the rest of the interval. This is necessary, for 
-     * example, after we have localized an event trigger to an interval 
-     * tLow:tHigh where tHigh < tAdvanced.  The default implementation uses 
+     * forgetting about the rest of the interval. This is necessary, for
+     * example, after we have localized an event trigger to an interval
+     * tLow:tHigh where tHigh < tAdvanced.  The default implementation uses
      * third order Hermite spline interpolation.
      */
     virtual void backUpAdvancedStateByInterpolation(Real t);
     int statsStepsTaken, statsStepsAttempted, statsErrorTestFailures, statsConvergenceTestFailures;
 
-    // Iterative methods should count iterations and then classify them as 
+    // Iterative methods should count iterations and then classify them as
     // iterations that led to successful convergence and those that didn't.
     int statsConvergentIterations, statsDivergentIterations;
 private:

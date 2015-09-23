@@ -30,7 +30,7 @@
 #include <utility>
 
 /** @file
- * This file defines commands that are used for communication between the 
+ * This file defines commands that are used for communication between the
  * simulation application and the visualization GUI.
  */
 
@@ -39,14 +39,14 @@
 static const unsigned ProtocolVersion   = 33;
 
 // The visualizer has several predefined cached meshes for common
-// shapes so that we don't have to send them. These are the mesh 
+// shapes so that we don't have to send them. These are the mesh
 // indices for them; they must start with zero.
 static const unsigned short MeshBox              = 0;
 static const unsigned short MeshEllipsoid        = 1;    // works for sphere
 static const unsigned short MeshCylinder         = 2;
 static const unsigned short MeshCircle           = 3;
 
-// This serves as the first index number for unique meshes that are 
+// This serves as the first index number for unique meshes that are
 // defined during this run.
 static const unsigned short NumPredefinedMeshes  = 4;
 
@@ -106,34 +106,34 @@ public:
     void shutdownGUI();
     void beginScene(Real simTime);
     void finishScene();
-    void drawBox(const Transform& transform, const Vec3& scale, 
+    void drawBox(const Transform& transform, const Vec3& scale,
                  const Vec4& color, int representation);
-    void drawEllipsoid(const Transform& transform, const Vec3& scale, 
-                       const Vec4& color, int representation, 
+    void drawEllipsoid(const Transform& transform, const Vec3& scale,
+                       const Vec4& color, int representation,
                        unsigned short resolution);
-    void drawCylinder(const Transform& transform, const Vec3& scale, 
-                      const Vec4& color, int representation, 
+    void drawCylinder(const Transform& transform, const Vec3& scale,
+                      const Vec4& color, int representation,
                       unsigned short resolution);
-    void drawCircle(const Transform& transform, const Vec3& scale, 
-                    const Vec4& color, int representation, 
+    void drawCircle(const Transform& transform, const Vec3& scale,
+                    const Vec4& color, int representation,
                     unsigned short resolution);
-    void drawPolygonalMesh(const PolygonalMesh& mesh, 
-                           const Transform& transform, const Vec3& scale, 
+    void drawPolygonalMesh(const PolygonalMesh& mesh,
+                           const Transform& transform, const Vec3& scale,
                            const Vec4& color, int representation);
-    void drawLine(const Vec3& end1, const Vec3& end2, const 
+    void drawLine(const Vec3& end1, const Vec3& end2, const
                   Vec4& color, Real thickness);
-    void drawText(const Transform& transform, const Vec3& scale, 
-                  const Vec4& color, const std::string& string, 
+    void drawText(const Transform& transform, const Vec3& scale,
+                  const Vec4& color, const std::string& string,
                   bool faceCamera, bool isScreenText);
-    void drawCoords(const Transform& transform, const Vec3& axisLengths, 
+    void drawCoords(const Transform& transform, const Vec3& axisLengths,
                     const Vec4& color);
-    
-    void addMenu(const String& title, int id, 
+
+    void addMenu(const String& title, int id,
                  const Array_<std::pair<String, int> >& items);
     void addSlider(const String& title, int id, Real min, Real max, Real value);
     void setSliderValue(int id, Real newValue) const;
     void setSliderRange(int id, Real newMin, Real newMax) const;
-    
+
     void setSystemUpDirection(const CoordinateDirection& upDir);
     void setGroundHeight(Real height);
     void setWindowTitle(const String& title) const;
@@ -150,12 +150,12 @@ public:
     void setFieldOfView(Real fov) const;
     void setClippingPlanes(Real near, Real far) const;
 private:
-    void drawMesh(const Transform& transform, const Vec3& scale, 
-                  const Vec4& color, short representation, 
+    void drawMesh(const Transform& transform, const Vec3& scale,
+                  const Vec4& color, short representation,
                   unsigned short meshIndex, unsigned short resolution);
     int outPipe;
 
-    // For user-defined meshes, map their unique memory addresses to the 
+    // For user-defined meshes, map their unique memory addresses to the
     // assigned visualizer cache index.
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;

@@ -47,23 +47,23 @@ void Parallel2DExecutorImpl::init(int numProcessors) {
         bins = 1;
     }
     else {
-        
+
         // Determine how many levels of subdivision to use.
-        
+
         int levels = 1;
         while (1<<levels < numProcessors)
             levels++;
         levels++;
         bins = 1<<levels;
-        
+
         // Build the set of squares.
-        
+
         squares.resize(bins-1);
         addTriangle(0, 0, 0, levels);
     }
-    
+
     // Find the range of indices in each bin.
-    
+
     binStart.resize(bins+1);
     for (int i = 0; i < bins; ++i)
         binStart[i] = (int) std::floor(0.5+i*gridSize/(double) bins);
@@ -192,16 +192,16 @@ void Parallel2DExecutorImpl::execute(Parallel2DExecutor::Task& task, Parallel2DE
         return;
     }
     int bins = binStart.size()-1;
-    
+
     // Execute the blocks along the diagonal.
-    
+
     TriangleTask triangle(*this, task, rangeType, 2, true, false);
     executor->execute(triangle, bins/2);
-    
+
     // Execute the square blocks in a series of passes.
-    
+
     for (int i = 0; i < (int)squares.size(); ++i) {
-        SquareTask square(*this, task, squares[i], rangeType, false, 
+        SquareTask square(*this, task, squares[i], rangeType, false,
                           i == (int)squares.size()-1);
         executor->execute(square, squares[i].size());
     }

@@ -527,7 +527,7 @@ namespace Ipopt
     /** @name Constructors/Destructors. */
     //@{
     /** Constructor that takes the spaces for each of the iterates.
-     *  Warning! None of these can be NULL ! 
+     *  Warning! None of these can be NULL !
      */
     IteratesVectorSpace(const VectorSpace& x_space, const VectorSpace& s_space,
                         const VectorSpace& y_c_space, const VectorSpace& y_d_space,

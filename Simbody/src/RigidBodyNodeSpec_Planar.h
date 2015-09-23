@@ -54,7 +54,7 @@ RBNodePlanar(const MassProperties&    mProps_B,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<3, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -65,8 +65,8 @@ RBNodePlanar(const MassProperties&    mProps_B,
 // This has a default implementation but it rotates first then translates,
 // which works fine for the normal Planar joint but produces wrong behavior
 // when the mobilizer is reversed.
-void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, 
-                            Vector& q) const override 
+void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM,
+                            Vector& q) const override
 {
     setQToFitTranslationImpl(sbs, X_FM.p(), q); // see below
     setQToFitRotationImpl(sbs, X_FM.R(), q);
@@ -124,7 +124,7 @@ void calcX_FM(const SBStateDigest& sbs,
                 Transform&  X_FM) const
 {
     assert(q && nq==3 && qCache && nQCache==PoolSize);
-    // Rotational q is about common z axis, translational q's along 
+    // Rotational q is about common z axis, translational q's along
     // Fx and Fy.
     X_FM.updR().setRotationFromAngleAboutZ(qCache[CosQ], qCache[SinQ]);
     X_FM.updP() = Vec3(q[1], q[2], 0);

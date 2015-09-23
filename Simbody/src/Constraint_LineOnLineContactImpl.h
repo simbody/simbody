@@ -48,10 +48,10 @@ class Constraint::LineOnLineContactImpl : public ConstraintImpl {
 public:
 
 // An object of this local type is used as the value of a Position-stage
-// discrete state variable that allows sphere parameters to be changed for a 
+// discrete state variable that allows sphere parameters to be changed for a
 // particular State.
 struct Parameters {
-    Parameters(const Transform& X_FEf, Real hf, 
+    Parameters(const Transform& X_FEf, Real hf,
                const Transform& X_BEb, Real hb)
     :   X_FEf(X_FEf), hf(hf), X_BEb(X_BEb), hb(hb)  {}
     Transform   X_FEf;  // edge Ef's frame
@@ -101,7 +101,7 @@ struct VelocityCache {
 };
 
 explicit LineOnLineContactImpl(bool enforceRolling)
-:   ConstraintImpl(1, enforceRolling?2:0, 0), 
+:   ConstraintImpl(1, enforceRolling?2:0, 0),
     m_enforceRolling(enforceRolling),
     m_def_X_FEf(), m_def_X_BEb(), m_def_hf(NaN), m_def_hb(NaN) {}
 
@@ -119,7 +119,7 @@ void realizeTopologyVirtual(State& state) const override;
 // Get the current value of the runtime-settable parameters from this state.
 const Parameters& getParameters(const State& state) const;
 
-// Get a writable reference to the value of the discrete variable; this 
+// Get a writable reference to the value of the discrete variable; this
 // invalidated Position stage in the given state.
 Parameters& updParameters(State& state) const;
 
@@ -127,7 +127,7 @@ const PositionCache& getPositionCache(const State& state) const;
 PositionCache& updPositionCache(const State& state) const;
 
 // Fill a PositionCache struct using the supplied Transforms rather than
-// ones from the State. The PositionCache struct can be a throwaway, however; 
+// ones from the State. The PositionCache struct can be a throwaway, however;
 // it doesn't have to belong to a State
 void calcPositionInfo(const State& state,
                       const Transform& X_AF, const Transform& X_AB,
@@ -142,7 +142,7 @@ VelocityCache& updVelocityCache(const State& state) const;
 
 // Fill a VelocityCache struct using the supplied spatial velocities rather than
 // ones from the State. Position calculations will be performed first if
-// necessary and the State cache updated. The VelocityCache struct can be a 
+// necessary and the State cache updated. The VelocityCache struct can be a
 // throwaway, however; it doesn't have to belong to a State.
 void calcVelocityInfo(const State& state,
                       const SpatialVec& V_AF, const SpatialVec& V_AB,
@@ -164,13 +164,13 @@ const VelocityCache& ensureVelocityCacheRealized(const State& state) const;
 
 There are two bodies F and B, with edges Ef fixed to F and Eb fixed to B.
 For the constraint to be meaningful in unilateral contact, at least one of
-the edges must be formed by the convex intersection of two faces of the 
+the edges must be formed by the convex intersection of two faces of the
 polyhedral surface of a solid object (which does not have to be convex overall).
-We assume Ef is defined that way by two faces of solid Sf and require the 
+We assume Ef is defined that way by two faces of solid Sf and require the
 outward normals of those faces. That allows us to determine whether the contact
 point on Eb is inside or outside of Sf, so that we can follow a useful sign
-convention in which a positive perr indicates separation (Eb outside Sf) and 
-negative perr indicates penetration (Eb inside Sf). Eb may also be produced by 
+convention in which a positive perr indicates separation (Eb outside Sf) and
+negative perr indicates penetration (Eb inside Sf). Eb may also be produced by
 a convex intersection of faces or it may just be the edge of a flat plate or
 even a thin wire; we don't need to know. Note that a "crossed edges" constraint
 like this one should never occur when either Ef or Eb is a concave edge because
@@ -198,14 +198,14 @@ with tf and tb unknown scalars. These points are unique if the lines are not
 parallel.
 
 
-The edges are crossed iff |tf|<=hf and |tb|<=hb. 
+The edges are crossed iff |tf|<=hf and |tb|<=hb.
 
-We know that the vector between the closest 
-points will be perpendicular to both lines, that is, parallel to w = df X db. 
+We know that the vector between the closest
+points will be perpendicular to both lines, that is, parallel to w = df X db.
 Thus
     (1) Qf + r*n = Qb
-where r is the distance between the closest points and n=w/||w||. By dotting 
-both sides of (1) with n, we eliminate the terms involving df and db so can 
+where r is the distance between the closest points and n=w/||w||. By dotting
+both sides of (1) with n, we eliminate the terms involving df and db so can
 solve for r:
     (2) r = (Pb - Pf) . n
 To make r a useful signed-distance value for unilateral contact, the user
@@ -230,13 +230,13 @@ We'll take derivatives in A for convenience. Could use any frame.
 
     dws = dw/s
 
-    ds = d/dt_F s= d/dt_F (w . w)^1/2 
+    ds = d/dt_F s= d/dt_F (w . w)^1/2
                  = (w . dw) / s
                  = n . dw
     d/dt_A s^-1  = -s^-2 ds
                  = -(n . dw) / s^2
                  = -(n . dws) / s
-   
+
     dn = d/dt_A (w/s) = (d/dt_A w) / s + w * (d/dt_A s^-1)
                       = dw/s - w * (n.dws)/s
                       = dws - (n.dws)*n
@@ -272,12 +272,12 @@ So
 Note that the give State does not necessarily correspond to the given X_AB
 and constrainedQ so we can't cache the results.
 
-TODO: there ought to be a flag saying whether the X_AB and q are from the 
+TODO: there ought to be a flag saying whether the X_AB and q are from the
 state (which is common) so that the results could be saved.
 */
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    state,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -307,9 +307,9 @@ void calcPositionErrorsVirtual
 Note that we can't cache the velocity results here because we don't know that
 V_AB and qdot were taken from the given State.
 */
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
     const override
@@ -338,7 +338,7 @@ void calcPositionDotErrorsVirtual
     const Vec3 dp_PfPb_A = v_APb - v_APf;                       //  3
 
     const Vec3 ddf_A = w_AF % df_A;                             //  9 flops
-    const Vec3 ddb_A = w_AB % db_A;                             //  9 
+    const Vec3 ddb_A = w_AB % db_A;                             //  9
     const Vec3 dw_A  = pc.sense*(ddf_A % db_A + df_A % ddb_A);  // 24
     const Vec3 dn_A  = pc.oos * (dw_A - (~n_A*dw_A)*n_A);       // 11
 
@@ -351,9 +351,9 @@ void calcPositionDotErrorsVirtual
     --------------------------------------------------
     139 flops if position & velocity info is already available.
 */
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    state,  // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -383,9 +383,9 @@ void calcPositionDotDotErrorsVirtual
     const Vec3&     dn_A  = vc.dn_A;
 
     // 30 flops for these two together.
-    const Vec3 a_APf = findStationInAAcceleration(state, allA_AB, m_mobod_F, 
+    const Vec3 a_APf = findStationInAAcceleration(state, allA_AB, m_mobod_F,
                                                   pc.p_FPf_A, vc.wXwX_p_FPf_A);
-    const Vec3 a_APb = findStationInAAcceleration(state, allA_AB, m_mobod_B, 
+    const Vec3 a_APb = findStationInAAcceleration(state, allA_AB, m_mobod_B,
                                                   pc.p_BPb_A, vc.wXwX_p_BPb_A);
     const Vec3 d2p_PfPb_A = a_APb - a_APf;          //  3 flops
 
@@ -395,7 +395,7 @@ void calcPositionDotDotErrorsVirtual
                                                     // 27
 
     const Real ndw = ~n_A * dw_A;                   //  5 flops
-    const Vec3 ddw = d2w_A - (pc.oos*ndw)*dw_A;     //  7 
+    const Vec3 ddw = d2w_A - (pc.oos*ndw)*dw_A;     //  7
     const Vec3 d2n_A = pc.oos*(ddw-ndw*dn_A-(~n_A*ddw + ~dn_A*dw_A)*n_A);
                                                     // 26
 
@@ -410,7 +410,7 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
     assert(multipliers.size()==1&&bodyForcesInA.size()==2&&qForces.size()==0);
@@ -429,9 +429,9 @@ void addInPositionConstraintForcesVirtual
 
 // Implementation of virtuals required for nonholonomic constraints.
 
-/* The rolling friction constraint says that the velocity in F of the material 
-point of B coincident with the contact point Co, must be zero in the contact 
-frame's Cx and Cy directions. 
+/* The rolling friction constraint says that the velocity in F of the material
+point of B coincident with the contact point Co, must be zero in the contact
+frame's Cx and Cy directions.
 
 We have already calculated p_FCo and p_BCo, the station locations on bodies
 F and B of stations that are coincident with the contact point Co.
@@ -439,7 +439,7 @@ Note that the contact point Co is not a station of either body but moves with
 respect to the body frames F and B. However, for the velocity constraint
 we want to enforce no relative tangential velocity of the two *material* points
 at Co, which we'll call B/Co and F/Co and write
-(3) vA_FCo = d/dt_A p_FCo 
+(3) vA_FCo = d/dt_A p_FCo
            = v_AF + w_AF x p_FCo
 (4) vA_BCo = d/dt A p_BCo
              v_AB + w_AB x p_BCo
@@ -455,7 +455,7 @@ contact point Co, which is defined like this:
     Co  = (Qf + Qb)/2
 Differentiating in the A frame, we have
     dCo = d/dt_A Co = (dQf + dQb)/2
-The closest points Qf and Qb are defined 
+The closest points Qf and Qb are defined
     Qf  = Pf + tf * df
     Qb  = Pb + tb * db
 so  dQf = dPf + dtf * df + tf * ddf
@@ -471,7 +471,7 @@ We calculated the derivative of oos=1/s earlier, call it doos.
     d/dt_A n x db = dn x db + n x ddb
 and similarly we can get dtb.
 
-We have 
+We have
      p_FCo = Co - Fo,        p_BCo = Co - Bo
     dp_FCo = dCo - dFo,     dp_BCo = dCo - dBo
 where dFo = v_AF, dBo = v_AB.
@@ -494,7 +494,7 @@ We already have vF_BCo, so we need these three quantities:
     Cyd     = d/dt_A Cy = d/dt_A (n x df) = dn x df + n x ddf
     dvF_BCo = d/dt_A vF_BCo               = dvA_BCo - dvA_FCo
 
-You can find the velocity-dependent portions of the above calculations, 
+You can find the velocity-dependent portions of the above calculations,
 including Cxd and Cyd, in ensureVelocityCacheRealized().
 */
 
@@ -507,7 +507,7 @@ including Cxd and Cyd, in ensureVelocityCacheRealized().
 */
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
     const override
@@ -535,7 +535,7 @@ void calcVelocityErrorsVirtual
     const Vec3 vF_BCo_A = vA_BCo_A - vA_FCo_A;      //  3 flops
 
     // Calculate these scalars using A-frame vectors, but the results are
-    // measure numbers in [Cx Cy]. This is the slip velocity of B at Co 
+    // measure numbers in [Cx Cy]. This is the slip velocity of B at Co
     // measured in F and expressed in C.
     verr[0] = ~vF_BCo_A * Cx_A;                     // 5 flops
     verr[1] = ~vF_BCo_A * Cy_A;                     // 5 flops
@@ -549,9 +549,9 @@ void calcVelocityErrorsVirtual
     55 flops if position and velocity info already calculated.
 */
 
-void calcVelocityDotErrorsVirtual      
+void calcVelocityDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
     const override
@@ -594,10 +594,10 @@ void addInVelocityConstraintForcesVirtual
    (const State&                                    s,      // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces)
     const override
 {
-    assert(multipliers.size()==2 && mobilityForces.size()==0 
+    assert(multipliers.size()==2 && mobilityForces.size()==0
            && bodyForcesInA.size()==2);
     const Real lambda0 = multipliers[0], lambda1 = multipliers[1];
 

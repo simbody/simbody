@@ -35,8 +35,8 @@ int main () {
     sys.addEventReporter(new DiscontinuousReporter());
     sys.realizeTopology();
 
-    // Test with various intervals for the event handler and event reporter, 
-    // ones that are either large or small compared to the expected internal 
+    // Test with various intervals for the event handler and event reporter,
+    // ones that are either large or small compared to the expected internal
     // step size of the integrator.
 
     #ifndef NDEBUG
@@ -50,9 +50,9 @@ int main () {
            (i == 0 || i == 1 ? 0.01 : 2.0);
         PeriodicReporter::reporter->setEventInterval
            (i == 0 || i == 2 ? 0.015 : 1.5);
-        
+
         // Test the integrator in both normal and single step modes.
-        
+
         SemiExplicitEuler2Integrator integ(sys);
         testIntegrator(integ, sys, 1e-6);
         integ.setReturnEveryInternalStep(true);

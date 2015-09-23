@@ -46,14 +46,14 @@ template class GeodesicIntegrator<GeodesicOnParametricSurface>;
 //==============================================================================
 
 void Geodesic::dump(std::ostream& o) const {
-    o << "Geodesic: " << getNumPoints() << " points, length=" 
+    o << "Geodesic: " << getNumPoints() << " points, length="
                       << getLength() << "\n";
     bool hasQtoP = !directionalSensitivityQtoP.empty();
     if (!hasQtoP)
         o << "  QtoP Jacobi fields not available\n";
     for (int i=0; i < getNumPoints(); ++i) {
         o << "  Point at s=" << arcLengths[i] << ":\n";
-        o << "    p=" << frenetFrames[i].p() << " t=" 
+        o << "    p=" << frenetFrames[i].p() << " t="
                       << frenetFrames[i].x() << "\n";
         o << "    jrP=" << directionalSensitivityPtoQ[i][0];
         o << "    jtP=" << positionalSensitivityPtoQ[i][0];
@@ -107,20 +107,20 @@ calcConstraintErrors(Real t, const Vec<N>& y, Vec<NC>& cerr) const {
     // This is the perr() equation that says the point must be on the surface.
     cerr[0] = geom.calcSurfaceValue(p);
     // These are the two verr() equations. The first is the derivative of
-    // the above point-on-surface holonomic constraint above. The second is 
-    // a nonholonomic velocity constraint restricting the velocity along 
+    // the above point-on-surface holonomic constraint above. The second is
+    // a nonholonomic velocity constraint restricting the velocity along
     // the curve to be 1.
     cerr[1] = ~geom.calcSurfaceGradient(p)*v;
     cerr[2] = v.norm() - 1;
 }
 
-// Given a state y drive the infinity norm of the position and velocity 
+// Given a state y drive the infinity norm of the position and velocity
 // constraint errors to consTol or below by adjusting y.
 bool GeodesicOnImplicitSurface::
 projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
     const int MaxIter = 10;         // should take *far* fewer
     const Real OvershootFac = Real(0.1);  // try to do better than consTol
-        
+
     const Real tryTol = consTol * OvershootFac;
     Vec3& p = updP(y); // aliases for the state variables
     Vec3& v = updV(y);
@@ -131,17 +131,17 @@ projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
     // tryTol, which is a little tighter than the requested consTol.
 
     // NOTE: (sherm) I don't think this is exactly the right projection.
-    // Here we project down the gradient, but the final result won't 
+    // Here we project down the gradient, but the final result won't
     // be exactly the nearest point on the surface if the gradient changes
     // direction on the way down. For correcting small errors this is
     // probably completely irrelevant since the starting and final gradient
     // directions will be the same.
 
     Real perr, ptolAchieved;
-    int piters=0; 
+    int piters=0;
     while (true) {
         perr = geom.calcSurfaceValue(p);
-        ptolAchieved = std::abs(perr); 
+        ptolAchieved = std::abs(perr);
         if (ptolAchieved <= tryTol || piters==MaxIter)
             break;
 
@@ -158,16 +158,16 @@ projectIfNeeded(Real consTol, Real t, Vec<N>& y) const {
 
 
     // Now the velocities. There are two velocity constraints that have
-    // to be satisfied simultaneously. They are (1) the time derivative of 
-    // the perr equation which we just solved, and (2) the requirement that 
-    // the velocity magnitude be 1. So verr=~[ ~g*v, |v|-1 ]. You might 
-    // think these need to be solved simultaneously to find the least 
+    // to be satisfied simultaneously. They are (1) the time derivative of
+    // the perr equation which we just solved, and (2) the requirement that
+    // the velocity magnitude be 1. So verr=~[ ~g*v, |v|-1 ]. You might
+    // think these need to be solved simultaneously to find the least
     // squares dv, but dv can be determined by two orthogonal projections.
     // The allowable velocity vectors form a unit circle whose normal is
     // in the gradient direction. The least squares dv is the shortest
     // vector from the end point of v to that cicle. To find the closest
-    // point on the unit circle, first project the vector v onto the 
-    // circle's plane by the shortest path (remove the normal component). 
+    // point on the unit circle, first project the vector v onto the
+    // circle's plane by the shortest path (remove the normal component).
     // Then stretch the result to unit length.
     // First we solve the linear least squares problem ~g*(v+dv0)=0 for
     // dv0, and set v0=v+dv0. Then set vfinal = v0/|v0|, giving dv=vfinal-v.

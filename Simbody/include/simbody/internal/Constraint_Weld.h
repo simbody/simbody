@@ -39,22 +39,22 @@ namespace SimTK {
 a frame on one body and a frame on another body. This is a combination
 of a ConstantOrientation constraint and a Ball constraint. The first three
 equations correspond to the perpendicularity constraints associated with
-the orientation constraint, the last three equations are the 
+the orientation constraint, the last three equations are the
 coincident point conditions.
 
 The constraint is enforced by an internal (non-working) force applied at the
-spatial location of the frame origin on body 2, on material points of each body 
-that are coincident with that spatial location. Note that this is somewhat 
-asymmetric when the Weld is not properly assembled -- it acts as though the 
-contact occurs at the origin of the frame on body 2, *not* at the origin of the 
-frame on body 1. The orientation constraints on the other hand are symmetric, 
-they are three "constant angle" constraints enforcing perpendicularity between 
-body2's x,y,z axes with body1's y,z,x axes respectively, via an internal 
+spatial location of the frame origin on body 2, on material points of each body
+that are coincident with that spatial location. Note that this is somewhat
+asymmetric when the Weld is not properly assembled -- it acts as though the
+contact occurs at the origin of the frame on body 2, *not* at the origin of the
+frame on body 1. The orientation constraints on the other hand are symmetric,
+they are three "constant angle" constraints enforcing perpendicularity between
+body2's x,y,z axes with body1's y,z,x axes respectively, via an internal
 (non-working) torque vector applied equal and opposite on each body.
 
 TODO: Although the frame origins can be brought together by the Ball constraint,
-the perpendicularity conditions can be satisfied with antiparallel axes in 
-addition to the parallel ones we want. Therefore the assembly conditions must 
+the perpendicularity conditions can be satisfied with antiparallel axes in
+addition to the parallel ones we want. Therefore the assembly conditions must
 include additional (redundant) constraints requiring parallel axes.
 **/
 class SimTK_SIMBODY_EXPORT Constraint::Weld : public Constraint {
@@ -71,7 +71,7 @@ Weld(MobilizedBody& body1, MobilizedBody& body2);
 /// position and orientation of frame F relative to the body frame B.
 Weld(MobilizedBody& body1, const Transform& frame1,
         MobilizedBody& body2, const Transform& frame2);
-    
+
 /** Default constructor creates an empty handle. **/
 Weld() {}
 

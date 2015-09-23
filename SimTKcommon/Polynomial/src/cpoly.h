@@ -27,7 +27,7 @@
  *
  *
  * Module name     :   cpoly.cpp
- * Module ID Nbr   :   
+ * Module ID Nbr   :
  * Description     :   cpoly.cpp -- Jenkins-Traub real polynomial root finder.
  *                     Translation of TOMS493 from FORTRAN to C. This
  *                     implementation of Jenkins-Traub partially adapts
@@ -54,14 +54,14 @@
  *
  *                     RETURN:
  *                     returnval:   -1 if leading coefficient is zero, otherwise
- *                          number of roots found. 
+ *                          number of roots found.
  * --------------------------------------------------------------------------
- * Change Record   :   
+ * Change Record   :
  *
  * Version  Author/Date     Description of changes
  * -------  -----------     ----------------------
  * 01.01    HVE/021101      Initial release
- * 01.02    PE/8Aug07       Converted to a class, templatized  
+ * 01.02    PE/8Aug07       Converted to a class, templatized
  *
  * End of Change Record
  * --------------------------------------------------------------------------
@@ -79,7 +79,7 @@ public:
 private:
     T sr, si, tr, ti, pvr, pvi, are, mre, eta, infin;
     int nn;
-    T *pr, *pi, *hr, *hi, *qpr, *qpi, *qhr, *qhi, *shr, *shi; 
+    T *pr, *pi, *hr, *hi, *qpr, *qpi, *qhr, *qhi, *shr, *shi;
     void noshft( const int l1 );
     void fxshft( const int l2, T *zr, T *zi, int *conv );
     void vrshft( const int l3, T *zr, T *zi, int *conv );

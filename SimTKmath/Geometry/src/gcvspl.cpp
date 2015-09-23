@@ -20,8 +20,8 @@ SimTK_Real SimTK_SIMMATH_EXPORT SimTK_splder_(int *, int *, int *, SimTK_Real *,
 
 static SimTK_Real c_b6 = SimTK_Real(1e-15);
 
-int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny, 
-    const SimTK_Real *wx, const SimTK_Real *wy, int *m, int *n, int *k, 
+int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny,
+    const SimTK_Real *wx, const SimTK_Real *wy, int *m, int *n, int *k,
     int *md, SimTK_Real *val, SimTK_Real *c, int *nc, SimTK_Real *
     wk, int *ier)
 {
@@ -35,15 +35,15 @@ int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny,
 
     /* Local variables */
     int nm2m1, nm2p1;
-    extern SimTK_Real splc_(int *, int *, int *, const SimTK_Real *, 
-        int *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, 
+    extern SimTK_Real splc_(int *, int *, int *, const SimTK_Real *,
+        int *, const SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *,
         SimTK_Real *, SimTK_Real *, SimTK_Real *, int *, SimTK_Real *,
          SimTK_Real *, SimTK_Real *, SimTK_Real *, SimTK_Real *);
-    extern /* Subroutine */ int prep_(int *, int *, const SimTK_Real *, 
+    extern /* Subroutine */ int prep_(int *, int *, const SimTK_Real *,
         const SimTK_Real *, SimTK_Real *, SimTK_Real *);
     int i, j;
     SimTK_Real alpha;
-    extern /* Subroutine */ int basis_(int *, int *, const SimTK_Real *, 
+    extern /* Subroutine */ int basis_(int *, int *, const SimTK_Real *,
         SimTK_Real *, SimTK_Real *, SimTK_Real *);
     SimTK_Real r1, r2, r3, r4;
     int ib;
@@ -54,18 +54,18 @@ int SimTK_gcvspl_(const SimTK_Real *x, const SimTK_Real *y, int *ny,
 
     /* Parameter adjustments */
     --wk;
-    
+
     c_dim1 = *nc;
     c_offset = c_dim1 + 1;
     c -= c_offset;
-    
+
     --wy;
     --wx;
-    
+
     y_dim1 = *ny;
     y_offset = y_dim1 + 1;
     y -= y_offset;
-    
+
     --x;
 
     /* Function Body */
@@ -227,7 +227,7 @@ L100:
 
 /* BASIS.FOR, 1985-06-03 */
 
-int basis_(int *m, int *n, const SimTK_Real *x, SimTK_Real 
+int basis_(int *m, int *n, const SimTK_Real *x, SimTK_Real
     *b, SimTK_Real *bl, SimTK_Real *q)
 {
     /* System generated locals */
@@ -245,11 +245,11 @@ int basis_(int *m, int *n, const SimTK_Real *x, SimTK_Real
     /* Parameter adjustments */
     q_offset = 1 - *m;
     q -= q_offset;
-    
+
     b_dim1 = *m - 1 - (1 - *m) + 1;
     b_offset = 1 - *m + b_dim1;
     b -= b_offset;
-    
+
     --x;
 
     if (*m == 1) {
@@ -496,13 +496,13 @@ int prep_(int *m, int *n, const SimTK_Real *x, const SimTK_Real *
 /* SPLC.FOR, 1985-12-12 */
 
 SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
-    ny, const SimTK_Real *wx, const SimTK_Real *wy, int *mode, SimTK_Real *val, 
-    SimTK_Real *p, SimTK_Real *eps, SimTK_Real *c, int *nc, 
-    SimTK_Real *stat, SimTK_Real *b, SimTK_Real *we, SimTK_Real *el, 
+    ny, const SimTK_Real *wx, const SimTK_Real *wy, int *mode, SimTK_Real *val,
+    SimTK_Real *p, SimTK_Real *eps, SimTK_Real *c, int *nc,
+    SimTK_Real *stat, SimTK_Real *b, SimTK_Real *we, SimTK_Real *el,
     SimTK_Real *bwe)
 {
     /* System generated locals */
-    int y_dim1, y_offset, c_dim1, c_offset, b_dim1, b_offset, we_dim1, 
+    int y_dim1, y_offset, c_dim1, c_offset, b_dim1, b_offset, we_dim1,
         we_offset, bwe_dim1, bwe_offset, i__1, i__2, i__3, i__4;
     SimTK_Real ret_val, d__1;
 
@@ -514,8 +514,8 @@ SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
     int km;
     SimTK_Real dt;
     int kp;
-    extern /* Subroutine */ int bandet_(SimTK_Real *, int *, int *), 
-        bansol_(SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *, 
+    extern /* Subroutine */ int bandet_(SimTK_Real *, int *, int *),
+        bansol_(SimTK_Real *, const SimTK_Real *, int *, SimTK_Real *,
         int *, int *, int *, int *);
     SimTK_Real pel, esn, trn;
 
@@ -527,24 +527,24 @@ SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
     bwe_dim1 = *m - (-(*m)) + 1;
     bwe_offset = -(*m) + bwe_dim1;
     bwe -= bwe_offset;
-    
+
     we_dim1 = *m - (-(*m)) + 1;
     we_offset = -(*m) + we_dim1;
     we -= we_offset;
-    
+
     b_dim1 = *m - 1 - (1 - *m) + 1;
     b_offset = 1 - *m + b_dim1;
     b -= b_offset;
-    
+
     --stat;
-    
+
     c_dim1 = *nc;
     c_offset = c_dim1 + 1;
     c -= c_offset;
-    
+
     --wy;
     --wx;
-    
+
     y_dim1 = *ny;
     y_offset = y_dim1 + 1;
     y -= y_offset;
@@ -573,7 +573,7 @@ SimTK_Real splc_(int *m, int *n, int *k, const SimTK_Real *y, int *
         if (abs(l) == *m) {
         bwe[l + i * bwe_dim1] = dp * we[l + i * we_dim1];
         } else {
-        bwe[l + i * bwe_dim1] = b[l + i * b_dim1] + dp * we[l + i * 
+        bwe[l + i * bwe_dim1] = b[l + i * b_dim1] + dp * we[l + i *
             we_dim1];
         }
     }
@@ -643,7 +643,7 @@ int bandet_(SimTK_Real *e, int *m, int *n)
 
 
     /* Parameter adjustments */
-    
+
     e_dim1 = *m - (-(*m)) + 1;
     e_offset = -(*m) + e_dim1;
     e -= e_offset;
@@ -678,7 +678,7 @@ int bandet_(SimTK_Real *e, int *m, int *n)
             for (k = 1; k <= i__3; ++k) {
             du -= e[-k + i * e_dim1] * e[l + k + (i - k) * e_dim1]
                 ;
-            dl -= e[-l - k + (l + i) * e_dim1] * e[k + (i - k) * 
+            dl -= e[-l - k + (l + i) * e_dim1] * e[k + (i - k) *
                 e_dim1];
             }
             e[l + i * e_dim1] = du;
@@ -689,17 +689,17 @@ int bandet_(SimTK_Real *e, int *m, int *n)
     }
 
     return 0;
-} 
+}
 
 
 
 /* BANSOL.FOR, 1985-12-12 */
 
-int bansol_(SimTK_Real *e, const SimTK_Real *y, int *ny, 
+int bansol_(SimTK_Real *e, const SimTK_Real *y, int *ny,
     SimTK_Real *c, int *nc, int *m, int *n, int *k)
 {
     /* System generated locals */
-    int e_dim1, e_offset, y_dim1, y_offset, c_dim1, c_offset, i__1, i__2, 
+    int e_dim1, e_offset, y_dim1, y_offset, c_dim1, c_offset, i__1, i__2,
         i__3, i__4;
 
     /* Local variables */
@@ -711,15 +711,15 @@ int bansol_(SimTK_Real *e, const SimTK_Real *y, int *ny,
 /* ***  Check on special cases: M=0, M=1, M>1 */
 
     /* Parameter adjustments */
-    
+
     c_dim1 = *nc;
     c_offset = c_dim1 + 1;
     c -= c_offset;
-    
+
     y_dim1 = *ny;
     y_offset = y_dim1 + 1;
     y -= y_offset;
-    
+
     e_dim1 = *m - (-(*m)) + 1;
     e_offset = -(*m) + e_dim1;
     e -= e_offset;
@@ -750,12 +750,12 @@ L40:
     c[j * c_dim1 + 1] = y[j * y_dim1 + 1];
     i__2 = *n;
     for (i = 2; i <= i__2; ++i) {
-        c[i + j * c_dim1] = y[i + j * y_dim1] - e[i * e_dim1 - 1] * c[i - 
+        c[i + j * c_dim1] = y[i + j * y_dim1] - e[i * e_dim1 - 1] * c[i -
             1 + j * c_dim1];
     }
     c[*n + j * c_dim1] /= e[*n * e_dim1];
     for (i = nm1; i >= 1; --i) {
-        c[i + j * c_dim1] = (c[i + j * c_dim1] - e[i * e_dim1 + 1] * c[i 
+        c[i + j * c_dim1] = (c[i + j * c_dim1] - e[i * e_dim1 + 1] * c[i
             + 1 + j * c_dim1]) / e[i * e_dim1];
     }
     }
@@ -815,11 +815,11 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
 /* ***  Assess central 2*M+1 bands of E**-1 and store in array E */
 
     /* Parameter adjustments */
-    
+
     e_dim1 = *m - (-(*m)) + 1;
     e_offset = -(*m) + e_dim1;
     e -= e_offset;
-    
+
     b_dim1 = *m - (-(*m)) + 1;
     b_offset = -(*m) + b_dim1;
     b -= b_offset;
@@ -870,14 +870,14 @@ SimTK_Real trinv_(SimTK_Real *b, SimTK_Real *e, int *m, int *n)
     e[-k + e_dim1] = 0.;
     }
     return ret_val;
-} 
+}
 
 
 
 /* SPLDER.FOR, 1985-06-11 */
 
 
-SimTK_Real SimTK_splder_(int *ider, int *m, int *n, SimTK_Real *t, 
+SimTK_Real SimTK_splder_(int *ider, int *m, int *n, SimTK_Real *t,
     const SimTK_Real *x, const SimTK_Real *c, int *l, SimTK_Real *q, int coffset)
 {
     /* System generated locals */
@@ -901,7 +901,7 @@ SimTK_Real SimTK_splder_(int *ider, int *m, int *n, SimTK_Real *t,
 /* ***  Derivatives of IDER.ge.2*M are alway zero */
 
     /* Parameter adjustments */
-    
+
     --q;
     c -= coffset;
     --x;
@@ -1037,17 +1037,17 @@ L6:
 /* SEARCH.FOR, 1985-06-03 */
 
 
-int search_(int *n, const SimTK_Real *x, SimTK_Real *t, 
+int search_(int *n, const SimTK_Real *x, SimTK_Real *t,
     int *l)
 {
     int il, iu;
 
     /* Parameter adjustments */
-    
+
     --x;
 
     /* Function Body */
-    
+
     if (*t < x[1]) {
     *l = 0;
     return 0;

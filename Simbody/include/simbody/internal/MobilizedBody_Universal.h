@@ -43,16 +43,16 @@ public:
     reference any %MobilizedBody::Universal. **/
     Universal() {}
 
-    /** Create a %Universal mobilizer between an existing parent (inboard) 
-    body P and a new child (outboard) body B created by copying the given 
-    \a bodyInfo into a privately-owned Body within the constructed 
+    /** Create a %Universal mobilizer between an existing parent (inboard)
+    body P and a new child (outboard) body B created by copying the given
+    \a bodyInfo into a privately-owned Body within the constructed
     %MobilizedBody object. Specify the mobilizer frames F fixed to parent P and
-    M fixed to child B. 
+    M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Universal(MobilizedBody& parent, const Transform& X_PF,
               const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Universal(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
@@ -75,7 +75,7 @@ public:
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
     /** @cond **/ // Don't let doxygen see this
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Universal, UniversalImpl, 
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(Universal, UniversalImpl,
                                              MobilizedBody);
     /** @endcond **/
 };

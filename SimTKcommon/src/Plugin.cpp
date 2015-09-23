@@ -76,7 +76,7 @@ bool Plugin::load(const string& name) {
     bool isAbsolutePath;
     string directory, libPrefix, baseName, debugSuffix, extension;
     if (!deconstructLibraryName(nameToUse, isAbsolutePath,
-        directory, libPrefix, baseName, debugSuffix, extension)) 
+        directory, libPrefix, baseName, debugSuffix, extension))
     {
         m_lastMessage = "Plugin::load(): illegal library name '" + nameToUse + "'.";
         return false;
@@ -150,16 +150,16 @@ bool Plugin::deconstructLibraryName(const string& name,
 #ifdef _WIN32
 static string getWindowsSystemMessage() {
     LPVOID lpMsgBuf;
-    FormatMessage( 
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-        FORMAT_MESSAGE_FROM_SYSTEM | 
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         GetLastError(),
         0, // Default language
         (LPTSTR) &lpMsgBuf,
         0,
-        NULL 
+        NULL
     );
     const string retStr((const char*)lpMsgBuf);
 

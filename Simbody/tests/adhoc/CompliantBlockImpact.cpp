@@ -73,7 +73,7 @@ class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
                         const CompliantContactSubsystem& complCont,
-                        const MobilizedBody& brick) 
+                        const MobilizedBody& brick)
     :   m_mbs(system), m_compliant(complCont), m_brick(brick),
         m_inContact(false), m_hasCompressionEnded(false) {}
 
@@ -87,7 +87,7 @@ public:
         const Real KE=m_mbs.calcKineticEnergy(state), E=m_mbs.calcEnergy(state);
         const Real diss=m_compliant.getDissipatedEnergy(state);
         const Real PE=m_mbs.calcPotentialEnergy(state);
-        DecorativeText txt; 
+        DecorativeText txt;
         //txt.setIsScreenText(true);
         //txt.setScale(TextScale);
         //txt.setColor(Orange);
@@ -109,7 +109,7 @@ public:
 
         if (ncont) {
             if (!m_inContact) {
-                printf("\n\n--------- NEW CONTACT @%g ----------\n", 
+                printf("\n\n--------- NEW CONTACT @%g ----------\n",
                     state.getTime());
                 m_inContact = true;
             }
@@ -233,11 +233,11 @@ static const int GoItem = 1, ReplayItem=2, QuitItem=3;
 // This one does nothing but look for the Run->Quit selection.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, Real interval) 
+    UserInputHandler(Visualizer::InputSilo& silo, Real interval)
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
-    virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const override 
+    virtual void handleEvent(State& state, Real accuracy,
+                             bool& shouldTerminate) const override
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)
@@ -277,7 +277,7 @@ private:
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     system.setUpDirection(ZAxis);
     SimbodyMatterSubsystem  matter(system);
@@ -318,9 +318,9 @@ int main() {
         Transform(R_xdown, Vec3(0,0,0)),
         ContactSurface(ContactGeometry::HalfSpace(), material));
 
-    Body::Rigid brickBody(MassProperties(brickMass, Vec3(0), 
+    Body::Rigid brickBody(MassProperties(brickMass, Vec3(0),
                             UnitInertia::brick(hdim)));
-    brickBody.addDecoration(Transform(), 
+    brickBody.addDecoration(Transform(),
         DecorativeBrick(hdim).setColor(BrickColor).setOpacity(.7));
 
     for (int i=-1; i<=1; i+=2)
@@ -362,14 +362,14 @@ int main() {
     //system.addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
     // SET INITIAL CONDITIONS
     #ifdef USE_SHERM_PARAMETERS
         brick.setQToFitTranslation(state, Vec3(0,2,.8));
-        brick.setQToFitRotation(state, Rotation(BodyRotationSequence, 
+        brick.setQToFitRotation(state, Rotation(BodyRotationSequence,
                                                 Pi/4, XAxis, Pi/6, YAxis));
         brick.setUToFitLinearVelocity(state, Vec3(-5,0,0));
     #endif
@@ -390,19 +390,19 @@ int main() {
 
     viz.report(state);
     printf("Default state\n");
-    cout << "t=" << state.getTime() 
-         << " q=" << brick.getQAsVector(state)  
-         << " u=" << brick.getUAsVector(state)  
+    cout << "t=" << state.getTime()
+         << " q=" << brick.getQAsVector(state)
+         << " u=" << brick.getUAsVector(state)
          << endl;
 
     cout << "\nChoose 'Go' from Run menu to simulate:\n";
     int menuId, item;
     do { silo->waitForMenuPick(menuId, item);
-         if (menuId != RunMenuId || item != GoItem) 
+         if (menuId != RunMenuId || item != GoItem)
              cout << "\aDude ... follow instructions!\n";
     } while (menuId != RunMenuId || item != GoItem);
 
-   
+
     // Simulate it.
 
     // The system as parameterized is very stiff (mostly due to friction)
@@ -429,7 +429,7 @@ int main() {
     double realStart = realTime();
     Real lastReport = -Infinity;
     while (integ.getTime() < simDuration) {
-        // Advance time by no more than ReportInterval. Might require multiple 
+        // Advance time by no more than ReportInterval. Might require multiple
         // internal steps.
         integ.stepBy(ReportInterval);
 
@@ -445,12 +445,12 @@ int main() {
     const double timeInSec = realTime() - realStart;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s elapsed for " << integ.getTime() << "s sim (avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s elapsed for " << integ.getTime() << "s sim (avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*integ.getTime())/evals << "ms/eval\n";
     cout << "  CPU time was " << cpuTime() - cpuStart << "s\n";
 
-    printf("Using Integrator %s at accuracy %g:\n", 
+    printf("Using Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
