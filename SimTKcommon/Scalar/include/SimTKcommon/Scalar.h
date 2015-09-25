@@ -813,18 +813,21 @@ zero for the whole deadband:
     int s = sign(deadband(v, tol));
     // s={-1,0,1} for {v < -tol, |v| <= tol, v > tol}
 @endcode
+
+The deadband() functions are inline and very fast with a cost of 2 flops plus
+some logic.
 **/
 /*@{*/
 /** Given a value `v` and a non-negative half-bandwidth for a symmetric 
 deadband, map the value to exactly zero if `-halfBand <= v <= halfBand`. **/
 inline float deadband(float v, float halfBand) 
-{   assert(halfBand>=0); return std::abs(v)<=halfBand ? float(0) : v; }
+{   assert(halfBand>=0); return std::abs(v)<=halfBand ? 0.f : v; }
 /** @copydoc SimTK::deadband(float,float) **/
 inline double deadband(double v, double halfBand) 
-{   assert(halfBand>=0); return std::abs(v)<=halfBand ? double(0) : v; }
+{   assert(halfBand>=0); return std::abs(v)<=halfBand ? 0. : v; }
 /** @copydoc SimTK::deadband(float,float) **/
 inline long double deadband(long double v, long double halfBand) 
-{   assert(halfBand>=0); return std::abs(v)<=halfBand ? long double(0) : v; }
+{   assert(halfBand>=0); return std::abs(v)<=halfBand ? 0.L : v; }
 
 /** Given a value `v` and negative and positive limits of an asymmetric 
 deadband, map the value to exactly zero if `negative <= v <= positive`. We 
@@ -832,17 +835,18 @@ require negative <= 0 <= positive. Note the argument ordering -- the value is
 the middle argument here, similar to clamp(). **/
 inline float deadband(float negative, float v, float positive) 
 {   assert(negative<=0 && 0<=positive); 
-    return (negative<=v && v<=positive) ? float(0) : v; }
+    return (negative<=v && v<=positive) ? 0.f : v; }
 /** @copydoc SimTK::deadband(float,float,float) **/
 inline double deadband(double negative, double v, double positive) 
 {   assert(negative<=0 && 0<=positive); 
-    return (negative<=v && v<=positive) ? double(0) : v; }
+    return (negative<=v && v<=positive) ? 0. : v; }
 /** @copydoc SimTK::deadband(float,float,float) **/
 inline long double deadband(long double negative, long double v, 
                             long double positive) 
 {   assert(negative<=0 && 0<=positive); 
-    return (negative<=v && v<=positive) ? long double(0) : v; }
+    return (negative<=v && v<=positive) ? 0.L : v; }
 /*@}*/
+
 
 /** @defgroup SmoothedStepFunctions   Smoothed step functions
     @ingroup ScalarFunctions
