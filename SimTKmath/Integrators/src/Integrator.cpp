@@ -557,10 +557,14 @@ void IntegratorRep::findEventCandidates
                         (*viableCandidates)[i] : ActiveWitnessIndex(i);
         const EventTrigger::Witness& aw = *m_witnesses[awx];
 
+        const Real el=eLow[awx], eh=eHigh[awx];
+        if (isNaN(el) || isNaN(eh))
+            continue; // ignore if either end is NaN
+
         Event::TriggerDirection transitionSeen =
-            Event::maskTransition(
-                Event::classifyTransition(sign(eLow[awx]), sign(eHigh[awx])),
-                aw.calcTransitionMask());
+                        Event::maskTransition(
+                            Event::classifyTransition(sign(el), sign(eh)),
+                            aw.calcTransitionMask());
 
         if (transitionSeen != Event::NoEventTrigger) {
             candidates.push_back(awx);

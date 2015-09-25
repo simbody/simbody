@@ -44,6 +44,7 @@
 
 #include <complex>
 #include <cmath>
+#include <cstdlib>
 #include <climits>
 #include <cassert>
 #include <utility>
@@ -342,9 +343,18 @@ inline int sign(int         i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 inline int sign(long        i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 inline int sign(long long   i) {return i>0 ? 1 : (i<0 ? -1 : 0);}
 
-inline int sign(const float&       x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
-inline int sign(const double&      x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
-inline int sign(const long double& x) {return x>0 ? 1 : (x<0 ? -1 : 0);}
+inline int sign(const float&       x) {
+    assert(!isNaN(x));
+    return x>0 ? 1 : (x<0 ? -1 : 0);
+}
+inline int sign(const double&      x) {
+    assert(!isNaN(x));
+    return x>0 ? 1 : (x<0 ? -1 : 0);
+}
+inline int sign(const long double& x) {
+    assert(!isNaN(x));
+    return x>0 ? 1 : (x<0 ? -1 : 0);
+}
 
 inline int sign(const negator<float>&       x) {return -sign(-x);} // -x is free
 inline int sign(const negator<double>&      x) {return -sign(-x);}
@@ -787,7 +797,52 @@ inline long double clamp(long double low, negator<long double> v, long double hi
 {   return clamp(low,(long double)v,high); }
 /*@}*/
 
+/** @defgroup DeadbandGroup     deadband()
+    @ingroup ScalarFunctions
 
+Map a numerical value that is within a range of zero (the deadband) to exactly
+zero. Outside that range (including NaN) the returned value is the same as the 
+supplied value. Functions are provided for both a symmetric deadband where 
+the minimum and maximum values are the same distance from zero, and an 
+asymmetric deadband where the negative and positive limits are given explicitly.
+
+You can use this with sign() to map a value to -1, 0, or 1 where it is exactly
+zero for the whole deadband:
+@code{.cpp}
+    double v; // from somewhere
+    int s = sign(deadband(v, tol));
+    // s={-1,0,1} for {v < -tol, |v| <= tol, v > tol}
+@endcode
+**/
+/*@{*/
+/** Given a value `v` and a non-negative half-bandwidth for a symmetric 
+deadband, map the value to exactly zero if `-halfBand <= v <= halfBand`. **/
+inline float deadband(float v, float halfBand) 
+{   assert(halfBand>=0); return std::abs(v)<=halfBand ? float(0) : v; }
+/** @copydoc SimTK::deadband(float,float) **/
+inline double deadband(double v, double halfBand) 
+{   assert(halfBand>=0); return std::abs(v)<=halfBand ? double(0) : v; }
+/** @copydoc SimTK::deadband(float,float) **/
+inline long double deadband(long double v, long double halfBand) 
+{   assert(halfBand>=0); return std::abs(v)<=halfBand ? long double(0) : v; }
+
+/** Given a value `v` and negative and positive limits of an asymmetric 
+deadband, map the value to exactly zero if `negative <= v <= positive`. We 
+require negative <= 0 <= positive. Note the argument ordering -- the value is
+the middle argument here, similar to clamp(). **/
+inline float deadband(float negative, float v, float positive) 
+{   assert(negative<=0 && 0<=positive); 
+    return (negative<=v && v<=positive) ? float(0) : v; }
+/** @copydoc SimTK::deadband(float,float,float) **/
+inline double deadband(double negative, double v, double positive) 
+{   assert(negative<=0 && 0<=positive); 
+    return (negative<=v && v<=positive) ? double(0) : v; }
+/** @copydoc SimTK::deadband(float,float,float) **/
+inline long double deadband(long double negative, long double v, 
+                            long double positive) 
+{   assert(negative<=0 && 0<=positive); 
+    return (negative<=v && v<=positive) ? long double(0) : v; }
+/*@}*/
 
 /** @defgroup SmoothedStepFunctions   Smoothed step functions
     @ingroup ScalarFunctions

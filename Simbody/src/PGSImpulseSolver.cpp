@@ -161,7 +161,7 @@ static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row,
 }
 
 /** Given a unilateral multiplier pi and its sign convention, ensure that
-sign*pi<=0. Return true if any change is made. **/
+sign*pi<=0. Return Active if so, otherwise set pi=0 and return Off. **/
 inline ImpulseSolver::UniCond boundUnilateral(Real sign, Real& pi) {
     assert(sign==1 || sign==-1);
     if (sign*pi > 0) {pi=0; return ImpulseSolver::UniOff;}
@@ -169,7 +169,7 @@ inline ImpulseSolver::UniCond boundUnilateral(Real sign, Real& pi) {
 }
 
 /** Given a scalar pi, ensure that lb <= pi <= ub by moving pi to the nearest
-bound if necessary. Return true if any change is made. **/
+bound if necessary. Return condition, with pi moved to a bound if necessary. **/
 inline ImpulseSolver::BndCond boundScalar(Real lb, Real& pi, Real ub) {
     assert(lb <= ub);
     if      (pi > ub) {pi=ub; return ImpulseSolver::SlipHigh;}
@@ -178,7 +178,8 @@ inline ImpulseSolver::BndCond boundScalar(Real lb, Real& pi, Real ub) {
 }
 
 /** Given an index set IV, ensure that ||pi[IV]|| <= maxLen by scaling the
-vector to that length if necessary. Return true if any change is made. **/
+vector to that length if necessary. Return Rolling, or Sliding with pi[IV]
+trimmed appropriately. **/
 ImpulseSolver::FricCond 
 boundVector(Real maxLen, const Array_<MultiplierIndex>& IV, Vector& pi) {
     assert(maxLen >= 0);
@@ -195,7 +196,7 @@ boundVector(Real maxLen, const Array_<MultiplierIndex>& IV, Vector& pi) {
 /** Given index set IN identifying the components of the normal force vector,
 and index set IF identifying the components of the friction vector, ensure
 that ||pi[IF]|| <= mu*||pi[IN]|| by scaling the friction vector if necessary.
-Return true if any change is made. **/
+Return Rolling, or Sliding with pi[IF] trimmed appropriately. **/
 ImpulseSolver::FricCond 
 boundFriction(Real mu, 
               const Array_<int>& IN, // these are MultiplierIndex ints 
@@ -236,7 +237,7 @@ The selected subset I is partitioned into disjoint index sets
     - IC: Unilateral contact, optionally with planar friction
     - IS: Unilateral speed constraint
     - IB: Bounded scalar constraint
-    - IS: State-limited friction
+    - IV: State-limited friction
     - IF: Constraint-limited friction
 
 Each unconditional constraint k provides
@@ -250,7 +251,7 @@ Each unilateral contact k provides
     - the effective coefficient of friction mu
 
 Each unilateral speed constraint k provides
-    - a single constraint index
+    - a single constraint index iS_k from IS
 
 Each bounded scalar constraint k provides
     - a single constraint index iB_k from IB, and 
@@ -284,21 +285,21 @@ Implicitly, complementarity conditions must hold:
 //                                 SOLVE
 //------------------------------------------------------------------------------
 bool PGSImpulseSolver::
-solve(int                                 phase,
-      const Array_<MultiplierIndex>&      participating, // p<=m of these 
-      const Matrix&                       A,     // m X m, symmetric
-      const Vector&                       D,     // m, diag >= 0 added to A
-      const Array_<MultiplierIndex>&      expanding,
-      const Vector&                       piExpand,   // m
-      Vector&                             verrStart, // m, in/out
-      Vector&                             verrApplied, // m
-      Vector&                             pi,         // m, piUnknown
-      Array_<UncondRT>&                   unconditional,
-      Array_<UniContactRT>&               uniContact, // with friction
-      Array_<UniSpeedRT>&                 uniSpeed,
-      Array_<BoundedRT>&                  bounded,
-      Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
-      Array_<StateLtdFrictionRT>&         stateLtdFriction
+solve(int                               phase,
+      const Array_<MultiplierIndex>&    participating,  // p<=m of these 
+      const Matrix&                     A,      // m X m, symmetric
+      const Vector&                     D,      // m, diag >= 0 added to A
+      const Array_<MultiplierIndex>&    expanding,
+      const Vector&                     piExpand,       // m
+      Vector&                           verrStart,      // m, in/out
+      Vector&                           verrApplied,    // m
+      Vector&                           pi,             // m, piUnknown
+      Array_<UncondRT>&                 unconditional,
+      Array_<UniContactRT>&             uniContact,     // with friction
+      Array_<UniSpeedRT>&               uniSpeed,
+      Array_<BoundedRT>&                bounded,
+      Array_<ConstraintLtdFrictionRT>&  consLtdFriction,
+      Array_<StateLtdFrictionRT>&       stateLtdFriction
       ) const 
 {
     SimTK_DEBUG("\n-----------------\n");

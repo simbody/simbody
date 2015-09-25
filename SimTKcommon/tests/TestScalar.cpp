@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2008-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -748,6 +748,73 @@ void testStep() {
     SimTK_TEST_EQ_TOL(d3stepAny(fyr,fx0,fooxr,.123f), fd3anyEst, 1e-3);
 }
 
+void testDeadband() {
+    // float
+    SimTK_TEST(deadband(-3.f, 0.5f)==-3.f);
+    SimTK_TEST(deadband( 3.f, 0.5f)== 3.f);
+    SimTK_TEST(deadband( 0.3f, 0.5f)== 0.f);
+    SimTK_TEST(deadband(-0.3f, 0.5f)== 0.f);
+    SimTK_TEST(deadband( 0.5f, 0.5f)== 0.f);
+    SimTK_TEST(deadband(-0.5f, 0.5f)== 0.f);
+    SimTK_TEST(deadband( 0.5000005f, 0.5f)== 0.5000005f);
+    SimTK_TEST(deadband(-0.5000005f, 0.5f)==-0.5000005f);
+
+    SimTK_TEST(deadband(-0.25f, -3.f, 0.5f)==-3.f);
+    SimTK_TEST(deadband(-0.25f,  3.f, 0.5f)== 3.f);
+    SimTK_TEST(deadband(-0.25f,  0.3f, 0.5f)== 0.f);
+    SimTK_TEST(deadband(-0.25f, -0.275f, 0.5f)== -0.275f);
+    SimTK_TEST(deadband(-0.25f, -0.2f, 0.5f)== 0.f);
+    SimTK_TEST(deadband(-0.25f,  0.5f, 0.5f)== 0.f);
+    SimTK_TEST(deadband(-0.25f, -0.25f, 0.5f)== 0.f);
+    SimTK_TEST(deadband(-0.25f,  0.5000005f, 0.5f)== 0.5000005f);
+    SimTK_TEST(deadband(-0.25f, -0.2500005f, 0.5f)==-0.2500005f);
+
+    // double
+    SimTK_TEST(deadband(-3., 0.5)==-3.);
+    SimTK_TEST(deadband( 3., 0.5)== 3.);
+    SimTK_TEST(deadband( 0.3, 0.5)== 0.);
+    SimTK_TEST(deadband(-0.3, 0.5)== 0.);
+    SimTK_TEST(deadband( 0.5, 0.5)== 0.);
+    SimTK_TEST(deadband(-0.5, 0.5)== 0.);
+    SimTK_TEST(deadband( 0.5000000000005, 0.5)== 0.5000000000005);
+    SimTK_TEST(deadband(-0.5000000000005, 0.5)==-0.5000000000005);
+
+    SimTK_TEST(deadband(-0.25, -3., 0.5)==-3.);
+    SimTK_TEST(deadband(-0.25,  3., 0.5)== 3.);
+    SimTK_TEST(deadband(-0.25,  0.3, 0.5)== 0.);
+    SimTK_TEST(deadband(-0.25, -0.275, 0.5)== -0.275);
+    SimTK_TEST(deadband(-0.25, -0.2, 0.5)== 0.);
+    SimTK_TEST(deadband(-0.25,  0.5, 0.5)== 0.);
+    SimTK_TEST(deadband(-0.25, -0.25, 0.5)== 0.);
+    SimTK_TEST(deadband(-0.25,  0.5000000000005, 0.5)== 0.5000000000005);
+    SimTK_TEST(deadband(-0.25, -0.2500000000005, 0.5)==-0.2500000000005);
+
+    // long double
+    SimTK_TEST(deadband(-3.L, 0.5L)==-3.L);
+    SimTK_TEST(deadband( 3.L, 0.5L)== 3.L);
+    SimTK_TEST(deadband( 0.3L, 0.5L)== 0.L);
+    SimTK_TEST(deadband(-0.3L, 0.5L)== 0.L);
+    SimTK_TEST(deadband( 0.5L, 0.5L)== 0.L);
+    SimTK_TEST(deadband(-0.5L, 0.5L)== 0.L);
+    SimTK_TEST(deadband( 0.500000000005L, 0.5L)
+                      == 0.500000000005L);
+    SimTK_TEST(deadband(-0.500000000005L, 0.5L)
+                      ==-0.500000000005L);
+
+    SimTK_TEST(deadband(-0.25L, -3.L, 0.5L)==-3.L);
+    SimTK_TEST(deadband(-0.25L,  3.L, 0.5L)== 3.L);
+    SimTK_TEST(deadband(-0.25L,  0.3L, 0.5L)== 0.L);
+    SimTK_TEST(deadband(-0.25L, -0.275L, 0.5L)== -0.275L);
+    SimTK_TEST(deadband(-0.25L, -0.2L, 0.5L)== 0.L);
+    SimTK_TEST(deadband(-0.25L,  0.5L, 0.5L)== 0.L);
+    SimTK_TEST(deadband(-0.25L, -0.25L, 0.5L)== 0.L);
+    SimTK_TEST(deadband(-0.25L,  0.500000000005L, 0.5L)
+                              == 0.500000000005L);
+    SimTK_TEST(deadband(-0.25L, -0.250000000005L, 0.5L)
+                              ==-0.250000000005L);
+
+}
+
 int main() {
     SimTK_START_TEST("TestScalar");
 
@@ -760,6 +827,7 @@ int main() {
         SimTK_SUBTEST(testIsNumericallyEqual);
         SimTK_SUBTEST(testClamp);
         SimTK_SUBTEST(testStep);
+        SimTK_SUBTEST(testDeadband);
 
     SimTK_END_TEST();
 }
