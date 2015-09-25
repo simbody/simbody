@@ -26,22 +26,22 @@ source_group("Header Files\\Others" FILES ${SOURCE_INCLUDE_FILES})
 
 if(BUILD_UNVERSIONED_LIBRARIES)
 
-    add_library(${SHARED_TARGET} SHARED 
-                ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} 
+    add_library(${SHARED_TARGET} SHARED
+                ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES}
                 ${API_ABS_INCLUDE_FILES})
-    
-    target_link_libraries(${SHARED_TARGET} 
+
+    target_link_libraries(${SHARED_TARGET}
                  ${SimTKCOMMON_SHARED_LIBRARY}
                  ${MATH_LIBS_TO_USE})
-    
+
     set_target_properties(${SHARED_TARGET} PROPERTIES
         PROJECT_LABEL "Code - ${SHARED_TARGET}"
         SOVERSION ${SIMBODY_SONAME_VERSION})
-    
+
     # install library; on Windows both .lib and .dll go in the lib directory.
     install(TARGETS ${SHARED_TARGET} EXPORT SimbodyTargets
-                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                     GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                     GROUP_READ GROUP_WRITE GROUP_EXECUTE
                      WORLD_READ WORLD_EXECUTE
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -52,22 +52,22 @@ endif(BUILD_UNVERSIONED_LIBRARIES)
 
 if(BUILD_VERSIONED_LIBRARIES)
 
-    add_library(${SHARED_TARGET_VN} SHARED 
-                ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES} 
+    add_library(${SHARED_TARGET_VN} SHARED
+                ${SOURCE_FILES} ${SOURCE_INCLUDE_FILES}
                 ${API_ABS_INCLUDE_FILES})
-    
-    target_link_libraries(${SHARED_TARGET_VN} 
+
+    target_link_libraries(${SHARED_TARGET_VN}
                  ${SimTKCOMMON_SHARED_LIBRARY_VN}
                  ${MATH_LIBS_TO_USE_VN})
-    
+
     set_target_properties(${SHARED_TARGET_VN} PROPERTIES
-        PROJECT_LABEL "Code - ${SHARED_TARGET_VN}" 
+        PROJECT_LABEL "Code - ${SHARED_TARGET_VN}"
         SOVERSION ${SIMBODY_SONAME_VERSION})
-    
+
     # install library; on Windows both .lib and .dll go in the lib directory.
     install(TARGETS ${SHARED_TARGET_VN} EXPORT SimbodyTargets
-                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                     GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+                     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                     GROUP_READ GROUP_WRITE GROUP_EXECUTE
                      WORLD_READ WORLD_EXECUTE
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

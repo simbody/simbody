@@ -27,7 +27,7 @@ foreach(TEST_PROG ${ADHOC_TESTS})
         set_target_properties(${TEST_ROOT}
         PROPERTIES
           PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
-        target_link_libraries(${TEST_ROOT} 
+        target_link_libraries(${TEST_ROOT}
                     ${TEST_SHARED_TARGET})
     endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 

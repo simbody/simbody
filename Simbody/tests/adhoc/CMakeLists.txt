@@ -30,7 +30,7 @@ foreach(TEST_PROG ${ADHOC_TESTS})
         set_target_properties(${TEST_ROOT}
         PROPERTIES
           PROJECT_LABEL "Test_Adhoc - ${TEST_ROOT}")
-        target_link_libraries(${TEST_ROOT} 
+        target_link_libraries(${TEST_ROOT}
                       ${TEST_SHARED_TARGET})
     endif(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
@@ -54,6 +54,6 @@ endforeach(TEST_PROG ${ADHOC_TESTS})
 file(GLOB ADHOC_OBJS "*.obj" "*.vtp")
 foreach(TEST_OBJ ${ADHOC_OBJS})
     get_filename_component(OBJ_ROOT ${TEST_OBJ} NAME)
-    configure_file(${TEST_OBJ} 
+    configure_file(${TEST_OBJ}
             ${CMAKE_CURRENT_BINARY_DIR}/${OBJ_ROOT} COPYONLY)
 endforeach(TEST_OBJ ${ADHOC_OBJS})

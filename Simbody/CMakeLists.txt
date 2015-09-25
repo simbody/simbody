@@ -1,5 +1,5 @@
 #---------------------------------------------------
-# Simbody 
+# Simbody
 #
 # Creates SimTK Core library, base name=SimTKsimbody.
 # Default libraries are shared & optimized. Variants
@@ -15,7 +15,7 @@
 #   lib[ns_]SimTKsimbody[_vn][_d].so
 #   lib[ns_]SimTKsimbody[_vn]_static[_d].a
 #
-# All libraries are installed in 
+# All libraries are installed in
 #   %ProgramFiles%\SimTK\lib[64]  (Windows)
 #   /usr/local/SimTK/lib[64]        (UNIX)
 #
@@ -63,8 +63,8 @@ set(SimTKSIMBODY_INCLUDE_DIRS) # start empty
 foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
     # append
     set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-     ${PROJECT_SOURCE_DIR}/${subdir}/include 
-     ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody
      ${PROJECT_SOURCE_DIR}/${subdir}/include/simbody/internal)
 
     # Referencing headers must always be done relative to this level.
@@ -72,7 +72,7 @@ foreach(subdir ${SIMBODY_SOURCE_SUBDIRS})
      ${PROJECT_SOURCE_DIR}/${subdir}/include)
 endforeach(subdir)
 
-# Include the Simbody API include directories now so that Simbody code 
+# Include the Simbody API include directories now so that Simbody code
 # can use them.
 include_directories(${SimTKSIMBODY_INCLUDE_DIRS})
 

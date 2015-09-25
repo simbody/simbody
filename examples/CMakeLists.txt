@@ -1,7 +1,7 @@
 # Build and install examples.
 #
 # This is for use when building Simbody from source; it is not for
-# end users to build examples themselves. This guarantees that the 
+# end users to build examples themselves. This guarantees that the
 # examples built with Simbody are using the libraries just built regardless
 # of what is installed. We install a different CMakeLists.txt along with
 # the examples for end users to use.
@@ -9,13 +9,13 @@
 # Examples are built from an explicit list of subdirectories given below,
 # and then simpler examples are built one per .cpp file in the top level
 # examples directory. If your example needs more than just a single .cpp
-# with a single .h of the same name, then put it in its own subdirectory 
+# with a single .h of the same name, then put it in its own subdirectory
 # where it can have its own CMakeLists.txt. You must list those
 # subdirectories explicitly below; the simpler ones will be discovered
 # automatically.
 #
 # Examples get built with these macros defined:
-#    SIMBODY_EXAMPLE_NAME     
+#    SIMBODY_EXAMPLE_NAME
 #    SIMBODY_EXAMPLES_INSTALL_SRC  (has trailing "/")
 # Subdirectory examples should locate their auxiliary files by searching
 # for one file, say "geometry/pelvis.stl", using this search path:
@@ -33,26 +33,26 @@
 #
 # Examples can depend on any Simbody includes, and may depend on headers
 # in the examples/shared directory, in which case they should be
-# included as #include "shared/SharedHeaderFile.h". This also permits use 
+# included as #include "shared/SharedHeaderFile.h". This also permits use
 # of headers between examples, via #include "OtherExample/SomeHeader.h",
 # although it is not clear that's a good idea.
-# 
-# Note that unlike code in the "tests" directory (but like the 
-# "tests/adhoc" code), this does not generate CMake ADD_TEST commands so 
+#
+# Note that unlike code in the "tests" directory (but like the
+# "tests/adhoc" code), this does not generate CMake ADD_TEST commands so
 # these will never run automatically.
 #
 # For IDEs that can deal with PROJECT_LABEL properties (at least
 # Visual Studio) the projects for building each of these adhoc
 # executables will be labeled "Example - TheExampleName" if a file
-# TheExampleName.cpp is found in this directory, or if we build from 
+# TheExampleName.cpp is found in this directory, or if we build from
 # a subdirectory called TheExampleName.
 #
-# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to 
+# We check the BUILD_TESTS_AND_EXAMPLES_{SHARED,STATIC} variables to
 # determine whether to build dynamically linked, statically linked, or both
 # versions of the executable.
 
-# All subdirectory examples must be listed here.  A subdirectory is needed 
-# for any example that consists of more than just one source file and one 
+# All subdirectory examples must be listed here.  A subdirectory is needed
+# for any example that consists of more than just one source file and one
 # header file.
 set(SUBDIR_EXAMPLES
     BricardMechanism
@@ -80,7 +80,7 @@ endif()
 
 # CMAKE_INSTALL_PREFIX may be a relative path name; we want to bake in
 # the absolute path for the examples.
-get_filename_component(ABS_CMAKE_INSTALL_PREFIX 
+get_filename_component(ABS_CMAKE_INSTALL_PREFIX
                        "${CMAKE_INSTALL_PREFIX}" ABSOLUTE)
 add_definitions(
     "-DSIMBODY_EXAMPLES_INSTALL_SRC=\"${ABS_CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_SRC}\"")
@@ -93,7 +93,7 @@ include_directories(${PLATFORM_INCLUDE_DIRECTORIES}
                     ${SimTKSIMBODY_INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-## Build examples against the unversioned libraries if they are being 
+## Build examples against the unversioned libraries if they are being
 ## built; otherwise against the versioned libraries.
 if(BUILD_UNVERSIONED_LIBRARIES)
     set(EXAMPLES_SHARED_TARGET ${SimTKSIMBODY_LIBRARY_NAME})
@@ -105,7 +105,7 @@ endif()
 
 
 # First build examples that have their own subdirectories and CMakeLists
-# files. 
+# files.
 foreach(EX_NAME ${SUBDIR_EXAMPLES})
     add_subdirectory(${EX_NAME})
 endforeach()
@@ -136,7 +136,7 @@ foreach(EX_PROG ${EXAMPLES})
           PROJECT_LABEL "Example - ${EX_NAME}")
         target_link_libraries(${EX_NAME} ${EXAMPLES_SHARED_TARGET})
         # Don't install Debug examples
-        install(TARGETS ${EX_NAME} 
+        install(TARGETS ${EX_NAME}
                 DESTINATION ${EXAMPLES_INSTALL_BIN}
                 CONFIGURATIONS Release RelWithDebInfo MinSizeRel)
     endif()
@@ -164,7 +164,7 @@ install(FILES ${SRC_FILES} DESTINATION ${EXAMPLES_INSTALL_SRC})
 
 # install shared source and other files; also copy to binary directory
 # so we can use them when running from the build
-file(GLOB_RECURSE SHARED_FILES 
+file(GLOB_RECURSE SHARED_FILES
     RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/shared"
     "${CMAKE_CURRENT_SOURCE_DIR}/shared/*")
 foreach(one_shared_file ${SHARED_FILES})
