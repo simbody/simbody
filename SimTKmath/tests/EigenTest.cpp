@@ -22,12 +22,12 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the Eigen  class to compute
+ * This is a test program which uses the Eigen class to compute
  * eigen values and eigen vectors
  */
 
 /*
-The data for this test is from an example FORTRAN  program from the
+The data for this test is from an example FORTRAN program from the
 Numerical Algorithms Group (NAG)
 URL:http://www.nag.com/lapack-ex/lapack-ex.html
 
@@ -48,7 +48,7 @@ A = -0.44  -0.33   -0.03    0.17
 
 SOLUTION =
 reciprocal condition number =  9.9E-01
- Error bound                 =  1.3E-16
+Error bound                 =  1.3E-16
 
  Eigenvector( 1)
  -6.5509E-01
@@ -137,7 +137,7 @@ cd expVectors[16] = { cd( -.65509, 0.0), cd( -.52363, 0.0), cd(  .53622, 0.0), c
                       cd(-.1933001,  .25463), cd( .2518601, -.52240), cd( .09718202,-.30838), cd( .67595,   0.000),
                       cd(-.1933001, -.25463), cd( .2518601,  .52240), cd( .09718202, .30838), cd( .67595,   -0.000),
                       cd( .12533, 0.0), cd( .33202, 0.0), cd( .59384, 0.0), cd( .72209, 0.0) };
- template <typename T>
+template <typename T>
 T absNormComplex( Vector_<std::complex<T> >& values, Vector_<std::complex<T> >& expected) {
    T norm = 0;
 
