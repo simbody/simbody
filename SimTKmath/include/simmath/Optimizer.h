@@ -155,7 +155,7 @@ public:
            numInequalityConstraints = n;
        }
    }
-   /// Sets the number of lineaer equality constraints.
+   /// Sets the number of linear equality constraints.
    void setNumLinearEqualityConstraints( const int n ) {
        if( n < 0 || n > numEqualityConstraints ) {
            const char* where = " OptimizerSystem  setNumLinearEqualityConstraints";
@@ -165,7 +165,7 @@ public:
            numLinearEqualityConstraints = n;
        }
    }
-   /// Sets the number of lineaer inequality constraints.
+   /// Sets the number of linear inequality constraints.
    void setNumLinearInequalityConstraints( const int n ) {
        if( n < 0 || n > numInequalityConstraints ) {
            const char* where = " OptimizerSystem  setNumLinearInequalityConstraints";
