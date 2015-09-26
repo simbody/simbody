@@ -758,6 +758,7 @@ void testDeadband() {
     SimTK_TEST(deadband(-0.5f, 0.5f)== 0.f);
     SimTK_TEST(deadband( 0.5000005f, 0.5f)== 0.5000005f);
     SimTK_TEST(deadband(-0.5000005f, 0.5f)==-0.5000005f);
+    SimTK_TEST(isNaN(deadband(fNaN, 1e-3f)));
 
     SimTK_TEST(deadband(-0.25f, -3.f, 0.5f)==-3.f);
     SimTK_TEST(deadband(-0.25f,  3.f, 0.5f)== 3.f);
@@ -768,6 +769,7 @@ void testDeadband() {
     SimTK_TEST(deadband(-0.25f, -0.25f, 0.5f)== 0.f);
     SimTK_TEST(deadband(-0.25f,  0.5000005f, 0.5f)== 0.5000005f);
     SimTK_TEST(deadband(-0.25f, -0.2500005f, 0.5f)==-0.2500005f);
+    SimTK_TEST(isNaN(deadband(-1e-3f, fNaN, 1e-3f)));
 
     // double
     SimTK_TEST(deadband(-3., 0.5)==-3.);
@@ -778,6 +780,7 @@ void testDeadband() {
     SimTK_TEST(deadband(-0.5, 0.5)== 0.);
     SimTK_TEST(deadband( 0.5000000000005, 0.5)== 0.5000000000005);
     SimTK_TEST(deadband(-0.5000000000005, 0.5)==-0.5000000000005);
+    SimTK_TEST(isNaN(deadband(NaN, 1e-3)));
 
     SimTK_TEST(deadband(-0.25, -3., 0.5)==-3.);
     SimTK_TEST(deadband(-0.25,  3., 0.5)== 3.);
@@ -788,8 +791,10 @@ void testDeadband() {
     SimTK_TEST(deadband(-0.25, -0.25, 0.5)== 0.);
     SimTK_TEST(deadband(-0.25,  0.5000000000005, 0.5)== 0.5000000000005);
     SimTK_TEST(deadband(-0.25, -0.2500000000005, 0.5)==-0.2500000000005);
+    SimTK_TEST(isNaN(deadband(-1e-3, NaN, 1e-3)));
 
     // long double
+    const long double lNaN = NTraits<long double>::getNaN();
     SimTK_TEST(deadband(-3.L, 0.5L)==-3.L);
     SimTK_TEST(deadband( 3.L, 0.5L)== 3.L);
     SimTK_TEST(deadband( 0.3L, 0.5L)== 0.L);
@@ -800,6 +805,7 @@ void testDeadband() {
                       == 0.500000000005L);
     SimTK_TEST(deadband(-0.500000000005L, 0.5L)
                       ==-0.500000000005L);
+    SimTK_TEST(isNaN(deadband(lNaN, 1e-3L)));
 
     SimTK_TEST(deadband(-0.25L, -3.L, 0.5L)==-3.L);
     SimTK_TEST(deadband(-0.25L,  3.L, 0.5L)== 3.L);
@@ -812,6 +818,7 @@ void testDeadband() {
                               == 0.500000000005L);
     SimTK_TEST(deadband(-0.25L, -0.250000000005L, 0.5L)
                               ==-0.250000000005L);
+    SimTK_TEST(isNaN(deadband(-1e-3L, lNaN, 1e-3L)));
 
 }
 
