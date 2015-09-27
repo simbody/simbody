@@ -64,8 +64,8 @@ if(WIN32)
     # This gets executed whenever the named target gets built.
     add_custom_command(
         TARGET ${GUI_NAME}
-        COMMAND copy ${gl32src} ${gl32dest}
-    COMMENT "Copying glut32.dll" VERBATIM)
+        COMMAND ${CMAKE_COMMAND} -E copy ${gl32src} ${gl32dest}
+        COMMENT "Copying glut32.dll" VERBATIM)
 
     install(FILES ${glut32libdir}/glut32.dll
         DESTINATION ${CMAKE_INSTALL_BINDIR}) #same as GUI
