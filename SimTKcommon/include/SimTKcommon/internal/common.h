@@ -186,15 +186,21 @@ or any other Index type to an argument expecting a certain Index type. **/
     #endif /* HAVE_STRUCT_TIMESPEC */
     #endif
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
+        #ifdef _MSC_VER
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
         /* Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL. */
-        #ifdef _MSC_VER
         #pragma warning(disable:4661)
+        #else
+        #define SimTK_SimTKCOMMON_EXPORT
         #endif
     #elif defined(SimTK_SimTKCOMMON_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SimTKCOMMON_EXPORT
     #else
+        #ifdef _MSC_VER
         #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport) /*i.e., a client of a shared library*/
+        #else
+        #define SimTK_SimTKCOMMON_EXPORT
+        #endif
     #endif
     /* VC++ tries to be secure by leaving bounds checking on for STL containers
      * even in Release mode. This macro exists to disable that feature and can
