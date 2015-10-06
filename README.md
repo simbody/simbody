@@ -466,6 +466,60 @@ Simbody is installed into the `usr/` directory.  The directory
     * `examples/src` source code for the examples.
     * `examples/bin` symbolic link to executable examples.
 
+Windows using MinGW
+-------------------
+
+Warning: The [MinGW](http://sourceforge.net/projects/mingw-w64/)
+generation and build is experimental!
+
+This build is still experimental, because of the precompiled libraries
+Simbody depends on (Blas and Lapack).
+To ease the compilation Windows, Simbody provides precompiled libraries for Blas and Lapack.
+
+* On Windows 32 Bits, these were compiled with a Dwarf exception mechanism,
+* On Windows 64 Bits, these were compiled with a SJLJ exception mechanism.
+
+If one chooses a MinGW compilation, we need to respect these exception mechanism.
+A program can not rely on both mechanisms.
+This means that if we want to use the precompiled libraries, our MinGW installation should
+have the same exception mechanism.
+Otherwise, we need to provide our own Blas and Lapack libraries.
+
+To see which exception mechanism is used, user can have a look at dlls located in the `bin` directory of MinGW.
+The name of mechanism is present in the file `libgcc_XXXX.dll`, where `XXXX` can be `dw`, `seh` or `sljl`.
+On some MinGW version, this information is also available by looking at the result of `gcc --version`.
+
+A check is made on the MinGW version used, and if the exception mechanism is different,
+then the configuration may stop because of this difference.
+If one provides a Blas and Lapack libraries with flag `BUILD_USING_OTHER_LAPACK`,
+compilation with MinGW is always possible.
+
+#### Instructions
+
+Example of instruction where ones uses Blas and Lapack libraries provided :
+
+    $ # CMake configuration
+    $ cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
+    $ # Compilation
+    $ make
+    $ # Test
+    $ make test
+    $ # Installation
+    $ make install
+
+Example of instruction where one provides our own Blas and Lapack libraries :
+
+    $ # CMake configuration
+    $ cmake ../simbody -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody" \
+      -DCMAKE_C_COMPILER:PATH="C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32\bin\gcc.exe" \
+      -DCMAKE_CXX_COMPILER:PATH="C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32\bin\g++.exe" \
+      -DBUILD_USING_OTHER_LAPACK:PATH="C:\Program Files\lapack-3.5.0\bin\liblapack.dll;C:\Program Files\lapack-3.5.0\bin\libblas.dll"
+    $ make
+    $ # Test
+    $ make test
+    $ # Installation
+    $ make install
 
 Acknowledgments
 ---------------
@@ -492,3 +546,4 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 [flores]: http://xray.bmc.uu.se/flores/Home.html
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
 [buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
+ bits32
