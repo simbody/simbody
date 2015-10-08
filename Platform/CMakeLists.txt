@@ -32,7 +32,7 @@ if(MINGW)
     set(MINGW_GCC_EXCEPTION "")
     foreach(f ${alldlls})
         if(${f} MATCHES "libgcc")
-            message(STATUS "res = ${f}")
+            message(STATUS "MINGW libgcc library = ${f}")
             if(${f} MATCHES "dw2")
                 set(MINGW_GCC_EXCEPTION "dw2")
             elseif(${f} MATCHES "sjlj")
@@ -45,14 +45,16 @@ if(MINGW)
         endif()
     endforeach()
     if(ARCH64_BITS)
-        if( ${MINGW_GCC_EXCEPTION} STREQUAL "seh" )
-            message(STATUS "MinGW exception mechanism does not match the one used to generate Blas and Lapack")
-            message(FATAL_ERROR "Please provide your own Blas and Lapack libraries or use a SJLJ version of MinGW")
+        # Under a 64 bit OS, we have to ensure that the exception mechanism of MinGW
+        # is the same as the one used with the blas and lapack libraries provided
+        if(NOT BUILD_USING_OTHER_LAPACK)
+            if( ${MINGW_GCC_EXCEPTION} STREQUAL "seh" )
+                message(STATUS "MinGW exception mechanism does not match the one used to generate Blas and Lapack")
+                message(FATAL_ERROR "Please provide your own Blas and Lapack libraries or use a SJLJ version of MinGW")
+            endif()
         endif()
     endif()
 endif()
-
-
 
 set(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
 file(GLOB LIB_FILES
@@ -62,6 +64,17 @@ file(GLOB LIB_FILES
     "${LIB_ABI_DIR}/*.dylib"
     "${LIB_ABI_DIR}/*.lib"
     "${LIB_ABI_DIR}/*.dll")
+
+if(BUILD_USING_OTHER_LAPACK)
+    if(MINGW)
+        # If we use MinGW, we bypass the classical *dll and use
+        # the MinGW ones.
+        file(GLOB LIB_FILES ${MINGW_BIN_PATH}/*.dll)
+        set(LIB_FILES ${LIB_FILES} ${LAPACK_BEING_USED})
+    endif()
+endif()
+
+message(STATUS "List of dependencies : ${LIB_FILES}" )
 
 # This is where we're going to put these binaries.
 set(COPIED_LIB_FILES)
@@ -88,8 +101,13 @@ foreach(LIBF ${LIB_FILES})
     get_filename_component(LIBF_ROOT ${LIBF} NAME)
     get_filename_component(LIBF_SUFFIX ${LIBF} EXT)
     set(COPIED_LIBF "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
-    file(TO_NATIVE_PATH "${LIBF}" LIBF_SRC)
-    file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
+    IF(MINGW)
+        set(LIBF_SRC ${LIBF})
+        set(LIBF_DEST ${COPIED_LIBF})
+    ELSE()
+        file(TO_NATIVE_PATH "${LIBF}" LIBF_SRC)
+        file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
+    ENDIF()
 
     add_custom_command(OUTPUT "${COPIED_LIBF}"
         COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
