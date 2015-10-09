@@ -13,6 +13,10 @@ Breaking Changes
 * Removed updDefaultState() from System class. This was always a bad idea. If you don't like the default state you should copy it and modify your copy. Added SimbodyMatterSubsystem::setUseEulerAnglesByDefault() in case you were updating just to set this flag.
 * Removed the Value<T>::downcast() overload that returned a writable reference, so that downcast() now unambiguously returns a const reference. That leaves updDowncast() as the only way to get a writable reference.
 * Removed ability to add EventReporter to a const System. It is true that a Reporter doesn't change anything substantial about the System, but it is inconsistent with Simbody's otherwise strict treatment of the System as const and State as writable.
+* A discontinuous witness function that can return zero will not localize
+accurately now unless Simbody knows it is discontinuous. You can now specify
+that the witness is discontinuous for a TriggeredEventReporter or TriggeredEventHandler. It is bad design to have a discontinuous witness return exactly zero though; better to shift it so that it is clearly positive or
+negative at all times. 
 
 Non-breaking changes
 * Added SimbodyMatterSubsystem::get/setUseEulerAnglesByDefault() to control how this flag appears in the default state.
