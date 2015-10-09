@@ -567,16 +567,20 @@ void IntegratorRep::findEventCandidates
                 aw.getTransitionMask());
 
         if (transitionSeen != EventWitness::NoTransition) {
-            // Deem localization successful if we landed in the deadband.
+            const bool isDiscontinuous = 
+                aw.getContinuity()==EventWitness::Discontinuous;
+            // Deem localization successful if we landed in the deadband of
+            // a continuous witness.
             double tEst = tHigh; // TODO: can do better for deadband witnesses? 
-            if (eh.getSign() != 0) {
+            if (eh.getSign() || isDiscontinuous) {
                 const Real relWindow = // unitless scale factor
                                 aw.getAccuracyRelativeTimeLocalizationWindow();
                 const double absWindow = 
                                 (m_accuracyInUse*relWindow)*m_timeScaleInUse;
                 narrowestWindow = std::max(std::min(narrowestWindow, absWindow),
                                            minWindow);
-                tEst = estimateRootTime(tLow,  eLow[awx], tHigh, eHigh[awx],
+                tEst = estimateRootTime(isDiscontinuous, 
+                                        tLow,  eLow[awx], tHigh, eHigh[awx],
                                         bias,  minWindow);
             }
             earliestTimeEst = std::min(earliestTimeEst, tEst);
@@ -933,16 +937,14 @@ time tRoot with tLow<tRoot<tHigh such that f(tRoot) is zero. For a nicely
 behaved continuous function this is just the secant method:
      x = fHigh/(fHigh-fLow)  (0 <= x <= 1)
      tRoot = tHigh - x*(tHigh-tLow)
-However, if the function appears to be discontinuous we'll simply bisect the
-interval (x==0.5 above). We decide it is discontinuous if either end point is
-exactly zero, which would occur with a boolean function, for example. Also, 
-if the time interval is already at or below the smallest allowable 
-localization window, we'll bisect.
+However, if the function is discontinuous we'll simply bisect the
+interval (x==0.5 above). Also, if the time interval is already at or below the 
+smallest allowable localization window, we'll bisect.
 
 One further twist, taken from CVODES, is to allow the caller to provide a 
 bias (> 0) which will bias our returned tRoot further into the lower (bias<1)
 or upper (bias>1) half-interval. If bias==1 this is the pure secant method. 
-Bias has no effect on functions deemed to be discontinuous; we'll always 
+Bias has no effect on discontinuous functions; we'll always 
 bisect the interval in that case.
 
 Finally, we won't return tRoot very close to either end of the interval. 
@@ -955,7 +957,8 @@ Note that "minWindow" here is *not* the desired localization window based on
 user accuracy requirements, but the (typically much smaller) smallest 
 allowable localization window based on numerical roundoff considerations. */
 /*static*/ double IntegratorRep::
-estimateRootTime(double tLow,  const EventWitness::Value& vLow, 
+estimateRootTime(bool isDiscontinuous,
+                 double tLow,  const EventWitness::Value& vLow, 
                  double tHigh, const EventWitness::Value& vHigh,
                  Real bias, double minWindow)
 {
@@ -967,7 +970,7 @@ estimateRootTime(double tLow,  const EventWitness::Value& vLow,
     const double h = tHigh-tLow;
     const Real fLow = vLow.getValue(), fHigh = vHigh.getValue();
 
-    if (fLow==0 || fHigh==0 || h <= minWindow) {
+    if (isDiscontinuous || h <= minWindow) {
         // bisecting
         return tLow + h/2;
     }

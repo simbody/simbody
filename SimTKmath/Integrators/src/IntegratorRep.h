@@ -285,16 +285,19 @@ public:
     // tHigh > tLow, and sign(fLow) != sign(fHigh) (sign(x) returns -1, 0, 1).
     // Estimate time tRoot with tLow<tRoot<tHigh such that f(tRoot) is zero.
     //
-    // You can provide a bias (> 0) which will bias the returned tRoot into the
-    // lower (bias<1) or upper (bias>1) half-interval. If bias==1 this is the 
-    // pure secant method. 
+    // For discontinuous witnesses, we'll just binary chop.
+    //
+    // For continuous witnesses, you can provide a bias (> 0) which will bias 
+    // the returned tRoot into the lower (bias<1) or upper (bias>1) 
+    // half-interval. If bias==1 this is the pure secant method. 
     // 
     // Note that "minWindow" here is *not* the desired localization window
     // based on user accuracy requirements, but the (typically much smaller)
     // smallest allowable localization window based on numerical roundoff
     // considerations.
     static double estimateRootTime
-       (double tLow,  const EventWitness::Value& fLow, 
+       (bool isDiscontinuous,
+        double tLow,  const EventWitness::Value& fLow, 
         double tHigh, const EventWitness::Value& fHigh,
         Real bias, double minWindow);
 

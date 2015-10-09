@@ -169,6 +169,7 @@ class DiscontinuousReporter : public TriggeredEventReporter {
 public:
     static int eventCount;
     DiscontinuousReporter() : TriggeredEventReporter(Stage::Time) {
+        updTriggerInfo().setIsDiscontinuous(true);
     }
     Real getValue(const State& state) const override {
         Real step = std::floor(state.getTime());
@@ -181,7 +182,8 @@ public:
     }
     void handleEvent(const State& state) const override {
         
-        // This should be triggered when the value goes to 0, but not when it leaves 0.
+        // This should be triggered when the value goes to 0, but not when it 
+        // leaves 0.
         
         Real t = state.getTime();
         Real phase = std::fmod(t, 2.0);

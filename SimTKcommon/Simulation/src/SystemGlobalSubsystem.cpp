@@ -435,9 +435,10 @@ class TriggeredEventHandler_Witness : public EventWitness {
     using Super = EventWitness;
 public:
     TriggeredEventHandler_Witness(const TriggeredEventHandler& handler,
-                                  EventWitness::Direction direction) 
+                                  EventWitness::Direction direction,
+                                   EventWitness::Continuity continuity) 
     :   Super("TriggeredEventHandler witness", 
-              Bilateral, direction, Continuous), 
+              Bilateral, direction, continuity), 
         m_handler(handler) {}
 
 private:
@@ -465,9 +466,10 @@ class TriggeredEventReporter_Witness : public EventWitness {
     using Super = EventWitness;
 public:
     TriggeredEventReporter_Witness(const TriggeredEventReporter& reporter,
-                                   EventWitness::Direction direction) 
+                                   EventWitness::Direction direction,
+                                   EventWitness::Continuity continuity) 
     :   Super("TriggeredEventReporter witness",
-              Bilateral, direction, Continuous), 
+              Bilateral, direction, continuity), 
         m_reporter(reporter) {}
 
 private:
@@ -565,8 +567,12 @@ adoptEventHandler(TriggeredEventHandler* handler) {
         rising? (falling? EventWitness::RisingAndFalling 
                         : EventWitness::Rising)
               :  EventWitness::Falling;
+    const EventWitness::Continuity continuity =
+        etInfo.isDiscontinuous() ? EventWitness::Discontinuous
+                                 : EventWitness::Continuous;
 
-    auto witness = new TriggeredEventHandler_Witness(*handler,direction);
+    auto witness = new TriggeredEventHandler_Witness(*handler,direction,
+                                                     continuity);
     witness->addEvent(eid);
 
     witness->setAccuracyRelativeTimeLocalizationWindow
@@ -620,8 +626,12 @@ adoptEventReporter(TriggeredEventReporter* reporter) {
         rising? (falling? EventWitness::RisingAndFalling 
                         : EventWitness::Rising)
               :  EventWitness::Falling;
+    const EventWitness::Continuity continuity =
+        etInfo.isDiscontinuous() ? EventWitness::Discontinuous
+                                 : EventWitness::Continuous;
 
-    auto witness = new TriggeredEventReporter_Witness(*reporter, direction);
+    auto witness = new TriggeredEventReporter_Witness(*reporter, direction,
+                                                      continuity);
     witness->addEvent(eid);
 
     witness->setAccuracyRelativeTimeLocalizationWindow

@@ -195,6 +195,7 @@ The properties you can set here are:
   - Whether to watch for rising sign transitions, falling, or both. [BOTH]
   - The localization window in units of the System's timescale. [10%]
     (That is then the "unit" window which is reduced by the accuracy setting.)
+  - Whether the witness function is smooth or discontinuous. [SMOOTH]
     
 The default values are shown in brackets above.
 @see TriggeredEventHandler, TriggeredEventReporter **/
@@ -218,6 +219,9 @@ public:
     Real getRequiredLocalizationTimeWindow() const
     {   return m_localizationWindow; }
 
+    bool isDiscontinuous() const 
+    {   return m_isDiscontinuous; }
+
     // These return the modified 'this', like assignment operators.
     EventTriggerInfo& setTriggerOnRisingSignTransition(bool shouldTrigger)
     {   m_triggerOnRising = shouldTrigger; return *this; }
@@ -235,16 +239,20 @@ public:
         return *this;
     }
 
+    EventTriggerInfo& setIsDiscontinuous(bool isDiscontinuous)
+    {   m_isDiscontinuous = isDiscontinuous; return *this; }
 
 private:
     void setDefaults() {
         m_triggerOnRising = m_triggerOnFalling = true;
+        m_isDiscontinuous = false;
         m_localizationWindow = 0.1; // 10% of System timescale
     }
 
     EventId     m_eventId;
     bool        m_triggerOnRising;
     bool        m_triggerOnFalling;
+    bool        m_isDiscontinuous;
     double      m_localizationWindow;
 };
 
