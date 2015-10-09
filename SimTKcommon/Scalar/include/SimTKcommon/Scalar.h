@@ -106,7 +106,7 @@ extern SimTK_SimTKCOMMON_EXPORT const double dInfinity;
 
 /** Epsilon is the size of roundoff noise; it is the smallest positive number
 of default-precision type Real such that 1+Eps != 1. If Real is double (the
-normal case) then Eps ~= 1e-16; if Real is float then Eps ~= 1e-7. **/
+normal case) then Eps ~= 2e-16; if Real is float then Eps ~= 1e-7. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real Eps;
 /** This epsilon is explicitly of type float, regardless of Real's type. **/
 extern SimTK_SimTKCOMMON_EXPORT const float fEps; 
@@ -115,7 +115,7 @@ extern SimTK_SimTKCOMMON_EXPORT const double dEps;
 
 /** SignificantReal is the smallest value of type Real that we consider to be 
 clearly distinct from roundoff error when it is the result of a computation;
-it is defined as Eps^(7/8) which is ~1e-14 when Real==double, ~1e-6 when
+it is defined as Eps^(7/8) which is ~2e-14 when Real==double, ~1e-6 when
 Real==float. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real SignificantReal; 
 /** This value is explicitly of type float, regardless of Real's type. **/
@@ -127,9 +127,13 @@ extern SimTK_SimTKCOMMON_EXPORT const double dSignificant;
 is float. Many numerical algorithms are limited to accuracy of sqrt(Eps)
 so this constant is useful in checking for termination of them. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real SqrtEps;
+
+/** This is Eps^(3/4), ~2e-12 if Real is double, ~6e-6 if Real is float. **/
+extern SimTK_SimTKCOMMON_EXPORT const Real Eps34;
+
 /** TinyReal is a floating point value smaller than the floating point
-precision; it is defined as Eps^(5/4) which is ~1e-20 for Real==double and
-~1e-9 for float. This is commonly used as a number to add to a computation in 
+precision; it is defined as Eps^(5/4) which is ~2e-20 for Real==double and
+~2e-9 for float. This is commonly used as a number to add to a computation in 
 a denominator (such as a vector length) that might come out zero, just for
 the purpose of avoiding a divide by zero. **/
 extern SimTK_SimTKCOMMON_EXPORT const Real TinyReal; 

@@ -53,6 +53,7 @@ const float  fSignificant    = NTraits<float>::getSignificant();
 const double dSignificant    = NTraits<double>::getSignificant();
 
 const Real SqrtEps           = NTraits<Real>::getSqrtEps();
+const Real Eps34             = NTraits<Real>::getEps34();
 const Real TinyReal          = NTraits<Real>::getTiny(); 
 const Real LeastPositiveReal = NTraits<Real>::getLeastPositive(); 
 const Real MostPositiveReal  = NTraits<Real>::getMostPositive();  

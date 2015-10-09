@@ -3793,8 +3793,7 @@ solveForConstraintImpulses(const State&     state,
     Matrix GMInvGt;
     calcGMInvGt(state, GMInvGt);
     // MUST DUPLICATE SIMBODY'S METHOD HERE:
-    const Real conditioningTol = GMInvGt.nrow() 
-                                    * SqrtEps*std::sqrt(SqrtEps); // Eps^(3/4)
+    const Real conditioningTol = GMInvGt.nrow() * Eps34;
     FactorQTZ qtz(GMInvGt, conditioningTol); 
     qtz.solve(deltaV, impulse);
 }
@@ -4966,9 +4965,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     // and should be consistent with position and velocity projection ranks.
     // Tricky here because conditioning depends on mass matrix as well as
     // constraints.
-    const Real conditioningTol = m 
-        //* SignificantReal;
-        * SqrtEps*std::sqrt(SqrtEps); // Eps^(3/4)
+    const Real conditioningTol = m * Eps34;
 
     // Calculate multipliers lambda as
     //     C lambda = aerr

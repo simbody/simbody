@@ -644,7 +644,7 @@ State& updInternalStateVirtual() override {
 Real getAccuracyInUseVirtual() const override
 {   return getAccuracyInUse(); }
 Real getConstraintToleranceInUseVirtual() const override
-{   return getConstraintToleranceInUse(); }
+{   return getErrorToleranceInUse(); }
 
 //------------------------------------------------------------------------------
                            private: // data members 

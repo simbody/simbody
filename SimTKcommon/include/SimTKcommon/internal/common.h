@@ -126,6 +126,7 @@ or any other Index type to an argument expecting a certain Index type. **/
         #define SimTK_DEBUG2(s,a1,a2) std::printf("DBG: " s,a1,a2)    
         #define SimTK_DEBUG3(s,a1,a2,a3) std::printf("DBG: " s,a1,a2,a3)    
         #define SimTK_DEBUG4(s,a1,a2,a3,a4) std::printf("DBG: " s,a1,a2,a3,a4)
+        #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5) std::printf("DBG: " s,a1,a2,a3,a4,a5)
     #else
         #include <stdio.h>
         #define SimTK_DEBUG(s) printf("DBG: " s)
@@ -133,6 +134,7 @@ or any other Index type to an argument expecting a certain Index type. **/
         #define SimTK_DEBUG2(s,a1,a2) printf("DBG: " s,a1,a2)    
         #define SimTK_DEBUG3(s,a1,a2,a3) printf("DBG: " s,a1,a2,a3)    
         #define SimTK_DEBUG4(s,a1,a2,a3,a4) printf("DBG: " s,a1,a2,a3,a4)
+        #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5) printf("DBG: " s,a1,a2,a3,a4,a5)
     #endif
 #else
     #define SimTK_DEBUG(s)
@@ -140,6 +142,7 @@ or any other Index type to an argument expecting a certain Index type. **/
     #define SimTK_DEBUG2(s,a1,a2)
     #define SimTK_DEBUG3(s,a1,a2,a3)    
     #define SimTK_DEBUG4(s,a1,a2,a3,a4)
+    #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5)
 #endif
 
 /*

@@ -240,7 +240,7 @@ chance that the last two digits are as shown +/- the uncertainty.
 
 How to combine uncertainties (extracted from
 http://physics.nist.gov/cuu/Uncertainty/combination.html):
-Assume measured quantities are x1, y1 with u1=uncertainty(x1), 
+Assume measured quantities are x1, x2 with u1=uncertainty(x1), 
 u2=uncertainty(x2). We want to combine them into a new quantity y and calculate
 u=uncertainty(y).
 <pre>
