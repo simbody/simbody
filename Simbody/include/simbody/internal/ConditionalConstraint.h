@@ -111,7 +111,7 @@ public:
 
     /** Return a human-readable representation of the Condition enum, useful
     for debugging. **/
-    static const char* getConditionName(Condition condition) {
+    static std::string toString(Condition condition) {
         switch (condition) {
         case UnknownCondition:  return "UnknownCondition";
         case Off:               return "Off";

@@ -336,22 +336,20 @@ const TerminationTrigger& System::getTerminationTrigger() const {
     return TerminationTrigger::downcast(sgs.getEventTrigger(tid));
 }
 
-void System:: 
-findActiveEventWitnesses
-   (const Study&                                              study, 
-    Array_<const EventTrigger::Witness*, ActiveWitnessIndex>& witnesses) const 
+void System::findActiveEventWitnesses
+   (const Study&                                        study, 
+    Array_<const EventWitness*, ActiveWitnessIndex>&    witnesses) const 
 {
     return getSystemGlobalSubsystem()
             .findActiveEventWitnesses(study, witnesses); 
 }
 
-void System:: 
-findActiveEventTimers
-   (const Study&                                              study, 
-    Array_<const EventTrigger::Timer*, ActiveTimerIndex>&     witnesses) const 
+void System::findActiveEventTimers
+   (const Study&                                    study, 
+    Array_<const EventTimer*, ActiveTimerIndex>&    timers) const 
 {
     return getSystemGlobalSubsystem()
-            .findActiveEventTimers(study, witnesses); 
+            .findActiveEventTimers(study, timers); 
 }
 
 void System::findNextScheduledEventTimes

@@ -156,14 +156,12 @@ public:
     /** Return a list of event witnesses currently present for the %System and
     internal %State from the given `study`. **/   
     void findActiveEventWitnesses
-      (const Study&                         study, 
-       Array_<const EventTrigger::Witness*,
-              ActiveWitnessIndex>&          witnesses) const;
+      (const Study&                                     study, 
+       Array_<const EventWitness*, ActiveWitnessIndex>& witnesses) const;
 
     void findActiveEventTimers
-       (const Study&                            study, 
-        Array_<const EventTrigger::Timer*,
-               ActiveTimerIndex>&               timers) const;
+       (const Study&                                    study, 
+        Array_<const EventTimer*, ActiveTimerIndex>&    timers) const;
 
     void findNextScheduledEventTimes
        (const Study&        study,

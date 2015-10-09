@@ -129,7 +129,7 @@ Vec2 Integrator::getEventWindow() const {
     return Vec2(getRep().getEventWindowLow(), getRep().getEventWindowHigh());
 }
 
-const Array_<const EventTrigger::Witness*>& 
+const Array_<const EventWitness*>& 
 Integrator::getTriggeredWitnesses() const {
     if (getRep().getStepCommunicationStatus() 
         != IntegratorRep::StepHasBeenReturnedWithEvent) {
@@ -151,7 +151,7 @@ Integrator::getEstimatedTriggerTimes() const {
     return getRep().getEstimatedTriggerTimes();
 }
 
-const Array_<Event::TriggerDirection>&
+const Array_<EventWitness::TransitionMask>&
 Integrator::getWitnessTransitionsSeen() const {
     if (getRep().getStepCommunicationStatus() 
         != IntegratorRep::StepHasBeenReturnedWithEvent) {
@@ -523,16 +523,16 @@ candidates and we'll only look at those (that is, the list can only be
 narrowed). Don't use the same array for the current list and new list.
 
 For purposes of this method, events are specified by their indices in 
-the array of trigger functions, NOT by their event IDs. */
+the array of active witness functions, NOT by their witness ids. */
 void IntegratorRep::findEventCandidates
-   (const ActiveWitnessSubset*              viableCandidates,
-    const Array_<Event::TriggerDirection>*  viableCandidateTransitions,
-    double tLow,   const Vector&   eLow,  // [nWitnesses]
-    double tHigh,  const Vector&   eHigh, // [nWitnesses]
-    Real   bias,   double          minWindow,
+   (const ActiveWitnessSubset*                  viableCandidates,
+    const Array_<EventWitness::TransitionMask>* viableCandidateTransitions,
+    double tLow,   const Array_<EventWitness::Value>&   eLow,  // [nWitnesses]
+    double tHigh,  const Array_<EventWitness::Value>&   eHigh, // [nWitnesses]
+    Real   bias,   double minWindow,
     ActiveWitnessSubset&                    candidates,
     Array_<double>&                         timeEstimates,
-    Array_<Event::TriggerDirection>&        transitions,
+    Array_<EventWitness::TransitionMask>&   transitions,
     double&                                 earliestTimeEst, 
     double&                                 narrowestWindow) const
 {
@@ -555,33 +555,35 @@ void IntegratorRep::findEventCandidates
     for (int i=0; i<nCandidates; ++i) {
         const ActiveWitnessIndex awx = viableCandidates ?
                         (*viableCandidates)[i] : ActiveWitnessIndex(i);
-        const EventTrigger::Witness& aw = *m_witnesses[awx];
+        const EventWitness& aw = *m_witnesses[awx];
 
-        const Real el=eLow[awx], eh=eHigh[awx];
-        if (isNaN(el) || isNaN(eh))
+        const EventWitness::Value el=eLow[awx], eh=eHigh[awx];
+        if (isNaN(el.getValue()) || isNaN(eh.getValue()))
             continue; // ignore if either end is NaN
 
-        Event::TriggerDirection transitionSeen =
-                        Event::maskTransition(
-                            Event::classifyTransition(sign(el), sign(eh)),
-                            aw.calcTransitionMask());
+        EventWitness::TransitionMask transitionSeen =
+            EventWitness::maskTransition(
+                EventWitness::classifyTransition(el.getSign(), eh.getSign()),
+                aw.getTransitionMask());
 
-        if (transitionSeen != Event::NoEventTrigger) {
+        if (transitionSeen != EventWitness::NoTransition) {
+            // Deem localization successful if we landed in the deadband.
+            double tEst = tHigh; // TODO: can do better for deadband witnesses? 
+            if (eh.getSign() != 0) {
+                const Real relWindow = // unitless scale factor
+                                aw.getAccuracyRelativeTimeLocalizationWindow();
+                const double absWindow = 
+                                (m_accuracyInUse*relWindow)*m_timeScaleInUse;
+                narrowestWindow = std::max(std::min(narrowestWindow, absWindow),
+                                           minWindow);
+                tEst = estimateRootTime(tLow,  eLow[awx], tHigh, eHigh[awx],
+                                        bias,  minWindow);
+            }
+            earliestTimeEst = std::min(earliestTimeEst, tEst);
+
             candidates.push_back(awx);
-            const Real relWindow = // unitless scale factor
-                aw.getAccuracyRelativeTimeLocalizationWindow();
-            const double absWindow = 
-                (m_accuracyInUse*relWindow)*m_timeScaleInUse;
-            narrowestWindow = 
-                std::max(std::min(narrowestWindow, absWindow),
-                         minWindow);
-
-            // Set estimated event trigger time for the viable candidates.
-            timeEstimates.push_back
-                        (estimateRootTime(tLow, eLow[awx], tHigh, eHigh[awx],
-                                          bias, minWindow));
+            timeEstimates.push_back(tEst);
             transitions.push_back(transitionSeen);
-            earliestTimeEst = std::min(earliestTimeEst, timeEstimates.back());
         }
     }
 }
@@ -590,11 +592,11 @@ void IntegratorRep::findEventCandidates
 //------------------------------------------------------------------------------
 //                           SET TRIGGERED EVENTS
 //------------------------------------------------------------------------------
-void IntegratorRep::
-setTriggeredEvents(double tlo, double thi,
-                   const Array_<ActiveWitnessIndex>&      triggeringWitnesses,
-                   const Array_<double>&                  estEventTimes,
-                   const Array_<Event::TriggerDirection>& transitionsSeen)
+void IntegratorRep::setTriggeredEvents
+   (double tlo, double thi,
+    const Array_<ActiveWitnessIndex>&           triggeringWitnesses,
+    const Array_<double>&                       estEventTimes,
+    const Array_<EventWitness::TransitionMask>& transitionsSeen)
 {
     assert(tPrev <= tlo && tlo < thi && thi <= m_advancedState.getTime());
     tLow = tlo;
@@ -614,7 +616,7 @@ setTriggeredEvents(double tlo, double thi,
         m_estimatedTriggerTimes[i] = estEventTimes[ipos];
 
         // TODO: assert that the transition is one of the allowed ones for
-        // this event.
+        // this witness.
         m_witnessTransitionsSeen[i] = transitionsSeen[ipos];
     }
 }
@@ -953,15 +955,17 @@ Note that "minWindow" here is *not* the desired localization window based on
 user accuracy requirements, but the (typically much smaller) smallest 
 allowable localization window based on numerical roundoff considerations. */
 /*static*/ double IntegratorRep::
-estimateRootTime(double tLow, Real fLow, double tHigh, Real fHigh,
+estimateRootTime(double tLow,  const EventWitness::Value& vLow, 
+                 double tHigh, const EventWitness::Value& vHigh,
                  Real bias, double minWindow)
 {
     assert(tLow < tHigh);
-    assert(sign(fLow) != sign(fHigh));
+    assert(vLow.getSign() != vHigh.getSign());
     assert(bias > 0);
     assert(minWindow > 0);
 
     const double h = tHigh-tLow;
+    const Real fLow = vLow.getValue(), fHigh = vHigh.getValue();
 
     if (fLow==0 || fHigh==0 || h <= minWindow) {
         // bisecting

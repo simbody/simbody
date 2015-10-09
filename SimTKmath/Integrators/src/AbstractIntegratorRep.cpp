@@ -609,19 +609,11 @@ bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
     estimated (tlo,thi] that satisfies any witnesses that remain. Move 
     advancedState to thi and return. */
 
-    const Vector& e0 = getPreviousWitnessValues();
+    const Array_<EventWitness::Value>& e0 = getPreviousWitnessValues();
     if (e0.size() == 0) {
         // There are no witness functions to worry about in this system.
         return false;
     }
-
-    // TODO: this is indiscriminately evaluating expensive accelerations
-    // that are only needed if there are acceleration-level witness functions.
-    realizeStateDerivatives(getAdvancedState());
-    calcWitnessValues(getAdvancedState(), updAdvancedWitnessValues());
- 
-    const Vector& e1 = getAdvancedWitnessValues();
-    assert(e0.size() == e1.size());
 
     // We have a limited number of decimal places for holding time. That sets
     // a minimum on the possible width w_min of an event localization window 
@@ -629,11 +621,57 @@ bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
     const double MinWindow = dSignificant * std::max(1., getAdvancedTime());
 
     Array_<ActiveWitnessIndex> eventCandidates, newEventCandidates;
-    Array_<Event::TriggerDirection> 
+    Array_<EventWitness::TransitionMask> 
         eventCandidateTransitions, newEventCandidateTransitions;
     Array_<double> eventTimeEstimates, newEventTimeEstimates;
 
-    Real earliestTimeEst, narrowestWindow;
+    // Check for events that should be reported at t0 first.
+    for (ActiveWitnessIndex awx(0); awx<getWitnesses().size(); ++awx) {
+        const EventWitness& w = *getWitnesses()[awx];
+        const EventWitness::Value& v0 = e0[awx];
+        if (w.isSignForbidden(v0.getSign())) {
+            eventCandidates.push_back(awx);
+            eventCandidateTransitions.push_back(
+                EventWitness::classifyTransition(0, v0.getSign()));
+            eventTimeEstimates.push_back(t0+MinWindow);
+        }
+    }
+
+    if (!eventCandidates.empty()) {
+        const double tLow=t0, tHigh=std::min(t0+MinWindow,t1);
+        printf("DRIFT TO FORBIDDEN @t=%.15g\n", tHigh);
+        std::cout << "Witnesses triggered at start of step: " 
+            << eventCandidates << std::endl;
+        setTriggeredEvents(tLow, tHigh, eventCandidates, eventTimeEstimates, 
+                           eventCandidateTransitions);
+        // localized already; advanced state is right (tHigh==tAdvanced)
+        backUpAdvancedStateByInterpolation(tHigh);
+        // Failure to realize here should never happen since we already
+        // succeeded all the way to advancedTime. So if this fails it
+        // will throw an exception that will kill the simulation.
+        realizeStateDerivatives(getAdvancedState());
+        return true; 
+    }
+
+    // OK, no event at start of step. Get the witness values at the end of
+    // the step to hunt down a transition, if any.
+
+    // TODO: this is indiscriminately evaluating expensive accelerations
+    // that are only needed if there are acceleration-level witness functions.
+    realizeStateDerivatives(getAdvancedState());
+    calcEndStepWitnessValues(getAdvancedState(), 
+                             getPreviousWitnessDerivs(),
+                             updAdvancedWitnessValues());
+
+#ifndef NDEBUG
+    showWitnessValues("FULL STEP END", getAdvancedState());
+#endif
+ 
+    const Array_<EventWitness::Value>& e1 = getAdvancedWitnessValues();
+    assert(e0.size() == e1.size());
+
+
+    double earliestTimeEst, narrowestWindow;
 
     findEventCandidates(nullptr, nullptr, t0, e0, t1, e1, Real(1), MinWindow,
                         eventCandidates, eventTimeEstimates, 
@@ -663,7 +701,7 @@ bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
     // From above we have earliestTimeEst which is the time at which we
     // think the first event is triggering.
 
-    Vector eLow = e0, eHigh = e1, eMid;
+    Array_<EventWitness::Value> eLow = e0, eHigh = e1, eMid;
     Real bias = 1; // neutral
 
     // There is an event in (tLow,tHigh], with the eariest occurrence
@@ -683,6 +721,8 @@ bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
                 bias = sidePrevIter < 0 ? bias/2 : bias*2;
         }
 
+        // We don't want tReport to end up in the middle of the isolation
+        // window; this ensures it will be at one end or the other.
         const Real tMid = (tLow < tReport && tReport < tHigh) 
                           ? tReport : earliestTimeEst;
 
@@ -693,8 +733,12 @@ bool AbstractIntegratorRep::takeOneStep(double tMax, double tReport) {
         // will throw an exception if it fails.
         realizeStateDerivatives(getInterpolatedState());
 
-        calcWitnessValues(getInterpolatedState(), eMid);
-
+        calcEndStepWitnessValues(getInterpolatedState(), 
+                                 getPreviousWitnessDerivs(),
+                                 eMid);
+#ifndef NDEBUG
+    showWitnessValues("HUNTING STEP", getInterpolatedState());
+#endif
         // TODO: should search in the wider interval first
 
         // First guess: it is in (tLow,tMid].

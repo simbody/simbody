@@ -51,9 +51,9 @@ The occurrence of an event is signaled by EventTrigger objects that are
 constructed to watch time and state for specified conditions. Many triggers may
 cause the same Event, and EventTrigger objects may come and go during the
 simulation. The two most common kinds of triggers are timers and witnesses,
-represented by EventTrigger::Timer and EventTrigger::Witness objects. Timers 
-trigger Events at regular intervals or specific times; witnesses are scalar 
-functions designed to cross zero upon occurrence of an event.
+represented by EventTimer and EventWitness objects. Timers trigger Events at 
+regular intervals or specific times; witnesses are scalar functions designed to
+cross zero upon occurrence of an event.
 
 An Event is associated with a list of actions to be taken when the Event is
 triggered. Actions are represented by EventAction objects. Actions can be 
@@ -166,51 +166,6 @@ public:
     readable string. **/
     static const char* getCauseName(EventCause);
 
-    /** EventTrigger::Witness triggers respond to zero crossings of their 
-    associated witness function. This enum defines constants for use in 
-    specifying which kind of zero crossing has been seen, or which kinds are 
-    considered interesting. For the latter purpose, these can be or'ed 
-    together to make a mask. **/
-    enum TriggerDirection {
-        NoEventTrigger          =0x0000,    // must be 0
-
-        PositiveToNegative      =0x0001,    // 1
-        NegativeToPositive      =0x0002,    // 2
-
-        Falling                 =(PositiveToNegative), // 1
-        Rising                  =(NegativeToPositive), // 2
-        AnySignChange           =(PositiveToNegative|NegativeToPositive)    // 3
-    };
-
-    /** This is useful for debugging; it translates an EventTrigger or a mask
-    formed by a union of EventTriggers, into a readable string. **/
-    static std::string 
-    eventTriggerDirectionString(TriggerDirection direction);
-
-
-    /** Classify a before/after sign transition. Before and after must both
-    be -1,0, or 1 as returned by the SimTK::sign() function applied to
-    the trigger function value at the beginning and end of a step. **/
-    static TriggerDirection classifyTransition(int before, int after) {
-        if (before==after)
-            return NoEventTrigger;
-        if (before==0)
-            return NoEventTrigger; // Do not report transitions away from zero.
-        if (before==1)
-            return PositiveToNegative;
-        // before==-1
-        return NegativeToPositive;
-    }
-
-    /** Given an observed transition, weed out ignorable ones using the supplied
-    mask. That is, the return will indicate NoEventTrigger unless the original
-    Trigger was present in the mask. **/
-    static TriggerDirection maskTransition(TriggerDirection transition, 
-                                           TriggerDirection mask) 
-    {
-        // we're depending on NoEventTrigger==0
-        return TriggerDirection(transition & mask); 
-    }
 
 protected:
     explicit Event(const std::string& eventDescription);
@@ -371,7 +326,7 @@ private:
 //==============================================================================
 /** This Event marks the occurrence of a minimum or maximum value of a function
 that is being monitored, typically a Measure. The function's time derivative is
-used as an EventTrigger::Witness; when the derivative changes sign we have seen
+used as an EventWitness; when the derivative changes sign we have seen
 an extreme value. Normally no further action is required when this event occurs
 since it will already have localized the extreme value. However, for debugging
 it can be useful to report these occurrences, and perhaps which trigger(s)

@@ -32,8 +32,8 @@
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/EventAction.h"
 #include "SimTKcommon/internal/EventTrigger.h"
-#include "SimTKcommon/internal/EventTrigger_Timer.h"
-#include "SimTKcommon/internal/EventTrigger_Witness.h"
+#include "SimTKcommon/internal/EventTimer.h"
+#include "SimTKcommon/internal/EventWitness.h"
 
 #include <cassert>
 #include <string>
@@ -95,34 +95,5 @@ const char* Event::getCauseName(EventCause cause) {
     return "UNRECOGNIZED EVENT CAUSE";
 }
 
-std::string Event::eventTriggerDirectionString(TriggerDirection e) {
-    // Catch special combos first
-    if (e==NoEventTrigger)        return "NoEventTrigger";
-    if (e==Falling)               return "Falling";
-    if (e==Rising)                return "Rising";
-    if (e==AnySignChange)         return "AnySignChange";
-
-    // Not a special combo; unmask one at a time.
-    const TriggerDirection triggerDirs[] =
-     { PositiveToNegative,NegativeToPositive,NoEventTrigger };
-    const char *triggerDirNames[] =
-     { "PositiveToNegative","NegativeToPositive" };
-
-    String s;
-    for (int i=0; triggerDirs[i] != NoEventTrigger; ++i)
-        if (e & triggerDirs[i]) {
-            if (s.size()) s += "|";
-            s += triggerDirNames[i];
-            e = TriggerDirection((unsigned)e & ~((unsigned)triggerDirs[i])); 
-        }
-
-    // should have accounted for everything by now
-    if (e != NoEventTrigger) {
-        if (s.size()) s += " + ";
-        s += "UNRECOGNIZED EVENT TRIGGER GARBAGE ";
-        s += String((unsigned)e, "0x%x");
-    }
-    return s;
-}
 
 

@@ -41,23 +41,20 @@ occurs during a simulation; when that condition occurs the associated Event
 objects are triggered.
 
 Derived %EventTrigger classes represent particular conditions. For example, an
-EventTrigger::Timer is a trigger that occurs at a particular time or times known
-in advance, while an EventTrigger::Witness is a trigger that causes an Event 
-occurrence when a particular state-dependent transition is observed.
+EventTimer is a trigger that occurs at a particular time or times known in 
+advance, while an EventWitness is a trigger that causes an Event occurrence when
+a particular state-dependent transition is observed.
 
 Triggers can be built into a System or can be added and removed dynamically 
-during simulation, in which case they reside in a State rather than
-in the System. States are intended to be separate from any particular instance
-of a System, which is what allows them to be serialized and then read back in
-to be used with a new instance of the same System. So if you are implementing 
-your own dynamic %EventTrigger, be sure to avoid use of pointers or references 
-into the System. Rather, you should reference System objects by name, index, or 
-id number. **/
+during simulation, in which case they reside in a State rather than in the 
+System. States are intended to be separate from any particular instance of a 
+System, which is what allows them to be serialized and then read back in to be 
+used with a new instance of the same System. So if you are implementing your own
+dynamic %EventTrigger, be sure to avoid use of pointers or references into the 
+System. Rather, you should reference System objects by name, index, or id 
+number. **/
 class SimTK_SimTKCOMMON_EXPORT EventTrigger {
 public:
-    class Timer;
-    class Witness;
-
     virtual ~EventTrigger() {}
 
     /** Make a copy of this Trigger, including the EventId list identifying the

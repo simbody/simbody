@@ -122,7 +122,11 @@ public:
             integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
-        integ.calcWitnessValues(integ.getAdvancedState(), gout);
+        Array_<EventWitness::Value> values;
+        integ.calcWitnessValues(integ.getAdvancedState(), values);
+        gout.resize(values.size());
+        for (int i=0; i<(int)values.size(); ++i)
+            gout[i] = values[i].getValue();
         return CPodes::Success;
     }
 private:
@@ -498,7 +502,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             
             ActiveWitnessSubset witnessIndices;
             Array_<double> eventTimes;
-            Array_<Event::TriggerDirection> eventTransitions;
+            Array_<EventWitness::TransitionMask> eventTransitions;
             const unsigned nWitnesses = getWitnesses().size();
             int* eventFlags = new int[nWitnesses];
             cpodes->getRootInfo(eventFlags);
@@ -507,7 +511,8 @@ stepTo(Real reportTime, Real scheduledEventTime) {
                     witnessIndices.push_back(i);
                     eventTimes.push_back(previousTimeReturned);
                     eventTransitions.push_back(eventFlags[i] == 1 
-                        ? Event::Rising : Event::Falling);
+                        ? EventWitness::NegativeToPositive 
+                        : EventWitness::PositiveToNegative);
                 }
             delete[] eventFlags;
 

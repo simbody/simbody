@@ -125,7 +125,7 @@ public:
 
     /** Destructor destroys the internally-maintained State, but not the
     System which is an independent object. **/
-    ~Integrator();
+    ~Integrator() override;
 
     // These are the exceptions that can be thrown by this class.
     class InitializationFailed;
@@ -438,7 +438,7 @@ public:
     localized to within the event window returned by getEventWindow(). This may 
     be called only when stepTo() or stepBy() has returned status 
     ReachedEventTrigger. **/
-    const Array_<const EventTrigger::Witness*>& getTriggeredWitnesses() const;
+    const Array_<const EventWitness*>& getTriggeredWitnesses() const;
 
     /** Get the estimated times for the zero crossings of each witness that
     is returned by getTriggeredWitnesses(), with corresponding indexing. This 
@@ -450,7 +450,8 @@ public:
     witness that is returned by getTriggeredWitnesses(), with corresponding 
     indexing. This may only be called when stepTo() or stepBy() has returned 
     status ReachedEventTrigger. **/
-    const Array_<Event::TriggerDirection>& getWitnessTransitionsSeen() const;
+    const Array_<EventWitness::TransitionMask>& 
+        getWitnessTransitionsSeen() const;
 
     /** After an event handler has made a discontinuous change to the 
     %Integrator's "advanced state", this method must be called to reinitialize 

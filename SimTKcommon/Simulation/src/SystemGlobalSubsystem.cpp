@@ -37,8 +37,8 @@
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/EventAction.h"
 #include "SimTKcommon/internal/EventTrigger.h"
-#include "SimTKcommon/internal/EventTrigger_Timer.h"
-#include "SimTKcommon/internal/EventTrigger_Witness.h"
+#include "SimTKcommon/internal/EventTimer.h"
+#include "SimTKcommon/internal/EventWitness.h"
 
 #include "SimTKcommon/internal/EventHandler.h"
 #include "SimTKcommon/internal/EventReporter.h"
@@ -71,13 +71,13 @@ namespace {
 
 class EventTriggerCollection {
 public:
-    unsigned adoptTimer(EventTrigger::Timer* timer) {
+    unsigned adoptTimer(EventTimer* timer) {
         return adoptThing(timer, m_timers, m_freeTimers);
     }
     void removeTimer(unsigned timerIndex) {
         removeThing(timerIndex, m_timers, m_freeTimers);
     }
-    unsigned adoptWitness(EventTrigger::Witness* witness) {
+    unsigned adoptWitness(EventWitness* witness) {
         return adoptThing(witness, m_witnesses, m_freeWitnesses);
     }
     void removeWitness(unsigned witnessIndex) {
@@ -119,10 +119,10 @@ private:
         return things.size()-1;
     }
 private:
-    Array_<std::unique_ptr<EventTrigger::Timer>>    m_timers;
-    Array_<unsigned>                                m_freeTimers;
-    Array_<std::unique_ptr<EventTrigger::Witness>>  m_witnesses;
-    Array_<unsigned>                                m_freeWitnesses;
+    Array_<std::unique_ptr<EventTimer>>    m_timers;
+    Array_<unsigned>                       m_freeTimers;
+    Array_<std::unique_ptr<EventWitness>>  m_witnesses;
+    Array_<unsigned>                       m_freeWitnesses;
 };
 
 }   // anonymous file-scope namespace
@@ -232,30 +232,22 @@ friend class SystemGlobalSubsystem;
 
     // Timers are always evaluated at the beginning of a step when the state
     // has been realized to Stage::Acceleration.
-    Array_<EventTrigger::Timer*,EventTimerIndex>       m_timers;
+    Array_<EventTimer*,EventTimerIndex>       m_timers;
 
     // Witness values and derivatives are partitioned by depends-on stage. This
     // array allows us to access values and derivatives by witness.
-    Array_<EventTrigger::Witness*,EventWitnessIndex>   m_witnesses;
+    Array_<EventWitness*,EventWitnessIndex>   m_witnesses;
 
     // These arrays provides access to witness values and derivatives by stage.
     static const int NWitnessStages = Stage::NValid;
     Array_<EventWitnessIndex,int>  
-        m_witnessesByStage[NWitnessStages][1+EventTrigger::Witness::MaxDeriv];
-
-    // Each of these (var,cache) pairs holds an Array of real values of
-    // witness functions or their derivatives (mixed together).
-    using   ValArray = Array_<Real,int>;
-    DiscreteVariableIndex           m_witnessVars[NWitnessStages];
-    CacheEntryIndex                 m_witnessValues[NWitnessStages];
+        m_witnessesByStage[NWitnessStages][1+EventWitness::MaxDeriv];
 
     void clearCache() {
         m_timers.clear(); m_witnesses.clear();
         for (int g=0; g <NWitnessStages; ++g) {
-            for (int d=0; d <= EventTrigger::Witness::MaxDeriv; ++d)
+            for (int d=0; d <= EventWitness::MaxDeriv; ++d)
                 m_witnessesByStage[g][d].clear();
-            m_witnessVars[g].invalidate();
-            m_witnessValues[g].invalidate();
         }
     }
 };
@@ -275,7 +267,7 @@ realizeSubsystemTopologyImpl(State& s) const {
         auto p = trigger.upd();
 
         // Deal with Timers.
-        if (auto tp = dynamic_cast<EventTrigger::Timer*>(p)) {
+        if (auto tp = dynamic_cast<EventTimer*>(p)) {
             const EventTimerIndex timerIndex(m_timers.size());
             tp->m_timerIndex = timerIndex;
             mThis->m_timers.emplace_back(tp);
@@ -283,12 +275,12 @@ realizeSubsystemTopologyImpl(State& s) const {
         }
         
         // Deal with Witnesses.
-        if (auto wp = dynamic_cast<EventTrigger::Witness*>(p)) {
+        if (auto wp = dynamic_cast<EventWitness*>(p)) {
             const EventWitnessIndex witnessIndex(m_witnesses.size());
             wp->m_witnessIndex = witnessIndex;
             mThis->m_witnesses.emplace_back(wp);
             // We'll calculate only up to MaxDeriv derivatives.
-            const int nDerivs = std::min((int)EventTrigger::Witness::MaxDeriv, 
+            const int nDerivs = std::min((int)EventWitness::MaxDeriv, 
                                          wp->getNumTimeDerivatives());
             for (int deriv=0; deriv <= nDerivs; ++deriv) {
                 const Stage g = wp->getDependsOnStage(deriv);
@@ -300,26 +292,6 @@ realizeSubsystemTopologyImpl(State& s) const {
         // Nothing to do for other types of Triggers.
     }
 
-    // Allocate auto-update state variables and corresponding cache entries
-    // for witness values (including derivatives). The number of witnesses may
-    // change at run time so we'll allocate variables even if there are 
-    // currently no witness functions at some stages.
-    for (Stage g(Stage::Topology); g <= Stage::Acceleration; ++g) {
-        int nAtThisStage = 0;
-        for (int deriv=0; deriv <= EventTrigger::Witness::MaxDeriv; ++deriv) {
-            for (auto wx : m_witnessesByStage[g][deriv]) {
-                auto wp = m_witnesses[wx];
-                wp->m_valueIndex[deriv] = nAtThisStage++;
-            }
-        }
-        mThis->m_witnessVars[g] = 
-            allocateAutoUpdateDiscreteVariable(s, Stage::Report,
-                new Value<ValArray>(ValArray(nAtThisStage,NaN)), g);
-        mThis->m_witnessValues[g] =
-            getDiscreteVarUpdateIndex(s, m_witnessVars[g]);
-    }
-
-    // Allocate state variables and cache entries for the witness results.
     return 0;
 }
 
@@ -412,8 +384,8 @@ private:
 
 //--------------------- SCHEDULED EVENT HANDLER TIMER --------------------------
 /* This is the EventTrigger::Timer generated by a ScheduledEventHandler. */
-class ScheduledEventHandler_Timer : public EventTrigger::Timer {
-    using Super = EventTrigger::Timer;
+class ScheduledEventHandler_Timer : public EventTimer {
+    using Super = EventTimer;
 public:
     ScheduledEventHandler_Timer(const ScheduledEventHandler& handler) 
     :   Super("ScheduledEventHandler timer"), m_handler(handler) {}
@@ -436,8 +408,8 @@ private:
 
 //--------------------- SCHEDULED EVENT REPORTER TIMER -------------------------
 /* This is the EventTrigger::Timer generated by a ScheduledEventReporter. */
-class ScheduledEventReporter_Timer : public EventTrigger::Timer {
-    using Super = EventTrigger::Timer;
+class ScheduledEventReporter_Timer : public EventTimer {
+    using Super = EventTimer;
 public:
     ScheduledEventReporter_Timer(const ScheduledEventReporter& reporter) 
     :   Super("ScheduledEventReporter timer"), m_reporter(reporter) {}
@@ -458,21 +430,24 @@ private:
 };
 
 //--------------------- TRIGGERED EVENT HANDLER WITNESS ------------------------
-/* This is the EventTrigger::Witness generated by a TriggeredEventHandler. */
-class TriggeredEventHandler_Witness : public EventTrigger::Witness {
-    using Super = EventTrigger::Witness;
+/* This is the EventWitness generated by a TriggeredEventHandler. */
+class TriggeredEventHandler_Witness : public EventWitness {
+    using Super = EventWitness;
 public:
-    TriggeredEventHandler_Witness(const TriggeredEventHandler& handler) 
-    :   Super("TriggeredEventHandler witness"), m_handler(handler) {}
+    TriggeredEventHandler_Witness(const TriggeredEventHandler& handler,
+                                  EventWitness::Direction direction) 
+    :   Super("TriggeredEventHandler witness", 
+              Bilateral, direction, Continuous), 
+        m_handler(handler) {}
 
 private:
     TriggeredEventHandler_Witness* cloneVirtual() const override 
     {   return new TriggeredEventHandler_Witness(*this); }
 
-    Real calcWitnessValueVirtual(const System& /*system*/,
-                                 const State&  state, 
-                                 int           /*derivOrder*/) const override 
-    {   return m_handler.getValue(state); }
+    Value calcWitnessValueVirtual(const Study& study,
+                                  const State& state, 
+                                  int           /*derivOrder*/) const override 
+    {   return Value(m_handler.getValue(state), study.getPrecision()); }
 
     Stage getDependsOnStageVirtual(int /*derivOrder*/) const override
     {   return m_handler.getRequiredStage(); }
@@ -485,21 +460,24 @@ private:
 };
 
 //--------------------- TRIGGERED EVENT REPORTER WITNESS -----------------------
-/* This is the EventTrigger::Witness generated by a TriggeredEventReporter. */
-class TriggeredEventReporter_Witness : public EventTrigger::Witness {
-    using Super = EventTrigger::Witness;
+/* This is the EventWitness generated by a TriggeredEventReporter. */
+class TriggeredEventReporter_Witness : public EventWitness {
+    using Super = EventWitness;
 public:
-    TriggeredEventReporter_Witness(const TriggeredEventReporter& reporter) 
-    :   Super("TriggeredEventReporter witness"), m_reporter(reporter) {}
+    TriggeredEventReporter_Witness(const TriggeredEventReporter& reporter,
+                                   EventWitness::Direction direction) 
+    :   Super("TriggeredEventReporter witness",
+              Bilateral, direction, Continuous), 
+        m_reporter(reporter) {}
 
 private:
     TriggeredEventReporter_Witness* cloneVirtual() const override 
     {   return new TriggeredEventReporter_Witness(*this); }
 
-    Real calcWitnessValueVirtual(const System& /*system*/,
-                                 const State&  state, 
-                                 int           /*derivOrder*/) const override 
-    {   return m_reporter.getValue(state); }
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state, 
+                                  int           /*derivOrder*/) const override 
+    {   return Value(m_reporter.getValue(state), study.getPrecision()); }
 
     Stage getDependsOnStageVirtual(int /*derivOrder*/) const override
     {   return m_reporter.getRequiredStage(); }
@@ -577,16 +555,20 @@ adoptEventHandler(TriggeredEventHandler* handler) {
     auto action = new EventHandler_Action(*handler);
     const EventActionIndex eax = evnt->adoptEventAction(action);
     const EventId eid = adoptEvent(evnt);
-    auto witness = new TriggeredEventHandler_Witness(*handler);
-    witness->addEvent(eid);
 
     // Apply trigger info from the TriggeredEventHandler interface to the
     // witness we're creating here.
     const EventTriggerInfo& etInfo = handler->getTriggerInfo();
-    witness->setTriggerOnRisingSignTransition
-       (etInfo.shouldTriggerOnRisingSignTransition());
-    witness->setTriggerOnFallingSignTransition
-       (etInfo.shouldTriggerOnFallingSignTransition());
+    const bool rising = etInfo.shouldTriggerOnRisingSignTransition();
+    const bool falling = etInfo.shouldTriggerOnFallingSignTransition();
+    const EventWitness::Direction direction =
+        rising? (falling? EventWitness::RisingAndFalling 
+                        : EventWitness::Rising)
+              :  EventWitness::Falling;
+
+    auto witness = new TriggeredEventHandler_Witness(*handler,direction);
+    witness->addEvent(eid);
+
     witness->setAccuracyRelativeTimeLocalizationWindow
        (etInfo.getRequiredLocalizationTimeWindow());
 
@@ -628,16 +610,20 @@ adoptEventReporter(TriggeredEventReporter* reporter) {
     auto action = new EventReporter_Action(*reporter);
     const EventActionIndex eax = evnt->adoptEventAction(action);
     const EventId eid = adoptEvent(evnt);
-    auto witness = new TriggeredEventReporter_Witness(*reporter);
-    witness->addEvent(eid);
 
     // Apply trigger info from the TriggeredEventReporter interface to the
     // witness we're creating here.
     const EventTriggerInfo& etInfo = reporter->getTriggerInfo();
-    witness->setTriggerOnRisingSignTransition
-       (etInfo.shouldTriggerOnRisingSignTransition());
-    witness->setTriggerOnFallingSignTransition
-       (etInfo.shouldTriggerOnFallingSignTransition());
+    const bool rising = etInfo.shouldTriggerOnRisingSignTransition();
+    const bool falling = etInfo.shouldTriggerOnFallingSignTransition();
+    const EventWitness::Direction direction =
+        rising? (falling? EventWitness::RisingAndFalling 
+                        : EventWitness::Rising)
+              :  EventWitness::Falling;
+
+    auto witness = new TriggeredEventReporter_Witness(*reporter, direction);
+    witness->addEvent(eid);
+
     witness->setAccuracyRelativeTimeLocalizationWindow
        (etInfo.getRequiredLocalizationTimeWindow());
 
@@ -767,9 +753,9 @@ EventTriggerId SystemGlobalSubsystem::getTerminationTriggerId() const
 {   return getGuts().m_terminationTriggerId; }
 
 void SystemGlobalSubsystem::
-findActiveEventWitnesses(const Study&                          study, 
-                         Array_<const EventTrigger::Witness*,
-                                ActiveWitnessIndex>&           witnesses) const
+findActiveEventWitnesses(const Study&                   study, 
+                         Array_<const EventWitness*,
+                                ActiveWitnessIndex>&    witnesses) const
 {
     auto& guts = getGuts();
 
@@ -779,9 +765,9 @@ findActiveEventWitnesses(const Study&                          study,
 
 
 void SystemGlobalSubsystem::
-findActiveEventTimers(const Study&                          study, 
-                      Array_<const EventTrigger::Timer*,
-                             ActiveTimerIndex>&             timers) const {
+findActiveEventTimers(const Study&                  study, 
+                      Array_<const EventTimer*,
+                             ActiveTimerIndex>&     timers) const {
     auto& guts = getGuts();
 
     //TODO: collect dynamic timers from state.

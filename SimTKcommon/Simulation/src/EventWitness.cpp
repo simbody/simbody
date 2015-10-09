@@ -24,11 +24,71 @@
 
 /**@file
  *
- * Implementation of non-inline methods from the EventTrigger::Witness classes.
+ * Implementation of non-inline methods from the EventWitness classes.
  */
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/EventTrigger.h"
-#include "SimTKcommon/internal/EventTrigger_Witness.h"
+#include "SimTKcommon/internal/EventWitness.h"
+
+using namespace SimTK;
+
+
+/*static*/ std::string EventWitness::toString(Range range) {
+    switch(range) {
+    case Bilateral:         return "Bilateral";
+    case Unilateral:        return "Unilateral";
+    default: return "BAD WITNESS Range " + std::to_string((int)range);
+    }
+}
+
+
+/*static*/ std::string EventWitness::toString(Direction direction) {
+    switch(direction) {
+    case Rising:            return "Rising";
+    case Falling:           return "Falling";
+    case RisingAndFalling:  return "RisingAndFalling";
+    default: return "BAD WITNESS Direction " + std::to_string((int)direction);
+    }
+}
+
+
+/*static*/ std::string EventWitness::toString(Continuity continuity) {
+    switch(continuity) {
+    case Continuous:        return "Continuous";
+    case Discontinuous:     return "Discontinuous";
+    default: return "BAD WITNESS Continuity " + std::to_string((int)continuity);
+    }
+}
+
+/*static*/ std::string EventWitness::toString(TransitionMask m) {
+    if (m==NoTransition) return "NoEventTrigger";
+
+    // Unmask one at a time.
+    const TransitionMask allTransitions[] =
+     { NegativeToZero,NegativeToPositive,ZeroToPositive,
+       PositiveToNegative,PositiveToZero,ZeroToNegative, 
+       NoTransition };
+    const char* transitionNames[] =
+     { "NegativeToZero","NegativeToPositive","ZeroToPositive",
+       "PositiveToNegative","PositiveToZero","ZeroToNegative" };
+
+    String s;
+    for (int i=0; allTransitions[i] != NoTransition; ++i)
+        if (m & allTransitions[i]) {
+            if (s.size()) s += "|";
+            s += transitionNames[i];
+            m = TransitionMask((unsigned)m & ~((unsigned)allTransitions[i])); 
+        }
+
+    // should have accounted for everything by now
+    if (m != NoTransition) {
+        if (s.size()) s += " + ";
+        s += "UNRECOGNIZED TRANSITION MASK GARBAGE ";
+        s += String((unsigned)m, "0x%x");
+    }
+    return s;
+}
+
 

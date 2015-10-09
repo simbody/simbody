@@ -100,10 +100,10 @@ private:
 //         w(q)=ratio*q0 - q1
 //       dw(qd)=ratio*qdot0 - qdot1
 //     ddw(qdd)=ratio*qdotdot0 - qdotdot1
-class QRatio : public EventTrigger::Witness {
+class QRatio : public EventWitness {
 public:
     QRatio(SystemQIndex q0, SystemQIndex q1, Real ratio)
-    :   EventTrigger::Witness("q ratio achieved"), 
+    :   EventWitness("q ratio achieved"), 
         m_q0(q0), m_q1(q1), m_ratio(ratio) {
         setAccuracyRelativeTimeLocalizationWindow(1);
         setTriggerOnRisingSignTransition(false); // falling only
@@ -116,20 +116,24 @@ public:
 private:
     QRatio* cloneVirtual() const override {return new QRatio(*this);}
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state,
+                                  int           derivOrder) const override
     {
-        Real val = NaN;
+        Value val; // initialized to NaN
         switch(derivOrder) {
         case 0:
-            val = m_ratio*state.getQ()[m_q0] - state.getQ()[m_q1];
+            val = Value(m_ratio*state.getQ()[m_q0] - state.getQ()[m_q1],
+                        SignificantReal);
             break;
         case 1:
-            val = m_ratio*state.getQDot()[m_q0] - state.getQDot()[m_q1];
+            val = Value(m_ratio*state.getQDot()[m_q0] - state.getQDot()[m_q1],
+                        SignificantReal);
             break;
         case 2:
-            val = m_ratio*state.getQDotDot()[m_q0] - state.getQDotDot()[m_q1];
+            val = Value(m_ratio*state.getQDotDot()[m_q0] 
+                        - state.getQDotDot()[m_q1],
+                        study.getPrecision());
             break;
         default:
             SimTK_ASSERT1_ALWAYS(!"illegal derivOrder",
@@ -172,10 +176,10 @@ private:
 // This nonsmooth witness is a square wave that is -.5 until a start time,
 // then +.5 until an end time, then back to -.5 forever. No derivatives are
 // provided.
-class SquareWaveWitness : public EventTrigger::Witness {
+class SquareWaveWitness : public EventWitness {
 public:
     SquareWaveWitness(double tstart, double tend)
-    :   EventTrigger::Witness("square wave transition"), 
+    :   EventWitness("square wave transition"), 
         m_startTime(tstart), m_endTime(tend) {
         assert(tend > tstart);
         setWitnessIsDiscontinuous(true);
@@ -185,12 +189,13 @@ private:
     SquareWaveWitness* cloneVirtual() const override
     {   return new SquareWaveWitness(*this); }
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override {
+    Value calcWitnessValueVirtual(const Study& study,
+                                  const State&  state,
+                                  int           derivOrder) const override {
         assert(derivOrder==0); // value only
         const double now = state.getTime();
-        return Real((m_startTime < now && now < m_endTime)-0.5);
+        return Value((m_startTime < now && now < m_endTime)-0.5,
+                     SignificantReal);
     }
 
     Stage getDependsOnStageVirtual(int derivOrder) const override
@@ -202,10 +207,10 @@ private:
 //--------------------------- TIME CROSSING WITNESS ----------------------------
 // This will trigger when time reaches a set value. In real life this should be
 // done using a Timer rather than a Witness.
-class TimeCrossingWitness : public EventTrigger::Witness {
+class TimeCrossingWitness : public EventWitness {
 public:
     explicit TimeCrossingWitness(double t)
-    :   EventTrigger::Witness("time crossing reached"), m_triggerTime(t) {
+    :   EventWitness("time crossing reached"), m_triggerTime(t) {
         setTriggerOnFallingSignTransition(false); // rising only
     }
 
@@ -213,11 +218,11 @@ private:
     TimeCrossingWitness* cloneVirtual() const override
     {   return new TimeCrossingWitness(*this); }
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override {
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state,
+                                  int           derivOrder) const override {
         assert(derivOrder==0); // value only
-        return state.getTime() - m_triggerTime;
+        return Value(state.getTime() - m_triggerTime,SignificantReal);
     }
 
     Stage getDependsOnStageVirtual(int derivOrder) const override
@@ -819,12 +824,13 @@ static void reportState(const char* msg, const Integrator& integ) {
         s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
         s.getYErr()[0], s.getYErr()[1]);
 
-    Array_<const EventTrigger::Witness*,ActiveWitnessIndex> witnesses;
+    Array_<const EventWitness*,ActiveWitnessIndex> witnesses;
     sys.findActiveEventWitnesses(integ, witnesses);
     printf("%d witness values:\n", witnesses.size());
     for (auto w : witnesses) {
-        printf("  %d: %g\n", (int)w->getEventTriggerId(), 
-               w->calcWitnessValue(sys,s,0));
+        const EventWitness::Value v = w->calcWitnessValue(integ,s,0);
+        printf("  %d: %g(%d)\n", (int)w->getEventTriggerId(), 
+               v.getValue(),v.getSign());
     }
 
     cout << "YDot:        " << s.getYDot() << endl;

@@ -31,8 +31,8 @@ out the underlying simulation architecture. */
 
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/EventTrigger.h"
-#include "SimTKcommon/internal/EventTrigger_Timer.h"
-#include "SimTKcommon/internal/EventTrigger_Witness.h"
+#include "SimTKcommon/internal/EventTimer.h"
+#include "SimTKcommon/internal/EventWitness.h"
 
 #include <iostream>
 using std::cout;
@@ -312,10 +312,10 @@ private:
 //------------------------------ U SUM WITNESS ---------------------------------
 // Trigger when the sum of certain generalized speeds reaches a particular
 // value. (This is treated as a Velocity-stage witness.)
-class TestSubsystem::USumWitness : public EventTrigger::Witness {
+class TestSubsystem::USumWitness : public EventWitness {
 public:
     USumWitness(SubsystemIndex ix, Real targetSum)
-    :   EventTrigger::Witness("u sum witness"),
+    :   EventWitness("u sum witness", Bilateral, RisingAndFalling, Continuous),
         m_subsysIx(ix), m_targetSum(targetSum) {
         // default allows triggering both falling and rising transition
     }
@@ -323,13 +323,15 @@ public:
 private:
     USumWitness* cloneVirtual() const override {return new USumWitness(*this);}
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state,
+                                  int           derivOrder) const override
     {
         assert(derivOrder==0);
+        const System& system = study.getSystem();
         auto& testsub = TestSubsystem::downcast(system.getSubsystem(m_subsysIx));
-        return testsub.getUSum(state) - m_targetSum;
+        return Value(testsub.getUSum(state) - m_targetSum,
+                     SignificantReal);
     }
 
     Stage getDependsOnStageVirtual(int derivOrder) const override {
@@ -349,22 +351,21 @@ private:
 //--------------------------- TIME CROSSING WITNESS ----------------------------
 // This will trigger when time reaches a set value. In real life this should be
 // done using a Timer rather than a Witness.
-class TestSubsystem::TimeReachedWitness : public EventTrigger::Witness {
+class TestSubsystem::TimeReachedWitness : public EventWitness {
 public:
     explicit TimeReachedWitness(double t)
-    :   EventTrigger::Witness("designated time reached"), m_triggerTime(t) {
-        setTriggerOnFallingSignTransition(false); // rising only
-    }
+    :   EventWitness("designated time reached", Bilateral, Rising, Continuous), 
+        m_triggerTime(t) {}
 
 private:
     TimeReachedWitness* cloneVirtual() const override
     {   return new TimeReachedWitness(*this); }
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override {
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state,
+                                  int           derivOrder) const override {
         assert(derivOrder==0); // value only
-        return state.getTime() - m_triggerTime;
+        return Value(state.getTime() - m_triggerTime, SignificantReal);
     }
 
     Stage getDependsOnStageVirtual(int derivOrder) const override
@@ -467,12 +468,13 @@ public:
 
     // Calcuate the values of all witnesses currently in m_witnesses. This 
     // state must already be realized to Stage::Acceleration.
-    void calcWitnessValues(const State& state, Vector& values) {
+    void calcWitnessValues(const State&                 state, 
+                           Array_<EventWitness::Value>& values) {
         values.resize(m_witnesses.size());
 
         for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
-            const EventTrigger::Witness& w = *m_witnesses[awx];
-            values[awx] = w.calcWitnessValue(m_system, state);
+            const EventWitness& w = *m_witnesses[awx];
+            values[awx] = w.calcWitnessValue(*this, state);
         }
     }
 private:
@@ -480,9 +482,9 @@ private:
     State       m_state;
     Real        m_consTol;
 
-    Array_<const EventTrigger::Witness*,
-           ActiveWitnessIndex>           m_witnesses;
-    Vector                               m_witnessValuesPrev; // same length
+    Array_<const EventWitness*, 
+           ActiveWitnessIndex>      m_witnesses;
+    Array_<EventWitness::Value>     m_witnessValuesPrev; // same length
 
     // Implement the Study interface.
     const System& getSystemVirtual() const override
@@ -842,7 +844,7 @@ void testDesignatedTimer() {
 //==============================================================================
 //                                   MAIN
 //==============================================================================
-int main() {
+int main() {              
     SimTK_START_TEST("TestSimulation");
         SimTK_SUBTEST(testOne);
         SimTK_SUBTEST(testDesignatedTimer);
@@ -964,20 +966,19 @@ bool FixedTimeStepper::step(double h) {
 // they were last recorded in m_witnessValuesPrev.
 void FixedTimeStepper::
 findEvents(Stage stage, EventTriggers& triggered) const {
-    auto& sys   = m_system;
-    auto& state = m_state;
     triggered.clear();
 
     for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
-        const EventTrigger::Witness& w = *m_witnesses[awx];
+        const EventWitness& w = *m_witnesses[awx];
         if (w.getDependsOnStage() != stage)
             continue;
-        const Real oldVal = m_witnessValuesPrev[awx];
-        const Real newVal = w.calcWitnessValue(sys, state);
+        const EventWitness::Value oldVal = m_witnessValuesPrev[awx];
+        const EventWitness::Value newVal = 
+            w.calcWitnessValue(*this, m_state);
 
         // This sign() function return -1,0,1. Transitions *to* zero are events;
         // transitions *from* zero are not. That avoids double-counting.
-        if (sign(oldVal) && (sign(newVal) != sign(oldVal))) {
+        if (oldVal.getSign() && (newVal.getSign() != oldVal.getSign())) {
             triggered.push_back(&w);
         }
     }

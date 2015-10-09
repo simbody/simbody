@@ -31,8 +31,8 @@
 #include "SimTKcommon/internal/SubsystemGuts.h"
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/EventTrigger.h"
-#include "SimTKcommon/internal/EventTrigger_Timer.h"
-#include "SimTKcommon/internal/EventTrigger_Witness.h"
+#include "SimTKcommon/internal/EventTimer.h"
+#include "SimTKcommon/internal/EventWitness.h"
 
 #include <cassert>
 
@@ -676,9 +676,8 @@ const TerminationTrigger& getTerminationTrigger() const;
 given Study's internal state. These are the witnesses that must be 
 watched during the next time step to determine if an event has occurred. **/
 void findActiveEventWitnesses
-   (const Study&                            study, 
-    Array_<const EventTrigger::Witness*, 
-           ActiveWitnessIndex>&             witnesses) const; 
+   (const Study&                                        study, 
+    Array_<const EventWitness*, ActiveWitnessIndex>&    witnesses) const; 
 
 /** Determine if we are approaching a significant zero crossing of some
 event witness and if so provide an estimate of when it will occur. We only
@@ -691,11 +690,11 @@ witnesses we think will trigger. If there are no anticipated zeroes in the
 interval, the next time and window will be Infinity and the list of witnesses
 will be empty. **/
 void predictNextWitnessTriggerTime
-   (const Study&                            study,
-    double                                  timeLimit,
-    double&                                 timeOfNextZeroCrossing,
-    double&                                 timeWindow,
-    Array_<const EventTrigger::Witness*>&   witnesses) const; 
+   (const Study&                    study,
+    double                          timeLimit,
+    double&                         timeOfNextZeroCrossing,
+    double&                         timeWindow,
+    Array_<const EventWitness*>&    witnesses) const; 
 
     
 
@@ -704,9 +703,8 @@ given study's internal state. These are the timers that must be consulted
 to see whether the upcoming time step should be shortened because of a scheduled
 report or change event. **/
 void findActiveEventTimers
-   (const Study&                            study, 
-    Array_<const EventTrigger::Timer*,
-           ActiveTimerIndex>&               timers) const;
+   (const Study&                                    study, 
+    Array_<const EventTimer*, ActiveTimerIndex>&    timers) const;
 
 
 /** Consult the Event Timers to find the next time at which a scheduled report 

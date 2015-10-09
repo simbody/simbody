@@ -68,7 +68,8 @@ public:
        (const MultibodySystem&          mbs,
         const State&                    state,
         Real                            proximityTol,
-        Array_<UnilateralContactIndex>& proximalUniContacts); 
+        Array_<UnilateralContactIndex>& proximalUniContacts,
+        Array_<UnilateralContactIndex>& needToActivate);
 
 private:
     void changeVirtual(Study&                  study,
@@ -88,7 +89,8 @@ private:
         Array_<MultiplierIndex>&                allParticipating) const; 
 
     void classifyUnilateralContactsForSimultaneousImpact
-       (Real                                    consTol,
+       (Real                                    posTol,
+        Real                                    velTol,
         const Vector&                           verr,
         const Vector&                           expansionImpulse,
         Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
@@ -149,7 +151,8 @@ public:
         const State&                    state,
         Real                            proximityTol,
         Real                            velocityTol,
-        Array_<UnilateralContactIndex>& lingeringUniContacts); 
+        Array_<UnilateralContactIndex>& lingeringUniContacts,
+        Array_<UnilateralContactIndex>& needToActivate); 
 
 private:
     void changeVirtual(Study&                  study,

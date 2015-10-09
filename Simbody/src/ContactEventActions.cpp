@@ -54,7 +54,8 @@ findProximalConstraints
    (const MultibodySystem&          mbs,
     const State&                    state,
     Real                            proximityTol,
-    Array_<UnilateralContactIndex>& proximalUniContacts) 
+    Array_<UnilateralContactIndex>& proximalUniContacts,
+    Array_<UnilateralContactIndex>& needToActivate)
 {
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
     proximalUniContacts.clear();
@@ -63,9 +64,14 @@ findProximalConstraints
 
     for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
         const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        if (   contact.isActive(state)
-            || contact.isProximal(state, proximityTol)) // may be scaled
+        if (contact.isActive(state)) {
             proximalUniContacts.push_back(ux);
+            continue;
+        }
+        if (contact.isProximal(state, proximityTol)) { // may be scaled
+            proximalUniContacts.push_back(ux);
+            needToActivate.push_back(ux);
+        }
     }
 }
 
@@ -134,7 +140,8 @@ collectConstraintInfo
 // zero-length Vector, otherwise it must have length m.
 void ImpactEventAction::
 classifyUnilateralContactsForSimultaneousImpact
-   (Real                                    consTol,
+   (Real                                    posTol,
+    Real                                    velTol,
     const Vector&                           verr,
     const Vector&                           expansionImpulse,
     Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
@@ -158,7 +165,8 @@ classifyUnilateralContactsForSimultaneousImpact
             rt.m_type = ImpulseSolver::Known; // normal does not participate
             expanders.push_back(i);  // uni contact index
             expanding.push_back(mz); // multiplier index
-        } else if (rt.m_sign*verr[mz] >= (Real(-0.1))*consTol) {
+        } else if (rt.m_sign*verr[mz] >= (Real(-0.1))*velTol) {
+            //printf("rt.m_sign*verr[mz]=%.15g\n", rt.m_sign*verr[mz]);
             // Observe even if we're slightly (but insignificantly) negative.
             // We're using 1/10 of constraint tol as the cutoff.
             // Don't use zero, or you'll loop forever due to roundoff!
@@ -193,7 +201,7 @@ calcCoefficientsOfRestitution
    (const SimbodyMatterSubsystem& matter,
     const State& s, const Vector& verr,
     bool disableRestitution,
-    Real consTol, Real defCaptureVel, Real defMinCORVel,
+    Real velTol, Real defCaptureVel, Real defMinCORVel,
     Array_<ImpulseSolver::UniContactRT>& uniContact) const
 {
     if (disableRestitution) {
@@ -214,11 +222,11 @@ calcCoefficientsOfRestitution
             rt.m_effCOR = 0; // separating
             continue;
         }
-        if (impactVel >= -consTol) {
+        if (impactVel >= -velTol) {
             rt.m_effCOR = 0;
             SimTK_DEBUG3(
                 "Uni contact %d verr vel=%g at or below tol %g -> cor=0\n", 
-                 (int)rt.m_ucx, impactVel, consTol);
+                 (int)rt.m_ucx, impactVel, velTol);
             continue;
         }
         const UnilateralContact& uni = matter.getUnilateralContact(rt.m_ucx);
@@ -274,34 +282,40 @@ changeVirtual(Study&                  study,
 {
     const MultibodySystem& mbs = MultibodySystem::downcast(study.getSystem());
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+    const Real posTol = study.getConstraintToleranceInUse();
+    const Real velTol = posTol / study.getTimeScaleInUse();
 
     const State& low = study.getCurrentState();
     State& high = study.updInternalState();
 
-    printf("\n**********\nImpact Action (%.15g,%.15g], w=%.15g\n", 
-            low.getTime(), high.getTime(), high.getTime()-low.getTime());
+#ifndef NDEBUG
+    printf("\n**********\nImpact Action (%.15g,%.15g], w=%.15g (p,vtol=%g,%g)\n", 
+            low.getTime(), high.getTime(), high.getTime()-low.getTime(),
+            posTol, velTol);
     for (auto& tp : triggers) {
-        const EventTrigger::Witness& w = 
-            dynamic_cast<const EventTrigger::Witness&>(*tp);
-        printf("  Trigger %d '%s'=(%.15g,%.15g]\n", 
-                (int)w.getEventTriggerId(),
+        const EventWitness& w = 
+            dynamic_cast<const EventWitness&>(*tp);
+        const EventWitness::Value lv = w.calcWitnessValue(study, low);
+        const EventWitness::Value hv = w.calcWitnessValue(study, high);
+        printf("  Witness %d (trigger %d) '%s'=(%.15g(%d),%.15g(%d)]\n", 
+                (int)w.getEventWitnessIndex(), (int)w.getEventTriggerId(),
                 w.getTriggerDescription().c_str(),
-                w.calcWitnessValue(study.getSystem(), low),
-                w.calcWitnessValue(study.getSystem(), high));
+                lv.getValue(), lv.getSign(), hv.getValue(), hv.getSign());
     }
-
-    const Real consTol = study.getConstraintToleranceInUse();
+#endif
 
     // TODO: Above this speed the solver should assume sliding.
-    m_solver->setMaxRollingSpeed(2*consTol);
+    m_solver->setMaxRollingSpeed(2*velTol);
 
-    Array_<UnilateralContactIndex> proximalUniContacts;
-    findProximalConstraints(mbs, high, consTol, proximalUniContacts);
+    Array_<UnilateralContactIndex> proximalUniContacts, needToActivate;
+    findProximalConstraints(mbs, high, posTol, 
+                            proximalUniContacts, needToActivate);
     #ifndef NDEBUG
     cout<<"Proximal unilateral contacts: "<< proximalUniContacts << endl;
+    cout<<"  need to activate: "<< needToActivate << endl;
     #endif
 
-    for (auto ucx : proximalUniContacts) { 
+    for (auto ucx : needToActivate) { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
         uni.setCondition(high, CondConstraint::Active); // friction unknown
     }
@@ -338,7 +352,7 @@ changeVirtual(Study&                  study,
     const Vector noExpansion(m, 0.);
     Array_<int> impacters, expanders, observers;
     Array_<MultiplierIndex> participaters, expanding;
-    classifyUnilateralContactsForSimultaneousImpact(consTol,
+    classifyUnilateralContactsForSimultaneousImpact(posTol,velTol,
         verr0, noExpansion, uniContact,
         impacters, expanders, observers,
         participaters, expanding);
@@ -354,7 +368,7 @@ changeVirtual(Study&                  study,
     // impact velocities. In the reaction round they are treated as zero.
     calcCoefficientsOfRestitution(matter, high, verr0, 
         false, /*disableRestitution*/
-        consTol, 2*consTol, 2*consTol, /*def capture/min COR vel*/
+        velTol, 2*velTol, 2*velTol, /*def capture/min COR vel*/
         uniContact);
 
     #ifndef NDEBUG
@@ -392,7 +406,7 @@ changeVirtual(Study&                  study,
         cout << "  Next expansion impulse=" << expansionImpulse << endl;
         cout << "  Next expanders: " << expanders << endl;
         #endif 
-        classifyUnilateralContactsForSimultaneousImpact(consTol,
+        classifyUnilateralContactsForSimultaneousImpact(posTol,velTol,
             verr, expansionImpulse, uniContact,
             impacters, expanders, observers,
             participaters, expanding);
@@ -423,7 +437,7 @@ changeVirtual(Study&                  study,
 
         // That should be the end but it is possible that one of the expanders
         // is now impacting.
-        classifyUnilateralContactsForSimultaneousImpact(consTol,
+        classifyUnilateralContactsForSimultaneousImpact(posTol,velTol,
             verr, noExpansion, uniContact,
             impacters, expanders, observers, 
             participaters, expanding);  
@@ -463,19 +477,34 @@ changeVirtual(Study&                  study,
     matter.multiplyByMInv(high, genImpulse, deltaU);
     high.updU() += deltaU;
     mbs.realize(high, Stage::Velocity);
+#ifndef NDEBUG
     cout << "deltaU=" << deltaU << " now verr=" << verr0 << endl;
+#endif
+
+    // Now deactivate anything that is separating.
+    // TODO: constraints that were active on entry but not affected at all
+    // by the impact (like they were fully decoupled from the impacters)
+    // should probably NOT get turned off here.
+    for (auto ucx : proximalUniContacts) { 
+        const auto& uni = m_matter.getUnilateralContact(ucx);
+        if (uni.isSeparating(high, velTol)) {
+            SimTK_DEBUG1("uni contact %d is separating; deactivate\n", 
+                         (int)ucx);
+            uni.setCondition(high, CondConstraint::Off);
+        }
+    }
 
     // Decide which constraints stay active. TODO: should invoke contact
     // handler here; this is a kludge.
     mbs.realize(high, Stage::Acceleration);
     Vector mults = high.getMultipliers();
-    cout << "mults=" << mults << endl;
+    //cout << "mults=" << mults << endl;
     for (auto ucx : proximalUniContacts) { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
         const Real sign = uni.getSignConvention();
         const Real frc = -sign*mults[uni.getContactMultiplierIndex(high)];
-        printf("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
-               frc<0?"disable":"OK");
+        SimTK_DEBUG3("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
+               frc<0?"deactivate":"OK");
         if (frc < 0)
             uni.setCondition(high, CondConstraint::Off);
     }
@@ -483,7 +512,7 @@ changeVirtual(Study&                  study,
     mbs.realize(high, Stage::Position);
 
     m_matter.getSystem().project(high);
-    printf("**********\n\n");
+    SimTK_DEBUG("**********\n\n");
 }
 
 //==============================================================================
@@ -501,19 +530,26 @@ findLingeringConstraints
     const State&                    state,
     Real                            proximityTol,
     Real                            velocityTol,
-    Array_<UnilateralContactIndex>& lingeringUniContacts) 
+    Array_<UnilateralContactIndex>& lingeringUniContacts,
+    Array_<UnilateralContactIndex>& needToActivate) 
 {
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
-    lingeringUniContacts.clear();
+    lingeringUniContacts.clear(); needToActivate.clear();
 
     const int nUniContacts  = matter.getNumUnilateralContacts();
 
     for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
         const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        if (   contact.isActive(state)
-            || (    contact.isProximal(state, proximityTol)
-                && !contact.isSeparating(state, velocityTol)))
+        if (contact.isActive(state)) {
             lingeringUniContacts.push_back(ux);
+            continue;
+        }
+
+        if (    contact.isProximal(state, proximityTol)
+            && !contact.isSeparating(state, velocityTol)) {
+            lingeringUniContacts.push_back(ux);
+            needToActivate.push_back(ux);
+        }
     }
 }
 
@@ -530,29 +566,38 @@ changeVirtual(Study&                  study,
     State& high = study.updInternalState();
     const MultibodySystem& mbs = m_matter.getMultibodySystem();
 
+#ifndef NDEBUG
     printf("\n##########\nContact Action (%.15g,%.15g], w=%.15g\n", 
             low.getTime(), high.getTime(), high.getTime()-low.getTime());
     for (auto& tp : triggers) {
-        const EventTrigger::Witness& w = 
-            dynamic_cast<const EventTrigger::Witness&>(*tp);
+        const EventWitness& w = 
+            dynamic_cast<const EventWitness&>(*tp);
         mbs.realize(low, w.getDependsOnStage());
         mbs.realize(high, w.getDependsOnStage());
-        printf("  Trigger %d '%s'=(%.15g,%.15g]\n", 
+        const EventWitness::Value lv = w.calcWitnessValue(study, low);
+        const EventWitness::Value hv = w.calcWitnessValue(study, high);
+        printf("  Trigger %d '%s'=(%.15g(%d),%.15g(%d)]\n", 
                 (int)w.getEventTriggerId(),
                 w.getTriggerDescription().c_str(),
-                w.calcWitnessValue(study.getSystem(), low),
-                w.calcWitnessValue(study.getSystem(), high));
+                lv.getValue(), lv.getSign(),
+                hv.getValue(), hv.getSign());
     }
+#endif
 
     const Real consTol = study.getConstraintToleranceInUse();
     //TODO: figure out pos & vel tol
-    Array_<UnilateralContactIndex> lingeringUniContacts;
-    findLingeringConstraints(mbs, high, consTol, consTol, lingeringUniContacts);
+
+    // Here we can only activate more contacts; lingering includes everything
+    // currently active plus any inactive lingerers (perr=verr=0).
+    Array_<UnilateralContactIndex> lingeringUniContacts, needToActivate;
+    findLingeringConstraints(mbs, high, consTol, consTol, 
+                             lingeringUniContacts, needToActivate);
     #ifndef NDEBUG
     cout<<"Lingering unilateral contacts: "<< lingeringUniContacts << endl;
+    cout<<"  Need to activate: "<< needToActivate << endl;
     #endif
 
-    for (auto ucx : lingeringUniContacts) { 
+    for (auto ucx : needToActivate) { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
         uni.setCondition(high, CondConstraint::Active); // rolling
     }
@@ -563,7 +608,7 @@ changeVirtual(Study&                  study,
         const auto& uni = m_matter.getUnilateralContact(ucx);
         const Real sign = uni.getSignConvention();
         const Real frc = -sign*mults[uni.getContactMultiplierIndex(high)];
-        printf("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
+        SimTK_DEBUG3("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
                frc<0?"disable":"OK");
         if (frc < 0) // TODO: Not sufficient!!
             uni.setCondition(high, CondConstraint::Off);
@@ -571,5 +616,7 @@ changeVirtual(Study&                  study,
 
     mbs.realize(high, Stage::Position);
     m_matter.getSystem().project(high);
+#ifndef NDEBUG
     printf("##########\n");
+#endif
 }

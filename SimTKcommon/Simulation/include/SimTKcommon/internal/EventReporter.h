@@ -187,12 +187,9 @@ protected:
 //==============================================================================
 /** This class is used by TriggeredEventHandler and TriggeredEventReporter to
 specify the properties of their event witness functions. This will be used to
-construct an appropriate EventTrigger::Witness object for the handler or 
-reporter. Not all properties of an EventTrigger::Witness can be set here; 
-anything unspecified will have its default value. In particular, the resulting 
-EventTrigger::Witness object will localize in time only; the witness function 
-value will not affect localization. See EventTrigger::Witness for more 
-information.
+construct an appropriate EventWitness object for the handler or reporter. Not 
+all properties of an EventWitness can be set here; anything unspecified will 
+have its default value. See EventWitness for more information.
 
 The properties you can set here are:
   - Whether to watch for rising sign transitions, falling, or both. [BOTH]
@@ -238,28 +235,6 @@ public:
         return *this;
     }
 
-    //Event::TriggerDirection calcTransitionMask() const {
-    //    unsigned mask = 0;
-    //    if (shouldTriggerOnRisingSignTransition()) {
-    //        mask |= Event::NegativeToPositive;
-    //    }
-    //    if (shouldTriggerOnFallingSignTransition()) {
-    //        mask |= Event::PositiveToNegative;
-    //    }
-    //    return Event::TriggerDirection(mask);
-    //}
-
-    //Event::TriggerDirection calcTransitionToReport
-    //   (Event::TriggerDirection transitionSeen) const
-    //{
-    //    // report -1 to 1 or 1 to -1 as appropriate
-    //    if (transitionSeen & Event::Rising)
-    //        return Event::NegativeToPositive;
-    //    if (transitionSeen & Event::Falling)
-    //        return Event::PositiveToNegative;
-    //    assert(!"impossible event transition situation");
-    //    return Event::NoEventTrigger;
-    //}
 
 private:
     void setDefaults() {

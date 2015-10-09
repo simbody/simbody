@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_EVENT_TRIGGER_TIMER_H_
-#define SimTK_SimTKCOMMON_EVENT_TRIGGER_TIMER_H_
+#ifndef SimTK_SimTKCOMMON_EVENT_TIMER_H_
+#define SimTK_SimTKCOMMON_EVENT_TIMER_H_
 
 /* -------------------------------------------------------------------------- *
  *                       Simbody(tm): SimTKcommon                             *
@@ -38,7 +38,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(EventTimerIndex);
 //==============================================================================
 //                              EVENT TIMER
 //==============================================================================
-/** An %EventTrigger::Timer is an EventTrigger that causes and Event to occur at
+/** An %EventTimer is an EventTrigger that causes and Event to occur at
 a particular time or times that can be determined before they happen. This 
 allows the time stepper to adjust the step size so that it completes a step 
 exactly at the time of next event occurrence.
@@ -47,7 +47,7 @@ A %Timer provides a method that a time stepper can call with the current
 time and state to determine when the next timed event should occur. This class
 is still abstract; derive from it to define particular timers. Several 
 predefined %Timer classes are provided. **/
-class SimTK_SimTKCOMMON_EXPORT EventTrigger::Timer : public EventTrigger {
+class SimTK_SimTKCOMMON_EXPORT EventTimer : public EventTrigger {
     using Super = EventTrigger;
 public:
     class Periodic;
@@ -85,9 +85,9 @@ public:
     EventTriggers are known and examined for timers. **/
     EventTimerIndex getEventTimerIndex() const {return m_timerIndex;}
 protected:
-    /** Create a %Timer with no associated Event objects. A description
+    /** Create an %EventTimer with no associated Event objects. A description
     can be useful for reporting and debugging. **/
-    explicit Timer(const std::string& triggerDescription) 
+    explicit EventTimer(const std::string& triggerDescription) 
     :   Super(triggerDescription) {}
 
     /** This method must be implemented by any concrete %EventTrigger::Timer. 
@@ -108,23 +108,22 @@ friend class SystemGlobalSubsystem;
 //==============================================================================
 //                           DESIGNATED EVENT TIMER
 //==============================================================================
-/** This is a predefined concrete EventTrigger::Timer that triggers at times 
-which are given explicitly. You can initialize the list of times with code like 
-this: @code
-    EventTrigger::Timer::Designated 
+/** This is a predefined concrete EventTimer that triggers at times which are 
+given explicitly. You can initialize the list of times with code like this: 
+@code
+    EventTimer::Designated 
         eventTimes("description", {.1, 1.2, 2, 3.12, 3.4};
     //   OR
     // myTimes is a container of numbers assignment compatible to double,
     // such as std::vector<double> or SimTK::Array_<int>.
-    EventTrigger::Timer::Designated 
+    EventTimer::Designated 
         eventTimes("description", myTimes.begin(), myTimes.end());
 @endcode
 You can also insert times after construction using provided methods. Any 
 designated times will be sorted in increasing order, and duplicates will be
 removed. **/
-class SimTK_SimTKCOMMON_EXPORT EventTrigger::Timer::Designated 
-:   public EventTrigger::Timer {
-    using Super = EventTrigger::Timer;
+class SimTK_SimTKCOMMON_EXPORT EventTimer::Designated : public EventTimer {
+    using Super = EventTimer;
 public:
     /** Create a designated event timer with no times set and no associated
     events yet. A description can be useful for reporting and debugging. **/
@@ -210,14 +209,13 @@ private:
 //==============================================================================
 //                            PERIODIC EVENT TIMER
 //==============================================================================
-/** This is a predefined concrete EventTrigger::Timer that triggers 
-periodically, at times n*period. Normally n starts from zero but you may
-optionally specify that it should start from one. **/
-class SimTK_SimTKCOMMON_EXPORT EventTrigger::Timer::Periodic
-:   public EventTrigger::Timer {
-    using Super = EventTrigger::Timer;
+/** This is a predefined concrete EventTimer that triggers periodically, at 
+times n*period. Normally n starts from zero but you may optionally specify that
+it should start from one. **/
+class SimTK_SimTKCOMMON_EXPORT EventTimer::Periodic : public EventTimer {
+    using Super = EventTimer;
 public:
-    /** Create a periodic event trigger and specify the time interval between
+    /** Create a periodic event timer and specify the time interval between
     event occurrences.
     @param  description Text describing this particular timer (can be helpful
                         for reporting and debugging).
@@ -228,14 +226,14 @@ public:
         setEventPeriod(period);
     }
 
-    /** Create a periodic event trigger and specify the time interval between
+    /** Create a periodic event timer and specify the time interval between
     event occurrences. The description will be supplied as "Periodic 
-    EventTrigger with period t", where t is replaced with the supplied
+    EventTimer with period t", where t is replaced with the supplied
     `interval`.
     @param  period  The time interval between triggerings of this timer.  
                     Must be strictly greater than zero. **/
     explicit Periodic(double period)
-    :   Super("Periodic EventTrigger with period " 
+    :   Super("Periodic EventTimer with period " 
               + String(period, "%.15g")), m_triggerAtZero(true) {
         setEventPeriod(period);
     }
@@ -257,7 +255,7 @@ public:
     /** Change the event interval for this periodic event timer. **/
     Periodic& setEventPeriod(double period) {
         SimTK_APIARGCHECK1_ALWAYS(period > 0, 
-            "EventTrigger::Timer::Periodic", "setEventPeriod", 
+            "EventTimer::Periodic", "setEventPeriod", 
             "The period was %g but must be greater than zero.", period);
         m_period = period;
         return *this;
@@ -276,4 +274,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SimTKCOMMON_EVENT_TRIGGER_TIMER_H_
+#endif // SimTK_SimTKCOMMON_EVENT_TIMER_H_

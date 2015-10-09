@@ -24,13 +24,13 @@
 
 /**@file
  *
- * Implementation of non-inline methods from the EventTrigger::Timer classes.
+ * Implementation of non-inline methods from the EventTimer classes.
  */
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Event.h"
 #include "SimTKcommon/internal/EventTrigger.h"
-#include "SimTKcommon/internal/EventTrigger_Timer.h"
+#include "SimTKcommon/internal/EventTimer.h"
 
 #include <cassert>
 #include <algorithm>
@@ -43,14 +43,14 @@ using namespace SimTK;
 //                         DESIGNATED EVENT TIMER
 //==============================================================================
 
-EventTrigger::Timer::Designated::Designated(const std::string& description,
+EventTimer::Designated::Designated(const std::string& description,
                                             double t) 
 :   Super(description) {
     checkTime("Designated", t);
     m_triggerTimes.push_back(t);
 }
 
-void EventTrigger::Timer::Designated::
+void EventTimer::Designated::
 insertDesignatedTime(double t) {
     checkTime("insertDesignatedTime", t);
     if (m_triggerTimes.empty() || t > m_triggerTimes.back()) {
@@ -65,15 +65,15 @@ insertDesignatedTime(double t) {
         m_triggerTimes.insert(p, t);
 }
 
-void EventTrigger::Timer::Designated::
+void EventTimer::Designated::
 checkTime(const char* methodName, double t) const {
     SimTK_APIARGCHECK2_ALWAYS(t >= 0, 
-        "EventTrigger::Timer::Designated", methodName,
+        "EventTimer::Designated", methodName,
         "Illegal trigger time %g (%s).", t,
         getTriggerDescription().c_str());
 }
 
-void EventTrigger::Timer::Designated::
+void EventTimer::Designated::
 constructHelper() {
     for (auto t : m_triggerTimes) checkTime("Designated", t);
     std::sort(m_triggerTimes.begin(), m_triggerTimes.end()); 
@@ -82,7 +82,7 @@ constructHelper() {
                                                   newEnd));
 }
 
-void EventTrigger::Timer::Designated::
+void EventTimer::Designated::
 insertHelper(Array_<double>&& times) {
     for (auto t : times) checkTime("insertDesignatedTimes", t);
     std::sort(times.begin(), times.end());
@@ -96,7 +96,7 @@ insertHelper(Array_<double>&& times) {
 }
 
 // The System is not used in this calculation.
-double EventTrigger::Timer::Designated::
+double EventTimer::Designated::
 calcTimeOfNextTriggerVirtual(const System&, const State& state, 
                              double timeOfLastTrigger) const 
 {
@@ -123,7 +123,7 @@ calcTimeOfNextTriggerVirtual(const System&, const State& state,
 //==============================================================================
 
 // System is not used for this calculation.
-double EventTrigger::Timer::Periodic::
+double EventTimer::Periodic::
 calcTimeOfNextTriggerVirtual(const System&, const State& state, 
                              double timeOfLastTrigger) const 
 {

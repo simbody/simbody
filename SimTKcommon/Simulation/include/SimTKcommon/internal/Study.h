@@ -89,7 +89,7 @@ public:
     the precise meaning up to the concrete %Study to define. This should be 
     a reference to the object that the %Study modifies internally that 
     represents the furthest progress of the trajectory. Note that it may be
-    further along that what gets returned by getCurrentState(). **/
+    further along than what gets returned by getCurrentState(). **/
     const State& getInternalState() const 
     {   return getInternalStateVirtual(); }
 
@@ -100,13 +100,13 @@ public:
     State& updInternalState() 
     {   return updInternalStateVirtual(); }
 
-
     /** Return the current accuracy setting in use by this %Study. The precise
-    meaning of this parameter varies according to the concrete %Study type, but
-    it can usually be interpreted to mean something related to the number of
-    correct digits in the results. For example, 1e-3 would mean that we are
-    requesting three correct digits, that is, an accuracy of 0.1%. If this
-    doesn't make sense for a particular concrete %Study it returns `NaN`. **/
+    meaning of this unitless parameter varies according to the concrete %Study 
+    type, but it can usually be interpreted to mean something related to the 
+    number of correct digits in the solution for the %Study's variables. For 
+    example, 1e-3 would mean that we are requesting three correct digits, that 
+    is, an accuracy of 0.1%. If this doesn't make sense for a particular 
+    concrete %Study it returns `NaN`. **/
     Real getAccuracyInUse() const 
     {   return getAccuracyInUseVirtual(); }
 
@@ -117,6 +117,23 @@ public:
     doesn't make sense for a particular concrete %Study it returns `NaN`. **/
     Real getConstraintToleranceInUse() const 
     {   return getConstraintToleranceInUseVirtual(); }
+
+    /** Return the worst precision with which dependent quantities are computed
+    for given values of the state varibles. This is typically the accelerations,
+    which may be computed to machine precision by direct methods or to some
+    approximation by iterative methods. **/
+    Real getPrecision() const
+    {   return getPrecisionVirtual(); }
+
+    /** Return the time scale in use by this %Study. Typically this is just
+    the System's default time scale. **/
+    double getTimeScaleInUse() const
+    {   return getTimeScaleInUseVirtual(); }
+
+    /** Return the length scale in use by this %Study. Typically this is just
+    the System's default length scale. **/
+    Real getLengthScaleInUse() const
+    {   return getLengthScaleInUseVirtual(); }
 
     /** Studies can't be copied. **/
     Study(const Study&) = delete;
@@ -162,6 +179,28 @@ protected:
     documentation explains exactly what is meant by "constraint tolerance" in 
     your %Study. **/
     virtual Real getConstraintToleranceInUseVirtual() const = 0;
+
+    /** The default implementation returns the System's default time scale;
+    override if you have your own. 
+    @see SimTK::System::setDefaultTimeScale() **/
+    virtual double getTimeScaleInUseVirtual() const
+    {   return getSystem().getDefaultTimeScale(); }
+
+    /** The default implementation returns the System's default length scale;
+    override if you have your own. 
+    @see SimTK::System::setDefaultLengthScale() **/
+    virtual Real getLengthScaleInUseVirtual() const
+    {   return getSystem().getDefaultLengthScale(); }
+
+    /** The default implementation assumes the worst-case computation of
+    dependent quantities (including accelerations) is done to machine precision,
+    less some allowance for roundoff and matrix computations. We use Eps^0.75
+    for the default, where Eps is machine epsilon, so this is around 2e-12
+    in double precision. Be sure to override this if you are computing
+    accelerations using an iterative method that converges at a looser
+    tolerance. **/
+    virtual Real getPrecisionVirtual() const
+    {   return Eps34; }
 };
 
 } // namespace SimTK

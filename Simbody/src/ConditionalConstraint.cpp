@@ -86,33 +86,37 @@ namespace {
 //------------------------------------------------------------------------------
 // Should only be enabled when constraint is not active.
 
-class ImpactWitness : public EventTrigger::Witness {
+class ImpactWitness : public EventWitness {
 public:
     explicit ImpactWitness(const UnilateralContact& uni)
-    :   EventTrigger::Witness("UnilateralContact ImpactWitness"),
-        m_uniContact(uni) 
-    {   setTriggerOnRisingSignTransition(false); } // + -> - only
+    :   EventWitness("UnilateralContact ImpactWitness",
+                     Unilateral, Falling, Continuous),
+        m_uniContact(uni) {}
 
 private:
     ImpactWitness* cloneVirtual() const override
     {   return new ImpactWitness(*this); }
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override {
-        Real value = NaN;
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state,
+                                  int           derivOrder) const override {
+        Value value; // initialized to NaN
         if (m_uniContact.getCondition(state) <= CondConstraint::Off) {
             const Real sign = m_uniContact.getSignConvention();
             switch(derivOrder) {
-            case 0: value = sign*m_uniContact.getPerr(state); break;
-            case 1: value = sign*m_uniContact.getVerr(state); break;
-            case 2: value = sign*m_uniContact.getAerr(state); break;
+            case 0: value = Value(sign*m_uniContact.getPerr(state),
+                                  study.getConstraintToleranceInUse()); break;
+            case 1: value = Value(sign*m_uniContact.getVerr(state),
+                                  study.getConstraintToleranceInUse()
+                                           / study.getTimeScaleInUse()); break;
+            case 2: value = Value(sign*m_uniContact.getAerr(state),
+                                  study.getPrecision()); break;
             default: assert(!"illegal derivOrder");
             }
 
-            SimTK_DEBUG4("%s %d: %.15g @t=%.15g\n", 
-                getTriggerDescription().c_str(), (int)getEventTriggerId(), 
-                value, state.getTime());
+            //SimTK_DEBUG5("%s %d: %.15g(%d) @t=%.15g\n", 
+            //    getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+            //    value.getValue(), value.getSign(), state.getTime());
        }
 
 
@@ -140,33 +144,32 @@ private:
 //------------------------------------------------------------------------------
 // Should only be enabled when constraint is active.
 
-class ContactWitness: public EventTrigger::Witness {
+class ContactWitness: public EventWitness {
 public:
     explicit ContactWitness(const UnilateralContact& uni)
-        : EventTrigger::Witness("UnilateralContact ContactWitness"),
-        m_uniContact(uni)
-    {
-        setTriggerOnRisingSignTransition(false);
-    } // + -> - only
+    :   EventWitness("UnilateralContact ContactWitness",
+                     Unilateral, Falling, Continuous),
+        m_uniContact(uni) {}
 
 private:
     ContactWitness* cloneVirtual() const override
     {   return new ContactWitness(*this); }
 
-    Real calcWitnessValueVirtual(const System& system,
-                                 const State&  state,
-                                 int           derivOrder) const override {
-        Real value = NaN;
+    Value calcWitnessValueVirtual(const Study&  study,
+                                  const State&  state,
+                                  int           derivOrder) const override {
+        Value value; // initialized to NaN
         if(m_uniContact.getCondition(state) > CondConstraint::Off) {
             assert(derivOrder==0);
             const Real sign = m_uniContact.getSignConvention();
             const Vector& multipliers = state.getMultipliers();
             auto index = m_uniContact.getContactMultiplierIndex(state);
-            value = -sign*multipliers[index];
+            value = Value(-sign*multipliers[index],
+                          study.getPrecision());
 
-            SimTK_DEBUG4("%s %d: %.15g @t=%.15g\n", 
-                   getTriggerDescription().c_str(), (int)getEventTriggerId(), 
-                   value, state.getTime());
+            //SimTK_DEBUG5("%s %d: %.15g(%d) @t=%.15g\n", 
+            //       getTriggerDescription().c_str(), (int)getEventTriggerId(), 
+            //       value.getValue(), value.getSign(), state.getTime());
         }
 
         return value;

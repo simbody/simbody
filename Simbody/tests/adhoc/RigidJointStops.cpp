@@ -48,8 +48,26 @@ using std::cout; using std::endl;
 // We'll add rigid joint stops to the two arms as a very simple test of
 // unilateral contact constraints.
 
+
+//==============================================================================
+//                              SHOW ENERGY
+//==============================================================================
+// Generate text in the scene that displays the total energy, which should be 
+// conserved to roughly the number of decimal places corresponding to the 
+// accuracy setting (i.e., acc=1e-5 -> 5 digits).
+class ShowEnergy : public DecorationGenerator {
+public:
+    explicit ShowEnergy(const MultibodySystem& mbs) : m_mbs(mbs) {}
+    void generateDecorations(const State&                state, 
+                             Array_<DecorativeGeometry>& geometry) override;
+private:
+    const MultibodySystem& m_mbs;
+};
+
 namespace {
-const Real StopCoefRest = 0.1;
+const Real StopCoefRestLeft = 1;
+const Real StopCoefRestRight = 0;
+const Real Gravity = 9.81;
 }
 
 int main() {
@@ -59,7 +77,7 @@ int main() {
     MultibodySystem system; 
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    Force::Gravity gravity(forces, matter, -YAxis, 9.8);
+    Force::Gravity gravity(forces, matter, -YAxis, Gravity);
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
@@ -74,20 +92,33 @@ int main() {
     MobilizedBody::Pin leftArm(bodyT, Vec3(-2, 0, 0),    heavyInfo, Vec3(0));
     MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     heavyInfo, Vec3(0));
 
-    matter.adoptUnilateralContact(
-        new HardStopLower(leftArm, MobilizerQIndex(0), -1, StopCoefRest));
-    matter.adoptUnilateralContact(
-        new HardStopUpper(leftArm, MobilizerQIndex(0), .1, StopCoefRest));
+    DecorativeLine stop(Vec3(0), Vec3(0,-2,0));
+    stop.setColor(Red).setLineThickness(1);
+    const Real inner=.3, outer=1.;
+    bodyT.addBodyDecoration(Transform(Rotation(-inner, ZAxis), Vec3(-2,0,0)),
+                            stop);
+    bodyT.addBodyDecoration(Transform(Rotation(-outer, ZAxis), Vec3(-2,0,0)),
+                            stop);
+    bodyT.addBodyDecoration(Transform(Rotation(inner, ZAxis), Vec3(2,0,0)),
+                            stop);
+    bodyT.addBodyDecoration(Transform(Rotation(outer, ZAxis), Vec3(2,0,0)),
+                            stop);
 
     matter.adoptUnilateralContact(
-        new HardStopLower(rtArm, MobilizerQIndex(0), -.1, StopCoefRest));
+        new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
     matter.adoptUnilateralContact(
-        new HardStopUpper(rtArm, MobilizerQIndex(0), 1., StopCoefRest));
+        new HardStopUpper(leftArm, MobilizerQIndex(0), -inner, StopCoefRestLeft));
+
+    matter.adoptUnilateralContact(
+        new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
+    matter.adoptUnilateralContact(
+        new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
 
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor 
     Visualizer viz(system);
     viz.setShowSimTime(true);
+    viz.addDecorationGenerator(new ShowEnergy(system));
     system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
     class ReportQ : public TextDataEventReporter::UserFunction<Vector> {
@@ -98,22 +129,29 @@ int main() {
     };
     //system.adoptEventReporter(new TextDataEventReporter(system,
     //                                                    new ReportQ(),
-    //                                                    1./300));
+    //                                                    1./30));
     
     // Initialize the system and state.    
     State state = system.realizeTopology();
     //bodyT.lock(state);
-    //bodyT.setRate(state, 2);
-    //leftArm.setAngle(state, -0.9);
-    rtArm.setAngle(state, 0.9);
+    //bodyT.lockAt(state, -.1, Motion::Velocity);
+    bodyT.setRate(state, 2);
+    //leftArm.setAngle(state, -Pi/2);
+    //rtArm.setAngle(state, Pi/2);
+    leftArm.setAngle(state, -.9);
+    rtArm.setAngle(state, .9);
 
-    const double SimTime = 10;
+    const double SimTime = 20;
 
     // Simulate with acceleration-level time stepper.
     SemiExplicitEuler2Integrator integ(system);
+    //RungeKutta2Integrator integ(system);
     //RungeKutta3Integrator integ(system);
     //RungeKuttaMersonIntegrator integ(system);
-    integ.setAccuracy(0.1);
+    //CPodesIntegrator integ(system);
+    //integ.setAllowInterpolation(false);
+    integ.setAccuracy(0.01);
+    integ.setMaximumStepSize(.1);
     TimeStepper ts(integ);
 
     const double startReal = realTime(), startCPU=cpuTime();
@@ -166,4 +204,30 @@ int main() {
   }
 
     return 0;
+}
+
+
+
+void ShowEnergy::generateDecorations(const State&                state, 
+                                     Array_<DecorativeGeometry>& geometry)
+{
+    const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
+    m_mbs.realize(state, Stage::Dynamics);
+    const Real E=m_mbs.calcEnergy(state);
+    const SpatialVec mom = matter.calcSystemMomentumAboutGroundOrigin(state);
+ 
+    DecorativeText energy;
+    energy.setText("Energy: " + String(E, "%.6f"))
+        .setIsScreenText(true);
+    geometry.push_back(energy);
+
+    for (UnilateralContactIndex ucx(0); 
+         ucx < matter.getNumUnilateralContacts(); ++ucx)
+    {
+        const UnilateralContact& uni = matter.getUnilateralContact(ucx);
+        CondConstraint::Condition cond = uni.getCondition(state);
+        geometry.push_back(DecorativeText()
+                           .setText(CondConstraint::toString(cond))
+                           .setIsScreenText(true));
+    }
 }

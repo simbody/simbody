@@ -37,6 +37,8 @@
 #include <limits>
 #include <algorithm>
 #include <vector>
+#include <iostream>
+using std::cout; using std::endl;
 
 namespace SimTK {
 
@@ -137,8 +139,7 @@ class IntegratorRep {
 public:
     /** This is an abbreviation for the type of an array of currently-active 
     event witnesses. **/
-    using ActiveWitnessList = Array_<const EventTrigger::Witness*,
-                                     ActiveWitnessIndex>;
+    using ActiveWitnessList = Array_<const EventWitness*, ActiveWitnessIndex>;
     /** This is an abbreviation for the type of an array used to represent a 
     subset of active event witnesses by indexing into an ActiveWitnessList. **/
     using ActiveWitnessSubset = Array_<ActiveWitnessIndex>;
@@ -293,7 +294,8 @@ public:
     // smallest allowable localization window based on numerical roundoff
     // considerations.
     static double estimateRootTime
-       (double tLow, Real fLow, double tHigh, Real fHigh,
+       (double tLow,  const EventWitness::Value& fLow, 
+        double tHigh, const EventWitness::Value& fHigh,
         Real bias, double minWindow);
 
     // Here we look at a pair of event witness function values across an 
@@ -303,14 +305,14 @@ public:
     // can only be narrowed). Don't use the same array for the current list and
     // new list.
     void findEventCandidates
-       (const ActiveWitnessSubset*              viableCandidates,
-        const Array_<Event::TriggerDirection>*  viableCandidateTransitions,
-        double tLow,   const Vector&   eLow, 
-        double tHigh,  const Vector&   eHigh,
-        Real   bias,   double          minWindow,
+       (const ActiveWitnessSubset*                  viableCandidates,
+        const Array_<EventWitness::TransitionMask>* viableCandidateTransitions,
+        double tLow,   const Array_<EventWitness::Value>&   eLow, 
+        double tHigh,  const Array_<EventWitness::Value>&   eHigh,
+        Real   bias,   double minWindow,
         ActiveWitnessSubset&                    candidates,
         Array_<double>&                         timeEstimates,
-        Array_<Event::TriggerDirection>&        transitions,
+        Array_<EventWitness::TransitionMask>&   transitions,
         double&                                 earliestTimeEst, 
         double&                                 narrowestWindow) const;
 
@@ -375,18 +377,18 @@ protected:
 
     void setTriggeredEvents
        (double tlo, double thi,
-        const Array_<ActiveWitnessIndex>&      triggeringWitnesses,
-        const Array_<double>&                  estEventTimes,
-        const Array_<Event::TriggerDirection>& transitionsSeen);
+        const Array_<ActiveWitnessIndex>&           triggeringWitnesses,
+        const Array_<double>&                       estEventTimes,
+        const Array_<EventWitness::TransitionMask>& transitionsSeen);
 
     Real getEventWindowLow()  const {return tLow;}
     Real getEventWindowHigh() const {return tHigh;}
 
-    const Array_<const EventTrigger::Witness*>&  getTriggeredWitnesses() const 
+    const Array_<const EventWitness*>&  getTriggeredWitnesses() const 
     {   return m_triggeredWitnesses; }
     const Array_<double>& getEstimatedTriggerTimes() const 
     {   return m_estimatedTriggerTimes; }
-    const Array_<Event::TriggerDirection>& getWitnessTransitionsSeen() const 
+    const Array_<EventWitness::TransitionMask>& getWitnessTransitionsSeen() const 
     {   return m_witnessTransitionsSeen; }
 
     // This determines which state will be returned by getState().
@@ -422,11 +424,13 @@ protected:
 
     const Vector& getPreviousQDotDot()      const {return qdotdotPrev;}
 
-    const Vector& getPreviousWitnessValues() const 
+    const Array_<EventWitness::Value>& getPreviousWitnessValues() const 
     {   return m_witnessValuesPrev; }
-    const Vector& getAdvancedWitnessValues() const 
+    const Array_<int>& getPreviousWitnessDerivs() const 
+    {   return m_witnessDerivsPrev; }
+    const Array_<EventWitness::Value>& getAdvancedWitnessValues() const 
     {   return m_advancedWitnessValues; }
-    Vector& updAdvancedWitnessValues() 
+    Array_<EventWitness::Value>& updAdvancedWitnessValues() 
     {   return m_advancedWitnessValues; }
 
     // Given an array of state variables v (either u or z) and corresponding
@@ -445,13 +449,54 @@ protected:
         }
     }
 
-    // Calcuate the values of all witnesses currently in m_witnesses.
-    void calcWitnessValues(const State& state, Vector& values) {
+    // Calculate the values of all witnesses currently in m_witnesses, using
+    // the value if it is non-zero, non-forbidden, otherwise the lowest 
+    // non-zero, non-forbidden derivative.
+    // Record which derivative was used to obtain value and sign.
+    void calcStartStepWitnessValues(const State&                 state, 
+                                    Array_<EventWitness::Value>& values,
+                                    Array_<int>&                 whichDeriv) {
+        values.resize(m_witnesses.size());
+        whichDeriv.resize(m_witnesses.size());
+
+        for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
+            const EventWitness& w = *m_witnesses[awx];
+            const int nDerivs = w.getNumTimeDerivatives();
+            for (int d=0; d <= nDerivs; ++d) {
+                whichDeriv[awx] = d;
+                values[awx] = w.calcWitnessValue(getOwnerHandle(), state, d);
+                const int sign = values[awx].getSign();
+                if (sign && !w.isSignForbidden(sign))
+                    break;
+            }
+            // Highest deriv is accepted even if zero.
+        }
+    }
+
+    // Calculate the end-of-step values of all witnesses currently in 
+    // m_witnesses, using the same derivative as was used at step start.
+    void calcEndStepWitnessValues(const State&                  state, 
+                                  const Array_<int>&            whichDeriv,
+                                  Array_<EventWitness::Value>&  values) {
+        values.resize(m_witnesses.size());
+        assert(whichDeriv.size()==m_witnesses.size());
+
+        for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
+            const EventWitness& w = *m_witnesses[awx];
+            const int d = whichDeriv[awx];
+            values[awx] = w.calcWitnessValue(getOwnerHandle(), state, d);
+        }
+    }
+
+    // Calculate the values of all witnesses currently in 
+    // m_witnesses, ignoring derivatives.
+    void calcWitnessValues(const State&                  state, 
+                           Array_<EventWitness::Value>&  values) {
         values.resize(m_witnesses.size());
 
         for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
-            const EventTrigger::Witness& w = *m_witnesses[awx];
-            values[awx] = w.calcWitnessValue(getSystem(), state);
+            const EventWitness& w = *m_witnesses[awx];
+            values[awx] = w.calcWitnessValue(getOwnerHandle(), state);
         }
     }
 
@@ -490,7 +535,39 @@ protected:
         qdotdotPrev  = s.getQDotDot();
 
         getSystem().findActiveEventWitnesses(*m_myHandle, m_witnesses);
-        calcWitnessValues(s, m_witnessValuesPrev);
+        calcStartStepWitnessValues(s, m_witnessValuesPrev, m_witnessDerivsPrev);
+
+#ifndef NDEBUG
+        showWitnessValues("START OF STEP", s);
+#endif
+    }
+
+    // For debugging.
+    void showWitnessValues(const String& msg, const State& s) const {
+        printf("%s: witness values at t=@%.15g\n", msg.c_str(), s.getTime());
+        cout << "  q   =" << s.getQ() << endl;
+        cout << "  qdot=" << s.getQDot() << endl;
+        for (ActiveWitnessIndex awx(0); awx < m_witnesses.size(); ++awx) {
+            const EventWitness& w = *m_witnesses[awx];
+            const int whichD = m_witnessDerivsPrev[awx];
+            for (int d=0; d <= w.getNumTimeDerivatives(); ++d) {
+                const EventWitness::Value v = 
+                    w.calcWitnessValue(getOwnerHandle(), s, d);
+                const Real value = v.getValue();
+                const int sign = v.getSign();
+                if (isNaN(value)) continue;
+                printf("  %2d %svalue=%g sign=%d",
+                       (int)w.getEventTriggerId(),
+                       d==0?"":(d==1?"d":"dd"),
+                       value, sign);
+                if (w.isSignForbidden(sign))
+                    printf(" (FORBIDDEN)");
+                if (d == whichD) printf(" <-- USING THIS ONE");
+                printf("\n");
+                if (d>=whichD && sign != 0 && !w.isSignForbidden(sign)) 
+                    break;
+            }
+        }
     }
 
     // Advanced state must already have been evaluated through 
@@ -697,7 +774,7 @@ friend class Integrator;
 
     // This is a temporary in which to evaluate witness functions. The 
     // start-of-step value was saved in m_witnessValuesPrev.
-    Vector  m_advancedWitnessValues;
+    Array_<EventWitness::Value>             m_advancedWitnessValues;
 
     // When stepCommunicationStatus indicates that an event has triggered due to
     // a witness function zero crossing, the following arrays are valid.
@@ -708,7 +785,7 @@ friend class Integrator;
     // These are the witnesses that the integrator has algorithmically
     // determined have triggered in the current step. You may not get the same 
     // result simply comparing the witness function values at tLow and tHigh.
-    Array_<const EventTrigger::Witness*>    m_triggeredWitnesses;
+    Array_<const EventWitness*>             m_triggeredWitnesses;
 
     // These are the estimated times corresponding to the triggeredEvents.
     // They are in ascending order although there may be duplicates.
@@ -719,7 +796,7 @@ friend class Integrator;
     // the integrator's algorithmic determination of the transition to
     // be reported -- you might not get the same answer just looking
     // at the event trigger functions at tLow and tHigh.
-    Array_<Event::TriggerDirection>         m_witnessTransitionsSeen;
+    Array_<EventWitness::TransitionMask>    m_witnessTransitionsSeen;
 
     // When we have successfully localized a triggering event into
     // the time interval (tLow,tHigh] we record the bounds here.
@@ -753,9 +830,10 @@ friend class Integrator;
     // compare those with recalculated end-of-step values to see if an event
     // has occurred. We'll reference these by "active witness index" 
     // [0..m_witnesses.size()-1].
-    Array_<const EventTrigger::Witness*,
-           ActiveWitnessIndex>           m_witnesses;
-    Vector                               m_witnessValuesPrev; // same length
+    Array_<const EventWitness*, 
+           ActiveWitnessIndex>      m_witnesses;
+    Array_<EventWitness::Value>     m_witnessValuesPrev; // same length
+    Array_<int>                     m_witnessDerivsPrev; // which deriv used?
 
     // These are views into yPrev and ydotPrev.
     Vector qPrev, uPrev, zPrev;
