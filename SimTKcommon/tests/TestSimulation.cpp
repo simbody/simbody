@@ -801,7 +801,7 @@ void testOne() {
 //                         TEST DESIGNATED TIMER
 //==============================================================================
 void testDesignatedTimer() {
-    EventTrigger::Timer::Designated d("my timer", {.1,.3,4.2,.1999,1e-5});
+    EventTimer::Designated d("my timer", {.1,.3,4.2,.1999,1e-5});
     d.insertDesignatedTime(.707);
     d.insertDesignatedTimes({1,2,.3,3,.01,9,1,.9,2,1,2});
     d.insertDesignatedTime(.707);

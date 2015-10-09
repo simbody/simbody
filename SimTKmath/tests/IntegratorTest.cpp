@@ -103,10 +103,9 @@ private:
 class QRatio : public EventWitness {
 public:
     QRatio(SystemQIndex q0, SystemQIndex q1, Real ratio)
-    :   EventWitness("q ratio achieved"), 
+    :   EventWitness("q ratio achieved", Bilateral, Falling, Continuous), 
         m_q0(q0), m_q1(q1), m_ratio(ratio) {
         setAccuracyRelativeTimeLocalizationWindow(1);
-        setTriggerOnRisingSignTransition(false); // falling only
     }
 
     SystemQIndex getQ0() const {return m_q0;}
@@ -179,11 +178,11 @@ private:
 class SquareWaveWitness : public EventWitness {
 public:
     SquareWaveWitness(double tstart, double tend)
-    :   EventWitness("square wave transition"), 
+    :   EventWitness("square wave transition", Bilateral, RisingAndFalling,
+                     Discontinuous), 
         m_startTime(tstart), m_endTime(tend) {
         assert(tend > tstart);
-        setWitnessIsDiscontinuous(true);
-        // take defaults: trigger on both transitions; default window
+        // take default window
     }
 private:
     SquareWaveWitness* cloneVirtual() const override
@@ -210,8 +209,8 @@ private:
 class TimeCrossingWitness : public EventWitness {
 public:
     explicit TimeCrossingWitness(double t)
-    :   EventWitness("time crossing reached"), m_triggerTime(t) {
-        setTriggerOnFallingSignTransition(false); // rising only
+    :   EventWitness("time crossing reached", Bilateral, Rising, Continuous), 
+        m_triggerTime(t) {
     }
 
 private:
@@ -472,7 +471,7 @@ public:
                                                 SystemQIndex(1)));
         guts.m_timeToMakeAChangeEvent = adoptEvent(ttmc);}
 
-       {auto e5123 = new EventTrigger::Timer::Periodic(5.123);
+       {auto e5123 = new EventTimer::Periodic(5.123);
         e5123->setShouldTriggerAtZero(false);
         e5123->addEvent(guts.m_timeToMakeAChangeEvent); 
         adoptEventTrigger(e5123);}
@@ -497,11 +496,11 @@ public:
         rs->adoptEventAction(new ReportStateAction("for ReportStateEvent"));
         guts.m_reportStateEvent = adoptEvent(rs);}
 
-       {auto report1 = new EventTrigger::Timer::Periodic(1.);
+       {auto report1 = new EventTimer::Periodic(1.);
         report1->addEvent(guts.m_reportStateEvent); 
         adoptEventTrigger(report1);}
 
-       {auto report2 = new EventTrigger::Timer::Designated
+       {auto report2 = new EventTimer::Designated
            ("some designated times", {.1, 3.14159, 1.5, 9.99, 23.456});
         report2->addEvent(guts.m_reportStateEvent);
         adoptEventTrigger(report2);}
@@ -766,7 +765,7 @@ int main () {
                     << integ.getTriggeredWitnesses()<< "\n";
             cout << "Transitions seen:";
             for (auto tr : integ.getWitnessTransitionsSeen())
-                cout << " " << Event::eventTriggerDirectionString(tr);
+                cout << " " << EventWitness::toString(tr);
             cout << "\nEst event times:  " 
                     << integ.getEstimatedTriggerTimes() << "\n";
             reportState("BEFORE TRIGGERED EVENT:", integ);
