@@ -104,14 +104,15 @@ int main() {
     bodyT.addBodyDecoration(Transform(Rotation(outer, ZAxis), Vec3(2,0,0)),
                             stop);
 
-    matter.adoptUnilateralContact(
+    UnilateralContactIndex ll, ul, lr, ur;
+    ll=matter.adoptUnilateralContact(
         new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
-    matter.adoptUnilateralContact(
+    ul=matter.adoptUnilateralContact(
         new HardStopUpper(leftArm, MobilizerQIndex(0), -inner, StopCoefRestLeft));
 
-    matter.adoptUnilateralContact(
+    lr=matter.adoptUnilateralContact(
         new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
-    matter.adoptUnilateralContact(
+    ur=matter.adoptUnilateralContact(
         new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
 
     // Ask for visualization every 1/30 second.
@@ -142,6 +143,19 @@ int main() {
     rtArm.setAngle(state, .9);
 
     const double SimTime = 20;
+
+    matter.getUnilateralContact(ul).setCondition(state, CondConstraint::Active);
+    matter.getUnilateralContact(ur).setCondition(state, CondConstraint::Active);
+
+    printf("SHOWING UNASSEMBLED SYSTEM -- hit ENTER\n");
+    viz.report(state);
+    getchar();
+
+
+    Assembler(system).setErrorTolerance(1e-6).assemble(state);
+    printf("SHOWING ASSEMBLED SYSTEM -- hit ENTER\n");
+    viz.report(state);
+    getchar();
 
     // Simulate with acceleration-level time stepper.
     SemiExplicitEuler2Integrator integ(system);

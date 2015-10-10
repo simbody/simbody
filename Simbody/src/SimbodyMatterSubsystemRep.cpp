@@ -2192,70 +2192,6 @@ findActiveMultipliers(const State& s) const {
     return active; // counting on return value optimization
 }
 
-// Output array will be sized to active.size() since it does not need to be
-// pre-initialized.
-void SimbodyMatterSubsystemRep::
-packActiveMultipliers(const Array_<MultiplierIndex>& active,
-                      const Vector& multipliers,
-                      Vector& activeMultipliers) const
-{
-    const int mActive = (int)active.size();
-    assert(multipliers.size() >= mActive);
-    activeMultipliers.resize(mActive);
-
-    for (int a=0; a < mActive; ++a)
-        activeMultipliers[a] = multipliers[active[a]];
-}
-
-// Output array will be sized to active1.size()+active2.size() since it does 
-// not need to be pre-initialized.
-void SimbodyMatterSubsystemRep::
-packActiveMultipliers2(const Array_<MultiplierIndex>& active1,
-                       const Array_<MultiplierIndex>& active2,
-                       const Vector& multipliers,
-                       Vector& activeMultipliers) const
-{
-    const int mActive1 = active1.size(), mActive2 = active2.size();
-    const int mActive = mActive1 + mActive2;
-    assert(multipliers.size() >= mActive);
-    activeMultipliers.resize(mActive);
-
-    for (int a=0; a < mActive1; ++a)
-        activeMultipliers[a] = multipliers[active1[a]];
-    for (int a=0; a < mActive2; ++a)
-        activeMultipliers[mActive1+a] = multipliers[active2[a]];
-}
-
-// Note that the output array must already be sized and initialized (usually
-// to zero).
-void SimbodyMatterSubsystemRep::
-unpackActiveMultipliers(const Array_<MultiplierIndex>&  active,
-                        const Vector&                   activeMultipliers,
-                        Vector&                         multipliers) const 
-{
-    const int mActive = (int)active.size();
-    assert(activeMultipliers.size() == mActive);
-    assert(multipliers.size() >= mActive);
-
-    for (int a=0; a < mActive; ++a)
-        multipliers[active[a]] = activeMultipliers[a];
-}
-
-void SimbodyMatterSubsystemRep::
-formActiveSubmatrix(const Array_<MultiplierIndex>&  active,
-                    const Matrix&                   fullMat,
-                    Matrix&                         subMat) const
-{
-    const int mActive = (int)active.size();
-    assert(fullMat.nrow() == fullMat.ncol() && fullMat.nrow() >= mActive);
-
-    subMat.resize(mActive, mActive);
-    for (int col=0; col < mActive; ++col)
-        for (int row=0; row < mActive; ++row)
-            subMat(row,col) = fullMat(active[row],active[col]);
-}
-
-
 //==============================================================================
 //                   OBSOLETE -- see calcPq()
 //==============================================================================
@@ -4105,9 +4041,9 @@ int SimbodyMatterSubsystemRep::projectQ
     // Determine norms on entry.
     int worstPerr, worstQuatErr;
     Vector scaledPerrs(mfp); // scaled and packed
-    packActiveMultipliers(enforcedPosConsEqns,
-                          pErrs.rowScale(perrWeights),
-                          scaledPerrs);
+    SimbodyMatterSubsystem::packActiveMultipliers(enforcedPosConsEqns,
+                                                  pErrs.rowScale(perrWeights),
+                                                  scaledPerrs);
     const Real perrNormOnEntry = useNormInf ? scaledPerrs.normInf(&worstPerr)
                                             : scaledPerrs.normRMS(&worstPerr);
     // Map worstPerr back to real index.
@@ -4290,9 +4226,10 @@ int SimbodyMatterSubsystemRep::projectQ
         // Now recalculate the position constraint errors at the new q.
         realizeSubsystemPosition(s); // pErrs changes here
 
-        packActiveMultipliers(enforcedPosConsEqns,
-                              pErrs.rowScale(perrWeights), // Tp * pErrs
-                              scaledPerrs);
+        SimbodyMatterSubsystem::packActiveMultipliers
+           (enforcedPosConsEqns,
+            pErrs.rowScale(perrWeights), // Tp * pErrs
+            scaledPerrs);
         perrNormAchieved = useNormInf ? scaledPerrs.normInf()
                                       : scaledPerrs.normRMS();
         ++nItsUsed;
@@ -4302,9 +4239,10 @@ int SimbodyMatterSubsystemRep::projectQ
             // perr norm got worse; restore to end of previous iteration
             updQ(s) += dq;
             realizeSubsystemPosition(s); // pErrs changes here
-            packActiveMultipliers(enforcedPosConsEqns,
-                                  pErrs.rowScale(perrWeights),
-                                  scaledPerrs);
+            SimbodyMatterSubsystem::packActiveMultipliers
+               (enforcedPosConsEqns,
+                pErrs.rowScale(perrWeights),
+                scaledPerrs);
             perrNormAchieved = useNormInf ? scaledPerrs.normInf()
                                           : scaledPerrs.normRMS();
             diverged = true;
@@ -4383,18 +4321,20 @@ int SimbodyMatterSubsystemRep::projectQ
             zeroKnownQ(s, qErrest_0); // zero out prescribed entries
             multiplyByPq(s, bias_p, qErrest_0, Tp_Pq_qErrest0); // (Pq*qErrest)_r
             Tp_Pq_qErrest0.rowScaleInPlace(perrWeights); // now Tp*(Pq*qErrest)_r
-            packActiveMultipliers(enforcedPosConsEqns,
-                                  Tp_Pq_qErrest0,
-                                  packed_Tp_Pq_qErrest0);         
+            SimbodyMatterSubsystem::packActiveMultipliers
+                                                       (enforcedPosConsEqns,
+                                                        Tp_Pq_qErrest0,
+                                                        packed_Tp_Pq_qErrest0);         
             Pqwr_qtz.solve(packed_Tp_Pq_qErrest0, dfq_WLS); // weighted
             unpackFreeQ(s, dfq_WLS, udfq_WLS); // zeroes in q_p slots
             multiplyByNInv(s,false,udfq_WLS,du);
         } else {
             multiplyByPq(s, bias_p, qErrest, Tp_Pq_qErrest0); // Pq*qErrest
             Tp_Pq_qErrest0.rowScaleInPlace(perrWeights); // now Tp*Pq*qErrest
-            packActiveMultipliers(enforcedPosConsEqns,
-                                  Tp_Pq_qErrest0,
-                                  packed_Tp_Pq_qErrest0);         
+            SimbodyMatterSubsystem::packActiveMultipliers
+                                                       (enforcedPosConsEqns,
+                                                        Tp_Pq_qErrest0,
+                                                        packed_Tp_Pq_qErrest0);         
             Pqwr_qtz.solve(packed_Tp_Pq_qErrest0, dfq_WLS); // weighted
             multiplyByNInv(s,false,dfq_WLS,du);
         }
@@ -4527,9 +4467,10 @@ int SimbodyMatterSubsystemRep::projectU
     // Determine norm on entry.
     int worstPVerr;
     Vector scaledPVerrs(mfpv); // scaled and packed
-    packActiveMultipliers2(enforcedPosConsEqns, enforcedVelConsEqns,
-                           pvErrs.rowScale(pverrWeights),
-                           scaledPVerrs);
+    SimbodyMatterSubsystem::packActiveMultipliers2
+                                   (enforcedPosConsEqns, enforcedVelConsEqns,
+                                    pvErrs.rowScale(pverrWeights),
+                                    scaledPVerrs);
     const Real pverrNormOnEntry = useNormInf ? scaledPVerrs.normInf(&worstPVerr)
                                              : scaledPVerrs.normRMS(&worstPVerr);
     // Map worstPVerr back to real index.
@@ -4675,9 +4616,10 @@ int SimbodyMatterSubsystemRep::projectU
         // Recalculate the constraint errors for the new u's.
         realizeSubsystemVelocity(s);
 
-        packActiveMultipliers2(enforcedPosConsEqns, enforcedVelConsEqns,
-                               pvErrs.rowScale(pverrWeights), // Tpv * pvErrs
-                               scaledPVerrs);
+        SimbodyMatterSubsystem::packActiveMultipliers2
+                               (enforcedPosConsEqns, enforcedVelConsEqns,
+                                pvErrs.rowScale(pverrWeights), // Tpv * pvErrs
+                                scaledPVerrs);
         pverrNormAchieved = useNormInf ? scaledPVerrs.normInf()
                                        : scaledPVerrs.normRMS();
         ++nItsUsed;
@@ -4687,9 +4629,10 @@ int SimbodyMatterSubsystemRep::projectU
             // Velocity norm worse -- restore to end of previous iteration.
             updU(s) += du;
             realizeSubsystemVelocity(s); // pvErrs changes here
-            packActiveMultipliers2(enforcedPosConsEqns, enforcedVelConsEqns,
-                                   pvErrs.rowScale(pverrWeights),
-                                   scaledPVerrs);
+            SimbodyMatterSubsystem::packActiveMultipliers2
+                                   (enforcedPosConsEqns, enforcedVelConsEqns,
+                                    pvErrs.rowScale(pverrWeights),
+                                    scaledPVerrs);
             pverrNormAchieved = useNormInf ? scaledPVerrs.normInf()
                                            : scaledPVerrs.normRMS();
             diverged = true;
@@ -4766,17 +4709,19 @@ int SimbodyMatterSubsystemRep::projectU
             multiplyByPVA(s,true,true,false,bias_pv,
                             uErrest_0,Tpv_PV_uErrest0);
             Tpv_PV_uErrest0.rowScaleInPlace(pverrWeights); // = Tpv*PV*uErrest_0
-            packActiveMultipliers2(enforcedPosConsEqns,enforcedVelConsEqns,
-                                   Tpv_PV_uErrest0,
-                                   packed_Tpv_PV_uErrest0);
+            SimbodyMatterSubsystem::packActiveMultipliers2
+                                       (enforcedPosConsEqns,enforcedVelConsEqns,
+                                        Tpv_PV_uErrest0,
+                                        packed_Tpv_PV_uErrest0);
             PVwr_qtz.solve(packed_Tpv_PV_uErrest0, dfu_WLS);
             unpackFreeU(s, dfu_WLS, du); // still weighted
         } else {
             multiplyByPVA(s,true,true,false,bias_pv,uErrest,Tpv_PV_uErrest0);
             Tpv_PV_uErrest0.rowScaleInPlace(pverrWeights); // = Tpv PV uErrEst
-            packActiveMultipliers2(enforcedPosConsEqns,enforcedVelConsEqns,
-                                   Tpv_PV_uErrest0,
-                                   packed_Tpv_PV_uErrest0);
+            SimbodyMatterSubsystem::packActiveMultipliers2
+                                       (enforcedPosConsEqns,enforcedVelConsEqns,
+                                        Tpv_PV_uErrest0,
+                                        packed_Tpv_PV_uErrest0);
             PVwr_qtz.solve(packed_Tpv_PV_uErrest0, du);
         }
         du.rowScaleInPlace(uRelScale); // now du=Eu^-1*unpack(dfu_WLS)
@@ -5002,7 +4947,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     // sliding, impending slip); just whether it is active at all. If so we
     // generate C for the normal and rolling constraints.
     Matrix C(mActive,mActive);
-    formActiveSubmatrix(active, GMInvGt, C);
+    SimbodyMatterSubsystem::formActiveSubmatrix(active, GMInvGt, C);
 
     // TODO: Slip/impending slip are dealt with by replacing rows before
     // factoring.
@@ -5015,12 +4960,14 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     //    qtz.getRCondEstimate());
 
     Vector packedUdotErr(mActive), activeMultipliers(mActive);
-    packActiveMultipliers(active, udotErr, packedUdotErr);
+    SimbodyMatterSubsystem::packActiveMultipliers
+                                               (active, udotErr, packedUdotErr);
     qtz.solve(packedUdotErr, activeMultipliers);
 
     // Unpack active multipliers into the full size multiplier array (which was
     // initialized to zero above).
-    unpackActiveMultipliers(active, activeMultipliers, multipliers);
+    SimbodyMatterSubsystem::unpackActiveMultipliers
+                                       (active, activeMultipliers, multipliers);
 
     // We have the multipliers, now turn them into forces.
 

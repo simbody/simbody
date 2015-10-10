@@ -1303,38 +1303,10 @@ public:
     // the enabled constraints, in ascending order.
     Array_<MultiplierIndex> findActiveMultipliers(const State&) const;
 
-    // Given an mxm matrix, copy out the mActive x mActive submatrix for the
-    // active rows and columns. subMat is resized if necessary.
-    void formActiveSubmatrix(const Array_<MultiplierIndex>& active,
-                             const Matrix& fullMat,
-                             Matrix& subMat) const;
-
-    // Pack array of length m(=all enabled constraint equations) into an
-    // array of length mActive <= m.
-    void packActiveMultipliers(const Array_<MultiplierIndex>& active,
-                               const Vector& multipliers,
-                               Vector& activeMultipliers) const;
-
-    // Pack array of length m(=all enabled constraint equations) into an
-    // array of length mActive1+mActive2 <= m. The two lists should contain
-    // disjoint index sets but we won't check.
-    void packActiveMultipliers2(const Array_<MultiplierIndex>& active1,
-                                const Array_<MultiplierIndex>& active2,
-                                const Vector& multipliers,
-                                Vector& activeMultipliers) const;
-
-    // Unpack active multipliers into a full-size multiplier array that
-    // has already been sized and initialized. Only the active elements change.
-    void unpackActiveMultipliers(const Array_<MultiplierIndex>& active,
-                                 const Vector& activeMultipliers,
-                                 Vector& multipliers) const;
-
-
     struct RigidBodyNodeId {
         RigidBodyNodeId(int l, int o) : level(l), offset(o) { }
         int level, offset;
     };
-
 
     SimTK_DOWNCAST(SimbodyMatterSubsystemRep, Subsystem::Guts);
 

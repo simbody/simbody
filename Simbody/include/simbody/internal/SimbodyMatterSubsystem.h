@@ -2860,6 +2860,58 @@ invalidateArticulatedBodyVelocity(). **/
 bool isArticulatedBodyVelocityRealized(const State&) const;
 /**@}**/
 
+//==============================================================================
+/** @name                   Experimental/Obscure
+
+You probably don't want to use these. They are not guaranteed to be maintained
+in future versions of Simbody's API. Post to the Simbody forum if you think
+you need this functionality. **/
+/**@{**/
+
+/** (Experimental) Get the perrdotdot multiplier indices for position (holonomic) 
+constraint equations that are enabled, active, and expected to be enforced by 
+projection. **/
+Array_<MultiplierIndex> findEnforcedPosConstraintEqns(const State&) const;
+
+/** (Experimental) Get the verrdot multiplier indices for velocity 
+(nonholonomic) constraint equations that are enabled, active (rolling, not 
+slipping), and expected to be enforced by projection. **/
+Array_<MultiplierIndex> findEnforcedVelConstraintEqns(const State&) const;
+
+/** (Experimental) Find the multiplier index of each active constraint equation
+from among the enabled constraints, in ascending order. **/
+Array_<MultiplierIndex> findActiveMultipliers(const State&) const;
+
+/** (Obscure) Given an mxm matrix, copy out the mActive x mActive submatrix for
+the active rows and columns. `subMat` is resized if necessary. **/
+static void formActiveSubmatrix(const Array_<MultiplierIndex>& active,
+                                const Matrix& fullMat,
+                                Matrix& subMat);
+
+/** (Obscure) Pack array of length m(=all enabled constraint equations) into an
+array of length mActive=active.size() <= m. The output array will be resized
+to mActive. **/
+static void packActiveMultipliers(const Array_<MultiplierIndex>& active,
+                                  const Vector& multipliers,
+                                  Vector& activeMultipliers);
+
+/** (Obscure) Pack array of length m(=all enabled constraint equations) into an
+array of length mActive1+mActive2 <= m, where mActive1=active1.size() and 
+mActive2=active2.size(). The two lists should contain disjoint index sets but we
+won't check. The output array will be resized to length mActive1+mActive2. **/
+static void packActiveMultipliers2(const Array_<MultiplierIndex>& active1,
+                                   const Array_<MultiplierIndex>& active2,
+                                   const Vector& multipliers,
+                                   Vector& activeMultipliers);
+
+/** (Obscure) Unpack active multipliers into a full-size multiplier array that
+has *already* been sized and initialized (usually to zero). Only the active 
+elements change. **/
+static void unpackActiveMultipliers(const Array_<MultiplierIndex>& active,
+                                    const Vector& activeMultipliers,
+                                    Vector& multipliers);
+/**@}**/
+
 
 //==============================================================================
 /** @name Proposed particle API

@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-14 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -69,7 +69,8 @@ public:
 //                            BUILT IN CONSTRAINTS
 //------------------------------------------------------------------------------
 // This is the Assembly Condition representing the System's built-in
-// Constraints. Only Constraints that are currently enabled are included.
+// Constraints. Only unconditional Constraints that are currently enabled,
+// and conditional constraints that are both enabled and active, are included.
 // This class provides an efficient implementation for treating these
 // Constraints either as an assembly requirement or an assembly goal.
 namespace { // this class is local to this file
@@ -80,40 +81,62 @@ public:
 
     // Note that we have turned off quaternions so the number of q error
     // slots in the State includes only real holonomic constraint equations.
-    int getNumErrors(const State& s) const override {return s.getNQErr();}
+    // This is doing some counting so save the result when you get it.
+    int getNumErrors(const State& s) const override {
+        const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+        const Array_<MultiplierIndex> enforcedPosConsEqns =
+                                      matter.findEnforcedPosConstraintEqns(s);
+        const int mfp = (int)enforcedPosConsEqns.size();
+        return mfp;
+    }
 
     // Return the system holonomic constraint errors as found in the State.
-    int calcErrors(const State& state, Vector& err) const override {
-        err = state.getQErr();
+    int calcErrors(const State& s, Vector& err) const override {
+        const SimbodyMatterSubsystem& matter = getMatterSubsystem();
+        const Array_<MultiplierIndex> enforcedPosConsEqns =
+                                      matter.findEnforcedPosConstraintEqns(s);
+        SimbodyMatterSubsystem::packActiveMultipliers
+                                        (enforcedPosConsEqns, s.getQErr(), err);
         return 0;
     }
 
     // The Jacobian of the holonomic constraint errors is Pq=PN^-1. We can get
     // that analytically from Simbody but we might have to strip out some
     // of the columns if we aren't using all the q's.
-    int calcErrorJacobian(const State& state, Matrix& jacobian) const override {
+    int calcErrorJacobian(const State& s, Matrix& jacobian) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-        const int np = getNumFreeQs();
-        const int nq = state.getNQ();
+        const int nfq = getNumFreeQs();
+        const int nq = s.getNQ();
 
-        jacobian.resize(state.getNQErr(), np); // ok cuz no quaternions
+        const Array_<MultiplierIndex> enforcedPosConsEqns =
+                                      matter.findEnforcedPosConstraintEqns(s);
+        const int mfp = (int)enforcedPosConsEqns.size();
+        const int mp = s.getNQErr();
 
-        if (np == nq) {
+        jacobian.resize(mfp, nfq); // ok cuz no quaternions
+
+        if (mfp == mp && nfq == nq) {
             // Jacobian is already the right shape.
-            matter.calcPq(state, jacobian);
+            matter.calcPq(s, jacobian);
         } else {
-            Matrix fullJac(state.getNQErr(), nq);
-            matter.calcPq(state, fullJac);
-            // Extract just the columns corresponding to free Qs
-            for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
-                jacobian(fx) = fullJac(getQIndexOfFreeQ(fx));
+            Matrix fullJac(mp, nq);
+            matter.calcPq(s, fullJac);
+            // Extract just the columns corresponding to free Qs, and 
+            // rows for just the active position constraints.
+            for (Assembler::FreeQIndex fx(0); fx < nfq; ++fx) {
+                for (int ax=0; ax < mfp; ++ax)
+                    jacobian(ax,fx) = 
+                        fullJac(enforcedPosConsEqns[ax], getQIndexOfFreeQ(fx));
+            }
         }
         return 0;
     }
 
     // Goal is qerr^2/2 (the /2 makes the gradient easier).
     int calcGoal(const State& state, Real& goal) const override {
-        goal = (~state.getQErr() * state.getQErr()) / 2;
+        Vector err;
+        (void)calcErrors(state, err);
+        goal = (~err * err) / 2;
         return 0;
     }
 
@@ -121,21 +144,31 @@ public:
     // = ~Pq qerr. This can be done in O(n+m) time since we can calculate
     // the matrix-vector product ~Pq*v in O(n+m) time, where
     // n=#q's and m=# constraint equations.
-    int calcGoalGradient(const State& state, Vector& grad) const override {
+    int calcGoalGradient(const State& s, Vector& grad) const override {
         const SimbodyMatterSubsystem& matter = getMatterSubsystem();
-        const int np = getNumFreeQs();
-        const int nq = state.getNQ();
+        const int nfq = getNumFreeQs();
+        const int nq = s.getNQ();
 
-        grad.resize(np);
 
-        if (np == nq) {
-            // Nothing locked; analytic gradient is the right size
-            matter.multiplyByPqTranspose(state, state.getQErr(), grad);
+        const Array_<MultiplierIndex> enforcedPosConsEqns =
+                                      matter.findEnforcedPosConstraintEqns(s);
+        const int mfp = (int)enforcedPosConsEqns.size();
+        const int mp = s.getNQErr();
+
+        grad.resize(nfq);
+
+        if (mfp == mp && nfq == nq) {
+            // Nothing locked or inactive; analytic gradient is the right size
+            matter.multiplyByPqTranspose(s, s.getQErr(), grad);
         } else {
             Vector fullGrad(nq);
-            matter.multiplyByPqTranspose(state, state.getQErr(), fullGrad);
+            Vector err(mfp), fullErr(mp, Real(0)); // note zeroes here
+            (void)calcErrors(s, err);
+            SimbodyMatterSubsystem::unpackActiveMultipliers
+                                              (enforcedPosConsEqns,err,fullErr);
+            matter.multiplyByPqTranspose(s, fullErr, fullGrad);
             // Extract just the entries corresponding to free Qs
-            for (Assembler::FreeQIndex fx(0); fx < np; ++fx)
+            for (Assembler::FreeQIndex fx(0); fx < nfq; ++fx)
                 grad[fx] = fullGrad[getQIndexOfFreeQ(fx)];
         }
 

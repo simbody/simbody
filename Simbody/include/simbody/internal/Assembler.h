@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2010-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2010-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -59,16 +59,22 @@ The complete specification for an Assembly study consists of four elements:
   - A set of weighted assembly goals that are to be achieved as best we can.
 
 By default, all q's may be modified with no range restrictions. The q's whose
-value is a prescribed function of time will be set to that value, while free
+values are a prescribed function of time will be set to those values, while free
 q's are available for satisfying the assembly error conditions and goals. The 
-assembly error conditions are just the errors in the position (holonomic) 
-constraints that are present in the MultibodySystem and currently enabled. 
-(Quaternion normalization constraints will also be satisfied, but do not 
-generate assembly errors.) There are no default assembly goals. This is very 
-similar in behavior to the System's project() method except that project() 
-considers it an error if the constraints aren't already close to being 
-satisfied initially, while Assembler will attempt to satisfy them regardless, 
-and may take a series of increasingly desperate measures to do so. 
+assembly error conditions are just the errors in the unconditional position 
+(holonomic) constraints that are present in the MultibodySystem and currently 
+enabled, as well as the conditional (unilateral) holonomic constraints that
+are both enabled and active *on entry*. (Quaternion normalization constraints 
+will also be satisfied, but do not generate assembly errors.) There are no 
+default assembly goals. This is very similar in behavior to the System's 
+project() method except that project() considers it an error if the constraints 
+aren't already close to being satisfied initially, while Assembler will attempt 
+to satisfy them regardless, and may take a series of increasingly desperate 
+measures to do so. 
+
+@bug Currently the %Assembler makes no attempt to activate or deactivate
+conditional constraints; it will simply work with them as it finds them in
+the initial state. If none are active on entry, they will be completely ignored.
 
 <h2>Basic assembly:</h2>
 This is the most common use of the Assembler: modify a System's given State
@@ -99,6 +105,7 @@ marker observations. Thus each "tracking" assembly computation may assume:
   - There has been no change to the problem structure.
   - The internal State is already close to the desired solution and has not
     been changed since the last tracking frame solution.
+  - The set of active conditional constraints has not changed.
 
 Allowable (gradual) changes between tracking frames are:
   - Time, which may affect prescribed motion or other time-dependent 
@@ -172,7 +179,8 @@ class TrackFailed;
 
 /** @name             Construction and setup
 By default, the only assembly condition is that any Simbody Constraints
-in the System that are enabled must be satisifed to within the assembly
+in the System that are enabled, and conditional constraints that are both
+enabled and active, must be satisifed to within the assembly
 tolerance. (Prescribed motions specified with Motion objects are satisfied
 exactly.) You can selectively enable and disable Constraints in the
 state using the ordinary Constraint::disable() and enable() methods. You

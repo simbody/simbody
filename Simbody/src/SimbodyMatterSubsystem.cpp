@@ -2072,6 +2072,80 @@ void SimbodyMatterSubsystem::
 unpackFreeU(const State& s, const Vector& packedFreeU, Vector& unpackedFreeU) const
 {   getRep().unpackFreeU(s,packedFreeU,unpackedFreeU); }
 
+Array_<MultiplierIndex> SimbodyMatterSubsystem::
+findEnforcedPosConstraintEqns(const State& s) const
+{   return getRep().findEnforcedPosConstraintEqns(s); }
+
+Array_<MultiplierIndex> SimbodyMatterSubsystem::
+findEnforcedVelConstraintEqns(const State& s) const
+{   return getRep().findEnforcedVelConstraintEqns(s); }
+
+Array_<MultiplierIndex> SimbodyMatterSubsystem::
+findActiveMultipliers(const State& s) const
+{   return getRep().findActiveMultipliers(s); }
+
+/*static*/ void SimbodyMatterSubsystem::
+packActiveMultipliers(const Array_<MultiplierIndex>& active,
+                      const Vector& multipliers,
+                      Vector& activeMultipliers)
+{
+    const int mActive = (int)active.size();
+    assert(multipliers.size() >= mActive);
+    activeMultipliers.resize(mActive);
+
+    for (int a=0; a < mActive; ++a)
+        activeMultipliers[a] = multipliers[active[a]];
+}
+
+/*static*/ void SimbodyMatterSubsystem::
+packActiveMultipliers2(const Array_<MultiplierIndex>& active1,
+                       const Array_<MultiplierIndex>& active2,
+                       const Vector& multipliers,
+                       Vector& activeMultipliers)
+{
+    const int mActive1 = active1.size(), mActive2 = active2.size();
+    const int mActive = mActive1 + mActive2;
+    assert(multipliers.size() >= mActive);
+    activeMultipliers.resize(mActive);
+
+    for (int a=0; a < mActive1; ++a)
+        activeMultipliers[a] = multipliers[active1[a]];
+    for (int a=0; a < mActive2; ++a)
+        activeMultipliers[mActive1+a] = multipliers[active2[a]];
+}
+
+// Note that the output array must already be sized and initialized (usually
+// to zero).
+/*static*/ void SimbodyMatterSubsystem::
+unpackActiveMultipliers(const Array_<MultiplierIndex>&  active,
+                        const Vector&                   activeMultipliers,
+                        Vector&                         multipliers) 
+{
+    const int mActive = (int)active.size();
+    assert(activeMultipliers.size() == mActive);
+    assert(multipliers.size() >= mActive);
+
+    for (int a=0; a < mActive; ++a)
+        multipliers[active[a]] = activeMultipliers[a];
+}
+
+/*static*/ void SimbodyMatterSubsystem::
+formActiveSubmatrix(const Array_<MultiplierIndex>&  active,
+                    const Matrix&                   fullMat,
+                    Matrix&                         subMat)
+{
+    const int mActive = (int)active.size();
+    assert(fullMat.nrow() == fullMat.ncol() && fullMat.nrow() >= mActive);
+
+    subMat.resize(mActive, mActive);
+    for (int col=0; col < mActive; ++col)
+        for (int row=0; row < mActive; ++row)
+            subMat(row,col) = fullMat(active[row],active[col]);
+}
+
+
+
+
 const SpatialInertia&
 SimbodyMatterSubsystem::getCompositeBodyInertia(const State& s, MobilizedBodyIndex mbx) const {
     return getRep().getCompositeBodyInertias(s)[mbx]; // will lazy-evaluate if necessary
