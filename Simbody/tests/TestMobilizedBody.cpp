@@ -27,16 +27,16 @@ using namespace SimTK;
 using namespace std;
 
 void testCalculationMethods() {
-    
+
     // Create a system with two bodies.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
     MobilizedBody::Free b1(matter.Ground(), body);
     MobilizedBody::Free b2(matter.Ground(), body);
-    
+
     // Set all the state variables to random values.
 
     system.realizeTopology();
@@ -47,9 +47,9 @@ void testCalculationMethods() {
         state.updY()[i] = random.getValue();
 
     system.realize(state, Stage::Acceleration);
-   
+
     // Test the low level methods for transforming points and vectors.
-    
+
     const Vec3 point(0.5, 1, -1.5);
     SimTK_TEST_EQ(b1.findStationLocationInGround(state, Vec3(0)), b1.getBodyOriginLocation(state));
     SimTK_TEST_EQ(b1.findStationAtGroundPoint(state, b1.findStationLocationInGround(state, point)), point);
@@ -60,9 +60,9 @@ void testCalculationMethods() {
     SimTK_TEST_EQ(b1.expressVectorInGroundFrame(state, point), b1.getBodyRotation(state)*point);
     SimTK_TEST_EQ(b1.expressGroundVectorInBodyFrame(state, b1.expressVectorInGroundFrame(state, point)), point);
     SimTK_TEST_EQ(b2.expressGroundVectorInBodyFrame(state, b1.expressVectorInGroundFrame(state, point)), b1.expressVectorInAnotherBodyFrame(state, point, b2));
-    
+
     // Test the routines for mapping locations, velocities, and accelerations.
-    
+
     Vec3 r, v, a;
     b1.findStationLocationVelocityAndAccelerationInGround(state, point, r, v, a);
     SimTK_TEST_EQ(v, b1.findStationVelocityInGround(state, point));
@@ -84,10 +84,10 @@ void testWeld() {
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -1, 0));
     Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
-    
+
     // Create two pendulums, each with two welded bodies.  One uses a Weld MobilizedBody,
     // and the other uses a Weld constraint.
-    
+
     Transform inboard(Vec3(0.1, 0.5, -1));
     Transform outboard(Vec3(0.2, -0.2, 0));
     MobilizedBody::Ball p1(matter.updGround(), Vec3(0), body, Vec3(0, 1, 0));
@@ -110,17 +110,17 @@ void testWeld() {
 
     SimTK_TEST_EQ(c1.getBodyTransform(state), c2.getBodyTransform(state));
     SimTK_TEST_EQ(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
-    
+
     // Simulate it and see if both pendulums behave identically.
-    
+
     RungeKuttaMersonIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);
-    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()), 
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()),
                       c2.getBodyTransform(integ.getState()), 1e-10);
-    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()), 
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()),
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
@@ -135,10 +135,10 @@ void testGimbal() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
-    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3), 
+    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3),
                       UnitInertia(1.2,1.1,1.3,.01,.02,.03)));
     Body::Rigid massless(MassProperties(0,Vec3(0),UnitInertia(0)));
-    
+
     Vec3 inboard(0.1, 0.5, -1);
     Vec3 outboard(0.2, -0.2, 0);
     MobilizedBody::Gimbal p1(matter.updGround(), inboard, lumpy, outboard);
@@ -180,23 +180,23 @@ void testGimbal() {
 
     SimTK_TEST_EQ(c1.getBodyTransform(state), c2.getBodyTransform(state));
     SimTK_TEST_EQ(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
-    
+
     // Simulate it and see if both pendulums behave identically.
-    
+
     RungeKuttaMersonIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);
-    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()), 
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()),
                   c2.getBodyTransform(integ.getState()), 1e-10);
-    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()), 
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()),
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 
 
 // Create two pendulums with bushing joints, one where the bushings are faked
-// with a Cartesian (3 sliders) and a series of pin joints that should provide 
+// with a Cartesian (3 sliders) and a series of pin joints that should provide
 // identical generalized coordinates and speeds, except that the translational
 // coordinates are the last three q's for the bushing but are interpreted as
 // translating first, then rotating.
@@ -206,10 +206,10 @@ void testBushing() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::UniformGravity gravity(forces, matter, Vec3(0, -9.81, 0));
-    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3), 
+    Body::Rigid lumpy(MassProperties(3.1, Vec3(.1, .2, .3),
                       UnitInertia(1.2,1.1,1.3,.01,.02,.03)));
     Body::Rigid massless(MassProperties(0,Vec3(0),UnitInertia(0)));
-    
+
     Vec3 inboard(0.1, 0.5, -1);
     Vec3 outboard(0.2, -0.2, 0);
     MobilizedBody::Bushing p1(matter.updGround(), inboard, lumpy, outboard);
@@ -255,17 +255,17 @@ void testBushing() {
 
     SimTK_TEST_EQ(c1.getBodyTransform(state), c2.getBodyTransform(state));
     SimTK_TEST_EQ(c1.getBodyVelocity(state), c2.getBodyVelocity(state));
-    
+
     // Simulate it and see if both pendulums behave identically.
-    
+
     RungeKuttaMersonIntegrator integ(system);
     TimeStepper ts(system, integ);
     ts.initialize(state);
     ts.stepTo(5);
     system.realize(integ.getState(), Stage::Velocity);
-    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()), 
+    SimTK_TEST_EQ_TOL(c1.getBodyTransform(integ.getState()),
                   c2.getBodyTransform(integ.getState()), 1e-10);
-    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()), 
+    SimTK_TEST_EQ_TOL(c1.getBodyVelocity(integ.getState()),
                       c2.getBodyVelocity(integ.getState()), 1e-10);
 }
 

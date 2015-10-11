@@ -95,9 +95,9 @@ const Transform& DecorativeGeometry::getTransform() const    {return getRep().ge
 DecorativeGeometry& DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);return *this;}
 Real DecorativeGeometry::getResolution() const {return getRep().getResolution();}
 
-DecorativeGeometry& DecorativeGeometry::setScaleFactors(const Vec3& s) 
+DecorativeGeometry& DecorativeGeometry::setScaleFactors(const Vec3& s)
 {   updRep().setScaleFactors(s); return *this; }
-const Vec3& DecorativeGeometry::getScaleFactors() const 
+const Vec3& DecorativeGeometry::getScaleFactors() const
 {   return getRep().getScaleFactors(); }
 
 DecorativeGeometry& DecorativeGeometry::setColor(const Vec3& rgb) {updRep().setColor(rgb);return *this;}
@@ -113,9 +113,9 @@ DecorativeGeometry& DecorativeGeometry::setRepresentation(const DecorativeGeomet
     updRep().setRepresentation(r);return *this;
 }
 
-DecorativeGeometry& DecorativeGeometry::setFaceCamera(int shouldFace) 
+DecorativeGeometry& DecorativeGeometry::setFaceCamera(int shouldFace)
 {   updRep().setFaceCamera(shouldFace);return *this; }
-int DecorativeGeometry::getFaceCamera() const 
+int DecorativeGeometry::getFaceCamera() const
 {   return getRep().getFaceCamera(); }
 
 DecorativeGeometry::Representation
@@ -131,7 +131,7 @@ void DecorativeGeometry::implementGeometry(DecorativeGeometryImplementation& geo
     // DECORATIVE POINT //
     //////////////////////
 
-/*static*/ bool 
+/*static*/ bool
 DecorativePoint::isInstanceOf(const DecorativeGeometry& s) {
     return DecorativePointRep::isA(s.getRep());
 }
@@ -146,11 +146,11 @@ DecorativePoint::updDowncast(DecorativeGeometry& s) {
     return static_cast<DecorativePoint&>(s);
 }
 
-const DecorativePointRep& 
+const DecorativePointRep&
 DecorativePoint::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const DecorativePointRep&>(*rep);
 }
-DecorativePointRep&       
+DecorativePointRep&
 DecorativePoint::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<DecorativePointRep&>(*rep);
 }
@@ -171,7 +171,7 @@ const Vec3& DecorativePoint::getPoint() const {
     // DECORATIVE LINE //
     /////////////////////
 
-/*static*/ bool 
+/*static*/ bool
 DecorativeLine::isInstanceOf(const DecorativeGeometry& s) {
     return DecorativeLineRep::isA(s.getRep());
 }
@@ -186,11 +186,11 @@ DecorativeLine::updDowncast(DecorativeGeometry& s) {
     return static_cast<DecorativeLine&>(s);
 }
 
-const DecorativeLineRep& 
+const DecorativeLineRep&
 DecorativeLine::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const DecorativeLineRep&>(*rep);
 }
-DecorativeLineRep&       
+DecorativeLineRep&
 DecorativeLine::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<DecorativeLineRep&>(*rep);
 }
@@ -473,7 +473,7 @@ DecorativeCone& DecorativeCone::setBaseRadius(Real baseR) {
     // DECORATIONS //
     /////////////////
 
-/*static*/ bool 
+/*static*/ bool
 Decorations::isInstanceOf(const DecorativeGeometry& s) {
     return DecorationsRep::isA(s.getRep());
 }
@@ -488,11 +488,11 @@ Decorations::updDowncast(DecorativeGeometry& s) {
     return static_cast<Decorations&>(s);
 }
 
-const DecorationsRep& 
+const DecorationsRep&
 Decorations::getRep() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const DecorationsRep&>(*rep);
 }
-DecorationsRep&       
+DecorationsRep&
 Decorations::updRep() {
     return SimTK_DYNAMIC_CAST_DEBUG<DecorationsRep&>(*rep);
 }

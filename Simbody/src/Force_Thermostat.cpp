@@ -35,21 +35,21 @@ namespace SimTK {
 // Implementation class for Force::Thermostat.
 class Force::ThermostatImpl : public ForceImpl {
 public:
-    ThermostatImpl(const SimbodyMatterSubsystem& matter, 
-                   Real boltzmannsConstant, 
-                   Real defBathTemp, 
+    ThermostatImpl(const SimbodyMatterSubsystem& matter,
+                   Real boltzmannsConstant,
+                   Real defBathTemp,
                    Real defRelaxationTime,
                    int  defNumExcludedDofs)
-    :   matter(matter), kB(boltzmannsConstant), 
-        defaultNumChains(DefaultDefaultNumChains), 
+    :   matter(matter), kB(boltzmannsConstant),
+        defaultNumChains(DefaultDefaultNumChains),
         defaultBathTemp(defBathTemp),
-        defaultRelaxationTime(defRelaxationTime), 
+        defaultRelaxationTime(defRelaxationTime),
         defaultNumExcludedDofs(defNumExcludedDofs) {}
 
     ThermostatImpl* clone() const override {return new ThermostatImpl(*this);}
     bool dependsOnlyOnPositions() const override {return false;}
 
-    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
+    void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const override;
 
     // Temperature does not contribute to potential energy.
@@ -134,12 +134,12 @@ public:
         return Value<Real>::updDowncast(getForceSubsystem().updCacheEntry(s, cacheKEIndex));
     }
 
-    Real getExternalWork(const State& s) const 
+    Real getExternalWork(const State& s) const
     {   return getForceSubsystem().getZ(s)[workZIndex]; }
-    Real& updExternalWork(State& s) const 
+    Real& updExternalWork(State& s) const
     {   return getForceSubsystem().updZ(s)[workZIndex]; }
 
-    Real& updWorkZDot(const State& s) const 
+    Real& updWorkZDot(const State& s) const
     {   return getForceSubsystem().updZDot(s)[workZIndex];  }
 
     Real calcExternalPower(const State& s) const;
@@ -199,19 +199,19 @@ SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Thermostat, Force::ThermostatImpl
 Force::Thermostat::Thermostat
    (GeneralForceSubsystem& forces, const SimbodyMatterSubsystem& matter,
     Real boltzmannsConstant, Real bathTemperature, Real relaxationTime,
-    int numExcludedDofs) 
-:   Force(new ThermostatImpl(matter, boltzmannsConstant, bathTemperature, 
+    int numExcludedDofs)
+:   Force(new ThermostatImpl(matter, boltzmannsConstant, bathTemperature,
                              relaxationTime, numExcludedDofs))
 {
-    SimTK_APIARGCHECK1_ALWAYS(boltzmannsConstant > 0, 
+    SimTK_APIARGCHECK1_ALWAYS(boltzmannsConstant > 0,
         "Force::Thermostat","ctor", "Illegal Boltzmann's constant %g.", boltzmannsConstant);
-    SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
+    SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0,
         "Force::Thermostat","ctor", "Illegal bath temperature %g.", bathTemperature);
-    SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
+    SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0,
         "Force::Thermostat","ctor", "Illegal relaxation time %g.", relaxationTime);
-    SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6, 
-        "Force::Thermostat","ctor", 
-        "Illegal number of excluded rigid body dofs %d (must be 0-6).", 
+    SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6,
+        "Force::Thermostat","ctor",
+        "Illegal number of excluded rigid body dofs %d (must be 0-6).",
         numExcludedDofs);
 
     updImpl().setForceSubsystem(forces, forces.adoptForce(*this));
@@ -219,8 +219,8 @@ Force::Thermostat::Thermostat
 
 Force::Thermostat& Force::Thermostat::
 setDefaultNumChains(int numChains) {
-    SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
-        "Force::Thermostat","setDefaultNumChains", 
+    SimTK_APIARGCHECK1_ALWAYS(numChains > 0,
+        "Force::Thermostat","setDefaultNumChains",
         "Illegal number of chains %d.", numChains);
 
     getImpl().invalidateTopologyCache();
@@ -230,8 +230,8 @@ setDefaultNumChains(int numChains) {
 
 Force::Thermostat& Force::Thermostat::
 setDefaultBathTemperature(Real bathTemperature) {
-    SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
-        "Force::Thermostat","setDefaultBathTemperature", 
+    SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0,
+        "Force::Thermostat","setDefaultBathTemperature",
         "Illegal bath temperature %g.", bathTemperature);
 
     getImpl().invalidateTopologyCache();
@@ -241,8 +241,8 @@ setDefaultBathTemperature(Real bathTemperature) {
 
 Force::Thermostat& Force::Thermostat::
 setDefaultRelaxationTime(Real relaxationTime) {
-    SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
-        "Force::Thermostat","setDefaultRelaxationTime", 
+    SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0,
+        "Force::Thermostat","setDefaultRelaxationTime",
         "Illegal bath temperature %g.", relaxationTime);
 
     getImpl().invalidateTopologyCache();
@@ -252,9 +252,9 @@ setDefaultRelaxationTime(Real relaxationTime) {
 
 Force::Thermostat& Force::Thermostat::
 setDefaultNumExcludedDofs(int numExcludedDofs) {
-    SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6, 
-        "Force::Thermostat","setDefaultNumExcludedDofs", 
-        "Illegal number of excluded rigid body dofs %d (must be 0-6).", 
+    SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6,
+        "Force::Thermostat","setDefaultNumExcludedDofs",
+        "Illegal number of excluded rigid body dofs %d (must be 0-6).",
         numExcludedDofs);
 
     getImpl().invalidateTopologyCache();
@@ -270,8 +270,8 @@ Real Force::Thermostat::getBoltzmannsConstant() const {return getImpl().kB;}
 
 const Force::Thermostat& Force::Thermostat::
 setNumChains(State& s, int numChains) const {
-    SimTK_APIARGCHECK1_ALWAYS(numChains > 0, 
-        "Force::Thermostat","setNumChains", 
+    SimTK_APIARGCHECK1_ALWAYS(numChains > 0,
+        "Force::Thermostat","setNumChains",
         "Illegal number of chains %d.", numChains);
 
     getImpl().updNumChains(s) = numChains;
@@ -280,8 +280,8 @@ setNumChains(State& s, int numChains) const {
 
 const Force::Thermostat& Force::Thermostat::
 setBathTemperature(State& s, Real bathTemperature) const {
-    SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0, 
-        "Force::Thermostat","setBathTemperature", 
+    SimTK_APIARGCHECK1_ALWAYS(bathTemperature > 0,
+        "Force::Thermostat","setBathTemperature",
         "Illegal bath temperature %g.", bathTemperature);
 
     getImpl().updBathTemp(s) = bathTemperature;
@@ -290,8 +290,8 @@ setBathTemperature(State& s, Real bathTemperature) const {
 
 const Force::Thermostat& Force::Thermostat::
 setRelaxationTime(State& s, Real relaxationTime) const {
-    SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0, 
-        "Force::Thermostat","setRelaxationTime", 
+    SimTK_APIARGCHECK1_ALWAYS(relaxationTime > 0,
+        "Force::Thermostat","setRelaxationTime",
         "Illegal bath temperature %g.", relaxationTime);
 
     getImpl().updRelaxationTime(s) = relaxationTime;
@@ -300,9 +300,9 @@ setRelaxationTime(State& s, Real relaxationTime) const {
 
 const Force::Thermostat& Force::Thermostat::
 setNumExcludedDofs(State& s, int numExcludedDofs) const {
-    SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6, 
-        "Force::Thermostat","setNumExcludedDofs", 
-        "Illegal number of excluded rigid body dofs %d (must be 0-6).", 
+    SimTK_APIARGCHECK1_ALWAYS(0 <= numExcludedDofs && numExcludedDofs <= 6,
+        "Force::Thermostat","setNumExcludedDofs",
+        "Illegal number of excluded rigid body dofs %d (must be 0-6).",
         numExcludedDofs);
 
     getImpl().updNumExcludedDofs(s) = numExcludedDofs;
@@ -325,8 +325,8 @@ void Force::Thermostat::setChainState(State& s, const Vector& z) const {
     const ThermostatImpl& impl = getImpl();
     const int nChains = impl.getNumChains(s);
     SimTK_APIARGCHECK2_ALWAYS(z.size() == 2*nChains,
-        "Force::Thermostat", "setChainState", 
-        "Number of values supplied (%d) didn't match twice the number of chains %d.", 
+        "Force::Thermostat", "setChainState",
+        "Number of values supplied (%d) didn't match twice the number of chains %d.",
         z.size(), nChains);
     for (int i=0; i < 2*nChains; ++i)
         impl.updZ(s, i) = z[i];
@@ -390,8 +390,8 @@ void Force::Thermostat::setExternalWork(State& state, Real w) const {
     getImpl().updExternalWork(state) = w;
 }
 
-// This is the number of thermal dofs. TODO: we're ignoring constraint 
-// redundancy but we shouldn't be! That could result in negative dofs, so we'll 
+// This is the number of thermal dofs. TODO: we're ignoring constraint
+// redundancy but we shouldn't be! That could result in negative dofs, so we'll
 // make sure that doesn't happen. But don't expect meaningful results
 // in that case. Note that it is the acceleration-level constraints that
 // matter; they remove dofs regardless of whether there is a corresponding
@@ -403,13 +403,13 @@ int Force::ThermostatImpl::getNumThermalDOFs(const State& state) const {
     return N;
 }
 
-// This force produces only mobility forces, with 
+// This force produces only mobility forces, with
 //      f = -z0 * M * u
 // Conveniently we already calculated the momentum M*u and cached it
 // in realizeVelocity(). Additional cost here is 2*N flops.
 void Force::ThermostatImpl::
-calcForce(const State& state, Vector_<SpatialVec>&, Vector_<Vec3>&, 
-          Vector& mobilityForces) const 
+calcForce(const State& state, Vector_<SpatialVec>&, Vector_<Vec3>&,
+          Vector& mobilityForces) const
 {
     const Vector& p = getMomentum(state);
 
@@ -433,38 +433,38 @@ void Force::ThermostatImpl::realizeTopology(State& state) const {
     // Make these writable just here where we need to fill in the Topology "cache"
     // variables; after this they are const.
     Force::ThermostatImpl* mutableThis = const_cast<Force::ThermostatImpl*>(this);
-    mutableThis->dvNumChains = 
-        getForceSubsystem().allocateDiscreteVariable(state, Stage::Model, 
+    mutableThis->dvNumChains =
+        getForceSubsystem().allocateDiscreteVariable(state, Stage::Model,
                                                      new Value<int>(defaultNumChains));
-    mutableThis->dvBathTemp = 
-        getForceSubsystem().allocateDiscreteVariable(state, Stage::Instance, 
+    mutableThis->dvBathTemp =
+        getForceSubsystem().allocateDiscreteVariable(state, Stage::Instance,
                                                      new Value<Real>(defaultBathTemp));
-    mutableThis->dvRelaxationTime = 
-        getForceSubsystem().allocateDiscreteVariable(state, Stage::Instance, 
+    mutableThis->dvRelaxationTime =
+        getForceSubsystem().allocateDiscreteVariable(state, Stage::Instance,
                                                      new Value<Real>(defaultRelaxationTime));
-    mutableThis->dvNumExcludedDofs = 
-        getForceSubsystem().allocateDiscreteVariable(state, Stage::Model, 
+    mutableThis->dvNumExcludedDofs =
+        getForceSubsystem().allocateDiscreteVariable(state, Stage::Model,
                                                      new Value<int>(defaultNumExcludedDofs));
 
     // This cache entry holds the auxiliary state index of our first
     // thermostat state variable. It is valid after realizeModel().
-    mutableThis->cacheZ0Index = 
-        getForceSubsystem().allocateCacheEntry(state, Stage::Model, 
+    mutableThis->cacheZ0Index =
+        getForceSubsystem().allocateCacheEntry(state, Stage::Model,
                                                new Value<ZIndex>());
 
     // This cache entry holds the generalized momentum M*u. The vector
     // will be allocated to hold nu values.
     mutableThis->cacheMomentumIndex =
-        getForceSubsystem().allocateCacheEntry(state, Stage::Velocity, 
+        getForceSubsystem().allocateCacheEntry(state, Stage::Velocity,
                                                new Value<Vector>());
 
     // This cache entry holds the kinetic energy ~u*M*u/2.
     mutableThis->cacheKEIndex =
-        getForceSubsystem().allocateCacheEntry(state, Stage::Velocity, 
+        getForceSubsystem().allocateCacheEntry(state, Stage::Velocity,
                                                new Value<Real>(NaN));
 
     const Vector workZInit(1, Zero);
-    mutableThis->workZIndex = 
+    mutableThis->workZIndex =
         getForceSubsystem().allocateZ(state, workZInit);
 }
 

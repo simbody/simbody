@@ -173,7 +173,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
         s >> command;
         if (command == "v") {
             // A vertex
-            
+
             Real x, y, z;
             s >> x;
             s >> y;
@@ -184,7 +184,7 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
         }
         else if (command == "f") {
             // A face
-            
+
             indices.clear();
             int index;
             while (s >> index) {
@@ -207,14 +207,14 @@ void PolygonalMesh::loadObjFile(std::istream& file) {
 
 /* Use our XML reader to parse VTK's PolyData file format and add the polygons
 found there to whatever is currently in this PolygonalMesh object. OpenSim uses
-this format for its geometric objects. 
+this format for its geometric objects.
 
 Here is a somewhat stripped down and annotated version of Kitware's description
 from vtk.org:
 
 All the metadata is case sensitive.
 
-PolyData -- Each PolyData piece specifies a set of points and cells 
+PolyData -- Each PolyData piece specifies a set of points and cells
 independently from the other pieces. [Simbody Note: we will read in only the
 first Piece element.] The points are described explicitly by the
 Points element. The cells are described explicitly by the Verts, Lines, Strips,
@@ -234,7 +234,7 @@ and Polys elements.
         </PolyData>
     </VTKFile>
 
-PointData and CellData -- Every dataset describes the data associated with 
+PointData and CellData -- Every dataset describes the data associated with
 its points and cells with PointData and CellData XML elements as follows:
     <PointData Scalars="Temperature" Vectors="Velocity">
         <DataArray Name="Velocity" .../>
@@ -242,30 +242,30 @@ its points and cells with PointData and CellData XML elements as follows:
         <DataArray Name="Pressure" .../>
     </PointData>
 
-VTK allows an arbitrary number of data arrays to be associated with the points 
-and cells of a dataset. Each data array is described by a DataArray element 
-which, among other things, gives each array a name. The following attributes 
+VTK allows an arbitrary number of data arrays to be associated with the points
+and cells of a dataset. Each data array is described by a DataArray element
+which, among other things, gives each array a name. The following attributes
 of PointData and CellData are used to specify the active arrays by name:
     Scalars - The name of the active scalars array, if any.
     Vectors - The name of the active vectors array, if any.
     Normals - The name of the active normals array, if any.
     Tensors - The name of the active tensors array, if any.
     TCoords - The name of the active texture coordinates array, if any.
-That is, for each attribute of the form Sometype="Somename" there must be a 
-DataArray element with attribute Name="Somename" whose text contains 
+That is, for each attribute of the form Sometype="Somename" there must be a
+DataArray element with attribute Name="Somename" whose text contains
 NumberOfPoints values each of type Sometype.
 
-Points -- The Points element explicitly defines coordinates for each point 
-individually. It contains one DataArray element describing an array with 
+Points -- The Points element explicitly defines coordinates for each point
+individually. It contains one DataArray element describing an array with
 three components per value, each specifying the coordinates of one point.
     <Points>
         <DataArray NumberOfComponents="3" .../>
     </Points>
 
 Verts, Lines, Strips, and Polys -- The Verts, Lines, Strips, and Polys elements
-define cells explicitly by specifying point connectivity. Cell types are 
-implicitly known by the type of element in which they are specified. Each 
-element contains two DataArray elements. The first array specifies the point 
+define cells explicitly by specifying point connectivity. Cell types are
+implicitly known by the type of element in which they are specified. Each
+element contains two DataArray elements. The first array specifies the point
 connectivity. All the cells' point lists are concatenated together. The second
 array specifies the offset into the connectivity array for the end of each
 cell.
@@ -278,7 +278,7 @@ cell.
 DataArray -- All of the data and geometry specifications use DataArray elements
 to describe their actual content as follows:
 
-The DataArray element stores a sequence of values of one type. There may be 
+The DataArray element stores a sequence of values of one type. There may be
 one or more components per value. [Simbody Note: there are also "binary" and
 "appended" formats which we do not support -- be sure to check that the
 format attribute for every DataArray is "ascii".]
@@ -286,17 +286,17 @@ format attribute for every DataArray is "ascii".]
     10 20 30 ... </DataArray>
 
 The attributes of the DataArray elements are described as follows:
-    type -- The data type of a single component of the array. This is one of 
-        Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64, Float32, 
-        Float64. 
+    type -- The data type of a single component of the array. This is one of
+        Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64, Float32,
+        Float64.
     Name -- The name of the array. This is usually a brief description of the
-        data stored in the array. [Note that the PolyData element uses the 
+        data stored in the array. [Note that the PolyData element uses the
         DataArray Name attribute to figure out what's being provided.]
     NumberOfComponents -- The number of components per value in the array.
     format -- The means by which the data values themselves are stored in the
         file. This is "ascii", "binary", or "appended". [Simbody only supports
         "ascii".]
-    format="ascii" -- The data are listed in ASCII directly inside the 
+    format="ascii" -- The data are listed in ASCII directly inside the
         DataArray element. Whitespace is used for separation.
 */
 void PolygonalMesh::loadVtpFile(const String& pathname) {
@@ -319,12 +319,12 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Xml::Element polydata = root.getRequiredElement("PolyData");
     Xml::Element piece    = polydata.getRequiredElement("Piece");
     Xml::Element points   = piece.getRequiredElement("Points");
-    const int numPoints = 
+    const int numPoints =
         piece.getRequiredAttributeValueAs<int>("NumberOfPoints");
-    const int numPolys  = 
+    const int numPolys  =
         piece.getRequiredAttributeValueAs<int>("NumberOfPolys");
 
-    // Remember this because we'll have to use it to adjust the indices we use 
+    // Remember this because we'll have to use it to adjust the indices we use
     // when referencing the vertices we're about to read in. This number is
     // the index that our first vertex will be assigned.
     // EDIT: We actually don't use this variable. Leaving for reference.
@@ -334,12 +334,12 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // coordinates. Read it in as a Vector of Vec3s.
     Xml::Element pointData = points.getRequiredElement("DataArray");
     SimTK_ERRCHK1_ALWAYS(pointData.getRequiredAttributeValue("format")
-                         == "ascii", method, 
+                         == "ascii", method,
         "Only format=\"ascii\" is supported for .vtp file DataArray elements,"
         " got format=\"%s\" for Points DataArray.",
         pointData.getRequiredAttributeValue("format").c_str());
 
-    Vector_<Vec3> coords = 
+    Vector_<Vec3> coords =
         points.getRequiredElementValueAs< Vector_<Vec3> >("DataArray");
 
     SimTK_ERRCHK2_ALWAYS(coords.size() == numPoints, method,
@@ -360,20 +360,20 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // Find the connectivity and offset DataArrays.
     Xml::Element econnectivity, eoffsets;
     for (Xml::element_iterator p = polys.element_begin("DataArray");
-         p != polys.element_end(); ++p) 
-    {       
+         p != polys.element_end(); ++p)
+    {
         const String& name = p->getRequiredAttributeValue("Name");
         SimTK_ERRCHK2_ALWAYS(p->getRequiredAttributeValue("format")
-                             == "ascii", method, 
+                             == "ascii", method,
             "Only format=\"ascii\" is supported for .vtp file DataArray"
             " elements, but format=\"%s\" for DataArray '%s'.",
             p->getRequiredAttributeValue("format").c_str(), name.c_str());
 
         if (name == "connectivity") econnectivity = *p;
-        else if (name == "offsets") eoffsets = *p; 
+        else if (name == "offsets") eoffsets = *p;
     }
 
-    SimTK_ERRCHK_ALWAYS(econnectivity.isValid() && eoffsets.isValid(), method, 
+    SimTK_ERRCHK_ALWAYS(econnectivity.isValid() && eoffsets.isValid(), method,
         "Expected to find a DataArray with name='connectivity' and one with"
         " name='offsets' in the VTK PolyData file's <Polys> element but at"
         " least one of them was missing.");
@@ -445,13 +445,13 @@ namespace {
 
 class STLFile {
 public:
-    STLFile(const String& pathname, const PolygonalMesh& mesh) 
+    STLFile(const String& pathname, const PolygonalMesh& mesh)
     :   m_pathname(pathname), m_pathcstr(pathname.c_str()),
         m_vertexTol(NTraits<float>::getSignificant()),
-        m_lineNo(0), m_sigLineNo(0) 
+        m_lineNo(0), m_sigLineNo(0)
     {   preLoadVertMap(mesh); }
 
-    // Examine file contents to determine whether this is an ascii-format 
+    // Examine file contents to determine whether this is an ascii-format
     // STL; otherwise it is binary.
     bool isStlAsciiFormat();
 
@@ -476,7 +476,7 @@ private:
         const VertKey key(v, m_vertexTol);
         VertMap::const_iterator p = m_vertMap.find(key);
         int ix;
-        if (p != m_vertMap.end()) 
+        if (p != m_vertMap.end())
             ix = p->second;
         else {
             ix = mesh.addVertex(v);
@@ -543,7 +543,7 @@ void PolygonalMesh::loadStlFile(const String& pathname) {
 // - Allow negative numbers in vertices (stl standard says only +ve).
 // - Allow more than three vertices per face.
 // - Allow 'outer loop'/'endloop' to be left out.
-// 
+//
 // If there are multiple solids in the STL file we'll just read the first one.
 
 // We have to decide if this is really an ascii format stl; it might be
@@ -560,7 +560,7 @@ bool STLFile::isStlAsciiFormat() {
         // Still might be binary. Look for a "facet" or "endsolid" line.
         while (getSignificantLine(true)) {
             if (m_keyword=="color") continue; // ignore
-            isAscii = (   m_keyword=="facet" 
+            isAscii = (   m_keyword=="facet"
                        || m_keyword=="facetnormal"
                        || m_keyword=="endsolid");
             break;
@@ -602,7 +602,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
             while (m_keyword == "vertex") {
                 Vec3 vertex;
                 m_restOfLine >> vertex;
-                SimTK_ERRCHK2_ALWAYS(m_restOfLine.eof(), 
+                SimTK_ERRCHK2_ALWAYS(m_restOfLine.eof(),
                     "PolygonalMesh::loadStlFile()",
                     "Error at line %d in ASCII STL file '%s':\n"
                     "  badly formed vertex.", m_lineNo, m_pathcstr);
@@ -611,17 +611,17 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
             }
 
             // Next keyword is not "vertex".
-            SimTK_ERRCHK3_ALWAYS(vertices.size() >= 3, 
+            SimTK_ERRCHK3_ALWAYS(vertices.size() >= 3,
                 "PolygonalMesh::loadStlFile()",
                 "Error at line %d in ASCII STL file '%s':\n"
-                "  a facet had %d vertices; at least 3 required.", 
+                "  a facet had %d vertices; at least 3 required.",
                 m_lineNo, m_pathcstr, vertices.size());
 
             mesh.addFace(vertices);
 
             // Vertices must end with 'endloop' if started with 'outer loop'.
             if (outerLoopSeen) {
-                SimTK_ERRCHK3_ALWAYS(m_keyword=="endloop", 
+                SimTK_ERRCHK3_ALWAYS(m_keyword=="endloop",
                     "PolygonalMesh::loadStlFile()",
                     "Error at line %d in ASCII STL file '%s':\n"
                     "  expected 'endloop' but got '%s'.",
@@ -630,7 +630,7 @@ void STLFile::loadStlAsciiFile(PolygonalMesh& mesh) {
             }
 
             // Now we expect 'endfacet'.
-            SimTK_ERRCHK3_ALWAYS(m_keyword=="endfacet", 
+            SimTK_ERRCHK3_ALWAYS(m_keyword=="endfacet",
                 "PolygonalMesh::loadStlFile()",
                 "Error at line %d in ASCII STL file '%s':\n"
                 "  expected 'endfacet' but got '%s'.",
@@ -663,13 +663,13 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
 
     unsigned char header[80];
     m_ifs.read((char*)header, 80);
-    SimTK_ERRCHK1_ALWAYS(m_ifs.good() && m_ifs.gcount()==80, 
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good() && m_ifs.gcount()==80,
         "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
         "  couldn't read header.", m_pathcstr);
 
     unsigned nFaces;
     m_ifs.read((char*)&nFaces, sizeof(unsigned));
-    SimTK_ERRCHK1_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(unsigned), 
+    SimTK_ERRCHK1_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(unsigned),
         "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
         "  couldn't read triangle count.", m_pathcstr);
 
@@ -680,7 +680,7 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
         m_ifs.read((char*)vbuf, vz); // normal ignored
         for (int vx=0; vx < 3; ++vx) {
             m_ifs.read((char*)vbuf, vz);
-            SimTK_ERRCHK3_ALWAYS(m_ifs.good() && m_ifs.gcount()==vz, 
+            SimTK_ERRCHK3_ALWAYS(m_ifs.good() && m_ifs.gcount()==vz,
                 "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
                 "  couldn't read vertex %d for face %d.", m_pathcstr, vx, fx);
             const Vec3 vertex((Real)vbuf[0], (Real)vbuf[1], (Real)vbuf[2]);
@@ -689,7 +689,7 @@ void STLFile::loadStlBinaryFile(PolygonalMesh& mesh) {
         mesh.addFace(vertices);
         // Now read and toss the "attribute byte count".
         m_ifs.read((char*)&sbuf,sizeof(short));
-        SimTK_ERRCHK2_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(short), 
+        SimTK_ERRCHK2_ALWAYS(m_ifs.good() && m_ifs.gcount()==sizeof(short),
             "PolygonalMesh::loadStlFile()", "Bad binary STL file '%s':\n"
             "  couldn't read attribute for face %d.", m_pathcstr, fx);
     }
@@ -709,8 +709,8 @@ bool STLFile::getSignificantLine(bool eofOK) {
     while (m_ifs.good()) {
         ++m_lineNo;
         m_keyword = String::trimWhiteSpace(line); // using keyword as a temp
-        if (   m_keyword.empty() 
-            || m_keyword[0]=='#' || m_keyword[0]=='!' || m_keyword[0]=='$') 
+        if (   m_keyword.empty()
+            || m_keyword[0]=='#' || m_keyword[0]=='!' || m_keyword[0]=='$')
         {
             std::getline(m_ifs, line);
             continue; // blank or comment
@@ -740,7 +740,7 @@ bool STLFile::getSignificantLine(bool eofOK) {
 //                            CREATE SPHERE MESH
 //------------------------------------------------------------------------------
 
-// Use unnamed namespace to keep VertKey class and VertMap type private to 
+// Use unnamed namespace to keep VertKey class and VertMap type private to
 // this file, as well as a few helper functions.
 namespace {
 
@@ -761,7 +761,7 @@ namespace {
     points a',b',c', then move out from the center to make points a,b,c
     on the sphere.
              1
-            /\        
+            /\
            /  \
         c /____\ b      Then construct new triangles
          /\    /\            [0,b,a]
@@ -769,7 +769,7 @@ namespace {
        /____\/____\          [c,2,a]
       2      a     0         [b,1,c]
     */
-    void refineSphere(Real r, VertMap& vmap, 
+    void refineSphere(Real r, VertMap& vmap,
                              Array_<Vec3>& verts, Array_<int>&  faces) {
         assert(faces.size() % 3 == 0);
         const int nVerts = faces.size(); // # face vertices on entry
@@ -778,8 +778,8 @@ namespace {
             const Vec3 a = r*UnitVec3(verts[v0]+verts[v2]);
             const Vec3 b = r*UnitVec3(verts[v0]+verts[v1]);
             const Vec3 c = r*UnitVec3(verts[v1]+verts[v2]);
-            const int va=getVertex(a,vmap,verts), 
-                      vb=getVertex(b,vmap,verts), 
+            const int va=getVertex(a,vmap,verts),
+                      vb=getVertex(b,vmap,verts),
                       vc=getVertex(c,vmap,verts);
             // Replace the existing face with the 0ba triangle, then add the
             // rest. Refer to the above picture.
@@ -799,7 +799,7 @@ namespace {
         vertices.push_back(Vec3( 0, -r[1],  0));   //3
         vertices.push_back(Vec3( 0,  0,  r[2]));   //4
         vertices.push_back(Vec3( 0,  0, -r[2]));   //5
-        int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0}, 
+        int faces[8][3] = {{0, 2, 4}, {4, 2, 1}, {1, 2, 5}, {5, 2, 0},
                            {4, 3, 0}, {1, 3, 4}, {5, 3, 1}, {0, 3, 5}};
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 3; j++)
@@ -851,7 +851,7 @@ createSphereMesh(Real radius, int resolution) {
 // Extend the unnamed namespace with another local function.
 namespace {
 
-    // Given the number of vertices along the x,y,z edges and the three (i,j,k) 
+    // Given the number of vertices along the x,y,z edges and the three (i,j,k)
     // coordinates of a particular vertex, return a packed representation of the
     // (i,j,k) location that we can use as an index. Using a long long here
     // just to avoid trouble, an int probably would have been fine.
@@ -875,8 +875,8 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
     int nv[3]; // number of vertices along each edge
     for (int i=0; i<3; ++i)
         nv[i] = 1 + std::max((int)(dims[i]/edgeLengthTarget + 0.49), 1);
-    const Vec3 edgeLengths(dims[0]/(nv[0]-1), dims[1]/(nv[1]-1), 
-                           dims[2]/(nv[2]-1)); 
+    const Vec3 edgeLengths(dims[0]/(nv[0]-1), dims[1]/(nv[1]-1),
+                           dims[2]/(nv[2]-1));
 
     // Add regularly-spaced vertices on the surfaces.
     std::map<long long,int> vertLoc2Vert; // map i,j,k -> vertex number
@@ -888,7 +888,7 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
             const Real jloc = j*edgeLengths[1] - halfDims[1];
             for (int k=0; k < nv[2]; ++k) {
                 bool zface = (k==0 || k==nv[2]-1);
-                if (!(xface||yface||zface)) 
+                if (!(xface||yface||zface))
                     continue; // skip interior vertices
                 const Real kloc = k*edgeLengths[2] - halfDims[2];
                 const int vnum = brick.addVertex(Vec3(iloc,jloc,kloc));
@@ -966,8 +966,8 @@ createBrickMesh(const Vec3& halfDims, int resolution) {
 // Think of the axis as the +z axis, with the end caps in x-y planes at
 // height -z and +z.
 /*static*/ PolygonalMesh PolygonalMesh::
-createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength, 
-                   int resolution) 
+createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
+                   int resolution)
 {
     SimTK_ERRCHK1_ALWAYS(radius > 0, "PolygonalMesh::createCylinderMesh()",
         "Bad radius %g.", radius);
@@ -1026,7 +1026,7 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
 
     // Tri faces from center to first ring.
     for (int a=0; a < rezAround; ++a) {
-        int ap = (a+1)%rezAround; 
+        int ap = (a+1)%rezAround;
         tface[0] = rak2Vert[locCode(nv,0,0, 0)];
         tface[1] = rak2Vert[locCode(nv,1,a, 0)];
         tface[2] = rak2Vert[locCode(nv,1,ap,0)];
@@ -1040,7 +1040,7 @@ createCylinderMesh(const UnitVec3& axis, Real radius, Real halfLength,
 
     // Quad faces from first ring out.
     for (int a=0; a < rezAround; ++a) {
-        int ap = (a+1)%rezAround; 
+        int ap = (a+1)%rezAround;
         for (int r=1; r <= rezRadial-1; ++r) {
         qface[0] = rak2Vert[locCode(nv,r,  a, 0)];
         qface[1] = rak2Vert[locCode(nv,r+1,a, 0)];

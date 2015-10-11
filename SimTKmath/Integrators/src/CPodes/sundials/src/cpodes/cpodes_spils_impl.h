@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/29 00:05:08 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -30,9 +30,9 @@ extern "C" {
  * =================================================================
  */
 
-/* 
+/*
  * -----------------------------------------------------------------
- * Types of iterative linear solvers 
+ * Types of iterative linear solvers
  * -----------------------------------------------------------------
  */
 
@@ -59,7 +59,7 @@ extern "C" {
  *                  iteration
  * -----------------------------------------------------------------
  */
-  
+
 #define CPSPILS_MAXL   5
 #define CPSPILS_MSBPRE 50
 #define CPSPILS_DGMAX  RCONST(0.2)
@@ -129,10 +129,10 @@ int cpSpilsAtimes(void *cp_mem, N_Vector v, N_Vector z);
 int cpSpilsPSolve(void *cp_mem, N_Vector r, N_Vector z, int lr);
 
 /* Difference quotient approximations for Jac times vector */
-int cpSpilsDQjtvExpl(realtype t, N_Vector y, N_Vector fy, 
-                     N_Vector v, N_Vector Jv, void *jac_data, 
-                     N_Vector tmp); 
-int cpSpilsDQjtvImpl(realtype t, realtype gm, 
+int cpSpilsDQjtvExpl(realtype t, N_Vector y, N_Vector fy,
+                     N_Vector v, N_Vector Jv, void *jac_data,
+                     N_Vector tmp);
+int cpSpilsDQjtvImpl(realtype t, realtype gm,
                      N_Vector y, N_Vector yp, N_Vector r,
                      N_Vector v, N_Vector Jv, void *jac_data,
                      N_Vector tmp1, N_Vector tmp2);

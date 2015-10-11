@@ -55,13 +55,13 @@ public:
     (COR) is non zero, this option determines how we process the restitution
     impulse. The default \c Poisson uses Poisson's hypothesis, which treates the
     COR as a ratio of impulses, providing good physical behavior. The
-    alternative \c Newton uses Newton's hypothesis which treats the COR as a 
+    alternative \c Newton uses Newton's hypothesis which treats the COR as a
     ratio of velocities; this is more commonly used in other packages and can be
-    somewhat faster, but may exhibit blatantly nonphysical behavior such as 
+    somewhat faster, but may exhibit blatantly nonphysical behavior such as
     energy gain during an impact. Poisson and Newton are equivalent in most
-    simple impact circumstances but can differ substantially in a multibody 
-    impact involving multiple coupled simultaneous collisions. The final 
-    alternative is \c NoRestitution, meaning that all CORs are 
+    simple impact circumstances but can differ substantially in a multibody
+    impact involving multiple coupled simultaneous collisions. The final
+    alternative is \c NoRestitution, meaning that all CORs are
     treated as zero so impacts are always maximally dissipative. **/
     enum RestitutionModel {Poisson=0, Newton=1, NoRestitution=2};
     enum InducedImpactModel {Simultaneous=0, Sequential=1, Mixed=2};
@@ -72,7 +72,7 @@ public:
 
     explicit SemiExplicitEulerTimeStepper(const MultibodySystem& mbs);
 
-    /** The contained ImpulseSolver will be destructed here; don't reference 
+    /** The contained ImpulseSolver will be destructed here; don't reference
     it afterwards! **/
     ~SemiExplicitEulerTimeStepper() {
         clearImpulseSolver();
@@ -108,24 +108,24 @@ public:
     void setAccuracy(Real accuracy) {m_accuracy=accuracy;}
     /** Set the tolerance to which constraints must be satisfied. **/
     void setConstraintTolerance(Real consTol) {m_consTol=consTol;}
-   
+
     void setRestitutionModel(RestitutionModel restModel)
     {   m_restitutionModel = restModel; }
-    RestitutionModel getRestitutionModel() const 
+    RestitutionModel getRestitutionModel() const
     {   return m_restitutionModel; }
-     
+
     void setInducedImpactModel(InducedImpactModel indModel)
     {   m_inducedImpactModel = indModel; }
-    InducedImpactModel getInducedImpactModel() const 
+    InducedImpactModel getInducedImpactModel() const
     {   return m_inducedImpactModel; }
-    
-    /** Limit the number of induced impact rounds per time step. The 
+
+    /** Limit the number of induced impact rounds per time step. The
     effect depends on the InducedImpactModel. If Simultaneous, this setting
     is ignored since there is always just a single round that fully resolves
     the impact. If Sequential, after this many rounds the remainder of the
     impact is left unresolved to be dealt with at the next time step (meaning
     penetration will be permitted). If Mixed, this many sequential impact rounds
-    are executed, followed by a final round which resolves any remaining 
+    are executed, followed by a final round which resolves any remaining
     penetration as for Simultaneous, meaning that all remaining induced impacts
     are treated as though they have zero coefficient of restitution. **/
     void setMaxInducedImpactsPerStep(int maxInduced) {
@@ -133,22 +133,22 @@ public:
             "setMaxInducedImpactsPerStep", "Illegal argument %d", maxInduced);
         m_maxInducedImpactsPerStep = maxInduced;
     }
-    int getMaxInducedImpactsPerStep() const 
+    int getMaxInducedImpactsPerStep() const
     {   return m_maxInducedImpactsPerStep; }
-     
+
     void setPositionProjectionMethod(PositionProjectionMethod projMethod)
     {   m_projectionMethod = projMethod; }
-    PositionProjectionMethod getPositionProjectionMethod() const 
+    PositionProjectionMethod getPositionProjectionMethod() const
     {   return m_projectionMethod; }
-    
+
     void setImpulseSolverType(ImpulseSolverType solverType) {
         if (m_solverType != solverType) {
             // The new solver will get allocated in initialize().
             clearImpulseSolver();
-            m_solverType = solverType; 
+            m_solverType = solverType;
         }
     }
-    ImpulseSolverType getImpulseSolverType() const 
+    ImpulseSolverType getImpulseSolverType() const
     {   return m_solverType; }
 
     /** Set the impact capture velocity to be used by default when a contact
@@ -156,8 +156,8 @@ public:
     coefficient of restitution is to be treated as zero. This avoids a Zeno's
     paradox of ever-tinier time-wasting impacts. A capture velocity should
     be significantly greater than the velocity constraint tolerance
-    since speeds below that are indistinguishable from zero anyway. In 
-    practice we will use as the capture velocity the \e larger of this value 
+    since speeds below that are indistinguishable from zero anyway. In
+    practice we will use as the capture velocity the \e larger of this value
     and twice the velocity constraint tolerance currently in effect. **/
     void setDefaultImpactCaptureVelocity(Real vCapture) {
         SimTK_ERRCHK1_ALWAYS(vCapture>=0,
@@ -171,7 +171,7 @@ public:
     default when a unilateral contact does not provide its own. This is
     the velocity at which the COR reaches its specified value; below this
     velocity the COR increases until the capture velocity is reached, at which
-    point the COR is set to zero. This velocity cannot be less than the 
+    point the COR is set to zero. This velocity cannot be less than the
     capture velocity, but we don't check here. Instead we'll check at run time
     and use the larger of the minimum COR velocity and the capture velocity. **/
     void setDefaultImpactMinCORVelocity(Real vMinCOR) {
@@ -182,13 +182,13 @@ public:
         m_defaultMinCORVelocity = vMinCOR;
     }
 
-    /** Set the friction sliding-to-rolling transition velocity to be used 
+    /** Set the friction sliding-to-rolling transition velocity to be used
     by default when a frictional contact does not provide its own. This is the
-    slip velocity below which we are permitted to consider that the contact 
+    slip velocity below which we are permitted to consider that the contact
     may be rolling, that is, in stiction. The transition velocity should
     be significantly greater than the velocity constraint tolerance
-    since speeds below that are indistinguishable from zero anyway. In 
-    practice we will use as the transition velocity the \e larger of this value 
+    since speeds below that are indistinguishable from zero anyway. In
+    practice we will use as the transition velocity the \e larger of this value
     and twice the velocity constraint tolerance currently in effect. **/
     void setDefaultFrictionTransitionVelocity(Real vTransition) {
         SimTK_ERRCHK1_ALWAYS(vTransition>=0,
@@ -199,7 +199,7 @@ public:
     }
 
     /** Set the threshold below which we can ignore forces. This gives the
-    %TimeStepper to consider any force with smaller magnitude to be zero. 
+    %TimeStepper to consider any force with smaller magnitude to be zero.
     The default value for this is SimTK::SignificantReal, about 1e-14 in double
     precision. **/
     void setMinSignificantForce(Real minSignificantForce) {
@@ -209,7 +209,7 @@ public:
         "but was %g.", minSignificantForce);
         m_minSignificantForce = minSignificantForce;
     }
-    Real getMinSignificantForce() const 
+    Real getMinSignificantForce() const
     {   return m_minSignificantForce; }
 
     /** Return the integration accuracy setting. This has no effect unless
@@ -223,33 +223,33 @@ public:
     Real getConstraintToleranceInUse() const {return m_consTol;}
 
     /** Return the value set for this parameter, but the actual value used
-    during execution will be no smaller than the velocity constraint 
+    during execution will be no smaller than the velocity constraint
     tolerance. @see getDefaultImpactCaptureVelocityInUse() **/
-    Real getDefaultImpactCaptureVelocity() const 
+    Real getDefaultImpactCaptureVelocity() const
     {   return m_defaultCaptureVelocity; }
     /** Return the value set for this parameter, but the actual value used
-    during execution will be no smaller than the impact cature velocity. 
+    during execution will be no smaller than the impact cature velocity.
     @see getDefaultImpactMinCORVelocityInUse() **/
-    Real getDefaultImpactMinCORVelocity() const 
+    Real getDefaultImpactMinCORVelocity() const
     {   return m_defaultMinCORVelocity; }
     /** Return the value set for this parameter, but the actual value used
-    during execution will be no smaller than the velocity constraint 
+    during execution will be no smaller than the velocity constraint
     tolerance. @see getDefaultFrictionTransitionVelocityInUse() **/
-    Real getDefaultFrictionTransitionVelocity() const 
+    Real getDefaultFrictionTransitionVelocity() const
     {   return m_defaultTransitionVelocity; }
 
     /** Return the value actually being used as the default impact capture
     velocity. **/
-    Real getDefaultImpactCaptureVelocityInUse() const 
+    Real getDefaultImpactCaptureVelocityInUse() const
     {   return std::max(m_defaultCaptureVelocity, 2*m_consTol); }
     /** Return the value actually being used as the default impact minimum
     coefficient of restitution velocity. **/
-    Real getDefaultImpactMinCORVelocityInUse() const 
-    {   return std::max(m_defaultMinCORVelocity, 
+    Real getDefaultImpactMinCORVelocityInUse() const
+    {   return std::max(m_defaultMinCORVelocity,
                         getDefaultImpactCaptureVelocityInUse()); }
     /** Return the value actually being used as the default sliding-to-rolling
     friction transition velocity. **/
-    Real getDefaultFrictionTransitionVelocityInUse() const 
+    Real getDefaultFrictionTransitionVelocityInUse() const
     {   return std::max(m_defaultTransitionVelocity, 2*m_consTol); }
 
     /** Get access to the MultibodySystem for which this %TimeStepper was
@@ -259,7 +259,7 @@ public:
 
     /** (Advanced) Get direct access to the ImpulseSolver. **/
     const ImpulseSolver& getImpulseSolver() const {
-        SimTK_ERRCHK_ALWAYS(m_solver!=0, 
+        SimTK_ERRCHK_ALWAYS(m_solver!=0,
             "SemiExplicitEulerTimeStepper::getImpulseSolver()",
             "No solver is currently allocated.");
         return *m_solver;
@@ -288,7 +288,7 @@ public:
 private:
     // Determine which constraints will be involved for this step.
     void findProximalConstraints(const State&);
-    // Enable all proximal constraints, disable all distal constraints, 
+    // Enable all proximal constraints, disable all distal constraints,
     // reassigning multipliers if needed. Returns true if anything changed.
     bool enableProximalConstraints(State&);
     // After constraints are enabled, gather up useful info about them.
@@ -318,14 +318,14 @@ private:
                                    Vector& expansionImpulse,
                                    Array_<int>& expanders) const;
 
-    // Perform a simultaneous impact if needed. All proximal constraints are 
-    // dealt with so after this call there will be no more impacters, and no 
-    // unapplied expansion impulses. For Poisson restitution this may be a 
+    // Perform a simultaneous impact if needed. All proximal constraints are
+    // dealt with so after this call there will be no more impacters, and no
+    // unapplied expansion impulses. For Poisson restitution this may be a
     // compression/expansion impulse pair (and rarely a final compression
-    // round to correct expanders that were forced back into impacting). 
+    // round to correct expanders that were forced back into impacting).
     // For Newton restitution only a single impulse round is calculated.
     // Returns the number of impulse rounds actually taken, usually zero.
-    int performSimultaneousImpact(const State& state, 
+    int performSimultaneousImpact(const State& state,
                                    Vector&      verr, // in/out
                                    Vector&      totalImpulse);
 
@@ -333,9 +333,9 @@ private:
     // impulse calculation that ignores the observers. On return there may
     // be former observers and expanders that now have impacting approach
     // velocities so will be impacters on the next round. For Poisson
-    // restitution, there may be expansion impulses that have not yet been 
+    // restitution, there may be expansion impulses that have not yet been
     // applied; those contacts will be expanders on the next round.
-    bool performInducedImpactRound(const Vector& verr, 
+    bool performInducedImpactRound(const Vector& verr,
                                    const Vector& expansionImpulse);
 
     void classifyUnilateralContactsForSequentialImpact
@@ -343,7 +343,7 @@ private:
         const Vector&                           expansionImpulse,
         bool                                    includeAllProximals,
         bool                                    expansionOnly,
-        Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
+        Array_<ImpulseSolver::UniContactRT>&    uniContacts,
         Array_<int>&                            impacters,
         Array_<int>&                            expanders,
         Array_<int>&                            observers,
@@ -354,7 +354,7 @@ private:
     void classifyUnilateralContactsForSimultaneousImpact
        (const Vector&                           verr,
         const Vector&                           expansionImpulse,
-        Array_<ImpulseSolver::UniContactRT>&    uniContacts, 
+        Array_<ImpulseSolver::UniContactRT>&    uniContacts,
         Array_<int>&                            impacters,
         Array_<int>&                            expanders,
         Array_<int>&                            observers,
@@ -363,18 +363,18 @@ private:
 
     // This phase uses all the proximal constraints and should use a starting
     // guess for impulse saved from the last step if possible.
-    bool doCompressionPhase(const State&    state, 
+    bool doCompressionPhase(const State&    state,
                             Vector&         verrStart, // in/out
                             Vector&         verrApplied, // in/out
                             Vector&         compressionImpulse);
     // This phase uses all the proximal constraints, but we expect the result
     // to be zero unless expansion causes new violations.
-    bool doExpansionPhase(const State&  state, 
+    bool doExpansionPhase(const State&  state,
                           const Array_<MultiplierIndex>& expanding,
                           Vector&       expansionImpulse,
                           Vector&       verrStart, // in/out
                           Vector&       reactionImpulse);
-    bool doInducedImpactRound(const State&  state, 
+    bool doInducedImpactRound(const State&  state,
                               const Array_<MultiplierIndex>& expanding,
                               Vector&       expansionImpulse,
                               Vector&       verrStart, // in/out
@@ -383,7 +383,7 @@ private:
 
     // This phase uses only holonomic constraints, and zero is a good initial
     // guess for the (hopefully small) position correction.
-    bool doPositionCorrectionPhase(const State& state, 
+    bool doPositionCorrectionPhase(const State& state,
                                    Vector&      pverr, // in/out
                                    Vector&      positionImpulse);
 
@@ -419,7 +419,7 @@ private:
     Vector                      m_impulse;
     Vector                      m_genImpulse; // ~G*impulse
 
-    Array_<UnilateralContactIndex>      m_proximalUniContacts, 
+    Array_<UnilateralContactIndex>      m_proximalUniContacts,
                                         m_distalUniContacts;
     Array_<StateLimitedFrictionIndex>   m_proximalStateLtdFriction,
                                         m_distalStateLtdFriction;

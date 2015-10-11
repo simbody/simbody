@@ -32,19 +32,19 @@
 
 namespace SimTK {
 
-/** TODO: Simbody model element representing a conditionally-enforced 
+/** TODO: Simbody model element representing a conditionally-enforced
 constraint.
 **/
 class SimTK_SIMBODY_EXPORT ConditionalConstraint {
 public:
 
 /** Given the specified minimum coefficient of restitution (COR), capture speed,
-and the speed at which the minimum COR is attained, calculate an effective COR 
+and the speed at which the minimum COR is attained, calculate an effective COR
 for a given impact speed. All speeds must be nonnegative. The COR will be zero
-at or below capture speed, will be minCOR at or above minCORSpeed, and will 
+at or below capture speed, will be minCOR at or above minCORSpeed, and will
 rise linearly with decreasing impact speed between minCORSpeed and the capture
 velocity. **/
-static Real calcEffectiveCOR(Real minCOR, Real captureSpeed, Real minCORSpeed, 
+static Real calcEffectiveCOR(Real minCOR, Real captureSpeed, Real minCORSpeed,
                              Real impactSpeed)
 {
     assert(0 <= minCOR && minCOR <= 1);
@@ -58,10 +58,10 @@ static Real calcEffectiveCOR(Real minCOR, Real captureSpeed, Real minCORSpeed,
     return 1 - slope*impactSpeed;
 }
 
-/** Given the coefficients of friction and slip-to-rolling transition 
+/** Given the coefficients of friction and slip-to-rolling transition
 speed, calculate the effective COF mu for a given slip velocity. Speeds
 must be nonnegative. This utility calculates mu with an abrupt rise at
-the transitionSpeed from the dynamic coefficient mu_d to the static 
+the transitionSpeed from the dynamic coefficient mu_d to the static
 coefficient mu_s. There is also a linear contribution mu_v*slipSpeed. **/
 static Real calcEffectiveCOF(Real mu_s, Real mu_d, Real mu_v,
                              Real transitionSpeed, Real slipSpeed)
@@ -85,9 +85,9 @@ class StateLimitedFriction;
 //==============================================================================
 //                       UNILATERAL CONTACT CONSTRAINT
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
-A unilateral contact constraint uses a single holonomic (position) 
-constraint equation to prevent motion in one direction while leaving it 
+/** (Experimental -- API will change -- use at your own risk)
+A unilateral contact constraint uses a single holonomic (position)
+constraint equation to prevent motion in one direction while leaving it
 unrestricted in the other direction. Examples are surface-surface contact, joint
 stops, and inextensible ropes. These constraints are subject to violent impacts
 that are treated with a coefficient of restitution that may be state dependent.
@@ -101,12 +101,12 @@ There are two possible sign conventions, depending on the underlying Constraint
 element definition. The default (sign=1) is to consider the constraint
 position error (perr) to be a signed distance function, meaning that perr>=0
 is valid and perr<0 is a violation. Similarly verr>=0 is separation while
-verr<0 is approach or penetration velocity, and aerr>=0 is separation 
+verr<0 is approach or penetration velocity, and aerr>=0 is separation
 acceleration. The corresponding force should also be >= 0, but since constraint
 multipliers have the opposite sign from applied forces that means the inequality
-restricting the multiplier is lambda<=0; lambda>0 would produce an attractive 
-force. That would suck, so is not allowed. In the opposite sign convention 
-(sign=-1), the inequalities that must be satisfied are perr,verr,aerr<=0 and 
+restricting the multiplier is lambda<=0; lambda>0 would produce an attractive
+force. That would suck, so is not allowed. In the opposite sign convention
+(sign=-1), the inequalities that must be satisfied are perr,verr,aerr<=0 and
 lambda>=0. So the constraints to be enforced are:
 <pre>
     sign*perr >= 0 (always)
@@ -122,7 +122,7 @@ public:
     /** The base class constructor allows specification of the sign convention
     to be used with this constraint. The sign convention cannot be changed
     later. See the class documentation for more information. **/
-    explicit UnilateralContact(int sign=1) : m_sign((Real)sign) 
+    explicit UnilateralContact(int sign=1) : m_sign((Real)sign)
     {   assert(sign==1 || sign==-1); }
 
     virtual ~UnilateralContact() {}
@@ -130,11 +130,11 @@ public:
     /** Report the sign convention (1 or -1) supplied at construction. **/
     Real getSignConvention() const {return m_sign;}
 
-    /** Disable the normal and friction constraints if they were enabled. 
+    /** Disable the normal and friction constraints if they were enabled.
     Return true if we actually had to disable something. **/
     virtual bool disable(State& state) const = 0;
 
-    /** Enable the normal and friction constraints if they were disabled. 
+    /** Enable the normal and friction constraints if they were disabled.
     Return true if we actually had to enable something. **/
     virtual bool enable(State& state) const = 0;
 
@@ -146,40 +146,40 @@ public:
     virtual Vec3 whereToDisplay(const State& state) const = 0;
 
     /** Returns the effective coefficient of restitution (COR) for this contact,
-    given an impact speed (a nonnegative scalar). For a given pair of contacting 
+    given an impact speed (a nonnegative scalar). For a given pair of contacting
     materials this is typically a function of just the impact speed, but it
-    could also depend on the time and configuration in \a state, which should 
+    could also depend on the time and configuration in \a state, which should
     be realized through Stage::Position. The given default impact speed
-    thresholds (also nonnegative) are used to calculate the COR unless this 
+    thresholds (also nonnegative) are used to calculate the COR unless this
     Contact overrides those. **/
     virtual Real calcEffectiveCOR(const State& state,
                                   Real defaultCaptureSpeed,
                                   Real defaultMinCORSpeed,
                                   Real impactSpeed) const = 0;
 
-    /** Return the position error for the contact constraint (usually a signed 
-    distance function). You have to apply the sign convention to interpret this 
+    /** Return the position error for the contact constraint (usually a signed
+    distance function). You have to apply the sign convention to interpret this
     properly. **/
     virtual Real getPerr(const State& state) const = 0;
-    /** Return the time derivative of the contact constraint position error. You 
+    /** Return the time derivative of the contact constraint position error. You
     have to apply the sign convention to interpret this properly. **/
     virtual Real getVerr(const State& state) const = 0;
-    /** Return the time derivative of the contact constraint velocity error. You 
+    /** Return the time derivative of the contact constraint velocity error. You
     have to apply the sign convention to interpret this properly. **/
     virtual Real getAerr(const State& state) const = 0;
 
-    /** Given the position constraint tolerance currently in use, is this 
+    /** Given the position constraint tolerance currently in use, is this
     contact close enough to contacting that we should treat it as though
     it is in contact? Normally we just see if sign*perr <= tol, but individual
     contacts can override this if they want to do some scaling. **/
-    virtual bool isProximal(const State& state, Real ptol) const 
+    virtual bool isProximal(const State& state, Real ptol) const
     {   return m_sign*getPerr(state) <= ptol; }
 
-    /** Return the multiplier index Simbody assigned for the unilateral 
+    /** Return the multiplier index Simbody assigned for the unilateral
     contact constraint (for contact, this is the normal constraint). If the
     constraint is not enabled, there is no multiplier and the returned index
     will be invalid. **/
-    virtual MultiplierIndex 
+    virtual MultiplierIndex
     getContactMultiplierIndex(const State& state) const = 0;
 
     /** Returns \c true if there is a friction constraint associated with this
@@ -187,32 +187,32 @@ public:
     virtual bool hasFriction(const State& state) const {return false;}
 
     /** Returns the effective coefficient of friction mu for this contact,
-    given a relative slip speed (a nonnegative scalar). For a given pair of 
-    contacting materials this is typically a function of just the slip speed, 
-    but it could also depend on the time and configuration in \a state, which 
+    given a relative slip speed (a nonnegative scalar). For a given pair of
+    contacting materials this is typically a function of just the slip speed,
+    but it could also depend on the time and configuration in \a state, which
     should be realized through Stage::Position. The given default slip-to-roll
-    transition speed threshold (also nonnegative) is used to calculate mu 
+    transition speed threshold (also nonnegative) is used to calculate mu
     unless this Contact overrides it with its own transition speed. **/
     virtual Real calcEffectiveCOF(const State& state,
                                   Real defaultTransitionSpeed,
                                   Real slipSpeed) const
     {   return NaN; }
 
-    virtual Vec2 getSlipVelocity(const State& state) const 
+    virtual Vec2 getSlipVelocity(const State& state) const
     {   return Vec2(NaN); }
 
     /** If hasFriction(), this method returns the multipliers used for the
     x- and y-direction friction constraints. If no friction, or if this
     constraint is disabled, the returned values are invalid. **/
     virtual void
-    getFrictionMultiplierIndices(const State&       state, 
-                                 MultiplierIndex&   ix_x, 
+    getFrictionMultiplierIndices(const State&       state,
+                                 MultiplierIndex&   ix_x,
                                  MultiplierIndex&   ix_y) const
     {   ix_x.invalidate(); ix_y.invalidate(); }
 
-    /** TODO: kludge needed because we're misusing existing constraints. 
+    /** TODO: kludge needed because we're misusing existing constraints.
     This must be called while Stage::Position is valid. **/
-    virtual Vec3 getPositionInfo(const State& state) const 
+    virtual Vec3 getPositionInfo(const State& state) const
     {   return Vec3(NaN); }
     /** TODO: kludge to set instance parameters on internal constraints;
     this should be the same Vec3 you got from getPositionInfo(). **/
@@ -229,10 +229,10 @@ private:
 //==============================================================================
 //                       UNILATERAL SPEED CONSTRAINT
 //==============================================================================
-/** TODO: not implemented yet. 
+/** TODO: not implemented yet.
 
 A unilateral speed constraint uses a single nonholonomic (velocity)
-constraint equation to prevent relative slip in one direction but not in the 
+constraint equation to prevent relative slip in one direction but not in the
 other. Examples are ratchets and mechanical diodes.
 **/
 class SimTK_SIMBODY_EXPORT UnilateralSpeedConstraint {
@@ -252,7 +252,7 @@ A bounded speed constraint uses a single nonholonomic (velocity) constraint
 equation to prevent relative slip provided it can do so while keeping the
 generated force within a range given by a lower and upper bound. Outside that
 range the connection will slip and the force value will be one of the
-bounds, depending on the slip direction. An example is a torque-limited 
+bounds, depending on the slip direction. An example is a torque-limited
 speed control motor. Recall that multipliers lambda have the opposite sign
 convention from applied forces. We enforce:
 <pre>
@@ -261,7 +261,7 @@ convention from applied forces. We enforce:
     or verr < 0 and -lambda=upper
 </pre>
 The bounds (lower,upper) can be state dependent, for example, they may be
-dependent on the current slip velocity. When lower=-upper, this is just 
+dependent on the current slip velocity. When lower=-upper, this is just
 a restriction on the magnitude |lambda|, like a friction constraint where the
 normal force is known.
 
@@ -291,15 +291,15 @@ public:
     StateLimitedFriction() {}
     virtual ~StateLimitedFriction() {}
 
-    /** Disable the friction constraints if they were enabled. Return true if 
+    /** Disable the friction constraints if they were enabled. Return true if
     we actually had to disable something. **/
     virtual bool disable(State& state) const = 0;
 
-    /** Enable the friction constraints if they were disabled. Return true if 
+    /** Enable the friction constraints if they were disabled. Return true if
     we actually had to enable something. **/
     virtual bool enable(State& state) const = 0;
 
-    /** Return the current value of the state-dependent normal force 
+    /** Return the current value of the state-dependent normal force
     magnitude that limits this friction element. **/
     virtual Real getNormalForceMagnitude(const State& state) const = 0;
 
@@ -307,11 +307,11 @@ public:
                                   Real defaultTransitionSpeed,
                                   Real slipSpeed) const = 0;
 
-    virtual Real getSlipSpeed(const State& state) const = 0; 
+    virtual Real getSlipSpeed(const State& state) const = 0;
 
-    /** TODO: kludge needed because we're misusing existing constraints. 
+    /** TODO: kludge needed because we're misusing existing constraints.
     This must be called while Stage::Position is valid. **/
-    virtual Vec3 getPositionInfo(const State& state) const 
+    virtual Vec3 getPositionInfo(const State& state) const
     {   return Vec3(NaN); }
     /** TODO: kludge to set instance parameters on internal constraints;
     this should be the same Vec3 you got from getPositionInfo(). **/
@@ -327,15 +327,15 @@ private:
 //==============================================================================
 //                              HARD STOP UPPER
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Set a hard limit on the maximum value of a generalized coordinate q. A
 generalized force opposes further excursion of the coordinate, and a generalized
 impulse is produced when the stop is hit with a non-zero velocity (an impact).
-A coefficient of restitution (COR) e, with 0<=e<=1 is specified that 
-determines the rebound impulse that occurs as a result of impact. The COR is 
-typically velocity-dependent. The given value is the COR at high impact 
+A coefficient of restitution (COR) e, with 0<=e<=1 is specified that
+determines the rebound impulse that occurs as a result of impact. The COR is
+typically velocity-dependent. The given value is the COR at high impact
 velocities; it will be higher for low impact velocities but zero at very small
-impact velocities. 
+impact velocities.
 
 The sign convention for this unilateral constraint is negative, meaning that
 perr,verr,aerr<=0, lambda>=0 are the good directions. **/
@@ -344,20 +344,20 @@ public:
     HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
              Real defaultUpperLimit, Real minCOR);
 
-    bool disable(State& state) const override 
+    bool disable(State& state) const override
     {   if (m_upper.isDisabled(state)) return false;
         else {m_upper.disable(state); return true;} }
-    bool enable(State& state) const override 
+    bool enable(State& state) const override
     {   if (!m_upper.isDisabled(state)) return false;
         else {m_upper.enable(state); return true;} }
-    bool isEnabled(const State& state) const override 
+    bool isEnabled(const State& state) const override
     {   return !m_upper.isDisabled(state); }
 
     // Returns the contact point in the Ground frame.
     Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
-    // disabled in which case it won't calculate perr. Also, we want 
+    // disabled in which case it won't calculate perr. Also, we want
     // negative to mean violated so may need to adjust the sign.
     Real getPerr(const State& state) const override;
     Real getVerr(const State& state) const override;
@@ -366,7 +366,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -385,15 +385,15 @@ private:
 //==============================================================================
 //                              HARD STOP LOWER
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Set a hard limit on the minimum value of a generalized coordinate q. A
 generalized force opposes further excursion of the coordinate, and a generalized
 impulse is produced when the stop is hit with a non-zero velocity (an impact).
-A coefficient of restitution (COR) e, with 0<=e<=1 is specified that 
-determines the rebound impulse that occurs as a result of impact. The COR is 
-typically velocity-dependent. The given value is the COR at high impact 
+A coefficient of restitution (COR) e, with 0<=e<=1 is specified that
+determines the rebound impulse that occurs as a result of impact. The COR is
+typically velocity-dependent. The given value is the COR at high impact
 velocities; it will be higher for low impact velocities but zero at very small
-impact velocities. 
+impact velocities.
 
 The sign convention for this unilateral constraint is positive, meaning that
 perr,verr,aerr>=0, lambda<=0 are the good directions. **/
@@ -402,20 +402,20 @@ public:
     HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
                   Real defaultLowerLimit, Real minCOR);
 
-    bool disable(State& state) const override 
+    bool disable(State& state) const override
     {   if (m_lower.isDisabled(state)) return false;
         else {m_lower.disable(state); return true;} }
-    bool enable(State& state) const override 
+    bool enable(State& state) const override
     {   if (!m_lower.isDisabled(state)) return false;
         else {m_lower.enable(state); return true;} }
-    bool isEnabled(const State& state) const override 
+    bool isEnabled(const State& state) const override
     {   return !m_lower.isDisabled(state); }
 
     // Returns the contact point in the Ground frame.
     Vec3 whereToDisplay(const State& state) const override;
 
     // Currently have to fake the perr because the constraint might be
-    // disabled in which case it won't calculate perr. Also, we want 
+    // disabled in which case it won't calculate perr. Also, we want
     // negative to mean violated so may need to adjust the sign.
     Real getPerr(const State& state) const override;
     Real getVerr(const State& state) const override;
@@ -424,7 +424,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -444,31 +444,31 @@ private:
 //==============================================================================
 //                                  ROPE
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Set a hard upper limit on the separation between a point P on one body and
 a point Q on another. A point-to-point force opposes further separation
-of the points, and a point-to-point impulse is produced when the limit is hit 
-with a non-zero velocity (an impact). A coefficient of restitution (COR) e, 
-with 0<=e<=1 is specified that determines the rebound impulse that occurs as a 
-result of impact. The COR is typically velocity-dependent. The given value is 
+of the points, and a point-to-point impulse is produced when the limit is hit
+with a non-zero velocity (an impact). A coefficient of restitution (COR) e,
+with 0<=e<=1 is specified that determines the rebound impulse that occurs as a
+result of impact. The COR is typically velocity-dependent. The given value is
 the COR at high impact velocities; it will be higher for low impact velocities
-but zero at very small impact velocities. 
+but zero at very small impact velocities.
 
 The sign convention for this unilateral constraint is positive, meaning that
 perr,verr,aerr>=0, lambda<=0 are the good directions. **/
 class SimTK_SIMBODY_EXPORT Rope : public UnilateralContact {
 public:
-    Rope(MobilizedBody& mobod1, const Vec3& point1, 
+    Rope(MobilizedBody& mobod1, const Vec3& point1,
          MobilizedBody& mobod2, const Vec3& point2,
          Real defaultLengthLimit, Real minCOR);
 
-    bool disable(State& state) const override 
+    bool disable(State& state) const override
     {   if (m_rod.isDisabled(state)) return false;
         else {m_rod.disable(state); return true;} }
-    bool enable(State& state) const override 
+    bool enable(State& state) const override
     {   if (!m_rod.isDisabled(state)) return false;
         else {m_rod.enable(state); return true;} }
-    bool isEnabled(const State& state) const override 
+    bool isEnabled(const State& state) const override
     {   return !m_rod.isDisabled(state); }
 
     // Returns half-way location in the Ground frame.
@@ -483,7 +483,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -499,11 +499,11 @@ private:
 //==============================================================================
 //                    POINT PLANE FRICTIONLESS CONTACT
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Define a point on one body that cannot penetrate a plane attached to another
 body. The resulting contact is parameterized by a coefficient of restitution
 for impacts in the plane normal direction. **/
-class SimTK_SIMBODY_EXPORT PointPlaneFrictionlessContact 
+class SimTK_SIMBODY_EXPORT PointPlaneFrictionlessContact
 :   public UnilateralContact {
 public:
     PointPlaneFrictionlessContact(
@@ -544,7 +544,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -570,7 +570,7 @@ private:
 //==============================================================================
 //                          POINT PLANE CONTACT
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Define a point on one body that cannot penetrate a plane attached to another
 body. The resulting contact is parameterized by a coefficient of restitution
 for impacts in the plane normal direction, and by coefficients of friction
@@ -579,7 +579,7 @@ class SimTK_SIMBODY_EXPORT PointPlaneContact : public UnilateralContact {
 public:
     PointPlaneContact(
         MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
-        MobilizedBody& followerBodyF, const Vec3& point_F, 
+        MobilizedBody& followerBodyF, const Vec3& point_F,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
     bool disable(State& state) const override {
@@ -616,7 +616,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -641,8 +641,8 @@ public:
 
     MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
-    void getFrictionMultiplierIndices(const State&     s, 
-                                      MultiplierIndex& ix_x, 
+    void getFrictionMultiplierIndices(const State&     s,
+                                      MultiplierIndex& ix_x,
                                       MultiplierIndex& ix_y) const override;
 
 private:
@@ -662,7 +662,7 @@ private:
 //==============================================================================
 //                          SPHERE PLANE CONTACT
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Define a sphere on one body that cannot penetrate a plane attached to another
 body. The resulting contact is parameterized by a coefficient of restitution
 for impacts in the plane normal direction, and by coefficients of friction
@@ -708,7 +708,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -733,8 +733,8 @@ public:
 
     MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
-    void getFrictionMultiplierIndices(const State&     s, 
-                                      MultiplierIndex& ix_x, 
+    void getFrictionMultiplierIndices(const State&     s,
+                                      MultiplierIndex& ix_x,
                                       MultiplierIndex& ix_y) const override;
 
 private:
@@ -747,19 +747,19 @@ private:
 //==============================================================================
 //                          SPHERE SPHERE CONTACT
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
-Define a sphere on each of two bodies. This constraint will prevent 
+/** (Experimental -- API will change -- use at your own risk)
+Define a sphere on each of two bodies. This constraint will prevent
 interpenetration of those spheres, and provide for frictional forces when
-they are in contact. The resulting contact is parameterized by a coefficient of 
-restitution for impacts in the plane normal direction, and by coefficients of 
+they are in contact. The resulting contact is parameterized by a coefficient of
+restitution for impacts in the plane normal direction, and by coefficients of
 friction for frictional forces in the plane. **/
 class SimTK_SIMBODY_EXPORT SphereSphereContact : public UnilateralContact {
 public:
     SphereSphereContact(
-        MobilizedBody&      mobod_F, 
-        const Vec3&         defaultCenterOnF, 
-        Real                defaultRadiusOnF, 
-        MobilizedBody&      mobod_B, 
+        MobilizedBody&      mobod_F,
+        const Vec3&         defaultCenterOnF,
+        Real                defaultRadiusOnF,
+        MobilizedBody&      mobod_B,
         const Vec3&         defaultCenterOnB,
         Real                defaultRadiusOnB,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
@@ -798,7 +798,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -823,8 +823,8 @@ public:
 
     MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
-    void getFrictionMultiplierIndices(const State&     s, 
-                                      MultiplierIndex& ix_x, 
+    void getFrictionMultiplierIndices(const State&     s,
+                                      MultiplierIndex& ix_x,
                                       MultiplierIndex& ix_y) const override;
 
 private:
@@ -838,25 +838,25 @@ private:
 //==============================================================================
 //                            EDGE EDGE CONTACT
 //==============================================================================
-/** (Experimental -- API will change -- use at your own risk) 
+/** (Experimental -- API will change -- use at your own risk)
 Define an edge on each of two bodies, by providing an "edge frame" where the
 origin is the edge center, x axis is aligned with the edge, and z axis points
-in the "outward" direction away from the solid whose edge it is. This 
+in the "outward" direction away from the solid whose edge it is. This
 constraint is only meaningful if the edges are \e not parallel and if the
 closest point of the lines containing the edges lies within both edges. This
-constraint will prevent interpenetration of the solids at the intersection of 
+constraint will prevent interpenetration of the solids at the intersection of
 the lines containing the given edges, and provide for frictional forces when
-they are in contact. The resulting contact is parameterized by a coefficient of 
-restitution for impacts in the plane normal direction, and by coefficients of 
+they are in contact. The resulting contact is parameterized by a coefficient of
+restitution for impacts in the plane normal direction, and by coefficients of
 friction for frictional forces in the plane containing the edges. **/
 class SimTK_SIMBODY_EXPORT EdgeEdgeContact : public UnilateralContact {
 public:
     EdgeEdgeContact(
-        MobilizedBody&      mobod_F, 
-        const Transform&    defaultEdgeFrameF, 
-        Real                defaultHalfLengthF, 
-        MobilizedBody&      mobod_B, 
-        const Transform&    defaultEdgeFrameB, 
+        MobilizedBody&      mobod_F,
+        const Transform&    defaultEdgeFrameF,
+        Real                defaultHalfLengthF,
+        MobilizedBody&      mobod_B,
+        const Transform&    defaultEdgeFrameB,
         Real                defaultHalfLengthB,
         Real minCOR, Real mu_s, Real mu_d, Real mu_v);
 
@@ -894,7 +894,7 @@ public:
     Real calcEffectiveCOR(const State& state,
                           Real defaultCaptureSpeed,
                           Real defaultMinCORSpeed,
-                          Real impactSpeed) const override 
+                          Real impactSpeed) const override
     {
        return ConditionalConstraint::calcEffectiveCOR
                (m_minCOR, defaultCaptureSpeed, defaultMinCORSpeed,
@@ -919,8 +919,8 @@ public:
 
     MultiplierIndex getContactMultiplierIndex(const State& s) const override;
 
-    void getFrictionMultiplierIndices(const State&     s, 
-                                      MultiplierIndex& ix_x, 
+    void getFrictionMultiplierIndices(const State&     s,
+                                      MultiplierIndex& ix_x,
                                       MultiplierIndex& ix_y) const override;
 
 private:

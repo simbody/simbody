@@ -50,7 +50,7 @@ const Real transitionVelocity = 1e-2; // slide->stick velocity
 const Real steel_density = 8000.;  // kg/m^3
 const Real steel_young   = 200e9;  // pascals (N/m)
 const Real steel_poisson = 0.3;    // ratio
-const Real steel_planestrain = 
+const Real steel_planestrain =
     ContactMaterial::calcPlaneStrainStiffness(steel_young,steel_poisson);
 const Real steel_dissipation = 0.001;
 
@@ -60,7 +60,7 @@ const ContactMaterial steel(steel_planestrain,steel_dissipation,0,0,0);
 const Real concrete_density = 2300.;  // kg/m^3
 const Real concrete_young   = 25e9;  // pascals (N/m)
 const Real concrete_poisson = 0.15;    // ratio
-const Real concrete_planestrain = 
+const Real concrete_planestrain =
     ContactMaterial::calcPlaneStrainStiffness(concrete_young,concrete_poisson);
 const Real concrete_dissipation = 0.005;
 
@@ -82,7 +82,7 @@ const ContactMaterial nylon(nylon_planestrain,nylon_dissipation,
 const Real rubber_density = 1100.;  // kg/m^3
 const Real rubber_young   = 0.01e9; // pascals (N/m)
 const Real rubber_poisson = 0.5;    // ratio
-const Real rubber_planestrain = 
+const Real rubber_planestrain =
     ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
 const Real rubber_dissipation = 0.005;
 
@@ -122,7 +122,7 @@ int main() {
 
     int major,minor,build;
     char out[100];
-    const char* keylist[] = { "version", "library", "type", "debug", "authors", 
+    const char* keylist[] = { "version", "library", "type", "debug", "authors",
                               "copyright", "svn_revision", 0 };
 
     SimTK_version_SimTKcommon(&major,&minor,&build);
@@ -198,13 +198,13 @@ try
     DecorativeBrick smallWall(Vec3(.1,20,20)), tallWall(Vec3(.1,30,20));
     Ground.addBodyDecoration(Transform(R_floor,Vec3(0)),
         smallWall.setColor(Green).setOpacity(1));
-    Ground.addBodyDecoration(Transform(R_left,Vec3(-20,20,0)), 
+    Ground.addBodyDecoration(Transform(R_left,Vec3(-20,20,0)),
         tallWall.setColor(Yellow).setOpacity(.2));
-    Ground.addBodyDecoration(Transform(R_right,Vec3(20,20,0)), 
+    Ground.addBodyDecoration(Transform(R_right,Vec3(20,20,0)),
         tallWall.setColor(Yellow).setOpacity(.2));
-    Ground.addBodyDecoration(Transform(R_front,Vec3(0,20,20)), 
+    Ground.addBodyDecoration(Transform(R_front,Vec3(0,20,20)),
         smallWall.setColor(Gray).setOpacity(.05));
-    Ground.addBodyDecoration(Transform(R_back, Vec3(0,20,-20)), 
+    Ground.addBodyDecoration(Transform(R_back, Vec3(0,20,-20)),
         tallWall.setColor(Cyan).setOpacity(.2));
 
     // start with a 2body pendulum with big rubber balls
@@ -212,7 +212,7 @@ try
     Vec3 pendGroundPt1 = Vec3(-10,50,-10);
     Vec3 pendGroundPt2 = Vec3(20,20,-10);
     Inertia pendBallInertia(PendBallMass*UnitInertia::sphere(PendBallRadius));
-    const MassProperties pendMProps(PendBallMass, Vec3(0, -linkLength/2, 0), 
+    const MassProperties pendMProps(PendBallMass, Vec3(0, -linkLength/2, 0),
         pendBallInertia.shiftFromMassCenter(Vec3(0, -linkLength/2, 0), PendBallMass));
 
     Body::Rigid pendBodyInfo(pendMProps);
@@ -234,9 +234,9 @@ try
                                   20);
 
 
-    Body::Rigid hardBallInfo(MassProperties(HardBallMass, Vec3(0), 
+    Body::Rigid hardBallInfo(MassProperties(HardBallMass, Vec3(0),
                                 UnitInertia::sphere(HardBallRadius)));
-    Body::Rigid rubberBallInfo(MassProperties(RubberBallMass, Vec3(0), 
+    Body::Rigid rubberBallInfo(MassProperties(RubberBallMass, Vec3(0),
                                   UnitInertia::sphere(RubberBallRadius)));
 
 #ifdef USE_ELLIPSOIDS
@@ -255,27 +255,27 @@ try
     DecorativeSphere rubberSphere(RubberBallRadius);
 #endif
 
-    const Vec3 firstHardBallPos   = Vec3(-6,30,  0), 
+    const Vec3 firstHardBallPos   = Vec3(-6,30,  0),
                firstRubberBallPos = Vec3(13,30,-15);
 
     for (int i=0; i<NRubberBalls; ++i) {
-        //MobilizedBody::Cartesian 
-        MobilizedBody::Free 
+        //MobilizedBody::Cartesian
+        MobilizedBody::Free
             rubberBall(matter.Ground(),
             Transform(firstRubberBallPos+i*Vec3(0,2*RubberBallRadius+1,0)),
             rubberBallInfo, Transform());
-        rubberBall.addBodyDecoration(Vec3(0), 
+        rubberBall.addBodyDecoration(Vec3(0),
             rubberSphere.setColor((Real(i+1)/NRubberBalls)*Gray));
     }
 
     for (int i=0; i < NHardBalls; ++i) {
-        //MobilizedBody::Cartesian 
-        MobilizedBody::Free 
+        //MobilizedBody::Cartesian
+        MobilizedBody::Free
             hardBall(matter.Ground(),
             Transform(firstHardBallPos+i*Vec3(0,2*HardBallRadius+1,0)
                         + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
             hardBallInfo, Transform());
-        hardBall.addBodyDecoration(Vec3(0), 
+        hardBall.addBodyDecoration(Vec3(0),
             hardSphere.setColor(colors[i % NColors]));
     }
 
@@ -357,7 +357,7 @@ try
         const State& ss = ee.getState();
         if (!(step % 30)) {
             mbs.realize(ss);
-            cout << ss.getTime() 
+            cout << ss.getTime()
                 //<< ": T=" << thermostat.getCurrentTemperature(ss)
              << " E=" << mbs.calcEnergy(ss)
              << " (pe=" << mbs.calcPotentialEnergy(ss)
@@ -399,7 +399,7 @@ try
 
 
   }
-catch (const std::exception& e) 
+catch (const std::exception& e)
   {
     printf("EXCEPTION THROWN: %s\n", e.what());
   }
@@ -413,17 +413,17 @@ namespace {
 //==============================================================================
 void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }
 }

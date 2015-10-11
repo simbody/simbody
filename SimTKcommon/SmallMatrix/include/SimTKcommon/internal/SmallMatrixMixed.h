@@ -25,8 +25,8 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This file defines global functions and class members which use a mix 
- * of Vec, Row, and Mat types and hence need to wait until everything is 
+ * This file defines global functions and class members which use a mix
+ * of Vec, Row, and Mat types and hence need to wait until everything is
  * defined. Some of them may depend on Lapack also.
  */
 
@@ -44,7 +44,7 @@ bool operator==(const Mat<M,M,EL,CSL,RSL>& l, const SymMat<M,ER,RSR>& r) {
         for (int j=i+1; j<M; ++j)
             if (l(i,j) != r.getEltUpper(i,j)) return false;
     }
-     
+
     return true;
 }
 // m!=s
@@ -67,7 +67,7 @@ bool operator!=(const SymMat<M,EL,RSL>& l, const Mat<M,M,ER,CSR,RSR>& r) {
     // DOT PRODUCT
 
 // Dot product and corresponding infix operator*(). Note that
-// the '*' operator is just a matrix multiply so is strictly 
+// the '*' operator is just a matrix multiply so is strictly
 // row*column to produce a scalar (1x1) result.
 //
 // In keeping with Matlab precedent, however, the explicit dot()
@@ -82,13 +82,13 @@ bool operator!=(const SymMat<M,EL,RSL>& l, const Mat<M,M,ER,CSR,RSR>& r) {
 
 
 template <int M, class E1, int S1, class E2, int S2> inline
-typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul 
+typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul
 dot(const Vec<M,E1,S1>& r, const Vec<M,E2,S2>& v) {
     typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul sum(dot(reinterpret_cast<const Vec<M-1,E1,S1>&>(r), reinterpret_cast<const Vec<M-1,E2,S2>&>(v)) + CNT<E1>::transpose(r[M-1])*v[M-1]);
     return sum;
 }
 template <class E1, int S1, class E2, int S2> inline
-typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul 
+typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul
 dot(const Vec<1,E1,S1>& r, const Vec<1,E2,S2>& v) {
     typename CNT<typename CNT<E1>::THerm>::template Result<E2>::Mul sum(CNT<E1>::transpose(r[0])*v[0]);
     return sum;
@@ -96,13 +96,13 @@ dot(const Vec<1,E1,S1>& r, const Vec<1,E2,S2>& v) {
 
 // dot product (row * conforming vec)
 template <int N, class E1, int S1, class E2, int S2> inline
-typename CNT<E1>::template Result<E2>::Mul 
+typename CNT<E1>::template Result<E2>::Mul
 operator*(const Row<N,E1,S1>& r, const Vec<N,E2,S2>& v) {
     typename CNT<E1>::template Result<E2>::Mul sum(reinterpret_cast<const Row<N-1,E1,S1>&>(r)*reinterpret_cast<const Vec<N-1,E2,S2>&>(v) + r[N-1]*v[N-1]);
     return sum;
 }
 template <class E1, int S1, class E2, int S2> inline
-typename CNT<E1>::template Result<E2>::Mul 
+typename CNT<E1>::template Result<E2>::Mul
 operator*(const Row<1,E1,S1>& r, const Vec<1,E2,S2>& v) {
     typename CNT<E1>::template Result<E2>::Mul sum(r[0]*v[0]);
     return sum;
@@ -110,17 +110,17 @@ operator*(const Row<1,E1,S1>& r, const Vec<1,E2,S2>& v) {
 
 // Alternate acceptable forms for dot().
 template <int N, class E1, int S1, class E2, int S2> inline
-typename CNT<E1>::template Result<E2>::Mul 
+typename CNT<E1>::template Result<E2>::Mul
 dot(const Row<N,E1,S1>& r, const Vec<N,E2,S2>& v) {
     return dot(r.positionalTranspose(),v);
 }
 template <int M, class E1, int S1, class E2, int S2> inline
-typename CNT<E1>::template Result<E2>::Mul 
+typename CNT<E1>::template Result<E2>::Mul
 dot(const Vec<M,E1,S1>& v, const Row<M,E2,S2>& r) {
     return dot(v,r.positionalTranspose());
 }
 template <int N, class E1, int S1, class E2, int S2> inline
-typename CNT<E1>::template Result<E2>::Mul 
+typename CNT<E1>::template Result<E2>::Mul
 dot(const Row<N,E1,S1>& r, const Row<N,E2,S2>& s) {
     return dot(r.positionalTranspose(),s.positionalTranspose());
 }
@@ -128,7 +128,7 @@ dot(const Row<N,E1,S1>& r, const Row<N,E2,S2>& s) {
     // OUTER PRODUCT
 
 // Outer product and corresponding infix operator*(). Note that
-// the '*' operator is just a matrix multiply so is strictly 
+// the '*' operator is just a matrix multiply so is strictly
 // column_mX1 * row_1Xm to produce an mXm matrix result.
 //
 // Although Matlab doesn't provide outer(), to be consistent
@@ -440,7 +440,7 @@ template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 operator%(const Row<3,E1,S1>& a, const Vec<3,E2,S2>& b) {return cross(a,b);}
 
-// r = r % r 
+// r = r % r
 template <class E1, int S1, class E2, int S2> inline
 Row<3,typename CNT<E1>::template Result<E2>::Mul>
 cross(const Row<3,E1,S1>& a, const Row<3,E2,S2>& b) {
@@ -495,15 +495,15 @@ cross(const Vec<3,E1,S1>& v, const Row<3,Vec<3,E2,S2>,S3>& m) {
 }
 template <class E1, int S1, int N, class E2, int S2, int S3> inline
 Row< N,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > // packed
-operator%(const Vec<3,E1,S1>& v, const Row<N,Vec<3,E2,S2>,S3>& m) 
+operator%(const Vec<3,E1,S1>& v, const Row<N,Vec<3,E2,S2>,S3>& m)
 {   return cross(v,m); }
 template <class E1, int S1, class E2, int S2, int S3> inline
 Row< 3,Vec<3,typename CNT<E1>::template Result<E2>::Mul> > // packed
-operator%(const Vec<3,E1,S1>& v, const Row<3,Vec<3,E2,S2>,S3>& m) 
+operator%(const Vec<3,E1,S1>& v, const Row<3,Vec<3,E2,S2>,S3>& m)
 {   return cross(v,m); }
 
 // m = v % s
-// By writing this out elementwise for the symmetric case we can do this 
+// By writing this out elementwise for the symmetric case we can do this
 // in 24 flops, a small savings over doing three cross products of 9 flops each.
 template<class EV, int SV, class EM, int RS> inline
 Mat<3,3,typename CNT<EV>::template Result<EM>::Mul> // packed
@@ -558,7 +558,7 @@ Mat<M,3,typename CNT<EM>::template Result<EV>::Mul> // packed
 operator%(const Mat<M,3,EM,CS,RS>& m, const Vec<3,EV,S>& v) {return cross(m,v);}
 
 // m = s % v
-// By writing this out elementwise for the symmetric case we can do this 
+// By writing this out elementwise for the symmetric case we can do this
 // in 24 flops, a small savings over doing three cross products of 9 flops each.
 template<class EM, int RS, class EV, int SV> inline
 Mat<3,3,typename CNT<EM>::template Result<EV>::Mul> // packed
@@ -670,7 +670,7 @@ Mat<3,3,E> crossMat(const Row<3,E,S>& r) {return crossMat(r.positionalTranspose(
 template <class E, int S> inline
 Mat<3,3,E> crossMat(const Row<3,negator<E>,S>& r) {return crossMat(r.positionalTranspose());}
 
-/// Calculate 2D cross product matrix M(v) such that M(v)*w = v0*w1-v1*w0 = v % w (a scalar). 
+/// Calculate 2D cross product matrix M(v) such that M(v)*w = v0*w1-v1*w0 = v % w (a scalar).
 /// Whether v is a Vec<2> or Row<2> we create the same M, which will be a 2-element Row.
 /// Requires 1 flop to form.
 template <class E, int S> inline
@@ -692,10 +692,10 @@ Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTra
 
     // CROSS MAT SQ
 
-/// Calculate matrix S(v) such that S(v)*w = -v % (v % w) = (v % w) % v. 
+/// Calculate matrix S(v) such that S(v)*w = -v % (v % w) = (v % w) % v.
 /// S is a symmetric,
-/// 3x3 matrix with nonnegative diagonals that obey the triangle inequality. 
-/// If M(v) = crossMat(v), then S(v) = square(M(v)) = ~M(v)*M(v) = -M(v)*M(v) 
+/// 3x3 matrix with nonnegative diagonals that obey the triangle inequality.
+/// If M(v) = crossMat(v), then S(v) = square(M(v)) = ~M(v)*M(v) = -M(v)*M(v)
 /// since M is skew symmetric.
 ///
 /// Also, S(v) = dot(v,v)*I - outer(v,v) = ~v*v*I - v*~v, where I is the identity
@@ -710,7 +710,7 @@ Row<2,E> crossMat(const Row<2,negator<E>,S>& r) {return crossMat(r.positionalTra
 /// </pre>
 /// where "T" indicates that the element is identical to the symmetric one.
 /// Note that S(-v)=S(v). This requires 11 flops to form.
-/// We produce the same S(v) regardless of whether v is a column or row. 
+/// We produce the same S(v) regardless of whether v is a column or row.
 /// There is no 2D equivalent of this operator.
 template <class E, int S> inline
 SymMat<3,E>
@@ -772,7 +772,7 @@ E det(const Mat<2,2,E,CS,RS>& m) {
 /// Special case 2x2 SymMat determinant. 3 flops (if elements are Real).
 template <class E, int RS> inline
 E det(const SymMat<2,E,RS>& s) {
-    // For Hermitian matrix (i.e., E is complex or conjugate), s(0,1) 
+    // For Hermitian matrix (i.e., E is complex or conjugate), s(0,1)
     // and s(1,0) are complex conjugates of one another. Because of the
     // constant indices here, the SymMat goes right to the correct
     // element, so everything gets done inline here with no conditionals.
@@ -799,9 +799,9 @@ E det(const SymMat<3,E,RS>& s) {
 }
 
 /// Calculate the determinant of a square matrix larger than 3x3
-/// by recursive template expansion. The matrix elements must be 
-/// multiplication compatible for this to compile successfully. 
-/// All scalar element types are acceptable; some composite types 
+/// by recursive template expansion. The matrix elements must be
+/// multiplication compatible for this to compile successfully.
+/// All scalar element types are acceptable; some composite types
 /// will also work but the result is probably meaningless.
 /// The determinant suffers from increasingly bad scaling as the
 /// matrices get bigger; you should consider an alternative if
@@ -825,7 +825,7 @@ E det(const Mat<M,M,E,CS,RS>& m) {
     return result;
 }
 
-/// Determinant of SymMat larger than 3x3. 
+/// Determinant of SymMat larger than 3x3.
 /// TODO: This should be done
 /// instead with a symmetric factorization; the determinant will
 /// be calculable as a product of some diagonal in the factorization.
@@ -845,14 +845,14 @@ typename Mat<1,1,E,CS,RS>::TInvert lapackInverse(const Mat<1,1,E,CS,RS>& m) {
     return MInv( E(typename CNT<E>::StdNumber(1)/m(0,0)) );
 }
 
-/// General inverse of small, fixed-size, square (mXm), non-singular matrix with 
-/// scalar elements: use Lapack's LU routine with pivoting. This will only work 
-/// if the element type E is a scalar type, although negator<> and conjugate<> 
+/// General inverse of small, fixed-size, square (mXm), non-singular matrix with
+/// scalar elements: use Lapack's LU routine with pivoting. This will only work
+/// if the element type E is a scalar type, although negator<> and conjugate<>
 /// are OK. This routine is <em>not</em> specialized for small matrix sizes other
 /// than 1x1, while the inverse() method is specialized for other small sizes
 /// for speed, possibly losing some numerical stability. The inverse() function
-/// ends up calling this one at sizes for which it has no specialization. 
-/// Normally you should call inverse(), but you can call lapackInverse() 
+/// ends up calling this one at sizes for which it has no specialization.
+/// Normally you should call inverse(), but you can call lapackInverse()
 /// explicitly if you want to ensure that the most stable algorithm is used.
 /// @see inverse()
 template <int M, class E, int CS, int RS> inline
@@ -863,9 +863,9 @@ typename Mat<M,M,E,CS,RS>::TInvert lapackInverse(const Mat<M,M,E,CS,RS>& m) {
     // will be 1, as Lapack expects for a Full matrix.
     typename Mat<M,M,E,CS,RS>::TInvert inv = m; // dense, columnwise storage
 
-    // We'll perform the inversion ignoring negation and conjugation altogether, 
-    // but the TInvert Mat type negates or conjugates the result. And because 
-    // of the famous Sherman-Eastman theorem, we know that 
+    // We'll perform the inversion ignoring negation and conjugation altogether,
+    // but the TInvert Mat type negates or conjugates the result. And because
+    // of the famous Sherman-Eastman theorem, we know that
     // conj(inv(m))==inv(conj(m)), and of course -inv(m)==inv(-m).
     typedef typename CNT<E>::StdNumber Raw;   // Raw is E without negator or conjugate.
     Raw* rawData = reinterpret_cast<Raw*>(&inv(0,0));
@@ -927,7 +927,7 @@ typename SymMat<2,E,RS>::TInvert inverse(const SymMat<2,E,RS>& s) {
 }
 
 /// Specialized 3x3 inverse: costs one divide plus 41 flops (for real-valued
-/// matrices). No pivoting done here so this may be subject to numerical errors 
+/// matrices). No pivoting done here so this may be subject to numerical errors
 /// that Lapack would avoid. Call lapackInverse() instead if you're worried.
 /// @see lapackInverse()
 template <class E, int CS, int RS> inline
@@ -941,7 +941,7 @@ typename Mat<3,3,E,CS,RS>::TInvert inverse(const Mat<3,3,E,CS,RS>& m) {
 
     // This is the 3x3 determinant and its inverse.
     const E d  (m(0,0)*d00 + m(0,1)*nd01 + m(0,2)*d02);
-    const typename CNT<E>::TInvert 
+    const typename CNT<E>::TInvert
             ood(typename CNT<E>::StdNumber(1)/d);
 
     // The other six 2x2 determinants we can't re-use, but we can still
@@ -956,12 +956,12 @@ typename Mat<3,3,E,CS,RS>::TInvert inverse(const Mat<3,3,E,CS,RS>& m) {
     return typename Mat<3,3,E,CS,RS>::TInvert
        ( E(ood* d00), E(ood*nd10), E(ood* d20),
          E(ood*nd01), E(ood* d11), E(ood*nd21),
-         E(ood* d02), E(ood*nd12), E(ood* d22) ); 
+         E(ood* d02), E(ood*nd12), E(ood* d22) );
 }
 
-/// Specialized 3x3 inverse for symmetric or Hermitian: costs one divide plus 
-/// 29 flops (for real-valued matrices). No pivoting done here so this may be 
-/// subject to numerical errors that Lapack would avoid. Call lapackSymInverse() 
+/// Specialized 3x3 inverse for symmetric or Hermitian: costs one divide plus
+/// 29 flops (for real-valued matrices). No pivoting done here so this may be
+/// subject to numerical errors that Lapack would avoid. Call lapackSymInverse()
 /// instead if you're worried.
 /// @see lapackSymInverse()
 template <class E, int RS> inline
@@ -975,7 +975,7 @@ typename SymMat<3,E,RS>::TInvert inverse(const SymMat<3,E,RS>& s) {
 
     // This is the 3x3 determinant and its inverse.
     const E d  (s(0,0)*d00 + s(0,1)*nd01 + s(0,2)*d02);
-    const typename CNT<E>::TInvert 
+    const typename CNT<E>::TInvert
             ood(typename CNT<E>::StdNumber(1)/d);
 
     // The other six 2x2 determinants we can't re-use, but we can still
@@ -985,9 +985,9 @@ typename SymMat<3,E,RS>::TInvert inverse(const SymMat<3,E,RS>& s) {
             d22 (s(0,0)*s(1,1)-s(0,1)*s(1,0));
 
     return typename SymMat<3,E,RS>::TInvert
-       ( E(ood* d00), 
-         E(ood*nd01), E(ood* d11), 
-         E(ood* d02), E(ood*nd12), E(ood* d22) ); 
+       ( E(ood* d00),
+         E(ood*nd01), E(ood* d11),
+         E(ood* d02), E(ood*nd12), E(ood* d22) );
 }
 
 /// For any matrix larger than 3x3, we just punt to the Lapack implementation.
@@ -997,10 +997,10 @@ typename Mat<M,M,E,CS,RS>::TInvert inverse(const Mat<M,M,E,CS,RS>& m) {
     return lapackInverse(m);
 }
 
-// Implement the Mat<>::invert() method using the above specialized 
+// Implement the Mat<>::invert() method using the above specialized
 // inverse functions. This will only compile if M==N.
 template <int M, int N, class ELT, int CS, int RS> inline
-typename Mat<M,N,ELT,CS,RS>::TInvert 
+typename Mat<M,N,ELT,CS,RS>::TInvert
 Mat<M,N,ELT,CS,RS>::invert() const {
     return SimTK::inverse(*this);
 }

@@ -35,18 +35,18 @@ namespace SimTK {
 //------------------------------------------------------------------------------
 //                            ASSEMBLY CONDITION
 //------------------------------------------------------------------------------
-/** Define an assembly condition consisting of a scalar goal and/or a 
-related set of assembly error equations (that is, an objective and/or some 
+/** Define an assembly condition consisting of a scalar goal and/or a
+related set of assembly error equations (that is, an objective and/or some
 constraints). Whether the goal or error is used depends on the weighting
 assigned to this AssemblyCondition. A finite weight indicates that the
-goal should be used (and combined with other goals); an infinite weighting 
+goal should be used (and combined with other goals); an infinite weighting
 means that each error must independently be satisfied to tolerance.  **/
 class SimTK_SIMBODY_EXPORT AssemblyCondition {
 public:
 
-/** Base class constructor just takes the assembly condition name and 
+/** Base class constructor just takes the assembly condition name and
 saves it. **/
-explicit AssemblyCondition(const String& name) 
+explicit AssemblyCondition(const String& name)
 :   name(name), assembler(0) {}
 
 /** Destructor is virtual for use by derived classes. **/
@@ -68,33 +68,33 @@ virtual void uninitializeCondition() const {}
 by the q values in the given state, with one scalar error per assembly
 equation returned in \a err. The functional return should be zero if
 successful; negative values are reserved with -1 meaning "not implemented";
-return a positive value if your implementation is unable to evaluate the 
+return a positive value if your implementation is unable to evaluate the
 error at the current state. If this method is not implemented then you must
-implement calcGoal() and this assembly condition may only be used as a 
+implement calcGoal() and this assembly condition may only be used as a
 goal, not a requirement. **/
 virtual int calcErrors(const State& state, Vector& err) const
 {   return -1; }
 
 /** Override to supply an analytic Jacobian for the assembly errors
-returned by calcErrors(). The returned Jacobian must be nErr X nFreeQs; 
-that is, if there is only one assembly error equation the returned matrix 
-is a single row (that's the transpose of the gradient). The functional 
+returned by calcErrors(). The returned Jacobian must be nErr X nFreeQs;
+that is, if there is only one assembly error equation the returned matrix
+is a single row (that's the transpose of the gradient). The functional
 return should be zero if this succeeds; negative values are reserved with
 the default implementation returning -1 which indicates that the
 Jacobian must be calculated numerically using the calcErrors() method.
-Return a positive value if your implementation is unable to evaluate the 
+Return a positive value if your implementation is unable to evaluate the
 Jacobian at the current state. **/
 virtual int calcErrorJacobian(const State& state, Matrix& jacobian) const
 {   return -1; }
 
 /** Override to supply an efficient method for determining how many errors
-will be returned by calcErrors(). Otherwise the default implementation 
+will be returned by calcErrors(). Otherwise the default implementation
 determines this by making a call to calcErrors() and returning the size
 of the returned error vector. The functional return should be zero if this
 succeeds; negative values are reserved; return a positive value if your
 implementation of this method can't determine the number of errors with
 the given state (unlikely!). **/
-virtual int getNumErrors(const State& state) const 
+virtual int getNumErrors(const State& state) const
 {   Vector err;
     const int status = calcErrors(state, err);
     if (status == 0)
@@ -105,13 +105,13 @@ virtual int getNumErrors(const State& state) const
         " condition '%s'.", name.c_str());
     SimTK_ERRCHK2_ALWAYS(status == 0,  "AssemblyCondition::getNumErrors()",
         "The default implementation of getNumErrors() uses calcErrors()"
-        " which returned status %d (assembly condition '%s').", 
+        " which returned status %d (assembly condition '%s').",
         status, name.c_str());
     return -1; // NOTREACHED
 }
 
 /** Calculate the current contribution (>= 0) of this assembly condition to
-the goal value that is being minimized. If this isn't overridden we'll 
+the goal value that is being minimized. If this isn't overridden we'll
 generate it by combining the m errors returned by calcErrors() in a mean
 sum of squares: goal = err^2/m. **/
 virtual int calcGoal(const State& state, Real& goal) const
@@ -126,7 +126,7 @@ virtual int calcGoal(const State& state, Real& goal) const
         name.c_str());
     SimTK_ERRCHK2_ALWAYS(status == 0,  "AssemblyCondition::calcGoal()",
         "The default implementation of calcGoal() uses calcErrors() which"
-        " returned status %d (assembly condition '%s').", 
+        " returned status %d (assembly condition '%s').",
         status, name.c_str());
     return -1; // NOTREACHED
 }
@@ -134,7 +134,7 @@ virtual int calcGoal(const State& state, Real& goal) const
 /** Override to supply an analytic gradient for this assembly condition's
 goal. The returned gradient must be nFreeQ X 1; that is, it is a column
 vector giving the partial derivative of the goal with respect to each of
-the free q's in order. The functional return should be zero if this 
+the free q's in order. The functional return should be zero if this
 succeeds. The default implementation return -1 which indicates that the
 gradient must be calculated numerically using the calcGoal() method. **/
 virtual int calcGoalGradient(const State& state, Vector& gradient) const
@@ -143,18 +143,18 @@ virtual int calcGoalGradient(const State& state, Vector& gradient) const
 /** Return the name assigned to this AssemblyCondition on construction. **/
 const char* getName() const {return name.c_str();}
 
-/** Test whether this AssemblyCondition has already been adopted by an 
+/** Test whether this AssemblyCondition has already been adopted by an
 Assembler. **/
 bool isInAssembler() const {return assembler != 0;}
 /** Return the Assembler that has adopted this AssemblyCondition. This will
 throw an exception if there is no such Assembler; use isInAssembler() first
 if you're not sure. **/
-const Assembler& getAssembler() const 
+const Assembler& getAssembler() const
 {   assert(assembler); return *assembler;}
 /** Return the AssemblyConditionIndex of this concrete AssemblyCondition
 within the Assembler that has adopted it. This returned index will be
 invalid if this AssemblyCondition has not yet been adopted. **/
-AssemblyConditionIndex getAssemblyConditionIndex() const 
+AssemblyConditionIndex getAssemblyConditionIndex() const
 {   return myAssemblyConditionIndex; }
 
 //------------------------------------------------------------------------------
@@ -166,16 +166,16 @@ AssemblyConditionIndex getAssemblyConditionIndex() const
 initialization but does not invoke initialization. **/
 int getNumFreeQs() const {return getAssembler().getNumFreeQs();}
 /** Ask the assembler where to find the actual q in the State that corresponds
-to a given free q; only valid after initialization but does not invoke 
+to a given free q; only valid after initialization but does not invoke
 initialization. **/
 QIndex getQIndexOfFreeQ(Assembler::FreeQIndex fx) const
 {   return getAssembler().getQIndexOfFreeQ(fx); }
 /** Ask the assembler where to find the free q (if any) that corresponds
-to a given q in the State; only valid after initialization but does not invoke 
+to a given q in the State; only valid after initialization but does not invoke
 initialization. **/
 Assembler::FreeQIndex getFreeQIndexOfQ(QIndex qx) const
 {   return getAssembler().getFreeQIndexOfQ(qx); }
-/** Ask the assembler for the MultibodySystem with which it is associated. **/ 
+/** Ask the assembler for the MultibodySystem with which it is associated. **/
 const MultibodySystem& getMultibodySystem() const
 {   return getAssembler().getMultibodySystem(); }
 /** Ask the assembler for the MultibodySystem with which it is associated
@@ -183,7 +183,7 @@ and extract the SimbodyMatterSubsystem contained therein. **/
 const SimbodyMatterSubsystem& getMatterSubsystem() const
 {   return getMultibodySystem().getMatterSubsystem(); }
 
-/** Call this method before doing anything that logically requires the 
+/** Call this method before doing anything that logically requires the
 Assembler, or at least this AssemblyCondition, to have been initialized. **/
 void initializeAssembler() const {
     // The Assembler will in turn invoke initializeCondition().
@@ -192,7 +192,7 @@ void initializeAssembler() const {
 }
 
 /** Call this when modifying any parameter of the concrete AssemblyCondition
-that would require reinitialization of the Assembler or the 
+that would require reinitialization of the Assembler or the
 AssemblyCondition. **/
 void uninitializeAssembler() const {
     // The Assembler will in turn invoke uninitializeCondition().
@@ -203,7 +203,7 @@ void uninitializeAssembler() const {
 //------------------------------------------------------------------------------
                                    private:
 //------------------------------------------------------------------------------
-// This method is used by the Assembler when the AssemblyCondition object 
+// This method is used by the Assembler when the AssemblyCondition object
 // is adopted.
 friend class Assembler;
 void setAssembler(const Assembler& assembler, AssemblyConditionIndex acx) {

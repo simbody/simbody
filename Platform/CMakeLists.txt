@@ -8,7 +8,7 @@
 #    - Lapack
 # Pthreads is standard on Linux platforms, and close enough
 # on Macs. On Windows we have to supply our own.
-# We provide our own high-performance Lapack library 
+# We provide our own high-performance Lapack library
 # for Windows; Linux and Macs are expected to have one.
 #-----------------------------------------------------------
 
@@ -19,14 +19,62 @@ if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
  return()
 endif()
 
+if(MINGW)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(ARCH64_BITS TRUE)
+    else()
+        set(ARCH64_BITS FALSE)
+    endif()
+    get_filename_component(MINGW_BIN_PATH ${CMAKE_C_COMPILER} PATH)
+    message(STATUS "MINGW_BIN_PATH = ${MINGW_BIN_PATH}")
+    file(GLOB alldlls ${MINGW_BIN_PATH}/*.dll)
+    set(MINGW_GCC_THREAD "")
+    set(MINGW_GCC_EXCEPTION "")
+    foreach(f ${alldlls})
+        if(${f} MATCHES "libgcc")
+            message(STATUS "MINGW libgcc library = ${f}")
+            if(${f} MATCHES "dw2")
+                set(MINGW_GCC_EXCEPTION "dw2")
+            elseif(${f} MATCHES "sjlj")
+                set(MINGW_GCC_EXCEPTION "sjlj")
+            elseif(${f} MATCHES "seh")
+                set(MINGW_GCC_EXCEPTION "seh")
+            else()
+                message(FATAL_ERROR "MinGW exception was not identified amongst dw2, seh, sjlj")
+            endif()
+        endif()
+    endforeach()
+    if(ARCH64_BITS)
+        # Under a 64 bit OS, we have to ensure that the exception mechanism of MinGW
+        # is the same as the one used with the blas and lapack libraries provided
+        if(NOT BUILD_USING_OTHER_LAPACK)
+            if( ${MINGW_GCC_EXCEPTION} STREQUAL "seh" )
+                message(STATUS "MinGW exception mechanism does not match the one used to generate Blas and Lapack")
+                message(FATAL_ERROR "Please provide your own Blas and Lapack libraries or use a SJLJ version of MinGW")
+            endif()
+        endif()
+    endif()
+endif()
+
 set(LIB_ABI_DIR "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}")
-file(GLOB LIB_FILES 
+file(GLOB LIB_FILES
     "${LIB_ABI_DIR}/*.a"
     "${LIB_ABI_DIR}/*.so"
     "${LIB_ABI_DIR}/*.so.*"
     "${LIB_ABI_DIR}/*.dylib"
     "${LIB_ABI_DIR}/*.lib"
     "${LIB_ABI_DIR}/*.dll")
+
+if(BUILD_USING_OTHER_LAPACK)
+    if(MINGW)
+        # If we use MinGW, we bypass the classical *dll and use
+        # the MinGW ones.
+        file(GLOB LIB_FILES ${MINGW_BIN_PATH}/*.dll)
+        set(LIB_FILES ${LIB_FILES} ${LAPACK_BEING_USED})
+    endif()
+endif()
+
+message(STATUS "List of dependencies : ${LIB_FILES}" )
 
 # This is where we're going to put these binaries.
 set(COPIED_LIB_FILES)
@@ -35,7 +83,6 @@ foreach(LIBF ${LIB_FILES})
     set(COPIED_LIB_FILES ${COPIED_LIB_FILES}
     "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
 endforeach()
-
 
 add_custom_target(PlatformFiles_subdir DEPENDS ${COPIED_LIB_FILES})
 add_dependencies(PlatformFiles PlatformFiles_subdir)
@@ -54,8 +101,13 @@ foreach(LIBF ${LIB_FILES})
     get_filename_component(LIBF_ROOT ${LIBF} NAME)
     get_filename_component(LIBF_SUFFIX ${LIBF} EXT)
     set(COPIED_LIBF "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
-    file(TO_NATIVE_PATH "${LIBF}" LIBF_SRC)
-    file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
+    IF(MINGW)
+        set(LIBF_SRC ${LIBF})
+        set(LIBF_DEST ${COPIED_LIBF})
+    ELSE()
+        file(TO_NATIVE_PATH "${LIBF}" LIBF_SRC)
+        file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
+    ENDIF()
 
     add_custom_command(OUTPUT "${COPIED_LIBF}"
         COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
@@ -64,13 +116,13 @@ foreach(LIBF ${LIB_FILES})
         VERBATIM)
 
     if(LIBF_SUFFIX STREQUAL ".dll")
-        install(FILES ${LIBF} 
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                GROUP_READ GROUP_WRITE GROUP_EXECUTE 
+        install(FILES ${LIBF}
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                GROUP_READ GROUP_WRITE GROUP_EXECUTE
                     WORLD_READ WORLD_EXECUTE
         DESTINATION ${CMAKE_INSTALL_BINDIR})
     else()
-        install(FILES ${LIBF} 
+        install(FILES ${LIBF}
         PERMISSIONS OWNER_READ OWNER_WRITE
                 GROUP_READ GROUP_WRITE
                     WORLD_READ
@@ -84,16 +136,18 @@ set(PLATFORM_LINK_LIBRARIES "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}"
     PARENT_SCOPE)
 
 # There is just one item in PLATFORM_INCLUDE_DIRECTORIES.
-set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_ROOT}/include")
+if(MSVC)
+    set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_ROOT}/include")
+endif()
 # Copy to parent.
-set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_INCLUDE_DIRECTORIES}" 
+set(PLATFORM_INCLUDE_DIRECTORIES "${PLATFORM_INCLUDE_DIRECTORIES}"
     PARENT_SCOPE)
 
 # This needs an outer loop if you add more include directories.
 file(GLOB INCL_FILES "${PLATFORM_INCLUDE_DIRECTORIES}/*.h")
 foreach(INCLF ${INCL_FILES})
     get_filename_component(INCLF_ROOT ${INCLF} NAME)
-    install(FILES ${INCLF} 
+    install(FILES ${INCLF}
     PERMISSIONS OWNER_READ OWNER_WRITE
             GROUP_READ GROUP_WRITE
                 WORLD_READ

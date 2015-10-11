@@ -24,7 +24,7 @@
 /* This uses a variety of bilateral constraints that are intended as the
 underpinnings for unilateral constraints. The most important check here is
 that energy should be conserved perfectly (to integration accuracy) since
-these are all non-working constraints. (Look at the total energy in the 
+these are all non-working constraints. (Look at the total energy in the
 visualizer.) Even the friction constraints are
 non-working because the underlying constraints represent rolling (a.k.a.
 "stiction"); sliding is imposed elsewhere by disabling the rolling constraints
@@ -42,12 +42,12 @@ public:
        (const MultibodySystem& mbs,
         const MobilizedBody::Free& brick,
         const Array_<Constraint::SphereOnPlaneContact>& balls,
-        const Array_<Constraint::SphereOnSphereContact>& sphsph, 
-        const Array_<Constraint::Rod>& rods) 
+        const Array_<Constraint::SphereOnSphereContact>& sphsph,
+        const Array_<Constraint::Rod>& rods)
     :   m_mbs(mbs), m_brick(brick), m_balls(balls), m_sphsph(sphsph),
         m_rods(rods) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         const SimbodyMatterSubsystem& matter = m_mbs.getMatterSubsystem();
@@ -150,19 +150,19 @@ int main() {
     GeneralForceSubsystem  forces(system);
     Force::Gravity         gravity(forces, matter, -YAxis, 9.8/10);
 
-    //Force::GlobalDamper damp(forces, matter, 1); 
+    //Force::GlobalDamper damp(forces, matter, 1);
 
     // Describe mass and visualization properties for a generic body.
     Real mass = 2;
     Vec3 hdim(1,.5,.25);
     Body::Rigid bodyInfo(MassProperties(mass, Vec3(0), UnitInertia::brick(hdim)));
-    bodyInfo.addDecoration(Transform(), 
+    bodyInfo.addDecoration(Transform(),
         DecorativeBrick(hdim).setColor(Orange).setOpacity(.3));
 
     Real pmass = .1;
     Vec3 phdim(5,.5,2);
     Body::Rigid platformBody(MassProperties(10*mass,
-        Vec3(0), UnitInertia::ellipsoid(phdim))); 
+        Vec3(0), UnitInertia::ellipsoid(phdim)));
     platformBody.addDecoration(Transform(),
         DecorativeEllipsoid(phdim).setColor(Cyan).setOpacity(.1)
         .setResolution(5));
@@ -183,23 +183,23 @@ int main() {
     Array_<Constraint::Rod> rods;
 
     Rotation ZtoY(-Pi/2, XAxis);
-    //Constraint::PointInPlaneWithStiction pt1(platform, 
+    //Constraint::PointInPlaneWithStiction pt1(platform,
     //                                     Transform(ZtoY, Vec3(0,1,0)),
     //                                     brick, hdim);
     //pt1.setPlaneDisplayHalfWidth(5);
-    //Constraint::SphereOnPlaneContact ball1(platform, 
+    //Constraint::SphereOnPlaneContact ball1(platform,
     //                                       Transform(ZtoY, Vec3(0,1,0)),
     //                                       brick, hdim, 0.5, false);
     //ball1.setPlaneDisplayHalfWidth(5);
-    //balls.push_back(ball1); 
+    //balls.push_back(ball1);
 
-    //Constraint::SphereOnPlaneContact ball2(brick, 
+    //Constraint::SphereOnPlaneContact ball2(brick,
     //                                       Transform(Vec3(0,0,-hdim[2])),
     //                                       platform, -phdim/2, 0.5, false);
     //ball2.setPlaneDisplayHalfWidth(5);
     //balls.push_back(ball2);
 
-    //Constraint::SphereOnPlaneContact ball3(brick, 
+    //Constraint::SphereOnPlaneContact ball3(brick,
     //                                       Transform(Vec3(0,0,-hdim[2])),
     //                                       platform, Vec3(-2,3,-.5), .7, true);
     //ball3.setPlaneDisplayHalfWidth(5);
@@ -210,25 +210,25 @@ int main() {
     //                         MassProperties(1,Vec3(0),UnitInertia(1,1,1)),
     //                         Vec3(0));
     //Constraint::SphereOnSphereContact ss(platform, Vec3(-2,1,-.5), .7,
-    //                                     ball, Vec3(0), 1.2, true);                                         
+    //                                     ball, Vec3(0), 1.2, true);
     //Constraint::SphereOnSphereContact bb(brick, hdim, 0.5,
     //                                     ball, Vec3(0), 1.2, true);
     //sphsph.push_back(bb);
 
     Constraint::SphereOnSphereContact ss(brick, hdim, 0.5,
-                                         platform, Vec3(-3,1,-.5), 1.2, 
+                                         platform, Vec3(-3,1,-.5), 1.2,
                                          false);
     sphsph.push_back(ss);
 
-    //Constraint::SphereOnSphereContact ss(platform, Vec3(-2,3,-.5), .7, 
+    //Constraint::SphereOnSphereContact ss(platform, Vec3(-2,3,-.5), .7,
     //                                     brick, hdim, 0.5, false);
-    //Constraint::SphereOnSphereContact ss(platform, Vec3(-2,3,-.5), .7, 
+    //Constraint::SphereOnSphereContact ss(platform, Vec3(-2,3,-.5), .7,
     //                                     brick, hdim, 0.5, false);
-    //Constraint::SphereOnSphereContact ss(brick, hdim, 0.5, 
+    //Constraint::SphereOnSphereContact ss(brick, hdim, 0.5,
     //                                     matter.Ground(), Vec3(-2,3,-.5), .7,true);
-    Constraint::Rod rod1(brick, Vec3(0,hdim[1],hdim[2]), 
+    Constraint::Rod rod1(brick, Vec3(0,hdim[1],hdim[2]),
                          platform, Vec3(0,3,-.5), 1.5*1.2);
-    
+
 
     // Spring to keep the brick near 000.
     //Force::TwoPointLinearSpring(forces, platform, Vec3(0),
@@ -240,11 +240,11 @@ int main() {
     //rods.push_back(rod1);
 
     // Try edge/edge contact.
-    Constraint::LineOnLineContact ll(platform, 
-          Transform(Rotation(UnitVec3(1,1,1), XAxis, UnitVec3(-XAxis), ZAxis), 
+    Constraint::LineOnLineContact ll(platform,
+          Transform(Rotation(UnitVec3(1,1,1), XAxis, UnitVec3(-XAxis), ZAxis),
                     Vec3(1,1,1)),
           2, // hlen
-                                     brick, 
+                                     brick,
           Transform(Rotation(UnitVec3(ZAxis), XAxis, Vec3(-1,-1,0), ZAxis),
                     Vec3(-hdim[0],-hdim[1],0)),
           2, // hlen
@@ -263,7 +263,7 @@ int main() {
 
     //rod1.setRodLength(state, 5);
 
-    viz.report(state); 
+    viz.report(state);
 
     printf("Initial config. Ready to assemble.\n"); getchar();
     Assembler asmb(system);
@@ -292,6 +292,6 @@ int main() {
     printf("Initialized. Ready to simulate.\n"); getchar();
     viz.addDecorationGenerator(new ShowEnergy(system,brick,balls,sphsph,rods));
     ts.stepTo(100.0);
-    printf("# steps=%d/%d\n", 
+    printf("# steps=%d/%d\n",
            integ.getNumStepsTaken(), integ.getNumStepsAttempted());
 }

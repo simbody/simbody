@@ -40,14 +40,14 @@ static int cpProjLinear(CPodeMem);
 static int cpProjNonlinear(CPodeMem);
 static int cpProjNonlinearIteration(CPodeMem cp_mem);
 
-/* 
+/*
  * =================================================================
  * Readibility Constants
  * =================================================================
  */
 
 #define tn             (cp_mem->cp_tn)
-#define zn             (cp_mem->cp_zn) 
+#define zn             (cp_mem->cp_zn)
 #define y              (cp_mem->cp_y)
 #define nst            (cp_mem->cp_nst)
 #define ewt            (cp_mem->cp_ewt)
@@ -108,7 +108,7 @@ static int cpProjNonlinearIteration(CPodeMem cp_mem);
  * =================================================================
  */
 
-/* 
+/*
  * cpDoProjection
  *
  * For user supplied projection function, use ftemp as temporary storage
@@ -137,7 +137,7 @@ int cpDoProjection(CPodeMem cp_mem, realtype saved_t, int *npfPtr)
 
     /*
      * If activated, evaluate WL2 norm of constraint violation.
-     * If the constraint violation is small enough, return. 
+     * If the constraint violation is small enough, return.
      */
     if (test_cnstr) {
       cnorm = N_VWL2Norm(ctemp, ctol);
@@ -159,7 +159,7 @@ int cpDoProjection(CPodeMem cp_mem, realtype saved_t, int *npfPtr)
     }
 #endif
 
-    /* Perform projection step 
+    /* Perform projection step
      * On a successful return, the projection correction is available in acorP.
      * Also, if projection of the error estimate was enabled, the new error
      * estimate is available in errP and acnrm contains ||errP||_WRMS.
@@ -176,13 +176,13 @@ int cpDoProjection(CPodeMem cp_mem, realtype saved_t, int *npfPtr)
     printf("      User-defined projection\n");
 #endif
 
-    /* Use ftemp to store errP and tempv to store acorP 
+    /* Use ftemp to store errP and tempv to store acorP
      * (recall that in this case we did not allocate memory
      * errP and acorP).
      */
     errP = ftemp;
     acorP = tempv;
-    
+
     /* Copy acor into errP */
     N_VScale(ONE, acor, errP);
 
@@ -227,13 +227,13 @@ int cpDoProjection(CPodeMem cp_mem, realtype saved_t, int *npfPtr)
   /*  At this point, flag = CONV_FAIL or CNSTRFUNC_RECVR or PRJFUNC_RECVR; increment npf */
   (*npfPtr)++;
   etamax = ONE;
-  
-  /* If we had maxnpf failures or |h| = hmin, 
+
+  /* If we had maxnpf failures or |h| = hmin,
      return CP_PROJ_FAILURE or CP_REPTD_CNSTRFUNC_ERR or CP_REPTD_PROJFUNC_ERR. */
   if ((ABS(h) <= hmin*ONEPSM) || (*npfPtr == maxnpf)) {
     if (flag == CONV_FAIL)       return(CP_PROJ_FAILURE);
-    if (flag == CNSTRFUNC_RECVR) return(CP_REPTD_CNSTRFUNC_ERR);    
-    if (flag == PROJFUNC_RECVR)  return(CP_REPTD_PROJFUNC_ERR);    
+    if (flag == CNSTRFUNC_RECVR) return(CP_REPTD_CNSTRFUNC_ERR);
+    if (flag == PROJFUNC_RECVR)  return(CP_REPTD_PROJFUNC_ERR);
   }
 
   /* Reduce step size; return to reattempt the step */
@@ -249,13 +249,13 @@ int cpDoProjection(CPodeMem cp_mem, realtype saved_t, int *npfPtr)
  *
  * This is the internal CPODES implementation of the projection function
  * for linear constraints. On entry, ctemp contains c(t,y).
- * 
+ *
  * Possible return values:
  *
  *   CP_SUCCESS         ---> continue with error test
  *
- *   CP_CNSTRFUNC_FAIL  -+  
- *   CP_PLSETUP_FAIL     |-> halt the integration 
+ *   CP_CNSTRFUNC_FAIL  -+
+ *   CP_PLSETUP_FAIL     |-> halt the integration
  *   CP_PLSOLVE_FAIL    -+
  *
  *   CONV_FAIL          -+
@@ -270,7 +270,7 @@ static int cpProjLinear(CPodeMem cp_mem)
   printf("      Internal linear projection\n");
 #endif
 
-  /* Call the lsetupP function to evaluate and factorize the 
+  /* Call the lsetupP function to evaluate and factorize the
    * Jacobian of constraints ONLY the first time we get here */
   if (first_proj) {
     retval = lsetupP(cp_mem, y, ctemp, tempvP1, tempvP2, tempv);
@@ -314,13 +314,13 @@ static int cpProjLinear(CPodeMem cp_mem)
  *
  * This is the internal CPODES implementation of the projection function
  * for nonlinear constraints. On entry, ctemp contains c(t,y).
- * 
+ *
  * Possible return values:
  *
  *   CP_SUCCESS         ---> continue with error test
  *
- *   CP_CNSTRFUNC_FAIL  -+  
- *   CP_PLSETUP_FAIL     |-> halt the integration 
+ *   CP_CNSTRFUNC_FAIL  -+
+ *   CP_PLSETUP_FAIL     |-> halt the integration
  *   CP_PLSOLVE_FAIL    -+
  *
  *   CONV_FAIL          -+
@@ -331,7 +331,7 @@ static int cpProjNonlinear(CPodeMem cp_mem)
 {
   booleantype callSetup;
   int retval;
-  
+
 #ifdef CPODES_DEBUG
   printf("      Internal nonlinear projection\n");
 #endif
@@ -349,7 +349,7 @@ static int cpProjNonlinear(CPodeMem cp_mem)
   /* Save the corrected y, in case we need a second pass through the loop */
   N_VScale(ONE, y, yC);
 
-  /* Begin the main loop. This loop is traversed at most twice. 
+  /* Begin the main loop. This loop is traversed at most twice.
    * The second pass only occurs when the first pass had a recoverable
    * failure with old Jacobian data. */
   loop {
@@ -378,7 +378,7 @@ static int cpProjNonlinear(CPodeMem cp_mem)
     retval = cpProjNonlinearIteration(cp_mem);
 
 #ifdef CPODES_DEBUG
-    printf("         NonlinearIteration return value = %d\n",retval);        
+    printf("         NonlinearIteration return value = %d\n",retval);
 #endif
 
     /* On a recoverable failure, if setup was not called,
@@ -435,10 +435,10 @@ static int cpProjNonlinearIteration(CPodeMem cp_mem)
 
   /* Set acorP to zero */
   N_VConst(ZERO, acorP);
-  
+
   /* Set errP to acor */
   if (project_err) N_VScale(ONE, acor, errP);
- 
+
   /* Looping point for iterations */
   loop {
 
@@ -491,14 +491,14 @@ static int cpProjNonlinearIteration(CPodeMem cp_mem)
     if (dcon <= ONE) {
 
       if (project_err) acnrm = N_VWrmsNorm(errP, ewt);
-      
+
       return(CP_SUCCESS);
     }
     m++;
 
     /* Stop at maxcorP iterations or if iter. seems to be diverging. */
     if ((m == maxcorP) || ((m >= 2) && (del > PRJ_RDIV*delp)))  return(CONV_FAIL);
-    
+
     /* Save norm of correction, evaluate cfun, and loop again */
     delp = del;
     retval = cfun(tn, y, ctemp, c_data);

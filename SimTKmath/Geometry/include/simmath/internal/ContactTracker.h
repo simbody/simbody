@@ -33,29 +33,29 @@ namespace SimTK {
 //==============================================================================
 //                              CONTACT TRACKER
 //==============================================================================
-/** A ContactTracker implements an algorithm for detecting overlaps or 
+/** A ContactTracker implements an algorithm for detecting overlaps or
 potential overlaps between pairs of ContactGeometry objects, and managing
 Contact objects that track individual contacts as they evolve through
-time. This class is used internally by ContractTrackerSubsystem and there 
-usually is no reason to access it directly. The exception is if you are 
-defining a new ContactGeometry subclass. In that case, you will also need to 
+time. This class is used internally by ContractTrackerSubsystem and there
+usually is no reason to access it directly. The exception is if you are
+defining a new ContactGeometry subclass. In that case, you will also need to
 define one or more ContactTrackers to detect collisions with your new geometry
-type, then register it with the ContactTrackerSubsystem. 
+type, then register it with the ContactTrackerSubsystem.
 
 The result of a ContactTracker when applied to a pair of contact
 surfaces, is either a determination that the surfaces are not in contact,
 or a Contact object describing their contact interaction. There are different
-types of these Contact objects (for example, PointContact, LineContact, 
-MeshContact) and the same algorithm may result in different kinds of Contact 
-under different circumstances. At each evaluation, the caller passes in the 
+types of these Contact objects (for example, PointContact, LineContact,
+MeshContact) and the same algorithm may result in different kinds of Contact
+under different circumstances. At each evaluation, the caller passes in the
 previous Contact object, if any, that was associated with two ContactSurfaces,
 then receives an update from the algorithm.
 
-Note that ContactTrackers that manage dissimilar geometry type pairs expect 
+Note that ContactTrackers that manage dissimilar geometry type pairs expect
 the two types in a particular order, e.g. (halfspace,sphere) rather than
-(sphere,halfspace) but are used for all contacts involving that pair of 
+(sphere,halfspace) but are used for all contacts involving that pair of
 types. It is up to the ContactTrackerSubsystem to ensure that the contact
-surfaces are presented in the correct order regardless of how they are 
+surfaces are presented in the correct order regardless of how they are
 encountered. The Contact objects that are created and managed by trackers
 always have their (surface1,surface2) pairs in the order required by the
 tracker that handles those types. **/
@@ -87,15 +87,15 @@ getContactGeometryTypeIds() const {return m_surfaceTypes;}
 virtual ~ContactTracker() {}
 
 /** The ContactTrackerSubsystem will invoke this method for any pair of
-contact surfaces that is already being tracked, or for which the static broad 
-phase analysis indicated that they might be in contact now. Only position 
+contact surfaces that is already being tracked, or for which the static broad
+phase analysis indicated that they might be in contact now. Only position
 information is available. Note that the arguments and Contact object surfaces
 must be ordered by geometry type id as required by this tracker. **/
 virtual bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const = 0;
@@ -107,9 +107,9 @@ pair that satisfies contact conditions to a requested accuracy. For separated
 objects, these will be the points of closest approach between the surfaces; for
 contacting objects these are the points of maximum penetration.
 
-In implicit form there are six unknowns (spatial coordinates of the contact 
+In implicit form there are six unknowns (spatial coordinates of the contact
 points). The six contact conditions we use are:
-  - 2 equations: Point P is on the surface of shape A and point Q is on the 
+  - 2 equations: Point P is on the surface of shape A and point Q is on the
     surface of shape B (that is, the implicit functions both return zero).
   - 2 equations: The normal vector at point P is perpendicular to the
     tangent plane at point Q.
@@ -120,8 +120,8 @@ Note that these equations could be satisfied by incorrect points that have the
 opposite normals because the perpendicularity conditions can't distinguish n
 from -n. We are depending on having an initial guess that is good enough so
 that we find the correct solution by going downhill from there. Don't try to
-use this if you don't have a reasonably good guess already. For \e convex 
-implicit surfaces you can use estimateConvexImplicitPairContactUsingMPR() to 
+use this if you don't have a reasonably good guess already. For \e convex
+implicit surfaces you can use estimateConvexImplicitPairContactUsingMPR() to
 get a good start if the surfaces are in contact.
 
 @returns \c true if the requested accuracy is achieved but returns its best
@@ -149,16 +149,16 @@ static Mat66 calcImplicitPairJacobian
 
 /** Use Minkowski Portal Refinement (XenoCollide method by G. Snethen) to
 generate a reasonably good starting estimate of the contact points between
-two \e convex implicit shapes that may be in contact. MPR cannot find those 
+two \e convex implicit shapes that may be in contact. MPR cannot find those
 points if the surfaces are separated. Returns \c false if the two shapes
 are definitely \e not in contact (MPR found a separating plane); in that case
 the returned direction is the separating plane normal and the points are the
 support points that prove separation. Otherwise, there \e might be contact
 and the points are estimates of the contact point on each surface, determined
-roughly to the requested accuracy. You still have to refine these and it might 
+roughly to the requested accuracy. You still have to refine these and it might
 turn out there is no contact after all. **/
 static bool estimateConvexImplicitPairContactUsingMPR
-   (const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
+   (const ContactGeometry& shapeA, const ContactGeometry& shapeB,
     const Transform& X_AB,
     Vec3& pointP_A, Vec3& pointQ_B, UnitVec3& dirInA,
     int& numIterations);
@@ -178,18 +178,18 @@ std::pair<ContactGeometryTypeId,ContactGeometryTypeId> m_surfaceTypes;
 //==============================================================================
 /** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
 and a ContactGeometry::Sphere, in that order. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceSphere 
+class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceSphere
 :   public ContactTracker {
 public:
-HalfSpaceSphere() 
+HalfSpaceSphere()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::Sphere::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const override;
@@ -202,18 +202,18 @@ bool trackContact
 //==============================================================================
 /** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
 and a ContactGeometry::Ellipsoid, in that order. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceEllipsoid 
+class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceEllipsoid
 :   public ContactTracker {
 public:
-HalfSpaceEllipsoid() 
+HalfSpaceEllipsoid()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::Ellipsoid::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const override;
@@ -226,18 +226,18 @@ bool trackContact
 //==============================================================================
 /** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
 and a ContactGeometry::Sphere, in that order. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceBrick 
+class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceBrick
 :   public ContactTracker {
 public:
-HalfSpaceBrick() 
+HalfSpaceBrick()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::Brick::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const override;
@@ -250,18 +250,18 @@ bool trackContact
 //==============================================================================
 /** This ContactTracker handles contacts between two ContactGeometry::Sphere
 objects. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::SphereSphere 
+class SimTK_SIMMATH_EXPORT ContactTracker::SphereSphere
 :   public ContactTracker {
 public:
-SphereSphere() 
+SphereSphere()
 :   ContactTracker(ContactGeometry::Sphere::classTypeId(),
                    ContactGeometry::Sphere::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const override;
@@ -277,26 +277,26 @@ and a ContactGeometry::TriangleMesh, in that order. **/
 class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceTriangleMesh
 :   public ContactTracker {
 public:
-HalfSpaceTriangleMesh() 
+HalfSpaceTriangleMesh()
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    ContactGeometry::TriangleMesh::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,    // the half space
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,    // the mesh
     Real                   cutoff,
     Contact&               currentStatus) const override;
 
 private:
-void processBox(const ContactGeometry::TriangleMesh&              mesh, 
-                const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-                const Transform& X_HM, const UnitVec3& hsNormal_M, 
+void processBox(const ContactGeometry::TriangleMesh&              mesh,
+                const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+                const Transform& X_HM, const UnitVec3& hsNormal_M,
                 Real hsFaceHeight_M, std::set<int>& insideFaces) const;
-void addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-                     std::set<int>& insideFaces) const; 
+void addAllTriangles(const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+                     std::set<int>& insideFaces) const;
 };
 
 
@@ -309,24 +309,24 @@ and a ContactGeometry::TriangleMesh, in that order. **/
 class SimTK_SIMMATH_EXPORT ContactTracker::SphereTriangleMesh
 :   public ContactTracker {
 public:
-SphereTriangleMesh() 
+SphereTriangleMesh()
 :   ContactTracker(ContactGeometry::Sphere::classTypeId(),
                    ContactGeometry::TriangleMesh::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,    // the sphere
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,    // the mesh
     Real                   cutoff,
     Contact&               currentStatus) const override;
 
 private:
 void processBox
-   (const ContactGeometry::TriangleMesh&              mesh, 
-    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-    const Vec3& center_M, Real radius2,   
+   (const ContactGeometry::TriangleMesh&              mesh,
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+    const Vec3& center_M, Real radius2,
     std::set<int>& insideFaces) const ;
 };
 
@@ -335,44 +335,44 @@ void processBox
 //==============================================================================
 //             TRIANGLE MESH - TRIANGLE MESH CONTACT TRACKER
 //==============================================================================
-/** This ContactTracker handles contacts between two 
+/** This ContactTracker handles contacts between two
 ContactGeometry::TriangleMesh surfaces. **/
 class SimTK_SIMMATH_EXPORT ContactTracker::TriangleMeshTriangleMesh
 :   public ContactTracker {
 public:
-TriangleMeshTriangleMesh() 
+TriangleMeshTriangleMesh()
 :   ContactTracker(ContactGeometry::TriangleMesh::classTypeId(),
                    ContactGeometry::TriangleMesh::classTypeId()) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,    // mesh1
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,    // mesh2
     Real                   cutoff,
     Contact&               currentStatus) const override;
 
 private:
 void findIntersectingFaces
-   (const ContactGeometry::TriangleMesh&                mesh1, 
+   (const ContactGeometry::TriangleMesh&                mesh1,
     const ContactGeometry::TriangleMesh&                mesh2,
-    const ContactGeometry::TriangleMesh::OBBTreeNode&   node1, 
-    const ContactGeometry::TriangleMesh::OBBTreeNode&   node2, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node1,
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node2,
     const OrientedBoundingBox&                          node2Bounds_M1,
-    const Transform&                                    X_M1M2, 
-    std::set<int>&                                      insideFaces1, 
-    std::set<int>&                                      insideFaces2) const; 
+    const Transform&                                    X_M1M2,
+    std::set<int>&                                      insideFaces1,
+    std::set<int>&                                      insideFaces2) const;
 
 void findBuriedFaces
    (const ContactGeometry::TriangleMesh&    mesh,
     const ContactGeometry::TriangleMesh&    otherMesh,
-    const Transform&                        X_OM, 
+    const Transform&                        X_OM,
     std::set<int>&                          insideFaces) const;
 
-void tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
+void tagFaces(const ContactGeometry::TriangleMesh&   mesh,
               Array_<int>&                           faceType,
-              std::set<int>&                         triangles, 
+              std::set<int>&                         triangles,
               int                                    index,
               int                                    depth) const;
 };
@@ -382,24 +382,24 @@ void tagFaces(const ContactGeometry::TriangleMesh&   mesh,
 //                 HALFSPACE-CONVEX IMPLICIT CONTACT TRACKER
 //==============================================================================
 /** This ContactTracker handles contacts between a ContactGeometry::HalfSpace
-and any ContactGeometry that can be considered a convex, implicit surface, 
-in that order. Don't use this if you know a faster way to deal with a 
+and any ContactGeometry that can be considered a convex, implicit surface,
+in that order. Don't use this if you know a faster way to deal with a
 particular kind of ContactGeometry; this is last-ditch support for when
 you don't have a better method. Create one of these trackers for each type
 of convex implicit geometry for which you want to use this method. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceConvexImplicit 
+class SimTK_SIMMATH_EXPORT ContactTracker::HalfSpaceConvexImplicit
 :   public ContactTracker {
 public:
 explicit HalfSpaceConvexImplicit
-   (ContactGeometryTypeId typeOfConvexImplicitSurface) 
+   (ContactGeometryTypeId typeOfConvexImplicitSurface)
 :   ContactTracker(ContactGeometry::HalfSpace::classTypeId(),
                    typeOfConvexImplicitSurface) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1, // the half-space
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2, // the convex implicit surface
     Real                   cutoff,
     Contact&               currentStatus) const override;
@@ -412,17 +412,17 @@ bool trackContact
 /** This ContactTracker handles contacts between two smooth, convex objects
 by using their implicit functions. Create one of these for each possible
 pair that you want handled this way. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::ConvexImplicitPair 
+class SimTK_SIMMATH_EXPORT ContactTracker::ConvexImplicitPair
 :   public ContactTracker {
 public:
-ConvexImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2) 
+ConvexImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2)
 :   ContactTracker(type1, type2) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const override;
@@ -432,24 +432,24 @@ bool trackContact
 //==============================================================================
 //                GENERAL IMPLICIT SURFACE PAIR CONTACT TRACKER
 //==============================================================================
-/** (TODO: not implemented yet) This ContactTracker handles contacts between 
+/** (TODO: not implemented yet) This ContactTracker handles contacts between
 two arbitrary smooth surfaces
 by using their implicit functions, with no shape restrictions. Each surface
 must provide a bounding hierarchy with "safe" leaf objects, meaning that
 interactions between a leaf of each surface yield at most one solution.
 
 Create one of these for each possible pair that you want handled this way. **/
-class SimTK_SIMMATH_EXPORT ContactTracker::GeneralImplicitPair 
+class SimTK_SIMMATH_EXPORT ContactTracker::GeneralImplicitPair
 :   public ContactTracker {
 public:
-GeneralImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2) 
+GeneralImplicitPair(ContactGeometryTypeId type1, ContactGeometryTypeId type2)
 :   ContactTracker(type1, type2) {}
 
 bool trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& surface1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& surface2,
     Real                   cutoff,
     Contact&               currentStatus) const override;

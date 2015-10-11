@@ -47,8 +47,8 @@ ExplicitEulerIntegrator::ExplicitEulerIntegrator(const System& sys, Real stepSiz
 //                      EXPLICIT EULER INTEGRATOR REP
 //------------------------------------------------------------------------------
 ExplicitEulerIntegratorRep::ExplicitEulerIntegratorRep
-   (Integrator* handle, const System& sys) 
-:   AbstractIntegratorRep(handle, sys, 1, 1, "ExplicitEuler", true) 
+   (Integrator* handle, const System& sys)
+:   AbstractIntegratorRep(handle, sys, 1, 1, "ExplicitEuler", true)
 {
 }
 
@@ -103,7 +103,7 @@ void ExplicitEulerIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
 
     // Ignore any user request not to project interpolated states here -- this
     // is the actual advanced state which will be propagated through the
-    // rest of the trajectory so we can't allow it not to satisfy the 
+    // rest of the trajectory so we can't allow it not to satisfy the
     // constraints!
     // But it is OK if it just *barely* satisfies the constraints so we
     // won't get carried away if the user isn't being finicky about it.
@@ -168,7 +168,7 @@ bool ExplicitEulerIntegratorRep::attemptDAEStep
     // interval. TODO: prevent this from throwing
     try {realizeStateDerivatives(advanced);}
     catch (...) {return false;} // evaluation failed
-    
+
     // Calculate a reference state with the explicit trapezoidal rule, and use
     // it to estimate error.
     //TODO: this is an odd mix of the unprojected Y and the projected YDot;

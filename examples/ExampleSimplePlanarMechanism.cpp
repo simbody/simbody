@@ -23,9 +23,9 @@
 #include "Simbody.h"
 using namespace SimTK;
 
-// This very simple example builds a 3-body planar mechanism that does 
+// This very simple example builds a 3-body planar mechanism that does
 // nothing but rock back and forth for 10 seconds. Note that Simbody always
-// works in 3D; this mechanism is planar because of the alignment of its 
+// works in 3D; this mechanism is planar because of the alignment of its
 // joints not because it uses any special 2D features. The mechanism looks
 // like this:
 //                              @
@@ -51,7 +51,7 @@ int main() {
     try { // catch errors if any
 
     // Create the system, with subsystems for the bodies and some forces.
-    MultibodySystem system; 
+    MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::Gravity gravity(forces, matter, -YAxis, 9.8);
@@ -67,17 +67,17 @@ int main() {
     MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     bodyInfo, Vec3(0));
 
     // Add a joint stop to the left arm restricting it to q in [0,Pi/5].
-    Force::MobilityLinearStop stop(forces, leftArm, MobilizerQIndex(0), 
+    Force::MobilityLinearStop stop(forces, leftArm, MobilizerQIndex(0),
         10000,  // stiffness
         0.5,    // dissipation coefficient
         0*Pi,   // lower stop
         Pi/5);  // upper stop
 
     // Ask for visualization every 1/30 second.
-    system.setUseUniformBackground(true); // turn off floor    
+    system.setUseUniformBackground(true); // turn off floor
     system.addEventReporter(new Visualizer::Reporter(system, 1./30));
-    
-    // Initialize the system and state.    
+
+    // Initialize the system and state.
     State state = system.realizeTopology();
     leftArm.setAngle(state, Pi/5);
 

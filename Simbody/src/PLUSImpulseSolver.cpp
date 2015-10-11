@@ -39,9 +39,9 @@ namespace {
 
 // Multiply the active entries of a row of the full matrix A by a packed
 // column containing only active entries. Useful for A[r]*piActive.
-static Real multRowTimesActiveCol(const Matrix& A, MultiplierIndex row, 
+static Real multRowTimesActiveCol(const Matrix& A, MultiplierIndex row,
            const Array_<MultiplierIndex,PLUSImpulseSolver::ActiveIndex>& active,
-           const Vector& colActive) 
+           const Vector& colActive)
 {
     const RowVectorView Ar = A[row];
     Real result = 0;
@@ -51,11 +51,11 @@ static Real multRowTimesActiveCol(const Matrix& A, MultiplierIndex row,
 }
 
 // Multiply the active entries of a row of the full matrix A (mXm) by a sparse,
-// full-length (m) column containing only the indicated non-zero entries. 
+// full-length (m) column containing only the indicated non-zero entries.
 // Useful for A[r]*piExpand.
-static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row, 
+static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row,
            const Array_<MultiplierIndex>& nonZero,
-           const Vector& sparseCol) 
+           const Vector& sparseCol)
 {
     const RowVectorView Ar = A[row];
     Real result = 0;
@@ -70,9 +70,9 @@ static Real multRowTimesSparseCol(const Matrix& A, MultiplierIndex row,
 static void addInActiveCol
    (const Array_<MultiplierIndex,PLUSImpulseSolver::ActiveIndex>& active,
     const Vector& colActive,
-    Vector& colFull) 
+    Vector& colFull)
 {
-    for (PLUSImpulseSolver::ActiveIndex ax(0); ax < active.size(); ++ax) 
+    for (PLUSImpulseSolver::ActiveIndex ax(0); ax < active.size(); ++ax)
         colFull[active[ax]] += colActive[ax];
 }
 
@@ -135,21 +135,21 @@ namespace SimTK {
 
 bool PLUSImpulseSolver::
 solve(int                                 phase,
-      const Array_<MultiplierIndex>&      participating, 
+      const Array_<MultiplierIndex>&      participating,
       const Matrix&                       A,
       const Vector&                       D,
       const Array_<MultiplierIndex>&      expanding,
       Vector&                             piExpand, // in/out
       Vector&                             verrStart,     // in/out
       Vector&                             verrApplied,
-      Vector&                             pi, 
+      Vector&                             pi,
       Array_<UncondRT>&                   unconditional,
       Array_<UniContactRT>&               uniContact,
       Array_<UniSpeedRT>&                 uniSpeed,
       Array_<BoundedRT>&                  bounded,
       Array_<ConstraintLtdFrictionRT>&    consLtdFriction,
       Array_<StateLtdFrictionRT>&         stateLtdFriction
-      ) const 
+      ) const
 {
     // If we get this close to taking a whole sliding interval, we'll just
     // take the whole thing to avoid a final sliver of a step.
@@ -159,7 +159,7 @@ solve(int                                 phase,
     SimTK_DEBUG(  "START SUCCESSIVE PRUNING SOLVER:\n");
     ++m_nSolves[phase];
 
-    const int m=A.nrow(); assert(A.ncol()==m); 
+    const int m=A.nrow(); assert(A.ncol()==m);
     assert(D.size()==m);
     assert(verrStart.size()==m);
     assert(verrApplied.size()==0 || verrApplied.size()==m);
@@ -169,7 +169,7 @@ solve(int                                 phase,
     const int p = (int)participating.size();
     const int nx = (int)expanding.size();
     assert(p<=m); assert(nx<=m);
- 
+
     pi.resize(m);
     pi.setToZero(); // Use this for piUnknown
 
@@ -226,13 +226,13 @@ solve(int                                 phase,
     Real normRMSall = Infinity, normRMSenf = Infinity;
     Real prevNormRMSenf = NaN;
 
-    // Each sliding interval requires a complete restart, except that we 
-    // continue to accumulate piTotal. We're done when we take a step interval 
+    // Each sliding interval requires a complete restart, except that we
+    // continue to accumulate piTotal. We're done when we take a step interval
     // of  length s==1.
     int interval = 0;
     Real s = 0;
     while (s < 1) {
-        ++interval; 
+        ++interval;
         m_active = participating; m_mult2active.resize(m);
         fillMult2Active(m_active, m_mult2active);
 
@@ -241,14 +241,14 @@ solve(int                                 phase,
         // expansion impulse in this sliding interval.
         if (nx)
             for (MultiplierIndex mx(0); mx < m; ++mx) {
-                m_verrExpand[mx] = 
+                m_verrExpand[mx] =
                     -(  multRowTimesSparseCol(A,mx,expanding,piELeft)
                       + D[mx]*piELeft[mx]);
             }
 
         if (p == 0) {
             SimTK_DEBUG1("PLUS %d: nothing to do; converged in 0 iters.\n", phase);
-            // Returning pi=0; can still have applied impulse or piExpand!=0 so 
+            // Returning pi=0; can still have applied impulse or piExpand!=0 so
             // verr is updated.
             if (hasAppliedImpulse) verrStart += verrApplied;
             if (nx)                verrStart += m_verrExpand;
@@ -277,7 +277,7 @@ solve(int                                 phase,
         for (; ; ++its) {
 
             #ifndef NDEBUG
-            printf("\n....... Active set iter %d start\n", its); 
+            printf("\n....... Active set iter %d start\n", its);
             cout << ": active=" << m_active << endl;
             for (unsigned uc=0; uc<uniContact.size(); ++uc) {
                 const UniContactRT& rt = uniContact[uc];
@@ -296,13 +296,13 @@ solve(int                                 phase,
             m_mult2active.resize(m);
             fillMult2Active(m_active, m_mult2active);
             initializeNewton(A, piGuess, verrApplied, uniContact);
-            updateDirectionsAndCalcCurrentError(A, uniContact, 
+            updateDirectionsAndCalcCurrentError(A, uniContact,
                                                 piELeft, verrApplied,
                                                 m_piActive,m_errActive);
-            
+
             if (m_active.empty())
                 break;
-          
+
             updateJacobianForSliding(A, uniContact, piELeft, verrApplied);
             Real prevNorm = NaN;
             Real errNorm = m_errActive.norm();
@@ -316,7 +316,7 @@ solve(int                                 phase,
                 const Real deltaNorm = dpi.norm();
 
                 #ifndef NDEBUG
-                printf("> NEWTON iter %d: errNorm=%g(v) -> deltaNorm=%g(pi)\n", 
+                printf("> NEWTON iter %d: errNorm=%g(v) -> deltaNorm=%g(pi)\n",
                        newtIter, errNorm, dpi.norm());
                 //cout << "> JacActive=" << m_JacActive;
                 cout << "> piActive=" << m_piActive << endl;
@@ -327,14 +327,14 @@ solve(int                                 phase,
                 // Backtracking line search.
                 const Real MinBack = 0.01; //don't shrink step below this factor
                 const Real SearchReduceFac = 0.5;
-                
+
                 Real back = 1;
                 int nsearch = 0;
                 piSave = m_piActive;
                 prevNorm = errNorm;
                 while (true) {
                     ++nsearch;
-                    SimTK_DEBUG3("Line search iter %d: back=%g, prevNorm=%g.\n", 
+                    SimTK_DEBUG3("Line search iter %d: back=%g, prevNorm=%g.\n",
                                  nsearch, back, prevNorm);
                     m_piActive = piSave - back*dpi;
 
@@ -357,7 +357,7 @@ solve(int                                 phase,
                         break;
                     }
                     back *= SearchReduceFac;
-                    SimTK_DEBUG2("GOT WORSE @iter %d: backtrack to back=%g\n", 
+                    SimTK_DEBUG2("GOT WORSE @iter %d: backtrack to back=%g\n",
                            nsearch, back);
                 }
 
@@ -368,15 +368,15 @@ solve(int                                 phase,
                     break; // we have a winner
 
                 // If we're not making sufficient progress after 3 steps,
-                // we have likely converged to a local minimum and the problem 
+                // we have likely converged to a local minimum and the problem
                 // is infeasible. Here we're arbitrarily saying that if we
                 // can't even improve 5%, we'll just give up.
                 // TODO: this is probably too crude and might drop out too early
-                //       at times; also need to deal with this failure -- it 
+                //       at times; also need to deal with this failure -- it
                 //       may be a Painleve situation.
                 if (newtIter >= 3 && errNorm > 0.95*prevNorm) {
                     SimTK_DEBUG2("PLUSImpulseSolver Newton: poor progress "
-                    "after %d iters; errNorm=%g (infeasible?).\n", 
+                    "after %d iters; errNorm=%g (infeasible?).\n",
                     newtIter, errNorm);
                     break; // converged, but not to zero
                 }
@@ -416,11 +416,11 @@ solve(int                                 phase,
                 // need to use it for an initial guess on the next iteration.
                 piGuess[mx] = clamp(rt.m_lb, m_piActive[ax], rt.m_ub);
                 const Real err=std::abs(m_piActive[ax] - piGuess[mx]);
-                if (err>worstBoundedValue) 
+                if (err>worstBoundedValue)
                     worstBounded=k, worstBoundedValue=err;
             }
 
-            // UNI CONTACT NORMAL: conditional scalar constraints with 
+            // UNI CONTACT NORMAL: conditional scalar constraints with
             // with restriction pi <= 0.
             int worstUniNormal=0; Real worstUniNormalValue=0;
             for (int k=0; k < mUniCont; ++k) {
@@ -437,17 +437,17 @@ solve(int                                 phase,
                 assert(ax.isValid());
                 // Only the in-bounds value gets saved in piGuess in case we
                 // need to use it for an initial guess on the next iteration.
-                const Real piAdj = rt.m_sign*m_piActive[ax] < 0 ? m_piActive[ax] 
+                const Real piAdj = rt.m_sign*m_piActive[ax] < 0 ? m_piActive[ax]
                                                                 : Real(0);
-                piGuess[mx] = piAdj; 
+                piGuess[mx] = piAdj;
                 const Real err=std::abs(m_piActive[ax] - piAdj);
-                if (err>worstUniNormalValue) 
+                if (err>worstUniNormalValue)
                     worstUniNormal=k, worstUniNormalValue=err;
             }
 
 
-            // UNI CONTACT FRICTION: a set of constraint equations forming a 
-            // vector whose maximum length is limited by the associated 
+            // UNI CONTACT FRICTION: a set of constraint equations forming a
+            // vector whose maximum length is limited by the associated
             // unilateral contact normal force.
             int worstFric=0; Real worstFricValue=0;
             for (int k=0; k < mUniCont; ++k) {
@@ -474,7 +474,7 @@ solve(int                                 phase,
 
                     // "Sucking" normal forces are zero already in piGuess,
                     // and known normal force has been inserted if needed.
-                    nmag = std::abs(piGuess[Nk] + piELeft[Nk]); 
+                    nmag = std::abs(piGuess[Nk] + piELeft[Nk]);
                     if (tmag > mu*nmag) {
                         scale = mu*nmag/tmag;
                         const Real err = tmag - mu*nmag;
@@ -495,7 +495,7 @@ solve(int                                 phase,
 
             if (   worstBoundedValue<=SignificantReal
                 && worstUniNormalValue<=SignificantReal
-                && worstFricValue<=SignificantReal) 
+                && worstFricValue<=SignificantReal)
             {
                 SimTK_DEBUG3("Bounded/Contact/Rolling OK: worst=%g/%g/%g. "
                     "Check sliding next.\n",
@@ -507,16 +507,16 @@ solve(int                                 phase,
 
             bool mustReleaseFriction = true; // if we don't release a normal.
             if (worstUniNormalValue > worstFricValue) {
-                SimTK_DEBUG2("Worst offender is normal contact %d err=%g ...\n", 
+                SimTK_DEBUG2("Worst offender is normal contact %d err=%g ...\n",
                     worstUniNormal, worstUniNormalValue);
                 // A contact normal is the worst offender. However, if it has a
-                // rolling friction constraint active we should release that 
+                // rolling friction constraint active we should release that
                 // first because doing so might fix the contact normal.
                 UniContactRT& rt = uniContact[worstUniNormal];
                 if (!rt.hasFriction() || rt.m_frictionCond != Rolling) {
                     const MultiplierIndex rx = rt.m_Nk;
                     rt.m_contactCond = UniOff;
-                    // Update active set; must work from highest numbered to 
+                    // Update active set; must work from highest numbered to
                     // lowest to avoid having to move a lot of entries.
                     if (!rt.hasFriction()) {
                         m_active.eraseFast(m_active.begin()+m_mult2active[rx]);
@@ -531,7 +531,7 @@ solve(int                                 phase,
                     }
                     // mult2active is invalid now.
                     mustReleaseFriction = false;
-                    SimTK_DEBUG1("... normal contact %d released.\n", 
+                    SimTK_DEBUG1("... normal contact %d released.\n",
                                  worstUniNormal);
                 } else {
                     SimTK_DEBUG("... but it's Rolling, so that must go first.\n");
@@ -545,22 +545,22 @@ solve(int                                 phase,
                 UniContactRT& rt = uniContact[worstFric];
                 const Array_<MultiplierIndex>& Fk = rt.m_Fk;
                 const MultiplierIndex          Nk = rt.m_Nk;
-                const ActiveIndex ax=m_mult2active[Fk[0]], ay=m_mult2active[Fk[1]], 
+                const ActiveIndex ax=m_mult2active[Fk[0]], ay=m_mult2active[Fk[1]],
                                   az=m_mult2active[Nk];
 
-                SimTK_DEBUG2("switch worst fric %d from roll->impend err=%g\n", 
+                SimTK_DEBUG2("switch worst fric %d from roll->impend err=%g\n",
                        worstFric, worstFricValue);
                 rt.m_frictionCond = Impending;
 
                 #ifndef NDEBUG
                 // Oppose the last rolling force as a guess at the slip velocity.
-                // Sign convention for multiplier is opposite velocity, so no 
+                // Sign convention for multiplier is opposite velocity, so no
                 // explicit negation here.
                 const Vec2 ft(piGuess[Fk[0]], piGuess[Fk[1]]);
                 cout << "  rolling impulse was " << ft << endl;
                 #endif
             }
-        } 
+        }
 
         // Need to check what fraction s of this interval we can accept. We are
         // only limited by frictional contacts that are currently Sliding;
@@ -582,7 +582,7 @@ solve(int                                 phase,
             if (hasAppliedImpulse)
                 bend += Vec2(verrApplied[Fk[0]],verrApplied[Fk[1]]);
             #ifndef NDEBUG
-            cout << "slipVel " << k << " from " << rt.m_slipVel 
+            cout << "slipVel " << k << " from " << rt.m_slipVel
                  << " to " << bend << endl;
             #endif
             const Real bendMag = bend.norm();
@@ -593,12 +593,12 @@ solve(int                                 phase,
 
             // See if we got lucky and sliding force slowed contact to below
             // the rolling speed threshold (this is rare; reversal is much more
-            // common). Although not strictly necessary, we'll attempt to stop 
+            // common). Although not strictly necessary, we'll attempt to stop
             // the step where it came closest to zero velocity to make the
             // smoothest sliding->rolling transition possible.
             if (bendMag <= m_maxRollingTangVel) {
                 SimTK_DEBUG3("Sliding contact %d slowed to rolling speed: "
-                             "v=%g, vTrans=%g\n", 
+                             "v=%g, vTrans=%g\n",
                              k, bendMag, m_maxRollingTangVel);
                 if (bendMag < SignificantReal) {
                     SimTK_DEBUG("  (Near dead stop -- accept the step as is.)\n");
@@ -615,24 +615,24 @@ solve(int                                 phase,
 
             // Still sliding; check change in direction from initial to final
             // sliding velocity.
-            const Real cosTheta = 
+            const Real cosTheta =
                 clamp(-1, dot(rt.m_slipVel,bend)/(rt.m_slipMag*bendMag), 1);
 
             // This is the normal case: still sliding in roughly the same
             // direction. Take the whole step.
             if (cosTheta >= m_cosMaxSlidingDirChange) {
-                SimTK_DEBUG3("Friction %d rotated %g deg, less than max %g\n", 
+                SimTK_DEBUG3("Friction %d rotated %g deg, less than max %g\n",
                        k, std::acos(cosTheta)*180/Pi,
                        std::acos(m_cosMaxSlidingDirChange)*180/Pi);
                 continue; // s==1 for this contact
             }
 
-            // The sliding direction changed too much. It may have reversed 
+            // The sliding direction changed too much. It may have reversed
             // and passed through or near zero, in which case we step only to
-            // the closest-to-zero point. Otherwise we'll reduce the step 
+            // the closest-to-zero point. Otherwise we'll reduce the step
             // until the sliding direction change is within bounds.
 
-            SimTK_DEBUG4("TOO BIG: Sliding fric %d; endmag=%g, rot=%g deg > %g\n", 
+            SimTK_DEBUG4("TOO BIG: Sliding fric %d; endmag=%g, rot=%g deg > %g\n",
                    k, bendMag, std::acos(cosTheta)*180/Pi,
                    std::acos(m_cosMaxSlidingDirChange)*180/Pi);
 
@@ -640,7 +640,7 @@ solve(int                                 phase,
             Real s1 = calcSlidingStepLengthToOrigin(rt.m_slipVel,bend,endPt);
             const Real endPtMagSq = endPt.normSqr();
             if (endPtMagSq <= square(m_maxRollingTangVel)) {
-                SimTK_DEBUG2("  Frac=%g halts it, v=%g\n", s1, 
+                SimTK_DEBUG2("  Frac=%g halts it, v=%g\n", s1,
                              std::sqrt(endPtMagSq));
                 s = std::min(s, s1);
                 continue;
@@ -649,7 +649,7 @@ solve(int                                 phase,
             // Substantial direction change without passing near zero.
             // Just take part of the step to keep the change manageable.
             Real s2 = calcSlidingStepLengthToMaxChange(rt.m_slipVel,bend);
-            SimTK_DEBUG2("  Frac=%g reduces angle to %g degrees.\n", 
+            SimTK_DEBUG2("  Frac=%g reduces angle to %g degrees.\n",
                    s2, std::acos(m_cosMaxSlidingDirChange)*180/Pi);
             s = std::min(s, s2);
         }
@@ -687,7 +687,7 @@ solve(int                                 phase,
         #endif
     }
 
-    // Return the result. TODO: don't copy 
+    // Return the result. TODO: don't copy
     pi = piTotal; // doesn't include piE
     verrStart = m_verrLeft;
 
@@ -696,13 +696,13 @@ solve(int                                 phase,
     for (unsigned k=0; k < uniContact.size(); ++k) {
         const UniContactRT& rt = uniContact[k];
         const MultiplierIndex mx = rt.m_Nk;
-        SimTK_DEBUG4("%d: pi=%g verr=%g pi*v=%g\n", k, 
+        SimTK_DEBUG4("%d: pi=%g verr=%g pi*v=%g\n", k,
                      pi[mx], verrStart[mx], pi[mx]*verrStart[mx]);
-    } 
+    }
     //TODO: printf("SP DONE. Check friction cones ...\n");
 
     #ifndef NDEBUG
-    cout << "SP FINAL " << interval << " intervals, piTotal=" << piTotal 
+    cout << "SP FINAL " << interval << " intervals, piTotal=" << piTotal
          <<  " errNorm=" << m_errActive.norm() << endl;
     #endif
     return converged;
@@ -713,7 +713,7 @@ solve(int                                 phase,
 //------------------------------------------------------------------------------
 bool PLUSImpulseSolver::
 solveBilateral
-   (const Array_<MultiplierIndex>&  participating, // p<=m of these 
+   (const Array_<MultiplierIndex>&  participating, // p<=m of these
     const Matrix&                   A,     // m X m, symmetric
     const Vector&                   D,     // m, diag>=0 added to A
     const Vector&                   rhs,   // m, RHS
@@ -724,14 +724,14 @@ solveBilateral
     SimTK_DEBUG(  "PLUS BILATERAL SOLVER:\n");
     ++m_nBilateralSolves;
 
-    const int m=A.nrow(); 
+    const int m=A.nrow();
     const int p = (int)participating.size();
 
-    assert(A.ncol()==m); 
+    assert(A.ncol()==m);
     assert(D.size()==0 || D.size()==m);
     assert(rhs.size()==m);
     assert(p<=m);
- 
+
     pi.resize(m);
     pi.setToZero(); // That takes care of all non-participators.
 
@@ -774,7 +774,7 @@ solveBilateral
     #ifndef NDEBUG
     cout << "A=" << A;
     cout << "D=" << D << endl;
-    cout << "rcond(A+D)=" << pinv.getRCondEstimate() 
+    cout << "rcond(A+D)=" << pinv.getRCondEstimate()
          << " rank=" << pinv.getRank() << endl;
     cout << "rhs=" << rhs << endl;
     cout << "active=" << participating << endl;
@@ -917,7 +917,7 @@ calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const
     t7 = A[1] * A[1];
     t8 = A[1] * v[1];
     t9 = A[0] * v[0];
-    t10 = std::sqrt(-(t1 * t2 * (t3 * t6 + t4 * t7 + t5 * (t6 + t4) 
+    t10 = std::sqrt(-(t1 * t2 * (t3 * t6 + t4 * t7 + t5 * (t6 + t4)
           + (-2 * A[2] * (t9 + t8) + (t7 + t3) * v[2]) * v[2] - 2 * t8 * t9)));
     t11 = t9 * t2;
     t12 = t8 * t2;
@@ -949,15 +949,15 @@ calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const
 //------------------------------------------------------------------------------
 // At the start of each sliding interval, classify all frictional contacts
 // based on the actual start-of-interval constraint-space velocity.
-// For unilateral contact friction, if the unilateral normal contact is 
+// For unilateral contact friction, if the unilateral normal contact is
 // Observing (passive) then its friction constraints are off also. Otherwise
-// (normal is Participating or Known), every frictional contact is classified 
+// (normal is Participating or Known), every frictional contact is classified
 // as Rolling or Sliding depending on the current slip velocity as present
-// in m_verrLeft. No frictional contact is marked Impending at the start of a 
+// in m_verrLeft. No frictional contact is marked Impending at the start of a
 // sliding interval; that only occurs as a result of a transition from Rolling.
 void PLUSImpulseSolver::
 classifyFrictionals(Array_<UniContactRT>& uniContact) const {
-    SimTK_DEBUG1("classifyFrictionals(): %d uni contacts\n", 
+    SimTK_DEBUG1("classifyFrictionals(): %d uni contacts\n",
                  (int)uniContact.size());
     for (unsigned k=0; k < uniContact.size(); ++k) {
         UniContactRT& rt = uniContact[k];
@@ -1024,10 +1024,10 @@ fillMult2Active(const Array_<MultiplierIndex,ActiveIndex>& active,
 // previous impulses pi to new piActive. Assumes m_active and m_mult2active
 // have been filled in.
 void PLUSImpulseSolver::
-initializeNewton(const Matrix&                  A, 
-                 const Vector&                  pi, // m of these 
+initializeNewton(const Matrix&                  A,
+                 const Vector&                  pi, // m of these
                  const Vector&                  verrApplied,
-                 const Array_<UniContactRT>&    uniContact) const { 
+                 const Array_<UniContactRT>&    uniContact) const {
     const int na = m_active.size();
     const bool hasAppliedImpulse = (verrApplied.size() > 0);
     m_JacActive.resize(na,na); m_rhsActive.resize(na); m_piActive.resize(na);
@@ -1077,10 +1077,10 @@ initializeNewton(const Matrix&                  A,
 // the slip direction based on the current values of pi and piExpand.
 void PLUSImpulseSolver::
 updateDirectionsAndCalcCurrentError
-   (const Matrix& A,  Array_<UniContactRT>& uniContact, 
+   (const Matrix& A,  Array_<UniContactRT>& uniContact,
     const Vector& piELeft, const Vector& verrAppliedLeft,
     const Vector& piActive,
-    Vector& errActive) const 
+    Vector& errActive) const
 {
     const int na = m_active.size();
     assert(piActive.size() == na);
@@ -1101,7 +1101,7 @@ updateDirectionsAndCalcCurrentError
     // when we calculate the Jacobian.
     for (unsigned k=0; k < uniContact.size(); ++k) {
         UniContactRT& rt = uniContact[k];
-        if (rt.m_contactCond == UniOff || !rt.hasFriction()) 
+        if (rt.m_contactCond == UniOff || !rt.hasFriction())
             continue; // inactive, or no friction
         if (!(rt.m_frictionCond==Sliding || rt.m_frictionCond==Impending))
             continue; // no need to modify the equations
@@ -1125,7 +1125,7 @@ updateDirectionsAndCalcCurrentError
         }
 
         const Real mu = rt.m_effMu;
-        const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my], 
+        const ActiveIndex ax=m_mult2active[mx], ay=m_mult2active[my],
                           az=m_mult2active[mz];
         const Real pix = piActive[ax], piy=piActive[ay];
 
@@ -1142,8 +1142,8 @@ updateDirectionsAndCalcCurrentError
         // ==> pi_xy = - mu piz v/|v|
         // ==> |v| pi_xy + mu piz v = 0
         // We write the two error functions like this:
-        //     errx=|v|pi_x + mu*vx*[piE+min(pi_z,0)] 
-        //     erry=|v|pi_y + mu*vy*[piE+min(pi_z,0)] 
+        //     errx=|v|pi_x + mu*vx*[piE+min(pi_z,0)]
+        //     erry=|v|pi_y + mu*vy*[piE+min(pi_z,0)]
 
         // Calculate the terms common to Active and Known contacts.
         errActive[ax] = rt.m_slipMag*pix + mu*rt.m_slipVel[0]*pizE;
@@ -1153,7 +1153,7 @@ updateDirectionsAndCalcCurrentError
         if (rt.m_contactCond == UniActive) {
             const ActiveIndex az=m_mult2active[mz];
             assert(az.isValid());
-            // Applying the sign here makes piz negative if it represents a 
+            // Applying the sign here makes piz negative if it represents a
             // valid "pushing" force.
             const Real piz=rt.m_sign*piActive[az];
             const Real minz = std::min(piz, Real(0));
@@ -1167,11 +1167,11 @@ updateDirectionsAndCalcCurrentError
 //------------------------------------------------------------------------------
 //                       UDPATE JACOBIAN FOR SLIDING
 //------------------------------------------------------------------------------
-// Calculate Jacobian 
+// Calculate Jacobian
 //      J= D err(pi) / D pi
-// See updateDirectionsAndCalcCurrentError() for err(pi). All rows of J 
-// corresponding to linear equations, including rolling constraints, have 
-// already been filled in since they can't change during the iteration. Only 
+// See updateDirectionsAndCalcCurrentError() for err(pi). All rows of J
+// corresponding to linear equations, including rolling constraints, have
+// already been filled in since they can't change during the iteration. Only
 // sliding and impending friction rows are potentially nonlinear and thus
 // subject to change during the Newton iterations.
 void PLUSImpulseSolver::
@@ -1192,8 +1192,8 @@ updateJacobianForSliding(const Matrix& A,
         const Array_<MultiplierIndex>& Fk = rt.m_Fk;
         assert(Fk.size()==2); //TODO: generalize
         const MultiplierIndex mx=Fk[0], my=Fk[1];
-        assert(m_mult2active[mx].isValid()); 
-        assert(m_mult2active[my].isValid()); 
+        assert(m_mult2active[mx].isValid());
+        assert(m_mult2active[my].isValid());
 
          // Handy abbreviations to better match equations.
         const Real mu = rt.m_effMu;
@@ -1271,7 +1271,7 @@ updateJacobianForSliding(const Matrix& A,
                 const Real dminz = dsoftmin0(piz, m_minSmoothness);
                 m_JacActive(ax,az) = mu*d[0]*dminz;
                 m_JacActive(ay,az) = mu*d[1]*dminz;
-            } 
+            }
         }
         ++nPairsChanged;
     }

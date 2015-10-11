@@ -50,16 +50,16 @@ using std::cout; using std::endl;
 ContactGeometry::Ellipsoid::Ellipsoid(const Vec3& radii)
 :   ContactGeometry(new Ellipsoid::Impl(radii)) {}
 
-void ContactGeometry::Ellipsoid::setRadii(const Vec3& radii) 
+void ContactGeometry::Ellipsoid::setRadii(const Vec3& radii)
 {   updImpl().setRadii(radii); }
 
 /*static*/ ContactGeometryTypeId ContactGeometry::Ellipsoid::classTypeId()
 {   return ContactGeometry::Ellipsoid::Impl::classTypeId(); }
 
-const Vec3& ContactGeometry::Ellipsoid::getRadii() const 
+const Vec3& ContactGeometry::Ellipsoid::getRadii() const
 {   return getImpl().getRadii(); }
 
-const Vec3& ContactGeometry::Ellipsoid::getCurvatures() const 
+const Vec3& ContactGeometry::Ellipsoid::getCurvatures() const
 {   return getImpl().getCurvatures(); }
 
 UnitVec3 ContactGeometry::Ellipsoid::
@@ -100,33 +100,33 @@ DecorativeGeometry ContactGeometry::Ellipsoid::Impl::createDecorativeGeometry() 
     return DecorativeEllipsoid(radii);
 }
 
-// Given a point Q on an ellipsoid, with outward unit normal nn at Q: find the 
-// principal curvatures at the point and their directions. The result is a 
-// coordinate frame with origin Q, z axis the ellipsoid normal nn at Q, x axis 
-// is the direction dmax of maximum curvature kmax, y axis the direction dmin 
+// Given a point Q on an ellipsoid, with outward unit normal nn at Q: find the
+// principal curvatures at the point and their directions. The result is a
+// coordinate frame with origin Q, z axis the ellipsoid normal nn at Q, x axis
+// is the direction dmax of maximum curvature kmax, y axis the direction dmin
 // of minimum curvature kmin, such that [dmax dmin n] forms a right-handed set.
-// This is equivalent to fitting an elliptic paraboloid 
+// This is equivalent to fitting an elliptic paraboloid
 // z = -kmax/2 x^2 -kmin/2 y^2 to the ellipsoid at point Q. Note that for
 // an ellipsoid we have kmax>=kmin>0.
 //
-// We'll find the ellipse on the central plane perpendicular to the normal by 
-// intersecting the plane equation with the ellipsoid equation but working in 
+// We'll find the ellipse on the central plane perpendicular to the normal by
+// intersecting the plane equation with the ellipsoid equation but working in
 // the plane frame P=[u v n], where u and v are arbitrary axes in the plane.
-// Our goal is to obtain an equation for the ellipse in P and then rotate the 
-// P frame about its normal until we get the ellipse in standard form 
+// Our goal is to obtain an equation for the ellipse in P and then rotate the
+// P frame about its normal until we get the ellipse in standard form
 // Ru^2+Sv^2=1 in which case d/R and d/S are the ellipsoid curvatures (d is the
 // distance from the point on the ellipsoid to the plane).
-// ref: McArthur, Neil. "Principal radii of curvature at a point on an 
+// ref: McArthur, Neil. "Principal radii of curvature at a point on an
 // ellipsoid", Mathematical Notes 24 pp. xvi-xvii, 1929.
 //
-// In its own frame E=[x y z] the ellipsoid surface is the set of points such 
+// In its own frame E=[x y z] the ellipsoid surface is the set of points such
 // that
 //    ~e * diag(A,B,C) * e = 1
-// where e is a vector expressed in E. The plane is the set of points 
-// satisfying ~e * n = 0. We can write rotation matrix R_EP=[u v n] where 
+// where e is a vector expressed in E. The plane is the set of points
+// satisfying ~e * n = 0. We can write rotation matrix R_EP=[u v n] where
 // u,v,n are expressed in E. Now we can put the ellipsoid in P:
 //   ~(R_EP*p) * diag(A,B,C) * (R_EP*p) = 1
-// We can intersect that with the plane just by dropping the n coordinate of 
+// We can intersect that with the plane just by dropping the n coordinate of
 // p so p=[u v 0] (u,v scalars here), and the intersection equation is
 //    A(u*ux + v*vx)^2 + B(u*uy+v*vy)^2 + C(u*uz + v*vz)^2 = 1
 // which is
@@ -136,15 +136,15 @@ DecorativeGeometry ContactGeometry::Ellipsoid::Impl::createDecorativeGeometry() 
 //    S =   A vx^2  + B vy^2  + C vz^2
 //    T = 2(A ux*vx + B uy*vy + C uz*vz)
 //
-// We want to find a rotation about n that eliminates the cross term Tuv, 
+// We want to find a rotation about n that eliminates the cross term Tuv,
 // leaving us with
 //    R' u'^2 + S' v'^2 = 1
 // for new constants R' and S' and new basis u' and v'.
 //
 // Method
 // ------
-// We'll calculate an angle theta where theta=0 would be along u and 
-// theta=pi/2 would be along v. Then theta+pi/2 is a perpendicular direction 
+// We'll calculate an angle theta where theta=0 would be along u and
+// theta=pi/2 would be along v. Then theta+pi/2 is a perpendicular direction
 // that has the other curvature extreme. Per "Dr Rob" at Mathforum.org 2000:
 //   t2t = tan(2*theta) = T/(R-S)
 //   theta = atan(t2t)/2, c = cos(theta), s = sin(theta)
@@ -157,7 +157,7 @@ DecorativeGeometry ContactGeometry::Ellipsoid::Impl::createDecorativeGeometry() 
 // ------------
 // The above requires an atan() to get 2*theta then sin & cos(theta) at
 // a cost of about 120 flops. We can use half angle formulas to work
-// exclusively with 2*theta, but then we'll have to normalize u' and v' 
+// exclusively with 2*theta, but then we'll have to normalize u' and v'
 // at the end:
 //   t2t = tan(2*theta) = T/(R-S)
 //   c2t = cos(2*theta) = 1/sqrt(1 + t2t^2)
@@ -168,7 +168,7 @@ DecorativeGeometry ContactGeometry::Ellipsoid::Impl::createDecorativeGeometry() 
 // but get expressions that are easily converted to double angles:
 //   u' = normalize((1+c2t)*u + s2t*v)
 //   v' = normalize((1+c2t)*v - s2t*u)
-// (but actually v' is n X u' which is cheap). This saves about 30 
+// (but actually v' is n X u' which is cheap). This saves about 30
 // flops over the straightforward method above.
 //
 // Cost: given a point and normalized normal
@@ -177,16 +177,16 @@ DecorativeGeometry ContactGeometry::Ellipsoid::Impl::createDecorativeGeometry() 
 //               ----
 //               ~220 flops
 //
-// So: Given an ellipsoid in its own frame E, with equation Ax^2+By^2+Cz^2=1, a 
+// So: Given an ellipsoid in its own frame E, with equation Ax^2+By^2+Cz^2=1, a
 // point Q=(x,y,z) on its surface, and the unit outward normal vector nn at Q,
-// return (kmax,kmin) the principal curvatures at Q, and a Transform with 
-// x=dmax, y=dmin, z=nn, O=Q that gives the principal curvature directions. 
+// return (kmax,kmin) the principal curvatures at Q, and a Transform with
+// x=dmax, y=dmin, z=nn, O=Q that gives the principal curvature directions.
 // (Note: A=1/a^2, B=1/b^2, C=1/c^2 where a,b,c are the ellipsoid radii.)
 void ContactGeometry::Ellipsoid::Impl::
 findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
                                 Transform& X_EP, Vec2& k) const
 {
-    const Real A = square(curvatures[0]), B = square(curvatures[1]), 
+    const Real A = square(curvatures[0]), B = square(curvatures[1]),
                C = square(curvatures[2]);
 
     // Sanity checks in debug.
@@ -199,7 +199,7 @@ findParaboloidAtPointWithNormal(const Vec3& Q, const UnitVec3& nn,
 
     UnitVec3 tu = nn.perp();    // ~40 flops
     UnitVec3 tv(nn % tu, true); // y = z X x for plane, already normalized (9 flops)
-    
+
     // 27 flops to get R,S,T
     Real R=   A*square(tu[0]) + B*square(tu[1]) + C*square(tu[2]);
     Real S=   A*square(tv[0]) + B*square(tv[1]) + C*square(tv[2]);
@@ -387,7 +387,7 @@ calcDerivative(const Array_<int>& derivComponents, const Vector& x) const {
         int c = derivComponents[0];
         return -2*x[c]/(radii[c]*radii[c]);
     }
-    if (   derivComponents.size() == 2 
+    if (   derivComponents.size() == 2
         && derivComponents[0] == derivComponents[1]) {
         int c = derivComponents[0];
         return -2/(radii[c]*radii[c]);

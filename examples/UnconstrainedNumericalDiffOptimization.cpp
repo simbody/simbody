@@ -43,8 +43,8 @@ class ProblemSystem : public OptimizerSystem {
       const Real x = coefficients[0];
       const Real y = coefficients[1];
 
-      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
-    
+      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y;
+
       return(0);
 
    }
@@ -57,14 +57,14 @@ int main() {
 
     Real f = NaN;
     try {
-       Optimizer opt( sys ); 
+       Optimizer opt( sys );
 
        opt.setConvergenceTolerance( .0001 );
        opt.useNumericalGradient( true );
 
        results[0] =  100;
        results[1] = -100;
-    
+
        f = opt.optimize( results );
     }
     catch(const std::exception& e) {

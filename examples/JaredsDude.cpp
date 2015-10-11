@@ -35,10 +35,10 @@ class MyFrameController : public Visualizer::FrameController {
 public:
     MyFrameController(const SimbodyMatterSubsystem& matter,
                       MobilizedBodyIndex whichBody,
-                      const Force::Gravity& gravity) 
+                      const Force::Gravity& gravity)
     :   m_matter(matter), m_whichBody(whichBody), m_gravity(gravity) {}
 
-    virtual void generateControls(const Visualizer&           viz, 
+    virtual void generateControls(const Visualizer&           viz,
                                   const State&                state,
                                   Array_<DecorativeGeometry>& geometry) override
     {
@@ -62,11 +62,11 @@ private:
 // Check for user input. If there has been some, process it.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, const Force::Gravity& gravity, Real interval) 
+    UserInputHandler(Visualizer::InputSilo& silo, const Force::Gravity& gravity, Real interval)
     :   PeriodicEventHandler(interval), m_silo(silo), m_gravity(gravity) {}
 
-    virtual void handleEvent(State& state, Real accuracy,  
-                             bool& shouldTerminate) const override 
+    virtual void handleEvent(State& state, Real accuracy,
+                             bool& shouldTerminate) const override
     {
         unsigned key, modifiers;
         if (!m_silo.takeKeyHit(key, modifiers))
@@ -78,7 +78,7 @@ public:
             return;
         }
 
-        const Real KeyFactor = 0.05; 
+        const Real KeyFactor = 0.05;
 
         const UnitVec3& down = m_gravity.getDownDirection(state);
         bool control = (modifiers & Visualizer::InputListener::ControlIsDown) != 0;
@@ -187,7 +187,7 @@ public:
     Dude(Real scale);
 
     void loadDefaultState(State& state);
-    
+
     void scaleBy(Real scale) {
         m_mass *= scale; m_length *= scale;
         m_segment *= scale;
@@ -233,7 +233,7 @@ int main() {
     MultibodySystem& system = dude.m_system;
 
     Visualizer viz(system);
-   
+
     printf("\n\n***************************************************************\n");
     printf(    "use arrow keys and page up/down to control green gravity vector\n");
     printf(    "***************************************************************\n\n");
@@ -249,7 +249,7 @@ int main() {
 
 
     // This is for per-frame camera control and single-frame geometry.
-    viz.addFrameController(new MyFrameController(dude.m_matter, 
+    viz.addFrameController(new MyFrameController(dude.m_matter,
         MobilizedBodyIndex(1), dude.m_gravity));
 
     viz.setRealTimeScale(TimeScale);
@@ -266,7 +266,7 @@ int main() {
     system.addEventHandler(
         new UserInputHandler(*silo, dude.m_gravity, 0.1)); // 100ms
     system.addEventReporter(new Visualizer::Reporter(viz, TimeScale/FrameRate));
-     
+
     // Initialize the system and state.
 
     system.realizeTopology();
@@ -327,7 +327,7 @@ Vec3 Dude::springRData[] = {Vec3(12000,10,.122),
                             Vec3(18000,10,.065)};
 
 Dude::Dude(Real scale)
-:   m_matter(m_system), m_forces(m_system), m_tracker(m_system), 
+:   m_matter(m_system), m_forces(m_system), m_tracker(m_system),
     m_contactForces(m_system, m_tracker), m_viz(m_system),
     m_gravity(m_forces, m_matter, -YAxis, 9.81),
     m_mass(NBodyType,massData), m_length(NBodyType,lengthData),
@@ -381,7 +381,7 @@ Dude::Dude(Real scale)
 
     // Add ContactSurfaces to the feet. Since surfaces on the same body can't collide
     // anyway, the clique membership here ensures that the feet can't contact with
-    // each other. 
+    // each other.
     ContactCliqueId clique1 = ContactSurface::createNewContactClique();
 
     ContactMaterial material(0.02*1e7, // stiffness

@@ -31,7 +31,7 @@ namespace SimTK {
 
 
 //  ------------------------------ MatrixStructure -----------------------------
-const char* 
+const char*
 MatrixStructure::name(Structure structure) {
     switch (structure) {
       case NoStructure:        return "No Structure";
@@ -114,7 +114,7 @@ MatrixStructure::calcStructureMask(Structure structure) {
       case SkewHermitian:      return SkewHermitian;
       case Full:               return Full | calcStructureMask(Hermitian) | calcStructureMask(SkewHermitian)
                                            | calcStructureMask(Symmetric) | calcStructureMask(SkewSymmetric)
-                                           | calcStructureMask(Hessenberg) 
+                                           | calcStructureMask(Hessenberg)
                                            | calcStructureMask(Banded)
                                            | calcStructureMask(Permutation)
                                            | calcStructureMask(Matrix1d);
@@ -195,9 +195,9 @@ MatrixStorage::name(Diagonal d) {
     };
 }
 
-MatrixStorage 
+MatrixStorage
 MatrixStorage::calcDefaultStorage(const MatrixStructure& structure,
-                                  const MatrixOutline&   outline) 
+                                  const MatrixOutline&   outline)
 {
     // Just to be nice we'll default to Lower storage for lower-triangular
     // matrices and Upper storage for upper-triangular ones. (There is no
@@ -209,7 +209,7 @@ MatrixStorage::calcDefaultStorage(const MatrixStructure& structure,
     // TODO: probably should use row order for "Wide" outlines too, but need
     // to check if that will limit us too much with Lapack.
     MatrixStorage::Order order = ColumnOrder;
-    if (outline.getOutline()==MatrixOutline::Row) 
+    if (outline.getOutline()==MatrixOutline::Row)
         order = RowOrder;
 
     Diagonal diagonal = StoredDiag;
@@ -245,7 +245,7 @@ MatrixStorage::calcDefaultStorage(const MatrixStructure& structure,
 
 
 // ------------------------------- MatrixOutline -------------------------------
-const char* 
+const char*
 MatrixOutline::name(Outline a) {
     switch(a) {
       case NoOutline:   return "No Outline";
@@ -261,7 +261,7 @@ MatrixOutline::name(Outline a) {
 }
 
 
-MatrixOutline::OutlineMask 
+MatrixOutline::OutlineMask
 MatrixOutline::calcMask(Outline outline) {
     switch(outline) {
       case NoOutline:   return UncommittedOutline;
@@ -278,7 +278,7 @@ MatrixOutline::calcMask(Outline outline) {
     };
 }
 
-bool 
+bool
 MatrixOutline::isSizeOK(int m, int n) const {
     SimTK_ASSERT2(m>=0 && n>=0,
         "MatrixOutline::isSizeOK(): sizes must be non-negative; got %dx%d", m, n);
@@ -296,7 +296,7 @@ MatrixOutline::isSizeOK(int m, int n) const {
     };
 }
 
-void 
+void
 MatrixOutline::getMinimumSize(int& m, int& n) const {
          if (outline==Scalar) m=n=1;
     else if (outline==Column) m=0, n=1;
@@ -319,7 +319,7 @@ MatrixOutline::calcFromSize(int m, int n) {
 
 
 // ----------------------------- MatrixCondition -------------------------------
-const char* 
+const char*
 MatrixCondition::name(Condition c) {
     switch(c) {
       case UnknownCondition:    return "UnknownCondition";
@@ -332,7 +332,7 @@ MatrixCondition::name(Condition c) {
     };
 }
 
-MatrixCondition::ConditionMask 
+MatrixCondition::ConditionMask
 MatrixCondition::calcMask(Condition c) {
     switch(c) {
       case UnknownCondition:    return UncommittedCondition;
@@ -350,7 +350,7 @@ MatrixCondition::calcMask(Condition c) {
     };
 }
 
-const char* 
+const char*
 MatrixCondition::name(Diagonal d) {
     switch(d) {
       case UnknownDiagonal:     return "UnknownDiagonal";
@@ -362,7 +362,7 @@ MatrixCondition::name(Diagonal d) {
     };
 }
 
-MatrixCondition::DiagonalMask 
+MatrixCondition::DiagonalMask
 MatrixCondition::calcMask(Diagonal d) {
     switch(d) {
       case UnknownDiagonal:     return UncommittedDiagonal;
@@ -416,11 +416,11 @@ MatrixCommitment::calcDefaultCharacter(int m, int n) const {
 
     // Size and outline are now set in actual.
 
-    if (isStructureCommitted()) 
+    if (isStructureCommitted())
         actual.setStructure(structure);
     else {
         switch (getOutlineCommitment().getOutline()) {
-          case MatrixOutline::Scalar: 
+          case MatrixOutline::Scalar:
             actual.setStructure(MatrixStructure::RepeatedDiagonal);
             break;
           case MatrixOutline::Column:
@@ -437,7 +437,7 @@ MatrixCommitment::calcDefaultCharacter(int m, int n) const {
 
     // Size, outline, and structure are now set in actual.
 
-    if (isStorageCommitted()) 
+    if (isStorageCommitted())
         actual.setStorage(storage);
     else {
         // Default storage format depends on structure type and outline.
@@ -470,4 +470,4 @@ std::ostream& operator<<(std::ostream& o, const MatrixCommitment& commit) {
 }
 
 
-} // namespace SimTK   
+} // namespace SimTK

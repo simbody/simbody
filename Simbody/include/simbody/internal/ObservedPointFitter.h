@@ -33,12 +33,12 @@ namespace SimTK {
 /**
  * This class attempts to find the configuration of an internal coordinate model which best fits a set of
  * observed data.  The inputs to the algorithm are as follows:
- * 
+ *
  * - A MultibodySystem which describes the model to fit
  * - A set of points (called "stations") whose locations are defined relative to particular bodies
  * - The target location for each station, defined relative to ground
  * - (optional) A weight for each station, giving its relative importance for fitting
- * 
+ *
  * The output is a State giving the set of internal coordinates that best fit the stations to the target locations.
  */
 
@@ -50,21 +50,21 @@ public:
      */
 
     static Real findBestFit
-       (const MultibodySystem&             system, 
-        State&                             state, 
-        const Array_<MobilizedBodyIndex>&  bodyIxs, 
-        const Array_<Array_<Vec3> >&       stations, 
-        const Array_<Array_<Vec3> >&       targetLocations, 
+       (const MultibodySystem&             system,
+        State&                             state,
+        const Array_<MobilizedBodyIndex>&  bodyIxs,
+        const Array_<Array_<Vec3> >&       stations,
+        const Array_<Array_<Vec3> >&       targetLocations,
         Real                               tolerance=0.001);
 
     /** For compatibility with std::vector; requires extra copying. **/
     static Real findBestFit
-       (const MultibodySystem&                  system, 
-        State&                                  state, 
-        const std::vector<MobilizedBodyIndex>&  bodyIxs, 
-        const std::vector<std::vector<Vec3> >&  stations, 
-        const std::vector<std::vector<Vec3> >&  targetLocations, 
-        Real                                    tolerance=0.001) 
+       (const MultibodySystem&                  system,
+        State&                                  state,
+        const std::vector<MobilizedBodyIndex>&  bodyIxs,
+        const std::vector<std::vector<Vec3> >&  stations,
+        const std::vector<std::vector<Vec3> >&  targetLocations,
+        Real                                    tolerance=0.001)
     {
         Array_<Array_<Vec3> > stationCopy(stations);
         Array_<Array_<Vec3> > targetCopy(targetLocations);
@@ -75,7 +75,7 @@ public:
 
     /**
      * Find the configuration of a MultibodySystem which best fits a set of target locations for stations.
-     * 
+     *
      * @param system      the MultibodySystem being analyzed
      * @param state       on exit, this State's Q vector contains the values which provide a best fit
      * @param bodyIxs     a list of MobilizedBodyIndexs corresponding to the bodies for which stations are defined
@@ -88,22 +88,22 @@ public:
      */
 
     static Real findBestFit
-       (const MultibodySystem&             system, 
-        State&                             state, 
-        const Array_<MobilizedBodyIndex>&  bodyIxs, 
-        const Array_<Array_<Vec3> >&       stations, 
-        const Array_<Array_<Vec3> >&       targetLocations, 
-        const Array_<Array_<Real> >&       weights, 
+       (const MultibodySystem&             system,
+        State&                             state,
+        const Array_<MobilizedBodyIndex>&  bodyIxs,
+        const Array_<Array_<Vec3> >&       stations,
+        const Array_<Array_<Vec3> >&       targetLocations,
+        const Array_<Array_<Real> >&       weights,
         Real                               tolerance=0.001);
 
     /** For compatibility with std::vector; requires extra copying. **/
     static Real findBestFit
-       (const MultibodySystem&                  system, 
-        State&                                  state, 
-        const std::vector<MobilizedBodyIndex>&  bodyIxs, 
-        const std::vector<std::vector<Vec3> >&  stations, 
-        const std::vector<std::vector<Vec3> >&  targetLocations, 
-        const std::vector<std::vector<Real> >&  weights, 
+       (const MultibodySystem&                  system,
+        State&                                  state,
+        const std::vector<MobilizedBodyIndex>&  bodyIxs,
+        const std::vector<std::vector<Vec3> >&  stations,
+        const std::vector<std::vector<Vec3> >&  targetLocations,
+        const std::vector<std::vector<Real> >&  weights,
         Real                                    tolerance=0.001)
     {
         Array_<Array_<Vec3> > stationCopy(stations);

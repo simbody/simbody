@@ -17,7 +17,7 @@
 #define Y3    RCONST(0.0)
 
 #define RTOL  RCONST(1.0e-4)   /* 1e-4 */
-#define ATOL1 RCONST(1.0e-8)   /* 1e-8 */ 
+#define ATOL1 RCONST(1.0e-8)   /* 1e-8 */
 #define ATOL2 RCONST(1.0e-14)  /* 1e-14 */
 #define ATOL3 RCONST(1.0e-6)   /* 1e-6 */
 
@@ -34,7 +34,7 @@ static int res(realtype t, N_Vector y, N_Vector yp, N_Vector res, void *f_data);
 static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data);
 static int g(realtype t, N_Vector y, N_Vector yp, realtype *gout, void *g_data);
 static int jacI(int N, realtype t, realtype gm,
-                N_Vector y, N_Vector yp, N_Vector r, 
+                N_Vector y, N_Vector yp, N_Vector r,
                 DlsMat J, void *jac_data,
                 N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 static int jacE(int N, realtype t,
@@ -63,7 +63,7 @@ int main()
   /* Create serial vectors of length NEQ for I.C. and abstol */
   yy = N_VNew_Serial(NEQ);
   yp = N_VNew_Serial(NEQ);
-  abstol = N_VNew_Serial(NEQ); 
+  abstol = N_VNew_Serial(NEQ);
 
   /* Initialize y */
   Ith(yy,1) = Y1;
@@ -87,7 +87,7 @@ int main()
   }
 
   /* Initialize solver */
-  cpode_mem = CPodeCreate(ODE, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(ODE, CP_BDF, CP_NEWTON);
   flag = CPodeInit(cpode_mem, fct, NULL, T0, yy, yp, CP_SV, reltol, abstol);
 
   /* Set initial step size */
@@ -113,7 +113,7 @@ int main()
   iout = 0;  tout = T1;
   while(1) {
     flag = CPode(cpode_mem, tout, &t, yy, yp, CP_NORMAL);
-    printf("At t = %0.4le      y =%14.6le  %14.6le  %14.6le\n", 
+    printf("At t = %0.4le      y =%14.6le  %14.6le  %14.6le\n",
            t, Ith(yy,1), Ith(yy,2), Ith(yy,3));
 
     if (flag < 0) break;
@@ -169,7 +169,7 @@ static int res(realtype t, N_Vector y, N_Vector yp, N_Vector res, void *f_data)
 }
 
 /*
- * f routine. Compute function f(t,y). 
+ * f routine. Compute function f(t,y).
  */
 
 static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data)
@@ -189,7 +189,7 @@ static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data)
  * Jacobian routine. Compute J(t,y) = dF/dy' + gm * dF/dy = I - gm*df/dy.
  */
 static int jacI(int N, realtype t, realtype gm,
-                N_Vector y, N_Vector yp, N_Vector r, 
+                N_Vector y, N_Vector yp, N_Vector r,
                 DlsMat J, void *jac_data,
                 N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -202,7 +202,7 @@ static int jacI(int N, realtype t, realtype gm,
   IJth(J,1,2) = -gm*RCONST(1.0e4)*y3;
   IJth(J,1,3) = -gm*RCONST(1.0e4)*y2;
 
-  IJth(J,2,1) = -gm*RCONST(0.04); 
+  IJth(J,2,1) = -gm*RCONST(0.04);
   IJth(J,2,2) = ONE - gm * (RCONST(-1.0e4)*y3 - RCONST(6.0e7)*y2);
   IJth(J,2,3) = -gm*RCONST(-1.0e4)*y2;
 
@@ -218,7 +218,7 @@ static int jacI(int N, realtype t, realtype gm,
  */
 
 static int jacE(int N, realtype t,
-                N_Vector y, N_Vector fy, 
+                N_Vector y, N_Vector fy,
                 DlsMat J, void *jac_data,
                 N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -230,7 +230,7 @@ static int jacE(int N, realtype t,
   IJth(J,1,2) = RCONST(1.0e4)*y3;
   IJth(J,1,3) = RCONST(1.0e4)*y2;
 
-  IJth(J,2,1) = RCONST(0.04); 
+  IJth(J,2,1) = RCONST(0.04);
   IJth(J,2,2) = RCONST(-1.0e4)*y3-RCONST(6.0e7)*y2;
   IJth(J,2,3) = RCONST(-1.0e4)*y2;
 
@@ -243,7 +243,7 @@ static int jacE(int N, realtype t,
 
 
 /*
- * g routine. Compute functions g_i(t,y) for i = 0,1. 
+ * g routine. Compute functions g_i(t,y) for i = 0,1.
  */
 
 static int g(realtype t, N_Vector y, N_Vector yp, realtype *gout, void *g_data)
@@ -257,7 +257,7 @@ static int g(realtype t, N_Vector y, N_Vector yp, realtype *gout, void *g_data)
   return(0);
 }
 
-/* 
+/*
  * Get and print some final statistics
  */
 

@@ -41,33 +41,33 @@ int main () {
     for (int i = 0; i < 4; ++i) {
         PeriodicHandler::handler->setEventInterval(i == 0 || i == 1 ? 0.01 : 2.0);
         PeriodicReporter::reporter->setEventInterval(i == 0 || i == 2 ? 0.015 : 1.5);
-        
+
         // Test the BDF integrator in both normal and single step modes.
-        
+
         CPodesIntegrator bdfInteg(sys, CPodes::BDF);
         testIntegrator(bdfInteg, sys);
         bdfInteg.setReturnEveryInternalStep(true);
         testIntegrator(bdfInteg, sys);
-        
+
         // Test the Adams integrator in both normal and single step modes.
-        
+
         CPodesIntegrator adamsInteg(sys, CPodes::Adams);
         testIntegrator(adamsInteg, sys);
         adamsInteg.setReturnEveryInternalStep(true);
         testIntegrator(adamsInteg, sys);
-        
+
         // Calling setUseCPodesProjection() after the integrator has been initialized should
         // produce an exception.
-        
+
         try {
             adamsInteg.setUseCPodesProjection();
             assert(false);
         }
         catch (...) {
         }
-        
+
         // Try having CPODES do the projection instead of the System.
-        
+
         CPodesIntegrator projInteg(sys, CPodes::BDF);
         projInteg.setUseCPodesProjection();
         testIntegrator(projInteg, sys);

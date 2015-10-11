@@ -68,7 +68,7 @@ std::string Event::eventTriggerString(Trigger e) {
         if (e & triggers[i]) {
             if (s.size()) s += "|";
             s += triggerNames[i];
-            e = Trigger((unsigned)e & ~((unsigned)triggers[i])); 
+            e = Trigger((unsigned)e & ~((unsigned)triggers[i]));
         }
 
     // should have accounted for everything by now
@@ -89,7 +89,7 @@ std::string Event::eventTriggerString(Trigger e) {
 class EventTriggerInfo::EventTriggerInfoRep {
 public:
     explicit EventTriggerInfoRep(EventTriggerInfo* h)
-    :   myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true), 
+    :   myHandle(h), eventId(EventId(InvalidIndex)), triggerOnRising(true),
         triggerOnFalling(true), localizationWindow(Real(0.1))
     {
         assert(h);
@@ -130,7 +130,7 @@ EventTriggerInfo::EventTriggerInfo(const EventTriggerInfo& src) : rep(0) {
     rep->myHandle = this;
 }
 
-EventTriggerInfo& 
+EventTriggerInfo&
 EventTriggerInfo::operator=(const EventTriggerInfo& src) {
     if (&src != this) {
         if (getRep().myHandle == this)
@@ -154,25 +154,25 @@ Real EventTriggerInfo::getRequiredLocalizationTimeWindow()    const {
     return getRep().localizationWindow;
 }
 
-EventTriggerInfo& 
+EventTriggerInfo&
 EventTriggerInfo::setEventId(EventId id) {
-    updRep().eventId = id; 
+    updRep().eventId = id;
     return *this;
 }
-EventTriggerInfo& 
+EventTriggerInfo&
 EventTriggerInfo::setTriggerOnRisingSignTransition(bool shouldTrigger) {
-    updRep().triggerOnRising = shouldTrigger; 
+    updRep().triggerOnRising = shouldTrigger;
     return *this;
 }
-EventTriggerInfo& 
+EventTriggerInfo&
 EventTriggerInfo::setTriggerOnFallingSignTransition(bool shouldTrigger) {
-    updRep().triggerOnFalling = shouldTrigger; 
+    updRep().triggerOnFalling = shouldTrigger;
     return *this;
 }
-EventTriggerInfo& 
+EventTriggerInfo&
 EventTriggerInfo::setRequiredLocalizationTimeWindow(Real w) {
     assert(w > 0);
-    updRep().localizationWindow = w; 
+    updRep().localizationWindow = w;
     return *this;
 }
 

@@ -47,7 +47,7 @@ static const Real MomentScale = .5;
 class ForceArrowGenerator : public DecorationGenerator {
 public:
     ForceArrowGenerator(const MultibodySystem& system,
-                        const CompliantContactSubsystem& complCont) 
+                        const CompliantContactSubsystem& complCont)
     :   m_mbs(system), m_compliant(complCont) {}
 
     virtual void generateDecorations(const State& state, Array_<DecorativeGeometry>& geometry) override {
@@ -129,7 +129,7 @@ private:
 
 class MyReporter : public PeriodicEventReporter {
 public:
-    MyReporter(const MultibodySystem& system, 
+    MyReporter(const MultibodySystem& system,
                const CompliantContactSubsystem& complCont,
                Real reportInterval)
     :   PeriodicEventReporter(reportInterval), m_system(system),
@@ -155,11 +155,11 @@ static const int GoItem = 1, ReplayItem=2, QuitItem=3;
 // This one does nothing but look for the Run->Quit selection.
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, Real interval) 
+    UserInputHandler(Visualizer::InputSilo& silo, Real interval)
     :   PeriodicEventHandler(interval), m_silo(silo) {}
 
-    virtual void handleEvent(State& state, Real accuracy, 
-                             bool& shouldTerminate) const override 
+    virtual void handleEvent(State& state, Real accuracy,
+                             bool& shouldTerminate) const override
     {
         int menuId, item;
         if (m_silo.takeMenuPick(menuId, item) && menuId==RunMenuId && item==QuitItem)
@@ -173,7 +173,7 @@ private:
 int main() {
   try
   { // Create the system.
-    
+
     MultibodySystem         system;
     SimbodyMatterSubsystem  matter(system);
     GeneralForceSubsystem   forces(system);
@@ -203,9 +203,9 @@ int main() {
                            fFac*.8,fFac*.7,fVis*10)));
 
     const Real brickMass = 10;
-    Body::Rigid brickBody(MassProperties(brickMass, Vec3(0), 
+    Body::Rigid brickBody(MassProperties(brickMass, Vec3(0),
                             UnitInertia::brick(hdim)));
-    brickBody.addDecoration(Transform(), 
+    brickBody.addDecoration(Transform(),
                             DecorativeBrick(hdim).setColor(Cyan).setOpacity(.3));
     const int surfx = brickBody.addContactSurface(Transform(),
         ContactSurface(ContactGeometry::Brick(hdim),
@@ -321,11 +321,11 @@ int main() {
     system.addEventHandler(new UserInputHandler(*silo, .25));
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
-    brick.setQToFitRotation(state, Rotation(SpaceRotationSequence, 
+    brick.setQToFitRotation(state, Rotation(SpaceRotationSequence,
                                             .1, ZAxis, .05, XAxis));
     brick.setUToFitLinearVelocity(state, Vec3(2,0,0));
 
@@ -333,19 +333,19 @@ int main() {
 
     viz.report(state);
     printf("Default state\n");
-    cout << "t=" << state.getTime() 
-         << " q=" << brick.getQAsVector(state)  
-         << " u=" << brick.getUAsVector(state)  
+    cout << "t=" << state.getTime()
+         << " q=" << brick.getQAsVector(state)
+         << " u=" << brick.getUAsVector(state)
          << endl;
 
     cout << "\nChoose 'Go' from Run menu to simulate:\n";
     int menuId, item;
     do { silo->waitForMenuPick(menuId, item);
-         if (menuId != RunMenuId || item != GoItem) 
+         if (menuId != RunMenuId || item != GoItem)
              cout << "\aDude ... follow instructions!\n";
     } while (menuId != RunMenuId || item != GoItem);
 
-   
+
     // Simulate it.
 
     // The system as parameterized is very stiff (mostly due to friction)
@@ -376,12 +376,12 @@ int main() {
     const double timeInSec = realTime() - realStart;
     const int evals = integ.getNumRealizations();
     cout << "Done -- took " << integ.getNumStepsTaken() << " steps in " <<
-        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step=" 
-        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) " 
+        timeInSec << "s elapsed for " << ts.getTime() << "s sim (avg step="
+        << (1000*ts.getTime())/integ.getNumStepsTaken() << "ms) "
         << (1000*ts.getTime())/evals << "ms/eval\n";
     cout << "  CPU time was " << cpuTime() - cpuStart << "s\n";
 
-    printf("Using Integrator %s at accuracy %g:\n", 
+    printf("Using Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());

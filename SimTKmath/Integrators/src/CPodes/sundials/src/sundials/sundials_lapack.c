@@ -13,7 +13,7 @@
  * This is the implementation file for a generic package of dense
  * matrix operations based on BLAS/LAPACK.
  * -----------------------------------------------------------------
- */ 
+ */
 
 #include <stdio.h>
 

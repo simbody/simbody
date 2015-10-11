@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.3 $
  * $Date: 2006/11/29 00:05:05 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -27,9 +27,9 @@
  * and use this to form a preconditioner for use with one of the
  * CSPILS iterative linear solvers. Although this matrix is intended
  * to approximate the Jacobian df/dy (respectively dF/dy + gamma*dF/dy,
- * it may be a very crude approximation. The true Jacobian need not 
- * be banded, or its true bandwidth may be larger than ml + mu + 1, 
- * as long as the banded approximation generated here is sufficiently 
+ * it may be a very crude approximation. The true Jacobian need not
+ * be banded, or its true bandwidth may be larger than ml + mu + 1,
+ * as long as the banded approximation generated here is sufficiently
  * accurate to speed convergence as a preconditioner.
  *
  * Usage:
@@ -67,7 +67,7 @@
  *
  * Notes:
  * (1) Include this file for the CPBandPrecData type definition.
- * (2) In the CPBandPrecAlloc call, the arguments N is the 
+ * (2) In the CPBandPrecAlloc call, the arguments N is the
  *     problem dimension.
  * (3) In the CPBPSp* call, the user is free to specify
  *     the input pretype and the optional input maxl. The last
@@ -239,11 +239,11 @@ SUNDIALS_EXPORT int CPBandPrecGetNumFctEvals(void *bp_data, long int *nfevalsBP)
 
 /*
  * -----------------------------------------------------------------
- * The following function returns the name of the constant 
+ * The following function returns the name of the constant
  * associated with a CPBANDPRE return flag
  * -----------------------------------------------------------------
  */
-  
+
 SUNDIALS_EXPORT char *CPBandPrecGetReturnFlagName(int flag);
 
 #ifdef __cplusplus

@@ -31,8 +31,8 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-This is the header file that user code should include to pick up all Simbody 
-capabilities.\ Note that all symbols defined here will be in the SimTK 
+This is the header file that user code should include to pick up all Simbody
+capabilities.\ Note that all symbols defined here will be in the SimTK
 namespace, or (where a namespace can't be used) prefixed by "SimTK_". **/
 
 #include "SimTKcommon.h"

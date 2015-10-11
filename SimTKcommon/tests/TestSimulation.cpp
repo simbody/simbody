@@ -124,7 +124,7 @@ public:
     SystemSubsystemGuts* cloneImpl() const override
     {   return new SystemSubsystemGuts(*this); }
     int realizeSubsystemTopologyImpl(State& s) const override {
-        eventRegistry = allocateCacheEntry(s, Stage::Instance, 
+        eventRegistry = allocateCacheEntry(s, Stage::Instance,
                                            new Value<EventRegistry>());
         return 0;
     }
@@ -140,7 +140,7 @@ public:
         adoptSubsystemGuts(new SystemSubsystemGuts());
     }
 
-    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, 
+    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub,
                                    EventId start, int nEvents) const
     {   EventRegistry& er = getGuts().updEventRegistry(s);
         SubsystemIndex sx = sub.getMySubsystemIndex();
@@ -148,7 +148,7 @@ public:
             er[EventId(i)] = sx;
     }
 
-    const EventRegistry& getEventRegistry(const State& s) const 
+    const EventRegistry& getEventRegistry(const State& s) const
     {   return getGuts().getEventRegistry(s); }
 
 private:
@@ -176,12 +176,12 @@ public:
     {
         return false;
     }
-    void projectQImpl(State& state, Vector& yerrest, const ProjectOptions& opts, 
+    void projectQImpl(State& state, Vector& yerrest, const ProjectOptions& opts,
                      ProjectResults& result) const override
-    {   
+    {
         result.setExitStatus(ProjectResults::Succeeded);
     }
-    void projectUImpl(State& state, Vector& yerrest, const ProjectOptions& opts, 
+    void projectUImpl(State& state, Vector& yerrest, const ProjectOptions& opts,
                      ProjectResults& result) const override
     {
         result.setExitStatus(ProjectResults::Succeeded);
@@ -191,13 +191,13 @@ public:
         const HandleEventsOptions& options, HandleEventsResults& results) const
         override
     {
-        cout << "handleEventsImpl t=" << s.getTime() 
+        cout << "handleEventsImpl t=" << s.getTime()
              << " cause=" << Event::getCauseName(cause) << endl;
 
         if (eventIds.empty()) {
             for (SubsystemIndex sx(0); sx < getNumSubsystems(); ++sx) {
                 const Subsystem& sub = getSubsystem(sx);
-                sub.getSubsystemGuts().handleEvents(s, cause, eventIds, 
+                sub.getSubsystemGuts().handleEvents(s, cause, eventIds,
                     options, results);
                 if (results.getExitStatus()==HandleEventsResults::Failed)
                     break;
@@ -213,21 +213,21 @@ public:
         for (EventId eid(0); eid < eventIds.size(); ++eid)
             eventsPerSub[ registry.find(eid)->second ].push_back(eid);
 
-        std::map<SubsystemIndex, Array_<EventId> >::const_iterator 
+        std::map<SubsystemIndex, Array_<EventId> >::const_iterator
             i = eventsPerSub.begin();
         for (; i != eventsPerSub.end(); ++i) {
             const Subsystem& sub = getSubsystem(i->first);
-            sub.getSubsystemGuts().handleEvents(s, cause, i->second, 
+            sub.getSubsystemGuts().handleEvents(s, cause, i->second,
                 options, results);
             if (results.getExitStatus()==HandleEventsResults::Failed)
                 break;
         }
     }
 
-    int reportEventsImpl(const State& s, Event::Cause cause, 
+    int reportEventsImpl(const State& s, Event::Cause cause,
                          const Array_<EventId>& eventIds) const override
     {
-        cout << "reportEventsImpl t=" << s.getTime() << " cause=" 
+        cout << "reportEventsImpl t=" << s.getTime() << " cause="
              << Event::getCauseName(cause) << endl;
         return 0;
     }
@@ -243,13 +243,13 @@ public:
         adoptSubsystem(updGuts().updSystemSubsystem());
     }
 
-    const SystemSubsystem& getSystemSubsystem() const 
+    const SystemSubsystem& getSystemSubsystem() const
     {   return getGuts().getSystemSubsystem(); }
     SystemSubsystem& updSystemSubsystem()
     {   return updGuts().updSystemSubsystem(); }
 
-    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub, 
-                                   EventId start, int nEvents) const 
+    void registerEventsToSubsystem(const State& s, const Subsystem::Guts& sub,
+                                   EventId start, int nEvents) const
     {
         const SystemSubsystem& syssub = getGuts().getSystemSubsystem();
         syssub.registerEventsToSubsystem(s,sub,start,nEvents);
@@ -346,7 +346,7 @@ public:
         const Real TriggerUSum = 5;
         updQDot3(s) = getU3(s);
         const Real usum = updUSum(s) = sum(getU3(s));
-        updVelTrigger(s) = usum - TriggerUSum; 
+        updVelTrigger(s) = usum - TriggerUSum;
         return 0;
     }
 
@@ -355,12 +355,12 @@ public:
         return 0;
     }
 
-    void handleEventsImpl(State& s, Event::Cause cause, 
+    void handleEventsImpl(State& s, Event::Cause cause,
                           const Array_<EventId>& eventIds,
                           const HandleEventsOptions& options,
                           HandleEventsResults& results) const override
     {
-        cout << "**** TestSubsystem::handleEventsImpl t=" << s.getTime() 
+        cout << "**** TestSubsystem::handleEventsImpl t=" << s.getTime()
              << " acc=" << options.getAccuracy()
              << " eventIds=";
         for (unsigned i=0; i < eventIds.size(); ++i)
@@ -369,12 +369,12 @@ public:
 
         // Pretend we changed a position to test lowestModifiedStage
         // calculation. Try to hide our duplicity by realizing it again.
-        s.invalidateAllCacheAtOrAbove(Stage::Position); 
+        s.invalidateAllCacheAtOrAbove(Stage::Position);
         getSystem().realize(s, Stage::Velocity);
         results.setExitStatus(HandleEventsResults::Succeeded);
     }
 
-    void reportEventsImpl(const State&, Event::Cause, 
+    void reportEventsImpl(const State&, Event::Cause,
                           const Array_<EventId>& eventIds) const override
     {
     }
@@ -396,7 +396,7 @@ private:
     const CacheEntries& getCacheEntries(const State& s) const
     {   assert(myCacheEntries >= 0);
         return Value<CacheEntries>::downcast(getCacheEntry(s,myCacheEntries)); }
-    StateVars& updStateVars   (const State& s) const 
+    StateVars& updStateVars   (const State& s) const
     {   assert(myStateVars >= 0);
         return Value<StateVars>::downcast(updCacheEntry(s,myStateVars)); }
     CacheEntries& updCacheEntries(const State& s) const
@@ -457,7 +457,7 @@ static Real   accuracy = 1e-6;
 static Real   timescale;
 
 static bool handleEvents(const System& sys, State& state, Stage g,
-                         const Array_<EventId>& triggered) 
+                         const Array_<EventId>& triggered)
 {
     if (triggered.empty())
         return false;
@@ -467,7 +467,7 @@ static bool handleEvents(const System& sys, State& state, Stage g,
         cout << " " << triggered[i];
     cout << endl;
 
-    bool shouldTerminate = false; 
+    bool shouldTerminate = false;
     HandleEventsOptions options(accuracy);
     HandleEventsResults results;
 
@@ -483,7 +483,7 @@ static bool handleEvents(const System& sys, State& state, Stage g,
     cout << "Results lowestStage=" << results.getLowestModifiedStage() <<"\n";
 
     if (results.getExitStatus()==HandleEventsResults::ShouldTerminate) {
-        cout << "==> Event at Stage " << g 
+        cout << "==> Event at Stage " << g
              << " requested termination at t=" << state.getTime() << endl;
         shouldTerminate = true;
     }
@@ -503,7 +503,7 @@ public:
 template <class T>
 class MySinCos<T>::Implementation : public Measure_<T>::Implementation {
 public:
-    Implementation() 
+    Implementation()
     :   Measure_<T>::Implementation(T(Vec2(0)), 1) {}
 
     // Default copy constructor, destructor, copy assignment are fine.
@@ -511,7 +511,7 @@ public:
     // Implementations of virtual methods.
     Implementation* cloneVirtual() const {return new Implementation(*this);}
     int getNumTimeDerivativesVirtual() const {return 0;}
-    Stage getDependsOnStageVirtual(int order) const 
+    Stage getDependsOnStageVirtual(int order) const
     {   return Stage::Time; }
 
     void calcCachedValueVirtual(const State& s, int derivOrder, T& value) const
@@ -538,9 +538,9 @@ class MyRealMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
     Implementation* cloneVirtual() const override
     {   return new Implementation(*this); }
-    int getNumTimeDerivativesVirtual() const override 
+    int getNumTimeDerivativesVirtual() const override
     {   return 0; }
-    Stage getDependsOnStageVirtual(int order) const override 
+    Stage getDependsOnStageVirtual(int order) const override
     {   return Stage::Time; }
 
 };
@@ -550,21 +550,21 @@ void testOne() {
     TestSystem sys;
     TestSubsystem subsys(sys);
 
-    // Add a Result measure to the system subsystem. This depends on 
+    // Add a Result measure to the system subsystem. This depends on
     // Position stage and invalidates Dynamics and later stages.
-    Measure_<Vector>::Result vectorResult(sys.updSystemSubsystem(), 
+    Measure_<Vector>::Result vectorResult(sys.updSystemSubsystem(),
         Stage::Position, Stage::Dynamics);
 
     MeasureIndex vectorResultIx = vectorResult.getSubsystemMeasureIndex();
-    cout << "vectorResult index=" 
+    cout << "vectorResult index="
          << vectorResultIx << endl;
 
     Measure_<Vector>::Result myVecRes =  Measure_<Vector>::Result::getAs(
         sys.updSystemSubsystem().getMeasure(vectorResultIx));
 
-    Measure::Result result(sys.updSystemSubsystem(), 
+    Measure::Result result(sys.updSystemSubsystem(),
         Stage::Time, Stage::Position);
-    Measure::Result autoResult(sys.updSystemSubsystem(), 
+    Measure::Result autoResult(sys.updSystemSubsystem(),
         Stage::Time, Stage::Position);
     autoResult.setIsPresumedValidAtDependsOnStage(true);
 
@@ -663,7 +663,7 @@ void testOne() {
     // Allocate vectorResult and initialize it. (Can't mark it valid yet.)
     vectorResult.updValue(state).resize(3);
     vectorResult.updValue(state) = Vector(Vec3(1,2,3));
-    
+
     result.updValue(state) = 1.234;
     autoResult.updValue(state) = 4.321;
 
@@ -671,7 +671,7 @@ void testOne() {
     state.setTime(1.234);
     sys.realize(state, Stage::Time);
     cout << "Initially, tMeasure=" << tMeasure.getValue(state)
-         << " tSubMeas=" << tSubMeas.getValue(state) 
+         << " tSubMeas=" << tSubMeas.getValue(state)
          << " 1000*tMeasure=" << t1000.getValue(state)
          << endl;
 
@@ -701,12 +701,12 @@ void testOne() {
     cout << "mv+cos2pit=" << vplus.getValue(state) << endl;
     cout << "mv-cos2pit=" << vminus.getValue(state) << endl;
 
-    cout << "Sys stage after realize(Pos):" 
+    cout << "Sys stage after realize(Pos):"
          << state.getSystemStage().getName() << endl;
 
     mv.setValue(state, 1.234);
 
-    cout << "Sys stage after mv=1.234:" 
+    cout << "Sys stage after mv=1.234:"
          << state.getSystemStage().getName() << endl;
 
     cout << "mv is now=" << mv.getValue(state) << endl;
@@ -744,7 +744,7 @@ void testOne() {
                      Array_<EventId>(), handleOpts, results);
     SimTK_ERRCHK_ALWAYS(
         results.getExitStatus()!=HandleEventsResults::ShouldTerminate,
-        "Integrator::initialize()", 
+        "Integrator::initialize()",
         "An initialization event handler requested termination.");
 
     sys.realize(state, Stage::Acceleration);
@@ -763,21 +763,21 @@ void testOne() {
             cout << "q=" << state.getQ() << " u=" << state.getU() << endl;
             cout << "qSum=" << subsys.getQSum(state) << " uSum=" << subsys.getUSum(state) << endl;
             cout << "three=" << three.getValue(state) << " v3const=" << v3const.getValue(state) << endl;
-            cout << "cos2pit=" << cos2pit.getValue(state) 
+            cout << "cos2pit=" << cos2pit.getValue(state)
                  << " cos(2pi*t)=" << std::cos(2*Pi*state.getTime()) << endl;
-            cout << "Min(cos2pit)=" << minCos2pit.getValue(state) 
+            cout << "Min(cos2pit)=" << minCos2pit.getValue(state)
                  << " @t=" << minCos2pit.getTimeOfExtremeValue(state) << endl;
-            cout << "Max(cos2pit)=" << maxCos2pit.getValue(state) 
+            cout << "Max(cos2pit)=" << maxCos2pit.getValue(state)
                  << " @t=" << maxCos2pit.getTimeOfExtremeValue(state) << endl;
-            cout << "MinAbs(cos2pit)=" << minAbsCos2pit.getValue(state) 
+            cout << "MinAbs(cos2pit)=" << minAbsCos2pit.getValue(state)
                  << " @t=" << minAbsCos2pit.getTimeOfExtremeValue(state) << endl;
-            cout << "MaxAbs(cos2pit)=" << maxAbsCos2pit.getValue(state) 
+            cout << "MaxAbs(cos2pit)=" << maxAbsCos2pit.getValue(state)
                  << " @t=" << maxAbsCos2pit.getTimeOfExtremeValue(state) << endl;
-            cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state) 
+            cout << "sin2pitOver2pi=" << sin2pitOver2pi.getValue(state)
                  << " sin(2pi*t)/2pi=" << std::sin(2*Pi*state.getTime())/(2*Pi) << endl;
-            cout << "d/dt sin2pitOver2pi=" 
+            cout << "d/dt sin2pitOver2pi="
                  << sin2pitOver2pi.getValue(state,1) << endl;
-            cout << "dInteg=" 
+            cout << "dInteg="
                  << dInteg.getValue(state) << endl;
             cout << "cossin=" << cossin.getValue(state) << "\n";
             cout << "vcossin=" << vcossin.getValue(state) << "\n";

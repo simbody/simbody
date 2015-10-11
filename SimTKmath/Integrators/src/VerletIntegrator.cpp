@@ -46,7 +46,7 @@ VerletIntegrator::VerletIntegrator(const System& sys, Real stepSize) {
 //                          VERLET INTEGRATOR REP
 //==============================================================================
 VerletIntegratorRep::VerletIntegratorRep(Integrator* handle, const System& sys)
-:   AbstractIntegratorRep(handle, sys, 2, 3, "Verlet",  true) 
+:   AbstractIntegratorRep(handle, sys, 2, 3, "Verlet",  true)
 {
 }
 
@@ -64,7 +64,7 @@ bool VerletIntegratorRep::attemptDAEStep
     const System& system   = getSystem();
     State& advanced = updAdvancedState();
     Vector dummyErrEst; // for when we don't want the error estimate projected
-    
+
     statsStepsAttempted++;
 
     const Real    t0        = getPreviousTime();       // nicer names
@@ -83,8 +83,8 @@ bool VerletIntegratorRep::attemptDAEStep
     const int nz = advanced.getNZ();
 
     // We will catch any exceptions thrown by realize() or project() and simply
-    // treat that as a failure to take a step due to the step size being too 
-    // big. The idea is that the caller should reduce the step size and try 
+    // treat that as a failure to take a step due to the step size being too
+    // big. The idea is that the caller should reduce the step size and try
     // again, giving up only when the step size goes below the allowed minimum.
 
   try
@@ -95,10 +95,10 @@ bool VerletIntegratorRep::attemptDAEStep
     VectorView uErrEst  = yErrEst(   nq, nu);
     VectorView zErrEst  = yErrEst(nq+nu, nz);
     VectorView uzErrEst = yErrEst(   nq, nu+nz);    // all 2nd order estimates
-    
-    // Calculate the new positions q (3rd order) and initial (1st order) 
+
+    // Calculate the new positions q (3rd order) and initial (1st order)
     // estimate for the velocities u and auxiliary variables z.
-    
+
     // These are final values (the q's will get projected, though).
     advanced.updTime() = t1;
     advanced.updQ()    = q0 + h*qdot0 + (h*h/2)*qdotdot0;
@@ -116,12 +116,12 @@ bool VerletIntegratorRep::attemptDAEStep
 
     // Consider position constraint projection. (See AbstractIntegratorRep
     // for how we decide not to project.)
-    const Real projectionLimit = 
-        std::max(2*getConstraintToleranceInUse(), 
+    const Real projectionLimit =
+        std::max(2*getConstraintToleranceInUse(),
                     std::sqrt(getConstraintToleranceInUse()));
 
     bool anyChangesQ;
-    if (!localProjectQAndQErrEstNoThrow(advanced, dummyErrEst, anyChangesQ, 
+    if (!localProjectQAndQErrEstNoThrow(advanced, dummyErrEst, anyChangesQ,
                                         projectionLimit))
         return false; // convergence failure for this step
 
@@ -135,13 +135,13 @@ bool VerletIntegratorRep::attemptDAEStep
 
     // Get new values for the derivatives.
     realizeStateDerivatives(advanced);
-    
+
     // We're going to integrate the u's and z's with the 2nd order implicit
-    // trapezoid rule: u(t+h) = u(t) + h*(f(u(t))+f(u(t+h)))/2. Unfortunately 
+    // trapezoid rule: u(t+h) = u(t) + h*(f(u(t))+f(u(t+h)))/2. Unfortunately
     // this is an implicit method so we have to iterate to refine u(t+h) until
-    // this equation is acceptably satisfied. We're using functional iteration 
+    // this equation is acceptably satisfied. We're using functional iteration
     // here which has a very limited radius of convergence.
-    
+
     const Real tol = std::min(Real(1e-4), Real(0.1)*getAccuracyInUse());
     Vector usave(nu), zsave(nz); // temporaries
     bool converged = false;
@@ -158,7 +158,7 @@ bool VerletIntegratorRep::attemptDAEStep
         // will be invalid.
         const Vector& udot1 = advanced.getUDot();
         const Vector& zdot1 = advanced.getZDot();
-        
+
         // Refine u and z estimates.
         advanced.setU(u0 + (h/2)*(udot0 + udot1));
         advanced.setZ(z0 + (h/2)*(zdot0 + zdot1));
@@ -173,10 +173,10 @@ bool VerletIntegratorRep::attemptDAEStep
         realizeStateDerivatives(advanced);
 
         // Calculate convergence as the ratio of the norm of the last delta to
-        // the norm of the values prior to the last change. We're using the 
-        // 2-norm but this ratio would be the same if we used the RMS norm. 
+        // the norm of the values prior to the last change. We're using the
+        // 2-norm but this ratio would be the same if we used the RMS norm.
         // TinyReal is there to keep us out of trouble if we started at zero.
-        
+
         const Real convergenceU = (advanced.getU()-usave).norm()
                                   / (usave.norm()+TinyReal);
         const Real convergenceZ = (advanced.getZ()-zsave).norm()
@@ -188,8 +188,8 @@ bool VerletIntegratorRep::attemptDAEStep
         prevChange = change;
     }
 
-    // Now that we have achieved 2nd order estimates of u and z, we can use 
-    // them to calculate a 3rd order error estimate for q and 2nd order error 
+    // Now that we have achieved 2nd order estimates of u and z, we can use
+    // them to calculate a 3rd order error estimate for q and 2nd order error
     // estimates for u and z. Note that we have already realized the state with
     // the new values, so QDot reflects the new u's.
 
@@ -200,20 +200,20 @@ bool VerletIntegratorRep::attemptDAEStep
               - advanced.getU();        // implicit trapezoid rule integral
     zErrEst = z1_est - advanced.getZ(); // ditto for z's
 
-    // TODO: because we're only projecting velocities here, we aren't going to 
-    // get our position errors reduced here, which is a shame. Should be able 
-    // to do this even though we had to project q's earlier, because the 
+    // TODO: because we're only projecting velocities here, we aren't going to
+    // get our position errors reduced here, which is a shame. Should be able
+    // to do this even though we had to project q's earlier, because the
     // projection matrix should still be around.
     bool anyChangesU;
     if (!localProjectUAndUErrEstNoThrow(advanced, yErrEst, anyChangesU,
                                         projectionLimit))
         return false; // convergence failure for this step
 
-    // Two different integrators were used to estimate errors: trapezoidal for 
+    // Two different integrators were used to estimate errors: trapezoidal for
     // Q, and explicit Euler for U and Z.  This means that the U and Z errors
-    // are of a different order than the Q errors.  We therefore multiply them 
+    // are of a different order than the Q errors.  We therefore multiply them
     // by h so everything will be of the same order.
-    
+
     // TODO: (sherm) I don't think this is valid. Although it does fix the
     // order, it also changes the absolute errors (typically by reducing
     // them since h is probably < 1) which will affect whether the caller

@@ -25,7 +25,7 @@ namespace Ipopt
    *  to a Subject, indicating that it would like to
    *  be notified of changes in the Subject.
    *  Any derived class wishing to receive notifications
-   *  from a Subject should inherit off of 
+   *  from a Subject should inherit off of
    *  Observer and overload the protected method,
    *  ReceiveNotification_(...).
    */
@@ -56,21 +56,21 @@ namespace Ipopt
 
   protected:
     /** Derived classes should call this method
-     * to request an "Attach" to a Subject. Do 
+     * to request an "Attach" to a Subject. Do
      * not call "Attach" explicitly on the Subject
      * since further processing is done here
      */
     void RequestAttach(NotifyType notify_type, const Subject* subject);
 
     /** Derived classes should call this method
-     * to request a "Detach" to a Subject. Do 
+     * to request a "Detach" to a Subject. Do
      * not call "Detach" explicitly on the Subject
      * since further processing is done here
      */
     void RequestDetach(NotifyType notify_type, const Subject* subject);
 
     /** Derived classes should overload this method to
-     * receive the requested notification from 
+     * receive the requested notification from
      * attached Subjects
      */
     virtual void ReceiveNotification(NotifyType notify_type, const Subject* subject)=0;
@@ -78,7 +78,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -137,7 +137,7 @@ namespace Ipopt
      *  Currently, the notify_type flags are not used,
      *  and Observers are attached in general and will
      *  receive all notifications (of the type requested
-     *  and possibly of types not requested). It is 
+     *  and possibly of types not requested). It is
      *  up to the observer to ignore the types they
      *  are not interested in. The NotifyType in the
      *  parameter list is so a more efficient mechanism
@@ -161,7 +161,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

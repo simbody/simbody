@@ -77,7 +77,7 @@ static void testConstruction() {
     SimTK_TEST(gravity3.getDefaultZeroHeight()==0);
     SimTK_TEST(gravity3.getDefaultGravityVector()==Vec3(-mag,0,0));
 
-    // Using the vector constructor with a zero vector should pluck the 
+    // Using the vector constructor with a zero vector should pluck the
     // direction out of the System.
     Force::Gravity gravity4(forces, matter, Vec3(0));
     SimTK_TEST(gravity4.getDefaultMagnitude()==0);
@@ -149,7 +149,7 @@ void testParameters() {
     // That shouldn't have changed the default.
     SimTK_TEST(!gravity.getDefaultBodyIsExcluded(mobod3));
 
-    // When making changes in the state we are restricted to bodies that 
+    // When making changes in the state we are restricted to bodies that
     // actually exist.
     SimTK_TEST_MUST_THROW(gravity.setBodyIsExcluded(s, MobodIndex(13), true));
 
@@ -192,17 +192,17 @@ static void testForces() {
     #endif
 
     Force::Gravity gravity(forces, matter, -ZAxis, 50, 17);
-  
+
     matter.Ground().addBodyDecoration(Vec3(0,0,.05),
         DecorativeFrame(2).setColor(Green));
 
-    MobilizedBody::Weld mobod1(matter.Ground(),Vec3(0), 
+    MobilizedBody::Weld mobod1(matter.Ground(),Vec3(0),
                                body1Info, Vec3(0));
 
     const Rotation ZtoY(-Pi/2, XAxis);
-    MobilizedBody::Pin mobod2(mobod1, Transform(ZtoY,2*Centroid), 
+    MobilizedBody::Pin mobod2(mobod1, Transform(ZtoY,2*Centroid),
                               body2Info, Transform(ZtoY,Vec3(0)));
-    MobilizedBody::Pin mobod3(mobod2, Transform(ZtoY,2*Centroid), 
+    MobilizedBody::Pin mobod3(mobod2, Transform(ZtoY,2*Centroid),
                               body3Info, Transform(ZtoY,Vec3(0)));
 
     State state = mbs.realizeTopology();
@@ -215,7 +215,7 @@ static void testForces() {
     #endif
 
 
-    const Vector_<SpatialVec>& bodyForces = 
+    const Vector_<SpatialVec>& bodyForces =
         mbs.getRigidBodyForces(state, Stage::Dynamics);
 
     // Mobility forces should all be zero.
@@ -242,7 +242,7 @@ static void testForces() {
 
         SimTK_TEST_EQ(gravity.getBodyForce(state, i), SpatialVec(M,F));
 
-        const Real h = 
+        const Real h =
             -dot(mobod.findStationLocationInGround(state,p_BC),d)-h0;
         pe += m*g*h;
     }
@@ -259,7 +259,7 @@ static void testForces() {
         const Mobod& mobod = matter.getMobilizedBody(i);
         const Real m = mobod.getBodyMass(state);
         const Vec3 p_BC = mobod.getBodyMassCenterStation(state);
-        const Real h = 
+        const Real h =
             -dot(mobod.findStationLocationInGround(state,p_BC),d)-h0;
         pe += m*g*h;
     }
@@ -284,7 +284,7 @@ static void testForces() {
         if (i != mobod2.getMobilizedBodyIndex()) {
             SimTK_TEST_EQ(bodyForces[i], SpatialVec(M,F));
             SimTK_TEST_EQ(gravity.getBodyForce(state, i), SpatialVec(M,F));
-            const Real h = 
+            const Real h =
                 -dot(mobod.findStationLocationInGround(state,p_BC),d)-h0;
             pe += m*g*h;
         } else {
@@ -316,14 +316,14 @@ static void testForces() {
 
     // Bring mobod2 back in. This should only invalidate Dynamics stage, but
     // should nevertheless force recomputation of gravity.
-    gravity.setBodyIsExcluded(state, mobod2, false); 
+    gravity.setBodyIsExcluded(state, mobod2, false);
     SimTK_TEST(state.getSystemStage() == Stage(Stage::Dynamics-1));
     SimTK_TEST(gravity.getBodyForces(state)[0] == SpatialVec(Vec3(0)));
     const long long nevals3=gravity.getNumEvaluations();
     SimTK_TEST(nevals3==nevals2+1);
 
-    // Make sure that setting gravity to zero works properly -- it is a 
-    // special case since the zeroes are precalculated. This should not 
+    // Make sure that setting gravity to zero works properly -- it is a
+    // special case since the zeroes are precalculated. This should not
     // require a gravity evaluation.
     gravity.setMagnitude(state, 0);
     SimTK_TEST(!gravity.isForceCacheValid(state));
@@ -352,7 +352,7 @@ static void testForces() {
     SimTK_TEST_EQ(state.getUDot(), Vector(state.getNU(), Real(0)));
     SimTK_TEST(gravity.getNumEvaluations()==nevals4); // all for free?
 
-    // Sneaking a zero in by vector should behave just like setting the 
+    // Sneaking a zero in by vector should behave just like setting the
     // magnitude to zero.
     gravity.setGravityVector(state, Vec3(0));
     SimTK_TEST(!gravity.isForceCacheValid(state));
@@ -370,7 +370,7 @@ int main() {
     DecorativeBrick drawCube(Cube); drawCube.setOpacity(0.5).setColor(Gray);
     body1Info.addDecoration(Centroid, drawCube);
     body2Info.addDecoration(Centroid, drawCube);
-    body3Info.addDecoration(Centroid, drawCube);  
+    body3Info.addDecoration(Centroid, drawCube);
 
     SimTK_START_TEST("TestGravity");
         SimTK_SUBTEST(testConstruction);

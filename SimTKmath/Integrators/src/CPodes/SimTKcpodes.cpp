@@ -39,8 +39,8 @@ namespace SimTK {
 class CPodesRep {
 public:
     CPodesRep()
-      : useImplicitODEFunction(false), cpode_mem(0), sysp(0), myHandle(0) 
-    { 
+      : useImplicitODEFunction(false), cpode_mem(0), sysp(0), myHandle(0)
+    {
         zeroFunctionPointers();
     }
 
@@ -141,8 +141,8 @@ static int projectWrapper(realtype t, N_Vector nv_ycur,
     return rep.projectFunc(rep.getCPodesSystem(), t, ycur, corr, epsProj, err);
 }
 
-static int quadratureWrapper(realtype t, N_Vector nv_y, 
-                             N_Vector nv_qout, void *q_data) 
+static int quadratureWrapper(realtype t, N_Vector nv_y,
+                             N_Vector nv_qout, void *q_data)
 {
     const Vector& y    = N_Vector_SimTK::getVector(nv_y);
     Vector&       qout = N_Vector_SimTK::updVector(nv_qout);
@@ -151,7 +151,7 @@ static int quadratureWrapper(realtype t, N_Vector nv_y,
 }
 
 static int rootWrapper(realtype t, N_Vector nv_y, N_Vector nv_yp,
-                       realtype *goutp, void *g_data) 
+                       realtype *goutp, void *g_data)
 {
     const Vector& y    = N_Vector_SimTK::getVector(nv_y);
     const Vector& yp   = N_Vector_SimTK::getVector(nv_yp);
@@ -175,8 +175,8 @@ static int weightWrapper(N_Vector nv_y, N_Vector nv_ewt, void *e_data) {
     return rep.weightFunc(rep.getCPodesSystem(), y, ewt);
 }
 
-static void errorHandlerWrapper(int error_code, 
-                                const char *module, const char *function, 
+static void errorHandlerWrapper(int error_code,
+                                const char *module, const char *function,
                                 char *msg, void *eh_data)
 {
     const CPodesRep& rep = *reinterpret_cast<const CPodesRep*>(eh_data);
@@ -262,15 +262,15 @@ static int mapStepMode(CPodes::StepMode mode) {
 // calls this library-side routine to do most of the work. (Registration of
 // user functions has to be done on the client side.)
 void CPodes::librarySideCPodesConstructor
-   (ODEType ode, LinearMultistepMethod lmm, NonlinearSystemIterationType nls) 
+   (ODEType ode, LinearMultistepMethod lmm, NonlinearSystemIterationType nls)
 {
     if (ode == UnspecifiedODEType) ode = ExplicitODE;
     if (lmm == UnspecifiedLinearMultistepMethod) lmm = BDF;
-    if (nls == UnspecifiedNonlinearSystemIterationType) 
+    if (nls == UnspecifiedNonlinearSystemIterationType)
         nls = (ode==ExplicitODE ? Functional : Newton);
 
-    rep = new CPodesRep(mapODEType(ode), 
-                        mapLinearMultistepMethod(lmm), 
+    rep = new CPodesRep(mapODEType(ode),
+                        mapLinearMultistepMethod(lmm),
                         mapNonlinearSystemIterationType(nls));
     rep->setMyHandle(*this);
 }
@@ -290,10 +290,10 @@ int CPodes::init(CPodesSystem& sys,
     N_Vector_SimTK nv_y0(y0);   // references, not copies
     N_Vector_SimTK nv_yp0(yp0);
     return CPodeInit(updRep().cpode_mem,
-                     getRep().useImplicitODEFunction 
+                     getRep().useImplicitODEFunction
                         ? (void*)implicitODEWrapper
                         : (void*)explicitODEWrapper,
-                     (void*)rep, 
+                     (void*)rep,
                      t0, &nv_y0, &nv_yp0,
                      mapToleranceType(tol_type),reltol,abstol);
 }
@@ -307,7 +307,7 @@ int CPodes::reInit(CPodesSystem& sys,
     N_Vector_SimTK nv_y0(y0);   // references, not copies
     N_Vector_SimTK nv_yp0(yp0);
     return CPodeReInit(updRep().cpode_mem,
-                       getRep().useImplicitODEFunction 
+                       getRep().useImplicitODEFunction
                           ? (void*)implicitODEWrapper
                           : (void*)explicitODEWrapper,
                        (void*)rep,
@@ -319,8 +319,8 @@ int CPodes::projInit(ProjectionNorm norm, ConstraintLinearity lin,
                      const Vector& ctol)
 {
     N_Vector_SimTK nv_ctol(ctol);
-    return CPodeProjInit(updRep().cpode_mem, 
-                         mapProjectionNorm(norm), 
+    return CPodeProjInit(updRep().cpode_mem,
+                         mapProjectionNorm(norm),
                          mapConstraintLinearity(lin),
                          constraintWrapper, (void*)rep,
                          &nv_ctol);
@@ -410,7 +410,7 @@ int CPodes::setProjNonlinConvCoef(Real prjcoef) {
     return CPodeSetProjNonlinConvCoef(updRep().cpode_mem,prjcoef);
 }
 
-int CPodes::setQuadErrCon(bool errconQ, 
+int CPodes::setQuadErrCon(bool errconQ,
                   int tol_typeQ, Real reltolQ, void* abstolQ) {
     return CPodeSetQuadErrCon(updRep().cpode_mem,(booleantype)errconQ,
                               tol_typeQ,reltolQ,abstolQ);
@@ -429,7 +429,7 @@ int CPodes::setRootDirection(Array_<int>& rootdir) {
     return result;
 }
 
-int CPodes::step(Real tout, Real* tret, 
+int CPodes::step(Real tout, Real* tret,
          Vector& yout, Vector& ypout, StepMode mode)
 {
     // The pretty code commented out here heap allocates the N_VectorContent_SimTK
@@ -467,7 +467,7 @@ int CPodes::getQuadDky(Real t, int k, Vector& dky) {
 }
 
 int CPodes::getWorkSpace(int* lenrw, int* leniw) {
-    long llenrw, lleniw; 
+    long llenrw, lleniw;
     int stat = CPodeGetWorkSpace(updRep().cpode_mem,&llenrw,&lleniw);
     *lenrw = (int)llenrw; *leniw = (int)lleniw;
     return stat;
@@ -547,7 +547,7 @@ int CPodes::getIntegratorStats(int* nsteps,
                           int* nfevals, int* nlinsetups,
                           int* netfails, int* qlast,
                           int* qcur, Real* hinused, Real* hlast,
-                          Real* hcur, Real* tcur) 
+                          Real* hcur, Real* tcur)
 {
     long lnsteps, lnfevals, lnlinsetups, lnetfails;
     int stat = CPodeGetIntegratorStats(updRep().cpode_mem,&lnsteps,
@@ -572,7 +572,7 @@ int CPodes::getNumNonlinSolvConvFails(int* nncfails) {
     *nncfails = (int)lnncfails;
     return stat;
 }
-int CPodes::getNonlinSolvStats(int* nniters, int* nncfails) 
+int CPodes::getNonlinSolvStats(int* nniters, int* nncfails)
 {
     long lnniters, lnncfails;
     int stat = CPodeGetNonlinSolvStats(updRep().cpode_mem,&lnniters,&lnncfails);
@@ -605,7 +605,7 @@ int CPodes::getProjNumFailures(int* nprf) {
 }
 int CPodes::getProjStats(int* nproj,
                  int* nce, int* nsetupsP,
-                 int* nprf) 
+                 int* nprf)
 {
     long lnproj,lnce,lnsetupsP,lnprf;
     int stat = CPodeGetProjStats(updRep().cpode_mem,&lnproj,&lnce,&lnsetupsP,&lnprf);
@@ -720,41 +720,41 @@ void CPodes::registerErrorHandlerFunc(CPodes::ErrorHandlerFunc f) {
 // knows where to put each function by name.
 
 int CPodesSystem::explicitODE(Real, const Vector&, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "explicitODE"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "explicitODE");
     return std::numeric_limits<int>::min();
 }
 int CPodesSystem::implicitODE(Real, const Vector&, const Vector&, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "implicitODE"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "implicitODE");
     return std::numeric_limits<int>::min();
 }
 
 int CPodesSystem::constraint(Real, const Vector&, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "constraint"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "constraint");
     return std::numeric_limits<int>::min();
 }
 
 int CPodesSystem::project(Real, const Vector&, Vector&, Real, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "project"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "project");
     return std::numeric_limits<int>::min();
 }
 
 int CPodesSystem::quadrature(Real, const Vector&, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "quadrature"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "quadrature");
     return std::numeric_limits<int>::min();
 }
 
 int CPodesSystem::root(Real, const Vector&, const Vector&, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "root"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "root");
     return std::numeric_limits<int>::min();
 }
 
 int CPodesSystem::weight(const Vector&, Vector&) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "weight"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "weight");
     return std::numeric_limits<int>::min();
 }
 
 void CPodesSystem::errorHandler(int, const char*, const char*, char*) const {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "errorHandler"); 
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "CPodesSystem", "errorHandler");
 }
 
 } // namespace SimTK

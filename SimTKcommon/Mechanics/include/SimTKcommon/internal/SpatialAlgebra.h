@@ -38,19 +38,19 @@ namespace SimTK {
 /**@defgroup SpatialAlgebraUtilities    Spatial Algebra Utilities
    @ingroup GlobalFunctions
 
-These utility functions are used for manipulation of spatial quantities that 
+These utility functions are used for manipulation of spatial quantities that
 are contained in SpatialVec or SpatialMat objects. These are intended for
 expert use and are mostly used in the implemention of friendlier methods such
 as those in MobilizedBody that are used to obtain various spatial quantities.
 
-@note Although we use SpatialVec for both, there are two different spatial 
-vector bases: one for motion quantities like velocities, accelerations, and 
-momentum and another for forces and impulses; be sure to use the appropriate 
+@note Although we use SpatialVec for both, there are two different spatial
+vector bases: one for motion quantities like velocities, accelerations, and
+momentum and another for forces and impulses; be sure to use the appropriate
 functions. Also, we use a pair of ordinary vectors, following Abhi Jain,
-rather than the similar but subtly different Plucker basis vectors used by 
+rather than the similar but subtly different Plucker basis vectors used by
 Roy Featherstone.
 
-Spatial vectors are used for combined (rotational,translational) quantities. 
+Spatial vectors are used for combined (rotational,translational) quantities.
 These include
 @verbatim
      spatial velocity     = (angularVelocity,linearVelocity)
@@ -59,7 +59,7 @@ These include
 @endverbatim
 
 Spatial configuration (pose) has to be handled differently though since
-orientation is not a vector quantity. We use the Transform class for this 
+orientation is not a vector quantity. We use the Transform class for this
 concept, which includes an orientation matrix and a translation vector.
 @see Transform **/
 /**@{**/
@@ -100,12 +100,12 @@ inline SpatialVec reverseRelativeVelocityInA(const Transform&  X_AB,
                                              const SpatialVec& V_AB);
 
 inline SpatialVec shiftVelocityBy(const SpatialVec& V_AB, const Vec3& r_A);
-inline SpatialVec shiftVelocityFromTo(const SpatialVec& V_A_BP, 
+inline SpatialVec shiftVelocityFromTo(const SpatialVec& V_A_BP,
                                       const Vec3&       fromP_A,
                                       const Vec3&       toQ_A);
 
 inline SpatialVec shiftForceBy(const SpatialVec& F_AP, const Vec3& r_A);
-inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP, 
+inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP,
                                    const Vec3&       fromP_A,
                                    const Vec3&       toQ_A);
 
@@ -114,7 +114,7 @@ inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP,
 //==============================================================================
 //                           FIND RELATIVE VELOCITY
 //==============================================================================
-/** @brief Find the relative spatial velocity between two frames A and B whose 
+/** @brief Find the relative spatial velocity between two frames A and B whose
 individual spatial velocities are known with respect to a third frame F, with
 the result returned in A.
 
@@ -126,18 +126,18 @@ the result returned in A.
     The pose of frame B measured and expressed in frame F.
 @param[in]      V_FB
     The spatial velocity of frame B measured and expressed in frame F.
-@return V_AB, the relative spatial velocity of frame B in frame A, expressed 
+@return V_AB, the relative spatial velocity of frame B in frame A, expressed
     in A.
 
 Given the spatial velocity V_FA of frame A in a reference frame F, and
 the spatial velocity V_FB of frame B in F, and transforms giving the poses of
-frames A and B in F, calculate the relative velocity V_AB of frame B in 
+frames A and B in F, calculate the relative velocity V_AB of frame B in
 frame A, measured and expressed in A. Typical usage:
 @code
     Transform  X_GA, X_GB;      // assume these are known from somewhere
     SpatialVec V_GA, V_GB;
 
-    SpatialVec V_AB = findRelativeVelocity(X_GA, V_GA, 
+    SpatialVec V_AB = findRelativeVelocity(X_GA, V_GA,
                                            X_GB, V_GB);
 @endcode
 @note This returns the result expressed in A which is almost always what you
@@ -159,8 +159,8 @@ inline SpatialVec findRelativeVelocity(const Transform&  X_FA,
 //==============================================================================
 //                         FIND RELATIVE VELOCITY IN F
 //==============================================================================
-/** @brief Find the relative spatial velocity between two frames A and B whose 
-individual spatial velocities are known in a third frame F, but leave the 
+/** @brief Find the relative spatial velocity between two frames A and B whose
+individual spatial velocities are known in a third frame F, but leave the
 result in F.
 
 @param[in]      p_AB_F
@@ -170,7 +170,7 @@ result in F.
     The spatial velocity of frame A measured and expressed in frame F.
 @param[in]      V_FB
     The spatial velocity of frame B measured and expressed in frame F.
-@return V_AB_F, the relative spatial velocity of frame B in frame A, but still 
+@return V_AB_F, the relative spatial velocity of frame B in frame A, but still
     expressed in F.
 
 Typically the relative velocity of B in A would be returned in A; most
@@ -206,8 +206,8 @@ inline SpatialVec findRelativeVelocityInF(const Vec3&       p_AB_F,
 //==============================================================================
 //                        FIND RELATIVE ACCELERATION
 //==============================================================================
-/** @brief Find the relative spatial acceleration between two frames A and B 
-whose individual spatial accelerations are known with respect to a third 
+/** @brief Find the relative spatial acceleration between two frames A and B
+whose individual spatial accelerations are known with respect to a third
 frame F, with the result returned in A.
 
 @param[in]      X_FA
@@ -222,12 +222,12 @@ frame F, with the result returned in A.
     The spatial velocity of frame B measured and expressed in frame F.
 @param[in]      A_FB
     The spatial acceleration of frame B measured and expressed in frame F.
-@return A_AB, the relative spatial acceleration of frame B in frame A, 
+@return A_AB, the relative spatial acceleration of frame B in frame A,
     expressed in A.
 
 Given the spatial acceleration A_FA of frame A in a reference frame F, and
 the spatial acceleration A_FB of frame B in F, and corresonding pose and
-velocity information, calculate the relative acceleration A_AB of frame B in 
+velocity information, calculate the relative acceleration A_AB of frame B in
 frame A, measured and expressed in A. Typical usage:
 @code
     Transform  X_GA, X_GB;      // assume these are known from somewhere
@@ -259,8 +259,8 @@ inline SpatialVec findRelativeAcceleration( const Transform&  X_FA,
 //==============================================================================
 //                       FIND RELATIVE ACCELERATION IN F
 //==============================================================================
-/** @brief Find the relative spatial acceleration between two frames A and B 
-whose individual spatial acceleration are known in a third frame F, but leave 
+/** @brief Find the relative spatial acceleration between two frames A and B
+whose individual spatial acceleration are known in a third frame F, but leave
 the result in F.
 
 @param[in]      p_AB_F
@@ -274,11 +274,11 @@ the result in F.
     The spatial velocity of frame B measured and expressed in frame F.
 @param[in]      A_FB
     The spatial acceleration of frame B measured and expressed in frame F.
-@return A_AB_F, the relative spatial acceleration of frame B in frame A, but 
+@return A_AB_F, the relative spatial acceleration of frame B in frame A, but
     still expressed in F.
 
 Typically the relative acceleration of B in A would be returned in A; most
-users will want to use findRelativeAcceleration() instead which returns the 
+users will want to use findRelativeAcceleration() instead which returns the
 result in A. Use of this method saves the substantial cost of reexpressing the
 result, so is useful in the rare case that you don't want the final result in A.
 Example:
@@ -314,9 +314,9 @@ inline SpatialVec findRelativeAccelerationInF(  const Vec3&       p_AB_F,
     const Vec3 w_AB_F_dot = b_FB - b_FA; // d/dt of w_AB_F taken in F (3 flops)
     const Vec3 v_AB_F_dot =              // d/dt v_AB_F taken in F
         p_AB_F_dotdot - (b_FA % p_AB_F + w_FA % p_AB_F_dot); // (24 flops)
-    
-    // We have the derivative in F; change it to derivative in A by adding in 
-    // contribution caused by motion of F in A, that is w_AF X w_AB_F. (Note 
+
+    // We have the derivative in F; change it to derivative in A by adding in
+    // contribution caused by motion of F in A, that is w_AF X w_AB_F. (Note
     // that w_AF=-w_FA.)
     const Vec3 b_AB_F =             // ang. accel. of B in A, exp. in F
         w_AB_F_dot - w_FA % w_AB_F; // (12 flops)
@@ -337,14 +337,14 @@ give the relative velocity of frame A in B.
 @param[in]      X_AB
     The pose of frame B in frame A, measured and expressed in A.
 @param[in]      V_AB
-    The relative spatial velocity of frame B in frame A, measured and 
+    The relative spatial velocity of frame B in frame A, measured and
     expressed in frame A.
 @return V_BA, the relative spatial velocity of frame A in frame B, measured
     and expressed in B.
 
 The input is expressed in the A frame; the result will be expressed in the B
-frame instead. If you prefer that the result remain in the A frame you should 
-call reverseRelativeVelocityInA() instead to avoid the extra cost of changing 
+frame instead. If you prefer that the result remain in the A frame you should
+call reverseRelativeVelocityInA() instead to avoid the extra cost of changing
 frames. Example:
 @code
     Transform  X_AB;    // assume these are known from somewhere
@@ -352,9 +352,9 @@ frames. Example:
 
     SpatialVec V_BA = reverseRelativeVelocity(X_AB, V_AB);
 @endcode
-@note If the frame origins were in the same spatial location, then the result 
+@note If the frame origins were in the same spatial location, then the result
 would just be the negative of the supplied velocity. However, since the linear
-component of spatial velocity has to be measured at a point, and we're 
+component of spatial velocity has to be measured at a point, and we're
 switching from measuring at a point coincident with B's origin OB to one
 coincident with A's origin OA, there is going to be a change in the linear
 part of the result. The angular velocity will just be negated, though, and
@@ -365,7 +365,7 @@ inline SpatialVec reverseRelativeVelocity(const Transform&  X_AB,
                                           const SpatialVec& V_AB)
 {
     // Reverse the velocity but with the result still expressed in A.
-    const SpatialVec V_BA_A = reverseRelativeVelocityInA(X_AB,V_AB); 
+    const SpatialVec V_BA_A = reverseRelativeVelocityInA(X_AB,V_AB);
                                                                 // 21 flops
     // Then reexpress in B.
     return ~X_AB.R()*V_BA_A;                                    // 30 flops
@@ -383,18 +383,18 @@ in frame A.
 @param[in]      X_AB
     The pose of frame B in frame A, measured and expressed in A.
 @param[in]      V_AB
-    The relative spatial velocity of frame B in frame A, measured and 
+    The relative spatial velocity of frame B in frame A, measured and
     expressed in frame A.
-@return V_BA_A, the relative velocity of frame A in frame B, but still 
+@return V_BA_A, the relative velocity of frame A in frame B, but still
     expressed in A.
 
 The input V_AB is expressed in the A frame; you will almost always want the
-output V_BA expressed in the B frame which is what the function 
+output V_BA expressed in the B frame which is what the function
 reverseRelativeVelocity() does. However, if you're going to want it in
-some other frame ultimately you may prefer to avoid the substantial cost of 
+some other frame ultimately you may prefer to avoid the substantial cost of
 reexpressing it in B now, in which case this routine is useful.
 
-See reverseRelativeVelocity() for more information about what this does. 
+See reverseRelativeVelocity() for more information about what this does.
 Example:
 @code
     Transform  X_AB;    // assume these are known from somewhere
@@ -425,18 +425,18 @@ same relative spatial quantity but measured at a new point given by an offset
 from the old one.
 
 @param[in]      V_AB
-    The relative spatial velocity of frame B in frame A, measured and 
+    The relative spatial velocity of frame B in frame A, measured and
     expressed in frame A.
 @param[in]      r_A
-    The vector offset, expressed in frame A, by which to change the point at 
-    which the translational component of the relative spatial velocity is 
+    The vector offset, expressed in frame A, by which to change the point at
+    which the translational component of the relative spatial velocity is
     measured.
 @return V_A_BQ, the relative velocity of frame B in frame A, but measured at
     the point Q=Bo+r rather than at B's origin Bo.
 
 Given the spatial velocity V_AB of frame B in A, measured at a point
-coincident with B's origin Bo, change it to the spatial velocity V_A_BQ 
-representing the same relationship but with the velocity measured at a new 
+coincident with B's origin Bo, change it to the spatial velocity V_A_BQ
+representing the same relationship but with the velocity measured at a new
 point Q=Bo+r for some position vector r. All vectors are measured and expressed
 in frame A, including the vector r. Example:
 @code
@@ -462,7 +462,7 @@ same relative spatial quantity but measured at a new point Q given the points
 P and Q.
 
 @param[in]      V_A_BP
-    The relative spatial velocity of frame B in frame A, measured and 
+    The relative spatial velocity of frame B in frame A, measured and
     expressed in frame A, with the linear component measured at a point P.
 @param[in]      fromP_A
     The "from" point P at which the input linear velocity was measured, given
@@ -478,7 +478,7 @@ change it to the spatial velocity V_A_BQ representing the same relationship but
 with the velocity measured at a new point Q. Example:
 @code
     // assume these are known from somewhere
-    Transform  X_AB;    // contains the vector from OA to OB  
+    Transform  X_AB;    // contains the vector from OA to OB
     SpatialVec V_AB;    // linear velocity is measured at origin OB of B
     Vec3       p_AQ;    // vector from OA to some other point Q, in A
 
@@ -490,7 +490,7 @@ measured at P; this method really just shifts the relative velocity by
 the vector r=(to-from). Use it carefully.
 
 Cost is 15 flops. @see shiftVelocityBy() **/
-inline SpatialVec shiftVelocityFromTo(const SpatialVec& V_A_BP, 
+inline SpatialVec shiftVelocityFromTo(const SpatialVec& V_A_BP,
                                       const Vec3&       fromP_A,
                                       const Vec3&       toQ_A)
 {   return shiftVelocityBy(V_A_BP, toQ_A - fromP_A); }
@@ -505,21 +505,21 @@ same relative spatial quantity but measured at a new point given by an offset
 from the old one.
 
 @param[in]      A_AB
-    The relative spatial acceleration of frame B in frame A, measured and 
+    The relative spatial acceleration of frame B in frame A, measured and
     expressed in frame A.
 @param[in]      w_AB
     The relative angular velocity of frame B in frame A, expressed in frame A.
 @param[in]      r_A
-    The vector offset, expressed in frame A, by which to change the point at 
-    which the translational component of the relative spatial acceleration is 
+    The vector offset, expressed in frame A, by which to change the point at
+    which the translational component of the relative spatial acceleration is
     measured.
 @return A_A_BQ, the relative acceleration of frame B in frame A, but measured at
     the point Q=Bo+r rather than at B's origin Bo.
 
-Given the spatial acceleration A_AB and angular velocity w_AB of frame B in A, 
-measured at a point coincident with B's origin Bo, change it to the spatial 
+Given the spatial acceleration A_AB and angular velocity w_AB of frame B in A,
+measured at a point coincident with B's origin Bo, change it to the spatial
 acceleration A_A_BQ representing the same relationship but with the acceleration
-measured at a new point Q=Bo+r for some position vector r. All vectors are 
+measured at a new point Q=Bo+r for some position vector r. All vectors are
 measured and expressed in frame A, including the vector r. Example:
 @code
     SpatialVec A_AB;     // assume these are known from somewhere
@@ -533,43 +533,43 @@ measured and expressed in frame A, including the vector r. Example:
 but results in the linear acceleration changing by b X r + w X (w X r).
 
 Cost is 33 flops. @see shiftAccelerationFromTo() **/
-inline SpatialVec shiftAccelerationBy(const SpatialVec& A_AB, 
-                                      const Vec3&       w_AB, 
+inline SpatialVec shiftAccelerationBy(const SpatialVec& A_AB,
+                                      const Vec3&       w_AB,
                                       const Vec3&       r_A)
-{   return SpatialVec( A_AB[0],   
-                       A_AB[1] + A_AB[0] % r_A  + w_AB % (w_AB % r_A) ); } 
+{   return SpatialVec( A_AB[0],
+                       A_AB[1] + A_AB[0] % r_A  + w_AB % (w_AB % r_A) ); }
 
 
 
 //==============================================================================
 //                        SHIFT ACCELERATION FROM TO
 //==============================================================================
-/** @brief Shift a relative spatial acceleration measured at some point P to 
-that same relative spatial quantity but measured at a new point Q given the 
+/** @brief Shift a relative spatial acceleration measured at some point P to
+that same relative spatial quantity but measured at a new point Q given the
 points P and Q.
 
 @param[in]      A_A_BP
-    The relative spatial acceleration of frame B in frame A, measured and 
+    The relative spatial acceleration of frame B in frame A, measured and
     expressed in frame A, with the linear component measured at a point P.
 @param[in]      w_AB
     The relative angular velocity of frame B in frame A, expressed in frame A.
 @param[in]      fromP_A
     The "from" point P at which the input linear acceleration was
-    measured, given as a vector from A's origin Ao to the point P, 
+    measured, given as a vector from A's origin Ao to the point P,
     expressed in A.
 @param[in]      toQ_A
-    The "to" point Q at which we want to re-measure the linear acceleration, 
-    given as a vector from A's origin Ao to the point Q, expressed 
+    The "to" point Q at which we want to re-measure the linear acceleration,
+    given as a vector from A's origin Ao to the point Q, expressed
     in A.
 @return A_A_BQ, the relative acceleration of frame B in frame A, but measured at
     the point Q rather than at point P.
 
 Given the spatial acceleration A_A_BP of frame B in A, measured at a point P,
-change it to the spatial acceleration A_A_BQ representing the same relationship 
+change it to the spatial acceleration A_A_BQ representing the same relationship
 but with the acceleration measured at a new point Q. Example:
 @code
     // assume these are known from somewhere
-    Transform  X_AB;    // contains the vector from Ao to Bo  
+    Transform  X_AB;    // contains the vector from Ao to Bo
     SpatialVec A_AB;    // linear acceleration is measured at origin Bo of B
     Vec3       w_AB;
     Vec3       p_AQ;    // vector from Ao to some other point Q, in A
@@ -578,11 +578,11 @@ but with the acceleration measured at a new point Q. Example:
 @endcode
 
 @note There is no way to know whether the supplied acceleration was
-actually measured at P; this method really just shifts the relative 
+actually measured at P; this method really just shifts the relative
 acceleration by the vector r=(to-from). Use it carefully.
 
 Cost is 36 flops. @see shiftAccelerationBy() **/
-inline SpatialVec shiftAccelerationFromTo(const SpatialVec& A_A_BP, 
+inline SpatialVec shiftAccelerationFromTo(const SpatialVec& A_A_BP,
                                           const Vec3&       w_AB,
                                           const Vec3&       fromP_A,
                                           const Vec3&       toQ_A)
@@ -601,7 +601,7 @@ from the old one.
     A spatial force (moment and linear force), expressed in the A frame,
     whose translational component is applied at a point P.
 @param[in]      r_A
-    The vector offset, expressed in frame A, by which to change the point at 
+    The vector offset, expressed in frame A, by which to change the point at
     which the translational component of the input force is to be applied.
 @return F_AQ, the same physical effect as the input but with the moment
     adjusted to reflect force application at point Q=P+r rather than at the
@@ -610,7 +610,7 @@ from the old one.
 Given the spatial force F_AP including a pure moment m and a force vector f
 applied at a point P, return the equivalent force F_AQ representing the same
 physical quantity but as though the force were applied at a point Q=P+r
-for some position vector r. All vectors are expressed in frame A. Example: 
+for some position vector r. All vectors are expressed in frame A. Example:
 @code
     SpatialVec F_AP;     // assume these are known from somewhere
     Vec3       offset_A; // Q = P + offset
@@ -634,21 +634,21 @@ inline SpatialVec shiftForceBy(const SpatialVec& F_AP, const Vec3& r_A)
 same spatial force applied at a new point Q, given P and Q.
 
 @param[in]      F_AP
-    A spatial force (moment and linear force), expressed in the A frame, whose 
+    A spatial force (moment and linear force), expressed in the A frame, whose
     translational component is applied at a point P.
 @param[in]      fromP_A
-    The "from" point P at which the input force is applied, given as a 
+    The "from" point P at which the input force is applied, given as a
     vector from A's origin OA to the point P, expressed in A.
 @param[in]      toQ_A
-    The "to" point Q to which we want to move the force application point, 
+    The "to" point Q to which we want to move the force application point,
     given as a vector from A's origin OA to the point Q, expressed in A.
 @return F_AQ, the same physical effect as the input but with the moment
-    adjusted to reflect force application at point Q rather than at the 
+    adjusted to reflect force application at point Q rather than at the
     original point P.
 
 Given the spatial force F_AP including a pure moment m and a force vector f
 applied at a point P, return the equivalent force F_AQ representing the same
-physical quantity but as though the force were applied at a new point Q. All 
+physical quantity but as though the force were applied at a new point Q. All
 vectors are expressed in frame A and points are measured from A's origin OA.
 Example:
 @code
@@ -665,7 +665,7 @@ applied at P; this method really just shifts the application point by
 the vector r=(to-from). Use it carefully.
 
 Cost is 15 flops. @see shiftForceBy() **/
-inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP, 
+inline SpatialVec shiftForceFromTo(const SpatialVec& F_AP,
                                    const Vec3&       fromP_A,
                                    const Vec3&       toQ_A)
 {   return shiftForceBy(F_AP, toQ_A - fromP_A); }
@@ -765,7 +765,7 @@ operator*(const PhiMatrixTranspose& phiT,
           const SpatialMat&         m)
 {
     const Mat33 x = crossMat(phiT.l());  // 3 flops
-    return SpatialMat(    m(0,0)     ,     m(0,1),      
+    return SpatialMat(    m(0,0)     ,     m(0,1),
                       m(1,0)-x*m(0,0), m(1,1)-x*m(0,1)); // 108 flops
 }
 

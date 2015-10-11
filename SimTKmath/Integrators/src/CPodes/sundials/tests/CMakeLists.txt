@@ -15,10 +15,10 @@ include_directories(
 # Generate regression tests.
 #
 # This is boilerplate code for generating a set of executables, one per
-# .cpp file in a "tests" directory. These are for test cases which 
+# .cpp file in a "tests" directory. These are for test cases which
 # have been engineered to be suitable as part of the nightly regression
 # test suite. Ideally, they know their correct answers and return
-# a simple thumbs-up/thumbs-down result, although some regressions 
+# a simple thumbs-up/thumbs-down result, although some regressions
 # may be present and useful just to determine if they compile and
 # run to completion.
 #
@@ -41,7 +41,7 @@ foreach(TEST_PROG ${REGR_TESTS})
         set_target_properties(${TEST_ROOT}
         PROPERTIES
           PROJECT_LABEL "Test_Regr - ${TEST_ROOT}")
-        target_link_libraries(${TEST_ROOT} 
+        target_link_libraries(${TEST_ROOT}
                     ${TEST_SHARED_TARGET})
         add_test(${TEST_ROOT} ${EXECUTABLE_OUTPUT_PATH}/${TEST_ROOT})
     endif(BUILD_TESTS_AND_EXAMPLES_SHARED)

@@ -45,8 +45,8 @@ friend class Force::Gravity;
     // must explicitly invalidate the force cache because that can be filled in
     // as early as Position stage.
     struct Parameters {
-        Parameters(const UnitVec3& defDirection, 
-                     Real defMagnitude, Real defZeroHeight, 
+        Parameters(const UnitVec3& defDirection,
+                     Real defMagnitude, Real defZeroHeight,
                      const Array_<bool,MobilizedBodyIndex>& defMobodIsImmune)
         :   d(defDirection), g(defMagnitude), z(defZeroHeight),
             mobodIsImmune(defMobodIsImmune) {}
@@ -56,9 +56,9 @@ friend class Force::Gravity;
     };
 
     // The cache has a SpatialVec for each mobilized body, a Vec3 for each
-    // particle [not used], and a scalar for potential energy. The SpatialVec 
+    // particle [not used], and a scalar for potential energy. The SpatialVec
     // corresponding to Ground is initialized to zero and stays that way.
-    // This is a lazy-evaluated cache entry that can be calculated any time 
+    // This is a lazy-evaluated cache entry that can be calculated any time
     // after Position stage. It is automatically invalidated if a Position
     // stage variable changes. But, it is also dependent on the parameter
     // values in the discrete Parameters variable and must be invalidated
@@ -66,10 +66,10 @@ friend class Force::Gravity;
     struct ForceCache {
         ForceCache() {}
         void allocate(int nb, int np, bool initToZero)
-        {   F_GB.resize(nb); f_GP.resize(np); 
+        {   F_GB.resize(nb); f_GP.resize(np);
             if (initToZero) setToZero(); else setToNaN(); }
         void setToZero() {F_GB.setToZero(); f_GP.setToZero(); pe=0;}
-        void setToNaN()  
+        void setToNaN()
         {   F_GB.setToNaN(); F_GB[0]=SpatialVec(Vec3(0)); // Ground
             f_GP.setToNaN(); pe=NaN;}
         Vector_<SpatialVec> F_GB; // rigid body forces
@@ -82,8 +82,8 @@ friend class Force::Gravity;
                 const UnitVec3&                 direction,
                 Real                            magnitude,
                 Real                            zeroHeight)
-    :   matter(matter), defDirection(direction), defMagnitude(magnitude), 
-        defZeroHeight(zeroHeight), 
+    :   matter(matter), defDirection(direction), defMagnitude(magnitude),
+        defZeroHeight(zeroHeight),
         defMobodIsImmune(matter.getNumBodies(), false),
         numEvaluations(0)
     {   defMobodIsImmune.front() = true; } // Ground is always immune
@@ -96,10 +96,10 @@ friend class Force::Gravity;
                 const Vec3&                     gravityVec,
                 Real                            zeroHeight)
     :   matter(matter)
-    {   // Invoke the general constructor using system up direction. 
+    {   // Invoke the general constructor using system up direction.
         new (this) GravityImpl(matter, -matter.getSystem().getUpDirection(),
                                gravityVec.norm(), zeroHeight);
-        if (defMagnitude > 0) 
+        if (defMagnitude > 0)
             defDirection=UnitVec3(gravityVec/defMagnitude,true);
     }
 
@@ -109,7 +109,7 @@ friend class Force::Gravity;
                 Real                            magnitude,
                 Real                            zeroHeight)
     :   matter(matter)
-    {   // Invoke the general constructor using system up direction. 
+    {   // Invoke the general constructor using system up direction.
         new (this) GravityImpl(matter, -matter.getSystem().getUpDirection(),
                                magnitude, zeroHeight);
     }
@@ -145,7 +145,7 @@ friend class Force::Gravity;
         return new GravityImpl(*this);
     }
 
-    // We are doing our own caching here, so don't override the 
+    // We are doing our own caching here, so don't override the
     // dependsOnlyOnPositions() method which would cause the base class also
     // to cache the results.
 
@@ -178,7 +178,7 @@ friend class Force::Gravity;
     void invalidateForceCache(const State& s) const
     {   getForceSubsystem().markCacheValueNotRealized(s,forceCacheIx); }
 
-    // This method calculates gravity forces if needed, and bumps the 
+    // This method calculates gravity forces if needed, and bumps the
     // numEvaluations counter if it has to do any work.
     void ensureForceCacheValid(const State&) const;
 
@@ -201,11 +201,11 @@ friend class Force::Gravity;
 //                             FORCE :: GRAVITY
 //==============================================================================
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Gravity, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Force::Gravity,
                                         Force::GravityImpl, Force);
 
 Force::Gravity::Gravity
-   (GeneralForceSubsystem&          forces, 
+   (GeneralForceSubsystem&          forces,
     const SimbodyMatterSubsystem&   matter,
     const UnitVec3&                 defDirection,
     Real                            defMagnitude,
@@ -224,7 +224,7 @@ Force::Gravity::Gravity
 }
 
 Force::Gravity::Gravity
-   (GeneralForceSubsystem&          forces, 
+   (GeneralForceSubsystem&          forces,
     const SimbodyMatterSubsystem&   matter,
     const Vec3&                     defGravity)
 :   Force(new GravityImpl(matter,defGravity,0))
@@ -233,7 +233,7 @@ Force::Gravity::Gravity
 }
 
 Force::Gravity::Gravity
-   (GeneralForceSubsystem&          forces, 
+   (GeneralForceSubsystem&          forces,
     const SimbodyMatterSubsystem&   matter,
     Real                            defMagnitude)
 :   Force(new GravityImpl(matter,defMagnitude,0))
@@ -300,7 +300,7 @@ bool Force::Gravity::
 getDefaultBodyIsExcluded(MobilizedBodyIndex mobod) const
 {   return getImpl().getMobodIsImmuneByDefault(mobod); }
 Vec3 Force::Gravity::
-getDefaultGravityVector() const 
+getDefaultGravityVector() const
 {   return getImpl().defDirection * getImpl().defMagnitude;}
 const UnitVec3& Force::Gravity::
 getDefaultDownDirection() const {return getImpl().defDirection;}
@@ -315,14 +315,14 @@ getDefaultZeroHeight() const {return getImpl().defZeroHeight;}
 // not to do anything if the new value is the same as the old one.
 
 const Force::Gravity& Force::Gravity::
-setBodyIsExcluded(State& state, MobilizedBodyIndex mobod, 
+setBodyIsExcluded(State& state, MobilizedBodyIndex mobod,
                   bool isExcluded) const
-{   
+{
     const GravityImpl& impl = getImpl();
     SimTK_ERRCHK2_ALWAYS(mobod < impl.matter.getNumBodies(),
         "Force::Gravity::setBodyIsExcluded()",
         "Attempted to exclude mobilized body with index %d but only mobilized"
-        " bodies with indices between 0 and %d exist in this System.", 
+        " bodies with indices between 0 and %d exist in this System.",
         (int)mobod, impl.matter.getNumBodies()-1);
 
     if (getBodyIsExcluded(state, mobod) != isExcluded) {
@@ -345,10 +345,10 @@ setGravityVector(State& state, const Vec3& gravity) const {
                                    : getDownDirection(state);
     if (getMagnitude(state) != newg || getDownDirection(state) != newd) {
         getImpl().invalidateForceCache(state);
-        getImpl().updParameters(state).g = newg; 
-        getImpl().updParameters(state).d = newd; 
+        getImpl().updParameters(state).g = newg;
+        getImpl().updParameters(state).d = newd;
 
-        if (newg == 0) 
+        if (newg == 0)
             getImpl().updForceCache(state).setToZero(); // must precalculate
     }
     return *this;
@@ -363,7 +363,7 @@ setDownDirection(State& state, const UnitVec3& down) const {
 
     if (getDownDirection(state) != down) {
         getImpl().invalidateForceCache(state);
-        getImpl().updParameters(state).d = down; 
+        getImpl().updParameters(state).d = down;
     }
     return *this;
 }
@@ -377,9 +377,9 @@ setMagnitude(State& state, Real g) const {
 
     if (getMagnitude(state) != g) {
         getImpl().invalidateForceCache(state);
-        getImpl().updParameters(state).g = g; 
+        getImpl().updParameters(state).g = g;
 
-        if (g == 0) 
+        if (g == 0)
             getImpl().updForceCache(state).setToZero(); // must precalculate
     }
     return *this;
@@ -389,7 +389,7 @@ const Force::Gravity& Force::Gravity::
 setZeroHeight(State& state, Real zeroHeight) const {
     if (getZeroHeight(state) != zeroHeight) {
         getImpl().invalidateForceCache(state);
-        getImpl().updParameters(state).z = zeroHeight; 
+        getImpl().updParameters(state).z = zeroHeight;
     }
     return *this;
 }
@@ -417,7 +417,7 @@ Real Force::Gravity::getZeroHeight(const State& state) const
 
 Real Force::Gravity::
 getPotentialEnergy(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).pe; }
 
 const Vector_<SpatialVec>& Force::Gravity::
@@ -441,7 +441,7 @@ isForceCacheValid(const State& state) const
 {   return getImpl().isForceCacheValid(state); }
 
 void Force::Gravity::
-invalidateForceCache(const State& state) const 
+invalidateForceCache(const State& state) const
 {   getImpl().invalidateForceCache(state); }
 
 
@@ -452,12 +452,12 @@ invalidateForceCache(const State& state) const
 //----------------------------- REALIZE TOPOLOGY -------------------------------
 // Allocate the state variables and cache entries. The force cache is a lazy-
 // evaluation entry - although it can be calculated any time after
-// Stage::Position, it won't be unless someone asks for it. And if it is 
+// Stage::Position, it won't be unless someone asks for it. And if it is
 // evaluated early, it should not be re-evaluated when used as a force during
 // Stage::Dynamics (via the calcForce() call).
 //
 // In addition, the force cache has a dependency on the parameter values that
-// are stored in a discrete state variable. Changes to that variable 
+// are stored in a discrete state variable. Changes to that variable
 // automatically invalidate Dynamics stage, but must be carefully managed also
 // to invalidate the force cache here since it is only Position-dependent.
 void Force::GravityImpl::
@@ -482,7 +482,7 @@ realizeTopology(State& s) const {
     mThis->forceCacheIx = getForceSubsystem().allocateLazyCacheEntry(s,
         Stage::Position, new Value<ForceCache>());
 
-    // Now allocate the appropriate amount of space, and set to zero now 
+    // Now allocate the appropriate amount of space, and set to zero now
     // any forces that we know will end up zero so we don't have to calculate
     // them at run time. Precalculated zeroes must be provided for any
     // immune elements, or for all elements if g==0, and this must be kept
@@ -497,13 +497,13 @@ realizeTopology(State& s) const {
             if (defMobodIsImmune[mbx])
                 fc.F_GB[mbx] = SpatialVec(Vec3(0),Vec3(0));
         // This doesn't mean the ForceCache is valid yet.
-    }      
+    }
 }
 
 
 //------------------------- ENSURE FORCE CACHE VALID ---------------------------
-// This will also calculate potential energy since we can do it on the cheap 
-// simultaneously with the force. Note that if the strength of gravity was set 
+// This will also calculate potential energy since we can do it on the cheap
+// simultaneously with the force. Note that if the strength of gravity was set
 // to zero then we already zeroed out the forces and pe during realizeInstance()
 // so all we have to do in that case is mark the cache valid now. Also, any
 // immune bodies have their force set to zero in realizeInstance() so we don't
@@ -512,7 +512,7 @@ void Force::GravityImpl::
 ensureForceCacheValid(const State& state) const {
     if (isForceCacheValid(state)) return;
 
-    SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Position, 
+    SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Position,
         "Force::GravityImpl::ensureForceCacheValid()");
 
     const Parameters& p = getParameters(state);
@@ -546,7 +546,7 @@ ensureForceCacheValid(const State& state) const {
         const Vec3  p_G_CB  = X_GB.p() + p_CB_G;      // meas. in G; 3 flops
 
         const Vec3  F_CB_G  = m*gravity; // force at mass center; 3 flops
-        fc.F_GB[mbx] = SpatialVec(p_CB_G % F_CB_G, F_CB_G); // body frc; 9 flops 
+        fc.F_GB[mbx] = SpatialVec(p_CB_G % F_CB_G, F_CB_G); // body frc; 9 flops
 
         // odd signs here because height is in -gravity direction.
         fc.pe -= m*(~gravity*p_G_CB + zeroPEOffset); // 8 flops
@@ -567,8 +567,8 @@ ensureForceCacheValid(const State& state) const {
 
 //------------------------------- CALC FORCE -----------------------------------
 void Force::GravityImpl::
-calcForce(const State& state, Vector_<SpatialVec>& bodyForces, 
-          Vector_<Vec3>& particleForces, Vector& mobilityForces) const 
+calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
+          Vector_<Vec3>& particleForces, Vector& mobilityForces) const
 {   ensureForceCacheValid(state);
     const ForceCache& fc = getForceCache(state);
     bodyForces     += fc.F_GB;
@@ -579,7 +579,7 @@ calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
 // If the force was calculated, then the potential energy will already
 // be valid. Otherwise we'll have to calculate it.
 Real Force::GravityImpl::
-calcPotentialEnergy(const State& state) const 
+calcPotentialEnergy(const State& state) const
 {   ensureForceCacheValid(state);
     const ForceCache& fc = getForceCache(state);
     return fc.pe; }

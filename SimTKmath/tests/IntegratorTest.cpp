@@ -83,22 +83,22 @@ public:
     int realizeAccelerationImpl(const State&) const override;
 
     // qdot==u here so these are just copies
-    void multiplyByNImpl(const State& state, const Vector& u, 
+    void multiplyByNImpl(const State& state, const Vector& u,
                          Vector& dq) const override {dq=u;}
-    void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+    void multiplyByNTransposeImpl(const State& state, const Vector& fq,
                                   Vector& fu) const override {fu=fq;}
-    void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+    void multiplyByNPInvImpl(const State& state, const Vector& dq,
                              Vector& u) const override {u=dq;}
-    void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+    void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu,
                                       Vector& fq) const override {fq=fu;}
 
     // No prescribed motion.
     bool prescribeQImpl(State&) const override {return false;}
     bool prescribeUImpl(State&) const override {return false;}
 
-    void projectQImpl(State&, Vector& qErrEst, 
+    void projectQImpl(State&, Vector& qErrEst,
              const ProjectOptions& options, ProjectResults& results) const override;
-    void projectUImpl(State&, Vector& uErrEst, 
+    void projectUImpl(State&, Vector& uErrEst,
              const ProjectOptions& options, ProjectResults& results) const override;
 
 
@@ -107,20 +107,20 @@ public:
         ////////////////////////////////////////////////
 
     int calcEventTriggerInfoImpl
-       (const State& s, Array_<EventTriggerInfo>& eti) const override 
+       (const State& s, Array_<EventTriggerInfo>& eti) const override
     {
         eti.clear();
         eti.push_back(EventTriggerInfo(eventId0)
                       .setRequiredLocalizationTimeWindow(1)
                       .setTriggerOnRisingSignTransition(false));
         eti.push_back(EventTriggerInfo(eventId1));
-        eti.push_back(EventTriggerInfo(eventId2) 
+        eti.push_back(EventTriggerInfo(eventId2)
                       .setTriggerOnFallingSignTransition(false));
         return 0;
     }
 
     int calcTimeOfNextScheduledEventImpl
-       (const State& s, Real& tNextEvent, 
+       (const State& s, Real& tNextEvent,
         Array_<EventId>& eventIds, bool includeCurrentTime) const override
     {
         // Generate an event every 5.123 seconds.
@@ -129,7 +129,7 @@ public:
 
         tNextEvent = nFives * Real(5.123);
         // Careful ...
-        if (   tNextEvent < s.getTime() 
+        if (   tNextEvent < s.getTime()
             || (tNextEvent == s.getTime() && !includeCurrentTime))
             tNextEvent += Real(5.123);
         eventIds.push_back(eventId1); // event Id for scheduled pulse
@@ -145,10 +145,10 @@ public:
     // state may have changed discontinuously.
     void handleEventsImpl
        (State& s, Event::Cause cause, const Array_<EventId>& eventIds,
-        const HandleEventsOptions& options, HandleEventsResults& results) const 
+        const HandleEventsOptions& options, HandleEventsResults& results) const
         override
     {
-        cout << "===> t=" << s.getTime() << ": HANDLING " 
+        cout << "===> t=" << s.getTime() << ": HANDLING "
              << Event::getCauseName(cause) << " EVENT!!!" << endl;
         if (eventIds.size())
             cout << "  EVENT IDS: " << eventIds << endl;
@@ -161,14 +161,14 @@ public:
 
 };
 
-// This is the handle class for a MyPendulum System. 
+// This is the handle class for a MyPendulum System.
 // It must not have any data members. Data, if needed, is
 // in the corresponding "Guts" class.
 
 class MyPendulum: public System {
 public:
     MyPendulum() : System()
-    { 
+    {
         adoptSystemGuts(new MyPendulumGuts());
         DefaultSystemSubsystem defsub(*this);
         updGuts().subsysIndex = defsub.getMySubsystemIndex();
@@ -260,9 +260,9 @@ static void reportState(const char* msg,
         integ.isStateInterpolated() ? "INTERP" : "------",
         s.getTime(), integ.getAdvancedTime(),
         s.getY()[0], s.getY()[1], s.getY()[2], s.getY()[3],
-        s.getYErr()[0], s.getYErr()[1], 
-        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0], 
-        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1], 
+        s.getYErr()[0], s.getYErr()[1],
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[0],
+        s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[1],
         s.getEventTriggersByStage(SubsystemIndex(0),Stage::Position)[2]);
 
     cout << "YDot:        " << s.getYDot() << endl;
@@ -271,7 +271,7 @@ static void reportState(const char* msg,
 }
 
 int main () {
-  try 
+  try
   { MyPendulum sys;
     RungeKuttaMersonIntegrator integ(sys);
     //RungeKuttaFeldbergIntegrator integ(sys);
@@ -311,13 +311,13 @@ int main () {
     cout << "Initial ydot=" << integ.getState().getYDot() << endl;
 
     Real prevScheduledEventTime = -Infinity;
-    for (int reportNo=0; !integ.isSimulationOver(); 
+    for (int reportNo=0; !integ.isSimulationOver();
          reportNo += (integ.getTime() >= reportNo*hReport))
     {
         Array_<EventId> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
-        sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
-            nextScheduledEvent, scheduledEventIds, 
+        sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(),
+            nextScheduledEvent, scheduledEventIds,
             integ.getAdvancedTime() > prevScheduledEventTime);
 
         HandleEventsOptions handleOpts(integ.getAccuracyInUse());
@@ -338,7 +338,7 @@ int main () {
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Scheduled,
                     scheduledEventIds,handleOpts,handleResults);
-                shouldTerminate = 
+                shouldTerminate =
                     handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
@@ -349,11 +349,11 @@ int main () {
             case Integrator::TimeHasAdvanced: {
                 Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
-                printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
+                printf("TIME HAS ADVANCED TO %g\n", integ.getTime());
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::TimeAdvanced,
                     Array_<EventId>(),handleOpts,handleResults);
-                shouldTerminate = 
+                shouldTerminate =
                     handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
@@ -363,7 +363,7 @@ int main () {
             case Integrator::ReachedEventTrigger: {
                 Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
-                printf("EVENT TRIGGERED AT tLow=%.17g tHigh=%.17g!!\n", 
+                printf("EVENT TRIGGERED AT tLow=%.17g tHigh=%.17g!!\n",
                     integ.getTime(), integ.getAdvancedTime());
                 cout << std::setprecision(17);
                 cout << "Event window:     " << integ.getEventWindow() << endl;
@@ -378,13 +378,13 @@ int main () {
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Triggered,
                     integ.getTriggeredEvents(),handleOpts,handleResults);
-                shouldTerminate = 
+                shouldTerminate =
                     handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
                 break;
             }
-                                                  
+
             case Integrator::EndOfSimulation: {
                 Stage lowestModified = Stage::Empty;
                 bool shouldTerminate;
@@ -396,7 +396,7 @@ int main () {
                 sys.handleEvents(integ.updAdvancedState(),
                     Event::Cause::Termination,
                     Array_<EventId>(),handleOpts,handleResults);
-                shouldTerminate = 
+                shouldTerminate =
                     handleResults.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lowestModified = handleResults.getLowestModifiedStage();
                 integ.reinitialize(lowestModified, shouldTerminate);
@@ -413,7 +413,7 @@ int main () {
     printFinalStats(integ);
 
     return 0;
-  } 
+  }
   catch (std::exception& e) {
     std::printf("FAILED: %s\n", e.what());
     return 1;
@@ -498,7 +498,7 @@ static void printFinalStats(const Integrator& integ)
  *
  * Let   r^2 = x^2  + y^2
  *       v^2 = x'^2 + y'^2
- * We will express the "rod length=d" constraint as 
+ * We will express the "rod length=d" constraint as
  *       (r^2 - d^2)/2 = 0    (perr)
  *           xx' + yy' = 0    (verr)
  *         xx'' + yy'' = -v^2 (aerr)
@@ -513,8 +513,8 @@ static void printFinalStats(const Integrator& integ)
  *     L   = (m*v^2 - mg*y)/(r^2)
  *     x'' = - x*L/m
  *     y'' = - y*L/m - g
- *               
- */ 
+ *
+ */
 int MyPendulumGuts::realizeTopologyImpl(State& s) const {
     // Instance variables mass, length, gravity
     massIndex = s.allocateDiscreteVariable(subsysIndex, Stage::Instance,
@@ -552,15 +552,15 @@ int MyPendulumGuts::realizePositionImpl(const State& s) const {
     const Vector& q = s.getQ(subsysIndex);
     // This is the perr() equation.
     s.updQErr(subsysIndex)[0] = (q[0]*q[0] + q[1]*q[1] - d*d)/2;
-    
+
     s.updEventTriggersByStage(subsysIndex, Stage::Position)[0] = 100*q[0]-q[1];
 
     // Make sure this boolean trigger *crosses* zero; it won't work right
     // if one end is actually zero. We'll use -.5 for false, .5 for true.
-    s.updEventTriggersByStage(subsysIndex, Stage::Position)[1] = 
+    s.updEventTriggersByStage(subsysIndex, Stage::Position)[1] =
         (s.getTime() > /*1.49552*/1.49545 && s.getTime() < 12.28937)-0.5;
 
-    s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] = 
+    s.updEventTriggersByStage(subsysIndex, Stage::Position)[2] =
         s.getTime()-1.495508;
     System::Guts::realizePositionImpl(s);
     return 0;
@@ -622,7 +622,7 @@ int MyPendulumGuts::realizeAccelerationImpl(const State& s) const {
  * rather than handling position and velocity simultaneously.
  *
  * For this system we have P = d perr/dq = V = d verr/du = [x y].
- * Weighted, we have PW=tp*[x/wx y/wy] VW=tv*[x/wxd y/wyd]. 
+ * Weighted, we have PW=tp*[x/wx y/wy] VW=tv*[x/wxd y/wyd].
  * With pinv(A)=~A*(A*~A)^-1, we have:
  *
  *    pinv(P)  = ~[            x             y] /  (    x ^2+     y ^2)
@@ -641,7 +641,7 @@ int MyPendulumGuts::realizeAccelerationImpl(const State& s) const {
  * To remove the corresponding error estimates:
  *    PW(q) qperp = PW(q) qerrest; qerrest -= qperp
  *    VW(q) uperp = VW(q) uerrest; uerrest -= uperp
- * 
+ *
  *
  */
 static Real wrms(const Vector& y, const Vector& w) {
@@ -652,10 +652,10 @@ static Real wrms(const Vector& y, const Vector& w) {
 }
 
 // qerrest is in/out
-void MyPendulumGuts::projectQImpl(State& s, Vector& qerrest, 
+void MyPendulumGuts::projectQImpl(State& s, Vector& qerrest,
                                 const ProjectOptions& opts,
-                                ProjectResults& results) const 
-                                
+                                ProjectResults& results) const
+
 {
     const Real consAccuracy = opts.getRequiredAccuracy();
     const Real projLimit = opts.getProjectionLimit();
@@ -691,20 +691,20 @@ void MyPendulumGuts::projectQImpl(State& s, Vector& qerrest,
         Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
         Row2 P(~q), PW(tp*q[0]/wq[0], tp*q[1]/wq[1]);
         Vec2 Pinv(q/r2);
-        Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0], 
+        Vec2 PWinv = Vec2(square(wq[1])*wq[0]*q[0],
                             square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
         Vec2 dq  = Pinv*(ep);      //cout << "dq=" << dq << endl;
         Vec2 wdq = PWinv*(tp*ep);  //cout << "wdq=" << wdq << endl;
-    
+
         wqchg = std::sqrt(wdq.normSqr()/q.size()); // wrms norm
-    
-        s.updQ(subsysIndex)[0] -= wdq[0]/wq[0]; 
-        s.updQ(subsysIndex)[1] -= wdq[1]/wq[1]; 
+
+        s.updQ(subsysIndex)[0] -= wdq[0]/wq[0];
+        s.updQ(subsysIndex)[1] -= wdq[1]/wq[1];
         realize(s, Stage::Position); // recalc QErr (ep)
-    
+
         //cout << "AFTER q-=wdq/W wperr=" << tp*ep << " wqchg=" << wqchg << endl;
     } while (std::abs(tp*ep) > consAccuracy && wqchg >= 0.01*consAccuracy);
-    
+
     //cout << "...AFTER wperr=" << tp*ep << endl;
 
     // Now do error estimates.
@@ -715,17 +715,17 @@ void MyPendulumGuts::projectQImpl(State& s, Vector& qerrest,
         // Recalc PW, PWInv:
         const Real wqr2 = square(wq[1]*q[0]) + square(wq[0]*q[1]);
         const Row2 PW = Row2(tp*q[0]/wq[0], tp*q[1]/wq[1]);
-        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0], 
+        const Vec2 PWinv = Vec2(wq[0]*square(wq[1])*q[0],
                                 square(wq[0])*wq[1]*q[1]) / (tp*wqr2);
 
         Vec2 qperp = PWinv*(PW*eq);
 
-        //cout << "ERREST before=" << yerrest 
+        //cout << "ERREST before=" << yerrest
         //     << " wrms=" << wrms(qerrest,qweights) << endl;
         //cout << "PW*eq=" << PW*eq << endl;
         eq -= qperp;
 
-        //cout << "ERREST after=" << yerrest 
+        //cout << "ERREST after=" << yerrest
         //     << " wrms=" << wrms(qerrest,qweights) << endl;
         //cout << "PW*eq=" << PW*eq << endl;
     }
@@ -733,7 +733,7 @@ void MyPendulumGuts::projectQImpl(State& s, Vector& qerrest,
     results.setExitStatus(ProjectResults::Succeeded);
 }
 
-void MyPendulumGuts::projectUImpl(State& s, Vector& uerrest, 
+void MyPendulumGuts::projectUImpl(State& s, Vector& uerrest,
              const ProjectOptions& opts, ProjectResults& results) const
 {
     const Real consAccuracy = opts.getRequiredAccuracy();
@@ -772,7 +772,7 @@ void MyPendulumGuts::projectUImpl(State& s, Vector& uerrest,
     Real wur2 = square(wu[1]*q[0]) + square(wu[0]*q[1]);
     Row2 V(~q), VW(tv*q[0]/wu[0], tv*q[1]/wu[1]);
     Vec2 Vinv(q/r2);
-    Vec2 VWinv = Vec2(square(wu[1])*wu[0]*q[0], 
+    Vec2 VWinv = Vec2(square(wu[1])*wu[0]*q[0],
                       square(wu[0])*wu[1]*q[1]) / (tv*wur2);
     realize(s, Stage::Velocity); // calculate UErr (ev)
 
@@ -780,7 +780,7 @@ void MyPendulumGuts::projectUImpl(State& s, Vector& uerrest,
     Vec2 du  = Vinv*(ev);      //cout << "du=" << du << endl;
     Vec2 wdu = VWinv*(tv*ev);  //cout << "wdu=" << wdu << endl;
 
-    s.updU(subsysIndex)[0] -= wdu[0]/wu[0]; 
+    s.updU(subsysIndex)[0] -= wdu[0]/wu[0];
     s.updU(subsysIndex)[1] -= wdu[1]/wu[1];
 
     realize(s, Stage::Velocity); // recalc UErr
@@ -795,12 +795,12 @@ void MyPendulumGuts::projectUImpl(State& s, Vector& uerrest,
         Vec2& eu = Vec2::updAs(&uerrest[0]);
         Vec2 uperp = VWinv*(VW*eu);
 
-        //cout << "ERREST before=" << uerrest 
+        //cout << "ERREST before=" << uerrest
         //     << " wrms=" << wrms(uerrest,uweights) << endl;
         //cout << " VW*eu=" << VW*eu << endl;
         eu -= uperp;
 
-        //cout << "ERREST after=" << yerrest 
+        //cout << "ERREST after=" << yerrest
         //     << " wrms=" << wrms(uerrest,uweights) << endl;
         //cout << " VW*eu=" << VW*eu << endl;
     }

@@ -38,8 +38,8 @@
 // This is a one-dof "screw" joint, meaning one degree of rotational freedom
 // about a particular axis, coupled to translation along that same axis.
 // Here we use the common z axis of the F and M frames, which remains
-// aligned forever. For the generalized coordinate q, we use the rotation 
-// angle. For the generalized speed u we use the rotation rate, which is also 
+// aligned forever. For the generalized coordinate q, we use the rotation
+// angle. For the generalized speed u we use the rotation rate, which is also
 // the angular velocity of M in F (about the z axis). We compute the
 // translational position as pitch*q, and the translation rate as pitch*u.
 template<bool noX_MB, bool noR_PF>
@@ -58,31 +58,31 @@ RBNodeScrew(const MassProperties& mProps_B,
             USquaredIndex&        nextUSqSlot,
             QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<1, false, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed),
     pitch(p)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
 }
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
+void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
     // The only rotation our screw joint can handle is about z.
-    // TODO: should use 321 to deal with singular configuration (angle2==pi/2) 
-    // better; in that case 1 and 3 are aligned and the conversion routine 
+    // TODO: should use 321 to deal with singular configuration (angle2==pi/2)
+    // better; in that case 1 and 3 are aligned and the conversion routine
     // allocates all the rotation to whichever comes first.
-    // TODO: isn't there a better way to come up with "the rotation around z 
+    // TODO: isn't there a better way to come up with "the rotation around z
     // that best approximates a rotation R"?
     const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
     this->to1Q(q) = angles123[2];
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const {
     this->to1Q(q) = p_FM[2]/pitch;
 }
 
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&,
                                   const Vec3& w_FM, Vector& u) const {
     // We can only represent an angular velocity along z with this joint.
     this->to1U(u) = w_FM[2]; // project angular velocity onto z axis
@@ -94,9 +94,9 @@ void setUToFitLinearVelocityImpl
     this->to1U(u) = v_FM[2]/pitch;
 }
 
-// We're currently using an angle as the generalized coordinate for the 
-// screw joint but could just as easily have used translation or some 
-// non-physical coordinate. It might make sense to offer a Model stage 
+// We're currently using an angle as the generalized coordinate for the
+// screw joint but could just as easily have used translation or some
+// non-physical coordinate. It might make sense to offer a Model stage
 // option to set the coordinate meaning.
 
 enum {PoolSize=2}; // number of Reals
@@ -124,7 +124,7 @@ void calcX_FM(const SBStateDigest& sbs,
 {
     assert(q && nq==1 && qCache && nQCache==PoolSize);
     X_FM.updR().setRotationFromAngleAboutZ(qCache[CosQ], qCache[SinQ]);
-    // Note that we're using the same coordinate to control 
+    // Note that we're using the same coordinate to control
     // translation, using "pitch" as a conversion from radians to
     // length units.
     X_FM.updP() = Vec3(0,0,q[0]*pitch);

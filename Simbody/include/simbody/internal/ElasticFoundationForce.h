@@ -65,7 +65,7 @@ class ElasticFoundationForceImpl;
  * The force exerted by each spring along its displacement direction is given by
  *
  * f = k*a*x*(1+c*v)
- * 
+ *
  * where k is the spring stiffness, a is the area of the face the spring belongs to, x is the displacement
  * distance, c is the spring's dissipation coefficient, and v=dx/dt.  If the springs are assumed
  * to represent a uniform layer of elastic material over a rigid substrate, the stiffness is given by
@@ -73,7 +73,7 @@ class ElasticFoundationForceImpl;
  * k = (1-p)*E/((1+p)(1-2p)*h)
  *
  * where E is the Young's modulus of the elastic layer, p is its Poisson's ratio, and h is its thickness.
- * 
+ *
  * <h1>Friction Force</h1>
  *
  * The friction force exerted by each spring is based on a model by Michael Hollars:
@@ -97,14 +97,14 @@ class SimTK_SIMBODY_EXPORT ElasticFoundationForce : public Force {
 public:
     /**
      * Create an elastic foundation contact model.
-     * 
+     *
      * @param forces         the subsystem which will own this ElasticFoundationForce element
      * @param contacts       the subsystem to which this contact model should be applied
      * @param contactSet     the index of the contact set to which this contact model will be applied
      */
     ElasticFoundationForce(GeneralForceSubsystem& forces, GeneralContactSubsystem& contacts, ContactSetIndex contactSet);
     /**
-     * Set the material parameters for a surface in the contact set, which 
+     * Set the material parameters for a surface in the contact set, which
      * must be a ContactGeometry::TriangleMesh.
      *
      * @param surfIndex       the index of the surface within the contact set
@@ -115,7 +115,7 @@ public:
      * @param viscousFriction the coefficient of viscous friction (uv) for the body
      */
     void setBodyParameters
-       (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation, 
+       (ContactSurfaceIndex surfIndex, Real stiffness, Real dissipation,
         Real staticFriction, Real dynamicFriction, Real viscousFriction);
     /**
      * Get the transition velocity (vt) of the friction model.

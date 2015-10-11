@@ -41,9 +41,9 @@ namespace SimTK {
 //==============================================================================
 
 // For testing whether this box intersects a given oriented box, we use the
-// separating axis method first described in Gottschalk, S., Lin, MC, 
-// Manocha, D, "OBBTree: a hierarchical structure for rapid interference 
-// detection." Proceedings of the 23rd Annual Conference on Computer 
+// separating axis method first described in Gottschalk, S., Lin, MC,
+// Manocha, D, "OBBTree: a hierarchical structure for rapid interference
+// detection." Proceedings of the 23rd Annual Conference on Computer
 // Graphics and Interactive Techniques, pp. 171-180, 1996. This is a series
 // of 15 tests used to determine whether there exists a separating plane
 // between the boxes. The possible plane normals are the 3 faces of each box,
@@ -52,32 +52,32 @@ namespace SimTK {
 // and see whether the projections overlap. If they don't, we have found a
 // separating plane and can return right away. This can be sped up by doing
 // only the first six face tests and accepting the occasional false positive
-// (allegedly less than 10%); we provide a method for doing that abbreviated 
+// (allegedly less than 10%); we provide a method for doing that abbreviated
 // version of the test as well as the full method.
 
 // If the boxes have a parallel edge, they have to be handled specially because
 // the cross product of those edges will be zero. Then the projections of both
-// the box dimensions and the center-to-center distance will be zero, creating 
-// a false appearance of having found a separating plane. Christer Ericson 
+// the box dimensions and the center-to-center distance will be zero, creating
+// a false appearance of having found a separating plane. Christer Ericson
 // advocates use of a "fudge factor" to ensure a conservative result, but David
-// Eberly tackles it more directly by noting that if any edge is parallel then 
-// one of the six faces *must* be the separating plane if there is one. So if 
-// you've done six tests and not found a separating plane there is no need to 
-// check the edge cross products; the boxes do intersect. We follow Eberly's 
+// Eberly tackles it more directly by noting that if any edge is parallel then
+// one of the six faces *must* be the separating plane if there is one. So if
+// you've done six tests and not found a separating plane there is no need to
+// check the edge cross products; the boxes do intersect. We follow Eberly's
 // approach.
-    
 
 
-// First check only the B and O face normals as possible separating planes. If 
+
+// First check only the B and O face normals as possible separating planes. If
 // we find one of those works the boxes can't be intersecting, otherwise they
 // might be. Ordering for speed:
 //  - first check faces of this box B, because we're working in B frame
 //    making these tests cheaper
-//  - when working on a box, test smallest dimension first because that 
+//  - when working on a box, test smallest dimension first because that
 //    covers the most space in one test
 // For a few extra flops (1 per axis), we can also spot whether one box center
-// is completely inside the other and if so report early that the boxes are 
-// definitely intersecting. Worst case here is about 74 flops. Minimum is 16 
+// is completely inside the other and if so report early that the boxes are
+// definitely intersecting. Worst case here is about 74 flops. Minimum is 16
 // flops if the first axis checked is a separating axis.
 
 // Private helper method returns 0 if a separating plane is found (definitely
@@ -91,7 +91,7 @@ namespace SimTK {
 // even be perpendicular.
 template <class P> int Geo::Box_<P>::
 intersectsOrientedBoxHelper(const OrientedBox_<P>&  O,
-                            Mat33P&                 absR_BO, 
+                            Mat33P&                 absR_BO,
                             Vec3P&                  absP_BO) const {
     const RotationP& R_BO = O.getTransform().R();
     const Vec3P&     p_BO = O.getTransform().p(); // center location
@@ -109,7 +109,7 @@ intersectsOrientedBoxHelper(const OrientedBox_<P>&  O,
     for (int i=0; i<3; ++i) {
         const CoordinateAxis b = getOrderedAxis(i);
         const RealP rb = h[b];                  // proj. p_BV onto axis b
-        const RealP ro = dot(oh, absR_BO[b]);   // proj. p_OV onto axis b (in O) 
+        const RealP ro = dot(oh, absR_BO[b]);   // proj. p_OV onto axis b (in O)
         const RealP d  = absP_BO[b];            // ctr-ctr distance along b
         if (d > rb+ro)
             return 0; // axis b is a separating plane normal
@@ -153,7 +153,7 @@ mayIntersectOrientedBox(const Geo::OrientedBox_<P>& ob) const {
 // Worst case 74 + 9 + 9*12 = 191 flops.
 template <class P> bool Geo::Box_<P>::
 intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
-    Mat33P absR_BO; 
+    Mat33P absR_BO;
     Vec3P  absP_BO;
     const int result = intersectsOrientedBoxHelper(ob, absR_BO, absP_BO);
     if (result == 0) return false;
@@ -166,23 +166,23 @@ intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     const Vec3P&     oh   = ob.getHalfLengths();
 
     // First we have to determine whether the boxes have a pair of edges that
-    // are (almost) parallel. If so, one of the cross product tests below will 
-    // produce a near-zero separating vector candidate. Projections onto that 
+    // are (almost) parallel. If so, one of the cross product tests below will
+    // produce a near-zero separating vector candidate. Projections onto that
     // line will yield zero lengths and we'll end up comparing noise to noise
     // to see if we found a separating vector, producing unacceptable false
     // negatives. On the other hand, if there is a pair of parallel edges, then
-    // one of the face normals we just tested would have to be a separating 
+    // one of the face normals we just tested would have to be a separating
     // plane if there is one (draw a picture). In that case we know that we
     // are intersecting and can return true now. This also serves as a fast
     // out for the common case of parallel boxes.
 
-    // If there is a parallel edge, one of the entries for O's axes in |R_BO| 
-    // will be within noise of one of B's axes, that is, 100, 010, or 001. 
+    // If there is a parallel edge, one of the entries for O's axes in |R_BO|
+    // will be within noise of one of B's axes, that is, 100, 010, or 001.
     // David Eberly's algorithm looks for a "1" as cos(near zero) but that's a
-    // bad idea because sin() and cos() are very flat near 1. It is better to 
-    // look for "0", as sin(near zero) because sin(theta)~=theta for small 
+    // bad idea because sin() and cos() are very flat near 1. It is better to
+    // look for "0", as sin(near zero) because sin(theta)~=theta for small
     // angles. So we pick an angle tolerance that we declare is small enough to
-    // be considered parallel, and then see if a column of |R_BO| has two 
+    // be considered parallel, and then see if a column of |R_BO| has two
     // entries that size or smaller. It costs 9 flops to do this test.
 
     const RealP tol = Geo::getDefaultTol<P>(); // TODO: too tight?
@@ -193,7 +193,7 @@ intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
         if (v[1] < tol) ++numZeroes;
         if (v[2] < tol) ++numZeroes;
         assert(numZeroes < 3); // can't happen in a Rotation!
-        if (numZeroes==2) 
+        if (numZeroes==2)
             return true; // boxes intersect
     }
 
@@ -202,7 +202,7 @@ intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     // edge from O. B's edges are 100,010,001 so the cross products simplify
     // considerably: 100 X [o0 o1 o2] = [  0 -o2  o1]
     //               010 X [o0 o1 o2] = [ o2   0 -o0]
-    //               001 X [o0 o1 o2] = [-o1  o0   0] 
+    //               001 X [o0 o1 o2] = [-o1  o0   0]
     // I don't know of any particularly good ordering for this step.
 
     RealP rb, ro; // Projections of box dimensions on separating vector.
@@ -215,65 +215,65 @@ intersectsOrientedBox(const Geo::OrientedBox_<P>& ob) const {
     // Each of these tests takes about 12 flops.
     rb = h[1] *Rabs(2, 0)+h[2] *Rabs(1, 0);         // b0 X oO
     ro = oh[1]*Rabs(0, 2)+oh[2]*Rabs(0, 1);
-    d  = std::abs(p[2]*R(1, 0) - p[1]*R(2, 0)); 
+    d  = std::abs(p[2]*R(1, 0) - p[1]*R(2, 0));
     if (d > rb+ro) return false;
 
     rb = h[1] *Rabs(2, 1)+h[2] *Rabs(1, 1);         // b0 X o1
     ro = oh[0]*Rabs(0, 2)+oh[2]*Rabs(0, 0);
-    d  = std::abs(p[2]*R(1, 1) - p[1]*R(2, 1)); 
+    d  = std::abs(p[2]*R(1, 1) - p[1]*R(2, 1));
     if (d > rb+ro) return false;
 
     rb = h[1] *Rabs(2, 2)+h[2] *Rabs(1, 2);         // b0 X o2
     ro = oh[0]*Rabs(0, 1)+oh[1]*Rabs(0, 0);
-    d  = std::abs(p[2]*R(1, 2) - p[1]*R(2, 2)); 
+    d  = std::abs(p[2]*R(1, 2) - p[1]*R(2, 2));
     if (d > rb+ro) return false;
 
     rb = h[0] *Rabs(2, 0)+h[2] *Rabs(0, 0);         // b1 X oO
     ro = oh[1]*Rabs(1, 2)+oh[2]*Rabs(1, 1);
-    d  = std::abs(p[0]*R(2, 0) - p[2]*R(0, 0)); 
+    d  = std::abs(p[0]*R(2, 0) - p[2]*R(0, 0));
     if (d > rb+ro) return false;
 
     rb = h[0] *Rabs(2, 1)+h[2] *Rabs(0, 1);         // b1 X o1
     ro = oh[0]*Rabs(1, 2)+oh[2]*Rabs(1, 0);
-    d  = std::abs(p[0]*R(2, 1) - p[2]*R(0, 1)); 
+    d  = std::abs(p[0]*R(2, 1) - p[2]*R(0, 1));
     if (d > rb+ro) return false;
 
     rb = h[0] *Rabs(2, 2)+h[2] *Rabs(0, 2);         // b1 X o2
     ro = oh[0]*Rabs(1, 1)+oh[1]*Rabs(1, 0);
-    d  = std::abs(p[0]*R(2, 2) - p[2]*R(0, 2)); 
+    d  = std::abs(p[0]*R(2, 2) - p[2]*R(0, 2));
     if (d > rb+ro) return false;
 
     rb = h[0] *Rabs(1, 0)+h[1] *Rabs(0, 0);         // b2 X oO
     ro = oh[1]*Rabs(2, 2)+oh[2]*Rabs(2, 1);
-    d  = std::abs(p[1]*R(0, 0) - p[0]*R(1, 0)); 
+    d  = std::abs(p[1]*R(0, 0) - p[0]*R(1, 0));
     if (d > rb+ro) return false;
 
     rb = h[0] *Rabs(1, 1)+h[1] *Rabs(0, 1);         // b2 X o1
     ro = oh[0]*Rabs(2, 2)+oh[2]*Rabs(2, 0);
-    d  = std::abs(p[1]*R(0, 1) - p[0]*R(1, 1)); 
+    d  = std::abs(p[1]*R(0, 1) - p[0]*R(1, 1));
     if (d > rb+ro) return false;
 
     rb = h[0] *Rabs(1, 2)+h[1] *Rabs(0, 2);         // b2 X o2
     ro = oh[0]*Rabs(2, 1)+oh[1]*Rabs(2, 0);
-    d  = std::abs(p[1]*R(0, 2) - p[0]*R(1, 2)); 
+    d  = std::abs(p[1]*R(0, 2) - p[0]*R(1, 2));
     if (d > rb+ro) return false;
 
     return true; // The boxes intersect.
 }
 
 
-    
+
 // Explicit instantiations for float and double.
 template class Geo::Box_<float>;
 template class Geo::Box_<double>;
-    
+
 //==============================================================================
 //                           GEO :: ALIGNED BOX
 //==============================================================================
 // Explicit instantiations for float and double.
 template class Geo::AlignedBox_<float>;
 template class Geo::AlignedBox_<double>;
-    
+
 //==============================================================================
 //                           GEO :: ORIENTED BOX
 //==============================================================================

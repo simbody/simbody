@@ -27,7 +27,7 @@
  *
  *      RETURN:
  *      returnval:   -1 if leading coefficient is zero, otherwise
- *                  number of roots found. 
+ *                  number of roots found.
  */
 
 namespace SimTK {

@@ -45,20 +45,20 @@ namespace SimTK {
 //==============================================================================
 /** A primitive useful for computations involving a single bicubic Bezier
 patch. Note that a bicubic Bezier spline surface would not necessarily be
-composed of these, but could use the static methods here for patch 
-computations. 
+composed of these, but could use the static methods here for patch
+computations.
 
 <h3>Theory</h3>
-The primary reference for this implementation is the book "Geometric Modeling, 
+The primary reference for this implementation is the book "Geometric Modeling,
 3rd ed." by Michael E. Mortenson, Industrial Press 2006, chapter 8. We follow
-Mortenson's notation here (with some name changes) and equation numbers are 
-from the text. See CubicHermiteCurve_ and BicubicHermitePatch_ comments for 
-introductory material; here we add the Bezier description to the algebraic and 
+Mortenson's notation here (with some name changes) and equation numbers are
+from the text. See CubicHermiteCurve_ and BicubicHermitePatch_ comments for
+introductory material; here we add the Bezier description to the algebraic and
 Hermite (geometric) forms described there.
 
-We use B for Bezier control points (rather than P), and H for Hermite 
+We use B for Bezier control points (rather than P), and H for Hermite
 coefficients (rather than B). We call the Bezier basis matrix Mb (same as
-Mortenson) but call the Hermite basis matrix Mh (rather than Mf). 
+Mortenson) but call the Hermite basis matrix Mh (rather than Mf).
 
 The 16 control points are laid out like this, matching Mortenson, with the
 Hermite coefficient matrix for comparison:
@@ -70,7 +70,7 @@ Hermite coefficient matrix for comparison:
           w=0   . .   w=1
 </pre>
 We store those in a 4x4 hypermatrix; subtract one from each control point
-index to get the matrix indices (sorry). 
+index to get the matrix indices (sorry).
 
 To convert between Bezier and Hermite or algebraic forms, use
 <pre>
@@ -78,7 +78,7 @@ To convert between Bezier and Hermite or algebraic forms, use
     H = (Mh^-1 Mb) B ~(Mh^-1 Mb)
     B = (Mb^-1 Mh) H ~(Mb^-1 Mh)
 </pre>
-where the parenthesized (very simple) matrices are given explicitly in the 
+where the parenthesized (very simple) matrices are given explicitly in the
 Theory section for CubicBezierCurve_. The results are:
 <pre>
     [    b11         b14           3(b12-b11)             3(b14-b13)     ]
@@ -87,15 +87,15 @@ H = [    b41         b44           3(b42-b41)             3(b44-b43)     ]
     [ 3(b41-b31)  3(b44-b34)  9({b42-b41}+b31-b32)  9({b44-b34}+b33-b43) ]
 </pre>
 The braces in the twist terms mark common subexpressions, so the
-conversion from Bezier to Hermite takes 3x28=84 flops (all entries are 
+conversion from Bezier to Hermite takes 3x28=84 flops (all entries are
 3-vectors).
 <pre>
     [   h00            h00+w00/3               h01-w01/3          h01    ]
 B = [h00+u00/3 {h00+u00/3}+w00/3+t00/9 {h01+u01/3}-w01/3-t01/9 h01+u01/3 ]
     [h10-u10/3 {h10-u10/3}+w10/3-t10/9 {h11-u11/3}-w11/3+t11/9 h11-u11/3 ]
-    [   h10            h10+w10/3               h11-w11/3          h11    ] 
+    [   h10            h10+w10/3               h11-w11/3          h11    ]
 </pre>
-Exploiting the common subexpressions in braces, conversion from Hermite to 
+Exploiting the common subexpressions in braces, conversion from Hermite to
 Bezier takes 3x32=96 flops. **/
 template <class P>
 class Geo::BicubicBezierPatch_ {
@@ -110,34 +110,34 @@ BicubicBezierPatch_() {}
 class documentation for how this matrix is defined. If instead you
 have algebraic or Hermite coefficients, you can first convert them to Bezier
 control points with the calcBFromA() or calcHFromA() provided here. **/
-explicit BicubicBezierPatch_(const Mat<4,4,Vec3P>& controlPoints) 
-:   B(controlPoints) {} 
+explicit BicubicBezierPatch_(const Mat<4,4,Vec3P>& controlPoints)
+:   B(controlPoints) {}
 
 
 /** Evaluate a point P(u,w) on this patch given values for the
-parameters u and w in [0,1]. Values outside this range are permitted but do 
+parameters u and w in [0,1]. Values outside this range are permitted but do
 not lie on the patch. Cost is 123 flops. **/
 Vec3P evalP(RealP u, RealP w) const {return evalPUsingB(B,u,w);}
 
 /** Evaluate the tangents Pu=dP/du, Pw=dP/dw on this patch given values for the
 parameters u and w in [0,1]. Values outside this range are permitted but do not
 lie on the curve segment. Cost is 248 flops. **/
-void evalP1(RealP u, RealP w, Vec3P& Pu, Vec3P& Pw) const 
+void evalP1(RealP u, RealP w, Vec3P& Pu, Vec3P& Pw) const
 {   return evalP1UsingB(B,u,w,Pu,Pw); }
 
 /** Evaluate the second derivatives Puu=d2P/du2, Pww=d2P/dw2, and cross
-derivative Puw=Pwu=d2P/dudw on this patch given values for the parameters u 
-and w in [0,1]. Values outside this range are permitted but do not lie on the 
+derivative Puw=Pwu=d2P/dudw on this patch given values for the parameters u
+and w in [0,1]. Values outside this range are permitted but do not lie on the
 curve segment. Cost is 363 flops. **/
-void evalP2(RealP u, RealP w, Vec3P& Puu, Vec3P& Puw, Vec3P& Pww) const 
+void evalP2(RealP u, RealP w, Vec3P& Puu, Vec3P& Puw, Vec3P& Pww) const
 {   evalP2UsingB(B,u,w,Puu,Puw,Pww); }
 
 /** Evaluate the third derivatives Puuu=d3P/du3, Pwww=d3P/dw3, and cross
-derivatives Puuw=Pwuu=Puwu=d3P/du2dw and Puww=Pwwu=Pwuw=d3P/dudw2 on this patch 
+derivatives Puuw=Pwuu=Puwu=d3P/du2dw and Puww=Pwwu=Pwuw=d3P/dudw2 on this patch
 given values for the parameters u and w in [0,1]. Cost is 468 flops. All
 higher derivatives of a cubic patch are zero. **/
-void evalP3(RealP u, RealP w, Vec3P& Puuu, Vec3P& Puuw, 
-                              Vec3P& Puww, Vec3P& Pwww) const 
+void evalP3(RealP u, RealP w, Vec3P& Puuu, Vec3P& Puuw,
+                              Vec3P& Puww, Vec3P& Pwww) const
 {   evalP3UsingB(B,u,w,Puuu,Puuw,Puww,Pwww); }
 
 /** Return a reference to the Bezier control points B that are
@@ -152,50 +152,50 @@ Mat<4,4,Vec3P>& updControlPoints() {return B;}
 points. See the documentation for BicubicHermitePatch_ to see how the
 returned matrix of coefficients is defined. Cost is 240 flops. **/
 Mat<4,4,Vec3P> calcAlgebraicCoefficients() const {return calcAFromB(B);}
-/** Calculate the Hermite coefficients H from the stored 
+/** Calculate the Hermite coefficients H from the stored
 Bezier control points. See the documentation for this class to see how the
 returned matrix of coefficients is defined. Cost is 84 flops. **/
 Mat<4,4,Vec3P> calcHermiteCoefficients() const {return calcHFromB(B);}
 
 /** Return the u=0 boundary curve as a Bezier curve segment. The control points
-are just the first row of the patch control points B so no computation is 
+are just the first row of the patch control points B so no computation is
 required. **/
-CubicBezierCurve_<P> getBoundaryCurveU0() const 
+CubicBezierCurve_<P> getBoundaryCurveU0() const
 {   return CubicBezierCurve_<P>(B[0]); } // b11 b12 b13 b14
 /** Return the u=1 boundary curve as a Bezier curve segment. The control points
-are just the last row of the patch control points B so no computation is 
+are just the last row of the patch control points B so no computation is
 required. **/
-CubicBezierCurve_<P> getBoundaryCurveU1() const 
+CubicBezierCurve_<P> getBoundaryCurveU1() const
 {   return CubicBezierCurve_<P>(B[3]); } // b41 b42 b43 b44
 /** Return the w=0 boundary curve as a Bezier curve segment. The control points
-are just the first column of the patch control points B so no computation is 
+are just the first column of the patch control points B so no computation is
 required. **/
-CubicBezierCurve_<P> getBoundaryCurveW0() const 
+CubicBezierCurve_<P> getBoundaryCurveW0() const
 {   return CubicBezierCurve_<P>(B(0)); } // b11 b21 b31 b41
 /** Return the w=1 boundary curve as a Bezier curve segment. The control points
-are just the last column of the patch control points B so no computation is 
+are just the last column of the patch control points B so no computation is
 required. **/
-CubicBezierCurve_<P> getBoundaryCurveW1() const 
+CubicBezierCurve_<P> getBoundaryCurveW1() const
 {   return CubicBezierCurve_<P>(B(3)); } // b14 b24 b34 b44
 
 /** Given a particular value u0 for patch coordinate u, create a cubic Bezier
 curve segment P(w)=P(u0,w) for the isoparametric curve along the patch at fixed
 u=u0. Cost is 93 flops. **/
-CubicBezierCurve_<P> calcIsoCurveU(RealP u0) const 
+CubicBezierCurve_<P> calcIsoCurveU(RealP u0) const
 {   return calcIsoCurveU(B, u0); }
 /** Given a particular value w0 for patch coordinate w, create a cubic Bezier
 curve segment P(u)=P(u,w0) for the isoparametric curve along the patch at fixed
 w=w0. Cost is 93 flops. **/
-CubicBezierCurve_<P> calcIsoCurveW(RealP w0) const 
+CubicBezierCurve_<P> calcIsoCurveW(RealP w0) const
 {   return calcIsoCurveW(B, w0); }
 
-/** Split this patch into two along the u direction, along an isoparametric 
+/** Split this patch into two along the u direction, along an isoparametric
 curve of constant u=t such that 0 < t < 1. On return, \a patch0 coincides with
-the u=0..t subpatch, and \a patch1 coincides with the u=t..1 subpatch. Each of 
-the new patches is reparameterized so that its u parameter goes from 0 to 1, 
-and the w direction remains parameterized as before. This method is only 
-allowed for tol <= t <= 1-tol where tol is the default tolerance for this 
-precision. 
+the u=0..t subpatch, and \a patch1 coincides with the u=t..1 subpatch. Each of
+the new patches is reparameterized so that its u parameter goes from 0 to 1,
+and the w direction remains parameterized as before. This method is only
+allowed for tol <= t <= 1-tol where tol is the default tolerance for this
+precision.
 
 @param[in]  u       The u parameter of splitting isoparametric curve
                     (tol <= u <= 1-tol).
@@ -203,7 +203,7 @@ precision.
 @param[out] patch1 Subpatch covering domain [u..1,0..1] (contains 1,1 corner).
 
 Cost is 180 flops, or 120 flops if u=1/2. **/
-void splitU(RealP u, BicubicBezierPatch_<P>& patch0, 
+void splitU(RealP u, BicubicBezierPatch_<P>& patch0,
                      BicubicBezierPatch_<P>& patch1) const {
     const RealP tol = getDefaultTol<RealP>();
     SimTK_ERRCHK1(tol <= u && u <= 1-tol, "Geo::BicubicBezierPatch::splitU()",
@@ -213,24 +213,24 @@ void splitU(RealP u, BicubicBezierPatch_<P>& patch0,
     if (u==RealP(0.5)) // bisecting
         for (int i=0; i<4; ++i) {
             CubicBezierCurve_<P>(B(i)).bisect(l,h);
-            patch0.B(i) = l.getControlPoints(); 
+            patch0.B(i) = l.getControlPoints();
             patch1.B(i) = h.getControlPoints();
         }
-    else 
+    else
         for (int i=0; i<4; ++i) {
             CubicBezierCurve_<P>(B(i)).split(u,l,h);
-            patch0.B(i) = l.getControlPoints(); 
+            patch0.B(i) = l.getControlPoints();
             patch1.B(i) = h.getControlPoints();
         }
 }
 
-/** Split this patch into two along the w direction, along an isoparametric 
+/** Split this patch into two along the w direction, along an isoparametric
 curve of constant w=t such that 0 < t < 1. On return, \a patch0 coincides with
-the w=0..t subpatch, and \a patch1 coincides with the w=t..1 subpatch. Each of 
-the new patches is reparameterized so that its w parameter goes from 0 to 1, 
-and the u direction remains parameterized as before. This method is only 
-allowed for tol <= t <= 1-tol where tol is the default tolerance for this 
-precision. 
+the w=0..t subpatch, and \a patch1 coincides with the w=t..1 subpatch. Each of
+the new patches is reparameterized so that its w parameter goes from 0 to 1,
+and the u direction remains parameterized as before. This method is only
+allowed for tol <= t <= 1-tol where tol is the default tolerance for this
+precision.
 
 @param[in]  w       The w parameter of splitting isoparametric curve
                     (tol <= w <= 1-tol).
@@ -238,7 +238,7 @@ precision.
 @param[out] patch1 Subpatch covering domain [0..1,w..1] (contains 1,1 corner).
 
 Cost is 180 flops, or 120 flops if w=1/2. **/
-void splitW(RealP w, BicubicBezierPatch_<P>& patch0, 
+void splitW(RealP w, BicubicBezierPatch_<P>& patch0,
                      BicubicBezierPatch_<P>& patch1) const {
     const RealP tol = getDefaultTol<RealP>();
     SimTK_ERRCHK1(tol <= w && w <= 1-tol, "Geo::BicubicBezierPatch::splitW()",
@@ -248,23 +248,23 @@ void splitW(RealP w, BicubicBezierPatch_<P>& patch0,
     if (w==RealP(0.5)) // bisecting
         for (int i=0; i<4; ++i) {
             CubicBezierCurve_<P>(B[i]).bisect(l,h);
-            patch0.B[i] = l.getControlPoints().positionalTranspose(); 
+            patch0.B[i] = l.getControlPoints().positionalTranspose();
             patch1.B[i] = h.getControlPoints().positionalTranspose();
         }
-    else 
+    else
         for (int i=0; i<4; ++i) {
             CubicBezierCurve_<P>(B[i]).split(w,l,h);
-            patch0.B[i] = l.getControlPoints().positionalTranspose(); 
+            patch0.B[i] = l.getControlPoints().positionalTranspose();
             patch1.B[i] = h.getControlPoints().positionalTranspose();
         }
 }
 
 
-/** Split this patch into four subpatches at a particular parametric point 
-(u,w) such that 0 < u,w < 1, with each resulting subpatch covering part of the 
+/** Split this patch into four subpatches at a particular parametric point
+(u,w) such that 0 < u,w < 1, with each resulting subpatch covering part of the
 original parametric domain in each direction. The subpatches are reparametrized
-to have [0..1,0..1] domains. This method is only allowed for 
-tol <= u,w <= 1-tol where tol is the default tolerance for this precision. 
+to have [0..1,0..1] domains. This method is only allowed for
+tol <= u,w <= 1-tol where tol is the default tolerance for this precision.
 
 @param[in]  u       The u parameter of the splitting point (tol <= u <= 1-tol).
 @param[in]  w       The w parameter of the splitting point (tol <= w <= 1-tol).
@@ -273,14 +273,14 @@ tol <= u,w <= 1-tol where tol is the default tolerance for this precision.
 @param[out] patch10 Subpatch covering domain [u..1,0..w] (contains 1,0 corner).
 @param[out] patch11 Subpatch covering domain [u..1,w..1] (contains 1,1 corner).
 
-Cost is 360, 420, or 540 flops depending on whether both, one, or neither 
+Cost is 360, 420, or 540 flops depending on whether both, one, or neither
 parameter is 1/2. **/
-void split(RealP u, RealP w, BicubicBezierPatch_<P>& patch00, 
-                             BicubicBezierPatch_<P>& patch01, 
-                             BicubicBezierPatch_<P>& patch10, 
+void split(RealP u, RealP w, BicubicBezierPatch_<P>& patch00,
+                             BicubicBezierPatch_<P>& patch01,
+                             BicubicBezierPatch_<P>& patch10,
                              BicubicBezierPatch_<P>& patch11) const {
     const RealP tol = getDefaultTol<RealP>();
-    SimTK_ERRCHK2((tol <= u && u <= 1-tol) && (tol <= w && w <= 1-tol), 
+    SimTK_ERRCHK2((tol <= u && u <= 1-tol) && (tol <= w && w <= 1-tol),
         "Geo::BicubicBezierPatch::split()",
         "Can't split patch at parametric point u,w=%g,%g; it is either out of"
         " range or too close to an edge.", (double)u, (double)w);
@@ -301,55 +301,55 @@ void split(RealP u, RealP w, BicubicBezierPatch_<P>& patch00,
 }
 
 /** Return a sphere that surrounds the entire patch in the 0<= u,w <=1
-range. 
+range.
 
-@bug Currently we use the fact that the patch is enclosed within the convex 
-hull of its control points and generate the minimum bounding sphere that 
-includes all control points; that is not necessarily the 
+@bug Currently we use the fact that the patch is enclosed within the convex
+hull of its control points and generate the minimum bounding sphere that
+includes all control points; that is not necessarily the
 tightest-fitting sphere. **/
-Geo::Sphere_<P> calcBoundingSphere() const 
-{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy 
+Geo::Sphere_<P> calcBoundingSphere() const
+{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy
     return Geo::Point_<P>::calcBoundingSphere(points); }
 
-/** Return an axis-aligned bounding box (AABB) that surrounds the entire patch 
-segment in the 0<= u,w <=1 range. 
+/** Return an axis-aligned bounding box (AABB) that surrounds the entire patch
+segment in the 0<= u,w <=1 range.
 
-@bug Currently we use the fact that the patch is enclosed within the convex 
-hull of its control points and generate the minimum bounding box that 
-includes all control points; that is not necessarily the 
+@bug Currently we use the fact that the patch is enclosed within the convex
+hull of its control points and generate the minimum bounding box that
+includes all control points; that is not necessarily the
 tightest-fitting box. **/
-Geo::AlignedBox_<P> calcAxisAlignedBoundingBox() const 
-{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy 
+Geo::AlignedBox_<P> calcAxisAlignedBoundingBox() const
+{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy
     return Geo::Point_<P>::calcAxisAlignedBoundingBox(points); }
 
-/** Return an oriented bounding box (OBB) that surrounds the entire curve 
-segment in the 0<= u,w <=1 range. 
+/** Return an oriented bounding box (OBB) that surrounds the entire curve
+segment in the 0<= u,w <=1 range.
 
-@bug Currently we use the fact that the patch is enclosed within the convex 
-hull of its control points and generate an oriented bounding box that 
-includes all control points; that is not necessarily the 
+@bug Currently we use the fact that the patch is enclosed within the convex
+hull of its control points and generate an oriented bounding box that
+includes all control points; that is not necessarily the
 tightest-fitting box. **/
-Geo::OrientedBox_<P> calcOrientedBoundingBox() const 
-{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy 
+Geo::OrientedBox_<P> calcOrientedBoundingBox() const
+{   const ArrayViewConst_<Vec3P> points(&B(0,0), &B(0,0)+16); // no copy
     return Geo::Point_<P>::calcOrientedBoundingBox(points); }
 
 /**@name                 Utility methods
 These static methods work with given control points. **/
 /**@{**/
 
-/** Given Bezier control points B and values for the curve parameters 
-u and w in [0..1], return the point P(u,w)=Fb(u)*B*~Fb(w) at that location, 
-where Fb is a vector of Bezier basis functions. Cost is 
+/** Given Bezier control points B and values for the curve parameters
+u and w in [0..1], return the point P(u,w)=Fb(u)*B*~Fb(w) at that location,
+where Fb is a vector of Bezier basis functions. Cost is
 3x35+18=123 flops. **/
-static Vec3P evalPUsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w) { 
+static Vec3P evalPUsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w) {
     Row<4,P> Fbu = CubicBezierCurve_<P>::calcFb(u);     // 9 flops
     Row<4,P> Fbw = CubicBezierCurve_<P>::calcFb(w);     // 9 flops
     return Fbu * B * ~Fbw;                              // 3x35 flops
 }
 
-/** Given Bezier control points B and values for the curve parameters 
-u and w in [0..1], return the tangents Pu(u,w)=dFb(u)*B*~Fb(w) and 
-Pw(u,w)=Fb(u)*B*~dFb(w) at 
+/** Given Bezier control points B and values for the curve parameters
+u and w in [0..1], return the tangents Pu(u,w)=dFb(u)*B*~Fb(w) and
+Pw(u,w)=Fb(u)*B*~dFb(w) at
 that location. Cost is 3x70+38=248 flops. **/
 static void evalP1UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
                          Vec3P& Pu, Vec3P& Pw) {
@@ -361,9 +361,9 @@ static void evalP1UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
     Pw = Fbu  * B * ~dFbw;                               // 3x35
 }
 
-/** Given Bezier control points B and values for the curve parameters 
+/** Given Bezier control points B and values for the curve parameters
 u and w in [0..1], return the second derivatives Puu(u,w)=d2Fb(u)*B*~Fb(w),
-Puw(u,w)=dFb(u)*B*~dFb(w) and Pww(u,w)=Fb(u)*B*~d2Fb(w) at that location. 
+Puw(u,w)=dFb(u)*B*~dFb(w) and Pww(u,w)=Fb(u)*B*~d2Fb(w) at that location.
 Cost is 3x105+48=363 flops. **/
 static void evalP2UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
                          Vec3P& Puu, Vec3P& Puw, Vec3P& Pww) {
@@ -378,9 +378,9 @@ static void evalP2UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
     Pww = Fbu   * B * ~d2Fbw;                             // 3x35
 }
 
-/** Given Bezier control points B and values for the curve parameters 
+/** Given Bezier control points B and values for the curve parameters
 u and w in [0..1], return the third derivatives Puuu(u,w)=d3Fb(u)*B*~Fb(w),
-Puuw(u,w)=d2Fb(u)*B*~dFb(w), Puww(u,w)=dFb(u)*B*~d2Fb(w) and 
+Puuw(u,w)=d2Fb(u)*B*~dFb(w), Puww(u,w)=dFb(u)*B*~d2Fb(w) and
 Pwww(u,w)=Fb(u)*B*~d3Fb(w) at that location. Cost is 3x140+48=468 flops. **/
 static void evalP3UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
                          Vec3P& Puuu, Vec3P& Puuw, Vec3P& Puww, Vec3P& Pwww) {
@@ -390,7 +390,7 @@ static void evalP3UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
     Row<4,P> dFbw  = CubicBezierCurve_<P>::calcDFb(w);    // 10 flops
     Row<4,P> d2Fbu = CubicBezierCurve_<P>::calcD2Fb(u);   //  5 flops
     Row<4,P> d2Fbw = CubicBezierCurve_<P>::calcD2Fb(w);   //  5 flops
-    Row<4,P> d3Fbu = CubicBezierCurve_<P>::calcD3Fb(u);   //  0 
+    Row<4,P> d3Fbu = CubicBezierCurve_<P>::calcD3Fb(u);   //  0
     Row<4,P> d3Fbw = CubicBezierCurve_<P>::calcD3Fb(w);   //  0
     Puuu = d3Fbu * B * ~Fbw;                              // 3x35
     Puuw = d2Fbu * B * ~dFbw;                             // 3x35
@@ -401,15 +401,15 @@ static void evalP3UsingB(const Mat<4,4,Vec3P>& B, RealP u, RealP w,
 /** Given a particular value u0 for patch coordinate u, create a cubic Bezier
 curve segment P(w)=P(u0,w) for the isoparametric curve along the patch at fixed
 u=u0. Cost is 3x28+9=93 flops. **/
-static CubicBezierCurve_<P> 
-calcIsoCurveU(const Mat<4,4,Vec3P>& B, RealP u0) 
+static CubicBezierCurve_<P>
+calcIsoCurveU(const Mat<4,4,Vec3P>& B, RealP u0)
 {   const Row<4,Vec3P> Bu0 = CubicBezierCurve_<P>::calcFb(u0) * B;
     return CubicBezierCurve_<P>(Bu0); }
 
 /** Given a particular value w0 for patch coordinate w, create a cubic Bezier
 curve segment P(u)=P(u,w0) for the isoparametric curve along the patch at fixed
 w=w0. Cost is 3x28+9=93 flops. **/
-static CubicBezierCurve_<P> 
+static CubicBezierCurve_<P>
 calcIsoCurveW(const Mat<4,4,Vec3P>& B, RealP w0)
 {    const Vec<4,Vec3P> Bw0 = B * ~CubicBezierCurve_<P>::calcFb(w0);
      return CubicBezierCurve_<P>(Bw0); }
@@ -418,10 +418,10 @@ calcIsoCurveW(const Mat<4,4,Vec3P>& B, RealP w0)
 coefficients A. All coefficients are 3-vectors. Cost is 3x80=240 flops. **/
 static Mat<4,4,Vec3P> calcAFromB(const Mat<4,4,Vec3P>& B) {
     typedef const Vec3P& Coef;
-    Coef b11=B(0,0), b12=B(0,1), b13=B(0,2), b14=B(0,3), 
-         b21=B(1,0), b22=B(1,1), b23=B(1,2), b24=B(1,3), 
-         b31=B(2,0), b32=B(2,1), b33=B(2,2), b34=B(2,3), 
-         b41=B(3,0), b42=B(3,1), b43=B(3,2), b44=B(3,3); 
+    Coef b11=B(0,0), b12=B(0,1), b13=B(0,2), b14=B(0,3),
+         b21=B(1,0), b22=B(1,1), b23=B(1,2), b24=B(1,3),
+         b31=B(2,0), b32=B(2,1), b33=B(2,2), b34=B(2,3),
+         b41=B(3,0), b42=B(3,1), b43=B(3,2), b44=B(3,3);
     // First calculate Mb*B:
     //       a   b   c   d
     //       e   f   g   h
@@ -446,10 +446,10 @@ static Mat<4,4,Vec3P> calcAFromB(const Mat<4,4,Vec3P>& B) {
 control points B. All coefficients are 3-vectors. Cost is 3x72=216 flops. **/
 static Mat<4,4,Vec3P> calcBFromA(const Mat<4,4,Vec3P>& A) {
     typedef const Vec3P& Coef;
-    Coef a33=A(0,0), a32=A(0,1), a31=A(0,2), a30=A(0,3), 
-         a23=A(1,0), a22=A(1,1), a21=A(1,2), a20=A(1,3), 
-         a13=A(2,0), a12=A(2,1), a11=A(2,2), a10=A(2,3), 
-         a03=A(3,0), a02=A(3,1), a01=A(3,2), a00=A(3,3); 
+    Coef a33=A(0,0), a32=A(0,1), a31=A(0,2), a30=A(0,3),
+         a23=A(1,0), a22=A(1,1), a21=A(1,2), a20=A(1,3),
+         a13=A(2,0), a12=A(2,1), a11=A(2,2), a10=A(2,3),
+         a03=A(3,0), a02=A(3,1), a01=A(3,2), a00=A(3,3);
     // First calculate Mb^-1*A:
     //      a03 a02 a01 a00
     //       a   b   c   d
@@ -474,10 +474,10 @@ static Mat<4,4,Vec3P> calcBFromA(const Mat<4,4,Vec3P>& A) {
 coefficients H. All coefficients are 3-vectors. Cost is 3x28=84 flops. **/
 static Mat<4,4,Vec3P> calcHFromB(const Mat<4,4,Vec3P>& B) {
     typedef const Vec3P& Coef;
-    Coef b11=B(0,0), b12=B(0,1), b13=B(0,2), b14=B(0,3), 
-         b21=B(1,0), b22=B(1,1), b23=B(1,2), b24=B(1,3), 
-         b31=B(2,0), b32=B(2,1), b33=B(2,2), b34=B(2,3), 
-         b41=B(3,0), b42=B(3,1), b43=B(3,2), b44=B(3,3); 
+    Coef b11=B(0,0), b12=B(0,1), b13=B(0,2), b14=B(0,3),
+         b21=B(1,0), b22=B(1,1), b23=B(1,2), b24=B(1,3),
+         b31=B(2,0), b32=B(2,1), b33=B(2,2), b34=B(2,3),
+         b41=B(3,0), b42=B(3,1), b43=B(3,2), b44=B(3,3);
 
     // First calculate a few temps -- see class comments. (3x4 flops)
     Vec3P b12mb11=b12-b11, b24mb14=b24-b14, b42mb41=b42-b41, b44mb34=b44-b34;
@@ -494,13 +494,13 @@ static Mat<4,4,Vec3P> calcHFromB(const Mat<4,4,Vec3P>& B) {
 control points B. All coefficients are 3-vectors. Cost is 3x32=96 flops. **/
 static Mat<4,4,Vec3P> calcBFromH(const Mat<4,4,Vec3P>& H) {
     typedef const Vec3P& Coef;
-    Coef h00=H(0,0), h01=H(0,1), w00=H(0,2), w01=H(0,3), 
-         h10=H(1,0), h11=H(1,1), w10=H(1,2), w11=H(1,3), 
-         u00=H(2,0), u01=H(2,1), t00=H(2,2), t01=H(2,3), 
-         u10=H(3,0), u11=H(3,1), t10=H(3,2), t11=H(3,3); 
+    Coef h00=H(0,0), h01=H(0,1), w00=H(0,2), w01=H(0,3),
+         h10=H(1,0), h11=H(1,1), w10=H(1,2), w11=H(1,3),
+         u00=H(2,0), u01=H(2,1), t00=H(2,2), t01=H(2,3),
+         u10=H(3,0), u11=H(3,1), t10=H(3,2), t11=H(3,3);
 
     // First calculate a few temps -- see class comments. (3x8 flops)
-    Vec3P tmp00=h00+u00/3, tmp01=h01+u01/3, 
+    Vec3P tmp00=h00+u00/3, tmp01=h01+u01/3,
           tmp10=h10-u10/3, tmp11=h11-u11/3;
 
     // Then calculate (Mb^-1 Mh) H ~(Mb^-1 Mh). (3x24 more flops)

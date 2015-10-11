@@ -46,7 +46,7 @@ public:
         delete [] mult_g;
     }
 
-    InteriorPointOptimizer(const OptimizerSystem& sys); 
+    InteriorPointOptimizer(const OptimizerSystem& sys);
 
     Real optimize(  Vector &results ) override;
     OptimizerRep* clone() const override;
@@ -60,7 +60,7 @@ private:
     Real         *mult_g;
     Real         *g_L;
     Real         *g_U;
-    bool          firstOptimization; 
+    bool          firstOptimization;
 };
 
 } // namespace SimTK

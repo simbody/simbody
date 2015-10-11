@@ -39,7 +39,7 @@
  *   - Error reporting functions
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -52,7 +52,7 @@
 #include "cpodes_private.h"
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * FUNCTION SPECIFIC CONSTANTS
  * =================================================================
@@ -71,7 +71,7 @@
 
 /* constants used in taking a step */
 #define THRESH RCONST(1.5)
-#define ETAMX1 RCONST(10000.0) 
+#define ETAMX1 RCONST(10000.0)
 #define ETAMX2 RCONST(10.0)
 #define ETAMX3 RCONST(10.0)
 #define ETAMXF RCONST(0.2)
@@ -81,7 +81,7 @@
 #define BIAS2  RCONST(6.0)
 #define BIAS3  RCONST(10.0)
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
@@ -158,28 +158,28 @@ static int cpQuadEwtSetSV(CPodeMem cp_mem, N_Vector qcur, N_Vector weightQ);
 /* Function for combined norms */
 static realtype cpQuadUpdateNorm(CPodeMem cp_mem, realtype old_nrm,
                                  N_Vector xQ, N_Vector wQ);
-static realtype cpQuadUpdateDsm(CPodeMem cp_mem, realtype old_dsm, 
+static realtype cpQuadUpdateDsm(CPodeMem cp_mem, realtype old_dsm,
                                 realtype dsmQ);
 
 /* Error reporting functions */
 static void cpErrHandler(int error_code, const char *module,
                          const char *function, char *msg, void *data);
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
  */
 
-/* 
+/*
  * CPodeCreate
  *
- * CPodeCreate creates an internal memory block for a problem to 
+ * CPodeCreate creates an internal memory block for a problem to
  * be solved by CPODES.
- * If successful, CPodeCreate returns a pointer to the problem memory. 
- * This pointer should be passed to CPodeInit.  
- * If an initialization error occurs, CPodeCreate prints an error 
- * message to standard err and returns NULL. 
+ * If successful, CPodeCreate returns a pointer to the problem memory.
+ * This pointer should be passed to CPodeInit.
+ * If an initialization error occurs, CPodeCreate prints an error
+ * message to standard err and returns NULL.
  */
 
 void *CPodeCreate(int ode_type, int lmm_type, int nls_type)
@@ -330,10 +330,10 @@ void *CPodeCreate(int ode_type, int lmm_type, int nls_type)
 
 /*
  * CPodeInit
- * 
- * CPodeInit allocates and initializes memory for a problem. All 
- * problem inputs are checked for errors. If any error occurs during 
- * initialization, it is reported to the file whose file pointer is 
+ *
+ * CPodeInit allocates and initializes memory for a problem. All
+ * problem inputs are checked for errors. If any error occurs during
+ * initialization, it is reported to the file whose file pointer is
  * errfp and an error flag is returned. Otherwise, it returns CP_SUCCESS
  */
 
@@ -420,13 +420,13 @@ int CPodeInit(void *cpode_mem,
     return(CP_MEM_FAIL);
   }
 
-  /* 
-   * All error checking is complete at this point 
+  /*
+   * All error checking is complete at this point
    */
 
   /* Copy tolerances into memory */
   cp_mem->cp_tol_type = tol_type;
-  cp_mem->cp_reltol   = reltol;      
+  cp_mem->cp_reltol   = reltol;
 
   if (tol_type == CP_SS) {
     cp_mem->cp_Sabstol = *((realtype *)abstol);
@@ -479,14 +479,14 @@ int CPodeInit(void *cpode_mem,
   cp_mem->cp_next_h  = ZERO;
   cp_mem->cp_next_q  = 0;
 
-  /* 
+  /*
    * Initialize Stablilty Limit Detection data.
    * NOTE: We do this even if stab lim det was not turned on yet.
    *       This way, the user can turn it on at any later time.
    */
   cp_mem->cp_nor = 0;
   for (i = 1; i <= 5; i++)
-    for (k = 1; k <= 3; k++) 
+    for (k = 1; k <= 3; k++)
       cp_mem->cp_ssdat[i-1][k-1] = ZERO;
 
   /* Problem has been successfully initialized */
@@ -514,7 +514,7 @@ int CPodeInit(void *cpode_mem,
  * a negative value otherwise.
  */
 
-int CPodeReInit(void *cpode_mem, 
+int CPodeReInit(void *cpode_mem,
                 void *fun, void *f_data,
                 realtype t0, N_Vector y0, N_Vector yp0,
                 int tol_type, realtype reltol, void *abstol)
@@ -522,7 +522,7 @@ int CPodeReInit(void *cpode_mem,
   CPodeMem cp_mem;
   booleantype neg_abstol;
   int i,k;
- 
+
   /* Check cpode_mem */
   if (cpode_mem==NULL) {
     cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeReInit", MSGCP_NO_MEM);
@@ -566,13 +566,13 @@ int CPodeReInit(void *cpode_mem,
       cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeReInit", MSGCP_BAD_RELTOL);
       return(CP_ILL_INPUT);
     }
-    
+
     if (tol_type == CP_SS) {
       neg_abstol = (*((realtype *)abstol) < ZERO);
     } else {
       neg_abstol = (N_VMin((N_Vector)abstol) < ZERO);
     }
-    
+
     if (neg_abstol) {
       cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeReInit", MSGCP_BAD_ABSTOL);
       return(CP_ILL_INPUT);
@@ -580,13 +580,13 @@ int CPodeReInit(void *cpode_mem,
 
   }
 
-  /* 
-   * All error checking is complete at this point 
-   */  
+  /*
+   * All error checking is complete at this point
+   */
 
   /* Copy tolerances into memory */
   cp_mem->cp_tol_type = tol_type;
-  cp_mem->cp_reltol   = reltol;    
+  cp_mem->cp_reltol   = reltol;
 
   if (tol_type == CP_SS) {
     cp_mem->cp_Sabstol = *((realtype *)abstol);
@@ -599,13 +599,13 @@ int CPodeReInit(void *cpode_mem,
     }
     N_VScale(ONE, (N_Vector)abstol, cp_mem->cp_Vabstol);
   }
-  
+
   /* Copy the input parameters into CPODES state */
   if (ode_type == CP_EXPL) cp_mem->cp_fe = (CPRhsFn) fun;
   else                     cp_mem->cp_fi = (CPResFn) fun;
   cp_mem->cp_f_data = f_data;
   cp_mem->cp_tn = t0;
-  
+
   /* Set step parameters */
   cp_mem->cp_q      = 1;
   cp_mem->cp_L      = 2;
@@ -618,7 +618,7 @@ int CPodeReInit(void *cpode_mem,
   /* Initialize the history array zn */
   N_VScale(ONE, y0,  cp_mem->cp_zn[0]);
   if(ode_type==CP_IMPL) N_VScale(ONE, yp0, cp_mem->cp_zn[1]);
- 
+
   /* Initialize all the counters */
   cp_mem->cp_nst     = 0;
   cp_mem->cp_nfe     = 0;
@@ -648,9 +648,9 @@ int CPodeReInit(void *cpode_mem,
   /* Initialize Stablilty Limit Detection data */
   cp_mem->cp_nor = 0;
   for (i = 1; i <= 5; i++)
-    for (k = 1; k <= 3; k++) 
+    for (k = 1; k <= 3; k++)
       cp_mem->cp_ssdat[i-1][k-1] = ZERO;
-  
+
   /* Problem has been successfully re-initialized */
   return(CP_SUCCESS);
 }
@@ -662,8 +662,8 @@ int CPodeReInit(void *cpode_mem,
  *
  */
 
-int CPodeProjInit(void *cpode_mem, int proj_norm, 
-                  int cnstr_type, CPCnstrFn cfun, void *c_data, 
+int CPodeProjInit(void *cpode_mem, int proj_norm,
+                  int cnstr_type, CPCnstrFn cfun, void *c_data,
                   N_Vector ctol)
 {
   CPodeMem cp_mem;
@@ -697,7 +697,7 @@ int CPodeProjInit(void *cpode_mem, int proj_norm,
   }
   if (ctol == NULL) {
     cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPodeProjInit", MSGCP_CTOL_NULL);
-    return(CP_ILL_INPUT);    
+    return(CP_ILL_INPUT);
   }
 
   /* Allocate memory for vectors used in the projection algorithm,
@@ -757,9 +757,9 @@ int CPodeProjDefine(void *cpode_mem, CPProjFn pfun, void *p_data)
 /*
  * CPodeQuadInit
  *
- * CPodeQuadInit allocates and initializes quadrature related 
- * memory for a problem. All problem specification inputs are 
- * checked for errors. If any error occurs during initialization, 
+ * CPodeQuadInit allocates and initializes quadrature related
+ * memory for a problem. All problem specification inputs are
+ * checked for errors. If any error occurs during initialization,
  * it is reported to the error handler function.
  * The return value is CP_SUCCESS = 0 if no errors occurred, or
  * a negative value otherwise.
@@ -819,9 +819,9 @@ int CPodeQuadInit(void *cpode_mem, CPQuadFn qfun, void *q_data, N_Vector q0)
 /*
  * CPodeQuadReInit
  *
- * CPodeQuadReInit re-initializes CPODES's quadrature related memory 
- * for a problem, assuming it has already been allocated in prior 
- * calls to CPodeMalloc and CPodeQuadInit. 
+ * CPodeQuadReInit re-initializes CPODES's quadrature related memory
+ * for a problem, assuming it has already been allocated in prior
+ * calls to CPodeMalloc and CPodeQuadInit.
  * All problem specification inputs are checked for errors.
  * If any error occurs during initialization, it is reported to the
  * error handler function.
@@ -989,7 +989,7 @@ int CPodeQuadReInit(void *cpode_mem, CPQuadFn qfun, void *q_data, N_Vector q0)
 /*
  * CPode
  *
- * This routine is the main driver of the CPODES package. 
+ * This routine is the main driver of the CPODES package.
  *
  * It integrates over a time interval defined by the user, by calling
  * cpStep to do internal time steps.
@@ -1033,7 +1033,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
     cpProcessError(cp_mem, CP_NO_MALLOC, "CPODES", "CPode", MSGCP_NO_MALLOC);
     return(CP_NO_MALLOC);
   }
-  
+
   /* Check for yout != NULL */
   if (yout == NULL) {
     cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPode", MSGCP_YOUT_NULL);
@@ -1055,7 +1055,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
   }
 
   /* Check for valid mode */
-  if ((mode != CP_NORMAL)       && 
+  if ((mode != CP_NORMAL)       &&
       (mode != CP_ONE_STEP)     &&
       (mode != CP_NORMAL_TSTOP) &&
       (mode != CP_ONE_STEP_TSTOP) ) {
@@ -1097,10 +1097,10 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
     /* Initial setup */
     ier = cpInitialSetup(cp_mem);
     if (ier!= CP_SUCCESS) return(ier);
-    
+
     /* In CP_EXPL mode, call fun at (t0, y0) to set zn[1] = f'(t0,y0) */
     if (ode_type == CP_EXPL) {
-      retval = fe(tn, zn[0], zn[1], f_data); 
+      retval = fe(tn, zn[0], zn[1], f_data);
       nfe++;
       if (retval < 0) {
         cpProcessError(cp_mem, CP_ODEFUNC_FAIL, "CPODES", "CPode", MSGCP_ODEFUNC_FAILED, tn);
@@ -1149,13 +1149,13 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
         cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "CPode", MSGCP_BAD_TSTOP, tn);
         return(CP_ILL_INPUT);
       }
-      if ( (tn + h - tstop)*h > ZERO ) 
+      if ( (tn + h - tstop)*h > ZERO )
         h = (tstop - tn)*(ONE-FOUR*uround);
     }
 
     cp_mem->cp_h0u = h;
 
-    /* Check for zeros of root function g at and near t0. If found at t0 we'll 
+    /* Check for zeros of root function g at and near t0. If found at t0 we'll
     advance time a little to see whether the zeroes go away. If not, we'll
     deactivate the g's that stay zero. On return we will have marked the
     end of the "previous" rootfinding interval as thi, with ghi=g(thi). */
@@ -1168,7 +1168,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
     }
 
     /* Scale zn[1] and (if needed) znQ[1] by h */
-    hscale = h; 
+    hscale = h;
     hprime = h;
     N_VScale(h, zn[1], zn[1]);
     if (quadr) N_VScale(h, znQ[1], znQ[1]);
@@ -1190,7 +1190,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
   if (nst > 0) {
 
     /* Estimate an infinitesimal time interval to be used as
-       a roundoff for time quantities (based on current time 
+       a roundoff for time quantities (based on current time
        and step size) */
     troundoff = FUZZ_FACTOR*uround*(ABS(tn) + ABS(h));
 
@@ -1276,7 +1276,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
         tretlast = *tret = tstop;
         return(CP_TSTOP_RETURN);
       }
-      
+
       /* If next step would overtake tstop, adjust stepsize */
       if ( (tn + hprime - tstop)*h > ZERO ) {
         hprime = (tstop - tn)*(ONE-FOUR*uround);
@@ -1284,7 +1284,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
       }
 
     }
-    
+
   }
 
   /*
@@ -1294,7 +1294,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
    *    4.1. check for errors (too many steps, too much
    *         accuracy requested, step size too small)
    *    4.2. take a new step (call cpStep)
-   *    4.3. stop on error 
+   *    4.3. stop on error
    *    4.4. perform stop tests:
    *         - check for root in last step
    *         - check if tout was passed
@@ -1305,10 +1305,10 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
 
   nstloc = 0;
   loop {
-   
+
     next_h = h;
     next_q = q;
-    
+
     /* Reset and check ewt, ewtQ */
     if (nst > 0) {
 
@@ -1334,7 +1334,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
       }
 
     }
-    
+
     /* Check for too many steps */
     if (nstloc >= mxstep) {
       cpProcessError(cp_mem, CP_TOO_MUCH_WORK, "CPODES", "CPode", MSGCP_MAX_STEPS, tn);
@@ -1346,7 +1346,7 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
 
     /* Check for too much accuracy requested */
     nrm = N_VWrmsNorm(zn[0], ewt);
-    if (quadr && errconQ) nrm = cpQuadUpdateNorm(cp_mem, nrm, znQ[0], ewtQ); 
+    if (quadr && errconQ) nrm = cpQuadUpdateNorm(cp_mem, nrm, znQ[0], ewtQ);
     tolsf = uround * nrm;
     if (tolsf > ONE) {
       cpProcessError(cp_mem, CP_TOO_MUCH_ACC, "CPODES", "CPode", MSGCP_TOO_MUCH_ACC, tn);
@@ -1362,9 +1362,9 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
     /* Check for h below roundoff level in tn */
     if (tn + h == tn) {
       nhnil++;
-      if (nhnil <= mxhnil) 
+      if (nhnil <= mxhnil)
         cpProcessError(cp_mem, CP_WARNING, "CPODES", "CPode", MSGCP_HNIL, tn, h);
-      if (nhnil == mxhnil) 
+      if (nhnil == mxhnil)
         cpProcessError(cp_mem, CP_WARNING, "CPODES", "CPode", MSGCP_HNIL_DONE);
     }
 
@@ -1378,13 +1378,13 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
       cpGetSolution(cp_mem, tn, yout, ypout);
       break;
     }
-    
+
     nstloc++;
 
     /* Check for root in step just taken. */
     if (doRootfinding) {
       /* This will move tlo up to the previous thi, then move thi to the
-      end of the current step and then use (tlo,thi] as the initial search 
+      end of the current step and then use (tlo,thi] as the initial search
       interval. */
       retval = cpRcheck3(cp_mem);
 
@@ -1452,9 +1452,9 @@ int CPode(void *cpode_mem, realtype tout, realtype *tret,
  * This routine computes the k-th derivative of the interpolating
  * polynomial at the time t and stores the result in the vector dky.
  * The formula is:
- *         q 
- *  dky = SUM c(j,k) * (t - tn)^(j-k) * h^(-j) * zn[j] , 
- *        j=k 
+ *         q
+ *  dky = SUM c(j,k) * (t - tn)^(j-k) * h^(-j) * zn[j] ,
+ *        j=k
  * where c(j,k) = j*(j-1)*...*(j-k+1), q is the current order, and
  * zn[j] is the j-th column of the Nordsieck history array.
  *
@@ -1466,9 +1466,9 @@ int CPodeGetDky(void *cpode_mem, realtype t, int k, N_Vector dky)
   realtype tfuzz, tp, tn1;
   int i, j;
   CPodeMem cp_mem;
-  
+
   /* Check all inputs for legality */
- 
+
   if (cpode_mem == NULL) {
     cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetDky", MSGCP_NO_MEM);
     return(CP_MEM_NULL);
@@ -1484,7 +1484,7 @@ int CPodeGetDky(void *cpode_mem, realtype t, int k, N_Vector dky)
     cpProcessError(cp_mem, CP_BAD_K, "CPODES", "CPodeGetDky", MSGCP_BAD_K);
     return(CP_BAD_K);
   }
-  
+
   /* Allow for some slack */
   tfuzz = FUZZ_FACTOR * uround * (ABS(tn) + ABS(hu));
   if (hu < ZERO) tfuzz = -tfuzz;
@@ -1513,13 +1513,13 @@ int CPodeGetDky(void *cpode_mem, realtype t, int k, N_Vector dky)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * CPodeGetQuad
  *
  * This routine extracts quadrature solution into yQout.
- * This is just a wrapper that calls CPodeGetQuadDky with k=0                    
+ * This is just a wrapper that calls CPodeGetQuadDky with k=0
  */
- 
+
 int CPodeGetQuad(void *cpode_mem, realtype t, N_Vector yQout)
 {
   return(CPodeGetQuadDky(cpode_mem,t,0,yQout));
@@ -1529,30 +1529,30 @@ int CPodeGetQuad(void *cpode_mem, realtype t, N_Vector yQout)
  * CPodeGetQuadDky
  *
  * CPodeQuadDky computes the kth derivative of the yQ function at
- * time t, where tn-hu <= t <= tn, tn denotes the current         
- * internal time reached, and hu is the last internal step size   
- * successfully used by the solver. The user may request 
- * k=0, 1, ..., qu, where qu is the current order. 
- * The derivative vector is returned in dky. This vector 
- * must be allocated by the caller. It is only legal to call this         
+ * time t, where tn-hu <= t <= tn, tn denotes the current
+ * internal time reached, and hu is the last internal step size
+ * successfully used by the solver. The user may request
+ * k=0, 1, ..., qu, where qu is the current order.
+ * The derivative vector is returned in dky. This vector
+ * must be allocated by the caller. It is only legal to call this
  * function after a successful return from CPode with quadrature
  * computation enabled.
  */
 
 int CPodeGetQuadDky(void *cpode_mem, realtype t, int k, N_Vector dkyQ)
-{ 
+{
   realtype s, c, r;
   realtype tfuzz, tp, tn1;
   int i, j;
   CPodeMem cp_mem;
-  
+
   /* Check all inputs for legality */
-  
+
   if (cpode_mem == NULL) {
     cpProcessError(NULL, CP_MEM_NULL, "CPODES", "CPodeGetQuadDky", MSGCP_NO_MEM);
     return(CP_MEM_NULL);
   }
-  cp_mem = (CPodeMem) cpode_mem;  
+  cp_mem = (CPodeMem) cpode_mem;
 
   if(quadr != TRUE) {
     cpProcessError(cp_mem, CP_NO_QUAD, "CPODES", "CPodeGetQuadDky", MSGCP_NO_QUAD);
@@ -1563,12 +1563,12 @@ int CPodeGetQuadDky(void *cpode_mem, realtype t, int k, N_Vector dkyQ)
     cpProcessError(cp_mem, CP_BAD_DKY, "CPODES", "CPodeGetQuadDky", MSGCP_NULL_DKY);
     return(CP_BAD_DKY);
   }
-  
+
   if ((k < 0) || (k > q)) {
     cpProcessError(cp_mem, CP_BAD_K, "CPODES", "CPodeGetQuadDky", MSGCP_BAD_K);
     return(CP_BAD_K);
   }
-  
+
   /* Allow for some slack */
   tfuzz = FUZZ_FACTOR * uround * (ABS(tn) + ABS(hu));
   if (hu < ZERO) tfuzz = -tfuzz;
@@ -1578,9 +1578,9 @@ int CPodeGetQuadDky(void *cpode_mem, realtype t, int k, N_Vector dkyQ)
     cpProcessError(cp_mem, CP_BAD_T, "CPODES", "CPodeGetQuadDky", MSGCP_BAD_T);
     return(CP_BAD_T);
   }
-  
+
   /* Sum the differentiated interpolating polynomial */
-  
+
   s = (t - tn) / h;
   for (j=q; j >= k; j--) {
     c = ONE;
@@ -1595,7 +1595,7 @@ int CPodeGetQuadDky(void *cpode_mem, realtype t, int k, N_Vector dkyQ)
   r = RPowerI(h,-k);
   N_VScale(r, dkyQ, dkyQ);
   return(CP_SUCCESS);
-  
+
 }
 
 /*
@@ -1614,12 +1614,12 @@ void CPodeFree(void **cpode_mem)
   if (*cpode_mem == NULL) return;
 
   cp_mem = (CPodeMem) (*cpode_mem);
-  
+
   cpFreeVectors(cp_mem);
 
   CPodeQuadFree(cp_mem);
 
-  if (nls_type == CP_NEWTON && cp_mem->cp_lfree != NULL) 
+  if (nls_type == CP_NEWTON && cp_mem->cp_lfree != NULL)
     cp_mem->cp_lfree(cp_mem);
 
   if (cp_mem->cp_lfreeP != NULL)
@@ -1638,13 +1638,13 @@ void CPodeFree(void **cpode_mem)
  *
  * CPodeQuadFree frees the problem memory in cpode_mem allocated
  * for quadrature integration. Its only argument is the pointer
- * cpode_mem returned by CPodeCreate. 
+ * cpode_mem returned by CPodeCreate.
  */
 
 void CPodeQuadFree(void *cpode_mem)
 {
   CPodeMem cp_mem;
-  
+
   if (cpode_mem == NULL) return;
   cp_mem = (CPodeMem) cpode_mem;
 
@@ -1656,13 +1656,13 @@ void CPodeQuadFree(void *cpode_mem)
 }
 
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS
  * =================================================================
  */
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Memory allocation/deallocation and initialization functions
  * -----------------------------------------------------------------
@@ -1698,11 +1698,11 @@ static booleantype cpCheckNvector(N_Vector tmpl)
  * cpAllocVectors
  *
  * This routine allocates the CPODES vectors ewt, acor, tempv, ftemp,
- * and zn[0], ..., zn[maxord]. If tol_type=CP_SV, it also allocates 
- * space for Vabstol. If all memory allocations are successful, 
- * cpAllocVectors returns TRUE. Otherwise all allocated memory is 
- * freed and cpAllocVectors returns FALSE. This routine also sets the 
- * optional outputs lrw and liw, which are (respectively) the lengths 
+ * and zn[0], ..., zn[maxord]. If tol_type=CP_SV, it also allocates
+ * space for Vabstol. If all memory allocations are successful,
+ * cpAllocVectors returns TRUE. Otherwise all allocated memory is
+ * freed and cpAllocVectors returns FALSE. This routine also sets the
+ * optional outputs lrw and liw, which are (respectively) the lengths
  * of the real and integer work spaces allocated here.
  */
 
@@ -1711,7 +1711,7 @@ static booleantype cpAllocVectors(CPodeMem cp_mem, N_Vector tmpl, int tol)
   int i, j;
 
   /* Allocate ewt, acor, tempv, ftemp */
-  
+
   ewt = N_VClone(tmpl);
   if (ewt == NULL) return(FALSE);
 
@@ -1775,7 +1775,7 @@ static booleantype cpAllocVectors(CPodeMem cp_mem, N_Vector tmpl, int tol)
   return(TRUE);
 }
 
-/*  
+/*
  * cpFreeVectors
  *
  * This routine frees the CPODES vectors allocated in cpAllocVectors.
@@ -1784,7 +1784,7 @@ static booleantype cpAllocVectors(CPodeMem cp_mem, N_Vector tmpl, int tol)
 static void cpFreeVectors(CPodeMem cp_mem)
 {
   int j, maxord;
-  
+
   maxord = cp_mem->cp_qmax_alloc;
 
   N_VDestroy(ewt);
@@ -1856,7 +1856,7 @@ static booleantype cpProjAlloc(CPodeMem cp_mem, N_Vector c_tmpl, N_Vector s_tmpl
     N_VDestroy(acorP);
     return(FALSE);
   }
-  
+
   errP = N_VClone(s_tmpl);
   if (errP == NULL) {
     N_VDestroy(ctol);
@@ -1868,7 +1868,7 @@ static booleantype cpProjAlloc(CPodeMem cp_mem, N_Vector c_tmpl, N_Vector s_tmpl
     return(FALSE);
   }
 
-  
+
   return(TRUE);
 }
 
@@ -1895,11 +1895,11 @@ static void cpProjFree(CPodeMem cp_mem)
 /*
  * cpQuadAlloc allocates memory for the quadrature integration
  *
- * NOTE: Space for ewtQ is allocated even when errconQ=FALSE, 
+ * NOTE: Space for ewtQ is allocated even when errconQ=FALSE,
  * although in this case, ewtQ is never used. The reason for this
  * decision is to allow the user to re-initialize the quadrature
  * computation with errconQ=TRUE, after an initialization with
- * errconQ=FALSE, without new memory allocation within 
+ * errconQ=FALSE, without new memory allocation within
  * CPodeQuadReInit.
  */
 
@@ -1912,7 +1912,7 @@ static booleantype cpQuadAlloc(CPodeMem cp_mem, N_Vector q_tmpl)
   if (ewtQ == NULL) {
     return(FALSE);
   }
-  
+
   /* Allocate acorQ */
   acorQ = N_VClone(q_tmpl);
   if (acorQ == NULL) {
@@ -1968,14 +1968,14 @@ static booleantype cpQuadAlloc(CPodeMem cp_mem, N_Vector q_tmpl)
 static void cpQuadFree(CPodeMem cp_mem)
 {
   int j, maxord;
-  
+
   maxord = cp_mem->cp_qmax_allocQ;
 
   N_VDestroy(ewtQ);
   N_VDestroy(acorQ);
   N_VDestroy(yQ);
   N_VDestroy(tempvQ);
-  
+
   for (j=0; j<=maxord; j++) N_VDestroy(znQ[j]);
 
   lrw -= (maxord + 5)*lrw1Q;
@@ -1990,7 +1990,7 @@ static void cpQuadFree(CPodeMem cp_mem)
   cp_mem->cp_VabstolQMallocDone = FALSE;
 }
 
-/*  
+/*
  * cpInitialSetup
  *
  * This routine performs input consistency checks at the first step.
@@ -2020,7 +2020,7 @@ static int cpInitialSetup(CPodeMem cp_mem)
     else                   cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "cpInitialSetup", MSGCP_BAD_EWT);
     return(CP_ILL_INPUT);
   }
-  
+
   /* Evaluate quadrature error weights */
   if (quadr && errconQ) {
     ier = cpQuadEwtSet(cp_mem, znQ[0], ewtQ);
@@ -2070,7 +2070,7 @@ static int cpInitialSetup(CPodeMem cp_mem)
         cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "cpInitialSetup", MSGCP_NO_CFUN);
         return(CP_ILL_INPUT);
       }
-      /* Check lsolveP exists */ 
+      /* Check lsolveP exists */
       if ( cp_mem->cp_lsolveP == NULL) {
         cpProcessError(cp_mem, CP_ILL_INPUT, "CPODES", "cpInitialSetup", MSGCP_PLSOLVE_NULL);
         return(CP_ILL_INPUT);
@@ -2086,14 +2086,14 @@ static int cpInitialSetup(CPodeMem cp_mem)
 
       break;
 
-    } 
+    }
 
   }
 
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Initial step size evaluation functions
  * -----------------------------------------------------------------
@@ -2102,9 +2102,9 @@ static int cpInitialSetup(CPodeMem cp_mem)
 /*
  * cpHin
  *
- * This routine computes a tentative initial step size h0. 
+ * This routine computes a tentative initial step size h0.
  * If tout is too close to tn (= t0), then cpHin returns CP_TOO_CLOSE
- * and h remains uninitialized. 
+ * and h remains uninitialized.
  *
  */
 
@@ -2120,7 +2120,7 @@ static int cpHin(CPodeMem cp_mem, realtype tout)
   tdist = ABS(tdiff);
   tround = uround * MAX(ABS(tn), ABS(tout));
   if (tdist < TWO*tround) return(CP_TOO_CLOSE);
-  
+
   /* Set lower and upper bounds on h0*/
   hlb = HLB_FACTOR * tround;
   hub = cpUpperBoundH0(cp_mem, tdist);
@@ -2161,10 +2161,10 @@ static realtype cpUpperBoundH0(CPodeMem cp_mem, realtype tdist)
   N_Vector temp1, temp2;
   N_Vector tempQ1, tempQ2;
 
-  /* 
+  /*
    * Bound based on |y0|/|y0'| -- allow at most an increase of
-   * HUB_FACTOR in y0 (based on a forward Euler step). The weight 
-   * factor is used as a safeguard against zero components in y0. 
+   * HUB_FACTOR in y0 (based on a forward Euler step). The weight
+   * factor is used as a safeguard against zero components in y0.
    */
 
   temp1 = tempv;
@@ -2181,7 +2181,7 @@ static realtype cpUpperBoundH0(CPodeMem cp_mem, realtype tdist)
   hub_inv = N_VMaxNorm(temp1);
 
   /* Bound based on |yQ|/|yQ'| */
-  
+
   if (quadr && errconQ) {
 
     tempQ1 = tempvQ;
@@ -2191,9 +2191,9 @@ static realtype cpUpperBoundH0(CPodeMem cp_mem, realtype tdist)
     cpQuadEwtSet(cp_mem, znQ[0], tempQ1);
     N_VInv(tempQ1, tempQ1);
     N_VLinearSum(HUB_FACTOR, tempQ2, ONE, tempQ1, tempQ1);
-    
+
     N_VAbs(znQ[1], tempQ2);
-    
+
     N_VDiv(tempQ2, tempQ1, tempQ1);
     hubQ_inv = N_VMaxNorm(tempQ1);
 
@@ -2218,14 +2218,14 @@ static realtype cpUpperBoundH0(CPodeMem cp_mem, realtype tdist)
 /*
  * cpHinExpl
  *
- * This routine computes a tentative initial step size h0. 
+ * This routine computes a tentative initial step size h0.
  * If the ODE function fails unrecoverably, cpHinExpl returns CP_ODEFUNC_FAIL.
  * If the ODE function fails recoverably too many times and recovery is
  * not possible, cpHinExpl returns CP_REPTD_ODEFUNC_ERR.
  * Otherwise, cpHinExpl sets h0 to the chosen value and returns CP_SUCCESS.
  *
  * The algorithm used seeks to find h0 as a solution of
- *       (WRMS norm of (h0^2 ypp / 2)) = 1, 
+ *       (WRMS norm of (h0^2 ypp / 2)) = 1,
  * where ypp = estimated second derivative of y.
  *
  * We start with an initial estimate equal to the geometric mean of the
@@ -2234,8 +2234,8 @@ static realtype cpUpperBoundH0(CPodeMem cp_mem, realtype tdist)
  * Loop up to H_MAXITERS times to find h0.
  * Stop if new and previous values differ by a factor < 2.
  * Stop if hnew/hg > 2 after one iteration, as this probably means
- * that the ypp value is bad because of cancellation error.        
- *  
+ * that the ypp value is bad because of cancellation error.
+ *
  * For each new proposed hg, we allow H_MAXITERS attempts to
  * resolve a possible recoverable failure from f() by reducing
  * the proposed stepsize by a factor of 0.2. If a legal stepsize
@@ -2299,7 +2299,7 @@ static int cpHinExpl(CPodeMem cp_mem, realtype hlb, realtype hub, int sign, real
     /* Propose new step size */
     hnew = (yppnorm*hub*hub > TWO) ? RSqrt(TWO/yppnorm) : RSqrt(hg*hub);
     hrat = hnew/hg;
-    
+
     /* Accept hnew if it does not differ from hg by more than a factor of 2 */
     if ((hrat > HALF) && (hrat < TWO)) {
       hnewOK = TRUE;
@@ -2325,8 +2325,8 @@ static int cpHinExpl(CPodeMem cp_mem, realtype hlb, realtype hub, int sign, real
 /*
  * cpYppNorm
  *
- * When the ODE is given in explicit form, this routine computes 
- * an estimate of the second derivative of y using a difference 
+ * When the ODE is given in explicit form, this routine computes
+ * an estimate of the second derivative of y using a difference
  * quotient, and returns its WRMS norm.
  */
 
@@ -2372,7 +2372,7 @@ static int cpYppNorm(CPodeMem cp_mem, realtype hg, realtype *yppnorm)
 
 /*
  * cpHinImpl
- * 
+ *
  * For ODE systems given in implicit form, use
  *    h0 = min ( 0.001 * tdist , 0.5 / ||yp(t0)||_wrms , 0.5 / ||yQp(t0)||_wrms )
  */
@@ -2391,13 +2391,13 @@ static int cpHinImpl(CPodeMem cp_mem, realtype tdist, realtype *h0)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Main step function
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * cpStep
  *
  * This routine performs one internal cpode step, from tn to tn + h.
@@ -2449,11 +2449,11 @@ static int cpStep(CPodeMem cp_mem)
 
   /* Looping point for attempts to take a step */
 
-  loop {  
+  loop {
 
     /* Prediction */
 
-    cpPredict(cp_mem);  
+    cpPredict(cp_mem);
     cpSet(cp_mem);
 
 #ifdef CPODES_DEBUG
@@ -2483,14 +2483,14 @@ static int cpStep(CPodeMem cp_mem)
 
     /* Nonlinear solve successful */
     ncf = 0;
-    
+
     /* Do we need to perform projection? */
 
 #ifdef CPODES_DEBUG
     printf("   Perform projection? ");
 #endif
 
-    doProjection = proj_enabled && (proj_freq > 0) && 
+    doProjection = proj_enabled && (proj_freq > 0) &&
       ( (nst==0) || (nst >= nstlprj + proj_freq) );
     applyProj = FALSE;
 
@@ -2600,7 +2600,7 @@ static int cpStep(CPodeMem cp_mem)
           /* Recovery is not possible */
           return(eflag);
         }
-        
+
         /* Quadrature error test successful */
         nef = 0;
 
@@ -2614,47 +2614,47 @@ static int cpStep(CPodeMem cp_mem)
     /* Everything went fine. Make final updates and exit loop */
     nstlprj = nst;
     break;
-    
+
   }
 
-  /* Apply corrections to Nordsieck history arrays, 
-   * update data, and 
+  /* Apply corrections to Nordsieck history arrays,
+   * update data, and
    * consider change of step and/or order. */
   cpCorrect(cp_mem);
-  cpCompleteStep(cp_mem); 
-  cpPrepareNextStep(cp_mem, dsm); 
+  cpCompleteStep(cp_mem);
+  cpPrepareNextStep(cp_mem, dsm);
 
-  /* If Stablilty Limit Detection is turned on 
+  /* If Stablilty Limit Detection is turned on
    * check if order must be reduced */
   if (sldeton) cpBDFStab(cp_mem);
 
   etamax = (nst <= SMALL_NST) ? ETAMX2 : ETAMX3;
 
-  /* Finally, we rescale the acor array to be 
+  /* Finally, we rescale the acor array to be
    * the estimated local error vector. */
   N_VScale(ONE/tq[2], acor, acor);
   if (quadr) N_VScale(ONE/tq[2], acorQ, acorQ);
 
   return(CP_SUCCESS);
-      
+
 }
 
 /*
  * cpGetSolution
  *
- * This routine evaluates y(t) and y'(t) as the value and derivative of 
+ * This routine evaluates y(t) and y'(t) as the value and derivative of
  * the interpolating polynomial at the independent variable t, and stores
  * the results in the vectors yret and ypret.
  *
  * The formulas are:
- *                  q 
- *  yret = zn[0] + SUM (t - tn)^j * h^(-j) * zn[j] , 
- *                 j=1 
+ *                  q
+ *  yret = zn[0] + SUM (t - tn)^j * h^(-j) * zn[j] ,
+ *                 j=1
  *  and
- *           q 
- *  ypret = SUM j * (t - tn)^(j-1) * h^(-j) * zn[j] , 
+ *           q
+ *  ypret = SUM j * (t - tn)^(j-1) * h^(-j) * zn[j] ,
  *          j=1
- *  
+ *
  * This function is called by CPode() with t = tout, t = tn, or t = tstop.
  *
  */
@@ -2693,7 +2693,7 @@ int cpGetSolution(void *cpode_mem, realtype t, N_Vector yret, N_Vector ypret)
   return(CP_SUCCESS);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Functions acting on the Nordsieck history array
  * -----------------------------------------------------------------
@@ -2712,22 +2712,22 @@ int cpGetSolution(void *cpode_mem, realtype t, N_Vector yret, N_Vector ypret)
 static void cpPredict(CPodeMem cp_mem)
 {
   int j, k;
-  
+
   tn += h;
   if (istop) {
     if ((tn - tstop)*h > ZERO) tn = tstop;
   }
 
   for (k = 1; k <= q; k++)
-    for (j = q; j >= k; j--) 
-      N_VLinearSum(ONE, zn[j-1], ONE, zn[j], zn[j-1]); 
+    for (j = q; j >= k; j--)
+      N_VLinearSum(ONE, zn[j-1], ONE, zn[j], zn[j-1]);
 
   if (quadr) {
     for (k = 1; k <= q; k++)
-      for (j = q; j >= k; j--) 
+      for (j = q; j >= k; j--)
         N_VLinearSum(ONE, znQ[j-1], ONE, znQ[j], znQ[j-1]);
   }
-  
+
 }
 
 /*
@@ -2744,7 +2744,7 @@ void cpRescale(CPodeMem cp_mem)
 {
   int j;
   realtype factor;
-  
+
   factor = eta;
   for (j=1; j <= q; j++) {
     N_VScale(factor, zn[j], zn[j]);
@@ -2770,7 +2770,7 @@ void cpRescale(CPodeMem cp_mem)
 void cpRestore(CPodeMem cp_mem, realtype saved_t)
 {
   int j, k;
-  
+
   tn = saved_t;
 
   for (k = 1; k <= q; k++)
@@ -2795,23 +2795,23 @@ void cpRestore(CPodeMem cp_mem, realtype saved_t)
 static void cpCorrect(CPodeMem cp_mem)
 {
   int j;
- 
+
   for (j=0; j <= q; j++)
     N_VLinearSum(l[j], acor, ONE, zn[j], zn[j]);
 
   if (applyProj) {
     for (j=0; j <= q; j++)
-      N_VLinearSum(p[j], acorP, ONE, zn[j], zn[j]); 
+      N_VLinearSum(p[j], acorP, ONE, zn[j], zn[j]);
   }
-  
+
   if (quadr) {
-    for (j=0; j <= q; j++) 
+    for (j=0; j <= q; j++)
       N_VLinearSum(l[j], acorQ, ONE, znQ[j], znQ[j]);
   }
 
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Quadrature correction function
  * -----------------------------------------------------------------
@@ -2827,10 +2827,10 @@ static void cpCorrect(CPodeMem cp_mem)
  * it fails with a recoverable error, we consider a new prediction.
  *
  * We count any failure here as a convergence failure (we do not
- * distinguish these from convergence failures in the nonlinear 
+ * distinguish these from convergence failures in the nonlinear
  * solver for the state correction).
  *
- * NOTE: This is technically not a nonlinear solver, but this name is 
+ * NOTE: This is technically not a nonlinear solver, but this name is
  * used to reflect the similarity to cpNls.
  */
 
@@ -2863,15 +2863,15 @@ static int cpQuadNls(CPodeMem cp_mem, realtype saved_t, int *ncfPtr)
   cpRestore(cp_mem, saved_t);
 
   if (retval < 0) return(CP_QUADFUNC_FAIL);
- 
+
   /* At this point, qfun had a recoverable error; increment ncf */
   (*ncfPtr)++;
   etamax = ONE;
 
-  /* If we had maxncf failures or |h| = hmin, 
+  /* If we had maxncf failures or |h| = hmin,
      return CP_REPTD_QUADFUNC_ERR. */
   if ((ABS(h) <= hmin*ONEPSM) || (*ncfPtr == maxncf))
-    return(CP_REPTD_QUADFUNC_ERR);    
+    return(CP_REPTD_QUADFUNC_ERR);
 
   /* Reduce step size; return to reattempt the step */
   eta = MAX(ETACF, hmin / ABS(h));
@@ -2880,7 +2880,7 @@ static int cpQuadNls(CPodeMem cp_mem, realtype saved_t, int *ncfPtr)
   return(PREDICT_AGAIN);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * LMM-related functions
  * -----------------------------------------------------------------
@@ -2920,12 +2920,12 @@ static void cpAdjustParams(CPodeMem cp_mem)
 static void cpAdjustOrder(CPodeMem cp_mem, int deltaq)
 {
   if ((q==2) && (deltaq != 1)) return;
-  
+
   switch(lmm_type){
-  case CP_ADAMS: 
+  case CP_ADAMS:
     cpAdjustAdams(cp_mem, deltaq);
     break;
-  case CP_BDF:   
+  case CP_BDF:
     cpAdjustBDF(cp_mem, deltaq);
     break;
   }
@@ -2944,7 +2944,7 @@ static void cpAdjustAdams(CPodeMem cp_mem, int deltaq)
   realtype xi, hsum;
 
   /* On an order increase, set new column of zn to zero and return */
-  
+
   if (deltaq==1) {
     N_VConst(ZERO, zn[L]);
     if (quadr) N_VConst(ZERO, znQ[L]);
@@ -2955,7 +2955,7 @@ static void cpAdjustAdams(CPodeMem cp_mem, int deltaq)
    * On an order decrease, each zn[j] is adjusted by a multiple of zn[q].
    * The coeffs. in the adjustment are the coeffs. of the polynomial:
    *        x
-   * q * INT { u * ( u + xi_1 ) * ... * ( u + xi_{q-2} ) } du 
+   * q * INT { u * ( u + xi_1 ) * ... * ( u + xi_{q-2} ) } du
    *        0
    * where xi_j = [t_n - t_(n-j)]/h => xi_0 = 0
    */
@@ -2968,9 +2968,9 @@ static void cpAdjustAdams(CPodeMem cp_mem, int deltaq)
     xi = hsum / hscale;
     for (i=j+1; i >= 1; i--) l[i] = l[i]*xi + l[i-1];
   }
-  
+
   for (j=1; j <= q-2; j++) l[j+1] = q * (l[j] / (j+1));
-  
+
   for (j=2; j < q; j++)
     N_VLinearSum(-l[j], zn[q], ONE, zn[j], zn[j]);
 
@@ -2985,18 +2985,18 @@ static void cpAdjustAdams(CPodeMem cp_mem, int deltaq)
  * cpAdjustBDF
  *
  * This is a high level routine which handles adjustments to the
- * history array on a change of order by deltaq in the case that 
- * lmm_type == CP_BDF.  cpAdjustBDF calls cpIncreaseBDF if deltaq = +1 and 
+ * history array on a change of order by deltaq in the case that
+ * lmm_type == CP_BDF.  cpAdjustBDF calls cpIncreaseBDF if deltaq = +1 and
  * cpDecreaseBDF if deltaq = -1 to do the actual work.
  */
 
 static void cpAdjustBDF(CPodeMem cp_mem, int deltaq)
 {
   switch(deltaq) {
-  case 1 : 
+  case 1 :
     cpIncreaseBDF(cp_mem);
     return;
-  case -1: 
+  case -1:
     cpDecreaseBDF(cp_mem);
     return;
   }
@@ -3005,11 +3005,11 @@ static void cpAdjustBDF(CPodeMem cp_mem, int deltaq)
 /*
  * cpIncreaseBDF
  *
- * This routine adjusts the history array on an increase in the 
- * order q in the case that lmm_type == CP_BDF.  
- * A new column zn[q+1] is set equal to a multiple of the saved 
+ * This routine adjusts the history array on an increase in the
+ * order q in the case that lmm_type == CP_BDF.
+ * A new column zn[q+1] is set equal to a multiple of the saved
  * vector (= acor) in zn[indx_acor].  Then each zn[j] is adjusted by
- * a multiple of zn[q+1].  The coefficients in the adjustment are the 
+ * a multiple of zn[q+1].  The coefficients in the adjustment are the
  * coefficients of the polynomial x*x*(x+xi_1)*...*(x+xi_j),
  * where xi_j = [t_n - t_(n-j)]/h.
  */
@@ -3018,7 +3018,7 @@ static void cpIncreaseBDF(CPodeMem cp_mem)
 {
   realtype alpha0, alpha1, prod, xi, xiold, hsum, A1;
   int i, j;
-  
+
   for (i=0; i <= qmax; i++) l[i] = ZERO;
   l[2] = alpha1 = prod = xiold = ONE;
   alpha0 = -ONE;
@@ -3036,18 +3036,18 @@ static void cpIncreaseBDF(CPodeMem cp_mem)
   }
   A1 = (-alpha0 - alpha1) / prod;
 
-  /* 
-   * zn[indx_acor] contains the value Delta_n = y_n - y_n(0) 
+  /*
+   * zn[indx_acor] contains the value Delta_n = y_n - y_n(0)
    * This value was stored there at the previous successful
-   * step (in cpCompleteStep) 
-   * 
+   * step (in cpCompleteStep)
+   *
    * A1 contains dbar = (1/xi* - 1/xi_q)/prod(xi_j)
    */
 
   N_VScale(A1, zn[indx_acor], zn[L]);
   for (j=2; j <= q; j++)
     N_VLinearSum(l[j], zn[L], ONE, zn[j], zn[j]);
-  
+
   if (quadr) {
     N_VScale(A1, znQ[indx_acor], znQ[L]);
     for (j=2; j <= q; j++)
@@ -3059,8 +3059,8 @@ static void cpIncreaseBDF(CPodeMem cp_mem)
 /*
  * cpDecreaseBDF
  *
- * This routine adjusts the history array on a decrease in the 
- * order q in the case that lmm_type == CP_BDF.  
+ * This routine adjusts the history array on a decrease in the
+ * order q in the case that lmm_type == CP_BDF.
  * Each zn[j] is adjusted by a multiple of zn[q].  The coefficients
  * in the adjustment are the coefficients of the polynomial
  *   x*x*(x+xi_1)*...*(x+xi_j), where xi_j = [t_n - t_(n-j)]/h.
@@ -3070,7 +3070,7 @@ static void cpDecreaseBDF(CPodeMem cp_mem)
 {
   realtype hsum, xi;
   int i, j;
-  
+
   for (i=0; i <= qmax; i++) l[i] = ZERO;
   l[2] = ONE;
   hsum = ZERO;
@@ -3079,7 +3079,7 @@ static void cpDecreaseBDF(CPodeMem cp_mem)
     xi = hsum /hscale;
     for (i=j+2; i >= 2; i--) l[i] = l[i]*xi + l[i-1];
   }
-  
+
   for(j=2; j < q; j++)
     N_VLinearSum(-l[j], zn[q], ONE, zn[j], zn[j]);
 
@@ -3094,18 +3094,18 @@ static void cpDecreaseBDF(CPodeMem cp_mem)
  * cpSet
  *
  * This routine is a high level routine which calls cpSetAdams or
- * cpSetBDF to set the coefficients l of the polynomial Lambda 
- * (used in applying the NLS correction to zn), the coefficients p 
- * of the polynomial Phi (used in applying the projection correction 
- * to zn), the test quantity array tq (used in the NLS convergence 
- * test and in the error test), and the related variables rl1, gamma, 
+ * cpSetBDF to set the coefficients l of the polynomial Lambda
+ * (used in applying the NLS correction to zn), the coefficients p
+ * of the polynomial Phi (used in applying the projection correction
+ * to zn), the test quantity array tq (used in the NLS convergence
+ * test and in the error test), and the related variables rl1, gamma,
  * and gamrat.
  */
 
 static void cpSet(CPodeMem cp_mem)
 {
   switch(lmm_type) {
-  case CP_ADAMS: 
+  case CP_ADAMS:
     cpSetAdams(cp_mem);
     break;
   case CP_BDF:
@@ -3151,12 +3151,12 @@ static void cpSetAdams(CPodeMem cp_mem)
     tq[4] = nlscoef * tq[2];       /* = 0.1 * tq[2] */
 
   } else {
-  
+
     hsum = cpAdamsStart(cp_mem, m);
-    
+
     M[0] = cpAltSum(q-1, m, 1);
     M[1] = cpAltSum(q-1, m, 2);
-    
+
     cpAdamsFinish(cp_mem, m, M, hsum);
 
   }
@@ -3177,7 +3177,7 @@ static realtype cpAdamsStart(CPodeMem cp_mem, realtype m[])
 {
   realtype hsum, xi_inv, sum;
   int i, j;
-  
+
   hsum = h;
   m[0] = ONE;
   for (i=1; i <= q; i++) m[i] = ZERO;
@@ -3204,14 +3204,14 @@ static void cpAdamsFinish(CPodeMem cp_mem, realtype m[], realtype M[], realtype 
 {
   int i;
   realtype M0_inv, xi, xi_inv;
-  
+
   M0_inv = ONE / M[0];
-  
+
   l[0] = ONE;
   for (i=1; i <= q; i++) l[i] = M0_inv * (m[i-1] / i);
   xi = hsum / h;
   xi_inv = ONE / xi;
-  
+
   tq[2] = xi * M[0] / M[1];
   tq[5] = xi / l[q];
 
@@ -3224,7 +3224,7 @@ static void cpAdamsFinish(CPodeMem cp_mem, realtype m[], realtype M[], realtype 
   tq[4] = nlscoef * tq[2];
 }
 
-/*  
+/*
  * cpAltSum
  *
  * cpAltSum returns the value of the alternating sum
@@ -3238,9 +3238,9 @@ static realtype cpAltSum(int iend, realtype a[], int k)
 {
   int i, sign;
   realtype sum;
-  
+
   if (iend < 0) return(ZERO);
-  
+
   sum = ZERO;
   sign = 1;
   for (i=0; i <= iend; i++) {
@@ -3255,19 +3255,19 @@ static realtype cpAltSum(int iend, realtype a[], int k)
  *
  * This routine computes the coefficients l and tq in the case
  * lmm_type == CP_BDF.  cpSetBDF calls cpSetTqBDF to set the test
- * quantity array tq. 
- * 
+ * quantity array tq.
+ *
  * The components of the array l are the coefficients of a
  * polynomial Lambda(x) = l_0 + l_1 x + ... + l_q x^q, given by
  *                                 q-1
  * Lambda(x) = (1 + x / xi*_q) * PRODUCT (1 + x / xi_i)
- *                                 i=1 
- * 
+ *                                 i=1
+ *
  * The components of the array p are the coefficients of a
  * polynomial Phi(x) = p_0 + p_1 x + ... + p_q x^q, given by
  *            q
  * Phi(x) = PRODUCT (1 + x / xi_i)
- *           i=1 
+ *           i=1
  *
  * Here x = [t - t_n]  /h and xi_i = [t_n - t_(n-i)] / h.
  *
@@ -3279,7 +3279,7 @@ static void cpSetBDF(CPodeMem cp_mem)
 {
   realtype alpha0, alpha0_hat, xi_inv, xistar_inv, hsum;
   int i,j;
-  
+
   l[0] = l[1] = ONE;
   p[0] = p[1] = ONE;
   xi_inv = xistar_inv = ONE;
@@ -3300,7 +3300,7 @@ static void cpSetBDF(CPodeMem cp_mem)
         p[i] += p[i-1]*xi_inv;
       }
     }
-    
+
     /* j = q */
     alpha0 -= ONE / q;
     xistar_inv = -l[1] - alpha0;
@@ -3328,7 +3328,7 @@ static void cpSetTqBDF(CPodeMem cp_mem, realtype hsum, realtype alpha0,
 {
   realtype A1, A2, A3, A4, A5, A6;
   realtype C, CPrime, CPrimePrime;
-  
+
   A1 = ONE - alpha0_hat + alpha0;
   A2 = ONE + q * A1;
   tq[2] = ABS(alpha0 * (A2 / A1));
@@ -3349,7 +3349,7 @@ static void cpSetTqBDF(CPodeMem cp_mem, realtype hsum, realtype alpha0,
   tq[4] = nlscoef * tq[2];
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Error test
  * -----------------------------------------------------------------
@@ -3362,18 +3362,18 @@ static void cpSetTqBDF(CPodeMem cp_mem, realtype hsum, realtype alpha0,
  * both the sates and the quadrature variables, with different values
  * of acor_norm and dsmPtr.
  *
- * The weighted local error norm dsm is loaded into *dsmPtr, and 
+ * The weighted local error norm dsm is loaded into *dsmPtr, and
  * we test whether dsm <= 1.
  *
- * If the test passes, cpDoErrorTest returns CP_SUCCESS. 
+ * If the test passes, cpDoErrorTest returns CP_SUCCESS.
  *
- * If the test fails, we undo the step just taken (call cpRestore) and 
+ * If the test fails, we undo the step just taken (call cpRestore) and
  *
  *   - if maxnef error test failures have occurred or if ABS(h) = hmin,
  *     we return CP_ERR_FAILURE.
  *
  *   - if more than MXNEF1 error test failures have occurred, an order
- *     reduction is forced. If already at order 1, restart by reloading 
+ *     reduction is forced. If already at order 1, restart by reloading
  *     zn from scratch.
  *
  *   - otherwise, set return PREDICT_AGAIN, telling cpStep to retry the
@@ -3388,16 +3388,16 @@ static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
 {
   realtype dsm;
 
-  /* If est. local error norm dsm passes test, return CP_SUCCESS */  
+  /* If est. local error norm dsm passes test, return CP_SUCCESS */
   dsm = acor_norm / tq[2];
-  *dsmPtr = dsm; 
+  *dsmPtr = dsm;
 
 #ifdef CPODES_DEBUG
   printf("     dsm = %lg\n",dsm);
 #endif
 
   if (dsm <= ONE) return(CP_SUCCESS);
-  
+
   /* Test failed: increment counters and restore zn array */
   (*nefPtr)++;
   netf++;
@@ -3417,7 +3417,7 @@ static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
     cpRescale(cp_mem);
     return(PREDICT_AGAIN);
   }
-  
+
   /* After MXNEF1 failures, force an order reduction and retry step */
   if (q > 1) {
     eta = MAX(ETAMIN, hmin / ABS(h));
@@ -3442,7 +3442,7 @@ static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
   return(PREDICT_AGAIN);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Successful step completion functions
  * -----------------------------------------------------------------
@@ -3452,7 +3452,7 @@ static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
  * cpCompleteStep
  *
  * This routine performs various update operations when the solution
- * has passed the local error test. 
+ * has passed the local error test.
  * We increment the step counter nst, record the values hu and qu,
  * and update the tau array.
  * The tau[i] are the last q values of h, with tau[1] the most recent.
@@ -3463,7 +3463,7 @@ static int cpDoErrorTest(CPodeMem cp_mem, realtype saved_t, realtype acor_norm,
 static void cpCompleteStep(CPodeMem cp_mem)
 {
   int i;
-  
+
   nst++;
   nscon++;
   hu = h;
@@ -3493,8 +3493,8 @@ static void cpCompleteStep(CPodeMem cp_mem)
  *
  * This routine handles the setting of stepsize and order for the
  * next step -- hprime and qprime.  Along with hprime, it sets the
- * ratio eta = hprime/h.  It also updates other state variables 
- * related to a change of step size or order. 
+ * ratio eta = hprime/h.  It also updates other state variables
+ * related to a change of step size or order.
  */
 
 static void cpPrepareNextStep(CPodeMem cp_mem, realtype dsm)
@@ -3508,9 +3508,9 @@ static void cpPrepareNextStep(CPodeMem cp_mem, realtype dsm)
     return;
   }
 
-  /* etaq is the ratio of new to old h at the current order */  
+  /* etaq is the ratio of new to old h at the current order */
   etaq = ONE /(RPowerR(BIAS2*dsm,ONE/L) + ADDON);
-  
+
   /* If no order change, adjust eta and acor in cpSetEta and return */
   if (qwait != 0) {
     eta = etaq;
@@ -3518,14 +3518,14 @@ static void cpPrepareNextStep(CPodeMem cp_mem, realtype dsm)
     cpSetEta(cp_mem);
     return;
   }
-  
-  /* If qwait = 0, consider an order change.   etaqm1 and etaqp1 are 
+
+  /* If qwait = 0, consider an order change.   etaqm1 and etaqp1 are
      the ratios of new to old h at orders q-1 and q+1, respectively.
      cpChooseEta selects the largest; cpSetEta adjusts eta and acor */
   qwait = 2;
   etaqm1 = cpComputeEtaqm1(cp_mem);
-  etaqp1 = cpComputeEtaqp1(cp_mem);  
-  cpChooseEta(cp_mem); 
+  etaqp1 = cpComputeEtaqp1(cp_mem);
+  cpChooseEta(cp_mem);
   cpSetEta(cp_mem);
 }
 
@@ -3563,7 +3563,7 @@ static void cpSetEta(CPodeMem cp_mem)
 static realtype cpComputeEtaqm1(CPodeMem cp_mem)
 {
   realtype ddn;
-  
+
   etaqm1 = ZERO;
   if (q > 1) {
     ddn = N_VWrmsNorm(zn[q], ewt) / tq[1];
@@ -3583,7 +3583,7 @@ static realtype cpComputeEtaqm1(CPodeMem cp_mem)
 static realtype cpComputeEtaqp1(CPodeMem cp_mem)
 {
   realtype dup, cquot;
-  
+
   etaqp1 = ZERO;
   if (q != qmax) {
     cquot = (tq[5] / saved_tq5) * RPowerI(h/tau[2], L);
@@ -3602,7 +3602,7 @@ static realtype cpComputeEtaqp1(CPodeMem cp_mem)
 /*
  * cpChooseEta
  * Given etaqm1, etaq, etaqp1 (the values of eta for qprime =
- * q - 1, q, or q + 1, respectively), this routine chooses the 
+ * q - 1, q, or q + 1, respectively), this routine chooses the
  * maximum eta value, sets eta to that value, and sets qprime to the
  * corresponding value of q.  If there is a tie, the preference
  * order is to (1) keep the same order, then (2) decrease the order,
@@ -3614,9 +3614,9 @@ static realtype cpComputeEtaqp1(CPodeMem cp_mem)
 static void cpChooseEta(CPodeMem cp_mem)
 {
   realtype etam;
-  
+
   etam = MAX(etaqm1, MAX(etaq, etaqp1));
-  
+
   if (etam < THRESH) {
     eta = ONE;
     qprime = q;
@@ -3640,8 +3640,8 @@ static void cpChooseEta(CPodeMem cp_mem)
 
     if (lmm_type == CP_BDF) {
 
-      /* 
-       * Store Delta_n in zn[qmax] to be used in order increase 
+      /*
+       * Store Delta_n in zn[qmax] to be used in order increase
        *
        * This happens at the last step of order q before an increase
        * to order q+1, so it represents Delta_n in the ELTE at q+1
@@ -3660,7 +3660,7 @@ static void cpChooseEta(CPodeMem cp_mem)
  * cpHandleFailure
  *
  * This routine prints error messages for all cases of failure by
- * cpHin and cpStep. It returns to CPode the value that CPode is 
+ * cpHin and cpStep. It returns to CPode the value that CPode is
  * to return to the user.
  */
 
@@ -3669,7 +3669,7 @@ static int cpHandleFailure(CPodeMem cp_mem, int flag)
 
   /* Depending on flag, print error message and return error flag */
   switch (flag) {
-  case CP_ERR_FAILURE: 
+  case CP_ERR_FAILURE:
     cpProcessError(cp_mem, CP_ERR_FAILURE, "CPODES", "CPode", MSGCP_ERR_FAILS, tn, h);
     break;
   case CP_CONV_FAILURE:
@@ -3690,7 +3690,7 @@ static int cpHandleFailure(CPodeMem cp_mem, int flag)
   case CP_REPTD_ODEFUNC_ERR:
     cpProcessError(cp_mem, CP_REPTD_ODEFUNC_ERR, "CPODES", "CPode", MSGCP_ODEFUNC_REPTD, tn);
     break;
-  case CP_RTFUNC_FAIL:    
+  case CP_RTFUNC_FAIL:
     cpProcessError(cp_mem, CP_RTFUNC_FAIL, "CPODES", "CPode", MSGCP_RTFUNC_FAILED, tn);
     break;
   case CP_TOO_CLOSE:
@@ -3718,14 +3718,14 @@ static int cpHandleFailure(CPodeMem cp_mem, int flag)
     cpProcessError(cp_mem, CP_PLSOLVE_FAIL, "CPODES", "CPode", MSGCP_PLSOLVE_FAILED, tn);
     break;
   default:
-    return(CP_SUCCESS);   
+    return(CP_SUCCESS);
   }
 
   return(flag);
 
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * BDF stability limit detection functions
  * -----------------------------------------------------------------
@@ -3747,7 +3747,7 @@ void cpBDFStab(CPodeMem cp_mem)
 {
   int i,k, ldflag, factorial;
   realtype sq, sqm1, sqm2;
-      
+
   /* If order is 3 or greater, then save scaled derivative data,
      push old data down in i, then add current values to top.    */
 
@@ -3762,7 +3762,7 @@ void cpBDFStab(CPodeMem cp_mem)
     ssdat[1][1] = sqm2*sqm2;
     ssdat[1][2] = sqm1*sqm1;
     ssdat[1][3] = sq*sq;
-  }  
+  }
 
   if (qprime >= q) {
 
@@ -3776,7 +3776,7 @@ void cpBDFStab(CPodeMem cp_mem)
            a return flag of 4, 5, or 6.
            Reduce new order.                     */
         qprime = q-1;
-        eta = etaqm1; 
+        eta = etaqm1;
         eta = MIN(eta,etamax);
         eta = eta/MAX(ONE,ABS(h)*hmax_inv*eta);
         hprime = h*eta;
@@ -3785,7 +3785,7 @@ void cpBDFStab(CPodeMem cp_mem)
     }
   }
   else {
-    /* Otherwise, let order increase happen, and 
+    /* Otherwise, let order increase happen, and
        reset stability limit counter, nscon.     */
     nscon = 0;
   }
@@ -3794,14 +3794,14 @@ void cpBDFStab(CPodeMem cp_mem)
 /*
  * cpSLdet
  *
- * This routine detects stability limitation using stored scaled 
+ * This routine detects stability limitation using stored scaled
  * derivatives data. cpSLdet returns the magnitude of the
  * dominate characteristic root, rr. The presents of a stability
- * limit is indicated by rr > "something a little less then 1.0",  
+ * limit is indicated by rr > "something a little less then 1.0",
  * and a positive kflag. This routine should only be called if
  * order is greater than or equal to 3, and data has been collected
- * for 5 time steps. 
- * 
+ * for 5 time steps.
+ *
  * Returned values:
  *    kflag = 1 -> Found stable characteristic root, normal matrix case
  *    kflag = 2 -> Found stable characteristic root, quartic solution
@@ -3812,14 +3812,14 @@ void cpBDFStab(CPodeMem cp_mem)
  *    kflag = 6 -> Found stability violation, quartic solution,
  *                 with Newton correction
  *
- *    kflag < 0 -> No stability limitation, 
+ *    kflag < 0 -> No stability limitation,
  *                 or could not compute limitation.
  *
  *    kflag = -1 -> Min/max ratio of ssdat too small.
  *    kflag = -2 -> For normal matrix case, vmax > vrrt2*vrrt2
  *    kflag = -3 -> For normal matrix case, The three ratios
  *                  are inconsistent.
- *    kflag = -4 -> Small coefficient prevents elimination of quartics.  
+ *    kflag = -4 -> Small coefficient prevents elimination of quartics.
  *    kflag = -5 -> R value from quartics not consistent.
  *    kflag = -6 -> No corrected root passes test on qk values
  *    kflag = -7 -> Trouble solving for sigsq.
@@ -3836,7 +3836,7 @@ static int cpSLdet(CPodeMem cp_mem)
   realtype smink, smaxk, sumrat, sumrsq, vmin, vmax, drrmax, adrr;
   realtype tem, sqmax, saqk, qp, s, sqmaxk, saqj, sqmin;
   realtype rsa, rsb, rsc, rsd, rd1a, rd1b, rd1c;
-  realtype rd2a, rd2b, rd3a, cest1, corr1; 
+  realtype rd2a, rd2b, rd3a, cest1, corr1;
   realtype ratp, ratm, qfac1, qfac2, bb, rrb;
 
   /* The following are cutoffs and tolerances used by this routine */
@@ -3846,94 +3846,94 @@ static int cpSLdet(CPodeMem cp_mem)
   vrrt2  = RCONST(5.0e-4);
   sqtol  = RCONST(1.0e-3);
   rrtol  = RCONST(1.0e-2);
-  
+
   rr = ZERO;
-  
+
   /*  Index k corresponds to the degree of the interpolating polynomial. */
   /*      k = 1 -> q-1          */
   /*      k = 2 -> q            */
   /*      k = 3 -> q+1          */
-  
+
   /*  Index i is a backward-in-time index, i = 1 -> current time, */
   /*      i = 2 -> previous step, etc    */
-  
+
   /* get maxima, minima, and variances, and form quartic coefficients  */
-  
+
   for (k=1; k<=3; k++) {
     smink = ssdat[1][k];
     smaxk = ZERO;
-    
+
     for (i=1; i<=5; i++) {
       smink = MIN(smink,ssdat[i][k]);
       smaxk = MAX(smaxk,ssdat[i][k]);
     }
-    
+
     if (smink < TINY*smaxk) {
-      kflag = -1;  
+      kflag = -1;
       return(kflag);
     }
     smax[k] = smaxk;
     ssmax[k] = smaxk*smaxk;
-    
+
     sumrat = ZERO;
     sumrsq = ZERO;
     for (i=1; i<=4; i++) {
       rat[i][k] = ssdat[i][k]/ssdat[i+1][k];
       sumrat = sumrat + rat[i][k];
       sumrsq = sumrsq + rat[i][k]*rat[i][k];
-    } 
+    }
     rav[k] = PT25 * sumrat;
     vrat[k] = ABS(PT25*sumrsq - rav[k]*rav[k]);
-    
+
     qc[5][k] = ssdat[1][k]*ssdat[3][k] - ssdat[2][k]*ssdat[2][k];
     qc[4][k] = ssdat[2][k]*ssdat[3][k] - ssdat[1][k]*ssdat[4][k];
     qc[3][k] = ZERO;
     qc[2][k] = ssdat[2][k]*ssdat[5][k] - ssdat[3][k]*ssdat[4][k];
     qc[1][k] = ssdat[4][k]*ssdat[4][k] - ssdat[3][k]*ssdat[5][k];
-    
+
     for (i=1; i<=5; i++) {
       qco[i][k] = qc[i][k];
     }
   }                            /* End of k loop */
-  
+
   /* Isolate normal or nearly-normal matrix case. Three quartic will
-     have common or nearly-common roots in this case. 
-     Return a kflag = 1 if this procedure works. If three root 
+     have common or nearly-common roots in this case.
+     Return a kflag = 1 if this procedure works. If three root
      differ more than vrrt2, return error kflag = -3.    */
-  
+
   vmin = MIN(vrat[1],MIN(vrat[2],vrat[3]));
   vmax = MAX(vrat[1],MAX(vrat[2],vrat[3]));
-  
+
   if(vmin < vrrtol*vrrtol) {
     if (vmax > vrrt2*vrrt2) {
-      kflag = -2;  
+      kflag = -2;
       return(kflag);
     } else {
       rr = (rav[1] + rav[2] + rav[3])/THREE;
-      
+
       drrmax = ZERO;
       for(k = 1;k<=3;k++) {
         adrr = ABS(rav[k] - rr);
         drrmax = MAX(drrmax, adrr);
       }
       if (drrmax > vrrt2) {
-        kflag = -3;    
+        kflag = -3;
       }
-      
+
       kflag = 1;
 
       /*  can compute charactistic root, drop to next section   */
-      
+
     }
   } else {
 
     /* use the quartics to get rr. */
-    
+
     if (ABS(qco[1][1]) < TINY*ssmax[1]) {
-      kflag = -4;    
+      kflag = -4;
       return(kflag);
     }
-    
+
     tem = qco[1][2]/qco[1][1];
     for(i=2; i<=5; i++) {
       qco[i][2] = qco[i][2] - tem*qco[i][1];
@@ -3945,67 +3945,67 @@ static int cpSLdet(CPodeMem cp_mem)
       qco[i][3] = qco[i][3] - tem*qco[i][1];
     }
     qco[1][3] = ZERO;
-    
+
     if (ABS(qco[2][2]) < TINY*ssmax[2]) {
-      kflag = -4;    
+      kflag = -4;
       return(kflag);
     }
-    
+
     tem = qco[2][3]/qco[2][2];
     for(i=3; i<=5; i++) {
       qco[i][3] = qco[i][3] - tem*qco[i][2];
     }
-    
+
     if (ABS(qco[4][3]) < TINY*ssmax[3]) {
-      kflag = -4;    
+      kflag = -4;
       return(kflag);
     }
-    
+
     rr = -qco[5][3]/qco[4][3];
-    
+
     if (rr < TINY || rr > HUNDRED) {
-      kflag = -5;   
+      kflag = -5;
       return(kflag);
     }
-    
+
     for(k=1; k<=3; k++) {
       qkr[k] = qc[5][k] + rr*(qc[4][k] + rr*rr*(qc[2][k] + rr*qc[1][k]));
-    }  
-    
+    }
+
     sqmax = ZERO;
     for(k=1; k<=3; k++) {
       saqk = ABS(qkr[k])/ssmax[k];
       if (saqk > sqmax) sqmax = saqk;
-    } 
-    
+    }
+
     if (sqmax < sqtol) {
       kflag = 2;
-      
+
       /*  can compute charactistic root, drop to "given rr,etc"   */
-      
+
     } else {
 
       /* do Newton corrections to improve rr.  */
-      
+
       for(it=1; it<=3; it++) {
         for(k=1; k<=3; k++) {
           qp = qc[4][k] + rr*rr*(THREE*qc[2][k] + rr*FOUR*qc[1][k]);
           drr[k] = ZERO;
           if (ABS(qp) > TINY*ssmax[k]) drr[k] = -qkr[k]/qp;
           rrc[k] = rr + drr[k];
-        } 
-        
+        }
+
         for(k=1; k<=3; k++) {
           s = rrc[k];
           sqmaxk = ZERO;
           for(j=1; j<=3; j++) {
-            qjk[j][k] = qc[5][j] + s*(qc[4][j] + 
+            qjk[j][k] = qc[5][j] + s*(qc[4][j] +
                                       s*s*(qc[2][j] + s*qc[1][j]));
             saqj = ABS(qjk[j][k])/ssmax[j];
             if (saqj > sqmaxk) sqmaxk = saqj;
-          } 
+          }
           sqmx[k] = sqmaxk;
-        } 
+        }
 
         sqmin = sqmx[1]; kmin = 1;
         for(k=2; k<=3; k++) {
@@ -4013,31 +4013,31 @@ static int cpSLdet(CPodeMem cp_mem)
             kmin = k;
             sqmin = sqmx[k];
           }
-        } 
+        }
         rr = rrc[kmin];
-        
+
         if (sqmin < sqtol) {
           kflag = 3;
           /*  can compute charactistic root   */
-          /*  break out of Newton correction loop and drop to "given rr,etc" */ 
+          /*  break out of Newton correction loop and drop to "given rr,etc" */
           break;
         } else {
           for(j=1; j<=3; j++) {
             qkr[j] = qjk[j][kmin];
           }
-        }     
-      }          /*  end of Newton correction loop  */ 
-      
+        }
+      }          /*  end of Newton correction loop  */
+
       if (sqmin > sqtol) {
         kflag = -6;
         return(kflag);
       }
     }     /*  end of if (sqmax < sqtol) else   */
   }      /*  end of if(vmin < vrrtol*vrrtol) else, quartics to get rr. */
-  
+
   /* given rr, find sigsq[k] and verify rr.  */
   /* All positive kflag drop to this section  */
-  
+
   for(k=1; k<=3; k++) {
     rsa = ssdat[1][k];
     rsb = ssdat[2][k]*rr;
@@ -4049,12 +4049,12 @@ static int cpSLdet(CPodeMem cp_mem)
     rd2a = rd1a - rd1b;
     rd2b = rd1b - rd1c;
     rd3a = rd2a - rd2b;
-    
+
     if (ABS(rd1b) < TINY*smax[k]) {
       kflag = -7;
       return(kflag);
     }
-    
+
     cest1 = -rd3a/rd1b;
     if (cest1 < TINY || cest1 > FOUR) {
       kflag = -7;
@@ -4063,45 +4063,45 @@ static int cpSLdet(CPodeMem cp_mem)
     corr1 = (rd2b/cest1)/(rr*rr);
     sigsq[k] = ssdat[3][k] + corr1;
   }
-  
+
   if (sigsq[2] < TINY) {
     kflag = -8;
     return(kflag);
   }
-  
+
   ratp = sigsq[3]/sigsq[2];
   ratm = sigsq[1]/sigsq[2];
   qfac1 = PT25 * (q*q - ONE);
   qfac2 = TWO/(q - ONE);
   bb = ratp*ratm - ONE - qfac1*ratp;
   tem = ONE - qfac2*bb;
-  
+
   if (ABS(tem) < TINY) {
     kflag = -8;
     return(kflag);
   }
-  
+
   rrb = ONE/tem;
-  
+
   if (ABS(rrb - rr) > rrtol) {
     kflag = -9;
     return(kflag);
   }
-  
+
   /* Check to see if rr is above cutoff rrcut  */
   if (rr > rrcut) {
     if (kflag == 1) kflag = 4;
     if (kflag == 2) kflag = 5;
     if (kflag == 3) kflag = 6;
   }
-  
+
   /* All positive kflag returned at this point  */
-  
+
   return(kflag);
-  
+
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Internal error weight evaluation functions
  * -----------------------------------------------------------------
@@ -4134,14 +4134,14 @@ int cpEwtSet(N_Vector ycur, N_Vector weight, void *edata)
   cp_mem = (CPodeMem) edata;
 
   switch(tol_type) {
-  case CP_SS: 
+  case CP_SS:
     flag = cpEwtSetSS(cp_mem, ycur, weight);
     break;
-  case CP_SV: 
+  case CP_SV:
     flag = cpEwtSetSV(cp_mem, ycur, weight);
     break;
   }
-  
+
   return(flag);
 }
 
@@ -4192,10 +4192,10 @@ static int cpQuadEwtSet(CPodeMem cp_mem, N_Vector qcur, N_Vector weightQ)
   int flag=0;
 
   switch (tol_typeQ) {
-  case CP_SS: 
+  case CP_SS:
     flag = cpQuadEwtSetSS(cp_mem, qcur, weightQ);
     break;
-  case CP_SV: 
+  case CP_SV:
     flag = cpQuadEwtSetSV(cp_mem, qcur, weightQ);
     break;
   }
@@ -4235,7 +4235,7 @@ static int cpQuadEwtSetSV(CPodeMem cp_mem, N_Vector qcur, N_Vector weightQ)
   return(0);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Updated WRMS norms
  * -----------------------------------------------------------------
@@ -4267,37 +4267,37 @@ static realtype cpQuadUpdateNorm(CPodeMem cp_mem, realtype old_nrm,
  * Returns the maximum over the wheighted local error norms.
  */
 
-static realtype cpQuadUpdateDsm(CPodeMem cp_mem, realtype old_dsm, 
+static realtype cpQuadUpdateDsm(CPodeMem cp_mem, realtype old_dsm,
                                 realtype dsmQ)
 {
   if ( old_dsm > dsmQ ) return(old_dsm);
   else                  return(dsmQ);
 }
 
-/* 
+/*
  * -----------------------------------------------------------------
  * Error reporting functions
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * cpProcessError is a high level error handling function
  * - if cp_mem==NULL it prints the error message to stderr
- * - otherwise, it sets-up and calls the error hadling function 
+ * - otherwise, it sets-up and calls the error hadling function
  *   pointed to by cp_ehfun
  */
 
 #define ehfun    (cp_mem->cp_ehfun)
 #define eh_data  (cp_mem->cp_eh_data)
 
-void cpProcessError(CPodeMem cp_mem, 
-                    int error_code, const char *module, const char *fname, 
+void cpProcessError(CPodeMem cp_mem,
+                    int error_code, const char *module, const char *fname,
                     const char *msgfmt, ...)
 {
   va_list ap;
   char msg[256];
 
-  /* Initialize the argument pointer variable 
+  /* Initialize the argument pointer variable
      (msgfmt is the last required argument to cpProcessError) */
 
   va_start(ap, msgfmt);
@@ -4323,7 +4323,7 @@ void cpProcessError(CPodeMem cp_mem,
   }
 
   /* Finalize argument processing */
-  
+
   va_end(ap);
 
   return;

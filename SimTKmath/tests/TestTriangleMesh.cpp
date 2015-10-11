@@ -30,7 +30,7 @@ using namespace std;
 
 void testTriangleMesh() {
     // Create a mesh representing a tetrahedron (4 vertices, 4 faces, 6 edges).
-    
+
     vector<Vec3> vertices;
     vertices.push_back(Vec3(0, 0, 0));
     vertices.push_back(Vec3(1, 0, 0));
@@ -45,9 +45,9 @@ void testTriangleMesh() {
     SimTK_TEST(mesh.getNumVertices() == 4);
     SimTK_TEST(mesh.getNumFaces() == 4);
     SimTK_TEST(mesh.getNumEdges() == 6);
-    
+
     // Verify that all faces and vertices are correct.
-    
+
     for (int i = 0; i < (int) vertices.size(); i++)
         SimTK_TEST_EQ(vertices[i], mesh.getVertexPosition(i));
     for (int i = 0; i < 4; i++) {
@@ -55,13 +55,13 @@ void testTriangleMesh() {
         SimTK_TEST(faces[i][1] == mesh.getFaceVertex(i, 1));
         SimTK_TEST(faces[i][2] == mesh.getFaceVertex(i, 2));
     }
-    
+
     // Verify that all indices are consistent.
-    
+
     for (int i = 0; i < mesh.getNumFaces(); i++) {
         for (int j = 0; j < 3; j++) {
             int edge = mesh.getFaceEdge(i, j);
-            SimTK_TEST(   mesh.getEdgeFace(edge, 0) == i 
+            SimTK_TEST(   mesh.getEdgeFace(edge, 0) == i
                        || mesh.getEdgeFace(edge, 1) == i);
             for (int k = 0; k < 2; k++)
                 SimTK_TEST(mesh.getEdgeVertex(edge, k) == mesh.getFaceVertex(i, 0) ||
@@ -82,9 +82,9 @@ void testTriangleMesh() {
         for (int j = 0; j < (int) edges.size(); j++)
             SimTK_TEST(mesh.getEdgeVertex(edges[j], 0) == i || mesh.getEdgeVertex(edges[j], 1) == i);
     }
-    
+
     // Check the face normals and areas.
-    
+
     SimTK_TEST_EQ(mesh.getFaceArea(0), 0.5);
     SimTK_TEST_EQ(mesh.getFaceArea(1), 0.5);
     SimTK_TEST_EQ(mesh.getFaceArea(2), 0.5);
@@ -116,25 +116,25 @@ void testIncorrectMeshes() {
     vertices.push_back(Vec3(0, 0, 1));
     {
         // The last face has its vertices ordered incorrectly.
-        
+
         int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 2, 3}};
         verifyMeshThrowsException(vertices, faces, 4);
     }
     {
         // The last face repeats a vertex.
-        
+
         int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 3, 3}};
         verifyMeshThrowsException(vertices, faces, 4);
     }
     {
         // The surface is not closed.
-        
+
         int faces[3][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}};
         verifyMeshThrowsException(vertices, faces, 3);
     }
     {
         // The last face a vertex that is out of range.
-        
+
         int faces[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 2, 4}};
         verifyMeshThrowsException(vertices, faces, 4);
     }
@@ -179,7 +179,7 @@ void validateOBBTree(const ContactGeometry::TriangleMesh& mesh, ContactGeometry:
 
 void testOBBTree() {
     // Create a mesh consisting of a bunch of octahedra.
-    
+
     vector<Vec3> vertices;
     vector<int> faceIndices;
     addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
@@ -194,7 +194,7 @@ void testOBBTree() {
     ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
 
     // Validate the OBBTree.
-    
+
     vector<int> faceReferenceCount(mesh.getNumFaces(), 0);
     validateOBBTree(mesh, mesh.getOBBTreeNode(), mesh.getOBBTreeNode(), faceReferenceCount);
     for (int i = 0; i < (int) faceReferenceCount.size(); i++)
@@ -203,14 +203,14 @@ void testOBBTree() {
 
 void testRayIntersection() {
     // Create an octrohedral mesh.
-    
+
     vector<Vec3> vertices;
     vector<int> faceIndices;
     addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
     ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
-    
+
     // Check various rays.
-    
+
     Real distance;
     UnitVec3 normal;
     SimTK_TEST(!mesh.intersectsRay(Vec3(2, 0, 0), UnitVec3(1, 0, 0), distance, normal));
@@ -227,21 +227,21 @@ void testRayIntersection() {
 
 void testSmoothMesh() {
     // Create two octrohedral meshes: one smooth and one not.
-    
+
     vector<Vec3> vertices;
     vector<int> faceIndices;
     addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
     ContactGeometry::TriangleMesh mesh1(vertices, faceIndices);
     ContactGeometry::TriangleMesh mesh2(vertices, faceIndices, true);
-    
+
     // At the center of every face, the normals should be identical.
- 
+
     for (int i = 0; i < 8; i++)
         SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)), mesh2.findNormalAtPoint(i, Vec2(1.0/3.0, 1.0/3.0)));
-    
+
     // At the vertices, the smooth mesh normal should point directly outward, while the faceted mesh should
     // be the same as the face normal.
-    
+
     for (int i = 0; i < 8; i++) {
         SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(1, 0)), mesh1.getFaceNormal(i));
         SimTK_TEST_EQ(mesh1.findNormalAtPoint(i, Vec2(0, 1)), mesh1.getFaceNormal(i));
@@ -254,14 +254,14 @@ void testSmoothMesh() {
 
 void testFindNearestPoint() {
     // Create an octrohedral mesh.
-    
+
     vector<Vec3> vertices;
     vector<int> faceIndices;
     addOctohedron(vertices, faceIndices, Vec3(0, 0, 0));
     ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
-    
+
     // Test some points.
-    
+
     Random::Gaussian random(0, 1);
     for (int i = 0; i < 100; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
@@ -281,17 +281,17 @@ void testBoundingSphere() {
     Random::Uniform random(0, 10);
     for (int i = 0; i < 100; i++) {
         // Create a mesh consisting of a random number of octahedra at random places.
-        
+
         vector<Vec3> vertices;
         vector<int> faceIndices;
         int numOctohedra = random.getIntValue()+1;
         for (int i = 0; i < numOctohedra; i++)
-            addOctohedron(vertices, faceIndices, 
+            addOctohedron(vertices, faceIndices,
             Vec3(random.getValue(), random.getValue(), random.getValue()));
         ContactGeometry::TriangleMesh mesh(vertices, faceIndices);
 
         // Verify that all points are inside the bounding sphere.
-        
+
         Vec3 center;
         Real radius;
         mesh.getBoundingSphere(center, radius);
@@ -299,9 +299,9 @@ void testBoundingSphere() {
             Real dist = (center-mesh.getVertexPosition(i)).norm();
             SimTK_TEST(dist <= radius);
         }
-        
+
         // Make sure the bounding sphere is reasonably compact.
-        
+
         Vec3 boxRadius = 0.5*mesh.getOBBTreeNode().getBounds().getSize();
         SimTK_TEST(radius <= boxRadius.norm());
     }

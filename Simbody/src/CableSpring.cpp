@@ -42,7 +42,7 @@ friend class CableSpring;
     // Type of the discrete state variable that holds values for this
     // cable spring's changeable parameters in a State.
     struct InstanceVars {
-        InstanceVars(Real defStiffness, Real defSlackLength, 
+        InstanceVars(Real defStiffness, Real defSlackLength,
                      Real defDissipationCoef)
         :   k(defStiffness), L0(defSlackLength), c(defDissipationCoef) {}
 
@@ -56,11 +56,11 @@ friend class CableSpring;
         Real       powerLoss;
     };
 
-    Impl(const CablePath&   path, 
+    Impl(const CablePath&   path,
          Real               stiffness,
          Real               slackLength,
          Real               dissipationCoef)
-    :   path(path), defK(stiffness), defL0(slackLength), defC(dissipationCoef) 
+    :   path(path), defK(stiffness), defL0(slackLength), defC(dissipationCoef)
     {
     }
 
@@ -70,14 +70,14 @@ friend class CableSpring;
 
     void calcForce(const State& state, Vector_<SpatialVec>& bodyForces,
                    Vector_<Vec3>& particleForces, Vector& mobilityForces) const
-                   override 
-    {   
+                   override
+    {
         const ForceCache& forceCache = ensureForceCacheValid(state);
-        path.applyBodyForces(state, forceCache.f, bodyForces); 
+        path.applyBodyForces(state, forceCache.f, bodyForces);
     }
 
     // We're not bothering to cache P.E. -- just recalculate it when asked.
-    Real calcPotentialEnergy(const State& state) const override 
+    Real calcPotentialEnergy(const State& state) const override
     {
         const InstanceVars& inst = getInstanceVars(state);
         const Real x = calcStretch(state, inst); // x >= 0
@@ -85,12 +85,12 @@ friend class CableSpring;
         return pe;
     }
 
-    // Allocate the state variables and cache entry. 
+    // Allocate the state variables and cache entry.
     void realizeTopology(State& s) const override {
         // Allocate the discrete variable for instance parameters.
         const InstanceVars iv(defK,defL0,defC);
         instanceVarsIx = getForceSubsystem()
-            .allocateDiscreteVariable(s, Stage::Instance, 
+            .allocateDiscreteVariable(s, Stage::Instance,
                                       new Value<InstanceVars>(iv));
 
         // Allocate a continuous variable to hold the integrated power loss.
@@ -108,7 +108,7 @@ friend class CableSpring;
         const ForceCache& forceCache = ensureForceCacheValid(s);
         updDissipatedEnergyDeriv(s) = forceCache.powerLoss;
     }
-        
+
     // Return the amount x by which the cable is stretched beyond its slack
     // length or zero if the cable is slack. Must be at stage Position.
     Real calcStretch(const State& state, const InstanceVars& inst) const {
@@ -116,11 +116,11 @@ friend class CableSpring;
         return std::max(Real(0), x0); // return x >= 0
     }
 
-    // Calculate tension f=f_stretch+f_rate, and power loss f_rate*xdot. See 
-    // theory discussion for CableSpring class for an explanation. Must be at 
-    // stage Velocity. 
-    void calcTensionAndPowerLoss(const State& state, 
-                                 Real& f, Real& powerLoss) const 
+    // Calculate tension f=f_stretch+f_rate, and power loss f_rate*xdot. See
+    // theory discussion for CableSpring class for an explanation. Must be at
+    // stage Velocity.
+    void calcTensionAndPowerLoss(const State& state,
+                                 Real& f, Real& powerLoss) const
     {
         const InstanceVars& inst = getInstanceVars(state);
         const Real x = calcStretch(state, inst); // >= 0
@@ -137,7 +137,7 @@ friend class CableSpring;
     // If state is at stage Velocity, we can calculate and store tension
     // in the cache if it hasn't already been calculated.
     const ForceCache& ensureForceCacheValid(const State& state) const {
-        if (isForceCacheValid(state)) 
+        if (isForceCacheValid(state))
             return getForceCache(state);
         ForceCache& forceCache = updForceCache(state);
         calcTensionAndPowerLoss(state, forceCache.f, forceCache.powerLoss);
@@ -188,16 +188,16 @@ friend class CableSpring;
 //                          CABLE SPRING DEFINITIONS
 //==============================================================================
 
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(CableSpring, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(CableSpring,
                                         CableSpring::Impl, Force);
 
 CableSpring::CableSpring
-   (GeneralForceSubsystem&  forces, 
+   (GeneralForceSubsystem&  forces,
     const CablePath&        path,
     Real                    defaultStiffness,
     Real                    defaultSlackLength,
     Real                    defaultDissipationCoef)
-:   Force(new CableSpring::Impl(path, defaultStiffness, defaultSlackLength, 
+:   Force(new CableSpring::Impl(path, defaultStiffness, defaultSlackLength,
                                 defaultDissipationCoef))
 {
     SimTK_ERRCHK_ALWAYS(defaultStiffness >= 0,
@@ -212,19 +212,19 @@ CableSpring::CableSpring
 CableSpring& CableSpring::
 setDefaultStiffness(Real stiffness) {
     SimTK_ERRCHK_ALWAYS(stiffness >= 0,
-        "CableSpring::setDefaultStiffness()", 
+        "CableSpring::setDefaultStiffness()",
         "Spring constant must be nonnegative.");
     getImpl().invalidateTopologyCache();
-    updImpl().defK = stiffness; 
+    updImpl().defK = stiffness;
     return *this;
 }
 CableSpring& CableSpring::
 setDefaultSlackLength(Real slackLength) {
     SimTK_ERRCHK_ALWAYS(slackLength >= 0,
-        "CableSpring::setDefaultSlackLength()", 
+        "CableSpring::setDefaultSlackLength()",
         "Slack length must be nonnegative.");
     getImpl().invalidateTopologyCache();
-    updImpl().defL0 = slackLength; 
+    updImpl().defL0 = slackLength;
     return *this;
 }
 CableSpring& CableSpring::
@@ -233,7 +233,7 @@ setDefaultDissipationCoef(Real dissipationCoef) {
         "CableSpring::setDefaultDissipationCoef()",
         "Dissipation coefficient must be nonnegative.");
     getImpl().invalidateTopologyCache();
-    updImpl().defC = dissipationCoef; 
+    updImpl().defC = dissipationCoef;
     return *this;
 }
 
@@ -249,7 +249,7 @@ setStiffness(State& state, Real stiffness) const {
     SimTK_ERRCHK_ALWAYS(stiffness >= 0,
         "CableSpring::setStiffness()",
         "Spring constant must be nonnegative.");
-    getImpl().updInstanceVars(state).k = stiffness; 
+    getImpl().updInstanceVars(state).k = stiffness;
     return *this;
 }
 const CableSpring& CableSpring::
@@ -257,7 +257,7 @@ setSlackLength(State& state, Real slackLength) const {
     SimTK_ERRCHK_ALWAYS(slackLength >= 0,
         "CableSpring::setSlackLength()",
         "Slack length must be nonnegative.");
-    getImpl().updInstanceVars(state).L0 = slackLength; 
+    getImpl().updInstanceVars(state).L0 = slackLength;
     return *this;
 }
 const CableSpring& CableSpring::
@@ -265,18 +265,18 @@ setDissipationCoef(State& state, Real dissipationCoef) const {
     SimTK_ERRCHK_ALWAYS(dissipationCoef >= 0,
         "CableSpring::setDissipationCoef()",
         "Dissipation coefficient must be nonnegative.");
-    getImpl().updInstanceVars(state).c = dissipationCoef; 
+    getImpl().updInstanceVars(state).c = dissipationCoef;
     return *this;
 }
 
 Real CableSpring::
-getStiffness(const State& state) const 
+getStiffness(const State& state) const
 {   return getImpl().getInstanceVars(state).k; }
 Real CableSpring::
-getSlackLength(const State& state) const 
+getSlackLength(const State& state) const
 {   return getImpl().getInstanceVars(state).L0; }
 Real CableSpring::
-getDissipationCoef(const State& state) const 
+getDissipationCoef(const State& state) const
 {   return getImpl().getInstanceVars(state).c; }
 
 Real CableSpring::
@@ -289,7 +289,7 @@ getLengthDot(const State& state) const
 
 Real CableSpring::
 getTension(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).f; }
 
 Real CableSpring::
@@ -298,7 +298,7 @@ getPotentialEnergy(const State& s) const
 
 Real CableSpring::
 getPowerDissipation(const State& s) const
-{   getImpl().ensureForceCacheValid(s); 
+{   getImpl().ensureForceCacheValid(s);
     return getImpl().getForceCache(s).powerLoss; }
 
 Real CableSpring::
@@ -311,7 +311,7 @@ setDissipatedEnergy(State& s, Real energy) const {
         "CableSpring::setDissipatedEnergy()",
         "The initial value for the dissipated energy must be nonnegative"
         " but an attempt was made to set it to %g.", energy);
-    getImpl().updDissipatedEnergyVar(s) = energy; 
+    getImpl().updDissipatedEnergyVar(s) = energy;
 }
 
 const CablePath& CableSpring::

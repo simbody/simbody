@@ -65,7 +65,7 @@ class DecorativeGeometry;
  *
  * If the concrete System::Guts class also has an opaque implementation,
  * as it will for concrete Systems provided by Simbody, then
- * the System author should expose only the data-free handle class 
+ * the System author should expose only the data-free handle class
  * derived from System.
  */
 class SimTK_SimTKCOMMON_EXPORT System::Guts {
@@ -76,7 +76,7 @@ class SimTK_SimTKCOMMON_EXPORT System::Guts {
     GutsRep* rep; // opaque implementation of System::Guts base class.
 public:
     // Note that this serves as a default constructor since both arguments have defaults.
-    explicit Guts(const String& name="<NONAME>", 
+    explicit Guts(const String& name="<NONAME>",
                   const String& version="0.0.0");
     virtual ~Guts();
 
@@ -139,13 +139,13 @@ public:
     void realizeReport      (const State& s) const;
 
     // These wrap the other virtual methods.
-    void multiplyByN(const State& state, const Vector& u, 
+    void multiplyByN(const State& state, const Vector& u,
                      Vector& dq) const;
-    void multiplyByNTranspose(const State& state, const Vector& fq, 
+    void multiplyByNTranspose(const State& state, const Vector& fq,
                               Vector& fu) const;
-    void multiplyByNPInv(const State& state, const Vector& dq, 
+    void multiplyByNPInv(const State& state, const Vector& dq,
                          Vector& u) const;
-    void multiplyByNPInvTranspose(const State& state, const Vector& fu, 
+    void multiplyByNPInvTranspose(const State& state, const Vector& fu,
                                   Vector& fq) const;
 
     bool prescribeQ(State&) const;
@@ -153,9 +153,9 @@ public:
     void getFreeQIndex(const State&, Array_<SystemQIndex>& freeQs) const;
     void getFreeUIndex(const State&, Array_<SystemUIndex>& freeUs) const;
 
-    void projectQ(State&, Vector& qErrEst, 
+    void projectQ(State&, Vector& qErrEst,
                   const ProjectOptions& options, ProjectResults& results) const;
-    void projectU(State&, Vector& uErrEst, 
+    void projectU(State&, Vector& uErrEst,
                   const ProjectOptions& options, ProjectResults& results) const;
 
     void handleEvents
@@ -167,13 +167,13 @@ public:
     void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
     void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array_<EventId>& eventIds, bool includeCurrentTime) const;
 
-    void calcDecorativeGeometryAndAppend(const State&, Stage, 
+    void calcDecorativeGeometryAndAppend(const State&, Stage,
                                          Array_<DecorativeGeometry>&) const;
 
 
 protected:
     Guts(const Guts&);  // copies the base class; for use from derived class copy constructors
-    
+
     // The destructor is already virtual; see above.
 
     virtual System::Guts* cloneImpl() const = 0;
@@ -197,13 +197,13 @@ protected:
     virtual int realizeAccelerationImpl(const State& state) const {return 0;}
     virtual int realizeReportImpl  (const State& state) const {return 0;}
 
-    virtual void multiplyByNImpl(const State& state, const Vector& u, 
+    virtual void multiplyByNImpl(const State& state, const Vector& u,
                                  Vector& dq) const;
-    virtual void multiplyByNTransposeImpl(const State& state, const Vector& fq, 
+    virtual void multiplyByNTransposeImpl(const State& state, const Vector& fq,
                                           Vector& fu) const;
-    virtual void multiplyByNPInvImpl(const State& state, const Vector& dq, 
+    virtual void multiplyByNPInvImpl(const State& state, const Vector& dq,
                                      Vector& u) const;
-    virtual void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu, 
+    virtual void multiplyByNPInvTransposeImpl(const State& state, const Vector& fu,
                                               Vector& fq) const;
 
     // Defaults assume no prescribed motion; hence, no change made.
@@ -211,12 +211,12 @@ protected:
     virtual bool prescribeUImpl(State&) const {return false;}
 
 
-    // Defaults assume no constraints and return success meaning "all 
+    // Defaults assume no constraints and return success meaning "all
     // constraints satisfied".
-    virtual void projectQImpl(State& state, Vector& qErrEst, 
+    virtual void projectQImpl(State& state, Vector& qErrEst,
              const ProjectOptions& options, ProjectResults& results) const
     {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
-    virtual void projectUImpl(State& state, Vector& uErrEst, 
+    virtual void projectUImpl(State& state, Vector& uErrEst,
              const ProjectOptions& options, ProjectResults& results) const
     {   results.clear(); results.setExitStatus(ProjectResults::Succeeded); }
 
@@ -224,17 +224,17 @@ protected:
        (State& state, Event::Cause cause, const Array_<EventId>& eventIds,
         const HandleEventsOptions& options, HandleEventsResults& results) const;
 
-    virtual int reportEventsImpl(const State& state, Event::Cause cause, 
+    virtual int reportEventsImpl(const State& state, Event::Cause cause,
                                  const Array_<EventId>& eventIds) const;
 
-    virtual int calcEventTriggerInfoImpl(const State& state, 
+    virtual int calcEventTriggerInfoImpl(const State& state,
                                          Array_<EventTriggerInfo>& info) const;
 
     virtual int calcTimeOfNextScheduledEventImpl
-       (const State& state, Real& tNextEvent, Array_<EventId>& eventIds, 
+       (const State& state, Real& tNextEvent, Array_<EventId>& eventIds,
         bool includeCurrentTime) const;
     virtual int calcTimeOfNextScheduledReportImpl
-       (const State& state, Real& tNextEvent, Array_<EventId>& eventIds, 
+       (const State& state, Real& tNextEvent, Array_<EventId>& eventIds,
         bool includeCurrentTime) const;
 
 

@@ -45,7 +45,7 @@ namespace SimTK {
 //------------------------------------------------------------------------------
 // Generate a rough guess at the contact points. Point P is returned in A's
 // frame and point Q is in B's frame, but all the work here is done in frame A.
-// See Snethen, G. "XenoCollide: Complex Collision Made Simple", Game 
+// See Snethen, G. "XenoCollide: Complex Collision Made Simple", Game
 // Programming Gems 7, pp.165-178.
 //
 // Note that we intend to use this on smooth convex objects. That means there
@@ -56,10 +56,10 @@ namespace SimTK {
 
 namespace {
 
-// Given a direction in shape A's frame, calculate the support point of the 
-// Minkowski difference shape A-B in that direction. To do that we find A's 
-// support point P in that direction, and B's support point Q in the opposite 
-// direction; i.e. what would be -B's support in the original direction. Then 
+// Given a direction in shape A's frame, calculate the support point of the
+// Minkowski difference shape A-B in that direction. To do that we find A's
+// support point P in that direction, and B's support point Q in the opposite
+// direction; i.e. what would be -B's support in the original direction. Then
 // return the vector v=(P-Q) expressed in A's frame.
 struct Support {
     Support(const ContactGeometry& shapeA, const ContactGeometry& shapeB,
@@ -71,7 +71,7 @@ struct Support {
     void computeSupport(const UnitVec3& dirInA) {
         const UnitVec3 dirInB = ~X_AB.R() * dirInA; // 15 flops
         dir = dirInA;
-        A = shapeA.calcSupportPoint( dirInA); // varies; 40 flops for ellipsoid 
+        A = shapeA.calcSupportPoint( dirInA); // varies; 40 flops for ellipsoid
         B = shapeB.calcSupportPoint(-dirInB); //             "
         v = A - X_AB*B;                       // 21 flops
         depth = dot(v,dir);                   //  5 flops
@@ -87,7 +87,7 @@ struct Support {
         std::swap(A,other.A); std::swap(B,other.B); std::swap(v,other.v);
     }
 
-    void getResult(Vec3& pointP_A, Vec3& pointQ_B, UnitVec3& normalInA) const 
+    void getResult(Vec3& pointP_A, Vec3& pointQ_B, UnitVec3& normalInA) const
     {   pointP_A = A; pointQ_B = B; normalInA = dir; }
 
     UnitVec3 dir; // A support direction, exp in A
@@ -109,7 +109,7 @@ const Real SqrtMPRAccuracy = Real(.2236); // roughly sqrt(MPRAccuracy)
 
 /*static*/ bool ContactTracker::
 estimateConvexImplicitPairContactUsingMPR
-   (const ContactGeometry& shapeA, const ContactGeometry& shapeB, 
+   (const ContactGeometry& shapeA, const ContactGeometry& shapeB,
     const Transform& X_AB,
     Vec3& pointP, Vec3& pointQ, UnitVec3& dirInA, int& numIterations)
 {
@@ -127,7 +127,7 @@ estimateConvexImplicitPairContactUsingMPR
     const Real lengthScale = Real(0.25)*std::min(rA,rB);
     const Real areaScale   = Real(1.5)*square(lengthScale); // ~area of octant
 
-    // If we determine the depth to within a small fraction of the scale, 
+    // If we determine the depth to within a small fraction of the scale,
     // or localize the contact area to a small fraction of the surface area,
     // that is good enough and we can stop.
     const Real depthGoal = MPRAccuracy*lengthScale;
@@ -141,14 +141,14 @@ estimateConvexImplicitPairContactUsingMPR
     // Phase 1: Portal Discovery
     // -------------------------
 
-    // Compute an interior point v0 that is known to be inside the Minkowski 
+    // Compute an interior point v0 that is known to be inside the Minkowski
     // difference, and a ray dir1 directed from that point to the origin.
     const Vec3 v0 = (  Support(shapeA, shapeB, X_AB, UnitVec3( XAxis)).v
                      + Support(shapeA, shapeB, X_AB, UnitVec3(-XAxis)).v)/2;
 
     if (v0 == 0) {
-        // This is a pathological case: the two objects are directly on top of 
-        // each other with their centers at exactly the same place. Just 
+        // This is a pathological case: the two objects are directly on top of
+        // each other with their centers at exactly the same place. Just
         // return *some* vaguely plausible contact.
         pointP = shapeA.calcSupportPoint(      UnitVec3( XAxis));
         pointQ = shapeB.calcSupportPoint(~R_AB*UnitVec3(-XAxis)); // in B
@@ -157,7 +157,7 @@ estimateConvexImplicitPairContactUsingMPR
     }
 
 
-    // Support 1's direction is initially the "origin ray" that points from 
+    // Support 1's direction is initially the "origin ray" that points from
     // interior point v0 to the origin.
     Support s1(shapeA, shapeB, X_AB, UnitVec3(-v0));
 
@@ -200,12 +200,12 @@ estimateConvexImplicitPairContactUsingMPR
         return false;
     }
 
-    // We now have a candidate portal (triangle v1,v2,v3). We have to refine it 
+    // We now have a candidate portal (triangle v1,v2,v3). We have to refine it
     // until the origin ray -v0 intersects the candidate. Check against the
     // three planes of the tetrahedron that contain v0. By construction above
     // we know the origin is inside the v0,v1,v2 face already.
 
-    // We should find a candidate portal very fast, probably in 1 or 2 
+    // We should find a candidate portal very fast, probably in 1 or 2
     // iterations. We'll allow an absurdly large number of
     // iterations and then abort just to make sure we don't get stuck in an
     // infinite loop.
@@ -231,8 +231,8 @@ estimateConvexImplicitPairContactUsingMPR
     // Phase 2: Portal Refinement
     // --------------------------
 
-    // We have a portal (triangle v1,v2,v3) that the origin ray passes through. 
-    // Now we need to refine v1,v2,v3 until we have portal such that the origin 
+    // We have a portal (triangle v1,v2,v3) that the origin ray passes through.
+    // Now we need to refine v1,v2,v3 until we have portal such that the origin
     // is inside the tetrahedron v0,v1,v2,v3.
 
     const int MinTriesToFindSeparatingPlane = 5;
@@ -249,8 +249,8 @@ estimateConvexImplicitPairContactUsingMPR
         if (~portalDir*v0 > 0)
             portalDir = -portalDir;
 
-        // Any portal vertex is a vector from the origin to the portal plane. 
-        // Dot one of them with the portal outward normal to get the origin 
+        // Any portal vertex is a vector from the origin to the portal plane.
+        // Dot one of them with the portal outward normal to get the origin
         // depth (positive if inside).
         const Real depth = ~s1.v*portalDir;
 
@@ -269,24 +269,24 @@ estimateConvexImplicitPairContactUsingMPR
             mustReturn = (++triesToImproveContact >= MaxTriesToImproveContact);
             okToReturn = true;
         } else {            // No contact yet.
-            okToReturn = 
+            okToReturn =
                (++triesToFindSeparatingPlane >= MinTriesToFindSeparatingPlane);
             mustReturn = false;
         }
-        bool accuracyAchieved = 
+        bool accuracyAchieved =
             (depthChange <= depthGoal || portalArea <= areaGoal);
 
         #ifdef MPR_DEBUG
-        printf("  depth=%g, change=%g area=%g changeFrac=%g areaFrac=%g\n", 
-            depth, depthChange, portalArea, 
+        printf("  depth=%g, change=%g area=%g changeFrac=%g areaFrac=%g\n",
+            depth, depthChange, portalArea,
             depthChange/depthGoal, portalArea/areaGoal);
         printf("    accuracyAchieved=%d okToReturn=%d mustReturn=%d\n",
             accuracyAchieved, okToReturn, mustReturn);
         #endif
 
         if (mustReturn || (okToReturn && accuracyAchieved)) {
-            // The origin is inside the portal, so we have an intersection.  
-            // Compute the barycentric coordinates of the origin ray's 
+            // The origin is inside the portal, so we have an intersection.
+            // Compute the barycentric coordinates of the origin ray's
             // intersection with the portal, and map back to the two surfaces.
             const Vec3 origin = v0+v0*(~portalDir*(s1.v-v0)/(~portalDir*v0));
             const Real area1 = ~portalDir*((s2.v-origin)%(s3.v-origin));
@@ -296,7 +296,7 @@ estimateConvexImplicitPairContactUsingMPR
             const Real w = 1-u-v;
 
             // Compute the contact points in their own shape's frame.
-            pointP = u*s1.A + v*s2.A + w*s3.A; 
+            pointP = u*s1.A + v*s2.A + w*s3.A;
             pointQ = u*s1.B + v*s2.B + w*s3.B;
             dirInA = portalDir;
             return true;
@@ -332,12 +332,12 @@ refineImplicitPair
     const ContactGeometry& shapeB, Vec3& pointQ,    // in/out (in B)
     const Transform& X_AB, Real accuracyRequested,
     Real& accuracyAchieved, int& numIterations)
-{ 
+{
     // If the initial guess is very bad, or the ellipsoids pathological we
     // may have to crawl along for a while at the beginning.
     const int MaxSlowIterations = 8;
     const int MaxIterations = MaxSlowIterations + 8;
-    const Real MinStepFrac = Real(1e-6); // if we can't take at least this 
+    const Real MinStepFrac = Real(1e-6); // if we can't take at least this
                                          // fraction of Newton step, give it up
 
     Vec6 err = findImplicitPairError(shapeA, pointP, shapeB, pointQ, X_AB);
@@ -351,11 +351,11 @@ refineImplicitPair
     Vector deltaVec(6, &delta[0], true); // share space with delta
 
     numIterations = 0;
-    while (   accuracyAchieved > accuracyRequested 
-           && numIterations < MaxIterations) 
+    while (   accuracyAchieved > accuracyRequested
+           && numIterations < MaxIterations)
     {
         ++numIterations;
-        J = calcImplicitPairJacobian(shapeA, pointP, shapeB, pointQ, 
+        J = calcImplicitPairJacobian(shapeA, pointP, shapeB, pointQ,
                                      X_AB, err);
 
         // Try to use LU factorization; fall back to QTZ if singular.
@@ -368,7 +368,7 @@ refineImplicitPair
         }
 
         // Line search for safety in case starting guess bad. Don't accept
-        // any move that makes things worse.      
+        // any move that makes things worse.
         Real f = 2; // scale back factor
         Vec3 oldP = pointP, oldQ = pointQ;
         Real oldAccuracyAchieved = accuracyAchieved;
@@ -387,11 +387,11 @@ refineImplicitPair
             pointQ = oldQ;
         }
 
-        if (    noProgressMade 
-            || (f < 1 && numIterations >= MaxSlowIterations)) // Too slow. 
+        if (    noProgressMade
+            || (f < 1 && numIterations >= MaxSlowIterations)) // Too slow.
         {
-            // We don't appear to be getting anywhere. Just project the 
-            // points onto the surfaces and then exit.         
+            // We don't appear to be getting anywhere. Just project the
+            // points onto the surfaces and then exit.
             bool inside;
             UnitVec3 normal;
             pointP = shapeA.findNearestPoint(pointP, inside, normal);
@@ -409,7 +409,7 @@ refineImplicitPair
 //------------------------------------------------------------------------------
 //                          FIND IMPLICIT PAIR ERROR
 //------------------------------------------------------------------------------
-// We're given two implicitly-defined shapes A and B and candidate surface 
+// We're given two implicitly-defined shapes A and B and candidate surface
 // contact points P (for A) and Q (for B). There are six equations that real
 // contact points should satisfy. Here we return the errors in each of those
 // equations; if all six terms are zero these are contact points.
@@ -419,7 +419,7 @@ refineImplicitPair
 findImplicitPairError
    (const ContactGeometry& shapeA, const Vec3& pointP,  // in A
     const ContactGeometry& shapeB, const Vec3& pointQ,  // in B
-    const Transform& X_AB) 
+    const Transform& X_AB)
 {
     // Compute the function value and normal vector for each object.
 
@@ -427,7 +427,7 @@ findImplicitPairError
     const Function& fB = shapeB.getImplicitFunction();
 
     // Avoid some heap allocations by using stack arrays.
-    Vec3 xData; 
+    Vec3 xData;
     Vector x(3, &xData[0], true); // shares space with xdata
 
     int compData; // just one integer
@@ -459,9 +459,9 @@ findImplicitPairError
     Vec3 vA = nA%uA; // Already a unit vector, so we don't need to normalize it.
     Vec3 vB = nB%uB;
 
-    // Compute the error vector. The components indicate, in order, that nA 
-    // must be perpendicular to both tangents of object B, that the separation 
-    // vector should be zero or perpendicular to the tangents of object A, and 
+    // Compute the error vector. The components indicate, in order, that nA
+    // must be perpendicular to both tangents of object B, that the separation
+    // vector should be zero or perpendicular to the tangents of object A, and
     // that both points should be on their respective surfaces.
 
     Vec3 delta = pointP-X_AB*pointQ;
@@ -478,7 +478,7 @@ findImplicitPairError
 /*static*/ Mat66 ContactTracker::calcImplicitPairJacobian
    (const ContactGeometry& shapeA, const Vec3& pointP,
     const ContactGeometry& shapeB, const Vec3& pointQ,
-    const Transform& X_AB, const Vec6& err0) 
+    const Transform& X_AB, const Vec6& err0)
 {
     Real dt = SqrtEps;
 
@@ -499,7 +499,7 @@ findImplicitPairError
                 - err0;
     return Mat66(err1, err2, err3, err4, err5, err6) / dt;
 
-    // This is a Central Difference derivative (you should use a somewhat 
+    // This is a Central Difference derivative (you should use a somewhat
     // larger dt in this case). However, I haven't seen any evidence that this
     // helps, even for some very eccentric ellipsoids. (sherm 20130408)
     //Vec6 err1 = findImplicitPairError(shapeA, pointP+d1, shapeB, pointQ, X_AB)
@@ -525,9 +525,9 @@ findImplicitPairError
 // Cost is 21 flops if no contact, 67 with contact.
 bool ContactTracker::HalfSpaceSphere::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GH, 
+    const Transform&       X_GH,
     const ContactGeometry& geoHalfSpace,
-    const Transform&       X_GS, 
+    const Transform&       X_GS,
     const ContactGeometry& geoSphere,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -538,15 +538,15 @@ bool ContactTracker::HalfSpaceSphere::trackContact
        "ContactTracker::HalfSpaceSphere::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::Sphere& sphere = 
+    const ContactGeometry::Sphere& sphere =
         ContactGeometry::Sphere::getAs(geoSphere);
 
     const Rotation R_HG = ~X_GH.R(); // inverse rotation; no flops
 
     // p_HC is vector from H origin to S's center C
     const Vec3 p_HC = R_HG*(X_GS.p() - X_GH.p()); // 18 flops
-    
-    // Calculate depth of sphere center C given that the halfspace occupies 
+
+    // Calculate depth of sphere center C given that the halfspace occupies
     // all of x>0 space.
     const Real r = sphere.getRadius();
     const Real depth = p_HC[0] + r;   // 1 flop
@@ -581,9 +581,9 @@ bool ContactTracker::HalfSpaceSphere::trackContact
 // that point in preparation for generating forces with Hertz theory.
 bool ContactTracker::HalfSpaceEllipsoid::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GH, 
+    const Transform&       X_GH,
     const ContactGeometry& geoHalfSpace,
-    const Transform&       X_GE, 
+    const Transform&       X_GE,
     const ContactGeometry& geoEllipsoid,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -594,7 +594,7 @@ bool ContactTracker::HalfSpaceEllipsoid::trackContact
        "ContactTracker::HalfSpaceEllipsoid::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::Ellipsoid& ellipsoid = 
+    const ContactGeometry::Ellipsoid& ellipsoid =
         ContactGeometry::Ellipsoid::getAs(geoEllipsoid);
 
     // Our half space occupies the +x half so the normal is -x.
@@ -626,9 +626,9 @@ bool ContactTracker::HalfSpaceEllipsoid::trackContact
     R_EQ.setRotationColFromUnitVecTrustMe(ZAxis, -R_EQ.z()); // changing X_EQ
     R_EQ.setRotationColFromUnitVecTrustMe(XAxis, -R_EQ.x());
 
-    // Now the frame is pointing in the right direction. Measure and express in 
-    // half plane frame, then shift origin to half way between contact point 
-    // Q on the undeformed ellipsoid and the corresponding contact point P 
+    // Now the frame is pointing in the right direction. Measure and express in
+    // half plane frame, then shift origin to half way between contact point
+    // Q on the undeformed ellipsoid and the corresponding contact point P
     // on the undeformed half plane surface. It's easier to do this shift
     // in H since it is in the -Hx direction.
     Transform X_HC = X_HE*X_EQ; X_HC.updP()[0] -= depth/2; // 65 flops
@@ -647,9 +647,9 @@ bool ContactTracker::HalfSpaceEllipsoid::trackContact
 // Cost is XX flops if no contact, YY with contact.
 bool ContactTracker::HalfSpaceBrick::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GH, 
+    const Transform&       X_GH,
     const ContactGeometry& geoHalfSpace,
-    const Transform&       X_GB, 
+    const Transform&       X_GB,
     const ContactGeometry& geoBrick,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -664,7 +664,7 @@ bool ContactTracker::HalfSpaceBrick::trackContact
     // This is the half-space outward normal in its own frame.
     const UnitVec3 n_H = halfSpace.getNormal();
 
-    const ContactGeometry::Brick& brick = 
+    const ContactGeometry::Brick& brick =
         ContactGeometry::Brick::getAs(geoBrick);
     const Geo::Box box = brick.getGeoBox();
 
@@ -698,9 +698,9 @@ bool ContactTracker::HalfSpaceBrick::trackContact
 // Cost is 12 flops if no contact, 139 if contact
 bool ContactTracker::SphereSphere::trackContact
    (const Contact&         priorStatus,
-    const Transform& X_GS1, 
+    const Transform& X_GS1,
     const ContactGeometry& geoSphere1,
-    const Transform& X_GS2, 
+    const Transform& X_GS2,
     const ContactGeometry& geoSphere2,
     Real                   cutoff, // 0 for contact
     Contact&               currentStatus) const
@@ -711,9 +711,9 @@ bool ContactTracker::SphereSphere::trackContact
        "ContactTracker::SphereSphere::trackContact()");
 
     // No need for an expensive dynamic casts here; we know what we have.
-    const ContactGeometry::Sphere& sphere1 = 
+    const ContactGeometry::Sphere& sphere1 =
         ContactGeometry::Sphere::getAs(geoSphere1);
-    const ContactGeometry::Sphere& sphere2 = 
+    const ContactGeometry::Sphere& sphere2 =
         ContactGeometry::Sphere::getAs(geoSphere2);
 
     currentStatus.clear();
@@ -733,7 +733,7 @@ bool ContactTracker::SphereSphere::trackContact
             return true; // successful return: still separated
 
         const Real separation = std::sqrt(d2) - rr;   // > cutoff, ~25 flops
-        const Transform X_S1S2(~X_GS1.R()*X_GS2.R(), 
+        const Transform X_S1S2(~X_GS1.R()*X_GS2.R(),
                                ~X_GS1.R()*p_12_G);    // 60 flops
         currentStatus = BrokenContact(priorStatus.getSurface1(),
                                       priorStatus.getSurface2(),
@@ -748,7 +748,7 @@ bool ContactTracker::SphereSphere::trackContact
         return false;
     }
 
-    const Transform X_S1S2(~X_GS1.R()*X_GS2.R(), 
+    const Transform X_S1S2(~X_GS1.R()*X_GS2.R(),
                            ~X_GS1.R()*p_12_G);// 60 flops
     const Vec3& p_12 = X_S1S2.p(); // center-to-center vector in S1
 
@@ -761,7 +761,7 @@ bool ContactTracker::SphereSphere::trackContact
     // The surfaces are contacting (or close enough to be interesting).
     currentStatus = CircularPointContact(priorStatus.getSurface1(), r1,
                                          priorStatus.getSurface2(), r2,
-                                         X_S1S2, r, depth, 
+                                         X_S1S2, r, depth,
                                          origin_S1, normal_S1);
     return true; // success
 }
@@ -774,9 +774,9 @@ bool ContactTracker::SphereSphere::trackContact
 // Cost is TODO
 bool ContactTracker::HalfSpaceTriangleMesh::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GH, 
+    const Transform&       X_GH,
     const ContactGeometry& geoHalfSpace,
-    const Transform&       X_GM, 
+    const Transform&       X_GM,
     const ContactGeometry& geoMesh,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -786,16 +786,16 @@ bool ContactTracker::HalfSpaceTriangleMesh::trackContact
         && ContactGeometry::TriangleMesh::isInstance(geoMesh),
        "ContactTracker::HalfSpaceTriangleMesh::trackContact()");
 
-    // We can't handle a "proximity" test, only penetration. 
+    // We can't handle a "proximity" test, only penetration.
     SimTK_ASSERT_ALWAYS(cutoff==0,
        "ContactTracker::HalfSpaceTriangleMesh::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::TriangleMesh& mesh = 
+    const ContactGeometry::TriangleMesh& mesh =
         ContactGeometry::TriangleMesh::getAs(geoMesh);
 
     // Transform giving mesh (S2) frame in the halfspace (S1) frame.
-    const Transform X_HM = (~X_GH)*X_GM; 
+    const Transform X_HM = (~X_GH)*X_GM;
 
     // Normal is halfspace -x direction; xdir is first column of R_MH.
     // That's a unit vector and -unitvec is also a unit vector so this
@@ -804,20 +804,20 @@ bool ContactTracker::HalfSpaceTriangleMesh::trackContact
     // Find the height of the halfspace face along the normal, measured
     // from the mesh origin.
     const Real hsFaceHeight_M = dot((~X_HM).p(), hsNormal_M);
-    // Now collect all the faces that are all or partially below the 
+    // Now collect all the faces that are all or partially below the
     // halfspace surface.
     std::set<int> insideFaces;
-    processBox(mesh, mesh.getOBBTreeNode(), X_HM, 
+    processBox(mesh, mesh.getOBBTreeNode(), X_HM,
                hsNormal_M, hsFaceHeight_M, insideFaces);
-    
+
     if (insideFaces.empty()) {
         currentStatus.clear(); // not touching
         return true; // successful return
     }
-    
-    currentStatus = TriangleMeshContact(priorStatus.getSurface1(), 
-                                        priorStatus.getSurface2(), 
-                                        X_HM, 
+
+    currentStatus = TriangleMeshContact(priorStatus.getSurface1(),
+                                        priorStatus.getSurface2(),
+                                        X_HM,
                                         std::set<int>(), insideFaces);
     return true; // success
 }
@@ -826,17 +826,17 @@ bool ContactTracker::HalfSpaceTriangleMesh::trackContact
 // Check a single OBB and its contents (recursively) against the halfspace,
 // appending any penetrating faces to the insideFaces list.
 void ContactTracker::HalfSpaceTriangleMesh::processBox
-   (const ContactGeometry::TriangleMesh&              mesh, 
-    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-    const Transform& X_HM, const UnitVec3& hsNormal_M, Real hsFaceHeight_M, 
-    std::set<int>& insideFaces) const 
+   (const ContactGeometry::TriangleMesh&              mesh,
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+    const Transform& X_HM, const UnitVec3& hsNormal_M, Real hsFaceHeight_M,
+    std::set<int>& insideFaces) const
 {   // First check against the node's bounding box.
-    
+
     const OrientedBoundingBox& bounds = node.getBounds();
     const Transform& X_MB = bounds.getTransform(); // box frame in mesh
     const Vec3 p_BC = bounds.getSize()/2; // from box origin corner to center
     // Express the half space normal in the box frame, then reflect it into
-    // the first (+,+,+) quadrant where it is the normal of a different 
+    // the first (+,+,+) quadrant where it is the normal of a different
     // but symmetric and more convenient half space.
     const UnitVec3 octant1hsNormal_B = (~X_MB.R()*hsNormal_M).abs();
     // Dot our octant1 radius p_BC with our octant1 normal to get
@@ -847,7 +847,7 @@ void ContactTracker::HalfSpaceTriangleMesh::processBox
     // measured along the real halfspace normal.
     const Vec3 boxCenter_M       = X_MB*p_BC;
     const Real boxCenterHeight_M = dot(boxCenter_M, hsNormal_M);
-    // Subtract the halfspace surface position to get the height of the 
+    // Subtract the halfspace surface position to get the height of the
     // box center over the halfspace.
     const Real boxCenterHeight = boxCenterHeight_M - hsFaceHeight_M;
     if (boxCenterHeight >= extent)
@@ -856,17 +856,17 @@ void ContactTracker::HalfSpaceTriangleMesh::processBox
         addAllTriangles(node, insideFaces); // box is entirely in halfspace
         return;
     }
-    
-    // Box is partially penetrated into halfspace. If it is not a leaf node, 
+
+    // Box is partially penetrated into halfspace. If it is not a leaf node,
     // check its children.
     if (!node.isLeafNode()) {
-        processBox(mesh, node.getFirstChildNode(), X_HM, hsNormal_M, 
+        processBox(mesh, node.getFirstChildNode(), X_HM, hsNormal_M,
                    hsFaceHeight_M, insideFaces);
-        processBox(mesh, node.getSecondChildNode(), X_HM, hsNormal_M, 
+        processBox(mesh, node.getSecondChildNode(), X_HM, hsNormal_M,
                    hsFaceHeight_M, insideFaces);
         return;
     }
-    
+
     // This is a leaf OBB node that is penetrating, so some of its triangles
     // may be penetrating.
     const Array_<int>& triangles = node.getTriangles();
@@ -884,8 +884,8 @@ void ContactTracker::HalfSpaceTriangleMesh::processBox
 }
 
 void ContactTracker::HalfSpaceTriangleMesh::addAllTriangles
-   (const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-    std::set<int>& insideFaces) const 
+   (const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+    std::set<int>& insideFaces) const
 {
     if (node.isLeafNode()) {
         const Array_<int>& triangles = node.getTriangles();
@@ -906,9 +906,9 @@ void ContactTracker::HalfSpaceTriangleMesh::addAllTriangles
 // Cost is TODO
 bool ContactTracker::SphereTriangleMesh::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GS, 
+    const Transform&       X_GS,
     const ContactGeometry& geoSphere,
-    const Transform&       X_GM, 
+    const Transform&       X_GM,
     const ContactGeometry& geoMesh,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -918,51 +918,51 @@ bool ContactTracker::SphereTriangleMesh::trackContact
         && ContactGeometry::TriangleMesh::isInstance(geoMesh),
        "ContactTracker::SphereTriangleMesh::trackContact()");
 
-    // We can't handle a "proximity" test, only penetration. 
+    // We can't handle a "proximity" test, only penetration.
     SimTK_ASSERT_ALWAYS(cutoff==0,
        "ContactTracker::SphereTriangleMesh::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::Sphere&          sphere = 
+    const ContactGeometry::Sphere&          sphere =
         ContactGeometry::Sphere::getAs(geoSphere);
-    const ContactGeometry::TriangleMesh&    mesh = 
+    const ContactGeometry::TriangleMesh&    mesh =
         ContactGeometry::TriangleMesh::getAs(geoMesh);
 
     // Transform giving mesh (M) frame in the sphere (S) frame.
-    const Transform X_SM = ~X_GS*X_GM; 
+    const Transform X_SM = ~X_GS*X_GM;
 
     // Want the sphere center measured and expressed in the mesh frame.
     const Vec3 p_MC = (~X_SM).p();
     std::set<int> insideFaces;
-    processBox(mesh, mesh.getOBBTreeNode(), p_MC, square(sphere.getRadius()), 
+    processBox(mesh, mesh.getOBBTreeNode(), p_MC, square(sphere.getRadius()),
                insideFaces);
-    
+
     if (insideFaces.empty()) {
         currentStatus.clear(); // not touching
         return true; // successful return
     }
-    
-    currentStatus = TriangleMeshContact(priorStatus.getSurface1(), 
-                                        priorStatus.getSurface2(), 
-                                        X_SM, 
+
+    currentStatus = TriangleMeshContact(priorStatus.getSurface1(),
+                                        priorStatus.getSurface2(),
+                                        X_SM,
                                         std::set<int>(), insideFaces);
     return true; // success
 }
 
 // Check a single OBB and its contents (recursively) against the sphere
-// whose center location in M and radius squared is given, appending any 
+// whose center location in M and radius squared is given, appending any
 // penetrating faces to the insideFaces list.
 void ContactTracker::SphereTriangleMesh::processBox
-   (const ContactGeometry::TriangleMesh&              mesh, 
-    const ContactGeometry::TriangleMesh::OBBTreeNode& node, 
-    const Vec3& center_M, Real radius2, 
-    std::set<int>& insideFaces) const 
+   (const ContactGeometry::TriangleMesh&              mesh,
+    const ContactGeometry::TriangleMesh::OBBTreeNode& node,
+    const Vec3& center_M, Real radius2,
+    std::set<int>& insideFaces) const
 {   // First check against the node's bounding box.
 
     const Vec3 nearest_M = node.getBounds().findNearestPoint(center_M);
     if ((nearest_M-center_M).normSqr() >= radius2)
         return; // no intersection possible
-    
+
     // Bounding box is penetrating. If it's not a leaf node, check its children.
     if (!node.isLeafNode()) {
         processBox(mesh, node.getFirstChildNode(), center_M, radius2,
@@ -971,7 +971,7 @@ void ContactTracker::SphereTriangleMesh::processBox
                    insideFaces);
         return;
     }
-    
+
     // This is a leaf node that may be penetrating; check the triangles.
     const Array_<int>& triangles = node.getTriangles();
     for (unsigned i = 0; i < triangles.size(); i++) {
@@ -991,9 +991,9 @@ void ContactTracker::SphereTriangleMesh::processBox
 // Cost is TODO
 bool ContactTracker::TriangleMeshTriangleMesh::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GM1, 
+    const Transform&       X_GM1,
     const ContactGeometry& geoMesh1,
-    const Transform&       X_GM2, 
+    const Transform&       X_GM2,
     const ContactGeometry& geoMesh2,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -1003,30 +1003,30 @@ bool ContactTracker::TriangleMeshTriangleMesh::trackContact
         && ContactGeometry::TriangleMesh::isInstance(geoMesh2),
        "ContactTracker::TriangleMeshTriangleMesh::trackContact()");
 
-    // We can't handle a "proximity" test, only penetration. 
+    // We can't handle a "proximity" test, only penetration.
     SimTK_ASSERT_ALWAYS(cutoff==0,
        "ContactTracker::TriangleMeshTriangleMesh::trackContact()");
 
     // No need for an expensive dynamic cast here; we know what we have.
-    const ContactGeometry::TriangleMesh& mesh1 = 
+    const ContactGeometry::TriangleMesh& mesh1 =
         ContactGeometry::TriangleMesh::getAs(geoMesh1);
-    const ContactGeometry::TriangleMesh& mesh2 = 
+    const ContactGeometry::TriangleMesh& mesh2 =
         ContactGeometry::TriangleMesh::getAs(geoMesh2);
 
     // Transform giving mesh2 (M2) frame in the mesh1 (M1) frame.
-    const Transform X_M1M2 = ~X_GM1*X_GM2; 
+    const Transform X_M1M2 = ~X_GM1*X_GM2;
     std::set<int> insideFaces1, insideFaces2;
 
     // Get M2's bounding box in M1's frame.
-    const OrientedBoundingBox 
+    const OrientedBoundingBox
         mesh2Bounds_M1 = X_M1M2*mesh2.getOBBTreeNode().getBounds();
 
     // Find the faces that are actually intersecting faces on the other
     // surface (this doesn't yet include faces that may be completely buried).
-    findIntersectingFaces(mesh1, mesh2, 
-                          mesh1.getOBBTreeNode(), mesh2.getOBBTreeNode(), 
+    findIntersectingFaces(mesh1, mesh2,
+                          mesh1.getOBBTreeNode(), mesh2.getOBBTreeNode(),
                           mesh2Bounds_M1, X_M1M2, insideFaces1, insideFaces2);
-    
+
     // It should never be the case that one set of faces is empty and the
     // other isn't, however it is conceivable that roundoff error could cause
     // this to happen so we'll check both lists.
@@ -1034,42 +1034,42 @@ bool ContactTracker::TriangleMeshTriangleMesh::trackContact
         currentStatus.clear(); // not touching
         return true; // successful return
     }
-    
-    // There was an intersection. We now need to identify every triangle and 
+
+    // There was an intersection. We now need to identify every triangle and
     // vertex of each mesh that is inside the other mesh. We found the border
     // intersections above; now we have to fill in the buried faces.
     findBuriedFaces(mesh1, mesh2, ~X_M1M2, insideFaces1);
     findBuriedFaces(mesh2, mesh1,  X_M1M2, insideFaces2);
 
-    currentStatus = TriangleMeshContact(priorStatus.getSurface1(), 
-                                        priorStatus.getSurface2(), 
-                                        X_M1M2, 
+    currentStatus = TriangleMeshContact(priorStatus.getSurface1(),
+                                        priorStatus.getSurface2(),
+                                        X_M1M2,
                                         insideFaces1, insideFaces2);
     return true; // success
 }
 
 void ContactTracker::TriangleMeshTriangleMesh::
 findIntersectingFaces
-   (const ContactGeometry::TriangleMesh&                mesh1, 
+   (const ContactGeometry::TriangleMesh&                mesh1,
     const ContactGeometry::TriangleMesh&                mesh2,
-    const ContactGeometry::TriangleMesh::OBBTreeNode&   node1, 
-    const ContactGeometry::TriangleMesh::OBBTreeNode&   node2, 
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node1,
+    const ContactGeometry::TriangleMesh::OBBTreeNode&   node2,
     const OrientedBoundingBox&                          node2Bounds_M1,
-    const Transform&                                    X_M1M2, 
-    std::set<int>&                                      triangles1, 
-    std::set<int>&                                      triangles2) const 
+    const Transform&                                    X_M1M2,
+    std::set<int>&                                      triangles1,
+    std::set<int>&                                      triangles2) const
 {   // See if the bounding boxes intersect.
-    
+
     if (!node1.getBounds().intersectsBox(node2Bounds_M1))
         return;
-    
+
     // If either node is not a leaf node, process the children recursively.
-    
+
     if (!node1.isLeafNode()) {
         if (!node2.isLeafNode()) {
-            const OrientedBoundingBox firstChildBounds = 
+            const OrientedBoundingBox firstChildBounds =
                 X_M1M2*node2.getFirstChildNode().getBounds();
-            const OrientedBoundingBox secondChildBounds = 
+            const OrientedBoundingBox secondChildBounds =
                 X_M1M2*node2.getSecondChildNode().getBounds();
             findIntersectingFaces(mesh1, mesh2, node1.getFirstChildNode(), node2.getFirstChildNode(), firstChildBounds, X_M1M2, triangles1, triangles2);
             findIntersectingFaces(mesh1, mesh2, node1.getFirstChildNode(), node2.getSecondChildNode(), secondChildBounds, X_M1M2, triangles1, triangles2);
@@ -1083,17 +1083,17 @@ findIntersectingFaces
         return;
     }
     else if (!node2.isLeafNode()) {
-        const OrientedBoundingBox firstChildBounds = 
+        const OrientedBoundingBox firstChildBounds =
             X_M1M2*node2.getFirstChildNode().getBounds();
-        const OrientedBoundingBox secondChildBounds = 
+        const OrientedBoundingBox secondChildBounds =
             X_M1M2*node2.getSecondChildNode().getBounds();
         findIntersectingFaces(mesh1, mesh2, node1, node2.getFirstChildNode(), firstChildBounds, X_M1M2, triangles1, triangles2);
         findIntersectingFaces(mesh1, mesh2, node1, node2.getSecondChildNode(), secondChildBounds, X_M1M2, triangles1, triangles2);
         return;
     }
-    
+
     // These are both leaf nodes, so check triangles for intersections.
-    
+
     const Array_<int>& node1triangles = node1.getTriangles();
     const Array_<int>& node2triangles = node2.getTriangles();
     for (unsigned i = 0; i < node2triangles.size(); i++) {
@@ -1108,7 +1108,7 @@ findIntersectingFaces
             const Vec3& b2 = mesh1.getVertexPosition(mesh1.getFaceVertex(face1, 1));
             const Vec3& b3 = mesh1.getVertexPosition(mesh1.getFaceVertex(face1, 2));
             const Geo::Triangle B(b1,b2,b3);
-            if (A.overlapsTriangle(B)) 
+            if (A.overlapsTriangle(B))
             {   // The triangles intersect.
                 triangles1.insert(face1);
                 triangles2.insert(face2);
@@ -1123,37 +1123,37 @@ static const int Boundary =  1;
 static const int Inside   =  2;
 
 void ContactTracker::TriangleMeshTriangleMesh::
-findBuriedFaces(const ContactGeometry::TriangleMesh&    mesh,       // M 
+findBuriedFaces(const ContactGeometry::TriangleMesh&    mesh,       // M
                 const ContactGeometry::TriangleMesh&    otherMesh,  // O
-                const Transform&                        X_OM, 
-                std::set<int>&                          insideFaces) const 
-{  
+                const Transform&                        X_OM,
+                std::set<int>&                          insideFaces) const
+{
     // Find which faces are inside.
     // We're passed in the list of Boundary faces, that is, those faces of
     // "mesh" that intersect faces of "otherMesh".
     Array_<int> faceType(mesh.getNumFaces(), Unknown);
-    for (std::set<int>::iterator iter = insideFaces.begin(); 
+    for (std::set<int>::iterator iter = insideFaces.begin();
                                  iter != insideFaces.end(); ++iter)
         faceType[*iter] = Boundary;
 
     for (int i = 0; i < (int) faceType.size(); i++) {
         if (faceType[i] == Unknown) {
-            // Trace a ray from its center to determine whether it is inside.           
+            // Trace a ray from its center to determine whether it is inside.
             const Vec3     origin_O    = X_OM    * mesh.findCentroid(i);
             const UnitVec3 direction_O = X_OM.R()* mesh.getFaceNormal(i);
             Real distance;
             int face;
             Vec2 uv;
-            if (   otherMesh.intersectsRay(origin_O, direction_O, distance, 
-                                           face, uv) 
-                && ~direction_O*otherMesh.getFaceNormal(face) > 0) 
+            if (   otherMesh.intersectsRay(origin_O, direction_O, distance,
+                                           face, uv)
+                && ~direction_O*otherMesh.getFaceNormal(face) > 0)
             {
                 faceType[i] = Inside;
                 insideFaces.insert(i);
             } else
                 faceType[i] = Outside;
-            
-            // Recursively mark adjacent inside or outside Faces.           
+
+            // Recursively mark adjacent inside or outside Faces.
             tagFaces(mesh, faceType, insideFaces, i, 0);
         }
     }
@@ -1167,16 +1167,16 @@ findBuriedFaces(const ContactGeometry::TriangleMesh&    mesh,       // M
 static const int MaxRecursionDepth = 500;
 
 void ContactTracker::TriangleMeshTriangleMesh::
-tagFaces(const ContactGeometry::TriangleMesh&   mesh, 
+tagFaces(const ContactGeometry::TriangleMesh&   mesh,
          Array_<int>&                           faceType,
-         std::set<int>&                         triangles, 
+         std::set<int>&                         triangles,
          int                                    index,
-         int                                    depth) const 
+         int                                    depth) const
 {
     for (int i = 0; i < 3; i++) {
         const int edge = mesh.getFaceEdge(index, i);
-        const int face = (mesh.getEdgeFace(edge, 0) == index 
-                            ? mesh.getEdgeFace(edge, 1) 
+        const int face = (mesh.getEdgeFace(edge, 0) == index
+                            ? mesh.getEdgeFace(edge, 1)
                             : mesh.getEdgeFace(edge, 0));
         if (faceType[face] == Unknown) {
             faceType[face] = faceType[index];
@@ -1196,19 +1196,19 @@ tagFaces(const ContactGeometry::TriangleMesh&   mesh,
 //                   HALFSPACE-CONVEX IMPLICIT CONTACT TRACKER
 //==============================================================================
 // The contact point on the convex implicit surface must be the unique point on
-// that surface that has its outward-facing normal in the opposite direction of 
+// that surface that has its outward-facing normal in the opposite direction of
 // the half space normal. We will use the calcSupportPoint() method using the
 // negated half-space normal to find the desired point. You should only be
 // using this tracker for convex surfaces that can provide a high-accuracy
-// support point very fast. If the point is close enough, we'll evaluate the 
+// support point very fast. If the point is close enough, we'll evaluate the
 // curvatures at that point using the calcSurfacePrincipalCurvatures() method,
-// in preparation for generating forces with Hertz theory. This will return an 
+// in preparation for generating forces with Hertz theory. This will return an
 // elliptical point contact.
 bool ContactTracker::HalfSpaceConvexImplicit::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GH, 
+    const Transform&       X_GH,
     const ContactGeometry& geoHalfSpace,
-    const Transform&       X_GS, 
+    const Transform&       X_GS,
     const ContactGeometry& geoImplSurface,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -1248,9 +1248,9 @@ bool ContactTracker::HalfSpaceConvexImplicit::trackContact
     R_SQ.setRotationColFromUnitVecTrustMe(ZAxis, -R_SQ.z()); // changing X_SQ
     R_SQ.setRotationColFromUnitVecTrustMe(XAxis, -R_SQ.x());
 
-    // Now the frame is pointing in the right direction. Measure and express in 
-    // half plane frame, then shift origin to half way between contact point Q 
-    // on the undeformed implicit surface and the corresponding contact point P 
+    // Now the frame is pointing in the right direction. Measure and express in
+    // half plane frame, then shift origin to half way between contact point Q
+    // on the undeformed implicit surface and the corresponding contact point P
     // on the undeformed half plane surface. It's easier to do this shift
     // in H since it is in the -Hx direction.
     Transform X_HC = X_HS*X_SQ; X_HC.updP()[0] -= depth/2; // 65 flops
@@ -1268,15 +1268,15 @@ bool ContactTracker::HalfSpaceConvexImplicit::trackContact
 // This will return an elliptical point contact.
 bool ContactTracker::ConvexImplicitPair::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GA, 
+    const Transform&       X_GA,
     const ContactGeometry& shapeA,
-    const Transform&       X_GB, 
+    const Transform&       X_GB,
     const ContactGeometry& shapeB,
     Real                   cutoff,
     Contact&               currentStatus) const
 {
     SimTK_ASSERT_ALWAYS
-       (   shapeA.isConvex() && shapeA.isSmooth() 
+       (   shapeA.isConvex() && shapeA.isSmooth()
         && shapeB.isConvex() && shapeB.isSmooth(),
        "ContactTracker::ConvexImplicitPair::trackContact()");
 
@@ -1311,21 +1311,21 @@ bool ContactTracker::ConvexImplicitPair::trackContact
 
     const Vec3 pointQ_A = X_AB*pointQ_B;  // Q on B, measured & expressed in A
 
-    // 3. Compute the curvatures and surface normals of the two surfaces at 
+    // 3. Compute the curvatures and surface normals of the two surfaces at
     //    P and Q. Once we have the first normal we can check whether there was
     //    actually any contact and duck out early if not.
     Rotation R_AP; Vec2 curvatureP;
     shapeA.calcCurvature(pointP_A, curvatureP, R_AP);
 
     // If the surfaces are in contact then the vector from Q on surface B
-    // (supposedly inside A) to P on surface A (supposedly inside B) should be 
+    // (supposedly inside A) to P on surface A (supposedly inside B) should be
     // aligned with the outward normal on A.
     const Real depth = dot(pointP_A-pointQ_A, R_AP.z());
 
     #ifdef MPR_DEBUG
     printf("MPR %2d iters, Newton %2d iters->accuracy=%g depth=%g\n",
         numMPRIters, numNewtonIters, accuracyAchieved, depth);
-    #endif  
+    #endif
 
     if (depth <= 0) {
         currentStatus.clear(); // not touching
@@ -1346,8 +1346,8 @@ bool ContactTracker::ConvexImplicitPair::trackContact
     X_AC.updP() = (pointP_A+pointQ_A)/2;
 
     // Determine the contact frame orientations and composite curvatures.
-    ContactGeometry::combineParaboloids(R_AP, curvatureP, 
-                                        maxDirB_A, curvatureQ, 
+    ContactGeometry::combineParaboloids(R_AP, curvatureP,
+                                        maxDirB_A, curvatureQ,
                                         X_AC.updR(), curvatureC);
 
     // 5. Return the elliptical point contact for force generation.
@@ -1367,9 +1367,9 @@ bool ContactTracker::ConvexImplicitPair::trackContact
 //TODO: not implemented yet -- this is just the Convex-convex code here.
 bool ContactTracker::GeneralImplicitPair::trackContact
    (const Contact&         priorStatus,
-    const Transform&       X_GA, 
+    const Transform&       X_GA,
     const ContactGeometry& shapeA,
-    const Transform&       X_GB, 
+    const Transform&       X_GB,
     const ContactGeometry& shapeB,
     Real                   cutoff,
     Contact&               currentStatus) const
@@ -1380,7 +1380,7 @@ bool ContactTracker::GeneralImplicitPair::trackContact
 
     // TODO: this won't work unless the shapes are actually convex.
     return ConvexImplicitPair(shapeA.getTypeId(),shapeB.getTypeId())
-            .trackContact(priorStatus, X_GA, shapeA, X_GB, shapeB, 
+            .trackContact(priorStatus, X_GA, shapeA, X_GB, shapeB,
                           cutoff, currentStatus);
 }
 

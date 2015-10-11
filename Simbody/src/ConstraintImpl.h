@@ -57,7 +57,7 @@ class ConstraintImpl : public PIMPLImplementation<Constraint, ConstraintImpl> {
 public:
 
 ConstraintImpl()
-    : myMatterSubsystemRep(0), 
+    : myMatterSubsystemRep(0),
     defaultMp(0), defaultMv(0), defaultMa(0), defaultDisabled(false),
     constraintIsConditional(false), myAncestorBodyIsNotGround(false)
 {
@@ -66,7 +66,7 @@ virtual ~ConstraintImpl() { }
 virtual ConstraintImpl* clone() const = 0;
 
 ConstraintImpl(int mp, int mv, int ma)
-    : myMatterSubsystemRep(0), 
+    : myMatterSubsystemRep(0),
     defaultMp(mp), defaultMv(mv), defaultMa(ma), defaultDisabled(false),
     constraintIsConditional(false), myAncestorBodyIsNotGround(false)
 {
@@ -105,20 +105,20 @@ void setIsConditional(bool isConditional) {
 
 bool isConditional() const {return constraintIsConditional;}
 
-typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>       
+typedef std::map<MobilizedBodyIndex,ConstrainedBodyIndex>
     MobilizedBody2ConstrainedBodyMap;
-typedef std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex>  
+typedef std::map<MobilizedBodyIndex,ConstrainedMobilizerIndex>
     MobilizedBody2ConstrainedMobilizerMap;
 
-// Call this during construction phase to add a body to the topological 
-// structure of this Constraint. This body's mobilizer's mobilities are *not* 
+// Call this during construction phase to add a body to the topological
+// structure of this Constraint. This body's mobilizer's mobilities are *not*
 // part of the constraint; mobilizers must be added separately. If this
 // mobilized body has been seen as a constrained body before we'll return the
 // same index as first assigned to it.
 ConstrainedBodyIndex addConstrainedBody(const MobilizedBody&);
 
-// Call this during construction phase to add a mobilizer to the topological 
-// structure of this Constraint. All the coordinates q and mobilities u for 
+// Call this during construction phase to add a mobilizer to the topological
+// structure of this Constraint. All the coordinates q and mobilities u for
 // this mobilizer are added as "constrainable". We don't know how many
 // coordinates and speeds there are until Stage::Model. If this
 // mobilized body has been seen as a constrained mobilizer before we'll return
@@ -143,7 +143,7 @@ MobilizedBodyIndex getMobilizedBodyIndexOfConstrainedMobilizer
 QIndex getQIndexOfConstrainedQ(const State& s, ConstrainedQIndex cqx) const;
 UIndex getUIndexOfConstrainedU(const State& s, ConstrainedUIndex cqx) const;
 
-void convertQForcesToUForces(const State&                          s, 
+void convertQForcesToUForces(const State&                          s,
                              const Array_<Real,ConstrainedQIndex>& qForces,
                              Array_<Real,ConstrainedUIndex>&       uForces) const;
 
@@ -166,62 +166,62 @@ void convertBodyAccelToConstrainedBodyAccel
     Array_<SpatialVec, ConstrainedBodyIndex>&       A_AB) const;
 
 void realizeTopology(State&)       const; // eventually calls realizeTopologyVirtual()
-void realizeModel   (State&)       const; // eventually calls realizeModelVirtual() 
-void realizeInstance(const State&) const; // eventually calls realizeInstanceVirtual() 
+void realizeModel   (State&)       const; // eventually calls realizeModelVirtual()
+void realizeInstance(const State&) const; // eventually calls realizeInstanceVirtual()
 
-// These are called in loops over all the Constraints from the 
-// SimbodyMatterSubsystem realize() methods, which will have already 
+// These are called in loops over all the Constraints from the
+// SimbodyMatterSubsystem realize() methods, which will have already
 // deconstructed the State into an SBStateDigest object.
-void realizeTime    (const SBStateDigest&) const; // eventually calls realizeTimeVirtual() 
-void realizePosition(const SBStateDigest&) const; // eventually calls realizePositionVirtual() 
-void realizeVelocity(const SBStateDigest&) const; // eventually calls realizeVelocityVirtual() 
-void realizeDynamics(const SBStateDigest&) const; // eventually calls realizeDynamicsVirtual() 
+void realizeTime    (const SBStateDigest&) const; // eventually calls realizeTimeVirtual()
+void realizePosition(const SBStateDigest&) const; // eventually calls realizePositionVirtual()
+void realizeVelocity(const SBStateDigest&) const; // eventually calls realizeVelocityVirtual()
+void realizeDynamics(const SBStateDigest&) const; // eventually calls realizeDynamicsVirtual()
 void realizeAcceleration
-                    (const SBStateDigest&) const; // eventually calls realizeAccelerationVirtual() 
-void realizeReport  (const State&) const; // eventually calls realizeReportVirtual() 
+                    (const SBStateDigest&) const; // eventually calls realizeAccelerationVirtual()
+void realizeReport  (const State&) const; // eventually calls realizeReportVirtual()
 
-// Given a state realized to Position stage, extract the position constraint 
-// errors corresponding to this Constraint. The 'mp' argument is for sanity 
-// checking -- it is an error if that isn't an exact match for the current 
-// number of holonomic constraint equations generated by this Constraint. We 
-// expect that perr points to an array of at least mp elements that we can 
+// Given a state realized to Position stage, extract the position constraint
+// errors corresponding to this Constraint. The 'mp' argument is for sanity
+// checking -- it is an error if that isn't an exact match for the current
+// number of holonomic constraint equations generated by this Constraint. We
+// expect that perr points to an array of at least mp elements that we can
 // write on.
 void getPositionErrors(const State& s, int mp, Real* perr) const;
 
-// Given a State realized to Velocity stage, extract the velocity constraint 
-// errors corresponding to this Constraint. This includes velocity constraints 
-// which were produced by differentiation of holonomic (position) constraints, 
+// Given a State realized to Velocity stage, extract the velocity constraint
+// errors corresponding to this Constraint. This includes velocity constraints
+// which were produced by differentiation of holonomic (position) constraints,
 // and nonholonomic constraints which are introduced at the velocity level. The
-// 'mpv' argument is for sanity checking -- it is an error if that isn't an 
-// exact match for the current number of holonomic+nonholonomic (mp+mv) 
-// constraint equations generated by this Constraint. We expect that pverr 
+// 'mpv' argument is for sanity checking -- it is an error if that isn't an
+// exact match for the current number of holonomic+nonholonomic (mp+mv)
+// constraint equations generated by this Constraint. We expect that pverr
 // points to an array of at least mp+mv elements that we can write on.
 void getVelocityErrors(const State& s, int mpv, Real* pverr) const;
 
-// Given a State realized to Acceleration stage, extract the accleration 
-// constraint errors corresponding to this Constraint. This includes 
-// acceleration constraints which were produced by twice differentiation of 
-// holonomic (position) constraints, and differentiation of nonholonomic 
-// (velocity) constraints, and acceleration-only constraints which are first 
-// introduced at the acceleration level. The 'mpva' argument is for sanity 
-// checking -- it is an error if that isn't an exact match for the current 
+// Given a State realized to Acceleration stage, extract the accleration
+// constraint errors corresponding to this Constraint. This includes
+// acceleration constraints which were produced by twice differentiation of
+// holonomic (position) constraints, and differentiation of nonholonomic
+// (velocity) constraints, and acceleration-only constraints which are first
+// introduced at the acceleration level. The 'mpva' argument is for sanity
+// checking -- it is an error if that isn't an exact match for the current
 // number of holonomic+nonholonomic+accelerationOnly (mp+mv+ma) constraint
-// equations generated by this Constraint. We expect that pvaerr points to an 
+// equations generated by this Constraint. We expect that pvaerr points to an
 // array of at least mp+mv+ma elements that we can write on.
 void getAccelerationErrors(const State& s, int mpva, Real* pvaerr) const;
 
-// Given a State realized to Acceleration stage, extract the constraint 
-// multipliers lambda corresponding to this constraint. This includes 
-// multipliers for all the holonomic, nonholonomic, and acceleration-only 
-// constraints (but not quaternion constraints which do not use multipliers). 
-// The 'mpva' argument is for sanity checking -- it is an error if that isn't 
-// an exact match for the current number (mp+mv+ma) of constraint equations 
+// Given a State realized to Acceleration stage, extract the constraint
+// multipliers lambda corresponding to this constraint. This includes
+// multipliers for all the holonomic, nonholonomic, and acceleration-only
+// constraints (but not quaternion constraints which do not use multipliers).
+// The 'mpva' argument is for sanity checking -- it is an error if that isn't
+// an exact match for the current number (mp+mv+ma) of constraint equations
 // generated by this Constraint. We expect that lambda points to an array of at
 // least mp+mv+ma elements that we can write on.
 void getMultipliers(const State& s, int mpva, Real* lambda) const;
 
-// Return a small, writable array directly referencing the segment of the longer 
-// passed-in array that belongs to this constraint. State must be realized 
+// Return a small, writable array directly referencing the segment of the longer
+// passed-in array that belongs to this constraint. State must be realized
 // through Instance stage.
 ArrayView_<SpatialVec,ConstrainedBodyIndex>
 updConstrainedBodyForces(const State&        state,
@@ -231,19 +231,19 @@ ArrayView_<Real,ConstrainedUIndex>
 updConstrainedMobilityForces(const State&  state,
                              Array_<Real>& allConsMobForces) const;
 
-// Return a const reference to our segment. Can use above methods efficiently 
-// since ArrayView is derived from ArrayViewConst; this just does a 
+// Return a const reference to our segment. Can use above methods efficiently
+// since ArrayView is derived from ArrayViewConst; this just does a
 // shallow copy to fill in the ArrayViewConst handle; no heap is involved.
 ArrayViewConst_<SpatialVec,ConstrainedBodyIndex>
 getConstrainedBodyForces(const State&              state,
-                         const Array_<SpatialVec>& allConsBodyForces) const 
+                         const Array_<SpatialVec>& allConsBodyForces) const
 {
     return updConstrainedBodyForces
        (state, const_cast<Array_<SpatialVec>&>(allConsBodyForces));
 }
 ArrayViewConst_<Real,ConstrainedUIndex>
 getConstrainedMobilityForces(const State&        state,
-                             const Array_<Real>& allConsMobForces) const 
+                             const Array_<Real>& allConsMobForces) const
 {
     return updConstrainedMobilityForces
        (state, const_cast<Array_<Real>&>(allConsMobForces));
@@ -251,12 +251,12 @@ getConstrainedMobilityForces(const State&        state,
 
 // Same as above but we use the matter subsystem's constrained acceleration
 // cache as the source of the full-sized constrained body forces array,
-// where the forces are expressed in Ground. That cache entry must have been 
+// where the forces are expressed in Ground. That cache entry must have been
 // realized which occurs during Acceleration stage computations.
 ArrayViewConst_<SpatialVec,ConstrainedBodyIndex>
 getConstrainedBodyForcesInGFromState(const State& state) const
 {
-    const SBConstrainedAccelerationCache& cac = 
+    const SBConstrainedAccelerationCache& cac =
         getConstrainedAccelerationCache(state);
     return getConstrainedBodyForces(state, cac.constrainedBodyForcesInG);
 }
@@ -264,7 +264,7 @@ getConstrainedBodyForcesInGFromState(const State& state) const
 ArrayView_<SpatialVec,ConstrainedBodyIndex>
 updConstrainedBodyForcesInGFromState(const State& state) const
 {
-    SBConstrainedAccelerationCache& cac = 
+    SBConstrainedAccelerationCache& cac =
         updConstrainedAccelerationCache(state);
     return updConstrainedBodyForces(state, cac.constrainedBodyForcesInG);
 }
@@ -272,7 +272,7 @@ updConstrainedBodyForcesInGFromState(const State& state) const
 ArrayViewConst_<Real,ConstrainedUIndex>
 getConstrainedMobilityForcesFromState(const State& state) const
 {
-    const SBConstrainedAccelerationCache& cac = 
+    const SBConstrainedAccelerationCache& cac =
         getConstrainedAccelerationCache(state);
     return getConstrainedMobilityForces(state, cac.constraintMobilityForces);
 }
@@ -280,14 +280,14 @@ getConstrainedMobilityForcesFromState(const State& state) const
 ArrayView_<Real,ConstrainedUIndex>
 updConstrainedMobilityForcesFromState(const State& state) const
 {
-    SBConstrainedAccelerationCache& cac = 
+    SBConstrainedAccelerationCache& cac =
         updConstrainedAccelerationCache(state);
     return getConstrainedMobilityForces(state, cac.constraintMobilityForces);
 }
 
-// Given a State and a set of m multipliers lambda, 
-// calculate in O(m) time the constraint forces (body forces and torques and 
-// u-space mobility forces) which would be generated by those multipliers. You can 
+// Given a State and a set of m multipliers lambda,
+// calculate in O(m) time the constraint forces (body forces and torques and
+// u-space mobility forces) which would be generated by those multipliers. You can
 // restrict this to P,V,A subsets setting mp, mv, or ma to zero; in any case
 // m = mp+mv+ma and any non-zero segments must match the corresponding number
 // of constraint equations of that type.
@@ -301,15 +301,15 @@ void calcConstraintForcesFromMultipliers
     const Array_<Real>&                      lambdap, // 0 or mp of these
     const Array_<Real>&                      lambdav, // 0 or mv of these
     const Array_<Real>&                      lambdaa, // 0 or ma of these
-    Array_<SpatialVec,ConstrainedBodyIndex>& bodyForcesInA, 
+    Array_<SpatialVec,ConstrainedBodyIndex>& bodyForcesInA,
     Array_<Real,      ConstrainedUIndex>&    mobilityForces) const
 {
     int actual_mp,actual_mv,actual_ma;
     getNumConstraintEquationsInUse(s, actual_mp, actual_mv, actual_ma);
 
-    bodyForcesInA.resize(getNumConstrainedBodies()); 
+    bodyForcesInA.resize(getNumConstrainedBodies());
     bodyForcesInA.fill(SpatialVec(Vec3(0), Vec3(0)));
-    mobilityForces.resize(getNumConstrainedU(s));    
+    mobilityForces.resize(getNumConstrainedU(s));
     mobilityForces.fill(Real(0));
 
     if (lambdap.size()) {
@@ -319,7 +319,7 @@ void calcConstraintForcesFromMultipliers
         // State need only be realized to Position stage
         Array_<Real, ConstrainedQIndex> qForces(ncq, Real(0));
         Array_<Real, ConstrainedUIndex> uForces(ncu);
-        addInPositionConstraintForces(s, lambdap, 
+        addInPositionConstraintForces(s, lambdap,
                                       bodyForcesInA, qForces);
         convertQForcesToUForces(s, qForces, uForces);
         for (ConstrainedUIndex cux(0); cux < ncu; ++cux)
@@ -328,7 +328,7 @@ void calcConstraintForcesFromMultipliers
     if (lambdav.size()) {
         assert(lambdav.size() == actual_mv);
         // State may need to be realized to Velocity stage
-        addInVelocityConstraintForces(s, lambdav, 
+        addInVelocityConstraintForces(s, lambdav,
                                       bodyForcesInA, mobilityForces);
     }
     if (lambdaa.size()) {
@@ -341,12 +341,12 @@ void calcConstraintForcesFromMultipliers
 
 // Given a State realized to Position stage, and a set of spatial forces applied
 // to the constrained bodies and u-space generalized forces applied to the
-// constrained mobilities, convert these to an equivalent set 
-// of n generalized forces applied at each of the participating mobilities, in 
+// constrained mobilities, convert these to an equivalent set
+// of n generalized forces applied at each of the participating mobilities, in
 // O(n) time.
 // TODO
 void convertConstraintForcesToGeneralizedForces(const State& s,
-    const Array_<SpatialVec,ConstrainedBodyIndex>& bodyForcesInA, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>& bodyForcesInA,
     const Array_<Real,      ConstrainedUIndex>&    mobilityForces,
     Vector& generalizedForces) const
 {
@@ -354,11 +354,11 @@ void convertConstraintForcesToGeneralizedForces(const State& s,
     assert(!"convertConstraintForcesToGeneralizedForces: not implemented yet");
 }
 
-// Calculate f = ~G*lambda in O(n+m) time. ~G=[~P ~V ~A] and you can work with 
+// Calculate f = ~G*lambda in O(n+m) time. ~G=[~P ~V ~A] and you can work with
 // any subblock or combination by setting some of mp,mv,ma to zero. If nonzero
-// they have to match the actual number of holonomic, nonholonomic, and 
+// they have to match the actual number of holonomic, nonholonomic, and
 // acceleration-only constraints. Vector lambda (typically Lagrange multipliers
-// but not necessarily) is segmented lambda=[mp|mv|ma] where some of the 
+// but not necessarily) is segmented lambda=[mp|mv|ma] where some of the
 // segments can be empty.
 void calcGTransposeLambda
    (const State& s,
@@ -384,16 +384,16 @@ const SBInstanceCache&          getInstanceCache(const State&) const;
 const SBTreePositionCache&      getTreePositionCache(const State&) const;
 const SBTreeVelocityCache&      getTreeVelocityCache(const State&) const;
 const SBTreeAccelerationCache&  getTreeAccelerationCache(const State&) const;
-const SBConstrainedAccelerationCache& 
+const SBConstrainedAccelerationCache&
     getConstrainedAccelerationCache(const State& s) const;
-SBConstrainedAccelerationCache& 
+SBConstrainedAccelerationCache&
     updConstrainedAccelerationCache(const State& s) const;
 
     // Methods for use with ConstrainedMobilizers.
 
 Real getOneQFromState
    (const State&, ConstrainedMobilizerIndex, MobilizerQIndex) const;
-Real getOneQDotFromState   
+Real getOneQDotFromState
    (const State&, ConstrainedMobilizerIndex, MobilizerQIndex) const;
 Real getOneQDotDotFromState
    (const State&, ConstrainedMobilizerIndex, MobilizerQIndex) const;
@@ -407,7 +407,7 @@ Real getOneUDotFromState
 // as an operand. The state is still necessary for modeling information.
 Real getOneQ(const State& s,
              const Array_<Real,ConstrainedQIndex>&  cq,
-             ConstrainedMobilizerIndex              M, 
+             ConstrainedMobilizerIndex              M,
              MobilizerQIndex                        whichQ) const
 {
     assert(cq.size() == getNumConstrainedQ(s));
@@ -416,7 +416,7 @@ Real getOneQ(const State& s,
 }
 Real getOneQDot(const State& s,
                 const Array_<Real,ConstrainedQIndex>&  cqdot,
-                ConstrainedMobilizerIndex              M, 
+                ConstrainedMobilizerIndex              M,
                 MobilizerQIndex                        whichQ) const
 {
     assert(cqdot.size() == getNumConstrainedQ(s));
@@ -425,7 +425,7 @@ Real getOneQDot(const State& s,
 }
 Real getOneQDotDot(const State& s,
                    const Array_<Real,ConstrainedQIndex>&  cqdotdot,
-                   ConstrainedMobilizerIndex              M, 
+                   ConstrainedMobilizerIndex              M,
                    MobilizerQIndex                        whichQ) const
 {
     assert(cqdotdot.size() == getNumConstrainedQ(s));
@@ -435,7 +435,7 @@ Real getOneQDotDot(const State& s,
 
 Real getOneU(const State& s,
              const Array_<Real,ConstrainedUIndex>&  cu,
-             ConstrainedMobilizerIndex              M, 
+             ConstrainedMobilizerIndex              M,
              MobilizerUIndex                        whichU) const
 {
     assert(cu.size() == getNumConstrainedU(s));
@@ -445,7 +445,7 @@ Real getOneU(const State& s,
 
 Real getOneUDot(const State& s,
                 const Array_<Real,ConstrainedUIndex>&  cudot,
-                ConstrainedMobilizerIndex              M, 
+                ConstrainedMobilizerIndex              M,
                 MobilizerUIndex                        whichU) const
 {
     assert(cudot.size() == getNumConstrainedU(s));
@@ -453,31 +453,31 @@ Real getOneUDot(const State& s,
     return cudot[getConstrainedUIndex(s,M,whichU)];
 }
 
-// Apply a u-space (mobility) generalized force fu to a particular mobility of 
-// the given constrained mobilizer, adding it in to the appropriate slot of the 
+// Apply a u-space (mobility) generalized force fu to a particular mobility of
+// the given constrained mobilizer, adding it in to the appropriate slot of the
 // mobilityForces vector which is of length numConstrainedU for this Constraint.
 void addInOneMobilityForce
-   (const State&                        s, 
-    ConstrainedMobilizerIndex           cmx, 
+   (const State&                        s,
+    ConstrainedMobilizerIndex           cmx,
     MobilizerUIndex                     whichU,
-    Real                                fu, 
-    Array_<Real,ConstrainedUIndex>&     mobilityForces) const 
-{ 
+    Real                                fu,
+    Array_<Real,ConstrainedUIndex>&     mobilityForces) const
+{
     assert(mobilityForces.size() == getNumConstrainedU(s));
     assert(0 <= whichU && whichU < getNumConstrainedU(s, cmx));
     mobilityForces[getConstrainedUIndex(s,cmx,whichU)] += fu;
 }
 
 // Apply a q-space generalized force fq to a particular generalized coordinate q
-// of the given constrained mobilizer, adding it in to the appropriate slot of 
+// of the given constrained mobilizer, adding it in to the appropriate slot of
 // the qForces vector which is of length numConstrainedQ for this Constraint.
 void addInOneQForce
-   (const State&                        s, 
-    ConstrainedMobilizerIndex           cmx, 
+   (const State&                        s,
+    ConstrainedMobilizerIndex           cmx,
     MobilizerQIndex                     whichQ,
-    Real                                fq, 
-    Array_<Real,ConstrainedQIndex>&     qForces) const 
-{ 
+    Real                                fq,
+    Array_<Real,ConstrainedQIndex>&     qForces) const
+{
     assert(qForces.size() == getNumConstrainedQ(s));
     assert(0 <= whichQ && whichQ < getNumConstrainedQ(s, cmx));
     qForces[getConstrainedQIndex(s,cmx,whichQ)] += fq;
@@ -487,9 +487,9 @@ void addInOneQForce
 
 // These are used to retrieve the indicated values from the State cache, with all values
 // measured and expressed in the Ancestor (A) frame.
-const Transform&  getBodyTransformFromState   
+const Transform&  getBodyTransformFromState
    (const State& s, ConstrainedBodyIndex B) const;      // X_AB
-const SpatialVec& getBodyVelocityFromState   
+const SpatialVec& getBodyVelocityFromState
    (const State& s, ConstrainedBodyIndex B) const;      // V_AB
 
 // Extract just the rotational quantities from the spatial quantities above.
@@ -503,55 +503,55 @@ const Vec3& getBodyAngularVelocityFromState
 // Extract just the translational (linear) quantities from the spatial quantities above.
 const Vec3& getBodyOriginLocationFromState
    (const State& s, ConstrainedBodyIndex B)     const   // p_AB
-    {return getBodyTransformFromState(s,B).p();}  
+    {return getBodyTransformFromState(s,B).p();}
 const Vec3& getBodyOriginVelocityFromState
    (const State& s, ConstrainedBodyIndex B)     const   // v_AB
-    {return getBodyVelocityFromState(s,B)[1];}     
+    {return getBodyVelocityFromState(s,B)[1];}
 
 // These are analogous methods for when you've been given X_AB, V_AB, or A_AB
 // explicitly as an operand. These are all inline and trivial.
 const Transform& getBodyTransform
-   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     ConstrainedBodyIndex                            B) const
 {   return allX_AB[B]; }
 
 const SpatialVec& getBodyVelocity
-   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     ConstrainedBodyIndex                            B) const
 {   return allV_AB[B]; }
 
 const SpatialVec& getBodyAcceleration
-   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     ConstrainedBodyIndex                            B) const
 {   return allA_AB[B]; }
 
 const Rotation& getBodyRotation
-   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     ConstrainedBodyIndex                            B) const
 {   return allX_AB[B].R(); }
 
 const Vec3& getBodyAngularVelocity
-   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     ConstrainedBodyIndex                            B) const
 {   return allV_AB[B][0]; }
 
 const Vec3& getBodyAngularAcceleration
-   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     ConstrainedBodyIndex                            B) const
 {   return allA_AB[B][0]; }
 
 const Vec3& getBodyOriginLocation
-   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+   (const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     ConstrainedBodyIndex                            B) const
 {   return allX_AB[B].p(); }
 
 const Vec3& getBodyOriginVelocity
-   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     ConstrainedBodyIndex                            B) const
 {   return allV_AB[B][1]; }
 
 const Vec3& getBodyOriginAcceleration
-   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+   (const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     ConstrainedBodyIndex                            B) const
 {   return allA_AB[B][1]; }
 
@@ -566,7 +566,7 @@ Vec3 findStationLocationFromState
 
 // Same, but we're given the constrained body poses as an operand (18 flops).
 Vec3 findStationLocation
-   (const Array_<Transform, ConstrainedBodyIndex>& allX_AB, 
+   (const Array_<Transform, ConstrainedBodyIndex>& allX_AB,
     ConstrainedBodyIndex B, const Vec3& p_BS) const {
     const Transform& X_AB = allX_AB[B];
     return X_AB * p_BS; // re-measure and re-express (18 flops)
@@ -585,11 +585,11 @@ Vec3 findStationVelocityFromState
 // Same, but only configuration comes from state; velocities are an operand.
 Vec3 findStationVelocity
    (const State& s,
-    const Array_<SpatialVec, ConstrainedBodyIndex>& allV_AB, 
-    ConstrainedBodyIndex B, const Vec3& p_BS) const 
+    const Array_<SpatialVec, ConstrainedBodyIndex>& allV_AB,
+    ConstrainedBodyIndex B, const Vec3& p_BS) const
 {
     // p_BS rexpressed in A but not shifted to Ao
-    const Vec3        p_BS_A  = getBodyRotationFromState(s,B) * p_BS; 
+    const Vec3        p_BS_A  = getBodyRotationFromState(s,B) * p_BS;
     const SpatialVec& V_AB = allV_AB[B];
     return V_AB[1] + (V_AB[0] % p_BS_A);
 }
@@ -601,7 +601,7 @@ void findStationInALocationVelocity
    (const Transform&    X_AB,
     const SpatialVec&   V_AB,
     const Vec3&         p_BS_A,
-    Vec3& p_AS, Vec3& v_AS) const 
+    Vec3& p_AS, Vec3& v_AS) const
 {
     const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
     const Vec3 pdot_BS_A = w_AB % p_BS_A;   //  9 flops
@@ -621,7 +621,7 @@ void findRelativePositionVelocity
     const Transform&    X_AB,
     const SpatialVec&   V_AB,
     const Vec3&         p_BQ,
-    Vec3& p_PQ_A, Vec3& v_FQ_A) const 
+    Vec3& p_PQ_A, Vec3& v_FQ_A) const
 {
     const Vec3& w_AF = V_AF[0];
 
@@ -629,7 +629,7 @@ void findRelativePositionVelocity
     // body origins.
     const Vec3 p_FP_A = X_AF.R() * p_FP; // 15 flops
     const Vec3 p_BQ_A = X_AB.R() * p_BQ; // 15 flops
-    
+
     Vec3 p_AP, v_AP;
     findStationInALocationVelocity(X_AF, V_AF, p_FP_A, p_AP, v_AP);//15 flops
 
@@ -643,17 +643,17 @@ void findRelativePositionVelocity
 
 // There is no findStationAccelerationFromState().
 
-// Only configuration and velocity come from state; accelerations are an 
+// Only configuration and velocity come from state; accelerations are an
 // operand (15 flops).
 // p_BS_A      is p_BS rexpressed in A but not shifted to Ao.
 // wXwX_p_BS_A is w_AB x (w_AB x p_BS_A)  (Coriolis acceleration)
 Vec3 findStationInAAcceleration
-   (const State&                                    s, 
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
-    ConstrainedBodyIndex                            B, 
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
+    ConstrainedBodyIndex                            B,
     const Vec3&                                     p_BS_A,
-    const Vec3&                                     wXwX_p_BS_A) const 
-{   
+    const Vec3&                                     wXwX_p_BS_A) const
+{
     const SpatialVec& A_AB   = allA_AB[B];
     const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
 
@@ -665,10 +665,10 @@ Vec3 findStationInAAcceleration
 
 // Same as above but we only know the station in B. (48 flops)
 Vec3 findStationAcceleration
-   (const State&                                    s, 
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
-    ConstrainedBodyIndex                            B, 
-    const Vec3&                                     p_BS) const 
+   (const State&                                    s,
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
+    ConstrainedBodyIndex                            B,
+    const Vec3&                                     p_BS) const
 {   // p_BS_A is p_BS rexpressed in A but not shifted to Ao
     const Rotation& R_AB   = getBodyRotationFromState(s,B);
     const Vec3&     w_AB   = getBodyAngularVelocityFromState(s,B);
@@ -679,14 +679,14 @@ Vec3 findStationAcceleration
 
 
 // Combo method is cheaper. Location and velocity come from state, accelerations
-// from operand. NOTE: you must provide the p_BS vector expressed (but not 
+// from operand. NOTE: you must provide the p_BS vector expressed (but not
 // measured) in A. 39 flops.
 void findStationInALocationVelocityAcceleration
    (const Transform&                                X_AB,
     const SpatialVec&                               V_AB,
     const SpatialVec&                               A_AB,
     const Vec3&                                     p_BS_A,
-    Vec3& p_AS, Vec3& v_AS, Vec3& a_AS) const 
+    Vec3& p_AS, Vec3& v_AS, Vec3& a_AS) const
 {
     const Vec3& w_AB = V_AB[0]; const Vec3& v_AB = V_AB[1];
     const Vec3& b_AB = A_AB[0]; const Vec3& a_AB = A_AB[1];
@@ -701,14 +701,14 @@ void findStationInALocationVelocityAcceleration
     a_AS = a_AB + (b_AB % p_BS_A) + (w_AB % pdot_BS_A);
 }
 
-// Apply an Ancestor-frame force to a B-frame station S, adding it to the 
-// appropriate bodyForcesInA entry, where bodyForcesInA is *already* size 
+// Apply an Ancestor-frame force to a B-frame station S, adding it to the
+// appropriate bodyForcesInA entry, where bodyForcesInA is *already* size
 // numConstrainedBodies for this Constraint. 30 flops.
-void addInStationForce(const State& s, 
-                       ConstrainedBodyIndex B, const Vec3& p_BS, 
-                       const Vec3& forceInA, 
-                       Array_<SpatialVec, ConstrainedBodyIndex>& bodyForcesInA) 
-                       const 
+void addInStationForce(const State& s,
+                       ConstrainedBodyIndex B, const Vec3& p_BS,
+                       const Vec3& forceInA,
+                       Array_<SpatialVec, ConstrainedBodyIndex>& bodyForcesInA)
+                       const
 {
     assert(bodyForcesInA.size() == getNumConstrainedBodies());
     const Rotation& R_AB = getBodyRotationFromState(s,B);
@@ -718,37 +718,37 @@ void addInStationForce(const State& s,
 
 // If you already have the p_BS station vector re-expressed in A, use this
 // faster method (15 flops).
-void addInStationInAForce(const Vec3& p_BS_A, const Vec3& forceInA, 
-                          SpatialVec& bodyForceOnBInA) 
-                          const 
+void addInStationInAForce(const Vec3& p_BS_A, const Vec3& forceInA,
+                          SpatialVec& bodyForceOnBInA)
+                          const
 {
     bodyForceOnBInA += SpatialVec(p_BS_A % forceInA, forceInA); // rXf, f
 }
 
 // Same thing but subtract the force; this is just to save having to negate it.
-void subInStationInAForce(const Vec3& p_BS_A, const Vec3& negForceInA, 
-                          SpatialVec& bodyForceOnBInA) 
-                          const 
+void subInStationInAForce(const Vec3& p_BS_A, const Vec3& negForceInA,
+                          SpatialVec& bodyForceOnBInA)
+                          const
 {
     bodyForceOnBInA -= SpatialVec(p_BS_A % negForceInA, negForceInA); //-rXf,-f
 }
 
-// Apply an Ancestor-frame torque to body B, updating the appropriate 
-// bodyForcesInA entry, where bodyForcesInA is *already* size 
+// Apply an Ancestor-frame torque to body B, updating the appropriate
+// bodyForcesInA entry, where bodyForcesInA is *already* size
 // numConstrainedBodies for this Constraint. 3 flops.
 void addInBodyTorque(const State& s, ConstrainedBodyIndex B,
-                     const Vec3& torqueInA, 
-                     Array_<SpatialVec, ConstrainedBodyIndex>& bodyForcesInA) 
-                     const 
+                     const Vec3& torqueInA,
+                     Array_<SpatialVec, ConstrainedBodyIndex>& bodyForcesInA)
+                     const
 {
     assert(bodyForcesInA.size() == getNumConstrainedBodies());
     bodyForcesInA[B][0] += torqueInA; // no force
 }
 
 // After realizeTopology() we can look at the values of modeling variables in
-// the State. A Constraint is free to use those in determining how many 
-// constraint equations of each type to generate. The default implementation 
-// doesn't look at the state but instead returns the default numbers of 
+// the State. A Constraint is free to use those in determining how many
+// constraint equations of each type to generate. The default implementation
+// doesn't look at the state but instead returns the default numbers of
 // equations supplied when the Constraint was constructed.
 void calcNumConstraintEquationsInUse(const State& s, int& mp, int& mv, int& ma) const {
     calcNumConstraintEquationsInUseVirtual(s,mp,mv,ma);
@@ -773,11 +773,11 @@ int calcNumAccelerationEquationsInUse(const State& s) const {
     return ma;
 }
 
-    // The next three methods are just interfaces to the constraint 
+    // The next three methods are just interfaces to the constraint
     // operators like calcPositionErrors(); they extract needed operands
     // from the supplied state and then call the operator.
 
-// Calculate the mp position errors that would result from the configuration 
+// Calculate the mp position errors that would result from the configuration
 // present in the supplied state (that is, q's and body transforms). The state
 // must be realized through Time stage and part way through realization of
 // Position stage.
@@ -796,9 +796,9 @@ void calcVelocityErrorsFromState(const State& s, Array_<Real>& verr) const;
 
 // Calculate position errors given pose of the constrained bodies and the
 // values of the constrained q's. Pull t from state.
-void calcPositionErrors     
+void calcPositionErrors
    (const State&                                    s,     // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)  // mp of these
     const
@@ -810,11 +810,11 @@ void calcPositionErrors
     calcPositionErrorsVirtual(s,X_AB,constrainedQ,perr);
 }
 
-// Calculate pdot errors given spatial velocity of the constrained bodies and 
+// Calculate pdot errors given spatial velocity of the constrained bodies and
 // the values of the constrained qdot's. Pull t, X_AB and q from state.
-void calcPositionDotErrors      
+void calcPositionDotErrors
    (const State&                                    s, // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) // mp of these
     const
@@ -826,12 +826,12 @@ void calcPositionDotErrors
     calcPositionDotErrorsVirtual(s,V_AB,constrainedQDot,pverr);
 }
 
-// Calculate pdotdot errors given spatial acceleration of the constrained 
-// bodies and the values of the constrained qdotdot's. Pull t, X_AB, q, V_AB, 
+// Calculate pdotdot errors given spatial acceleration of the constrained
+// bodies and the values of the constrained qdotdot's. Pull t, X_AB, q, V_AB,
 // qdot from state.
-void calcPositionDotDotErrors     
+void calcPositionDotDotErrors
    (const State&                                    s, // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) // mp of these
     const
@@ -843,9 +843,9 @@ void calcPositionDotDotErrors
     calcPositionDotDotErrorsVirtual(s,A_AB,constrainedQDotDot,paerr);
 }
 
-// Given mp position constraint multipliers, generate the corresponding 
+// Given mp position constraint multipliers, generate the corresponding
 // constraint forces acting on the constrained bodies and the generalized
-// coordinates q of the constrained mobilizers and add them in to the given 
+// coordinates q of the constrained mobilizers and add them in to the given
 // arrays. The state must be realized through Position stage.
 void addInPositionConstraintForces
     (const State& s,
@@ -870,9 +870,9 @@ void addInPositionConstraintForces
 // Calculate velocity errors (errors produced by nonholonomic constraint
 // equations) given spatial velocity of the constrained bodies and the
 // values of the constrained u's. Pull t, X_AB, q from state.
-void calcVelocityErrors     
+void calcVelocityErrors
    (const State&                                    s,    // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr) // mv of these
     const
@@ -887,9 +887,9 @@ void calcVelocityErrors
 // Calculate vdot errors (errors produced by nonholonomic constraint
 // derivatives) given spatial acceleration of the constrained bodies and the
 // values of the constrained udot's. Pull t, X_AB, q, V_AB, u from state.
-void calcVelocityDotErrors     
+void calcVelocityDotErrors
    (const State&                                    s,     // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr) // mv of these
     const
@@ -902,10 +902,10 @@ void calcVelocityDotErrors
 }
 
 
-// Given mv velocity constraint multipliers, generate the corresponding 
+// Given mv velocity constraint multipliers, generate the corresponding
 // constraint forces acting on the constrained bodies and the mobilities of the
-// constrained mobilizers, and add them in to the given arrays. The state must 
-// be realized through Velocity stage unless the V matrix is 
+// constrained mobilizers, and add them in to the given arrays. The state must
+// be realized through Velocity stage unless the V matrix is
 // velocity-independent in which case Position stage is enough.
 void addInVelocityConstraintForces
     (const State& s,
@@ -924,9 +924,9 @@ void addInVelocityConstraintForces
 // Calculate acceleration errors (errors produced by acceleration-only
 // constraint equations) given spatial acceleration of the constrained bodies
 // and the values of the constrained udot's. Pull t, X_AB, q, V_AB, u from state.
-void calcAccelerationErrors      
+void calcAccelerationErrors
    (const State&                                    s,    // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   aerr) // ma of these
     const
@@ -939,10 +939,10 @@ void calcAccelerationErrors
 }
 
 
-// Given ma acceleration constraint multipliers, generate the corresponding 
+// Given ma acceleration constraint multipliers, generate the corresponding
 // constraint forces acting on the constrained bodies and the mobilities of the
-// constrained mobilizers, and add them in to the given arrays. The state must 
-// be realized through Velocity stage unless the A matrix is 
+// constrained mobilizers, and add them in to the given arrays. The state must
+// be realized through Velocity stage unless the A matrix is
 // velocity-independent in which case Position stage is enough.
 void addInAccelerationConstraintForces
     (const State& s,
@@ -969,7 +969,7 @@ void calcDecorativeGeometryAndAppend
     // methods for safety (they evaporate in Release builds anyway).
 
 virtual void calcNumConstraintEquationsInUseVirtual
-   (const State&, int& mp, int& mv, int& ma) const 
+   (const State&, int& mp, int& mv, int& ma) const
 {   mp = defaultMp; mv = defaultMv; ma = defaultMa; }
 
 virtual void realizeTopologyVirtual     (State&)        const {}
@@ -985,25 +985,25 @@ virtual void realizeReportVirtual       (const State&)  const {}
     // These must be defined if there are any position (holonomic) constraints.
 
 // Pull t from state.
-virtual void calcPositionErrorsVirtual      
+virtual void calcPositionErrorsVirtual
    (const State&                                    state, // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)  // mp of these
     const;
 
 // Pull t, X_AB and q from state.
-virtual void calcPositionDotErrorsVirtual      
+virtual void calcPositionDotErrorsVirtual
    (const State&                                    state, // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) // mp of these
     const;
 
 // Pull t, X_AB, q, V_AB, qdot from state.
-virtual void calcPositionDotDotErrorsVirtual      
+virtual void calcPositionDotDotErrorsVirtual
    (const State&                                    state, // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) // mp of these
     const;
@@ -1013,23 +1013,23 @@ virtual void addInPositionConstraintForcesVirtual
    (const State&                                    state, // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const;
 
     // These must be defined if there are velocity (nonholonomic) constraints.
 
 // Pull t, X_AB, q from state.
-virtual void calcVelocityErrorsVirtual      
+virtual void calcVelocityErrorsVirtual
    (const State&                                    state, // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr) // mv of these
     const;
 
 // Pull t, X_AB, q, V_AB, u from state.
-virtual void calcVelocityDotErrorsVirtual      
+virtual void calcVelocityDotErrorsVirtual
    (const State&                                    state, // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr) // mv of these
     const;
@@ -1039,15 +1039,15 @@ virtual void addInVelocityConstraintForcesVirtual
    (const State&                                    state, // Stage::Velocity
     const Array_<Real>&                             multipliers, // mv of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces)
     const;
 
     // These must be defined if there are any acceleration-only constraints.
 
 // Pull t, X_AB, q, V_AB, u from state.
-virtual void calcAccelerationErrorsVirtual      
+virtual void calcAccelerationErrorsVirtual
    (const State&                                    state, // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   aerr) // ma of these
     const;
@@ -1057,7 +1057,7 @@ virtual void addInAccelerationConstraintForcesVirtual
    (const State&                                    state, // Stage::Velocity
     const Array_<Real>&                             multipliers, // ma of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedUIndex>&           mobilityForces) 
+    Array_<Real,      ConstrainedUIndex>&           mobilityForces)
     const;
 
 
@@ -1077,8 +1077,8 @@ bool isInSubsystem() const {
     return myMatterSubsystemRep != 0;
 }
 
-// Is the supplied body in the same subsystem as this Constraint? (Returns 
-// false also if either the Constraint or the MobilizedBody is not in a 
+// Is the supplied body in the same subsystem as this Constraint? (Returns
+// false also if either the Constraint or the MobilizedBody is not in a
 // subsystem.)
 bool isInSameSubsystem(const MobilizedBody& body) const;
 
@@ -1093,9 +1093,9 @@ int getNumConstrainedMobilizers() const {
     return (int)myConstrainedMobilizers.size();
 }
 
-const MobilizedBody& 
+const MobilizedBody&
     getMobilizedBodyFromConstrainedMobilizer(ConstrainedMobilizerIndex) const;
-const MobilizedBody& 
+const MobilizedBody&
     getMobilizedBodyFromConstrainedBody(ConstrainedBodyIndex) const;
 
 // Don't call this unless there is at least one Constrained Body.
@@ -1126,8 +1126,8 @@ void getNumConstraintEquationsInUse
 // These are returned invalid if there are no constraint equations in that
 // category.
 void getIndexOfMultipliersInUse(const State& state,
-                                MultiplierIndex& px0, 
-                                MultiplierIndex& vx0, 
+                                MultiplierIndex& px0,
+                                MultiplierIndex& vx0,
                                 MultiplierIndex& ax0) const;
 
 void setMyPartInConstraintSpaceVector(const State& state,
@@ -1165,7 +1165,7 @@ ConstraintIndex getMyConstraintIndex() const {
 }
 
 
-// Calculate the transform X_AB of each ConstrainedBody in its Ancestor frame, 
+// Calculate the transform X_AB of each ConstrainedBody in its Ancestor frame,
 // provided Ancestor!=Ground and A!=B. We expect a TreePositionCache in
 // which the mobilizer- and ground-frame position kinematics results have
 // already been calculated. We then fill in the missing ancestor-frame
@@ -1175,8 +1175,8 @@ void calcConstrainedBodyTransformInAncestor(const SBInstanceVars&,  // in only
                                             ) const;
 
 // Similarly we calculate V_AB during realizeVelocity().
-// Here we expect a StateDigest realized through Position stage, and a 
-// partly-filled-in VelocityCache where we'll put V_AB for the 
+// Here we expect a StateDigest realized through Position stage, and a
+// partly-filled-in VelocityCache where we'll put V_AB for the
 // ConstrainedBodies.
 void calcConstrainedBodyVelocityInAncestor(const SBInstanceVars&,   // in only
                                            const SBTreePositionCache&, // "
@@ -1195,7 +1195,7 @@ friend class Constraint;
 SimbodyMatterSubsystemRep* myMatterSubsystemRep;
 ConstraintIndex            myConstraintIndex; // id within the matter subsystem
 
-// We'll keep the constrained bodies and constrained mobilizers each in two 
+// We'll keep the constrained bodies and constrained mobilizers each in two
 // maps: one maps MobilizedBodyIndex->ConstrainedBody[Mobilizer]Index (O(log n)
 // to look up), and the other maps ConstrainedBody[Mobilizer]Index->
 // MobilizedBodyIndex (randomly addressable in constant time).
@@ -1206,8 +1206,8 @@ Array_<MobilizedBodyIndex> myConstrainedBodies;     // [ConstrainedBodyIndex]
 Array_<MobilizedBodyIndex> myConstrainedMobilizers; // [ConstrainedMobilizerIndex]
 
 
-// These are the defaults for the number of position (holonomic) constraint 
-// equations, the number of velocity (nonholonomic) constraint equations, and 
+// These are the defaults for the number of position (holonomic) constraint
+// equations, the number of velocity (nonholonomic) constraint equations, and
 // the number of acceleration-only constraint equations.
 int defaultMp, defaultMv, defaultMa;
 
@@ -1217,7 +1217,7 @@ bool defaultDisabled;
 
 // ConditionalConstraints set this flag when they add a constraint to the
 // system. It can be referenced by a time stepper to determine whether to
-// treat a constraint as unconditional (in which case someone else has to 
+// treat a constraint as unconditional (in which case someone else has to
 // figure out whether it is active). This flag doesn't affect the operation of
 // the Constraint object itself; it is just stored and reported.
 bool constraintIsConditional;
@@ -1225,16 +1225,16 @@ bool constraintIsConditional;
     // TOPOLOGY "CACHE"
 
 // When topology is realized we study the constrained bodies to identify the
-// subtree of mobilized bodies which may be kinematically involved in 
-// satisfaction of this Constraint. This requires finding the outmost common 
+// subtree of mobilized bodies which may be kinematically involved in
+// satisfaction of this Constraint. This requires finding the outmost common
 // ancestor of the constrained bodies. All mobilized bodies on the paths inward
-// from the constrained bodies to the ancestor are included; nothing outboard 
+// from the constrained bodies to the ancestor are included; nothing outboard
 // of the constrained bodies is included; and the ancestor is treated as ground
 // so that its mobilities are *not* included. The Ancestor may be one of the
 // Constrained Bodies or may be distinct.
 mutable SimbodyMatterSubtree mySubtree;
 
-// This is true only when (1) there are Constrained Bodies and (2) their 
+// This is true only when (1) there are Constrained Bodies and (2) their
 // Ancestor is some MobilizedBody other than Ground.
 mutable bool myAncestorBodyIsNotGround;
 
@@ -1244,7 +1244,7 @@ mutable bool myAncestorBodyIsNotGround;
 // If Ancestor isn't Ground there is an entry here for each ConstrainedBody
 // (including Ancestor if it is one), but the index is invalid for Ancestor's
 // entry. When Ancestor is Ground we don't allocate this array.
-mutable Array_<AncestorConstrainedBodyPoolIndex> myPoolIndex; 
+mutable Array_<AncestorConstrainedBodyPoolIndex> myPoolIndex;
                                             // index with ConstrainedBodyIndex
 };
 
@@ -1257,7 +1257,7 @@ class Constraint::PointInPlaneImpl : public ConstraintImpl {
 public:
 PointInPlaneImpl()
     : ConstraintImpl(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
-    planeHalfWidth(1), pointRadius(Real(0.05)) 
+    planeHalfWidth(1), pointRadius(Real(0.05))
 { }
 PointInPlaneImpl* clone() const override { return new PointInPlaneImpl(*this); }
 
@@ -1280,25 +1280,25 @@ Real getPointDisplayRadius() const {return pointRadius;}
 
 // Implementation of virtuals required for holonomic constraints.
 
-// We have a point-in-plane connection between base body B, on which the plane 
-// is fixed, and follower body F, on which the follower point S is fixed. All 
-// forces will be applied at point S and the coincident material point C on B 
-// which is instantaneously at the same spatial location as S. Then n is the 
-// plane normal (a constant unit vector in B), h is the plane height measured 
-// from the B origin along n (a scalar constant).Point C's location in B is 
-// given by the vector p_BC from B's origin to the current location of S, and 
-// expressed in B. That vector expressed in A is p_BC_A (= p_AS-p_AB). We will 
+// We have a point-in-plane connection between base body B, on which the plane
+// is fixed, and follower body F, on which the follower point S is fixed. All
+// forces will be applied at point S and the coincident material point C on B
+// which is instantaneously at the same spatial location as S. Then n is the
+// plane normal (a constant unit vector in B), h is the plane height measured
+// from the B origin along n (a scalar constant).Point C's location in B is
+// given by the vector p_BC from B's origin to the current location of S, and
+// expressed in B. That vector expressed in A is p_BC_A (= p_AS-p_AB). We will
 // express in the A frame but differentiate in the B frame.
 //
 // Derivation:
 //   (1) Note that to take a derivative d/dt_B in a moving frame B, we can take
-//       the derivative d/dt_A and then add in the contribution d_A/dt_B from 
-//       A's rotation in B (which is the angular velocity of A in B, 
+//       the derivative d/dt_A and then add in the contribution d_A/dt_B from
+//       A's rotation in B (which is the angular velocity of A in B,
 //       w_BA=-w_AB).
-//   (2) p_CS = p_AS-p_AC = 0 by construction of C, but its derivative in A, 
+//   (2) p_CS = p_AS-p_AC = 0 by construction of C, but its derivative in A,
 //       v_CS_A = d/dt_A p_CS != 0.
 //
-//    perr = p_CS * n + constant 
+//    perr = p_CS * n + constant
 //         = constant  (because p_CS==0 by construction)
 //
 //    verr = d/dt_B perr = d/dt_A perr + d_A/dt_B perr
@@ -1311,33 +1311,33 @@ Real getPointDisplayRadius() const {return pointRadius;}
 //           + [w_BAXv_CS_A*n + v_CS_A*w_BAXn]
 //         = (a_CS_A - 2 w_AB X v_CS_A) * n   (2nd bracket cancels, and p_CS==0)
 //
-// (The constant in perr is set so that S starts at the same height h as the 
+// (The constant in perr is set so that S starts at the same height h as the
 // plane.)
-//  
+//
 // Then, from examination of verr noting that v_CS_A=v_AS-v_AC:
-//       ~v_AS*n                  (body F at point S) 
+//       ~v_AS*n                  (body F at point S)
 //     - ~v_AC*n                  (body B at point C)
 // so we apply a forces lambda*n to F at S, -lambda*n to B at C.
 //
 //    --------------------------------
 //    perr = ~p_BS*n - h
 //    --------------------------------
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
 {
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 1);
 
-    const Vec3       p_AS = findStationLocation(allX_AB, followerBody, 
+    const Vec3       p_AS = findStationLocation(allX_AB, followerBody,
                                                 defaultFollowerPoint);
     const Transform& X_AB = getBodyTransform(allX_AB, planeBody);
     const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
                                      // C is material pt of B coincident with S
 
-    // We'll calculate this scalar using B-frame vectors, but any frame would 
+    // We'll calculate this scalar using B-frame vectors, but any frame would
     // have done.
     perr[0] = dot(p_BC, defaultPlaneNormal) - defaultPlaneHeight;
 }
@@ -1345,24 +1345,24 @@ void calcPositionErrorsVirtual
 //    --------------------------------
 //    verr = ~v_CS_A*n
 //    --------------------------------
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(V_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 1);
     //TODO: should be able to get p info from State
 
-    const Vec3       p_AS = findStationLocationFromState(s, followerBody, 
+    const Vec3       p_AS = findStationLocationFromState(s, followerBody,
                                                          defaultFollowerPoint);
     const Transform& X_AB = getBodyTransformFromState(s, planeBody);
     const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
                                    // C is material point of B coincident with S
     const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
-    const Vec3       v_AS = findStationVelocity(s, V_AB, followerBody, 
+    const Vec3       v_AS = findStationVelocity(s, V_AB, followerBody,
                                                 defaultFollowerPoint);
     const Vec3       v_AC = findStationVelocity(s, V_AB, planeBody, p_BC);
 
@@ -1373,16 +1373,16 @@ void calcPositionDotErrorsVirtual
 //    -------------------------------------
 //    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
 //    -------------------------------------
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
 {
     assert(A_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size() == 1);
     //TODO: should be able to get p and v info from State
-    const Vec3       p_AS = findStationLocationFromState(s, followerBody, 
+    const Vec3       p_AS = findStationLocationFromState(s, followerBody,
                                                          defaultFollowerPoint);
     const Transform& X_AB = getBodyTransformFromState(s, planeBody);
     const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
@@ -1390,11 +1390,11 @@ void calcPositionDotDotErrorsVirtual
     const UnitVec3   n_A  = X_AB.R() * defaultPlaneNormal;
 
     const Vec3&      w_AB = getBodyAngularVelocityFromState(s, planeBody);
-    const Vec3       v_AS = findStationVelocityFromState(s, followerBody, 
+    const Vec3       v_AS = findStationVelocityFromState(s, followerBody,
                                                          defaultFollowerPoint);
     const Vec3       v_AC = findStationVelocityFromState(s, planeBody, p_BC);
 
-    const Vec3       a_AS = findStationAcceleration(s, A_AB, followerBody, 
+    const Vec3       a_AS = findStationAcceleration(s, A_AB, followerBody,
                                                     defaultFollowerPoint);;
     const Vec3       a_AC = findStationAcceleration(s, A_AB, planeBody, p_BC);
 
@@ -1407,16 +1407,16 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2
            && qForces.size()==0);
     const Real lambda = multipliers[0];
 
     //TODO: should be able to get p info from State
     const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
-    const Vec3       p_AS    = findStationLocationFromState(s, followerBody, 
+    const Vec3       p_AS    = findStationLocationFromState(s, followerBody,
                                                             defaultFollowerPoint);
     const Transform& X_AB    = getBodyTransformFromState(s, planeBody);
     const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
@@ -1451,9 +1451,9 @@ Real                    pointRadius;
 class Constraint::PointOnLineImpl : public ConstraintImpl {
 public:
 PointOnLineImpl()
-:   ConstraintImpl(2,0,0), 
+:   ConstraintImpl(2,0,0),
     defaultLineDirection(), defaultPointOnLine(), defaultFollowerPoint(0),
-    lineHalfLength(1), pointRadius(Real(0.05)) 
+    lineHalfLength(1), pointRadius(Real(0.05))
 { }
 PointOnLineImpl* clone() const override { return new PointOnLineImpl(*this); }
 
@@ -1483,15 +1483,15 @@ void realizeTopologyVirtual(State& s) const override {
 // Implementation of virtuals required for holonomic constraints.
 
 // We have a point-on-line connection between base body B, on which the line is
-// fixed, and follower body F, on which the follower point S is fixed. All 
-// forces will be applied at point S and the coincident material point C on B 
+// fixed, and follower body F, on which the follower point S is fixed. All
+// forces will be applied at point S and the coincident material point C on B
 // which is instantaneously at the same spatial location as S. Then z is a unit
-// vector in the direction of the line, and P is a point fixed to B that the 
-// line passes through. We will enforce this using two point-on-plane 
-// constraints, where the intersection of the two planes is the line. For that 
-// we need two plane normals perpendicular to z. We'll use an arbitrary 
-// perpendicular x, then use y=z X x as the other perpendicular. This 
-// establishes a right handed coordinate system where the line is along the z 
+// vector in the direction of the line, and P is a point fixed to B that the
+// line passes through. We will enforce this using two point-on-plane
+// constraints, where the intersection of the two planes is the line. For that
+// we need two plane normals perpendicular to z. We'll use an arbitrary
+// perpendicular x, then use y=z X x as the other perpendicular. This
+// establishes a right handed coordinate system where the line is along the z
 // axis, and we'll apply constraint forces in the x-y plane.
 //
 // See the point-in-plane constraint for details; here we're just picking x and
@@ -1501,9 +1501,9 @@ void realizeTopologyVirtual(State& s) const override {
 //    perr = ~(p_BS-p_BP) * x
 //           ~(p_BS-p_BP) * y
 //    --------------------------------
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -1511,13 +1511,13 @@ void calcPositionErrorsVirtual
     assert(allX_AB.size()==2 && constrainedQ.size()==0 && perr.size() == 2);
 
     const Transform& X_AB = getBodyTransform(allX_AB, lineBody);
-    const Vec3       p_AS = findStationLocation(allX_AB, followerBody, 
+    const Vec3       p_AS = findStationLocation(allX_AB, followerBody,
                                                 defaultFollowerPoint);
     const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
                                    // C is material point of B coincident with S
     const Vec3       p_PC = p_BC - defaultPointOnLine;
 
-    // We'll calculate these two scalars using B-frame vectors, but any frame 
+    // We'll calculate these two scalars using B-frame vectors, but any frame
     // would have done.
     perr[0] = ~p_PC * x;
     perr[1] = ~p_PC * y;
@@ -1526,28 +1526,28 @@ void calcPositionErrorsVirtual
 //    --------------------------------
 //    verr = ~v_CS_A*n
 //    --------------------------------
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size() == 2);
     //TODO: should be able to get p info from State
     const Transform& X_AB = getBodyTransformFromState(s, lineBody);
-    const Vec3       p_AS = findStationLocationFromState(s, followerBody, 
+    const Vec3       p_AS = findStationLocationFromState(s, followerBody,
                                                          defaultFollowerPoint);
     const Vec3       p_BC = ~X_AB * p_AS;
     const Vec3       p_PC = p_BC - defaultPointOnLine;
 
-    const Vec3       v_AS = findStationVelocity(s, allV_AB, followerBody, 
+    const Vec3       v_AS = findStationVelocity(s, allV_AB, followerBody,
                                                 defaultFollowerPoint);
     const Vec3       v_AC = findStationVelocity(s, allV_AB, lineBody, p_BC);
 
     const Vec3       v_CS_B = ~X_AB.R()*(v_AS-v_AC); // reexpress in B
 
-    // Calculate these scalar using B-frame vectors, but any frame would 
+    // Calculate these scalar using B-frame vectors, but any frame would
     // have done.
     pverr[0] = ~v_CS_B * x;
     pverr[1] = ~v_CS_B * y;
@@ -1556,9 +1556,9 @@ void calcPositionDotErrorsVirtual
 //    -------------------------------------
 //    aerr = ~(a_CS_A - 2 w_AB X v_CS_A) * n
 //    -------------------------------------
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -1566,7 +1566,7 @@ void calcPositionDotDotErrorsVirtual
     assert(allA_AB.size()==2 && constrainedQDotDot.size()==0 && paerr.size()==2);
     //TODO: should be able to get p and v info from State
     const Transform& X_AB = getBodyTransformFromState(s, lineBody);
-    const Vec3       p_AS = findStationLocationFromState(s, followerBody, 
+    const Vec3       p_AS = findStationLocationFromState(s, followerBody,
                                                          defaultFollowerPoint);
     const Vec3       p_BC = ~X_AB * p_AS; // shift to B origin, reexpress in B;
                                  // C is material point of B coincident with S
@@ -1576,12 +1576,12 @@ void calcPositionDotDotErrorsVirtual
     const Vec3       v_AS = findStationVelocityFromState(s, followerBody, defaultFollowerPoint);
     const Vec3       v_AC = findStationVelocityFromState(s, lineBody, p_BC);
 
-    const Vec3       a_AS = findStationAcceleration(s, allA_AB, followerBody, 
+    const Vec3       a_AS = findStationAcceleration(s, allA_AB, followerBody,
                                                     defaultFollowerPoint);
     const Vec3       a_AC = findStationAcceleration(s, allA_AB, lineBody, p_BC);
     const Vec3       a_CS_B = ~X_AB.R()*(a_AS-a_AC - 2 * w_AB % (v_AS-v_AC));
 
-    // Calculate these scalar using B-frame vectors, but any frame would 
+    // Calculate these scalar using B-frame vectors, but any frame would
     // have done.
     paerr[0] = ~a_CS_B * x;
     paerr[1] = ~a_CS_B * y;
@@ -1593,17 +1593,17 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==2 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==2 && bodyForcesInA.size()==2
            && qForces.size()==0);
     const Vec2 lambda = Vec2::getAs(&multipliers[0]);
 
     //TODO: should be able to get p info from State
     const Transform& X_AB    = getBodyTransformFromState(s, lineBody);
     const Vec3&      p_FS    = defaultFollowerPoint; // measured & expressed in F
-    const Vec3       p_AS    = findStationLocationFromState(s, followerBody, 
+    const Vec3       p_AS    = findStationLocationFromState(s, followerBody,
                                                             defaultFollowerPoint);
     const Vec3       p_BC    = ~X_AB * p_AS;         // measured & expressed in B
 
@@ -1672,17 +1672,17 @@ void realizeTopologyVirtual(State& s) const override {
 
 // Implementation of virtuals required for holonomic constraints.
 
-// Let B=B1 be the "base" body onto which unit vector b is fixed, and F=B2 the 
-// "follower" body onto which unit vector f is fixed. The angle theta between 
-// these vectors is given by cos(theta) = dot(b, f) with the axes expressed in 
-// a common basis. This can range from 1 to -1, corresponding to angles 0 to 
+// Let B=B1 be the "base" body onto which unit vector b is fixed, and F=B2 the
+// "follower" body onto which unit vector f is fixed. The angle theta between
+// these vectors is given by cos(theta) = dot(b, f) with the axes expressed in
+// a common basis. This can range from 1 to -1, corresponding to angles 0 to
 // 180 respectively. We would like to enforce the constraint that cos(theta) is
-// a constant. This can be done with a single constraint equation as long as 
-// theta is sufficiently far away from 0 and 180, with the numerically best 
+// a constant. This can be done with a single constraint equation as long as
+// theta is sufficiently far away from 0 and 180, with the numerically best
 // performance at theta=90 degrees where cos(theta)==0.
 //
-// If you want to enforce that two axes are aligned with one another (that is, 
-// the angle between them is 0 or 180), that takes *two* constraint equations 
+// If you want to enforce that two axes are aligned with one another (that is,
+// the angle between them is 0 or 180), that takes *two* constraint equations
 // since the only remaining rotation is about the common axis.
 //
 // We will work in the A frame.
@@ -1717,9 +1717,9 @@ void realizeTopologyVirtual(State& s) const override {
 // ------------------------------
 // perr = ~b_A * f_A - cos(theta)
 // ------------------------------
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -1737,12 +1737,12 @@ void calcPositionErrorsVirtual
 // ----------------------------------
 // pverr = ~(w_AF-w_AB) * (f_A % b_A)
 // ----------------------------------
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==1);
     //TODO: should be able to get p info from State
@@ -1761,9 +1761,9 @@ void calcPositionDotErrorsVirtual
 // paerr =  ~(b_AF-b_AB) * (f_A % b_A)
 //        + ~(w_AF-w_AB) * ((w_AF%f_A) % b_A) - (w_AB%b_A) % f_A)
 // --------------------------------------------------------------
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -1790,10 +1790,10 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==1 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==1 && bodyForcesInA.size()==2
            && qForces.size()==0);
     const Real lambda = multipliers[0];
     //TODO: should be able to get p info from State
@@ -1834,7 +1834,7 @@ mutable Real            cosineOfDefaultAngle;
 //==============================================================================
 class Constraint::BallImpl : public ConstraintImpl {
 public:
-BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0), 
+BallImpl() : ConstraintImpl(3,0,0), defaultPoint1(0), defaultPoint2(0),
              defaultRadius(Real(0.1)) { }
 BallImpl* clone() const override { return new BallImpl(*this); }
 
@@ -1852,23 +1852,23 @@ Real getDefaultRadius() const {return defaultRadius;}
 // in the state. We allocate the state resources here.
 void realizeTopologyVirtual(State& state) const override;
 
-// Return the pair of constrained station points, with the first expressed 
+// Return the pair of constrained station points, with the first expressed
 // in the body 1 frame and the second in the body 2 frame. Note that although
 // these are used to define the position error, only the station on body 2
-// is used to generate constraint forces; the point of body 1 that is 
+// is used to generate constraint forces; the point of body 1 that is
 // coincident with the body 2 point receives the equal and opposite force.
 const std::pair<Vec3,Vec3>& getBodyStations(const State& state) const;
 
-// Return a writable reference into the Instance-stage state variable 
-// containing the pair of constrained station points, with the first expressed 
+// Return a writable reference into the Instance-stage state variable
+// containing the pair of constrained station points, with the first expressed
 // in the body 1 frame and the second in the body 2 frame. Calling this
 // method invalidates the Instance stage and above in the given state.
 std::pair<Vec3,Vec3>& updBodyStations(State& state) const;
 
 // Implementation of virtuals required for holonomic constraints.
 
-// We have a ball joint between base body B and follower body F, located at a 
-// point P fixed to B and point S fixed on F. All forces will be applied at 
+// We have a ball joint between base body B and follower body F, located at a
+// point P fixed to B and point S fixed on F. All forces will be applied at
 // point S and the coincident material point C on B which is instantaneously at
 // the same spatial location as S. We will work in the A frame.
 //
@@ -1890,12 +1890,12 @@ std::pair<Vec3,Vec3>& updBodyStations(State& state) const;
 //      verr = v_AS - (v_AB + w_AB X R_AB*p_BC)
 //      aerr = a_AS - (a_AB + b_AB X R_AB*p_BC + w_AB X (w_AB X R_AB*p_BC))
 //  apply +lambda to S of F, -lambda to C of B.
-//      
+//
 //
 
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -1911,13 +1911,13 @@ void calcPositionErrorsVirtual
     // term (always 0) here which is what we differentiate to get the verr equation.
     Vec3::updAs(&perr[0]) = p_AS - p_AP;
 }
- 
-void calcPositionDotErrorsVirtual      
+
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==3);
 
@@ -1929,15 +1929,15 @@ void calcPositionDotErrorsVirtual
     const Vec3        p_AS   = findStationLocationFromState(s, B2, point2);
     const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-    const Vec3        v_AS    = findStationVelocity(s, allV_AB, B2, 
+    const Vec3        v_AS    = findStationVelocity(s, allV_AB, B2,
                                                     point2);
     const Vec3        v_AC    = findStationVelocity(s, allV_AB, B1, p_BC);
     Vec3::updAs(&pverr[0]) = v_AS - v_AC;
 }
 
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -1953,7 +1953,7 @@ void calcPositionDotDotErrorsVirtual
     const Vec3        p_AS   = findStationLocationFromState(s, B2, point2);
     const Vec3        p_BC   = ~X_AB*p_AS; // C is a material point of body B
 
-    const Vec3        a_AS    = findStationAcceleration(s, allA_AB, B2, 
+    const Vec3        a_AS    = findStationAcceleration(s, allA_AB, B2,
                                                         point2);
     const Vec3        a_AC    = findStationAcceleration(s, allA_AB, B1, p_BC);
     Vec3::updAs(&paerr[0]) = a_AS - a_AC;
@@ -1963,10 +1963,10 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==3 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==3 && bodyForcesInA.size()==2
            && qForces.size()==0);
 
     // Note that we're not using point1.
@@ -2027,13 +2027,13 @@ ConstantOrientationImpl* clone() const override { return new ConstantOrientation
 // the "follower" body onto which rotation matrix RF is fixed. We would like to
 // enforce the constraint that RB==RF when both are expressed in a common basis.
 // (Remember that a rotation matrix is just three axis vectors.)
-// 
-// Here the (redundant) assembly constraint is that all the axes are parallel, 
-// that is RBx==RFx, RBy==RFy, and RBz==RFz. However, aligning two vectors 
+//
+// Here the (redundant) assembly constraint is that all the axes are parallel,
+// that is RBx==RFx, RBy==RFy, and RBz==RFz. However, aligning two vectors
 // takes *two* constraints so that would be a total of 6 constraints, with only
-// 3 independent. The independent runtime constraints just enforce 
-// perpendicularity, but can be satisfied in cases where some of the axes are 
-// antiparallel so are not suited for the initial assembly. The runtime 
+// 3 independent. The independent runtime constraints just enforce
+// perpendicularity, but can be satisfied in cases where some of the axes are
+// antiparallel so are not suited for the initial assembly. The runtime
 // constraints are thus three "constant angle" constraints, where the angle
 // is always 90 degrees:
 //
@@ -2076,9 +2076,9 @@ ConstantOrientationImpl* clone() const override { return new ConstantOrientation
 //        ~RFy * RBz
 //        ~RFz * RBx
 // -----------------
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -2100,12 +2100,12 @@ void calcPositionErrorsVirtual
 //      = ~(w_AF-w_AB) * (RFy % RBz)
 //      = ~(w_AF-w_AB) * (RFz % RBx)
 // ----------------------------------
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==3);
     //TODO: should be able to get p info from State
@@ -2131,9 +2131,9 @@ void calcPositionDotErrorsVirtual
 //        ~(b_AF-b_AB) * (RFz % RBx)
 //                 + ~(w_AF-w_AB) * ((w_AF%RFz) % RBx) - (w_AB%RBx) % RFz)
 //------------------------------------------------------------------------
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -2153,7 +2153,7 @@ void calcPositionDotDotErrorsVirtual
     const Vec3&     b_AF = getBodyAngularAcceleration(allA_AB, F);
     const Vec3      b_BF = b_AF-b_AB; // in A
 
-    Vec3::updAs(&paerr[0]) = 
+    Vec3::updAs(&paerr[0]) =
         Vec3( dot( b_BF, RF.x() % RB.y() )
                   + dot( w_BF, (w_AF%RF.x()) % RB.y() - (w_AB%RB.y()) % RF.x()),
               dot( b_BF, RF.y() % RB.z() )
@@ -2170,10 +2170,10 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==3 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==3 && bodyForcesInA.size()==2
            && qForces.size()==0);
     const Vec3& lambda = Vec3::getAs(&multipliers[0]);
 
@@ -2214,7 +2214,7 @@ static Vec3 getDefaultFrameColor(int which) {
     return which==0 ? Blue : Purple;
 }
 public:
-WeldImpl() 
+WeldImpl()
     : ConstraintImpl(6,0,0), axisDisplayLength(-1), // means "use default axis length"
     frameBColor(-1), frameFColor(-1) // means "use default colors"
 {   // default Transforms are identity, i.e. body frames
@@ -2250,13 +2250,13 @@ Vec3 getFrameColor(int which) const {
 
 // Implementation of virtuals required for holonomic constraints.
 
-// For theory, look at the ConstantOrientation (1st 3 equations) and 
-// Ball (last 3 equations) theory above. Otherwise just lay back and 
+// For theory, look at the ConstantOrientation (1st 3 equations) and
+// Ball (last 3 equations) theory above. Otherwise just lay back and
 // enjoy the ride.
 
-void calcPositionErrorsVirtual      
+void calcPositionErrorsVirtual
    (const State&                                    s,      // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   allX_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)   // mp of these
     const override
@@ -2280,12 +2280,12 @@ void calcPositionErrorsVirtual
     Vec3::updAs(&perr[3]) = p_AF2 - p_AF1;
 }
 
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr)  // mp of these
-    const override 
+    const override
 {
     assert(allV_AB.size()==2 && constrainedQDot.size()==0 && pverr.size()==6);
     //TODO: should be able to get p info from State
@@ -2305,21 +2305,21 @@ void calcPositionDotErrorsVirtual
 
     //TODO: should be able to get p info from State
     const Transform&  X_AB   = getBodyTransformFromState(s, B);
-    const Vec3        p_AF2  = findStationLocationFromState(s, F, 
+    const Vec3        p_AF2  = findStationLocationFromState(s, F,
                                                             defaultFrameF.p());
     const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-    const Vec3        v_AF2  = findStationVelocity(s, allV_AB, F, 
+    const Vec3        v_AF2  = findStationVelocity(s, allV_AB, F,
                                                    defaultFrameF.p());
     const Vec3        v_AC   = findStationVelocity(s, allV_AB, B, p_BC);
- 
+
     // position error
     Vec3::updAs(&pverr[3]) = v_AF2 - v_AC;
 }
 
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr)  // mp of these
     const override
@@ -2340,7 +2340,7 @@ void calcPositionDotDotErrorsVirtual
     const Vec3      b_BF = b_AF-b_AB; // in A
 
     // orientation error
-    Vec3::updAs(&paerr[0]) = 
+    Vec3::updAs(&paerr[0]) =
         Vec3( dot( b_BF, RF.x() % RB.y() )
                   + dot( w_BF, (w_AF%RF.x()) % RB.y() - (w_AB%RB.y()) % RF.x()),
               dot( b_BF, RF.y() % RB.z() )
@@ -2349,11 +2349,11 @@ void calcPositionDotDotErrorsVirtual
                   + dot( w_BF, (w_AF%RF.z()) % RB.x() - (w_AB%RB.x()) % RF.z()));
 
     const Transform&  X_AB   = getBodyTransformFromState(s, B);
-    const Vec3        p_AF2  = findStationLocationFromState(s, F, 
+    const Vec3        p_AF2  = findStationLocationFromState(s, F,
                                                             defaultFrameF.p());
     const Vec3        p_BC   = ~X_AB*p_AF2; // C is a material point of body B
 
-    const Vec3        a_AF2  = findStationAcceleration(s, allA_AB, F, 
+    const Vec3        a_AF2  = findStationAcceleration(s, allA_AB, F,
                                                        defaultFrameF.p());
     const Vec3        a_AC   = findStationAcceleration(s, allA_AB, B, p_BC);
 
@@ -2365,10 +2365,10 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s,      // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
-    assert(multipliers.size()==6 && bodyForcesInA.size()==2 
+    assert(multipliers.size()==6 && bodyForcesInA.size()==2
            && qForces.size()==0);
 
     const Vec3& torques = Vec3::getAs(&multipliers[0]);
@@ -2422,21 +2422,21 @@ class Constraint::NoSlip1DImpl : public ConstraintImpl {
 public:
 NoSlip1DImpl()
 :   ConstraintImpl(0,1,0), defaultContactPoint(0), defaultNoSlipDirection(),
-    directionLength(1), pointRadius(Real(0.05)) 
+    directionLength(1), pointRadius(Real(0.05))
 { }
 NoSlip1DImpl* clone() const override { return new NoSlip1DImpl(*this); }
 
-// The default contact point and no-slip direction may be overridden by 
-// setting an instance variable in the state. We allocate the state 
+// The default contact point and no-slip direction may be overridden by
+// setting an instance variable in the state. We allocate the state
 // resources here.
 void realizeTopologyVirtual(State& state) const override;
 
-// Return the contact point and no-slip direction, both expressed 
+// Return the contact point and no-slip direction, both expressed
 // in the Case body frame C.
 const std::pair<Vec3,UnitVec3>& getContactInfo(const State& state) const;
 
-// Return a writable reference into the Instance-stage state variable 
-// containing the contact point and no-slip direction, both expressed 
+// Return a writable reference into the Instance-stage state variable
+// containing the contact point and no-slip direction, both expressed
 // in the Case body frame C. Calling this
 // method invalidates the Instance stage and above in the given state.
 std::pair<Vec3,UnitVec3>& updContactInfo(State& state) const;
@@ -2460,29 +2460,29 @@ Real getPointDisplayRadius() const {return pointRadius;}
 
 // Implementation of virtuals required for nonholonomic constraints.
 
-// One non-holonomic constraint equation. There is a contact point P and a 
-// no-slip direction n fixed in a case body C. There are two moving bodies B0 
-// and B1. The material point P0 of B0 and the material point P1 of B1 which 
-// are each coincident with the contact point P must have identical velocities 
-// in C, along the direction n. This can be used to implement simple rolling 
+// One non-holonomic constraint equation. There is a contact point P and a
+// no-slip direction n fixed in a case body C. There are two moving bodies B0
+// and B1. The material point P0 of B0 and the material point P1 of B1 which
+// are each coincident with the contact point P must have identical velocities
+// in C, along the direction n. This can be used to implement simple rolling
 // contact between disks, such as occurs in gear trains.
 //
-// There is no perr equation here since this is a non-holonomic (velocity) 
+// There is no perr equation here since this is a non-holonomic (velocity)
 // constraint. In the C frame, the constraint we want is
 //    verr = ~(v_CP1 - v_CP0) * n_C
-// that is, the two contact points have no relative velocity in C along the 
+// that is, the two contact points have no relative velocity in C along the
 // normal. We can calculate this in A instead since the velocities in C of each
 // point will differ from their velocities in A by a constant (because they are
 // both in the same place in space). So:
 //    verr = ~(v_AP1 - v_AP0) * n_A
-// Differentiating material point velocities in A, we get the acceleration 
+// Differentiating material point velocities in A, we get the acceleration
 // error
 //    aerr = ~(a_AP1 - a_AP0) * n_A + ~(v_AP1 - v_AP0) * (w_AC X n_A)
 //         = ~(a_AP1 - a_AP0 - w_AC X (v_AP1 - v_AP0)) * n_A
-// 
+//
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
     const override
@@ -2511,9 +2511,9 @@ void calcVelocityErrorsVirtual
     verr[0] = ~(v_AP1-v_AP0) * n_A;
 }
 
-void calcVelocityDotErrorsVirtual      
+void calcVelocityDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
     const override
@@ -2553,7 +2553,7 @@ void addInVelocityConstraintForcesVirtual
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
     Array_<Real,      ConstrainedUIndex>&           mobilityForces) const override
 {
-    assert(multipliers.size()==1 && mobilityForces.size()==0 
+    assert(multipliers.size()==1 && mobilityForces.size()==0
            && (bodyForcesInA.size()==2 || bodyForcesInA.size()==3));
 
     const std::pair<Vec3,UnitVec3>& info = getContactInfo(s);
@@ -2604,17 +2604,17 @@ mutable DiscreteVariableIndex   contactInfoIx;
 class Constraint::ConstantCoordinateImpl : public ConstraintImpl {
 public:
 ConstantCoordinateImpl()
-:   ConstraintImpl(1,0,0), theMobilizer(), whichCoordinate(), 
+:   ConstraintImpl(1,0,0), theMobilizer(), whichCoordinate(),
     defaultPosition(NaN){}
 
-ConstantCoordinateImpl* clone() const override 
+ConstantCoordinateImpl* clone() const override
 {   return new ConstantCoordinateImpl(*this); }
 
 // Allocate a state variable to hold the desired position.
 void realizeTopologyVirtual(State& state) const override;
 // Obtain the currently-set desired position from the state.
 Real getPosition(const State& state) const;
-// Get a reference to the desired position in the state; this 
+// Get a reference to the desired position in the state; this
 // invalidates Position stage in the supplied state.
 Real& updPosition(State& state) const;
 
@@ -2624,48 +2624,48 @@ Real& updPosition(State& state) const;
 //    perr = q - p
 //    verr = qdot
 //    aerr = qdotdot
-// 
-void calcPositionErrorsVirtual      
+//
+void calcPositionErrorsVirtual
    (const State&                                    s, // Stage::Time
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr)  // mp of these
     const override
 {
-    // All the q's for a given constrained mobilizer are considered 
+    // All the q's for a given constrained mobilizer are considered
     // constrainedQ's, but we're just going to grab one of them.
     assert(X_AB.size()==0 && constrainedQ.size()>=1 && perr.size()==1);
     const Real q = getOneQ(s, constrainedQ, theMobilizer, whichCoordinate);
     perr[0] = q - getPosition(s);
 }
 
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    s, // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) // mp of these
     const override
 {
-    // All the q's for a given constrained mobilizer are considered 
+    // All the q's for a given constrained mobilizer are considered
     // constrainedQDots's, but we're just going to grab one of them.
     assert(V_AB.size()==0 && constrainedQDot.size()>=1 && pverr.size()==1);
-    const Real qdot = getOneQDot(s, constrainedQDot, 
+    const Real qdot = getOneQDot(s, constrainedQDot,
                                  theMobilizer, whichCoordinate);
     pverr[0] = qdot;
 }
 
 // Pull t, X_AB, q, V_AB, qdot from state.
-void calcPositionDotDotErrorsVirtual      
+void calcPositionDotDotErrorsVirtual
    (const State&                                    s, // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) // mp of these
     const override
 {
-    // All the q's for a given constrained mobilizer are considered 
+    // All the q's for a given constrained mobilizer are considered
     // constrainedQDotDots's, but we're just going to grab one of them.
     assert(A_AB.size()==0 && constrainedQDotDot.size()>=1 && paerr.size()==1);
-    const Real qdotdot = getOneQDotDot(s, constrainedQDotDot, 
+    const Real qdotdot = getOneQDotDot(s, constrainedQDotDot,
                                        theMobilizer, whichCoordinate);
     paerr[0] = qdotdot;
 }
@@ -2675,16 +2675,16 @@ void addInPositionConstraintForcesVirtual
    (const State&                                    s, // Stage::Position
     const Array_<Real>&                             multipliers, // mp of these
     Array_<SpatialVec,ConstrainedBodyIndex>&        bodyForcesInA,
-    Array_<Real,      ConstrainedQIndex>&           qForces) 
+    Array_<Real,      ConstrainedQIndex>&           qForces)
     const override
 {
    // All the coordinates for a given constrained mobilizer have slots in
    // qForces, but we're just going to update one of them.
-   assert(multipliers.size()==1 && bodyForcesInA.size()==0 
+   assert(multipliers.size()==1 && bodyForcesInA.size()==0
           && qForces.size()>=1);
 
     const Real lambda = multipliers[0];
-    addInOneQForce(s, theMobilizer, whichCoordinate, lambda, qForces); 
+    addInOneQForce(s, theMobilizer, whichCoordinate, lambda, qForces);
 }
 
 SimTK_DOWNCAST(ConstantCoordinateImpl, ConstraintImpl);
@@ -2710,17 +2710,17 @@ DiscreteVariableIndex       positionIx;
 class Constraint::ConstantSpeedImpl : public ConstraintImpl {
 public:
 ConstantSpeedImpl()
-:   ConstraintImpl(0,1,0), theMobilizer(), whichMobility(), 
+:   ConstraintImpl(0,1,0), theMobilizer(), whichMobility(),
     defaultSpeed(NaN){}
 
-ConstantSpeedImpl* clone() const override 
+ConstantSpeedImpl* clone() const override
 {   return new ConstantSpeedImpl(*this); }
 
 // Allocate a state variable to hold the desired speed.
 void realizeTopologyVirtual(State& state) const override;
 // Obtain the currently-set desired speed from the state.
 Real getSpeed(const State& state) const;
-// Get a reference to the desired speed in the state; this 
+// Get a reference to the desired speed in the state; this
 // invalidates Velocity stage in the supplied state.
 Real& updSpeed(State& state) const;
 
@@ -2729,32 +2729,32 @@ Real& updSpeed(State& state) const;
 // One non-holonomic (well, velocity-level) constraint equation.
 //    verr = u - s
 //    aerr = udot
-// 
+//
 void calcVelocityErrorsVirtual
    (const State&                                    s,      // Stage::Position
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allV_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr)   // mv of these
     const override
 {
-    // All the u's for a given constrained mobilizer are considered 
+    // All the u's for a given constrained mobilizer are considered
     // constrainedU's, but we're just going to grab one of them.
     assert(allV_AB.size()==0 && constrainedU.size()>=1 && verr.size()==1);
     const Real u = getOneU(s, constrainedU, theMobilizer, whichMobility);
     verr[0] = u - getSpeed(s);
 }
 
-void calcVelocityDotErrorsVirtual      
+void calcVelocityDotErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr)  // mv of these
     const override
 {
-    // All the u's for a given constrained mobilizer are considered 
+    // All the u's for a given constrained mobilizer are considered
     // constrainedUDots's, but we're just going to grab one of them.
     assert(allA_AB.size()==0 && constrainedUDot.size()>=1 && vaerr.size()==1);
-    const Real udot = getOneUDot(s, constrainedUDot, 
+    const Real udot = getOneUDot(s, constrainedUDot,
                                  theMobilizer, whichMobility);
     vaerr[0] = udot;
 }
@@ -2772,8 +2772,8 @@ void addInVelocityConstraintForcesVirtual
            && mobilityForces.size()>=1);
 
     const Real lambda = multipliers[0];
-    addInOneMobilityForce(s, theMobilizer, whichMobility, lambda, 
-                          mobilityForces); 
+    addInOneMobilityForce(s, theMobilizer, whichMobility, lambda,
+                          mobilityForces);
 }
 
 SimTK_DOWNCAST(ConstantSpeedImpl, ConstraintImpl);
@@ -2798,17 +2798,17 @@ DiscreteVariableIndex       speedIx;
 class Constraint::ConstantAccelerationImpl : public ConstraintImpl {
 public:
 ConstantAccelerationImpl()
-:   ConstraintImpl(0,0,1), theMobilizer(), whichMobility(), 
+:   ConstraintImpl(0,0,1), theMobilizer(), whichMobility(),
     defaultAcceleration(NaN) {}
 
-ConstantAccelerationImpl* clone() const override 
+ConstantAccelerationImpl* clone() const override
 {   return new ConstantAccelerationImpl(*this); }
 
 // Allocate a state variable to hold the desired acceleration.
 void realizeTopologyVirtual(State& state) const override;
 // Obtain the currently-set desired acceleration from the state.
 Real getAcceleration(const State& state) const;
-// Get a reference to the desired acceleration in the state; this 
+// Get a reference to the desired acceleration in the state; this
 // invalidates Acceleration stage in the supplied state.
 Real& updAcceleration(State& state) const;
 
@@ -2816,18 +2816,18 @@ Real& updAcceleration(State& state) const;
 
 // One acceleration-only constraint equation.
 //    aerr = udot - a
-// 
-void calcAccelerationErrorsVirtual      
+//
+void calcAccelerationErrorsVirtual
    (const State&                                    s,      // Stage::Velocity
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  allA_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   aerr) const override // ma of these
 {
-    // All the u's for a given constrained mobilizer are considered 
+    // All the u's for a given constrained mobilizer are considered
     // constrainedUDots's, but we're just going to grab one of them.
     assert(allA_AB.size()==0 && constrainedUDot.size()>=1 && aerr.size()==1);
 
-    const Real udot = getOneUDot(s, constrainedUDot, 
+    const Real udot = getOneUDot(s, constrainedUDot,
                                  theMobilizer, whichMobility);
     aerr[0] = udot - getAcceleration(s);
 }
@@ -2845,8 +2845,8 @@ void addInAccelerationConstraintForcesVirtual
            && mobilityForces.size()>=1);
 
     const Real lambda = multipliers[0];
-    addInOneMobilityForce(state, theMobilizer, whichMobility, lambda, 
-                          mobilityForces); 
+    addInOneMobilityForce(state, theMobilizer, whichMobility, lambda,
+                          mobilityForces);
 }
 
 SimTK_DOWNCAST(ConstantAccelerationImpl, ConstraintImpl);
@@ -2869,14 +2869,14 @@ DiscreteVariableIndex       accelIx;
 //                         CUSTOM IMPLEMENTATION IMPL
 //==============================================================================
 // This class exists primarily to allow the Custom::Implementation class to keep
-// a pointer to its handle class's CustomImpl class which is derived from 
-// ConstraintImpl which has all the goodies that are needed for defining a 
+// a pointer to its handle class's CustomImpl class which is derived from
+// ConstraintImpl which has all the goodies that are needed for defining a
 // Constraint.
 //
 // At first this class is the owner of the CustomImpl. Then when this is put in
-// a Custom handle, that handle takes over ownership of the CustomImpl and the 
+// a Custom handle, that handle takes over ownership of the CustomImpl and the
 // CustomImpl takes over ownership of this ImplementationImpl object.
-class Constraint::Custom::ImplementationImpl 
+class Constraint::Custom::ImplementationImpl
 :   public PIMPLImplementation<Implementation, ImplementationImpl>
 {
 public:
@@ -2891,8 +2891,8 @@ ImplementationImpl* clone() const {return new ImplementationImpl(*this);}
 
 bool isOwnerOfCustomImpl() const {return builtInImpl && isOwner;}
 CustomImpl* removeOwnershipOfCustomImpl() {
-    assert(isOwnerOfCustomImpl()); 
-    isOwner=false; 
+    assert(isOwnerOfCustomImpl());
+    isOwner=false;
     return builtInImpl;
 }
 
@@ -2934,11 +2934,11 @@ CustomImpl(int mp, int mv, int ma) : ConstraintImpl(mp,mv,ma), implementation(0)
 
 void takeOwnershipOfImplementation(Custom::Implementation* userImpl);
 
-explicit CustomImpl(Custom::Implementation* userImpl) : implementation(0) { 
+explicit CustomImpl(Custom::Implementation* userImpl) : implementation(0) {
     assert(userImpl);
     implementation = userImpl;
     implementation->updImpl().setReferenceToCustomImpl(this);
-}    
+}
 
 // Copy constructor
 CustomImpl(const CustomImpl& src) : implementation(0) {
@@ -2947,11 +2947,11 @@ CustomImpl(const CustomImpl& src) : implementation(0) {
         implementation->updImpl().setReferenceToCustomImpl(this);
     }
 }
-    
+
 ~CustomImpl() {
     delete implementation;
 }
-    
+
 CustomImpl* clone() const override { return new CustomImpl(*this); }
 
 const Custom::Implementation& getImplementation() const {
@@ -2975,70 +2975,70 @@ void realizeDynamicsVirtual(const State& s) const override {getImplementation().
 void realizeAccelerationVirtual(const State& s) const override {getImplementation().realizeAcceleration(s);}
 void realizeReportVirtual  (const State& s) const override {getImplementation().realizeReport(s);}
 
-void calcPositionErrorsVirtual     
+void calcPositionErrorsVirtual
    (const State&                                    state,
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr) const override
 {   getImplementation().calcPositionErrors(state,X_AB,constrainedQ,perr); }
 
-void calcPositionDotErrorsVirtual      
+void calcPositionDotErrorsVirtual
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) const override
 {   getImplementation().calcPositionDotErrors
                                         (state,V_AB,constrainedQDot,pverr); }
 
-void calcPositionDotDotErrorsVirtual     
+void calcPositionDotDotErrorsVirtual
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) const override
 {   getImplementation().calcPositionDotDotErrors
                                     (state,A_AB,constrainedQDotDot,paerr); }
 
 void addInPositionConstraintForcesVirtual
-   (const State&                                s, 
+   (const State&                                s,
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
     Array_<Real,ConstrainedQIndex>&             qForces) const override
 {   getImplementation().addInPositionConstraintForces
         (s,multipliers,bodyForcesInA,qForces); }
 
-void calcVelocityErrorsVirtual     
+void calcVelocityErrorsVirtual
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr) const override
 {   getImplementation().calcVelocityErrors(state,V_AB,constrainedU,verr); }
 
-void calcVelocityDotErrorsVirtual     
+void calcVelocityDotErrorsVirtual
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr) const override
 {   getImplementation().calcVelocityDotErrors
                                         (state,A_AB,constrainedUDot,vaerr); }
 
 void addInVelocityConstraintForcesVirtual
-   (const State&                                s, 
+   (const State&                                s,
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
     Array_<Real,ConstrainedUIndex>&             mobilityForces) const override
 {   getImplementation().addInVelocityConstraintForces
         (s,multipliers,bodyForcesInA,mobilityForces); }
 
-void calcAccelerationErrorsVirtual      
+void calcAccelerationErrorsVirtual
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   aerr) const override
 {   getImplementation().calcVelocityDotErrors
                                         (state,A_AB,constrainedUDot,aerr); }
 
 void addInAccelerationConstraintForcesVirtual
-   (const State&                                s, 
+   (const State&                                s,
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
     Array_<Real,ConstrainedUIndex>&             mobilityForces) const override
@@ -3061,8 +3061,8 @@ CustomImpl& operator=(const CustomImpl&); // suppress assignment
 
 // Need definition for CustomImpl here in case we have to delete it.
 inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
-    if (isOwner) 
-        delete builtInImpl; 
+    if (isOwner)
+        delete builtInImpl;
     builtInImpl=0;
 }
 
@@ -3071,47 +3071,47 @@ inline Constraint::Custom::ImplementationImpl::~ImplementationImpl() {
 //==============================================================================
 //                          COORDINATE COUPLER IMPL
 //==============================================================================
-class Constraint::CoordinateCouplerImpl 
+class Constraint::CoordinateCouplerImpl
 :   public Constraint::Custom::Implementation {
 public:
-CoordinateCouplerImpl(SimbodyMatterSubsystem&           matter, 
-                      const Function*                   function, 
-                      const Array_<MobilizedBodyIndex>& coordBody, 
+CoordinateCouplerImpl(SimbodyMatterSubsystem&           matter,
+                      const Function*                   function,
+                      const Array_<MobilizedBodyIndex>& coordBody,
                       const Array_<MobilizerQIndex>&    coordIndex);
-    
+
 ~CoordinateCouplerImpl() {
     if (--referenceCount[0] == 0) {
         delete function;
         delete[] referenceCount;
     }
 }
-    
+
 Implementation* clone() const override {
     referenceCount[0]++;
     CoordinateCouplerImpl* newCoupler = new CoordinateCouplerImpl(*this);
     return newCoupler;
 }
 
-void calcPositionErrors     
+void calcPositionErrors
    (const State&                                    state,
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr) const override;
 
-void calcPositionDotErrors      
+void calcPositionDotErrors
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) const override;
 
-void calcPositionDotDotErrors     
+void calcPositionDotDotErrors
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) const override;
 
 void addInPositionConstraintForces
-   (const State&                                state, 
+   (const State&                                state,
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
     Array_<Real,ConstrainedQIndex>&             qForces) const override;
@@ -3143,42 +3143,42 @@ int*                                referenceCount;
 //==============================================================================
 //                           SPEED COUPLER IMPL
 //==============================================================================
-class Constraint::SpeedCouplerImpl 
+class Constraint::SpeedCouplerImpl
 :   public Constraint::Custom::Implementation {
 public:
-SpeedCouplerImpl(SimbodyMatterSubsystem& matter, 
-                 const Function*                    function, 
-                 const Array_<MobilizedBodyIndex>&  speedBody, 
+SpeedCouplerImpl(SimbodyMatterSubsystem& matter,
+                 const Function*                    function,
+                 const Array_<MobilizedBodyIndex>&  speedBody,
                  const Array_<MobilizerUIndex>&     speedIndex,
-                 const Array_<MobilizedBodyIndex>&  coordBody, 
+                 const Array_<MobilizedBodyIndex>&  coordBody,
                  const Array_<MobilizerQIndex>&     coordIndex);
-    
+
 ~SpeedCouplerImpl() {
     if (--referenceCount[0] == 0) {
         delete function;
         delete[] referenceCount;
     }
 }
-    
+
 Implementation* clone() const override {
     referenceCount[0]++;
     return new SpeedCouplerImpl(*this);
 }
 
-void calcVelocityErrors     
+void calcVelocityErrors
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedU,
     Array_<Real>&                                   verr) const override;
 
-void calcVelocityDotErrors     
+void calcVelocityDotErrors
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
     Array_<Real>&                                   vaerr) const override;
 
 void addInVelocityConstraintForces
-   (const State&                                state, 
+   (const State&                                state,
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
     Array_<Real,ConstrainedUIndex>&             mobilityForces) const override;
@@ -3200,46 +3200,46 @@ mutable Vector                      temp;
 //==============================================================================
 //                          PRESCRIBED MOTION IMPL
 //==============================================================================
-class Constraint::PrescribedMotionImpl 
+class Constraint::PrescribedMotionImpl
 :   public Constraint::Custom::Implementation {
 public:
-PrescribedMotionImpl(SimbodyMatterSubsystem&    matter, 
-                     const Function*            function, 
-                     MobilizedBodyIndex         coordBody, 
+PrescribedMotionImpl(SimbodyMatterSubsystem&    matter,
+                     const Function*            function,
+                     MobilizedBodyIndex         coordBody,
                      MobilizerQIndex            coordIndex);
-    
+
 ~PrescribedMotionImpl() {
     if (--referenceCount[0] == 0) {
         delete function;
         delete[] referenceCount;
     }
 }
-    
+
 Implementation* clone() const override {
     referenceCount[0]++;
     return new PrescribedMotionImpl(*this);
 }
 
-void calcPositionErrors     
+void calcPositionErrors
    (const State&                                    state,
-    const Array_<Transform,ConstrainedBodyIndex>&   X_AB, 
+    const Array_<Transform,ConstrainedBodyIndex>&   X_AB,
     const Array_<Real,     ConstrainedQIndex>&      constrainedQ,
     Array_<Real>&                                   perr) const override;
 
-void calcPositionDotErrors      
+void calcPositionDotErrors
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDot,
     Array_<Real>&                                   pverr) const override;
 
-void calcPositionDotDotErrors     
+void calcPositionDotDotErrors
    (const State&                                    state,
-    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+    const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
     const Array_<Real,      ConstrainedQIndex>&     constrainedQDotDot,
     Array_<Real>&                                   paerr) const override;
 
 void addInPositionConstraintForces
-   (const State&                                state, 
+   (const State&                                state,
     const Array_<Real>&                         multipliers,
     Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForces,
     Array_<Real,ConstrainedQIndex>&             qForces) const override;

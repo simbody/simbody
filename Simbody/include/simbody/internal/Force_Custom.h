@@ -28,7 +28,7 @@
 #include "simbody/internal/Force.h"
 
 /** @file
-This contains the user-visible API ("handle" class) for the SimTK::Force 
+This contains the user-visible API ("handle" class) for the SimTK::Force
 subclass Force::Custom, and its related class Force::Custom::Implemnetation,
 and is logically part of Force.h. The file assumes that
 Force.h will have included all necessary declarations. **/
@@ -36,39 +36,39 @@ Force.h will have included all necessary declarations. **/
 namespace SimTK {
 
 /**
- * This class is used to define new force elements. To use it, you will 
+ * This class is used to define new force elements. To use it, you will
  * create a class that extends Force::Custom::Implementation. Optionally, you
- * may also create a "handle" class extending Force::Custom that hides your 
+ * may also create a "handle" class extending Force::Custom that hides your
  * implementation and provides a nicer API for users of your new force element.
- * Here we'll use as an example a force "MySpring" that we'll presume you will 
- * declare in a header file "MySpring.h". The MySpring constructor will take 
- * a reference to a MobilizedBody \a mobod and a spring constant \a k, and 
+ * Here we'll use as an example a force "MySpring" that we'll presume you will
+ * declare in a header file "MySpring.h". The MySpring constructor will take
+ * a reference to a MobilizedBody \a mobod and a spring constant \a k, and
  * connect the origin OB of body \a mobod to the Ground origin O by a spring of
- * stiffness \a k. MySpring will apply a force of magnitude \a kx to OB, 
- * directed towards O, where x=|OB-O| is the current distance from OB to O. 
+ * stiffness \a k. MySpring will apply a force of magnitude \a kx to OB,
+ * directed towards O, where x=|OB-O| is the current distance from OB to O.
  * First we'll look at how MySpring would be used in a main program (whether by
- * you or some future user of your force element), then how you would 
- * implement it. 
+ * you or some future user of your force element), then how you would
+ * implement it.
  *
- * There are two possibilities: 
- *  - you supply only an %Implementation object MySpringImpl (less work 
- *    for you), or 
+ * There are two possibilities:
+ *  - you supply only an %Implementation object MySpringImpl (less work
+ *    for you), or
  *  - you supply both the %Implementation object and a handle MySpring
- *    (nicer for the user). 
+ *    (nicer for the user).
  *
  * If you are planning only to use this force yourself, and perhaps just once
- * for a single application, the %Implementation-only approach is probably 
+ * for a single application, the %Implementation-only approach is probably
  * adequate. However, if you plan to have others use your new force object, it
- * is well worth the (minimal) extra effort to provide a handle class also to 
- * make your new force behave identically to the built-in forces that come 
- * with Simbody. In either case the %Implementation object is the same so you 
- * can add a handle later if you want. To reiterate: the handle class is 
+ * is well worth the (minimal) extra effort to provide a handle class also to
+ * make your new force behave identically to the built-in forces that come
+ * with Simbody. In either case the %Implementation object is the same so you
+ * can add a handle later if you want. To reiterate: the handle class is
  * completely optional; you \e must write an %Implementation class
  * but a handle class is an aesthetic addition whose main purpose is to
  * make a cleaner API for users of your force element.
  *
- * In the case where you write only the %Implementation class, a user will 
- * create an instance of that class and pass it to the generic Force::Custom 
+ * In the case where you write only the %Implementation class, a user will
+ * create an instance of that class and pass it to the generic Force::Custom
  * constructor (this would be in main.cpp or some other piece of application
  * code):
  * @code
@@ -100,10 +100,10 @@ namespace SimTK {
  *      MySpringImpl(MobilizedBody mobod, Real k)
  *      :   m_mobod(mobod), m_k(k) {}
  *
- *      virtual void calcForce(const State&         state, 
- *                             Vector_<SpatialVec>& bodyForcesInG, 
- *                             Vector_<Vec3>&       particleForcesInG, 
- *                             Vector&              mobilityForces) const 
+ *      virtual void calcForce(const State&         state,
+ *                             Vector_<SpatialVec>& bodyForcesInG,
+ *                             Vector_<Vec3>&       particleForcesInG,
+ *                             Vector&              mobilityForces) const
  *      {
  *          Vec3 bodyPointInB(0,0,0); // body origin (in the body frame)
  *          Vec3 pos = m_mobod.getBodyOriginLocation(state); // in Ground frame
@@ -126,11 +126,11 @@ namespace SimTK {
  * To write the code exactly as above, the compiler has to be told to look in
  * the %SimTK namespace for some of the symbols. There are a variety of ways
  * to do that; see the discussion below for details.
- * 
+ *
  * <h2>Writing the handle class</h2>
  *
- * Here is how to implement the handle class, assuming you've already 
- * written the %Implementation class MySpringImpl. You would put this 
+ * Here is how to implement the handle class, assuming you've already
+ * written the %Implementation class MySpringImpl. You would put this
  * code (at least the declarations) in MySpring.h, following the declaration
  * of the MySpringImpl class:
  * @code
@@ -140,17 +140,17 @@ namespace SimTK {
  *  public:
  *      MySpring(GeneralForceSubsystem& forces, // note the "&"
  *               MobilizedBody          mobod,
- *               Real                   k) 
+ *               Real                   k)
  *      :   Force::Custom(forces, new MySpringImpl(mobod,k)) {}
  *  };
  * @endcode
  * As you can see, the handle class is very simple and just hides the creation
- * of the implementation object. Since this removes any reference to the 
+ * of the implementation object. Since this removes any reference to the
  * implementation object from the user's program, it also means you can hide
  * the implementation details completely (perhaps in a separately compiled
- * library), which has many advantages. You can add additional methods to the 
- * handle class to provide a clean API to users of your custom force; these 
- * methods will forward to the implementation object as necessary but will not 
+ * library), which has many advantages. You can add additional methods to the
+ * handle class to provide a clean API to users of your custom force; these
+ * methods will forward to the implementation object as necessary but will not
  * expose any aspects of the implementation that are not needed by the user.
  *
  * @warning A handle class <em>must not</em> have any data members or virtual
@@ -161,25 +161,25 @@ namespace SimTK {
  *
  * The examples above glossed over the naming of symbols in the SimTK namespace.
  * To write the code exactly as above you would need to precede it with
- * \c using statements to tell the compiler to look there to resolve symbols, 
+ * \c using statements to tell the compiler to look there to resolve symbols,
  * for example:
  * @code
  *  using namespace SimTK; // search the entire namespace for symbols, or
  *  using SimTK::Real; using SimTK::Vector_; // define just particular symbols
  * @endcode
- * Either of those approaches will work, but note that this will have the same 
- * effect on user programs that include MySpring.h as it does within the header 
+ * Either of those approaches will work, but note that this will have the same
+ * effect on user programs that include MySpring.h as it does within the header
  * file. That may be unwanted behavior for some users who might prefer not to have
  * the namespace searched automatically, perhaps to avoid conflicts with their own
- * symbols that have the same names. If you want to avoid introducing unwanted 
- * symbols into users' compilation units, then in the header file you should 
- * refer to each symbol explicitly by its full name; that is, prepend the 
+ * symbols that have the same names. If you want to avoid introducing unwanted
+ * symbols into users' compilation units, then in the header file you should
+ * refer to each symbol explicitly by its full name; that is, prepend the
  * namespace each time the symbol is used, for example:
  * @code
  *  class MySpringImpl: public SimTK::Force::Custom::Implementation {
- *  void calcForce(const SimTK::State&                state, 
- *                 SimTK::Vector_<SimTK::SpatialVec>& bodyForcesInG, 
- *                 SimTK::Vector_<SimTK::Vec3>&       particleForcesInG, 
+ *  void calcForce(const SimTK::State&                state,
+ *                 SimTK::Vector_<SimTK::SpatialVec>& bodyForcesInG,
+ *                 SimTK::Vector_<SimTK::Vec3>&       particleForcesInG,
  *                 SimTK::Vector&                     mobilityForces) const ;
  *  };
  * @endcode
@@ -195,14 +195,14 @@ public:
     class Implementation;
     /**
      * Create a Custom force.
-     * 
+     *
      * @param forces         the subsystem to which this force should be added
      * @param implementation the object which implements the custom force.  The Force::Custom takes over
      *                       ownership of the implementation object, and deletes it when the Force itself
      *                       is deleted.
      */
     Custom(GeneralForceSubsystem& forces, Implementation* implementation);
-    
+
     /** Default constructor creates an empty handle. **/
     Custom() {}
 
@@ -223,7 +223,7 @@ public:
     virtual ~Implementation() { }
     /**
      * Calculate the force for a given state.
-     * 
+     *
      * @param state          the State for which to calculate the force
      * @param bodyForces     spatial forces on MobilizedBodies are accumulated in this.  To apply a force to a body,
      *                       add it to the appropriate element of this vector.
@@ -235,7 +235,7 @@ public:
     virtual void calcForce(const State& state, Vector_<SpatialVec>& bodyForces, Vector_<Vec3>& particleForces, Vector& mobilityForces) const = 0;
     /**
      * Calculate this force's contribution to the potential energy of the System.
-     * 
+     *
      * @param state          the State for which to calculate the potential energy
      */
     virtual Real calcPotentialEnergy(const State& state) const = 0;
@@ -261,7 +261,7 @@ public:
     virtual bool shouldBeParallelIfPossible() const {
         return false;
     }
-    /** The following methods may optionally be overridden to do specialized 
+    /** The following methods may optionally be overridden to do specialized
     realization for a Force. **/
     //@{
     virtual void realizeTopology(State& state) const {}
@@ -278,7 +278,7 @@ public:
     /** Override this if you want to generate some geometry for the visualizer
     to display. Be sure to \e append the geometry to the list. **/
     virtual void calcDecorativeGeometryAndAppend
-       (const State& state, Stage stage, 
+       (const State& state, Stage stage,
         Array_<DecorativeGeometry>& geometry) const {}
 
 };

@@ -30,41 +30,41 @@ using namespace SimTK;
 /*
 What this example demonstrates
 ------------------------------
-1. Implementing a rate-controlled but torque-limited motor using a Custom force 
+1. Implementing a rate-controlled but torque-limited motor using a Custom force
    element that uses PI (Proportional-Integral control) to track speed when
    possible without exceeding the torque limit.
 2. Changing desired motor speed and torque limit externally from user input.
-3. Integrating using just an Integrator without a TimeStepper with a modest 
+3. Integrating using just an Integrator without a TimeStepper with a modest
    maximum step size that allows for output of Visualizer frames and polling for
    user input between steps.
 4. Creating sliders, menus, and screen text in the Visualizer.
 
-Compare this with ExampleMotor-TorqueLimited-Constraint to see the same 
+Compare this with ExampleMotor-TorqueLimited-Constraint to see the same
 system implemented more efficiently, but with more complex logic, using
 an intermittent constraint.
 
 Strategy used here
 ------------------
-Provide a Custom force element that implements the torque-limited motor. It 
+Provide a Custom force element that implements the torque-limited motor. It
 allocates a state variable used for integral control so that a steady-state
 torque can be generated. There is also proportional control that generates a
-torque proportional to the tracking error. These are summed and then capped 
-by the user-controlled torque limit. Two gains must be selected, with some 
+torque proportional to the tracking error. These are summed and then capped
+by the user-controlled torque limit. Two gains must be selected, with some
 tradeoff of performance for tracking effectiveness.
 
 The integration consists of repeated stepping by the maximum step size, with
-periodic output of Visualizer frames and polling for user input that may 
+periodic output of Visualizer frames and polling for user input that may
 result in changes to the desired speed and torque limit. Nothing else need be
 managed in the integration loop since the motor force element is always on.
 
 Alternative strategies
 ----------------------
-1. Because we are generating screen updates and polling for user input only 
-between steps, we have to restrict the maximum step size accordingly. An 
-alternative strategy is to let the integrator take whatever steps it wants but 
+1. Because we are generating screen updates and polling for user input only
+between steps, we have to restrict the maximum step size accordingly. An
+alternative strategy is to let the integrator take whatever steps it wants but
 use a TimeStepper with a periodic event reporter to generate interpolated
-display updates when needed, and a periodic event handler to poll for user input 
-and make state changes as a result. That would allow larger steps, depending on 
+display updates when needed, and a periodic event handler to poll for user input
+and make state changes as a result. That would allow larger steps, depending on
 how much user response lag is tolerable (usually 100ms is acceptable).
 2. A more difficult approach is to use an intermittent constraint to control
 speed rather than doing it with a speed-tracking force element as is done here.
@@ -84,7 +84,7 @@ const Real InitialTorqueLimit = 100;
 
 // Joint stop material parameters.
 const Real StopStiffness   = 10000; // stiffness in left joint stop
-const Real StopDissipation = 0.5;   // dissipation rate 
+const Real StopDissipation = 0.5;   // dissipation rate
 
 // Integration step size, display update, user polling rates.
 const Real MaxStepSize    = Real(1/30.); // 33 1/3 ms (30 Hz)
@@ -144,7 +144,7 @@ public:
         const Real integTrq  = m_matter.getZ(state)[m_trqIx];
         const Real trqLimit  = getTorqueLimit(state);
         const Real proportionalTrq = -ProportionalGain*getSpeedError(state);
-        const Real totalTrq = clamp(-trqLimit, integTrq+proportionalTrq, 
+        const Real totalTrq = clamp(-trqLimit, integTrq+proportionalTrq,
                                      trqLimit);
         return totalTrq;
     }
@@ -156,12 +156,12 @@ public:
 
     // Force::Custom::Implementation virtuals:
 
-    void calcForce(const State&         state, 
-                   Vector_<SpatialVec>& bodyForces, 
-                   Vector_<Vec3>&       particleForces, 
+    void calcForce(const State&         state,
+                   Vector_<SpatialVec>& bodyForces,
+                   Vector_<Vec3>&       particleForces,
                    Vector&              mobilityForces) const override
     {
-        m_mobod.applyOneMobilityForce(state, m_whichU, getTorque(state), 
+        m_mobod.applyOneMobilityForce(state, m_whichU, getTorque(state),
                                       mobilityForces);
     }
 
@@ -169,7 +169,7 @@ public:
         return 0;
     }
 
-    // Allocate state variables: 
+    // Allocate state variables:
     //   Discrete variables for desired speed and torque limit;
     //   a continuous variable for the integral torque (a "z").
     void realizeTopology(State& state) const override {
@@ -191,7 +191,7 @@ public:
         if (abstrq >= trqLimit && sign(trqDot)*trqsign >= 0)
             trqDot = 0;
 
-        m_matter.updZDot(state)[m_trqIx] = trqDot; 
+        m_matter.updZDot(state)[m_trqIx] = trqDot;
     }
 
 private:
@@ -219,11 +219,11 @@ public:
     const MultibodySystem& getSystem() const {return m_system;}
     const State& getDefaultState() const {return m_system.getDefaultState();}
 
-    Real getDesiredSpeed(const State& state) const 
+    Real getDesiredSpeed(const State& state) const
     {   return m_controller->getDesiredSpeed(state); }
     Real getTorqueLimit(const State& state) const
     {   return m_controller->getTorqueLimit(state); }
-    Real getActualSpeed(const State& state) const 
+    Real getActualSpeed(const State& state) const
     {   return m_controller->getActualSpeed(state); }
     Real getSpeedError(const State& state) const
     {   return m_controller->getSpeedError(state); }
@@ -276,8 +276,8 @@ int main() {
 
     // We want real time performance here and don't need high accuracy, so we'll
     // use semi explicit Euler. However, we hope to take fairly large steps so
-    // need error control to avoid instability. We must also prevent 
-    // interpolation so that the state returned after each step is the 
+    // need error control to avoid instability. We must also prevent
+    // interpolation so that the state returned after each step is the
     // integrator's "advanced state", which is modifiable, so that we can update
     // it in response to user input.
     SemiExplicitEuler2Integrator integ(mech.getSystem());
@@ -287,7 +287,7 @@ int main() {
     integ.initialize(mech.getDefaultState());
     unsigned stepNum = 0;
     while (true) {
-        // Get access to State being advanced by the integrator. Interpolation 
+        // Get access to State being advanced by the integrator. Interpolation
         // must be off so that we're modifying the actual trajectory.
         State& state = integ.updAdvancedState();
 
@@ -295,11 +295,11 @@ int main() {
         if (stepNum % DrawEveryN == 0)
             mech.draw(state);
 
-        // Check for user input periodically. 
+        // Check for user input periodically.
         if (stepNum % PollUserEveryN == 0 && mech.processUserInput(state))
             break; // stop if user picked Quit from the Run menu
 
-        // Advance time by MaxStepSize. Might take multiple internal steps to 
+        // Advance time by MaxStepSize. Might take multiple internal steps to
         // get there, depending on difficulty and required accuracy.
         integ.stepBy(MaxStepSize);
         ++stepNum;
@@ -322,8 +322,8 @@ int main() {
 //==============================================================================
 
 //------------------------------- CONSTRUCTOR ----------------------------------
-MyMechanism::MyMechanism() 
-:   m_system(), m_matter(m_system), m_forces(m_system), m_viz(m_system), 
+MyMechanism::MyMechanism()
+:   m_system(), m_matter(m_system), m_forces(m_system), m_viz(m_system),
     m_userInput(0), m_controller(0)
 {
     constructSystem();
@@ -351,7 +351,7 @@ void MyMechanism::constructSystem() {
     Force::MobilityLinearDamper(m_forces, m_rtArm, MobilizerUIndex(0), 10);
 
     // Add a joint stop to the left arm restricting it to q in [0,Pi/5].
-    Force::MobilityLinearStop(m_forces, m_leftArm, MobilizerQIndex(0), 
+    Force::MobilityLinearStop(m_forces, m_leftArm, MobilizerQIndex(0),
         StopStiffness,
         StopDissipation,
         -Pi/8,   // lower stop
@@ -388,7 +388,7 @@ void MyMechanism::changeTorqueLimit(State& state, Real newTorqueLimit) const {
 namespace {
 // Constants for the user interaction widgets.
 // Ids for the sliders.
-const int SliderIdMotorSpeed = 1, SliderIdTorqueLimit = 2, 
+const int SliderIdMotorSpeed = 1, SliderIdTorqueLimit = 2,
           SliderIdTach = 3, SliderIdTorque = 4; // these two are used for output
 // Ids for things on the Run Menu.
 const int MenuIdRun = 1;
@@ -407,17 +407,17 @@ bool MyMechanism::processUserInput(State& state) const {
             break;
         case SliderIdTorqueLimit:
             changeTorqueLimit(state, newValue);
-            m_viz.setSliderRange(SliderIdTorque, -newValue, newValue); 
+            m_viz.setSliderRange(SliderIdTorque, -newValue, newValue);
             break;
         }
     }
 
     // Was there a menu pick?
     if (m_userInput->takeMenuPick(whichMenu, whichItem)) {
-        if (whichItem == QuitItem) 
+        if (whichItem == QuitItem)
             return true; // done
 
-        // If Reset, stop the motor and zero out all the q's and u's. 
+        // If Reset, stop the motor and zero out all the q's and u's.
         // Tell visualizer to update the sliders to match.
         if (whichItem == ResetItem) {
             m_controller->resetIntegratedTorque(state);
@@ -427,8 +427,8 @@ bool MyMechanism::processUserInput(State& state) const {
 
             m_controller->setTorqueLimit(state, InitialTorqueLimit);
             m_viz.setSliderValue(SliderIdTorqueLimit, InitialTorqueLimit)
-                 .setSliderRange(SliderIdTorque, -InitialTorqueLimit, 
-                                                InitialTorqueLimit) 
+                 .setSliderRange(SliderIdTorque, -InitialTorqueLimit,
+                                                InitialTorqueLimit)
                  .setSliderValue(SliderIdTorque, 0);
 
             state.updQ() = 0; // all positions to zero
@@ -437,7 +437,7 @@ bool MyMechanism::processUserInput(State& state) const {
             m_system.projectU(state);
         }
     }
-    
+
     return false; // keep going
 }
 
@@ -449,7 +449,7 @@ class ShowStuff : public DecorationGenerator {
 public:
     ShowStuff(const MyMechanism& mech) : m_mech(mech) {}
 
-    void generateDecorations(const State&                state, 
+    void generateDecorations(const State&                state,
                              Array_<DecorativeGeometry>& geometry) override
     {
         DecorativeText msg;
@@ -457,7 +457,7 @@ public:
         if (std::abs(m_mech.getMotorTorque(state)) < m_mech.getTorqueLimit(state))
             msg.setText("OK");
         else
-            msg.setText("TORQUE LIMITED err=" 
+            msg.setText("TORQUE LIMITED err="
                          + String(m_mech.getSpeedError(state), "%.2g"));
         geometry.push_back(msg);
     }
@@ -471,15 +471,15 @@ private:
 void MyMechanism::setUpVisualizer() {
     m_viz.setShutdownWhenDestructed(true) // make sure display window dies
          .setBackgroundType(Visualizer::SolidColor); // turn off Ground & Sky
-    
+
     // Add sliders.
-    m_viz.addSlider("Motor speed", SliderIdMotorSpeed, 
+    m_viz.addSlider("Motor speed", SliderIdMotorSpeed,
                     -MaxMotorSpeed, MaxMotorSpeed, InitialMotorSpeed)
-         .addSlider("Torque limit", SliderIdTorqueLimit, 
+         .addSlider("Torque limit", SliderIdTorqueLimit,
                     0, MaxTorqueLimit, InitialTorqueLimit)
-         .addSlider("Tach",   SliderIdTach,   
+         .addSlider("Tach",   SliderIdTach,
                     -MaxMotorSpeed,  MaxMotorSpeed,  0)
-         .addSlider("Torque", SliderIdTorque, 
+         .addSlider("Torque", SliderIdTorque,
                     -InitialTorqueLimit, InitialTorqueLimit, 0);
 
     // Add Run menu.
@@ -512,17 +512,17 @@ void MyMechanism::draw(const State& state) const {
 namespace {
 void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }
 }

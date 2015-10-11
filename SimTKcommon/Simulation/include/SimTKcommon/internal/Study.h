@@ -43,7 +43,7 @@ namespace SimTK {
  *
  * Only methods intended for Study Users and a few bookkeeping methods
  * are in the main Study class, which is a SimTK Handle class, meaning
- * that it consists only of a single pointer, which points to a 
+ * that it consists only of a single pointer, which points to a
  * Study::Guts class. The Guts class is abstract, and virtual methods
  * to be implemented by Study Developers in the concrete
  * Study are defined there, along

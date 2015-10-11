@@ -37,19 +37,19 @@ const char* ImpulseSolver::getUniCondName(UniCond uc) {
     return UniNA<=uc&&uc<=UniKnown ? nm[uc+1] : "UNKNOWNUniCond";
 }
 const char* ImpulseSolver::getFricCondName(FricCond fc) {
-    static const char* nm[]={"FricNA", "FricOff", "Sliding", 
+    static const char* nm[]={"FricNA", "FricOff", "Sliding",
                             "Impending", "Rolling"};
     return FricNA<=fc&&fc<=Rolling ? nm[fc+1] : "UNKNOWNFricCond";
 }
 const char* ImpulseSolver::getBndCondName(BndCond bc) {
-    static const char* nm[]={"BndNA", "SlipLow", "ImpendLow", "Engaged", 
+    static const char* nm[]={"BndNA", "SlipLow", "ImpendLow", "Engaged",
                             "ImpendHigh", "SlipHigh"};
     return BndNA<=bc&&bc<=SlipHigh ? nm[bc+1] : "UNKNOWNBndCond";
 }
 
 void ImpulseSolver::
 dumpUniContacts(const String& msg,
-                const Array_<UniContactRT>& uniContacts) 
+                const Array_<UniContactRT>& uniContacts)
 {
     printf("\n----------%s----------\n", msg.c_str());
     printf("Unilateral contact runtimes (n=%d):\n", (int)uniContacts.size());
@@ -59,12 +59,12 @@ dumpUniContacts(const String& msg,
                "sign=%g, hasFriction: %d\n", i, (int)rt.m_ucx, (int)rt.m_Nk,
                rt.m_sign, rt.hasFriction());
         if (rt.hasFriction()) {
-            std::cout << "  friction MultIndices: " << rt.m_Fk   
+            std::cout << "  friction MultIndices: " << rt.m_Fk
                       << " effMu=" << rt.m_effMu << std::endl;
         }
         printf("  inputs: ContactType=%s, effCOR=%g\n",
                getContactTypeName(rt.m_type), rt.m_effCOR);
-        printf("  outputs: normal cond=%s", 
+        printf("  outputs: normal cond=%s",
                getUniCondName(rt.m_contactCond));
         if (rt.hasFriction()) {
             printf(" friction cond=%s slipV=%g %g, |slipV|=%g",

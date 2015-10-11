@@ -42,14 +42,14 @@ class DecorativeGeometry;
 //==============================================================================
 //                                    BODY
 //==============================================================================
-/** The Body class represents a reference frame that can be used to describe 
-mass properties and geometry. These are in turn used to build MobilizedBodies 
-which combine a body and a specified mobilizer that defines how the reference 
-frame can move with respect to other MobilizedBodies. Attached geometric 
+/** The Body class represents a reference frame that can be used to describe
+mass properties and geometry. These are in turn used to build MobilizedBodies
+which combine a body and a specified mobilizer that defines how the reference
+frame can move with respect to other MobilizedBodies. Attached geometric
 objects can serve as the basis for a variety of force-generating elements or
 other algorithms that act on bodies.
 
-Body is an abstract base class handle, with concrete classes defined for each 
+Body is an abstract base class handle, with concrete classes defined for each
 kind of body. There are a set of built-in body types, with Body::Rigid the
 most common. **/
 class SimTK_SIMBODY_EXPORT Body {
@@ -65,25 +65,25 @@ Body(const Body& source);
 is the owner, then replaced with a \e copy of the source. **/
 Body& operator=(const Body& source);
 
-/** This is a default conversion from MassProperties to Body. It will result 
-in a rigid body (concrete class Body::Rigid) being created using these as its 
-default MassProperties. This is what allows you to provide MassProperties 
+/** This is a default conversion from MassProperties to Body. It will result
+in a rigid body (concrete class Body::Rigid) being created using these as its
+default MassProperties. This is what allows you to provide MassProperties
 instead of a Body in the MobilizedBody constructors. **/
 Body(const MassProperties& massProps);
 
-/** Every type of Body should provide an initial set of rigid body mass 
+/** Every type of Body should provide an initial set of rigid body mass
 properties defined at Topology stage (i.e., in the System rather than
 the State). This is thus a Topology-stage change which will require a new
-realizeTopology() before use. **/ 
+realizeTopology() before use. **/
 Body& setDefaultRigidBodyMassProperties(const MassProperties&);
 
 /** Get the default (that is, Topology stage) mass properties for this Body.
-This may be overridden in a State if this Body has variable mass 
+This may be overridden in a State if this Body has variable mass
 properties. **/
 const MassProperties& getDefaultRigidBodyMassProperties() const;
 
-/** Add a piece of decorative geometry fixed at some pose on this Body. 
-This can be used for visualization of the Body's motion. Returns a small 
+/** Add a piece of decorative geometry fixed at some pose on this Body.
+This can be used for visualization of the Body's motion. Returns a small
 integer ordinal that can be used to identify this decoration in any copy of this
 %Body. The supplied DecorativeGeometry object is copied and transformed by the
 given Transform so that the actual geometry is always stored relative to the
@@ -98,16 +98,16 @@ int addDecoration(const DecorativeGeometry& geometry)
 {   return addDecoration(Transform(), geometry); }
 
 /** Obtain a count nd of how many pieces of DecorativeGeometry have been
-attached to this Body. The ordinals i for individual decorations will be 
+attached to this Body. The ordinals i for individual decorations will be
 numbered 0 <= i < nd. **/
 int getNumDecorations() const;
 
-/** Get a read-only reference to the i'th piece of DecorativeGeometry that 
+/** Get a read-only reference to the i'th piece of DecorativeGeometry that
 was added to this Body, with 0 <= i < getNumDecorations(). The ordinal i is
 the small integer that was returned by addDecoration(). **/
 const DecorativeGeometry& getDecoration(int i) const;
 
-/** Get a writable reference to the i'th piece of DecorativeGeometry that 
+/** Get a writable reference to the i'th piece of DecorativeGeometry that
 was added to this Body, with 0 <= i < getNumDecorations().  The ordinal i is
 the small integer that was returned by addDecoration(). Note that we allow
 writable access to decorations even on a const Body -- these are after all
@@ -116,13 +116,13 @@ DecorativeGeometry& updDecoration(int i) const;
 
 /** Create a new ContactSurface on a body and place it using the indicated
 Transform. Unlike decorations, the Transform is kept separately rather than used
-to transform the copied surface in place. You can obtain it later with 
-getContactSurfaceTransform(). A small integer ordinal is returned that can be 
+to transform the copied surface in place. You can obtain it later with
+getContactSurfaceTransform(). A small integer ordinal is returned that can be
 used to identify this ContactSurface in any copy of this %Body. That integer
-saved in the new ContactSurface object, using its setIndexOnBody() method. 
+saved in the new ContactSurface object, using its setIndexOnBody() method.
 @see ContactSurface::setIndexOnBody() **/
 int addContactSurface(const Transform&          X_BS,
-                      const ContactSurface&     shape); 
+                      const ContactSurface&     shape);
 
 /** Convenience method for when the contact surface is to be placed at the
 body frame. This is the same as `addContactSurface(Transform(),shape)`. **/
@@ -139,11 +139,11 @@ const ContactSurface& getContactSurface(int i) const;
 on this Body. **/
 const Transform& getContactSurfaceTransform(int i) const;
 /** Get write access to the i'th unique contact surface owned by this Body. This
-is a Topology-stage change that will require a new `realizeTopology()` call if 
+is a Topology-stage change that will require a new `realizeTopology()` call if
 this Body is part of a System. **/
 ContactSurface& updContactSurface(int i);
-/** Get a writable reference to the Transform specifying the placement of the 
-i'th contact surface on this Body. This is a Topology-stage change that will 
+/** Get a writable reference to the Transform specifying the placement of the
+i'th contact surface on this Body. This is a Topology-stage change that will
 require a new realizeTopology() call if this Body is part of a System. **/
 Transform& updContactSurfaceTransform(int i);
 
@@ -175,13 +175,13 @@ class BodyRep* rep;
 //==============================================================================
 //                               BODY::RIGID
 //==============================================================================
-/** A general rigid body. This can represent a body with mass properties that 
+/** A general rigid body. This can represent a body with mass properties that
 are full, linear, inertialess (e.g. a point), or massless. **/
 class SimTK_SIMBODY_EXPORT Body::Rigid : public Body {
 public:
     /** Construct a rigid body with default mass properties which are
     (1,Vec3(0),Inertia(1,1,1)) **/
-    Rigid(); 
+    Rigid();
     /** Construct a rigid body with the given mass properties; any set of
     mass properties is allowed since this is a general rigid body. **/
     explicit Rigid(const MassProperties&);
@@ -204,7 +204,7 @@ private:
 //==============================================================================
 //                               BODY::LINEAR
 //==============================================================================
-/** This is a rigid body in the shape of a line, which is inherently 
+/** This is a rigid body in the shape of a line, which is inherently
 inertialess about its axis. Its mass properties may be modified later, but
 only in such a way that the Body remains inertialess about one axis. **/
 class SimTK_SIMBODY_EXPORT Body::Linear : public Body {
@@ -256,7 +256,7 @@ private:
 //==============================================================================
 //                              BODY::MASSLESS
 //==============================================================================
-/** This is a Body that is constitutively massless (and inertialess); meaning 
+/** This is a Body that is constitutively massless (and inertialess); meaning
 that no amount of fiddling with it will ever give it any mass or inertia. **/
 class SimTK_SIMBODY_EXPORT Body::Massless : public Body {
 public:

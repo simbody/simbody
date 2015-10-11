@@ -41,9 +41,9 @@ using namespace SimTK;
 static Array_<State> saveStates;
 class ShowStuff : public PeriodicEventReporter {
 public:
-    ShowStuff(const MultibodySystem& mbs, 
-              const CableSpring& cable1, Real interval) 
-    :   PeriodicEventReporter(interval), 
+    ShowStuff(const MultibodySystem& mbs,
+              const CableSpring& cable1, Real interval)
+    :   PeriodicEventReporter(interval),
         mbs(mbs), cable1(cable1) {}
 
     static void showHeading(std::ostream& o) {
@@ -52,7 +52,7 @@ public:
             "KE", "PE", "KE+PE-W");
     }
 
-    /** This is the implementation of the EventReporter virtual. **/ 
+    /** This is the implementation of the EventReporter virtual. **/
     void handleEvent(const State& state) const override {
         const CablePath& path1 = cable1.getCablePath();
         printf("%8g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %10.4g %12.6g CPU=%g\n",
@@ -76,8 +76,8 @@ private:
 };
 
 int main() {
-  try {    
-    // Create the system.   
+  try {
+    // Create the system.
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     CableTrackerSubsystem cables(system);
@@ -132,7 +132,7 @@ int main() {
     BicubicSurface patch(xp, yp, fp, fxp, fyp, fxyp);
     Rotation xm90(-Pi/2, XAxis);
     Transform patchPose(xm90, Vec3(4,2,0));
-    
+
     // Ask the bicubic surfaces for some meshes we can use for display.
     Real resolution = 31;
     PolygonalMesh patchMesh = patch.createPolygonalMesh(resolution);
@@ -155,22 +155,22 @@ int main() {
         DecorativeMesh(tibia).setColor(Vec3(.8,.8,.8)));
 
 
-    Body::Rigid someBody(MassProperties(2.0, Vec3(0,-4,0), 
+    Body::Rigid someBody(MassProperties(2.0, Vec3(0,-4,0),
         UnitInertia::cylinderAlongY(1,4).shiftFromCentroid(Vec3(0,4,0))));
 
-    someBody.addDecoration(Transform(Rotation(Pi,ZAxis),Vec3(0,-4,0)), 
+    someBody.addDecoration(Transform(Rotation(Pi,ZAxis),Vec3(0,-4,0)),
         DecorativeCylinder(1,4).setColor(Yellow)
                             .setOpacity(.5).setResolution(4));
-    someBody.addDecoration(Transform(), 
+    someBody.addDecoration(Transform(),
         DecorativeMesh(femur).setColor(Vec3(.8,.8,.8)));
 
-    MobilizedBody::Free body1(Ground,    Transform(Vec3(0)), 
+    MobilizedBody::Free body1(Ground,    Transform(Vec3(0)),
                               someBody,  Transform(Vec3(0,0,0)));
 
     CablePath path1(cables, Ground, Vec3(.5,-.5,0),   // origin
                             body1, Vec3(0,0,0));  // termination
 
-    CableObstacle::Surface obstacle1(path1, Ground, SmoothOrigin, 
+    CableObstacle::Surface obstacle1(path1, Ground, SmoothOrigin,
                                      ContactGeometry::SmoothHeightMap(smooth));
     // Provide an initial guess for P and Q (in frame of "smooth").
     Vec3 P1(1.5,1,3.75), Q1(1.5,-1,3.75);
@@ -181,7 +181,7 @@ int main() {
     Ground.addBodyDecoration(SmoothOrigin,
         DecorativePoint(Q1).setColor(Red).setScale(2));
 
-    CableSpring cable1(forces, path1, 50., 8., 0.1); 
+    CableSpring cable1(forces, path1, 50., 8., 0.1);
 
     //Force::TwoPointLinearSpring spring1(forces, body1, Vec3(0,-8,0),
     //    Ground, Vec3(0,0,0), 30., 12.);
@@ -189,16 +189,16 @@ int main() {
     Visualizer viz(system);
     viz.setShowFrameNumber(true);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    system.addEventReporter(new ShowStuff(system, cable1, 0.02));    
+    system.addEventReporter(new ShowStuff(system, cable1, 0.02));
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     //Random::Gaussian random;
     //for (int i = 0; i < state.getNQ(); ++i)
     //    state.updQ()[i] = random.getValue();
     //for (int i = 0; i < state.getNU(); ++i)
-    //    state.updU()[i] = 0.1*random.getValue(); 
+    //    state.updU()[i] = 0.1*random.getValue();
     body1.setQToFitTranslation(state, Vec3(4,-10,-3));
     body1.setQToFitRotation(state, Rotation(-Pi, ZAxis));
 
@@ -226,7 +226,7 @@ int main() {
     const Real finalTime = 10;
     const double startTime = realTime(), startCPU = cpuTime();
     ts.stepTo(finalTime);
-    cout << "DONE with " << finalTime 
+    cout << "DONE with " << finalTime
          << "s simulated in " << realTime()-startTime
          << "s elapsed, " << cpuTime()-startCPU << " s CPU.\n";
 

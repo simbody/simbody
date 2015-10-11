@@ -22,22 +22,22 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* This is a stripped-down .urdf robot file reader, with just enough 
-functionality for this example. URDF is an XML format for ROS from the Open 
+/* This is a stripped-down .urdf robot file reader, with just enough
+functionality for this example. URDF is an XML format for ROS from the Open
 Source Robotics Foundation (http://osrfoundation.org). See
-http://wiki.ros.org/urdf/XML for a description of the file format. Don't 
+http://wiki.ros.org/urdf/XML for a description of the file format. Don't
 confuse this with Gazebo's .sdf format.
 
 URDF file format notes
 ----------------------
 A urdf file describes a robot in XML format using the following objects:
 robot   Root element that contains links and joints.
-link    Named mass- and geometry-carrying object (a body). There is a link 
-        frame, and inertial, visual, and collision objects each with their own 
-        frame given relative to the link frame. An initial pose for the link 
+link    Named mass- and geometry-carrying object (a body). There is a link
+        frame, and inertial, visual, and collision objects each with their own
+        frame given relative to the link frame. An initial pose for the link
         frame is given, relative to the model frame.
 joint   Connection between two links or between a link and the world.
-        There is a parent and child link, given by name. There is a joint type 
+        There is a parent and child link, given by name. There is a joint type
         and then appropriate parameters depending on the type. There is a joint
         frame whose pose is given w.r.t. the parent frame. Unfortunately this
         must also be the child body frame.
@@ -45,7 +45,7 @@ joint   Connection between two links or between a link and the world.
 The world frame is assumed to have x forward (roll axis), y left (pitch axis),
 and z=x X y up (yaw axis).
 
-An <origin> element (with an 'xyz' and 'rpy' attribute) is equivalent to a 
+An <origin> element (with an 'xyz' and 'rpy' attribute) is equivalent to a
 Simbody Transform, interpreted as x,y,z translation vector followed by a
 roll-pitch-yaw (x-y-z) body-fixed Euler angle sequence given in radians.
 
@@ -69,13 +69,13 @@ A <visual> or <collision> element has <origin> and <geometry> subelements.
 // Some utility methods for URDF reading.
 class URDF {
 public:
-    static SimTK::Transform 
+    static SimTK::Transform
         origin2Transform(const SimTK::Vec3& xyz, const SimTK::Vec3& rpy);
-    static SimTK::Vec6 
+    static SimTK::Vec6
         transform2Pose(const SimTK::Transform& X_AB);
-    static SimTK::Transform 
+    static SimTK::Transform
         getOrigin(SimTK::Xml::Element element);
-    static SimTK::MassProperties 
+    static SimTK::MassProperties
         getMassProperties(SimTK::Xml::Element link);
 };
 
@@ -83,7 +83,7 @@ public:
 //                             URDF LINK INFO
 //==============================================================================
 // This is one link's information read from the .urdf input file and translated
-// into Simbody's terminology and conventions. The mapping to Simbody 
+// into Simbody's terminology and conventions. The mapping to Simbody
 // MobilizedBody is written here after we build the Simbody System.
 // (Ignore master/slave stuff for URDF which can only do trees.)
 class URDFLinkInfo {
@@ -94,7 +94,7 @@ public:
     // When a link is broken into several fragments (master and slaves), they
     // share the mass equally. Given the number of fragments, this returns the
     // appropriate mass properties to use for each fragment. Per Simbody's
-    // convention, COM is measured from, and inertia taken about, the link 
+    // convention, COM is measured from, and inertia taken about, the link
     // origin and both are expressed in the link frame.
     SimTK::MassProperties getEffectiveMassProps(int numFragments) const {
         assert(numFragments > 0); // must be at least 1 for the master
@@ -119,7 +119,7 @@ public:
     // Which MobilizedBody corresponds to the master instance of this link.
     SimTK::MobilizedBody                   masterMobod;
 
-    // If this link got split into a master and slaves, these are the 
+    // If this link got split into a master and slaves, these are the
     // MobilizedBodies used to mobilize the slaves.
     std::vector<SimTK::MobilizedBody>      slaveMobods;
 
@@ -131,7 +131,7 @@ public:
 //==============================================================================
 //                            URDF JOINT INFO
 //==============================================================================
-// This is one joint's information read from the URDF input file and 
+// This is one joint's information read from the URDF input file and
 // translated into Simbody's terminology and conventions. The joint will
 // typically have been modeled as a Mobilizer, but may have been modeled as
 // a Constraint; in either case the corresponding Simbody element is written
@@ -139,9 +139,9 @@ public:
 // (Ignore constraint for URDF.)
 class URDFJointInfo {
 public:
-    URDFJointInfo(const std::string& name, const std::string& type) 
+    URDFJointInfo(const std::string& name, const std::string& type)
     :   name(name), type(type), mustBreakLoopHere(false),
-        effort(SimTK::Infinity), lower(-SimTK::Infinity), 
+        effort(SimTK::Infinity), lower(-SimTK::Infinity),
         upper(SimTK::Infinity), velocity(SimTK::Infinity),
         isReversed(false)
     {}
@@ -177,7 +177,7 @@ public:
 //==============================================================================
 //                               URDF LINKS
 //==============================================================================
-// This collects all the links for a particular model, and maintains a 
+// This collects all the links for a particular model, and maintains a
 // name->URDFLinkInfo mapping. Be sure to add a world link first, with the
 // appropriate pose measured from the model frame.
 class URDFLinks {
@@ -187,19 +187,19 @@ public:
     // Return the number of links so far.
     int size() const {return (int)linkByIndex.size();}
 
-    bool hasLink(const std::string& name) const 
+    bool hasLink(const std::string& name) const
     {   return name2index.find(name) != name2index.end(); }
     bool hasLink(int index) const
     {   assert(index>=0); return index < size(); }
 
     // Get link by name (const or writable).
-    const URDFLinkInfo& getLink(const std::string& name) const 
+    const URDFLinkInfo& getLink(const std::string& name) const
     {   return getLink(getLinkIndex(name)); }
-    URDFLinkInfo& updLink(const std::string& name) 
+    URDFLinkInfo& updLink(const std::string& name)
     {   return updLink(getLinkIndex(name)); }
 
     // Get link fast by index (const or writable).
-    URDFLinkInfo& updLink(int index) 
+    URDFLinkInfo& updLink(int index)
     {   return linkByIndex[index]; }
     const URDFLinkInfo& getLink(int index) const
     {   return linkByIndex[index];}
@@ -225,21 +225,21 @@ public:
     // Return the number of joints added so far.
     int size() const {return (int)jointByIndex.size();}
 
-    bool hasJoint(const std::string& name) const 
+    bool hasJoint(const std::string& name) const
     {   return name2index.find(name) != name2index.end(); }
     bool hasJoint(int index) const
     {   assert(index>=0); return index < size(); }
 
     // Get joint by name (const or writable).
-    const URDFJointInfo& getJoint(const std::string& name) const 
+    const URDFJointInfo& getJoint(const std::string& name) const
     {   return getJoint(getJointIndex(name)); }
-    URDFJointInfo& updJoint(const std::string& name) 
+    URDFJointInfo& updJoint(const std::string& name)
     {   return updJoint(getJointIndex(name)); }
 
     // Get joint fast by index (const or writable).
-    const URDFJointInfo& getJoint(int index) const 
+    const URDFJointInfo& getJoint(int index) const
     {   return jointByIndex[index]; }
-    URDFJointInfo& updJoint(int index) 
+    URDFJointInfo& updJoint(int index)
     {   return jointByIndex[index]; }
 
 private:

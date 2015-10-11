@@ -57,7 +57,7 @@ LBFGSBOptimizer::LBFGSBOptimizer( const OptimizerSystem& sys )
     nbd = new int[n];
     for(i=0;i<n;i++)
         nbd[i] = -1;
-} 
+}
 
 Real LBFGSBOptimizer::optimize(  Vector &results ) {
     int run_optimizer = 1;
@@ -96,7 +96,7 @@ Real LBFGSBOptimizer::optimize(  Vector &results ) {
 
     iwa = new int[3*n];
     wa = new Real[((2*m + 4)*n + 12*m*m + 12*m)];
- 
+
     Real factor;
     if( getAdvancedRealOption("factr", factor ) ) {
         SimTK_APIARGCHECK_ALWAYS(factor > 0,"LBFGSBOptimizer","optimize",
@@ -104,7 +104,7 @@ Real LBFGSBOptimizer::optimize(  Vector &results ) {
         factr = factor;
     }
     strcpy( task, "START" );
-    while( run_optimizer ) { 
+    while( run_optimizer ) {
         setulb_(&n, &m, &results[0], lowerLimits,
                 upperLimits, nbd, &f, gradient,
                 &factr, &convergenceTolerance, wa, iwa,
@@ -121,7 +121,7 @@ Real LBFGSBOptimizer::optimize(  Vector &results ) {
                 delete[] gradient;
                 delete[] iwa;
                 delete[] wa;
-                SimTK_THROW1(SimTK::Exception::OptimizerFailed , SimTK::String(task) ); 
+                SimTK_THROW1(SimTK::Exception::OptimizerFailed , SimTK::String(task) );
             }
         }
     }

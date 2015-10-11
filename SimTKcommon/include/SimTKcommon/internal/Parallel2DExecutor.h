@@ -42,18 +42,18 @@ class Parallel2DExecutorImpl;
  * This class is used for performing multithreaded computations over two dimensional ranges.  That is,
  * it performs some calculation once for each pair (i, j) where i and j vary over some range.  For
  * example, it is useful for calculating pairwise forces between a set of bodies.
- * 
+ *
  * To use it, define a subclass of Parallel2DExecutor::Task that performs a computation.  Then create a
  * Parallel2DExecutor object and ask it to execute the task:
- * 
+ *
  * <pre>
  * Parallel2DExecutor executor(gridSize);
  * executor.execute(myTask, Parallel2DExecutor::FullMatrix);
  * </pre>
- * 
+ *
  * The Task's execute() method will be called once with each pair (i, j) where i and j vary between 0 and
  * gridSize-1.  You also can restrict it to only pairs with i > j or i >= j.
- * 
+ *
  * The invocations are done in parallel on multiple threads, but they are divided up in a way that avoids
  * index conflicts between simultaneous calculations.  If the task is executed with indices (i1, j1)
  * on one thread, it is guaranteed that no other thread is simultaneously executing the task with
@@ -61,7 +61,7 @@ class Parallel2DExecutorImpl;
  * invocation is equal to either index of another invocation, the two invocations are guaranteed to be
  * separated by a happens-before edge.)  This allows the task to modify data that is indexed by i and j
  * without needing to worry about concurrent modifications.
- * 
+ *
  * The threads are created in the Parallel2DExecutor's constructor and remain active until it is deleted.
  * This means that creating a Parallel2DExecutor is a somewhat expensive operation, but it may then be
  * used repeatedly for executing various calculations.  By default, the number of threads is chosen
@@ -76,7 +76,7 @@ public:
     enum RangeType {FullMatrix, HalfMatrix, HalfPlusDiagonal};
     /**
      * Construct a Parallel2DExecutor.
-     * 
+     *
      * @param gridSize   the size of the range over which i and j should vary
      * @param numThreads the number of threads to create.  By default, this is set equal to the number
      * of processors.
@@ -87,18 +87,18 @@ public:
      * to use for parallelizing the calculation.  This can improve efficiency by reusing an existing thread
      * pool.  It is your responsibility to make sure that the ParallelExecutor does not get deleted as long
      * as this object exists.
-     * 
+     *
      * @param gridSize   the size of the range over which i and j should vary
      * @param executor   the ParallelExecutor to use for parallelizing calculations
      */
     Parallel2DExecutor(int gridSize, ParallelExecutor& executor);
     /**
      * Execute a parallel task.
-     * 
+     *
      * @param task      the Task to execute
      * @param rangeType specifies what part of the range i and j should vary over.  Specify FullyMatrix to
      *                  execute the task for all values of i and j between 0 and gridSize, HalfMatrix to
-     *                  restrict it to i > j, and HalfPlusDiagonal to restrict it to i >= j. 
+     *                  restrict it to i > j, and HalfPlusDiagonal to restrict it to i >= j.
      */
     void execute(Task& task, RangeType rangeType);
     /**

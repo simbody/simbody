@@ -61,16 +61,16 @@ void testParameterSetting() {
     const Vec6 c =  1.3*Vec6(1,.1,1,.11,1,11);
 
     const Real Mass = 1.234;
-    Body::Rigid aBody(MassProperties(Mass, Vec3(.1,.2,.3), 
+    Body::Rigid aBody(MassProperties(Mass, Vec3(.1,.2,.3),
                           Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
 
-    MobilizedBody::Free body1(matter.Ground(), Transform(), 
+    MobilizedBody::Free body1(matter.Ground(), Transform(),
                               aBody,           Transform());
-    MobilizedBody::Free body2(matter.Ground(), Transform(), 
+    MobilizedBody::Free body2(matter.Ground(), Transform(),
                               aBody,           Transform());
 
     Force::LinearBushing bushing
-        (forces, body1, Vec3(1,2,3), 
+        (forces, body1, Vec3(1,2,3),
                  body2, Vec3(-2,-3,-4),
          Vec6(5), Vec6(7));
     SimTK_TEST_EQ(bushing.getDefaultFrameOnBody1(),Transform(Vec3(1,2,3)));
@@ -113,7 +113,7 @@ void testParameterSetting() {
 // Here we're going to build a chain like this:
 //
 //   Ground --> body1 ==> body2
-// 
+//
 // where body1 is Free, and body2 is connected to body1 by
 // a series of mobilizers designed to have the same kinematics
 // as a LinearBushing element connected between them.
@@ -139,7 +139,7 @@ void testKinematicsAndEnergyConservation() {
     const Real Mass = 1.234;
     const Vec3 HalfShape = Vec3(1,.5,.25)/2;
 
-    Body::Rigid aBody(MassProperties(Mass, Vec3(.1,.2,.3), 
+    Body::Rigid aBody(MassProperties(Mass, Vec3(.1,.2,.3),
                           Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
     aBody.addDecoration(Transform(), DecorativeEllipsoid(HalfShape)
                                             .setOpacity(0.25)
@@ -153,7 +153,7 @@ void testKinematicsAndEnergyConservation() {
     const Transform X_GA(
         Test::randRotation(), Test::randVec3());
 
-    MobilizedBody::Free body1(matter.Ground(), X_GA, 
+    MobilizedBody::Free body1(matter.Ground(), X_GA,
                               aBody,           X_B2M);
 
     // This is to keep the system from flying away.
@@ -183,7 +183,7 @@ void testKinematicsAndEnergyConservation() {
 #endif
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
@@ -220,7 +220,7 @@ void testKinematicsAndEnergyConservation() {
 
     REPORT(integ.getState());
 
-    cout << "t=" << integ.getTime() 
+    cout << "t=" << integ.getTime()
          << "\nE=" << initialEnergy
          << "\nmobilizer q=" << mq
          << "\nbushing   q=" << bushing.getQ(istate)
@@ -240,7 +240,7 @@ void testKinematicsAndEnergyConservation() {
 
     SimTK_TEST_EQ(bushing.getQ(istate), mq);
     SimTK_TEST_EQ(bushing.getQDot(istate), mqd);
-    
+
     // This should account for all the energy.
     const Real finalEnergy = system.calcEnergy(istate)
                                 + bushing.getDissipatedEnergy(istate);
@@ -259,9 +259,9 @@ void testKinematicsAndEnergyConservation() {
     // Calculate velocities and ask the bushing for same.
     const SpatialVec& V_GB1 = body1.getBodyVelocity(istate);
     const SpatialVec& V_GB2 = body2.getBodyVelocity(istate);
-    const SpatialVec  
+    const SpatialVec
         V_GF(V_GB1[0], body1.findStationVelocityInGround(istate,X_B1F.p()));
-    const SpatialVec  
+    const SpatialVec
         V_GM(V_GB2[0], body2.findStationVelocityInGround(istate,X_B2M.p()));
 
     SimTK_TEST_EQ(V_GF, bushing.getV_GF(istate));
@@ -273,7 +273,7 @@ void testKinematicsAndEnergyConservation() {
 
     SimTK_TEST_EQ(V_FM, bushing.getV_FM(istate));
 
-    cout << "t=" << integ.getTime() 
+    cout << "t=" << integ.getTime()
          << "\nE=" << system.calcEnergy(istate)
          << "\nE-XW=" << finalEnergy << " final-init=" << finalEnergy-initialEnergy
          << "\nmobilizer q=" << mq
@@ -289,7 +289,7 @@ void testKinematicsAndEnergyConservation() {
 // Here we're going to build a chain like this:
 //
 //   Ground --> body1 ==> body2
-// 
+//
 // where body1 is Free, and body2 is connected to body1 by
 // a Bushing mobilizer, which should have the same kinematics
 // as a LinearBushing element connected between them.
@@ -315,7 +315,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
     const Real Mass = 1.234;
     const Vec3 HalfShape = Vec3(1,.5,.25)/2;
 
-    Body::Rigid aBody(MassProperties(Mass, Vec3(.1,.2,.3), 
+    Body::Rigid aBody(MassProperties(Mass, Vec3(.1,.2,.3),
                           Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
     aBody.addDecoration(Transform(), DecorativeEllipsoid(HalfShape)
                                             .setOpacity(0.25)
@@ -329,7 +329,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
     const Transform X_GA(
         Test::randRotation(), Test::randVec3());
 
-    MobilizedBody::Free body1(matter.Ground(), X_GA, 
+    MobilizedBody::Free body1(matter.Ground(), X_GA,
                               aBody,           X_B2M);
 
     // This is to keep the system from flying away.
@@ -350,7 +350,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
 #endif
 
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
@@ -387,7 +387,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
 
     REPORT(integ.getState());
 
-    cout << "t=" << integ.getTime() 
+    cout << "t=" << integ.getTime()
          << "\nE=" << initialEnergy
          << "\nmobilizer q=" << mq
          << "\nbushing   q=" << bushing.getQ(istate)
@@ -405,7 +405,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
 
     SimTK_TEST_EQ(bushing.getQ(istate), mq);
     SimTK_TEST_EQ(bushing.getQDot(istate), mqd);
-    
+
     // This should account for all the energy.
     const Real finalEnergy = system.calcEnergy(istate)
                                 + bushing.getDissipatedEnergy(istate);
@@ -424,9 +424,9 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
     // Calculate velocities and ask the bushing for same.
     const SpatialVec& V_GB1 = body1.getBodyVelocity(istate);
     const SpatialVec& V_GB2 = body2.getBodyVelocity(istate);
-    const SpatialVec  
+    const SpatialVec
         V_GF(V_GB1[0], body1.findStationVelocityInGround(istate,X_B1F.p()));
-    const SpatialVec  
+    const SpatialVec
         V_GM(V_GB2[0], body2.findStationVelocityInGround(istate,X_B2M.p()));
 
     SimTK_TEST_EQ(V_GF, bushing.getV_GF(istate));
@@ -438,7 +438,7 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
 
     SimTK_TEST_EQ(V_FM, bushing.getV_FM(istate));
 
-    cout << "t=" << integ.getTime() 
+    cout << "t=" << integ.getTime()
          << "\nE=" << system.calcEnergy(istate)
          << "\nE-XW=" << finalEnergy << " final-init=" << finalEnergy-initialEnergy
          << "\nmobilizer q=" << mq
@@ -453,11 +453,11 @@ void testKinematicsAndEnergyConservationUsingBushingMobilizer() {
 
 // Here we're going to build a system containing two parallel multibody
 // trees, each consisting of a single body connected to ground. For the
-// first system the body is on a Free mobilizer and a LinearBushing 
+// first system the body is on a Free mobilizer and a LinearBushing
 // connects the body and Ground. In the second, a series of mobilizers
 // exactly mimics the kinematics, and a set of mobility springs and
 // dampers are used to mimic the forces that should be produced by the
-// bushing. We'll then evaluate in some arbitrary configuration and 
+// bushing. We'll then evaluate in some arbitrary configuration and
 // make sure the mobilizer reaction forces match the corresponding
 // LinearBushing force.
 void testForces() {
@@ -470,9 +470,9 @@ void testForces() {
     const Real Mass = 1;
     const Vec3 HalfShape = Vec3(1,.5,.25)/2;
     const Transform BodyAttach(Rotation(), Vec3(HalfShape[0],0,0));
-    Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3), 
+    Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3),
                                 Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
-    //Body::Rigid brickBody(MassProperties(Mass, Vec3(0), 
+    //Body::Rigid brickBody(MassProperties(Mass, Vec3(0),
     //                        Mass*UnitInertia::ellipsoid(HalfShape)));
     brickBody.addDecoration(Transform(), DecorativeEllipsoid(HalfShape)
                                             .setOpacity(0.25)
@@ -480,7 +480,7 @@ void testForces() {
     brickBody.addDecoration(BodyAttach,
                 DecorativeFrame(0.5).setColor(Red));
 
-    MobilizedBody::Free brick1(matter.Ground(), Transform(), 
+    MobilizedBody::Free brick1(matter.Ground(), Transform(),
                                brickBody,       BodyAttach);
 
     Body::Rigid massless(MassProperties(0, Vec3(0), Inertia(0)));
@@ -526,7 +526,7 @@ void testForces() {
     // for the bushing; Ground is second. This is a harder test because
     // the F frame is moving.
     Force::LinearBushing bushing
-        (forces, brick1, BodyAttach, 
+        (forces, brick1, BodyAttach,
          matter.Ground(), GroundAttach,
          k1, c1);
 
@@ -539,7 +539,7 @@ void testForces() {
     const Vec6 k2 = k;
     const Vec6 c2 = c;
 
-    // This is what you would do for a forward-direction set of 
+    // This is what you would do for a forward-direction set of
     // mobilizers to match the forward bushing.
     //Force::MobilityLinearSpring kqx(forces, dummy2, 0, k2[0], 0);
     //Force::MobilityLinearDamper cqx(forces, dummy2, 0, c2[0]);
@@ -575,16 +575,16 @@ void testForces() {
     system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
-   
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
     REPORT(state);
 
     Rotation RR = Test::randRotation();
-    brick1.setQToFitTransform(state, RR); 
+    brick1.setQToFitTransform(state, RR);
 
     Vec3 qRRinv;
     qRRinv = Rotation(~RR).convertRotationToBodyFixedXYZ();
@@ -606,7 +606,7 @@ void testForces() {
 
     Vector_<SpatialVec> reactions;
     matter.calcMobilizerReactionForces(state, reactions);
-    //cout << "Reaction force on brick2=" 
+    //cout << "Reaction force on brick2="
      //    << reactions[brick2.getMobilizedBodyIndex()] << endl;
 
     SimTK_TEST_EQ(bushing.getF_GF(state),
@@ -618,12 +618,12 @@ void testForces() {
 //
 // Here we're going to build a system containing two parallel multibody
 // trees, each consisting of a single body connected to ground. For the
-// first system the body is on a Free mobilizer and a LinearBushing 
+// first system the body is on a Free mobilizer and a LinearBushing
 // connects the body and Ground, although with Ground serving as "body2" for
 // the bushing (i.e., the M frame is on Ground). In the second, a reversed
-// Bushing mobilizer exactly mimics the kinematics, and a set of mobility 
+// Bushing mobilizer exactly mimics the kinematics, and a set of mobility
 // springs and dampers are used to mimic the forces that should be produced by
-// the bushing. We'll then evaluate in some arbitrary configuration and 
+// the bushing. We'll then evaluate in some arbitrary configuration and
 // make sure the mobilizer reaction forces match the corresponding
 // LinearBushing force.
 void testForcesUsingReverseBushingMobilizer() {
@@ -639,7 +639,7 @@ void testForcesUsingReverseBushingMobilizer() {
     const Real Mass = 1;
     const Vec3 HalfShape = Vec3(1,.5,.25)/2;
     const Transform BodyAttach(Rotation(), Vec3(HalfShape[0],0,0));
-    Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3), 
+    Body::Rigid brickBody(MassProperties(Mass, Vec3(.1,.2,.3),
                                 Mass*Inertia(1,1.1,1.2,0.01,0.02,0.03)));
     brickBody.addDecoration(Transform(), DecorativeEllipsoid(HalfShape)
                                             .setOpacity(0.25)
@@ -647,7 +647,7 @@ void testForcesUsingReverseBushingMobilizer() {
     brickBody.addDecoration(BodyAttach,
                 DecorativeFrame(0.5).setColor(Red));
 
-    MobilizedBody::Free brick1(matter.Ground(), Transform(), 
+    MobilizedBody::Free brick1(matter.Ground(), Transform(),
                                brickBody,       BodyAttach);
     brick1.addBodyDecoration(Transform(), DecorativeText("1").setScale(.25));
 
@@ -704,16 +704,16 @@ void testForcesUsingReverseBushingMobilizer() {
     system.addEventReporter(new Visualizer::Reporter(viz, 0.01));
 #endif
 
-   
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
 
     REPORT(state);
 
     Rotation RR = Test::randRotation();
-    brick1.setQToFitTransform(state, RR); 
+    brick1.setQToFitTransform(state, RR);
     system.realize(state, Stage::Position);
 
     cout << "\nbrick1 .q=" << brick1.getQ(state) << endl;
@@ -735,7 +735,7 @@ void testForcesUsingReverseBushingMobilizer() {
 
     Vector_<SpatialVec> reactions;
     matter.calcMobilizerReactionForces(state, reactions);
-    cout << "Reaction force on brick2=" 
+    cout << "Reaction force on brick2="
          << reactions[brick2.getMobilizedBodyIndex()] << endl;
 
     SimTK_TEST_EQ(bushing.getF_GF(state),

@@ -41,11 +41,11 @@ depending on how serious you are about this requirement. **/
 class QValue : public AssemblyCondition {
 public:
     /** Construct an assembly condition that requests that the specified
-    generalized coordinate be brought to the indicated value. The value 
+    generalized coordinate be brought to the indicated value. The value
     can be changed subsequently using setValue(). **/
     QValue(MobilizedBodyIndex mbx, MobilizerQIndex qx,
            Real value)
-    :   AssemblyCondition("QValue"), 
+    :   AssemblyCondition("QValue"),
         mobodIndex(mbx), qIndex(qx), value(value) {}
 
     /** Return the currently set value to be used for this generalized

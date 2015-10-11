@@ -43,14 +43,14 @@ class ProblemSystem : public OptimizerSystem {
       }
 
       f = 4.0* f;
-      return( 0 ); 
+      return( 0 );
    }
 
    int gradientFunc( const Vector &coefficients, bool new_coefficients,  Vector &gradient ) const override {
       const Real *x;
       Real t1,t2;
 
-      x = &coefficients[0]; 
+      x = &coefficients[0];
 
       t1 = x[1]-(x[0]*x[0]);
       gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
@@ -84,7 +84,7 @@ int main() {
     }
 
     /* set bounds */
-    for(int i=0;i<n;i=i+2) {   // even numbered 
+    for(int i=0;i<n;i=i+2) {   // even numbered
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 100.0;
     }
@@ -97,7 +97,7 @@ int main() {
 
     Real f = NaN;
     try {
-       Optimizer opt( sys ); 
+       Optimizer opt( sys );
 
        opt.setConvergenceTolerance( .0001 );
 
@@ -111,7 +111,7 @@ int main() {
 
     printf("f = %f params = ",f);
     for(int i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" %f",results[i]); 
+       printf(" %f",results[i]);
     }
     printf("\n");
 

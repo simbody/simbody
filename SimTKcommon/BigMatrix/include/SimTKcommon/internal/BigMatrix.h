@@ -26,15 +26,15 @@
 
 /** @file
  * This file defines the client side of the SimTK::Matrix classes, which
- * hold medium to large, variable-sized matrices whose elements are packed 
- * SimTK "Composite Numerical Types" (CNTs). Unlike CNTs, the implemention here 
- * is opaque, and almost all properties are captured in the implementation at 
- * run time rather than in the type at compile time. 
+ * hold medium to large, variable-sized matrices whose elements are packed
+ * SimTK "Composite Numerical Types" (CNTs). Unlike CNTs, the implemention here
+ * is opaque, and almost all properties are captured in the implementation at
+ * run time rather than in the type at compile time.
  *
- * Every Matrix consists logically of three pieces: 
- *  - the matrix handle 
+ * Every Matrix consists logically of three pieces:
+ *  - the matrix handle
  *  - the matrix helper
- *  - and the matrix data. 
+ *  - and the matrix data.
  *
  * They are organized like this:
  * <pre>
@@ -55,12 +55,12 @@
  * owns the helper to which it points and must destruct the helper when
  * the handle's destructor is called.
  *
- * The helper, on the other hand, is parameterized only by the underlying scalar 
- * type. There are exactly 12 SimTK scalar types, so all can be instantiated on 
+ * The helper, on the other hand, is parameterized only by the underlying scalar
+ * type. There are exactly 12 SimTK scalar types, so all can be instantiated on
  * the library side leaving the implementation opaque and thus flexible from
- * release to release without compromising binary compatibility. (The scalar 
- * types are: the four C++ standard types float and double, 
- * complex<float>, and complex<double>; the SimTK numbers conjugate<float> and 
+ * release to release without compromising binary compatibility. (The scalar
+ * types are: the four C++ standard types float and double,
+ * complex<float>, and complex<double>; the SimTK numbers conjugate<float> and
  * conjugate<double>; and negator<> types templatized by any of the six
  * numeric types.) The helper contains several kinds of information:
  *  - the underlying scalar type S (as its template parameter)
@@ -71,15 +71,15 @@
  *  - the actual characteristics of the matrix currently represented by
  *      the helper
  *  - a virtual function table full of methods which are aware of the
- *      logical structure of the Matrix and the physical structure of 
+ *      logical structure of the Matrix and the physical structure of
  *      the data to support operations such as element indexing
- *  - a pointer to the underlying data, which may be shared with other 
+ *  - a pointer to the underlying data, which may be shared with other
  *      helpers
  *
  * The data itself consists only of scalars
- * S of the same type as the helper's template argument, but different 
+ * S of the same type as the helper's template argument, but different
  * helpers can look at the same data differently. For examples, when the
- * elements are composite consisting of k scalars, the helper will provide a 
+ * elements are composite consisting of k scalars, the helper will provide a
  * view of the data in which its scalars are interpreted in groups of k.
  * Many other reinterpretations of the data are possible and useful, such
  * as a real-valued helper viewing only the real or imaginary part of
@@ -88,27 +88,27 @@
  *
  * At most \e one matrix helper owns the matrix data and is responsible
  * for deleting that data when no longer needed. That is called an "owner"
- * helper and its associated handle is an owner handle. Normally the owner 
+ * helper and its associated handle is an owner handle. Normally the owner
  * is the handle (and helper) that allocated the data, and
  * in most cases an owner can resize the data at will. Many other handles
  * may reference the same data; those non-owner handles are called "views".
  * Every view may present a different picture of the underlying data. The
- * default view is "whole" meaning that all the elements of the data are 
- * visible, and appear in their normal order. A "transpose" view also shows 
- * all the elements but the matrix dimensions and indices are reversed. 
- * Other common views are "block" to select a sub-block of a matrix, and 
- * "diagonal" which shows only the diagonal of a matrix (as a vector). 
+ * default view is "whole" meaning that all the elements of the data are
+ * visible, and appear in their normal order. A "transpose" view also shows
+ * all the elements but the matrix dimensions and indices are reversed.
+ * Other common views are "block" to select a sub-block of a matrix, and
+ * "diagonal" which shows only the diagonal of a matrix (as a vector).
  *
  * NOTE: Destruction of an owner destructs the data it owns
  * *regardless* of the presence of other views into that data! I.e., these
  * are not reference counted. TODO: should we change that?
- * 
- * In some cases there may be no owner helper for a particular piece of 
+ *
+ * In some cases there may be no owner helper for a particular piece of
  * matrix data. That occurs when pre-existing memory, such as a Fortran
  * array, is used to construct a Matrix. In that case all the helpers are
  * views and the data will persist after the destruction of the last
  * referencing helper.
- *                 
+ *
  * A Matrix that is the owner of its data will be resized whenever
  * necessary, unless you take active steps to prevent that. For example, if
  * you declare a Vector, the number of rows can resize but the number of
@@ -196,97 +196,97 @@ namespace SimTK {
 
 //  ------------------------ MatrixBase definitions ----------------------------
 
-template <class ELT> inline MatrixView_<ELT> 
-MatrixBase<ELT>::block(int i, int j, int m, int n) const { 
+template <class ELT> inline MatrixView_<ELT>
+MatrixBase<ELT>::block(int i, int j, int m, int n) const {
     SimTK_INDEXCHECK(i,nrow()+1,"MatrixBase::block()");
     SimTK_INDEXCHECK(j,ncol()+1,"MatrixBase::block()");
     SimTK_SIZECHECK(i+m,nrow(),"MatrixBase::block()");
     SimTK_SIZECHECK(j+n,ncol(),"MatrixBase::block()");
 
-    MatrixHelper<Scalar> h(MatrixCommitment(),helper,i,j,m,n);    
-    return MatrixView_<ELT>(h.stealRep()); 
+    MatrixHelper<Scalar> h(MatrixCommitment(),helper,i,j,m,n);
+    return MatrixView_<ELT>(h.stealRep());
 }
-    
+
 template <class ELT> inline MatrixView_<ELT>
-MatrixBase<ELT>::updBlock(int i, int j, int m, int n) { 
+MatrixBase<ELT>::updBlock(int i, int j, int m, int n) {
     SimTK_INDEXCHECK(i,nrow()+1,"MatrixBase::updBlock()");
     SimTK_INDEXCHECK(j,ncol()+1,"MatrixBase::updBlock()");
     SimTK_SIZECHECK(i+m,nrow(),"MatrixBase::updBlock()");
     SimTK_SIZECHECK(j+n,ncol(),"MatrixBase::updBlock()");
 
-    MatrixHelper<Scalar> h(MatrixCommitment(),helper,i,j,m,n);        
-    return MatrixView_<ELT>(h.stealRep()); 
+    MatrixHelper<Scalar> h(MatrixCommitment(),helper,i,j,m,n);
+    return MatrixView_<ELT>(h.stealRep());
 }
 
 template <class E> inline MatrixView_<typename CNT<E>::THerm>
-MatrixBase<E>::transpose() const { 
-    MatrixHelper<typename CNT<Scalar>::THerm> 
+MatrixBase<E>::transpose() const {
+    MatrixHelper<typename CNT<Scalar>::THerm>
         h(MatrixCommitment(),
           helper, typename MatrixHelper<typename CNT<Scalar>::THerm>::TransposeView());
-    return MatrixView_<typename CNT<E>::THerm>(h.stealRep()); 
+    return MatrixView_<typename CNT<E>::THerm>(h.stealRep());
 }
-    
+
 template <class E> inline MatrixView_<typename CNT<E>::THerm>
-MatrixBase<E>::updTranspose() {     
-    MatrixHelper<typename CNT<Scalar>::THerm> 
+MatrixBase<E>::updTranspose() {
+    MatrixHelper<typename CNT<Scalar>::THerm>
         h(MatrixCommitment(),
           helper, typename MatrixHelper<typename CNT<Scalar>::THerm>::TransposeView());
-    return MatrixView_<typename CNT<E>::THerm>(h.stealRep()); 
+    return MatrixView_<typename CNT<E>::THerm>(h.stealRep());
 }
 
 template <class E> inline VectorView_<E>
-MatrixBase<E>::diag() const { 
-    MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
-                           helper, typename MatrixHelper<Scalar>::DiagonalView());
-    return VectorView_<E>(h.stealRep()); 
-}
-    
-template <class E> inline VectorView_<E>
-MatrixBase<E>::updDiag() {     
+MatrixBase<E>::diag() const {
     MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
                            helper, typename MatrixHelper<Scalar>::DiagonalView());
     return VectorView_<E>(h.stealRep());
 }
 
-template <class ELT> inline VectorView_<ELT> 
-MatrixBase<ELT>::col(int j) const { 
+template <class E> inline VectorView_<E>
+MatrixBase<E>::updDiag() {
+    MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
+                           helper, typename MatrixHelper<Scalar>::DiagonalView());
+    return VectorView_<E>(h.stealRep());
+}
+
+template <class ELT> inline VectorView_<ELT>
+MatrixBase<ELT>::col(int j) const {
     SimTK_INDEXCHECK(j,ncol(),"MatrixBase::col()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
-                           helper,0,j,nrow(),1);    
-    return VectorView_<ELT>(h.stealRep()); 
+                           helper,0,j,nrow(),1);
+    return VectorView_<ELT>(h.stealRep());
 }
-    
+
 template <class ELT> inline VectorView_<ELT>
 MatrixBase<ELT>::updCol(int j) {
     SimTK_INDEXCHECK(j,ncol(),"MatrixBase::updCol()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::Vector(),
-                           helper,0,j,nrow(),1);        
-    return VectorView_<ELT>(h.stealRep()); 
+                           helper,0,j,nrow(),1);
+    return VectorView_<ELT>(h.stealRep());
 }
 
-template <class ELT> inline RowVectorView_<ELT> 
-MatrixBase<ELT>::row(int i) const { 
+template <class ELT> inline RowVectorView_<ELT>
+MatrixBase<ELT>::row(int i) const {
     SimTK_INDEXCHECK(i,nrow(),"MatrixBase::row()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::RowVector(),
-                           helper,i,0,1,ncol());    
-    return RowVectorView_<ELT>(h.stealRep()); 
+                           helper,i,0,1,ncol());
+    return RowVectorView_<ELT>(h.stealRep());
 }
-    
+
 template <class ELT> inline RowVectorView_<ELT>
-MatrixBase<ELT>::updRow(int i) { 
+MatrixBase<ELT>::updRow(int i) {
     SimTK_INDEXCHECK(i,nrow(),"MatrixBase::updRow()");
 
     MatrixHelper<Scalar> h(MatrixCommitment::RowVector(),
-                           helper,i,0,1,ncol());        
-    return RowVectorView_<ELT>(h.stealRep()); 
+                           helper,i,0,1,ncol());
+    return RowVectorView_<ELT>(h.stealRep());
 }
 
 // M = diag(v) * M; v must have nrow() elements.
 // That is, M[i] *= v[i].
-template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+template <class ELT> template <class EE> inline MatrixBase<ELT>&
 MatrixBase<ELT>::rowScaleInPlace(const VectorBase<EE>& v) {
     assert(v.nrow() == nrow());
     for (int i=0; i < nrow(); ++i)
@@ -305,7 +305,7 @@ MatrixBase<ELT>::rowScale(const VectorBase<EE>& v, typename MatrixBase<ELT>::tem
 
 // M = M * diag(v); v must have ncol() elements
 // That is, M(i) *= v[i]
-template <class ELT> template <class EE>  inline MatrixBase<ELT>& 
+template <class ELT> template <class EE>  inline MatrixBase<ELT>&
 MatrixBase<ELT>::colScaleInPlace(const VectorBase<EE>& v) {
     assert(v.nrow() == ncol());
     for (int j=0; j < ncol(); ++j)
@@ -324,7 +324,7 @@ MatrixBase<ELT>::colScale(const VectorBase<EE>& v, typename MatrixBase<ELT>::tem
 
 
 // M(i,j) *= r[i]*c[j]; r must have nrow() elements; c must have ncol() elements
-template <class ELT> template <class ER, class EC> inline MatrixBase<ELT>& 
+template <class ELT> template <class ER, class EC> inline MatrixBase<ELT>&
 MatrixBase<ELT>::rowAndColScaleInPlace(const VectorBase<ER>& r, const VectorBase<EC>& c) {
     assert(r.nrow()==nrow() && c.nrow()==ncol());
     for (int j=0; j<ncol(); ++j)
@@ -335,9 +335,9 @@ MatrixBase<ELT>::rowAndColScaleInPlace(const VectorBase<ER>& r, const VectorBase
 
 template <class ELT> template <class ER, class EC> inline void
 MatrixBase<ELT>::rowAndColScale(
-    const VectorBase<ER>& r, 
+    const VectorBase<ER>& r,
     const VectorBase<EC>& c,
-    typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul& 
+    typename EltResult<typename VectorBase<ER>::template EltResult<EC>::Mul>::Mul&
                           out) const
 {
     assert(r.nrow()==nrow() && c.nrow()==ncol());
@@ -348,7 +348,7 @@ MatrixBase<ELT>::rowAndColScale(
 }
 
 // M(i,j) = s
-template <class ELT> template <class S> inline MatrixBase<ELT>& 
+template <class ELT> template <class S> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseAssign(const S& s) {
     for (int j=0; j<ncol(); ++j)
     for (int i=0; i<nrow(); ++i)
@@ -357,7 +357,7 @@ MatrixBase<ELT>::elementwiseAssign(const S& s) {
 }
 
 // Set M(i,j) = M(i,j)^-1.
-template <class ELT> inline MatrixBase<ELT>& 
+template <class ELT> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseInvertInPlace() {
     const int nr=nrow(), nc=ncol();
     for (int j=0; j<nc; ++j)
@@ -378,7 +378,7 @@ MatrixBase<ELT>::elementwiseInvert(MatrixBase<typename CNT<E>::TInvert>& out) co
 }
 
 // M(i,j) += s
-template <class ELT> template <class S> inline MatrixBase<ELT>& 
+template <class ELT> template <class S> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseAddScalarInPlace(const S& s) {
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
@@ -386,7 +386,7 @@ MatrixBase<ELT>::elementwiseAddScalarInPlace(const S& s) {
     return *this;
 }
 
-template <class ELT> template <class S> inline void 
+template <class ELT> template <class S> inline void
 MatrixBase<ELT>::elementwiseAddScalar(
     const S& s,
     typename MatrixBase<ELT>::template EltResult<S>::Add& out) const
@@ -399,7 +399,7 @@ MatrixBase<ELT>::elementwiseAddScalar(
 }
 
 // M(i,j) -= s
-template <class ELT> template <class S> inline MatrixBase<ELT>& 
+template <class ELT> template <class S> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseSubtractScalarInPlace(const S& s) {
     for (int j=0; j<ncol(); ++j)
         for (int i=0; i<nrow(); ++i)
@@ -407,7 +407,7 @@ MatrixBase<ELT>::elementwiseSubtractScalarInPlace(const S& s) {
     return *this;
 }
 
-template <class ELT> template <class S> inline void 
+template <class ELT> template <class S> inline void
 MatrixBase<ELT>::elementwiseSubtractScalar(
     const S& s,
     typename MatrixBase<ELT>::template EltResult<S>::Sub& out) const
@@ -420,7 +420,7 @@ MatrixBase<ELT>::elementwiseSubtractScalar(
 }
 
 // M(i,j) = s - M(i,j)
-template <class ELT> template <class S> inline MatrixBase<ELT>& 
+template <class ELT> template <class S> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseSubtractFromScalarInPlace(const S& s) {
     const int nr=nrow(), nc=ncol();
     for (int j=0; j<nc; ++j)
@@ -431,7 +431,7 @@ MatrixBase<ELT>::elementwiseSubtractFromScalarInPlace(const S& s) {
     return *this;
 }
 
-template <class ELT> template <class S> inline void 
+template <class ELT> template <class S> inline void
 MatrixBase<ELT>::elementwiseSubtractFromScalar(
     const S& s,
     typename MatrixBase<S>::template EltResult<ELT>::Sub& out) const
@@ -444,7 +444,7 @@ MatrixBase<ELT>::elementwiseSubtractFromScalar(
 }
 
 // M(i,j) *= R(i,j); R must have same dimensions as this
-template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+template <class ELT> template <class EE> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseMultiplyInPlace(const MatrixBase<EE>& r) {
     const int nr=nrow(), nc=ncol();
     assert(r.nrow()==nr && r.ncol()==nc);
@@ -454,9 +454,9 @@ MatrixBase<ELT>::elementwiseMultiplyInPlace(const MatrixBase<EE>& r) {
     return *this;
 }
 
-template <class ELT> template <class EE> inline void 
+template <class ELT> template <class EE> inline void
 MatrixBase<ELT>::elementwiseMultiply(
-    const MatrixBase<EE>& r, 
+    const MatrixBase<EE>& r,
     typename MatrixBase<ELT>::template EltResult<EE>::Mul& out) const
 {
     const int nr=nrow(), nc=ncol();
@@ -468,7 +468,7 @@ MatrixBase<ELT>::elementwiseMultiply(
 }
 
 // M(i,j) = R(i,j) * M(i,j); R must have same dimensions as this
-template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+template <class ELT> template <class EE> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseMultiplyFromLeftInPlace(const MatrixBase<EE>& r) {
     const int nr=nrow(), nc=ncol();
     assert(r.nrow()==nr && r.ncol()==nc);
@@ -480,9 +480,9 @@ MatrixBase<ELT>::elementwiseMultiplyFromLeftInPlace(const MatrixBase<EE>& r) {
     return *this;
 }
 
-template <class ELT> template <class EE> inline void 
+template <class ELT> template <class EE> inline void
 MatrixBase<ELT>::elementwiseMultiplyFromLeft(
-    const MatrixBase<EE>& r, 
+    const MatrixBase<EE>& r,
     typename MatrixBase<EE>::template EltResult<ELT>::Mul& out) const
 {
     const int nr=nrow(), nc=ncol();
@@ -494,7 +494,7 @@ MatrixBase<ELT>::elementwiseMultiplyFromLeft(
 }
 
 // M(i,j) /= R(i,j); R must have same dimensions as this
-template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+template <class ELT> template <class EE> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseDivideInPlace(const MatrixBase<EE>& r) {
     const int nr=nrow(), nc=ncol();
     assert(r.nrow()==nr && r.ncol()==nc);
@@ -504,7 +504,7 @@ MatrixBase<ELT>::elementwiseDivideInPlace(const MatrixBase<EE>& r) {
     return *this;
 }
 
-template <class ELT> template <class EE> inline void 
+template <class ELT> template <class EE> inline void
 MatrixBase<ELT>::elementwiseDivide(
     const MatrixBase<EE>& r,
     typename MatrixBase<ELT>::template EltResult<EE>::Dvd& out) const
@@ -517,7 +517,7 @@ MatrixBase<ELT>::elementwiseDivide(
             out(i,j) = (*this)(i,j) / r(i,j);
 }
 // M(i,j) = R(i,j) / M(i,j); R must have same dimensions as this
-template <class ELT> template <class EE> inline MatrixBase<ELT>& 
+template <class ELT> template <class EE> inline MatrixBase<ELT>&
 MatrixBase<ELT>::elementwiseDivideFromLeftInPlace(const MatrixBase<EE>& r) {
     const int nr=nrow(), nc=ncol();
     assert(r.nrow()==nr && r.ncol()==nc);
@@ -529,7 +529,7 @@ MatrixBase<ELT>::elementwiseDivideFromLeftInPlace(const MatrixBase<EE>& r) {
     return *this;
 }
 
-template <class ELT> template <class EE> inline void 
+template <class ELT> template <class EE> inline void
 MatrixBase<ELT>::elementwiseDivideFromLeft(
     const MatrixBase<EE>& r,
     typename MatrixBase<EE>::template EltResult<ELT>::Dvd& out) const
@@ -543,15 +543,15 @@ MatrixBase<ELT>::elementwiseDivideFromLeft(
 }
 
 /*
-template <class ELT> inline MatrixView_< typename CNT<ELT>::TReal > 
-MatrixBase<ELT>::real() const { 
+template <class ELT> inline MatrixView_< typename CNT<ELT>::TReal >
+MatrixBase<ELT>::real() const {
     if (!CNT<ELT>::IsComplex) { // known at compile time
         return MatrixView_< typename CNT<ELT>::TReal >( // this is just ELT
             MatrixHelper(helper,0,0,nrow(),ncol()));    // a view of the whole matrix
     }
     // Elements are complex -- helper uses underlying precision (real) type.
-    MatrixHelper<Precision> h(helper,typename MatrixHelper<Precision>::RealView);    
-    return MatrixView_< typename CNT<ELT>::TReal >(h); 
+    MatrixHelper<Precision> h(helper,typename MatrixHelper<Precision>::RealView);
+    return MatrixView_< typename CNT<ELT>::TReal >(h);
 }
 */
 
@@ -602,28 +602,28 @@ Matrix_<E> operator-(const typename CNT<E>::T& l, const MatrixBase<E>& r) {
 // E2 would match not only scalar types but everything else including
 // matrices.
 template <class E> Matrix_<E>
-operator*(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r) 
+operator*(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r)
   { return Matrix_<E>(l)*=r; }
 
 template <class E> Matrix_<E>
-operator*(const typename CNT<E>::StdNumber& l, const MatrixBase<E>& r) 
+operator*(const typename CNT<E>::StdNumber& l, const MatrixBase<E>& r)
   { return Matrix_<E>(r)*=l; }
 
 template <class E> Matrix_<E>
-operator/(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r) 
+operator/(const MatrixBase<E>& l, const typename CNT<E>::StdNumber& r)
   { return Matrix_<E>(l)/=r; }
 
 // Handle ints explicitly.
 template <class E> Matrix_<E>
-operator*(const MatrixBase<E>& l, int r) 
+operator*(const MatrixBase<E>& l, int r)
   { return Matrix_<E>(l)*= typename CNT<E>::StdNumber(r); }
 
 template <class E> Matrix_<E>
-operator*(int l, const MatrixBase<E>& r) 
+operator*(int l, const MatrixBase<E>& r)
   { return Matrix_<E>(r)*= typename CNT<E>::StdNumber(l); }
 
 template <class E> Matrix_<E>
-operator/(const MatrixBase<E>& l, int r) 
+operator/(const MatrixBase<E>& l, int r)
   { return Matrix_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
 /// @}
@@ -664,110 +664,110 @@ Vector_<E> operator-(const typename CNT<E>::T& l, const VectorBase<E>& r) {
 // Scalar multiply and divide.
 
 template <class E> Vector_<E>
-operator*(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
+operator*(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r)
   { return Vector_<E>(l)*=r; }
 
 template <class E> Vector_<E>
-operator*(const typename CNT<E>::StdNumber& l, const VectorBase<E>& r) 
+operator*(const typename CNT<E>::StdNumber& l, const VectorBase<E>& r)
   { return Vector_<E>(r)*=l; }
 
 template <class E> Vector_<E>
-operator/(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
+operator/(const VectorBase<E>& l, const typename CNT<E>::StdNumber& r)
   { return Vector_<E>(l)/=r; }
 
 // Handle ints explicitly
 template <class E> Vector_<E>
-operator*(const VectorBase<E>& l, int r) 
+operator*(const VectorBase<E>& l, int r)
   { return Vector_<E>(l)*= typename CNT<E>::StdNumber(r); }
 
 template <class E> Vector_<E>
-operator*(int l, const VectorBase<E>& r) 
+operator*(int l, const VectorBase<E>& r)
   { return Vector_<E>(r)*= typename CNT<E>::StdNumber(l); }
 
 template <class E> Vector_<E>
-operator/(const VectorBase<E>& l, int r) 
+operator/(const VectorBase<E>& l, int r)
   { return Vector_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
 // These are fancier "scalars"; whether they are allowed depends on
 // whether the element type and the CNT are compatible.
 
 // Vector * Vec
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 Vector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul>
 operator*(const VectorBase<E1>& v, const Vec<M,E2,S>& s) {
     Vector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // Vec * Vector
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 Vector_<typename Vec<M,E2,S>::template Result<E1>::Mul>
 operator*(const Vec<M,E2,S>& s, const VectorBase<E1>& v) {
     Vector_<typename Vec<M,E2,S>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
 // Vector * Row
-template <class E1, int N, class E2, int S> 
+template <class E1, int N, class E2, int S>
 Vector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul>
 operator*(const VectorBase<E1>& v, const Row<N,E2,S>& s) {
     Vector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // Row * Vector
-template <class E1, int N, class E2, int S> 
+template <class E1, int N, class E2, int S>
 Vector_<typename Row<N,E2,S>::template Result<E1>::Mul>
 operator*(const Row<N,E2,S>& s, const VectorBase<E1>& v) {
     Vector_<typename Row<N,E2,S>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
 // Vector * Mat
-template <class E1, int M, int N, class E2, int S1, int S2> 
+template <class E1, int M, int N, class E2, int S1, int S2>
 Vector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul>
 operator*(const VectorBase<E1>& v, const Mat<M,N,E2,S1,S2>& s) {
     Vector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // Mat * Vector
-template <class E1, int M, int N, class E2, int S1, int S2> 
+template <class E1, int M, int N, class E2, int S1, int S2>
 Vector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul>
 operator*(const Mat<M,N,E2,S1,S2>& s, const VectorBase<E1>& v) {
     Vector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
 // Vector * SymMat
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 Vector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul>
 operator*(const VectorBase<E1>& v, const SymMat<M,E2,S>& s) {
     Vector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // SymMat * Vector
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 Vector_<typename SymMat<M,E2,S>::template Result<E1>::Mul>
 operator*(const SymMat<M,E2,S>& s, const VectorBase<E1>& v) {
     Vector_<typename SymMat<M,E2,S>::template Result<E1>::Mul> res(v.nrow());
     for (int i=0; i < v.nrow(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
@@ -806,31 +806,31 @@ RowVector_<E> operator-(const typename CNT<E>::T& l, const RowVectorBase<E>& r) 
     return (temp -= r);
 }
 
-// Scalar multiply and divide 
+// Scalar multiply and divide
 
 template <class E> RowVector_<E>
-operator*(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
+operator*(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r)
   { return RowVector_<E>(l)*=r; }
 
 template <class E> RowVector_<E>
-operator*(const typename CNT<E>::StdNumber& l, const RowVectorBase<E>& r) 
+operator*(const typename CNT<E>::StdNumber& l, const RowVectorBase<E>& r)
   { return RowVector_<E>(r)*=l; }
 
 template <class E> RowVector_<E>
-operator/(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r) 
+operator/(const RowVectorBase<E>& l, const typename CNT<E>::StdNumber& r)
   { return RowVector_<E>(l)/=r; }
 
 // Handle ints explicitly.
 template <class E> RowVector_<E>
-operator*(const RowVectorBase<E>& l, int r) 
+operator*(const RowVectorBase<E>& l, int r)
   { return RowVector_<E>(l)*= typename CNT<E>::StdNumber(r); }
 
 template <class E> RowVector_<E>
-operator*(int l, const RowVectorBase<E>& r) 
+operator*(int l, const RowVectorBase<E>& r)
   { return RowVector_<E>(r)*= typename CNT<E>::StdNumber(l); }
 
 template <class E> RowVector_<E>
-operator/(const RowVectorBase<E>& l, int r) 
+operator/(const RowVectorBase<E>& l, int r)
   { return RowVector_<E>(l)/= typename CNT<E>::StdNumber(r); }
 
 
@@ -838,82 +838,82 @@ operator/(const RowVectorBase<E>& l, int r)
 // whether the element type and the CNT are compatible.
 
 // RowVector * Vec
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 RowVector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul>
 operator*(const RowVectorBase<E1>& v, const Vec<M,E2,S>& s) {
     RowVector_<typename CNT<E1>::template Result< Vec<M,E2,S> >::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // Vec * RowVector
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 RowVector_<typename Vec<M,E2,S>::template Result<E1>::Mul>
 operator*(const Vec<M,E2,S>& s, const RowVectorBase<E1>& v) {
     RowVector_<typename Vec<M,E2,S>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
 // RowVector * Row
-template <class E1, int N, class E2, int S> 
+template <class E1, int N, class E2, int S>
 RowVector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul>
 operator*(const RowVectorBase<E1>& v, const Row<N,E2,S>& s) {
     RowVector_<typename CNT<E1>::template Result< Row<N,E2,S> >::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // Row * RowVector
-template <class E1, int N, class E2, int S> 
+template <class E1, int N, class E2, int S>
 RowVector_<typename Row<N,E2,S>::template Result<E1>::Mul>
 operator*(const Row<N,E2,S>& s, const RowVectorBase<E1>& v) {
     RowVector_<typename Row<N,E2,S>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
 // RowVector * Mat
-template <class E1, int M, int N, class E2, int S1, int S2> 
+template <class E1, int M, int N, class E2, int S1, int S2>
 RowVector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul>
 operator*(const RowVectorBase<E1>& v, const Mat<M,N,E2,S1,S2>& s) {
     RowVector_<typename CNT<E1>::template Result< Mat<M,N,E2,S1,S2> >::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // Mat * RowVector
-template <class E1, int M, int N, class E2, int S1, int S2> 
+template <class E1, int M, int N, class E2, int S1, int S2>
 RowVector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul>
 operator*(const Mat<M,N,E2,S1,S2>& s, const RowVectorBase<E1>& v) {
     RowVector_<typename Mat<M,N,E2,S1,S2>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
 // RowVector * SymMat
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 RowVector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul>
 operator*(const RowVectorBase<E1>& v, const SymMat<M,E2,S>& s) {
     RowVector_<typename CNT<E1>::template Result< SymMat<M,E2,S> >::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = v[i]*s; 
+        res[i] = v[i]*s;
     return res;
 }
 
 // SymMat * RowVector
-template <class E1, int M, class E2, int S> 
+template <class E1, int M, class E2, int S>
 RowVector_<typename SymMat<M,E2,S>::template Result<E1>::Mul>
 operator*(const SymMat<M,E2,S>& s, const RowVectorBase<E1>& v) {
     RowVector_<typename SymMat<M,E2,S>::template Result<E1>::Mul> res(v.ncol());
     for (int i=0; i < v.ncol(); ++i)
-        res[i] = s*v[i]; 
+        res[i] = s*v[i];
     return res;
 }
 
@@ -928,7 +928,7 @@ operator*(const SymMat<M,E2,S>& s, const RowVectorBase<E1>& v) {
     // TODO: these should use LAPACK!
 
 // Dot product
-template <class E1, class E2> 
+template <class E1, class E2>
 typename CNT<E1>::template Result<E2>::Mul
 operator*(const RowVectorBase<E1>& r, const VectorBase<E2>& v) {
     assert(r.ncol() == v.nrow());
@@ -938,7 +938,7 @@ operator*(const RowVectorBase<E1>& r, const VectorBase<E2>& v) {
     return sum;
 }
 
-template <class E1, class E2> 
+template <class E1, class E2>
 Vector_<typename CNT<E1>::template Result<E2>::Mul>
 operator*(const MatrixBase<E1>& m, const VectorBase<E2>& v) {
     assert(m.ncol() == v.nrow());
@@ -948,11 +948,11 @@ operator*(const MatrixBase<E1>& m, const VectorBase<E2>& v) {
     return res;
 }
 
-template <class E1, class E2> 
+template <class E1, class E2>
 Matrix_<typename CNT<E1>::template Result<E2>::Mul>
 operator*(const MatrixBase<E1>& m1, const MatrixBase<E2>& m2) {
     assert(m1.ncol() == m2.nrow());
-    Matrix_<typename CNT<E1>::template Result<E2>::Mul> 
+    Matrix_<typename CNT<E1>::template Result<E2>::Mul>
         res(m1.nrow(),m2.ncol());
 
     for (int j=0; j < res.ncol(); ++j)
@@ -964,20 +964,20 @@ operator*(const MatrixBase<E1>& m1, const MatrixBase<E2>& m2) {
 
 /// @}
 
-// This "private" static method is used to implement VectorView's 
-// fillVectorViewFromStream() and Vector's readVectorFromStream() 
-// namespace-scope static methods, which are in turn used to implement 
-// VectorView's and 
-// Vector's stream extraction operators ">>". This method has to be in the 
-// header file so that we don't need to pass streams through the API, but it 
-// is not intended for use by users and has no Doxygen presence, unlike 
+// This "private" static method is used to implement VectorView's
+// fillVectorViewFromStream() and Vector's readVectorFromStream()
+// namespace-scope static methods, which are in turn used to implement
+// VectorView's and
+// Vector's stream extraction operators ">>". This method has to be in the
+// header file so that we don't need to pass streams through the API, but it
+// is not intended for use by users and has no Doxygen presence, unlike
 // fillArrayFromStream() and readArrayFromStream() and (more commonly)
 // the extraction operators.
-template <class T> static inline 
+template <class T> static inline
 std::istream& readVectorFromStreamHelper
    (std::istream& in, bool isFixedSize, Vector_<T>& out)
 {
-    // If already failed, bad, or eof, set failed bit and return without 
+    // If already failed, bad, or eof, set failed bit and return without
     // touching the Vector.
     if (!in.good()) {in.setstate(std::ios::failbit); return in;}
 
@@ -1002,14 +1002,14 @@ std::istream& readVectorFromStreamHelper
             in.setstate(std::ios_base::failbit); // zero elements not OK
         return in;
     }
-    
+
     // Here the stream is good and the next character is non-white.
     assert(in.good());
 
     // Use this for raw i/o (peeks and gets).
     typename       std::iostream::int_type ch;
 #ifndef NDEBUG
-    const typename std::iostream::int_type EOFch = 
+    const typename std::iostream::int_type EOFch =
         std::iostream::traits_type::eof();
 #endif
 
@@ -1074,11 +1074,11 @@ std::istream& readVectorFromStreamHelper
     while (true) {
         char c;
 
-        // Here at the top of this loop, we have already successfully read 
+        // Here at the top of this loop, we have already successfully read
         // n=nextIndex values of type T. For fixed-size reads, it might be
         // the case that n==numRequired already, but we still may need to
         // look for a closing bracket before we can declare victory.
-        // The stream is good() (not at eof) but it might be the case that 
+        // The stream is good() (not at eof) but it might be the case that
         // there is nothing but white space left; we don't know yet because
         // if we have satisfied the fixed-size count and are not expecting
         // a terminator then we should quit without absorbing the trailing
@@ -1092,15 +1092,15 @@ std::istream& readVectorFromStreamHelper
             ch = in.peek(); assert(ch != EOFch);
             if (!in.good()) break;
             c = (char)ch;
-            if (c == closeBracket) {   
+            if (c == closeBracket) {
                 in.get(); // absorb the closing bracket
-                terminatorSeen = true; 
-                break; 
+                terminatorSeen = true;
+                break;
             }
             // next char not a closing bracket; fall through
         }
 
-        // We didn't look or didn't find a closing bracket. The istream is good 
+        // We didn't look or didn't find a closing bracket. The istream is good
         // but we might be looking at white space.
 
         // If we already got all the elements we want, break for final checks.
@@ -1118,14 +1118,14 @@ std::istream& readVectorFromStreamHelper
                 in.get(); // absorb comma
                 commaRequired = true; // all commas from now on
             } else { // next char not a comma
-                if (commaRequired) // bad, e.g.: v1, v2, v3 v4 
+                if (commaRequired) // bad, e.g.: v1, v2, v3 v4
                 {   in.setstate(std::ios::failbit); break; }
                 else commaOK = false; // saw: v1 v2 (no commas now)
             }
             if (!in.good()) break; // might be eof
         }
 
-        // No closing bracket yet; don't have enough elements; skipped comma 
+        // No closing bracket yet; don't have enough elements; skipped comma
         // if any; istream is good; might be looking at white space.
         assert(in.good());
 
@@ -1165,19 +1165,19 @@ std::istream& readVectorFromStreamHelper
 //------------------------------------------------------------------------------
 //                          RELATED GLOBAL OPERATORS
 //------------------------------------------------------------------------------
-// These are logically part of the Matrix_<T> class but are not actually 
+// These are logically part of the Matrix_<T> class but are not actually
 // class members; that is, they are in the SimTK namespace.
 
 /**@name             Matrix_<T> serialization and I/O
 These methods are at namespace scope but are logically part of the Vector
 classes. These deal with reading and writing Vectors from and to streams,
-which places an additional requirement on the element type T: the element 
-must support the same operation you are trying to do on the Vector as a 
+which places an additional requirement on the element type T: the element
+must support the same operation you are trying to do on the Vector as a
 whole. **/
 /**@{**/
 
 /** Specialize for VectorBase<E> to delegate to element type E, with spaces
-separating the elements. 
+separating the elements.
 @relates SimTK::VectorBase **/
 template <class E> inline void
 writeUnformatted(std::ostream& o, const VectorBase<E>& v) {
@@ -1186,36 +1186,36 @@ writeUnformatted(std::ostream& o, const VectorBase<E>& v) {
         if (i != 0) o << " ";
         writeUnformatted(o, v[i]);
     }
-} 
+}
 /** Raw serialization of VectorView_<E>; same as VectorBase<E>.
 @relates SimTK::VectorView_ **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const VectorView_<E>& v) 
+writeUnformatted(std::ostream& o, const VectorView_<E>& v)
 {   writeUnformatted(o, static_cast< const VectorBase<E> >(v)); }
 
 /** Raw serialization of Vector_<E>; same as VectorBase<E>.
 @relates SimTK::Vector_ **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const Vector_<E>& v) 
+writeUnformatted(std::ostream& o, const Vector_<E>& v)
 {   writeUnformatted(o, static_cast< const VectorBase<E> >(v)); }
 
 /** Specialize for RowVectorBase<E> to delegate to element type E, with spaces
-separating the elements; raw output is same as VectorBase. 
+separating the elements; raw output is same as VectorBase.
 @relates SimTK::RowVectorBase **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const RowVectorBase<E>& v) 
+writeUnformatted(std::ostream& o, const RowVectorBase<E>& v)
 {   writeUnformatted(o, ~v); }
 
 /** Raw serialization of RowVectorView_<E>; same as VectorView_<E>.
 @relates SimTK::RowVectorView_ **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const RowVectorView_<E>& v) 
+writeUnformatted(std::ostream& o, const RowVectorView_<E>& v)
 {   writeUnformatted(o, static_cast< const RowVectorBase<E> >(v)); }
 
 /** Raw serialization of RowVector_<E>; same as Vector_<E>.
 @relates SimTK::RowVector_ **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const RowVector_<E>& v) 
+writeUnformatted(std::ostream& o, const RowVector_<E>& v)
 {   writeUnformatted(o, static_cast< const RowVectorBase<E> >(v)); }
 
 /** Specialize for MatrixBase<E> delegating to RowVectorBase<E> with newlines
@@ -1232,17 +1232,17 @@ writeUnformatted(std::ostream& o, const MatrixBase<E>& v) {
 /** Raw serialization of MatrixView_<E>; same as MatrixBase<E>.
 @relates SimTK::MatrixView_ **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const MatrixView_<E>& v) 
+writeUnformatted(std::ostream& o, const MatrixView_<E>& v)
 {   writeUnformatted(o, static_cast< const MatrixBase<E> >(v)); }
 
 /** Raw serialization of Vector_<E>; same as VectorBase<E>.
 @relates SimTK::Matrix_ **/
 template <class E> inline void
-writeUnformatted(std::ostream& o, const Matrix_<E>& v) 
+writeUnformatted(std::ostream& o, const Matrix_<E>& v)
 {   writeUnformatted(o, static_cast< const MatrixBase<E> >(v)); }
 
 /** Read fixed-size VectorView from input stream. It is an error if there
-aren't enough elements. 
+aren't enough elements.
 @relates SimTK::VectorView_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, VectorView_<E>& v) {
@@ -1251,7 +1251,7 @@ readUnformatted(std::istream& in, VectorView_<E>& v) {
     return true;
 }
 
-/** Read variable-size Vector from input stream. Reads until error or eof. 
+/** Read variable-size Vector from input stream. Reads until error or eof.
 @relates SimTK::Vector_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, Vector_<E>& v) {
@@ -1267,28 +1267,28 @@ readUnformatted(std::istream& in, Vector_<E>& v) {
 }
 
 /** Read fixed-size RowVectorView from input stream. It is an error if there
-aren't enough elements.  
+aren't enough elements.
 @relates SimTK::RowVectorView_ **/
 template <class E> inline bool
-readUnformatted(std::istream& in, RowVectorView_<E>& v) 
+readUnformatted(std::istream& in, RowVectorView_<E>& v)
 {   VectorView_<E> vt(~v);
     return readUnformatted<E>(in, vt); }
 
-/** Read variable-size RowVector from unformatted (whitespace-separated) 
-input stream. Reads until error or eof. 
+/** Read variable-size RowVector from unformatted (whitespace-separated)
+input stream. Reads until error or eof.
 @relates SimTK::RowVector_ **/
 template <class E> inline bool
-readUnformatted(std::istream& in, RowVector_<E>& v) 
+readUnformatted(std::istream& in, RowVector_<E>& v)
 {   Vector_<E> vt(~v);
     return readUnformatted<E>(in, vt); }
 
 /** Read fixed-size MatrixView in row order from unformatted (whitespace-
 separated) input stream. Newlines in the input have no special meaning --
-we'll read them as whitespace. It is an error if there aren't enough 
-elements.  
+we'll read them as whitespace. It is an error if there aren't enough
+elements.
 @relates SimTK::MatrixView_ **/
 template <class E> inline bool
-readUnformatted(std::istream& in, MatrixView_<E>& v) { 
+readUnformatted(std::istream& in, MatrixView_<E>& v) {
     for (int row=0; row < v.nrow(); ++row) {
         RowVectorView_<E> oneRow(v[row]);
         if (!readUnformatted<E>(in, oneRow)) return false;
@@ -1297,9 +1297,9 @@ readUnformatted(std::istream& in, MatrixView_<E>& v) {
 }
 
 /** Read in new values for a Matrix without changing its size, from a stream
-of whitespace-separated tokens with no other formatting recognized. Newlines in 
-the input have no special meaning -- we'll read them as whitespace. It is an 
-error if there aren't enough elements.  
+of whitespace-separated tokens with no other formatting recognized. Newlines in
+the input have no special meaning -- we'll read them as whitespace. It is an
+error if there aren't enough elements.
 @relates SimTK::Matrix_ **/
 template <class E> inline bool
 fillUnformatted(std::istream& in, Matrix_<E>& v) {
@@ -1307,53 +1307,53 @@ fillUnformatted(std::istream& in, Matrix_<E>& v) {
 }
 
 /** NOT IMPLEMENTED: read variable-size Matrix recognizing newlines as end
-of row; use fillUnformatted() instead.  
+of row; use fillUnformatted() instead.
 @relates SimTK::Matrix_ **/
 template <class E> inline bool
 readUnformatted(std::istream& in, Matrix_<E>& v) {
-    SimTK_ASSERT_ALWAYS(!"implemented", 
+    SimTK_ASSERT_ALWAYS(!"implemented",
         "SimTK::readUnformatted(istream, Matrix) is not implemented; try"
         " SimTK::fillUnformatted(istream, Matrix) instead.");
     return false;
 }
-  
+
 /** Output a human readable representation of a Vector to an std::ostream
-(like std::cout). The format is ~[ \e elements ] where \e elements is a 
-space-separated list of the Vector's contents output by invoking the "<<" 
-operator on the elements. This function will not compile if the element type 
+(like std::cout). The format is ~[ \e elements ] where \e elements is a
+space-separated list of the Vector's contents output by invoking the "<<"
+operator on the elements. This function will not compile if the element type
 does not support the "<<" operator. No newline is issued before
 or after the output. @relates Vector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const VectorBase<T>& v)
-{   o << "~["; 
+{   o << "~[";
     if (v.size()) {
         o << v[0];
         for (int i=1; i < v.size(); ++i) o << " " << v[i];
     }
-    return o << "]"; 
+    return o << "]";
 }
 
 /** Output a human readable representation of a RowVector to an std::ostream
-(like std::cout). The format is [ \e elements ] where \e elements is a 
-space-separated list of the RowVector's contents output by invoking the "<<" 
-operator on the elements. This function will not compile if the element type 
+(like std::cout). The format is [ \e elements ] where \e elements is a
+space-separated list of the RowVector's contents output by invoking the "<<"
+operator on the elements. This function will not compile if the element type
 does not support the "<<" operator. No newline is issued before
 or after the output. @relates RowVector_ **/
 template <class T> inline std::ostream&
 operator<<(std::ostream& o, const RowVectorBase<T>& v)
-{   o << "["; 
+{   o << "[";
     if (v.size()) {
         o << v[0];
         for (int i=1; i < v.size(); ++i) o << " " << v[i];
     }
-    return o << "]"; 
+    return o << "]";
 }
 
 /** Output a human readable representation of a Matrix to an std::ostream
 (like std::cout). The format is one row per line, with each row output as
-[ \e elements ] where \e elements is a 
-space-separated list of the row's contents output by invoking the "<<" 
-operator on the elements. This function will not compile if the element type 
+[ \e elements ] where \e elements is a
+space-separated list of the row's contents output by invoking the "<<"
+operator on the elements. This function will not compile if the element type
 does not support the "<<" operator. A newline is issued before each row and
 at the end. @relates Matrix_ **/
 template <class T> inline std::ostream&
@@ -1361,28 +1361,28 @@ operator<<(std::ostream& o, const MatrixBase<T>& m) {
     for (int i=0;i<m.nrow();++i)
         o << std::endl << m[i];
     if (m.nrow()) o << std::endl;
-    return o; 
+    return o;
 }
 
 
 /** Read in a Vector_<T> from a stream, as a sequence of space-separated or
-comma-separated values optionally surrounded by parentheses (), or square 
+comma-separated values optionally surrounded by parentheses (), or square
 brackets [], or the "transposed" ~() or ~[]. In the case that the transpose
 operator is present, the parentheses or brackets are required, otherwise they
-are optional. We will continue to read elements of 
-type T from the stream until we find a reason to stop, using type T's stream 
+are optional. We will continue to read elements of
+type T from the stream until we find a reason to stop, using type T's stream
 extraction operator>>() to read in each element and resizing the Vector as
-necessary. If the data is bracketed, we'll read until we hit the closing 
+necessary. If the data is bracketed, we'll read until we hit the closing
 bracket. If it is not bracketed, we'll read until we hit eof() or get an error
-such as the element extractor setting the stream's fail bit due to bad 
-formatting. On successful return, the stream will be positioned right after 
-the final read-in element or terminating bracket, and the stream's status will 
-be good() or eof(). We will not consume trailing whitespace after bracketed 
-elements; that means the stream might actually be empty even if we don't 
-return eof(). If you want to know whether there is anything else in the 
+such as the element extractor setting the stream's fail bit due to bad
+formatting. On successful return, the stream will be positioned right after
+the final read-in element or terminating bracket, and the stream's status will
+be good() or eof(). We will not consume trailing whitespace after bracketed
+elements; that means the stream might actually be empty even if we don't
+return eof(). If you want to know whether there is anything else in the
 stream, follow this call with the STL whitespace skipper std::ws() like this:
 @code
-    if (readVectorFromStream(in,vec) && !in.eof()) 
+    if (readVectorFromStream(in,vec) && !in.eof())
         std::ws(in); // might take us to eof
     if (in.fail()) {...} // probably a formatting error
     else {
@@ -1391,27 +1391,27 @@ stream, follow this call with the STL whitespace skipper std::ws() like this:
     }
 @endcode
 A compilation error will occur if you try to use this method on an Vector_<T>
-for a type T for which there is no stream extraction operator>>(). 
-@note If you want to fill a resizeable Vector_<T> with a fixed amount of data 
-from the stream, resize() the Vector to the appropriate length and then use 
+for a type T for which there is no stream extraction operator>>().
+@note If you want to fill a resizeable Vector_<T> with a fixed amount of data
+from the stream, resize() the Vector to the appropriate length and then use
 fillVectorFromStream() instead. @see fillVectorFromStream()
 @relates Vector_ **/
-template <class T> static inline 
+template <class T> static inline
 std::istream& readVectorFromStream(std::istream& in, Vector_<T>& out)
 {   return readVectorFromStreamHelper<T>(in, false /*variable sizez*/, out); }
 
 
 
-/** Read in a fixed number of elements from a stream into a Vector. We expect 
-to read in exactly size() elements of type T, using type T's stream extraction 
-operator>>(). This will stop reading when we've read size() elements, or set 
-the fail bit in the stream if we run out of elements or if any element's 
-extract operator sets the fail bit. On successful return, all size() elements 
-will have been set, the stream will be positioned right after the final 
+/** Read in a fixed number of elements from a stream into a Vector. We expect
+to read in exactly size() elements of type T, using type T's stream extraction
+operator>>(). This will stop reading when we've read size() elements, or set
+the fail bit in the stream if we run out of elements or if any element's
+extract operator sets the fail bit. On successful return, all size() elements
+will have been set, the stream will be positioned right after the final
 read-in element or terminating bracket, and the stream's status will be good()
-or eof(). We will not consume trailing whitespace after reading all the 
-elements; that means the stream might actually be empty even if we don't 
-return eof(). If you want to know whether there is anything else in the 
+or eof(). We will not consume trailing whitespace after reading all the
+elements; that means the stream might actually be empty even if we don't
+return eof(). If you want to know whether there is anything else in the
 stream, follow this call with std::ws() like this:
 @code
     if (fillVectorFromStream(in,vec))
@@ -1422,11 +1422,11 @@ stream, follow this call with std::ws() like this:
 @endcode
 A compilation error will occur if you try to use this method on a Vector_<T>
 for a type T for which there is no stream extraction operator>>().
-@note If you want to read in a variable number of elements and have the 
+@note If you want to read in a variable number of elements and have the
 Vector_<T> resized as needed, use readVectorFromStream() instead.
 @see readVectorFromStream()
 @relates Vector_ **/
-template <class T> static inline 
+template <class T> static inline
 std::istream& fillVectorFromStream(std::istream& in, Vector_<T>& out)
 {   return readVectorFromStreamHelper<T>(in, true /*fixed size*/, out); }
 
@@ -1434,40 +1434,40 @@ std::istream& fillVectorFromStream(std::istream& in, Vector_<T>& out)
 fillVectorFromStream() for more information; this works the same way.
 @see fillVectorFromStream()
 @relates VectorView_ **/
-template <class T> static inline 
+template <class T> static inline
 std::istream& fillVectorViewFromStream(std::istream& in, VectorView_<T>& out)
 {   return readVectorFromStreamHelper<T>(in, true /*fixed size*/, out); }
 
 
 /** Read Vector_<T> from a stream as a sequence of space- or comma-separated
 values of type T, optionally delimited by parentheses, or brackets, and
-preceded by "~". The Vector_<T> may be an owner (variable size) or a view 
-(fixed size n). In the case of an owner, we'll read all the elements in 
-brackets or until eof if there are no brackets. In the case of a view, there 
-must be exactly n elements in brackets, or if there are no brackets we'll 
-consume exactly n elements and then stop. Each element is read in with its 
-own operator ">>" so this won't work if no such operator is defined for 
+preceded by "~". The Vector_<T> may be an owner (variable size) or a view
+(fixed size n). In the case of an owner, we'll read all the elements in
+brackets or until eof if there are no brackets. In the case of a view, there
+must be exactly n elements in brackets, or if there are no brackets we'll
+consume exactly n elements and then stop. Each element is read in with its
+own operator ">>" so this won't work if no such operator is defined for
 type T. @relates Vector_ **/
 template <class T> inline
-std::istream& operator>>(std::istream& in, Vector_<T>& out) 
+std::istream& operator>>(std::istream& in, Vector_<T>& out)
 {   return readVectorFromStream<T>(in, out); }
 
-/** Read a (fixed size n) VectorView_<T> from a stream as a sequence of space- 
-or comma-separated values of type T, optionally delimited by parentheses or 
-square brackets, and preceded by "~". If there are no delimiters then we will 
-read size() values and then stop. Otherwise, there must be exactly size() 
-values within the brackets. Each element is read in with its own 
+/** Read a (fixed size n) VectorView_<T> from a stream as a sequence of space-
+or comma-separated values of type T, optionally delimited by parentheses or
+square brackets, and preceded by "~". If there are no delimiters then we will
+read size() values and then stop. Otherwise, there must be exactly size()
+values within the brackets. Each element is read in with its own
 operator ">>" so  this won't work if no such operator is defined for type T.
 @relates VectorView_ **/
 template <class T> inline
-std::istream& operator>>(std::istream& in, VectorView_<T>& out) 
+std::istream& operator>>(std::istream& in, VectorView_<T>& out)
 {   return fillVectorViewFromStream<T>(in, out); }
 /**@}**/  // End of Matrix serialization.
 
 // Friendly abbreviations for vectors and matrices with scalar elements.
 /** @ingroup MatVecTypedefs **/
 /**@{**/
-/** Variable-size column vector of Real elements; abbreviation for 
+/** Variable-size column vector of Real elements; abbreviation for
 Vector_<Real>. This is the most common large-vector type in the Simbody API
 and in Simbody user programs. **/
 typedef Vector_<Real>           Vector;
@@ -1478,7 +1478,7 @@ user programs. **/
 typedef Matrix_<Real>           Matrix;
 
 /** Variable-size row vector of Real elements; abbreviation for
-RowVector_<Real>. This is the type of a transposed Vector and does not 
+RowVector_<Real>. This is the type of a transposed Vector and does not
 usually appear explicitly in the Simbody API or user programs. **/
 typedef RowVector_<Real>        RowVector;
 /**@}**/

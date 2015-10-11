@@ -31,7 +31,7 @@ Declares the MobilizedBody::BendStretch class. **/
 
 namespace SimTK {
 
-/** Two mobilities: The z axis of the parent's F frame is 
+/** Two mobilities: The z axis of the parent's F frame is
 used for rotation (and that is always aligned with the M frame z axis).
 The x axis of the *M* (outboard) frame is then used for translation;
 that is, first we rotate around z, which moves M's x with respect to F's x. Then
@@ -46,15 +46,15 @@ public:
     BendStretch() {}
 
     /** Create a %BendStretch mobilizer between an existing parent (inboard)
-    body P and a new child (outboard) body B created by copying the given 
-    \a bodyInfo into a privately-owned Body within the constructed 
-    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P 
-    and M fixed to child B. 
+    body P and a new child (outboard) body B created by copying the given
+    \a bodyInfo into a privately-owned Body within the constructed
+    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P
+    and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     BendStretch(MobilizedBody& parent, const Transform& X_PF,
                 const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     BendStretch(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
 
@@ -77,7 +77,7 @@ public:
     }
 
     /** @cond **/ // Don't let doxygen see this
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(BendStretch, BendStretchImpl, 
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(BendStretch, BendStretchImpl,
                                              MobilizedBody);
     /** @endcond **/
 };

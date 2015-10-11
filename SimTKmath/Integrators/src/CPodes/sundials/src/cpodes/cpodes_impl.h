@@ -50,8 +50,8 @@ typedef struct CPodeMemRec {
 
   realtype cp_uround;    /* machine unit roundoff */
 
-  /*-------------------------- 
-    Problem Specification Data 
+  /*--------------------------
+    Problem Specification Data
     --------------------------*/
 
   int cp_ode_type;             /* ODE type: ode = CP_IMPL or CP_EXPL          */
@@ -70,10 +70,10 @@ typedef struct CPodeMemRec {
   void *cp_e_data;             /* user pointer passed to efun                 */
 
   /*-----------------------
-    Nordsieck History Array 
+    Nordsieck History Array
     -----------------------*/
 
-  /* 
+  /*
    * Nordsieck array, of size N x (q+1).
    * zn[j] is a vector of length N (j=0,...,q)
    * zn[j] = [1/factorial(j)] * h^j * (jth derivative of the interpolating polynomial)
@@ -82,7 +82,7 @@ typedef struct CPodeMemRec {
   N_Vector cp_zn[L_MAX];
 
   /*------------------------------------------------
-    Other vectors of same length as the state vector 
+    Other vectors of same length as the state vector
     ------------------------------------------------*/
 
   N_Vector cp_ewt;             /* error weight vector.                        */
@@ -93,19 +93,19 @@ typedef struct CPodeMemRec {
   N_Vector cp_ftemp;           /* temporary storage vector                    */
 
   /*---------
-    Step Data 
-    ---------*/  
+    Step Data
+    ---------*/
 
   int cp_q;                    /* current order                               */
-  int cp_qprime;               /* order to be used on the next step           */ 
+  int cp_qprime;               /* order to be used on the next step           */
   int cp_next_q;               /* order to be used on the next step           */
   int cp_qwait;                /* no. of steps to wait before a change in q   */
   int cp_L;                    /* L = q + 1                                   */
 
   realtype cp_hin;             /* initial step size                           */
   realtype cp_h;               /* current step size                           */
-  realtype cp_hprime;          /* step size to be used on the next step       */ 
-  realtype cp_next_h;          /* step size to be used on the next step       */ 
+  realtype cp_hprime;          /* step size to be used on the next step       */
+  realtype cp_next_h;          /* step size to be used on the next step       */
   realtype cp_eta;             /* eta = hprime / h                            */
   realtype cp_hscale;          /* value of h used in zn                       */
   realtype cp_tn;              /* current internal value of t                 */
@@ -165,17 +165,17 @@ typedef struct CPodeMemRec {
   N_Vector cp_ctemp;           /* temporary vectors (length M)                */
   N_Vector cp_tempvP1;
   N_Vector cp_tempvP2;
-    
+
   booleantype cp_first_proj;   /* is this the first time we project?          */
 
   long int cp_nproj;           /* number of projection steps performed        */
   long int cp_nprf;            /* number of projection failures               */
   long int cp_nce;             /* number of calls to cfun                     */
-  long int cp_nsetupsP;        /* number of calls to lsetupP                  */       
+  long int cp_nsetupsP;        /* number of calls to lsetupP                  */
   int cp_maxnpf;               /* maximum number of projection failures       */
 
   /*-----------------------
-    Quadrature Related Data 
+    Quadrature Related Data
     -----------------------*/
 
   booleantype cp_quadr;        /* are we integrating quadratures?             */
@@ -197,8 +197,8 @@ typedef struct CPodeMemRec {
 
   realtype cp_acnrmQ;          /* acnrmQ = ||acorQ||_WRMS                     */
 
-  long int cp_lrw1Q;           /* no. of realtype words in 1 N_Vector yQ      */ 
-  long int cp_liw1Q;           /* no. of integer words in 1 N_Vector yQ       */ 
+  long int cp_lrw1Q;           /* no. of realtype words in 1 N_Vector yQ      */
+  long int cp_liw1Q;           /* no. of integer words in 1 N_Vector yQ       */
 
   int cp_qmax_allocQ;          /* qmax used when allocating quad. memory      */
 
@@ -217,7 +217,7 @@ typedef struct CPodeMemRec {
   realtype cp_tstop;
 
   /*------
-    Limits 
+    Limits
     ------*/
 
   int cp_qmax;          /* q <= qmax                                          */
@@ -234,7 +234,7 @@ typedef struct CPodeMemRec {
   realtype cp_etamax;   /* eta <= etamax                                      */
 
   /*--------
-    Counters 
+    Counters
     --------*/
 
   long int cp_nst;             /* number of internal steps taken              */
@@ -250,18 +250,18 @@ typedef struct CPodeMemRec {
   realtype cp_etaqp1;          /* ratio of new to old h for order q+1         */
 
   /*----------------------------
-    Space requirements for CPODES 
+    Space requirements for CPODES
     ----------------------------*/
 
-  long int cp_lrw1;            /* no. of realtype words in 1 state N_Vector   */ 
-  long int cp_liw1;            /* no. of integer words in 1 state N_Vector    */ 
-  long int cp_lrw2;            /* no. of realtype words in 1 cnstr. N_Vector  */ 
-  long int cp_liw2;            /* no. of integer words in 1 cnstr. N_Vector   */ 
+  long int cp_lrw1;            /* no. of realtype words in 1 state N_Vector   */
+  long int cp_liw1;            /* no. of integer words in 1 state N_Vector    */
+  long int cp_lrw2;            /* no. of realtype words in 1 cnstr. N_Vector  */
+  long int cp_liw2;            /* no. of integer words in 1 cnstr. N_Vector   */
   long int cp_lrw;             /* no. of realtype words in CPODES work vectors*/
   long int cp_liw;             /* no. of integer words in CPODES work vectors */
 
   /*---------------------------------------
-    Implicit Integration Linear Solver Data 
+    Implicit Integration Linear Solver Data
     ---------------------------------------*/
 
   /* Linear Solver functions to be called */
@@ -269,26 +269,26 @@ typedef struct CPodeMemRec {
   int (*cp_lsetup)(struct CPodeMemRec *cp_mem, int convfail,
                    N_Vector yP, N_Vector ypP, N_Vector fctP,
                    booleantype *jcurPtr,
-                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3); 
+                   N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
   int (*cp_lsolve)(struct CPodeMemRec *cp_mem, N_Vector b, N_Vector weight,
                    N_Vector yC, N_Vector ypC, N_Vector fctC);
   void (*cp_lfree)(struct CPodeMemRec *cp_mem);
 
   /* Linear Solver specific memory */
-  void *cp_lmem;           
+  void *cp_lmem;
 
   /* Does lsetup do anything? */
   booleantype cp_lsetup_exists;
 
   /*-----------------------------
-    Projection Linear Solver Data 
+    Projection Linear Solver Data
     -----------------------------*/
 
   /* Linear Solver functions to be called */
   int (*cp_linitP)(struct CPodeMemRec *cp_mem);
-  int (*cp_lsetupP)(struct CPodeMemRec *cp_mem, 
+  int (*cp_lsetupP)(struct CPodeMemRec *cp_mem,
                     N_Vector y, N_Vector cy,
-                    N_Vector c_tmp1, N_Vector c_tmp2, N_Vector s_tmp1); 
+                    N_Vector c_tmp1, N_Vector c_tmp2, N_Vector s_tmp1);
   int (*cp_lsolveP)(struct CPodeMemRec *cp_mem, N_Vector b, N_Vector x,
                     N_Vector y, N_Vector cy,
                     N_Vector c_tmp1, N_Vector s_tmp1);
@@ -315,14 +315,14 @@ typedef struct CPodeMemRec {
   int cp_qmax_alloc;            /* value of qmax used when allocating memory  */
   int cp_indx_acor;             /* index of the zn vector where acor is saved */
 
-  booleantype cp_MallocDone;  
+  booleantype cp_MallocDone;
   booleantype cp_VabstolMallocDone;
   booleantype cp_projMallocDone;
   booleantype cp_rootMallocDone;
 
 
   /*-------------------------------------------
-    Error handler function and error output file 
+    Error handler function and error output file
     -------------------------------------------*/
 
   CPErrHandlerFn cp_ehfun;     /* Error messages are handled by ehfun         */
@@ -393,16 +393,16 @@ typedef struct CPodeMemRec {
  * the error handler function.
  * -----------------------------------------------------------------
  */
-  
+
 /*
  * -----------------------------------------------------------------
  * int (*cp_lsetup)(CPodeMem cp_mem, int convfail,
- *                  N_Vector yP, N_Vector ypP, N_Vector fctP, 
+ *                  N_Vector yP, N_Vector ypP, N_Vector fctP,
  *                  booleantype *jcurPtr,
  *                  N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
  * -----------------------------------------------------------------
- * The job of cp_lsetup is to prepare the linear solver for subsequent 
- * calls to cp_lsolve. It may recompute Jacobian-related data is it 
+ * The job of cp_lsetup is to prepare the linear solver for subsequent
+ * calls to cp_lsolve. It may recompute Jacobian-related data is it
  * deems necessary. Its parameters are as follows:
  *
  * cp_mem   - problem memory pointer of type CPodeMem. See the
@@ -455,7 +455,7 @@ typedef struct CPodeMemRec {
  * cp_lsolve must solve the linear equation P x = b, where
  *   Explicit-form ODE:
  *         P is some approximation to (I - gamma * df/dy)
- *         and the RHS vector b is input. 
+ *         and the RHS vector b is input.
  *   Implicit-form ODE:
  *         P is some approximation to (dF/dy' + gamma * dF/dy)
  *         and b is the current residual.
@@ -476,10 +476,10 @@ typedef struct CPodeMemRec {
  *    NOTE: ypC = NULL for explicit-form ODE
  *
  * fctC     - f(tn, yC) or F(tn, yC, ypc).
- * 
- * The solution is to be returned in the vector b. 
- * The cp_lsolve function should return a positive value for a 
- * recoverable error and a negative value for an unrecoverable error. 
+ *
+ * The solution is to be returned in the vector b.
+ * The cp_lsolve function should return a positive value for a
+ * recoverable error and a negative value for an unrecoverable error.
  * Success is indicated by a 0 return value.
  * -----------------------------------------------------------------
  */
@@ -493,7 +493,7 @@ typedef struct CPodeMemRec {
  * completed and the linear solver is no longer needed.
  * -----------------------------------------------------------------
  */
-  
+
 /*
  * -----------------------------------------------------------------
  * Communication between CPODES and a CPODES Linear Solver
@@ -501,8 +501,8 @@ typedef struct CPodeMemRec {
  * convfail is passed as an input to cp_lsetup. When dealing with
  * an ODE in explicit form, this can be used to test whether the Jacobian
  * must be reevakluated or whether it is enough to use the up-to-date gamma
- * value. 
- * 
+ * value.
+ *
  * convfail can be one of:
  *
  * CP_NO_FAILURES : Either this is the first cp_setup call for this
@@ -544,24 +544,24 @@ typedef struct CPodeMemRec {
  * -----------------------------------------------------------------
  * The purpose of cp_linitP is to complete initializations for a
  * specific linear solver, such as counters and statistics.
- * An linit function should return 0 if it has successfully 
+ * An linit function should return 0 if it has successfully
  * initialized the CPODES linear solver and a negative value otherwise.
  * If an error does occur, an appropriate message should be sent to
  * the error handler function.
  * -----------------------------------------------------------------
  */
-  
+
 /*
  * -----------------------------------------------------------------
  * int (*cp_lsetupP)(CPodeMem cp_mem,
  *                   N_Vector y, N_Vector cy,
  *                   N_Vector c_tmp1, N_Vector c_tmp2, N_Vector s_tmp1);
  * -----------------------------------------------------------------
- * The job of cp_lsetupP is to prepare the linear solver for subsequent 
- * calls to cp_lsolveP. It may recompute Jacobian-related data if it 
+ * The job of cp_lsetupP is to prepare the linear solver for subsequent
+ * calls to cp_lsolveP. It may recompute Jacobian-related data if it
  * deems necessary. Its parameters are as follows:
  *
- * cp_mem   - problem memory pointer of type CPodeMem. See the 
+ * cp_mem   - problem memory pointer of type CPodeMem. See the
  *            typedef earlier in this file.
  *
  * y        - the corrected y vector for the current CPODES
@@ -569,9 +569,9 @@ typedef struct CPodeMemRec {
  *
  * cy      - c(tn, y)
  *
- * c_tmp1, c_tmp2 - temporary N_Vectors (of same length as c) provided 
+ * c_tmp1, c_tmp2 - temporary N_Vectors (of same length as c) provided
  *                  for use by cp_lsetupP.
- * s_tmp1         - temporary N_Vectors (of same length as y) provided 
+ * s_tmp1         - temporary N_Vectors (of same length as y) provided
  *                  for use by cp_lsetupP.
  *
  * The cp_lsetupP routine should return 0 if successful, a positive
@@ -583,15 +583,15 @@ typedef struct CPodeMemRec {
 /*
  * -----------------------------------------------------------------
  * int (*cp_lsolveP)(CPodeMem cp_mem, N_Vector b, N_Vector x,
- *                   N_Vector y, N_Vector cy, 
+ *                   N_Vector y, N_Vector cy,
  *                   N_Vector c_tmp1, N_Vector s_tmp1);
  * -----------------------------------------------------------------
  * cp_lsolveP must solve the linear equation:
  *
- *            
+ *
  *   Explicit-form ODE:
  *         P is some approximation to (I - gamma * df/dy)
- *         and the RHS vector b is input. 
+ *         and the RHS vector b is input.
  *   Implicit-form ODE:
  *         P is some approximation to (dF/dy' + gamma * dF/dy)
  *         and b is the current residual.
@@ -612,10 +612,10 @@ typedef struct CPodeMemRec {
  *    NOTE: ypC = NULL for explicit-form ODE
  *
  * fctC     - f(tn, yC) or F(tn, yC, ypc).
- * 
- * The solution is to be returned in the vector b. 
- * The cp_lsolve function should return a positive value for a 
- * recoverable error and a negative value for an unrecoverable error. 
+ *
+ * The solution is to be returned in the vector b.
+ * The cp_lsolve function should return a positive value for a
+ * recoverable error and a negative value for an unrecoverable error.
  * Success is indicated by a 0 return value.
  * -----------------------------------------------------------------
  */
@@ -628,7 +628,7 @@ typedef struct CPodeMemRec {
  * given vector x and return the result in Gx.
  * -----------------------------------------------------------------
  */
-  
+
 /*
  * -----------------------------------------------------------------
  * void (*cp_lfreeP)(CPodeMem cp_mem);
@@ -638,7 +638,7 @@ typedef struct CPodeMemRec {
  * completed and the linear solver is no longer needed.
  * -----------------------------------------------------------------
  */
-  
+
 /*
  * -----------------------------------------------------------------
  * Communication between CPODES and a CPODES Linear Solver
@@ -646,8 +646,8 @@ typedef struct CPodeMemRec {
  * convfail is passed as an input to cp_lsetup. When dealing with
  * an ODE in explicit form, this can be used to test whether the Jacobian
  * must be reevakluated or whether it is enough to use the up-to-date gamma
- * value. 
- * 
+ * value.
+ *
  * convfail can be one of:
  *
  * CP_NO_FAILURES : Either this is the first cp_setup call for this
@@ -675,11 +675,11 @@ typedef struct CPodeMemRec {
  * -----------------------------------------------------------------
  */
 
-  
+
 #define CP_NO_FAILURES 0
 #define CP_FAIL_BAD_J  1
 #define CP_FAIL_OTHER  2
-    
+
 
 #ifdef __cplusplus
 }

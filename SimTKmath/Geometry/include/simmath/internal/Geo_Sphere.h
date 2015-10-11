@@ -41,7 +41,7 @@ namespace SimTK {
 //==============================================================================
 //                              GEO SPHERE
 //==============================================================================
-/** A geometric primitive representing a sphere by its radius and center 
+/** A geometric primitive representing a sphere by its radius and center
 point, and a collection of sphere-related utility methods. **/
 template <class P>
 class Geo::Sphere_ {
@@ -49,17 +49,17 @@ typedef P           RealP;
 typedef Vec<3,P>    Vec3P;
 typedef Vec<4,P>    Vec4P;
 public:
-/** Construct an uninitialized Sphere object; the center point and radius 
+/** Construct an uninitialized Sphere object; the center point and radius
 will be garbage. **/
 Sphere_() {}
 /** Construct a sphere from its center location and radius. **/
 Sphere_(const Vec3P& center, RealP radius)
 :   cr(center[0], center[1], center[2], radius) {assert(radius>=0);}
 /** Change the radius of this sphere. **/
-Sphere_& setRadius(RealP radius) 
+Sphere_& setRadius(RealP radius)
 {   assert(radius>=0); cr[3]=radius; return *this; }
 /** Change the center location of this sphere. **/
-Sphere_& setCenter(const Vec3P& center) 
+Sphere_& setCenter(const Vec3P& center)
 {   Vec3P::updAs(&cr[0])=center; return *this; }
 
 /** Modify this sphere to scale its radius by a fractional amount f,
@@ -68,11 +68,11 @@ that is we set radius to f*radius.
 Sphere_& scaleBy(RealP f)
 {   setRadius(f*getRadius()); return *this; }
 
-/** Stretch this sphere in place by a small amount to ensure that there will 
-be no roundoff problems if this is used as a bounding sphere. The amount to 
-stretch depends on the default tolerance for this precision, the radius, and 
-the position of the sphere in space. A very large sphere, or a sphere that is 
-very far from the origin, must be stretched more than a small one at the 
+/** Stretch this sphere in place by a small amount to ensure that there will
+be no roundoff problems if this is used as a bounding sphere. The amount to
+stretch depends on the default tolerance for this precision, the radius, and
+the position of the sphere in space. A very large sphere, or a sphere that is
+very far from the origin, must be stretched more than a small one at the
 origin. Cost is 6 flops.
 @see Geo class for tolerance information. **/
 Sphere_& stretchBoundary() {
@@ -80,14 +80,14 @@ Sphere_& stretchBoundary() {
     const RealP maxdim = max(getCenter().abs());
     const RealP scale = std::max(maxdim, getRadius());
     updRadius() += std::max(scale*Geo::getEps<P>(), tol);
-    return *this; 
+    return *this;
 }
 
 /** Return the volume of this sphere (4/3 pi r^3). **/
-RealP findVolume() const 
+RealP findVolume() const
 {   return (RealP(4)/3) * NTraits<P>::getPi() * cube(getRadius()); }
 /** Return the surface area of this sphere (4 pi r^2). **/
-RealP findArea() const 
+RealP findArea() const
 {   return 4 * NTraits<P>::getPi() * square(getRadius()); }
 
 /** Return true if a given point is strictly outside this sphere. Just touching
@@ -116,7 +116,7 @@ RealP& updRadius() {return cr[3];}
 private:
 // Store together to make sure the compiler doesn't introduce any padding.
 // cr[0..2] is the center point, cr[3] is the radius
-Vec4P   cr;    
+Vec4P   cr;
 };
 
 

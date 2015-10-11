@@ -1,5 +1,5 @@
-/** 
- * @file SFMT-alti.h 
+/**
+ * @file SFMT-alti.h
  *
  * @brief SIMD oriented Fast Mersenne Twister(SFMT)
  * pseudorandom number generator
@@ -89,7 +89,7 @@ inline static void gen_rand_all(void) {
  * This function fills the user-specified array with pseudorandom
  * integers.
  *
- * @param array an 128-bit array to be filled by pseudorandom numbers.  
+ * @param array an 128-bit array to be filled by pseudorandom numbers.
  * @param size number of 128-bit pesudorandom numbers to be generated.
  */
 inline static void gen_rand_array(w128_t *array, int size) {

@@ -29,7 +29,7 @@ namespace Ipopt
    * on the computational environment (e.g. just a double array on a shared
    * memory machine, or distributed double arrays for a distributed
    * memory machine.)
-   * 
+   *
    * Deriving from Vector: This class inherits from tagged object to
    * implement an advanced caching scheme. Because of this, the
    * TaggedObject method ObjectChanged() must be called each time the
@@ -60,8 +60,8 @@ namespace Ipopt
     Vector* MakeNewCopy() const;
 
     /**@name Standard BLAS-1 Operations
-     *  (derived classes do NOT overload these 
-     *  methods, instead, overload the 
+     *  (derived classes do NOT overload these
+     *  methods, instead, overload the
      *  protected versions of these methods). */
     //@{
     /** Copy the data of the vector x into this vector (DCOPY). */
@@ -87,8 +87,8 @@ namespace Ipopt
     //@}
 
     /** @name Additional (Non-BLAS) Vector Methods
-     *  (derived classes do NOT overload these 
-     *  methods, instead, overload the 
+     *  (derived classes do NOT overload these
+     *  methods, instead, overload the
      *  protected versions of these methods). */
     //@{
     /** Set each element in the vector to the scalar alpha. */
@@ -172,8 +172,8 @@ namespace Ipopt
     //@}
 
     /** @name Output methods
-     *  (derived classes do NOT overload these 
-     *  methods, instead, overload the 
+     *  (derived classes do NOT overload these
+     *  methods, instead, overload the
      *  protected versions of these methods). */
     //@{
     /** Print the entire vector */
@@ -288,7 +288,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -381,7 +381,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

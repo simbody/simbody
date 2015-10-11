@@ -41,7 +41,7 @@ namespace SimTK {
     // DECORATION SUBSYSTEM //
     //////////////////////////
 
-/*static*/ bool 
+/*static*/ bool
 DecorationSubsystem::isInstanceOf(const Subsystem& s) {
     return DecorationSubsystemGuts::isA(s.getSubsystemGuts());
 }
@@ -56,11 +56,11 @@ DecorationSubsystem::updDowncast(Subsystem& s) {
     return static_cast<DecorationSubsystem&>(s);
 }
 
-const DecorationSubsystemGuts& 
+const DecorationSubsystemGuts&
 DecorationSubsystem::getGuts() const {
     return SimTK_DYNAMIC_CAST_DEBUG<const DecorationSubsystemGuts&>(getSubsystemGuts());
 }
-DecorationSubsystemGuts&       
+DecorationSubsystemGuts&
 DecorationSubsystem::updGuts() {
     return SimTK_DYNAMIC_CAST_DEBUG<DecorationSubsystemGuts&>(updSubsystemGuts());
 }
@@ -74,14 +74,14 @@ DecorationSubsystem::DecorationSubsystem()
 }
 
 DecorationSubsystem::DecorationSubsystem(MultibodySystem& mbs)
-  : Subsystem() 
+  : Subsystem()
 {
     adoptSubsystemGuts(new DecorationSubsystemGuts());
     mbs.setDecorationSubsystem(*this);
 }
 
 void DecorationSubsystem::addBodyFixedDecoration
-   (MobilizedBodyIndex body, const Transform& X_GD, const DecorativeGeometry& g) 
+   (MobilizedBodyIndex body, const Transform& X_GD, const DecorativeGeometry& g)
 {
     updGuts().addBodyFixedDecoration(body, X_GD, g);
 }
@@ -130,7 +130,7 @@ int DecorationSubsystemGuts::calcDecorativeGeometryAndAppendImpl
                 matter.getMobilizedBody(rb.body2).findStationLocationInGround(s,rb.station2));
         }
     }
-    default: 
+    default:
         assert(getStage(s) >= stage);
     }
     for (int i = 0; i < (int) generators[stage].size(); i++)

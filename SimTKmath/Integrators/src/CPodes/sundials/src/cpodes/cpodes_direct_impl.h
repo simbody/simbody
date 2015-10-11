@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/29 00:05:08 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -37,7 +37,7 @@ extern "C" {
 
 /*
  * -----------------------------------------------------------------
- * Types : CPDlsMemRec, CPDlsMem                             
+ * Types : CPDlsMemRec, CPDlsMem
  * -----------------------------------------------------------------
  * CPDlsMem is pointer to a CPDlsMemRec structure.
  * -----------------------------------------------------------------
@@ -50,7 +50,7 @@ typedef struct {
   int d_n;                /* problem dimension                            */
 
   int d_ml;               /* lower bandwidth of Jacobian                  */
-  int d_mu;               /* upper bandwidth of Jacobian                  */ 
+  int d_mu;               /* upper bandwidth of Jacobian                  */
   int d_smu;              /* upper bandwidth of M = MIN(N-1,d_mu+d_ml)     */
 
   CPDlsDenseJacExplFn d_djacE; /* dense Jacobian routine (CP_EXPL)        */
@@ -65,7 +65,7 @@ typedef struct {
   DlsMat d_savedJ;        /* savedJ = old Jacobian                        */
 
   int *d_pivots;          /* pivots = pivot array for PM = LU             */
-  
+
   long int  d_nstlj;      /* nstlj = nst at last Jacobian eval.           */
 
   long int d_nje;         /* nje = no. of calls to jac                    */
@@ -73,18 +73,18 @@ typedef struct {
   long int d_nfeDQ;       /* no. of calls to f due to DQ Jacobian approx. */
 
   int d_last_flag;        /* last error return flag                       */
-  
+
 } CPDlsMemRec, *CPDlsMem;
 
 /*
  * -----------------------------------------------------------------
- * Types : CPDlsProjMemRec, CPDlsProjMem                             
+ * Types : CPDlsProjMemRec, CPDlsProjMem
  * -----------------------------------------------------------------
  * The type CPDlsProjMem is pointer to a CPDlsProjMemRec.
- * This structure contains CPDlsProj solver-specific data. 
+ * This structure contains CPDlsProj solver-specific data.
  * -----------------------------------------------------------------
  */
-  
+
 typedef struct {
 
   int d_type;               /* always SUNDIALS_DENSE                       */
@@ -126,28 +126,28 @@ typedef struct {
  */
 
 int cpDlsDenseDQJacExpl(int N, realtype t,
-                        N_Vector y, N_Vector fy, 
+                        N_Vector y, N_Vector fy,
                         DlsMat Jac, void *jac_data,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
-  
+
 int cpDlsDenseDQJacImpl(int N, realtype t, realtype gm,
-                        N_Vector y, N_Vector yp, N_Vector r, 
+                        N_Vector y, N_Vector yp, N_Vector r,
                         DlsMat Jac, void *jac_data,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 int cpDlsBandDQJacExpl(int N, int mupper, int mlower,
-                       realtype t, N_Vector y, N_Vector fy, 
+                       realtype t, N_Vector y, N_Vector fy,
                        DlsMat Jac, void *jac_data,
                        N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 int cpDlsBandDQJacImpl(int N, int mupper, int mlower,
-                       realtype t, realtype gm, 
+                       realtype t, realtype gm,
                        N_Vector y, N_Vector yp, N_Vector r,
                        DlsMat Jac, void *jac_data,
                        N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
 int cpDlsDenseProjDQJac(int Nc, int Ny, realtype t,
-                        N_Vector y, N_Vector cy, 
+                        N_Vector y, N_Vector cy,
                         DlsMat Jac, void *jac_data,
                         N_Vector c_tmp1, N_Vector c_tmp2);
 

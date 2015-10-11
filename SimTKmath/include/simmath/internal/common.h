@@ -1,5 +1,5 @@
 #ifndef SimTK_SIMMATH_COMMON_H_
-#define SimTK_SIMMATH_COMMON_H_ 
+#define SimTK_SIMMATH_COMMON_H_
 
 /* -------------------------------------------------------------------------- *
  *                        Simbody(tm): SimTKmath                              *
@@ -50,7 +50,7 @@
  * be clients of this one. However, we are assuming all-static or all-shared.
 */
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
     #if defined(SimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMMATH_EXPORT __declspec(dllexport)
     #elif defined(SimTK_SIMMATH_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
@@ -60,7 +60,7 @@
         #define SimTK_SIMMATH_EXPORT __declspec(dllimport)
     #endif
 #else
-    /* Linux, Mac */
+    /* Linux, Mac, MinGW */
     #define SimTK_SIMMATH_EXPORT
 #endif
 
@@ -106,7 +106,7 @@ private:
 
 class IllegalLapackArg : public Base {
 public:
-        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine, 
+        IllegalLapackArg( const char *fn, int ln, const char *lapackRoutine,
                   int info ) : Base(fn, ln)
         {
         char buf[1024];
@@ -121,7 +121,7 @@ private:
 };
 class IncorrectArrayLength : public Base {
 public:
-        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  
+        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,
                               const char *paramName, int paramValue, const char *where) : Base(fn, ln)
         {
         char buf[1024];
@@ -136,7 +136,7 @@ private:
 
 class SingularMatrix : public Base {
 public:
-        SingularMatrix( const char *fn, int ln, int index,  
+        SingularMatrix( const char *fn, int ln, int index,
                                const char *where) : Base(fn, ln)
         {
         char buf[1024];
@@ -151,7 +151,7 @@ private:
 
 class ConvergedFailed : public Base {
 public:
-        ConvergedFailed( const char *fn, int ln, const char *algorithm,  
+        ConvergedFailed( const char *fn, int ln, const char *algorithm,
                                const char *where) : Base(fn, ln)
         {
         char buf[1024];
@@ -165,7 +165,7 @@ private:
 
 class NotPositiveDefinite : public Base {
 public:
-        NotPositiveDefinite( const char *fn, int ln, int index,  
+        NotPositiveDefinite( const char *fn, int ln, int index,
                                const char *where) : Base(fn, ln)
         {
         char buf[1024];

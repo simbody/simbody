@@ -34,7 +34,7 @@ class LapackConvert {
     template <typename T, typename ELT> static void convertMatrixToLapack( T* lapackArray,  const Matrix_<ELT>& mat );
 };
 
-        
+
 
 } // namespace SimTK
 #endif // SimTK_SIMMATH_LAPACK_CONVERT_H_

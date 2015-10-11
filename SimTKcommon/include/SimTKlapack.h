@@ -25,11 +25,11 @@
  * -------------------------------------------------------------------------- */
 
 /*
- * This header file contains const-correct function prototypes for C & C++ 
+ * This header file contains const-correct function prototypes for C & C++
  * programs calling the legacy (Fortran) interface for BLAS and LAPACK
  * version 3. This header should work for almost any implementation of those
  * routines, whether our SimTKlapack, Apple's Accelerate lapack & blas, Intel's
- * Math Kernel Libraries (MKL), AMD's ACML, or Goto- or Atlas-generated 
+ * Math Kernel Libraries (MKL), AMD's ACML, or Goto- or Atlas-generated
  * libraries. This will also work with netlib's slow reference implementation,
  * and should work even using the f2c-translated version of that because
  * (although the code is in C) it still implements the Fortran calling
@@ -39,25 +39,25 @@
  * are 8 bytes for a 64-bit lapack and blas, we're expecting all the integer
  * arguments to remain 4 bytes.
  *
- * Do not confuse this interface with the CBLAS and CLAPACK interfaces which 
- * are C-friendly wrappers around the legacy interface. Here we are dealing 
- * with direct calls to the legacy routines (which are Fortran-like) from C 
+ * Do not confuse this interface with the CBLAS and CLAPACK interfaces which
+ * are C-friendly wrappers around the legacy interface. Here we are dealing
+ * with direct calls to the legacy routines (which are Fortran-like) from C
  * and C++ programs.
- * 
- * The basic rules for C programs calling Fortran-like routines with the 
+ *
+ * The basic rules for C programs calling Fortran-like routines with the
  * convention we use (there are others) are:
- * 
- * 1) Function names are in lower case and have an underscore appended to the 
- *    name. For example, if a C program calls LAPACK's ZGEEV routine the call 
+ *
+ * 1) Function names are in lower case and have an underscore appended to the
+ *    name. For example, if a C program calls LAPACK's ZGEEV routine the call
  *    would be:
  *       zgeev_(...).
- * 
- * 2) Fortran routines pass scalar arguments by reference. (except for 
- *    character string "length" arguments that are normally hidden from 
- *    FORTRAN programmers) Therefore a C program needs to pass pointers to 
- *    scalar arguments. C++ code can just pass the arguments; they will be 
+ *
+ * 2) Fortran routines pass scalar arguments by reference. (except for
+ *    character string "length" arguments that are normally hidden from
+ *    FORTRAN programmers) Therefore a C program needs to pass pointers to
+ *    scalar arguments. C++ code can just pass the arguments; they will be
  *    passed by reference automatically because of the declarations here.
- * 
+ *
  * 3) In Fortran 2-D arrays are stored in column major format meaning that
  *    the matrix    A = [ 1.0 2.0 ]
  *                      [ 3.0 4.0 ]
@@ -67,18 +67,18 @@
  *    transpose 2D arrays before calling the Fortran interface. Note that
  *    SimTK Matrix objects are normally stored using the Fortran convention,
  *    so their data is directly compatible with Lapack.
- * 
- * 4) The lengths of character strings need to be passed as additional 
+ *
+ * 4) The lengths of character strings need to be passed as additional
  *    arguments which are added to the end of the parameter list. For example,
  *    LAPACK's ZGEEV  routine has two arguments which are character
  *    strings: JOBVL, JOBVR.
- * 
+ *
  *    ZGEEV(JOBVL, JOBVR, N, A, LDA, W, VL, LDVL, VR, LDVR,
  *                          WORK, LWORK, RWORK, INFO)
- * 
- *    A C program calling ZGEEV would need to add two additional arguments 
+ *
+ *    A C program calling ZGEEV would need to add two additional arguments
  *    at the end of the parameter list which contain the lengths of JOBVL, JOBVR
- *    arguments: 
+ *    arguments:
  *    char* jobvl = "N";
  *    char* jobvr = "Vectors";
  *    int   len_jobvl = 1;
@@ -86,17 +86,17 @@
  *      .
  *      .
  *      .
- * 
- *    zgeev_(jobvl, jobvr, &n, a, &lda, w, vl, &ldvl, vr, &ldvr, 
+ *
+ *    zgeev_(jobvl, jobvr, &n, a, &lda, w, vl, &ldvl, vr, &ldvr,
  *           work, &lwork, rwork, &info,
  *           len_jobvl, len_jobvr);
  *           ^^^^^^^^   ^^^^^^^^
  *           additional arguments
- * 
- *    In practice, only the first character is used for any Lapack option so 
- *    the length can always be passed as 1. Since these length arguments are 
- *    at the end, they can have defaults in C++ and are set to 1 below so 
- *    C++ programs do not need to be aware of the length arguments. But calls 
+ *
+ *    In practice, only the first character is used for any Lapack option so
+ *    the length can always be passed as 1. Since these length arguments are
+ *    at the end, they can have defaults in C++ and are set to 1 below so
+ *    C++ programs do not need to be aware of the length arguments. But calls
  *    from C will typically end with ",1,1,1)" or whatever.
  */
 
@@ -206,8 +206,8 @@ extern "C" {
 #endif
 
 /*
- * These are the standard routines provided by all SimTK libraries so that 
- * various information about the particulars of the library can be extracted 
+ * These are the standard routines provided by all SimTK libraries so that
+ * various information about the particulars of the library can be extracted
  * from the binary.
  */
 void SimTK_version_SimTKlapack(int*,int*,int*);
@@ -242,31 +242,31 @@ typedef int (* SimTK_SELECT_2Z)(SimTK_Z_INPUT_(a),  SimTK_Z_INPUT_(b));
  *  what about C?
  *    cdotu_, zdotu_ (complex dot product without conjugation)
  *    cdotc_, zdotc_ (complex dot product with conjugation)
- * 
- *    SimTKlapack  1.2  was compiled with gfortran and the -ff2c flag on Mac 
- *    and Linux and g77 on Windows (gfortran still had issues on Windows). In 
- *    either case the four routines below return SimTK_C_ or SimTK_Z_ type in 
- *    C++ but for C programs they return a pointer to a SimTK_C_ or SimTK_Z_ 
- *    type as an extra parameter. 
+ *
+ *    SimTKlapack  1.2  was compiled with gfortran and the -ff2c flag on Mac
+ *    and Linux and g77 on Windows (gfortran still had issues on Windows). In
+ *    either case the four routines below return SimTK_C_ or SimTK_Z_ type in
+ *    C++ but for C programs they return a pointer to a SimTK_C_ or SimTK_Z_
+ *    type as an extra parameter.
  */
 /*
 #ifdef __cplusplus
-extern SimTK_C_ cdotu_(SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x), 
+extern SimTK_C_ cdotu_(SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x),
                                                 const SimTK_C_ *y, SimTK_FINC_(y));
-extern SimTK_Z_ zdotu_(SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x), 
+extern SimTK_Z_ zdotu_(SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x),
                                                 const SimTK_Z_ *y, SimTK_FINC_(y));
-extern SimTK_C_ cdotc_(SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x), 
+extern SimTK_C_ cdotc_(SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x),
                                                 const SimTK_C_ *y, SimTK_FINC_(y));
-extern SimTK_Z_ zdotc_(SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x), 
+extern SimTK_Z_ zdotc_(SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x),
                                                 const SimTK_Z_ *y, SimTK_FINC_(y));
 #else
-extern void cdotu_(SimTK_C_*, SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x), 
+extern void cdotu_(SimTK_C_*, SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x),
                                                 const SimTK_C_ *y, SimTK_FINC_(y));
-extern void zdotu_(SimTK_Z_*, SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x), 
+extern void zdotu_(SimTK_Z_*, SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x),
                                                 const SimTK_Z_ *y, SimTK_FINC_(y));
-extern void cdotc_(SimTK_C_*, SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x), 
+extern void cdotc_(SimTK_C_*, SimTK_FDIM_(n), const SimTK_C_ *x, SimTK_FINC_(x),
                                                 const SimTK_C_ *y, SimTK_FINC_(y));
-extern void zdotc_(SimTK_Z_*, SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x), 
+extern void zdotc_(SimTK_Z_*, SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x),
                                                 const SimTK_Z_ *y, SimTK_FINC_(y));
 #endif
 */
@@ -274,7 +274,7 @@ extern void zdotc_(SimTK_Z_*, SimTK_FDIM_(n), const SimTK_Z_ *x, SimTK_FINC_(x),
 extern float  sdot_  (SimTK_FDIM_(n), const float  *x, SimTK_FINC_(x), const float  *y, SimTK_FINC_(y));
 extern double ddot_  (SimTK_FDIM_(n), const double *x, SimTK_FINC_(x), const double *y, SimTK_FINC_(y));
 extern double dsdot_ (SimTK_FDIM_(n), const float  *x, SimTK_FINC_(x), const float  *y, SimTK_FINC_(y));
-extern float  sdsdot_(SimTK_FDIM_(n), SimTK_S_INPUT_(alpha), 
+extern float  sdsdot_(SimTK_FDIM_(n), SimTK_S_INPUT_(alpha),
                                       const float  *x, SimTK_FINC_(x), const float  *y, SimTK_FINC_(y));
 
 /* Functions having prefixes S D SC DZ */
@@ -347,7 +347,7 @@ extern void csscal_(SimTK_FDIM_(n), SimTK_S_INPUT_(alpha), SimTK_C_ *x, SimTK_FI
 extern void zdscal_(SimTK_FDIM_(n), SimTK_D_INPUT_(alpha), SimTK_Z_ *x, SimTK_FINC_(x));
 
 /*
- * Extra reference routines provided by ATLAS, but not mandated by the 
+ * Extra reference routines provided by ATLAS, but not mandated by the
  * standard.
  */
 extern void crotg_(SimTK_C_OUTPUT_(a), SimTK_C_INPUT_(b), SimTK_S_OUTPUT_(c), SimTK_C_OUTPUT_(s) );
@@ -989,7 +989,7 @@ extern void cstedc_(SimTK_FOPT_(compz), SimTK_FDIM_(n), float *d__, float *e, Si
 
 extern void cstein_(SimTK_FDIM_(n), const float *d__, const float *e, SimTK_FDIM_(m), const float *w, const int *iblock, const int *isplit, SimTK_C_ *z__, SimTK_FDIM_(ldz), float *work, int *iwork, int *ifail, SimTK_INFO_);
 
-extern void cstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), float *d, float *e, SimTK_S_INPUT_(vl), SimTK_S_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), float *w, SimTK_C_ *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), float *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) ); 
+extern void cstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), float *d, float *e, SimTK_S_INPUT_(vl), SimTK_S_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), float *w, SimTK_C_ *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), float *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) );
 
 extern void csteqr_(SimTK_FOPT_(compz), SimTK_FDIM_(n), float *d__, float *e, SimTK_C_ *z__, SimTK_FDIM_(ldz), float *work, SimTK_INFO_, SimTK_FLEN_(compz));
 
@@ -1487,7 +1487,7 @@ extern void dlasq1_(SimTK_FDIM_(n), double *d__, double *e, double *work, SimTK_
 
 extern void dlasq2_(SimTK_FDIM_(n), double *z__, SimTK_INFO_);
 
-extern void dlasq3_(SimTK_I_INPUT_(i0), SimTK_I_INPUT_(n0), const double *z__, SimTK_I_INPUT_(pp), SimTK_D_OUTPUT_(dmin__), SimTK_D_OUTPUT_(sigma), SimTK_D_OUTPUT_(desig), SimTK_D_INPUT_(qmax), SimTK_I_OUTPUT_(nfail), SimTK_I_OUTPUT_(iter), SimTK_I_OUTPUT_(ndiv), SimTK_I_INPUT_(ieee)) ; 
+extern void dlasq3_(SimTK_I_INPUT_(i0), SimTK_I_INPUT_(n0), const double *z__, SimTK_I_INPUT_(pp), SimTK_D_OUTPUT_(dmin__), SimTK_D_OUTPUT_(sigma), SimTK_D_OUTPUT_(desig), SimTK_D_INPUT_(qmax), SimTK_I_OUTPUT_(nfail), SimTK_I_OUTPUT_(iter), SimTK_I_OUTPUT_(ndiv), SimTK_I_INPUT_(ieee)) ;
 
 extern void dlasq4_(SimTK_I_INPUT_(i0), SimTK_I_INPUT_(n0), const double *z__, SimTK_I_INPUT_(pp), SimTK_I_INPUT_(n0in), SimTK_D_INPUT_(dmin),  SimTK_D_INPUT_(dmin1), SimTK_D_INPUT_(dmin2), SimTK_D_INPUT_(dn), SimTK_D_INPUT_(dn1), SimTK_D_INPUT_(dn2), SimTK_D_OUTPUT_(tau), SimTK_I_OUTPUT_(ttype) );
 
@@ -1709,7 +1709,7 @@ extern void dstegr_(SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), doubl
 
 extern void dstein_(SimTK_FDIM_(n), const double *d__, const double *e, SimTK_FDIM_(m), const double *w, const int *iblock, const int *isplit, double *z__, SimTK_FDIM_(ldz), double *work, int *iwork, int *ifail, SimTK_INFO_);
 
-extern void dstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), double *d, double *e, SimTK_D_INPUT_(vl), SimTK_D_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), double *w, double *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), double *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) ); 
+extern void dstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), double *d, double *e, SimTK_D_INPUT_(vl), SimTK_D_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), double *w, double *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), double *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) );
 
 extern void dsteqr_(SimTK_FOPT_(compz), SimTK_FDIM_(n), double *d__, double *e, double *z__, SimTK_FDIM_(ldz), double *work, SimTK_INFO_, SimTK_FLEN_(compz));
 
@@ -2026,7 +2026,7 @@ extern void slaev2_(SimTK_S_INPUT_(a), SimTK_S_INPUT_(b), SimTK_S_INPUT_(c__), S
 
 extern void slaexc_(SimTK_I_INPUT_(wantq), SimTK_FDIM_(n), float *t, SimTK_FDIM_(ldt), float *q, SimTK_FDIM_(ldq), SimTK_I_INPUT_(j1),  SimTK_I_INPUT_(n1), SimTK_I_INPUT_(n2), float *work, SimTK_INFO_);
 
-extern void slag2_(const float *a, SimTK_FDIM_(lda), const float *b, SimTK_FDIM_(ldb), SimTK_S_INPUT_(safmin), SimTK_S_OUTPUT_(scale1), SimTK_S_OUTPUT_(scale2), SimTK_S_OUTPUT_(wr1), SimTK_S_OUTPUT_(wr2), SimTK_S_OUTPUT_(wi)); 
+extern void slag2_(const float *a, SimTK_FDIM_(lda), const float *b, SimTK_FDIM_(ldb), SimTK_S_INPUT_(safmin), SimTK_S_OUTPUT_(scale1), SimTK_S_OUTPUT_(scale2), SimTK_S_OUTPUT_(wr1), SimTK_S_OUTPUT_(wr2), SimTK_S_OUTPUT_(wi));
 
 extern void slags2_(SimTK_I_INPUT_(upper), SimTK_S_INPUT_(a1), SimTK_S_INPUT_(a2), SimTK_S_INPUT_(a3), SimTK_S_INPUT_(b1), SimTK_S_INPUT_(b2), SimTK_S_INPUT_(b3), SimTK_S_OUTPUT_(csu), SimTK_S_OUTPUT_(snu), SimTK_S_OUTPUT_(csv), SimTK_S_OUTPUT_(snv), SimTK_S_OUTPUT_(csq), SimTK_S_OUTPUT_(snq) );
 
@@ -2046,7 +2046,7 @@ extern void slahrd_(SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(nb), float *a, S
 
 extern void slahr2_(SimTK_FDIM_(n), SimTK_FDIM_(k), SimTK_FDIM_(nb), float *a, SimTK_FDIM_(lda), float *tau, float *t, SimTK_FDIM_(ldt), float *y, SimTK_FDIM_(ldy));
 
-extern void slaic1_(SimTK_I_INPUT_(job), SimTK_FDIM_(j), const float *x, SimTK_S_INPUT_(sest), const float *w, SimTK_S_INPUT_(gamma), SimTK_S_OUTPUT_(sestpr), SimTK_S_OUTPUT_(s), SimTK_S_OUTPUT_(c__) ); 
+extern void slaic1_(SimTK_I_INPUT_(job), SimTK_FDIM_(j), const float *x, SimTK_S_INPUT_(sest), const float *w, SimTK_S_INPUT_(gamma), SimTK_S_OUTPUT_(sestpr), SimTK_S_OUTPUT_(s), SimTK_S_OUTPUT_(c__) );
 
 extern void slaln2_(SimTK_I_INPUT_(ltrans), SimTK_I_INPUT_(na), SimTK_I_INPUT_(nw), SimTK_S_INPUT_(smin), SimTK_S_INPUT_(ca), const float *a, SimTK_FDIM_(lda), SimTK_S_INPUT_(d1), SimTK_S_INPUT_(d2), SimTK_S_INPUT_(b), SimTK_FDIM_(ldb), SimTK_S_INPUT_(wr), SimTK_S_INPUT_(wi), float *x, SimTK_FDIM_(ldx), SimTK_S_OUTPUT_(scale), float *xnorm, SimTK_INFO_);
 
@@ -2209,7 +2209,7 @@ extern void slarfx_(SimTK_FOPT_(side), SimTK_FDIM_(m), SimTK_FDIM_(n), const flo
 extern void slargv_(SimTK_FDIM_(n), float *x, SimTK_FINC_(x), float *y, SimTK_FINC_(y), float *c__, SimTK_FINC_(c));
 
 extern void slarnv_(SimTK_I_INPUT_(idist), int *iseed, SimTK_FDIM_(n), float *x);
- 
+
 extern void slarra_(SimTK_FDIM_(n), const float *d, float *e, float *e2, SimTK_S_INPUT_(spltol), SimTK_S_INPUT_(tnrm), SimTK_I_OUTPUT_(nsplit), int *isplit, SimTK_INFO_);
 
 extern void slarrb_(SimTK_FDIM_(n), const float *d__, const float *lld, SimTK_I_INPUT_(ifirst), SimTK_I_INPUT_(ilast), SimTK_S_INPUT_(rtol1), SimTK_S_INPUT_(rtol2), SimTK_I_INPUT_(offset), float *w, float *wgap, float *werr, float *work, int *iwork, SimTK_S_INPUT_(pivmin), SimTK_S_INPUT_(spdiam),  SimTK_I_INPUT_(twist), SimTK_INFO_);
@@ -2500,7 +2500,7 @@ extern void sstegr_(SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), float
 
 extern void sstein_(SimTK_FDIM_(n), const float *d__, const float *e, SimTK_FDIM_(m), const float *w, const int *iblock, const int *isplit, float *z__, SimTK_FDIM_(ldz), float *work, int *iwork, int *ifail, SimTK_INFO_);
 
-extern void sstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), float *d, float *e, SimTK_S_INPUT_(vl), SimTK_S_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), float *w, float *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), float *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) ); 
+extern void sstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), float *d, float *e, SimTK_S_INPUT_(vl), SimTK_S_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), float *w, float *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), float *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) );
 
 extern void ssteqr_(SimTK_FOPT_(compz), SimTK_FDIM_(n), float *d__, float *e, float *z__, SimTK_FDIM_(ldz), float *work, SimTK_INFO_, SimTK_FLEN_(compz));
 
@@ -3069,7 +3069,7 @@ extern void zstedc_(SimTK_FOPT_(compz), SimTK_FDIM_(n), double *d__, double *e, 
 
 extern void zstein_(SimTK_FDIM_(n), const double *d__, const double *e, SimTK_FDIM_(m), const double *w, int *iblock, const int *isplit, const SimTK_Z_ *z__, SimTK_FDIM_(ldz), double *work, int *iwork, int *ifail, SimTK_INFO_);
 
-extern void zstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), double *d, double *e, SimTK_D_INPUT_(vl), SimTK_D_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), double *w, SimTK_Z_ *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), double *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) ); 
+extern void zstemr_( SimTK_FOPT_(jobz), SimTK_FOPT_(range), SimTK_FDIM_(n), double *d, double *e, SimTK_D_INPUT_(vl), SimTK_D_INPUT_(vu), SimTK_I_INPUT_(il), SimTK_I_INPUT_(iu), SimTK_I_OUTPUT_(m), double *w, SimTK_Z_ *z, SimTK_FDIM_(ldz), SimTK_I_INPUT_(nzc), SimTK_I_OUTPUT_(isuppz), SimTK_I_OUTPUT_(tryrac), double *work, SimTK_FDIM_(lwork), int *iwork, SimTK_FDIM_(liwork), SimTK_INFO_, SimTK_FLEN_(jobz), SimTK_FLEN_(range) );
 
 extern void zsteqr_(SimTK_FOPT_(compz), SimTK_FDIM_(n), double *d__, double *e, SimTK_Z_ *z__, SimTK_FDIM_(ldz), double *work, SimTK_INFO_, SimTK_FLEN_(compz));
 

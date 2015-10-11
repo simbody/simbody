@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Declaration of the SimTK::Plugin class providing platform-independent 
+Declaration of the SimTK::Plugin class providing platform-independent
 handling of dynamically-loaded libraries. **/
 
 #include "SimTKcommon/internal/common.h"
@@ -38,9 +38,9 @@ namespace SimTK {
 
 /**
  * This is the base class for representing a runtime-linked dynamic library,
- * also known as a "plugin", in a platform-independent manner. For any particular 
- * kind of plugin, derive a concrete class from this one and use the macros 
- * to describe the functions or data you expect to find there. Then each 
+ * also known as a "plugin", in a platform-independent manner. For any particular
+ * kind of plugin, derive a concrete class from this one and use the macros
+ * to describe the functions or data you expect to find there. Then each
  * plugin library you load of that type is an object of the concrete class
  * you defined. The derived class constructor sets the search policy for
  * plugin libraries of that type. For example:
@@ -48,10 +48,10 @@ namespace SimTK {
  * class MyPlugin : public Plugin {
  * public:
  *     explicit MyPlugin() : Plugin() {
- *         addSearchDirectory(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK") 
+ *         addSearchDirectory(Pathname::getInstallDir("SimTK_INSTALL_DIR", "SimTK")
  *                             + "/lib/plugins/");
  *     }
- * 
+ *
  *     SimTK_PLUGIN_DEFINE_FUNCTION1(int,exportedFunctionWithOneArg,const std::string&);
  *     SimTK_PLUGIN_DEFINE_FUNCTION(SomeObjectType*,anExportedFunctionNoArgs);
  *     SimTK_PLUGIN_DEFINE_FUNCTION(void, someFunction);
@@ -88,7 +88,7 @@ namespace SimTK {
  * access this symbol (read only) as
  * <pre> const int& counter = plugin.myCounter(); </pre>
  * The macros also define another method of the same name as the symbol
- * or function, but prepended with "has_". This returns true if the 
+ * or function, but prepended with "has_". This returns true if the
  * named object is exported by the library, otherwise false. If you try
  * to access a method or symbol without checking first, an exception
  * will be thrown if the library doesn't export the symbol.
@@ -138,7 +138,7 @@ public:
     /// absolute path name if it isn't already.
     void setSearchPath(const Array_<std::string>& pathIn) {
         m_searchPath.clear();
-        for (unsigned i=0; i < pathIn.size(); ++i) 
+        for (unsigned i=0; i < pathIn.size(); ++i)
             addSearchDirectory(pathIn[i]);
     }
 
@@ -169,7 +169,7 @@ public:
     static void* loadPluginByFileName(const std::string& name, std::string& errMsg);
     /// If we're in Debug mode then this method attempts first to load the Debug
     /// version of the indicated library which it constructs as base+"_d"+extension.
-    /// If that fails (or if we're not in Debug mode) it will try to load the 
+    /// If that fails (or if we're not in Debug mode) it will try to load the
     /// Release version (base+extension) instead.
     static void* loadDebugOrReleasePlugin(const std::string& base, const std::string& extension,
                                           std::string& loadedFileName, std::string& errMsg);
@@ -181,16 +181,16 @@ public:
     static void unloadPlugin(void* handle);
 
     /// Dismantle a supplied library's file or pathname into its component
-    /// parts. This can take pathnames like <pre>   
+    /// parts. This can take pathnames like <pre>
     ///     /usr/local/libMyDll_d.so
     ///     e:\\Program Files\\Something\\myLibrary_d.dll
     /// </pre> and chop them into <pre>
     /// directory                       libPrefix baseName    debug extension
     /// ------------------------------- --------- ----------- ----- ---------
-    /// /usr/local/                     lib       MyDll         _d    .so 
+    /// /usr/local/                     lib       MyDll         _d    .so
     /// e:\\Program Files\\Something\\     (none)    myLibrary     _d    .dll
     /// </pre>
-    /// as well as tell you whether the given pathname is absolute or relative 
+    /// as well as tell you whether the given pathname is absolute or relative
     /// (and thus subject to search rules). At the beginning of the pathname
     /// (or right after the drive specification on Windows) we recognize
     /// three special symbols:
@@ -208,11 +208,11 @@ public:
     /// beginning is treated as an ordinary file character.
     ///
     /// The pathname components are returned
-    /// as separate strings with separators included such that concatenating 
+    /// as separate strings with separators included such that concatenating
     /// all the strings reproduces the pathname in a canonicalized form.
-    /// The "drive" letter prefix is recognized only when running on Windows; 
-    /// otherwise a prefix like "C:" is treated as ordinary file name 
-    /// characters. Note that we include the drive letter as part of the 
+    /// The "drive" letter prefix is recognized only when running on Windows;
+    /// otherwise a prefix like "C:" is treated as ordinary file name
+    /// characters. Note that we include the drive letter as part of the
     /// absolute directory.
     /// White space is removed, and path separator characters
     /// in the directory are changed to the appropriate slash
@@ -234,8 +234,8 @@ public:
     /// systems and "" (empty string) for Windows.
     static std::string getDynamicLibPrefix();
 
-    /// This is the platform dependent extension (including the ".") used 
-    /// by default to identify dynamically linked libraries -- ".so" on 
+    /// This is the platform dependent extension (including the ".") used
+    /// by default to identify dynamically linked libraries -- ".so" on
     /// Linux, ".dylib" on Apple, and ".dll" on Windows.
     static std::string getDynamicLibExtension();
 

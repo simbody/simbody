@@ -35,7 +35,7 @@ public:
         delete [] nbd;
     }
 
-    LBFGSBOptimizer(const OptimizerSystem& sys); 
+    LBFGSBOptimizer(const OptimizerSystem& sys);
 
     Real optimize(  Vector &results ) override;
     OptimizerRep* clone() const override;

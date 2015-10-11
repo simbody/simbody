@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.4 $
  * $Date: 2007/01/29 17:35:23 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -16,7 +16,7 @@
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -34,7 +34,7 @@
 #include "cpodes_bandpre_impl.h"
 #include "cpodes_private.h"
 
-/* 
+/*
  * =================================================================
  * FUNCTION SPECIFIC CONSTANTS
  * =================================================================
@@ -42,16 +42,16 @@
 
 #define MIN_INC_MULT RCONST(1000.0)
 
-/* 
+/*
  * =================================================================
  * PROTOTYPES FOR PRIVATE FUNCTIONS
  * =================================================================
  */
 
 /* cpBandPrecSetupExpl and cpBandPrecSetupImpl */
-  
-static int cpBandPrecSetupExpl(realtype t, N_Vector y, N_Vector fy, 
-                               booleantype jok, booleantype *jcurPtr, 
+
+static int cpBandPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
+                               booleantype jok, booleantype *jcurPtr,
                                realtype gamma, void *bp_data,
                                N_Vector tmp1, N_Vector tmp2, N_Vector tmp3);
 
@@ -61,25 +61,25 @@ static int cpBandPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
 
 /* cpBandPrecSolveExpl and cpBandPrecSolveImpl */
 
-static int cpBandPrecSolveExpl(realtype t, N_Vector y, N_Vector fy, 
-                               N_Vector b, N_Vector x, 
+static int cpBandPrecSolveExpl(realtype t, N_Vector y, N_Vector fy,
+                               N_Vector b, N_Vector x,
                                realtype gamma, realtype delta,
                                int lr, void *bp_data, N_Vector tmp);
 
 static int cpBandPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
                                N_Vector b, N_Vector x,
-                               realtype gamma, realtype delta, 
+                               realtype gamma, realtype delta,
                                void *bp_data, N_Vector tmp);
 
 /* Difference quotient Jacobian calculation routines */
 
-static int cpBandPDQJacExpl(CPBandPrecData pdata, 
-                            realtype t, N_Vector y, N_Vector fy, 
+static int cpBandPDQJacExpl(CPBandPrecData pdata,
+                            realtype t, N_Vector y, N_Vector fy,
                             N_Vector ftemp, N_Vector ytemp);
 
-static int cpBandPDQJacImpl(CPBandPrecData pdata, 
+static int cpBandPDQJacImpl(CPBandPrecData pdata,
                             realtype t, realtype gamma,
-                            N_Vector y, N_Vector yp, N_Vector r, 
+                            N_Vector y, N_Vector yp, N_Vector r,
                             N_Vector ftemp, N_Vector ytemp, N_Vector yptemp);
 
 /* Redability replacements */
@@ -87,7 +87,7 @@ static int cpBandPDQJacImpl(CPBandPrecData pdata,
 #define ode_type (cp_mem->cp_ode_type)
 #define vec_tmpl (cp_mem->cp_tempv)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS
  * =================================================================
@@ -168,13 +168,13 @@ int CPBPSptfqmr(void *cpode_mem, int pretype, int maxl, void *p_data)
 
   flag = CPSptfqmr(cpode_mem, pretype, maxl);
   if(flag != CPSPILS_SUCCESS) return(flag);
-  
+
   cp_mem = (CPodeMem) cpode_mem;
 
   if ( p_data == NULL ) {
     cpProcessError(cp_mem, CPBANDPRE_PDATA_NULL, "CPBANDPRE", "CPBPSptfqmr", MSGBP_PDATA_NULL);
     return(CPBANDPRE_PDATA_NULL);
-  } 
+  }
 
   switch (ode_type) {
   case CP_EXPL:
@@ -202,7 +202,7 @@ int CPBPSpbcg(void *cpode_mem, int pretype, int maxl, void *p_data)
   if ( p_data == NULL ) {
     cpProcessError(cp_mem, CPBANDPRE_PDATA_NULL, "CPBANDPRE", "CPBPSpbcg", MSGBP_PDATA_NULL);
     return(CPBANDPRE_PDATA_NULL);
-  } 
+  }
 
   switch (ode_type) {
   case CP_EXPL:
@@ -269,7 +269,7 @@ int CPBandPrecGetWorkSpace(void *bp_data, long int *lenrwBP, long int *leniwBP)
   if ( bp_data == NULL ) {
     cpProcessError(NULL, CPBANDPRE_PDATA_NULL, "CPBANDPRE", "CPBandPrecGetWorkSpace", MSGBP_PDATA_NULL);
     return(CPBANDPRE_PDATA_NULL);
-  } 
+  }
 
   pdata = (CPBandPrecData) bp_data;
 
@@ -291,7 +291,7 @@ int CPBandPrecGetNumFctEvals(void *bp_data, long int *nfevalsBP)
   if (bp_data == NULL) {
     cpProcessError(NULL, CPBANDPRE_PDATA_NULL, "CPBANDPRE", "CPBandPrecGetNumFctEvals", MSGBP_PDATA_NULL);
     return(CPBANDPRE_PDATA_NULL);
-  } 
+  }
 
   pdata = (CPBandPrecData) bp_data;
 
@@ -315,7 +315,7 @@ char *CPBandPrecGetReturnFlagName(int flag)
   switch(flag) {
   case CPBANDPRE_SUCCESS:
     sprintf(name,"CPBANDPRE_SUCCESS");
-    break;   
+    break;
   case CPBANDPRE_PDATA_NULL:
     sprintf(name,"CPBANDPRE_PDATA_NULL");
     break;
@@ -329,7 +329,7 @@ char *CPBandPrecGetReturnFlagName(int flag)
   return(name);
 }
 
-/* 
+/*
  * =================================================================
  *  PRIVATE FUNCTIONS
  * =================================================================
@@ -394,8 +394,8 @@ char *CPBandPrecGetReturnFlagName(int flag)
  * -----------------------------------------------------------------
  */
 
-static int cpBandPrecSetupExpl(realtype t, N_Vector y, N_Vector fy, 
-                               booleantype jok, booleantype *jcurPtr, 
+static int cpBandPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
+                               booleantype jok, booleantype *jcurPtr,
                                realtype gamma, void *bp_data,
                                N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -432,14 +432,14 @@ static int cpBandPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
     BandCopy(savedJ, savedP, mu, ml);
 
   }
-  
+
   /* Scale and add I to get savedP = I - gamma*J. */
   BandScale(-gamma, savedP);
   BandAddI(savedP);
- 
+
   /* Do LU factorization of matrix. */
   ier = BandGBTRF(savedP, pivots);
- 
+
   /* Return 0 if the LU was complete; otherwise return 1. */
   if (ier > 0) return(1);
   return(0);
@@ -464,10 +464,10 @@ static int cpBandPrecSetupExpl(realtype t, N_Vector y, N_Vector fy,
  * The value returned by the cpBandPrecSolveExpl function is always 0,
  * indicating success.
  * -----------------------------------------------------------------
- */ 
+ */
 
-static int cpBandPrecSolveExpl(realtype t, N_Vector y, N_Vector fy, 
-                               N_Vector b, N_Vector x, 
+static int cpBandPrecSolveExpl(realtype t, N_Vector y, N_Vector fy,
+                               N_Vector b, N_Vector x,
                                realtype gamma, realtype delta,
                                int lr, void *bp_data, N_Vector tmp)
 {
@@ -524,7 +524,7 @@ static int cpBandPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
 
   /* Do LU factorization of matrix. */
   ier = BandGBTRF(savedP, pivots);
- 
+
   /* Return 0 if the LU was complete; otherwise return 1. */
   if (ier > 0) return(1);
   return(0);
@@ -549,11 +549,11 @@ static int cpBandPrecSetupImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
  * The value returned by the cpBandPrecSolveImpl function is always 0,
  * indicating success.
  * -----------------------------------------------------------------
- */ 
+ */
 
 static int cpBandPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
                                N_Vector b, N_Vector x,
-                               realtype gamma, realtype delta, 
+                               realtype gamma, realtype delta,
                                void *bp_data, N_Vector tmp)
 {
   CPBandPrecData pdata;
@@ -573,7 +573,7 @@ static int cpBandPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
   return(0);
 }
 
-/* 
+/*
  * =================================================================
  * DQ LOCAL JACOBIAN APROXIMATIONS
  * =================================================================
@@ -599,8 +599,8 @@ static int cpBandPrecSolveImpl(realtype t, N_Vector y, N_Vector yp, N_Vector r,
  * -----------------------------------------------------------------
  */
 
-static int cpBandPDQJacExpl(CPBandPrecData pdata, 
-                            realtype t, N_Vector y, N_Vector fy, 
+static int cpBandPDQJacExpl(CPBandPrecData pdata,
+                            realtype t, N_Vector y, N_Vector fy,
                             N_Vector ftemp, N_Vector ytemp)
 {
   CPodeMem cp_mem;
@@ -633,7 +633,7 @@ static int cpBandPDQJacExpl(CPBandPrecData pdata,
 
   /* Loop over column groups. */
   for (group = 1; group <= ngroups; group++) {
-    
+
     /* Increment all y_j in group. */
     for(j = group-1; j < N; j += width) {
       inc = MAX(srur*ABS(y_data[j]), minInc/ewt_data[j]);
@@ -670,15 +670,15 @@ static int cpBandPDQJacExpl(CPBandPrecData pdata,
  * to the Jacobian dF/dy + gamma*dF/dy' and loads it directly into
  * savedP. It assumes that a band matrix of type BandMat is stored
  * column-wise, and that elements within each column are contiguous.
- * This makes it possible to get the address of a column of J via 
+ * This makes it possible to get the address of a column of J via
  * the macro BAND_COL and to write a simple for loop to set each of
  * the elements of a column in succession.
  * -----------------------------------------------------------------
  */
 
-static int cpBandPDQJacImpl(CPBandPrecData pdata, 
+static int cpBandPDQJacImpl(CPBandPrecData pdata,
                             realtype t, realtype gamma,
-                            N_Vector y, N_Vector yp, N_Vector r, 
+                            N_Vector y, N_Vector yp, N_Vector r,
                             N_Vector ftemp, N_Vector ytemp, N_Vector yptemp)
 
 {
@@ -744,21 +744,21 @@ static int cpBandPDQJacImpl(CPBandPrecData pdata,
       ypj = yptemp_data[j] = yp_data[j];
       col_j = BAND_COL(savedP, j);
       ewtj = ewt_data[j];
-      
+
       /* Set increment inc exactly as above. */
       inc = MAX( srur * MAX( ABS(yj), ABS(h*ypj) ) , ONE/ewtj );
       if (h*ypj < ZERO) inc = -inc;
       inc = (yj + inc) - yj;
-      
+
       /* Load the difference quotient Jacobian elements for column j. */
       inc_inv = ONE/inc;
       i1 = MAX(0, j-mu);
       i2 = MIN(j+ml,N-1);
-      for (i=i1; i<=i2; i++) 
+      for (i=i1; i<=i2; i++)
         BAND_COL_ELEM(col_j,i,j) = inc_inv*(ftemp_data[i]-r_data[i]);
     }
-    
+
   }
-  
+
   return(retval);
 }

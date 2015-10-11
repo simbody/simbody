@@ -47,15 +47,15 @@ using std::cout; using std::endl;
 //==============================================================================
 
 ContactGeometry::TriangleMesh::TriangleMesh
-   (const ArrayViewConst_<Vec3>& vertices, 
-    const ArrayViewConst_<int>& faceIndices, bool smooth) 
+   (const ArrayViewConst_<Vec3>& vertices,
+    const ArrayViewConst_<int>& faceIndices, bool smooth)
 :   ContactGeometry(new TriangleMesh::Impl(vertices, faceIndices, smooth)) {}
 
 ContactGeometry::TriangleMesh::TriangleMesh
-   (const PolygonalMesh& mesh, bool smooth) 
+   (const PolygonalMesh& mesh, bool smooth)
 :   ContactGeometry(new TriangleMesh::Impl(mesh, smooth)) {}
 
-/*static*/ ContactGeometryTypeId ContactGeometry::TriangleMesh::classTypeId() 
+/*static*/ ContactGeometryTypeId ContactGeometry::TriangleMesh::classTypeId()
 {   return ContactGeometry::TriangleMesh::Impl::classTypeId(); }
 
 
@@ -113,27 +113,27 @@ Real ContactGeometry::TriangleMesh::getFaceArea(int face) const {
 void ContactGeometry::TriangleMesh::
 findVertexEdges(int vertex, Array_<int>& edges) const {
     // Begin at an arbitrary edge which intersects the vertex.
-    
+
     int firstEdge = getImpl().vertices[vertex].firstEdge;
     int previousEdge = firstEdge;
     int previousFace = getImpl().edges[firstEdge].faces[0];
-    
-    // Walk around the vertex, using each edge to find the next face and each 
+
+    // Walk around the vertex, using each edge to find the next face and each
     // face to find the next edge.
-    
+
     do {
         edges.push_back(previousEdge);
-        const ContactGeometry::TriangleMesh::Impl::Edge& 
+        const ContactGeometry::TriangleMesh::Impl::Edge&
             edge = getImpl().edges[previousEdge];
-        int nextFace = (edge.faces[0] == previousFace ? edge.faces[1] 
+        int nextFace = (edge.faces[0] == previousFace ? edge.faces[1]
                                                       : edge.faces[0]);
-        const ContactGeometry::TriangleMesh::Impl::Face& 
+        const ContactGeometry::TriangleMesh::Impl::Face&
             face = getImpl().faces[nextFace];
         int nextEdge;
         if (    face.edges[0] != previousEdge
             && (face.vertices[0] == vertex || face.vertices[1] == vertex))
             nextEdge = face.edges[0];
-        else if (   face.edges[1] != previousEdge 
+        else if (   face.edges[1] != previousEdge
                  && (face.vertices[1] == vertex || face.vertices[2] == vertex))
             nextEdge = face.edges[1];
         else
@@ -172,18 +172,18 @@ Vec3 ContactGeometry::TriangleMesh::findNearestPointToFace
 }
 
 bool ContactGeometry::TriangleMesh::intersectsRay
-   (const Vec3& origin, const UnitVec3& direction, Real& distance, 
+   (const Vec3& origin, const UnitVec3& direction, Real& distance,
     UnitVec3& normal) const {
     return getImpl().intersectsRay(origin, direction, distance, normal);
 }
 
 bool ContactGeometry::TriangleMesh::intersectsRay
-   (const Vec3& origin, const UnitVec3& direction, Real& distance, int& face, 
+   (const Vec3& origin, const UnitVec3& direction, Real& distance, int& face,
     Vec2& uv) const {
     return getImpl().intersectsRay(origin, direction, distance, face, uv);
 }
 
-ContactGeometry::TriangleMesh::OBBTreeNode 
+ContactGeometry::TriangleMesh::OBBTreeNode
 ContactGeometry::TriangleMesh::getOBBTreeNode() const {
     return OBBTreeNode(getImpl().obb);
 }
@@ -194,13 +194,13 @@ PolygonalMesh ContactGeometry::TriangleMesh::createPolygonalMesh() const {
     return mesh;
 }
 
-const ContactGeometry::TriangleMesh::Impl& 
+const ContactGeometry::TriangleMesh::Impl&
 ContactGeometry::TriangleMesh::getImpl() const {
     assert(impl);
     return static_cast<const TriangleMesh::Impl&>(*impl);
 }
 
-ContactGeometry::TriangleMesh::Impl& 
+ContactGeometry::TriangleMesh::Impl&
 ContactGeometry::TriangleMesh::updImpl() {
     assert(impl);
     return static_cast<TriangleMesh::Impl&>(*impl);
@@ -254,7 +254,7 @@ findNearestPoint(const Vec3& position, bool& inside, UnitVec3& normal) const {
 }
 
 Vec3 ContactGeometry::TriangleMesh::Impl::
-findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const 
+findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const
 {
     Real distance2;
     Vec3 nearestPoint = obb.findNearestPoint(*this, position, MostPositiveReal, distance2, face, uv);
@@ -264,7 +264,7 @@ findNearestPoint(const Vec3& position, bool& inside, int& face, Vec2& uv) const
 }
 
 bool ContactGeometry::TriangleMesh::Impl::
-intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, 
+intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance,
               UnitVec3& normal) const {
     int face;
     Vec2 uv;
@@ -275,7 +275,7 @@ intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance,
 }
 
 bool ContactGeometry::TriangleMesh::Impl::
-intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance, 
+intersectsRay(const Vec3& origin, const UnitVec3& direction, Real& distance,
               int& face, Vec2& uv) const {
     Real boundsDistance;
     if (!obb.bounds.intersectsRay(origin, direction, boundsDistance))
@@ -301,15 +301,15 @@ createPolygonalMesh(PolygonalMesh& mesh) const {
 }
 
 ContactGeometry::TriangleMesh::Impl::Impl
-   (const ArrayViewConst_<Vec3>& vertexPositions, 
-    const ArrayViewConst_<int>& faceIndices, bool smooth) 
+   (const ArrayViewConst_<Vec3>& vertexPositions,
+    const ArrayViewConst_<int>& faceIndices, bool smooth)
 :   ContactGeometryImpl(), smooth(smooth) {
     init(vertexPositions, faceIndices);
 }
 
 ContactGeometry::TriangleMesh::Impl::Impl
-   (const PolygonalMesh& mesh, bool smooth) 
-:   ContactGeometryImpl(), smooth(smooth) 
+   (const PolygonalMesh& mesh, bool smooth)
+:   ContactGeometryImpl(), smooth(smooth)
 {   // Create the mesh, triangulating faces as necessary.
     Array_<Vec3>    vertexPositions;
     Array_<int>     faceIndices;
@@ -326,7 +326,7 @@ ContactGeometry::TriangleMesh::Impl::Impl
         }
         else if (numVert == 4) {
             // Split it into two triangles.
-            
+
             faceIndices.push_back(mesh.getFaceVertex(i, 0));
             faceIndices.push_back(mesh.getFaceVertex(i, 1));
             faceIndices.push_back(mesh.getFaceVertex(i, 2));
@@ -336,7 +336,7 @@ ContactGeometry::TriangleMesh::Impl::Impl
         }
         else {
             // Add a vertex at the center, then split it into triangles.
-            
+
             Vec3 center(0);
             for (int j = 0; j < numVert; j++)
                 center += vertexPositions[mesh.getFaceVertex(i, j)];
@@ -355,9 +355,9 @@ ContactGeometry::TriangleMesh::Impl::Impl
         }
     }
     init(vertexPositions, faceIndices);
-    
+
     // Make sure the mesh normals are oriented correctly.
-    
+
     Vec3 origin(0);
     for (int i = 0; i < 3; i++)
         origin += vertices[faces[0].vertices[i]].pos;
@@ -369,9 +369,9 @@ ContactGeometry::TriangleMesh::Impl::Impl
     // outside on the side containing face 0. If it is wrong, we'll be outside
     // on the opposite side of the mesh. Then we'll shoot a ray back along the
     // direction we came from (that is, towards the interior of the mesh from
-    // outside). We'll hit *some* face. If the topology is right, the hit 
-    // face's normal will be pointing back at us. If it is wrong, the face 
-    // normal will also be pointing inwards, in roughly the same direction as 
+    // outside). We'll hit *some* face. If the topology is right, the hit
+    // face's normal will be pointing back at us. If it is wrong, the face
+    // normal will also be pointing inwards, in roughly the same direction as
     // the ray.
     origin -= max(obb.bounds.getSize())*direction;
     Real distance;
@@ -383,7 +383,7 @@ ContactGeometry::TriangleMesh::Impl::Impl
     // will have them pointing in more-or-less opposite directions.
     if (dot(faces[face].normal, direction) > 0) {
         // We need to invert the mesh topology.
-        
+
         for (int i = 0; i < (int) faces.size(); i++) {
             Face& f = faces[i];
             int temp = f.vertices[0];
@@ -400,28 +400,28 @@ ContactGeometry::TriangleMesh::Impl::Impl
 }
 
 void ContactGeometry::TriangleMesh::Impl::init
-   (const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices) 
-{   SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0, 
-        "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl", 
+   (const Array_<Vec3>& vertexPositions, const Array_<int>& faceIndices)
+{   SimTK_APIARGCHECK_ALWAYS(faceIndices.size()%3 == 0,
+        "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
         "The number of indices must be a multiple of 3.");
     int numFaces = faceIndices.size()/3;
-    
+
     // Create the vertices.
-    
+
     for (int i = 0; i < (int) vertexPositions.size(); i++)
         vertices.push_back(Vertex(vertexPositions[i]));
-    
+
     // Create the faces and build lists of all the edges.
-    
+
     map<pair<int, int>, int> forwardEdges;
     map<pair<int, int>, int> backwardEdges;
     for (int i = 0; i < numFaces; i++) {
         int start = i*3;
-        int v1 = faceIndices[start], v2 = faceIndices[start+1], 
+        int v1 = faceIndices[start], v2 = faceIndices[start+1],
             v3 = faceIndices[start+2];
         SimTK_APIARGCHECK1_ALWAYS
-           (   v1 >= 0 && v1 < (int) vertices.size() 
-            && v2 >= 0 && v2 < (int) vertices.size() 
+           (   v1 >= 0 && v1 < (int) vertices.size()
+            && v2 >= 0 && v2 < (int) vertices.size()
             && v3 >= 0 && v3 < (int) vertices.size(),
             "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Face %d contains a vertex with an illegal index.", i);
@@ -429,18 +429,18 @@ void ContactGeometry::TriangleMesh::Impl::init
                      % (vertexPositions[v3]-vertexPositions[v1]);
         Real norm = cross.norm();
         cross *= Real(1)/norm;
-        SimTK_APIARGCHECK1_ALWAYS(norm > 0, 
+        SimTK_APIARGCHECK1_ALWAYS(norm > 0,
             "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Face %d is degenerate.", i);
         faces.push_back(Face(v1, v2, v3, cross, norm/2));
         int edges[3][2] = {{v1, v2}, {v2, v3}, {v3, v1}};
         for (int j = 0; j < 3; j++) {
-            SimTK_APIARGCHECK1_ALWAYS(edges[j][0] != edges[j][1], 
+            SimTK_APIARGCHECK1_ALWAYS(edges[j][0] != edges[j][1],
                 "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
                 "Vertices %d appears twice in a single face.", edges[j][0]);
             if (edges[j][0] < edges[j][1]) {
                 SimTK_APIARGCHECK2_ALWAYS
-                   (forwardEdges.find(pair<int, int>(edges[j][0], edges[j][1])) 
+                   (forwardEdges.find(pair<int, int>(edges[j][0], edges[j][1]))
                     == forwardEdges.end(),
                     "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
                     "Multiple faces have an edge between vertices %d and %d"
@@ -458,28 +458,28 @@ void ContactGeometry::TriangleMesh::Impl::init
             }
         }
     }
-    
+
     // Create the edges.
-    
-    SimTK_APIARGCHECK_ALWAYS(forwardEdges.size() == backwardEdges.size(), 
+
+    SimTK_APIARGCHECK_ALWAYS(forwardEdges.size() == backwardEdges.size(),
         "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
         "Each edge must be shared by exactly two faces.");
-    for (map<pair<int, int>, int>::iterator iter = forwardEdges.begin(); 
+    for (map<pair<int, int>, int>::iterator iter = forwardEdges.begin();
          iter != forwardEdges.end(); ++iter) {
         int vert1 = iter->first.first;
         int vert2 = iter->first.second;
         int face1 = iter->second;
-        map<pair<int, int>, int>::iterator iter2 = 
+        map<pair<int, int>, int>::iterator iter2 =
             backwardEdges.find(pair<int, int>(vert1, vert2));
-        SimTK_APIARGCHECK_ALWAYS(iter2 != backwardEdges.end(), 
+        SimTK_APIARGCHECK_ALWAYS(iter2 != backwardEdges.end(),
             "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Each edge must be shared by exactly two faces.");
         int face2 = iter2->second;
         edges.push_back(Edge(vert1, vert2, face1, face2));
     }
-    
+
     // Record the edges for each face.
-    
+
     for (int i = 0; i < (int) edges.size(); i++) {
         Edge& edge = edges[i];
         int f[2] = {edge.faces[0], edge.faces[1]};
@@ -495,24 +495,24 @@ void ContactGeometry::TriangleMesh::Impl::init
                     (edge.vertices[1] == face.vertices[2] || edge.vertices[1] == face.vertices[0]))
                 face.edges[2] = i;
             else
-                SimTK_ASSERT_ALWAYS(false, 
+                SimTK_ASSERT_ALWAYS(false,
                     "Face and edge vertices are inconsistent.");
         }
     }
-    
+
     // Record a single edge for each vertex.
-    
+
     for (int i = 0; i < (int) edges.size(); i++) {
         vertices[edges[i].vertices[0]].firstEdge = i;
         vertices[edges[i].vertices[1]].firstEdge = i;
     }
     for (int i = 0; i < (int) vertices.size(); i++)
-        SimTK_APIARGCHECK1_ALWAYS(vertices[i].firstEdge >= 0, 
+        SimTK_APIARGCHECK1_ALWAYS(vertices[i].firstEdge >= 0,
             "ContactGeometry::TriangleMesh::Impl", "TriangleMesh::Impl",
             "Vertex %d is not part of any face.", i);
-    
+
     // Calculate a normal for each vertex.
-    
+
     Vector_<Vec3> vertNorm(vertices.size(), Vec3(0));
     for (int i = 0; i < (int) faces.size(); i++) {
         const Face& f = faces[i];
@@ -528,14 +528,14 @@ void ContactGeometry::TriangleMesh::Impl::init
     }
     for (int i = 0; i < (int) vertices.size(); i++)
         vertices[i].normal = UnitVec3(vertNorm[i]);
-    
+
     // Create the OBBTree.
-    
+
     Array_<int> allFaces(faces.size());
     for (int i = 0; i < (int) allFaces.size(); i++)
         allFaces[i] = i;
     createObbTree(obb, allFaces);
-    
+
     // Find the bounding sphere.
     Array_<const Vec3*> points(vertices.size());
     for (int i = 0; i < (int) vertices.size(); i++)
@@ -546,16 +546,16 @@ void ContactGeometry::TriangleMesh::Impl::init
 }
 
 void ContactGeometry::TriangleMesh::Impl::createObbTree
-   (OBBTreeNodeImpl& node, const Array_<int>& faceIndices) 
+   (OBBTreeNodeImpl& node, const Array_<int>& faceIndices)
 {   // Find all vertices in the node and build the OrientedBoundingBox.
     node.numTriangles = faceIndices.size();
     set<int> vertexIndices;
-    for (int i = 0; i < (int) faceIndices.size(); i++) 
+    for (int i = 0; i < (int) faceIndices.size(); i++)
         for (int j = 0; j < 3; j++)
             vertexIndices.insert(faces[faceIndices[i]].vertices[j]);
     Vector_<Vec3> points((int)vertexIndices.size());
     int index = 0;
-    for (set<int>::iterator iter = vertexIndices.begin(); 
+    for (set<int>::iterator iter = vertexIndices.begin();
                             iter != vertexIndices.end(); ++iter)
         points[index++] = vertices[*iter].pos;
     node.bounds = OrientedBoundingBox(points);
@@ -604,7 +604,7 @@ void ContactGeometry::TriangleMesh::Impl::createObbTree
 
         for (int i = 0; i < 3; i++) {
             Array_<int> child1Indices, child2Indices;
-            splitObbAxis(faceIndices, child1Indices, child2Indices, 
+            splitObbAxis(faceIndices, child1Indices, child2Indices,
                          axisOrder[i]);
             if (child1Indices.size() > 0 && child2Indices.size() > 0) {
                 // It was successfully split, so create the child nodes.
@@ -617,16 +617,16 @@ void ContactGeometry::TriangleMesh::Impl::createObbTree
             }
         }
     }
-    
+
     // This is a leaf node.
-    
-    node.triangles.insert(node.triangles.begin(), faceIndices.begin(), 
+
+    node.triangles.insert(node.triangles.begin(), faceIndices.begin(),
                           faceIndices.end());
 }
 
 void ContactGeometry::TriangleMesh::Impl::splitObbAxis
-   (const Array_<int>& parentIndices, Array_<int>& child1Indices, 
-    Array_<int>& child2Indices, int axis) 
+   (const Array_<int>& parentIndices, Array_<int>& child1Indices,
+    Array_<int>& child2Indices, int axis)
 {   // For each face, find its minimum and maximum extent along the axis.
     Vector minExtent(parentIndices.size());
     Vector maxExtent(parentIndices.size());
@@ -639,14 +639,14 @@ void ContactGeometry::TriangleMesh::Impl::splitObbAxis
         minExtent[i] = std::min(minVal, vertices[vertexIndices[2]].pos[axis]);
         maxExtent[i] = std::max(maxVal, vertices[vertexIndices[2]].pos[axis]);
     }
-    
-    // Select a split point that tries to put as many faces as possible 
+
+    // Select a split point that tries to put as many faces as possible
     // entirely on one side or the other.
-    
+
     Real split = (median(minExtent)+median(maxExtent)) / 2;
-    
+
     // Choose a side for each face.
-    
+
     for (int i = 0; i < (int) parentIndices.size(); i++) {
         if (maxExtent[i] <= split)
             child1Indices.push_back(parentIndices[i]);
@@ -662,9 +662,9 @@ void ContactGeometry::TriangleMesh::Impl::splitObbAxis
 Vec3 ContactGeometry::TriangleMesh::Impl::findNearestPointToFace
    (const Vec3& position, int face, Vec2& uv) const {
     // Calculate the distance between a point in space and a face of the mesh.
-    // This algorithm is based on a description by David Eberly found at 
+    // This algorithm is based on a description by David Eberly found at
     // http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf.
-    
+
     const ContactGeometry::TriangleMesh::Impl::Face& fc = faces[face];
     const Vec3& vert1 = vertices[fc.vertices[0]].pos;
     const Vec3& vert2 = vertices[fc.vertices[1]].pos;
@@ -771,8 +771,8 @@ Vec3 ContactGeometry::TriangleMesh::Impl::findNearestPointToFace
 //                            OBB TREE NODE IMPL
 //==============================================================================
 
-OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy) 
-:   bounds(copy.bounds), triangles(copy.triangles), 
+OBBTreeNodeImpl::OBBTreeNodeImpl(const OBBTreeNodeImpl& copy)
+:   bounds(copy.bounds), triangles(copy.triangles),
     numTriangles(copy.numTriangles) {
     if (copy.child1 == NULL) {
         child1 = NULL;
@@ -792,22 +792,22 @@ OBBTreeNodeImpl::~OBBTreeNodeImpl() {
 }
 
 Vec3 OBBTreeNodeImpl::findNearestPoint
-   (const ContactGeometry::TriangleMesh::Impl& mesh, 
-    const Vec3& position, Real cutoff2, 
-    Real& distance2, int& face, Vec2& uv) const 
+   (const ContactGeometry::TriangleMesh::Impl& mesh,
+    const Vec3& position, Real cutoff2,
+    Real& distance2, int& face, Vec2& uv) const
 {
     Real tol = 100*Eps;
     if (child1 != NULL) {
         // Recursively check the child nodes.
-        
-        Real child1distance2 = MostPositiveReal, 
+
+        Real child1distance2 = MostPositiveReal,
              child2distance2 = MostPositiveReal;
         int child1face, child2face;
         Vec2 child1uv, child2uv;
         Vec3 child1point, child2point;
-        Real child1BoundsDist2 = 
+        Real child1BoundsDist2 =
             (child1->bounds.findNearestPoint(position)-position).normSqr();
-        Real child2BoundsDist2 = 
+        Real child2BoundsDist2 =
             (child2->bounds.findNearestPoint(position)-position).normSqr();
         if (child1BoundsDist2 < child2BoundsDist2) {
             if (child1BoundsDist2 < cutoff2) {
@@ -823,11 +823,11 @@ Vec3 OBBTreeNodeImpl::findNearestPoint
                     child1point = child1->findNearestPoint(mesh, position, cutoff2, child1distance2, child1face, child1uv);
             }
         }
-        if (   child1distance2 <= child2distance2*(1+tol) 
+        if (   child1distance2 <= child2distance2*(1+tol)
             && child2distance2 <= child1distance2*(1+tol)) {
             // Decide based on angle which one to use.
-            
-            if (  std::abs(~(child1point-position)*mesh.faces[child1face].normal) 
+
+            if (  std::abs(~(child1point-position)*mesh.faces[child1face].normal)
                 > std::abs(~(child2point-position)*mesh.faces[child2face].normal))
                 child2distance2 = MostPositiveReal;
             else
@@ -845,9 +845,9 @@ Vec3 OBBTreeNodeImpl::findNearestPoint
             uv = child2uv;
             return child2point;
         }
-    }    
+    }
     // This is a leaf node, so check each triangle for its distance to the point.
-    
+
     distance2 = MostPositiveReal;
     Vec3 nearestPoint;
     for (int i = 0; i < (int) triangles.size(); i++) {
@@ -855,7 +855,7 @@ Vec3 OBBTreeNodeImpl::findNearestPoint
         Vec3 p = mesh.findNearestPointToFace(position, triangles[i], triangleUV);
         Vec3 offset = p-position;
         // TODO: volatile to work around compiler bug
-        volatile Real d2 = offset.normSqr(); 
+        volatile Real d2 = offset.normSqr();
         if (d2 < distance2 || (d2 < distance2*(1+tol) && std::abs(~offset*mesh.faces[triangles[i]].normal) > std::abs(~offset*mesh.faces[face].normal))) {
             nearestPoint = p;
             distance2 = d2;
@@ -868,11 +868,11 @@ Vec3 OBBTreeNodeImpl::findNearestPoint
 
 bool OBBTreeNodeImpl::
 intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
-              const Vec3& origin, const UnitVec3& direction, Real& distance, 
+              const Vec3& origin, const UnitVec3& direction, Real& distance,
               int& face, Vec2& uv) const {
     if (child1 != NULL) {
         // Recursively check the child nodes.
-        
+
         Real child1distance, child2distance;
         int child1face, child2face;
         Vec2 child1uv, child2uv;
@@ -881,7 +881,7 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
         if (child1intersects) {
             if (child2intersects) {
                 // The ray intersects both child nodes.  First check the closer one.
-                
+
                 if (child1distance < child2distance) {
                     child1intersects = child1->intersectsRay(mesh, origin,  direction, child1distance, child1face, child1uv);
                     if (!child1intersects || child2distance < child1distance)
@@ -898,9 +898,9 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
         }
         else if (child2intersects)
             child2intersects = child2->intersectsRay(mesh, origin,  direction, child2distance, child2face, child2uv);
-        
+
         // If either one had an intersection, return the closer one.
-        
+
         if (child1intersects && (!child2intersects || child1distance < child2distance)) {
             distance = child1distance;
             face = child1face;
@@ -915,10 +915,10 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
         }
         return false;
     }
-    
-    // This is a leaf node, so check each triangle for an intersection with the 
+
+    // This is a leaf node, so check each triangle for an intersection with the
     // ray.
-    
+
     bool foundIntersection = false;
     for (int i = 0; i < (int) triangles.size(); i++) {
         const UnitVec3& faceNormal = mesh.faces[triangles[i]].normal;
@@ -975,9 +975,9 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
         Real u = 1-v-w;
         if (u < 0 || u > 1)
             continue;
-        
+
         // It intersects.
-        
+
         distance = t;
         face = triangles[i];
         uv = Vec2(u, v);
@@ -996,7 +996,7 @@ intersectsRay(const ContactGeometry::TriangleMesh::Impl& mesh,
 ContactGeometry::TriangleMesh::OBBTreeNode::
 OBBTreeNode(const OBBTreeNodeImpl& impl) : impl(&impl) {}
 
-const OrientedBoundingBox& 
+const OrientedBoundingBox&
 ContactGeometry::TriangleMesh::OBBTreeNode::getBounds() const {
     return impl->bounds;
 }
@@ -1005,23 +1005,23 @@ bool ContactGeometry::TriangleMesh::OBBTreeNode::isLeafNode() const {
     return (impl->child1 == NULL);
 }
 
-const ContactGeometry::TriangleMesh::OBBTreeNode 
+const ContactGeometry::TriangleMesh::OBBTreeNode
 ContactGeometry::TriangleMesh::OBBTreeNode::getFirstChildNode() const {
-    SimTK_ASSERT_ALWAYS(impl->child1, 
+    SimTK_ASSERT_ALWAYS(impl->child1,
         "Called getFirstChildNode() on a leaf node");
     return OBBTreeNode(*impl->child1);
 }
 
-const ContactGeometry::TriangleMesh::OBBTreeNode 
+const ContactGeometry::TriangleMesh::OBBTreeNode
 ContactGeometry::TriangleMesh::OBBTreeNode::getSecondChildNode() const {
-    SimTK_ASSERT_ALWAYS(impl->child2, 
+    SimTK_ASSERT_ALWAYS(impl->child2,
         "Called getFirstChildNode() on a leaf node");
     return OBBTreeNode(*impl->child2);
 }
 
 const Array_<int>& ContactGeometry::TriangleMesh::OBBTreeNode::
 getTriangles() const {
-    SimTK_ASSERT_ALWAYS(impl->child2 == NULL, 
+    SimTK_ASSERT_ALWAYS(impl->child2 == NULL,
         "Called getTriangles() on a non-leaf node");
     return impl->triangles;
 }

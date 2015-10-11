@@ -41,12 +41,12 @@ namespace Exception {
 #pragma warning(push)
 #pragma warning(disable:4996)
 #endif
-    
-// SimTK::Exception::Base    
+
+// SimTK::Exception::Base
 class Base : public std::exception {
 public:
-    explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
-      : fileName(fn), lineNo(ln) { } 
+    explicit Base(const char* fn="<UNKNOWN>", int ln=0)
+      : fileName(fn), lineNo(ln) { }
     virtual ~Base() throw() { }
     const std::string& getMessage()     const { return msg; }
     const std::string& getMessageText() const { return text; }
@@ -60,32 +60,32 @@ protected:
     }
 private:
     std::string    fileName;    // where the exception was thrown
-    int            lineNo;    
+    int            lineNo;
     std::string    msg;        // a message formatted for display by catcher
     std::string text;      // the original passed-in text
-    
-    static std::string shortenFileName(const std::string& fn) 
+
+    static std::string shortenFileName(const std::string& fn)
     {   std::string::size_type pos = fn.find_last_of("/\\");
         if (pos+1>=fn.size()) pos=0;
         return std::string(fn,(int)(pos+1),(int)(fn.size()-(pos+1)));
     }
-    
+
     std::string where() const {
         char buf[32];
         sprintf(buf,"%d",lineNo);
-        return shortenFileName(fileName) + ":" + std::string(buf); 
-    } 
+        return shortenFileName(fileName) + ":" + std::string(buf);
+    }
 };
 
-/// This is for reporting internally-detected bugs only, not problems induced by 
+/// This is for reporting internally-detected bugs only, not problems induced by
 /// confused users (that is, it is for confused developers instead). The exception
 /// message accepts printf-style arguments and should contain lots of useful
-/// information for developers. Don't throw 
-/// this exception directly; use one of the family of SimTK_ASSERT and 
+/// information for developers. Don't throw
+/// this exception directly; use one of the family of SimTK_ASSERT and
 /// SimTK_ASSERT_ALWAYS macros.
 class Assert : public Base {
 public:
-    Assert(const char* fn, int ln, const char* assertion, 
+    Assert(const char* fn, int ln, const char* assertion,
              const char* fmt ...) : Base(fn,ln)
     {
         char buf[1024];
@@ -105,14 +105,14 @@ public:
 /// This is for reporting errors occurring during execution of SimTK core methods,
 /// beyond those caused by mere improper API arguments, which should be reported with
 /// APIArgcheck instead.  Nor is this intended for detection of internal
-/// bugs; use Assert instead for that. It is expected that this error resulted from 
-/// something the API user did, so the messages should be suitable for reporting to 
-/// that programmer. The exception message accepts printf-style arguments and should 
-/// contain lots of useful information for the API user. Don't throw this exception 
+/// bugs; use Assert instead for that. It is expected that this error resulted from
+/// something the API user did, so the messages should be suitable for reporting to
+/// that programmer. The exception message accepts printf-style arguments and should
+/// contain lots of useful information for the API user. Don't throw this exception
 /// directly; use one of the family SimTK_ERRCHK and SimTK_ERRCHK_ALWAYS macros.
 class ErrorCheck : public Base {
 public:
-    ErrorCheck(const char* fn, int ln, const char* assertion, 
+    ErrorCheck(const char* fn, int ln, const char* assertion,
            const char* whereChecked,    // e.g., ClassName::methodName()
            const char* fmt ...) : Base(fn,ln)
     {
@@ -121,7 +121,7 @@ public:
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
 
-        setMessage("Error detected by Simbody method " 
+        setMessage("Error detected by Simbody method "
             + std::string(whereChecked) + ": "
             + std::string(buf)
             + "\n  (Required condition '" + std::string(assertion) + "' was not met.)\n");
@@ -133,9 +133,9 @@ public:
 /// This is for reporting problems detected by checking the caller's supplied arguments
 /// to a SimTK API method. Messages should be suitable for SimTK API users. This is not
 /// intended for detection of internal bugs where a SimTK developer passed bad arguments
-/// to some internal routine -- use Assert instead for that. The exception message 
-/// accepts printf-style arguments and should contain useful information for the API user. 
-/// Don't throw this exception directly; use one of the family SimTK_APIARGCHECK and 
+/// to some internal routine -- use Assert instead for that. The exception message
+/// accepts printf-style arguments and should contain useful information for the API user.
+/// Don't throw this exception directly; use one of the family SimTK_APIARGCHECK and
 /// SimTK_APIARGCHECK_ALWAYS macros.
 class APIArgcheckFailed : public Base {
 public:
@@ -147,7 +147,7 @@ public:
         va_list args;
         va_start(args, fmt);
         vsprintf(buf, fmt, args);
-        setMessage("Bad call to Simbody API method " 
+        setMessage("Bad call to Simbody API method "
                    + std::string(className) + "::" + std::string(methodName) + "(): "
                    + std::string(buf)
                    + "\n  (Required condition '" + std::string(assertion) + "' was not met.)");
@@ -205,7 +205,7 @@ public:
 class ValueOutOfRange : public Base {
 public:
     ValueOutOfRange(const char* fn, int ln, const char* valueName,
-                    double lowerBound, double value, double upperBound, 
+                    double lowerBound, double value, double upperBound,
                     const char* where)
       : Base(fn,ln)
     {
@@ -235,9 +235,9 @@ public:
 
 class UnimplementedMethod : public Base {
 public:
-    UnimplementedMethod(const char* fn, int ln, std::string methodName) 
+    UnimplementedMethod(const char* fn, int ln, std::string methodName)
     :   Base(fn,ln)
-    { 
+    {
         setMessage("The method " + methodName
             + "is not yet implemented. Please post to the Simbody forum"
               " to find a workaround or request implementation.");
@@ -247,11 +247,11 @@ public:
 
 class UnimplementedVirtualMethod : public Base {
 public:
-    UnimplementedVirtualMethod(const char* fn, int ln, 
-        std::string baseClass, std::string methodName) 
+    UnimplementedVirtualMethod(const char* fn, int ln,
+        std::string baseClass, std::string methodName)
         : Base(fn,ln)
-    { 
-        setMessage("The base class " + baseClass + 
+    {
+        setMessage("The base class " + baseClass +
             " dummy implementation of method " + methodName
             + "() was invoked because a derived class did not provide an implementation.");
     }
@@ -272,7 +272,7 @@ public:
     OperationNotAllowedOnView(const char* fn, int ln, const std::string& op) : Base(fn,ln)
     {
         setMessage("Operation '" + op + "' allowed only for owners, not views");
-    }   
+    }
     virtual ~OperationNotAllowedOnView() throw() { }
 };
 
@@ -281,7 +281,7 @@ public:
     OperationNotAllowedOnOwner(const char* fn, int ln, const std::string& op) : Base(fn,ln)
     {
         setMessage("Operation '" + op + "' allowed only for views, not owners");
-    }   
+    }
     virtual ~OperationNotAllowedOnOwner() throw() { }
 };
 
@@ -290,7 +290,7 @@ public:
     OperationNotAllowedOnNonconstReadOnlyView(const char* fn, int ln, const std::string& op) : Base(fn,ln)
     {
         setMessage("Operation '" + op + "' not allowed on non-const readonly view");
-    }   
+    }
     virtual ~OperationNotAllowedOnNonconstReadOnlyView() throw() { }
 };
 
@@ -300,7 +300,7 @@ public:
     Cant(const char* fn, int ln, const std::string& s) : Base(fn,ln)
     {
         setMessage("Can't perform operation: " + s);
-    }    
+    }
     virtual ~Cant() throw() { }
 };
 

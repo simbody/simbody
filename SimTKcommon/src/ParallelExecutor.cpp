@@ -55,23 +55,23 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
     ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
-    
+
     // Notify the threads that they should exit.
-    
+
     pthread_mutex_lock(&runLock);
     finished = true;
     for (int i = 0; i < (int) threads.size(); ++i)
         threadInfo[i]->running = true;
     pthread_cond_broadcast(&runCondition);
     pthread_mutex_unlock(&runLock);
-    
+
     // Wait until all the threads have finished.
-    
+
     for (int i = 0; i < (int) threads.size(); ++i)
         pthread_join(threads[i], NULL);
-    
+
     // Clean up threading related objects.
-    
+
     pthread_mutex_destroy(&runLock);
     pthread_cond_destroy(&runCondition);
     pthread_cond_destroy(&waitCondition);
@@ -96,7 +96,7 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
       task.finish();
       return;
     }
-    
+
     //(2) PARALLEL CASE:
     // We launch the maximum number of threads and save them for later use
     if(threads.size() < (size_t)numMaxThreads)
@@ -145,23 +145,23 @@ void* threadBody(void* args) {
     ParallelExecutorImpl& executor = *info.executor;
     int threadCount = executor.getThreadCount();
     while (!executor.isFinished()) {
-        
+
         // Wait for a Task to come in.
-        
+
         pthread_mutex_lock(executor.getLock());
         while (!info.running) {
             pthread_cond_wait(executor.getCondition(), executor.getLock());
         }
         pthread_mutex_unlock(executor.getLock());
         if (!executor.isFinished()) {
-            
+
             // Execute the task for all the indices belonging to this thread.
-            
+
             int count = executor.getCurrentTaskCount();
             ParallelExecutor::Task& task = executor.getCurrentTask();
             task.initialize();
             int index = info.index;
-                        
+
             try {
                 while (index < count) {
                     task.execute(index);

@@ -29,8 +29,8 @@
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/Timing.h"
 
-#include <cmath>     
-#include <algorithm> 
+#include <cmath>
+#include <algorithm>
 #include <iostream>
 
 /** @file
@@ -75,7 +75,7 @@ namespace SimTK {
  * will call name(arg) or name(arg1,arg2) as appropriate.
  *
  * This will result in nice output including execution times for
- * the overall test and the individual subtests, and arrange for 
+ * the overall test and the individual subtests, and arrange for
  * any exceptions raised in the tests to be caught, properly reported,
  * and cause a non-zero return from main(). If everything runs
  * successfully, main() will return 0. Here is an example of the
@@ -93,7 +93,7 @@ namespace SimTK {
  * (Admittedly the timings aren't much use in that example!)
  *
  * Within your subtests, several useful macros and static functions
- * are available. By using these macros, the resulting message will 
+ * are available. By using these macros, the resulting message will
  * include the actual line number at which the test failure occurred.
  * <pre>
  *      SimTK_TEST(cond)             -- this is like assert(cond)
@@ -113,8 +113,8 @@ namespace SimTK {
  *      SimTK_TEST_MUST_THROW_DEBUG(statement)  -- same as above but only checked in Debug builds
  *      SimTK_TEST_MUST_THROW_EXC_DEBUG(statement, exception) -- ditto
  *
- *      #define SimTK_TEST_SUPPRESS_MUST_THROW 
- *          -- Define this temporarily at top of test programs to make it 
+ *      #define SimTK_TEST_SUPPRESS_MUST_THROW
+ *          -- Define this temporarily at top of test programs to make it
  *             easier to locate an *unexpected* exception while debugging. It
  *             simply disables the "MUST_THROW" macros so you don't have to wade
  *             through them in the debugger to get to the actual problem.
@@ -127,15 +127,15 @@ namespace SimTK {
  * to an overall norm.
  *
  * The SimTK_TEST_EQ_SIZE macros allows you to specify a multiple of default
- * tolerance to be used. This is necessary for most Matrix operations since 
- * attainable accuracy falls off with the size of the matrix. Typically, if 
+ * tolerance to be used. This is necessary for most Matrix operations since
+ * attainable accuracy falls off with the size of the matrix. Typically, if
  * the smallest dimension of the Matrix is n, then the tolerance you should allow
  * is n*scalarTol where scalarTol is the default tolerance for a scalar
- * operation. Note that you still need to specify size when comparing 
+ * operation. Note that you still need to specify size when comparing
  * Vector or scalar values if those values were produced using a matrix
  * computation.
  *
- * The SimTK_TEST_EQ_TOL macros take a user-specified tolerance value for 
+ * The SimTK_TEST_EQ_TOL macros take a user-specified tolerance value for
  * the elementwise tests, overriding the default.
  *
  * The SimTK::Test class has a number of static methods that are useful
@@ -158,7 +158,7 @@ namespace SimTK {
 
 /// This is the main class to support testing. Objects of this type are
 /// created by the SimTK_START_TEST macro; don't allocate them directly.
-/// The class name appears directly in tests only for access to its 
+/// The class name appears directly in tests only for access to its
 /// static members like Test::randMatrix().
 class Test {
 public:
@@ -175,7 +175,7 @@ public:
         const double finalCpuTime=SimTK::cpuTime();
         std::ostringstream fmt;
         fmt << std::fixed << std::setprecision(1);
-        fmt << "\n" << testName << " done." 
+        fmt << "\n" << testName << " done."
             << " real/CPU ms: " << (finalRealTime-startRealTime)*1000
             << " / "  << (finalCpuTime-startCpuTime)*1000 <<std::endl;
         std::clog << fmt.str();
@@ -399,12 +399,12 @@ public:
     static float randFloat() {return (float)randReal();}
     static double randDouble() {return (double)randReal();}
 
-    template <int M> static Vec<M> randVec() 
+    template <int M> static Vec<M> randVec()
     {   Vec<M> v; for (int i=0; i<M; ++i) v[i]=randReal(); return v;}
     template <int N> static Row<N> randRow() {return ~randVec<N>();}
     template <int M, int N> static Mat<M,N> randMat()
     {   Mat<M,N> m; for (int j=0; j<N; ++j) m(j)=randVec<M>(); return m;}
-    template <int N> static SymMat<N> randSymMat() 
+    template <int N> static SymMat<N> randSymMat()
     {   SymMat<N> s; s.updAsVec() = randVec<N*(N+1)/2>(); return s; }
 
     static Vector randVector(int m)
@@ -438,7 +438,7 @@ private:
 /// Internal utility class for generating test messages for subtests.
 class Test::Subtest {
 public:
-    Subtest(const std::string& name) 
+    Subtest(const std::string& name)
     :   startCpuTime(SimTK::cpuTime()),
         startRealTime(SimTK::realTime()),
         subtestName(name)
@@ -480,23 +480,23 @@ private:
     }                                                   \
     return 0;
 
-/// Invoke a subtest in the form of a no-argument function, arranging for some 
+/// Invoke a subtest in the form of a no-argument function, arranging for some
 /// friendly output and timing information.
 #define SimTK_SUBTEST(testFunction) \
     do {SimTK::Test::Subtest sub(#testFunction); (testFunction)();} while(false)
-/// Invoke a subtest in the form of a 1-argument function, arranging for some 
+/// Invoke a subtest in the form of a 1-argument function, arranging for some
 /// friendly output and timing information.
 #define SimTK_SUBTEST1(testFunction,arg1) \
     do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1);} while(false)
-/// Invoke a subtest in the form of a 2-argument function, arranging for some 
+/// Invoke a subtest in the form of a 2-argument function, arranging for some
 /// friendly output and timing information.
 #define SimTK_SUBTEST2(testFunction,arg1,arg2) \
     do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1,arg2);} while(false)
-/// Invoke a subtest in the form of a 3-argument function, arranging for some 
+/// Invoke a subtest in the form of a 3-argument function, arranging for some
 /// friendly output and timing information.
 #define SimTK_SUBTEST3(testFunction,arg1,arg2,arg3) \
     do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1,arg2,arg3);} while(false)
-/// Invoke a subtest in the form of a 4-argument function, arranging for some 
+/// Invoke a subtest in the form of a 4-argument function, arranging for some
 /// friendly output and timing information.
 #define SimTK_SUBTEST4(testFunction,arg1,arg2,arg3,arg4) \
     do {SimTK::Test::Subtest sub(#testFunction); (testFunction)(arg1,arg2,arg3,arg4);} while(false)
@@ -607,7 +607,7 @@ private:
     }while(false)
 
 // When we're only required to throw in Debug, we have to suppress the
-// test case altogether in Release because it may cause damage. 
+// test case altogether in Release because it may cause damage.
 #ifdef NDEBUG
     /// Include a bad statement when in Debug and insist that it get caught,
     /// but don't include the statement at all in Release.

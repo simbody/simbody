@@ -93,7 +93,7 @@ public:
         const UnitVec3 n = geom.calcSurfaceUnitNormal(newClosestPoint);
         geometry.push_back(DecorativeLine(newClosestPoint,closestPointOnLine)
                             .setColor(height>0?Blue:Red));
-       
+
         geometry.push_back(
             DecorativePoint(newClosestPoint).setColor(Green));
         geometry.push_back(DecorativeLine(newClosestPoint,newClosestPoint+n)
@@ -181,25 +181,25 @@ int main() {
 
 
     bool inside; UnitVec3 nP, nQ;
-    cout << "before P,Q=" << P << ", " << Q << " -- " 
+    cout << "before P,Q=" << P << ", " << Q << " -- "
          << geom.calcSurfaceValue(P) << " " << geom.calcSurfaceValue(Q) << endl;
     Vec3 newP = geom.findNearestPoint(P,inside,nP);
     UnitVec3 tP = nP.perp();
     Vec3 newQ = geom.findNearestPoint(Q,inside,nQ);
     UnitVec3 tQ = nQ.perp();
-    cout << "after newP,Q=" << newP << ", " << newQ << " -- " 
-         << geom.calcSurfaceValue(newP) 
+    cout << "after newP,Q=" << newP << ", " << newQ << " -- "
+         << geom.calcSurfaceValue(newP)
          << " " << geom.calcSurfaceValue(newQ) << endl;
 
-    cout << "curvature at newP along " << tP << ": " 
+    cout << "curvature at newP along " << tP << ": "
         << geom.calcSurfaceCurvatureInDirection(newP,tP) << "\n";
-    cout << "curvature at newQ along " << tQ << ": " 
+    cout << "curvature at newQ along " << tQ << ": "
         << geom.calcSurfaceCurvatureInDirection(newQ,tQ) << "\n";
-    cout << "gradient at newP " << ": " 
-        << geom.calcSurfaceGradient(newP) << " |gP|=" << 
+    cout << "gradient at newP " << ": "
+        << geom.calcSurfaceGradient(newP) << " |gP|=" <<
         geom.calcSurfaceGradient(newP).norm() << "\n";
-    cout << "gradient at newQ " << ": " 
-        << geom.calcSurfaceGradient(newQ) << " |gQ|=" << 
+    cout << "gradient at newQ " << ": "
+        << geom.calcSurfaceGradient(newQ) << " |gQ|=" <<
         geom.calcSurfaceGradient(newQ).norm() << "\n";
 
     Rotation R_GP(nP, ZAxis, tP, XAxis);
@@ -297,13 +297,13 @@ int main() {
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, geod);
     //geom.calcGeodesicUsingOrthogonalMethod(P, Q, e_OP, .5, geod);
     Rotation R(-Pi/8*0, YAxis); // TODO: 2.7 vs. 2.78
-    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3), 
+    geom.calcGeodesicUsingOrthogonalMethod(P, Q, R*Vec3(0.9,0,-.3),
                                            startLength, geod);
     //geom.makeStraightLineGeodesic(P, Q, e_OP, GeodesicOptions(), geod);
     cout << "realTime=" << realTime()-startReal
          << " cpuTime=" << cpuTime()-startCpu << endl;
     viz.report(dummyState);
-    printf("Geodesic has %d points; %d geodesics shot\n", 
+    printf("Geodesic has %d points; %d geodesics shot\n",
         geod.getNumPoints(), geom.getNumGeodesicsShot());
 
     const Array_<Real>& arcLength = geod.getArcLengths();
@@ -314,7 +314,7 @@ int main() {
     const Array_<Vec2>& transQtoP = geod.getPositionalSensitivityQtoP();
     const Array_<Real>& curvature = geod.getCurvatures();
     bool showTrans = !transPtoQ.empty();
-    cout << "torsion at P=" << geod.getTorsionP() 
+    cout << "torsion at P=" << geod.getTorsionP()
          << " binormal curvature kb at P=" << geod.getBinormalCurvatureP() << endl;
     for (int i=0; i < geod.getNumPoints(); ++i) {
         cout << "\ns=" << arcLength[i] << "  kt=" << curvature[i] << ":\n";
@@ -322,10 +322,10 @@ int main() {
         cout << "t=" << frenet[i].y() << "\n";
         cout << "b=" << frenet[i].x() << "\n";
         cout << "n=" << frenet[i].z() << "\n";
-        cout << "jrQ=" << rotPtoQ[i] << " jrP=" << rotQtoP[i] << "\n"; 
-        if (showTrans) cout << "jtQ=" << transPtoQ[i] << " jtP=" << transQtoP[i] << "\n"; 
+        cout << "jrQ=" << rotPtoQ[i] << " jrP=" << rotQtoP[i] << "\n";
+        if (showTrans) cout << "jtQ=" << transPtoQ[i] << " jtP=" << transQtoP[i] << "\n";
     }
-    cout << "torsion at Q=" << geod.getTorsionQ() 
+    cout << "torsion at Q=" << geod.getTorsionQ()
          << " binormal curvature kb at Q=" << geod.getBinormalCurvatureQ() << endl;
 
 

@@ -31,9 +31,9 @@ simulate it, and produce a simple animation while it is simulating. */
 using namespace SimTK;
 
 int main() {
-  try {    
+  try {
     // Create the system.
-    
+
     MultibodySystem system; system.setUseUniformBackground(true);
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
@@ -43,22 +43,22 @@ int main() {
 
     MobilizedBody lastBody = matter.Ground();
     for (int i = 0; i < 10; ++i) {
-        MobilizedBody::Ball pendulum(lastBody,     Transform(Vec3(0)), 
+        MobilizedBody::Ball pendulum(lastBody,     Transform(Vec3(0)),
                                      pendulumBody, Transform(Vec3(0, 1, 0)));
         lastBody = pendulum;
     }
 
     Visualizer viz(system);
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
-    
+
     // Initialize the system and state.
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     Random::Gaussian random;
     for (int i = 0; i < state.getNQ(); ++i)
         state.updQ()[i] = random.getValue();
-    
+
     // Simulate it.
 
     RungeKuttaMersonIntegrator integ(system);

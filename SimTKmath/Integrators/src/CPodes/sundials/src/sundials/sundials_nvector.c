@@ -2,8 +2,8 @@
  * -----------------------------------------------------------------
  * $Revision: 1.3 $
  * $Date: 2007/04/06 20:33:30 $
- * ----------------------------------------------------------------- 
- * Programmer(s): Radu Serban and Aaron Collier @ LLNL                               
+ * -----------------------------------------------------------------
+ * Programmer(s): Radu Serban and Aaron Collier @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2002, The Regents of the University of California.
  * Produced at the Lawrence Livermore National Laboratory.
@@ -88,7 +88,7 @@ void N_VDiv(N_Vector x, N_Vector y, N_Vector z)
   return;
 }
 
-void N_VScale(realtype c, N_Vector x, N_Vector z) 
+void N_VScale(realtype c, N_Vector x, N_Vector z)
 {
   z->ops->nvscale(c, x, z);
   return;

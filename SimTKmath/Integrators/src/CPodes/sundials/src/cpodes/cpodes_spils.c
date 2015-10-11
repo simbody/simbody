@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/24 19:09:18 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -46,7 +46,7 @@
 #define lmem      (cp_mem->cp_lmem)
 
 #define ils_type  (cpspils_mem->s_type)
-#define sqrtN     (cpspils_mem->s_sqrtN)   
+#define sqrtN     (cpspils_mem->s_sqrtN)
 #define ytemp     (cpspils_mem->s_ytemp)
 #define yptemp    (cpspils_mem->s_yptemp)
 #define x         (cpspils_mem->s_x)
@@ -93,7 +93,7 @@ int CPSpilsSetPrecType(void *cpode_mem, int pretype)
   }
   cpspils_mem = (CPSpilsMem) lmem;
 
-  /* Check for legal pretype */ 
+  /* Check for legal pretype */
   if ((pretype != PREC_NONE) && (pretype != PREC_LEFT) &&
       (pretype != PREC_RIGHT) && (pretype != PREC_BOTH)) {
     cpProcessError(cp_mem, CPSPILS_ILL_INPUT, "CPSPILS", "CPSpilsSetPrecType", MSGS_BAD_PRETYPE);
@@ -309,7 +309,7 @@ int CPSpilsGetWorkSpace(void *cpode_mem, long int *lenrwLS, long int *leniwLS)
   }
   cpspils_mem = (CPSpilsMem) lmem;
 
-  
+
   switch(ils_type) {
   case SPILS_SPGMR:
     maxl = cpspils_mem->s_maxl;
@@ -548,7 +548,7 @@ char *CPSpilsGetReturnFlagName(int flag)
   switch(flag) {
   case CPSPILS_SUCCESS:
     sprintf(name,"CPSPILS_SUCCESS");
-    break; 
+    break;
   case CPSPILS_MEM_NULL:
     sprintf(name,"CPSPILS_MEM_NULL");
     break;
@@ -592,7 +592,7 @@ char *CPSpilsGetReturnFlagName(int flag)
  * cpSpilsAtimes
  * -----------------------------------------------------------------
  * This routine generates the matrix-vector product z = Mv, where
- * M = I - gamma*J. The product J*v is obtained by calling the jtimes 
+ * M = I - gamma*J. The product J*v is obtained by calling the jtimes
  * routine. It is then scaled by -gamma and added to v to obtain M*v.
  * The return value is the same as the value returned by jtimes --
  * 0 if successful, nonzero otherwise.
@@ -627,7 +627,7 @@ int cpSpilsAtimes(void *cpode_mem, N_Vector v, N_Vector z)
  * cpSpilsPSolve
  * -----------------------------------------------------------------
  * This routine interfaces between the generic SpgmrSolve routine and
- * the user's psolve routine.  It passes to psolve all required state 
+ * the user's psolve routine.  It passes to psolve all required state
  * information from cpode_mem.  Its return value is the same as that
  * returned by psolve. Note that the generic SPGMR solver guarantees
  * that CPSpilsPSolve will not be called in the case in which
@@ -652,7 +652,7 @@ int cpSpilsPSolve(void *cpode_mem, N_Vector r, N_Vector z, int lr)
     retval = pslvI(tn, ycur, ypcur, fcur, r, z, gamma, delta, P_data, ytemp);
   }
 
-  return(retval);     
+  return(retval);
 }
 
 /*
@@ -661,13 +661,13 @@ int cpSpilsPSolve(void *cpode_mem, N_Vector r, N_Vector z, int lr)
  * -----------------------------------------------------------------
  * This routine generates a difference quotient approximation to
  * the Jacobian times vector for explicit ODE: Jv = f_y(t,y) * v.
- * The approximation is Jv = vnrm[f(y + v/vnrm) - f(y)], where 
+ * The approximation is Jv = vnrm[f(y + v/vnrm) - f(y)], where
  * vnrm = (WRMS norm of v) is input, i.e. WRMS norm of v/vnrm is 1.
  * -----------------------------------------------------------------
  */
 
-int cpSpilsDQjtvExpl(realtype t, N_Vector y, N_Vector fy, 
-                     N_Vector v, N_Vector Jv, void *jac_data, 
+int cpSpilsDQjtvExpl(realtype t, N_Vector y, N_Vector fy,
+                     N_Vector v, N_Vector Jv, void *jac_data,
                      N_Vector tmp)
 {
   CPodeMem cp_mem;
@@ -688,7 +688,7 @@ int cpSpilsDQjtvExpl(realtype t, N_Vector y, N_Vector fy,
     N_VLinearSum(sig, v, ONE, y, tmp);
 
     /* Set Jv = f(tn, y+sig*v) */
-    retval = fe(t, tmp, Jv, f_data); 
+    retval = fe(t, tmp, Jv, f_data);
     nfes++;
     if (retval == 0) break;
     if (retval < 0)  return(-1);
@@ -710,7 +710,7 @@ int cpSpilsDQjtvExpl(realtype t, N_Vector y, N_Vector fy,
  * cpSpilsDQjtvImpl
  * -----------------------------------------------------------------
  */
-int cpSpilsDQjtvImpl(realtype t, realtype gm, 
+int cpSpilsDQjtvImpl(realtype t, realtype gm,
                      N_Vector y, N_Vector yp, N_Vector r,
                      N_Vector v, N_Vector Jv, void *jac_data,
                      N_Vector tmp1, N_Vector tmp2)
@@ -727,7 +727,7 @@ int cpSpilsDQjtvImpl(realtype t, realtype gm,
   cp_mem = (CPodeMem) jac_data;
   cpspils_mem = (CPSpilsMem) lmem;
 
-  
+
   dqincfac = ONE;
 
 
@@ -752,7 +752,7 @@ int cpSpilsDQjtvImpl(realtype t, realtype gm,
     /* Set y_tmp = y + gm*sig*v, yp_tmp = yp + sig*v. */
     N_VLinearSum(gm*sig, v, ONE, y, y_tmp);
     N_VLinearSum(sig, v, ONE, yp, yp_tmp);
-    
+
     /* Call res for Jv = F(t, y_tmp, yp_tmp), and return if it failed. */
     retval = fi(t, y_tmp, yp_tmp, Jv, f_data);
     nfes++;

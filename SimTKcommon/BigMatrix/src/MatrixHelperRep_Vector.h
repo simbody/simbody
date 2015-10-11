@@ -41,7 +41,7 @@ This abstract class represents a 1d matrix, a.k.a. a Vector or a RowVector
 SimTK::RowVector classes; any skinny Matrix or skinny slice of a fatter
 Matrix might use a VectorHelper since it provides faster access to memory
 than a generic 2d helper would.
-    
+
 Most operations don't care whether this is a column or a row,
 however we have to know so that we can support matrix operations on the
 vector when necessary. For example, getElt(i,j) still has to work (as long
@@ -49,8 +49,8 @@ as the appropriate one of i or j is 0), even though getElt(i) is more
 efficient and direction-agnostic.
 
 The most common layout is that all elements are stored, either consecutively
-in memory or with a regular stride. Vectors constructed from a larger pool 
-of stored data via indexing are also important and need to be implemented 
+in memory or with a regular stride. Vectors constructed from a larger pool
+of stored data via indexing are also important and need to be implemented
 efficiently.
 
 TODO:  However, there are several other important
@@ -63,7 +63,7 @@ zero), negations or conjugations of stored elements, and may sometimes have
 a single "distinguished" element whose value is known (this occurs for example
 when crossing a non-stored unit diagonal).
 
-TODO: Finally, we allow a Vector to be formed of a composition of smaller 
+TODO: Finally, we allow a Vector to be formed of a composition of smaller
 Vectors. Then the whole vector can be accessed by element or more efficiently
 by segments.
 ------------------------------------------------------------------------------*/
@@ -76,13 +76,13 @@ class VectorHelper : public MatrixHelperRep<S> {
     typedef VectorHelper<SNeg>      ThisNeg;
     typedef VectorHelper<SHerm>     ThisHerm;
 public:
-    VectorHelper(int esz, int cppesz, bool isRow) 
-    :   Base(esz,cppesz),m_row(isRow) 
+    VectorHelper(int esz, int cppesz, bool isRow)
+    :   Base(esz,cppesz),m_row(isRow)
     {
     }
 
 
-    // A deep copy of a Vector will always return another Vector, so we'll 
+    // A deep copy of a Vector will always return another Vector, so we'll
     // change the return type here.
     virtual This* createDeepCopy_() const = 0;
 
@@ -107,7 +107,7 @@ public:
     virtual S*       updElt_ (int i)                 = 0;
     virtual void getAnyElt_  (int i, S* value) const = 0;
 
-    // (Positional) transpose view is identical to this one except that we'll 
+    // (Positional) transpose view is identical to this one except that we'll
     // call it a row rather than a column or vice versa.
     This* createTransposeView_() {
         This* p = cloneHelper_();
@@ -132,7 +132,7 @@ protected:
 //----------------------------- FullVectorHelper -------------------------------
 /// All elements of the Vector are stored. The simplest form of this has the
 /// data pointing to the Vector's 0th element with all the rest following
-/// consecutively in memory. Derived classes add stride or indexing and 
+/// consecutively in memory. Derived classes add stride or indexing and
 /// optimize for scalar elements.
 //------------------------------------------------------------------------------
 template <class S>
@@ -140,7 +140,7 @@ class FullVectorHelper : public VectorHelper<S> {
     typedef FullVectorHelper<S>  This;
     typedef VectorHelper<S>      Base;
 public:
-    FullVectorHelper(int esz, int cppesz, bool isRow) 
+    FullVectorHelper(int esz, int cppesz, bool isRow)
     :   Base(esz,cppesz,isRow) {}
 
     // This will always produce a 1-element "contiguous" column vector.
@@ -179,7 +179,7 @@ class ContiguousVectorHelper : public FullVectorHelper<S> {
     typedef FullVectorHelper<S>         Base;
 public:
     // Allocate our own space.
-    ContiguousVectorHelper(int esz, int cppesz, int n, bool isRow) 
+    ContiguousVectorHelper(int esz, int cppesz, int n, bool isRow)
     :   Base(esz,cppesz,isRow)
     {
         this->m_owner     = true;
@@ -187,34 +187,34 @@ public:
         this->allocateData(n);
         this->m_actual.setStructure(MatrixStructure::Matrix1d);
         this->m_actual.setStorage(
-            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement, 
-                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder, 
+            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement,
+                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder,
                           MatrixStorage::NoDiag));
         this->m_actual.setActualSize(isRow?1:n, isRow?n:1); // apparent size; sets Outline
     }
 
     // Use someone else's memory, which we assume to be the right size.
     // We take care of stride elsewhere.
-    ContiguousVectorHelper(int esz, int cppesz, int n, bool isRow, 
-                           const S* shared, bool canWrite) 
+    ContiguousVectorHelper(int esz, int cppesz, int n, bool isRow,
+                           const S* shared, bool canWrite)
     :   Base(esz,cppesz,isRow)
-    {        
+    {
         this->m_owner     = false;
         this->m_writable  = canWrite;
         this->setData(const_cast<S*>(shared));
         this->m_actual.setStructure(MatrixStructure::Matrix1d);
         this->m_actual.setStorage(
-            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement, 
-                          isRow ? MatrixStorage::RowOrder 
-                                : MatrixStorage::ColumnOrder, 
+            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement,
+                          isRow ? MatrixStorage::RowOrder
+                                : MatrixStorage::ColumnOrder,
                           MatrixStorage::NoDiag));
         // apparent size; sets Outline
-        this->m_actual.setActualSize(isRow?1:n, isRow?n:1); 
+        this->m_actual.setActualSize(isRow?1:n, isRow?n:1);
     }
 
     virtual This* cloneHelper_() const {return new This(*this);}
 
-    // A block view of a full, contiguous row/column is either 
+    // A block view of a full, contiguous row/column is either
     // (1) a smaller full, contiguous row/column, or (2) a zero-width
     // slice. In the latter case it may no longer be a row or column so we
     // have to switch helper types to a Full mX0 or 0Xn matrix.
@@ -237,7 +237,7 @@ public:
         RegularFullHelper<S>* p = 0;
         if (this->getEltSize()==1)
              p = new FullColOrderScalarHelper<S>(m,n,m,(S*)0,this->m_writable);
-        else p = new FullColOrderEltHelper<S>(this->getEltSize(), 
+        else p = new FullColOrderEltHelper<S>(this->getEltSize(),
                                               this->getCppEltSize(),
                                               m,n,m,(S*)0,this->m_writable);
         // Called shared-data constructor so p is non-owner.
@@ -272,7 +272,7 @@ public:
     bool eltIsStored_(int i)           const {return true;}
 
     // Every element is stored so this just forwards to getElt(i).
-    void getAnyElt_(int i, S* value) const 
+    void getAnyElt_(int i, S* value) const
     {   this->copyElt(value, getElt_(i)); }
 
     // OK for any size elements that are packed contiguously.
@@ -315,7 +315,7 @@ public:
 
 //----------------------- ContiguousVectorScalarHelper -------------------------
 /// All elements of the Vector are stored, and they are contiguous in memory,
-/// and the elements are scalars. This inherits most functionality from the 
+/// and the elements are scalars. This inherits most functionality from the
 /// contiguous general-element case.
 //------------------------------------------------------------------------------
 template <class S>
@@ -326,7 +326,7 @@ public:
     // Allocate our own space.
     ContiguousVectorScalarHelper(int n, bool isRow) : Base(1,1,n,isRow) {}
     // Use someone else's memory.
-    ContiguousVectorScalarHelper(int n, bool isRow, const S* shared, bool canWrite) 
+    ContiguousVectorScalarHelper(int n, bool isRow, const S* shared, bool canWrite)
     :   Base(1,1,n,isRow,shared,canWrite) {}
 
     This* cloneHelper_() const {return new This(*this);}
@@ -339,13 +339,13 @@ public:
 };
 
 
-template <class S> inline VectorHelper<S>* 
+template <class S> inline VectorHelper<S>*
 FullVectorHelper<S>::createDiagonalView_() {
     VectorHelper<S>* p = 0;
     const int nDiags = std::min(this->length(), 1); // 0 or 1
     S* data = nDiags ? this->updElt_(0) : 0;
 
-    p = (this->m_eltSize==1) 
+    p = (this->m_eltSize==1)
         ? new ContiguousVectorScalarHelper<S>(nDiags, false, data, false)
         : new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, nDiags,
                                         false, data, false);
@@ -365,27 +365,27 @@ public:
     /// Use someone else's memory, which we assume to be the right size. Note
     /// that stride is given in elements, with stride==1 meaning the elements
     /// are packed contiguously, in which case this is the wrong helper class to use.
-    StridedVectorHelper(int esz, int cppesz, int n, bool isRow, 
-         int strideInElements, const S* shared, bool canWrite) 
+    StridedVectorHelper(int esz, int cppesz, int n, bool isRow,
+         int strideInElements, const S* shared, bool canWrite)
     :   Base(esz,cppesz,isRow), m_spacing((ptrdiff_t)strideInElements * esz)
-    {        
-        SimTK_ASSERT1(strideInElements >= 2, 
+    {
+        SimTK_ASSERT1(strideInElements >= 2,
             "StridedVectorHelper::ctor(): illegal stride %d", strideInElements);
         this->m_owner     = false;
         this->m_writable  = canWrite;
         this->setData(const_cast<S*>(shared));
         this->m_actual.setStructure(MatrixStructure::Matrix1d);
         this->m_actual.setStorage(
-            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement, 
-                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder, 
+            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement,
+                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder,
                           MatrixStorage::NoDiag));
         this->m_actual.setActualSize(isRow?1:n, isRow?n:1); // apparent size; sets Outline
     }
 
     virtual This* cloneHelper_() const {return new This(*this);}
 
-    // A block view of a strided vector is usually a smaller vector with 
-    // identical stride. No stride needed if there are fewer than two 
+    // A block view of a strided vector is usually a smaller vector with
+    // identical stride. No stride needed if there are fewer than two
     // elements, though. Also, this could be an mX0 or 0Xn slice which is
     // no longer a Vector unless m==1 or n==1.
      MatrixHelperRep<S>* createBlockView_(const EltBlock& block) {
@@ -396,7 +396,7 @@ public:
             RegularFullHelper<S>* p = 0;
             if (this->getEltSize()==1)
                  p = new FullColOrderScalarHelper<S>(m,n,m,(S*)0,this->m_writable);
-            else p = new FullColOrderEltHelper<S>(this->getEltSize(), 
+            else p = new FullColOrderEltHelper<S>(this->getEltSize(),
                                                   this->getCppEltSize(),
                                                   m,n,m,(S*)0,this->m_writable);
             // Called shared-data constructor so p is non-owner.
@@ -411,7 +411,7 @@ public:
         S* data = length ? updElt_(start) : 0;
 
         if (length <= 1) {
-            p = (this->m_eltSize==1) 
+            p = (this->m_eltSize==1)
                 ? new ContiguousVectorScalarHelper<S>(length, false, data, false)
                 : new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, length,
                                                 false, data, false);
@@ -432,9 +432,9 @@ public:
         S* data = m ? updElt_(start) : 0;
 
         if (m <= 1) {
-            p = (this->m_eltSize==1) 
+            p = (this->m_eltSize==1)
                 ? new ContiguousVectorScalarHelper<S>(m, false, data, false)
-                : new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, m, 
+                : new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, m,
                                                 false, data, false);
             return p;
         }
@@ -452,7 +452,7 @@ public:
         S* data = n ? updElt_(start) : 0;
 
         if (n <= 1) {
-            p = (this->m_eltSize==1) 
+            p = (this->m_eltSize==1)
                 ? new ContiguousVectorScalarHelper<S>(n, true, data, false)
                 : new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, n,
                                                 true, data, false);
@@ -475,14 +475,14 @@ public:
     S*       updElt_ (int i)                 {return this->m_data + i*m_spacing;}
 
     // Every element is stored so this just forwards to getElt(i).
-    void getAnyElt_(int i, S* value) const 
+    void getAnyElt_(int i, S* value) const
     {   this->copyElt(value, getElt_(i)); }
 
     /// A deep copy of a strided vector produces a contiguous (stride==1)
     /// vector containing the same number of elements.
     FullVectorHelper<S>* createDeepCopy_() const {
-        ContiguousVectorHelper<S>* p = 
-            new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+        ContiguousVectorHelper<S>* p =
+            new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                           this->length(), this->m_row);
         for (int i=0; i < this->length(); ++i)
             this->copyElt(p->updData() + i*this->m_eltSize, this->getData() + i*m_spacing);
@@ -508,18 +508,18 @@ public:
     /// Use someone else's memory, which we assume to be the right size. Note
     /// that stride is given in elements, with stride==1 meaning the elements
     /// are packed contiguously, in which case this is the wrong helper class to use.
-    StridedVectorScalarHelper(int n, bool isRow, int stride, const S* shared, bool canWrite) 
+    StridedVectorScalarHelper(int n, bool isRow, int stride, const S* shared, bool canWrite)
     :   Base(1,1,n,isRow,stride,shared,canWrite) {}
 
     This* cloneHelper_() const {return new This(*this);}
 
     // Every element is stored so this just forwards to getElt(i).
-    void getAnyElt_(int i, S* value) const {*value = *this->getElt_(i);} 
+    void getAnyElt_(int i, S* value) const {*value = *this->getElt_(i);}
 
     /// A deep copy of a strided vector produces a contiguous (stride==1)
     /// vector containing the same number of elements.
     FullVectorHelper<S>* createDeepCopy_() const {
-        ContiguousVectorScalarHelper<S>* p = 
+        ContiguousVectorScalarHelper<S>* p =
             new ContiguousVectorScalarHelper<S>(this->length(), this->m_row);
         const int nToCopy = this->length();
         for (int i=0; i < nToCopy; ++i)
@@ -530,7 +530,7 @@ public:
 
 //--------------------------- IndexedVectorHelper ------------------------------
 /// All elements of the Vector are stored, but they are selected irregularly
-/// from the available data. This is only for views so does not include an 
+/// from the available data. This is only for views so does not include an
 /// implementation for resizing, and there is no constructor for data allocation.
 /// This class handles general elements; a derived class handles the special
 /// case of scalar elements by overriding some of the methods for speed.
@@ -546,17 +546,17 @@ public:
     // indices must be in terms of elements. We'll store them internally in terms
     // of scalars instead. We insist here that the indices are all nonnegative and
     // in monotonically increasing order.
-    IndexedVectorHelper(int esz, int cppesz, int n, bool isRow, 
-         const int* eltIndices, const S* shared, bool canWrite) 
+    IndexedVectorHelper(int esz, int cppesz, int n, bool isRow,
+         const int* eltIndices, const S* shared, bool canWrite)
     :   Base(esz,cppesz,isRow), m_scalarIndices(0)
-    {        
+    {
         this->m_owner     = false;
         this->m_writable  = canWrite;
         this->setData(const_cast<S*>(shared));
         this->m_actual.setStructure(MatrixStructure::Matrix1d);
         this->m_actual.setStorage(
-            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement, 
-                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder, 
+            MatrixStorage(MatrixStorage::Vector, MatrixStorage::NoPlacement,
+                          isRow ? MatrixStorage::RowOrder : MatrixStorage::ColumnOrder,
                           MatrixStorage::NoDiag));
         this->m_actual.setActualSize(isRow?1:n, isRow?n:1); // apparent size; sets Outline
 
@@ -596,7 +596,7 @@ public:
             RegularFullHelper<S>* p = 0;
             if (this->getEltSize()==1)
                  p = new FullColOrderScalarHelper<S>(m,n,m,(S*)0,this->m_writable);
-            else p = new FullColOrderEltHelper<S>(this->getEltSize(), 
+            else p = new FullColOrderEltHelper<S>(this->getEltSize(),
                                                   this->getCppEltSize(),
                                                   m,n,m,(S*)0,this->m_writable);
             // Called a shared-data constructor so p is non-owner.
@@ -611,7 +611,7 @@ public:
         if (length <= 1) {
             // No need for indices; this is contiguous now.
             S* data = length ? updElt_(start) : 0;
-            ContiguousVectorHelper<S>* p = (this->m_eltSize==1) 
+            ContiguousVectorHelper<S>* p = (this->m_eltSize==1)
                 ? new ContiguousVectorScalarHelper<S>
                         (length, false, data, false)
                 : new ContiguousVectorHelper<S>
@@ -622,11 +622,11 @@ public:
         }
 
         // Still an indexed vector.
- 
+
         This* p = new This(*this, true); // don't copy the indices
         p->m_data = this->m_data;
         p->m_scalarIndices = new int[length];
-        std::memcpy(p->m_scalarIndices, m_scalarIndices+start, 
+        std::memcpy(p->m_scalarIndices, m_scalarIndices+start,
                     length*sizeof(int));
         return p;
     }
@@ -634,9 +634,9 @@ public:
     VectorHelper<S>* createColumnView_(int j, int i, int m) {
         if (m <= 1) {
             S* data = m ? updElt_(i+j) : 0; // one of i or j is 0
-            VectorHelper<S>* p = (this->m_eltSize==1) 
+            VectorHelper<S>* p = (this->m_eltSize==1)
                 ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(m, false, data, false)
-                : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                                   m, false, data, false);
             return p;
         }
@@ -654,9 +654,9 @@ public:
     VectorHelper<S>* createRowView_(int i, int j, int n) {
         if (n<= 1) {
             S* data = n ? updElt_(i+j) : 0; // one of i or j is 0
-            VectorHelper<S>* p = (this->m_eltSize==1) 
+            VectorHelper<S>* p = (this->m_eltSize==1)
                 ? (VectorHelper<S>*)new ContiguousVectorScalarHelper<S>(n, true, data, false)
-                : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+                : (VectorHelper<S>*)new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                                                   n, true, data, false);
             return p;
         }
@@ -678,13 +678,13 @@ public:
     bool eltIsStored_(int i)           const {return true;}
 
     // Every element is stored so this just forwards to getElt(i).
-    void getAnyElt_(int i, S* value) const 
+    void getAnyElt_(int i, S* value) const
     {   this->copyElt(value, getElt_(i)); }
 
     // A deep copy of an indexed vector produces a contiguous, non-indexed vector.
     ContiguousVectorHelper<S>* createDeepCopy_() const {
-        ContiguousVectorHelper<S>* p = 
-            new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize, 
+        ContiguousVectorHelper<S>* p =
+            new ContiguousVectorHelper<S>(this->m_eltSize, this->m_cppEltSize,
                                           this->length(), this->m_row);
         for (int i=0; i<this->length(); ++i)
             this->copyElt(p->updElt_(i), getElt_(i));
@@ -702,7 +702,7 @@ private:
 
 
 
-} // namespace SimTK   
+} // namespace SimTK
 
 
 #endif // SimTK_SimTKCOMMON_MATRIX_HELPER_REP_VECTOR_H_

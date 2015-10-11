@@ -38,22 +38,22 @@
 
 // FreeLine joint. Like a Free joint, this provides full rotational and
 // translational freedom, but for a degenerate body which is thin (inertialess)
-// along its own z axis. These arise in molecular modeling for linear molecules 
+// along its own z axis. These arise in molecular modeling for linear molecules
 // formed by pairs of atoms, or by multiple atoms in a linear arrangement like
 // carbon dioxide (CO2) whose structure is O=C=O in a straight line. We are
 // assuming that there is no meaning to a rotation about the linear axis,
 // so free orientation requires just *two* degrees of freedom, not *three*
 // as is required for general rigid bodies. And in fact we can get away with
-// just two rotational generalized speeds so this joint provides only 5 
+// just two rotational generalized speeds so this joint provides only 5
 // mobilities.
 //
-// But so far, no one has been able to come up with a way to manage with only 
-// two rotational generalized *coordinates*, so this joint has the same q's as 
-// a regular Free joint: either a quaternion for unconditional stability, or a 
-// three-angle (body fixed 1-2-3) Euler sequence which will be dynamically 
-// singular when the middle (y) axis is 90 degrees. Use the Euler sequence only 
-// for small motions or for kinematics problems (and note that only the first 
-// two are meaningful). Translations here are treated exactly as for a Free 
+// But so far, no one has been able to come up with a way to manage with only
+// two rotational generalized *coordinates*, so this joint has the same q's as
+// a regular Free joint: either a quaternion for unconditional stability, or a
+// three-angle (body fixed 1-2-3) Euler sequence which will be dynamically
+// singular when the middle (y) axis is 90 degrees. Use the Euler sequence only
+// for small motions or for kinematics problems (and note that only the first
+// two are meaningful). Translations here are treated exactly as for a Free
 // joint (or for a Cartesian joint for that matter).
 //
 // To summarize, the generalized coordinates are:
@@ -92,15 +92,15 @@ RBNodeFreeLine(const MassProperties& mProps_B,
 // This has a default implementation but it rotates first then translates,
 // which works fine for the normal FreeLine joint but produces wrong behavior
 // when the mobilizer is reversed.
-void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM, 
-                            Vector& q) const override 
+void setQToFitTransformImpl(const SBStateDigest& sbs, const Transform& X_FM,
+                            Vector& q) const override
 {
     setQToFitTranslationImpl(sbs, X_FM.p(), q); // see below
     setQToFitRotationImpl(sbs, X_FM.R(), q);
 }
 
 void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
-                          Vector& q) const 
+                          Vector& q) const
 {
     if (this->getUseEulerAngles(sbs.getModelVars()))
         this->toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
@@ -108,8 +108,8 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
         this->toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
 }
 
-// The user gives us the translation vector from OF to OM as a vector expressed 
-// in F. With a free joint we never have to *change* orientation coordinates in 
+// The user gives us the translation vector from OF to OM as a vector expressed
+// in F. With a free joint we never have to *change* orientation coordinates in
 // order to achieve a translation.
 void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector& q) const {
     if (this->getUseEulerAngles(sbs.getModelVars()))
@@ -120,10 +120,10 @@ void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, Vector
 
 // Our 2 rotational generalized speeds are just the (x,y) components of the
 // angular velocity vector of M in F, expressed in *M*.
-// Note: a quaternion from a state is not necessarily normalized so can't be 
-// used directly as though it were a set of Euler parameters; it must be 
+// Note: a quaternion from a state is not necessarily normalized so can't be
+// used directly as though it were a set of Euler parameters; it must be
 // normalized first.
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs,
                                   const Vector& q, const Vec3& w_FM,
                                   Vector& u) const
 {
@@ -131,13 +131,13 @@ void setUToFitAngularVelocityImpl(const SBStateDigest& sbs,
     if (this->getUseEulerAngles(sbs.getModelVars()))
         R_FM.setRotationToBodyFixedXYZ( this->fromQVec3(q,0) );
     else {
-        // can't use qnorm pool here since state hasn't been 
+        // can't use qnorm pool here since state hasn't been
         // realized to position stage yet; q's can be anything
         R_FM.setRotationFromQuaternion( Quaternion(this->fromQuat(q)) ); // normalize
     }
     const Vec3 w_FM_M = ~R_FM*w_FM;
     // (x,y) of relative angular velocity always used as generalized speeds
-    Vec2::updAs(&this->toU(u)[0]) = Vec2(w_FM_M[0], w_FM_M[1]); 
+    Vec2::updAs(&this->toU(u)[0]) = Vec2(w_FM_M[0], w_FM_M[1]);
 }
 
 // Our 3 translational generalized speeds are the linear velocity of M's origin
@@ -173,7 +173,7 @@ void performQPrecalculations(const SBStateDigest& sbs,
             Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
         qCache[AngleOOCosQy] = 1/cy; // trouble at 90 degrees
     } else {
-        assert(q && nq==7 && qCache && nQCache==QuatPoolSize && 
+        assert(q && nq==7 && qCache && nQCache==QuatPoolSize &&
                qErr && nQErr==1);
         const Real quatLen = Vec4::getAs(q).norm();
         qErr[0] = quatLen - Real(1);    // normalization error
@@ -195,15 +195,15 @@ void calcX_FM(const SBStateDigest& sbs,
         assert(q && nq==7 && qCache && nQCache==QuatPoolSize);
         // Must use a normalized quaternion to generate the rotation matrix.
         // Here we normalize with just 4 flops using precalculated 1/norm(q).
-        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true); 
+        const Quaternion quat(Vec4::getAs(q)*qCache[QuatOONorm], true);
         X_F0M0.updR().setRotationFromQuaternion(quat); // 29 flops
         X_F0M0.updP() = Vec3::getAs(&q[4]); // q0123 x y z
     }
 }
 
 
-// The generalized speeds for this 5-dof ("free line") joint are 
-//   (1) the (x,y) components of angular velocity of M in the F frame, 
+// The generalized speeds for this 5-dof ("free line") joint are
+//   (1) the (x,y) components of angular velocity of M in the F frame,
 //         expressed in *M*, and
 //   (2) the (linear) velocity of M's origin in F, expressed in F.
 void calcAcrossJointVelocityJacobian(
@@ -259,11 +259,11 @@ void calcAcrossJointVelocityJacobianDot(
 // is up to the caller to do that if it is necessary.
 // Compute out_q = N * in_u
 //   or    out_u = in_q * N
-// The u quantity is a vector v_M in the child body frame (e.g. angular 
-// velocity of child in parent, but expressed in child), while the q 
-// quantity is the derivative of a quaternion or Euler sequence representing 
+// The u quantity is a vector v_M in the child body frame (e.g. angular
+// velocity of child in parent, but expressed in child), while the q
+// quantity is the derivative of a quaternion or Euler sequence representing
 // R_FM, i.e. orientation of child in parent.
-void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight, 
+void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
                  const Real* in, Real* out) const
 {
     assert(sbs.getStage() >= Stage::Position);
@@ -283,11 +283,11 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
             Row2::updAs(out)   = Row3::getAs(in) * N_FM;
             Row3::updAs(out+2) = Row3::getAs(in+3);// translation
         } else {
-            Vec3::updAs(out)   = N_FM * Vec2::getAs(in);        
+            Vec3::updAs(out)   = N_FM * Vec2::getAs(in);
             Vec3::updAs(out+3) = Vec3::getAs(in+2);// translation
         }
     } else {
-        // Quaternion: N block is only available expecting angular velocity 
+        // Quaternion: N block is only available expecting angular velocity
         // in the parent frame F, but we have it in M for this joint so we
         // have to calculate N_FM = N_FF*R_FM.
         const Rotation& R_FM = this->getX_FM(pc).R();
@@ -308,7 +308,7 @@ void multiplyByN(const SBStateDigest& sbs, bool matrixOnRight,
 
 // Compute out_u = inv(N) * in_q
 //   or    out_q = in_u * inv(N)
-void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight, 
+void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
                     const Real* in, Real* out) const
 {
     assert(sbs.getStage() >= Stage::Position);
@@ -330,9 +330,9 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
             Vec2::updAs(out)   = NInv_MF * Vec3::getAs(in);
             Vec3::updAs(out+2) = Vec3::getAs(in+3); // translation
         }
-    } else {           
-        // Quaternion: NInv block is only available expecting angular 
-        // velocity in the parent frame F, but we have it in M for 
+    } else {
+        // Quaternion: NInv block is only available expecting angular
+        // velocity in the parent frame F, but we have it in M for
         // this joint so we have to calculate NInv_MF = R_MF*NInv_FF.
         const Rotation& R_FM = this->getX_FM(pc).R();
         const Vec4& q = this->fromQuat(allQ);
@@ -351,7 +351,7 @@ void multiplyByNInv(const SBStateDigest& sbs, bool matrixOnRight,
 
 // Compute out_q = NDot * in_u
 //   or    out_u = in_q * NDot
-void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight, 
+void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
                  const Real* in, Real* out) const
 {
     assert(sbs.getStage() >= Stage::Velocity);
@@ -373,16 +373,16 @@ void multiplyByNDot(const SBStateDigest& sbs, bool matrixOnRight,
             Row2::updAs(out)   = Row3::getAs(in) * NDot_FM;
             Row3::updAs(out+2) = 0; // translation
         } else {
-            Vec3::updAs(out)   = NDot_FM * Vec2::getAs(in);        
+            Vec3::updAs(out)   = NDot_FM * Vec2::getAs(in);
             Vec3::updAs(out+3) = 0; // translation
         }
     } else {
-        // Quaternion: NDot block is only available expecting angular velocity 
+        // Quaternion: NDot block is only available expecting angular velocity
         // in the parent frame F, but we have it in M for this joint so we
         // have to calculate NDot_FM = NDot_FF*R_FM.
         const Rotation& R_FM = this->getX_FM(pc).R();
         const Vec4& qdot = this->fromQuat(allQDot);
-        const Mat42 NDot_FM = 
+        const Mat42 NDot_FM =
            (Rotation::calcUnnormalizedNDotForQuaternion(qdot)*R_FM)
                         .getSubMat<4,2>(0,0); // drop 3rd column
         // Translational part of N is identity so just copy in to out.
@@ -424,8 +424,8 @@ void calcQDot(
 
 void calcQDotDot(
     const SBStateDigest&   sbs,
-    const Real*            udot, 
-    Real*                  qdotdot) const 
+    const Real*            udot,
+    Real*                  qdotdot) const
 {
     const SBModelVars&          mv = sbs.getModelVars();
     const SBTreePositionCache&  pc = sbs.getTreePositionCache();
@@ -450,14 +450,14 @@ void calcQDotDot(
 }
 
 int  getMaxNQ()                   const {return 7;}
-int  getNQInUse(const SBModelVars& mv) const {return this->getUseEulerAngles(mv) ? 6 : 7;} 
+int  getNQInUse(const SBModelVars& mv) const {return this->getUseEulerAngles(mv) ? 6 : 7;}
 bool isUsingQuaternion(const SBStateDigest& sbs, MobilizerQIndex& startOfQuaternion) const {
     if (this->getUseEulerAngles(sbs.getModelVars())) {startOfQuaternion.invalidate(); return false;}
     startOfQuaternion = MobilizerQIndex(0); // quaternion comes first
     return true;
 }
 
-void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
+void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const
 {
     if (this->getUseEulerAngles(mv)) {
         this->toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
@@ -469,11 +469,11 @@ void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const
 }
 
 bool enforceQuaternionConstraints(
-    const SBStateDigest& sbs, 
+    const SBStateDigest& sbs,
     Vector&             q,
-    Vector&             qErrest) const 
+    Vector&             qErrest) const
 {
-    if (this->getUseEulerAngles(sbs.getModelVars())) 
+    if (this->getUseEulerAngles(sbs.getModelVars()))
         return false; // no change
 
     Vec4& quat = this->toQuat(q);

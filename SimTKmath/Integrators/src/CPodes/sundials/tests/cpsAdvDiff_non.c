@@ -78,10 +78,10 @@ int main()
     f(P2_T0, y, yp, NULL);
   }
 
-  cpode_mem = CPodeCreate(ODE, CP_ADAMS, CP_FUNCTIONAL);      
+  cpode_mem = CPodeCreate(ODE, CP_ADAMS, CP_FUNCTIONAL);
   /*  flag = CPodeSetInitStep(cpode_mem, 2.0e-9);*/
   flag = CPodeInit(cpode_mem, fct, NULL, P2_T0, y, yp, CP_SS, reltol, &abstol);
-  
+
   printf("\n      t        max.err      qu     hu \n");
   for(iout=1, tout=P2_T1; iout <= P2_NOUT; iout++, tout*=P2_TOUT_MULT) {
     flag = CPode(cpode_mem, tout, &t, y, yp, CP_NORMAL);
@@ -91,9 +91,9 @@ int main()
     flag = CPodeGetLastStep(cpode_mem, &hu);
     printf("%10.3f  %12.4le   %2d   %12.4le\n", t, erm, qu, hu);
   }
-  
+
   PrintFinalStats(cpode_mem);
-  
+
   CPodeFree(&cpode_mem);
   N_VDestroy_Serial(y);
   N_VDestroy_Serial(yp);
@@ -112,12 +112,12 @@ static int f(realtype t, N_Vector y, N_Vector ydot, void *f_data)
 {
   long int i, j, k;
   realtype d, *ydata, *dydata;
-  
+
   ydata = NV_DATA_S(y);
   dydata = NV_DATA_S(ydot);
 
   /*
-     Excluding boundaries, 
+     Excluding boundaries,
 
      ydot    = f    = -2 y    + alpha1 * y      + alpha2 * y
          i,j    i,j       i,j             i-1,j             i,j-1
@@ -140,12 +140,12 @@ static realtype MaxError(N_Vector y, realtype t)
 {
   long int i, j, k;
   realtype *ydata, er, ex=ZERO, yt, maxError=ZERO, ifact_inv, jfact_inv=ONE;
-  
+
   if (t == ZERO) return(ZERO);
 
   ydata = NV_DATA_S(y);
-  if (t <= THIRTY) ex = EXP(-TWO*t); 
-  
+  if (t <= THIRTY) ex = EXP(-TWO*t);
+
   for (j = 0; j < P2_MESHY; j++) {
     ifact_inv = ONE;
     for (i = 0; i < P2_MESHX; i++) {
@@ -167,7 +167,7 @@ static void PrintFinalStats(void *cpode_mem)
   long int nst, nfe, nni, ncfn, netf;
   realtype h0u;
   int flag;
-  
+
   flag = CPodeGetActualInitStep(cpode_mem, &h0u);
   flag = CPodeGetNumSteps(cpode_mem, &nst);
   flag = CPodeGetNumFctEvals(cpode_mem, &nfe);

@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.1 $
  * $Date: 2006/11/22 00:12:48 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer: Radu Serban @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2006, The Regents of the University of California.
@@ -14,7 +14,7 @@
  * -----------------------------------------------------------------
  */
 
-/* 
+/*
  * =================================================================
  * IMPORTED HEADER FILES
  * =================================================================
@@ -28,7 +28,7 @@
 
 #include <sundials/sundials_math.h>
 
-/* 
+/*
  * =================================================================
  * FUNCTION SPECIFIC CONSTANTS
  * =================================================================
@@ -88,12 +88,12 @@
 #define njeP           (cpdlsP_mem->d_njeP)
 #define nceDQ          (cpdlsP_mem->d_nceDQ)
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS FOR IMPLICIT INTEGRATION
  * =================================================================
  */
-              
+
 /*
  * CPDlsSetJacFn specifies the (dense or band) Jacobian function.
  */
@@ -129,7 +129,7 @@ int CPDlsSetJacFn(void *cpode_mem, void *jac, void *jac_data)
       djacI = (CPDlsDenseJacImplFn) jac;
     else if (mtype == SUNDIALS_BAND)
       bjacI = (CPDlsBandJacImplFn) jac;
-    break;    
+    break;
 
   }
 
@@ -257,7 +257,7 @@ char *CPDlsGetReturnFlagName(int flag)
   switch(flag) {
   case CPDIRECT_SUCCESS:
     sprintf(name,"CPDIRECT_SUCCESS");
-    break;   
+    break;
   case CPDIRECT_MEM_NULL:
     sprintf(name,"CPDIRECT_MEM_NULL");
     break;
@@ -309,7 +309,7 @@ int CPDlsGetLastFlag(void *cpode_mem, int *flag)
   return(CPDIRECT_SUCCESS);
 }
 
-/* 
+/*
  * =================================================================
  * EXPORTED FUNCTIONS FOR PROJECTION
  * =================================================================
@@ -370,7 +370,7 @@ int CPDlsProjGetNumJacEvals(void *cpode_mem, long int *njPevals)
 
 /*
  * CPDlsProjGetNumFctEvals returns the number of constraint function
- * evaluations for computing the DQ constraint Jacobian. 
+ * evaluations for computing the DQ constraint Jacobian.
  */
 int CPDlsProjGetNumFctEvals(void *cpode_mem, long int *ncevalsLS)
 {
@@ -395,7 +395,7 @@ int CPDlsProjGetNumFctEvals(void *cpode_mem, long int *ncevalsLS)
   return(CPDIRECT_SUCCESS);
 }
 
-/* 
+/*
  * =================================================================
  * DENSE DQ JACOBIAN APPROXIMATIONS FOR IMPLICIT INTEGRATION
  * =================================================================
@@ -403,21 +403,21 @@ int CPDlsProjGetNumFctEvals(void *cpode_mem, long int *ncevalsLS)
 
 /*
  * -----------------------------------------------------------------
- * cpDlsDenseDQJacExpl 
+ * cpDlsDenseDQJacExpl
  * -----------------------------------------------------------------
  * This routine generates a dense difference quotient approximation to
  * the Jacobian of f(t,y). It assumes that a dense matrix of type
  * DlsMat is stored column-wise, and that elements within each column
  * are contiguous. The address of the jth column of J is obtained via
  * the macro DENSE_COL and this pointer is associated with an N_Vector
- * using the N_VGetArrayPointer/N_VSetArrayPointer functions. 
- * Finally, the actual computation of the jth column of the Jacobian is 
+ * using the N_VGetArrayPointer/N_VSetArrayPointer functions.
+ * Finally, the actual computation of the jth column of the Jacobian is
  * done with a call to N_VLinearSum.
  * -----------------------------------------------------------------
- */ 
+ */
 
 int cpDlsDenseDQJacExpl(int N, realtype t,
-                        N_Vector y, N_Vector fy, 
+                        N_Vector y, N_Vector fy,
                         DlsMat Jac, void *jac_data,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -438,7 +438,7 @@ int cpDlsDenseDQJacExpl(int N, realtype t,
   tmp2_data = N_VGetArrayPointer(tmp2);
 
   /* Rename work vectors for readibility */
-  ftemp = tmp1; 
+  ftemp = tmp1;
   jthCol = tmp2;
 
   /* Obtain pointers to the data for ewt, y */
@@ -464,7 +464,7 @@ int cpDlsDenseDQJacExpl(int N, realtype t,
     retval = fe(t, y, ftemp, f_data);
     nfeDQ++;
     if (retval != 0) break;
-    
+
     y_data[j] = yjsaved;
 
     inc_inv = ONE/inc;
@@ -481,20 +481,20 @@ int cpDlsDenseDQJacExpl(int N, realtype t,
 
 /*
  * -----------------------------------------------------------------
- * cpDlsDenseDQJacImpl 
+ * cpDlsDenseDQJacImpl
  * -----------------------------------------------------------------
  * This routine generates a dense difference quotient approximation to
  * the Jacobian F_y' + gamma*F_y. It assumes that a dense matrix of type
  * DlsMat is stored column-wise, and that elements within each column
  * are contiguous. The address of the jth column of J is obtained via
  * the macro DENSE_COL and this pointer is associated with an N_Vector
- * using the N_VGetArrayPointer/N_VSetArrayPointer functions. 
- * Finally, the actual computation of the jth column of the Jacobian is 
+ * using the N_VGetArrayPointer/N_VSetArrayPointer functions.
+ * Finally, the actual computation of the jth column of the Jacobian is
  * done with a call to N_VLinearSum.
  * -----------------------------------------------------------------
- */ 
+ */
 int cpDlsDenseDQJacImpl(int N, realtype t, realtype gm,
-                        N_Vector y, N_Vector yp, N_Vector r, 
+                        N_Vector y, N_Vector yp, N_Vector r,
                         DlsMat Jac, void *jac_data,
                         N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -515,7 +515,7 @@ int cpDlsDenseDQJacImpl(int N, realtype t, realtype gm,
   tmp2_data = N_VGetArrayPointer(tmp2);
 
   /* Rename work vectors for readibility */
-  ftemp = tmp1; 
+  ftemp = tmp1;
   jthCol = tmp2;
 
   /* Obtain pointers to the data for ewt, y, and yp */
@@ -555,7 +555,7 @@ int cpDlsDenseDQJacImpl(int N, realtype t, realtype gm,
 
     DENSE_COL(Jac,j) = N_VGetArrayPointer(jthCol);
 
-    /* Reset y_j, yp_j */     
+    /* Reset y_j, yp_j */
     y_data[j] = yj;
     yp_data[j] = ypj;
   }
@@ -566,7 +566,7 @@ int cpDlsDenseDQJacImpl(int N, realtype t, realtype gm,
   return(retval);
 }
 
-/* 
+/*
  * =================================================================
  *  BAND DQ JACOBIAN APPROXIMATIONS FOR IMPLICIT INTEGRATION
  * =================================================================
@@ -586,7 +586,7 @@ int cpDlsDenseDQJacImpl(int N, realtype t, realtype gm,
  */
 
 int cpDlsBandDQJacExpl(int N, int mupper, int mlower,
-                       realtype t, N_Vector y, N_Vector fy, 
+                       realtype t, N_Vector y, N_Vector fy,
                        DlsMat Jac, void *jac_data,
                        N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
 {
@@ -629,7 +629,7 @@ int cpDlsBandDQJacExpl(int N, int mupper, int mlower,
 
   /* Loop over column groups. */
   for (group=1; group <= ngroups; group++) {
-    
+
     /* Increment all y_j in group */
     for(j=group-1; j < N; j+=width) {
       inc = MAX(srur*ABS(y_data[j]), minInc/ewt_data[j]);
@@ -654,18 +654,18 @@ int cpDlsBandDQJacExpl(int N, int mupper, int mlower,
         BAND_COL_ELEM(col_j,i,j) = inc_inv * (ftemp_data[i] - fy_data[i]);
     }
   }
-  
+
   return(retval);
 }
 
 /*
  * -----------------------------------------------------------------
- * cpDlsBandDQJacImpl 
+ * cpDlsBandDQJacImpl
  * -----------------------------------------------------------------
  */
 
 int cpDlsBandDQJacImpl(int N, int mupper, int mlower,
-                       realtype t, realtype gm, 
+                       realtype t, realtype gm,
                        N_Vector y, N_Vector yp, N_Vector r,
                        DlsMat Jac, void *jac_data,
                        N_Vector tmp1, N_Vector tmp2, N_Vector tmp3)
@@ -741,26 +741,26 @@ int cpDlsBandDQJacImpl(int N, int mupper, int mlower,
       ypj = yptemp_data[j] = yp_data[j];
       col_j = BAND_COL(Jac, j);
       ewtj = ewt_data[j];
-      
+
       /* Set increment inc exactly as above. */
       inc = MAX( srur * MAX( ABS(yj), ABS(h*ypj) ) , ONE/ewtj );
       if (h*ypj < ZERO) inc = -inc;
       inc = (yj + inc) - yj;
-      
+
       /* Load the difference quotient Jacobian elements for column j. */
       inc_inv = ONE/inc;
       i1 = MAX(0, j-mupper);
       i2 = MIN(j+mlower,N-1);
-      for (i=i1; i<=i2; i++) 
+      for (i=i1; i<=i2; i++)
         BAND_COL_ELEM(col_j,i,j) = inc_inv*(ftemp_data[i]-r_data[i]);
     }
-    
+
   }
-  
+
   return(retval);
 }
 
-/* 
+/*
  * =================================================================
  *  DENSE DQ JACOBIAN APPROXIMATIONS FOR PROJECTION
  * =================================================================
@@ -768,21 +768,21 @@ int cpDlsBandDQJacImpl(int N, int mupper, int mlower,
 
 /*
  * -----------------------------------------------------------------
- * cpDlsDenseProjDQJac 
+ * cpDlsDenseProjDQJac
  * -----------------------------------------------------------------
- * This routine generates a dense difference quotient approximation 
- * to the transpose of the Jacobian of c(t,y). It loads it into a 
- * dense matrix of type DlsMat stored column-wise with elements 
- * within each column contiguous. The address of the jth column of 
- * J is obtained via the macro DENSE_COL and this pointer is 
- * associated with an N_Vector using the N_VGetArrayPointer and 
- * N_VSetArrayPointer functions. 
+ * This routine generates a dense difference quotient approximation
+ * to the transpose of the Jacobian of c(t,y). It loads it into a
+ * dense matrix of type DlsMat stored column-wise with elements
+ * within each column contiguous. The address of the jth column of
+ * J is obtained via the macro DENSE_COL and this pointer is
+ * associated with an N_Vector using the N_VGetArrayPointer and
+ * N_VSetArrayPointer functions.
  * Finally, the actual computation of the jth column of the Jacobian
  * transposed is done with a call to N_VLinearSum.
  * -----------------------------------------------------------------
- */ 
+ */
 int cpDlsDenseProjDQJac(int Nc, int Ny, realtype t,
-                        N_Vector y, N_Vector cy, 
+                        N_Vector y, N_Vector cy,
                         DlsMat Jac, void *jac_data,
                         N_Vector c_tmp1, N_Vector c_tmp2)
 {
@@ -800,7 +800,7 @@ int cpDlsDenseProjDQJac(int Nc, int Ny, realtype t,
   cpdlsP_mem = (CPDlsProjMem) lmemP;
 
   /* Rename work vectors for readibility */
-  ctemp  = c_tmp1; 
+  ctemp  = c_tmp1;
   jthCol = c_tmp2;
 
   /* Obtain pointers to the data for ewt and y */
@@ -819,7 +819,7 @@ int cpDlsDenseProjDQJac(int Nc, int Ny, realtype t,
     /* Save the y_j values. */
     yj = y_data[j];
 
-    /* Set increment inc to y_j based on sqrt(uround)*abs(y_j), 
+    /* Set increment inc to y_j based on sqrt(uround)*abs(y_j),
        with an adjustment using ewt_j if this is small */
     inc = MAX( srur * ABS(yj) , ONE/ewt_data[j] );
     inc = (yj + inc) - yj;
@@ -839,7 +839,7 @@ int cpDlsDenseProjDQJac(int Nc, int Ny, realtype t,
       DENSE_ELEM(Jac,j,i) = jthCol_data[i];
     }
 
-    /* Reset y_j */     
+    /* Reset y_j */
     y_data[j] = yj;
   }
 

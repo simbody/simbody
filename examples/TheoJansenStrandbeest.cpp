@@ -52,9 +52,9 @@ namespace {
 const int SpeedControlSlider = 1;
 class UserInputHandler : public PeriodicEventHandler {
 public:
-    UserInputHandler(Visualizer::InputSilo& silo, 
-                     const Motion::Steady&  motor, 
-                     Real                   interval); 
+    UserInputHandler(Visualizer::InputSilo& silo,
+                     const Motion::Steady&  motor,
+                     Real                   interval);
     void handleEvent(State& state, Real accuracy,
                      bool& shouldTerminate) const override;
 private:
@@ -62,9 +62,9 @@ private:
     Motion::Steady         m_motor;
 };
 
-// Handy utility routine: given two vertices v1, v2 of a triangle in the x-y 
-// plane and the lengths of the other two sides, find the location of the third 
-// vertex, assuming v1-v2-v3 have counterclockwise ordering about the plane 
+// Handy utility routine: given two vertices v1, v2 of a triangle in the x-y
+// plane and the lengths of the other two sides, find the location of the third
+// vertex, assuming v1-v2-v3 have counterclockwise ordering about the plane
 // normal. z coordinate is ignored on input and zero on output.
 Vec3 findOtherVertex(const Vec3& v1, const Vec3& v2, Real s1, Real s2);
 
@@ -84,7 +84,7 @@ const Real transitionVelocity = 1e-3; // slide->stick velocity
 const Real rubber_density = 1100.;  // kg/m^3
 const Real rubber_young   = 0.01e9/10; // pascals (N/m)
 const Real rubber_poisson = 0.5;    // ratio
-const Real rubber_planestrain = 
+const Real rubber_planestrain =
     ContactMaterial::calcPlaneStrainStiffness(rubber_young,rubber_poisson);
 const Real rubber_dissipation = /*0.005*/10;
 
@@ -95,7 +95,7 @@ const ContactMaterial rubber(rubber_planestrain,rubber_dissipation,
 const Real concrete_density = 2300.;  // kg/m^3
 const Real concrete_young   = 25e9;  // pascals (N/m)
 const Real concrete_poisson = 0.15;    // ratio
-const Real concrete_planestrain = 
+const Real concrete_planestrain =
     ContactMaterial::calcPlaneStrainStiffness(concrete_young,concrete_poisson);
 const Real concrete_dissipation = 0.005;
 
@@ -118,7 +118,7 @@ const Rotation YtoZ( Pi/2,XAxis);
 int main() {
     try { // catch errors if any
     // Create the system, with subsystems for the bodies and some forces.
-    MultibodySystem system; 
+    MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     ContactTrackerSubsystem   tracker(system);
@@ -131,7 +131,7 @@ int main() {
     viz.setShowSimTime(true); viz.setShowFrameRate(true);
     viz.addSlider("Speed", SpeedControlSlider, -10, 10, 0);
     Visualizer::InputSilo* silo = new Visualizer::InputSilo();
-    viz.addInputListener(silo);   
+    viz.addInputListener(silo);
     #ifdef ANIMATE
     system.addEventReporter(new Visualizer::Reporter(viz, 1./30));
     #endif
@@ -181,7 +181,7 @@ int main() {
     // Add the torso and crank mobilized bodies.
     MobilizedBody::Free torso(Ground,Vec3(0,TorsoHeight,0), torsoInfo,Vec3(0));
     MobilizedBody::Pin crank(torso,crankCenter, crankInfo, Vec3(0));
-    
+
     // Add the legs.
     for (int i=-1; i<=1; ++i) {
         const Vec3 offset = crankCenter + i*crankOffset;
@@ -193,9 +193,9 @@ int main() {
             DecorativeBrick(Vec3(1.5*MLen/2,LinkWidth,LinkDepth))
                         .setColor(Yellow));
 
-        addOneLeg(viz, torso, offset + i*linkSpace, 
+        addOneLeg(viz, torso, offset + i*linkSpace,
                   crank, R_CP*CrankConnect);
-        addOneLeg(viz, torso, Transform(Rotation(Pi,YAxis), offset + i*linkSpace), 
+        addOneLeg(viz, torso, Transform(Rotation(Pi,YAxis), offset + i*linkSpace),
                   crank, R_CP*CrankConnect);
     }
 
@@ -203,13 +203,13 @@ int main() {
     Motion::Steady motor(crank, 0); // User controls speed.
     system.addEventHandler
        (new UserInputHandler(*silo, motor, Real(0.1))); //check input every 100ms
-  
-    // Initialize the system and state.    
+
+    // Initialize the system and state.
     State state = system.realizeTopology();
     system.realize(state);
     printf("Theo Jansen Strandbeest in 3D:\n");
     printf("%d bodies, %d mobilities, -%d constraint equations -%d motions\n",
-        matter.getNumBodies(), state.getNU(), state.getNMultipliers(), 
+        matter.getNumBodies(), state.getNU(), state.getNMultipliers(),
         matter.getMotionMultipliers(state).size());
 
     viz.report(state);
@@ -248,18 +248,18 @@ namespace {
 // This function can build a leg two different ways, depending on whether
 // USE_MASSLESS_LINKS is defined:
 // (1) A straightforward model where all links have mass, producing 6 mobilities
-//     and requiring 6 constraints per leg. 
+//     and requiring 6 constraints per leg.
 // (2) Only the shoulder and foot bodies have mass, so the model requires only 3
-//     mobilities and 3 distance constraints instead, for much improved 
-//     performance.    
+//     mobilities and 3 distance constraints instead, for much improved
+//     performance.
 void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
                MobilizedBody& crank, const Vec3& crankConnect)
 {
-    // Segment lettering is from TJ's drawing here: 
+    // Segment lettering is from TJ's drawing here:
     //        http://www.strandbeest.com/beests_leg.php
     // These dimensions are what TJ calls the "holy numbers". These are scaled
     // from cm to m so that the mechanism is about 1m tall.
-    const Real ALen=38/100., LLen=7.8/100.; 
+    const Real ALen=38/100., LLen=7.8/100.;
     const Real BLen=41.5/100., ELen=55.8/100., DLen=40.1/100.; // shoulder sides
     const Real ILen=49/100., HLen=65.7/100., GLen=36.7/100.;   // foot sides
 
@@ -314,9 +314,9 @@ void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
         DecorativeBrick(Vec3(HLen/2,LinkWidth,LinkDepth)).setColor(Orange));
 
     const Real FootRad = .05;
-    footInfo.addContactSurface(footLower-Vec3(0,FootRad/2,0), 
+    footInfo.addContactSurface(footLower-Vec3(0,FootRad/2,0),
         ContactSurface(ContactGeometry::Sphere(FootRad), rubber));
-    footInfo.addDecoration(footLower-Vec3(0,FootRad/2,0), 
+    footInfo.addDecoration(footLower-Vec3(0,FootRad/2,0),
         DecorativeSphere(FootRad).setColor(Orange));
 
     // LINKS
@@ -343,11 +343,11 @@ void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
     linkKInfo.addDecoration(Vec3(0), DecorativeBrick(KDims).setColor(Orange));
 
     // Create the tree of mobilized bodies.
-    MobilizedBody::Pin shoulder(torso, Transform(X_TL.R(), pivotPt), 
+    MobilizedBody::Pin shoulder(torso, Transform(X_TL.R(), pivotPt),
                                 shoulderInfo, shoulderPivot);
-    MobilizedBody::Pin linkC(torso,    Transform(X_TL.R(), pivotPt),  
+    MobilizedBody::Pin linkC(torso,    Transform(X_TL.R(), pivotPt),
                              linkCInfo, Vec3(0,CLen/2,0));
-    MobilizedBody::Pin foot( linkC,     Vec3(0,-CLen/2,0), 
+    MobilizedBody::Pin foot( linkC,     Vec3(0,-CLen/2,0),
                              footInfo,  footPivot);
 
     #ifdef USE_MASSLESS_LINKS
@@ -364,7 +364,7 @@ void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
                              linkJInfo, Vec3(-JLen/2,0,0));
     MobilizedBody::Pin linkF(shoulder,  shoulderSide,
                              linkFInfo, Vec3(0,FLen/2,0));
-    MobilizedBody::Pin linkK(foot,      footPivot, 
+    MobilizedBody::Pin linkK(foot,      footPivot,
                              linkKInfo, Vec3(-KLen/2,0,0));
     linkJ.setDefaultAngle(-Pi/6); // set default angles to guide assembly
     linkK.setDefaultAngle( Pi/4);
@@ -392,9 +392,9 @@ void addOneLeg(Visualizer& viz, MobilizedBody& torso, const Transform& X_TL,
 //==============================================================================
 //                           USER INPUT HANDLER
 //==============================================================================
-UserInputHandler::UserInputHandler(Visualizer::InputSilo& silo, 
-                                   const Motion::Steady&  motor, 
-                                   Real                   interval) 
+UserInputHandler::UserInputHandler(Visualizer::InputSilo& silo,
+                                   const Motion::Steady&  motor,
+                                   Real                   interval)
 :   PeriodicEventHandler(interval), m_silo(silo), m_motor(motor) {}
 
 void UserInputHandler::handleEvent(State& state, Real accuracy,
@@ -412,19 +412,19 @@ void UserInputHandler::handleEvent(State& state, Real accuracy,
         while (m_silo.takeSliderMove(whichSlider, sliderValue))
             if (whichSlider == SpeedControlSlider)
                 m_motor.setRate(state, sliderValue);
-    }  
+    }
 }
 
 
 //==============================================================================
 //                           FIND OTHER VERTEX
 //==============================================================================
-// Given two vertices v1, v2 of a triangle in the x-y plane and the lengths of 
-// the other two sides, find the location of the third vertex, assuming 
+// Given two vertices v1, v2 of a triangle in the x-y plane and the lengths of
+// the other two sides, find the location of the third vertex, assuming
 // v1-v2-v3 have counterclockwise ordering about the plane normal.
 //
 //                           v2
-//                            * 
+//                            *
 //                             \
 //                           .  \ s0
 //                               \
@@ -436,11 +436,11 @@ void UserInputHandler::handleEvent(State& state, Real accuracy,
 //                         *
 //                         v3
 //
-// Our strategy will be to find the angle a and rotate the unit vector 
+// Our strategy will be to find the angle a and rotate the unit vector
 // v=(v2-v1)/|v2-v1| ccw by a, giving unit vector w along v1v3. Then v3=v1+s1*w.
 
 // Ignore z component of vectors -- we're working in x-y plane.
-Vec3 findOtherVertex(const Vec3& v1, const Vec3& v2, 
+Vec3 findOtherVertex(const Vec3& v1, const Vec3& v2,
                      Real s1, Real s2)
 {
     const Real s0 = (v2-v1).norm();
@@ -458,7 +458,7 @@ Vec3 findOtherVertex(const Vec3& v1, const Vec3& v2,
 //==============================================================================
 //                        DUMP INTEGRATOR STATS
 //==============================================================================
-void dumpIntegratorStats(double startCPU, double startTime, 
+void dumpIntegratorStats(double startCPU, double startTime,
                          const Integrator& integ) {
     std::cout << "DONE: Simulated " << integ.getTime() << " seconds in " <<
         realTime()-startTime << " elapsed s, CPU="<< cpuTime()-startCPU << "s\n";
@@ -467,16 +467,16 @@ void dumpIntegratorStats(double startCPU, double startTime,
     #endif
 
     const int evals = integ.getNumRealizations();
-    std::cout << "\nUsed "  << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nUsed "  << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }
 }

@@ -91,7 +91,7 @@ namespace Ipopt
 
     /** Check if the line search procedure didn't accept a new iterate
      *  during the last call of FindAcceptableTrialPoint().
-     *  
+     *
      */
     virtual bool CheckSkippedLineSearch() override
     {
@@ -110,7 +110,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -158,7 +158,7 @@ namespace Ipopt
     /** Method for setting the dual variables in the trial fields in
      *  IpData, given the search direction.  The step size for the
      *  bound multipliers is alpha_dual (the fraction-to-the-boundary
-     *  step size), and the step size for the equality constraint 
+     *  step size), and the step size for the equality constraint
      *  multipliers depends on the choice of alpha_for_y. */
     void PerformDualStep(Number alpha_primal,
                          Number alpha_dual,

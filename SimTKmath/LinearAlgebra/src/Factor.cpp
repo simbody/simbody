@@ -38,7 +38,7 @@
 #include "WorkSpace.h"
 #include "LapackConvert.h"
 
-#include <iostream> 
+#include <iostream>
 #include <cmath>
 #include <complex>
 
@@ -146,29 +146,29 @@ int FactorLU::getSingularIndex () const {
    /////////////////
 template <typename T >
     template < typename ELT >
-FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat ) 
+FactorLURep<T>::FactorLURep( const Matrix_<ELT>& mat )
       : nRow( mat.nrow() ),
         nCol( mat.ncol() ),
         mn( (mat.nrow() < mat.ncol()) ? mat.nrow() : mat.ncol() ),
         singularIndex(0),
-        pivots(mat.ncol()),             
+        pivots(mat.ncol()),
         lu( mat.nrow()*mat.ncol() )
-{ 
+{
     FactorLURep<T>::factor( mat );
 }
 template <typename T >
-FactorLURep<T>::FactorLURep() 
+FactorLURep<T>::FactorLURep()
       : nRow(0),
         nCol(0),
         mn(0),
         singularIndex(0),
-        pivots(0),             
+        pivots(0),
         lu(0)
 {
 }
 template <typename T >
 FactorLURep<T>::~FactorLURep() {}
- 
+
 template <typename T >
 FactorLURepBase* FactorLURep<T>::clone() const {
    return( new FactorLURep<T>(*this) );
@@ -232,8 +232,8 @@ void FactorLURep<T>::solve(  const Matrix_<T>& b, Matrix_<T>& x ) const {
 template <typename T >
 void FactorLURep<T>::getL( Matrix_<T>& m) const {
        int i,j;
-      
-       m.resize( nRow, nCol ); 
+
+       m.resize( nRow, nCol );
 
        for(i=0;i<nRow;i++) {
            for(j=0;j<i;j++) m(j,i) = 0.0;
@@ -246,7 +246,7 @@ template <typename T >
 void FactorLURep<T>::getU( Matrix_<T>& m) const {
     int i,j;
     m.resize( nRow, nCol );
-       
+
    for(i = 0;i<nRow;i++) {
        for(j=0;j<i+1;j++) m(j,i) = lu.data[j*nRow+i];
        for(;j<nCol;j++) m(j,i) = 0.0;
@@ -263,7 +263,7 @@ void FactorLURep<T>::getD( Matrix_<T>& m) const {
         for(j=0;j<nCol;j++) m(j,i) = 0.0;
    }
    for(i = 0;i<nRow;i++) m(i,i) = lu.data[i*nRow+i];
-       
+
    return;
 }
 template <typename T >
@@ -277,9 +277,9 @@ void FactorLURep<T>::getErrorBounds ( Vector_<T>& err, Vector_<T>& berr) const {
 template <typename T >
 bool FactorLURep<T>::isSingular () const {
 
-    if( singularIndex > 0) 
+    if( singularIndex > 0)
         return( true );
-    else 
+    else
         return( false );
 }
 template <typename T >
@@ -287,16 +287,16 @@ int FactorLURep<T>::getSingularIndex () const {
     return( singularIndex );
 }
 
-template <class T> 
+template <class T>
     template<typename ELT>
 void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
 
     SimTK_APIARGCHECK2_ALWAYS(mat.nelt() > 0,"FactorLU","factor",
        "Can't factor a matrix that has a zero dimension -- got %d X %d.",
        (int)mat.nrow(), (int)mat.ncol());
-    
+
     // initialize the matrix we pass to LAPACK
-    // converts (negated,conjugated etc.) to LAPACK format 
+    // converts (negated,conjugated etc.) to LAPACK format
     LapackConvert::convertMatrixToLapack( lu.data, mat );
 
 
@@ -304,9 +304,9 @@ void FactorLURep<T>::factor(const Matrix_<ELT>&mat )  {
     int info;
 
     LapackInterface::getrf<T>(nRow, nCol, lu.data, lda, pivots.data, info);
-    if( info > 0 ) 
+    if( info > 0 )
         singularIndex = info; // matrix is singular info = i when U(i,i) is exactly zero
-    else 
+    else
         singularIndex = 0;
 
 }

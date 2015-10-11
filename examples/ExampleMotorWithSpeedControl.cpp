@@ -45,7 +45,7 @@ const Real InitialMotorRate   = 1; // rad/s
 const Real InitialDissipation = 0.5; // damping in left joint stop
 
 // Ids for the two sliders.
-const int SliderIdMotorSpeed = 1, SliderIdDissipation = 2, 
+const int SliderIdMotorSpeed = 1, SliderIdDissipation = 2,
     SliderIdTach = 3, SliderIdTorque = 4;
 
 // Ids for things on the Run Menu.
@@ -69,10 +69,10 @@ const Real TorqueDecay = 100;
 class MyTorqueLimitedMotor : public Force::Custom::Implementation {
 public:
     MyTorqueLimitedMotor
-       (const MobilizedBody& mobod, MobilizerUIndex whichU, 
+       (const MobilizedBody& mobod, MobilizerUIndex whichU,
         Real gain, Real torqueLimit)
-    :   m_matter(mobod.getMatterSubsystem()), m_mobod(mobod), m_whichU(whichU), 
-        m_torqueGain(gain), m_torqueLimit(torqueLimit) 
+    :   m_matter(mobod.getMatterSubsystem()), m_mobod(mobod), m_whichU(whichU),
+        m_torqueGain(gain), m_torqueLimit(torqueLimit)
     {   assert(gain >= 0 && torqueLimit >= 0); }
 
     void setDesiredRate(State& state, Real speed) const {
@@ -104,7 +104,7 @@ public:
     Real getTorque(const State& state) const {
         const Real integTrq  = m_matter.getZ(state)[m_trqIx];
         const Real proportionalTrq = -DampingGain*getRateError(state);
-        const Real totalTrq = clamp(-m_torqueLimit, integTrq+proportionalTrq, 
+        const Real totalTrq = clamp(-m_torqueLimit, integTrq+proportionalTrq,
                                      m_torqueLimit);
         return totalTrq;
     }
@@ -112,12 +112,12 @@ public:
 
     // Force::Custom::Implementation virtuals:
 
-    void calcForce(const State&         state, 
-                   Vector_<SpatialVec>& bodyForces, 
-                   Vector_<Vec3>&       particleForces, 
+    void calcForce(const State&         state,
+                   Vector_<SpatialVec>& bodyForces,
+                   Vector_<Vec3>&       particleForces,
                    Vector&              mobilityForces) const override
     {
-        m_mobod.applyOneMobilityForce(state, m_whichU, getTorque(state), 
+        m_mobod.applyOneMobilityForce(state, m_whichU, getTorque(state),
                                       mobilityForces);
     }
 
@@ -153,14 +153,14 @@ public:
         //        delay =   "WantMore: ";
         //}
 
-        //printf("%suerr=%g (actual=%g, des=%g) trq=%g trqdot=%g\n", 
+        //printf("%suerr=%g (actual=%g, des=%g) trq=%g trqdot=%g\n",
         //    delay, u_actual-u_desired,
         //    u_actual, u_desired, trq, trqDot);
 
         Real rateLimit = m_torqueLimit/MaxTorqueRate; // full-scale change
         //clampInPlace(-rateLimit, trqDot, rateLimit);
 
-        m_matter.updZDot(state)[m_trqIx] = trqDot; 
+        m_matter.updZDot(state)[m_trqIx] = trqDot;
     }
 
 private:
@@ -181,11 +181,11 @@ int main() {
     try { // catch errors if any
 
     // Create the system, with subsystems for the bodies and some forces.
-    MultibodySystem system; 
+    MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::Gravity gravity(forces, matter, -YAxis, 9.8);
-    system.setUseUniformBackground(true); // request no ground & sky    
+    system.setUseUniformBackground(true); // request no ground & sky
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
@@ -203,7 +203,7 @@ int main() {
     Force::MobilityLinearDamper damper3(forces, rtArm, MobilizerUIndex(0), 10);
 
 #ifdef USE_TORQUE_LIMITED_MOTOR
-    MyTorqueLimitedMotor* motorp = 
+    MyTorqueLimitedMotor* motorp =
         new MyTorqueLimitedMotor(rtArm, MobilizerUIndex(0), TorqueGain, MaxTorque);
     const MyTorqueLimitedMotor& motor = *motorp;
     Force::Custom(forces, motorp); // takes over ownership
@@ -215,7 +215,7 @@ int main() {
 #endif
 
     // Add a joint stop to the left arm restricting it to q in [0,Pi/5].
-    Force::MobilityLinearStop stop(forces, leftArm, MobilizerQIndex(0), 
+    Force::MobilityLinearStop stop(forces, leftArm, MobilizerQIndex(0),
         StopStiffness,
         InitialDissipation,
         -Pi/8,   // lower stop
@@ -237,14 +237,14 @@ int main() {
 
     Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
     viz.addInputListener(userInput);
-    
-    // Initialize the system and state.    
+
+    // Initialize the system and state.
     State initState = system.realizeTopology();
 
     // Simulate forever with a small max step size. Check for user input
     // in between steps. Note: an alternate way to do this is to let the
-    // integrator take whatever steps it wants but use a TimeStepper to 
-    // manage a periodic event handler to poll for user input. Here we're 
+    // integrator take whatever steps it wants but use a TimeStepper to
+    // manage a periodic event handler to poll for user input. Here we're
     // treating completion of a step as an event.
     const Real MaxStepSize = 0.01*3; // 10ms
     const int  DrawEveryN = 3/3;     // 3 steps = 30ms
@@ -273,7 +273,7 @@ int main() {
             viz.setSliderValue(SliderIdTorque, motor.getTorque(s));
 #else
             system.realize(s); // taus are acceleration stage
-            //viz.setSliderValue(SliderIdTorque, 
+            //viz.setSliderValue(SliderIdTorque,
             //                   rtArm.getOneTau(s, MobilizerUIndex(0)));
             viz.setSliderValue(SliderIdTorque, motor.getMultiplier(s));
 #endif
@@ -309,10 +309,10 @@ int main() {
 
         // Was there a menu pick?
         if (userInput->takeMenuPick(whichMenu, whichItem)) {
-            if (whichItem == QuitItem) 
+            if (whichItem == QuitItem)
                 break; // done
 
-            // If Reset, stop the motor and restore default dissipation. 
+            // If Reset, stop the motor and restore default dissipation.
             // Tell visualizer to update the sliders to match.
             // Zero out all the q's and u's.
             if (whichItem == ResetItem) {
@@ -335,12 +335,12 @@ int main() {
 
     }
     const int evals = integ.getNumRealizations();
-    std::cout << "Done -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "Done -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());

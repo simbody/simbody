@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     //Force::MobilityLinearDamper(forces, anAtom, 1, .1); // harmonic bend
     //Force::MobilityLinearDamper(forces, anAtom, 2, .1); // harmonic stretch
 
-    
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     mbs.realizeModel(s); // define appropriate states for this System
     mbs.realize(s, Stage::Instance); // instantiate constraints if any
@@ -184,11 +184,11 @@ int main(int argc, char** argv) {
     Integrator::SuccessfulStepStatus status;
     int nextReport = 0;
     while ((status=myStudy.stepTo(nextReport*dt))
-           != Integrator::EndOfSimulation) 
+           != Integrator::EndOfSimulation)
     {
         const State& s = myStudy.getState();
         mbs.realize(s);
-        printf("%5g %10.4g %10.4g %10.4g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+        printf("%5g %10.4g %10.4g %10.4g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(),
             H1.getAngle(s), O.getAngle(s), H2.getOneQ(s,0), H2.getOneQ(s,1),
             mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
     printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
-  } 
+  }
   catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

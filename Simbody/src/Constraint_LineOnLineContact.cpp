@@ -39,17 +39,17 @@ namespace SimTK {
 //==============================================================================
 //                         LINE ON LINE CONTACT
 //==============================================================================
-SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::LineOnLineContact, 
-                                        Constraint::LineOnLineContactImpl, 
+SimTK_INSERT_DERIVED_HANDLE_DEFINITIONS(Constraint::LineOnLineContact,
+                                        Constraint::LineOnLineContactImpl,
                                         Constraint);
 
 Constraint::LineOnLineContact::LineOnLineContact
-   (MobilizedBody&      mobod_F, 
-    const Transform&    defaultEdgeFrameF,  
-    Real                defaultHalfLengthF, 
-    MobilizedBody&      mobod_B, 
-    const Transform&    defaultEdgeFrameB, 
-    Real                defaultHalfLengthB, 
+   (MobilizedBody&      mobod_F,
+    const Transform&    defaultEdgeFrameF,
+    Real                defaultHalfLengthF,
+    MobilizedBody&      mobod_B,
+    const Transform&    defaultEdgeFrameB,
+    Real                defaultHalfLengthB,
     bool                enforceRolling)
 :   Constraint(new LineOnLineContactImpl(enforceRolling))
 {
@@ -110,7 +110,7 @@ getMobilizedBodyB() const {
     return impl.getMobilizedBodyFromConstrainedBody(impl.m_mobod_B);
 }
 
-bool Constraint::LineOnLineContact::isEnforcingRolling() const 
+bool Constraint::LineOnLineContact::isEnforcingRolling() const
 {   return getImpl().m_enforceRolling; }
 
 const Transform& Constraint::LineOnLineContact::
@@ -169,7 +169,7 @@ Real Constraint::LineOnLineContact::getPositionError(const State& s) const {
 
 Vec3 Constraint::LineOnLineContact::getVelocityErrors(const State& s) const {
     const LineOnLineContactImpl& impl = getImpl();
-    Vec3 verr_PC; // result is velocity error in P frame 
+    Vec3 verr_PC; // result is velocity error in P frame
     if (impl.m_enforceRolling) {
         Real verr[3];
         impl.getVelocityErrors(s, 3, verr);
@@ -184,7 +184,7 @@ Vec3 Constraint::LineOnLineContact::getVelocityErrors(const State& s) const {
 
 Vec3 Constraint::LineOnLineContact::getAccelerationErrors(const State& s) const {
     const LineOnLineContactImpl& impl = getImpl();
-    Vec3 aerr_PC; // result is acceleration error in P frame 
+    Vec3 aerr_PC; // result is acceleration error in P frame
     if (impl.m_enforceRolling) {
         Real aerr[3];
         impl.getAccelerationErrors(s, 3, aerr);
@@ -199,7 +199,7 @@ Vec3 Constraint::LineOnLineContact::getAccelerationErrors(const State& s) const 
 
 Vec3 Constraint::LineOnLineContact::getMultipliers(const State& s) const {
     const LineOnLineContactImpl& impl = getImpl();
-    Vec3 lambda_PC; // result is -force on point F in P frame 
+    Vec3 lambda_PC; // result is -force on point F in P frame
     if (impl.m_enforceRolling) {
         Real lambda[3];
         impl.getMultipliers(s, 3, lambda);
@@ -215,7 +215,7 @@ Vec3 Constraint::LineOnLineContact::getMultipliers(const State& s) const {
 Vec3 Constraint::LineOnLineContact::
 findForceOnBodyBInG(const State& s) const {
     const LineOnLineContactImpl& impl = getImpl();
-    if (impl.isDisabled(s)) 
+    if (impl.isDisabled(s))
         return Vec3(0);
 
     const Transform X_GC = findContactFrameInG(s);
@@ -227,7 +227,7 @@ findForceOnBodyBInG(const State& s) const {
 Transform Constraint::LineOnLineContact::
 findContactFrameInG(const State& s) const {
     const LineOnLineContactImpl& impl = getImpl();
-    const LineOnLineContactImpl::PositionCache& pc = 
+    const LineOnLineContactImpl::PositionCache& pc =
         impl.ensurePositionCacheRealized(s);
 
     const MobilizedBody& mobod_A = impl.getAncestorMobilizedBody();
@@ -242,7 +242,7 @@ void Constraint::LineOnLineContact::
 findClosestPointsInG(const State& s, Vec3& Qf_G, Vec3& Qb_G,
                      bool& linesAreParallel) const {
     const LineOnLineContactImpl& impl = getImpl();
-    const LineOnLineContactImpl::PositionCache& pc = 
+    const LineOnLineContactImpl::PositionCache& pc =
         impl.ensurePositionCacheRealized(s);
 
     const MobilizedBody& mobod_A = impl.getAncestorMobilizedBody();
@@ -252,15 +252,15 @@ findClosestPointsInG(const State& s, Vec3& Qf_G, Vec3& Qb_G,
     } else {
         const Transform& X_GA = mobod_A.getBodyTransform(s);
         Qf_G = X_GA * pc.p_AQf; // 18 flops
-        Qb_G = X_GA * pc.p_AQb; // 18 flops 
+        Qb_G = X_GA * pc.p_AQb; // 18 flops
     }
 }
 
-// The separation is the signed distance between the lines' closest points. 
+// The separation is the signed distance between the lines' closest points.
 // Same as perr routine, but works when constraint is disabled.
 Real Constraint::LineOnLineContact::
 findSeparation(const State& s) const {
-    const LineOnLineContactImpl::PositionCache& pc = 
+    const LineOnLineContactImpl::PositionCache& pc =
         getImpl().ensurePositionCacheRealized(s);
 
     const Real r = ~pc.p_PfPb_A * pc.n_A; // 5 flops
@@ -272,61 +272,61 @@ findSeparation(const State& s) const {
 //                        LINE ON LINE CONTACT IMPL
 //==============================================================================
 
-// The default parameters may be overridden by setting a discrete variable in 
+// The default parameters may be overridden by setting a discrete variable in
 // the state, and we need a couple of cache entries to hold expensive
 // computations. We allocate the state resources here.
 void Constraint::LineOnLineContactImpl::
 realizeTopologyVirtual(State& state) const {
     m_parametersIx = getMyMatterSubsystemRep().
-        allocateDiscreteVariable(state, Stage::Position, 
-            new Value<Parameters>(Parameters(m_def_X_FEf, m_def_hf, 
+        allocateDiscreteVariable(state, Stage::Position,
+            new Value<Parameters>(Parameters(m_def_X_FEf, m_def_hf,
                                              m_def_X_BEb, m_def_hb)));
 
     m_posCacheIx = getMyMatterSubsystemRep().
-        allocateLazyCacheEntry(state, Stage::Position, 
+        allocateLazyCacheEntry(state, Stage::Position,
             new Value<PositionCache>());
 
     m_velCacheIx = getMyMatterSubsystemRep().
-        allocateLazyCacheEntry(state, Stage::Velocity, 
+        allocateLazyCacheEntry(state, Stage::Velocity,
             new Value<VelocityCache>());
 }
 
-const Constraint::LineOnLineContactImpl::Parameters& 
+const Constraint::LineOnLineContactImpl::Parameters&
 Constraint::LineOnLineContactImpl::
 getParameters(const State& state) const {
     return Value<Parameters>::downcast
        (getMyMatterSubsystemRep().getDiscreteVariable(state,m_parametersIx));
 }
 
-Constraint::LineOnLineContactImpl::Parameters& 
+Constraint::LineOnLineContactImpl::Parameters&
 Constraint::LineOnLineContactImpl::
 updParameters(State& state) const {
     return Value<Parameters>::updDowncast
        (getMyMatterSubsystemRep().updDiscreteVariable(state,m_parametersIx));
 }
 
-const Constraint::LineOnLineContactImpl::PositionCache& 
+const Constraint::LineOnLineContactImpl::PositionCache&
 Constraint::LineOnLineContactImpl::
 getPositionCache(const State& state) const {
     return Value<PositionCache>::downcast
        (getMyMatterSubsystemRep().getCacheEntry(state,m_posCacheIx));
 }
 
-Constraint::LineOnLineContactImpl::PositionCache& 
+Constraint::LineOnLineContactImpl::PositionCache&
 Constraint::LineOnLineContactImpl::
 updPositionCache(const State& state) const {
     return Value<PositionCache>::updDowncast
        (getMyMatterSubsystemRep().updCacheEntry(state,m_posCacheIx));
 }
 
-const Constraint::LineOnLineContactImpl::VelocityCache& 
+const Constraint::LineOnLineContactImpl::VelocityCache&
 Constraint::LineOnLineContactImpl::
 getVelocityCache(const State& state) const {
     return Value<VelocityCache>::downcast
        (getMyMatterSubsystemRep().getCacheEntry(state,m_velCacheIx));
 }
 
-Constraint::LineOnLineContactImpl::VelocityCache& 
+Constraint::LineOnLineContactImpl::VelocityCache&
 Constraint::LineOnLineContactImpl::
 updVelocityCache(const State& state) const {
     return Value<VelocityCache>::updDowncast
@@ -338,7 +338,7 @@ void Constraint::LineOnLineContactImpl::
 calcPositionInfo(const State& state,
                  const Transform& X_AF, const Transform& X_AB,
                  PositionCache& pc) const
-{   
+{
     const Parameters& params = getParameters(state);
     const UnitVec3&     df_F   = params.X_FEf.x();
     const UnitVec3&     db_B   = params.X_BEb.x();
@@ -371,7 +371,7 @@ calcPositionInfo(const State& state,
     //TODO: should do something better than this for parallel edges. Not clear
     // that an exception is best though since this might occur prior to an
     // assembly analysis that would fix the problem. Also consider if we're
-    // doing event-driven contact we may need to catch the event of edges 
+    // doing event-driven contact we may need to catch the event of edges
     // going from crossed to parallel to turn off the edge/edge contact.
 
     if (sinTheta < SignificantReal) {               // 1 flop
@@ -398,7 +398,7 @@ calcPositionInfo(const State& state,
     const Vec3 p_ACo = 0.5*(pc.p_AQf + pc.p_AQb);   //  6
     pc.X_AC.updP() = p_ACo;
 
-    // Since unit vector n is perpendicular to df (and db), n X df 
+    // Since unit vector n is perpendicular to df (and db), n X df
     // is already a unit vector without normalizing.
     const UnitVec3 nXdf(pc.n_A % pc.df_A, true);    //  9 flops
     pc.X_AC.updR().setRotationFromUnitVecsTrustMe(pc.df_A, nXdf, pc.n_A);
@@ -410,7 +410,7 @@ calcPositionInfo(const State& state,
 }
 
 
-const Constraint::LineOnLineContactImpl::PositionCache& 
+const Constraint::LineOnLineContactImpl::PositionCache&
 Constraint::LineOnLineContactImpl::
 ensurePositionCacheRealized(const State& s) const {
     if (getMyMatterSubsystemRep().isCacheValueRealized(s, m_posCacheIx))
@@ -450,12 +450,12 @@ calcVelocityInfo(const State& state,
     const Vec3 v_APb = v_AB + wX_p_BPb_A;                       //  3
     vc.dp_PfPb_A = v_APb - v_APf;                               //  3
 
-    vc.ddf_A = w_AF % pc.df_A;                                  //  9 flops 
+    vc.ddf_A = w_AF % pc.df_A;                                  //  9 flops
     vc.ddb_A = w_AB % pc.db_A;                                  //  9
     vc.dw_A = pc.sense*(vc.ddf_A % pc.db_A + pc.df_A % vc.ddb_A);//24
     vc.dn_A = pc.oos * (vc.dw_A - (~pc.n_A*vc.dw_A)*pc.n_A);    // 14
 
-    // Calculate the velocity of B's material point (station) at Co, 
+    // Calculate the velocity of B's material point (station) at Co,
     // measured in the F frame and expressed in A.
     const Vec3 vA_BCo_A = v_AB + w_AB % pc.p_BCo_A;             // 12 flops
     const Vec3 vA_FCo_A = v_AF + w_AF % pc.p_FCo_A;             // 12
@@ -499,7 +499,7 @@ calcVelocityInfo(const State& state,
     vc.dCo_A = dCo;
 }
 
-const Constraint::LineOnLineContactImpl::VelocityCache& 
+const Constraint::LineOnLineContactImpl::VelocityCache&
 Constraint::LineOnLineContactImpl::
 ensureVelocityCacheRealized(const State& s) const {
     if (getMyMatterSubsystemRep().isCacheValueRealized(s, m_velCacheIx))
@@ -510,7 +510,7 @@ ensureVelocityCacheRealized(const State& s) const {
 
     calcVelocityInfo(s, V_AF, V_AB, vc);
 
-    getMyMatterSubsystemRep().markCacheValueRealized(s, m_velCacheIx);   
+    getMyMatterSubsystemRep().markCacheValueRealized(s, m_velCacheIx);
     return vc;
 }
 
@@ -520,8 +520,8 @@ calcDecorativeGeometryAndAppendVirtual
 {
     // We can't generate the artwork until we know the lines' placements,
     // which might not be until Position stage.
-    if (   stage != Stage::Position 
-        || !getMyMatterSubsystemRep().getShowDefaultGeometry()) 
+    if (   stage != Stage::Position
+        || !getMyMatterSubsystemRep().getShowDefaultGeometry())
         return;
 
     const Parameters&       params = getParameters(s);
@@ -541,7 +541,7 @@ calcDecorativeGeometryAndAppendVirtual
     const UnitVec3   df_G  = R_GA * X_AC.x();
     const UnitVec3   db_G  = R_GA * pc.db_A;
     const Vec3       p_GQf = X_GA * pc.p_AQf;
-    const Vec3       p_GQb = X_GA * pc.p_AQb; 
+    const Vec3       p_GQb = X_GA * pc.p_AQb;
     const Vec3       half_Lf = hf * df_G;
     const Vec3       half_Lb = hb * db_G;
 
@@ -558,7 +558,7 @@ calcDecorativeGeometryAndAppendVirtual
     geom.push_back(DecorativeLine(p_GQf-half_Lf, p_GQf+half_Lf)
         .setColor(Green));
     geom.push_back(DecorativeFrame().setTransform(X_GEf)
-        .setColor(Green*.9).setLineThickness(1).setScale(0.5)); // F color        
+        .setColor(Green*.9).setLineThickness(1).setScale(0.5)); // F color
     geom.push_back(DecorativePoint(p_GQf)
         .setColor(Orange).setLineThickness(2)); // B color
 

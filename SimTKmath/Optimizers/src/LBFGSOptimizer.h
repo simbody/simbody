@@ -28,7 +28,7 @@
 
 #include "simmath/internal/common.h"
 
-#include "simmath/internal/OptimizerRep.h" 
+#include "simmath/internal/OptimizerRep.h"
 
 #include <iostream>
 
@@ -39,7 +39,7 @@ class LBFGSOptimizer: public Optimizer::OptimizerRep {
 public:
     ~LBFGSOptimizer() { }
 
-    LBFGSOptimizer(const OptimizerSystem& sys); 
+    LBFGSOptimizer(const OptimizerSystem& sys);
 
     Real optimize(  SimTK::Vector &results ) override;
     OptimizerRep* clone() const override;

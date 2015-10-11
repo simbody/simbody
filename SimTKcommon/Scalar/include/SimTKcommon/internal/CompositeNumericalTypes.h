@@ -32,7 +32,7 @@
  * So we define a templatized class CNT<T>, where the template
  * parameter can be any composite numerical type whether built in or
  * composite. Then CNT members are used to access information about
- * class T. When T is a built-in, that information comes from 
+ * class T. When T is a built-in, that information comes from
  * specializations of CNT<T> for CNT<float>, CNT<std::complex<double>>,
  * etc. When T is composite, CNT<T> acts as a pass-through to allow
  * the composite type to provide its own information.
@@ -45,7 +45,7 @@
  *
  *     Type             Meaning
  *     ---------------- --------------------------------------------------------
- *                      
+ *
  *     TNeg             same shape as T, but elements are negated
  *     TReal            same shape as T, but with real elements
  *     TImag            same shape as T, with real elements from imaginary part
@@ -56,13 +56,13 @@
  *     TSqTHerm         type of T*~T (row square; symmetric)
  *
  *     Scalar           the underlying scalar type (see below)
- *     ScalarNormSq     type of the "conjugate square" ~s*s of underlying scalar 
+ *     ScalarNormSq     type of the "conjugate square" ~s*s of underlying scalar
  *                        (always real)
  *
- *     Substitute<E>::Type  
+ *     Substitute<E>::Type
  *                      A CNT of the same shape and container type as this one,
  *                        but with elements of type E instead of ElementType.
- *                        Special case: if this CNT is a scalar then 
+ *                        Special case: if this CNT is a scalar then
  *                        Substitute<E>::Type just returns E.
  *     Result<RHS>::Mul (Dvd,Add,Sub)
  *                      The type of the result of T op RHS, where RHS is *any* CNT
@@ -75,9 +75,9 @@
  *     ColSpacing       num elements from one col to the next (default NRows for Mat)
  *     NPackedElements  minimum num elements it would take to store this data
  *     NActualElements  num elements covered by T due to element spacing
- *     NActualScalars   NActualElements * CNT<ElementType>::NActualScalars. This 
- *                        should be the physical spacing between array elements 
- *                        in an array containing this kind of CNT. Our big 
+ *     NActualScalars   NActualElements * CNT<ElementType>::NActualScalars. This
+ *                        should be the physical spacing between array elements
+ *                        in an array containing this kind of CNT. Our big
  *                        Matrix/Vector types guarantee this packing.
  * </pre>
  *
@@ -104,7 +104,7 @@
  */
 
 #include "SimTKcommon/internal/common.h"
-    
+
 namespace SimTK {
 
 // These are CNT "depths". 0 means the corresponding CNT is a scalar,
@@ -120,13 +120,13 @@ enum  {
     MAX_RESOLVED_DEPTH        = COMPOSITE_3_DEPTH
 };
 
-/** 
+/**
  * Specialized information about Composite Numerical Types which
  * allows us to define appropriate templatized classes using them.
- * Transpose is particularly tricky -- we insist on Hermitian 
+ * Transpose is particularly tricky -- we insist on Hermitian
  * transpose meaning the elements must also be transposed and
  * complex subelements must be conjugated.
- * 
+ *
  * This class exists because the built-in scalar types don't
  * have the members we need. CNT<> is specialized for those types
  * only; it is just a pass-through for the rest. The idea
@@ -260,10 +260,10 @@ public:
     /// tolerance by the shorter of the two dimensions. For example, if element E's
     /// default numerical tolerance is tol, then a Mat<3,5,E>'s default tolerance
     /// should be 3*tol.
-    template <class K2> static bool 
-    isNumericallyEqual(const K& t1, const K2& t2) 
+    template <class K2> static bool
+    isNumericallyEqual(const K& t1, const K2& t2)
     {   return t1.isNumericallyEqual(t2);}
-    template <class K2> static bool 
+    template <class K2> static bool
     isNumericallyEqual(const K& t1, const K2& t2, double tol)
     {   return t1.isNumericallyEqual(t2,tol);}
     static double getDefaultTolerance() {return K::getDefaultTolerance();}

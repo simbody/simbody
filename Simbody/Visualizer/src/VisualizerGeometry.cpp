@@ -32,15 +32,15 @@ static const Vec3 DefaultBodyColor = Gray;
 static const Vec3 DefaultPointColor = Magenta;
 
 VisualizerGeometry::VisualizerGeometry
-   (VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter, 
-    const State& state) 
+   (VisualizerProtocol& protocol, const SimbodyMatterSubsystem& matter,
+    const State& state)
 :   protocol(protocol), matter(matter), state(state) {}
 
 // The DecorativeGeometry's frame D is given in the body frame B, via transform
-// X_BD. We want to know X_GD, the pose of the geometry in Ground, which we get 
+// X_BD. We want to know X_GD, the pose of the geometry in Ground, which we get
 // via X_GD=X_GB*X_BD.
 Transform VisualizerGeometry::calcX_GD(const DecorativeGeometry& geom) const {
-    const MobilizedBody& mobod = 
+    const MobilizedBody& mobod =
         matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId()));
     const Transform& X_GB  = mobod.getBodyTransform(state);
     const Transform& X_BD  = geom.getTransform();
@@ -52,24 +52,24 @@ Transform VisualizerGeometry::calcX_GD(const DecorativeGeometry& geom) const {
 // that intersect at the point.
 void VisualizerGeometry::
 implementPointGeometry(const SimTK::DecorativePoint& geom) {
-    const MobilizedBody& mobod = 
+    const MobilizedBody& mobod =
         matter.getMobilizedBody(MobilizedBodyIndex(geom.getBodyId()));
     const Transform& X_GB  = mobod.getBodyTransform(state);
     const Transform& X_BD  = geom.getTransform();
     const Transform X_GD = X_GB*X_BD;
     const Vec3 p_GP = X_GD*geom.getPoint();
-    const Real thickness = 
+    const Real thickness =
         geom.getLineThickness() == -1 ? Real(1) : geom.getLineThickness();
 
     const Real DefaultLength = Real(0.05); // 1/20 of a unit length
     const Vec3 lengths = DefaultLength * getScaleFactors(geom);
     const Vec4 color = getColor(geom, DefaultPointColor);
 
-    protocol.drawLine(p_GP - lengths[0]*X_GB.x(), 
+    protocol.drawLine(p_GP - lengths[0]*X_GB.x(),
                       p_GP + lengths[0]*X_GB.x(), color, thickness);
-    protocol.drawLine(p_GP - lengths[1]*X_GB.y(), 
+    protocol.drawLine(p_GP - lengths[1]*X_GB.y(),
                       p_GP + lengths[1]*X_GB.y(), color, thickness);
-    protocol.drawLine(p_GP - lengths[2]*X_GB.z(), 
+    protocol.drawLine(p_GP - lengths[2]*X_GB.z(),
                       p_GP + lengths[2]*X_GB.z(), color, thickness);
 }
 
@@ -87,23 +87,23 @@ void VisualizerGeometry::implementBrickGeometry(const SimTK::DecorativeBrick& ge
 void VisualizerGeometry::implementCylinderGeometry(const SimTK::DecorativeCylinder& geom) {
     const Transform X_GD = calcX_GD(geom);
     const Vec3 scale = getScaleFactors(geom);
-    protocol.drawCylinder(X_GD, Vec3(scale[0]*geom.getRadius(), 
-                                     scale[1]*geom.getHalfHeight(), 
-                                     scale[2]*geom.getRadius()), 
+    protocol.drawCylinder(X_GD, Vec3(scale[0]*geom.getRadius(),
+                                     scale[1]*geom.getHalfHeight(),
+                                     scale[2]*geom.getRadius()),
                           getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementCircleGeometry(const SimTK::DecorativeCircle& geom) {
     const Transform X_GD = calcX_GD(geom);
     const Vec3 scale = getScaleFactors(geom); // z ignored
-    protocol.drawCircle(X_GD, Vec3(scale[0]*geom.getRadius(), 
-                                   scale[1]*geom.getRadius(), 1), 
+    protocol.drawCircle(X_GD, Vec3(scale[0]*geom.getRadius(),
+                                   scale[1]*geom.getRadius(), 1),
                         getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
 void VisualizerGeometry::implementSphereGeometry(const SimTK::DecorativeSphere& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawEllipsoid(X_GD, geom.getRadius()*getScaleFactors(geom), 
+    protocol.drawEllipsoid(X_GD, geom.getRadius()*getScaleFactors(geom),
                            getColor(geom), getRepresentation(geom), getResolution(geom));
 }
 
@@ -124,20 +124,20 @@ void VisualizerGeometry::implementTextGeometry(const SimTK::DecorativeText& geom
     // The default is to face the camera.
     bool faceCamera = geom.getFaceCamera()<0 ? true : (geom.getFaceCamera()!=0);
     bool isScreenText = geom.getIsScreenText();
-    protocol.drawText(X_GD, getScaleFactors(geom), getColor(geom), 
+    protocol.drawText(X_GD, getScaleFactors(geom), getColor(geom),
                       geom.getText(), faceCamera, isScreenText);
 }
 
 void VisualizerGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom) {
     const Transform X_GD = calcX_GD(geom);
-    protocol.drawPolygonalMesh(geom.getMesh(), X_GD, getScaleFactors(geom), 
+    protocol.drawPolygonalMesh(geom.getMesh(), X_GD, getScaleFactors(geom),
                                getColor(geom), getRepresentation(geom));
 }
 
 Vec4 VisualizerGeometry::getColor(const DecorativeGeometry& geom,
                                   const Vec3& defaultColor) {
     Vec4 result;
-    if (geom.getColor()[0] >= 0) 
+    if (geom.getColor()[0] >= 0)
         result.updSubVec<3>(0) = geom.getColor();
     else {
         const Vec3 def = defaultColor[0] >= 0 ? defaultColor : DefaultBodyColor;

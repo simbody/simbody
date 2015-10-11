@@ -35,7 +35,7 @@ namespace SimTK {
 //==============================================================================
 HardStopUpper::HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
                              Real defaultUpperLimit, Real minCOR)
-:   UnilateralContact(-1), m_mobod(mobod), 
+:   UnilateralContact(-1), m_mobod(mobod),
     m_defaultUpperLimit(defaultUpperLimit), m_minCOR(minCOR)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
@@ -50,7 +50,7 @@ HardStopUpper::HardStopUpper(MobilizedBody& mobod, MobilizerQIndex whichQ,
 
 HardStopLower::HardStopLower(MobilizedBody& mobod, MobilizerQIndex whichQ,
                              Real defaultLowerLimit, Real minCOR)
-:   UnilateralContact(1), m_mobod(mobod), 
+:   UnilateralContact(1), m_mobod(mobod),
     m_defaultLowerLimit(defaultLowerLimit), m_minCOR(minCOR)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
@@ -133,7 +133,7 @@ getContactMultiplierIndex(const State& s) const {
 //==============================================================================
 //                                  ROPE
 //==============================================================================
-Rope::Rope(MobilizedBody& mobod1, const Vec3& point1, 
+Rope::Rope(MobilizedBody& mobod1, const Vec3& point1,
            MobilizedBody& mobod2, const Vec3& point2,
            Real defaultLengthLimit, Real minCOR)
 :   UnilateralContact(-1), m_minCOR(minCOR)
@@ -195,12 +195,12 @@ getContactMultiplierIndex(const State& s) const {
 PointPlaneFrictionlessContact::PointPlaneFrictionlessContact
    (MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
     MobilizedBody& followerBodyF, const Vec3& point_F, Real minCOR)
-:   m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height), 
+:   m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height),
     m_follower(followerBodyF), m_point(point_F), m_minCOR(minCOR)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
-        "PointPlaneFrictionlessContact()", 
-        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        "PointPlaneFrictionlessContact()",
+        "The coefficient of restitution must be between 0 and 1 but was %g.",
         minCOR);
 
     // Set up the contact constraint.
@@ -222,7 +222,7 @@ Vec3 PointPlaneFrictionlessContact::whereToDisplay(const State& state) const {
 //                              GET PERR
 //------------------------------------------------------------------------------
 Real PointPlaneFrictionlessContact::getPerr(const State& state) const
-{   //return m_ptInPlane.getPositionError(state); 
+{   //return m_ptInPlane.getPositionError(state);
     const Vec3 p = m_follower.findStationLocationInAnotherBody
                                 (state, m_point, m_planeBody);
     return ~p*m_frame.z() - m_height;
@@ -248,22 +248,22 @@ getContactMultiplierIndex(const State& s) const {
 //==============================================================================
 PointPlaneContact::PointPlaneContact
    (MobilizedBody& planeBodyB, const UnitVec3& normal_B, Real height,
-    MobilizedBody& followerBodyF, const Vec3& point_F, 
+    MobilizedBody& followerBodyF, const Vec3& point_F,
     Real minCOR, Real mu_s, Real mu_d, Real mu_v)
-:   m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height), 
+:   m_planeBody(planeBodyB), m_frame(normal_B, ZAxis), m_height(height),
     m_follower(followerBodyF), m_point(point_F), m_minCOR(minCOR),
     m_mu_s(mu_s), m_mu_d(mu_d), m_mu_v(mu_v)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
-        "PointPlaneContact()", 
-        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        "PointPlaneContact()",
+        "The coefficient of restitution must be between 0 and 1 but was %g.",
         minCOR);
     SimTK_ERRCHK3_ALWAYS(mu_s >= 0 && mu_d >= 0 && mu_v >= 0,
-        "PointPlaneContact()", 
+        "PointPlaneContact()",
         "All coefficients of friction must be nonnegative; got "
         "mu_s=%g, mu_d=%g, mu_v=%g.", mu_s, mu_d, mu_v);
     SimTK_ERRCHK2_ALWAYS(mu_d <= mu_s,
-        "PointPlaneContact()", 
+        "PointPlaneContact()",
         "The dynamic coefficient of friction can't be larger than "
         "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
 
@@ -286,7 +286,7 @@ Vec3 PointPlaneContact::whereToDisplay(const State& state) const {
 //                              GET PERR
 //------------------------------------------------------------------------------
 Real PointPlaneContact::getPerr(const State& state) const
-{   //return m_ptInPlane.getPositionError(state); 
+{   //return m_ptInPlane.getPositionError(state);
     const Vec3 p = m_follower.findStationLocationInAnotherBody
                                 (state, m_point, m_planeBody);
     return ~p*m_frame.z() - m_height;
@@ -310,10 +310,10 @@ getContactMultiplierIndex(const State& s) const {
 //                  GET FRICTION MULTIPLIER INDICES
 //------------------------------------------------------------------------------
 void PointPlaneContact::
-getFrictionMultiplierIndices(const State&       s, 
-                             MultiplierIndex&   ix_x, 
+getFrictionMultiplierIndices(const State&       s,
+                             MultiplierIndex&   ix_x,
                              MultiplierIndex&   ix_y) const
-{   ix_x.invalidate(); ix_y.invalidate(); 
+{   ix_x.invalidate(); ix_y.invalidate();
     int mp, mv, ma;
     MultiplierIndex px0, vx0, ax0;
     m_ptInPlane.getNumConstraintEquationsInUse(s,mp,mv,ma);
@@ -336,15 +336,15 @@ SpherePlaneContact::SpherePlaneContact
 :   m_minCOR(minCOR), m_mu_s(mu_s), m_mu_d(mu_d), m_mu_v(mu_v)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
-        "SpherePlaneContact()", 
-        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        "SpherePlaneContact()",
+        "The coefficient of restitution must be between 0 and 1 but was %g.",
         minCOR);
     SimTK_ERRCHK3_ALWAYS(mu_s >= 0 && mu_d >= 0 && mu_v >= 0,
-        "SpherePlaneContact()", 
+        "SpherePlaneContact()",
         "All coefficients of friction must be nonnegative; got "
         "mu_s=%g, mu_d=%g, mu_v=%g.", mu_s, mu_d, mu_v);
     SimTK_ERRCHK2_ALWAYS(mu_d <= mu_s,
-        "SpherePlaneContact()", 
+        "SpherePlaneContact()",
         "The dynamic coefficient of friction can't be larger than "
         "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
 
@@ -368,7 +368,7 @@ Vec3 SpherePlaneContact::whereToDisplay(const State& state) const {
 //                              GET PERR
 //------------------------------------------------------------------------------
 Real SpherePlaneContact::getPerr(const State& state) const
-{   //return m_ptInPlane.getPositionError(state); 
+{   //return m_ptInPlane.getPositionError(state);
     return m_sphereOnPlane.findSeparation(state);
 }
 
@@ -390,10 +390,10 @@ getContactMultiplierIndex(const State& s) const {
 //                  GET FRICTION MULTIPLIER INDICES
 //------------------------------------------------------------------------------
 void SpherePlaneContact::
-getFrictionMultiplierIndices(const State&       s, 
-                             MultiplierIndex&   ix_x, 
+getFrictionMultiplierIndices(const State&       s,
+                             MultiplierIndex&   ix_x,
                              MultiplierIndex&   ix_y) const
-{   ix_x.invalidate(); ix_y.invalidate(); 
+{   ix_x.invalidate(); ix_y.invalidate();
     int mp, mv, ma;
     MultiplierIndex px0, vx0, ax0;
     m_sphereOnPlane.getNumConstraintEquationsInUse(s,mp,mv,ma);
@@ -410,31 +410,31 @@ getFrictionMultiplierIndices(const State&       s,
 //                           SPHERE SPHERE CONTACT
 //==============================================================================
 SphereSphereContact::SphereSphereContact
-   (MobilizedBody&      mobod_F, 
-    const Vec3&         defaultCenterOnF, 
-    Real                defaultRadiusOnF, 
-    MobilizedBody&      mobod_B, 
+   (MobilizedBody&      mobod_F,
+    const Vec3&         defaultCenterOnF,
+    Real                defaultRadiusOnF,
+    MobilizedBody&      mobod_B,
     const Vec3&         defaultCenterOnB,
     Real                defaultRadiusOnB,
     Real minCOR, Real mu_s, Real mu_d, Real mu_v)
 :   m_minCOR(minCOR), m_mu_s(mu_s), m_mu_d(mu_d), m_mu_v(mu_v)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
-        "SphereSphereContact()", 
-        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        "SphereSphereContact()",
+        "The coefficient of restitution must be between 0 and 1 but was %g.",
         minCOR);
     SimTK_ERRCHK3_ALWAYS(mu_s >= 0 && mu_d >= 0 && mu_v >= 0,
-        "SphereSphereContact()", 
+        "SphereSphereContact()",
         "All coefficients of friction must be nonnegative; got "
         "mu_s=%g, mu_d=%g, mu_v=%g.", mu_s, mu_d, mu_v);
     SimTK_ERRCHK2_ALWAYS(mu_d <= mu_s,
-        "SphereSphereContact()", 
+        "SphereSphereContact()",
         "The dynamic coefficient of friction can't be larger than "
         "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
 
     // Set up the contact constraint.
     m_sphereOnSphere = Constraint::SphereOnSphereContact
-       (mobod_F, defaultCenterOnF, defaultRadiusOnF, 
+       (mobod_F, defaultCenterOnF, defaultRadiusOnF,
        mobod_B, defaultCenterOnB, defaultRadiusOnB, true);
     m_sphereOnSphere.setIsConditional(true);
     m_sphereOnSphere.setDisabledByDefault(true);
@@ -452,7 +452,7 @@ Vec3 SphereSphereContact::whereToDisplay(const State& state) const {
 //                              GET PERR
 //------------------------------------------------------------------------------
 Real SphereSphereContact::getPerr(const State& state) const
-{   
+{
     return m_sphereOnSphere.findSeparation(state);
 }
 
@@ -474,10 +474,10 @@ getContactMultiplierIndex(const State& s) const {
 //                  GET FRICTION MULTIPLIER INDICES
 //------------------------------------------------------------------------------
 void SphereSphereContact::
-getFrictionMultiplierIndices(const State&       s, 
-                             MultiplierIndex&   ix_x, 
+getFrictionMultiplierIndices(const State&       s,
+                             MultiplierIndex&   ix_x,
                              MultiplierIndex&   ix_y) const
-{   ix_x.invalidate(); ix_y.invalidate(); 
+{   ix_x.invalidate(); ix_y.invalidate();
     int mp, mv, ma;
     MultiplierIndex px0, vx0, ax0;
     m_sphereOnSphere.getNumConstraintEquationsInUse(s,mp,mv,ma);
@@ -494,31 +494,31 @@ getFrictionMultiplierIndices(const State&       s,
 //                             EDGE EDGE CONTACT
 //==============================================================================
 EdgeEdgeContact::EdgeEdgeContact
-   (MobilizedBody&      mobod_F, 
-    const Transform&    defaultEdgeFrameF, 
-    Real                defaultHalfLengthF, 
-    MobilizedBody&      mobod_B, 
-    const Transform&    defaultEdgeFrameB, 
+   (MobilizedBody&      mobod_F,
+    const Transform&    defaultEdgeFrameF,
+    Real                defaultHalfLengthF,
+    MobilizedBody&      mobod_B,
+    const Transform&    defaultEdgeFrameB,
     Real                defaultHalfLengthB,
     Real minCOR, Real mu_s, Real mu_d, Real mu_v)
 :   m_minCOR(minCOR), m_mu_s(mu_s), m_mu_d(mu_d), m_mu_v(mu_v)
 {
     SimTK_ERRCHK1_ALWAYS(0<=minCOR && minCOR<=1,
-        "EdgeEdgeContact()", 
-        "The coefficient of restitution must be between 0 and 1 but was %g.", 
+        "EdgeEdgeContact()",
+        "The coefficient of restitution must be between 0 and 1 but was %g.",
         minCOR);
     SimTK_ERRCHK3_ALWAYS(mu_s >= 0 && mu_d >= 0 && mu_v >= 0,
-        "EdgeEdgeContact()", 
+        "EdgeEdgeContact()",
         "All coefficients of friction must be nonnegative; got "
         "mu_s=%g, mu_d=%g, mu_v=%g.", mu_s, mu_d, mu_v);
     SimTK_ERRCHK2_ALWAYS(mu_d <= mu_s,
-        "EdgeEdgeContact()", 
+        "EdgeEdgeContact()",
         "The dynamic coefficient of friction can't be larger than "
         "the static coefficient; got mu_s=%g, mu_d=%g.", mu_s, mu_d);
 
     // Set up the contact constraint.
     m_lineOnLine = Constraint::LineOnLineContact
-       (mobod_F, defaultEdgeFrameF, defaultHalfLengthF, 
+       (mobod_F, defaultEdgeFrameF, defaultHalfLengthF,
        mobod_B, defaultEdgeFrameB, defaultHalfLengthB, true);
     m_lineOnLine.setIsConditional(true);
     m_lineOnLine.setDisabledByDefault(true);
@@ -536,7 +536,7 @@ Vec3 EdgeEdgeContact::whereToDisplay(const State& state) const {
 //                              GET PERR
 //------------------------------------------------------------------------------
 Real EdgeEdgeContact::getPerr(const State& state) const
-{   
+{
     return m_lineOnLine.findSeparation(state);
 }
 
@@ -558,10 +558,10 @@ getContactMultiplierIndex(const State& s) const {
 //                  GET FRICTION MULTIPLIER INDICES
 //------------------------------------------------------------------------------
 void EdgeEdgeContact::
-getFrictionMultiplierIndices(const State&       s, 
-                             MultiplierIndex&   ix_x, 
+getFrictionMultiplierIndices(const State&       s,
+                             MultiplierIndex&   ix_x,
                              MultiplierIndex&   ix_y) const
-{   ix_x.invalidate(); ix_y.invalidate(); 
+{   ix_x.invalidate(); ix_y.invalidate();
     int mp, mv, ma;
     MultiplierIndex px0, vx0, ax0;
     m_lineOnLine.getNumConstraintEquationsInUse(s,mp,mv,ma);

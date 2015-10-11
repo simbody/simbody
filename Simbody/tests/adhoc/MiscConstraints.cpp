@@ -49,7 +49,7 @@ static const Vec3 hl(1, 0.5, 0.5); // body half lengths
 class MyConstraintImplementation : public Constraint::Custom::Implementation {
 public:
     MyConstraintImplementation(MobilizedBody& mobilizer, Real speed)
-      : Implementation(mobilizer.updMatterSubsystem(), 0,1,0),  
+      : Implementation(mobilizer.updMatterSubsystem(), 0,1,0),
         theMobilizer(), whichMobility(), prescribedSpeed(NaN)
     {
         theMobilizer = addConstrainedMobilizer(mobilizer);
@@ -64,20 +64,20 @@ public:
     //    verr = u - s
     //    aerr = udot
     //
-    void calcVelocityErrors     
+    void calcVelocityErrors
        (const State&                                    s,
-        const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB, 
+        const Array_<SpatialVec,ConstrainedBodyIndex>&  V_AB,
         const Array_<Real,      ConstrainedUIndex>&     constrainedU,
         Array_<Real>&                                   verr) const override
     {
         assert(verr.size() == 1);
-        verr[0] = getOneU(s, constrainedU, theMobilizer, whichMobility) 
+        verr[0] = getOneU(s, constrainedU, theMobilizer, whichMobility)
                 - prescribedSpeed;
     }
 
-    void calcVelocityDotErrors     
+    void calcVelocityDotErrors
        (const State&                                    s,
-        const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB, 
+        const Array_<SpatialVec,ConstrainedBodyIndex>&  A_AB,
         const Array_<Real,      ConstrainedUIndex>&     constrainedUDot,
         Array_<Real>&                                   vaerr) const override
     {
@@ -88,14 +88,14 @@ public:
 
     // apply generalized force lambda to the mobility
     void addInVelocityConstraintForcesVirtual
-       (const State&                                s, 
+       (const State&                                s,
         const Array_<Real>&                         multipliers,
         Array_<SpatialVec,ConstrainedBodyIndex>&    bodyForcesInA,
         Array_<Real,ConstrainedUIndex>&             mobilityForces) const
     {
         assert(multipliers.size() == 1);
         const Real lambda = multipliers[0];
-        addInOneMobilityForce(s, theMobilizer, whichMobility, 
+        addInOneMobilityForce(s, theMobilizer, whichMobility,
                               lambda, mobilityForces);
     }
 
@@ -107,7 +107,7 @@ private:
 
 class MyConstraint : public Constraint::Custom {
 public:
-    explicit MyConstraint(MobilizedBody& mobilizer, Real speed) 
+    explicit MyConstraint(MobilizedBody& mobilizer, Real speed)
       : Custom(new MyConstraintImplementation(mobilizer, speed))
     {
     }
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
     gear1body.addDecoration(DecorativeCircle(.5).setColor(Green).setOpacity(.7));
     gear1body.addDecoration(DecorativeLine(Vec3(0), Vec3(.5,0,0)).setColor(Black).setLineThickness(4));
     Body::Rigid gear2body = Body::Rigid(MassProperties(m, Vec3(0), m*UnitInertia::cylinderAlongZ(1.5, .1)));
-    gear2body.addDecoration(Transform(), DecorativeCircle(1.5).setColor(Blue).setOpacity(.7));  
+    gear2body.addDecoration(Transform(), DecorativeCircle(1.5).setColor(Blue).setOpacity(.7));
     gear2body.addDecoration(Transform(), DecorativeLine(Vec3(0), Vec3(1.5,0,0)).setColor(Black).setLineThickness(4));
 
     MobilizedBody::Pin gear1(mobilizedBody2, Vec3(-1,0,0), gear1body, Transform()); // along z
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     Constraint::NoSlip1D(mobilizedBody2, Vec3(-.5,0,0), UnitVec3(0,1,0), gear1, gear2);
 
     Constraint::ConstantSpeed(gear1, 100.);
-    
+
     //Constraint::Ball myc2(matter.Ground(), Vec3(-4,2,0),  mobilizedBody2, Vec3(0,1,0));
     Constraint::Weld myc(matter.Ground(), Vec3(1,2,0),  mobilizedBody, Vec3(0,1,0));
     Constraint::Ball ball1(mobilizedBody, Vec3(2,0,0), mobilizedBody0, Vec3(3,1,1));
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     //Constraint::ConstantOrientation ori2(mobilizedBody2, Rotation(), mobilizedBody0, Rotation());
     //Constraint::Weld weld(mobilizedBody, Transform(Rotation(Pi/4, ZAxis), Vec3(1,1,0)),
       //                    mobilizedBody2, Transform(Rotation(-Pi/4, ZAxis), Vec3(-1,-1,0)));
-    
+
     //MyConstraint xyz(gear1, 100.);
 
     viz.addBodyFixedDecoration(mobilizedBody, Transform(Vec3(1,2,3)), DecorativeText("hello world").setScale(.1));
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
             return .314;
         }
         void handleEvent(State& s, Real acc, const Vector& ywts, const Vector& cwts, Stage& modified,
-                         bool& shouldTerminate) const 
+                         bool& shouldTerminate) const
         {
             cout << "<<<< TRIGGERED AT T=" << s.getTime() << endl;
             c.enable(s);
@@ -215,26 +215,26 @@ int main(int argc, char** argv) {
         cout << "CONSTRAINT " << cid << (c.isDisabled(s) ? "**DISABLED** " : "")
              << " constrained bodies=" << c.getNumConstrainedBodies();
         if (c.getNumConstrainedBodies()) cout << " ancestor=" << c.getAncestorMobilizedBody().getMobilizedBodyIndex();
-        cout << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers() 
+        cout << " constrained mobilizers/nq/nu=" << c.getNumConstrainedMobilizers()
                                            << "/" << c.getNumConstrainedQ(s) << "/" << c.getNumConstrainedU(s)
-             << " mp,mv,ma=" << mp << "," << mv << "," << ma 
+             << " mp,mv,ma=" << mp << "," << mv << "," << ma
              << endl;
         for (ConstrainedBodyIndex cid(0); cid < c.getNumConstrainedBodies(); ++cid) {
-            cout << "  constrained body: " << c.getMobilizedBodyFromConstrainedBody(cid).getMobilizedBodyIndex(); 
+            cout << "  constrained body: " << c.getMobilizedBodyFromConstrainedBody(cid).getMobilizedBodyIndex();
             cout << endl;
         }
         for (ConstrainedMobilizerIndex cmx(0); cmx < c.getNumConstrainedMobilizers(); ++cmx) {
-            cout << "  constrained mobilizer " << c.getMobilizedBodyFromConstrainedMobilizer(cmx).getMobilizedBodyIndex() 
-                  << ", q(" << c.getNumConstrainedQ(s, cmx) << ")="; 
+            cout << "  constrained mobilizer " << c.getMobilizedBodyFromConstrainedMobilizer(cmx).getMobilizedBodyIndex()
+                  << ", q(" << c.getNumConstrainedQ(s, cmx) << ")=";
             for (MobilizerQIndex i(0); i < c.getNumConstrainedQ(s, cmx); ++i)
-                cout << " " << c.getConstrainedQIndex(s, cmx, i);                  
+                cout << " " << c.getConstrainedQIndex(s, cmx, i);
             cout << ", u(" << c.getNumConstrainedU(s, cmx) << ")=";
             for (MobilizerUIndex i(0); i < c.getNumConstrainedU(s, cmx); ++i)
                 cout << " " << c.getConstrainedUIndex(s, cmx, i);
             cout << endl;
         }
         cout << c.getSubtree();
-             
+
         if (mp) {
             cout << "perr=" << c.getPositionErrorsAsVector(s) << endl;
             cout << "   d(perrdot)/du=" << c.calcPositionConstraintMatrixP(s);
@@ -349,14 +349,14 @@ int main(int argc, char** argv) {
 
     int stepNum = 0;
     while ((status=myStudy.stepTo(nextReport*dt))
-           != Integrator::EndOfSimulation) 
+           != Integrator::EndOfSimulation)
     {
         const State& s = myStudy.getState();
         mbs.realize(s, Stage::Acceleration);
 
         if ((stepNum++%10)==0) {
             const Real angle = std::acos(~mobilizedBody.expressVectorInGroundFrame(s, Vec3(0,1,0)) * UnitVec3(1,1,1));
-            printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+            printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(),
                 angle,
                 mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
                 myStudy.getPreviousStepSizeTaken(),
@@ -422,7 +422,7 @@ int main(int argc, char** argv) {
         }
         getchar();
     }
-  } 
+  }
   catch (const exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

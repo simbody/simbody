@@ -25,16 +25,16 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-This file contains definitions of templatized serialize-to-stream methods 
+This file contains definitions of templatized serialize-to-stream methods
 specialized for the built-in C++ and SimTK low-level classes. These are used
 to provide the concrete level of recursively-defined methods for serialization
 of container classes (Array_, Vector_, Vec, Mat, etc.) each of which should
 define templatized methods of the same names that serialize using the same
-serialization method applied to their elements. Methods are provided for 
+serialization method applied to their elements. Methods are provided for
 different kinds of formatting; at the concrete level these are likely to be
 identical but they differ for containers. Unformatted output will write just
 space separated elements, while formatted output may write surrounding
-parentheses or brackets, comma separators, or whatever else might be 
+parentheses or brackets, comma separators, or whatever else might be
 appropriate.
 **/
 
@@ -54,14 +54,14 @@ namespace SimTK {
 @ingroup Serialization
 
 Namespace-scope utility method SimTK::writeUnformatted\<T>() writes a value of
-type T to an output stream as a space-separated series of tokens with no 
-brackets, commas, semicolons or other formatting characters. If there is only 
+type T to an output stream as a space-separated series of tokens with no
+brackets, commas, semicolons or other formatting characters. If there is only
 one token it is serialized without any added leading or trailing whitespace.
 Output of bool values is "true" or "false"; output of non-finite floating point
-values is "NaN", "Inf", or "-Inf" as in Matlab. For matrix output, we will 
-write a newline between each row, meaning there won't be one after the last 
+values is "NaN", "Inf", or "-Inf" as in Matlab. For matrix output, we will
+write a newline between each row, meaning there won't be one after the last
 row. This method is specialized for many SimTK types, and you can specialize
-it for your own types in which case containers like Array_\<YourType> will 
+it for your own types in which case containers like Array_\<YourType> will
 work correctly too. **/
 /**@{**/
 
@@ -78,37 +78,37 @@ writeUnformatted(std::ostream& o, const T& v) {
 
 /** Specialize for float to help some compilers with template matching. **/
 template <class T> inline void
-writeUnformatted(std::ostream& o, const float& v)  
+writeUnformatted(std::ostream& o, const float& v)
 {   writeUnformatted<float>(o,v); }
 /** Specialize for double to help some compilers with template matching. **/
 template <class T> inline void
-writeUnformatted(std::ostream& o, const double& v) 
+writeUnformatted(std::ostream& o, const double& v)
 {   writeUnformatted<double>(o,v); }
-/** Specialize for long double to help some compilers with template 
+/** Specialize for long double to help some compilers with template
 matching. **/
 template <class T> inline void
-writeUnformatted(std::ostream& o, const long double& v) 
+writeUnformatted(std::ostream& o, const long double& v)
 {   writeUnformatted<long double>(o,v); }
 
 /** Specialize for SimTK::negator\<T>: convert to T and write. **/
 template <class T> inline void
-writeUnformatted(std::ostream& o, const negator<T>& v) 
+writeUnformatted(std::ostream& o, const negator<T>& v)
 {   writeUnformatted(o, T(v)); }
 
 /** Specialize for std::complex\<T>: just write two T's separated by a space;
 no parentheses or comma. **/
 template <class T> inline void
-writeUnformatted(std::ostream& o, const std::complex<T>& v) 
+writeUnformatted(std::ostream& o, const std::complex<T>& v)
 {   writeUnformatted(o, v.real()); o << " "; writeUnformatted(o, v.imag()); }
 
 /** Specialize for SimTK::conjugate\<T>: same as std::complex\<T>. **/
 template <class T> inline void
-writeUnformatted(std::ostream& o, const conjugate<T>& v) 
+writeUnformatted(std::ostream& o, const conjugate<T>& v)
 {   writeUnformatted(o, std::complex<T>(v)); }
 
 
 /** Specialize for Vec<M,E,S> to delegate to element type E, with spaces
-separating the elements. 
+separating the elements.
 @relates SimTK::Vec **/
 template <int M, class E, int S> inline void
 writeUnformatted(std::ostream& o, const Vec<M,E,S>& v) {
@@ -116,12 +116,12 @@ writeUnformatted(std::ostream& o, const Vec<M,E,S>& v) {
         if (i != 0) o << " ";
         writeUnformatted(o, v[i]);
     }
-}   
+}
 /** Specialize for Row<N,E,S> to delegate to element type E, with spaces
-separating the elements; raw output is same as Vec. 
+separating the elements; raw output is same as Vec.
 @relates SimTK::Row **/
 template <int N, class E, int S> inline void
-writeUnformatted(std::ostream& o, const Row<N,E,S>& v) 
+writeUnformatted(std::ostream& o, const Row<N,E,S>& v)
 {   writeUnformatted(o, ~v); }
 
 /** Specialize for Mat<M,N,E,CS,RS> delegating to Row<N,E,RS> with newlines
@@ -133,7 +133,7 @@ writeUnformatted(std::ostream& o, const Mat<M,N,E,CS,RS>& v) {
         if (i != 0) o << std::endl;
         writeUnformatted(o, v[i]);
     }
-} 
+}
 
 /** Specialize for SymMat<M,E,RS> delegating to Row<M,E,RS> with newlines
 separating the rows, but no final newline.
@@ -144,7 +144,7 @@ writeUnformatted(std::ostream& o, const SymMat<M,E,RS>& v) {
         if (i != 0) o << std::endl;
         writeUnformatted(o, v[i]);
     }
-} 
+}
 /**@}**/
 
 
@@ -156,7 +156,7 @@ writeUnformatted(std::ostream& o, const SymMat<M,E,RS>& v) {
 @ingroup Serialization
 
 Namespace-scope utility function SimTK::readUnformatted\<T>() reads the next
-whitespace-separated token(s) from a given stream and attempts to interpret 
+whitespace-separated token(s) from a given stream and attempts to interpret
 them as a value of type T. **/
 /**@{**/
 
@@ -164,8 +164,8 @@ them as a value of type T. **/
 /** Read in the next whitespace-delimited token as a String, ignoring
 leading whitespace. The token is terminated by whitespace or eof and the
 terminating character is left in the stream. Failure to find any non-whitespace
-characters is treated as a failure. If we're successful at getting a token the 
-function returns true; the stream may be good() or eof(). Otherwise this 
+characters is treated as a failure. If we're successful at getting a token the
+function returns true; the stream may be good() or eof(). Otherwise this
 function returns false and the fail bit in the stream is also set. **/
 inline bool
 readOneTokenUnformatted(std::istream& in, String& token) {
@@ -177,7 +177,7 @@ readOneTokenUnformatted(std::istream& in, String& token) {
     in >> token; if (in.fail()) return false;
     if (token.empty()) {in.setstate(std::ios_base::failbit); return false;}
     return true;
-} 
+}
 
 /** The default implementation of readUnformatted\<T> reads in the next
 whitespace-separated token and then attempts to convert the whole thing into
@@ -188,23 +188,23 @@ template <class T> inline bool
 readUnformatted(std::istream& in, T& v) {
     String token;
     if (!readOneTokenUnformatted(in, token)) return false;
-    if (!token.tryConvertTo<T>(v)) 
+    if (!token.tryConvertTo<T>(v))
     {   in.setstate(std::ios::failbit); return false; }
     return true;
 }
 
 /** Specialize for float to help some compilers with template matching. **/
 template <class T> inline bool
-readUnformatted(std::istream& in, float& v) 
+readUnformatted(std::istream& in, float& v)
 {   return readUnformatted<float>(in,v); }
 /** Specialize for double to help some compilers with template matching. **/
 template <class T> inline bool
-readUnformatted(std::istream& in, double& v) 
+readUnformatted(std::istream& in, double& v)
 {   return readUnformatted<double>(in,v); }
-/** Specialize for long double to help some compilers with template 
+/** Specialize for long double to help some compilers with template
 matching. **/
 template <class T> inline bool
-readUnformatted(std::istream& in, long double& v) 
+readUnformatted(std::istream& in, long double& v)
 {   return readUnformatted<long double>(in,v); }
 
 /** Specialization for negator<T>: read as type T and convert. **/
@@ -234,26 +234,26 @@ readUnformatted(std::istream& in, conjugate<T>& v) {
 }
 
 /** Specialization for SimTK::String (just read token). **/
-template <> inline bool 
+template <> inline bool
 readUnformatted<String>(std::istream& in, String& v)
 {   return readOneTokenUnformatted(in,v); }
 
 
 /** Specialize for Vec<M,E,S> to delegate to element type E, with spaces
-separating the elements. 
+separating the elements.
 @relates SimTK::Vec **/
 template <int M, class E, int S> inline bool
 readUnformatted(std::istream& in, Vec<M,E,S>& v) {
     for (int i=0; i < M; ++i)
         if (!readUnformatted(in, v[i])) return false;
     return true;
-}   
+}
 
 /** Specialize for Row<N,E,S> to delegate to element type E, with spaces
-separating the elements; format is same as Vec. 
+separating the elements; format is same as Vec.
 @relates SimTK::Row **/
 template <int N, class E, int S> inline bool
-readUnformatted(std::istream& in, Row<N,E,S>& v) 
+readUnformatted(std::istream& in, Row<N,E,S>& v)
 {   return readUnformatted(in, ~v); }
 
 /** Specialize for Mat<M,N,E,CS,RS> delegating to Row<N,E,RS>.
@@ -263,11 +263,11 @@ readUnformatted(std::istream& in, Mat<M,N,E,CS,RS>& v) {
     for (int i=0; i < M; ++i)
         if (!readUnformatted(in, v[i])) return false;
     return true;
-} 
+}
 
 /** Specialize for SymMat<M,E,RS>. We require the whole matrix, then
 verify symmetry and assign to the output argument. We'll return false with
-the fail bit set in the stream if we get a Mat\<M,M> but it isn't 
+the fail bit set in the stream if we get a Mat\<M,M> but it isn't
 symmetric to a tight numerical tolerance.
 @see SimTK::SymMat::setFromSymmetric(), SimTK::Mat::isNumericallySymmetric()
 @relates SimTK::SymMat **/
@@ -275,12 +275,12 @@ template <int M, class E, int RS> inline bool
 readUnformatted(std::istream& in, SymMat<M,E,RS>& v) {
     Mat<M,M,E> m; if (!readUnformatted(in, m)) return false;
     if (!m.isNumericallySymmetric()) {
-        in.setstate(std::ios::failbit); 
+        in.setstate(std::ios::failbit);
         return false;
     }
     v.setFromSymmetric(m);
     return true;
-} 
+}
 /**@}**/
 
 //------------------------------------------------------------------------------
@@ -305,8 +305,8 @@ Anything written by writeFormatted() can be read back in with readFormatted().
 /** The default implementation of writeFormatted\<T> converts the object to
 a String using the templatized String constructor, and then writes that
 string to the stream using String::operator<<(). This is suitable for use
-with any of the built-in and scalar SimTK types. Note that bool will be output 
-"true" or "false" and non-finite floating point values are written as NaN, 
+with any of the built-in and scalar SimTK types. Note that bool will be output
+"true" or "false" and non-finite floating point values are written as NaN,
 Inf, or -Inf as appropriate. Complex numbers will serialize as (real,imag). **/
 template <class T> inline void
 writeFormatted(std::ostream& o, const T& v) {
@@ -324,12 +324,12 @@ writeFormatted(std::ostream& o, const T& v) {
 Namespace-scope utility method SimTK::readFormatted\<T>() reads a value of
 type T from an input stream, recognizing a variety of formats such as the
 format produced by writeFormatted() or simpler unformatted data such as is
-produced by writeUnformatted(). When T is a container, the recognized 
+produced by writeUnformatted(). When T is a container, the recognized
 formats depend on the readFormatted() specialization provided with as part of
 the definition of that container. **/
 /**@{**/
 
-/** The default implementation of readFormatted\<T>() uses 
+/** The default implementation of readFormatted\<T>() uses
 readUnformatted\<T>(). **/
 template <class T> inline bool
 readFormatted(std::istream& in, T& v) {

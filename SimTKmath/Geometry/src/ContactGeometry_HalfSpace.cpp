@@ -52,7 +52,7 @@ UnitVec3 ContactGeometry::HalfSpace::getNormal() const {
     return UnitVec3(-XAxis);
 }
 
-/*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId() 
+/*static*/ ContactGeometryTypeId ContactGeometry::HalfSpace::classTypeId()
 {   return ContactGeometry::HalfSpace::Impl::classTypeId(); }
 
 DecorativeGeometry ContactGeometry::HalfSpace::Impl::createDecorativeGeometry() const {
@@ -68,8 +68,8 @@ Vec3 ContactGeometry::HalfSpace::Impl::findNearestPoint
 }
 
 bool ContactGeometry::HalfSpace::Impl::intersectsRay
-   (const Vec3& origin, const UnitVec3& direction, 
-    Real& distance, UnitVec3& normal) const 
+   (const Vec3& origin, const UnitVec3& direction,
+    Real& distance, UnitVec3& normal) const
 {
     if (std::abs(direction[0]) < SignificantReal)
         return false; // ray is parallel to halfspace surface
@@ -84,7 +84,7 @@ bool ContactGeometry::HalfSpace::Impl::intersectsRay
 }
 
 void ContactGeometry::HalfSpace::Impl::getBoundingSphere
-   (Vec3& center, Real& radius) const 
+   (Vec3& center, Real& radius) const
 {   center = Vec3(0);
     radius = Infinity; }
 

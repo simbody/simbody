@@ -31,8 +31,8 @@ Declares the MobilizedBody::Pin class. **/
 
 namespace SimTK {
 
-/** Provides one rotational mobility about the common z axis of the F and M 
-frames of the mobilizer. 
+/** Provides one rotational mobility about the common z axis of the F and M
+frames of the mobilizer.
 
 If you want rotation about a different direction, rotate the F and M frames
 when you define the mobilized body, so that the z axes are in the desired
@@ -49,18 +49,18 @@ public:
     reference any %MobilizedBody::Pin. **/
     Pin() {}
 
-    /** Create a %Pin mobilizer between an existing parent (inboard) body P 
-    and a new child (outboard) body B created by copying the given \a bodyInfo 
-    into a privately-owned Body within the constructed %MobilizedBody object. 
-    Specify the mobilizer frames F fixed to parent P and M fixed to child B. 
+    /** Create a %Pin mobilizer between an existing parent (inboard) body P
+    and a new child (outboard) body B created by copying the given \a bodyInfo
+    into a privately-owned Body within the constructed %MobilizedBody object.
+    Specify the mobilizer frames F fixed to parent P and M fixed to child B.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     Pin(MobilizedBody& parent, const Transform& X_PF,
         const Body& bodyInfo,  const Transform& X_BM, Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
     Pin(MobilizedBody& parent, const Body& bodyInfo, Direction=Forward);
-    
+
     // SPECIALIZED INTERFACE FOR PIN MOBILIZER
 
     /** Set the value that the pin angle should have in the default state. If
@@ -81,7 +81,7 @@ public:
     /** Set the rotation rate (generalized speed u) for this pin joint in the
     given state. The rate is in radians/time unit. **/
     void setRate(State& s, Real rateInRadPerTime) {setU(s, rateInRadPerTime);}
-    /** Get the current rotation rate (generalized speed u) that this pin 
+    /** Get the current rotation rate (generalized speed u) that this pin
     mobilizer has in the given state. The rate is in radians/time unit. **/
     Real getRate(const State& s) const {return getU(s);}
 
@@ -115,7 +115,7 @@ public:
 
     Real getMyPartQ(const State&, const Vector& qlike) const;
     Real getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
 

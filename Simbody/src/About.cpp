@@ -84,7 +84,7 @@ void SimTK_version_simbody(int* major, int* minor, int* patch) {
     if (minor) *minor = SimTK_SIMBODY_MINOR_VERSION;
     if (patch) *patch = SimTK_SIMBODY_PATCH_VERSION;
 
-    // Force statics to be present in the binary (Release mode otherwise 
+    // Force statics to be present in the binary (Release mode otherwise
     // optimizes them away).
     volatile int i=0;
     if (i) { // never true, but compiler doesn't know ...

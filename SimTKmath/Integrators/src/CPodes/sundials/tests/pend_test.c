@@ -14,10 +14,10 @@
 static int fref(realtype t, N_Vector yy, N_Vector fy, void *f_data);
 
 static int f(realtype t, N_Vector yy, N_Vector fy, void *f_data);
-static int proj(realtype t, N_Vector yy, N_Vector corr, 
+static int proj(realtype t, N_Vector yy, N_Vector corr,
                 realtype epsProj, N_Vector err, void *pdata);
 
-void GetSol(void *cpode_mem, N_Vector yy0, realtype tol, 
+void GetSol(void *cpode_mem, N_Vector yy0, realtype tol,
             realtype tout, booleantype proj, N_Vector yref);
 
 void RefSol(realtype tout, N_Vector yref);
@@ -37,14 +37,14 @@ int main()
 
 
   tout = 30.0;
- 
+
   /* Get reference solution */
   yref = N_VNew_Serial(4);
   RefSol(tout, yref);
 
   /* Initialize solver */
   tol = TOL;
-  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);
   yy0 = N_VNew_Serial(4);
   Ith(yy0,1) = 1.0;  /* x */
   Ith(yy0,2) = 0.0;  /* y */
@@ -70,7 +70,7 @@ int main()
   return(0);
 }
 
-void GetSol(void *cpode_mem, N_Vector yy0, realtype tol, 
+void GetSol(void *cpode_mem, N_Vector yy0, realtype tol,
             realtype tout, booleantype proj, N_Vector yref)
 {
   N_Vector yy, yp;
@@ -102,12 +102,12 @@ void GetSol(void *cpode_mem, N_Vector yy0, realtype tol,
   N_VAbs(yy, yy);
 
   x  = Ith(yy,1);
-  y  = Ith(yy,2);  
+  y  = Ith(yy,2);
   xd = Ith(yy,3);
   yd = Ith(yy,4);
 
 
-  printf("%9.2e  %9.2e  %9.2e  %9.2e  |  %9.2e  |",  
+  printf("%9.2e  %9.2e  %9.2e  %9.2e  |  %9.2e  |",
          Ith(yy,1),Ith(yy,2),Ith(yy,3),Ith(yy,4),g);
 
   CPodeGetNumSteps(cpode_mem, &nst);
@@ -136,7 +136,7 @@ void RefSol(realtype tout, N_Vector yref)
   N_Vector yy, yp;
   realtype tol, t, th, thd;
   int flag;
-  
+
 
   yy = N_VNew_Serial(2);
   yp = N_VNew_Serial(2);
@@ -144,7 +144,7 @@ void RefSol(realtype tout, N_Vector yref)
   Ith(yy,2) = 0.0;  /* thetad */
   tol = TOL_REF;
 
-  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);  
+  cpode_mem = CPodeCreate(CP_EXPL, CP_BDF, CP_NEWTON);
   flag = CPodeSetMaxNumSteps(cpode_mem, 100000);
   flag = CPodeInit(cpode_mem, (void *)fref, NULL, 0.0, yy, yp, CP_SS, tol, &tol);
   flag = CPDense(cpode_mem, 2);
@@ -157,7 +157,7 @@ void RefSol(realtype tout, N_Vector yref)
   Ith(yref,2) = sin(th);
   Ith(yref,3) = -thd*sin(th);
   Ith(yref,4) =  thd*cos(th);
-  
+
   N_VDestroy_Serial(yy);
   N_VDestroy_Serial(yp);
   CPodeFree(&cpode_mem);
@@ -192,7 +192,7 @@ static int f(realtype t, N_Vector yy, N_Vector fy, void *f_data)
   y  = Ith(yy,2);
   xd = Ith(yy,3);
   yd = Ith(yy,4);
- 
+
   tmp = xd*xd + yd*yd - g*y;
 
   Ith(fy,1) = xd;
@@ -222,7 +222,7 @@ static int proj(realtype t, N_Vector yy, N_Vector corr,
   /* Project onto manifold */
 
   R = sqrt(x*x+y*y);
-  
+
   x_new = x/R;
   y_new = y/R;
 
@@ -242,7 +242,7 @@ static int proj(realtype t, N_Vector yy, N_Vector corr,
    *      | -x*y     x*x |
    *      +-            -+
    */
-  
+
   /* Return err <-  P * err */
 
   e1 = Ith(err,1);

@@ -94,8 +94,8 @@ void TimeStepper::setReportAllSignificantStates(bool b) {
     // IMPLEMENTATION OF TIME STEPPER REP //
     ////////////////////////////////////////
 
-TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system) 
-:   myHandle(handle), system(system), integ(0), 
+TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system)
+:   myHandle(handle), system(system), integ(0),
     reportAllSignificantStates(false) {}
 
 Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
@@ -113,18 +113,18 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
         Real currentTime         = integ->getTime();
         system.realize(integ->getState(), Stage::Time);
         system.realize(integ->getAdvancedState(), Stage::Time);
-        system.calcTimeOfNextScheduledEvent 
-           (integ->getState(), nextScheduledEvent,  scheduledEventIds,  
+        system.calcTimeOfNextScheduledEvent
+           (integ->getState(), nextScheduledEvent,  scheduledEventIds,
             lastEventTime != currentTime);  // whether to allow now as an answer
         system.calcTimeOfNextScheduledReport
-           (integ->getState(), nextScheduledReport, scheduledReportIds, 
+           (integ->getState(), nextScheduledReport, scheduledReportIds,
             lastReportTime != currentTime); // whether to allow now as an answer
 
         Real reportTime = std::min(nextScheduledReport, time);
         Real eventTime  = std::min(nextScheduledEvent,  time);
 
         //---------------- take continuous step ----------------
-        Integrator::SuccessfulStepStatus status = 
+        Integrator::SuccessfulStepStatus status =
             integ->stepTo(reportTime, eventTime);
         //------------------------------------------------------
 
@@ -159,7 +159,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
                                     scheduledEventIds,
                                     handleOpts, results);
                 lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
+                shouldTerminate =
                     results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 lastEventTime = integ->getTime();
                 break;
@@ -171,7 +171,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
                                     Array_<EventId>(),
                                     handleOpts, results);
                 lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
+                shouldTerminate =
                     results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 break;
             }
@@ -182,7 +182,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
                                     integ->getTriggeredEvents(),
                                     handleOpts, results);
                 lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
+                shouldTerminate =
                     results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 break;
             }
@@ -193,7 +193,7 @@ Integrator::SuccessfulStepStatus TimeStepperRep::stepTo(Real time) {
                                     Array_<EventId>(),
                                     handleOpts, results);
                 lowestModified = results.getLowestModifiedStage();
-                shouldTerminate = 
+                shouldTerminate =
                     results.getExitStatus()==HandleEventsResults::ShouldTerminate;
                 break;
             }

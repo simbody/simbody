@@ -176,7 +176,7 @@ void TaskSpace::InertiaInverse::updateCache(Matrix& cache) const
     const JacobianTranspose& JT = m_tspace->JT(getState());
     // TODO const Matrix& JT = m_tspace.JT().value();
     const Matrix& J = m_tspace->J(getState()).value();
-    /* TODO 
+    /* TODO
     // TODO cache the result.
 
     unsigned int nst = m_tspace.getNumScalarTasks();

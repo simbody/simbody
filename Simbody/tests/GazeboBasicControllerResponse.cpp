@@ -47,7 +47,7 @@ using namespace SimTK;
 
 //#define USE_VISUALIZER
 
-// Otherwise use a discrete controller that is spring-like. Energy is 
+// Otherwise use a discrete controller that is spring-like. Energy is
 // conserved only if you use the spring because the controller doesn't
 // store any.
 //#define USE_SPRING
@@ -70,7 +70,7 @@ const Vec3 TriKeyColor = Gray;
 
 const Real WheelRadius = 0.101;
 const Real WheelHalfLength = 0.025/2;
-const Real WheelMass = 0.66725; 
+const Real WheelMass = 0.66725;
 const Vec3 WheelCOM(0,0,0);
 const Inertia WheelInertia(0.00160418,0.00279814,0.00160339,   //xx,yy,zz
                            -3.598e-06,1.6199e-05,-4.1656e-05); //xy,xz,yz
@@ -101,7 +101,7 @@ struct MyMultibodySystem {
 
 // Execute the simulation with a given integrator and accuracy, and verify that
 // it produces the correct answers.
-static void runOnce(const MyMultibodySystem& mbs, Integrator& integ, 
+static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
                     Real accuracy);
 
 
@@ -110,7 +110,7 @@ static void runOnce(const MyMultibodySystem& mbs, Integrator& integ,
 //==============================================================================
 int main() {
     SimTK_START_TEST("TrikeyWheelResponse");
-        // Create the system.   
+        // Create the system.
         MyMultibodySystem mbs;
 
         printf("SemiExplicitEuler2 @ %g accuracy\n", Accuracy);
@@ -131,7 +131,7 @@ int main() {
 // Construct the multibody system. The dampers are built in here but the springs
 // are applied during execution.
 MyMultibodySystem::MyMultibodySystem()
-:   m_system(), m_matter(m_system), 
+:   m_system(), m_matter(m_system),
     m_forces(m_system), m_discrete(m_forces,m_matter)
     #ifdef USE_VISUALIZER
     , m_viz(m_system)
@@ -155,12 +155,12 @@ MyMultibodySystem::MyMultibodySystem()
 
     Body::Rigid triKeyInfo(MassProperties(TriKeyMass, Vec3(TriKeyCOM), TriKeyInertia));
     Body::Rigid wheelInfo(MassProperties(WheelMass, Vec3(WheelCOM), WheelInertia));
-  
+
     MobilizedBody& Ground = m_matter.updGround(); // Nicer name for Ground.
 
-    m_trikey_base = MobilizedBody::Pin(Ground,Vec3(0,0,.5), 
+    m_trikey_base = MobilizedBody::Pin(Ground,Vec3(0,0,.5),
                                        triKeyInfo, Vec3(0));
-    m_trikey_base.addBodyDecoration(Vec3(0,0,.426), 
+    m_trikey_base.addBodyDecoration(Vec3(0,0,.426),
                                     drawTriKey.setColor(TriKeyColor));
     m_trikey_base.addBodyDecoration(Vec3(0), DecorativeFrame(0.5).setColor(White));
 
@@ -216,15 +216,15 @@ Real calcTotalEnergy(const MyMultibodySystem& mbs, const State& state) {
 }
 
 // Run the system until it settles down, then check the answers.
-void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy) 
+void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 {
     integ.setAllowInterpolation(false);
     integ.setAccuracy(accuracy);
     integ.initialize(mbs.m_system.getDefaultState());
 
     printf("Test with order %d integator %s, Accuracy=%g, MaxStepSize=%g\n",
-        integ.getMethodMinOrder(), integ.getMethodName(), 
-        integ.getAccuracyInUse(), MaxStepSize); 
+        integ.getMethodMinOrder(), integ.getMethodName(),
+        integ.getAccuracyInUse(), MaxStepSize);
 
     #ifdef USE_VISUALIZER
     mbs.m_viz.report(integ.getState());
@@ -247,7 +247,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 
     unsigned stepNum = 0;
     while (true) {
-        // Get access to State being advanced by the integrator. Interpolation 
+        // Get access to State being advanced by the integrator. Interpolation
         // must be off so that we're modifying the actual trajectory.
         State& state = integ.updAdvancedState();
 
@@ -270,7 +270,7 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
         #endif
         //printf("Energy = %.15g\n",calcTotalEnergy(mbs,integ.getState()));
 
-        // Advance time by MaxStepSize. Might take multiple internal steps to 
+        // Advance time by MaxStepSize. Might take multiple internal steps to
         // get there, depending on difficulty and required accuracy.
         const Real tNext = stepNum * MaxStepSize;
         do {integ.stepTo(tNext,tNext);} while (integ.getTime() < tNext);
@@ -313,16 +313,16 @@ void runOnce(const MyMultibodySystem& mbs, Integrator& integ, Real accuracy)
 //==============================================================================
 static void dumpIntegratorStats(const Integrator& integ) {
     const int evals = integ.getNumRealizations();
-    std::cout << "\nDone -- simulated " << integ.getTime() << "s with " 
-            << integ.getNumStepsTaken() << " steps, avg step=" 
-        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms " 
+    std::cout << "\nDone -- simulated " << integ.getTime() << "s with "
+            << integ.getNumStepsTaken() << " steps, avg step="
+        << (1000*integ.getTime())/integ.getNumStepsTaken() << "ms "
         << (1000*integ.getTime())/evals << "ms/eval\n";
 
-    printf("Used Integrator %s at accuracy %g:\n", 
+    printf("Used Integrator %s at accuracy %g:\n",
         integ.getMethodName(), integ.getAccuracyInUse());
-    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(), 
+    printf("# STEPS/ATTEMPTS = %d/%d\n",  integ.getNumStepsTaken(),
                                           integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n",     integ.getNumErrorTestFailures());
-    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), 
+    printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(),
                                           integ.getNumProjections());
 }

@@ -101,7 +101,7 @@
 
 // TODO temporary defined HAVE_VA_COPY FOR TESTING
 /* Define to 1 if va_copy is avaliable */
-// #undef HAVE_VA_COPY 
+// #undef HAVE_VA_COPY
 #define HAVE_VA_COPY 1
 
 /* The size of a `double', as computed by sizeof. */

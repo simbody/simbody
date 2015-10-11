@@ -30,12 +30,12 @@
 using namespace SimTK;
 
 namespace {
-// This local event handler is called periodically to sample the robot's 
+// This local event handler is called periodically to sample the robot's
 // sensors.
 class UR10JointSampler : public PeriodicEventHandler {
 public:
-    UR10JointSampler(const UR10& realRobot, 
-                     Real        interval) 
+    UR10JointSampler(const UR10& realRobot,
+                     Real        interval)
     :   PeriodicEventHandler(interval), m_realRobot(realRobot) {}
 
     // This method is called whenever this event occurs.
@@ -52,7 +52,7 @@ private:
 //------------------------------------------------------------------------------
 // Build a Simbody System of the Universal Robotics UR10 robot arm.
 UR10::UR10(const std::string& auxDir)
-:   m_matter(*this), m_forces(*this), 
+:   m_matter(*this), m_forces(*this),
     m_sampledAngles(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
     m_sampledRates(*this, Stage::Dynamics, Vector(NumCoords, Zero)),
     m_sampledEndEffectorPos(*this, Stage::Dynamics, Vec3(0)),
@@ -62,7 +62,7 @@ UR10::UR10(const std::string& auxDir)
     m_matter.setShowDefaultGeometry(false);
 
     // Set the sensor sampling rate. TODO: should be settable.
-    addEventHandler(new UR10JointSampler(*this, 0.002));  
+    addEventHandler(new UR10JointSampler(*this, 0.002));
 
     //--------------------------------------------------------------------------
     //                          Gravity
@@ -126,7 +126,7 @@ UR10::UR10(const std::string& auxDir)
     wrist2Mesh.loadObjFile(auxDir + "geometry/Wrist2.obj");
     wrist3Mesh.loadObjFile(auxDir + "geometry/Wrist3.obj");
 
-    m_matter.updGround().addBodyDecoration(Vec3(0), 
+    m_matter.updGround().addBodyDecoration(Vec3(0),
                DecorativeFrame(0.5));
 
     baseInfo.addDecoration(DecorativeMesh(baseMesh).setColor(Gray));
@@ -192,7 +192,7 @@ UR10::UR10(const std::string& auxDir)
 //------------------------------------------------------------------------------
 // This method is called whenever this event occurs.
 void UR10JointSampler::handleEvent
-    (State& state, Real, bool&) const 
+    (State& state, Real, bool&) const
 {
     const Vector& q = state.getQ();
     const Vector& u = state.getU();
@@ -205,7 +205,7 @@ void UR10JointSampler::handleEvent
     }
     m_realRobot.setSampledAngles(state, qSample);
     m_realRobot.setSampledRates(state, uSample);
-    m_realRobot.setSampledEndEffectorPos(state, 
+    m_realRobot.setSampledEndEffectorPos(state,
         m_realRobot.getActualEndEffectorPosition(state));
 }
 

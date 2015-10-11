@@ -49,7 +49,7 @@
  * to J via a torsion joint around their mutual z axis.
  * Gravity is in the -y direction of the GroundIndex frame.
  * Note that Jb may not be aligned with G, and J may
- * differ from B so the reference configuration may 
+ * differ from B so the reference configuration may
  * involve twisting the pendulum around somewhat.
  */
 
@@ -141,7 +141,7 @@ try {
     GeneralForceSubsystem springs(mbs);
     HuntCrossleyContact contact(mbs);
 
-    Real L = 1.; 
+    Real L = 1.;
     Real m = 3.;
     Real g = 9.8;
     Transform groundFrame;
@@ -149,7 +149,7 @@ try {
 
     Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), Inertia(Vec3(L/2,0,0), m)+Inertia(1e-6,1e-6,1e-6));
-    cout << "mprops about body frame: " << mprops.getMass() << ", " 
+    cout << "mprops about body frame: " << mprops.getMass() << ", "
         << mprops.getMassCenter() << ", " << mprops.getUnitInertia() << endl;
 
     Vec3 gravity(0.,-g,0.);
@@ -174,8 +174,8 @@ try {
                                     aPendulum, jointFrame.p());
 
     const Vec3 attachPt(1.5, 1, 0);
-    Force::TwoPointLinearSpring(springs, pend.Ground(), attachPt, 
-        aPendulum, Vec3(L/2,0,0), 
+    Force::TwoPointLinearSpring(springs, pend.Ground(), attachPt,
+        aPendulum, Vec3(L/2,0,0),
         100, 1);
 
     const Real k = 1000, c = 0.0;
@@ -212,7 +212,7 @@ try {
     Quaternion qqq; qqq.setQuaternionFromAngleAxis(Pi/4, UnitVec3(1,0,0));
     viz.addDecoration(aPendulum, Transform(Rotation(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
     DecorativeCylinder cyl(0.1); cyl.setOpacity(0.3);
-    viz.addDecoration(aPendulum, Transform(Vec3(-1,0,0)), 
+    viz.addDecoration(aPendulum, Transform(Vec3(-1,0,0)),
         DecorativeCylinder(0.1).setOpacity(0.3));
 
     viz.addDecoration(aPendulum, Transform(Vec3(3, 0, 0)), DecorativeSphere().setColor(Black));
@@ -237,7 +237,7 @@ try {
     cout << "mbs State as modeled: " << s;
 
     printf("GLOBAL ny=%d q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
-        (int)s.getNY(), (int)s.getQStart(), (int)s.getNQ(), 
+        (int)s.getNY(), (int)s.getQStart(), (int)s.getNQ(),
         (int)s.getUStart(), (int)s.getNU(), (int)s.getZStart(), (int)s.getNZ());
 
     mbs.realize(s, Stage::Instance);
@@ -275,7 +275,7 @@ try {
     cout << "-------> STATE after realize(Position):" << s;
     cout << "<------- STATE after realize(Position)." << endl;
 
-    cout << "after assembly body frame: " << aPendulum.getBodyTransform(s); 
+    cout << "after assembly body frame: " << aPendulum.getBodyTransform(s);
 
     Vector_<SpatialVec> dEdR(pend.getNumBodies());
     dEdR[0] = 0;
@@ -370,15 +370,15 @@ try {
             //pend.applyPointForce(s,aPendulum,Vec3(0,0,0),fk);
             //pend.applyJointForce(s,aPendulum,2,fc);
 
-            cout << s.getTime() << " " 
-                 << s.getQ() << " " << s.getU() 
+            cout << s.getTime() << " "
+                 << s.getQ() << " " << s.getU()
                  << " hNext=" << ee.getPredictedNextStepSize() << endl;
             cout << "body config=" << x;
             cout << "body velocity=" << v << endl;
             //cout << "err=" << err << " |err|=" << d << endl;
             //cout << "spring force=" << fk << endl;
             //cout << "damping joint forces=" << fc << endl;
-            
+
         }
 
         viz.report(s);

@@ -49,7 +49,7 @@ try { // If anything goes wrong, an exception will be thrown.
     DecorationSubsystem     viz(mbs);
     Force::UniformGravity gravity(forces, pend, Vec3(0, -g, 0));
 
-    MobilizedBody::Ball connector(pend.Ground(), 
+    MobilizedBody::Ball connector(pend.Ground(),
                                     Transform(1*Vec3(0, 0, 0)),
                                   MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
                                     Transform(1*Vec3(0, .5, 0)));
@@ -57,7 +57,7 @@ try { // If anything goes wrong, an exception will be thrown.
     connector.setDefaultRadius(0.05); // for the artwork
 
     //connector.setDefaultRotation( Rotation(Pi/4, Vec3(0,0,1) );
- 
+
     const Real m1 = 5;
     const Real m2 = 1;
     const Real radiusRatio = std::pow(m2/m1, 1./3.);
@@ -68,7 +68,7 @@ try { // If anything goes wrong, an exception will be thrown.
     const MassProperties swingerMassProps
         (m1+m2, COM, 1*Inertia(1,1,1) + m1*UnitInertia::pointMassAt(weight1Location)
                                       + m2*UnitInertia::pointMassAt(weight2Location));
-    MobilizedBody::Screw swinger(connector, 
+    MobilizedBody::Screw swinger(connector,
                                     Transform( Rotation( 0*.7, Vec3(9,8,7) ),
                                               1*Vec3(0,-.5,0)),
                                  swingerMassProps,
@@ -77,9 +77,9 @@ try { // If anything goes wrong, an exception will be thrown.
                                  0.3); // pitch
 
     // Add a blue sphere around the weight.
-    viz.addBodyFixedDecoration(swinger, weight1Location, 
+    viz.addBodyFixedDecoration(swinger, weight1Location,
           DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
-    viz.addBodyFixedDecoration(swinger, weight2Location, 
+    viz.addBodyFixedDecoration(swinger, weight2Location,
           DecorativeSphere(radiusRatio*d/8).setColor(Green).setOpacity(.2));
     viz.addRubberBandLine(GroundIndex, Vec3(0),
                           swinger, Vec3(0),
@@ -106,7 +106,7 @@ try { // If anything goes wrong, an exception will be thrown.
     myStudy.setAccuracy(1e-6);
 
     // This will pick up decorative geometry from
-    // each subsystem that generates any, including of course the 
+    // each subsystem that generates any, including of course the
     // DecorationSubsystem, but not limited to it.
     Visualizer display(mbs);
 
@@ -144,8 +144,8 @@ try { // If anything goes wrong, an exception will be thrown.
                 // one should be able to do that at Stage::Position).
                 mbs.realize(s, Stage::Dynamics);
 
-                cout << s.getTime() << ": E=" << mbs.calcEnergy(s) 
-                     << " connector q=" << connector.getQ(s) 
+                cout << s.getTime() << ": E=" << mbs.calcEnergy(s)
+                     << " connector q=" << connector.getQ(s)
                      << ": swinger q=" << swinger.getQ(s) << endl;
 
                 // This is so we can look at the UDots.
@@ -170,7 +170,7 @@ try { // If anything goes wrong, an exception will be thrown.
                 break;
         }
     }
-} 
+}
 catch (const exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

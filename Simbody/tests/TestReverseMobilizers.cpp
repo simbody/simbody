@@ -50,7 +50,7 @@ void assertEqual(SpatialVec val1, SpatialVec val2, Real tol) {
 template<>
 void assertEqual(Transform val1, Transform val2, Real tol) {
     assertEqual(val1.p(), val2.p(), tol);
-    assertEqual(val1.R().convertRotationToBodyFixedXYZ(), 
+    assertEqual(val1.R().convertRotationToBodyFixedXYZ(),
                 val2.R().convertRotationToBodyFixedXYZ(), tol);
 }
 
@@ -128,8 +128,8 @@ void testPin() {
                                                 Vec3(-.33, .66, -.99)));
 
     fwdB.setAngle (fwdState,   Pi/4); // 45 degrees
-    rev1A.setAngle(rev1State, -Pi/4); 
-    rev2A.setAngle(rev2State,  Pi/4); 
+    rev1A.setAngle(rev1State, -Pi/4);
+    rev2A.setAngle(rev2State,  Pi/4);
 
     // Calculate where body B ended up in the forward system and then
     // set the reverse Free joint to match so that the whole system
@@ -159,11 +159,11 @@ void testPin() {
     const Transform  X_AB = fwdB.getMobilizerTransform(fwdState);
     const Transform  X_BA = ~X_AB;
     const SpatialVec V_AB = fwdB.getMobilizerVelocity(fwdState);
-    const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
+    const SpatialVec V_BA( -X_BA.R()* V_AB[0],
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
     rev1A.setUToFitVelocity(rev1State, V_BA);
-    rev2A.setUToFitVelocity(rev2State, V_BA); // KLUDGE; should be V_BA 
+    rev2A.setUToFitVelocity(rev2State, V_BA); // KLUDGE; should be V_BA
 
     assertEqual(fwdB.getU(fwdState), rev2A.getU(rev2State));
 
@@ -276,7 +276,7 @@ void testPlanar() {
                                                 Vec3(-.33, .66, -.99)));
 
     // Set all the q's; meanings should be identical.
-    fwdB.setQ(fwdState, Vec3(Pi/4, -7, 4)); 
+    fwdB.setQ(fwdState, Vec3(Pi/4, -7, 4));
     rev2A.setQ(rev2State, Vec3(Pi/4, -7, 4));
 
     // Calculate where body B ended up in the forward system and then
@@ -306,7 +306,7 @@ void testPlanar() {
     const Transform  X_AB = fwdB.getMobilizerTransform(fwdState);
     const Transform  X_BA = ~X_AB;
     const SpatialVec V_AB = fwdB.getMobilizerVelocity(fwdState);
-    const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
+    const SpatialVec V_BA( -X_BA.R()* V_AB[0],
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
     rev2A.setUToFitVelocity(rev2State, V_BA);
@@ -445,7 +445,7 @@ void testEllipsoid() {
     const Transform  X_AB = fwdB.getMobilizerTransform(fwdState);
     const Transform  X_BA = ~X_AB;
     const SpatialVec V_AB = fwdB.getMobilizerVelocity(fwdState);
-    const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
+    const SpatialVec V_BA( -X_BA.R()* V_AB[0],
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
     rev2A.setUToFitAngularVelocity(rev2State, V_BA[0]);
@@ -598,7 +598,7 @@ void testFree() {
     const Transform  X_AB = fwdB.getMobilizerTransform(fwdState);
     const Transform  X_BA = ~X_AB;
     const SpatialVec V_AB = fwdB.getMobilizerVelocity(fwdState);
-    const SpatialVec V_BA( -X_BA.R()* V_AB[0], 
+    const SpatialVec V_BA( -X_BA.R()* V_AB[0],
                            -X_BA.R()*(V_AB[1] + X_AB.p() % V_AB[0]) );
 
     rev2A.setUToFitVelocity(rev2State, V_BA);

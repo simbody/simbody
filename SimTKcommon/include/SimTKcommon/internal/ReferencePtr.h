@@ -37,12 +37,12 @@ you to use compiler-generated copy constructors and copy assignment operators
 for classes which would otherwise have to implement their own in order to
 properly initialize these pointer data members, which must not be copied.
 
-The contained pointer is initialized to `nullptr` on construction, and it is 
-reinitialized to null upon copy construction or copy assignment. That's 
-because we are assuming this is part of copying the entire data structure and 
-copying the old pointer would create a reference into the old data structure 
-rather than the new copy. This pointer does not own the target to which it 
-points, and there is no reference counting so it will become stale if the 
+The contained pointer is initialized to `nullptr` on construction, and it is
+reinitialized to null upon copy construction or copy assignment. That's
+because we are assuming this is part of copying the entire data structure and
+copying the old pointer would create a reference into the old data structure
+rather than the new copy. This pointer does not own the target to which it
+points, and there is no reference counting so it will become stale if the
 target is deleted.
 
 The pointer *is* moved intact for move construction or move assignment. That
@@ -54,9 +54,9 @@ is a const type. For example %ReferencePtr\<int> is equivalent to an int*, while
 %ReferencePtr\<const int> is equivalent to a const int*.
 
 This class is entirely inline and has no computational or space overhead; it
-contains just a single pointer. 
+contains just a single pointer.
 
-@see ClonePtr, CloneOnWritePtr **/ 
+@see ClonePtr, CloneOnWritePtr **/
 template <class T> class ReferencePtr {
 public:
     typedef T  element_type; ///< Type of the contained object.
@@ -76,7 +76,7 @@ public:
     /** Construct from a given pointer stores the pointer. **/
     explicit ReferencePtr(T* tp) NOEXCEPT_11 : p(tp) {}
 
-    /** Construct from a reference stores the address of the supplied 
+    /** Construct from a reference stores the address of the supplied
     object. **/
     explicit ReferencePtr(T& t) NOEXCEPT_11 : ReferencePtr(&t) {}
 
@@ -89,7 +89,7 @@ public:
     ReferencePtr(ReferencePtr&& src) NOEXCEPT_11 : p(src.release()) {}
 
     /** <b>(Deprecated)</b> Use %ReferencePtr(nullptr) or just %ReferencePtr()
-    instead. For backwards compatibility, this allows initialization 
+    instead. For backwards compatibility, this allows initialization
     by "0" rather than `nullptr`. **/
     DEPRECATED_14("use ReferencePtr(nullptr) instead")
     ReferencePtr(int mustBeZero) NOEXCEPT_11 : ReferencePtr()
@@ -99,7 +99,7 @@ public:
     /** @name                   Assignment **/
     /**@{**/
 
-    /** Copy assignment sets the pointer to nullptr (except for a self-assign); 
+    /** Copy assignment sets the pointer to nullptr (except for a self-assign);
     see class comments for why.  **/
     ReferencePtr& operator=(const ReferencePtr& src) NOEXCEPT_11
     {   if (&src != this) reset(); return *this; }
@@ -107,21 +107,21 @@ public:
     /** Move assignment copies the pointer from the source and leaves the
     source empty. Nothing happens for self-assign. **/
     ReferencePtr& operator=(ReferencePtr&& src) NOEXCEPT_11 {
-        if (&src != this) 
+        if (&src != this)
             p = src.release();
-        return *this; 
+        return *this;
     }
 
-    /** This form of assignment replaces the currently-referenced object by a 
-    reference to the source object; no destruction occurs. **/    
-    ReferencePtr& operator=(T& t) NOEXCEPT_11    
+    /** This form of assignment replaces the currently-referenced object by a
+    reference to the source object; no destruction occurs. **/
+    ReferencePtr& operator=(T& t) NOEXCEPT_11
     {  reset(&t); return *this; }
 
     /** This form of assignment replaces the current pointer with the given
     one; no destruction occurs. **/
-    ReferencePtr& operator=(T* tp) NOEXCEPT_11               
+    ReferencePtr& operator=(T* tp) NOEXCEPT_11
     {   reset(tp); return *this; }
-    
+
     /** @name                    Destructor **/
     /**@{**/
     /** Destructor does nothing. **/
@@ -136,17 +136,17 @@ public:
 
     /** Return a reference to the target object. Fails if the pointer is
     null. **/
-    T& getRef() const { 
-        SimTK_ERRCHK(p!=nullptr, "ReferencePtr::getRef()", 
-                    "An attempt was made to dereference a null pointer."); 
-        return *p; 
+    T& getRef() const {
+        SimTK_ERRCHK(p!=nullptr, "ReferencePtr::getRef()",
+                    "An attempt was made to dereference a null pointer.");
+        return *p;
     }
 
-    /** Return the contained pointer. This will fail if the container is 
+    /** Return the contained pointer. This will fail if the container is
     empty. **/
     T* operator->() const {return &getRef();}
 
-    /** The "dereference" operator returns a reference to the target object. 
+    /** The "dereference" operator returns a reference to the target object.
     This will fail if the container is empty. **/
     T& operator*() const {return getRef();}
 
@@ -172,11 +172,11 @@ public:
     the container is non-null (that is, not empty). **/
     explicit operator bool() const NOEXCEPT_11 {return !empty();}
 
-    /** Extract the pointer from this container, leaving the container empty. 
+    /** Extract the pointer from this container, leaving the container empty.
     The pointer is returned. **/
     T* release() NOEXCEPT_11 {
-        T* x=p; 
-        p=nullptr; 
+        T* x=p;
+        p=nullptr;
         return x;
     }
 
@@ -184,7 +184,7 @@ public:
     DEPRECATED_14("use reset() instead")
     void clear() NOEXCEPT_11 {reset();}
 
-    /** <b>(Deprecated)</b> Use get() rather than implicit conversion from 
+    /** <b>(Deprecated)</b> Use get() rather than implicit conversion from
     %ReferencePtr\<T> to T*. **/
     DEPRECATED_14("use get() rather than implicit conversion to T*")
     operator T*() const NOEXCEPT_11 {return p;}
@@ -193,7 +193,7 @@ public:
 
 private:
     T*    p;        // can be nullptr
-};    
+};
 
 
 
@@ -217,9 +217,9 @@ swap(ReferencePtr<T>& p1, ReferencePtr<T>& p2) NOEXCEPT_11 {
 in a ReferencePtr object. This is equivalent to `os << p.get();`.
 @relates ReferencePtr **/
 template <class charT, class traits, class T>
-inline std::basic_ostream<charT,traits>& 
-operator<<(std::basic_ostream<charT,traits>& os, 
-           const ReferencePtr<T>&  p) 
+inline std::basic_ostream<charT,traits>&
+operator<<(std::basic_ostream<charT,traits>& os,
+           const ReferencePtr<T>&  p)
 {   os << p.get(); return os; }
 
 /** Compare for equality the managed pointers contained in two compatible
@@ -232,22 +232,22 @@ inline bool operator==(const ReferencePtr<T>& lhs,
                        const ReferencePtr<U>& rhs)
 {   return lhs.get() == rhs.get(); }
 
-/** Comparison against `nullptr`; same as `lhs.empty()`. 
+/** Comparison against `nullptr`; same as `lhs.empty()`.
 @relates ReferencePtr **/
 template <class T>
 inline bool operator==(const ReferencePtr<T>& lhs, std::nullptr_t)
 {   return lhs.empty(); }
 
-/** Comparison against `nullptr`; same as `rhs.empty()`. 
+/** Comparison against `nullptr`; same as `rhs.empty()`.
 @relates ReferencePtr **/
 template <class T>
 inline bool operator==(std::nullptr_t, const ReferencePtr<T>& rhs)
 {   return rhs.empty(); }
 
-/** Less-than operator for two compatible ReferencePtr containers, 
+/** Less-than operator for two compatible ReferencePtr containers,
 comparing the *pointers*, not the *objects* they point to. Returns `true` if the
 lhs pointer tests less than the rhs pointer. A null pointer tests less than any
-non-null pointer. It must be possible for one of the pointer types `T*` and 
+non-null pointer. It must be possible for one of the pointer types `T*` and
 `U*` to be implicitly converted to the other.
 @relates ReferencePtr **/
 template <class T, class U>
@@ -256,7 +256,7 @@ inline bool operator<(const ReferencePtr<T>& lhs,
 {   return lhs.get() < rhs.get(); }
 
 /** Less-than comparison against a `nullptr`. A null pointer tests less than any
-non-null pointer and equal to another null pointer, so this method always 
+non-null pointer and equal to another null pointer, so this method always
 returns `false`.
 @relates ReferencePtr **/
 template <class T>

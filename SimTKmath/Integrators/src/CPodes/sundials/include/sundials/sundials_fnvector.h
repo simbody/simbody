@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.1 $
  * $Date: 2006/07/05 15:27:52 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Radu Serban and Aaron Collier @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2002, The Regents of the University of California.
@@ -10,7 +10,7 @@
  * All rights reserved.
  * For details, see the LICENSE file.
  * -----------------------------------------------------------------
- * This file (companion of nvector.h) contains definitions 
+ * This file (companion of nvector.h) contains definitions
  * needed for the initialization of vector operations in Fortran.
  * -----------------------------------------------------------------
  */

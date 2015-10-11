@@ -53,23 +53,19 @@ any other Simbody header. **/
 // affect only the simbody library, meaning that other libraries can
 // be clients of this one. However, we are assuming all-static or all-shared.
 
-#ifdef _WIN32
-    #ifdef _MSC_VER
+#if defined(_WIN32) && defined(_MSC_VER)
     #pragma warning(disable:4231) // need to use 'extern' template explicit instantiation
-    #endif
     #if defined(SimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMBODY_EXPORT __declspec(dllexport)
         // Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL.
-        #ifdef _MSC_VER
         #pragma warning(disable:4661)
-        #endif
     #elif defined(SimTK_SIMBODY_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SIMBODY_EXPORT
     #else
         #define SimTK_SIMBODY_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
     #endif
 #else
-    #define SimTK_SIMBODY_EXPORT // Linux, Mac
+    #define SimTK_SIMBODY_EXPORT // Linux, Mac, MinGW
 #endif
 
 // Every SimTK library must provide these two routines, with the library
@@ -80,31 +76,31 @@ extern "C" {
 }
 
 namespace SimTK {
-    
+
     // MATTER SUBSYSTEM-GLOBAL INDEX TYPES
 
 
-/** @class SimTK::MobilizedBodyIndex    
+/** @class SimTK::MobilizedBodyIndex
 This is for arrays indexed by mobilized body number within a subsystem
 (typically the SimbodyMatterSubsystem).\ It is assigned when a MobilizedBody is
 added to a subsystem.\ You can abbreviate this as MobodIndex if you prefer.
-These will be used of course to index MobilizedBody objects but also to index 
-many different kinds of information that may be stored on a per-MobilizedBody 
-basis. @see SimTK::GroundIndex, SimTK::MobodIndex 
+These will be used of course to index MobilizedBody objects but also to index
+many different kinds of information that may be stored on a per-MobilizedBody
+basis. @see SimTK::GroundIndex, SimTK::MobodIndex
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizedBodyIndex);
 
 /** This is the approved abbeviation for MobilizedBodyIndex.\ Feel free to
-use it if you get tired of typing or seeing the full name. 
+use it if you get tired of typing or seeing the full name.
 @ingroup UniqueIndexTypes **/
 typedef MobilizedBodyIndex MobodIndex;
 
-/** This is the MobilizedBodyIndex corresponding to the unique Ground body; 
-its index is always zero. 
+/** This is the MobilizedBodyIndex corresponding to the unique Ground body;
+its index is always zero.
 @ingroup UniqueIndexTypes **/
 static const MobilizedBodyIndex GroundIndex(0);
 
-/** @class SimTK::ConstraintIndex    
+/** @class SimTK::ConstraintIndex
 This is for arrays indexed by constraint number within a subsystem (typically
 the SimbodyMatterSubsystem).\ It is assigned when a Constraint is added to the
 subsystem.
@@ -118,25 +114,25 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(BoundedSpeedConstraintIndex);
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstraintLimitedFrictionIndex);
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(StateLimitedFrictionIndex);
 
-// TODO: This is for arrays indexed by MatterSubsystem-global ParticleIndex, 
+// TODO: This is for arrays indexed by MatterSubsystem-global ParticleIndex,
 // as yet to be defined.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ParticleIndex);
 
-// Constrained Bodies in constraints where the Ancestor body is not Ground (we 
-// call these "Ancestor Constrained Bodies") require some additional cached 
-// data, such as their orientations and velocities in the Ancestor frame, so 
+// Constrained Bodies in constraints where the Ancestor body is not Ground (we
+// call these "Ancestor Constrained Bodies") require some additional cached
+// data, such as their orientations and velocities in the Ancestor frame, so
 // are each allocated a slot in pools of that data. Those pools are indexed by
 // this type.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(AncestorConstrainedBodyPoolIndex);
 
-// This is for "u-squared" arrays, that is, arrays which allocate space for an 
+// This is for "u-squared" arrays, that is, arrays which allocate space for an
 // nuXnu block for each MobilizedBody.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(USquaredIndex);
 
-// This is for "quaternion information" arrays, which have total dimension 
-// equal to the number of quaternions currently in use as generalized 
-// coordinates for modeling the Matter Subsystem's MobilizedBodies. Primarily 
-// this is for storing the norm of quaternions so we need calculate them only 
+// This is for "quaternion information" arrays, which have total dimension
+// equal to the number of quaternions currently in use as generalized
+// coordinates for modeling the Matter Subsystem's MobilizedBodies. Primarily
+// this is for storing the norm of quaternions so we need calculate them only
 // once.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(QuaternionPoolIndex);
 
@@ -150,7 +146,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobodQPoolIndex);
 // then in q and u order within the mobilizer. A mobilier with prescribed positions q gets
 // slots in the u and udot pools also to hold derivatives, and similarly if it is the
 // velocities u that are prescribed there will be slots in the udot pools. Note that
-// the Q index can be used to index qdot and qdotdot arrays if needed. Note that a 
+// the Q index can be used to index qdot and qdotdot arrays if needed. Note that a
 // prescribed force is produced whenever there is a udot that is not force driven; that
 // includes prescribed udots but also zero and discrete ones.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresQPoolIndex);
@@ -160,23 +156,23 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(PresForcePoolIndex);
 
     // PER-MOBILIZER INDEX TYPES
 
-/** @class SimTK::MobilizerQIndex 
+/** @class SimTK::MobilizerQIndex
 The Mobilizer associated with each MobilizedBody, once modeled, has a specific number
-of generalized coordinates \e q (0-7) and generalized speeds (mobilities) 
-\e u (0-6).\ This is the index type for the small array of Mobilizer-local \e q's. 
-@see MobilizerUIndex, QIndex 
+of generalized coordinates \e q (0-7) and generalized speeds (mobilities)
+\e u (0-6).\ This is the index type for the small array of Mobilizer-local \e q's.
+@see MobilizerUIndex, QIndex
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerQIndex);
-/** @class SimTK::MobilizerUIndex 
+/** @class SimTK::MobilizerUIndex
 The Mobilizer associated with each MobilizedBody, once modeled, has a specific number
-of generalized coordinates \e q (0-7) and generalized speeds (mobilities) 
-\e u (0-6).\ This is the index type for the small array of Mobilizer-local \e u's. 
-@see MobilizerQIndex, UIndex 
+of generalized coordinates \e q (0-7) and generalized speeds (mobilities)
+\e u (0-6).\ This is the index type for the small array of Mobilizer-local \e u's.
+@see MobilizerQIndex, UIndex
 @ingroup UniqueIndexTypes **/
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(MobilizerUIndex);
 
     // PER-CONSTRAINT INDEX TYPES
-    
+
 // This is the Constraint-specific index of the MobilizedBodies which are *directly* affected
 // by a constraint, through body forces or body torques on these bodies.
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(ConstrainedBodyIndex);
@@ -256,7 +252,7 @@ public:
 
 class MobilizerCantExactlyRepresentRequestedQuantity : public Base {
 public:
-    MobilizerCantExactlyRepresentRequestedQuantity(const char* fn, int ln, 
+    MobilizerCantExactlyRepresentRequestedQuantity(const char* fn, int ln,
        String method, MobilizedBodyIndex body, String quantity) : Base(fn,ln)
     {
         setMessage(method + "(): the mobilizer for body " + String((int)body)

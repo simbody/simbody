@@ -25,8 +25,8 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the header file that user code should include to pick up the 
- * SimTK C++ interface to the Sundials CPODES coordinate-projection 
+ * This is the header file that user code should include to pick up the
+ * SimTK C++ interface to the Sundials CPODES coordinate-projection
  * integrator.
  */
 
@@ -50,18 +50,18 @@ class SimTK_SIMMATH_EXPORT CPodesSystem {
 public:
     virtual ~CPodesSystem() {}
     // The default implementations of these virtual functions
-    // just throw an "unimplemented virtual function" exception. 
+    // just throw an "unimplemented virtual function" exception.
 
     // At least one of these two must be supplied by the concrete class.
     virtual int  explicitODE(Real t, const Vector& y, Vector& fout) const;
-    virtual int  implicitODE(Real t, const Vector& y, const Vector& yp, 
+    virtual int  implicitODE(Real t, const Vector& y, const Vector& yp,
                              Vector& fout) const;
 
-    virtual int  constraint(Real t, const Vector& y, 
+    virtual int  constraint(Real t, const Vector& y,
                             Vector& cout) const;
     virtual int  project(Real t, const Vector& ycur, Vector& corr,
                          Real epsProj, Vector& err) const; // err is in/out
-    virtual int  quadrature(Real t, const Vector& y, 
+    virtual int  quadrature(Real t, const Vector& y,
                             Vector& qout) const;
     virtual int  root(Real t, const Vector& y, const Vector& yp,
                       Vector& gout) const;
@@ -77,42 +77,42 @@ public:
 // unit. They are used to navigate the client-side CPodesSystem virtual function
 // table, which cannot be done on the library side. Note that these are defined
 // in the SimTK namespace so don't need "SimTK" in their names.
-static int explicitODE_static(const CPodesSystem& sys, 
-                              Real t, const Vector& y, Vector& fout) 
+static int explicitODE_static(const CPodesSystem& sys,
+                              Real t, const Vector& y, Vector& fout)
   { return sys.explicitODE(t,y,fout); }
 
-static int implicitODE_static(const CPodesSystem& sys, 
+static int implicitODE_static(const CPodesSystem& sys,
                               Real t, const Vector& y, const Vector& yp, Vector& fout)
   { return sys.implicitODE(t,y,yp,fout); }
 
-static int constraint_static(const CPodesSystem& sys, 
+static int constraint_static(const CPodesSystem& sys,
                              Real t, const Vector& y, Vector& cout)
   { return sys.constraint(t,y,cout); }
 
-static int project_static(const CPodesSystem& sys, 
+static int project_static(const CPodesSystem& sys,
                           Real t, const Vector& ycur, Vector& corr,
                           Real epsProj, Vector& err)
   { return sys.project(t,ycur,corr,epsProj,err); }
 
-static int quadrature_static(const CPodesSystem& sys, 
+static int quadrature_static(const CPodesSystem& sys,
                              Real t, const Vector& y, Vector& qout)
   { return sys.quadrature(t,y,qout); }
 
-static int root_static(const CPodesSystem& sys, 
+static int root_static(const CPodesSystem& sys,
                        Real t, const Vector& y, const Vector& yp, Vector& gout)
   { return sys.root(t,y,yp,gout); }
 
-static int weight_static(const CPodesSystem& sys, 
+static int weight_static(const CPodesSystem& sys,
                          const Vector& y, Vector& weights)
   { return sys.weight(y,weights); }
 
-static void errorHandler_static(const CPodesSystem& sys, 
-                                int error_code, const char* module, 
+static void errorHandler_static(const CPodesSystem& sys,
+                                int error_code, const char* module,
                                 const char* function, char* msg)
   { sys.errorHandler(error_code,module,function,msg); }
 
 /**
- * This is a straightforward translation of the Sundials CPODES C 
+ * This is a straightforward translation of the Sundials CPODES C
  * interface into C++. The class CPodes represents a single instance
  * of a CPODES integrator, and handles the associated memory internally.
  * Methods here are identical to the corresponding CPODES functions (with
@@ -178,8 +178,8 @@ public:
     };
 
     explicit CPodes
-       (ODEType                      ode=UnspecifiedODEType, 
-        LinearMultistepMethod        lmm=UnspecifiedLinearMultistepMethod, 
+       (ODEType                      ode=UnspecifiedODEType,
+        LinearMultistepMethod        lmm=UnspecifiedLinearMultistepMethod,
         NonlinearSystemIterationType nls=UnspecifiedNonlinearSystemIterationType)
     {
         // Perform construction of the CPodesRep on the library side.
@@ -239,11 +239,11 @@ public:
     // from CPodesSystem.
     int rootInit(int nrtfn);
 
-    // This tells CPodes to make use of the user's errorHandler() 
+    // This tells CPodes to make use of the user's errorHandler()
     // method from CPodesSystem.
     int setErrHandlerFn();
 
-    // These tells CPodes to make use of the user's weight() 
+    // These tells CPodes to make use of the user's weight()
     // method from CPodesSystem.
     int setEwtFn();
 
@@ -254,7 +254,7 @@ public:
     int dlsProjSetJacFn(void* jacP, void* jacP_data);
 
 
-    int step(Real tout, Real* tret, 
+    int step(Real tout, Real* tret,
              Vector& y_inout, Vector& yp_inout, StepMode=Normal);
 
     int setErrFile(FILE* errfp);
@@ -278,11 +278,11 @@ public:
     int setProjLsetupFreq(int proj_lset_freq);
     int setProjNonlinConvCoef(Real prjcoef);
 
-    int setQuadErrCon(bool errconQ, 
+    int setQuadErrCon(bool errconQ,
                       int tol_typeQ, Real reltolQ, void* abstolQ);
 
     int setTolerances(int tol_type, Real reltol, void* abstol);
-    
+
     int setRootDirection(Array_<int>& rootdir);
 
     int getDky(Real t, int k, Vector& dky);
@@ -346,25 +346,25 @@ private:
     // This is how we get the client-side virtual functions to
     // be callable from library-side code while maintaining binary
     // compatibility.
-    typedef int (*ExplicitODEFunc)(const CPodesSystem&, 
+    typedef int (*ExplicitODEFunc)(const CPodesSystem&,
                                    Real t, const Vector& y, Vector& fout);
-    typedef int (*ImplicitODEFunc)(const CPodesSystem&, 
+    typedef int (*ImplicitODEFunc)(const CPodesSystem&,
                                    Real t, const Vector& y, const Vector& yp,
                                    Vector& fout);
-    typedef int (*ConstraintFunc) (const CPodesSystem&, 
+    typedef int (*ConstraintFunc) (const CPodesSystem&,
                                    Real t, const Vector& y, Vector& cout);
-    typedef int (*ProjectFunc)    (const CPodesSystem&, 
+    typedef int (*ProjectFunc)    (const CPodesSystem&,
                                    Real t, const Vector& ycur, Vector& corr,
                                    Real epsProj, Vector& err);
-    typedef int (*QuadratureFunc) (const CPodesSystem&, 
+    typedef int (*QuadratureFunc) (const CPodesSystem&,
                                    Real t, const Vector& y, Vector& qout);
-    typedef int (*RootFunc)       (const CPodesSystem&, 
-                                   Real t, const Vector& y, const Vector& yp, 
+    typedef int (*RootFunc)       (const CPodesSystem&,
+                                   Real t, const Vector& y, const Vector& yp,
                                    Vector& gout);
-    typedef int (*WeightFunc)     (const CPodesSystem&, 
+    typedef int (*WeightFunc)     (const CPodesSystem&,
                                    const Vector& y, Vector& weights);
-    typedef void (*ErrorHandlerFunc)(const CPodesSystem&, 
-                                     int error_code, const char* module, 
+    typedef void (*ErrorHandlerFunc)(const CPodesSystem&,
+                                     int error_code, const char* module,
                                      const char* function, char* msg);
 
     // Note that these routines do not tell CPodes to use the supplied

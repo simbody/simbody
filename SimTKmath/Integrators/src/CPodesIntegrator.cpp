@@ -56,17 +56,17 @@ void CPodesIntegrator::setOrderLimit(int order) {
 //------------------------------------------------------------------------------
 //                          CPODES INTEGRATOR REP
 //------------------------------------------------------------------------------
-// This class implements the abstract CPodesSystem interface understood by our 
+// This class implements the abstract CPodesSystem interface understood by our
 // C++ interface to CPodes.
 
 class CPodesIntegratorRep::CPodesSystemImpl : public CPodesSystem {
 public:
-    CPodesSystemImpl(CPodesIntegratorRep& integ, const System& system) 
+    CPodesSystemImpl(CPodesIntegratorRep& integ, const System& system)
     :   integ(integ), system(system) {}
 
     // Calculate ydot = f(t,y).
     int explicitODE(Real t, const Vector& y, Vector& ydot) const override {
-        try { 
+        try {
             integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
@@ -76,7 +76,7 @@ public:
 
     // Calculate yerr = c(t,y).
     int constraint(Real t, const Vector& y, Vector& yerr) const override {
-        try { 
+        try {
             integ.setAdvancedStateAndRealizeKinematics(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
@@ -85,14 +85,14 @@ public:
     }
 
     // Given a state (t,y) not on the constraint manifold, return ycorr
-    // such that (t,y+ycorr+eps) is on the manifold, with 
-    // ||eps||_wrms <= epsProj. 'err' passed in as the integrator's current 
-    // error estimate for state y; optionally project it to eliminate the 
+    // such that (t,y+ycorr+eps) is on the manifold, with
+    // ||eps||_wrms <= epsProj. 'err' passed in as the integrator's current
+    // error estimate for state y; optionally project it to eliminate the
     // portion normal to the manifold.
     int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, Vector& err) const override {
         integ.setAdvancedState(t,y);
         State& advanced = integ.updAdvancedState();
-       
+
         try {
             system.realize(advanced, Stage::Time);
             system.prescribeQ(advanced); // set q_p
@@ -112,12 +112,12 @@ public:
         ycorr = advanced.getY()-y;
         return CPodes::Success;
     }
-    
+
     /**
      * Calculate the event trigger functions.
      */
     int root(Real t, const Vector& y, const Vector& yp, Vector& gout) const override {
-        try { 
+        try {
             integ.setAdvancedStateAndRealizeDerivatives(t,y);
         }
         catch(...) { return CPodes::RecoverableError; } // assume recoverable
@@ -130,8 +130,8 @@ private:
 };
 
 void CPodesIntegratorRep::init
-   (CPodes::LinearMultistepMethod method, 
-    CPodes::NonlinearSystemIterationType iterationType) 
+   (CPodes::LinearMultistepMethod method,
+    CPodes::NonlinearSystemIterationType iterationType)
 {
     cpodes = new CPodes(CPodes::ExplicitODE, method, iterationType);
     cps = new CPodesSystemImpl(*this, getSystem());
@@ -140,15 +140,15 @@ void CPodesIntegratorRep::init
 }
 
 CPodesIntegratorRep::CPodesIntegratorRep
-   (Integrator* handle, const System& sys, 
-    CPodes::LinearMultistepMethod method) 
+   (Integrator* handle, const System& sys,
+    CPodes::LinearMultistepMethod method)
 :   IntegratorRep(handle, sys), method(method) {
     init(method, method == CPodes::Adams ? CPodes::Functional : CPodes::Newton);
 }
 
 CPodesIntegratorRep::CPodesIntegratorRep
-   (Integrator* handle, const System& sys, 
-    CPodes::LinearMultistepMethod method, 
+   (Integrator* handle, const System& sys,
+    CPodes::LinearMultistepMethod method,
     CPodes::NonlinearSystemIterationType iterationType)
 :   IntegratorRep(handle, sys), method(method) {
     init(method, iterationType);
@@ -171,20 +171,20 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     const int ny = state.getY().size();
     const int nc = state.getNYErr();
     Vector ydot(ny);
-    if (cps->explicitODE(state.getTime(), Vector(state.getY()), ydot) 
-        != CPodes::Success) 
+    if (cps->explicitODE(state.getTime(), Vector(state.getY()), ydot)
+        != CPodes::Success)
     {
-        SimTK_THROW1(Integrator::InitializationFailed, 
+        SimTK_THROW1(Integrator::InitializationFailed,
                      "Failed to calculate ydot");
     }
     int retval;
     //TODO: change this to do abstol only for q, reltol for u&z
     Real relTol = getAccuracyInUse();
     Real absTol = relTol/10; //TODO: base on weights
-    if ((retval=cpodes->init(*cps, state.getTime(), 
-                             Vector(state.getY()), ydot, 
-                             CPodes::ScalarScalar, relTol, &absTol)) 
-        != CPodes::Success) 
+    if ((retval=cpodes->init(*cps, state.getTime(),
+                             Vector(state.getY()), ydot,
+                             CPodes::ScalarScalar, relTol, &absTol))
+        != CPodes::Success)
     {
         printf("init() returned %d\n", retval);
         SimTK_THROW1(Integrator::InitializationFailed, "init() failed");
@@ -197,7 +197,7 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
         Vector constraintTols(nqerr+nuerr);
         constraintTols(0,nqerr) = tol*state.getQErrWeights();
         constraintTols(nqerr,nuerr) = tol*state.getUErrWeights();
-        cpodes->projInit(CPodes::L2Norm, CPodes::Nonlinear, 
+        cpodes->projInit(CPodes::L2Norm, CPodes::Nonlinear,
                          constraintTols);
         cpodes->lapackDenseProj(nc, ny, CPodes::ProjectWithQRPivot);
     }
@@ -232,8 +232,8 @@ void CPodesIntegratorRep::methodReinitialize
         //TODO: change this to do abstol only for q, reltol for u&z
         Real relTol = getAccuracyInUse();
         Real absTol = relTol/10; //TODO: base on weights
-        cpodes->reInit(*cps, state.getTime(), 
-                       Vector(state.getY()), Vector(state.getYDot()), 
+        cpodes->reInit(*cps, state.getTime(),
+                       Vector(state.getY()), Vector(state.getYDot()),
                        CPodes::ScalarScalar, relTol, &absTol);
     }
 }
@@ -245,9 +245,9 @@ void CPodesIntegratorRep::initializeIntegrationParameters() {
         cpodes->setMinStep(userMinStepSize);
     if (userMaxStepSize != -1)
         cpodes->setMaxStep(userMaxStepSize);
-    if (userFinalTime != -1.) 
+    if (userFinalTime != -1.)
         cpodes->setStopTime(userFinalTime);
-    if (userInternalStepLimit != -1) 
+    if (userInternalStepLimit != -1)
         cpodes->setMaxNumSteps(userInternalStepLimit);
     if (userProjectEveryStep != -1)
         if (userProjectEveryStep==1)
@@ -305,12 +305,12 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             "Integrator::initialize() method to restart.",
             reportTime, userFinalTime);
     }
-    
+
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
     if (startOfContinuousInterval) {
         // The set of event triggers might have changed.
-        getSystem().calcEventTriggerInfo(getAdvancedState(), 
+        getSystem().calcEventTriggerInfo(getAdvancedState(),
                                          updEventTriggerInfo());
         pendingReturnCode = -1; // forget post-event state
         startOfContinuousInterval = false;
@@ -345,15 +345,15 @@ stepTo(Real reportTime, Real scheduledEventTime) {
         Real tret;
         int res;
         const bool usePendingReturnCode = (pendingReturnCode != -1);
-        if (usePendingReturnCode) {            
-            // The last time returned was an event or report time. The 
-            // integrator has already gone beyond that time, so reset 
+        if (usePendingReturnCode) {
+            // The last time returned was an event or report time. The
+            // integrator has already gone beyond that time, so reset
             // everything to how it was after the last call to cpodes->step()
             // and then process the step.
-            
+
             res = pendingReturnCode;
             tret = previousTimeReturned;
-            if (savedY.size() > 0) { 
+            if (savedY.size() > 0) {
                 setAdvancedStateAndRealizeKinematics(tret, savedY);
             } else {
                 updAdvancedState().updTime() = tret;
@@ -361,10 +361,10 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             pendingReturnCode = -1;
         }
         else if (tMax == getState().getTime()) {
-            
-            // A report or event is scheduled for the current time, so return 
+
+            // A report or event is scheduled for the current time, so return
             // immediately.
-            
+
             res = CPodes::Success;
             tret = tMax;
             previousTimeReturned = tret;
@@ -372,17 +372,17 @@ stepTo(Real reportTime, Real scheduledEventTime) {
         }
         else {
             // We're going to advance time now.
-    
-            // Auto-update discrete variables. This update is not allowed to 
+
+            // Auto-update discrete variables. This update is not allowed to
             // affect any computations performed at the current state value so
-            // does not invalidate any stage. Swap the discrete state update 
+            // does not invalidate any stage. Swap the discrete state update
             // cache entries with the state variables.
             updAdvancedState().autoUpdateDiscreteVariables();
 
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
-            int oldSteps=0, oldTestFailures=0, oldNonlinIterations=0, 
+            int oldSteps=0, oldTestFailures=0, oldNonlinIterations=0,
                 oldNonlinConvFailures=0;
             cpodes->getNumSteps(&oldSteps);
             cpodes->getNumErrTestFails(&oldTestFailures);
@@ -395,19 +395,19 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             if (res == CPodes::TstopReturn && isFakeTstop)
                 res = CPodes::Success;
 
-            if (res == CPodes::TooClose) {              
-                // This happens when the user asked the integrator to advance 
+            if (res == CPodes::TooClose) {
+                // This happens when the user asked the integrator to advance
                 // time by a tiny amount, comparable to numerical precision.
-                // Since CPODES cannot advance time by such small increments, 
-                // and the state would not change significantly in that time 
-                // anyway, just set the time while leaving the rest of the 
-                // state unchanged.             
+                // Since CPODES cannot advance time by such small increments,
+                // and the state would not change significantly in that time
+                // anyway, just set the time while leaving the rest of the
+                // state unchanged.
                 tret = tMax;
                 yout = getAdvancedState().getY();
                 res = CPodes::Success;
             }
 
-            int newSteps=0, newTestFailures=0, newNonlinIterations=0, 
+            int newSteps=0, newTestFailures=0, newNonlinIterations=0,
                 newNonlinConvFailures=0;
             cpodes->getNumSteps(&newSteps);
             cpodes->getNumErrTestFails(&newTestFailures);
@@ -418,29 +418,29 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             // Project stats were already updated in project() above.
             statsIterations += newNonlinIterations-oldNonlinIterations;
             statsConvergenceTestFailures += newNonlinConvFailures-oldNonlinConvFailures;
- 
+
             // This takes care of prescribed motion.
             setAdvancedStateAndRealizeKinematics(tret, yout);
             previousTimeReturned = tret;
         }
 
         realizeStateDerivatives(getAdvancedState());
-        
-        // Check for integration errors.        
-        if (res == CPodes::TooMuchWork) {         
-            // The maximum number of steps was reached.          
+
+        // Check for integration errors.
+        if (res == CPodes::TooMuchWork) {
+            // The maximum number of steps was reached.
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedNoEvent);
             return Integrator::ReachedStepLimit;
         }
-        if (res < 0) {           
-            // An error of some sort occurred.           
-            SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(), 
+        if (res < 0) {
+            // An error of some sort occurred.
+            SimTK_THROW2(Integrator::StepFailed, getAdvancedState().getTime(),
                          "CPodes::step() returned an error");
         }
 
-        // No error occurred.      
+        // No error occurred.
 
-        // If a triggered event was isolated to the window (tLo,tHi], 
+        // If a triggered event was isolated to the window (tLo,tHi],
         // CPodes will have returned with tret==tHi, which is where the
         // advancedState is now. We need to return an interpolated, "last good"
         // state at tLo, with return status ReachedEventTrigger. The calling
@@ -449,7 +449,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
         // (If the event handler modified the state, startOfContinuousInterval
         // will be set.) Then we will get called here again and need to report
         // the now-fixed advanced state at tHi as part of the trajectory,
-        // either as an ordinary time advanced state or as a 
+        // either as an ordinary time advanced state or as a
         // StartOfContinuousInterval state if something happened.
         // But there might be some reports due prior to tLo first.
 
@@ -458,12 +458,12 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             cpodes->getRootWindow(&tLo, &tHi);
             tret = tLo;
         }
-        
+
         // Determine the correct return code.
-        
-        if (tret >= reportTime && reportTime <= scheduledEventTime) {          
-            // We reached the scheduled report time.  
-            // If necessary, generate an interpolated state.      
+
+        if (tret >= reportTime && reportTime <= scheduledEventTime) {
+            // We reached the scheduled report time.
+            // If necessary, generate an interpolated state.
             if (tret > tMax) {
                 setUseInterpolatedState(true);
                 createInterpolatedState(tMax);
@@ -475,11 +475,11 @@ stepTo(Real reportTime, Real scheduledEventTime) {
             return Integrator::ReachedReportTime;
         }
 
-        if (tret >= scheduledEventTime) {           
-            // We reached a scheduled event time.            
+        if (tret >= scheduledEventTime) {
+            // We reached a scheduled event time.
             savedY.resize(0);
-            if (tret > scheduledEventTime) {              
-                // Back up the advanced state to the event time.               
+            if (tret > scheduledEventTime) {
+                // Back up the advanced state to the event time.
                 savedY = getAdvancedState().getY();
                 createInterpolatedState(scheduledEventTime);
                 setAdvancedStateAndRealizeDerivatives(scheduledEventTime,
@@ -491,11 +491,11 @@ stepTo(Real reportTime, Real scheduledEventTime) {
         }
 
 
-        if (res == CPodes::RootReturn) {           
-            // An event was triggered in the interval (tLo,tHi]. We're 
+        if (res == CPodes::RootReturn) {
+            // An event was triggered in the interval (tLo,tHi]. We're
             // going to return with an interpolated state at tLo; CPodes has
             // already capped the advanced state at tHi.
-            
+
             Array_<SystemEventTriggerIndex> eventIndices;
             Array_<Real> eventTimes;
             Array_<Event::Trigger> eventTransitions;
@@ -506,19 +506,19 @@ stepTo(Real reportTime, Real scheduledEventTime) {
                 if (eventFlags[i] != 0) {
                     eventIndices.push_back(i);
                     eventTimes.push_back(previousTimeReturned);
-                    eventTransitions.push_back(eventFlags[i] == 1 
+                    eventTransitions.push_back(eventFlags[i] == 1
                         ? Event::Rising : Event::Falling);
                 }
             delete[] eventFlags;
             Array_<EventId> ids;
             findEventIds(eventIndices, ids);
 
-            // Generate an interpolated state at tLo.      
+            // Generate an interpolated state at tLo.
             setUseInterpolatedState(true);
             createInterpolatedState(tret);
             realizeStateDerivatives(getInterpolatedState());
 
-            setTriggeredEvents(tret, previousTimeReturned, 
+            setTriggeredEvents(tret, previousTimeReturned,
                                ids, eventTimes, eventTransitions);
 
             // For next time, we'll treat the state at tHi as an ordinary
@@ -532,7 +532,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
         }
 
         if (res == CPodes::TstopReturn) {
-            // The specified final time was reached.  
+            // The specified final time was reached.
             if (usePendingReturnCode) {
                 // The final step result was already reported; now just return
                 // the same state but with an "end of simulation" status. No
@@ -542,7 +542,7 @@ stepTo(Real reportTime, Real scheduledEventTime) {
                 return Integrator::EndOfSimulation;
             }
             // This is our first encounter with the final time. Report this as
-            // a TimeHasAdvanced state if the user has asked for those, 
+            // a TimeHasAdvanced state if the user has asked for those,
             // otherwise pretend there was a report scheduled there. This should
             // match the behavior of AbstractIntegratorRep.
             savedY.resize(0);
@@ -553,8 +553,8 @@ stepTo(Real reportTime, Real scheduledEventTime) {
                 : Integrator::ReachedReportTime;
         }
 
-        if (userReturnEveryInternalStep == 1) {           
-            // The user asked to be notified of every internal step.           
+        if (userReturnEveryInternalStep == 1) {
+            // The user asked to be notified of every internal step.
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedNoEvent);
             return Integrator::TimeHasAdvanced;
         }
@@ -633,7 +633,7 @@ bool CPodesIntegratorRep::methodHasErrorControl() const {
 }
 
 void CPodesIntegratorRep::setUseCPodesProjection() {
-    SimTK_APIARGCHECK_ALWAYS(!initialized, "CPodesIntegrator", 
+    SimTK_APIARGCHECK_ALWAYS(!initialized, "CPodesIntegrator",
         "setUseCPodesProjection",
         "This method may not be invoked after the integrator has been initialized.");
     useCpodesProjection = true;

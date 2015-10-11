@@ -2,7 +2,7 @@
  * -----------------------------------------------------------------
  * $Revision: 1.2 $
  * $Date: 2006/11/29 00:05:07 $
- * ----------------------------------------------------------------- 
+ * -----------------------------------------------------------------
  * Programmer(s): Radu Serban and Aaron Collier @ LLNL
  * -----------------------------------------------------------------
  * Copyright (c) 2002, The Regents of the University of California.
@@ -64,7 +64,7 @@ typedef struct _generic_N_Vector *N_Vector;
 /* Define array of N_Vectors */
 typedef N_Vector *N_Vector_S;
 
-/* Structure containing function pointers to vector operations  */  
+/* Structure containing function pointers to vector operations  */
 struct _generic_N_Vector_Ops {
   N_Vector    (*nvclone)(N_Vector);
   N_Vector    (*nvcloneempty)(N_Vector);
@@ -72,7 +72,7 @@ struct _generic_N_Vector_Ops {
   void        (*nvspace)(N_Vector, long int *, long int *);
   realtype*   (*nvgetarraypointer)(N_Vector);
   void        (*nvsetarraypointer)(realtype *, N_Vector);
-  void        (*nvlinearsum)(realtype, N_Vector, realtype, N_Vector, N_Vector); 
+  void        (*nvlinearsum)(realtype, N_Vector, realtype, N_Vector, N_Vector);
   void        (*nvconst)(realtype, N_Vector);
   void        (*nvprod)(N_Vector, N_Vector, N_Vector);
   void        (*nvdiv)(N_Vector, N_Vector, N_Vector);
@@ -105,7 +105,7 @@ struct _generic_N_Vector {
   void *content;
   struct _generic_N_Vector_Ops *ops;
 };
-  
+
 /*
  * -----------------------------------------------------------------
  * Functions exported by NVECTOR module
@@ -137,7 +137,7 @@ struct _generic_N_Vector {
  *   the solver-specific interfaces to the dense and banded linear
  *   solvers, as well as the interfaces to  the banded preconditioners
  *   distributed with SUNDIALS.
- *   
+ *
  * N_VSetArrayPointer
  *   Overwrites the data field in the given N_Vector with a user-supplied
  *   array of type 'realtype'.
@@ -181,7 +181,7 @@ struct _generic_N_Vector {
  *         max (i = 0 to N-1) ABS(x[i])
  *
  * N_VWrmsNorm
- *   Returns the weighted root mean square norm of x with weight 
+ *   Returns the weighted root mean square norm of x with weight
  *   vector w:
  *         sqrt [(sum (i = 0 to N-1) {(x[i]*w[i])^2})/N]
  *
@@ -197,7 +197,7 @@ struct _generic_N_Vector {
  *         min (i = 0 to N-1) x[i]
  *
  * N_VWL2Norm
- *   Returns the weighted Euclidean L2 norm of x with weight 
+ *   Returns the weighted Euclidean L2 norm of x with weight
  *   vector w:
  *         sqrt [(sum (i = 0 to N-1) {(x[i]*w[i])^2})]
  *
@@ -211,13 +211,13 @@ struct _generic_N_Vector {
  *                 0.0 otherwise
  *
  * N_VInvTest
- *   Performs the operation z[i] = 1/x[i] with a test for 
+ *   Performs the operation z[i] = 1/x[i] with a test for
  *   x[i] == 0.0 before inverting x[i].
- *   This routine returns TRUE if all components of x are non-zero 
+ *   This routine returns TRUE if all components of x are non-zero
  *   (successful inversion) and returns FALSE otherwise.
  *
  * N_VConstrMask
- *   Performs the operation : 
+ *   Performs the operation :
  *       m[i] = 1.0 if constraint test fails for x[i]
  *       m[i] = 0.0 if constraint test passes for x[i]
  *   where the constraint tests are as follows:
@@ -234,8 +234,8 @@ struct _generic_N_Vector {
  *   constraint checking.
  *
  * N_VMinQuotient
- *   Performs the operation : 
- *       minq  = min ( num[i]/denom[i]) over all i such that   
+ *   Performs the operation :
+ *       minq  = min ( num[i]/denom[i]) over all i such that
  *       denom[i] != 0.
  *   This routine returns the minimum of the quotients obtained
  *   by term-wise dividing num[i] by denom[i]. A zero element
@@ -257,9 +257,9 @@ struct _generic_N_Vector {
  * F    -  called by the Fortran-to-C interface
  *
  *                  ------------------------------------------------
- *                                         MODULES                  
+ *                                         MODULES
  * NVECTOR          ------------------------------------------------
- * FUNCTIONS          CVODE/CVODES          IDA             KINSOL    
+ * FUNCTIONS          CVODE/CVODES          IDA             KINSOL
  * -----------------------------------------------------------------
  * N_VClone           S Di I                S I BBDP        S I BBDP
  * -----------------------------------------------------------------
@@ -267,52 +267,52 @@ struct _generic_N_Vector {
  * -----------------------------------------------------------------
  * N_VDestroy         S Di I                S I BBDP        S I BBDP
  * -----------------------------------------------------------------
- * N_VSpace           S                     S               S         
+ * N_VSpace           S                     S               S
  * -----------------------------------------------------------------
- * N_VGetArrayPointer D B BP BBDP F         D B BBDP        BBDP F     
+ * N_VGetArrayPointer D B BP BBDP F         D B BBDP        BBDP F
  * -----------------------------------------------------------------
  * N_VSetArrayPointer D F                   D               F
  * -----------------------------------------------------------------
- * N_VLinearSum       S D Di I              S D I           S I       
+ * N_VLinearSum       S D Di I              S D I           S I
  * -----------------------------------------------------------------
- * N_VConst           S I                   S I             I       
+ * N_VConst           S I                   S I             I
  * -----------------------------------------------------------------
- * N_VProd            S Di I                S I             S I       
+ * N_VProd            S Di I                S I             S I
  * -----------------------------------------------------------------
  * N_VDiv             S Di I                S I             S I
  * -----------------------------------------------------------------
- * N_VScale           S D B Di I BP BBDP    S D B I BBDP    S I BBDP  
+ * N_VScale           S D B Di I BP BBDP    S D B I BBDP    S I BBDP
  * -----------------------------------------------------------------
- * N_VAbs             S                     S               S         
+ * N_VAbs             S                     S               S
  * -----------------------------------------------------------------
- * N_VInv             S Di                  S               S         
+ * N_VInv             S Di                  S               S
  * -----------------------------------------------------------------
- * N_VAddConst        S Di                  S                        
+ * N_VAddConst        S Di                  S
  * -----------------------------------------------------------------
- * N_VDotProd         I                     I               I         
+ * N_VDotProd         I                     I               I
  * -----------------------------------------------------------------
- * N_VMaxNorm         S                     S               S         
+ * N_VMaxNorm         S                     S               S
  * -----------------------------------------------------------------
- * N_VWrmsNorm        S D B I BP BBDP       S                         
+ * N_VWrmsNorm        S D B I BP BBDP       S
  * -----------------------------------------------------------------
- * N_VWrmsNormMask                          S                         
+ * N_VWrmsNormMask                          S
  * -----------------------------------------------------------------
- * N_VMin             S                     S               S         
+ * N_VMin             S                     S               S
  * -----------------------------------------------------------------
- * N_VWL2Norm                                               S I       
+ * N_VWL2Norm                                               S I
  * -----------------------------------------------------------------
  * N_VL1Norm                                                I
  * -----------------------------------------------------------------
- * N_VCompare         Di                    S                         
+ * N_VCompare         Di                    S
  * -----------------------------------------------------------------
- * N_VInvTest         Di                                              
+ * N_VInvTest         Di
  * -----------------------------------------------------------------
- * N_VConstrMask                            S               S         
+ * N_VConstrMask                            S               S
  * -----------------------------------------------------------------
- * N_VMinQuotient                           S               S         
+ * N_VMinQuotient                           S               S
  * -----------------------------------------------------------------
  */
-  
+
 SUNDIALS_EXPORT N_Vector N_VClone(N_Vector w);
 SUNDIALS_EXPORT N_Vector N_VCloneEmpty(N_Vector w);
 SUNDIALS_EXPORT void N_VDestroy(N_Vector v);
@@ -348,16 +348,16 @@ SUNDIALS_EXPORT realtype N_VMinQuotient(N_Vector num, N_Vector denom);
 /*
  * -----------------------------------------------------------------
  * N_VCloneEmptyVectorArray
- *   Creates (by cloning 'w') an array of 'count' empty N_Vectors 
+ *   Creates (by cloning 'w') an array of 'count' empty N_Vectors
  *
  * N_VCloneVectorArray
- *   Creates (by cloning 'w') an array of 'count' N_Vectors 
+ *   Creates (by cloning 'w') an array of 'count' N_Vectors
  *
  * N_VDestroyVectorArray
  *   Frees memory for an array of 'count' N_Vectors that was
  *   created by a call to N_VCloneVectorArray
  *
- * These functions are used by the SPGMR iterative linear solver 
+ * These functions are used by the SPGMR iterative linear solver
  * module and by the CVODES and IDAS solvers.
  * -----------------------------------------------------------------
  */

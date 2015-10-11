@@ -37,14 +37,14 @@ namespace Ipopt
    *  \left(\begin{array}{c}
    *  sol_x\\ sol_s\\ sol_c\\ sol_d\\ sol^z_L\\ sol^z_U\\ sol^v_L\\
    *  sol^v_U
-   *  \end{array}\right) = 
+   *  \end{array}\right) =
    *  \left(\begin{array}{c}
    *  rhs_x\\ rhs_s\\ rhs_c\\ rhs_d\\ rhs^z_L\\ rhs^z_U\\ rhs^v_L\\
    *  rhs^v_U
    *  \end{array}\right)
    *  \f$
    *
-   *  Here, \f$Sl^x_L = (P^x_L)^T x - x_L\f$, 
+   *  Here, \f$Sl^x_L = (P^x_L)^T x - x_L\f$,
    *  \f$Sl^x_U = x_U - (P^x_U)^T x\f$, \f$Sl^d_L = (P^d_L)^T d(x) - d_L\f$,
    *  \f$Sl^d_U = d_U - (P^d_U)^T d(x)\f$.  The results returned to the
    *  caller is \f$res = \alpha * sol + \beta * res\f$.
@@ -113,7 +113,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

@@ -38,16 +38,16 @@ void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex
     if (discriminant < tol && discriminant > -tol) {
 
         // b^2 == 4ac to within machine precision, so make the roots identical.
-        
+
         T root = -b/((T) 2.0*a);
         roots[0] = complex<T>(root, 0.0);
         roots[1] = complex<T>(root, 0.0);
         return;
     }
     if (b == 0.0) {
-        
+
         // The coefficient of the linear term is zero, which makes the formula simpler.
-        
+
         if (discriminant >= 0.0) {
             T root = std::sqrt(discriminant)/(T) 2.0*a;
             roots[0] = root;
@@ -73,9 +73,9 @@ void PolynomialRootFinder::findRoots(const Vec<3,complex<T> >& coefficients, Vec
     complex<T> b2 = b*b;
     complex<T> discriminant = b2 - ((T) 4.0)*a*c;
     if (b == (T) 0.0) {
-        
+
         // The coefficient of the linear term is zero, which makes the formula simpler.
-        
+
         complex<T> root = std::sqrt(discriminant)/((T) 2.0)*a;
         roots[0] = root;
         roots[1] = -root;
@@ -95,7 +95,7 @@ void PolynomialRootFinder::findRoots(const Vec<4,T>& coefficients, Vec<3,complex
     T rootr[3];
     T rooti[3];
     for (int i = 0; i < 3; ++i) // in case these don't get filled in
-        rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+        rootr[i] = rooti[i] = NTraits<T>::getNaN();
     const int nrootsFound = RPoly<T>().findRoots(coeff, 3, rootr, rooti);
     roots[0] = complex<T>(rootr[0], rooti[0]);
     roots[1] = complex<T>(rootr[1], rooti[1]);
@@ -118,7 +118,7 @@ void PolynomialRootFinder::findRoots(const Vec<4,complex<T> >& coefficients, Vec
     T rootr[3];
     T rooti[3];
     for (int i = 0; i < 3; ++i) // in case these don't get filled in
-        rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+        rootr[i] = rooti[i] = NTraits<T>::getNaN();
     const int nrootsFound = CPoly<T>().findRoots(coeffr, coeffi, 3, rootr, rooti);
     roots[0] = complex<T>(rootr[0], rooti[0]);
     roots[1] = complex<T>(rootr[1], rooti[1]);
@@ -145,7 +145,7 @@ void PolynomialRootFinder::findRoots(const Vector_<T>& coefficients, Vector_<com
         for (int i = 0; i < n+1; ++i)
             coeff[i] = coefficients[i];
         for (int i = 0; i < n; ++i) // in case these don't get filled in
-            rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+            rootr[i] = rooti[i] = NTraits<T>::getNaN();
         const int nrootsFound = RPoly<T>().findRoots(coeff, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
             roots[i] = complex<T>(rootr[i], rooti[i]);
@@ -184,7 +184,7 @@ void PolynomialRootFinder::findRoots(const Vector_<complex<T> >& coefficients, V
             coeffi[i] = coefficients[i].imag();
         }
         for (int i = 0; i < n; ++i) // in case these don't get filled in
-            rootr[i] = rooti[i] = NTraits<T>::getNaN(); 
+            rootr[i] = rooti[i] = NTraits<T>::getNaN();
         const int nrootsFound = CPoly<T>().findRoots(coeffr, coeffi, n, rootr, rooti);
         for (int i = 0; i < n; ++i)
             roots[i] = complex<T>(rootr[i], rooti[i]);

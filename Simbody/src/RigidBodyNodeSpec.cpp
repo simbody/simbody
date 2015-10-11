@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 
 /* This file contains implementations of the base class methods for the
-templatized class RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>, and 
+templatized class RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>, and
 instantiations of the class for all possible values of the arguments. */
 
 #include "SimbodyMatterSubsystemRep.h"
@@ -45,7 +45,7 @@ template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 calcParentToChildVelocityJacobianInGround
    (const SBModelVars&          mv,
-    const SBTreePositionCache&  pc, 
+    const SBTreePositionCache&  pc,
     HType&                      H_PB_G) const
 {
     const HType& H_FM = getH_FM(pc);
@@ -77,13 +77,13 @@ calcParentToChildVelocityJacobianInGround
 //                            CALC H_PB_G_DOT
 //==============================================================================
 // Same for all mobilizers.
-// CAUTION: our H matrix definition is transposed from Jain and Schwieters. 
+// CAUTION: our H matrix definition is transposed from Jain and Schwieters.
 // Cost is 69 + 65*dof flops
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&          mv,
-    const SBTreePositionCache&  pc, 
+    const SBTreePositionCache&  pc,
     const SBTreeVelocityCache&  vc,
     HType&                      HDot_PB_G) const
 {
@@ -106,10 +106,10 @@ calcParentToChildVelocityJacobianInGroundDot(
     const HType& H_PB_G = getH(pc);
     if (noX_MB || noR_FM)
         HDot_PB_G = R_GF * HDot_FM // 48*dof
-                  + HType(w_GF % H_PB_G[0], 
+                  + HType(w_GF % H_PB_G[0],
                           w_GF % H_PB_G[1]);
     else {
-        // want r_MB_F, that is, the vector from OM to OB, expressed in F 
+        // want r_MB_F, that is, the vector from OM to OB, expressed in F
         const Vec3&     r_MB   = getX_MB().p();     // fixed
         const Rotation& R_FM   = getX_FM(pc).R();   // just calculated
         const Vec3      r_MB_F = (noR_FM ? r_MB : R_FM*r_MB); // 15 flops
@@ -123,7 +123,7 @@ calcParentToChildVelocityJacobianInGroundDot(
 
 
         HDot_PB_G =   R_GF * (HDot_FM + HDot_MB_F) // 54*dof
-                    + HType(w_GF % H_PB_G[0], 
+                    + HType(w_GF % H_PB_G[0],
                             w_GF % H_PB_G[1]);
     }
 }
@@ -131,12 +131,12 @@ calcParentToChildVelocityJacobianInGroundDot(
 //==============================================================================
 //                       CALC REVERSE MOBILIZER H_FM
 //==============================================================================
-// This is the default implementation for turning H_MF into H_FM. 
+// This is the default implementation for turning H_MF into H_FM.
 // A mobilizer can override this to do it faster.
 // From the Simbody theory manual,
 //      H_FM_w = - R_FM*H_MF_w
 //      H_FM_v = -(R_FM*H_MF_v + p_FM x H_FM_w)
-//             
+//
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerH_FM(
     const SBStateDigest& sbs,
@@ -169,19 +169,19 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerH_FM(
 //==============================================================================
 //                     CALC REVERSE MOBILIZER HDOT_FM
 //==============================================================================
-// This is the default implementation for turning HDot_MF into HDot_FM. 
+// This is the default implementation for turning HDot_MF into HDot_FM.
 // A mobilizer can override this to do it faster.
 // We depend on H_FM having already been calculated.
 //
 // From the Simbody theory manual,
 //      HDot_FM_w = -R_FM * HDot_MF_w + w_FM_x H_FM_w
-//                  
-//      HDot_FM_v = -R_FM * HDot_MF_v + w_FM_x H_FM_v 
+//
+//      HDot_FM_v = -R_FM * HDot_MF_v + w_FM_x H_FM_v
 //                  - (p_FM_x HDot_FM_w
 //                     + (v_FM_x - w_FM_x p_FM_x)H_FM_w)
 //
 // where "a_x" indicates the cross product matrix of vector a.
-//  
+//
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
     const SBStateDigest& sbs,
@@ -201,7 +201,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
 
     const Vec3&     w_FM    = getV_FM(vc)[0];
     const Vec3&     v_FM    = getV_FM(vc)[1];
-    
+
     // Make cross product matrices.
     const Mat33     p_FM_x  = crossMat(p_FM);   // 3 flops
     const Mat33     w_FM_x  = crossMat(w_FM);   // 3 flops
@@ -222,11 +222,11 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
 // Compute articulated body inertia and related quantities for this body B.
 // This must be called tip-to-base (inward).
 //
-// Given only position-related quantities from the State 
+// Given only position-related quantities from the State
 //      Mk  (this body's spatial inertia matrix)
 //      Phi (composite body child-to-parent shift matrix)
 //      H   (joint transition matrix; sense is transposed from Jain & Schwieters)
-// we calculate dynamic quantities 
+// we calculate dynamic quantities
 //      P   (articulated body inertia)
 //    PPlus (articulated body inertia as seen through the mobilizer)
 // For a prescribed mobilizer, we have PPlus==P. Otherwise we also compute
@@ -237,8 +237,8 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcReverseMobilizerHDot_FM(
 // and put them in the state cache.
 //
 // This is Algorithm 6.1 on page 106 of Jain's 2011 book modified to accommodate
-// prescribed motion as described on page 323. Note that although P+ is "as 
-// felt" on the inboard side of the mobilizer it is still calculated about 
+// prescribed motion as described on page 323. Note that although P+ is "as
+// felt" on the inboard side of the mobilizer it is still calculated about
 // Bo just as is P.
 //
 // Cost is 93 flops per child plus
@@ -251,16 +251,16 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 realizeArticulatedBodyInertiasInward(
     const SBInstanceCache&          ic,
     const SBTreePositionCache&      pc,
-    SBArticulatedBodyInertiaCache&  abc) const 
+    SBArticulatedBodyInertiaCache&  abc) const
 {
     ArticulatedInertia& P = updP(abc);
 
     // Start with the spatial inertia of the current body (in Ground frame).
     P = ArticulatedInertia(getMk_G(pc)); // 12 flops
 
-    // For each child, we previously took its articulated body inertia P and 
+    // For each child, we previously took its articulated body inertia P and
     // removed the portion of that inertia that can't be felt from the parent
-    // because of the joint mobilities. That is, we calculated 
+    // because of the joint mobilities. That is, we calculated
     // P+ = P - P H DI ~H P, where the second term is the projection of P into
     // the mobility space of the child's inboard mobilizer. Note that if the
     // child's mobilizer is prescribed, then the entire inertia will be felt
@@ -313,13 +313,13 @@ realizeArticulatedBodyInertiasInward(
     Mat33 massMoment = G.row(0)*~PH.row(1); // (full)            9*(2*dof-1) flops
     Mat33 mass       = G.row(1)*~PH.row(1); // symmetric result  9*(2*dof-1) flops
     Mat33 inertia    = G.row(0)*~PH.row(0); // symmetric result  9*(2*dof-1) flops
-    // These must be symmetrized due to numerical errors for 12 more flops. 
-    SymMat33 symMass( mass(0,0), 
-                     (mass(1,0)+mass(0,1))/2,  mass(1,1), 
+    // These must be symmetrized due to numerical errors for 12 more flops.
+    SymMat33 symMass( mass(0,0),
+                     (mass(1,0)+mass(0,1))/2,  mass(1,1),
                      (mass(2,0)+mass(0,2))/2, (mass(2,1)+mass(1,2))/2, mass(2,2));
-    SymMat33 symInertia( 
-         inertia(0,0), 
-        (inertia(1,0)+inertia(0,1))/2,  inertia(1,1), 
+    SymMat33 symInertia(
+         inertia(0,0),
+        (inertia(1,0)+inertia(0,1))/2,  inertia(1,1),
         (inertia(2,0)+inertia(0,2))/2, (inertia(2,1)+inertia(1,2))/2, inertia(2,2));
     PPlus = P - ArticulatedInertia(symMass, massMoment, symInertia); // 21 flops
 }
@@ -334,7 +334,7 @@ realizeArticulatedBodyInertiasInward(
 //
 // First pass
 // ----------
-// Given previously-calculated quantities from the State 
+// Given previously-calculated quantities from the State
 //      P       this body's articulated body inertia
 //     Phi      composite body child-to-parent shift matrix
 //      H       joint transition matrix; sense is transposed from Jain
@@ -343,7 +343,7 @@ realizeArticulatedBodyInertiasInward(
 //      F       body force applied to B
 //      f       generalize forces applied to B's mobilities
 //    udot_p    known udots (if mobilizer is prescribed)
-// calculate 
+// calculate
 //      z       articulated body residual force on B
 //    zPlus     AB residual force as felt on inboard side of mobilizer
 //     eps      f - ~H*z  gen force plus gen equiv of body forces
@@ -363,7 +363,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
     const Real*                             allUDot,
     SpatialVec*                             allZ,
     SpatialVec*                             allZPlus,
-    Real*                                   allEpsilon) const 
+    Real*                                   allEpsilon) const
 {
     const Vec<dof>&   f     = fromU(jointForces);
     const SpatialVec& F     = bodyForces[nodeNum];
@@ -405,7 +405,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass1Inward(
 // Base to tip: temp allA_GB does not need to be initialized before
 // beginning the iteration.
 //
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
+template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
@@ -430,7 +430,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
     const HType&              G   = getG(abc);
 
     // Shift parent's acceleration outward (Ground==0). 12 flops
-    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()];
     const SpatialVec  APlus = ~phi * A_GP;
 
     if (isPrescribed) {
@@ -445,14 +445,14 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
     A_GB = APlus + H*udot + a;
 }
 
- 
+
 //==============================================================================
 //                          MULTIPLY BY M INVERSE
 //==============================================================================
 // Temps do not need to be initialized.
 //
-// This calculates udot = M^-1 f in two O(n) passes. Note that we are ignoring 
-// velocities; if there are any velocity-dependent forces you care about, they 
+// This calculates udot = M^-1 f in two O(n) passes. Note that we are ignoring
+// velocities; if there are any velocity-dependent forces you care about, they
 // should already be in f.
 //
 // When there is prescribed motion, it is already reflected in the articulated
@@ -463,18 +463,18 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcUDotPass2Outward(
 // not and the code deals with that properly. So now you can view the system as
 //     [ Mrr Mrp ] [udot_r]   [  0  ]   [f_r]
 //     [~Mrp Mpp ] [udot_p] + [tau_p] = [f_p]
-// where udot_p, f_r, and f_p are given and the unknowns are udot_r (the free 
-// accelerations) and tau_p (the unknown forces that enforce the prescribed 
+// where udot_p, f_r, and f_p are given and the unknowns are udot_r (the free
+// accelerations) and tau_p (the unknown forces that enforce the prescribed
 // motion). This produces two equations when multiplied out:
 //     (1) Mrr udot_r = f_r -  Mrp udot_p
-//     (2)      tau_p = f_p - ~Mrp udot_r - Mpp udot_p 
+//     (2)      tau_p = f_p - ~Mrp udot_r - Mpp udot_p
 //
 // Now we can define what the present method does: it returns
 //                 [udot_r]   [udot_r]   [Mrr^-1 0] [f_r]
 //                 [udot_p] = [   0  ] = [  0    0] [f_p]
 // f_p is ignored and won't be examined; udot_p will be set to zero on return.
 //
-// Cost per body is 
+// Cost per body is
 //      30 + 47*ndof_r + 2*ndof_r^2
 // where ndof_r is the number of u's for a regular (non-prescribed) mobilizer;
 // 0 for a prescribed one.
@@ -518,7 +518,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass1Inward(
 // Pass 2 of multiplyByMInv.
 // Base to tip: temp allA_GB does not need to be initialized before
 // beginning the iteration.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
+template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
@@ -538,7 +538,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
     const HType&        G   = getG(abc);
 
     // Shift parent's acceleration outward (Ground==0). 12 flops
-    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()];
     const SpatialVec  APlus = ~phi * A_GP;
 
     // For a prescribed mobilizer, set udot==0.
@@ -558,12 +558,12 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
 //==============================================================================
 // This method calculates:
 //      A_GB = J*udot + Jdot*u
-// in O(N) time, where udot is supplied as an argument and Jdot*u is the 
+// in O(N) time, where udot is supplied as an argument and Jdot*u is the
 // coriolis acceleration which we get from the velocity cache. This also serves
 // as pass 1 for inverse dynamics.
 //
 // This must be called base to tip. The cost is 12*dof + 18 flops.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
+template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 calcBodyAccelerationsFromUdotOutward(
     const SBTreePositionCache&  pc,
@@ -578,7 +578,7 @@ calcBodyAccelerationsFromUdotOutward(
     const SpatialVec A_GP = ~getPhi(pc) * allA_GB[parent->getNodeNum()];
 
     // 12*dof+6 flops.
-    A_GB = A_GP + getH(pc)*udot + getMobilizerCoriolisAcceleration(vc); 
+    A_GB = A_GP + getH(pc)*udot + getMobilizerCoriolisAcceleration(vc);
 }
 
 
@@ -586,10 +586,10 @@ calcBodyAccelerationsFromUdotOutward(
 //==============================================================================
 //                            CALC INVERSE DYNAMICS
 //==============================================================================
-// This algorithm calculates 
-//      f = M*udot + C(u) - f_applied 
-// in O(N) time, where C(u) are the velocity-dependent coriolis, centrifugal and 
-// gyroscopic forces, f_applied are the applied body and joint forces, and udot 
+// This algorithm calculates
+//      f = M*udot + C(u) - f_applied
+// in O(N) time, where C(u) are the velocity-dependent coriolis, centrifugal and
+// gyroscopic forces, f_applied are the applied body and joint forces, and udot
 // is given.
 //
 // Pass 1 is base to tip and is just a calculation of body accelerations arising
@@ -598,7 +598,7 @@ calcBodyAccelerationsFromUdotOutward(
 //
 // Pass 2 is tip to base. It takes body accelerations from pass 1 (including coriolis
 // accelerations as well as hinge accelerations), and the applied forces,
-// and calculates the additional hinge forces that would be necessary to produce 
+// and calculates the additional hinge forces that would be necessary to produce
 // the observed accelerations.
 //
 // Costs for inverse dynamics include both passes:
@@ -615,7 +615,7 @@ calcInverseDynamicsPass2Inward(
     const Real*                 jointForces,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allF,   // temp
-    Real*                       allTau) const 
+    Real*                       allTau) const
 {
     const Vec<dof>&   myJointForce  = fromU(jointForces);
     const SpatialVec& myBodyForce   = bodyForces[nodeNum];
@@ -654,7 +654,7 @@ calcInverseDynamicsPass2Inward(
 // precalculated along with D = ~H*R*H. Then I *think* this could be a single
 // pass with tau = D*udot. Whether this is worth it would depend on how much
 // this gets re-used after R and D are calculated.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void 
+template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass1Outward(
     const SBTreePositionCache&  pc,
     const Real*                 allUDot,
@@ -676,14 +676,14 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass2Inward(
     const SBTreePositionCache&  pc,
     const SpatialVec*           allA_GB,
     SpatialVec*                 allF,   // temp
-    Real*                       allTau) const 
+    Real*                       allTau) const
 {
     const SpatialVec& A_GB  = allA_GB[nodeNum];
     SpatialVec&       F     = allF[nodeNum];
     Vec<dof>&         tau   = toU(allTau);
 
     // 45 flops because Mk has a nice structure
-    F = getMk_G(pc)*A_GB; 
+    F = getMk_G(pc)*A_GB;
 
     for (unsigned i=0; i<children.size(); ++i) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
@@ -702,9 +702,9 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMPass2Inward(
 // To be called base to tip.
 // This is calculating what Abhi Jain calls the operational space compliance
 // kernel in his 2011 book. This is the inverse of the operational space inertia
-// for each body at its body frame. Also, see Equation 20 in Rodriguez,Jain, 
-// & Kreutz-Delgado:  A spatial operator algebra 
-// for manipulator modeling and control. Intl. J. Robotics Research 
+// for each body at its body frame. Also, see Equation 20 in Rodriguez,Jain,
+// & Kreutz-Delgado:  A spatial operator algebra
+// for manipulator modeling and control. Intl. J. Robotics Research
 // 10(4):371-381 (1991).
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
@@ -720,10 +720,10 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
         return;
     }
 
-    // Compute psi. Jain has TauBar=I-G*~H but we're negating that to G*~H-I 
-    // because we can save 30 flops by just subtracting 1 from the diagonals 
-    // rather than having to negate all the off-diagonals. Then Psi ends up 
-    // with the wrong sign here also, which doesn't matter because we multiply 
+    // Compute psi. Jain has TauBar=I-G*~H but we're negating that to G*~H-I
+    // because we can save 30 flops by just subtracting 1 from the diagonals
+    // rather than having to negate all the off-diagonals. Then Psi ends up
+    // with the wrong sign here also, which doesn't matter because we multiply
     // by it twice.
 
     SpatialMat tauBar = getG(abc)*~getH(pc);// 11*dof^2 flops
@@ -739,7 +739,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
 
     // Psi here has the opposite sign from Jain's, but we're multiplying twice
     // by it here so it doesn't matter.
-    updY(dc) = (getH(pc) * getDI(abc) * ~getH(pc)) 
+    updY(dc) = (getH(pc) * getDI(abc) * ~getH(pc))
                 + (~psi * parent->getY(dc) * psi);
 }
 
@@ -748,7 +748,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::realizeYOutward
 //==============================================================================
 //                       MULTIPLY BY SYSTEM JACOBIAN
 //==============================================================================
-// Calculate product of kinematic Jacobian J=~Phi*H and a mobility-space vector. Requires 
+// Calculate product of kinematic Jacobian J=~Phi*H and a mobility-space vector. Requires
 // that Phi and H are available, so this should only be called in Stage::Position or higher.
 // This does not change the cache at all.
 //
@@ -777,15 +777,15 @@ multiplyBySystemJacobian(
 //                   MULTIPLY BY SYSTEM JACOBIAN TRANSPOSE
 //==============================================================================
 // Calculate product of kinematic Jacobian transpose ~J=~H*Phi and a spatial
-// forces vector on each of the outboard bodies. Requires that Phi and H are 
-// available, so this should only be called in Stage::Position or higher. This 
+// forces vector on each of the outboard bodies. Requires that Phi and H are
+// available, so this should only be called in Stage::Position or higher. This
 // does not  change the cache at all.
-// NOTE (sherm 060214): I reworked this from the original. This one no longer 
-// incorporates applied hinge gradients if there are any; just add those in at 
+// NOTE (sherm 060214): I reworked this from the original. This one no longer
+// incorporates applied hinge gradients if there are any; just add those in at
 // the end if you want them.
 //
-// (sherm 060727) In spatial operators, this calculates ~H*Phi*F where F are the 
-// spatial forces applied to each body. See Schwieters Eq. 41. (But with sense 
+// (sherm 060727) In spatial operators, this calculates ~H*Phi*F where F are the
+// spatial forces applied to each body. See Schwieters Eq. 41. (But with sense
 // of H transposed.)
 //
 // Call tip to base.
@@ -795,7 +795,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::
 multiplyBySystemJacobianTranspose(
     const SBTreePositionCache&  pc,
     SpatialVec*                 zTmp,
-    const SpatialVec*           X, 
+    const SpatialVec*           X,
     Real*                       JtX) const
 {
     const SpatialVec& in  = X[getNodeNum()];
@@ -826,7 +826,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
     const SBTreeVelocityCache&  vc,
     const SpatialVec*           bodyForces,
     SpatialVec*                 allZ,
-    Real*                       jointForces) const 
+    Real*                       jointForces) const
 {
     const SpatialVec& myBodyForce  = bodyForces[nodeNum];
     SpatialVec&       z            = allZ[nodeNum];
@@ -840,7 +840,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::calcEquivalentJointForces(
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
 
-        z += phiChild * zChild; 
+        z += phiChild * zChild;
     }
 
     eps  = ~getH(pc) * z;

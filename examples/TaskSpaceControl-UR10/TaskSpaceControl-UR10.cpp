@@ -27,7 +27,7 @@ the controller itself contains a model of the system being controlled. Since
 we don't have a real robot handy, that means there will be two versions of
 the UR10 system here: one that we're simulating that is taking the role of the
 "real" robot, and one contained in the task space controller that we'll call
-the "model" robot. In real life the internal model won't perfectly match the 
+the "model" robot. In real life the internal model won't perfectly match the
 real one; we'll fake that here by introducing some sensor noise which you can
 control with sliders in the user interface.
 
@@ -39,7 +39,7 @@ The task the controller will achieve has two components:
 of gravity).
 
 You can also optionally sense the end effector position on the real robot
-and have that sent to the controller so that it doesn't have to depend 
+and have that sent to the controller so that it doesn't have to depend
 entirely on the behavior of the model robot when the real robot's sensors are
 noisy. Try cranking up the noise, which causes poor tracking, and then hit
 "e" to enable the end effector sensing which improves things dramatically.
@@ -75,8 +75,8 @@ class TasksMeasure : public Measure_<T> {
 public:
     SimTK_MEASURE_HANDLE_PREAMBLE(TasksMeasure, Measure_<T>);
 
-    TasksMeasure(UR10& modelRobot) 
-    :   Measure_<T>(modelRobot.updForceSubsystem(), 
+    TasksMeasure(UR10& modelRobot)
+    :   Measure_<T>(modelRobot.updForceSubsystem(),
                     new Implementation(modelRobot),
                     AbstractMeasure::SetHandle()) {}
 
@@ -88,16 +88,16 @@ public:
     void toggleGravityComp() {
         updImpl().m_compensateForGravity = !isGravityCompensationOn();}
     void toggleTask() {updImpl().m_controlTask = !getImpl().m_controlTask;}
-    void toggleEndEffectorSensing() 
+    void toggleEndEffectorSensing()
     {   updImpl().m_endEffectorSensing = !getImpl().m_endEffectorSensing;}
 
-    bool isGravityCompensationOn() const 
+    bool isGravityCompensationOn() const
     {   return getImpl().m_compensateForGravity; }
-    bool isEndEffectorSensingOn() const 
+    bool isEndEffectorSensingOn() const
     {   return getImpl().m_endEffectorSensing; }
     bool isTaskPointFollowingOn() const
     {   return getImpl().m_controlTask; }
-    const Vec3& getTaskPointInEndEffector() const 
+    const Vec3& getTaskPointInEndEffector() const
     {   return getImpl().m_taskPointInEndEffector; }
 
     SimTK_MEASURE_HANDLE_POSTSCRIPT(TasksMeasure, Measure_<T>);
@@ -109,8 +109,8 @@ class TasksMeasure<T>::Implementation : public Measure_<T>::Implementation {
 public:
     Implementation(const UR10& modelRobot,
                    Vec3 taskPointInEndEffector=Vec3(0,0,0),
-                   Real proportionalGain=225, double derivativeGain=30) 
-                   //Real proportionalGain=100, double derivativeGain=20) 
+                   Real proportionalGain=225, double derivativeGain=30)
+                   //Real proportionalGain=100, double derivativeGain=20)
     :   Measure_<T>::Implementation(T(UR10::NumCoords,NaN), 1),
         m_modelRobot(modelRobot),
         m_tspace1(m_modelRobot.getMatterSubsystem(), m_modelRobot.getGravity()),
@@ -122,7 +122,7 @@ public:
         m_controlTask(true),
         m_endEffectorSensing(false),
         m_desiredTaskPosInGround(Vec3(0.4, 0.1, 1)) // Z is up
-    {       
+    {
         m_tspace1.addStationTask(m_modelRobot.getBody(UR10::EndEffector),
                          m_taskPointInEndEffector);
     }
@@ -168,7 +168,7 @@ friend class TasksMeasure<T>;
 //==============================================================================
 //                    REACHING AND GRAVITY COMPENSATION
 //==============================================================================
-// This is a task-space controller that tries to move the end effector to 
+// This is a task-space controller that tries to move the end effector to
 // a particular target location, and applies gravity compensation and some
 // joint damping as lower-priority tasks.
 //
@@ -181,14 +181,14 @@ class ReachingAndGravityCompensation : public Force::Custom::Implementation {
 public:
     // The arm reaches for a target location, and the controller
     // compensates for gravity.
-    // 
+    //
     // @param[in] taskPointInEndEffector The point whose location we want
     //                                   to control.
     // @param[in] proportionalGain Units of N-m/rad
     // @param[in] derivativeGain Units of N-m-s/rad
-    ReachingAndGravityCompensation(const std::string& auxDir, 
-                                   const UR10& realRobot) 
-    :   m_modelRobot(auxDir), m_modelTasks(m_modelRobot), 
+    ReachingAndGravityCompensation(const std::string& auxDir,
+                                   const UR10& realRobot)
+    :   m_modelRobot(auxDir), m_modelTasks(m_modelRobot),
         m_realRobot(realRobot), m_targetColor(Red)
     {
         m_modelRobot.initialize(m_modelState);
@@ -202,7 +202,7 @@ public:
     void toggleTask() {m_modelTasks.toggleTask();}
     void toggleEndEffectorSensing() {m_modelTasks.toggleEndEffectorSensing();}
 
-    bool isGravityCompensationOn() const 
+    bool isGravityCompensationOn() const
     {   return m_modelTasks.isGravityCompensationOn(); }
 
     // This method calculates the needed control torques and adds them into
@@ -241,7 +241,7 @@ class UserInputHandler : public PeriodicEventHandler {
 public:
     UserInputHandler(Visualizer::InputSilo&             silo,
                      UR10&                              realRobot,
-                     ReachingAndGravityCompensation&    controller, 
+                     ReachingAndGravityCompensation&    controller,
                      Real                               interval)
     :   PeriodicEventHandler(interval), m_silo(silo), m_realRobot(realRobot),
         m_controller(controller), m_increment(0.05) {}
@@ -261,11 +261,11 @@ private:
 //==============================================================================
 int main(int argc, char **argv) {
   try {
-    cout << "This is Simbody example '" 
+    cout << "This is Simbody example '"
          << SimbodyExampleHelper::getExampleName() << "'\n";
     cout << "Working dir=" << Pathname::getCurrentWorkingDirectory() << endl;
 
-    const std::string auxDir = 
+    const std::string auxDir =
         SimbodyExampleHelper::findAuxiliaryDirectoryContaining
         ("geometry/Base.obj");
     std::cout << "Getting geometry from '" << auxDir << "'\n";
@@ -287,8 +287,8 @@ int main(int argc, char **argv) {
     viz.setShowFrameRate(true);
     viz.setShowSimTime(true);
 
-    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0); 
-    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0); 
+    viz.addSlider("Rate sensor noise", UNoise, 0, 1, 0);
+    viz.addSlider("Angle sensor noise", QNoise, 0, 1, 0);
 
     Visualizer::InputSilo* userInput = new Visualizer::InputSilo();
     viz.addInputListener(userInput);
@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
 //------------------------------------------------------------------------------
 //                TASKS MEASURE :: CALC CACHED VALUE VIRTUAL
 //------------------------------------------------------------------------------
-// Given a modelState that has been updated from the real robot's sensors, 
+// Given a modelState that has been updated from the real robot's sensors,
 // generate control torques as the TasksMeasure's value. This is the only part
 // of the code that is actually doing task space operations.
 
@@ -395,8 +395,8 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
     const Vector& u = ms.getU();
     const Real c = m_dampingGain;
     tau.setToZero();
-    //tau +=   p1.JT(s) * F1 
-    //              + p1.NT(s) * (  p2.JT(s) * F2 
+    //tau +=   p1.JT(s) * F1
+    //              + p1.NT(s) * (  p2.JT(s) * F2
     //                            + p2.NT(s) * (p1.g(s) - c * u));
 
 
@@ -407,7 +407,7 @@ void TasksMeasure<T>::Implementation::calcCachedValueVirtual
         tau -= p1.NT(ms) * (c*u); // damping
     } else if (m_compensateForGravity) {
         tau += p1.g(ms) - (c*u);
-    } else 
+    } else
         tau -= c*u;
 
     UR10::clampToLimits(tau);
@@ -439,7 +439,7 @@ void ReachingAndGravityCompensation::calcForce(
     // Optional: if real robot end effector location can be sensed, it can
     // be used to improve accuracy. Otherwise, estimate the end effector
     // location using the model robot.
-    const Vec3 sensedEEPos = 
+    const Vec3 sensedEEPos =
         m_realRobot.getSampledEndEffectorPos(realState);
     m_modelRobot.setSampledEndEffectorPos(m_modelState, sensedEEPos);
 
@@ -519,7 +519,7 @@ void UserInputHandler::handleEvent(State& realState, Real accuracy,
             if (key == 't') {
                 m_controller.toggleTask();
                 continue;
-            }            
+            }
             if (key == 'e') {
                 m_controller.toggleEndEffectorSensing();
                 continue;

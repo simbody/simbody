@@ -35,10 +35,10 @@
 
     // TRANSLATION (CARTESIAN) //
 
-// Translate (Cartesian) joint. This provides three degrees of translational 
-// freedom which is suitable (e.g.) for connecting a free atom to ground. The 
-// Cartesian directions are the axes of the parent body's F frame, with M=F 
-// when all 3 coords are 0, and the orientation of M in F is 0 (identity) 
+// Translate (Cartesian) joint. This provides three degrees of translational
+// freedom which is suitable (e.g.) for connecting a free atom to ground. The
+// Cartesian directions are the axes of the parent body's F frame, with M=F
+// when all 3 coords are 0, and the orientation of M in F is 0 (identity)
 // forever.
 template<bool noX_MB, bool noR_PF>
 class RBNodeTranslate : public RigidBodyNodeSpec<3, true, noX_MB, noR_PF> {
@@ -54,7 +54,7 @@ RBNodeTranslate(const MassProperties& mProps_B,
                 USquaredIndex&        nextUSqSlot,
                 QIndex&               nextQSlot)
 :   RigidBodyNodeSpec<3, true, noX_MB, noR_PF>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot,
-                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed, 
+                         RigidBodyNode::QDotIsAlwaysTheSameAsU, RigidBodyNode::QuaternionIsNeverUsed,
                          isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -62,17 +62,17 @@ RBNodeTranslate(const MassProperties& mProps_B,
 
     // Implementations of virtual methods.
 
-void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM, 
+void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
                            Vector& q) const {
     // the only rotation this mobilizer can represent is identity
 }
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3&  p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3&  p_FM,
                               Vector& q) const {
     // here's what this joint is really good at!
     this->toQ(q) = p_FM;
 }
 
-void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&, 
+void setUToFitAngularVelocityImpl(const SBStateDigest& sbs, const Vector&,
                                   const Vec3& w_FM, Vector& u) const {
     // The only angular velocity this can represent is zero.
 }
@@ -103,8 +103,8 @@ void calcX_FM(const SBStateDigest& sbs,
               Transform&  X_FM) const
 {
     assert(q && nq==3 && nQCache==0);
-    // Translation vector q is expressed in F (and M since they have same 
-    // orientation). A translation (Cartesian) joint can't change orientation. 
+    // Translation vector q is expressed in F (and M since they have same
+    // orientation). A translation (Cartesian) joint can't change orientation.
     X_FM = Transform(Rotation(), Vec3::getAs(&q[0]));
 }
 

@@ -74,9 +74,9 @@ void testForces() {
     hc.setTransitionVelocity(vt);
     assertEqual(vt, hc.getTransitionVelocity());
     State state = system.realizeTopology();
-    
+
     // Position the sphere at a variety of positions and check the normal force.
-    
+
     const Real stiffness = stiffness1*stiffness2/(stiffness1+stiffness2);
     for (Real height = radius+0.2; height > 0; height -= 0.1) {
         sphere.setQToFitTranslation(state, Vec3(0, height, 0));
@@ -87,7 +87,7 @@ void testForces() {
             f = (4.0/3.0)*stiffness*depth*std::sqrt(radius*stiffness*depth);
         assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)[sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f, 0));
     }
-    
+
     // Now do it with a vertical velocity and see if the dissipation force is correct.
 
     const Real dissipation = (dissipation1*stiffness2+dissipation2*stiffness1)/(stiffness1+stiffness2);
@@ -106,7 +106,7 @@ void testForces() {
             assertEqual(system.getRigidBodyForces(state, Stage::Dynamics)[sphere.getMobilizedBodyIndex()][1], gravity+Vec3(0, f, 0));
         }
     }
-    
+
     // Do it with a horizontal velocity and see if the friction force is correct.
 
     const Real us = 2.0*us1*us2/(us1+us2);

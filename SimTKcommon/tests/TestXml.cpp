@@ -38,7 +38,7 @@ using std::printf;
 using namespace SimTK;
 
 // This example is from Wikipedia's XML entry.
-const char* xmlPainting = 
+const char* xmlPainting =
 "<?xml version='1.0' encoding='UTF-8'?>\n"
 "<!-- a top-level comment -->\n"
 "<!-- a multiline\n comment\n third line -->\n"
@@ -61,18 +61,18 @@ const char* xmlPainting =
 
 const char* xmlPlainTextFile =
 "That is, the first line should be a declaration, most commonly exactly the\n"
-"characters shown above, without the \"standalone\" attribute which will\n" 
+"characters shown above, without the \"standalone\" attribute which will\n"
 "default to \"yes\" anyway. If we don't see a declaration when reading an XML\n"
-"document, we'll assume we read the one above. Then the document should contain\n" 
-"exactly one top-level (root) element representing the type of document &amp;\n" 
+"document, we'll assume we read the one above. Then the document should contain\n"
+"exactly one top-level (root) element representing the type of document &amp;\n"
 "document-level attributes.\n";
 
-const char* xmlUnclosedComment = 
+const char* xmlUnclosedComment =
 "<?xml version='1.0' encoding='UTF-8'?>\n"
 "  <!-- What follows is a so-called 'caption' ->\n" // UNCLOSED!
 "<!whazzis unknown junk>";
 
-const char* xmlJustAComment = 
+const char* xmlJustAComment =
 "<!-- this is the entire contents -->\n";
 
 const char* xmlEmpty = "   \n \n \t "; // white space only
@@ -84,7 +84,7 @@ static void showElement(Xml::Element elt, const String& indent="") {
     // Show attributes
     Xml::attribute_iterator ap = elt.attribute_begin();
     for (; ap != elt.attribute_end(); ++ap)
-        cout << indent << "  ATTR '" << ap->getName() << "'='" 
+        cout << indent << "  ATTR '" << ap->getName() << "'='"
              << ap->getValue() << "'\n";
 
     // Show all contents
@@ -105,19 +105,19 @@ void testXmlFromString() {
     fromString.readFromString(xmlPlainTextFile);
     cout << "Plain text file: '" << fromString << "'\n";
 
-    // Note that the "condense white space" setting is global, not 
+    // Note that the "condense white space" setting is global, not
     // document-specific.
     Xml::Document preserveWhite;
     Xml::setXmlCondenseWhiteSpace(false);
     SimTK_TEST(!Xml::isXmlWhiteSpaceCondensed());
     preserveWhite.readFromString(xmlPlainTextFile);
-    cout << "Plain text file with white space preserved (raw): " 
+    cout << "Plain text file with white space preserved (raw): "
          << preserveWhite.getRootElement().getValue() << "\n";
-    cout << "... (formatted with condense=false): " 
-         << preserveWhite << "\n";    
+    cout << "... (formatted with condense=false): "
+         << preserveWhite << "\n";
     Xml::setXmlCondenseWhiteSpace(true);
-    cout << "... (formatted with condense=true): " 
-         << preserveWhite << "\n";    
+    cout << "... (formatted with condense=true): "
+         << preserveWhite << "\n";
 
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlEmpty));
     SimTK_TEST_MUST_THROW(fromString.readFromString(xmlUnclosedComment));
@@ -128,7 +128,7 @@ void testXmlFromString() {
     cout << "Doc type is: " << fromString.getRootTag() << endl;
     cout << "  version: " << fromString.getXmlVersion() << endl;
     cout << "  encoding: " << fromString.getXmlEncoding() << endl;
-    cout << "  standalone: " 
+    cout << "  standalone: "
          << String(fromString.getXmlIsStandalone() ? "yes" : "no") << endl;
 
     cout << "All nodes in doc:\n";
@@ -152,7 +152,7 @@ void testXmlFromString() {
     cout << "Caption elements:\n";
     Xml::element_iterator ep(root.element_begin("caption"));
     for (; ep != root.element_end(); ++ep)
-        cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag() 
+        cout << ep->getNodeTypeAsString() << ": <" << ep->getElementTag()
              << ">" << endl;
 
     cout << "All elements:\n";
@@ -161,25 +161,25 @@ void testXmlFromString() {
         cout << "<" << all[i].getElementTag() << ">" << endl;
 
 
-    Array_<Xml::Node> allNodes(root.node_begin(Xml::NoJunkNodes), 
+    Array_<Xml::Node> allNodes(root.node_begin(Xml::NoJunkNodes),
                                root.node_end());
     for (unsigned i=0; i < allNodes.size(); ++i)
         cout << "Node " << allNodes[i].getNodeTypeAsString() << endl;
 
     String prettyString, compactString;
     fromString.writeToString(prettyString);
-    cout << "String pretty: " << prettyString.size() 
+    cout << "String pretty: " << prettyString.size()
          << "\n'" << prettyString << "'\n";
 
     fromString.writeToString(compactString, true); // compact
-    cout << "String compact: " << compactString.size() 
+    cout << "String compact: " << compactString.size()
          << "\n'" << compactString << "'\n";
 
     SimTK_TEST(compactString.size() < prettyString.size());
 
     cout << "painting.allNode=" << root.getRequiredElement("painting")
                                         .getAllNodes() << endl;
-    cout << "painting.img.allAttr=" << 
+    cout << "painting.img.allAttr=" <<
         root.getRequiredElement("painting").getRequiredElement("img")
         .getAllAttributes() << endl;
     //fromString.writeToFile("TestXml.xml");
@@ -238,7 +238,7 @@ void testXmlFromScratch() {
     cout << "isOrphan? " << String(u.isOrphan()) << ":" << u;
     cout << scratch;
 
-    scratch.insertTopLevelNodeBefore(scratch.node_begin(), 
+    scratch.insertTopLevelNodeBefore(scratch.node_begin(),
         Xml::Comment("This should be at the top of the file, except declaration."));
     cout << scratch;
 

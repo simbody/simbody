@@ -56,9 +56,9 @@ public:
 class Integrator::StepSizeTooSmall : public Exception::Base {
 public:
     StepSizeTooSmall(const char* fn, int ln, Real t, Real h, Real hmin) : Base(fn,ln) {
-        setMessage("At time=" + String(t) + 
+        setMessage("At time=" + String(t) +
                    " the integrator failed to take a step with step size "
-                  + String(h) + " which was already at or below the minimum allowed size " 
+                  + String(h) + " which was already at or below the minimum allowed size "
                   + String(hmin));
     }
 };
@@ -77,12 +77,12 @@ public:
        (const char* fn, int ln, const char* methodname, Real t) : Base(fn,ln)
     {
         setMessage("Method Integrator::" + String(methodname)
-                   + "() was called at time " + String(t) 
+                   + "() was called at time " + String(t)
                    + " but no event had triggered.");
     }
 };
 
-// 
+//
 // Specification of the stepTo() method below:
 //
 // On entry we expect advancedState to be valid. Time may have already
@@ -99,10 +99,10 @@ public:
 //
 //          advance (or report interpolated value)
 //           ------
-//          |      ^   
-//          v      |no  
+//          |      ^
+//          v      |no
 //   (TimeAdvanced)--return?->(StepReturned)--final?->(ReturnedFinalTime)
-//        ^                                 |no     
+//        ^                                 |no
 //        <-------advance-------------------<
 //
 // In words, we take a step, we report that step if necessary (returning
@@ -131,7 +131,7 @@ public:
 //                      OTHERWISE      INTERP t_low
 //                  (event triggered)  ->Triggered    StepReturnedEvent
 //
-// TimeAdvanced      t_report<t_adv    INTERP t_report 
+// TimeAdvanced      t_report<t_adv    INTERP t_report
 //                                     ->Report          (unchanged)
 //
 //                         else
@@ -145,11 +145,11 @@ public:
 //                   t_adv==t_report   ->Report         StepReturned
 //
 //                         else
-//                   t_adv>=t_final    ->Final          StepReturned       
+//                   t_adv>=t_final    ->Final          StepReturned
 //
 //                         else
 //                   hit step limit    ->StepLimit      StepReturned
-//                 
+//
 //                      OTHERWISE      ADVANCE        TimeAdvanced[Event]
 // ----------------  ----------------  --------------  ----------------
 //
@@ -185,7 +185,7 @@ public:
     void initialize(const State&);
     // This is for use after return from an event handler.
     void reinitialize(Stage, bool shouldTerminate);
-    // We also give the concrete integration method a chance to initialize 
+    // We also give the concrete integration method a chance to initialize
     // itself after the generic initialization is done.
     virtual void methodInitialize(const State&) { }
     // This is for use after return from an event handler.
@@ -194,55 +194,55 @@ public:
     // The integrator has already been initialized. Take as many internal steps
     // as needed to get up to or past reportTime, but don't advance past the
     // next scheduled event time or the simulation final time.
-    virtual Integrator::SuccessfulStepStatus 
+    virtual Integrator::SuccessfulStepStatus
         stepTo(Real reportTime, Real scheduledEventTime) = 0;
 
     bool isSimulationOver() const {
         return stepCommunicationStatus == FinalTimeHasBeenReturned;
     }
-    
-    // Get the reason the simulation ended. This should only be invoked if 
+
+    // Get the reason the simulation ended. This should only be invoked if
     // isSimulationOver() returns true.
     Integrator::TerminationReason getTerminationReason() const {
         assert (isSimulationOver());
         return terminationReason;
     }
 
-    // This represents the Integrator's finite state machine for dealing with 
+    // This represents the Integrator's finite state machine for dealing with
     // communication of internal steps to the caller. After initialization, the
-    // computation will be in state CompletedInternalStepNoEvent, but with 
-    // t_prev=t_advanced=t_initial. We will process this as though we had just 
-    // taken a step so that various conditions will result in the first 
+    // computation will be in state CompletedInternalStepNoEvent, but with
+    // t_prev=t_advanced=t_initial. We will process this as though we had just
+    // taken a step so that various conditions will result in the first
     // stepTo() call returning immediately. Note: event handling and subsequent
-    // partial reinitialization of the integrator MUST NOT change the 
+    // partial reinitialization of the integrator MUST NOT change the
     // integrator's communication state.
     enum StepCommunicationStatus {
         // Time has advanced from t_prev to t_advanced; no event triggered. We
-        // have not yet returned to the caller with time t_advanced, although 
-        // we may have returned at interpolated report times 
+        // have not yet returned to the caller with time t_advanced, although
+        // we may have returned at interpolated report times
         // t_prev < t_report < t_advanced.
-        CompletedInternalStepNoEvent,   
+        CompletedInternalStepNoEvent,
 
-        // Time has advanced from t_prev to t_advanced with an event trigger 
-        // localized to the interval (t_low,t_high] where t_high==t_advanced. 
-        // We have not yet returned to the caller with time t_low, although we 
-        // may have returned at interpolated report times 
+        // Time has advanced from t_prev to t_advanced with an event trigger
+        // localized to the interval (t_low,t_high] where t_high==t_advanced.
+        // We have not yet returned to the caller with time t_low, although we
+        // may have returned at interpolated report times
         // t_prev < t_report < t_low.
-        CompletedInternalStepWithEvent, 
+        CompletedInternalStepWithEvent,
 
-        // We have already returned control to the caller at t_advanced with 
+        // We have already returned control to the caller at t_advanced with
         // the strongest stopping reason given; no more returns are allowed for
         // this step.
-        StepHasBeenReturnedNoEvent,     
+        StepHasBeenReturnedNoEvent,
 
-        // We have already returned control to the caller at t_low with 
+        // We have already returned control to the caller at t_low with
         // "EventTriggered" as the stopping reason; no more returns are allowed
         // for this step.
-        StepHasBeenReturnedWithEvent,   
+        StepHasBeenReturnedWithEvent,
 
         // Any call to stepTo() when the integrator is already in this state is
         // a fatal error.
-        FinalTimeHasBeenReturned,       
+        FinalTimeHasBeenReturned,
 
         InvalidStepCommunicationStatus = -1
     };
@@ -250,7 +250,7 @@ public:
     const State& getAdvancedState() const {return advancedState;}
     Real         getAdvancedTime()  const {return advancedState.getTime();}
 
-    const State& getState() const 
+    const State& getState() const
     {   return useInterpolatedState ? interpolatedState : advancedState; }
     bool isStateInterpolated() const {return useInterpolatedState;}
 
@@ -268,7 +268,7 @@ public:
     virtual Real getPredictedNextStepSize() const = 0;
 
     virtual int getNumStepsAttempted() const = 0;
-    virtual int getNumStepsTaken() const = 0; 
+    virtual int getNumStepsTaken() const = 0;
     virtual int getNumErrorTestFailures() const = 0;
     virtual int getNumConvergenceTestFailures() const = 0;
     virtual int getNumConvergentIterations() const = 0;
@@ -279,7 +279,7 @@ public:
     }
 
     // Cubic Hermite interpolation. See Hairer, et al. Solving ODEs I, 2nd rev.
-    // ed., pg 190. Given (t0,y0,y0'),(t1,y1,y1') with y0 and y1 at least 3rd 
+    // ed., pg 190. Given (t0,y0,y0'),(t1,y1,y1') with y0 and y1 at least 3rd
     // order accurate, we can obtain a 3rd order accurate interpolation yt for
     // a time t0 < t < t1 using Hermite interpolation. Let
     // f0=y0', f1=y1', h=t1-t0, d=(t-t0)/h (0<=d<=1). Then the interpolating
@@ -291,7 +291,7 @@ public:
     //   cy1=     d^2(3 - 2*d) = (1-cy0)
     //   cf0=d*(d-1)^2*h = h*d*(d-1) * (d-1)
     //   cf1=d^2*(d-1)*h = h*d*(d-1) * d
-    //   
+    //
     // Note: you can't get a 3rd order estimate of the derivative ft, only
     // the state yt.
     //
@@ -302,7 +302,7 @@ public:
         const Real& t, Vector& yt) {
         assert(t0 < t1);
         assert(t0 <= t && t <= t1);
-        assert(f0.size()==y0.size() && y1.size()==y0.size() 
+        assert(f0.size()==y0.size() && y1.size()==y0.size()
             && f1.size()==y0.size());
 
         const Real h = t1-t0, d=(t-t0)/h;
@@ -342,7 +342,7 @@ public:
     // edges if it gets any closer. And in any case we'll require
     // at least 1/2 minWindow from either end, even if 10% of the
     // interval is smaller than that.
-    // 
+    //
     // Note that "minWindow" here is *not* the desired localization window
     // based on user accuracy requirements, but the (typically much smaller)
     // smallest allowable localization window based on numerical roundoff
@@ -378,26 +378,26 @@ public:
         return tRoot;
     }
 
-    // Here we look at a pair of event trigger function values across an 
+    // Here we look at a pair of event trigger function values across an
     // interval and decide if there are any events triggering. If so we return
     // that event as an "event candidate". Optionally, pass in the current list
     // of event candidates and we'll only look at those (that is, the list can
     // only be narrowed). Don't use the same array for the current list and new
     // list.
     //
-    // For purposes of this method, events are specified by their indices in 
+    // For purposes of this method, events are specified by their indices in
     // the array of trigger functions, NOT by their event IDs.
     void findEventCandidates
-       (int nEvents, 
+       (int nEvents,
         const Array_<SystemEventTriggerIndex>*  viableCandidates,
         const Array_<Event::Trigger>*           viableCandidateTransitions,
-        Real    tLow,   const Vector&   eLow, 
+        Real    tLow,   const Vector&   eLow,
         Real    tHigh,  const Vector&   eHigh,
         Real    bias,   Real            minWindow,
         Array_<SystemEventTriggerIndex>&        candidates,
         Array_<Real>&                           timeEstimates,
         Array_<Event::Trigger>&                 transitions,
-        Real&                                   earliestTimeEst, 
+        Real&                                   earliestTimeEst,
         Real&                                   narrowestWindow) const
     {
         int nCandidates;
@@ -414,7 +414,7 @@ public:
         transitions.clear();
         earliestTimeEst = narrowestWindow = Infinity;
         for (int i=0; i<nCandidates; ++i) {
-            const SystemEventTriggerIndex e = viableCandidates ? (*viableCandidates)[i] 
+            const SystemEventTriggerIndex e = viableCandidates ? (*viableCandidates)[i]
                                                                  : SystemEventTriggerIndex(i);
             Event::Trigger transitionSeen =
                 Event::maskTransition(
@@ -429,7 +429,7 @@ public:
                 transitionSeen = eventTriggerInfo[e].calcTransitionToReport(transitionSeen);
                 candidates.push_back(e);
                 narrowestWindow = std::max(
-                    std::min(narrowestWindow, 
+                    std::min(narrowestWindow,
                              accuracyInUse*timeScaleInUse*eventTriggerInfo[e].getRequiredLocalizationTimeWindow()),
                     minWindow);
 
@@ -441,7 +441,7 @@ public:
             }
         }
     }
-    
+
     /// Given a list of events, specified by their indices in the list of trigger functions,
     /// convert them to the corresponding event IDs.
     void findEventIds(const Array_<SystemEventTriggerIndex>& indices, Array_<EventId>& ids) {
@@ -451,7 +451,7 @@ public:
 
     // Calculate the error norm using RMS or Inf norm, and report which y
     // was dominant.
-    Real calcErrorNorm(const State& s, const Vector& yErrEst, 
+    Real calcErrorNorm(const State& s, const Vector& yErrEst,
                        int& worstY) const {
         const int nq=s.getNQ(), nu=s.getNU(), nz=s.getNZ();
         int worstQ, worstU, worstZ;
@@ -475,11 +475,11 @@ public:
         // Find the largest of the three norms and report the corresponding
         // worst offender within q, u, or z.
         if (qNorm >= uNorm) {
-            if (qNorm >= zNorm) 
+            if (qNorm >= zNorm)
                  {maxNorm = qNorm; worstY = worstQ;}        // q>=u && q>=z
             else {maxNorm = zNorm; worstY = nq+nu+worstZ;}  // z>q>=u
         } else { // qNorm < uNorm
-            if (uNorm >= zNorm) 
+            if (uNorm >= zNorm)
                  {maxNorm = uNorm; worstY = nq + worstU;}   // u>q && u>=z
             else {maxNorm = zNorm; worstY = nq+nu+worstZ;}  // z>u>q
         }
@@ -488,17 +488,17 @@ public:
     }
 
 
-    // Given a proposed absolute change dq to generalized coordinates q, scale 
+    // Given a proposed absolute change dq to generalized coordinates q, scale
     // it to produce fq, such that fq_i is the fraction of q_i's "unit change"
     // represented by dq_i. A suitable norm of fq can then be compared directly
-    // with the relative accuracy requirement. 
+    // with the relative accuracy requirement.
     //
     // Because q's are not independent of u's (qdot=N(q)*u), the "unit change"
-    // of q is related to the unit change of u. We want fq=Wq*dq, but we 
-    // determine Wq from Wu via Wq = N*Wu*pinv(N). Wq is block diagonal while 
+    // of q is related to the unit change of u. We want fq=Wq*dq, but we
+    // determine Wq from Wu via Wq = N*Wu*pinv(N). Wq is block diagonal while
     // Wu is diagonal. State must be realized to Position stage.
     void scaleDQ(const State& state, const Vector& Wu,
-                 const Vector& dq, Vector& dqw) const // in/out 
+                 const Vector& dq, Vector& dqw) const // in/out
     {
         const System& system = getSystem();
         const int nq = state.getNQ();
@@ -532,7 +532,7 @@ public:
     }
 
     // TODO: these utilities don't really belong here
-    static Real calcWeightedRMSNorm(const Vector& weights, const Vector& values, 
+    static Real calcWeightedRMSNorm(const Vector& weights, const Vector& values,
                                     int& worstOne) {
         return values.weightedNormRMS(weights, &worstOne);
     }
@@ -641,7 +641,7 @@ protected:
     // weights w (1/absolute scale), return relative scale min(wi,1/|vi|) for
     // each variable i. That is, we choose the current value of vi as its
     // scale when it is large enough, otherwise use absolute scale.
-    static void calcRelativeScaling(const Vector& v, const Vector& w, 
+    static void calcRelativeScaling(const Vector& v, const Vector& w,
                                     Vector& vScale)
     {
         const int nv = v.size();
@@ -655,7 +655,7 @@ protected:
     }
 
 
-    // We're about to take a step. Record the current time and state as 
+    // We're about to take a step. Record the current time and state as
     // the previous ones. We calculate the scaling for
     // u and z here which may include relative scaling based on their current
     // values. This scaling is frozen during a step attempt.
@@ -669,13 +669,13 @@ protected:
         uPrev.viewAssign(yPrev(nq,    nu));
         zPrev.viewAssign(yPrev(nq+nu, nz));
 
-        calcRelativeScaling(s.getU(), s.getUWeights(), uScalePrev); 
+        calcRelativeScaling(s.getU(), s.getUWeights(), uScalePrev);
         calcRelativeScaling(s.getZ(), s.getZWeights(), zScalePrev);
     }
 
     // We have evaluated state derivatives and event witness function values
     // at the start of a new step; record
-    // as previous values to make restarts easy. Must have called 
+    // as previous values to make restarts easy. Must have called
     // saveTimeAndStateAsPrevious() on this same state already. State must
     // be realized through Acceleration stage.
     void saveStateDerivsAsPrevious(const State& s) {
@@ -720,8 +720,8 @@ protected:
         userInternalStepLimit = -1;
 
         // booleans
-        userUseInfinityNorm = userReturnEveryInternalStep = 
-            userProjectEveryStep = userAllowInterpolation = 
+        userUseInfinityNorm = userReturnEveryInternalStep =
+            userProjectEveryStep = userAllowInterpolation =
             userProjectInterpolatedStates = userForceFullNewton = -1;
 
         accuracyInUse = NaN;
@@ -736,15 +736,15 @@ protected:
 
     void setAccuracyAndTolerancesFromUserRequests() {
         accuracyInUse = (userAccuracy != -1 ? userAccuracy : Real(1e-3));
-        consTol       = (userConsTol  != -1 ? userConsTol  : accuracyInUse/10); 
+        consTol       = (userConsTol  != -1 ? userConsTol  : accuracyInUse/10);
     }
-    
+
     // If this is set to true, the next call to stepTo() will return immediately
     // with result code StartOfContinuousInterval. This is set by initialize()
     // and by reinitialize() after an event handler call that modified the
     // state.
     bool startOfContinuousInterval;
-    
+
     // The reason the simulation ended.  If isSimulationOver() returns false,
     // the value of this field is meaningless.
     Integrator::TerminationReason terminationReason;
@@ -768,14 +768,14 @@ protected:
     // Stats are properly updated. State is realized through Position stage
     // on successful return.
     bool localProjectQAndQErrEstNoThrow(State& s, Vector& yErrEst,
-        bool& anyChanges, Real projectionLimit=Infinity) 
+        bool& anyChanges, Real projectionLimit=Infinity)
     {
         ProjectOptions options;
         options.setRequiredAccuracy(getConstraintToleranceInUse());
         options.setProjectionLimit(projectionLimit);
         options.setOption(ProjectOptions::LocalOnly);
         options.setOption(ProjectOptions::DontThrow);
-        if (userProjectEveryStep==1) 
+        if (userProjectEveryStep==1)
             options.setOption(ProjectOptions::ForceProjection);
         if (userUseInfinityNorm==1)
             options.setOption(ProjectOptions::UseInfinityNorm);
@@ -803,22 +803,22 @@ protected:
         return true;
     }
 
-    // State should have had its q's and u's prescribed and realized through 
-    // Velocity stage. This will attempt to project u's and the u part of the 
-    // yErrEst (if yErrEst is not length zero). Returns false if we fail which 
+    // State should have had its q's and u's prescribed and realized through
+    // Velocity stage. This will attempt to project u's and the u part of the
+    // yErrEst (if yErrEst is not length zero). Returns false if we fail which
     // you can consider a convergence failure for the step. This is intended for
     // use during integration.
     // Stats are properly updated. State is realized through Velocity stage
     // on successful return.
     bool localProjectUAndUErrEstNoThrow(State& s, Vector& yErrEst,
-        bool& anyChanges, Real projectionLimit=Infinity) 
+        bool& anyChanges, Real projectionLimit=Infinity)
     {
         ProjectOptions options;
         options.setRequiredAccuracy(getConstraintToleranceInUse());
         options.setProjectionLimit(projectionLimit);
         options.setOption(ProjectOptions::LocalOnly);
         options.setOption(ProjectOptions::DontThrow);
-        if (userProjectEveryStep==1) 
+        if (userProjectEveryStep==1)
             options.setOption(ProjectOptions::ForceProjection);
         if (userUseInfinityNorm==1)
             options.setOption(ProjectOptions::UseInfinityNorm);
@@ -847,8 +847,8 @@ protected:
     }
 
     // Given a state which has just had t and y updated, realize it through
-    // velocity stage taking care of prescribed motion, projection, and 
-    // throwing an exception if anything goes wrong. This is not for use 
+    // velocity stage taking care of prescribed motion, projection, and
+    // throwing an exception if anything goes wrong. This is not for use
     // during normal integration but good for initialization and generation
     // of interpolated states.
     // Extra options to consider are whether to restrict projection to the
@@ -858,7 +858,7 @@ protected:
     void realizeAndProjectKinematicsWithThrow(State& s,
         ProjectOptions::Option xtraOption1=ProjectOptions::None,
         ProjectOptions::Option xtraOption2=ProjectOptions::None,
-        ProjectOptions::Option xtraOption3=ProjectOptions::None) 
+        ProjectOptions::Option xtraOption3=ProjectOptions::None)
     {
         const System& system = getSystem();
         ProjectOptions options;
@@ -866,7 +866,7 @@ protected:
         options.setOption(xtraOption1);
         options.setOption(xtraOption2);
         options.setOption(xtraOption3);
-        if (userProjectEveryStep==1) 
+        if (userProjectEveryStep==1)
             options.setOption(ProjectOptions::ForceProjection);
         if (userUseInfinityNorm==1)
             options.setOption(ProjectOptions::UseInfinityNorm);
@@ -898,7 +898,7 @@ protected:
 
     // Set the advanced state and then evaluate state derivatives. Throws an
     // exception if it fails. Updates stats.
-    void setAdvancedStateAndRealizeDerivatives(const Real& t, const Vector& y) 
+    void setAdvancedStateAndRealizeDerivatives(const Real& t, const Vector& y)
     {
         const System& system = getSystem();
         State& advanced = updAdvancedState();
@@ -941,19 +941,19 @@ protected:
         statsQProjectionFailures = statsUProjectionFailures = 0;
     }
 
-    int getNumRealizations() const {return statsRealizations;} 
+    int getNumRealizations() const {return statsRealizations;}
     int getNumQProjections() const {return statsQProjections;}
     int getNumUProjections() const {return statsUProjections;}
 
-    int getNumRealizationFailures() const {return statsRealizationFailures;} 
-    int getNumQProjectionFailures() const {return statsQProjectionFailures;} 
-    int getNumUProjectionFailures() const {return statsUProjectionFailures;} 
+    int getNumRealizationFailures() const {return statsRealizationFailures;}
+    int getNumQProjectionFailures() const {return statsQProjectionFailures;}
+    int getNumUProjectionFailures() const {return statsUProjectionFailures;}
 
 private:
     class EventSorter {
     public:
         EventSorter() : ordinal(-1), id(-1), estTime(NaN) { }
-        EventSorter(int ord, int eventId, Real estEventTime) 
+        EventSorter(int ord, int eventId, Real estEventTime)
           : ordinal(ord), id(eventId), estTime(estEventTime) { }
         bool operator<(const EventSorter& r) const {
             if (estTime < r.estTime) return true;
@@ -973,7 +973,7 @@ private:
         const unsigned n = eventIds.size();
         assert(estEventTimes.size()==n);
         eventOrder.resize(n);
-        if (n==0) 
+        if (n==0)
             return;
 
         if (n==1) {
@@ -986,7 +986,7 @@ private:
         for (unsigned i=0; i<n; ++i)
             events[i] = EventSorter(i, eventIds[i], estEventTimes[i]);
         std::sort(events.begin(), events.end());
-        for (unsigned i=0; i<n; ++i) 
+        for (unsigned i=0; i<n; ++i)
             eventOrder[i] = events[i].ordinal;
     }
 
@@ -1009,7 +1009,7 @@ private:
         // SYSTEM INFORMATION
         // Information extracted from the System describing properties we need
         // to know about BEFORE taking a time step. These properties are always
-        // frozen across an integration step, but may be updated as discrete 
+        // frozen across an integration step, but may be updated as discrete
         // updates during time stepping.
 
     // Some Systems need to get control whenever time is advanced
@@ -1031,12 +1031,12 @@ private:
     // The time scale is an estimate as to what is the smallest length of time
     // on which we can expect any significant changes to occur. This can be
     // used to estimate an initial step size, and it also establishes the units
-    // in which event trigger localization windows are defined (that is, the 
+    // in which event trigger localization windows are defined (that is, the
     // window is given as some fraction of the time scale).
     // This is Stage::Instance information.
     Real timeScaleInUse;
 
-        // INTEGRATOR INTERNAL STATE 
+        // INTEGRATOR INTERNAL STATE
         // Persists between stepTo() calls.
         // A concrete integrator is free to have more state.
 
@@ -1069,8 +1069,8 @@ private:
     // These are the estimated times corresponding to the triggeredEvents.
     // They are in ascending order although there may be duplicates.
     Array_<Real> estimatedEventTimes;
-    
-    // Which transition was seen for each triggered event (this is 
+
+    // Which transition was seen for each triggered event (this is
     // only a single transition, not an OR-ed together set). This is
     // the integrator's algorithmic determination of the transition to
     // be reported -- you might not get the same answer just looking
@@ -1085,7 +1085,7 @@ private:
     bool    useInterpolatedState;
 
     // Use these to record the continuous part of the previous
-    // accepted state. We use these in combination with the 
+    // accepted state. We use these in combination with the
     // continuous contents of advancedState to fill in the
     // interpolated state.
     Real    tPrev;

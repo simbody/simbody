@@ -24,7 +24,7 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/* Here we define the private implementation of the MultibodySystem class 
+/* Here we define the private implementation of the MultibodySystem class
 (a kind of System). This is not part of the Simbody API. */
 
 #include "SimTKcommon.h"
@@ -63,7 +63,7 @@ to the final set at Stage::Dynamics we can use it directly to produce
 accelerations. This structure allows us to invalidate a higher Stage without
 having to recalculate forces that were known at a lower Stage. */
 struct ForceCacheEntry {
-    ForceCacheEntry() 
+    ForceCacheEntry()
     { }
     // default copy constructor, copy assignment, destructor
 
@@ -94,7 +94,7 @@ struct ForceCacheEntry {
 };
 
 // Useless, but required by Value<T>.
-inline std::ostream& operator<<(std::ostream& o, const ForceCacheEntry&) 
+inline std::ostream& operator<<(std::ostream& o, const ForceCacheEntry&)
 {assert(false);return o;}
 
 
@@ -162,7 +162,7 @@ public:
     // Use default copy constructor, but then clear out the cache indices
     // and invalidate topology.
     MultibodySystemGlobalSubsystemRep* cloneImpl() const override {
-        MultibodySystemGlobalSubsystemRep* p = 
+        MultibodySystemGlobalSubsystemRep* p =
             new MultibodySystemGlobalSubsystemRep(*this);
         for (int i=0; i<NumForceCacheEntries; ++i)
             p->forceCacheIndices[i].invalidate();
@@ -177,7 +177,7 @@ public:
         const MultibodySystem& mbs = getMultibodySystem();
 
         for (Stage g(Stage::Model); g<=Stage::Dynamics; ++g)
-            forceCacheIndices[g-Stage::Model] = 
+            forceCacheIndices[g-Stage::Model] =
                 allocateCacheEntry(s, g, new Value<ForceCacheEntry>());
 
         return 0;
@@ -198,7 +198,7 @@ public:
         return 0;
     }
 
-    // We treat the other stages like Model except that we use the 
+    // We treat the other stages like Model except that we use the
     // previous Stage's ForceCacheEntry to initialize this one.
     int realizeSubsystemInstanceImpl(const State& s) const override {
         const MultibodySystem&        mbs    = getMultibodySystem();
@@ -252,7 +252,7 @@ public:
                                          matter.getNumParticles(),
                                          matter.getNumMobilities());
         velocityForces.initializeFromSimilarForceEntry(positionForces);
-        
+
         return 0;
     }
 
@@ -294,7 +294,7 @@ public:
 MatterSubsystem and a set of ForceSubsystems. */
 class MultibodySystemRep : public System::Guts {
 public:
-    MultibodySystemRep() 
+    MultibodySystemRep()
         : System::Guts("MultibodySystem", "0.0.1")
     {
     }
@@ -374,7 +374,7 @@ public:
         return GeneralContactSubsystem::updDowncast(updSubsystem(contactSub));
     }
 
-    // Global state cache entries dealing with interaction between forces & 
+    // Global state cache entries dealing with interaction between forces &
     // matter.
 
     // Responses available when the global subsystem is advanced to the
@@ -423,26 +423,26 @@ public:
     int realizeReportImpl      (const State&) const override;
 
 
-    void multiplyByNImpl(const State& s, const Vector& u, 
+    void multiplyByNImpl(const State& s, const Vector& u,
                          Vector& dq) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByN(s,false,u,dq);
     }
-    void multiplyByNTransposeImpl(const State& s, const Vector& fq, 
+    void multiplyByNTransposeImpl(const State& s, const Vector& fq,
                                   Vector& fu) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByN(s,true,fq,fu);
     }
-    void multiplyByNPInvImpl(const State& s, const Vector& dq, 
+    void multiplyByNPInvImpl(const State& s, const Vector& dq,
                              Vector& u) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByNInv(s,false,dq,u);
     }
-    void multiplyByNPInvTransposeImpl(const State& s, const Vector& fu, 
+    void multiplyByNPInvTransposeImpl(const State& s, const Vector& fu,
                                       Vector& fq) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().multiplyByNInv(s,true,fu,fq);
-    }  
+    }
 
     // Currently prescribe() and project() affect only the Matter subsystem.
     bool prescribeQImpl(State& state) const override {
@@ -454,15 +454,15 @@ public:
         return mech.getRep().prescribeU(state);
     }
 
-    void projectQImpl(State& state, Vector& qErrEst, 
-                      const ProjectOptions& options, 
+    void projectQImpl(State& state, Vector& qErrEst,
+                      const ProjectOptions& options,
                       ProjectResults& results) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().projectQ(state, qErrEst, options, results);
         realize(state, Stage::Position);  // realize the whole system now
     }
-    void projectUImpl(State& state, Vector& uErrEst, 
-                      const ProjectOptions& options, 
+    void projectUImpl(State& state, Vector& uErrEst,
+                      const ProjectOptions& options,
                       ProjectResults& results) const override {
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
         mech.getRep().projectU(state, uErrEst, options, results);

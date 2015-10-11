@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
-Define the SimTK::RowVector_ class that is part of Simbody's BigMatrix 
+Define the SimTK::RowVector_ class that is part of Simbody's BigMatrix
 toolset. **/
 
 namespace SimTK {
@@ -38,12 +38,12 @@ column vector type Vector_.
 
 @ingroup MatVecUtilities
 
-Row vectors are much less commonly used than column vectors; they mostly arise 
+Row vectors are much less commonly used than column vectors; they mostly arise
 implicitly as the type of a transposed column vector (represented by Simbody's
-Vector_ class). However, you want to use rows this is the class intended to 
-appear in user code. It can be a fixed-size view of someone else's data, or can 
-be a resizable data owner itself, although of course it will always have just 
-one row. 
+Vector_ class). However, you want to use rows this is the class intended to
+appear in user code. It can be a fixed-size view of someone else's data, or can
+be a resizable data owner itself, although of course it will always have just
+one row.
 
 @see Row for handling of small, fixed-size row vectors with no runtime overhead
 @see Matrix_ for variable %size, two-dimensional matrix.
@@ -66,7 +66,7 @@ public:
 
     // Implicit conversions.
     RowVector_(const Base& src) : Base(src) {}    // e.g., RowVectorView
-    RowVector_(const BaseNeg& src) : Base(src) {}  
+    RowVector_(const BaseNeg& src) : Base(src) {}
 
     // Copy assignment is deep and can be reallocating if this RowVector
     // has no View.
@@ -87,11 +87,11 @@ public:
     RowVector_(int n,       S* cppData, bool): Base(n, Base::CppNScalarsPerElement, cppData) {}
 
     /// Borrowed-space construction with explicit stride supplied as
-    /// "number of scalars between elements". Last parameter is a 
+    /// "number of scalars between elements". Last parameter is a
     /// dummy to avoid overload conflicts; pass it as "true".
     RowVector_(int n, int stride, const S* data, bool) : Base(n, stride, data) {}
     RowVector_(int n, int stride,       S* data, bool) : Base(n, stride, data) {}
-    
+
     /// Convert a Row to a RowVector_.
     template <int M>
     explicit RowVector_(const Row<M,ELT>& v) : Base(M) {
@@ -99,7 +99,7 @@ public:
             this->updElt(0, i) = v(i);
     }
 
-    RowVector_& operator=(const ELT& v) { Base::operator=(v); return *this; } 
+    RowVector_& operator=(const ELT& v) { Base::operator=(v); return *this; }
 
     template <class EE> RowVector_& operator=(const RowVectorBase<EE>& b)
       { Base::operator=(b); return*this; }

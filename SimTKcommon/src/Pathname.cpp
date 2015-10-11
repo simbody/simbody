@@ -110,7 +110,7 @@ static bool isExecutableDirectoryPath(const string &in) {
     return !in.empty() && in.substr(0, 2) == "@/";
 }
 
-// Remove the last segment of a path name and the separator. The 
+// Remove the last segment of a path name and the separator. The
 // returned component does not include a separator.
 static void removeLastPathComponentInPlace(string& inout, string& component) {
     component.clear();
@@ -182,9 +182,9 @@ void Pathname::deconstructPathname( const string&   pathname,
     removeDriveInPlace(processed, drive);
 
     // Now the drive if any has been removed and we're looking at
-    // the beginning of the pathname. 
+    // the beginning of the pathname.
 
-    // If the pathname in its entirety is just one of these, append 
+    // If the pathname in its entirety is just one of these, append
     // a slash to avoid special cases below.
     if (processed == "." || processed == ".." || processed == "@")
         processed += "/";
@@ -315,7 +315,7 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory
         swdcleaned.replace(0, 2, getCurrentWorkingDirectory(swddrive));
         removeDriveInPlace(swdcleaned, swddrive);
     }
-    // Also preprocess if swd starts with something of the form "C:folder/". 
+    // Also preprocess if swd starts with something of the form "C:folder/".
     // Resolve by finding the current directory of this drive.
     else if (!swddrive.empty()) {
         swdcleaned.insert(0, getCurrentWorkingDirectory(swddrive));
@@ -323,7 +323,7 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory
     }
 
     /* CHECKING IF THE SWD SHOULD BE PREPENDED TO THE PATH */
-    // If pathname starts with "/", use it for the whole path (but deal with 
+    // If pathname starts with "/", use it for the whole path (but deal with
     // drive later).
     if (pathcleaned.substr(0, 1) == "/") {
         processed = pathcleaned;
@@ -343,7 +343,7 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory
     // May have picked up some backslashes through getCurrentWorkingDirectory().
     processed.replaceAllChar('\\', '/');
 
-    // If the pathname in its entirety is just one of these, append 
+    // If the pathname in its entirety is just one of these, append
     // a slash to avoid special cases below.
     if (processed == "." || processed == ".." || processed == "@")
         processed += "/";
@@ -364,18 +364,18 @@ void Pathname::deconstructPathnameUsingSpecifiedWorkingDirectory
         processed.replace(0, 2, getThisExecutableDirectory());
         removeDriveInPlace(processed, finaldrive);
     }
-    // Looks like a relative pathname. But if either path had 
-    // an initial drive specification, e.g. X:something.txt, that is 
+    // Looks like a relative pathname. But if either path had
+    // an initial drive specification, e.g. X:something.txt, that is
     // supposed to be interpreted relative to the current working directory
     // on drive X, just as though it were X:./something.txt.
     // Note that we do not need to check swd as it has either been preprocessed
-    // (and thus has been taken care of in the "/" case) or is of the form 
+    // (and thus has been taken care of in the "/" case) or is of the form
     // "folder/file.ext".
     else if (!pathdrive.empty()) {
         processed.insert(0, getCurrentWorkingDirectory(pathdrive));
         removeDriveInPlace(processed, finaldrive);
     }
-        
+
     // Must be a relative pathname. Just prepend the current working directory.
     else {
         processed.insert(0, getCurrentWorkingDirectory());
@@ -423,7 +423,7 @@ string Pathname::addDirectoryOffset(const string& base, const string& offset) {
 }
 
 string Pathname::getInstallDir(const std::string& envInstallDir,
-                                 const std::string& offsetFromDefaultInstallDir) 
+                                 const std::string& offsetFromDefaultInstallDir)
 {   std::string installDir = getEnvironmentVariable(envInstallDir);
     if (!installDir.empty()) {
         makeNativeSlashesInPlace(installDir);
@@ -507,7 +507,7 @@ string Pathname::getCurrentWorkingDirectory(const string& drive) {
 
 string Pathname::getRootDirectory(const string& drive) {
     #ifdef _WIN32
-        if (drive.empty()) 
+        if (drive.empty())
             return getCurrentDrive() + getPathSeparator();
         return String(drive[0]).toLower() + ":" + getPathSeparator();
     #else

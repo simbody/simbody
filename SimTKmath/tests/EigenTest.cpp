@@ -22,33 +22,33 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * This is a test program which uses the Eigen  class to compute 
+ * This is a test program which uses the Eigen class to compute
  * eigen values and eigen vectors
  */
 
 /*
-The data for this test is from an example FORTRAN  program from the
+The data for this test is from an example FORTRAN program from the
 Numerical Algorithms Group (NAG)
 URL:http://www.nag.com/lapack-ex/lapack-ex.html
 
 
-Solves for the eigen valus and vectors for the 
+Solves for the eigen valus and vectors for the
 following system
 
    Ax = 0 where :
 
 
 
-     0.35   0.45   -0.14   -0.17 
-     0.09   0.07   -0.54    0.35 
-A = -0.44  -0.33   -0.03    0.17 
-     0.25  -0.32   -0.13    0.11 
+     0.35   0.45   -0.14   -0.17
+     0.09   0.07   -0.54    0.35
+A = -0.44  -0.33   -0.03    0.17
+     0.25  -0.32   -0.13    0.11
 
 
 
-SOLUTION = 
+SOLUTION =
 reciprocal condition number =  9.9E-01
- Error bound                 =  1.3E-16
+Error bound                 =  1.3E-16
 
  Eigenvector( 1)
  -6.5509E-01
@@ -128,8 +128,8 @@ Real A[16] = {  0.35,  0.45,  -0.14,  -0.17,
                 0.25, -0.32,  -0.13,   0.11 };
 
 typedef std::complex<double> cd;
-cd expEigen[4] = { cd(0.79948,   0.0), 
-                                      cd(-0.099412,  0.40079), 
+cd expEigen[4] = { cd(0.79948,   0.0),
+                                      cd(-0.099412,  0.40079),
                                       cd(-0.099412, -0.40079),
                                       cd(-0.10066,   0.0) };
 
@@ -137,31 +137,31 @@ cd expVectors[16] = { cd( -.65509, 0.0), cd( -.52363, 0.0), cd(  .53622, 0.0), c
                       cd(-.1933001,  .25463), cd( .2518601, -.52240), cd( .09718202,-.30838), cd( .67595,   0.000),
                       cd(-.1933001, -.25463), cd( .2518601,  .52240), cd( .09718202, .30838), cd( .67595,   -0.000),
                       cd( .12533, 0.0), cd( .33202, 0.0), cd( .59384, 0.0), cd( .72209, 0.0) };
- template <typename T> 
+template <typename T>
 T absNormComplex( Vector_<std::complex<T> >& values, Vector_<std::complex<T> >& expected) {
    T norm = 0;
- 
+
    for(int i=0;i<values.size(); i++ ) {
-       norm += (fabs(values(i).real()) - fabs(expected(i).real())) * (fabs(values(i).real()) - fabs(expected(i).real())) + 
-             (fabs(values(i).imag()) - fabs(expected(i).imag())) * (fabs(values(i).imag()) - fabs(expected(i).imag()));  
-   } 
+       norm += (fabs(values(i).real()) - fabs(expected(i).real())) * (fabs(values(i).real()) - fabs(expected(i).real())) +
+             (fabs(values(i).imag()) - fabs(expected(i).imag())) * (fabs(values(i).imag()) - fabs(expected(i).imag()));
+   }
 
    return( sqrt(norm) );
 }
-template <typename T> 
+template <typename T>
 T absNorm( Vector_<T>& values, Vector_<T>& expected) {
    T norm = 0;
 
    for(int i=0;i<values.size(); i++ ) {
-       norm += (fabs(values(i)) - fabs(expected(i))) * (fabs(values(i)) - fabs(expected(i))) + 
-              (fabs(values(i)) - fabs(expected(i))) * (fabs(values(i)) - fabs(expected(i)));  
+       norm += (fabs(values(i)) - fabs(expected(i))) * (fabs(values(i)) - fabs(expected(i))) +
+              (fabs(values(i)) - fabs(expected(i))) * (fabs(values(i)) - fabs(expected(i)));
    }
    return( sqrt(norm) );
 }
 
 int main () {
     double errnorm;
-    try { 
+    try {
            // Default precision (Real, normally double) test.
 
         Matrix a(4,4, A);
@@ -174,9 +174,9 @@ int main () {
         Vector_<std::complex<double> > computeVec(4);
         Matrix_<std::complex<double> > vectors; // should get sized automatically to 4x4 by getAllEigenValuesAndVectors()
 
-        Eigen  es(a);   // setup the eigen system 
+        Eigen  es(a);   // setup the eigen system
 
-        es.getAllEigenValuesAndVectors( values, vectors );  // solve for the eigenvalues and eigenvectors of the system 
+        es.getAllEigenValuesAndVectors( values, vectors );  // solve for the eigenvalues and eigenvectors of the system
 
         printf("\n *****  NON-SYMMETRIC:  ***** \n\n"  );
         cout << " Real SOLUTION: " << values << "  errnorm=" << absNormComplex(values,expectedValues) << endl;
@@ -184,7 +184,7 @@ int main () {
 
         cout << "Vectors = "  << endl;
         for(int i=0;i<4;i++) {
-            computeVec = vectors(i); 
+            computeVec = vectors(i);
             expectVec = expectedVectors(i);
 
             errnorm =  absNormComplex( computeVec, expectVec );
@@ -192,7 +192,7 @@ int main () {
             ASSERT( errnorm < 0.00001 );
 
         }
-  
+
         cout << endl << endl;
 
         Vector_<std::complex<float> > expectedValuesf(4);
@@ -201,7 +201,7 @@ int main () {
         Vector_<std::complex<float> > computeVecf(4);
         Matrix_<std::complex<float> > vectorsf; // should get sized automatically to 4x4 by getAllEigenValuesAndVectors()
         Vector_<std::complex<float> > valuesf; // should get sized automatically to 4 by getAllEigenValuesAndVectors()
-        Matrix_<float> af(4,4); for (int i=0; i<4; ++i) for (int j=0; j<4; ++j) af(i,j)=(float)a(i,j); 
+        Matrix_<float> af(4,4); for (int i=0; i<4; ++i) for (int j=0; j<4; ++j) af(i,j)=(float)a(i,j);
 
         for(int i=0;i<4;i++) expectedValuesf[i] = (std::complex<float>)expEigen[i];
         for(int i=0;i<4;i++) for(int j=0;j<4;j++) expectedVectorsf(i,j) = (std::complex<float>)expVectors[j*4+i];
@@ -215,7 +215,7 @@ int main () {
 
         cout << "Vectors = " << endl;
         for(int i=0;i<4;i++) {
-            computeVecf = vectorsf(i); 
+            computeVecf = vectorsf(i);
             expectVecf = expectedVectorsf(i);
 
             errnorm = absNormComplex( computeVecf, expectVecf );
@@ -227,7 +227,7 @@ int main () {
 
         Matrix z(2,2, Z);
         Eigen zeigen(z);
-        zeigen.getAllEigenValuesAndVectors( values, vectors); 
+        zeigen.getAllEigenValuesAndVectors( values, vectors);
         cout << "Matrix of all zeros" << endl << "eigenvalues: " << values << endl;
         cout << "Eigen vectors: " << endl;
         for(int i=0;i<vectors.nrow();i++ ) {
@@ -236,7 +236,7 @@ int main () {
 
         Matrix_<double> z0;
         Eigen z0Eigen(z0);
-        zeigen.getAllEigenValuesAndVectors( values, vectors); 
+        zeigen.getAllEigenValuesAndVectors( values, vectors);
         cout << "Matrix of dimension 0,0" << endl << "eigenvalues: " << values << endl;
         cout << "Eigen vectors: " << endl;
         for(int i=0;i<vectors.nrow();i++ ) {
@@ -269,9 +269,9 @@ int main () {
         for(int i=0;i<4;i++) expectedSymValues[i] = expectSymVals[i];
         Matrix symVectors;
         Vector symVector;
-        Vector expectedSymVector; 
+        Vector expectedSymVector;
         Matrix expectedSymVectors(4,4,expectSymVecs );
-        esym.getAllEigenValuesAndVectors( symValues, symVectors );  // solve for the eigenvalues and eigenvectors of the system 
+        esym.getAllEigenValuesAndVectors( symValues, symVectors );  // solve for the eigenvalues and eigenvectors of the system
         printf("\n *****  SYMMETRIC:  ***** \n\n"  );
 
         cout << " Real SOLUTION:  All Values and Vectors" << symValues << "  errnorm=" << absNorm(symValues,expectedSymValues) << endl;
@@ -286,20 +286,20 @@ int main () {
         }
 
         Eigen  efewi(as);   // setup the eigen system
-        efewi.getFewEigenValuesAndVectors( symValues, symVectors, 2, 3 );  // solve for few eigenvalues and eigenvectors of the system 
+        efewi.getFewEigenValuesAndVectors( symValues, symVectors, 2, 3 );  // solve for few eigenvalues and eigenvectors of the system
         cout << " Real SOLUTION:  Values/Vectors between indices 2 and 3" << symValues << endl;
         for(int j=0;j<symVectors.ncol();j++)  cout << symVectors(j) <<  endl;
 
         Eigen  efewr(as);   // setup the eigen system
 
-        // solve for few eigenvalues/vectors between -1, 1 
-        efewr.getFewEigenValuesAndVectors( symValues, symVectors, -1.0, 1.0 );  
+        // solve for few eigenvalues/vectors between -1, 1
+        efewr.getFewEigenValuesAndVectors( symValues, symVectors, -1.0, 1.0 );
         cout << " Real SOLUTION:  Values/Vectors  between -1, 1 " << symValues << endl;
         for(int j=0;j<symVectors.ncol();j++)  cout << symVectors(j) <<  endl;
-*/       
+*/
 
         return 0;
-    } 
+    }
     catch (std::exception& e) {
         std::printf("FAILED: %s\n", e.what());
         return 1;

@@ -102,7 +102,7 @@ try {
   Real reltol, abstol, t, tout, Tout;
   Real x, y, xd, yd, g;
   int iout, Nout, flag;
-  
+
   yy.resize(4);
   yp.resize(4);
 
@@ -128,7 +128,7 @@ try {
   flag = cpode.setStopTime(Tout);
   flag = cpode.lapackDense(4);
 
-  /* INTERNAL PROJECTION FUNCTION */  
+  /* INTERNAL PROJECTION FUNCTION */
   ctols.resize(/*3*/2);
   ctols[0] = CTOL;
   ctols[1] = CTOL;
@@ -136,7 +136,7 @@ try {
   flag = cpode.projInit(CPodes::L2Norm, CPodes::Nonlinear, ctols);
   flag = cpode.setProjTestCnstr(true);
   flag = cpode.lapackDenseProj(/*3*/2, 4, CPodes::ProjectWithQRPivot);
- 
+
   /* INTEGRATE THROUGH A SEQUENCE OF TIMES */
   t = 0.0;
   for(iout=1; iout<=Nout; iout++) {
@@ -172,7 +172,7 @@ static int pendODE(Real t, const Vector& yy, Vector& fy)
   y  = yy[1];
   xd = yy[2];
   yd = yy[3];
- 
+
 
 
   // Radu's version:
@@ -188,13 +188,13 @@ static int pendODE(Real t, const Vector& yy, Vector& fy)
   return(0);
 }
 
-int PendLrSystem::explicitODE(Real t, const Vector& yy, 
+int PendLrSystem::explicitODE(Real t, const Vector& yy,
                               Vector& fy) const
 {
     return pendODE(t, yy, fy);
 }
 
-int PendLrSystem::constraint(Real t, const Vector& yy, 
+int PendLrSystem::constraint(Real t, const Vector& yy,
                              Vector& cout) const
 {
   Real x, y, xd, yd;

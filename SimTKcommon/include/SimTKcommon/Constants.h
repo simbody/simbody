@@ -31,39 +31,39 @@ and can be included in ANSI C programs as well as C++.**/
 /** @defgroup PredefinedConstants      Predefined Constants
 
 There are two kinds of numerical constants predefined by %SimTK: (1) a set
-of typed, const, in-memory values in the SimTK namespace, at the default Real 
+of typed, const, in-memory values in the SimTK namespace, at the default Real
 precision or with other specific types, and (2) a set of preprocessor
-(\#define) macros containing extremely high-precision precalculated numerical 
+(\#define) macros containing extremely high-precision precalculated numerical
 values in long double precision.
 
 You should use the typed constants whenever possible in your code since they
 are very compact and well-behaved in C++. They have memory addresses so can
 be returned as references. Because they are filled in at startup, they can
 include machine- and precision-specific values like NaN, Infinity, machine
-roundoff error, number of digits in a float, etc. that are very useful for 
+roundoff error, number of digits in a float, etc. that are very useful for
 writing robust, precision-independent numerical algorithms.
 
-The macro values must be cast to the appropriate type before use, and are 
+The macro values must be cast to the appropriate type before use, and are
 mostly useful as raw material for making \e typed constants. These macros
-contain <em>machine-independent</em> constants, including unitless mathematical 
+contain <em>machine-independent</em> constants, including unitless mathematical
 constants like pi, as well as physical constants and unit conversion factors.
-These constants are provided at extremely high precision as compile-time 
-macros in long double precision. By using very high precision we ensure 
-sufficient accuracy for any IEEE long double precision implementation (they 
+These constants are provided at extremely high precision as compile-time
+macros in long double precision. By using very high precision we ensure
+sufficient accuracy for any IEEE long double precision implementation (they
 can be 64, 80, or 128 bits). These constants can be used as raw material for
-providing nicer templatized constants in appropriate precisions and unit 
+providing nicer templatized constants in appropriate precisions and unit
 systems.
 
 <h2>Naming conventions</h2>
 Note that the %SimTK convention for typed constants is to name them
 like ordinary variables except with an initial capital letter (like a
-class name). This is distinct from the widely-used convention for 
-constants that are defined via the presprocessor as macros (that is, 
-using \#define). Those are written entirely in 
+class name). This is distinct from the widely-used convention for
+constants that are defined via the presprocessor as macros (that is,
+using \#define). Those are written entirely in
 \c UPPER_CASE_WITH_UNDERSCORES, after an initial \c SimTK_. Typed constants
 are processed instead by the compiler itself and do not require any
 special treatment when used; they behave just like variables of the
-same type and value would behave so there is no need to shout when 
+same type and value would behave so there is no need to shout when
 using them. **/
 
 /** @defgroup MacroConstants      Preprocessor Macro Constants
@@ -74,8 +74,8 @@ high precision.\ See the discussion under the main \ref PredefinedConstants
 module heading.
 
 <h2>Units</h2>
-Our most common unit systems are the "SI" (MKS) system, and the "MD" system 
-used for molecular dynamics. SI units are meters, kg, seconds, coulombs 
+Our most common unit systems are the "SI" (MKS) system, and the "MD" system
+used for molecular dynamics. SI units are meters, kg, seconds, coulombs
 (ampere-s), kelvins and moles. MD units are nanometers, atomic mass units
 (Daltons, g/mol), picoseconds, proton charge e, kelvins, and moles. Many
 molecular dynamicists and chemists prefer kcals for energy and angstroms for
@@ -97,7 +97,7 @@ substance  mole            mole                      mole
 
 velocity   m/s             km/s (nm/ps)              100m/s (A/ps)
 
-energy     J (kg-m^2/s^2)  kJ/mol                    kcal/mol 
+energy     J (kg-m^2/s^2)  kJ/mol                    kcal/mol
                              (Da-nm^2/ps^2)            (418.4 Da-A^2/ps^2)
 force      N (kg-m/s^2)    kJ/(mol-nm) = TN/mol      kcal/(mol-A)
                              (Da-nm/ps^2) (T=10^12)    (418.4 Da-A/ps^2)
@@ -117,17 +117,17 @@ convenient conversions. **/
     @ingroup  MacroConstants
 
 These are some common unitless numerical constants evaluated to 64 digits and
-written here in maximal (long double) precision. (These values were generated 
-using the symbolic calculator Maple which is part of Matlab's Symbolic 
+written here in maximal (long double) precision. (These values were generated
+using the symbolic calculator Maple which is part of Matlab's Symbolic
 Toolbox.) These can be cast to lower precisions when needed, and can be used
 in compile-time constant expressions like 2*SimTK_PI or 1/SimTK_SQRT2 for which
 the compiler will properly calculate a long double result with no runtime cost.
 
-These constants are also available as type-safe, already-rounded, 
+These constants are also available as type-safe, already-rounded,
 precision-templatized values with static memory addresses as part of our scalar
 system (see NTraits<T>). You should use the templatized versions when possible.
-The templatized versions also contain more elaborate constants such as NaN, 
-Infinity, and "epsilon" (machine precision) which can only be generated for 
+The templatized versions also contain more elaborate constants such as NaN,
+Infinity, and "epsilon" (machine precision) which can only be generated for
 specific types. **/
 
 /**@{**/
@@ -229,18 +229,18 @@ specific types. **/
 /** @defgroup PhysConstants      Physical Constants
     @ingroup  MacroConstants
 
-These constants are from the CODATA 2002 set from the NIST Physics Laboratory 
+These constants are from the CODATA 2002 set from the NIST Physics Laboratory
 web site http://physics.nist.gov/constants (NIST SP 961 Dec 2005).
 Ref: P.J. Mohr and B.N. Taylor, Rev. Mod. Phys. 77(1) (2005).
 
 @par Uncertainty
-Uncertainties are given in the CODATA set as the one-std-deviation uncertainty 
-in the last 2 digits of the given value. That means that there is about a 68% 
+Uncertainties are given in the CODATA set as the one-std-deviation uncertainty
+in the last 2 digits of the given value. That means that there is about a 68%
 chance that the last two digits are as shown +/- the uncertainty.
 
 How to combine uncertainties (extracted from
 http://physics.nist.gov/cuu/Uncertainty/combination.html):
-Assume measured quantities are x1, y1 with u1=uncertainty(x1), 
+Assume measured quantities are x1, y1 with u1=uncertainty(x1),
 u2=uncertainty(x2). We want to combine them into a new quantity y and calculate
 u=uncertainty(y).
 <pre>
@@ -254,7 +254,7 @@ u=uncertainty(y).
 
 /**@{**/
 
-/** 
+/**
  * Avogadro's number (NA) is defined as the number of atoms in 12g of pure Carbon-12 in
  * its unbound, rest state. The number is 1 mole (mol).
  * @par uncertainty
@@ -269,7 +269,7 @@ u=uncertainty(y).
  * unbound and in its rest state. This definition matched to Avogadro's number's definition
  * ensures that 1 mole of particles of mass 1u each has total mass exactly 1g. This is
  * synonymous with the dalton (Da), with units of g/mole, so 1u = 1Dalton = 1g/mole.
- * We will use Da for this mass unit, with kDa being a common mass measure for 
+ * We will use Da for this mass unit, with kDa being a common mass measure for
  * large biomolecules.
  *
  * @par uncertainty
@@ -316,7 +316,7 @@ u=uncertainty(y).
  *    1.60217653(14)e-19 C/e * 6.0221415(10)e23 = 9.6485338(18)e+4
  * </pre>
  * @par uncertainty
- *      18e-3 
+ *      18e-3
  */
 #define SimTK_MOLAR_CHARGE_IN_SI 9.6485338e+4L
 
@@ -344,16 +344,16 @@ u=uncertainty(y).
  */
 #define SimTK_LIGHTSPEED_IN_MD 2.99792458e+5L
 
-/** 
+/**
  * Newton's gravitational constant G in N-m^2/kg^2 = m^3 kg^-1 s^-2.
  * The force between two point masses m1,m2 separated by a distance d is
- *     <pre> F = -G m1*m2/d^2 </pre> 
+ *     <pre> F = -G m1*m2/d^2 </pre>
  * (with the "-" indicating an attractive force).
  * @par uncertainty
  *      10e-15
  * @see SimTK_GRAVITATIONAL_CONSTANT_IN_MD
  */
-#define SimTK_GRAVITATIONAL_CONSTANT_IN_SI 6.6742e-11L   
+#define SimTK_GRAVITATIONAL_CONSTANT_IN_SI 6.6742e-11L
 
 /**
  * Newton's gravitational constant G in (kJ/mol)-nm^2/u^2 = nm^3 u^-1 ps^-2.
@@ -423,7 +423,7 @@ u=uncertainty(y).
  * Coulomb's constant kappa = 1/(4*pi*e0) in MD units.
  * This is the constant that appears in Coulomb's law f(r)= kappa*q1*q2/r^2.
  * <pre>
- * Coulomb's consant in MD units uses MD e0 & c: 
+ * Coulomb's consant in MD units uses MD e0 & c:
  *   1/(4*pi*e0)=1e5*1.60217653e-19^2*6.0221415e23*c^2 kN-nm^2/e^2 (=kJ-nm/e^2)
  *     (exact in SI units but not exact in MD)
  * </pre>
@@ -442,15 +442,15 @@ u=uncertainty(y).
 #define SimTK_COULOMB_CONSTANT_IN_KCAL_ANGSTROM 3.32063711e+2L
 
 /**
- * This is the gas constant R in (J/mol)/K. 
+ * This is the gas constant R in (J/mol)/K.
  * @par uncertainty
  *      15e-6
  */
 #define SimTK_MOLAR_GAS_CONSTANT_SI 8.314472L
 
 /**
- * This is the gas constant R in (kJ/mol)/K. 
- * This is an exact conversion from SI units, differing only in the use of kJ 
+ * This is the gas constant R in (kJ/mol)/K.
+ * This is an exact conversion from SI units, differing only in the use of kJ
  * here vs. J in SI.
  * @par uncertainty
  *      15e-9
@@ -458,8 +458,8 @@ u=uncertainty(y).
 #define SimTK_MOLAR_GAS_CONSTANT_MD 8.314472e-3L
 
 /**
- * This is the gas constant R in (kcal/mol)/K. 
- * This is an exact conversion from MD units, differing only in the use of kcal 
+ * This is the gas constant R in (kcal/mol)/K.
+ * This is an exact conversion from MD units, differing only in the use of kcal
  * here vs. kJ in MD.
  * @par uncertainty
  *      36e-10
@@ -495,14 +495,14 @@ u=uncertainty(y).
     @ingroup  MacroConstants
 
 In each case here, given a value in the units mentioned first in the name, you
-should multiply by the given constant to produce the equivalent quantity 
-measured in the units that appear second in the name. You can perform the 
+should multiply by the given constant to produce the equivalent quantity
+measured in the units that appear second in the name. You can perform the
 reverse conversion by dividing by the constant, or by using another conversion
 constant with the names reversed if one is supplied here.**/
 
 /**@{**/
 
-/** 
+/**
  * Convert radians to degrees.
  * @par uncertainty
  *       approximation of an exact quantity
@@ -510,7 +510,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_RADIAN_TO_DEGREE 5.729577951308232087679815481410517033240547246656432154916024386e+1L
 
-/** 
+/**
  * Convert degrees to radians.
  * @par uncertainty
  *       approximation of an exact quantity
@@ -518,7 +518,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_DEGREE_TO_RADIAN 1.745329251994329576923690768488612713442871888541725456097191440e-2L
 
-/** 
+/**
  * Convert nanoseconds to seconds.
  * @par uncertainty
  *          exact
@@ -526,7 +526,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_NS_TO_S 1e-9L
 
-/** 
+/**
  * Convert seconds to nanoseconds.
  * @par uncertainty
  *          exact
@@ -534,7 +534,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_S_TO_NS 1e9L
 
-/** 
+/**
  * Convert Kcal to Kjoule (also Kcal/mol to Kjoule/mol).
  * @par uncertainty
  *         exact
@@ -542,7 +542,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_KCAL_TO_KJOULE 4.184L /* exact */
 
-/** 
+/**
  * Convert Kjoule to Kcal (also Kjoule/mol to Kcal/mol).
  * @par uncertainty
  *         approximation of an exact quantity
@@ -550,7 +550,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_KJOULE_TO_KCAL 2.390057361376673040152963671128107074569789674952198852772466539e-1L
 
-/** 
+/**
  * Convert atomic mass unit (amu, Dalton) to g. This is 1/NA (NA=avogadro's number).
  * @par uncertainty
  *         28e-32
@@ -558,7 +558,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_DALTON_TO_GRAM     1.66053886e-24L
 
-/** 
+/**
  * Convert proton charge units to Coulombs. This is the same as the
  * conversion from electron volts to Joules, and both are just the
  * charge of a proton in SI units.
@@ -567,7 +567,7 @@ constant with the names reversed if one is supplied here.**/
  */
 #define SimTK_E_TO_COULOMB       SimTK_CHARGE_OF_PROTON_IN_SI
 
-/** 
+/**
  * Convert electron volts to Joules. This is the same as the
  * conversion from proton charge units to Coulombs, and both are just the
  * charge of a proton in SI units.
@@ -577,5 +577,5 @@ constant with the names reversed if one is supplied here.**/
 #define SimTK_EV_TO_JOULE        SimTK_CHARGE_OF_PROTON_IN_SI
 
 /**@}**/    /*end of Unit Conversion Factors*/
-    
+
 #endif /* SimTK_SimTKCOMMON_CONSTANTS_H_ */

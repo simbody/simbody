@@ -41,7 +41,7 @@ public:
     }
 
     int getArgumentSize() const override {return 1;}
-    
+
     int getMaxDerivativeOrder() const override {return 1000;}
 };
 
@@ -83,29 +83,29 @@ public:
     Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override
     {
         Real deriv = 0;
-    
+
         assert(3 == x.size());
-        
+
         int derivOrder = derivComponents.size();
         assert(1 <= derivOrder);
 
-        if (derivOrder == 1) 
+        if (derivOrder == 1)
         {
             // too clever
             //    df/dx
-            //  = 2(x-y) + 2(x-z) 
+            //  = 2(x-y) + 2(x-z)
             //  = 2x - 2y + 2x - 2z
             //  = 4x - 2y - 2z
             //  = 6x - 2x - 2y - 2z
             deriv = 2 * (3 * x[derivComponents[0]] -x[0] -x[1] -x[2]);
         }
-        else if (derivOrder == 2) 
+        else if (derivOrder == 2)
         {
             if (derivComponents[0] == derivComponents[1])
                 deriv = 4.0; // df/dx^2
             else
                 deriv = -2.0; // df/dxdy
-        } 
+        }
         else ; // all derivatives higher than two are zero
 
         return deriv;
@@ -114,7 +114,7 @@ public:
     int getArgumentSize() const override{
         return 3;
     }
-    
+
     int getMaxDerivativeOrder() const override{
         return 1000;
     }
@@ -130,21 +130,21 @@ public:
     //Default constructor
     SinusoidFunction()
         : amplitude(180.0*degrees), phase(0.0*degrees) {}
-    
+
     //Convenience constructor to specify the slope and Y-intercept of the linear r
     SinusoidFunction(angle_t amp, angle_t phi)
     : amplitude(amp), phase(phi) {}
-    
+
     Real calcValue(const Vector& x) const override{
         assert( 1 == x.size() );
         return angle_t(amplitude*sin(x[0]*radians - phase));
     }
-    
+
     Real calcDerivative(const Array_<int>& derivComponents, const Vector& x) const override{
         Real deriv = 0;
-    
+
         assert(1 == x.size());
-        
+
         // Derivatives repeat after 4
         int derivOrder = derivComponents.size() % 4;
 
@@ -165,14 +165,14 @@ public:
             deriv = angle_t(amplitude*sin(x[0]*radians - phase));
         }
         else assert(false);
-        
+
         return deriv;
     }
-    
+
     int getArgumentSize() const override{
         return 1;
     }
-    
+
     int getMaxDerivativeOrder() const override{
         return 1000;
     }
@@ -213,7 +213,7 @@ private:
         functions.push_back(new ZeroFunction ); // y translation
         functions.push_back(new ZeroFunction ); // z translation
 
-        return functions;        
+        return functions;
     }
 
     static std::vector< std::vector<int> > createCoordIndices() {
@@ -268,7 +268,7 @@ private:
         functions.push_back(new ZeroFunction ); // y translation
         functions.push_back(new ZeroFunction ); // z translation
 
-        return functions;        
+        return functions;
     }
 
     static std::vector< std::vector<int> > createCoordIndices() {
@@ -290,7 +290,7 @@ private:
 
 
 
-void testRiboseMobilizer() 
+void testRiboseMobilizer()
 {
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
@@ -306,21 +306,21 @@ void testRiboseMobilizer()
         Inertia(20.0)
         ));
 
-    // One body anchored at C4 atom, 
-    MobilizedBody::Weld c4Body( 
-        matter.updGround(), 
+    // One body anchored at C4 atom,
+    MobilizedBody::Weld c4Body(
+        matter.updGround(),
         Rotation(-120*degrees, XAxis),
         rigidBody,
         Transform());
     // sphere for C4 atom
     decorations.addBodyFixedDecoration(
-        c4Body.getMobilizedBodyIndex(), 
+        c4Body.getMobilizedBodyIndex(),
         Transform(),
         DecorativeSphere( length_t(0.5*angstroms) )
     );
     // sphere for C5 atom
     decorations.addBodyFixedDecoration(
-        c4Body.getMobilizedBodyIndex(), 
+        c4Body.getMobilizedBodyIndex(),
         location_t(Vec3(-1.0,-1.0,0.5)*angstroms),
         DecorativeSphere( length_t(0.5*angstroms) )
     );
@@ -334,23 +334,23 @@ void testRiboseMobilizer()
 
     // One body anchored at C3 atom -- works
     // Pin version
-    //MobilizedBody::Pin c3Body( 
-    //    c4Body, 
+    //MobilizedBody::Pin c3Body(
+    //    c4Body,
     //    Transform(),
     //    rigidBody,
     //    Transform(location_t(Vec3(0,0,1.5)*angstroms))
     //    );
 
     // Function based pin version -- works
-    //TestPinMobilizer c3Body( 
-    //    c4Body, 
+    //TestPinMobilizer c3Body(
+    //    c4Body,
     //    Transform(),
     //    rigidBody,
     //    Transform(location_t(Vec3(0,0,1.5)*angstroms))
     //    );
-    
-    PseudorotationMobilizer c3Body( 
-        c4Body, 
+
+    PseudorotationMobilizer c3Body(
+        c4Body,
         Transform(),
         rigidBody,
         Transform(location_t(Vec3(0,0,1.5)*angstroms)),
@@ -359,13 +359,13 @@ void testRiboseMobilizer()
         );
     // sphere for C3 atom
     decorations.addBodyFixedDecoration(
-        c3Body.getMobilizedBodyIndex(), 
+        c3Body.getMobilizedBodyIndex(),
         Transform(),
         DecorativeSphere( length_t(0.5*angstroms) )
     );
     // sphere for O3 atom
     decorations.addBodyFixedDecoration(
-        c3Body.getMobilizedBodyIndex(), 
+        c3Body.getMobilizedBodyIndex(),
         location_t(Vec3(-1.0,1.0,-0.5)*angstroms),
         DecorativeSphere( length_t(0.5*angstroms) ).setColor(Vec3(1,0,0))
     );
@@ -383,8 +383,8 @@ void testRiboseMobilizer()
         Vec3(0),
         DecorativeLine().setColor(Vec3(0,0,0)).setLineThickness(6));
 
-    PseudorotationMobilizer c2Body( 
-        c3Body, 
+    PseudorotationMobilizer c2Body(
+        c3Body,
         Rotation( angle_t(-80*degrees), YAxis ),
         rigidBody,
         Transform(location_t(Vec3(0,0,1.5)*angstroms)),
@@ -393,13 +393,13 @@ void testRiboseMobilizer()
         );
     // sphere for C2 atom
     decorations.addBodyFixedDecoration(
-        c2Body.getMobilizedBodyIndex(), 
+        c2Body.getMobilizedBodyIndex(),
         Transform(),
         DecorativeSphere( length_t(0.5*angstroms) )
     );
     // sphere for O2 atom
     decorations.addBodyFixedDecoration(
-        c2Body.getMobilizedBodyIndex(), 
+        c2Body.getMobilizedBodyIndex(),
         location_t(Vec3(-1.0,1.0,-0.5)*angstroms),
         DecorativeSphere( length_t(0.5*angstroms) ).setColor(Vec3(1,0,0))
     );
@@ -417,8 +417,8 @@ void testRiboseMobilizer()
         Vec3(0),
         DecorativeLine().setColor(Vec3(0,0,0)).setLineThickness(6));
 
-    PseudorotationMobilizer c1Body( 
-        c2Body, 
+    PseudorotationMobilizer c1Body(
+        c2Body,
         Rotation( angle_t(-80*degrees), YAxis ),
         rigidBody,
         Transform(location_t(Vec3(0,0,1.5)*angstroms)),
@@ -427,19 +427,19 @@ void testRiboseMobilizer()
         );
     // sphere for C1 atom
     decorations.addBodyFixedDecoration(
-        c1Body.getMobilizedBodyIndex(), 
+        c1Body.getMobilizedBodyIndex(),
         Transform(),
         DecorativeSphere( length_t(0.5*angstroms) )
     );
     // sphere for N1 atom
     decorations.addBodyFixedDecoration(
-        c1Body.getMobilizedBodyIndex(), 
+        c1Body.getMobilizedBodyIndex(),
         location_t(Vec3(-1.0,-1.0,-0.5)*angstroms),
         DecorativeSphere( length_t(0.5*angstroms) ).setColor(Vec3(0,0,1))
     );
     // sphere for O4 atom
     decorations.addBodyFixedDecoration(
-        c1Body.getMobilizedBodyIndex(), 
+        c1Body.getMobilizedBodyIndex(),
         location_t(Vec3(1.0,0,-0.5)*angstroms),
         DecorativeSphere( length_t(0.5*angstroms) ).setColor(Vec3(1,0,0))
     );
@@ -506,7 +506,7 @@ void testRiboseMobilizer()
 
     system.realizeTopology();
     State& state = system.updDefaultState();
-    
+
     // Simulate it.
     VerletIntegrator integ(system);
     //RungeKuttaMersonIntegrator integ(system);
@@ -515,7 +515,7 @@ void testRiboseMobilizer()
     ts.stepTo(50.0);
 }
 
-int main() 
+int main()
 {
   try {
     testRiboseMobilizer();

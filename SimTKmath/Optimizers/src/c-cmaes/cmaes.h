@@ -3,23 +3,23 @@
 /* ---------------------- last modified: IX 2010         --- */
 /* --------------------------------- by: Nikolaus Hansen --- */
 /* --------------------------------------------------------- */
-/*   
-     CMA-ES for non-linear function minimization. 
+/*
+     CMA-ES for non-linear function minimization.
 
-     Copyright (C) 1996, 2003-2010  Nikolaus Hansen. 
+     Copyright (C) 1996, 2003-2010  Nikolaus Hansen.
      e-mail: nikolaus.hansen (you know what) inria.fr
-      
+
      License: see file cmaes.c
-   
+
 */
-#ifndef NH_cmaes_h /* only include ones */ 
-#define NH_cmaes_h 
+#ifndef NH_cmaes_h /* only include ones */
+#define NH_cmaes_h
 
 #include <time.h>
 
-typedef struct 
-/* cmaes_random_t 
- * sets up a pseudo random number generator instance 
+typedef struct
+/* cmaes_random_t
+ * sets up a pseudo random number generator instance
  */
 {
   /* Variables for Uniform() */
@@ -27,58 +27,58 @@ typedef struct
   long int aktseed;
   long int aktrand;
   long int *rgrand;
-  
+
   /* Variables for Gauss() */
   short flgstored;
   double hold;
 } cmaes_random_t;
 
-typedef struct 
-/* cmaes_timings_t 
- * time measurement, used to time eigendecomposition 
+typedef struct
+/* cmaes_timings_t
+ * time measurement, used to time eigendecomposition
  */
 {
   /* for outside use */
   double totaltime; /* zeroed by calling re-calling cmaes_timings_start */
   double totaltotaltime;
-  double tictoctime; 
+  double tictoctime;
   double lasttictoctime;
-  
+
   /* local fields */
   clock_t lastclock;
   time_t lasttime;
   clock_t ticclock;
   time_t tictime;
   short istic;
-  short isstarted; 
+  short isstarted;
 
   double lastdiff;
   double tictoczwischensumme;
 } cmaes_timings_t;
 
-typedef struct 
+typedef struct
 /* cmaes_readpara_t
- * collects all parameters, in particular those that are read from 
- * a file before to start. This should split in future? 
+ * collects all parameters, in particular those that are read from
+ * a file before to start. This should split in future?
  */
 {
   char * filename;  /* keep record of the file that was taken to read parameters */
-  short flgsupplemented; 
-  
+  short flgsupplemented;
+
   /* input parameters */
   int N; /* problem dimension, must stay constant, should be unsigned or long? */
-  unsigned int seed; 
-  double * xstart; 
-  double * typicalX; 
+  unsigned int seed;
+  double * xstart;
+  double * typicalX;
   int typicalXcase;
   double * rgInitialStds;
-  double * rgDiffMinChange; 
+  double * rgDiffMinChange;
 
   /* termination parameters */
-  double stopMaxFunEvals; 
+  double stopMaxFunEvals;
   double facmaxeval;
-  double stopMaxIter; 
-  struct { int flg; double val; } stStopFitness; 
+  double stopMaxIter;
+  struct { int flg; double val; } stStopFitness;
   double stopTolFun;
   double stopTolFunHist;
   double stopTolX;
@@ -99,7 +99,7 @@ typedef struct
 
   /* supplementary variables */
 
-  char *weigkey; 
+  char *weigkey;
   char resumefile[99];
   const char **rgsformat;
   void **rgpadr;
@@ -109,9 +109,9 @@ typedef struct
   int n2para;
 } cmaes_readpara_t;
 
-typedef struct 
-/* cmaes_t 
- * CMA-ES "object" 
+typedef struct
+/* cmaes_t
+ * CMA-ES "object"
  */
 {
   const char *version;
@@ -122,26 +122,26 @@ typedef struct
   double sigma;  /* step size */
 
   double *rgxmean;  /* mean x vector, "parent" */
-  double *rgxbestever; 
+  double *rgxbestever;
   double **rgrgx;   /* range of x-vectors, lambda offspring */
   int *index;       /* sorting index of sample pop. */
   double *arFuncValueHist;
 
   short flgIniphase; /* not really in use anymore */
-  short flgStop; 
+  short flgStop;
 
-  double chiN; 
+  double chiN;
   double **C;  /* lower triangular matrix: i>=j for C[i][j] */
   double **B;  /* matrix with normalize eigenvectors in columns */
   double *rgD; /* axis lengths */
 
   double *rgpc;
   double *rgps;
-  double *rgxold; 
-  double *rgout; 
+  double *rgxold;
+  double *rgout;
   double *rgBDz;   /* for B*D*z */
   double *rgdTmp;  /* temporary (random) vector used in different places */
-  double *rgFuncValue; 
+  double *rgFuncValue;
   double *publicFitness; /* returned by cmaes_init() */
 
   double gen; /* Generation number */
@@ -157,20 +157,20 @@ typedef struct
 
   short flgEigensysIsUptodate;
   short flgCheckEigen; /* control via cmaes_signals.par */
-  double genOfEigensysUpdate; 
+  double genOfEigensysUpdate;
   cmaes_timings_t eigenTimings;
- 
-  double dMaxSignifKond;                      
+
+  double dMaxSignifKond;
   double dLastMinEWgroesserNull;
 
-  short flgresumedone; 
+  short flgresumedone;
 
-  time_t printtime; 
+  time_t printtime;
   time_t writetime; /* ideally should keep track for each output file */
   time_t firstwritetime;
-  time_t firstprinttime; 
+  time_t firstprinttime;
 
-} cmaes_t; 
+} cmaes_t;
 
 
-#endif 
+#endif

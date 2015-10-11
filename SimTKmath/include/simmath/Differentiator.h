@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the header file that user code should include to pick up the 
+ * This is the header file that user code should include to pick up the
  * SimTK Simmath numerical differentiation tools.
  */
 
@@ -36,42 +36,42 @@ namespace SimTK {
 
 
 /**
- * Given a function f(y), where f, y or both can be vectors, calculate the 
+ * Given a function f(y), where f, y or both can be vectors, calculate the
  * derivative (gradient, Jacobian) df/dy.
- * 
+ *
  * Calculation is done using numerical differencing, which should be considered
- * a last resort for cases in which the analytic derivative is unavailable. 
+ * a last resort for cases in which the analytic derivative is unavailable.
  * (Note that you can obtain an analytic gradient automatically from the source
- * code for f using automatic differentiation methods like complex step 
+ * code for f using automatic differentiation methods like complex step
  * derivatives, ADIFOR, etc.).
  *
  * @par Theory and Implementation
  *
  * The SimTK::Differentiator class uses methods adapted from the book
- * Practical Optimization by Gill, Murray, and Wright (1981), section 8.6 
+ * Practical Optimization by Gill, Murray, and Wright (1981), section 8.6
  * (339ff) and Numerical Recipies in C++ 2nd ed. (2002) section 5.7 (192ff).
  * Here is a summary:
- *  - We want to differentiate a function f(y) whose estimated relative 
+ *  - We want to differentiate a function f(y) whose estimated relative
  *    accuracy eps is known (e.g. eps=1e-6). (We'll treat y as a scalar here
  *    but for vector y this is done for one element yi at a time.)
- *  - We need to know what perturbation h to use for calculating an estimate 
- *    of df/dy that optimally balances roundoff error (h too small) with 
+ *  - We need to know what perturbation h to use for calculating an estimate
+ *    of df/dy that optimally balances roundoff error (h too small) with
  *    truncation error (h too big).
  *  - First guess at h depends on the order of the numerical method: either
- *    forward difference (1st order) or central difference (2nd order). For 
+ *    forward difference (1st order) or central difference (2nd order). For
  *    1st order, h0=eps^(1/2); for 2nd order h0=eps^(1/3).
  *  - Now we have to make sure that we can compute y+h reliably. If y is very
  *    large, we can not allow h to be too small. We calculate a scaled
  *    perturbation h1=h0*max(y, 0.1). The 0.1 allows a small y to pull down
  *    the step size <em>a little</em>; but it is dangerous to go much lower
  *    because a very small y might just be zero plus noise.
- *  - Finally, the step size should be exactly representable as a power of 2. 
- *    Conceptually, this is just h=(y+h1)-y although one must be careful to 
- *    stop the compiler from cleverly "simplifying" this expression. 
+ *  - Finally, the step size should be exactly representable as a power of 2.
+ *    Conceptually, this is just h=(y+h1)-y although one must be careful to
+ *    stop the compiler from cleverly "simplifying" this expression.
  *    Differentiator uses a C++ volatile variable for that purpose.
  *
- * Then the derivative, gradient element, or Jacobian column is computed 
- * as df/dy=[f(x+h)-f(x)]/h (1st order) or df/dy=[f(x+h)-f(x-h)]/(2h) 
+ * Then the derivative, gradient element, or Jacobian column is computed
+ * as df/dy=[f(x+h)-f(x)]/h (1st order) or df/dy=[f(x+h)-f(x-h)]/(2h)
  * (2nd order).
  */
 class SimTK_SIMMATH_EXPORT Differentiator {
@@ -99,7 +99,7 @@ public:
     static int         getMethodOrder(Method);
 
     virtual ~Differentiator();
-    explicit Differentiator(const Function& f, 
+    explicit Differentiator(const Function& f,
                             Method          defaultMethod=UnspecifiedMethod);
 
     // You can change the default method; normally it is ForwardDifference.
@@ -109,7 +109,7 @@ public:
 
     // These are the real routines, which are efficient and flexible
     // but somewhat messy to use.
-    void calcDerivative(Real y0, Real fy0, Real& dfdy, 
+    void calcDerivative(Real y0, Real fy0, Real& dfdy,
                         Method=UnspecifiedMethod) const;
     void calcGradient  (const Vector& y0, Real fy0, Vector& gf,
                         Method=UnspecifiedMethod) const;
@@ -229,7 +229,7 @@ public:
     virtual int f(const Vector& y, Vector& fy) const=0;
 
 protected:
-    explicit JacobianFunction(int nf=-1, int ny=-1, Real acc=-1); 
+    explicit JacobianFunction(int nf=-1, int ny=-1, Real acc=-1);
     virtual ~JacobianFunction() { }
 
 private:

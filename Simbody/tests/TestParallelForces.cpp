@@ -65,10 +65,10 @@ void testParallelForce()
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    
+
     for(int x = 0; x < 50; x++)
       Force::Custom custom(forces, new ParallelForceImpl());
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     system.realize(state, Stage::Dynamics);
@@ -79,10 +79,10 @@ void testNonParallelForce()
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
-    
+
     for(int x = 0; x < 50; x++)
       Force::Custom custom(forces, new NonParallelForceImpl());
-    
+
     system.realizeTopology();
     State state = system.getDefaultState();
     system.realize(state, Stage::Dynamics);
@@ -99,20 +99,20 @@ int main()
                 "insufficient number of supported concurrent threads" << endl;
                 return 0;
             }
-            
+
         auto start = std::chrono::high_resolution_clock::now();
         testParallelForce();
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> elapsedParallel = end-start;
-        
+
         start = std::chrono::high_resolution_clock::now();
         testNonParallelForce();
         end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> elapsedNonParallel = end-start;
-        
+
         cout << "Parallel Forces Time: " << elapsedParallel.count() << endl;
         cout << "NonParallel Forces Time: " << elapsedNonParallel.count() << endl;
-        
+
         SimTK_TEST(elapsedNonParallel.count() > elapsedParallel.count());
     SimTK_END_TEST();
     return 0;

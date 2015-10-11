@@ -43,7 +43,7 @@ enum OptimizerAlgorithm {
      /// IpOpt algorithm (https://projects.coin-or.org/ipopt);
      /// gradient descent.
      InteriorPoint = 1,
-     /// Limited-memory Broyden-Fletcher-Goldfarb-Shanno algorithm; 
+     /// Limited-memory Broyden-Fletcher-Goldfarb-Shanno algorithm;
      /// gradient descent.
      LBFGS         = 2,
      /// LBFGS with simple bound constraints;
@@ -65,8 +65,8 @@ enum OptimizerAlgorithm {
 
 /**
  * Abstract class which defines an objective/cost function which is optimized by
- * and Optimizer object. The OptimizerSystem also defines any constraints which 
- * must be satisfied. 
+ * and Optimizer object. The OptimizerSystem also defines any constraints which
+ * must be satisfied.
  */
 class SimTK_SIMMATH_EXPORT OptimizerSystem {
 public:
@@ -77,10 +77,10 @@ public:
                         numLinearInequalityConstraints(0),
                         useLimits( false ),
                         lowerLimits(0),
-                        upperLimits(0) { 
+                        upperLimits(0) {
     }
 
-    explicit OptimizerSystem(int nParameters ) { 
+    explicit OptimizerSystem(int nParameters ) {
         new (this) OptimizerSystem(); // call the above constructor
         setNumParameters(nParameters);
     }
@@ -95,32 +95,32 @@ public:
     /// Objective/cost function which is to be optimized; return 0 when successful.
     /// The value of f upon entry into the function is undefined.
     /// This method must be supplied by concrete class.
-    virtual int objectiveFunc      ( const Vector& parameters, 
+    virtual int objectiveFunc      ( const Vector& parameters,
                                  bool new_parameters, Real& f ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "objectiveFunc" );
                                  return -1; }
-  
+
     /// Computes the gradient of the objective function; return 0 when successful.
     /// This method does not have to be supplied if a numerical gradient is used.
-    virtual int gradientFunc       ( const Vector &parameters, 
+    virtual int gradientFunc       ( const Vector &parameters,
                                  bool new_parameters, Vector &gradient ) const  {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "gradientFunc" );
                                  return -1; }
     /// Computes the value of the constraints; return 0 when successful.
     /// This method must be supplied if the objective function has constraints.
-    virtual int constraintFunc     ( const Vector & parameters, 
+    virtual int constraintFunc     ( const Vector & parameters,
                                  bool new_parameters, Vector & constraints ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintFunc" );
                                  return -1; }
     /// Computes Jacobian of the constraints; return 0 when successful.
     /// This method does not have to be supplied if a numerical jacobian is used.
-    virtual int constraintJacobian ( const Vector& parameters, 
+    virtual int constraintJacobian ( const Vector& parameters,
                                   bool new_parameters, Matrix& jac ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintJacobian" );
                                  return -1; }
     /// Computes Hessian of the objective function; return 0 when successful.
     /// This method does not have to be supplied if limited memory is used.
-    virtual int hessian            (  const Vector &parameters, 
+    virtual int hessian            (  const Vector &parameters,
                                  bool new_parameters, Vector &gradient) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
@@ -155,7 +155,7 @@ public:
            numInequalityConstraints = n;
        }
    }
-   /// Sets the number of lineaer equality constraints. 
+   /// Sets the number of linear equality constraints.
    void setNumLinearEqualityConstraints( const int n ) {
        if( n < 0 || n > numEqualityConstraints ) {
            const char* where = " OptimizerSystem  setNumLinearEqualityConstraints";
@@ -165,7 +165,7 @@ public:
            numLinearEqualityConstraints = n;
        }
    }
-   /// Sets the number of lineaer inequality constraints.
+   /// Sets the number of linear inequality constraints.
    void setNumLinearInequalityConstraints( const int n ) {
        if( n < 0 || n > numInequalityConstraints ) {
            const char* where = " OptimizerSystem  setNumLinearInequalityConstraints";
@@ -186,7 +186,7 @@ public:
            const char* where = " OptimizerSystem  setParametersLimits";
            const char* szName = "lower limits length";
            SimTK_THROW5(Exception::IncorrectArrayLength, szName, lower.size(), "numParameters", numParameters, where);
-       } 
+       }
 
        // set the upper and lower limits
        if( useLimits ) {
@@ -310,7 +310,7 @@ private:
  *      - 3: output to console, and all files are written to the current
  *
  * Advanced options:
- * 
+ *
  * The default values for options whose name begins with "stop" are specified
  * at https://github.com/CMA-ES/c-cmaes/blob/master/cmaes_initials.par
  *
@@ -362,7 +362,7 @@ public:
     /// BestAvailable, UnknownAlgorithm, and UserSuppliedAlgorithm
     /// are treated as never available.
     static bool isAlgorithmAvailable(OptimizerAlgorithm algorithm);
-   
+
     /// Sets the relative accuracy used determine if the problem has converged.
     void setConvergenceTolerance(Real accuracy );
     /// Sets the absolute tolerance used to determine whether constraint
@@ -380,7 +380,7 @@ public:
     /// hessian approximation.
     void setLimitedMemoryHistory( int history );
     /// Set the level of debugging info displayed.
-    void setDiagnosticsLevel( int level ); 
+    void setDiagnosticsLevel( int level );
 
     void setOptimizerSystem( const OptimizerSystem& sys  );
     void setOptimizerSystem( const OptimizerSystem& sys, OptimizerAlgorithm algorithm );
@@ -394,13 +394,13 @@ public:
     /// Set the value of an advanced option specified by an boolean value.
     bool setAdvancedBoolOption( const char *option, const bool value );
 
-    
+
     /// Set which numerical differentiation algorithm is to be used for the next
-    /// useNumericalGradient() or useNumericalJacobian() call. Choices are 
-    /// Differentiator::ForwardDifference (first order) or 
-    /// Differentiator::CentralDifference (second order) with central the 
+    /// useNumericalGradient() or useNumericalJacobian() call. Choices are
+    /// Differentiator::ForwardDifference (first order) or
+    /// Differentiator::CentralDifference (second order) with central the
     /// default.
-    /// @warning This has no effect if you have already called 
+    /// @warning This has no effect if you have already called
     /// useNumericalGradient() or useNumericalJacobian(). Those must be called
     /// \e after setDifferentiatorMethod().
     /// @see SimTK::Differentiator
@@ -420,29 +420,29 @@ public:
     /// Enable numerical calculation of gradient, with optional estimation of
     /// the accuracy to which the objective function is calculated. For example,
     /// if you are calculate about 6 significant digits, supply the estimated
-    /// accuracy as 1e-6. Providing the estimated accuracy improves the quality 
-    /// of the calculated derivative. If no accuracy is provided we'll assume 
+    /// accuracy as 1e-6. Providing the estimated accuracy improves the quality
+    /// of the calculated derivative. If no accuracy is provided we'll assume
     /// the objective is calculated to near machine precision. The method used
-    /// for calculating the derivative will be whatever was \e previously 
+    /// for calculating the derivative will be whatever was \e previously
     /// supplied in a call to setDifferentiatorMethod(), or the default which
-    /// is to use central differencing (two function evaluations per 
+    /// is to use central differencing (two function evaluations per
     /// gradient entry). See SimTK::Differentiator for more information.
     /// @see setDifferentiatorMethod(), SimTK::Differentiator
-    void useNumericalGradient(bool flag, 
+    void useNumericalGradient(bool flag,
         Real estimatedAccuracyOfObjective = SignificantReal);
-    /// Enable numerical calculation of the constraint Jacobian, with optional 
-    /// estimation of the accuracy to which the constraint functions are 
+    /// Enable numerical calculation of the constraint Jacobian, with optional
+    /// estimation of the accuracy to which the constraint functions are
     /// calculated.  For example, if you are calculating about 6 significant
-    /// digits, supply the estimated accuracy as 1e-6. Providing the estimated 
-    /// accuracy improves the quality of the calculated derivative. If no 
+    /// digits, supply the estimated accuracy as 1e-6. Providing the estimated
+    /// accuracy improves the quality of the calculated derivative. If no
     /// accuracy is provided we'll assume the constraints are calculated to near
-    /// machine precision.  The method used for calculating the derivative will 
-    /// be whatever was \e previously supplied in a call to 
-    /// setDifferentiatorMethod(), or the default which is to use central 
-    /// differencing (two function evaluations per Jacobian column. See 
+    /// machine precision.  The method used for calculating the derivative will
+    /// be whatever was \e previously supplied in a call to
+    /// setDifferentiatorMethod(), or the default which is to use central
+    /// differencing (two function evaluations per Jacobian column. See
     /// SimTK::Differentiator for more information.
     /// @see setDifferentiatorMethod(), SimTK::Differentiator
-    void useNumericalJacobian(bool flag, 
+    void useNumericalJacobian(bool flag,
         Real estimatedAccuracyOfConstraints = SignificantReal);
 
     /// Compute optimization.
@@ -475,7 +475,7 @@ private:
 
 friend class OptimizerRep;
 }; // class Optimizer
- 
+
 } // namespace SimTK
 
 #endif //SimTK_SIMMATH_OPTIMIZER_H_

@@ -39,21 +39,21 @@ namespace SimTK {
 
 // Only show the unspecialized helper class in Doxygen.
 
-/** This helper class is used only by ReinitOnCopy and is specialized as 
+/** This helper class is used only by ReinitOnCopy and is specialized as
 necessary to support a variety of template types `T`. **/
 template <class T, bool IsScalarType>
 class ReinitOnCopyHelper {};
 
-/** Ensures that a data member of type `T` is automatically reinitialized to a 
+/** Ensures that a data member of type `T` is automatically reinitialized to a
 given initial value upon copy construction or copy assignment.\ This allows the
 compiler-generated default copy methods to be used.
 
-The template type `T` here is required to be `CopyAssignable`,  
-`CopyConstructible`, and `Destructible`, and cannot be an array type. There is 
-space overhead here for one extra copy of `T` used to hold the initial value. 
-The default constructor is suppressed here; if you just need the data member 
-reset to zero or to its default-constructed value, use class `ResetOnCopy<T>` 
-instead. That class has zero overhead and accepts a wider range of template 
+The template type `T` here is required to be `CopyAssignable`,
+`CopyConstructible`, and `Destructible`, and cannot be an array type. There is
+space overhead here for one extra copy of `T` used to hold the initial value.
+The default constructor is suppressed here; if you just need the data member
+reset to zero or to its default-constructed value, use class `ResetOnCopy<T>`
+instead. That class has zero overhead and accepts a wider range of template
 arguments.
 
 Here are some usage examples:
@@ -76,27 +76,27 @@ class Thing {
 };
 @endcode
 
-Other than copy behavior, an object of type `ReinitOnCopy<T>` behaves just like 
-the underlying object of type `T`. It will implicitly convert to `T` when 
-needed, and inherit constructors, assignment, and other methods from `T`. Move 
+Other than copy behavior, an object of type `ReinitOnCopy<T>` behaves just like
+the underlying object of type `T`. It will implicitly convert to `T` when
+needed, and inherit constructors, assignment, and other methods from `T`. Move
 construction and move assignment behave as they would for `T`, and an assignment
-from an object of type `T` to an object of type `ReinitOnCopy<T>` will invoke 
+from an object of type `T` to an object of type `ReinitOnCopy<T>` will invoke
 `T`'s ordinary copy assignment operator if there is one, and fail to compile if
 an attempt is made to use a non-existent assignment operator.
 
-@tparam  T  Template type that is a numeric, character, enum, or pointer 
-            built-in type, or a class type that is CopyConstructible, 
+@tparam  T  Template type that is a numeric, character, enum, or pointer
+            built-in type, or a class type that is CopyConstructible,
             CopyAssignable, and Destructible. Array types are not allowed.
 
 @see ResetOnCopy if you only need to reinitialize to the default value.
 **/
-template <class T> 
+template <class T>
 class ReinitOnCopy : public ReinitOnCopyHelper<T, std::is_scalar<T>::value> {
     using Super = ReinitOnCopyHelper<T, std::is_scalar<T>::value>;
-    
+
     /** @cond **/ // These confuse doxygen.
     // TODO: should be possible to specialize this for arrays.
-    static_assert(!std::is_array<T>::value, 
+    static_assert(!std::is_array<T>::value,
         "ReinitOnCopy<T> does not allow T to be an array. Use an array "
         "of ReinitOnCopy<E> instead, where E is the element type.");
 
@@ -113,50 +113,50 @@ class ReinitOnCopy : public ReinitOnCopyHelper<T, std::is_scalar<T>::value> {
 public:
     using Super::Super;
     using Super::operator=;
-   
+
     /** Default constructor is deleted; use ResetOnCopy instead. **/
     ReinitOnCopy() = delete;
 
     /** Construct or implicitly convert from an object of type `T`.\ This sets
-    both the current and remembered initial value to the given `value`. **/ 
+    both the current and remembered initial value to the given `value`. **/
     ReinitOnCopy(const T& value) : Super(value) {}
 
-    /** Construct or implicitly convert from an rvalue object of type 
+    /** Construct or implicitly convert from an rvalue object of type
     `T`.\ This sets both the current and remembered initial value to the given
-    `value`. **/ 
+    `value`. **/
     ReinitOnCopy(T&& value) : Super(std::move(value)) {}
 
     /** Copy constructor sets the value and remembered initial value to the
-    initial value in the source, using type `T`'s copy constructor. The 
+    initial value in the source, using type `T`'s copy constructor. The
     current value of the source is ignored. **/
-    ReinitOnCopy(const ReinitOnCopy& source) 
+    ReinitOnCopy(const ReinitOnCopy& source)
     :   Super(static_cast<const Super&>(source)) {}
 
     /** Move constructor is simply a pass-through to the move constructor of
     the contained object for both the current and initial values. **/
-    ReinitOnCopy(ReinitOnCopy&& source) 
+    ReinitOnCopy(ReinitOnCopy&& source)
     :   Super(static_cast<Super&&>(source)) {} // default
 
     /** Copy assignment reinitializes this object to its original condition; the
     source argument is ignored. **/
-    ReinitOnCopy& operator=(const ReinitOnCopy& ignored) 
+    ReinitOnCopy& operator=(const ReinitOnCopy& ignored)
     {   Super::operator=(static_cast<const Super&>(ignored)); return *this; }
 
     /** Move assignment uses type `T`'s move assignment for the current value
     but does not change the remembered initial value here. **/
-    ReinitOnCopy& operator=(ReinitOnCopy&& source) 
+    ReinitOnCopy& operator=(ReinitOnCopy&& source)
     {   Super::operator=(static_cast<Super&&>(source)); return *this; }
 
     /** Assignment from an object of type `T` uses `T`'s copy assignment
     operator; affects only the current value but does not change the remembered
     initial value. **/
-    ReinitOnCopy& operator=(const T& value) 
+    ReinitOnCopy& operator=(const T& value)
     {   Super::operator=(value); return *this; }
 
     /** Assignment from an rvalue object of type `T` uses `T`'s move or copy
-    assignment operator; affects only the current value but does not change the 
+    assignment operator; affects only the current value but does not change the
     remembered initial value. **/
-    ReinitOnCopy& operator=(T&& value) 
+    ReinitOnCopy& operator=(T&& value)
     {   Super::operator=(std::move(value)); return *this; }
 
     /** Return a const reference to the contained object of type `T`. **/
@@ -168,7 +168,7 @@ public:
     /** (Advanced) Return a const reference to the stored initial value. **/
     const T& getReinitT() const {return Super::getReinitT();}
 
-    /** (Advanced) Return a writable reference to the stored initial 
+    /** (Advanced) Return a writable reference to the stored initial
     value.\ Use of this should be rare and restricted to constructors. **/
     T& updReinitT() {return Super::updReinitT();}
 };
@@ -179,7 +179,7 @@ public:
 
 
 /** @cond **/ // hide helpers from doxygen
-/* ReinitOnCopy helper class for built-in types (integral or floating point). 
+/* ReinitOnCopy helper class for built-in types (integral or floating point).
 These types are value initialized, so will be reset to zero. */
 template <class T>
 class ReinitOnCopyHelper<T,true> {
@@ -191,34 +191,34 @@ public:
     ReinitOnCopyHelper() {}
 
     // Copy constructor sets the value and remembered initial value to the
-    // initial value in the source, using type `T`'s copy constructor. The 
+    // initial value in the source, using type `T`'s copy constructor. The
     // current value of the source is ignored.
     ReinitOnCopyHelper(const ReinitOnCopyHelper& source)
     :   ReinitOnCopyHelper(source.m_reinitValue) {}
 
     // Default move construction.
-    ReinitOnCopyHelper(ReinitOnCopyHelper&& source) 
-    :   m_value(std::move(source.m_value)), 
+    ReinitOnCopyHelper(ReinitOnCopyHelper&& source)
+    :   m_value(std::move(source.m_value)),
         m_reinitValue(std::move(source.m_reinitValue)) {}
 
-    // Constructor from lvalue or rvalue `T` sets the value and remembered 
+    // Constructor from lvalue or rvalue `T` sets the value and remembered
     // initial value to the given value, using type `T`'s copy constructor.
-    explicit ReinitOnCopyHelper(const T& value) 
+    explicit ReinitOnCopyHelper(const T& value)
     :   m_value(value), m_reinitValue(value) {}
 
     // Move assignment moves the *value* from source to `this` but does not
     // move the recorded initial value which may differ.
-    ReinitOnCopyHelper& operator=(ReinitOnCopyHelper&& source) 
+    ReinitOnCopyHelper& operator=(ReinitOnCopyHelper&& source)
     {   m_value = std::move(source.m_value); return *this; }
 
     // Copy assignment resets the current value to the remembered initial value
     // using type `T`'s copy assignment operator. The source is ignored.
-    ReinitOnCopyHelper& operator=(const ReinitOnCopyHelper&) 
+    ReinitOnCopyHelper& operator=(const ReinitOnCopyHelper&)
     {   m_value = m_reinitValue; return *this; }
 
     // Allow assignment from an lvalue or rvalue object of type T; affects only
     // the current value. Uses built-in type `T`'s copy assignment operator.
-    ReinitOnCopyHelper& operator=(const T& value) 
+    ReinitOnCopyHelper& operator=(const T& value)
     {   m_value = value; return *this; }
 
     // Implicit conversion to a const reference to the contained object of
@@ -235,13 +235,13 @@ public:
     // Return a const reference to the stored initial value.
     const T& getReinitT() const {return m_reinitValue;}
 
-    // Return a writable reference to the stored initial value. Use of this 
+    // Return a writable reference to the stored initial value. Use of this
     // should be restricted to constructors.
     T& updReinitT() {return m_reinitValue;}
 
 private:
     T           m_value{};          // note "value initialization"; i.e. zero
-    const T     m_reinitValue{}; 
+    const T     m_reinitValue{};
 };
 
 
@@ -255,49 +255,49 @@ public:
     using T::T;
     using T::operator=;
 
-    // Default construction (T and the stored initial value are default 
+    // Default construction (T and the stored initial value are default
     // constructed).
     ReinitOnCopyHelper() : T(), m_reinitValue() {}
 
-    // Move construction moves both the value and initial value from the 
+    // Move construction moves both the value and initial value from the
     // source object. This is the same as default move construction.
-    ReinitOnCopyHelper(ReinitOnCopyHelper&& source) 
+    ReinitOnCopyHelper(ReinitOnCopyHelper&& source)
     :   T(std::move(source)), m_reinitValue(std::move(source.m_reinitValue)) {}
 
-    // Constructor from lvalue `T` sets the value and remembered initial value 
+    // Constructor from lvalue `T` sets the value and remembered initial value
     // to the given value, using type `T`'s copy constructor.
-    explicit ReinitOnCopyHelper(const T& value) 
+    explicit ReinitOnCopyHelper(const T& value)
     :   T(value), m_reinitValue(value) {}
 
-    // Constructor from rvalue `T` sets the value and remembered initial value 
+    // Constructor from rvalue `T` sets the value and remembered initial value
     // to the given value, using type `T`'s move and copy constructors.
-    explicit ReinitOnCopyHelper(T&& value) 
+    explicit ReinitOnCopyHelper(T&& value)
     :   T(value), m_reinitValue(static_cast<const T&>(*this)) {} // careful!
 
     // Copy constructor sets the value and remembered initial value to the
-    // initial value in the source, using type `T`'s copy constructor. The 
+    // initial value in the source, using type `T`'s copy constructor. The
     // current value of the source is ignored.
     ReinitOnCopyHelper(const ReinitOnCopyHelper& source)
     :   ReinitOnCopyHelper(source.m_reinitValue) {}
 
     // Move assignment moves the *value* from source to `this` but does not
     // move the recorded initial value which may differ.
-    ReinitOnCopyHelper& operator=(ReinitOnCopyHelper&& source) 
+    ReinitOnCopyHelper& operator=(ReinitOnCopyHelper&& source)
     {   T::operator=(std::move(source)); return *this; }
 
     // Copy assignment resets the current value to the remembered initial value
     // using type `T`'s copy assignment operator. The source is ignored.
-    ReinitOnCopyHelper& operator=(const ReinitOnCopyHelper&) 
+    ReinitOnCopyHelper& operator=(const ReinitOnCopyHelper&)
     {   T::operator=(m_reinitValue); return *this; }
 
-    // Allow assignment from an lvalue object of type T; affects only the 
+    // Allow assignment from an lvalue object of type T; affects only the
     // current value. Uses type `T`'s copy assignment operator.
-    ReinitOnCopyHelper& operator=(const T& value) 
+    ReinitOnCopyHelper& operator=(const T& value)
     {   T::operator=(value); return *this; }
 
-    // Allow assignment from an rvalue object of type T; affects only the 
+    // Allow assignment from an rvalue object of type T; affects only the
     // current value. Uses type `T`'s move assignment operator.
-    ReinitOnCopyHelper& operator=(T&& value) 
+    ReinitOnCopyHelper& operator=(T&& value)
     {   T::operator=(std::move(value)); return *this; }
 
     const T& getT() const {return static_cast<const T&>(*this);}
@@ -306,7 +306,7 @@ public:
     // Return a const reference to the stored initial value.
     const T& getReinitT() const {return m_reinitValue;}
 
-    // Return a writable reference to the stored initial value. Use of this 
+    // Return a writable reference to the stored initial value. Use of this
     // should be restricted to constructors.
     T& updReinitT() {return m_reinitValue;}
 
@@ -314,7 +314,7 @@ private:
     // The remembered initial value is set to the already-constructed
     // base value in case we used one of the base constructors. This uses
     // the base class copy constructor.
-    const T m_reinitValue {static_cast<const T&>(*this)}; 
+    const T m_reinitValue {static_cast<const T&>(*this)};
 };
 
 /** @endcond **/

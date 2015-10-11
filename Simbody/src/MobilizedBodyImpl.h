@@ -26,7 +26,7 @@
 
 /**@file
  *
- * Private implementation of Body and MobilizedBody, and their included 
+ * Private implementation of Body and MobilizedBody, and their included
  * subclasses which represent the built-in body and mobilizer types.
  */
 
@@ -51,10 +51,10 @@ namespace SimTK {
 // This is what a MobilizedBody handle points to.
 class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
-    explicit MobilizedBodyImpl(MobilizedBody::Direction d) 
-    :   defaultLockLevel(Motion::NoLevel), 
-        reversed(d==MobilizedBody::Reverse), 
-        myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false) 
+    explicit MobilizedBodyImpl(MobilizedBody::Direction d)
+    :   defaultLockLevel(Motion::NoLevel),
+        reversed(d==MobilizedBody::Reverse),
+        myMatterSubsystemRep(0), myLevel(-1), myRBnode(0), hasChildren(false)
     {
     }
 
@@ -83,27 +83,27 @@ public:
     {   return defaultLockLevel; }
 
     // The matter subsystem must issue these MobilizedBody realize() calls in base-to-tip
-    // order, because these methods are allowed to assume that their parent (and 
+    // order, because these methods are allowed to assume that their parent (and
     // ancestors) have already been realized.
 
     // eventually calls realizeTopologyVirtual()
     const RigidBodyNode& realizeTopology(State& s, UIndex& nxtU, USquaredIndex& nxtUSq, QIndex& nxtQ) const;
 
-    void realizeModel   (State&)       const; // eventually calls realizeModelVirtual()       
-    void realizeInstance(const SBStateDigest&) const; // eventually calls realizeInstanceVirtual() 
-    void realizeTime    (const SBStateDigest&) const; // eventually calls realizeTimeVirtual() 
-    void realizePosition(const SBStateDigest&) const; // eventually calls realizePositionVirtual() 
-    void realizeVelocity(const SBStateDigest&) const; // eventually calls realizeVelocityVirtual() 
-    void realizeDynamics(const SBStateDigest&) const; // eventually calls realizeDynamicsVirtual() 
+    void realizeModel   (State&)       const; // eventually calls realizeModelVirtual()
+    void realizeInstance(const SBStateDigest&) const; // eventually calls realizeInstanceVirtual()
+    void realizeTime    (const SBStateDigest&) const; // eventually calls realizeTimeVirtual()
+    void realizePosition(const SBStateDigest&) const; // eventually calls realizePositionVirtual()
+    void realizeVelocity(const SBStateDigest&) const; // eventually calls realizeVelocityVirtual()
+    void realizeDynamics(const SBStateDigest&) const; // eventually calls realizeDynamicsVirtual()
     void realizeAcceleration
-                        (const SBStateDigest&) const; // eventually calls realizeAccelerationVirtual() 
-    void realizeReport  (const SBStateDigest&) const; // eventually calls realizeReportVirtual() 
+                        (const SBStateDigest&) const; // eventually calls realizeAccelerationVirtual()
+    void realizeReport  (const SBStateDigest&) const; // eventually calls realizeReportVirtual()
 
     virtual ~MobilizedBodyImpl() {
         delete myRBnode;
     }
     virtual MobilizedBodyImpl* clone() const = 0;
-    
+
     // This creates a rigid body node using the appropriate mobilizer type.
     // Called during realizeTopology().
     virtual RigidBodyNode* createRigidBodyNode(
@@ -123,8 +123,8 @@ public:
 
     // Copy out nq default values for q, beginning at the indicated address.
     // The concrete class should assert if nq is not a reasonable
-    // number for the kind of mobilizer; there is a bug somewhere in that case. 
-    // This routine shouldn't be called directly -- call copyOutDefaultQ() below 
+    // number for the kind of mobilizer; there is a bug somewhere in that case.
+    // This routine shouldn't be called directly -- call copyOutDefaultQ() below
     // instead which has a nicer interface and does some error checking.
     virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
 
@@ -164,7 +164,7 @@ public:
                 geom.push_back(DecorativeLine(Vec3(0),X_PF.p()).setBodyId(myParentIndex));
         }
 
-        // Put a little purple wireframe sphere at the COM, and add a line from 
+        // Put a little purple wireframe sphere at the COM, and add a line from
         // body origin to the com.
 
         DecorativeSphere com(scale*Real(.05));
@@ -321,7 +321,7 @@ public:
             myMatterSubsystemRep->invalidateSubsystemTopologyCache();
     }
 
-    // This might get called *during* realizeTopology() so just make sure there is 
+    // This might get called *during* realizeTopology() so just make sure there is
     // a node here without checking whether we're done with realizeTopology().
     const RigidBodyNode& getMyRigidBodyNode() const {
         SimTK_ASSERT(myRBnode && myMatterSubsystemRep,
@@ -383,7 +383,7 @@ public:
     const SBModelPerMobodInfo& getMyModelInfo(const State& s) const {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const SBModelCache& mc = matterRep.getModelCache(s);
-        const SBModelPerMobodInfo& info = 
+        const SBModelPerMobodInfo& info =
             mc.getMobodModelInfo(myMobilizedBodyIndex);
         return info;
     }
@@ -391,13 +391,13 @@ public:
     const SBInstancePerMobodInfo& getMyInstanceInfo(const State& s) const {
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         const SBInstanceCache& ic = matterRep.getInstanceCache(s);
-        const SBInstancePerMobodInfo& info = 
+        const SBInstancePerMobodInfo& info =
             ic.getMobodInstanceInfo(myMobilizedBodyIndex);
         return info;
     }
 
     const MobilizedBody& getMyHandle() const {
-        const MobilizedBody& mobod = 
+        const MobilizedBody& mobod =
             getMyMatterSubsystemRep().getMobilizedBody(getMyMobilizedBodyIndex());
         SimTK_ASSERT(&mobod.getImpl() == this,
             "A MobilizedBodyImpl's handle didn't refer back to the same Impl!");
@@ -405,7 +405,7 @@ public:
     }
 
     MobilizedBody& updMyHandle() {
-        MobilizedBody& mobod = 
+        MobilizedBody& mobod =
             updMyMatterSubsystemRep().updMobilizedBody(getMyMobilizedBodyIndex());
         SimTK_ASSERT(&mobod.getImpl() == this,
             "A MobilizedBodyImpl's handle didn't refer back to the same Impl!");
@@ -451,7 +451,7 @@ public:
         if (index != GroundIndex) {
             MobilizedBody& parent = matter.updMobilizedBody(parentIndex);
             myLevel = parent.getLevelInMultibodyTree() + 1;
-            myBaseBodyIndex = (myLevel == 1 ? myMobilizedBodyIndex 
+            myBaseBodyIndex = (myLevel == 1 ? myMobilizedBodyIndex
                                          : parent.getBaseMobilizedBody().getMobilizedBodyIndex());
             parent.updImpl().hasChildren = true;
         } else {
@@ -507,8 +507,8 @@ private:
     // A Motion object, if present, defines how this mobilizer's motion is
     // to be calculated. Otherwise, the motion is determined dynamically
     // as a result of forces and constraints. A Motion always prescribes
-    // \e all of the mobilizer's generalized accelerations udot (index 1); 
-    // may also some of the prescribed generalized speeds u (index 2); and 
+    // \e all of the mobilizer's generalized accelerations udot (index 1);
+    // may also some of the prescribed generalized speeds u (index 2); and
     // for speeds that are prescribed it may also prescribe the corresponding
     // generalized coordinates q (index 3).
     Motion          motion;
@@ -558,7 +558,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==1, 
+        SimTK_ASSERT(nq==1,
             "MobilizedBody::PinImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
     }
@@ -581,7 +581,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==1, 
+        SimTK_ASSERT(nq==1,
             "MobilizedBody::SliderImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
     }
@@ -603,7 +603,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==2, 
+        SimTK_ASSERT(nq==2,
             "MobilizedBody::UniversalImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
     }
@@ -625,7 +625,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==2, 
+        SimTK_ASSERT(nq==2,
             "MobilizedBody::CylinderImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
     }
@@ -647,7 +647,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==2, 
+        SimTK_ASSERT(nq==2,
             "MobilizedBody::BendStretchImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec2::updAs(q) = defaultQ;
     }
@@ -669,7 +669,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==3, 
+        SimTK_ASSERT(nq==3,
             "MobilizedBody::PlanarImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
@@ -682,17 +682,17 @@ private:
 
 class MobilizedBody::SphericalCoordsImpl : public MobilizedBodyImpl {
 public:
-    explicit SphericalCoordsImpl(Direction d) 
-    :   MobilizedBodyImpl(d), az0(0), ze0(0), axisT(ZAxis), 
-        negAz(false), negZe(false), negT(false), 
+    explicit SphericalCoordsImpl(Direction d)
+    :   MobilizedBodyImpl(d), az0(0), ze0(0), axisT(ZAxis),
+        negAz(false), negZe(false), negT(false),
         defaultQ(0) {}
 
-    SphericalCoordsImpl(Real az0, bool negAz, 
+    SphericalCoordsImpl(Real az0, bool negAz,
                         Real ze0, bool negZe,
                         CoordinateAxis axisT, bool negT,
-                        Direction d) 
-    :   MobilizedBodyImpl(d), az0(az0), ze0(ze0), axisT(axisT), 
-        negAz(negAz), negZe(negZe), negT(negT), 
+                        Direction d)
+    :   MobilizedBodyImpl(d), az0(az0), ze0(ze0), axisT(axisT),
+        negAz(negAz), negZe(negZe), negT(negT),
         defaultQ(0) {}
 
     SphericalCoordsImpl* clone() const override { return new SphericalCoordsImpl(*this); }
@@ -703,7 +703,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==3, 
+        SimTK_ASSERT(nq==3,
             "MobilizedBody::SphericalCoordsImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
@@ -721,7 +721,7 @@ private:
 
 class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
-    explicit GimbalImpl(Direction d) 
+    explicit GimbalImpl(Direction d)
     :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ(0) { }
     GimbalImpl* clone() const override { return new GimbalImpl(*this); }
 
@@ -731,7 +731,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==3, 
+        SimTK_ASSERT(nq==3,
             "MobilizedBody::GimbalImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
@@ -755,7 +755,7 @@ private:
 
 class MobilizedBody::BushingImpl : public MobilizedBodyImpl {
 public:
-    explicit BushingImpl(Direction d) 
+    explicit BushingImpl(Direction d)
     :   MobilizedBodyImpl(d), defaultQ(0) { }
     BushingImpl* clone() const override { return new BushingImpl(*this); }
 
@@ -765,7 +765,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==6, 
+        SimTK_ASSERT(nq==6,
             "MobilizedBody::BushingImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec6::updAs(q) = defaultQ;
     }
@@ -778,7 +778,7 @@ private:
 
 class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
-    explicit BallImpl(Direction d) 
+    explicit BallImpl(Direction d)
     :   MobilizedBodyImpl(d), defaultRadius(Real(0.1)), defaultQ() {} // (1,0,0,0), the identity rotation
     BallImpl* clone() const override { return new BallImpl(*this); }
 
@@ -788,7 +788,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==4||nq==3, 
+        SimTK_ASSERT(nq==4||nq==3,
             "MobilizedBody::BallImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
@@ -815,8 +815,8 @@ private:
 
 class MobilizedBody::EllipsoidImpl : public MobilizedBodyImpl {
 public:
-    explicit EllipsoidImpl(Direction d) 
-    :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)), 
+    explicit EllipsoidImpl(Direction d)
+    :   MobilizedBodyImpl(d), defaultRadii(Real(0.5),Real(1./3.),Real(0.25)),
         defaultQ() { } // default is (1,0,0,0), the identity rotation
     EllipsoidImpl* clone() const override { return new EllipsoidImpl(*this); }
 
@@ -826,7 +826,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==4||nq==3, 
+        SimTK_ASSERT(nq==4||nq==3,
             "MobilizedBody::EllipsoidImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
@@ -862,7 +862,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==3, 
+        SimTK_ASSERT(nq==3,
             "MobilizedBody::TranslationImpl::copyOutDefaultQImpl(): wrong number of q's");
         Vec3::updAs(q) = defaultQ;
     }
@@ -884,7 +884,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==7||nq==6, 
+        SimTK_ASSERT(nq==7||nq==6,
             "MobilizedBody::FreeImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==7) {
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
@@ -913,7 +913,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==4||nq==3, 
+        SimTK_ASSERT(nq==4||nq==3,
             "MobilizedBody::LineOrientationImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
@@ -938,7 +938,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==7||nq==6, 
+        SimTK_ASSERT(nq==7||nq==6,
             "MobilizedBody::FreeLineImpl::copyOutDefaultQImpl(): wrong number of q's");
         if (nq==7) {
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
@@ -967,7 +967,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==0, 
+        SimTK_ASSERT(nq==0,
             "MobilizedBody::WeldImpl::copyOutDefaultQImpl(): wrong number of q's");
     }
 
@@ -988,7 +988,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==0, 
+        SimTK_ASSERT(nq==0,
             "MobilizedBody::GroundImpl::copyOutDefaultQImpl(): wrong number of q's");
     }
 
@@ -1016,7 +1016,7 @@ public:
         QIndex&        nextQSlot) const override;
 
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==1, 
+        SimTK_ASSERT(nq==1,
             "MobilizedBody::ScrewImpl::copyOutDefaultQImpl(): wrong number of q's");
         *q = defaultQ;
     }
@@ -1037,34 +1037,34 @@ private:
 // which has all the goodies that are needed for defining a MobilizedBody.
 //
 // At first this class is the owner of the CustomImpl. Then when this is put in a
-// Custom handle, that handle takes over ownership of the CustomImpl and the 
+// Custom handle, that handle takes over ownership of the CustomImpl and the
 // CustomImpl takes over ownership of this ImplementationImpl object.
 class MobilizedBody::Custom::ImplementationImpl : public PIMPLImplementation<Implementation, ImplementationImpl> {
 public:
     // no default constructor
     explicit ImplementationImpl(CustomImpl* customImpl, int nu, int nq, int nAngles) : isOwner(true), builtInImpl(customImpl), nu(nu), nq(nq), nAngles(nAngles) { }
     inline ~ImplementationImpl(); // see below -- have to wait for CustomImpl's definition
-    
+
     // Copying one of these just gives us a new one with a NULL CustomImpl pointer.
     ImplementationImpl(const ImplementationImpl& src) : isOwner(false), builtInImpl(0), nu(src.nu), nq(src.nq), nAngles(src.nAngles) { }
-    
+
     ImplementationImpl* clone() const {return new ImplementationImpl(*this);}
-    
+
     bool isOwnerOfCustomImpl() const {return builtInImpl && isOwner;}
     CustomImpl* removeOwnershipOfCustomImpl() {
-        assert(isOwnerOfCustomImpl()); 
-        isOwner=false; 
+        assert(isOwnerOfCustomImpl());
+        isOwner=false;
         return builtInImpl;
     }
-    
+
     void setReferenceToCustomImpl(CustomImpl* cimpl) {
         assert(!builtInImpl); // you can only do this once
         isOwner=false;
         builtInImpl = cimpl;
     }
-    
+
     bool hasCustomImpl() const {return builtInImpl != 0;}
-    
+
     const CustomImpl& getCustomImpl() const {
         assert(builtInImpl);
         return *builtInImpl;
@@ -1073,15 +1073,15 @@ public:
         assert(builtInImpl);
         return *builtInImpl;
     }
-    
+
     int getNU() const {
         return nu;
     }
-    
+
     int getNQ() const {
         return nq;
     }
-    
+
     int getNumAngles() const {
         return nAngles;
     }
@@ -1102,16 +1102,16 @@ private:
 class MobilizedBody::CustomImpl : public MobilizedBodyImpl {
 public:
     explicit CustomImpl(Direction d) : MobilizedBodyImpl(d), implementation(0) { }
-    
+
     void takeOwnershipOfImplementation(Custom::Implementation* userImpl);
-    
+
     explicit CustomImpl(Custom::Implementation* userImpl, Direction d)
-    :   MobilizedBodyImpl(d), implementation(0) { 
+    :   MobilizedBodyImpl(d), implementation(0) {
         assert(userImpl);
         implementation = userImpl;
         implementation->updImpl().setReferenceToCustomImpl(this);
-    }    
-    
+    }
+
     // Copy constructor
     CustomImpl(const CustomImpl& src)
     :   MobilizedBodyImpl(src), implementation(0) {
@@ -1120,19 +1120,19 @@ public:
             implementation->updImpl().setReferenceToCustomImpl(this);
         }
     }
-    
+
     ~CustomImpl() {
         if (implementation)
             delete implementation;
     }
-    
+
     CustomImpl* clone() const override { return new CustomImpl(*this); }
-    
+
     const Custom::Implementation& getImplementation() const {
         assert(implementation);
         return *implementation;
     }
-    
+
     Custom::Implementation& updImplementation() {
         assert(implementation);
         return *implementation;
@@ -1142,9 +1142,9 @@ public:
         UIndex&        nextUSlot,
         USquaredIndex& nextUSqSlot,
         QIndex&        nextQSlot) const override;
-    
+
     void copyOutDefaultQImpl(int nq, Real* q) const override {
-        SimTK_ASSERT(nq==getImplementation().getImpl().getNQ() || nq==getImplementation().getImpl().getNQ()-1, 
+        SimTK_ASSERT(nq==getImplementation().getImpl().getNQ() || nq==getImplementation().getImpl().getNQ()-1,
             "MobilizedBody::CustomImpl::copyOutDefaultQImpl(): wrong number of q's");
         for (int i = 0; i < nq; ++i)
             q[i] = 0.0;
@@ -1163,23 +1163,23 @@ public:
     void realizeAccelerationVirtual
                                (const State& s) const override {getImplementation().realizeAcceleration(s);}
     void realizeReportVirtual  (const State& s) const override {getImplementation().realizeReport(s);}
-        
+
     void calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array_<DecorativeGeometry>& geom) const
        {getImplementation().calcDecorativeGeometryAndAppend(s,stage,geom);}
-    
+
     SimTK_DOWNCAST(CustomImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Custom;
-    
+
     Custom::Implementation* implementation;
-    
+
     CustomImpl& operator=(const CustomImpl&); // suppress assignment
 };
 
 // Need definition for CustomImpl here in case we have to delete it.
 inline MobilizedBody::Custom::ImplementationImpl::~ImplementationImpl() {
-    if (isOwner) 
-        delete builtInImpl; 
+    if (isOwner)
+        delete builtInImpl;
     builtInImpl=0;
 }
 
@@ -1226,7 +1226,7 @@ public:
         Arot = Mat33(axes[0].normalize(), axes[1].normalize(), axes[2].normalize());
         Atrans = Mat33(axes[3].normalize(), axes[4].normalize(), axes[5].normalize());
     }
-    
+
     ~FunctionBasedImpl() {
         if (--referenceCount[0] == 0) {
             for (int i = 0; i < (int) functions.size(); i++)
@@ -1244,16 +1244,16 @@ public:
         // Initialize the tranformation to be returned
         Transform X(Vec3(0));
         Vec6 spatialCoords;
-        
+
         // Get the spatial cooridinates as a function of the q's
         for(int i=0; i < 6; i++){
             //Coordinates for this function
             int nc = coordIndices[i].size();
             Vector fcoords(nc);
-    
+
             for(int j=0; j < nc; j++)
-                fcoords(j) = q[coordIndices[i][j]];            
-            
+                fcoords(j) = q[coordIndices[i][j]];
+
             //default behavior of constant function should take a Vector of length 0
             spatialCoords(i) = functions[i]->calcValue(fcoords);
         }
@@ -1291,7 +1291,7 @@ public:
                 // Check that the H  matrices in the cache are valid
                 if (!(Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd().isValidH))
                     updateH(s);
-                
+
                 Mat<2,2,Vec3> h = Value<CacheInfo<2> >::downcast(s.getCacheEntry(subsystem, cacheIndex)).get().h;
                 return h*Vec2::getAs(u);
             }
@@ -1332,7 +1332,7 @@ public:
     }
 
     void multiplyByHTranspose(const State& s, const SpatialVec& F, int nu, Real* f) const override {
-        
+
         switch (nu) {
             case 1: {
                 // Check that the H and Hdot matrices in the cache are valid
@@ -1602,99 +1602,99 @@ public:
     }
 
     void updateH(const State& s) const {
-        // Get mobilizer kinematics 
+        // Get mobilizer kinematics
         Vector q = getQ(s);
         Vector u = getU(s);
         switch (nu) {
             case 1: {
                 CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // H matrix is now valid 
+                // H matrix is now valid
                 cache.isValidH = true;
                 break;
             }
             case 2: {
                 CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // H matrix is now valid 
+                // H matrix is now valid
                 cache.isValidH = true;
                 break;
             }
             case 3: {
                 CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // H matrix is now valid  
+                // H matrix is now valid
                 cache.isValidH = true;
                 break;
             }
             case 4: {
                 CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // H matrix is now valid 
+                // H matrix is now valid
                 cache.isValidH = true;
                 break;
             }
             case 5: {
                 CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // H matrix is now valid  
+                // H matrix is now valid
                 cache.isValidH = true;
                 break;
             }
             case 6: {
                 CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildH(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // H matrix is now valid 
+                // H matrix is now valid
                 cache.isValidH = true;
                 break;
             }
         }
     }
- 
+
     void updateHdot(const State& s) const {
-        // Get mobilizer kinematics 
+        // Get mobilizer kinematics
         Vector q = getQ(s);
         Vector u = getU(s);
         switch (nu) {
             case 1: {
                 CacheInfo<1>& cache = Value<CacheInfo<1> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // Hdot matrix is now valid 
+                // Hdot matrix is now valid
                 cache.isValidHdot = true;
                 break;
             }
             case 2: {
                 CacheInfo<2>& cache = Value<CacheInfo<2> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // Hdot matrix is now valid 
+                // Hdot matrix is now valid
                 cache.isValidHdot = true;
                 break;
             }
             case 3: {
                 CacheInfo<3>& cache = Value<CacheInfo<3> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // Hdot matrix is now valid  
+                // Hdot matrix is now valid
                 cache.isValidHdot = true;
                 break;
             }
             case 4: {
                 CacheInfo<4>& cache = Value<CacheInfo<4> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // Hdot matrix is now valid 
+                // Hdot matrix is now valid
                 cache.isValidHdot = true;
                 break;
             }
             case 5: {
                 CacheInfo<5>& cache = Value<CacheInfo<5> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // Hdot matrix is now valid 
+                // Hdot matrix is now valid
                 cache.isValidHdot = true;
                 break;
             }
             case 6: {
                 CacheInfo<6>& cache = Value<CacheInfo<6> >::downcast(s.updCacheEntry(subsystem, cacheIndex)).upd();
                 cache.buildHdot(q, u, getMobilizerTransform(s), functions, coordIndices, Arot, Atrans);
-                // Hdot matrix is now valid 
+                // Hdot matrix is now valid
                 cache.isValidHdot = true;
                 break;
             }
@@ -1716,12 +1716,12 @@ private:
 
         void buildH(Vector& q, Vector& u, const Transform& X_FM, const Array_<const Function*>& functions, const Array_<Array_<int> >& coordIndices, const Mat33 Arot, const Mat33 Atrans)
         {
-            // Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q    
+            // Build the Fq and Fqq matrices of partials of the spatial functions with respect to the gen coordinates, q
             // Cycle through each row (function describing spatial coordinate)
             Fq = Mat<6,N>(0);
             Vec6 spatialCoords(0);
             Array_<int> deriv(1);
-            Vector fcoords(coordIndices[0].size()); 
+            Vector fcoords(coordIndices[0].size());
 
             for(int i=0; i < 6; i++){
                 // Determine the number of coordinates for this function
@@ -1750,7 +1750,7 @@ private:
             //       = [W*[Fq_theta]*qdot
             // vel = [A]*{X_dot(q)}, where X_dot(q) is described by the last three functions
             //     = [A]*[Fq_x]*qdot
-            
+
             Rotation R_F1 = Rotation(spatialCoords(0), UnitVec3::getAs(&Arot(0,0)));
             Rotation R_F2 = R_F1*Rotation(spatialCoords(1), UnitVec3::getAs(&Arot(0,1)));
 
@@ -1770,14 +1770,14 @@ private:
             Mat<6,N> Fqdot(0);
             Vec6 spatialCoords;
             Array_<int> derivs(2);
-            Vector fcoords(coordIndices[0].size()); 
+            Vector fcoords(coordIndices[0].size());
 
             for(int i=0; i < 6; i++){
                 // Determine the number of coordinates for this function
                 int nc = coordIndices[i].size();
                 if (fcoords.size() != nc)
                     fcoords.resize(nc);
-                
+
                 if (nc > 0) {
                     // Get coordinate values to evaluate the function
                     for(int k = 0; k < nc; k++)
@@ -1808,7 +1808,7 @@ private:
             Vec<N> uv = Vec<N>::getAs(up);
             Vec<N> uv1 = uv;
             Vec<N> uv2 = uv;
-            
+
             for(int i=1; i < N; i++){
                 uv1(i) = 0;
             }
@@ -1822,7 +1822,7 @@ private:
             // First V[0] is angular velocity, omega
             //Mat33 Wdot(Vec3(0), Vec3(V[0](0),0,0)%(Vec3::getAs(&W(0,1))), Vec3(V[0](0),V[0](1),0)%(Vec3::getAs(&W(0,2))));
             Mat33 Wdot(Vec3(0), V1[0]%(Vec3::getAs(&W(0,1))), V2[0]%(Vec3::getAs(&W(0,2))));
-            
+
             //Sanity check Omega == V[0]
             Mat31 Omega = W*(Fq.template getSubMat<3,N>(0,0))*(Mat<N,1>::getAs(up));
 

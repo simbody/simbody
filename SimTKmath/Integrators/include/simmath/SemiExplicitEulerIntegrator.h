@@ -37,7 +37,7 @@ known as Semi-Implicit Euler or Symplectic Euler.
 
 This method is very popular for game engines such as ODE, because it is
 a first order method that is more stable than Explicit Euler. However, the
-implementation used in gaming is fully explicit, which is only correct if 
+implementation used in gaming is fully explicit, which is only correct if
 there are no velocity-dependent force elements. Coriolis forces, damping,
 etc. would require an implicit solution which is generally too slow for
 real time simulation.
@@ -46,7 +46,7 @@ real time simulation.
 step size. See SemiExplicitEuler2Integrator for an error-controlled alternative.
 Here we are given a fixed step size on construction and will use that
 unless you change it. The step size may be reduced to isolate events, and the
-method is capable of interpolation (linear) if you want reports at shorter 
+method is capable of interpolation (linear) if you want reports at shorter
 intervals than the step size.
 
 <h3>Theory</h3>
@@ -79,14 +79,14 @@ That may be less likely in internal coordinates though. Making this implicit
 would be quite expensive since we don't have analytical partial derivatives
 of udot available.
 
-Form 1 on the other hand could be implemented efficiently as a true 
+Form 1 on the other hand could be implemented efficiently as a true
 semi-implicit method: <pre>
     q1 = q0 + h N(q1)u0       <-- implicit in q
     u1 = u0 + h udot(q1,u0)
 </pre> The directional partial derivatives D N(q)*u0 / D q are easily calculated
 for the block diagonal matrix N which in many cases is just an identity matrix.
-A disadvantage is that accelerations are unknown at (q0,u0) and (q1,u1); if 
-those are needed (very common!) a second evaluation of the accelerations 
+A disadvantage is that accelerations are unknown at (q0,u0) and (q1,u1); if
+those are needed (very common!) a second evaluation of the accelerations
 would be required. For that expense, a second order integration method could
 have been used instead. I also don't know whether this form would have the same
 stability properties in practice as the other one; it would be interesting to
@@ -97,7 +97,7 @@ for very high rotation rates either!
 
 class SimTK_SIMMATH_EXPORT SemiExplicitEulerIntegrator : public Integrator {
 public:
-    /** Create a SemiExplicitEulerIntegrator for integrating a System with 
+    /** Create a SemiExplicitEulerIntegrator for integrating a System with
     fixed size steps. **/
     SemiExplicitEulerIntegrator(const System& sys, Real stepSize);
 };

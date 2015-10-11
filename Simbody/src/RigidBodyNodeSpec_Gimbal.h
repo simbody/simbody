@@ -45,7 +45,7 @@
 // NOTE: This joint has a singularity when the middle angle is near 90 degrees.
 // In most cases you should use a Ball joint instead, which by default uses
 // a quaternion as its generalized coordinates to avoid this singularity. A
-// modeling option allows the Ball to be switched to use Euler angles when 
+// modeling option allows the Ball to be switched to use Euler angles when
 // convenient.
 
 template<bool noX_MB, bool noR_PF>
@@ -65,8 +65,8 @@ RBNodeGimbal( const MassProperties& mProps_B,
 :   RigidBodyNodeSpec<3, false, noX_MB, noR_PF>
        (mProps_B,X_PF,X_BM,
         nextUSlot,nextUSqSlot,nextQSlot,
-        RigidBodyNode::QDotIsAlwaysTheSameAsU, 
-        RigidBodyNode::QuaternionIsNeverUsed, 
+        RigidBodyNode::QDotIsAlwaysTheSameAsU,
+        RigidBodyNode::QuaternionIsNeverUsed,
         isReversed)
 {
     this->updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
@@ -77,38 +77,38 @@ void setQToFitRotationImpl(const SBStateDigest& sbs, const Rotation& R_FM,
     this->toQ(q) = R_FM.convertRotationToBodyFixedXYZ();
 }
 
-void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM, 
+void setQToFitTranslationImpl(const SBStateDigest& sbs, const Vec3& p_FM,
                               Vector& q) const {
-    // M and F frame origins are always coincident for this mobilizer so 
-    // there is no way to create a translation by rotating. So the only 
+    // M and F frame origins are always coincident for this mobilizer so
+    // there is no way to create a translation by rotating. So the only
     // translation we can represent is 0.
 }
 
 // Given the angular velocity of M in F, expressed in F, compute the Euler
-// angle derivatives qdot that would produce that angular velocity, and 
+// angle derivatives qdot that would produce that angular velocity, and
 // return u=qdot.
 void setUToFitAngularVelocityImpl
    (const SBStateDigest& sbs, const Vector& q, const Vec3& w_FM,
-    Vector& u) const 
+    Vector& u) const
 {
     const Vec2 cosxy(std::cos(q[0]), std::cos(q[1]));
     const Vec2 sinxy(std::sin(q[0]), std::sin(q[1]));
     const Real oocosy = 1 / cosxy[1];
-    const Vec3 qdot = 
+    const Vec3 qdot =
         Rotation::convertAngVelInParentToBodyXYZDot(cosxy,sinxy,oocosy,w_FM);
     this->toU(u) = qdot;
 }
 
 void setUToFitLinearVelocityImpl
-   (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM, 
+   (const SBStateDigest& sbs, const Vector&, const Vec3& v_FM,
     Vector& u) const
 {
-    // M and F frame origins are always coincident for this mobilizer so 
-    // there is no way to create a linear velocity by rotating. So the 
+    // M and F frame origins are always coincident for this mobilizer so
+    // there is no way to create a linear velocity by rotating. So the
     // only linear velocity we can represent is 0.
 }
 
-// We want to cache cos and sin for each angle, and also 1/cos of the middle 
+// We want to cache cos and sin for each angle, and also 1/cos of the middle
 // angle will be handy to have around.
 enum {PoolSize=7};
 // cos x,y,z sin x,y,z 1/cos(y)

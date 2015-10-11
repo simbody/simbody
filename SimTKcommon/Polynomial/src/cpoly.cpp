@@ -24,7 +24,7 @@
  *
  *
  * Module name     :   cpoly.cpp
- * Module ID Nbr   :   
+ * Module ID Nbr   :
  * Description     :   cpoly.cpp -- Jenkins-Traub real polynomial root finder.
  *                     Translation of TOMS493 from FORTRAN to C. This
  *                     implementation of Jenkins-Traub partially adapts
@@ -51,15 +51,15 @@
  *
  *                     RETURN:
  *                     returnval:   -1 if leading coefficient is zero, otherwise
- *                          number of roots found. 
+ *                          number of roots found.
  * --------------------------------------------------------------------------
- * Change Record   :   
+ * Change Record   :
  *
  * Version  Author/Date     Description of changes
  * -------  -----------     ----------------------
  * 01.01    HVE/20021101      Initial release
- * 01.02    PE/20070808       Converted to a class, templatized  
- * 01.03    MAS/20130410      Minor changes to match RPoly changes  
+ * 01.02    PE/20070808       Converted to a class, templatized
+ * 01.03    MAS/20130410      Minor changes to match RPoly changes
  *
  * End of Change Record
  * --------------------------------------------------------------------------
@@ -76,7 +76,7 @@ template<class T>
 char CPoly<T>::_V_[] = "@(#)cpoly.h 01.03 -- Copyright (C) Henrik Vestermark";
 
 template<class T>
-int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *zeroi ) 
+int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *zeroi )
    {
    int cnt1, cnt2, idnn2, i, conv;
    T xx, yy, cosr, sinr, smalno, base, xxx, zr, zi, bnd;
@@ -88,7 +88,7 @@ int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *ze
    yy = -xx;
    cosr = (T) -0.060756474;
    sinr = (T) -0.99756405;
-   nn = degree;  
+   nn = degree;
 
    // Algorithm fails if the leading coefficient is zero, or degree is zero.
    if( nn < 1 || (opr[ 0 ] == 0 && opi[ 0 ] == 0) )
@@ -106,7 +106,7 @@ int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *ze
 
    // sherm 20130410: If all coefficients but the leading one were zero, then
    // all solutions are zero; should be a successful (if boring) return.
-   if (nn == 0) 
+   if (nn == 0)
       return degree;
 
    // Allocate arrays
@@ -138,7 +138,7 @@ int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *ze
          pi[ i ] *= bnd;
          }
 
-search: 
+search:
    if( nn <= 1 )
       {
       cdivid( -pr[ 1 ], -pi[ 1 ], pr[ 0 ], pi[ 0 ], &zeror[ degree-1 ], &zeroi[ degree-1 ] );
@@ -150,7 +150,7 @@ search:
       shr[ i ] = cmod( pr[ i ], pi[ i ] );
 
    cauchy( nn, shr, shi, &bnd );
-   
+
    // Outer loop to control 2 Major passes with different sequences of shifts
    for( cnt1 = 1; cnt1 <= 2; cnt1++ )
       {
@@ -206,7 +206,7 @@ finish:
    delete [] shr;
    delete [] shi;
 
-   return degree;       
+   return degree;
    }
 
 
@@ -374,7 +374,7 @@ void CPoly<T>::vrshft( const int l3, T *zr, T *zi, int *conv )
          {
          if( !( b || mp < omp || relstp >= 0.05 ) )
             {
-            // Iteration has stalled. Probably a cluster of zeros. Do 5 fixed 
+            // Iteration has stalled. Probably a cluster of zeros. Do 5 fixed
             // shift steps into the cluster to force one zero to dominate
             tp = relstp;
             b = 1;
@@ -392,7 +392,7 @@ void CPoly<T>::vrshft( const int l3, T *zr, T *zi, int *conv )
             omp = infin;
             goto _20;
             }
-         
+
          // Exit if polynomial value increase significantly
          if( mp *0.1 > omp ) return;
          }
@@ -471,9 +471,9 @@ void CPoly<T>::nexth( const int bol )
 
 // EVALUATES A POLYNOMIAL  P  AT  S  BY THE HORNER RECURRENCE
 // PLACING THE PARTIAL SUMS IN Q AND THE COMPUTED VALUE IN PV.
-//  
+//
 template<class T>
-void CPoly<T>::polyev( const int nn, const T sr, const T si, const T pr[], const T pi[], T qr[], T qi[], T *pvr, T *pvi )  
+void CPoly<T>::polyev( const int nn, const T sr, const T si, const T pr[], const T pi[], T qr[], T qi[], T *pvr, T *pvi )
    {
    int i;
    T t;
@@ -545,7 +545,7 @@ void CPoly<T>::cauchy( const int nn, T pt[], T q[], T *fn_val )
       x = xm;
       }
    dx = x;
-   
+
    // Do Newton iteration until x converges to two decimal places
    while( std::abs( dx / x ) > 0.005 )
       {

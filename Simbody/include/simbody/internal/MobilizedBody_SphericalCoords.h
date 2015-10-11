@@ -47,7 +47,7 @@ that with non-zero offsets the F and M frames will not be aligned in
 the reference configuration where q0==q1==q2==0. The F and M origins
 will always be coincident when q2==0, however.
 
-With this you can define a "geographical" coordinate system where Mx is the 
+With this you can define a "geographical" coordinate system where Mx is the
 Greenwich line, a is latitude and z longitude (with north positive):
 <pre>
      v  = Mx
@@ -55,7 +55,7 @@ Greenwich line, a is latitude and z longitude (with north positive):
      s1 = -1, ze0 = 0
      s2 =  1
 </pre>
-If you want the translation direction to be in Mz (the default) but would like 
+If you want the translation direction to be in Mz (the default) but would like
 q1=0 to mean the equatorial position rather than the (possibly singular) north
 pole which should be -90, define
 <pre>
@@ -64,15 +64,15 @@ pole which should be -90, define
      s1 = 1, ze0 = Pi/2
      s2 = 1
 </pre>
-One common convention for atomic (torsion,bend,stretch) uses the default 
-spherical coordinate system but the final stretch is along the -z direction. 
+One common convention for atomic (torsion,bend,stretch) uses the default
+spherical coordinate system but the final stretch is along the -z direction.
 For that, take all defaults but set s2=-1.
 
-This mobilizer can be used to give unrestricted 3-d motion to inertialess 
+This mobilizer can be used to give unrestricted 3-d motion to inertialess
 particles (as with a Cartesian mobilizer but parameterized torsion,bend,stretch
-instead of x,y,z) but in this case you must watch for two possible 
-singularities: (1) radius==0, and (2) zenith==n*Pi (or equivalently 
-q1==n*Pi-s1*ze0). If your operating range steers clear of those singularities, 
+instead of x,y,z) but in this case you must watch for two possible
+singularities: (1) radius==0, and (2) zenith==n*Pi (or equivalently
+q1==n*Pi-s1*ze0). If your operating range steers clear of those singularities,
 you're fine. **/
 class SimTK_SIMBODY_EXPORT MobilizedBody::SphericalCoords : public MobilizedBody {
 public:
@@ -81,20 +81,20 @@ public:
     SphericalCoords() {}
 
     /** Create a %SphericalCoords mobilizer between an existing parent (inboard)
-    body P and a new child (outboard) body B created by copying the given 
-    \a bodyInfo into a privately-owned Body within the constructed 
-    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P 
+    body P and a new child (outboard) body B created by copying the given
+    \a bodyInfo into a privately-owned Body within the constructed
+    %MobilizedBody object. Specify the mobilizer frames F fixed to parent P
     and M fixed to child B. This constructor gives you a pure spherical
-    coordinate system in which q0=azimuth about Fz(==Mz), q1=zenith about My, 
+    coordinate system in which q0=azimuth about Fz(==Mz), q1=zenith about My,
     and q2=radius along Mz. See the longer signature for more control.
     @see MobilizedBody for a diagram and explanation of terminology. **/
     SphericalCoords(MobilizedBody& parent, const Transform& X_PF,
-                    const Body& bodyInfo,  const Transform& X_BM, 
+                    const Body& bodyInfo,  const Transform& X_BM,
                     Direction=Forward);
 
-    /** Abbreviated constructor you can use if the mobilizer frames are 
+    /** Abbreviated constructor you can use if the mobilizer frames are
     coincident with the parent and child body frames. **/
-    SphericalCoords(MobilizedBody& parent, const Body& bodyInfo, 
+    SphericalCoords(MobilizedBody& parent, const Body& bodyInfo,
                     Direction=Forward);
 
 
@@ -140,7 +140,7 @@ public:
 
     const Vec2&    getDefaultAngles()      const {return getDefaultQ().getSubVec<2>(0);}
     Real           getDefaultTranslation() const {return getDefaultQ()[2];}
-    
+
     CoordinateAxis getRadialAxis()    const;
     bool           isAzimuthNegated() const;
     bool           isZenithNegated()  const;
@@ -167,12 +167,12 @@ public:
 
     const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
     const Vec3& getMyPartU(const State&, const Vector& ulike) const;
-   
+
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
 
     /** @cond **/ // hide from Doxygen
-    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(SphericalCoords, 
+    SimTK_INSERT_DERIVED_HANDLE_DECLARATIONS(SphericalCoords,
                                              SphericalCoordsImpl, MobilizedBody);
     /** @endcond **/
 };

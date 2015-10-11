@@ -8,7 +8,7 @@ namespace Ipopt
 {
 
   /** Class for converting symmetric matrices given in triplet format
-   *  to matrices in dense format 
+   *  to matrices in dense format
    */
   class TripletToDenseConverter: public ReferencedObject
   {
@@ -77,7 +77,7 @@ namespace Ipopt
     private:
       /**@name Default Compiler Generated Methods
        * (Hidden to avoid implicit creation/calling).
-       * These methods are not implemented and 
+       * These methods are not implemented and
        * we do not want the compiler to implement
        * them for us, so we declare them private
        * and do not define them. This ensures that
@@ -155,7 +155,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and 
+     * These methods are not implemented and
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that

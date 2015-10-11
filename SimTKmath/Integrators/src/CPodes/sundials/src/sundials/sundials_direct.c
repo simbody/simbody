@@ -13,7 +13,7 @@
  * This is the implementation file for operations to be used by a
  * generic direct linear solver.
  * -----------------------------------------------------------------
- */ 
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,7 @@ DlsMat NewDenseMat(int M, int N)
   A = NULL;
   A = (DlsMat) malloc(sizeof *A);
   if (A==NULL) return (NULL);
-  
+
   A->data = (realtype *) malloc(M * N * sizeof(realtype));
   if (A->data == NULL) {
     free(A); A = NULL;
@@ -86,7 +86,7 @@ DlsMat NewBandMat(int N, int mu, int ml, int smu)
   int j, colSize;
 
   if (N <= 0) return(NULL);
-  
+
   A = NULL;
   A = (DlsMat) malloc(sizeof *A);
   if (A == NULL) return (NULL);
@@ -208,14 +208,14 @@ realtype *newRealArray(int m)
 }
 
 void DestroyArray(void *V)
-{ 
-  free(V); 
+{
+  free(V);
   V = NULL;
 }
 
 void destroyArray(void *v)
 {
-  free(v); 
+  free(v);
   v = NULL;
 }
 
@@ -242,7 +242,7 @@ void PrintMat(DlsMat A)
       printf("\n");
     }
     printf("\n");
-    
+
     break;
 
   case SUNDIALS_BAND:
@@ -265,7 +265,7 @@ void PrintMat(DlsMat A)
       printf("\n");
     }
     printf("\n");
-    
+
     break;
 
   }

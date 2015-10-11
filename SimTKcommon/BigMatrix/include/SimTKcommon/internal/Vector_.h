@@ -40,8 +40,8 @@ variable size column vectors.
 More commonly, the typedef @ref SimTK::Vector "Vector" is used instead; that is
 just an abbreviation for \c Vector_<Real>.
 
-A %Vector_ can be a fixed-size view of someone else's data, or can be a 
-resizable data owner itself, although of course it will always have just one 
+A %Vector_ can be a fixed-size view of someone else's data, or can be a
+resizable data owner itself, although of course it will always have just one
 column.
 
 @see Vec for handling of small, fixed-size vectors with no runtime overhead.
@@ -59,7 +59,7 @@ public:
 
     /** @name                  Owner constructors
     These constructors create a Vector_ object that allocates new data on the
-    heap and serves as the owner of that data. Any existing data that is 
+    heap and serves as the owner of that data. Any existing data that is
     supplied in these constructors is \e copied, not \e shared. **/
     /**@{**/
 
@@ -71,8 +71,8 @@ public:
     Vector_(const Vector_& src) : Base(src) {}
 
     /** This copy constructor serves as an implicit conversion from objects of
-    the base class type (for example, a VectorView_<ELT>), to objects of this 
-    Vector_<ELT> type. Note that the source object is copied, not 
+    the base class type (for example, a VectorView_<ELT>), to objects of this
+    Vector_<ELT> type. Note that the source object is copied, not
     referenced. **/
     Vector_(const Base& src) : Base(src) {}    // e.g., VectorView
     /** This copy constructor serves as an implicit conversion from objects of
@@ -80,13 +80,13 @@ public:
     type.  Note that the source object is copied, not referenced. **/
     Vector_(const BaseNeg& src) : Base(src) {}
 
-    /** Construct a %Vector_ with a given preallocated size, but with 
+    /** Construct a %Vector_ with a given preallocated size, but with
     uninitialized values. In Debug builds the elements will be initialized to
-    NaN as a debugging aid, but in Release (optimized) builds they will be 
+    NaN as a debugging aid, but in Release (optimized) builds they will be
     uninitialized garbage so that we don't waste time setting them. **/
     explicit Vector_(int m) : Base(m) { }
-    /** Construct an owner %Vector_ of a given size \a m and initialize it from 
-    a C++ array of \a m ELT values pointed to by \a cppInitialValues. Note that 
+    /** Construct an owner %Vector_ of a given size \a m and initialize it from
+    a C++ array of \a m ELT values pointed to by \a cppInitialValues. Note that
     there is no way to check that the correct number of elements has been
     provided; make sure you have supplied enough of them. **/
     Vector_(int m, const ELT* cppInitialValues) : Base(m, cppInitialValues) {}
@@ -157,7 +157,7 @@ public:
     template <class EE> Vector_& operator+=(const VectorBase<EE>& m)
     {   Base::operator+=(m); return*this; }
     /** In-place subtract of a conforming vector of the base type even if it has
-    a different element type \a EE, provided that element type is 
+    a different element type \a EE, provided that element type is
     subtract-compatible with our element type \a ELT, meaning that ELT-=EE is
     allowed. **/
     template <class EE> Vector_& operator-=(const VectorBase<EE>& m)
@@ -171,27 +171,27 @@ public:
     Vector_& operator/=(const StdNumber& t) { Base::operator/=(t); return *this; }
 
     /** In-place add to each element of this %Vector_ the same given value \a b.
-    Returns a reference to the now-modified %Vector_. This is the same 
+    Returns a reference to the now-modified %Vector_. This is the same
     operation as elementwiseAddScalarInPlace(). **/
-    Vector_& operator+=(const ELT& b) 
+    Vector_& operator+=(const ELT& b)
     {   this->elementwiseAddScalarInPlace(b); return *this; }
-    /** In-place subtract from each element of this %Vector_ the same given 
-    value \a b. Returns a reference to the now-modified %Vector_. This is the 
+    /** In-place subtract from each element of this %Vector_ the same given
+    value \a b. Returns a reference to the now-modified %Vector_. This is the
     same operation as elementwiseSubtractScalarInPlace(). **/
-    Vector_& operator-=(const ELT& b) 
+    Vector_& operator-=(const ELT& b)
     {   this->elementwiseSubtractScalarInPlace(b); return *this; }
     /**@}**/
 
     /** @name             Operator equivalents for scripting
-    Functions to be used for Scripting in MATLAB and languages that do not 
+    Functions to be used for Scripting in MATLAB and languages that do not
     support operator overloading. **/
     /**@{**/
-    /** toString() returns a string representation of the %Vector_. Please refer 
+    /** toString() returns a string representation of the %Vector_. Please refer
     to operator<< for details. **/
     std::string toString() const {
         std::stringstream stream;
         stream << (*this) ;
-        return stream.str(); 
+        return stream.str();
     }
     /** Variant of operator[] that's scripting friendly to get ith element. **/
     const ELT& get(int i) const { return (*this)[i]; }

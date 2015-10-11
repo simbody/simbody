@@ -48,7 +48,7 @@ static const Real d = 0.5; // meters
 void ff(Vector& v) {
     v = 23.;
 }
-    
+
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
         slider(crankRocker.Ground(), Transform(Vec3(2.5,0,0)), sliderBody, Transform(Vec3(0, 1, 0)));
 
     MobilizedBody::Universal
-        rightConn(crank, Transform(Rotation(-Pi/2,YAxis),Vec3(0,-.3,0)), 
+        rightConn(crank, Transform(Rotation(-Pi/2,YAxis),Vec3(0,-.3,0)),
                   longBar, Transform(Rotation(-Pi/2,YAxis),Vec3(-1,0,0)));
 
     Constraint::Ball ball(slider, Vec3(0,-1, 0), rightConn, Vec3(1,0,0));
@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
 
 
     //Motion::Linear(crank, Vec3(a,b,c)); // crank(t)=at^2+bt+c
-    //Motion::Linear lmot(rightConn, Vec3(a,b,c)); // both axes follow 
+    //Motion::Linear lmot(rightConn, Vec3(a,b,c)); // both axes follow
     //lmot.setAxis(1, Vec3(d,e,f));
     //Motion::Orientation(someBall, orientFuncOfT);
     //someBall.prescribeOrientation(orientFunc);
@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
     mbs.realizeModel(s); // define appropriate states for this System
 
     //crankRate.setRate(s, 3);
-    crank.setAngle(s, 5); //q 
+    crank.setAngle(s, 5); //q
     crank.setRate(s, 3);  //u
 
     Visualizer display(mbs);
@@ -204,12 +204,12 @@ int main(int argc, char** argv) {
     Integrator::SuccessfulStepStatus status;
     int nextReport = 0;
     while ((status=myStudy.stepTo(nextReport*dt, Infinity))
-           != Integrator::EndOfSimulation) 
+           != Integrator::EndOfSimulation)
     {
         const State& s = myStudy.getState();
         mbs.realize(s);
         const Real crankAngle = crank.getBodyRotation(s).convertRotationToAngleAxis()[0] * Rad2Deg;
-        printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
+        printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(),
             crankAngle,
             mbs.calcEnergy(s), myStudy.getNumStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
     printf("# ERR TEST FAILS = %d\n", myStudy.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNumRealizations(), myStudy.getNumProjections());
 
-  } 
+  }
   catch (const exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
     exit(1);

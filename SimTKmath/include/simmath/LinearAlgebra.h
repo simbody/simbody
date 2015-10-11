@@ -25,7 +25,7 @@
  * -------------------------------------------------------------------------- */
 
 /** @file
- * This is the header file that user code should include to pick up the 
+ * This is the header file that user code should include to pick up the
  * SimTK Simmath linear algebra tools.
  */
 
@@ -44,7 +44,7 @@ namespace SimTK {
 static const double DefaultRecpCondition = 1e-12;
 
 /**
- * Base class for the various matrix factorizations. 
+ * Base class for the various matrix factorizations.
  */
 class SimTK_SIMMATH_EXPORT Factor {
 public:
@@ -56,13 +56,13 @@ public:
   template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
   /// solves multiple right hand sides using a factorization
   template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
-  
+
 }; // class Factor
 
 class FactorLURepBase;
 
 /**
- * Class for performing LU matrix factorizations 
+ * Class for performing LU matrix factorizations
  */
 class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
     public:
@@ -76,19 +76,19 @@ class SimTK_SIMMATH_EXPORT FactorLU: public Factor {
     template <class ELT> FactorLU( const Matrix_<ELT>& m );
     /// factors a matrix
     template <class ELT> void factor( const Matrix_<ELT>& m );
-    /// solves a single right hand side 
+    /// solves a single right hand side
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
-    /// solves multiple  right hand sides 
+    /// solves multiple  right hand sides
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
 
-    /// returns the lower triangle of an LU factorization 
+    /// returns the lower triangle of an LU factorization
     template <class ELT> void getL( Matrix_<ELT>& l ) const;
-    /// returns the upper triangle of an LU factorization 
+    /// returns the upper triangle of an LU factorization
     template <class ELT> void getU( Matrix_<ELT>& u ) const;
     /// returns the inverse of a matrix using an LU factorization
     template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
 
-    /// returns true if matrix was singular 
+    /// returns true if matrix was singular
     bool isSingular() const;
     /// returns the first diagonal which was found to be singular
     int getSingularIndex() const;
@@ -126,7 +126,7 @@ class SimTK_SIMMATH_EXPORT FactorQTZ: public Factor {
     template <typename ELT> void factor( const Matrix_<ELT>& m, double rcond );
     /// solve  for a vector x given a right hand side vector b
     template <typename ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x ) const;
-    /// solve  for an array of vectors  given multiple  right hand sides  
+    /// solve  for an array of vectors  given multiple  right hand sides
     template <typename ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x ) const;
 
     template < class ELT > void inverse(  Matrix_<ELT>& m ) const;
@@ -154,11 +154,11 @@ class SimTK_SIMMATH_EXPORT Eigen {
 
     /// create a default eigen class
     template <class ELT> Eigen( const Matrix_<ELT>& m );
-    /// supply matrix which eigen values will be computed for  
+    /// supply matrix which eigen values will be computed for
     template <class ELT> void factor( const Matrix_<ELT>& m );
-    /// get all the eigen values and eigen vectors of a matrix 
+    /// get all the eigen values and eigen vectors of a matrix
     template <class VAL, class VEC> void getAllEigenValuesAndVectors( Vector_<VAL>& values, Matrix_<VEC>& vectors);
-    /// get all the eigen values of a matrix 
+    /// get all the eigen values of a matrix
     template <class T> void getAllEigenValues( Vector_<T>& values);
 
     /// get a few eigen values  and eigen vectors of a symmetric matrix which are within a range of indices
@@ -175,7 +175,7 @@ class SimTK_SIMMATH_EXPORT Eigen {
     /// get a few eigen values of a symmetric matrix which are within a range of eigen values
     template <class T> void getFewEigenValues( Vector_<T>& values, typename CNT<T>::TReal rlow, typename CNT<T>::TReal rhi );
 
-     
+
     protected:
     class EigenRepBase *rep;
 
@@ -187,14 +187,14 @@ class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     public:
 
     ~FactorSVD();
-    /// default constructor  
+    /// default constructor
     FactorSVD();
-    /// copy  constructor  
+    /// copy  constructor
     FactorSVD( const FactorSVD& c );
-    /// copy  assign  
+    /// copy  assign
     FactorSVD& operator=(const FactorSVD& rhs);
 
-    /// constructor 
+    /// constructor
     template < class ELT > FactorSVD( const Matrix_<ELT>& m );
     /// singular value decomposition of a matrix using the specified reciprocal of the condition
     /// number rcond
@@ -202,9 +202,9 @@ class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     /// singular value decomposition of a matrix using the specified reciprocal of the condition
     /// number rcond
     template < class ELT > FactorSVD( const Matrix_<ELT>& m, double rcond );
-    /// supply the matrix to do a singular value decomposition 
+    /// supply the matrix to do a singular value decomposition
     template < class ELT > void factor( const Matrix_<ELT>& m );
-    /// supply the matrix to do a singular value decomposition using the specified 
+    /// supply the matrix to do a singular value decomposition using the specified
     /// reciprocal of the condition number rcond
     template < class ELT > void factor( const Matrix_<ELT>& m, float rcond );
     /// supply the matrix to do a singular value decomposition using the specified reciprocal of the condition
@@ -212,18 +212,18 @@ class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
     template < class ELT > void factor( const Matrix_<ELT>& m, double rcond );
 
     /// get the singular values and singular vectors of the matrix
-    template < class T > void getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal>& values, 
+    template < class T > void getSingularValuesAndVectors( Vector_<typename CNT<T>::TReal>& values,
                               Matrix_<T>& leftVectors,  Matrix_<T>& rightVectors );
     /// get just the singular values of the matrix
     template < class T > void getSingularValues( Vector_<T>& values);
 
-    /// get rank of the matrix 
+    /// get rank of the matrix
     int getRank();
     /// get inverse of the matrix  using singular value decomposition (sometimes called the pseudo inverse)
     template < class ELT > void inverse(  Matrix_<ELT>& m );
     /// solve for x given a right hand side vector using the singular value decomposition
     template <class ELT> void solve( const Vector_<ELT>& b, Vector_<ELT>& x );
-    /// solve for a set of x vectors  given multiple right hand side vectors 
+    /// solve for a set of x vectors  given multiple right hand side vectors
     /// using the singular value decomposition
     template <class ELT> void solve( const Matrix_<ELT>& b, Matrix_<ELT>& x );
 
@@ -232,6 +232,6 @@ class SimTK_SIMMATH_EXPORT FactorSVD: public Factor {
 
 }; // class FactorSVD
 
-} // namespace SimTK 
+} // namespace SimTK
 
 #endif //SimTK_LINEAR_ALGEBRA_H_

@@ -48,7 +48,7 @@ public:
     }
     Base(const Base& src) : m_name(src.m_name) {
         ++m_copies;
-        //cout << "CopyCtor Base(" << src.getName() << ") @" << &src 
+        //cout << "CopyCtor Base(" << src.getName() << ") @" << &src
         //     << " --> @" << this << endl;
     }
     virtual ~Base() {
@@ -95,10 +95,10 @@ std::ostream& operator<<(std::ostream& o, const Base& b) {
 template <class T>
 std::ostream& operator<<(std::ostream& o,
                          const CloneOnWritePtr<T>& p) {
-    o << "CloneOnWritePtr p=" << p.get() 
+    o << "CloneOnWritePtr p=" << p.get()
       << " use_count=" << p.use_count() << endl;
     if (p.empty()) o << "  EMPTY" << endl;
-    else o << "  Obj: " << *p << endl; 
+    else o << "  Obj: " << *p << endl;
     return o;
 }
 
@@ -119,7 +119,7 @@ public:
     ~Derived2() {/*printf("~Derived2(%s)\n", getName());*/}
 
     Derived2* clone() const override {
-        //printf("Derived2::clone(%llx) %s\n", 
+        //printf("Derived2::clone(%llx) %s\n",
         //       (unsigned long long)this, getName());
         return new Derived2(*this);
     }
@@ -136,7 +136,7 @@ public:
     }
     ~Sub1() {/*printf("~Sub1(%s)\n", getName());*/}
     Sub1* clone() const override {
-        //printf("Sub1::clone(%llx) %s\n", 
+        //printf("Sub1::clone(%llx) %s\n",
         //       (unsigned long long)this, getName());
         return new Sub1(*this);
     }
@@ -263,7 +263,7 @@ void testAllocate() {
     // The -> op could cause detach here but shouldn't because use_count==1.
     SimTK_TEST(cowd2again->getValue()==3 && Base::getNumAlive()==9);
 
-    p=q=r; 
+    p=q=r;
     SimTK_TEST(Base::getNumAlive()==7 && p.use_count()==3);
     SimTK_TEST(p==q && p==r && q==r);
 
@@ -283,7 +283,7 @@ void testAllocate() {
     (*q).updValue() = 111; // Should detach.
     qval = q.getRef().getValue();
     SimTK_TEST(Base::getNumAlive()==9 && qval==111 && q.unique());
-    SimTK_TEST(r.get()->getValue()==999 && p.get()->getValue()==999 
+    SimTK_TEST(r.get()->getValue()==999 && p.get()->getValue()==999
                && r.unique() && p.unique() && q.unique());
 
     CloneOnWritePtr<Base> bptr; //empty
@@ -417,7 +417,7 @@ void testResetOnCopy() {
     ResetOnCopy<double> rdub;
     SimTK_TEST(rdub == 0.);
 
-    // C++ library move assignment methods like those for std::string and 
+    // C++ library move assignment methods like those for std::string and
     // std::vector are not required to treat self-move as a no-op.
     // In practice some implementations do and others empty out the object.
     // So I'm using Array_ instead to guarantee no-op self move.
@@ -427,7 +427,7 @@ void testResetOnCopy() {
     int* const addr2 = &myvec[2];
 
     // self-move assignment should do nothing
-    myvec = std::move(myvec); 
+    myvec = std::move(myvec);
     SimTK_TEST(myvec.size()==3 && myvec[2]==3 && &myvec[2]==addr2);
 
     // self copy of underlying std::vector should do nothing
@@ -467,7 +467,7 @@ void testResetOnCopy() {
 
     // This is a move assignment since the RHS is a temporary rvalue. Copy
     // assignment wouldn't compile;
-    double* dp = new double(3.125); 
+    double* dp = new double(3.125);
     updub = unique_ptr<double>(dp); // should transfer the heap object
     SimTK_TEST(updub.get()==dp && *updub == 3.125);
 
@@ -554,7 +554,7 @@ public:
 void testReinitOnCopy() {
     UsesReinitOnCopy r1;
     r1.checkHasInitialValues();
-    
+
     // Change every field and make sure it changes back on copy.
     r1.changeAll();
     r1.checkHasChanged();
@@ -619,7 +619,7 @@ void testReinitOnCopy() {
     SimTK_TEST(string(mychar1) == "here is a new string");
 
     ReinitOnCopy<const char*> mychar2(mychar1); // copy construction; reinit
-    SimTK_TEST(string(mychar2) == "charstr" 
+    SimTK_TEST(string(mychar2) == "charstr"
                && string(mychar2.getReinitT()) == "charstr");
 
     ReinitOnCopy<std::vector<char>> vc = {'a','b','c'};

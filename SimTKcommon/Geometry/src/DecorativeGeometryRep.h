@@ -33,8 +33,8 @@ namespace SimTK {
 
 class DecorativeGeometryRep {
 public:
-    DecorativeGeometryRep() 
-    :   body(0), indexOnBody(-1), userRef(0), 
+    DecorativeGeometryRep()
+    :   body(0), indexOnBody(-1), userRef(0),
         placement(), scaleFactors(-1,-1,-1), resolution(-1),
         colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), faceCamera(-1),
         representation(DecorativeGeometry::DrawDefault), myHandle(0)
@@ -83,7 +83,7 @@ public:
     }
     const Vec3& getColor() const {return colorRGB;}
 
-    // Opacity should be greater than zero (invisible) and less than 
+    // Opacity should be greater than zero (invisible) and less than
     // or equal to 1. The default will generally be 1, which is opaque,
     // but we use -1 to mean "use default" and let the client decide.
     void setOpacity(Real o) {
@@ -95,16 +95,16 @@ public:
         lineThickness = t > 0 ? t : Real(-1);
     }
     Real getLineThickness() const {return lineThickness;}
-    
+
     void setFaceCamera(int shouldFace) {
         faceCamera = shouldFace==0 ? 0 : (shouldFace>0 ? 1 : -1);
     }
-    
+
     int getFaceCamera() const {return faceCamera;}
 
-    void setRepresentation(const DecorativeGeometry::Representation& r) 
+    void setRepresentation(const DecorativeGeometry::Representation& r)
     {   representation=r; }
-    DecorativeGeometry::Representation getRepresentation() const 
+    DecorativeGeometry::Representation getRepresentation() const
     {   return representation; }
 
     DecorativeGeometryRep* clone() const {
@@ -118,9 +118,9 @@ public:
 
     // Used by the composite Decorations object:
     // Set any properties that still have their default values to the ones
-    // from src. Source body, index, and userRef are transferred 
-    // unconditionally; source placement is composed with this one 
-    // unconditionally. Scale factors, resolution, opacity, and line thickness 
+    // from src. Source body, index, and userRef are transferred
+    // unconditionally; source placement is composed with this one
+    // unconditionally. Scale factors, resolution, opacity, and line thickness
     // are composed, with a default (-1) value treated as 1.
     void inheritPropertiesFrom(const DecorativeGeometryRep& srep) {
         body        = srep.body;
@@ -170,7 +170,7 @@ protected:
     Real        opacity;            // -1 means "use default"
     Real        lineThickness;      // -1 means "use default"
     int         faceCamera;
-    DecorativeGeometry::Representation  
+    DecorativeGeometry::Representation
                 representation;     // e.g. points, wireframe, surface
 
     DecorativeGeometry* myHandle;   // the owner of this rep
@@ -192,7 +192,7 @@ public:
     // virtuals
     DecorativePointRep* cloneDecorativeGeometryRep() const override {
         DecorativePointRep* DGRep = new DecorativePointRep(*this);
-        return DGRep; 
+        return DGRep;
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -217,7 +217,7 @@ private:
 class DecorativeLineRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    DecorativeLineRep( const Vec3& p1, const Vec3& p2) 
+    DecorativeLineRep( const Vec3& p1, const Vec3& p2)
     :   point1(p1), point2(p2) {
     }
 
@@ -231,7 +231,7 @@ public:
     // virtuals
     DecorativeLineRep* cloneDecorativeGeometryRep() const override {
         DecorativeLineRep* DGRep = new DecorativeLineRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -242,7 +242,7 @@ public:
 private:
     Vec3 point1, point2;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeLine& getMyLineHandle() const {
         return *static_cast<const DecorativeLine*>(myHandle);
@@ -269,7 +269,7 @@ public:
     // virtuals
     DecorativeCircleRep* cloneDecorativeGeometryRep() const override {
         DecorativeCircleRep* DGRep = new DecorativeCircleRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -280,7 +280,7 @@ public:
 private:
     Real r;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeCircle& getMyCircleHandle() const {
         return *static_cast<const DecorativeCircle*>(myHandle);
@@ -308,7 +308,7 @@ public:
     // virtuals
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
         DecorativeSphereRep* DGRep = new DecorativeSphereRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -319,7 +319,7 @@ public:
 private:
     Real r;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeSphere& getMySphereHandle() const {
         return *static_cast<const DecorativeSphere*>(myHandle);
@@ -347,7 +347,7 @@ public:
     // virtuals
     DecorativeEllipsoidRep* cloneDecorativeGeometryRep() const override {
         DecorativeEllipsoidRep* DGRep = new DecorativeEllipsoidRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -358,7 +358,7 @@ public:
 private:
     Vec3 radii;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeEllipsoid& getMyEllipsoidHandle() const {
         return *static_cast<const DecorativeEllipsoid*>(myHandle);
@@ -373,7 +373,7 @@ private:
 class DecorativeBrickRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeBrickRep( const Vec3& xyzHalfLengths) 
+    explicit DecorativeBrickRep( const Vec3& xyzHalfLengths)
     :   halfLengths(xyzHalfLengths) {
         assert(halfLengths[0]>0&&halfLengths[1]>0&&halfLengths[2]>0); // TODO
     }
@@ -387,7 +387,7 @@ public:
     // virtuals
     DecorativeBrickRep* cloneDecorativeGeometryRep() const override {
         DecorativeBrickRep* DGRep = new DecorativeBrickRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -398,7 +398,7 @@ public:
 private:
     Vec3 halfLengths;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeBrick& getMyBrickHandle() const {
         return *static_cast<const DecorativeBrick*>(myHandle);
@@ -410,7 +410,7 @@ class DecorativeCylinderRep : public DecorativeGeometryRep {
     static const int DefaultResolution = 10;
 public:
     // no default constructor
-    DecorativeCylinderRep( Real r, Real hh) 
+    DecorativeCylinderRep( Real r, Real hh)
       : radius(r), halfHeight(hh) {
         assert(radius>0&&halfHeight>0); // TODO
     }
@@ -429,7 +429,7 @@ public:
     // virtuals
     DecorativeCylinderRep* cloneDecorativeGeometryRep() const override {
         DecorativeCylinderRep* DGRep = new DecorativeCylinderRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -440,7 +440,7 @@ public:
 private:
     Real radius, halfHeight;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeCylinder& getMyCylinderHandle() const {
         return *static_cast<const DecorativeCylinder*>(myHandle);
@@ -463,7 +463,7 @@ public:
     // virtuals
     DecorativeFrameRep* cloneDecorativeGeometryRep() const override {
         DecorativeFrameRep* DGRep = new DecorativeFrameRep(*this);
-        return( DGRep ); 
+        return( DGRep );
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -474,7 +474,7 @@ public:
 private:
     Real axisLength;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
     const DecorativeFrame& getMyFrameHandle() const {
         return *static_cast<const DecorativeFrame*>(myHandle);
@@ -489,7 +489,7 @@ class DecorativeTextRep : public DecorativeGeometryRep {
 static const int DefaultResolution = 15;
 public:
 // no default constructor
-explicit DecorativeTextRep(const std::string& label) 
+explicit DecorativeTextRep(const std::string& label)
 : text(label), isScreenText(false) {}
 
 void setText(const std::string& label) {
@@ -505,7 +505,7 @@ bool getIsScreenText() const {return isScreenText;}
 // virtuals
 DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeTextRep* DGRep = new DecorativeTextRep(*this);
-    return( DGRep ); 
+    return( DGRep );
 }
 
 void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -517,7 +517,7 @@ private:
 std::string text;
 bool        isScreenText; // in screen coordinates
 
-// This is just a static downcast since the DecorativeGeometry handle class 
+// This is just a static downcast since the DecorativeGeometry handle class
 // is not virtual.
 const DecorativeText& getMyTextHandle() const {
     return *static_cast<const DecorativeText*>(myHandle);
@@ -541,7 +541,7 @@ const PolygonalMesh& getMesh() const {
 // virtuals
 DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeMeshRep* DGRep = new DecorativeMeshRep(*this);
-    return( DGRep ); 
+    return( DGRep );
 }
 
 void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -552,7 +552,7 @@ SimTK_DOWNCAST(DecorativeMeshRep, DecorativeGeometryRep);
 private:
 PolygonalMesh mesh;
 
-// This is just a static downcast since the DecorativeGeometry handle class 
+// This is just a static downcast since the DecorativeGeometry handle class
 // is not virtual.
 const DecorativeMesh& getMyMeshHandle() const {
     return *static_cast<const DecorativeMesh*>(myHandle);
@@ -566,7 +566,7 @@ const DecorativeMesh& getMyMeshHandle() const {
 class DecorativeMeshFileRep : public DecorativeGeometryRep {
 public:
 // no default constructor
-explicit DecorativeMeshFileRep(const std::string& meshFileName) 
+explicit DecorativeMeshFileRep(const std::string& meshFileName)
 :   meshFile(meshFileName) {
 }
 
@@ -577,7 +577,7 @@ const std::string& getMeshFile() const {
 // virtuals
 DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeMeshFileRep* DGRep = new DecorativeMeshFileRep(*this);
-    return DGRep ; 
+    return DGRep ;
 }
 
 void implementGeometry(DecorativeGeometryImplementation& geometry) const override {
@@ -588,7 +588,7 @@ SimTK_DOWNCAST(DecorativeMeshFileRep, DecorativeGeometryRep);
 private:
 std::string meshFile;
 
-// This is just a static downcast since the DecorativeGeometry handle class 
+// This is just a static downcast since the DecorativeGeometry handle class
 // is not virtual.
 
 const DecorativeMeshFile& getMyMeshFileHandle() const {
@@ -604,7 +604,7 @@ const DecorativeMeshFile& getMyMeshFileHandle() const {
 class DecorativeTorusRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeTorusRep(Real torusR, Real tubeR) 
+    explicit DecorativeTorusRep(Real torusR, Real tubeR)
     :   torusRadius(torusR), tubeRadius(tubeR) {
     }
 
@@ -638,7 +638,7 @@ private:
     Real torusRadius;
     Real tubeRadius;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
 
     const DecorativeTorus& getMyTorusHandle() const {
@@ -655,7 +655,7 @@ class DecorativeArrowRep : public DecorativeGeometryRep {
 public:
     // no default constructor
     explicit DecorativeArrowRep
-        (const Vec3& start, const Vec3& end, Real& tipLen) 
+        (const Vec3& start, const Vec3& end, Real& tipLen)
     :   startPoint(start), endPoint(end), tipLength(tipLen) {
     }
 
@@ -697,7 +697,7 @@ private:
     Vec3 endPoint;
     Real tipLength;
 
-    // This is just a static downcast since the DecorativeGeometry handle 
+    // This is just a static downcast since the DecorativeGeometry handle
     // class is not virtual.
 
     const DecorativeArrow& getMyArrowHandle() const {
@@ -715,7 +715,7 @@ class DecorativeConeRep : public DecorativeGeometryRep {
 public:
     // no default constructor
     explicit DecorativeConeRep
-        (const Vec3& orig, const Vec3& dir, Real& h, Real& baseR) 
+        (const Vec3& orig, const Vec3& dir, Real& h, Real& baseR)
     :   origin(orig), direction(dir), height(h), baseRadius(baseR) {
     }
 
@@ -763,7 +763,7 @@ private:
     Real height;
     Real baseRadius;
 
-    // This is just a static downcast since the DecorativeGeometry handle class 
+    // This is just a static downcast since the DecorativeGeometry handle class
     // is not virtual.
 
     const DecorativeCone& getMyConeHandle() const {
@@ -786,7 +786,7 @@ public:
     int addDecoration(const Transform& X_DE,
                       const DecorativeGeometry& element) {
         geom.push_back(element);
-        // The current transform goes from the element's frame E to the 
+        // The current transform goes from the element's frame E to the
         // frame G of the actual geometry. We would normally put E at the
         // Decorations frame D, but now we want to relocate it.
         const Transform& X_EG = geom.back().getTransform();
@@ -801,7 +801,7 @@ public:
 
     DecorationsRep* cloneDecorativeGeometryRep() const override {
         DecorationsRep* DGRep = new DecorationsRep(*this);
-        return DGRep; 
+        return DGRep;
     }
 
     void implementGeometry(DecorativeGeometryImplementation& geometry) const override {

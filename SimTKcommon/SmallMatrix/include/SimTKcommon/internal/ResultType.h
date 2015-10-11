@@ -47,7 +47,7 @@ namespace SimTK {
  * and a static method "perform()" which delegates the operation to
  * the appropriate method of one of the arguments.
 
- * The general template class must be sufficiently parameterized that ALL 
+ * The general template class must be sufficiently parameterized that ALL
  * combinations of CNT arguments can be viewed as special cases.
  * That permits us to specialize properly here, and then individual
  * CNTs base their Result classes on this one, without the need
@@ -56,7 +56,7 @@ namespace SimTK {
  *
  * The argument attributes that we must be able to specialize on
  * are: shape, type (Row,Vec,Mat,SymMat) and "depth", meaning whether
- * an argument is a scalar (depth 0), composite with scalar elements 
+ * an argument is a scalar (depth 0), composite with scalar elements
  * (depth 1), or composite with composite elements (depth 2). We do
  * not implement the most general form at all; all meaningful
  * combinations of CNT shapes must be specialized. We distinguish
@@ -66,7 +66,7 @@ namespace SimTK {
  * to be treated as the matrix.
  *
  * Here are the rules:
- *    (0) if both arguments are scalars results typing will be 
+ *    (0) if both arguments are scalars results typing will be
  *        handled elsewhere, so we don't worry about that case here
  *    (1) if one argument is a scalar, we are doing a matrix/element
  *        operation (and of course the other one is the matrix) unless
@@ -96,7 +96,7 @@ namespace SimTK {
  * m=Mat, sy=SymMat, v=Vec, r=Row, and s=scalar:
  *
  *    Add, Sub: conforming means LHS_ncol==RHS_ncol && LHS_nrow==RHS_nrow
- *                  m=m+m m=sy+m m=m+sy sy=sy+sy 
+ *                  m=m+m m=sy+m m=m+sy sy=sy+sy
  *                  v=v+v  r=r+r
  *         Mul: conforming means LHS_ncol==RHS_nrow
  *                  m=m*m  m=sy*m m=m*sy m=sy*sy m=v*r (outer product)
@@ -104,7 +104,7 @@ namespace SimTK {
  *                  r=r*m  r=r*sy
  *                  s=r*v (dot product)
  *         Dvd: conforming means LHS_ncol==RHS_ncol
- *                  m=m/m  m=sy/m m=m/sy m=sy/sy 
+ *                  m=m/m  m=sy/m m=m/sy m=sy/sy
  *                  v=m/r  v=sy/r
  *                  r=r/m  r=r/sy
  *                  r=s/v  v=s/r m=s/m (inversion)
@@ -122,8 +122,8 @@ namespace SimTK {
  *     sy=sy op e  sy=e op sy
  *      v= v op e   v=e op  v
  *      r= r op e   r=e op  r
- *     
- * We assume that results types for scalars are dealt with 
+ *
+ * We assume that results types for scalars are dealt with
  * elsewhere, and that we can access ResultType for elements
  * using CNT<LHSType>::Result<RHSType>::op where 'op' is Add,
  * Sub, Mul, Dvd. Note that elements of a CNT can be arbitrarily

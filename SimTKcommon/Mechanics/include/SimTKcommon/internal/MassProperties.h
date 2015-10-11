@@ -37,8 +37,8 @@
 #include <iostream>
 
 namespace SimTK {
-/** Spatial vectors are used for (rotation,translation) quantities and 
-consist of a pair of Vec3 objects, arranged as a 2-vector of 3-vectors. 
+/** Spatial vectors are used for (rotation,translation) quantities and
+consist of a pair of Vec3 objects, arranged as a 2-vector of 3-vectors.
 Quantities represented this way include
     - spatial velocity     = (angularVelocity,linearVelocity)
     - spatial acceleration = (angularAcceleration,linearAcceleration)
@@ -65,9 +65,9 @@ typedef Row<2,   Row<3,float> >    fSpatialRow;
 the compiled-in precision of Real. **/
 typedef Row<2,   Row<3,double> >   dSpatialRow;
 
-/** Spatial matrices are used to hold 6x6 matrices that are best viewed 
+/** Spatial matrices are used to hold 6x6 matrices that are best viewed
 as 2x2 matrices of 3x3 matrices; most commonly for spatial and articulated
-body inertias and spatial shift matrices. They also arise commonly as 
+body inertias and spatial shift matrices. They also arise commonly as
 intermediates in computations involving SpatialVec objects. **/
 typedef Mat<2,2, Mat33>             SpatialMat;
 /** A SpatialMat that is always single (float) precision regardless of
@@ -84,7 +84,7 @@ template <class P> class SpatialInertia_;
 template <class P> class ArticulatedInertia_;
 template <class P> class MassProperties_;
 
-// The "no trailing underscore" typedefs use whatever the 
+// The "no trailing underscore" typedefs use whatever the
 // compile-time precision is set to.
 
 /** A unit inertia (gyration) tensor at default precision. **/
@@ -128,42 +128,42 @@ typedef UnitInertia  Gyration;
 // -----------------------------------------------------------------------------
 //                             INERTIA MATRIX
 // -----------------------------------------------------------------------------
-/** The physical meaning of an inertia is the distribution of a rigid body's 
-mass about a \e particular point. If that point is the center of mass of the 
-body, then the measured inertia is called the "central inertia" of that body. 
-To write down the inertia, we need to calculate the six scalars of the inertia 
-tensor, which is a symmetric 3x3 matrix. These scalars must be expressed in 
-an arbitrary but specified coordinate system. So an Inertia is meaningful only 
-in conjunction with a particular set of axes, fixed to the body, whose origin 
-is the point about which the inertia is being measured, and in whose 
-coordinate system this measurement is being expressed. Note that changing the 
-reference point results in a new physical quantity, but changing the reference 
-axes only affects the measure numbers of that quantity. For any reference 
+/** The physical meaning of an inertia is the distribution of a rigid body's
+mass about a \e particular point. If that point is the center of mass of the
+body, then the measured inertia is called the "central inertia" of that body.
+To write down the inertia, we need to calculate the six scalars of the inertia
+tensor, which is a symmetric 3x3 matrix. These scalars must be expressed in
+an arbitrary but specified coordinate system. So an Inertia is meaningful only
+in conjunction with a particular set of axes, fixed to the body, whose origin
+is the point about which the inertia is being measured, and in whose
+coordinate system this measurement is being expressed. Note that changing the
+reference point results in a new physical quantity, but changing the reference
+axes only affects the measure numbers of that quantity. For any reference
 point, there is a unique set of reference axes in which the inertia tensor is
-diagonal; those are called the "principal axes" of the body at that point, and 
-the resulting diagonal elements are the "principal moments of inertia". When 
-we speak of an inertia being "in" a frame, we mean the physical quantity 
+diagonal; those are called the "principal axes" of the body at that point, and
+the resulting diagonal elements are the "principal moments of inertia". When
+we speak of an inertia being "in" a frame, we mean the physical quantity
 measured about the frame's origin and then expressed in the frame's axes.
 
-This low-level Inertia class does not attempt to keep track of \e which frame 
-it is in. It provides construction and operations involving inertia that can 
-proceed using only an implicit frame F. Clients of this class are responsible 
-for keeping track of that frame. In particular, in order to shift the 
-inertia's "measured-about" point one must know whether either the starting or 
-final inertia is central, because we must always shift inertias by passing 
-through the central inertia. So this class provides operations for doing the 
+This low-level Inertia class does not attempt to keep track of \e which frame
+it is in. It provides construction and operations involving inertia that can
+proceed using only an implicit frame F. Clients of this class are responsible
+for keeping track of that frame. In particular, in order to shift the
+inertia's "measured-about" point one must know whether either the starting or
+final inertia is central, because we must always shift inertias by passing
+through the central inertia. So this class provides operations for doing the
 shifting, but expects to be told by the client where to find the center of mass.
 
-Re-expressing an Inertia in a different coordinate system does not entail a 
-change of physical meaning in the way that shifting it to a different point 
-does. Note that because inertia is a tensor, there is a "left frame" and 
-"right frame". For our purposes, these will always be the same so we'll only 
+Re-expressing an Inertia in a different coordinate system does not entail a
+change of physical meaning in the way that shifting it to a different point
+does. Note that because inertia is a tensor, there is a "left frame" and
+"right frame". For our purposes, these will always be the same so we'll only
 indicate the frame once, as in 'I_pt_frame'. This should be understood to mean
-'frame_I_pt_frame' and re-expressing an Inertia requires both a left and right 
-multiply by the rotation matrix. So I_OB_B is the inertia about body B's 
-origin point OB, expressed in B, while I_OB_G is the same physical quantity 
+'frame_I_pt_frame' and re-expressing an Inertia requires both a left and right
+multiply by the rotation matrix. So I_OB_B is the inertia about body B's
+origin point OB, expressed in B, while I_OB_G is the same physical quantity
 but expressed in Ground (the latter is a component of the Spatial Inertia
-which we usually want in the Ground frame). Frame conversion is done logically 
+which we usually want in the Ground frame). Frame conversion is done logically
 like this:
 <pre>
    I_OB_G = R_GB * I_OB_B * R_BG  (R_BG=~R_GB)
@@ -184,7 +184,7 @@ when running in Debug mode. Some conditions it must satisfy are:
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of Inertia_\<P\>:
- - \ref SimTK::Inertia "Inertia" for default Real precision (this is 
+ - \ref SimTK::Inertia "Inertia" for default Real precision (this is
    almost always used)
  - \ref SimTK::fInertia "fInertia" for single (float) precision
  - \ref SimTK::dInertia "dInertia" for double precision
@@ -200,12 +200,12 @@ Inertia_() : I_OF_F(NTraits<P>::getNaN()) {}
 // Default copy constructor, copy assignment, destructor.
 
 /// Create a principal inertia matrix with identical diagonal elements,
-/// like a sphere where moment=2/5 m r^2, or a cube where 
+/// like a sphere where moment=2/5 m r^2, or a cube where
 /// moment=1/6 m s^2, with m the total mass, r the sphere's radius
 /// and s the length of a side of the cube. Note that many rigid
 /// bodies of different shapes and masses can have the same inertia
 /// matrix.
-explicit Inertia_(const P& moment) : I_OF_F(moment) 
+explicit Inertia_(const P& moment) : I_OF_F(moment)
 {   errChk("Inertia::Inertia(moment)"); }
 
 /// Create an Inertia matrix for a point mass at a given location,
@@ -217,13 +217,13 @@ Inertia_(const Vec<3,P>& p, const P& mass) : I_OF_F(pointMassAt(p,mass)) {}
 /// inertia (the inertia matrix diagonal) and optionally a vector of
 /// the \e products of inertia (the off-diagonals). Moments are
 /// in the order xx,yy,zz; products are xy,xz,yz.
-explicit Inertia_(const Vec<3,P>& moments, const Vec<3,P>& products=Vec<3,P>(0)) 
+explicit Inertia_(const Vec<3,P>& moments, const Vec<3,P>& products=Vec<3,P>(0))
 {   I_OF_F.updDiag()  = moments;
     I_OF_F.updLower() = products;
     errChk("Inertia::Inertia(moments,products)"); }
 
 /// Create a principal inertia matrix (only non-zero on diagonal).
-Inertia_(const P& xx, const P& yy, const P& zz) 
+Inertia_(const P& xx, const P& yy, const P& zz)
 {   I_OF_F = SymMat<3,P>(xx,
                         0, yy,
                         0,  0, zz);
@@ -232,7 +232,7 @@ Inertia_(const P& xx, const P& yy, const P& zz)
 /// This is a general inertia matrix. Note the order of these
 /// arguments: moments of inertia first, then products of inertia.
 Inertia_(const P& xx, const P& yy, const P& zz,
-            const P& xy, const P& xz, const P& yz) 
+            const P& xy, const P& xz, const P& yz)
 {   I_OF_F = SymMat<3,P>(xx,
                         xy, yy,
                         xz, yz, zz);
@@ -247,7 +247,7 @@ explicit Inertia_(const SymMat<3,P>& inertia) : I_OF_F(inertia)
 /// we'll test that the supplied matrix is numerically close to symmetric, and
 /// that it satisfies other requirements of an Inertia matrix.
 explicit Inertia_(const Mat<3,3,P>& m)
-{   SimTK_ERRCHK(m.isNumericallySymmetric(), 
+{   SimTK_ERRCHK(m.isNumericallySymmetric(),
                     "Inertia(Mat33)", "The supplied matrix was not symmetric.");
     I_OF_F = SymMat<3,P>(m);
     errChk("Inertia(Mat33)"); }
@@ -285,15 +285,15 @@ Inertia_& setInertia(const P& xx, const P& yy, const P& zz,
 
 /// Add in another inertia matrix. Frames and reference point must be the same but
 /// we can't check. (6 flops)
-Inertia_& operator+=(const Inertia_& inertia) 
-{   I_OF_F += inertia.I_OF_F; 
+Inertia_& operator+=(const Inertia_& inertia)
+{   I_OF_F += inertia.I_OF_F;
     errChk("Inertia::operator+=()");
     return *this; }
 
-/// Subtract off another inertia matrix. Frames and reference point must 
+/// Subtract off another inertia matrix. Frames and reference point must
 /// be the same but we can't check. (6 flops)
-Inertia_& operator-=(const Inertia_& inertia) 
-{   I_OF_F -= inertia.I_OF_F; 
+Inertia_& operator-=(const Inertia_& inertia)
+{   I_OF_F -= inertia.I_OF_F;
     errChk("Inertia::operator-=()");
     return *this; }
 
@@ -310,10 +310,10 @@ Inertia_& operator/=(const P& s) {I_OF_F /= s; return *this;}
 /// of mass. This produces a new Inertia I' whose (implicit) frame F' is
 /// aligned with F but has origin CF (an inertia like that is called a "central
 /// inertia". I' = I - Icom where Icom is the inertia of a fictitious
-/// point mass of mass m (that is, the same as the body mass) located at CF 
+/// point mass of mass m (that is, the same as the body mass) located at CF
 /// (measured in F) about OF. Cost is 20 flops.
 /// @see shiftToMassCenterInPlace(), shiftFromMassCenter()
-Inertia_ shiftToMassCenter(const Vec<3,P>& CF, const P& mass) const 
+Inertia_ shiftToMassCenter(const Vec<3,P>& CF, const P& mass) const
 {   Inertia_ I(*this); I -= pointMassAt(CF, mass);
     I.errChk("Inertia::shiftToMassCenter()");
     return I; }
@@ -324,11 +324,11 @@ Inertia_ shiftToMassCenter(const Vec<3,P>& CF, const P& mass) const
 /// of mass. This produces a new Inertia I' whose (implicit) frame F' is
 /// aligned with F but has origin CF (an inertia like that is called a "central
 /// inertia". I' = I - Icom where Icom is the inertia of a fictitious
-/// point mass of mass m (that is, the same as the body mass) located at CF 
+/// point mass of mass m (that is, the same as the body mass) located at CF
 /// (measured in F) about OF. Cost is 20 flops.
 /// @see shiftToMassCenter() if you want to leave this object unmolested.
 /// @see shiftFromMassCenterInPlace()
-Inertia_& shiftToMassCenterInPlace(const Vec<3,P>& CF, const P& mass) 
+Inertia_& shiftToMassCenterInPlace(const Vec<3,P>& CF, const P& mass)
 {   (*this) -= pointMassAt(CF, mass);
     errChk("Inertia::shiftToMassCenterInPlace()");
     return *this; }
@@ -358,9 +358,9 @@ Inertia_& shiftFromMassCenterInPlace(const Vec<3,P>& p, const P& mass)
     errChk("Inertia::shiftFromMassCenterInPlace()");
     return *this; }
 
-/// Return a new inertia matrix like this one but re-expressed in another 
+/// Return a new inertia matrix like this one but re-expressed in another
 /// frame (leaving the origin point unchanged). Call this inertia matrix
-/// I_OF_F, that is, it is taken about the origin of some frame F, and 
+/// I_OF_F, that is, it is taken about the origin of some frame F, and
 /// expressed in F. We want to return I_OF_B, the same inertia matrix,
 /// still taken about the origin of F, but expressed in the B frame, given
 /// by I_OF_B=R_BF*I_OF_F*R_FB where R_FB is the rotation matrix giving
@@ -368,12 +368,12 @@ Inertia_& shiftFromMassCenterInPlace(const Vec<3,P>& p, const P& mass)
 /// method of the Rotation class which rotates a symmetric tensor
 /// at a cost of 57 flops.
 /// @see reexpressInPlace()
-Inertia_ reexpress(const Rotation_<P>& R_FB) const 
+Inertia_ reexpress(const Rotation_<P>& R_FB) const
 {   return Inertia_((~R_FB).reexpressSymMat33(I_OF_F)); }
 
 /// Rexpress using an inverse rotation to avoid having to convert it.
 /// @see rexpress(Rotation) for information
-Inertia_ reexpress(const InverseRotation_<P>& R_FB) const 
+Inertia_ reexpress(const InverseRotation_<P>& R_FB) const
 {   return Inertia_((~R_FB).reexpressSymMat33(I_OF_F)); }
 
 /// Re-express this inertia matrix in another frame, changing the object
@@ -414,13 +414,13 @@ bool isFinite() const {return I_OF_F.isFinite();}
 /// Compare this inertia matrix with another one and return true if they
 /// are close to within a default numerical tolerance. Cost is about
 /// 30 flops.
-bool isNumericallyEqual(const Inertia_<P>& other) const 
+bool isNumericallyEqual(const Inertia_<P>& other) const
 {   return I_OF_F.isNumericallyEqual(other.I_OF_F); }
 
 /// Compare this inertia matrix with another one and return true if they
 /// are close to within a specified numerical tolerance. Cost is about
 /// 30 flops.
-bool isNumericallyEqual(const Inertia_<P>& other, double tol) const 
+bool isNumericallyEqual(const Inertia_<P>& other, double tol) const
 {   return I_OF_F.isNumericallyEqual(other.I_OF_F, tol); }
 
 /// %Test some conditions that must hold for a valid Inertia matrix.
@@ -451,7 +451,7 @@ static bool isValidInertiaMatrix(const SymMat<3,P>& m) {
 /// an all-zero matrix.
 static Inertia_ pointMassAtOrigin() {return Inertia_(0);}
 
-/// Create an Inertia matrix for a point of a given mass, located at 
+/// Create an Inertia matrix for a point of a given mass, located at
 /// a given location measured from the origin of the implicit F frame.
 /// This is equivalent to m*crossMatSq(p) but is implemented elementwise
 /// here for speed, giving a cost of 14 flops.
@@ -467,9 +467,9 @@ static Inertia_ pointMassAt(const Vec<3,P>& p, const P& m) {
 }
 
 /// @name Unit inertia matrix factories
-/// These return UnitInertia matrices (inertias of unit-mass objects) 
+/// These return UnitInertia matrices (inertias of unit-mass objects)
 /// converted to Inertias. Multiply the result by the actual mass
-/// to get the Inertia of an actual object of this shape. See the 
+/// to get the Inertia of an actual object of this shape. See the
 /// UnitInertia class for more information.
 //@{
 
@@ -515,9 +515,9 @@ const UnitInertia_<P>& getAsUnitInertia() const
 UnitInertia_<P>& updAsUnitInertia()
 {   return *static_cast<UnitInertia_<P>*>(this); }
 
-// If error checking is enabled (only in Debug mode), this 
-// method will run some tests on the current contents of this Inertia 
-// matrix and throw an error message if it is not valid. This should be 
+// If error checking is enabled (only in Debug mode), this
+// method will run some tests on the current contents of this Inertia
+// matrix and throw an error message if it is not valid. This should be
 // the same set of tests as run by the isValidInertiaMatrix() method above.
 void errChk(const char* methodName) const {
 #ifndef NDEBUG
@@ -535,12 +535,12 @@ void errChk(const char* methodName) const {
 
     // TODO: This is looser than it should be as a workaround for distorted
     // rotation matrices that were produced by an 11,000 body chain that
-    // Sam Flores encountered. 
+    // Sam Flores encountered.
     const P Slop = std::max(d.sum(),P(1))
                        * std::sqrt(NTraits<P>::getEps());
 
-    SimTK_ERRCHK3(   Ixx+Iyy+Slop>=Izz 
-                  && Ixx+Izz+Slop>=Iyy 
+    SimTK_ERRCHK3(   Ixx+Iyy+Slop>=Izz
+                  && Ixx+Izz+Slop>=Iyy
                   && Iyy+Izz+Slop>=Ixx,
         methodName,
         "Diagonals of an Inertia matrix must satisfy the triangle "
@@ -548,7 +548,7 @@ void errChk(const char* methodName) const {
         (double)Ixx,(double)Iyy,(double)Izz);
 
     // Thanks to Paul Mitiguy for this condition on products of inertia.
-    SimTK_ERRCHK(   Ixx+Slop>=std::abs(2*Iyz) 
+    SimTK_ERRCHK(   Ixx+Slop>=std::abs(2*Iyz)
                  && Iyy+Slop>=std::abs(2*Ixz)
                  && Izz+Slop>=std::abs(2*Ixy),
         methodName,
@@ -558,7 +558,7 @@ void errChk(const char* methodName) const {
 
 // Inertia expressed in frame F and about F's origin OF. Note that frame F
 // is implicit here; all we actually have are the inertia scalars.
-SymMat<3,P> I_OF_F; 
+SymMat<3,P> I_OF_F;
 };
 
 /// Add two compatible inertia matrices, meaning they must be taken about the
@@ -566,64 +566,64 @@ SymMat<3,P> I_OF_F;
 /// compatibility; make sure you know what you're doing. Cost is 6 flops.
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator+(const Inertia_<P>& l, const Inertia_<P>& r) 
+operator+(const Inertia_<P>& l, const Inertia_<P>& r)
 {   return Inertia_<P>(l) += r; }
 
-/// Subtract from one inertia matrix another one which is compatible, meaning 
-/// that both must be taken about the same point and expressed in the same frame. 
-/// There is no way to verify compatibility; make sure you know what you're doing. 
+/// Subtract from one inertia matrix another one which is compatible, meaning
+/// that both must be taken about the same point and expressed in the same frame.
+/// There is no way to verify compatibility; make sure you know what you're doing.
 /// Cost is 6 flops.
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator-(const Inertia_<P>& l, const Inertia_<P>& r) 
+operator-(const Inertia_<P>& l, const Inertia_<P>& r)
 {   return Inertia_<P>(l) -= r; }
 
 /// Multiply an inertia matrix by a scalar. Cost is 6 flops.
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator*(const Inertia_<P>& i, const P& r) 
+operator*(const Inertia_<P>& i, const P& r)
 {   return Inertia_<P>(i) *= r; }
 
 /// Multiply an inertia matrix by a scalar. Cost is 6 flops.
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator*(const P& r, const Inertia_<P>& i) 
+operator*(const P& r, const Inertia_<P>& i)
 {   return Inertia_<P>(i) *= r; }
 
 
-/// Multiply an inertia matrix by a scalar given as an int. 
+/// Multiply an inertia matrix by a scalar given as an int.
 /// Cost is 6 flops.
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator*(const Inertia_<P>& i, int r) 
+operator*(const Inertia_<P>& i, int r)
 {   return Inertia_<P>(i) *= P(r); }
 
-/// Multiply an inertia matrix by a scalar given as an int. 
+/// Multiply an inertia matrix by a scalar given as an int.
 /// Cost is 6 flops.
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator*(int r, const Inertia_<P>& i) 
+operator*(int r, const Inertia_<P>& i)
 {   return Inertia_<P>(i) *= P(r); }
 
 /// Divide an inertia matrix by a scalar. Cost is about 20
 /// flops (one divide and six multiplies).
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator/(const Inertia_<P>& i, const P& r) 
+operator/(const Inertia_<P>& i, const P& r)
 {   return Inertia_<P>(i) /= r; }
 
-/// Divide an inertia matrix by a scalar provided as an int. 
+/// Divide an inertia matrix by a scalar provided as an int.
 /// Cost is about 20 flops (one divide and six multiplies).
 /// @relates Inertia_
 template <class P> inline Inertia_<P>
-operator/(const Inertia_<P>& i, int r) 
+operator/(const Inertia_<P>& i, int r)
 {   return Inertia_<P>(i) /= P(r); }
 
 /// Multiply an inertia matrix I on the right by a vector w giving the
 /// vector result I*w.
 /// @relates Inertia_
 template <class P> inline Vec<3,P>
-operator*(const Inertia_<P>& I, const Vec<3,P>& w) 
+operator*(const Inertia_<P>& I, const Vec<3,P>& w)
 {   return I.asSymMat33() * w; }
 
 /// Compare two inertia matrices for exact (bitwise) equality. This is
@@ -631,13 +631,13 @@ operator*(const Inertia_<P>& I, const Vec<3,P>& w)
 /// to test for approximate equality. Cost here is 6 flops.
 /// @relates Inertia_
 template <class P> inline bool
-operator==(const Inertia_<P>& i1, const Inertia_<P>& i2) 
+operator==(const Inertia_<P>& i1, const Inertia_<P>& i2)
 {   return i1.asSymMat33() == i2.asSymMat33(); }
 
-/// Output a human-readable representation of an inertia matrix to the 
+/// Output a human-readable representation of an inertia matrix to the
 /// indicated stream.
 /// @relates Inertia_
-template <class P> inline std::ostream& 
+template <class P> inline std::ostream&
 operator<<(std::ostream& o, const Inertia_<P>& inertia)
 {   return o << inertia.toMat33(); }
 
@@ -648,20 +648,20 @@ operator<<(std::ostream& o, const Inertia_<P>& inertia)
 /** A UnitInertia matrix is a unit-mass inertia matrix; you can convert it to an
 Inertia by multiplying it by the actual body mass. Functionality is limited
 here to those few operations which ensure unit mass; most operations on a
-UnitInertia matrix result in a general Inertia instead. You can use a 
+UnitInertia matrix result in a general Inertia instead. You can use a
 UnitInertia object wherever an Inertia is expected but not vice versa.
 
-When constructing a UnitInertia matrix, note that we cannot verify that it 
+When constructing a UnitInertia matrix, note that we cannot verify that it
 actually has unit mass because every legal Inertia matrix can be viewed as
 the UnitInertia matrix for some differently-scaled object.
 
 Unit inertia matrices are sometimes called "gyration" matrices; we will often
 represent them with the symbol "G" to avoid confusion with general inertia
-matrices for which the symbol "I" (or sometimes "J") is used. 
+matrices for which the symbol "I" (or sometimes "J") is used.
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of UnitInertia_\<P\>:
- - \ref SimTK::UnitInertia "UnitInertia" for default Real precision (this is 
+ - \ref SimTK::UnitInertia "UnitInertia" for default Real precision (this is
    almost always used)
  - \ref SimTK::fUnitInertia "fUnitInertia" for single (float) precision
  - \ref SimTK::dUnitInertia "dUnitInertia" for double precision **/
@@ -681,7 +681,7 @@ UnitInertia_() {}
 // Default copy constructor, copy assignment, destructor.
 
 /// Create a principal unit inertia matrix with identical diagonal elements.
-/// This is the unit inertia matrix of a unit mass sphere of radius 
+/// This is the unit inertia matrix of a unit mass sphere of radius
 /// r = sqrt(5/2 * moment) centered on the origin.
 explicit UnitInertia_(const RealP& moment) : InertiaP(moment) {}
 
@@ -694,7 +694,7 @@ explicit UnitInertia_(const Vec3P& moments, const Vec3P& products=Vec3P(0))
 
 /// Create a principal unit inertia matrix (only non-zero on diagonal).
 UnitInertia_(const RealP& xx, const RealP& yy, const RealP& zz)
-:   InertiaP(xx,yy,zz) {}   
+:   InertiaP(xx,yy,zz) {}
 
 /// This is a general unit inertia matrix. Note the order of these
 /// arguments: moments of inertia first, then products of inertia.
@@ -707,7 +707,7 @@ UnitInertia_(const RealP& xx, const RealP& yy, const RealP& zz,
 explicit UnitInertia_(const SymMat33P& m) : InertiaP(m) {}
 
 /// Construct a UnitInertia from a 3x3 symmetric matrix. In Debug mode
-/// we'll test that the supplied matrix is numerically close to symmetric, 
+/// we'll test that the supplied matrix is numerically close to symmetric,
 /// and that it satisfies other requirements of an inertia matrix.
 explicit UnitInertia_(const Mat33P& m) : InertiaP(m) {}
 
@@ -718,14 +718,14 @@ explicit UnitInertia_(const Mat33P& m) : InertiaP(m) {}
 explicit UnitInertia_(const Inertia_<P>& inertia) : InertiaP(inertia) {}
 
 /// Set a UnitInertia matrix to have only principal moments (that is, it
-/// will be diagonal). Returns a reference to "this" like an assignment 
+/// will be diagonal). Returns a reference to "this" like an assignment
 /// operator.
-UnitInertia_& setUnitInertia(const RealP& xx, const RealP& yy, const RealP& zz) 
+UnitInertia_& setUnitInertia(const RealP& xx, const RealP& yy, const RealP& zz)
 {   InertiaP::setInertia(xx,yy,zz); return *this; }
 
 /// Set principal moments and optionally off-diagonal terms.
 /// Returns a reference to "this" like an assignment operator.
-UnitInertia_& setUnitInertia(const Vec3P& moments, const Vec3P& products=Vec3P(0)) 
+UnitInertia_& setUnitInertia(const Vec3P& moments, const Vec3P& products=Vec3P(0))
 {   InertiaP::setInertia(moments,products); return *this; }
 
 /// Set this UnitInertia to a general matrix. Note the order of these
@@ -734,60 +734,60 @@ UnitInertia_& setUnitInertia(const Vec3P& moments, const Vec3P& products=Vec3P(0
 /// in Debug mode if the supplied elements do not constitute a valid
 /// inertia matrix.
 UnitInertia_& setUnitInertia(const RealP& xx, const RealP& yy, const RealP& zz,
-                        const RealP& xy, const RealP& xz, const RealP& yz) 
+                        const RealP& xy, const RealP& xz, const RealP& yz)
 {   InertiaP::setInertia(xx,yy,zz,xy,xz,yz); return *this; }
 
 
-// No +=, -=, etc. operators because those don't result in a UnitInertia 
+// No +=, -=, etc. operators because those don't result in a UnitInertia
 // matrix. The parent class ones are suppressed below.
 
 /// Assuming that this unit inertia matrix is currently taken about some (implicit)
 /// frame F's origin OF, produce a new unit inertia matrix which is the same as this one
-/// except measured about the body's centroid CF. We are given the vector from OF to 
-/// the centroid CF, expressed in F. This produces a new UnitInertia matrix G' whose 
-/// (implicit) frame F' is aligned with F but has origin CF (an inertia matrix like 
+/// except measured about the body's centroid CF. We are given the vector from OF to
+/// the centroid CF, expressed in F. This produces a new UnitInertia matrix G' whose
+/// (implicit) frame F' is aligned with F but has origin CF (an inertia matrix like
 /// that is called "central" or "centroidal"). From the parallel axis theorem for
-/// inertias, G' = G - Gcom where Gcom is the inertia matrix of a fictitious, 
+/// inertias, G' = G - Gcom where Gcom is the inertia matrix of a fictitious,
 /// unit-mass point located at CF (measured in F) taken about OF. (17 flops)
 /// @see shiftToCentroidInPlace(), shiftFromCentroid()
-UnitInertia_ shiftToCentroid(const Vec3P& CF) const 
-{   UnitInertia_ G(*this); 
+UnitInertia_ shiftToCentroid(const Vec3P& CF) const
+{   UnitInertia_ G(*this);
     G.Inertia_<P>::operator-=(pointMassAt(CF));
     return G; }
 
 /// Assuming that this unit inertia matrix is currently taken about some (implicit)
-/// frame F's origin OF, modify it so that it is instead taken about the body's 
-/// centroid CF. We are given the vector from OF to 
-/// the centroid CF, expressed in F. This produces a new UnitInertia G' whose 
-/// (implicit) frame F' is aligned with F but has origin CF (an inertia matrix like 
+/// frame F's origin OF, modify it so that it is instead taken about the body's
+/// centroid CF. We are given the vector from OF to
+/// the centroid CF, expressed in F. This produces a new UnitInertia G' whose
+/// (implicit) frame F' is aligned with F but has origin CF (an inertia matrix like
 /// that is called "central" or "centroidal"). From the parallel axis theorem for
-/// inertias, G' = G - Gcom where Gcom is the inertia matrix of a fictitious, 
+/// inertias, G' = G - Gcom where Gcom is the inertia matrix of a fictitious,
 /// unit-mass point located at CF (measured in F) taken about OF. A reference
 /// to the modified object is returned so that you can chain this method in
 /// the manner of assignment operators. Cost is 17 flops.
 /// @see shiftToCentroid() if you want to leave this object unmolested.
 /// @see shiftFromCentroidInPlace()
-UnitInertia_& shiftToCentroidInPlace(const Vec3P& CF) 
+UnitInertia_& shiftToCentroidInPlace(const Vec3P& CF)
 {   InertiaP::operator-=(pointMassAt(CF));
     return *this; }
 
 /// Assuming that the current UnitInertia G is a central inertia (that is, it is
 /// inertia about the body centroid CF), create a new object that is the same
-/// as this one except shifted to some other point p measured from the centroid. 
-/// This produces a new inertia G' about the point p given by G' = G + Gp where 
+/// as this one except shifted to some other point p measured from the centroid.
+/// This produces a new inertia G' about the point p given by G' = G + Gp where
 /// Gp is the inertia of a fictitious point located at p, taken about CF. Cost
 /// is 17 flops.
 /// @see shiftFromCentroidInPlace(), shiftToCentroid()
 UnitInertia_ shiftFromCentroid(const Vec3P& p) const
-{   UnitInertia_ G(*this); 
+{   UnitInertia_ G(*this);
     G.Inertia_<P>::operator+=(pointMassAt(p));
     return G; }
 
 /// Assuming that the current UnitInertia G is a central inertia (that is, it is
 /// inertia about the body centroid CF), shift it in place to some other point p
 /// measured from the centroid. This changes G to a modified inertia G' taken
-/// about the point p, with the parallel axis theorem for inertia giving 
-/// G' = G + Gp where Gp is the inertia of a fictitious, unit-mass point located 
+/// about the point p, with the parallel axis theorem for inertia giving
+/// G' = G + Gp where Gp is the inertia of a fictitious, unit-mass point located
 /// at p, taken about CF. Cost is 17 flops.
 /// @see shiftFromCentroid() if you want to leave this object unmolested.
 /// @see shitToCentroidInPlace()
@@ -795,9 +795,9 @@ UnitInertia_& shiftFromCentroidInPlace(const Vec3P& p)
 {   InertiaP::operator+=(pointMassAt(p));
     return *this; }
 
-/// Return a new unit inertia matrix like this one but re-expressed in another 
+/// Return a new unit inertia matrix like this one but re-expressed in another
 /// frame (leaving the origin point unchanged). Call this inertia matrix
-/// G_OF_F, that is, it is taken about the origin of some frame F, and 
+/// G_OF_F, that is, it is taken about the origin of some frame F, and
 /// expressed in F. We want to return G_OF_B, the same unit inertia matrix,
 /// still taken about the origin of F, but expressed in the B frame, given
 /// by G_OF_B=R_BF*G_OF_F*R_FB where R_FB is the rotation matrix giving
@@ -805,12 +805,12 @@ UnitInertia_& shiftFromCentroidInPlace(const Vec3P& p)
 /// method of the Rotation class which rotates a symmetric tensor
 /// at a cost of 57 flops.
 /// @see reexpressInPlace()
-UnitInertia_ reexpress(const Rotation_<P>& R_FB) const 
+UnitInertia_ reexpress(const Rotation_<P>& R_FB) const
 {   return UnitInertia_((~R_FB).reexpressSymMat33(this->I_OF_F)); }
 
 /// Rexpress using an inverse rotation to avoid having to convert it.
 /// @see rexpress(Rotation) for information
-UnitInertia_ reexpress(const InverseRotation_<P>& R_FB) const 
+UnitInertia_ reexpress(const InverseRotation_<P>& R_FB) const
 {   return UnitInertia_((~R_FB).reexpressSymMat33(this->I_OF_F)); }
 
 /// Re-express this unit inertia matrix in another frame, changing the object
@@ -832,7 +832,7 @@ operator const SymMat33P&() const {return this->I_OF_F;}
 /// Recast this UnitInertia matrix as a unit inertia matrix. This is just for
 /// emphasis; a UnitInertia matrix is already a kind of Inertia matrix by
 /// inheritance.
-const Inertia_<P>& asUnitInertia() const 
+const Inertia_<P>& asUnitInertia() const
 {   return *static_cast<const Inertia_<P>*>(this); }
 
 /// Set from a unit inertia matrix. Note that we can't check; every Inertia
@@ -844,14 +844,14 @@ UnitInertia_& setFromUnitInertia(const Inertia_<P>& inertia)
 /// %Test some conditions that must hold for a valid UnitInertia matrix.
 /// Cost is about 9 flops.
 /// TODO: this may not be comprehensive.
-static bool isValidUnitInertiaMatrix(const SymMat33P& m) 
+static bool isValidUnitInertiaMatrix(const SymMat33P& m)
 {   return Inertia_<P>::isValidInertiaMatrix(m); }
 
 /// @name UnitInertia matrix factories
-/// These are UnitInertia matrix factories for some common 3D solids. Each 
-/// defines its own frame aligned (when possible) with principal moments. 
-/// Each has unit mass and its center of mass located at the origin (usually). 
-/// Use this with shiftFromCentroid() to move it somewhere else, and with 
+/// These are UnitInertia matrix factories for some common 3D solids. Each
+/// defines its own frame aligned (when possible) with principal moments.
+/// Each has unit mass and its center of mass located at the origin (usually).
+/// Use this with shiftFromCentroid() to move it somewhere else, and with
 /// reexpress() to express the UnitInertia matrix in another frame.
 //@{
 
@@ -859,11 +859,11 @@ static bool isValidUnitInertiaMatrix(const SymMat33P& m)
 /// an all-zero matrix.
 static UnitInertia_ pointMassAtOrigin() {return UnitInertia_(0);}
 
-/// Create a UnitInertia matrix for a point of unit mass located at a given 
+/// Create a UnitInertia matrix for a point of unit mass located at a given
 /// location measured from origin OF and expressed in F (where F is the
 /// implicit frame of this UnitInertia matrix).
 /// Cost is 11 flops.
-static UnitInertia_ pointMassAt(const Vec3P& p) 
+static UnitInertia_ pointMassAt(const Vec3P& p)
 {   return UnitInertia_(crossMatSq(p)); }
 
 /// Create a UnitInertia matrix for a unit mass sphere of radius \a r centered
@@ -930,7 +930,7 @@ void operator/=(int) {}
 // Implement Inertia methods which are pass-throughs to UnitInertia methods.
 
 template <class P> inline Inertia_<P> Inertia_<P>::
-sphere(const P& r) 
+sphere(const P& r)
 {   return UnitInertia_<P>::sphere(r); }
 template <class P> inline Inertia_<P> Inertia_<P>::
 cylinderAlongZ(const P& r, const P& hz)
@@ -960,36 +960,36 @@ ellipsoid(const Vec<3,P>& halfLengths)
 // -----------------------------------------------------------------------------
 /** A spatial inertia contains the mass, center of mass point, and inertia
 matrix for a rigid body. This is 10 independent quantities altogether; however,
-inertia is mass-scaled making it linearly dependent on the mass. Here instead 
-we represent inertia using a unit inertia matrix, which is equivalent to the 
-inertia this body would have if it had unit mass. Then the actual inertia is 
-given by mass*unitInertia. In this manner the mass, center of mass location, and 
-inertia are completely independent so can be changed separately. That means 
+inertia is mass-scaled making it linearly dependent on the mass. Here instead
+we represent inertia using a unit inertia matrix, which is equivalent to the
+inertia this body would have if it had unit mass. Then the actual inertia is
+given by mass*unitInertia. In this manner the mass, center of mass location, and
+inertia are completely independent so can be changed separately. That means
 if you double the mass, you'll also double the inertia as you would expect.
 
-Spatial inertia may be usefully viewed as a symmetric spatial matrix, that is, 
-a 6x6 symmetric matrix arranged as 2x2 blocks of 3x3 matrices. Although this 
+Spatial inertia may be usefully viewed as a symmetric spatial matrix, that is,
+a 6x6 symmetric matrix arranged as 2x2 blocks of 3x3 matrices. Although this
 class represents the spatial inertia in compact form, it supports methods and
 operators that allow it to behave as though it were a spatial matrix (except
-much faster to work with). In spatial matrix form, the matrix has the following 
+much faster to work with). In spatial matrix form, the matrix has the following
 interpretation:
 <pre>
               [  m*G   m*px ]
           M = [             ]
               [ -m*px  m*I  ]
 </pre>
-Here m is mass, p is the vector from the body origin to the center of mass, 
-G is the 3x3 symmetric unit inertia (gyration) matrix, and I is a 3x3 identity 
-matrix. "px" indicates the skew symmetric cross product matrix formed from the 
-vector p, so -px=~px. 
+Here m is mass, p is the vector from the body origin to the center of mass,
+G is the 3x3 symmetric unit inertia (gyration) matrix, and I is a 3x3 identity
+matrix. "px" indicates the skew symmetric cross product matrix formed from the
+vector p, so -px=~px.
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of SpatialInertia_\<P\>:
- - \ref SimTK::SpatialInertia "SpatialInertia" for default Real precision (this is 
+ - \ref SimTK::SpatialInertia "SpatialInertia" for default Real precision (this is
    almost always used)
  - \ref SimTK::fSpatialInertia "fSpatialInertia" for single (float) precision
  - \ref SimTK::dSpatialInertia "dSpatialInertia" for double precision **/
-template <class P> 
+template <class P>
 class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef P               RealP;
     typedef Vec<3,P>        Vec3P;
@@ -1002,9 +1002,9 @@ class SimTK_SimTKCOMMON_EXPORT SpatialInertia_ {
     typedef Inertia_<P>     InertiaP;
 public:
 /// The default constructor fills everything with NaN, even in Release mode.
-SpatialInertia_() 
+SpatialInertia_()
 :   m(nanP()), p(nanP()) {} // inertia is already NaN
-SpatialInertia_(RealP mass, const Vec3P& com, const UnitInertiaP& gyration) 
+SpatialInertia_(RealP mass, const Vec3P& com, const UnitInertiaP& gyration)
 :   m(mass), p(com), G(gyration) {}
 
 // default copy constructor, copy assignment, destructor
@@ -1014,8 +1014,8 @@ SpatialInertia_& setMass(RealP mass)
         "Negative mass %g is illegal.", (double)mass);
     m=mass; return *this; }
 SpatialInertia_& setMassCenter(const Vec3P& com)
-{   p=com; return *this;} 
-SpatialInertia_& setUnitInertia(const UnitInertiaP& gyration) 
+{   p=com; return *this;}
+SpatialInertia_& setUnitInertia(const UnitInertiaP& gyration)
 {   G=gyration; return *this; }
 
 RealP               getMass()        const {return m;}
@@ -1030,8 +1030,8 @@ Vec3P calcMassMoment() const {return m*p;}
 /// matrix) from the mass and unit inertia matrix. Cost is 6 inline flops.
 InertiaP calcInertia() const {return m*G;}
 
-/// Add in a compatible SpatialInertia. This is only valid if both 
-/// SpatialInertias are expressed in the same frame and measured about 
+/// Add in a compatible SpatialInertia. This is only valid if both
+/// SpatialInertias are expressed in the same frame and measured about
 /// the same point but there is no way for this method to check.
 /// Cost is about 40 flops.
 SpatialInertia_& operator+=(const SpatialInertia_& src) {
@@ -1044,8 +1044,8 @@ SpatialInertia_& operator+=(const SpatialInertia_& src) {
     return *this;
 }
 
-/// Subtract off a compatible SpatialInertia. This is only valid if both 
-/// SpatialInertias are expressed in the same frame and measured about 
+/// Subtract off a compatible SpatialInertia. This is only valid if both
+/// SpatialInertias are expressed in the same frame and measured about
 /// the same point but there is no way for this method to check.
 /// Cost is about 40 flops.
 SpatialInertia_& operator-=(const SpatialInertia_& src) {
@@ -1100,7 +1100,7 @@ SpatialInertia_& reexpressInPlace(const InverseRotation_<P>& R_FB)
 /// the origin ("taken about" point) has changed from OF to OF+S.
 /// Cost is 37 flops.
 /// @see shiftInPlace()
-SpatialInertia_ shift(const Vec3P& S) const 
+SpatialInertia_ shift(const Vec3P& S) const
 {   return SpatialInertia_(*this).shiftInPlace(S); }
 
 /// Change origin from OF to OF+S, modifying the original object in place.
@@ -1123,20 +1123,20 @@ SpatialInertia_& shiftInPlace(const Vec3P& S) {
 /// of B in F. This combines the reexpress() and shift() operations
 /// available separately. Cost is 109 flops.
 /// @see transformInPlace()
-SpatialInertia_ transform(const Transform_<P>& X_FB) const 
+SpatialInertia_ transform(const Transform_<P>& X_FB) const
 {   return SpatialInertia_(*this).transformInPlace(X_FB); }
 
 /// Transform using an inverse transform to avoid having to convert it.
 /// @see transform(Transform) for information
-SpatialInertia_ transform(const InverseTransform_<P>& X_FB) const 
+SpatialInertia_ transform(const InverseTransform_<P>& X_FB) const
 {   return SpatialInertia_(*this).transformInPlace(X_FB); }
 
 /// Transform this SpatialInertia object so that it is measured about and
 /// expressed in a new frame, modifying the object in place. We consider the
-/// current spatial inertia M to be measured (implicitly) in some frame F, that 
-/// is, we have M=M_OF_F. We want to change it to M_OB_B for some new frame B, 
-/// given the transform X_FB giving the location and orientation of B in F. This 
-/// combines the reexpressInPlace() and shiftInPlace() operations available 
+/// current spatial inertia M to be measured (implicitly) in some frame F, that
+/// is, we have M=M_OF_F. We want to change it to M_OB_B for some new frame B,
+/// given the transform X_FB giving the location and orientation of B in F. This
+/// combines the reexpressInPlace() and shiftInPlace() operations available
 /// separately. Returns a reference to the modified object so that you can
 /// chain this operation in the manner of assignment operators. Cost is 109 flops.
 /// @see transform() if you want to leave this object unmolested.
@@ -1165,38 +1165,38 @@ RealP           m;  // mass of this rigid body F
 Vec3P           p;  // location of body's COM from OF, expressed in F
 UnitInertiaP    G;  // mass distribution; inertia is mass*gyration
 
-static P nanP() {return NTraits<P>::getNaN();} 
+static P nanP() {return NTraits<P>::getNaN();}
 };
 
 /// Add two compatible spatial inertias. Cost is about 40 flops.
 /// @relates SpatialInertia_
-template <class P> inline SpatialInertia_<P> 
+template <class P> inline SpatialInertia_<P>
 operator+(const SpatialInertia_<P>& l, const SpatialInertia_<P>& r)
-{   return SpatialInertia_<P>(l) += r; } 
+{   return SpatialInertia_<P>(l) += r; }
 
 /// Subtract one compatible spatial inertia from another. Cost is
 /// about 40 flops.
 /// @relates SpatialInertia_
-template <class P> inline SpatialInertia_<P> 
+template <class P> inline SpatialInertia_<P>
 operator-(const SpatialInertia_<P>& l, const SpatialInertia_<P>& r)
-{   return SpatialInertia_<P>(l) -= r; } 
+{   return SpatialInertia_<P>(l) -= r; }
 
 
 // -----------------------------------------------------------------------------
 //                        ARTICULATED BODY INERTIA MATRIX
 // -----------------------------------------------------------------------------
-/** An articulated body inertia (ABI) matrix P(q) contains the spatial inertia 
-properties that a body appears to have when it is the free base body of 
-an articulated multibody tree in a given configuration q. Despite the 
-complex relative motion that occurs within a multibody tree, at any given 
-configuration q there is still a linear relationship between a spatial 
-force F applied to a point of the base body and the resulting acceleration 
+/** An articulated body inertia (ABI) matrix P(q) contains the spatial inertia
+properties that a body appears to have when it is the free base body of
+an articulated multibody tree in a given configuration q. Despite the
+complex relative motion that occurs within a multibody tree, at any given
+configuration q there is still a linear relationship between a spatial
+force F applied to a point of the base body and the resulting acceleration
 A of that body and that point: F = P(q)*A + c, where c is a velocity-
-dependent inertial bias force. P is thus analogous to a rigid body 
+dependent inertial bias force. P is thus analogous to a rigid body
 spatial inertia (RBI), but for a body which has other bodies connected to it
 by joints which are free to move.
 
-An ABI P is a symmetric 6x6 spatial matrix, consisting of 2x2 blocks of 3x3 
+An ABI P is a symmetric 6x6 spatial matrix, consisting of 2x2 blocks of 3x3
 matrices, similar to the RBI. However, unlike the RBI which has only 10 independent
 elements, all 21 elements of P's lower triangle are significant. For example,
 the apparent mass of an articulated body depends on which way you push it,
@@ -1206,32 +1206,32 @@ we only work with ABIs in the Ground frame, so there
 is never a need to rotate or re-express them. (That is done by rotating RBIs
 prior to using them to construct the ABIs.) Thus only shifting operations need
 be performed when transforming ABIs from body to body.
-Cheap rigid body shifting is done when moving an ABI 
-within a body or across a prescribed mobilizer; otherwise we have to perform 
+Cheap rigid body shifting is done when moving an ABI
+within a body or across a prescribed mobilizer; otherwise we have to perform
 an articulated shift operation which is quite expensive.
 
-For a full discussion of the properties of articulated body inertias, see 
-Section 7.1 (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid 
-Body Dynamics Algorithms. 
+For a full discussion of the properties of articulated body inertias, see
+Section 7.1 (pp. 119-123) of Roy Featherstone's excellent 2008 book, Rigid
+Body Dynamics Algorithms.
 
-In spatial matrix form, an ABI P may be considered to consist of the 
+In spatial matrix form, an ABI P may be considered to consist of the
 following 3x3 subblocks:
 <pre>
          P =  [ J  F ]
               [~F  M ]
 </pre>
 Here M is a (symmetric) mass distribution, F is a full matrix giving the
-first mass moment distribution, and J is a (symmetric) inertia matrix. 
+first mass moment distribution, and J is a (symmetric) inertia matrix.
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of ArticulatedInertia_\<P\>:
- - \ref SimTK::ArticulatedInertia "ArticulatedInertia" for default Real 
+ - \ref SimTK::ArticulatedInertia "ArticulatedInertia" for default Real
    precision (this is almost always used)
- - \ref SimTK::fArticulatedInertia "fArticulatedInertia" for single (float) 
+ - \ref SimTK::fArticulatedInertia "fArticulatedInertia" for single (float)
    precision
- - \ref SimTK::dArticulatedInertia "dArticulatedInertia" for double 
+ - \ref SimTK::dArticulatedInertia "dArticulatedInertia" for double
    precision **/
-template <class P> 
+template <class P>
 class ArticulatedInertia_ {
     typedef P               RealP;
     typedef Vec<3,P>        Vec3P;
@@ -1244,14 +1244,14 @@ class ArticulatedInertia_ {
     typedef Transform_<P>   TransformP;
     typedef Inertia_<P>     InertiaP;
 public:
-/// Default construction produces uninitialized junk at zero cost; be sure to 
+/// Default construction produces uninitialized junk at zero cost; be sure to
 /// fill this in before referencing it.
 ArticulatedInertia_() {}
 /// Construct an ArticulatedInertia from the mass, first moment, and inertia matrices it contains.
 ArticulatedInertia_(const SymMat33P& mass, const Mat33P& massMoment, const SymMat33P& inertia)
 :   M(mass), J(inertia), F(massMoment) {}
 
-/// Construct an articulated body inertia (ABI) from a rigid body spatial inertia (RBI). 
+/// Construct an articulated body inertia (ABI) from a rigid body spatial inertia (RBI).
 /// Every RBI is also the ABI for that (unarticulated) rigid body. 12 flops.
 explicit ArticulatedInertia_(const SpatialInertia_<P>& rbi)
 :   M(rbi.getMass()), J(rbi.calcInertia()), F(crossMat(rbi.calcMassMoment())) {}
@@ -1294,8 +1294,8 @@ Mat<2,N,Vec3P> operator*(const Mat<2,N,Vec3P>& m) const {
     return res;
 }
 
-/// Rigid-shift the origin of this Articulated Body Inertia P by a 
-/// shift vector -s to produce a new ABI P'. The calculation is 
+/// Rigid-shift the origin of this Articulated Body Inertia P by a
+/// shift vector -s to produce a new ABI P'. The calculation is
 /// <pre>
 /// P' =  [ J'  F' ]  =  [ 1  sx ] [ J  F ] [ 1  0 ]
 ///       [~F'  M  ]     [ 0  1  ] [~F  M ] [-sx 1 ]
@@ -1310,7 +1310,7 @@ SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_ shift(const Vec3P& s) const;
 /// @see shift() for details
 SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_& shiftInPlace(const Vec3P& s);
 
-/// Convert the compactly-stored ArticulatedInertia (21 elements) into a 
+/// Convert the compactly-stored ArticulatedInertia (21 elements) into a
 /// full SpatialMat with 36 elements.
 const SpatialMatP toSpatialMat() const {
     return SpatialMatP( Mat33P(J),     F,
@@ -1347,14 +1347,14 @@ multiplied by the mass to get the inertia matrix for the body.
 
 <h3>Abbreviations</h3>
 Typedefs exist for the most common invocations of MassProperties_\<P\>:
- - \ref SimTK::MassProperties "MassProperties" for default Real precision (this is 
+ - \ref SimTK::MassProperties "MassProperties" for default Real precision (this is
    almost always used)
  - \ref SimTK::fMassProperties "fMassProperties" for single (float) precision
  - \ref SimTK::dMassProperties "dMassProperties" for double precision **/
 template <class P>
 class SimTK_SimTKCOMMON_EXPORT MassProperties_ {
 public:
-/** Create a mass properties object in which the mass, mass center, and 
+/** Create a mass properties object in which the mass, mass center, and
 inertia are meaningless; you must assign values before using this. **/
 MassProperties_() { setMassProperties(0,Vec<3,P>(0),UnitInertia_<P>()); }
 /** Create a mass properties object from individually supplied mass,
@@ -1393,17 +1393,17 @@ MassProperties_& setMassProperties
 const P& getMass() const {return mass;}
 /** Return the mass center currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured from B's
-origin, but you have to know what that frame is in order to interpret the 
+origin, but you have to know what that frame is in order to interpret the
 returned vector. **/
 const Vec<3,P>& getMassCenter() const {return comInB;}
 /** Return the unit inertia currently stored in this MassProperties object;
 this is expressed in an implicit frame we call "B", and measured about B's
-origin, but you have to know what that frame is in order to interpret the 
+origin, but you have to know what that frame is in order to interpret the
 returned value correctly. **/
 const UnitInertia_<P>& getUnitInertia() const {return unitInertia_OB_B;}
 /** Return the inertia matrix for this MassProperties object; this is equal
-to the unit inertia times the mass and costs 6 flops. It is expressed in 
-an implicit frame we call "B", and measured about B's origin, but you have 
+to the unit inertia times the mass and costs 6 flops. It is expressed in
+an implicit frame we call "B", and measured about B's origin, but you have
 to know what that frame is in order to interpret the returned value
 correctly. **/
 const Inertia_<P> calcInertia() const {return mass*unitInertia_OB_B;}
@@ -1433,7 +1433,7 @@ supplied. Note that this affects both the "measured about" point and the
 Inertia_<P> calcTransformedInertia(const Transform_<P>& X_BC) const {
     return calcShiftedInertia(X_BC.p()).reexpress(X_BC.R());
 }
-/** Return a new MassProperties object that is the same as this one but with 
+/** Return a new MassProperties object that is the same as this one but with
 the origin point shifted from the (implicit) B frame origin to a new point that
 is supplied in \a newOriginB which must be a vector measured from the B frame
 origin and expressed in B. This affects both the mass center vector and the
@@ -1447,10 +1447,10 @@ MassProperties_ calcShiftedMassProps(const Vec<3,P>& newOriginB) const {
 frame "C", given the pose of C in B.\ Caution: this \e shifts
 the point from which the mass properties are measured from the origin of B to
 the origin of C. See reexpress() to change only the measure numbers without
-moving the "measured from" point. Note that the frame in which a MassProperties 
-object is expressed, and the point about which the mass properties are 
-measured, are implicit; we don't actually have any way to verify that 
-it is in B. Make sure you are certain about the current frame before using this 
+moving the "measured from" point. Note that the frame in which a MassProperties
+object is expressed, and the point about which the mass properties are
+measured, are implicit; we don't actually have any way to verify that
+it is in B. Make sure you are certain about the current frame before using this
 method. **/
 MassProperties_ calcTransformedMassProps(const Transform_<P>& X_BC) const {
     return MassProperties_(mass, ~X_BC*comInB, calcTransformedInertia(X_BC));
@@ -1460,9 +1460,9 @@ MassProperties_ calcTransformedMassProps(const Transform_<P>& X_BC) const {
 frame "C", given the orientation of C in B.\ Caution: this does not \e shift
 the point from which the mass properties are measured, it just uses a different
 frame to express that measurement. See calcTransformedMassProps() to perform
-a shift as well. Note that the frame in which a MassProperties object is 
-expressed is implicit; we don't actually have any way to verify that it is in 
-B. Make sure you are certain about the current frame before using this 
+a shift as well. Note that the frame in which a MassProperties object is
+expressed is implicit; we don't actually have any way to verify that it is in
+B. Make sure you are certain about the current frame before using this
 method. **/
 MassProperties_ reexpress(const Rotation_<P>& R_BC) const {
     return MassProperties_(mass, ~R_BC*comInB, unitInertia_OB_B.reexpress(R_BC));
@@ -1477,11 +1477,11 @@ By default we use SignificantReal (about 1e-14 in double precision) as the
 tolerance but you can override that. If you are just checking to see whether
 the mass was explicitly set to zero (rather than calculated) you can use
 isExactlyMassless() instead. @see isExactlyMassless(), isNearlyCentral() **/
-bool isNearlyMassless(const P& tol=SignificantReal) const { 
-    return mass <= tol; 
+bool isNearlyMassless(const P& tol=SignificantReal) const {
+    return mass <= tol;
 }
 
-/** Return true only if the mass center stored here is \e exactly zero.\ If 
+/** Return true only if the mass center stored here is \e exactly zero.\ If
 the mass center resulted from a computation, you should use isNearlyCentral()
 instead. @see isNearlyCentral(), isExactlyMassless() **/
 bool isExactlyCentral() const { return comInB==Vec<3,P>(0); }
@@ -1494,26 +1494,26 @@ bool isNearlyCentral(const P& tol=SignificantReal) const {
     return comInB.normSqr() <= tol*tol;
 }
 
-/** Return true if any element of this MassProperties object is NaN. 
+/** Return true if any element of this MassProperties object is NaN.
 @see isInf(), isFinite() **/
 bool isNaN() const {return SimTK::isNaN(mass) || comInB.isNaN() || unitInertia_OB_B.isNaN();}
 /** Return true only if there are no NaN's in this MassProperties object, and
 at least one of the elements is Infinity.\ Ground's mass properties satisfy
-these conditions. 
+these conditions.
 @see isNan(), isFinite() **/
 bool isInf() const {
     if (isNaN()) return false;
     return SimTK::isInf(mass) || comInB.isInf() || unitInertia_OB_B.isInf();
 }
 /** Return true if none of the elements of this MassProperties object are
-NaN or Infinity.\ Note that Ground's mass properties are not finite. 
+NaN or Infinity.\ Note that Ground's mass properties are not finite.
 @see isNaN(), isInf() **/
 bool isFinite() const {
     return SimTK::isFinite(mass) && comInB.isFinite() && unitInertia_OB_B.isFinite();
 }
 
 /** Convert this MassProperties object to a spatial inertia matrix and return
-it as a SpatialMat, which is a 2x2 matrix of 3x3 submatrices. 
+it as a SpatialMat, which is a 2x2 matrix of 3x3 submatrices.
 @see toMat66() **/
 Mat<2,2,Mat<3,3,P>> toSpatialMat() const {
     Mat<2,2,Mat<3,3,P>> M;
@@ -1527,7 +1527,7 @@ Mat<2,2,Mat<3,3,P>> toSpatialMat() const {
 /** Convert this MassProperties object to a spatial inertia matrix in the
 form of an ordinary 6x6 matrix, \e not a SpatialMat. Logically these are
 the same but the ordering of the elements in memory is different between
-a Mat66 and SpatialMat. 
+a Mat66 and SpatialMat.
 @see toSpatialMat() **/
 Mat<6,6,P> toMat66() const {
     Mat<6,6,P> M;
@@ -1547,15 +1547,15 @@ UnitInertia_<P> unitInertia_OB_B;   // about B origin, expr. in B
 /** Output a human-readable representation of a MassProperties object to
 the given output stream. This is assumed to be the mass properties of some
 body B. We'll show B's mass, center of mass as a vector from B's origin,
-expressed in B, and \e unit inertia, abbreviated Uxx, Uyy, and so on so that 
-you won't accidentally think these are mass-scaled inertias normally designated 
-Ixx, Iyy, etc. Note that I=mass*U in these terms. Also note that the unit 
-inertia is taken about the body frame origin, \e not about the center of 
-mass. And of course the unit inertia is expressed in B. 
+expressed in B, and \e unit inertia, abbreviated Uxx, Uyy, and so on so that
+you won't accidentally think these are mass-scaled inertias normally designated
+Ixx, Iyy, etc. Note that I=mass*U in these terms. Also note that the unit
+inertia is taken about the body frame origin, \e not about the center of
+mass. And of course the unit inertia is expressed in B.
 @relates MassProperties_ **/
-template <class P> static inline std::ostream& 
+template <class P> static inline std::ostream&
 operator<<(std::ostream& o, const MassProperties_<P>& mp) {
-    return o << "{ mass=" << mp.getMass() 
+    return o << "{ mass=" << mp.getMass()
              << "\n  com=" << mp.getMassCenter()
              << "\n  Uxx,yy,zz=" << mp.getUnitInertia().getMoments()
              << "\n  Uxy,xz,yz=" << mp.getUnitInertia().getProducts()

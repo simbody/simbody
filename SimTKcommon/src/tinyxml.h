@@ -80,7 +80,7 @@ using SimTK::String;
     #else
         #define TIXML_SSCANF   sscanf
     #endif
-#endif    
+#endif
 
 namespace SimTK {
 
@@ -97,7 +97,7 @@ const int TIXML_MAJOR_VERSION = 2;
 const int TIXML_MINOR_VERSION = 5;
 const int TIXML_PATCH_VERSION = 3;
 
-/*    Internal structure for tracking location of items 
+/*    Internal structure for tracking location of items
     in the XML file.
 */
 struct TiXmlCursor
@@ -115,19 +115,19 @@ struct TiXmlCursor
 //                            TinyXML VISITOR
 //------------------------------------------------------------------------------
 /** If you call the Accept() method, it requires being passed a TiXmlVisitor
-class to handle callbacks. For nodes that contain other nodes (Document, 
-Element) you will get called with a VisitEnter/VisitExit pair. Nodes that are 
+class to handle callbacks. For nodes that contain other nodes (Document,
+Element) you will get called with a VisitEnter/VisitExit pair. Nodes that are
 always leaves are simple called with Visit().
 
-If you return 'true' from a Visit method, recursive parsing will continue. If 
-you return false, <b>no children of this node or its sibilings</b> will be 
+If you return 'true' from a Visit method, recursive parsing will continue. If
+you return false, <b>no children of this node or its sibilings</b> will be
 Visited.
 
 All flavors of Visit methods have a default implementation that returns 'true'
-(continue visiting). You need to only override methods that are interesting to 
+(continue visiting). You need to only override methods that are interesting to
 you.
 
-Generally Accept() is called on the TiXmlDocument, although all nodes suppert 
+Generally Accept() is called on the TiXmlDocument, although all nodes suppert
 Visiting.
 
 You should never change the document from a callback.
@@ -160,8 +160,8 @@ public:
 };
 
 // Only used by Attribute::Query functions
-enum 
-{ 
+enum
+{
     TIXML_SUCCESS,
     TIXML_NO_ATTRIBUTE,
     TIXML_WRONG_TYPE
@@ -183,7 +183,7 @@ const TiXmlEncoding TIXML_DEFAULT_ENCODING = TIXML_ENCODING_UNKNOWN;
 //                            TinyXML BASE
 //------------------------------------------------------------------------------
 /** TiXmlBase is a base class for every class in TinyXml. It does little except
-to establish that TinyXml classes can be printed and provide some utility 
+to establish that TinyXml classes can be printed and provide some utility
 functions.
 
 In XML, the document and elements can contain other elements and other types of
@@ -194,7 +194,7 @@ A Document can contain:    Declaration( leaf )
                         Element    (container or leaf)
                         Comment (leaf)
                         Unknown (leaf)
-                        
+
 
 An Element can contain:    Element (container or leaf)
                         Text    (leaf)
@@ -218,10 +218,10 @@ public:
 
     /**    All TinyXml classes can print themselves to a filestream
     or the string class. Either or both cfile and str can be null.
-    
-    This is a formatted print, and will insert 
+
+    This is a formatted print, and will insert
     tabs and newlines.
-    
+
     (For an unformatted stream, use the << operator.)
     */
     virtual void Print( FILE* cfile, int depth ) const = 0;
@@ -237,21 +237,21 @@ public:
     /// Return the current white space setting.
     static bool IsWhiteSpaceCondensed()                        { return condenseWhiteSpace; }
 
-    /** Return the position, in the original source file, of this node or 
-    attribute. The row and column are 1-based. (That is the first row and 
-    first column is    1,1). If the returns values are 0 or less, then the 
+    /** Return the position, in the original source file, of this node or
+    attribute. The row and column are 1-based. (That is the first row and
+    first column is    1,1). If the returns values are 0 or less, then the
     parser does not have a row and column value.
 
-    Generally, the row and column value will be set when the 
-    TiXmlDocument::Load(), TiXmlDocument::LoadFile(), or any 
+    Generally, the row and column value will be set when the
+    TiXmlDocument::Load(), TiXmlDocument::LoadFile(), or any
     TiXmlNode::Parse() is called. It will NOT be set when the DOM was created
     from operator>>.
 
-    The values reflect the initial load. Once the DOM is modified 
-    programmatically (by adding or changing nodes and attributes) the new 
+    The values reflect the initial load. Once the DOM is modified
+    programmatically (by adding or changing nodes and attributes) the new
     values will NOT update to reflect changes in the document.
 
-    There is a minor performance cost to computing the row and column. 
+    There is a minor performance cost to computing the row and column.
     Computation    can be disabled if TiXmlDocument::SetTabSize() is called with
     0 as the value.
 
@@ -267,15 +267,15 @@ public:
     // in the UTF-8 sequence.
     static const int utf8ByteTable[256];
 
-    virtual const char* Parse(    const char* p, 
-                                TiXmlParsingData* data, 
+    virtual const char* Parse(    const char* p,
+                                TiXmlParsingData* data,
                                 TiXmlEncoding encoding /*= TIXML_ENCODING_UNKNOWN */ ) = 0;
 
     /** Expands entities in a string. Note this should not contain the tag's
     '<', '>', etc, or they will be transformed into entities!
     sherm: added the option to preserve single and double quotes which
     are OK in text but not tags **/
-    static void EncodeString( const String& str, String* out, 
+    static void EncodeString( const String& str, String* out,
                               bool keepQuotes=false );
 
     enum
@@ -304,9 +304,9 @@ public:
 protected:
 
     static const char* SkipWhiteSpace( const char*, TiXmlEncoding encoding );
-    inline static bool IsWhiteSpace( char c )        
-    { 
-        return ( isspace( (unsigned char) c ) || c == '\n' || c == '\r' ); 
+    inline static bool IsWhiteSpace( char c )
+    {
+        return ( isspace( (unsigned char) c ) || c == '\n' || c == '\r' );
     }
     inline static bool IsWhiteSpace( int c )
     {
@@ -390,7 +390,7 @@ protected:
 
     /// Field containing a generic user pointer
     void*            userData;
-    
+
     // None of these methods are reliable for any language except English.
     // Good for approximation, not great for accuracy.
     static int IsAlpha( unsigned char anyByte, TiXmlEncoding encoding );
@@ -456,14 +456,14 @@ public:
     The operator<< and operator>> are not completely symmetric. Writing
     a node to a stream is very well defined. You'll get a nice stream
     of output, without any extra whitespace or newlines.
-    
+
     But reading is not as well defined. (As it always is.) If you create
     a TiXmlElement (for example) and read that from an input stream,
     the text needs to define an element or junk will result. This is
     true of all input streams, but it's worth keeping in mind.
 
     A TiXmlDocument will read nodes until it reads a root element, and
-    all the children of that root element. **/    
+    all the children of that root element. **/
     friend std::ostream& operator<< (std::ostream& out, const TiXmlNode& base);
 
     /** Appends the XML node or attribute to a String. **/
@@ -546,7 +546,7 @@ public:
     }
     const TiXmlNode* LastChild() const    { return lastChild; }        /// The last child of this node. Will be null if there are no children.
     TiXmlNode* LastChild()    { return lastChild; }
-    
+
     const TiXmlNode* LastChild( const char * value ) const;            /// The last child of this node matching 'value'. Will be null if there are no children.
     TiXmlNode* LastChild( const char * _value ) {
         return const_cast< TiXmlNode* > ((const_cast< const TiXmlNode* >(this))->LastChild( _value ));
@@ -628,8 +628,8 @@ public:
     */
     TiXmlNode* ReplaceChild( TiXmlNode* replaceThis, const TiXmlNode& withThis );
 
-    /** Disconnect the indicated child and all its children from the Xml 
-    document but don't delete it. The disconnected node pointer (same as 
+    /** Disconnect the indicated child and all its children from the Xml
+    document but don't delete it. The disconnected node pointer (same as
     the argument) is returned. You are responsible for deleting the node
     yourself after this. **/
     TiXmlNode* DisconnectChild( TiXmlNode* disconnectThis );
@@ -702,7 +702,7 @@ public:
     nodes. Returns 0 if there is not another element. **/
     const TiXmlElement* PreviousSiblingElement() const;
     TiXmlElement* PreviousSiblingElement() {
-        return const_cast< TiXmlElement* >( 
+        return const_cast< TiXmlElement* >(
             (const_cast< const TiXmlNode* >(this))->
                 PreviousSiblingElement() );
     }
@@ -712,20 +712,20 @@ public:
     nodes. Returns 0 if there is not another element. **/
     const TiXmlElement* PreviousSiblingElement( const char * ) const;
     TiXmlElement* PreviousSiblingElement( const char *_next ) {
-        return const_cast< TiXmlElement* >( 
+        return const_cast< TiXmlElement* >(
             (const_cast< const TiXmlNode* >(this))->
                 PreviousSiblingElement( _next ) );
     }
 
-    const TiXmlElement* PreviousSiblingElement( const String& _value) const    
+    const TiXmlElement* PreviousSiblingElement( const String& _value) const
     {    return PreviousSiblingElement (_value.c_str ());    }
-    TiXmlElement* PreviousSiblingElement( const String& _value)                
+    TiXmlElement* PreviousSiblingElement( const String& _value)
     {    return PreviousSiblingElement (_value.c_str ());    }
 
     /// Convenience function to get through elements.
     const TiXmlElement* LastChildElement()    const;
     TiXmlElement* LastChildElement() {
-        return const_cast< TiXmlElement* >( 
+        return const_cast< TiXmlElement* >(
             (const_cast< const TiXmlNode* >(this))->
                 LastChildElement() );
     }
@@ -733,14 +733,14 @@ public:
     /// Convenience function to get through elements.
     const TiXmlElement* LastChildElement( const char * _value ) const;
     TiXmlElement* LastChildElement( const char * _value ) {
-        return const_cast< TiXmlElement* >( 
+        return const_cast< TiXmlElement* >(
             (const_cast< const TiXmlNode* >(this))->
                 LastChildElement( _value ) );
     }
 
-    const TiXmlElement* LastChildElement( const String& _value ) const    
+    const TiXmlElement* LastChildElement( const String& _value ) const
     {    return LastChildElement (_value.c_str ());    }
-    TiXmlElement* LastChildElement( const String& _value )                
+    TiXmlElement* LastChildElement( const String& _value )
     {    return LastChildElement (_value.c_str ());    }
 
 
@@ -782,7 +782,7 @@ public:
     by the caller. **/
     virtual TiXmlNode* Clone() const = 0;
 
-    /** Accept a hierchical visit the nodes in the TinyXML DOM. Every node in the 
+    /** Accept a hierchical visit the nodes in the TinyXML DOM. Every node in the
     XML tree will be conditionally visited and the host will be called back
     via the TiXmlVisitor interface.
 
@@ -793,7 +793,7 @@ public:
     The interface has been based on ideas from:
 
     - http://www.saxproject.org/
-    - http://c2.com/cgi/wiki?HierarchicalVisitorPattern 
+    - http://c2.com/cgi/wiki?HierarchicalVisitorPattern
 
     Which are both good references for "visiting".
 
@@ -841,7 +841,7 @@ private:
 //------------------------------------------------------------------------------
 //                            TinyXML ATTRIBUTE
 //------------------------------------------------------------------------------
-/** An attribute is a name-value pair. Elements have an arbitrary number of 
+/** An attribute is a name-value pair. Elements have an arbitrary number of
 attributes, each with a unique name.
 
 @note The attributes are not TiXmlNodes, since they are not part of the tinyXML
@@ -890,7 +890,7 @@ public:
 
     /** QueryIntValue examines the value string. It is an alternative to the
     IntValue() method with richer error checking.
-    If the value is an integer, it is stored in 'value' and 
+    If the value is an integer, it is stored in 'value' and
     the call returns TIXML_SUCCESS. If it is not
     an integer, it returns TIXML_WRONG_TYPE.
 
@@ -906,21 +906,21 @@ public:
     void SetIntValue( int _value );                                        ///< Set the value from an integer.
     void SetDoubleValue( double _value );                                ///< Set the value from a double.
 
-    void SetName( const String& _name )    { name = _name; }        
+    void SetName( const String& _name )    { name = _name; }
     void SetValue( const String& _value )    { value = _value; }
 
     /// Get the next sibling attribute in the DOM. Returns null at end.
     const TiXmlAttribute* Next() const;
     TiXmlAttribute* Next() {
-        return const_cast< TiXmlAttribute* >( (const_cast< const TiXmlAttribute* >(this))->Next() ); 
+        return const_cast< TiXmlAttribute* >( (const_cast< const TiXmlAttribute* >(this))->Next() );
     }
 
-    /// Get the previous sibling attribute in the DOM. Returns null at 
+    /// Get the previous sibling attribute in the DOM. Returns null at
     /// beginning.
     const TiXmlAttribute* Previous() const;
     /// Writable form.
     TiXmlAttribute* Previous() {
-        return const_cast< TiXmlAttribute* >( (const_cast< const TiXmlAttribute* >(this))->Previous() ); 
+        return const_cast< TiXmlAttribute* >( (const_cast< const TiXmlAttribute* >(this))->Previous() );
     }
 
     bool operator==( const TiXmlAttribute& rhs ) const { return rhs.name == name; }
@@ -950,7 +950,7 @@ private:
     void operator=( const TiXmlAttribute& base );    // not allowed.
 
     // A pointer back to a document, for error reporting.
-    TiXmlDocument*    document;    
+    TiXmlDocument*    document;
     String name;
     String value;
     TiXmlAttribute*    prev;
@@ -960,7 +960,7 @@ private:
 
 /*    A class used to manage a group of attributes.
     It is only used internally, both by the ELEMENT and the DECLARATION.
-    
+
     The set can be changed transparent to the Element and Declaration
     classes that use it, but NOT transparent to the Attribute
     which has to implement a next() and previous() method. Which makes
@@ -996,7 +996,7 @@ public:
 
 
 private:
-    //*ME:    Because of hidden/disabled copy-construktor in TiXmlAttribute 
+    //*ME:    Because of hidden/disabled copy-construktor in TiXmlAttribute
     //      (sentinel-element),
     //*ME:    this class must be also use a hidden/disabled copy-constructor !!!
     TiXmlAttributeSet( const TiXmlAttributeSet& );    // not allowed
@@ -1052,11 +1052,11 @@ public:
 
     /** QueryIntAttribute examines the attribute - it is an alternative to the
     Attribute() method with richer error checking.
-    If the attribute is an integer, it is stored in 'value' and 
+    If the attribute is an integer, it is stored in 'value' and
     the call returns TIXML_SUCCESS. If it is not
     an integer, it returns TIXML_WRONG_TYPE. If the attribute
     does not exist, then TIXML_NO_ATTRIBUTE is returned.
-    */    
+    */
     int QueryIntAttribute( const char* name, int* _value ) const;
     /// QueryDoubleAttribute examines the attribute - see QueryIntAttribute().
     int QueryDoubleAttribute( const char* name, double* _value ) const;
@@ -1095,9 +1095,9 @@ public:
     This is - in theory - a bug fix for "QueryValueAtribute returns truncated
     String" but template specialization is hard to get working cross-compiler.
     Leaving the bug for now.
-     
-    // The above will fail for String because the space character is used as a 
-    // separator. Specialize for strings. Bug [ 1695429 ] QueryValueAtribute 
+
+    // The above will fail for String because the space character is used as a
+    // separator. Specialize for strings. Bug [ 1695429 ] QueryValueAtribute
     // returns truncated String
     template<> int QueryValueAttribute( const String& name, String* outValue ) const
     {
@@ -1132,7 +1132,7 @@ public:
 
     /** Deletes an attribute with the given name. **/
     void RemoveAttribute( const char * name );
-    void RemoveAttribute( const String& name )    
+    void RemoveAttribute( const String& name )
     {    RemoveAttribute (name.c_str ()); }
 
     const TiXmlAttribute* FirstAttribute() const    { return attributeSet.First(); }        ///< Access the first attribute in this element.
@@ -1141,7 +1141,7 @@ public:
     TiXmlAttribute* LastAttribute()                    { return attributeSet.Last(); }
 
     /** Convenience function for easy access to the text inside an element.
-    Although easy and concise, GetText() is limited compared to getting the 
+    Although easy and concise, GetText() is limited compared to getting the
     TiXmlText child    and accessing it directly.
 
     If the first child of 'this' is a TiXmlText, the GetText() returns the
@@ -1153,23 +1153,23 @@ public:
     const char* str = fooElement->GetText();
     @endverbatim
 
-    'str' will be a pointer to "This is text". 
-    
+    'str' will be a pointer to "This is text".
+
     Note that this function can be misleading. If the element foo was created
     from this XML:
     @verbatim
-    <foo><b>This is text</b></foo> 
+    <foo><b>This is text</b></foo>
     @endverbatim
 
-    then the value of str would be null. The first child node isn't a text 
+    then the value of str would be null. The first child node isn't a text
     node, it is    another element. From this XML:
     @verbatim
-    <foo>This is <b>text</b></foo> 
+    <foo>This is <b>text</b></foo>
     @endverbatim
     GetText() will return "This is ".
 
-    WARNING: GetText() accesses a child node - don't become confused with the 
-    similarly named TiXmlNode::ToText() which are safe type casts on the 
+    WARNING: GetText() accesses a child node - don't become confused with the
+    similarly named TiXmlNode::ToText() which are safe type casts on the
     referenced node. **/
     const char* GetText() const;
 
@@ -1186,7 +1186,7 @@ public:
     virtual const TiXmlElement*     ToElement()     const override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
     virtual TiXmlElement*           ToElement() override              { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 
-    /** Walk the XML tree visiting this node and all of its children. 
+    /** Walk the XML tree visiting this node and all of its children.
     */
     virtual bool Accept( TiXmlVisitor* visitor ) const override;
 
@@ -1248,7 +1248,7 @@ public:
     virtual const TiXmlComment*  ToComment() const override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
     virtual TiXmlComment*  ToComment() override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 
-    /** Walk the XML tree visiting this node and all of its children. 
+    /** Walk the XML tree visiting this node and all of its children.
     */
     virtual bool Accept( TiXmlVisitor* visitor ) const override;
 
@@ -1268,9 +1268,9 @@ private:
 //------------------------------------------------------------------------------
 //                               TinyXML TEXT
 //------------------------------------------------------------------------------
-/** XML text. A text node can have 2 ways to output the next. "normal" output 
+/** XML text. A text node can have 2 ways to output the next. "normal" output
 and CDATA. It will default to the mode it was parsed from the XML file and
-you generally want to leave it alone, but you can change the output mode with 
+you generally want to leave it alone, but you can change the output mode with
 SetCDATA() and query it with CDATA().
 */
 class TiXmlText : public TiXmlNode
@@ -1278,7 +1278,7 @@ class TiXmlText : public TiXmlNode
     friend class TiXmlDocument;
     friend class TiXmlElement;
 public:
-    /** Constructor for text element. By default, it is treated as 
+    /** Constructor for text element. By default, it is treated as
     normal, encoded text. If you want it be output as a CDATA text
     element, set the parameter _cdata to 'true'
     */
@@ -1311,7 +1311,7 @@ public:
     virtual const TiXmlText* ToText() const override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
     virtual TiXmlText*       ToText() override       { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 
-    /** Walk the XML tree visiting this node and all of its children. 
+    /** Walk the XML tree visiting this node and all of its children.
     */
     virtual bool Accept( TiXmlVisitor* content ) const override;
 
@@ -1393,7 +1393,7 @@ public:
     virtual const TiXmlDeclaration* ToDeclaration() const override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
     virtual TiXmlDeclaration*       ToDeclaration() override       { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 
-    /** Walk the XML tree visiting this node and all of its children. 
+    /** Walk the XML tree visiting this node and all of its children.
     */
     virtual bool Accept( TiXmlVisitor* visitor ) const override;
 
@@ -1439,7 +1439,7 @@ public:
     virtual const TiXmlUnknown*     ToUnknown()     const override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
     virtual TiXmlUnknown*           ToUnknown() override        { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 
-    /** Walk the XML tree visiting this node and all of its children. 
+    /** Walk the XML tree visiting this node and all of its children.
     */
     virtual bool Accept( TiXmlVisitor* content ) const override;
 
@@ -1530,10 +1530,10 @@ public:
       - The ErrorId() will contain the integer identifier of the error (not generally useful)
       - The ErrorDesc() method will return the name of the error. (very useful)
       - The ErrorRow() and ErrorCol() will return the location of the error (if known)
-    */    
+    */
     bool Error() const                        { return error; }
 
-    /** Contains the textual (english) description of the error if one 
+    /** Contains the textual (english) description of the error if one
     occurs. **/
     const String& ErrorDesc() const    { return errorDesc; }
 
@@ -1544,24 +1544,24 @@ public:
                            + ", col=" + String(ErrorCol()) + ")";
     }
 
-    /** Generally, you probably want the error string ( ErrorDesc() ). But if 
+    /** Generally, you probably want the error string ( ErrorDesc() ). But if
     you prefer the ErrorId, this function will fetch it. **/
     int ErrorId()    const                { return errorId; }
 
     /** Returns the location (if known) of the error. The first column is
-    column 1, and the first row is row 1. A value of 0 means the row and 
+    column 1, and the first row is row 1. A value of 0 means the row and
     column wasn't applicable (memory errors, for example, have no row/column)
-    or the parser lost the error. (An error in the error reporting, in that 
+    or the parser lost the error. (An error in the error reporting, in that
     case.)
     @sa SetTabSize, Row, Column **/
     int ErrorRow() const { return errorLocation.row+1; }
     /** The column where the error occurred. @sa ErrorRow() **/
-    int ErrorCol() const { return errorLocation.col+1; } 
+    int ErrorCol() const { return errorLocation.col+1; }
 
-    /** SetTabSize() allows the error reporting functions (ErrorRow() and 
-    ErrorCol())    to report the correct values for row and column. It does not 
+    /** SetTabSize() allows the error reporting functions (ErrorRow() and
+    ErrorCol())    to report the correct values for row and column. It does not
     change the output or input in any way.
-    
+
     By calling this method, with a tab size    greater than 0, the row and column
     of each node and attribute is stored when the file is loaded. Very useful
     for tracking the DOM back in to    the source file.
@@ -1588,11 +1588,11 @@ public:
     /** If you have handled the error, it can be reset with this call. The error
         state is automatically cleared if you Parse a new XML block.
     */
-    void ClearError()                        {    error = false; 
-                                                errorId = 0; 
-                                                errorDesc = ""; 
-                                                errorLocation.row = errorLocation.col = 0; 
-                                                //errorLocation.last = 0; 
+    void ClearError()                        {    error = false;
+                                                errorId = 0;
+                                                errorDesc = "";
+                                                errorLocation.row = errorLocation.col = 0;
+                                                //errorLocation.last = 0;
                                             }
 
     /** Write the document to standard out using formatted printing ("pretty print"). */
@@ -1602,7 +1602,7 @@ public:
         will allocate a character array (new char[]) and return it as a pointer. The
         calling code pust call delete[] on the return char* to avoid a memory leak.
     */
-    //char* PrintToMemory() const; 
+    //char* PrintToMemory() const;
 
     /// Print this Document to a FILE stream.
     virtual void Print( FILE* cfile, int depth = 0 ) const override;
@@ -1612,7 +1612,7 @@ public:
     virtual const TiXmlDocument*    ToDocument()    const override { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
     virtual TiXmlDocument*          ToDocument() override          { return this; } ///< Cast to a more defined type. Will return null not of the requested type.
 
-    /** Walk the XML tree visiting this node and all of its children. 
+    /** Walk the XML tree visiting this node and all of its children.
     */
     virtual bool Accept( TiXmlVisitor* content ) const override;
 
@@ -1665,16 +1665,16 @@ class TiXmlPrinter : public TiXmlVisitor
 {
 public:
     /** Construct a Printer that uses its own private String buffer. **/
-    TiXmlPrinter() 
+    TiXmlPrinter()
     :   depth( 0 ), simpleTextPrint( false ),
         indent( "    " ), lineBreak( "\n" ),
         isBufferOwner(true), buffer(*new String()) {}
 
     /** Construct a Printer that uses a pre-existing String as a buffer. **/
-    explicit TiXmlPrinter(String& buffer) 
+    explicit TiXmlPrinter(String& buffer)
     :   depth( 0 ), simpleTextPrint( false ),
         indent( "    " ), lineBreak( "\n" ),
-        isBufferOwner(false), buffer(buffer) 
+        isBufferOwner(false), buffer(buffer)
     {   buffer.clear(); }
 
     /** Destruct the buffer if this object is the owner of it. **/
@@ -1697,7 +1697,7 @@ public:
     void SetIndent( const char* _indent )            { indent = _indent ? _indent : "" ; }
     /// Query the indention string.
     const char* Indent()                            { return indent.c_str(); }
-    /** Set the line breaking string. By default set to newline (\n). 
+    /** Set the line breaking string. By default set to newline (\n).
         Some operating systems prefer other characters, or can be
         set to the null/empty string for no indenation.
     */
@@ -1705,12 +1705,12 @@ public:
     /// Query the current line breaking string.
     const char* LineBreak()                            { return lineBreak.c_str(); }
 
-    /** Switch over to "stream printing" which is the most dense formatting without 
+    /** Switch over to "stream printing" which is the most dense formatting without
         linebreaks. Common when the XML is needed for network transmission.
     */
     void SetStreamPrinting()                        { indent = "";
                                                       lineBreak = "";
-                                                    }    
+                                                    }
     /// Return the result.
     const char* CStr()                                { return buffer.c_str(); }
     /// Return the length of the result string.

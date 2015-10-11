@@ -48,7 +48,7 @@ void assertEqual(Vec<N> val1, Vec<N> val2) {
 static void compareToTranslate(bool prescribe, Motion::Level level) {
     // Create a system of pairs of identical bodies, where half will be implemented with RBNodeLoneParticle
     // and half with RBNodeTranslate.
-    
+
     MultibodySystem system;
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem force(system);
@@ -70,9 +70,9 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
             Motion::Sinusoid(body2, level, 1.5, 1.1, phase);
         }
     }
-    
+
     // Initialize the state.
-    
+
     State state = system.realizeTopology();
     for (int i = 0; i < numBodies; i++) {
         Vec3 pos(random.getValue(), random.getValue(), random.getValue());
@@ -84,9 +84,9 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
         body1.setUToFitLinearVelocity(state, vel);
         body2.setUToFitLinearVelocity(state, vel);
     }
-    
+
     // Calculate lots of quantities from the MobilizedBodies.
-    
+
     system.realize(state, Stage::Acceleration);
     Vector_<SpatialVec> reactionForces;
     matter.calcMobilizerReactionForces(state, reactionForces);
@@ -95,8 +95,8 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
 
     // Both methods should produce the same results.
     SimTK_TEST_EQ(reactionForces, reactionForcesFreebody);
-    
-    
+
+
     Vector mv, minvv;
     matter.multiplyByM(state, state.getU(), mv);
     matter.multiplyByMInv(state, state.getU(), minvv);
@@ -118,9 +118,9 @@ static void compareToTranslate(bool prescribe, Motion::Level level) {
     matter.multiplyBySystemJacobianTranspose(state, appliedBodyForces, dEdQ);
     Array_<SpatialInertia,MobilizedBodyIndex> compositeInertias;
     matter.calcCompositeBodyInertias(state, compositeInertias);
-    
+
     // See whether the RBNodeLoneParticles and the RBNodeTranslates produced identical results.
-    
+
     for (int i = 0; i < numBodies; i++) {
         MobilizedBodyIndex index1(2*i+1);
         MobilizedBodyIndex index2(2*i+2);

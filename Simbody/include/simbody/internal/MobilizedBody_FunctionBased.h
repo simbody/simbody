@@ -32,18 +32,18 @@ Declares the MobilizedBody::FunctionBased class. **/
 
 namespace SimTK {
 
-/** This is a subclass of MobilizedBody::Custom which uses a set of Function 
-objects to define the behavior of the %MobilizedBody. When you create it, you 
+/** This is a subclass of MobilizedBody::Custom which uses a set of Function
+objects to define the behavior of the %MobilizedBody. When you create it, you
 specify the number of generalized coordinates, and six Function objects which
-calculate the spatial rotations and translations based on those coordinates.  
-It assumes there is a one to one correspondence between generalized coordinates 
+calculate the spatial rotations and translations based on those coordinates.
+It assumes there is a one to one correspondence between generalized coordinates
 and generalized speeds, so qdot == u.
 
-Each of the Function objects must take some subset of the generalized 
-coordinates as inputs, and produce a single number as its output. It also must 
+Each of the Function objects must take some subset of the generalized
+coordinates as inputs, and produce a single number as its output. It also must
 support derivatives up to second order.  Taken together, the six functions
 define a SpatialVec giving the body's mobilizer transform. **/
-class SimTK_SIMBODY_EXPORT MobilizedBody::FunctionBased 
+class SimTK_SIMBODY_EXPORT MobilizedBody::FunctionBased
 :   public MobilizedBody::Custom {
 public:
     /** Default constructor provides an empty handle that can be assigned to
@@ -51,7 +51,7 @@ public:
     FunctionBased() {}
 
     /** Create a FunctionBased MobilizedBody.
-    
+
     @param parent         the MobilizedBody's parent body
     @param bodyInfo       describes this MobilizedBody's physical properties
     @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
@@ -63,26 +63,26 @@ public:
                           that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
     @param direction      whether you want the coordinates defined as though parent & child were swapped
     @see MobilizedBody for a diagram and explanation of terminology. **/
-    FunctionBased(MobilizedBody& parent, const Body& bodyInfo, 
+    FunctionBased(MobilizedBody& parent, const Body& bodyInfo,
                   int nmobilities, const Array_<const Function*>& functions,
                   const Array_<Array_<int> >& coordIndices,
                   Direction direction=Forward);
 
     /** For compatibility with std::vector. **/
-    FunctionBased(MobilizedBody& parent, const Body& bodyInfo, 
+    FunctionBased(MobilizedBody& parent, const Body& bodyInfo,
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices,
-                  Direction direction=Forward) 
+                  Direction direction=Forward)
     {
         Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
         // Use the above constructor.
         new(this) FunctionBased(parent,bodyInfo,nmobilities,
-                                ArrayViewConst_<const Function*>(functions), 
+                                ArrayViewConst_<const Function*>(functions),
                                 coordCopy, direction);
     }
 
     /** Create a FunctionBased MobilizedBody.
-    
+
     @param parent         the MobilizedBody's parent body
     @param X_PF           the default inboard frame
     @param bodyInfo       describes this MobilizedBody's physical properties
@@ -96,15 +96,15 @@ public:
                           that means that functions[2] takes two input arguments, and q[0] and q[1] respectively should be passed as those arguments.
     @param direction      whether you want the coordinates defined as though parent & child were swapped
     @see MobilizedBody for a diagram and explanation of terminology. **/
-    FunctionBased(MobilizedBody& parent, const Transform& X_PF, 
-                  const Body& bodyInfo, const Transform& X_BM, 
+    FunctionBased(MobilizedBody& parent, const Transform& X_PF,
+                  const Body& bodyInfo, const Transform& X_BM,
                   int nmobilities, const Array_<const Function*>& functions,
                   const Array_<Array_<int> >& coordIndices,
                   Direction direction=Forward);
 
     /** For compatibility with std::vector. **/
-    FunctionBased(MobilizedBody& parent, const Transform& X_PF, 
-                  const Body& bodyInfo, const Transform& X_BM, 
+    FunctionBased(MobilizedBody& parent, const Transform& X_PF,
+                  const Body& bodyInfo, const Transform& X_BM,
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices,
                   Direction direction=Forward)
@@ -112,12 +112,12 @@ public:
         Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
         // Use the above constructor.
         new(this) FunctionBased(parent,X_PF,bodyInfo,X_BM,
-                                nmobilities, ArrayViewConst_<const Function*>(functions), 
+                                nmobilities, ArrayViewConst_<const Function*>(functions),
                                 coordCopy, direction);
     }
 
     /** Create a FunctionBased MobilizedBody.
-    
+
     @param parent         the MobilizedBody's parent body
     @param bodyInfo       describes this MobilizedBody's physical properties
     @param nmobilities    the number of generalized coordinates belonging to this MobilizedBody
@@ -131,13 +131,13 @@ public:
                           First 3 and last 3 axes must be linearly independent, otherwise there will be redundant speeds for the same motion.
     @param direction      whether you want the coordinates defined as though parent & child were swapped
     @see MobilizedBody for a diagram and explanation of terminology. **/
-    FunctionBased(MobilizedBody& parent, const Body& bodyInfo, 
+    FunctionBased(MobilizedBody& parent, const Body& bodyInfo,
                   int nmobilities, const Array_<const Function*>& functions,
                   const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
                   Direction direction=Forward);
 
     /** For compatibility with std::vector. **/
-    FunctionBased(MobilizedBody& parent, const Body& bodyInfo, 
+    FunctionBased(MobilizedBody& parent, const Body& bodyInfo,
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
                   Direction direction=Forward)
@@ -145,13 +145,13 @@ public:
         Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
         // Use the above constructor.
         new(this) FunctionBased(parent,bodyInfo,
-                                nmobilities, ArrayViewConst_<const Function*>(functions), 
-                                coordCopy, ArrayViewConst_<Vec3>(axes), 
+                                nmobilities, ArrayViewConst_<const Function*>(functions),
+                                coordCopy, ArrayViewConst_<Vec3>(axes),
                                 direction);
     }
 
     /** Create a FunctionBased MobilizedBody.
-    
+
     @param parent         the MobilizedBody's parent body
     @param X_PF           the default inboard frame
     @param bodyInfo       describes this MobilizedBody's physical properties
@@ -167,14 +167,14 @@ public:
                           First 3 and last 3 axes must be linearly independent, otherwise there will be redundant speeds for the same motion.
     @param direction      whether you want the coordinates defined as though parent & child were swapped
     @see MobilizedBody for a diagram and explanation of terminology. **/
-    FunctionBased(MobilizedBody& parent, const Transform& X_PF, 
-                  const Body& bodyInfo, const Transform& X_BM, 
+    FunctionBased(MobilizedBody& parent, const Transform& X_PF,
+                  const Body& bodyInfo, const Transform& X_BM,
                   int nmobilities, const Array_<const Function*>& functions,
                   const Array_<Array_<int> >& coordIndices, const Array_<Vec3>& axes,
                   Direction direction=Forward);
 
     /** For compatibility with std::vector. **/
-    FunctionBased(MobilizedBody& parent, const Transform& X_PF, 
+    FunctionBased(MobilizedBody& parent, const Transform& X_PF,
                   const Body& bodyInfo, const Transform& X_BM,
                   int nmobilities, const std::vector<const Function*>& functions,
                   const std::vector<std::vector<int> >& coordIndices, const std::vector<Vec3>& axes,
@@ -183,8 +183,8 @@ public:
         Array_< Array_<int> > coordCopy(coordIndices); // sorry, must copy
         // Use the above constructor.
         new(this) FunctionBased(parent,X_PF,bodyInfo,X_BM,
-                                nmobilities, ArrayViewConst_<const Function*>(functions), 
-                                coordCopy, ArrayViewConst_<Vec3>(axes), 
+                                nmobilities, ArrayViewConst_<const Function*>(functions),
+                                coordCopy, ArrayViewConst_<Vec3>(axes),
                                 direction);
     }
 };
