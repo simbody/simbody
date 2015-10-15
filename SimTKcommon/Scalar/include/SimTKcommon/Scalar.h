@@ -345,20 +345,37 @@ inline unsigned countSetBits(unsigned long ul) {
 //@}
 
 
-/** @defgroup nextBitPermutation nextBitPermutation()
+/** @defgroup nextBitCombination nextBitCombination()
     @ingroup BitFunctions
 
 Given an n-bit mask with k 1-bits, generate the lexicographically next
 bit permutation. For example, if n=8, k=3, and the bit pattern is 00010011, the
 next patterns would be 00010101, 00010110, 00011001,00011010, 00011100, 
-00100011, and so forth. The following is a fast way to compute the next 
-permutation. To generate all 56 n choose k bit combinations, we would start with
-00000111 and end with 11100000.
+00100011, and so forth. To generate all 56 n choose k bit combinations, we would
+start with 00000111 and end with 11100000.
 
 This can be used to generate all combinations of k items taken from an n-item
 random access container by using the bit positions as indices. You can use 
 lowBitIndex() and clearLowBit() to repeatedly find the bit position of each
-bit.
+bit. Here is how you might print out all the combinations:
+@code{.cpp}
+unsigned combo=0; // if zero, will be set to the first combination
+while (nextBitCombination(4,3,combo)) {
+    std::cout << " " << std::bitset<4>(combo);
+}
+// Output: 0111 1011 1101 1110
+@endcode
+
+To get all the 1-bit positions from a given combination:
+@code{.cpp}
+unsigned combo=0b1101; // a.k.a. 13 if you don't have C++14 binary literals
+while(int ix=lowBitIndex(combo)) {
+    std::cout << " " << ix;
+    combo=clearLowBit(combo);
+}
+// Output: 1 3 4
+// Don't forget to subtract one if you want indices 0..n-1.
+@endcode
 
 This method is adapted from Sean Anderson's bit hacks page: 
 https://graphics.stanford.edu/~seander/bithacks.html
@@ -366,8 +383,10 @@ https://graphics.stanford.edu/~seander/bithacks.html
 **/
 //@{
 /** From a total of n<=32 items, generate all n choose k combinations of k
-items, where 1<=k<=n. Returns false if the current permutation is the last 
-one. **/
+items, where 1<=k<=n. If `current` is zero on entry it is returned as the
+first combination (rightmost k bits set). Returns false if the current 
+permutation is the last one (leftmost k bits set) and leaves that permuation
+unchanged. **/
 inline bool nextBitCombination(unsigned n, unsigned k, unsigned& current) {
     assert(1 <= k && k <= n && n <= 32);
     assert(current==0 || countSetBits(current)==k);
@@ -382,10 +401,8 @@ inline bool nextBitCombination(unsigned n, unsigned k, unsigned& current) {
     }
 
     const unsigned lastVal = firstVal << (n-k);
-    if (current == lastVal) {
-        current = 0;              // done
+    if (current == lastVal)
         return false;
-    }
 
     const unsigned cl = isolateLowBit(current);
     const unsigned cset = current | (current-1); // set all trailing 0s to 1
@@ -396,8 +413,10 @@ inline bool nextBitCombination(unsigned n, unsigned k, unsigned& current) {
 }
 
 /** From a total of n<=64 items, generate all n choose k combinations of k
-items, where 1<=k<=n. Returns false if the current permutation is the last 
-one. **/
+items, where 1<=k<=n. If `current` is zero on entry it is returned as the
+first combination (rightmost k bits set). Returns false if the current 
+permutation is the last one (leftmost k bits set) and leaves that permuation
+unchanged. **/
 inline bool nextBitCombination(unsigned n, unsigned k, 
                                unsigned long long& current) {
     assert(1 <= k && k <= n && n <= 64);
@@ -413,10 +432,8 @@ inline bool nextBitCombination(unsigned n, unsigned k,
     }
 
     const unsigned long long lastVal = firstVal << (n-k);
-    if (current == lastVal) {
-        current = 0;              // done
+    if (current == lastVal)
         return false;
-    }
 
     const unsigned long long cl = isolateLowBit(current); // see 32bit impl.
     const unsigned long long cset = current | (current-1);
