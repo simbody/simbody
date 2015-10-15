@@ -49,6 +49,10 @@
 #include <cassert>
 #include <utility>
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
 namespace SimTK {
 
     /////////////////////////////////////////
@@ -208,6 +212,220 @@ extern SimTK_SimTKCOMMON_EXPORT const Complex I;
     // SOME SCALAR UTILITIES //
     ///////////////////////////
 
+/** @defgroup lowBitIndex lowBitIndex()
+    @ingroup BitFunctions
+
+Returns one plus the bit number of the least significant 1-bit of u, so that
+the least significant (rightmost) bit position is number 1. This is also one 
+greater than the number of trailing zero bits. For example, 00010010 would 
+return 2. If no bits are set (u==0) this function return 0. 
+
+The implementation uses the machine instruction for this purpose so is very
+fast. 
+@see clearLowBit() **/
+//@{
+inline unsigned lowBitIndex(unsigned u) {
+    #ifdef _MSC_VER
+        unsigned long index;
+        if(_BitScanForward(&index, (unsigned long)u))
+           return (unsigned)index+1;
+        return 0;
+    #else
+        return (unsigned)__builtin_ffs(u); // gcc & clang
+    #endif
+}
+inline unsigned lowBitIndex(unsigned long long u) {
+    #ifdef _MSC_VER
+        unsigned long index;
+        if(_BitScanForward64(&index, (unsigned __int64)u))
+           return (unsigned)index+1;
+        return 0;
+    #else
+        return (unsigned)__builtin_ffsll(u); // gcc & clang
+    #endif
+}
+inline unsigned lowBitIndex(unsigned char uc) 
+{   return lowBitIndex((unsigned)uc); }
+inline unsigned lowBitIndex(unsigned short us) 
+{   return lowBitIndex((unsigned)us); }
+inline unsigned lowBitIndex(unsigned long ul) {
+    #ifdef _MSC_VER // sizeof(long)==sizeof(int)
+        return lowBitIndex((unsigned)ul);
+    #else
+        return lowBitIndex((unsigned long long)ul);
+    #endif
+}
+//@}
+
+/** @defgroup clearLowBit clearLowBit()
+    @ingroup BitFunctions
+
+Returns the supplied argument but with its lowest 1-bit cleared. If the 
+argument is zero, zero is returned. This is done with bit instructions requiring
+no iteration so is very fast. 
+@see lowBitIndex(), isolateLowBit() **/
+//@{
+inline unsigned char      clearLowBit(unsigned char u)      {return u & (u-1);}
+inline unsigned short     clearLowBit(unsigned short u)     {return u & (u-1);}
+inline unsigned           clearLowBit(unsigned u)           {return u & (u-1);}
+inline unsigned long      clearLowBit(unsigned long u)      {return u & (u-1);}
+inline unsigned long long clearLowBit(unsigned long long u) {return u & (u-1);}
+//@}
+
+
+/** @defgroup isolateLowBit isolateLowBit()
+    @ingroup BitFunctions
+
+Returns the supplied argument but with all of its bits cleared except the
+lowest (least significant, rightmost). If the argument is zero, zero is 
+returned. This is done with bit instructions requiring no iteration so is very 
+fast.
+
+Implementation: the result is u & (-u) where two's complement negation is
+applied to the unsigned bit pattern. This is the same as u & ~(u-1).
+
+@see lowBitIndex(), clearLowBit() **/
+//@{
+inline unsigned char isolateLowBit(unsigned char u) {
+    const unsigned char mu = (unsigned char) (-(signed char)u); // avoid warning
+    return u & mu; 
+}
+inline unsigned short isolateLowBit(unsigned short u) {
+    const unsigned short mu = (unsigned short) (-(short)u);
+    return u & mu; 
+}
+inline unsigned isolateLowBit(unsigned u) {
+    const unsigned mu = (unsigned) (-(int)u);
+    return u & mu; 
+}
+inline unsigned long isolateLowBit(unsigned long u) {
+    const unsigned long mu = (unsigned long) (-(long)u);
+    return u & mu; 
+}
+inline unsigned long long isolateLowBit(unsigned long long u) {
+    const unsigned long long mu = (unsigned long long) (-(long long)u);
+    return u & mu; 
+}
+//@}
+
+
+/** @defgroup countSetBits countSetBits()
+    @ingroup BitFunctions
+
+Count the number of 1-bits in the binary representation of the argument.
+
+The implementation uses the machine instruction for this purpose so is very
+fast. **/
+//@{
+inline unsigned countSetBits(unsigned u) {
+    #ifdef _MSC_VER
+        return (unsigned)_mm_popcnt_u32(u); // intel only
+    #else
+        return (unsigned)__builtin_popcount(u); // gcc & clang
+    #endif
+}
+inline unsigned countSetBits(unsigned long long u) {
+    #ifdef _MSC_VER
+        return (unsigned)_mm_popcnt_u64(u); // intel only
+    #else
+        return (unsigned)__builtin_popcountll(u); // gcc & clang
+    #endif
+}
+inline unsigned countSetBits(unsigned char uc) 
+{   return countSetBits((unsigned)uc); }
+inline unsigned countSetBits(unsigned short us) 
+{   return countSetBits((unsigned)us); }
+inline unsigned countSetBits(unsigned long ul) {
+    #ifdef _MSC_VER // sizeof(long)==sizeof(int)
+        return countSetBits((unsigned)ul);
+    #else
+        return countSetBits((unsigned long long)ul);
+    #endif
+}
+//@}
+
+
+/** @defgroup nextBitPermutation nextBitPermutation()
+    @ingroup BitFunctions
+
+Given an n-bit mask with k 1-bits, generate the lexicographically next
+bit permutation. For example, if n=8, k=3, and the bit pattern is 00010011, the
+next patterns would be 00010101, 00010110, 00011001,00011010, 00011100, 
+00100011, and so forth. The following is a fast way to compute the next 
+permutation. To generate all 56 n choose k bit combinations, we would start with
+00000111 and end with 11100000.
+
+This can be used to generate all combinations of k items taken from an n-item
+random access container by using the bit positions as indices. You can use 
+lowBitIndex() and clearLowBit() to repeatedly find the bit position of each
+bit.
+
+This method is adapted from Sean Anderson's bit hacks page: 
+https://graphics.stanford.edu/~seander/bithacks.html
+
+**/
+//@{
+/** From a total of n<=32 items, generate all n choose k combinations of k
+items, where 1<=k<=n. Returns false if the current permutation is the last 
+one. **/
+inline bool nextBitCombination(unsigned n, unsigned k, unsigned& current) {
+    assert(1 <= k && k <= n && n <= 32);
+    assert(current==0 || countSetBits(current)==k);
+   
+    // Calculate the first value to (1<<k)-1, but avoid overflow that (1<<k) 
+    // would produce if k=32.
+    const unsigned highBit = 1 << (k-1);
+    const unsigned firstVal = highBit | (highBit-1); //sets trailing 0's to 1
+    if (current == 0) { 
+        current = firstVal;        // start of sequence
+        return true;
+    }
+
+    const unsigned lastVal = firstVal << (n-k);
+    if (current == lastVal) {
+        current = 0;              // done
+        return false;
+    }
+
+    const unsigned cl = isolateLowBit(current);
+    const unsigned cset = current | (current-1); // set all trailing 0s to 1
+    const unsigned t = cset + 1; // clears lowest and trailing, with carry 
+    const unsigned tl = isolateLowBit(t);
+    current = t | (((tl / cl) >> 1) - 1); // add in missing bits on right
+    return true;
+}
+
+/** From a total of n<=64 items, generate all n choose k combinations of k
+items, where 1<=k<=n. Returns false if the current permutation is the last 
+one. **/
+inline bool nextBitCombination(unsigned n, unsigned k, 
+                               unsigned long long& current) {
+    assert(1 <= k && k <= n && n <= 64);
+    assert(current==0 || countSetBits(current)==k);
+   
+    // Calculate the first value to (1<<k)-1, but avoid overflow that (1<<k) 
+    // would produce if k=64.
+    const unsigned long long highBit = 1ull << (k-1);
+    const unsigned long long firstVal = highBit | (highBit-1); // see above
+    if (current == 0) { 
+        current = firstVal;        // start of sequence
+        return true;
+    }
+
+    const unsigned long long lastVal = firstVal << (n-k);
+    if (current == lastVal) {
+        current = 0;              // done
+        return false;
+    }
+
+    const unsigned long long cl = isolateLowBit(current); // see 32bit impl.
+    const unsigned long long cset = current | (current-1);
+    const unsigned long long t = cset + 1; 
+    const unsigned long long tl = isolateLowBit(t);
+    current = t | (((tl / cl) >> 1) - 1);
+    return true;
+}
+//@}
 
 /**
  * @defgroup atMostOneBitIsSet atMostOneBitIsSet()

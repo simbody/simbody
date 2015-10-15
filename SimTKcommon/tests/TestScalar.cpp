@@ -25,8 +25,10 @@
 #include "SimTKcommon/Testing.h"
 
 #include <iostream>
-using std::cout;
-using std::endl;
+#include <bitset>
+#include <set>
+using std::cout; using std::endl;
+
 
 using namespace SimTK;
 
@@ -822,6 +824,143 @@ void testDeadband() {
 
 }
 
+void testBitScan() {
+    SimTK_TEST(lowBitIndex((unsigned char)0x0)==0);
+    SimTK_TEST(lowBitIndex((unsigned char)0x1)==1);
+    SimTK_TEST(lowBitIndex((unsigned char)0xc0)==7);
+    SimTK_TEST(lowBitIndex((unsigned char)0x80)==8);
+    SimTK_TEST(lowBitIndex((unsigned char)0xff)==1);
+
+    SimTK_TEST(lowBitIndex((unsigned short)0x0)==0);
+    SimTK_TEST(lowBitIndex((unsigned short)0x1)==1);
+    SimTK_TEST(lowBitIndex((unsigned short)0x2340u)==7);
+    SimTK_TEST(lowBitIndex((unsigned short)0x8000)==16);
+    SimTK_TEST(lowBitIndex((unsigned short)0xffff)==1);
+
+    SimTK_TEST(lowBitIndex(0x0u)==0);
+    SimTK_TEST(lowBitIndex(0x1u)==1);
+    SimTK_TEST(lowBitIndex(0x12340u)==7);
+    SimTK_TEST(lowBitIndex(0x80000000u)==32);
+    SimTK_TEST(lowBitIndex(0xffffffffu)==1);
+
+    // Don't assume long is larger than int.
+    SimTK_TEST(lowBitIndex(0x0ul)==0);
+    SimTK_TEST(lowBitIndex(0x1ul)==1);
+    SimTK_TEST(lowBitIndex(0x12340ul)==7);
+    SimTK_TEST(lowBitIndex(0x80000000ul)==32);
+    SimTK_TEST(lowBitIndex(0xfffffffful)==1);
+
+    SimTK_TEST(lowBitIndex(0ull)==0);
+    SimTK_TEST(lowBitIndex(1ull)==1);
+    SimTK_TEST(lowBitIndex(0x12340ull)==7);
+    SimTK_TEST(lowBitIndex(0x101800000000ull)==36);
+    SimTK_TEST(lowBitIndex(0x8000000000000000ull)==64);
+    SimTK_TEST(lowBitIndex(0xffffffffffffffffull)==1);
+
+    SimTK_TEST(clearLowBit((unsigned char)0x0)==(unsigned char)0);
+    SimTK_TEST(clearLowBit((unsigned char)0x20)==(unsigned char)0);
+    SimTK_TEST(clearLowBit((unsigned char)0x22)==(unsigned char)0x20);
+
+    SimTK_TEST(clearLowBit((unsigned short)0x0)==(unsigned short)0);
+    SimTK_TEST(clearLowBit((unsigned short)0x2000)==(unsigned short)0);
+    SimTK_TEST(clearLowBit((unsigned short)0x2002)==(unsigned short)0x2000);
+
+    SimTK_TEST(clearLowBit(0x0u)==0u);
+    SimTK_TEST(clearLowBit(0x20000000u)==0u);
+    SimTK_TEST(clearLowBit(0x20000002u)==0x20000000u);
+
+    SimTK_TEST(clearLowBit(0x0ul)==0ul);
+    SimTK_TEST(clearLowBit(0x20000000ul)==0ul);
+    SimTK_TEST(clearLowBit(0x20000002ul)==0x20000000ul);
+
+    SimTK_TEST(clearLowBit(0x0ull)==0ull);
+    SimTK_TEST(clearLowBit(0x2000000000000000ull)==0ull);
+    SimTK_TEST(clearLowBit(0x2000000000000002ull)==0x2000000000000000ull);
+
+    SimTK_TEST(isolateLowBit((unsigned char)0x0)==(unsigned char)0);
+    SimTK_TEST(isolateLowBit((unsigned char)0x20)==(unsigned char)0x20);
+    SimTK_TEST(isolateLowBit((unsigned char)0x22)==(unsigned char)0x02);
+
+    SimTK_TEST(isolateLowBit((unsigned short)0x0)==(unsigned short)0);
+    SimTK_TEST(isolateLowBit((unsigned short)0x2000)==(unsigned short)0x2000);
+    SimTK_TEST(isolateLowBit((unsigned short)0x2002)==(unsigned short)0x0002);
+
+    SimTK_TEST(isolateLowBit(0x0u)==0u);
+    SimTK_TEST(isolateLowBit(0x20000000u)==0x20000000u);
+    SimTK_TEST(isolateLowBit(0x20000002u)==0x00000002u);
+
+    SimTK_TEST(isolateLowBit(0x0ul)==0ul);
+    SimTK_TEST(isolateLowBit(0x20000000ul)==0x20000000ul);
+    SimTK_TEST(isolateLowBit(0x20000002ul)==0x00000002ul);
+
+    SimTK_TEST(isolateLowBit(0x0ull)==0ull);
+    SimTK_TEST(isolateLowBit(0x2000000000000000ull)==0x2000000000000000ull);
+    SimTK_TEST(isolateLowBit(0x2000000000000002ull)==0x0000000000000002ull);
+
+    SimTK_TEST(countSetBits((unsigned char)0x0) == 0u);
+    SimTK_TEST(countSetBits((unsigned short)0x0) == 0u);
+    SimTK_TEST(countSetBits((unsigned)0x0) == 0u);
+    SimTK_TEST(countSetBits((unsigned long)0x0) == 0u);
+    SimTK_TEST(countSetBits((unsigned long long)0x0) == 0u);
+
+    SimTK_TEST(countSetBits((unsigned char)0x1) == 1u);
+    SimTK_TEST(countSetBits((unsigned short)0x1) == 1u);
+    SimTK_TEST(countSetBits((unsigned)0x1) == 1u);
+    SimTK_TEST(countSetBits((unsigned long)0x1) == 1u);
+    SimTK_TEST(countSetBits((unsigned long long)0x1) == 1u);
+
+    SimTK_TEST(countSetBits((unsigned char)0xc7) == 5u);
+    SimTK_TEST(countSetBits((unsigned short)0xc0f7) == 9u);
+    SimTK_TEST(countSetBits((unsigned)0xc0f00007) == 9u);
+    SimTK_TEST(countSetBits((unsigned long)0xc000f007) == 9u);
+    SimTK_TEST(countSetBits((unsigned long long)0xc0000f0000000007) == 9u);
+
+}
+
+unsigned long long factorial(unsigned x, unsigned long long result = 1) {
+  return x <= 1? result : factorial(x - 1, x * result);
+}
+
+// Compute n choose k. Returns 1 if k is zero, 0 if k > n.
+unsigned long long choose(unsigned n, unsigned k) {
+    if (k > n) return 0;
+    return factorial(n)/(factorial(k)*factorial(n-k));
+}
+
+void testBitCombination() {
+
+    unsigned comb = 0;
+    unsigned count=0;
+    while (nextBitCombination(14,6,comb))
+        ++count;
+    SimTK_TEST(count == 3003); // choose(14,6)
+
+    comb=0; count=0; std::set<unsigned> combos;
+    while (nextBitCombination(4,3,comb)) {
+        ++count;
+        combos.insert(comb);
+    }
+    SimTK_TEST(count == 4);
+    SimTK_TEST(combos.size()==4);
+    SimTK_TEST(combos.count(7)==1);  // 0111
+    SimTK_TEST(combos.count(11)==1); // 1011
+    SimTK_TEST(combos.count(13)==1); // 1101
+    SimTK_TEST(combos.count(14)==1); // 1110
+    SimTK_TEST(combos.count(5)==0);  // not 0101 (or anything else)
+
+    unsigned long long combl = 0;
+    count = 0;
+    while (nextBitCombination(39,1,combl))
+        ++count;
+    SimTK_TEST(count == 39);
+
+    // Start with (8,3) combo 00010110; next should be 00011001.
+    combl = 0x16;
+    SimTK_TEST(nextBitCombination(8,3,combl));
+    SimTK_TEST(combl == 0x19);
+
+}
+
 int main() {
     SimTK_START_TEST("TestScalar");
 
@@ -835,6 +974,8 @@ int main() {
         SimTK_SUBTEST(testClamp);
         SimTK_SUBTEST(testStep);
         SimTK_SUBTEST(testDeadband);
+        SimTK_SUBTEST(testBitScan);
+        SimTK_SUBTEST(testBitCombination);
 
     SimTK_END_TEST();
 }
