@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-12 Stanford University and the Authors.        *
+ * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -215,40 +215,42 @@ extern SimTK_SimTKCOMMON_EXPORT const Complex I;
 /** @defgroup lowBitIndex lowBitIndex()
     @ingroup BitFunctions
 
-Returns one plus the bit number of the least significant 1-bit of u, so that
-the least significant (rightmost) bit position is number 1. This is also one 
-greater than the number of trailing zero bits. For example, 00010010 would 
-return 2. If no bits are set (u==0) this function return 0. 
+Returns the bit number of the least significant 1-bit of u, with the least 
+significant (rightmost) bit position considered 0. This is also the number 
+of trailing zero bits. For example, 00010100 would return 2. If no bits are set 
+(u==0) this function returns -1. 
 
 The implementation uses the machine instruction for this purpose so is very
 fast. 
 @see clearLowBit() **/
 //@{
-inline unsigned lowBitIndex(unsigned u) {
+inline int lowBitIndex(unsigned u) {
     #ifdef _MSC_VER
         unsigned long index;
         if(_BitScanForward(&index, (unsigned long)u))
-           return (unsigned)index+1;
-        return 0;
+           return (int)index;
+        return -1;
     #else
-        return (unsigned)__builtin_ffs(u); // gcc & clang
+        if (u==0) return -1;
+        return (int)__builtin_ctz(u); // gcc & clang ("count trailing zeroes")
     #endif
 }
-inline unsigned lowBitIndex(unsigned long long u) {
+inline int lowBitIndex(unsigned long long u) {
     #ifdef _MSC_VER
         unsigned long index;
         if(_BitScanForward64(&index, (unsigned __int64)u))
-           return (unsigned)index+1;
-        return 0;
+           return (int)index;
+        return -1;
     #else
-        return (unsigned)__builtin_ffsll(u); // gcc & clang
+        if (u==0) return -1;
+        return (int)__builtin_ctzll(u);
     #endif
 }
-inline unsigned lowBitIndex(unsigned char uc) 
+inline int lowBitIndex(unsigned char uc) 
 {   return lowBitIndex((unsigned)uc); }
-inline unsigned lowBitIndex(unsigned short us) 
+inline int lowBitIndex(unsigned short us) 
 {   return lowBitIndex((unsigned)us); }
-inline unsigned lowBitIndex(unsigned long ul) {
+inline int lowBitIndex(unsigned long ul) {
     #ifdef _MSC_VER // sizeof(long)==sizeof(int)
         return lowBitIndex((unsigned)ul);
     #else
@@ -369,12 +371,11 @@ while (nextBitCombination(4,3,combo)) {
 To get all the 1-bit positions from a given combination:
 @code{.cpp}
 unsigned combo=0b1101; // a.k.a. 13 if you don't have C++14 binary literals
-while(int ix=lowBitIndex(combo)) {
-    std::cout << " " << ix;
+do {
+    std::cout << " " << lowBitIndex(combo);
     combo=clearLowBit(combo);
-}
-// Output: 1 3 4
-// Don't forget to subtract one if you want indices 0..n-1.
+} while(combo);
+// Output: 0 2 3
 @endcode
 
 This method is adapted from Sean Anderson's bit hacks page: 
