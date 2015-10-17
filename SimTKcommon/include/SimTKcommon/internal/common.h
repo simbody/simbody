@@ -121,20 +121,20 @@ or any other Index type to an argument expecting a certain Index type. **/
 #ifndef NDEBUG
     #if defined(__cplusplus)
         #include <cstdio>
-        #define SimTK_DEBUG(s) std::printf("DBG: " s)
-        #define SimTK_DEBUG1(s,a1) std::printf("DBG: " s,a1)    
-        #define SimTK_DEBUG2(s,a1,a2) std::printf("DBG: " s,a1,a2)    
-        #define SimTK_DEBUG3(s,a1,a2,a3) std::printf("DBG: " s,a1,a2,a3)    
-        #define SimTK_DEBUG4(s,a1,a2,a3,a4) std::printf("DBG: " s,a1,a2,a3,a4)
-        #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5) std::printf("DBG: " s,a1,a2,a3,a4,a5)
+        #define SimTK_DEBUG(s) std::printf(s)
+        #define SimTK_DEBUG1(s,a1) std::printf(s,a1)    
+        #define SimTK_DEBUG2(s,a1,a2) std::printf(s,a1,a2)    
+        #define SimTK_DEBUG3(s,a1,a2,a3) std::printf(s,a1,a2,a3)    
+        #define SimTK_DEBUG4(s,a1,a2,a3,a4) std::printf(s,a1,a2,a3,a4)
+        #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5) std::printf(s,a1,a2,a3,a4,a5)
     #else
         #include <stdio.h>
-        #define SimTK_DEBUG(s) printf("DBG: " s)
-        #define SimTK_DEBUG1(s,a1) printf("DBG: " s,a1)    
-        #define SimTK_DEBUG2(s,a1,a2) printf("DBG: " s,a1,a2)    
-        #define SimTK_DEBUG3(s,a1,a2,a3) printf("DBG: " s,a1,a2,a3)    
-        #define SimTK_DEBUG4(s,a1,a2,a3,a4) printf("DBG: " s,a1,a2,a3,a4)
-        #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5) printf("DBG: " s,a1,a2,a3,a4,a5)
+        #define SimTK_DEBUG(s) printf(s)
+        #define SimTK_DEBUG1(s,a1) printf(s,a1)    
+        #define SimTK_DEBUG2(s,a1,a2) printf(s,a1,a2)    
+        #define SimTK_DEBUG3(s,a1,a2,a3) printf(s,a1,a2,a3)    
+        #define SimTK_DEBUG4(s,a1,a2,a3,a4) printf(s,a1,a2,a3,a4)
+        #define SimTK_DEBUG5(s,a1,a2,a3,a4,a5) printf(s,a1,a2,a3,a4,a5)
     #endif
 #else
     #define SimTK_DEBUG(s)
