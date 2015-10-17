@@ -66,7 +66,8 @@ private:
 
 namespace {
 const Real StopCoefRestLeft = 1;
-const Real StopCoefRestRight = 0;
+const Real StopCoefRestRight = 1;
+const Real RopeCoefRest = .1;
 const Real Gravity = 9.81;
 }
 
@@ -104,7 +105,7 @@ int main() {
     bodyT.addBodyDecoration(Transform(Rotation(outer, ZAxis), Vec3(2,0,0)),
                             stop);
 
-    UnilateralContactIndex ll, ul, lr, ur;
+    UnilateralContactIndex ll, ul, lr, ur, rope;
     ll=matter.adoptUnilateralContact(
         new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
     ul=matter.adoptUnilateralContact(
@@ -114,6 +115,10 @@ int main() {
         new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
     ur=matter.adoptUnilateralContact(
         new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
+
+    rope=matter.adoptUnilateralContact(
+        new Rope(matter.updGround(), Vec3(-5,1,1),
+                 leftArm, Vec3(0, -1.5, 0), 2.75, RopeCoefRest));
 
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor 
@@ -136,7 +141,7 @@ int main() {
     State state = system.realizeTopology();
     //bodyT.lock(state);
     //bodyT.lockAt(state, -.1, Motion::Velocity);
-    bodyT.setRate(state, 2);
+    bodyT.setRate(state, -2);
     //leftArm.setAngle(state, -Pi/2);
     //rtArm.setAngle(state, Pi/2);
     leftArm.setAngle(state, -.9);
@@ -144,8 +149,9 @@ int main() {
 
     const double SimTime = 20;
 
-    matter.getUnilateralContact(ul).setCondition(state, CondConstraint::Active);
+    //matter.getUnilateralContact(ul).setCondition(state, CondConstraint::Active);
     matter.getUnilateralContact(ur).setCondition(state, CondConstraint::Active);
+    //matter.getUnilateralContact(rope).setCondition(state, CondConstraint::Active);
 
     printf("SHOWING UNASSEMBLED SYSTEM -- hit ENTER\n");
     viz.report(state);

@@ -144,6 +144,25 @@ public:
     explicit ContactEventAction(const SimbodyMatterSubsystemRep& matter) 
     :   EventAction(Change), m_matter(matter) {}
 
+    /** Given a state and tolerances, update the state's conditional constraint
+    active set. The only constraints considered are those that are
+      - already active in the given state, or
+      - inactive position constraints that are proximal and not separating,
+      - inactive velocity constraints that have the right sign, 
+      - all acceleration/force constraints.
+    
+    Constraint projection is done with the final active set. **/
+    static void updateActiveSet
+       (const MultibodySystem&          mbs,
+        State&                          state, // in/out
+        Real                            proximityTol,
+        Real                            velocityTol); 
+
+    static Array_<UnilateralContactIndex> findActiveSet
+       (const MultibodySystem&          mbs,
+        const State&                    state); 
+
+private:
     // A unilateral contact constraint is lingering if it is (1) currently 
     // active, or (2) proximal and satisifies a velocity condition.
     static void findLingeringConstraints
@@ -151,10 +170,23 @@ public:
         const State&                    state,
         Real                            proximityTol,
         Real                            velocityTol,
-        Array_<UnilateralContactIndex>& lingeringUniContacts,
-        Array_<UnilateralContactIndex>& needToActivate); 
+        Array_<UnilateralContactIndex>& lingeringUniContacts); 
 
-private:
+    static void activateActiveSet
+       (const MultibodySystem&                  mbs,
+        State&                                  state,
+        const Array_<UnilateralContactIndex>&   fullSet,
+        const Array_<UnilateralContactIndex>&   activeSubset);
+
+    static bool scoreActiveSet
+       (const MultibodySystem&                  mbs,
+        State&                                  state,
+        const Array_<UnilateralContactIndex>&   lingeringUniContacts,
+        const Array_<UnilateralContactIndex>&   activeSubset,
+        Real&                                   norm2Lambda,
+        std::pair<UnilateralContactIndex,Real>& worstForce,
+        std::pair<UnilateralContactIndex,Real>& worstAcc); 
+
     void changeVirtual(Study&                  study,
                        const Event&            event,
                        const EventTriggers&    triggers,

@@ -444,7 +444,7 @@ changeVirtual(Study&                  study,
         assert(expanders.empty() && expanding.empty());
 
         if (!impacters.empty()) {
-            //-------------------PERFORM EXPANSION ROUND------------------------
+            //-------------------PERFORM CORRECTION ROUND-----------------------
             #ifndef NDEBUG
             cout << "CLASSIFIED FOR CORRECTION:\n";
             cout << "  impacters=" << impacters << endl;
@@ -481,38 +481,29 @@ changeVirtual(Study&                  study,
     cout << "deltaU=" << deltaU << " now verr=" << verr0 << endl;
 #endif
 
-    // Now deactivate anything that is separating.
-    // TODO: constraints that were active on entry but not affected at all
+    // We have potentially modified all system velocities during this
+    // impact so it no longer matters which constraints were active on entry
+    // to this handler. We want updateActiveSet() to consider only those
+    // constraints that currently meet tolerances.
+    // TODO 1: should still consider pre-active position constraints satisfied
+    // if we did on entry; but only their position violations, not their 
+    // velocity violations, can exceed tolerance.
+    // TODO 2: constraints that were active on entry but not affected *at all*
     // by the impact (like they were fully decoupled from the impacters)
     // should probably NOT get turned off here.
-    for (auto ucx : proximalUniContacts) { 
+    for (UnilateralContactIndex ucx(0); 
+         ucx < m_matter.getNumUnilateralContacts(); ++ucx) 
+    { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
-        if (uni.isSeparating(high, velTol)) {
-            SimTK_DEBUG1("uni contact %d is separating; deactivate\n", 
-                         (int)ucx);
-            uni.setCondition(high, CondConstraint::Off);
-        }
+        uni.setCondition(high, CondConstraint::Off);
     }
 
-    // Decide which constraints stay active. TODO: should invoke contact
-    // handler here; this is a kludge.
-    mbs.realize(high, Stage::Acceleration);
-    Vector mults = high.getMultipliers();
-    //cout << "mults=" << mults << endl;
-    for (auto ucx : proximalUniContacts) { 
-        const auto& uni = m_matter.getUnilateralContact(ucx);
-        const Real sign = uni.getSignConvention();
-        const Real frc = -sign*mults[uni.getContactMultiplierIndex(high)];
-        SimTK_DEBUG3("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
-               frc<0?"deactivate":"OK");
-        if (frc < 0)
-            uni.setCondition(high, CondConstraint::Off);
-    }
+    // Decide which constraints should be active. This must be the same 
+    // method as is used in the Contact Action. It chooses an active set and
+    // handles projection.
+    ContactEventAction::updateActiveSet(mbs, high, posTol, velTol);
 
-    mbs.realize(high, Stage::Position);
-
-    m_matter.getSystem().project(high);
-    SimTK_DEBUG("**********\n\n");
+    SimTK_DEBUG("\n********** End of ImpactEventAction\n");
 }
 
 //==============================================================================
@@ -521,54 +512,27 @@ changeVirtual(Study&                  study,
 
 
 //------------------------------------------------------------------------------
-//                        FIND LINGERING CONSTRAINTS
-//------------------------------------------------------------------------------
-
-/*static*/ void ContactEventAction::
-findLingeringConstraints
-   (const MultibodySystem&          mbs,
-    const State&                    state,
-    Real                            proximityTol,
-    Real                            velocityTol,
-    Array_<UnilateralContactIndex>& lingeringUniContacts,
-    Array_<UnilateralContactIndex>& needToActivate) 
-{
-    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
-    lingeringUniContacts.clear(); needToActivate.clear();
-
-    const int nUniContacts  = matter.getNumUnilateralContacts();
-
-    for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
-        const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        if (contact.isActive(state)) {
-            lingeringUniContacts.push_back(ux);
-            continue;
-        }
-
-        if (    contact.isProximal(state, proximityTol)
-            && !contact.isSeparating(state, velocityTol)) {
-            lingeringUniContacts.push_back(ux);
-            needToActivate.push_back(ux);
-        }
-    }
-}
-
-//------------------------------------------------------------------------------
 //                              CHANGE VIRTUAL
 //------------------------------------------------------------------------------
+
 void ContactEventAction::
 changeVirtual(Study&                  study,
               const Event&            event,
               const EventTriggers&    triggers,
-              EventChangeResult&      result) const {
-    //TODO: write this!
+              EventChangeResult&      result) const 
+{
+    const MultibodySystem& mbs = m_matter.getMultibodySystem();
+    const Real posTol = study.getConstraintToleranceInUse();
+    const Real velTol = posTol / study.getTimeScaleInUse();
+
     const State& low = study.getCurrentState();
     State& high = study.updInternalState();
-    const MultibodySystem& mbs = m_matter.getMultibodySystem();
 
 #ifndef NDEBUG
-    printf("\n##########\nContact Action (%.15g,%.15g], w=%.15g\n", 
-            low.getTime(), high.getTime(), high.getTime()-low.getTime());
+    printf("\n##########\n"
+           "Contact Action (%.15g,%.15g], w=%.15g ptol=%g vtol=%g\n", 
+            low.getTime(), high.getTime(), high.getTime()-low.getTime(),
+           posTol, velTol);
     for (auto& tp : triggers) {
         const EventWitness& w = 
             dynamic_cast<const EventWitness&>(*tp);
@@ -584,39 +548,246 @@ changeVirtual(Study&                  study,
     }
 #endif
 
-    const Real consTol = study.getConstraintToleranceInUse();
-    //TODO: figure out pos & vel tol
+    updateActiveSet(mbs, high, posTol, velTol);
+
+#ifndef NDEBUG
+    printf("\n########## end of ContactEventAction\n");
+#endif
+}
+
+//------------------------------------------------------------------------------
+//                            UPDATE ACTIVE SET
+//------------------------------------------------------------------------------
+
+/*static*/ void ContactEventAction::updateActiveSet
+       (const MultibodySystem&          mbs,
+        State&                          state, // in/out
+        Real                            posTol,
+        Real                            velTol) 
+{
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
     // Here we can only activate more contacts; lingering includes everything
     // currently active plus any inactive lingerers (perr=verr=0).
-    Array_<UnilateralContactIndex> lingeringUniContacts, needToActivate;
-    findLingeringConstraints(mbs, high, consTol, consTol, 
-                             lingeringUniContacts, needToActivate);
+    Array_<UnilateralContactIndex> lingeringUniContacts;
+    findLingeringConstraints(mbs, state, posTol, velTol, 
+                             lingeringUniContacts);
     #ifndef NDEBUG
-    cout<<"Lingering unilateral contacts: "<< lingeringUniContacts << endl;
-    cout<<"  Need to activate: "<< needToActivate << endl;
+    cout <<"updateActiveSet() from " << findActiveSet(mbs,state) << endl;    
+    cout <<"  All candidates: "<< lingeringUniContacts << endl;
+    if (lingeringUniContacts.empty())
+        cout <<"  NO LINGERING CONTACTS????\n";  
     #endif
 
-    for (auto ucx : needToActivate) { 
-        const auto& uni = m_matter.getUnilateralContact(ucx);
-        uni.setCondition(high, CondConstraint::Active); // rolling
-    }
-    mbs.realize(high, Stage::Acceleration);
-    const Vector& mults = high.getMultipliers();
+    // If there aren't any candidates, that also means there were no conditional
+    // constraints active, so there is nothing to do.
+    if (lingeringUniContacts.empty())
+        return;
 
-    for (auto ucx : lingeringUniContacts) {
-        const auto& uni = m_matter.getUnilateralContact(ucx);
-        const Real sign = uni.getSignConvention();
-        const Real frc = -sign*mults[uni.getContactMultiplierIndex(high)];
-        SimTK_DEBUG3("uni contact %d: frc=%g (%s)\n", (int)ucx, frc,
-               frc<0?"disable":"OK");
-        if (frc < 0) // TODO: Not sufficient!!
-            uni.setCondition(high, CondConstraint::Off);
+    unsigned n = lingeringUniContacts.size();
+
+    SimTK_ASSERT_ALWAYS(n<=64, "Max for combinatoric search is 64 constraints.");
+
+    // Activate everything first.
+    Real norm2Lambda;
+    std::pair<UnilateralContactIndex,Real> worstForce, worstAcc;
+    if (scoreActiveSet(mbs, state, lingeringUniContacts, lingeringUniContacts,
+                       norm2Lambda, worstForce, worstAcc)) {
+        SimTK_DEBUG1("  All active was a good solution (norm=%g)\n", 
+                     norm2Lambda);
+        mbs.realize(state, Stage::Position);
+        matter.getSystem().project(state);
+        return;
     }
 
-    mbs.realize(high, Stage::Position);
-    m_matter.getSystem().project(high);
-#ifndef NDEBUG
-    printf("##########\n");
-#endif
+    unsigned long long bestCombo=0;
+    Real bestNorm2Lambda = Infinity;
+
+    // Search all non-zero combinations for the best one.
+    Array_<UnilateralContactIndex> actives;
+    for (unsigned k=n-1; k > 0; --k) {
+        SimTK_DEBUG2("  NOT GOOD @%d actives: Try choosing %d.\n", k+1, k);
+        unsigned long long combo = 0;
+        while (nextBitCombination(n, k, combo)) {
+            actives.clear();
+            for (unsigned long long bits=combo; bits; bits=clearLowBit(bits))
+                actives.push_back(lingeringUniContacts[lowBitIndex(bits)]);
+            if (scoreActiveSet(mbs, state, lingeringUniContacts,
+                               actives, norm2Lambda, worstForce, worstAcc)) {
+                if (norm2Lambda < bestNorm2Lambda) {
+                    SimTK_DEBUG2("New winner with %d actives, norm=%g\n",
+                                 k, norm2Lambda);
+                    bestCombo=combo;
+                    bestNorm2Lambda = norm2Lambda;
+                }
+            }
+            if (bestCombo) {
+                SimTK_DEBUG2("  Good solution w/%d actives, norm=%g\n",
+                             k, bestNorm2Lambda);
+                mbs.realize(state, Stage::Position);
+                matter.getSystem().project(state);
+                return;
+            }
+        }
+    }
+
+    // No good solution with any constraints on. Deactivate everything.
+    if (scoreActiveSet(mbs, state, 
+                       lingeringUniContacts, Array_<UnilateralContactIndex>(),
+                       norm2Lambda, worstForce, worstAcc)) {
+            SimTK_DEBUG("  No actives was a good solution\n");
+    } else {
+            SimTK_DEBUG("  COULDN'T FIND A GOOD SOLUTION; deactivated\n");
+    }
+
+    mbs.realize(state, Stage::Position);
+    matter.getSystem().project(state);
 }
+
+//------------------------------------------------------------------------------
+//                        FIND LINGERING CONSTRAINTS
+//------------------------------------------------------------------------------
+
+/*static*/ void ContactEventAction::
+findLingeringConstraints
+   (const MultibodySystem&          mbs,
+    const State&                    state,
+    Real                            proximityTol,
+    Real                            velocityTol,
+    Array_<UnilateralContactIndex>& lingeringUniContacts) 
+{
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+    lingeringUniContacts.clear();
+
+    const int nUniContacts  = matter.getNumUnilateralContacts();
+
+    for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
+        const UnilateralContact& contact = matter.getUnilateralContact(ux);
+        if (contact.isActive(state)) {
+            lingeringUniContacts.push_back(ux);
+            continue;
+        }
+
+        if (    contact.isProximal(state, proximityTol)
+            && !contact.isSeparating(state, velocityTol)) {
+            lingeringUniContacts.push_back(ux);
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+//                            FIND ACTIVE SET
+//------------------------------------------------------------------------------
+/*static*/ Array_<UnilateralContactIndex> ContactEventAction::
+findActiveSet
+   (const MultibodySystem&          mbs,
+    const State&                    state) 
+{
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+    Array_<UnilateralContactIndex> activeContacts;
+
+    const int nUniContacts  = matter.getNumUnilateralContacts();
+    for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
+        const UnilateralContact& contact = matter.getUnilateralContact(ux);
+        if (contact.isActive(state))
+            activeContacts.push_back(ux);
+    }
+    return activeContacts;
+}
+
+//------------------------------------------------------------------------------
+//                           ACTIVATE ACTIVE SET
+//------------------------------------------------------------------------------
+/*static*/ void ContactEventAction::
+activateActiveSet
+       (const MultibodySystem&                  mbs,
+        State&                                  state,
+        const Array_<UnilateralContactIndex>&   fullSet,
+        const Array_<UnilateralContactIndex>&   activeSubset)
+{
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+
+    // Deactivate everything.
+    for (auto ux : fullSet) {
+        const UnilateralContact& contact = matter.getUnilateralContact(ux);
+        contact.setCondition(state, CondConstraint::Off);
+    }
+
+    // Activate the active ones.
+    for (auto ux : activeSubset) {
+        const UnilateralContact& contact = matter.getUnilateralContact(ux);
+        contact.setCondition(state, CondConstraint::Active);
+    }
+}
+
+//------------------------------------------------------------------------------
+//                           SCORE ACTIVE SUBSET
+//------------------------------------------------------------------------------
+// Given an active subset to try, activates them, calculates multipliers and
+// acclerations, and looks for resulting violations of inequality conditions.
+// The 2-norm of all the multipliers is used as a score since we want the least
+// squares solution.
+/*static*/ bool ContactEventAction::
+scoreActiveSet
+       (const MultibodySystem&                  mbs,
+        State&                                  state,
+        const Array_<UnilateralContactIndex>&   lingeringUniContacts,
+        const Array_<UnilateralContactIndex>&   activeSubset,
+        Real&                                   norm2Lambda,
+        std::pair<UnilateralContactIndex,Real>& worstForce,
+        std::pair<UnilateralContactIndex,Real>& worstAcc)
+{
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+
+
+    activateActiveSet(mbs,state,lingeringUniContacts,activeSubset);
+
+    mbs.realize(state, Stage::Acceleration);
+    const Vector& mults = state.getMultipliers();
+    norm2Lambda = mults.norm();
+
+    worstForce.first.invalidate(); worstForce.second=0;
+    worstAcc.first.invalidate(); worstAcc.second=0;
+
+    bool isGood = true;
+    Array_<Real> forces, accs;
+    for (auto ux : lingeringUniContacts) {
+        const auto& uni = matter.getUnilateralContact(ux);
+        const auto cond = uni.getCondition(state);
+        const Real sign = uni.getSignConvention();
+        if (cond == CondConstraint::Off) {
+            const Real acc = sign*uni.getAerr(state);
+            accs.push_back(acc);
+            if (acc < worstAcc.second) {
+                worstAcc.first = ux; worstAcc.second = acc;
+                isGood = false;
+            }
+        } else {
+            assert(cond == CondConstraint::Active);
+            const Real frc = -sign*mults[uni.getContactMultiplierIndex(state)];
+            forces.push_back(frc);
+            if (frc < worstForce.second) {
+                worstForce.first = ux; worstForce.second = frc;
+                isGood = false;
+            }
+        }
+    }
+
+#ifndef NDEBUG
+    cout << "scoreActiveSet: " << activeSubset << endl;
+    cout << "  active forces=" << forces << endl;
+    cout << "  inactive accs=" << accs << endl;
+
+    cout << std::boolalpha << "  isGood=" << isGood 
+         << " norm2=" << norm2Lambda << endl;
+    if (worstForce.first.isValid())
+        cout << "  worstForce uni " << worstForce.first 
+             << ": " << worstForce.second << endl;
+    if (worstAcc.first.isValid())
+        cout << "  worstAcc uni " << worstAcc.first 
+             << ": " << worstAcc.second << endl;
+#endif
+
+    return isGood;
+}
+
