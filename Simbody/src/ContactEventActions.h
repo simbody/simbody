@@ -53,10 +53,15 @@ The action here is:
     inactive but proximal,
 (2) determine an acceptable impulse that corrects hard-constraint velocity 
     errors while respecting restitution and friction laws,
-(3) project all hard position constraints that were active during the impact 
-    onto the position manifold, and
-(4) follow up with a ContactEventAction to choose the active set.
+(3) follow up with a ContactEventAction to choose the active set and project
+    active constraints onto the constraint manifolds.
 
+Note that on entry we will accept as proximal unilateral contacts that are
+active, *even if* they are not being maintained to position tolerance (for
+example, they may be Baumgarte stabilized). When we choose the final active set, 
+those position errors should remain acceptable since impact doesn't change them. 
+However, the constraints cannot be considered fully active since their 
+velocities will have changed arbitrarily due to the applied impulse.
 */
 class ImpactEventAction : public EventAction {
 public:
@@ -144,33 +149,66 @@ public:
     explicit ContactEventAction(const SimbodyMatterSubsystemRep& matter) 
     :   EventAction(Change), m_matter(matter) {}
 
-    /** Given a state and tolerances, update the state's conditional constraint
+    /* Given a state and tolerances, update the state's conditional constraint
     active set. The only constraints considered are those that are
       - already active in the given state, or
       - inactive position constraints that are proximal and not separating,
       - inactive velocity constraints that have the right sign, 
       - all acceleration/force constraints.
     
-    Constraint projection is done with the final active set. **/
+    Constraint projection is done with the final active set. */
     static void updateActiveSet
-       (const MultibodySystem&          mbs,
-        State&                          state, // in/out
-        Real                            proximityTol,
-        Real                            velocityTol); 
+       (const MultibodySystem&  mbs,
+        State&                  state, // in/out
+        Real                    proximalTol,
+        Real                    velocityTol)
+    {
+        Array_<UnilateralContactIndex> lingering;
+        findLingeringConstraintsFromScratch(mbs,state,proximalTol,velocityTol,
+                                              lingering);
+        updateActiveSetFromLingering(mbs,state,lingering);
+    }
+
+    static void updateActiveSetFromProximals
+       (const MultibodySystem&                mbs,
+        State&                                state, // in/out
+        const Array_<UnilateralContactIndex>& proximals,
+        Real                                  velocityTol)
+    {
+        Array_<UnilateralContactIndex> lingering;
+        findLingeringConstraintsFromProximals(mbs,state,proximals,velocityTol,
+                                              lingering);
+        updateActiveSetFromLingering(mbs,state,lingering);
+    }
 
     static Array_<UnilateralContactIndex> findActiveSet
        (const MultibodySystem&          mbs,
         const State&                    state); 
 
 private:
+    static void updateActiveSetFromLingering
+       (const MultibodySystem&                mbs,
+        State&                                state, // in/out
+        const Array_<UnilateralContactIndex>& lingering); 
+
     // A unilateral contact constraint is lingering if it is (1) currently 
-    // active, or (2) proximal and satisifies a velocity condition.
-    static void findLingeringConstraints
+    // active, or (2) proximal and not separating to given tolerances.
+    static void findLingeringConstraintsFromScratch
        (const MultibodySystem&          mbs,
         const State&                    state,
         Real                            proximityTol,
         Real                            velocityTol,
         Array_<UnilateralContactIndex>& lingeringUniContacts); 
+
+    // Here we look only at contact constraints that have already been deemed
+    // proximal (ignoring tolerance). A proximal constraints is lingering
+    // if it is (1) currently active, or (2) not separating to given tolerance.
+    static void findLingeringConstraintsFromProximals
+       (const MultibodySystem&                mbs,
+        const State&                          state,
+        const Array_<UnilateralContactIndex>& proximals,
+        Real                                  velocityTol,
+        Array_<UnilateralContactIndex>&       lingeringUniContacts); 
 
     static void activateActiveSet
        (const MultibodySystem&                  mbs,

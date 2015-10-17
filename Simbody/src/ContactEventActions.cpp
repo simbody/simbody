@@ -484,10 +484,12 @@ changeVirtual(Study&                  study,
     // We have potentially modified all system velocities during this
     // impact so it no longer matters which constraints were active on entry
     // to this handler. We want updateActiveSet() to consider only those
-    // constraints that currently meet tolerances.
-    // TODO 1: should still consider pre-active position constraints satisfied
-    // if we did on entry; but only their position violations, not their 
-    // velocity violations, can exceed tolerance.
+    // constraints that meet velocity tolerances after the impulse. Note that 
+    // the actives must
+    // be a subset of the proximals, and that we must provide the same set
+    // of proximals we just worked with because we may have defined some 
+    // constraints as proximal even if they don't currently meet their 
+    // position error tolerance (because they were active on entry).
     // TODO 2: constraints that were active on entry but not affected *at all*
     // by the impact (like they were fully decoupled from the impacters)
     // should probably NOT get turned off here.
@@ -495,13 +497,14 @@ changeVirtual(Study&                  study,
          ucx < m_matter.getNumUnilateralContacts(); ++ucx) 
     { 
         const auto& uni = m_matter.getUnilateralContact(ucx);
-        uni.setCondition(high, CondConstraint::Off);
+        uni.setCondition(high, CondConstraint::Off); // everyone off
     }
 
     // Decide which constraints should be active. This must be the same 
     // method as is used in the Contact Action. It chooses an active set and
     // handles projection.
-    ContactEventAction::updateActiveSet(mbs, high, posTol, velTol);
+    ContactEventAction::updateActiveSetFromProximals
+                                    (mbs, high, proximalUniContacts, velTol);
 
     SimTK_DEBUG("\n********** End of ImpactEventAction\n");
 }
@@ -556,22 +559,17 @@ changeVirtual(Study&                  study,
 }
 
 //------------------------------------------------------------------------------
-//                            UPDATE ACTIVE SET
+//                      UPDATE ACTIVE SET FROM LINGERING
 //------------------------------------------------------------------------------
 
-/*static*/ void ContactEventAction::updateActiveSet
-       (const MultibodySystem&          mbs,
-        State&                          state, // in/out
-        Real                            posTol,
-        Real                            velTol) 
+/*static*/ void ContactEventAction::
+updateActiveSetFromLingering
+       (const MultibodySystem&                  mbs,
+        State&                                  state, // in/out
+        const Array_<UnilateralContactIndex>&   lingeringUniContacts)
 {
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
-    // Here we can only activate more contacts; lingering includes everything
-    // currently active plus any inactive lingerers (perr=verr=0).
-    Array_<UnilateralContactIndex> lingeringUniContacts;
-    findLingeringConstraints(mbs, state, posTol, velTol, 
-                             lingeringUniContacts);
     #ifndef NDEBUG
     cout <<"updateActiveSet() from " << findActiveSet(mbs,state) << endl;    
     cout <<"  All candidates: "<< lingeringUniContacts << endl;
@@ -649,7 +647,7 @@ changeVirtual(Study&                  study,
 //------------------------------------------------------------------------------
 
 /*static*/ void ContactEventAction::
-findLingeringConstraints
+findLingeringConstraintsFromScratch
    (const MultibodySystem&          mbs,
     const State&                    state,
     Real                            proximityTol,
@@ -663,15 +661,28 @@ findLingeringConstraints
 
     for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
         const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        if (contact.isActive(state)) {
+        if (contact.isActive(state)
+            || (contact.isProximal(state, proximityTol)
+                && !contact.isSeparating(state, velocityTol)))
             lingeringUniContacts.push_back(ux);
-            continue;
-        }
+    }
+}
 
-        if (    contact.isProximal(state, proximityTol)
-            && !contact.isSeparating(state, velocityTol)) {
+/*static*/ void ContactEventAction::
+findLingeringConstraintsFromProximals
+   (const MultibodySystem&                mbs,
+    const State&                          state,
+    const Array_<UnilateralContactIndex>& proximals,
+    Real                                  velTol,
+    Array_<UnilateralContactIndex>&       lingeringUniContacts) 
+{
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+    lingeringUniContacts.clear();
+
+    for (auto ux : proximals) {
+        const UnilateralContact& contact = matter.getUnilateralContact(ux);
+        if (contact.isActive(state) || !contact.isSeparating(state,velTol))
             lingeringUniContacts.push_back(ux);
-        }
     }
 }
 
