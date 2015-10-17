@@ -4930,7 +4930,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     const int mActive = (int)active.size();
     if (mActive == 0) {
         SimTK_DEBUG2(
-        "calcFwdDyn @%g: None of the %d enabled constraint equations was active.\n",
+        "    calcFwdDyn @%g: None of the %d enabled constraint equations was active.\n",
             s.getTime(), m);
         return; // all multipliers are zero; accelerations unconstrained
     }
@@ -4938,9 +4938,9 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator
     // At least one constraint is active.
 
     #ifndef NDEBUG
-    printf("calcFwdDyn @%g: %d constraints active out of %d enabled\n", 
+    printf("    calcFwdDyn @%g: %d constraints active out of %d enabled\n", 
            s.getTime(), mActive, m);
-    cout << "  Active: " << active << endl;
+    cout << "    Active: " << active << endl;
     #endif
 
     // Here we don't care about the particular constraint status (rolling,
