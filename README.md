@@ -472,26 +472,26 @@ Windows using MinGW
 Warning: The [MinGW](http://sourceforge.net/projects/mingw-w64/)
 generation and build is experimental!
 
-This build is still experimental, because of the precompiled libraries
+This build is still experimental, because of the compiled libraries
 Simbody depends on (Blas and Lapack).
-To ease the compilation Windows, Simbody provides precompiled libraries for Blas and Lapack.
+To ease building on Windows, Simbody provides compiled libraries for Blas and Lapack:
 
 * On Windows 32 Bits, these were compiled with a Dwarf exception mechanism,
 * On Windows 64 Bits, these were compiled with a SJLJ exception mechanism.
 
-If one chooses a MinGW compilation, we need to respect these exception mechanism.
+If one chooses a MinGW compilation, we need to respect this exception mechanism.
 A program can not rely on both mechanisms.
-This means that if we want to use the precompiled libraries, our MinGW installation should
+This means that if we want to use the compiled libraries, our MinGW installation should
 have the same exception mechanism.
 Otherwise, we need to provide our own Blas and Lapack libraries.
 
-To see which exception mechanism is used, user can have a look at dlls located in the `bin` directory of MinGW.
+To see which exception mechanism is used, user can look at dlls located in the `bin` directory of MinGW.
 The name of mechanism is present in the file `libgcc_XXXX.dll`, where `XXXX` can be `dw`, `seh` or `sljl`.
-On some MinGW version, this information is also available by looking at the result of `gcc --version`.
+For some MinGW version, this information is also available by looking at the result of `gcc --version`.
 
-A check is made on the MinGW version used, and if the exception mechanism is different,
+CMake will check the version of your MinGW, and if the exception mechanism is different,
 then the configuration may stop because of this difference.
-If one provides a Blas and Lapack libraries with flag `BUILD_USING_OTHER_LAPACK`,
+If one provides Blas and Lapack libraries with the CMake variable `BUILD_USING_OTHER_LAPACK`,
 compilation with MinGW is always possible.
 
 #### Instructions
@@ -546,4 +546,3 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 [flores]: http://xray.bmc.uu.se/flores/Home.html
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
 [buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
- bits32
