@@ -126,23 +126,28 @@ getPositionError(const State& s) const {
 
 Vec3 Constraint::PointOnPlaneContact::
 getVelocityErrors(const State& s) const {
-    Vec3 verr;
-    getImpl().getVelocityErrors(s, 3, &verr[0]);
-    return verr;
+    Real verr[3];
+    getImpl().getVelocityErrors(s, 3, verr);
+    return Vec3(verr[1],verr[2],verr[0]); // switch to x,y,z order
 }
 
 Vec3 Constraint::PointOnPlaneContact::
 getAccelerationErrors(const State& s) const {
-    Vec3 aerr;
-    getImpl().getAccelerationErrors(s, 3, &aerr[0]);
-    return aerr;
+    Real aerr[3];
+    getImpl().getAccelerationErrors(s, 3, aerr);
+    return Vec3(aerr[1],aerr[2],aerr[0]); // switch to x,y,z order
 }
 
 Vec3 Constraint::PointOnPlaneContact::
 getMultipliers(const State& s) const {
-    Vec3 mults;
-    getImpl().getMultipliers(s, 3, &mults[0]);
-    return mults;
+    Real lambda[3];
+    getImpl().getMultipliers(s, 3, lambda);
+    return Vec3(lambda[1],lambda[2],lambda[0]); //switch to x,y,z order;
+}
+
+Vec3 Constraint::PointOnPlaneContact::
+getForceOnFollowerPointInP(const State& s) const {
+    return -getMultipliers(s);
 }
 
 //==============================================================================

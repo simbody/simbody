@@ -35,17 +35,17 @@ namespace SimTK {
 //                         POINT ON PLANE CONTACT
 //==============================================================================
 
-/** (Advanced) This is the underlying constraint for unilateral contact with
-friction but must be combined with contact and friction conditions. This 
+/** (Advanced) This is the underlying constraint for unilateral point contact 
+with friction but must be combined with contact and friction conditions. This 
 enforces the same normal condition as Constraint::PointInPlane but also adds
-two velocity-level no-slip constraints. Thus there are three
-constraints, one position (holonomic) constraint and two velocity 
-(nonholonomic) constraints. Note that this is a bilateral
-constraint and will push or pull as necessary to keep the point in contact
-with the plane, and that sticking is enforced regardless of the amount of
-normal force being generated. If you want to make this unilateral, you must
-handle switching it on and off separately; when this constraint is enabled it
-always enforces the contact and no-slip conditions.
+two velocity-level no-slip constraints. Thus there are three constraints, one 
+position (holonomic) constraint and two velocity (nonholonomic) constraints. 
+Note that this is a bilateral constraint and will push or pull as necessary to 
+keep the point in contact with the plane, and that sticking (that is, no-slip)
+is enforced regardless of the amount of normal force being generated. If you 
+want to make this unilateral, you must handle switching it on and off 
+separately; when this constraint is enabled it always enforces the contact and 
+no-slip conditions.
 
 There are two mobilized bodies involved. MobiliedBody S, the plane "surface" 
 body, has a plane P fixed to it, with the plane defined by a frame P given 
@@ -54,19 +54,19 @@ has a station point F (a vertex) fixed to it, given with respect to body B at
 location p_BF. The coordinate axes of the plane frame P (fixed in S) are used 
 for parameterization of the %Constraint. The z direction Pz of that frame is the 
 plane normal; the Px,Py directions are used to express the tangential velocity; 
-the P frame origin Po provides the height h=dot(Po,Pz) of the plane
-over the surface body's origin in the direction of the plane normal Pz.
+the P frame origin Po provides the height h=dot(Po,Pz) of the plane over the 
+surface body's origin in the direction of the plane normal Pz.
 
 The position constraint equation for contact enforces that the follower point F 
 must always be in the plane P, that is, pz_PF=p_PF[2]=0, or equivalently <pre>
     (1) perr = pz_PF = dot(p_SF,Pz)-h 
 </pre> 
-That constraint equation is enforced by an internal 
-(non-working) scalar force acting at the spatial location of the follower point, 
-directed along the plane normal, and equal and opposite on the two bodies at F 
-on B and at the instantaneously coincident point p_SF on S. Because position 
-constraints are not enforced perfectly, contact will occur slightly above or 
-slightly below the plane surface, wherever the follower point is.
+That constraint equation is enforced by an internal (non-working) scalar force 
+acting at the spatial location of the follower point, directed along the plane 
+normal, and equal and opposite on the two bodies at F on B and at the 
+instantaneously coincident point p_SF on S. Because position constraints are not
+enforced perfectly, contact will occur slightly above or slightly below the 
+plane surface, wherever the follower point is.
 
 The two velocity constraint equations enforce that the follower point has no
 relative tangential velocity when measured in the plane frame P, that is we
@@ -80,10 +80,14 @@ between frame P on S and point F on B. The acceleration-level constraints are
 just the time derivative of (2), i.e. <pre>
     (3) aerr = a_PF = ~R_SP * a_SF
 </pre>
+The contact constraints here are enforced by a normal multiplier acting along
+Pz, and two tangential multipliers acting along Px and Py respectively. Together
+these can be interpreted as a force acting in a frame C that is always aligned 
+with P, but whose origin Co is at the follower point F.
+
 The assembly condition is that the follower point must be in the plane; there
 is no assembly condition in the tangential direction since those constraints
 are at the velocity level only. **/
-
 class SimTK_SIMBODY_EXPORT Constraint::PointOnPlaneContact 
 :   public Constraint  {
 public:
@@ -222,19 +226,23 @@ getVelocityError(). The given \a state must have already been realized
 through Stage::Acceleration. **/
 Vec3 getAccelerationErrors(const State& state) const;
 
-/** These are the Lagrange multipliers required to enforce the three
-constraint equations generated here. For this %Constraint they have units
-of force, but the sign convention for multipliers is the opposite of that
-for applied forces. Thus the returned vector may be considered the force
-applied by the follower point to the coincident point of the plane body,
-expressed in the contact frame. **/
+/** These are the Lagrange multipliers required to enforce the three constraint 
+equations generated here. For this %Constraint they have units of force, but the
+sign convention for multipliers is the opposite of that for applied forces. Thus
+the returned vector may be considered the force applied by the follower point to
+the coincident point of the plane body, expressed in the plane frame P. The x,y 
+coordinates are the forces in the plane used to enforce non-slipping, and the z 
+coordinate is the force needed to enforce contact. Since this is an 
+unconditional, bilateral constraint the multipliers may have any sign and 
+magnitude. The given \a state must already be realized to 
+Stage::Acceleration. **/
 Vec3 getMultipliers(const State& state) const;
 
 /** This is the force applied by the plane body to the follower point,
-expressed in the contact frame. For this %Constraint, the value returned
+expressed in the plane frame. For this %Constraint, the value returned
 here is identical to the vector returned by getMultipliers(), but with the 
 opposite sign. **/
-Vec3 getForceOnFollowerPoint(const State& state) const;
+Vec3 getForceOnFollowerPointInP(const State& state) const;
 /*@}............................ Computations ................................*/
 
 /** @cond **/ // hide from Doxygen
