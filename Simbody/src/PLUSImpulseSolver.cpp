@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2014 Stanford University and the Authors.           *
+ * Portions copyright (c) 2015 Stanford University and the Authors.           *
  * Authors: Thomas Uchida, Michael Sherman                                    *
  * Contributors:                                                              *
  *                                                                            *
@@ -458,7 +458,7 @@ solve(int                                 phase,
                 const Array_<MultiplierIndex>& Fk = rt.m_Fk; // friction components
                 const MultiplierIndex Nk = rt.m_Nk; // normal component
                 assert(m_mult2active[Fk[0]].isValid());
-                const Real mu = rt.m_effMu;
+                const Real mu = rt.m_effMu; // might be Infinity
                 Real scale = 1; // might change if we're rolling
 
                 // Only if rolling is there an inequality constraint that
@@ -475,9 +475,10 @@ solve(int                                 phase,
                     // "Sucking" normal forces are zero already in piGuess,
                     // and known normal force has been inserted if needed.
                     nmag = std::abs(piGuess[Nk] + piELeft[Nk]); 
-                    if (tmag > mu*nmag) {
-                        scale = mu*nmag/tmag;
-                        const Real err = tmag - mu*nmag;
+                    const Real muN = isInf(mu) ? Infinity : mu*nmag;
+                    if (tmag > muN) {
+                        scale = muN/tmag;
+                        const Real err = tmag - muN;
                         if (err > worstFricValue)
                             worstFric=k, worstFricValue=err;
                     }
@@ -955,6 +956,8 @@ calcSlidingStepLengthToMaxChange(const Vec3& A, const Vec3& B) const
 // as Rolling or Sliding depending on the current slip velocity as present
 // in m_verrLeft. No frictional contact is marked Impending at the start of a 
 // sliding interval; that only occurs as a result of a transition from Rolling.
+// If mu==Infinity a contact will be considered Rolling regardless of its
+// slip velocity which will be zeroed.
 void PLUSImpulseSolver::
 classifyFrictionals(Array_<UniContactRT>& uniContact) const {
     SimTK_DEBUG1("classifyFrictionals(): %d uni contacts\n", 
@@ -983,14 +986,16 @@ classifyFrictionals(Array_<UniContactRT>& uniContact) const {
             }
             tmag = std::sqrt(tmag);
             rt.m_slipMag = tmag;
-            rt.m_frictionCond = tmag > m_maxRollingTangVel ? Sliding : Rolling;
+            rt.m_frictionCond = 
+                (isInf(rt.m_effMu) || tmag <= m_maxRollingTangVel) ? Rolling
+                                                                   : Sliding;
         }
 
         #ifndef NDEBUG
-        printf("  %s contact %d is %s; vel=%g,%g, mag=%g\n",
+        printf("  %s contact %d is %s; vel=%g,%g, mag=%g mu=%g\n",
                getContactTypeName(rt.m_type), (int)k,
                getFricCondName(rt.m_frictionCond), rt.m_slipVel[0],
-               rt.m_slipVel[1], rt.m_slipMag);
+               rt.m_slipVel[1], rt.m_slipMag, rt.m_effMu);
         #endif
     }
 }

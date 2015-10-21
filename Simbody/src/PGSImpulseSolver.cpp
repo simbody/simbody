@@ -206,7 +206,7 @@ boundFriction(Real mu,
     Real N2=0, F2=0; // squares of normal and friction force magnitudes
     for (unsigned i=0; i<IN.size(); ++i) N2 += square(pi[IN[i]]);
     for (unsigned i=0; i<IF.size(); ++i) F2 += square(pi[IF[i]]);
-    const Real mu2N2 = mu*mu*N2;
+    const Real mu2N2 = N2>0 ? mu*mu*N2 : Real(0); // mu might be inf
     if (F2 <= mu2N2) 
         return ImpulseSolver::Rolling;
     const Real scale = std::sqrt(mu2N2/F2); // 0 <= scale < 1
@@ -434,8 +434,9 @@ solve(int                               phase,
             doRowSums(participating,Fk,A,D,pi,rowSums);
             const Real er2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += er2;
-            Real N = std::abs(pi[Nk] + piExpand[Nk]);
-            rt.m_frictionCond=boundVector(rt.m_effMu*N, Fk, pi);
+            const Real N = std::abs(pi[Nk] + piExpand[Nk]);
+            const Real limit = N>0 ? rt.m_effMu*N : Real(0); // mu might be inf
+            rt.m_frictionCond=boundVector(limit, Fk, pi);
             if (rt.m_frictionCond==Rolling)
                 sum2enf += er2;
         }
@@ -461,7 +462,9 @@ solve(int                               phase,
             doRowSums(participating,Fk,A,D,pi,rowSums);
             const Real localEr2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += localEr2;
-            rt.m_frictionCond=boundVector(rt.m_effMu*rt.m_knownN, Fk, pi);
+            const Real N = rt.m_knownN;
+            const Real limit = N>0 ? rt.m_effMu*N : Real(0); // mu might be inf
+            rt.m_frictionCond=boundVector(limit, Fk, pi);
             if (rt.m_frictionCond==Rolling)
                 sum2enf += localEr2;
         }
