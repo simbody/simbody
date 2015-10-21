@@ -915,6 +915,43 @@ void testBitScan() {
     SimTK_TEST(countSetBits((unsigned long)0xc000f007) == 9u);
     SimTK_TEST(countSetBits((unsigned long long)0xc0000f0000000007) == 9u);
 
+    SimTK_TEST(isBitSet((char)0xc7, 2));
+    SimTK_TEST(!isBitSet((char)0xc7, 3));
+    SimTK_TEST(isBitSet((unsigned char)0xc7, 2));
+    SimTK_TEST(!isBitSet((unsigned char)0xc7, 3));
+    SimTK_TEST(isBitSet((short)0xf0c7, 15)&& isBitSet((short)0xf0c7, 0));
+    SimTK_TEST(!isBitSet((short)0xf0c7, 11));
+    SimTK_TEST(   isBitSet((unsigned short)0xf0c7, 15)
+               && isBitSet((unsigned short)0xf0c7, 0));
+    SimTK_TEST(!isBitSet((unsigned short)0xf0c7, 11));
+    SimTK_TEST(isBitSet((int)0xf0c7f0f0, 31)&& isBitSet((int)0xf0f0f0c7, 0));
+    SimTK_TEST(!isBitSet((int)0xf0c7f0f0, 27));
+    SimTK_TEST(   isBitSet((unsigned)0xf0c7f0f0, 31)
+               && isBitSet((unsigned)0xf0f0f0c7, 0));
+    SimTK_TEST(!isBitSet((unsigned)0xf0c7f0f0, 27));
+    if (sizeof(long)==sizeof(int)) { // MSVC
+        SimTK_TEST(isBitSet((long)0xf0c7f0f0, 31)&& isBitSet((long)0xf0f0f0c7, 0));
+        SimTK_TEST(!isBitSet((long)0xf0c7f0f0, 27));
+        SimTK_TEST(   isBitSet((unsigned long)0xf0c7f0f0, 31)
+                   && isBitSet((unsigned long)0xf0f0f0c7, 0));
+        SimTK_TEST(!isBitSet((unsigned long)0xf0c7f0f0, 27));
+    }
+
+    SimTK_TEST(   isBitSet(0xf0f0f0f0f0c7f0f0LL, 63)
+               && isBitSet(0xf0f0f0f0f0f0f0c7LL, 0));
+    SimTK_TEST(!isBitSet(0xf0f0f0f0f0c7f0f0LL, 59));
+    SimTK_TEST(   isBitSet(0xf0f0f0f0f0c7f0f0ULL, 63)
+               && isBitSet(0xf0f0f0f0f0f0f0c7ULL, 0));
+    SimTK_TEST(!isBitSet(0xf0f0f0f0f0c7f0f0ULL, 59));
+    if (sizeof(long)==sizeof(long long)) { // gcc, clang
+        SimTK_TEST(   isBitSet(0xf0f0f0f0f0c7f0f0L, 63)
+                   && isBitSet(0xf0f0f0f0f0f0f0c7L, 0));
+        SimTK_TEST(!isBitSet(0xf0f0f0f0f0c7f0f0L, 59));
+        SimTK_TEST(   isBitSet(0xf0f0f0f0f0c7f0f0UL, 63)
+                   && isBitSet(0xf0f0f0f0f0f0f0c7UL, 0));
+        SimTK_TEST(!isBitSet(0xf0f0f0f0f0c7f0f0UL, 59));
+    }
+
 }
 
 unsigned long long factorial(unsigned x, unsigned long long result = 1) {
@@ -929,13 +966,13 @@ unsigned long long choose(unsigned n, unsigned k) {
 
 void testBitCombination() {
 
-    unsigned comb = 0;
-    unsigned count=0;
+    int comb = -1;
+    int count=0;
     while (nextBitCombination(14,6,comb))
         ++count;
     SimTK_TEST(count == 3003); // choose(14,6)
 
-    comb=0; count=0; std::set<unsigned> combos;
+    comb=-1; count=0; std::set<int> combos;
     while (nextBitCombination(4,3,comb)) {
         ++count;
         combos.insert(comb);
@@ -948,7 +985,7 @@ void testBitCombination() {
     SimTK_TEST(combos.count(14)==1); // 1110
     SimTK_TEST(combos.count(5)==0);  // not 0101 (or anything else)
 
-    unsigned long long combl = 0;
+    long long combl = -1;
     count = 0;
     while (nextBitCombination(39,1,combl))
         ++count;
@@ -958,6 +995,14 @@ void testBitCombination() {
     combl = 0x16;
     SimTK_TEST(nextBitCombination(8,3,combl));
     SimTK_TEST(combl == 0x19);
+
+    // Choosing k=0 should always return 1 combo, 0.
+    int combz=-1;
+    SimTK_TEST(nextBitCombination(5,0,combz) && combz==0);
+    SimTK_TEST(!nextBitCombination(5,0,combz));
+    combz=-1;
+    SimTK_TEST(nextBitCombination(0,0,combz) && combz==0);
+    SimTK_TEST(!nextBitCombination(0,0,combz));
 }
 
 int main() {

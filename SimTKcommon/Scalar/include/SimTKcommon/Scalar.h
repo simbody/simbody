@@ -257,6 +257,13 @@ inline int lowBitIndex(unsigned long ul) {
         return lowBitIndex((unsigned long long)ul);
     #endif
 }
+inline int lowBitIndex(char c)        {return lowBitIndex((unsigned char)c);}
+inline int lowBitIndex(signed char c) {return lowBitIndex((unsigned char)c);}
+inline int lowBitIndex(short s)       {return lowBitIndex((unsigned short)s);}
+inline int lowBitIndex(int i)         {return lowBitIndex((unsigned)i);}
+inline int lowBitIndex(long g)        {return lowBitIndex((unsigned long)g);}
+inline int lowBitIndex(long long g) 
+{   return lowBitIndex((unsigned long long)g); }
 //@}
 
 /** @defgroup clearLowBit clearLowBit()
@@ -272,6 +279,12 @@ inline unsigned short     clearLowBit(unsigned short u)     {return u & (u-1);}
 inline unsigned           clearLowBit(unsigned u)           {return u & (u-1);}
 inline unsigned long      clearLowBit(unsigned long u)      {return u & (u-1);}
 inline unsigned long long clearLowBit(unsigned long long u) {return u & (u-1);}
+inline char               clearLowBit(char c)               {return c & (c-1);}
+inline signed char        clearLowBit(signed char c)        {return c & (c-1);}
+inline short              clearLowBit(short s)              {return s & (s-1);}
+inline int                clearLowBit(int i)                {return i & (i-1);}
+inline long               clearLowBit(long g)               {return g & (g-1);}
+inline long long          clearLowBit(long long g)          {return g & (g-1);}
 //@}
 
 
@@ -308,6 +321,13 @@ inline unsigned long long isolateLowBit(unsigned long long u) {
     const unsigned long long mu = (unsigned long long) (-(long long)u);
     return u & mu; 
 }
+inline char isolateLowBit(char c) 
+{   return (char)isolateLowBit((unsigned char)c); }
+inline signed char  isolateLowBit(signed char c) {return c & -c;}
+inline short        isolateLowBit(short s)       {return s & -s;}
+inline int          isolateLowBit(int i)         {return i & -i;}
+inline long         isolateLowBit(long g)        {return g & -g;}
+inline long long    isolateLowBit(long long g)   {return g & -g;}
 //@}
 
 
@@ -319,31 +339,38 @@ Count the number of 1-bits in the binary representation of the argument.
 The implementation uses the machine instruction for this purpose so is very
 fast. **/
 //@{
-inline unsigned countSetBits(unsigned u) {
+inline int countSetBits(unsigned u) {
     #ifdef _MSC_VER
-        return (unsigned)_mm_popcnt_u32(u); // intel only
+        return (int)_mm_popcnt_u32(u); // intel only
     #else
-        return (unsigned)__builtin_popcount(u); // gcc & clang
+        return (int)__builtin_popcount(u); // gcc & clang
     #endif
 }
-inline unsigned countSetBits(unsigned long long u) {
+inline int countSetBits(unsigned long long u) {
     #ifdef _MSC_VER
-        return (unsigned)_mm_popcnt_u64(u); // intel only
+        return (int)_mm_popcnt_u64(u); // intel only
     #else
-        return (unsigned)__builtin_popcountll(u); // gcc & clang
+        return (int)__builtin_popcountll(u); // gcc & clang
     #endif
 }
-inline unsigned countSetBits(unsigned char uc) 
+inline int countSetBits(unsigned char uc) 
 {   return countSetBits((unsigned)uc); }
-inline unsigned countSetBits(unsigned short us) 
+inline int countSetBits(unsigned short us) 
 {   return countSetBits((unsigned)us); }
-inline unsigned countSetBits(unsigned long ul) {
+inline int countSetBits(unsigned long ul) {
     #ifdef _MSC_VER // sizeof(long)==sizeof(int)
         return countSetBits((unsigned)ul);
     #else
         return countSetBits((unsigned long long)ul);
     #endif
 }
+inline int countSetBits(char c)        {return countSetBits((unsigned char)c);}
+inline int countSetBits(signed char c) {return countSetBits((unsigned char)c);}
+inline int countSetBits(short s)       {return countSetBits((unsigned short)s);}
+inline int countSetBits(int i)         {return countSetBits((unsigned)i);}
+inline int countSetBits(long g)        {return countSetBits((unsigned long)g);}
+inline int countSetBits(long long g) 
+{   return countSetBits((unsigned long long)g); }
 //@}
 
 
@@ -359,9 +386,9 @@ start with 00000111 and end with 11100000.
 This can be used to generate all combinations of k items taken from an n-item
 random access container by using the bit positions as indices. You can use 
 lowBitIndex() and clearLowBit() to repeatedly find the bit position of each
-bit. Here is how you might print out all the combinations:
+bit. Here is how you might print out all the combinations of 4 choose 3:
 @code{.cpp}
-unsigned combo=0; // if zero, will be set to the first combination
+int combo=-1; // if negative, will be set to the first combination
 while (nextBitCombination(4,3,combo)) {
     std::cout << " " << std::bitset<4>(combo);
 }
@@ -370,79 +397,124 @@ while (nextBitCombination(4,3,combo)) {
 
 To get all the 1-bit positions from a given combination:
 @code{.cpp}
-unsigned combo=0b1101; // a.k.a. 13 if you don't have C++14 binary literals
-do {
+int combo=0b1101; // a.k.a. 13 if you don't have C++14 binary literals
+while(combo) {
     std::cout << " " << lowBitIndex(combo);
     combo=clearLowBit(combo);
-} while(combo);
+}
 // Output: 0 2 3
 @endcode
 
+We follow standard combination conventions, so n choose 0 will result in just
+one combination (all zeroes) if you start with a negative value, then when
+you pass the zero combination in the function will return false to indicate
+it is done. If you call this function with k > n, it will return false 
+immediately since there are no ways to choose that many bits.
+
+Because we use a negative (or high-bit set) combination to indicate that we are 
+to start at the first combination, we lose one bit so n is limited to 31 for int
+or unsigned arguments, and to 63 for long long or unsigned long long. 
+
 This method is adapted from Sean Anderson's bit hacks page: 
 https://graphics.stanford.edu/~seander/bithacks.html
-
 **/
 //@{
-/** From a total of n<=32 items, generate all n choose k combinations of k
-items, where 1<=k<=n. If `current` is zero on entry it is returned as the
+/** From a total of n items (0<=n<=31) generate all n choose k combinations of k
+items, where 0<=k<=n. If `current` is negative on entry it is returned as the
 first combination (rightmost k bits set). Returns false if the current 
-permutation is the last one (leftmost k bits set) and leaves that permuation
-unchanged. **/
-inline bool nextBitCombination(unsigned n, unsigned k, unsigned& current) {
-    assert(1 <= k && k <= n && n <= 32);
-    assert(current==0 || countSetBits(current)==k);
+permutation is the last one (leftmost k bits set) and leaves that permutation
+unchanged. If k=0 it will return once with a zero combination. **/
+inline bool nextBitCombination(int n, int k, int& current) {
+    assert(0 <= k && k <= n && n <= 31);
+    assert(current<0 || countSetBits(current)==k);
    
-    // Calculate the first value to (1<<k)-1, but avoid overflow that (1<<k) 
-    // would produce if k=32.
-    const unsigned highBit = 1 << (k-1);
-    const unsigned firstVal = highBit | (highBit-1); //sets trailing 0's to 1
-    if (current == 0) { 
+    // The first value is (1<<k)-1 (that's k 1-bits on the right). 
+    // (1<<k) can't overflow since k <= 31.
+    const int firstVal = (1<<k)-1;
+    if (current < 0) { 
         current = firstVal;        // start of sequence
         return true;
     }
 
-    const unsigned lastVal = firstVal << (n-k);
+    const int lastVal = firstVal << (n-k); // k 1-bits on the left.
     if (current == lastVal)
         return false;
 
-    const unsigned cl = isolateLowBit(current);
-    const unsigned cset = current | (current-1); // set all trailing 0s to 1
-    const unsigned t = cset + 1; // clears lowest and trailing, with carry 
-    const unsigned tl = isolateLowBit(t);
+    const int cl = isolateLowBit(current);
+    const int cset = current | (current-1); // set all trailing 0s to 1
+    const int t = cset + 1; // clears lowest and trailing, with carry 
+    const int tl = isolateLowBit(t);
     current = t | (((tl / cl) >> 1) - 1); // add in missing bits on right
     return true;
 }
 
-/** From a total of n<=64 items, generate all n choose k combinations of k
-items, where 1<=k<=n. If `current` is zero on entry it is returned as the
+/** From a total of n items (0<=n<=63) generate all n choose k combinations of k
+items, where 0<=k<=n. If `current` is negative on entry it is returned as the
 first combination (rightmost k bits set). Returns false if the current 
-permutation is the last one (leftmost k bits set) and leaves that permuation
-unchanged. **/
-inline bool nextBitCombination(unsigned n, unsigned k, 
-                               unsigned long long& current) {
-    assert(1 <= k && k <= n && n <= 64);
-    assert(current==0 || countSetBits(current)==k);
+permutation is the last one (leftmost k bits set) and leaves that permutation
+unchanged. If k=0 it will return once with a zero combination. **/
+inline bool nextBitCombination(int n, int k, long long& current) {
+    assert(0 <= k && k <= n && n <= 63);
+    assert(current<0 || countSetBits(current)==k);
    
-    // Calculate the first value to (1<<k)-1, but avoid overflow that (1<<k) 
-    // would produce if k=64.
-    const unsigned long long highBit = 1ull << (k-1);
-    const unsigned long long firstVal = highBit | (highBit-1); // see above
-    if (current == 0) { 
+    // The first value is (1<<k)-1 (that's k 1-bits on the right). 
+    // (1<<k) can't overflow since k <= 31.
+    const long long firstVal = (1LL<<k)-1;
+    if (current < 0) { 
         current = firstVal;        // start of sequence
         return true;
     }
 
-    const unsigned long long lastVal = firstVal << (n-k);
+    const long long lastVal = firstVal << (n-k);
     if (current == lastVal)
         return false;
 
-    const unsigned long long cl = isolateLowBit(current); // see 32bit impl.
-    const unsigned long long cset = current | (current-1);
-    const unsigned long long t = cset + 1; 
-    const unsigned long long tl = isolateLowBit(t);
-    current = t | (((tl / cl) >> 1) - 1);
+    const long long cl = isolateLowBit(current);
+    const long long cset = current | (current-1); // set all trailing 0s to 1
+    const long long t = cset + 1; // clears lowest and trailing, with carry 
+    const long long tl = isolateLowBit(t);
+    current = t | (((tl / cl) >> 1) - 1); // add in missing bits on right
     return true;
 }
+//@}
+
+
+/** @defgroup isBitSet isBitSet()
+    @ingroup BitFunctions
+
+Given a bit mask `bits` in the form of an integral type and a bit index `i`,
+return true if the corresponding bit is a 1, otherwise false. Bits are numbered 
+from 0 at the least significant (rightmost) position, to n-1 at the most 
+significant (leftmost) position, where n is the number of bits in the mask 
+argument. Results are undefined if you pass in a bit position outside of the 
+range 0..n-1; don't do it. This is done inline with bit instructions requiring 
+no iteration so is very fast. **/
+//@{
+inline bool isBitSet(unsigned char bits, int i)      
+{   assert(0<=i && i< 8); return (bits&(1<<i)) != 0; }
+inline bool isBitSet(unsigned short bits, int i)      
+{   assert(0<=i && i<16); return (bits&(1<<i)) != 0; }
+inline bool isBitSet(unsigned int bits, int i)      
+{   assert(0<=i && i<32); return (bits&(1<<i)) != 0; }
+
+inline bool isBitSet(unsigned long bits, int i) // long could be 32 or 64 bits     
+{   assert(0<=i && i<(int)sizeof(long)*8); return (bits&(1UL<<i)) != 0; }
+inline bool isBitSet(unsigned long long bits, int i)      
+{   assert(0<=i && i<64); return (bits&(1ULL<<i)) != 0; }
+
+inline bool isBitSet(signed char bits, int i)      
+{   assert(0<=i && i< 8); return (bits&(1<<i)) != 0; }
+inline bool isBitSet(char bits, int i)      
+{   assert(0<=i && i< 8); return (bits&(1<<i)) != 0; }
+inline bool isBitSet(short bits, int i)      
+{   assert(0<=i && i<16); return (bits&(1<<i)) != 0; }
+inline bool isBitSet(int bits, int i)      
+{   assert(0<=i && i<32); return (bits&(1<<i)) != 0; }
+
+inline bool isBitSet(long bits, int i)   // long could be 32 or 64 bits    
+{   assert(0<=i && i<(int)sizeof(long)*8); return (bits&(1L<<i)) != 0; }
+inline bool isBitSet(long long bits, int i)      
+{   assert(0<=i && i<64); return (bits&(1LL<<i)) != 0; }
 //@}
 
 /**
