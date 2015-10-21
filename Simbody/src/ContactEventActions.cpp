@@ -32,6 +32,9 @@
 #include "ContactEventActions.h"
 #include "SimbodyMatterSubsystemRep.h"
 
+#include <utility>
+using std::pair;
+
 using namespace SimTK;
 
 //==============================================================================
@@ -42,8 +45,11 @@ using namespace SimTK;
 //------------------------------------------------------------------------------
 ImpactEventAction::ImpactEventAction(const SimbodyMatterSubsystemRep& matter) 
 :   EventAction(Change), m_matter(matter),
-    m_solver(new PGSImpulseSolver(0.0)) {} // fill transition vel later
-    //m_solver(new PLUSImpulseSolver(0.0)) {} // fill transition vel later
+    m_solver(new PGSImpulseSolver(0.0)) // fill transition vel later
+    //m_solver(new PLUSImpulseSolver(0.0)) // fill transition vel later
+{
+    //m_solver.get()->setConvergenceTol(1e-10);
+}
 
 //------------------------------------------------------------------------------
 //                         FIND PROXIMAL CONSTRAINTS
@@ -120,6 +126,8 @@ collectConstraintInfo
             contact.getFrictionMultiplierIndices(state, rt.m_Fk[0], rt.m_Fk[1]);
             allParticipating.push_back(rt.m_Fk[0]);
             allParticipating.push_back(rt.m_Fk[1]);
+            // TODO: need to compute this
+            rt.m_effMu = Infinity;
         }
     }
 
@@ -582,60 +590,73 @@ updateActiveSetFromLingering
     if (lingeringUniContacts.empty())
         return;
 
-    unsigned n = lingeringUniContacts.size();
+    const int n = (int)lingeringUniContacts.size();
+    SimTK_ASSERT_ALWAYS(n<=63, "Max for combinatoric search is 63 constraints.");
 
-    SimTK_ASSERT_ALWAYS(n<=64, "Max for combinatoric search is 64 constraints.");
-
-    // Activate everything first.
-    Real norm2Lambda;
-    std::pair<UnilateralContactIndex,Real> worstForce, worstAcc;
-    if (scoreActiveSet(mbs, state, lingeringUniContacts, lingeringUniContacts,
-                       norm2Lambda, worstForce, worstAcc)) {
-        SimTK_DEBUG1("  All active was a good solution (norm=%g)\n", 
-                     norm2Lambda);
-        mbs.realize(state, Stage::Position);
-        matter.getSystem().project(state);
-        return;
-    }
-
-    unsigned long long bestCombo=0;
+    long long bestCombo=-1, bestRolling=-1;
     Real bestNorm2Lambda = Infinity;
 
     // Search all non-zero combinations for the best one.
-    Array_<UnilateralContactIndex> actives;
-    for (unsigned k=n-1; k > 0; --k) {
-        SimTK_DEBUG2("  NOT GOOD @%d actives: Try choosing %d.\n", k+1, k);
-        unsigned long long combo = 0;
+    Array_<pair<UnilateralContactIndex,CondConstraint::Condition>> actives;
+    Array_<unsigned> frictional;
+    bool noGoodSoln = true;
+    for (int k=n; noGoodSoln && k >= 0; --k) {
+        SimTK_DEBUG2("  TRYING all combinations of %d/%d actives.\n", k, n);
+        long long combo = -1;
         while (nextBitCombination(n, k, combo)) {
             actives.clear();
-            for (unsigned long long bits=combo; bits; bits=clearLowBit(bits))
-                actives.push_back(lingeringUniContacts[lowBitIndex(bits)]);
-            if (scoreActiveSet(mbs, state, lingeringUniContacts,
-                               actives, norm2Lambda, worstForce, worstAcc)) {
-                if (norm2Lambda < bestNorm2Lambda) {
-                    SimTK_DEBUG2("New winner with %d actives, norm=%g\n",
-                                 k, norm2Lambda);
-                    bestCombo=combo;
-                    bestNorm2Lambda = norm2Lambda;
+            for (auto bits=combo; bits; bits=clearLowBit(bits))
+                actives.emplace_back(lingeringUniContacts[lowBitIndex(bits)],
+                                     CondConstraint::Active);
+            frictional.clear();
+            for (unsigned i=0; i < actives.size(); ++i) {
+                auto& contact = matter.getUnilateralContact(actives[i].first);
+                if (contact.hasFriction(state))
+                    frictional.push_back(i);
+            }
+            const int nf = frictional.size();
+
+            // Here kr is the number of rolling contacts we're trying.
+            bool noGoodRolling=true;
+            for (int kr=nf; noGoodRolling && kr>=0; --kr) {
+                SimTK_DEBUG2("  try %d rolling out of %d frictional.\n", kr,nf);
+                long long rolling=-1;
+                while (nextBitCombination(nf, kr, rolling)) {
+                    for (int bitno=0; bitno < nf; ++bitno)
+                        actives[frictional[bitno]].second =
+                            isBitSet(rolling,bitno) ? CondConstraint::Active 
+                                                    : CondConstraint::Slipping;
+                    Real norm2Lambda;
+                    pair<UnilateralContactIndex,Real> worstForce, worstAcc;
+                    if (scoreActiveSet(mbs, state, lingeringUniContacts,
+                                       actives, norm2Lambda, 
+                                       worstForce, worstAcc)) {
+                        if (norm2Lambda < bestNorm2Lambda) {
+                            SimTK_DEBUG5(
+                            "Best so far: %d/%d actives, %d/%d rolling, norm=%g\n",
+                                         k,n,kr,nf, norm2Lambda);
+                            bestCombo=combo;
+                            bestRolling=rolling;
+                            bestNorm2Lambda = norm2Lambda;
+                        }
+                        noGoodRolling = false; //good soln: k active, kr rolling
+                    }
                 }
             }
-            if (bestCombo) {
-                SimTK_DEBUG2("  Good solution w/%d actives, norm=%g\n",
-                             k, bestNorm2Lambda);
-                mbs.realize(state, Stage::Position);
-                matter.getSystem().project(state);
-                return;
-            }
+
+            if (!noGoodRolling)
+                noGoodSoln = false;
+        }
+
+        if (!noGoodSoln) {
+            SimTK_DEBUG3(
+            "  Found good solution w/%d actives, %d rolling, bestnorm=%g\n",
+                            k, countSetBits(bestRolling), bestNorm2Lambda);
         }
     }
 
-    // No good solution with any constraints on. Deactivate everything.
-    if (scoreActiveSet(mbs, state, 
-                       lingeringUniContacts, Array_<UnilateralContactIndex>(),
-                       norm2Lambda, worstForce, worstAcc)) {
-            SimTK_DEBUG("  No actives was a good solution\n");
-    } else {
-            SimTK_DEBUG("  COULDN'T FIND A GOOD SOLUTION; deactivated\n");
+    if (noGoodSoln) {
+        SimTK_DEBUG("  NO GOOD SOLUTION FOUND\n");
     }
 
     mbs.realize(state, Stage::Position);
@@ -711,10 +732,11 @@ findActiveSet
 //------------------------------------------------------------------------------
 /*static*/ void ContactEventAction::
 activateActiveSet
-       (const MultibodySystem&                  mbs,
-        State&                                  state,
-        const Array_<UnilateralContactIndex>&   fullSet,
-        const Array_<UnilateralContactIndex>&   activeSubset)
+       (const MultibodySystem&                          mbs,
+        State&                                          state,
+        const Array_<UnilateralContactIndex>&           fullSet,
+        const Array_<pair<UnilateralContactIndex,
+                          CondConstraint::Condition>>&  activeSubset)
 {
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -725,10 +747,19 @@ activateActiveSet
     }
 
     // Activate the active ones.
-    for (auto ux : activeSubset) {
-        const UnilateralContact& contact = matter.getUnilateralContact(ux);
-        contact.setCondition(state, CondConstraint::Active);
+    for (auto& active : activeSubset) {
+        auto& contact = matter.getUnilateralContact(active.first);
+        contact.setCondition(state, active.second);
     }
+}
+
+namespace SimTK {
+std::ostream& operator<<(std::ostream& o, 
+                         const pair<SimTK::UnilateralContactIndex,
+                                    SimTK::CondConstraint::Condition>& p)
+{
+    return o << p.first << ":" << SimTK::CondConstraint::toString(p.second);
+}
 }
 
 //------------------------------------------------------------------------------
@@ -740,13 +771,14 @@ activateActiveSet
 // squares solution.
 /*static*/ bool ContactEventAction::
 scoreActiveSet
-       (const MultibodySystem&                  mbs,
-        State&                                  state,
-        const Array_<UnilateralContactIndex>&   lingeringUniContacts,
-        const Array_<UnilateralContactIndex>&   activeSubset,
-        Real&                                   norm2Lambda,
-        std::pair<UnilateralContactIndex,Real>& worstForce,
-        std::pair<UnilateralContactIndex,Real>& worstAcc)
+       (const MultibodySystem&                          mbs,
+        State&                                          state,
+        const Array_<UnilateralContactIndex>&           lingeringUniContacts,
+        const Array_<pair<UnilateralContactIndex,
+                          CondConstraint::Condition>>&  activeSubset,
+        Real&                                           norm2Lambda,
+        pair<UnilateralContactIndex,Real>&              worstForce,
+        pair<UnilateralContactIndex,Real>&              worstAcc)
 {
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -755,6 +787,7 @@ scoreActiveSet
 
     mbs.realize(state, Stage::Acceleration);
     const Vector& mults = state.getMultipliers();
+    const Vector& aerrs = state.getUDotErr();
     norm2Lambda = mults.norm();
 
     worstForce.first.invalidate(); worstForce.second=0;
@@ -766,26 +799,32 @@ scoreActiveSet
         const auto& uni = matter.getUnilateralContact(ux);
         const auto cond = uni.getCondition(state);
         const Real sign = uni.getSignConvention();
+        const Real atol = 1e-9; // TODO should be Precision
+        const Real ftol = 1e-9; // TODO should be mass-scaled atol
         if (cond == CondConstraint::Off) {
             const Real acc = sign*uni.getAerr(state);
             accs.push_back(acc);
             if (acc < worstAcc.second) {
                 worstAcc.first = ux; worstAcc.second = acc;
-                isGood = false;
+                if (acc < -atol)
+                    isGood = false;
             }
         } else {
-            assert(cond == CondConstraint::Active);
+            assert(cond > CondConstraint::Off);
             const Real frc = -sign*mults[uni.getContactMultiplierIndex(state)];
             forces.push_back(frc);
             if (frc < worstForce.second) {
                 worstForce.first = ux; worstForce.second = frc;
-                isGood = false;
+                if (frc < -ftol)
+                    isGood = false;
             }
         }
     }
 
 #ifndef NDEBUG
     cout << "scoreActiveSet: " << activeSubset << endl;
+    cout << "  mults=" << mults << endl;
+    cout << "  aerrs=" << aerrs << endl;
     cout << "  active forces=" << forces << endl;
     cout << "  inactive accs=" << accs << endl;
 

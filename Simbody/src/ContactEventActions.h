@@ -34,6 +34,7 @@
 #include "simbody/internal/ImpulseSolver.h"
 
 #include <memory>
+#include <utility>
 
 namespace SimTK {
 class SimbodyMatterSubsystemRep;
@@ -211,19 +212,21 @@ private:
         Array_<UnilateralContactIndex>&       lingeringUniContacts); 
 
     static void activateActiveSet
-       (const MultibodySystem&                  mbs,
-        State&                                  state,
-        const Array_<UnilateralContactIndex>&   fullSet,
-        const Array_<UnilateralContactIndex>&   activeSubset);
+       (const MultibodySystem&                              mbs,
+        State&                                              state,
+        const Array_<UnilateralContactIndex>&               fullSet,
+        const Array_<std::pair<UnilateralContactIndex,
+                               CondConstraint::Condition>>& activeSubset);
 
     static bool scoreActiveSet
-       (const MultibodySystem&                  mbs,
-        State&                                  state,
-        const Array_<UnilateralContactIndex>&   lingeringUniContacts,
-        const Array_<UnilateralContactIndex>&   activeSubset,
-        Real&                                   norm2Lambda,
-        std::pair<UnilateralContactIndex,Real>& worstForce,
-        std::pair<UnilateralContactIndex,Real>& worstAcc); 
+       (const MultibodySystem&                              mbs,
+        State&                                              state,
+        const Array_<UnilateralContactIndex>&               lingering,
+        const Array_<std::pair<UnilateralContactIndex,
+                               CondConstraint::Condition>>& activeSubset,
+        Real&                                               norm2Lambda,
+        std::pair<UnilateralContactIndex,Real>&             worstForce,
+        std::pair<UnilateralContactIndex,Real>&             worstAcc); 
 
     void changeVirtual(Study&                  study,
                        const Event&            event,

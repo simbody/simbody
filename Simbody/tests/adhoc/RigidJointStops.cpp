@@ -66,8 +66,12 @@ private:
 
 namespace {
 const Real StopCoefRestLeft = 1;
-const Real StopCoefRestRight = 1;
+const Real StopCoefRestRight = .5;
 const Real RopeCoefRest = .1;
+const Real BoxCoefRest = .5;
+const Real BoxMuS = Infinity;
+const Real BoxMuD = Infinity;
+const Real BoxMuV = 0;
 const Real Gravity = 9.81;
 }
 
@@ -79,6 +83,7 @@ int main() {
     SimbodyMatterSubsystem matter(system);
     GeneralForceSubsystem forces(system);
     Force::Gravity gravity(forces, matter, -YAxis, Gravity);
+    MobilizedBody& Ground = matter.updGround();
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
@@ -105,20 +110,42 @@ int main() {
     bodyT.addBodyDecoration(Transform(Rotation(outer, ZAxis), Vec3(2,0,0)),
                             stop);
 
-    UnilateralContactIndex ll, ul, lr, ur, rope;
-    ll=matter.adoptUnilateralContact(
-        new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
-    ul=matter.adoptUnilateralContact(
-        new HardStopUpper(leftArm, MobilizerQIndex(0), -inner, StopCoefRestLeft));
+    //UnilateralContactIndex ll, ul, lr, ur, rope;
+    //ll=matter.adoptUnilateralContact(
+    //    new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
+    //ul=matter.adoptUnilateralContact(
+    //    new HardStopUpper(leftArm, MobilizerQIndex(0), -inner, StopCoefRestLeft));
 
-    lr=matter.adoptUnilateralContact(
-        new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
-    ur=matter.adoptUnilateralContact(
-        new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
+    //lr=matter.adoptUnilateralContact(
+    //    new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
+    //ur=matter.adoptUnilateralContact(
+    //    new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
 
-    rope=matter.adoptUnilateralContact(
-        new Rope(matter.updGround(), Vec3(-5,1,1),
-                 leftArm, Vec3(0, -1.5, 0), 2.75, RopeCoefRest));
+    //// ROPE
+    //rope=matter.adoptUnilateralContact(
+    //    new Rope(matter.updGround(), Vec3(-5,1,1),
+    //             leftArm, Vec3(0, -1.5, 0), 2.75, RopeCoefRest));
+
+    // BOX
+    const Vec3 hBox(1,.25,.5); // half dims of box
+    Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
+    DecorativeBrick drawBox(hBox); drawBox.setOpacity(0.5).setColor(Gray);
+
+    Body::Rigid boxBody(MassProperties(1, Vec3(0), UnitInertia::brick(hBox))); 
+    boxBody.addDecoration(Vec3(0),drawBox);
+    boxBody.addDecoration(Vec3(0), DecorativePoint());
+
+    MobilizedBody::Free box(Ground, Vec3(0,2,0), boxBody, Vec3(0));
+
+    for (int i=-1; i<=1; i+=2)
+    for (int j=-1; j<=1; j+=2)
+    for (int k=-1; k<=1; k+=2) {
+        const Vec3 pt = Vec3(0) + Vec3(i,j,k).elementwiseMultiply(hBox);
+        PointPlaneContact* contact = new PointPlaneContact
+           (Ground, YAxis, 0., box, pt, BoxCoefRest , BoxMuS, BoxMuD, BoxMuV);
+        matter.adoptUnilateralContact(contact);
+        //i=j=k=2; // break 3
+    }
 
     // Ask for visualization every 1/30 second.
     system.setUseUniformBackground(true); // turn off floor 
@@ -146,11 +173,13 @@ int main() {
     //rtArm.setAngle(state, Pi/2);
     leftArm.setAngle(state, -.9);
     rtArm.setAngle(state, .9);
+    box.setQToFitRotation(state, Rotation(BodyRotationSequence,
+                                          Pi/4, ZAxis, -Pi/10, XAxis));
 
     const double SimTime = 20;
 
     //matter.getUnilateralContact(ul).setCondition(state, CondConstraint::Active);
-    matter.getUnilateralContact(ur).setCondition(state, CondConstraint::Active);
+    //matter.getUnilateralContact(ur).setCondition(state, CondConstraint::Active);
     //matter.getUnilateralContact(rope).setCondition(state, CondConstraint::Active);
 
     printf("SHOWING UNASSEMBLED SYSTEM -- hit ENTER\n");

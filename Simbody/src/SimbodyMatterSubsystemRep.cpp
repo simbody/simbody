@@ -2169,11 +2169,14 @@ findActiveMultipliers(const State& s) const {
     const int nUniContacts  = getNumUnilateralContacts();
     for (UnilateralContactIndex ux(0); ux < nUniContacts; ++ux) {
         const UnilateralContact& contact = getUnilateralContact(ux);
-        if (contact.isActive(s))
-            continue;
-        isActive[contact.getContactMultiplierIndex(s)] = false;
-        --mActive;
-        if (contact.hasFriction(s)) {
+        const CondConstraint::Condition cond = contact.getCondition(s);
+        if (cond <= CondConstraint::Off) {
+            isActive[contact.getContactMultiplierIndex(s)] = false;
+            --mActive;
+        }
+        // TODO: disabling friction if not active; should replace with
+        // sliding equations instead.
+        if (contact.hasFriction(s) && cond != CondConstraint::Active) {
             MultiplierIndex xIx, yIx;
             contact.getFrictionMultiplierIndices(s,xIx,yIx);
             isActive[xIx] = isActive[yIx] = false;
