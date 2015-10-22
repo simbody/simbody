@@ -23,6 +23,20 @@ if(MINGW)
     # Caution: No cross-compiling is taken into account:
     # If we use a 32 bit compiler, we will get a 32 executable.
     # The same for 64 bit platform
+    #
+    # 1 Check the thread model
+    include(CheckCXXSourceCompiles)
+    CHECK_CXX_SOURCE_COMPILES("#include <mutex>\nint main(){std::mutex m;return 0;}" GPP_SUPPORTS_STD_MUTEX)
+    if(NOT GPP_SUPPORTS_STD_MUTEX)
+        message(STATUS "Your MinGW version does not support std::mutex.")
+        message(STATUS "This is probably because of the win32 thread model used.")
+        message(STATUS "Change to a posix thread model.")
+        message(STATUS "Also note that exception mechanism is important before downloading another MinGW version")
+        message(STATUS "    For a 32 bit instatallation, use a Posix thread with DWARF (DW2) exception mechanism")
+        message(STATUS "    For a 64 bit instatallation, use a Posix thread with SJLJ exception mechanism")
+        message(FATAL_ERROR "Your MinGW version does not support std::mutex. -> Change to a posix thread model")
+    endif()
+    # 2 Check the exception mechanism
     get_filename_component(MINGW_BIN_PATH ${CMAKE_C_COMPILER} PATH)
     message(STATUS "MINGW BIN PATH = ${MINGW_BIN_PATH}")
     set(MINGW_LIB_DIRECTORY "")
