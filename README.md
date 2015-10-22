@@ -472,9 +472,26 @@ Windows using MinGW
 Warning: The [MinGW](http://sourceforge.net/projects/mingw-w64/)
 generation and build is experimental!
 
-This build is still experimental, because of the compiled libraries
-Simbody depends on (Blas and Lapack).
-To ease building on Windows, Simbody provides compiled libraries for Blas and Lapack:
+This build is still experimental, because of :
+
+* the various MinGW versions available (Thread model, exception mechanism)
+* the compiled libraries Simbody depends on (Blas and Lapack).
+
+If you do not want to go into details, you need a MinGW version with :
+
+* a Posix thread model and Dwarf exception mechanism on a 32 bit computer
+* a Posix thread model and SJLJ exception mechanism on a 64 bit computer
+
+Other versions are supported with additional configurations. Read the details below to understand everything.
+
+MinGW is available with two thread models :
+
+* Win32 thread model
+* Posix thread model
+
+One has to use the Posix thread model, since all thread functionalities (e.g. `std:mutex`) are not implemented.
+
+To ease building on Windows, Simbody provides compiled libraries for Blas and Lapack :
 
 * On Windows 32 Bits, these were compiled with a Dwarf exception mechanism,
 * On Windows 64 Bits, these were compiled with a SJLJ exception mechanism.
@@ -496,7 +513,18 @@ compilation with MinGW is always possible.
 
 #### Instructions
 
-Example of instruction where ones uses Blas and Lapack libraries provided :
+Example of instructions where ones uses Blas and Lapack libraries provided (to be used in a Windows terminal):
+
+    $ rem CMake configuration
+    $ cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
+    $ rem Compilation
+    $ mingw32-make
+    $ rem Test
+    $ mingw32-make test
+    $ rem Installation
+    $ mingw32-make install
+
+Example of instructions where ones uses Blas and Lapack libraries provided (to be used in a MSYS terminal):
 
     $ # CMake configuration
     $ cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
@@ -507,7 +535,7 @@ Example of instruction where ones uses Blas and Lapack libraries provided :
     $ # Installation
     $ make install
 
-Example of instruction where one provides our own Blas and Lapack libraries :
+Example of instructions where one provides our own Blas and Lapack libraries (to be used in a MSYS terminal):
 
     $ # CMake configuration
     $ cmake ../simbody -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release \
@@ -520,6 +548,21 @@ Example of instruction where one provides our own Blas and Lapack libraries :
     $ make test
     $ # Installation
     $ make install
+
+#### Supported MinGW versions
+
+The table below lists the various versions of MinGW versions supported
+
+OS              | Thread | Exception | Recommended | URL                                                                                                                                                                                                                            |
+----------------|--------|-----------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+32 Bits Version | Posix  | Dwarf     | YES         | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/dwarf/i686-5.2.0-release-posix-dwarf-rt_v4-rev0.7z/download)    |
+32 Bits Version | Posix  | SJLJ      |             | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/i686-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)      |
+64 Bits Version | Posix  | SEH       | YES         | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/x86_64-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)    |
+64 Bits Version | Posix  | SJLJ      |             | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/seh/x86_64-5.2.0-release-posix-seh-rt_v4-rev0.7z/download)      |
+
+For the recommended versions, user does not have to provide its own Blas and Lapack libraries. In the other case, Blas and Lapack have to be compiled manually.
+
+If your version is not supported, CMake will detect it while configuring and stops.
 
 Acknowledgments
 ---------------
