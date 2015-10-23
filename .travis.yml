@@ -88,5 +88,5 @@ deploy:
     secure: MOCuM6THnBR82ClEmWFmqVM/GEiNtimz7dMmWUnmgU4gWAU9DBq0OelifQ6XAAhEqZGz0IbVyRo+zDGWRUEC/EIAb9PhTSg6W/XX+zykAQCsIr3BMvOE6v5MXNz/JMFKxZoFmmrL1WR4a4KUOQANr7derYkIZUy/9CnUkJgQGKE=
   on:
     # Upload for both linux and OSX. 
-    branch: bintray-touchup
+    branch: master
     condition: "$CC = clang"
