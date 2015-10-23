@@ -9,7 +9,7 @@ matrix:
       env: BTYPE=RelWithDebInfo
     - os: linux
       compiler: gcc
-      env: BTYPE=RelWithDebInfo
+      env: BTYPE=Release
     - os: linux
       compiler: clang
       env: BTYPE=Debug
