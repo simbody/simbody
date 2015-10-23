@@ -1,0 +1,24 @@
+{
+    "package": {
+        "name": "simbody",
+        "repo": "opensim-testing",
+        "subject": "chrisdembia"
+    },
+
+    "version": {
+        "name": "latest"
+    },
+
+    "files": 
+        [
+            {
+                "includePattern": "binstar-packages/(.*)",
+                "uploadPattern": "$1", /* replaced with the match to (.*) . */
+                "matrixParams": {"override": 1} /* overwrite existing files. */
+            }
+        ],
+
+    "publish": true
+}
+
+
