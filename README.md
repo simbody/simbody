@@ -480,7 +480,7 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 
 
 
-[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.png?branch=master
+[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.svg?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2/branch/master?svg=true
 [appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody/branch/master
