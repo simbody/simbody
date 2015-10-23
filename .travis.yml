@@ -57,7 +57,7 @@ before_install:
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
   - make -j8
 
@@ -66,4 +66,28 @@ script:
   - ctest -j8 --output-on-failure
 
   ## Make sure we can install with no issues.
-  - sudo make -j8 install
+  - make -j8 install
+
+  # Zip up the installation using a file name that identifies where
+  # the binaries were built.
+  - mkdir ~/binstar-packages
+  - ZIPNAME=simbody-latest_$TRAVIS_OS_NAME.zip
+  - # Zip up simbody relative to the home directory; must change to home dir.
+  - cd ~
+  - zip --recurse-paths --quiet ~/binstar-packages/$ZIPNAME simbody
+
+  # Paths in the .bintray.json file are relative to the current directory.
+  - cd ~
+
+deploy:
+  provider: bintray
+  file: $TRAVIS_BUILD_DIR/doc/.bintray.json
+  user: chrisdembia
+  skip_cleanup: true
+  # API key is encrypted with travis.
+  key:
+    secure: MOCuM6THnBR82ClEmWFmqVM/GEiNtimz7dMmWUnmgU4gWAU9DBq0OelifQ6XAAhEqZGz0IbVyRo+zDGWRUEC/EIAb9PhTSg6W/XX+zykAQCsIr3BMvOE6v5MXNz/JMFKxZoFmmrL1WR4a4KUOQANr7derYkIZUy/9CnUkJgQGKE=
+  on:
+    # Upload for both linux and OSX. 
+    branch: master
+    condition: "$CC = clang"
