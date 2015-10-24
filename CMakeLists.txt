@@ -10,7 +10,13 @@
 #    (5) Build examples
 #
 #-------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 2.8.8)
+if(MSVC)
+    # To properly support Visual Studio 2015.
+    set(SIMBODY_REQUIRED_CMAKE_VERSION 3.1.3)
+else()
+    set(SIMBODY_REQUIRED_CMAKE_VERSION 2.8.8)
+endif()
+cmake_minimum_required(VERSION ${SIMBODY_REQUIRED_CMAKE_VERSION})
 
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
