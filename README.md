@@ -503,7 +503,7 @@ have the same exception mechanism.
 Otherwise, we need to provide our own Blas and Lapack libraries.
 
 To see which exception mechanism is used, user can look at dlls located in the `bin` directory of MinGW.
-The name of mechanism is present in the file `libgcc_XXXX.dll`, where `XXXX` can be `dw`, `seh` or `sljl`.
+The name of mechanism is present in the file `libgcc_XXXX.dll`, where `XXXX` can be `dw`, `seh` or `sjlj`.
 For some MinGW version, this information is also available by looking at the result of `gcc --version`.
 
 CMake will check the version of your MinGW, and if the exception mechanism is different,
