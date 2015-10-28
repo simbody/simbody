@@ -99,12 +99,16 @@ file(GLOB LIB_FILES
     "${LIB_ABI_DIR}/*.lib"
     "${LIB_ABI_DIR}/*.dll")
 
-if(BUILD_USING_OTHER_LAPACK)
-    if(MINGW)
-        # If we use MinGW, we bypass the classical *dll and use
-        # the MinGW ones.
-        # TODO: We should select only the ones needed...
+if(MINGW)
+    # If we use MinGW, we bypass the classical *dll and use
+    # the MinGW ones.
+    # TODO: We should select only the ones needed...
+    if(BUILD_USING_OTHER_LAPACK)
         set(LIB_FILES ${MINGW_DLLS} ${LAPACK_BEING_USED})
+    else()
+        set(LIB_FILES ${MINGW_DLLS}
+                      ${LIB_ABI_DIR}/liblapack.dll
+                      ${LIB_ABI_DIR}/libblas.dll)
     endif()
 endif()
 
