@@ -135,13 +135,13 @@ foreach(LIBF ${LIB_FILES})
     get_filename_component(LIBF_ROOT ${LIBF} NAME)
     get_filename_component(LIBF_SUFFIX ${LIBF} EXT)
     set(COPIED_LIBF "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
-    IF(MINGW)
+    if(MINGW)
         set(LIBF_SRC ${LIBF})
         set(LIBF_DEST ${COPIED_LIBF})
-    ELSE()
+    else()
         file(TO_NATIVE_PATH "${LIBF}" LIBF_SRC)
         file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
-    ENDIF()
+    endif()
 
     add_custom_command(OUTPUT "${COPIED_LIBF}"
         COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
