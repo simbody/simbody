@@ -36,7 +36,9 @@ using std::tolower;
 
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
+    #if !defined(__MINGW32__)
     #define NOMINMAX
+    #endif
     #include <windows.h>
     #include <direct.h>
     #pragma warning(disable:4996) // getenv() is apparently unsafe
