@@ -137,6 +137,14 @@ if(BUILD_STATIC_LIBRARIES)
 endif()
 add_subdirectory( sharedTarget )
 
+if(MINGW)
+    if(${PLATFORM_ABI} MATCHES "x86")
+        message(STATUS "Visualization is disabled because the shipped version of glut32.dll uses a")
+        message(STATUS "different convention call than MinGW")
+        message(STATUS "Use a 64 bit version of MinGW to build visualizer, or provide your own implementation of glut")
+        set(BUILD_VISUALIZER FALSE)
+    endif()
+endif()
 if(BUILD_VISUALIZER)
   # NOTE: If you change GUI_NAME, you must also change the value of GuiAppName
   # in VisualizerProtocol.cpp
