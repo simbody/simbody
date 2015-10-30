@@ -477,7 +477,8 @@ This build is still experimental, because of :
 * the various MinGW versions available (Thread model, exception mechanism)
 * the compiled libraries Simbody depends on (Blas, Lapack and optionnaly glut).
 
-Below are three sections that gives a list of supported versions, command line instructions, and reasons why is it not so obvious to use MinGW.
+Below are three sections that gives a list of supported versions, command line
+instructions, and reasons why is it not so obvious to use MinGW.
 
 #### Supported MinGW versions
 
@@ -497,11 +498,16 @@ The table below lists the various versions of MinGW versions tested:
  3 | 32 Bits | Posix  | Dwarf     | No visualization, all binary included                               | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/dwarf/i686-5.2.0-release-posix-dwarf-rt_v4-rev0.7z/download)    |
  4 | 32 Bits | Posix  | SJLJ      | No visualization, needs to be linked against user's Blas and Lapack | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/i686-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)      |
 
-We recommend to use the first configuration where all features are supported and does not need additional libraries to compile and run.
+We recommend to use the first configuration where all features are supported and
+does not need additional libraries to compile and run.
 The URL allows to download directly this version.
-The second version needs to be linked against user's Blas and Lapack (A CLI example is given below).
-Blas and Lapack sources can be downloaded from [netlib](http://www.netlib.org/lapack/lapack-3.5.0.tgz).
-For the 3rd and 4th versions that run that target a 32 bit behaviour, visualization is not possible for the time being. (It is due to a compile and link problem with `glut`).
+The second version needs to be linked against user's Blas and Lapack
+(A CLI example is given below).
+Blas and Lapack sources can be downloaded from
+[netlib](http://www.netlib.org/lapack/lapack-3.5.0.tgz).
+For the 3rd and 4th versions that run that target a 32 bit behaviour,
+visualization is not possible for the time being.
+(It is due to a compile and link problem with `glut`).
 Moreover for the 4th one, one needs to provide Blas and Lapack libraries.
 
 Please note that only Posix version of MinGW are supported.
@@ -511,7 +517,12 @@ If your version is not supported, CMake will detect it while configuring and sto
 #### Instructions
 
 Below are some examples of command line instructions for various cases.
-It is assumed you are running commands from a build directory, that can access Simbody source with a command `cd ..\simbody`
+It is assumed you are running commands from a build directory, that can access Simbody source with a command `cd ..\simbody`.
+
+It is recommended to specify with the installation directory with flag `CMAKE_INSTALL_PREFIX`
+(e.g. `-DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"`).
+If not used, the installation directory will be `C:\Program Files (x86)\Simbody`
+on a 64 bit computer. This might be confusing since it is the 32 bit installation location.
 
 Example of instructions where one uses Blas and Lapack libraries provided (to be used in a Windows terminal, where MinGW is in the PATH):
 
