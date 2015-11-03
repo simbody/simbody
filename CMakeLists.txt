@@ -439,13 +439,12 @@ else(NEED_QUOTES)
                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
 endif(NEED_QUOTES)
 
-
 # Determine which math libraries to use for this platform.
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
 set(BUILD_USING_OTHER_LAPACK "" CACHE STRING
- "If you have your own Lapack and Blas, put library basenames here, separated by semicolons. See LAPACK_BEING_USED to see what's actually being used.")
+ "If you have your own Lapack and Blas, put libraries here, separated by semicolons (full paths or paths that are on the (DY)LD_LIBRARY_PATH (UNIX) or PATH (Windows)). See LAPACK_BEING_USED to see what's actually being used.")
 if(WIN32)
-    set(LAPACK_PLATFORM_DEFAULT liblapack;libblas)
+    set(LAPACK_PLATFORM_DEFAULT lapack;blas)
 else()
     find_package(BLAS)
     find_package(LAPACK)
@@ -461,7 +460,7 @@ set(LAPACK_BEING_USED ${LAPACK_PLATFORM_DEFAULT} CACHE STRING
 if(BUILD_USING_OTHER_LAPACK)
     set(LAPACK_BEING_USED ${BUILD_USING_OTHER_LAPACK} CACHE STRING
 "Basename of the actual Lapack library we're depending on; can't change here; see variable BUILD_USING_OTHER_LAPACK." FORCE)
-endif(BUILD_USING_OTHER_LAPACK)
+endif()
 
 if(UNIX)
     if(NOT APPLE)
@@ -469,21 +468,12 @@ if(UNIX)
     endif()
     set(MATH_LIBRARY m)
     set(DL_LIBRARY dl)
-
-    # use CMAKE_THREAD_LIBS_INIT var from findthreads.cmake
-    set(CMAKE_THREAD_LIBS_INIT pthread)
 endif()
 
-if(MSVC)
-    if(${PLATFORM_ABI} MATCHES "x64")
-        set(CMAKE_THREAD_LIBS_INIT pthreadVC2_x64)
-    else()
-        set(CMAKE_THREAD_LIBS_INIT pthreadVC2)
-    endif()
-endif()
-
-set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} ${CMAKE_THREAD_LIBS_INIT} ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
+set(MATH_LIBS_TO_USE    ${LAPACK_BEING_USED} pthread
+                        ${REALTIME_LIB} ${DL_LIBRARY} ${MATH_LIBRARY})
 set(MATH_LIBS_TO_USE_VN ${MATH_LIBS_TO_USE})
+
 #
 # Allow automated build and dashboard.
 #
@@ -527,7 +517,7 @@ include(ApiDoxygen.cmake)
 
 # Each build should look in our local binary directory to find the
 # earlier-built libraries that it depends on.
-link_directories(${BUILD_BINARY_DIR})
+#link_directories(${BUILD_BINARY_DIR}) # TODO remove.
 
 # Specify where visualizer should be installed. This needs to be in the
 # root CMakeLists.txt so the cmake config file can see this value.
@@ -601,6 +591,7 @@ configure_package_config_file(
         CMAKE_INSTALL_PREFIX
         SIMBODY_INCLUDE_INSTALL_DIR
         CMAKE_INSTALL_LIBDIR
+        CMAKE_INSTALL_BINDIR
         SIMBODY_VISUALIZER_INSTALL_DIR
         SIMBODY_INSTALL_DOXYGENDIR
     )
@@ -629,16 +620,17 @@ install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
 
 # Make the pkgconfig file: select the proper flags depending on the platform
 if(WIN32)
-    if( ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    if(${PLATFORM_ABI} MATCHES "x64")
+        # TODO
         # win 64 bits
-    set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
+        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
     else()
-    set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
+        set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2")
     endif()
 elseif(APPLE)
-    set(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -ldl")
+    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lpthread -ldl")
 else()
-    set(PKGCONFIG_PLATFORM_LIBS "-llapack -lblas -lpthread -lrt -ldl -lm")
+    set(PKGCONFIG_PLATFORM_LIBS     "-llapack -lblas -lpthread -lrt -ldl -lm")
 endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/cmake/pkgconfig/simbody.pc.in
