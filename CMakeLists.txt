@@ -515,10 +515,6 @@ endif(BUILD_TESTING)
 
 include(ApiDoxygen.cmake)
 
-# Each build should look in our local binary directory to find the
-# earlier-built libraries that it depends on.
-#link_directories(${BUILD_BINARY_DIR}) # TODO remove.
-
 # Specify where visualizer should be installed. This needs to be in the
 # root CMakeLists.txt so the cmake config file can see this value.
 #

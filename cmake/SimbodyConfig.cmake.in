@@ -71,27 +71,25 @@ endif()
 include("${CMAKE_CURRENT_LIST_DIR}/SimbodyTargets.cmake")
 
 
-# Pre-built libraries that CMake didn't build but that Simbody depends on.
+# Create "fake" IMPORTED targets to represent the pre-built platform libraries
+# that Simbody usually carries along on Windows.
+# When CMake sees that a target links to, e.g., the pthread target, CMake will
+# use the appropriate library paths below.
 set(SIMBODY_WAS_BUILT_USING_OTHER_LAPACK "@BUILD_USING_OTHER_LAPACK@")
 if(WIN32 AND NOT SIMBODY_WAS_BUILT_USING_OTHER_LAPACK)
-    # On Windows, Simbody ships some pre-built library dependencies. Simbody's
-    # own libraries depend on them, but CMake doesn't know where they are
-    # because CMake didn't build them. Therefore, we manually construct targets
-    # for them.
-    add_library(blas SHARED IMPORTED GLOBAL)
+    add_library(blas SHARED IMPORTED)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/libblas.lib"
         IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/libblas.dll"
         )
 
-    add_library(lapack SHARED IMPORTED GLOBAL)
+    add_library(lapack SHARED IMPORTED)
     set_target_properties(lapack PROPERTIES
         IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/liblapack.lib"
         IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/liblapack.dll"
         # lapack depends on blas:
         INTERFACE_LINK_LIBRARIES blas
         )
-
 endif()
 if(MSVC)
     # If using MinGW, you get pthread elsewhere.
@@ -100,7 +98,7 @@ if(MSVC)
     else()
         set(THREAD_LIB_NAME pthreadVC2)
     endif()
-    add_library(pthread SHARED IMPORTED GLOBAL)
+    add_library(pthread SHARED IMPORTED)
     set_target_properties(pthread PROPERTIES
         IMPORTED_IMPLIB "@PACKAGE_CMAKE_INSTALL_LIBDIR@/${THREAD_LIB_NAME}.lib"
         IMPORTED_LOCATION "@PACKAGE_CMAKE_INSTALL_BINDIR@/${THREAD_LIB_NAME}.dll"

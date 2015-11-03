@@ -148,8 +148,9 @@ foreach(LIBF ${LIB_FILES})
     endif()
 
     if(LIBF_SUFFIX STREQUAL ".dll")
-        # Only need runtime libraries next to the executables; import libraries
-        # (.lib) are linked through target_link_libraries.
+        # Only the runtime libraries (.dll) are needed next to the
+        # executables/tests; import libraries (.lib) are linked through
+        # target_link_libraries.
         add_custom_command(OUTPUT "${COPIED_LIBF}"
             COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
             DEPENDS "${LIBF}"
@@ -175,8 +176,14 @@ endforeach()
 # Create "fake" IMPORTED targets to represent the pre-built platform libraries.
 # When CMake sees that a target links to, e.g., the pthread target, CMake will
 # use the appropriate library paths below.
+# Note: we don't need to do this for the other platform libraries
+# (gcc_s_sjlj-1, gfortran, quadmath, ...) since Simbody's libraries do not link
+# to them when compiling; we only need to do this for import libraries (.lib).
+# All the platform libraries (including quadmath, etc.) still must be on the
+# PATH when running executables using Simbody.
 if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK) # TODO what's the condition?
-    # Without GLOBAL, this target is only available in this dir. and below.
+    # Without GLOBAL, this target is only available in this dir. and below,
+    # but we want to use these targets everywhere in this project.
     add_library(blas SHARED IMPORTED GLOBAL)
     set_target_properties(blas PROPERTIES
         IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
