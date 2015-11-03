@@ -181,7 +181,7 @@ endforeach()
 # to them when compiling; we only need to do this for import libraries (.lib).
 # All the platform libraries (including quadmath, etc.) still must be on the
 # PATH when running executables using Simbody.
-if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK) # TODO what's the condition?
+if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
     # Without GLOBAL, this target is only available in this dir. and below,
     # but we want to use these targets everywhere in this project.
     add_library(blas SHARED IMPORTED GLOBAL)

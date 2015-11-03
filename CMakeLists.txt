@@ -617,7 +617,6 @@ install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
 # Make the pkgconfig file: select the proper flags depending on the platform
 if(WIN32)
     if(${PLATFORM_ABI} MATCHES "x64")
-        # TODO
         # win 64 bits
         set(PKGCONFIG_PLATFORM_LIBS "-lliblapack -llibblas -lpthreadVC2_x64")
     else()
