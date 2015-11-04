@@ -19,20 +19,28 @@ if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
  return()
 endif()
 
-# With MSVC, we check that the compiler supports C++ 2011.
-# We can check the value of MSVC_VERSION with a test like this:
-#   if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
-#   endif()
-# However, there is a special version of MSVC 2013 (CTP) that supports C++ 2011
-# features, so we make a test to see if compiler supports C++ 2011.
 if(MSVC)
-    include(CheckCXXSourceCompiles)
-    CHECK_CXX_SOURCE_COMPILES("constexpr int f() { return 0; }\nint main(){f();return 0;}" MSVC_SUPPORTS_CONSTEXPR)
-    if(NOT MSVC_SUPPORTS_CONSTEXPR)
+    # With MSVC, we check that the compiler supports C++ 2011.
+    # To do so, we can check:
+    #   - the value of MSVC_VERSION with a test like this:
+    #       include(CheckCXXSourceCompiles)
+    #       check_cxx_source_compiles(
+    #           "constexpr int f() { return 0; }\nint main(){f();return 0;}"
+    #           MSVC_SUPPORTS_CONSTEXPR)
+    #       if(NOT MSVC_SUPPORTS_CONSTEXPR)
+    #           message(FATAL_ERROR "MSVC does not support C++ 2011 features")
+    #       endif()
+    #   - the value of MSVC_VERSION
+    #       if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
+    #       endif()
+    #
+    # If you use a special version of MSVC 2013 (CTP) that supports C++ 2011
+    # features, so you should comment the following block.
+    if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
         message(FATAL_ERROR "\nMSVC does not support C++ 2011 features, for "
-                            "example 'constexpr'. Update to at leaset MSVC 2015 "
+                            "example 'constexpr'. Update to at least MSVC 2015 "
                             "or use a MinGW version on Windows.\nLook at the "
-                            "README.md for more information\nIf you have the"
+                            "README.md for more information.\nIf you have the"
                             " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
                             " comment this test and configure normally.")
     endif()
