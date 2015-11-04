@@ -29,6 +29,17 @@ endif(COMMAND cmake_policy)
 
 project(Simbody)
 
+if(MSVC)
+    if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
+        message(FATAL_ERROR "\nMSVC does not support C++ 2011 features, for "
+                            "example 'constexpr'. Update to at least MSVC 2015 "
+                            "or use a MinGW version on Windows.\nLook at the "
+                            "README.md for more information.\nIf you have the"
+                            " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
+                            " comment this test and configure normally.")
+    endif()
+endif()
+
 # At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
 # or appropriate ProgramFiles directory on Windows, for example
 # C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local

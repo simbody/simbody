@@ -19,33 +19,6 @@ if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
  return()
 endif()
 
-if(MSVC)
-    # With MSVC, we check that the compiler supports C++ 2011.
-    # To do so, we can check:
-    #   - the value of MSVC_VERSION with a test like this:
-    #       include(CheckCXXSourceCompiles)
-    #       check_cxx_source_compiles(
-    #           "constexpr int f() { return 0; }\nint main(){f();return 0;}"
-    #           MSVC_SUPPORTS_CONSTEXPR)
-    #       if(NOT MSVC_SUPPORTS_CONSTEXPR)
-    #           message(FATAL_ERROR "MSVC does not support C++ 2011 features")
-    #       endif()
-    #   - the value of MSVC_VERSION
-    #       if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
-    #       endif()
-    #
-    # If you use a special version of MSVC 2013 (CTP) that supports C++ 2011
-    # features, so you should comment the following block.
-    if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
-        message(FATAL_ERROR "\nMSVC does not support C++ 2011 features, for "
-                            "example 'constexpr'. Update to at least MSVC 2015 "
-                            "or use a MinGW version on Windows.\nLook at the "
-                            "README.md for more information.\nIf you have the"
-                            " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
-                            " comment this test and configure normally.")
-    endif()
-endif()
-
 if(MINGW)
     # Caution: No cross-compiling is taken into account:
     # If we use a 32 bit compiler, we will get a 32 executable.
