@@ -28,7 +28,6 @@ set(SUBDIR_EXAMPLES
 find_package(Simbody REQUIRED)
 
 include_directories(${Simbody_INCLUDE_DIR})
-link_directories(${Simbody_LIB_DIR})
 
 # Don't leave the build type blank on single-configuration generators;
 # make sure Release examples get built by default.
@@ -38,7 +37,7 @@ if(NOT MSVC AND NOT XCODE AND NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Default to building with the C++11 ABI; user must change this if
-# the installed libraries were build with C++03.
+# the installed libraries were built with C++03.
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
    ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 

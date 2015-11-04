@@ -15,8 +15,8 @@
 set(PLATFORM_ROOT ${CMAKE_SOURCE_DIR}/Platform/${CMAKE_HOST_SYSTEM_NAME})
 
 if(WIN32 AND NOT CMAKE_HOST_SYSTEM_NAME MATCHES Windows)
- # only provided for native builds
- return()
+    # only provided for native builds
+    return()
 endif()
 
 if(MINGW)
@@ -147,11 +147,16 @@ foreach(LIBF ${LIB_FILES})
         file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
     endif()
 
-    add_custom_command(OUTPUT "${COPIED_LIBF}"
-        COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
-        DEPENDS "${LIBF}"
-        COMMENT "Copy ${LIBF_SRC} -> ${LIBF_DEST}"
-        VERBATIM)
+    if(LIBF_SUFFIX STREQUAL ".dll")
+        # Only the runtime libraries (.dll) are needed next to the
+        # executables/tests; import libraries (.lib) are linked through
+        # target_link_libraries.
+        add_custom_command(OUTPUT "${COPIED_LIBF}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${LIBF_SRC}" "${LIBF_DEST}"
+            DEPENDS "${LIBF}"
+            COMMENT "Copy ${LIBF_SRC} -> ${LIBF_DEST}"
+            VERBATIM)
+    endif()
 
     if(LIBF_SUFFIX STREQUAL ".dll")
         install(FILES ${LIBF}
@@ -168,10 +173,40 @@ foreach(LIBF ${LIB_FILES})
     endif()
 endforeach()
 
-# These are directories that all SimTK libraries should link with
-# to find the appropriate Platform libraries they depend on.
-set(PLATFORM_LINK_LIBRARIES "${PLATFORM_ROOT}/lib_${PLATFORM_ABI}"
-    PARENT_SCOPE)
+# Create "fake" IMPORTED targets to represent the pre-built platform libraries.
+# When CMake sees that a target links to, e.g., the pthread target, CMake will
+# use the appropriate library paths below.
+# Note: we don't need to do this for the other platform libraries
+# (gcc_s_sjlj-1, gfortran, quadmath, ...) since Simbody's libraries do not link
+# to them when compiling; we only need to do this for import libraries (.lib).
+# All the platform libraries (including quadmath, etc.) still must be on the
+# PATH when running executables using Simbody.
+if(WIN32 AND NOT BUILD_USING_OTHER_LAPACK)
+    # Without GLOBAL, this target is only available in this dir. and below,
+    # but we want to use these targets everywhere in this project.
+    add_library(blas SHARED IMPORTED GLOBAL)
+    set_target_properties(blas PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/libblas.lib"
+        )
+    
+    add_library(lapack SHARED IMPORTED GLOBAL)
+    set_target_properties(lapack PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/liblapack.lib"
+        # lapack depends on blas:
+        INTERFACE_LINK_LIBRARIES blas
+        )
+endif()
+if(MSVC)
+    if(${PLATFORM_ABI} MATCHES "x64")
+        set(CMAKE_THREAD_LIBS_INIT pthreadVC2_x64)
+    else()
+        set(CMAKE_THREAD_LIBS_INIT pthreadVC2)
+    endif()
+    add_library(pthread SHARED IMPORTED GLOBAL)
+    set_target_properties(pthread PROPERTIES
+        IMPORTED_IMPLIB "${LIB_ABI_DIR}/${CMAKE_THREAD_LIBS_INIT}.lib"
+        )
+endif()
 
 # There is just one item in PLATFORM_INCLUDE_DIRECTORIES.
 if(MSVC)
