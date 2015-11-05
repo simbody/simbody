@@ -16,8 +16,9 @@ os: Visual Studio 2015
 platform: x64
 
 environment:
-  - GENERATOR: "Visual Studio 14 2015 Win64"
-  - GENERATOR: "MinGW Makefiles"
+  matrix:
+    - GENERATOR: "Visual Studio 14 2015 Win64"
+    - GENERATOR: "MinGW Makefiles"
 
 build_script:
   # Must create separate build dir, otherwise can't read test files
