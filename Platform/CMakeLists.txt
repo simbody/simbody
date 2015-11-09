@@ -137,7 +137,6 @@ set_target_properties(PlatformFiles
 
 foreach(LIBF ${LIB_FILES})
     get_filename_component(LIBF_ROOT ${LIBF} NAME)
-    get_filename_component(LIBF_SUFFIX ${LIBF} EXT)
     set(COPIED_LIBF "${BUILD_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${LIBF_ROOT}")
     if(MINGW)
         set(LIBF_SRC ${LIBF})
@@ -147,7 +146,8 @@ foreach(LIBF ${LIB_FILES})
         file(TO_NATIVE_PATH "${COPIED_LIBF}" LIBF_DEST)
     endif()
 
-    if(LIBF_SUFFIX STREQUAL ".dll")
+    string(REGEX MATCH "[.][dD][lL][lL]$" isFileADll ${LIBF})
+    if(isFileADll)
         # Only the runtime libraries (.dll) are needed next to the
         # executables/tests; import libraries (.lib) are linked through
         # target_link_libraries.
@@ -158,7 +158,7 @@ foreach(LIBF ${LIB_FILES})
             VERBATIM)
     endif()
 
-    if(LIBF_SUFFIX STREQUAL ".dll")
+    if(isFileADll)
         install(FILES ${LIBF}
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                 GROUP_READ GROUP_WRITE GROUP_EXECUTE
