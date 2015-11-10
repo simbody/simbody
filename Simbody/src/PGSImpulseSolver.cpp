@@ -206,7 +206,8 @@ boundFriction(Real mu,
     Real N2=0, F2=0; // squares of normal and friction force magnitudes
     for (unsigned i=0; i<IN.size(); ++i) N2 += square(pi[IN[i]]);
     for (unsigned i=0; i<IF.size(); ++i) F2 += square(pi[IF[i]]);
-    const Real mu2N2 = N2>0 ? mu*mu*N2 : Real(0); // mu might be inf
+    //const Real mu2N2 = N2>0 ? mu*mu*N2 : Real(0); // mu might be inf
+    const Real mu2N2 = isInf(mu) ? Infinity : mu*mu*N2;
     if (F2 <= mu2N2) 
         return ImpulseSolver::Rolling;
     const Real scale = std::sqrt(mu2N2/F2); // 0 <= scale < 1
@@ -307,18 +308,35 @@ solve(int                               phase,
     ++m_nSolves[phase];
 
 #ifndef NDEBUG
-   {FactorQTZ fac(A);
-    cout << "A=" << A; cout << "D=" << D; 
+   {cout << "participating=" << participating << endl;
+    const int mp = (int)participating.size();
+    Matrix Ap(mp,mp); Vector Dp(mp);
+    for (int col=0; col < mp; ++col) {
+        const MultiplierIndex pcol = participating[col];
+        Dp[col] = D[pcol];
+        for (int row=0; row < mp; ++row)
+            Ap(row,col) = A(participating[row],pcol);
+    }
+    cout << "Ap=" << Ap; 
+    cout << "Dp=" << Dp << endl; 
+    Vector verrp(mp);
+    for (int row=0; row < mp; ++row) {
+        const MultiplierIndex prow = participating[row];
+        verrp[row] = verrStart[prow];
+        if (verrApplied.size()) verrp[row] += verrApplied[prow];
+    }
+    cout << "verrp=" << verrp << endl;
     cout << "verrStart=" << verrStart << endl;
     cout << "verrApplied=" << verrApplied << endl;
     cout << "expanding mx=" << expanding << endl;
     cout << "piExpand=" << piExpand << endl;
-    Vector verrDbg, x;
-    verrDbg = verrStart;
-    if (verrApplied.size()) verrDbg += verrApplied;
-    fac.solve(verrDbg, x); 
-    cout << "x=" << x << endl;
-    cout << "resid=" << A*x-verrDbg << endl;}
+
+    if (mp) {
+        FactorQTZ fac(Ap); Vector x;
+        fac.solve(verrp, x); 
+        cout << "x=" << x << endl;
+        cout << "resid=" << Ap*x-verrp << endl;}
+    }
 #endif
 
     const int m=A.nrow();
@@ -435,7 +453,8 @@ solve(int                               phase,
             const Real er2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += er2;
             const Real N = std::abs(pi[Nk] + piExpand[Nk]);
-            const Real limit = N>0 ? rt.m_effMu*N : Real(0); // mu might be inf
+            //const Real limit = N>0 ? rt.m_effMu*N : Real(0); // mu might be inf
+            const Real limit = isInf(rt.m_effMu) ? Infinity : rt.m_effMu*N;
             rt.m_frictionCond=boundVector(limit, Fk, pi);
             if (rt.m_frictionCond==Rolling)
                 sum2enf += er2;
@@ -463,7 +482,8 @@ solve(int                               phase,
             const Real localEr2=doUpdates(Fk,A,D,verrStart,sor,rowSums,pi);
             sum2all += localEr2;
             const Real N = rt.m_knownN;
-            const Real limit = N>0 ? rt.m_effMu*N : Real(0); // mu might be inf
+            //const Real limit = N>0 ? rt.m_effMu*N : Real(0); // mu might be inf
+            const Real limit = isInf(rt.m_effMu) ? Infinity : rt.m_effMu*N;
             rt.m_frictionCond=boundVector(limit, Fk, pi);
             if (rt.m_frictionCond==Rolling)
                 sum2enf += localEr2;

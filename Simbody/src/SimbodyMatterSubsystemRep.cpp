@@ -2173,14 +2173,30 @@ findActiveMultipliers(const State& s) const {
         if (cond <= CondConstraint::Off) {
             isActive[contact.getContactMultiplierIndex(s)] = false;
             --mActive;
+            if (contact.hasFriction(s)) {
+                MultiplierIndex xIx, yIx;
+                contact.getFrictionMultiplierIndices(s,xIx,yIx);
+                isActive[xIx] = isActive[yIx] = false;
+                mActive -= 2;
+            }
+            continue;
         }
-        // TODO: disabling friction if not active; should replace with
-        // sliding equations instead.
+
+        // Constraint is active. 
+
+        // TODO: disabling friction if not rolling; should replace with
+        // sliding equations instead. For infinite friction, disable the
+        // normal constraint instead.
         if (contact.hasFriction(s) && cond != CondConstraint::Active) {
-            MultiplierIndex xIx, yIx;
-            contact.getFrictionMultiplierIndices(s,xIx,yIx);
-            isActive[xIx] = isActive[yIx] = false;
-            mActive -= 2;
+            if (true /*has infinite friction*/) {
+                isActive[contact.getContactMultiplierIndex(s)] = false;
+                --mActive;
+            } else {
+                MultiplierIndex xIx, yIx;
+                contact.getFrictionMultiplierIndices(s,xIx,yIx);
+                isActive[xIx] = isActive[yIx] = false;
+                mActive -= 2;
+            }
         }
     }
 

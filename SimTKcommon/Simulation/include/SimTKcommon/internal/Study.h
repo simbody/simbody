@@ -200,7 +200,7 @@ protected:
     accelerations using an iterative method that converges at a looser
     tolerance. **/
     virtual Real getPrecisionVirtual() const
-    {   return Eps34; }
+    {   return /*Eps34*/SqrtEps; } // TODO: figure out how to change this
 };
 
 } // namespace SimTK

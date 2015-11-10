@@ -68,7 +68,7 @@ namespace {
 const Real StopCoefRestLeft = 1;
 const Real StopCoefRestRight = .5;
 const Real RopeCoefRest = .1;
-const Real BoxCoefRest = .5;
+const Real BoxCoefRest = .925;
 const Real BoxMuS = Infinity;
 const Real BoxMuD = Infinity;
 const Real BoxMuV = 0;
@@ -84,6 +84,7 @@ int main() {
     GeneralForceSubsystem forces(system);
     Force::Gravity gravity(forces, matter, -YAxis, Gravity);
     MobilizedBody& Ground = matter.updGround();
+   // matter.setShowDefaultGeometry(false);
 
     // Describe a body with a point mass at (0, -3, 0) and draw a sphere there.
     Real mass = 3; Vec3 pos(0,-3,0);
@@ -94,9 +95,9 @@ int main() {
     heavyInfo.addDecoration(pos, DecorativeSphere(.3).setOpacity(.5));
 
     // Create the tree of mobilized bodies, reusing the above body description.
-    MobilizedBody::Pin bodyT  (matter.Ground(), Vec3(0), bodyInfo, Vec3(0));
-    MobilizedBody::Pin leftArm(bodyT, Vec3(-2, 0, 0),    heavyInfo, Vec3(0));
-    MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     heavyInfo, Vec3(0));
+    MobilizedBody::Pin bodyT  (matter.Ground(), Vec3(0,4,0), heavyInfo, Vec3(0));
+    MobilizedBody::Pin leftArm(bodyT, Vec3(-2, 0, 0),    bodyInfo, Vec3(0));
+    MobilizedBody::Pin rtArm  (bodyT, Vec3(2, 0, 0),     bodyInfo, Vec3(0));
 
     DecorativeLine stop(Vec3(0), Vec3(0,-2,0));
     stop.setColor(Red).setLineThickness(1);
@@ -110,25 +111,25 @@ int main() {
     bodyT.addBodyDecoration(Transform(Rotation(outer, ZAxis), Vec3(2,0,0)),
                             stop);
 
-    //UnilateralContactIndex ll, ul, lr, ur, rope;
-    //ll=matter.adoptUnilateralContact(
-    //    new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
-    //ul=matter.adoptUnilateralContact(
-    //    new HardStopUpper(leftArm, MobilizerQIndex(0), -inner, StopCoefRestLeft));
+    UnilateralContactIndex ll, ul, lr, ur, rope;
+    ll=matter.adoptUnilateralContact(
+        new HardStopLower(leftArm, MobilizerQIndex(0), -outer, StopCoefRestLeft));
+    ul=matter.adoptUnilateralContact(
+        new HardStopUpper(leftArm, MobilizerQIndex(0), -inner, StopCoefRestLeft));
 
-    //lr=matter.adoptUnilateralContact(
-    //    new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
-    //ur=matter.adoptUnilateralContact(
-    //    new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
+    lr=matter.adoptUnilateralContact(
+        new HardStopLower(rtArm, MobilizerQIndex(0), inner, StopCoefRestRight));
+    ur=matter.adoptUnilateralContact(
+        new HardStopUpper(rtArm, MobilizerQIndex(0), outer, StopCoefRestRight));
 
-    //// ROPE
-    //rope=matter.adoptUnilateralContact(
-    //    new Rope(matter.updGround(), Vec3(-5,1,1),
-    //             leftArm, Vec3(0, -1.5, 0), 2.75, RopeCoefRest));
+    // ROPE
+    rope=matter.adoptUnilateralContact(
+        new Rope(matter.Ground(), Vec3(-5.25,3,1),
+                 leftArm, Vec3(0, -1.5, 0), 2.75, RopeCoefRest));
 
     // BOX
     const Vec3 hBox(1,.25,.5); // half dims of box
-    Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
+    //Ground.addBodyDecoration(Vec3(0,.05,0), DecorativeFrame(2).setColor(Green));
     DecorativeBrick drawBox(hBox); drawBox.setOpacity(0.5).setColor(Gray);
 
     Body::Rigid boxBody(MassProperties(1, Vec3(0), UnitInertia::brick(hBox))); 
@@ -148,9 +149,10 @@ int main() {
     }
 
     // Ask for visualization every 1/30 second.
-    system.setUseUniformBackground(true); // turn off floor 
+    //system.setUseUniformBackground(true); // turn off floor 
     Visualizer viz(system);
     viz.setShowSimTime(true);
+    viz.setDesiredFrameRate(30.);
     viz.addDecorationGenerator(new ShowEnergy(system));
     system.adoptEventReporter(new Visualizer::Reporter(viz, 1./30));
 
@@ -168,19 +170,21 @@ int main() {
     State state = system.realizeTopology();
     //bodyT.lock(state);
     //bodyT.lockAt(state, -.1, Motion::Velocity);
-    bodyT.setRate(state, -2);
+    //bodyT.setRate(state, -2);
     //leftArm.setAngle(state, -Pi/2);
     //rtArm.setAngle(state, Pi/2);
     leftArm.setAngle(state, -.9);
     rtArm.setAngle(state, .9);
     box.setQToFitRotation(state, Rotation(BodyRotationSequence,
                                           Pi/4, ZAxis, -Pi/10, XAxis));
+    box.setUToFitLinearVelocity(state, Vec3(-2,0,0));
+    box.setUToFitAngularVelocity(state, Vec3(0,5,2));
 
     const double SimTime = 20;
 
     //matter.getUnilateralContact(ul).setCondition(state, CondConstraint::Active);
     //matter.getUnilateralContact(ur).setCondition(state, CondConstraint::Active);
-    //matter.getUnilateralContact(rope).setCondition(state, CondConstraint::Active);
+    matter.getUnilateralContact(rope).setCondition(state, CondConstraint::Active);
 
     printf("SHOWING UNASSEMBLED SYSTEM -- hit ENTER\n");
     viz.report(state);
@@ -199,8 +203,11 @@ int main() {
     //RungeKuttaMersonIntegrator integ(system);
     //CPodesIntegrator integ(system);
     //integ.setAllowInterpolation(false);
-    integ.setAccuracy(0.01);
+    //integ.setAccuracy(0.01);
+    integ.setAccuracy(1e-2);
+    integ.setConstraintTolerance(1e-4);
     integ.setMaximumStepSize(.1);
+    //integ.setPrecision(1e-6);
     TimeStepper ts(integ);
 
     const double startReal = realTime(), startCPU=cpuTime();
@@ -220,6 +227,7 @@ int main() {
     printf("# STEPS/ATTEMPTS = %d/%d\n", integ.getNumStepsTaken(), integ.getNumStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", integ.getNumErrorTestFailures());
     printf("# REALIZE/PROJECT = %d/%d\n", integ.getNumRealizations(), integ.getNumProjections());
+  
     //printf("# EVENT STEPS = %d\n", nStepsWithEvent);
 
     //// Simulate with velocity-level time stepper.

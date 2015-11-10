@@ -173,8 +173,9 @@ classifyUnilateralContactsForSimultaneousImpact
             rt.m_type = ImpulseSolver::Known; // normal does not participate
             expanders.push_back(i);  // uni contact index
             expanding.push_back(mz); // multiplier index
-        } else if (rt.m_sign*verr[mz] >= (Real(-0.1))*velTol) {
-            //printf("rt.m_sign*verr[mz]=%.15g\n", rt.m_sign*verr[mz]);
+        } else if (rt.m_sign*verr[mz] >= Real(-0.1)*velTol) {
+            SimTK_DEBUG2("rt.m_sign*verr[mz]=%.15g >= %g so observe\n", 
+                         rt.m_sign*verr[mz], Real(-0.1)*velTol);
             // Observe even if we're slightly (but insignificantly) negative.
             // We're using 1/10 of constraint tol as the cutoff.
             // Don't use zero, or you'll loop forever due to roundoff!
@@ -595,6 +596,7 @@ updateActiveSetFromLingering
 
     long long bestCombo=-1, bestRolling=-1;
     Real bestNorm2Lambda = Infinity;
+    Array_<pair<UnilateralContactIndex,CondConstraint::Condition>> bestActives;
 
     // Search all non-zero combinations for the best one.
     Array_<pair<UnilateralContactIndex,CondConstraint::Condition>> actives;
@@ -622,10 +624,14 @@ updateActiveSetFromLingering
                 SimTK_DEBUG2("  try %d rolling out of %d frictional.\n", kr,nf);
                 long long rolling=-1;
                 while (nextBitCombination(nf, kr, rolling)) {
-                    for (int bitno=0; bitno < nf; ++bitno)
-                        actives[frictional[bitno]].second =
-                            isBitSet(rolling,bitno) ? CondConstraint::Active 
-                                                    : CondConstraint::Slipping;
+                    for (int bitno=0; bitno < nf; ++bitno) {
+                        if (isBitSet(rolling,bitno))
+                            actives[frictional[bitno]].second =
+                                CondConstraint::Active;
+                        else 
+                            actives[frictional[bitno]].second =
+                                CondConstraint::Slipping;
+                    }
                     Real norm2Lambda;
                     pair<UnilateralContactIndex,Real> worstForce, worstAcc;
                     if (scoreActiveSet(mbs, state, lingeringUniContacts,
@@ -635,6 +641,7 @@ updateActiveSetFromLingering
                             SimTK_DEBUG5(
                             "Best so far: %d/%d actives, %d/%d rolling, norm=%g\n",
                                          k,n,kr,nf, norm2Lambda);
+                            bestActives = actives;
                             bestCombo=combo;
                             bestRolling=rolling;
                             bestNorm2Lambda = norm2Lambda;
@@ -649,9 +656,14 @@ updateActiveSetFromLingering
         }
 
         if (!noGoodSoln) {
-            SimTK_DEBUG3(
+            //TODO: might already be active
+            activateActiveSet(mbs, state, lingeringUniContacts, bestActives);
+            #ifndef NDEBUG
+            printf(
             "  Found good solution w/%d actives, %d rolling, bestnorm=%g\n",
                             k, countSetBits(bestRolling), bestNorm2Lambda);
+            cout << "bestActives=" << bestActives << endl;
+            #endif
         }
     }
 
@@ -801,7 +813,9 @@ scoreActiveSet
         const Real sign = uni.getSignConvention();
         const Real atol = 1e-9; // TODO should be Precision
         const Real ftol = 1e-9; // TODO should be mass-scaled atol
-        if (cond == CondConstraint::Off) {
+        // TODO: only in the case of infinite friction does "slipping" mean
+        // that the normal constraint is disabled.
+        if (cond == CondConstraint::Off || cond == CondConstraint::Slipping) {
             const Real acc = sign*uni.getAerr(state);
             accs.push_back(acc);
             if (acc < worstAcc.second) {
@@ -810,7 +824,7 @@ scoreActiveSet
                     isGood = false;
             }
         } else {
-            assert(cond > CondConstraint::Off);
+            assert(cond == CondConstraint::Active);
             const Real frc = -sign*mults[uni.getContactMultiplierIndex(state)];
             forces.push_back(frc);
             if (frc < worstForce.second) {
@@ -839,5 +853,64 @@ scoreActiveSet
 #endif
 
     return isGood;
+}
+
+//------------------------------------------------------------------------------
+//                            SOLVE ACTIVE
+//------------------------------------------------------------------------------
+/* Solve for multipliers using only the given active set of constraints.
+There are m constraint equations enabled in the MultibodySystem, including all
+the unconditional constraints and all the conditional constraints that could
+ever be active. The full m x m constraint compliance matrix would be W=G M\ ~G 
+where G is the m x n constraint Jacobian and M is the system mass matrix. Note
+that friction constraint rows in W correspond to *rolling* (sticking) friction
+equations, not *sliding* equations which are different.
+
+For any given operation such as an impact or contact event,
+only mp <= m participating constraint equations can be involved; for example
+if a unilateral contact is not proximal then it cannot be participating. 
+Unconditional constraints always participate. Depending on the solution method
+in use, many different active subsets of the same participating constraints may
+have to be evaluated. We 
+assume that the mp x mp constraint compliance submatrix Wp=Gp M\ ~Gp has been
+precalculated and is supplied to this method. Gp is the mp x n submatrix of G
+formed by keeping only the mp participating rows, so Wp is the submatrix of W
+formed by keeping only the mp participating rows and columns of W. If there are
+soft constraints, the feedback coefficients are provided in the diagonal matrix
+Dp.
+
+The caller of this method is trying to find the best solution to
+    (Wp-Dp) xp = bp
+subject to inequalities and complementarity conditions on x and b, where rows
+and columns of Wp, and rows of b, are replaced by zeroes for inactive 
+conditional constraints, and
+where rolling friction constraint rows have been replaced by sliding equations
+if a rolling solution is infeasible.
+
+For this call, we will be 
+examining a further subset of ma <= mp active constraint equations, and solving
+    (Wa-Da) xa = ba
+However, some of the rows of Wa and ba will have been replaced by sliding
+equations if a constraint is active and slipping. That applies to friction and
+other force-limited constraints such as a torque-limited speed control motor. 
+When these are nonlinear the solution will require iteration. The inequalities
+will in general *not* be satisfied by the obtained solution; we'll provide
+good quantitative violations here. The caller then uses that information to
+guide its next refinement of the active set. It is also possible that our
+least squares result for xa won't satisfy ba-(Wa-Da)xa=0; that means the 
+active equations are inconsistent.
+*/
+/*static*/ void ContactEventAction::
+solveActive
+   (const Array_<int,MultiplierIndex>&  mult2participating, // m->mp
+    const Matrix&                       Wp,            // Gp M\ ~Gp
+    const Vector&                       Dp,
+    const Vector&                       bp,            // e.g. aerrp
+    const Array_<ConstraintIndex>       unconditional,
+    const Array_<pair<UnilateralContactIndex,
+                      CondConstraint::Condition>>&  activeSubset,
+    Vector&                        xp
+    )
+{
 }
 

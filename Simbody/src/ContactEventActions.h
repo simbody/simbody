@@ -228,6 +228,17 @@ private:
         std::pair<UnilateralContactIndex,Real>&             worstForce,
         std::pair<UnilateralContactIndex,Real>&             worstAcc); 
 
+    static void solveActive
+       (const Array_<int, MultiplierIndex>&  mult2participating, // m->mp
+		const Matrix&                  Wp,            // Gp M\ ~Gp
+        const Vector&                  Dp,
+        const Vector&                  rhsp,          // e.g. aerrp
+		const Array_<ConstraintIndex>       unconditional,
+		const Array_<std::pair<UnilateralContactIndex,
+                     CondConstraint::Condition>>&  activeSubset,
+        Vector&                        lambdap
+        );
+
     void changeVirtual(Study&                  study,
                        const Event&            event,
                        const EventTriggers&    triggers,

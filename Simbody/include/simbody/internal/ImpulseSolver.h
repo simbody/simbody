@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2014 Stanford University and the Authors.           *
+ * Portions copyright (c) 2015 Stanford University and the Authors.           *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -32,11 +32,12 @@ namespace SimTK {
 /** This is the abstract base class for impulse solvers, which solve an
 important subproblem of the contact and impact equations.
 
-Impact problem: <pre>
+Impact problem is solve for du,pi in:<pre>
     M  du    + ~G (pi+piE) = 0
     G (u+du) -  D (pi+piE) = b - verrNewton
-</pre> where verrNewton is constraint space velocity error due to Newton
-restitution (not used for Poisson restitution). Moving knowns to the right:
+</pre> piE is a given expansion impulse, verrNewton is the constraint space 
+velocity error due to Newton restitution (not used for Poisson restitution). 
+Moving knowns to the right:
 <pre>
     M  du    + ~G pi = -~G piE
     G  du    -  D pi = b - G u - verrNewton + D piE
