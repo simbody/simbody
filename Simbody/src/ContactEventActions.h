@@ -230,11 +230,11 @@ private:
 
     static void solveActive
        (const Array_<int, MultiplierIndex>&  mult2participating, // m->mp
-		const Matrix&                  Wp,            // Gp M\ ~Gp
+        const Matrix&                  Wp,            // Gp M\ ~Gp
         const Vector&                  Dp,
         const Vector&                  rhsp,          // e.g. aerrp
-		const Array_<ConstraintIndex>       unconditional,
-		const Array_<std::pair<UnilateralContactIndex,
+        const Array_<ConstraintIndex>       unconditional,
+        const Array_<std::pair<UnilateralContactIndex,
                      CondConstraint::Condition>>&  activeSubset,
         Vector&                        lambdap
         );
