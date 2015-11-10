@@ -38,7 +38,7 @@ after_test:
   # Create NuGet package.
   - IF DEFINED DISTR cd %APPVEYOR_BUILD_FOLDER%
   # Create a nupkg. The install directory is to be packaged.
-  - IF DEFINED DISTR nuget pack .simbody.nuspec -BasePath C:\simbody
+  - IF DEFINED DISTR nuget pack doc/.simbody.nuspec -BasePath C:\simbody
   # The line above creates the file simbody.0.0.0.nupkg.
   # Push this file to Appveyor's NuGet account feed, to be used by OpenSim.
   - IF DEFINED DISTR appveyor PushArtifact simbody.0.0.0.nupkg

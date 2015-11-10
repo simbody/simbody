@@ -102,7 +102,7 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.8 or later
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.8 or later (3.1.3 or later for Visual Studio).
 * compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
@@ -146,7 +146,7 @@ Windows using Visual Studio
 All needed library dependencies are provided with the Simbody installation on Windows, including linear algebra and visualization dependencies.
 
 1. Download and install [Microsoft Visual Studio](http://www.visualstudio.com), version 2015. The Community edition is free and sufficient. By default, Visual Studio 2015 does not provide C++ support; when installing, be sure to select *Custom*, and check *Programming Languages > Visual C++ > Common Tools for Visual C++ 2015*. If you have already installed Visual Studio without C++ support, simply re-run the installer and select *Modify*.
-2. Download and install [CMake](http://www.cmake.org/download), version 2.8.8 or higher.
+2. Download and install [CMake](http://www.cmake.org/download), version 3.1.3 or higher.
 3. (optional) If you want to build API documentation, download and install Doxygen, version 1.8.8 or higher.
 
 #### Download the Simbody source code
@@ -469,6 +469,150 @@ Simbody is installed into the `usr/` directory.  The directory
     * `examples/src` source code for the examples.
     * `examples/bin` symbolic link to executable examples.
 
+Windows using MinGW
+-------------------
+
+Warning: The [MinGW](http://sourceforge.net/projects/mingw-w64/)
+generation and build is experimental!
+
+This build is still experimental, because of :
+
+* the various MinGW versions available (Thread model, exception mechanism)
+* the compiled libraries Simbody depends on (Blas, Lapack and optionnaly glut).
+
+Below are three sections that gives a list of supported versions, command line
+instructions, and reasons why is it not so obvious to use MinGW.
+
+#### Supported MinGW versions
+
+If you do not want to go into details, you need a MinGW version with :
+
+* a Posix thread model and Dwarf exception mechanism on a 32 bit computer
+* a Posix thread model and SJLJ exception mechanism on a 64 bit computer
+
+Other versions are supported with additional configurations.
+
+The table below lists the various versions of MinGW versions tested:
+
+   | OS      | Thread | Exception | Comment                                                             | URL                                                                                                                                                                                                                            |
+---|---------|--------|-----------|---------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+ 1 | 64 Bits | Posix  | SJLJ      | All features supported, all binary included  (Recommended version)  | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/x86_64-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)    |
+ 2 | 64 Bits | Posix  | SEH       | Needs to be linked against user's Blas and Lapack                   | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/seh/x86_64-5.2.0-release-posix-seh-rt_v4-rev0.7z/download)      |
+ 3 | 32 Bits | Posix  | Dwarf     | No visualization, all binary included                               | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/dwarf/i686-5.2.0-release-posix-dwarf-rt_v4-rev0.7z/download)    |
+ 4 | 32 Bits | Posix  | SJLJ      | No visualization, needs to be linked against user's Blas and Lapack | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/i686-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)      |
+
+We recommend to use the first configuration where all features are supported and
+does not need additional libraries to compile and run.
+The URL allows to download directly this version.
+The second version needs to be linked against user's Blas and Lapack
+(A CLI example is given below).
+Blas and Lapack sources can be downloaded from
+[netlib](http://www.netlib.org/lapack/lapack-3.5.0.tgz).
+For the 3rd and 4th versions that run that target a 32 bit behaviour,
+visualization is not possible for the time being.
+(It is due to a compile and link problem with `glut`).
+Moreover for the 4th one, one needs to provide Blas and Lapack libraries.
+
+Please note that only Posix version of MinGW are supported.
+
+If your version is not supported, CMake will detect it while configuring and stops.
+
+#### Instructions
+
+Below are some examples of command line instructions for various cases.
+It is assumed you are running commands from a build directory, that can access Simbody source with a command `cd ..\simbody`.
+
+It is recommended to specify with the installation directory with flag `CMAKE_INSTALL_PREFIX`
+(e.g. `-DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"`).
+If not used, the installation directory will be `C:\Program Files (x86)\Simbody`
+on a 64 bit computer. This might be confusing since it is the 32 bit installation location.
+
+Example of instructions where one uses Blas and Lapack libraries provided (to be used in a Windows terminal, where MinGW is in the PATH):
+
+    rem CMake configuration
+    cmake ..\simbody -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
+    rem Compilation
+    mingw32-make
+    rem Test
+    mingw32-make test
+    rem Installation
+    mingw32-make install
+
+Example of instructions where one uses Blas and Lapack libraries provided (to be used in a Windows terminal, where MinGW is NOT in the PATH):
+
+    rem Variable and path definition
+    set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
+    set MinGWDir=C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32
+    set PATH=%MinGWDir%\bin;%MinGWDir%\i686-w64-mingw32\lib
+    rem CMake configuration
+    %CMAKE% ..\simbody -G"MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ^
+     -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody" ^
+     -DCMAKE_C_COMPILER:PATH="%MinGWDir%\bin\gcc.exe" ^
+     -DCMAKE_CXX_COMPILER:PATH="%MinGWDir%\bin\g++.exe" ^
+     -DCMAKE_MAKE_PROGRAM:PATH="%MinGWDir%\bin\mingw32-make.exe"
+    rem Compilation
+    mingw32-make
+    rem Test
+    mingw32-make test
+    rem Installation
+    mingw32-make install
+
+Example of instructions where one uses Blas and Lapack libraries provided (to be used in a MSYS terminal with MinGW in the PATH):
+
+    # CMake configuration
+    cmake ../simbody -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody"
+    # Compilation
+    make
+    # Test
+    make test
+    # Installation
+    make install
+
+Example of instructions where one provides our own Blas and Lapack libraries (to be used in a MSYS terminal with MinGW in the PATH):
+
+    # CMake configuration
+    cmake ../simbody -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="C:\Program Files\Simbody" \
+    -DCMAKE_C_COMPILER:PATH="C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32\bin\gcc.exe" \
+    -DCMAKE_CXX_COMPILER:PATH="C:\Program Files\mingw-w64\i686-5.2.0-posix-sjlj-rt_v4-rev0\mingw32\bin\g++.exe" \
+    -DBUILD_USING_OTHER_LAPACK:PATH="C:\Program Files\lapack-3.5.0\bin\liblapack.dll;C:\Program Files\lapack-3.5.0\bin\libblas.dll"
+    make
+    # Test
+    make test
+    # Installation
+    make install
+
+
+#### MinGW details
+
+This paragraph explains the reason why one can not use any MinGW version.
+
+MinGW is available with two thread models :
+
+* Win32 thread model
+* Posix thread model
+
+One has to use the Posix thread model, since all thread functionalities (e.g. `std:mutex`) are not implemented.
+
+To ease building on Windows, Simbody provides compiled libraries for Blas and Lapack :
+
+* On Windows 32 Bits, these were compiled with a Dwarf exception mechanism,
+* On Windows 64 Bits, these were compiled with a SJLJ exception mechanism.
+
+If one chooses a MinGW compilation, we need to respect this exception mechanism.
+A program can not rely on both mechanisms.
+This means that if we want to use the compiled libraries, our MinGW installation should
+have the same exception mechanism.
+Otherwise, we need to provide our own Blas and Lapack libraries.
+
+To see which exception mechanism is used, user can look at dlls located in the `bin` directory of MinGW.
+The name of mechanism is present in the file `libgcc_XXXX.dll`, where `XXXX` can be `dw`, `seh` or `sjlj`.
+For some MinGW versions, this information is also available by looking at the result of `gcc --version`.
+
+CMake will check the version of your MinGW, and if the exception mechanism is different,
+then the configuration stops because of this difference.
+If one provides Blas and Lapack libraries with the CMake variable `BUILD_USING_OTHER_LAPACK`,
+compilation with MinGW is always possible.
 
 Acknowledgments
 ---------------
@@ -483,7 +627,7 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 
 
 
-[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.png?branch=master
+[buildstatus_image_travis]: https://travis-ci.org/simbody/simbody.svg?branch=master
 [travisci]: https://travis-ci.org/simbody/simbody
 [buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2/branch/master?svg=true
 [appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody/branch/master

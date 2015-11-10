@@ -1,27 +1,21 @@
 # This script is used by the Travis-CI (continuous integration) testing
 # framework to run Simbody's tests with every GitHub push or pull-request.
 language: cpp
-
-os:
-  - linux
-  - osx
-
-compiler:
-  - gcc
-  - clang
-
-env:
-  # Each line is a separate build in the build matrix. A build in the build
-  # matrix is defined by the environment variables defined on the line, which
-  # should be space-delimited. For example,
-  # - ABC=ON DEF=OFF GHI=ON
-  # Simbody 3.6 and up requires c++11
-  - BTYPE=Release
-  
+    
 matrix:
-  exclude:
-    - os: osx
+  include:
+    - os: linux
+      compiler: clang
+      env: BTYPE=RelWithDebInfo
+    - os: linux
       compiler: gcc
+      env: BTYPE=Release
+    - os: linux
+      compiler: clang
+      env: BTYPE=Debug
+    - os: osx
+      compiler: clang
+      env: BTYPE=RelWithDebInfo
 
 before_install:
   ## Ensure that there are no tabs in source code.
@@ -57,7 +51,7 @@ before_install:
 install:
   - mkdir ~/simbody-build && cd ~/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
   - make -j8
 
@@ -66,4 +60,33 @@ script:
   - ctest -j8 --output-on-failure
 
   ## Make sure we can install with no issues.
-  - sudo make -j8 install
+  - make -j8 install
+
+before_deploy:
+
+  # Zip up the installation using a file name that identifies where
+  # the binaries were built.
+  - mkdir ~/binstar-packages
+  - ZIPNAME=simbody-latest_${TRAVIS_OS_NAME}_${BTYPE}.zip
+  - # Zip up simbody relative to the home directory; must change to home dir.
+  - cd ~
+  - zip --recurse-paths --quiet ~/binstar-packages/$ZIPNAME simbody
+
+  # Paths in the .bintray.json file are relative to the current directory.
+  - cd ~
+
+deploy:
+  # Uploads to https://bintray.com/chrisdembia/opensim-testing/simbody/view
+  #            https://dl.bintray.com/chrisdembia/opensim-testing/
+  # See http://docs.travis-ci.com/user/deployment/bintray/ for help.
+  provider: bintray
+  file: $TRAVIS_BUILD_DIR/doc/.bintray.json
+  user: chrisdembia
+  skip_cleanup: true
+  # API key is encrypted with travis.
+  key:
+    secure: MOCuM6THnBR82ClEmWFmqVM/GEiNtimz7dMmWUnmgU4gWAU9DBq0OelifQ6XAAhEqZGz0IbVyRo+zDGWRUEC/EIAb9PhTSg6W/XX+zykAQCsIr3BMvOE6v5MXNz/JMFKxZoFmmrL1WR4a4KUOQANr7derYkIZUy/9CnUkJgQGKE=
+  on:
+    # Upload for both linux and OSX. 
+    branch: master
+    condition: "$CC = clang"

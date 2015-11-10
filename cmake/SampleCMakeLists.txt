@@ -16,7 +16,6 @@ set(my_header_files myexe.h)
 find_package(Simbody REQUIRED)
 
 include_directories(${Simbody_INCLUDE_DIR})
-link_directories(${Simbody_LIB_DIR})
 
 add_executable(myexe ${my_source_files} ${my_header_files})
 target_link_libraries(myexe ${Simbody_LIBRARIES})
