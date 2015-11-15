@@ -470,7 +470,7 @@ gmx_atomic_add_return(gmx_atomic_t *    a,
     __asm__ __volatile__("1:     lwarx   %0,0,%2\n"
                          "\tadd     %0,%1,%0\n"
                          "\tstwcx.  %0,0,%2 \n"
-                         "\tbne-    1b"
+                         "\tbne-    1b\n"
                          "\tisync\n"
                          : "=&r" (t)
                          : "r" (i), "r" (&a->value)
