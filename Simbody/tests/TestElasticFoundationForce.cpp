@@ -203,10 +203,73 @@ void testEffSphereOnPlaneOldFormulation(bool verbose)
     }
 }
 
+void testEffSphereOnPlaneNewFormulation(bool verbose = false);
+void testEffSphereOnPlaneNewFormulation(bool verbose)
+{
+    // Material properties for sphere
+    // Global stiffness of the contact: each material will have
+    // twice this stiffness to obtain this global stiffness in the contact
+    // 1/kG = 1/k1 + 1/k2
+    const Real stiffness = 1e9;
+    const Real dissipation = 0.0, us = 0.0, ud = 0.0, uv = 0.0;
+    const Real vt = 1.0e-2;
+    // Sphere radius
+    const Real radius = 1.0;
+    // Define initial penetration
+    const Real initialPenetration = 0.002;
+    const int maxLevel = 6;
+    // Define some tolerances for each level in %
+    const Real tolerances[6]= {0.15, 0.07, 0.03, 0.02, 0.01, 0.02};
+    for (int i=0;i<maxLevel;++i)
+    {
+        // For each level, penetration is double
+        const Real penetration = initialPenetration * pow(2.0,(Real)i);
+        // Creation of the classical problem
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        GeneralContactSubsystem contacts(system);
+        ContactTrackerSubsystem tracker(system);
+        CompliantContactSubsystem contactForces(system, tracker);
+        contactForces.setTransitionVelocity(vt);
+        matter.Ground().updBody().addContactSurface(
+            Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0.0,penetration-radius,0.0)), // y < penetration-radius
+            ContactSurface(ContactGeometry::HalfSpace(),
+                           ContactMaterial(2.0*stiffness, dissipation, us, ud, uv),
+                           1.0));
+        Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+        body.addContactSurface(Transform(),
+            ContactSurface(ContactGeometry::TriangleMesh(PolygonalMesh::createSphereMesh(radius, 6)),
+                           ContactMaterial(2.0*stiffness, dissipation, us, ud, uv),
+                           1.0));
+        const MobilizedBody::Translation mesh(matter.updGround(), Transform(), body, Transform());
+        const State state = system.realizeTopology();
+        system.realize(state, Stage::Dynamics);
+        if (verbose) {
+            cout << "Num contacts: " << contactForces.getNumContactForces(state) << endl;
+        }
+        ASSERT(contactForces.getNumContactForces(state)==1);
+        const ContactForce& force = contactForces.getContactForce(state,0);
+        const Vec3& frc = force.getForceOnSurface2()[1];
+        const Real numericalResult = frc[1];
+        const Real volumeSphericalCap = Pi*penetration*penetration/3.0*(3.0*radius-penetration);
+        const Real theoreticalResult = stiffness*volumeSphericalCap;
+        const Real relativeDifference = abs((numericalResult/theoreticalResult)-1.0);
+        if (verbose) {
+            cout<<force;
+            cout<<"Effort for penetration : "
+                <<penetration*1000.0<<" mm -> F = "<<numericalResult<<" N "
+                <<"(theoretical result : "<<theoreticalResult<< " N "
+                <<" relative difference : "<<100.0*relativeDifference<<" %)"<<endl;
+        }
+        ASSERT(abs((numericalResult/theoreticalResult)-1.0)<tolerances[i]);
+    }
+}
+
 int main() {
     try {
         testForces();
         testEffSphereOnPlaneOldFormulation();
+        testEffSphereOnPlaneNewFormulation();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
