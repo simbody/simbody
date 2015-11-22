@@ -130,9 +130,83 @@ void testForces() {
     }
 }
 
+/**
+ * @brief This test compares the numerical result of a sphere
+ *        in contact with a plane, using the elastic foundation
+ *        model.
+ *        The analytical solution of this problem is given by
+ *        the product of the stiffness with the volume of
+ *        the sphere in the plane, i.e the volume of a spherical
+ *        cap.
+ *        The volume of a spherical cap is:
+ *          Vcap = Pi*h*h/3.0*(3.0*r-h)
+ *        where
+ *          r is the radis of the sphere
+ *          h the height of the cap. In our case, the penetration
+ *          depth
+ * @note If we want to go further, we can observe that doubling
+ *       the penetration depth results in multiplying the normal
+ *       effort by 4.
+ *       This is different from Hertz theory, where doubling the
+ *       penetration depth results in multiplying
+ *       the normal effort by 2^(3/2)~2.68
+ *
+ */
+void testEffSphereOnPlaneOldFormulation(bool verbose = false);
+void testEffSphereOnPlaneOldFormulation(bool verbose)
+{
+    // Material properties for sphere
+    const Real stiffness = 1e9;
+    const Real dissipation = 0.0, us = 0.0, ud = 0.0, uv = 0.0, vt = 0.0;
+    // Sphere radius
+    const Real radius = 1.0;
+    // Define initial penetration
+    const Real initialPenetration = 0.002;
+    const int maxLevel = 6;
+    // Define some tolerances for each level in %
+    const Real tolerances[6]= {0.15, 0.07, 0.03, 0.02, 0.01, 0.02};
+    for (int i=0;i<maxLevel;++i)
+    {
+        // For each level, penetration is double
+        const Real penetration = initialPenetration * pow(2.0,(Real)i);
+        // Creation of the classical problem
+        MultibodySystem system;
+        SimbodyMatterSubsystem matter(system);
+        GeneralContactSubsystem contacts(system);
+        GeneralForceSubsystem forces(system);
+        const ContactSetIndex setIndex = contacts.createContactSet();
+        // Creation a sphere with 6 level of refinement
+        const PolygonalMesh sphereMesh(PolygonalMesh::createSphereMesh(radius, 6));
+        // Create the mobilized bodies and configure the contact model.
+        const Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
+        const MobilizedBody::Translation mesh(matter.updGround(), Transform(), body, Transform());
+        contacts.addBody(setIndex, mesh, ContactGeometry::TriangleMesh(sphereMesh), Transform());
+        contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(),
+                         Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0.0,penetration-radius,0.0))); // y < penetration-radius
+        ElasticFoundationForce ef(forces, contacts, setIndex);
+        ef.setBodyParameters(ContactSurfaceIndex(0), stiffness, dissipation, us, ud, uv);
+        ef.setTransitionVelocity(vt);
+        const State state = system.realizeTopology();
+        system.realize(state, Stage::Dynamics);
+        const SpatialVec r = system.getRigidBodyForces(state, Stage::Dynamics)[mesh.getMobilizedBodyIndex()];
+        const Real volumeSphericalCap = Pi*penetration*penetration/3.0*(3.0*radius-penetration);
+        const Real theoreticalResult = stiffness*volumeSphericalCap;
+        const Real numericalResult = r[1][1];
+        const Real relativeDifference = abs((numericalResult/theoreticalResult)-1.0);
+        if (verbose) {
+            cout<<"Effort for penetration : "
+                <<penetration*1000.0<<" mm -> F = "<<numericalResult<<" N "
+                <<"(theoretical result : "<<theoreticalResult<< " N "
+                <<" relative difference : "<<100.0*relativeDifference<<" %)"<<endl;
+        }
+        ASSERT(abs((numericalResult/theoreticalResult)-1.0)<tolerances[i]);
+    }
+}
+
 int main() {
     try {
         testForces();
+        testEffSphereOnPlaneOldFormulation();
     }
     catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
