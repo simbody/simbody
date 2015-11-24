@@ -152,8 +152,7 @@ void testForces() {
  *       the normal effort by 2^(3/2)~2.68
  *
  */
-void testEffSphereOnPlaneOldFormulation(bool verbose = false);
-void testEffSphereOnPlaneOldFormulation(bool verbose)
+void testEffSphereOnPlaneOldFormulation(bool verbose = false)
 {
     // Material properties for sphere
     const Real stiffness = 1e9;
@@ -162,6 +161,7 @@ void testEffSphereOnPlaneOldFormulation(bool verbose)
     const Real radius = 1.0;
     // Define initial penetration
     const Real initialPenetration = 0.002;
+    // Define the number of tests to perform
     const int maxLevel = 6;
     // Define some tolerances for each level in %
     const Real tolerances[6]= {0.15, 0.07, 0.03, 0.02, 0.01, 0.02};
@@ -175,14 +175,14 @@ void testEffSphereOnPlaneOldFormulation(bool verbose)
         GeneralContactSubsystem contacts(system);
         GeneralForceSubsystem forces(system);
         const ContactSetIndex setIndex = contacts.createContactSet();
-        // Creation a sphere with 6 level of refinement
+        // Creation a sphere with 6 levels of refinement
         const PolygonalMesh sphereMesh(PolygonalMesh::createSphereMesh(radius, 6));
         // Create the mobilized bodies and configure the contact model.
         const Body::Rigid body(MassProperties(1.0, Vec3(0), Inertia(1)));
         const MobilizedBody::Translation mesh(matter.updGround(), Transform(), body, Transform());
         contacts.addBody(setIndex, mesh, ContactGeometry::TriangleMesh(sphereMesh), Transform());
         contacts.addBody(setIndex, matter.updGround(), ContactGeometry::HalfSpace(),
-                         Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0.0,penetration-radius,0.0))); // y < penetration-radius
+                         Transform(Rotation(-0.5*Pi, ZAxis), Vec3(0.0, penetration-radius, 0.0))); // y < penetration-radius
         ElasticFoundationForce ef(forces, contacts, setIndex);
         ef.setBodyParameters(ContactSurfaceIndex(0), stiffness, dissipation, us, ud, uv);
         ef.setTransitionVelocity(vt);
@@ -192,6 +192,8 @@ void testEffSphereOnPlaneOldFormulation(bool verbose)
         const Real volumeSphericalCap = Pi*penetration*penetration/3.0*(3.0*radius-penetration);
         const Real theoreticalResult = stiffness*volumeSphericalCap;
         const Real numericalResult = r[1][1];
+        ASSERT(abs(r[1][0])<TOL);
+        ASSERT(abs(r[1][2])<TOL);
         const Real relativeDifference = abs((numericalResult/theoreticalResult)-1.0);
         if (verbose) {
             cout<<"Effort for penetration : "
@@ -203,10 +205,8 @@ void testEffSphereOnPlaneOldFormulation(bool verbose)
     }
 }
 
-void testEffSphereOnPlaneNewFormulation(bool verbose = false);
-void testEffSphereOnPlaneNewFormulation(bool verbose)
+void testEffSphereOnPlaneNewFormulation(bool verbose = false)
 {
-    // Material properties for sphere
     // Global stiffness of the contact: each material will have
     // twice this stiffness to obtain this global stiffness in the contact
     // 1/kG = 1/k1 + 1/k2
@@ -227,7 +227,6 @@ void testEffSphereOnPlaneNewFormulation(bool verbose)
         // Creation of the classical problem
         MultibodySystem system;
         SimbodyMatterSubsystem matter(system);
-        GeneralContactSubsystem contacts(system);
         ContactTrackerSubsystem tracker(system);
         CompliantContactSubsystem contactForces(system, tracker);
         contactForces.setTransitionVelocity(vt);
@@ -250,6 +249,8 @@ void testEffSphereOnPlaneNewFormulation(bool verbose)
         ASSERT(contactForces.getNumContactForces(state)==1);
         const ContactForce& force = contactForces.getContactForce(state,0);
         const Vec3& frc = force.getForceOnSurface2()[1];
+        ASSERT(abs(frc[0])<TOL);
+        ASSERT(abs(frc[2])<TOL);
         const Real numericalResult = frc[1];
         const Real volumeSphericalCap = Pi*penetration*penetration/3.0*(3.0*radius-penetration);
         const Real theoreticalResult = stiffness*volumeSphericalCap;
