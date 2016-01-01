@@ -68,12 +68,12 @@ public:
     /** Default constructor stores a `nullptr` and sets use count to zero. No
     heap allocation is performed. The empty() method will return true when
     called on a default-constructed %CloneOnWritePtr. **/
-    CloneOnWritePtr() NOEXCEPT_11 {init();}
+    CloneOnWritePtr() noexcept {init();}
 
     /** Constructor from `nullptr` is the same as the default constructor.
     This is an implicit conversion that allows `nullptr` to be used to
     initialize a %CloneOnWritePtr. **/
-    CloneOnWritePtr(std::nullptr_t) NOEXCEPT_11 : CloneOnWritePtr() {}
+    CloneOnWritePtr(std::nullptr_t) noexcept : CloneOnWritePtr() {}
 
     /** Given a pointer to a writable heap-allocated object, take over 
     ownership of that object. The use count will be one unless the pointer
@@ -99,25 +99,25 @@ public:
     source or destination are written to subsequently a deep copy is made and
     the objects become disconnected. If the source container is empty this one
     will be as though default constructed. **/
-    CloneOnWritePtr(const CloneOnWritePtr& src) NOEXCEPT_11 : CloneOnWritePtr() 
+    CloneOnWritePtr(const CloneOnWritePtr& src) noexcept : CloneOnWritePtr() 
     {   shareWith(src); }
 
     /** Copy construction from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
-    CloneOnWritePtr(const CloneOnWritePtr<U>& src) NOEXCEPT_11 : CloneOnWritePtr() 
+    CloneOnWritePtr(const CloneOnWritePtr<U>& src) noexcept : CloneOnWritePtr() 
     {   shareWith<U>(src); }
 
     /** Move constructor is very fast and leaves the source empty. The use
     count is unchanged. If the source was empty this one will be as though
     default constructed. **/
-    CloneOnWritePtr(CloneOnWritePtr&& src) NOEXCEPT_11 : CloneOnWritePtr() 
+    CloneOnWritePtr(CloneOnWritePtr&& src) noexcept : CloneOnWritePtr() 
     {   moveFrom(std::move(src)); }
 
     /** Move construction from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
-    CloneOnWritePtr(CloneOnWritePtr<U>&& src) NOEXCEPT_11 : CloneOnWritePtr()
+    CloneOnWritePtr(CloneOnWritePtr<U>&& src) noexcept : CloneOnWritePtr()
     {   moveFrom<U>(std::move(src)); }
     /**@}**/
 
@@ -130,7 +130,7 @@ public:
     If the source container is empty this one will be empty after the 
     assignment. Nothing happens if the source and destination were already
     managing the same object. **/
-    CloneOnWritePtr& operator=(const CloneOnWritePtr& src) NOEXCEPT_11 { 
+    CloneOnWritePtr& operator=(const CloneOnWritePtr& src) noexcept { 
         if (src.p != p) 
         {   reset(); shareWith(src); }
         return *this;
@@ -139,7 +139,7 @@ public:
     /** Copy assignment from a compatible %CloneOnWritePtr. Type `U*` must
     be implicitly convertible to type `T*`. **/
     template <class U>
-    CloneOnWritePtr& operator=(const CloneOnWritePtr<U>& src) NOEXCEPT_11 { 
+    CloneOnWritePtr& operator=(const CloneOnWritePtr<U>& src) noexcept { 
         if (static_cast<T*>(src.p) != p) 
         {   reset(); shareWith<U>(src); }
         return *this;
@@ -151,7 +151,7 @@ public:
     happens if the source and destination are the same containers. If they are
     different but are sharing the same object then the use count is reduced
     by one. **/
-    CloneOnWritePtr& operator=(CloneOnWritePtr&& src) NOEXCEPT_11 { 
+    CloneOnWritePtr& operator=(CloneOnWritePtr&& src) noexcept { 
         if (&src != this) 
         {   reset(); moveFrom(std::move(src)); }
         return *this;
@@ -160,7 +160,7 @@ public:
     /** Move assignment from a compatible %CloneOnWritePtr. Type U* must
     be implicitly convertible to type T*. **/
     template <class U>
-    CloneOnWritePtr& operator=(CloneOnWritePtr<U>&& src) NOEXCEPT_11 {
+    CloneOnWritePtr& operator=(CloneOnWritePtr<U>&& src) noexcept {
         // Can't be the same container since the type is different.
         reset(); moveFrom<U>(std::move(src));
         return *this;
@@ -178,7 +178,7 @@ public:
     source object and takes over ownership of the source object. The use count
     of the currently-held object is decremented and the object is deleted if 
     this was the last reference to it. **/ 
-    CloneOnWritePtr& operator=(T* x) NOEXCEPT_11
+    CloneOnWritePtr& operator=(T* x) noexcept
     {   reset(x); return *this; }
     /**@}**/
     
@@ -186,7 +186,7 @@ public:
     /**@{**/    
     /** Destructor decrements the reference count and deletes the object
     if the count goes to zero. @see reset() **/
-    ~CloneOnWritePtr() NOEXCEPT_11 {reset();}
+    ~CloneOnWritePtr() noexcept {reset();}
     /**@}**/
 
     /** @name                     Accessors **/
@@ -197,7 +197,7 @@ public:
     `%get()` for the standard smart pointers which return a writable pointer. 
     Use upd() here for that purpose. 
     @see upd(), getRef() **/
-    const T* get() const NOEXCEPT_11 {return p;}
+    const T* get() const noexcept {return p;}
 
     /** Clone if necessary to ensure the contained object is not shared, then 
     return a writable pointer to the contained (and now unshared) object if any,
@@ -257,7 +257,7 @@ public:
     object (if any), and deleting it if this was the last use. The container
     is restored to its default-constructed state. 
     @see empty() **/
-    void reset() NOEXCEPT_11 {
+    void reset() noexcept {
         if (empty()) return;
         if (decr()==0) {delete p; delete count;} 
         init();
@@ -279,7 +279,7 @@ public:
     ownership changing hands but no copying performed. This is very fast;
     no heap activity occurs. Both containers must have been instantiated with 
     the identical type. **/
-    void swap(CloneOnWritePtr& other) NOEXCEPT_11 {
+    void swap(CloneOnWritePtr& other) noexcept {
         std::swap(p, other.p);
         std::swap(count, other.count);
     }
@@ -288,21 +288,21 @@ public:
     sharing the referenced object. There is never more than
     one holding an object for writing. If the pointer is null the use 
     count is zero. **/
-    long use_count() const NOEXCEPT_11 {return count ? *count : 0;}
+    long use_count() const noexcept {return count ? *count : 0;}
 
     /** Is this the only user of the referenced object? Note that this means
     there is exactly one; if the managed pointer is null `unique()` returns 
     `false`. **/
-    bool unique() const NOEXCEPT_11 {return use_count()==1;}
+    bool unique() const noexcept {return use_count()==1;}
    
     /** Return true if this container is empty, which is the state the container
     is in immediately after default construction and various other 
     operations. **/
-    bool empty() const NOEXCEPT_11 {return !p;} // count should be null also
+    bool empty() const noexcept {return !p;} // count should be null also
 
     /** This is a conversion to type bool that returns true if
     the container is non-null (that is, not empty). **/
-    explicit operator bool() const NOEXCEPT_11 {return !empty();}
+    explicit operator bool() const noexcept {return !empty();}
 
     /** (Advanced) Remove the contained object from management by this 
     container and transfer ownership to the caller. Clone if necessary to 
@@ -342,23 +342,23 @@ template <class U> friend class CloneOnWritePtr;
 
     // Set an empty pointer to share with the given object. Type U* must be
     // implicitly convertible to type T*.
-    template <class U> void shareWith(const CloneOnWritePtr<U>& src) NOEXCEPT_11 {
+    template <class U> void shareWith(const CloneOnWritePtr<U>& src) noexcept {
         assert(!(p||count)); 
         if (!src.empty()) {p=src.p; count=src.count; incr();}
     }
 
     // Steal the object and count from the source to initialize this *empty* 
     // pointer, leaving the source empty.
-    template <class U> void moveFrom(CloneOnWritePtr<U>&& src) NOEXCEPT_11 {
+    template <class U> void moveFrom(CloneOnWritePtr<U>&& src) noexcept {
         assert(!(p||count)); 
         p=src.p; count=src.count; src.init();
     }
 
     // Increment/decrement use count and return the result.
-    long incr() const NOEXCEPT_11 {assert(count && *count>=0); return ++(*count);}
-    long decr() const NOEXCEPT_11 {assert(count && *count>=1); return --(*count);}
+    long incr() const noexcept {assert(count && *count>=0); return ++(*count);}
+    long decr() const noexcept {assert(count && *count>=1); return --(*count);}
 
-    void init() NOEXCEPT_11 {p=nullptr; count=nullptr;}
+    void init() noexcept {p=nullptr; count=nullptr;}
 
     // Can't use std::shared_ptr here due to lack of release() method.
     T*      p;          // this may be null

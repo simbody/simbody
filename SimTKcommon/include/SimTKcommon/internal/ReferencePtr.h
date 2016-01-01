@@ -66,33 +66,33 @@ public:
     /** @name                    Constructors **/
     /**@{**/
     /** Default constructor creates an empty object. **/
-    ReferencePtr() NOEXCEPT_11 : p(nullptr) {}
+    ReferencePtr() noexcept : p(nullptr) {}
 
     /** Constructor from `nullptr` is the same as the default constructor.
     This is an implicit conversion that allows `nullptr` to be used to
     initialize a %ReferencePtr. **/
-    ReferencePtr(std::nullptr_t) NOEXCEPT_11 : ReferencePtr() {}
+    ReferencePtr(std::nullptr_t) noexcept : ReferencePtr() {}
 
     /** Construct from a given pointer stores the pointer. **/
-    explicit ReferencePtr(T* tp) NOEXCEPT_11 : p(tp) {}
+    explicit ReferencePtr(T* tp) noexcept : p(tp) {}
 
     /** Construct from a reference stores the address of the supplied 
     object. **/
-    explicit ReferencePtr(T& t) NOEXCEPT_11 : ReferencePtr(&t) {}
+    explicit ReferencePtr(T& t) noexcept : ReferencePtr(&t) {}
 
     /** Copy constructor unconditionally sets the pointer to null; see class
     comments for why. **/
-    ReferencePtr(const ReferencePtr&) NOEXCEPT_11 : p(nullptr) {}
+    ReferencePtr(const ReferencePtr&) noexcept : p(nullptr) {}
 
     /** Move constructor copies the pointer from the source and leaves the
     source empty. **/
-    ReferencePtr(ReferencePtr&& src) NOEXCEPT_11 : p(src.release()) {}
+    ReferencePtr(ReferencePtr&& src) noexcept : p(src.release()) {}
 
     /** <b>(Deprecated)</b> Use %ReferencePtr(nullptr) or just %ReferencePtr()
     instead. For backwards compatibility, this allows initialization 
     by "0" rather than `nullptr`. **/
     DEPRECATED_14("use ReferencePtr(nullptr) instead")
-    ReferencePtr(int mustBeZero) NOEXCEPT_11 : ReferencePtr()
+    ReferencePtr(int mustBeZero) noexcept : ReferencePtr()
     {   assert(mustBeZero==0); }
     /**@}**/
 
@@ -101,12 +101,12 @@ public:
 
     /** Copy assignment sets the pointer to nullptr (except for a self-assign); 
     see class comments for why.  **/
-    ReferencePtr& operator=(const ReferencePtr& src) NOEXCEPT_11
+    ReferencePtr& operator=(const ReferencePtr& src) noexcept
     {   if (&src != this) reset(); return *this; }
 
     /** Move assignment copies the pointer from the source and leaves the
     source empty. Nothing happens for self-assign. **/
-    ReferencePtr& operator=(ReferencePtr&& src) NOEXCEPT_11 {
+    ReferencePtr& operator=(ReferencePtr&& src) noexcept {
         if (&src != this) 
             p = src.release();
         return *this; 
@@ -114,25 +114,25 @@ public:
 
     /** This form of assignment replaces the currently-referenced object by a 
     reference to the source object; no destruction occurs. **/    
-    ReferencePtr& operator=(T& t) NOEXCEPT_11    
+    ReferencePtr& operator=(T& t) noexcept    
     {  reset(&t); return *this; }
 
     /** This form of assignment replaces the current pointer with the given
     one; no destruction occurs. **/
-    ReferencePtr& operator=(T* tp) NOEXCEPT_11               
+    ReferencePtr& operator=(T* tp) noexcept               
     {   reset(tp); return *this; }
     
     /** @name                    Destructor **/
     /**@{**/
     /** Destructor does nothing. **/
-    ~ReferencePtr() NOEXCEPT_11 {reset();} // just being tidy
+    ~ReferencePtr() noexcept {reset();} // just being tidy
     /**@}**/
 
     /** @name                     Accessors **/
     /**@{**/
 
     /** Return the contained pointer, or null if the container is empty. **/
-    T* get() const NOEXCEPT_11 {return p;}
+    T* get() const noexcept {return p;}
 
     /** Return a reference to the target object. Fails if the pointer is
     null. **/
@@ -157,24 +157,24 @@ public:
 
     /** Replace the stored pointer with a different one; no destruction
     occurs. **/
-    void reset(T* tp=nullptr) NOEXCEPT_11 {p=tp;}
+    void reset(T* tp=nullptr) noexcept {p=tp;}
 
     /** Swap the contents of this %ReferencePtr with another one. This is very
     fast. **/
-    void swap(ReferencePtr& other) NOEXCEPT_11 {
+    void swap(ReferencePtr& other) noexcept {
         std::swap(p, other.p);
     }
 
     /** Return true if this container is empty. **/
-    bool empty() const NOEXCEPT_11 {return !p;}
+    bool empty() const noexcept {return !p;}
 
     /** This is a conversion to type bool that returns true if
     the container is non-null (that is, not empty). **/
-    explicit operator bool() const NOEXCEPT_11 {return !empty();}
+    explicit operator bool() const noexcept {return !empty();}
 
     /** Extract the pointer from this container, leaving the container empty. 
     The pointer is returned. **/
-    T* release() NOEXCEPT_11 {
+    T* release() noexcept {
         T* x=p; 
         p=nullptr; 
         return x;
@@ -182,12 +182,12 @@ public:
 
     /** <b>(Deprecated)</b> Use reset() instead. **/
     DEPRECATED_14("use reset() instead")
-    void clear() NOEXCEPT_11 {reset();}
+    void clear() noexcept {reset();}
 
     /** <b>(Deprecated)</b> Use get() rather than implicit conversion from 
     %ReferencePtr\<T> to T*. **/
     DEPRECATED_14("use get() rather than implicit conversion to T*")
-    operator T*() const NOEXCEPT_11 {return p;}
+    operator T*() const noexcept {return p;}
 
     /**@}**/
 
@@ -209,7 +209,7 @@ cheap built-in swap() member of the ReferencePtr class. (This function
 is defined in the `SimTK` namespace.)
 @relates SimTK::ReferencePtr **/
 template <class T> inline void
-swap(ReferencePtr<T>& p1, ReferencePtr<T>& p2) NOEXCEPT_11 {
+swap(ReferencePtr<T>& p1, ReferencePtr<T>& p2) noexcept {
     p1.swap(p2);
 }
 
