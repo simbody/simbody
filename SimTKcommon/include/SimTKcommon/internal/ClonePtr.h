@@ -64,16 +64,16 @@ public:
     /** Default constructor stores a `nullptr`. No heap allocation is performed.
     The empty() method will return true when called on a default-constructed 
     %ClonePtr. **/
-    ClonePtr() NOEXCEPT_11 : p(nullptr) {}
+    ClonePtr() noexcept : p(nullptr) {}
 
     /** Constructor from `nullptr` is the same as the default constructor.
     This is an implicit conversion that allows `nullptr` to be used to
     initialize a %ClonePtr. **/
-    ClonePtr(std::nullptr_t) NOEXCEPT_11 : ClonePtr() {}
+    ClonePtr(std::nullptr_t) noexcept : ClonePtr() {}
 
     /** Given a pointer to a writable heap-allocated object, take over 
     ownership of that object. The `clone()` method is *not* invoked. **/
-    explicit ClonePtr(T* x) NOEXCEPT_11 : p(x) {}
+    explicit ClonePtr(T* x) noexcept : p(x) {}
 
     /** Given a pointer to a read-only object, create a new heap-allocated copy 
     of that object via its `clone()` method and make this %ClonePtr the owner of
@@ -102,14 +102,14 @@ public:
     /** Move constructor is very fast and leaves the source empty. Ownership
     is transferred from the source to the new %ClonePtr. If the source was empty
     this one will be empty also. No heap activity occurs. **/
-    ClonePtr(ClonePtr&& src) NOEXCEPT_11 : p(src.release()) {} 
+    ClonePtr(ClonePtr&& src) noexcept : p(src.release()) {} 
 
     /** Move construction from a compatible %ClonePtr. Type `U*` must be 
     implicitly convertible to type `T*`. Ownership is transferred from the 
     source to the new %ClonePtr. If the source was empty this one will be empty 
     also. No heap activity occurs. **/
     template <class U>
-    ClonePtr(ClonePtr<U>&& src) NOEXCEPT_11 : p(src.release()) {}
+    ClonePtr(ClonePtr<U>&& src) noexcept : p(src.release()) {}
     /**@}**/
 
     /** @name                   Assignment **/
@@ -149,7 +149,7 @@ public:
     leaving the source empty. The currently-held object (if any) is deleted. 
     The `clone()` method is *not* invoked. Nothing happens if the source and 
     destination are the same containers. **/
-    ClonePtr& operator=(ClonePtr&& src) NOEXCEPT_11 { 
+    ClonePtr& operator=(ClonePtr&& src) noexcept { 
         if (&src != this) {   
             assert((p != src.p) || !p); // can't be same ptr unless null
             reset(src.p); src.p = nullptr; 
@@ -162,7 +162,7 @@ public:
     implicitly convertible to type T*. The currently-held object (if any) is 
     deleted. The `clone()` method is *not* invoked. **/
     template <class U>
-    ClonePtr& operator=(ClonePtr<U>&& src) NOEXCEPT_11 {
+    ClonePtr& operator=(ClonePtr<U>&& src) noexcept {
         // The source can't be the same container as this one since they are
         // different types. The managed pointers should never be the same either 
         // since ClonePtrs represent unique ownership. (OK if both nullptr.)
@@ -180,7 +180,7 @@ public:
     /** This form of assignment replaces the currently-held object by 
     the given source object and takes over ownership of the source object. The  
     currently-held object (if any) is deleted. **/ 
-    ClonePtr& operator=(T* x) NOEXCEPT_11               
+    ClonePtr& operator=(T* x) noexcept               
     {   reset(x); return *this; }
     /**@}**/
     
@@ -188,7 +188,7 @@ public:
     /**@{**/    
     /** Destructor deletes the contained object. 
     @see reset() **/
-    ~ClonePtr() NOEXCEPT_11 {reset();}
+    ~ClonePtr() noexcept {reset();}
     /**@}**/
 
     /** @name                     Accessors **/
@@ -199,13 +199,13 @@ public:
     like `std::unique_ptr` which return a writable pointer. Use upd() here for 
     that purpose. 
     @see upd(), getRef() **/
-    const T* get() const NOEXCEPT_11 {return p;}
+    const T* get() const noexcept {return p;}
 
     /** Return a writable pointer to the contained object if any, or `nullptr`. 
     Note that you need write access to this container in order to get write 
     access to the object it contains.
     @see get(), updRef() **/
-    T* upd() NOEXCEPT_11 {return p;}
+    T* upd() noexcept {return p;}
 
     /** Return a const reference to the contained object. Don't call this if 
     this container is empty. 
@@ -248,7 +248,7 @@ public:
     object if there is one. The container is restored to its default-constructed
     state. 
     @see empty() **/
-    void reset() NOEXCEPT_11 {
+    void reset() noexcept {
         delete p; 
         p = nullptr;
     }
@@ -257,7 +257,7 @@ public:
     object, taking over ownership of that object and deleting the current one
     first if necessary. Nothing happens if the supplied pointer is the same
     as the one already being managed. **/
-    void reset(T* x) NOEXCEPT_11 {
+    void reset(T* x) noexcept {
         if (x != p) {
             delete p;
             p = x;
@@ -268,23 +268,23 @@ public:
     ownership changing hands but no copying performed. This is very fast;
     no heap activity occurs. Both containers must have been instantiated with 
     the identical type. **/
-    void swap(ClonePtr& other) NOEXCEPT_11 {
+    void swap(ClonePtr& other) noexcept {
         std::swap(p, other.p);
     }
    
     /** Return true if this container is empty, which is the state the container
     is in immediately after default construction and various other 
     operations. **/
-    bool empty() const NOEXCEPT_11 {return !p;} // count should be null also
+    bool empty() const noexcept {return !p;} // count should be null also
 
     /** This is a conversion to type bool that returns true if the container is 
     non-null (that is, not empty). **/
-    explicit operator bool() const NOEXCEPT_11 {return !empty();}
+    explicit operator bool() const noexcept {return !empty();}
 
     /** Remove the contained object from management by this container and 
     transfer ownership to the caller. A writable pointer to the object is 
     returned. No object destruction occurs. This %ClonePtr is left empty. **/
-    T* release() NOEXCEPT_11 {
+    T* release() noexcept {
         T* save = p;
         p = nullptr;
         return save;
@@ -293,14 +293,14 @@ public:
     /** <b>(Deprecated)</b> Same as `get()`. Use get() instead; it is more like 
     the API for `std::unique_ptr`. **/
     DEPRECATED_14("use get() instead")
-    const T* getPtr() const NOEXCEPT_11 {return get();}
+    const T* getPtr() const noexcept {return get();}
     /** <b>(Deprecated)</b> Same as `upd()`. Use upd() instead; it is a better 
     match for `get()` modeled after the API for `std::unique_ptr`. **/
     DEPRECATED_14("use upd() instead")
-    T* updPtr() NOEXCEPT_11 {return upd();}  
+    T* updPtr() noexcept {return upd();}  
     /** <b>(Deprecated)</b> Use reset() instead. **/
     DEPRECATED_14("use reset() instead")
-    void clear() NOEXCEPT_11 {reset();}
+    void clear() noexcept {reset();}
 
     /**@}**/
 
@@ -329,7 +329,7 @@ cheap built-in swap() member of the ClonePtr class. (This function
 is defined in the `SimTK` namespace.)
 @relates ClonePtr **/
 template <class T> inline void
-swap(ClonePtr<T>& p1, ClonePtr<T>& p2) NOEXCEPT_11 {
+swap(ClonePtr<T>& p1, ClonePtr<T>& p2) noexcept {
     p1.swap(p2);
 }
 
