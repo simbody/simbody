@@ -113,7 +113,7 @@ namespace SimTK {
  *      SimTK_TEST_MUST_THROW_DEBUG(statement)  -- same as above but only checked in Debug builds
  *      SimTK_TEST_MUST_THROW_EXC_DEBUG(statement, exception) -- ditto
  *
- *      #define SimTK_TEST_SUPPRESS_MUST_THROW 
+ *      \#define SimTK_TEST_SUPPRESS_MUST_THROW 
  *          -- Define this temporarily at top of test programs to make it 
  *             easier to locate an *unexpected* exception while debugging. It
  *             simply disables the "MUST_THROW" macros so you don't have to wade

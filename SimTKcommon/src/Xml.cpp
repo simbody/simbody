@@ -30,10 +30,46 @@
 
 using namespace SimTK;
 
+// Handy helper for weeding out unwanted nodes.
+static bool nodeTypeIsAllowed(Xml::NodeType       allowed,
+                              TiXmlNode::NodeType found) {
+    switch(found) {
+    case TiXmlNode::ELEMENT: return (allowed & Xml::ElementNode)!=0;
+    case TiXmlNode::TEXT:    return (allowed & Xml::TextNode)   !=0;
+    case TiXmlNode::COMMENT: return (allowed & Xml::CommentNode)!=0;
+    case TiXmlNode::UNKNOWN: return (allowed & Xml::UnknownNode)!=0;
+    default: return false;
+    }
+}
+
+// This is an Xml namespace-scope free function.
+String Xml::getNodeTypeAsString(Xml::NodeType type) {
+    // Take care of special cases first.
+    switch(type) {
+    case NoNode: return "NoNode";
+    case NoJunkNodes: return "NoJunkNodes";
+    case JunkNodes: return "JunkNodes";
+    case AnyNodes: return "AnyNodes";
+    default: ; // fall through
+    }
+
+    // "Or" bits together in CUTE order.
+    String out;
+    if (type & CommentNode) out = "CommentNode";
+    if (type & UnknownNode) 
+    {   if (!out.empty()) out += "|"; out += "UnknownNode"; }
+    if (type & TextNode) 
+    {   if (!out.empty()) out += "|"; out += "TextNode"; }
+    if (type & ElementNode) 
+    {   if (!out.empty()) out += "|"; out += "ElementNode"; }
+
+    return out;
+}
+
 //------------------------------------------------------------------------------
-//                                 XML IMPL
+//                        XML :: DOCUMENT :: IMPL
 //------------------------------------------------------------------------------
-class Xml::Impl {
+class Xml::Document::Impl {
 public:
     Impl() {} // not canonicalized yet
     Impl(const String& pathname) {
@@ -227,64 +263,29 @@ private:
 };
 
 
-
 //------------------------------------------------------------------------------
-//                                    XML
+//                            XML :: DOCUMENT
 //------------------------------------------------------------------------------
 
-// Handy helper for weeding out unwanted nodes.
-static bool nodeTypeIsAllowed(Xml::NodeType       allowed,
-                              TiXmlNode::NodeType found) {
-    switch(found) {
-    case TiXmlNode::ELEMENT: return (allowed & Xml::ElementNode)!=0;
-    case TiXmlNode::TEXT:    return (allowed & Xml::TextNode)   !=0;
-    case TiXmlNode::COMMENT: return (allowed & Xml::CommentNode)!=0;
-    case TiXmlNode::UNKNOWN: return (allowed & Xml::UnknownNode)!=0;
-    default: return false;
-    }
-}
 
-/*static*/String Xml::getNodeTypeAsString(Xml::NodeType type) {
-    // Take care of special cases first.
-    switch(type) {
-    case NoNode: return "NoNode";
-    case NoJunkNodes: return "NoJunkNodes";
-    case JunkNodes: return "JunkNodes";
-    case AnyNodes: return "AnyNodes";
-    default: ; // fall through
-    }
-
-    // "Or" bits together in CUTE order.
-    String out;
-    if (type & CommentNode) out = "CommentNode";
-    if (type & UnknownNode) 
-    {   if (!out.empty()) out += "|"; out += "UnknownNode"; }
-    if (type & TextNode) 
-    {   if (!out.empty()) out += "|"; out += "TextNode"; }
-    if (type & ElementNode) 
-    {   if (!out.empty()) out += "|"; out += "ElementNode"; }
-
-    return out;
-}
-
-Xml::Xml() : impl(0) {
+Xml::Document::Document() : impl(0) {
     impl = new Impl();
     impl->canonicalizeDocument();
 }
 
-Xml::Xml(const String& pathname) : impl(0) {
+Xml::Document::Document(const String& pathname) : impl(0) {
     impl = new Impl(pathname);
     impl->canonicalizeDocument();
 }
 
-Xml::Xml(const Xml& source) : impl(0) {
+Xml::Document::Document(const Document& source) : impl(0) {
     if (source.impl) {
         impl = source.impl->clone();
         impl->canonicalizeDocument();
     }
 }
 
-Xml& Xml::operator=(const Xml& source) {
+Xml::Document& Xml::Document::operator=(const Xml::Document& source) {
     if (&source != this) {
         delete impl; impl = 0;
         if (source.impl) {
@@ -295,44 +296,47 @@ Xml& Xml::operator=(const Xml& source) {
     return *this;
 }
 
-Xml::~Xml() {
+Xml::Document::~Document() {
     delete impl;
     impl = 0;
 }
 
+void Xml::Document::clear()
+{   updImpl().clear(); }
 
-void Xml::readFromFile(const String& pathname) 
+void Xml::Document::readFromFile(const String& pathname) 
 {   updImpl().readFromFile(pathname.c_str());
     updImpl().canonicalizeDocument(); }
-void Xml::writeToFile(const String& pathname) const 
+void Xml::Document::writeToFile(const String& pathname) const 
 {   getImpl().writeToFile(pathname.c_str()); }
-void Xml::readFromString(const char* xmlDocument) 
+void Xml::Document::readFromString(const char* xmlDocument) 
 {   updImpl().readFromString(xmlDocument);
     updImpl().canonicalizeDocument(); }
-void Xml::readFromString(const String& xmlDocument) 
+void Xml::Document::readFromString(const String& xmlDocument) 
 {   readFromString(xmlDocument.c_str()); }
-void Xml::writeToString(String& xmlDocument, bool compact) const 
+void Xml::Document::writeToString(String& xmlDocument, bool compact) const 
 {   getImpl().writeToString(xmlDocument, compact); }
-void Xml::setIndentString(const String& indent)
+void Xml::Document::setIndentString(const String& indent)
 {   updImpl().setIndentString(indent); }
-const String& Xml::getIndentString() const
+const String& Xml::Document::getIndentString() const
 {   return getImpl().getIndentString(); }
 
-/*static*/void Xml::setXmlCondenseWhiteSpace(bool shouldCondense)
+/*static*/void Xml::Document::setXmlCondenseWhiteSpace(bool shouldCondense)
 {   TiXmlBase::SetCondenseWhiteSpace(shouldCondense); }
-/*static*/bool Xml::isXmlWhiteSpaceCondensed()
+/*static*/bool Xml::Document::isXmlWhiteSpaceCondensed()
 {   return TiXmlBase::IsWhiteSpaceCondensed(); }
 
-Xml::Element Xml::getRootElement() 
+Xml::Element Xml::Document::getRootElement() 
 {   assert(getImpl().m_rootElement.isValid());
     return updImpl().m_rootElement; }
-const String& Xml::getRootTag() const 
+const String& Xml::Document::getRootTag() const 
 {   return unconst().getRootElement().getElementTag(); }
-void Xml::setRootTag(const String& tag) 
+void Xml::Document::setRootTag(const String& tag) 
 {   getRootElement().setElementTag(tag); }
 
-void Xml::insertTopLevelNodeAfter (const Xml::node_iterator& afterThis, 
-                                   Xml::Node                 insertThis) {
+void Xml::Document::
+insertTopLevelNodeAfter(const Xml::node_iterator& afterThis, 
+                        Xml::Node                 insertThis) {
     const char* method = "Xml::insertTopLevelNodeAfter()";
 
     // Check that the supplied Node is OK.
@@ -359,8 +363,9 @@ void Xml::insertTopLevelNodeAfter (const Xml::node_iterator& afterThis,
                                      insertThis.updTiNodePtr());
 }
 
-void Xml::insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis, 
-                                   Xml::Node                 insertThis) {
+void Xml::Document::
+insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis, 
+                         Xml::Node                 insertThis) {
     const char* method = "Xml::insertTopLevelNodeBefore()";
 
     // Check that the supplied Node is OK.
@@ -387,7 +392,7 @@ void Xml::insertTopLevelNodeBefore(const Xml::node_iterator& beforeThis,
                                       insertThis.updTiNodePtr());
 }
 
-void Xml::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
+void Xml::Document::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
     const char* method = "Xml::eraseTopLevelNode()";
 
     // Check that the supplied iterator points to something.
@@ -404,7 +409,8 @@ void Xml::eraseTopLevelNode(const Xml::node_iterator& deleteThis) {
     updImpl().m_tixml.RemoveChild(deleteThis->updTiNodePtr());
 }
 
-Xml::Node Xml::removeTopLevelNode(const Xml::node_iterator& removeThis) {
+Xml::Node Xml::Document::
+removeTopLevelNode(const Xml::node_iterator& removeThis) {
     const char* method = "Xml::removeTopLevelNode()";
 
     // Check that the supplied iterator points to something.
@@ -423,25 +429,25 @@ Xml::Node Xml::removeTopLevelNode(const Xml::node_iterator& removeThis) {
 }
 
 
-String Xml::getXmlVersion() const 
+String Xml::Document::getXmlVersion() const 
 {   return getImpl().getTiXmlDeclaration().Version(); }
-String Xml::getXmlEncoding() const 
+String Xml::Document::getXmlEncoding() const 
 {   return getImpl().getTiXmlDeclaration().Encoding(); }
-bool Xml::getXmlIsStandalone() const 
+bool Xml::Document::getXmlIsStandalone() const 
 {   return String::toLower(getImpl().getTiXmlDeclaration().Standalone())!="no"; }
 
-void Xml::setXmlVersion(const String& version)
+void Xml::Document::setXmlVersion(const String& version)
 {   updImpl().updTiXmlDeclaration().SetVersion(version.c_str()); }
-void Xml::setXmlEncoding(const String& encoding)
+void Xml::Document::setXmlEncoding(const String& encoding)
 {   updImpl().updTiXmlDeclaration().SetEncoding(encoding.c_str()); }
 // For the standalone case we set the string to "" rather than "yes" so that
 // the standalone attribute won't appear in the output declaration.
-void Xml::setXmlIsStandalone(bool isStandalone)
+void Xml::Document::setXmlIsStandalone(bool isStandalone)
 {   updImpl().updTiXmlDeclaration().SetStandalone(isStandalone ? "" : "no"); }
 
 
     // XML node_begin()
-Xml::node_iterator Xml::node_begin(NodeType allowed) {
+Xml::node_iterator Xml::Document::node_begin(NodeType allowed) {
     TiXmlNode* first = updImpl().m_tixml.FirstChild();
     while (first && !nodeTypeIsAllowed(allowed, first->Type()))
         first = first->NextSibling();
@@ -449,7 +455,7 @@ Xml::node_iterator Xml::node_begin(NodeType allowed) {
 }
 
     // XML node_end()
-Xml::node_iterator Xml::node_end() const 
+Xml::node_iterator Xml::Document::node_end() const 
 {   return node_iterator(0); }
 
 
@@ -583,8 +589,9 @@ Xml::NodeType Xml::Node::getNodeType() const {
     return NoNode;
 }
 
-String Xml::Node::
-getNodeTypeAsString() const {return Xml::getNodeTypeAsString(getNodeType());}
+// Invoke the namespace-scope utility on this node's type.
+String Xml::Node::getNodeTypeAsString() const 
+{   return Xml::getNodeTypeAsString(getNodeType()); }
 
 const String& Xml::Node::getNodeText() const {
     SimTK_ERRCHK_ALWAYS(isValid(), "Xml::Node::getText()",
