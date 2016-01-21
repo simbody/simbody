@@ -112,7 +112,9 @@ private:
 namespace SimTK {
 template <> struct NiceTypeName<SmallIx> {
     static const char* name() {return "SmallIx";}
-    static std::string namestr() {return "SmallIx";}
+    static const std::string& namestr() 
+    {   static const std::string ns(name()); return ns; }
+    static const std::string& xmlstr() {return namestr();}
 };
 }
 
@@ -768,9 +770,12 @@ void testNiceTypeName() {
         << NiceTypeName<ArrayIndexPackType<unsigned long long>::packed_size_type>::name() << endl;
     cout << "Array_<String,char> using name(): " 
          << NiceTypeName< Array_<String,char> >::name() << endl;
-    // Check demangling on GCC/Clang.
+    // Check demangling/canonicalizing.
     cout << "Array_<String,char> using namestr(): " 
          << NiceTypeName< Array_<String,char> >::namestr() << endl;
+    // Check removing angle brackets for XML.
+    cout << "Array_<String,char> using xmlstr(): " 
+         << NiceTypeName< Array_<String,char> >::xmlstr() << endl;
 }
 
 // The Array_ class is supposed to make better use of memory than does
