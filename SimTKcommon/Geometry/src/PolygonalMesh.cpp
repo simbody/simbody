@@ -302,7 +302,7 @@ The attributes of the DataArray elements are described as follows:
 void PolygonalMesh::loadVtpFile(const String& pathname) {
   try
   { const char* method = "PolygonalMesh::loadVtpFile()";
-    Xml vtp(pathname);
+    Xml::Document vtp(pathname);
     // The file has been read in and parsed into memory by the Xml system.
 
     SimTK_ERRCHK1_ALWAYS(vtp.getRootTag() == "VTKFile", method,

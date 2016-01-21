@@ -52,6 +52,10 @@ template <class T, class X=unsigned> class  ArrayViewConst_;
 template <class T, class X=unsigned> class  ArrayView_;
 template <class T, class X=unsigned> class  Array_;
 
+namespace Xml {
+class Element;
+}
+
 // NOTE: I have attempted to force the compilers to inline certain trivial
 // methods here because I observed Visual C++ 2013 fail to inline operator[]
 // in a performance-critical method (getCacheEntry() to be specific). It is

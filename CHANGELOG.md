@@ -47,6 +47,12 @@ to ParallelExecutor, mutex state lock.
   digits by default. An attempt to use the default type-to-String conversion 
   when no stream insertion operator is available is now a runtime rather than
   compile time error. [PR #459](https://github.com/simbody/simbody/pull/459).
+* Upgraded SimTK::Xml from a class to a namespace; local classes like Xml::Element
+  were promoted to namespace level within Xml. This was necessary to untangle
+  Array_ and Xml classes which can be mutually dependent. This change is backwards
+  compatible for those following the recommended use of the previously-available
+  Xml::Document typedef instead of Xml directly. Otherwise you will have to change
+  uses of SimTK::Xml to SimTK::Xml::Document. [PR #460](https://github.com/simbody/simbody/pull/460)
 * (There are more that haven't been added yet)
 
 
