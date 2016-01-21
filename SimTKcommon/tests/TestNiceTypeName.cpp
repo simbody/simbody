@@ -257,6 +257,9 @@ void testArrayNames() {
 void testSTLNames() {
     SimTK_TEST(NiceTypeName<std::string>::namestr()
                 == "std::string");
+    // Temporary for debugging failure on Apple clang
+    std::cout << "std::vector<int>" 
+              << NiceTypeName<std::vector<int>>::namestr() << std::endl;
     SimTK_TEST((NiceTypeName<std::vector<int>>::namestr()
                 == "std::vector<int,std::allocator<int>>"));
 }
