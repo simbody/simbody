@@ -60,7 +60,7 @@ to ParallelExecutor, mutex state lock.
   the same on all platforms (with a few exceptions). Added `xmlstr()` method to
   make an XML-friendly modification of `namestr()` that replaces angle brackets
   with curly braces. Added a new regression test to verify that the names come
-  out right. [PR #461](https://github.com/simbody/simbody/pull/460)
+  out right. [PR #461](https://github.com/simbody/simbody/pull/461)
 * (There are more that haven't been added yet)
 
 
