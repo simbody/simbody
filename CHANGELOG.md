@@ -43,6 +43,10 @@ to ParallelExecutor, mutex state lock.
   explicitly with new methods `realizePositionKinematics()` and
   `realizeVelocityKinematics()`. They are invalidated by a change to q or
   to u, respectively. 
+* Modified floating point-to-String conversions to use lossless number of 
+  digits by default. An attempt to use the default type-to-String conversion 
+  when no stream insertion operator is available is now a runtime rather than
+  compile time error. [PR #459](https://github.com/simbody/simbody/pull/459).
 * (There are more that haven't been added yet)
 
 

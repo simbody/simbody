@@ -136,33 +136,39 @@ explicit String(unsigned long long s, const char* fmt="%llu")
 {   char buf[64]; sprintf(buf,fmt,s); (*this)=buf; }
 
 /** Format a float as a printable %String. Nonfinite values are formatted as
-NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
-SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.7g");
+NaN, Inf, or -Inf as appropriate (Matlab compatible). The default format
+specification includes enough digits so that the identical value will be
+recovered if the string is converted back to float. **/
+SimTK_SimTKCOMMON_EXPORT explicit String(float r, const char* fmt="%.9g");
 
 /** Format a double as a printable %String. Nonfinite values are formatted as
-NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
-SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.15g");
+NaN, Inf, or -Inf as appropriate (Matlab compatible). The default format
+specification includes enough digits so that the identical value will be
+recovered if the string is converted back to double. **/
+SimTK_SimTKCOMMON_EXPORT explicit String(double r, const char* fmt="%.17g");
 
-/** Format a long double as a printable %String. Nonfinite values are 
-formatted as NaN, Inf, or -Inf as appropriate (Matlab compatible). **/
+/** Format a long double as a printable %String. Nonfinite values are formatted 
+as NaN, Inf, or -Inf as appropriate (Matlab compatible). The default format
+specification includes enough digits so that the identical value will be
+recovered if the string is converted back to long double. **/
 SimTK_SimTKCOMMON_EXPORT explicit String(long double r, 
-                                         const char* fmt="%.20Lg");
+                                         const char* fmt="%.21Lg");
 
 /** Format a complex\<float> as a printable %String (real,imag) with parentheses
 and a comma as shown. The format string should be for a single float and will 
 be used twice; the default format is the same as for float. **/
-explicit String(std::complex<float> r, const char* fmt="%.7g")
+explicit String(std::complex<float> r, const char* fmt="%.9g")
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
 /** Format a complex\<double> as a printable %String (real,imag) with 
 parentheses and a comma as shown. The format string should be for a single 
 double and will be used twice; the default format is the same as for double. **/
-explicit String(std::complex<double> r, const char* fmt="%.15g")    
+explicit String(std::complex<double> r, const char* fmt="%.17g")    
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
 /** Format a complex\<long double> as a printable %String (real,imag) with 
 parentheses and a comma as shown. The format string should be for a single long
 double and will be used twice; the default format is the same as for long
 double. **/
-explicit String(std::complex<long double> r, const char* fmt="%.20Lg")    
+explicit String(std::complex<long double> r, const char* fmt="%.21Lg")    
 {   (*this)="(" + String(r.real(),fmt) + "," + String(r.imag(),fmt) + ")"; }
 
 /** Format a bool as a printable %String "true" or "false"; if you want "1"
@@ -329,13 +335,54 @@ String& replaceAllChar(const std::string& in, char oldChar, char newChar)
 // to worry about binary compatibility issues that can arise when passing 
 // streams through the API.
 
-/** Generic templatized %String constructor uses T::operator<<() to generate
-the %String when no specialization is available. **/ 
+/** @cond **/ // Hide from Doxygen
+template <class T> inline
+auto stringStreamInsertHelper(std::ostringstream& os, const T& t, bool)
+    -> decltype(static_cast<std::ostringstream&>(os << t)) {
+    os << t;
+    return os;
+}
+
+
+template <class T> inline
+auto stringStreamInsertHelper(std::ostringstream& os, const T& t, int)
+                                                    -> std::ostringstream& {
+    SimTK_ERRCHK1_ALWAYS(!"no stream insertion operator", "String::String(T)", 
+        "Type T=%s has no stream insertion operator<<(T) and there "
+        "is no specialized String(T) constructor.", 
+        NiceTypeName<T>::namestr().c_str());
+    return os;
+}
+
+template <class T> inline
+auto stringStreamExtractHelper(std::istringstream& is, T& t, bool)
+    -> decltype(static_cast<std::istringstream&>(is >> t)) {
+    is >> t;
+    return is;
+}
+
+template <class T> inline
+auto stringStreamExtractHelper(std::istringstream& is, T& t, int)
+                                                    -> std::istringstream& {
+    SimTK_ERRCHK1_ALWAYS(!"no stream extraction operator", 
+        "String::tryConvertTo<T>()", 
+        "Type T=%s has no stream extraction operator>>(T) and there "
+        "is no specialized tryConvertTo<T>() constructor.", 
+        NiceTypeName<T>::namestr().c_str());
+    return is;
+}
+
+/** @endcond **/
+
+/** Generic templatized %String constructor uses stream insertion 
+`operator<<(T)` to generate the %String when no specialization of this
+constructor is available. A *runtime* error is thrown if this method is
+invoked and neither a specialization nor stream insertion operator is 
+available. **/ 
 template <class T> inline
 String::String(const T& t) {
-    std::ostringstream stream;
-    stream << t;
-    *this = stream.str();
+    std::ostringstream os;
+    *this = stringStreamInsertHelper(os, t, true).str();
 }
 
 
@@ -346,7 +393,8 @@ String::String(const T& t) {
 template <class T> inline static
 bool tryConvertStringTo(const String& value, T& out) {
     std::istringstream sstream(value);
-    sstream >> out; if (sstream.fail()) return false;
+    stringStreamExtractHelper(sstream, out, true);
+    if (sstream.fail()) return false;
     if (sstream.eof()) return true;
     // Successful conversion but didn't use all the characters. Maybe the
     // rest is just whitespace?
