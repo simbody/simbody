@@ -123,6 +123,7 @@ Simbody works on Windows, Mac, and Linux. For Windows, you must build from sourc
 3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
 2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
+5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
@@ -435,21 +436,12 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 Ubuntu and apt-get
 ------------------
 
-You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
-
-**Caution**: this installation method is still a work in progress. If you try it, please let us know on the [Simbody Forum](https://simtk.org/forums/viewforum.php?f=47) if it worked or if not, what problems you encountered.
+Starting with Ubuntu 15.04, Simbody is available in the Ubuntu (and Debian) repositories. You can see a list of all simbody packages for all Ubuntu versions at the [Ubuntu Packages website](http://packages.ubuntu.com/search?keywords=simbody&searchon=names&suite=all&section=all). The latest version of Simbody is usually not available in the Ubuntu repositories; the process for getting a new version of Simbody into the Ubuntu repositories could take up to a year.
 
 #### Install
 
-1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
+1. Open a terminal and run the following command:
 
-        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-        $ sudo apt-get update
-
-2. Install Simbody.
-
-        $ sudo apt-get update
         $ sudo apt-get install libsimbody-dev libsimbody-doc
 
 #### Layout of installation
