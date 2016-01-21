@@ -150,6 +150,22 @@ template <class T> Counter Count<T>::initAssign;
 template <class T> Counter Count<T>::copyAssign;
 template <class T> Counter Count<T>::dtor;
 
+// Standalone tests of the method that is used by NiceTypeName<T>::namestr()
+// to clean up the demangled names on various platforms.
+void testCanonicalize() {
+    // Standardize "unsigned int" to "unsigned"; get rid of extra spaces.
+    SimTK_TEST(canonicalizeTypeName("class std :: vector < unsigned int >")
+               == "std::vector<unsigned>");
+    // OSX's stl like to throw in these extra namespaces.
+    SimTK_TEST(canonicalizeTypeName("std:: __1 :: __23 :: set<T>")
+               == "std::set<T>");
+
+    // Shouldn't recognize special strings when they aren't whole words.
+    SimTK_TEST(canonicalizeTypeName("unsigned longing")=="unsignedlonging");
+    SimTK_TEST(canonicalizeTypeName("std::my__1::__23x::resigned char")
+               == "std::my__1::__23x::resignedchar");
+}
+
 void testBuiltins() {
     SimTK_TEST(NiceTypeName<bool>::namestr() == "bool");
     SimTK_TEST(NiceTypeName<signed char>::namestr() == "signed char");
@@ -257,9 +273,6 @@ void testArrayNames() {
 void testSTLNames() {
     SimTK_TEST(NiceTypeName<std::string>::namestr()
                 == "std::string");
-    // Temporary for debugging failure on Apple clang
-    std::cout << "std::vector<int>" 
-              << NiceTypeName<std::vector<int>>::namestr() << std::endl;
     SimTK_TEST((NiceTypeName<std::vector<int>>::namestr()
                 == "std::vector<int,std::allocator<int>>"));
 }
@@ -292,6 +305,7 @@ int main() {
 
     SimTK_START_TEST("TestArray");
 
+        SimTK_SUBTEST(testCanonicalize);
         SimTK_SUBTEST(testBuiltins);
         SimTK_SUBTEST(testEnums);
         SimTK_SUBTEST(testArrayNames);

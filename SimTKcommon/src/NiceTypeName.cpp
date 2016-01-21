@@ -56,7 +56,7 @@ std::string demangle(const char* name) {
 std::string canonicalizeTypeName(std::string&& demangled) {
     using SPair = std::pair<std::regex,std::string>;
     // These are applied in this order.
-    static const std::array<SPair,8> subs{
+    static const std::array<SPair,9> subs{
         // Remove unwanted keywords and following space.
         SPair(std::regex("\\b(class|struct|enum|union) "),      ""),
         // Standardize "unsigned int" -> "unsigned".
@@ -67,6 +67,8 @@ std::string canonicalizeTypeName(std::string&& demangled) {
         SPair(std::regex("\\bsigned char\\b"),                  "signed!char"),
         SPair(std::regex("\\banonymous namespace\\b"),  "anonymous!namespace"),
         SPair(std::regex(" "), ""), // Delete unwanted spaces.
+        // OSX clang throws in extra namespaces like "__1". Delete them.
+        SPair(std::regex("\\b__[0-9]+::"), ""),
         SPair(std::regex("!"), " ") // Restore wanted spaces.
     };
     std::string canonical(std::move(demangled));
