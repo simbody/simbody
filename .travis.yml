@@ -1,5 +1,11 @@
 # This script is used by the Travis-CI (continuous integration) testing
 # framework to run Simbody's tests with every GitHub push or pull-request.
+#
+# Ask for Ubuntu "trusty" (14.04) to pick up newer compilers. Still have
+# to upgrade gcc from trusty's 4.8 to 4.9 though, because 4.8 didn't support
+# C++11 regular expressions.
+sudo: required
+dist: trusty
 language: cpp
     
 matrix:
