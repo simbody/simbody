@@ -54,7 +54,6 @@ std::string demangle(const char* name) {
 // indpendence. We'll remove Microsoft's "class ", "struct ", etc.
 // designations, and get rid of all unnecessary spaces.
 std::string canonicalizeTypeName(std::string&& demangled) {
-    std::cout << "canonicalizing " << demangled << std::endl;
     using SPair = std::pair<std::regex,std::string>;
     // These are applied in this order.
     static const std::array<SPair,7> subs{
@@ -75,7 +74,6 @@ std::string canonicalizeTypeName(std::string&& demangled) {
     std::string canonical(std::move(demangled));
     for (const auto& sp : subs) {
         canonical = std::regex_replace(canonical, sp.first, sp.second);
-        std::cout << "now " << canonical << std::endl;
     }
     return canonical;
 }
