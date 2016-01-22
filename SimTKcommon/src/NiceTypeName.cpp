@@ -54,26 +54,28 @@ std::string demangle(const char* name) {
 // indpendence. We'll remove Microsoft's "class ", "struct ", etc.
 // designations, and get rid of all unnecessary spaces.
 std::string canonicalizeTypeName(std::string&& demangled) {
+    std::cout << "canonicalizing " << demangled << std::endl;
     using SPair = std::pair<std::regex,std::string>;
     // These are applied in this order.
-    static const std::array<SPair,9> subs{
+    static const std::array<SPair,7> subs{
         // Remove unwanted keywords and following space.
         SPair(std::regex("\\b(class|struct|enum|union) "),      ""),
+        // Tidy up anonymous namespace, without output like boost.
+        SPair(std::regex("[`(]anonymous namespace[')]"),        "{anonymous}"),
         // Standardize "unsigned int" -> "unsigned".
         SPair(std::regex("\\bunsigned int\\b"),                 "unsigned"),
-        // Temporarily replace spaces we want to keep with "!".
-        SPair(std::regex("\\blong (long|double)\\b"),           "long!$1"),
-        SPair(std::regex("\\bunsigned (char|short|long)\\b"),   "unsigned!$1"),
-        SPair(std::regex("\\bsigned char\\b"),                  "signed!char"),
-        SPair(std::regex("\\banonymous namespace\\b"),  "anonymous!namespace"),
-        SPair(std::regex(" "), ""), // Delete unwanted spaces.
+        // Temporarily replace spaces we want to keep with "!". (\w is 
+        // alphanumeric or underscore.)
+        SPair(std::regex("(\\w) (\\w)"),    "$1!$2"),
+        SPair(std::regex(" "),              ""), // Delete unwanted spaces.
         // OSX clang throws in extra namespaces like "__1". Delete them.
-        SPair(std::regex("\\b__[0-9]+::"), ""),
-        SPair(std::regex("!"), " ") // Restore wanted spaces.
+        SPair(std::regex("\\b__[0-9]+::"),  ""),
+        SPair(std::regex("!"),              " ") // Restore wanted spaces.
     };
     std::string canonical(std::move(demangled));
     for (const auto& sp : subs) {
         canonical = std::regex_replace(canonical, sp.first, sp.second);
+        std::cout << "now " << canonical << std::endl;
     }
     return canonical;
 }

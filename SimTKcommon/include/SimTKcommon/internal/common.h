@@ -843,7 +843,7 @@ inline std::string decodeXMLTypeName(const std::string& xmlTypeName)
 
 /** Obtain human-readable and XML-usable names for arbitrarily-complicated
 C++ types. Three methods `name()`, `namestr()`, and `xmlstr()` are provided
-giving respectively the raw, compiler-dependent output from `typeid(T).%name()`, 
+giving respectively the compiler-dependent output from `typeid(T).%name()`, 
 a canonicalized human-readable string, and the canonicalized string with
 XML-forbidden angle brackets replaced by curly braces. The default 
 implementation is usable for most types, but if you don't like the result you 

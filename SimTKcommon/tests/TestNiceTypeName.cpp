@@ -160,10 +160,11 @@ void testCanonicalize() {
     SimTK_TEST(canonicalizeTypeName("std:: __1 :: __23 :: set<T>")
                == "std::set<T>");
 
-    // Shouldn't recognize special strings when they aren't whole words.
-    SimTK_TEST(canonicalizeTypeName("unsigned longing")=="unsignedlonging");
+    // Should leaves spaces between words.
+    SimTK_TEST(canonicalizeTypeName("lunch bucket")=="lunch bucket");
+    // And keep funny looking namespaces if they aren't __digits.
     SimTK_TEST(canonicalizeTypeName("std::my__1::__23x::resigned char")
-               == "std::my__1::__23x::resignedchar");
+               == "std::my__1::__23x::resigned char");
 }
 
 void testBuiltins() {
