@@ -23,6 +23,10 @@
 
 #include "SimTKcommon/internal/common.h"
 #include <string>
+#include <regex>
+#include <array>
+#include <algorithm>
+#include <iostream>
 
 #if defined(__GNUG__)
 // https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.3/a01696.html
@@ -45,5 +49,48 @@ std::string demangle(const char* name) {
         return name;
     #endif
 }
+
+// Given a demangled string, attempt to canonicalize it for platform
+// indpendence. We'll remove Microsoft's "class ", "struct ", etc.
+// designations, and get rid of all unnecessary spaces.
+std::string canonicalizeTypeName(std::string&& demangled) {
+    using SPair = std::pair<std::regex,std::string>;
+    // These are applied in this order.
+    static const std::array<SPair,7> subs{
+        // Remove unwanted keywords and following space.
+        SPair(std::regex("\\b(class|struct|enum|union) "),      ""),
+        // Tidy up anonymous namespace, without output like boost.
+        SPair(std::regex("[`(]anonymous namespace[')]"),        "{anonymous}"),
+        // Standardize "unsigned int" -> "unsigned".
+        SPair(std::regex("\\bunsigned int\\b"),                 "unsigned"),
+        // Temporarily replace spaces we want to keep with "!". (\w is 
+        // alphanumeric or underscore.)
+        SPair(std::regex("(\\w) (\\w)"),    "$1!$2"),
+        SPair(std::regex(" "),              ""), // Delete unwanted spaces.
+        // OSX clang throws in extra namespaces like "__1". Delete them.
+        SPair(std::regex("\\b__[0-9]+::"),  ""),
+        SPair(std::regex("!"),              " ") // Restore wanted spaces.
+    };
+    std::string canonical(std::move(demangled));
+    for (const auto& sp : subs) {
+        canonical = std::regex_replace(canonical, sp.first, sp.second);
+    }
+    return canonical;
+}
+
+std::string encodeTypeNameForXML(std::string&& nicestr) {
+    std::string xmlstr(std::move(nicestr));
+    std::replace(xmlstr.begin(), xmlstr.end(), '<', '{');
+    std::replace(xmlstr.begin(), xmlstr.end(), '>', '}');
+    return xmlstr;
+}
+
+std::string decodeXMLTypeName(std::string&& xmlstr) {
+    std::string nicestr(std::move(xmlstr));
+    std::replace(nicestr.begin(), nicestr.end(), '{', '<');
+    std::replace(nicestr.begin(), nicestr.end(), '}', '>');
+    return nicestr;
+}
+
 
 }

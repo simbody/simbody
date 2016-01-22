@@ -796,21 +796,86 @@ typedef Is64BitHelper<Is64BitPlatform>::Result Is64BitPlatformType;
 
 /** Attempt to demangle a type name as returned by typeid.name(), with the
 result hopefully suitable for meaningful display to a human. Behavior is 
-compiler-dependent. **/
-SimTK_SimTKCOMMON_EXPORT std::string demangle(const char* name);
+compiler-dependent. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT 
+std::string demangle(const char* name);
 
-/** In case you don't like the name you get from typeid(), you can specialize
-this class to provide a nicer name. This class is typically used for error 
-messages and testing. **/
+/** Given a compiler-dependent demangled type name string as returned by 
+SimTK::demangle(), attempt to form a canonicalized representation that will be
+the same for any compiler. Unnecessary spaces and superfluous keywords like
+"class" and "struct" are removed. The `namestr()` method of NiceTypeName\<T>
+uses this function to produce a human-friendly type name that is the same on any
+platform. The input argument is left empty. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT 
+std::string canonicalizeTypeName(std::string&& demangledTypeName);
+
+/** Same, but takes an lvalue reference so has to copy the input. 
+@relates SimTK::NiceTypeName **/
+inline std::string canonicalizeTypeName(const std::string& demangledTypeName)
+{   return canonicalizeTypeName(std::string(demangledTypeName)); }
+
+/** Given a canonicalized type name, produce a modified version that is 
+better-suited to use as an XML attribute. This means replacing the angle
+brackets with curly braces to avoid trouble. The input argument is left
+empty. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT
+std::string encodeTypeNameForXML(std::string&& canonicalizedTypeName);
+
+/** Same, but takes an lvalue reference so has to copy the input. 
+@relates SimTK::NiceTypeName **/
+inline std::string encodeTypeNameForXML(const std::string& niceTypeName)
+{   return encodeTypeNameForXML(std::string(niceTypeName)); }
+
+/** Given a type name that was encoded for XML by SimTK::encodeTypeNameForXML(),
+restore it to its canonicalized form. This means replacing curly braces by
+angle brackets. The input argument is left empty. 
+@relates SimTK::NiceTypeName **/
+SimTK_SimTKCOMMON_EXPORT
+std::string decodeXMLTypeName(std::string&& xmlTypeName);
+
+/** Same, but takes an lvalue reference so has to copy the input. 
+@relates SimTK::NiceTypeName **/
+inline std::string decodeXMLTypeName(const std::string& xmlTypeName)
+{   return decodeXMLTypeName(std::string(xmlTypeName)); }
+
+/** Obtain human-readable and XML-usable names for arbitrarily-complicated
+C++ types. Three methods `name()`, `namestr()`, and `xmlstr()` are provided
+giving respectively the compiler-dependent output from `typeid(T).%name()`, 
+a canonicalized human-readable string, and the canonicalized string with
+XML-forbidden angle brackets replaced by curly braces. The default 
+implementation is usable for most types, but if you don't like the result you 
+can specialize to provide nicer names. For example, you may prefer SimTK::Vec3 
+to SimTK::Vec\<3,double,1>.
+
+@warning Don't expect usable names for types that are defined in an anonymous 
+namespace or for function-local types. Names will still be produced but they 
+won't be unique and won't necessarily be compiler-independent.
+
+The output of `namestr()` is typically used for error messages and testing;
+`xmlstr()` is used for type tags in XML for use in deserializing. **/
 template <class T> struct NiceTypeName {
     /** The default implementation of name() here returns the raw result from
-    typeid(T).name() which will be fast but may be a mangled name in some 
+    `typeid(T).%name()` which will be fast but may be a mangled name in some 
     compilers (gcc and clang included). **/
     static const char* name() {return typeid(T).name();}
     /** The default implementation of namestr() attempts to return a nicely
-    demangled type name on all platforms, using the SimTK::demangle() method
-    defined above. Don't expect this to be fast. **/
-    static std::string namestr() {return demangle(name());}
+    demangled and canonicalized type name on all platforms, using the 
+    SimTK::demangle() and SimTK::canonicalizeTypeName() methods. This is an
+    expensive operation but is only done once. **/
+    static const std::string& namestr() {
+        static const std::string canonical = 
+            canonicalizeTypeName(demangle(name()));
+        return canonical;
+    }
+    /** The default implementation of xmlstr() takes the output of namestr()
+    and invokes SimTK::encodeTypeNameForXML() on it. **/
+    static const std::string& xmlstr() {
+        static const std::string xml = encodeTypeNameForXML(namestr());
+        return xml;
+    }
 };
 
 } // namespace SimTK
@@ -821,12 +886,19 @@ from resolution of typedefs, default template arguments, etc. Note that this
 macro generates a template specialization that must be done in the SimTK
 namespace; consequently it opens and closes namespace SimTK and must not
 be invoked if you already have that namespace open. **/
-#define SimTK_NICETYPENAME_LITERAL(T)               \
-namespace SimTK {                                   \
-    template <> struct NiceTypeName< T > {          \
-        static std::string namestr() { return #T; } \
-        static const char* name() { return #T; }    \
-    };                                              \
+#define SimTK_NICETYPENAME_LITERAL(T)                                   \
+namespace SimTK {                                                       \
+template <> struct NiceTypeName< T > {                                  \
+    static const char* name() { return #T; }                            \
+    static const std::string& namestr() {                               \
+        static const std::string str(#T);                               \
+        return str;                                                     \
+    }                                                                   \
+    static const std::string& xmlstr() {                                \
+        static const std::string xml = encodeTypeNameForXML(namestr()); \
+        return xml;                                                     \
+    }                                                                   \
+};                                                                      \
 }
 
 // Some types for which we'd like to see nice type names.
