@@ -36,7 +36,7 @@ before_install:
   
   ## Dependencies for Simbody.
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes update; fi
-  # - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install liblapack-dev; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install liblapack-dev; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get --yes install freeglut3-dev libxi-dev libxmu-dev; fi
 
   # C++11 on Ubuntu. Update to gcc 4.9, which provides full C++11 support.  We
