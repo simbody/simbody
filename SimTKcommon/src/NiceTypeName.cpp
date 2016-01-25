@@ -59,8 +59,8 @@ std::string canonicalizeTypeName(std::string&& demangled) {
     static const std::array<SPair,7> subs{
         // Remove unwanted keywords and following space.
         SPair(std::regex("\\b(class|struct|enum|union) "),      ""),
-        // Tidy up anonymous namespace, without output like boost.
-        SPair(std::regex("[`(]anonymous namespace[')]"),        "{anonymous}"),
+        // Tidy up anonymous namespace.
+        SPair(std::regex("[`(]anonymous namespace[')]"),        "(anonymous)"),
         // Standardize "unsigned int" -> "unsigned".
         SPair(std::regex("\\bunsigned int\\b"),                 "unsigned"),
         // Temporarily replace spaces we want to keep with "!". (\w is 
