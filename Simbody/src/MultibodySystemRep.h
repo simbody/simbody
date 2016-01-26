@@ -123,7 +123,7 @@ class MultibodySystemGlobalSubsystemRep : public Subsystem::Guts {
         SimTK_STAGECHECK_RANGE(Stage::Model, g, Stage::Dynamics,
             "MultibodySystem::getForceCacheEntry()");
 
-        return Value<ForceCacheEntry>::downcast(
+        return Value<ForceCacheEntry>::updDowncast(
             updCacheEntry(s,forceCacheIndices[g-Stage::Model])).upd();
     }
 public:

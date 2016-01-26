@@ -199,12 +199,12 @@ const ContactSnapshot& getNextPredictedContacts(const State& state) const {
     return contacts;
 }
 ContactSnapshot& updNextActiveContacts(const State& state) const {
-    ContactSnapshot& contacts = Value<ContactSnapshot>::downcast
+    ContactSnapshot& contacts = Value<ContactSnapshot>::updDowncast
         (updDiscreteVarUpdateValue(state, m_activeContactsIx));
     return contacts;
 }
 ContactSnapshot& updNextPredictedContacts(const State& state) const {
-    ContactSnapshot& contacts = Value<ContactSnapshot>::downcast
+    ContactSnapshot& contacts = Value<ContactSnapshot>::updDowncast
         (updDiscreteVarUpdateValue(state, m_predictedContactsIx));
     return contacts;
 }

@@ -711,9 +711,9 @@ public:
         const Array_<bool>& forceEnabled = Value< Array_<bool> >::downcast
                                     (getDiscreteVariable(s, forceEnabledIndex));
         Array_<Force*>& enabledNonParallelForces = Value< Array_<Force*> >::
-                       downcast(updCacheEntry(s,enabledNonParallelForcesIndex));
+                    updDowncast(updCacheEntry(s,enabledNonParallelForcesIndex));
         Array_<Force*>& enabledParallelForces = Value< Array_<Force*> >::
-                          downcast(updCacheEntry(s,enabledParallelForcesIndex));
+                    updDowncast(updCacheEntry(s,enabledParallelForcesIndex));
 
         // Avoid repeatedly allocating memory.
         enabledParallelForces.resize(0);
@@ -807,17 +807,17 @@ public:
 
         // OK, we're doing some caching. This is a little messier.
         // Get access to subsystem force cache entries.
-        bool& cachedForcesAreValid = Value<bool>::downcast
+        bool& cachedForcesAreValid = Value<bool>::updDowncast
                           (updCacheEntry(s, cachedForcesAreValidCacheIndex));
 
         Vector_<SpatialVec>&
-            rigidBodyForceCache = Value<Vector_<SpatialVec> >::downcast
+            rigidBodyForceCache = Value<Vector_<SpatialVec> >::updDowncast
                                  (updCacheEntry(s, rigidBodyForceCacheIndex));
         Vector_<Vec3>&
-            particleForceCache  = Value<Vector_<Vec3> >::downcast
+            particleForceCache  = Value<Vector_<Vec3> >::updDowncast
                                  (updCacheEntry(s, particleForceCacheIndex));
         Vector&
-            mobilityForceCache  = Value<Vector>::downcast
+            mobilityForceCache  = Value<Vector>::updDowncast
                                  (updCacheEntry(s, mobilityForceCacheIndex));
 
 
