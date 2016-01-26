@@ -1125,7 +1125,7 @@ public:
     }
     
     CachedEventInfo& updCachedEventInfo(const State& s) const {
-        return Value<CachedEventInfo>::downcast
+        return Value<CachedEventInfo>::updDowncast
            (updCacheEntry(s, cachedEventInfoIndex)).upd();
     }
 
