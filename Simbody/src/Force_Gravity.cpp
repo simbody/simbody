@@ -50,8 +50,11 @@ friend class Force::Gravity;
                      const Array_<bool,MobilizedBodyIndex>& defMobodIsImmune)
         :   d(defDirection), g(defMagnitude), z(defZeroHeight),
             mobodIsImmune(defMobodIsImmune) {}
+
+        Parameters() = default;
+
         UnitVec3    d;
-        Real        g, z;
+        Real        g{NaN}, z{NaN};
         Array_<bool,MobilizedBodyIndex> mobodIsImmune; // [nb]
     };
 

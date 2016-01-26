@@ -46,7 +46,9 @@ friend class CableSpring;
                      Real defDissipationCoef)
         :   k(defStiffness), L0(defSlackLength), c(defDissipationCoef) {}
 
-        Real      k, L0, c;
+        InstanceVars() = default;
+
+        Real      k{NaN}, L0{NaN}, c{NaN};
     };
 
     // Type of the velocity-stage lazy cache entry that holds the spring

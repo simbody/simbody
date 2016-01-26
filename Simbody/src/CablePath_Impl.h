@@ -63,6 +63,7 @@ SimTK_DEFINE_UNIQUE_INDEX_TYPE(ActiveSurfaceIndex);
 // and obstacle enable/disable settings.
 class PathInstanceInfo {
 public:
+    PathInstanceInfo() = default;
     // Initialize instance info from the defaults built into the obstacles.
     explicit PathInstanceInfo
        (const Array_<CableObstacle,CableObstacleIndex>& obstacles);
