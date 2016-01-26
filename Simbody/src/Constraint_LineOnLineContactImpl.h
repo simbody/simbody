@@ -54,10 +54,13 @@ struct Parameters {
     Parameters(const Transform& X_FEf, Real hf, 
                const Transform& X_BEb, Real hb)
     :   X_FEf(X_FEf), hf(hf), X_BEb(X_BEb), hb(hb)  {}
-    Transform   X_FEf;  // edge Ef's frame
-    Real        hf;     // edge Ef's half-length
-    Transform   X_BEb;  // edge Eb's frame
-    Real        hb;     // edge Eb's half-length
+
+    Parameters() = default; // For use during deserialization
+
+    Transform   X_FEf;      // edge Ef's frame
+    Real        hf{NaN};    // edge Ef's half-length
+    Transform   X_BEb;      // edge Eb's frame
+    Real        hb{NaN};    // edge Eb's half-length
 };
 
 struct PositionCache {

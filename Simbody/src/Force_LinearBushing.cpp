@@ -38,8 +38,10 @@ class Force::LinearBushingImpl : public ForceImpl {
                      const Vec6& defStiffness, const Vec6& defDamping)
         :   X_B1F(defX_B1F), X_B2M(defX_B2M), k(defStiffness), c(defDamping) {}
 
+        InstanceVars() = default;
+
         Transform X_B1F, X_B2M;
-        Vec6      k, c;
+        Vec6      k{NaN}, c{NaN};
     };
     struct PositionCache {
         Transform X_GF, X_GM, X_FM;

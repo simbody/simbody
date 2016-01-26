@@ -123,9 +123,12 @@ public:
 struct Parameters {
     Parameters(const Vec3& p_FSf, const Vec3& p_BSb, Real d)
     :   m_p_FSf(p_FSf), m_p_BSb(p_BSb), m_length(d) {}
-    Vec3 m_p_FSf;    // sphere center on F
-    Vec3 m_p_BSb;    // sphere center on B
-    Real m_length;   // the required distance between Sf and Sb
+
+    Parameters() = default;
+
+    Vec3 m_p_FSf{NaN};    // sphere center on F
+    Vec3 m_p_BSb{NaN};    // sphere center on B
+    Real m_length{NaN};   // the required distance between Sf and Sb
 };
 
 struct PositionCache {

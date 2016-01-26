@@ -53,10 +53,13 @@ public:
 struct Parameters {
     Parameters(const Vec3& p_FSf, Real rad_F, const Vec3& p_BSb, Real rad_B)
     :   m_p_FSf(p_FSf), m_radius_F(rad_F), m_p_BSb(p_BSb), m_radius_B(rad_B) {}
-    Vec3 m_p_FSf;    // sphere center on F
-    Real m_radius_F; // radius for F's sphere
-    Vec3 m_p_BSb;    // sphere center on B
-    Real m_radius_B; // radius for B's sphere
+
+    Parameters() = default;
+
+    Vec3 m_p_FSf{NaN};    // sphere center on F
+    Real m_radius_F{NaN}; // radius for F's sphere
+    Vec3 m_p_BSb{NaN};    // sphere center on B
+    Real m_radius_B{NaN}; // radius for B's sphere
 };
 
 struct PositionCache {

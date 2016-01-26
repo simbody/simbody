@@ -350,7 +350,9 @@ friend class MobilityLinearStop;
         :   k(defStiffness), d(defDissipation), 
             qLow(defQLow), qHigh(defQHigh) {}
 
-        Real    k, d, qLow, qHigh;
+        Parameters() = default;
+
+        Real    k{NaN}, d{NaN}, qLow{NaN}, qHigh{NaN};
     };
 
     MobilityLinearStopImpl(const MobilizedBody&      mobod, 
