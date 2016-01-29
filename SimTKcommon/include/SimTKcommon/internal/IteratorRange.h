@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_BASICS_H_
-#define SimTK_SimTKCOMMON_BASICS_H_
+#ifndef SimTK_SimTKCOMMON_ITERATOR_RANGE_H_
+#define SimTK_SimTKCOMMON_ITERATOR_RANGE_H_
 
 /* -------------------------------------------------------------------------- *
  *                       Simbody(tm): SimTKcommon                             *
@@ -9,8 +9,8 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2005-15 Stanford University and the Authors.        *
- * Authors: Michael Sherman                                                   *
+ * Portions copyright (c) 2008-16 Stanford University and the Authors.        *
+ * Authors: Chris Dembia                                                      *
  * Contributors:                                                              *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
@@ -24,38 +24,39 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-/**@file
- * Includes internal headers providing declarations for the basic SimTK
- * Core classes. This file can be included from ANSI C code as well as
- * C++, although only a small subset of the definitions will be done
- * in a C program. These include default precision and simple macros
- * such as those used for physical constants.
+namespace SimTK {
+
+/** Helper class to use range-based for loops with a pair of iterators. This
+ * class should only be used when you're sure the iterators are valid. Don't
+ * use this class directly; instead, use makeIteratorRange().
+ *
+ * @code
+ * for (auto& x : makeIteratorRange(v.begin(), v.end())) {
+ *     ...
+ * }
+ * @endcode
+ * */
+// http://stackoverflow.com/questions/6167598/why-was-pair-range-access-removed-from-c11
+template <class Iterator>
+class IteratorRange {
+public:
+    IteratorRange(Iterator first, Iterator last)
+        : m_first(first), m_last(last) {}
+    Iterator begin() const { return m_first; }
+    Iterator end() const { return m_last; }
+private:
+    const Iterator m_first;
+    const Iterator m_last;
+};
+
+/** Make an IteratorRange object to be used in a range-based for loop.
+ * @relates IteratorRange
  */
+template <class Iterator>
+IteratorRange<Iterator> makeIteratorRange(Iterator first, Iterator last) {
+    return IteratorRange<Iterator>(first, last);
+}
 
-/* NOTE: don't use "//" comments in this file! */
+} // namespace SimTK
 
-/* These two are safe for C programs. */
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/Constants.h"
-
-#if defined(__cplusplus)
-#include "SimTKcommon/internal/Exception.h"
-#include "SimTKcommon/internal/ExceptionMacros.h"
-#include "SimTKcommon/internal/ClonePtr.h"
-#include "SimTKcommon/internal/CloneOnWritePtr.h"
-#include "SimTKcommon/internal/ReferencePtr.h"
-#include "SimTKcommon/internal/ResetOnCopy.h"
-#include "SimTKcommon/internal/ReinitOnCopy.h"
-#include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/Serialize.h"
-#include "SimTKcommon/internal/IteratorRange.h"
-#include "SimTKcommon/internal/Fortran.h"
-#include "SimTKcommon/internal/Array.h"
-#include "SimTKcommon/internal/StableArray.h"
-#include "SimTKcommon/internal/Value.h"
-#include "SimTKcommon/internal/Stage.h"
-#include "SimTKcommon/internal/CoordinateAxis.h"
-#endif
-
-
-#endif /* SimTK_SimTKCOMMON_BASICS_H_ */
+#endif // SimTK_SimTKCOMMON_ITERATOR_RANGE_H_
