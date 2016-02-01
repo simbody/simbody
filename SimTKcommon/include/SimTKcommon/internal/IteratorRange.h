@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org/home/simbody.  *
  *                                                                            *
- * Portions copyright (c) 2008-16 Stanford University and the Authors.        *
+ * Portions copyright (c) 2016 Stanford University and the Authors.           *
  * Authors: Chris Dembia                                                      *
  * Contributors:                                                              *
  *                                                                            *
@@ -27,21 +27,38 @@
 namespace SimTK {
 
 /** Helper class to use range-based for loops with a pair of iterators. This
- * class should only be used when you're sure the iterators are valid. Don't
- * use this class directly; instead, use makeIteratorRange().
- *
- * @code
- * for (auto& x : makeIteratorRange(v.begin(), v.end())) {
- *     ...
- * }
- * @endcode
- * */
+class should only be used when you're sure the iterators are valid. Don't
+use this class directly; instead, use makeIteratorRange().
+
+@code
+std::vector<int> v {5, 10, 15, 20};
+auto first = std::lower_bound(v.begin(), v.end(), 10);
+auto last = std::lower_bound(v.begin(), v.end(), 15);
+for (auto& x : makeIteratorRange(first, last)) {
+    ...
+}
+@endcode
+
+You can also use this class with an std::pair of iterators, such as that
+returned by std::multimap::equal_range(). We assume the first iterator in the
+pair is the first iterator in the range, and the second iterator in the pair is
+the last iterator in the range.
+@code
+std::multimap<std::string, int> map;
+...
+for (auto& x : makeIteratorRange(map.equal_range("some_key"))) {
+    ...
+}
+@endcode
+*/
 // http://stackoverflow.com/questions/6167598/why-was-pair-range-access-removed-from-c11
 template <class Iterator>
 class IteratorRange {
 public:
     IteratorRange(Iterator first, Iterator last)
         : m_first(first), m_last(last) {}
+    explicit IteratorRange(const std::pair<Iterator, Iterator>& range)
+        : m_first(range.first), m_last(range.second) {}
     Iterator begin() const { return m_first; }
     Iterator end() const { return m_last; }
 private:
@@ -49,12 +66,22 @@ private:
     const Iterator m_last;
 };
 
-/** Make an IteratorRange object to be used in a range-based for loop.
- * @relates IteratorRange
- */
+/** Make an IteratorRange object to be used in a range-based for loop, using
+ * two iterators.
+@relates IteratorRange
+*/
 template <class Iterator>
 IteratorRange<Iterator> makeIteratorRange(Iterator first, Iterator last) {
     return IteratorRange<Iterator>(first, last);
+}
+/** Make an IteratorRange object to be used in a range-based for loop, using
+ * an std::pair of iterators.
+@relates IteratorRange
+*/
+template <class Iterator>
+IteratorRange<Iterator> makeIteratorRange(
+        const std::pair<Iterator, Iterator>& range) {
+    return IteratorRange<Iterator>(range);
 }
 
 } // namespace SimTK

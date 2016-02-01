@@ -61,6 +61,8 @@ to ParallelExecutor, mutex state lock.
   make an XML-friendly modification of `namestr()` that replaces angle brackets
   with curly braces. Added a new regression test to verify that the names come
   out right. [PR #461](https://github.com/simbody/simbody/pull/461)
+* Added helper class IteratorRange to use range-based for loops with a pair of
+  iterators. [PR#467](https://github.com/simbody/simbody/pull/467)
 * (There are more that haven't been added yet)
 
 
