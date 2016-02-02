@@ -30,10 +30,12 @@ namespace SimTK {
 class should only be used when you're sure the iterators are valid. Don't
 use this class directly; instead, use makeIteratorRange().
 
+Here's an example of using iterators `first` and `last` to iterate over the
+range `[first, last)` (that is, `last` won't be reached):
 @code
-std::vector<int> v {5, 10, 15, 20};
+std::vector<int> v {5, 10, 15, 20, 22};
 auto first = std::lower_bound(v.begin(), v.end(), 10);
-auto last = std::lower_bound(v.begin(), v.end(), 15);
+auto last = std::lower_bound(v.begin(), v.end(), 15); // actually points to 20.
 for (auto& x : makeIteratorRange(first, last)) {
     ...
 }
@@ -55,6 +57,8 @@ for (auto& x : makeIteratorRange(map.equal_range("some_key"))) {
 template <class Iterator>
 class IteratorRange {
 public:
+    /** This constructor allows you to iterate over the range `[first, last)`;
+    this means `last` won't be reached. */
     IteratorRange(Iterator first, Iterator last)
         : m_first(first), m_last(last) {}
     explicit IteratorRange(const std::pair<Iterator, Iterator>& range)
@@ -67,15 +71,16 @@ private:
 };
 
 /** Make an IteratorRange object to be used in a range-based for loop, using
- * two iterators.
+two iterators.
 @relates IteratorRange
+@see IteratorRange::IteratorRange()
 */
 template <class Iterator>
 IteratorRange<Iterator> makeIteratorRange(Iterator first, Iterator last) {
     return IteratorRange<Iterator>(first, last);
 }
 /** Make an IteratorRange object to be used in a range-based for loop, using
- * an std::pair of iterators.
+an std::pair of iterators.
 @relates IteratorRange
 */
 template <class Iterator>
