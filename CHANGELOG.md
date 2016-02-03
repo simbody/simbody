@@ -61,6 +61,8 @@ to ParallelExecutor, mutex state lock.
   make an XML-friendly modification of `namestr()` that replaces angle brackets
   with curly braces. Added a new regression test to verify that the names come
   out right. [PR #461](https://github.com/simbody/simbody/pull/461)
+* Added the method `State::isConsistent()` to compare two states
+  [PR #469](https://github.com/simbody/simbody/pull/469).
 * (There are more that haven't been added yet)
 
 
