@@ -411,6 +411,97 @@ void testMisc() {
     //cout << "after clear(), State s=" << s;
 }
 
+void testConsistent() {
+    State sA;
+    State sB;
+
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updQ().resize(5);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updQ().resize(5);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updU().resize(3);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updU().resize(3);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updZ().resize(8);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updZ().resize(8);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updQErr().resize(2);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updQErr().resize(2);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updUErr().resize(7);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updUErr().resize(7);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updUDotErr().resize(1);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updUDotErr().resize(1);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    sA.updEventTriggers().resize(12);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.updEventTriggers().resize(12);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    // Subsystems.
+    int numSubsys = 3;
+    sA.setNumSubsystems(numSubsys);
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+    sB.setNumSubsystems(numSubsys);
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+    for (int i = 0; i < numSubsys; ++i) {
+        sA.updQ(SubsystemIndex(i)).resize(2);
+        SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+        sB.updQ(SubsystemIndex(i)).resize(2);
+        SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+        sA.updU(SubsystemIndex(i)).resize(6);
+        SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+        sB.updU(SubsystemIndex(i)).resize(6);
+        SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+        sA.updZ(SubsystemIndex(i)).resize(9);
+        SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+        sB.updZ(SubsystemIndex(i)).resize(9);
+        SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+        sA.updQErr(SubsystemIndex(i)).resize(4);
+        SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+        sB.updQErr(SubsystemIndex(i)).resize(4);
+        SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+        sA.updUErr(SubsystemIndex(i)).resize(3);
+        SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+        sB.updUErr(SubsystemIndex(i)).resize(3);
+        SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+        sA.updUDotErr(SubsystemIndex(i)).resize(8);
+        SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+        sB.updUDotErr(SubsystemIndex(i)).resize(8);
+        SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+
+        for(SimTK::Stage stage = SimTK::Stage::LowestValid;
+                stage <= SimTK::Stage::HighestRuntime; ++stage) {
+            // I'm using `i` as a way to arbitrarily choose different sizes.
+            sA.updEventTriggersByStage(SubsystemIndex(i), stage).resize(4 + i);
+            SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+            sB.updEventTriggersByStage(SubsystemIndex(i), stage).resize(4 + i);
+            SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+        }
+    }
+
+}
+
 int main() {
     int major,minor,build;
     char out[100];
@@ -429,5 +520,10 @@ int main() {
         //SimTK_SUBTEST(testLowestModified);
         SimTK_SUBTEST(testCacheValidity);
         SimTK_SUBTEST(testMisc);
+        #ifdef NDEBUG
+            // This test relies on avoiding the stage checks that happen in
+            // debug mode, so we can only run it in release.
+            SimTK_SUBTEST(testConsistent);
+        #endif
     SimTK_END_TEST();
 }

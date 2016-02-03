@@ -96,6 +96,67 @@ SimTK::operator<<(std::ostream& o, const State& s) {
     return o << s.cacheToString() << std::endl;
 }
 
+bool State::isConsistent(const SimTK::State& otherState) const {
+
+    if (getNumSubsystems() != otherState.getNumSubsystems())
+        return false;
+
+    // State variables.
+    if (getNQ() != otherState.getNQ())
+        return false;
+    if (getNU() != otherState.getNU())
+        return false;
+    if (getNZ() != otherState.getNZ())
+        return false;
+
+    // Constraints.
+    if (getNQErr() != otherState.getNQErr())
+        return false;
+    if (getNUErr() != otherState.getNUErr())
+        return false;
+    if (getNUDotErr() != otherState.getNUDotErr())
+        return false;
+    // NMultipliers should be the same as NUDotErr, but we leave this check
+    // here in case they diverge in the future.
+    if (getNMultipliers() != otherState.getNMultipliers())
+        return false;
+
+    // Events.
+    if (getNEventTriggers() != otherState.getNEventTriggers())
+        return false;
+
+    // Per-subsystem quantities.
+    // TODO we could get rid of the total-over-subsystems checks above, but
+    // those checks would let us exit earlier.
+    for (SimTK::SubsystemIndex isub(0); isub < getNumSubsystems();
+            ++isub) {
+        if (getNQ(isub) != otherState.getNQ(isub))
+            return false;
+        if (getNU(isub) != otherState.getNU(isub))
+            return false;
+        if (getNZ(isub) != otherState.getNZ(isub))
+            return false;
+        if (getNQErr(isub) != otherState.getNQErr(isub))
+            return false;
+        if (getNUErr(isub) != otherState.getNUErr(isub))
+            return false;
+        if (getNUDotErr(isub) != otherState.getNUDotErr(isub))
+            return false;
+        // NMultipliers should be the same as NUDotErr, but we leave this check
+        // here in case they diverge in the future.
+        if (getNMultipliers(isub) != otherState.getNMultipliers(isub))
+            return false;
+
+        for(SimTK::Stage stage = SimTK::Stage::LowestValid;
+                stage <= SimTK::Stage::HighestRuntime; ++stage) {
+            if (getNEventTriggersByStage(isub, stage) !=
+                    otherState.getNEventTriggersByStage(isub, stage))
+                return false;
+        }
+    }
+    return true;
+}
+
 
 //==============================================================================
 //                          PER SUBSYSTEM INFO
