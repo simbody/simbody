@@ -326,6 +326,9 @@ void clear();
 /// - number of event triggers
 /// 
 /// Returns false otherwise.
+///
+/// You can call this after Instance stage has been realized on both this state
+/// and `otherState`.
 /// 
 /// This method does NOT guarantee that both states are for the same system or
 /// that both states will work with the same system. Also, this method does
