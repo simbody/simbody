@@ -532,10 +532,10 @@ int main() {
     }
 
 
-    // TODO SimTK_START_TEST("StateTest");
+    SimTK_START_TEST("StateTest");
         //SimTK_SUBTEST(testLowestModified);
         SimTK_SUBTEST(testCacheValidity);
         SimTK_SUBTEST(testMisc);
         SimTK_SUBTEST(testConsistent);
-    // TODO SimTK_END_TEST();
+    SimTK_END_TEST();
 }
