@@ -311,6 +311,31 @@ State& operator=(State&& source);
 /// Restore State to default-constructed condition.
 void clear();
 
+/// Checks if a given state has the same number of state variables,
+/// constraints, etc as this state. Returns true if the following quantities
+/// are the same for both this state and `otherState`.
+/// 
+/// - number of subsystems
+/// - number of generalized coordinates (Q's)
+/// - number of generalized speeds (U's)
+/// - number of auxiliary state variables (Z's)
+/// - number of position constraints (QErr's)
+/// - number of velocity constraints (UErr's)
+/// - number of acceleration constraints (UDotErr's)
+/// - number of constraint Lagrange multipliers
+/// - number of event triggers
+/// 
+/// Returns false otherwise.
+///
+/// You can call this after Instance stage has been realized on both this state
+/// and `otherState`.
+/// 
+/// This method does NOT guarantee that both states are for the same system or
+/// that both states will work with the same system. Also, this method does
+/// NOT check for any relationship between the times in the
+/// two states.
+bool isConsistent(const SimTK::State& otherState) const;
+
 /// Set the number of subsystems in this state. This is done during
 /// initialization of the State by a System; it completely wipes out
 /// anything that used to be in the State so use cautiously!

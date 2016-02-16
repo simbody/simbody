@@ -63,6 +63,8 @@ to ParallelExecutor, mutex state lock.
   out right. [PR #461](https://github.com/simbody/simbody/pull/461)
 * Added helper class IteratorRange to use range-based for loops with a pair of
   iterators. [PR#467](https://github.com/simbody/simbody/pull/467)
+* Added the method `State::isConsistent()` to compare two states
+  [PR #469](https://github.com/simbody/simbody/pull/469).
 * (There are more that haven't been added yet)
 
 
