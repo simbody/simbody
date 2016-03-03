@@ -331,13 +331,13 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # If you know of optimization bugs that affect Simbody in particular
     # gcc versions, this is the place to turn off those optimizations.
     set(GCC_OPT_DISABLE)
-    # We know Gcc 4.4.3 on Ubuntu 10 is buggy.
-    if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-        if(GCC_VERSION VERSION_EQUAL 4.4)
-            set(GCC_OPT_DISABLE
-                "-fno-strict-aliasing -fno-tree-vrp -fno-guess-branch-probability")
-        endif()
-    endif()
+    # # We know Gcc 4.4.3 on Ubuntu 10 is buggy.
+    # if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+    #     if(GCC_VERSION VERSION_EQUAL 4.4)
+    #         set(GCC_OPT_DISABLE
+    #             "-fno-strict-aliasing -fno-tree-vrp -fno-guess-branch-probability")
+    #     endif()
+    # endif()
 
     # C++
     set(BUILD_CXX_FLAGS_DEBUG          "-g ${GCC_INST_SET}")
