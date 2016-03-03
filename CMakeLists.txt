@@ -25,7 +25,7 @@ if(COMMAND cmake_policy)
         # MACOSX_RPATH enabled by default; policy introduced with cmake 3.0.
         cmake_policy(SET CMP0042 NEW)
     endif()
-endif(COMMAND cmake_policy)
+endif()
 
 project(Simbody)
 
@@ -116,7 +116,7 @@ set(BUILD_VERSIONED_LIBRARIES FALSE CACHE BOOL
 set(NS)
 if(BUILD_USING_NAMESPACE)
     set(NS "${BUILD_USING_NAMESPACE}_")
-endif(BUILD_USING_NAMESPACE)
+endif()
 
 # Ensure that debug libraries have "_d" appended to their names.
 set(CMAKE_DEBUG_POSTFIX "_d")
@@ -435,9 +435,9 @@ endif()
 
 if(${CMAKE_GENERATOR} MATCHES "Visual Studio")
    set(NEED_QUOTES FALSE)
-else(${CMAKE_GENERATOR} MATCHES "Visual Studio")
+else()
    set(NEED_QUOTES TRUE)
-endif(${CMAKE_GENERATOR} MATCHES "Visual Studio")
+endif()
 
 ##TODO: doesn't work without quotes in nightly build
 set(NEED_QUOTES TRUE)
@@ -445,10 +445,10 @@ set(NEED_QUOTES TRUE)
 if(NEED_QUOTES)
    add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
                    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
-else(NEED_QUOTES)
+else()
    add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
-endif(NEED_QUOTES)
+endif()
 
 # Determine which math libraries to use for this platform.
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
@@ -499,8 +499,8 @@ if(BUILD_TESTING)
     #  if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
     #    add_definitions(-fprofile-arcs -ftest-coverage)
     #    link_libraries(gcov)
-    #  endif(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-    #endif(UNIX AND NOT CYGWIN AND NOT APPLE)
+    #  endif()
+    #endif()
 
     #
     # Testing
@@ -522,7 +522,7 @@ if(BUILD_TESTING)
         COMMAND ${cmd}
     )
 
-endif(BUILD_TESTING)
+endif()
 
 include(ApiDoxygen.cmake)
 
@@ -560,7 +560,7 @@ add_subdirectory( Simbody )
 
 if( BUILD_EXAMPLES )
   add_subdirectory( examples )
-endif( BUILD_EXAMPLES )
+endif()
 
 file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.txt doc/*.md)
 install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
