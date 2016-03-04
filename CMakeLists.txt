@@ -299,6 +299,7 @@ if(APPLE AND NOT (${CMAKE_VERSION} VERSION_LESS 2.8.12))
     # into directories that are not already searched by the linker.
     list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
         "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" isSystemDir)
+    # CMake sets isSystemDir to -1 if the lib dir is NOT a system lib dir.
     if("${isSystemDir}" STREQUAL "-1")
         # This variable is used later on to toggle if RPATH should be set for
         # specific targets.
