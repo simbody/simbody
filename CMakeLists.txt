@@ -25,10 +25,27 @@ if(COMMAND cmake_policy)
         # MACOSX_RPATH enabled by default; policy introduced with cmake 3.0.
         cmake_policy(SET CMP0042 NEW)
     endif()
-endif(COMMAND cmake_policy)
+endif()
 
 project(Simbody)
 
+# At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
+# or appropriate ProgramFiles directory on Windows, for example
+# C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
+# language equivalent.
+
+if(WIN32)
+    set(CMAKE_INSTALL_DOCDIR doc CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
+else()
+    # Redefine DOCDIR to use the project name in lowercase to avoid
+    # problems with some platforms: NTFS on Win, XFS or JFS variants
+    set(CMAKE_INSTALL_DOCDIR share/doc/simbody CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
+endif()
+
+# Include GNUInstallDirs to get canonical paths
+include(GNUInstallDirs)
+
+# Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
         message(FATAL_ERROR "\nMSVC does not support C++ 2011 features, for "
@@ -38,23 +55,25 @@ if(MSVC)
                             " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
                             " comment this test and configure normally.")
     endif()
+elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+    set(SIMBODY_REQUIRED_GCC_VERSION 4.8.1)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+                    OUTPUT_VARIABLE GCC_VERSION)
+    if (GCC_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
+        message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody"
+                            "Simbody requires at least version :"
+                            "${SIMBODY_REQUIRED_GCC_VERSION}")
+    endif()
+elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    set(SIMBODY_REQUIRED_CLANG_VERSION 3.4)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
+                    OUTPUT_VARIABLE CLANG_VERSION)
+    if (CLANG_VERSION VERSION_LESS ${SIMBODY_REQUIRED_CLANG_VERSION})
+        message(FATAL_ERROR "Clang version is too old to compile Simbody.\n"
+                            "Simbody requires at least version :"
+                            "${SIMBODY_REQUIRED_CLANG_VERSION}")
+    endif()
 endif()
-
-# At this point CMake will have set CMAKE_INSTALL_PREFIX to /usr/local on Linux
-# or appropriate ProgramFiles directory on Windows, for example
-# C:/Program Files/Simbody, C:/Program Files (x86)/Simbody, or the local
-# language equivalent.
-
-if(WIN32)
-  set(CMAKE_INSTALL_DOCDIR doc CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
-else()
-  # Redefine DOCDIR to use the project name in lowercase to avoid
-  # problems with some platforms: NTFS on Win, XFS or JFS variants
-  set(CMAKE_INSTALL_DOCDIR share/doc/simbody CACHE PATH "documentation root (DATAROOTDIR/doc/PROJECT_NAME)")
-endif()
-
-# Include GNUInstallDirs to get canonical paths
-include(GNUInstallDirs)
 
 set(SIMBODY_MAJOR_VERSION 3)
 set(SIMBODY_MINOR_VERSION 6)
@@ -116,7 +135,7 @@ set(BUILD_VERSIONED_LIBRARIES FALSE CACHE BOOL
 set(NS)
 if(BUILD_USING_NAMESPACE)
     set(NS "${BUILD_USING_NAMESPACE}_")
-endif(BUILD_USING_NAMESPACE)
+endif()
 
 # Ensure that debug libraries have "_d" appended to their names.
 set(CMAKE_DEBUG_POSTFIX "_d")
@@ -318,13 +337,6 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     # If you know of optimization bugs that affect Simbody in particular
     # gcc versions, this is the place to turn off those optimizations.
     set(GCC_OPT_DISABLE)
-    # We know Gcc 4.4.3 on Ubuntu 10 is buggy.
-    if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-      if(GCC_VERSION VERSION_EQUAL 4.4)
-        set(GCC_OPT_DISABLE
-        "-fno-strict-aliasing -fno-tree-vrp -fno-guess-branch-probability")
-      endif()
-    endif()
 
     # C++
     set(BUILD_CXX_FLAGS_DEBUG          "-g ${GCC_INST_SET}")
@@ -434,21 +446,21 @@ endif()
 # in Visual Studio which end up in the binary.
 
 if(${CMAKE_GENERATOR} MATCHES "Visual Studio")
-   set(NEED_QUOTES FALSE)
-else(${CMAKE_GENERATOR} MATCHES "Visual Studio")
-   set(NEED_QUOTES TRUE)
-endif(${CMAKE_GENERATOR} MATCHES "Visual Studio")
+    set(NEED_QUOTES FALSE)
+else()
+    set(NEED_QUOTES TRUE)
+endif()
 
 ##TODO: doesn't work without quotes in nightly build
 set(NEED_QUOTES TRUE)
 
 if(NEED_QUOTES)
-   add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
-                   -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
-else(NEED_QUOTES)
-   add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
-                   -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
-endif(NEED_QUOTES)
+    add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
+                    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
+else()
+    add_definitions(-DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
+                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
+endif()
 
 # Determine which math libraries to use for this platform.
 # Intel MKL: mkl_intel_c_dll;mkl_sequential_dll;mkl_core_dll
@@ -494,14 +506,6 @@ include(Dart)
 set(DART_TESTING_TIMEOUT 7200)
 
 if(BUILD_TESTING)
-
-    #if(UNIX AND NOT CYGWIN AND NOT APPLE)
-    #  if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-    #    add_definitions(-fprofile-arcs -ftest-coverage)
-    #    link_libraries(gcov)
-    #  endif(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-    #endif(UNIX AND NOT CYGWIN AND NOT APPLE)
-
     #
     # Testing
     #
@@ -518,11 +522,8 @@ if(BUILD_TESTING)
     else()
         set(cmd ${cmd} -C ${CMAKE_BUILD_TYPE})
     endif()
-    add_custom_target(RUN_TESTS_PARALLEL
-        COMMAND ${cmd}
-    )
-
-endif(BUILD_TESTING)
+    add_custom_target(RUN_TESTS_PARALLEL COMMAND ${cmd})
+endif()
 
 include(ApiDoxygen.cmake)
 
@@ -531,17 +532,17 @@ include(ApiDoxygen.cmake)
 #
 # Also specify where include files are installed.
 if(WIN32)
-  # Install visualizer to bin, since it needs to be co-located with dll's
-  set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
-  # Install include files into base include folder since it's a sandbox
-  set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+    # Install visualizer to bin, since it needs to be co-located with dll's
+    set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+    # Install include files into base include folder since it's a sandbox
+    set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 else()
-  # Visualizer is not intended to be a user executable. Proper place is
-  # inside the lib directory
-  set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
-  # Install include files in simbody subfolder to avoid polluting the
-  # global build folder
-  set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
+    # Visualizer is not intended to be a user executable. Proper place is
+    # inside the lib directory
+    set(SIMBODY_VISUALIZER_REL_INSTALL_DIR ${CMAKE_INSTALL_LIBEXECDIR}/simbody)
+    # Install include files in simbody subfolder to avoid polluting the
+    # global build folder
+    set(SIMBODY_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR}/simbody)
 endif()
 set(SIMBODY_VISUALIZER_INSTALL_DIR
     ${CMAKE_INSTALL_PREFIX}/${SIMBODY_VISUALIZER_REL_INSTALL_DIR})
@@ -559,19 +560,19 @@ add_subdirectory( Simbody )
 # SimTKSIMBODY_INCLUDE_DIRECTORIES now set(but not used)
 
 if( BUILD_EXAMPLES )
-  add_subdirectory( examples )
-endif( BUILD_EXAMPLES )
+    add_subdirectory( examples )
+endif()
 
 file(GLOB TOPLEVEL_DOCS LICENSE.txt *.md doc/*.pdf doc/*.txt doc/*.md)
 install(FILES ${TOPLEVEL_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 # Add uninstall target
 configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
-  IMMEDIATE @ONLY)
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY)
 add_custom_target(uninstall
-  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake")
+    "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake")
 
 # Make the cmake config files
 set(PKG_NAME ${PROJECT_NAME})
@@ -582,9 +583,9 @@ set(PKG_LIBRARIES
     )
 
 if(WIN32)
-  set(SIMBODY_CMAKE_DIR cmake)
+    set(SIMBODY_CMAKE_DIR cmake)
 elseif(UNIX)
-  set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/simbody/)
+    set(SIMBODY_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/simbody/)
 endif()
 
 # Configure SimbodyConfig.cmake in a way that allows the installation to be
@@ -603,8 +604,8 @@ configure_package_config_file(
         SIMBODY_INSTALL_DOXYGENDIR
     )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigForInstall.cmake
-    DESTINATION ${SIMBODY_CMAKE_DIR}
-    RENAME SimbodyConfig.cmake)
+        DESTINATION ${SIMBODY_CMAKE_DIR}
+        RENAME SimbodyConfig.cmake)
 
 # Create a file that allows clients to Simbody to ensure they have the version
 # of Simbody they want.
@@ -619,11 +620,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake/SimbodyConfigVersion.cmake
         DESTINATION ${SIMBODY_CMAKE_DIR})
 
 install(EXPORT SimbodyTargets DESTINATION
-  "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
+        "${SIMBODY_CMAKE_DIR}") #optionally: COMPONENT dev
 
 # Install a sample CMakeLists.txt that uses SimbodyConfig.cmake.
 install(FILES ${CMAKE_SOURCE_DIR}/cmake/SampleCMakeLists.txt
-    DESTINATION ${SIMBODY_CMAKE_DIR})
+        DESTINATION ${SIMBODY_CMAKE_DIR})
 
 # Make the pkgconfig file: select the proper flags depending on the platform
 if(WIN32)
