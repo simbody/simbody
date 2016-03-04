@@ -506,14 +506,6 @@ include(Dart)
 set(DART_TESTING_TIMEOUT 7200)
 
 if(BUILD_TESTING)
-
-    #if(UNIX AND NOT CYGWIN AND NOT APPLE)
-    #  if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE MATCHES Debug)
-    #    add_definitions(-fprofile-arcs -ftest-coverage)
-    #    link_libraries(gcov)
-    #  endif()
-    #endif()
-
     #
     # Testing
     #
@@ -530,10 +522,7 @@ if(BUILD_TESTING)
     else()
         set(cmd ${cmd} -C ${CMAKE_BUILD_TYPE})
     endif()
-    add_custom_target(RUN_TESTS_PARALLEL
-        COMMAND ${cmd}
-    )
-
+    add_custom_target(RUN_TESTS_PARALLEL COMMAND ${cmd})
 endif()
 
 include(ApiDoxygen.cmake)
