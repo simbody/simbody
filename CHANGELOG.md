@@ -65,6 +65,9 @@ to ParallelExecutor, mutex state lock.
   iterators. [PR#467](https://github.com/simbody/simbody/pull/467)
 * Added the method `State::isConsistent()` to compare two states
   [PR #469](https://github.com/simbody/simbody/pull/469).
+* Started using RPATH on OSX so that users need not set `DYLD_LIBRARY_PATH` to
+  run `simbody-visualizer` or the example executables, regardless of where you
+  install Simbody.
 * (There are more that haven't been added yet)
 
 
