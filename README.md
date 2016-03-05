@@ -348,7 +348,9 @@ From your build directory, you can run Simbody's example programs. For instance,
 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path.
+1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the
+   Simbody lib directory to your linker path. On Mac, most users can skip
+   this step.
     * If your `CMAKE_INSTALL_PREFIX` is `/usr/local/`, run:
 
             $ sudo ldconfig
@@ -360,7 +362,9 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
         * Ubuntu:
 
                 $ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' >> ~/.bashrc
-        These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
+        These commands add a line to a configuration file that is loaded every
+        time you open a new terminal. If using Ubuntu, you may need to replace
+        `x86_64-linux-gnu` with the appropriate directory on your computer.
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. Make sure to replace `~/simbody` with your `CMAKE_INSTALL_PREFIX`.
     * Mac:
 

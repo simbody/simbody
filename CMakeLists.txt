@@ -21,10 +21,6 @@ cmake_minimum_required(VERSION ${SIMBODY_REQUIRED_CMAKE_VERSION})
 if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
     cmake_policy(SET CMP0005 NEW)
-    if(NOT (${CMAKE_VERSION} VERSION_LESS 3.0))
-        # MACOSX_RPATH enabled by default; policy introduced with cmake 3.0.
-        cmake_policy(SET CMP0042 NEW)
-    endif()
 endif()
 
 project(Simbody)
@@ -289,6 +285,47 @@ if(BUILD_INST_SET)
 else()
     set(inst_set_to_use ${default_build_inst_set})
 endif()
+
+
+# RPATH
+# -----
+set(SIMBODY_USE_INSTALL_RPATH FALSE)
+if(APPLE AND NOT (${CMAKE_VERSION} VERSION_LESS 2.8.12))
+    # CMake 2.8.12 introduced the ability to set RPATH for shared libraries on
+    # OSX. This helps executables find the libraries they depend on without
+    # having to set the DYLD_LIBRARY_PATH environment variable.
+
+    # Consider a library libfoo.dyld and an executable bar.
+    # On OSX, libraries have an "install name" that, when linking, is copied
+    # into the target (e.g., bar). The "install name" can be the full path to
+    # libfoo.dylib, in which case bar will have no trouble finding libfoo.dylib
+    # at runtime (since it has the full path to it). This doesn't work if you
+    # want to be able to relocate your project. Therefore, it's possible to use
+    # special tokens in the "install name" that are evaluated separately. The
+    # token "@exectuable_path" is evaluated (at run time) to the full path of
+    # the exectuable (e.g., bar) that is trying to load libfoo.dylib. An even
+    # more flexible token is "@rpath", which is evaluated to a path (called
+    # RPATH) that can be baked into the executable just after compiling or any
+    # time before running the executable (using the executable
+    # "install_name_tool"). The RPATH stored in executables can also contain
+    # "@executable_path", etc.
+
+    # Set the install name of libraries to contain "@rpath".
+    # This allows clients of our libraries to point to them however they wish.
+    set(CMAKE_MACOSX_RPATH ON)
+
+    # We only need to set RPATH in executables if the libraries are installed
+    # into directories that are not already searched by the linker.
+    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
+        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" isSystemDir)
+    # CMake sets isSystemDir to -1 if the lib dir is NOT a system lib dir.
+    if("${isSystemDir}" STREQUAL "-1")
+        # This variable is used later on to toggle if RPATH should be set for
+        # specific targets.
+        set(SIMBODY_USE_INSTALL_RPATH TRUE)
+    endif()
+endif()
+
 
 ## When building in any of the Release modes, tell gcc/clang to use
 ## not-quite most agressive optimization.  Here we

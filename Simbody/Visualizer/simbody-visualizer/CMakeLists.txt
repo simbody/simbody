@@ -49,6 +49,23 @@ set_target_properties(${GUI_NAME} PROPERTIES
         PROJECT_LABEL "Code - ${GUI_NAME}"
         DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
+# On OSX, bake the relative path to the Simbody libraries into the visualizer
+# executable. Then there's no need to set `DYLD_LIBRARY_PATH` to find the
+# libraries when using the visualizer.
+if(${SIMBODY_USE_INSTALL_RPATH})
+    # @executable_path only makes sense on OSX, so if we use RPATH on
+    # Linux we'll have to revisit.
+
+    # vis_dir_to_install_dir is most likely "../"
+    file(RELATIVE_PATH vis_dir_to_install_dir
+        "${SIMBODY_VISUALIZER_INSTALL_DIR}"
+        "${CMAKE_INSTALL_PREFIX}")
+    set(vis_dir_to_lib_dir "${vis_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
+    set_target_properties(${GUI_NAME} PROPERTIES
+        INSTALL_RPATH "\@executable_path/${vis_dir_to_lib_dir}"
+        )
+endif()
+
 target_link_libraries(${GUI_NAME} 
     ${TEST_SHARED_TARGET} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
