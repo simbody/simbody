@@ -568,12 +568,20 @@ public:
 // no default constructor
 explicit DecorativeMeshFileRep(const std::string& meshFileName) 
 :   meshFile(meshFileName) {
+    pmesh = nullptr;
 }
 
 const std::string& getMeshFile() const {
     return  meshFile;
 }
 
+const PolygonalMesh& getMesh() {
+    if (pmesh==nullptr) {
+        pmesh.reset(new PolygonalMesh());
+        pmesh->loadFile(meshFile);
+    }
+    return *pmesh;
+}
 // virtuals
 DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
     DecorativeMeshFileRep* DGRep = new DecorativeMeshFileRep(*this);
@@ -587,7 +595,7 @@ void implementGeometry(DecorativeGeometryImplementation& geometry) const overrid
 SimTK_DOWNCAST(DecorativeMeshFileRep, DecorativeGeometryRep);
 private:
 std::string meshFile;
-
+std::shared_ptr<PolygonalMesh> pmesh;
 // This is just a static downcast since the DecorativeGeometry handle class 
 // is not virtual.
 

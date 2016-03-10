@@ -576,6 +576,7 @@ class SimTK_SimTKCOMMON_EXPORT DecorativeMeshFile : public DecorativeGeometry {
 public:
     explicit DecorativeMeshFile(const std::string& meshFileName);
     const std::string& getMeshFile() const;
+    const PolygonalMesh& getMesh() const;
 
     // Retain the derived type when setting generic geometry options.
     DecorativeMeshFile& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}

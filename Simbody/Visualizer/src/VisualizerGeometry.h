@@ -50,7 +50,7 @@ public:
     void implementFrameGeometry(const DecorativeFrame& geom) override;
     void implementTextGeometry(const DecorativeText& geom) override;
     void implementMeshGeometry(const DecorativeMesh& geom) override;
-    void implementMeshFileGeometry(const DecorativeMeshFile& geom) override {}; // Not handled yet by this Visualizer
+    void implementMeshFileGeometry(const DecorativeMeshFile& geom) override; 
     void implementArrowGeometry(const DecorativeArrow& geom) override {}; // Not handled yet by this Visualizer
     void implementTorusGeometry(const DecorativeTorus& geom) override {}; // Not handled yet by this Visualizer
     void implementConeGeometry(const DecorativeCone& geom) override {}; // Not handled yet by this Visualizer
