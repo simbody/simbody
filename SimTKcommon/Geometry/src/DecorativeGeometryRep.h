@@ -567,20 +567,21 @@ class DecorativeMeshFileRep : public DecorativeGeometryRep {
 public:
 // no default constructor
 explicit DecorativeMeshFileRep(const std::string& meshFileName) 
-:   meshFile(meshFileName) {
-    pmesh = nullptr;
+:   meshFile(meshFileName),
+    isInitialized(false) {
 }
 
 const std::string& getMeshFile() const {
     return  meshFile;
 }
-
+// This is logically const but is non-const here to facilitate caching of the mesh 
+// once file is opened.
 const PolygonalMesh& getMesh() {
-    if (pmesh==nullptr) {
-        pmesh.reset(new PolygonalMesh());
-        pmesh->loadFile(meshFile);
+    if (!isInitialized) {
+        isInitialized = true; // We tried to load.
+        pmesh.loadFile(meshFile);
     }
-    return *pmesh;
+    return pmesh;
 }
 // virtuals
 DecorativeGeometryRep* cloneDecorativeGeometryRep() const override {
@@ -595,7 +596,9 @@ void implementGeometry(DecorativeGeometryImplementation& geometry) const overrid
 SimTK_DOWNCAST(DecorativeMeshFileRep, DecorativeGeometryRep);
 private:
 std::string meshFile;
-std::shared_ptr<PolygonalMesh> pmesh;
+PolygonalMesh pmesh;
+bool isInitialized; // Whether we attempted to load the file into pmesh;
+
 // This is just a static downcast since the DecorativeGeometry handle class 
 // is not virtual.
 
