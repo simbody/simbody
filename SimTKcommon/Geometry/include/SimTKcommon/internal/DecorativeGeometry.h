@@ -544,7 +544,8 @@ private:
 };
 
 /** This defines a displayable mesh by referencing an already-existing
-PolygonalMesh object. **/
+PolygonalMesh object. If you have a full path to a file containing a mesh,
+consider using DecorativeMeshFile instead. @see DecorativeMeshFile **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeMesh : public DecorativeGeometry {
 public:
     explicit DecorativeMesh(const PolygonalMesh& mesh);
@@ -571,11 +572,17 @@ private:
 
 
 /** This defines a displayable mesh by referencing a file name containing the 
-mesh. If format is not supported by visualizer it will be ignored. . **/
+mesh. If format is not supported by visualizer it will be ignored. The mesh
+is lazy-loaded and cached to avoid reloading on each frame. If the file fails 
+to load, the call to getMesh will fail. If you already have a PolygonalMesh you
+can use DecorativeMesh directly @see DecorativeMesh above. **/
 class SimTK_SimTKCOMMON_EXPORT DecorativeMeshFile : public DecorativeGeometry {
 public:
     explicit DecorativeMeshFile(const std::string& meshFileName);
     const std::string& getMeshFile() const;
+    /** Load the mesh from file and return a reference. Mesh is cached for future calls.
+    This method can throw an exception if the file fails to open or load. */
+    const PolygonalMesh& getMesh() const;
 
     // Retain the derived type when setting generic geometry options.
     DecorativeMeshFile& setBodyId(int b)          {DecorativeGeometry::setBodyId(b);        return *this;}

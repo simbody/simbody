@@ -370,6 +370,9 @@ const std::string& DecorativeMeshFile::getMeshFile() const {
     return DecorativeMeshFileRep::downcast(*rep).getMeshFile();
 }
 
+const PolygonalMesh& DecorativeMeshFile::getMesh() const {
+    return DecorativeMeshFileRep::downcast(*rep).getMesh();
+}
 
 /////////////////////
 // DECORATIVE TORUS //
