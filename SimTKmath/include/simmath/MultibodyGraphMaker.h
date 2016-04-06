@@ -444,10 +444,15 @@ public:
     Joint(const std::string& name, int jointTypeNum, 
           int parentBodyNum, int childBodyNum,
           bool mustBeLoopJoint, void* userRef)
-    :   name(name), jointTypeNum(jointTypeNum), 
-        parentBodyNum(parentBodyNum), childBodyNum(childBodyNum),
-        mustBeLoopJoint(mustBeLoopJoint), userRef(userRef),
-        isAddedBaseJoint(false), mobilizer(-1), loopConstraint(-1) {}
+    :   name(name), 
+        mustBeLoopJoint(mustBeLoopJoint), 
+        userRef(userRef),
+        parentBodyNum(parentBodyNum), 
+        childBodyNum(childBodyNum),
+        jointTypeNum(jointTypeNum), 
+        isAddedBaseJoint(false),
+        mobilizer(-1), 
+        loopConstraint(-1) {}
 
     /** Return true if the joint is deleted as a result of restoring it
         to the state prior to generateGraph(). **/

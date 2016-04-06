@@ -1470,11 +1470,7 @@ public:
         Vec3 endpt;
         const Vector& q = state.getQ();
         endpt[0] = q[0]; endpt[1] = q[1]; endpt[2] = q[2];
-        Real dist = plane.getDistance(endpt);
-
-//        ASSERT(std::abs(dist) < 0.01 );
         shouldTerminate = true;
-//        std::cout << "hit plane!" << std::endl;
     }
 
     void setPlane(const Plane& aplane) const {
