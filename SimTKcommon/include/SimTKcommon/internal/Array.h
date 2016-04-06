@@ -3320,7 +3320,7 @@ std::istream& readArrayFromStreamHelper
 
     // Now see if the sequence is bare or surrounded by (), [], or {}.
     bool lookForCloser = true;
-    char openBracket, closeBracket;
+    char openBracket, closeBracket{};
     ch = in.peek(); if (in.fail()) return in;
     assert(ch != EOFch); // we already checked above
 
