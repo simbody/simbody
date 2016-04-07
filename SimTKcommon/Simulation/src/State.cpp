@@ -223,7 +223,7 @@ void PerSubsystemInfo::copyAllocationStackThroughStage
 }
 
 void PerSubsystemInfo::clearContinuousVars() {
-    clearAllocationStack(qInfo); 
+    clearAllocationStack(q_info); 
     clearAllocationStack(uInfo);                                
     clearAllocationStack(zInfo); 
 }
@@ -251,7 +251,7 @@ void PerSubsystemInfo::clearAllStacks() {
 }
 
 void PerSubsystemInfo::popContinuousVarsBackToStage(const Stage& g) { 
-    popAllocationStackBackToStage(qInfo,g);
+    popAllocationStackBackToStage(q_info,g);
     popAllocationStackBackToStage(uInfo,g);
     popAllocationStackBackToStage(zInfo,g);
 }
@@ -305,7 +305,7 @@ void PerSubsystemInfo::copyEventsThroughStage
 void PerSubsystemInfo::copyAllStacksThroughStage
    (const PerSubsystemInfo& src, const Stage& g)
 {
-    copyContinuousVarInfoThroughStage(src.qInfo, g, qInfo);
+    copyContinuousVarInfoThroughStage(src.q_info, g, q_info);
     copyContinuousVarInfoThroughStage(src.uInfo, g, uInfo);
     copyContinuousVarInfoThroughStage(src.zInfo, g, zInfo);
 
@@ -552,8 +552,8 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         // Count up all 
         for (SubsystemIndex i(0); i<subsystems.size(); ++i) {
             const PerSubsystemInfo& ss = subsystems[i];
-            for (unsigned j=0; j<ss.qInfo.size(); ++j)
-                ssnq[i] += ss.qInfo[j].getNumVars();
+            for (unsigned j=0; j<ss.q_info.size(); ++j)
+                ssnq[i] += ss.q_info[j].getNumVars();
             nq += ssnq[i];
             for (unsigned j=0; j<ss.uInfo.size(); ++j)
                 ssnu[i] += ss.uInfo[j].getNumVars();
@@ -605,9 +605,9 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
             // Build the views.
             ss.q.viewAssign(wThis->q(nxtq, nq));
             int nxt=0;
-            for (unsigned j=0; j<ss.qInfo.size(); ++j) {
-                const int nv = ss.qInfo[j].getNumVars();
-                ss.q(nxt, nv) = ss.qInfo[j].getInitialValues();
+            for (unsigned j=0; j<ss.q_info.size(); ++j) {
+                const int nv = ss.q_info[j].getNumVars();
+                ss.q(nxt, nv) = ss.q_info[j].getInitialValues();
                 nxt += nv;
             }
 

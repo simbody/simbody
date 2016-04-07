@@ -1279,7 +1279,7 @@ extern int disnan( SimTK_D_INPUT_(din) );
 
 extern int dlaisnan( SimTK_D_INPUT_(din1), SimTK_D_INPUT_(din2) );
 
-extern void dlabad_(SimTK_D_INOUT_(small), SimTK_D_INOUT_(large));
+extern void dlabad_(SimTK_D_INOUT_(small1), SimTK_D_INOUT_(large));//small -> small1 conflict with definition when Qt is used
 
 extern void dlabrd_(SimTK_FDIM_(m), SimTK_FDIM_(n),  SimTK_FDIM_(nb), double *a, SimTK_FDIM_(lda), double *d__, double *e, double *tauq, double *taup, double *x, SimTK_FDIM_(ldx), double *y, SimTK_FDIM_(ldy));
 
@@ -1982,7 +1982,7 @@ extern int sisnan( SimTK_S_INPUT_(sin) );
 
 extern int slaisnan( SimTK_S_INPUT_(sin1), SimTK_S_INPUT_(sin2) );
 
-extern void slabad_(SimTK_S_INOUT_(small), SimTK_S_INOUT_(large));
+extern void slabad_(SimTK_S_INOUT_(small1), SimTK_S_INOUT_(large));//small -> small1 conflict with definition when Qt is used
 
 extern void slabrd_(SimTK_FDIM_(m), SimTK_FDIM_(n), SimTK_FDIM_(nb), float *a, SimTK_FDIM_(lda), float *d__, float *e, float *tauq, float *taup, float *x, SimTK_FDIM_(ldx), float *y, SimTK_FDIM_(ldy));
 

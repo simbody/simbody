@@ -687,8 +687,8 @@ public:
     }
 
     QIndex getNextQIndex() const {
-        if (qInfo.empty()) return QIndex(0);
-        const ContinuousVarInfo& last = qInfo.back();
+        if (q_info.empty()) return QIndex(0);
+        const ContinuousVarInfo& last = q_info.back();
         return QIndex(last.getFirstIndex()+last.getNumVars());
     }
     UIndex getNextUIndex() const {
@@ -794,7 +794,7 @@ friend class StateImpl;
     // and popped off the ends as the stage is reduced.
 
     // Topology and Model stage definitions. 
-    Array_<ContinuousVarInfo>      qInfo, uInfo, zInfo;
+    Array_<ContinuousVarInfo>      q_info, uInfo, zInfo;//qInfo -> q_info Qt definition conflict
     Array_<DiscreteVarInfo>        discreteInfo;
 
     // Topology, Model, and Instance stage definitions.
@@ -879,7 +879,7 @@ private:
 
     void popAllStacksBackToStage(const Stage& g);
 
-    // Call once each for qInfo, uInfo, zInfo.
+    // Call once each for q_info, uInfo, zInfo.
     void copyContinuousVarInfoThroughStage
        (const Array_<ContinuousVarInfo>& src, const Stage& g,
         Array_<ContinuousVarInfo>& dest);
@@ -1067,7 +1067,7 @@ public:
         const Stage allocStage = getSubsystemStage(subsys).next();
         PerSubsystemInfo& ss = subsystems[subsys];
         const QIndex nxt(ss.getNextQIndex());
-        ss.qInfo.push_back(ContinuousVarInfo(allocStage,nxt,qInit,Vector())); 
+        ss.q_info.push_back(ContinuousVarInfo(allocStage,nxt,qInit,Vector())); 
         return nxt;
     }
     
