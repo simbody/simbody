@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <metadata>
-    <id>$packageId$</id>
+    <id>simbody$packageIdSuffix$</id>
     <version>0.0.0</version>
     <authors>Michael Sherman</authors>
     <owners>Michael Sherman</owners>

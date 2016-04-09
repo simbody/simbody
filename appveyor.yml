@@ -18,9 +18,9 @@ platform: x64
 environment:
   matrix:
     - CMAKE_GENERATOR: "Visual Studio 14 2015"
-      NUGET_PACKAGE_ID: "simbody-x86"
+      NUGET_PACKAGE_ID_SUFFIX: "-x86"
     - CMAKE_GENERATOR: "Visual Studio 14 2015 Win64"
-      NUGET_PACKAGE_ID: "simbody-x64"
+      NUGET_PACKAGE_ID_SUFFIX: "-x64"
 
 build_script:
   # Must create separate build dir, otherwise can't read test files
@@ -47,7 +47,7 @@ after_test:
   # Create NuGet package.
   - IF DEFINED DISTR cd %APPVEYOR_BUILD_FOLDER%
   # Create a nupkg. The install directory is to be packaged.
-  - IF DEFINED DISTR nuget pack doc/.simbody.nuspec -Properties "packageId=%NUGET_PACKAGE_ID%" -BasePath C:\simbody
-  # The line above creates the file %NUGET_PACKAGE_ID%.0.0.0.nupkg.
+  - IF DEFINED DISTR nuget pack doc/.simbody.nuspec -Properties "packageIdSuffix=%NUGET_PACKAGE_ID_SUFFIX%" -BasePath C:\simbody
+  # The line above creates the file simbody%NUGET_PACKAGE_ID_SUFFIX%.0.0.0.nupkg.
   # Push this file to Appveyor's NuGet account feed, to be used by OpenSim.
-  - IF DEFINED DISTR appveyor PushArtifact %NUGET_PACKAGE_ID%.0.0.0.nupkg
+  - IF DEFINED DISTR appveyor PushArtifact simbody%NUGET_PACKAGE_ID_SUFFIX%.0.0.0.nupkg
