@@ -1313,8 +1313,16 @@ SimTK_SimTKCOMMON_EXPORT ArticulatedInertia_& shiftInPlace(const Vec3P& s);
 /// Convert the compactly-stored ArticulatedInertia (21 elements) into a 
 /// full SpatialMat with 36 elements.
 const SpatialMatP toSpatialMat() const {
-    return SpatialMatP( Mat33P(J),     F,
-                            ~F,       Mat33P(M) );
+    // This more-beautiful code ran into an optimization bug Microsoft 
+    // introduced in Update 2 to Visual C++ 2015.
+    //return SpatialMatP( Mat33P(J),     F,
+    //                        ~F,       Mat33P(M) );
+
+    // Uglier but functional.
+    SpatialMatP smat;
+    smat(0,0) = Mat33P(J); smat(0,1) = F;
+    smat(1,0) = ~F;        smat(1,1) = Mat33P(M);
+    return smat;
 }
 private:
 SymMat33P M;
