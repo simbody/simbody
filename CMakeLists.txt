@@ -14,7 +14,7 @@ if(MSVC)
     # To properly support Visual Studio 2015.
     set(SIMBODY_REQUIRED_CMAKE_VERSION 3.1.3)
 else()
-    set(SIMBODY_REQUIRED_CMAKE_VERSION 2.8.8)
+    set(SIMBODY_REQUIRED_CMAKE_VERSION 2.8.10)
 endif()
 cmake_minimum_required(VERSION ${SIMBODY_REQUIRED_CMAKE_VERSION})
 
