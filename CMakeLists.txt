@@ -53,20 +53,16 @@ if(MSVC)
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     set(SIMBODY_REQUIRED_GCC_VERSION 4.8.1)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE GCC_VERSION)
-    if (GCC_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
-        message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody"
-                            "Simbody requires at least version :"
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
+        message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody.\n"
+                            "Simbody requires at least version : "
                             "${SIMBODY_REQUIRED_GCC_VERSION}")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     set(SIMBODY_REQUIRED_CLANG_VERSION 3.4)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE CLANG_VERSION)
-    if (CLANG_VERSION VERSION_LESS ${SIMBODY_REQUIRED_CLANG_VERSION})
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_CLANG_VERSION})
         message(FATAL_ERROR "Clang version is too old to compile Simbody.\n"
-                            "Simbody requires at least version :"
+                            "Simbody requires at least version : "
                             "${SIMBODY_REQUIRED_CLANG_VERSION}")
     endif()
 endif()
