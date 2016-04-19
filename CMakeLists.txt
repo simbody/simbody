@@ -14,7 +14,7 @@ if(MSVC)
     # To properly support Visual Studio 2015.
     set(SIMBODY_REQUIRED_CMAKE_VERSION 3.1.3)
 else()
-    set(SIMBODY_REQUIRED_CMAKE_VERSION 2.8.8)
+    set(SIMBODY_REQUIRED_CMAKE_VERSION 2.8.10)
 endif()
 cmake_minimum_required(VERSION ${SIMBODY_REQUIRED_CMAKE_VERSION})
 
@@ -52,21 +52,17 @@ if(MSVC)
                             " comment this test and configure normally.")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    set(SIMBODY_REQUIRED_GCC_VERSION 4.8.1)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE GCC_VERSION)
-    if (GCC_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
-        message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody"
-                            "Simbody requires at least version :"
+    set(SIMBODY_REQUIRED_GCC_VERSION 4.9.0)
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
+        message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody.\n"
+                            "Simbody requires at least version : "
                             "${SIMBODY_REQUIRED_GCC_VERSION}")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     set(SIMBODY_REQUIRED_CLANG_VERSION 3.4)
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion
-                    OUTPUT_VARIABLE CLANG_VERSION)
-    if (CLANG_VERSION VERSION_LESS ${SIMBODY_REQUIRED_CLANG_VERSION})
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_CLANG_VERSION})
         message(FATAL_ERROR "Clang version is too old to compile Simbody.\n"
-                            "Simbody requires at least version :"
+                            "Simbody requires at least version : "
                             "${SIMBODY_REQUIRED_CLANG_VERSION}")
     endif()
 endif()
@@ -75,7 +71,7 @@ set(SIMBODY_MAJOR_VERSION 3)
 set(SIMBODY_MINOR_VERSION 6)
 set(SIMBODY_PATCH_VERSION 0)
 
-set(SIMBODY_COPYRIGHT_YEARS "2005-15")
+set(SIMBODY_COPYRIGHT_YEARS "2005-16")
 
 # underbar separated list of dotted authors, no spaces or commas
 set(SIMBODY_AUTHORS "Michael.Sherman_Peter.Eastman")

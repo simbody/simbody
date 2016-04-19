@@ -99,8 +99,8 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.8 or later (3.1.3 or later for Visual Studio).
-* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
+* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
@@ -117,11 +117,11 @@ Using Simbody
 Installing
 ----------
 
-Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
+Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 5 different ways of installing Simbody:
 
 1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
-3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
-2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
+2. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
+3. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
 5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
 
@@ -248,10 +248,10 @@ framework. Mac's come with the visualization dependencies.
 
 On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run the following commands.
 
-1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`. The cmake on Ubuntu 12.04 is not new enough; you could instead download it from [cmake.org](http://www.cmake.org/download/) or use [this third party PPA](https://launchpad.net/~robotology/+archive/ubuntu/ppa).
+1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`.
 2. If you want to use the CMake GUI, install `cmake-qt-gui`.
-3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`
-4. For API documentation (optional): `$ sudo apt-get install doxygen`
+3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
+4. For API documentation (optional): `$ sudo apt-get install doxygen`.
 
 #### Get the Simbody source code
 
