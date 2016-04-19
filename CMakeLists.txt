@@ -52,7 +52,7 @@ if(MSVC)
                             " comment this test and configure normally.")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    set(SIMBODY_REQUIRED_GCC_VERSION 4.8.1)
+    set(SIMBODY_REQUIRED_GCC_VERSION 4.9.0)
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS ${SIMBODY_REQUIRED_GCC_VERSION})
         message(FATAL_ERROR "GNU GCC/G++ version is too old to compile Simbody.\n"
                             "Simbody requires at least version : "
