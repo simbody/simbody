@@ -384,7 +384,7 @@ toXmlElement(const std::string& name) const {
     e.setAttributeValue("version", String(version));
     e.appendNode(toXmlElementHelper(m_name, "name", true));
     e.appendNode(Xml::Comment(" CONTINUOUS VARIABLES "));
-    e.appendNode(toXmlElementHelper(qInfo, "qInfo", true));
+    e.appendNode(toXmlElementHelper(q_info, "qInfo", true));
     e.appendNode(toXmlElementHelper(uInfo, "uInfo", true));
     e.appendNode(toXmlElementHelper(zInfo, "zInfo", true));
     e.appendNode(Xml::Comment(" DISCRETE VARIABLES "));
