@@ -411,6 +411,113 @@ void testMisc() {
     //cout << "after clear(), State s=" << s;
 }
 
+// Helper functions for testConsistent().
+// Allocate some part of the state, and alter the stage accordingly.
+// For Q, U, Z.
+template <typename IDX>
+void allocate(State& state, Stage stage,
+        IDX (State::*allocfun)(SubsystemIndex, const Vector&),
+        int subsysIdx, int size) {
+    state.invalidateAll(stage);
+    (state.*allocfun)(SubsystemIndex(subsysIdx), Vector(size));
+    advanceStage(state, stage);
+}
+// For QErr, UErr, ZErr, and EventTriggers.
+template <typename IDX, typename ...ARGS>
+void allocate(State& state, Stage stage,
+        IDX (State::*allocfun)(SubsystemIndex, ARGS...) const,
+        int subsysIdx, ARGS... args) {
+    state.invalidateAll(stage);
+    (state.*allocfun)(SubsystemIndex(subsysIdx), args...);
+    advanceStage(state, stage);
+}
+
+// Advance to Instance stage and test that the two states are NOT consistent.
+void isNotConsistent(State& sA, State& sB) {
+    while (sA.getSystemStage() < Stage::Instance)
+        advanceStage(sA, sA.getSystemStage().next());
+    while (sB.getSystemStage() < Stage::Instance)
+        advanceStage(sB, sB.getSystemStage().next());
+
+    SimTK_TEST(!sA.isConsistent(sB)); SimTK_TEST(!sB.isConsistent(sA));
+}
+// Advance to Instance stage and test that the two states are consistent.
+void isConsistent(State& sA, State& sB) {
+    while (sA.getSystemStage() < Stage::Instance)
+        advanceStage(sA, sA.getSystemStage().next());
+    while (sB.getSystemStage() < Stage::Instance)
+        advanceStage(sB, sB.getSystemStage().next());
+
+    SimTK_TEST(sA.isConsistent(sB)); SimTK_TEST(sB.isConsistent(sA));
+}
+
+void testConsistent() {
+    State sA;
+    State sB;
+
+    int numSubsys = 3;
+    sA.setNumSubsystems(numSubsys);
+    sB.setNumSubsystems(numSubsys);
+
+    // Must realize to Instance to check consistency.
+    SimTK_TEST_MUST_THROW_EXC_DEBUG(sA.isConsistent(sB), Exception::StageTooLow);
+    isConsistent(sA, sB);
+
+    for (int i = 0; i < numSubsys; ++i) {
+        // Also using `i` as a way to arbitrarily choose different Vector sizes.
+
+        // Q
+        allocate(sA, Stage::Model, &State::allocateQ, i, 5 + i);
+        isNotConsistent(sA, sB);
+        allocate(sB, Stage::Model, &State::allocateQ, i, 5 + i);
+        isConsistent(sA, sB);
+        // U
+        allocate(sA, Stage::Model, &State::allocateU, i, 3 + i);
+        isNotConsistent(sA, sB);
+        allocate(sB, Stage::Model, &State::allocateU, i, 3 + i);
+        isConsistent(sA, sB);
+        // Z
+        allocate(sA, Stage::Model, &State::allocateZ, i, 8 + i);
+        isNotConsistent(sA, sB);
+        allocate(sB, Stage::Model, &State::allocateZ, i, 8 + i);
+        isConsistent(sA, sB);
+        // QErr
+        allocate(sA, Stage::Model, &State::allocateQErr, i, 2 + i);
+        isNotConsistent(sA, sB);
+        allocate(sB, Stage::Model, &State::allocateQErr, i, 2 + i);
+        isConsistent(sA, sB);
+        // UErr
+        allocate(sA, Stage::Model, &State::allocateUErr, i, 7 + i);
+        isNotConsistent(sA, sB);
+        allocate(sB, Stage::Model, &State::allocateUErr, i, 7 + i);
+        isConsistent(sA, sB);
+        // UDotErr
+        allocate(sA, Stage::Model, &State::allocateUDotErr, i, 1 + i);
+        isNotConsistent(sA, sB);
+        allocate(sB, Stage::Model, &State::allocateUDotErr, i, 1 + i);
+        isConsistent(sA, sB);
+
+        // EventTrigger
+        for(SimTK::Stage stage = SimTK::Stage::LowestValid;
+                stage <= SimTK::Stage::HighestRuntime; ++stage) {
+            allocate(sA, Stage::Model, &State::allocateEventTrigger,
+                    i, stage, 12 + i);
+            isNotConsistent(sA, sB);
+            allocate(sB, Stage::Model, &State::allocateEventTrigger,
+                    i, stage, 12 + i);
+            isConsistent(sA, sB);
+        }
+    }
+
+    // Change the number of subsystems.
+    numSubsys = 4;
+    sA.setNumSubsystems(numSubsys);
+    isNotConsistent(sA, sB);
+    sB.setNumSubsystems(numSubsys);
+    isConsistent(sA, sB);
+
+}
+
 int main() {
     int major,minor,build;
     char out[100];
@@ -429,5 +536,6 @@ int main() {
         //SimTK_SUBTEST(testLowestModified);
         SimTK_SUBTEST(testCacheValidity);
         SimTK_SUBTEST(testMisc);
+        SimTK_SUBTEST(testConsistent);
     SimTK_END_TEST();
 }

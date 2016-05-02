@@ -96,6 +96,67 @@ SimTK::operator<<(std::ostream& o, const State& s) {
     return o << s.cacheToString() << std::endl;
 }
 
+bool State::isConsistent(const SimTK::State& otherState) const {
+
+    if (getNumSubsystems() != otherState.getNumSubsystems())
+        return false;
+
+    // State variables.
+    if (getNQ() != otherState.getNQ())
+        return false;
+    if (getNU() != otherState.getNU())
+        return false;
+    if (getNZ() != otherState.getNZ())
+        return false;
+
+    // Constraints.
+    if (getNQErr() != otherState.getNQErr())
+        return false;
+    if (getNUErr() != otherState.getNUErr())
+        return false;
+    if (getNUDotErr() != otherState.getNUDotErr())
+        return false;
+    // NMultipliers should be the same as NUDotErr, but we leave this check
+    // here in case they diverge in the future.
+    if (getNMultipliers() != otherState.getNMultipliers())
+        return false;
+
+    // Events.
+    if (getNEventTriggers() != otherState.getNEventTriggers())
+        return false;
+
+    // Per-subsystem quantities.
+    // TODO we could get rid of the total-over-subsystems checks above, but
+    // those checks would let us exit earlier.
+    for (SimTK::SubsystemIndex isub(0); isub < getNumSubsystems();
+            ++isub) {
+        if (getNQ(isub) != otherState.getNQ(isub))
+            return false;
+        if (getNU(isub) != otherState.getNU(isub))
+            return false;
+        if (getNZ(isub) != otherState.getNZ(isub))
+            return false;
+        if (getNQErr(isub) != otherState.getNQErr(isub))
+            return false;
+        if (getNUErr(isub) != otherState.getNUErr(isub))
+            return false;
+        if (getNUDotErr(isub) != otherState.getNUDotErr(isub))
+            return false;
+        // NMultipliers should be the same as NUDotErr, but we leave this check
+        // here in case they diverge in the future.
+        if (getNMultipliers(isub) != otherState.getNMultipliers(isub))
+            return false;
+
+        for(SimTK::Stage stage = SimTK::Stage::LowestValid;
+                stage <= SimTK::Stage::HighestRuntime; ++stage) {
+            if (getNEventTriggersByStage(isub, stage) !=
+                    otherState.getNEventTriggersByStage(isub, stage))
+                return false;
+        }
+    }
+    return true;
+}
+
 
 //==============================================================================
 //                          PER SUBSYSTEM INFO
@@ -162,7 +223,7 @@ void PerSubsystemInfo::copyAllocationStackThroughStage
 }
 
 void PerSubsystemInfo::clearContinuousVars() {
-    clearAllocationStack(qInfo); 
+    clearAllocationStack(q_info); 
     clearAllocationStack(uInfo);                                
     clearAllocationStack(zInfo); 
 }
@@ -190,7 +251,7 @@ void PerSubsystemInfo::clearAllStacks() {
 }
 
 void PerSubsystemInfo::popContinuousVarsBackToStage(const Stage& g) { 
-    popAllocationStackBackToStage(qInfo,g);
+    popAllocationStackBackToStage(q_info,g);
     popAllocationStackBackToStage(uInfo,g);
     popAllocationStackBackToStage(zInfo,g);
 }
@@ -244,7 +305,7 @@ void PerSubsystemInfo::copyEventsThroughStage
 void PerSubsystemInfo::copyAllStacksThroughStage
    (const PerSubsystemInfo& src, const Stage& g)
 {
-    copyContinuousVarInfoThroughStage(src.qInfo, g, qInfo);
+    copyContinuousVarInfoThroughStage(src.q_info, g, q_info);
     copyContinuousVarInfoThroughStage(src.uInfo, g, uInfo);
     copyContinuousVarInfoThroughStage(src.zInfo, g, zInfo);
 
@@ -508,8 +569,8 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
         // Count up all 
         for (SubsystemIndex i(0); i<subsystems.size(); ++i) {
             const PerSubsystemInfo& ss = subsystems[i];
-            for (unsigned j=0; j<ss.qInfo.size(); ++j)
-                ssnq[i] += ss.qInfo[j].getNumVars();
+            for (unsigned j=0; j<ss.q_info.size(); ++j)
+                ssnq[i] += ss.q_info[j].getNumVars();
             nq += ssnq[i];
             for (unsigned j=0; j<ss.uInfo.size(); ++j)
                 ssnu[i] += ss.uInfo[j].getNumVars();
@@ -561,9 +622,9 @@ void StateImpl::advanceSystemToStage(Stage stg) const {
             // Build the views.
             ss.q.viewAssign(wThis->q(nxtq, nq));
             int nxt=0;
-            for (unsigned j=0; j<ss.qInfo.size(); ++j) {
-                const int nv = ss.qInfo[j].getNumVars();
-                ss.q(nxt, nv) = ss.qInfo[j].getInitialValues();
+            for (unsigned j=0; j<ss.q_info.size(); ++j) {
+                const int nv = ss.q_info[j].getNumVars();
+                ss.q(nxt, nv) = ss.q_info[j].getInitialValues();
                 nxt += nv;
             }
 

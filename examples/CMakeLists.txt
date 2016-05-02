@@ -78,6 +78,18 @@ else()
       ${CMAKE_INSTALL_FULL_LIBDIR}/simbody/examples/)
 endif()
 
+# Set RPATH for all example targets in this directory and in subdirectories.
+if(${SIMBODY_USE_INSTALL_RPATH})
+    file(RELATIVE_PATH exbin_dir_to_install_dir
+        "${CMAKE_INSTALL_PREFIX}/${EXAMPLES_INSTALL_BIN}"
+        "${CMAKE_INSTALL_PREFIX}")
+    set(exbin_dir_to_lib_dir
+        "${exbin_dir_to_install_dir}${CMAKE_INSTALL_LIBDIR}")
+    if(${SIMBODY_USE_INSTALL_RPATH})
+        set(CMAKE_INSTALL_RPATH "\@executable_path/${exbin_dir_to_lib_dir}")
+    endif()
+endif()
+
 # CMAKE_INSTALL_PREFIX may be a relative path name; we want to bake in
 # the absolute path for the examples.
 get_filename_component(ABS_CMAKE_INSTALL_PREFIX 

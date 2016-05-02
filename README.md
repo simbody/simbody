@@ -99,8 +99,8 @@ Dependencies
 
 Simbody depends on the following:
 
-* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.8 or later (3.1.3 or later for Visual Studio).
-* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.8.1 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
+* cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
+* compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
 * linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
@@ -117,12 +117,13 @@ Using Simbody
 Installing
 ----------
 
-Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 4 different ways of installing Simbody:
+Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 5 different ways of installing Simbody:
 
 1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
-3. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
-2. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
+2. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
+3. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
+5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
@@ -247,10 +248,10 @@ framework. Mac's come with the visualization dependencies.
 
 On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run the following commands.
 
-1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`. The cmake on Ubuntu 12.04 is not new enough; you could instead download it from [cmake.org](http://www.cmake.org/download/) or use [this third party PPA](https://launchpad.net/~robotology/+archive/ubuntu/ppa).
+1. Get the necessary dependencies: `$ sudo apt-get install cmake liblapack-dev`.
 2. If you want to use the CMake GUI, install `cmake-qt-gui`.
-3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`
-4. For API documentation (optional): `$ sudo apt-get install doxygen`
+3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
+4. For API documentation (optional): `$ sudo apt-get install doxygen`.
 
 #### Get the Simbody source code
 
@@ -347,7 +348,9 @@ From your build directory, you can run Simbody's example programs. For instance,
 
 If you are only building Simbody to use it with OpenSim, you can skip this section.
 
-1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the Simbody lib directory to your linker path.
+1. Allow executables to find Simbody libraries (.dylib's or so's) by adding the
+   Simbody lib directory to your linker path. On Mac, most users can skip
+   this step.
     * If your `CMAKE_INSTALL_PREFIX` is `/usr/local/`, run:
 
             $ sudo ldconfig
@@ -359,7 +362,9 @@ If you are only building Simbody to use it with OpenSim, you can skip this secti
         * Ubuntu:
 
                 $ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/simbody/lib/x86_64-linux-gnu' >> ~/.bashrc
-        These commands add a line to a configuration file that is loaded every time you open a new terminal. If using Ubuntu, you may need to replace `x86_64-linux-gnu` with the appropriate directory on your computer.
+        These commands add a line to a configuration file that is loaded every
+        time you open a new terminal. If using Ubuntu, you may need to replace
+        `x86_64-linux-gnu` with the appropriate directory on your computer.
 2. Allow Simbody and other projects (e.g., OpenSim) to find Simbody. Make sure to replace `~/simbody` with your `CMAKE_INSTALL_PREFIX`.
     * Mac:
 
@@ -435,21 +440,12 @@ What's in the `/usr/local/Cellar/simbody/<version>/` directory?
 Ubuntu and apt-get
 ------------------
 
-You can currently get Simbody via the Open Source Robotics Foundation's Debian repositories. We are currently working on getting Simbody directly into the Debian repositories. `apt-get` will take care of getting the necessary dependencies.
-
-**Caution**: this installation method is still a work in progress. If you try it, please let us know on the [Simbody Forum](https://simtk.org/forums/viewforum.php?f=47) if it worked or if not, what problems you encountered.
+Starting with Ubuntu 15.04, Simbody is available in the Ubuntu (and Debian) repositories. You can see a list of all simbody packages for all Ubuntu versions at the [Ubuntu Packages website](http://packages.ubuntu.com/search?keywords=simbody&searchon=names&suite=all&section=all). The latest version of Simbody is usually not available in the Ubuntu repositories; the process for getting a new version of Simbody into the Ubuntu repositories could take up to a year.
 
 #### Install
 
-1. Setup your computer to accept software from packages.osrfoundation.org. For more detailed instructions, see [OSRF's installation instructions](http://gazebosim.org/tutorials?tut=install_ubuntu&ver=4.0&cat=install).
+1. Open a terminal and run the following command:
 
-        $ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-latest.list'
-        $ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-        $ sudo apt-get update
-
-2. Install Simbody.
-
-        $ sudo apt-get update
         $ sudo apt-get install libsimbody-dev libsimbody-doc
 
 #### Layout of installation

@@ -48,6 +48,7 @@
 #include "SimTKcommon/internal/ReinitOnCopy.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Serialize.h"
+#include "SimTKcommon/internal/IteratorRange.h"
 #include "SimTKcommon/internal/Fortran.h"
 #include "SimTKcommon/internal/Array.h"
 #include "SimTKcommon/internal/StableArray.h"

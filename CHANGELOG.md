@@ -8,6 +8,10 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.6 (in development)
 --------------------
+* Forced GCC to be at least 4.9.0, so that new C++11 features like regular
+  expressions can be used (pr #485).
+* Minimum Ubuntu version supported 14.04 LTS (Trusty), with a [manual update of GCC](http://askubuntu.com/questions/466651/how-do-i-use-the-latest-gcc-on-ubuntu-14-04).
+* Recommended minimum Ubuntu version : 15.04 (Vivid), that is shipped with GCC 4.9.2.
 * Added mixin classes `ResetOnCopy<T>` and `ReinitOnCopy<T>` to force default
   construction or reinitialization of data members on copy construction or copy
   assignment, without requiring a user written copy constructor and copy
@@ -61,6 +65,13 @@ to ParallelExecutor, mutex state lock.
   make an XML-friendly modification of `namestr()` that replaces angle brackets
   with curly braces. Added a new regression test to verify that the names come
   out right. [PR #461](https://github.com/simbody/simbody/pull/461)
+* Added helper class IteratorRange to use range-based for loops with a pair of
+  iterators. [PR#467](https://github.com/simbody/simbody/pull/467)
+* Added the method `State::isConsistent()` to compare two states
+  [PR #469](https://github.com/simbody/simbody/pull/469).
+* Started using RPATH on OSX so that users need not set `DYLD_LIBRARY_PATH` to
+  run `simbody-visualizer` or the example executables, regardless of where you
+  install Simbody.
 * (There are more that haven't been added yet)
 
 

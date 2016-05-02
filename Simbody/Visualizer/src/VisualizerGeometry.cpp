@@ -134,6 +134,14 @@ void VisualizerGeometry::implementMeshGeometry(const SimTK::DecorativeMesh& geom
                                getColor(geom), getRepresentation(geom));
 }
 
+
+void VisualizerGeometry::implementMeshFileGeometry(const SimTK::DecorativeMeshFile& geom) {
+    const PolygonalMesh& pMesh = geom.getMesh();
+    const Transform X_GD = calcX_GD(geom);
+    protocol.drawPolygonalMesh(pMesh, X_GD, getScaleFactors(geom),
+        getColor(geom), getRepresentation(geom));
+}
+
 Vec4 VisualizerGeometry::getColor(const DecorativeGeometry& geom,
                                   const Vec3& defaultColor) {
     Vec4 result;
