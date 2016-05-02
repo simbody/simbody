@@ -178,7 +178,8 @@ class Value : public AbstractValue {
 static_assert(   std::is_object<T>::value 
               && !(   std::is_pointer<T>::value 
                    || std::is_member_pointer<T>::value
-                   || std::is_null_pointer<T>::value),
+                   /*|| std::is_null_pointer<T>::value*/ // TODO: C++14
+                   ),
     "Value<T>: T can't be a function, pointer, reference, or void type.");
 
 static_assert(std::is_default_constructible<T>::value,
