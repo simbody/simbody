@@ -766,7 +766,7 @@ private:
     }
     T& updVarValue(State& s) const {
         assert(discreteVarIndex.isValid());
-        return Value<T>::downcast(
+        return Value<T>::updDowncast(
             this->getSubsystem().updDiscreteVariable(s, discreteVarIndex));
     }
 
@@ -1289,6 +1289,43 @@ template <class T>
 class Measure_Differentiate_Result {
 public:
     Measure_Differentiate_Result() : derivIsGood(false) {}
+
+    Xml::Element toXmlElement(const std::string& name) const {
+        static const int version = 1;
+        Xml::Element e("Measure_Differentiate_Result");
+        if (!name.empty()) e.setAttributeValue("name", name);
+        e.setAttributeValue("version", String(version));
+        e.appendNode(toXmlElementHelper(operand, "operand", true));
+        e.appendNode(toXmlElementHelper(operandDot, "operandDot", true));
+        e.appendNode(toXmlElementHelper(derivIsGood, "derivIsGood", true));
+        return e;
+    }
+
+    void fromXmlElement(Xml::Element e, 
+                        const std::string& requiredName="") {
+        const int versionInXml = e.getRequiredAttributeValueAs<int>("version");
+        SimTK_ERRCHK1_ALWAYS(versionInXml == 1,
+            "Measure_Differentiate_Result::fromXmlElement",
+            "Expected Measure_Differentiate_Result version=1 but got %d.",
+            versionInXml);
+        if (!requiredName.empty()) {
+            const String& name = e.getElementTag();
+            SimTK_ERRCHK2_ALWAYS(name==requiredName,
+            "Measure_Differentiate_Result::fromXmlElement",
+            "Expected Measure_Differentiate_Result element "
+            "named '%s' but got '%s'.", requiredName.c_str(), name.c_str());
+        }
+        auto nxt = e.element_begin();
+        fromXmlElementHelper(operand,     *nxt++, "operand", true);
+        fromXmlElementHelper(operandDot,  *nxt++, "operandDot", true);
+        fromXmlElementHelper(derivIsGood, *nxt++, "derivIsGood", true);
+
+        SimTK_ERRCHK_ALWAYS(nxt == e.element_end(),
+            "Measure_Differentiate_Result::fromXmlElement",
+            "Badly formatted Measure_Differentiate_Result element: too many "
+            "sub-elements.");
+    }
+
     T       operand;    // previous value of operand
     T       operandDot; // previous value of derivative
     bool    derivIsGood; // do we think the deriv is a good one?
@@ -1904,6 +1941,18 @@ public:
     int getMaxSize() const {return m_maxSize;}
     // Return the largest capacity the buffer ever had.
     int getMaxCapacity() const {return m_maxCapacity;}
+
+    Xml::Element toXmlElement(const std::string& name) const {
+        static const int version = 1;
+        Xml::Element e("Measure_Delay_Buffer");
+        if (!name.empty()) e.setAttributeValue("name", name);
+        e.setAttributeValue("version", String(version));
+        for (int i=0; i < size(); ++i) {
+            e.appendNode(toXmlElementHelper(getEntryTime(i), "time", true));
+            e.appendNode(toXmlElementHelper(getEntryValue(i), "value", true));
+        }
+        return e;
+    }
 
 private:
     // Return the i'th oldest entry 

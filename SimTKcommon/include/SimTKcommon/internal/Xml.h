@@ -1709,9 +1709,10 @@ auto fromXmlElementHelper(T& thing, Xml::Element& elt,
 /** Partial specialization for XML serialization of ArrayViewConst_ objects.
 The output is identical for this class, or its derived classes ArrayView_ and
 Array_, although there are other signatures for those to ensure this method
-gets used. The result is a single element with tag word `<Array>` with the
-given name (if any) and a version number as attributes. Then each entry is
-a subelement, as produced by type T's `toXmlElement()` method.
+gets used. The result is a single element with tag word `<Array>` with a `name`
+attribute if a non-empty name is suppliee, an element count attribute 'n' and a
+`version` attributes. Then each entry is a subelement, as produced by type T's 
+`toXmlElement()` method.
 
 Note that ArrayViewConst_ can't be a target for deserializaton since
 it is immutable.
@@ -1722,10 +1723,82 @@ Xml::Element toXmlElement(const ArrayViewConst_<T,X>& thing,
     static const int version = 1;
     Xml::Element e("Array");
     if (!name.empty()) e.setAttributeValue("name", name);
+    e.setAttributeValue("n", String(thing.size()));
     e.setAttributeValue("version", String(version));
     for (const auto& v : thing)
         e.appendNode(toXmlElementHelper(v, "", true));
     return e;
+}
+
+template <class T, class X>
+void fromXmlElement(ArrayView_<T,X>& thing, Xml::Element& e, 
+                    const std::string& reqName="") {
+    SimTK_ERRCHK1_ALWAYS(e.getElementTag()=="Array", 
+        "fromXmlElement<ArrayView_>",
+        "Expected tag 'Array' but got '%s'.", e.getElementTag().c_str());
+    if (!reqName.empty()) {
+        const String& name = e.getRequiredAttributeValue("name");
+        SimTK_ERRCHK2_ALWAYS(name==reqName, "fromXmlElement<ArrayView_>",
+                                "Expected Array named '%s' but got '%s'.", 
+                                reqName.c_str(), name.c_str());
+    }
+
+    // Currently only understand version 1.
+    const int version = e.getRequiredAttributeValueAs<int>("version");
+    SimTK_ERRCHK1_ALWAYS(version==1, "fromXmlElement<ArrayView_>",
+                         "Expected element version=1 but got %d.", version);
+
+    const int n = e.getRequiredAttributeValueAs<int>("n");
+    SimTK_ERRCHK2_ALWAYS(n==(int)thing.size(), "fromXmlElement<ArrayView_>",
+        "Expected Array of size %d but got %d.", (int)thing.size(), n);
+    
+    auto nxt = e.element_begin();
+    int count = 0;
+    for (auto& v : thing) {
+        SimTK_ERRCHK2_ALWAYS(nxt != e.element_end(), 
+                            "fromXmlElement<ArrayView_>",
+        "Bad XML Array: claimed %d elements but ran out after %d.", n, count);
+        fromXmlElementHelper(v, *nxt++, "", true);
+        ++count;
+    }
+    SimTK_ERRCHK1_ALWAYS(nxt == e.element_end(), 
+                        "fromXmlElement<ArrayView_>",
+        "Bad XML Array: claimed %d elements but there were more.", n);
+}
+
+template <class T, class X>
+void fromXmlElement(Array_<T,X>& thing, Xml::Element& e, 
+                    const std::string& reqName="") {
+    SimTK_ERRCHK1_ALWAYS(e.getElementTag()=="Array", 
+        "fromXmlElement<Array_>",
+        "Expected tag 'Array' but got '%s'.", e.getElementTag().c_str());
+    if (!reqName.empty()) {
+        const String& name = e.getRequiredAttributeValue("name");
+        SimTK_ERRCHK2_ALWAYS(name==reqName, "fromXmlElement<Array_>",
+                                "Expected Array named '%s' but got '%s'.", 
+                                reqName.c_str(), name.c_str());
+    }
+
+    // Currently only understand version 1.
+    const int version = e.getRequiredAttributeValueAs<int>("version");
+    SimTK_ERRCHK1_ALWAYS(version==1, "fromXmlElement<Array_>",
+                         "Expected element version=1 but got %d.", version);
+
+    const int n = e.getRequiredAttributeValueAs<int>("n");
+    thing.resize(n);
+    
+    auto nxt = e.element_begin();
+    int count = 0;
+    for (auto& v : thing) {
+        SimTK_ERRCHK2_ALWAYS(nxt != e.element_end(), 
+                            "fromXmlElement<Array_>",
+        "Bad XML Array: claimed %d elements but ran out after %d.", n, count);
+        fromXmlElementHelper(v, *nxt++, "", true);
+        ++count;
+    }
+    SimTK_ERRCHK1_ALWAYS(nxt == e.element_end(), 
+                        "fromXmlElement<Array_>",
+        "Bad XML Array: claimed %d elements but there were more.", n);
 }
 
 /** Partial specialization for XML serialization of ArrayView_ objects. The 
