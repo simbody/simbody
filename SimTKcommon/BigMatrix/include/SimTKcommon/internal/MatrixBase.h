@@ -27,6 +27,7 @@
 /** @file
 Define the SimTK::MatrixBase class that is part of Simbody's BigMatrix 
 toolset. **/
+#include <initializer_list>
 
 namespace SimTK {
 
@@ -114,6 +115,9 @@ public:
     typedef MatrixBase<ENormalize>       TNormalize;
     typedef MatrixBase<ESqHermT>         TSqHermT;  // ~Mat*Mat
     typedef MatrixBase<ESqTHerm>         TSqTHerm;  // Mat*~Mat
+    
+    typedef typename std::initializer_list<E>::iterator ListIterator;
+    typedef typename std::initializer_list<std::initializer_list<E> >::iterator MatrixIterator;
 
     const MatrixCommitment& getCharacterCommitment() const {return helper.getCharacterCommitment();}
     const MatrixCharacter& getMatrixCharacter()     const {return helper.getMatrixCharacter();}
@@ -163,6 +167,24 @@ public:
     /// matrix commitment, given particular initial dimensions.
     MatrixBase(int m, int n) 
     :   helper(NScalarsPerElement,CppNScalarsPerElement,MatrixCommitment(),m,n) {}
+    
+    /// Brace list initialized constructor.
+    MatrixBase(int m, int n, std::initializer_list<std::initializer_list<E> > l)
+    :   helper(NScalarsPerElement,CppNScalarsPerElement,MatrixCommitment(),m,n) {
+        int i = 0;
+        int j = 0;
+        for(MatrixIterator prow_list = l.begin(); prow_list != l.end(); ++prow_list){
+            for(ListIterator pelement = prow_list->begin(); pelement != prow_list->end(); ++pelement){
+                if(j == n){
+                    // This happens if there is too long row compared to first row.
+                    SimTK_THROW1(Exception::Cant, "fit too long row into matrix!");
+                }
+                this->updElt(i,j)=*pelement;
+                j++;
+            }
+            i++; j = 0;
+        }
+    }
 
     /// This constructor takes a handle commitment and allocates the default
     /// matrix for that kind of commitment. If a dimension is set to a 
