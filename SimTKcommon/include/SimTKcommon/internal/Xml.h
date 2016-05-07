@@ -1612,7 +1612,7 @@ A helper function `toXmlElementHelper<T>` is available for invoking the member
 function `T::toXmlElement()` if it exists, otherwise the appropriate 
 specialization of this free function. Invoke the helper like this:
 @code
-    Xml::Element e = toXmlElementHelper(T, "name", true);
+    Xml::Element e = toXmlElementHelper(T, "name");
 @endcode
 The third parameter `true` is a dummy that allows prioritization of the member
 function over the free function if both exist, using SFINAE.
@@ -1625,12 +1625,23 @@ toXmlElement(const T& thing, const std::string& name) {
     return Xml::Element(name.empty()?"value":name, os.str());
 }
 
+template<typename...>
+using void_t = void;
+
+template<typename T, typename = void>
+struct has_member_toXmlElement : std::false_type {};
+
+template<typename T>
+struct has_member_toXmlElement<T, 
+void_t<decltype(std::declval<T>().toXmlElement(std::declval<std::string>()))>> :
+    std::true_type {};
+
 /** Helper function for toXmlElement() that selects the member function if it
 exists. @see toXmlElement() 
 @relates SimTK::Xml::Element **/
 template <class T> inline
-auto toXmlElementHelper(const T& thing, const std::string& name, bool)
-    -> decltype(std::declval<T>().toXmlElement(name)) {
+Xml::Element toXmlElementHelper(const T& thing, const std::string& name, 
+        typename std::enable_if<has_member_toXmlElement<T>::value>::type* = 0) {
     return thing.toXmlElement(name); // call member function
 }
 
@@ -1638,8 +1649,8 @@ auto toXmlElementHelper(const T& thing, const std::string& name, bool)
 member function exists. @see toXmlElement() 
 @relates SimTK::Xml::Element **/
 template <class T> inline
-auto toXmlElementHelper(const T& thing, const std::string& name, int) 
-    -> Xml::Element  {
+Xml::Element toXmlElementHelper(const T& thing, const std::string& name, 
+       typename std::enable_if<!has_member_toXmlElement<T>::value>::type* = 0) {
     return toXmlElement(thing, name); // call free function
 }
 
@@ -1726,7 +1737,7 @@ Xml::Element toXmlElement(const ArrayViewConst_<T,X>& thing,
     e.setAttributeValue("n", String(thing.size()));
     e.setAttributeValue("version", String(version));
     for (const auto& v : thing)
-        e.appendNode(toXmlElementHelper(v, "", true));
+        e.appendNode(toXmlElementHelper(v, ""));
     return e;
 }
 
