@@ -210,11 +210,11 @@ public:
         Xml::Element e("DiscreteVarInfo");
         if (!name.empty()) e.setAttributeValue("name", name);
         e.setAttributeValue("version", String(version));
-        e.appendNode(toXmlElementHelper(m_allocationStage, "allocationStage", true));
-        e.appendNode(toXmlElementHelper(m_invalidatedStage, "invalidatedStage", true));
-        e.appendNode(toXmlElementHelper(m_autoUpdateEntry, "autoUpdateEntry", true));
-        e.appendNode(toXmlElementHelper(*m_value, "value", true));
-        e.appendNode(toXmlElementHelper(m_timeLastUpdated, "timeLastUpdated", true));
+        e.appendNode(toXmlElementHelper(m_allocationStage, "allocationStage"));
+        e.appendNode(toXmlElementHelper(m_invalidatedStage, "invalidatedStage"));
+        e.appendNode(toXmlElementHelper(m_autoUpdateEntry, "autoUpdateEntry"));
+        e.appendNode(toXmlElementHelper(*m_value, "value"));
+        e.appendNode(toXmlElementHelper(m_timeLastUpdated, "timeLastUpdated"));
         return e;
     }
 
@@ -550,10 +550,10 @@ public:
         Xml::Element e("ContinuousVarInfo");
         if (!name.empty()) e.setAttributeValue("name", name);
         e.setAttributeValue("version", String(version));
-        e.appendNode(toXmlElementHelper(allocationStage, "allocationStage", true));
-        e.appendNode(toXmlElementHelper(firstIndex, "firstIndex", true));
-        e.appendNode(toXmlElementHelper(initialValues, "initialValues", true));
-        e.appendNode(toXmlElementHelper(initialValues, "weights", true));
+        e.appendNode(toXmlElementHelper(allocationStage, "allocationStage"));
+        e.appendNode(toXmlElementHelper(firstIndex, "firstIndex"));
+        e.appendNode(toXmlElementHelper(initialValues, "initialValues"));
+        e.appendNode(toXmlElementHelper(initialValues, "weights"));
         return e;
     }
 private:
