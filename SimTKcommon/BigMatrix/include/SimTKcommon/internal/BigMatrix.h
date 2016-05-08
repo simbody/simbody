@@ -1040,7 +1040,9 @@ std::istream& readVectorFromStreamHelper
     openBracket = (char)ch;
     if      (openBracket=='(') {in.get(); closeBracket = ')';}
     else if (openBracket=='[') {in.get(); closeBracket = ']';}
-    else lookForCloser = false;
+    else {lookForCloser = false;
+          closeBracket = 'e'; // Just to get rid of [-Wmaybe-uninitialized] warning.
+    }
 
     // If we found a tilde, the opening bracket was mandatory. If we didn't
     // find one then we reject the formatting.
