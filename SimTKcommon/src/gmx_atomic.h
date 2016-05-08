@@ -263,9 +263,9 @@ static inline int
 gmx_atomic_fetch_add(gmx_atomic_t *     a,
                      volatile int       i)
 {
-    int __i;
+    //int __i;
 
-    __i = i;
+    //__i = i;
     __asm__ __volatile__("lock ; xaddl %0, %1;"
                          :"=r"(i) :"m"(a->value), "0"(i));
     return i;
