@@ -388,7 +388,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     // We expect that the last entry in the offsets array is one past the
     // end of the last polygon described in the connectivity array and hence
     // is the size of the connectivity array.
-    const int expectedSize = numPolys ? offsets.back() : 0;
+    const unsigned int expectedSize = numPolys ? offsets.back() : 0;
     Array_<int> connectivity = econnectivity.getValueAs< Array_<int> >();
 
     SimTK_ERRCHK2_ALWAYS(connectivity.size()==expectedSize, method,
