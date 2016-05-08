@@ -166,7 +166,7 @@ public:
         virtual void updateCache(T& cache) const = 0;
 
         CacheEntryIndex m_cacheIndex;
-	const State* m_state;
+        const State* m_state;
         bool m_cacheIsValid;
         T m_cache;
 
