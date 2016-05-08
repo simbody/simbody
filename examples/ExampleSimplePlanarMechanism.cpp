@@ -22,7 +22,7 @@
  * -------------------------------------------------------------------------- */
 #include "Simbody.h"
 using namespace SimTK;
-
+/*
 // This very simple example builds a 3-body planar mechanism that does 
 // nothing but rock back and forth for 10 seconds. Note that Simbody always
 // works in 3D; this mechanism is planar because of the alignment of its 
@@ -46,7 +46,7 @@ using namespace SimTK;
 //
 // This is the Simbody equivalent of a mechanism Andreas Scholz used to
 // demonstrate features of the MOBILE code from Andrés Kecskeméthy's lab.
-
+*/
 int main() {
     try { // catch errors if any
 
