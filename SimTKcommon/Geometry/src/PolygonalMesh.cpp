@@ -321,8 +321,8 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
     Xml::Element points   = piece.getRequiredElement("Points");
     const int numPoints = 
         piece.getRequiredAttributeValueAs<int>("NumberOfPoints");
-    const int numPolys  = 
-        piece.getRequiredAttributeValueAs<int>("NumberOfPolys");
+    const unsigned int numPolys  = 
+        piece.getRequiredAttributeValueAs<unsigned int>("NumberOfPolys");
 
     // Remember this because we'll have to use it to adjust the indices we use 
     // when referencing the vertices we're about to read in. This number is
@@ -397,7 +397,7 @@ void PolygonalMesh::loadVtpFile(const String& pathname) {
         connectivity.size(), expectedSize);
 
     int startPoly = 0;
-    for (int i=0; i < numPolys; ++i) {
+    for (unsigned int i=0; i < numPolys; ++i) {
         // Now read in the face in [startOffs,endOffs]
         addFace(connectivity(startPoly, offsets[i]-startPoly));
         startPoly = offsets[i]; // move to the next poly
