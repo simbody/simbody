@@ -799,9 +799,14 @@ public:
     static TNormalize normalize(const T& t) {return TNormalize(t/abs(t));}
 
     // 1/conj(z) = conj(1/z), for complex z.
-    static TInvert invert(const T& t)    
-    {   const typename NTraits<THerm>::TInvert cmplx(NTraits<THerm>::invert(t.conj()));
-        return reinterpret_cast<const TInvert&>(cmplx); } // recast complex to conjugate it
+    // Here reinterpret_cast is source of [-Wstrict-aliasing] warning.
+    // New code is more explicit and should be faster(???).
+    static TInvert invert(const T& t){
+      return static_cast<TInvert>(TReal(1)/t.conj());
+    }    
+    //{   const typename NTraits<THerm>::TInvert cmplx(NTraits<THerm>::invert(t.conj()));
+    //    return reinterpret_cast<const TInvert&>(cmplx); } // recast complex to conjugate it
+    
 
     // We want a "conjugate NaN", NaN - NaN*i, meaning both reals should
     // be positive NaN.
