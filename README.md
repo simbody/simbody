@@ -247,7 +247,7 @@ Simbody uses recent C++ features, that require a modern compiler.
 Before installing Simbody, check your compiler version with commands like that:
 
 - `g++ --version`
-- `clang --version`
+- `clang++ --version`
 
 In case your compiler is not supported, you can upgrade your compiler.
 
