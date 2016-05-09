@@ -261,10 +261,6 @@ If one wants to set `gcc-4.9` and `g++-4.9` as the default compilers, run the fo
 
     $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
 
-To configure the default compiler interactively, run the following command
-
-    $ sudo update-alternatives --config gcc
-
 Remember that when having several compilers, CMake flags
 `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` can be used
 to select the ones desired. For example, Simbody can be
