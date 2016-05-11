@@ -160,6 +160,7 @@ namespace Ipopt
     //MUMPS data structure
 //    DMUMPS_STRUC_C mumps_data;
 
+    int *ipiv_;
   };
 
 } // namespace Ipopt
