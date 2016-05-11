@@ -146,7 +146,7 @@ namespace Ipopt
     delete [] a;
     delete [] irn_;
     delete [] jcn_;
-    delete [] ipiv_; 
+    ipiv_ = nullptr; 
     a = new Number[dim*dim];
     irn_ = new int[nz];
     jcn_ = new int[nz];
