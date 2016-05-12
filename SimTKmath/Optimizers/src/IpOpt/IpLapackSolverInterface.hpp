@@ -25,17 +25,17 @@ namespace Ipopt
 
     /** overloaded from AlgorithmStrategyObject */
     bool InitializeImpl(const OptionsList& options,
-                        const std::string& prefix);
+                        const std::string& prefix) override;
 
 
     /** @name Methods for requesting solution of the linear system. */
     //@{
     /** Method for initializing internal stuctures. */
-    virtual ESymSolverStatus InitializeStructure(Index dim, Index nonzeros, const Index *ia, const Index *ja);
+    virtual ESymSolverStatus InitializeStructure(Index dim, Index nonzeros, const Index *ia, const Index *ja) override;
 
-    /** Method returing an internal array into which the nonzero
+    /** Method returning an internal array into which the nonzero
      *  elements are to be stored. */
-    virtual Number* GetValuesArrayPtr();
+    virtual Number* GetValuesArrayPtr() override;
 
     /** Solve operation for multiple right hand sides. */
     virtual ESymSolverStatus MultiSolve(bool new_matrix,
@@ -44,31 +44,31 @@ namespace Ipopt
                                         Index nrhs,
                                         Number* rhs_vals,
                                         bool check_NegEVals,
-                                        Index numberOfNegEVals);
+                                        Index numberOfNegEVals) override;
 
     /** Number of negative eigenvalues detected during last
      *  factorization.
      */
-    virtual Index NumberOfNegEVals() const;
+    virtual Index NumberOfNegEVals() const override;
     //@}
 
     //* @name Options of Linear solver */
     //@{
     /** Request to increase quality of solution for next solve.
      */
-    virtual bool IncreaseQuality();
+    virtual bool IncreaseQuality() override;
 
     /** Query whether inertia is computed by linear solver.
      *  Returns true, if linear solver provides inertia.
      */
-    virtual bool ProvidesInertia() const
+    virtual bool ProvidesInertia() const override
     {
       return true;
     }
     /** Query of requested matrix type that the linear solver
      *  understands.
      */
-    EMatrixFormat MatrixFormat() const
+    EMatrixFormat MatrixFormat() const override
     {
       return Dense_Format;
     }
@@ -82,7 +82,7 @@ namespace Ipopt
   private:
     /**@name Default Compiler Generated Methods
      * (Hidden to avoid implicit creation/calling).
-     * These methods are not implemented and
+     * These methods are not implemented and 
      * we do not want the compiler to implement
      * them for us, so we declare them private
      * and do not define them. This ensures that
@@ -121,8 +121,7 @@ namespace Ipopt
     /** Number of negative eigenvalues */
     Index negevals_;
     /** Array for storing the pivot order after factorization. */
-    int* ipiv_;
-
+    int *ipiv_;
     bool isFactored;
 
     //@}
@@ -161,6 +160,7 @@ namespace Ipopt
     //@}
     //MUMPS data structure
 //    DMUMPS_STRUC_C mumps_data;
+
   };
 
 } // namespace Ipopt
