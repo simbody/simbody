@@ -241,6 +241,33 @@ Linux or Mac using make
 These instructions are for building Simbody from source on either a Mac or on
 Ubuntu.
 
+#### Check the compiler version
+
+Simbody uses recent C++ features, that require a modern compiler.
+Before installing Simbody, check your compiler version with commands like that:
+
+- `g++ --version`
+- `clang++ --version`
+
+In case your compiler is not supported, you can upgrade your compiler.
+
+Here are some instructions to upgrade GCC on a Ubuntu 14.04 distribution.
+
+    $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    $ sudo apt-get update
+    $ sudo apt-get install gcc-4.9 g++-4.9
+
+If one wants to set `gcc-4.9` and `g++-4.9` as the default compilers, run the following command
+
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
+
+Remember that when having several compilers, CMake flags
+`CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` can be used
+to select the ones desired. For example, Simbody can be
+configured with the following flags:
+
+    $ cmake -DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9
+
 #### Get dependencies
 
 On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
