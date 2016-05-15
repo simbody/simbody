@@ -375,10 +375,10 @@ public:
         if (!name.empty()) e.setAttributeValue("name", name);
         e.setAttributeValue("version", String(version));
         e.setAttributeValue("free", String(false));
-        e.appendNode(toXmlElementHelper(i,  "i"  , true));
-        e.appendNode(toXmlElementHelper(d,  "d"  , true));
-        e.appendNode(toXmlElementHelper(v,  "v"  , true));
-        e.appendNode(toXmlElementHelper(avs,"avs", true));
+        e.appendNode(toXmlElementHelper(i,  "i"));
+                     e.appendNode(toXmlElementHelper(d,  "d"));
+                     e.appendNode(toXmlElementHelper(v,  "v"));
+                     e.appendNode(toXmlElementHelper(avs,"avs"));
         return e;
     }
 
@@ -529,7 +529,7 @@ void testValueSerialization() {
     //</Value>
 
     // This should also find its way to the above method.
-    top.appendNode(toXmlElementHelper(Value<XX>(XX::Red), "color2", true));
+    top.appendNode(toXmlElementHelper(Value<XX>(XX::Red), "color2"));
     //<Value type="Nork7::Abc" name="color2">
     //    <thing>Red</thing>
     //</Value>

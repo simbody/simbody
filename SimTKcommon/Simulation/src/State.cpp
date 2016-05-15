@@ -382,13 +382,13 @@ toXmlElement(const std::string& name) const {
     Xml::Element e("Subsystem");
     if (!name.empty()) e.setAttributeValue("name", name);
     e.setAttributeValue("version", String(version));
-    e.appendNode(toXmlElementHelper(m_name, "name", true));
+    e.appendNode(toXmlElementHelper(m_name, "name"));
     e.appendNode(Xml::Comment(" CONTINUOUS VARIABLES "));
-    e.appendNode(toXmlElementHelper(q_info, "qInfo", true));
-    e.appendNode(toXmlElementHelper(uInfo, "uInfo", true));
-    e.appendNode(toXmlElementHelper(zInfo, "zInfo", true));
+    e.appendNode(toXmlElementHelper(q_info, "qInfo"));
+    e.appendNode(toXmlElementHelper(uInfo, "uInfo"));
+    e.appendNode(toXmlElementHelper(zInfo, "zInfo"));
     e.appendNode(Xml::Comment(" DISCRETE VARIABLES "));
-    e.appendNode(toXmlElementHelper(discreteInfo, "discreteInfo", true));
+    e.appendNode(toXmlElementHelper(discreteInfo, "discreteInfo"));
 
     return e;
 }
@@ -821,26 +821,26 @@ Xml::Element StateImpl::toXmlElement(const std::string& name) const {
     e.setAttributeValue("version", String(version));
     e.appendNode(Xml::Comment(" GLOBAL DATA "));
     e.appendNode(Xml::Comment("time"));
-    e.appendNode(toXmlElementHelper(t, "t", true));
+    e.appendNode(toXmlElementHelper(t, "t"));
     e.appendNode(Xml::Comment("generalized coordinates"));
-    e.appendNode(toXmlElementHelper(q, "q", true));
+    e.appendNode(toXmlElementHelper(q, "q"));
     e.appendNode(Xml::Comment("generalized speeds"));
-    e.appendNode(toXmlElementHelper(u, "u", true));
+    e.appendNode(toXmlElementHelper(u, "u"));
     e.appendNode(Xml::Comment("auxiliary continuous states"));
-    e.appendNode(toXmlElementHelper(z, "z", true));
+    e.appendNode(toXmlElementHelper(z, "z"));
     e.appendNode(Xml::Comment("weights for u (default 1)"));
-    e.appendNode(toXmlElementHelper(uWeights, "uWeights", true));
+    e.appendNode(toXmlElementHelper(uWeights, "uWeights"));
     e.appendNode(Xml::Comment("weights for z (default 1)"));
-    e.appendNode(toXmlElementHelper(zWeights, "zWeights", true));
+    e.appendNode(toXmlElementHelper(zWeights, "zWeights"));
     e.appendNode(Xml::Comment("weights for position constraints (default 1)"));
-    e.appendNode(toXmlElementHelper(qerrWeights, "qerrWeights", true));
+    e.appendNode(toXmlElementHelper(qerrWeights, "qerrWeights"));
     e.appendNode(Xml::Comment("weights for velocity constraints (default 1)"));
-    e.appendNode(toXmlElementHelper(uerrWeights, "uerrWeights", true));
+    e.appendNode(toXmlElementHelper(uerrWeights, "uerrWeights"));
 
     e.appendNode(Xml::Comment(" PER-SUBSYSTEM DATA "));
     for (unsigned i=0; i < subsystems.size(); ++i) {
         const auto& sub = subsystems[i];
-        e.appendNode(toXmlElementHelper(sub, String(i), true));
+        e.appendNode(toXmlElementHelper(sub, String(i)));
     }
     return e;
 }

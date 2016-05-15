@@ -303,7 +303,7 @@ public:
         Xml::Element v("Value");
         v.setAttributeValue("type", NiceTypeName<T>::xmlstr());
         if (!name.empty()) v.setAttributeValue("name", name);
-        v.appendNode(toXmlElementHelper(m_thing, "thing", true));
+        v.appendNode(toXmlElementHelper(m_thing, "thing"));
         return v;
     }
 

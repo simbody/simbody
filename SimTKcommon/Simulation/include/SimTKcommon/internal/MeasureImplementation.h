@@ -1295,9 +1295,9 @@ public:
         Xml::Element e("Measure_Differentiate_Result");
         if (!name.empty()) e.setAttributeValue("name", name);
         e.setAttributeValue("version", String(version));
-        e.appendNode(toXmlElementHelper(operand, "operand", true));
-        e.appendNode(toXmlElementHelper(operandDot, "operandDot", true));
-        e.appendNode(toXmlElementHelper(derivIsGood, "derivIsGood", true));
+        e.appendNode(toXmlElementHelper(operand, "operand"));
+        e.appendNode(toXmlElementHelper(operandDot, "operandDot"));
+        e.appendNode(toXmlElementHelper(derivIsGood, "derivIsGood"));
         return e;
     }
 
@@ -1948,8 +1948,8 @@ public:
         if (!name.empty()) e.setAttributeValue("name", name);
         e.setAttributeValue("version", String(version));
         for (int i=0; i < size(); ++i) {
-            e.appendNode(toXmlElementHelper(getEntryTime(i), "time", true));
-            e.appendNode(toXmlElementHelper(getEntryValue(i), "value", true));
+            e.appendNode(toXmlElementHelper(getEntryTime(i), "time"));
+            e.appendNode(toXmlElementHelper(getEntryValue(i), "value"));
         }
         return e;
     }
