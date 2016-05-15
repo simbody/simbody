@@ -1614,8 +1614,8 @@ specialization of this free function. Invoke the helper like this:
 @code
     Xml::Element e = toXmlElementHelper(T, "name");
 @endcode
-The third parameter `true` is a dummy that allows prioritization of the member
-function over the free function if both exist, using SFINAE.
+This helper allows prioritization of the member function over the free function
+if both exist, using SFINAE.
 @see toXmlElementHelper(), fromXmlElement()
 @relates SimTK::Xml::Element **/
 template <class T> inline Xml::Element
@@ -1629,7 +1629,8 @@ toXmlElement(const T& thing, const std::string& name) {
     // http://stackoverflow.com/a/28967049/1353549
     template <typename...>
     struct voider { using type = void; };
-    template <typename...Ts> using void_t = typename voider<Ts...>::type;
+    template <typename...Ts>
+    using void_t = typename voider<Ts...>::type;
 #else
     template <typename...>
     using void_t = void;
