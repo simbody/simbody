@@ -1628,9 +1628,9 @@ toXmlElement(const T& thing, const std::string& name) {
 #if __GNUC__ < 5 && ! defined __clang__
     // http://stackoverflow.com/a/28967049/1353549
     template <typename...>
-    struct voider { using type = void; };
+    struct make_void { using type = void; };
     template <typename...Ts>
-    using void_t = typename voider<Ts...>::type;
+    using void_t = typename make_void<Ts...>::type;
 #else
     template <typename...>
     using void_t = void;
