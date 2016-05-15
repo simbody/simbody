@@ -1625,8 +1625,15 @@ toXmlElement(const T& thing, const std::string& name) {
     return Xml::Element(name.empty()?"value":name, os.str());
 }
 
-template<typename...>
-using void_t = void;
+#if __GNUC__ < 5 && ! defined __clang__
+    // http://stackoverflow.com/a/28967049/1353549
+    template <typename...>
+    struct voider { using type = void; };
+    template <typename...Ts> using void_t = typename voider<Ts...>::type;
+#else
+    template <typename...>
+    using void_t = void;
+#endif
 
 template<typename T, typename = void>
 struct has_member_toXmlElement : std::false_type {};
