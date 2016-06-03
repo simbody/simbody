@@ -1623,7 +1623,7 @@ toXmlElement(const T& thing, const std::string& name) {
     std::ostringstream os;
     try {
         writeUnformatted(os, thing);
-    } catch (const SimTK::Exception::ErrorCheck& e) {
+    } catch (const SimTK::Exception::ErrorCheck&) {
         const std::string& strT = SimTK::NiceTypeName<T>::namestr();
         SimTK_THROW1(SimTK::Exception::Cant,
                 "Unable to convert " + strT + " to an Xml element. "
