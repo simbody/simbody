@@ -1621,7 +1621,17 @@ function over the free function if both exist, using SFINAE.
 template <class T> inline Xml::Element
 toXmlElement(const T& thing, const std::string& name) {
     std::ostringstream os;
-    writeUnformatted(os, thing);
+    try {
+        writeUnformatted(os, thing);
+    } catch (const SimTK::Exception::ErrorCheck& e) {
+        const std::string& strT = SimTK::NiceTypeName<T>::namestr();
+        SimTK_THROW1(SimTK::Exception::Cant,
+                "Unable to convert " + strT + " to an Xml element. "
+                "Either add a member function `" +
+                strT + "::toXmlElement(const std::string&) const`" 
+                " or create a free function `" 
+                "toXmlElement(const " + strT + "&, const std::string&)`.");
+    }
     return Xml::Element(name.empty()?"value":name, os.str());
 }
 
