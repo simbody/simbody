@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2010-16 Stanford University and the Authors.        *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Chris Dembia                                                 *
  *                                                                            *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may    *
  * not use this file except in compliance with the License. You may obtain a  *
@@ -650,6 +650,28 @@ void testToXmlElementException() {
 }
 
 
+SimTK_DEFINE_UNIQUE_INDEX_TYPE(FooIndex);
+
+class Outer {
+public:
+    SimTK_DEFINE_UNIQUE_LOCAL_INDEX_TYPE(Outer, LocalIndex);
+};
+
+void testXmlUniqueIndexType() {
+    FooIndex fi0(73);
+    Xml::Element fiXml = toXmlElementHelper(fi0, "FooIndexName", true);
+    FooIndex fi1;
+    fromXmlElementHelper(fi1, fiXml, "FooIndexName", true);
+    SimTK_TEST(fi1 == 73);
+    
+    Outer::LocalIndex oli0(41);
+    Xml::Element oliXml = toXmlElementHelper(oli0, "OuterInnerIndexName", true);
+    Outer::LocalIndex oli1;
+    fromXmlElementHelper(oli1, oliXml, "OuterInnerIndexName", true);
+    SimTK_TEST(oli1 == 41);
+}
+
+
 int main() {
     cout << "Path of this executable: '" << Pathname::getThisExecutablePath() << "'\n";
     cout << "Executable directory: '" << Pathname::getThisExecutableDirectory() << "'\n";
@@ -662,6 +684,7 @@ int main() {
         SimTK_SUBTEST(testXmlFromScratch);
         SimTK_SUBTEST(testValueSerialization);
         SimTK_SUBTEST(testToXmlElementException);
+        SimTK_SUBTEST(testXmlUniqueIndexType);
     
     SimTK_END_TEST();
 }

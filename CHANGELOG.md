@@ -72,6 +72,8 @@ to ParallelExecutor, mutex state lock.
 * Started using RPATH on OSX so that users need not set `DYLD_LIBRARY_PATH` to
   run `simbody-visualizer` or the example executables, regardless of where you
   install Simbody.
+* Index types created with the `SimTK_DEFINE_UNIQUE_INDEX_TYPE` macro and its
+  variants now have an `operator>>`.
 * (There are more that haven't been added yet)
 
 

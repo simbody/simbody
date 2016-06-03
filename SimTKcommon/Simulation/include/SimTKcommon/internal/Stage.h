@@ -310,6 +310,29 @@ public:
 inline std::ostream& operator<<(std::ostream& o, Stage g) 
 {   o << g.getName(); return o; }    
 
+inline std::istream& operator>>(std::istream& input, Stage& g) 
+{
+    std::string levelName;
+    input >> levelName;
+    if      (levelName == "Empty")        g = Stage(Stage::Empty);
+    else if (levelName == "Topology")     g = Stage(Stage::Topology);
+    else if (levelName == "Model")        g = Stage(Stage::Model);
+    else if (levelName == "Instance")     g = Stage(Stage::Instance);
+    else if (levelName == "Time")         g = Stage(Stage::Time);
+    else if (levelName == "Position")     g = Stage(Stage::Position);
+    else if (levelName == "Velocity")     g = Stage(Stage::Velocity);
+    else if (levelName == "Dynamics")     g = Stage(Stage::Dynamics);
+    else if (levelName == "Acceleration") g = Stage(Stage::Acceleration);
+    else if (levelName == "Report")       g = Stage(Stage::Report);
+    else if (levelName == "Infinity")     g = Stage(Stage::Infinity);
+    else {
+        SimTK_THROW4(SimTK::Exception::ErrorCheck, "valid level name",
+                "operator>>(std::istream&, Stage&)",
+                "Level name '%s' is not valid.", levelName.c_str());
+    }
+    return input;
+}
+
 
 } // namespace SimTK
 
