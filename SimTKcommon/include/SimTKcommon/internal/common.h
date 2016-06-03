@@ -547,6 +547,8 @@ public:                                     \
     typedef int size_type;                                                  \
     typedef int difference_type;                                            \
     static size_type max_size() {return std::numeric_limits<int>::max();}   \
+    friend std::istream& operator>>(std::istream& in, NAME& obj)            \
+    { return in >> obj.ix; }                                                \
 };
 
 /** Use this macro to generate a cast that is dynamic_cast in Debug builds
