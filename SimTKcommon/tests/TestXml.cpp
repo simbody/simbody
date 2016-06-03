@@ -638,6 +638,18 @@ void testValueSerialization() {
 }
 
 
+class HasNoSerialization {
+};
+
+// Ensure that the error one gets when a type cannot be serialized is helpful.
+void testToXmlElementException() {
+    HasNoSerialization obj;
+    SimTK_TEST_MUST_THROW_EXC(toXmlElementHelper(obj, "Alfred", true),
+                              Exception::Cant);
+    SimTK_TEST_MUST_THROW_SHOW(toXmlElementHelper(obj, "Alfred", true));
+}
+
+
 SimTK_DEFINE_UNIQUE_INDEX_TYPE(FooIndex);
 
 class Outer {
@@ -671,6 +683,7 @@ int main() {
         SimTK_SUBTEST(testXmlFromString);
         SimTK_SUBTEST(testXmlFromScratch);
         SimTK_SUBTEST(testValueSerialization);
+        SimTK_SUBTEST(testToXmlElementException);
         SimTK_SUBTEST(testXmlUniqueIndexType);
     
     SimTK_END_TEST();
