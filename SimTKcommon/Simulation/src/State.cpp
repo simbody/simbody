@@ -877,6 +877,8 @@ fromXmlElement(Xml::Element e, const std::string& requiredName) {
     fromXmlElementHelper(qerrWeights, *nxt++, "qerrWeights", true);
     fromXmlElementHelper(uerrWeights, *nxt++, "uerrWeights", true);
 
+    subsystems.clear();
+    subsystems.reserve(nsubsys);
     for (unsigned i=0; i < nsubsys; ++i) {
         subsystems.emplace_back(*this);
         fromXmlElementHelper(subsystems.back(), *nxt++, String(i), true);
