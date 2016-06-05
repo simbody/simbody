@@ -231,6 +231,20 @@ particular implementation object. **/
 explicit Motion(MotionImpl* r) : HandleBase(r) { }
 };
 
+/** This operator is used when deserializing a SimTK::Motion::Level enum
+from an Xml element. **/
+inline std::istream& operator>>(std::istream& input, Motion::Level& level)
+{
+    int i;
+    input >> i;
+    switch (i) {
+    case -1: level = Motion::NoLevel;           return input;
+    case  0: level = Motion::Acceleration;      return input;
+    case  1: level = Motion::Velocity;          return input;
+    case  2: level = Motion::Position;          return input;
+    default: input.setstate(std::ios::failbit); return input;
+    }
+}
 
 //==============================================================================
 //                            MOTION :: SINUSOID
