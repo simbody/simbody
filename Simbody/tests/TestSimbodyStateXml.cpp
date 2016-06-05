@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------------------- *
- *                       Simbody(tm): SimTKcommon                             *
+ *                       Simbody(tm): SimTKsimbody                            *
  * -------------------------------------------------------------------------- *
  * This is part of the SimTK biosimulation toolkit originating from           *
  * Simbios, the NIH National Center for Physics-Based Simulation of           *
@@ -21,52 +21,44 @@
  * limitations under the License.                                             *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "SimTKsimbody.h"
 
 using namespace SimTK;
 
-void testStageXml() {
-    auto testStageLevel = [](Stage::Level level) {
-        Stage stage0(level);
-        Xml::Element stageXml = toXmlElementHelper(stage0, "", true);
-        Stage stage1;
-        fromXmlElementHelper(stage1, stageXml, "", true);
-        SimTK_TEST(stage1 == level);
+void testMotionLevelXml() {
+    auto testMotionLevel = [](Motion::Level level) {
+        Motion::Level ml0(level);
+        Xml::Element mlXml = toXmlElementHelper(ml0, "", true);
+        Motion::Level ml1;
+        fromXmlElementHelper(ml1, mlXml, "", true);
+        SimTK_TEST(ml1 == level);
     };
     
-    testStageLevel(Stage::Empty);
-    testStageLevel(Stage::Topology);
-    testStageLevel(Stage::Model);
-    testStageLevel(Stage::Instance);
-    testStageLevel(Stage::Time);
-    testStageLevel(Stage::Position);
-    testStageLevel(Stage::Velocity);
-    testStageLevel(Stage::Dynamics);
-    testStageLevel(Stage::Acceleration);
-    testStageLevel(Stage::Report);
-    testStageLevel(Stage::Infinity);
+    testMotionLevel(Motion::Level::NoLevel);
+    testMotionLevel(Motion::Level::Acceleration);
+    testMotionLevel(Motion::Level::Velocity);
+    testMotionLevel(Motion::Level::Position);
     
-    // Test invalid stage name.
+
+    // Test invalid level.
     {
         std::stringstream ss;
         ss.exceptions(std::stringstream::failbit);
-        ss << "NotAStageLevelName";
-        Stage stage;
-        SimTK_TEST_MUST_THROW_EXC(ss >> stage, std::stringstream::failure);
+        ss << "3";
+        Motion::Level level;
+        SimTK_TEST_MUST_THROW_EXC(ss >> level, std::stringstream::failure);
     }
     {
-        Stage stage0(Stage::Acceleration);
-        Xml::Element stageXml = toXmlElementHelper(stage0, "", true);
-        stageXml.setValue("NotAStageLevelName");
-        Stage stage1;
-        SimTK_TEST_MUST_THROW_EXC(
-                fromXmlElementHelper(stage1, stageXml, "", true),
+        Motion::Level ml0 = Motion::Level(3);
+        Xml::Element mlXml = toXmlElementHelper(ml0, "", true);
+        Motion::Level ml1;
+        SimTK_TEST_MUST_THROW_EXC(fromXmlElementHelper(ml1, mlXml, "", true),
                 Exception::ErrorCheck);
     }
 }
 
 int main() {
-    SimTK_START_TEST("TestStateXml");
-        SimTK_SUBTEST(testStageXml);
+    SimTK_START_TEST("TestSimbodyStateXml");
+        SimTK_SUBTEST(testMotionLevelXml);
     SimTK_END_TEST();
 }

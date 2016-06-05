@@ -325,11 +325,7 @@ inline std::istream& operator>>(std::istream& input, Stage& g)
     else if (levelName == "Acceleration") g = Stage(Stage::Acceleration);
     else if (levelName == "Report")       g = Stage(Stage::Report);
     else if (levelName == "Infinity")     g = Stage(Stage::Infinity);
-    else {
-        SimTK_THROW4(SimTK::Exception::ErrorCheck, "valid level name",
-                "operator>>(std::istream&, Stage&)",
-                "Level name '%s' is not valid.", levelName.c_str());
-    }
+    else     input.setstate(std::ios::failbit);
     return input;
 }
 
