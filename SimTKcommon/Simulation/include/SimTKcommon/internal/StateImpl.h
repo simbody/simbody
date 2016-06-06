@@ -553,7 +553,7 @@ public:
         e.appendNode(toXmlElementHelper(allocationStage, "allocationStage", true));
         e.appendNode(toXmlElementHelper(firstIndex, "firstIndex", true));
         e.appendNode(toXmlElementHelper(initialValues, "initialValues", true));
-        e.appendNode(toXmlElementHelper(initialValues, "weights", true));
+        e.appendNode(toXmlElementHelper(weights, "weights", true));
         return e;
     }
 private:
