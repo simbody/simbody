@@ -159,16 +159,18 @@ inline std::ostream& operator<<(std::ostream& o, const AbstractValue& v)
 {   o << v.toXmlElement(""); return o; }
 
 // TODO document this method.
-template <template <typename> class OwningSmartPtrType, typename ... TArgs>
+template <template <typename> class OwningSmartPtrType, typename ... FieldTypes>
 inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
         Xml::element_iterator end,
-        OwningSmartPtrType<AbstractValue>& fieldValue, const std::string& fieldName, 
-        TArgs& ... fields) {
+        std::pair<OwningSmartPtrType<AbstractValue>*, const char*> firstField,
+        std::pair<FieldTypes*, const char*> ... remainingFields) {
     assert(eit != end);
+    OwningSmartPtrType<AbstractValue>* value = firstField.first;
+    const std::string& name = firstField.second;
     std::unique_ptr<AbstractValue> vp =
-        AbstractValue::createFromXmlElement(*eit++, fieldName);
-    fieldValue.reset(vp.release());
-    fromXmlElementHelperHelperRecurse(eit, end, fields...);
+        AbstractValue::createFromXmlElement(*eit++, name);
+    value->reset(vp.release());
+    fromXmlElementHelperHelperRecurse(eit, end, remainingFields...);
 }
 
 

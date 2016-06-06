@@ -1738,22 +1738,23 @@ void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
 }
 */
 
-template <typename T, typename ... TArgs> inline
+template <typename FieldType, typename ... FieldTypes> inline
 void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
         Xml::element_iterator end,
-        T& fieldValue, const std::string& fieldName, 
-        TArgs& ... fields) {
+        std::pair<FieldType*, const char*> firstField,
+        std::pair<FieldTypes*, const char*> ... remainingFields) {
     assert(eit != end);
-    fromXmlElementHelper(fieldValue, *eit++, fieldName, true);
-    fromXmlElementHelperHelperRecurse(eit, end, fields...);
+    FieldType* value = firstField.first;
+    const std::string& name = firstField.second;
+    fromXmlElementHelper(*value, *eit++, name, true);
+    fromXmlElementHelperHelperRecurse(eit, end, remainingFields...);
     // TODO 
 }
 
-template <typename ... TArgs> inline
+template <typename ... FieldTypes> inline
 void fromXmlElementHelperHelper(const std::string& typeName, int requiredVersion,
         Xml::Element& e, const std::string& requiredName,
-        TArgs& ... args) {
-        // TODO std::pair<TArgs&, std::string> ... fields) {
+        std::pair<FieldTypes*, const char*> ... fields) {
     SimTK_ERRCHK2_ALWAYS(e.getElementTag()==typeName,
             (typeName+"::fromXmlElement()").c_str(),
             "Expected element tag '%s' but got '%s'.",
@@ -1776,7 +1777,7 @@ void fromXmlElementHelperHelper(const std::string& typeName, int requiredVersion
 
     // We've seen <typeName name="requiredName" version="requiredVersion">
     fromXmlElementHelperHelperRecurse(e.element_begin(), e.element_end(),
-            args...);
+            fields...);
 }
 
 // Definition of these functions (which should really be methods of 

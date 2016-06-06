@@ -1116,7 +1116,7 @@ void fromXmlElement(Xml::Element e, const std::string& requiredName) {
     // TODO template argument P?
     Mat33P mat;
     fromXmlElementHelperHelper("Rotation", 1, e, requiredName,
-            mat, "value");
+            std::make_pair(&mat, "value"));
     setRotationFromMat33TrustMe(mat);
 }
 //@}
