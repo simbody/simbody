@@ -719,7 +719,7 @@ int main() {
         SimTK_SUBTEST(testXmlFromString);
         SimTK_SUBTEST(testXmlFromScratch);
         SimTK_SUBTEST(testValueSerialization);
-        SimTK_SUBTEST(testValueSerializationHelperHelper);
+        SimTK_SUBTEST(testFromXmlElementHelperHelper);
         SimTK_SUBTEST(testToXmlElementException);
         SimTK_SUBTEST(testXmlUniqueIndexType);
     
