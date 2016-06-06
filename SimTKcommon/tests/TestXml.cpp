@@ -656,7 +656,8 @@ public:
         // This helper knows that `m_value` is a smart pointer and will reset
         // it for us.
         fromXmlElementHelperHelper("ClassWithAbstractValue", 1, e, requiredName,
-                m_number, "number", m_value, "value");
+                std::make_pair(&m_number, "number"),
+                std::make_pair(&m_value, "value"));
     }
 };
 

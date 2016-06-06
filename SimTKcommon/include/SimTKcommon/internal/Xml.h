@@ -1698,7 +1698,6 @@ template <class T> inline
 auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
                           const std::string& requiredTag, bool)
     -> decltype(std::declval<T>().fromXmlElement(elt,requiredTag)) {
-    // TODO std::cout << "DEBUGfromXmlmember" << elt << std::endl;
     return thing.fromXmlElement(elt,requiredTag); // call member function
 }
 
@@ -1709,7 +1708,6 @@ template <class T> inline
 auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
                           const std::string& requiredTag, int) 
     -> void {
-    // TODO std::cout << "DEBUGfromXmlfree" << elt << std::endl;
     fromXmlElement(thing, elt, requiredTag); // call free function
 }
 
@@ -1718,25 +1716,6 @@ inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
         Xml::element_iterator end) {
     assert(eit == end);
 }
-
-/*
-// TODO decide between this and the other interface. 
-// With this interface, the call
-// is more verbose but also more clear:
-//
-// fromXmlElementHelperHelper("Foo", 1, e, "reqName",
-//     std::make_pair{bar, "bar"},
-//     std::make_pair{baz, "baz"}
-//     );
-template <typename T, typename ... TArgs> inline
-void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
-        std::pair<T&, std::string> firstField,
-        std::pair<TArgs&, std::string> ... fields) {
-    fromXmlElementHelper(firstField.first, *eit++, firstField.second, true);
-    fromXmlElementHelperHelperRecurse(eit, fields...);
-    // TODO 
-}
-*/
 
 template <typename FieldType, typename ... FieldTypes> inline
 void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
