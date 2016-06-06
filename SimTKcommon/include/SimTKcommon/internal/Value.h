@@ -158,6 +158,19 @@ of the underlying concrete type.
 inline std::ostream& operator<<(std::ostream& o, const AbstractValue& v) 
 {   o << v.toXmlElement(""); return o; }
 
+// TODO document this method.
+template <template <typename> class OwningSmartPtrType, typename ... TArgs>
+inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
+        Xml::element_iterator end,
+        OwningSmartPtrType<AbstractValue>& fieldValue, const std::string& fieldName, 
+        TArgs& ... fields) {
+    assert(eit != end);
+    std::unique_ptr<AbstractValue> vp =
+        AbstractValue::createFromXmlElement(*eit++, fieldName);
+    fieldValue.reset(vp.release());
+    fromXmlElementHelperHelperRecurse(eit, end, fields...);
+}
+
 
 //==============================================================================
 //                               VALUE <T>

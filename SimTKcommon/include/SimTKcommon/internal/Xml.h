@@ -1698,6 +1698,7 @@ template <class T> inline
 auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
                           const std::string& requiredTag, bool)
     -> decltype(std::declval<T>().fromXmlElement(elt,requiredTag)) {
+    // TODO std::cout << "DEBUGfromXmlmember" << elt << std::endl;
     return thing.fromXmlElement(elt,requiredTag); // call member function
 }
 
@@ -1708,9 +1709,75 @@ template <class T> inline
 auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
                           const std::string& requiredTag, int) 
     -> void {
+    // TODO std::cout << "DEBUGfromXmlfree" << elt << std::endl;
     fromXmlElement(thing, elt, requiredTag); // call free function
 }
 
+
+inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
+        Xml::element_iterator end) {
+    assert(eit == end);
+}
+
+/*
+// TODO decide between this and the other interface. 
+// With this interface, the call
+// is more verbose but also more clear:
+//
+// fromXmlElementHelperHelper("Foo", 1, e, "reqName",
+//     std::make_pair{bar, "bar"},
+//     std::make_pair{baz, "baz"}
+//     );
+template <typename T, typename ... TArgs> inline
+void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
+        std::pair<T&, std::string> firstField,
+        std::pair<TArgs&, std::string> ... fields) {
+    fromXmlElementHelper(firstField.first, *eit++, firstField.second, true);
+    fromXmlElementHelperHelperRecurse(eit, fields...);
+    // TODO 
+}
+*/
+
+template <typename T, typename ... TArgs> inline
+void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
+        Xml::element_iterator end,
+        T& fieldValue, const std::string& fieldName, 
+        TArgs& ... fields) {
+    assert(eit != end);
+    fromXmlElementHelper(fieldValue, *eit++, fieldName, true);
+    fromXmlElementHelperHelperRecurse(eit, end, fields...);
+    // TODO 
+}
+
+template <typename ... TArgs> inline
+void fromXmlElementHelperHelper(const std::string& typeName, int requiredVersion,
+        Xml::Element& e, const std::string& requiredName,
+        TArgs& ... args) {
+        // TODO std::pair<TArgs&, std::string> ... fields) {
+    SimTK_ERRCHK2_ALWAYS(e.getElementTag()==typeName,
+            (typeName+"::fromXmlElement()").c_str(),
+            "Expected element tag '%s' but got '%s'.",
+            typeName.c_str(), e.getElementTag().c_str());
+
+    if (!requiredName.empty()) {
+        const String& name = e.getOptionalAttributeValue("name");
+        SimTK_ERRCHK2_ALWAYS(name==requiredName,
+                (typeName+"::fromXmlElement()").c_str(),
+                "Expected element name '%s' but got '%s'.",
+                requiredName.c_str(), name.c_str());
+    }
+
+    const int detectedVersion = e.getRequiredAttributeValueAs<int>("version");
+    SimTK_ERRCHK3_ALWAYS(detectedVersion==requiredVersion,
+            (typeName+"::fromXmlElement()").c_str(),
+            "Attempted to deserialize %s element with version %d as if it "
+            "were version %d.", typeName.c_str(),
+            detectedVersion, requiredVersion);
+
+    // We've seen <typeName name="requiredName" version="requiredVersion">
+    fromXmlElementHelperHelperRecurse(e.element_begin(), e.element_end(),
+            args...);
+}
 
 // Definition of these functions (which should really be methods of 
 // the Array_ classes) has to wait until Xml classes are declared because Xml 

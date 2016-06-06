@@ -638,6 +638,42 @@ void testValueSerialization() {
 }
 
 
+
+class ClassWithAbstractValue {
+public:
+    Real m_number;
+    ClonePtr<AbstractValue> m_value;
+    Xml::Element toXmlElement(const string& name) const {
+        static const int version = 1;
+        Xml::Element e("ClassWithAbstractValue");
+        if (!name.empty()) e.setAttributeValue("name", name);
+        e.setAttributeValue("version", String(version));
+        e.appendNode(toXmlElementHelper(m_number,  "number" , true));
+        e.appendNode(toXmlElementHelper(*m_value,  "value"  , true));
+        return e;
+    }
+    void fromXmlElement(Xml::Element e, const string& requiredName = "") {
+        // This helper knows that `m_value` is a smart pointer and will reset
+        // it for us.
+        fromXmlElementHelperHelper("ClassWithAbstractValue", 1, e, requiredName,
+                m_number, "number", m_value, "value");
+    }
+};
+
+void testFromXmlElementHelperHelper() {
+    ClassWithAbstractValue obj;
+    obj.m_number = 6.50;
+    obj.m_value.reset(new Value<Vec3>(Vec3(6, 0, 5)));
+    Xml::Element objXml = toXmlElementHelper(obj, "bar", true);
+    
+    ClassWithAbstractValue deserialized;
+    fromXmlElementHelper(deserialized, objXml, "bar", true);
+
+    SimTK_TEST(deserialized.m_number == 6.50);
+    SimTK_TEST(deserialized.m_value->getValue<Vec3>() == Vec3(6, 0, 5));
+}
+
+
 class HasNoSerialization {
 };
 
@@ -683,6 +719,7 @@ int main() {
         SimTK_SUBTEST(testXmlFromString);
         SimTK_SUBTEST(testXmlFromScratch);
         SimTK_SUBTEST(testValueSerialization);
+        SimTK_SUBTEST(testValueSerializationHelperHelper);
         SimTK_SUBTEST(testToXmlElementException);
         SimTK_SUBTEST(testXmlUniqueIndexType);
     
