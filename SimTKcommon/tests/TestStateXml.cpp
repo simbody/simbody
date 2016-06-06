@@ -28,7 +28,7 @@ using namespace SimTK;
 /* This function converts the provided instance of `T` to Xml, deserializes
 it from Xml, ensures the deserialized instance is equal to the original
 instance, reserializes the deserialized instance back to Xml and ensures
-the original desrialization and the reserialization are equal.
+the original deserialization and the reserialization are equal.
 
 One might set `checkInMemoryEquality` to false if `value` contains NaNs. */
 template <typename T>
