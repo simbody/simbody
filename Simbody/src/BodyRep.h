@@ -132,7 +132,8 @@ private:
 class Body::Ground::GroundRep : public Body::BodyRep {
 public:
     GroundRep() 
-    :   BodyRep(), infiniteMassProperties(Infinity, Vec3(0), Inertia(Infinity))
+    :   BodyRep(), infiniteMassProperties(Infinity, Vec3(0),
+                                          UnitInertia(Infinity))
     {
     }
     GroundRep* clone() const override {
