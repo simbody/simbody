@@ -238,10 +238,13 @@ inline std::istream& operator>>(std::istream& input, Motion::Level& level)
     int i;
     input >> i;
     switch (i) {
-    case -1: level = Motion::NoLevel;           return input;
-    case  0: level = Motion::Acceleration;      return input;
-    case  1: level = Motion::Velocity;          return input;
-    case  2: level = Motion::Position;          return input;
+    // Fallthrough all the valid cases to just check the int is valid.
+    case Motion::NoLevel:
+    case Motion::Acceleration:
+    case Motion::Velocity:
+    case Motion::Position:
+        level = Motion::Level(i);
+        return input;
     default: input.setstate(std::ios::failbit); return input;
     }
 }
