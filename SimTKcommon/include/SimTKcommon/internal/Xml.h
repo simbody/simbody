@@ -1702,7 +1702,11 @@ auto fromXmlElementHelper(T& thing, Xml::Element& elt,
 }
 
 /** Helper function for fromXmlElement() that selects the free function if no
-member function exists. @see fromXmlElement() 
+member function exists. Most likely, you would call this method from inside
+your implementation of fromXmlElement() for the class you want to deserialize.
+Instead of invoking this function for each member variable of your class, you
+can also use fromXmlElementHelperHelper().
+@see fromXmlElement()
 @relates SimTK::Xml::Element **/
 template <class T> inline
 auto fromXmlElementHelper(T& thing, Xml::Element& elt, 
@@ -1712,26 +1716,87 @@ auto fromXmlElementHelper(T& thing, Xml::Element& elt,
 }
 
 
+// Base case in recursion for deserializing through
+// fromXmlElementHelperhelper().
 inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
         Xml::element_iterator end) {
+    // If we ran out of fields to deserialize, we should have also run out of
+    // Xml elements.
     assert(eit == end);
 }
 
+// Meat of the recursion for deserializing through
+// fromXmlElementHelperHelper(). This function invokes fromXmlElementHelper()
+// on each of the fields provided.
 template <typename FieldType, typename ... FieldTypes> inline
 void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
         Xml::element_iterator end,
         std::pair<FieldType*, const char*> firstField,
         std::pair<FieldTypes*, const char*> ... remainingFields) {
+    // Make sure we didn't run out of Xml elements.
     assert(eit != end);
+    // Perform the actual deserialization.
     FieldType* value = firstField.first;
     const std::string& name = firstField.second;
     fromXmlElementHelper(*value, *eit++, name, true);
+    // Call this same function (recursively).
     fromXmlElementHelperHelperRecurse(eit, end, remainingFields...);
-    // TODO 
 }
 
+/** This is a helper function for use when implementing fromXmlElement()
+for some type `T` that you would like to deserialize.
+This function does the following:
+
+-# ensures the tag name of the Xml::Element is the same as the
+   provided `typeName`;
+-# if the `requiredName` is not empty, ensures the Xml::Element has a "name"
+   attribute set to `requiredName`;
+-# ensures the Xml::Element has a "version" attribute set to `requiredVersion`;
+-# deserializes the provided `fields` by invoking `fromXmlElementHelper()` on
+   each of them (note: AbstractValue%s are handled differently).
+
+The fields to deserialize are specified as a variable number of arguments,
+each one being of type `std::pair<T*, const char*>`, where `T` is the type of
+the field to deserialize. The first item in the pair will hold the deserialized
+value, and the second item is the name of Xml element holding that field
+(should be the same as in `toXmlElement()` for the same type `T`).
+
+The order of the fields must be the same as that in the Xml::Element.
+
+#### %AbstractValues
+
+This function can handle fields that are AbstractValue%s,
+so long as they are held in a smart pointer with a `reset()` method. 
+You must use a smart pointer with ownership semantics; otherwise, you
+will introduce a memory leak. We have tested std::unique_ptr and
+SimTK::ClonePtr. More complicated smart pointers,
+such as `SimTK::ResetOnCopy<std::unique_ptr<AbstractValue>>`, do not work; in
+this case, create a temporary local `std::unique_ptr<AbstractValue>`.
+
+
+Here is an example of a class that uses this helper:
+@code
+class Foo {
+pubic:
+    void fromXmlElement(Xml::Element e, const std::string& requiredName) {
+        fromXmlElementHelperHelper("Foo", 1, e, requiredName,
+                std::make_pair(&a, "a"),
+                std::make_pair(&b, "b"),
+                std::make_pair(&c, "c"));
+    }
+private:
+    double a;
+    SimTK::Vec3 b;
+    // Smart pointers will be reset to deserialized object.
+    SimTK::ClonePtr<AbstractValue> c;
+};
+@endcode
+
+@see fromXmlElementHelper()
+@relates SimTK::Xml::Element **/
 template <typename ... FieldTypes> inline
-void fromXmlElementHelperHelper(const std::string& typeName, int requiredVersion,
+void fromXmlElementHelperHelper(const std::string& typeName,
+        int requiredVersion,
         Xml::Element& e, const std::string& requiredName,
         std::pair<FieldTypes*, const char*> ... fields) {
     SimTK_ERRCHK2_ALWAYS(e.getElementTag()==typeName,

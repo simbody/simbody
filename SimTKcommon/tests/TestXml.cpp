@@ -643,21 +643,26 @@ class ClassWithAbstractValue {
 public:
     Real m_number;
     ClonePtr<AbstractValue> m_value;
+    ResetOnCopy<std::unique_ptr<AbstractValue>> m_rocValue;
     Xml::Element toXmlElement(const string& name) const {
         static const int version = 1;
         Xml::Element e("ClassWithAbstractValue");
         if (!name.empty()) e.setAttributeValue("name", name);
         e.setAttributeValue("version", String(version));
-        e.appendNode(toXmlElementHelper(m_number,  "number" , true));
-        e.appendNode(toXmlElementHelper(*m_value,  "value"  , true));
+        e.appendNode(toXmlElementHelper(m_number,    "number"  , true));
+        e.appendNode(toXmlElementHelper(*m_value,    "value"   , true));
+        e.appendNode(toXmlElementHelper(*m_rocValue, "rocValue", true));
         return e;
     }
     void fromXmlElement(Xml::Element e, const string& requiredName = "") {
         // This helper knows that `m_value` is a smart pointer and will reset
         // it for us.
+        std::unique_ptr<AbstractValue> rocValueTemp;
         fromXmlElementHelperHelper("ClassWithAbstractValue", 1, e, requiredName,
                 std::make_pair(&m_number, "number"),
-                std::make_pair(&m_value, "value"));
+                std::make_pair(&m_value, "value"),
+                std::make_pair(&rocValueTemp, "rocValue"));
+        m_rocValue.reset(rocValueTemp.release());
     }
 };
 
@@ -665,13 +670,14 @@ void testFromXmlElementHelperHelper() {
     ClassWithAbstractValue obj;
     obj.m_number = 6.50;
     obj.m_value.reset(new Value<Vec3>(Vec3(6, 0, 5)));
+    obj.m_rocValue.reset(new Value<Vec2>(Vec2(8, 9)));
     Xml::Element objXml = toXmlElementHelper(obj, "bar", true);
-    
     ClassWithAbstractValue deserialized;
     fromXmlElementHelper(deserialized, objXml, "bar", true);
 
     SimTK_TEST(deserialized.m_number == 6.50);
     SimTK_TEST(deserialized.m_value->getValue<Vec3>() == Vec3(6, 0, 5));
+    SimTK_TEST(deserialized.m_rocValue->getValue<Vec2>() == Vec2(8, 9));
 }
 
 
