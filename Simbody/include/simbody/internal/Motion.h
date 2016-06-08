@@ -232,6 +232,23 @@ explicit Motion(MotionImpl* r) : HandleBase(r) { }
 };
 
 
+inline std::ostream& operator<<(std::ostream& o, const Motion::Level& level)
+{ o << Motion::nameOfLevel(level); return o; }
+
+/** This operator is used when deserializing a SimTK::Motion::Level enum
+from an Xml element. **/
+inline std::istream& operator>>(std::istream& input, Motion::Level& level)
+{
+    std::string levelName;
+    input >> levelName;
+    if      (levelName == "NoLevel")      level = Motion::NoLevel;
+    else if (levelName == "Acceleration") level = Motion::Acceleration;
+    else if (levelName == "Velocity")     level = Motion::Velocity;
+    else if (levelName == "Position")     level = Motion::Position;
+    else     input.setstate(std::ios::failbit);
+    return input;
+}
+
 //==============================================================================
 //                            MOTION :: SINUSOID
 //==============================================================================
