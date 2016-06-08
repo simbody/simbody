@@ -25,6 +25,46 @@
 
 using namespace SimTK;
 
+/* This function converts the provided instance of `T` to Xml, deserializes
+it from Xml, ensures the deserialized instance is equal to the original
+instance, reserializes the deserialized instance back to Xml and ensures
+the original deserialization and the reserialization are equal.
+
+One might set `checkInMemoryEquality` to false if `value` contains NaNs. */
+template <typename T>
+void testXmlRoundtrip(const T& value, bool checkInMemoryEquality = true,
+                      std::string name = "") {
+    Xml::Element xml = toXmlElementHelper(value, name, true);
+    T deserialized;
+    fromXmlElementHelper(deserialized, xml, name, true);
+    if (checkInMemoryEquality) {
+        try {
+            SimTK_TEST(value == deserialized);
+        }
+        catch (Exception::Assert& e) {
+            std::cout << "value: " << value << std::endl;
+            std::cout << "serialized:\n" << xml << std::endl;
+            std::cout << "deserialized: " << deserialized << std::endl;
+            throw e;
+        }
+    }
+    
+    Xml::Element xmlReserialized = toXmlElementHelper(deserialized, name, true);
+    String xmlStr, xmlReserializedStr;
+    xml.writeToString(xmlStr);
+    xmlReserialized.writeToString(xmlReserializedStr);
+    try {
+        SimTK_TEST(xmlStr == xmlReserializedStr);
+    } catch (Exception::Assert& e) {
+        std::cout << "value: " << value << std::endl;
+        std::cout << "serialized:\n" << xml << std::endl;
+        std::cout << "deserialized:" << deserialized << std::endl;
+        std::cout << "reserialized:\n" << xmlReserialized << std::endl;
+        throw e;
+    }
+        
+}
+
 void testStageXml() {
     auto testStageLevel = [](Stage::Level level) {
         Stage stage0(level);
@@ -55,9 +95,16 @@ void testStageXml() {
     }
 }
 
+void testRotationXml() {
+    testXmlRoundtrip(Rotation());
+    testXmlRoundtrip(Rotation(BodyRotationSequence,
+                              0.1, XAxis, 0.3, YAxis, 0.4, ZAxis));
+    testXmlRoundtrip(Rotation(NaN, XAxis), false);
+}
 
 int main() {
     SimTK_START_TEST("TestStateXml");
         SimTK_SUBTEST(testStageXml);
+        SimTK_SUBTEST(testRotationXml);
     SimTK_END_TEST();
 }

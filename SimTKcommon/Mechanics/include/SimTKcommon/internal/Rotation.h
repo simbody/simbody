@@ -30,6 +30,7 @@
 #include "SimTKcommon/internal/CoordinateAxis.h"
 #include "SimTKcommon/internal/UnitVec.h"
 #include "SimTKcommon/internal/Quaternion.h"
+#include "SimTKcommon/internal/Xml.h"
 
 //------------------------------------------------------------------------------
 #include <iosfwd>  // Forward declaration of iostream
@@ -1094,6 +1095,30 @@ bool areAllRotationElementsSameToEpsilon(const Rotation_& R, RealP epsilon) cons
 of the corresponding element of "R". **/
 bool areAllRotationElementsSameToMachinePrecision( const Rotation_& R ) const       
 { return areAllRotationElementsSameToEpsilon(R, NTraits<P>::getSignificant()); } 
+//@}
+
+//------------------------------------------------------------------------------
+/** @name Xml serialization **/
+//@{
+Xml::Element toXmlElement(const std::string& name) const {
+    static const int version = 1;
+    // TODO template argument P?
+    Xml::Element e("Rotation");
+    if (!name.empty()) e.setAttributeValue("name", name);
+    e.setAttributeValue("version", String(version));
+    e.appendNode(toXmlElementHelper(asMat33(), "value", true));
+    return e;
+}
+
+/** This does not check or ensure that the %Xml element contains a 
+valid rotation matrix. **/
+void fromXmlElement(Xml::Element e, const std::string& requiredName) {
+    // TODO template argument P?
+    Mat33P mat;
+    fromXmlElementHelperHelper("Rotation", 1, e, requiredName,
+            std::make_pair(&mat, "value"));
+    setRotationFromMat33TrustMe(mat);
+}
 //@}
 
 

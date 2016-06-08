@@ -158,6 +158,28 @@ of the underlying concrete type.
 inline std::ostream& operator<<(std::ostream& o, const AbstractValue& v) 
 {   o << v.toXmlElement(""); return o; }
 
+// This function is invoked by fromXmlElementHelperHelper().
+// Users should not call this method.
+// Since one cannot use fromXmlElementHelper() to deserialize AbstractValues,
+// we must handle them specially. Here, the user passes us
+// (through fromXmlElementHelperHelper()) a smart pointer to the AbstractValue
+// they want deserialized. We heap-allocate a new AbstractValue of the right
+// type, and transfer ownership to the passed-in smart pointer.
+template <template <typename... PtrArgs> class OwningSmartPtrType,
+        typename... PtrArgs, typename... FieldTypes>
+inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
+        Xml::element_iterator end,
+        std::pair<OwningSmartPtrType<AbstractValue, PtrArgs...>*, const char*> firstField,
+        std::pair<FieldTypes*, const char*>... remainingFields) {
+    assert(eit != end);
+    OwningSmartPtrType<AbstractValue>* value = firstField.first;
+    const std::string& name = firstField.second;
+    std::unique_ptr<AbstractValue> vp =
+            AbstractValue::createFromXmlElement(*eit++, name);
+    value->reset(vp.release());
+    fromXmlElementHelperHelperRecurse(eit, end, remainingFields...);
+}
+
 
 //==============================================================================
 //                               VALUE <T>
