@@ -1728,11 +1728,11 @@ inline void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
 // Meat of the recursion for deserializing through
 // fromXmlElementHelperHelper(). This function invokes fromXmlElementHelper()
 // on each of the fields provided.
-template <typename FieldType, typename ... FieldTypes> inline
+template <typename FieldType, typename... FieldTypes> inline
 void fromXmlElementHelperHelperRecurse(Xml::element_iterator eit,
         Xml::element_iterator end,
         std::pair<FieldType*, const char*> firstField,
-        std::pair<FieldTypes*, const char*> ... remainingFields) {
+        std::pair<FieldTypes*, const char*>... remainingFields) {
     // Make sure we didn't run out of Xml elements.
     assert(eit != end);
     // Perform the actual deserialization.
@@ -1794,11 +1794,11 @@ private:
 
 @see fromXmlElementHelper()
 @relates SimTK::Xml::Element **/
-template <typename ... FieldTypes> inline
+template <typename... FieldTypes> inline
 void fromXmlElementHelperHelper(const std::string& typeName,
         int requiredVersion,
         Xml::Element& e, const std::string& requiredName,
-        std::pair<FieldTypes*, const char*> ... fields) {
+        std::pair<FieldTypes*, const char*>... fields) {
     SimTK_ERRCHK2_ALWAYS(e.getElementTag()==typeName,
             (typeName+"::fromXmlElement()").c_str(),
             "Expected element tag '%s' but got '%s'.",
