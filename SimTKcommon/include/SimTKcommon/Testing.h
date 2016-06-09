@@ -139,18 +139,20 @@ namespace SimTK {
  * the elementwise tests, overriding the default.
  *
  * The SimTK::Test class has a number of static methods that are useful
- * in tests. Currently these are all for generating numerical objects
+ * in tests. Most of these are for generating numerical objects
  * filled with random numbers (all uniform between -1 and 1). These are:
  * <pre>
- *      randReal()      randFloat()     randDouble()
- *      randComplex()   randConjugate()
- *      randVec<M>()    randRow<N>()    randMat<M,N>()  randSymMat<N>()
- *      randVector(m)   randMatrix(m,n)
- *      randVec3()      randMat33()
+ *      randReal()       randFloat()     randDouble()
+ *      randComplex()    randConjugate()
+ *      randVec<M>()     randRow<N>()    randMat<M,N>()  randSymMat<N>()
+ *      randVector(m)    randMatrix(m,n)
+ *      randVec3()       randMat33()
  *      randSpatialVec() randSpatialMat()
- *      randRotation()  randTransform()
+ *      randRotation()   randTransform()
  * </pre>
  * These are invoked Test::randReal() etc.
+ * There is also a method to test Xml (de)serialization;
+ * Test::testXmlRoundtrip().
  *
  * @{
  */
@@ -429,6 +431,25 @@ public:
     static Transform randTransform() {
         return Transform(randRotation(), randVec3());
     }
+    
+    /** Use this function to test (de)serialization with toXmlElement() 
+    and fromXmlElement() methods. This function converts the provided instance 
+    of `T` to Xml, deserializes it from Xml, ensures the deserialized instance
+    is equal to the original instance, reserializes the deserialized instance 
+    back to Xml and ensures the original deserialization and the 
+    reserialization are equal.
+    
+    @tparam T The class to test for (de)serialization.
+    @param value A specific instance to check for (de)serialization.
+    @param checkInMemoryEquality Set to false if `value` contains NaNs, as
+           `operator==` does not think that `NaN == NaN`.
+    @param xmlAttrName The name to use in the Xml::Element's name attribute.
+    **/
+    template <typename T>
+    static void testXmlRoundtrip(const T& value,
+                                 bool checkInMemoryEquality = true,
+                                 std::string xmlAttrName = "");
+    
 private:
     const double startCpuTime;
     const double startRealTime;
@@ -635,6 +656,42 @@ private:
 #define SimTK_TEST_MUST_THROW_EXC_DEBUG(stmt,exc)
 #endif
 
+template <typename T>
+/* static */ void SimTK::Test::testXmlRoundtrip(const T& value,
+                                                bool checkInMemoryEquality,
+                                                std::string xmlAttrName) {
+    using namespace SimTK;
+    
+    Xml::Element xml = toXmlElementHelper(value, xmlAttrName, true);
+    T deserialized;
+    fromXmlElementHelper(deserialized, xml, xmlAttrName, true);
+    if (checkInMemoryEquality) {
+        try {
+            SimTK_TEST(value == deserialized);
+        }
+        catch (Exception::Assert& e) {
+            std::cout << "value: " << value << std::endl;
+            std::cout << "serialized:\n" << xml << std::endl;
+            std::cout << "deserialized: " << deserialized << std::endl;
+            throw e;
+        }
+    }
+    
+    Xml::Element xmlReserialized = toXmlElementHelper(deserialized,
+                                                      xmlAttrName, true);
+    String xmlStr, xmlReserializedStr;
+    xml.writeToString(xmlStr);
+    xmlReserialized.writeToString(xmlReserializedStr);
+    try {
+        SimTK_TEST(xmlStr == xmlReserializedStr);
+    } catch (Exception::Assert& e) {
+        std::cout << "value: " << value << std::endl;
+        std::cout << "serialized:\n" << xml << std::endl;
+        std::cout << "deserialized:" << deserialized << std::endl;
+        std::cout << "reserialized:\n" << xmlReserialized << std::endl;
+        throw e;
+    }
+}
 
 //  End of Regression testing group.
 /// @}

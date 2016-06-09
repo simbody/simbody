@@ -1832,7 +1832,7 @@ void fromXmlElementHelperHelper(const std::string& typeName,
 The output is identical for this class, or its derived classes ArrayView_ and
 Array_, although there are other signatures for those to ensure this method
 gets used. The result is a single element with tag word `<Array>` with a `name`
-attribute if a non-empty name is suppliee, an element count attribute 'n' and a
+attribute if a non-empty name is supplied, an element count attribute 'n' and a
 `version` attributes. Then each entry is a subelement, as produced by type T's 
 `toXmlElement()` method.
 
