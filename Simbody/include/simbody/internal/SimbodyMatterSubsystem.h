@@ -54,7 +54,7 @@ associated with individual objects contained in the subsystem, such as
 MobilizedBody and Constraint objects, it is generally easier to obtain the
 information through the contained objects' APIs instead.
 
-This class is is a "handle" containing only an opaque reference to the 
+This class is a "handle" containing only an opaque reference to the 
 underlying implementation class.
 
 <h3>Theory discussion</h3>
