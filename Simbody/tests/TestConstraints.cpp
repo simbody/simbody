@@ -651,12 +651,8 @@ void testConstraintAccelerationErrors() {
 
         SimTK_TEST(pvaerrFromOperator.norm() < 1e-10);
 
-        // The same code should have been executed when using forward
-        // dynamics or the operator, so the errors should be exactly the same.
-        SimTK_TEST(pvaerrFromOperator.size() == m);
-        for (int i = 0; i < pvaerrFromOperator.size(); ++i) {
-            SimTK_TEST(pvaerrFromOperator[i] == pvaerrFromForward[i]);
-        }
+        // Forward dynamics and the operator should give the same result.
+        SimTK_TEST_EQ(pvaerrFromOperator, pvaerrFromForward);
     }
 
     // Check that the bias term is consistent with that from other methods.
@@ -701,7 +697,6 @@ void testConstraintAccelerationErrors() {
         MatUdot[1] = ~udotFromForward;
         Matrix Matpvaerr(3, m); // use middle row
         Matpvaerr.setToNaN();
-        auto TODO = ~MatUdot[1];
         matter.calcConstraintAccelerationErrors(state, ~MatUdot[1],
                                                 ~Matpvaerr[1]);
         SimTK_TEST_EQ(Matpvaerr[1], ~pvaerrFromForward);
