@@ -753,8 +753,74 @@ calcBiasForAccelerationConstraints(const State& state,
     }
 }
 
+//==============================================================================
+//                     CALC CONSTRAINT ACCELERATION ERRORS
+//==============================================================================
+// If knownUDot is empty, just provide the bias term. Make sure we have
+// contiguous inputs and outputs.
+void SimbodyMatterSubsystem::
+calcConstraintAccelerationErrors(const State&               state,
+                                 const Vector&              knownUDot,
+                                 Vector&                    pvaerr) const
+{
+    // Interpret 0-length knownUDot as nu all-zero udots.
+    if (knownUDot.size() == 0) {
+        // It's faster to use the operator that just computes the bias vector.
+        calcBiasForAccelerationConstraints(state, pvaerr);
+        return;
+    }
 
+    const int nu = getNumMobilities();
 
+    SimTK_ERRCHK2_ALWAYS(knownUDot.size() == nu,
+        "SimbodyMatterSubsystem::calcConstraintAccelerationErrors()",
+        "Length of knownUDot argument was %d but should have been either"
+                " zero or the same as the number of mobilities nu=%d.\n",
+        knownUDot.size(), nu);
+
+    const SimbodyMatterSubsystemRep& rep = getRep();
+    const int m = rep.getNMultipliers(state);
+    pvaerr.resize(m);
+
+    // If the arguments use contiguous memory we'll work in place, otherwise
+    // we'll work in contiguous temporaries and copy back.
+
+    Vector        udotspace; // allocate only if we need to
+    Vector        pvaerrspace;
+
+    const Vector* udotp;
+    Vector*       pvaerrp;
+
+    if (knownUDot.hasContiguousData()) {
+        udotp = &knownUDot;
+    } else {
+        udotspace.resize(nu); // contiguous memory
+        udotspace(0, nu) = knownUDot; // prevent reallocation
+        udotp = (const Vector*)&udotspace;
+    }
+
+    bool needToCopyBack = false;
+    if (pvaerr.hasContiguousData()) {
+        pvaerrp = &pvaerr;
+    } else {
+        pvaerrspace.resize(m); // contiguous memory
+        pvaerrp = &pvaerrspace;
+        needToCopyBack = true;
+    }
+
+    // Obtain consistent A_GB and qdotdot.
+    Vector_<SpatialVec> A_GB;
+    rep.calcBodyAccelerationFromUDot(state, *udotp, A_GB);
+
+    Vector qdotdot;
+    rep.calcQDotDot(state, *udotp, qdotdot);
+
+    rep.calcConstraintAccelerationErrors(state, A_GB, *udotp, qdotdot,
+                                         *pvaerrp);
+
+    if (needToCopyBack)
+        pvaerr = *pvaerrp;
+}
 
 
 //==============================================================================
@@ -920,8 +986,6 @@ calcBodyAccelerationFromUDot(const State&         state,
     if (needToCopyBack)
         A_GB = *Ap;
 }
-
-
 
 //==============================================================================
 //                        MULTIPLY BY N, NInv, NDot
