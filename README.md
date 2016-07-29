@@ -294,6 +294,16 @@ On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run th
 3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
 4. For API documentation (optional): `$ sudo apt-get install doxygen`.
 
+LAPACK version 3.6.0 and higher may be required for some applications (OpenSim). 
+LAPACK can be downloaded from [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/), 
+and compiled using the following method. It is sufficient to set `LD_LIBRARY_PATH` to your LAPACK install prefix
+and build Simbody using the `-DBUILD_USING_OTHER_LAPACK:PATH=/path/to/liblapack.so` option in cmake.
+```{bash}
+cmake ../lapack-3.6.0 -DCMAKE_INSTALL_PREFIX=/path/to/new/lapack/ -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON
+make
+make install
+```
+
 #### Get the Simbody source code
 
 There are two ways to get the source code.
