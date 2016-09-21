@@ -22,10 +22,6 @@ matrix:
     - os: osx
       compiler: clang
       env: BTYPE=RelWithDebInfo
-    - os: osx
-      osx_image: xcode8
-      compiler: clang
-      env: BTYPE=RelWithDebInfo
 
 before_install:
   ## Ensure that there are no tabs in source code.
