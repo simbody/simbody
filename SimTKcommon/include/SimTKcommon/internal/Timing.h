@@ -83,10 +83,10 @@ librt realtime library (-lrt). **/
 // The number 101200 identifies macOS version 10.12. The explicit version
 // number must be used instead of a macro like __MAC_10_12 because pre-10.12
 // systems won't have __MAC_10_12 defined.
-#define SimTK_APPLE_MUST_DECLARE_CLOCK_GETTIME defined(__APPLE__) && \
+#define SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME defined(__APPLE__) && \
     __MAC_OS_X_VERSION_MAX_ALLOWED < 101200 // SDK is older than 10.12.
 
-#define SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME defined(__APPLE__) && \
+#define SimTK_IS_APPLE_AND_MUST_DEFINE_CLOCK_GETTIME defined(__APPLE__) && \
     __MAC_OS_X_VERSION_MIN_REQUIRED < 101200 // user's OS may be pre-10.12.
 
 
@@ -117,8 +117,8 @@ librt realtime library (-lrt). **/
     }
 #endif
 
-#if defined(_MSC_VER) || defined(__APPLE__)
-    // On Windows and OSX, the Posix clock_gettime function is missing.
+#if defined(_MSC_VER) || SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME
+    // On Windows and OSX < 10.12, the Posix clock_gettime function is missing.
     typedef long clockid_t;
 
     /* These constants are the clock ids we support. All the varieties of 
