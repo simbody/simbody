@@ -25,7 +25,7 @@
  * Defines any routines that have to be supplied to implement the features
  * promised in Timing.h. Currently this consists of faking up the
  * Posix timing routines when using the Microsoft Visual Studio C/C++
- * compiler cl on Windows, or when running on Mac OSX.
+ * compiler cl on Windows, or when running on Mac OSX 10.11 or older.
  */
 
 
@@ -48,7 +48,7 @@
     #define WIN32_LEAN_AND_MEAN
     #define NOMINMAX
     #include <Windows.h>
-#elif defined(__APPLE__)
+#elif SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME 
     #include <unistd.h>
     #include <sys/time.h>
     #include <mach/mach.h>
@@ -57,7 +57,7 @@
 
 // These local symbols are not needed on all platforms. Define them just
 // when needed to avoid "unused variable" warnings.
-#if defined(_MSC_VER) || defined(__APPLE__)
+#if defined(_MSC_VER) || SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME
     // There are a billion (1e9) nanoseconds in a second.
     static const long long NsPerSec = 1000000000LL;
 #endif
@@ -128,7 +128,7 @@
         filetimeToTimespec(ft, *tp);     // now in ns since 1-1-1970
         return 0;
     }
-#elif defined(__APPLE__)
+#elif SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME 
     static int getnstimeofday(struct timespec *tp) {
         if (!tp) return 0;
         struct timeval tod;
@@ -169,7 +169,7 @@
 
         return 0;
     }
-#elif defined(__APPLE__)
+#elif SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME 
     static int getperformancecounter(struct timespec *tp) {
         if (!tp) return 0;
 
@@ -208,7 +208,7 @@
         hectoNsToTimespec(ktime+utime, *tp);
         return 0;
     }
-#elif defined(__APPLE__)
+#elif SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME 
     static int getprocesscputime(struct timespec* tp) {
         if (!tp) return 0;
 
@@ -261,7 +261,7 @@
         hectoNsToTimespec(ktime+utime, *tp);
         return 0;
     }
-#elif defined(__APPLE__)
+#elif SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME 
     static int getthreadcputime(struct timespec* tp) {
         if (!tp) return 0;
 
@@ -291,7 +291,7 @@
 // int clock_gettime()
 // -------------------
 // Now define the Posix clock_gettime() function in terms of the above helpers.
-#if defined(_MSC_VER) || defined(__APPLE__)
+#if defined(_MSC_VER) || SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME 
     int clock_gettime (clockid_t clock_id, struct timespec *tp) {
         int retval = EINVAL;
 
@@ -301,7 +301,11 @@
             retval = getnstimeofday(tp);
             break;
         case CLOCK_MONOTONIC:
-        case CLOCK_MONOTONIC_HR:  // "high resolution"
+        #ifdef CLOCK_MONOTONIC_HR
+        case CLOCK_MONOTONIC_HR:  // "high resolution"; not defined on macOS if
+                                  // using SDK MacOSX10.12.sdk or greater with
+                                  // deployment target 10.11 or lower.
+        #endif
         case CLOCK_MONOTONIC_RAW: // "not subject to NTP adjustments"
             retval = getperformancecounter(tp);
             break;
