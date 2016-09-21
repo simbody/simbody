@@ -59,34 +59,35 @@ librt realtime library (-lrt). **/
 
 
 // macOS (OSX) 10.12 introduced support for clock_gettime().
-// First, figure out if this machine even knows about 10.12.
-#if defined(__APPLE__)
-    #include <Availability.h>
-#endif
-// Assume all versions starting with 10.12 will support clock_gettime().
-// We'll use this macro throughout Timing.(h|cpp).
 // The following logic is based on documentation in /usr/local/Availability.h
 // and from this site:
 // https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/cross_development/Using/using.html.
 // This website also recommends using Availability.h over the similarly-helpful
 // AvailabilityMacros.h.
-// The number 101200 identifies macOS version 10.12. The explicit version
-// number must be used instead of using a macro like __MAC_10_12 because
-// pre-10.12 systems won't have __MAC_10_12 defined.
-// "MAX_ALLOWED" is the version of the SDK used when building.
+#if defined(__APPLE__)
+    #include <Availability.h>
+#endif
+// We'll use the following macros throughout Timing.(h|cpp).
+// "MAX_ALLOWED" is the version of the OSX SDK used when building.
 // "MIN_REQUIRED" is the "DEPLOYMENT_TARGET": earliest version on which the
 //                binaries should run.
 // One can use the 10.12 SDK to deploy to earlier releases, like 10.11. The SDK
-// version determines if we even need to declare clock_gettime(), and the
-// deployment target determines if we can expect the user's system to
-// contain an implementation of clock_gettime().
+// version determines if we need to declare clock_gettime() (e.g., developer is
+// using an SDK older than 10.12), and the deployment target determines if we
+// cannot expect the user's system to contain an implementation of
+// clock_gettime() (e.g., user may be running an on OS older than 10.12).
 // We need both of these macros because developers may only have the 10.12 SDK,
-// but may want to use it to deploy to machines running 10.11.
+// but may want to use it to deploy to machines running 10.11. In such a case,
+// we cannot declare clock_gettime() ourselves (the SDK does it), but we must
+// still define it.
+// The number 101200 identifies macOS version 10.12. The explicit version
+// number must be used instead of a macro like __MAC_10_12 because pre-10.12
+// systems won't have __MAC_10_12 defined.
 #define SimTK_APPLE_MUST_DECLARE_CLOCK_GETTIME defined(__APPLE__) && \
-    __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+    __MAC_OS_X_VERSION_MAX_ALLOWED < 101200 // SDK is older than 10.12.
 
 #define SimTK_APPLE_MUST_DEFINE_CLOCK_GETTIME defined(__APPLE__) && \
-    __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
+    __MAC_OS_X_VERSION_MIN_REQUIRED < 101200 // user's OS may be pre-10.12.
 
 
 
