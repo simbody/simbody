@@ -101,7 +101,7 @@ Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
 * compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
-* linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
+* linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
 
@@ -293,6 +293,16 @@ On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run th
 2. If you want to use the CMake GUI, install `cmake-qt-gui`.
 3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
 4. For API documentation (optional): `$ sudo apt-get install doxygen`.
+
+LAPACK version 3.6.0 and higher may be required for some applications (OpenSim). 
+LAPACK can be downloaded from [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/), 
+and compiled using the following method. It is sufficient to set `LD_LIBRARY_PATH` to your LAPACK install prefix
+and build Simbody using the `-DBUILD_USING_OTHER_LAPACK:PATH=/path/to/liblapack.so` option in cmake.
+```{bash}
+cmake ../lapack-3.6.0 -DCMAKE_INSTALL_PREFIX=/path/to/new/lapack/ -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON
+make
+make install
+```
 
 #### Get the Simbody source code
 
