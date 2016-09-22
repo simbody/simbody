@@ -57,6 +57,40 @@ librt realtime library (-lrt). **/
 // date-handling symbols declared here on all platforms.
 #include <ctime>
 
+
+// macOS (OSX) 10.12 introduced support for clock_gettime().
+// The following logic is based on documentation in /usr/local/Availability.h
+// and from this site:
+// https://developer.apple.com/library/content/documentation/DeveloperTools/Conceptual/cross_development/Using/using.html.
+// This website also recommends using Availability.h over the similarly-helpful
+// AvailabilityMacros.h.
+#if defined(__APPLE__)
+    #include <Availability.h>
+#endif
+// We'll use the following macros throughout Timing.(h|cpp).
+// "MAX_ALLOWED" is the version of the OSX SDK used when building.
+// "MIN_REQUIRED" is the "DEPLOYMENT_TARGET": earliest version on which the
+//                binaries should run.
+// One can use the 10.12 SDK to deploy to earlier releases, like 10.11. The SDK
+// version determines if we need to declare clock_gettime() (e.g., developer is
+// using an SDK older than 10.12), and the deployment target determines if we
+// cannot expect the user's system to contain an implementation of
+// clock_gettime() (e.g., user may be running an on OS older than 10.12).
+// We need both of these macros because developers may only have the 10.12 SDK,
+// but may want to use it to deploy to machines running 10.11. In such a case,
+// we cannot declare clock_gettime() ourselves (the SDK does it), but we must
+// still define it.
+// The number 101200 identifies macOS version 10.12. The explicit version
+// number must be used instead of a macro like __MAC_10_12 because pre-10.12
+// systems won't have __MAC_10_12 defined.
+#define SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME (defined(__APPLE__) && \
+    __MAC_OS_X_VERSION_MAX_ALLOWED < 101200) // SDK is older than 10.12.
+
+#define SimTK_IS_APPLE_AND_MUST_DEFINE_CLOCK_GETTIME (defined(__APPLE__) && \
+    __MAC_OS_X_VERSION_MIN_REQUIRED < 101200) // user's OS may be pre-10.12.
+
+
+
 #if defined(_MSC_VER)
     /* Posix nanosleep() sleeps the indicated number of nanoseconds and returns
     0, or if it is interrupted early it returns how much time was left in 
@@ -83,8 +117,8 @@ librt realtime library (-lrt). **/
     }
 #endif
 
-#if defined(_MSC_VER) || defined(__APPLE__)
-    // On Windows and OSX, the Posix clock_gettime function is missing.
+#if defined(_MSC_VER) || SimTK_IS_APPLE_AND_MUST_DECLARE_CLOCK_GETTIME
+    // On Windows and OSX < 10.12, the Posix clock_gettime function is missing.
     typedef long clockid_t;
 
     /* These constants are the clock ids we support. All the varieties of 
