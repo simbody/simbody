@@ -358,8 +358,8 @@ void PerSubsystemInfo::copyFrom(const PerSubsystemInfo& src, Stage maxStage) {
     // Make sure destination state doesn't have anything past targetStage.
     restoreToStage(targetStage);
 
-    name     = src.name;
-    version  = src.version;
+    m_name     = src.m_name;
+    m_version  = src.m_version;
     copyAllStacksThroughStage(src, targetStage);
 
     // Set stage versions so that any cache entries we copied can still
@@ -374,6 +374,23 @@ void PerSubsystemInfo::copyFrom(const PerSubsystemInfo& src, Stage maxStage) {
 
     // Subsystem stage should now match what we copied.
     currentStage = targetStage;
+}
+
+Xml::Element PerSubsystemInfo::
+toXmlElement(const std::string& name) const {
+    static const int version = 1;
+    Xml::Element e("Subsystem");
+    if (!name.empty()) e.setAttributeValue("name", name);
+    e.setAttributeValue("version", String(version));
+    e.appendNode(toXmlElementHelper(m_name, "name", true));
+    e.appendNode(Xml::Comment(" CONTINUOUS VARIABLES "));
+    e.appendNode(toXmlElementHelper(q_info, "qInfo", true));
+    e.appendNode(toXmlElementHelper(uInfo, "uInfo", true));
+    e.appendNode(toXmlElementHelper(zInfo, "zInfo", true));
+    e.appendNode(Xml::Comment(" DISCRETE VARIABLES "));
+    e.appendNode(toXmlElementHelper(discreteInfo, "discreteInfo", true));
+
+    return e;
 }
 
 
@@ -784,6 +801,91 @@ void StateImpl::autoUpdateDiscreteVariables() {
 }
 
 //------------------------------------------------------------------------------
+//                           TO XML ELEMENT
+//------------------------------------------------------------------------------
+// Version 1:
+//   <State name="anything" nsubsys="n" version="1">
+//     <t>time</t>
+//     <q>q0 q1 q2 ...</q>
+//     <u>u0 u1 u2 ...</u>
+//     ...
+//     <Subsystem attributes...>  } n of these
+//         ...                    }
+//     </Subsystem>               }
+//   </State>
+Xml::Element StateImpl::toXmlElement(const std::string& name) const {
+    static const int version = 1;
+    Xml::Element e("State");
+    if (!name.empty()) e.setAttributeValue("name", name);
+    e.setAttributeValue("nsubsys", String(subsystems.size()));
+    e.setAttributeValue("version", String(version));
+    e.appendNode(Xml::Comment(" GLOBAL DATA "));
+    e.appendNode(Xml::Comment("time"));
+    e.appendNode(toXmlElementHelper(t, "t", true));
+    e.appendNode(Xml::Comment("generalized coordinates"));
+    e.appendNode(toXmlElementHelper(q, "q", true));
+    e.appendNode(Xml::Comment("generalized speeds"));
+    e.appendNode(toXmlElementHelper(u, "u", true));
+    e.appendNode(Xml::Comment("auxiliary continuous states"));
+    e.appendNode(toXmlElementHelper(z, "z", true));
+    e.appendNode(Xml::Comment("weights for u (default 1)"));
+    e.appendNode(toXmlElementHelper(uWeights, "uWeights", true));
+    e.appendNode(Xml::Comment("weights for z (default 1)"));
+    e.appendNode(toXmlElementHelper(zWeights, "zWeights", true));
+    e.appendNode(Xml::Comment("weights for position constraints (default 1)"));
+    e.appendNode(toXmlElementHelper(qerrWeights, "qerrWeights", true));
+    e.appendNode(Xml::Comment("weights for velocity constraints (default 1)"));
+    e.appendNode(toXmlElementHelper(uerrWeights, "uerrWeights", true));
+
+    e.appendNode(Xml::Comment(" PER-SUBSYSTEM DATA "));
+    for (unsigned i=0; i < subsystems.size(); ++i) {
+        const auto& sub = subsystems[i];
+        e.appendNode(toXmlElementHelper(sub, String(i), true));
+    }
+    return e;
+}
+
+//------------------------------------------------------------------------------
+//                           FROM XML ELEMENT
+//------------------------------------------------------------------------------
+void StateImpl::
+fromXmlElement(Xml::Element e, const std::string& requiredName) {
+    SimTK_ERRCHK1_ALWAYS(e.getElementTag()=="State", "State::fromXmlElement()",
+    "Expected element tag 'State' but got '%s'.", e.getElementTag().c_str());
+
+    if (!requiredName.empty()) {
+        const String& name = e.getOptionalAttributeValue("name");
+        SimTK_ERRCHK2_ALWAYS(name==requiredName, "State::fromXmlElement()",
+        "Expected element name '%s' but got '%s'.", requiredName.c_str(), 
+                                                    name.c_str());
+    }
+
+    const int version = e.getRequiredAttributeValueAs<int>("version");
+    SimTK_ERRCHK1_ALWAYS(version==1, "State::fromXmlElement()",
+    "Don't know how to deserialize State element with version=%d.", version);
+
+    const unsigned nsubsys = e.getRequiredAttributeValueAs<int>("nsubsys");
+
+    // We've seen <State name="requiredName" version="1">.
+    auto nxt = e.element_begin();
+    fromXmlElementHelper(t, *nxt++, "t", true);
+    fromXmlElementHelper(q, *nxt++, "q", true);
+    fromXmlElementHelper(u, *nxt++, "u", true);
+    fromXmlElementHelper(z, *nxt++, "z", true);
+    fromXmlElementHelper(uWeights, *nxt++, "uWeights", true);
+    fromXmlElementHelper(zWeights, *nxt++, "zWeights", true);
+    fromXmlElementHelper(qerrWeights, *nxt++, "qerrWeights", true);
+    fromXmlElementHelper(uerrWeights, *nxt++, "uerrWeights", true);
+
+    subsystems.clear();
+    subsystems.reserve(nsubsys);
+    for (unsigned i=0; i < nsubsys; ++i) {
+        subsystems.emplace_back(*this);
+        fromXmlElementHelper(subsystems.back(), *nxt++, String(i), true);
+    }
+}
+
+//------------------------------------------------------------------------------
 //                              TO STRING
 //------------------------------------------------------------------------------
 // TODO: this is imcomplete. We really need a full serialization capability
@@ -826,8 +928,8 @@ String StateImpl::toString() const {
     
     for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
         const PerSubsystemInfo& info = subsystems[ss];
-        out += "<Subsystem index=" + String(ss) + " name=" + info.name 
-            + " version=" + info.version + ">\n";
+        out += "<Subsystem index=" + String(ss) + " name=" + info.m_name 
+            + " version=" + info.m_version + ">\n";
     
         out += "  <DISCRETE VARS TODO>\n";
         
@@ -856,8 +958,8 @@ String StateImpl::cacheToString() const {
     
     for (SubsystemIndex ss(0); ss < (int)subsystems.size(); ++ss) {
         const PerSubsystemInfo& info = subsystems[ss];
-        out += "<Subsystem index=" + String(ss) + " name=" + info.name 
-            + " version=" + info.version + ">\n";
+        out += "<Subsystem index=" + String(ss) + " name=" + info.m_name 
+            + " version=" + info.m_version + ">\n";
         out += "  <Stage>" + info.currentStage.getName() + "</Stage>\n";
     
         out += "  <DISCRETE CACHE TODO>\n";

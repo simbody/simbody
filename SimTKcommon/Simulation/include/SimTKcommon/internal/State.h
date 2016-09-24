@@ -1109,6 +1109,20 @@ inline Vector& updUErr() const; // Stage::Velocity-1        "
 inline Vector& updUDotErr()     const; // Stage::Acceleration-1 (not a view)
 inline Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
 
+/** Serialize this %State to an XML Element with tag word `<State>`. If `name`
+is provided the element will have an attribute `name="givenName"`. A version
+number is recorded as an attribute `version="number"` where `number` is 
+incremented in any Simbody release that changes the %State contents. **/
+inline Xml::Element toXmlElement(const std::string& name="") const;
+
+/** Deserialize `state` from an XML Element. We expect the element to have
+tag word `<State>`, and may optionally require that it has a particular value
+for its `name` attribute. If the serialized version number differs from the
+current one, we may attempt to convert it or will throw an exception if we don't
+know how to do so reliably. **/
+inline void fromXmlElement(Xml::Element element, 
+                           const std::string& requiredName="");
+
 /** @name                 Advanced/Obscure/Debugging
 Don't call these methods unless you know what you're doing. **/
 /**@{**/

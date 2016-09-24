@@ -205,6 +205,19 @@ public:
     const ListOfDependents& getDependents() const {return m_dependents;}
     ListOfDependents& updDependents() {return m_dependents;}
 
+    Xml::Element toXmlElement(const std::string& name) const {
+        static const int version = 1;
+        Xml::Element e("DiscreteVarInfo");
+        if (!name.empty()) e.setAttributeValue("name", name);
+        e.setAttributeValue("version", String(version));
+        e.appendNode(toXmlElementHelper(m_allocationStage, "allocationStage", true));
+        e.appendNode(toXmlElementHelper(m_invalidatedStage, "invalidatedStage", true));
+        e.appendNode(toXmlElementHelper(m_autoUpdateEntry, "autoUpdateEntry", true));
+        e.appendNode(toXmlElementHelper(*m_value, "value", true));
+        e.appendNode(toXmlElementHelper(m_timeLastUpdated, "timeLastUpdated", true));
+        return e;
+    }
+
 private:
     // These are fixed at construction.
     Stage                           m_allocationStage;
@@ -531,6 +544,18 @@ public:
     {   return operator=(src); }
     void               deepDestruct(StateImpl&) {}
     const Stage&       getAllocationStage() const {return allocationStage;}
+
+    Xml::Element toXmlElement(const std::string& name) const {
+        static const int version = 1;
+        Xml::Element e("ContinuousVarInfo");
+        if (!name.empty()) e.setAttributeValue("name", name);
+        e.setAttributeValue("version", String(version));
+        e.appendNode(toXmlElementHelper(allocationStage, "allocationStage", true));
+        e.appendNode(toXmlElementHelper(firstIndex, "firstIndex", true));
+        e.appendNode(toXmlElementHelper(initialValues, "initialValues", true));
+        e.appendNode(toXmlElementHelper(weights, "weights", true));
+        return e;
+    }
 private:
     // These are fixed at construction.
     Stage     allocationStage;
@@ -612,7 +637,7 @@ class SimTK_SimTKCOMMON_EXPORT PerSubsystemInfo {
 public:
     explicit PerSubsystemInfo(StateImpl& stateImpl,
                               const String& n="", const String& v="") 
-    :   m_stateImpl(stateImpl), name(n), version(v)
+    :   m_stateImpl(stateImpl), m_name(n), m_version(v)
     {   initialize(); }
 
     // Everything will properly clean itself up.
@@ -772,12 +797,19 @@ public:
     SimTK_FORCE_INLINE StageVersion getStageVersion(Stage g) const 
     {   return stageVersions[g]; }
 
+    Xml::Element toXmlElement(const std::string& name) const;
+    static void fromXmlElement(PerSubsystemInfo& subsys,Xml::Element e,
+                               const std::string& requiredName) {
+        SimTK_ASSERT_ALWAYS(!"not implemented", 
+                            "PerSubsystemInfo::fromXmlElement()");
+    }
+
 private:
 friend class StateImpl;
     ReferencePtr<StateImpl>     m_stateImpl; // container of this subsystem
 
-    String name;
-    String version;
+    String m_name;
+    String m_version;
 
         // DEFINITIONS //
 
@@ -1007,8 +1039,8 @@ public:
     
     void initializeSubsystem
        (SubsystemIndex i, const String& name, const String& version) {
-        updSubsystem(i).name = name;
-        updSubsystem(i).version = version;
+        updSubsystem(i).m_name = name;
+        updSubsystem(i).m_version = version;
     }
       
     SubsystemIndex addSubsystem(const String& name, const String& version) {
@@ -1020,10 +1052,10 @@ public:
     int getNumSubsystems() const {return (int)subsystems.size();}
     
     const String& getSubsystemName(SubsystemIndex subsys) const {
-        return subsystems[subsys].name;
+        return subsystems[subsys].m_name;
     }
     const String& getSubsystemVersion(SubsystemIndex subsys) const {
-        return subsystems[subsys].version;
+        return subsystems[subsys].m_version;
     }
 
     // Make sure the stage is no higher than g-1 for *any* subsystem and
@@ -2100,6 +2132,9 @@ public:
     String toString() const;    
     String cacheToString() const;
 
+    Xml::Element toXmlElement(const std::string& name) const;
+    void fromXmlElement(Xml::Element e, const std::string& requiredName);
+
 private:
     // This is the guts of copy construction and copy assignment which have to
     // be done carefully to manage what gets copied and whether the resulting
@@ -2855,6 +2890,15 @@ inline Vector& State::updUDotErr() const {
 inline Vector& State::updMultipliers() const {
     return getImpl().updMultipliers();
 }
+
+inline Xml::Element State::
+toXmlElement(const std::string& name) const
+{   return getImpl().toXmlElement(name); }
+
+inline void State::
+fromXmlElement(Xml::Element element, 
+               const std::string& requiredName)
+{   return updImpl().fromXmlElement(element, requiredName); }
 
 inline void State::
 setSystemTopologyStageVersion(StageVersion topoVersion)
