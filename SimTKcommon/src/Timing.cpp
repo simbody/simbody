@@ -25,7 +25,7 @@
  * Defines any routines that have to be supplied to implement the features
  * promised in Timing.h. Currently this consists of faking up the
  * Posix timing routines when using the Microsoft Visual Studio C/C++
- * compiler cl on Windows, or when running on Mac OSX.
+ * compiler cl on Windows, or when running on Mac OSX 10.11 or older.
  */
 
 
@@ -301,7 +301,11 @@
             retval = getnstimeofday(tp);
             break;
         case CLOCK_MONOTONIC:
-        case CLOCK_MONOTONIC_HR:  // "high resolution"
+        #ifdef CLOCK_MONOTONIC_HR
+        case CLOCK_MONOTONIC_HR:  // "high resolution"; not defined on macOS if
+                                  // using SDK MacOSX10.12.sdk or greater with
+                                  // deployment target 10.11 or lower.
+        #endif
         case CLOCK_MONOTONIC_RAW: // "not subject to NTP adjustments"
             retval = getperformancecounter(tp);
             break;
