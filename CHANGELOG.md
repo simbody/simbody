@@ -5,8 +5,8 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 **Heads up**: Simbody 3.5 will be the last release that will build with C++03 (patch builds with version numbers like 3.5.1 will work too). For 3.6 and above we will permit Simbody developers to use C++11, restricted to the subset that is currently supported on all our platforms. Since the C++03 and C++11 ABIs are not compatible, code that uses Simbody 3.6 will also have to be built with C++11. Time to move up, if you haven't already!
 
-3.5.4 (in development)
-----------------------
+3.5.4 (30 Sep 2016)
+-------------------
 * Fixed a bug when compiling on macOS (OSX) with SDK MacOSX10.12.sdk, related
   to the POSIX function `clock_gettime()` (Issue
   [#523](https://github.com/simbody/simbody/issues/523)).
