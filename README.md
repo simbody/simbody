@@ -513,7 +513,7 @@ Starting with Ubuntu 15.04, Simbody is available in the Ubuntu (and Debian) repo
 
 1. Open a terminal and run the following command:
 
-        $ sudo apt-get install libsimbody-dev libsimbody-doc
+        $ sudo apt-get install libsimbody-dev simbody-doc
 
 #### Layout of installation
 
