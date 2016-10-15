@@ -1073,9 +1073,12 @@ template<> struct NTraits<R>::Result<conjugate<double> > \
   {typedef conjugate<Widest<R,double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}; \
 template<> struct NTraits<R>::Result<conjugate<long double> > \
   {typedef conjugate<Widest<R,long double>::Type> Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-dereference"
 SimTK_DEFINE_REAL_NTRAITS(float);
 SimTK_DEFINE_REAL_NTRAITS(double);
 SimTK_DEFINE_REAL_NTRAITS(long double);
+#pragma clang diagnostic pop
 #undef SimTK_DEFINE_REAL_NTRAITS
 
 /// Specializations of CNT for numeric types.
