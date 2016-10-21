@@ -5355,8 +5355,7 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 // least have PositionKinematics already available; we'll 
 // realize articulated body inertias here if necessary.
 // All vectors must use contiguous storage.
-void SimbodyMatterSubsystemRep::
-(const State& s,
+void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
     const Vector&                                           f,
     Vector&                                                 MInvf) const 
 {

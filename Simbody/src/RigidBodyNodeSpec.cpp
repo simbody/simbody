@@ -629,34 +629,38 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
 
     Mat<dof,dof> sqrtDI(1);
     // DI Cholesky Decomposition: EU
-    double s1, s2;
-    Mat<dof,dof> L(0);
-    Mat<dof,dof> De(0);
+    if(dof>1){
+      double s1, s2;
+      Mat<dof,dof> L(0);
+      Mat<dof,dof> De(0);
 
-    for(j=0; j<dof; j++){
-      L(j,j) = 1.0;
-      // Diagonal
-      s1 = 0.0;
-      for(k=0; k<dof; k++){
-        s1 += (L(j,k) * L(j,k)) * De(k,k);
-      }
-      De(j,j) = DI(j,j) - s1;
-      // Off diagonal
-      for(i=(j+1); i<dof; i++){
-        s2 = 0.0;
-        for(k=0; k<j; k++){
-          s2 += L(i,k) * L(j,k) * De(k,k);
+      for(j=0; j<dof; j++){
+        L(j,j) = 1.0;
+        // Diagonal
+        s1 = 0.0;
+        for(k=0; k<dof; k++){
+          s1 += (L(j,k) * L(j,k)) * De(k,k);
         }
-        L(i,j) = (1 / De(j,j)) * (DI(i,j) - s2);
+        De(j,j) = DI(j,j) - s1;
+        // Off diagonal
+        for(i=(j+1); i<dof; i++){
+          s2 = 0.0;
+          for(k=0; k<j; k++){
+            s2 += L(i,k) * L(j,k) * De(k,k);
+          }
+          L(i,j) = (1 / De(j,j)) * (DI(i,j) - s2);
+        }
       }
+
+      // Square root the diagonal
+      for(j=0; j<dof; j++){De(j,j) = sqrt(De(j,j));}
+
+      // Get LsqrtDe
+      sqrtDI = L *  De ;
     }
-
-    // Square root the diagonal
-    for(j=0; j<dof; j++){De(j,j) = sqrt(De(j,j));}
-
-    // Get sqrt
-    sqrtDI = L * De;
-
+    else{
+      sqrtDI(0,0) = sqrt(DI(0,0));
+    }
     // EU END
 
     //const HType&        G   = getG(abc);
