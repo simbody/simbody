@@ -3547,7 +3547,8 @@ calcGMInvGt(const State&   s,
         lambda[j] = 1;
         multiplyByPVATranspose(s, true, true, true, lambda, Gtcol);
         lambda[j] = 0;
-        multiplyByMInv(s, Gtcol, MInvGtcol);
+        
+       (s, Gtcol, MInvGtcol);
         if (columnsAreContiguous)
             multiplyByPVA(s, true, true, true, bias, MInvGtcol, GMInvGt(j));
         else {
@@ -5354,7 +5355,8 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
 // least have PositionKinematics already available; we'll 
 // realize articulated body inertias here if necessary.
 // All vectors must use contiguous storage.
-void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
+void SimbodyMatterSubsystemRep::
+(const State& s,
     const Vector&                                           f,
     Vector&                                                 MInvf) const 
 {
@@ -5400,6 +5402,56 @@ void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
 }
 //............................. CALC M INVERSE F ...............................
 
+//==============================================================================
+//                            EU MULTIPLY BY SQRT M INV EU
+//==============================================================================
+// Calculate udot = sqrt(M^-1) v. We also get spatial accelerations A_GB for
+// each body as a side effect.
+// This Subsystem must already be realized through Dynamics stage.
+// All vectors must use contiguous storage.
+void SimbodyMatterSubsystemRep::multiplyBySqrtMInv(const State& s,
+    const Vector&                                           f,
+    Vector&                                                 MInvf) const
+{
+    const SBInstanceCache&                  ic  = getInstanceCache(s);
+    const SBTreePositionCache&              tpc = getTreePositionCache(s);
+    const SBDynamicsCache&                  dc  = getDynamicsCache(s);
+    const SBArticulatedBodyInertiaCache&    abc = getArticulatedBodyInertiaCache(s);
+
+    const int nb = getNumBodies();
+    const int nu = getNU(s);
+
+    int i, j, k;
+
+    assert(f.size() == nu);
+
+    MInvf.resize(nu);
+    if (nu==0)
+        return;
+
+    assert(f.hasContiguousData());
+    assert(MInvf.hasContiguousData());
+
+    // Temporaries
+    Array_<Real>        eps(nu);
+    Array_<SpatialVec>  z(nb), zPlus(nb), A_GB(nb);
+
+    // Point to raw data of input arguments.
+    const Real* fPtr     = &f[0];
+    Real*       MInvfPtr = &MInvf[0];
+   
+    for(int i=0; i<nu; i++){eps[i] = fPtr[i];}
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++){
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            //std::cout<<"multiplyBySqrtMInv outward node "<<i<<" "<<j<<std::endl;
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.multiplyBySqrtMInvPass2Outward(ic,tpc,abc,dc,
+                eps.cbegin(), A_GB.begin(), MInvfPtr);
+        }
+    }
+   
+}
 
 
 //==============================================================================
