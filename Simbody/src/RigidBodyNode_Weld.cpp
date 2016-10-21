@@ -261,6 +261,34 @@ public:
         allA_GB[0] = 0;
     }
 
+    // Ground doesn't contribute to sqrt(M^-1)*v. Inward pass does nothing since
+    // Ground can't be the child of any body.
+    void multiplyBySqrtMInvPass1Inward(
+        const SBInstanceCache&     ic,
+        const SBTreePositionCache& pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&,
+        const Real*                f,
+        SpatialVec*                allZ,
+        SpatialVec*                allZPlus,
+        Real*                      allEpsilon) const
+    {
+    }
+
+    // Outward pass must make sure A_GB[0] is zero so it can be propagated
+    // outwards properly.
+    void multiplyBySqrtMInvPass2Outward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&,
+        const Real*                 epsilonTmp,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot) const
+    {
+        allA_GB[0] = 0;
+    }
+    
     // Also serves as pass 1 for inverse dynamics.
     void calcBodyAccelerationsFromUdotOutward(
         const SBTreePositionCache&  pc,
@@ -559,6 +587,52 @@ public:
 
         // Shift parent's acceleration outward (Ground==0). 12 flops
         const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()]; 
+        const SpatialVec  APlus = ~phi * A_GP;
+
+        A_GB = APlus;
+    }
+
+    // A weld doesn't have udots but we still have to calculate z, zPlus,
+    // for use by the parent of this body.
+    void multiplyBySqrtMInvPass1Inward(
+        const SBInstanceCache&      ic,
+        const SBTreePositionCache&  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&      dc,
+        const Real*                 f,
+        SpatialVec*                 allZ,
+        SpatialVec*                 allZPlus,
+        Real*                       allEpsilon) const
+    {
+        SpatialVec& z       = allZ[nodeNum];
+        SpatialVec& zPlus   = allZPlus[nodeNum];
+
+        z = 0;
+
+        for (unsigned i=0; i<children.size(); i++) {
+            const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+            const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
+            z += phiChild * zPlusChild; // 18 flops
+        }
+
+        zPlus = z;
+    }
+
+    // Must set A_GB properly for propagation to children.
+    void multiplyBySqrtMInvPass2Outward(
+        const SBInstanceCache&,
+        const SBTreePositionCache&  pc,
+        const SBArticulatedBodyInertiaCache&,
+        const SBDynamicsCache&      dc,
+        const Real*                 allEpsilon,
+        SpatialVec*                 allA_GB,
+        Real*                       allUDot) const
+    {
+        SpatialVec&      A_GB = allA_GB[nodeNum];
+        const PhiMatrix& phi  = getPhi(pc);
+
+        // Shift parent's acceleration outward (Ground==0). 12 flops
+        const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()];
         const SpatialVec  APlus = ~phi * A_GP;
 
         A_GB = APlus;
