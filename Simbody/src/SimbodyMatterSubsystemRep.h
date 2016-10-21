@@ -595,6 +595,13 @@ public:
         const Vector&                   f,
         Vector&                         MInvf) const; 
 
+    // Multiply by the square root mass matrix inverse in O(n) time. Works only with the
+    // non-prescribed submatrix Mrr of M; entries f_p in f are not accessed,
+    // and entries MInvf_p in MInvf are not written.
+    void multiplyBySqrtMInv(const State&    s,
+        const Vector&                   f,
+        Vector&                         MInvf) const; // EU
+
     // Calculate the mass matrix in O(n^2) time. State must have already
     // been realized to Position stage. M must be resizeable or already the
     // right size (nXn). The result is symmetric but the entire matrix is
