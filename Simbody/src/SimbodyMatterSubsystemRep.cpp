@@ -5403,7 +5403,7 @@ void SimbodyMatterSubsystemRep::
 //............................. CALC M INVERSE F ...............................
 
 //==============================================================================
-//                            EU MULTIPLY BY SQRT M INV EU
+//                            EU MULTIPLY BY SQRT M INV
 //==============================================================================
 // Calculate udot = sqrt(M^-1) v. We also get spatial accelerations A_GB for
 // each body as a side effect.
