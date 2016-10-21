@@ -3548,7 +3548,7 @@ calcGMInvGt(const State&   s,
         multiplyByPVATranspose(s, true, true, true, lambda, Gtcol);
         lambda[j] = 0;
         
-       (s, Gtcol, MInvGtcol);
+        multiplyByMInv(s, Gtcol, MInvGtcol);
         if (columnsAreContiguous)
             multiplyByPVA(s, true, true, true, bias, MInvGtcol, GMInvGt(j));
         else {
