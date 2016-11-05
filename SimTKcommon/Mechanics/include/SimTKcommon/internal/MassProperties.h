@@ -790,7 +790,7 @@ UnitInertia_ shiftFromCentroid(const Vec3P& p) const
 /// G' = G + Gp where Gp is the inertia of a fictitious, unit-mass point located 
 /// at p, taken about CF. Cost is 17 flops.
 /// @see shiftFromCentroid() if you want to leave this object unmolested.
-/// @see shitToCentroidInPlace()
+/// @see shiftToCentroidInPlace()
 UnitInertia_& shiftFromCentroidInPlace(const Vec3P& p)
 {   InertiaP::operator+=(pointMassAt(p));
     return *this; }
