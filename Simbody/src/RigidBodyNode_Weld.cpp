@@ -602,7 +602,7 @@ public:
         const Real*                 f,
         SpatialVec*                 allZ,
         SpatialVec*                 allZPlus,
-        Real*                       allEpsilon) const
+        Real*                       allEpsilon) const override
     {
         SpatialVec& z       = allZ[nodeNum];
         SpatialVec& zPlus   = allZPlus[nodeNum];
@@ -626,7 +626,7 @@ public:
         const SBDynamicsCache&      dc,
         const Real*                 allEpsilon,
         SpatialVec*                 allA_GB,
-        Real*                       allUDot) const
+        Real*                       allUDot) const override
     {
         SpatialVec&      A_GB = allA_GB[nodeNum];
         const PhiMatrix& phi  = getPhi(pc);
