@@ -271,7 +271,7 @@ public:
         const Real*                f,
         SpatialVec*                allZ,
         SpatialVec*                allZPlus,
-        Real*                      allEpsilon) const
+        Real*                      allEpsilon) const override
     {
     }
 
@@ -284,7 +284,7 @@ public:
         const SBDynamicsCache&,
         const Real*                 epsilonTmp,
         SpatialVec*                 allA_GB,
-        Real*                       allUDot) const
+        Real*                       allUDot) const override
     {
         allA_GB[0] = 0;
     }

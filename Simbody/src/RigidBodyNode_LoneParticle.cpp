@@ -366,7 +366,7 @@ void multiplyBySqrtMInvPass1Inward(
         const Real*                             jointForces,
         SpatialVec*                             allZ,
         SpatialVec*                             allZPlus,
-        Real*                                   allEpsilon) const
+        Real*                                   allEpsilon) const override
 {
     if (isUDotKnown(ic)) // prescribed
         return;
@@ -385,7 +385,7 @@ void multiplyBySqrtMInvPass2Outward(
         const SBDynamicsCache&                  dc,
         const Real*                             allEpsilon,
         SpatialVec*                             allA_GB,
-        Real*                                   allUDot) const
+        Real*                                   allUDot) const override
 {
     const bool isPrescribed = isUDotKnown(ic);
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
