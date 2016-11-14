@@ -427,7 +427,7 @@ void multiplyBySqrtMInvPass1Inward(
     const Real*                 f,
     SpatialVec*                 allZ,
     SpatialVec*                 allGepsilon,
-    Real*                       allEpsilon) const;
+    Real*                       allEpsilon) const override;
 
 void multiplyBySqrtMInvPass2Outward(
     const SBInstanceCache&      ic,
@@ -436,7 +436,7 @@ void multiplyBySqrtMInvPass2Outward(
     const SBDynamicsCache&      dc,
     const Real*                 epsilonTmp,
     SpatialVec*                 allA_GB,
-    Real*                       allUDot) const;
+    Real*                       allUDot) const override;
 
 // Also serves as pass 1 for inverse dynamics.
 void calcBodyAccelerationsFromUdotOutward(
