@@ -54,7 +54,7 @@ associated with individual objects contained in the subsystem, such as
 MobilizedBody and Constraint objects, it is generally easier to obtain the
 information through the contained objects' APIs instead.
 
-This class is is a "handle" containing only an opaque reference to the 
+This class is a "handle" containing only an opaque reference to the 
 underlying implementation class.
 
 <h3>Theory discussion</h3>
@@ -1594,10 +1594,51 @@ accelerations for the constrained bodies; even with udot==0 body accelerations
 may have a non-zero velocity-dependent component (the coriolis accelerations). 
 Those are already available in the state, but only as accelerations in Ground. 
 For constraints that have a non-Ground Ancestor, we have to convert the 
-accelerations to A at a cost of 105 flops/constrained body. **/
+accelerations to A at a cost of 105 flops/constrained body.
+
+@see calcConstraintAccelerationErrors() **/
 void calcBiasForAccelerationConstraints(const State& state,
                                         Vector&      bias) const;
 
+/** Given a complete set of nu generalized accelerations udot, this operator
+computes the constraint acceleration errors that result due to the constraints
+currently active in the given state:
+<pre>
+       pvaerr = G udot - b(t,q,u)
+
+             where
+
+              [P]    [bp]
+            G=[V]  b=[bv]
+              [A]    [ba]
+</pre>
+The quantity Subsystem::getUDotErr() is computed by the same operation as this
+method performs.
+
+@param[in] state
+    A State compatible with this System that has already been realized to
+    Stage::Velocity.
+@param[in] knownUDot
+    A complete set of generalized accelerations. Must have the same length
+    as the number of mobilities nu, or if length zero the udots will be taken
+    as all zero in which case only the bias vector -b will be returned.
+@param[out] pvaerr
+    The error in the acceleration-level constraint equations.
+    All acceleration-level constraints are included: holonomic second
+    derivatives, nonholonomic first derivatives, and acceleration-only
+    constraints. The vector will be resized if necessary to length m=mp+mv+ma,
+    the total number of active acceleration-level constraint equations.
+
+@par Implementation
+This operator takes O(m+n) time.
+
+@par Required stage
+  \c Stage::Velocity
+
+@see calcG(), calcBiasForAccelerationConstraints() **/
+void calcConstraintAccelerationErrors(const State&  state,
+                                      const Vector& knownUDot,
+                                      Vector&       pvaerr) const;
 
 /** Returns f = ~G*lambda, the product of the n X m transpose of the 
 acceleration constraint Jacobian G (=[P;V;A]) and a multiplier-like vector 
@@ -2184,7 +2225,6 @@ implementation uses 12*nu + 18*nb flops to produce nb body accelerations.
 void calcBodyAccelerationFromUDot(const State&         state,
                                   const Vector&        knownUDot,
                                   Vector_<SpatialVec>& A_GB) const;
-
 
 /** Treating all Constraints together, given a comprehensive set of m 
 Lagrange multipliers \e lambda, generate the complete set of body spatial forces

@@ -960,7 +960,7 @@ public:
     // acceleration errors that result due to the constraints currently active
     // in the given state. All acceleration-level constraints are included:
     // holonomic second derivatives, nonholonomic first derivatives, and 
-    // acceleratin-only constraints. This is a pure operator and does not 
+    // acceleration-only constraints. This is a pure operator and does not
     // affect the state or state cache. Vectors must use contiguous data.
     // State must have been realized through Velocity stage.
     void calcConstraintAccelerationErrors

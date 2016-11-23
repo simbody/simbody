@@ -101,7 +101,7 @@ Simbody depends on the following:
 
 * cross-platform building: [CMake](http://www.cmake.org/cmake/resources/software.html) 2.8.10 or later (3.1.3 or later for Visual Studio).
 * compiler: [Visual Studio](http://www.visualstudio.com) 2015 (Windows only), [gcc](http://gcc.gnu.org/) 4.9.0 or later (typically on Linux), or [Clang](http://clang.llvm.org/) 3.4 or later (typically on Mac, possibly through Xcode)
-* linear algebra: [LAPACK](http://www.netlib.org/lapack/) and [BLAS](http://www.netlib.org/blas/)
+* linear algebra: [LAPACK](http://www.netlib.org/lapack/) 3.6.0 or later and [BLAS](http://www.netlib.org/blas/)
 * visualization (optional): [FreeGLUT](http://freeglut.sourceforge.net/), [Xi and Xmu](http://www.x.org/wiki/)
 * API documentation (optional): [Doxygen](http://www.stack.nl/~dimitri/doxygen/) 1.8.6 or later; we recommend at least 1.8.8.
 
@@ -151,13 +151,27 @@ All needed library dependencies are provided with the Simbody installation on Wi
 
 * Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `C:/Simbody-source`.
 * Method 2: Clone the git repository.
-    1. Get git. There are many options: [Git for Windows](http://msysgit.github.io/) (most advanced), [TortoiseGit](https://code.google.com/p/tortoisegit/wiki/Download) (intermediate; good for TortoiseSVN users), [GitHub for Windows](https://windows.github.com/) (easiest).
+    1. Get git. There are many options:
+
+       * [Git for Windows](http://msysgit.github.io/)(most advanced),
+       * [TortoiseGit](https://code.google.com/p/tortoisegit/wiki/Download) (intermediate; good for TortoiseSVN users),
+       * [GitHub for Windows](https://windows.github.com/) (easiest).
+
     2. Clone the github repository into `C:/Simbody-source`. Run the following in a Git Bash / Git Shell, or find a way to run the equivalent commands in a GUI client:
 
             $ git clone https://github.com/simbody/simbody.git C:/Simbody-source
-            $ git checkout Simbody-3.5.1
+            $ git checkout Simbody-3.5.3
 
-    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
+    3. In the last line above, we assumed you want to build a released version.
+       Feel free to change the version you want to build.
+       If you want to build the latest development version ("bleeding edge") of
+       Simbody off the `master` branch, you can omit the `checkout` line.
+
+       To see the set of releases and checkout a specific version, you can use
+       the following commands:
+
+            $ git tag
+            $ git checkout Simbody-X.Y.Z
 
 #### Configure and generate project files
 
@@ -241,6 +255,33 @@ Linux or Mac using make
 These instructions are for building Simbody from source on either a Mac or on
 Ubuntu.
 
+#### Check the compiler version
+
+Simbody uses recent C++ features, that require a modern compiler.
+Before installing Simbody, check your compiler version with commands like that:
+
+- `g++ --version`
+- `clang++ --version`
+
+In case your compiler is not supported, you can upgrade your compiler.
+
+Here are some instructions to upgrade GCC on a Ubuntu 14.04 distribution.
+
+    $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    $ sudo apt-get update
+    $ sudo apt-get install gcc-4.9 g++-4.9
+
+If one wants to set `gcc-4.9` and `g++-4.9` as the default compilers, run the following command
+
+    $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
+
+Remember that when having several compilers, CMake flags
+`CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER` can be used
+to select the ones desired. For example, Simbody can be
+configured with the following flags:
+
+    $ cmake -DCMAKE_C_COMPILER=gcc-4.9 -DCMAKE_CXX_COMPILER=g++-4.9
+
 #### Get dependencies
 
 On a Mac, the Xcode developer package gives LAPACK and BLAS to you via the Accelerate
@@ -253,21 +294,45 @@ On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run th
 3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
 4. For API documentation (optional): `$ sudo apt-get install doxygen`.
 
+LAPACK version 3.6.0 and higher may be required for some applications (OpenSim). 
+LAPACK can be downloaded from [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/), 
+and compiled using the following method. It is sufficient to set `LD_LIBRARY_PATH` to your LAPACK install prefix
+and build Simbody using the `-DBUILD_USING_OTHER_LAPACK:PATH=/path/to/liblapack.so` option in cmake.
+```{bash}
+cmake ../lapack-3.6.0 -DCMAKE_INSTALL_PREFIX=/path/to/new/lapack/ -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=ON
+make
+make install
+```
+
 #### Get the Simbody source code
 
 There are two ways to get the source code.
 
-* Method 1: Download the source code from https://github.com/simbody/simbody/releases. Look for the highest-numbered release, click on the .zip button, and unzip it on your computer. We'll assume you unzipped the source code into `~/simbody-source`.
+* Method 1: Download the source code from https://github.com/simbody/simbody/releases.
+  Look for the highest-numbered release, click on the .zip button, and unzip it on your computer.
+  We'll assume you unzipped the source code into `~/simbody-source`.
 * Method 2: Clone the git repository.
     1. Get git.
-        * Mac: You might have it already, especially if you have Xcode, which is free in the App Store. If not, one method is to install [Homebrew](http://brew.sh/) and run `brew install git` in a terminal.
+        * Mac: You might have it already, especially if you have Xcode, which
+          is free in the App Store. If not, one method is to install
+          [Homebrew](http://brew.sh/) and run `brew install git` in a
+          terminal.
         * Ubuntu: run `sudo apt-get install git` in a terminal.
     2. Clone the github repository into `~/simbody-source`.
 
             $ git clone https://github.com/simbody/simbody.git ~/simbody-source
-            $ git checkout Simbody-3.5.1
+            $ git checkout Simbody-3.5.3
 
-    3. In the last line above, we assumed you want to build a released version. Feel free to change the version you want to build. If you want to build the latest development version ("bleeding edge") of Simbody off the master branch, you can omit the `checkout` line.
+    3. In the last line above, we assumed you want to build a released version.
+       Feel free to change the version you want to build.
+       If you want to build the latest development version ("bleeding edge") of
+       Simbody off the `master` branch, you can omit the `checkout` line.
+
+       To see the set of releases and checkout a specific version, you can use
+       the following commands:
+
+            $ git tag
+            $ git checkout Simbody-X.Y.Z
 
 #### Configure and generate Makefiles
 
@@ -415,7 +480,9 @@ If using a Mac and Homebrew, the dependencies are taken care of for you.
 
 #### Where is Simbody installed?
 
-Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`, where `<version>` is either the version number (e.g., `3.5.1`), or `HEAD` if you specified `--HEAD` above.
+Simbody is now installed to `/usr/local/Cellar/simbody/<version>/`,
+where `<version>` is either the version number (e.g., `3.5.3`),
+or `HEAD` if you specified `--HEAD` above.
 
 Some directories are symlinked (symbolically linked) to `/usr/local/`, which is where your system typically expects to find executables, shared libraries (.dylib's), headers (.h's), etc. The following directories from the Simbody installation are symlinked:
 
@@ -446,7 +513,7 @@ Starting with Ubuntu 15.04, Simbody is available in the Ubuntu (and Debian) repo
 
 1. Open a terminal and run the following command:
 
-        $ sudo apt-get install libsimbody-dev libsimbody-doc
+        $ sudo apt-get install libsimbody-dev simbody-doc
 
 #### Layout of installation
 
