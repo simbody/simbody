@@ -217,6 +217,8 @@ int main() {
     }
  
     //collect optimization results
+    cout << "Printing the result of " << NUMBER_OF_THREADS 
+        << " concurrent optimizations.\n";
     for (auto& f : futures) {
         f.wait();
         auto ans(f.get());
