@@ -23,7 +23,8 @@
 
 /*This test is the parallelized version of IpoptTest in the regression suit.
 * Multiple instances of Ipopt are executed concurrently on different threads
-* to verfy for Ipopt thread-safety.*/
+* to verfy for Ipopt thread-safety. If Ipopt is not thread-safe, there will 
+* be a segmentation fault.*/
 
 #include "SimTKmath.h"
 
@@ -184,16 +185,16 @@ int main() {
     //using future to easily collect the results of the optimizations
     vector<future<OptimizationResult>> futures;
 
-    /* compute multiple optimizations, 
+    /* compute multiple optimizations. 
     use an internal copy of opt as Optimizer cannot be 
-    shared across threads*/
+    shared across threads.*/
     auto func([&sys](const Vector& startingValues) {
         OptimizationResult optimizationResult;
         optimizationResult.success = true;
         try {
             Optimizer opt(sys);
             opt.setConvergenceTolerance(1e-4);
-            opt.setDiagnosticsLevel(7);
+            opt.setDiagnosticsLevel(0);
             opt.setLimitedMemoryHistory(500); // works well for our small systems
             opt.setAdvancedBoolOption("warm_start", true);
             opt.setAdvancedRealOption("obj_scaling_factor", 1);
