@@ -201,13 +201,13 @@ int main() {
             opt.setAdvancedRealOption("nlp_scaling_max_gradient", 1);
             optimizationResult.results = startingValues;
             optimizationResult.f = opt.optimize(optimizationResult.results);
-            return optimizationResult;
         }
         catch (const std::exception& e) {
             std::cout << e.what() << std::endl;
             optimizationResult.success = false; // failure
             printf("IpoptTest.cpp: Caught exception \n");
         }
+        return optimizationResult;
     });
 
     //launch threads
