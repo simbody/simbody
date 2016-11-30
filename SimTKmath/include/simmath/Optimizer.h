@@ -307,7 +307,7 @@ private:
  *      written to the current directory (errcmaes.err error log).
  *      - 1: additional output to console.
  *      - 2: all files are written to the current directory.
- *      - 3: output to console, and all files are written to the current
+ *      - 3: output to console, and all files are written to the current directory.
  *
  * Advanced options:
  * 
@@ -341,9 +341,9 @@ private:
  *   "multithreading", this is the number of threads to use (by default, this
  *   is the number of processors/threads on the machine).
  *
- * If you want to generate identical results with repeated optimizations for,
+ * If you want to generate identical results with repeated optimizations,
  * you can set the <b>seed</b> option. In addition, you *must* set the
- * <b>maxTimeFractionForEigendecomposition</b> option to be greater or
+ * <b>maxTimeFractionForEigendecomposition</b> option to be greater than or
  * equal to 1.0.
  *
  * @code
