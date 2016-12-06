@@ -99,6 +99,9 @@ bool Optimizer::OptimizerRep::setAdvancedIntOption( const std::string &option, c
 bool Optimizer::OptimizerRep::setAdvancedBoolOption( const std::string &option, const bool value ) {
     return setAdvancedOptionHelper(advancedBoolOptions, option, value);
 }
+bool Optimizer::OptimizerRep::setAdvancedVectorOption( const std::string &option, const Vector value ) {
+    return setAdvancedOptionHelper(advancedVectorOptions, option, value);
+}
 
 bool Optimizer::OptimizerRep::getAdvancedStrOption( const std::string &option, std::string &value ) const {
     return getAdvancedOptionHelper(advancedStrOptions, option, value);
@@ -111,6 +114,9 @@ bool Optimizer::OptimizerRep::getAdvancedIntOption( const std::string &option, i
 }
 bool Optimizer::OptimizerRep::getAdvancedBoolOption( const std::string &option, bool &value ) const {
     return getAdvancedOptionHelper(advancedBoolOptions, option, value);
+}
+bool Optimizer::OptimizerRep::getAdvancedVectorOption( const std::string &option, Vector &value ) const {
+    return getAdvancedOptionHelper(advancedVectorOptions, option, value);
 }
 
 // TODO: this only works if called *prior* to the routines below.

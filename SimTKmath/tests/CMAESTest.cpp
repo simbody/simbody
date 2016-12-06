@@ -112,7 +112,8 @@ void testMaxIterations() {
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
-    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    Vector initStepSize(N, 0.3);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setMaxIterations(500);
 
     // Optimize!
@@ -138,7 +139,8 @@ void testCigtabOptimum() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
-    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    Vector initStepSize(N, 0.3);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     // Sometimes this test fails, so choose a seed where the test passes.
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
@@ -202,7 +204,8 @@ void testSigmaAndAckleyOptimum() {
     // Can find the optimum with an appropriate step size.
     // ===================================================
     // init_stepsize should be 1/4 the range of possible values.
-    opt.setAdvancedRealOption("init_stepsize", 0.5 * 64);
+    Vector initStepSize(N, 0.5 * 64);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
 
     // Optimize!  Can now find the solution.
     results.setTo(25);
@@ -224,7 +227,8 @@ void testDropWaveOptimumLambda() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-5);
     opt.setMaxIterations(5000);
-    opt.setAdvancedRealOption("init_stepsize", 3.5);
+    Vector initStepSize(N, 3.5);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     // With default popsize, this test fails. So if this test passes, we know we
     // can set popsize.
     opt.setAdvancedIntOption("popsize", 1000);
@@ -248,7 +252,8 @@ void testMaxFunEvals() {
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
-    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    Vector initStepSize(N, 0.3);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 10);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
@@ -282,7 +287,8 @@ void testSeed() {
     // Create optimizer; set settings.
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
-    opt.setAdvancedRealOption("init_stepsize", 1);
+    Vector initStepSize(N, 1);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     
     // A negative seed causes an exception to be thrown upon optimization.
     // ===================================================================
@@ -418,7 +424,8 @@ void testRosenbrock() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(100000);
-    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    Vector initStepSize(N, 0.3);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
@@ -440,7 +447,8 @@ void testSchwefel() {
     // Only know the solution to 4 digits.
     opt.setConvergenceTolerance(1e-4);
     opt.setAdvancedIntOption("popsize", 200);
-    opt.setAdvancedRealOption("init_stepsize", 300);
+    Vector initStepSize(N, 300);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
@@ -461,7 +469,8 @@ void testEasom() {
     Optimizer opt(sys, SimTK::CMAES);
     // TODO opt.setDiagnosticsLevel(3);
     opt.setAdvancedIntOption("popsize", 500);
-    opt.setAdvancedRealOption("init_stepsize", 25);
+    Vector initStepSize(N, 25);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     
@@ -485,7 +494,8 @@ void testStopFitness() {
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
     opt.setAdvancedIntOption("popsize", 50);
-    opt.setAdvancedRealOption("init_stepsize", 0.5 * 64);
+    Vector initStepSize(N, 0.5 * 64);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 30);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
@@ -514,7 +524,8 @@ void testMultithreading() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
-    opt.setAdvancedRealOption("init_stepsize", 0.3);
+    Vector initStepSize(N, 0.3);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     // Sometimes this test fails, so choose a seed where the test passes.
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);

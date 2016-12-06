@@ -159,15 +159,13 @@ double* CMAESOptimizer::init(cmaes_t& evo, SimTK::Vector& results) const
     
     // init_stepsize
     // --------
-    double init_stepsize = 0;
+    Vector init_stepsize;
     double* stddev = NULL;
-    Vector init_stepsizeArray;
-    if (getAdvancedRealOption("init_stepsize", init_stepsize)) {
-        init_stepsizeArray.resize(n);
-        for (int i = 0; i < n; i++) {
-            init_stepsizeArray[i] = init_stepsize;
-        }
-        stddev = &init_stepsizeArray[0];
+    if (getAdvancedVectorOption("init_stepsize", init_stepsize)) {
+        SimTK_ERRCHK_ALWAYS(init_stepsize.size() == n,
+                            "CMAESOptimizer::init",
+                            "init_stepsize dimentions should be equal to the num of parameters");
+        stddev = &init_stepsize[0];
     }
 
     // seed
