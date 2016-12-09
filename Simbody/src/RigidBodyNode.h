@@ -557,16 +557,6 @@ virtual void multiplyByMInvPass2Outward(
     SpatialVec*                             allA_GB,
     Real*                                   allUDot) const=0;
 
-  virtual void multiplyBySqrtMInvPass1Inward(
-    const SBInstanceCache&                  ic,
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
-    const Real*                             f,
-    SpatialVec*                             allZ,
-    SpatialVec*                             allGepsilon,
-    Real*                                   allEpsilon) const=0;
-
 virtual void multiplyBySqrtMInvPass2Outward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,

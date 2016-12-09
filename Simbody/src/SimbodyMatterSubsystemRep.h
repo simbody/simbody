@@ -595,8 +595,9 @@ public:
         const Vector&                   f,
         Vector&                         MInvf) const; 
 
-    // Multiply by the square root mass matrix inverse in O(n) time. Works only with the
-    // non-prescribed submatrix Mrr of M; entries f_p in f are not accessed,
+    // Multiply by the square root mass matrix inverse in O(n) time. 
+    // Works only with the non-prescribed submatrix Mrr of M;
+    // entries f_p in f are not accessed,
     // and entries MInvf_p in MInvf are not written.
     void multiplyBySqrtMInv(const State&    s,
         const Vector&                   f,

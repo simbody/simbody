@@ -5402,9 +5402,9 @@ void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
 //............................. CALC M INVERSE F ...............................
 
 //==============================================================================
-//                            EU MULTIPLY BY SQRT M INV
+//                            MULTIPLY BY SQRT M INV
 //==============================================================================
-// Calculate udot = sqrt(M^-1) v. We also get spatial accelerations A_GB for
+// Calculate u = sqrt(M^-1) v. We also get spatial accelerations A_GB for
 // each body as a side effect.
 // This Subsystem must already be realized through Dynamics stage.
 // All vectors must use contiguous storage.
@@ -5443,7 +5443,6 @@ void SimbodyMatterSubsystemRep::multiplyBySqrtMInv(const State& s,
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++){
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            //std::cout<<"multiplyBySqrtMInv outward node "<<i<<" "<<j<<std::endl;
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.multiplyBySqrtMInvPass2Outward(ic,tpc,abc,dc,
                 eps.cbegin(), A_GB.begin(), MInvfPtr);

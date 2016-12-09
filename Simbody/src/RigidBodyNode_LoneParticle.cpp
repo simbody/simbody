@@ -358,26 +358,6 @@ void multiplyByMInvPass2Outward(
     }
 }
 
-void multiplyBySqrtMInvPass1Inward(
-        const SBInstanceCache&                  ic,
-        const SBTreePositionCache&              pc,
-        const SBArticulatedBodyInertiaCache&    abc,
-        const SBDynamicsCache&                  dc,
-        const Real*                             jointForces,
-        SpatialVec*                             allZ,
-        SpatialVec*                             allZPlus,
-        Real*                                   allEpsilon) const override
-{
-    if (isUDotKnown(ic)) // prescribed
-        return;
-
-    // We promised not to look at f if it is part of f_p (prescribed).
-    const Vec3& f     = Vec3::getAs(&jointForces[uIndex]);
-    Vec3&       eps   = Vec3::updAs(&allEpsilon[uIndex]);
-
-    eps = f;
-}
-
 void multiplyBySqrtMInvPass2Outward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,

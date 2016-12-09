@@ -419,16 +419,6 @@ void multiplyByMInvPass2Outward(
     SpatialVec*                 allA_GB,
     Real*                       allUDot) const override;
 
-void multiplyBySqrtMInvPass1Inward(
-    const SBInstanceCache&      ic,
-    const SBTreePositionCache&  pc,
-    const SBArticulatedBodyInertiaCache&,
-    const SBDynamicsCache&      dc,
-    const Real*                 f,
-    SpatialVec*                 allZ,
-    SpatialVec*                 allGepsilon,
-    Real*                       allEpsilon) const override;
-
 void multiplyBySqrtMInvPass2Outward(
     const SBInstanceCache&      ic,
     const SBTreePositionCache&  pc,

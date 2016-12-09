@@ -1348,10 +1348,11 @@ void multiplyByMInv(const State&    state,
 Multiply by the square root of the inverse mass matrix.
 Ref: Jain, Park, Vaidehi, J. Chem. Theory Comput., 8(8): 2581-2587. 2012.
 This operator calculates in O(n) time the product sqrt(M^-1)*v where M is the
-system mass matrix inverse and v is a supplied vector with one entry per u-space
-mobility. If v is a set of modal velocities drawn from a independent multivariate
-Gaussian distribution,  the result is a generalized velocity (udot=sqrt(M^-1)*v) vector
-drawn from a multivariate Gaussian distribution with the mass matrix as covariance.
+system mass matrix inverse and v is a supplied vector with one entry per 
+u-space mobility. If v is a set of modal velocities drawn from a independent 
+multivariate Gaussian distribution,  the result is a generalized velocity 
+(u=sqrt(M^-1)*v) vector drawn from a multivariate Gaussian distribution 
+with the mass matrix as covariance.
 Therefore the equipartition principle is satisfied.
 **/
 void multiplyBySqrtMInv(const State& state,

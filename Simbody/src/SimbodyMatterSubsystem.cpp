@@ -471,10 +471,10 @@ void SimbodyMatterSubsystem::multiplyByMInv(const State&    state,
 }
 
 //==============================================================================
-//                           EU  MULTIPLY BY SQRT M INV EU
+//                           MULTIPLY BY SQRT M INV
 //==============================================================================
 // Check arguments, copy in/out of contiguous Vectors if necessary, call the
-// implementation method to calculate a = M^-1*f.
+// implementation method to calculate a = sqrt(M^-1)*f.
 void SimbodyMatterSubsystem::multiplyBySqrtMInv(const State&    state,
                                             const Vector&   f,
                                             Vector&         MInvf) const

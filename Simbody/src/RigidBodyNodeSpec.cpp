@@ -551,50 +551,9 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
     }
 }
 
-// Pass 1, to be called from tip to base.
-template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass1Inward(
-    const SBInstanceCache&                  ic,
-    const SBTreePositionCache&              pc,
-    const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
-    const Real*                             jointForces,
-    SpatialVec*                             allZ,
-    SpatialVec*                             allZPlus,
-    Real*                                   allEpsilon) const
-{
-    const Vec<dof>&   f     = fromU(jointForces);
-    SpatialVec&       z     = allZ[nodeNum];
-    SpatialVec&       zPlus = allZPlus[nodeNum];
-    Vec<dof>&         eps   = toU(allEpsilon);
 
-    int i, j ,k; // EU
-
-    const bool isPrescribed = isUDotKnown(ic);
-    const HType&              H = getH(pc);
-    const HType&              G = getG(abc);
-
-    z = 0;
-
-
-    for (unsigned i=0; i<children.size(); i++) {
-        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-        const SpatialVec& zPlusChild = allZPlus[children[i]->getNodeNum()];
-        z += phiChild * zPlusChild; // 18 flops
-    }
-
-    zPlus = z;
-    if (!isPrescribed) {
-        eps    = f - ~H*z;  // 12*dof flops
-        zPlus += G*eps;     // 12*dof flops
-    }
-
-    //std::cout<<"RigidBodyNodeSpec Inward eps:"<<std::endl;
-    //for(k=0; k<dof; k++){std::cout<<eps(k)<<' ';}std::cout<<std::endl;
-}
-
-// Pass 2 of multiplyBySqrtMInv.
-// Base to tip: temp allA_GB does not need to be initialized before
+// Base to tip recursion for multiplyBySqrtMInv: 
+// temp allA_GB does not need to be initialized before
 // beginning the iteration.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
 RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
@@ -614,21 +573,15 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
     const HType&        H   = getH(pc);
     const PhiMatrix&    phi = getPhi(pc);
     const Mat<dof,dof>& DI  = getDI(abc);
-    //std::cout<<"RigidBodyNodeSpec Outward H:"<<H<<std::endl;
-    //std::cout<<"RigidBodyNodeSpec Outward phi:"<<phi.toSpatialMat()<<std::endl;
-    //std::cout<<"RigidBodyNodeSpec Outward DI:"<<DI<<std::endl;
 
     const HType&              G = getG(abc);
-    SpatialMat tauBar = G*~H;// 11*dof^2 flops // EU
-    SpatialMat psi = phi*tauBar; // ~100 flops // EU
-    //std::cout<<"RigidBodyNodeSpec Outward G:"<<G<<std::endl;
-    //std::cout<<"RigidBodyNodeSpec Outward psi:"<<psi<<std::endl;
+    SpatialMat tauBar = G*~H;// 11*dof^2 flops 
+    SpatialMat psi = phi*tauBar; // ~100 flops 
 
     int i, j, k;
-    //std::cout<<"RigidBodyNodeSpec Outward DI:"<<DI<<std::endl;
 
     Mat<dof,dof> sqrtDI(1);
-    // DI Cholesky Decomposition: EU
+    // DI Cholesky Decomposition: 
     if(dof>1){
       double s1, s2;
       Mat<dof,dof> L(0);
@@ -661,9 +614,7 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
     else{
       sqrtDI(0,0) = sqrt(DI(0,0));
     }
-    // EU END
-
-    //const HType&        G   = getG(abc);
+    // END Cholesky Decomposition
 
     // Shift parent's acceleration outward (Ground==0). 12 flops
     const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()];
@@ -674,7 +625,6 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
         udot = 0;
         A_GB = APlus;
     } else {
-        //udot = DI*eps - ~G*APlus;   // 2dof^2 + 11 dof flops
         udot = sqrtDI*eps - ~G*APlus;   // 2dof^2 + 11 dof flops
         A_GB = APlus + H*udot;      // 12 dof flops
     }
