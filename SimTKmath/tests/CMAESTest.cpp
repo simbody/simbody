@@ -517,6 +517,7 @@ void testMultithreading() {
     opt.setMaxIterations(5000);
     Vector initStepSize(N, 0.3);// test vector option
     opt.setAdvancedVectorOption("init_stepsize", initStepSize);
+    //opt.setAdvancedRealOption("init_stepsize", 0.3);// to test exception if both are set
     // Sometimes this test fails, so choose a seed where the test passes.
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
