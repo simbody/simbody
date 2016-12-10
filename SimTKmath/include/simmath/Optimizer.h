@@ -316,16 +316,21 @@ private:
  *
  * - <b>popsize</b> (int; default: depends on number of parameters) The
  *   population size (also known as lambda).
- * - <b>init_stepsize</b> (Vector; default: 0.3) Initial stddev; After the encoding of variables,
- *   the initial solution point x0 and the initial standard deviation (step_size) σ0 must be chosen.
+ * - <b>init_stepsize</b> (Vector/Real; default: 0.3) Initial stddev; After the encoding of variables,
+ *   the initial solution point x0 and the initial standard deviation (step_size) sigma0 must be chosen.
  *   In a practical application, one often wants to start by trying to improve a given solution
- *   locally. In this case we choose a rather small σ0 (say in [0.001, 0.1], given the x-values
+ *   locally. In this case we choose a rather small sigma0 (say in [0.001, 0.1], given the x-values
  *   "live" in [0,10]). Thereby we can also check, whether the initial solution is possibly a local
- *   optimum. When a global optimum is sought-after on rugged or multimodal landscapes, σ0 should be
+ *   optimum. When a global optimum is sought-after on rugged or multimodal landscapes, sigma0 should be
  *   chosen such that the final desirable location (or at least some of its domain of attraction) is
- *   not far outside of x0 ± 2σ0 in each coordinate. (Remark that in Rn, if each boundary domain is
- *   in distance σ, then the boundary corner is σ √n away, which poses a slight dilemma for larger n.)
+ *   not far outside of x0 ± 2sigma0 in each coordinate. (Remark that in Rn, if each boundary domain is
+ *   in distance sigma, then the boundary corner is sigma*sqrt(n) away, which poses a slight dilemma
+ *   for larger n.)
  *   A warning is emitted if this is not set.
+ *   Vector initStepSize(N, 0.3);
+ *   opt.setAdvancedVectorOption("init_stepsize", initStepSize);
+ *   or
+ *   opt.setAdvancedRealOption("init_stepsize", 0.3);
  * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
  *   number generator that is used to sample the population from a normal
  *   distribution. See note below.
