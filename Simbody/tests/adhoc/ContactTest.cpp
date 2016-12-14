@@ -303,7 +303,6 @@ try
                           pend2, Vec3(0,-linkLength/2,0), rbProto);
 
     mbs.realizeModel(s);
-    bool suppressProjection = false;
 
     //RungeKuttaMersonIntegrator ee(mbs); const Real Accuracy = .02;
 
