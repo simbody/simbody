@@ -117,13 +117,14 @@ Using Simbody
 Installing
 ----------
 
-Simbody works on Windows, Mac, and Linux. For Windows, you must build from source. For Mac and Linux, you can use a package manager or build from source. In this file, we provide instructions for 5 different ways of installing Simbody:
+Simbody works on Windows, Mac, and Linux. For each operating system, you can use a package manager or build from source. In this file, we provide instructions for 6 different ways of installing Simbody:
 
 1. [**Windows**](#windows-using-visual-studio): build from source using Microsoft Visual Studio.
 2. [**Linux or Mac (make)**](#linux-or-mac-using-make): build from source using gcc or Clang with make.
 3. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
 5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
+6. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with Conda.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
@@ -673,6 +674,27 @@ CMake will check the version of your MinGW, and if the exception mechanism is di
 then the configuration stops because of this difference.
 If one provides Blas and Lapack libraries with the CMake variable `BUILD_USING_OTHER_LAPACK`,
 compilation with MinGW is always possible.
+
+Windows, Mac, and Linux Using Conda
+-----------------------------------
+
+[Conda](http://conda.pydata.org) is a cross platform package manager that can
+be used to install Simbody on Windows, Mac, or Linux. To install Simbody using
+Conda you must first install
+[Miniconda](http://conda.pydata.org/miniconda.html) or
+[Anaconda](https://www.continuum.io/downloads). Either of these will provide
+the `conda` command which can be invoked at the command line to install Simbody
+from the [Conda Forge](https://conda-forge.github.io/) channel as follows:
+
+```
+$ conda install -c conda-forge simbody
+```
+
+This command will install Simbody (both the shared objects and headers) into
+the Miniconda or Anaconda installation directory as per the standard layout for
+each of the operating systems described above. The Conda Forge Simbody recipe
+can be found in Conda Forge's [feedstock
+repository](https://github.com/conda-forge/simbody-feedstock).
 
 Acknowledgments
 ---------------
