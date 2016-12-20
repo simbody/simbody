@@ -124,7 +124,7 @@ Simbody works on Windows, Mac, and Linux. For each operating system, you can use
 3. [**Mac (Homebrew)**](#mac-and-homebrew): automated build/install with Homebrew.
 4. [**Ubuntu/Debian**](#ubuntu-and-apt-get): install pre-built binaries with apt-get.
 5. [**Windows using MinGW**](#windows-using-mingw): build from source using MinGW.
-6. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with Conda.
+6. [**Windows/Mac/Linux**](#windows-mac-and-linux-using-conda): install pre-built binaries with the Conda package manager.
 
 These are not the only ways to install Simbody, however. For example, on a Mac, you could use CMake and Xcode.
 
@@ -690,7 +690,7 @@ from the [Conda Forge](https://conda-forge.github.io/) channel as follows:
 $ conda install -c conda-forge simbody
 ```
 
-This command will install Simbody (both the shared objects and headers) into
+This command will install Simbody (both the libraries and headers) into
 the Miniconda or Anaconda installation directory as per the standard layout for
 each of the operating systems described above. The Conda Forge Simbody recipe
 can be found in Conda Forge's [feedstock
