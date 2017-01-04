@@ -314,9 +314,12 @@ private:
  *
  * Inappropriate initialization of the algorithm may lead to resampling of the
  * parameter distribution. Since some parameters may be defined in a bounded
- * region [a, b]. That is if a user defines the standard deviation and the
- * initial value of the parameter in a manner, where the resultant distribution
- * chooses values out of the bounds. To overcome this the problem the user can
+ * region [a, b]. The CMA algorithm involves sampling a random distribution for
+ * the variables (parameters) in the optimization problem. If the sampled values
+ * do not lie within the variables' bounds, CMA must resample the distribution
+ * until the variables lie within the bounds. This resampling is undesirable,
+ * and may prevent the algorithm from functioning properly. There are two ways
+ * to avoid excessive resampling:To overcome this the problem the user can
  * formulate the problem as follows:
  *
  * 1) Either define the bounds of the parameter and choose the appropriate stddev
@@ -363,7 +366,7 @@ private:
  *   deviation (step_size) sigma0 must be chosen. In a practical application, one
  *   often wants to start by trying to improve a given solution locally. In this
  *   case we choose a rather small sigma0 (say in [0.001, 0.1], given the x-values
- *   "live" in [0,10]). Thereby we can also check, whether the initial solution is
+ *   "live" in [0,10]). Thereby we can also check whether the initial solution is
  *   possibly a local optimum. When a global optimum is sought-after on rugged or
  *   multimodal landscapes, sigma0 should be chosen such that the final desirable
  *   location (or at least some of its domain of attraction) is not far outside of
@@ -371,8 +374,8 @@ private:
  *   in distance sigma, then the boundary corner is sigma*sqrt(n) away, which poses
  *   a slight dilemma for larger n.)
  *
- *   A warning is emitted if this is not set and the default value is assigned to
- *   each term of sigma.
+ *   A warning is emitted if this is not set and default value is used for each
+ *   variable.
  *
  *   Example setting the init_stepsize:
  *
