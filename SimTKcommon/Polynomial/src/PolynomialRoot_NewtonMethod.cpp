@@ -11,7 +11,6 @@ double posx, negx, ypos=0.0,yneg=0.0,y=0.0,previous=-999.0, x=0.0, posx0,negx0,t
 
 void main()
 	{
-		printf("einai swsti apo ton kathigiti.......\n");
 	//input order and coefficients of the polynomial...                
 	do	{	printf("order of polynomial =");
 			scanf("%d",&n);	
