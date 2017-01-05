@@ -353,6 +353,7 @@ private:
  * In summary, to map the values [0;10] into [a;b] we have the alternative
  * transformations a + (b-a) × x/10 or a + (b-a) × (x/10)2 >= a or a × (b/a)x/10 >= 0.
  *
+ * For more details see: https://www.lri.fr/~hansen/cmaes_inmatlab.html
  *
  * Advanced options:
  * 
