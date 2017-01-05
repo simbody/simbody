@@ -9,7 +9,7 @@
 int i,n,count=0,b[10];
 double posx, negx, ypos=0.0,yneg=0.0,y=0.0,previous=-999.0, x=0.0, posx0,negx0,temp ;
 
-void main()
+void PolynomialRootFinder()
 	{
 	//input order and coefficients of the polynomial...                
 	do	{	printf("order of polynomial =");
@@ -81,4 +81,4 @@ void main()
 
 	}  // end if
 
-}  // end main()
+}  // end Polynomial Root Finder
