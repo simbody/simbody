@@ -309,6 +309,52 @@ private:
  *      - 2: all files are written to the current directory.
  *      - 3: output to console, and all files are written to the current directory.
  *
+ *
+ * Encoding of Variables
+ *
+ * Inappropriate initialization of the algorithm may lead to resampling of the
+ * parameter distribution. Since some parameters may be defined in a bounded
+ * region [a, b]. The CMA algorithm involves sampling a random distribution for
+ * the variables (parameters) in the optimization problem. If the sampled values
+ * do not lie within the variables' bounds, CMA must resample the distribution
+ * until the variables lie within the bounds. This resampling is undesirable,
+ * and may prevent the algorithm from functioning properly. There are two ways
+ * to avoid excessive resampling:To overcome this the problem the user can
+ * formulate the problem as follows:
+ *
+ * 1) Either define the bounds of the parameter and choose the appropriate stddev
+ * and initial value for each parameter (see init_stepsize)
+ * 2) Or to reformulate the problem, by rescaling the parameter space so that
+ * each parameter map in a region between e.g. [0, 1] and each parameter has an
+ * initial value of 0.5 and stddev of 0.2 (see comments below).
+ *
+ * The specific formulation of a (real) optimization problem has a tremendous
+ * impact on the optimization performance. In particular, a reasonable parameter
+ * encoding is essential. All parameters should be rescaled such that they have
+ * presumably similar sensitivity (this makes the identity as initial covariance
+ * matrix the right choice). Usually, the best approach is to write a wrapper
+ * around the objective function that transforms the parameters before the actual
+ * function call. The wrapper scales, for example, in each parameter/coordinate
+ * the value [0; 10] into the typical actual domain of the parameter/coordinate.
+ *
+ * The natural encoding of (some of) the parameters can also be "logarithmic".
+ * That is, for a parameter that must always be positive, with a ratio between
+ * typical upper and lower value being larger than 100, we might use 10x instead
+ * of x to call the objective function. More specifically, to achieve the parameter
+ * range [10^–4,10^–1], we use 10^–4×10^3x/10 with x in [0; 10]. Again, the idea
+ * is to have similar sensitivity: this makes sense if we expect the change from
+ * 10^–4 to 10^–3 to have an impact similar to the change from 10^–2 to 10^–1.
+ * In order to avoid the problem that changes of very small values have too less
+ * an impact, an alternative is to choose 10^–1 × (x/10)2 >= 0. In the case where
+ * only a lower bound at zero is necessary, a simple and natural transformation is
+ * x2 × default_x, such that x=1 represents the default (or initial) value and x
+ * remains unbounded during optimization.
+ *
+ * In summary, to map the values [0;10] into [a;b] we have the alternative
+ * transformations a + (b-a) × x/10 or a + (b-a) × (x/10)2 >= a or a × (b/a)x/10 >= 0.
+ *
+ * For more details see: https://www.lri.fr/~hansen/cmaes_inmatlab.html
+ *
  * Advanced options:
  * 
  * The default values for options whose name begins with "stop" are specified
@@ -316,8 +362,28 @@ private:
  *
  * - <b>popsize</b> (int; default: depends on number of parameters) The
  *   population size (also known as lambda).
- * - <b>init_stepsize</b> (real; default: 0.3) Initial step size; same for all
- *   parameters (also known as sigma). A warning is emitted if this is not set.
+ * - <b>init_stepsize</b> (Vector/Real; default: 0.3) Initial stddev; After the
+ *   encoding of variables, the initial solution point x0 and the initial standard
+ *   deviation (step_size) sigma0 must be chosen. In a practical application, one
+ *   often wants to start by trying to improve a given solution locally. In this
+ *   case we choose a rather small sigma0 (say in [0.001, 0.1], given the x-values
+ *   "live" in [0,10]). Thereby we can also check whether the initial solution is
+ *   possibly a local optimum. When a global optimum is sought-after on rugged or
+ *   multimodal landscapes, sigma0 should be chosen such that the final desirable
+ *   location (or at least some of its domain of attraction) is not far outside of
+ *   x0 ± 2sigma0 in each coordinate. (Remark that in Rn, if each boundary domain is
+ *   in distance sigma, then the boundary corner is sigma*sqrt(n) away, which poses
+ *   a slight dilemma for larger n.)
+ *
+ *   A warning is emitted if this is not set and default value is used for each
+ *   variable.
+ *
+ *   Example setting the init_stepsize:
+ *
+ *   Vector initStepSize(N, 0.3);
+ *   opt.setAdvancedVectorOption("init_stepsize", initStepSize);
+ *   "or"
+ *   opt.setAdvancedRealOption("init_stepsize", 0.3);
  * - <b>seed</b> (int; default: 0, which uses clock time) Seed for the random
  *   number generator that is used to sample the population from a normal
  *   distribution. See note below.
@@ -393,6 +459,8 @@ public:
     bool setAdvancedIntOption( const char *option, const int value );
     /// Set the value of an advanced option specified by an boolean value.
     bool setAdvancedBoolOption( const char *option, const bool value );
+    /// Set the value of an advanced option specified by an Vector value.
+    bool setAdvancedVectorOption( const char *option, const Vector value );
 
     
     /// Set which numerical differentiation algorithm is to be used for the next

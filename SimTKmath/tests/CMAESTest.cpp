@@ -485,7 +485,8 @@ void testStopFitness() {
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
     opt.setAdvancedIntOption("popsize", 50);
-    opt.setAdvancedRealOption("init_stepsize", 0.5 * 64);
+    Vector initStepSize(N, 0.5 * 64);// test vector option
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 30);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
 
@@ -514,8 +515,8 @@ void testMultithreading() {
     Optimizer opt(sys, SimTK::CMAES);
     opt.setConvergenceTolerance(1e-12);
     opt.setMaxIterations(5000);
-    opt.setAdvancedRealOption("init_stepsize", 0.3);
-    // Sometimes this test fails, so choose a seed where the test passes.
+    Vector initStepSize(N, 0.3);// test vector option
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
     opt.setAdvancedIntOption("seed", 42);
     opt.setAdvancedRealOption("maxTimeFractionForEigendecomposition", 1);
     opt.setAdvancedStrOption("parallel", "multithreading");
@@ -526,6 +527,28 @@ void testMultithreading() {
     // Change the number of parallel threads.
     opt.setAdvancedIntOption("nthreads", 2);
     SimTK_TEST_OPT(opt, results, 1e-5);
+}
+
+// An exception should be thrown if the user tris
+// to assign the init_stepsize through Vector and Real
+// option
+void testInitStepSizeException() {
+
+    Easom sys;
+    int N = sys.getNumParameters();
+
+    // set initial conditions.
+    Vector results(N);
+    results.setTo(-10);
+
+    // Create optimizer; set settings.
+    Optimizer opt(sys, SimTK::CMAES);
+    opt.setAdvancedRealOption("init_stepsize", 25);
+    Vector initStepSize(N, 25);
+    opt.setAdvancedVectorOption("init_stepsize", initStepSize);
+
+    // Optimize!
+    SimTK_TEST_MUST_THROW_EXC(opt.optimize(results), std::logic_error);
 }
 
 int main() {
@@ -546,6 +569,7 @@ int main() {
         SimTK_SUBTEST(testEasom);
         SimTK_SUBTEST(testStopFitness);
         SimTK_SUBTEST(testMultithreading);
+        SimTK_SUBTEST(testInitStepSizeException);
         // TODO        testRestart();
 
     SimTK_END_TEST();

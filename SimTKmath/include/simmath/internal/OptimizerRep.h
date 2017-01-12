@@ -121,11 +121,13 @@ public:
     bool setAdvancedRealOption( const std::string &option, const Real value );
     bool setAdvancedIntOption( const std::string &option, const int value );
     bool setAdvancedBoolOption( const std::string &option, const bool value );
+    bool setAdvancedVectorOption( const std::string &option, const Vector value );
 
     bool getAdvancedStrOption( const std::string &option, std::string &value ) const;
     bool getAdvancedRealOption( const std::string &option, Real &value ) const;
     bool getAdvancedIntOption( const std::string &option, int &value ) const;
     bool getAdvancedBoolOption( const std::string &option, bool &value ) const;
+    bool getAdvancedVectorOption( const std::string &option, Vector &value ) const;
 
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
@@ -200,6 +202,7 @@ private:
     std::map<std::string, Real> advancedRealOptions;
     std::map<std::string, int> advancedIntOptions;
     std::map<std::string, bool> advancedBoolOptions;
+    std::map<std::string, Vector> advancedVectorOptions;
 
     friend class Optimizer;
     Optimizer* myHandle;   // The owner handle of this Rep.
