@@ -190,6 +190,10 @@ bool Optimizer::setAdvancedBoolOption( const char *option, const bool value ) {
     return updRep().setAdvancedBoolOption( option, value);
 }
 
+bool Optimizer::setAdvancedVectorOption( const char *option, const Vector value ) {
+    return updRep().setAdvancedVectorOption( option, value);
+}
+
 Real Optimizer::optimize(SimTK::Vector   &results) {
     return updRep().optimize(results);
 }
