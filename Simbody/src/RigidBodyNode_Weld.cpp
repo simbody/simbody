@@ -261,18 +261,17 @@ public:
         allA_GB[0] = 0;
     }
 
-    // Outward pass must make sure A_GB[0] is zero so it can be propagated
+    // Outward pass must make sure V_GB[0] is zero so it can be propagated
     // outwards properly.
-    void multiplyBySqrtMInvPass2Outward(
+    void multiplyBySqrtMInvPassOutward(
         const SBInstanceCache&,
         const SBTreePositionCache&,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache&,
         const Real*                 epsilonTmp,
-        SpatialVec*                 allA_GB,
-        Real*                       allUDot) const override
+        SpatialVec*                 allV_GB,
+        Real*                       allU) const override
     {
-        allA_GB[0] = 0;
+        allV_GB[0] = 0;
     }
     
     // Also serves as pass 1 for inverse dynamics.
@@ -578,24 +577,23 @@ public:
         A_GB = APlus;
     }
 
-    // Must set A_GB properly for propagation to children.
-    void multiplyBySqrtMInvPass2Outward(
+    // Must set V_GB properly for propagation to children.
+    void multiplyBySqrtMInvPassOutward(
         const SBInstanceCache&,
         const SBTreePositionCache&  pc,
         const SBArticulatedBodyInertiaCache&,
-        const SBDynamicsCache&      dc,
         const Real*                 allEpsilon,
-        SpatialVec*                 allA_GB,
-        Real*                       allUDot) const override
+        SpatialVec*                 allV_GB,
+        Real*                       allU) const override
     {
-        SpatialVec&      A_GB = allA_GB[nodeNum];
+        SpatialVec&      V_GB = allV_GB[nodeNum];
         const PhiMatrix& phi  = getPhi(pc);
 
         // Shift parent's acceleration outward (Ground==0). 12 flops
-        const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()];
-        const SpatialVec  APlus = ~phi * A_GP;
+        const SpatialVec& V_GP  = allV_GB[parent->getNodeNum()];
+        const SpatialVec  VPlus = ~phi * V_GP;
 
-        A_GB = APlus;
+        V_GB = VPlus;
     }
 
     // Also serves as pass 1 for inverse dynamics.

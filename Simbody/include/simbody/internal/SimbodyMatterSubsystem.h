@@ -1346,18 +1346,89 @@ void multiplyByMInv(const State&    state,
 
 /**
 Multiply by the square root of the inverse mass matrix.
-Ref: Jain, Park, Vaidehi, J. Chem. Theory Comput., 8(8): 2581-2587. 2012.
+See Table 1, column2, Jain, Park, Vaidehi, J. Chem. Theory Comput., 8(8): 
+2581-2587. 2012.
 This operator calculates in O(n) time the product sqrt(M^-1)*v where M is the
 system mass matrix inverse and v is a supplied vector with one entry per 
-u-space mobility. If v is a set of modal velocities drawn from a independent 
-multivariate Gaussian distribution,  the result is a generalized velocity 
-(u=sqrt(M^-1)*v) vector drawn from a multivariate Gaussian distribution 
-with the mass matrix as covariance.
-Therefore the equipartition principle is satisfied.
-**/
-void multiplyBySqrtMInv(const State& state,
-    const Vector&               v,
-    Vector&                     MinvV) const;    
+u-space mobility with kT units (([amu]^1/2 * [nm]) / [ps])). If v is a set 
+of modal velocities drawn from a independent multivariate Gaussian distribution,  
+the result is a generalized velocity (sqrtMinvV=sqrt(M^-1)*v) vector drawn from
+a multivariate Gaussian distribution  with the mass matrix as covariance.
+Therefore the kinetic energy equipartition principle is satisfied.
+@param[in]      state
+    This is a State that has been realized through Position stage, from which
+    the current system configuration and articulated body inertias are 
+    obtained. If necessary, the articulated body inertias will be realized in
+    the state the first time this is called. They will then be retained in the
+    \a state cache for speed.
+@param[in]      v
+    This is a generalized-velocity like vector in mobility space (u-space). If 
+    there is any prescribed motion specified using Motion objects or mobilizer
+    locking (see below), then only the entries of v corresponding to 
+    non-prescribed mobilities are examined by this method; the prescribed ones 
+    are not referenced at all.
+@param[out]     MinvV
+    This is the result sqrt(M^-1)*v. If there is any prescribed motion 
+    specified using Motion objects or mobilizer locks (see below), then only 
+    the non-prescribed entries in MinvV are calculated; the prescribed ones are 
+    set to zero.
+
+<h3>Behavior with prescribed motion</h3>
+If you prescribe the motion of one or more mobilizers using Motion objects or
+mobilizer locking, the behavior of this method is altered. (This does \e not 
+apply if you use Constraint objects to specify the motion.) With prescribed
+motion enabled, this method works only with the free (non-prescribed) 
+mobilities. Only the entries in \a v corresponding to free mobilities are 
+examined, and only the entries in the result \a sqrtMinvV corresponding to 
+free mobilities are calculated; the others are set to zero.
+
+<h3>Theory</h3>
+View the unconstrained, prescribed zero-velocity equations of motion 
+sqrt(M) u = v as partitioned into "free" and "prescribed" variables like 
+this:
+<pre>
+    [sqrtM_ff ~sqrtM_fp] [u_f]   [v_f]
+    [                  ] [   ] = [   ]
+    [sqrtM_fp  sqrtM_pp] [u_p]   [v_p]
+</pre>
+The free and prescribed variables have been grouped here for clarity but
+in general they are interspersed among the columns and rows of M.
+
+Given that decomposition, this method returns
+<pre>
+    [u_f]   [u_f]   [sqrtM_ff^-1  0][v_f]
+    [   ] = [   ] = [              ][   ]
+    [u_p]   [ 0 ]   [       0     0][v_p]
+</pre>
+When there is no prescribed motion M_ff is the entire mass matrix, and the 
+result is u_f=u=sqrt(M^-1)*v. When there is prescribed motion, M_ff is a 
+submatrix of M, and the result is the nf elements of u_f, with u_p=0.
+
+<h3>Implementation</h3>
+This is a stripped-down special version of forward dynamics. It requires the 
+hybrid free/prescribed articulated body inertias to have been realized and 
+will initiate that calculation if necessary the first time it is called for a 
+given configuration q. The sqrt(M^-1)*v calculation requires one outward sweep 
+of the multibody tree to propagate velocities given that modal velocities are
+already provided and don't need to be accumulated.
+
+<h3>Performance</h3>
+If the supplied State does not already contain realized values for the
+articulated body inertias, then they will be realized when this operator is 
+first called for a new set of positions. Calculating articulated body inertias
+is O(n) but relatively expensive. Once the appropriate articulated body 
+inertias are available, repeated calls to this operator are very fast, with 
+worst case around 80*n flops when all mobilizers have 1 dof. If you want to
+force realization of the articulated body inertias, call the method
+realizeArticulatedBodyInertias().
+
+@par Required stage
+  \c Stage::Position (articulated body inertias realized first if necessary)
+
+@see multiplyByM(), calcMInv(), realizeArticulatedBodyInertias() **/ 
+void multiplyBySqrtMInv(const State&  state,
+                        const Vector& v,
+                        Vector&       sqrtMinvV) const;    
   
 /** This operator explicitly calculates the n X n mass matrix M. Note that this
 is inherently an O(n^2) operation since the mass matrix has n^2 elements 

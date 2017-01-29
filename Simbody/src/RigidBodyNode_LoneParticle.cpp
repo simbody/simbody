@@ -358,26 +358,25 @@ void multiplyByMInvPass2Outward(
     }
 }
 
-void multiplyBySqrtMInvPass2Outward(
+void multiplyBySqrtMInvPassOutward(
         const SBInstanceCache&                  ic,
         const SBTreePositionCache&              pc,
         const SBArticulatedBodyInertiaCache&    abc,
-        const SBDynamicsCache&                  dc,
         const Real*                             allEpsilon,
-        SpatialVec*                             allA_GB,
-        Real*                                   allUDot) const override
+        SpatialVec*                             allV_GB,
+        Real*                                   allU) const override
 {
-    const bool isPrescribed = isUDotKnown(ic);
+    const bool isPrescribed = isUKnown(ic);
     const Vec3& eps = Vec3::getAs(&allEpsilon[uIndex]);
-    SpatialVec& A_GB = allA_GB[nodeNum];
-    Vec3&       udot = Vec3::updAs(&allUDot[uIndex]);
+    SpatialVec& V_GB = allV_GB[nodeNum];
+    Vec3&       u = Vec3::updAs(&allU[uIndex]);
 
     if (isPrescribed) {
-        udot = 0;
-        A_GB = SpatialVec(Vec3(0), Vec3(0));
+        u = 0;
+        V_GB = SpatialVec(Vec3(0), Vec3(0));
     } else {
-        udot = eps/getMass();
-        A_GB = SpatialVec(Vec3(0), udot);
+        u = eps/getMass();
+        V_GB = SpatialVec(Vec3(0), u);
     }
 }
 

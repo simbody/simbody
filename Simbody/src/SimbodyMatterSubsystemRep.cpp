@@ -5404,48 +5404,47 @@ void SimbodyMatterSubsystemRep::multiplyByMInv(const State& s,
 //==============================================================================
 //                            MULTIPLY BY SQRT M INV
 //==============================================================================
-// Calculate u = sqrt(M^-1) v. We also get spatial accelerations A_GB for
+// Calculate u = sqrt(M^-1) v. We also get spatial velocities V_GB for
 // each body as a side effect.
-// This Subsystem must already be realized through Dynamics stage.
+// This Subsystem must already be realized through Position stage or at
+// least have PositionKinematics already available; we'll 
+// realize articulated body inertias here if necessary.
 // All vectors must use contiguous storage.
 void SimbodyMatterSubsystemRep::multiplyBySqrtMInv(const State& s,
-    const Vector&                                           f,
-    Vector&                                                 MInvf) const
+    const Vector&                                               v,
+    Vector&                                                     sqrtMinvV) const
 {
     const SBInstanceCache&                  ic  = getInstanceCache(s);
     const SBTreePositionCache&              tpc = getTreePositionCache(s);
-    const SBDynamicsCache&                  dc  = getDynamicsCache(s);
+    realizeArticulatedBodyInertias(s); // (may already have been realized)
     const SBArticulatedBodyInertiaCache&    abc = getArticulatedBodyInertiaCache(s);
 
     const int nb = getNumBodies();
     const int nu = getNU(s);
 
-    int i, j, k;
-
-    assert(f.size() == nu);
-
-    MInvf.resize(nu);
+    assert(v.size() == nu);
+    sqrtMinvV.resize(nu);
     if (nu==0)
         return;
 
-    assert(f.hasContiguousData());
-    assert(MInvf.hasContiguousData());
+    assert(v.hasContiguousData());
+    assert(sqrtMinvV.hasContiguousData());
 
     // Temporaries
     Array_<Real>        eps(nu);
-    Array_<SpatialVec>  z(nb), zPlus(nb), A_GB(nb);
+    Array_<SpatialVec>  z(nb), zPlus(nb), V_GB(nb);
 
     // Point to raw data of input arguments.
-    const Real* fPtr     = &f[0];
-    Real*       MInvfPtr = &MInvf[0];
+    const Real* vPtr         = &v[0];
+    Real*       sqrtMinvVPtr = &sqrtMinvV[0];
    
-    for(int i=0; i<nu; i++){eps[i] = fPtr[i];}
+    for(int i=0; i<nu; i++){eps[i] = vPtr[i];}
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++){
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.multiplyBySqrtMInvPass2Outward(ic,tpc,abc,dc,
-                eps.cbegin(), A_GB.begin(), MInvfPtr);
+            node.multiplyBySqrtMInvPassOutward(ic,tpc,abc,
+                eps.cbegin(), V_GB.begin(), sqrtMinvVPtr);
         }
     }
    

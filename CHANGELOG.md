@@ -8,6 +8,7 @@ This is not a comprehensive list of changes but rather a hand-curated collection
 
 3.6 (in development)
 --------------------
+* Added multiplication by the square root of inverse mass matrix feature.
 * Forced GCC to be at least 4.9.0, so that new C++11 features like regular
   expressions can be used (pr #485).
 * Minimum Ubuntu version supported 14.04 LTS (Trusty), with a [manual update of GCC](http://askubuntu.com/questions/466651/how-do-i-use-the-latest-gcc-on-ubuntu-14-04).

@@ -235,28 +235,19 @@ void testUnconstrainedSystem() {
 
     system.realize(state, Stage::Position);
 
-    Matrix MInv, SqrtMInv; 
 
     // Compute SqrtMInv - calcSqrtMInv not yet implemented
+    Matrix MInv, SqrtMInv; 
     SqrtMInv.resize(nu,nu);
-    const bool isContiguous = SqrtMInv(0).hasContiguousData();
-    Vector contig_col(isContiguous ? 0 : nu);
-
-    Vector f(nu);
-    f.setToZero();
+    Vector v(nu);
+    v.setToZero();
     for (int i=0; i < nu; ++i) {
-    state.invalidateAllCacheAtOrAbove(Stage::Dynamics); 
-    system.realize(state); 
-        f[i] = 1;
-        if (isContiguous) {
-            matter.multiplyBySqrtMInv(state, f, SqrtMInv(i));
-        } else {
-            matter.multiplyBySqrtMInv(state, f, contig_col);
-            SqrtMInv(i) = contig_col;
-        }
-        f[i] = 0;
+      state.invalidateAllCacheAtOrAbove(Stage::Position);
+      system.realize(state, Stage::Position);
+      v[i] = 1;
+      matter.multiplyBySqrtMInv(state, v, SqrtMInv(i));
+      v[i] = 0;
     }
-    //
 
     matter.calcMInv(state, MInv); 
     SimTK_TEST_EQ_SIZE((SqrtMInv * ~SqrtMInv), MInv, nu);

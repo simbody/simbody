@@ -553,35 +553,31 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyByMInvPass2Outward(
 
 
 // Base to tip recursion for multiplyBySqrtMInv: 
-// temp allA_GB does not need to be initialized before
+// temp allV_GB does not need to be initialized before
 // beginning the iteration.
 template<int dof, bool noR_FM, bool noX_MB, bool noR_PF> void
-RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
+RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPassOutward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
     const Real*                             allEpsilon,
-    SpatialVec*                             allA_GB,
-    Real*                                   allUDot) const
+    SpatialVec*                             allV_GB,
+    Real*                                   allU) const
 {
     const Vec<dof>& eps  = fromU(allEpsilon);
-    SpatialVec&     A_GB = allA_GB[nodeNum];
-    Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
+    SpatialVec&     V_GB = allV_GB[nodeNum];
+    Vec<dof>&       u    = toU(allU); // pull out this node's u
 
-    const bool isPrescribed = isUDotKnown(ic);
+    const bool isPrescribed = isUKnown(ic);
     const HType&        H   = getH(pc);
     const PhiMatrix&    phi = getPhi(pc);
     const Mat<dof,dof>& DI  = getDI(abc);
 
     const HType&              G = getG(abc);
-    SpatialMat tauBar = G*~H;// 11*dof^2 flops 
-    SpatialMat psi = phi*tauBar; // ~100 flops 
 
-    int i, j, k;
-
-    Mat<dof,dof> sqrtDI(1);
     // DI Cholesky Decomposition: 
+    int i, j, k;
+    Mat<dof,dof> sqrtDI(1);
     if(dof>1){
       double s1, s2;
       Mat<dof,dof> L(0);
@@ -617,16 +613,16 @@ RigidBodyNodeSpec<dof, noR_FM, noX_MB, noR_PF>::multiplyBySqrtMInvPass2Outward(
     // END Cholesky Decomposition
 
     // Shift parent's acceleration outward (Ground==0). 12 flops
-    const SpatialVec& A_GP  = allA_GB[parent->getNodeNum()];
-    const SpatialVec  APlus = ~phi * A_GP;
+    const SpatialVec& V_GP  = allV_GB[parent->getNodeNum()];
+    const SpatialVec  VPlus = ~phi * V_GP;
 
-    // For a prescribed mobilizer, set udot==0.
+    // For a prescribed mobilizer, set u==0.
     if (isPrescribed) {
-        udot = 0;
-        A_GB = APlus;
+        u = 0;
+        V_GB = VPlus;
     } else {
-        udot = sqrtDI*eps - ~G*APlus;   // 2dof^2 + 11 dof flops
-        A_GB = APlus + H*udot;      // 12 dof flops
+        u = sqrtDI*eps - ~G*VPlus;   // 2dof^2 + 11 dof flops
+        V_GB = VPlus + H*u;      // 12 dof flops
     }
 }
 

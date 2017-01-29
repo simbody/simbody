@@ -557,14 +557,13 @@ virtual void multiplyByMInvPass2Outward(
     SpatialVec*                             allA_GB,
     Real*                                   allUDot) const=0;
 
-virtual void multiplyBySqrtMInvPass2Outward(
+virtual void multiplyBySqrtMInvPassOutward(
     const SBInstanceCache&                  ic,
     const SBTreePositionCache&              pc,
     const SBArticulatedBodyInertiaCache&    abc,
-    const SBDynamicsCache&                  dc,
     const Real*                             epsilonTmp,
-    SpatialVec*                             allA_GB,
-    Real*                                   allUDot) const=0;
+    SpatialVec*                             allV_GB,
+    Real*                                   allU) const=0;
 
 // Also serves as pass 1 for inverse dynamics.
 virtual void calcBodyAccelerationsFromUdotOutward(
@@ -732,6 +731,13 @@ bool isUDotKnown(const SBInstanceCache& ic) const
 {   return ic.getMobodInstanceInfo(nodeNum).udotMethod!=Motion::Free; }
 bool isUDotKnownToBeZero(const SBInstanceCache& ic) const 
 {   return ic.getMobodInstanceInfo(nodeNum).udotMethod==Motion::Zero; }
+
+// This says whether this mobilizer has prescribed *velocity*, and if so
+// whether the velocity is known to be zero.
+bool isUKnown(const SBInstanceCache& ic) const 
+{   return ic.getMobodInstanceInfo(nodeNum).uMethod!=Motion::Free; }
+bool isUKnownToBeZero(const SBInstanceCache& ic) const 
+{   return ic.getMobodInstanceInfo(nodeNum).uMethod==Motion::Zero; }
 
     // POSITION INFO
 
