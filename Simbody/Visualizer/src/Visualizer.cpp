@@ -144,8 +144,13 @@ public:
         pthread_cond_destroy(&m_queueNotFull);
         pthread_mutex_destroy(&m_queueLock);
 
-        if (m_shutdownWhenDestructed)
-            m_protocol.shutdownGUI();
+        if (m_shutdownWhenDestructed) {
+            try {
+                // This throws an exception if the pipe is broken (e.g., if the
+                // simbody-visualizer has already been shut down).
+                m_protocol.shutdownGUI();
+            } catch (...) {}
+        }
     }
 
     void setShutdownWhenDestructed(bool shouldShutdown)
