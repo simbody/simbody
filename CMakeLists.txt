@@ -407,6 +407,12 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
     set(CMAKE_C_FLAGS_MINSIZEREL ${BUILD_C_FLAGS_MINSIZEREL}
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
 
+    set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
+        message(STATUS "Adding coverage")
+        find_package(codecov)
+    endif()
+
 endif()
 
 ## When building in any of the Release modes, tell VC++ cl compiler to use
