@@ -47,6 +47,10 @@ if(BUILD_UNVERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+    if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
+        add_coverage(${SHARED_TARGET})
+    endif()
+
 endif(BUILD_UNVERSIONED_LIBRARIES)
 
 
@@ -72,5 +76,9 @@ if(BUILD_VERSIONED_LIBRARIES)
                      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
+        add_coverage(${SHARED_TARGET_VN})
+    endif()
 
 endif(BUILD_VERSIONED_LIBRARIES)
