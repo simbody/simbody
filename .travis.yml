@@ -58,7 +58,7 @@ before_install:
   #- if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then sudo apt-get --yes install cmake; fi
 
 install:
-  - mkdir ~/simbody-build && cd ~/simbody-build
+  - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
   # Configure.
   - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
