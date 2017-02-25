@@ -17,6 +17,9 @@ matrix:
       compiler: gcc
       env: BTYPE=Release
     - os: linux
+      compiler: gcc
+      env: BTYPE=Coverage
+    - os: linux
       compiler: clang
       env: BTYPE=Debug
     - os: osx
@@ -64,6 +67,14 @@ install:
 script:
   ## Test Simbody.
   - ctest -j8 --output-on-failure
+
+  ## Run coverage and send result to codecov.io
+  - if [[ "$BTYPE" == "Coverage" ]];
+    then
+    echo "Coverage";
+    make coverage;
+    bash <(curl -s https://codecov.io/bash) -X gcov;
+    fi
 
   ## Make sure we can install with no issues.
   - make -j8 install
