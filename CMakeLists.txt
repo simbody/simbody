@@ -41,6 +41,11 @@ endif()
 # Include GNUInstallDirs to get canonical paths
 include(GNUInstallDirs)
 
+# Declare the option for code coverage
+option(SIMBODY_COVERAGE
+       "Adding ability to assess test coverage. Code coverage is possible with gcc or clang."
+       OFF)
+
 # Check compiler version
 if(MSVC)
     if(MSVC_VERSION LESS 1800 OR MSVC_VERSION EQUAL 1800)
@@ -50,6 +55,9 @@ if(MSVC)
                             "README.md for more information.\nIf you have the"
                             " 'Visual C++ Compiler Nov 2013 CTP (CTP_Nov2013)'"
                             " comment this test and configure normally.")
+    endif()
+    if(SIMBODY_COVERAGE)
+        message(FATAL_ERROR "Code coverage is not possible with MSVC")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     set(SIMBODY_REQUIRED_GCC_VERSION 4.9.0)
@@ -408,8 +416,7 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU" OR
         CACHE STRING "Can't change here -- see BUILD_C..." FORCE)
 
     set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-    if(${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
-        message(STATUS "Adding coverage")
+    if(SIMBODY_COVERAGE)
         find_package(codecov)
     endif()
 

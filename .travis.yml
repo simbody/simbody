@@ -13,18 +13,19 @@ matrix:
     - os: linux
       compiler: clang
       env: BTYPE=RelWithDebInfo
+      env: SIMBODY_COVERAGE=OFF
     - os: linux
       compiler: gcc
       env: BTYPE=Release
+      env: SIMBODY_COVERAGE=OFF
     - os: linux
       compiler: gcc
-      env: BTYPE=Coverage
-    - os: linux
-      compiler: clang
       env: BTYPE=Debug
+      env: SIMBODY_COVERAGE=ON
     - os: osx
       compiler: clang
       env: BTYPE=RelWithDebInfo
+      env: SIMBODY_COVERAGE=OFF
 
 before_install:
   ## Ensure that there are no tabs in source code.
@@ -60,7 +61,7 @@ before_install:
 install:
   - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DCMAKE_INSTALL_PREFIX=~/simbody
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$SIMBODY_COVERAGE -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
   - make -j8
 
@@ -69,10 +70,11 @@ script:
   - ctest -j8 --output-on-failure
 
   ## Run coverage and send result to codecov.io
-  - if [[ "$BTYPE" == "Coverage" ]];
+  - if [[ "$SIMBODY_COVERAGE" == "ON" ]];
     then
-    echo "Coverage";
+    echo "Running coverage target";
     make coverage;
+    echo "Sending coverage result to codecov.io";
     bash <(curl -s https://codecov.io/bash) -X gcov;
     fi
 

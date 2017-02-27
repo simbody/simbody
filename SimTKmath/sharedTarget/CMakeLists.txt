@@ -47,7 +47,7 @@ if(BUILD_UNVERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-    if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
+    if(SIMBODY_COVERAGE)
         add_coverage(${SHARED_TARGET})
     endif()
 
@@ -77,7 +77,7 @@ if(BUILD_VERSIONED_LIBRARIES)
                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
                      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-    if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
+    if(SIMBODY_COVERAGE)
         add_coverage(${SHARED_TARGET_VN})
     endif()
 
