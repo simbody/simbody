@@ -12,20 +12,16 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: BTYPE=RelWithDebInfo
-      env: SIMBODY_COVERAGE=OFF
+      env: BTYPE=RelWithDebInfo SIMBODY_COVERAGE=OFF
     - os: linux
       compiler: gcc
-      env: BTYPE=Release
-      env: SIMBODY_COVERAGE=OFF
+      env: BTYPE=Release SIMBODY_COVERAGE=OFF
     - os: linux
       compiler: gcc
-      env: BTYPE=Debug
-      env: SIMBODY_COVERAGE=ON
+      env: BTYPE=Debug SIMBODY_COVERAGE=ON
     - os: osx
       compiler: clang
-      env: BTYPE=RelWithDebInfo
-      env: SIMBODY_COVERAGE=OFF
+      env: BTYPE=RelWithDebInfo SIMBODY_COVERAGE=OFF
 
 before_install:
   ## Ensure that there are no tabs in source code.
