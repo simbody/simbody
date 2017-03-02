@@ -66,13 +66,10 @@ script:
   - ctest -j8 --output-on-failure
 
   ## Run coverage and send result to codecov.io
-  - if [[ "$SIMBODY_COVERAGE" == "ON" ]];
-    then
-    echo "Running coverage target";
-    make coverage;
-    echo "Sending coverage result to codecov.io";
-    bash <(curl -s https://codecov.io/bash) -X gcov;
-    fi
+  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then echo "Running coverage target"; fi
+  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then make coverage; fi
+  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then echo "Sending coverage result to codecov.io"; fi
+  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then bash <(curl -s https://codecov.io/bash) -X gcov; fi
 
   ## Make sure we can install with no issues.
   - make -j8 install
