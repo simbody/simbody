@@ -57,7 +57,7 @@ if(MSVC)
                             " comment this test and configure normally.")
     endif()
     if(SIMBODY_COVERAGE)
-        message(FATAL_ERROR "Code coverage is not possible with MSVC")
+        message(FATAL_ERROR "Code coverage is not possible with MSVC.")
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     set(SIMBODY_REQUIRED_GCC_VERSION 4.9.0)
@@ -196,7 +196,7 @@ set(BUILD_EXAMPLES ON CACHE BOOL
 
 # Set whether to build the Visualizer code.
 set(BUILD_VISUALIZER ON CACHE BOOL
-    "Control building of the visualizer component")
+    "Control building of the visualizer component.")
 
 # Turning this off reduces the build time (and space) substantially,
 # but you may miss the occasional odd bug. Also currently on Windows it
