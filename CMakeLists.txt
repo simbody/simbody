@@ -43,7 +43,7 @@ include(GNUInstallDirs)
 
 # Declare the option for code coverage
 option(SIMBODY_COVERAGE
-       "Adding ability to assess test coverage. Code coverage is possible with gcc or clang."
+       "Adding ability to assess test coverage (requires gcc or clang)."
        OFF)
 
 # Check compiler version
