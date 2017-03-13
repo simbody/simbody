@@ -35,6 +35,10 @@ if(BUILD_UNVERSIONED_LIBRARIES)
             )
     endif()
 
+    if(SIMBODY_COVERAGE)
+        add_coverage(${SHARED_TARGET})
+    endif()
+
 endif(BUILD_UNVERSIONED_LIBRARIES)
 
 if(BUILD_VERSIONED_LIBRARIES)
@@ -66,6 +70,8 @@ if(BUILD_VERSIONED_LIBRARIES)
             )
     endif()
 
+    if(SIMBODY_COVERAGE)
+        add_coverage(${SHARED_TARGET_VN})
+    endif()
+
 endif(BUILD_VERSIONED_LIBRARIES)
-
-

@@ -1,4 +1,4 @@
-Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci]
+Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci] [![Codecov][buildstatus_image_codecov]][codecovci]
 =======
 
 Simbody is a high-performance, open-source toolkit for science- and
@@ -713,6 +713,8 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 [travisci]: https://travis-ci.org/simbody/simbody
 [buildstatus_image_appveyor]: https://ci.appveyor.com/api/projects/status/2dua0qna2m85fts2/branch/master?svg=true
 [appveyorci]: https://ci.appveyor.com/project/opensim-org/simbody/branch/master
+[buildstatus_image_codecov]: https://codecov.io/gh/simbody/simbody/branch/master/graph/badge.svg
+[codecovci]: https://codecov.io/gh/simbody/simbody
 [user]: https://github.com/simbody/simbody/raw/master/Simbody/doc/SimbodyAndMolmodelUserGuide.pdf
 [rna]: doc/images/simbios_11000_body_RNA.gif
 [simbios]: http://simbios.stanford.edu/

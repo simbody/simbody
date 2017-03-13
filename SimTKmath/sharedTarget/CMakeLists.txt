@@ -56,6 +56,10 @@ if(BUILD_UNVERSIONED_LIBRARIES)
             )
     endif()
 
+    if(SIMBODY_COVERAGE)
+        add_coverage(${SHARED_TARGET})
+    endif()
+
 endif(BUILD_UNVERSIONED_LIBRARIES)
 
 
@@ -86,6 +90,10 @@ if(BUILD_VERSIONED_LIBRARIES)
         target_include_directories(${SHARED_TARGET_VN} INTERFACE
             $<INSTALL_INTERFACE:${SIMBODY_INCLUDE_INSTALL_DIR}>
             )
+    endif()
+
+    if(SIMBODY_COVERAGE)
+        add_coverage(${SHARED_TARGET_VN})
     endif()
 
 endif(BUILD_VERSIONED_LIBRARIES)
