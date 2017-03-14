@@ -15,6 +15,7 @@ set(my_header_files myexe.h)
 # able to guess, you'll need to tell find_package where to look.
 find_package(Simbody REQUIRED)
 
+# This is only necessary if Simbody was built using CMake older than 3.0.2.
 include_directories(${Simbody_INCLUDE_DIR})
 
 add_executable(myexe ${my_source_files} ${my_header_files})
