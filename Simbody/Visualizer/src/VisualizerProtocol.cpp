@@ -311,8 +311,8 @@ VisualizerProtocol::VisualizerProtocol
     // Spawn the thread to listen for events.
 
     pthread_mutex_init(&sceneLock, NULL);
-    pthread_t thread;
-    pthread_create(&thread, NULL, listenForVisualizerEvents, &visualizer);
+    pthread_create(&eventListenerThread, NULL, listenForVisualizerEvents,
+                   &visualizer);
 }
 
 // This is executed on the main thread at GUI startup and thus does not
@@ -368,6 +368,14 @@ void VisualizerProtocol::shakeHandsWithGUI(int toGUIPipe, int fromGUIPipe) {
 
 void VisualizerProtocol::shutdownGUI() {
     // Don't wait for scene completion; kill GUI now.
+    
+    // We no longer need to listen for events from the GUI. Call this before
+    // writing to the pipe, because attempting to write to the pipe may throw
+    // an exception. This detach line was added to solve an issue with OpenSim
+    // MATLAB bindings, wherein MATLAB would use more and more CPU each time
+    // a Visualizer was created.
+    pthread_cancel(eventListenerThread);
+    
     char command = Shutdown;
     WRITE(outPipe, &command, 1);
 }

@@ -159,6 +159,7 @@ private:
     // assigned visualizer cache index.
     mutable std::map<const void*, unsigned short> meshes;
     mutable pthread_mutex_t sceneLock;
+    mutable pthread_t eventListenerThread;
 };
 }
 
