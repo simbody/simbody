@@ -166,8 +166,12 @@ static void spawnViz(const Array_<String>& searchPath, const String& appName,
 
 static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
-    while (totalRead < bytes)
-        totalRead += READ(srcPipe, buffer+totalRead, bytes-totalRead);
+    int oldCancelType;
+    while (totalRead < bytes) {
+        pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldCancelType);
+        totalRead += READ(srcPipe, buffer + totalRead, bytes - totalRead);
+        pthread_setcanceltype(oldCancelType, NULL);
+    }
 }
 
 static void readData(unsigned char* buffer, int bytes) 
