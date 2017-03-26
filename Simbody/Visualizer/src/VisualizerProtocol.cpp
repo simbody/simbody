@@ -168,6 +168,9 @@ static void readDataFromPipe(int srcPipe, unsigned char* buffer, int bytes) {
     int totalRead = 0;
     int oldCancelType;
     while (totalRead < bytes) {
+        // Changing the cancel type is a workaround for Windows, which does not
+        // mark system calls as "cancellation points"; see:
+        // https://www.sourceware.org/pthreads-win32/manual/pthread_cancel.html
         pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldCancelType);
         totalRead += READ(srcPipe, buffer + totalRead, bytes - totalRead);
         pthread_setcanceltype(oldCancelType, NULL);
