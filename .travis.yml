@@ -102,7 +102,7 @@ deploy:
   # '--archive' preserves symlinks.
   provider: script
   skip_cleanup: true
-  script: rsync --archive --compress ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/latest
+  script: rsync --archive --compress ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/latest/
   on:
     # Upload for both linux and OSX. 
     branch: deploy_to_sourceforge # TODO temporary during testing.
