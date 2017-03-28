@@ -12,20 +12,20 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: BTYPE=RelWithDebInfo SIMBODY_COVERAGE=OFF
+      env: BTYPE=RelWithDebInfo COV=OFF DEPLOY=yes
     - os: linux
       compiler: gcc
-      env: BTYPE=Release SIMBODY_COVERAGE=OFF
+      env: BTYPE=Release        COV=OFF DEPLOY=no
     - os: linux
       compiler: gcc
-      env: BTYPE=Debug SIMBODY_COVERAGE=ON
+      env: BTYPE=Debug          COV=ON  DEPLOY=yes
     - os: osx
       compiler: clang
-      env: BTYPE=RelWithDebInfo SIMBODY_COVERAGE=OFF
+      env: BTYPE=RelWithDebInfo COV=OFF DEPLOY=yes
 
 addons:
   # To avoid an interactive prompt when uploading binaries to sourceforge.
-  ssh_known_hosts: web.sourceforge.net
+  ssh_known_hosts: frs.sourceforge.net
 
 before_install:
   ## Ensure that there are no tabs in source code.
@@ -61,7 +61,7 @@ before_install:
 install:
   - mkdir -p $TRAVIS_BUILD_DIR/simbody-build && cd $TRAVIS_BUILD_DIR/simbody-build
   # Configure.
-  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$SIMBODY_COVERAGE -DCMAKE_INSTALL_PREFIX=~/simbody
+  - cmake $TRAVIS_BUILD_DIR -DCMAKE_BUILD_TYPE=$BTYPE -DCMAKE_CXX_FLAGS=-Werror -DSIMBODY_COVERAGE:BOOL=$COV -DCMAKE_INSTALL_PREFIX=~/simbody
   # Build.
   - make -j8
 
@@ -70,10 +70,10 @@ script:
   - ctest -j8 --output-on-failure
 
   ## Run coverage and send result to codecov.io
-  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then echo "Running coverage target"; fi
-  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then make coverage; fi
-  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then echo "Sending coverage result to codecov.io"; fi
-  - if [[ "$SIMBODY_COVERAGE" == "ON" ]]; then bash <(curl -s https://codecov.io/bash) -X gcov; fi
+  - if [[ "$COV" == "ON" ]]; then echo "Running coverage target"; fi
+  - if [[ "$COV" == "ON" ]]; then make coverage; fi
+  - if [[ "$COV" == "ON" ]]; then echo "Sending coverage result to codecov.io"; fi
+  - if [[ "$COV" == "ON" ]]; then bash <(curl -s https://codecov.io/bash) -X gcov; fi
 
   ## Make sure we can install with no issues.
   - make -j8 install
@@ -106,7 +106,7 @@ deploy:
   on:
     # Upload for both linux and OSX. 
     branch: deploy_to_sourceforge # TODO temporary during testing.
-    condition: "$CC = clang"
+    condition: "$DEPLOY = yes"
 
 # Process for securely uploading files to Sourceforge, taken from
 # https://oncletom.io/2016/travis-ssh-deploy/:
