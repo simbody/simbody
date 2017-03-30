@@ -106,7 +106,7 @@ deploy:
   script: rsync --archive --compress --verbose ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/simbody/
   on:
     # Upload for both linux and OSX. 
-    branch: deploy_to_sourceforge # TODO temporary
+    branch: master 
     condition: "$DEPLOY = yes"
  
 # Process for securely uploading files to Sourceforge, taken from
