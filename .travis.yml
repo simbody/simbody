@@ -83,7 +83,7 @@ before_deploy:
   # binaries were built.
   - mkdir ~/to_deploy
   - export ZIPNAME=simbody-latest_${TRAVIS_OS_NAME}_${BTYPE}.zip
-  - # Zip up simbody relative to the home directory; must change to home dir.
+  # Zip up simbody relative to the home directory; must change to home dir.
   - cd ~
   # Leave symlinks intact.
   - zip --symlinks --recurse-paths --quiet ~/to_deploy/$ZIPNAME simbody
@@ -98,12 +98,12 @@ before_deploy:
   - ssh-add /tmp/deploy_myosin_sourceforge_rsa
 
 deploy:
-  # Uploads to myosin.sourceforge.net/simbody_latest_builds
+  # Uploads to sourceforge.net/projects/myosin
   # See https://docs.travis-ci.com/user/deployment/custom/
   # '--archive' preserves symlinks.
   provider: script
   skip_cleanup: true
-  script: rsync --archive --compress --verbose ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/latest/
+  script: rsync --archive --compress --verbose ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/simbody/latest/
   on:
     # Upload for both linux and OSX. 
     branch: master 
