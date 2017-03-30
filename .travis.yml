@@ -106,11 +106,9 @@ deploy:
   script: rsync --archive --compress --verbose ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/latest/
   on:
     # Upload for both linux and OSX. 
-    branch: deploy_to_sourceforge # TODO temporary during testing.
+    branch: master 
     condition: "$DEPLOY = yes"
  
-# TODO script: rsync --archive --compress ~/to_deploy/$ZIPNAME opensim-bot@frs.sourceforge.net:/home/frs/project/myosin/latest/
-
 # Process for securely uploading files to Sourceforge, taken from
 # https://oncletom.io/2016/travis-ssh-deploy/:
 #
