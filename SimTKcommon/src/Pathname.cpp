@@ -475,12 +475,13 @@ bool Pathname::getFunctionLibraryDirectory(void* func,
         // Returns 0 on error, non-zero on success.
         if (status == 0) return false;
 
-        // At first, this contains the path to the library file.
-        path = std::string(dl_info.dli_fname);
-        // Remove the filename.
-        std::string component; // not used.
-        removeLastPathComponentInPlace(path, component);
-        path += MyPathSeparator;
+        // Convert the path to an absolute path and get rid of the filename.
+        // On macOS, dli_fname is an absolute path; on Ubuntu, it's relative to
+        // the working directory.
+        bool dontApplySearchPath;
+        std::string filename, extension;
+        deconstructPathname(dl_info.dli_fname, dontApplySearchPath, path,
+                            filename, extension);
         return true;
     #endif
 }
