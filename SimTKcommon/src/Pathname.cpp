@@ -462,6 +462,27 @@ string Pathname::getThisExecutableDirectory() {
     return path;
 }
 
+bool Pathname::getFunctionLibraryDirectory(void* func,
+                                           std::string& path) {
+    #if defined(_WIN32)
+        return false;
+    #else
+        // Dl_info and dladdr are defined in dlfcn.h
+        Dl_info dl_info;
+        int status = dladdr(func, &dl_info);
+        // Returns 0 on error, non-zero on success.
+        if (status == 0) return false;
+
+        // At first, this contains the path to the library file.
+        path = std::string(dl_info.dli_fname);
+        // Remove the filename.
+        std::string component; // not used.
+        removeLastPathComponentInPlace(path, component);
+        path += MyPathSeparator;
+        return true;
+    #endif
+}
+
 string Pathname::getCurrentDriveLetter() {
     #ifdef _WIN32
         const int which = _getdrive();

@@ -279,6 +279,23 @@ VisualizerProtocol::VisualizerProtocol
                     SIMBODY_VISUALIZER_REL_INSTALL_DIR));
     }
 
+    // Try using the location of SimTKsimbody combined with the path from the
+    // SimTKsimbody library to the simbody-visualizer install location (only
+    // available on non-Windows platforms). We must provide a function that
+    // resides in SimTKsimbody.
+    std::string SimTKsimbodyDir;
+    if (Pathname::getFunctionLibraryDirectory((void*)createPipeSim2Viz,
+                                              SimTKsimbodyDir)) {
+        // We have the path to SimTKsimbody; now we combine this with the path
+        // from SimTKsimbody to simbody-visualizer (this assumes the
+        // installation has not been reorganized from what CMake originally
+        // specified).
+        std::string absPathToVizDir =
+          Pathname::getAbsoluteDirectoryPathnameUsingSpecifiedWorkingDirectory(
+                  SimTKsimbodyDir, SIMBODY_PATH_FROM_LIBDIR_TO_VIZ_DIR);
+        actualSearchPath.push_back(absPathToVizDir);
+    }
+
     // Try the build-time install location:
     actualSearchPath.push_back(SIMBODY_VISUALIZER_INSTALL_DIR);
 
