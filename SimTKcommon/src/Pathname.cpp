@@ -467,7 +467,9 @@ bool Pathname::getFunctionLibraryDirectory(void* func,
     #if defined(_WIN32)
         return false;
     #else
-        // Dl_info and dladdr are defined in dlfcn.h
+        // Dl_info and dladdr are defined in dlfcn.h. dladdr() is not POSIX,
+        // but is provided on macOS and in Glibc (at least on Ubuntu). It is
+        // likely not available on all UNIX variants.
         Dl_info dl_info;
         int status = dladdr(func, &dl_info);
         // Returns 0 on error, non-zero on success.
