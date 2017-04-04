@@ -170,11 +170,14 @@ subdirectory of the Simbody installation directory.  However, first we look in
 the same directory as the currently-running executable and, if found, we will
 use that visualizer. If no visualizer is found with the executable, we check if
 environment variables SIMBODY_HOME or SimTK_INSTALL_DIR exist, and look in
-their "bin" subdirectories if so. Then, it checks the installed location of the
-visualizer, as specified when Simbody is compiled. If the visualizer is not
-there, we'll look in platform-specific default locations.  The other
-constructor allows specification of a search path that will be checked before
-attempting to find the installation directory.
+their "bin" (or "libexec/simbody" on UNIX) subdirectories if so. Next, we
+attempt to use the relative path from the SimTKsimbody library to the
+simbody-visualizer (this helps if Simbody is relocated, but does not work on
+Windows, or if using static Simbody libraries). Then, we check the installed
+location of the visualizer, as specified when Simbody is compiled. If the
+visualizer is not there, we'll look in platform-specific default locations.
+The other constructor allows specification of a search path that will be
+checked before attempting to find the installation directory.
 
 If you want to override the name of the visualizer executable for which Simbody
 searches, set the environment variable SIMBODY_VISUALIZER_NAME

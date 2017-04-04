@@ -128,6 +128,14 @@ install(FILES ${SIMBODY_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 # SIMBODY_VISUALIZER_INSTALL_DIR defined in root CMakeLists.txt
 add_definitions(-DSIMBODY_VISUALIZER_INSTALL_DIR="${SIMBODY_VISUALIZER_INSTALL_DIR}/")
 add_definitions(-DSIMBODY_VISUALIZER_REL_INSTALL_DIR="${SIMBODY_VISUALIZER_REL_INSTALL_DIR}/")
+# Create a relative path from lib dir to dir containing simbody-visualizer;
+# this is used in VisualizerProtocol.cpp (though, only useful on non-Windows).
+file(RELATIVE_PATH lib_dir_to_install_dir
+    "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" "${CMAKE_INSTALL_PREFIX}")
+set(lib_dir_to_viz_dir
+    "${lib_dir_to_install_dir}${SIMBODY_VISUALIZER_REL_INSTALL_DIR}")
+add_definitions(
+    -DSIMBODY_PATH_FROM_LIBDIR_TO_VIZ_DIR="${lib_dir_to_viz_dir}")
 
 # These are at the end because we want them processed after
 # all the various variables have been set above.

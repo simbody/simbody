@@ -462,6 +462,30 @@ string Pathname::getThisExecutableDirectory() {
     return path;
 }
 
+bool Pathname::getFunctionLibraryDirectory(void* func,
+                                           std::string& path) {
+    #if defined(_WIN32)
+        return false;
+    #else
+        // Dl_info and dladdr are defined in dlfcn.h. dladdr() is not POSIX,
+        // but is provided on macOS and in Glibc (at least on Ubuntu). It is
+        // likely not available on all UNIX variants.
+        Dl_info dl_info;
+        int status = dladdr(func, &dl_info);
+        // Returns 0 on error, non-zero on success.
+        if (status == 0) return false;
+
+        // Convert the path to an absolute path and get rid of the filename.
+        // On macOS, dli_fname is an absolute path; on Ubuntu, it's relative to
+        // the working directory.
+        bool dontApplySearchPath;
+        std::string filename, extension;
+        deconstructPathname(dl_info.dli_fname, dontApplySearchPath, path,
+                            filename, extension);
+        return true;
+    #endif
+}
+
 string Pathname::getCurrentDriveLetter() {
     #ifdef _WIN32
         const int which = _getdrive();

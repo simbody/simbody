@@ -265,6 +265,23 @@ public:
     /// Get the absolute pathname of the directory which contains the 
     /// currently executing program.
     static std::string getThisExecutableDirectory();
+    /// Get the absolute pathname of the directory which contains the
+    /// library/binary from which func was loaded. It is expected that func
+    /// is defined in a dynamically-linked library; if func was statically
+    /// linked into another binary, then this may provide the directory
+    /// containing that binary. The function returns true if the pathname was
+    /// successfully found, and false otherwise. This operation is not 
+    /// available on Windows. Here's an example of getting the directory 
+    /// containing the SimTKcommon library: 
+    /// @code
+    /// std::string libDir;
+    /// if (Pathname::getFunctionLibraryDirectory(
+    ///                 (void*)Pathname::getPathSeparator, libraryDir)) {
+    ///     std::cout << "SimTKcommon is located in " << libDir << std::endl;
+    /// }
+    /// @endcode
+    static bool getFunctionLibraryDirectory(void* func,
+                                            std::string& absolutePathname);
     /// Get the absolute pathname of the current working directory
     /// including a trailing separator character. Windows keeps a current
     /// working directory for each drive which can be optionally specified
