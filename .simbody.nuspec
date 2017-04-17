@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>simbody</id>
+    <id>simbody-vs2015</id>
     <version>3.5</version>
     <authors>Michael Sherman</authors>
     <owners>Michael Sherman</owners>
