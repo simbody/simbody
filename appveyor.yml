@@ -11,7 +11,9 @@
 
 shallow_clone: true
 
-os: Visual Studio 2015
+# TestMassProperties fails on 32-bit build following April 16, 2016 update (https://www.appveyor.com/updates/2016/04/16).
+# Using previous build worker image for now.
+os: Previous Visual Studio 2015
 
 platform: x64
 
