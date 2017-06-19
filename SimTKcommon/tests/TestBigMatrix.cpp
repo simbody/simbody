@@ -290,6 +290,18 @@ int main() {
         SimTK_TEST(vslice5.nrow()==3 && vslice5.ncol()==0);
         vslice5 = Matrix(3,0);
 
+        // Test RowVector with 0 elements.
+        RowVector rv0;
+        SimTK_TEST(rv0.size() == 0);
+        SimTK_TEST(rv0.nrow() == 1);
+        SimTK_TEST(rv0.ncol() == 0);
+        SimTK_TEST(rv0.nelt() == 0);
+
+        RowVector rv1(0);
+        SimTK_TEST(rv1.size() == 0);
+        SimTK_TEST(rv1.nrow() == 1);
+        SimTK_TEST(rv1.ncol() == 0);
+        SimTK_TEST(rv1.nelt() == 0);
 
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
