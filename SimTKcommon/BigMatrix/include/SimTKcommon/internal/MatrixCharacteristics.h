@@ -195,7 +195,7 @@ private:
 
 
 //  ------------------------------ MatrixStorage -------------------------------
-/// Matrix "storage" refers to the physical layout of data in the computer�s 
+/// Matrix "storage" refers to the physical layout of data in the computer's
 /// memory. Whenever possible we attempt to store data in a format that enables 
 /// use of special high performance methods, such as those available in the 
 /// SimTK LAPACK/BLAS implementation.
