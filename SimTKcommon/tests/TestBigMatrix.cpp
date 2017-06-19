@@ -291,11 +291,17 @@ int main() {
         vslice5 = Matrix(3,0);
 
         // Test RowVector with 0 elements.
-        RowVector rv(0);
-        SimTK_TEST(rv.size() == 0);
-        SimTK_TEST(rv.nrow() == 1);
-        SimTK_TEST(rv.ncol() == 0);
-        SimTK_TEST(rv.nelt() == 0);
+        RowVector rv0;
+        SimTK_TEST(rv0.size() == 0);
+        SimTK_TEST(rv0.nrow() == 1);
+        SimTK_TEST(rv0.ncol() == 0);
+        SimTK_TEST(rv0.nelt() == 0);
+
+        RowVector rv1(0);
+        SimTK_TEST(rv1.size() == 0);
+        SimTK_TEST(rv1.nrow() == 1);
+        SimTK_TEST(rv1.ncol() == 0);
+        SimTK_TEST(rv1.nelt() == 0);
 
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
