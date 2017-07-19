@@ -116,10 +116,19 @@ set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 set(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
+# Dynamic libraries, tests, and examples
+set(BUILD_DYNAMIC_LIBRARIES TRUE CACHE BOOL
+"Build dynamic versions of libraries")
+
 # Static libraries, tests, and examples won't be built unless this
 # is set.
 set(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
-"Build '_static' versions of libraries in addition to dynamic libraries?")
+"Build '_static' versions of libraries")
+
+if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
+    message(SEND_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_STATIC_LIBRARIES "
+        "are both set to FALSE. No compilation is possible!")
+endif()
 
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.

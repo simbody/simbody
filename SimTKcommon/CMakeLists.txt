@@ -1,10 +1,10 @@
 #---------------------------------------------------
-# SimTKcommon 
+# SimTKcommon
 #
 # Creates SimTK Core library, base name=SimTKcommon.
 # Default libraries are shared & optimized. Variants
 # are created for static (_static) and debug (_d) and
-# provision is made for an optional "namespace" (ns) 
+# provision is made for an optional "namespace" (ns)
 # and version number (vn).
 #
 # Windows:
@@ -18,7 +18,7 @@
 #   lib[ns_]SimTKcommon[_vn][_d].dylib
 #   lib[ns_]SimTKcommon[_vn]_static[_d].a
 #
-# Targets are installed in 
+# Targets are installed in
 #   %ProgramFiles%\SimTK\lib,bin       (Win32)
 #   %ProgramFiles(x86)%\SimTK\lib,bin  (32 bit target on Win64)
 #   %ProgramW6432%\SimTK\lib,bin       (64 bit target on Win64)
@@ -37,8 +37,8 @@ set(SimTKCOMMON_SOURCE_SUBDIRS
     . Scalar SmallMatrix Mechanics BigMatrix
     Geometry Simulation Random Polynomial)
 
-# Collect up information about the version of the SimTKcommon library 
-# we're building and make it available to the code so it can be built 
+# Collect up information about the version of the SimTKcommon library
+# we're building and make it available to the code so it can be built
 # into the binaries. This also determines the versioned library names
 # in which case all dependencies must use the same version.
 
@@ -46,14 +46,14 @@ set(SimTKCOMMON_MAJOR_VERSION ${SIMBODY_MAJOR_VERSION})
 set(SimTKCOMMON_MINOR_VERSION ${SIMBODY_MINOR_VERSION})
 set(SimTKCOMMON_PATCH_VERSION ${SIMBODY_PATCH_VERSION})
 
-# Report the version number to the CMake UI. Don't include the 
+# Report the version number to the CMake UI. Don't include the
 # build version if it is zero.
 set(PATCH_VERSION_STRING)
 if(SimTKCOMMON_PATCH_VERSION)
     set(PATCH_VERSION_STRING ".${SimTKCOMMON_PATCH_VERSION}")
 endif()
 
-set(SimTKCOMMON_VERSION 
+set(SimTKCOMMON_VERSION
     "${SimTKCOMMON_MAJOR_VERSION}.${SimTKCOMMON_MINOR_VERSION}${PATCH_VERSION_STRING}")
 
 # This is the suffix if we're building and depending on versioned libraries.
@@ -65,7 +65,7 @@ set(SimTKCOMMON_COPYRIGHT_YEARS "2005-10")
 # underbar separated list of dotted authors, no spaces or commas
 set(SimTKCOMMON_AUTHORS "Michael.Sherman_Peter.Eastman")
 
-set(SimTKCOMMON_SVN_REVISION ${SIMBODY_SVN_REVISION}) 
+set(SimTKCOMMON_SVN_REVISION ${SIMBODY_SVN_REVISION})
 
 add_definitions(-DSimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
                 -DSimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKCOMMON_MAJOR_VERSION}
@@ -108,8 +108,8 @@ set(SimTKCOMMON_INCLUDE_DIRS) # start empty
 foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     # append
     set(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-     ${PROJECT_SOURCE_DIR}/${subdir}/include 
-     ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon 
+     ${PROJECT_SOURCE_DIR}/${subdir}/include
+     ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon
      ${PROJECT_SOURCE_DIR}/${subdir}/include/SimTKcommon/internal)
     # Referencing headers must always be done relative to this level.
     set(SimTKCOMMON_INCLUDE_DIRS ${SimTKCOMMON_INCLUDE_DIRS}
@@ -117,7 +117,7 @@ foreach(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
 endforeach(subdir)
 
 
-# Include the SimTKcommon API include directories now so that SimTKcommon code 
+# Include the SimTKcommon API include directories now so that SimTKcommon code
 # can use them.
 include_directories(${SimTKCOMMON_INCLUDE_DIRS})
 
@@ -174,9 +174,11 @@ install(FILES ${SIMTKCOMMON_DOCS} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 if(BUILD_STATIC_LIBRARIES)
     add_subdirectory( staticTarget )
 endif()
-add_subdirectory( sharedTarget )
+if(BUILD_DYNAMIC_LIBRARIES)
+    add_subdirectory( sharedTarget )
+endif()
 
 if( BUILD_TESTING )
-  add_subdirectory( tests )
+    add_subdirectory( tests )
 endif( BUILD_TESTING )
 
