@@ -187,7 +187,8 @@ All needed library dependencies are provided with the Simbody installation on Wi
     * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
     * `BUILD_TESTING` to ensure your Simbody works correctly. On by default.
     * `BUILD_VISUALIZER` to be able to watch your system move about! If building remotely, you could turn this off. On by default.
-    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default.
+    * `BUILD_DYNAMIC_LIBRARIES` builds the three libraries as dynamic libraries. On by default. Unless you know what you're doing, leave this one on, it should only be used to build static version of Simbody, with `BUILD_STATIC_LIBRARIES:BOOL=ON`.
+    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default. You need to activate `BUILD_DYNAMIC_LIBRARIES` or/and `BUILD_STATIC_LIBRARIES`.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
@@ -295,8 +296,8 @@ On Ubuntu, we need to get the dependencies ourselves. Open a terminal and run th
 3. For visualization (optional): `$ sudo apt-get install freeglut3-dev libxi-dev libxmu-dev`.
 4. For API documentation (optional): `$ sudo apt-get install doxygen`.
 
-LAPACK version 3.6.0 and higher may be required for some applications (OpenSim). 
-LAPACK can be downloaded from [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/), 
+LAPACK version 3.6.0 and higher may be required for some applications (OpenSim).
+LAPACK can be downloaded from [http://www.netlib.org/lapack/](http://www.netlib.org/lapack/),
 and compiled using the following method. It is sufficient to set `LD_LIBRARY_PATH` to your LAPACK install prefix
 and build Simbody using the `-DBUILD_USING_OTHER_LAPACK:PATH=/path/to/liblapack.so` option in cmake.
 ```{bash}
@@ -371,6 +372,7 @@ There are two ways to get the source code.
         * `BUILD_VISUALIZER` to be able to watch your system
           move about! If building on a cluster, you could turn this off. On by
           default.
+        * `BUILD_DYNAMIC_LIBRARIES` builds the three libraries as dynamic libraries. On by default.
         * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`.
         * `BUILD_TESTS_AND_EXAMPLES_STATIC` if tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
         * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
