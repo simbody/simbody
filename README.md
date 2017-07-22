@@ -557,12 +557,12 @@ Other versions are supported with additional configurations.
 
 The table below lists the various versions of MinGW versions tested:
 
-   | OS      | Thread | Exception | Comment                                                             | URL                                                                                                                                                                                                                            |
----|---------|--------|-----------|---------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
- 1 | 64 Bits | Posix  | SJLJ      | All features supported, all binary included  (Recommended version)  | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/x86_64-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)    |
- 2 | 64 Bits | Posix  | SEH       | Needs to be linked against user's Blas and Lapack                   | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/seh/x86_64-5.2.0-release-posix-seh-rt_v4-rev0.7z/download)      |
- 3 | 32 Bits | Posix  | Dwarf     | No visualization, all binary included                               | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/dwarf/i686-5.2.0-release-posix-dwarf-rt_v4-rev0.7z/download)    |
- 4 | 32 Bits | Posix  | SJLJ      | No visualization, needs to be linked against user's Blas and Lapack | [MinGW64 project GCC 5.2.0](http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/i686-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download)      |
+|   | OS      | Thread | Exception | Comment                                                             | URL                                           |
+| - | ------- | ------ | --------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| 1 | 64 Bits | Posix  | SJLJ      | All features supported, all binary included (Recommended version)   | [MinGW64 GCC 5.2.0][mingw_520_64_posix_sjlj]  |
+| 2 | 64 Bits | Posix  | SEH       | Needs to be linked against user's Blas and Lapack                   | [MinGW64 GCC 5.2.0][mingw_520_64_posix_seh]   |
+| 3 | 32 Bits | Posix  | Dwarf     | No visualization, all binary included                               | [MinGW64 GCC 5.2.0][mingw_520_32_posix_dwarf] |
+| 4 | 32 Bits | Posix  | SJLJ      | No visualization, needs to be linked against user's Blas and Lapack | [MinGW64 GCC 5.2.0][mingw_520_32_posix_sjlj]  |
 
 We recommend to use the first configuration where all features are supported and
 does not need additional libraries to compile and run.
@@ -725,3 +725,7 @@ Prof. Scott Delp is the Principal Investigator on these grants and Simbody is us
 [flores]: http://xray.bmc.uu.se/flores/Home.html
 [buildwin]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_Windows.pdf
 [buildunix]: https://github.com/simbody/simbody/raw/master/doc/HowToBuildSimbodyFromSource_MacLinux.pdf
+[mingw_520_64_posix_sjlj]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/x86_64-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download
+[mingw_520_64_posix_seh]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/5.2.0/threads-posix/seh/x86_64-5.2.0-release-posix-seh-rt_v4-rev0.7z/download
+[mingw_520_32_posix_dwarf]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/dwarf/i686-5.2.0-release-posix-dwarf-rt_v4-rev0.7z/download
+[mingw_520_32_posix_sjlj]: http://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/5.2.0/threads-posix/sjlj/i686-5.2.0-release-posix-sjlj-rt_v4-rev0.7z/download
