@@ -893,7 +893,7 @@ Real Assembler::assemble() {
 
     if (tolAchieved > getErrorToleranceInUse())
         SimTK_THROW3(AssembleFailed, 
-            "Unabled to achieve required assembly error tolerance.",
+            "Unable to achieve required assembly error tolerance.",
             tolAchieved, getErrorToleranceInUse());
 
     //std::cout << "assemble(): final tol/goal is " 
@@ -969,7 +969,7 @@ Real Assembler::track(Real frameTime) {
     const Real tolAchieved = calcCurrentErrorNorm();
     if (tolAchieved > getErrorToleranceInUse())
         SimTK_THROW3(TrackFailed, 
-            "Unabled to achieve required assembly error tolerance.",
+            "Unable to achieve required assembly error tolerance.",
             tolAchieved, getErrorToleranceInUse());
 
     //std::cout << "track(): final tol/goal is " 
