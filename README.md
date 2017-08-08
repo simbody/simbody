@@ -187,8 +187,8 @@ All needed library dependencies are provided with the Simbody installation on Wi
     * `BUILD_EXAMPLES` to see what Simbody can do. On by default.
     * `BUILD_TESTING` to ensure your Simbody works correctly. On by default.
     * `BUILD_VISUALIZER` to be able to watch your system move about! If building remotely, you could turn this off. On by default.
-    * `BUILD_DYNAMIC_LIBRARIES` builds the three libraries as dynamic libraries. On by default. Unless you know what you're doing, leave this one on, it should only be used to build static version of Simbody, with `BUILD_STATIC_LIBRARIES:BOOL=ON`.
-    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default. You need to activate `BUILD_DYNAMIC_LIBRARIES` or/and `BUILD_STATIC_LIBRARIES`.
+    * `BUILD_DYNAMIC_LIBRARIES` builds the three libraries as dynamic libraries. On by default. Unless you know what you're doing, leave this one on.
+    * `BUILD_STATIC_LIBRARIES` builds the three libraries as static libraries, whose names will end with `_static`. Off by default. You must activate either `BUILD_DYNAMIC_LIBRARIES`, `BUILD_STATIC_LIBRARIES`, or both.
     * `BUILD_TESTS_AND_EXAMPLES_STATIC` if static libraries, and tests or examples are being built, creates statically-linked tests/examples. Can take a while to build, and it is unlikely you'll use the statically-linked libraries.
     * `BUILD_TESTS_AND_EXAMPLES_SHARED` if tests or examples are being built, creates dynamically-linked tests/examples. Unless you know what you're doing, leave this one on.
 7. Click the **Configure** button again. Then, click **Generate** to make Visual Studio project files.
