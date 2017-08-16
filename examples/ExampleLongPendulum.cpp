@@ -70,5 +70,9 @@ int main() {
     std::cout << "EXCEPTION: " << e.what() << std::endl;
     return 1;
   }
+   catch (...) {
+      std::cout << "UNKNOWN EXCEPTION\n";
+      return 1;
+  }
     return 0;
 }
