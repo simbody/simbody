@@ -1,4 +1,4 @@
-Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci] [![Codecov][buildstatus_image_codecov]][codecovci]
+Simbody [AppVeyor CI](https://ci.appveyor.com/project/siongyi/simbody)
 =======
 
 Simbody is a high-performance, open-source toolkit for science- and
