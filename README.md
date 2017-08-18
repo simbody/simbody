@@ -1,5 +1,9 @@
-Simbody [AppVeyor CI](https://ci.appveyor.com/project/siongyi/simbody)
+Simbody 
 =======
+
+**Continuous Integration Server: [AppVeyor CI](https://ci.appveyor.com/project/siongyi/simbody)**
+
+_______
 
 Simbody is a high-performance, open-source toolkit for science- and
 engineering-quality simulation of articulated mechanisms, including
