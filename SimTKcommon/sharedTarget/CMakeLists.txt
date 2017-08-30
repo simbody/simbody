@@ -17,7 +17,7 @@ if(BUILD_UNVERSIONED_LIBRARIES)
         SOVERSION ${SIMBODY_SONAME_VERSION})
 		
     if(WIN32 AND ${CMAKE_VERSION} GREATER 3.0) 
-	    target_compile_options(${SHARED_TARGET} INTERFACE " /wd4996")
+        target_compile_options(${SHARED_TARGET} INTERFACE " /wd4996")
     endif()
 	
     # install library; on Windows .dll's go in bin directory
