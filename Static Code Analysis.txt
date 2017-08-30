@@ -1,0 +1,61 @@
+*The static code analysis is done by using Cppcheck
+*Link to the tools: http://cppcheck.sourceforge.net/
+*Overall Results: Minor bug and problems, but does not affect the program in a significant way. The program still runs as intended.
+
+
+[Differentiator.cpp:256]: (style) Variable 'returnValue' is assigned a value that is never used.
+[Differentiator.cpp:60]: (style) Class 'MyObjectiveFunc' has a constructor with 1 argument that is not explicit.
+[Differentiator.cpp:77]: (style) Class 'GenericScalarFunc' has a constructor with 1 argument that is not explicit.
+[ExampleAmysIKProblem.cpp:2717]: (portability) Undefined behaviour, when 'i*getNumObservations()' is 92576 the pointer arithmetic 'observations+i*getNumObservations()' is out of bounds.
+[ExampleAmysIKProblem.cpp:2717]: (portability) Undefined behaviour, when '(i+1)*44' is 92620 the pointer arithmetic 'observations+(i+1)*44' is out of bounds.
+[ExampleContactPlayground.cpp:160]: (style) Variable 'force' is assigned a value that is never used.
+[ExampleKneeJoint.cpp:110]: (style) Variable 'i' is assigned a value that is never used.
+[ExampleMotor-TorqueLimited-Constraint.cpp:227]: (warning) %d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
+[ExampleMotor-TorqueLimited-Constraint.cpp:237]: (warning) %d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
+[ExampleMotor-TorqueLimited-Constraint.cpp:499]: (style) Class 'ShowStuff' has a constructor with 1 argument that is not explicit.
+[ExampleMotor-TorqueLimited-Controller.cpp:450]: (style) Class 'ShowStuff' has a constructor with 1 argument that is not explicit.
+[ExampleMotor-TorqueLimited-Motion.cpp:245]: (warning) %d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
+[ExampleMotor-TorqueLimited-Motion.cpp:255]: (warning) %d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'.
+[ExampleMotor-TorqueLimited-Motion.cpp:552]: (style) Class 'ShowStuff' has a constructor with 1 argument that is not explicit.
+[ExamplePendulum.cpp:122]: (style) Variable 'R_G2' is assigned a value that is never used.
+[ExamplePendulum.cpp:163]: (style) Variable 'R_G1' is assigned a value that is never used.
+[ExamplePendulum.cpp:164]: (style) Variable 'R_G1b' is assigned a value that is never used.
+[ExamplePendulum.cpp:202]: (style) Variable 'X_GP' is assigned a value that is never used.
+[JaredsDude.cpp:187]: (style) Class 'Dude' has a constructor with 1 argument that is not explicit.
+[ParameterConstrainedOptimization.cpp:35]: (style) Class 'ProblemSystem' has a constructor with 1 argument that is not explicit.
+[ParameterConstrainedOptimization.cpp:107]: (style) Exception should be caught by reference.
+[Rattleback.cpp:141]: (style) Variable 'force' is assigned a value that is never used.
+[SimpleDifferentiator.cpp:114]: (warning) %e in format string (no. 2) requires 'double' but the argument type is 'signed int'.
+[SimpleDifferentiator.cpp:60]: (style) Class 'MyObjectiveFunc' has a constructor with 1 argument that is not explicit.
+[SimpleDifferentiator.cpp:77]: (style) Class 'GenericScalarFunc' has a constructor with 1 argument that is not explicit.
+[SimpleDifferentiator.cpp:91]: (style) Class 'SinOmegaX' has a constructor with 1 argument that is not explicit.
+[SimpleIntegrator.cpp:156]: (style) Class 'MySystemGuts' has a constructor with 1 argument that is not explicit.
+[UnconstrainedNumericalDiffOptimization.cpp:39]: (style) Class 'ProblemSystem' has a constructor with 1 argument that is not explicit.
+[UnconstrainedOptimization.cpp:37]: (style) Class 'ProblemSystem' has a constructor with 1 argument that is not explicit.
+[UnconstrainedOptimization.cpp:78]: (style) Exception should be caught by reference.
+[Gazebo2Simbody\Gazebo2Simbody.cpp:618]: (style) C-style pointer casting
+[Gazebo2Simbody\Gazebo2Simbody.cpp:619]: (style) C-style pointer casting
+[Gazebo2Simbody\Gazebo2Simbody.cpp:643]: (style) C-style pointer casting
+[Gazebo2Simbody\Gazebo2Simbody.cpp:866]: (style) C-style pointer casting
+[Gazebo2Simbody\Gazebo2Simbody.cpp:867]: (style) C-style pointer casting
+[Gazebo2Simbody\Gazebo2Simbody.cpp:868]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\Atlas.cpp:287]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\Atlas.cpp:288]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\Atlas.cpp:315]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\Atlas.cpp:583]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\Atlas.cpp:584]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\Atlas.cpp:585]: (style) C-style pointer casting
+[TaskSpaceControl-Atlas\TaskSpaceControl-Atlas.cpp:412]: (style) Variable 'mnq' is assigned a value that is never used.
+[TaskSpaceControl-Atlas\TaskSpaceControl-Atlas.cpp:97]: (style) Class 'TasksMeasure' has a constructor with 1 argument that is not explicit.
+[TaskSpaceControl-UR10\TaskSpaceControl-UR10.cpp:360]: (style) Variable 'nu' is assigned a value that is never used.
+[TaskSpaceControl-UR10\TaskSpaceControl-UR10.cpp:78]: (style) Class 'TasksMeasure' has a constructor with 1 argument that is not explicit.
+[shared\TaskSpace.h:207]: (style) Unused private function: 'Jacobian::updateCache'
+[shared\TaskSpace.h:227]: (style) Unused private function: 'JacobianTranspose::updateCache'
+[shared\TaskSpace.h:240]: (style) Unused private function: 'Inertia::updateCache'
+[shared\TaskSpace.h:253]: (style) Unused private function: 'InertiaInverse::updateCache'
+[shared\TaskSpace.h:269]: (style) Unused private function: 'DynamicallyConsistentJacobianInverse::updateCache'
+[shared\TaskSpace.h:283]: (style) Unused private function: 'DynamicallyConsistentJacobianInverseTranspose::updateCache'
+[shared\TaskSpace.h:294]: (style) Unused private function: 'InertialForces::updateCache'
+[shared\TaskSpace.h:311]: (style) Unused private function: 'Gravity::updateCache'
+[shared\TaskSpace.h:325]: (style) Unused private function: 'NullspaceProjection::updateCache'
+[shared\TaskSpace.h:339]: (style) Unused private function: 'NullspaceProjectionTranspose::updateCache'

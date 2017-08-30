@@ -140,23 +140,6 @@ public:
         if (abstrq >= m_torqueLimit && sign(trqDot)*trqsign >= 0)
             trqDot = 0;
 
-        //const char* delay="WantLess: ";
-        //if (sign(trqDot)*trqsign >= 0) {
-        //    // want more torque
-        //    if (abstrq > m_torqueLimit) {
-        //        trqDot = -trqsign*TorqueDecay*(abstrq-m_torqueLimit);
-        //        delay =   "TooBig:   ";
-        //    } else if (abstrq > 0.9*m_torqueLimit) {
-        //        trqDot *= (m_torqueLimit-abstrq)/(0.9*m_torqueLimit);
-        //        delay =   "Limited:  ";
-        //    } else
-        //        delay =   "WantMore: ";
-        //}
-
-        //printf("%suerr=%g (actual=%g, des=%g) trq=%g trqdot=%g\n", 
-        //    delay, u_actual-u_desired,
-        //    u_actual, u_desired, trq, trqDot);
-
         Real rateLimit = m_torqueLimit/MaxTorqueRate; // full-scale change
         //clampInPlace(-rateLimit, trqDot, rateLimit);
 
@@ -292,8 +275,6 @@ int main() {
             State& state = integ.updAdvancedState();
             switch(whichSlider) {
             case SliderIdMotorSpeed:
-                // TODO: momentum balance?
-                //motor.setRate(state, newValue);
                 motor.setSpeed(state, newValue);
                 system.realize(state, Stage::Position);
                 system.prescribeU(state);
@@ -350,5 +331,9 @@ int main() {
         std::cout << "ERROR: " << e.what() << std::endl;
         return 1;
     }
+     catch (...) {
+      std::cout << "UNKNOWN EXCEPTION\n";
+      return 1;
+  }
     return 0;
 }

@@ -1,5 +1,9 @@
-Simbody [![Travis][buildstatus_image_travis]][travisci] [![Appveyor][buildstatus_image_appveyor]][appveyorci] [![Codecov][buildstatus_image_codecov]][codecovci]
+Simbody 
 =======
+
+**Continuous Integration Server: [AppVeyor CI](https://ci.appveyor.com/project/siongyi/simbody)**
+
+_______
 
 Simbody is a high-performance, open-source toolkit for science- and
 engineering-quality simulation of articulated mechanisms, including
