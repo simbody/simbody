@@ -309,7 +309,7 @@ public:
             // column or row begins at (j+k,j), length m-j-k
             int startInScalars = 0; // data was already shifted by 1 if needed
             int lengthElt = (nToCopy-known)*eltSize;
-            for (ptrdiff_t j = 0; j < nToCopy-known; ++j) {
+            for (ptrdiff_t j=0; j < nToCopy-known; ++j) {
                 std::copy(src+j*this->m_leadingDim + startInScalars,
                           src+j*this->m_leadingDim + startInScalars + lengthElt,
                           dest+j*newLeadingDim + startInScalars);
