@@ -282,7 +282,7 @@ public:
         p->m_owner = true;
         p->allocateData(this->nelt());
         std::copy(this->m_data, this->m_data + 
-            this->length()*this->m_eltSize, p->m_data);
+                  this->length()*this->m_eltSize, p->m_data);
         return p;
     }
 
@@ -301,7 +301,7 @@ public:
         S* const newData = this->allocateMemory(n);
         const int nToCopy = std::min(n, this->length());
         std::copy(this->m_data, this->m_data + 
-            nToCopy*this->m_eltSize, newData);
+                  nToCopy*this->m_eltSize, newData);
         this->clearData();
         this->setData(newData);
     }
@@ -309,7 +309,7 @@ public:
     void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
         if (source.hasContiguousData() && this->nScalars())
             std::copy(source.getElt(0,0), source.getElt(0,0) + 
-                this->nScalars(), this->m_data);
+                      this->nScalars(), this->m_data);
         else
             FullVectorHelper<S>::copyInFromCompatibleSource_(source);
     }
@@ -578,7 +578,7 @@ public:
         if (src.length()) {
             m_scalarIndices = new int[src.length()];
             std::copy(src.m_scalarIndices, src.m_scalarIndices +
-                src.length(), m_scalarIndices);
+                      src.length(), m_scalarIndices);
         }
     }
 
@@ -631,7 +631,7 @@ public:
         p->m_data = this->m_data;
         p->m_scalarIndices = new int[length];
         std::copy(m_scalarIndices+start, m_scalarIndices+start + 
-            length, p->m_scalarIndices);
+                  length, p->m_scalarIndices);
         return p;
     }
 

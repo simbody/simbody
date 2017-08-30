@@ -247,7 +247,7 @@ public:
             // skip 0-length row or col if diag is known
             for (ptrdiff_t j=known; j < nToCopy; ++j, lengthElt += eltSize) {
                 std::copy(src+j*this->m_leadingDim, src+j*this->m_leadingDim +
-                    lengthElt, dest+j*p->m_leadingDim);
+                          lengthElt, dest+j*p->m_leadingDim);
             }
         } else { // longFirst
             // column or row begins at (j+k,j), length m-j-k
@@ -255,8 +255,8 @@ public:
             int lengthElt = (nToCopy-known)*eltSize;
             for (ptrdiff_t j=0; j < nToCopy-known; ++j) {
                 std::copy(src+j*m_leadingDim + startInScalars,
-                    src+j*m_leadingDim + startInScalars + lengthElt,
-                    dest+j*p->m_leadingDim + startInScalars);
+                          src+j*m_leadingDim + startInScalars + lengthElt,
+                          dest+j*p->m_leadingDim + startInScalars);
                 startInScalars += this->m_eltSize;
                 lengthElt -= eltSize;
             }
@@ -303,16 +303,16 @@ public:
             // skip 0-length row or col if diag is known
             for (ptrdiff_t j=known; j < nToCopy; ++j, lengthElt += eltSize) {
                 std::copy(src+j*this->m_leadingDim, src+j*this->m_leadingDim +
-                    lengthElt, dest+j*newLeadingDim);
+                          lengthElt, dest+j*newLeadingDim);
             }
         } else { // longFirst
             // column or row begins at (j+k,j), length m-j-k
             int startInScalars = 0; // data was already shifted by 1 if needed
             int lengthElt = (nToCopy-known)*eltSize;
-            for (ptrdiff_t j = 0; j < nToCopy - known; ++j) {
+            for (ptrdiff_t j = 0; j < nToCopy-known; ++j) {
                 std::copy(src+j*this->m_leadingDim + startInScalars,
-                    src+j*this->m_leadingDim + startInScalars + lengthElt,
-                    dest+j*newLeadingDim + startInScalars);
+                          src+j*this->m_leadingDim + startInScalars + lengthElt,
+                          dest+j*newLeadingDim + startInScalars);
                 startInScalars += this->m_eltSize;
                 lengthElt -= eltSize;
             }
