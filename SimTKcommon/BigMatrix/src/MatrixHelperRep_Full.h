@@ -32,7 +32,6 @@
 #include <cstddef>
 #include <cstring>
 
-
 namespace SimTK {
 
 

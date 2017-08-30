@@ -31,7 +31,6 @@
 
 #include <cstddef>
 
-
 namespace SimTK {
 
 
