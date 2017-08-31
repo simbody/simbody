@@ -454,8 +454,11 @@ if(MSVC)
     set(mxcpu ${BUILD_LIMIT_PARALLEL_COMPILES}) # abbreviation
 
     ## C++
+    # Warning 4996 is emitted in DEBUG mode when using std::copy
+    # with raw pointers, as is done in MatrixHelperRep*.h". /wd4996
+    # tells MSVC to ignore this warning.
     set(BUILD_CXX_FLAGS_DEBUG
-    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
+    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /wd4996 ${CL_INST_SET}") 
     set(BUILD_CXX_FLAGS_RELEASE
     "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     set(BUILD_CXX_FLAGS_RELWITHDEBINFO
