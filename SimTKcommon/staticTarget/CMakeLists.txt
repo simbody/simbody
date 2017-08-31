@@ -16,8 +16,10 @@ if(BUILD_UNVERSIONED_LIBRARIES)
     set_target_properties(${STATIC_TARGET} PROPERTIES
         PROJECT_LABEL "Code - ${STATIC_TARGET}")
 		
-    if(WIN32 AND ${CMAKE_VERSION} GREATER 3.0) 
-        target_compile_options(${STATIC_TARGET} INTERFACE " /wd4996")
+    # Warning 4996 is not propagated to downstream targets
+    if(WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS 3.0.2) 
+        target_compile_options(${STATIC_TARGET} INTERFACE 
+            "$<$<CONFIG:Debug>:/wd4996>")
     endif()
 
     install(TARGETS ${STATIC_TARGET} EXPORT SimbodyTargets
@@ -38,9 +40,11 @@ if(BUILD_VERSIONED_LIBRARIES)
 
     set_target_properties(${STATIC_TARGET_VN} PROPERTIES
         PROJECT_LABEL "Code - ${STATIC_TARGET_VN}")
-		
-    if(WIN32 AND ${CMAKE_VERSION} GREATER 3.0) 
-        target_compile_options(${STATIC_TARGET_VN} INTERFACE " /wd4996")
+	
+    # Warning 4996 is not propagated to downstream targets	
+    if(WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS 3.0.2) 
+        target_compile_options(${STATIC_TARGET_VN} INTERFACE 
+            "$<$<CONFIG:Debug>:/wd4996>")
     endif()
 
     install(TARGETS ${STATIC_TARGET_VN} EXPORT SimbodyTargets
