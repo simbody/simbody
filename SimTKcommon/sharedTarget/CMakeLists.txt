@@ -15,7 +15,13 @@ if(BUILD_UNVERSIONED_LIBRARIES)
     set_target_properties(${SHARED_TARGET} PROPERTIES
         PROJECT_LABEL "Code - ${SHARED_TARGET}"
         SOVERSION ${SIMBODY_SONAME_VERSION})
-
+    
+    # Warning 4996 is not propagated to downstream targets  
+    if(WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS 3.0.2) 
+        target_compile_options(${SHARED_TARGET} INTERFACE 
+            "$<$<CONFIG:Debug>:/wd4996>")
+    endif()
+    
     # install library; on Windows .dll's go in bin directory
 
     install(TARGETS ${SHARED_TARGET} EXPORT SimbodyTargets
@@ -39,7 +45,13 @@ if(BUILD_VERSIONED_LIBRARIES)
     set_target_properties(${SHARED_TARGET_VN} PROPERTIES
         PROJECT_LABEL "Code - ${SHARED_TARGET_VN}"
         SOVERSION ${SIMBODY_SONAME_VERSION})
-
+        
+    # Warning 4996 is not propagated to downstream targets
+    if(WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS 3.0.2) 
+        target_compile_options(${SHARED_TARGET_VN} INTERFACE 
+            "$<$<CONFIG:Debug>:/wd4996>")
+    endif()
+    
     # install library; on Windows .dll's go in bin directory
 
     install(TARGETS ${SHARED_TARGET_VN} EXPORT SimbodyTargets
