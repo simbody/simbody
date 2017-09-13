@@ -12,7 +12,7 @@
 #include "IpReferenced.hpp"
 #include "IpSmartPtr.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   // forward declaration (to avoid inclusion of too many header files)
   class IpoptNLP;

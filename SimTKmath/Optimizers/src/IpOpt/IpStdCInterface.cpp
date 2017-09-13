@@ -27,7 +27,7 @@ struct IpoptProblemInfo
   Eval_Grad_F_CB eval_grad_f;
   Eval_Jac_G_CB eval_jac_g;
   Eval_H_CB eval_h;
-  Ipopt::SmartPtr<Ipopt::IpoptApplication> app;
+  SimTKIpopt::SmartPtr<SimTKIpopt::IpoptApplication> app;
 };
 
 IpoptProblem CreateIpoptProblem(
@@ -90,7 +90,7 @@ IpoptProblem CreateIpoptProblem(
   retval->eval_jac_g = eval_jac_g;
   retval->eval_h = eval_h;
 
-  retval->app = new Ipopt::IpoptApplication();
+  retval->app = new SimTKIpopt::IpoptApplication();
 
   return retval;
 }
@@ -120,14 +120,14 @@ Bool AddIpoptStrOption(IpoptProblem ipopt_problem, const char* keyword, const ch
 Bool AddIpoptNumOption(IpoptProblem ipopt_problem, const char* keyword, Number val)
 {
   std::string tag(keyword);
-  Ipopt::Number value=val;
+  SimTKIpopt::Number value=val;
   return (Bool) ipopt_problem->app->Options()->SetNumericValue(tag, value);
 }
 
 Bool AddIpoptIntOption(IpoptProblem ipopt_problem, const char* keyword, Int val)
 {
   std::string tag(keyword);
-  Ipopt::Index value=val;
+  SimTKIpopt::Index value=val;
   return (Bool) ipopt_problem->app->Options()->SetIntegerValue(tag, value);
 }
 
@@ -135,7 +135,7 @@ Bool OpenIpoptOutputFile(IpoptProblem ipopt_problem, char* file_name,
                          Int print_level)
 {
   std::string name(file_name);
-  Ipopt::EJournalLevel level = Ipopt::EJournalLevel(print_level);
+  SimTKIpopt::EJournalLevel level = SimTKIpopt::EJournalLevel(print_level);
   return (Bool) ipopt_problem->app->OpenOutputFile(name, level);
 }
 
@@ -149,7 +149,7 @@ enum ApplicationReturnStatus IpoptSolve(
   Number* mult_x_U,
   UserDataPtr user_data)
 {
-  using namespace Ipopt;
+  using namespace SimTKIpopt;
 
   // Initialize and process options
   ipopt_problem->app->Initialize();
@@ -203,12 +203,12 @@ enum ApplicationReturnStatus IpoptSolve(
     skip_optimize = true;
   }
 
-  Ipopt::ApplicationReturnStatus status;
+  SimTKIpopt::ApplicationReturnStatus status;
   if (!skip_optimize) {
     status = ipopt_problem->app->OptimizeTNLP(tnlp);
   }
   else {
-    status = Ipopt::Invalid_Problem_Definition;
+    status = SimTKIpopt::Invalid_Problem_Definition;
   }
 
   delete [] start_x;

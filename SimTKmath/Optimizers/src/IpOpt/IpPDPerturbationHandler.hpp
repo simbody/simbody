@@ -11,7 +11,7 @@
 
 #include "IpAlgStrategy.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
 
   /** Class for handling the perturbation factors delta_x, delta_s,

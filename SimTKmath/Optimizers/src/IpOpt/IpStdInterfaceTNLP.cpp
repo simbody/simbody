@@ -9,7 +9,7 @@
 #include "IpStdInterfaceTNLP.hpp"
 #include "IpBlas.hpp"
 
-namespace Ipopt
+namespace SimTKIpopt
 {
   StdInterfaceTNLP::StdInterfaceTNLP(Index n_var,
                                      const Number* x_L, const Number* x_U,
