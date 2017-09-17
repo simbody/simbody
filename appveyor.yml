@@ -15,6 +15,9 @@ os: Visual Studio 2015
 
 platform: x64
 
+nuget:
+  - disable_publish_on_pr: true
+
 environment:
   matrix:
     - CMAKE_GENERATOR: "Visual Studio 14 2015"
