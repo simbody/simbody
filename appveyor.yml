@@ -15,6 +15,9 @@ os: Visual Studio 2015
 
 platform: x64
 
+# No need to run CI on the branch if we're also running CI for a PR.
+skip_branch_with_pr: true
+
 nuget:
   disable_publish_on_pr: true
 
