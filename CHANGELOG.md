@@ -72,6 +72,10 @@ to ParallelExecutor, mutex state lock.
 * Started using RPATH on OSX so that users need not set `DYLD_LIBRARY_PATH` to
   run `simbody-visualizer` or the example executables, regardless of where you
   install Simbody.
+* Improved the ability to find the simbody-visualizer executable when Simbody
+  is installed in non-standard locations or if the Simbody installation is
+  relocated (even to different computers). This enhancement is only for
+  non-Windows operating systems.
 * Fixed a bug when compiling on macOS (OSX) with SDK MacOSX10.12.sdk, related
   to the POSIX function `clock_gettime()`.
   [Issue #523](https://github.com/simbody/simbody/issues/523),

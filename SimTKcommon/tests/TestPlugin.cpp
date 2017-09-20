@@ -168,6 +168,23 @@ void testPathname() {
     SimTK_TEST(Pathname::getRootDirectory() == "/");
 #endif
 
+    // Pathname::getFunctionLibraryDirectory().
+    std::string libraryPath;
+    bool status = Pathname::getFunctionLibraryDirectory(
+                (void*)Pathname::getPathSeparator,
+                libraryPath);
+    #ifdef _WIN32
+        // Always returns false; unsupported on Windows.
+        SimTK_TEST(status == false);
+    #else
+        SimTK_TEST(status == true);
+        // For TestPluginStatic, dladdr finds the path to TestPluginStatic
+        // (rather than to a library).
+        std::cout << "Pathname::getFunctionLibraryDirectory() is located in: "
+                  << libraryPath << std::endl;
+    #endif
+
+
     std::string name;
     bool isAbsPath;
     std::string directory, fileName, extension;

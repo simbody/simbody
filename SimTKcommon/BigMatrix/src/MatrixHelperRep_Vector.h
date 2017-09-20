@@ -281,7 +281,8 @@ public:
         p->m_writable = true;
         p->m_owner = true;
         p->allocateData(this->nelt());
-        std::memcpy(p->m_data, this->m_data, this->length()*this->m_eltSize*sizeof(S));
+        std::copy(this->m_data, this->m_data + 
+                  this->length()*this->m_eltSize, p->m_data);
         return p;
     }
 
@@ -299,14 +300,16 @@ public:
     void resizeKeep_(int n) {
         S* const newData = this->allocateMemory(n);
         const int nToCopy = std::min(n, this->length());
-        std::memcpy(newData, this->m_data, nToCopy*this->m_eltSize*sizeof(S));
+        std::copy(this->m_data, this->m_data + 
+                  nToCopy*this->m_eltSize, newData);
         this->clearData();
         this->setData(newData);
     }
 
     void copyInFromCompatibleSource_(const MatrixHelperRep<S>& source) {
         if (source.hasContiguousData() && this->nScalars())
-            std::memcpy(this->m_data, source.getElt(0, 0), this->nScalars()*sizeof(S));
+            std::copy(source.getElt(0,0), source.getElt(0,0) + 
+                      this->nScalars(), this->m_data);
         else
             FullVectorHelper<S>::copyInFromCompatibleSource_(source);
     }
@@ -574,7 +577,8 @@ public:
     IndexedVectorHelper(const This& src) : Base(src), m_scalarIndices(0) {
         if (src.length()) {
             m_scalarIndices = new int[src.length()];
-            std::memcpy(m_scalarIndices, src.m_scalarIndices, src.length()*sizeof(int));
+            std::copy(src.m_scalarIndices, src.m_scalarIndices +
+                      src.length(), m_scalarIndices);
         }
     }
 
@@ -626,8 +630,8 @@ public:
         This* p = new This(*this, true); // don't copy the indices
         p->m_data = this->m_data;
         p->m_scalarIndices = new int[length];
-        std::memcpy(p->m_scalarIndices, m_scalarIndices+start, 
-                    length*sizeof(int));
+        std::copy(m_scalarIndices+start, m_scalarIndices+start + 
+                  length, p->m_scalarIndices);
         return p;
     }
 
@@ -646,7 +650,7 @@ public:
         This* p = new This(*this, true); // don't copy the indices
         p->setData(this->m_data); // leaving the indices the same, so data starts at 0
         p->m_scalarIndices = new int[m];
-        std::memcpy(p->m_scalarIndices, m_scalarIndices+i, m*sizeof(int));
+        std::copy(m_scalarIndices+i, m_scalarIndices+i+m, p->m_scalarIndices);
         return p;
     }
 
@@ -666,7 +670,7 @@ public:
         This* p = new This(*this, true); // don't copy the indices
         p->setData(this->m_data); // leaving the indices the same, so data starts at 0
         p->m_scalarIndices = new int[n];
-        std::memcpy(p->m_scalarIndices, m_scalarIndices+j, n*sizeof(int));
+        std::copy(m_scalarIndices+j, m_scalarIndices+j+n, p->m_scalarIndices);
         return p;
     }
 

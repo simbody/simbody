@@ -116,10 +116,19 @@ set(BUILD_BINARY_DIR ${CMAKE_BINARY_DIR}
 set(EXECUTABLE_OUTPUT_PATH ${BUILD_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${BUILD_BINARY_DIR})
 
+# Dynamic libraries, tests, and examples
+set(BUILD_DYNAMIC_LIBRARIES TRUE CACHE BOOL
+"Build dynamic versions of libraries")
+
 # Static libraries, tests, and examples won't be built unless this
 # is set.
 set(BUILD_STATIC_LIBRARIES FALSE CACHE BOOL
-"Build '_static' versions of libraries in addition to dynamic libraries?")
+"Build '_static' versions of libraries")
+
+if(NOT BUILD_DYNAMIC_LIBRARIES AND NOT BUILD_STATIC_LIBRARIES)
+    message(SEND_ERROR "BUILD_DYNAMIC_LIBRARIES and BUILD_STATIC_LIBRARIES "
+        "are both set to FALSE. No compilation is possible!")
+endif()
 
 # Use this to generate a private set of libraries whose names
 # won't conflict with installed versions.
@@ -208,8 +217,12 @@ set(BUILD_TESTS_AND_EXAMPLES_STATIC ON CACHE BOOL
     Statically-linked examples are never installed.")
 mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_STATIC)
 
-set(BUILD_TESTS_AND_EXAMPLES_SHARED ON CACHE BOOL
-    "If BUILD_TESTING or BUILD_EXAMPLES, build dynamically-linked ones?")
+if(BUILD_DYNAMIC_LIBRARIES)
+    set(BUILD_TESTS_AND_EXAMPLES_SHARED ON CACHE BOOL
+        "If BUILD_TESTING or BUILD_EXAMPLES, build dynamically-linked ones?")
+else()
+    set(BUILD_TESTS_AND_EXAMPLES_SHARED OFF)
+endif()
 mark_as_advanced(BUILD_TESTS_AND_EXAMPLES_SHARED)
 
 if(BUILD_TESTING AND NOT (BUILD_TESTS_AND_EXAMPLES_STATIC OR
@@ -441,8 +454,11 @@ if(MSVC)
     set(mxcpu ${BUILD_LIMIT_PARALLEL_COMPILES}) # abbreviation
 
     ## C++
+    # Warning 4996 is emitted in DEBUG mode when using std::copy
+    # with raw pointers, as is done in MatrixHelperRep*.h". /wd4996
+    # tells MSVC to ignore this warning.
     set(BUILD_CXX_FLAGS_DEBUG
-    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- ${CL_INST_SET}")
+    "/D _DEBUG /MDd /Od /Ob0 /RTC1 /Zi /GS- /wd4996 ${CL_INST_SET}") 
     set(BUILD_CXX_FLAGS_RELEASE
     "/D NDEBUG /MD  /O2 /Ob2 /Oi /GS- ${CL_INST_SET}")
     set(BUILD_CXX_FLAGS_RELWITHDEBINFO
