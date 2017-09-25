@@ -26,7 +26,6 @@ matrix:
 addons:
   # To avoid an interactive prompt when uploading binaries to sourceforge.
   ssh_known_hosts: frs.sourceforge.net
->>>>>>> e3f194583c158882d9a4fde1de64488634ef0584
 
 before_install:
   ## Ensure that there are no tabs in source code.
