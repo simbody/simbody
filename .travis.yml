@@ -12,16 +12,16 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: BTYPE=RelWithDebInfo COV=OFF DEPLOY=yes
+      env: BTYPE=Release COV=OFF DEPLOY=yes
     - os: linux
       compiler: gcc
-      env: BTYPE=Release        COV=OFF DEPLOY=no
+      env: BTYPE=Release COV=OFF DEPLOY=no
     - os: linux
       compiler: gcc
-      env: BTYPE=Debug          COV=ON  DEPLOY=yes
+      env: BTYPE=Debug   COV=ON  DEPLOY=yes
     - os: osx
       compiler: clang
-      env: BTYPE=RelWithDebInfo COV=OFF DEPLOY=yes
+      env: BTYPE=Release COV=OFF DEPLOY=yes
 
 addons:
   # To avoid an interactive prompt when uploading binaries to sourceforge.
