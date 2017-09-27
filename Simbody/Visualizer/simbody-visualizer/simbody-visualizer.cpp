@@ -38,7 +38,7 @@
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
-#include <pthread.h>
+#include <thread>
 #include <sys/stat.h>
 #ifdef _WIN32
     #include <direct.h>
@@ -370,12 +370,12 @@ public:
 
 static Scene* scene=0;      // This is the front scene.
 
-// This lock must be held whenever the front scene is being
+// This mutex must be locked whenever the front scene is being
 // modified or drawn, or when it is being swapped with the back scene.
-static pthread_mutex_t sceneLock;
+static std::mutex sceneMutex;
 
 // Wait on this if you want to be notified when the scene has been drawn.
-static pthread_cond_t  sceneHasBeenDrawn;
+static std::condition_variable  sceneHasBeenDrawn;
 
 // This is how long it's been since we've done a redisplay for any reason.
 static double lastRedisplayDone = 0; // real time
@@ -825,11 +825,12 @@ static void computeSceneBounds(const Scene* scene, float& radius, fVec3& center)
 static void zoomCameraToShowWholeScene(bool sceneAlreadyLocked=false) {
     float radius;
     fVec3 center;
+    std::unique_lock<std::mutex> lock(sceneMutex, std::defer_lock);
     if (!sceneAlreadyLocked)
-        pthread_mutex_lock(&sceneLock);         //-------- LOCK SCENE --------
+        lock.lock();                              //-------- LOCK SCENE --------
     computeSceneBounds(scene, radius, center);
     if (!sceneAlreadyLocked)
-        pthread_mutex_unlock(&sceneLock);       //----- UNLOCK SCENE ---------
+        lock.unlock();                            //----- UNLOCK SCENE ---------
    float viewDistance = 
         radius/tan(min(fieldOfView, fieldOfView*viewWidth/viewHeight)/2);
     // Back up 1 unit more to make sure we don't clip at this position.
@@ -1409,7 +1410,7 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
     glDepthMask(GL_TRUE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    pthread_mutex_lock(&sceneLock);             //-------- LOCK SCENE --------
+    std::lock_guard<std::mutex> lock(sceneMutex); //-------- LOCK SCENE --------
 
     if (scene != NULL) {
         // Remember the simulated time associated with the most recent rendered
@@ -1507,8 +1508,8 @@ static void renderScene(std::vector<std::string>* screenText = NULL) {
     }
 
     // Signal in case the listener is waiting.
-    pthread_cond_signal(&sceneHasBeenDrawn);    //----- SIGNAL CONDITION -----
-    pthread_mutex_unlock(&sceneLock);           //----- UNLOCK SCENE ---------
+    sceneHasBeenDrawn.notify_one();               //----- SIGNAL CONDITION -----
+                                                  //----- UNLOCK SCENE ---------
 }
 
 
@@ -1674,9 +1675,9 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
 
     float radius;
     fVec3 sceneCenter;
-    pthread_mutex_lock(&sceneLock);         //-------- LOCK SCENE --------
+    std::unique_lock<std::mutex> lock(sceneMutex); //------- LOCK SCENE -------
     computeSceneBounds(scene, radius, sceneCenter);
-    pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+    lock.unlock();                                 //----- UNLOCK SCENE -------
     sceneScale = std::max(radius, 0.1f);
 
     // "state" (pressed/released) is irrelevant for mouse wheel. However, if
@@ -1691,10 +1692,10 @@ static void mouseButtonPressedOrReleased(int button, int state, int x, int y) {
         const int   direction = button==GlutWheelUp ? -1 : 1;
         const float zoomBy    = direction * (ZoomFractionPerWheelClick * sceneScale);
 
-        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
+        std::unique_lock<std::mutex> lock(sceneMutex); //----- LOCK SCENE -----
         X_GC.updP() += X_GC.R()*fVec3(0, 0, zoomBy);
-        requestPassiveRedisplay();              //------ PASSIVE REDISPLAY ---
-        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+        requestPassiveRedisplay();               //------ PASSIVE REDISPLAY ---
+        lock.unlock();                           //------ UNLOCK SCENE --------
         return;
     }
 
@@ -1767,18 +1768,18 @@ static void mouseDragged(int x, int y) {
     if (  clickButton == GLUT_RIGHT_BUTTON
       || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_SHIFT))
     {
-        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
+        std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE --------
         X_GC.updP() += translatePerPixel*X_GC.R()*fVec3(float(dx),float(-dy),0);
-        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+                                                      //---- UNLOCK SCENE ------
     }
 
     // zoom: middle button or alt-left button (or mouse wheel; see above)
     else if (  clickButton == GLUT_MIDDLE_BUTTON
            || (clickButton == GLUT_LEFT_BUTTON && clickModifiers & GLUT_ACTIVE_ALT))
     {
-        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
+        std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE --------
         X_GC.updP() += translatePerPixel* X_GC.R()*fVec3(0,0,float(dy));
-        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+                                                      //---- UNLOCK SCENE ------
     }
 
     // rotate: left button alone: rotate scene left/right or up/down
@@ -1798,10 +1799,10 @@ static void mouseDragged(int x, int y) {
         cameraDir = r*cameraDir;
         upDir = r*upDir;
 
-        pthread_mutex_lock(&sceneLock);         //------ LOCK SCENE ----------
+        std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE --------
         X_GC.updP() = cameraPos;
         X_GC.updR().setRotationFromTwoAxes(fUnitVec3(-cameraDir), ZAxis, upDir, YAxis);
-        pthread_mutex_unlock(&sceneLock);       //------ UNLOCK SCENE --------
+                                                      //---- UNLOCK SCENE ------
     }
     else
         return;
@@ -2061,9 +2062,9 @@ static Scene* readNewScene() {
             if (meshIndex < NumPredefinedMeshes && (meshes[meshIndex].size() <= resolution || meshes[meshIndex][resolution] == NULL)) {
                 // A real mesh will be generated from this the next
                 // time the scene is redrawn.
-                pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
+                std::lock_guard<std::mutex> lock(sceneMutex); //-- LOCK SCENE --
                 pendingCommands.insert(pendingCommands.begin(), new PendingStandardMesh(meshIndex, resolution));
-                pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
+                                                              //- UNLOCK SCENE -
             }
             break;
         }
@@ -2201,10 +2202,9 @@ static Scene* readNewScene() {
 
             // A real mesh will be generated from this the next
             // time the scene is redrawn.
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE --------
+            std::lock_guard<std::mutex> lock(sceneMutex); //--- LOCK SCENE ----
             pendingCommands.insert(pendingCommands.begin(), mesh);
-            pthread_mutex_unlock(&sceneLock);   //------ UNLOCK SCENE --------
-            break;
+            break;                                        //--- UNLOCK SCENE --
         }
 
         default:
@@ -2221,7 +2221,7 @@ static Scene* readNewScene() {
 // rendering thread has finished with the current frame. The listener
 // thread must not make any gl or glut calls; any operations that require
 // those are queued for later handing in the rendering thread.
-void* listenForInput(void* args) {
+void listenForInput() {
     unsigned char buffer[256];
     float* floatBuffer = (float*) buffer;
     int* intBuffer = (int*) buffer;
@@ -2251,10 +2251,9 @@ void* listenForInput(void* args) {
                 readData((unsigned char*)&textBuffer[0], intBuffer[1]);
                 items[index].first = string(&textBuffer[0], intBuffer[1]);
             }
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             menus.push_back(Menu(title, menuId, items, menuSelected));
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case DefineSlider: {
             readData(buffer, sizeof(short));
@@ -2263,21 +2262,19 @@ void* listenForInput(void* args) {
             readData((unsigned char*)&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
             readData(buffer, sizeof(int)+3*sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             sliders.push_back(Slider(title, intBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]));
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetSliderValue: {
             readData(buffer, sizeof(int));
             const int sliderId = intBuffer[0];
             readData(buffer, sizeof(float));
             const float newValue = floatBuffer[0];
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             Slider* sp = findSliderById(sliderId);
             if (sp) sp->changeValue(newValue);
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetSliderRange: {
             readData(buffer, sizeof(int));
@@ -2285,71 +2282,63 @@ void* listenForInput(void* args) {
             readData(buffer, 2*sizeof(float));
             const float newMin = floatBuffer[0];
             const float newMax = floatBuffer[1];
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             Slider* sp = findSliderById(sliderId);
             if (sp) sp->changeRange(newMin, newMax);
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetCamera: {
             readData(buffer, 6*sizeof(float));
             fVec3 R(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             fVec3 p(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             pendingCommands.push_back(new PendingSetCameraTransform(R, p));
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case ZoomCamera: {
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             pendingCommands.push_back(new PendingCameraZoom());
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case LookAt: {
             readData(buffer, 6*sizeof(float));
             fVec3 point(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             fVec3 updir(floatBuffer[3], floatBuffer[4], floatBuffer[5]);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             fVec3 pt2camera = X_GC.p()-point;
             if (pt2camera.normSqr() < square(1e-6))
                 pt2camera = fVec3(X_GC.z()); // leave unchanged
             X_GC.updR().setRotationFromTwoAxes(fUnitVec3(pt2camera), ZAxis, 
                                                updir, YAxis);
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetFieldOfView: {
             readData(buffer, sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             fieldOfView = floatBuffer[0];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetClipPlanes: {
             readData(buffer, 2*sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             nearClip = floatBuffer[0];
             farClip = floatBuffer[1];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetSystemUpDirection: {
             readData(buffer, 2);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             groundNormal = CoordinateDirection( CoordinateAxis((int)buffer[0]),
                                                 (int)(signed char)buffer[1] );
             X_GC.updR().setRotationFromTwoAxes
                (groundNormal, YAxis, X_GC.z(), ZAxis); // attempt to keep z
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetGroundHeight: {
             readData(buffer, sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             groundHeight = floatBuffer[0];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetWindowTitle: {
             readData(buffer, sizeof(short));
@@ -2357,87 +2346,77 @@ void* listenForInput(void* args) {
             vector<char> titleBuffer(titleLength);
             readData((unsigned char*)&titleBuffer[0], titleLength);
             string title(&titleBuffer[0], titleLength);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             pendingCommands.push_back(new PendingWindowTitleChange(title));
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetMaxFrameRate: {
             readData(buffer, sizeof(float));
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             maxFrameRate = floatBuffer[0];
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetBackgroundColor: {
             readData(buffer, 3*sizeof(float));
             fVec3 color(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             pendingCommands.push_back(new PendingBackgroundColorChange(color));
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetShowShadows: {
             readData(buffer, sizeof(short));
             const bool shouldShow = (shortBuffer[0] != 0);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             showShadows = shouldShow;
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetBackgroundType: {
             readData(buffer, sizeof(short));
             const Visualizer::BackgroundType type =
                 Visualizer::BackgroundType(shortBuffer[0]);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             showGround = (type == Visualizer::GroundAndSky);
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetShowFrameRate: {
             readData(buffer, sizeof(short));
             const bool shouldShow = (shortBuffer[0] != 0);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             showFPS = shouldShow;
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetShowSimTime: {
             readData(buffer, sizeof(short));
             const bool shouldShow = (shortBuffer[0] != 0);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             showSimTime = shouldShow;
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case SetShowFrameNumber: {
             readData(buffer, sizeof(short));
             const bool shouldShow = (shortBuffer[0] != 0);
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::lock_guard<std::mutex> lock(sceneMutex); //---- LOCK SCENE ----
             showFrameNum = shouldShow;
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            break;
+            break;                                        //--- UNLOCK SCENE ---
         }
         case StartOfScene: {
             Scene* newScene = readNewScene();
-            pthread_mutex_lock(&sceneLock);     //------- LOCK SCENE ---------
+            std::unique_lock<std::mutex> lock(sceneMutex); //--- LOCK SCENE ----
             if (scene != NULL) {
-                while (!scene->sceneHasBeenDrawn) {
-                    // -------- WAIT FOR CONDITION --------
-                    // Give up the lock and wait for notice.
-                    pthread_cond_wait(&sceneHasBeenDrawn,
-                                        &sceneLock);
-                    // Now we hold the lock again, but this might
-                    // be a spurious wakeup so check again.
-                }
+                // -------- WAIT FOR CONDITION --------
+                // Give up the lock and wait for notice.
+                // Pass a predicate function so that we continue waiting if we
+                // caught a spurious wakeup.
+                sceneHasBeenDrawn.wait(lock,
+                        []{return scene->sceneHasBeenDrawn;});
                 // Previous scene has been drawn.
                 delete scene; scene = 0;
             }
             // Swap in the new scene.
             scene = newScene;
             saveNextFrameToMovie = savingMovie;
-            pthread_mutex_unlock(&sceneLock);   //------- UNLOCK SCENE -------
-            forceActiveRedisplay();             //------- ACTIVE REDISPLAY ---
+            lock.unlock();                                 //-- UNLOCK SCENE ---
+            forceActiveRedisplay();               //------- ACTIVE REDISPLAY ---
             issuedActiveRedisplay = true;
             break;
         }
@@ -2460,9 +2439,8 @@ void* listenForInput(void* args) {
   } catch (const std::exception& e) {
         std::cout << "simbody-visualizer listenerThread: unrecoverable error:\n";
         std::cout << e.what() << std::endl;
-        return (void*)1;
+        std::exit(1);
     }
-    return (void*)0;
 }
 
 static void dumpAboutMessageToConsole() {
@@ -2828,14 +2806,10 @@ int main(int argc, char** argv) {
     items.push_back(make_pair("About (to console)", MENU_ABOUT));
     menus.push_back(Menu("View", Visualizer::ViewMenuId, items, viewMenuSelected));
 
-    // Initialize pthread lock and condition variable.
-    pthread_mutex_init(&sceneLock, NULL);
-    pthread_cond_init(&sceneHasBeenDrawn, NULL);
-
     // Spawn the listener thread. After this it runs independently.
+    std::thread listenerThread;
     if (talkingToSimulator) {
-        pthread_t thread;
-        pthread_create(&thread, NULL, listenForInput, NULL);
+        listenerThread = std::thread(listenForInput);
     } else {
         scene = new Scene;
     }
