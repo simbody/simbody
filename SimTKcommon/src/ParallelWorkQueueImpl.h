@@ -57,7 +57,7 @@ private:
     std::queue<ParallelWorkQueue::Task*> taskQueue;
     std::mutex queueMutex;
     std::condition_variable waitForTaskCondition, queueFullCondition;
-    std::vector<std::thread> threads;
+    SimTK::Array_<std::thread> threads;
 };
 
 } // namespace SimTK
