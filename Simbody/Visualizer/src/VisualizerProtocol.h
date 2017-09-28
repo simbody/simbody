@@ -28,6 +28,7 @@
 #include "simbody/internal/Visualizer.h"
 #include <pthread.h>
 #include <utility>
+#include <map>
 
 /** @file
  * This file defines commands that are used for communication between the 
