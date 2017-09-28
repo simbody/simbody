@@ -27,7 +27,6 @@
 #include "SimTKcommon/internal/ParallelExecutor.h"
 #include "SimTKcommon/internal/Array.h"
 
-#include <pthread.h>
 #include <thread>
 #include <iostream>
 
@@ -73,11 +72,11 @@ public:
     bool isFinished() {
         return finished;
     }
-    pthread_mutex_t* getLock() {
-        return &runLock;
+    std::mutex& getMutex() {
+        return runMutex;
     }
-    pthread_cond_t* getCondition() {
-        return &runCondition;
+    std::condition_variable& getCondition() {
+        return runCondition;
     }
     int getMaxThreads() const{
       return numMaxThreads;
@@ -85,11 +84,10 @@ public:
     void incrementWaitingThreads();
     static thread_local bool isWorker;
 private:
-    void init();
     bool finished;
-    pthread_mutex_t runLock;
-    pthread_cond_t runCondition, waitCondition;
-    Array_<pthread_t> threads;
+    std::mutex runMutex;
+    std::condition_variable runCondition, waitCondition;
+    Array_<std::thread> threads;
     Array_<ThreadInfo*> threadInfo;
     ParallelExecutor::Task* currentTask;
     int currentTaskCount;

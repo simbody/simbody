@@ -23,7 +23,6 @@
 
 #include "ParallelExecutorImpl.h"
 #include "SimTKcommon/internal/ParallelExecutor.h"
-#include <pthread.h>
 
 #include <iostream>
 #include <string>
@@ -42,8 +41,6 @@ ParallelExecutorImpl::ParallelExecutorImpl() : finished(false) {
     numMaxThreads = ParallelExecutor::getNumProcessors();
     if(numMaxThreads <= 0)
       numMaxThreads = 1;
-
-    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
 
@@ -51,39 +48,25 @@ ParallelExecutorImpl::ParallelExecutorImpl(int numThreads) : finished(false) {
     SimTK_APIARGCHECK_ALWAYS(numThreads > 0, "ParallelExecutorImpl",
                  "ParallelExecutorImpl", "Number of threads must be positive.");
     numMaxThreads = numThreads;
-
-    ParallelExecutorImpl::init();
 }
 ParallelExecutorImpl::~ParallelExecutorImpl() {
     
     // Notify the threads that they should exit.
     
-    pthread_mutex_lock(&runLock);
+    std::unique_lock<std::mutex> lock(runMutex);
     finished = true;
     for (int i = 0; i < (int) threads.size(); ++i)
         threadInfo[i]->running = true;
-    pthread_cond_broadcast(&runCondition);
-    pthread_mutex_unlock(&runLock);
+    runCondition.notify_all();
+    lock.unlock();
     
     // Wait until all the threads have finished.
     
     for (int i = 0; i < (int) threads.size(); ++i)
-        pthread_join(threads[i], NULL);
-    
-    // Clean up threading related objects.
-    
-    pthread_mutex_destroy(&runLock);
-    pthread_cond_destroy(&runCondition);
-    pthread_cond_destroy(&waitCondition);
+        threads[i].join();
 }
 ParallelExecutorImpl* ParallelExecutorImpl::clone() const {
     return new ParallelExecutorImpl(numMaxThreads);
-}
-void ParallelExecutorImpl::init()
-{
-  pthread_mutex_init(&runLock, NULL);
-  pthread_cond_init(&runCondition, NULL);
-  pthread_cond_init(&waitCondition, NULL);
 }
 void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
   if (min(times, numMaxThreads) == 1) {
@@ -104,12 +87,13 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
       threads.resize(numMaxThreads);
       for (int i = 0; i < numMaxThreads; ++i) {
           threadInfo.push_back(new ThreadInfo(i, this));
-          pthread_create(&threads[i], NULL, threadBody, threadInfo[i]);
+          // TODO change signature of threadBody.
+          threads[i] = std::thread(threadBody, threadInfo[i]);
       }
     }
 
   // Initialize fields to execute the new task.
-  pthread_mutex_lock(&runLock);
+  std::unique_lock<std::mutex> lock(runMutex);
   currentTask = &task;
   currentTaskCount = times;
   waitingThreadCount = 0;
@@ -117,20 +101,19 @@ void ParallelExecutorImpl::execute(ParallelExecutor::Task& task, int times) {
       threadInfo[i]->running = true;
 
   // Wake up the worker threads and wait until they finish.
-  pthread_cond_broadcast(&runCondition);
+  runCondition.notify_all();
   do {
-      pthread_cond_wait(&waitCondition, &runLock);
+      waitCondition.wait(lock);
   } while (waitingThreadCount < (int) threads.size());
-  pthread_mutex_unlock(&runLock);
+  lock.unlock();
 }
 void ParallelExecutorImpl::incrementWaitingThreads() {
-    pthread_mutex_lock(&runLock);
+    std::lock_guard<std::mutex> lock(runMutex);
     getCurrentTask().finish();
     waitingThreadCount++;
     if (waitingThreadCount == (int)threads.size()) {
-        pthread_cond_signal(&waitCondition);
+        waitCondition.notify_one();
     }
-    pthread_mutex_unlock(&runLock);
 }
 
 thread_local bool ParallelExecutorImpl::isWorker(false);
@@ -141,6 +124,7 @@ thread_local bool ParallelExecutorImpl::isWorker(false);
 
 void* threadBody(void* args) {
     ParallelExecutorImpl::isWorker = true;
+    // TODO no need for this:
     ThreadInfo& info = *reinterpret_cast<ThreadInfo*>(args);
     ParallelExecutorImpl& executor = *info.executor;
     int threadCount = executor.getThreadCount();
@@ -148,11 +132,9 @@ void* threadBody(void* args) {
         
         // Wait for a Task to come in.
         
-        pthread_mutex_lock(executor.getLock());
-        while (!info.running) {
-            pthread_cond_wait(executor.getCondition(), executor.getLock());
-        }
-        pthread_mutex_unlock(executor.getLock());
+        std::unique_lock<std::mutex> lock(executor.getMutex());
+        executor.getCondition().wait(lock, [&] { return info.running; });
+        lock.unlock();
         if (!executor.isFinished()) {
             
             // Execute the task for all the indices belonging to this thread.
