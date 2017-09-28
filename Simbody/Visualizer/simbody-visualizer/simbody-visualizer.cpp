@@ -2408,7 +2408,7 @@ void listenForInput() {
                 // Pass a predicate function so that we continue waiting if we
                 // caught a spurious wakeup.
                 sceneHasBeenDrawn.wait(lock,
-                        []{return scene->sceneHasBeenDrawn;});
+                        [&] { return scene->sceneHasBeenDrawn; });
                 // Previous scene has been drawn.
                 delete scene; scene = 0;
             }

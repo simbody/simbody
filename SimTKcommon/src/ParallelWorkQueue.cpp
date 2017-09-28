@@ -42,7 +42,7 @@ static void threadBody(ParallelWorkQueueImpl* owner) {
             decrementTaskCount = false;
         }
         waitForTaskCondition.wait(lock,
-                [&]{ return !taskQueue.empty() || owner->isFinished(); });
+                [&] { return !taskQueue.empty() || owner->isFinished(); });
         ParallelWorkQueue::Task* task = NULL;
         if (!taskQueue.empty()) {
             task = taskQueue.front();
@@ -86,7 +86,7 @@ ParallelWorkQueueImpl* ParallelWorkQueueImpl::clone() const {
 void ParallelWorkQueueImpl::addTask(ParallelWorkQueue::Task* task) {
     std::unique_lock<std::mutex> lock(queueMutex);
     queueFullCondition.wait(lock,
-            [this]{ return (int)taskQueue.size() < queueSize; });
+            [this] { return (int)taskQueue.size() < queueSize; });
     taskQueue.push(task);
     ++pendingTasks;
     waitForTaskCondition.notify_one();
@@ -94,7 +94,7 @@ void ParallelWorkQueueImpl::addTask(ParallelWorkQueue::Task* task) {
 
 void ParallelWorkQueueImpl::flush() {
     std::unique_lock<std::mutex> lock(queueMutex);
-    queueFullCondition.wait(lock, [this]{ return pendingTasks == 0; });
+    queueFullCondition.wait(lock, [this] { return pendingTasks == 0; });
 }
 
 queue<ParallelWorkQueue::Task*>& ParallelWorkQueueImpl::updTaskQueue() {
